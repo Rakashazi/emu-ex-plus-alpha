@@ -1,0 +1,367 @@
+#pragma once
+
+#include <util/jni.hh>
+#include <util/Motion.hh>
+#include <util/branch.h>
+
+extern TimedMotion<GC> projAngleM;
+fbool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
+fbool glPointerStateHack = 0;
+
+#ifdef CONFIG_BLUETOOTH
+	#include "bluez.hh"
+#endif
+
+namespace Base
+{
+
+namespace Surface
+{
+	static const int ROTATION_0 = 0, ROTATION_90 = 1, ROTATION_180 = 2, ROTATION_270 = 3;
+
+	static bool isSidewaysOrientation(int o)
+	{
+		return o == ROTATION_90 || o == ROTATION_270;
+	}
+
+	static bool isStraightOrientation(int o)
+	{
+		return o == ROTATION_0 || o == ROTATION_180;
+	}
+
+	static bool orientationsAre90DegreesAway(int o1, int o2)
+	{
+		switch(o1)
+		{
+			default: bug_branch("%d", o1);
+			case ROTATION_0:
+			case ROTATION_180:
+				return isSidewaysOrientation(o2);
+			case ROTATION_90:
+			case ROTATION_270:
+				return isStraightOrientation(o2);
+		}
+	}
+}
+
+using namespace Surface;
+
+JNIEnv* jEnv = 0;
+jclass jBaseActivityCls = 0;
+jobject jBaseActivity = 0;
+static JavaInstMethod jSetRequestedOrientation;
+static JavaInstMethod jAddNotification, jRemoveNotification;
+static jobject vibrator = 0;
+static jclass vibratorCls = 0;
+static JavaInstMethod jVibrate;
+const char *appPath = 0;
+static uint aSDK = aMinSDK;
+static int osOrientation = -1;
+static float androidXDPI = 0, androidYDPI = 0, // DPI reported by OS
+		xDPI = 0, yDPI = 0; // Active DPI
+int devType = DEV_TYPE_GENERIC;
+static int aHardKeyboardState = 0;
+static const char *filesDir = 0, *eStoreDir = 0;
+static bool hasPermanentMenuKey = 1;
+
+static const GC orientationDiffTable[4][4] =
+{
+		{ 0, -90, 180, 90 },
+		{ 90, 0, -90, 180 },
+		{ 180, 90, 0, -90 },
+		{ -90, 180, 90, 0 },
+};
+
+static void setupDPI();
+static bool hardKeyboardIsPresent();
+
+// Public implementation
+
+void exitVal(int returnVal)
+{
+	logMsg("called exit");
+	appState = APP_EXITING;
+	//callSafe(onAppExitHandler, onAppExitHandlerCtx, 0);
+	onExit(0);
+	jEnv->CallVoidMethod(jBaseActivity, jRemoveNotification.m);
+	logMsg("exiting");
+	::exit(returnVal);
+}
+void abort() { ::abort(); }
+
+void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
+
+//void openURL(const char *url) { };
+
+const char *documentsPath() { return filesDir; }
+const char *storagePath() { return eStoreDir; }
+
+bool hasHardwareNavButtons() { return hasPermanentMenuKey; }
+
+int runningDeviceType()
+{
+	return devType;
+}
+
+void setDPI(float dpi)
+{
+	if(dpi == 0) // use device reported DPI
+	{
+		xDPI = androidXDPI;
+		yDPI = androidYDPI;
+		logMsg("set DPI from OS %f,%f", (double)xDPI, (double)yDPI);
+	}
+	else
+	{
+		xDPI = yDPI = dpi;
+		logMsg("set DPI override %f", (double)dpi);
+	}
+	setupDPI();
+	Gfx::setupScreenSize();
+}
+
+bool isInputDevPresent(uint type)
+{
+	switch(type)
+	{
+		case InputEvent::DEV_KEYBOARD:
+			if(hardKeyboardIsPresent()) logMsg("hard keyboard present");
+			return hardKeyboardIsPresent();
+		#ifdef CONFIG_BLUETOOTH
+		//case InputEvent::DEV_WIIMOTE: return Bluetooth::wiimotes();
+		//case InputEvent::DEV_ICONTROLPAD: return Bluetooth::iCPs();
+		#endif
+	}
+	return 0;
+}
+
+void vibrate(uint ms)
+{
+	assert(vibratorCls);
+	if(vibrator)
+	{
+		//logDMsg("vibrating for %u ms", ms);
+		jEnv->CallVoidMethod(vibrator, jVibrate.m, (jlong)ms);
+	}
+}
+
+void addNotification(const char *onShow, const char *title, const char *message)
+{
+	logMsg("adding notificaion icon");
+	jEnv->CallVoidMethod(jBaseActivity, jAddNotification.m, jEnv->NewStringUTF(onShow), jEnv->NewStringUTF(title), jEnv->NewStringUTF(message));
+}
+
+// Private implementation
+
+void setSDK(uint sdk)
+{
+	aSDK = sdk;
+	logMsg("SDK API Level: %d", aSDK);
+}
+
+uint androidSDK()
+{
+	return IG::max(aMinSDK, aSDK);
+}
+
+static void resizeEvent(uint x, uint y)
+{
+	var_copy(prevTriggerGfxResize, triggerGfxResize);
+	generic_resizeEvent(x, y);
+	if(prevTriggerGfxResize != triggerGfxResize)
+	{
+		setupDPI();
+	}
+}
+
+static void setupDPI()
+{
+	assert(newXSize);
+	assert(osOrientation != -1);
+	float xdpi = isStraightOrientation(osOrientation) ? xDPI : yDPI;
+	float ydpi = isStraightOrientation(osOrientation) ? yDPI : xDPI;
+	Gfx::viewMMWidth_ = ((float)newXSize / xdpi) * 25.4;
+	Gfx::viewMMHeight_ = ((float)newYSize / ydpi) * 25.4;
+	logMsg("calc display size %dx%d MM", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
+}
+
+static void initialScreenSizeSetup(uint w, uint h)
+{
+	newXSize = w;
+	newYSize = h;
+	setupDPI();
+	if(androidSDK() < 9 && unlikely(Gfx::viewMMWidth_ > 9000)) // hack for Archos Tablets
+	{
+		logMsg("screen size over 9000! setting to something sane");
+		androidXDPI = xDPI = 220;
+		androidYDPI = yDPI = 220;
+		setupDPI();
+	}
+}
+
+static void setDeviceType(const char *dev)
+{
+	#ifdef __ARM_ARCH_7A__
+	//if(strstr(board, "sholes"))
+	if(androidSDK() > 8 && (strstr(dev, "R800") || string_equal(dev, "zeus")))
+	{
+		logMsg("running on Xperia Play");
+		devType = DEV_TYPE_XPERIA_PLAY;
+	}
+	/*else if(testSDKGreater(10) && strstr(dev, "wingray"))
+	{
+		logMsg("running on Xoom");
+		devType = DEV_TYPE_XOOM;
+	}*/
+	else if(androidSDK() < 11 && (strstr(dev, "shooter") || string_equal(dev, "inc")))
+	{
+		// Evo 3D/Shooter, & HTC Droid Incredible hack
+		logMsg("device needs glFinish() hack");
+		glSyncHackBlacklisted = 1;
+	}
+	else if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
+	{
+		logMsg("device needs gl*Pointer() hack");
+		glPointerStateHack = 1;
+	}
+	#endif
+}
+
+// NAVHIDDEN_* mirrors KEYSHIDDEN_*
+
+static const char *hardKeyboardNavStateToStr(int state)
+{
+	switch(state)
+	{
+		case ACONFIGURATION_KEYSHIDDEN_NO: return "no";
+		case ACONFIGURATION_KEYSHIDDEN_YES: return "yes";
+		default: return "undefined";
+	}
+}
+
+static bool hardKeyboardIsPresent()
+{
+	return aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
+}
+
+static void setHardKeyboardState(int hardKeyboardState)
+{
+	if(aHardKeyboardState != hardKeyboardState)
+	{
+		aHardKeyboardState = hardKeyboardState;
+		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
+		const InputDevChange change = { 0, InputEvent::DEV_KEYBOARD, hardKeyboardIsPresent() ? InputDevChange::SHOWN : InputDevChange::HIDDEN };
+		//callSafe(onInputDevChangeHandler, onInputDevChangeHandlerCtx, change);
+		onInputDevChange(change);
+	}
+}
+
+static void setupVibration(JNIEnv* jEnv)
+{
+	if(!vibratorCls)
+	{
+		//logMsg("setting up Vibrator class");
+		vibratorCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/os/Vibrator"));
+		jVibrate.setup(jEnv, vibratorCls, "vibrate", "(J)V");
+	}
+}
+
+#ifdef CONFIG_GFX_SOFT_ORIENTATION
+/*CLINK JNIEXPORT void JNICALL LVISIBLE Java_com_imagine_BaseActivity_setOrientation(JNIEnv* env, jobject thiz, jint o)
+{
+	logMsg("orientation sensor change");
+	preferedOrientation = o;
+	if(gfx_setOrientation(o))
+		postRenderUpdate();
+}*/
+
+static bool autoOrientationState = 0; // Defaults to off in Java code
+
+void setAutoOrientation(bool on)
+{
+	if(autoOrientationState == on)
+	{
+		//logMsg("auto orientation already in state: %d", (int)on);
+		return;
+	}
+	autoOrientationState = on;
+	if(!on)
+		preferedOrientation = rotateView;
+	logMsg("setting auto-orientation: %s", on ? "on" : "off");
+	jEnv->CallStaticVoidMethod(jSetAutoOrientation.c, jSetAutoOrientation.m, (jbyte)on, (jint)rotateView);
+}
+
+#else
+
+static bool setOrientationOS(int o)
+{
+	logMsg("OS orientation change");
+	assert(osOrientation != -1);
+	if(osOrientation != o)
+	{
+		/*if((isSidewaysOrientation(osOrientation) && !isSidewaysOrientation(o)) ||
+			(!isSidewaysOrientation(osOrientation) && isSidewaysOrientation(o)))*/
+		/*if(orientationsAre90DegreesAway(o, osOrientation))
+		{
+			logMsg("rotating screen DPI");
+			IG::swap(androidXDPI, androidYDPI);
+			IG::swap(xDPI, yDPI);
+			//setupDPI();
+			//Gfx::setupScreenSize();
+		}*/
+
+		if(androidSDK() < 11)
+		{
+			GC rotAngle = orientationDiffTable[osOrientation][o];
+			logMsg("animating from %d degrees", (int)rotAngle);
+			projAngleM.initLinear(IG::toRadians(rotAngle), 0, 10);
+		}
+		//logMsg("new value %d", o);
+		osOrientation = o;
+		return 1;
+	}
+	return 0;
+
+}
+
+#endif
+
+}
+
+#ifndef CONFIG_GFX_SOFT_ORIENTATION
+namespace Gfx
+{
+
+uint setOrientation(uint o)
+{
+	using namespace Base;
+	logMsg("requested orientation change to %s", orientationName(o));
+	/*if(o == VIEW_ROTATE_AUTO)
+	{
+		// set auto
+		jEnv->CallVoidMethod(jBaseActivity, jSetRequestedOrientation.m, -1); // SCREEN_ORIENTATION_UNSPECIFIED
+	}
+	else*/
+	{
+		int toSet;
+		switch(o)
+		{
+			default: bug_branch("%d", o);
+			case VIEW_ROTATE_AUTO: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
+			bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
+			bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
+			bcase VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+			bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 6 : 1; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+		}
+		jEnv->CallVoidMethod(jBaseActivity, jSetRequestedOrientation.m, toSet);
+	}
+	return 1;
+}
+
+uint setValidOrientations(uint oMask, bool manageAutoOrientation)
+{
+	return setOrientation(oMask);
+}
+
+}
+#endif

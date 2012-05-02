@@ -1,0 +1,502 @@
+This document gives a brief description of the known hardware features of the
+SNES giving you some idea what SNES emulation authors are up against.
+
+Quick Overview
+--------------
+
+o 65c816 CPU running at up to 3.58MHz.
+
+o SPC700 CPU core running at 2.48MHz with built-in custom sound digital
+  signal processor.
+
+o Two custom graphics processors used to produce displays of up to 512x478
+  pixels with up to 32768 colours, 128 sprites, scaling, rotation, and mosaic
+  effects, scrolling over a virtual screen, transparency, coloured lens and
+  window effects and raster effects.
+
+o 128k work RAM, 64k sound CPU RAM and 64k video RAM.
+
+Game packs can include:
+
+o Up to 6MBytes (or more) of ROM containing the game code, graphics and sound
+  data.
+
+o Additional, battery-backed RAM (S-RAM) used to save game positions.
+
+o 10.5/21MHz RISC CPU (Super FX) used to implement some 3D games and add
+  special effects to games.
+
+o A maths co-processor (DSP1) used by some games with lots of physics
+  calculations involved (Pilot Wings) or mainly as a protection device
+  (Mario Kart).
+
+o Other custom chips produced by some software companies to help speed up
+  games, fit more graphics into a given sized ROM or act as a protection
+  device.
+
+Users could buy:
+
+o A five player adapter, allowing up to five people to play at once on games
+  that supported it.
+
+o A 2-button mouse, originally supplied with a paint program.
+
+o A light-gun that looked like riffle; it used infra-red to provide wire-less
+  communication between the gun and the console unit. About 10 games
+  supported it.
+
+o A GameBoy adapter that allowed the owners to play GameBoy games on their
+  SNES, some in colour.
+
+o Copier units that plugged into the cartridge slot on the SNES and allowed
+  game pak ROMs to be downloaded into RAM on the copier and saved onto
+  disk. The game could then be played without the original ROM being present
+  - unless the game pack contained additional hardware, or the game ROM code
+  tried to detect the copier being present and deliberately crashed the game.
+
+More Detail
+-----------
+
+65c816
+------
+
+The 65c816 is an 8/16-bit CPU that is basically an enhanced 6502: it even
+has an emulation mode to make it behave almost exactly like a real 6502. No
+doubt Nintendo were hoping to provide a compatibility mode for old NES
+games, but failed.
+
+The CPU features a 24-bit address bus and 8-bit data bus allowing a 16Mb
+address space. It has an accumulator and two index registers, all can be
+switch to either 8 or 16-bit mode.
+
+The address space is broken up into 256 banks, each bank being 64k in size,
+although there are addressing modes to treat the entire address space as one
+continuous block. Bank 0 is special in that the stack, a few addressing
+modes and the interrupt and reset vectors all reside there. The stack
+pointer is 16-bits wide.
+
+The 6502 has an addressing mode called zero-page, where the 1-byte address
+specified in the instruction refers to a location in the first 256 bytes of
+memory, allowing for 2-byte instructions and increased execution speed. The
+65c816 extends this idea by allowing the 'zero-page' to be moved anywhere
+inside bank 0 by use of the 16-bit direct page register.
+
+There are other addressing modes available that use the bank specified in
+the data bank register, again to help reduce code size and speed up
+execution.
+
+Code normally executes in single bank at a time, the current bank number
+being specified by the 8-bit program bank register.  There are instructions
+available to call subroutines in other banks or just jump to code in other
+banks.
+
+The 65c816 internally runs at 3.58MHz, but other SNES hardware can temporarily
+slow it down to 2.58MHz or even 1.56MHz when the CPU attempts read from them
+or write to them. In particular, there are a mixture of fast and slow ROMs
+inside game packs, slow ROMs can only be accessed at 2.58MHz.
+
+The 65c816 has direct access to 128k of work RAM plus any additional RAM that
+might be in the game pack. Video RAM and sound RAM cannot be accessed
+directly.
+
+SPC700
+------
+
+The SPC700 is an 8-bit CPU core, similar to a 6502, but with a different
+instruction set, some new addressing modes and multiple and divide
+instructions, together with a custom sound digital signal processor, all
+contained inside one module.
+
+The SPC700 and the 65c816 communicate via 4 bi-directional, 8-bit I/O ports.
+The SPC700 has its own 64k RAM used to store a program downloaded from 65c816
+and sound sample data. 
+
+The CPU has a built-in, small, 64 byte ROM used as boot-strap code to
+download a more complex program and sample data from the game ROM via the
+65c816. The ROM can be switched off and replaced with 64 bytes of RAM once
+the boot-strap code has done its work.
+
+The sound DSP can only play compresses sound samples, compressed using a
+custom fixed-ratio compression algorithm that compresses 16 16-bit samples
+into 8 bytes plus a one byte header. The minimum unit of a sample is one
+block. The block header byte contains a shift and filter value (algorithm
+decompression information) plus a last block flag and a loop flag; the loop
+flag is only used if the last block flag is also set.
+
+There are 8 separate sound channels allowing up to 8 samples to be played
+simultaneously. Each sound channel has a left and right volume setting and
+frequency setting. A hardware volume envelope can be defined for each
+channel, and echo effects can be turned on and off individually for each
+channel. The combined echo waveform can be subjected to an 8-tap FIR
+digital filter. The wave output of a channel can be used to modulate the
+frequency of the next sound channel, in numerical order.
+
+The DSP also has a white noise source that can played on a sound channel
+instead of sample data. All 8 channels, and any echo sound data, are mixed
+together and subjected to a left and right master volume control.
+
+The DSP also provides 3 interval timers, the first two running at 8kHz and
+the last at 64kHz; games normally only use one of them to provide a constant
+music playback rate.
+
+Interrupts
+----------
+
+The 65c816 provides two external interrupt sources: IRQ, which can be masked,
+and NMI, which cannot. 
+
+The IRQ line is connected to an output on one of the graphics chips, that,
+it turn can be programmed to generate an IRQ at the start of a scanline, at
+a particular position on a scanline or at a particular position of every
+scanline. The IRQ line also is connected to one of the pins on the ROM
+connector, so additional hardware inside the ROM game pak, such as the Super FX
+and SA-1 chips, can also generate interrupts.
+
+The NMI line is connected to another output of one of the graphics chips and
+it can be programmed to generate an interrupt when the vertical blank period
+starts.
+
+The SPC700 chip can also generate interrupts, but they are not used on the
+SNES and probably physically not connected.
+
+Joypad Reading
+--------------
+
+Data from the SNES joy-pads is sent serially between the pad and the console.
+Games can choose to read each bit in, one at a time or allow hardware inside
+one of the custom chips to automatically read the joy-pad values once every
+frame. The game can then read the values from registers.
+
+SNES joy-pads themselves have direction controls and 8 other buttons named
+A, B, X, Y, Left, Right, Start and Select.
+
+Colour Palette
+--------------
+
+The SNES has a 256 entry 15-bit colour palette, allowing for 256 colours on
+screen out of a total palette of 32768. However, games can and do change
+colour entries during a frame, this combined with hardware colour value
+addition and subtraction and an overall brightness setting, can easily boost
+the number of colours on screen to several thousand!
+
+Tiles
+-----
+
+All SNES graphics data is made up of tiles, a tile being an 8x8 block of
+pixels, with each pixel made up of 2, 4 or 8 bits, allowing for 4, 16 or 256
+colours per pixel.
+
+To complicate matters, the SNES hardware stores tile data in planar format,
+that is all the bit 1's of all the pixels of a tile are stored together,
+then all the bit 2's and so on. Its like a sequence of 1-bit deep 8x8 pixel
+blocks.
+
+When a tile is used as background data, a 3-bit palette start address is
+associated with each tile, allowing the programmer to choose a different
+block of colours for each tile from the larger SNES colour palette. Sprites
+can only use tiles of depth 4 (16 colours), but each sprite has a palette
+start address.
+
+Background Graphic Modes
+------------------------
+
+The SNES has eight background graphics modes, each mode varies the number of
+individual background layers available, the depth of each layer and what
+other features are available. Programmers can change the background mode
+during a frame.
+
+The two most commonly used modes are mode 1, which allows two 16-colour
+background layers and one 4-colour layer and mode 7, which allows one 256-
+colour layer, but the layer can be rotated, stretched, squashed, sheared and
+generally messed around with.
+
+Each background is made up 32x32 8x8 tiles. However, the number of tiles in
+each direction can be double as can the individual tile size. This allows for
+a virtual background size of 256x256 up to 1024x1024. Switching to 16x16 tile
+size actually just groups four 8x8 tiles together, there is no true 16x16 tile
+on the SNES.
+
+Backgrounds have a pre-defined priority order - when pixels from one
+background layer overlap on the screen pixels from another background layer,
+the pixels from the lower numbered background are displayed.
+
+Each tile can be flipped horizontally or vertically, has a 3-bit "palette
+number" and a priority bit.  The priority bit is used to make all the pixels
+in the tile appear in front of pixels from another background layer or
+sprite that would otherwise normally appear in front of them. Colour 0 from
+each tile is special and means "transparent", allowing non-transparent
+pixels from background layers or sprites "underneath" to be visible.
+
+Normally only 256x224 or 256x239 pixels are visible on screen and backgrounds
+have a scroll setting that allows the screen to act as a window onto any
+portion of their virtual size.
+
+Two background modes are available that can display up to 512x478 pixels,
+but they're not used by many games because the flicker, caused by the
+interlace used display the image on a standard television, would give game
+players headaches.
+
+Sprites
+-------
+
+The SNES has 128 hardware sprites, each sprite can be made up of one or
+several 16-colour, 8x8 tiles. Each sprite is assigned a number which defines
+its pixel priority when two sprites overlap on screen, it also has a separate
+sprite-to-background priority value which defines whether the sprite should
+appear in front or behind of the various background layers. Each sprite also
+has a 3-bit palette number, horizontal and vertical flip flags, a start tile
+number and, of course, an X and Y position.
+
+There's no way to turn off a sprite - if you don't want it to be visible you
+have to place the sprite at off-screen position.
+
+The SNES hardware seems to impose limits on the number of sprites that can
+appear on each scanline; there are one or two games out there that rely on
+this 'feature' to hide sprites they don't want visible.
+
+Mosaic
+------
+
+The SNES has a hardware mosaic effect. The upper left-hand pixel from a block
+of pixels up to 16 pixels wide can be made to cover the area of the other
+15; the pixel appears up to 16 times its original size. The effect can only
+be used on the background layers, not sprites. All backgrounds share the
+same size setting but the effect can be turned on and off per background
+layer.
+
+Many ROMs combine the mosaic effect with a brightness fade to zoom out of one
+game screen then zoom on to the next.
+
+Offset Per Tile
+---------------
+
+Three of the background screen modes reduce the number of visible background
+layers by one, and use its screen data as per-tile background scroll data
+for the remaining visible layers.
+
+The background modes vary as to whether the vertical and horizontal scroll
+values can both be altered, or just one of them. Tetris Attack uses the
+effect to allow different parts of the screen to scroll vertically at
+different rates.
+
+The horizontal per-tile offset feature is very limited and only allows
+adjustment in steps of 8 pixels.
+
+Mode 7
+------
+
+Nintendo use this background screen mode to really show off the SNES compared
+to the Sega's Mega Drive.
+
+By specifying a centre of rotation and a 2 by 2 transformation matrix, the
+mode 7 screen can be rotated, scaled, stretched, squashed, etc. just by
+writing to a few PPU registers. By varying the values on each scanline, some
+very interesting effects can be produced, these include a perspective
+effect, shears, split-screen zooms, etc.
+
+Each pixel is 8-bit (256 colours per pixel) and the screen itself has a
+virtual screen size of 1024x1024.
+
+Mode 7 has another feature where the number of colours are reduced to 128
+and the spare bit is used to swap a pixel between background layer 0 and 1,
+thus altering the sprite to background priority. This allows some pixels to
+be appear in front of sprites and others appear behind.
+
+Colour Addition / Subtraction
+-----------------------------
+
+The pixels of background layers and sprites can be directed to one of two
+places, the main-screen or the sub-screen. The sub-screen is like a virtual
+screen that cannot normally be seen, but the SNES has hardware that can add
+or subtract the RGB colour palette values of each pixel on the sub-screen to
+or from RGB values of pixels on the main-screen. The effect is that
+background layers on the on the main-screen appear translucent, allowing the
+sub-screen partly to show through. Examples are cloud, mist and water effects.
+
+The effect can be turned on and off for each background layer on the
+main-screen. There's a master switch for sprites as well, but when turned
+on, only sprites with certain colour palette numbers actually have their
+pixel values added to or subtracted from.
+
+The SNES also has a separate fixed colour value; if colour addition or
+subtraction is enabled and there's nothing on the sub-screen, the fixed
+colour is added or subtracted instead. I've seen it used by games to darken
+an area of the screen then overlay a menu on top, to implement a
+fade-to-white effect and to tint an area of the screen a particular colour.
+
+Windows
+-------
+
+The SNES provides two "clip windows". Each window is just an area defined by
+a left and right position. A background layer or all sprites can be selected
+to appear only inside or outside the window.
+
+If both windows are enabled on the same background layer or for all sprites,
+the areas they define are combined using one of four logical combination
+modes: OR, AND, XOR and N-XOR.
+
+If the left and/or right values are altered on each scanline (normally using
+H-DMA), many different shaped windows can be created; I've seen circles,
+pentagons, wavy lines, doughnuts, G's, etc.
+
+There's also the colour window. Each window or both windows can be used to
+define the area of the colour window. When the colour window is enabled for
+the sub-screen, transparency effects occur only inside or outside the colour
+window. When the colour window is enabled for the main-screen, it acts like
+a master clip window, clipping all background layers and sprites and even
+the back-drop colour to the area either inside or outside the colour window;
+in the clipped areas, the sub-screen is displayed or just black.
+
+Direct Colour Mode
+------------------
+
+On the 256 colour background modes, the otherwise unused 3-bit per-tile
+colour palette number can be used in combination with the 8-bit tile pixel
+data to form an 11-bit colour value (2048 colours) without using the SNES
+colour palette registers.
+
+Mode 7 has the same feature, but since mode 7 uses a different tile layout
+with no 3-bit colour palette number, a fixed 256 colours are available
+instead, again without using the SNES colour palette registers.
+
+Interlace
+---------
+
+The SNES normally generates a non-interlaced picture. Interlace can turned
+on and the only thing that happens is that the screen appears to flicker
+slightly due to the way a television works.  However, in the two hi-res.
+background screen modes, if interlace is turned on the vertical resolution
+doubles from 512x224 to 512x448 (or 512x478 if the expand vertical flag is
+also set).
+
+Not many games use the feature due to the flicker introduced by the
+interlace, so its use is normally limited to title screens. However, one
+game I know of, RPM Racing, uses the effect during the game.
+
+DMA
+---
+
+The SNES provides 8 DMA (direct-memory-access) channels, although only one can
+be active at once. Without any intervention of the 65c816 CPU, up to 64K of
+data can be transferred from RAM or ROM to any PPU (picture processing unit)
+register. Since V-RAM, colour palette and sprite position and display data can
+only be written to via PPU registers, DMA provides a very convenient method of
+transferring data faster than the CPU alone could provide. There are PPU
+registers to read or write to the 128k work RAM, so DMA could be used to copy
+data from ROM to RAM as well.
+
+There is also a DMA read mode, where data is transferred from PPU registers
+to RAM.
+
+There are various limitations on DMA - if multiple DMA channels are started
+at once, they execute in order, the numerically lowest one first, then the
+next highest and so on. The 65c816 is stopped while DMA takes place. Each
+DMA operation can only access one 64k bank at once. However, the biggest
+limitation is that DMA can only take place when the graphics chips aren't
+also performing graphics data DMA, i.e. DMA can only be used during the
+v-blank period or when the screen is forcible blanked.
+
+H-DMA
+-----
+
+H-DMA is like DMA in that data is transferred from ROM or RAM to PPU
+registers without the intervention of the CPU. However, instead of all the
+data being transferred in one block, a few bytes are transferred at a time,
+just before the start of the each scanline. 
+
+H-DMA shares the same channels as normal DMA, so each channel can be set up
+for DMA or H-DMA, but since normal DMA only occurs during v-blank and H-DMA
+is disabled during this time, its actually easy to reuse a channel for both
+types of DMA.
+
+There are various H-DMA modes that define how many bytes should be
+transferred each scanline, whether the destination PPU register is 8-bit or
+16-bit, should new data be transferred each scanline, or can the same data
+be reused if a count value hasn't reached zero, etc.
+
+H-DMA gives a very powerful weapon to programmers, it allows PPU register
+values to be easily changed each scanline, so many games can and do use it
+to change screen colours, background scroll values, window shape values,
+mode 7 matrix values, transparency effects, etc. during the frame.
+
+Extra Chips Used by the SNES Inside Some Game Paks
+==================================================
+
+Super FX
+--------
+
+The Super FX is just a fast integer RISC-type processor but with a built-in
+plot instruction that can draw a single pixel in the SNES' planar format into
+a virtual screen very quickly, very handy for 3d polygon rendering. Its a
+strange chip though - no stack, a 512 byte cache and a one stage pipe-line
+that causes the instruction following a branch instruction to be executed.
+Instructions fetched from the cache often execute in a single cycle.
+
+Super FX games came with additional RAM inside the game pak that is used as
+work RAM for the 'FX chip and as save-game positions, if the ROM supports it.
+
+The 'FX chip has 16 16-bit registers and built-in fast integer multiply.
+Although the Super FX and the 65c816 can run in parallel, the 'FX chip can't
+access the game pack ROM or RAM at the same time as the main SNES CPU, so most
+games just get the SNES CPU to execute a wait loop in the SNES work RAM. 
+
+The 'FX can't access the SNES custom hardware chips, so if the 'FX has
+rendered a screen image in its work RAM, it has to go to sleep while the SNES
+CPU copies the screen to video RAM, usually using DMA. The SNES CPU can pass
+parameters to 'FX routines either by writing them into the 'FX work RAM or
+writing directly into the 'FX registers, which it can be accessed by the CPU 
+only when the 'FX chip is sleeping.
+
+There are two versions of the 'FX chip, the original 10MHz chip used in Star
+Fox and limited to 1Mb of ROM access and 64K RAM and a newer version used in
+Yoshi's Island, Doom, Vortex, Winter Gold, Star Fox 2, etc. which can be
+clocked at 21MHz and can access twice as much ROM and RAM.
+
+DSP1
+----
+
+The DSP1 is an early digital signal processor with an on-board ROM,
+manufactured by NEC. The on-board ROM was loaded with a program developed
+by Nintendo to turn the chip into a 3d maths co-processor, able to perform
+most primitive, but time-consuming, calculations required when manipulating
+objects in a 3d coordinate system relatively quickly, compared to the
+speed of the 65c816 CPU alone, that is.
+
+Most of the calculations supported seemed to be those required by a simple
+flight simulator, i.e. the calculations available were choosen with Pilot
+Wings in mind.
+
+The DSP1 has been used in several other games, may be as many as 20, though
+most ignore a lot of the available features. The games include Mario Kart, Top
+Gear 3000, Battle Racers, Super Air Diver and Bases Loaded 2.
+
+SA-1
+----
+
+The SA-1 is a fast, custom 65c816 8/16-bit processor, the same as inside the
+SNES itself, but clocked at 10MHz compared to a maximum of 3.58MHz for the CPU
+inside the SNES.
+
+The SA-1 isn't just a CPU, it also contains some extra circuits developed by
+Nintendo which includes some very fast RAM, a memory mapper, DMA, several
+real-time timers, and the region lock-out chip.
+
+The SNES (or ROM copiers) can only access the ROM inside the game pak via the
+SA-1; and the SA-1 only enables access to the ROM once its internal region
+lock-out chip has verified it has successfully communicated with a lock-out
+chip inside the SNES. This very effectively prevents SNES ROM copiers from
+being able to copy the ROM.
+
+The SA-1 is used in Mario RPG and seems to be used in several other games
+that Nintendo released in 1996 and beyond.
+
+S-DD1
+-----
+
+Very little is known about this chip. It seems to be another digital signal
+processor, possibly made by Texas Instruments, dedicated to decompressing
+graphics data. Only two games I know of use the chip, Street Fighter Alpha 2
+and Star Ocean.
+
+Like the SA-1, the SNES and ROM copiers can only access the ROM via the S-DD1,
+again preventing ROM copiers from dumping the ROM image.

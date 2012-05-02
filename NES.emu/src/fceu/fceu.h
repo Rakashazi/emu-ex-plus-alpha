@@ -1,0 +1,159 @@
+#ifndef _FCEUH
+#define _FCEUH
+
+#include <fs/sys.hh>
+
+extern int fceuindbg;
+extern int newppu;
+void ResetGameLoaded(void);
+
+#define DECLFR(x) uint8 x (uint32 A)
+#define DECLFW(x) void x (uint32 A, uint8 V)
+
+void FCEU_MemoryRand(uint8 *ptr, uint32 size);
+void SetReadHandler(int32 start, int32 end, readfunc func);
+void SetWriteHandler(int32 start, int32 end, writefunc func);
+writefunc GetWriteHandler(int32 a);
+readfunc GetReadHandler(int32 a);
+
+int AllocGenieRW(void);
+void FlushGenieRW(void);
+
+void FCEU_ResetVidSys(void);
+
+void ResetMapping(void);
+void ResetNES(void);
+void PowerNES(void);
+
+void SetAutoFireOffset(int offset);
+void SetAutoFirePattern(int onframes, int offframes);
+void AutoFire(void);
+void FCEUI_Autosave(void);
+
+//mbg 7/23/06
+char *FCEUI_GetAboutString();
+
+extern uint64 timestampbase;
+extern uint32 MMC5HackVROMMask;
+extern uint8 *MMC5HackExNTARAMPtr;
+extern int MMC5Hack;
+extern uint8 *MMC5HackVROMPTR;
+extern uint8 MMC5HackCHRMode;
+extern uint8 MMC5HackSPMode;
+extern uint8 MMC50x5130;
+extern uint8 MMC5HackSPScroll;
+extern uint8 MMC5HackSPPage;
+
+
+#define GAME_MEM_BLOCK_SIZE 131072
+
+extern  uint8  RAM[0x800];            //shared memory modifications
+extern  uint8  GameMemBlock[GAME_MEM_BLOCK_SIZE];   //shared memory modifications
+extern int EmulationPaused;
+
+uint8 FCEU_ReadRomByte(uint32 i);
+
+extern readfunc ARead[0x10000];
+extern writefunc BWrite[0x10000];
+
+enum GI {
+	GI_RESETM2	=1,
+	GI_POWER =2,
+	GI_CLOSE =3,
+	GI_RESETSAVE = 4,
+	GI_WRITESAVE = 5
+};
+
+extern void (*GameInterface)(GI h);
+extern void (*GameStateRestore)(int version);
+
+
+#include "git.h"
+extern FCEUGI *GameInfo;
+extern int GameAttributes;
+
+extern uint8 PAL;
+
+//#include "driver.h"
+
+struct FCEUS {
+	int PAL;
+	int NetworkPlay;
+	int SoundVolume;		//Master volume
+	int TriangleVolume;
+	int Square1Volume;
+	int Square2Volume;
+	int NoiseVolume;
+	int PCMVolume;
+	bool GameGenie;
+
+	//the currently selected first and last rendered scanlines.
+	int FirstSLine;
+	int LastSLine;
+
+	//the number of scanlines in the currently selected configuration
+	int TotalScanlines() { return LastSLine - FirstSLine + 1; }
+
+	//Driver-supplied user-selected first and last rendered scanlines.
+	//Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
+	int UsrFirstSLine[2];
+	int UsrLastSLine[2];
+
+	//this variable isn't used at all, snap is always name-based
+	//bool SnapName;
+	uint32 SndRate;
+#ifdef FCEU_NO_HQ_SOUND
+	static const int soundq = 0;
+#else
+	int soundq;
+#endif
+	int lowpass;
+};
+
+int FCEU_TextScanlineOffset(int y);
+int FCEU_TextScanlineOffsetFromBottom(int y);
+
+extern FCEUS FSettings;
+
+bool CheckFileExists(const char* filename);	//Receives a filename (fullpath) and checks to see if that file exists
+
+#ifndef NDEBUG
+void FCEU_PrintError(const char *format, ...);
+void FCEU_printf(const char *format, ...);
+void FCEU_DispMessage(const char *format, int disppos, ...);
+void FCEU_DispMessageOnMovie(const char *format, ...);
+#else
+static void FCEU_PrintError(const char *format, ...) { }
+static void FCEU_printf(const char *format, ...) { }
+static void FCEU_DispMessage(const char *format, int disppos, ...) { }
+static void FCEU_DispMessageOnMovie(const char *format, ...) { }
+#endif
+extern const char *fceuReturnedError;
+extern FsSys::cPath fdsBiosPath;
+void FCEU_TogglePPU();
+
+void SetNESDeemph(uint8 d, int force);
+void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor);
+void FCEU_PutImage(void);
+#ifdef FRAMESKIP
+void FCEU_PutImageDummy(void);
+#endif
+
+extern uint8 Exit;
+extern uint8 pale;
+extern uint8 vsdip;
+
+//#define FCEUDEF_DEBUGGER //mbg merge 7/17/06 - cleaning out conditional compiles
+
+#define JOY_A   1
+#define JOY_B   2
+#define JOY_SELECT      4
+#define JOY_START       8
+#define JOY_UP  0x10
+#define JOY_DOWN        0x20
+#define JOY_LEFT        0x40
+#define JOY_RIGHT       0x80
+#endif
+
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+

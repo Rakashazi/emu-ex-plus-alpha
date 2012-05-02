@@ -1,0 +1,253 @@
+; instruction
+; -----------
+; 0 - bit 0
+; 1 - bit 1
+; i - immediate data
+; n - register
+; N - register II
+; e - EA mode
+; E - EA reg
+; f - EA mode II
+; F - EA reg II
+; z - size
+; x - not important
+
+; flags
+; -----
+; two flags, the first is whether the instruction is a
+; privileged one:
+; 0 - normal
+; 1 - only when in supervisor mode
+; the second is whether the instruction ends a block:
+; 0 - does not affect PC
+; 1 - affects PC
+
+; used/set flags
+; --------------
+; used flags - flags which the instruction may look at
+; set flags - flags which the instruction may set
+; 0 - clear
+; 1 - set
+; all else means that flag is used or set
+
+; assembler syntax
+; ----------------
+;
+; name.size source, destination
+;
+; source and destination can be one of:
+; #z             - immediate data of size specified in instruction
+; #B,#W/#L       - immediate data byte/word/long
+; #i             - immedaite data within instruction
+; #I             - immediate data within instruction, excluding 0.
+; #s             - immediate data within instruction sign extended
+; e(...)/f(...)  - effective address (see keywords below)
+; or one of below:
+
+; for dddDDD/sssSSS modes the following define what modes can be used:
+; Dreg - Data register direct (000/register)
+; Areg - Address register direct (001/register)
+; Aind - Address register indirect (010/register)
+; Ainc - Address register indirect postincrement (011/register)
+; Adec - Address register indirect predecrement (100/register)
+; Adis - Address regsiter indirect with displacement (101/register)
+; Aidx - Address register indirect with index (110/register)
+; AbsW - Absolute word (111/000)
+; AbsL - Absolute long (111/001)
+; Pdis - PC with displacement (111/010)
+; Pidx - PC with index (111/011)
+; Imm - Immediate data (111/100)
+
+; * is an alias for all possible modes (default if no qualifier)
+; PC is an alias for either Pdis or Pidx.
+; Regs is an alias for either Dreg or Areg.
+; Amod is an alias for either Ainc or Adec.
+
+; instruction		flags	used	set	name[.size][ src[,dst]]
+
+0000 0000 zz eee EEE	0 0	-----	-NZ00	OR.z       #z,e(*,-Areg,-Imm,-PC)
+0000 0000 00 111 100	0 0	XNZVC	-----	ORSR.B     #B
+0000 0000 01 111 100	1 0	XNZVC	-----	ORSR.W     #W
+
+0000 0010 zz eee EEE	0 0	-----	-NZ00	AND.z      #z,e(*,-Areg,-Imm,-PC)
+0000 0010 00 111 100	0 0	XNZVC	-----	ANDSR.B    #B
+0000 0010 01 111 100	1 0	XNZVC	-----	ANDSR.W    #W
+
+0000 0100 zz eee EEE	0 0	-----	XNZVC	SUB.z      #z,e(*,-Areg,-Imm,-PC)
+0000 0110 zz eee EEE	0 0	-----	XNZVC	ADD.z      #z,e(*,-Areg,-Imm,-PC)
+
+0000 1000 00 eee EEE	0 0	-----	--Z--	BTST.B     #B,e(*,-Regs,-Imm)
+0000 1000 01 eee EEE	0 0	-----	--Z--	BCHG.B     #B,e(*,-Regs,-Imm,-PC)
+0000 1000 10 eee EEE	0 0	-----	--Z--	BCLR.B     #B,e(*,-Regs,-Imm,-PC)
+0000 1000 11 eee EEE	0 0	-----	--Z--	BSET.B     #B,e(*,-Regs,-Imm,-PC)
+0000 1000 00 eee EEE	0 0	-----	--Z--	BTST.L     #B,e(Dreg)
+0000 1000 01 eee EEE	0 0	-----	--Z--	BCHG.L     #B,e(Dreg)
+0000 1000 10 eee EEE	0 0	-----	--Z--	BCLR.L     #B,e(Dreg)
+0000 1000 11 eee EEE	0 0	-----	--Z--	BSET.L     #B,e(Dreg)
+
+0000 1010 00 111 100	0 0	XNZVC	-----	EORSR.B    #B
+0000 1010 01 111 100	1 0	XNZVC	-----	EORSR.W    #W
+0000 1010 zz eee EEE	0 0	-----	-NZ00	EOR.z      #z,e(*,-Areg,-Imm,-PC)
+0000 1100 zz eee EEE	0 0	-----	-NZVC	CMP.z      #z,e(*,-Areg,-Imm,-PC)
+
+0000 nnn1 00 001 NNN	0 0	-----	-----	MOVEPMR.W  N(Adis),n(Dreg)
+0000 nnn1 01 001 NNN	0 0	-----	-----	MOVEPMR.L  N(Adis),n(Dreg)
+0000 nnn1 10 001 NNN	0 0	-----	-----	MOVEPRM.W  n(Dreg),N(Adis)
+0000 nnn1 11 001 NNN	0 0	-----	-----	MOVEPRM.L  n(Dreg),N(Adis)
+; you can do BTST Dx, #nnnn (bit-pos in reg) - weirdo instruction
+0000 nnn1 00 eee EEE	0 0	-----	--Z--	BTST.B     n(Dreg),e(*,-Regs)
+0000 nnn1 01 eee EEE	0 0	-----	--Z--	BCHG.B     n(Dreg),e(*,-Regs,-Imm,-PC)
+0000 nnn1 10 eee EEE	0 0	-----	--Z--	BCLR.B     n(Dreg),e(*,-Regs,-Imm,-PC)
+0000 nnn1 11 eee EEE	0 0	-----	--Z--	BSET.B     n(Dreg),e(*,-Regs,-Imm,-PC)
+0000 nnn1 00 eee EEE	0 0	-----	--Z--	BTST.L     n(Dreg),e(Dreg)
+0000 nnn1 01 eee EEE	0 0	-----	--Z--	BCHG.L     n(Dreg),e(Dreg)
+0000 nnn1 10 eee EEE	0 0	-----	--Z--	BCLR.L     n(Dreg),e(Dreg)
+0000 nnn1 11 eee EEE	0 0	-----	--Z--	BSET.L     n(Dreg),e(Dreg)
+
+0001 FFF fff eee EEE	0 0	-----	-NZ00	MOVE.B     e(*),f(*,-Areg,-Imm,-PC)
+0010 FFF fff eee EEE	0 0	-----	-NZ00	MOVE.L     e(*),f(*,-Areg,-Imm,-PC)
+0010 FFF fff eee EEE	0 0	-----	-----	MOVE.L     e(*),f(Areg)
+0011 FFF fff eee EEE	0 0	-----	-NZ00	MOVE.W     e(*),f(*,-Areg,-Imm,-PC)
+0011 FFF fff eee EEE	0 0	-----	-----	MOVEA.W    e(*),f(Areg)
+
+0100 0000 zz eee EEE	0 0	-----	XNZVC	NEGX.z     e(*,-Areg,-Imm,-PC)
+0100 0010 zz eee EEE	0 0	-0100	XNZVC	CLR.z      e(*,-Areg,-Imm,-PC)
+0100 0100 zz eee EEE	0 0	-----	XNZVC	NEG.z      e(*,-Areg,-Imm,-PC)
+0100 0110 zz eee EEE	0 0	-----	-NZ00	NOT.z      e(*,-Areg,-Imm,-PC)
+0100 0000 11 eee EEE	0 0	XNZVC	-----	MOVEFSR.W  e(*,-Areg,-Imm,-PC)
+0100 0100 11 eee EEE	0 0	-----	XNZVC	MOVETSR.B  e(*,-Areg)
+0100 0110 11 eee EEE	1 0	-----	XNZVC	MOVETSR.W  e(*,-Areg)
+
+0100 1000 00 eee EEE	0 0	X----	XNZVC	NBCD.B     e(*,-Areg,-Imm,-PC)
+0100 1000 01 eee EEE	0 0	-----	-NZ00	SWAP.L     e(Dreg)
+0100 1000 01 eee EEE	0 0	-----	-----	PEA.L      e(*,-Regs,-Imm,-Amod)
+0100 1000 10 eee EEE	0 0	-----	-NZ00	EXT.W      e(Dreg)
+0100 1000 10 eee EEE	0 0	-----	-----	MOVEMRM.W  #W,e(*,-Regs,-Ainc,-Imm,-PC)
+0100 1000 11 eee EEE	0 0	-----	-NZ00	EXT.L      e(Dreg)
+0100 1000 11 eee EEE	0 0	-----	-----	MOVEMRM.L  #W,e(*,-Regs,-Ainc,-Imm,-PC)
+0100 1010 zz eee EEE	0 0	-----	-NZ00	TST.z      e(*,-Areg,-Imm,-PC)
+0100 1010 11 eee EEE	0 0	-----	-NZ00	TAS.B      e(*,-Areg,-Imm,-PC)
+0100 1010 11 111 100	0 1	-----	-----	ILLEGAL
+
+0100 1100 10 eee EEE	0 0	-----	-----	MOVEMMR.W  #W,e(*,-Regs,-Adec,-Imm)
+0100 1100 11 eee EEE	0 0	-----	-----	MOVEMMR.L  #W,e(*,-Regs,-Adec,-Imm)
+
+0100 1110 01 00 iiii	0 1	XNZVC	-----	TRAP       #i
+0100 1110 01 01 0nnn	0 0	-----	-----	LINK.L     #W,n(Areg)
+0100 1110 01 01 1nnn	0 0	-----	-----	UNLK.L     n(Areg)
+0100 1110 01 10 0nnn	0 0	-----	-----	MOVETUSP.L n(Areg)
+0100 1110 01 10 1nnn	0 0	-----	-----	MOVEFUSP.L n(Areg)
+
+0100 1110 01 11 0000	1 1	-----	-----	RESET
+0100 1110 01 11 0001	0 0	-----	-----	NOP
+0100 1110 01 11 0010	1 1	-----	XNZVC	STOP       #W
+0100 1110 01 11 0011	1 1	-----	XNZVC	RTE
+0100 1110 01 11 0101	0 1	-----	-----	RTS
+0100 1110 01 11 0110	0 1	---V-	-----	TRAPV
+0100 1110 01 11 0111	0 1	-----	XNZVC	RTR
+0100 1110 10 eee EEE	0 1	-----	-----	JSR.L      e(*,-Regs,-Amod,-Imm)
+0100 1110 11 eee EEE	0 1	-----	-----	JMP.L      e(*,-Regs,-Amod,-Imm)
+0100 nnn1 10 eee EEE	0 0	-----	-Nxxx	CHK.W      e(*,-Areg),n(Dreg)
+0100 nnn1 11 eee EEE	0 0	-----	-----	LEA.L      e(*,-Regs,-Amod,-Imm),n(Areg)
+
+0101 iii0 zz eee EEE	0 0	-----	XNZVC	ADD.z      #I,e(*,-Areg,-PC,-Imm)
+0101 iii0 01 eee EEE	0 0	-----	-----	ADDA.W     #I,e(Areg)
+0101 iii0 10 eee EEE	0 0	-----	-----	ADDA.L     #I,e(Areg)
+0101 iii1 zz eee EEE	0 0	-----	XNZVC	SUB.z      #I,e(*,-Areg,-PC,-Imm)
+0101 iii1 01 eee EEE	0 0	-----	-----	SUBA.L     #I,e(Areg)
+0101 iii1 10 eee EEE	0 0	-----	-----	SUBA.L     #I,e(Areg)
+
+0101 0000 zz eee EEE	0 0	-----	XNZVC	ADD.z      #8,e(*,-Areg,-PC,-Imm)
+0101 0000 01 eee EEE	0 0	-----	-----	ADDA.W     #8,e(Areg)
+0101 0000 10 eee EEE	0 0	-----	-----	ADDA.L     #8,e(Areg)
+0101 0001 zz eee EEE	0 0	-----	XNZVC	SUB.z      #8,e(*,-Areg,-PC,-Imm)
+0101 0001 01 eee EEE	0 0	-----	-----	SUBA.L     #8,e(Areg)
+0101 0001 10 eee EEE	0 0	-----	-----	SUBA.L     #8,e(Areg)
+
+0101 cccc 11 eee EEE	0 0	XNZVC	-----	Scc.B      e(*,-Areg,-PC,-Imm)
+0101 0001 11 eee EEE	0 0	XNZVC	-----	SF.B       e(*,-Areg,-PC,-Imm)
+0101 cccc 11 001 nnn	0 1	XNZVC	-----	DBcc.W     #W,n(Dreg)
+0101 0001 11 001 nnn	0 1	XNZVC	-----	DBRA.W     #W,n(Dreg)
+
+0110 cccc 0000 0000	0 1	XNZVC	-----	Bcc.W      #W
+0110 0001 0000 0000	0 1	XNZVC	-----	BSR.W      #W
+0110 cccc iiii iiii	0 1	XNZVC	-----	Bcc.B      #I
+0110 0001 iiii iiii	0 1	XNZVC	-----	BSR.B      #I
+
+0111 nnn0 iiii iiii	0 0	-----	-NZ00	MOVE.L     #s,n(Dreg)
+
+1000 nnn0 zz eee EEE	0 0	-----	-NZ00	OR.z       e(*,-Areg),n(Dreg)
+1000 nnn1 zz eee EEE	0 0	-----	-NZ00	OR.z       n(Dreg),e(*,-Regs,-PC,-Imm)
+1000 nnn0 11 eee EEE	0 0	-----	-NZ0C	DIVU.W     e(*,-Areg),n(Dreg)
+1000 nnn1 11 eee EEE	0 0	-----	-NZ0C	DIVS.W     e(*,-Areg),n(Dreg)
+1000 nnn1 00 000 NNN	0 0	X-Z--	XNZVC	SBCD.B     N(Dreg),n(Dreg)
+1000 nnn1 00 001 NNN	0 0	X-Z--	XNZVC	SBCD.B     N(Adec),n(Adec)
+
+1001 nnn0 zz eee EEE	0 0	-----	XNZVC	SUB.z      e(*),n(Dreg)
+1001 nnn1 zz eee EEE	0 0	-----	XNZVC	SUB.z      n(Dreg),e(*,-Regs,-PC,-Imm)
+1001 nnn0 11 eee EEE	0 0	-----	-----	SUBA.W     e(*),n(Areg)
+1001 nnn1 11 eee EEE	0 0	-----	-----	SUBA.L     e(*),n(Areg)
+1001 nnn1 zz 000 NNN	0 0	X-Z--	XNZVC	SUBX.z     N(Dreg),n(Dreg)
+1001 nnn1 zz 001 NNN	0 0	X-Z--	XNZVC	SUBX.z     N(Adec),n(Adec)
+
+1011 nnn0 zz eee EEE	0 0	-----	-NZVC	CMP.z      e(*),n(Dreg)
+1011 nnn0 11 eee EEE	0 0	-----	-NZVC	CMPA.W     e(*),n(Areg)
+1011 nnn1 zz eee EEE	0 0	-----	-NZ00	EOR.z      n(Dreg),e(*,-Areg,-PC,-Imm)
+1011 nnn1 zz 001 NNN	0 0	-----	-NZVC	CMP.z      N(Ainc),n(Ainc)
+1011 nnn1 11 eee EEE	0 0	-----	-NZVC	CMP.L      e(*),n(Areg)
+
+1100 nnn0 zz eee EEE	0 0	-----	-NZ00	AND.z      e(*,-Areg),n(Dreg)
+1100 nnn1 zz eee EEE	0 0	-----	-NZ00	AND.z      n(Dreg),e(*,-Regs,-PC,-Imm)
+1100 nnn0 11 eee EEE	0 0	-----	-NZ00	MULU.W     e(*,-Areg),n(Dreg)
+1100 nnn1 11 eee EEE	0 0	-----	-NZ00	MULS.W     e(*,-Areg),n(Dreg)
+1100 nnn1 00 000 NNN	0 0	X-Z--	XNZVC	ABCD.B     N(Dreg),n(Dreg)
+1100 nnn1 00 001 NNN	0 0	X-Z--	XNZVC	ABCD.B     N(Adec),n(Adec)
+1100 nnn1 01 000 NNN	0 0	-----	-----	EXG.L      N(Dreg),n(Dreg)
+1100 nnn1 01 001 NNN	0 0	-----	-----	EXG.L      N(Areg),n(Areg)
+1100 nnn1 10 001 NNN	0 0	-----	-----	EXG.L      n(Dreg),N(Areg)
+
+1101 nnn0 zz eee EEE	0 0	-----	XNZVC	ADD.z      e(*),n(Dreg)
+1101 nnn1 zz eee EEE	0 0	-----	XNZVC	ADD.z      n(Dreg),e(*,-Regs,-PC,-Imm)
+1101 nnn0 11 eee EEE	0 0	-----	-----	ADDA.W     e(*),n(Areg)
+1101 nnn1 11 eee EEE	0 0	-----	-----	ADDA.L     e(*),n(Areg)
+1101 nnn1 zz 000 NNN	0 0	X-Z--	XNZVC	ADDX.z     N(Dreg),n(Dreg)
+1101 nnn1 zz 001 NNN	0 0	X-Z--	XNZVC	ADDX.z     N(Adec),n(Adec)
+
+1110 iii0 zz 0 00 nnn	0 0	-----	XNZ0C	ASR.z      #I,n(Dreg)
+1110 iii0 zz 0 01 nnn	0 0	-----	XNZ0C	LSR.z      #I,n(Dreg)
+1110 iii0 zz 0 10 nnn	0 0	X----	XNZ0C	ROXR.z     #I,n(Dreg)
+1110 iii0 zz 0 11 nnn	0 0	-----	-NZ0C	ROR.z      #I,n(Dreg)
+1110 0000 zz 0 00 nnn	0 0	-----	XNZ0C	ASR.z      #8,n(Dreg)
+1110 0000 zz 0 01 nnn	0 0	-----	XNZ0C	LSR.z      #8,n(Dreg)
+1110 0000 zz 0 10 nnn	0 0	X----	XNZ0C	ROXR.z     #8,n(Dreg)
+1110 0000 zz 0 11 nnn	0 0	-----	-NZ0C	ROR.z      #8,n(Dreg)
+1110 NNN0 zz 1 00 nnn	0 0	-----	XNZVC	ASR.z      N(Dreg),n(Dreg)
+1110 NNN0 zz 1 01 nnn	0 0	-----	XNZ0C	LSR.z      N(Dreg),n(Dreg)
+1110 NNN0 zz 1 10 nnn	0 0	X----	XNZ0C	ROXR.z     N(Dreg),n(Dreg)
+1110 NNN0 zz 1 11 nnn	0 0	-----	-NZ0C	ROR.z      N(Dreg),n(Dreg)
+
+1110 iii1 zz 0 00 nnn	0 0	-----	XNZ0C	ASL.z      #I,n(Dreg)
+1110 iii1 zz 0 01 nnn	0 0	-----	XNZ0C	LSL.z      #I,n(Dreg)
+1110 iii1 zz 0 10 nnn	0 0	X----	XNZ0C	ROXL.z     #I,n(Dreg)
+1110 iii1 zz 0 11 nnn	0 0	-----	-NZ0C	ROL.z      #I,n(Dreg)
+1110 0001 zz 0 00 nnn	0 0	-----	XNZ0C	ASL.z      #8,n(Dreg)
+1110 0001 zz 0 01 nnn	0 0	-----	XNZ0C	LSL.z      #8,n(Dreg)
+1110 0001 zz 0 10 nnn	0 0	X----	XNZ0C	ROXL.z     #8,n(Dreg)
+1110 0001 zz 0 11 nnn	0 0	-----	-NZ0C	ROL.z      #8,n(Dreg)
+1110 NNN1 zz 1 00 nnn	0 0	-----	XNZVC	ASL.z      N(Dreg),n(Dreg)
+1110 NNN1 zz 1 01 nnn	0 0	-----	XNZ0C	LSL.z      N(Dreg),n(Dreg)
+1110 NNN1 zz 1 10 nnn	0 0	X----	XNZ0C	ROXL.z     N(Dreg),n(Dreg)
+1110 NNN1 zz 1 11 nnn	0 0	-----	-NZ0C	ROL.z      N(Dreg),n(Dreg)
+
+1110 0000 11 eee EEE	0 0	-----	XNZVC	ASR.W      #1,e(*,-Regs,-PC,-Imm)
+1110 0010 11 eee EEE	0 0	-----	XNZ0C	LSR.W      #1,e(*,-Regs,-PC,-Imm)
+1110 0100 11 eee EEE	0 0	X----	XNZ0C	ROXR.W     #1,e(*,-Regs,-PC,-Imm)
+1110 0110 11 eee EEE	0 0	-----	-NZ0C	ROR.W      #1,e(*,-Regs,-PC,-Imm)
+
+1110 0001 11 eee EEE	0 0	-----	XNZVC	ASL.W      #1,e(*,-Regs,-PC,-Imm)
+1110 0011 11 eee EEE	0 0	-----	XNZ0C	LSL.W      #1,e(*,-Regs,-PC,-Imm)
+1110 0101 11 eee EEE	0 0	X----	XNZ0C	ROXL.W     #1,e(*,-Regs,-PC,-Imm)
+1110 0111 11 eee EEE	0 0	-----	-NZ0C	ROL.W      #1,e(*,-Regs,-PC,-Imm)
+
+1010 VVVV VVVV VVVV	0 1	XNZVC	-----	LINE10     #V
+1111 VVVV VVVV VVVV	0 1	XNZVC	-----	LINE15     #V

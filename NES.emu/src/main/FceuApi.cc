@@ -1,0 +1,148 @@
+#define thisModuleName "main"
+
+#include <logger/interface.h>
+#include <fs/Fs.hh>
+#include <stdio.h>
+#include <fceu/driver.h>
+
+bool turbo = 0;
+int closeFinishedMovie = 0;
+
+FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
+{
+	logMsg("opening file %s mode %s", fn, mode);
+	return fopen(fn,mode);
+}
+
+void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }
+
+#ifndef NDEBUG
+void FCEUD_Message(const char *s) { logger_printfn(0, "%s", s); }
+
+void FCEU_DispMessageOnMovie(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	logger_vprintfn(0, format, ap);
+	logger_printfn(0, "\n");
+	va_end(ap);
+}
+
+void FCEU_DispMessage(const char *format, int disppos=0, ...)
+{
+	va_list ap;
+	va_start(ap, disppos);
+	logger_vprintfn(0, format, ap);
+	logger_printfn(0, "\n");
+	va_end(ap);
+}
+#endif
+
+const char *FCEUD_GetCompilerString() { return ""; }
+
+void FCEUD_DebugBreakpoint() { return; }
+
+int FCEUD_ShowStatusIcon(void) { return 0; }
+
+void FCEUD_NetworkClose(void) { }
+
+void FCEUD_VideoChanged() { }
+
+bool FCEUI_AviIsRecording(void) { return 0; }
+
+bool FCEUI_AviDisableMovieMessages() { return 1; }
+
+FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string &fname, int innerIndex) { return 0; }
+FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename) { return 0; }
+ArchiveScanRecord FCEUD_ScanArchive(std::string fname) { return ArchiveScanRecord(); }
+
+EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
+{
+	EMUFILE_FILE *f = new EMUFILE_FILE(fn, m);
+	if(!f->is_open())
+	{
+		delete f;
+		return 0;
+	}
+	else
+		return f;
+}
+
+bool FCEUD_PauseAfterPlayback() { return false; }
+
+bool FCEUD_ShouldDrawInputAids() { return 0; }
+
+void FCEUI_UseInputPreset(int preset) { }
+
+int FCEUD_SendData(void *data, uint32 len) { return 1; }
+
+int FCEUD_RecvData(void *data, uint32 len) { return 1; }
+
+void FCEUD_NetplayText(uint8 *text) { }
+
+void FCEUD_SetEmulationSpeed(int cmd) { }
+
+void FCEUD_SoundVolumeAdjust(int n) { }
+
+void FCEUI_AviVideoUpdate(const unsigned char* buffer) { }
+
+void FCEUD_HideMenuToggle(void) { }
+
+void FCEUD_AviRecordTo() { }
+void FCEUD_AviStop() { }
+
+void FCEUD_MovieReplayFrom() { }
+
+void FCEUD_TurboOn(void) {  }
+void FCEUD_TurboOff(void) {  }
+void FCEUD_TurboToggle(void) {  }
+
+void FCEUD_SoundToggle(void) { }
+
+void FCEUD_ToggleStatusIcon() { }
+
+void FCEUD_MovieRecordTo() { }
+
+void FCEUD_SaveStateAs() { }
+
+void FCEUD_LoadStateFrom() { }
+
+void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp)
+{
+	logMsg("called set input");
+}
+
+// from drawing.cpp
+void DrawTextLineBG(uint8 *dest) { }
+void DrawMessage(bool beforeMovie) { }
+void FCEU_DrawRecordingStatus(uint8* XBuf) { }
+void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur) { }
+void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor) { }
+void DrawTextTransWH(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor, int max_w, int max_h, int border) { }
+
+// from nsf.cpp
+#include <fceu/nsf.h>
+NSF_HEADER NSFHeader;
+void DoNSFFrame(void) { }
+int NSFLoad(const char *name, FCEUFILE *fp) { return 0; }
+
+// from debug.cpp
+volatile int datacount, undefinedcount;
+unsigned char *cdloggerdata;
+int GetPRGAddress(int A) { return 0; }
+
+// from netplay.cpp
+int FCEUnetplay=0;
+int FCEUNET_SendCommand(uint8, uint32) { return 0; }
+void NetplayUpdate(uint8 *joyp) { }
+
+// from movie.cpp
+void FCEUI_MakeBackupMovie(bool dispMessage) { }
+
+// from fceu.cpp
+bool CheckFileExists(const char* filename)
+{
+	return Fs::fileExists(filename);
+}
+
+#undef thisModuleName

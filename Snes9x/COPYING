@@ -1,0 +1,27 @@
+File under src/snes9x-1.43 are covered by the following license:
+
+------------------------------------------------------------------------
+Permission to use, copy, modify and distribute Snes9x in both binary and
+source form, for non-commercial purposes, is hereby granted without fee,
+providing that this license information and copyright notice appear with
+all copies and any derived work.
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event shall the authors be held liable for any damages
+arising from the use of this software.
+
+Snes9x is freeware for PERSONAL USE only. Commercial users should
+seek permission of the copyright holders first. Commercial use includes
+charging money for Snes9x or software derived from Snes9x.
+
+The copyright holders request that bug fixes and improvements to the code
+should be forwarded to them so everyone can benefit from the modifications
+in future versions.
+
+Super NES and Super Nintendo Entertainment System are trademarks of
+Nintendo Co., Limited and its subsidiary companies.
+------------------------------------------------------------------------
+
+All other files are covered by the GPLv3 (see COPYING.GPL).
+
+You must obtain a GPL-exemption from the copyright holders of any GPL code combined with Snes9x for public distributon. Otherwise, only individual use is permitted.
