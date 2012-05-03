@@ -17,6 +17,7 @@
 #include "Wiimote.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
+#include <util/cLang.h>
 #include <util/collection/DLList.hh>
 
 const uchar Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
@@ -231,11 +232,12 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 			{
 				bcase FUNC_GET_EXT_TYPE:
 				{
-					const uchar ccType[6] = { 0x00, 0x00, 0xA4, 0x20, 0x01, 0x01 };
+					// CCs can have 0 or 1 in first byte, check only last 5 bytes
+					const uchar ccType[5] = { /*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x01 };
 					const uchar nunchukType[6] = { 0x00, 0x00, 0xA4, 0x20, 0x00, 0x00 };
 					logMsg("ext type: %X %X %X %X %X %X",
 						packet[7], packet[8], packet[9], packet[10], packet[11], packet[12]);
-					if(memcmp(&packet[7], ccType, 6) == 0)
+					if(memcmp(&packet[8], ccType, sizeof(ccType)) == 0)
 					{
 						logMsg("extension is CC");
 						extension = EXT_CC;

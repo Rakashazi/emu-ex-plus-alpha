@@ -11,7 +11,7 @@ gccVersion := $(shell $(CC) -dumpversion)
 gccFeatures4_6 := $(shell expr $(gccVersion) \>= 4.6)
 
 ifeq ($(gccFeatures4_6), 1)
- WHOLE_PROGRAM_CFLAGS += #-fipa-pta
+ #WHOLE_PROGRAM_CFLAGS += -fipa-pta
  BASE_CXXFLAGS += -std=gnu++0x
  NORMAL_WARNINGS_CFLAGS += -Werror=strict-aliasing
  #NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn

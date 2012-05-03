@@ -281,6 +281,14 @@ static void checkForNonPow2Textures()
 	if(GLEW_ARB_texture_non_power_of_two)
 	#endif
 	{
+		#ifdef CONFIG_BASE_ANDROID
+		if(string_equal(rendererName, "Adreno 200"))
+		{
+			logWarn("Non-Power-of-2 textures disabled due to buggy driver");
+			return;
+		}
+		#endif
+
 		Gfx::textureSizeSupport.nonPow2 = 1;
 		logMsg("Non-Power-of-2 textures are supported");
 	}

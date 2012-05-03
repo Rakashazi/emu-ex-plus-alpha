@@ -23,5 +23,3 @@ WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 system_externalSysroot := /opt/local
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib
-
-allSrc := src/concat/macosx.mm

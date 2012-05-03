@@ -17,5 +17,3 @@ LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu,--sort-common
 
 ENV := linux
 configDefs += CONFIG_ENV_LINUX
-
-allSrc := src/concat/linux.cc

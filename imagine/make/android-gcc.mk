@@ -20,7 +20,7 @@ endif
 
 include $(currPath)/gcc.mk
 
-BASE_CXXFLAGS += -fno-use-cxa-atexit
+#BASE_CXXFLAGS += -fno-use-cxa-atexit
 # -fshort-wchar -funwind-tables -fstack-protector -finline-limit=64 -fno-strict-aliasing
 COMPILE_FLAGS += -fsingle-precision-constant -ffunction-sections -fdata-sections \
 -Wa,--noexecstack $(android_cpuFlags)
@@ -40,5 +40,3 @@ CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
 LDFLAGS += -s -Wl,-O1,--gc-sections,--sort-common
 OPTIMIZE_LDFLAGS +=
 noDoubleFloat=1
-
-allSrc := src/concat/android.cc
