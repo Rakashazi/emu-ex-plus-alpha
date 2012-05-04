@@ -44,7 +44,7 @@ TextureSizeSupport textureSizeSupport =
 	0, // nonPow2
 	1, // nonSquare
 	1, // filtering
-	0, // nowPow2CanMipmap
+	0, // nonPow2CanMipmap
 	0, 0, // minXSize, minYSize
 	0, 0 // maxXSize, maxYSize
 };
@@ -282,9 +282,10 @@ static void checkForNonPow2Textures()
 	#endif
 	{
 		#ifdef CONFIG_BASE_ANDROID
-		if(string_equal(rendererName, "Adreno 200"))
+		if(string_equal(rendererName, "Adreno 200") ||
+				(Base::androidSDK() <= 8 && strstr(rendererName, "Adreno")))
 		{
-			logWarn("Non-Power-of-2 textures disabled due to buggy driver");
+			logWarn("Non-Power-of-2 textures supported but disabled due to buggy driver");
 			return;
 		}
 		#endif

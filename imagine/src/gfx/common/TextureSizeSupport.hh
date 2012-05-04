@@ -8,7 +8,7 @@ public:
 	fbool nonPow2;
 	fbool nonSquare;
 	fbool filtering;
-	fbool nowPow2CanMipmap;
+	fbool nonPow2CanMipmap;
 	uint minXSize, minYSize;
 	uint maxXSize, maxYSize;
 
