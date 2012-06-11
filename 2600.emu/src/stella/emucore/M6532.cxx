@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: M6532.cxx 2412 2012-03-14 01:19:23Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -119,19 +119,8 @@ uInt8 M6532::peek(uInt16 addr)
   {
     case 0x00:    // SWCHA - Port A I/O Register (Joystick)
     {
-      uInt8 value = 0x00;
-
-      Controller& port0 = myConsole.controller(Controller::Left);
-      if(port0.read(Controller::One))   value |= 0x10;
-      if(port0.read(Controller::Two))   value |= 0x20;
-      if(port0.read(Controller::Three)) value |= 0x40;
-      if(port0.read(Controller::Four))  value |= 0x80;
-
-      Controller& port1 = myConsole.controller(Controller::Right);
-      if(port1.read(Controller::One))   value |= 0x01;
-      if(port1.read(Controller::Two))   value |= 0x02;
-      if(port1.read(Controller::Three)) value |= 0x04;
-      if(port1.read(Controller::Four))  value |= 0x08;
+    	uInt8 value = (myConsole.controller(Controller::Left).read() << 4) |
+                     myConsole.controller(Controller::Right).read();
 
       // Each pin is high (1) by default and will only go low (0) if either
       //  (a) External device drives the pin low
@@ -231,14 +220,14 @@ bool M6532::poke(uInt16 addr, uInt8 value)
       case 0:     // SWCHA - Port A I/O Register (Joystick)
       {
         myOutA = value;
-        setPinState();
+        setPinState(true);
         break;
       }
 
       case 1:     // SWACNT - Port A Data Direction Register 
       {
         myDDRA = value;
-        setPinState();
+        setPinState(false);
         break;
       }
 
@@ -271,7 +260,7 @@ void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6532::setPinState()
+void M6532::setPinState(bool swcha)
 {
   /*
     When a bit in the DDR is set as input, +5V is placed on its output
@@ -296,12 +285,18 @@ void M6532::setPinState()
   port1.write(Controller::Two, a & 0x02);
   port1.write(Controller::Three, a & 0x04);
   port1.write(Controller::Four, a & 0x08);
+
+  if(swcha)
+  {
+    port0.controlWrite();
+    port1.controlWrite();
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6532::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
 
@@ -325,9 +320,9 @@ bool M6532::save(Serializer& out) const
     out.putByte((char)myOutTimer[2]);
     out.putByte((char)myOutTimer[3]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: M6532::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: M6532::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -337,7 +332,7 @@ bool M6532::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6532::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -362,9 +357,9 @@ bool M6532::load(Serializer& in)
     myOutTimer[2] = (uInt8) in.getByte();
     myOutTimer[3] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: M6532::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: M6532::load" << endl << "  " << msg << endl;
     return false;
   }
 

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: MT24LC256.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -134,7 +134,7 @@ void MT24LC256::update()
   (jpee_mdat && jpee_sdat && jpee_mclk && (jpee_data_start(),1), jpee_mdat = 0))
 
   // These pins have to be updated at the same time
-  // However, there's no guarantee that the writeSDA() and writeSDL()
+  // However, there's no guarantee that the writeSDA() and writeSCL()
   // methods will be called at the same time or in the correct order, so
   // we only do the write when they have the same 'timestamp'
   if(myCyclesWhenSDASet == myCyclesWhenSCLSet)

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.cxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: Console.cxx 2417 2012-03-16 13:19:29Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -34,6 +34,8 @@
 #include "Keyboard.hxx"
 #include "KidVid.hxx"
 #include "Genesis.hxx"
+#include "MindLink.hxx"
+#include "CompuMate.hxx"
 #include "M6502.hxx"
 #include "M6532.hxx"
 #include "Paddles.hxx"
@@ -66,26 +68,22 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
   : myOSystem(osystem),
+    myEvent(osystem->eventHandler().event()),
     myProperties(props),
+    myTIA(0),
+    mySwitches(0),
+    mySystem(0),
+    myCart(cart),
+    myCMHandler(0),
     myDisplayFormat("NTSC"),
     myFramerate(60.0),
     myUserPaletteDefined(false)
 {
-  myControllers[0] = 0;
-  myControllers[1] = 0;
-  myTIA = 0;
-  mySwitches = 0;
-  mySystem = 0;
-  myEvent = 0;
-
-  // Attach the event subsystem to the current console
-  myEvent = myOSystem->eventHandler().event();
-
   // Load user-defined palette for this ROM
   loadUserPalette();
 
   // Create switches for the console
-  mySwitches = new Switches(*myEvent, myProperties);
+  mySwitches = new Switches(myEvent, myProperties);
 
   // Construct the system and components
   mySystem = new System(13, 6);
@@ -97,15 +95,11 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
   // Note that the controllers must be added directly after the system
   // has been created, and before any other device is added
   // (particularly the M6532)
-  myControllers[0] = new Joystick(Controller::Left, *myEvent, *mySystem);
-  myControllers[1] = new Joystick(Controller::Right, *myEvent, *mySystem);
+  myControllers[0] = new Joystick(Controller::Left, myEvent, *mySystem);
+  myControllers[1] = new Joystick(Controller::Right, myEvent, *mySystem);
 
   M6502* m6502 = new M6502(1);
-#ifdef DEBUGGER_SUPPORT
-  m6502->attach(myOSystem->debugger());
-#endif
 
-  myCart = cart;
   myRiot = new M6532(*this, myOSystem->settings());
   myTIA  = new TIA(*this, myOSystem->sound(), myOSystem->settings());
 
@@ -114,22 +108,21 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
   mySystem->attach(myTIA);
   mySystem->attach(myCart);
 
-#ifdef DEBUGGER_SUPPORT
-  // The debugger must be added before we run the console for the first time
-  myOSystem->debugger().setConsole(this);
-  myOSystem->debugger().initialize();
-#endif
-
   // Auto-detect NTSC/PAL mode if it's requested
   string autodetected = "";
   myDisplayFormat = myProperties.get(Display_Format);
   if(myDisplayFormat == "AUTO-DETECT" ||
      myOSystem->settings().getBool("rominfo"))
   {
-    // Run the system for 60 frames, looking for PAL scanline patterns
+  	// Run the TIA, looking for PAL scanline patterns
     // We turn off the SuperCharger progress bars, otherwise the SC BIOS
     // will take over 250 frames!
     // The 'fastscbios' option must be changed before the system is reset
+
+    // The algorithm used is as follows:
+    //   Run for 60 frames; if there's a frame that has more than 287
+    //   scanlines, count it as PAL
+    //   If at least 25 PAL frames are found, then the format is PAL, else NTSC
     bool fastscbios = myOSystem->settings().getBool("fastscbios");
     myOSystem->settings().setBool("fastscbios", true);
     mySystem->reset(true);  // autodetect in reset enabled
@@ -137,10 +130,10 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     for(int i = 0; i < 60; ++i)
     {
       myTIA->update();
-      if(myTIA->scanlines() > 285)
+      if(myTIA->scanlines() >= 287)
         ++palCount;
     }
-    myDisplayFormat = (palCount >= 20) ? "PAL" : "NTSC";
+    myDisplayFormat = (palCount >= 25) ? "PAL" : "NTSC";
     if(myProperties.get(Display_Format) == "AUTO-DETECT")
       autodetected = "*";
 
@@ -157,8 +150,7 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
 
   // TODO - query these values directly from the TIA if value is 'AUTO'
   uInt32 ystart = atoi(myProperties.get(Display_YStart).c_str());
-  if(ystart < 0)       ystart = 0;
-  else if(ystart > 64) ystart = 64;
+  if(ystart > 64) ystart = 64;
   uInt32 height = atoi(myProperties.get(Display_Height).c_str());
   if(height < 210)      height = 210;
   else if(height > 256) height = 256;
@@ -196,9 +188,9 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     myTIA->setHeight(height);
   }
 
-  const string& md5 = myProperties.get(Cartridge_MD5);
-
   // Add the real controllers for this system
+  // This must be done before the debugger is initialized
+  const string& md5 = myProperties.get(Cartridge_MD5);
   setControllers(md5);
 
   // Bumper Bash always requires all 4 directions
@@ -210,6 +202,11 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
 
   // Reset the system to its power-on state
   mySystem->reset();
+
+#ifdef DEBUGGER_SUPPORT
+  myOSystem->createDebugger(*this);
+  m6502->attach(myOSystem->debugger());
+#endif
 
   // Finally, add remaining info about the console
   myConsoleInfo.CartName   = myProperties.get(Cartridge_Name);
@@ -224,6 +221,7 @@ Console::~Console()
 {
   delete mySystem;
   delete mySwitches;
+  delete myCMHandler;
   delete myControllers[0];
   delete myControllers[1];
 }
@@ -231,19 +229,20 @@ Console::~Console()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Console::save(Serializer& out) const
 {
-  //try
+  try
   {
     // First save state for the system
     if(!mySystem->save(out))
       return false;
 
-    // Now save the console switches
-    if(!mySwitches->save(out))
+    // Now save the console controllers and switches
+    if(!(myControllers[0]->save(out) && myControllers[1]->save(out) &&
+    		mySwitches->save(out)))
       return false;
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Console::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: Console::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -253,19 +252,20 @@ bool Console::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Console::load(Serializer& in)
 {
-  //try
+  try
   {
     // First load state for the system
     if(!mySystem->load(in))
       return false;
 
-    // Then load the console switches
-    if(!mySwitches->load(in))
+    // Then load the console controllers and switches
+    if(!(myControllers[0]->load(in) && myControllers[1]->load(in) &&
+         mySwitches->load(in)))
       return false;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Console::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: Console::load" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -333,6 +333,12 @@ void Console::toggleColorLoss()
   string message = string("PAL color-loss ") +
                    (colorloss ? "enabled" : "disabled");
   myOSystem->frameBuffer().showMessage(message);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::toggleColorLoss(bool state)
+{
+  myTIA->enableColorLoss(state);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -487,10 +493,9 @@ void Console::initializeAudio()
   int framerate = myOSystem->settings().getInt("framerate");
   if(framerate > 0) myFramerate = float(framerate);
   const string& sound = myProperties.get(Cartridge_Sound);
-  uInt32 channels = (sound == "STEREO" ? 2 : 1);
 
   myOSystem->sound().close();
-  myOSystem->sound().setChannels(channels);
+  myOSystem->sound().setChannels(sound == "STEREO" ? 2 : 1);
   myOSystem->sound().setFrameRate(myFramerate);
   myOSystem->sound().open();
 
@@ -531,21 +536,21 @@ void Console::changeYStart(int direction)
 
   if(direction == +1)       // increase YStart
   {
-    ystart++;
-    if(ystart > 64)
+    if(ystart >= 64)
     {
       myOSystem->frameBuffer().showMessage("YStart at maximum");
       return;
     }
+    ystart++;
   }
   else if(direction == -1)  // decrease YStart
   {
-    ystart--;
-    if(ystart < 0)
+    if(ystart == 0)
     {
       myOSystem->frameBuffer().showMessage("YStart at minimum");
       return;
     }
+    ystart--;
   }
   else
     return;
@@ -606,6 +611,17 @@ void Console::setControllers(const string& rommd5)
   const string& left  = myProperties.get(Controller_Left);
   const string& right = myProperties.get(Controller_Right);
 
+  // Check for CompuMate controllers; they are special in that a handler
+  // creates them for us, and also that they must be used in both ports
+  if(left == "COMPUMATE" || right == "COMPUMATE")
+  {
+    delete myCMHandler;
+    myCMHandler = new CompuMate(*((CartridgeCM*)myCart), myEvent, *mySystem);
+    myControllers[0] = myCMHandler->leftController();
+    myControllers[1] = myCMHandler->rightController();
+    return;
+  }
+
   // Swap the ports if necessary
   int leftPort, rightPort;
   if(myProperties.get(Console_SwapPorts) == "NO")
@@ -619,25 +635,22 @@ void Console::setControllers(const string& rommd5)
 
   // Also check if we should swap the paddles plugged into a jack
   bool swapPaddles = myProperties.get(Controller_SwapPaddles) == "YES";
-  // Set default controller for mouse
-  Controller::setMouseIsController(0);
 
   // Construct left controller
   if(left == "BOOSTERGRIP")
   {
-    myControllers[leftPort] = new BoosterGrip(Controller::Left, *myEvent, *mySystem);
+    myControllers[leftPort] = new BoosterGrip(Controller::Left, myEvent, *mySystem);
   }
   else if(left == "DRIVING")
   {
-    myControllers[leftPort] = new Driving(Controller::Left, *myEvent, *mySystem);
+    myControllers[leftPort] = new Driving(Controller::Left, myEvent, *mySystem);
   }
   else if((left == "KEYBOARD") || (left == "KEYPAD"))
   {
-    myControllers[leftPort] = new Keyboard(Controller::Left, *myEvent, *mySystem);
+    myControllers[leftPort] = new Keyboard(Controller::Left, myEvent, *mySystem);
   }
   else if(BSPF_startsWithIgnoreCase(left, "PADDLES"))
   {
-    Controller::setMouseIsController(swapPaddles ? 1 : 0);
     bool swapAxis = false, swapDir = false;
     if(left == "PADDLES_IAXIS")
       swapAxis = true;
@@ -646,45 +659,49 @@ void Console::setControllers(const string& rommd5)
     else if(left == "PADDLES_IAXDR")
       swapAxis = swapDir = true;
     myControllers[leftPort] =
-      new Paddles(Controller::Left, *myEvent, *mySystem,
+      new Paddles(Controller::Left, myEvent, *mySystem,
                   swapPaddles, swapAxis, swapDir);
   }
   else if(left == "TRACKBALL22")
   {
-    myControllers[leftPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[leftPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                             Controller::TrackBall22);
   }
   else if(left == "TRACKBALL80")
   {
-    myControllers[leftPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[leftPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                             Controller::TrackBall80);
   }
   else if(left == "AMIGAMOUSE")
   {
-    myControllers[leftPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[leftPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                             Controller::AmigaMouse);
   }
   else if(left == "GENESIS")
   {
-    myControllers[leftPort] = new Genesis(Controller::Left, *myEvent, *mySystem);
+    myControllers[leftPort] = new Genesis(Controller::Left, myEvent, *mySystem);
+  }
+  else if(left == "MINDLINK")
+  {
+    myControllers[leftPort] = new MindLink(Controller::Left, myEvent, *mySystem);
   }
   else
   {
-    myControllers[leftPort] = new Joystick(Controller::Left, *myEvent, *mySystem);
+    myControllers[leftPort] = new Joystick(Controller::Left, myEvent, *mySystem);
   }
  
   // Construct right controller
   if(right == "BOOSTERGRIP")
   {
-    myControllers[rightPort] = new BoosterGrip(Controller::Right, *myEvent, *mySystem);
+    myControllers[rightPort] = new BoosterGrip(Controller::Right, myEvent, *mySystem);
   }
   else if(right == "DRIVING")
   {
-    myControllers[rightPort] = new Driving(Controller::Right, *myEvent, *mySystem);
+    myControllers[rightPort] = new Driving(Controller::Right, myEvent, *mySystem);
   }
   else if((right == "KEYBOARD") || (right == "KEYPAD"))
   {
-    myControllers[rightPort] = new Keyboard(Controller::Right, *myEvent, *mySystem);
+    myControllers[rightPort] = new Keyboard(Controller::Right, myEvent, *mySystem);
   }
   else if(BSPF_startsWithIgnoreCase(right, "PADDLES"))
   {
@@ -696,48 +713,52 @@ void Console::setControllers(const string& rommd5)
     else if(right == "PADDLES_IAXDR")
       swapAxis = swapDir = true;
     myControllers[rightPort] =
-      new Paddles(Controller::Right, *myEvent, *mySystem,
+      new Paddles(Controller::Right, myEvent, *mySystem,
                   swapPaddles, swapAxis, swapDir);
   }
   else if(right == "TRACKBALL22")
   {
-    myControllers[rightPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[rightPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                              Controller::TrackBall22);
   }
   else if(right == "TRACKBALL80")
   {
-    myControllers[rightPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[rightPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                              Controller::TrackBall80);
   }
   else if(right == "AMIGAMOUSE")
   {
-    myControllers[rightPort] = new TrackBall(Controller::Left, *myEvent, *mySystem,
+    myControllers[rightPort] = new TrackBall(Controller::Left, myEvent, *mySystem,
                                              Controller::AmigaMouse);
   }
   else if(right == "ATARIVOX")
   {
     const string& eepromfile = myOSystem->eepromDir() + "atarivox_eeprom.dat";
-    myControllers[rightPort] = new AtariVox(Controller::Right, *myEvent,
+    myControllers[rightPort] = new AtariVox(Controller::Right, myEvent,
                    *mySystem, myOSystem->serialPort(),
                    myOSystem->settings().getString("avoxport"), eepromfile);
   }
   else if(right == "SAVEKEY")
   {
     const string& eepromfile = myOSystem->eepromDir() + "savekey_eeprom.dat";
-    myControllers[rightPort] = new SaveKey(Controller::Right, *myEvent, *mySystem,
+    myControllers[rightPort] = new SaveKey(Controller::Right, myEvent, *mySystem,
                                            eepromfile);
-  }
-  else if(right == "KIDVID")
-  {
-    myControllers[rightPort] = new KidVid(Controller::Right, *myEvent, *mySystem, rommd5);
   }
   else if(right == "GENESIS")
   {
-    myControllers[rightPort] = new Genesis(Controller::Right, *myEvent, *mySystem);
+    myControllers[rightPort] = new Genesis(Controller::Right, myEvent, *mySystem);
+  }
+  else if(right == "KIDVID")
+  {
+    myControllers[rightPort] = new KidVid(Controller::Right, myEvent, *mySystem, rommd5);
+  }
+  else if(right == "MINDLINK")
+  {
+    myControllers[rightPort] = new MindLink(Controller::Right, myEvent, *mySystem);
   }
   else
   {
-    myControllers[rightPort] = new Joystick(Controller::Right, *myEvent, *mySystem);
+    myControllers[rightPort] = new Joystick(Controller::Right, myEvent, *mySystem);
   }
 }
 
@@ -1121,7 +1142,8 @@ uInt32 Console::ourUserSECAMPalette[256] = { 0 }; // filled from external file
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Console::Console(const Console& console)
-  : myOSystem(console.myOSystem)
+  : myOSystem(console.myOSystem),
+    myEvent(console.myEvent)
 {
   assert(false);
 }

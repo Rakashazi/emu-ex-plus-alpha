@@ -3,10 +3,10 @@
 
 #include <errno.h>
 #include <string.h>
-//#include <exception>
+#include <exception>
 
 #ifdef __cplusplus
-/*class MDFN_Error : public std::exception
+class MDFN_Error : public std::exception
 {
  public:
 
@@ -26,7 +26,7 @@
 
  int errno_code;
  char *error_message;
-};*/
+};
 
 class ErrnoHolder
 {

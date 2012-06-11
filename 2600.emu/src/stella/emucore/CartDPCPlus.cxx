@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.cxx 2279 2011-11-07 22:50:23Z stephena $
+// $Id: CartDPCPlus.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -207,10 +207,10 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
     case 254:
     case 255:
       // Call user written ARM code (most likely be C compiled for ARM)
-      try {
+      /*try*/ {
         myThumbEmulator->run();
       }
-      catch(const string& error) {
+      /*catch(const string& error) {
         if(!mySystem->autodectMode())
         {
       #ifdef DEBUGGER_SUPPORT
@@ -219,7 +219,7 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
           cout << error << endl;
       #endif
         }
-      }
+      }*/
       break;
   #endif
     // reserved
@@ -656,7 +656,7 @@ const uInt8* CartridgeDPCPlus::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPCPlus::save(Serializer& out) const
 {
-  //try
+  try
   {
     uInt32 i;
 
@@ -720,9 +720,9 @@ bool CartridgeDPCPlus::save(Serializer& out) const
     out.putInt(mySystemCycles);
     out.putInt((uInt32)(myFractionalClocks * 100000000.0));
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeDPCPlus::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeDPCPlus::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -732,7 +732,7 @@ bool CartridgeDPCPlus::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPCPlus::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -798,9 +798,9 @@ bool CartridgeDPCPlus::load(Serializer& in)
     mySystemCycles = in.getInt();
     myFractionalClocks = (SysDDec)in.getInt() / 100000000.0;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeDPCPlus::load" << endl << "  " << in.errorMsg << endl;
+  	cerr << "ERROR: CartridgeDPCPlus::load" << endl << "  " << msg << endl;
     return false;
   }
 

@@ -9,18 +9,13 @@ typedef int(*FsDirSortFunc)(const char *name1, long int mtime1, const char *name
 class Fs
 {
 public:
+	constexpr Fs() { }
 	virtual uint numEntries() const = 0;
 	virtual const char *entryFilename(uint index) const = 0;
 	virtual void closeDir() = 0;
 
-	static CallResult changeToAppDir(const char *launchCmd);
-
 	static const uint OPEN_UNSORT = BIT(0);
 	enum { TYPE_NONE = 0, TYPE_FILE, TYPE_DIR };
-
-	static bool fileExists(const char *path);
-
-	static void makePathAbs(const char *path, char *outPath, size_t size);
 
 	static int sortMTime(const char *name1, long int mtime1, const char *name2, long int mtime2)
 	{

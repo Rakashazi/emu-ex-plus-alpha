@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Serializer.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Serializer.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <fstream>
@@ -25,8 +25,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Serializer::Serializer(const string& filename, bool readonly)
-  : errorMsg(0),
-	myStream(NULL),
+  : myStream(NULL),
     myUseFilestream(true)
 {
   if(readonly)
@@ -113,7 +112,7 @@ void Serializer::reset(void)
 char Serializer::getByte(void)
 {
   if(myStream->eof())
-    errorMsg = "Serializer::getByte() end of file";
+    throw "Serializer::getByte() end of file";
 
   char buf;
   myStream->read(&buf, 1);
@@ -125,7 +124,7 @@ char Serializer::getByte(void)
 int Serializer::getInt(void)
 {
   if(myStream->eof())
-    errorMsg = "Serializer::getInt() end of file";
+    throw "Serializer::getInt() end of file";
 
   int val = 0;
   unsigned char buf[4];
@@ -145,7 +144,7 @@ string Serializer::getString(void)
   myStream->read(&str[0], (streamsize)len);
 
   if(myStream->bad())
-    errorMsg = "Serializer::getString() file read failed";
+    throw "Serializer::getString() file read failed";
 
   return str;
 }
@@ -159,7 +158,7 @@ bool Serializer::getBool(void)
   else if(b == (char)FalsePattern)
     return false;
   else
-    errorMsg = "Serializer::getBool() data corruption";
+    throw "Serializer::getBool() data corruption";
 
   return false;  // to stop compiler from complaining
 }
@@ -169,7 +168,7 @@ void Serializer::putByte(char value)
 {
   myStream->write(&value, 1);
   if(myStream->bad())
-    errorMsg = "Serializer::putByte() file write failed";
+    throw "Serializer::putByte() file write failed";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,7 +180,7 @@ void Serializer::putInt(int value)
 
   myStream->write((char*)buf, 4);
   if(myStream->bad())
-    errorMsg = "Serializer::putInt() file write failed";
+    throw "Serializer::putInt() file write failed";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -192,7 +191,7 @@ void Serializer::putString(const string& str)
   myStream->write(str.data(), (streamsize)len);
 
   if(myStream->bad())
-    errorMsg = "Serializer::putString() file write failed";
+    throw "Serializer::putString() file write failed";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

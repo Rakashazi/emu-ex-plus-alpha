@@ -19,14 +19,17 @@ struct TurboInput
 {
 	struct Action
 	{
-		uint action;
-		uchar player;
+		constexpr Action() { }
+		uint action = 0;
+		uchar player = 0;
 
 		bool operator ==(uint rhs) const
 		{
 			return action == rhs;
 		}
 	};
+
+	constexpr TurboInput() { }
 
 	Action activeAction[5];
 

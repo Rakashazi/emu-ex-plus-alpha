@@ -18,13 +18,9 @@ namespace Base
 class ThreadPThread
 {
 public:
-	bool running;
+	bool running = 0;
 
-	constexpr ThreadPThread() : running(0), entry(0), arg(0), id(0)
-	#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
-		, jEnv(nullptr)
-	#endif
-	{ }
+	constexpr ThreadPThread() { }
 
 	bool create(uint type, int (*entry)(ThreadPThread &), void *arg)
 	{
@@ -43,7 +39,7 @@ public:
 			logErr("error in pthread create");
 			return 0;
 		}
-		logMsg("created wrapped pthread %d", (int)id);
+		logMsg("created wrapped pthread %p", (void*)id);
 		running = 1;
 		return 1;
 	}
@@ -62,21 +58,21 @@ public:
 			logErr("error in pthread create");
 			return 0;
 		}
-		logMsg("created pthread %d", (int)id);
+		logMsg("created pthread %p", (void*)id);
 		running = 1;
 		return 1;
 	}
 
 	void join()
 	{
-		logMsg("joining pthread %d", (int)id);
+		logMsg("joining pthread %p", (void*)id);
 		pthread_join(id, 0);
 	}
 
 	void kill(int sig)
 	{
 		#ifndef CONFIG_BASE_PS3
-			logMsg("sending signal %d to pthread %d", sig, (int)id);
+			logMsg("sending signal %d to pthread %p", sig, (void*)id);
 			pthread_kill(id, sig);
 		#else
 			bug_exit("signals not supported");
@@ -97,14 +93,14 @@ public:
 		#endif
 	}*/
 
-	int (*entry)(ThreadPThread &thread);
-	void *arg;
+	int (*entry)(ThreadPThread &thread) = nullptr;
+	void *arg = nullptr;
 private:
-	pthread_t id;
+	pthread_t id = 0;
 
 #if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
 public:
-	JNIEnv* jEnv;
+	JNIEnv* jEnv = nullptr;
 #endif
 
 private:
@@ -132,10 +128,10 @@ private:
 
 class MutexPThread
 {
-	bool init, locked;
+	bool init = 0, locked = 0;
 public:
 	pthread_mutex_t mutex; // TODO use accessor
-	constexpr MutexPThread() : init(0), locked(0), mutex() { }
+	constexpr MutexPThread(): mutex() { }
 	bool create()
 	{
 		pthread_mutexattr_t attr;
@@ -193,10 +189,10 @@ public:
 class CondVarPThread
 {
 	pthread_cond_t cond;
-	pthread_mutex_t *mutex;
-	bool init;
+	pthread_mutex_t *mutex = nullptr;
+	bool init = 0;
 public:
-	constexpr CondVarPThread() : cond(), mutex(0), init(0) { }
+	constexpr CondVarPThread() : cond() { }
 	bool create(MutexPThread *mutex = 0)
 	{
 		pthread_cond_init(&cond, 0);

@@ -3,23 +3,22 @@
 #include "shared.h"
 #include "mem.hh"
 
-static void checkMCommStatus(uint subAddr, uint data, uint size)
+uchar comFlagsSync[2] = { 0 };
+uchar comSync[0x20] = { 0 };
+fbool doingSync = 0;
+uchar comWriteTarget = 0;
+uint comFlagsPoll[2] = { 0 };
+uint comPoll[0x20] = { 0 };
+
+static void syncSubCpu(uint cycles, uint target)
 {
-	static uint lastVal = 0, lastAddr = 0, lastSize = 0;
-	static ulong counter = 0;
-	if(lastAddr != subAddr || lastVal != data || lastSize == size)
-	{
-		counter = 0;
-		lastAddr = subAddr;
-		lastVal = data;
-		lastSize = size;
-		//logMsg("read CPU status %X = %X", subAddr, data);
-	}
-	else counter++;
-	if(counter % 20000000 == 0)
-	{
-		//logMsg("polling CPU status %X = %X (%d), PC %08X", lastAddr, lastVal, lastSize, m68k_get_reg(mm68k, M68K_REG_PC));
-	}
+	assert(extraCpuSync);
+	doingSync = 1;
+	comWriteTarget = target;
+	logMsg("syncing S cpu to cycle %d for target 0x%X @ cycle %d, M @ %d", cycles, target, sCD.cpu.cycleCount, mm68k.cycleCount);
+	scd_runSubCpu(IG::min(cycles, mm68k.endCycles));
+	logMsg("back from S CPU sync @ cycle %d", sCD.cpu.cycleCount);
+	doingSync = 0;
 }
 
 uint mainGateRead8(uint address)
@@ -39,9 +38,10 @@ uint mainGateRead8(uint address)
 		bcase 1: //logMsg("read reset");
 			return sCD.busreq;
 		bcase 2: //logMsg("read prg mem mode");
-			return sCD.gate[2];
+			return sCD.gate[0x2];
 		bcase 3: //logMsg("read word mem mode");
 		{
+			//scd_runSubCpu(mm68k.cycleCount);
 			uint d = sCD.gate[3]&0xc7;
 			// the DMNA delay must only be visible on s68k side (Lunar2, Silpheed)
 			if(sCD.delayedDMNA)
@@ -54,17 +54,61 @@ uint mainGateRead8(uint address)
 		bcase 6: logMsg("read h-int 1"); bug_exit("TODO");
 		bcase 7: logMsg("read h-int 2"); bug_exit("TODO");
 		bcase 0xe:
-			//logMsg("M read Com flags 0E 0x%X", sCD.gate[0xe]);
+			//logMsg("M read M-Com flags 0x%X", sCD.gate[0xe]);
 			return sCD.gate[0xe];
 		bcase 0xf:
-			//logMsg("M read Com flags 0F 0x%X", sCD.gate[0xf]);
+		{
+			if(extraCpuSync)
+			{
+				if(comFlagsSync[1])
+				{
+					logMsg("M read S-Com flags 0x%X", sCD.gate[0xf]);
+					comFlagsPoll[1] = 0;
+				}
+				else if(comFlagsSync[0]) // M cpu has set M-Com flags
+				{
+					comFlagsPoll[1]++;
+					if(comFlagsPoll[1] == 2)
+					{
+						logMsg("M is polling S-Com flags");
+						syncSubCpu(mm68k.cycleCount, 1);
+						if(comFlagsSync[1])
+							logMsg("M S-Com flags poll broken");
+					}
+				}
+				comFlagsSync[1] = 0;
+			}
 			return sCD.gate[0xf];
+		}
 		bcase 0x10 ... 0x1f: // comm command
 			//logMsg("read comm cmd byte");
 			return sCD.gate[subAddr];
 		bcase 0x20 ... 0x2F: // comm status
-			checkMCommStatus(subAddr, sCD.gate[subAddr], 1);
+		{
+			if(extraCpuSync)
+			{
+				if(comSync[subAddr-0x10])
+				{
+					logMsg("M read8 Com status 0x%X @ 0x%X", sCD.gate[subAddr], subAddr);
+					comPoll[subAddr-0x10] = 0;
+				}
+				else
+				{
+					comPoll[subAddr-0x10]++;
+					if(comPoll[subAddr-0x10] == 4)
+					{
+						logMsg("M is polling Com status 0x%X", subAddr);
+						syncSubCpu(mm68k.cycleCount, subAddr);
+						if(comSync[subAddr-0x10])
+							logMsg("M Com status poll broken");
+					}
+					if(comSync[subAddr-0x10])
+						logMsg("M read8 Com status after sync 0x%X @ 0x%X", sCD.gate[subAddr], subAddr);
+				}
+				comSync[subAddr-0x10] = 0;
+			}
 			return sCD.gate[subAddr];
+		}
 		bdefault:
 			bug_exit("bad GATE read8 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
 		}
@@ -86,6 +130,7 @@ uint mainGateRead16(uint address)
 				return ((sCD.gate[0x33]<<13)&0x8000) | sCD.busreq; // here IFL2 is always 0, just like in Gens
 			bcase 2:
 			{
+				//scd_runSubCpu(mm68k.cycleCount);
 				uint d = (sCD.gate[subAddr]<<8) | (sCD.gate[subAddr+1]&0xc7);
 				// the DMNA delay must only be visible on s68k side (Lunar2, Silpheed)
 				if(sCD.delayedDMNA) { d &= ~1; d |= 2; }
@@ -100,22 +145,42 @@ uint mainGateRead16(uint address)
 			bcase 8:
 				bug_exit("gate reg 8");
 				return Read_CDC_Host(0);
-			bcase 0xA:
+			bcase 0xa:
 				logMsg("m68k FIXME: reserved read");
 				return 0;
-			bcase 0xC:
+			bcase 0xc:
 			{
 				uint d = sCD.stopwatchTimer >> 16;
-				//logMsg("m68k stopwatch timer read (%04x)", d);
+				logMsg("M stopwatch timer read (%04x)", d);
 				return d;
 			}
-			bcase 0x10 ... 0x1f: // comm command
-				return (sCD.gate[subAddr]<<8) | sCD.gate[subAddr+1];
-			bcase 0x20 ... 0x2F:
+			bcase 0x10 ... 0x1e: // comm command
 			{
-				// comm flag/cmd/status (0xE-0x2F)
+				return (sCD.gate[subAddr]<<8) | sCD.gate[subAddr+1];
+			}
+			bcase 0x20 ... 0x2e: // comm status
+			{
+				if(extraCpuSync)
+				{
+					if(comSync[subAddr-0x10] || comSync[subAddr-0xf])
+					{
+						logMsg("M read16 Com status 0x%X @ 0x%X", sCD.gate[subAddr], subAddr);
+						comPoll[subAddr-0x10] = comPoll[subAddr-0xf] = 0;
+					}
+					else
+					{
+						comPoll[subAddr-0x10]++;
+						if(comPoll[subAddr-0x10] == 4)
+						{
+							logMsg("M is polling 16 Com status 0x%X", subAddr);
+							syncSubCpu(mm68k.cycleCount, subAddr);
+							if(comSync[subAddr-0x10])
+								logMsg("M Com status poll broken");
+						}
+					}
+					comSync[subAddr-0x10] = comSync[subAddr-0xf] = 0;
+				}
 				uint data = (sCD.gate[subAddr]<<8) | sCD.gate[subAddr+1];
-				checkMCommStatus(subAddr, data, 2);
 				return data;
 			}
 			bdefault:
@@ -126,6 +191,30 @@ uint mainGateRead16(uint address)
 	else
 		return ctrl_io_read_word(address);
 }
+
+static void writeMComFlags(uint data)
+{
+	if(extraCpuSync)
+	{
+		if(sCD.gate[0xe] == data) return;
+		if(comFlagsSync[0])
+		{
+			syncSubCpu(mm68k.cycleCount, 1);
+			if(comFlagsSync[0])
+			{
+				logMsg("M write M-Com flags 0x%X, S hasn't read", data);
+			}
+			else
+				logMsg("M write M-Com flags 0x%X, S synced", data);
+		}
+		else
+			logMsg("M write M-Com flags 0x%X", data);
+		comFlagsSync[0] = 1;
+	}
+	sCD.gate[0xe] = data;
+	//scd_runSubCpu(mm68k.cycleCount + mm68k.cycles[mm68k.ir]);
+}
+
 
 void mainGateWrite8(uint address, uint data)
 {
@@ -155,20 +244,20 @@ void mainGateWrite8(uint address, uint data)
 				sCD.busreq = data;
 				updateMainCpuPrgMap(sCD);
 			bcase 2: //logMsg("write mem protect %d", data);
-				if(data != sCD.gate[2])
+				if(data != sCD.gate[0x2])
 					logMsg("new mem protect 0%X", data);
-				sCD.gate[2] = data;
+				sCD.gate[0x2] = data;
 			bcase 3: //logMsg("m write mem mode %d", data);
 			{
-				uint dold = sCD.gate[3]&0x1f;
+				uint dold = sCD.gate[0x3]&0x1f;
 				data &= 0xc2;
-				uint newBank = (data>>6)&3, oldBank = (sCD.gate[3]>>6)&3;
+				uint newBank = (data>>6)&3, oldBank = (sCD.gate[0x3]>>6)&3;
 				if (oldBank != newBank)
 				{
 					logMsg("prg bank: %i -> %i", oldBank, newBank);
 					updateMainCpuPrgMap(sCD, newBank);
 				}
-				if (dold & 4)
+				if (dold & 4) // is 1M mode active
 				{
 					data ^= 2; // writing 0 to DMNA actually sets it, 1 does nothing
 				}
@@ -181,7 +270,7 @@ void mainGateWrite8(uint address, uint data)
 						data &= ~2;
 					}
 				}
-				sCD.gate[3] = data | dold; // really use s68k side register
+				sCD.gate[0x3] = data | dold; // really use s68k side register
 				updateCpuWordMap(sCD);
 				//logMsg("DMNA: %d", sCD.gate[3] & 0x2 >> 1);
 			}
@@ -190,13 +279,32 @@ void mainGateWrite8(uint address, uint data)
 			bcase 7: //logMsg("write h-int 2");
 				cart.rom[0x72] = data;
 			bcase 0xf:
-				data = (data << 1) | ((data >> 7) & 1); // rol8 1 (special case)
-			case 0xe:
-				//logMsg("write M-Com flags 0x%X", data);
-				sCD.gate[0xe] = data;
+				writeMComFlags((data << 1) | ((data >> 7) & 1)); // rol8 1 (special case)
+			bcase 0xe:
+				writeMComFlags(data);
 			bcase 0x10 ... 0x1f:
-				//logMsg("write Com command 0x%X to 0x%X", data, subAddr);
+			{
+				if(extraCpuSync)
+				{
+					//if(sCD.gate[subAddr] == data) break;
+					if(comSync[subAddr-0x10])
+					{
+						syncSubCpu(mm68k.cycleCount, subAddr);
+						//scd_runSubCpu(IG::min(sCD.cpu.cycleCount + 800, mm68k.cycleCount));
+						if(comSync[subAddr-0x10])
+						{
+							logMsg("M write Com command 0x%X @ 0x%X, S hasn't read", data, subAddr);
+						}
+						else
+							logMsg("M write Com command 0x%X @ 0x%X, S synced", data, subAddr);
+					}
+					else
+						logMsg("M write Com command 0x%X @ 0x%X", data, subAddr);
+					comSync[subAddr-0x10] = 1;
+				}
 				sCD.gate[subAddr] = data;
+				//syncSubCpu(mm68k.cycleCount + 800);
+			}
 			bdefault:
 				bug_exit("bad GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (mm68k, M68K_REG_PC));
 		}
@@ -210,16 +318,43 @@ void mainGateWrite16(uint address, uint data)
 	if(((address >> 8) & 0xFF) == 0x20)
 	{
 		uint a = address & 0xfffffe;
-		if(a == 0xe)
-		{ // special case, 2 byte writes would be handled differently
-			logMsg("main comm flag write 16");
-			sCD.gate[0xe] = data >> 8;
-			// TODO check for polling
-			return;
+		switch(a)
+		{
+			bcase 0xe:
+			{ // special case, 2 byte writes would be handled differently
+				writeMComFlags(data >> 8);
+			}
+			bcase 0x10 ... 0x1e:
+			{
+				if(extraCpuSync)
+				{
+					if(sCD.gate[a] == (data >> 8) && sCD.gate[a+1] == (data & 0xFF))
+						break;
+					if(comSync[a-0x10] || comSync[a-0xf])
+					{
+						syncSubCpu(mm68k.cycleCount, a+1);
+						if(comSync[a-0x10] || comSync[a-0xf])
+						{
+							logMsg("M write16 Com command 0x%X @ 0x%X, S hasn't read", data, a);
+						}
+						else
+							logMsg("M write16 Com command 0x%X @ 0x%X, S synced", data, a);
+					}
+					else
+						logMsg("M write16 Com command 0x%X @ 0x%X", data, a);
+					comSync[a-0x10] = comSync[a-0xf] = 1;
+				}
+				sCD.gate[a] = data >> 8;
+				sCD.gate[a+1] = data & 0xFF;
+				//syncSubCpu(mm68k.cycleCount + 800);
+			}
+			bdefault:
+			{
+				//logMsg("GATE write16 %08X = %02X (%08X)", address, data, m68k_get_reg (mm68k, M68K_REG_PC));
+				mainGateWrite8(address, data >> 8);
+				mainGateWrite8(address+1, data & 0xFF);
+			}
 		}
-		//logMsg("GATE write16 %08X = %02X (%08X)", address, data, m68k_get_reg (mm68k, M68K_REG_PC));
-		mainGateWrite8(address, data >> 8);
-		mainGateWrite8(address+1, data & 0xFF);
 	}
 	else
 		ctrl_io_write_word(address, data);

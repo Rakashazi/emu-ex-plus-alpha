@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4K.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Cart4K.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "Cart4K.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4K::Cartridge4K(const uInt8* image, const Settings& settings)
+Cartridge4K::Cartridge4K(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 4096);
+	memcpy(myImage, image, BSPF_min(4096u, size));
   createCodeAccessBase(4096);
 }
 
@@ -114,13 +114,13 @@ const uInt8* Cartridge4K::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge4K::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge4K::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: Cartridge4K::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -130,14 +130,14 @@ bool Cartridge4K::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge4K::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge4K::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: Cartridge4K::load" << endl << "  " << msg << endl;
     return false;
   }
 

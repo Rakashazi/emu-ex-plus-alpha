@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPC.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartDPC.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -475,7 +475,7 @@ const uInt8* CartridgeDPC::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPC::save(Serializer& out) const
 {
-  //try
+  try
   {
     uInt32 i;
 
@@ -515,9 +515,9 @@ bool CartridgeDPC::save(Serializer& out) const
     out.putInt(mySystemCycles);
     out.putInt((uInt32)(myFractionalClocks * 100000000.0));
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeDPC::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeDPC::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -527,7 +527,7 @@ bool CartridgeDPC::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPC::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -569,9 +569,9 @@ bool CartridgeDPC::load(Serializer& in)
     mySystemCycles = in.getInt();
     myFractionalClocks = (SysDDec)in.getInt() / 100000000.0;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeDPC::load" << endl << "  " << in.errorMsg << endl;
+  	cerr << "ERROR: CartridgeDPC::load" << endl << "  " << msg << endl;
     return false;
   }
 

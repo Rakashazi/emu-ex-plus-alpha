@@ -39,7 +39,7 @@ uint8 pico_page[7];
 #include <scd/scd.h>
 #endif
 
-M68KCPU mm68k(m68kCycles);
+M68KCPU mm68k(m68kCycles, 0);
 
 /*--------------------------------------------------------------------------*/
 /* Init, reset, shutdown functions                                          */

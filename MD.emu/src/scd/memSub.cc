@@ -5,7 +5,7 @@
 
 #define READ_FONT_DATA(basemask) \
 { \
-      uint fnt = *(uint *)(sCD.gate + 0x4c); \
+      uint fnt = *(uint32a*)(sCD.gate + 0x4c); \
       uint col0 = (fnt >> 8) & 0x0f, col1 = (fnt >> 12) & 0x0f;   \
       if (fnt & (basemask << 0)) d  = col1      ; else d  = col0;       \
       if (fnt & (basemask << 1)) d |= col1 <<  4; else d |= col0 <<  4; \
@@ -15,9 +15,42 @@
 
 // Gate Array / PCM
 
+extern uchar comFlagsSync[2];
+extern uchar comSync[0x20];
+extern fbool doingSync;
+extern uchar comWriteTarget;
+extern uint comFlagsPoll[2];
+extern uint comPoll[0x20];
+
+static void endSyncSubCpu(uint target)
+{
+	assert(extraCpuSync);
+	if(doingSync && comWriteTarget == target)
+	{
+		sCD.cpu.endCycles = sCD.cpu.cycleCount;
+		logMsg("end S CPU sync for target 0x%X run @ cycle %d, M @ %d", target, sCD.cpu.endCycles, mm68k.cycleCount);
+	}
+}
+
+static void endSyncSubCpu()
+{
+	assert(extraCpuSync);
+	if(doingSync)
+	{
+		//sCD.cpu.cycleCount = sCD.cpu.endCycles;
+		sCD.cpu.endCycles = sCD.cpu.cycleCount;
+		logMsg("end S CPU sync for run @ cycle %d, M @ %d", sCD.cpu.endCycles, mm68k.cycleCount);
+	}
+	//else
+	{
+		//sCD.cpu.cycleCount = sCD.cpu.endCycles;
+	}
+}
+
 static uint subGateRegRead16(uint a)
 {
-	switch (a) {
+	switch(a)
+	{
 		case 0:
 			return ((sCD.gate[0]&3)<<8) | 1; // ver = 0, not in reset state
 		case 2:
@@ -41,12 +74,12 @@ static uint subGateRegRead16(uint a)
 		case 0xC:
 		{
 			uint d = sCD.stopwatchTimer >> 16;
-			//logMsg("s68k stopwatch timer read (%04x)", d);
+			logMsg("S stopwatch timer read (%04x)", d);
 			return d;
 		}
 		case 0x30:
-			//logMsg("s68k int3 timer read (%02x)", sCD.gate[31]);
-			return sCD.gate[31];
+			//logMsg("s68k int3 timer read (%02x)", sCD.gate[0x31]);
+			return sCD.gate[0x31];
 		case 0x34: // fader
 			return 0; // no busy bit
 		case 0x50: // font data (check: Lunar 2, Silpheed)
@@ -78,12 +111,48 @@ static uint subGateRegRead16(uint a)
 			bug_exit("subcode address");
 			return 0;
 		}
-		case 0x0e ... 0x29:
-		// TODO check for polling
 		default:
 		{
 			//logMsg("GATE sub-CPU read16 %08X", a);
 			uint d = (sCD.gate[a]<<8) | sCD.gate[a+1];
+			if(extraCpuSync)
+			{
+				switch(a)
+				{
+					bcase 0x0e:
+						if(comFlagsSync[0])
+						{
+							logMsg("S read16 M-Com flags 0x%X", d);
+							comFlagsPoll[0] = 0;
+						}
+						else if(comFlagsSync[1])
+						{
+							comFlagsPoll[0]++;
+							if(comFlagsPoll[0] == 2)
+							{
+								logMsg("S is polling 16 M-Com flags");
+								endSyncSubCpu();
+							}
+						}
+						comFlagsSync[0] = 0;
+					bcase 0x010 ... 0x1e:
+						if(comSync[a-0x10] || comSync[a-0xf])
+						{
+							logMsg("S read16 Com comm 0x%X @ 0x%X", sCD.gate[a], a);
+							comPoll[a-0x10] = 0;
+						}
+						else
+						{
+							comPoll[a-0x10]++;
+							if(comPoll[a-0x10] == 4)
+							{
+								logMsg("S is polling 16 Com comm 0x%X", a);
+								endSyncSubCpu();
+							}
+						}
+						comSync[a-0x10] = comSync[a-0xf] = 0;
+				}
+			}
 			return d;
 		}
 	}
@@ -98,7 +167,47 @@ uint subGateRead8(uint address)
 		if (address >= 0x0e && address < 0x30)
 		{
 			uint d = sCD.gate[address];
-			return d; // TODO check for polling
+			if(extraCpuSync)
+			{
+				switch(address)
+				{
+					bcase 0x0e:
+						if(comFlagsSync[0])
+						{
+							logMsg("S read M-Com flags 0x%X", d);
+							comFlagsPoll[0] = 0;
+						}
+						else if(comFlagsSync[1])
+						{
+							comFlagsPoll[0]++;
+							if(comFlagsPoll[0] == 2)
+							{
+								logMsg("S is polling M-Com flags");
+								endSyncSubCpu();
+							}
+						}
+						comFlagsSync[0] = 0;
+					bcase 0x0f:
+						//logMsg("S read S-Com flags 0x%X", d);
+					bcase 0x010 ... 0x1f:
+						if(comSync[address-0x10])
+						{
+							logMsg("S read8 Com comm 0x%X @ 0x%X", sCD.gate[address], address);
+							comPoll[address-0x10] = 0;
+						}
+						else
+						{
+							comPoll[address-0x10]++;
+							if(comPoll[address-0x10] == 4)
+							{
+								logMsg("S is polling Com comm 0x%X", address);
+								endSyncSubCpu();
+							}
+						}
+						comSync[address-0x10] = 0;
+				}
+			}
+			return d;
 		}
 		else if (address >= 0x58 && address < 0x68)
 		{
@@ -159,6 +268,24 @@ uint subGateRead16(uint address)
 
 	bug_exit("bad sub gate read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
+}
+
+static void writeSComFlags(uint data)
+{
+	if(extraCpuSync)
+	{
+		if(sCD.gate[0xf] == data) return;
+		if(comFlagsSync[1])
+		{
+			logMsg("S write S-Com flags 0x%X, M hasn't read", data);
+		}
+		else
+			logMsg("S write S-Com flags 0x%X", data);
+		comFlagsSync[1] = 1;
+	}
+	sCD.gate[0xf] = data;
+	if(extraCpuSync)
+		endSyncSubCpu(1);
 }
 
 void subGateWrite8(uint address, uint data)
@@ -226,17 +353,33 @@ void subGateWrite8(uint address, uint data)
 				sCD.gate[subAddr] = data;
 			bcase 0xc:
 			case 0xd:
-				//logMsg("s68k set stopwatch timer");
+				logMsg("s68k set stopwatch timer (val %d)", data);
 				sCD.stopwatchTimer = 0;
 			bcase 0xe:
-				sCD.gate[0xf] = (data>>1) | (data<<7); // ror8 1, Gens note: Dragons lair
+				writeSComFlags((data>>1) | (data<<7)); // ror8 1, Gens note: Dragons lair
 			bcase 0xf:
-				//logMsg("write S-Com flags 0x%X", data);
+				writeSComFlags(data);
+			bcase 0x20 ... 0x2f:
+			{
+				if(extraCpuSync)
+				{
+					if(sCD.gate[subAddr] == data) break;
+					if(comSync[subAddr-0x10])
+					{
+						logMsg("S write Com status 0x%X @ 0x%X, M hasn't read", data, subAddr);
+					}
+					else
+						logMsg("S write Com status 0x%X @ 0x%X", data, subAddr);
+					comSync[subAddr-0x10] = 1;
+				}
 				sCD.gate[subAddr] = data;
-			bcase 0x20 ... 0x30:
-				sCD.gate[subAddr] = data;
+				if(extraCpuSync)
+					endSyncSubCpu(subAddr);
+			}
+			bcase 0x30:
+				// empty register
 			bcase 0x31:
-				logMsg("s68k set int3 timer: %02x, int active: %d", data, (sCD.gate[0x33] & (1<<3)) != 0);
+				//logMsg("s68k set int3 timer: %02x, int active: %d", data, (sCD.gate[0x33] & (1<<3)) != 0);
 				sCD.timer_int3 = (data & 0xff) << 16;
 				sCD.gate[subAddr] = data;
 			bcase 0x32:
@@ -317,7 +460,7 @@ void subGateWrite16(uint address, uint data)
 				gfx_cd_write16(sCD.rot_comp, subAddr, data);
 			bcase 0xe:
 				// special case, 2 byte writes would be handled differently
-				sCD.gate[0xf] = data;
+				writeSComFlags(data);
 			bdefault:
 				//logMsg("sub gate write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 				subGateWrite8(address, data >> 8);
@@ -348,7 +491,7 @@ void subGateWrite16(uint address, uint data)
 
 void subPrgWriteProtectCheck8(uint address, uint data)
 {
-	if(address >= (sCD.gate[2]<<8))
+	if(address >= uint(sCD.gate[2]<<8))
 		WRITE_BYTE(sCD.prg.b, address, data);
 	else
 		logMsg("write protected");
@@ -356,8 +499,8 @@ void subPrgWriteProtectCheck8(uint address, uint data)
 
 void subPrgWriteProtectCheck16(uint address, uint data)
 {
-	if(address >= (sCD.gate[2]<<8))
-		*(uint16 *)(sCD.prg.b + address) = data;
+	if(address >= uint(sCD.gate[2]<<8))
+		*(uint16a*)(sCD.prg.b + address) = data;
 	else
 		logMsg("write protected");
 }

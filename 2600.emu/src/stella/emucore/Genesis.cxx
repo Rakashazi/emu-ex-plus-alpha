@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Genesis.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Genesis.cxx 2405 2012-03-04 19:20:29Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -22,7 +22,8 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Genesis::Genesis(Jack jack, const Event& event, const System& system)
-  : Controller(jack, event, system, Controller::Genesis)
+  : Controller(jack, event, system, Controller::Genesis),
+    myControlID(-1)
 {
   if(myJack == Left)
   {
@@ -30,8 +31,8 @@ Genesis::Genesis(Jack jack, const Event& event, const System& system)
     myDownEvent    = Event::JoystickZeroDown;
     myLeftEvent    = Event::JoystickZeroLeft;
     myRightEvent   = Event::JoystickZeroRight;
-    myFire1Event   = Event::JoystickZeroFire1;
-    myFire2Event   = Event::JoystickZeroFire3;
+    myFire1Event   = Event::JoystickZeroFire;
+    myFire2Event   = Event::JoystickZeroFire5;
   }
   else
   {
@@ -39,8 +40,8 @@ Genesis::Genesis(Jack jack, const Event& event, const System& system)
     myDownEvent    = Event::JoystickOneDown;
     myLeftEvent    = Event::JoystickOneLeft;
     myRightEvent   = Event::JoystickOneRight;
-    myFire1Event   = Event::JoystickOneFire1;
-    myFire2Event   = Event::JoystickOneFire3;
+    myFire1Event   = Event::JoystickOneFire;
+    myFire2Event   = Event::JoystickOneFire5;
   }
 
   // Analog pin 9 is not connected to this controller at all
@@ -69,4 +70,51 @@ void Genesis::update()
   // in that the logic is inverted
   myAnalogPinValue[Five] = (myEvent.get(myFire2Event) == 0) ?
                             minimumResistance : maximumResistance;
+
+  // Mouse motion and button events
+  if(myControlID > -1)
+  {
+    // The following code was taken from z26
+    #define MJ_Threshold 2
+    int mousex = myEvent.get(Event::MouseAxisXValue),
+        mousey = myEvent.get(Event::MouseAxisYValue);
+    if(mousex || mousey)
+    {
+      if((!(abs(mousey) > abs(mousex) << 1)) && (abs(mousex) >= MJ_Threshold))
+      {
+        if(mousex < 0)
+          myDigitalPinState[Three] = false;
+        else if (mousex > 0)
+          myDigitalPinState[Four] = false;
+      }
+
+      if((!(abs(mousex) > abs(mousey) << 1)) && (abs(mousey) >= MJ_Threshold))
+      {
+        if(mousey < 0)
+          myDigitalPinState[One] = false;
+        else if(mousey > 0)
+          myDigitalPinState[Two] = false;
+      }
+    }
+    // Get mouse button state
+    if(myEvent.get(Event::MouseButtonLeftValue))
+      myDigitalPinState[Six] = false;
+    if(myEvent.get(Event::MouseButtonRightValue))
+      myAnalogPinValue[Five] = maximumResistance;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Genesis::setMouseControl(
+    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+{
+  // In 'automatic' mode, both axes on the mouse map to a single Genesis
+  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  {
+    myControlID = ((myJack == Left && ctrlID == 0) ||
+                   (myJack == Right && ctrlID == 1)
+                  ) ? ctrlID : -1;
+  }
+  else  // Otherwise, Genesis controllers are not used in 'non-auto' mode
+    myControlID = -1;
 }

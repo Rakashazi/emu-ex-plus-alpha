@@ -13,7 +13,7 @@ template<class BaseRect>
 class GfxSpriteBase : public BaseRect
 {
 public:
-	constexpr GfxSpriteBase(): img(0) { }
+	constexpr GfxSpriteBase() { }
 	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, GfxBufferImage *img);
 	CallResult init(Coordinate x = 0, Coordinate y = 0, Coordinate x2 = 0, Coordinate y2 = 0)
 	{
@@ -60,11 +60,11 @@ public:
 		if(img)
 		{
 			img->deinit();
-			img = 0;
+			img = nullptr;
 		}
 	}
 
-	GfxBufferImage *img;
+	GfxBufferImage *img = nullptr;
 };
 
 typedef GfxSpriteBase<GfxTexRect> GfxSprite;

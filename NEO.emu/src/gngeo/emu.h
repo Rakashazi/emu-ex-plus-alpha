@@ -152,6 +152,4 @@ void neogeo_reset(void);
 #define DEBUG_LOG logMsg
 //#define GNGEO_LOG printf
 
-static const int nb_interlace = 256;
-
 #endif

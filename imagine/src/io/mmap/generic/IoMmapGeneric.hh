@@ -8,6 +8,7 @@ class IoMmapGeneric : public IoMmap
 {
 public:
 	static Io* open(const uchar * buffer, size_t size);
+	~IoMmapGeneric() { close(); }
 	void close();
 
 	// optional function to call on close, <ptr> is the buffer passed during open()
@@ -15,5 +16,5 @@ public:
 	void memFreeFunc(FreeFunc free);
 
 private:
-	FreeFunc free;
+	FreeFunc free = nullptr;
 };

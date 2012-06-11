@@ -5,7 +5,7 @@ ifdef package_freetype_externalPath
 	CPPFLAGS +=  -I$(package_freetype_externalPath)/include
 	LDLIBS += -L$(package_freetype_externalPath)/lib
 else
-	ifeq ($(webos_osVersion), 3)
+	ifeq ($(ENV), webos)
 		CPPFLAGS +=  -I$(WEBOS_PDK_PATH)/include/freetype2
 		LDLIBS += -lfreetype
 	else ifeq ($(ENV), macOSX)

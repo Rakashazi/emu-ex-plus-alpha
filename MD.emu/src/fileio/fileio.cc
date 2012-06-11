@@ -120,7 +120,7 @@ uint8 *load_archive(char *filename, int *file_size)
         buf = (uint8*)malloc(size);
         if(!buf)
         {
-            gd->close();
+            delete gd;
             return (0);
         }
 
@@ -128,7 +128,7 @@ uint8 *load_archive(char *filename, int *file_size)
         gd->read(buf, size);
 
         /* Close file */
-        gd->close();
+        delete gd;
 
         /* Update file size and return pointer to file data */
         *file_size = size;

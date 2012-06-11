@@ -19,7 +19,6 @@
 #ifndef PPU_H
 #define PPU_H
 
-#include "gambatte.h"
 #include "ly_counter.h"
 #include "sprite_mapper.h"
 #include "gbint.h"
@@ -35,10 +34,11 @@ class PPUFrameBuf {
 	int pitch_;
 #endif
 	
-	static PixelType * nullfbline() { static PixelType nullfbline_[160]; return nullfbline_; }
+	static PixelType nullfbline_[160];
+	static constexpr PixelType * nullfbline() { return nullfbline_; }
 	
 public:
-	PPUFrameBuf() : buf_(0), fbline_(nullfbline())
+	constexpr PPUFrameBuf() : buf_(0), fbline_(nullfbline())
 #ifndef GAMBATTE_CONST_FB_PITCH
 	, pitch_(0)
 #endif

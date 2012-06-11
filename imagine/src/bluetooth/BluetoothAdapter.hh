@@ -5,14 +5,14 @@
 
 struct BluetoothAddr
 {
-	constexpr BluetoothAddr(): b{0} { }
-	uchar b[6];
+	constexpr BluetoothAddr() { }
+	uchar b[6] = {0};
 } __attribute__((packed));
 
 class BluetoothAdapter
 {
 public:
-	constexpr BluetoothAdapter(): inDetect(0) { }
+	//constexpr BluetoothAdapter() { }
 	static BluetoothAdapter *defaultAdapter();
 	virtual fbool startScan() = 0;
 	static void setScanCacheUsage(bool on) { useScanCache = on; }
@@ -30,7 +30,7 @@ public:
 	typedef Delegate<void (const char *name, BluetoothAddr addr)> OnScanDeviceNameDelegate;
 	OnScanDeviceNameDelegate &scanDeviceNameDelegate() { return onScanDeviceName; }
 
-	fbool inDetect;
+	fbool inDetect = 0;
 	static bool useScanCache;
 protected:
 	OnStatusDelegate onStatus;
@@ -60,7 +60,8 @@ protected:
 class BluetoothInputDevice
 {
 public:
-	constexpr BluetoothInputDevice() { }
+	//constexpr BluetoothInputDevice() { }
+	virtual ~BluetoothInputDevice() { }
 	//virtual void close();
-	virtual void removeFromSystem();
+	virtual void removeFromSystem() = 0;
 };

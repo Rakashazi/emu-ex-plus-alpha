@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SharedPtr.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: SharedPtr.hxx 2318 2011-12-31 21:56:36Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -37,7 +37,7 @@ template<class T>
 class SharedPtrDeletionImpl : public SharedPtrDeletionInternal
 {
   public:
-    SharedPtrDeletionImpl(T *ptr) : _ptr(ptr) {}
+    constexpr SharedPtrDeletionImpl(T *ptr) {}
     ~SharedPtrDeletionImpl()
     {
       // Checks if the supplied type is not just a plain
@@ -50,7 +50,7 @@ class SharedPtrDeletionImpl : public SharedPtrDeletionInternal
     }
 
   private:
-    T *_ptr;
+    T *_ptr = nullptr;
 };
 
 template<class T, class D>

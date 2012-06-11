@@ -7,9 +7,9 @@
 class FontSettings
 {
 public:
+	constexpr FontSettings() { }
 	constexpr FontSettings(int pixelWidth, int pixelHeight) : pixelWidth(pixelWidth), pixelHeight(pixelHeight) { }
-	constexpr FontSettings(int pixelHeight) : pixelWidth(0), pixelHeight(pixelHeight) { }
-	constexpr FontSettings() : pixelWidth(0), pixelHeight(0) { }
+	constexpr FontSettings(int pixelHeight) : FontSettings(0, pixelHeight) { }
 
 	int areValid()
 	{
@@ -39,7 +39,7 @@ public:
 		return !(*this == other);
 	}
 
-	int pixelWidth, pixelHeight;
+	int pixelWidth = 0, pixelHeight = 0;
 };
 
 #ifdef CONFIG_RESOURCE_FONT_FREETYPE
@@ -53,6 +53,8 @@ class ResourceFace;
 class ResourceFont
 {
 public:
+	virtual ~ResourceFont() { }
+
 	CallResult initWithName(const char * name);
 
 	virtual void free() = 0;

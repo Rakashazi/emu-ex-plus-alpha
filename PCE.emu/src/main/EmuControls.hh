@@ -3,6 +3,7 @@
 namespace EmuControls
 {
 
+using namespace Input;
 static const uint categories = 2;
 static const uint gamepadKeys = 18;
 static const uint systemTotalKeys = gameActionKeys + gamepadKeys;
@@ -39,16 +40,16 @@ static const KeyArray webOSKB =
 		EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 		EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-	input_asciiKey(' '),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey(','),
-	input_asciiKey('m'),
-	input_asciiKey('i'),
-	input_asciiKey('o'),
-	input_asciiKey('n'),
-	input_asciiKey('j'),
-	input_asciiKey('k'),
-	input_asciiKey('l'),
+	asciiKey(','),
+	asciiKey('m'),
+	asciiKey('i'),
+	asciiKey('o'),
+	asciiKey('n'),
+	asciiKey('j'),
+	asciiKey('k'),
+	asciiKey('l'),
 };
 
 static const KeyArray genericKB =
@@ -63,16 +64,16 @@ static const KeyArray genericKB =
 	0,
 	0,
 	0,
-	input_asciiKey(' '),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey('c'),
-	input_asciiKey('x'),
-	input_asciiKey('r'),
-	input_asciiKey('e'),
-	input_asciiKey('z'),
-	input_asciiKey('s'),
-	input_asciiKey('d'),
-	input_asciiKey('f'),
+	asciiKey('c'),
+	asciiKey('x'),
+	asciiKey('r'),
+	asciiKey('e'),
+	asciiKey('z'),
+	asciiKey('s'),
+	asciiKey('d'),
+	asciiKey('f'),
 };
 
 #ifdef CONFIG_BASE_ANDROID
@@ -88,16 +89,16 @@ static const KeyArray androidNav =
 	0,
 	0,
 	0,
-	input_asciiKey(' '),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey('c'),
-	input_asciiKey('x'),
-	input_asciiKey('r'),
-	input_asciiKey('e'),
-	input_asciiKey('z'),
-	input_asciiKey('s'),
-	input_asciiKey('d'),
-	input_asciiKey('f'),
+	asciiKey('c'),
+	asciiKey('x'),
+	asciiKey('r'),
+	asciiKey('e'),
+	asciiKey('z'),
+	asciiKey('s'),
+	asciiKey('d'),
+	asciiKey('f'),
 };
 
 static const KeyArray xperiaPlay =

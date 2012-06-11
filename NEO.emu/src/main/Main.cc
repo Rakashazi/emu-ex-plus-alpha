@@ -480,7 +480,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		logMsg("loading state %s", saveStr);
 		if(load_stateWithName(saveStr))
@@ -568,7 +568,7 @@ static void loadGamePhase2(bool allowAutosaveState)
 	{
 		FsSys::cPath saveStr;
 		EmuSystem::sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr))
+		if(FsSys::fileExists(saveStr))
 		{
 			logMsg("loading auto-save state");
 			load_stateWithName(saveStr);
@@ -597,7 +597,7 @@ static int loadGameThread(ThreadPThread &thread)
 		return 0;
 	}
 
-	if(optionCreateAndUseCache && !Fs::fileExists(gnoFilename))
+	if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
 	{
 		logMsg("%s doesn't exist, creating", gnoFilename);
 		#ifdef USE_GENERATOR68K
@@ -720,7 +720,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	char gnoFilename[8+4+1];
 	snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
 
-	if(optionCreateAndUseCache && Fs::fileExists(gnoFilename))
+	if(optionCreateAndUseCache && FsSys::fileExists(gnoFilename))
 	{
 		logMsg("loading .gno file");
 		if(!init_game(gnoFilename))
@@ -752,7 +752,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 				return 0;
 			}
 
-			if(optionCreateAndUseCache && !Fs::fileExists(gnoFilename))
+			if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
 			{
 				logMsg("%s doesn't exist, creating", gnoFilename);
 				#ifdef USE_GENERATOR68K

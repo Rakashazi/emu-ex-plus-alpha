@@ -37,10 +37,6 @@ class DutyUnit : public SoundUnit {
 	void setDuty(unsigned nr1);
 	void updatePos(unsigned long cc);
 
-	static inline unsigned toPeriod(const unsigned freq) {
-		return (2048 - freq) << 1;
-	}
-
 public:
 	DutyUnit();
 	void event();

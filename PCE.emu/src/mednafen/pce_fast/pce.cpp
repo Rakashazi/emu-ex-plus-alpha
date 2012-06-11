@@ -22,6 +22,7 @@
 #include "input.h"
 #include "huc.h"
 #include "../cdrom/pcecd.h"
+#include "../cdrom/scsicd.h"
 #include "hes.h"
 #include "tsushin.h"
 #include "arcade_card/arcade_card.h"
@@ -36,7 +37,7 @@ namespace PCE_Fast
 static PCE_PSG *psg = NULL;
 extern ArcadeCard *arcade_card; // Bah, lousy globals.
 
-static Blip_Buffer pce_sbuf[2];
+static Blip_Buffer sbuf[2];
 
 bool PCE_ACEnabled;
 
@@ -143,7 +144,11 @@ static DECLFW(IOWrite)
 		 arcade_card->Write(A & 0x1FFF, V);
 	       }
 	       else
-	        PCECD_Write(HuCPU.timestamp * 3, A, V); 
+	       {
+	         int32 dummy_ne;
+
+	         dummy_ne = PCECD_Write(HuCPU.timestamp * 3, A, V);
+	       }
 	       break;
   //case 0x1C00: break; // Expansion
   //default: printf("Eep: %04x\n", A); break;
@@ -164,10 +169,10 @@ bool PCE_InitCD(void)
  PCECD_Settings cd_settings;
  memset(&cd_settings, 0, sizeof(PCECD_Settings));
 
- cd_settings.CDDA_Volume = (float)MDFN_GetSettingUI("pce_fast.cddavolume") / 100;
+ cd_settings.CDDA_Volume = (SysDDec)MDFN_GetSettingUI("pce_fast.cddavolume") / 100;
  cd_settings.CD_Speed = MDFN_GetSettingUI("pce_fast.cdspeed");
 
- cd_settings.ADPCM_Volume = (float)MDFN_GetSettingUI("pce_fast.adpcmvolume") / 100;
+ cd_settings.ADPCM_Volume = (SysDDec)MDFN_GetSettingUI("pce_fast.adpcmvolume") / 100;
  cd_settings.ADPCM_LPF = MDFN_GetSettingB("pce_fast.adpcmlp");
 
  if(cd_settings.CDDA_Volume != 1.0)
@@ -176,7 +181,7 @@ bool PCE_InitCD(void)
  if(cd_settings.ADPCM_Volume != 1.0)
   MDFN_printf(_("ADPCM Volume: %d%%\n"), (int)(100 * cd_settings.ADPCM_Volume));
 
- return(PCECD_Init(&cd_settings, PCECDIRQCB, PCE_MASTER_CLOCK, pce_overclocked, &pce_sbuf[0], &pce_sbuf[1]));
+ return(PCECD_Init(&cd_settings, PCECDIRQCB, PCE_MASTER_CLOCK, pce_overclocked, &sbuf[0], &sbuf[1]));
 }
 
 
@@ -332,8 +337,8 @@ static int LoadCommon(void)
 
  HuC6280_Init();
 
- psg = new PCE_PSG(&pce_sbuf[0], &pce_sbuf[1], PCE_PSG::REVISION_ENHANCED);	//HUC6280A);
- //psg->init(&pce_sbuf[0], &pce_sbuf[1], PCE_PSG::REVISION_ENHANCED);
+ psg = new PCE_PSG(&sbuf[0], &sbuf[1], PCE_PSG::REVISION_ENHANCED);	//HUC6280A);
+ //psg->init(&sbuf[0], &sbuf[1], PCE_PSG::REVISION_ENHANCED);
 
  psg->SetVolume(1.0);
 
@@ -373,24 +378,25 @@ static int LoadCommon(void)
  return(1);
 }
 
-static bool TestMagicCD(void)
+static bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
 {
  static const uint8 magic_test[0x20] = { 0x82, 0xB1, 0x82, 0xCC, 0x83, 0x76, 0x83, 0x8D, 0x83, 0x4F, 0x83, 0x89, 0x83, 0x80, 0x82, 0xCC,
                                          0x92, 0x98, 0x8D, 0xEC, 0x8C, 0xA0, 0x82, 0xCD, 0x8A, 0x94, 0x8E, 0xAE, 0x89, 0xEF, 0x8E, 0xD0
                                        };
  uint8 sector_buffer[2048];
- CD_TOC toc;
+ CDIF *cdiface = (*CDInterfaces)[0];
+ CDUtility::TOC toc;
  bool ret = FALSE;
 
  memset(sector_buffer, 0, sizeof(sector_buffer));
 
- CDIF_ReadTOC(&toc);
+ cdiface->ReadTOC(&toc);
 
  for(int32 track = toc.first_track; track <= toc.last_track; track++)
  {
   if(toc.tracks[track].control & 0x4)
   {
-   CDIF_ReadSector(sector_buffer, toc.tracks[track].lba, 1);
+   cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1);
 
    if(!memcmp((char*)sector_buffer, (char *)magic_test, 0x20))
     ret = TRUE;
@@ -407,7 +413,7 @@ static bool TestMagicCD(void)
  {
   if(toc.tracks[track].control & 0x4)
   {
-   CDIF_ReadSector(sector_buffer, toc.tracks[track].lba, 1);
+   cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1);
    if(!strncmp("PC-FX:Hu_CD-ROM", (char*)sector_buffer, strlen("PC-FX:Hu_CD-ROM")))
    {
     return(false);
@@ -420,7 +426,7 @@ static bool TestMagicCD(void)
  // data track.
  if(toc.first_track == 1 && (toc.tracks[1].control & 0x4))
  {
-  if(CDIF_ReadSector(sector_buffer, 0x10, 1))
+	if(cdiface->ReadSector(sector_buffer, 0x10, 1))
   {
    if(!memcmp((char *)sector_buffer + 0x8, "HACKER CD ROM SYSTEM", 0x14))
    {
@@ -432,7 +438,7 @@ static bool TestMagicCD(void)
  return(ret);
 }
 
-static int LoadCD(void)
+static int LoadCD(std::vector<CDIF *> *CDInterfaces)
 {
  std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios").c_str() );
 
@@ -443,6 +449,9 @@ static int LoadCD(void)
 
  if(!HuCLoadCD(bios_path.c_str()))
   return(0);
+
+ SCSICD_SetDisc(true, NULL, true);
+ SCSICD_SetDisc(false, (*CDInterfaces)[0], true);
 
  return(LoadCommon());
 }
@@ -473,9 +482,9 @@ void applySoundFormat(EmulateSpecStruct *espec)
 {
 	for(int y = 0; y < 2; y++)
 	{
-		pce_sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
-		pce_sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
-		pce_sbuf[y].bass_freq(20);
+		sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
+		sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
+		sbuf[y].bass_freq(20);
 	}
 }
 
@@ -492,16 +501,20 @@ static void Emulate(EmulateSpecStruct *espec)
  {
   for(int y = 0; y < 2; y++)
   {
-   pce_sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
-   pce_sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
-   pce_sbuf[y].bass_freq(20);
+   sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
+   sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
+   sbuf[y].bass_freq(20);
   }
  }*/
  VDC_RunFrame(espec->surface, &espec->DisplayRect, espec->LineWidths, IsHES ? 1 : espec->skip);
  if(!espec->skip) MDFND_commitVideoFrame();
 
  if(PCE_IsCD)
-  PCECD_Run(HuCPU.timestamp * 3);
+ {
+  int32 dummy_ne;
+
+  dummy_ne = PCECD_Run(HuCPU.timestamp * 3);
+ }
 
  psg->EndFrame(HuCPU.timestamp / pce_overclocked);
 
@@ -509,8 +522,8 @@ static void Emulate(EmulateSpecStruct *espec)
  {
   for(int y = 0; y < 2; y++)
   {
-   pce_sbuf[y].end_frame(HuCPU.timestamp / pce_overclocked);
-   espec->SoundBufSize = pce_sbuf[y].read_samples(espec->SoundBuf + y, espec->SoundBufMaxSize, 1);
+   sbuf[y].end_frame(HuCPU.timestamp / pce_overclocked);
+   espec->SoundBufSize = sbuf[y].read_samples(espec->SoundBuf + y, espec->SoundBufMaxSize, 1);
   }
  }
 
@@ -575,7 +588,11 @@ void PCE_Power(void)
  HuC_Power();
 
  if(PCE_IsCD)
-  PCECD_Power(HuCPU.timestamp * 3);
+ {
+  int32 dummy_ne;
+
+  dummy_ne = PCECD_Power(HuCPU.timestamp * 3);
+ }
 }
 
 static void DoSimpleCommand(int cmd)
@@ -644,7 +661,9 @@ MDFNGI EmulatedPCE_Fast =
  LoadCD,
  TestMagicCD,
  CloseGame,
- VDC_ToggleLayer,
+ VDC_SetLayerEnableMask,
+ NULL,
+ NULL,
  NULL,
  NULL,
  NULL,

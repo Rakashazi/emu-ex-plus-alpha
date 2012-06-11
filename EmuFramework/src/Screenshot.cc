@@ -45,7 +45,7 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!pngPtr)
 	{
-		fp->close();
+		delete fp;
 		FsSys::remove(fname);
 		return 0;
 	}
@@ -53,7 +53,7 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	if(!infoPtr)
 	{
 		png_destroy_write_struct(&pngPtr, (png_infopp)NULL);
-		fp->close();
+		delete fp;
 		FsSys::remove(fname);
 		return 0;
 	}
@@ -61,7 +61,7 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	if(setjmp(png_jmpbuf(pngPtr)))
 	{
 		png_destroy_write_struct(&pngPtr, &infoPtr);
-		fp->close();
+		delete fp;
 		FsSys::remove(fname);
 		return 0;
 	}
@@ -110,7 +110,7 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	png_write_end(pngPtr, infoPtr);
 	png_destroy_write_struct(&pngPtr, &infoPtr);
 
-	fp->close();
+	delete fp;
 	logMsg("%s saved.", fname);
 	return 1;
 }

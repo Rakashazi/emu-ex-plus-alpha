@@ -1613,6 +1613,8 @@ static void loadSpriteList(PPUPriv &p, const SaveState &ss) {
 
 }
 
+PixelType PPUFrameBuf::nullfbline_[160];
+
 void PPU::loadState(const SaveState &ss, const unsigned char *const oamram) {
 	const PPUState *const m3loopState = decodeM3LoopState(ss.ppu.state);
 	const long videoCycles = std::min(ss.ppu.videoCycles, 70223UL);

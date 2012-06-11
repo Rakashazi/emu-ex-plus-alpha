@@ -27,7 +27,7 @@ void buildKeyMapping();
 
 struct BtnConfigMenuItem : public DualTextMenuItem
 {
-	uint *btn; uint dev;
+	uint *btn = nullptr; uint dev = 0;
 	void init(const char *name, uint *btn, uint dev);
 
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;
@@ -52,8 +52,8 @@ static class ButtonConfigSetView : public View
 	;
 
 public:
-	BtnConfigMenuItem *onSet;
-	uint devType;
+	BtnConfigMenuItem *onSet = nullptr;
+	uint devType = 0;
 
 	Rect2<int> &viewRect() { return viewFrame; }
 
@@ -165,13 +165,13 @@ class ButtonConfigView : public BaseMenuView
 
 	void inputEvent(const InputEvent &e);
 
-	MenuItem **text;
-	BtnConfigMenuItem *btn;
+	MenuItem **text = nullptr;
+	BtnConfigMenuItem *btn = nullptr;
 
 public:
-	constexpr ButtonConfigView(): text(0), btn(0), cat(0), devType(0) { }
-	KeyCategory *cat;
-	uint devType;
+	constexpr ButtonConfigView() { }
+	KeyCategory *cat = nullptr;
+	uint devType = 0;
 	void init(KeyCategory *cat,
 			uint devType, bool highlightFirst);
 	void deinit();

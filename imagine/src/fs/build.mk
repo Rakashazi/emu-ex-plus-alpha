@@ -3,6 +3,6 @@ inc_fs := 1
 
 configDefs += CONFIG_FS
 
-SRC +=  fs/Fs.cc
+#SRC +=  fs/Fs.cc
 
 endif

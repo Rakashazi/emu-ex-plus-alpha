@@ -3,10 +3,10 @@
 template <class C>
 class RefCount
 {
-	uint count;
+	uint count = 0;
 
 public:
-	constexpr RefCount(): count(0) { }
+	constexpr RefCount() { }
 
 	void ref()
 	{

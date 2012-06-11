@@ -29,7 +29,7 @@ void svp_reset(void)
 
 void svp_write_dram(uint32 address, uint32 data)
 {
-  *(uint16 *)(svp->dram + (address & 0x1fffe)) = data;
+  *(uint16a *)(svp->dram + (address & 0x1fffe)) = data;
   if ((address == 0x30fe06) && data) svp->ssp1601.emu_status &= ~SSP_WAIT_30FE06;
   if ((address == 0x30fe08) && data) svp->ssp1601.emu_status &= ~SSP_WAIT_30FE08;
 }
@@ -38,13 +38,13 @@ uint32 svp_read_cell_1(uint32 address)
 {
   address >>= 1;
   address = (address & 0x7001) | ((address & 0x3e) << 6) | ((address & 0xfc0) >> 5);
-  return *(uint16 *)(svp->dram + (address & 0x1fffe));
+  return *(uint16a *)(svp->dram + (address & 0x1fffe));
 }
 
 uint32 svp_read_cell_2(uint32 address)
 {
   address >>= 1;
   address = (address & 0x7801) | ((address & 0x1e) << 6) | ((address & 0x7e0) >> 4);
-  return *(uint16 *)(svp->dram + (address & 0x1fffe));
+  return *(uint16a *)(svp->dram + (address & 0x1fffe));
 }
 

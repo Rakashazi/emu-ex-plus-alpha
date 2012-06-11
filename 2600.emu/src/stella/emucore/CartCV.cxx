@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartCV.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -201,7 +201,7 @@ const uInt8* CartridgeCV::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCV::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
 
@@ -210,9 +210,9 @@ bool CartridgeCV::save(Serializer& out) const
     for(uInt32 addr = 0; addr < 1024; ++addr)
       out.putByte((char)myRAM[addr]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeCV::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeCV::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -222,7 +222,7 @@ bool CartridgeCV::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCV::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -232,9 +232,9 @@ bool CartridgeCV::load(Serializer& in)
     for(uInt32 addr = 0; addr < limit; ++addr)
       myRAM[addr] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeCV::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeCV::load" << endl << "  " << msg << endl;
     return false;
   }
 

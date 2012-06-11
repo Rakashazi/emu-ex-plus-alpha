@@ -88,7 +88,8 @@ enum
 	nesKeyIdxA,
 	nesKeyIdxB,
 	nesKeyIdxATurbo,
-	nesKeyIdxBTurbo
+	nesKeyIdxBTurbo,
+	nesKeyIdxAB,
 };
 
 static ESI nesInputPortDev[2] = { SI_UNSET, SI_UNSET };
@@ -103,16 +104,15 @@ enum {
 	CFGKEY_NESKEY_RIGHT_DOWN = 268, CFGKEY_NESKEY_LEFT_DOWN = 269,
 
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
+
+	CFGKEY_NESKEY_A_B = 272,
 };
 
 FsSys::cPath fdsBiosPath = "";
-static PathOption<CFGKEY_FDS_BIOS_PATH> optionFdsBiosPath;
+static PathOption<CFGKEY_FDS_BIOS_PATH> optionFdsBiosPath(fdsBiosPath, sizeof(fdsBiosPath), "");
 static BasicByteOption optionFourScore(CFGKEY_FOUR_SCORE, 0);
 
-void EmuSystem::initOptions()
-{
-	optionFdsBiosPath.init(fdsBiosPath, sizeof(fdsBiosPath), "");
-}
+void EmuSystem::initOptions() { }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -136,6 +136,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_NESKEY_B: readKeyConfig2(io, nesKeyIdxB, readSize);
 		bcase CFGKEY_NESKEY_A_TURBO: readKeyConfig2(io, nesKeyIdxATurbo, readSize);
 		bcase CFGKEY_NESKEY_B_TURBO: readKeyConfig2(io, nesKeyIdxBTurbo, readSize);
+		bcase CFGKEY_NESKEY_A_B: readKeyConfig2(io, nesKeyIdxAB, readSize);
 	}
 	return 1;
 }
@@ -162,6 +163,7 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, nesKeyIdxB, CFGKEY_NESKEY_B);
 	writeKeyConfig2(io, nesKeyIdxATurbo, CFGKEY_NESKEY_A_TURBO);
 	writeKeyConfig2(io, nesKeyIdxBTurbo, CFGKEY_NESKEY_B_TURBO);
+	writeKeyConfig2(io, nesKeyIdxAB, CFGKEY_NESKEY_A_B);
 }
 
 static bool isFDSBIOSExtension(const char *name)
@@ -292,7 +294,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		logMsg("loading state %s", saveStr);
 		if(!FCEUI_LoadState(saveStr))
@@ -483,7 +485,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr))
+		if(FsSys::fileExists(saveStr))
 			FCEUI_LoadState(saveStr);
 	}
 
@@ -635,6 +637,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case nesKeyIdxA: return BIT(0);
 		case nesKeyIdxBTurbo: turbo = 1;
 		case nesKeyIdxB: return BIT(1);
+		case nesKeyIdxAB: return BIT(0) | BIT(1);
 		default: bug_branch("%d", input);
 	}
 	return 0;

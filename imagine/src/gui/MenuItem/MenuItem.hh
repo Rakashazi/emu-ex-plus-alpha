@@ -35,9 +35,11 @@ public:
 class TextMenuItem : public MenuItem
 {
 public:
-	constexpr TextMenuItem(): active(0) { }
+	typedef Delegate<void (TextMenuItem &item, const InputEvent &e)> SelectDelegate;
+	constexpr TextMenuItem() { }
+	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
 	GfxText t;
-	bool active;
+	bool active = 0;
 
 	void init(const char *str, bool active = 1, ResourceFace *face = View::defaultFace);
 	void deinit();
@@ -47,7 +49,6 @@ public:
 	GC xSize();
 	void select(View *parent, const InputEvent &e);
 
-	typedef Delegate<void (TextMenuItem &item, const InputEvent &e)> SelectDelegate;
 	SelectDelegate selectDel;
 	SelectDelegate &selectDelegate() { return selectDel; }
 };
@@ -69,8 +70,8 @@ public:
 class BoolMenuItem : public DualTextMenuItem
 {
 public:
-	constexpr BoolMenuItem(): on(0) { }
-	bool on;
+	constexpr BoolMenuItem() { }
+	bool on = 0;
 
 	void init(const char *str, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
 	void set(bool val);
@@ -86,8 +87,8 @@ public:
 class BoolTextMenuItem : public BoolMenuItem
 {
 public:
-	constexpr BoolTextMenuItem(): offStr(nullptr), onStr(nullptr) { }
-	const char *offStr, *onStr;
+	constexpr BoolTextMenuItem() { }
+	const char *offStr = nullptr, *onStr = nullptr;
 	void init(const char *str, const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
 	void set(bool val);
 	void toggle();
@@ -97,9 +98,9 @@ public:
 class MultiChoiceMenuItem : public DualTextMenuItem
 {
 public:
-	constexpr MultiChoiceMenuItem() : choice(0), choices(0), baseVal(0), choiceStr(0) { }
-	int choice, choices, baseVal;
-	const char **choiceStr;
+	constexpr MultiChoiceMenuItem() { }
+	int choice = 0, choices = 0, baseVal = 0;
+	const char **choiceStr = nullptr;
 
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;

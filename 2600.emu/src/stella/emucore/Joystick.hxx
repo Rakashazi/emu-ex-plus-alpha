@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Joystick.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: Joystick.hxx 2366 2012-01-22 21:01:13Z stephena $
 //============================================================================
 
 #ifndef JOYSTICK_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 joystick controller.
 
   @author  Bradford W. Mott
-  @version $Id: Joystick.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: Joystick.hxx 2366 2012-01-22 21:01:13Z stephena $
 */
 class Joystick : public Controller
 {
@@ -55,6 +55,24 @@ class Joystick : public Controller
     void update();
 
     /**
+      Determines how this controller will treat values received from the
+      X/Y axis and left/right buttons of the mouse.  Since not all controllers
+      use the mouse, it's up to the specific class to decide how to use this data.
+
+      If either of the axis is set to 'Automatic', then we automatically
+      use the ctrlID for the control type.
+
+      In the current implementation, the left button is tied to the X axis,
+      and the right one tied to the Y axis.
+
+      @param xaxis   How the controller should use x-axis data
+      @param yaxis   How the controller should use y-axis data
+      @param ctrlID  The controller ID to use axis 'auto' mode
+    */
+    void setMouseControl(
+        MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID = -1);
+
+    /**
       Sets the deadzone amount for real analog joysticks.
       Technically, this isn't really used by the Joystick class at all,
       but it seemed like the best place to put it.
@@ -67,6 +85,9 @@ class Joystick : public Controller
     // This will eliminate test for left or right port in update()
     Event::Type myUpEvent, myDownEvent, myLeftEvent, myRightEvent,
                 myXAxisValue, myYAxisValue, myFireEvent;
+
+    // Controller to emulate in mouse axis 'automatic' mode
+    int myControlID;  
 
     static int _DEAD_ZONE;
 };

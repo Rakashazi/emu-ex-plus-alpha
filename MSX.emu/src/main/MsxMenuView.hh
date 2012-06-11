@@ -148,14 +148,10 @@ private:
 
 	struct HDMenuItem : public TextMenuItem, public MsxMediaChangeListener
 	{
-		constexpr HDMenuItem(): slot(0), prefix(0)
-		#ifdef CONFIG_CXX11
-		, strBuff CXX11_INIT_LIST({0})
-		#endif
-		{ }
-		int slot;
-		const char *prefix;
-		char strBuff[1024];
+		constexpr HDMenuItem() { }
+		int slot = 0;
+		const char *prefix = nullptr;
+		char strBuff[1024] = {0};
 		void init(const char *str, int slot)
 		{
 			prefix = str;
@@ -221,15 +217,11 @@ private:
 
 	struct RomMenuItem : public TextMenuItem, public MsxMediaChangeListener
 	{
-		constexpr RomMenuItem(): slot(0), prefix(0)
-		#ifdef CONFIG_CXX11
-		, strBuff CXX11_INIT_LIST({0})
-		#endif
-		, hdMenuItem(0) { }
-		int slot;
-		const char *prefix;
-		char strBuff[1024];
-		HDMenuItem *hdMenuItem;
+		constexpr RomMenuItem() { }
+		int slot = 0;
+		const char *prefix = nullptr;
+		char strBuff[1024] = {0};
+		HDMenuItem *hdMenuItem = nullptr;
 		void init(const char *str, int slot, HDMenuItem *hdMenuItem)
 		{
 			prefix = str;
@@ -300,14 +292,10 @@ private:
 
 	struct DiskMenuItem : public TextMenuItem, public MsxMediaChangeListener
 	{
-		constexpr DiskMenuItem(): slot(0), prefix(0)
-		#ifdef CONFIG_CXX11
-		, strBuff CXX11_INIT_LIST({0})
-		#endif
-		{ }
-		int slot;
-		const char *prefix;
-		char strBuff[1024];
+		constexpr DiskMenuItem() { }
+		int slot = 0;
+		const char *prefix = nullptr;
+		char strBuff[1024] = {0};
 		void init(const char *str, int slot)
 		{
 			prefix = str;
@@ -359,13 +347,9 @@ private:
 		}
 	} diskSlot[2];
 
-	MenuItem *item[9];
+	MenuItem *item[9] = {nullptr};
 public:
-	constexpr MsxIOControlView(): BaseMenuView("IO Control")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr MsxIOControlView(): BaseMenuView("IO Control") { }
 
 	void init(bool highlightFirst)
 	{

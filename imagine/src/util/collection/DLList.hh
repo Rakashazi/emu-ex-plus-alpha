@@ -16,7 +16,7 @@ template<class NODE>
 class DLFreeList
 {
 public:
-	DLFreeList() { }
+	constexpr DLFreeList() { }
 	template <size_t S>
 	DLFreeList(NODE (&n)[S]) { init(n); }
 
@@ -87,10 +87,10 @@ public:
 		}
 	};
 
-	Node *list, *listEnd;
-	int size;
+	Node *list = nullptr, *listEnd = nullptr;
+	int size = 0;
 
-	constexpr DLList(): list(nullptr), listEnd(nullptr), size(0) { }
+	constexpr DLList() { }
 	template <size_t S>
 	DLList(Node (&n)[S]) { init(n); }
 
@@ -98,10 +98,10 @@ public:
 	{
 	public:
 		DLList &dlList;
-		Iterator(DLList &dlList) : dlList(dlList)
+		constexpr Iterator(DLList &dlList) : dlList(dlList), curr(dlList.list), next(curr ? curr->next : 0)
 		{
-			curr = dlList.list;
-			next = curr ? curr->next : 0;;
+			/*curr = dlList.list;
+			next = curr ? curr->next : 0;;*/
 		}
 		Node *curr, *next;
 

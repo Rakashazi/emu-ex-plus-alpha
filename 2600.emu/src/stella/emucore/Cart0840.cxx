@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,11 +24,11 @@
 #include "Cart0840.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge0840::Cartridge0840(const uInt8* image, const Settings& settings)
+Cartridge0840::Cartridge0840(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 8192);
+	memcpy(myImage, image, BSPF_min(8192u, size));
   createCodeAccessBase(8192);
 
   // Remember startup bank
@@ -195,14 +195,14 @@ const uInt8* Cartridge0840::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge0840::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge0840::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: Cartridge0840::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -212,16 +212,16 @@ bool Cartridge0840::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge0840::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCurrentBank = (uInt16)in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge0840::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: Cartridge0840::load" << endl << "  " << msg << endl;
     return false;
   }
 

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Event.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: Event.hxx 2405 2012-03-04 19:20:29Z stephena $
 //============================================================================
 
 #ifndef EVENT_HXX
@@ -26,7 +26,7 @@ class Event;
 
 /**
   @author  Bradford W. Mott
-  @version $Id: Event.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: Event.hxx 2405 2012-03-04 19:20:29Z stephena $
 */
 class Event
 {
@@ -45,9 +45,9 @@ class Event
       ConsoleSelect, ConsoleReset,
 
       JoystickZeroUp, JoystickZeroDown, JoystickZeroLeft, JoystickZeroRight,
-        JoystickZeroFire1, JoystickZeroFire2, JoystickZeroFire3,
+        JoystickZeroFire, JoystickZeroFire5, JoystickZeroFire9,
       JoystickOneUp, JoystickOneDown, JoystickOneLeft, JoystickOneRight,
-        JoystickOneFire1, JoystickOneFire2, JoystickOneFire3,
+        JoystickOneFire, JoystickOneFire5, JoystickOneFire9,
 
       PaddleZeroDecrease, PaddleZeroIncrease, PaddleZeroAnalog, PaddleZeroFire,
       PaddleOneDecrease, PaddleOneIncrease, PaddleOneAnalog, PaddleOneFire,
@@ -70,7 +70,8 @@ class Event
       SALeftAxis0Value, SALeftAxis1Value,
       SARightAxis0Value, SARightAxis1Value,
 
-      MouseAxisXValue, MouseAxisYValue, MouseButtonValue,
+      MouseAxisXValue, MouseAxisYValue,
+      MouseButtonLeftValue, MouseButtonRightValue,
 
       ChangeState, LoadState, SaveState, TakeSnapshot, Quit,
       PauseMode, MenuMode, CmdMenuMode, DebuggerMode, LauncherMode,

@@ -94,12 +94,12 @@ static void gfx_do(Rot_Comp &rot_comp, unsigned int func, unsigned short *stamp_
 	Buffer_Adr = ((rot_comp.imgBuffStartAddr & 0xfff8) + rot_comp.YD) << 2;
 	//if(rot_comp.imgBuffVDotSize == 40)
 		//logMsg("gfx buff 0x%X", Buffer_Adr);
-	ecx = *(unsigned int *)(sCD.word.ram2M + rot_comp.Vector_Adr);
+	ecx = *(uint32a*)(sCD.word.ram2M + rot_comp.Vector_Adr);
 	//logMsg("H dot %d", H_Dot);
 	edx = ecx >> 16;
 	ecx = (ecx & 0xffff) << 8;
 	edx <<= 8;
-	DYXS = *(int *)(sCD.word.ram2M + rot_comp.Vector_Adr + 4);
+	DYXS = *(int32a*)(sCD.word.ram2M + rot_comp.Vector_Adr + 4);
 	//logMsg("DYXS 0x%X", DYXS);
 	rot_comp.Vector_Adr += 8;
 

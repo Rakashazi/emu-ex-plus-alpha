@@ -14,17 +14,17 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: TIASnd.cxx 2417 2012-03-16 13:19:29Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "TIASnd.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TIASound::TIASound(Int32 outputFrequency, Int32 tiaFrequency, uInt32 channels)
-  : myOutputFrequency(outputFrequency),
+TIASound::TIASound(Int32 outputFrequency, Int32 tiaFrequency)
+  : myChannelMode(Hardware1),
+    myOutputFrequency(outputFrequency),
     myTIAFrequency(tiaFrequency),
-    myChannels(channels),
     myOutputCounter(0),
     myVolumePercentage(100),
     myVolumeClip(128)
@@ -60,9 +60,20 @@ void TIASound::tiaFrequency(Int32 freq)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIASound::channels(uInt32 number)
+string TIASound::channels(uInt32 hardware, bool stereo)
 {
-  myChannels = number == 2 ? 2 : 1;
+  if(hardware == 1)
+    myChannelMode = Hardware1;
+  else
+    myChannelMode = stereo ? Hardware2Stereo : Hardware2Mono;
+
+  switch(myChannelMode)
+  {
+    case Hardware1:       return "Hardware1";
+    case Hardware2Mono:   return "Hardware2Mono";
+    case Hardware2Stereo: return "Hardware2Stereo";
+    default:              return EmptyString;
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -138,7 +149,7 @@ uInt8 TIASound::get(uInt16 address) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIASound::volume(uInt32 percent)
 {
-  if((percent >= 0) && (percent <= 100))
+	if(percent <= 100)
     myVolumePercentage = percent;
 }
 
@@ -363,27 +374,39 @@ void TIASound::process(Sample* buffer, uInt32 samples)
 
     myOutputCounter += myOutputFrequency;
   
-    if(myChannels == 1)
+    switch(myChannelMode)
     {
-      // Handle mono sample generation
-      while((samples > 0) && (myOutputCounter >= myTIAFrequency))
-      {
-        *(buffer++) = (((myP4[0] & 8) ? v0 : 0) + 
-            ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
-        myOutputCounter -= myTIAFrequency;
-        samples--;
-      }
-    }
-    else
-    {
-      // Handle stereo sample generation
-      while((samples > 0) && (myOutputCounter >= myTIAFrequency))
-      {
-        *(buffer++) = ((myP4[0] & 8) ? v0 : 0) + myVolumeClip;
-        *(buffer++) = ((myP4[1] & 8) ? v1 : 0) + myVolumeClip;
-        myOutputCounter -= myTIAFrequency;
-        samples--;
-      }
+      case Hardware2Mono:  // mono sampling with 2 hardware channels
+        while((samples > 0) && (myOutputCounter >= myTIAFrequency))
+        {
+          uInt8 byte = (((myP4[0] & 8) ? v0 : 0) +
+              ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
+          *(buffer++) = byte;
+          *(buffer++) = byte;
+          myOutputCounter -= myTIAFrequency;
+          samples--;
+        }
+        break;
+
+      case Hardware2Stereo:  // stereo sampling with 2 hardware channels
+        while((samples > 0) && (myOutputCounter >= myTIAFrequency))
+        {
+          *(buffer++) = ((myP4[0] & 8) ? v0 : 0) + myVolumeClip;
+          *(buffer++) = ((myP4[1] & 8) ? v1 : 0) + myVolumeClip;
+          myOutputCounter -= myTIAFrequency;
+          samples--;
+        }
+        break;
+
+      case Hardware1:  // mono/stereo sampling with only 1 hardware channel
+        while((samples > 0) && (myOutputCounter >= myTIAFrequency))
+        {
+          *(buffer++) = (((myP4[0] & 8) ? v0 : 0) +
+              ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
+          myOutputCounter -= myTIAFrequency;
+          samples--;
+        }
+        break;
     }
   }
 }

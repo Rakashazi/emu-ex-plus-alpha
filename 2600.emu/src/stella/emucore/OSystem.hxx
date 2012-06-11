@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: OSystem.hxx 2264 2011-08-16 13:38:34Z stephena $
+// $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
 //============================================================================
 
 #ifndef OSYSTEM_HXX
@@ -42,7 +42,6 @@ namespace GUI {
 #include "Array.hxx"
 #include "FrameBuffer.hxx"
 #include "bspf.hxx"
-#include "EventHandler.hxx"
 
 struct Resolution {
   uInt32 width;
@@ -57,7 +56,7 @@ typedef Common::Array<Resolution> ResolutionList;
   other objects belong.
 
   @author  Stephen Anthony
-  @version $Id: OSystem.hxx 2264 2011-08-16 13:38:34Z stephena $
+  @version $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
 */
 class OSystem
 {
@@ -73,12 +72,12 @@ class OSystem
     /**
       Destructor
     */
-    ~OSystem();
+    virtual ~OSystem();
 
     /**
       Create all child objects which belong to this OSystem
     */
-    bool create();
+    virtual bool create();
 
   public:
     /**
@@ -114,7 +113,7 @@ class OSystem
 
       @return The settings object
     */
-    Settings& settings() const { assert(mySettings); return *mySettings; }
+    Settings& settings() const { return *mySettings; }
 
     /**
       Get the set of game properties for the system
@@ -166,6 +165,11 @@ class OSystem
     //StateManager& state() const { return *myStateManager; }
 
 #ifdef DEBUGGER_SUPPORT
+    /**
+      Create all child objects which belong to this OSystem
+    */
+    void createDebugger(Console& console);
+
     /**
       Get the ROM debugger of the system.
 
@@ -224,7 +228,7 @@ class OSystem
 
       @param framerate  The video framerate to use
     */
-    void setFramerate(float framerate);
+    virtual void setFramerate(float framerate);
 
     /**
       Set all config file paths for the OSystem.
@@ -339,9 +343,12 @@ class OSystem
     /**
       Creates a new ROM launcher, to select a new ROM to emulate.
 
+      @param startdir  The directory to use when opening the launcher;
+                       if blank, use 'romdir' setting.
+
       @return  True on successful creation, otherwise false
     */
-    bool createLauncher();
+    bool createLauncher(const string& startdir = "");
 
     /**
       Gets all possible info about the ROM by creating a temporary
@@ -413,7 +420,7 @@ class OSystem
 
       @return Current time in microseconds.
     */
-    uInt64 getTicks() const;
+    virtual uInt64 getTicks() const;
 
     /**
       This method runs the main loop.  Since different platforms
@@ -421,51 +428,35 @@ class OSystem
       be overrided.  However, the port then takes all responsibility for
       running the emulation and taking care of timing.
     */
-    void mainLoop();
+    virtual void mainLoop();
 
     /**
-      This method determines the default mapping of joystick buttons to
+      This method determines the default mapping of joystick actions to
       Stella events for a specific system/platform.
 
       @param event  The event which to (re)set (Event::NoType resets all)
       @param mode   The mode for which the defaults are set
     */
-    void setDefaultJoymap(Event::Type event, EventMode mode);
-
-    /**
-      This method determines the default mapping of joystick axis to
-      Stella events for a specific system/platform.
-
-      @param event  The event which to (re)set (Event::NoType resets all)
-      @param mode   The mode for which the defaults are set
-    */
-    void setDefaultJoyAxisMap(Event::Type event, EventMode mode);
-
-    /**
-      This method determines the default mapping of joystick hats to
-      Stella events for a specific system/platform.
-
-      @param event  The event which to (re)set (Event::NoType resets all)
-      @param mode   The mode for which the defaults are set
-    */
-    void setDefaultJoyHatMap(Event::Type event, EventMode mode);
+    virtual void setDefaultJoymap(Event::Type event, EventMode mode);
 
     /**
       This method creates events from platform-specific hardware.
     */
-    void pollEvent();
-
-    /**
-      This method answers whether the given button as already been
-      handled by the pollEvent() method, and as such should be ignored
-      in the main event handler.
-    */
-    bool joyButtonHandled(int button);
+    virtual void pollEvent();
 
     /**
       Informs the OSystem of a change in EventHandler state.
     */
-    void stateChanged(EventHandler::State state);
+    virtual void stateChanged(EventHandler::State state);
+
+    /**
+      Returns the default path for the snapshot directory.
+      Since this varies greatly among different systems and is the one
+      directory that most end-users care about (vs. config file stuff
+      that usually isn't user-modifiable), we create a special method
+      for it.
+    */
+    virtual string defaultSnapDir() { return "~"; }
 
     /**
       Set the position of the application window, generally using
@@ -473,7 +464,7 @@ class OSystem
       called for windowed mode, so no provisions need be made
       for fullscreen mode.
     */
-    void setAppWindowPos(int x, int y, int w, int h) { };
+    virtual void setAppWindowPos(int x, int y, int w, int h) { };
 
     // Pointer to the (currently defined) Console object
     Console* myConsole;
@@ -482,7 +473,7 @@ class OSystem
     /**
       Query the OSystem video hardware for resolution information.
     */
-    bool queryVideoHardware();
+    virtual bool queryVideoHardware();
 
     /**
       Set the base directory for all Stella files (these files may be
@@ -595,7 +586,11 @@ class OSystem
       uInt64 totalTime;
       uInt64 totalFrames;
     };
-    TimingInfo myTimingInfo;*/
+    TimingInfo myTimingInfo;
+
+    // Table of RGB values for GUI elements
+    static uInt32 ourGUIColors[kNumUIPalettes][kNumColors-256];
+    */
 
   private:
     /**
@@ -662,9 +657,13 @@ class OSystem
       Validate the directory name, and create it if necessary.
       Also, update the settings with the new name.  For now, validation
       means that the path must always end with the appropriate separator.
+
+      @param path     The actual path being accessed and created
+      @param setting  The setting corresponding to the path being considered
+      @param defaultpath  The default path to use if the settings don't exist
     */
-    void validatePath(const string& setting, const string& partialpath,
-                      string& fullpath);
+    void validatePath(string& path, const string& setting,
+    		              const string& defaultpath);
 
     // Copy constructor isn't supported by this class so make it private
     OSystem(const OSystem&);

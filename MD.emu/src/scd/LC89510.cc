@@ -497,7 +497,9 @@ void CDC_Write_Reg(unsigned char Data)
 
 static int bswapwrite(int a, unsigned short d)
 {
-	*(unsigned short *)(sCD.gate + a) = (d>>8)|(d<<8);
+	//*(unsigned short *)(sCD.gate + a) = (d>>8)|(d<<8);
+	uint16a *addr = (uint16a*)(sCD.gate + a);
+	*addr = (d>>8)|(d<<8);
 	return d + (d >> 8);
 }
 

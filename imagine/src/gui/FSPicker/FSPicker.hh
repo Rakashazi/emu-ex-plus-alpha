@@ -17,10 +17,12 @@
 class NavView
 {
 public:
-	constexpr NavView(): hasBackBtn(0), leftBtnActive(0),
-		hasCloseBtn(0), rightBtnActive(0) { }
-
 	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
+
+	constexpr NavView() { }
+	constexpr NavView(OnInputDelegate onLeftNavBtn, OnInputDelegate onRightNavBtn):
+			onLeftNavBtn(onLeftNavBtn), onRightNavBtn(onRightNavBtn) { }
+
 	OnInputDelegate onLeftNavBtn, onRightNavBtn;
 	OnInputDelegate &leftNavBtnDelegate() { return onLeftNavBtn; }
 	OnInputDelegate &rightNavBtnDelegate() { return onRightNavBtn; }
@@ -28,7 +30,7 @@ public:
 	Rect2<int> leftBtn, rightBtn, textRect;
 	GfxText text;
 	Rect2<int> viewRect;
-	bool hasBackBtn, leftBtnActive, hasCloseBtn, rightBtnActive;
+	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
 
 	void setLeftBtnActive(bool on) { leftBtnActive = on; }
 	void setRightBtnActive(bool on) { rightBtnActive = on; }
@@ -46,6 +48,7 @@ class BasicNavView : public NavView
 {
 public:
 	constexpr BasicNavView() { }
+	constexpr BasicNavView(OnInputDelegate left, OnInputDelegate right): NavView(left, right) { }
 	GfxSprite leftSpr, rightSpr;
 	GfxLGradient bg;
 	void init(ResourceFace *face, ResourceImage *leftRes, ResourceImage *rightRes,
@@ -61,6 +64,7 @@ class FSNavView : public BasicNavView
 {
 public:
 	constexpr FSNavView() { }
+	constexpr FSNavView(OnInputDelegate left, OnInputDelegate right): BasicNavView(left, right) { }
 	void init(ResourceFace *face, ResourceImage *backRes, ResourceImage *closeRes, bool singleDir);
 	void draw();
 	void place();
@@ -69,8 +73,9 @@ public:
 class FSPicker : public View, public GuiTableSource
 {
 public:
-	constexpr FSPicker() : filter(0), text(0), faceRes(0), singleDir(0) { }
-	FsDirFilterFunc filter;
+	constexpr FSPicker(): navV(NavView::OnInputDelegate::create<FSPicker, &FSPicker::onLeftNavBtn>(this),
+			NavView::OnInputDelegate::create<FSPicker, &FSPicker::onRightNavBtn>(this)) { }
+	FsDirFilterFunc filter = nullptr;
 
 	static const bool needsUpDirControl = !Config::envIsPS3;
 
@@ -94,8 +99,6 @@ public:
 	OnSelectFileDelegate &onSelectFileDelegate() { return onSelectFile; }
 	OnCloseDelegate &onCloseDelegate() { return onClose; }
 
-	//virtual void onSelectFile(const char* name) { };
-	//virtual void onClose() { dismiss(); };
 	void onLeftNavBtn(const InputEvent &e);
 	void onRightNavBtn(const InputEvent &e);
 	Rect2<int> &viewRect() { return viewFrame; }
@@ -106,12 +109,12 @@ public:
 
 	ScrollableGuiTable1D tbl;
 private:
-	TextMenuItem *text;
+	TextMenuItem *text = nullptr;
 	FsSys dir;
 	Rect2<int> viewFrame;
-	ResourceFace *faceRes;
+	ResourceFace *faceRes = nullptr;
 	FSNavView navV;
-	bool singleDir;
+	bool singleDir = 0;
 
 	void loadDir(const char *path);
 	void changeDirByInput(const char *path, const InputEvent &e);

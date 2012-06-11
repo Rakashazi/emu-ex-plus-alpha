@@ -45,10 +45,13 @@ Io * IoMmapFd::open(int fd)
 
 void IoMmapFd::close()
 {
-	logMsg("unmapping %p, closing fd %d", data, fd);
-	munmap((void*)data, iSize);
-	::close(fd);
-	delete this;
+	if(fd)
+	{
+		logMsg("unmapping %p, closing fd %d", data, fd);
+		munmap((void*)data, iSize);
+		::close(fd);
+		fd = 0;
+	}
 }
 
 #undef thisModuleName

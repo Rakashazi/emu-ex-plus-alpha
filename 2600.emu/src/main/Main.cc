@@ -248,8 +248,8 @@ void EmuSystem::closeSystem()
 
 static void updateSwitchValues()
 {
-	assert(osystem.myConsole);
-	var_copy(switches, osystem.myConsole->switches().read());
+	//assert(osystem.myConsole);
+	auto switches = osystem.console().switches().read();
 	logMsg("updating switch values to %X", switches);
 	p1DiffB = !(switches & 0x40);
 	p2DiffB = !(switches & 0x80);
@@ -323,7 +323,7 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 		if(!f)
 			return 0;
 		size = f->readUpTo(buff, MAX_ROM_SIZE);
-		f->close();
+		delete f;
 		return 1;
 	}
 }
@@ -384,7 +384,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 
 void EmuSystem::clearInputBuffers()
 {
-	Event& ev = *osystem.eventHandler().event();
+	Event &ev = osystem.eventHandler().event();
 	ev.clear();
 
 	ev.set(Event::ConsoleLeftDiffB, p1DiffB);
@@ -417,8 +417,8 @@ static uint ptrInputToSysButton(uint input)
 {
 	switch(input)
 	{
-		case SysVController::F_ELEM: return Event::JoystickZeroFire1;
-		case SysVController::F_ELEM+1: return Event::JoystickZeroFire2;
+		case SysVController::F_ELEM: return Event::JoystickZeroFire;
+		case SysVController::F_ELEM+1: return Event::JoystickZeroFire5;
 
 		case SysVController::C_ELEM: return Event::ConsoleSelect;
 		case SysVController::C_ELEM+1: return Event::ConsoleReset;
@@ -455,7 +455,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxLeftDown: return Event::JoystickZeroLeft | (Event::JoystickZeroDown << 8);
 		case vcsKeyIdxSelect: return Event::ConsoleSelect;
 		case vcsKeyIdxJSBtnTurbo: turbo = 1;
-		case vcsKeyIdxJSBtn: return Event::JoystickZeroFire1;
+		case vcsKeyIdxJSBtn: return Event::JoystickZeroFire;
 		case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
 		case vcsKeyIdxP2Diff: return Event::Combo2; // toggle P2 diff
 		case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
@@ -471,7 +471,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 {
-	Event& ev = *osystem.eventHandler().event();
+	Event &ev = osystem.eventHandler().event();
 	uint event1 = emuKey & 0xFF;
 	uint playerShift = player ? 7 : 0;
 
@@ -500,12 +500,12 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 			popup.post(vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W", 1);
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
-		bcase Event::JoystickZeroFire2: // TODO: add turbo support for on-screen controls to framework
-			ev.set(Event::Type(Event::JoystickZeroFire1 + playerShift), state == INPUT_PUSHED);
+		bcase Event::JoystickZeroFire5: // TODO: add turbo support for on-screen controls to framework
+			ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
 			if(state == INPUT_PUSHED)
-				turboActions.addEvent(player, Event::JoystickZeroFire1);
+				turboActions.addEvent(player, Event::JoystickZeroFire);
 			else
-				turboActions.removeEvent(player, Event::JoystickZeroFire1);
+				turboActions.removeEvent(player, Event::JoystickZeroFire);
 		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
 			ev.set(Event::Type(event1), state == INPUT_PUSHED);
 		bdefault:

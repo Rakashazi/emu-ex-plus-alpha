@@ -18,6 +18,8 @@
 #include <engine-globals.h>
 #include <util/thread/pthread.hh>
 #include <util/bits.h>
+#include <util/rectangle2.h>
+#include <util/Delegate.hh>
 
 #if defined (CONFIG_BASE_X11) || (defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9)
 	#include <sys/epoll.h>
@@ -25,14 +27,20 @@
 	#include <android/looper.h>
 #endif
 
-#ifdef CONFIG_BASE_IOS
-	#include <base/iphone/public.hh>
-#elif defined(CONFIG_BASE_ANDROID)
+#if defined(CONFIG_BASE_ANDROID)
 	#include <base/android/public.hh>
 #endif
 
 namespace Base
 {
+
+struct Window
+{
+	constexpr Window() { }
+	Rect2<int> rect;
+};
+
+const Window &window();
 
 // App exit
 void exitVal(int returnVal) ATTRS(noreturn);
@@ -168,15 +176,7 @@ uint refreshRate();
 
 // poll()-like event system support (WIP API)
 
-#define base_pollHandlerFuncProto(name) int name(void* data, int events)
-struct PollHandler
-{
-	constexpr PollHandler(base_pollHandlerFuncProto((*func)), void *data) : func(func), data(data) { }
-	constexpr PollHandler(base_pollHandlerFuncProto((*func))) : func(func), data(0) { }
-	constexpr PollHandler() : func(0), data(0) { }
-	base_pollHandlerFuncProto((*func));
-	void *data;
-};
+typedef Delegate<int (int event)> PollEventDelegate;
 
 #if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	static const uint POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT, POLLEV_ERR = ALOOPER_EVENT_ERROR;
@@ -187,13 +187,11 @@ struct PollHandler
 #if defined (CONFIG_BASE_X11) || defined(CONFIG_BASE_ANDROID)
 	#define CONFIG_BASE_HAS_FD_EVENTS
 	static const bool hasFDEvents = 1;
-	void addPollEvent2(int fd, PollHandler &handler, uint events = POLL_IN); // caller is in charge of handler's memory
-	void modPollEvent(int fd, PollHandler &handler, uint events);
+	void addPollEvent2(int fd, PollEventDelegate &handler, uint events = POLLEV_IN); // caller is in charge of handler's memory
+	void modPollEvent(int fd, PollEventDelegate &handler, uint events);
 	void removePollEvent(int fd); // unregister the fd (must still be open)
 #else
 	static const bool hasFDEvents = 0;
-	static void addPollEvent2(int fd, void *func, void* data) { }
-	static void removePollEvent(int fd) { }
 #endif
 
 // timer event support
@@ -262,8 +260,8 @@ extern const char *appPath;
 	bool setUIDEffective();
 #else
 	static int realUID = 0, effectiveUID = 0;
-	static void setUIDReal() { };
-	static bool setUIDEffective() { return 0; };
+	static void setUIDReal() { }
+	static bool setUIDEffective() { return 0; }
 #endif
 
 // Device Identification

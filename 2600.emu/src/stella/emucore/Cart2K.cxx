@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart2K.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Cart2K.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -137,13 +137,13 @@ const uInt8* Cartridge2K::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge2K::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge2K::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: Cartridge2K::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -153,14 +153,14 @@ bool Cartridge2K::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge2K::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge2K::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: Cartridge2K::load" << endl << "  " << msg << endl;
     return false;
   }
 

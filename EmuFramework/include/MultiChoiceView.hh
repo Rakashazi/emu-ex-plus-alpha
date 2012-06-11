@@ -87,16 +87,12 @@ public:
 class MultiChoiceView : public BaseMultiChoiceView
 {
 public:
-	constexpr MultiChoiceView()
-	#ifdef CONFIG_CXX11
-	: choiceEntryItem CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr MultiChoiceView() { }
 
 	typedef Delegate<bool (int i, const InputEvent &e)> OnInputDelegate;
 	OnInputDelegate onSelect;
 	TextMenuItem choiceEntry[13];
-	MenuItem *choiceEntryItem[13];
+	MenuItem *choiceEntryItem[13] = {nullptr};
 
 	// Required delegates
 	OnInputDelegate &onSelectDelegate() { return onSelect; }

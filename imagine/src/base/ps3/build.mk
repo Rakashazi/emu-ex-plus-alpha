@@ -3,14 +3,16 @@ inc_base := 1
 
 configDefs += CONFIG_BASE_PS3
 
-ps3CellPPUPath := /home/robert/cell/target/ppu
-ps3CellPPULibPath := $(ps3CellPPUPath)/lib
-#CPPFLAGS += --sysroot=$(ps3CellPPUPath)
-CPPFLAGS += -D'PP_REPEAT4(x)={x, x, x, x}'
-#CPPFLAGS += -D'PP_REPEAT4(x)={x, x, x, x}' -fpermissive -I/usr/local/cell/target/common/include -I$(ps3CellPPUPath)/include
-#LDLIBS += --sysroot=$(ps3CellPPUPath)
-LDLIBS += -lusbd_stub -lfs_stub -lio_stub -lsysutil_stub -ldbgfont -lresc_stub -lgcm_cmd -lgcm_sys_stub -lsysmodule_stub -lm
+LDLIBS += -lusbd_stub -lfs_stub -lio_stub -lsysmodule_stub
 
-SRC += base/ps3/main.cc
+SRC += base/ps3/main.cc base/ps3/main2.cc
+
+$(objDir)/base/ps3/main2.o : $(imagineSrcDir)/base/ps3/main2.cc
+	@echo "Compiling with GCC 4.1 $<"
+	@mkdir -p $(@D)
+	$(PRINT_CMD)$(SONY_CC) -c $< -I$(imagineSrcDir) -fno-rtti -fno-exceptions -fno-threadsafe-statics \
+	-pipe -fvisibility=hidden -O2 -ffast-math -fmerge-all-constants -fomit-frame-pointer -Wall -Wextra \
+	-Wno-comment -Wno-missing-field-initializers -Wno-unused -Wno-non-virtual-dtor -Wno-attributes \
+	-D'PP_REPEAT4(x)={x, x, x, x}' -o $@
 
 endif

@@ -28,7 +28,7 @@ class Resampler {
 	
 protected:
 	void setRate(const long inRate, const long outRate) { inRate_ = inRate; outRate_ = outRate; }
-	Resampler() : inRate_(0), outRate_(0) {}
+	constexpr Resampler() : inRate_(0), outRate_(0) {}
 	
 public:
 	/** Returns the sampling rate of the input that this resampler expects. */

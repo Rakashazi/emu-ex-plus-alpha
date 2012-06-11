@@ -7,11 +7,10 @@
 #include <dirent.h>
 #include <fs/Fs.hh>
 
-
-class FsPosix
+class FsPosix : public Fs
 {
 public:
-	constexpr FsPosix(): entry(0), numEntries_(0) { }
+	constexpr FsPosix() { }
 	uint numEntries() const;
 	const char *entryFilename(uint index) const;
 	void closeDir();
@@ -28,12 +27,18 @@ public:
 	static CallResult mkdir(const char *dir);
 	static CallResult rename(const char *oldname, const char *newname);
 
+	static bool fileExists(const char *path)
+	{
+		return fileType(path) != TYPE_NONE;
+	}
+	static CallResult changeToAppDir(const char *launchCmd);
+
 	// definitions for common file path sizes
 	static const uint cPathSize = 1024;
 	typedef char cPath[cPathSize];
 
 private:
-	struct dirent **entry;
-	int numEntries_;
+	struct dirent **entry = nullptr;
+	int numEntries_ = 0;
 	static int workDirChanged;
 };

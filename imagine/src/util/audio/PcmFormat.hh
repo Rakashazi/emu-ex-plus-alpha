@@ -23,9 +23,12 @@ namespace Audio
 class PcmFormat
 {
 public:
-	int rate;
-	const SampleFormat *sample;
-	int channels;
+	constexpr PcmFormat() { }
+	constexpr PcmFormat(int rate, const SampleFormat *sample, int channels) :
+		rate(rate), sample(sample), channels(channels) { }
+	int rate = 0;
+	const SampleFormat *sample = nullptr;
+	int channels = 0;
 
 	bool canSupport(PcmFormat *p2) const
 	{

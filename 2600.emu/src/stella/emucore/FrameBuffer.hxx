@@ -14,11 +14,14 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FrameBuffer.hxx 2273 2011-08-28 21:49:16Z stephena $
+// $Id: FrameBuffer.hxx 2332 2012-01-03 20:52:45Z stephena $
 //============================================================================
 
 #ifndef FRAMEBUFFER_HXX
 #define FRAMEBUFFER_HXX
+
+#include "EventHandler.hxx"
+class OSystem;
 
 // Return values for initialization of framebuffer window
 enum FBInitStatus {

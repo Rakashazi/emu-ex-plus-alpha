@@ -10,7 +10,7 @@
 class ResourceFace
 {
 public:
-	constexpr ResourceFace(): font(0), glyphTable(0), faceSize(0), nominalHeight_(0) { }
+	constexpr ResourceFace() { }
 	static ResourceFace * create(ResourceFont *font, FontSettings *set = 0);
 	static ResourceFace * create(ResourceFace *face, FontSettings *set = 0);
 	static ResourceFace * load(const char* path, FontSettings * set = 0);
@@ -36,10 +36,10 @@ public:
 
 	FontSettings settings;
 private:
-	ResourceFont *font;
-	GlyphEntry *glyphTable;
-	FaceSizeData faceSize;
-	uint nominalHeight_;
+	ResourceFont *font = nullptr;
+	GlyphEntry *glyphTable = nullptr;
+	FaceSizeData faceSize = nullptr;
+	uint nominalHeight_ = 0;
 
 	void calcNominalHeight();
 	void initGlyphTable ();

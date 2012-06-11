@@ -14,8 +14,8 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat = { 44100, &SampleFormats::s16, 2 };
-PcmFormat pcmFormat= { 0 };
+PcmFormat preferredPcmFormat { 44100, &SampleFormats::s16, 2 };
+PcmFormat pcmFormat;
 
 static uint bufferFrames = 800;
 static const uint buffers = 16;

@@ -16,12 +16,12 @@ static void DoNEC_PCE_SAPSP(const uint8 *cdb)
    break;
 
   case 0x40:
-   new_read_sec_start = msf2lba(BCD_TO_INT(cdb[2]), BCD_TO_INT(cdb[3]), BCD_TO_INT(cdb[4]));
+   new_read_sec_start = AMSF_to_LBA(BCD_to_U8(cdb[2]), BCD_to_U8(cdb[3]), BCD_to_U8(cdb[4]));
    break;
 
   case 0x80:
    {
-    int track = BCD_TO_INT(cdb[2]);
+    int track = BCD_to_U8(cdb[2]);
 
     if(!track)
      track = 1;
@@ -65,7 +65,7 @@ static void DoNEC_PCE_SAPSP(const uint8 *cdb)
  }
 
  if(read_sec < toc.tracks[100].lba)
-  CDIF_HintReadSector(read_sec);
+  Cur_CDIF->HintReadSector(read_sec);
 
  SendStatusAndMessage(STATUS_GOOD, 0x00);
  CDIRQCallback(SCSICD_IRQ_DATA_TRANSFER_DONE);
@@ -93,13 +93,13 @@ static void DoNEC_PCE_SAPEP(const uint8 *cdb)
    break;
 
   case 0x40:
-   new_read_sec_end = BCD_TO_INT(cdb[4]) + 75 * (BCD_TO_INT(cdb[3]) + 60 * BCD_TO_INT(cdb[2]));
+   new_read_sec_end = BCD_to_U8(cdb[4]) + 75 * (BCD_to_U8(cdb[3]) + 60 * BCD_to_U8(cdb[2]));
    new_read_sec_end -= 150;
    break;
 
   case 0x80:
    {
-    int track = BCD_TO_INT(cdb[2]);
+    int track = BCD_to_U8(cdb[2]);
 
     if(!track)
      track = 1;
@@ -213,11 +213,11 @@ static void DoNEC_PCE_GETDIRINFO(const uint8 *cdb)
 
  switch(cdb[1])
  {
-  default: MDFN_DispMessage("Unknown GETDIRINFO Mode: %02x", cdb[1]);
-	   MDFN_printf("Unknown GETDIRINFO Mode: %02x", cdb[1]);
+  default: //MDFN_DispMessage("Unknown GETDIRINFO Mode: %02x", cdb[1]);
+	   MDFN_PrintError("Unknown GETDIRINFO Mode: %02x", cdb[1]);
   case 0x0:
-   data_in[0] = INT_TO_BCD(toc.first_track);
-   data_in[1] = INT_TO_BCD(toc.last_track);
+   data_in[0] = U8_to_BCD(toc.first_track);
+   data_in[1] = U8_to_BCD(toc.last_track);
 
    data_in_size = 2;
    break;
@@ -226,11 +226,11 @@ static void DoNEC_PCE_GETDIRINFO(const uint8 *cdb)
    {
     uint8 m, s, f;
 
-    lba2msf(toc.tracks[100].lba, &m, &s, &f);
+    LBA_to_AMSF(toc.tracks[100].lba, &m, &s, &f);
 
-    data_in[0] = INT_TO_BCD(m);
-    data_in[1] = INT_TO_BCD(s);
-    data_in[2] = INT_TO_BCD(f);
+    data_in[0] = U8_to_BCD(m);
+    data_in[1] = U8_to_BCD(s);
+    data_in[2] = U8_to_BCD(f);
 
     data_in_size = 3;
    }
@@ -239,7 +239,7 @@ static void DoNEC_PCE_GETDIRINFO(const uint8 *cdb)
   case 0x2:
    {
     uint8 m, s, f;
-    int track = BCD_TO_INT(cdb[2]);
+    int track = BCD_to_U8(cdb[2]);
 
     if(!track)
      track = 1;
@@ -253,11 +253,11 @@ static void DoNEC_PCE_GETDIRINFO(const uint8 *cdb)
      return;
     }
 
-    lba2msf(toc.tracks[track].lba, &m, &s, &f);
+    LBA_to_AMSF(toc.tracks[track].lba, &m, &s, &f);
 
-    data_in[0] = INT_TO_BCD(m);
-    data_in[1] = INT_TO_BCD(s);
-    data_in[2] = INT_TO_BCD(f);
+    data_in[0] = U8_to_BCD(m);
+    data_in[1] = U8_to_BCD(s);
+    data_in[2] = U8_to_BCD(f);
     data_in[3] = toc.tracks[track].control;
     data_in_size = 4;
    }

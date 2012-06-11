@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: Cart.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_HXX
@@ -45,7 +45,7 @@ typedef Common::Array<RamArea> RamAreaList;
   0x1000-0x2000 area (or its mirrors).
  
   @author  Bradford W. Mott
-  @version $Id: Cart.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: Cart.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class Cartridge : public Device
 {
@@ -59,13 +59,13 @@ class Cartridge : public Device
       @param md5      The md5sum for the given ROM image (can be updated)
       @param name     The name of the ROM (can be updated)
       @param dtype    The detected bankswitch type of the ROM image
-      @param cid       Any extra info about the ROM (currently which part
+      @param id       Any extra info about the ROM (currently which part
                       of a multiload game is being accessed
       @param settings The settings associated with the system
       @return   Pointer to the new cartridge object allocated on the heap
     */
     static Cartridge* create(const uInt8* image, uInt32 size, string& md5,
-                             string& dtype, string& cid, Settings& settings);
+                             string& dtype, string& id, Settings& settings);
 
     /**
       Create a new cartridge
@@ -225,12 +225,12 @@ class Cartridge : public Device
       @param size     The size of the ROM image 
       @param numroms  The number of ROMs in the multicart
       @param md5      The md5sum for the specific cart in the ROM image
-      @param cid       The ID for the specific cart in the ROM image
+      @param id       The ID for the specific cart in the ROM image
       @param settings The settings associated with the system
       @return   The bankswitch type for the specific cart in the ROM image
     */
     static string createFromMultiCart(const uInt8*& image, uInt32& size,
-        uInt32 numroms, string& md5, string& cid, Settings& settings);
+        uInt32 numroms, string& md5, string& id, Settings& settings);
 
     /**
       Try to auto-detect the bankswitching type of the cartridge

@@ -29,8 +29,8 @@ enum { _2DORIGIN_NONE = 0, _2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN, _2DOR
 class _2DOrigin
 {
 public:
-	uchar x, y;
-	constexpr _2DOrigin(): x(_2DORIGIN_NONE), y(_2DORIGIN_NONE) { }
+	uchar x = _2DORIGIN_NONE, y = _2DORIGIN_NONE;
+	constexpr _2DOrigin() { }
 	constexpr _2DOrigin(uchar x, uchar y): x(x & 7), y(y & 7) { }
 	constexpr _2DOrigin(uchar val): x(val & 7), y(val >> 3) { }
 

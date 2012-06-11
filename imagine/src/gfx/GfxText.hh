@@ -8,14 +8,10 @@
 #include <util/2DOrigin.h>
 #include <resource2/face/ResourceFace.hh>
 
-extern GfxSprite gfxText_spr;
-
 class GfxText
 {
 public:
-	constexpr GfxText(): face(0), spaceSize(0), nominalHeight(0), yLineStart(0), xSize(0), ySize(0),
-	maxLineSize(0), str(0), slen(0), maxLines(0) { }
-
+	constexpr GfxText() { }
 	void init();
 	void init(const char *str)
 	{
@@ -51,15 +47,15 @@ public:
 		draw(xPos, yPos, o, LT2DO);
 	}
 
-	ResourceFace *face;
-	GC spaceSize;
-	GC nominalHeight;
-	GC yLineStart;
-	GC xSize, ySize;
-	GC maxLineSize;
-	const char *str;
-	uint slen;
-	ushort maxLines;
+	ResourceFace *face = nullptr;
+	GC spaceSize = 0;
+	GC nominalHeight = 0;
+	GC yLineStart = 0;
+	GC xSize = 0, ySize = 0;
+	GC maxLineSize = 0;
+	const char *str = nullptr;
+	uint slen = 0;
+	ushort maxLines = 0;
 };
 
 #endif

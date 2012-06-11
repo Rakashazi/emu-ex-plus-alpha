@@ -229,7 +229,8 @@ static gambatte::PixelType screenBuff[gbResX*gbResY] __attribute__ ((aligned (8)
 static class GbcInput : public gambatte::InputGetter
 {
 public:
-	unsigned bits;
+	constexpr GbcInput() {}
+	unsigned bits = 0;
 	unsigned operator()() { return bits; }
 } gbcInput;
 
@@ -345,7 +346,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		logMsg("loading state %s", saveStr);
 		if(!gbEmu.loadState(saveStr))
@@ -395,7 +396,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
 	logMsg("full game path: %s", fullGamePath);
 
-	if(gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0))
+	if(gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0) < 0)
 	{
 		logMsg("failed to load game");
 		popup.postError("Error loading game");
@@ -410,7 +411,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr))
+		if(FsSys::fileExists(saveStr))
 			gbEmu.loadState(saveStr);
 	}
 

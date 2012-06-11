@@ -338,7 +338,7 @@ void Wiimote::processStickDataForButtonEmulation(int player, const uchar *data)
 			/*if(thread)
 				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_WIIMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED);
 			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 		*e = newState;
 	}
@@ -356,7 +356,7 @@ void Wiimote::processCoreButtons(const uchar *packet, uint player)
 			/*if(thread)
 				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED);
 			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -376,7 +376,7 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 			/*if(thread)
 				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED);
 			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevExtData, ccData, sizeof(prevExtData));
@@ -404,7 +404,7 @@ void Wiimote::processNunchukStickDataForButtonEmulation(int player, const uchar 
 				Input::Wiimote::NUN_STICK_LEFT, Input::Wiimote::NUN_STICK_RIGHT, Input::Wiimote::NUN_STICK_DOWN, Input::Wiimote::NUN_STICK_UP
 			};
 			//logMsg("%s %s @ wiimote %d", Input::buttonName(InputEvent::DEV_WIIMOTE, btnEvent[e_i]), newState ? "pushed" : "released", player);
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 		*e = newState;
 
@@ -423,7 +423,7 @@ void Wiimote::processNunchukButtons(const uchar *packet, uint player)
 		if(newState != -1)
 		{
 			//logMsg("%s %s @ wiimote nunchuk", Input::buttonName(InputEvent::DEV_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevExtData, nunData, sizeof(prevExtData));

@@ -8,6 +8,7 @@
 // does not cover derived or ported versions created by third parties under GPL.
 
 #include "quicklz.h"
+#include <util/ansiTypes.h>
 
 int qlz_get_setting(int setting)
 {
@@ -217,7 +218,7 @@ unsigned int qlz_compress_core(const void *source, unsigned char *destination, u
 					for(w = 0; w < 31; w++)
 					{
 						fetch = fast_read(src + w, 4);
-						*(unsigned int*)&hashtable[hash_func(fetch)][0] = fast_read(src + w, 4);
+						*(uinta*)&hashtable[hash_func(fetch)][0] = fast_read(src + w, 4);
 						hashtable[hash_func(fetch)][1] = src + w;
 					}
 #endif
@@ -266,8 +267,8 @@ unsigned int qlz_compress_core(const void *source, unsigned char *destination, u
 			fetch = fast_read(src, 4);
 			hash = hash_func(fetch);
 
-			cached = fetch ^ *(unsigned int*)&hashtable[hash][0];
-			*(unsigned int*)&hashtable[hash][0] = fetch;
+			cached = fetch ^ *(uinta*)&hashtable[hash][0];
+			*(uinta*)&hashtable[hash][0] = fetch;
 
 			o = hashtable[hash][1];
 			hashtable[hash][1] = src;
@@ -485,7 +486,7 @@ unsigned int qlz_compress_core(const void *source, unsigned char *destination, u
 		if (src < last_byte - 2 && src > source_c + 3)
 		{		
 			hashtable[hash_func(fast_read(src, 4))][1] = src;
-			*(unsigned int*)&hashtable[hash_func(fast_read(src, 4))][0] = fast_read(src, 4);
+			*(uinta*)&hashtable[hash_func(fast_read(src, 4))][0] = fast_read(src, 4);
 		}
 		*dst = *src;
 		src++;

@@ -26,7 +26,7 @@
 #include "IoFd.hh"
 
 #ifdef CONFIG_FS_PS3 // need FS module for working directory support
-#include <fs/Fs.hh>
+#include <fs/ps3/FsPs3.hh>
 #endif
 
 #include <fcntl.h>
@@ -70,7 +70,7 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 
 	#ifdef CONFIG_FS_PS3
 	char aPath[1024];
-	Fs::makePathAbs(location, aPath, sizeof(aPath));
+	FsPs3::makePathAbs(location, aPath, sizeof(aPath));
 	location = aPath;
 	logMsg("converted path to %s", aPath);
 	#endif
@@ -133,7 +133,7 @@ Io* IoFd::create (const char *location, uint mode, CallResult *errorOut)
 	
 	#ifdef CONFIG_FS_PS3
 	char aPath[1024];
-	Fs::makePathAbs(location, aPath, sizeof(aPath));
+	FsPs3::makePathAbs(location, aPath, sizeof(aPath));
 	location = aPath;
 	logMsg("converted path to %s", aPath);
 	#endif
@@ -179,11 +179,14 @@ Io* IoFd::create (const char *location, uint mode, CallResult *errorOut)
 	return inst;
 }
 
-void IoFd::close ()
+void IoFd::close()
 {
-	::close(fd);
-	logMsg("closed file @ %p", this);
-	delete this;
+	if(fd > 0)
+	{
+		::close(fd);
+		logMsg("closed fd %d", fd);
+		fd = 0;
+	}
 }
 
 void IoFd::truncate(ulong offset)

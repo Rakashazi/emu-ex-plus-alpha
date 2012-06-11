@@ -11,7 +11,11 @@ extern std::vector<MDFNGI *>MDFNSystems;
 
 /* Indent stdout newlines +- "indent" amount */
 void MDFN_indent(int indent);
-void MDFN_printf(const char *format, ...) /*throw()*/ MDFN_FORMATSTR(printf, 1, 2);
+#ifndef NDEBUG
+void MDFN_printf(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
+#else
+#define MDFN_printf(format, ...) { }
+#endif
 
 #define MDFNI_printf MDFN_printf
 
@@ -58,7 +62,6 @@ void MDFND_DestroySemaphore(MDFN_Semaphore *mutex);
 int MDFND_SignalSemaphore(MDFN_Semaphore *mutex);
 int MDFND_WaitSemaphore(MDFN_Semaphore *mutex);
 
-
 /* End threading support. */
 
 void MDFNI_Reset(void);
@@ -67,8 +70,8 @@ void MDFNI_Power(void);
 /* Called from the physical CD disc reading code. */
 bool MDFND_ExitBlockingLoop(void);
 
-/* name=path and file to load.  returns NULL on failure. */
-MDFNGI *MDFNI_LoadGame(const char *force_module, const char *name);
+/* path = path of game/file to load.  returns NULL on failure. */
+MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path);
 
 MDFNGI *MDFNI_LoadCD(const char *sysname, const char *devicename);
 
@@ -78,6 +81,10 @@ bool MDFNI_InitializeModules(const std::vector<MDFNGI *> &ExternalSystems);
 /* allocates memory.  0 on failure, 1 on success. */
 /* Also pass it the base directory to load the configuration file. */
 int MDFNI_Initialize(const char *basedir, const std::vector<MDFNSetting> &DriverSettings);
+
+/* Sets the base directory(save states, snapshots, etc. are saved in directories
+   below this directory. */
+void MDFNI_SetBaseDirectory(const char *dir);
 
 /* Call only when a game is loaded. */
 int MDFNI_NetplayStart(uint32 local_players, uint32 netmerge, const std::string &nickname, const std::string &game_key, const std::string &connect_password);
@@ -91,23 +98,21 @@ void MDFNI_CloseGame(void);
 /* Deallocates all allocated memory.  Call after MDFNI_Emulate() returns. */
 void MDFNI_Kill(void);
 
-/* Sets the base directory(save states, snapshots, etc. are saved in directories
-   below this directory. */
-void MDFNI_SetBaseDirectory(const char *dir);
-
-void MDFN_DispMessage(const char *format, ...) /*throw()*/ MDFN_FORMATSTR(printf, 1, 2);
+#ifndef NDEBUG
+void MDFN_DispMessage(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
+#else
+#define MDFN_DispMessage(format, ...) { }
+#endif
 #define MDFNI_DispMessage MDFN_DispMessage
 
 uint32 MDFNI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 
-int MDFNI_NSFChange(int amount);
-int MDFNI_NSFGetInfo(uint8 *name, uint8 *artist, uint8 *copyright, int maxlen);
-
+// NES hackish function.  Should abstract in the future.
 int MDFNI_DatachSet(const uint8 *rcode);
 
 void MDFNI_DoRewind(void);
 
-void MDFNI_ToggleLayer(int);
+void MDFNI_SetLayerEnableMask(uint64 mask);
 
 void MDFNI_SetInput(int port, const char *type, void *ptr, uint32 dsize);
 
@@ -128,12 +133,39 @@ void MDFNI_DiskSelect();
 void MDFNI_DiskInsert();
 void MDFNI_DiskEject();
 
+// New removable media interface(TODO!)
+//
+#if 0
+
+struct MediumInfoStruct
+{
+ const char *name;		// More descriptive name, "Al Gore's Grand Adventure, Disk 1 of 7" ???
+				// (remember, Do utf8->utf32->utf8 for truncation for display)
+ const char *set_member_name;	// "Disk 1 of 4, Side A", "Disk 3 of 4, Side B", "Disc 2 of 5" ???? (Disk M of N, where N is related to the number of entries
+				// in the structure???)
+};
+
+struct DriveInfoStruct
+{
+ const char *name;
+ const char *description;
+ const MediumInfoStruct *possible_media;
+ //bool
+ //const char *eject_state_name;	// Like "Lid Open", or "Tray Ejected"
+ //const char *insert_state_name;	// Like "
+};
+
+ // Entry point
+ DriveInfoStruct *Drives;
+
+void MDFNI_SetDriveMedium(unsigned drive_index, unsigned int medium_index, unsigned state_id);
+#endif
 
 
-bool MDFNI_StartAVRecord(const char *path, float SoundRate);
+bool MDFNI_StartAVRecord(const char *path, double SoundRate);
 void MDFNI_StopAVRecord(void);
 
-bool MDFNI_StartWAVRecord(const char *path, float SoundRate);
+bool MDFNI_StartWAVRecord(const char *path, double SoundRate);
 void MDFNI_StopWAVRecord(void);
 
 void MDFNI_DumpModulesDef(const char *fn);

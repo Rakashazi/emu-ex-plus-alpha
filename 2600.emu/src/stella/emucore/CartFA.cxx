@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartFA.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "CartFA.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeFA::CartridgeFA(const uInt8* image, const Settings& settings)
+CartridgeFA::CartridgeFA(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 12288);
+	memcpy(myImage, image, BSPF_min(12288u, size));
   createCodeAccessBase(12288);
 
   // This cart contains 256 bytes extended RAM @ 0x1000
@@ -241,7 +241,7 @@ const uInt8* CartridgeFA::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeFA::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
@@ -251,9 +251,9 @@ bool CartridgeFA::save(Serializer& out) const
     for(uInt32 i = 0; i < 256; ++i)
       out.putByte((char)myRAM[i]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeFA::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeFA::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -263,7 +263,7 @@ bool CartridgeFA::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeFA::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -274,9 +274,9 @@ bool CartridgeFA::load(Serializer& in)
     for(uInt32 i = 0; i < limit; ++i)
       myRAM[i] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeFA::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeFA::load" << endl << "  " << msg << endl;
     return false;
   }
 

@@ -42,7 +42,6 @@ unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycle
 	return cycleCounter;
 }
 
-#define asHex(c) interrupter_asHex(c)
 static int asHex(const char c) {
 	return c >= 'A' ? c - 'A' + 0xA : c - '0';
 }
@@ -61,13 +60,12 @@ void Interrupter::setGameShark(const std::string &codes) {
 		}
 	}
 }
-#undef asHex
 
 void Interrupter::applyVblankCheats(const unsigned long cycleCounter, Memory &memory) {
 	for (std::size_t i = 0, size = gsCodes.size(); i < size; ++i) {
 		if (gsCodes[i].type == 0x01)
 			memory.write(gsCodes[i].address, gsCodes[i].value, cycleCounter);
 		}
-	}
+}
 
 }

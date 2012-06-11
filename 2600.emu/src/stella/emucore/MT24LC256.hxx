@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: MT24LC256.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef MT24LC256_HXX
@@ -31,7 +31,7 @@ class System;
   (aka Supercat) for the bulk of this code.
 
   @author  Stephen Anthony & J. Payson
-  @version $Id: MT24LC256.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: MT24LC256.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class MT24LC256
 {

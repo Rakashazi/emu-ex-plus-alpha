@@ -41,26 +41,24 @@ final class SDK5
 		//dumpEvent(event);
 		//Log.i(logTag, "pointers: " + event.getPointerCount());
 		
+		boolean postUpdate = false;
 		int eventAction = event.getAction();
 		int action = eventAction & MotionEvent.ACTION_MASK;
-		int pid = eventAction >> MotionEvent.ACTION_POINTER_ID_SHIFT;
-		int pointers = event.getPointerCount();
-		// 2.2 API
-		//int action = event.getActionMasked();
-		//int pid = event.getPointerId(event.getActionIndex());
-		
-		boolean postUpdate = false;
-		for (int i = 0; i < pointers; i++)
+		if(action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
 		{
-			int sendAction = action;
-			int pointerId = event.getPointerId(i);
-			if(action == MotionEvent.ACTION_POINTER_DOWN || action == MotionEvent.ACTION_POINTER_UP)
-			{
-				// send ACTION_POINTER_* for only the pointer it belongs to
-				if(pid != pointerId)
-					sendAction = MotionEvent.ACTION_MOVE;
-			}
-			postUpdate |= GLView.touchEvent(sendAction, (int)event.getX(i), (int)event.getY(i), pointerId);
+			// touch gesture ended
+			postUpdate |= GLView.touchEvent(MotionEvent.ACTION_UP, (int)event.getX(0), (int)event.getY(0), event.getPointerId(0));
+			return postUpdate;
+		}
+		int actionPIdx = eventAction >> MotionEvent.ACTION_POINTER_ID_SHIFT;
+		int pointers = event.getPointerCount();	
+		for(int i = 0; i < pointers; i++)
+		{
+			int pAction = action;
+			// a pointer not performing the action just needs its position updated
+			if(actionPIdx != i)
+				pAction = MotionEvent.ACTION_MOVE;
+			postUpdate |= GLView.touchEvent(pAction, (int)event.getX(i), (int)event.getY(i), event.getPointerId(i));
 		}
 		return postUpdate;
 	}

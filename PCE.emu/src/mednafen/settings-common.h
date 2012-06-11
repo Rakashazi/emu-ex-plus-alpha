@@ -64,6 +64,7 @@ typedef struct __MDFNCS
 {
         char *name;
         char *value;
+	char *game_override;    // per-game setting override(netplay_override > game_override > value, in precedence)
         char *netplay_override; // "value" override for network play.
 
 	const MDFNSetting *desc;

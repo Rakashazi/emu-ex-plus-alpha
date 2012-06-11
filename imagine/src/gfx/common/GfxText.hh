@@ -8,16 +8,8 @@
 #include <ctype.h>
 #include <gfx/GfxText.hh>
 
-static bool textIsInit = 0;
-GfxSprite gfxText_spr;
-
 void GfxText::init()
 {
-	if(!textIsInit)
-	{
-		gfxText_spr.init(0, 0, 1, 1);
-		textIsInit = 1;
-	}
 	face = NULL;
 	str = NULL;
 	slen = 0;
@@ -46,6 +38,7 @@ void GfxText::setString(const char *str)
 
 void GfxText::setFace(ResourceFace *face)
 {
+	assert(face);
 	this->face = face;
 }
 
@@ -203,8 +196,13 @@ void GfxText::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 {
 	using namespace Gfx;
 	assert(face != NULL && str != NULL);
+
+	GfxSprite spr;
+	spr.init(0, 0, 1, 1);
+
 	xPos = o.adjustX(xPos, xSize, LT2DO);
-	yPos = o.adjustY(yPos, ySize, LT2DO);
+	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
+	yPos = Gfx::alignYToPixel(o.adjustY(yPos, ySize, LT2DO));
 	//xPos = floorMult(xPos, xPerI);
 	//yPos = floorMult(yPos, yPerI);
 	//xPos = floor(xPos);
@@ -265,13 +263,13 @@ void GfxText::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 			}
 			GC xSize = iXSize(gly->xSize);
 
-			gfxText_spr.setImg(gly->glyph);
+			spr.setImg(gly->glyph);
 			loadTranslate(xPos + iXSize(gly->xOffset), yPos - iYSize(gly->ySize - gly->yOffset));
 			applyScale(xSize, iYSize(gly->ySize));
 			xPos += Gfx::iXSize(gly->xAdvance);
 
 			//logMsg("drawing");
-			gfxText_spr.draw(0);
+			spr.draw(0);
 		}
 
 		s += charsToHandle;

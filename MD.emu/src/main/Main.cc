@@ -71,11 +71,13 @@ KeyCategory category[categories] =
 #include "state.h"
 #include "sound.h"
 #include "vdp_ctrl.h"
+#include "genesis.h"
 #include "genplus-config.h"
 #include <scd/scd.h>
 
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
+static int8 mdInputPortDev[2] = { -1, -1 };
 
 // controls
 
@@ -127,9 +129,9 @@ static BasicByteOption optionBigEndianSram(CFGKEY_MDKEY_BIG_ENDIAN_SRAM, 0);
 static BasicByteOption optionSmsFM(CFGKEY_MDKEY_SMS_FM, 1);
 static BasicByteOption option6BtnPad(CFGKEY_MDKEY_6_BTN_PAD, 0);
 FsSys::cPath cdBiosUSAPath = "", cdBiosJpnPath = "", cdBiosEurPath = "";
-static PathOption<CFGKEY_MD_CD_BIOS_USA_PATH> optionCDBiosUsaPath;
-static PathOption<CFGKEY_MD_CD_BIOS_JPN_PATH> optionCDBiosJpnPath;
-static PathOption<CFGKEY_MD_CD_BIOS_EUR_PATH> optionCDBiosEurPath;
+static PathOption<CFGKEY_MD_CD_BIOS_USA_PATH> optionCDBiosUsaPath(cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
+static PathOption<CFGKEY_MD_CD_BIOS_JPN_PATH> optionCDBiosJpnPath(cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
+static PathOption<CFGKEY_MD_CD_BIOS_EUR_PATH> optionCDBiosEurPath(cdBiosEurPath, sizeof(cdBiosEurPath), "");
 
 void EmuSystem::initOptions()
 {
@@ -138,9 +140,6 @@ void EmuSystem::initOptions()
 	#endif
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(3);
-	optionCDBiosUsaPath.init(cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
-	optionCDBiosJpnPath.init(cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
-	optionCDBiosEurPath.init(cdBiosEurPath, sizeof(cdBiosEurPath), "");
 }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -381,7 +380,10 @@ static bool touchControlsApplicable() { return 1; }
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
-	system_reset();
+	if(sCD.isActive)
+		system_reset();
+	else
+		gen_reset(0);
 }
 
 static char saveSlotChar(int slot)
@@ -455,17 +457,17 @@ static int loadMDState(const char *path)
 	const uchar *stateData = f->mmapConst();
 	if(!stateData)
 	{
-		f->close();
+		delete f;
 		return STATE_RESULT_IO_ERROR;
 	}
 	if(state_load(stateData) <= 0)
 	{
-		f->close();
+		delete f;
 		logMsg("invalid state file");
 		return STATE_RESULT_INVALID_DATA;
 	}
 
-	f->close();
+	delete f;
 
 	//sound_restore();
 	return STATE_RESULT_OK;
@@ -513,7 +515,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 				IG::swap(sramTemp[i], sramTemp[i+1]);
 			}
 			bramFile->fwrite(sramTemp, 0x10000, 1);
-			bramFile->close();
+			delete bramFile;
 		}
 	}
 	else
@@ -564,6 +566,7 @@ void EmuSystem::closeSystem()
 	{
 		scd_deinit();
 	}
+	old_system[0] = old_system[1] = -1;
 }
 
 const char *mdInputSystemToStr(uint8 system)
@@ -581,30 +584,56 @@ const char *mdInputSystemToStr(uint8 system)
 	}
 }
 
+static bool inputPortWasAutoSetByGame(uint port)
+{
+	return old_system[port] != -1;
+}
+
+static void setupSMSInput()
+{
+	input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
+}
+
 static void setupMDInput()
 {
-	mem_zero(input.system);
-	mem_zero(config.input);
+	if(!EmuSystem::gameIsRunning())
+		return;
+
+	uint mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
+	iterateTimes(4, i)
+		config.input[i].padtype = mdPad;
+
 	if(system_hw == SYSTEM_PBC)
 	{
-		input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
-		config.input[0].padtype = config.input[1].padtype = DEVICE_PAD2B;
+		setupSMSInput();
+		return;
+	}
+
+	if(usingMultiTap)
+	{
+		input.system[0] = SYSTEM_TEAMPLAYER;
+		input.system[1] = 0;
 	}
 	else
 	{
-		uint pad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
-		if(usingMultiTap)
+		iterateTimes(2, i)
 		{
-			input.system[0] = /*input.system[1] =*/ SYSTEM_TEAMPLAYER;
-			iterateTimes(4, i)
-				config.input[i].padtype = pad;
-		}
-		else
-		{
-			input.system[0] = input.system[1] =  SYSTEM_MD_GAMEPAD;
-			config.input[0].padtype = config.input[1].padtype = pad;
+			if(mdInputPortDev[i] == -1) // user didn't specify device, go with auto settings
+			{
+				if(!inputPortWasAutoSetByGame(i))
+					input.system[i] = SYSTEM_MD_GAMEPAD;
+				else
+				{
+					logMsg("input port %d set by game detection", i);
+					input.system[i] = old_system[i];
+				}
+			}
+			else
+				input.system[i] = mdInputPortDev[i];
+			logMsg("attached %s to port %d%s", mdInputSystemToStr(input.system[i]), i, mdInputPortDev[i] == -1 ? " (auto)" : "");
 		}
 	}
+
 	io_init();
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
 }
@@ -623,18 +652,23 @@ static void doAudioInit()
 
 static uint detectISORegion(Io *iso)
 {
-	iso->seekA(0x200);
-	if(iso->fgetc() == 0x21)
-	{
-		return REGION_JAPAN_NTSC;
-	}
+	iso->seekA(0x20b);
+	auto bootByte = iso->fgetc();
 
-	iso->seekA(0x6c1);
-	if(iso->fgetc() == 0x98)
+	if(bootByte == 0x20) // use the region code
 	{
+		iso->seekA(0x200);
+		bootByte = iso->fgetc();
+		if(bootByte == 0x4a) return REGION_JAPAN_NTSC;
+		else if(bootByte == 0x55) return REGION_USA;
 		return REGION_EUROPE;
 	}
 
+	if(bootByte == 0xa1) return REGION_JAPAN_NTSC;
+	else if(bootByte == 0x64) return REGION_EUROPE;
+
+	if(bootByte != 0x7a)
+		bug_exit("handle region detection byte %X", bootByte);
 	return REGION_USA;
 }
 
@@ -665,7 +699,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 				return 0;
 			}
 			region = detectISORegion(iso);
-			iso->close();
+			delete iso;
 	  }
 
 		const char *biosPath = optionCDBiosJpnPath;
@@ -708,11 +742,15 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	string_copyUpToLastCharInstance(gameName, path, '.');
 	logMsg("set game name: %s", gameName);
 
-	setupMDInput();
 	doAudioInit();
 	system_init();
+	iterateTimes(2, i)
+	{
+		if(old_system[i] != -1)
+			old_system[i] = input.system[i]; // store input ports set by game
+	}
+	setupMDInput();
 
-	logMsg("input ports 1:%s 2:%s", mdInputSystemToStr(input.system[0]), mdInputSystemToStr(input.system[1]));
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
@@ -741,7 +779,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 				IG::swap(sram.sram[i], sram.sram[i+1]);
 			}
 			logMsg("loaded BRAM from disk");
-			bramFile->close();
+			delete bramFile;
 		}
 	}
 	else
@@ -792,6 +830,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 void EmuSystem::clearInputBuffers()
 {
 	mem_zero(input.pad);
+	mem_zero(input.analog);
 }
 
 void EmuSystem::configAudioRate()
@@ -807,6 +846,28 @@ namespace Input
 {
 void onInputEvent(const InputEvent &e)
 {
+	if(EmuSystem::active)
+	{
+		int gunDevIdx = 4;
+		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
+		{
+			if(emuView.gameView.overlaps(e.x, e.y))
+			{
+				int xRel = e.x - emuView.gameView.xIPos(LT2DO), yRel = e.y - emuView.gameView.yIPos(LT2DO);
+				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)bitmap.viewport.w);
+				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)bitmap.viewport.h);
+			}
+			if(e.state == INPUT_PUSHED)
+			{
+				input.pad[gunDevIdx] |= INPUT_A;
+				logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
+			}
+			else if(e.state == INPUT_RELEASED)
+			{
+				unsetBits(input.pad[gunDevIdx], INPUT_A);
+			}
+		}
+	}
 	handleInputEvent(e);
 }
 }

@@ -16,7 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "gambatte.h"
 #include "statesaver.h"
 #include "savestate.h"
 #include "array.h"
@@ -334,7 +333,6 @@ SaverList::SaverList() {
 	{ static const char label[] = { c,NO4,m,a,s,t,r, NUL }; ADD(spu.ch4.master); }
 	{ static const char label[] = { r,t,c,b,a,s,e, NUL }; ADD(rtc.baseTime); }
 	{ static const char label[] = { r,t,c,h,a,l,t, NUL }; ADD(rtc.haltTime); }
-	{ static const char label[] = { r,t,c,i,n,d,x, NUL }; ADD(rtc.index); }
 	{ static const char label[] = { r,t,c,d,h,     NUL }; ADD(rtc.dataDh); }
 	{ static const char label[] = { r,t,c,d,l,     NUL }; ADD(rtc.dataDl); }
 	{ static const char label[] = { r,t,c,h,       NUL }; ADD(rtc.dataH); }

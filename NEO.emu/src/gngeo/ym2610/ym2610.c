@@ -577,7 +577,7 @@ typedef struct
 	int		clock;		/* master clock  (Hz)   */
 	int		rate;		/* sampling rate (Hz)   */
 	SysDDec	freqbase;	/* frequency base       */
-	float	TimerBase;	/* Timer base time      */
+	SysDDec	TimerBase;	/* Timer base time      */
 #if FM_BUSY_FLAG_SUPPORT
 	AudioTime	BusyExpire;	/* ExpireTime of Busy clear */
 #endif
@@ -1690,7 +1690,7 @@ static void OPNSetPres(FM_OPN *OPN , int pres , int TimerPres, int SSGpres)
 
 	/* Timer base time */
 	//OPN->ST.TimerBase = 1.0/((AudioTime)OPN->ST.clock / (AudioTime)TimerPres);
-	OPN->ST.TimerBase = (256.0*(60./1.001))/((AudioTime)OPN->ST.clock / (AudioTime)TimerPres);
+	OPN->ST.TimerBase = ((SysDDec)nb_interlace*(60./1.001))/(OPN->ST.clock / (SysDDec)TimerPres);
 
 	/* SSG part  prescaler set */
 	if (SSGpres) SSG.step = ((SysDDec)SSG_STEP * OPN->ST.rate * 8) / (OPN->ST.clock * 2 / SSGpres);

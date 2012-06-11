@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of

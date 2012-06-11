@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF6.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartF6.hxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF6_HXX
@@ -30,7 +30,7 @@ class System;
   are four 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF6.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: CartF6.hxx 2325 2012-01-02 20:31:42Z stephena $
 */
 class CartridgeF6 : public Cartridge
 {
@@ -39,9 +39,10 @@ class CartridgeF6 : public Cartridge
       Create a new cartridge using the specified image
 
       @param image     Pointer to the ROM image
+      @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeF6(const uInt8* image, const Settings& settings);
+    CartridgeF6(const uInt8* image, uInt32 size, const Settings& settings);
  
     /**
       Destructor

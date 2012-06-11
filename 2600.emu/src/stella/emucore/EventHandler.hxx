@@ -14,11 +14,13 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: EventHandler.hxx 2249 2011-06-07 13:40:59Z stephena $
+// $Id: EventHandler.hxx 2402 2012-03-03 02:37:06Z stephena $
 //============================================================================
 
 #ifndef EVENTHANDLER_HXX
 #define EVENTHANDLER_HXX
+
+#include <map>
 
 class Console;
 class OSystem;
@@ -26,9 +28,11 @@ class DialogContainer;
 class EventMappingWidget;
 class StringMap;
 class StringList;
+class MouseControl;
 
 #include "Array.hxx"
 #include "Event.hxx"
+#include "StellaKeys.hxx"
 #include "bspf.hxx"
 
 enum MouseButton {
@@ -67,7 +71,7 @@ enum EventMode {
   mapping can take place.
 
   @author  Stephen Anthony
-  @version $Id: EventHandler.hxx 2249 2011-06-07 13:40:59Z stephena $
+  @version $Id: EventHandler.hxx 2402 2012-03-03 02:37:06Z stephena $
 */
 class EventHandler
 {
@@ -80,7 +84,7 @@ class EventHandler
     /**
       Destructor
     */
-    ~EventHandler();
+    virtual ~EventHandler();
 
     // Enumeration representing the different states of operation
     enum State {
@@ -98,7 +102,7 @@ class EventHandler
 
       @return The event object
     */
-    Event* event() { return myEvent; }
+    Event& event() { return myEvent; }
 
     /**
       Initialize state of this eventhandler.
@@ -113,12 +117,16 @@ class EventHandler
     void setupJoysticks();
 
     /**
-      Maps the given stelladaptors to specified ports on a real 2600
+      Maps the given Stelladaptor/2600-daptor(s) to specified ports on a real 2600.
 
-      @param sa1  Port for the first Stelladaptor to emulate (left or right)
-      @param sa2  Port for the second Stelladaptor to emulate (left or right)
+      @param saport  How to map the ports ('lr' or 'rl')
     */
-    void mapStelladaptors(const string& sa1, const string& sa2);
+    void mapStelladaptors(const string& saport);
+
+    /**
+      Swaps the ordering of Stelladaptor/2600-daptor(s) devices.
+    */
+    void toggleSAPortOrder();
 
     /**
       Collects and dispatches any pending events.  This method should be
@@ -127,41 +135,6 @@ class EventHandler
       @param time  The current time in microseconds.
     */
     void poll(uInt64 time);
-
-    /**
-      Set the default action for a joystick button to the given event
-
-      @param event  The event we are assigning
-      @param mode   The mode where this event is active
-      @param stick  The joystick number
-      @param button The joystick button
-    */
-    void setDefaultJoyMapping(Event::Type event, EventMode mode,
-                              int stick, int button);
-
-    /**
-      Set the default for a joystick axis to the given event
-
-      @param event  The event we are assigning
-      @param mode   The mode where this event is active
-      @param stick  The joystick number
-      @param axis   The joystick axis
-      @param value  The value on the given axis
-    */
-    void setDefaultJoyAxisMapping(Event::Type event, EventMode mode,
-                                  int stick, int axis, int value);
-
-    /**
-      Set the default for a joystick hat to the given event
-
-      @param event  The event we are assigning
-      @param mode   The mode where this event is active
-      @param stick  The joystick number
-      @param axis   The joystick axis
-      @param value  The value on the given axis
-    */
-    void setDefaultJoyHatMapping(Event::Type event, EventMode mode,
-                                 int stick, int hat, int value);
 
     /**
       Returns the current state of the EventHandler
@@ -183,12 +156,12 @@ class EventHandler
     void quit() { handleEvent(Event::Quit, 1); }
 
     /**
-      Sets the mouse to act as controller 'num'
+      Sets the mouse axes and buttons to act as controller 'mode', where
+      the mode is defined from the Controller::MouseAxisControl enum
 
-      @param num          The controller which the mouse should emulate
-      @param showmessage  Print a message to the framebuffer
+      @param mode  The controller which the mouse axes should emulate
     */
-    void setMouseControllerMode(int num, bool showmessage = false);
+    void setMouseControllerMode(const string& mode);
 
     /**
       Set the number of seconds between taking a snapshot in
@@ -198,6 +171,25 @@ class EventHandler
       @param interval  Interval in seconds between snapshots
     */
     void setContinuousSnapshots(uInt32 interval);
+
+    /*inline bool kbdAlt(int mod) const
+    {
+  #ifndef MAC_OSX
+      return (mod & KMOD_ALT);
+  #else
+      return (mod & KMOD_META);
+  #endif
+    }
+
+    inline bool kbdControl(int mod) const
+    {
+      return (mod & KMOD_CTRL) > 0;
+    }
+
+    inline bool kbdShift(int mod) const
+    {
+      return (mod & KMOD_SHIFT);
+    }*/
 
     void enterMenuMode(State state);
     void leaveMenuMode();
@@ -216,11 +208,11 @@ class EventHandler
 
     //bool frying() const { return myFryingFlag; }
 
-    StringList getActionList(EventMode mode) const;
-    StringMap getComboList(EventMode mode) const;
+    void getActionList(EventMode mode, StringList& list) const;
+    void getComboList(EventMode mode, StringMap& map) const;
 
     /** Used to access the list of events assigned to a specific combo event. */
-    StringList getComboListForEvent(Event::Type event) const;
+    void getComboListForEvent(Event::Type event, StringList& list) const;
     void setComboListForEvent(Event::Type event, const StringList& events);
 
     /*Event::Type eventForJoyButton(int stick, int button, EventMode mode) const
@@ -241,18 +233,7 @@ class EventHandler
       @param mode   The mode where this event is active
       @param key    The key to bind to this event
     */
-    bool addKeyMapping(Event::Type event, EventMode mode, int key);
-
-    /**
-      Bind a joystick button to an event/action and regenerate the
-      mapping array(s)
-
-      @param event  The event we are remapping
-      @param mode   The mode where this event is active
-      @param stick  The joystick number
-      @param button The joystick button
-    */
-    bool addJoyMapping(Event::Type event, EventMode mode, int stick, int button);
+    bool addKeyMapping(Event::Type event, EventMode mode, StellaKey key);
 
     /**
       Bind a joystick axis direction to an event/action and regenerate
@@ -263,9 +244,28 @@ class EventHandler
       @param stick  The joystick number
       @param axis   The joystick axis
       @param value  The value on the given axis
+      @param updateMenus  Whether to update the action mappings (normally
+                          we want to do this, unless there are a batch of
+                          'adds', in which case it's delayed until the end
     */
     bool addJoyAxisMapping(Event::Type event, EventMode mode,
-                           int stick, int axis, int value);
+                           int stick, int axis, int value,
+                           bool updateMenus = true);
+
+    /**
+      Bind a joystick button to an event/action and regenerate the
+      mapping array(s)
+
+      @param event  The event we are remapping
+      @param mode   The mode where this event is active
+      @param stick  The joystick number
+      @param button The joystick button
+     @param updateMenus  Whether to update the action mappings (normally
+                         we want to do this, unless there are a batch of
+                         'adds', in which case it's delayed until the end
+    */
+    bool addJoyButtonMapping(Event::Type event, EventMode mode, int stick, int button,
+                             bool updateMenus = true);
 
     /**
       Bind a joystick hat direction to an event/action and regenerate
@@ -276,9 +276,13 @@ class EventHandler
       @param stick  The joystick number
       @param axis   The joystick hat
       @param value  The value on the given hat
+      @param updateMenus  Whether to update the action mappings (normally
+                          we want to do this, unless there are a batch of
+                          'adds', in which case it's delayed until the end
     */
     bool addJoyHatMapping(Event::Type event, EventMode mode,
-                          int stick, int hat, int value);
+    		                  int stick, int hat, int value,
+    		                  bool updateMenus = true);
 
     /**
       Erase the specified mapping
@@ -310,6 +314,13 @@ class EventHandler
     void allowAllDirections(bool allow) { myAllowAllDirectionsFlag = allow; }
 
   private:
+    /*enum {
+      kComboSize          = 16,
+      kEventsPerCombo     = 8,
+      kEmulActionListSize = 75 + kComboSize,
+      kMenuActionListSize = 14
+    };*/
+
     /**
       Detects and changes the eventhandler state
 
@@ -325,28 +336,12 @@ class EventHandler
     void setSDLMappings();
     void setKeymap();
     void setJoymap();
-    void setJoyAxisMap();
-    void setJoyHatMap();
     void setDefaultKeymap(Event::Type, EventMode mode);
     void setDefaultJoymap(Event::Type, EventMode mode);
-    void setDefaultJoyAxisMap(Event::Type, EventMode mode);
-    void setDefaultJoyHatMap(Event::Type, EventMode mode);
     void saveKeyMapping();
     void saveJoyMapping();
-    void saveJoyAxisMapping();
-    void saveJoyHatMapping();
     void saveComboMapping();
-
-    /**
-      Tests if a mapping list is valid, both by length and by event count.
-
-      @param list    The string containing the mappings, separated by ':'
-      @param map     The result of parsing the string for int mappings
-      @param length  The number of items that should be in the list
-
-      @return      True if valid list, else false
-    */
-    bool isValidList(string& list, IntArray& map, uInt32 length) const;
+    void setMouseAsPaddle(int paddle, const string& message);
 
     /**
       Tests if a given event should use continuous/analog values.
@@ -359,37 +354,7 @@ class EventHandler
     void setEventState(State state);
 
   private:
-    /*enum {
-      kComboSize          = 16,
-      kEventsPerCombo     = 8,
-      kEmulActionListSize = 75 + kComboSize,
-      kMenuActionListSize = 14
-    };
-
-    // Structure used for action menu items
-    struct ActionList {
-      Event::Type event;
-      const char* action;
-      char* key;
-      bool allow_combo;
-    };
-
-    // Joystick related items
-    enum {
-      kNumJoysticks  = 8,
-      kNumJoyButtons = 24,
-      kNumJoyAxis    = 16,
-      kNumJoyHats    = 16
-    };
-    enum JoyType {
-      JT_NONE               = 0,
-      JT_REGULAR            = 1,
-      JT_STELLADAPTOR_LEFT  = 2,
-      JT_STELLADAPTOR_RIGHT = 3,
-      JT_2600DAPTOR_LEFT    = 4,
-      JT_2600DAPTOR_RIGHT   = 5
-    };
-    struct JoyMouse {   // Used for joystick to mouse emulation
+    /*struct JoyMouse {   // Used for joystick to mouse emulation
       bool active;
       int x, y, x_amt, y_amt, amt, val, old_val;
     };*/
@@ -398,33 +363,26 @@ class EventHandler
     /*OSystem* myOSystem;*/
 
     // Global Event object
-    Event* myEvent;
+    Event myEvent;
 
     // Indicates current overlay object
     /*DialogContainer* myOverlay;
 
-    // Array of joystick button events
-    Event::Type myJoyTable[kNumJoysticks][kNumJoyButtons][kNumModes];
+    // MouseControl object, which takes care of switching the mouse between
+    // all possible controller modes
+    MouseControl* myMouseControl;
 
-    // Array of joystick axis events
-    Event::Type myJoyAxisTable[kNumJoysticks][kNumJoyAxis][2][kNumModes];
-
-    // Array of joystick hat events (we don't record diagonals)
-    // Note that the array contains 4 directions, as defined in the JoyHat enum
-    // (the center isn't considered a direction)
-    Event::Type myJoyHatTable[kNumJoysticks][kNumJoyHats][4][kNumModes];
+    // Array of key events, indexed by StellaKey
+    Event::Type myKeyTable[KBDK_LAST][kNumModes];
 
     // The event(s) assigned to each combination event
     Event::Type myComboTable[kComboSize][kEventsPerCombo];
 
-    // Array of messages for each Event
-    string ourMessageTable[Event::LastType];
+    // Array of strings which correspond to the given StellaKey
+    string ourKBDKMapping[KBDK_LAST];
 
     // Indicates the current state of the system (ie, which mode is current)
-    State myState;
-
-    // Indicates whether the mouse is enabled for game controller actions
-    bool myMouseEnabled;*/
+    State myState;*/
 
     // Indicates whether the joystick emulates 'impossible' directions
     bool myAllowAllDirectionsFlag;
@@ -447,20 +405,59 @@ class EventHandler
     uInt32 myContSnapshotInterval;
     uInt32 myContSnapshotCounter;
 
-    // Indicates which paddle the mouse currently emulates
-    Int8 myPaddleMode;
-
-    // Keeps track of last axis values (used to emulate digital state
-    // for analog sticks)
-    int myAxisLastValue[kNumJoysticks][kNumJoyAxis];
-
     // Holds static strings for the remap menu (emulation and menu events)
     static ActionList ourEmulActionList[kEmulActionListSize];
     static ActionList ourMenuActionList[kMenuActionListSize];
 
-    // Static lookup tables for Stelladaptor axis/button support
+    // Static lookup tables for Stelladaptor/2600-daptor axis/button support
     static const Event::Type SA_Axis[2][2];
-    static const Event::Type SA_Button[2][2];*/
+    static const Event::Type SA_Button[2][4];
+    static const Event::Type SA_Key[2][12];
+
+    // Thin wrapper holding all information about an SDL joystick in Stella.
+    // A StellaJoystick holds its own event mapping information, space for
+    // which is dynamically allocated based on the actual number of buttons,
+    // axes, etc that the device contains.
+    class StellaJoystick
+    {
+      public:
+        StellaJoystick();
+        virtual ~StellaJoystick();
+
+        string setStick(int i);
+        string getMap() const;
+        bool setMap(const string& map);
+        void eraseMap(EventMode mode);
+        void eraseEvent(Event::Type event, EventMode mode);
+        string about() const;
+
+      public:
+        enum JoyType {
+          JT_NONE               = 0,
+          JT_REGULAR            = 1,
+          JT_STELLADAPTOR_LEFT  = 2,
+          JT_STELLADAPTOR_RIGHT = 3,
+          JT_2600DAPTOR_LEFT    = 4,
+          JT_2600DAPTOR_RIGHT   = 5
+        };
+
+        JoyType type;
+        string name;
+        SDL_Joystick* stick;
+        int numAxes, numButtons, numHats;
+        Event::Type (*axisTable)[2][kNumModes];
+        Event::Type (*btnTable)[kNumModes];
+        Event::Type (*hatTable)[4][kNumModes];
+        int* axisLastValue;
+
+      private:
+        void getValues(const string& list, IntArray& map);
+    };
+    StellaJoystick* myJoysticks;
+    uInt32 myNumJoysticks;
+    map<string,string> myJoystickMap;
+
+    */
 };
 
 #endif

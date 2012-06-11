@@ -19,7 +19,6 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "gambatte.h"
 #include "memory.h"
 
 namespace gambatte {
@@ -77,7 +76,7 @@ public:
 	}
 #endif
 	
-	bool load(const std::string &romfile, bool forceDmg, bool multicartCompat) {
+	int load(const std::string &romfile, bool forceDmg, bool multicartCompat) {
 		return memory.loadROM(romfile, forceDmg, multicartCompat);
 	}
 	

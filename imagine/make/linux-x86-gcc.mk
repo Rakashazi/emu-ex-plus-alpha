@@ -1,4 +1,5 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+CC := gcc-4.7.0 # testing on new GCC
 include $(currPath)/linux-gcc.mk
 
 CPPFLAGS += -m32

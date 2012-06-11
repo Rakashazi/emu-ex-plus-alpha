@@ -670,13 +670,10 @@ class TouchConfigView : public BaseMenuView
 		optionShowMenuIcon = item.on;
 	}
 
-	MenuItem *text[19];
+	MenuItem *text[19] = {nullptr};
 public:
 	constexpr TouchConfigView(const char *faceBtnName, const char *centerBtnName) : BaseMenuView("On-screen Config"),
-	#ifdef CONFIG_CXX11
-	text CXX11_INIT_LIST({0}),
-	#endif
-	faceBtnName(faceBtnName), centerBtnName(centerBtnName) { }
+		faceBtnName(faceBtnName), centerBtnName(centerBtnName) { }
 	const char *faceBtnName, *centerBtnName;
 
 	void init(bool highlightFirst)

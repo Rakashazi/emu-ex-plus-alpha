@@ -11,9 +11,16 @@ namespace Base
 
 extern JNIEnv* jEnv; // JNIEnv of main thread
 
+#if CONFIG_ENV_ANDROID_MINSDK >= 9
+// NativeActivity Instance
+android_app *appInstance();
+#endif
+
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
+extern JavaInstMethod postUIThread;
+extern JavaInstMethod jShowIme, jHideIme;
 
 // SurfaceTexture JNI
 extern jclass jSurfaceTextureCls;

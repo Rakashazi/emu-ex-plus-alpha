@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.cxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: TrackBall.cxx 2370 2012-01-28 15:19:41Z stephena $
 //============================================================================
 
 #include <cstdlib>
@@ -29,23 +29,11 @@ TrackBall::TrackBall(Jack jack, const Event& event, const System& system,
                      Type type)
   : Controller(jack, event, system, type),
     myHCounter(0),
-    myVCounter(0),
-    myCyclesWhenSWCHARead(0)
+    myVCounter(0)
 {
-  if(myJack == Left)
-  {
-    myPin1Mask = 0x10;
-    myPin2Mask = 0x20;
-    myPin3Mask = 0x40;
-    myPin4Mask = 0x80;
-  }
-  else
-  {
-    myPin1Mask = 0x01;
-    myPin2Mask = 0x02;
-    myPin3Mask = 0x04;
-    myPin4Mask = 0x08;
-  }
+  // This code in ::read() is set up to always return IOPortA values in
+  // the lower 4 bits data value
+  // As such, the jack type (left or right) isn't necessary here
 
   myTrakBallCountH = myTrakBallCountV = 0;
   myTrakBallLinesH = myTrakBallLinesV = 1;
@@ -63,76 +51,65 @@ TrackBall::~TrackBall()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool TrackBall::read(DigitalPin pin)
+uInt8 TrackBall::read()
 {
-  // Only update the controller pins when an SWCHA read is actually
-  // different from a previous one
-  // This is done since Stella tends to read several pins consecutively
-  // in the same processor 'cycle', and it would be incorrect to do this
-  // work multiple times per processor cycle
-  if(myCyclesWhenSWCHARead != mySystem.cycles())
+  int scanline = ((System&)mySystem).tia().scanlines();
+
+  if(myScanCountV > scanline) myScanCountV = 0;
+  if(myScanCountH > scanline) myScanCountH = 0;
+  while((myScanCountV + myTrakBallLinesV) < scanline)
   {
-    int scanline = ((System&)mySystem).tia().scanlines();
-
-    if(myScanCountV > scanline) myScanCountV = 0;
-    if(myScanCountH > scanline) myScanCountH = 0;
-    while((myScanCountV + myTrakBallLinesV) < scanline)
+    if(myTrakBallCountV)
     {
-      if(myTrakBallCountV)
-      {
-        if(myTrakBallDown) myCountV--;
-        else               myCountV++;
-        myTrakBallCountV--;
-      }
-      myScanCountV += myTrakBallLinesV;
+      if(myTrakBallDown) myCountV--;
+      else               myCountV++;
+      myTrakBallCountV--;
     }
+    myScanCountV += myTrakBallLinesV;
+  }
 	
-    while((myScanCountH + myTrakBallLinesH) < scanline)
+  while((myScanCountH + myTrakBallLinesH) < scanline)
+  {
+    if(myTrakBallCountH)
     {
-      if(myTrakBallCountH)
-      {
-        if(myTrakBallLeft) myCountH--;
-        else               myCountH++;
-        myTrakBallCountH--;
-      }
-      myScanCountH += myTrakBallLinesH;
+      if(myTrakBallLeft) myCountH--;
+      else               myCountH++;
+      myTrakBallCountH--;
     }
-
-    myCountV &= 0x03;
-    myCountH &= 0x03;
-
-    uInt8 IOPortA = 0x00;
-    switch(myType)
-    {
-      case Controller::TrackBall80:
-        IOPortA = IOPortA
-            | ourTrakBallTableST_V[myCountV]
-            | ourTrakBallTableST_H[myCountH];
-        break;
-      case Controller::TrackBall22:
-        IOPortA = IOPortA
-            | ourTrakBallTableTB_V[myCountV & 0x01][myTrakBallDown]
-            | ourTrakBallTableTB_H[myCountH & 0x01][myTrakBallLeft];
-        break;
-      case Controller::AmigaMouse:
-        IOPortA = IOPortA
-            | ourTrakBallTableAM_V[myCountV]
-            | ourTrakBallTableAM_H[myCountH];
-        break;
-      default:
-        break;
-    }
-
-    myDigitalPinState[One]   = IOPortA & myPin1Mask;
-    myDigitalPinState[Two]   = IOPortA & myPin2Mask;
-    myDigitalPinState[Three] = IOPortA & myPin3Mask;
-    myDigitalPinState[Four]  = IOPortA & myPin4Mask;
+    myScanCountH += myTrakBallLinesH;
   }
 
-  // Remember when the SWCHA read was issued
-  myCyclesWhenSWCHARead = mySystem.cycles();
+  myCountV &= 0x03;
+  myCountH &= 0x03;
 
-  return Controller::read(pin);
+  uInt8 IOPortA = 0x00;
+  switch(myType)
+  {
+    case Controller::TrackBall80:
+      IOPortA = IOPortA
+          | ourTrakBallTableST_V[myCountV]
+          | ourTrakBallTableST_H[myCountH];
+      break;
+    case Controller::TrackBall22:
+      IOPortA = IOPortA
+          | ourTrakBallTableTB_V[myCountV & 0x01][myTrakBallDown]
+          | ourTrakBallTableTB_H[myCountH & 0x01][myTrakBallLeft];
+      break;
+    case Controller::AmigaMouse:
+      IOPortA = IOPortA
+          | ourTrakBallTableAM_V[myCountV]
+          | ourTrakBallTableAM_H[myCountH];
+      break;
+    default:
+      break;
+  }
+
+  myDigitalPinState[One]   = IOPortA & 0x10;
+  myDigitalPinState[Two]   = IOPortA & 0x20;
+  myDigitalPinState[Three] = IOPortA & 0x40;
+  myDigitalPinState[Four]  = IOPortA & 0x80;
+
+  return (IOPortA >> 4);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -154,15 +131,9 @@ void TrackBall::update()
   if(myTrakBallLinesV == 0) myTrakBallLinesV = 1;
 
   // Get mouse button state
-  myDigitalPinState[Six] = (myEvent.get(Event::MouseButtonValue) == 0);
+  myDigitalPinState[Six] = (myEvent.get(Event::MouseButtonLeftValue) == 0) &&
+                           (myEvent.get(Event::MouseButtonRightValue) == 0);
 }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TrackBall::systemCyclesReset()
-{
-  myCyclesWhenSWCHARead -= mySystem.cycles();
-}
-
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt32 TrackBall::ourTrakBallTableTB_H[2][2] = {

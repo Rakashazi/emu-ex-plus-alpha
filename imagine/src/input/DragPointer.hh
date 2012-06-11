@@ -7,18 +7,7 @@
 class DragPointer
 {
 public:
-	constexpr DragPointer(): prevX(0), prevY(0),
-	pushX(0), pushY(0),
-	x(0), y(0),
-	pushed(0)
-	{ }
-	/*void init(int pid)
-	{
-		//this->pid = pid;
-		prevX = this->x = Input::cursorX(pid);
-		prevY = this->y = Input::cursorY(pid);
-		pushed = 0;
-	}*/
+	constexpr DragPointer() { }
 
 	void pointerEvent(uint button, uint state, int x, int y)
 	{
@@ -87,12 +76,12 @@ public:
 		return gfx_frameTime - time;
 	}*/
 
-	int prevX, prevY; // location during previous update
-	int pushX, pushY; // location of most recent push
-	int x, y; // current location
+	int prevX = 0, prevY = 0; // location during previous update
+	int pushX = 0, pushY = 0; // location of most recent push
+	int x = 0, y = 0; // current location
 	//int pid;
 	//uint time;
-	uint pushed;
+	uint pushed = 0;
 };
 
 namespace Input

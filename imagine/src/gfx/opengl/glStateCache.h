@@ -6,23 +6,9 @@
 class GLStateCache
 {
 public:
-	constexpr GLStateCache():
-	matrixModeState(GL_INVALID_ENUM),
-	blendFuncSfactor(GL_ONE), blendFuncDfactor(GL_ZERO),
-	blendEquationState(GL_FUNC_ADD),
-	GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state(GL_MODULATE)
-#ifdef CONFIG_CXX11
-	, GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state CXX11_INIT_LIST({ 0, 0, 0, 0 })
-	, colorState CXX11_INIT_LIST({ 1, 1, 1, 1 })
-#endif
-	{
-#ifndef CONFIG_CXX11
-		mem_zero(GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state);
-		forEachInArray(colorState, e) *e = 1;
-#endif
-	}
+	constexpr GLStateCache() { }
 	
-	GLenum matrixModeState;
+	GLenum matrixModeState = GL_INVALID_ENUM;
 	void matrixMode(GLenum mode)
 	{
 		if(mode != matrixModeState)
@@ -34,16 +20,10 @@ public:
 
 	struct GLBindTextureState
 	{
-		constexpr GLBindTextureState():
-		GL_TEXTURE_2D_state(0)
+		constexpr GLBindTextureState() { }
+		GLuint GL_TEXTURE_2D_state = 0;
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		, GL_TEXTURE_EXTERNAL_OES_state(0)
-		#endif
-		{ }
-
-		GLuint GL_TEXTURE_2D_state;
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		GLuint GL_TEXTURE_EXTERNAL_OES_state;
+		GLuint GL_TEXTURE_EXTERNAL_OES_state = 0;
 		#endif
 	} bindTextureState;
 
@@ -98,7 +78,7 @@ public:
 		glDeleteTextures(n, textures);
 	}
 
-	GLenum blendFuncSfactor, blendFuncDfactor;
+	GLenum blendFuncSfactor = GL_ONE, blendFuncDfactor = GL_ZERO;
 	void blendFunc(GLenum sfactor, GLenum dfactor)
 	{
 		if(!(sfactor == blendFuncSfactor && dfactor == blendFuncDfactor))
@@ -109,7 +89,7 @@ public:
 		}
 	}
 
-	GLenum blendEquationState;
+	GLenum blendEquationState = GL_FUNC_ADD;
 	void blendEquation(GLenum mode)
 	{
 		if(mode != blendEquationState)
@@ -121,37 +101,21 @@ public:
 
 	struct GLStateCaps
 	{
-		constexpr GLStateCaps():
-		GL_ALPHA_TEST_state(0),
-		GL_DEPTH_TEST_state(0),
-		GL_FOG_state(0),
-		GL_BLEND_state(0),
-		GL_SCISSOR_TEST_state(0),
-		GL_CULL_FACE_state(0),
-		GL_TEXTURE_2D_state(0),
+		constexpr GLStateCaps() { }
+		fbool GL_ALPHA_TEST_state = 0;
+		fbool GL_DEPTH_TEST_state = 0;
+		fbool GL_FOG_state = 0;
+		fbool GL_BLEND_state = 0;
+		fbool GL_SCISSOR_TEST_state = 0;
+		fbool GL_CULL_FACE_state = 0;
+		fbool GL_TEXTURE_2D_state = 0;
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		GL_TEXTURE_EXTERNAL_OES_state(0),
+		fbool GL_TEXTURE_EXTERNAL_OES_state = 0;
 		#endif
-		GL_DITHER_state(1)
-		#ifndef CONFIG_GFX_OPENGL_ES
-		, GL_MULTISAMPLE_ARB_state(0)
-		#endif
-		{ }
-
-		fbool GL_ALPHA_TEST_state;
-		fbool GL_DEPTH_TEST_state;
-		fbool GL_FOG_state;
-		fbool GL_BLEND_state;
-		fbool GL_SCISSOR_TEST_state;
-		fbool GL_CULL_FACE_state;
-		fbool GL_TEXTURE_2D_state;
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		fbool GL_TEXTURE_EXTERNAL_OES_state;
-		#endif
-		fbool GL_DITHER_state;
+		fbool GL_DITHER_state = 1;
 		#ifndef CONFIG_GFX_OPENGL_ES
 		// extensions
-		fbool GL_MULTISAMPLE_ARB_state;
+		fbool GL_MULTISAMPLE_ARB_state = 0;
 		#endif
 	} stateCap;
 
@@ -238,13 +202,9 @@ public:
 
 	struct GLClientStateCaps
 	{
-		constexpr GLClientStateCaps():
-		GL_TEXTURE_COORD_ARRAY_state(0),
-		GL_COLOR_ARRAY_state(0)
-		{ }
-
-		fbool GL_TEXTURE_COORD_ARRAY_state;
-		fbool GL_COLOR_ARRAY_state;
+		constexpr GLClientStateCaps() { }
+		fbool GL_TEXTURE_COORD_ARRAY_state = 0;
+		fbool GL_COLOR_ARRAY_state = 0;
 	} clientStateCap;
 
 	fbool *getClientCap(GLenum cap)
@@ -297,7 +257,7 @@ public:
 		}
 	}
 
-	GLint GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state;
+	GLint GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state = GL_MODULATE;
 	void texEnvi(GLenum target, GLenum pname, GLint param)
 	{
 		if(Config::envIsPS3)
@@ -317,7 +277,7 @@ public:
 		}
 	}
 
-	GLfloat GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state[4];
+	GLfloat GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state[4] = { 0, 0, 0, 0 };
 	void texEnvfv(GLenum target, GLenum pname, const GLfloat *params)
 	{
 		if(target == GL_TEXTURE_ENV && pname == GL_TEXTURE_ENV_COLOR)
@@ -334,7 +294,7 @@ public:
 		}
 	}
 
-	GLfloat colorState[4];
+	GLfloat colorState[4] = { 1, 1, 1, 1 };
 	void color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 	{
 		if(red != colorState[0] || green != colorState[1] || blue != colorState[2] || alpha != colorState[3])
@@ -350,11 +310,11 @@ public:
 
 	struct GLPointerVal
 	{
-		constexpr GLPointerVal(): size(4), type(GL_FLOAT), stride(0), pointer(0) { }
-		GLint size;
-		GLenum type;
-		GLsizei stride;
-		const GLvoid *pointer;
+		constexpr GLPointerVal() { }
+		GLint size = 4;
+		GLenum type = GL_FLOAT;
+		GLsizei stride = 0;
+		const GLvoid *pointer = nullptr;
 	};
 
 	static uint applyGenericPointerState(GLPointerVal *state, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
@@ -425,16 +385,10 @@ public:
 
 	struct GLPixelStoreParams
 	{
-		constexpr GLPixelStoreParams():
-		GL_UNPACK_ALIGNMENT_state(4)
+		constexpr GLPixelStoreParams() { }
+		GLint GL_UNPACK_ALIGNMENT_state = 4;
 		#ifndef CONFIG_GFX_OPENGL_ES
-		, GL_UNPACK_ROW_LENGTH_state(0)
-		#endif
-		{ }
-
-		GLint GL_UNPACK_ALIGNMENT_state;
-		#ifndef CONFIG_GFX_OPENGL_ES
-		GLint GL_UNPACK_ROW_LENGTH_state;
+		GLint GL_UNPACK_ROW_LENGTH_state = 0;
 		#endif
 	} pixelStoreParam;
 

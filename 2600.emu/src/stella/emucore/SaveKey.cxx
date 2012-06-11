@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SaveKey.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: SaveKey.cxx 2353 2012-01-13 21:13:10Z stephena $
 //============================================================================
 
 #include "MT24LC256.hxx"

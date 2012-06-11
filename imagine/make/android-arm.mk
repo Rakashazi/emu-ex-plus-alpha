@@ -10,6 +10,6 @@ endif
 
 android_cpuFlags += -mthumb-interwork
 CPPFLAGS += -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__
-COMPILE_FLAGS += -fpic -fno-short-enums
+COMPILE_FLAGS += -fno-short-enums
 
 include $(currPath)/android-gcc.mk

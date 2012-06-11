@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: KidVid.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: KidVid.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef KIDVID_HXX
@@ -36,7 +36,7 @@
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: KidVid.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: KidVid.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class KidVid : public Controller
 {
@@ -77,12 +77,12 @@ class KidVid : public Controller
     void getNextSampleByte();
 
   private:
-    static const unsigned int
+    enum {
       KVSMURFS = 0x44,
       KVBBEARS = 0x48,
       KVBLOCKS = 6,             /* number of bytes / block */
       KVBLOCKBITS = KVBLOCKS*8  /* number of bits / block */
-    ;
+    };
 
     // Whether the KidVid device is enabled (only for games that it
     // supports, and if it's plugged into the right port
@@ -97,11 +97,11 @@ class KidVid : public Controller
     // Is the tape currently 'busy' / in use?
     bool myTapeBusy;
 
-    // TODO - document the following
     uInt32 myFilePointer, mySongCounter;
     bool myBeep, mySharedData;
     uInt8 mySampleByte;
-    uInt32 myGame, myTape, myIdx, myBlock, myBlockIdx;
+    uInt32 myGame, myTape;
+    uInt32 myIdx, myBlock, myBlockIdx;
 
     // Number of blocks and data on tape
     static const uInt8 ourKVBlocks[6];

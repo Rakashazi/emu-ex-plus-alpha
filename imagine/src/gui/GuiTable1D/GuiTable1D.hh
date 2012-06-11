@@ -17,11 +17,10 @@ public:
 class GuiTable1D
 {
 public:
-	constexpr GuiTable1D() : yCellSize(0), cells(0), selected(-1), selectedIsActivated(0),
-		src(0) { }
-	int yCellSize;
-	int cells, selected, selectedIsActivated;
-	GuiTableSource *src;
+	constexpr GuiTable1D() { }
+	int yCellSize = 0;
+	int cells = 0, selected = -1, selectedIsActivated = 0;
+	GuiTableSource *src = nullptr;
 	Rect2<int> viewRect;
 	_2DOrigin align;
 
@@ -56,8 +55,8 @@ private:
 class ScrollableGuiTable1D : public GuiTable1D, public ScrollView1D
 {
 public:
-	constexpr ScrollableGuiTable1D() : onlyScrollIfNeeded(0) { }
-	uint onlyScrollIfNeeded;
+	constexpr ScrollableGuiTable1D() { }
+	fbool onlyScrollIfNeeded = 0;
 
 	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO)
 	{
@@ -90,7 +89,7 @@ public:
 		updateView();
 	}
 
-	void setScrollableIfNeeded(bool yes)
+	void setScrollableIfNeeded(fbool yes)
 	{
 		onlyScrollIfNeeded = 1;
 	}

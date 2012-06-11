@@ -43,6 +43,8 @@ class MemPtrs {
 	MemPtrs & operator=(const MemPtrs &);
 	void disconnectOamDmaAreas();
 public:
+	enum RamFlag { READ_EN = 1, WRITE_EN = 2, RTC_EN = 4 };
+
 	MemPtrs();
 	~MemPtrs();
 	void reset(unsigned rombanks, unsigned rambanks, unsigned wrambanks);
@@ -63,7 +65,7 @@ public:
 	
 	void setRombank0(unsigned bank);
 	void setRombank(unsigned bank);
-	void setRambank(bool enableRam, bool rtcActive, unsigned rambank);
+	void setRambank(unsigned ramFlags, unsigned rambank);
 	void setWrambank(unsigned bank);
 	void setOamDmaSrc(OamDmaSrc oamDmaSrc);
 };

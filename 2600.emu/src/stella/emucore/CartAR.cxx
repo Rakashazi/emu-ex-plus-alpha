@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartAR.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -465,7 +465,7 @@ const uInt8* CartridgeAR::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeAR::save(Serializer& out) const
 {
-  //try
+  try
   {
     uInt32 i;
 
@@ -513,9 +513,9 @@ bool CartridgeAR::save(Serializer& out) const
     // Indicates if a write is pending or not
     out.putBool(myWritePending);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeAR::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeAR::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -525,7 +525,7 @@ bool CartridgeAR::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeAR::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -574,9 +574,9 @@ bool CartridgeAR::load(Serializer& in)
     // Indicates if a write is pending or not
     myWritePending = in.getBool();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeAR::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeAR::load" << endl << "  " << msg << endl;
     return false;
   }
 

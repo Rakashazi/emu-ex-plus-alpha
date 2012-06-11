@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Cart4A50.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4A50_HXX
@@ -44,7 +44,7 @@ class System;
   have changed on every poke operation (for any RAM) or an actual bankswitch.
 
   @author  Eckhard Stolberg & Stephen Anthony
-  @version $Id: Cart4A50.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: Cart4A50.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class Cartridge4A50 : public Cartridge
 {

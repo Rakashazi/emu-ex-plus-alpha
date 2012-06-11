@@ -297,6 +297,10 @@ enum {
      * and waiting for the app thread to clean up and exit before proceeding.
      */
     APP_CMD_DESTROY,
+
+    // After onGlobalLayout() in Java, used to notify of visble height changes
+    // due to Soft Input covering the view
+    APP_CMD_LAYOUT_CHANGED,
 };
 
 /**
@@ -325,6 +329,5 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
  */
 void android_main(struct android_app* app);
 
-android_app *appInstance();
 void process_input(struct android_app* app);
 void process_cmd(struct android_app* app);

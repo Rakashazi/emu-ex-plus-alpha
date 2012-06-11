@@ -49,15 +49,14 @@ struct KeyProfileManager
 {
 	template <size_t S>
 	constexpr KeyProfileManager(const ConstKeyProfile (&defaultProfile)[S]) :
-		baseProfile(0), defaultProfiles(S), defaultProfile(defaultProfile) { }
+		defaultProfiles(S), defaultProfile(defaultProfile) { }
 
 	// constructor with no default profiles
-	constexpr KeyProfileManager() :
-		baseProfile(0), defaultProfiles(0), defaultProfile(0) { }
+	constexpr KeyProfileManager() { }
 
-	uint baseProfile;
-	uint defaultProfiles;
-	const ConstKeyProfile *defaultProfile;
+	uint baseProfile = 0;
+	uint defaultProfiles = 0;
+	const ConstKeyProfile *defaultProfile = nullptr;
 
 	bool isKeyBaseDefault(uint key, uint idx) const
 	{

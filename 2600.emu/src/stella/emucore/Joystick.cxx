@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Joystick.cxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Joystick.cxx 2405 2012-03-04 19:20:29Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -22,7 +22,8 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Joystick::Joystick(Jack jack, const Event& event, const System& system)
-  : Controller(jack, event, system, Controller::Joystick)
+  : Controller(jack, event, system, Controller::Joystick),
+    myControlID(-1)
 {
   if(myJack == Left)
   {
@@ -30,7 +31,7 @@ Joystick::Joystick(Jack jack, const Event& event, const System& system)
     myDownEvent  = Event::JoystickZeroDown;
     myLeftEvent  = Event::JoystickZeroLeft;
     myRightEvent = Event::JoystickZeroRight;
-    myFireEvent  = Event::JoystickZeroFire1;
+    myFireEvent  = Event::JoystickZeroFire;
     myXAxisValue = Event::SALeftAxis0Value;
     myYAxisValue = Event::SALeftAxis1Value;
   }
@@ -40,7 +41,7 @@ Joystick::Joystick(Jack jack, const Event& event, const System& system)
     myDownEvent  = Event::JoystickOneDown;
     myLeftEvent  = Event::JoystickOneLeft;
     myRightEvent = Event::JoystickOneRight;
-    myFireEvent  = Event::JoystickOneFire1;
+    myFireEvent  = Event::JoystickOneFire;
     myXAxisValue = Event::SARightAxis0Value;
     myYAxisValue = Event::SARightAxis1Value;
   }
@@ -87,10 +88,7 @@ void Joystick::update()
     myDigitalPinState[One] = false;
 
   // Mouse motion and button events
-  // Since there are 4 possible controller numbers, we use 0 & 2
-  // for the left jack, and 1 & 3 for the right jack
-  if((myJack == Left && !(ourControlNum & 0x1)) ||
-     (myJack == Right && ourControlNum & 0x1))
+  if(myControlID > -1)
   {
     // The following code was taken from z26
     #define MJ_Threshold 2
@@ -115,9 +113,25 @@ void Joystick::update()
       }
     }
     // Get mouse button state
-    if(myEvent.get(Event::MouseButtonValue))
+    if(myEvent.get(Event::MouseButtonLeftValue) ||
+       myEvent.get(Event::MouseButtonRightValue))
       myDigitalPinState[Six] = false;
   }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Joystick::setMouseControl(
+    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+{
+  // In 'automatic' mode, both axes on the mouse map to a single normal joystick
+  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  {
+    myControlID = ((myJack == Left && ctrlID == 0) ||
+                   (myJack == Right && ctrlID == 1)
+                  ) ? ctrlID : -1;
+  }
+  else  // Otherwise, joysticks are not used in 'non-auto' mode
+    myControlID = -1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

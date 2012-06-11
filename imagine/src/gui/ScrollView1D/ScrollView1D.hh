@@ -7,14 +7,14 @@
 class ContentDrag
 {
 public:
-	constexpr ContentDrag() : devId(0), active(0), pushed(0), dragStartX(0), dragStartY(0), axis(0) { }
-	uint devId;
-	bool active, pushed;
+	constexpr ContentDrag() { }
+	uint devId = 0;
+	bool active = 0, pushed = 0;
 
-	int dragStartX, dragStartY;
+	int dragStartX = 0, dragStartY = 0;
 
 	enum { X_AXIS, Y_AXIS, XY_AXIS };
-	uint axis;
+	uint axis = 0;
 
 	void init(uint axis = Y_AXIS);
 
@@ -29,14 +29,12 @@ public:
 class KScroll : public ContentDrag
 {
 public:
-	constexpr KScroll() : start(0), offset(0), prevOffset(0), vel(0),
-		scrollWholeArea(0), allowScrollWholeArea(0), maxClip(0),
-		viewFrame(0), contentFrame(0) { }
-	int start, offset;
-	int prevOffset;
-	GC vel;
-	bool scrollWholeArea, allowScrollWholeArea;
-	int maxClip;
+	constexpr KScroll() { }
+	int start = 0, offset = 0;
+	int prevOffset = 0;
+	GC vel = 0;
+	bool scrollWholeArea = 0, allowScrollWholeArea = 0;
+	int maxClip = 0;
 
 	void init(const Rect2<int> *viewFrame, const Rect2<int> *contentFrame);
 	void place();
@@ -49,18 +47,18 @@ public:
 	void animate(int minClip, int maxClip);
 
 private:
-	const Rect2<int> *viewFrame;
-	const Rect2<int> *contentFrame;
+	const Rect2<int> *viewFrame = nullptr;
+	const Rect2<int> *contentFrame = nullptr;
 };
 
 class ScrollView1D
 {
 public:
-	constexpr ScrollView1D() : contentIsBiggerThanView(0), contentFrame(0) { }
+	constexpr ScrollView1D() { }
 	KScroll scroll;
 	Rect2<int> viewFrame;
 	Rect2<int> scrollBarRect;
-	bool contentIsBiggerThanView;
+	bool contentIsBiggerThanView = 0;
 
 	void init(Rect2<int> *contentFrame);
 	void updateView(); // move content frame in position along view frame
@@ -70,5 +68,5 @@ public:
 	int inputEvent(const InputEvent &e);
 
 private:
-	Rect2<int> *contentFrame;
+	Rect2<int> *contentFrame = nullptr;
 };

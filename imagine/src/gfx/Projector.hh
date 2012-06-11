@@ -143,14 +143,14 @@ static GC iYPos(int y)
 // convert projection-space to screen/input-space
 static int toIXSize(GC x)
 {
-	int r = int(x * proj.xToPixScale);
+	int r = int(roundf(x * proj.xToPixScale));
 	//if(r) logMsg("unproject x %f, to %d", x, r);
 	return r;
 }
 
 static int toIYSize(GC y)
 {
-	int r = int(y * proj.yToPixScale);
+	int r = int(roundf(y * proj.yToPixScale));
 	//if(r) logMsg("unproject y %f, to %d", y, r);
 	return r;
 }

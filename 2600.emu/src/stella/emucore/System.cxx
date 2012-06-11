@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.cxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: System.cxx 2343 2012-01-08 16:55:10Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -307,10 +307,11 @@ void System::unlockDataBus()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool System::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCycles);
+    out.putByte(myDataBusState);
 
     if(!myM6502->save(out))
       return false;
@@ -320,9 +321,9 @@ bool System::save(Serializer& out) const
       if(!myDevices[i]->save(out))
         return false;
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: System::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: System::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -332,12 +333,13 @@ bool System::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool System::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCycles = (uInt32) in.getInt();
+    myDataBusState = (uInt8) in.getByte();
 
     // Next, load state for the CPU
     if(!myM6502->load(in))
@@ -348,9 +350,9 @@ bool System::load(Serializer& in)
       if(!myDevices[i]->load(in))
         return false;
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: System::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: System::load" << endl << "  " << msg << endl;
     return false;
   }
 

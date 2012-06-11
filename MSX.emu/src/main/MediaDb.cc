@@ -42,15 +42,9 @@ extern "C" {
 #include <util/cLang.h>
 #include <util/branch.h>
 #include <logger/interface.h>
-#define BOOST_NO_EXCEPTIONS
-#define BOOST_EXCEPTION_DISABLE
-#include <exception>
+#define BOOST_THROW_EXCEPTION_HPP_INCLUDED
+#define BOOST_THROW_EXCEPTION(x)
 #include <boost/uuid/sha1.hpp>
-
-namespace boost
-{
-	void throw_exception( std::exception const & e ) { bug_exit("Boost threw exception"); }
-}
 
 struct RomDBInfo
 {

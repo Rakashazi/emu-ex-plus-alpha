@@ -20,17 +20,13 @@
 
 class ViewStack
 {
-	View *view[5];
-	NavView *nav;
+	View *view[5] = {nullptr};
+	NavView *nav = nullptr;
 	Rect2<int> viewRect, customViewRect;
 public:
-	uint size;
-	bool useNavView;
-	constexpr ViewStack() :
-	#ifdef CONFIG_CXX11
-			view CXX11_INIT_LIST({0}),
-	#endif
-			nav(0), size(0), useNavView(0) { }
+	uint size = 0;
+	bool useNavView = 0;
+	constexpr ViewStack() { }
 
 	void init()
 	{

@@ -18,6 +18,6 @@ public:
 	const PixelFormatDesc *pixelFormat() const;
 	float aspectRatio();
 private:
-	ResourceFace *face;
-	GlyphEntry *idx;
+	ResourceFace *face = nullptr;
+	GlyphEntry *idx = nullptr;
 };

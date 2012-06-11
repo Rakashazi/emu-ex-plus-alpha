@@ -37,14 +37,15 @@ static void mouseEvent(uint button, int p, uint action, int x, int y)
 	Input::onInputEvent(InputEvent(p, InputEvent::DEV_POINTER, button, action, m[p].x, m[p].y));
 }
 
-static void keyEvent(SDLKey k, uint action)
+static void keyEvent(SDL_keysym k, uint action)
 {
-	assert(k < Key::COUNT);
+	assert(k.sym < Key::COUNT);
+	uint modifiers = k.mod & KMOD_SHIFT;
 	//logMsg("key %s %d", Input::buttonName(InputEvent::DEV_KEYBOARD, k), action);
 	#ifdef CONFIG_INPUT_ICADE
-	if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k), action)))
+	if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k.sym, modifiers), action)))
 	#endif
-		Input::onInputEvent(InputEvent(0, InputEvent::DEV_KEYBOARD, k & 0xFFF, action));
+		Input::onInputEvent(InputEvent(0, InputEvent::DEV_KEYBOARD, k.sym & 0xFFF, action, modifiers));
 }
 
 void setKeyRepeat(bool on)

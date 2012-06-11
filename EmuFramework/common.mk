@@ -76,7 +76,7 @@ CPPFLAGS += -I../EmuFramework/include
 VPATH += ../EmuFramework/src
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 AlertView.cc Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
-StateSlotView.cc MenuView.cc EmuInput.cc
+StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc
 
 ifneq ($(ENV), ps3)
 SRC += VController.cc

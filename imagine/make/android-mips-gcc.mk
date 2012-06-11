@@ -20,7 +20,7 @@ ifeq ($(origin CC), default)
 endif
 
 CPPFLAGS += -D__ANDROID__
-COMPILE_FLAGS += -fpic -fno-short-enums
+COMPILE_FLAGS += -fno-short-enums
 LDLIBS += -nostartfiles
 
 include $(currPath)/android-gcc.mk

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stella/emucore/OSystem.hxx>
+
 OSystem::OSystem()
 {
 	myEEPROMDir = ".";
@@ -27,6 +29,18 @@ void OSystem::logMessage(const string& message, uInt8 level)
 }
 #endif
 
+bool OSystem::create() { return 1; }
+
+void OSystem::mainLoop() { }
+
+void OSystem::pollEvent() { }
+
+bool OSystem::queryVideoHardware() { return 1; }
+
+void OSystem::stateChanged(EventHandler::State state) { }
+
+void OSystem::setDefaultJoymap(Event::Type event, EventMode mode) { }
+
 void OSystem::setFramerate(float framerate) { }
 
 uInt64 OSystem::getTicks() const
@@ -40,12 +54,12 @@ uInt64 OSystem::getTicks() const
 
 EventHandler::EventHandler(OSystem*)
 {
-	myEvent = new Event();
+
 }
 
 EventHandler::~EventHandler()
 {
-	delete myEvent;
+
 }
 
 FrameBuffer::FrameBuffer() { }

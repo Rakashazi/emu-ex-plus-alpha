@@ -39,7 +39,10 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	void DualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
 	{
 		TextMenuItem::init(str, active, face);
-		t2.init(str2, face);
+		if(str2)
+			t2.init(str2, face);
+		else
+			t2.init(face);
 	}
 
 	void DualTextMenuItem::deinit()
@@ -51,7 +54,10 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	void DualTextMenuItem::compile()
 	{
 		TextMenuItem::compile();
-		t2.compile();
+		if(t2.str)
+		{
+			t2.compile();
+		}
 	}
 
 	void DualTextMenuItem::draw2ndText(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
@@ -62,7 +68,8 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	void DualTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 	{
 		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
+		if(t2.str)
+			DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
 	}
 
 	void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)

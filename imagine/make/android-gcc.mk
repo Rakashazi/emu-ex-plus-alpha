@@ -18,6 +18,21 @@ else
  android_soName := imagine
 endif
 
+#CPPFLAGS += -isystem $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/libs/armeabi-v7a/include
+ifndef android_stdcxx
+ ifdef cxxExceptions
+  android_stdcxx := gnu
+ else
+  android_stdcxx := stlport
+ endif
+endif
+
+ifeq ($(android_stdcxx), gnu)
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/libs/$(android_abi)/libgnustl_static.a
+else
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
+endif
+
 include $(currPath)/gcc.mk
 
 #BASE_CXXFLAGS += -fno-use-cxa-atexit
@@ -26,10 +41,7 @@ COMPILE_FLAGS += -fsingle-precision-constant -ffunction-sections -fdata-sections
 -Wa,--noexecstack $(android_cpuFlags)
 ASMFLAGS += $(android_cpuFlags)
 LDFLAGS += $(android_cpuFlags)
-WARNINGS_CFLAGS += -Wno-psabi
-ifeq ($(gccFeatures4_6), 1)
-WARNINGS_CFLAGS += -Wdouble-promotion
-endif
+WARNINGS_CFLAGS += -Wno-psabi -Wdouble-promotion
 LDFLAGS += -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-soname,lib$(android_soName).so -shared #-Wl,-rpath-link=$(android_ndkSysroot)/usr/lib
 LDLIBS += -L$(android_ndkSysroot)/usr/lib -lc -lm #-lgcc
 

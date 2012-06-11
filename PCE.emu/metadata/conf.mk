@@ -7,6 +7,7 @@ metadata_id = com.explusalpha.PceEmu
 metadata_vendor = Robert Broglia
 android_metadata_project = PceEmu
 iOS_metadata_bundleName = PceEmu
+ps3_contentid = EM0000-PCEE00000_00-EXPLUSALPHATURBO
 android_metadata_writeExtStore = 1
 android_metadata_bluetooth = 1
 android_metadata_vibrate = 1

@@ -15,4 +15,4 @@ extern bool bluez_loaded;
 CallResult bluez_dl();
 
 extern fbool glSyncHackBlacklisted, glSyncHackEnabled;
-extern fbool glPointerStateHack;
+extern fbool glPointerStateHack, glBrokenNpot;

@@ -17,7 +17,7 @@ struct pd4990a_s
   int testwaits;
   int maxwaits;
   int testbit;		/* Pulses a bit in order to simulate */
-  					/* test output */
+  /* test output */
   int outputbit;
   int bitno;
 

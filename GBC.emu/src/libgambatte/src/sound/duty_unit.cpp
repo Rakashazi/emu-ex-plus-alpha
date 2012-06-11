@@ -25,6 +25,10 @@ static inline bool toOutState(const unsigned duty, const unsigned pos) {
 	return duties[duty] >> pos & 1;
 }
 
+static inline unsigned toPeriod(const unsigned freq) {
+	return (2048 - freq) << 1;
+}
+
 namespace gambatte {
 
 void DutyUnit::updatePos(const unsigned long cc) {

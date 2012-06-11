@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.cxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Driving.cxx 2405 2012-03-04 19:20:29Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -25,13 +25,16 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Driving::Driving(Jack jack, const Event& event, const System& system)
   : Controller(jack, event, system, Controller::Driving),
-    myCounter(0)
+    myCounter(0),
+    myControlID(-1),
+    myControlIDX(-1),
+    myControlIDY(-1)
 {
   if(myJack == Left)
   {
     myCCWEvent   = Event::JoystickZeroLeft;
     myCWEvent    = Event::JoystickZeroRight;
-    myFireEvent  = Event::JoystickZeroFire1;
+    myFireEvent  = Event::JoystickZeroFire;
     myXAxisValue = Event::SALeftAxis0Value;
     myYAxisValue = Event::SALeftAxis1Value;
   }
@@ -39,7 +42,7 @@ Driving::Driving(Jack jack, const Event& event, const System& system)
   {
     myCCWEvent   = Event::JoystickOneLeft;
     myCWEvent    = Event::JoystickOneRight;
-    myFireEvent  = Event::JoystickOneFire1;
+    myFireEvent  = Event::JoystickOneFire;
     myXAxisValue = Event::SARightAxis0Value;
     myYAxisValue = Event::SARightAxis1Value;
   }
@@ -70,16 +73,35 @@ void Driving::update()
   else if(myEvent.get(myCWEvent) != 0 || d_axis > 16384)  myCounter++;
 
   // Mouse motion and button events
-  // Since there are 4 possible controller numbers, we use 0 & 2
-  // for the left jack, and 1 & 3 for the right jack
-  if((myJack == Left && !(ourControlNum & 0x1)) ||
-     (myJack == Right && ourControlNum & 0x1))
+  if(myControlID > -1)
   {
     int m_axis = myEvent.get(Event::MouseAxisXValue);
     if(m_axis < -2)     myCounter--;
     else if(m_axis > 2) myCounter++;
-    if(myEvent.get(Event::MouseButtonValue))
+    if(myEvent.get(Event::MouseButtonLeftValue) ||
+       myEvent.get(Event::MouseButtonRightValue))
       myDigitalPinState[Six] = false;
+  }
+  else
+  {
+    // Test for 'untied' mouse axis mode, where each axis is potentially
+    // mapped to a separate driving controller
+    if(myControlIDX > -1)
+    {
+      int m_axis = myEvent.get(Event::MouseAxisXValue);
+      if(m_axis < -2)     myCounter--;
+      else if(m_axis > 2) myCounter++;
+      if(myEvent.get(Event::MouseButtonLeftValue))
+        myDigitalPinState[Six] = false;
+    }
+    if(myControlIDY > -1)
+    {
+      int m_axis = myEvent.get(Event::MouseAxisYValue);
+      if(m_axis < -2)     myCounter--;
+      else if(m_axis > 2) myCounter++;
+      if(myEvent.get(Event::MouseButtonRightValue))
+        myDigitalPinState[Six] = false;
+    }
   }
 
   // Only consider the lower-most bits (corresponding to pins 1 & 2)
@@ -111,4 +133,34 @@ void Driving::update()
   uInt8 gray = graytable[myGrayIndex];
   myDigitalPinState[One] = (gray & 0x1) != 0;
   myDigitalPinState[Two] = (gray & 0x2) != 0;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Driving::setMouseControl(
+    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+{
+  // In 'automatic' mode, only the X-axis is used
+  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  {
+    myControlID = ((myJack == Left && ctrlID == 0) ||
+                   (myJack == Right && ctrlID == 1)
+                  ) ? ctrlID : -1;
+    myControlIDX = myControlIDY = -1;
+  }
+  else
+  {
+    // The following is somewhat complex, but we need to pre-process as much
+    // as possible, so that ::update() can run quickly
+    myControlID = -1;
+    if(myJack == Left)
+    {
+      myControlIDX = xaxis == MouseControl::Driving0 ? 0 : -1;
+      myControlIDY = yaxis == MouseControl::Driving0 ? 0 : -1;
+    }
+    else  // myJack == Right
+    {
+      myControlIDX = xaxis == MouseControl::Driving1 ? 1 : -1;
+      myControlIDY = yaxis == MouseControl::Driving1 ? 1 : -1;
+    }
+  }
 }

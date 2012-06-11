@@ -8,8 +8,8 @@ class TimeTimeval : Arithmetics< TimeTimeval >, Compares< TimeTimeval >
 public:
 	struct timeval t;
 
-	TimeTimeval() { }
-	TimeTimeval(struct timeval num) { t = num; }
+	constexpr TimeTimeval(): t() { }
+	constexpr TimeTimeval(struct timeval t): t(t) { }
 
 	void setUSecs(int usecs)
 	{

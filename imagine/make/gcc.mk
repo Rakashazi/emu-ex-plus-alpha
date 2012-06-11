@@ -8,14 +8,14 @@ ifdef O_LTO
 endif
 
 gccVersion := $(shell $(CC) -dumpversion)
-gccFeatures4_6 := $(shell expr $(gccVersion) \>= 4.6)
+# TODO: remove, GCC 4.7 now required
+#gccFeatures4_6 := $(shell expr $(gccVersion) \>= 4.6)
+#gccFeatures4_7 := $(shell expr $(gccVersion) \>= 4.7)
 
-ifeq ($(gccFeatures4_6), 1)
- #WHOLE_PROGRAM_CFLAGS += -fipa-pta
- BASE_CXXFLAGS += -std=gnu++0x
- NORMAL_WARNINGS_CFLAGS += -Werror=strict-aliasing
- #NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn
-endif
+#WHOLE_PROGRAM_CFLAGS += -fipa-pta
+BASE_CXXFLAGS += -std=gnu++0x
+NORMAL_WARNINGS_CFLAGS += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing)
+#NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn
 
 ifdef RELEASE
  COMPILE_FLAGS += -fno-ident
@@ -23,7 +23,13 @@ ifdef RELEASE
 endif
 
 ifndef RELEASE
- COMPILE_FLAGS += -ggdb
+ ifneq ($(ENV), ps3)
+  COMPILE_FLAGS += -ggdb
+ endif
 endif
 
-HIGH_OPTIMIZE_CFLAGS += -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+ifdef cxxExceptions
+ BASE_CXXFLAGS += -fnothrow-opt
+endif
+
+HIGH_OPTIMIZE_CFLAGS := -O2 $(NORMAL_OPTIMIZE_CFLAGS_MISC) -funsafe-loop-optimizations -Wunsafe-loop-optimizations

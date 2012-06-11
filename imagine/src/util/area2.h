@@ -29,11 +29,7 @@
 class Area
 {
 public:
-	constexpr Area() : xSize(0), ySize(0),
-	iXSize(0), iYSize(0),
-	xPos_(0), yPos_(0),
-	inputXPos(0), inputYPos(0)
-	{ }
+	constexpr Area() { }
 
 	void init(int aRatioNumerator, int aRatioDenominator)
 	{
@@ -190,21 +186,6 @@ public:
 		setPos(a, 0, 0, posOrigin, areaOrigin);
 	}
 
-	/*void setPos(Rect<int> *b, GC x, GC y, _2DOrigin posOrigin, _2DOrigin areaOrigin)
-	{
-		Area a;
-		a.init(0,0);
-		a.setXSize(b->gXSize());
-		a.setYSize(b->gYSize());
-		a.setPos(b->gXPos(LB2DO), b->gYPos(LB2DO), LB2DO, C2DO);
-		setPos(&a, x, y, posOrigin, areaOrigin);
-	}
-
-	void setPos(Rect<int> *b, _2DOrigin posOrigin, _2DOrigin areaOrigin)
-	{
-		setPos(b, 0, 0, posOrigin, areaOrigin);
-	}*/
-
 	void setPos(Rect2<int> *b, GC x, GC y, _2DOrigin posOrigin, _2DOrigin areaOrigin)
 	{
 		Area a;
@@ -258,6 +239,16 @@ public:
 		return IG::Point2D<int>(xIPos(xFrac, o), yIPos(yFrac, o));
 	}
 
+	Rect2<int> toIntRect() const
+	{
+		Rect2<int> b;
+		b.x = xIPos(LT2DO);
+		b.y = yIPos(LT2DO);
+		b.x2 = xIPos(RB2DO);
+		b.y2 = yIPos(RB2DO);
+		return b;
+	}
+
 	/*int boundInside(Area *dest)
 	{
 		Rect<GC> srcR(xPos(LB2DO), yPos(LB2DO), xSize, ySize),
@@ -271,10 +262,10 @@ public:
 		return result;
 	}*/
 
-	GC xSize, ySize;
-	int iXSize, iYSize;
+	GC xSize = 0, ySize = 0;
+	int iXSize = 0, iYSize = 0;
 private:
 	Rational aRatio_;
-	GC xPos_, yPos_;
-	int inputXPos, inputYPos;
+	GC xPos_ = 0, yPos_ = 0;
+	int inputXPos = 0, inputYPos = 0;
 };

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.hxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Control.hxx 2412 2012-03-14 01:19:23Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -26,6 +26,7 @@ class System;
 
 #include "Serializable.hxx"
 #include "bspf.hxx"
+#include "MouseControl.hxx"
 
 /**
   A controller is a device that plugs into either the left or right 
@@ -58,7 +59,7 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 2228 2011-05-06 14:29:39Z stephena $
+  @version $Id: Control.hxx 2412 2012-03-14 01:19:23Z stephena $
 */
 class Controller : public Serializable
 {
@@ -66,15 +67,23 @@ class Controller : public Serializable
     Riot debug class needs special access to the underlying controller state
   */
   friend class RiotDebug;
+  friend class CompuMate;
 
   public:
     /**
       Enumeration of the controller jacks
     */
-    enum Jack
-    {
-      Left, Right
-    };
+    enum Jack { Left = 0, Right = 1 };
+
+    /**
+      Enumeration of the digital pins of a controller port
+    */
+    enum DigitalPin { One, Two, Three, Four, Six };
+
+    /**
+      Enumeration of the analog pins of a controller port
+    */
+    enum AnalogPin { Five, Nine };
 
     /**
       Enumeration of the controller types
@@ -83,7 +92,7 @@ class Controller : public Serializable
     {
       BoosterGrip, Driving, Keyboard, Paddles, Joystick,
       TrackBall22, TrackBall80, AmigaMouse, AtariVox, SaveKey,
-      KidVid, Genesis
+      KidVid, Genesis, MindLink, CompuMate
     };
 
   public:
@@ -104,28 +113,23 @@ class Controller : public Serializable
     virtual ~Controller();
 
     /**
+      Returns the jack that this controller is plugged into.
+    */
+    const Jack jack() const { return myJack; }
+
+    /**
       Returns the type of this controller.
     */
-    const Type type() const;
-
-  public:
-    /**
-      Enumeration of the digital pins of a controller port
-    */
-    enum DigitalPin
-    {
-      One, Two, Three, Four, Six
-    };
+    const Type type() const { return myType; }
 
     /**
-      Enumeration of the analog pins of a controller port
-    */
-    enum AnalogPin
-    {
-      Five, Nine
-    };
+      Read the entire state of all digital pins for this controller.
+      Note that this method must use the lower 4 bits, and zero the upper bits.
 
-  public:
+      @return The state of all digital pins
+    */
+    virtual uInt8 read();
+
     /**
       Read the value of the specified digital pin for this controller.
 
@@ -154,6 +158,12 @@ class Controller : public Serializable
     virtual void write(DigitalPin pin, bool value) { };
 
     /**
+      Called after *all* digital pins have been written on Port A.
+      Most controllers don't do anything in this case.
+    */
+    virtual void controlWrite() { };
+
+    /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
@@ -162,9 +172,27 @@ class Controller : public Serializable
     /**
       Notification method invoked by the system right before the
       system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
+      to override this method for controllers that remember cycle counts.
     */
     virtual void systemCyclesReset() { };
+
+    /**
+      Determines how this controller will treat values received from the
+      X/Y axis and left/right buttons of the mouse.  Since not all controllers
+      use the mouse, it's up to the specific class to decide how to use this data.
+
+      If either of the axis is set to 'Automatic', then we automatically
+      use the ctrlID for the control type.
+
+      In the current implementation, the left button is tied to the X axis,
+      and the right one tied to the Y axis.
+
+      @param xaxis   How the controller should use x-axis data
+      @param yaxis   How the controller should use y-axis data
+      @param ctrlID  The controller ID to use axis 'auto' mode
+    */
+    virtual void setMouseControl(
+        MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID = -1) { };
 
     /**
       Returns the name of this controller.
@@ -175,6 +203,18 @@ class Controller : public Serializable
       Returns more detailed information about this controller.
     */
     virtual string about() const;
+
+    /**
+      The following two functions are used by the debugger to set
+      the specified pins to the given value.  Note that this isn't the
+      same as a write; the debugger is allowed special access and is
+      actually 'below' the controller level.
+
+      @param pin The pin of the controller jack to modify
+      @param value The value to set on the pin
+    */
+    void set(DigitalPin pin, bool value);
+    void set(AnalogPin pin, Int32 value);
 
     /**
       Saves the current state of this controller to the given Serializer.
@@ -191,17 +231,6 @@ class Controller : public Serializable
       @return The result of the load.  True on success, false on failure.
     */
     bool load(Serializer& in);
-
-    /**
-      Sets the mouse to emulate controller number 'X'.  Note that this
-      can accept values 0 to 3, since there can be up to four possible
-      controllers (when using paddles).  In all other cases when only
-      two controllers are present, it's up to the specific class to
-      decide how to use this data.
-
-      @param number  The controller number (0, 1, 2, 3)
-    */
-    static void setMouseIsController(int number);
 
   public:
     /// Constant which represents maximum resistance for analog pins
@@ -231,9 +260,6 @@ class Controller : public Serializable
 
     /// The analog value on each analog pin
     Int32 myAnalogPinValue[2];
-
-    /// The controller number
-    static Int32 ourControlNum;
 
   protected:
     // Copy constructor isn't supported by controllers so make it private

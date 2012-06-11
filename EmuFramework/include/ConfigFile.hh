@@ -184,7 +184,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_KEY_EXIT: readKeyConfig2(io, 6, size);
 		}
 	}
-	io->close();
+	delete io;
 	return dirChange;
 }
 
@@ -342,7 +342,7 @@ static void writeConfig2(Io *io)
 
 	EmuSystem::writeConfig(io);
 
-	io->close();
+	delete io;
 }
 
 static void loadConfigFile()

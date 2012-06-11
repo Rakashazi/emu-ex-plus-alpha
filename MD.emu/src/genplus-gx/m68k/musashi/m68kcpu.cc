@@ -459,19 +459,19 @@ const uint8 m68ki_ea_idx_cycle_table[64] =
  */
 
 /* Interrupt acknowledge */
-static int default_int_ack_callback_data;
+//static int default_int_ack_callback_data;
 static int default_int_ack_callback(M68KCPU &m68ki_cpu, int int_level)
 {
-  default_int_ack_callback_data = int_level;
+  //default_int_ack_callback_data = int_level;
   CPU_INT_LEVEL = 0;
   return M68K_INT_ACK_AUTOVECTOR;
 }
 
 /* Breakpoint acknowledge */
-static unsigned int default_bkpt_ack_callback_data;
+//static unsigned int default_bkpt_ack_callback_data;
 static void default_bkpt_ack_callback(M68KCPU &m68ki_cpu, unsigned int data)
 {
-  default_bkpt_ack_callback_data = data;
+  //default_bkpt_ack_callback_data = data;
 }
 
 /* Called when a reset instruction is executed */
@@ -942,7 +942,7 @@ void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles)
   /* Save end cycles count for when CPU is stopped */
   m68ki_cpu.endCycles = cycles;
 
-  while (m68ki_cpu.cycleCount < cycles)
+  while (m68ki_cpu.cycleCount < cycles)//m68ki_cpu.endCycles)
   {
     /* Set tracing accodring to T1. */
     m68ki_trace_t1() /* auto-disable (see m68kcpu.h) */

@@ -37,6 +37,9 @@ enum { IO_SEEK_ABS, IO_SEEK_ABS_END, IO_SEEK_ADD, IO_SEEK_SUB };
 class Io
 {
 public:
+	//constexpr Io() { }
+	virtual ~Io() { }
+
 	// reading
 	virtual size_t readUpTo(void* buffer, size_t numBytes) = 0;
 	virtual const uchar *mmapConst() { return 0; };
@@ -175,7 +178,7 @@ static long int ftell(Io *stream)
 
 static int fclose(Io *stream)
 {
-	stream->close();
+	delete stream;
 	return 0;
 }
 

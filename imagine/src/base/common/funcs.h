@@ -50,6 +50,12 @@ static void generic_displayNeedsUpdate()
 	gfxUpdate = 1;
 }
 
+static Window mainWin;
+const Window &window()
+{
+	return mainWin;
+}
+
 #ifdef CONFIG_GFX
 static int generic_resizeEvent(uint x, uint y, bool force = 0)
 {
@@ -178,21 +184,28 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 
 }
 
-#ifdef CONFIG_BASE_PS3
-	void* operator new (size_t size) throw () { return mem_alloc(size); }
-	void* operator new[] (size_t size)	throw () { return mem_alloc(size); }
-#else
-	void* operator new (size_t size) { return mem_alloc(size); }
-	void* operator new[] (size_t size)	{ return mem_alloc(size); }
+void* operator new (size_t size)
+#ifdef __EXCEPTIONS
+	throw ()
 #endif
-void operator delete (void *o) { mem_free(o); }
-void operator delete[] (void *o) { mem_free(o); }
+{ return mem_alloc(size); }
+
+void* operator new[] (size_t size)
+#ifdef __EXCEPTIONS
+	throw ()
+#endif
+{ return mem_alloc(size); }
 
 void *operator new (size_t size, void *o)
-#ifdef CONFIG_BASE_PS3
-throw ()
+#ifdef __EXCEPTIONS
+	throw ()
 #endif
 {
 	//logMsg("called placement new, %d bytes @ %p", (int)size, o);
 	return o;
 }
+
+//void* operator new (size_t size, long unsigned int) { return mem_alloc(size); }
+
+void operator delete (void *o) { mem_free(o); }
+void operator delete[] (void *o) { mem_free(o); }

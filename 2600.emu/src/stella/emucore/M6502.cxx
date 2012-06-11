@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: M6502.cxx 2359 2012-01-17 22:20:20Z stephena $
 //============================================================================
 
 //#define DEBUG_OUTPUT
@@ -245,7 +245,7 @@ bool M6502::execute(uInt32 number)
 #ifdef DEBUGGER_SUPPORT
       if(myJustHitTrapFlag)
       {
-        if(myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address))
+      	if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address))
         {
           myJustHitTrapFlag = false;
           return true;
@@ -256,7 +256,7 @@ bool M6502::execute(uInt32 number)
       {
         if(myBreakPoints->isSet(PC))
         {
-          if(myDebugger->start("BP: ", PC))
+        	if(myDebugger && myDebugger->start("BP: ", PC))
             return true;
         }
       }
@@ -265,7 +265,7 @@ bool M6502::execute(uInt32 number)
       if(cond > -1)
       {
         string buf = "CBP: " + myBreakCondNames[cond];
-        if(myDebugger->start(buf))
+        if(myDebugger && myDebugger->start(buf))
           return true;
       }
 #endif
@@ -372,7 +372,7 @@ bool M6502::save(Serializer& out) const
 {
   const string& CPU = name();
 
-  //try
+  try
   {
     out.putString(CPU);
 
@@ -405,9 +405,9 @@ bool M6502::save(Serializer& out) const
     out.putInt(myLastSrcAddressY);
     out.putInt(myDataAddressForPoke);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: M6502::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: M6502::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -419,7 +419,7 @@ bool M6502::load(Serializer& in)
 {
   const string& CPU = name();
 
-  //try
+  try
   {
     if(in.getString() != CPU)
       return false;
@@ -453,64 +453,14 @@ bool M6502::load(Serializer& in)
     myLastSrcAddressY = (uInt16) in.getInt();
     myDataAddressForPoke = (uInt16) in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: M6502::laod" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: M6502::laod" << endl << "  " << msg << endl;
     return false;
   }
 
   return true;
 }
-
-#if 0
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ostream& operator<<(ostream& out, const M6502::AddressingMode& mode)
-{
-  switch(mode)
-  {
-    case M6502::Absolute:
-      out << "$nnnn  ";
-      break;
-    case M6502::AbsoluteX:
-      out << "$nnnn,X";
-      break;
-    case M6502::AbsoluteY:
-      out << "$nnnn,Y";
-      break;
-    case M6502::Implied:
-      out << "implied";
-      break;
-    case M6502::Immediate:
-      out << "#$nn   ";
-      break;
-    case M6502::Indirect:
-      out << "($nnnn)";
-      break;
-    case M6502::IndirectX:
-      out << "($nn,X)";
-      break;
-    case M6502::IndirectY:
-      out << "($nn),Y";
-      break;
-    case M6502::Invalid:
-      out << "invalid";
-      break;
-    case M6502::Relative:
-      out << "$nn    ";
-      break;
-    case M6502::Zero:
-      out << "$nn    ";
-      break;
-    case M6502::ZeroX:
-      out << "$nn,X  ";
-      break;
-    case M6502::ZeroY:
-      out << "$nn,Y  ";
-      break;
-  }
-  return out;
-}
-#endif
 
 #ifdef DEBUGGER_SUPPORT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -521,7 +471,7 @@ void M6502::attach(Debugger& debugger)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unsigned int M6502::addCondBreak(Expression *e, const string& name)
+uInt32 M6502::addCondBreak(Expression *e, const string& name)
 {
   myBreakConds.push_back(e);
   myBreakCondNames.push_back(name);
@@ -529,7 +479,7 @@ unsigned int M6502::addCondBreak(Expression *e, const string& name)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::delCondBreak(unsigned int brk)
+void M6502::delCondBreak(uInt32 brk)
 {
   if(brk < myBreakConds.size())
   {
@@ -556,7 +506,7 @@ const StringList& M6502::getCondBreakNames() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int M6502::evalCondBreaks()
+Int32 M6502::evalCondBreaks()
 {
   for(uInt32 i = 0; i < myBreakConds.size(); i++)
     if(myBreakConds[i]->evaluate())
@@ -577,7 +527,6 @@ void M6502::setTraps(PackedBitArray *read, PackedBitArray *write)
   myReadTraps = read;
   myWriteTraps = write;
 }
-
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

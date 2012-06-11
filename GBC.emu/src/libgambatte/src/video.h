@@ -19,7 +19,6 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include "gambatte.h"
 #include "video/ppu.h"
 #include "video/lyc_irq.h"
 #include "video/next_m0_time.h"
@@ -36,7 +35,7 @@ class VideoInterruptRequester {
 	InterruptRequester * intreq;
 	
 public:
-	explicit VideoInterruptRequester(InterruptRequester * intreq) : intreq(intreq) {}
+	constexpr explicit VideoInterruptRequester(InterruptRequester * intreq) : intreq(intreq) {}
 	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq); }
 	void flagIrq(const unsigned bit) const { intreq->flagIrq(bit); }
 	void setNextEventTime(const unsigned long time) const { intreq->setEventTime<VIDEO>(time); }
@@ -47,7 +46,7 @@ class M0Irq {
 	unsigned char lycReg_;
 	
 public:
-	M0Irq() : statReg_(0), lycReg_(0) {}
+	constexpr M0Irq() : statReg_(0), lycReg_(0) {}
 	
 	void lcdReset(const unsigned statReg, const unsigned lycReg) {
 		statReg_ = statReg;

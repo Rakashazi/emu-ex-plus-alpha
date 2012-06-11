@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: AtariVox.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: AtariVox.hxx 2353 2012-01-13 21:13:10Z stephena $
 //============================================================================
 
 #ifndef ATARIVOX_HXX
@@ -33,7 +33,7 @@ class MT24LC256;
   driver code.
 
   @author  B. Watson
-  @version $Id: AtariVox.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: AtariVox.hxx 2353 2012-01-13 21:13:10Z stephena $
 */
 class AtariVox : public Controller
 {
@@ -89,7 +89,7 @@ class AtariVox : public Controller
     */
     void systemCyclesReset();
 
-    virtual string about() const;
+    string about() const;
 
   private:
    void clockDataIn(bool value);

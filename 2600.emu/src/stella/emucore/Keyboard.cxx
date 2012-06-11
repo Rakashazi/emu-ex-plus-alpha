@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Keyboard.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Keyboard.cxx 2413 2012-03-14 22:24:54Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -22,8 +22,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Keyboard::Keyboard(Jack jack, const Event& event, const System& system)
-  : Controller(jack, event, system, Controller::Keyboard),
-    myPinState(0)
+  : Controller(jack, event, system, Controller::Keyboard)
 {
   if(myJack == Left)
   {
@@ -65,40 +64,7 @@ Keyboard::~Keyboard()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Keyboard::write(DigitalPin pin, bool value)
 {
-  // Change the pin state based on value
-  switch(pin)
-  {
-    case One:
-      myPinState = (myPinState & 0x0E) | (value ? 0x01 : 0x00);
-      break;
-  
-    case Two:
-      myPinState = (myPinState & 0x0D) | (value ? 0x02 : 0x00);
-      break;
-
-    case Three:
-      myPinState = (myPinState & 0x0B) | (value ? 0x04 : 0x00);
-      break;
-  
-    case Four:
-      myPinState = (myPinState & 0x07) | (value ? 0x08 : 0x00);
-      break;
-
-    default:
-      break;
-  } 
-
-  // State has probably changed, so recalculate it
-  update();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Keyboard::update()
-{
-  myDigitalPinState[One]   = (myPinState & 0x01);
-  myDigitalPinState[Two]   = (myPinState & 0x02);
-  myDigitalPinState[Three] = (myPinState & 0x04);
-  myDigitalPinState[Four]  = (myPinState & 0x08);
+  myDigitalPinState[pin] = value;
 
   // Set defaults
   myDigitalPinState[Six] = true;
@@ -106,25 +72,25 @@ void Keyboard::update()
   myAnalogPinValue[Nine] = minimumResistance;
 
   // Now scan the rows and columns
-  if(!(myPinState & 0x08))
+  if(!myDigitalPinState[Four])
   {
     myDigitalPinState[Six] = (myEvent.get(myPoundEvent) == 0);
     if(myEvent.get(myZeroEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
     if(myEvent.get(myStarEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
   }
-  if(!(myPinState & 0x04))
+  if(!myDigitalPinState[Three])
   {
     myDigitalPinState[Six] = (myEvent.get(myNineEvent) == 0);
     if(myEvent.get(myEightEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
     if(myEvent.get(mySevenEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
   }
-  if(!(myPinState & 0x02))
+  if(!myDigitalPinState[Two])
   {
     myDigitalPinState[Six] = (myEvent.get(mySixEvent) == 0);
     if(myEvent.get(myFiveEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
     if(myEvent.get(myFourEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
   }
-  if(!(myPinState & 0x01))
+  if(!myDigitalPinState[One])
   {
     myDigitalPinState[Six] = (myEvent.get(myThreeEvent) == 0);
     if(myEvent.get(myTwoEvent) != 0) myAnalogPinValue[Five] = maximumResistance;

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: CartDPCPlus.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_DPC_PLUS_HXX
@@ -34,7 +34,7 @@ class Thumbulator;
   the DPC chip see David P. Crane's United States Patent Number 4,644,495.
 
   @author  Darrell Spice Jr, Fred Quimby, Stephen Anthony
-  @version $Id: CartDPCPlus.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: CartDPCPlus.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class CartridgeDPCPlus : public Cartridge
 {

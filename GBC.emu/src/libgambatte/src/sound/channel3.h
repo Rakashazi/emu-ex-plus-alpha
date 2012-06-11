@@ -58,10 +58,6 @@ class Channel3 {
 	bool cgb;
 	
 	void updateWaveCounter(unsigned long cc);
-	
-	static inline unsigned toPeriod(const unsigned nr3, const unsigned nr4) {
-		return 0x800 - ((nr4 << 8 & 0x700) | nr3);
-	}
 
 public:
 	Channel3();

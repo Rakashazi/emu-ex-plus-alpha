@@ -4,7 +4,7 @@
 
 void softResetConfirmAlert(const InputEvent &e)
 {
-	Event& ev = *osystem.eventHandler().event();
+	Event &ev = osystem.eventHandler().event();
 	ev.clear();
 	ev.set(Event::ConsoleReset, 1);
 	console->switches().update();
@@ -77,16 +77,12 @@ struct ColorBWMenuItem : public BoolMenuItem
 
 static class VCSSwitchesView : public BaseMenuView
 {
-	MenuItem *item[4];
+	MenuItem *item[4] = {nullptr};
 	TextMenuItem softReset;
 	DifficultyMenuItem diff1, diff2;
 	ColorBWMenuItem color;
 public:
-	constexpr VCSSwitchesView(): BaseMenuView("Switches")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr VCSSwitchesView(): BaseMenuView("Switches")	{ }
 
 	void init(bool highlightFirst)
 	{

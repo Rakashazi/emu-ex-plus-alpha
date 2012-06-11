@@ -76,9 +76,9 @@ public:
 	
 	MemEventId minEventId() const { return static_cast<MemEventId>(eventTimes.min()); }
 	unsigned long minEventTime() const { return eventTimes.minValue(); }
-	template<MemEventId id_> void setEventTime(unsigned long value) { eventTimes.setValue<id_>(value); }
-	void setEventTime(const MemEventId id_, unsigned long value) { eventTimes.setValue(id_, value); }
-	unsigned long eventTime(MemEventId id_) const { return eventTimes.value(id_); }
+	template<MemEventId id> void setEventTime(unsigned long value) { eventTimes.setValue<id>(value); }
+	void setEventTime(const MemEventId id, unsigned long value) { eventTimes.setValue(id, value); }
+	unsigned long eventTime(MemEventId id) const { return eventTimes.value(id); }
 };
 
 inline void flagHdmaReq(InterruptRequester *const intreq) { intreq->setEventTime<DMA>(0); }

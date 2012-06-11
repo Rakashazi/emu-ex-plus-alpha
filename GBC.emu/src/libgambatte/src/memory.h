@@ -49,6 +49,7 @@ class Memory {
 	unsigned short dmaSource;
 	unsigned short dmaDestination;
 	unsigned char oamDmaPos;
+	unsigned char serialCnt;
 	bool blanklcd;
 
 	void updateInput();
@@ -65,7 +66,7 @@ class Memory {
 	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
 	
-	void updateSerialIrq(unsigned long cc);
+	void updateSerial(unsigned long cc);
 	void updateTimaIrq(unsigned long cc);
 	void updateIrqs(unsigned long cc);
 	
@@ -132,7 +133,7 @@ public:
 	unsigned long event(unsigned long cycleCounter) __attribute__ ((hot));
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	bool loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	int loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 	void setSaveDir(const std::string &dir) { cart.setSaveDir(dir); }
 
 	void setInputGetter(InputGetter *getInput) {

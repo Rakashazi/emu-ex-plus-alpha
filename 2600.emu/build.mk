@@ -1,15 +1,13 @@
 ifndef inc_main
 inc_main := 1
 
-#cxxExceptions := 1
-
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc
 
 include ../EmuFramework/common.mk
 
-CPPFLAGS += -DHAVE_GETTIMEOFDAY -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DSysDDec=float -Isrc/stella/common
+CPPFLAGS += -DHAVE_GETTIMEOFDAY -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT -DSysDDec=float -Isrc/stella/common
 
 # Stella sources
 STELLA := stella/emucore
@@ -24,7 +22,8 @@ $(STELLA)/Cart4K.cxx $(STELLA)/CartDPC.cxx $(STELLA)/CartDPCPlus.cxx $(STELLA)/C
 $(STELLA)/CartEF.cxx $(STELLA)/CartEFSC.cxx $(STELLA)/CartF4.cxx $(STELLA)/CartF4SC.cxx $(STELLA)/CartF6.cxx \
 $(STELLA)/CartF6SC.cxx $(STELLA)/CartF8.cxx $(STELLA)/CartF8SC.cxx $(STELLA)/CartFA.cxx $(STELLA)/CartFE.cxx \
 $(STELLA)/CartMC.cxx $(STELLA)/CartF0.cxx $(STELLA)/CartCV.cxx $(STELLA)/CartUA.cxx $(STELLA)/Cart0840.cxx \
-$(STELLA)/CartSB.cxx $(STELLA)/CartX07.cxx
+$(STELLA)/CartSB.cxx $(STELLA)/CartX07.cxx $(STELLA)/CartFA2.cxx $(STELLA)/CartCM.cxx $(STELLA)/MindLink.cxx \
+$(STELLA)/CompuMate.cxx $(STELLA)/Thumbulator.cxx
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk

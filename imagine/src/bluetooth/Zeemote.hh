@@ -7,10 +7,7 @@
 struct Zeemote : public BluetoothInputDevice
 {
 public:
-	constexpr Zeemote(): inputBuffer{0}, inputBufferPos(0), packetSize(0),
-	prevBtnPush{0}, stickBtn{0}, player(0)
-	{ }
-
+	//constexpr Zeemote() { }
 	CallResult open(BluetoothAddr addr);
 
 	void close();
@@ -30,11 +27,11 @@ public:
 	static StaticDLList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
-	uchar inputBuffer[46];
-	uint inputBufferPos;
-	uint packetSize;
-	bool prevBtnPush[4], stickBtn[4];
-	uint player;
+	uchar inputBuffer[46] = {0};
+	uint inputBufferPos = 0;
+	uint packetSize = 0;
+	bool prevBtnPush[4] = {0}, stickBtn[4] = {0};
+	uint player = 0;
 
 	static const uint RID_VERSION = 0x03, RID_BTN_METADATA = 0x04, RID_CONFIG_DATA = 0x05,
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;

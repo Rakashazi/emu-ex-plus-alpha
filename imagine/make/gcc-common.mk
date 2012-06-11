@@ -5,7 +5,7 @@
 #O_SIZE := 1
 
 COMPILE_FLAGS += -pipe -fvisibility=hidden
-BASE_CFLAGS := -std=gnu99
+BASE_CFLAGS := -std=gnu99 -fno-common
 BASE_CXXFLAGS = -Woverloaded-virtual $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
@@ -16,7 +16,8 @@ endif
 # setup warnings
 
 ifndef NORMAL_WARNINGS_CFLAGS
- NORMAL_WARNINGS_CFLAGS := -Wall -Wextra -Wno-comment -Wno-missing-field-initializers #-Winline
+ NORMAL_WARNINGS_CFLAGS = -Wall -Wextra -Wno-comment -Wno-missing-field-initializers
+ #-Winline
 endif
 
 ifndef WARN_UNUSED

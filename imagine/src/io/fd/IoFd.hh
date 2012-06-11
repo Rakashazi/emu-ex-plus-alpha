@@ -25,6 +25,7 @@ class IoFd : public Io
 public:
 	static Io* open(const char * location, uint mode = 0, CallResult *errorOut = 0);
 	static Io* create(const char * location, uint mode = 0, CallResult *errorOut = 0);
+	~IoFd() { close(); }
 
 	size_t readUpTo(void* buffer, size_t numBytes);
 	size_t fwrite(const void* ptr, size_t size, size_t nmemb);
@@ -49,7 +50,7 @@ public:
 		}
 		if(f->fwrite(data, size, 1) != 1)
 			ret = IO_ERROR;
-		f->close();
+		delete f;
 		return ret;
 	}
 
@@ -62,9 +63,9 @@ public:
 		}
 		size_t readSize = f->readUpTo(data, size);
 		logMsg("read %d bytes from %s", (int)readSize, path);
-		f->close();
+		delete f;
 		return readSize;
 	}
 private:
-	int fd;
+	int fd = 0;
 };

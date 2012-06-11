@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MediaFactory.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: MediaFactory.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef MEDIA_FACTORY_HXX
@@ -30,7 +30,7 @@ class OSystem;
   based on the specific port and restrictions on that port.
 
   @author  Stephen Anthony
-  @version $Id: MediaFactory.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: MediaFactory.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class MediaFactory
 {

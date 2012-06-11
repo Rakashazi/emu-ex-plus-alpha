@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Keyboard.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: Keyboard.hxx 2350 2012-01-09 17:23:44Z stephena $
 //============================================================================
 
 #ifndef KEYBOARD_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 keyboard controller
 
   @author  Bradford W. Mott
-  @version $Id: Keyboard.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: Keyboard.hxx 2350 2012-01-09 17:23:44Z stephena $
 */
 class Keyboard : public Controller
 {
@@ -62,12 +62,9 @@ class Keyboard : public Controller
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() { }
 
   private:
-    // State of the output pins
-    uInt8 myPinState;
-
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
     Event::Type myOneEvent, myTwoEvent, myThreeEvent,

@@ -6,9 +6,10 @@
 class PixmapDesc
 {
 public:
-	uint x, y;
-	uint pitch;
-	const PixelFormatDesc *format;
+	constexpr PixmapDesc() { }
+	uint x = 0, y = 0;
+	uint pitch = 0;
+	const PixelFormatDesc *format = nullptr;
 
 	uint sizeOfNumPixels(uint num) const
 	{
@@ -38,9 +39,8 @@ private:
 	uchar *nextPixelOnLine(uchar *pixel) const;
 
 public:
-	uchar *data;
-
-	constexpr Pixmap(): PixmapDesc(), data(0) { }
+	constexpr Pixmap() { }
+	uchar *data = nullptr;
 
 	uchar *getPixel(uint x, uint y) const;
 

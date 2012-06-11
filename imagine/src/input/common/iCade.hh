@@ -32,8 +32,7 @@ static fbool processICadeKey(uchar c, uint action)
 		//logMsg("handling iCade on-state key %c", *p);
 		int index = p-ON_STATES;
 		if(action == INPUT_PUSHED)
-			Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_PUSHED));
-			//callSafe(onInputEventHandler, onInputEventHandlerCtx, InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_PUSHED));
+			Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_PUSHED, 0));
 		return 1;
 	}
 	else
@@ -44,8 +43,7 @@ static fbool processICadeKey(uchar c, uint action)
 			//logMsg("handling iCade off-state key %c", *p);
 			int index = p-OFF_STATES;
 			if(action == INPUT_PUSHED)
-				Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_RELEASED));
-				//callSafe(onInputEventHandler, onInputEventHandlerCtx, InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_RELEASED, 0));
 			return 1;
 		}
 	}

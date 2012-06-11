@@ -2,6 +2,8 @@
 
 #include <engine-globals.h>
 #include <util/number.h>
+#include <util/rectangle2.h>
+#include <util/Delegate.hh>
 
 #ifdef CONFIG_BASE_X11
 	#include <base/x11/inputDefs.hh>
@@ -42,7 +44,7 @@ static const uchar maxCursors =
 	#if CONFIG_ENV_ANDROID_MINSDK == 4
 		1 // no multi-touch
 	#else
-		3 // unknown max
+		4 // unknown max
 	#endif
 #elif defined(CONFIG_ENV_WEBOS)
 	4 // max 5
@@ -50,6 +52,22 @@ static const uchar maxCursors =
 	1
 #endif
 ;
+
+// OS text input support
+typedef Delegate<void (const char *str)> InputTextDelegate;
+//typedef void (*InputTextCallback)(void *user, const char *str);
+#if defined(CONFIG_BASE_IOS)
+	#define CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	static const bool SYSTEM_CAN_COLLECT_TEXT = 1;
+	uint startSysTextInput(InputTextDelegate callback, const char *initialText);
+	void cancelSysTextInput();
+	void finishSysTextInput();
+	void placeSysTextInput(const Rect2<int> &rect);
+	const Rect2<int> &sysTextInputRect();
+#else
+	static const bool SYSTEM_CAN_COLLECT_TEXT = 0;
+	static uint startSysTextInput(InputTextDelegate callback, const char *initialText) { return 0; }
+#endif
 
 // relative pointer/trackball support
 #ifdef CONFIG_BASE_ANDROID
@@ -85,6 +103,14 @@ void setKeyRepeat(bool on);
 	static void setHandleVolumeKeys(bool on) { }
 #endif
 
+#if defined(CONFIG_INPUT_ANDROID)
+	void showSoftInput();
+	void hideSoftInput();
+#else
+	static void showSoftInput() { }
+	static void hideSoftInput() { }
+#endif
+
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	void setEventsUseOSInputMethod(fbool on);
 	fbool eventsUseOSInputMethod();
@@ -103,11 +129,11 @@ void setKeyRepeat(bool on);
 	void showCursor();
 #else
 	static uint numCursors = 0;
-	static int cursorX(int p = 0) { return -1; };
-	static int cursorY(int p = 0) { return -1; };
-	static int cursorIsInView(int p = 0) { return 0; };
-	static void hideCursor() { };
-	static void showCursor() { };
+	static int cursorX(int p = 0) { return -1; }
+	static int cursorY(int p = 0) { return -1; }
+	static int cursorIsInView(int p = 0) { return 0; }
+	static void hideCursor() { }
+	static void showCursor() { }
 #endif
 
 static void cursorXY(int *x, int *y, int p = 0)
@@ -121,39 +147,48 @@ static const uint numAsciiKeys = (('~' - '!') + 1);
 #ifdef CONFIG_BASE_ANDROID
 
 // Android key-codes don't directly map to ASCII
-#define input_asciiKey(c) (((c) >= 'a' && (c) <= 'z') ? (c)-68 : \
-			((c) >= '0' && c <= '9') ? (c)-41 : \
-			((c) == ' ') ? 62 : \
-			((c) == '*') ? 17 : \
-			((c) == '#') ? 18 : \
-			((c) == ',') ? 55 : \
-			((c) == '.') ? 56 : \
-			((c) == '`') ? 68 : \
-			((c) == '-') ? 69 : \
-			((c) == '=') ? 70 : \
-			((c) == '[') ? 71 : \
-			((c) == ']') ? 72 : \
-			((c) == '\\') ? 73 : \
-			((c) == ';') ? 74 : \
-			((c) == '\'') ? 75 : \
-			((c) == '/') ? 76 : \
-			((c) == '@') ? 77 : \
-			((c) == '+') ? 81 : \
-			0)
+static constexpr uint asciiKey(uint c)
+{
+	return (c >= 'a' && c <= 'z') ? c-68 :
+		(c >= '0' && c <= '9') ? c-41 :
+		(c == ' ') ? 62 :
+		(c == '*') ? 17 :
+		(c == '#') ? 18 :
+		(c == ',') ? 55 :
+		(c == '.') ? 56 :
+		(c == '`') ? 68 :
+		(c == '-') ? 69 :
+		(c == '=') ? 70 :
+		(c == '[') ? 71 :
+		(c == ']') ? 72 :
+		(c == '\\') ? 73 :
+		(c == ';') ? 74 :
+		(c == '\'') ? 75 :
+		(c == '/') ? 76 :
+		(c == '@') ? 77 :
+		(c == '+') ? 81 :
+		0;
+}
 
-static uint decodeAscii(InputButton k)
+static uint decodeAscii(InputButton k, bool isShiftPushed)
 {
 	switch(k)
 	{
-		case 29 ... 54: // a - z
-			return k + 68;
 		case 7 ... 16: // 0 - 9
 			return k + 41;
-		case 62: return ' ';
+		case 29 ... 54: // a - z
+		{
+			uint ascii = k + 68;
+			if(isShiftPushed)
+				ascii -= 32;
+			return ascii;
+		}
 		case 17: return '*';
 		case 18: return '#';
 		case 55: return ',';
 		case 56: return '.';
+		case 62: return ' ';
+		case 66: return '\n';
 		case 68: return '`';
 		case 69: return '-';
 		case 70: return '=';
@@ -169,12 +204,17 @@ static uint decodeAscii(InputButton k)
 	return 0;
 }
 
+static bool isAsciiKey(InputButton k)
+{
+	return decodeAscii(k, 0) != 0;
+}
+
 #elif defined(CONFIG_BASE_IOS)
 
 // TODO
-#define input_asciiKey(key) (key)
+static constexpr uint asciiKey(uint c) { return c; }
 
-static uint decodeAscii(InputButton k)
+static uint decodeAscii(InputButton k, bool isShiftPushed)
 {
 	bug_exit("TODO");
 	return 0;
@@ -182,24 +222,27 @@ static uint decodeAscii(InputButton k)
 
 #else
 
-#define input_asciiKey(key) (key)
+static constexpr uint asciiKey(uint c) { return c; }
 
-static bool isAsciiKey(InputButton k)
+static uint decodeAscii(InputButton k, bool isShiftPushed)
 {
-	return k >= ' '  && k <= '~';
-}
-
-static uint decodeAscii(InputButton k)
-{
+	if(isShiftPushed && (k >= 'a' || k <= 'z'))
+		k -= 32;
 	switch(k)
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Key::ENTER: return 13;
-		case Key::BACK_SPACE: return 8;
+		case Key::ENTER: return '\n';
+		case Key::BACK_SPACE: return '\b';
 		#endif
 		case ' ' ... '~': return k;
 	}
 	return 0;
+}
+
+static bool isAsciiKey(InputButton k)
+{
+	//return k >= ' '  && k <= '~';
+	return decodeAscii(k, 0) != 0;
 }
 
 #endif
@@ -319,16 +362,6 @@ void input_xPointerTransform(uint mode);
 void input_yPointerTransform(uint mode);
 void input_pointerAxis(uint mode);
 
-typedef void (*InputTextCallback)(void *user, const char *str);
-
-#if defined(CONFIG_BASE_IOS) && defined(IPHONE_VKEYBOARD)
-static bool input_needsVKeyboard = 1;
-uint input_getVKeyboardString(InputTextCallback callback, void *user, const char *initialText);
-#else
-static bool input_needsVKeyboard = 0;
-static uint input_getVKeyboardString(InputTextCallback callback, void *user, const char *initialText) { return 0; }
-#endif
-
 struct PackedInputAccess
 {
 	uint byteOffset;
@@ -411,19 +444,19 @@ public:
 		}
 	}
 
-	constexpr InputEvent()
-		: devId(0), devType(DEV_NULL), button(0), state(0), x(0), y(0) { }
+	constexpr InputEvent() { }
 
 	constexpr InputEvent(uint devId, uint devType, InputButton button, uint state, int x, int y)
 		: devId(devId), devType(devType), button(button), state(state), x(x), y(y) { }
 
-	constexpr InputEvent(uint devId, uint devType, InputButton button, uint state)
-		: devId(devId), devType(devType), button(button), state(state), x(0), y(0) { }
+	constexpr InputEvent(uint devId, uint devType, InputButton button, uint state, uint metaState)
+		: devId(devId), devType(devType), button(button), state(state), metaState(metaState) { }
 
-	uint devId, devType;
-	InputButton button;
-	uint state;
-	int x, y;
+	uint devId = 0, devType = DEV_NULL;
+	InputButton button = 0;
+	uint state = 0;
+	int x = 0, y = 0;
+	uint metaState = 0;
 
 	bool stateIsPointer() const
 	{
@@ -461,6 +494,11 @@ public:
 		return Input::supportsKeyboard && !isPointer() && !isRelativePointer();
 	}
 
+	bool isKeyboard() const
+	{
+		return Input::supportsKeyboard && devType == DEV_KEYBOARD;
+	}
+
 	bool isDefaultActionButton(uint swapped = input_swappedGamepadConfirm) const
 	{
 		switch(devType)
@@ -478,7 +516,7 @@ public:
 			case DEV_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::Ps3::CROSS);
 			#endif
 			default:
-				return button == input_asciiKey('z')
+				return 0 //button == input_asciiKey('z')
 				#ifdef CONFIG_BASE_ANDROID
 				|| button == Input::Key::CENTER || button == Input::Key::GAME_A || button == Input::Key::GAME_1
 				#endif
@@ -504,7 +542,7 @@ public:
 			#endif
 			#ifdef INPUT_SUPPORTS_KEYBOARD
 			default:
-				return button == Input::Key::ESCAPE || button == input_asciiKey('x')
+				return button == Input::Key::ESCAPE //|| button == input_asciiKey('x')
 					#ifdef CONFIG_INPUT_ANDROID
 					|| button == Input::Key::GAME_B || button == Input::Key::GAME_2
 					#endif
@@ -700,7 +738,12 @@ public:
 
 	uint decodeAscii() const
 	{
-		return Input::decodeAscii(button);
+		return Input::decodeAscii(button, isShiftPushed());
+	}
+
+	bool isShiftPushed() const
+	{
+		return metaState != 0;
 	}
 };
 

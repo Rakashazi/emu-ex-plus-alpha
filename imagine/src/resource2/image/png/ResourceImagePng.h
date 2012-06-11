@@ -33,7 +33,7 @@ public:
 	float aspectRatio();
 private:
 	static ResourceImage * loadWithIoWithName (Io* io, const char *name);
-	Io* io;
+	Io* io = nullptr;
 	Png png;
-	const PixelFormatDesc *format;
+	const PixelFormatDesc *format = nullptr;
 };

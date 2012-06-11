@@ -7,10 +7,6 @@
 class Wiimote : public BluetoothInputDevice
 {
 public:
-	constexpr Wiimote(): extension(EXT_NONE), player(0), function(FUNC_NONE),
-		stickBtn{0}, prevBtnData{0}, prevExtData{0}
-		{	}
-
 	CallResult open(const char *name, BluetoothAddr addr);
 	void close();
 	void removeFromSystem();
@@ -34,12 +30,12 @@ public:
 	static StaticDLList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys ctlSock, intSock;
-	int extension;
-	uint player;
-	uint function;
-	fbool stickBtn[8];
-	uchar prevBtnData[2];
-	uchar prevExtData[6];
+	int extension = EXT_NONE;
+	uint player = 0;
+	uint function = FUNC_NONE;
+	fbool stickBtn[8] = {0};
+	uchar prevBtnData[2] = {0};
+	uchar prevExtData[6] = {0};
 	BluetoothAddr addr;
 
 	enum

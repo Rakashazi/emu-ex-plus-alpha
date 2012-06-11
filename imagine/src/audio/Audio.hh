@@ -18,7 +18,7 @@ struct BufferContext
 	uframes frames;
 };
 
-static const PcmFormat maxFormat = { maxRate, &SampleFormats::s16, 2 };
+static const PcmFormat maxFormat { maxRate, &SampleFormats::s16, 2 };
 
 #if !defined(CONFIG_AUDIO)
 
@@ -57,8 +57,8 @@ void hintPcmFramesPerWrite(uint frames);
 // shortcuts
 static PcmFormat &pPCM = preferredPcmFormat;
 
-static CallResult openPcm(int rate) { return openPcm((PcmFormat){ rate, pPCM.sample, pPCM.channels }); }
-static CallResult openPcm(int rate, int channels) { return openPcm((PcmFormat){ rate, pPCM.sample, channels }); }
+static CallResult openPcm(int rate) { return openPcm({ rate, pPCM.sample, pPCM.channels }); }
+static CallResult openPcm(int rate, int channels) { return openPcm({ rate, pPCM.sample, channels }); }
 static CallResult openPcm() { return openPcm(pPCM); }
 static bool supportsRateNative(int rate) { return rate <= pPCM.rate; }
 }

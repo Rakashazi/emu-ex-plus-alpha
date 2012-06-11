@@ -26,15 +26,15 @@ class NormalInt : NotEquals< NormalInt<T,S> >,
 public:
 	T val;
 
-	NormalInt() { }
-	NormalInt(const NormalInt<T,S> &num) : val(num.val) {  }
+	constexpr NormalInt() { }
+	constexpr NormalInt(const NormalInt<T,S> &num) : val(num.val) {  }
 
-	NormalInt(float num) : val(num * (T)S) { }
-	NormalInt(double num) : val(num * (T)S) { }
-	NormalInt(int num) : val(num) { }
-	NormalInt(unsigned int num) : val(num) { }
-	NormalInt(short num) : val(num) { }
-	NormalInt(char num) : val(num) { }
+	constexpr NormalInt(float num) : val(num * (T)S) { }
+	constexpr NormalInt(double num) : val(num * (T)S) { }
+	constexpr NormalInt(int num) : val(num) { }
+	constexpr NormalInt(unsigned int num) : val(num) { }
+	constexpr NormalInt(short num) : val(num) { }
+	constexpr NormalInt(char num) : val(num) { }
 
 	operator float() const { return val / (T)S; }
 	operator double() const { return val / (T)S; }
@@ -84,15 +84,15 @@ class NormalFloat : NotEquals< NormalFloat<S> >,
 public:
 	float val;
 
-	NormalFloat() { }
-	NormalFloat(const NormalFloat<S> &num) : val(num.val) {  }
+	constexpr NormalFloat() { }
+	constexpr NormalFloat(const NormalFloat<S> &num) : val(num.val) {  }
 
-	NormalFloat(float num) : val(num) { }
-	NormalFloat(double num) : val(num) { }
-	NormalFloat(int num) : val((float)num / (float)S) { }
-	NormalFloat(unsigned int num) : val((float)num / (float)S) { }
-	NormalFloat(short num) : val((float)num / (float)S) { }
-	NormalFloat(char num) : val((float)num / (float)S) { }
+	constexpr NormalFloat(float num) : val(num) { }
+	constexpr NormalFloat(double num) : val(num) { }
+	constexpr NormalFloat(int num) : val((float)num / (float)S) { }
+	constexpr NormalFloat(unsigned int num) : val((float)num / (float)S) { }
+	constexpr NormalFloat(short num) : val((float)num / (float)S) { }
+	constexpr NormalFloat(char num) : val((float)num / (float)S) { }
 
 	operator float() const { return val; }
 	operator double() const { return val; }

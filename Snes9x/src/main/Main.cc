@@ -440,7 +440,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		logMsg("loading state %s", saveStr);
 		if(S9xUnfreezeGame(saveStr))
@@ -569,7 +569,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr))
+		if(FsSys::fileExists(saveStr))
 		{
 			logMsg("loading auto-save state");
 			S9xUnfreezeGame(saveStr);

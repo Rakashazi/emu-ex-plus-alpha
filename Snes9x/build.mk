@@ -1,6 +1,9 @@
 ifndef inc_main
 inc_main := 1
 
+# -O3 is faster with Snes9x
+HIGH_OPTIMIZE_CFLAGS := -O3 $(NORMAL_OPTIMIZE_CFLAGS_MISC) -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/S9XApi.cc
@@ -32,7 +35,6 @@ SRC += $(SNES9X_SRC)
 #SRC += $(SNES9X)/jma/lzmadec.cpp $(SNES9X)/unzip/s9x-jma.cpp $(SNES9X)/unzip/winout.cpp
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
-include $(IMAGINE_PATH)/make/package/stdc++.mk
 
 ifndef target
 target := s9x

@@ -1,19 +1,19 @@
 #pragma once
 
-#include <engine-globals.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <fs/Fs.hh>
 #include <sys/fs_external.h>
+#include <engine-globals.h>
+#include <fs/Fs.hh>
 
-class FsPs3
+class FsPs3 : public Fs
 {
 public:
-	constexpr FsPs3(): entry(0), entries(0) { }
+	constexpr FsPs3() { }
 	uint numEntries() const;
-	const char *entryFilename(uint index);
+	const char *entryFilename(uint index) const;
 	void closeDir();
 
 	CallResult openDir(const char* path, uint flags = 0, FsDirFilterFunc f = 0, FsDirSortFunc s = 0);
@@ -25,13 +25,19 @@ public:
 	static int chown(const char *path, int owner, int group) { return 0; } // TODO
 	static int hasWriteAccess(const char *path) { return 1; } // TODO
 
+	static bool fileExists(const char *path)
+	{
+		return fileType(path) != TYPE_NONE;
+	}
+	static void makePathAbs(const char *path, char *outPath, size_t size);
+
 	static void initWorkDir();
 
 	// definitions for common file path sizes
 	static const uint cPathSize = 1024;
 	typedef char cPath[cPathSize];
 private:
-	CellFsDirent *entry;
-	int entries;
+	CellFsDirent *entry = nullptr;
+	int entries = 0;
 	static char workPath[CELL_FS_MAX_MP_LENGTH + CELL_FS_MAX_FS_PATH_LENGTH];
 };

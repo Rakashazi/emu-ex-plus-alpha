@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF4SC.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartF4SC.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "CartF4SC.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeF4SC::CartridgeF4SC(const uInt8* image, const Settings& settings)
+CartridgeF4SC::CartridgeF4SC(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 32768);
+	memcpy(myImage, image, BSPF_min(32768u, size));
   createCodeAccessBase(32768);
 
   // This cart contains 128 bytes extended RAM @ 0x1000
@@ -208,7 +208,7 @@ const uInt8* CartridgeF4SC::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeF4SC::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
@@ -218,9 +218,9 @@ bool CartridgeF4SC::save(Serializer& out) const
     for(uInt32 i = 0; i < 128; ++i)
       out.putByte((char)myRAM[i]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeF4SC::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeF4SC::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -230,7 +230,7 @@ bool CartridgeF4SC::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeF4SC::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -241,9 +241,9 @@ bool CartridgeF4SC::load(Serializer& in)
     for(uInt32 i = 0; i < limit; ++i)
       myRAM[i] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeF4SC::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeF4SC::load" << endl << "  " << msg << endl;
     return false;
   }
 

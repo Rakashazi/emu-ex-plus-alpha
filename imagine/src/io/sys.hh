@@ -15,11 +15,11 @@
 
 static CallResult copyIoToPath(Io *io, const char *outPath)
 {
-	var_copy(outFile, IoSys::create(outPath));
+	auto outFile = IoSys::create(outPath);
 	if(!outFile)
 		return IO_ERROR;
 	CallResult ret = io->writeToIO(outFile);
-	outFile->close();
+	delete outFile;
 	return ret;
 }
 

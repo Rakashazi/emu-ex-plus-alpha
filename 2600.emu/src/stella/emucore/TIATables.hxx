@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIATables.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: TIATables.hxx 2331 2012-01-03 20:26:37Z stephena $
 //============================================================================
 
 #ifndef TIA_TABLES_HXX
@@ -31,6 +31,17 @@ enum TIABit {
   PFBit       = 0x20,  // Bit for Playfield
   ScoreBit    = 0x40,  // Bit for Playfield score mode
   PriorityBit = 0x80   // Bit for Playfield priority
+};
+
+enum TIAColor {
+  BKColor     = 0,  // Color index for Background
+  PFColor     = 1,  // Color index for Playfield
+  P0Color     = 2,  // Color index for Player 0
+  P1Color     = 3,  // Color index for Player 1
+  M0Color     = 4,  // Color index for Missle 0
+  M1Color     = 5,  // Color index for Missle 1
+  BLColor     = 6,  // Color index for Ball
+  HBLANKColor = 7   // Color index for HMove blank area
 };
 
 enum CollisionBit
@@ -53,7 +64,7 @@ enum CollisionBit
 };
 
 // TIA Write/Read register names
-static const unsigned int // TIARegister
+enum TIARegister {
   VSYNC   = 0x00,  // Write: vertical sync set-clear (D1)
   VBLANK  = 0x01,  // Write: vertical blank set-clear (D7-6,D1)
   WSYNC   = 0x02,  // Write: wait for leading edge of hrz. blank (strobe)
@@ -114,7 +125,7 @@ static const unsigned int // TIARegister
   INPT3   = 0x0b,  // Read pot port: D7
   INPT4   = 0x0c,  // Read P1 joystick trigger: D7
   INPT5   = 0x0d   // Read P2 joystick trigger: D7
-;
+};
 
 /**
   The TIA class uses some static tables that aren't dependent on the actual
@@ -122,7 +133,7 @@ static const unsigned int // TIARegister
   here.
 
   @author  Stephen Anthony
-  @version $Id: TIATables.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: TIATables.hxx 2331 2012-01-03 20:26:37Z stephena $
 */
 class TIATables
 {

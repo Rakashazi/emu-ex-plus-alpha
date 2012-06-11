@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: System.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef SYSTEM_HXX
@@ -43,7 +43,7 @@ class NullDevice;
   6507 based system and 65536 (2^16) bytes for a 6502 based system.
 
   @author  Bradford W. Mott
-  @version $Id: System.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: System.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class System : public Serializable
 {

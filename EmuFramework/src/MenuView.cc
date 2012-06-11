@@ -240,7 +240,7 @@ namespace CATS
 void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 {
 	#ifdef CONFIG_BASE_IOS_SETUID
-		if(Fs::fileExists(CATS::warWasBeginning))
+		if(FsSys::fileExists(CATS::warWasBeginning))
 			return;
 	#endif
 
@@ -260,7 +260,7 @@ void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 	{
 		#ifdef CONFIG_BTSTACK
 			popup.postError("Failed connecting to BT daemon");
-			if(!Fs::fileExists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
+			if(!FsSys::fileExists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 			{
 				ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
 				ynAlertView.onYesDelegate().bind<&confirmBluetoothScanAlert>();
@@ -460,7 +460,7 @@ void RecentGameView::init(bool highlightFirst)
 	int rIdx = 0;
 	forEachInDLList(&recentGameList, e)
 	{
-		recentGame[rIdx].init(e.name, Fs::fileExists(e.path)); item[i++] = &recentGame[rIdx];
+		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path)); item[i++] = &recentGame[rIdx];
 		recentGame[rIdx].selectDelegate().bind<RecentGameInfo, &RecentGameInfo::handleMenuSelection>(&e);
 		rIdx++;
 	}

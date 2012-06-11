@@ -27,8 +27,10 @@ import android.util.*;
 import android.hardware.*;
 import java.util.List;
 import android.media.*;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.view.inputmethod.InputMethodManager;
 
-public final class BaseActivity extends Activity
+public final class BaseActivity extends Activity implements OnGlobalLayoutListener
 {
 	private static GLView glView;
 	private static String logTag = "BaseActivity";
@@ -144,6 +146,7 @@ public final class BaseActivity extends Activity
 				android.os.Build.DEVICE, getApplicationInfo().sourceDir, vibrator);
 		glView = new GLView(this);
 		setContentView(glView);
+		glView.getViewTreeObserver().addOnGlobalLayoutListener(this);
 	}
 	
 	private static native void appPaused();
@@ -211,6 +214,20 @@ public final class BaseActivity extends Activity
 		removeNotification();
 	}
 	
+	private native boolean layoutChange(int height);
+	public void onGlobalLayout()
+	{
+		Rect r = new Rect();
+		//View view = getWindow().getDecorView();//findViewById(android.R.id.activityRoot);
+		glView.getWindowVisibleDisplayFrame(r);
+		int visibleY = r.bottom - r.top;
+		//Log.i(logTag, "height " + glView.getRootView().getHeight() + ", visible " + visibleY);
+		if(layoutChange(visibleY))
+		{
+			glView.postUpdate();
+		}
+	}
+	
 	/*@Override public void onLowMemory()
 	{
 		Log.i(logTag, "onLowMemory");
@@ -275,7 +292,19 @@ public final class BaseActivity extends Activity
 		NotificationHelper.removeNotification();
 	}
 	
-	private static native boolean keyEvent(int key, int down);
+	public void showIme(int mode)
+	{
+		InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		mIMM.showSoftInput(glView, mode);
+	}
+
+	public void hideIme(int mode)
+	{
+		InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		mIMM.hideSoftInputFromWindow(glView.getWindowToken(), mode);
+	}
+	
+	private static native boolean keyEvent(int key, int down, boolean metaState);
 	private static boolean allowKeyRepeats = true;
 	private static boolean handleVolumeKeys = false;
 	@Override public boolean dispatchKeyEvent(KeyEvent event)
@@ -287,7 +316,7 @@ public final class BaseActivity extends Activity
 			return false;
 		if(allowKeyRepeats || event.getRepeatCount() == 0)
 		{
-			if(keyEvent(keyCode, event.getAction() == KeyEvent.ACTION_UP ? 0 : 1))
+			if(keyEvent(keyCode, event.getAction() == KeyEvent.ACTION_UP ? 0 : 1, event.isShiftPressed()))
 			{
 				glView.postUpdate();
 			}

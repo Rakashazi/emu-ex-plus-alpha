@@ -5,6 +5,7 @@
 namespace EmuControls
 {
 
+using namespace Input;
 static const uint categories = 4;
 static const uint gamepadKeys = 12;
 static const uint colecoKeys = 12;
@@ -158,8 +159,8 @@ static const KeyArray webOSKB =
 		EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 		EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-		input_asciiKey(','),
-		input_asciiKey('m'),
+		asciiKey(','),
+		asciiKey('m'),
 		0,
 		0,
 
@@ -167,7 +168,7 @@ static const KeyArray webOSKB =
 		PP_ZERO_LIST(12)
 
 		// start MSX keyboard
-		input_asciiKey(' '),
+		asciiKey(' '),
 };
 
 static const KeyArray genericKB =
@@ -182,35 +183,35 @@ static const KeyArray genericKB =
 		0,
 		0,
 		0,
-		input_asciiKey('c'),
-		input_asciiKey('x'),
+		asciiKey('c'),
+		asciiKey('x'),
 		0,
 		0,
 
 		// start Coleco
-		input_asciiKey('p'),
-		input_asciiKey('q'),
-		input_asciiKey('w'),
-		input_asciiKey('e'),
-		input_asciiKey('r'),
-		input_asciiKey('t'),
-		input_asciiKey('y'),
-		input_asciiKey('u'),
-		input_asciiKey('i'),
-		input_asciiKey('o'),
-		input_asciiKey('k'),
-		input_asciiKey('d'),
+		asciiKey('p'),
+		asciiKey('q'),
+		asciiKey('w'),
+		asciiKey('e'),
+		asciiKey('r'),
+		asciiKey('t'),
+		asciiKey('y'),
+		asciiKey('u'),
+		asciiKey('i'),
+		asciiKey('o'),
+		asciiKey('k'),
+		asciiKey('d'),
 
 		// start MSX keyboard
 		0,
-		input_asciiKey('t'), // F1 ... F5
-		input_asciiKey('y'),
-		input_asciiKey('u'),
-		input_asciiKey('i'),
-		input_asciiKey('o'),
+		asciiKey('t'), // F1 ... F5
+		asciiKey('y'),
+		asciiKey('u'),
+		asciiKey('i'),
+		asciiKey('o'),
 		PP_ZERO_LIST(6) // 6 - 11
-		input_asciiKey('g'), // 1 ... 0
-		input_asciiKey('h'),
+		asciiKey('g'), // 1 ... 0
+		asciiKey('h'),
 		0,
 		0,
 		0,
@@ -235,7 +236,7 @@ static const KeyArray genericKB =
 		0,
 		0, // Right Shift
 		PP_ZERO_LIST(3) // 66 - 68
-		input_asciiKey(' '),
+		asciiKey(' '),
 		PP_ZERO_LIST(23) // 70 - 92
 };
 
@@ -281,68 +282,68 @@ static const KeyArray genericKBTyping =
 
 		Input::Key::ESCAPE,
 
-		input_asciiKey('1'), // 1 ... 0
-		input_asciiKey('2'),
-		input_asciiKey('3'),
-		input_asciiKey('4'),
-		input_asciiKey('5'),
-		input_asciiKey('6'),
-		input_asciiKey('7'),
-		input_asciiKey('8'),
-		input_asciiKey('9'),
-		input_asciiKey('0'),
-		input_asciiKey('-'),
-		input_asciiKey('='),
-		input_asciiKey('\\'),
+		asciiKey('1'), // 1 ... 0
+		asciiKey('2'),
+		asciiKey('3'),
+		asciiKey('4'),
+		asciiKey('5'),
+		asciiKey('6'),
+		asciiKey('7'),
+		asciiKey('8'),
+		asciiKey('9'),
+		asciiKey('0'),
+		asciiKey('-'),
+		asciiKey('='),
+		asciiKey('\\'),
 		Input::Key::BACK_SPACE,
 
 		Input::Key::TAB,
-		input_asciiKey('q'),
-		input_asciiKey('w'),
-		input_asciiKey('e'),
-		input_asciiKey('r'),
-		input_asciiKey('t'),
-		input_asciiKey('y'),
-		input_asciiKey('u'),
-		input_asciiKey('i'),
-		input_asciiKey('o'),
-		input_asciiKey('p'),
-		input_asciiKey('`'), // @
-		input_asciiKey('['),
+		asciiKey('q'),
+		asciiKey('w'),
+		asciiKey('e'),
+		asciiKey('r'),
+		asciiKey('t'),
+		asciiKey('y'),
+		asciiKey('u'),
+		asciiKey('i'),
+		asciiKey('o'),
+		asciiKey('p'),
+		asciiKey('`'), // @
+		asciiKey('['),
 		Input::Key::ENTER,
 
 		Input::Key::LCTRL, // CTRL
-		input_asciiKey('a'),
-		input_asciiKey('s'),
-		input_asciiKey('d'),
-		input_asciiKey('f'),
-		input_asciiKey('g'),
-		input_asciiKey('h'),
-		input_asciiKey('j'),
-		input_asciiKey('k'),
-		input_asciiKey('l'),
-		input_asciiKey(';'),
-		input_asciiKey('\''),
-		input_asciiKey(']'),
+		asciiKey('a'),
+		asciiKey('s'),
+		asciiKey('d'),
+		asciiKey('f'),
+		asciiKey('g'),
+		asciiKey('h'),
+		asciiKey('j'),
+		asciiKey('k'),
+		asciiKey('l'),
+		asciiKey(';'),
+		asciiKey('\''),
+		asciiKey(']'),
 
 		Input::Key::LSHIFT, // Left Shift
-		input_asciiKey('z'),
-		input_asciiKey('x'),
-		input_asciiKey('c'),
-		input_asciiKey('v'),
-		input_asciiKey('b'),
-		input_asciiKey('n'),
-		input_asciiKey('m'),
-		input_asciiKey(','),
-		input_asciiKey('.'),
-		input_asciiKey('/'),
+		asciiKey('z'),
+		asciiKey('x'),
+		asciiKey('c'),
+		asciiKey('v'),
+		asciiKey('b'),
+		asciiKey('n'),
+		asciiKey('m'),
+		asciiKey(','),
+		asciiKey('.'),
+		asciiKey('/'),
 		Input::Key::RCTRL,
 		Input::Key::RSHIFT, // Right Shift
 
 		Input::Key::CAPS,
 		Input::Key::LMETA,
 		Input::Key::LALT,
-		input_asciiKey(' '),
+		asciiKey(' '),
 		Input::Key::RMETA,
 		Input::Key::RALT,
 		Input::Key::PAUSE,
@@ -367,35 +368,35 @@ static const KeyArray androidNav =
 		0,
 		0,
 		0,
-		input_asciiKey('c'),
-		input_asciiKey('x'),
+		asciiKey('c'),
+		asciiKey('x'),
 		0,
 		0,
 
 		// start Coleco
-		input_asciiKey('p'),
-		input_asciiKey('q'),
-		input_asciiKey('w'),
-		input_asciiKey('e'),
-		input_asciiKey('r'),
-		input_asciiKey('t'),
-		input_asciiKey('y'),
-		input_asciiKey('u'),
-		input_asciiKey('i'),
-		input_asciiKey('o'),
-		input_asciiKey('k'),
-		input_asciiKey('d'),
+		asciiKey('p'),
+		asciiKey('q'),
+		asciiKey('w'),
+		asciiKey('e'),
+		asciiKey('r'),
+		asciiKey('t'),
+		asciiKey('y'),
+		asciiKey('u'),
+		asciiKey('i'),
+		asciiKey('o'),
+		asciiKey('k'),
+		asciiKey('d'),
 
 		// start MSX keyboard
 		0,
-		input_asciiKey('t'), // F1 ... F5
-		input_asciiKey('y'),
-		input_asciiKey('u'),
-		input_asciiKey('i'),
-		input_asciiKey('o'),
+		asciiKey('t'), // F1 ... F5
+		asciiKey('y'),
+		asciiKey('u'),
+		asciiKey('i'),
+		asciiKey('o'),
 		PP_ZERO_LIST(6) // 6 - 11
-		input_asciiKey('g'), // 1 ... 0
-		input_asciiKey('h'),
+		asciiKey('g'), // 1 ... 0
+		asciiKey('h'),
 		0,
 		0,
 		0,
@@ -420,7 +421,7 @@ static const KeyArray androidNav =
 		0,
 		0, // Right Shift
 		PP_ZERO_LIST(3) // 66 - 68
-		input_asciiKey(' '),
+		asciiKey(' '),
 		PP_ZERO_LIST(23) // 70 - 92
 };
 

@@ -59,7 +59,7 @@ public:
 		const unsigned taps;
 		const float fc;
 		
-		RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
+		constexpr RollOff(float rollOffStart, float rollOffWidth) : taps(toTaps(rollOffWidth)), fc(toFc(rollOffStart, taps)) {}
 	};
 
 	RectSinc(unsigned div, unsigned phaseLen, SysDDec fc) { init(div, phaseLen, fc); }

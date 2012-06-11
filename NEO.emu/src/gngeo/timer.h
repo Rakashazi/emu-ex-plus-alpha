@@ -22,6 +22,8 @@
 //#include "SDL.h"
 #include <gngeoTypes.h>
 
+static const int nb_interlace = 256;
+
 //typedef double AudioTime;
 typedef uint AudioTime;
 

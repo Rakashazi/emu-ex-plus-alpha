@@ -23,6 +23,8 @@
 
 #ifdef CONFIG_BASE_ANDROID
 	#include <android/log.h>
+#elif defined(CONFIG_BASE_IOS)
+	#include <base/iphone/private.hh>
 #endif
 
 uint loggerVerbosity = loggerMaxVerbosity;
@@ -80,6 +82,8 @@ void logger_vprintfn(LoggerSeverity severity, const char* msg, va_list args)
 
 	#ifdef CONFIG_BASE_ANDROID
 		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
+	#elif defined(CONFIG_BASE_IOS)
+		Base::nsLog(msg, args);
 	#else
 		vfprintf(stderr, msg, args);
 	#endif

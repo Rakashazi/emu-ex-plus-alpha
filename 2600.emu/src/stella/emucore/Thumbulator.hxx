@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.hxx 2279 2011-11-07 22:50:23Z stephena $
+// $Id: Thumbulator.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 //============================================================================

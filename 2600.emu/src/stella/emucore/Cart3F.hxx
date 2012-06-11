@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3F.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Cart3F.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3F_HXX
@@ -36,7 +36,7 @@ class System;
   only used 8K this bankswitching scheme supports up to 512K.
    
   @author  Bradford W. Mott
-  @version $Id: Cart3F.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: Cart3F.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class Cartridge3F : public Cartridge
 {

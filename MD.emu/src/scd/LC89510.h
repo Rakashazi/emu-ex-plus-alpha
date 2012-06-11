@@ -15,14 +15,13 @@
 
 struct CDC
 {
-	constexpr CDC(): Buffer CXX11_INIT_LIST({0}), COMIN(0), IFSTAT(0),
-			SBOUT(0), IFCTRL(0), Decode_Reg_Read(0) { }
-	unsigned char Buffer[(32 * 1024 * 2) + 2352];
+	constexpr CDC() { }
+	unsigned char Buffer[(32 * 1024 * 2) + 2352] = {0};
 //	unsigned int Host_Data;		// unused
 //	unsigned int DMA_Adr;		// 0A
 //	unsigned int Stop_Watch;	// 0C
-	unsigned int COMIN;
-	unsigned int IFSTAT;
+	unsigned int COMIN = 0;
+	unsigned int IFSTAT = 0;
 	union DBC_T
 	{
 		constexpr DBC_T(): N(0) { }
@@ -91,8 +90,8 @@ struct CDC
 		} B;
 		unsigned int N;
 	} STAT;
-	unsigned int SBOUT;
-	unsigned int IFCTRL;
+	unsigned int SBOUT = 0;
+	unsigned int IFCTRL = 0;
 	union CTRL_T
 	{
 		constexpr CTRL_T(): N(0) { }
@@ -105,23 +104,22 @@ struct CDC
 		} B;
 		unsigned int N;
 	} CTRL;
-	unsigned int Decode_Reg_Read;
+	unsigned int Decode_Reg_Read = 0;
 };
 
 struct CDD
 {
-	constexpr CDD(): status(0), Minute(0), Seconde(0), Frame(0),
-			Ext(0) { }
+	constexpr CDD() { }
 //	unsigned short Fader;	// 34
 //	unsigned short Control;	// 36
 //	unsigned short Cur_Comm;// unused
 
 	// "Receive status"
-	unsigned short status;
-	unsigned short Minute;
-	unsigned short Seconde;
-	unsigned short Frame;
-	unsigned char  Ext;
+	unsigned short status = 0;
+	unsigned short Minute = 0;
+	unsigned short Seconde = 0;
+	unsigned short Frame = 0;
+	unsigned char  Ext = 0;
 };
 
 

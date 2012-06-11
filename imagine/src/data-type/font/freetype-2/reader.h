@@ -9,6 +9,7 @@
 class FontData
 {
 public:
+	constexpr FontData() { }
 	CallResult open(Io *file);
 	void close();
 	//CallResult setSizes(int x, int y);
@@ -25,10 +26,10 @@ public:
 	CallResult applySize(FT_Size sizeData);
 	void freeSize(FT_Size sizeData);
 private:
-	FT_Library library;
-	FT_Face face;
-	FT_StreamRec streamRec;
-	FT_Open_Args openS;
+	FT_Library library = nullptr;
+	FT_Face face = nullptr;
+	FT_StreamRec streamRec = {0};
+	FT_Open_Args openS = {0};
 
 	CallResult setSizes(int x, int y);
 };

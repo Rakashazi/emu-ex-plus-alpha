@@ -46,11 +46,11 @@ static const PackedInputAccess padDataAccess[] =
 
 static const uint numPads = 5;
 static uint padStatus[numPads] = { 0 };
-static CellPadInfo2 padInfo;
 static CellPadData padData[numPads] = { { 0, { 0 } } };
 
 void update()
 {
+	CellPadInfo2 padInfo;
 	cellPadGetInfo2(&padInfo);
 
 	iterateTimes(sizeofArray(padStatus), i)
@@ -75,7 +75,7 @@ void update()
 				if(oldState != newState)
 				{
 					//logMsg("%d %s %s", i, buttonName(InputEvent::DEV_PS3PAD, e->keyEvent), newState ? "pushed" : "released");
-					Input::onInputEvent(InputEvent(i, InputEvent::DEV_PS3PAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED));
+					Input::onInputEvent(InputEvent(i, InputEvent::DEV_PS3PAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 				}
 			}
 			memcpy(&padData[i], &data, sizeof(CellPadData));

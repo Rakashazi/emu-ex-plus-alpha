@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.cxx 2279 2011-11-07 22:50:23Z stephena $
+// $Id: Thumbulator.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 //============================================================================
@@ -62,7 +62,8 @@ string Thumbulator::run( void )
     {
       DISS=0;
       DBUG=0;
-      throw "instructions > 501000";
+      //throw "instructions > 501000";
+      return statusMsg.str();
     }
   }
   //dump_counters();
@@ -75,8 +76,8 @@ inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, const char* ms
   statusMsg << "Thumb ARM emulation fatal error: " << endl
             << opcode << "(" << HEX8 << v1 << "), " << msg << endl;
   dump_regs();
-  if(trapOnFatal)
-    throw statusMsg.str();
+  /*if(trapOnFatal)
+    throw statusMsg.str();*/
   return 0;
 }
 
@@ -87,8 +88,8 @@ inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, uInt32 v2,
   statusMsg << "Thumb ARM emulation fatal error: " << endl
             << opcode << "(" << HEX8 << v1 << "," << v2 << "), " << msg << endl;
   dump_regs();
-  if(trapOnFatal)
-    throw statusMsg.str();
+  /*if(trapOnFatal)
+    throw statusMsg.str();*/
   return 0;
 }
 
@@ -236,7 +237,7 @@ void Thumbulator::write32 ( uInt32 addr, uInt32 data )
   {
     case 0xF0000000: //halt
       dump_counters();
-      throw "HALT";// exit(0);
+      return;//throw "HALT";// exit(0);
 
     case 0xE0000000: //periph
       switch(addr)

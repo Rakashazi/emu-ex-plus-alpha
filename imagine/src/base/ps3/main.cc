@@ -32,6 +32,15 @@
 #include <fs/ps3/FsPs3.hh>
 #endif
 
+typedef void (*Func)(void);
+CLINK Func* __ctors64_start;
+CLINK Func* __ctors64_end;
+
+namespace Input
+{
+	void update();
+}
+
 namespace Base
 {
 
@@ -73,10 +82,7 @@ static void haltOnExit()
 void exitVal(int returnVal) { exitApp(); }
 void abort() { haltOnExit(); }
 
-
-//DefCallbackWithCtx(FocusChangeFunc, focusChangeHandler, onFocusChangeHandler);
-
-static void sysutilCallback(uint64_t status, uint64_t param, void* userdata)
+/*void sysutilCallback(uint64_t status, uint64_t param, void* userdata)
 {
 	switch(status)
 	{
@@ -87,7 +93,7 @@ static void sysutilCallback(uint64_t status, uint64_t param, void* userdata)
 		bcase CELL_SYSUTIL_DRAWING_END:
 			onFocusChange(1);
 	}
-}
+}*/
 
 /*static int getResolutionWidthHeight(const unsigned int resolutionId, unsigned int &w, unsigned int &h)
 {
@@ -119,7 +125,7 @@ static int chooseBestResolution(const unsigned int *resolutions, unsigned int nu
 	return CELL_VIDEO_OUT_RESOLUTION_480;
 }*/
 
-static void setupPSGL()
+void setupPSGL()
 {
 	PSGLinitOptions initOpts =
 	{
@@ -165,8 +171,8 @@ static void setupPSGL()
 
 	// set gfx vars early so logger_init() can access them
 	using namespace Gfx;
-	newXSize = viewPixelWidth_ = deviceWidth;
-	newYSize = viewPixelHeight_ = deviceHeight;
+	newXSize = viewPixelWidth_ = mainWin.rect.x2 = deviceWidth;
+	newYSize = viewPixelHeight_ = mainWin.rect.y2 = deviceHeight;
 	logMsg("init screen %dx%d", newXSize, newYSize);
 	viewMMHeight_ = 330;
 	if(deviceHeight == 720 || deviceHeight == 1080)
@@ -205,7 +211,9 @@ bool isInputDevPresent(uint type)
 	// TODO
 	switch(type)
 	{
+		#ifdef CONFIG_INPUT
 		case InputEvent::DEV_KEYBOARD: return 1;
+		#endif
 		default: return 0;
 	}
 }
@@ -230,17 +238,19 @@ void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
 
 //void base_openURL(const char *url) { };
 
-}
-
-namespace Input
-{
-	void update();
-}
-
-SYS_PROCESS_PARAM(1001, 0x100000); // using 1Meg stack just in case for now
-int main()
+int main2()
 {
 	using namespace Base;
+
+	Func *funcarr = (Func*)&__ctors64_start;
+	//uchar *funcarrb = (uchar*)&__ctors64_start;
+	uint ctors = ((uint64)&__ctors64_end - (uint64)&__ctors64_start) / 8;
+	iterateTimes(ctors, i)
+	{
+		//logMsg("ctor %d @ %p", i, funcarr[i]);
+		funcarr[i]();
+	}
+
 	sys_spu_initialize(6, 1);
 
 	while(!Base::videoOutIsReady())
@@ -248,25 +258,28 @@ int main()
 		// wait for video out
 	};
 
-	cellSysutilRegisterCallback(0, Base::sysutilCallback, 0);
+	//cellSysutilRegisterCallback(0, Base::sysutilCallback, 0);
+
+	Base::setupPSGL();
+
+	doOrExit(logger_init());
 
 	#ifdef CONFIG_FS_PS3
 		cellSysmoduleLoadModule(CELL_SYSMODULE_FS);
 		FsPs3::initWorkDir();
 	#endif
 
-	Base::setupPSGL();
-
-	doOrExit(logger_init());
-
 	Base::engineInit();
-	//logMsg("done init");
+	logMsg("done init");
 
 	while(1)
 	{
+		#ifdef CONFIG_INPUT
 		Input::update();
+		#endif
 		cellSysutilCheckCallback();
 		Base::gfxUpdate = 1; // update gfx constantly for now
+		//updateFrame();
 		Base::runEngine();
 		if(unlikely(timerCallbackFunc != 0))
 		{
@@ -280,6 +293,9 @@ int main()
 				timerCountDown--;
 		}
 	}
+	return 0;
+}
+
 }
 
 #undef thisModuleName

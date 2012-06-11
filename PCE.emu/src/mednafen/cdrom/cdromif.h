@@ -1,50 +1,153 @@
-/******************************************************************************
-	[CdromInterface.h]
+/* Mednafen - Multi-system Emulator
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
-	CD-ROM デバイスを操作するためのインタフェイスを定義します。
-	Define interface for controlling CD-ROM device.
+#ifndef __MDFN_CDROM_CDROMIF_H
+#define __MDFN_CDROM_CDROMIF_H
 
-	Copyright (C) 2004 Ki
+#include "CDUtility.h"
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+#include <queue>
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-******************************************************************************/
-#ifndef CDROM_INTERFACE_H_INCLUDED
-#define CDROM_INTERFACE_H_INCLUDED
+typedef CDUtility::TOC CD_TOC;
 
-#include "cdromfile-stuff.h"
+enum
+{
+ // Status/Error messages
+ CDIF_MSG_DONE = 0,		// Read -> emu. args: No args.
+ CDIF_MSG_INFO,			// Read -> emu. args: str_message
+ CDIF_MSG_FATAL_ERROR,		// Read -> emu. args: *TODO ARGS*
 
-bool CDIF_Open(const char *device_name);
-bool CDIF_Close(void);
+ //
+ // Command messages.
+ //
+ CDIF_MSG_DIEDIEDIE,		// Emu -> read
 
-// Basic functions
-bool CDIF_ReadTOC(CD_TOC *toc);
+ CDIF_MSG_READ_SECTOR,		/* Emu -> read
+					args[0] = lba
+				*/
 
-// lba_end is NOT inclusive.  IE for a count of 1, lba_end will be lba + 1.
-// Passing ~0U for "lba_end" is equivalent to passing the LBA of the leadout track.
-bool CDIF_HintReadSector(uint32 lba);
-bool CDIF_ReadRawSector(uint8 *buf, uint32 lba);
+ CDIF_MSG_EJECT,		// Emu -> read, args[0]; 0=insert, 1=eject
+};
 
-// Call for mode 1 or mode 2 form 1 only.
-// Will only evaluate checksum and L-EC data if cdrom.lec_eval setting is true(the default), or the disc is real/physical.
-bool CDIF_ValidateRawSector(uint8 *buf);
+class CDIF_Message
+{
+ public:
 
-// Utility/Wrapped functions
-bool CDIF_ReadSector(uint8* pBuf, uint32 sector, uint32 nSectors);
+ CDIF_Message();
+ CDIF_Message(unsigned int message_, uint32 arg0 = 0, uint32 arg1 = 0, uint32 arg2 = 0, uint32 arg3 = 0);
+ CDIF_Message(unsigned int message_, const std::string &str);
+ ~CDIF_Message();
 
-uint32 CDIF_GetTrackStartPositionLBA(int32 track);
-int CDIF_FindTrackByLBA(uint32 LBA);
+ unsigned int message;
+ uint32 args[4];
+ void *parg;
+ std::string str_message;
+};
 
-uint32 CDIF_GetTrackSectorCount(int32 track);
+class CDIF_Queue
+{
+ public:
 
-bool CDIF_CheckSubQChecksum(uint8 *SubQBuf);
+ CDIF_Queue();
+ ~CDIF_Queue();
 
-#endif /* CDROM_INTERFACE_H_INCLUDED */
+ bool Read(CDIF_Message *message, bool blocking = TRUE);
 
+ void Write(const CDIF_Message &message);
+
+ private:
+ std::queue<CDIF_Message> ze_queue;
+ MDFN_Mutex *ze_mutex;
+ MDFN_Semaphore *ze_semaphore;
+};
+
+
+typedef struct
+{
+ bool valid;
+ bool error;
+ uint32 lba;
+ uint8 data[2352 + 96];
+} CDIF_Sector_Buffer;
+
+class CDAccess;
+
+// TODO: prohibit copy constructor
+class CDIF
+{
+ public:
+
+ CDIF(const char *device_name);
+ ~CDIF();
+
+ void ReadTOC(CDUtility::TOC *read_target);
+
+ void HintReadSector(uint32 lba);
+ bool ReadRawSector(uint8 *buf, uint32 lba);
+
+ // Call for mode 1 or mode 2 form 1 only.
+ bool ValidateRawSector(uint8 *buf);
+
+ // Utility/Wrapped functions
+ // Reads mode 1 and mode2 form 1 sectors(2048 bytes per sector returned)
+ // Will return the type(1, 2) of the first sector read to the buffer supplied, 0 on error
+ int ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors);
+
+ // Return true if operation succeeded or it was a NOP(either due to not being implemented, or the current status matches eject_status).
+ // Returns false on failure(usually drive error of some kind; not completely fatal, can try again).
+ bool Eject(bool eject_status);
+
+ inline bool IsPhysical(void) { return is_phys_cache; }
+
+ // FIXME: Semi-private:
+ int ReadThreadStart(const char *device_name);
+
+ private:
+
+ bool is_phys_cache;
+ CDUtility::TOC disc_toc;
+ CDAccess *disc_cdaccess;
+ MDFN_Thread *CDReadThread;
+
+ // Queue for messages to the read thread.
+ CDIF_Queue ReadThreadQueue;
+
+ // Queue for messages to the emu thread.
+ CDIF_Queue EmuThreadQueue;
+
+
+ enum { SBSize = 256 };
+ CDIF_Sector_Buffer SectorBuffers[SBSize];
+
+ uint32 SBWritePos;
+ 
+ MDFN_Mutex *SBMutex;
+ bool UnrecoverableError;
+
+
+ //
+ // Read-thread-only:
+ //
+ void RT_EjectDisc(bool eject_status, bool skip_actual_eject = false);
+
+ uint32 ra_lba;
+ int ra_count;
+ uint32 last_read_lba;
+ bool DiscEjected;
+};
+
+#endif

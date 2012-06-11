@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Paddles.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: Paddles.hxx 2371 2012-01-29 17:08:51Z stephena $
 //============================================================================
 
 #ifndef PADDLES_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 pair of paddle controllers.
 
   @author  Bradford W. Mott
-  @version $Id: Paddles.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: Paddles.hxx 2371 2012-01-29 17:08:51Z stephena $
 */
 class Paddles : public Controller
 {
@@ -40,14 +40,14 @@ class Paddles : public Controller
       @param event  The event object to use for events
       @param system The system using this controller
 
-      @param swapport  Whether to swap the paddles plugged into this jack
-      @param swapaxis  Whether to swap the axis on the paddle (x <-> y)
-      @param swapdir   Whether to swap the direction for which an axis
-                       causes movement (lesser axis values cause paddle
-                       resistance to decrease instead of increase)
+      @param swappaddle Whether to swap the paddles plugged into this jack
+      @param swapaxis   Whether to swap the axis on the paddle (x <-> y)
+      @param swapdir    Whether to swap the direction for which an axis
+                        causes movement (lesser axis values cause paddle
+                        resistance to decrease instead of increase)
     */
     Paddles(Jack jack, const Event& event, const System& system,
-            bool swapport, bool swapaxis, bool swapdir);
+            bool swappaddle, bool swapaxis, bool swapdir);
 
     /**
       Destructor
@@ -60,6 +60,24 @@ class Paddles : public Controller
       events currently set.
     */
     void update();
+
+    /**
+      Determines how this controller will treat values received from the
+      X/Y axis and left/right buttons of the mouse.  Since not all controllers
+      use the mouse, it's up to the specific class to decide how to use this data.
+
+      If either of the axis is set to 'Automatic', then we automatically
+      use the ctrlID for the control type.
+
+      In the current implementation, the left button is tied to the X axis,
+      and the right one tied to the Y axis.
+
+      @param xaxis   How the controller should use x-axis data
+      @param yaxis   How the controller should use y-axis data
+      @param ctrlID  The controller ID to use axis 'auto' mode
+    */
+    void setMouseControl(
+        MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID = -1);
 
     /**
       Sets the sensitivity for digital emulation of paddle movement.
@@ -98,11 +116,17 @@ class Paddles : public Controller
                 myP0FireEvent1, myP0FireEvent2, myP1FireEvent1, myP1FireEvent2,
                 myAxisMouseMotion;
 
+    // The following are used for the various mouse-axis modes
+    int myMPaddleID;                // paddle to emulate in 'automatic' mode
+    int myMPaddleIDX, myMPaddleIDY; // paddles to emulate in 'specific axis' mode
+
     bool myKeyRepeat0, myKeyRepeat1;
     int myPaddleRepeat0, myPaddleRepeat1;
     int myCharge[2], myLastCharge[2];
     int myLastAxisX, myLastAxisY;
     int myAxisDigitalZero, myAxisDigitalOne;
+
+    bool mySwapPorts;
 
     static int _DIGITAL_SENSITIVITY, _DIGITAL_DISTANCE;
     static int _MOUSE_SENSITIVITY;

@@ -2,38 +2,24 @@
 
 struct Rot_Comp
 {
-	constexpr Rot_Comp(): stampDataSize(0),
-	stampMapBaseAddr(0),
-	imgBuffVCallSize(0),
-	imgBuffStartAddr(0),
-	imgBuffOffset(0),
-	imgBuffHDotSize(0),
-	imgBuffVDotSize(0),
-	tvba(0),
-	Stamp_Map_Adr(0),
-	Vector_Adr(0),
-	Function(0),
-	Float_Part(0),
-	Draw_Speed(0),
-	YD(0)
-	{ }
+	constexpr Rot_Comp() { }
 
 	// base registers
-	unsigned int stampDataSize;		// Stamp_Size
-	unsigned int stampMapBaseAddr;
-	unsigned int imgBuffVCallSize;
-	unsigned int imgBuffStartAddr;
-	unsigned int imgBuffOffset;
-	unsigned int imgBuffHDotSize;
-	unsigned int imgBuffVDotSize;		// V_Dot
-	unsigned int tvba; // Trace vector base address
+	unsigned int stampDataSize = 0;		// Stamp_Size
+	unsigned int stampMapBaseAddr = 0;
+	unsigned int imgBuffVCallSize = 0;
+	unsigned int imgBuffStartAddr = 0;
+	unsigned int imgBuffOffset = 0;
+	unsigned int imgBuffHDotSize = 0;
+	unsigned int imgBuffVDotSize = 0;		// V_Dot
+	unsigned int tvba = 0; // Trace vector base address
 
-	unsigned int Stamp_Map_Adr;
-	unsigned int Vector_Adr;
-	unsigned int Function;		// Jmp_Adr;
-	unsigned int Float_Part;
-	unsigned int Draw_Speed;
-	unsigned int YD;
+	unsigned int Stamp_Map_Adr = 0;
+	unsigned int Vector_Adr = 0;
+	unsigned int Function = 0;		// Jmp_Adr;
+	unsigned int Float_Part = 0;
+	unsigned int Draw_Speed = 0;
+	unsigned int YD = 0;
 };
 
 

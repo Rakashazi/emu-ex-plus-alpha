@@ -26,6 +26,7 @@ void removeModalView();
 class AlertView : public View
 {
 public:
+	constexpr AlertView() { }
 	Area labelFrame;
 	GfxText text;
 	BaseMenuView menu;
@@ -49,6 +50,8 @@ public:
 class YesNoAlertView : public AlertView
 {
 public:
+	constexpr YesNoAlertView(): yes(TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)),
+		no(TextMenuItem::SelectDelegate::create<&selectNo>()) { }
 	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
 
 	TextMenuItem yes, no;
@@ -64,7 +67,7 @@ public:
 		removeModalView();
 	}
 
-	MenuItem *menuItem[2];
+	MenuItem *menuItem[2] = {0};
 
 	// Required delegates
 	OnInputDelegate onYes;
@@ -73,9 +76,7 @@ public:
 	void init(const char *label, bool highlightFirst)
 	{
 		yes.init("Yes"); menuItem[0] = &yes;
-		yes.selectDelegate().bind<YesNoAlertView, &YesNoAlertView::selectYes>(this);
 		no.init("No"); menuItem[1] = &no;
-		no.selectDelegate().bind<&selectNo>();
 		AlertView::init(label, menuItem, highlightFirst);
 	}
 };

@@ -6,7 +6,7 @@
 
 extern TimedMotion<GC> projAngleM;
 fbool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
-fbool glPointerStateHack = 0;
+fbool glPointerStateHack = 0, glBrokenNpot = 0;
 
 #ifdef CONFIG_BLUETOOTH
 	#include "bluez.hh"
@@ -63,6 +63,7 @@ int devType = DEV_TYPE_GENERIC;
 static int aHardKeyboardState = 0;
 static const char *filesDir = 0, *eStoreDir = 0;
 static bool hasPermanentMenuKey = 1;
+static uint visibleScreenY = 1;
 
 static const GC orientationDiffTable[4][4] =
 {
@@ -187,8 +188,8 @@ static void setupDPI()
 
 static void initialScreenSizeSetup(uint w, uint h)
 {
-	newXSize = w;
-	newYSize = h;
+	newXSize = mainWin.rect.x2 = w;
+	newYSize = mainWin.rect.y2 = h;
 	setupDPI();
 	if(androidSDK() < 9 && unlikely(Gfx::viewMMWidth_ > 9000)) // hack for Archos Tablets
 	{
@@ -218,6 +219,12 @@ static void setDeviceType(const char *dev)
 		// Evo 3D/Shooter, & HTC Droid Incredible hack
 		logMsg("device needs glFinish() hack");
 		glSyncHackBlacklisted = 1;
+	}
+	else if(androidSDK() < 11 && string_equal(dev, "vision"))
+	{
+		// T-Mobile G2 (HTC Desire Z)
+		logMsg("device has broken npot support");
+		glBrokenNpot = 1;
 	}
 	else if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
 	{

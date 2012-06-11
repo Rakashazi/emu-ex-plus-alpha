@@ -40,6 +40,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -60,7 +61,7 @@ void CreateEcc(void);
 void FixEcc(void);
 void Verify(void);
 
-uint32 EDCCrc32(unsigned char*, int);
+uint32 EDCCrc32(const unsigned char*, int);
 
 /***
  *** galois.c
@@ -160,7 +161,7 @@ void CalcSectors(int64, int64*, int*);
 #define CD_RAW_SECTOR_SIZE 2352  
 #define CD_RAW_C2_SECTOR_SIZE (2352+294)  /* main channel plus C2 vector */
 
-int CheckEDC(unsigned char*, int);
+int CheckEDC(const unsigned char*, bool);
 int CheckMSF(unsigned char*, int);
 
 

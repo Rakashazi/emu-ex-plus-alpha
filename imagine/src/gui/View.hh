@@ -18,8 +18,8 @@ public:
 class View
 {
 public:
-	constexpr View() : dismissHandler(0), animation(0), displayState(0), name_("") { }
-	constexpr View(const char *name) : dismissHandler(0), animation(0), displayState(0), name_(name) { }
+	constexpr View() { }
+	constexpr View(const char *name) : name_(name) { }
 
 	virtual void deinit() = 0;
 	virtual Rect2<int> &viewRect() = 0;
@@ -31,18 +31,18 @@ public:
 	}
 	virtual void draw() = 0;
 	virtual void inputEvent(const InputEvent &event) = 0;
-	virtual void clearSelection() { }; // de-select any items from previous input
-	virtual void onShow() { };
+	virtual void clearSelection() { } // de-select any items from previous input
+	virtual void onShow() { }
 
 	static ResourceFace *defaultFace;
 
-	void (*dismissHandler)();
+	void (*dismissHandler)() = nullptr;
 
 	enum { SHOW, ACTIVE, HIDE };
-	ViewAnimation *animation;
-	uint displayState;
+	ViewAnimation *animation = nullptr;
+	uint displayState = 0;
 
-	const char *name_;
+	const char *name_ = "";
 	const char *name() { return name_; }
 
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?

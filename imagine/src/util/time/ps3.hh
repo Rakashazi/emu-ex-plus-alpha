@@ -8,8 +8,8 @@ class TimePs3 : Arithmetics< TimePs3 >
 public:
 	system_time_t t;
 
-	TimePs3() { }
-	TimePs3(system_time_t num) { t = num; }
+	constexpr TimePs3(): t() { }
+	constexpr TimePs3(system_time_t t): t(t) { }
 
 	void setUSecs(int usecs)
 	{

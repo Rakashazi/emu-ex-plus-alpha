@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: TrackBall.hxx 2370 2012-01-28 15:19:41Z stephena $
 //============================================================================
 
 #ifndef TRACKBALL_HXX
@@ -36,7 +36,7 @@
     AmigaMouse:  Amiga Mouse
 
   @author  Stephen Anthony & z26 team
-  @version $Id: TrackBall.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: TrackBall.hxx 2370 2012-01-28 15:19:41Z stephena $
 */
 class TrackBall : public Controller
 {
@@ -58,12 +58,12 @@ class TrackBall : public Controller
 
   public:
     /**
-      Read the value of the specified digital pin for this controller.
+      Read the entire state of all digital pins for this controller.
+      Note that this method must use the lower 4 bits, and zero the upper bits.
 
-      @param pin The pin of the controller jack to read
-      @return The state of the pin
+      @return The state of all digital pins
     */
-    bool read(DigitalPin pin);
+    uInt8 read();
 
     /**
       Update the entire digital and analog pin state according to the
@@ -71,23 +71,9 @@ class TrackBall : public Controller
     */
     void update();
 
-    /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset();
-
   private:
     // Counter to iterate through the gray codes
     int myHCounter, myVCounter;
-
-    // Indicates the processor cycle when SWCHA was last read
-    uInt32 myCyclesWhenSWCHARead;
-
-    // Masks to indicate how to access the pins (differentiate between
-    // left and right ports)
-    uInt8 myPin1Mask, myPin2Mask, myPin3Mask, myPin4Mask;
 
     // How many new horizontal and vertical values this frame
     int myTrakBallCountH, myTrakBallCountV;

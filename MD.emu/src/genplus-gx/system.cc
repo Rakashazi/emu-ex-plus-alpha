@@ -317,18 +317,7 @@ static void runM68k(uint cycles)
 	#ifndef NO_SCD
 		if(hasSegaCD)
 		{
-			/*int cyclesToRun = 0;
-			if(cycles >= mm68k.cycleCount)
-				cyclesToRun = cycles - mm68k.cycleCount;
-			else
-				return;*/
-			if((sCD.busreq&3) == 1)
-			{
-				//logMsg("running sub-cpu from cycle %d to %d", sCD.cpu.cycleCount, cycles);
-				m68k_run(sCD.cpu, cycles);
-			}
-			else
-				sCD.cpu.cycleCount = cycles;
+			scd_runSubCpu(cycles);
 		}
 	#endif
 }

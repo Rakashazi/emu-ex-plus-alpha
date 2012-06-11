@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SerialPort.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: SerialPort.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef SERIALPORT_HXX
@@ -28,7 +28,7 @@
   and as such it always uses 19200, 8n1, no flow control.
 
   @author  Stephen Anthony
-  @version $Id: SerialPort.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: SerialPort.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class SerialPort
 {

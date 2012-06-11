@@ -33,13 +33,9 @@ class OptionCategoryView : public BaseMenuView
 {
 	TextMenuItem subConfig[5];
 
-	MenuItem *item[5];
+	MenuItem *item[5] = {nullptr};
 public:
-	constexpr OptionCategoryView(): BaseMenuView("Options")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr OptionCategoryView(): BaseMenuView("Options") { }
 
 	void init(bool highlightFirst);
 	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i);
@@ -53,13 +49,9 @@ private:
 
 	static void clearRecentMenuHandler(TextMenuItem &, const InputEvent &e);
 
-	MenuItem *item[1 + 10 + 1];
+	MenuItem *item[1 + 10 + 1] = {nullptr};
 public:
-	constexpr RecentGameView(): BaseMenuView("Recent Games")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr RecentGameView(): BaseMenuView("Recent Games") { }
 
 	void init(bool highlightFirst);
 };
@@ -95,13 +87,9 @@ private:
 		}
 	} inputMap[numDevs];
 
-	MenuItem *item[numDevs + 1];
+	MenuItem *item[numDevs + 1] = {nullptr};
 public:
-	constexpr InputPlayerMapView(): BaseMenuView("Input/Player Mapping")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr InputPlayerMapView(): BaseMenuView("Input/Player Mapping") { }
 
 	void init(bool highlightFirst);
 };
@@ -140,7 +128,7 @@ protected:
 
 	TextMenuItem stateSlot;
 
-	char stateSlotText[sizeof("State Slot (0)")];
+	char stateSlotText[sizeof("State Slot (0)")] = {0};
 
 	TextMenuItem options;
 
@@ -161,11 +149,7 @@ protected:
 	TextMenuItem screenshot;
 
 public:
-	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION)
-	#ifdef CONFIG_CXX11
-	,	stateSlotText CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION) { }
 
 	static const uint STANDARD_ITEMS = 14;
 

@@ -62,6 +62,7 @@ typedef enum
  IDIT_X_AXIS_REL,  // 32-bits, signed
  IDIT_Y_AXIS_REL,  // 32-bits, signed
  IDIT_BYTE_SPECIAL,
+ IDIT_BUTTON_ANALOG, // 32-bits, 0 - 32767
 } InputDeviceInputType;
 
 #include "git-virtb.h"
@@ -191,6 +192,12 @@ typedef struct
 	// TODO
 	//bool *IsFMV;
 
+	// Set(optionally) by emulation code.  If InterlaceOn is true, then assume field height is 1/2 DisplayRect.h, and
+	// only every other line in surface (with the start line defined by InterlacedField) has valid data
+	// (it's up to internal Mednafen code to deinterlace it).
+	//bool InterlaceOn;
+	//bool InterlaceField;
+
 	// Skip rendering this frame if true.  Set by the driver code.
 	int skip;
 
@@ -202,7 +209,7 @@ typedef struct
 	//bool SoundFormatChanged;
 
 	// Sound rate.  Set by driver side.
-	float SoundRate;
+	SysDDec SoundRate;
 
 	// Pointer to sound buffer, set by the driver code, that the emulation code should render sound to.
 	// Guaranteed to be at least 500ms in length, but emulation code really shouldn't exceed 40ms or so.  Additionally, if emulation code
@@ -226,13 +233,13 @@ typedef struct
 
 	// Current sound volume(0.000...<=volume<=1.000...).  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally.
 	// Emulation modules can handle volume themselves if they like, for speed reasons.  If they do, afterwards, they should set its value to 1.
-	//float SoundVolume;
+	//SysDDec SoundVolume;
 
 	// Current sound speed multiplier.  Set by the driver code.  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally
 	// by resampling the audio.  This means that emulation modules can handle(and set the value to 1 after handling it) it if they want to get the most
 	// performance possible.  HOWEVER, emulation modules must make sure the value is in a range(with minimum and maximum) that their code can handle
 	// before they try to handle it.
-	//float soundmultiplier;
+	//SysDDec soundmultiplier;
 
 	// True if we want to rewind one frame.  Set by the driver code.
 	bool NeedRewind;
@@ -253,6 +260,8 @@ typedef enum
  MODPRIO_INTERNAL_HIGH = 30,
  MODPRIO_EXTERNAL_HIGH = 40
 } ModPrio;
+
+class CDIF;
 
 typedef struct
 {
@@ -286,12 +295,19 @@ typedef struct
  // Return TRUE if the file is a recognized type, FALSE if not.
  bool (*TestMagic)(const char *name, MDFNFILE *fp);
 
- int (*LoadCD)(void);
- bool (*TestMagicCD)(void);
+ //
+ // (*CDInterfaces).size() is guaranteed to be >= 1.
+ int (*LoadCD)(std::vector<CDIF *> *CDInterfaces);
+ bool (*TestMagicCD)(std::vector<CDIF *> *CDInterfaces);
  
  void (*CloseGame)(void);
- bool (*ToggleLayer)(int which);
+
+ void (*SetLayerEnableMask)(uint64 mask);	// Video
  const char *LayerNames;
+
+ void (*SetChanEnableMask)(uint64 mask);	// Audio(TODO, placeholder)
+ const char *ChanNames;
+
  void (*InstallReadPatch)(uint32 address);
  void (*RemoveReadPatches)(void);
  uint8 (*MemRead)(uint32 addr);
@@ -306,7 +322,7 @@ typedef struct
 
  void (*DoSimpleCommand)(int cmd);
 
- MDFNSetting *Settings;
+ const MDFNSetting *Settings;
 
  // Time base for EmulateSpecStruct::MasterCycles
  #define MDFN_MASTERCLOCK_FIXED(n)	((n) * (1LL << 32))
@@ -362,6 +378,6 @@ typedef struct
 
  std::vector<const char *>DesiredInput; // Desired input device for the input ports, NULL for don't care
 
- float mouse_sensitivity;
+ SysDDec mouse_sensitivity;
 } MDFNGI;
 #endif

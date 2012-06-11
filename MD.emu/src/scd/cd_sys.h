@@ -27,30 +27,30 @@
 
 struct _msf
 {
-	constexpr _msf(): M(0), S(0), F(0) { }
-  unsigned char M;
-  unsigned char S;
-  unsigned char F;
+	constexpr _msf() { }
+  unsigned char M = 0;
+  unsigned char S = 0;
+  unsigned char F = 0;
 };
 
 struct _scd_track
 {
-	constexpr _scd_track(): ftype(0), F(nullptr), Length(0), KBtps(0) { }
+	constexpr _scd_track() { }
 //	unsigned char Type; // always 1 (data) for 1st track, 0 (audio) for others
 //	unsigned char Num; // unused
 	_msf MSF;
-	char ftype; // TYPE_ISO, TYPE_BIN, TYPE_MP3
-	Io *F;
-	int Length;
-	short KBtps; // kbytes per sec for mp3s (bitrate / 1000 / 8)
+	char ftype = 0; // TYPE_ISO, TYPE_BIN, TYPE_MP3
+	Io *F = nullptr;
+	int Length = 0;
+	short KBtps = 0; // kbytes per sec for mp3s (bitrate / 1000 / 8)
 };
 
 struct _scd_toc
 {
-	constexpr _scd_toc(): Last_Track(0) { }
+	constexpr _scd_toc() { }
 //	unsigned char First_Track; // always 1
 	_scd_track Tracks[100];
-	unsigned int Last_Track;
+	unsigned int Last_Track = 0;
 };
 
 void LBA_to_MSF(int lba, _msf *MSF);

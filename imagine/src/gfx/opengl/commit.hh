@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(CONFIG_BASE_IOS)
+	#include <base/iphone/private.hh>
+#endif
+
 namespace Base
 {
 	void openGLUpdateScreen();

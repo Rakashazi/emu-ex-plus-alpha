@@ -26,14 +26,6 @@
 namespace gambatte {
 enum { BG_PALETTE = 0, SP1_PALETTE = 1, SP2_PALETTE = 2 };
 
-#ifdef GAMBATTE_COLOR_RGB565
-static const bool usingRGB565Color = 1;
-typedef uint_least16_t PixelType;
-#else
-static const bool usingRGB565Color = 0;
-typedef uint_least32_t PixelType;
-#endif
-
 class GB {
 public:
 	GB();
@@ -49,9 +41,9 @@ public:
 	  *
 	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if zip-support is compiled in).
 	  * @param flags    ORed combination of LoadFlags.
-	  * @return true if failed to load ROM image.
+	  * @return 0 on success, negative value on failure.
 	  */
-	bool load(const std::string &romfile, unsigned flags = 0);
+	int load(const std::string &romfile, unsigned flags = 0);
 	
 	/** Emulates until at least 'samples' stereo sound samples are produced in the supplied buffer,
 	  * or until a video frame has been drawn.

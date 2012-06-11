@@ -151,9 +151,9 @@ static const uint msxJSKeys = 13;
 
 enum { CFGKEY_MACHINE_NAME = 256 };
 
-static const char optionMachineNameDefault[] = "MSX2";
-static char optionMachineNameStr[128] = "";
-static PathOption<CFGKEY_MACHINE_NAME> optionMachineName;
+#define optionMachineNameDefault "MSX2"
+static char optionMachineNameStr[128] = optionMachineNameDefault;
+static PathOption<CFGKEY_MACHINE_NAME> optionMachineName(optionMachineNameStr, optionMachineNameDefault);
 static uint activeBoardType = BOARD_MSX;
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -184,8 +184,6 @@ void EmuSystem::initOptions()
 {
 	optionSoundRate.initDefault(44100);
 	optionSoundRate.isConst = 1;
-	strcpy(optionMachineNameStr, optionMachineNameDefault);
-	optionMachineName.init(optionMachineNameStr, optionMachineNameDefault);
 }
 
 static bool isTapeExtension(const char *name)
@@ -857,7 +855,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		return loadBlueMSXState(saveStr);
 	}
@@ -909,7 +907,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 		string_copyUpToLastCharInstance(gameName, path, '.');
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr) && loadBlueMSXState(saveStr) == STATE_RESULT_OK)
+		if(FsSys::fileExists(saveStr) && loadBlueMSXState(saveStr) == STATE_RESULT_OK)
 		{
 			logMsg("set game name: %s", gameName);
 			logMsg("started emu from auto-save state");
@@ -948,7 +946,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 			logMsg("found %s in zip", fileInZipName);
 			Io *fileInZip = IoZip::open(path, fileInZipName);
 			bool loadAsHD = fileInZip->size() >= 1024 * 1024;
-			fileInZip->close();
+			delete fileInZip;
 			if(loadAsHD)
 			{
 				logMsg("load disk as HD");
@@ -1195,7 +1193,7 @@ CallResult onInit()
 	mMenu.init(Config::envIsPS3);
 	viewStack.push(&mMenu);
 
-	if(checkForMachineFolderOnStart && !Fs::fileExists(machineBasePath))
+	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
 	{
 		ynAlertView.init(InstallMSXSystem::installMessage(), keyBasedInputIsPresent());
 		ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();

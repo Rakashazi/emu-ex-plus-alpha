@@ -24,13 +24,9 @@ private:
 	static const uint stateSlots = 11;
 	TextMenuItem stateSlot[stateSlots];
 
-	MenuItem *item[stateSlots];
+	MenuItem *item[stateSlots] = {nullptr};
 public:
-	constexpr StateSlotView(): BaseMenuView("State Slot")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr StateSlotView(): BaseMenuView("State Slot") { }
 
 	void init(bool highlightFirst);
 	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i);

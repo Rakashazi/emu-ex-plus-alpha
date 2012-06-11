@@ -1,7 +1,7 @@
 #define thisModuleName "main"
 
 #include <logger/interface.h>
-#include <fs/Fs.hh>
+#include <fs/sys.hh>
 #include <stdio.h>
 #include <fceu/driver.h>
 
@@ -142,7 +142,38 @@ void FCEUI_MakeBackupMovie(bool dispMessage) { }
 // from fceu.cpp
 bool CheckFileExists(const char* filename)
 {
-	return Fs::fileExists(filename);
+	return FsSys::fileExists(filename);
+}
+
+//The code in this function is a modified version
+//of Chris Covell's work - I'd just like to point that out
+void EncodeGG(char *str, int a, int v, int c)
+{
+	uint8 num[8];
+	static char lets[16]={'A','P','Z','L','G','I','T','Y','E','O','X','U','K','S','V','N'};
+	int i;
+	if(a > 0x8000)a-=0x8000;
+
+	num[0]=(v&7)+((v>>4)&8);
+	num[1]=((v>>4)&7)+((a>>4)&8);
+	num[2]=((a>>4)&7);
+	num[3]=(a>>12)+(a&8);
+	num[4]=(a&7)+((a>>8)&8);
+	num[5]=((a>>8)&7);
+
+	if (c == -1){
+		num[5]+=v&8;
+		for(i = 0;i < 6;i++)str[i] = lets[num[i]];
+		str[6] = 0;
+	} else {
+		num[2]+=8;
+		num[5]+=c&8;
+		num[6]=(c&7)+((c>>4)&8);
+		num[7]=((c>>4)&7)+(v&8);
+		for(i = 0;i < 8;i++)str[i] = lets[num[i]];
+		str[8] = 0;
+	}
+	return;
 }
 
 #undef thisModuleName

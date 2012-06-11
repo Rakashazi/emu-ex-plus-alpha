@@ -28,9 +28,9 @@ template<class T>
 class Rect2
 {
 public:
-	T x, y, x2, y2;
+	T x = 0, y = 0, x2 = 0, y2 = 0;
 
-	constexpr Rect2(): x(0), y(0), x2(0), y2(0) { }
+	constexpr Rect2() { }
 	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) { }
 
 	void setZero()

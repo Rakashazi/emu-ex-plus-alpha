@@ -20,8 +20,8 @@
 
 struct OptionBase
 {
-	bool isConst;
-	constexpr OptionBase(): isConst(0) { }
+	bool isConst = 0;
+	constexpr OptionBase() { }
 	constexpr OptionBase(bool isConst): isConst(isConst) { }
 
 	virtual bool isDefault() const = 0;
@@ -153,19 +153,9 @@ struct PathOption : public OptionBase
 	uint strSize;
 	const char *defaultVal;
 
-	void init(char *val, uint size, const char *defaultVal)
-	{
-		this->val = val;
-		this->isConst = 0;
-		var_selfs(defaultVal);
-		strSize = size;
-	}
-
+	constexpr PathOption(char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal) { }
 	template <size_t S>
-	void init(char (&val)[S], const char *defaultVal)
-	{
-		init(val, S, defaultVal);
-	}
+	constexpr PathOption(char (&val)[S], const char *defaultVal): PathOption(val, S, defaultVal) { }
 
 	bool isDefault() const { return string_equal(val, defaultVal); }
 

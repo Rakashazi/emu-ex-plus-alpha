@@ -83,6 +83,11 @@ class EmuSystem
 	static void clearInputBuffers();
 	static void handleInputAction(uint player, uint state, uint emuKey);
 	static uint translateInputAction(uint input, bool &turbo);
+	static uint translateInputAction(uint input)
+	{
+		bool turbo;
+		return translateInputAction(input, turbo);
+	}
 	static void handleOnScreenInputAction(uint state, uint emuKey);
 	static void stopSound();
 	static void startSound();

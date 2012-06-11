@@ -83,7 +83,7 @@ ResourceFont *ResourceFontFreetype::load(const char *name)
 void ResourceFontFreetype::free () //+
 {
 	f.close();
-	io->close();
+	delete io;
 	delete this;
 }
 

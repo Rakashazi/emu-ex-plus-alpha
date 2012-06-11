@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartE0.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "CartE0.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeE0::CartridgeE0(const uInt8* image, const Settings& settings)
+CartridgeE0::CartridgeE0(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 8192);
+	memcpy(myImage, image, BSPF_min(8192u, size));
   createCodeAccessBase(8192);
 }
 
@@ -232,7 +232,7 @@ const uInt8* CartridgeE0::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE0::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
 
@@ -240,9 +240,9 @@ bool CartridgeE0::save(Serializer& out) const
     for(uInt32 i = 0; i < 4; ++i)
       out.putInt(myCurrentSlice[i]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeE0::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeE0::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -252,7 +252,7 @@ bool CartridgeE0::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE0::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -261,9 +261,9 @@ bool CartridgeE0::load(Serializer& in)
     for(uInt32 i = 0; i < limit; ++i)
       myCurrentSlice[i] = (uInt16) in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeE0::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeE0::load" << endl << "  " << msg << endl;
     return false;
   }
 

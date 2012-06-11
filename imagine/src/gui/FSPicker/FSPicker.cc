@@ -30,7 +30,6 @@ static const GfxLGradientStopDesc fsNavViewGrad[] =
 
 void NavView::init(ResourceFace *face)
 {
-	//var_selfs(target);
 	text.init();
 	text.setFace(face);
 	leftBtnActive = rightBtnActive = 1;
@@ -44,12 +43,10 @@ void NavView::inputEvent(const InputEvent &e)
 	{
 		if(hasCloseBtn && rightBtnActive && rightBtn.overlaps(e.x, e.y))
 		{
-			//callMSafe(target, onRightNavBtn, e);
 			onRightNavBtn.invokeSafe(e);
 		}
 		else if(hasBackBtn && leftBtnActive && leftBtn.overlaps(e.x, e.y))
 		{
-			//callMSafe(target, onLeftNavBtn, e);
 			onLeftNavBtn.invokeSafe(e);
 		}
 	}
@@ -250,8 +247,6 @@ void FSPicker::init(const char *path, ResourceImage *backRes, ResourceImage *clo
 	this->filter = filter;
 	this->singleDir = singleDir;
 	navV.init(face, backRes, closeRes, singleDir);
-	navV.leftNavBtnDelegate().bind<FSPicker, &FSPicker::onLeftNavBtn>(this);
-	navV.rightNavBtnDelegate().bind<FSPicker, &FSPicker::onRightNavBtn>(this);
 	loadDir(path);
 }
 

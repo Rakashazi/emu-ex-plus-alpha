@@ -19,6 +19,7 @@
 #include <input/common/common.h>
 #include <util/jni.hh>
 #include <base/android/ndkCompat.h>
+#include <base/android/private.hh>
 
 namespace Base
 {
@@ -50,16 +51,29 @@ jboolean JNICALL trackballEvent(JNIEnv *env, jobject thiz, jint action, jfloat x
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }
 
-jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down)
+jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down, jboolean metaState)
 {
 	var_copy(prevGfxUpdateState, gfxUpdate);
-	handleKeyEvent(key, down);
+	handleKeyEvent(key, down, 0, metaState);
 	return prevGfxUpdateState == 0 && gfxUpdate;
+}
+
+void showSoftInput()
+{
+	using namespace Base;
+	logMsg("showing soft input");
+	jEnv->CallVoidMethod(jBaseActivity, jShowIme.m, 0);
+}
+
+void hideSoftInput()
+{
+	using namespace Base;
+	logMsg("hiding soft input");
+	jEnv->CallVoidMethod(jBaseActivity, jHideIme.m, 0);
 }
 
 CallResult init()
 {
-	commonInit();
 	return OK;
 }
 

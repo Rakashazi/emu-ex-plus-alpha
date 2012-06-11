@@ -41,7 +41,6 @@ void IoMmapGeneric::close()
 {
 	if(free)
 		free((void*)data);
-	delete this;
 }
 
 #undef thisModuleName

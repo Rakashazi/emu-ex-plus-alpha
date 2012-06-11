@@ -30,7 +30,7 @@ void dumpPRG(const char *n)
 {
 	Io *f = IoSys::create(n);
 	f->fwrite(sCD.prg.b, sizeof(sCD.prg.b), 1);
-	f->close();
+	delete f;
 }
 
 void handleBad68KIns()
@@ -62,6 +62,17 @@ void scd_resetSubCpu()
 	sCD.cpu.sp[0]=0;
 	m68k_pulse_reset(sCD.cpu);
 	//dumpPRG("s68kcode.bin");
+}
+
+void scd_runSubCpu(uint cycles)
+{
+	if((sCD.busreq&3) == 1)
+	{
+		//logMsg("running sub-cpu from cycle %d to %d", sCD.cpu.cycleCount, cycles);
+		m68k_run(sCD.cpu, cycles);
+	}
+	else
+		sCD.cpu.cycleCount = cycles;
 }
 
 uint nullRead8(uint address)

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3F.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Cart3F.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -189,14 +189,14 @@ const uInt8* Cartridge3F::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3F::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge3F::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: Cartridge3F::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -206,16 +206,16 @@ bool Cartridge3F::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3F::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCurrentBank = (uInt16) in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: Cartridge3F::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: Cartridge3F::load" << endl << "  " << msg << endl;
     return false;
   }
 

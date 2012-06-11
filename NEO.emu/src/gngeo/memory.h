@@ -34,8 +34,8 @@
 #include "gp2x.h"
 #endif
 
-#define READ_WORD(a)          (*(Uint16 *)(a))
-#define WRITE_WORD(a,d)       (*(Uint16 *)(a) = (d))
+#define READ_WORD(a)          (*(uint16a*)(a))
+#define WRITE_WORD(a,d)       (*(uint16a*)(a) = (d))
 #define READ_BYTE(a)          (*(Uint8 *)(a))
 #define WRITE_BYTE(a,d)       (*(Uint8 *)(a) = (d))
 #define SWAP_BYTE_ADDRESS(a)  ((Uintptr)(a)^1)

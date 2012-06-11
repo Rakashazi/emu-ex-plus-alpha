@@ -1,6 +1,9 @@
 ifndef inc_main
 inc_main := 1
 
+# -O3 is faster with MD.emu
+HIGH_OPTIMIZE_CFLAGS := -O3 $(NORMAL_OPTIMIZE_CFLAGS_MISC) -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc

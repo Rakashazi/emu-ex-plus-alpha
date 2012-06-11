@@ -6,9 +6,9 @@
 template <class T>
 struct Array2D
 {
-	constexpr Array2D(): columns(0), arr(0) { }
-	uint columns;
-	T *arr;
+	constexpr Array2D() { }
+	uint columns = 0;
+	T *arr = nullptr;
 
 	void init(T *arr, uint columns)
 	{

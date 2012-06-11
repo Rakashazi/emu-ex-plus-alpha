@@ -1,6 +1,6 @@
 #pragma once
 
-//#define CYCLE_MULT 0.6136
+//#define CYCLE_MULT (24./39.)
 #define CYCLE_MULT 0.5
 
 static const unsigned char m68kCyclesSCD[0x10000] =

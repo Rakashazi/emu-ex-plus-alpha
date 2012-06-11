@@ -32,7 +32,7 @@ public:
 	void freeSize(FaceSizeData sizeData);
 
 private:
-	Io* io;
+	Io* io = nullptr;
 	FontData f;
 	static ResourceFont *loadWithIoWithName (Io* io, const char *name);
 };

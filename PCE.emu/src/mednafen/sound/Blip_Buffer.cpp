@@ -27,7 +27,7 @@ int const silent_buf_size = 1; // size used for Silent_Blip_Buffer
 
 Blip_Buffer::Blip_Buffer()
 {
-	factor_       = (blip_ulong)LONG_MAX;
+	factor_       = (blip_u64)ULLONG_MAX;
 	offset_       = 0;
 	buffer_       = 0;
 	buffer_size_  = 0;
@@ -85,16 +85,19 @@ Blip_Buffer::blargg_err_t Blip_Buffer::set_sample_rate( long new_rate, int msec 
 	}
 	
 	// start with maximum length that resampled time can represent
-	long new_size = (ULONG_MAX >> BLIP_BUFFER_ACCURACY) - blip_buffer_extra_ - 64;
+	blip_s64 new_size = (ULLONG_MAX >> BLIP_BUFFER_ACCURACY) - blip_buffer_extra_ - 64;
+
+	// simple safety check, since code elsewhere may not be safe for sizes approaching (2 ^ 31).
+	if(new_size > ((1LL << 30) - 1))
+	 new_size = (1LL << 30) - 1;
+
 	if ( msec != blip_max_length )
 	{
-		long s = (new_rate * (msec + 1) + 999) / 1000;
+		blip_s64 s = ((blip_s64)new_rate * (msec + 1) + 999) / 1000;
 		if ( s < new_size )
 			new_size = s;
 		else
-		{
 			assert( 0 ); // fails if requested buffer length exceeds limit
-		}
 	}
 	
 	if ( buffer_size_ != new_size )
@@ -116,9 +119,7 @@ Blip_Buffer::blargg_err_t Blip_Buffer::set_sample_rate( long new_rate, int msec 
 	sample_rate_ = new_rate;
 	length_ = new_size * 1000 / new_rate - 1;
 	if ( msec )
-	{
 		assert( length_ == msec ); // ensure length is same as that passed in
-	}
 	if ( clock_rate_ )
 		clock_rate( clock_rate_ );
 	bass_freq( bass_freq_ );
@@ -131,7 +132,7 @@ Blip_Buffer::blargg_err_t Blip_Buffer::set_sample_rate( long new_rate, int msec 
 blip_resampled_time_t Blip_Buffer::clock_rate_factor( long rate ) const
 {
 	SysDDec ratio = (SysDDec) sample_rate_ / rate;
-	blip_long factor = (blip_long) floor( ratio * (1L << BLIP_BUFFER_ACCURACY) + 0.5 );
+	blip_s64 factor = (blip_s64) floor( ratio * (1LL << BLIP_BUFFER_ACCURACY) + 0.5 );
 	assert( factor > 0 || !sample_rate_ ); // fails if clock/output ratio is too large
 	return (blip_resampled_time_t) factor;
 }
@@ -204,7 +205,7 @@ Blip_Synth_Fast_::Blip_Synth_Fast_()
 	delta_factor = 0;
 }
 
-void Blip_Synth_Fast_::volume_unit( double new_unit )
+void Blip_Synth_Fast_::volume_unit( SysDDec new_unit )
 {
 	delta_factor = int (new_unit * (1L << blip_sample_bits) + 0.5);
 }
@@ -320,8 +321,8 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 	for ( i = 0; i < half_size; i++ )
 		total += fimpulse [blip_res + i];
 	
-	//double const base_unit = 44800.0 - 128 * 18; // allows treble up to +0 dB
-	//double const base_unit = 37888.0; // allows treble to +5 dB
+	//SysDDec const base_unit = 44800.0 - 128 * 18; // allows treble up to +0 dB
+	//SysDDec const base_unit = 37888.0; // allows treble to +5 dB
 	SysDDec const base_unit = 32768.0; // necessary for blip_unscaled to work
 	SysDDec rescale = base_unit / 2 / total;
 	kernel_unit = (long) base_unit;
@@ -347,7 +348,7 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 	}
 }
 
-void Blip_Synth_::volume_unit( double new_unit )
+void Blip_Synth_::volume_unit( SysDDec new_unit )
 {
 	if ( new_unit != volume_unit_ )
 	{

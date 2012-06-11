@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartEF.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartEF.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "CartEF.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeEF::CartridgeEF(const uInt8* image, const Settings& settings)
+CartridgeEF::CartridgeEF(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 65536);
+	memcpy(myImage, image, BSPF_min(65536u, size));
   createCodeAccessBase(65536);
 
   // Remember startup bank
@@ -143,14 +143,14 @@ const uInt8* CartridgeEF::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeEF::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeEF::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeEF::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -160,16 +160,16 @@ bool CartridgeEF::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeEF::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCurrentBank = (uInt16) in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeEF::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeEF::load" << endl << "  " << msg << endl;
     return false;
   }
 

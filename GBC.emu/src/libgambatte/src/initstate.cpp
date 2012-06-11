@@ -1310,7 +1310,6 @@ void gambatte::setInitState(SaveState &state, const bool cgb, const bool gbaCgbM
 	
 	state.rtc.baseTime = std::time(0);
 	state.rtc.haltTime = state.rtc.baseTime;
-	state.rtc.index = 5;
 	state.rtc.dataDh = 0;
 	state.rtc.dataDl = 0;
 	state.rtc.dataH = 0;

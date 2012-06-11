@@ -24,6 +24,7 @@ import android.util.*;
 import android.hardware.*;
 import android.media.*;
 import android.content.res.Configuration;
+import android.view.inputmethod.InputMethodManager;
 import java.lang.reflect.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
@@ -34,6 +35,7 @@ public final class BaseActivity extends NativeActivity
 	private native void jEnvConfig(float xdpi, float ydpi, int refreshRate, Display dpy, String devName,
 			String filesPath, String eStoragePath, String apkPath, Vibrator sysVibrator,
 			boolean hasPermanentMenuKey);
+	private native void layoutChange(int height);
 
 	private static Method setSystemUiVisibility;
 
@@ -103,7 +105,8 @@ public final class BaseActivity extends NativeActivity
 			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey);
 	}
 	
-	private static final int SET_KEEP_SCREEN_ON = 0, SET_SYSTEM_UI_VISIBILITY = 1;
+	private static final int SET_KEEP_SCREEN_ON = 0, SET_SYSTEM_UI_VISIBILITY = 1,
+		SHOW_SOFT_INPUT = 2, HIDE_SOFT_INPUT = 3;
 	
 	public void postUIThread(int func, final int param)
 	{
@@ -112,7 +115,26 @@ public final class BaseActivity extends NativeActivity
 			{
 				public void run()
 				{
-					findViewById(android.R.id.content).setKeepScreenOn(param == 0 ? false : true);
+					getWindow().getDecorView().setKeepScreenOn(param == 0 ? false : true);
+				}
+			});
+		else if(func == SHOW_SOFT_INPUT)
+			runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					//getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+					InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+					mIMM.showSoftInput(getWindow().getDecorView(), 0);
+				}
+			});
+		else if(func == HIDE_SOFT_INPUT)
+			runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+					mIMM.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
 				}
 			});
 		else
@@ -150,6 +172,17 @@ public final class BaseActivity extends NativeActivity
 	{
 		NotificationHelper.removeNotification();
 	}
+	
+	@Override public void onGlobalLayout()
+	{
+		super.onGlobalLayout();
+		Rect r = new Rect();
+		View view = getWindow().getDecorView();//findViewById(android.R.id.activityRoot);
+		view.getWindowVisibleDisplayFrame(r);
+		int visibleY = r.bottom - r.top;
+		//Log.i(logTag, "height " + view.getRootView().getHeight() + ", visible " + visibleY);
+		layoutChange(visibleY);
+     }
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{

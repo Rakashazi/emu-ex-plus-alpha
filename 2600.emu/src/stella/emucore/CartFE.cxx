@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFE.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartFE.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,14 +24,14 @@
 #include "CartFE.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeFE::CartridgeFE(const uInt8* image, const Settings& settings)
+CartridgeFE::CartridgeFE(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings),
     myLastAddress1(0),
     myLastAddress2(0),
     myLastAddressChanged(false)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 8192);
+	memcpy(myImage, image, BSPF_min(8192u, size));
 
   // We use System::PageAccess.codeAccessBase, but don't allow its use
   // through a pointer, since the address space of FE carts can change
@@ -161,15 +161,15 @@ const uInt8* CartridgeFE::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeFE::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myLastAddress1);
     out.putInt(myLastAddress2);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeFE::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeFE::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -179,7 +179,7 @@ bool CartridgeFE::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeFE::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -187,9 +187,9 @@ bool CartridgeFE::load(Serializer& in)
     myLastAddress1 = (uInt16)in.getInt();
     myLastAddress2 = (uInt16)in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeF8SC::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeF8SC::load" << endl << "  " << msg << endl;
     return false;
   }
 

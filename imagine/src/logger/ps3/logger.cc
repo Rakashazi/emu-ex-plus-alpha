@@ -42,7 +42,7 @@ CallResult logger_init()
 	ccfg0.color       = 0xff0080ff;  // ABGR orange
 	cID = cellDbgFontConsoleOpen(&ccfg0);
 
-	logMsg("init logger");
+	//logMsg("init logger");
 	return OK;
 }
 

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Props.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Props.cxx 2366 2012-01-22 21:01:13Z stephena $
 //============================================================================
 
 #include <cctype>
@@ -68,6 +68,7 @@ void Properties::set(PropertyType key, const string& value)
       case Controller_Left:
       case Controller_Right:
       case Controller_SwapPaddles:
+      case Controller_MouseAxis:
       case Display_Format:
       case Display_Phosphor:
       {
@@ -244,6 +245,7 @@ void Properties::print() const
        << get(Controller_Left)        << "|"
        << get(Controller_Right)       << "|"
        << get(Controller_SwapPaddles) << "|"
+       << get(Controller_MouseAxis)   << "|"
        << get(Display_Format)         << "|"
        << get(Display_YStart)         << "|"
        << get(Display_Height)         << "|"
@@ -288,6 +290,7 @@ void Properties::printHeader()
        << "Controller_Left|"
        << "Controller_Right|"
        << "Controller_SwapPaddles|"
+       << "Controller_MouseAxis|"
        << "Display_Format|"
        << "Display_YStart|"
        << "Display_Height|"
@@ -313,6 +316,7 @@ const char* Properties::ourDefaultProperties[LastPropType] = {
   "JOYSTICK",    // Controller.Left
   "JOYSTICK",    // Controller.Right
   "NO",          // Controller.SwapPaddles
+  "AUTO",        // Controller.MouseAxis
   "AUTO-DETECT", // Display.Format
   "34",          // Display.YStart
   "210",         // Display.Height
@@ -337,6 +341,7 @@ const char* Properties::ourPropertyNames[LastPropType] = {
   "Controller.Left",
   "Controller.Right",
   "Controller.SwapPaddles",
+  "Controller.MouseAxis",
   "Display.Format",
   "Display.YStart",
   "Display.Height",

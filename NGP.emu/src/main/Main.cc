@@ -272,7 +272,7 @@ int EmuSystem::loadState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(Fs::fileExists(saveStr))
+	if(FsSys::fileExists(saveStr))
 	{
 		logMsg("loading state %s", saveStr);
 		if(!state_restore(saveStr))
@@ -453,7 +453,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		if(Fs::fileExists(saveStr))
+		if(FsSys::fileExists(saveStr))
 			loadedState = state_restore(saveStr);
 	}
 
@@ -627,7 +627,6 @@ CallResult onInit()
 	Gfx::onViewChange();
 	mMenu.show();
 
-	//Input::eventHandler(onInputEvent);
 	Base::displayNeedsUpdate();
 	return(OK);
 }

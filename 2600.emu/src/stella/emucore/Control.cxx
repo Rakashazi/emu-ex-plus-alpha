@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.cxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Control.cxx 2370 2012-01-28 15:19:41Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -77,6 +77,12 @@ Controller::Controller(Jack jack, const Event& event, const System& system,
     case Genesis:
       myName = "Genesis";
       break;
+    case MindLink:
+      myName = "MindLink";
+      break;
+    case CompuMate:
+      myName = "CompuMate";
+      break;
   }
 }
  
@@ -86,46 +92,44 @@ Controller::~Controller()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const Controller::Type Controller::type() const
+uInt8 Controller::read()
 {
-  return myType;
+	uInt8 ioport = 0x00;
+  if(read(One))   ioport |= 0x01;
+  if(read(Two))   ioport |= 0x02;
+  if(read(Three)) ioport |= 0x04;
+  if(read(Four))  ioport |= 0x08;
+  return ioport;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Controller::read(DigitalPin pin)
 {
-  switch(pin)
-  {
-    case One:
-    case Two:
-    case Three:
-    case Four:
-    case Six:
-      return myDigitalPinState[pin];
-
-    default:
-      return true;
-  }
+  return myDigitalPinState[pin];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Int32 Controller::read(AnalogPin pin)
 {
-  switch(pin)
-  {
-    case Five:
-    case Nine:
-      return myAnalogPinValue[pin];
+	return myAnalogPinValue[pin];
+}
 
-    default:
-      return maximumResistance;
-  }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::set(DigitalPin pin, bool value)
+{
+  myDigitalPinState[pin] = value;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::set(AnalogPin pin, Int32 value)
+{
+  myAnalogPinValue[pin] = value;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Controller::save(Serializer& out) const
 {
-  //try
+  try
   {
     // Output the digital pins
     out.putBool(myDigitalPinState[One]);
@@ -138,7 +142,7 @@ bool Controller::save(Serializer& out) const
     out.putInt(myAnalogPinValue[Five]);
     out.putInt(myAnalogPinValue[Nine]);
   }
-  if(out.errorMsg)
+  catch(...)
   {
     cerr << "ERROR: Controller::save() exception\n";
     return false;
@@ -149,7 +153,7 @@ bool Controller::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Controller::load(Serializer& in)
 {
-  //try
+  try
   {
     // Input the digital pins
     myDigitalPinState[One]   = in.getBool();
@@ -162,7 +166,7 @@ bool Controller::load(Serializer& in)
     myAnalogPinValue[Five] = (Int32) in.getInt();
     myAnalogPinValue[Nine] = (Int32) in.getInt();
   }
-  if(in.errorMsg)
+  catch(...)
   {
     cerr << "ERROR: Controller::load() exception\n";
     return false;
@@ -183,21 +187,10 @@ string Controller::about() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Controller::setMouseIsController(int number)
-{
-  ourControlNum = number;
-  if(ourControlNum < 0)       ourControlNum = 0;
-  else if (ourControlNum > 3) ourControlNum = 3;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Int32 Controller::maximumResistance = 0x7FFFFFFF;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Int32 Controller::minimumResistance = 0x00000000;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Int32 Controller::ourControlNum = 0;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Controller::Controller(const Controller& c)

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: Console.hxx 2412 2012-03-14 01:19:23Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -27,6 +27,7 @@ class System;
 class TIA;
 class M6532;
 class Cartridge;
+class CompuMate;
 
 #include "bspf.hxx"
 #include "Control.hxx"
@@ -34,7 +35,6 @@ class Cartridge;
 #include "TIATables.hxx"
 #include "FrameBuffer.hxx"
 #include "Serializable.hxx"
-#include "OSystem.hxx"
 
 /**
   Contains detailed info about a console.
@@ -54,7 +54,7 @@ struct ConsoleInfo
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: Console.hxx 2412 2012-03-14 01:19:23Z stephena $
 */
 class Console : public Serializable
 {
@@ -89,7 +89,7 @@ class Console : public Serializable
     */
     Controller& controller(Controller::Jack jack) const
     {
-      return (jack == Controller::Left) ? *myControllers[0] : *myControllers[1];
+    	return *myControllers[jack];
     }
 
     /**
@@ -205,6 +205,7 @@ class Console : public Serializable
       Toggles the PAL color-loss effect.
     */
     void toggleColorLoss();
+    void toggleColorLoss(bool state);
 
     /**
       Initialize the video subsystem wrt this class.
@@ -314,17 +315,17 @@ class Console : public Serializable
     // Pointer to the osystem object
     OSystem* myOSystem;
 
-    // Pointers to the left and right controllers
-    Controller* myControllers[2];
-
-    // Pointer to the event object to use
-    Event* myEvent;
-
-    // Pointer to the TIA object 
-    TIA* myTIA;
+    // Reference to the event object to use
+    Event& myEvent;
 
     // Properties for the game
     Properties myProperties;
+
+    // Pointers to the left and right controllers
+    Controller* myControllers[2];
+
+    // Pointer to the TIA object 
+    TIA* myTIA;
 
     // Pointer to the switches on the front of the console
     Switches* mySwitches;
@@ -338,6 +339,9 @@ class Console : public Serializable
     // Pointer to the 6532 (aka RIOT) (the debugger needs it)
     // A RIOT of my own! (...with apologies to The Clash...)
     M6532 *myRiot;
+
+    // Pointer to CompuMate handler (only used in CompuMate ROMs)
+    CompuMate* myCMHandler;
 
     // The currently defined display format (NTSC/PAL/SECAM)
     string myDisplayFormat;

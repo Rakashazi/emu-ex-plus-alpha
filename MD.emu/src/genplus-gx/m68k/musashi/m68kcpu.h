@@ -473,13 +473,7 @@
     #define m68ki_tas_callback() CALLBACK_TAS_INSTR()
   #endif
 #else
-  // TODO
-  /*static uint tasCallback()
-  {
-  	logMsg("called TAS func");
-  	return 1;
-  }*/
-  #define m68ki_tas_callback() 0
+  #define m68ki_tas_callback() m68ki_cpu.hasWorkingTas
 #endif /* M68K_TAS_HAS_CALLBACK */
 
 
@@ -1962,6 +1956,7 @@ INLINE void m68ki_exception_address_error(M68KCPU &m68ki_cpu)
      */
   if(CPU_RUN_MODE == RUN_MODE_BERR_AERR_RESET)
   {
+  	logMsg("halting 68K");
     CPU_STOPPED = STOP_LEVEL_HALT;
     END_CYCLES(m68ki_cpu.endCycles);
     return;

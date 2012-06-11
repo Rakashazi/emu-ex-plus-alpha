@@ -3,6 +3,25 @@
 
 uint32 round_up_pow2(uint32 v);
 
+static INLINE uint32 uilog2(uint32 v)
+{
+ // http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
+
+ static const uint32 MultiplyDeBruijnBitPosition[32] = 
+ {
+   0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+   8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+ };
+
+ v |= v >> 1; // first round down to one less than a power of 2 
+ v |= v >> 2;
+ v |= v >> 4;
+ v |= v >> 8;
+ v |= v >> 16;
+
+ return MultiplyDeBruijnBitPosition[(uint32_t)(v * 0x07C4ACDDU) >> 27];
+}
+
 // Some compilers' optimizers and some platforms might fubar the generated code from these macros,
 // so some tests are run in...tests.cpp
 #define sign_8_to_s16(_value) ((int16)(int8)(_value))
@@ -19,9 +38,6 @@ uint32 round_up_pow2(uint32 v);
 // convert those faster with typecasts...
 #define sign_x_to_s32(_bits, _value) (((int32)((uint32)(_value) << (32 - _bits))) >> (32 - _bits))
 
-
-#define INT_TO_BCD(A)  (((A) / 10) * 16 + ((A) % 10))              // convert INT --> BCD
-#define BCD_TO_INT(B)  (((B) / 16) * 10 + ((B) % 16))              // convert BCD --> INT
 
 #define INT16_TO_BCD(A)  ((((((A) % 100) / 10) * 16 + ((A) % 10))) | (((((((A) / 100) % 100) / 10) * 16 + (((A) / 100) % 10))) << 8))   // convert INT16 --> BCD
 

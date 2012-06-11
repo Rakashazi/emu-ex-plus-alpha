@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -175,14 +175,14 @@ const uInt8* CartridgeSB::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeSB::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeSB::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeSB::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -192,16 +192,16 @@ bool CartridgeSB::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeSB::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCurrentBank = (uInt16)in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeSB::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeSB::load" << endl << "  " << msg << endl;
     return false;
   }
 

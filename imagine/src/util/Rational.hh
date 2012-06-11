@@ -3,8 +3,8 @@
 class Rational
 {
 public:
-	uint numer, denom;
-	constexpr Rational(): numer(0), denom(1) { }
+	uint numer = 0, denom = 1;
+	constexpr Rational() { }
 	Rational(int n, int d)
 	{
 		int g = gcd(n,d);

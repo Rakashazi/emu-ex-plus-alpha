@@ -35,19 +35,15 @@ class ResourceImage;
 class GfxTextureDesc
 {
 public:
-	constexpr GfxTextureDesc() : tid(0),
+	constexpr GfxTextureDesc() { }
+	GfxTextureHandle tid = 0;
 	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	target(GL_TEXTURE_2D),
-	#endif
-	xStart(0), xEnd(0), yStart(0), yEnd(0) { }
-	GfxTextureHandle tid;
-	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	GLenum target;
+	GLenum target = GL_TEXTURE_2D;
 	#else
 	static const GLenum target = GL_TEXTURE_2D;
 	#endif
-	TextureCoordinate xStart, xEnd;
-	TextureCoordinate yStart, yEnd;
+	TextureCoordinate xStart = 0, xEnd = 0;
+	TextureCoordinate yStart = 0, yEnd = 0;
 };
 
 class GfxUsableImage
@@ -59,7 +55,7 @@ public:
 
 struct GfxBufferImageInterface : public GfxTextureDesc
 {
-	constexpr GfxBufferImageInterface() { }
+	virtual ~GfxBufferImageInterface() { }
 	virtual void write(Pixmap &p, uint hints) = 0;
 	virtual void replace(Pixmap &p, uint hints) = 0;
 	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen) = 0;
@@ -87,8 +83,8 @@ struct TextureGfxBufferImage:
 
 struct TextureGfxBufferVImpl
 {
-	constexpr TextureGfxBufferVImpl(): impl(nullptr) { }
-	GfxBufferImageInterface *impl;
+	constexpr TextureGfxBufferVImpl() { }
+	GfxBufferImageInterface *impl = nullptr;
 	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
 	void replace(Pixmap &p, uint hints) { impl->replace(p, hints); };
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen) { return impl->lock(x, y, xlen, ylen); }
@@ -108,16 +104,14 @@ struct TextureGfxBufferVImpl
 class GfxBufferImage: public GfxBufferImageImpl
 {
 private:
-	uint hints;
-	fbool hasMipmaps_;
-	GfxUsableImage *backingImg;
+	uint hints = 0;
+	fbool hasMipmaps_ = 0;
+	GfxUsableImage *backingImg = nullptr;
 	void testMipmapSupport(uint x, uint y);
 	fbool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 			uint usedX, uint usedY, uint hints, uint filter);
 public:
-	constexpr	GfxBufferImage(): hints(0), hasMipmaps_(0), backingImg(nullptr)
-	{ }
-
+	constexpr GfxBufferImage() { }
 	static const uint nearest = 0, linear = 1;
 	static bool isFilterValid(uint v) { return v <= 1; }
 	bool hasMipmaps();

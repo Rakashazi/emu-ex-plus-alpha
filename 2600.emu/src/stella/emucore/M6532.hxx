@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: M6532.hxx 2381 2012-02-04 15:17:30Z stephena $
 //============================================================================
 
 #ifndef M6532_HXX
@@ -32,7 +32,7 @@ class Settings;
   RIOT
 
   @author  Bradford W. Mott
-  @version $Id: M6532.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: M6532.hxx 2381 2012-02-04 15:17:30Z stephena $
 */
 class M6532 : public Device
 {
@@ -47,7 +47,7 @@ class M6532 : public Device
       Create a new 6532 for the specified console
 
       @param console  The console the 6532 is associated with
-      @param randRam  Randomize or zero RAM on reset
+      @param settings The settings used by the system
     */
     M6532(const Console& console, const Settings& settings);
  
@@ -134,7 +134,7 @@ class M6532 : public Device
       { return myTimer - (mySystem->cycles() - myCyclesWhenTimerSet); }
 
     void setTimerRegister(uInt8 data, uInt8 interval);
-    void setPinState();
+    void setPinState(bool shcha);
 
   private:
     // Reference to the console

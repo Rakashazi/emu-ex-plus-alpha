@@ -51,13 +51,8 @@ private:
 public:
 	Rtc();
 	
-	const unsigned char* getActive() const {
-		return activeData;
-	}
-	
-	std::time_t getBaseTime() const {
-		return baseTime;
-	}
+	const unsigned char* getActive() const { return activeData; }
+	std::time_t getBaseTime() const { return baseTime; }
 	
 	void setBaseTime(const std::time_t baseTime) {
 		this->baseTime = baseTime;
@@ -72,19 +67,14 @@ public:
 	}
 	
 	void saveState(SaveState &state) const;
-	void loadState(const SaveState &state, bool enabled);
+	void loadState(const SaveState &state);
 	
-	void setEnabled(const bool enabled) {
+	void set(const bool enabled, unsigned bank) {
+		bank &= 0xF;
+		bank -= 8;
+		
 		this->enabled = enabled;
-		
-		doSwapActive();
-	}
-	
-	void swapActive(unsigned index) {
-		index &= 0xF;
-		index -= 8;
-		
-		this->index = index;
+		this->index = bank;
 		
 		doSwapActive();
 	}

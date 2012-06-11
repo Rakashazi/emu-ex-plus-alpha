@@ -33,7 +33,7 @@ class PolyPhaseConvoluter {
 	unsigned x_;
 	
 public:
-	PolyPhaseConvoluter() : kernel(0), div_(0), x_(0) {}
+	constexpr PolyPhaseConvoluter() : kernel(0), div_(0), x_(0) {}
 	PolyPhaseConvoluter(const short *kernel, unsigned phaseLen, unsigned div) { reset(kernel, phaseLen, div); }
 	void reset(const short *kernel, unsigned phaseLen, unsigned div);
 	std::size_t filter(short *out, const short *in, std::size_t inlen);

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 2250 2011-06-09 14:00:30Z stephena $
+// $Id: FSNode.hxx 2318 2011-12-31 21:56:36Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -153,7 +153,7 @@ class FilesystemNode
      *
      * @return the display name
      */
-    virtual string getDisplayName() const;
+    virtual const string& getDisplayName() const;
 
     /**
      * Return a string representation of the name of the file. This is can be
@@ -163,14 +163,10 @@ class FilesystemNode
      *
      * @return the file name
      */
-    virtual string getName() const;
+    virtual const string& getName() const;
 
     /**
-     * Return a string representation of the file with the following properties:
-     *  1) can be passed to fopen() if fqn is true
-     *  2) contains the '~' symbol (if applicable), and is suitable for archiving
-     *     (i.e. writing to the config file) if fqn is false
-     *
+     * Return a string representation of the file which can be passed to fopen().
      * This will usually be a 'path' (hence the name of the method), but can
      * be anything that fulfills the above criterions.
      *
@@ -179,7 +175,19 @@ class FilesystemNode
      *
      * @return the 'path' represented by this filesystem node
      */
-    virtual string getPath(bool fqn = true) const;
+    virtual const string& getPath() const;
+
+    /**
+     * Return a string representation of the file which contains the '~'
+     * symbol (if applicable), and is suitable for archiving (i.e. writing
+     * to the config file).
+     *
+     * @note Do not assume that this string contains (back)slashes or any
+     *       other kind of 'path separators'.
+     *
+     * @return the 'path' represented by this filesystem node
+     */
+    virtual string getRelativePath() const;
 
     /**
      * Determine whether this node has a parent.
@@ -280,7 +288,7 @@ class AbstractFilesystemNode
      *
      * @note By default, this method returns the value of getName().
      */
-    virtual string getDisplayName() const { return getName(); }
+    virtual const string& getDisplayName() const { return getName(); }
 
     /**
      * Returns the last component of the path pointed by this FilesystemNode.
@@ -291,13 +299,18 @@ class AbstractFilesystemNode
      *
      * @note This method is very architecture dependent, please check the concrete implementation for more information.
      */
-    virtual string getName() const = 0;
+    virtual const string& getName() const = 0;
 
     /**
-     * Returns the 'path' of the current node, usable in fopen() or 
-       containing '~' and for archiving.
+     * Returns the 'path' of the current node, usable in fopen().
      */
-    virtual string getPath(bool fqn = true) const = 0;
+    virtual const string& getPath() const = 0;
+
+    /**
+     * Returns the 'path' of the current node, containing '~' and for archiving.
+     */
+
+    virtual string getRelativePath() const = 0;
 
     /**
      * Indicates whether this path refers to a directory or not.

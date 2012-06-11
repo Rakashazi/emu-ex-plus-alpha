@@ -37,10 +37,17 @@ extern fbool sendInputToIME;
 
 static struct android_app aAppInst; // global app instance
 
+namespace Base
+{
+
 android_app *appInstance()
 {
 	return &aAppInst;
 }
+
+}
+
+using namespace Base;
 
 static void free_saved_state(struct android_app* android_app)
 {

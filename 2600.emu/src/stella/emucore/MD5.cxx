@@ -17,7 +17,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MD5.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: MD5.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include "MD5.hxx"

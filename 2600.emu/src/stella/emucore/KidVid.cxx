@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: KidVid.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: KidVid.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cstdlib>
@@ -28,7 +28,10 @@ KidVid::KidVid(Jack jack, const Event& event, const System& system,
     myEnabled(myJack == Right),
     myFileOpened(false),
     mySongCounter(0),
-    myTape(0)
+    myTape(0),
+    myIdx(0),
+    myBlock(0),
+    myBlockIdx(0)
 {
   // Right now, there are only two games that use the KidVid
   if(rommd5 == "ee6665683ebdb539e89ba620981cb0f6")
@@ -46,6 +49,7 @@ KidVid::KidVid(Jack jack, const Event& event, const System& system,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 KidVid::~KidVid()
 {
+  closeSampleFile();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -54,13 +58,11 @@ void KidVid::update()
   if(!myEnabled)
     return;
 
-/* TODO - tie system reset into the 'rewind' action
-  if (KeyTable[KeyF1])
-	{
-		KidVidTape = 0;		// "rewind Kid Vid tape
-		kv_CloseSampleFile();
-	}
-*/
+  if(myEvent.get(Event::ConsoleReset))
+  {
+    myTape = 0; // rewind Kid Vid tape
+    closeSampleFile();
+  }
   if(myEvent.get(Event::KeyboardZero1))
   {
     myTape = 2;
@@ -68,6 +70,7 @@ void KidVid::update()
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
     openSampleFile();
+cerr << "myTape = " << myTape << endl;
   }
   else if(myEvent.get(Event::KeyboardZero2))
   {
@@ -76,6 +79,7 @@ void KidVid::update()
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
     openSampleFile();
+cerr << "myTape = " << myTape << endl;
   }
   else if(myEvent.get(Event::KeyboardZero3))
   {
@@ -83,11 +87,13 @@ void KidVid::update()
     {
       myTape = 4;
       myIdx = KVBLOCKBITS;
+cerr << "myTape = " << myTape << endl;
     }
     else                    /* no, Smurf Save The Day */
     {
       myTape = 1;
       myIdx = 0;
+cerr << "myTape = " << myTape << endl;
     }
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
@@ -154,13 +160,14 @@ void KidVid::update()
 void KidVid::openSampleFile()
 {
   static const char* kvNameTable[6] = {
-    "KVS3.WAV", "KVS1.WAV", "KVS2.WAV", "KVB3.WAV", "KVB1.WAV", "KVB2.WAV"
+    "kvs3.wav", "kvs1.wav", "kvs2.wav", "kvb3.wav", "kvb1.wav", "kvb2.wav"
   };
   static uInt32 StartSong[6] = {
     44+38, 0, 44, 44+38+42+62+80, 44+38+42, 44+38+42+62
   };
 
-  // TODO - add code here to immediately return if no sound should be output
+  if(!myEnabled)
+    return;
 
   if(!myFileOpened)
   {
@@ -171,7 +178,8 @@ void KidVid::openSampleFile()
     mySampleFile = fopen(kvNameTable[i], "rb");
     if(mySampleFile != NULL)
     {
-      mySharedSampleFile = fopen("KVSHARED.WAV", "rb");
+cerr << "opened file: " << kvNameTable[i] << endl;
+      mySharedSampleFile = fopen("kvshared.wav", "rb");
       if(mySharedSampleFile == NULL)
       {
         fclose(mySampleFile);
@@ -179,8 +187,9 @@ void KidVid::openSampleFile()
       }
       else
       {
-        myFileOpened = true;
+cerr << "opened file: " << "kvshared.wav" << endl;
         fseek(mySampleFile, 45, SEEK_SET);
+        myFileOpened = true;
       }
     }
     else
@@ -233,23 +242,33 @@ void KidVid::setNextSong()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void KidVid::getNextSampleByte()
 {
-/*
-static int oddeven = 0;
-   if(kv_SongCounter==0) SampleByte = (db) 0x80;
-   else{
-      oddeven=oddeven^1;
-      if(oddeven&1){
-         kv_SongCounter--;
-         if((kv_SongCounter>262*48)||(kv_Beep==0)) kv_TapeBusy=1;
-         else kv_TapeBusy=0;
-         if(FileOpened){
-            if(kv_SharedData) SampleByte=getc(SharedSampleFile);
-            else SampleByte=getc(SampleFile);
-         }else SampleByte = (db) 0x80;
-         if((kv_Beep==0)&&(kv_SongCounter==0)) kv_SetNextSong();
+#if 1
+  static int oddeven = 0;
+  if(mySongCounter == 0)
+    mySampleByte = 0x80;
+  else
+  {
+    oddeven = oddeven^1;
+    if(oddeven & 1)
+    {
+      mySongCounter--;
+      myTapeBusy = (mySongCounter > 262*48) || !myBeep;
+
+      if(myFileOpened)
+      {
+        if(mySharedData)
+          mySampleByte = getc(mySharedSampleFile);
+        else
+          mySampleByte = getc(mySampleFile);
       }
-   }
-*/
+      else
+        mySampleByte = 0x80;
+
+      if(!myBeep && (mySongCounter == 0))
+        setNextSong();
+    }
+  }
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

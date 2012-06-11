@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.cxx 2249 2011-06-07 13:40:59Z stephena $
+// $Id: Cart.cxx 2435 2012-03-30 21:07:57Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -44,9 +44,11 @@
 #include "CartF8.hxx"
 #include "CartF8SC.hxx"
 #include "CartFA.hxx"
+#include "CartFA2.hxx"
 #include "CartFE.hxx"
 #include "CartMC.hxx"
 #include "CartCV.hxx"
+#include "CartCM.hxx"
 #include "CartUA.hxx"
 #include "CartSB.hxx"
 #include "CartX07.hxx"
@@ -60,7 +62,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
-     string& dtype, string& cid, Settings& settings)
+     string& dtype, string& id, Settings& settings)
 {
   Cartridge* cartridge = 0;
   string type = dtype;
@@ -89,8 +91,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     if(size == 2*2048 || size == 2*4096 || size == 2*8192 || size == 2*16384)
     {
       dtype = type;
-      type = createFromMultiCart(image, size, 2, md5, cid, settings);
-      buf << cid;
+      type = createFromMultiCart(image, size, 2, md5, id, settings);
+      buf << id;
     }
 
   }
@@ -100,8 +102,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     if(size == 4*2048 || size == 4*4096 || size == 4*8192)
     {
       dtype = type;
-      type = createFromMultiCart(image, size, 4, md5, cid, settings);
-      buf << cid;
+      type = createFromMultiCart(image, size, 4, md5, id, settings);
+      buf << id;
     }
   }
   else if(type == "8IN1")
@@ -110,8 +112,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     if(size == 8*2048 || size == 8*4096 || size == 8*8192)
     {
       dtype = type;
-      type = createFromMultiCart(image, size, 8, md5, cid, settings);
-      buf << cid;
+      type = createFromMultiCart(image, size, 8, md5, id, settings);
+      buf << id;
     }
   }
   else if(type == "16IN1")
@@ -120,8 +122,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     if(size == 16*2048 || size == 16*4096 || size == 16*8192)
     {
       dtype = type;
-      type = createFromMultiCart(image, size, 16, md5, cid, settings);
-      buf << cid;
+      type = createFromMultiCart(image, size, 16, md5, id, settings);
+      buf << id;
     }
   }
   else if(type == "32IN1")
@@ -130,8 +132,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     if(size == 32*2048 || size == 32*4096)
     {
       dtype = type;
-      type = createFromMultiCart(image, size, 32, md5, cid, settings);
-      buf << cid;
+      type = createFromMultiCart(image, size, 32, md5, id, settings);
+      buf << id;
     }
   }
 
@@ -145,7 +147,7 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
   else if(type == "4A50")
     cartridge = new Cartridge4A50(image, size, settings);
   else if(type == "4K")
-    cartridge = new Cartridge4K(image, settings);
+    cartridge = new Cartridge4K(image, size, settings);
   else if(type == "AR")
     cartridge = new CartridgeAR(image, size, settings);
   else if(type == "DPC")
@@ -153,43 +155,47 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
   else if(type == "DPC+")
     cartridge = new CartridgeDPCPlus(image, size, settings);
   else if(type == "E0")
-    cartridge = new CartridgeE0(image, settings);
+    cartridge = new CartridgeE0(image, size, settings);
   else if(type == "E7")
-    cartridge = new CartridgeE7(image, settings);
+    cartridge = new CartridgeE7(image, size, settings);
   else if(type == "EF")
-    cartridge = new CartridgeEF(image, settings);
+    cartridge = new CartridgeEF(image, size, settings);
   else if(type == "EFSC")
-    cartridge = new CartridgeEFSC(image, settings);
+    cartridge = new CartridgeEFSC(image, size, settings);
   else if(type == "F4")
-    cartridge = new CartridgeF4(image, settings);
+    cartridge = new CartridgeF4(image, size, settings);
   else if(type == "F4SC")
-    cartridge = new CartridgeF4SC(image, settings);
+    cartridge = new CartridgeF4SC(image, size, settings);
   else if(type == "F6")
-    cartridge = new CartridgeF6(image, settings);
+    cartridge = new CartridgeF6(image, size, settings);
   else if(type == "F6SC")
-    cartridge = new CartridgeF6SC(image, settings);
+    cartridge = new CartridgeF6SC(image, size, settings);
   else if(type == "F8")
-    cartridge = new CartridgeF8(image, md5, settings);
+    cartridge = new CartridgeF8(image, size, md5, settings);
   else if(type == "F8SC")
-    cartridge = new CartridgeF8SC(image, settings);
+    cartridge = new CartridgeF8SC(image, size, settings);
   else if(type == "FA" || type == "FASC")
-    cartridge = new CartridgeFA(image, settings);
+    cartridge = new CartridgeFA(image, size, settings);
+  else if(type == "FA2")
+    cartridge = new CartridgeFA2(image, size, settings);
   else if(type == "FE")
-    cartridge = new CartridgeFE(image, settings);
+    cartridge = new CartridgeFE(image, size, settings);
   else if(type == "MC")
     cartridge = new CartridgeMC(image, size, settings);
   else if(type == "F0" || type == "MB")
-    cartridge = new CartridgeF0(image, settings);
+    cartridge = new CartridgeF0(image, size, settings);
   else if(type == "CV")
     cartridge = new CartridgeCV(image, size, settings);
+  else if(type == "CM")
+    cartridge = new CartridgeCM(image, size, settings);
   else if(type == "UA")
-    cartridge = new CartridgeUA(image, settings);
+    cartridge = new CartridgeUA(image, size, settings);
   else if(type == "0840")
-    cartridge = new Cartridge0840(image, settings);
+    cartridge = new Cartridge0840(image, size, settings);
   else if(type == "SB")
     cartridge = new CartridgeSB(image, size, settings);
   else if(type == "X07")
-    cartridge = new CartridgeX07(image, settings);
+    cartridge = new CartridgeX07(image, size, settings);
   else
     cerr << "ERROR: Invalid cartridge type " << type << " ..." << endl;
 
@@ -204,7 +210,7 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Cartridge::createFromMultiCart(const uInt8*& image, uInt32& size,
-    uInt32 numroms, string& md5, string& cid, Settings& settings)
+    uInt32 numroms, string& md5, string& id, Settings& settings)
 {
   // Get a piece of the larger image
   uInt32 i = settings.getInt("romloadcount");
@@ -215,7 +221,7 @@ string Cartridge::createFromMultiCart(const uInt8*& image, uInt32& size,
   md5 = MD5(image, size);
   ostringstream buf;
   buf << " [G" << (i+1) << "]";
-  cid = buf.str();
+  id = buf.str();
 
   // Move to the next game the next time this ROM is loaded
   settings.setInt("romloadcount", (i+1)%numroms);
@@ -293,7 +299,8 @@ void Cartridge::registerRamArea(uInt16 start, uInt16 size,
 void Cartridge::triggerReadFromWritePort(uInt16 address)
 {
 #ifdef DEBUGGER_SUPPORT
-  Debugger::debugger().cartDebug().triggerReadFromWritePort(address);
+  if(!mySystem->autodectMode())
+    Debugger::debugger().cartDebug().triggerReadFromWritePort(address);
 #endif
 }
 
@@ -372,6 +379,10 @@ string Cartridge::autodetectType(const uInt8* image, uInt32 size)
       type = "3F";
     else
       type = "F6";
+  }
+  else if(size == 24*1024 || size == 28*1024)  // 24K & 28K
+  {
+    type = "FA2";
   }
   else if(size == 29*1024)  // 29K
   {
@@ -630,14 +641,17 @@ bool Cartridge::isProbablyEF(const uInt8* image, uInt32 size)
   // EF cart bankswitching switches banks by accessing addresses 0xFE0
   // to 0xFEF, usually with either a NOP or LDA
   // It's likely that the code will switch to bank 0, so that's what is tested
-  uInt8 signature[2][3] = {
+  uInt8 signature[4][3] = {
     { 0x0C, 0xE0, 0xFF },  // NOP $FFE0
-    { 0xAD, 0xE0, 0xFF }   // LDA $FFE0
+    { 0xAD, 0xE0, 0xFF },  // LDA $FFE0
+    { 0x0C, 0xE0, 0x1F },  // NOP $1FE0
+    { 0xAD, 0xE0, 0x1F }   // LDA $1FE0
   };
-  if(searchForBytes(image, size, signature[0], 3, 1))
-    return true;
-  else
-    return searchForBytes(image, size, signature[1], 3, 1);
+  for(uInt32 i = 0; i < 4; ++i)
+    if(searchForBytes(image, size, signature[i], 3, 1))
+      return true;
+
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -47,7 +47,7 @@ void Kill_LEC_Correct(void)
  * Returns TRUE if frame is good.
  */
 
-int CheckEDC(unsigned char *cd_frame, bool xa_mode)
+int CheckEDC(const unsigned char *cd_frame, bool xa_mode)
 { 
  unsigned int expected_crc, real_crc;
  unsigned int crc_base = xa_mode ? 2072 : 2064;

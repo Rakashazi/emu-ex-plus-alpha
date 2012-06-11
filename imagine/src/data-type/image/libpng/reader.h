@@ -11,6 +11,7 @@ class PixelFormatDesc;
 class Png
 {
 public:
+	constexpr Png() { }
 	CallResult readHeader (Io *stream);
 	CallResult readImage (Io *stream, void* buffer, uint bufferLinePadBytes, const PixelFormatDesc &outFormat);
 	int getWidth ();
@@ -20,8 +21,8 @@ public:
 	const PixelFormatDesc *pixelFormat();
 	void freeImageData();
 private:
-	png_structp png;
-	png_infop info;
+	png_structp png = nullptr;
+	png_infop info = nullptr;
 	//png_infop end;
 	void setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo);
 	static bool supportUncommonConv;

@@ -29,10 +29,20 @@ webos-armv7-release :
 	$(MAKE) -f webos-armv7-release.mk
 $(webOS_armv7ReleaseExec) : webos-armv7-release
 
+webOS_3armv7Exec := $(webOS_targetPath)/bin-debug/3-armv7
+webos-3-armv7 :
+	$(MAKE) -f webos-3-armv7.mk
+$(webOS_3armv7Exec) : webos-3-armv7
+
+webOS_3armv7ReleaseExec := $(webOS_targetPath)/bin-release/3-armv7
+webos-3-armv7-release :
+	$(MAKE) -f webos-3-armv7-release.mk
+$(webOS_3armv7ReleaseExec) : webos-3-armv7-release
+
 endif
 
-webos-build : $(webOS_armv6Exec) $(webOS_armv7Exec)
-webos-release : $(webOS_armv6ReleaseExec) $(webOS_armv7ReleaseExec)
+webos-build : $(webOS_armv6Exec) $(webOS_armv7Exec) $(webOS_3armv7Exec)
+webos-release : $(webOS_armv6ReleaseExec) $(webOS_armv7ReleaseExec) $(webOS_3armv7ReleaseExec)
 
 # metadata
 
@@ -45,15 +55,15 @@ webos-metadata : $(webOS_appInfoJson)
 # IPKs
 
 webOS_ipk := $(webOS_targetPath)/ipk-debug/$(webOS_metadata_id)_$(webOS_metadata_version)_all.ipk
-$(webOS_ipk) : $(webOS_appInfoJson) $(webOS_armv7Exec) $(webOS_armv6Exec) $(webOS_targetPath)/bin-debug
-	cp $(webOS_armv7Exec) $(webOS_armv6Exec) $(webOS_targetPath)/app
+$(webOS_ipk) : $(webOS_appInfoJson) $(webOS_armv7Exec) $(webOS_armv6Exec) $(webOS_3armv7Exec) $(webOS_targetPath)/bin-debug
+	cp $(webOS_armv7Exec) $(webOS_armv6Exec) $(webOS_3armv7Exec) $(webOS_targetPath)/app
 	@mkdir -p $(webOS_targetPath)/ipk-debug
 	palm-package -o $(webOS_targetPath)/ipk-debug $(webOS_targetPath)/app
 webos-ipk : $(webOS_ipk)
 
 webOS_ipkRelease := $(webOS_targetPath)/ipk-release/$(webOS_metadata_id)_$(webOS_metadata_version)_all.ipk
-$(webOS_ipkRelease) : $(webOS_appInfoJson) $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_targetPath)/bin-release
-	cp $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_targetPath)/app
+$(webOS_ipkRelease) : $(webOS_appInfoJson) $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_3armv7ReleaseExec) $(webOS_targetPath)/bin-release
+	cp $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_3armv7ReleaseExec) $(webOS_targetPath)/app
 	@mkdir -p $(webOS_targetPath)/ipk-release
 	palm-package -o $(webOS_targetPath)/ipk-release $(webOS_targetPath)/app
 webos-release-ipk : $(webOS_ipkRelease)
@@ -70,4 +80,5 @@ webos-release-install-only :
 webos-release-ready : 
 	cp $(webOS_ipkRelease) ../releases-bin/webOS/
 
-.PHONY: webos-metadata webos-armv6 webos-armv7 webos-armv6-release webos-armv7-release webos-release webos-ipk webos-release-ipk webos-release-install webos-install webos-release-ready
+.PHONY: webos-metadata webos-armv6 webos-armv7 webos-3-armv7 webos-armv6-release webos-armv7-release webos-3-armv7-release webos-release \
+ webos-ipk webos-release-ipk webos-release-install webos-install webos-release-ready

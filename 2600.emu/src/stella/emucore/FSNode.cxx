@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2250 2011-06-09 14:00:30Z stephena $
+// $Id: FSNode.cxx 2318 2011-12-31 21:56:36Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -86,14 +86,14 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::getDisplayName() const
+const string& FilesystemNode::getDisplayName() const
 {
   assert(_realNode);
   return _realNode->getDisplayName();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::getName() const
+const string& FilesystemNode::getName() const
 {
   assert(_realNode);
   return _realNode->getName();
@@ -122,10 +122,17 @@ FilesystemNode FilesystemNode::getParent() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::getPath(bool fqn) const
+const string& FilesystemNode::getPath() const
 {
   assert(_realNode);
-  return _realNode->getPath(fqn);
+  return _realNode->getPath();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::getRelativePath() const
+{
+  assert(_realNode);
+  return _realNode->getRelativePath();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

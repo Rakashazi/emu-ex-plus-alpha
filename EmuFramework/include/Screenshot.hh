@@ -29,7 +29,7 @@ static int sprintScreenshotFilename(char (&str)[S])
 	iterateTimes(maxNum, i)
 	{
 		snprintf(str, S, "%s/%s.%.3d.png", EmuSystem::gamePath, EmuSystem::gameName, i);
-		if(!Fs::fileExists(str))
+		if(!FsSys::fileExists(str))
 		{
 			num = i;
 			break;

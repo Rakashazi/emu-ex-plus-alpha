@@ -26,7 +26,7 @@
 #include <input/android/private.hh>
 #include <android/window.h>
 #include <dlfcn.h>
-#include "nativeGlue.hh"
+#include "private.hh"
 
 void* android_app_entry(void* param);
 
@@ -63,16 +63,15 @@ static const EGLint attribs32BPP[] =
 
 struct EGLWindow
 {
-	EGLDisplay display;
-	EGLSurface surface;
-	EGLContext context;
-	EGLConfig config;
-	int winFormat;
-	bool gotFormat;
+	EGLDisplay display = EGL_NO_DISPLAY;
+	EGLSurface surface = EGL_NO_SURFACE;
+	EGLContext context = EGL_NO_CONTEXT;
+	EGLConfig config = 0;
+	int winFormat = defaultWinFormat;
+	bool gotFormat = 0;
 	static constexpr int defaultWinFormat = WINDOW_FORMAT_RGB_565;
 
-	constexpr EGLWindow(): display(EGL_NO_DISPLAY), surface(EGL_NO_SURFACE), context(EGL_NO_CONTEXT),
-			config(0), winFormat(defaultWinFormat), gotFormat(0) { }
+	constexpr EGLWindow() { }
 
 	void initEGL()
 	{
@@ -184,10 +183,10 @@ namespace Base
 {
 
 static fbool engineIsInit = 0;
-static JavaInstMethod jGetRotation, postUIThread;
+static JavaInstMethod jGetRotation;
 static jobject jDpy;
 jclass jSurfaceTextureCls;
-JavaInstMethod jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
+JavaInstMethod postUIThread, jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
 static PollWaitTimer timerCallback;
 static bool aHasFocus = 1;
 
@@ -199,7 +198,8 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 {
 	assert(appInstance()->msgwrite);
 	assert(type != MSG_INPUT); // currently all code should use main event loop for input events
-	uint msg[3] = { (shortArg << 16) | type, intArg, intArg2 };
+	uint16 shortArg16 = shortArg;
+	int msg[3] = { (shortArg16 << 16) | type, intArg, intArg2 };
 	logMsg("sending msg type %d with args %d %d %d", msg[0] & 0xFFFF, msg[0] >> 16, msg[1], msg[2]);
 	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
 	{
@@ -228,7 +228,7 @@ void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
 	timerCallback.setCallback(f, ctx, ms);
 }
 
-void addPollEvent2(int fd, PollHandler &handler, uint events)
+void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
 {
 	logMsg("adding fd %d to looper", fd);
 	assert(appInstance()->looper);
@@ -236,7 +236,7 @@ void addPollEvent2(int fd, PollHandler &handler, uint events)
 	assert(ret == 1);
 }
 
-void modPollEvent(int fd, PollHandler &handler, uint events)
+void modPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
 	addPollEvent2(fd, handler, events);
 }
@@ -278,7 +278,7 @@ bool windowIsDrawable()
 }
 
 // runs from activity thread, do not use jEnv
-static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, float xdpi, float ydpi, jint refreshRate, jobject dpy,
+static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
 		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
 		jboolean hasPermanentMenuKey)
 {
@@ -363,7 +363,6 @@ static void configChange(struct android_app* app, jint hardKeyboardState, jint n
 	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
 	setHardKeyboardState((devType == DEV_TYPE_XPERIA_PLAY) ? navState : hardKeyboardState);
 
-	//setOrientationOS(orientation);
 	if(setOrientationOS(orientation) && androidSDK() < 11)
 	{
 		// hack for some Android 2.3 devices that won't return the correct window size
@@ -374,6 +373,7 @@ static void configChange(struct android_app* app, jint hardKeyboardState, jint n
 			{
 				int w = ANativeWindow_getWidth(app->window);
 				int h = ANativeWindow_getHeight(app->window);
+				mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 				resizeEvent(w, h);
 				gfxUpdate = 1;
 				runEngine();
@@ -421,6 +421,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			eglWin.init(app->window);
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
+			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 			logMsg("window init, size %d,%d", w, h);
 			if(!engineIsInit)
 				nativeInit(w, h);
@@ -439,6 +440,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			gfxUpdate = 1;
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
+			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 			logMsg("window gained focus, size %d,%d", w, h);
 			resizeEvent(w, h);
 		}
@@ -447,11 +449,8 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		appFocus(0);
 		bcase APP_CMD_WINDOW_REDRAW_NEEDED:
 		{
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			logMsg("window redraw needed, size %d,%d", w, h);
-			resizeEvent(w, h);
-			if(appState == APP_RUNNING)
+			logMsg("window redraw needed");
+			if(eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
 				runEngine();
@@ -461,9 +460,10 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		{
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
+			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 			logMsg("window resize to %d,%d", w, h);
 			resizeEvent(w, h);
-			if(appState == APP_RUNNING)
+			if(eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
 				runEngine();
@@ -474,8 +474,19 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			var_ref(rect, app->contentRect);
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
+			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 			logMsg("content rect changed to %d,%d %d,%d, window size %d,%d", rect.left, rect.top, rect.right, rect.bottom, w, h);
 			resizeEvent(w, h);
+			if(eglWin.isDrawable())
+			{
+				gfxUpdate = 1;
+				runEngine();
+			}
+		}
+		bcase APP_CMD_LAYOUT_CHANGED:
+		{
+			//logMsg("layout change, visible height %d", visibleScreenY);
+			resizeEvent(newXSize, visibleScreenY);
 			if(appState == APP_RUNNING && eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
@@ -522,6 +533,8 @@ static int getPollTimeout()
 		-1;
 	if(pollTimeout >= 2000)
 		logMsg("will poll for at most %d ms", pollTimeout);
+	/*if(pollTimeout == -1)
+		logMsg("will poll for next event");*/
 	return pollTimeout;
 }
 
@@ -533,6 +546,19 @@ bool hasSurfaceTexture()
 void disableSurfaceTexture()
 {
 	ANativeWindow_fromSurfaceTexture = nullptr;
+}
+
+static void JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
+{
+	assert(height >= 0);
+	if(visibleScreenY == (uint)height)
+		return;
+	logMsg("layout change, view height %d", height);
+	visibleScreenY = height;
+	if(!engineIsInit)
+		return;
+	uint32 cmd = APP_CMD_LAYOUT_CHANGED;
+	write(appInstance()->msgwrite, &cmd, sizeof(cmd));
 }
 
 void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
@@ -584,6 +610,7 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	static JNINativeMethod activityMethods[] =
 	{
 	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;Z)V", (void *)&Base::jEnvConfig},
+	    {"layoutChange", "(I)V", (void *)&Base::layoutChange},
 	};
 
 	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
@@ -644,7 +671,7 @@ void android_main(struct android_app* state)
 	for(;;)
 	{
 		int ident, events, fd;
-		struct PollHandler* source;
+		PollEventDelegate* source;
 		//logMsg("entering looper");
 		while((ident=ALooper_pollAll(getPollTimeout(), &fd, &events, (void**)&source)) >= 0)
 		{
@@ -652,27 +679,30 @@ void android_main(struct android_app* state)
 			switch(ident)
 			{
 				bcase LOOPER_ID_MAIN: process_cmd(state);
-				bcase LOOPER_ID_INPUT: process_input(state);
+				bcase LOOPER_ID_INPUT: if(likely(engineIsInit)) process_input(state);
 				bdefault: // LOOPER_ID_USER
 					assert(source);
-					source->func(source->data, events);
-				break;
+					source->invoke(events);
 			}
 		}
-		//logMsg("out of looper with return %d", ident);
+		if(ident == -4)
+			logMsg("out of looper with error");
 
 		PollWaitTimer::processCallbacks();
 
 		if(!gfxUpdate)
-			logMsg("out of event loop without gfxUpdate, ident %d", ident);
+			logMsg("out of event loop without gfxUpdate, returned %d", ident);
 
-		if(unlikely(appState != APP_RUNNING || !eglWin.isDrawable()))
+		if(unlikely(appState != APP_RUNNING))
 		{
-			logMsg("app gfx update halted");
+			if(gfxUpdate)
+				logMsg("app gfx update halted");
 			gfxUpdate = 0; // halt screen updates
 		}
 		else
 		{
+			if(!eglWin.isDrawable())
+				logMsg("drawing without EGL surface");
 			/*TimeSys prevTime = realTime;
 			realTime.setTimeNow();
 			logMsg("%f since last screen update", double(realTime - prevTime));*/

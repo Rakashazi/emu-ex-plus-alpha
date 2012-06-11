@@ -7,10 +7,7 @@
 struct IControlPad : public BluetoothInputDevice
 {
 public:
-	constexpr IControlPad(): inputBuffer{0}, inputBufferPos(0), player(0),
-		function(FUNC_NONE), prevBtnData{0}, nubBtn{0}
-		{ }
-
+	//constexpr IControlPad() { }
 	enum
 	{
 		FUNC_NONE,
@@ -35,12 +32,12 @@ public:
 	static StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
-	uchar inputBuffer[6];
-	uint inputBufferPos;
-	uint player;
-	int function;
-	uchar prevBtnData[2];
-	bool nubBtn[8];
+	uchar inputBuffer[6] = {0};
+	uint inputBufferPos = 0;
+	uint player = 0;
+	int function = 0;
+	uchar prevBtnData[2] = {0};
+	bool nubBtn[8] = {0};
 	static const int nubDeadzone = 64;
 
 	static uint findFreeDevId();

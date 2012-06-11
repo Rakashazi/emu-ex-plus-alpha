@@ -15,7 +15,7 @@ typedef struct TRANS_PACK {
     Uint8 type;
     struct TRANS_PACK *next;
 } TRANS_PACK;
-TRANS_PACK *tile_trans;
+extern TRANS_PACK *tile_trans;
 
 TRANS_PACK* trans_pack_find(Uint32 tile);
 void trans_pack_open(char *filename);

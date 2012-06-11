@@ -19,6 +19,7 @@ template <class T>
 class NotEquals
 {
 public:
+	constexpr NotEquals() { }
 	friend bool operator!=(const T &lhs, const T &rhs) { return !(lhs == rhs); }
 };
 
@@ -26,6 +27,7 @@ template <class T>
 class Compares
 {
 public:
+	constexpr Compares() { }
 	friend bool operator<=(const T &lhs, const T &rhs) { return !(lhs > rhs); }
 	friend bool operator>=(const T &lhs, const T &rhs) { return !(lhs < rhs); }
 };
@@ -34,6 +36,7 @@ template <class T>
 class Adds
 {
 public:
+	constexpr Adds() { }
 	friend T operator+(const T &v1, const T &v2)
 	{
 		T sum(v1);
@@ -63,6 +66,7 @@ template <class T>
 class Subtracts
 {
 public:
+	constexpr Subtracts() { }
 	friend T operator-(const T &v1, const T &v2)
 	{
 		T diff(v1);
@@ -92,6 +96,7 @@ template <class T>
 class Multiplies
 {
 public:
+	constexpr Multiplies() { }
 	friend T operator*(const T &v1, const T &v2)
 	{
 		T prod(v1);
@@ -121,6 +126,7 @@ template <class T>
 class Divides
 {
 public:
+	constexpr Divides() { }
 	friend T operator/(const T &v1, const T &v2)
 	{
 		T quot(v1);
@@ -149,6 +155,7 @@ public:
 template <class T>
 class Arithmetics : Adds<T>, Subtracts<T>, Multiplies<T>, Divides<T>
 {
+
 };
 
 /*template <class T>

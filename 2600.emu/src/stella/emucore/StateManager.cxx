@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: StateManager.cxx 2343 2012-01-08 16:55:10Z stephena $
 //============================================================================
 
 #include <sstream>
@@ -30,7 +30,7 @@
 
 #include "StateManager.hxx"
 
-#define STATE_HEADER "03030000state"
+#define STATE_HEADER "03050500state"
 #define MOVIE_HEADER "03030000movie"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -294,7 +294,7 @@ bool StateManager::loadState(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool StateManager::saveState(Serializer& out)
 {
-  //try
+  try
   {
     if(&myOSystem->console())
     {
@@ -314,9 +314,9 @@ bool StateManager::saveState(Serializer& out)
       }
     }
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: StateManager::saveState(Serializer&)" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: StateManager::saveState(Serializer&)" << endl << "  " << msg << endl;
   }
   return false;
 }

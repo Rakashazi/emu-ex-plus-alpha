@@ -6,7 +6,7 @@
 class GeomQuadMesh
 {
 public:
-	constexpr GeomQuadMesh(): verts(0), idxs(0), i(0) { }
+	constexpr GeomQuadMesh() { }
 	//CallResult init(VertexPos *q, uint qSize, VertexPos *span, uint extraSpans, VertexColor color, uint blend);
 	CallResult init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color = 0);
 	template <size_t S1, size_t S2>
@@ -32,8 +32,8 @@ public:
 	void setColorTranslucentV(GColor a, uint i);
 	void setPos(GC x, GC y, GC x2, GC y2);
 
-	uint verts;
+	uint verts = 0;
 	Array2D<ColVertex> v;
-	uint idxs;
-	VertexIndex *i;
+	uint idxs = 0;
+	VertexIndex *i = nullptr;
 } ;

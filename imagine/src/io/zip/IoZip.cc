@@ -62,7 +62,7 @@ static long zSeekFunc(voidpf opaque, voidpf stream, uLong offset, int origin)
 static int zCloseFunc(voidpf opaque, voidpf stream)
 {
 	Io *f = (Io*)opaque;
-	f->close();
+	delete f;
 	return 0;
 }
 
@@ -92,7 +92,7 @@ bool IoZip::openZipFile(const char *path)
 	zip = unzOpen2(0, &api);
 	if(!zip)
 	{
-		zipIo->close();
+		delete zipIo;
 		return 0;
 	}
 
@@ -140,7 +140,6 @@ Io* IoZip::open(const char *path, const char *pathInZip)
 	if(unzLocateFile(inst->zip, pathInZip, 1) != UNZ_OK)
 	{
 		logErr("%s not found in zip", pathInZip);
-		inst->zipIo->close();
 		delete inst;
 		return 0;
 	}
@@ -148,7 +147,6 @@ Io* IoZip::open(const char *path, const char *pathInZip)
 	if(!inst->openFileInZip())
 	{
 		logMsg("error opening %s in zip", pathInZip);
-		inst->zipIo->close();
 		delete inst;
 		return 0;
 	}
@@ -159,10 +157,19 @@ Io* IoZip::open(const char *path, const char *pathInZip)
 
 void IoZip::close()
 {
-	unzCloseCurrentFile(zip);
-	unzClose(zip);
+	if(zip)
+	{
+		unzCloseCurrentFile(zip);
+		unzClose(zip); // closes zipIo
+		zip = nullptr;
+		zipIo = nullptr;
+	}
+	else
+	{
+		delete zipIo;
+		zipIo = nullptr;
+	}
 	logMsg("closed file @ %p", this);
-	delete this;
 }
 
 void IoZip::truncate(ulong offset) { }

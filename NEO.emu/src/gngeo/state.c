@@ -84,7 +84,6 @@ void create_state_register(ST_MODULE_TYPE module,const char *reg_name,
     t->size=size;
     t->type=type;
     t->num=num;
-    abort();
 }
 
 void set_pre_save_function(ST_MODULE_TYPE module,void (*func)(void)) {
@@ -96,7 +95,6 @@ void set_post_load_function(ST_MODULE_TYPE module,void (*func)(void)) {
 }
 
 static void *find_data_by_name(ST_MODULE_TYPE module,Uint8 num,char *name) {
-	abort();
     ST_REG *t=st_mod[module].reglist;
     while(t) {
 	if ((!strcmp(name,t->reg_name)) && (t->num==num)) {

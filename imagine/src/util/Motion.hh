@@ -25,12 +25,12 @@ template <class T>
 class Motion
 {
 public:
-	constexpr Motion(): now(0), vel(0), accel(0) { }
+	constexpr Motion() { }
 	//Motion(T now = 0, T vel = 0, T accel = 0) : now(now), vel(vel), accel(accel) { }
 
-	T now;
-	T vel;
-	T accel;
+	T now = 0;
+	T vel = 0;
+	T accel = 0;
 
 	T update()
 	{
@@ -54,11 +54,11 @@ template <class T>
 class TimedMotion : public Motion<T>
 {
 public:
-	constexpr TimedMotion(): start(0), end(0), duration(0), clock(0) { }
-	T start;
-	T end;
-	int duration;
-	int clock;
+	constexpr TimedMotion() { }
+	T start = 0;
+	T end = 0;
+	int duration = 0;
+	int clock = 0;
 	//uchar type;
 	//uchar affectType;
 

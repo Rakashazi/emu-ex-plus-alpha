@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 2270 2011-08-19 14:30:15Z stephena $
+// $Id: Settings.cxx 2401 2012-03-03 00:56:31Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -41,11 +41,11 @@ Settings::Settings(OSystem* osystem)
 
   // OpenGL specific options
   setInternal("gl_filter", "nearest");
-  setInternal("gl_aspectn", "100");
+  setInternal("gl_aspectn", "90");
   setInternal("gl_aspectp", "100");
-  setInternal("gl_fsmax", "false");
+  setInternal("gl_fsmax", "true");
   setInternal("gl_lib", "libGL.so");
-  setInternal("gl_vsync", "false");
+  setInternal("gl_vsync", "true");
   setInternal("gl_vbo", "true");
 
   // Framebuffer-related options
@@ -55,18 +55,9 @@ Settings::Settings(OSystem* osystem)
   setInternal("center", "false");
   setInternal("grabmouse", "true");
   setInternal("palette", "standard");
-  setInternal("colorloss", "false");
+  setInternal("colorloss", "true");
   setInternal("timing", "sleep");
   setInternal("uimessages", "true");
-
-  // TV filter options
-#if 0
-  setInternal("tv_tex", "off");
-  setInternal("tv_bleed", "off");
-  setInternal("tv_noise", "off");
-//  setInternal("tv_curve", "false");  // not yet implemented
-  setInternal("tv_phos", "false");
-#endif
 
   // Sound options
   setInternal("sound", "true");
@@ -79,20 +70,17 @@ Settings::Settings(OSystem* osystem)
   // Input event options
   setInternal("keymap", "");
   setInternal("joymap", "");
-  setInternal("joyaxismap", "");
-  setInternal("joyhatmap", "");
   setInternal("combomap", "");
   setInternal("joydeadzone", "13");
   setInternal("joyallow4", "false");
-  setInternal("usemouse", "true");
+  setInternal("mcontrol", "auto");
   setInternal("dsense", "5");
   setInternal("msense", "7");
-  setInternal("sa1", "left");
-  setInternal("sa2", "right");
+  setInternal("saport", "lr");
   setInternal("ctrlcombo", "true");
 
   // Snapshot options
-  setInternal("ssdir", "");
+  setInternal("snapdir", "");
   setInternal("sssingle", "false");
   setInternal("ss1x", "false");
   setInternal("ssinterval", "2");
@@ -110,7 +98,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("uselauncher", "true");
   setInternal("launcherres", "640x480");
   setInternal("launcherfont", "medium");
-  setInternal("launcherexts", "allfiles");
+  setInternal("launcherexts", "allroms");
   setInternal("romviewer", "0");
   setInternal("lastrom", "");
 
@@ -128,7 +116,6 @@ Settings::Settings(OSystem* osystem)
   setInternal("ramrandom", "true");
   setInternal("avoxport", "");
   setInternal("stats", "false");
-  setInternal("audiofirst", "true");
   setInternal("fastscbios", "false");
   setExternal("romloadcount", "0");
   setExternal("maxres", "");
@@ -290,6 +277,13 @@ void Settings::validate()
   if(i < 0)        setInternal("joydeadzone", "0");
   else if(i > 29)  setInternal("joydeadzone", "29");
 
+  s = getString("mcontrol");
+  if(s != "never" && s != "auto" && s != "rom")
+  setInternal("mcontrol", "auto");
+
+  if(i < 1)        setInternal("dsense", "1");
+  else if(i > 10)  setInternal("dsense", "10");
+
   i = getInt("dsense");
   if(i < 1)        setInternal("dsense", "1");
   else if(i > 10)  setInternal("dsense", "10");
@@ -313,18 +307,6 @@ void Settings::validate()
   i = getInt("romviewer");
   if(i < 0)       setInternal("romviewer", "0");
   else if(i > 2)  setInternal("romviewer", "2");
-
-  s = getString("tv_tex");
-  if(s != "normal" && s != "stag")
-    setInternal("tv_tex", "off");
-
-  s = getString("tv_bleed");
-  if(s != "low" && s != "medium" && s != "high")
-    setInternal("tv_bleed", "off");
-
-  s = getString("tv_noise");
-  if(s != "low" && s != "medium" && s != "high")
-    setInternal("tv_noise", "off");
 
   i = getInt("loglevel");
   if(i < 0 || i > 2)
@@ -357,21 +339,6 @@ void Settings::validate()
     << "  -gl_fsmax     <1|0>          Stretch GL image in fullscreen emulation mode\n"
     << "  -gl_vsync     <1|0>          Enable 'synchronize to vertical blank interrupt'\n"
     << "  -gl_vbo       <1|0>          Enable 'vertex buffer objects'\n"
-#if 0
-    << "  -gl_accel     <1|0>          Enable SDL_GL_ACCELERATED_VISUAL\n"
-    << "  -tv_tex       <off|type>     OpenGL TV texturing, type is one of the following:\n"
-    << "                 normal         Aligned in a grid\n"
-    << "                 stag           Aligned in a staggered grid\n"
-    << "  -tv_bleed     <off|type>     OpenGL TV color bleed, type is one of the following:\n"
-    << "                 low            \n"
-    << "                 medium         \n"
-    << "                 high           \n"
-    << "  -tv_noise     <off|type>     OpenGL TV RF noise emulation, type is one of the following:\n"
-    << "                 low            \n"
-    << "                 medium         \n"
-    << "                 high           \n"
-    << "  -tv_phos      <1|0>          OpenGL TV phosphor burn-off\n"
-#endif
     << endl
   #endif
     << "  -tia_filter   <filter>       Use the specified filter in emulation mode\n"
@@ -401,17 +368,16 @@ void Settings::validate()
     << "  -logtoconsole <1|0>          Log output to console/commandline\n"
     << "  -joydeadzone  <number>       Sets 'deadzone' area for analog joysticks (0-29)\n"
     << "  -joyallow4    <1|0>          Allow all 4 directions on a joystick to be pressed simultaneously\n"
-    << "  -usemouse     <1|0>          Use mouse for various controllers (paddle, driving, etc)\n"
+    << "  -mcontrol     <never|auto|   Use mouse axes as specified controller type (see manual)\n"
+    << "                 rom>\n"
     << "  -dsense       <number>       Sensitivity of digital emulated paddle movement (1-10)\n"
     << "  -msense       <number>       Sensitivity of mouse emulated paddle movement (1-15)\n"
-    << "  -sa1          <left|right>   Stelladaptor 1 emulates specified joystick port\n"
-    << "  -sa2          <left|right>   Stelladaptor 2 emulates specified joystick port\n"
+    << "  -saport       <lr|rl>        How to assign virtual ports to multiple Stelladaptor/2600-daptors\n"
     << "  -ctrlcombo    <1|0>          Use key combos involving the Control key (Control-Q for quit may be disabled!)\n"
     << "  -autoslot     <1|0>          Automatically switch to next save slot when state saving\n"
     << "  -stats        <1|0>          Overlay console info during emulation\n"
-    << "  -audiofirst   <1|0>          Initial audio before video (required for some ATI video cards)\n"
     << "  -fastscbios   <1|0>          Disable Supercharger BIOS progress loading bars\n"
-    << "  -ssdir        <path>         The directory to save snapshot files to\n"
+    << "  -snapdir      <path>         The directory to save snapshot files to\n"
     << "  -sssingle     <1|0>          Generate single snapshot instead of many\n"
     << "  -ss1x         <1|0>          Generate TIA snapshot in 1x mode (ignore scaling/effects)\n"
     << "  -ssinterval   <number        Number of seconds between snapshots in continuous snapshot mode\n"
@@ -574,7 +540,8 @@ void Settings::setString(const string& key, const string& value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::getSize(const string& key, int& x, int& y) const
 {
-  char c;
+	char c = '\0';
+	x = y = -1;
   string size = getString(key);
   istringstream buf(size);
   buf >> x >> c >> y;

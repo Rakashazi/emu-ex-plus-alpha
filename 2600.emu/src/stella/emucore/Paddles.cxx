@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Paddles.cxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Paddles.cxx 2405 2012-03-04 19:20:29Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,8 +24,11 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Paddles::Paddles(Jack jack, const Event& event, const System& system,
-                 bool swapport, bool swapaxis, bool swapdir)
-  : Controller(jack, event, system, Controller::Paddles)
+                 bool swappaddle, bool swapaxis, bool swapdir)
+  : Controller(jack, event, system, Controller::Paddles),
+    myMPaddleID(-1),
+    myMPaddleIDX(-1),
+    myMPaddleIDY(-1)
 {
   // The following logic reflects that mapping paddles to different
   // devices can be extremely complex
@@ -43,15 +46,15 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
   // Consider whether this is the left or right port
   if(myJack == Left)
   {
-    if(!swapport)  // First paddle is 0, second is 1
+    if(!swappaddle)  // First paddle is 0, second is 1
     {
       // These aren't affected by changes in axis orientation
       myP0AxisValue  = Event::SALeftAxis0Value;
       myP1AxisValue  = Event::SALeftAxis1Value;
       myP0FireEvent1 = Event::PaddleZeroFire;
-      myP0FireEvent2 = Event::JoystickZeroFire1;
+      myP0FireEvent2 = Event::JoystickZeroFire;
       myP1FireEvent1 = Event::PaddleOneFire;
-      myP1FireEvent2 = Event::JoystickZeroFire3;
+      myP1FireEvent2 = Event::JoystickZeroFire9;
 
       // Direction of movement is swapped
       // That is, moving in a certain direction on an axis can
@@ -85,9 +88,9 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
       myP0AxisValue  = Event::SALeftAxis1Value;
       myP1AxisValue  = Event::SALeftAxis0Value;
       myP0FireEvent1 = Event::PaddleOneFire;
-      myP0FireEvent2 = Event::JoystickZeroFire3;
+      myP0FireEvent2 = Event::JoystickZeroFire9;
       myP1FireEvent1 = Event::PaddleZeroFire;
-      myP1FireEvent2 = Event::JoystickZeroFire1;
+      myP1FireEvent2 = Event::JoystickZeroFire;
 
       // Direction of movement is swapped
       // That is, moving in a certain direction on an axis can
@@ -118,15 +121,15 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
   }
   else    // Jack is right port
   {
-    if(!swapport)  // First paddle is 2, second is 3
+    if(!swappaddle)  // First paddle is 2, second is 3
     {
       // These aren't affected by changes in axis orientation
       myP0AxisValue  = Event::SARightAxis0Value;
       myP1AxisValue  = Event::SARightAxis1Value;
       myP0FireEvent1 = Event::PaddleTwoFire;
-      myP0FireEvent2 = Event::JoystickOneFire1;
+      myP0FireEvent2 = Event::JoystickOneFire;
       myP1FireEvent1 = Event::PaddleThreeFire;
-      myP1FireEvent2 = Event::JoystickOneFire3;
+      myP1FireEvent2 = Event::JoystickOneFire9;
 
       // Direction of movement is swapped
       // That is, moving in a certain direction on an axis can
@@ -160,9 +163,9 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
       myP0AxisValue  = Event::SARightAxis1Value;
       myP1AxisValue  = Event::SARightAxis0Value;
       myP0FireEvent1 = Event::PaddleThreeFire;
-      myP0FireEvent2 = Event::JoystickOneFire3;
+      myP0FireEvent2 = Event::JoystickOneFire9;
       myP1FireEvent1 = Event::PaddleTwoFire;
-      myP1FireEvent2 = Event::JoystickOneFire1;
+      myP1FireEvent2 = Event::JoystickOneFire;
 
       // Direction of movement is swapped
       // That is, moving in a certain direction on an axis can
@@ -281,18 +284,45 @@ void Paddles::update()
 
   // Mouse motion events give relative movement
   // That is, they're only relevant if they're non-zero
-  if((myJack == Left && ourControlNum <= 1) ||
-     (myJack == Right && ourControlNum > 1))
+  if(myMPaddleID > -1)
   {
-    int num = ourControlNum & 0x01;
-    myCharge[num] -=
+    // We're in auto mode, where a single axis is used for one paddle only
+    myCharge[myMPaddleID] -=
         ((myEvent.get(myAxisMouseMotion) >> 1) * _MOUSE_SENSITIVITY);
-    if(myCharge[num] < TRIGMIN)
-      myCharge[num] = TRIGMIN;
-    if(myCharge[num] > TRIGMAX)
-      myCharge[num] = TRIGMAX;
-    if(myEvent.get(Event::MouseButtonValue))
-      myDigitalPinState[ourButtonPin[num]] = false;
+    if(myCharge[myMPaddleID] < TRIGMIN)
+      myCharge[myMPaddleID] = TRIGMIN;
+    if(myCharge[myMPaddleID] > TRIGMAX)
+      myCharge[myMPaddleID] = TRIGMAX;
+    if(myEvent.get(Event::MouseButtonLeftValue) ||
+       myEvent.get(Event::MouseButtonRightValue))
+      myDigitalPinState[ourButtonPin[myMPaddleID]] = false;
+  }
+  else
+  {
+    // Test for 'untied' mouse axis mode, where each axis is potentially
+    // mapped to a separate paddle
+    if(myMPaddleIDX > -1)
+    {
+      myCharge[myMPaddleIDX] -=
+          ((myEvent.get(Event::MouseAxisXValue) >> 1) * _MOUSE_SENSITIVITY);
+      if(myCharge[myMPaddleIDX] < TRIGMIN)
+        myCharge[myMPaddleIDX] = TRIGMIN;
+      if(myCharge[myMPaddleIDX] > TRIGMAX)
+        myCharge[myMPaddleIDX] = TRIGMAX;
+      if(myEvent.get(Event::MouseButtonLeftValue))
+        myDigitalPinState[ourButtonPin[myMPaddleIDX]] = false;
+    }
+    if(myMPaddleIDY > -1)
+    {
+      myCharge[myMPaddleIDY] -=
+          ((myEvent.get(Event::MouseAxisYValue) >> 1) * _MOUSE_SENSITIVITY);
+      if(myCharge[myMPaddleIDY] < TRIGMIN)
+        myCharge[myMPaddleIDY] = TRIGMIN;
+      if(myCharge[myMPaddleIDY] > TRIGMAX)
+        myCharge[myMPaddleIDY] = TRIGMAX;
+      if(myEvent.get(Event::MouseButtonRightValue))
+        myDigitalPinState[ourButtonPin[myMPaddleIDY]] = false;
+    }
   }
 
   // Finally, consider digital input, where movement happens
@@ -348,6 +378,58 @@ void Paddles::update()
 
   myLastCharge[1] = myCharge[1];
   myLastCharge[0] = myCharge[0];
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Paddles::setMouseControl(
+    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+{
+  // In 'automatic' mode, both axes on the mouse map to a single paddle,
+  // and the paddle axis and direction settings are taken into account
+  // This overrides any other mode
+  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  {
+    myMPaddleID = ((myJack == Left && (ctrlID == 0 || ctrlID == 1)) ||
+                   (myJack == Right && (ctrlID == 2 || ctrlID == 3))
+                  ) ? ctrlID & 0x01 : -1;
+    myMPaddleIDX = myMPaddleIDY = -1;
+  }
+  else
+  {
+    // The following is somewhat complex, but we need to pre-process as much
+    // as possible, so that ::update() can run quickly
+    myMPaddleID = -1;
+    if(myJack == Left)
+    {
+      switch(xaxis)
+      {
+        case MouseControl::Paddle0:  myMPaddleIDX = 0;  break;
+        case MouseControl::Paddle1:  myMPaddleIDX = 1;  break;
+        default:                     myMPaddleIDX = -1; break;
+      }
+      switch(yaxis)
+      {
+        case MouseControl::Paddle0:  myMPaddleIDY = 0;  break;
+        case MouseControl::Paddle1:  myMPaddleIDY = 1;  break;
+        default:                     myMPaddleIDY = -1; break;
+      }
+    }
+    else  // myJack == Right
+    {
+      switch(xaxis)
+      {
+        case MouseControl::Paddle2:  myMPaddleIDX = 0;  break;
+        case MouseControl::Paddle3:  myMPaddleIDX = 1;  break;
+        default:                     myMPaddleIDX = -1; break;
+      }
+      switch(yaxis)
+      {
+        case MouseControl::Paddle2:  myMPaddleIDY = 0;  break;
+        case MouseControl::Paddle3:  myMPaddleIDY = 1;  break;
+        default:                     myMPaddleIDY = -1; break;
+      }
+    }
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

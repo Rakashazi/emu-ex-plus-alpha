@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Sound.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: Sound.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef SOUND_HXX
@@ -30,7 +30,7 @@ class OSystem;
   It has no functionality whatsoever.
 
   @author Stephen Anthony
-  @version $Id: Sound.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: Sound.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class Sound : public Serializable
 {
@@ -88,13 +88,6 @@ class Sound : public Serializable
       device can be started again using the ::open() method.
     */
     virtual void close() = 0;
-
-    /**
-      Return true iff the sound device was successfully initialized.
-
-      @return true iff the sound device was successfully initialized.
-    */
-    virtual bool isSuccessfullyInitialized() const = 0;
 
     /**
       Set the mute state of the sound object.  While muted no sound is played.

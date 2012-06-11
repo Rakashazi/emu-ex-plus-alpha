@@ -16,6 +16,7 @@
 #define thisModuleName "fsPosix"
 #include <stdlib.h>
 #include <logger/interface.h>
+#include <base/Base.hh>
 #include <util/strings.h>
 #include <unistd.h>
 #include <errno.h>
@@ -365,6 +366,26 @@ CallResult FsPosix::rename(const char *oldname, const char *newname)
 		}
 	}
 	logMsg("renamed %s to %s", oldname, newname);
+	return OK;
+}
+
+CallResult FsPosix::changeToAppDir(const char *launchCmd)
+{
+	char path[strlen(launchCmd)+1];
+	logMsg("app called with cmd %s", launchCmd);
+	strcpy(path, launchCmd);
+	dirNameInPlace(path);
+	if(chdir(path) != 0)
+	{
+		logErr("error changing working directory to %s", path);
+		return INVALID_PARAMETER;
+	}
+	//logMsg("changed working directory to %s", path);
+	if(!Base::appPath)
+	{
+		Base::appPath = string_dup(workDir());
+		logMsg("set app dir to %s", Base::appPath);
+	}
 	return OK;
 }
 

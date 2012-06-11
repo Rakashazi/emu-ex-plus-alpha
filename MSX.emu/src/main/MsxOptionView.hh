@@ -72,7 +72,7 @@ struct InstallMSXSystem
 			snprintf(pathTemp, sizeof(pathTemp), "%s/Machines/%s/%s",
 					machineBasePath, destDir[e_i], strstr(e, "config") ? "config.ini" : e);
 			CallResult ret = copyIoToPath(src, pathTemp);
-			src->close();
+			delete src;
 			if(ret != OK)
 			{
 				popup.printf(4, 1, "Can't write file:\n%s", e);
@@ -149,7 +149,7 @@ private:
 			{
 				FsSys::cPath configPath;
 				snprintf(configPath, sizeof(configPath), "%s/%s/config.ini", machinePath, f.entryFilename(i));
-				if(!Fs::fileExists(configPath))
+				if(!FsSys::fileExists(configPath))
 				{
 					logMsg("%s doesn't exist", configPath);
 					continue;

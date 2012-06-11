@@ -70,14 +70,13 @@ struct VertexPOD
 class Vertex : public VertexPOD, public VertexInfo
 {
 public:
-	constexpr Vertex(): VertexPOD() { }
-	Vertex(VertexPos x, VertexPos y)
-	{
-		this->x = x;
-		this->y = y;
-	}
+	Vertex() = default;
+	Vertex(VertexPos x, VertexPos y):
+		VertexPOD{x, y} { }
 	typedef VertexPOD POD;
 };
+
+static_assertIsPod(Vertex);
 
 struct ColVertexPOD
 {
@@ -88,17 +87,15 @@ struct ColVertexPOD
 class ColVertex : public ColVertexPOD, public VertexInfo
 {
 public:
-	constexpr ColVertex(): ColVertexPOD() { }
-	ColVertex(VertexPos x, VertexPos y, uint color = 0)
-	{
-		this->x = x;
-		this->y = y;
-		this->color = color;
-	}
+	ColVertex() = default;
+	constexpr ColVertex(VertexPos x, VertexPos y, uint color = 0):
+		ColVertexPOD{x, y, color} { }
 	typedef ColVertexPOD POD;
 	static const bool hasColor = 1;
 	static const uint colorOffset = offsetof(ColVertexPOD, color);
 };
+
+static_assertIsPod(ColVertex);
 
 struct TexVertexPOD
 {
@@ -109,41 +106,34 @@ struct TexVertexPOD
 class TexVertex : public TexVertexPOD, public VertexInfo
 {
 public:
-	constexpr TexVertex(): TexVertexPOD() { }
-	TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0)
-	{
-		this->x = x;
-		this->y = y;
-		this->u = u;
-		this->v = v;
-	}
+	TexVertex() = default;
+	constexpr TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0):
+		TexVertexPOD{x, y, u, v} { }
 	typedef TexVertexPOD POD;
 	static const bool hasTexture = 1;
 	static const uint textureOffset = offsetof(TexVertexPOD, u);
 };
 
+static_assertIsPod(TexVertex);
+
 struct ColTexVertexPOD
 {
-	VertexPosPOD x,y;
-	TextureCoordinatePOD u,v;
+	VertexPosPOD x, y;
+	TextureCoordinatePOD u, v;
 	uint color;
 };
 
 class ColTexVertex : public ColTexVertexPOD, public VertexInfo
 {
 public:
-	constexpr ColTexVertex(): ColTexVertexPOD() { }
-	ColTexVertex(VertexPos x, VertexPos y, uint color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0)
-	{
-		this->x = x;
-		this->y = y;
-		this->color = color;
-		this->u = u;
-		this->v = v;
-	}
+	ColTexVertex() = default;
+	constexpr ColTexVertex(VertexPos x, VertexPos y, uint color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
+		ColTexVertexPOD{x, y, u, v, color} { }
 	typedef ColTexVertexPOD POD;
 	static const bool hasColor = 1;
 	static const uint colorOffset = offsetof(ColTexVertexPOD, color);
 	static const bool hasTexture = 1;
 	static const uint textureOffset = offsetof(ColTexVertexPOD, u);
 };
+
+static_assertIsPod(ColTexVertex);

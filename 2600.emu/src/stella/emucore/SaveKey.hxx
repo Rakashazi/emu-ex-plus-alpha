@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SaveKey.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: SaveKey.hxx 2353 2012-01-13 21:13:10Z stephena $
 //============================================================================
 
 #ifndef SAVEKEY_HXX
@@ -32,7 +32,7 @@ class MT24LC256;
   driver code.
 
   @author  Stephen Anthony
-  @version $Id: SaveKey.hxx 2232 2011-05-24 16:04:48Z stephena $
+  @version $Id: SaveKey.hxx 2353 2012-01-13 21:13:10Z stephena $
 */
 class SaveKey : public Controller
 {

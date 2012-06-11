@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: NullDev.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: NullDev.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef NULLDEVICE_HXX
@@ -31,7 +31,7 @@ class System;
   holes in the address space (i.e. no real device attached). 
  
   @author  Bradford W. Mott
-  @version $Id: NullDev.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: NullDev.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class NullDevice : public Device
 {

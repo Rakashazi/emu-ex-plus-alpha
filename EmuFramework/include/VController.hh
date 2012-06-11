@@ -30,18 +30,18 @@ extern BasicByteOption optionVibrateOnPush;
 class VControllerDPad
 {
 public:
-	constexpr VControllerDPad(): deadzone(0), diagonalSensitivity(0), visualizeBounds(0) { }
+	constexpr VControllerDPad() { }
 	Area padBase;
 	Rect2<int> padArea;
-	int deadzone;
-	float diagonalSensitivity;
+	int deadzone = 0;
+	float diagonalSensitivity = 0;
 	GfxSprite spr;
 	_2DOrigin origin;
 
 	GfxBufferImage mapImg;
 	Pixmap mapPix;
 	GfxSprite mapSpr;
-	fbool visualizeBounds;
+	fbool visualizeBounds = 0;
 
 	void init();
 	void setImg(ResourceImage *dpadR, GC texHeight);

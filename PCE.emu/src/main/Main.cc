@@ -77,12 +77,9 @@ KeyCategory category[categories] =
 
 BasicByteOption optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::cPath sysCardPath = "";
-static PathOption<CFGKEY_SYSCARD_PATH> optionSysCardPath;
+static PathOption<CFGKEY_SYSCARD_PATH> optionSysCardPath(sysCardPath, sizeof(sysCardPath), "");
 
-void EmuSystem::initOptions()
-{
-	optionSysCardPath.init(sysCardPath, sizeof(sysCardPath), "");
-}
+void EmuSystem::initOptions() { }
 
 extern char MDFN_cdErrorStr[256];
 
@@ -179,8 +176,7 @@ void EmuSystem::writeConfig(Io *io)
 }
 
 static EmulateSpecStruct espec;
-
-static int cdLoaded = 0;
+static std::vector<CDIF *> CDInterfaces;
 
 #ifndef CONFIG_BASE_PS3
 	#define USE_PIX_RGB565
@@ -277,21 +273,14 @@ void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char
 	snprintf(str, size, "%s/%s.%s.nc%c", gamePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
 }
 
-/*bool EmuSystem::stateExists(int slot)
-{
-	char ext[] = { "nc0" };
-	ext[2] = saveSlotChar(slot);
-	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
-	return Fs::fileExists(statePath.c_str());
-}*/
-
 void EmuSystem::closeSystem()
 {
 	emuSys->CloseGame();
-	if(cdLoaded)
+	if(CDInterfaces.size())
 	{
-		CDIF_Close();
-		cdLoaded = 0;
+		assert(CDInterfaces.size() == 1);
+		delete CDInterfaces[0];
+		CDInterfaces.clear();
 	}
 }
 
@@ -300,7 +289,7 @@ static void writeCDMD5()
 	CD_TOC toc;
 	md5_context layout_md5;
 
-	CDIF_ReadTOC(&toc);
+	CDInterfaces[0]->ReadTOC(&toc);
 
 	layout_md5.starts();
 
@@ -333,7 +322,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	#endif
 	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", FsSys::workDir(), path);
 	logMsg("full game path: %s", fullGamePath);
-	//GetFileBase(fullPath);
 	string_copyUpToLastCharInstance(gameName, path, '.');
 	logMsg("set game name: %s", gameName);
 
@@ -359,23 +347,22 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	}
 	else if(isCDExtension(path))
 	{
-		if(!strlen(sysCardPath) || !Fs::fileExists(sysCardPath))
+		if(!strlen(sysCardPath) || !FsSys::fileExists(sysCardPath))
 		{
 			popup.printf(3, 1, "No System Card Set");
 			goto FAIL;
 		}
-		MDFN_cdErrorStr[0] = 0;
-		if(!CDIF_Open(fullGamePath))
+		try
 		{
-			if(MDFN_cdErrorStr[0])
-				popup.printf(4, 1, "%s", MDFN_cdErrorStr);
-			else
-				popup.printf(3, 1, "Error loading CUE/TOC");
+			CDInterfaces.push_back(new CDIF(fullGamePath));
+		}
+		catch(std::exception &e)
+		{
+			popup.printf(4, 1, "%s", e.what());
 			goto FAIL;
 		}
-		cdLoaded = 1;
 		writeCDMD5(); // calc MD5s for CDs or mednafen will leave the previous hucard's MD5 in memory
-		if(!emuSys->LoadCD())
+		if(!emuSys->LoadCD(&CDInterfaces))
 		{
 			popup.printf(3, 1, "Error loading CD");
 			goto FAIL;
@@ -431,10 +418,11 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	return 1;
 
 	FAIL:
-	if(cdLoaded)
+	if(CDInterfaces.size())
 	{
-		CDIF_Close();
-		cdLoaded = 0;
+		assert(CDInterfaces.size() == 1);
+		delete CDInterfaces[0];
+		CDInterfaces.clear();
 	}
 	strcpy(gameName, "");
 	return 0;
@@ -640,7 +628,7 @@ int EmuSystem::loadState()
 	char ext[] = { "nc0" };
 	ext[2] = saveSlotChar(saveStateSlot);
 	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
-	if(Fs::fileExists(statePath.c_str()))
+	if(FsSys::fileExists(statePath.c_str()))
 	{
 		logMsg("loading state %s", statePath.c_str());
 		if(!MDFNI_LoadState(statePath.c_str(), 0))

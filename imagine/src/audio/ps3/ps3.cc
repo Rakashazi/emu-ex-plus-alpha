@@ -24,8 +24,8 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat = { 48000, &SampleFormats::s16, 2 };
-PcmFormat pcmFormat = { 0 };
+PcmFormat preferredPcmFormat { 48000, &SampleFormats::s16, 2 };
+PcmFormat pcmFormat;
 static uint32_t port;
 static float *portBuffer;
 static sys_addr_t readIndexAddr;
@@ -37,8 +37,8 @@ static const uint maxBlockBytes = 256*4;
 
 CallResult openPcm(const PcmFormat &format)
 {
-	cellAudioPortOpen(&(CellAudioPortParam){ CELL_AUDIO_PORT_2CH, blocks == 16 ? CELL_AUDIO_BLOCK_16 : CELL_AUDIO_BLOCK_8,
-			0, 0 }, &port);
+	CellAudioPortParam param { CELL_AUDIO_PORT_2CH, blocks == 16 ? CELL_AUDIO_BLOCK_16 : CELL_AUDIO_BLOCK_8, 0, 0 };
+	cellAudioPortOpen(&param, &port);
 
 	CellAudioPortConfig config;
 	cellAudioGetPortConfig(port, &config);

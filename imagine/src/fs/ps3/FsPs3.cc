@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <cell/cell_fs.h>
+#include <meta.h>
 
 static uint cellFsTypeToFsType(uint8_t type)
 {
@@ -41,7 +42,7 @@ static uint cellFsTypeToFsType(uint8_t type)
 CallResult FsPs3::openDir (const char* path, uint flags, FsDirFilterFunc keepFile, FsDirSortFunc s)
 {
 	cPath aPath;
-	Fs::makePathAbs(path, aPath, sizeof(aPath));
+	makePathAbs(path, aPath, sizeof(aPath));
 	logMsg("opening directory %s, converted to %s", path, aPath);
 
 	if(entry != 0)
@@ -96,7 +97,7 @@ void FsPs3::closeDir ()
 	entries = 0;
 }
 
-const char *FsPs3::entryFilename (uint index)
+const char *FsPs3::entryFilename (uint index) const
 {
 	return entry[index].d_name;
 }
@@ -109,12 +110,10 @@ uint FsPs3::numEntries () const
 char FsPs3::workPath[CELL_FS_MAX_MP_LENGTH + CELL_FS_MAX_FS_PATH_LENGTH] = { 0 };
 static char baseProductPath[CELL_FS_MAX_FS_PATH_LENGTH];
 
-extern const char *ps3_productCode;
-
 void FsPs3::initWorkDir()
 {
-	assert(strlen(ps3_productCode) == 9);
-	sprintf(workPath, "/dev_hdd0/game/%s/USRDIR", ps3_productCode);
+	assert(strlen(CONFIG_PS3_PRODUCT_ID) == 9);
+	strcpy(workPath, "/dev_hdd0/game/" CONFIG_PS3_PRODUCT_ID "/USRDIR");
 	logMsg("init work path to %s", workPath);
 	strcpy(baseProductPath, workPath);
 	Base::appPath = baseProductPath;
@@ -130,7 +129,7 @@ char *FsPs3::workDir()
 int FsPs3::fileType(const char *path)
 {
 	cPath aPath;
-	Fs::makePathAbs(path, aPath, sizeof(aPath));
+	makePathAbs(path, aPath, sizeof(aPath));
 
 	struct stat s;
 	if(stat(aPath, &s) == 0)
@@ -144,7 +143,7 @@ int FsPs3::fileType(const char *path)
 int FsPs3::chdir(const char *dir)
 {
 	cPath aDir;
-	Fs::makePathAbs(dir, aDir, sizeof(aDir));
+	makePathAbs(dir, aDir, sizeof(aDir));
 	strcpy(workPath, aDir);
 	logMsg("set working dir: %s", workPath);
 	return 0;
@@ -153,6 +152,34 @@ int FsPs3::chdir(const char *dir)
 void FsPs3::remove(const char *file)
 {
 	cellFsUnlink(file);
+}
+
+void FsPs3::makePathAbs(const char *path, char *outPath, size_t size)
+{
+	// TODO: implement more complex cases and error checking
+	assert(workDir()[0] == '/');
+	logMsg("work dir %s", workDir());
+	if(path[0] == '/')
+	{
+		strcpy(outPath, path);
+	}
+	else if(string_equal(path, "."))
+	{
+		strcpy(outPath, workDir());
+	}
+	else if(string_equal(path, ".."))
+	{
+		char *cutoff = strrchr(workDir(), '/');
+		size_t copySize = cutoff - workDir();
+		if(cutoff == workDir())
+			copySize = 1; // at root
+		memcpy(outPath, workDir(), copySize);
+		outPath[copySize] = 0;
+	}
+	else //assume all other paths are relative and append workDir
+	{
+		sprintf(outPath, "%s/%s", strlen(workDir()) > 1 ? workDir() : "", path);
+	}
 }
 
 #undef thisModuleName

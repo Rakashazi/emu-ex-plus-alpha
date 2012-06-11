@@ -81,6 +81,103 @@ static bool IsAbsolutePath(const std::string &path)
  return(IsAbsolutePath(path.c_str()));
 }
 
+bool MDFN_IsFIROPSafe(const std::string &path)
+{
+ // We could make this more OS-specific, but it shouldn't hurt to try to weed out usage of characters that are path
+ // separators in one OS but not in another, and we'd also run more of a risk of missing a special path separator case
+ // in some OS.
+
+ if(!MDFN_GetSettingB("filesys.untrusted_fip_check"))
+  return(true);
+
+ if(path.find('\0') != string::npos)
+  return(false);
+
+ if(path.find(':') != string::npos)
+  return(false);
+
+ if(path.find('\\') != string::npos)
+  return(false);
+
+ if(path.find('/') != string::npos)
+  return(false);
+
+ return(true);
+}
+
+void MDFN_GetFilePathComponents(const std::string &file_path, std::string *dir_path_out, std::string *file_base_out, std::string *file_ext_out)
+{
+ size_t final_ds;		// in file_path
+ string file_name;
+ size_t fn_final_dot;		// in local var file_name
+ // Temporary output:
+ string dir_path, file_base, file_ext;
+
+#if PSS_STYLE==4
+ final_ds = file_path.find_last_of(':');
+#elif PSS_STYLE==1
+ final_ds = file_path.find_last_of('/');
+#else
+ final_ds = file_path.find_last_of('\\');
+
+ #if PSS_STYLE!=3
+  {
+   size_t alt_final_ds = file_path.find_last_of('/');
+
+   if(final_ds == string::npos || (alt_final_ds != string::npos && alt_final_ds > final_ds))
+    final_ds = alt_final_ds;
+  }
+ #endif
+#endif
+
+ if(final_ds == string::npos)
+ {
+  dir_path = string(".");
+  file_name = file_path;
+ }
+ else
+ {
+  dir_path = file_path.substr(0, final_ds);
+  file_name = file_path.substr(final_ds + 1);
+ }
+
+ fn_final_dot = file_name.find_last_of('.');
+
+ if(fn_final_dot != string::npos)
+ {
+  file_base = file_name.substr(0, fn_final_dot);
+  file_ext = file_name.substr(fn_final_dot);
+ }
+ else
+ {
+  file_base = file_name;
+  file_ext = string("");
+ }
+
+ if(dir_path_out)
+  *dir_path_out = dir_path;
+
+ if(file_base_out)
+  *file_base_out = file_base;
+
+ if(file_ext_out)
+  *file_ext_out = file_ext;
+}
+
+std::string MDFN_EvalFIP(const std::string &dir_path, const std::string &rel_path, bool skip_safety_check)
+{
+ if(!skip_safety_check && !MDFN_IsFIROPSafe(rel_path))
+  throw MDFN_Error(0, _("Referenced path \"%s\" is potentially unsafe.  See \"filesys.untrusted_fip_check\" setting.\n"), rel_path.c_str());
+
+ if(IsAbsolutePath(rel_path.c_str()))
+  return(rel_path);
+ else
+ {
+  return(dir_path + std::string(PSS) + rel_path);
+ }
+}
+
+
 typedef std::map<char, std::string> FSMap;
 
 static std::string EvalPathFS(const std::string &fstring, /*const (won't work because entry created if char doesn't exist) */ FSMap &fmap)
@@ -138,7 +235,7 @@ static void CreateMissingDirs(const char *path)
      tmpbuf[s - path] = 0;
      strncpy(tmpbuf, path, s - path);
 
-     MDFN_printf(tmpbuf);
+     puts(tmpbuf);
      //MDFN_mkdir(tmpbuf, S_IRWXU);
     }
    }
@@ -151,6 +248,7 @@ static void CreateMissingDirs(const char *path)
 }
 #endif
 
+#if 0
 std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 {
  char tmp_path[4096];
@@ -216,7 +314,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
                       {
 		       dir = MDFN_GetSettingS("filesys.path_state");
                        fstring = MDFN_GetSettingS("filesys.fname_state");
-		       fmap['x'] = std::string(cd1);
+		       fmap['x'] = "mcs";
                       }
                       else if(type == MDFNMKF_SAV)
                       {
@@ -300,7 +398,10 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		    }
                     break;
 
-  case MDFNMKF_AUX: trio_snprintf(tmp_path, 4096, "%s"PSS"%s", FileBaseDirectory.c_str(), (char *)cd1);
+  case MDFNMKF_AUX: if(IsAbsolutePath(cd1))
+		     trio_snprintf(tmp_path, 4096, "%s", (char *)cd1);
+		    else
+		     trio_snprintf(tmp_path, 4096, "%s"PSS"%s", FileBaseDirectory.c_str(), (char *)cd1);
 		    break;
 
   case MDFNMKF_IPS:  trio_snprintf(tmp_path, 4096, "%s"PSS"%s%s.ips", FileBaseDirectory.c_str(), FileBase.c_str(), FileExt.c_str());
@@ -425,6 +526,7 @@ void GetFileBase(const char *f)
       FileExt = "";
      }
 }
+#endif
 
 char *MDFN_RemoveControlChars(char *str)
 {

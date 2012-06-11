@@ -61,7 +61,6 @@ typedef struct {
            void *v;		// Pointer to the variable/array
            uint32 size;		// Length, in bytes, of the data to be saved EXCEPT:
 				//  In the case of MDFNSTATE_BOOL, it is the number of bool elements to save(bool is not always 1-byte).
-				//  AND, in the case of MDFNSTATE_ARRAYS, it's the number of structures to save.
 				// If 0, the subchunk isn't saved.
 	   uint32 flags;	// Flags
 	   const char *name;	// Name

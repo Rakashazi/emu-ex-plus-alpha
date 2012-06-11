@@ -4,6 +4,8 @@ endif
 
 ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
+else
+buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
 libpngVer := 1.5.8
@@ -33,7 +35,7 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libpngSrcDir)/configure
 	@echo "Configuring libpng..."
 	@mkdir -p $(@D)
-	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" ../../libpng-$(libpngVer)/configure --disable-shared --host=$(CHOST)
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" ../../libpng-$(libpngVer)/configure --disable-shared --host=$(CHOST) $(buildArg)
 	touch $(buildDir)/pnglibconf.dfn
 	touch $(buildDir)/pnglibconf.out
 	cp $(pnglibconfFile) $(buildDir)/pnglibconf.h

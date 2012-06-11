@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF4.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartF4.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -25,11 +25,11 @@
 #include "CartF4.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeF4::CartridgeF4(const uInt8* image, const Settings& settings)
+CartridgeF4::CartridgeF4(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 32768);
+	memcpy(myImage, image, BSPF_min(32768u, size));
   createCodeAccessBase(32768);
 
   // Remember startup bank
@@ -148,14 +148,14 @@ const uInt8* CartridgeF4::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeF4::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putString(name());
     out.putInt(myCurrentBank);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeF4::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeF4::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -165,16 +165,16 @@ bool CartridgeF4::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeF4::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
 
     myCurrentBank = (uInt16)in.getInt();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeF4::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeF4::load" << endl << "  " << msg << endl;
     return false;
   }
 

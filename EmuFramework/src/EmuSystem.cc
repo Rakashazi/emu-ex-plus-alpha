@@ -53,7 +53,7 @@ bool EmuSystem::stateExists(int slot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, slot);
-	return Fs::fileExists(saveStr);
+	return FsSys::fileExists(saveStr);
 }
 
 //static int autoFrameSkipLevel = 0;

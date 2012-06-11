@@ -50,3 +50,11 @@ static const bool envIsWebOS3 =
 #elif CONFIG_ENV_ANDROID_MINSDK == 9
 	#define ENV_NOTE "Android 2.3+"
 #endif
+
+#ifdef CONFIG_ENV_WEBOS_OS
+	#if CONFIG_ENV_WEBOS_OS >= 3
+	 #define ENV_NOTE "WebOS 3.0+"
+	#elif CONFIG_ENV_WEBOS_OS < 3
+	 #define ENV_NOTE "WebOS 1.x-2.x"
+	#endif
+#endif

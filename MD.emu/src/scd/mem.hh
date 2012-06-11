@@ -1,5 +1,8 @@
 #pragma once
 
+// Enables WIP poll-detection code, not yet working
+static const bool extraCpuSync = 0;
+
 // Special memory handler funcs
 
 // Gate Array (and PCM for sub-CPU)
@@ -14,6 +17,7 @@ void subGateWrite8(uint address, uint data);
 void subGateWrite16(uint address, uint data);
 
 // PRG
+
 void subPrgWriteProtectCheck8(uint address, uint data);
 void subPrgWriteProtectCheck16(uint address, uint data);
 

@@ -42,8 +42,8 @@ namespace AudioFormat
 		CHANNEL_CONFIGURATION_MONO = 2, CHANNEL_CONFIGURATION_STEREO = 3;
 };
 
-PcmFormat preferredPcmFormat = { 44100, &SampleFormats::s16, 2 };
-PcmFormat pcmFormat = { 0 };
+PcmFormat preferredPcmFormat { 44100, &SampleFormats::s16, 2 };
+PcmFormat pcmFormat;
 static bool pcmOpen = 0;
 
 // JNI classes/methods

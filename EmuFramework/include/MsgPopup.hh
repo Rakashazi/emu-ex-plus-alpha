@@ -21,9 +21,10 @@
 class MsgPopup
 {
 public:
+	constexpr MsgPopup() { }
 	GfxText text;
-	bool error;
-	char str[1024];
+	bool error = 0;
+	char str[1024] = {0};
 
 	void init();
 	void clear();

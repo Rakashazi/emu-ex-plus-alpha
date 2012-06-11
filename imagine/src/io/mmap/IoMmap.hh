@@ -36,9 +36,9 @@ public:
 	void sync() { }
 	int eof() ATTRS(pure);
 protected:
-	const uchar *data;
-	const uchar *currPos;
-	size_t iSize;
+	const uchar *data = nullptr;
+	const uchar *currPos = nullptr;
+	size_t iSize = 0;
 
 	const uchar *endofBuffer();
 };

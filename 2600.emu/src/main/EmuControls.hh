@@ -3,6 +3,7 @@
 namespace EmuControls
 {
 
+using namespace Input;
 static const uint categories = 5;
 static const uint gamepadKeys = 10;
 static const uint switchKeys = 5;
@@ -58,12 +59,12 @@ static const KeyArray webOSKB =
 	EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 	EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-	input_asciiKey(','),
-	input_asciiKey('m'),
-	input_asciiKey(' '),
+	asciiKey(','),
+	asciiKey('m'),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey('k'),
-	input_asciiKey('l'),
+	asciiKey('k'),
+	asciiKey('l'),
 };
 
 static const KeyArray genericKB =
@@ -71,8 +72,8 @@ static const KeyArray genericKB =
 	0,
 	Input::Key::MENU,
 	0,
-	input_asciiKey('p'),
-	input_asciiKey('`'),
+	asciiKey('p'),
+	asciiKey('`'),
 	0,
 	Input::Key::ESCAPE,
 
@@ -84,41 +85,41 @@ static const KeyArray genericKB =
 	0,
 	0,
 	0,
-	input_asciiKey('x'),
-	input_asciiKey('c'),
-	input_asciiKey(' '),
+	asciiKey('x'),
+	asciiKey('c'),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey('s'),
-	input_asciiKey('d'),
-	input_asciiKey('w'),
+	asciiKey('s'),
+	asciiKey('d'),
+	asciiKey('w'),
 
 	// KB 1
-	input_asciiKey('4'),
-	input_asciiKey('5'),
-	input_asciiKey('6'),
-	input_asciiKey('r'),
-	input_asciiKey('t'),
-	input_asciiKey('y'),
-	input_asciiKey('f'),
-	input_asciiKey('g'),
-	input_asciiKey('h'),
-	input_asciiKey('v'),
-	input_asciiKey('b'),
-	input_asciiKey('n'),
+	asciiKey('4'),
+	asciiKey('5'),
+	asciiKey('6'),
+	asciiKey('r'),
+	asciiKey('t'),
+	asciiKey('y'),
+	asciiKey('f'),
+	asciiKey('g'),
+	asciiKey('h'),
+	asciiKey('v'),
+	asciiKey('b'),
+	asciiKey('n'),
 
 	// KB 2
-	input_asciiKey('7'),
-	input_asciiKey('8'),
-	input_asciiKey('9'),
-	input_asciiKey('u'),
-	input_asciiKey('i'),
-	input_asciiKey('o'),
-	input_asciiKey('j'),
-	input_asciiKey('k'),
-	input_asciiKey('l'),
-	input_asciiKey('m'),
-	input_asciiKey(','),
-	input_asciiKey('.'),
+	asciiKey('7'),
+	asciiKey('8'),
+	asciiKey('9'),
+	asciiKey('u'),
+	asciiKey('i'),
+	asciiKey('o'),
+	asciiKey('j'),
+	asciiKey('k'),
+	asciiKey('l'),
+	asciiKey('m'),
+	asciiKey(','),
+	asciiKey('.'),
 };
 
 #ifdef CONFIG_BASE_ANDROID
@@ -134,12 +135,12 @@ static const KeyArray androidNav =
 	0,
 	0,
 	0,
-	input_asciiKey('x'),
-	input_asciiKey('c'),
-	input_asciiKey(' '),
+	asciiKey('x'),
+	asciiKey('c'),
+	asciiKey(' '),
 	Input::Key::ENTER,
-	input_asciiKey('s'),
-	input_asciiKey('d'),
+	asciiKey('s'),
+	asciiKey('d'),
 };
 
 static const KeyArray xperiaPlay =

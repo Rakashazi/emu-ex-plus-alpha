@@ -78,18 +78,6 @@ class Channel4 {
 	bool master;
 	
 	void setEvent();
-	
-	static unsigned long toPeriod(const unsigned nr3) {
-		unsigned s = (nr3 >> 4) + 3;
-		unsigned r = nr3 & 7;
-
-		if (!r) {
-			r = 1;
-			--s;
-		}
-
-		return r << s;
-	}
 
 public:
 	Channel4();

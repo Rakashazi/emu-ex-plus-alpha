@@ -6,12 +6,44 @@
 #import <unistd.h>
 
 #include <base/Base.hh>
+#include <fs/sys.hh>
 #include <base/common/funcs.h>
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
 #import <Foundation/NSPathUtilities.h>
+
+namespace Base
+{
+	static UIWindow *devWindow;
+	static int pointScale = 1;
+	static MainApp *mainApp;
+}
+
+static CGAffineTransform makeTransformForOrientation(uint orientation)
+{
+	using namespace Gfx;
+	switch(orientation)
+	{
+		default: return CGAffineTransformIdentity;
+		case VIEW_ROTATE_270: return CGAffineTransformMakeRotation(3*M_PI / 2.0);
+		case VIEW_ROTATE_90: return CGAffineTransformMakeRotation(M_PI / 2.0);
+		case VIEW_ROTATE_180: return CGAffineTransformMakeRotation(M_PI);
+	}
+}
+
+
+#if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
+namespace Input
+{
+	//static UITextView *vkbdField = nil;
+	static UITextField *vkbdField = nil;
+	//static bool inVKeyboard = 0;
+	static InputTextDelegate vKeyboardTextDelegate;
+	static Rect2<int> textRect(8, 200, 8+304, 200+48);
+}
+#endif
 
 #ifdef CONFIG_INPUT
 	#include "input.h"
@@ -33,12 +65,9 @@ struct ThreadMsg
 };
 
 const char *appPath = 0;
-static int pointScale = 1;
-
-static UIWindow *window, *externalWindow = 0;
+static UIWindow *externalWindow = 0;
 static EAGLView *glView;
 static EAGLContext *mainContext;
-static MainApp *mainApp;
 static CADisplayLink *displayLink = 0;
 static BOOL displayLinkActive = NO;
 static bool isIPad = 0;
@@ -54,16 +83,6 @@ static ICadeHelper iCade = { nil };
 
 // used on iOS 4.0+
 static UIViewController *viewCtrl;
-
-#ifdef CONFIG_INPUT
-	#ifdef IPHONE_VKEYBOARD
-		//static UITextField *vkbdField;
-		static UITextView *vkbdField;
-		static uchar inVKeyboard = 0;
-		static InputTextCallback vKeyboardTextCallback = NULL;
-		static void *vKeyboardTextCallbackUserPtr = NULL;
-	#endif
-#endif
 
 #ifdef IPHONE_IMG_PICKER
 	static UIImagePickerController* imagePickerController;
@@ -186,6 +205,8 @@ uint appState = APP_RUNNING;
 			pointScale = 2;
 			newXSize *= 2;
 			newYSize *= 2;
+			mainWin.rect.x2 *= 2;
+			mainWin.rect.y2 *= 2;
 	    }
 	}
 	#endif
@@ -337,28 +358,19 @@ uint appState = APP_RUNNING;
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	using namespace Base;
-	#if defined(IPHONE_VKEYBOARD)
-	if(inVKeyboard)
-	{
-		input_finishKeyboardInput();
-		return;
-	}
-	#endif
-	
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find a free touch element
 		{
-			if(Input::activeTouch[i] == NULL)
+			if(Input::m[i].touch == nil)
 			{
-				Input::activeTouch[i] = touch;
-				var_copy(p, &Input::m[i]);
+				auto &p = Input::m[i];
+				p.touch = touch;
 				CGPoint startTouchPosition = [touch locationInView:self];
-				pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale, &p->x, &p->y);
-				p->inWin = 1;
-				Input::dragStateArr[i].pointerEvent(Input::Pointer::LBUTTON, INPUT_PUSHED, p->x, p->y);
-				//callSafe(Input::onInputEventHandler, Input::onInputEventHandlerCtx, InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_PUSHED, p->x, p->y));
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_PUSHED, p->x, p->y));
+				pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale, &p.s.x, &p.s.y);
+				p.s.inWin = 1;
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_PUSHED, p.s.x, p.s.y);
+				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_PUSHED, p.s.x, p.s.y));
 				break;
 			}
 		}
@@ -372,14 +384,13 @@ uint appState = APP_RUNNING;
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
 		{
-			if(Input::activeTouch[i] == touch)
+			if(Input::m[i].touch == touch)
 			{
-				var_copy(p, &Input::m[i]);
+				auto &p = Input::m[i];
 				CGPoint currentTouchPosition = [touch locationInView:self];
-				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p->x, &p->y);
-				Input::dragStateArr[i].pointerEvent(Input::Pointer::LBUTTON, INPUT_MOVED, p->x, p->y);
-				//callSafe(Input::onInputEventHandler, Input::onInputEventHandlerCtx, InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_MOVED, p->x, p->y));
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_MOVED, p->x, p->y));
+				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_MOVED, p.s.x, p.s.y);
+				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_MOVED, p.s.x, p.s.y));
 				break;
 			}
 		}
@@ -393,16 +404,15 @@ uint appState = APP_RUNNING;
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
 		{
-			if(Input::activeTouch[i] == touch)
+			if(Input::m[i].touch == touch)
 			{
-				Input::activeTouch[i] = nil;
-				var_copy(p, &Input::m[i]);
-				p->inWin = 0;
+				auto &p = Input::m[i];
+				p.touch = nil;
+				p.s.inWin = 0;
 				CGPoint currentTouchPosition = [touch locationInView:self];
-				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p->x, &p->y);
-				Input::dragStateArr[i].pointerEvent(Input::Pointer::LBUTTON, INPUT_RELEASED, p->x, p->y);
-				//callSafe(Input::onInputEventHandler, Input::onInputEventHandlerCtx, InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_RELEASED, p->x, p->y));
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_RELEASED, p->x, p->y));
+				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_RELEASED, p.s.x, p.s.y);
+				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_RELEASED, p.s.x, p.s.y));
 				break;
 			}
 		}
@@ -442,17 +452,78 @@ uint appState = APP_RUNNING;
 
 @end
 
-
 @implementation MainApp
 
 #if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
-- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
+/*- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
 {
 	if (textView.text.length >= 127 && range.length == 0)
+	{
+		logMsg("not changing text");
 		return NO;
+	}
 	return YES;
 }
+
+- (void)textViewDidEndEditing:(UITextView *)textView
+{
+	logMsg("editing ended");
+	Input::finishSysTextInput();
+}*/
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+	logMsg("pushed return");
+	[textField resignFirstResponder];
+	return YES;
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField
+{
+	using namespace Input;
+	logMsg("editing ended");
+	//inVKeyboard = 0;
+	if(vKeyboardTextDelegate.hasCallback())
+	{
+		logMsg("running text entry callback");
+		vKeyboardTextDelegate.invoke([textField.text UTF8String]);
+	}
+	vKeyboardTextDelegate.clear();
+	//vkbdField.text = @"";
+	[textField removeFromSuperview];
+	vkbdField = nil;
+}
+
 #endif
+
+- (void)keyboardWasShown:(NSNotification *)notification
+{
+	return;
+	using namespace Base;
+	CGSize keyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
+	logMsg("keyboard shown with size %d", (int)keyboardSize.height * pointScale);
+	int visibleY = IG::max(1, int(mainWin.rect.y2 - keyboardSize.height * pointScale));
+	float visibleFraction = visibleY / mainWin.rect.y2;
+	/*if(isIPad)
+		Gfx::viewMMHeight_ = 197. * visibleFraction;
+	else
+		Gfx::viewMMHeight_ = 75. * visibleFraction;*/
+	//generic_resizeEvent(mainWin.rect.x2, visibleY);
+	displayNeedsUpdate();
+}
+
+- (void) keyboardWillHide:(NSNotification *)notification
+{
+	return;
+	using namespace Base;
+	logMsg("keyboard hidden");
+	if(isIPad)
+		Gfx::viewMMHeight_ = 197;
+	else
+		Gfx::viewMMHeight_ = 75;
+	//generic_resizeEvent(mainWin.rect.x2, mainWin.rect.y2);
+	displayNeedsUpdate();
+}
 
 /*- (void) screenDidConnect:(NSNotification *)aNotification
 {
@@ -541,43 +612,21 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	#endif
 
 	CGRect rect = [[UIScreen mainScreen] bounds];
-	newXSize = rect.size.width;
-	newYSize = rect.size.height;
+	newXSize = mainWin.rect.x2 = rect.size.width;
+	newYSize = mainWin.rect.y2 = rect.size.height;
 	// Create a full-screen window
-	window = [[UIWindow alloc] initWithFrame:rect];
-	
-	#if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
-		// init input text field
-		//vkbdField = [ [ UITextField alloc ] initWithFrame: CGRectMake(8, 200, 320-16, 48) ];
-		vkbdField = [ [ UITextView alloc ] initWithFrame: CGRectMake(12, 24, 286, 24*4) ];
-		//vkbdField.adjustsFontSizeToFitWidth = YES;
-		vkbdField.textColor = [UIColor blackColor];
-		vkbdField.font = [UIFont systemFontOfSize:16.0];
-		//vkbdField.placeholder = @"";
-		vkbdField.backgroundColor = [UIColor whiteColor];
-		//vkbdField.borderStyle = UITextBorderStyleBezel;
-		vkbdField.autocorrectionType = UITextAutocorrectionTypeNo; // no auto correction support
-		vkbdField.autocapitalizationType = UITextAutocapitalizationTypeNone; // no auto capitalization support
-		vkbdField.textAlignment = UITextAlignmentLeft;
-		vkbdField.keyboardType = UIKeyboardTypeASCIICapable; //UIKeyboardTypeDefault;
-		//vkbdField.returnKeyType = UIReturnKeyDone;
-		//vkbdField.keyboardAppearance = UIKeyboardAppearanceAlert;
-		//vkbdField.tag = 0;
-		vkbdField.delegate = self;
-		//vkbdField.clearButtonMode = UITextFieldViewModeNever; // no clear 'x' button to the right
-		vkbdField.text = @"";
-		vkbdField.enablesReturnKeyAutomatically = YES;
-		//[ vkbdField setEnabled: YES ];
-		logMsg("init vkeyboard");
-	#endif
+	devWindow = [[UIWindow alloc] initWithFrame:rect];
 	
 	#ifdef GREYSTRIPE
 	initGS(self);
 	#endif
 	
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
+	NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
+	[nCenter addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
+	[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
+	[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 	
-	// Create the OpenGL ES view and add it to the window
+	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	Base::engineInit();
 	Base::setAutoOrientation(1);
@@ -605,18 +654,18 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	if(usingiOS4)
 	{
 		viewCtrl = [[UIViewController alloc] init];
-		[viewCtrl setView: glView];
+		viewCtrl.view = glView;
 		[glView release];
-		window.rootViewController = viewCtrl;
+		devWindow.rootViewController = viewCtrl;
 		[viewCtrl release];
 	}
 	else
 	{
-		[window addSubview:glView];
+		[devWindow addSubview:glView];
 		[glView release];
 	}
 
-	[window makeKeyAndVisible];
+	[devWindow makeKeyAndVisible];
 	logMsg("exiting applicationDidFinishLaunching");
 }
 
@@ -697,35 +746,22 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 - (void)dealloc
 {
-	[Base::window release];
-	//[glView release]; // retained in window
+	[Base::devWindow release];
+	//[glView release]; // retained in devWindow
 	[super dealloc];
 }
-
-#if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
-
-/*- (BOOL) textFieldShouldReturn:(UITextField *)textField
-{
-	[textField resignFirstResponder];
-	return YES;
-}
-
-- (void)textFieldDidEndEditing:(UITextField *)textField
-{
-	[vkbdField removeFromSuperview];
-	NSString *text = vkbdField.text;
-	//logMsg("calling text callback");
-	vKeyboardTextCallback(vKeyboardTextCallbackUserPtr, [text cStringUsingEncoding: NSASCIIStringEncoding]);
-	vkbdField.text = @"";
-	inVKeyboard = 0;
-}*/
-
-#endif
 
 @end
 
 namespace Base
 {
+
+void nsLog(const char* format, va_list arg)
+{
+	char buff[256];
+	vsnprintf(buff, sizeof(buff), format, arg);
+	NSLog(@"%s", buff);
+}
 
 void setVideoInterval(uint interval)
 {
@@ -739,19 +775,28 @@ void statusBarHidden(uint hidden)
 	[[UIApplication sharedApplication] setStatusBarHidden: hidden ? YES : NO animated:YES];
 }
 
+static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
+{
+	using namespace Gfx;
+	switch(orientation)
+	{
+		default: return UIInterfaceOrientationPortrait;
+		case VIEW_ROTATE_270: return UIInterfaceOrientationLandscapeLeft;
+		case VIEW_ROTATE_90: return UIInterfaceOrientationLandscapeRight;
+		case VIEW_ROTATE_180: return UIInterfaceOrientationPortraitUpsideDown;
+	}
+}
+
 void statusBarOrientation(uint o)
 {
-	switch(o)
+	using namespace Input;
+	if(vKeyboardTextDelegate.hasCallback()) // TODO: allow orientation change without aborting text input
 	{
-		bcase Gfx::VIEW_ROTATE_0:
-			[[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationPortrait animated:NO];
-		bcase Gfx::VIEW_ROTATE_270:
-			[[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeLeft animated:NO];
-		bcase Gfx::VIEW_ROTATE_90:
-			[[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeRight animated:NO];
-		bcase Gfx::VIEW_ROTATE_180:
-			[[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationPortraitUpsideDown animated:NO];
+		logMsg("aborting active text input");
+		vKeyboardTextDelegate.invoke(nullptr);
+		vKeyboardTextDelegate.clear();
 	}
+	[[UIApplication sharedApplication] setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:NO];
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching
@@ -774,7 +819,6 @@ void setAutoOrientation(bool on)
 void exitVal(int returnVal)
 {
 	appState = APP_EXITING;
-	//callSafe(onAppExitHandler, onAppExitHandlerCtx, 0);
 	onExit(0);
 	::exit(returnVal);
 }
@@ -905,7 +949,7 @@ int main(int argc, char *argv[])
 	#endif
 
 	#ifdef CONFIG_FS
-	Fs::changeToAppDir(argv[0]);
+	FsPosix::changeToAppDir(argv[0]);
 	#endif
 
 	NSAutoreleasePool *pool = [NSAutoreleasePool new];

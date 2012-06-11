@@ -194,10 +194,7 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			bool newState = btnPush[i];
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ZEEMOTE, code, newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, code, newState ? INPUT_PUSHED : INPUT_RELEASED));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, code, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
@@ -224,10 +221,7 @@ void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
 			{
 				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
 			};
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ZEEMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 		*e = newState;
 	}

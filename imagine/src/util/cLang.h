@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <util/builtins.h>
 
 // C-Language helper macros
 
@@ -26,8 +27,14 @@
 
 #ifdef __cplusplus
 
+#ifndef __clang_major__
+	#define static_assertIsPod(type) static_assert(__is_pod(type), #type " isn't POD")
+#else
+	#define static_assertIsPod(type)
+#endif
+
 template <class T, size_t S>
-static size_t sizeofArray(const T (&a)[S])
+static constexpr size_t sizeofArray(const T (&a)[S])
 {
 	return S;
 }

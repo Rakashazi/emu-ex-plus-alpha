@@ -37,6 +37,7 @@ typedef struct
         uint16 color_table[0x200];
         uint32 color_table_cache[0x200];
         uint16 ctaddress;
+        unsigned int slstart, slend;
 } vce_t;
 
 extern vce_t vce;
@@ -113,7 +114,7 @@ extern int VDC_TotalChips;
 
 void VDC_SetPixelFormat(const MDFN_PixelFormat &format);
 void VDC_RunFrame(const MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_Rect *LineWidths, int skip);
-bool VDC_ToggleLayer(int which);
+void VDC_SetLayerEnableMask(uint64 mask);
 
 DECLFW(VDC_Write);
 DECLFW(VDC_Write_ST);

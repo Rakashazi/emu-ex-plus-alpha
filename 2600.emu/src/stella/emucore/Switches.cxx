@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Switches.cxx 2228 2011-05-06 14:29:39Z stephena $
+// $Id: Switches.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -111,11 +111,11 @@ void Switches::update()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 bool Switches::save(Serializer& out) const
 {
-  //try
+  try
   {
     out.putByte((char)mySwitches);
   }
-  if(out.errorMsg)
+  catch(...)
   {
     cerr << "ERROR: Switches::save() exception\n";
     return false;
@@ -126,11 +126,11 @@ bool Switches::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 bool Switches::load(Serializer& in)
 {
-  //try
+  try
   {
     mySwitches = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(...)
   {
     cerr << "ERROR: Switches::load() exception\n";
     return false;

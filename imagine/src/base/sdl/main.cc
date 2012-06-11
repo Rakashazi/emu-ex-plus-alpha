@@ -42,16 +42,18 @@ static SDL_Surface* drawContext;
 
 CallResult openGLInit()
 {
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+	// Pre3 on WebOS 2.x is capped at 30fps if using SDL_GL_DOUBLEBUFFER
+	// Seems to be a bug in the OS since it always double buffers anyway
+	//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	//SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 	/*SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);*/
+	/*SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 2);*/
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);*/
+	//SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
 	return OK;
 }
 
@@ -238,12 +240,12 @@ static void eventHandler(SDL_Event &event)
 
 		bcase SDL_KEYDOWN:
 		{
-			Input::keyEvent(event.key.keysym.sym, INPUT_PUSHED);
+			Input::keyEvent(event.key.keysym, INPUT_PUSHED);
 		}
 
 		bcase SDL_KEYUP:
 		{
-			Input::keyEvent(event.key.keysym.sym, INPUT_RELEASED);
+			Input::keyEvent(event.key.keysym, INPUT_RELEASED);
 		}
 
 		bcase SDL_MOUSEMOTION:
@@ -302,16 +304,16 @@ int main(int argc, char** argv)
 		logMsg("screen metrics from device: %dx%d pixels %dx%d DPI %f AR", metrics.horizontalPixels, metrics.verticalPixels,
 				metrics.horizontalDPI, metrics.verticalDPI, metrics.aspectRatio);
 		setupScreenSizeFromDevice(metrics);
-		newXSize = metrics.horizontalPixels;
-		newYSize = metrics.verticalPixels;
+		newXSize = mainWin.rect.x2 = metrics.horizontalPixels;
+		newYSize = mainWin.rect.y2 = metrics.verticalPixels;
 		logMsg("screen size in MM %dx%d", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
 		PDL_SetTouchAggression(PDL_AGGRESSION_MORETOUCHES);
 	#else
 		//TODO:
 		Gfx::viewMMWidth_ = 100;
 		Gfx::viewMMHeight_ = 100;
-		newXSize = 320;
-		newYSize = 480;
+		newXSize = mainWin.rect.x2 = 320;
+		newYSize = mainWin.rect.y2 = 480;
 	#endif
 	globalArgc = argc;
 	globalArgv = argv;
@@ -319,7 +321,7 @@ int main(int argc, char** argv)
 	logger_init();
 
 	#if defined(CONFIG_FS) && !defined(CONFIG_ENV_WEBOS)
-		Fs::changeToAppDir(argv[0]);
+		FsSys::changeToAppDir(argv[0]);
 	#endif
 
 	#ifdef CONFIG_ENV_WEBOS

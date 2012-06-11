@@ -18,7 +18,6 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <string>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -216,7 +215,7 @@ void FCEU_LoadGameCheats(FILE *override)
 
 	FCEU_DispMessage("Cheats file loaded.",0); //Tells user a cheats file was loaded.
 	FCEU_printf("Cheats file loaded.\n",0);	 //Sends message to message log.
-	while(fgets(linebuf,2048,fp)>0)
+	while(fgets(linebuf,2048,fp))
 	{
 		char *tbuf=linebuf;
 		int doc=0;
@@ -608,7 +607,7 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 			{
 				char *t;
 
-				if((t=(char *)realloc(next->name,strlen(name+1))))
+				if((t=(char *)realloc(next->name,strlen(name)+1)))
 				{
 					next->name=t;
 					strcpy(next->name,name);
@@ -622,7 +621,7 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 				next->val=v;
 			if(s>=0)
 				next->status=s;
-			if(compare>=0)
+			if(compare>=-1)
 				next->compare=compare;
 			next->type=type;
 

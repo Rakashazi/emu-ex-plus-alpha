@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.hxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: TIASnd.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef TIASOUND_HXX
@@ -27,7 +27,7 @@
   hardware.
 
   @author  Bradford W. Mott
-  @version $Id: TIASnd.hxx 2199 2011-01-01 16:04:32Z stephena $
+  @version $Id: TIASnd.hxx 2318 2011-12-31 21:56:36Z stephena $
 */
 class TIASound
 {
@@ -35,8 +35,7 @@ class TIASound
     /**
       Create a new TIA Sound object using the specified output frequency
     */
-    TIASound(Int32 outputFrequency = 31400, Int32 tiaFrequency = 31400,
-             uInt32 channels = 1);
+	  TIASound(Int32 outputFrequency = 31400, Int32 tiaFrequency = 31400);
 
     /**
       Destructor
@@ -60,9 +59,16 @@ class TIASound
     void tiaFrequency(Int32 freq);
 
     /**
-      Selects the number of audio channels per sample (1 = mono, 2 = stereo)
+      Selects the number of audio channels per sample.  There are two factors
+      to consider: hardware capability and desired mixing.
+
+      @param hardware  The number of channels supported by the sound system
+      @param stereo    Whether to output the internal sound signals into 1
+                       or 2 channels
+
+      @return  Status of the channel configuration used
     */
-    void channels(uInt32 number);
+    string channels(uInt32 hardware, bool stereo);
 
     /**
       Set volume clipping (decrease volume range by half to eliminate popping)
@@ -134,6 +140,12 @@ class TIASound
         uInt32 myCounter;
     };
 
+    enum ChannelMode {
+         Hardware1,
+         Hardware2Mono,
+         Hardware2Stereo
+    };
+
   private:
     uInt8 myAUDC[2];
     uInt8 myAUDF[2];
@@ -143,9 +155,9 @@ class TIASound
     uInt8 myP4[2];           // 4-bit register LFSR (lower 4 bits used)
     uInt8 myP5[2];           // 5-bit register LFSR (lower 5 bits used)
 
+    ChannelMode myChannelMode;
     Int32  myOutputFrequency;
     Int32  myTIAFrequency;
-    uInt32 myChannels;
     Int32  myOutputCounter;
     uInt32 myVolumePercentage;
     uInt8  myVolumeClip;

@@ -225,7 +225,7 @@ void IControlPad::processBtnReport(const uchar *btnData, uint player)
 			/*if(thread)
 				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED);
 			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -255,7 +255,7 @@ void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint pl
 			/*if(thread)
 				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED);
 			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
+				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 		*e = newState;
 	}

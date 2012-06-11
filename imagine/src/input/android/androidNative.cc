@@ -21,8 +21,8 @@ static const uint maxJoysticks = 5;
 static uint joysticks = 0;
 struct JoystickID
 {
-	constexpr JoystickID(): osId(0), devId(0) { }
-	uint osId, devId;
+	constexpr JoystickID() { }
+	uint osId = 0, devId = 0;
 };
 static JoystickID joystickID[maxJoysticks];
 
@@ -59,6 +59,20 @@ void setHandleVolumeKeys(bool on)
 {
 	logMsg("set volume key use %s", on ? "On" : "Off");
 	handleVolumeKeys = on;
+}
+
+void showSoftInput()
+{
+	using namespace Base;
+	logMsg("showing soft input");
+	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 2, 0);
+}
+
+void hideSoftInput()
+{
+	using namespace Base;
+	logMsg("hiding soft input");
+	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 3, 0);
 }
 
 fbool sendInputToIME = 1;
@@ -117,20 +131,25 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 				case AINPUT_SOURCE_MOUSE:
 				{
 					//logMsg("from touchscreen or mouse");
-					int action = eventAction & AMOTION_EVENT_ACTION_MASK;
-					int pid = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-					int pointers = AMotionEvent_getPointerCount(event);
-					for (int i = 0; i < pointers; i++)
+					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
+					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
 					{
-						int sendAction = action;
-						int pointerId = AMotionEvent_getPointerId(event, i);
-						if(action == AMOTION_EVENT_ACTION_POINTER_DOWN || action == AMOTION_EVENT_ACTION_POINTER_UP)
+						// touch gesture ended
+						handleTouchEvent(AMOTION_EVENT_ACTION_UP, AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0), AMotionEvent_getPointerId(event, 0));
+						return 1;
+					}
+					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+					int pointers = AMotionEvent_getPointerCount(event);
+					iterateTimes(pointers, i)
+					{
+						int pAction = action;
+						// a pointer not performing the action just needs its position updated
+						if(actionPIdx != i)
 						{
-							// send ACTION_POINTER_* for only the pointer it belongs to
-							if(pid != pointerId)
-								sendAction = AMOTION_EVENT_ACTION_MOVE;
+							//logMsg("non-action pointer idx %d", i);
+							pAction = AMOTION_EVENT_ACTION_MOVE;
 						}
-						handleTouchEvent(sendAction, AMotionEvent_getX(event, i), AMotionEvent_getY(event, i), pointerId);
+						handleTouchEvent(pAction, AMotionEvent_getX(event, i), AMotionEvent_getY(event, i), AMotionEvent_getPointerId(event, i));
 					}
 					return 1;
 				}
@@ -203,8 +222,7 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 								{
 									Input::Key::LEFT, Input::Key::RIGHT, Input::Key::DOWN, Input::Key::UP,
 								};
-								Input::onInputEvent(InputEvent(eventDevID, InputEvent::DEV_KEYBOARD, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
-								//callSafe(Input::onInputEventHandler, Input::onInputEventHandlerCtx, InputEvent(eventDevID, InputEvent::DEV_KEYBOARD, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED));
+								Input::onInputEvent(InputEvent(eventDevID, InputEvent::DEV_KEYBOARD, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 							}
 							*e = newState;
 						}
@@ -241,7 +259,7 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 			//logMsg("key event, code: %d source: %d repeat: %d action: %d", keyCode, source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
 			if(allowKeyRepeats || AKeyEvent_getRepeatCount(event) == 0)
 			{
-				handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, devId);
+				handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, devId, AKeyEvent_getMetaState(event) & AMETA_SHIFT_ON);
 			}
 			return 1;
 		}
@@ -269,8 +287,6 @@ bool dlLoadAndroidFuncs(void *libandroid)
 
 CallResult init()
 {
-	commonInit();
-
 	if(Base::androidSDK() >= 12)
 	{
 		JNIInputDevice::jniInit();

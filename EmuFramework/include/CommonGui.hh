@@ -41,7 +41,21 @@ YesNoAlertView ynAlertView;
 static GfxSprite menuIcon;
 MultiChoiceView multiChoiceView;
 ViewStack viewStack;
-BasicNavView viewNav;
+
+void onLeftNavBtn(const InputEvent &e)
+{
+	viewStack.popAndShow();
+}
+
+void onRightNavBtn(const InputEvent &e)
+{
+	if(EmuSystem::gameIsRunning())
+	{
+		startGameFromMenu();
+	}
+}
+
+BasicNavView viewNav(NavView::OnInputDelegate::create<&onLeftNavBtn>(), NavView::OnInputDelegate::create<&onRightNavBtn>());
 static bool menuViewIsActive = 1;
 View *modalView = 0;
 static Rect2<int> emuMenuB, emuFFB;
@@ -273,7 +287,7 @@ namespace CATS
 
 	static void howAreYouGentlemen()
 	{
-		bool takeOffEveryZIG = whatHappen() || Fs::fileExists(warWasBeginning);
+		bool takeOffEveryZIG = whatHappen() || FsSys::fileExists(warWasBeginning);
 		Io *ZIG = IoSys::open(greatJustice);
 		const uchar *d = ZIG->mmapConst();
 		if(takeOffEveryZIG && mem_locate(d, ZIG->size(), theBomb))
@@ -285,7 +299,7 @@ namespace CATS
 		{
 			truncOffset = mem_locateRelPos(d, ZIG->size(), theBomb, 20);
 		}
-		ZIG->close();
+		delete ZIG;
 
 		if(takeOffEveryZIG)
 		{
@@ -305,7 +319,7 @@ namespace CATS
 				ZIG->fwrite("\n", 1, 1);
 			}
 
-			ZIG->close();
+			delete ZIG;
 
 			Base::setUIDReal();
 		}
@@ -376,7 +390,7 @@ bool isMenuDismissKey(const InputEvent &e)
 			return e.button == Input::Ps3::TRIANGLE || e.button == Input::Ps3::L2;
 		#endif
 		default:
-			return e.button == input_asciiKey('m')
+			return 0
 			#if defined(CONFIG_ENV_WEBOS)
 				|| e.button == Input::Key::RCTRL
 			#endif
@@ -971,25 +985,19 @@ void EmuView::drawContent()
 	disp.draw(0);
 	vidImgOverlay.draw();
 	#ifndef CONFIG_BASE_PS3
-	/*static bool first = 1;
-	if(first)
-	{
-		logMsg("touch control setup state: %d %d", (int)touchControlsAreOn, (int)touchControlsApplicable());
-		first = 0;
-	}*/
-	if(active && ((touchControlsAreOn && touchControlsApplicable())
-	#ifdef CONFIG_VCONTROLLER_KEYBOARD
-	|| vController.kbMode
-	#endif
-	))
-	{
-		vController.draw();
-		if(optionShowMenuIcon)
+		if(active && ((touchControlsAreOn && touchControlsApplicable())
+		#ifdef CONFIG_VCONTROLLER_KEYBOARD
+			|| vController.kbMode
+		#endif
+		))
 		{
-			setBlendMode(BLEND_MODE_INTENSITY);
-			menuIcon.draw(0);
+			vController.draw();
+			if(optionShowMenuIcon)
+			{
+				setBlendMode(BLEND_MODE_INTENSITY);
+				menuIcon.draw(0);
+			}
 		}
-	}
 	#endif
 	popup.draw();
 }
@@ -1296,20 +1304,6 @@ void onViewChange(GfxViewState *)
 }
 }
 
-
-void onLeftNavBtn(const InputEvent &e)
-{
-	viewStack.popAndShow();
-}
-
-void onRightNavBtn(const InputEvent &e)
-{
-	if(EmuSystem::gameIsRunning())
-	{
-		startGameFromMenu();
-	}
-}
-
 ResourceImage *getArrowAsset()
 {
 	static ResourceImage *res = 0;
@@ -1387,8 +1381,6 @@ static void mainInitCommon()
 	//logMsg("setting up view stack");
 	viewNav.init(View::defaultFace, View::needsBackControl ? getArrowAsset() : 0,
 			!Config::envIsPS3 ? getArrowAsset() : 0, navViewGrad, sizeofArray(navViewGrad));
-	viewNav.leftNavBtnDelegate().bind<&onLeftNavBtn>();
-	viewNav.rightNavBtnDelegate().bind<&onRightNavBtn>();
 	viewNav.setRightBtnActive(0);
 	viewStack.init();
 	if(optionTitleBar)
@@ -1401,7 +1393,7 @@ static void mainInitCommon()
 		CATS::whatYouSay();
 
 		const char *emuPatch = "/Applications/EMUPatcher.app/EMUPatcher";
-		if(Fs::fileExists(emuPatch))
+		if(FsSys::fileExists(emuPatch))
 		{
 			Base::setUIDEffective();
 			FsSys::remove(emuPatch);

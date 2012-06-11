@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartMC.cxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -247,7 +247,7 @@ const uInt8* CartridgeMC::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeMC::save(Serializer& out) const
 {
-  //try
+  try
   {
     uInt32 i;
     out.putString(name());
@@ -262,9 +262,9 @@ bool CartridgeMC::save(Serializer& out) const
     for(i = 0; i < 32 * 1024; ++i)
       out.putByte((char)myRAM[i]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeMC::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeMC::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -274,7 +274,7 @@ bool CartridgeMC::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeMC::load(Serializer& in)
 {
-  //try
+  try
   {
     uInt32 i, limit;
 
@@ -291,9 +291,9 @@ bool CartridgeMC::load(Serializer& in)
     for(i = 0; i < limit; ++i)
       myRAM[i] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeMC::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeMC::load" << endl << "  " << msg << endl;
     return false;
   }
 

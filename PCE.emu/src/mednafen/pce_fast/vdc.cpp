@@ -68,8 +68,6 @@ int VDC_TotalChips = 0;
 
 vdc_t *vdc_chips[2] = { NULL, NULL };
 
-static unsigned int slstart, slend;
-
 static INLINE void FixPCache(int entry)
 {
  uint32 *cm32 = vce.bw ? bw_systemColorMap32 : systemColorMap32;
@@ -314,10 +312,9 @@ DECLFW(VCE_Write)
 }
 
 
-bool VDC_ToggleLayer(int which)
+void VDC_SetLayerEnableMask(uint64 mask)
 {
- userle ^= 1 << which;
- return((userle >> which) & 1);
+	userle = mask;
 }
 
 DECLFW(VDC_Write_ST)
@@ -932,6 +929,8 @@ void MixBGSPR_x86(const uint32 count, const uint8 *bg_linebuf, const uint16 *spr
  int dummy;
 
  asm volatile(
+  "push %%rbx\n\t"
+
 	"movq %%rax, %%rbp\n\t"
 	"negq %%rcx\n\t"
 	"xorq %%rax, %%rax\n\t"
@@ -952,9 +951,11 @@ void MixBGSPR_x86(const uint32 count, const uint8 *bg_linebuf, const uint16 *spr
 
         "addq $1, %%rcx\n\t"	
 	"jnz BoomBuggy\n\t"
+
+	"pop %%rbx\n\t"
  : "=c" (dummy), "=a" (dummy)
  : "d" (bg_linebuf + count), "S" (spr_linebuf + count), "D" (target + count), "c" (count), "a" (vce.color_table_cache)
- : "memory", "cc", "rbx", "rbp"
+ : "memory", "cc", "rbp"
  );
 }
 
@@ -972,6 +973,8 @@ void MixBGSPR_x86(const uint32 count, const uint8 *bg_linebuf, const uint16 *spr
  int dummy;
 
  asm volatile(
+        "push %%ebx\n\t"
+
         "movl %%eax, %%ebp\n\t"
         "negl %%ecx\n\t"
         "xorl %%eax, %%eax\n\t"
@@ -997,9 +1000,10 @@ void MixBGSPR_x86(const uint32 count, const uint8 *bg_linebuf, const uint16 *spr
 
         "addl $1, %%ecx\n\t"
         "jnz BoomBuggy\n\t"
+   "pop %%ebx\n\t"
  : "=c" (dummy), "=a" (dummy)
  : "d" (bg_linebuf + count), "S" (spr_linebuf + count), "D" (target + count), "c" (count), "a" (vce.color_table_cache)
- : "memory", "cc", "rbx", "rbp"
+ : "memory", "cc", "rbp"
  );
 }
 #endif
@@ -1164,8 +1168,8 @@ void VDC_RunFrame(const MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_Rect
   DisplayRect->x = 0;
   DisplayRect->w = 256;
 
-  DisplayRect->y = slstart;
-  DisplayRect->h = slend - DisplayRect->y + 1;
+  DisplayRect->y = vce.slstart;
+  DisplayRect->h = vce.slend - DisplayRect->y + 1;
 
   // Hack for the input latency-reduction hack, part 1.
   /*for(int y = DisplayRect->y; y < DisplayRect->y + DisplayRect->h; y++)
@@ -1468,7 +1472,9 @@ void VDC_RunFrame(const MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_Rect
 
   if(PCE_IsCD)
   {
-   PCECD_Run(HuCPU.timestamp * 3);
+   int32 dummy_ne;
+
+   dummy_ne = PCECD_Run(HuCPU.timestamp * 3);
   }
   for(int chip = 0; chip < VDC_TotalChips; chip++)
   {
@@ -1589,14 +1595,15 @@ static bool LoadCustomPalette(const char *path)
  return(TRUE);
 }
 
+
 void VDC_Init(int sgx)
 {
  unlimited_sprites = MDFN_GetSettingB("pce_fast.nospritelimit");
  correct_aspect = MDFN_GetSettingB("pce_fast.correct_aspect");
  userle = ~0;
 
- slstart = MDFN_GetSettingUI("pce_fast.slstart");
- slend = MDFN_GetSettingUI("pce_fast.slend");
+ vce.slstart = MDFN_GetSettingUI("pce_fast.slstart");
+ vce.slend = MDFN_GetSettingUI("pce_fast.slend");
 
  VDC_TotalChips = sgx ? 2 : 1;
 

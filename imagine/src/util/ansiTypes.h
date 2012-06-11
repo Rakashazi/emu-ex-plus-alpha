@@ -42,3 +42,5 @@ typedef uint16 __attribute__((__may_alias__)) uint16a;
 typedef int16 __attribute__((__may_alias__)) int16a;
 typedef uint32 __attribute__((__may_alias__)) uint32a;
 typedef int32 __attribute__((__may_alias__)) int32a;
+typedef uint __attribute__((__may_alias__)) uinta;
+typedef int __attribute__((__may_alias__)) inta;

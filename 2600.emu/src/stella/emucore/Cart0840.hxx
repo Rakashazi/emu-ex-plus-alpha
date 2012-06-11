@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -37,9 +37,10 @@ class Cartridge0840 : public Cartridge
       Create a new cartridge using the specified image
 
       @param image     Pointer to the ROM image
+      @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge0840(const uInt8* image, const Settings& settings);
+    Cartridge0840(const uInt8* image, uInt32 size, const Settings& settings);
  
     /**
       Destructor

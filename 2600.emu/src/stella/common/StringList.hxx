@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StringList.hxx 2234 2011-05-26 16:14:46Z stephena $
+// $Id: StringList.hxx 2318 2011-12-31 21:56:36Z stephena $
 //============================================================================
 
 #ifndef STRING_LIST_HXX

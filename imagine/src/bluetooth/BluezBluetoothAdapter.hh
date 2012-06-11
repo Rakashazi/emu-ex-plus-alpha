@@ -9,28 +9,29 @@
 class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr BluezBluetoothAdapter(): devId(-1), socket(-1) { }
 	static BluezBluetoothAdapter *defaultAdapter();
 	fbool startScan();
 	void close();
 
 	CallResult doScan();
 private:
-	int devId, socket;
+	int devId = -1, socket = -1;
 private:
 	ThreadPThread runThread;
 	bool openDefault();
 };
 
-class BluezBluetoothSocket : public Base::PollHandler, public BluetoothSocket
+class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
-	constexpr BluezBluetoothSocket(): fd(0) { }
+	constexpr BluezBluetoothSocket():
+		pollEvDel(Base::PollEventDelegate::create<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this)) { }
 	CallResult openL2cap(BluetoothAddr addr, uint psm);
 	CallResult openRfcomm(BluetoothAddr addr, uint channel);
 	void close();
 	CallResult write(const void *data, size_t size);
-	bool readPendingData(uint events);
+	int readPendingData(int events);
 private:
-	int fd;
+	Base::PollEventDelegate pollEvDel;
+	int fd = 0;
 };

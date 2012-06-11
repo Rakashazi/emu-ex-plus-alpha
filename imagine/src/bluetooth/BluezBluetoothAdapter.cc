@@ -155,7 +155,7 @@ fbool BluezBluetoothAdapter::startScan()
 	}
 }
 
-bool BluezBluetoothSocket::readPendingData(uint events)
+int BluezBluetoothSocket::readPendingData(int events)
 {
 	if(events & Base::POLLEV_ERR)
 	{
@@ -203,19 +203,12 @@ bool BluezBluetoothSocket::readPendingData(uint events)
 	{
 		logMsg("finished opening socket %d", fd);
 		if(onStatus.invoke(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
-			Base::modPollEvent(fd, *this, Base::POLLEV_IN);
+			Base::modPollEvent(fd, pollEvDel, Base::POLLEV_IN);
 		else
 			Base::removePollEvent(fd);
 	}
 
 	return 1;
-}
-
-static base_pollHandlerFuncProto(fdDataHandler)
-{
-	//logMsg("%d events ready", events);
-	BluezBluetoothSocket *sock = static_cast<BluezBluetoothSocket*>(data);
-	return sock->readPendingData(events);
 }
 
 CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
@@ -244,9 +237,8 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 	}
 	fd_setNonblock(fd, 0);
 
-	PollHandler::func = fdDataHandler;
-	PollHandler::data = this;
-	Base::addPollEvent2(fd, *this, Base::POLLEV_OUT);
+	//pollEvDel.bind<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this);
+	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }
 
@@ -279,9 +271,8 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 		//logMsg("success");
 	}
 	fd_setNonblock(fd, 0);
-	PollHandler::func = fdDataHandler;
-	PollHandler::data = this;
-	Base::addPollEvent2(fd, *this, Base::POLLEV_OUT);
+	//pollEvDel.bind<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this);
+	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }
 

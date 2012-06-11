@@ -35,8 +35,8 @@ static void mem_freeSafe(void* buffer) { if(buffer != NULL) mem_free(buffer); }
 
 // default placement new for realloc()
 void *operator new (size_t size, void *o)
-#ifdef CONFIG_BASE_PS3
-throw ()
+#ifdef __EXCEPTIONS
+	throw ()
 #endif
 ;
 

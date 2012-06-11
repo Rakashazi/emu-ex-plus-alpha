@@ -26,6 +26,8 @@ template<class T>
 struct FixedPOD
 {
 	T val;
+	FixedPOD() = default;
+	constexpr FixedPOD(T val): val(val) { }
 
 	operator int() const
 	{
@@ -47,29 +49,29 @@ public:
 	static const unsigned int fracMask = fracMaxVal - 1;
 	using FixedPOD<T>::val;
 
-	Fixed() { }
+	constexpr Fixed() { }
 
 	template<class FT>
-	static T convertFloat(FT num)
+	static constexpr T convertFloat(FT num)
 	{
 		//printf("converted from float\n");
 		return (T)( ( (T)num << fracBits ) + ( ( ( num - (T)num ) + 1./(FT)fracMaxValExtraBit ) * fracMaxVal ) );
 	}
 
-	Fixed(float num) { val = convertFloat(num); }
-	Fixed(double num) { val = convertFloat(num); }
+	constexpr Fixed(float num): FixedPOD<T>(convertFloat(num)) { }
+	constexpr Fixed(double num): FixedPOD<T>(convertFloat(num)) { }
 
 	template<class IT>
-	static T convertInt(IT num)
+	static constexpr T convertInt(IT num)
 	{
 		//printf("converted from int\n");
 		return (T)num << fracBits;
 	}
 
-	Fixed(int num) { val = convertInt(num); }
-	Fixed(uint num) { val = convertInt(num); }
-	Fixed(short num) { val = convertInt(num); }
-	Fixed(char num) { val = convertInt(num); }
+	constexpr Fixed(int num): FixedPOD<T>(convertInt(num)) { }
+	constexpr Fixed(uint num): FixedPOD<T>(convertInt(num)) { }
+	constexpr Fixed(short num): FixedPOD<T>(convertInt(num)) { }
+	constexpr Fixed(char num): FixedPOD<T>(convertInt(num)) { }
 
 	Fixed(Rational num)
 	{
@@ -79,7 +81,7 @@ public:
 		val = result.val;
 	}
 
-	Fixed(FixedPOD<T> num) { val = num.val; }
+	constexpr Fixed(FixedPOD<T> num): FixedPOD<T>(num.val) { }
 
 	T frac() const { return val & fracMask; }
 	T integer() const { return val >> fracBits; }

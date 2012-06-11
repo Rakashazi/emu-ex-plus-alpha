@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Array.hxx 2232 2011-05-24 16:04:48Z stephena $
+// $Id: Array.hxx 2318 2011-12-31 21:56:36Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -33,17 +33,17 @@ template <class T>
 class Array
 {
   protected:
-    int _capacity;
-    int _size;
-    T *_data;
+    int _capacity = 0;
+    int _size = 0;
+    T *_data = nullptr;
 
   public:
     typedef T *iterator;
     typedef const T *const_iterator;
 
   public:
-    Array<T>() : _capacity(0), _size(0), _data(0) {}
-    Array<T>(const Array<T>& array) : _capacity(0), _size(0), _data(0)
+    constexpr Array<T>() {}
+    Array<T>(const Array<T>& array)
     {
       _size = array._size;
       _capacity = _size + 128;

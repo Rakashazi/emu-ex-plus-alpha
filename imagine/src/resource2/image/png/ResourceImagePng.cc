@@ -86,7 +86,7 @@ void  ResourceImagePng::free ()
 	gfxD.removeBacker();
 	gfxD.deinit();
 	png.freeImageData();
-	io->close();
+	delete io;
 	delete this;
 }
 

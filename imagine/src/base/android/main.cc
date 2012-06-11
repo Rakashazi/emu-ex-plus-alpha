@@ -32,7 +32,7 @@ namespace Input
 
 static jboolean JNICALL touchEvent(JNIEnv *env, jobject thiz, jint action, jint x, jint y, jint pid) { return 0; }
 static jboolean JNICALL trackballEvent(JNIEnv *env, jobject thiz, jint action, jfloat x, jfloat y) { return 0; }
-static jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down) { return 0; }
+static jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down, jboolean metaState) { return 0; }
 
 }
 #else
@@ -48,7 +48,8 @@ static jobject jHandler = 0, glView = 0;
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 static JavaClassMethod jSetAutoOrientation;
 #endif
-static JavaInstMethod jSetKeepScreenOn, jPostDelayed, jRemoveCallbacks /*, jPost, jHasMessages*/;
+static JavaInstMethod jSetKeepScreenOn, jPostDelayed, jRemoveCallbacks; /*, jPost, jHasMessages*/
+JavaInstMethod jShowIme, jHideIme;
 static JavaClassMethod jSwapBuffers;
 static jfieldID jAllowKeyRepeatsId, jHandleVolumeKeysId, glViewId;
 static jobject jTimerCallbackRunnable;
@@ -196,6 +197,8 @@ static void JNICALL nativeInit(JNIEnv*  env, jobject thiz, jint w, jint h)
 static void JNICALL nativeResize(JNIEnv*  env, jobject thiz, jint w, jint h)
 {
 	//logMsg("resize event");
+	mainWin.rect.x2 = w;
+	mainWin.rect.y2 = h;
 	resizeEvent(w, h);
 	//logMsg("done resize");
 }
@@ -234,7 +237,7 @@ static int runEpoll(ThreadPThread &thread)
 		//logMsg("%d events ready", events);
 		iterateTimes(events, i)
 		{
-			PollHandler *e = (PollHandler*)event[i].data.ptr;
+			auto e = (PollEventDelegate*)event[i].data.ptr;
 			// TODO: pointer->int won't work on 64-bit, but 64-bit Android 2.2 systems probably won't exist
 			//logMsg("fd handler %p has events %X, sending to main", e, event[i].events);
 			sendMessageToMain(thread, MSG_FD_EVENTS, i == 0 ? events : 0, (int)e, event[i].events);
@@ -261,7 +264,7 @@ static void setupEpoll()
 	}
 }
 
-void addPollEvent2(int fd, PollHandler &handler, uint events)
+void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
 {
 	setupEpoll();
 	logMsg("adding fd %d to epoll", fd);
@@ -271,7 +274,7 @@ void addPollEvent2(int fd, PollHandler &handler, uint events)
 	epoll_ctl(ePoll, EPOLL_CTL_ADD, fd, &ev);
 }
 
-void modPollEvent(int fd, PollHandler &handler, uint events)
+void modPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
 	struct epoll_event ev = { 0 };
 	ev.data.ptr = &handler;
@@ -331,9 +334,9 @@ static jboolean JNICALL handleAndroidMsg(JNIEnv *env, jobject thiz, jint arg1, j
 				// first event, set the total to process
 				totalEvents = shortArg;
 			}
-			PollHandler *e = (PollHandler*)arg2;
+			auto e = (PollEventDelegate*)arg2;
 			//logMsg("got fd handler %p with events %X from thread", e, arg3);
-			e->func(e->data, arg3);
+			e->invoke(arg3);
 			totalEvents--;
 			assert(totalEvents >= 0);
 			if(totalEvents == 0) // last event in group handled, tell epoll thread to continue
@@ -342,6 +345,20 @@ static jboolean JNICALL handleAndroidMsg(JNIEnv *env, jobject thiz, jint arg1, j
 		bdefault:
 			processAppMsg(type, shortArg, arg2, arg3);
 	}
+	return prevGfxUpdateState == 0 && gfxUpdate;
+}
+
+static jboolean JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
+{
+	assert(height >= 0);
+	if(visibleScreenY == (uint)height)
+		return 0;
+	logMsg("layout change, view height %d", height);
+	visibleScreenY = height;
+	if(!glView)
+		return 0;
+	var_copy(prevGfxUpdateState, gfxUpdate);
+	resizeEvent(mainWin.rect.x2, visibleScreenY);
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }
 
@@ -360,6 +377,8 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
 	jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
+	jShowIme.setup(jEnv, jBaseActivityCls, "showIme", "(I)V");
+	jHideIme.setup(jEnv, jBaseActivityCls, "hideIme", "(I)V");
 	jAllowKeyRepeatsId = jEnv->GetStaticFieldID(jBaseActivityCls, "allowKeyRepeats", "Z");
 	jHandleVolumeKeysId = jEnv->GetStaticFieldID(jBaseActivityCls, "handleVolumeKeys", "Z");
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
@@ -398,7 +417,8 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	    {"configChange", "(III)V", (void *)&configChange},
 	    {"envConfig", "(Ljava/lang/String;Ljava/lang/String;FFIIIIILjava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;)V", (void *)&envConfig},
 	    {"handleAndroidMsg", "(III)Z", (void *)&handleAndroidMsg},
-	    {"keyEvent", "(II)Z", (void *)&Input::keyEvent},
+	    {"keyEvent", "(IIZ)Z", (void *)&Input::keyEvent},
+	    {"layoutChange", "(I)Z", (void *)&Base::layoutChange},
 	};
 
 	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));

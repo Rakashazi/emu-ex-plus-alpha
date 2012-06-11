@@ -23,12 +23,12 @@
 #define ASCII_LF 0xA
 #define ASCII_CR 0xD
 
-static char pathSeparator[] = { '/'
+static const char pathSeparator[] = { '/'
 #ifdef CONFIG_BASE_WIN32
 		, '\\'
 #endif
 };
-static uint numPathSeparators = sizeofArray(pathSeparator);
+static const uint numPathSeparators = sizeofArrayConst(pathSeparator);
 
 static char *dirNameCutoffPoint(char *path)
 {

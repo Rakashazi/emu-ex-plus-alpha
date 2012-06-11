@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2011 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE7.cxx 2199 2011-01-01 16:04:32Z stephena $
+// $Id: CartE7.cxx 2325 2012-01-02 20:31:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -24,11 +24,11 @@
 #include "CartE7.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeE7::CartridgeE7(const uInt8* image, const Settings& settings)
+CartridgeE7::CartridgeE7(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, 16384);
+	memcpy(myImage, image, BSPF_min(16384u, size));
   createCodeAccessBase(16384 + 2048);
 
   // This cart can address a 1024 byte bank of RAM @ 0x1000
@@ -298,7 +298,7 @@ const uInt8* CartridgeE7::getImage(int& size) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE7::save(Serializer& out) const
 {
-  //try
+  try
   {
     uInt32 i;
 
@@ -315,9 +315,9 @@ bool CartridgeE7::save(Serializer& out) const
     for(i = 0; i < 2048; ++i)
       out.putByte((char)myRAM[i]);
   }
-  if(out.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeE7::save" << endl << "  " << out.errorMsg << endl;
+    cerr << "ERROR: CartridgeE7::save" << endl << "  " << msg << endl;
     return false;
   }
 
@@ -327,7 +327,7 @@ bool CartridgeE7::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE7::load(Serializer& in)
 {
-  //try
+  try
   {
     if(in.getString() != name())
       return false;
@@ -345,9 +345,9 @@ bool CartridgeE7::load(Serializer& in)
     for(i = 0; i < limit; ++i)
       myRAM[i] = (uInt8) in.getByte();
   }
-  if(in.errorMsg)
+  catch(const char* msg)
   {
-    cerr << "ERROR: CartridgeE7::load" << endl << "  " << in.errorMsg << endl;
+    cerr << "ERROR: CartridgeE7::load" << endl << "  " << msg << endl;
     return false;
   }
 

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: TIA.hxx 2366 2012-01-22 21:01:13Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -30,9 +30,9 @@ class Sound;
 #include "TIATables.hxx"
 
 /**
-  This class is a device that emulates the Television Interface Adapator 
+  This class is a device that emulates the Television Interface Adaptor
   found in the Atari 2600 and 7800 consoles.  The Television Interface 
-  Adapator is an integrated circuit designed to interface between an 
+  Adaptor is an integrated circuit designed to interface between an
   eight bit microprocessor and a television video modulator. It converts 
   eight bit parallel data into serial outputs for the color, luminosity, 
   and composite sync required by a video modulator.  
@@ -41,12 +41,13 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: TIA.hxx 2366 2012-01-22 21:01:13Z stephena $
 */
 class TIA : public Device
 {
   public:
-    friend class TIADebug;
+	  friend class TIADebug;
+	  friend class RiotDebug;
 
     /**
       Create a new TIA for the specified console
@@ -224,6 +225,14 @@ class TIA : public Device
     */
     uInt32 clocksThisLine() const
       { return ((mySystem->cycles() * 3) - myClockWhenFrameStarted) % 228; }
+
+    /**
+      Answers the scanline at which the current frame began drawing.
+
+      @return The starting scanline
+    */
+    uInt32 startLine() const
+      { return myStartScanline; }
 
     /**
       Answers the total number of scanlines the TIA generated in producing
@@ -451,7 +460,6 @@ class TIA : public Device
     uInt32 myColor[8];
     uInt32 myFixedColor[8];
     uInt32* myColorPtr;
-    enum { _BK, _PF, _P0, _P1, _M0, _M1, _BL, _HBLANK };
 
     uInt8 myCTRLPF;       // Playfield control register
 

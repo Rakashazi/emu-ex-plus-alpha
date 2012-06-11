@@ -24,7 +24,7 @@ ifeq ($(ENV), ps3)
 #	fself.py $< $@
 
 $(targetDir)/pkg/USRDIR/EBOOT.BIN: $(targetDir)/$(targetFile)
-	make_self_npdrm $< $@ EM0000-PCEE00000_00-EXPLUSALPHATURBO
+	make_self_npdrm $< $@ $(ps3_contentid)
 
 #$(targetDir)/pkg/USRDIR/EBOOT.BIN: $(targetDir)/$(targetFile)
 #	wine /usr/local/cell/host-win32/bin/make_fself_npdrm $< $@
@@ -39,7 +39,7 @@ $(targetDir)/pkg/PARAM.SFO : $(SFOXML)
 	sfo.py -f $< $@
 
 $(targetDir)/$(target).pkg : $(targetDir)/pkg/PARAM.SFO $(targetDir)/pkg/USRDIR/EBOOT.BIN
-	pkg.py --contentid EM0000-PCEE00000_00-EXPLUSALPHATURBO $(targetDir)/pkg/ $(targetDir)/$(target).pkg
+	pkg.py --contentid $(ps3_contentid) $(targetDir)/pkg/ $(targetDir)/$(target).pkg
 	package_finalize $(targetDir)/$(target).pkg
 
 ps3-pkg : $(targetDir)/$(target).pkg

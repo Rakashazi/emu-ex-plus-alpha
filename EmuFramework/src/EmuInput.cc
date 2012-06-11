@@ -38,7 +38,12 @@ uint zeemoteInputPlayer[5] = { 0, 1, 2, 3, 4 };
 uint iCadeInputPlayer = 0;
 #endif
 
-static int relPtrX = 0, relPtrY = 0; // for Android trackball
+struct RelPtr  // for Android trackball
+{
+	int x, y;
+	uint xAction, yAction;
+};
+static RelPtr relPtr = { 0 };
 
 KeyMapping keyMapping;
 
@@ -159,27 +164,43 @@ void buildKeyMapping()
 	keyMapping.build(EmuControls::category);
 }
 
+#ifdef INPUT_SUPPORTS_POINTER
 void processRelPtr(const InputEvent &e)
 {
 	using namespace IG;
-	if(relPtrX != 0 && signOf(relPtrX) != signOf(e.x))
+	if(relPtr.x != 0 && signOf(relPtr.x) != signOf(e.x))
 	{
 		//logMsg("reversed trackball X direction");
-		relPtrX = e.x;
+		relPtr.x = e.x;
+		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.xAction);
 	}
 	else
-		relPtrX += e.x;
+		relPtr.x += e.x;
 
-	if(relPtrY != 0 && signOf(relPtrY) != signOf(e.y))
+	if(e.x)
+	{
+		relPtr.xAction = EmuSystem::translateInputAction(e.x > 0 ? EmuControls::systemKeyMapStart+1 : EmuControls::systemKeyMapStart+3);
+		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_PUSHED, relPtr.xAction);
+	}
+
+	if(relPtr.y != 0 && signOf(relPtr.y) != signOf(e.y))
 	{
 		//logMsg("reversed trackball Y direction");
-		relPtrY = e.y;
+		relPtr.y = e.y;
+		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.yAction);
 	}
 	else
-		relPtrY += e.y;
+		relPtr.y += e.y;
 
-	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtrX, relPtrY);
+	if(e.y)
+	{
+		relPtr.yAction = EmuSystem::translateInputAction(e.y > 0 ? EmuControls::systemKeyMapStart+2 : EmuControls::systemKeyMapStart);
+		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_PUSHED, relPtr.yAction);
+	}
+
+	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
 }
+#endif
 
 uint mapInputToPlayer(const InputEvent &e)
 {
@@ -211,7 +232,7 @@ uint mapInputToPlayer(const InputEvent &e)
 
 void commonInitInput()
 {
-	relPtrX = 0, relPtrY = 0;
+	mem_zero(relPtr);
 	mem_zero(turboActions);
 }
 
@@ -240,6 +261,18 @@ void commonUpdateInput()
 	turboClock++;
 	if(turboClock == turboFrames) turboClock = 0;
 
-	relPtrX = clipToZeroSigned(relPtrX, (int)optionRelPointerDecel * -signOf(relPtrX));
-	relPtrY = clipToZeroSigned(relPtrY, (int)optionRelPointerDecel * -signOf(relPtrY));
+#ifdef INPUT_SUPPORTS_POINTER
+	if(relPtr.x)
+	{
+		relPtr.x = clipToZeroSigned(relPtr.x, (int)optionRelPointerDecel * -signOf(relPtr.x));
+		if(!relPtr.x)
+			EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.xAction);
+	}
+	if(relPtr.y)
+	{
+		relPtr.y = clipToZeroSigned(relPtr.y, (int)optionRelPointerDecel * -signOf(relPtr.y));
+		if(!relPtr.y)
+			EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.yAction);
+	}
+#endif
 }

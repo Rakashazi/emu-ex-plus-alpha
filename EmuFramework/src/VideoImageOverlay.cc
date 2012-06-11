@@ -89,6 +89,8 @@ void VideoImageOverlay::place(const GfxSprite &disp)
 		uint lines = 224;
 		if(string_equal(CONFIG_APP_NAME, "2600.emu"))
 			lines = 210;
+		else if(string_equal(CONFIG_APP_NAME, "PCE.emu"))
+			lines = 232;
 		else if(string_equal(CONFIG_APP_NAME, "GBC.emu"))
 			lines = 144;
 		else if(string_equal(CONFIG_APP_NAME, "NGP.emu"))

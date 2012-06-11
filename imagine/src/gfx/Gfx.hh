@@ -67,8 +67,10 @@ void setClearColor(GColor r, GColor g, GColor b, GColor a = 1.);
 
 void setColor(GColor r, GColor g, GColor b, GColor a = 1.);
 
-enum { COLOR_WHITE, COLOR_BLACK };
-static void setColor(int colConst)
+static void setColor(GColor i) { setColor(i, i, i, 1.); }
+
+enum GfxColorEnum { COLOR_WHITE, COLOR_BLACK };
+static void setColor(GfxColorEnum colConst)
 {
 	switch(colConst)
 	{

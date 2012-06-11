@@ -11,6 +11,9 @@ class MDFNFILE
 	public:
 
 	MDFNFILE();
+	// WIP constructors:
+	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
+
 	~MDFNFILE();
 
 	bool Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL, const bool suppress_notfound_pe = FALSE);
@@ -91,7 +94,7 @@ class MDFNFILE
 	bool is_mmap;
 	#endif
 
-	bool MakeMemWrap(void *tz, int type);
+	bool MakeMemWrapAndClose(void *tz, int type);
 };
 
 #if 0

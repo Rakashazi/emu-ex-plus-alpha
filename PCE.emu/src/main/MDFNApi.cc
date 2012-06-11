@@ -23,7 +23,8 @@ extern BasicByteOption optionArcadeCard;
 
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 
-void MDFN_printf(const char *format, ...)
+#ifndef NDEBUG
+void MDFN_printf(const char *format, ...) throw()
 {
 	#ifdef USE_LOGGER
 	va_list args;
@@ -33,7 +34,7 @@ void MDFN_printf(const char *format, ...)
 	#endif
 }
 
-void MDFN_PrintError(const char *format, ...)
+void MDFN_PrintError(const char *format, ...) throw()
 {
 	#ifdef USE_LOGGER
 	va_list args;
@@ -43,7 +44,7 @@ void MDFN_PrintError(const char *format, ...)
 	#endif
 }
 
-void MDFN_DispMessage(const char *format, ...)
+void MDFN_DispMessage(const char *format, ...) throw()
 {
 	#ifdef USE_LOGGER
 	va_list args;
@@ -52,6 +53,7 @@ void MDFN_DispMessage(const char *format, ...)
 	va_end( args );
 	#endif
 }
+#endif
 
 int MDFN_SavePNGSnapshot(const char *fname, const MDFN_Surface *src, const MDFN_Rect *rect, const MDFN_Rect *LineWidths)
 {
@@ -315,6 +317,8 @@ bool MDFN_GetSettingB(const char *name)
 		return 1;
 	if(string_equal("cdrom.lec_eval", name))
 		return 1;
+	if(string_equal("filesys.untrusted_fip_check", name))
+		return 0;
 	logMsg("unhandled settingB %s", name);
 	assert(0);
 	return 0;
@@ -372,10 +376,10 @@ void *MDFN_realloc_real(void *ptr, uint32 size, const char *purpose, const char 
 
 void MDFN_free(void *ptr) { mem_free(ptr); }
 
-void ErrnoHolder::SetErrno(int the_errno)
+/*void ErrnoHolder::SetErrno(int the_errno)
 {
 	logMsg("set errno %d", the_errno);
-}
+}*/
 
 /*CLINK char *trio_vaprintf (const char *format, va_list args)
 {

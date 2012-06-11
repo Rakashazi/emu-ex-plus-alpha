@@ -71,21 +71,21 @@ Input::Wiimote::ZR, \
 #define EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT \
 Input::Key::LSHIFT, \
 Input::Key::RCTRL, \
-input_asciiKey('q'), \
-input_asciiKey('a'), \
-input_asciiKey('@'), \
+Input::asciiKey('q'), \
+Input::asciiKey('a'), \
+Input::asciiKey('@'), \
 0, \
 0
 
 #define EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT \
-input_asciiKey('r'), \
-input_asciiKey('g'), \
-input_asciiKey('c'), \
-input_asciiKey('d'), \
-input_asciiKey('e'), \
-input_asciiKey('t'), \
-input_asciiKey('v'), \
-input_asciiKey('x')
+Input::asciiKey('r'), \
+Input::asciiKey('g'), \
+Input::asciiKey('c'), \
+Input::asciiKey('d'), \
+Input::asciiKey('e'), \
+Input::asciiKey('t'), \
+Input::asciiKey('v'), \
+Input::asciiKey('x')
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT \
 0, \
@@ -106,11 +106,11 @@ Input::Key::SEARCH, \
 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT \
-input_asciiKey('l'), \
+Input::asciiKey('l'), \
 Input::Key::MENU, \
-input_asciiKey('o'), \
-input_asciiKey('p'), \
-input_asciiKey('`'), \
+Input::asciiKey('o'), \
+Input::asciiKey('p'), \
+Input::asciiKey('`'), \
 0, \
 Input::Key::ESCAPE
 

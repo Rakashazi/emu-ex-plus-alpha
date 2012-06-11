@@ -39,7 +39,10 @@ ifneq ($(config_compiler),clang)
  COMPILE_FLAGS += -fsingle-precision-constant -ftree-vectorize
 endif
 #COMPILE_FLAGS += -ftemplate-depth-100
-LDFLAGS += -dead_strip -Wl,-S,-x
+LDFLAGS += -dead_strip
+ifdef RELEASE
+ LDFLAGS += -Wl,-S,-x
+endif
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
 CPPFLAGS += -I$(IMAGINE_PATH)/bundle/darwin-iOS/include

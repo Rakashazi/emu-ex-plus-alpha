@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.hxx 2231 2011-05-10 15:04:19Z stephena $
+// $Id: M6502.hxx 2359 2012-01-17 22:20:20Z stephena $
 //============================================================================
 
 #ifndef M6502_HXX
@@ -45,7 +45,7 @@ typedef Common::Array<Expression*> ExpressionList;
   effects and for games which are very time sensitive.
 
   @author  Bradford W. Mott
-  @version $Id: M6502.hxx 2231 2011-05-10 15:04:19Z stephena $
+  @version $Id: M6502.hxx 2359 2012-01-17 22:20:20Z stephena $
 */
 class M6502 : public Serializable
 {
@@ -217,11 +217,11 @@ class M6502 : public Serializable
     void setBreakPoints(PackedBitArray* bp);
     void setTraps(PackedBitArray* read, PackedBitArray* write);
 
-    unsigned int addCondBreak(Expression* e, const string& name);
-    void delCondBreak(unsigned int brk);
+    uInt32 addCondBreak(Expression* e, const string& name);
+    void delCondBreak(uInt32 brk);
     void clearCondBreaks();
     const StringList& getCondBreakNames() const;
-    int evalCondBreaks();
+    Int32 evalCondBreaks();
 #endif
 
   private:

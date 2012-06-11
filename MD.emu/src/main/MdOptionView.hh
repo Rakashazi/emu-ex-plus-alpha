@@ -135,6 +135,48 @@ private:
 		}
 	} cdBiosPath[3];
 
+	MultiChoiceSelectMenuItem inputPorts;
+
+	void inputPortsInit()
+	{
+		static const char *str[] =
+		{
+			"Auto", "Gamepads", "Menacer", "Justifier"
+		};
+		int setting = 0;
+		if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MD_GAMEPAD)
+			setting = 1;
+		else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MENACER)
+			setting = 2;
+		else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
+			setting = 3;
+
+		inputPorts.init("Input Ports", str, setting, sizeofArray(str));
+		inputPorts.valueDelegate().bind<&inputPortsSet>();
+	}
+
+	static void inputPortsSet(MultiChoiceMenuItem &, int val)
+	{
+		if(val == 0)
+		{
+			mdInputPortDev[0] = mdInputPortDev[1] = -1;
+		}
+		else if(val == 1)
+		{
+			mdInputPortDev[0] = mdInputPortDev[1] = SYSTEM_MD_GAMEPAD;
+		}
+		else if(val == 2)
+		{
+			mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_MENACER;
+		}
+		else if(val == 3)
+		{
+			mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_JUSTIFIER;
+		}
+
+		setupMDInput();
+	}
+
 	MenuItem *item[24];
 
 public:
@@ -148,6 +190,7 @@ public:
 	void loadInputItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadInputItems(item, items);
+		inputPortsInit(); item[items++] = &inputPorts;
 		sixButtonPad.init(option6BtnPad); item[items++] = &sixButtonPad;
 		multitap.init(usingMultiTap); item[items++] = &multitap;
 	}

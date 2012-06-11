@@ -286,13 +286,9 @@ private:
 
 	struct GameMenuItem : public TextMenuItem
 	{
-		constexpr GameMenuItem(): entry(0)
-		#ifdef CONFIG_CXX11
-		, longName CXX11_INIT_LIST({0})
-		#endif
-		{ }
-		const RomListEntry *entry;
-		char longName[128];
+		constexpr GameMenuItem() { }
+		const RomListEntry *entry = nullptr;
+		char longName[128] = {0};
 		void init(const char *name, const RomListEntry *entry, bool exists)
 		{
 			var_selfs(entry);
@@ -337,13 +333,9 @@ private:
 		}
 	} rom[sizeofArrayConst(romlist)];
 
-	MenuItem *item[sizeofArrayConst(romlist)];
+	MenuItem *item[sizeofArrayConst(romlist)] = {nullptr};
 public:
-	constexpr GameListView(): BaseMenuView("Game List")
-	#ifdef CONFIG_CXX11
-	, item CXX11_INIT_LIST({0})
-	#endif
-	{ }
+	constexpr GameListView(): BaseMenuView("Game List") { }
 
 	bool init(bool highlightFirst)
 	{
@@ -353,7 +345,7 @@ public:
 			ROM_DEF *drv = dr_check_zip(e->filename);
 			if(drv)
 			{
-				bool fileExists = Fs::fileExists(e->filename);
+				bool fileExists = FsSys::fileExists(e->filename);
 				if(!optionListAllGames && !fileExists)
 				{
 					free(drv);

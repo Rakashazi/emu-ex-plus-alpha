@@ -12,13 +12,11 @@ enum { IMAGE_ALPHA_CHANNEL_NONE, IMAGE_ALPHA_CHANNEL_USED, IMAGE_ALPHA_CHANNEL_I
 //enum { IMAGE_CLASS_UNKNOWN, IMAGE_CLASS_TEXTURE, IMAGE_CLASS_NON_REPEATING, IMAGE_CLASS_NR = IMAGE_CLASS_NON_REPEATING, IMAGE_CLASS_TILED };
 //enum { IMAGE_EDGES_UNKNOWN, IMAGE_EDGES_HARD, IMAGE_EDGES_SOFT };
 
-class ResourceImage : /*public Resource,*/ public RefCount<ResourceImage>, public GfxUsableImage
+class ResourceImage : /*public Resource,*/ public GfxUsableImage, public RefCount<ResourceImage>
 {
 public:
-	/*#ifdef CONFIG_BASE_ANDROID
-	constexpr ResourceImage() { }
-	#endif*/
-
+	//constexpr ResourceImage() { }
+	virtual ~ResourceImage() { }
 
 	void init();
 	//CallResult init(const char * name);

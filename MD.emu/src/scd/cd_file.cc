@@ -246,7 +246,7 @@ int FILE_Read_One_LBA_CDC(void)
 				sCD.cdc.WA.N = (sCD.cdc.WA.N + 2352) & 0x7FFF;		// add one sector to WA
 				sCD.cdc.PT.N = (sCD.cdc.PT.N + 2352) & 0x7FFF;
 
-				*(unsigned int *)(sCD.cdc.Buffer + sCD.cdc.PT.N) = sCD.cdc.HEAD.N;
+				*(uint32a*)(sCD.cdc.Buffer + sCD.cdc.PT.N) = sCD.cdc.HEAD.N;
 				readLBA(sCD.cdc.Buffer + sCD.cdc.PT.N + 4, where_read);
 
 #ifdef DEBUG_CD

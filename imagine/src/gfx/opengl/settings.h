@@ -53,7 +53,9 @@ static float zRange = 1000.0;
 
 static void resizeGLScene(GLsizei width, GLsizei height)
 {
-	glViewport(0, 0, width, height);
+	if(Base::window().rect.y2 != height)
+		logMsg("non-fullscreen viewport with y %d", Base::window().rect.y2 - height);
+	glViewport(0, Base::window().rect.y2 - height, width, height);
 
 	if(height == 0 || width == 0)
 	{
@@ -266,6 +268,11 @@ static void checkForNonPow2Textures()
 	if(forceNoNonPow2Textures)
 		return;
 
+	#ifdef CONFIG_BASE_ANDROID
+	if(glBrokenNpot)
+		return;
+	#endif
+
 	#if defined(CONFIG_BASE_PS3)
 	if(1)
 	#elif defined(CONFIG_GFX_OPENGL_ES) && defined(CONFIG_BASE_IOS)
@@ -452,20 +459,17 @@ static void setupAndroidNativeBuffer(android_native_buffer_t &eglBuf, int x, int
 
 struct AndroidDirectTextureConfig
 {
-	fbool useEGLImageKHR, supportEGLImageKHR, whitelistedEGLImageKHR;
-	int errorEGLImageKHR;
-	static const EGLint eglImgAttrs[] ;//= { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
+	fbool useEGLImageKHR = 0, supportEGLImageKHR = 0, whitelistedEGLImageKHR = 0;
+	int errorEGLImageKHR = 0;
+	static const EGLint eglImgAttrs[];//= { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 	static const GLenum directTextureTarget;// = GL_TEXTURE_2D;
 private:
-	int (*hw_get_module)(const char *id, const struct hw_module_t **module);
-	gralloc_module_t const *grallocMod;
-	alloc_device_t *allocDev;
+	int (*hw_get_module)(const char *id, const struct hw_module_t **module) = nullptr;
+	gralloc_module_t const *grallocMod = nullptr;
+	alloc_device_t *allocDev = nullptr;
 
 public:
-	constexpr AndroidDirectTextureConfig(): useEGLImageKHR(0), supportEGLImageKHR(0),
-	whitelistedEGLImageKHR(0), errorEGLImageKHR(0), hw_get_module(0),
-	grallocMod(0), allocDev(0)
-	{ }
+	constexpr AndroidDirectTextureConfig() { }
 
 	void checkForEGLImageKHR(const char *rendererName)
 	{
@@ -705,7 +709,7 @@ public:
 const EGLint AndroidDirectTextureConfig::eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 const GLenum AndroidDirectTextureConfig::directTextureTarget = GL_TEXTURE_2D;
 
-static AndroidDirectTextureConfig directTextureConf { };
+static AndroidDirectTextureConfig directTextureConf;
 
 static android_native_buffer_t eglBuf;
 static EGLImageKHR eglImg;

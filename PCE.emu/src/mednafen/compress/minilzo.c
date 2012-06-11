@@ -1709,6 +1709,8 @@ LZO_COMPILE_TIME_ASSERT_HEADER(sizeof(lzo_uintptr_t) >= sizeof(lzo_voidp))
 #endif
 #endif
 
+#define LZO_CFG_NO_UNALIGNED
+// TODO: unaligned code needs fixes for strict aliasing
 #if 1 && !defined(LZO_CFG_NO_UNALIGNED)
 #if 1 && (LZO_ARCH_AMD64 || LZO_ARCH_I386)
 #  if (LZO_SIZEOF_SHORT == 2)

@@ -29,20 +29,6 @@ struct pd4990a_s pd4990a =
   1		/* weekday BCD */
 };
 
-#if 0
-static Uint32 shiftlo,shifthi;
-static int retraces = 0;		/* Assumes 60 retraces a second */
-static int testwaits = 0;
-static int maxwaits = 1;
-static int testbit = 0;		/* Pulses a bit in order to simulate */
-					/* test output */
-static int outputbit = 0;
-static int bitno = 0;
-
-static char reading=0;
-static char writing=0;
-#endif
-
 #define DATA_BIT	0x1
 #define CLOCK_BIT	0x2
 #define END_BIT		0x4
@@ -133,17 +119,6 @@ void pd4990a_init(void) {
     pd4990a.year = 0x73;		/* BCD */
     pd4990a.weekday = 1;		/* BCD */
 
-#if 0
-    pd4990a.retraces = 0;		/* Assumes 60 retraces a second */
-    pd4990a.testbit = 0;		/* Pulses a bit in order to simulate */
-    pd4990a.reading=0;
-    pd4990a.writing=0;
-    pd4990a.shiftlo=0;
-    pd4990a.shifthi=0;
-    /* test output */
-    pd4990a.outputbit = 0;
-    pd4990a.bitno = 0;
-#endif
     pd4990a.maxwaits = 1;
 
     time(&ltime);
@@ -343,13 +318,13 @@ static void pd4990a_process_command(void)
       pd4990a.writing=0;	/*store register to current date */
       pd4990a_update_date();
       break;
-      case 0x3:	/*start pd4990a.reading */
+      case 0x3:	/*start reading */
 	pd4990a.reading=1;
 	break;
-	case 0x7:	/*switch pd4990a.testbit every frame */
+	case 0x7:	/*switch testbit every frame */
 	  pd4990a.maxwaits=1;
 	  break;
-	  case 0x8:	/*switch pd4990a.testbit every half-second */
+	  case 0x8:	/*switch testbit every half-second */
 	    pd4990a.maxwaits=30;
 	    break;
   }
@@ -358,9 +333,6 @@ static void pd4990a_process_command(void)
 
 void pd4990a_serial_control(unsigned char data)
 {
-  /*static int clock_line=0;
-  static int command_line=0;*/	/*?? */
-
   /*Check for command end */
   if(pd4990a.command_line && !(data&END_BIT)) /*end of command */
   {

@@ -1266,7 +1266,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
   Z80.after_ei = TRUE;  \
 }
 
-#define OP(prefix,opcode)  ATTRS(always_inline) void prefix##_##opcode(void)
+#define OP(prefix,opcode)  inline void prefix##_##opcode(void)
 
 /**********************************************************
  * opcodes with CB prefix

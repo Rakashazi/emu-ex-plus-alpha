@@ -18,214 +18,209 @@
 #include "../mednafen.h"
 #include <string.h>
 #include <sys/types.h>
-//#include <cdio/cdio.h>
 #include <trio/trio.h>
 #include "cdromif.h"
-#include "cdromfile.h"
+#include "CDAccess.h"
 #include "../general.h"
-#include "dvdisaster.h"
 
-#include <queue>
+using namespace CDUtility;
 
-// Read from either thread, only written to during the startup of the CD reading thread.
-static CD_TOC toc;
-
-// Only access from CD reading thread!
-static CDRFile *p_cdrfile = NULL;
-
-static MDFN_Thread *CDReadThread = NULL;
-
-static bool LEC_Eval;
-
-enum
+CDIF_Message::CDIF_Message()
 {
- CDIF_MSG_INIT_DONE = 0,	// Read -> emu
- CDIF_MSG_FATAL_ERROR,		// Read -> emu
+ message = 0;
 
- CDIF_MSG_DIEDIEDIE,		// Emu -> read
+ memset(args, 0, sizeof(args));
+}
 
- CDIF_MSG_READ_SECTOR,		/* Emu -> read
-					args[0] = lba
-				*/
-};
-
-class CDIF_Message
+CDIF_Message::CDIF_Message(unsigned int message_, uint32 arg0, uint32 arg1, uint32 arg2, uint32 arg3)
 {
- public:
-
- CDIF_Message()
- {
-  message = 0;
-
-  memset(args, 0, sizeof(args));
-  parg = NULL;
- }
-
- CDIF_Message(unsigned int _message, uint32 arg0, uint32 arg1, uint32 arg2, uint32 arg3, void *_parg)
- {
-  message = _message;
-  args[0] = arg0;
-  args[1] = arg1;
-  args[2] = arg2;
-  args[3] = arg3;
-  parg = _parg;
- }
-
- ~CDIF_Message()
- {
-
- }
-
- unsigned int message;
- uint32 args[4];
- void *parg;
-};
+ message = message_;
+ args[0] = arg0;
+ args[1] = arg1;
+ args[2] = arg2;
+ args[3] = arg3;
+}
 
 #include <logger/interface.h>
 
-class CDIF_Queue
+CDIF_Message::CDIF_Message(unsigned int message_, const std::string &str)
 {
- public:
+ message = message_;
+ str_message = str;
+}
 
-	MDFN_Semaphore *ze_semaphore;
+CDIF_Message::~CDIF_Message()
+{
 
- CDIF_Queue()
- {
-  ze_mutex = MDFND_CreateMutex();
-  ze_semaphore = MDFND_CreateSemaphore();
- }
+}
 
- ~CDIF_Queue()
- {
-  MDFND_DestroyMutex(ze_mutex);
-  MDFND_DestroySemaphore(ze_semaphore);
- }
+CDIF_Queue::CDIF_Queue()
+{
+ ze_mutex = MDFND_CreateMutex();
+ ze_semaphore = MDFND_CreateSemaphore();
+}
+
+CDIF_Queue::~CDIF_Queue()
+{
+ MDFND_DestroyMutex(ze_mutex);
+ MDFND_DestroySemaphore(ze_semaphore);
+}
 
  // Returns FALSE if message not read, TRUE if it was read.  Will always return TRUE if "blocking" is set.
- bool Read(CDIF_Message *message, bool blocking = TRUE)
+bool CDIF_Queue::Read(CDIF_Message *message, bool blocking)
+{
+  if(!blocking && ze_queue.size() == 0)
   {
-   if(!blocking && ze_queue.size() == 0)
+     return FALSE;
+  }
+
+  MDFND_WaitSemaphore(ze_semaphore);
+  MDFND_LockMutex(ze_mutex);
+  assert(ze_queue.size() > 0);
+  *message = ze_queue.front();
+  ze_queue.pop();
+  MDFND_UnlockMutex(ze_mutex);
+  return TRUE;
+}
+
+void CDIF_Queue::Write(const CDIF_Message &message)
+{
+ MDFND_LockMutex(ze_mutex);
+
+ ze_queue.push(message);
+
+ MDFND_UnlockMutex(ze_mutex);
+
+ MDFND_SignalSemaphore(ze_semaphore);
+}
+
+void CDIF::RT_EjectDisc(bool eject_status, bool skip_actual_eject)
+{
+ int32 old_de = DiscEjected;
+
+ DiscEjected = eject_status;
+
+ if(old_de != DiscEjected)
+ {
+  if(!skip_actual_eject)
+   disc_cdaccess->Eject(eject_status);
+
+  if(!eject_status)	// Re-read the TOC
+  {
+   disc_cdaccess->Read_TOC(&disc_toc);
+
+   if(disc_toc.first_track < 1 || disc_toc.last_track > 99 || disc_toc.first_track > disc_toc.last_track)
    {
-      return FALSE;
+    throw(MDFN_Error(0, _("TOC first(%d)/last(%d) track numbers bad."), disc_toc.first_track, disc_toc.last_track));
    }
-
-   MDFND_WaitSemaphore(ze_semaphore);
-
-   MDFND_LockMutex(ze_mutex);
-   assert(ze_queue.size() > 0);
-   *message = ze_queue.front();
-   ze_queue.pop();
-   MDFND_UnlockMutex(ze_mutex);
-   return TRUE;
   }
 
-  void Write(const CDIF_Message &message)
-  {
-   MDFND_LockMutex(ze_mutex);
+  SBWritePos = 0;
+  ra_lba = 0;
+  ra_count = 0;
+  last_read_lba = ~0U;
+  memset(SectorBuffers, 0, SBSize * sizeof(CDIF_Sector_Buffer));
+ }
+}
 
-   ze_queue.push(message);
-
-   MDFND_UnlockMutex(ze_mutex);
-
-   MDFND_SignalSemaphore(ze_semaphore);
-  }
-
- std::queue<CDIF_Message> ze_queue;
- MDFN_Mutex *ze_mutex;
+struct RTS_Args
+{
+ CDIF *cdif_ptr;
+ const char *device_name;
 };
 
-// Queue for messages to the read thread.
-static CDIF_Queue *ReadThreadQueue = NULL;
-
-// Queue for messages to the emu thread.
-static CDIF_Queue *EmuThreadQueue = NULL;
-
-
-typedef struct
+static void *ReadThreadStart_C(void *v_arg)
 {
- bool valid;
- uint32 lba;
- uint8 data[2352 + 96];
-} CDIF_Sector_Buffer;
+ RTS_Args *args = (RTS_Args *)v_arg;
 
-static CDIF_Sector_Buffer *SectorBuffers = NULL;
-static uint32 SBWritePos;
-static const uint32 SBSize = 256;
-static MDFN_Mutex *SBMutex = NULL;
+ if(args->device_name)
+ {
+  char device_name[strlen(args->device_name) + 1];
 
-static uint32 ra_lba;
-static int ra_count;
-static int32 last_read_lba;
+  strcpy(device_name, args->device_name);
 
-static void* ReadThreadStart(void *arg)
+  args->cdif_ptr->ReadThreadStart(device_name);
+ }
+ else
+  args->cdif_ptr->ReadThreadStart(NULL);
+ return 0;
+}
+
+int CDIF::ReadThreadStart(const char *device_name)
 {
- char *device_name = (char *)arg;
  bool Running = TRUE;
 
- MDFN_printf(_("Loading %s...\n\n"), device_name ? device_name : _("PHYSICAL CDROM DISC"));
- MDFN_indent(1);
+ DiscEjected = true;
+ SBWritePos = 0;
+ ra_lba = 0;
+ ra_count = 0;
+ last_read_lba = ~0U;
 
- if(!(p_cdrfile = cdrfile_open(device_name)))
+ try
  {
-  MDFN_indent(-1);
-  EmuThreadQueue->Write(CDIF_Message(CDIF_MSG_INIT_DONE, FALSE, 0, 0, 0, NULL));
+  disc_cdaccess = cdaccess_open(device_name ? device_name : NULL);
+  RT_EjectDisc(false, true);
+ }
+ catch(std::exception &e)
+ {
+  EmuThreadQueue.Write(CDIF_Message(CDIF_MSG_FATAL_ERROR, std::string(e.what())));
   return(0);
  }
 
- if(!cdrfile_read_toc(p_cdrfile, &toc))
- {
-	 MDFN_printf("Error reading TOC");
-  MDFN_indent(-1);
-  EmuThreadQueue->Write(CDIF_Message(CDIF_MSG_INIT_DONE, FALSE, 0, 0, 0, NULL));
-  return(0);
- }
+ is_phys_cache = disc_cdaccess->Is_Physical();
 
- if(toc.first_track < 1 || toc.last_track > 99 || toc.first_track > toc.last_track)
- {
-	 MDFN_printf("First/Last track numbers bad");
-  MDFN_indent(-1);
-  EmuThreadQueue->Write(CDIF_Message(CDIF_MSG_INIT_DONE, FALSE, 0, 0, 0, NULL));
-  return(0);
- }
-
- for(int32 track = toc.first_track; track <= toc.last_track; track++)
- {
-  MDFN_printf(_("Track %2d, LBA: %6d  %s\n"), track, toc.tracks[track].lba, (toc.tracks[track].control & 0x4) ? "DATA" : "AUDIO");
- }
-
- MDFN_printf("Leadout: %6d\n", toc.tracks[100].lba);
- MDFN_indent(-1);
-
- EmuThreadQueue->Write(CDIF_Message(CDIF_MSG_INIT_DONE, TRUE, 0, 0, 0, NULL));
+ EmuThreadQueue.Write(CDIF_Message(CDIF_MSG_DONE));
 
  while(Running)
  {
   CDIF_Message msg;
 
   // Only do a blocking-wait for a message if we don't have any sectors to read-ahead.
-  if(ReadThreadQueue->Read(&msg, ra_count ? FALSE : TRUE))
+  // MDFN_DispMessage("%d %d %d\n", last_read_lba, ra_lba, ra_count);
+  if(ReadThreadQueue.Read(&msg, ra_count ? FALSE : TRUE))
   {
    switch(msg.message)
    {
-    case CDIF_MSG_DIEDIEDIE: Running = FALSE;
+    case CDIF_MSG_DIEDIEDIE:
+			 Running = FALSE;
  		 	 break;
+
+    case CDIF_MSG_EJECT:
+			try
+			{
+			 RT_EjectDisc(msg.args[0]);
+			 EmuThreadQueue.Write(CDIF_Message(CDIF_MSG_DONE));
+			}
+			catch(std::exception &e)
+			{
+			 EmuThreadQueue.Write(CDIF_Message(CDIF_MSG_FATAL_ERROR, std::string(e.what())));
+			}
+			break;
 
     case CDIF_MSG_READ_SECTOR:
 			 {
+                          static const int max_ra = 16;
+			  static const int initial_ra = 1;
+			  static const int speedmult_ra = 2;
 			  uint32 new_lba = msg.args[0];
 
-			  if(new_lba == (last_read_lba + 1))
+			  assert((unsigned int)max_ra < (SBSize / 4));
+
+			  if(last_read_lba != ~0U && new_lba == (last_read_lba + 1))
 			  {
-			   //if(ra_count < 8)
-			   // ra_count += 2;
-			   //else
+			   int how_far_ahead = ra_lba - new_lba;
+
+			   if(how_far_ahead <= max_ra)
+			    ra_count = std::min(speedmult_ra, 1 + max_ra - how_far_ahead);
+			   else
 			    ra_count++;
 			  }
-			  else
+			  else if(new_lba != last_read_lba)
 			  {
                            ra_lba = new_lba;
-			   ra_count = 4;
+			   ra_count = initial_ra;
 			  }
+
 			  last_read_lba = new_lba;
 			 }
 			 break;
@@ -233,7 +228,7 @@ static void* ReadThreadStart(void *arg)
   }
 
   // Don't read >= the "end" of the disc, silly snake.  Slither.
-  if(ra_count && ra_lba == toc.tracks[100].lba)
+  if(ra_count && ra_lba == disc_toc.tracks[100].lba)
   {
    ra_count = 0;
    //printf("Ephemeral scarabs: %d!\n", ra_lba);
@@ -242,17 +237,26 @@ static void* ReadThreadStart(void *arg)
   if(ra_count)
   {
    uint8 tmpbuf[2352 + 96];
+   bool error_condition = false;
 
-   if(!cdrfile_read_raw_sector(p_cdrfile, tmpbuf, ra_lba))
+   //try
    {
-	   MDFN_printf("Sector %d read error!  Abandon ship!", ra_lba);
-    memset(tmpbuf, 0, sizeof(tmpbuf));
+    disc_cdaccess->Read_Raw_Sector(tmpbuf, ra_lba);
    }
+   // TODO
+   /*catch(std::exception &e)
+   {
+    MDFN_PrintError(_("Sector %u read error: %s"), ra_lba, e.what());
+    memset(tmpbuf, 0, sizeof(tmpbuf));
+    error_condition = true;
+   }*/
+
    MDFND_LockMutex(SBMutex);
 
    SectorBuffers[SBWritePos].lba = ra_lba;
    memcpy(SectorBuffers[SBWritePos].data, tmpbuf, 2352 + 96);
    SectorBuffers[SBWritePos].valid = TRUE;
+   SectorBuffers[SBWritePos].error = error_condition;
    SBWritePos = (SBWritePos + 1) % SBSize;
 
    MDFND_UnlockMutex(SBMutex);
@@ -262,148 +266,93 @@ static void* ReadThreadStart(void *arg)
   }
  }
 
- if(p_cdrfile)
+ if(disc_cdaccess)
  {
-  cdrfile_destroy(p_cdrfile);
-  p_cdrfile = NULL;
+  delete disc_cdaccess;
+  disc_cdaccess = NULL;
  }
 
- return(0);
+ return(1);
 }
 
-bool CDIF_Open(const char *device_name)
+CDIF::CDIF(const char *device_name)
 {
  CDIF_Message msg;
+ RTS_Args s;
 
- ReadThreadQueue = new CDIF_Queue();
- EmuThreadQueue = new CDIF_Queue();
- 
  SBMutex = MDFND_CreateMutex();
- SectorBuffers = (CDIF_Sector_Buffer *)calloc(SBSize, sizeof(CDIF_Sector_Buffer));
+ UnrecoverableError = false;
 
- SBWritePos = 0;
- ra_lba = 0;
- ra_count = 0;
- last_read_lba = -1;
+ s.cdif_ptr = this;
+ s.device_name = device_name;
 
- CDReadThread = MDFND_CreateThread(ReadThreadStart, device_name ? strdup(device_name) : NULL);
-
- EmuThreadQueue->Read(&msg);
-
- if(!msg.args[0])
+ CDReadThread = MDFND_CreateThread(ReadThreadStart_C, &s);
+ EmuThreadQueue.Read(&msg);
+ if(msg.message == CDIF_MSG_FATAL_ERROR)
  {
+	 throw MDFN_Error(0, "%s", msg.str_message.c_str());
+ }
+}
+
+
+CDIF::~CDIF()
+{
+ bool thread_murdered_with_kitchen_knife = false;
+
+ //try
+ {
+  ReadThreadQueue.Write(CDIF_Message(CDIF_MSG_DIEDIEDIE));
+ }
+ /*catch(std::exception &e)
+ {
+  MDFND_PrintError(e.what());
+  MDFND_KillThread(CDReadThread);
+  thread_murdered_with_kitchen_knife = true;
+ }*/
+
+ if(!thread_murdered_with_kitchen_knife)
   MDFND_WaitThread(CDReadThread, NULL);
-  delete ReadThreadQueue;
-  delete EmuThreadQueue;
-
-  ReadThreadQueue = NULL;
-  EmuThreadQueue = NULL;
-
-  return(FALSE);
- }
-
- LEC_Eval = MDFN_GetSettingB("cdrom.lec_eval");
- if(LEC_Eval)
- {
-  Init_LEC_Correct();
- }
-
- MDFN_printf(_("Raw rip data correction using L-EC: %s\n\n"), LEC_Eval ? _("Enabled") : _("Disabled"));
-
- return(TRUE);
-}
-
-bool CDIF_ValidateRawSector(uint8 *buf)
-{
- int mode = buf[12 + 3];
-
- if(mode != 0x1 && mode != 0x2)
-  return(false);
-
- if(LEC_Eval || cdrfile_is_physical(p_cdrfile))
- {
-  if(!ValidateRawSector(buf, mode == 2))
-   return(false);
- }
- return(true);
-}
-
-bool CDIF_Close(void)
-{
- ReadThreadQueue->Write(CDIF_Message(CDIF_MSG_DIEDIEDIE, 0, 0, 0, 0, NULL));
- MDFND_WaitThread(CDReadThread, NULL);
-
- if(SectorBuffers)
- {
-  free(SectorBuffers);
-  SectorBuffers = NULL;
- }
-
- if(ReadThreadQueue)
- {
-  delete ReadThreadQueue;
-  ReadThreadQueue = NULL;
- }
-
- if(EmuThreadQueue)
- {
-  delete EmuThreadQueue;
-  EmuThreadQueue = NULL;
- }
 
  if(SBMutex)
  {
   MDFND_DestroyMutex(SBMutex);
   SBMutex = NULL;
  }
-
- return(1);
 }
 
-uint32 CDIF_GetTrackStartPositionLBA(int32 track)
+bool CDIF::ValidateRawSector(uint8 *buf)
 {
- if(track == (toc.last_track + 1)) // Leadout track.
-  track = 100;
- else if(track < toc.first_track || track > toc.last_track)
- {
-  assert(0);
-  return(0);
- }
+ int mode = buf[12 + 3];
 
- return(toc.tracks[track].lba);
+ if(mode != 0x1 && mode != 0x2)
+  return(false);
+
+ if(!edc_lec_check_correct(buf, mode == 2))
+  return(false);
+
+ return(true);
 }
 
-int CDIF_FindTrackByLBA(uint32 LBA)
-{
- for(int32 track = toc.first_track; track <= (toc.last_track + 1); track++)
- {
-  if(track == (toc.last_track + 1))
-  {
-   if(LBA < toc.tracks[100].lba)
-    return(track - 1);
-  }
-  else
-  {
-   if(LBA < toc.tracks[track].lba)
-    return(track - 1);
-  }
- }
- return(0);
-}
-
-bool CDIF_ReadRawSector(uint8 *buf, uint32 lba)
+bool CDIF::ReadRawSector(uint8 *buf, uint32 lba)
 {
  bool found = FALSE;
+ bool error_condition = false;
+
+ if(UnrecoverableError)
+ {
+  memset(buf, 0, 2352 + 96);
+  return(false);
+ }
 
  // This shouldn't happen, the emulated-system-specific CDROM emulation code should make sure the emulated program doesn't try
  // to read past the last "real" sector of the disc.
- if(lba >= toc.tracks[100].lba)
+ if(lba >= disc_toc.tracks[100].lba)
  {
-	 MDFN_printf("Attempt to read LBA %d, >= LBA %d\n", lba, toc.tracks[100].lba);
+	 MDFN_PrintError("Attempt to read LBA %d, >= LBA %d\n", lba, disc_toc.tracks[100].lba);
   return(FALSE);
  }
 
- ReadThreadQueue->Write(CDIF_Message(CDIF_MSG_READ_SECTOR, lba, 0, 0, 0, NULL));
+ ReadThreadQueue.Write(CDIF_Message(CDIF_MSG_READ_SECTOR, lba));
 
  do
  {
@@ -413,44 +362,50 @@ bool CDIF_ReadRawSector(uint8 *buf, uint32 lba)
   {
    if(SectorBuffers[i].valid && SectorBuffers[i].lba == lba)
    {
+    error_condition = SectorBuffers[i].error;
     memcpy(buf, SectorBuffers[i].data, 2352 + 96);
     found = TRUE;
-    break;
    }
   }
 
   MDFND_UnlockMutex(SBMutex);
 
   if(!found)
-  {
-	  //logMsg("doing busy wait");
    MDFND_Sleep(1);
-  }
  } while(!found);
 
- return(TRUE);
+ return(!error_condition);
 }
 
-bool CDIF_HintReadSector(uint32 lba)
+void CDIF::HintReadSector(uint32 lba)
 {
- ReadThreadQueue->Write(CDIF_Message(CDIF_MSG_READ_SECTOR, lba, 0, 0, 0, NULL));
+ if(UnrecoverableError)
+  return;
 
- return(1);
+ ReadThreadQueue.Write(CDIF_Message(CDIF_MSG_READ_SECTOR, lba));
 }
 
-bool CDIF_ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors)
+int CDIF::ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors)
 {
+ int ret = 0;
+
+ if(UnrecoverableError)
+ {
+  return(0);
+ }
+
+
  while(nSectors--)
  {
   uint8 tmpbuf[2352 + 96];
 
-  if(!CDIF_ReadRawSector(tmpbuf, lba))
+  if(!ReadRawSector(tmpbuf, lba))
   {
-	  MDFN_printf("CDIF Raw Read error");
+   MDFN_PrintError("CDIF Raw Read error");
    return(FALSE);
   }
 
-  if(!CDIF_ValidateRawSector(tmpbuf))
+  if(!ValidateRawSector(tmpbuf))
   {
    MDFN_DispMessage(_("Uncorrectable data at sector %d"), lba);
    MDFN_PrintError(_("Uncorrectable data at sector %d"), lba);
@@ -458,6 +413,9 @@ bool CDIF_ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors)
   }
 
   const int mode = tmpbuf[12 + 3];
+
+  if(!ret)
+   ret = mode;
 
   if(mode == 1)
   {
@@ -469,7 +427,7 @@ bool CDIF_ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors)
   }
   else
   {
-	  MDFN_printf("CDIF_ReadSector() invalid sector type at LBA=%u\n", (unsigned int)lba);
+  	MDFN_PrintError("CDIF_ReadSector() invalid sector type at LBA=%u\n", (unsigned int)lba);
    return(false);
   }
 
@@ -477,59 +435,27 @@ bool CDIF_ReadSector(uint8* pBuf, uint32 lba, uint32 nSectors)
   lba++;
  }
 
+ return(ret);
+}
+
+void CDIF::ReadTOC(CDUtility::TOC *read_target)
+{
+ *read_target = disc_toc;
+}
+
+bool CDIF::Eject(bool eject_status)
+{
+ if(UnrecoverableError)
+  return(false);
+
+ CDIF_Message msg;
+ ReadThreadQueue.Write(CDIF_Message(CDIF_MSG_EJECT, eject_status));
+ EmuThreadQueue.Read(&msg);
+ if(msg.message == CDIF_MSG_FATAL_ERROR)
+ {
+  MDFN_PrintError(_("Error on eject/insert attempt: %s"), msg.str_message.c_str());
+  return(false);
+ }
+
  return(true);
-}
-
-uint32 CDIF_GetTrackSectorCount(int32 track)
-{
- return(cdrfile_get_track_sec_count(p_cdrfile, track));
-}
-
-bool CDIF_CheckSubQChecksum(uint8 *SubQBuf)
-{
- return(cdrfile_check_subq_checksum(SubQBuf));
-}
-
-bool CDIF_ReadTOC(CD_TOC *read_target)
-{
- *read_target = toc;
-
- return(TRUE);
-}
-
-
-bool CDIF_DumpCD(const char *fn)
-{
- FILE *fp;
-
- if(!(fp = fopen(fn, "wb")))
- {
-  ErrnoHolder ene(errno);
-
-  MDFN_printf("File open error: %s\n", ene.StrError());
-  return(0);
- }
-
- for(long long i = 0; i < toc.tracks[100].lba; i++)
- {
-  uint8 buf[2352 + 96];
-
-  CDIF_ReadRawSector(buf, i);
-
-  if(fwrite(buf, 1, 2352 + 96, fp) != 2352 + 96)
-  {
-   ErrnoHolder ene(errno);
-
-   MDFN_printf("File write error: %s\n", ene.StrError());
-  }
- }
-
- if(fclose(fp))
- {
-  ErrnoHolder ene(errno);
-
-  MDFN_printf("fclose error: %s\n", ene.StrError());
- }
-
- return(1);
 }
