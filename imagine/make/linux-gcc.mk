@@ -9,7 +9,7 @@ else
  include $(currPath)/gcc.mk
 endif
 
-HIGH_OPTIMIZE_CFLAGS += -ffunction-sections -fdata-sections
+HIGH_OPTIMIZE_CFLAGS_MISC += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif

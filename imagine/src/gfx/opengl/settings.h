@@ -479,9 +479,10 @@ public:
 			whitelistedEGLImageKHR = 1;
 		}
 
-		if(strstr(rendererName, "NVIDIA")) // disable on Tegra, unneeded and causes lock-ups currently
+		if(strstr(rendererName, "NVIDIA") // disable on Tegra, unneeded and causes lock-ups currently
+			|| string_equal(rendererName, "VideoCore IV HW")) // seems to crash Samsung Galaxy Y on eglCreateImageKHR, maybe other devices
 		{
-			logMsg("force-disabling EGLImageKHR on Tegra");
+			logMsg("force-disabling EGLImageKHR due to GPU");
 			errorEGLImageKHR = ANDROID_DT_ERR_FORCE_DISABLE;
 		}
 		else

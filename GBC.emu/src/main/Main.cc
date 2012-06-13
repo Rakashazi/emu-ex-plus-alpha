@@ -229,7 +229,9 @@ static gambatte::PixelType screenBuff[gbResX*gbResY] __attribute__ ((aligned (8)
 static class GbcInput : public gambatte::InputGetter
 {
 public:
+#ifndef __clang_major__
 	constexpr GbcInput() {}
+#endif
 	unsigned bits = 0;
 	unsigned operator()() { return bits; }
 } gbcInput;

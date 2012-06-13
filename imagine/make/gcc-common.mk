@@ -35,11 +35,12 @@ NORMAL_OPTIMIZE_CFLAGS_MISC := -Wdisabled-optimization -ffast-math -fmerge-all-c
 ifndef PROFILE
  NORMAL_OPTIMIZE_CFLAGS_MISC += -fomit-frame-pointer
 endif
+HIGH_OPTIMIZE_CFLAGS_MISC = $(NORMAL_OPTIMIZE_CFLAGS_MISC)
 #NORMAL_OPTIMIZE_CFLAGS_MISC += --param inline-unit-growth=1000 --param max-inline-insns-single=5000 --param large-function-growth=8000
 NORMAL_OPTIMIZE_CFLAGS := -O2 $(NORMAL_OPTIMIZE_CFLAGS_MISC)
 SIZE_OPTIMIZE_CFLAGS := -Os $(NORMAL_OPTIMIZE_CFLAGS_MISC)
 ifneq ($(origin HIGH_OPTIMIZE_CFLAGS), file)
- HIGH_OPTIMIZE_CFLAGS := -O3 $(NORMAL_OPTIMIZE_CFLAGS_MISC)
+ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 endif
 WHOLE_PROGRAM_CFLAGS += -fipa-struct-reorg -fipa-matrix-reorg -fwhole-program
 

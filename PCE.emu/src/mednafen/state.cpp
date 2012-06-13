@@ -543,7 +543,7 @@ int MDFNSS_StateAction(StateMem *st, int load, int data_only, SFORMAT *sf, const
 {
  std::vector <SSDescriptor> love;
 
-#ifdef CONFIG_BASE_PS3
+#if defined(CONFIG_BASE_PS3) || defined(__APPLE__)
  love.push_back(SSDescriptor(sf, name, optional));
 #else
  love.emplace_back(sf, name, optional);

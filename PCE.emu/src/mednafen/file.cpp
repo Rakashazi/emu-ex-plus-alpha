@@ -791,7 +791,7 @@ bool MDFN_DumpToFile(const char *filename, int compress, const std::vector<PtrLe
 bool MDFN_DumpToFile(const char *filename, int compress, const void *data, uint64 length)
 {
  std::vector<PtrLengthPair> tmp_pairs;
- #ifdef CONFIG_BASE_PS3
+ #if defined(CONFIG_BASE_PS3) || defined(__APPLE__)
    tmp_pairs.push_back(PtrLengthPair(data, length));
  #else
  	 tmp_pairs.emplace_back(data, length);

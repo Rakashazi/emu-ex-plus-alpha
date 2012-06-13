@@ -32,4 +32,5 @@ ifdef cxxExceptions
  BASE_CXXFLAGS += -fnothrow-opt
 endif
 
-HIGH_OPTIMIZE_CFLAGS := -O2 $(NORMAL_OPTIMIZE_CFLAGS_MISC) -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+HIGH_OPTIMIZE_CFLAGS_MISC += -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+HIGH_OPTIMIZE_CFLAGS := -O2 $(HIGH_OPTIMIZE_CFLAGS_MISC)
