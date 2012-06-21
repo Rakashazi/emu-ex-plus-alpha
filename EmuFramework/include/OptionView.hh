@@ -540,18 +540,18 @@ protected:
 	{
 		static const char *str[] =
 		{
-			#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID)
+			#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
 			"Auto",
 			#endif
 
-			#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || defined(CONFIG_ENV_WEBOS)
+			#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || (defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2)
 			"Landscape", "Landscape 2", "Portrait"
 			#else
-			"90 Left", "90 Right", "None"
+			"90 Left", "90 Right", "Standard"
 			#endif
 		};
 		int baseVal = 0;
-		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID)
+		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
 			baseVal = -1;
 		#endif
 		uint initVal = O_AUTO;

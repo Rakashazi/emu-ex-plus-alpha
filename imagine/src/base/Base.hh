@@ -100,7 +100,7 @@ struct InputDevChange
 // Worker thread -> Main thread messages
 
 static const ushort MSG_START = 127, MSG_INPUT = 127, MSG_INPUTDEV_CHANGE = 128, MSG_BT = 129,
-		MSG_BT_SCAN_STATUS_DELEGATE = 130,
+		MSG_BT_SCAN_STATUS_DELEGATE = 130, MSG_ORIENTATION_CHANGE = 131,
 		MSG_USER = 255;
 void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg, int intArg2);
 
@@ -240,7 +240,7 @@ extern const char *appPath;
 #endif
 
 // orientation sensor support
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS)
+#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
 	void setAutoOrientation(bool on);
 #else
 	static void setAutoOrientation(bool on) { }

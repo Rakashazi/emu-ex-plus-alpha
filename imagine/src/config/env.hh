@@ -35,7 +35,7 @@ static const bool envIsLinux = ENV == LINUX;
 static const bool envIsPS3 = ENV == PS3;
 
 static const bool envIsWebOS3 =
-#if CONFIG_ENV_WEBOS_OS == 3
+#if CONFIG_ENV_WEBOS_OS >= 3
 	1
 #else
 	0
@@ -51,7 +51,7 @@ static const bool envIsWebOS3 =
 	#define ENV_NOTE "Android 2.3+"
 #endif
 
-#ifdef CONFIG_ENV_WEBOS_OS
+#ifdef CONFIG_ENV_WEBOS
 	#if CONFIG_ENV_WEBOS_OS >= 3
 	 #define ENV_NOTE "WebOS 3.0+"
 	#elif CONFIG_ENV_WEBOS_OS < 3

@@ -93,6 +93,9 @@ void archCdromBusReset(ArchCdrom* cdrom) {}
 void archCdromDisconnect(ArchCdrom* cdrom) {}
 void archCdromLoadState(ArchCdrom* cdrom) {}
 void archCdromSaveState(ArchCdrom* cdrom) {}
+UInt8 archCdromGetStatusCode(ArchCdrom* cdrom) { return 0; }
+int archCdromExecCmd(ArchCdrom* cdrom, const UInt8* cdb, UInt8* buffer, int bufferSize) { return 0; }
+int archCdromIsXferComplete(ArchCdrom* cdrom, int* transferLength) { return 0; }
 
 ArchCdrom* archCdromCreate(CdromXferCompCb xferCompCb, void* ref) { return NULL; }
 
@@ -107,6 +110,8 @@ void archUartDestroy(void) { }
 
 int archVideoInIsVideoConnected() { return 0; }
 UInt16* archVideoInBufferGet(int width, int height) { return NULL; }
+
+void updateExtendedDiskName(int drive, char* filename, char* zipFile) { }
 
 /*int debuggerCheckVramAccess(void)
 {

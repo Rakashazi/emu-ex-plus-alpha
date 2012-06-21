@@ -71,7 +71,7 @@ static const char *glErrorToString(GLenum err)
 #include <util/Motion.hh>
 #include <gfx/common/space.h>
 
-static int animateOrientationChange = 1;
+static int animateOrientationChange = !Config::envIsWebOS3;
 TimedMotion<GC> projAngleM;
 
 #include "settings.h"

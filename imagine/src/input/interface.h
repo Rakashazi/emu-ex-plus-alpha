@@ -103,12 +103,16 @@ void setKeyRepeat(bool on);
 	static void setHandleVolumeKeys(bool on) { }
 #endif
 
-#if defined(CONFIG_INPUT_ANDROID)
+#if defined(CONFIG_INPUT_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
 	void showSoftInput();
 	void hideSoftInput();
+	#if CONFIG_ENV_WEBOS_OS >= 3
+		fbool softInputIsActive();
+	#endif
 #else
 	static void showSoftInput() { }
 	static void hideSoftInput() { }
+	static fbool softInputIsActive() { return 0; }
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
@@ -516,7 +520,7 @@ public:
 			case DEV_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::Ps3::CROSS);
 			#endif
 			default:
-				return 0 //button == input_asciiKey('z')
+				return 0 //button == Input::asciiKey('z')
 				#ifdef CONFIG_BASE_ANDROID
 				|| button == Input::Key::CENTER || button == Input::Key::GAME_A || button == Input::Key::GAME_1
 				#endif
@@ -542,7 +546,7 @@ public:
 			#endif
 			#ifdef INPUT_SUPPORTS_KEYBOARD
 			default:
-				return button == Input::Key::ESCAPE //|| button == input_asciiKey('x')
+				return button == Input::Key::ESCAPE //|| button == Input::asciiKey('x')
 					#ifdef CONFIG_INPUT_ANDROID
 					|| button == Input::Key::GAME_B || button == Input::Key::GAME_2
 					#endif
@@ -572,7 +576,7 @@ public:
 			default:
 				return button == Input::Key::LEFT
 				#ifdef CONFIG_ENV_WEBOS
-				|| button == input_asciiKey('d')
+				|| button == Input::asciiKey('d')
 				#endif
 				;
 			#endif
@@ -600,7 +604,7 @@ public:
 			default:
 				return button == Input::Key::RIGHT
 				#ifdef CONFIG_ENV_WEBOS
-				|| button == input_asciiKey('g')
+				|| button == Input::asciiKey('g')
 				#endif
 				;
 			#endif
@@ -628,7 +632,7 @@ public:
 			default:
 				return button == Input::Key::UP
 				#ifdef CONFIG_ENV_WEBOS
-				|| button == input_asciiKey('r')
+				|| button == Input::asciiKey('r')
 				#endif
 				;
 			#endif
@@ -656,7 +660,7 @@ public:
 			default:
 				return button == Input::Key::DOWN
 				#ifdef CONFIG_ENV_WEBOS
-				|| button == input_asciiKey('c')
+				|| button == Input::asciiKey('c')
 				#endif
 				;
 			#endif

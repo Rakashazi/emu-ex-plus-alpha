@@ -107,6 +107,7 @@ CallResult TextEntry::init(const char *initText, ResourceFace *face)
 
 void TextEntry::deinit()
 {
+	Input::hideSoftInput();
 	t.deinit();
 }
 

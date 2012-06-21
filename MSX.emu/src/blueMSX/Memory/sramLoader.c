@@ -86,7 +86,7 @@ void sramLoad(const char* filename, UInt8* sram, int length, void* header, int h
 	fprintf(stderr, "loading sram %s\n", filename);
 	#endif
     file = open(filename, O_RDONLY, 0);//fopen(filename, "rb");
-    if (file != NULL) {
+    if (file <= 0) {
         if (headerLength > 0) {
             char readHeader[256];
 			read(file, readHeader, headerLength);//fread(readHeader, 1, headerLength, file);

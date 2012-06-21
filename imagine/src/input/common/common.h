@@ -160,7 +160,7 @@ static const char *keyButtonName(InputButton b)
 		case Key::ENTER: return "Enter";
 		case Key::LALT: return "Left Alt";
 		case Key::RALT:
-		#ifdef CONFIG_ENV_WEBOS
+		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 			return "Mod";
 		#else
 			return "Right Alt";
@@ -169,7 +169,7 @@ static const char *keyButtonName(InputButton b)
 		case Key::RSHIFT: return "Right Shift";
 		case Key::LCTRL: return "Left Ctrl";
 		case Key::RCTRL:
-		#ifdef CONFIG_ENV_WEBOS
+		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 			return "Sym";
 		#else
 			return "Right Ctrl";

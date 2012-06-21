@@ -256,13 +256,21 @@ public:
 			{
 				if(triggerPos == TRIGGERS_INLINE)
 				{
-					Area *btnMap[] = { &faceBtn[1], &faceBtn[0], &faceBtn[5], &faceBtn[3], &faceBtn[2], &faceBtn[4] };
-					layoutBtnRows(btnMap, sizeofArray(btnMap), 2, centerBtnYOffset, btnAreaXOffset);
+					Area *btnMap6[] = { &faceBtn[1], &faceBtn[0], &faceBtn[5], &faceBtn[3], &faceBtn[2], &faceBtn[4] };
+					Area *btnMap4[] = { &faceBtn[1], &faceBtn[0], &faceBtn[2], &faceBtn[3] };
+					if(activeFaceBtns == 6)
+						layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, centerBtnYOffset, btnAreaXOffset);
+					else
+						layoutBtnRows(btnMap4, sizeofArray(btnMap4), 2, centerBtnYOffset, btnAreaXOffset);
 				}
 				else
 				{
-					Area *btnMap[] = { &faceBtn[1], &faceBtn[0], &faceBtn[3], &faceBtn[2] };
-					layoutBtnRows(btnMap, sizeofArray(btnMap), 2, centerBtnYOffset, btnAreaXOffset);
+					Area *btnMap6[] = { &faceBtn[1], &faceBtn[0], &faceBtn[3], &faceBtn[2] };
+					Area *btnMap4[] = { &faceBtn[1], &faceBtn[0] };
+					if(activeFaceBtns == 6)
+						layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, centerBtnYOffset, btnAreaXOffset);
+					else
+						layoutBtnRows(btnMap4, sizeofArray(btnMap4), 1, centerBtnYOffset, btnAreaXOffset);
 					if(triggerPos == TRIGGERS_RIGHT)
 					{
 						_2DOrigin lO = btnO.onTop() ? LB2DO : LT2DO;

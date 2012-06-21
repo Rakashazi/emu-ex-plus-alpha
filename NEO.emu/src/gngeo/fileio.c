@@ -31,6 +31,8 @@
 #include <string.h>
 #include <zlib.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "unzip.h"
 #include "memory.h"
@@ -145,16 +147,16 @@ void open_nvram(char *name) {
 #else
     const char *gngeo_dir = get_gngeo_dir();
 #endif
-    FILE *f;
+    int f;
     int len = strlen(name) + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
     sprintf(filename, "%s%s.nv", gngeo_dir, name);
-
-    if ((f = fopen(filename, "rb")) == 0)
+    // converted to low-level io funcs due to WebOS bug
+    if ((f = open(filename, O_RDONLY, 0)) <= 0)//if ((f = fopen(filename, "rb")) == 0)
         return;
-    totread = fread(memory.sram, 1, 0x10000, f);
-    fclose(f);
+    totread = read(f, memory.sram, 0x10000);
+    close(f);
 
 }
 

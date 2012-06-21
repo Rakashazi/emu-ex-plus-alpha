@@ -111,7 +111,10 @@ void EmuSystem::initOptions()
 	#ifdef CONFIG_BASE_IOS
 		if(Base::runningDeviceType() != Base::DEV_TYPE_IPAD)
 	#endif
-	optionTouchCtrlSize.initDefault(700);
+	{
+			if(!Config::envIsWebOS3)
+				optionTouchCtrlSize.initDefault(700);
+	}
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
 }

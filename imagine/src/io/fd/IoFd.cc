@@ -98,6 +98,7 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 			if(mmapFile)
 			{
 				logMsg("switched to mmap mode");
+				::close(fd);
 				return mmapFile;
 			}
 		}

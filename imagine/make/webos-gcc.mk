@@ -35,8 +35,12 @@ WARNINGS_CFLAGS += -Wdouble-promotion -Wno-psabi
 LDLIBS += -L$(WEBOS_PDK_PATH)/device/lib -Wl,--allow-shlib-undefined
 
 OPTIMIZE_LDFLAGS += 
-LDFLAGS += $(webos_cpuFlags) -s -Wl,-O1,--as-needed,--hash-style=gnu,--sort-common
+LDFLAGS += $(webos_cpuFlags) -Wl,-O1,--as-needed,--hash-style=gnu,--sort-common
 #,--gc-sections
+
+# strip by default since it slows down package install due to much larger executables
+LDFLAGS += -s
+ 
 ASMFLAGS += $(webos_cpuFlags)
 
 noDoubleFloat=1
@@ -45,5 +49,6 @@ ifdef O_LTO
  # can't use _FORTIFY_SOURCE with LTO else GLIBC symbols > 2.4 get linked in due to .symver not working
  # use _GNU_SOURCE to avoid 2.7 sscanf symbol
  COMPILE_FLAGS += -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 -D_GNU_SOURCE
- #-flto-partition=none
+ # -flto-partition=none seems to help .symver issues
+ LDFLAGS += -flto-partition=none
 endif

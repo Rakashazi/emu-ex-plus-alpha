@@ -135,6 +135,97 @@ static void setupScreenSizeFromDevice(PDL_ScreenMetrics &m)
 		Gfx::viewMMWidth_ *= m.aspectRatio;
 	}
 }
+
+const char *storagePath() { return "/media/internal"; }
+
+#if CONFIG_ENV_WEBOS_OS >= 3
+	static bool autoOrientationState = 0;
+	static bool sensorPollThreadActive = 0;
+	static ThreadPThread sensorPollThread;
+
+	static uint pdlOrientationToGfx(Sint32 orientation)
+	{
+		using namespace Gfx;
+		switch(orientation)
+		{
+			case 6: return Gfx::VIEW_ROTATE_0;
+			case 3: return Gfx::VIEW_ROTATE_90;
+			case 4: return Gfx::VIEW_ROTATE_270;
+			case 5: return Gfx::VIEW_ROTATE_180;
+			default : return 255; // TODO: handle Face-up/down
+		}
+	}
+
+	static int sensorPollFunc(ThreadPThread &thread)
+	{
+		logMsg("sensor poll thread started");
+		while(sensorPollThreadActive)
+		{
+			PDL_SensorEvent ev = { PDL_SENSOR_NONE }, evTemp;
+			int events = 0;
+			do // extract all events queued for the sensor
+			{
+				if(PDL_PollSensor(PDL_SENSOR_ORIENTATION, &evTemp) != PDL_NOERROR)
+				{
+					logMsg("error reading sensor, ending poll thread");
+					return 0;
+				}
+				if(evTemp.type == PDL_SENSOR_ORIENTATION)
+					ev = evTemp;
+				events++;
+			} while(evTemp.type != PDL_SENSOR_NONE);
+			if(ev.type == PDL_SENSOR_ORIENTATION)
+			{
+				//logMsg("new orientation type %d, after %d events", ev.orientation.orientation, events);
+				uint o = pdlOrientationToGfx(ev.orientation.orientation);
+				if(o != 255 && o != Gfx::rotateView)
+					sendMessageToMain(thread, MSG_ORIENTATION_CHANGE, o, 0, 0);
+			}
+			sleepMs(1500); // OS BUG: WebOS 3 offers no blocking function for sensor events so we must
+										 // poll and block for an arbitrary interval, needlessly waking up the CPU
+		}
+		logMsg("sensor poll thread finished");
+		return 0;
+	}
+
+	static void startSensorPoll()
+	{
+		if(PDL_EnableSensor(PDL_SENSOR_ORIENTATION, PDL_TRUE) != PDL_NOERROR)
+		{
+			logErr("error enabling orientation sensor");
+			return;
+		}
+		sensorPollThreadActive = 1;
+		if(!sensorPollThread.running)
+			sensorPollThread.create(0, sensorPollFunc, 0);
+	}
+
+	static void stopSensorPoll()
+	{
+		sensorPollThreadActive = 0;
+		PDL_EnableSensor(PDL_SENSOR_ORIENTATION, PDL_FALSE);
+		if(sensorPollThread.running)
+			sensorPollThread.join();
+	}
+
+	void setAutoOrientation(bool on)
+	{
+		if(autoOrientationState == on)
+			return;
+		autoOrientationState = on;
+		logMsg("set auto-orientation: %d", on);
+		if(on)
+		{
+			startSensorPoll();
+		}
+		else
+		{
+			Gfx::preferedOrientation = Gfx::rotateView;
+			stopSensorPoll();
+		}
+	}
+#endif
+
 #endif
 
 static TimerCallbackFunc timerCallbackFunc = 0;
@@ -142,7 +233,7 @@ static void *timerCallbackFuncCtx = 0;
 static SDL_TimerID sdlTimerId = 0;
 static Uint32 sdlTimerCallback(Uint32 interval, void* param)
 {
-	logMsg("sending SDL_USEREVENT for timer");
+	//logMsg("sending SDL_USEREVENT for timer");
 	SDL_Event ev = { SDL_USEREVENT };
 	ev.user.code = 0;
 	ev.user.data1 = (void*)timerCallbackFunc;
@@ -154,11 +245,12 @@ static Uint32 sdlTimerCallback(Uint32 interval, void* param)
 
 void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
 {
-	logMsg("sending SDL_USEREVENT for thread message");
+	//logMsg("sending SDL_USEREVENT for thread message");
 	SDL_Event ev = { SDL_USEREVENT };
 	ev.user.code = (shortArg & 0xFFFF) | (type << 16);
 	ev.user.data1 = (void*)intArg;
 	ev.user.data2 = (void*)intArg2;
+	SDL_PushEvent(&ev);
 }
 
 void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
@@ -190,8 +282,8 @@ static void eventHandler(SDL_Event &event)
 	{
 		bcase SDL_USEREVENT:
 		{
-			logMsg("got SDL_USEREVENT");
 			uint id = event.user.code >> 16;
+			logMsg("got SDL_USEREVENT %d", id);
 			if(id == 0)
 			{
 				if(timerCallbackFunc && event.user.data1 == timerCallbackFunc)
@@ -205,7 +297,7 @@ static void eventHandler(SDL_Event &event)
 			}
 			else
 			{
-				processAppMsg(id >> 16, event.user.code & 0xFFFF, (int)event.user.data1, (int)event.user.data1);
+				processAppMsg(id, event.user.code & 0xFFFF, (int)event.user.data1, (int)event.user.data1);
 			}
 		}
 
@@ -219,6 +311,20 @@ static void eventHandler(SDL_Event &event)
 				#if defined(CONFIG_ENV_WEBOS) // redraw after being un-carded
 					if(appState == APP_RUNNING)
 						gfxUpdate = 1;
+
+				#if CONFIG_ENV_WEBOS_OS >= 3
+					if(autoOrientationState)
+					{
+						if(appState == APP_RUNNING) // restore sensor thread if stopped
+						{
+							startSensorPoll();
+						}
+						else // stop sensor thread
+						{
+							stopSensorPoll();
+						}
+					}
+				#endif
 				#endif
 			}
 		}
@@ -236,6 +342,7 @@ static void eventHandler(SDL_Event &event)
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 			#endif
 			gfxUpdate = 1;
+			runEngine();
 		}
 
 		bcase SDL_KEYDOWN:
@@ -281,10 +388,6 @@ static void eventHandler(SDL_Event &event)
 		}
 	}
 }
-
-#ifdef CONFIG_ENV_WEBOS
-	const char *storagePath() { return "/media/internal"; }
-#endif
 
 }
 

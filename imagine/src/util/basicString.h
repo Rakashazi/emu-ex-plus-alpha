@@ -53,6 +53,16 @@ static char *string_copy(char *dest, const char *src, size_t destSize)
 	return dest;
 }
 
+#ifdef __cplusplus
+
+template <size_t S>
+static char *string_copy(char (&dest)[S], const char *src)
+{
+	return string_copy(dest, src, S);
+}
+
+#endif
+
 // prints format string to buffer and returns number of bytes written
 // returns zero if buffer is too small or on error
 static int string_printf(char *buffer, int buff_size, const char *format, ... ) __attribute__ ((format (printf, 3, 4)));

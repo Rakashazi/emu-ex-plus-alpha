@@ -25,7 +25,7 @@ namespace Audio
 
 PcmFormat preferredPcmFormat = { 44100, &SampleFormats::s16, 2 };
 static PcmFormat pcmFmt;
-static uchar localBuff[(44100/60)*4*4];
+static uchar localBuff[(44100/60)*4*6];
 static RingBuffer<int> rBuff;
 static bool isPlaying = 0;
 

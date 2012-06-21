@@ -391,7 +391,7 @@ bool isMenuDismissKey(const InputEvent &e)
 		#endif
 		default:
 			return 0
-			#if defined(CONFIG_ENV_WEBOS)
+			#if defined(CONFIG_ENV_WEBOS) && CONFIG_ENV_WEBOS_OS <= 2
 				|| e.button == Input::Key::RCTRL
 			#endif
 			#ifdef INPUT_SUPPORTS_KEYBOARD
@@ -404,7 +404,7 @@ bool isMenuDismissKey(const InputEvent &e)
 
 
 static GC fontMM =
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS == 3
+#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
 	3.5
 #elif defined(CONFIG_ENV_WEBOS)
 	3.2
@@ -1097,7 +1097,7 @@ void EmuView::inputEvent(const InputEvent &e)
 	else
 	#endif
 	{
-		#if CONFIG_ENV_WEBOS_OS == 1
+		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 		if(e.state == INPUT_PUSHED && e.button == Input::Key::ESCAPE)
 		{
 			restoreMenuFromGame();

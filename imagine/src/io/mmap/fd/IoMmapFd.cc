@@ -37,20 +37,17 @@ Io * IoMmapFd::open(int fd)
 		return 0;
 	}
 
-	inst->fd = fd;
-
 	inst->init((const uchar*)data, size);
 	return inst;
 }
 
 void IoMmapFd::close()
 {
-	if(fd)
+	if(data)
 	{
-		logMsg("unmapping %p, closing fd %d", data, fd);
+		logMsg("unmapping %p", data);
 		munmap((void*)data, iSize);
-		::close(fd);
-		fd = 0;
+		data = nullptr;
 	}
 }
 

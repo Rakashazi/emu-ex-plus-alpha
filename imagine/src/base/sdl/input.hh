@@ -9,7 +9,7 @@
 namespace Input
 {
 
-static PointerState m[Input::maxCursors] = { { 0, 0, 0 } };
+static PointerState m[Input::maxCursors];
 uint numCursors = Input::maxCursors;
 static DragPointer dragStateArr[Input::maxCursors];
 
@@ -41,7 +41,17 @@ static void keyEvent(SDL_keysym k, uint action)
 {
 	assert(k.sym < Key::COUNT);
 	uint modifiers = k.mod & KMOD_SHIFT;
-	//logMsg("key %s %d", Input::buttonName(InputEvent::DEV_KEYBOARD, k), action);
+	//logMsg("key %d %s, action %d", k.sym, Input::buttonName(InputEvent::DEV_KEYBOARD, k.sym), action);
+	#if CONFIG_ENV_WEBOS_OS >= 3
+	if(unlikely(k.sym == 24)) // WebOS Dismiss Keyboard
+	{
+		if(action == INPUT_RELEASED)
+		{
+			hideSoftInput();
+		}
+		return;
+	}
+	#endif
 	#ifdef CONFIG_INPUT_ICADE
 	if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k.sym, modifiers), action)))
 	#endif
@@ -55,6 +65,29 @@ void setKeyRepeat(bool on)
 	else
 		SDL_EnableKeyRepeat(0, 0);
 }
+
+#if CONFIG_ENV_WEBOS_OS >= 3
+
+static fbool softInputActive = 0;
+fbool softInputIsActive() { return softInputActive; }
+
+void showSoftInput()
+{
+	using namespace Base;
+	logMsg("showing soft input");
+	PDL_SetKeyboardState(PDL_TRUE);
+	softInputActive = 1;
+}
+
+void hideSoftInput()
+{
+	using namespace Base;
+	logMsg("hiding soft input");
+	PDL_SetKeyboardState(PDL_FALSE);
+	softInputActive = 0;
+}
+
+#endif
 
 int cursorX(int p) { return m[p].x; }
 int cursorY(int p) { return m[p].y; }

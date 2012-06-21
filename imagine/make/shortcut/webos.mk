@@ -7,12 +7,12 @@ ifndef config_webOS_noArmv6
 
 webOS_armv6Exec := $(webOS_targetPath)/bin-debug/armv6
 webos-armv6 :
-	$(MAKE) -f webos-armv6.mk
+	$(MAKE) -j3 -f webos-armv6.mk
 $(webOS_armv6Exec) : webos-armv6
 
 webOS_armv6ReleaseExec := $(webOS_targetPath)/bin-release/armv6
 webos-armv6-release :
-	$(MAKE) -f webos-armv6-release.mk
+	$(MAKE) -j3 -f webos-armv6-release.mk
 $(webOS_armv6ReleaseExec) : webos-armv6-release
 
 endif
@@ -21,22 +21,22 @@ ifndef config_webOS_noArmv7
 
 webOS_armv7Exec := $(webOS_targetPath)/bin-debug/armv7
 webos-armv7 :
-	$(MAKE) -f webos-armv7.mk
+	$(MAKE) -j3 -f webos-armv7.mk
 $(webOS_armv7Exec) : webos-armv7
 
 webOS_armv7ReleaseExec := $(webOS_targetPath)/bin-release/armv7
 webos-armv7-release :
-	$(MAKE) -f webos-armv7-release.mk
+	$(MAKE) -j3 -f webos-armv7-release.mk
 $(webOS_armv7ReleaseExec) : webos-armv7-release
 
 webOS_3armv7Exec := $(webOS_targetPath)/bin-debug/3-armv7
 webos-3-armv7 :
-	$(MAKE) -f webos-3-armv7.mk
+	$(MAKE) -j3 -f webos-3-armv7.mk
 $(webOS_3armv7Exec) : webos-3-armv7
 
 webOS_3armv7ReleaseExec := $(webOS_targetPath)/bin-release/3-armv7
 webos-3-armv7-release :
-	$(MAKE) -f webos-3-armv7-release.mk
+	$(MAKE) -j3 -f webos-3-armv7-release.mk
 $(webOS_3armv7ReleaseExec) : webos-3-armv7-release
 
 endif

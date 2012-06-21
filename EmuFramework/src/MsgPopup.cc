@@ -72,9 +72,17 @@ void MsgPopup::draw()
 			setColor(0, 0, 1., .7);
 		Rect2<GC> rect(-Gfx::proj.wHalf, -Gfx::proj.hHalf,
 				Gfx::proj.wHalf, -Gfx::proj.hHalf + (text.ySize * 1.5));
+		#if CONFIG_ENV_WEBOS_OS >= 3
+		if(Input::softInputIsActive())
+		{
+			// Show messages on top on WebOS 3.x since there's no way to know how large the on-screen keyboard is
+			rect.y = Gfx::proj.hHalf - (text.ySize * 1.5);
+			rect.y2 = Gfx::proj.hHalf;
+		}
+		#endif
 		GeomRect::draw(rect);
 		setColor(1., 1., 1., 1.);
-		text.draw(0, -Gfx::proj.hHalf + (text.ySize * 1.5)/2., C2DO, C2DO);
+		text.draw(0, rect.y + (text.ySize * 1.5)/2., C2DO, C2DO);
 	}
 }
 

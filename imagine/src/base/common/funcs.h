@@ -165,13 +165,26 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 			//Bluetooth::connectFunc(intArg);
 		}
 		break;*/
-		case MSG_BT_SCAN_STATUS_DELEGATE:
+		bcase MSG_BT_SCAN_STATUS_DELEGATE:
 		{
 			logMsg("got bluetooth adapter status delegate message");
 			BluetoothAdapterSys::defaultAdapter()->statusDelegate().invoke(intArg, intArg2);
 		}
 		#endif
-		default:
+		#if CONFIG_ENV_WEBOS_OS >= 3
+		bcase MSG_ORIENTATION_CHANGE:
+		{
+			logMsg("got orientation change message");
+			uint o = shortArg;
+			if(o != Gfx::VIEW_ROTATE_180)
+			{
+				logMsg("new orientation %s", Gfx::orientationName(o));
+				Gfx::preferedOrientation = o;
+				Gfx::setOrientation(Gfx::preferedOrientation);
+			}
+		}
+		#endif
+		bdefault:
 		{
 			if(type >= MSG_USER)
 			{

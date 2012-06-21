@@ -26,7 +26,4 @@ public:
 	static Io* open(int fd);
 	~IoMmapFd() { close(); }
 	void close();
-
-private:
-	int fd = 0;
 };

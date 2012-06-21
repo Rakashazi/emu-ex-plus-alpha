@@ -22,7 +22,7 @@ static BasicByteOption optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 BasicByteOption optionSound(CFGKEY_SOUND, 1);
 static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<48000> > > optionSoundRate(CFGKEY_SOUND_RATE,
 		(Config::envIsPS3 || Config::envIsLinux) ? 48000 : 44100, Config::envIsPS3);
-static BasicByteOption optionLargeFonts(CFGKEY_FONT_Y_PIXELS, 0,
+static BasicByteOption optionLargeFonts(CFGKEY_FONT_Y_PIXELS, Config::envIsWebOS3,
 		(Config::envIsWebOS && !Config::envIsWebOS3));
 BasicByteOption optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0,
 		!Config::envIsAndroid);
@@ -36,7 +36,7 @@ static BasicByteOption optionRememberLastMenu(CFGKEY_REMEMBER_LAST_MENU, 1, 0);
 static BasicByteOption optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid);
 static BasicByteOption optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 static BasicByteOption optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
-static BasicByteOption optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid, Config::envIsPS3);
+static BasicByteOption optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
 
 #ifdef CONFIG_BLUETOOTH
 static BasicByteOption optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0);
@@ -116,11 +116,11 @@ bool optionOrientationIsValid(uint32 val)
 }
 typedef OptionMethodValidatedVar<uint32, optionOrientationIsValid> OptionMethodOrientation;
 static Option<OptionMethodOrientation, uint8> optionGameOrientation(CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? Gfx::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Gfx::VIEW_ROTATE_90 : Gfx::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Gfx::VIEW_ROTATE_90 : Gfx::VIEW_ROTATE_0,
 		Config::envIsPS3);
 
 static Option<OptionMethodOrientation, uint8> optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? Gfx::VIEW_ROTATE_AUTO : Gfx::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Gfx::VIEW_ROTATE_0,
 		Config::envIsPS3);
 
 
@@ -145,7 +145,7 @@ bool isValidOption2DOCenterBtn(_2DOrigin val)
 
 static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<1400> >, uint16> optionTouchCtrlSize
 		(CFGKEY_TOUCH_CONTROL_SIZE,
-		Config::ENV == Config::WEBOS ? 800 : 850,
+		(Config::envIsWebOS && !Config::envIsWebOS3) ? 800 : Config::envIsWebOS3 ? 1400 : 850,
 		Config::envIsPS3);
 static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<160> >, uint16> optionTouchDpadDeadzone
 		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
@@ -180,7 +180,7 @@ Option2DOrigin optionTouchCtrlDpadPos(CFGKEY_TOUCH_CONTROL_DPAD_POS, LB2DO);
 Option2DOrigin optionTouchCtrlFaceBtnPos(CFGKEY_TOUCH_CONTROL_FACE_BTN_POS, RB2DO);
 static Option2DOriginC optionTouchCtrlCenterBtnPos(CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS, CB2DO);
 static Option2DOrigin optionTouchCtrlMenuPos(CFGKEY_TOUCH_CONTROL_MENU_POS,
-	#if CONFIG_ENV_WEBOS_OS == 1
+	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 		NULL2DO
 	#else
 		RT2DO
@@ -321,12 +321,12 @@ static struct OptionRecentGames : public OptionBase
 
 static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
 (CFGKEY_TOUCH_CONTROL_IMG_PIXELS,
-	#if CONFIG_ENV_WEBOS_OS == 1
+	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 	64,
 	#else
 	128,
 	#endif
-	Config::envIsIOS);
+	Config::envIsIOS || Config::envIsWebOS3);
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	static struct OptionDirectTexture : public Option<OptionMethodVar<uint32>, uint8>
