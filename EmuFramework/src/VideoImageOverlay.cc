@@ -95,6 +95,8 @@ void VideoImageOverlay::place(const GfxSprite &disp)
 			lines = 144;
 		else if(string_equal(CONFIG_APP_NAME, "NGP.emu"))
 			lines = 152;
+		else if(string_equal(CONFIG_APP_NAME, "GBA.emu"))
+			lines = 160;
 		float width = lines*(EmuSystem::aspectRatioX/(float)EmuSystem::aspectRatioY);
 		//logMsg("width %f", (double)width);
 		switch(effect)
