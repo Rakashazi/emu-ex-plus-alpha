@@ -325,7 +325,7 @@ void Wiimote::processStickDataForButtonEmulation(int player, const uchar *data)
 			case 5: newState = pos[2] > 16+4; break;
 			case 6: newState = pos[3] < 16-4; break;
 			case 7: newState = pos[3] > 16+4; break;
-			default: bug_branch("%d", (int)e_i); break;
+			default: bug_branch("%d", (int)e_i); return;
 		}
 		if(*e != newState)
 		{
@@ -395,7 +395,7 @@ void Wiimote::processNunchukStickDataForButtonEmulation(int player, const uchar 
 			case 1: newState = pos[0] > 127+64; break;
 			case 2: newState = pos[1] < 127-64; break;
 			case 3: newState = pos[1] > 127+64; break;
-			default: bug_branch("%d", (int)e_i); break;
+			default: bug_branch("%d", (int)e_i); return;
 		}
 		if(*e != newState)
 		{

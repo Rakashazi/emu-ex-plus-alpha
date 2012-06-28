@@ -41,12 +41,11 @@ vbam/fex/Data_Reader.cpp       vbam/fex/Zip7_Extractor.cpp \
 vbam/fex/fex.cpp               vbam/fex/Zip_Extractor.cpp \
 vbam/fex/File_Extractor.cpp    vbam/fex/Zlib_Inflater.cpp
 
-SRC += vbam/7z_C/7zAlloc.c    vbam/7z_C/Bra.c \
-vbam/7z_C/7zBuf.c      vbam/7z_C/7zIn.c      vbam/7z_C/CpuArch.c \
-vbam/7z_C/7zCrc.c      vbam/7z_C/Lzma2Dec.c \
-vbam/7z_C/7zCrcOpt.c   vbam/7z_C/7zStream.c  vbam/7z_C/LzmaDec.c \
-vbam/7z_C/7zDecode.c   vbam/7z_C/Bcj2.c \
-vbam/7z_C/7zExtract.c  vbam/7z_C/Bra86.c 
+SRC += vbam/7z_C/7zAlloc.c vbam/7z_C/Bra.c \
+vbam/7z_C/7zBuf.c vbam/7z_C/CpuArch.c vbam/7z_C/7zDec.c \
+vbam/7z_C/7zCrc.c vbam/7z_C/Lzma2Dec.c vbam/7z_C/7zIn.c \
+vbam/7z_C/7zCrcOpt.c vbam/7z_C/7zStream.c vbam/7z_C/LzmaDec.c \
+vbam/7z_C/Bcj2.c vbam/7z_C/Bra86.c vbam/7z_C/Ppmd7.c vbam/7z_C/Ppmd7Dec.c
 
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

@@ -213,7 +213,7 @@ void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
 			case 1: newState = pos[0] > 63; break;
 			case 2: newState = pos[1] > 63; break;
 			case 3: newState = pos[1] < -63; break;
-			default: bug_branch("%d", (int)e_i); break;
+			default: bug_branch("%d", (int)e_i); return;
 		}
 		if(*e != newState)
 		{

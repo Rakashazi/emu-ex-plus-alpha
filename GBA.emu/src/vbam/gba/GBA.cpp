@@ -22,6 +22,7 @@
 #include "agbprint.h"
 #include "GBALink.h"
 #include <logger/interface.h>
+#include <io/sys.hh>
 
 #ifdef PROFILING
 #include "prof/prof.h"
@@ -1125,39 +1126,37 @@ bool CPUImportEepromFile(const char *fileName)
 
 bool CPUReadBatteryFile(const char *fileName)
 {
-  FILE *file = fopen(fileName, "rb");
+	// Converted to Imagine IO funcs due to WebOS fread glitch
+  auto *file = IoSys::open(fileName);
 
   if(!file)
     return false;
 
   // check file size to know what we should read
-  fseek(file, 0, SEEK_END);
-
-  long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
+  auto size = file->size();
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
   if(size == 512 || size == 0x2000) {
-    if(fread(eepromData, 1, size, file) != (size_t)size) {
-      fclose(file);
+    if(file->readUpTo(eepromData, size) != (size_t)size) {
+      delete file;
       return false;
     }
   } else {
     if(size == 0x20000) {
-      if(fread(flashSaveMemory, 1, 0x20000, file) != 0x20000) {
-        fclose(file);
+      if(file->readUpTo(flashSaveMemory, 0x20000) != 0x20000) {
+      	delete file;
         return false;
       }
       flashSetSize(0x20000);
     } else {
-      if(fread(flashSaveMemory, 1, 0x10000, file) != 0x10000) {
-        fclose(file);
+      if(file->readUpTo(flashSaveMemory, 0x10000) != 0x10000) {
+      	delete file;
         return false;
       }
       flashSetSize(0x10000);
     }
   }
-  fclose(file);
+  delete file;
   return true;
 }
 

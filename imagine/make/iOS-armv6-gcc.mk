@@ -5,7 +5,7 @@ ifndef targetSuffix
  targetSuffix := -armv6
 endif
 
-CHOST := arm-apple-darwin10
+CHOST := arm-apple-darwin11
 IOS_FLAGS += -arch armv6
 ASMFLAGS += -arch armv6
 system_externalSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/armv6

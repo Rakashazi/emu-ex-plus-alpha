@@ -1,1 +1,0 @@
-ios_armv7State := -marm

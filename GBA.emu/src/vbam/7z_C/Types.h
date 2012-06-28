@@ -56,16 +56,12 @@ typedef unsigned char Byte;
 typedef short Int16;
 typedef unsigned short UInt16;
 
-#if defined(__APPLE__)
-#include <MacTypes.h>
-#else
 #ifdef _LZMA_UINT32_IS_ULONG
 typedef long Int32;
 typedef unsigned long UInt32;
 #else
 typedef int Int32;
 typedef unsigned int UInt32;
-#endif
 #endif
 
 #ifdef _SZ_NO_INT_64
