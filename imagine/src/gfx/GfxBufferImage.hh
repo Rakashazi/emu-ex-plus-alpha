@@ -129,11 +129,6 @@ public:
 	void removeBacker() { backingImg = 0; }
 	void setFilter(uint filter);
 	void deinit();
-	//const GfxTextureDesc &textureDesc() const { return *implPtr(); };
-
 	void write(Pixmap &p);
 	void replace(Pixmap &p);
-	/*Pixmap *lock(uint x, uint y, uint xlen, uint ylen);
-	void unlock();
-	void deinit();*/
 };

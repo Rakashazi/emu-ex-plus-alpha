@@ -133,11 +133,11 @@ void Gba_Pcm::init()
 
 void Gba_Pcm::apply_control( int idx )
 {
-	shift = ~ioMem [SGCNT0_H] >> (2 + idx) & 1;
+	shift = ~ioMem.b [SGCNT0_H] >> (2 + idx) & 1;
 
 	int ch = 0;
-	if ( (soundEnableFlag >> idx & 0x100) && (ioMem [NR52] & 0x80) )
-		ch = ioMem [SGCNT0_H+1] >> (idx * 4) & 3;
+	if ( (soundEnableFlag >> idx & 0x100) && (ioMem.b [NR52] & 0x80) )
+		ch = ioMem.b [SGCNT0_H+1] >> (idx * 4) & 3;
 
 	Blip_Buffer* out = 0;
 	switch ( ch )
@@ -285,7 +285,7 @@ void soundEvent(u32 address, u8 data)
 	int gb_addr = gba_to_gb_sound( address );
 	if ( gb_addr )
 	{
-		ioMem[address] = data;
+		ioMem.b[address] = data;
 		gb_apu.write_register( blip_time(), gb_addr, data );
 
 		if ( address == NR52 )
@@ -303,7 +303,7 @@ static void apply_volume( bool apu_only = false )
 	//if ( gb_apu )
 	{
 		static float const apu_vols [4] = { 0.25, 0.5, 1, 0.25 };
-		gb_apu.volume( soundVolume_ * apu_vols [ioMem [SGCNT0_H] & 3] );
+		gb_apu.volume( soundVolume_ * apu_vols [ioMem.b [SGCNT0_H] & 3] );
 	}
 
 	if ( !apu_only )
@@ -315,7 +315,7 @@ static void apply_volume( bool apu_only = false )
 
 static void write_SGCNT0_H( int data )
 {
-	WRITE16LE( &ioMem [SGCNT0_H], data & 0x770F );
+	WRITE16LE( &ioMem.b [SGCNT0_H], data & 0x770F );
 	pcm [0].write_control( data      );
 	pcm [1].write_control( data >> 4 );
 	apply_volume( true );
@@ -332,18 +332,18 @@ void soundEvent(u32 address, u16 data)
 	case FIFOA_L:
 	case FIFOA_H:
 		pcm [0].write_fifo( data );
-		WRITE16LE( &ioMem[address], data );
+		WRITE16LE( &ioMem.b[address], data );
 		break;
 
 	case FIFOB_L:
 	case FIFOB_H:
 		pcm [1].write_fifo( data );
-		WRITE16LE( &ioMem[address], data );
+		WRITE16LE( &ioMem.b[address], data );
 		break;
 
 	case 0x88:
 		data &= 0xC3FF;
-		WRITE16LE( &ioMem[address], data );
+		WRITE16LE( &ioMem.b[address], data );
 		break;
 
 	default:
@@ -490,7 +490,7 @@ static void remake_stereo_buffer()
 	pcm [0].pcm.init();
 	pcm [1].pcm.init();
 
-	stereo_buffer.set_sample_rate( soundSampleRate, 300 ); // TODO: handle out of memory
+	stereo_buffer.set_sample_rate( soundSampleRate, 75 ); // TODO: handle out of memory
 	stereo_buffer.clock_rate( gb_apu.clock_rate );
 
 	// PCM
@@ -806,14 +806,14 @@ static void soundReadGameOld( gzFile in, int version )
 		NR50, NR51, NR52, -1
 	};
 
-	ioMem [NR52] |= 0x80; // old sound played even when this wasn't set (power on)
+	ioMem.b [NR52] |= 0x80; // old sound played even when this wasn't set (power on)
 
 	for ( int i = 0; regs_to_copy [i] >= 0; i++ )
-		state.apu.regs [gba_to_gb_sound( regs_to_copy [i] ) - 0xFF10] = ioMem [regs_to_copy [i]];
+		state.apu.regs [gba_to_gb_sound( regs_to_copy [i] ) - 0xFF10] = ioMem.b [regs_to_copy [i]];
 
 	// Copy wave RAM to both banks
-	memcpy( &state.apu.regs [0x20], &ioMem [0x90], 0x10 );
-	memcpy( &state.apu.regs [0x30], &ioMem [0x90], 0x10 );
+	memcpy( &state.apu.regs [0x20], &ioMem.b [0x90], 0x10 );
+	memcpy( &state.apu.regs [0x30], &ioMem.b [0x90], 0x10 );
 
 	// Read both banks of wave RAM if available
 	if ( version >= SAVE_GAME_VERSION_3 )
@@ -840,7 +840,7 @@ void soundReadGame( gzFile in, int version )
 		soundReadGameOld( in, version );
 
 	gb_apu.load_state( state.apu );
-	write_SGCNT0_H( READ16LE( &ioMem [SGCNT0_H] ) & 0x770F );
+	write_SGCNT0_H( READ16LE( &ioMem.b [SGCNT0_H] ) & 0x770F );
 
 	apply_muting();
 }

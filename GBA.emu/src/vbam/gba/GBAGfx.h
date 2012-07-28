@@ -8,7 +8,8 @@
 
 //#define SPRITE_DEBUG
 
-static void gfxDrawTextScreen(u16, u16, u16, u32 *);
+static void gfxDrawTextScreen(u16, u16, u16, u32 *,
+		const u16 VCOUNT, const u16 MOSAIC, const u16 *palette);
 static void gfxDrawRotScreen(u16,
 			     u16, u16,
 			     u16, u16,
@@ -16,7 +17,8 @@ static void gfxDrawRotScreen(u16,
 			     u16, u16,
 			     int&, int&,
 			     int,
-			     u32*);
+			     u32*,
+			     const u16 VCOUNT, const u16 MOSAIC, const u16 *palette);
 static void gfxDrawRotScreen16Bit(u16,
 				  u16, u16,
 				  u16, u16,
@@ -24,7 +26,8 @@ static void gfxDrawRotScreen16Bit(u16,
 				  u16, u16,
 				  int&, int&,
 				  int,
-				  u32*);
+				  u32*,
+				  u32 *line, const u16 VCOUNT, const u16 MOSAIC);
 static void gfxDrawRotScreen256(u16,
 				u16, u16,
 				u16, u16,
@@ -32,7 +35,8 @@ static void gfxDrawRotScreen256(u16,
 				u16, u16,
 				int&, int&,
 				int,
-				u32*);
+				u32*,
+				const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT, const u16 *palette);
 static void gfxDrawRotScreen16Bit160(u16,
 				     u16, u16,
 				     u16, u16,
@@ -40,8 +44,9 @@ static void gfxDrawRotScreen16Bit160(u16,
 				     u16, u16,
 				     int&, int&,
 				     int,
-				     u32*);
-static void gfxDrawSprites(u32 *);
+				     u32*,
+				     u32 *line, const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT);
+static void gfxDrawSprites(u32 *, const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT);
 static void gfxIncreaseBrightness(u32 *line, int coeff);
 static void gfxDecreaseBrightness(u32 *line, int coeff);
 static void gfxAlphaBlend(u32 *ta, u32 *tb, int ca, int cb);
@@ -55,29 +60,29 @@ static MixColorType convColor(u16 c)
 		return c;
 }
 
-void mode0RenderLine(MixColorType *);
-void mode0RenderLineNoWindow(MixColorType *);
-void mode0RenderLineAll(MixColorType *);
+void mode0RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode0RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode0RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
-void mode1RenderLine(MixColorType *);
-void mode1RenderLineNoWindow(MixColorType *);
-void mode1RenderLineAll(MixColorType *);
+void mode1RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode1RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode1RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
-void mode2RenderLine(MixColorType *);
-void mode2RenderLineNoWindow(MixColorType *);
-void mode2RenderLineAll(MixColorType *);
+void mode2RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode2RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode2RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
-void mode3RenderLine(MixColorType *);
-void mode3RenderLineNoWindow(MixColorType *);
-void mode3RenderLineAll(MixColorType *);
+void mode3RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode3RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode3RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
-void mode4RenderLine(MixColorType *);
-void mode4RenderLineNoWindow(MixColorType *);
-void mode4RenderLineAll(MixColorType *);
+void mode4RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode4RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode4RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
-void mode5RenderLine(MixColorType *);
-void mode5RenderLineNoWindow(MixColorType *);
-void mode5RenderLineAll(MixColorType *);
+void mode5RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode5RenderLineNoWindow(MixColorType *, const GBAMem::IoMem &ioMem);
+void mode5RenderLineAll(MixColorType *, const GBAMem::IoMem &ioMem);
 
 static const int coeff[32] = {
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -111,12 +116,10 @@ static inline void gfxClearArray(u32 *array)
 }
 
 static inline void gfxDrawTextScreen(u16 control, u16 hofs, u16 vofs,
-				     u32 *line)
+				     u32 *line, const u16 VCOUNT, const u16 MOSAIC, const u16 *palette)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
 
-  u16 *palette = (u16 *)paletteRAM;
   u8 *charBase = &vram[((control >> 2) & 0x03) * 0x4000];
   u16 *screenBase = (u16 *)&vram[((control >> 8) & 0x1f) * 0x800];
   u32 prio = ((control & 3)<<25) + 0x1000000;
@@ -261,12 +264,11 @@ static inline void gfxDrawRotScreen(u16 control,
 				    u16 pc,  u16 pd,
 				    int& currentX, int& currentY,
 				    int changed,
-				    u32 *line)
+				    u32 *line,
+				    const u16 VCOUNT, const u16 MOSAIC, const u16 *palette)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
 
-  u16 *palette = (u16 *)paletteRAM;
   u8 *charBase = &vram[((control >> 2) & 0x03) * 0x4000];
   u8 *screenBase = (u8 *)&vram[((control >> 8) & 0x1f) * 0x800];
   int prio = ((control & 3) << 25) + 0x1000000;
@@ -399,9 +401,8 @@ static inline void gfxDrawRotScreen16Bit(u16 control,
 					 u16 pc,  u16 pd,
 					 int& currentX, int& currentY,
 					 int changed,
-					 u32 *line)
+					 u32 *line, const u16 VCOUNT, const u16 MOSAIC)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
 
   u16 *screenBase = (u16 *)&vram[0];
@@ -499,12 +500,11 @@ static inline void gfxDrawRotScreen256(u16 control,
 				       u16 pc,  u16 pd,
 				       int &currentX, int& currentY,
 				       int changed,
-				       u32 *line)
+				       u32 *line,
+				       const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT, const u16 *palette)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
 
-  u16 *palette = (u16 *)paletteRAM;
   u8 *screenBase = (DISPCNT & 0x0010) ? &vram[0xA000] : &vram[0x0000];
   int prio = ((control & 3) << 25) + 0x1000000;
   int sizeX = 240;
@@ -603,9 +603,8 @@ static inline void gfxDrawRotScreen16Bit160(u16 control,
 					    u16 pc,  u16 pd,
 					    int& currentX, int& currentY,
 					    int changed,
-					    u32 *line)
+					    u32 *line, const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
 
   u16 *screenBase = (DISPCNT & 0x0010) ? (u16 *)&vram[0xa000] :
@@ -698,7 +697,7 @@ static inline void gfxDrawRotScreen16Bit160(u16 control,
   }
 }
 
-static inline void gfxDrawSprites(u32 *lineOBJ)
+static inline void gfxDrawSprites(u32 *lineOBJ, const u16 VCOUNT, const u16 MOSAIC, const u16 DISPCNT)
 {
 	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;
@@ -1166,7 +1165,7 @@ static inline void gfxDrawSprites(u32 *lineOBJ)
   }
 }
 
-static inline void gfxDrawOBJWin(u32 *lineOBJWin)
+static inline void gfxDrawOBJWin(u32 *lineOBJWin, const u16 VCOUNT, const u16 DISPCNT)
 {
 	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
 	u8 (&vram)[0x20000] = gLcd.vram;

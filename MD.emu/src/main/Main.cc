@@ -606,6 +606,8 @@ static void setupMDInput()
 	if(system_hw == SYSTEM_PBC)
 	{
 		setupSMSInput();
+		io_init();
+		vController.gp.activeFaceBtns = 3;
 		return;
 	}
 

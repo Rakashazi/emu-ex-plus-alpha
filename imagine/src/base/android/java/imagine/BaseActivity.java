@@ -146,7 +146,7 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 				android.os.Build.DEVICE, getApplicationInfo().sourceDir, vibrator);
 		glView = new GLView(this);
 		setContentView(glView);
-		glView.getViewTreeObserver().addOnGlobalLayoutListener(this);
+		//glView.getViewTreeObserver().addOnGlobalLayoutListener(this);
 	}
 	
 	private static native void appPaused();
@@ -214,18 +214,24 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 		removeNotification();
 	}
 	
-	private native boolean layoutChange(int height);
+	//private native boolean layoutChange(int x, int y, int width, int height);
 	public void onGlobalLayout()
 	{
-		Rect r = new Rect();
-		//View view = getWindow().getDecorView();//findViewById(android.R.id.activityRoot);
+		/*Rect r = new Rect();
 		glView.getWindowVisibleDisplayFrame(r);
 		int visibleY = r.bottom - r.top;
 		//Log.i(logTag, "height " + glView.getRootView().getHeight() + ", visible " + visibleY);
 		if(layoutChange(visibleY))
 		{
 			glView.postUpdate();
-		}
+		}*/
+		/*final int[] location = new int[2];
+		glView.getLocationInWindow(location);
+		if(layoutChange(location[0], location[1], glView.getWidth(), glView.getHeight()))
+		{
+			if(glView.initSurface)
+				glView.postUpdate();
+		}*/
 	}
 	
 	/*@Override public void onLowMemory()
@@ -246,14 +252,14 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 		//Log.i(logTag, "config change, navigation: " + newConfig.navigation + " navigationHidden: " + newConfig.navigationHidden);
 	}
 
-	/*public static void setStatusBar(byte on)
+	public void setStatusBar(boolean on)
 	{
-		Window win = act.getWindow();
-		if(on != 0)
+		Window win = getWindow();
+		if(on)
 			win.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		else
 			win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-	}*/
+	}
 	
 	// events from threads
 	private static native boolean handleAndroidMsg(int arg1, int arg2, int arg3);
@@ -291,6 +297,8 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 	{
 		NotificationHelper.removeNotification();
 	}
+	
+	static native void sysTextInputEnded(String text);
 	
 	public void showIme(int mode)
 	{

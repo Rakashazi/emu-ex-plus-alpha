@@ -7,7 +7,7 @@
 class Wiimote : public BluetoothInputDevice
 {
 public:
-	CallResult open(const char *name, BluetoothAddr addr);
+	CallResult open(const char *name, BluetoothAddr addr, BluetoothAdapter &adapter);
 	void close();
 	void removeFromSystem();
 	bool dataHandler(const uchar *data, size_t size);
@@ -18,12 +18,12 @@ public:
 	void writeReg(uchar offset, uchar val);
 	void readReg(uint offset, uchar size);
 
-	static const uchar btClass[3];
-	static const uchar btClassRemotePlus[3];
+	static const uchar btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
 
 	static bool isSupportedClass(const uchar devClass[3])
 	{
 		return mem_equal(devClass, btClass, 3)
+			|| mem_equal(devClass, btClassDevOnly, 3)
 			|| mem_equal(devClass, btClassRemotePlus, 3);
 	}
 
@@ -57,9 +57,9 @@ private:
 	static uchar playerLEDs(int player);
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
-	void processStickDataForButtonEmulation(int player, const uchar *data/*, ThreadPThread *thread = nullptr*/);
-	void processCoreButtons(const uchar *packet, uint player/*, ThreadPThread *thread = nullptr*/);
-	void processClassicButtons(const uchar *packet, uint player/*, ThreadPThread *thread = nullptr*/);
+	void processStickDataForButtonEmulation(int player, const uchar *data);
+	void processCoreButtons(const uchar *packet, uint player);
+	void processClassicButtons(const uchar *packet, uint player);
 	void processNunchukStickDataForButtonEmulation(int player, const uchar *data);
 	void processNunchukButtons(const uchar *packet, uint player);
 };

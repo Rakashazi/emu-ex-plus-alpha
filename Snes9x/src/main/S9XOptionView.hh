@@ -6,59 +6,17 @@ static void setupSNESInput();
 class S9xOptionView : public OptionView
 {
 private:
-	struct MultitapMenuItem : public BoolMenuItem
+
+	static void multitapHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init(bool on) { BoolMenuItem::init("5-Player Adapter", on); }
+		item.toggle();
+		optionMultitap = item.on;
+		setupSNESInput();
+	}
 
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			optionMultitap = on;
-			setupSNESInput();
-		}
-	} multitap;
+	BoolMenuItem multitap;
 
-	/*struct InputPortsMenuItem : public MultiChoiceMenuItem
-	{
-		void init()
-		{
-			static const char *str[] =
-			{
-				"Gamepads", "Superscope", "Mouse"
-			};
-			int setting = 0;
-			if(snesInputPort == SNES_SUPERSCOPE)
-				setting = 1;
-			if(snesInputPort == SNES_MOUSE_SWAPPED)
-				setting = 2;
-
-			MultiChoiceSelectMenuItem::init("Input Ports", str, setting, sizeofArray(str));
-		}
-
-		void select(View *view, const InputEvent &e)
-		{
-			multiChoiceView.init(this, !e.isPointer());
-			multiChoiceView.place(Gfx::viewportRect());
-			modalView = &multiChoiceView;
-		}
-
-		void doSet(int val)
-		{
-			if(val == 1)
-			{
-				snesInputPort = SNES_SUPERSCOPE;
-			}
-			else if(val == 2)
-			{
-				snesInputPort = SNES_MOUSE_SWAPPED;
-			}
-			else
-			{
-				snesInputPort = SNES_JOYPAD;
-			}
-			setupSNESInput();
-		}
-	} */MultiChoiceSelectMenuItem inputPorts;
+	MultiChoiceSelectMenuItem inputPorts;
 
 	void inputPortsInit()
 	{
@@ -101,7 +59,8 @@ public:
 	{
 		OptionView::loadInputItems(item, items);
 		inputPortsInit(); item[items++] = &inputPorts;
-		multitap.init(optionMultitap); item[items++] = &multitap;
+		multitap.init("5-Player Adapter", optionMultitap); item[items++] = &multitap;
+		multitap.selectDelegate().bind<&multitapHandler>();
 	}
 
 	void init(uint idx, bool highlightFirst)

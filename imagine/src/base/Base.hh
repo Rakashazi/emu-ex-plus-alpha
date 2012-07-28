@@ -34,10 +34,16 @@
 namespace Base
 {
 
-struct Window
+struct Window : NotEquals<Window>
 {
 	constexpr Window() { }
-	Rect2<int> rect;
+	Rect2<int> rect; // active window content
+	int w = 0, h = 0; // size of full window surface
+
+	bool operator ==(Window const& rhs) const
+	{
+		return rect == rhs.rect && w == rhs.w && h == rhs.h;
+	}
 };
 
 const Window &window();
@@ -103,6 +109,8 @@ static const ushort MSG_START = 127, MSG_INPUT = 127, MSG_INPUTDEV_CHANGE = 128,
 		MSG_BT_SCAN_STATUS_DELEGATE = 130, MSG_ORIENTATION_CHANGE = 131,
 		MSG_USER = 255;
 void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg, int intArg2);
+// version used when thread context isn't needed
+void sendMessageToMain(int type, int shortArg, int intArg, int intArg2);
 
 /*static void sendInputMessageToMain(ThreadPThread &thread, uint dev, uint devType, uint btn, uint action)
 {
@@ -166,12 +174,12 @@ uint refreshRate();
 // OpenGL windowing system support
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32) || defined (CONFIG_BASE_SDL)
 	CallResult openGLInit();
-	CallResult openGLSetOutputVideoMode(uint x, uint y);
-	CallResult openGLSetMultisampleVideoMode(uint x, uint y);
+	CallResult openGLSetOutputVideoMode(const Base::Window &win);
+	CallResult openGLSetMultisampleVideoMode(const Base::Window &win);
 #else
 	static CallResult openGLInit() { return OK; }
-	static CallResult openGLSetOutputVideoMode(uint x, uint y) { return OK; }
-	static CallResult openGLSetMultisampleVideoMode(uint x, uint y) { return OK; }
+	static CallResult openGLSetOutputVideoMode(const Base::Window &win) { return OK; }
+	static CallResult openGLSetMultisampleVideoMode(const Base::Window &win) { return OK; }
 #endif
 
 // poll()-like event system support (WIP API)
@@ -221,16 +229,20 @@ extern const char *appPath;
 	#define CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
 #endif
 
-// status bar management (phone or tablet-like devices)
-#if defined(CONFIG_BASE_IOS) || defined(CONFIG_ENV_WEBOS)// || defined(CONFIG_BASE_ANDROID)
-	void statusBarHidden(uint hidden);
-	void statusBarOrientation(uint o);
+// OS dialog & status bar management
+#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
+	void setStatusBarHidden(uint hidden);
 #else
-	static void statusBarHidden(uint hidden) { }
-	static void statusBarOrientation(uint o) { }
+	static void setStatusBarHidden(uint hidden) { }
 #endif
 
-	static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
+#if defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
+	void setSystemOrientation(uint o);
+#else
+	static void setSystemOrientation(uint o) { }
+#endif
+
+static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
 #if defined(CONFIG_BASE_ANDROID)
 	void setOSNavigationStyle(uint flags);
 	bool hasHardwareNavButtons();

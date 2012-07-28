@@ -8,7 +8,7 @@ struct Zeemote : public BluetoothInputDevice
 {
 public:
 	//constexpr Zeemote() { }
-	CallResult open(BluetoothAddr addr);
+	CallResult open(BluetoothAddr addr, BluetoothAdapter &adapter);
 
 	void close();
 
@@ -38,6 +38,6 @@ private:
 
 	static uint findFreeDevId();
 	static const char *reportIDToStr(uint id);
-	void processBtnReport(const uchar *btnData, uint player/*, ThreadPThread *thread = nullptr*/);
-	void processStickDataForButtonEmulation(const schar *pos, int player/*, ThreadPThread *thread = nullptr*/);
+	void processBtnReport(const uchar *btnData, uint player);
+	void processStickDataForButtonEmulation(const schar *pos, int player);
 };

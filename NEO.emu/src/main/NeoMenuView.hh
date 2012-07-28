@@ -369,7 +369,7 @@ class UnibiosSwitchesView : public BaseMenuView
 {
 	MenuItem *item[2];
 	MultiChoiceSelectMenuItem region;
-	BoolTextMenuItem system;
+	BoolMenuItem system;
 public:
 
 	static void systemHandler(BoolMenuItem &item, const InputEvent &e)
@@ -423,46 +423,35 @@ class NeoMenuView : public MenuView
 {
 private:
 
-	struct GameListItem : public TextMenuItem
+	static void gameListHandler(TextMenuItem &, const InputEvent &e)
 	{
-		void init() { TextMenuItem::init("Load Game From List"); }
-
-		void select(View *view, const InputEvent &e)
+		if(!gameListMenu.init(!e.isPointer()))
 		{
-			if(!gameListMenu.init(!e.isPointer()))
-			{
-				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
-				return;
-			}
-			viewStack.pushAndShow(&gameListMenu);
+			popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
+			return;
 		}
-	} gameList;
+		viewStack.pushAndShow(&gameListMenu);
+	}
 
-	struct UnibiosSwitchesItem : public TextMenuItem
+	TextMenuItem gameList;
+
+	static void unibiosSwitchesHandler(TextMenuItem &item, const InputEvent &e)
 	{
-		void init() { TextMenuItem::init("Unibios Switches"); }
-
-		void select(View *view, const InputEvent &e)
+		if(EmuSystem::gameIsRunning())
 		{
-			if(EmuSystem::gameIsRunning())
+			if(item.active)
 			{
-				if(active)
-				{
-					unibiosSwitchesMenu.init(!e.isPointer());
-					viewStack.pushAndShow(&unibiosSwitchesMenu);
-				}
-				else
-				{
-					popup.post("Only used with Unibios");
-				}
+				unibiosSwitchesMenu.init(!e.isPointer());
+				viewStack.pushAndShow(&unibiosSwitchesMenu);
+			}
+			else
+			{
+				popup.post("Only used with Unibios");
 			}
 		}
+	}
 
-		void refreshActive()
-		{
-			active = EmuSystem::gameIsRunning() && conf.system == SYS_UNIBIOS;
-		}
-	} unibiosSwitches;
+	TextMenuItem unibiosSwitches;
 
 	MenuItem *item[STANDARD_ITEMS + 2];
 
@@ -471,15 +460,17 @@ public:
 	void onShow()
 	{
 		MenuView::onShow();
-		unibiosSwitches.refreshActive();
+		unibiosSwitches.active = EmuSystem::gameIsRunning() && conf.system == SYS_UNIBIOS;
 	}
 
 	void init(bool highlightFirst)
 	{
 		uint items = 0;
 		loadFileBrowserItems(item, items);
-		gameList.init(); item[items++] = &gameList;
-		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
+		gameList.init("Load Game From List"); item[items++] = &gameList;
+		gameList.selectDelegate().bind<&gameListHandler>();
+		unibiosSwitches.init("Unibios Switches"); item[items++] = &unibiosSwitches;
+		unibiosSwitches.selectDelegate().bind<&unibiosSwitchesHandler>();
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
 		BaseMenuView::init(item, items, highlightFirst);

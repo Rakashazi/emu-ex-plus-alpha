@@ -3,16 +3,12 @@
 
 static int pceHuFsFilter(const char *name, int type);
 
-class PceSyscardFilePicker// : public BaseFilePicker
+class PceSyscardFilePicker
 {
 public:
 	static void onSelectFile(const char* name, const InputEvent &e)
 	{
-		//char fullPath[strlen(FsSys::workDir()) + 1 + strlen(name) + 1];
 		snprintf(sysCardPath, sizeof(sysCardPath), "%s/%s", FsSys::workDir(), name);
-		/*if(sysCardPath)
-			mem_free(sysCardPath);
-		sysCardPath = string_dup(fullPath);*/
 		logMsg("set system card %s", sysCardPath);
 		removeModalView();
 	}
@@ -21,30 +17,6 @@ public:
 	{
 		removeModalView();
 	}
-
-	/*void inputEvent(const InputEvent &e)
-	{
-		if(e.state == INPUT_PUSHED)
-		{
-			if(e.isDefaultCancelButton())
-			{
-				onClose();
-				return;
-			}
-
-			if(isMenuDismissKey(e))
-			{
-				if(EmuSystem::gameIsRunning())
-				{
-					removeModalView();
-					startGameFromMenu();
-					return;
-				}
-			}
-		}
-
-		FSPicker::inputEvent(e);
-	}*/
 
 	static void init(bool highlightFirst)
 	{
@@ -59,7 +31,6 @@ class PceOptionView : public OptionView
 private:
 	struct SysCardPathMenuItem : public TextMenuItem
 	{
-		//PceSyscardFilePicker picker;
 		void init() { TextMenuItem::init("Select System Card"); }
 
 		void select(View *view, const InputEvent &e)
@@ -71,32 +42,24 @@ private:
 		}
 	} sysCardPath;
 
-	struct ArcadeCardMenuItem : public BoolMenuItem
+	BoolMenuItem arcadeCard, sixButtonPad;
+
+	static void arcadeCardHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init(bool on) { BoolMenuItem::init("Arcade Card", on); }
+		item.toggle();
+		optionArcadeCard = item.on;
+	}
 
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			optionArcadeCard = on;
-		}
-	} arcadeCard;
-
-	struct SixButtonPadMenuItem : public BoolMenuItem
+	static void sixButtonPadHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init(bool on) { BoolMenuItem::init("6-button support", on); }
-
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			PCE_Fast::AVPad6Enabled[0] = on;
-			PCE_Fast::AVPad6Enabled[1] = on;
-			#ifdef INPUT_SUPPORTS_POINTER
-			vController.gp.activeFaceBtns = on ? 6 : 2;
-			vController.place();
-			#endif
-		}
-	} sixButtonPad;
+		item.toggle();
+		PCE_Fast::AVPad6Enabled[0] = item.on;
+		PCE_Fast::AVPad6Enabled[1] = item.on;
+		#ifdef INPUT_SUPPORTS_POINTER
+		vController.gp.activeFaceBtns = item.on ? 6 : 2;
+		vController.place();
+		#endif
+	}
 
 	MenuItem *item[24];
 
@@ -105,13 +68,15 @@ public:
 	void loadInputItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadInputItems(item, items);
-		sixButtonPad.init(PCE_Fast::AVPad6Enabled[0]); item[items++] = &sixButtonPad;
+		sixButtonPad.init("6-button support", PCE_Fast::AVPad6Enabled[0]); item[items++] = &sixButtonPad;
+		sixButtonPad.selectDelegate().bind<&sixButtonPadHandler>();
 	}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		arcadeCard.init(optionArcadeCard); item[items++] = &arcadeCard;
+		arcadeCard.init("Arcade Card", optionArcadeCard); item[items++] = &arcadeCard;
+		arcadeCard.selectDelegate().bind<&arcadeCardHandler>();
 		sysCardPath.init(); item[items++] = &sysCardPath;
 	}
 

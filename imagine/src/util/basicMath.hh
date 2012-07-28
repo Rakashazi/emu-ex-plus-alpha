@@ -8,7 +8,7 @@ namespace IG
 	#undef max
 #endif
 template <class T>
-static const T& max ( const T& a, const T& b )
+static constexpr T const& max ( const T& a, const T& b )
 {
 	return (b < a) ? a : b;
 }
@@ -18,7 +18,7 @@ static const T& max ( const T& a, const T& b )
 	#undef min
 #endif
 template <class T>
-static const T& min ( const T& a, const T& b )
+static constexpr T const& min ( const T& a, const T& b )
 {
 	return (a < b) ? a : b;
 }

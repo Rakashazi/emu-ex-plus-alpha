@@ -21,6 +21,7 @@
 #include <util/collection/DLList.hh>
 
 const uchar Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
+const uchar Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
 const uchar Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
 
 extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 3> btInputDevList;
@@ -42,11 +43,15 @@ uint Wiimote::findFreeDevId()
 	return 0;
 }
 
-CallResult Wiimote::open(const char *name, BluetoothAddr addr)
+CallResult Wiimote::open(const char *name, BluetoothAddr addr, BluetoothAdapter &adapter)
 {
 	logMsg("opening Wiimote");
 	//var_selfs(player);
 	var_selfs(addr);
+#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
+	adapter.constructSocket(ctlSock.obj);
+	adapter.constructSocket(intSock.obj);
+#endif
 	ctlSock.onDataDelegate().bind<Wiimote, &Wiimote::dataHandler>(this);
 	ctlSock.onStatusDelegate().bind<Wiimote, &Wiimote::statusHandler>(this);
 	intSock.onDataDelegate().bind<Wiimote, &Wiimote::dataHandler>(this);
@@ -61,13 +66,13 @@ CallResult Wiimote::open(const char *name, BluetoothAddr addr)
 
 uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
 {
-	if(status == BluetoothSocket::STATUS_OPENED && &sock == &ctlSock)
+	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
 	{
 		logMsg("opened Wiimote control socket, opening interrupt socket");
 		intSock.openL2cap(addr, 19);
 		return 0; // don't add ctlSock to event loop
 	}
-	else if(status == BluetoothSocket::STATUS_OPENED && &sock == &intSock)
+	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("Wiimote opened successfully");
 		player = findFreeDevId();
@@ -352,11 +357,8 @@ void Wiimote::processCoreButtons(const uchar *packet, uint player)
 		int newState = e->updateState(prevBtnData, btnData);
 		if(newState != -1)
 		{
-			logMsg("%s %s @ wiimote %d", Input::buttonName(InputEvent::DEV_WIIMOTE, e->keyEvent), newState ? "pushed" : "released", player);
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			//logMsg("%s %s @ wiimote %d", Input::buttonName(InputEvent::DEV_WIIMOTE, e->keyEvent), newState ? "pushed" : "released", player);
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -372,11 +374,8 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 		if(newState != -1)
 		{
 			// note: buttons are 0 when pushed
-			logMsg("%s %s @ wiimote cc", Input::buttonName(InputEvent::DEV_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			//logMsg("%s %s @ wiimote cc", Input::buttonName(InputEvent::DEV_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_WIIMOTE, e->keyEvent, !newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevExtData, ccData, sizeof(prevExtData));

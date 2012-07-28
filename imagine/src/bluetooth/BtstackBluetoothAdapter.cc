@@ -107,7 +107,6 @@ struct BtstackCmd
 
 static StaticDLList<BtstackCmd, 8> pendingCmdList;
 
-bool BluetoothAdapter::useScanCache = 1;
 bool BtstackBluetoothAdapter::cmdActive = 0;
 
 void BtstackBluetoothAdapter::processCommands()
@@ -152,11 +151,6 @@ static void sprintBTAddr(char *addrStr, bd_addr_t &addr)
 
 static StaticDLList<BTDevice, 10> scanDevList;
 static StaticDLList<BtstackBluetoothSocket*, 16> socketList;
-
-BluetoothAdapter *BluetoothAdapter::defaultAdapter()
-{
-	return BtstackBluetoothAdapter::defaultAdapter();
-}
 
 static void btHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
@@ -552,6 +546,11 @@ BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
 		return &defaultBtstackAdapter;
 	else
 		return nullptr;
+}
+
+void BtstackBluetoothAdapter::constructSocket(void *mem)
+{
+	new(mem) BtstackBluetoothSocket();
 }
 
 CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint channel)

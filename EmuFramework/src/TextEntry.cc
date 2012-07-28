@@ -124,7 +124,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent)
 	textEntry.init(initialContent, View::defaultFace);
 	textEntry.setAcceptingInput(1);
 	#else
-	Input::startSysTextInput(Input::InputTextDelegate::create<CollectTextInputView, &CollectTextInputView::gotText>(this), initialContent);
+	Input::startSysTextInput(Input::InputTextDelegate::create<CollectTextInputView, &CollectTextInputView::gotText>(this), initialContent, msgText);
 	#endif
 }
 

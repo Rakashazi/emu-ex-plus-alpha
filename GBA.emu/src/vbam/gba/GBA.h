@@ -26,8 +26,108 @@
 struct GBAMem
 {
 	constexpr GBAMem() { }
+
+	union IoMem
+	{
+		constexpr IoMem(): b{0} { }
+		uint8 b[0x400] __attribute__ ((aligned(4)));
+		struct
+		{
+			uint16 DISPCNT;
+			uint16 greenSwap;
+			uint16 DISPSTAT;
+			uint16 VCOUNT;
+			uint16 BG0CNT;
+			uint16 BG1CNT;
+			uint16 BG2CNT;
+			uint16 BG3CNT;
+			uint16 BG0HOFS;
+			uint16 BG0VOFS;
+			uint16 BG1HOFS;
+			uint16 BG1VOFS;
+			uint16 BG2HOFS;
+			uint16 BG2VOFS;
+			uint16 BG3HOFS;
+			uint16 BG3VOFS;
+			uint16 BG2PA;
+			uint16 BG2PB;
+			uint16 BG2PC;
+			uint16 BG2PD;
+			uint16 BG2X_L;
+			uint16 BG2X_H;
+			uint16 BG2Y_L;
+			uint16 BG2Y_H;
+			uint16 BG3PA;
+			uint16 BG3PB;
+			uint16 BG3PC;
+			uint16 BG3PD;
+			uint16 BG3X_L;
+			uint16 BG3X_H;
+			uint16 BG3Y_L;
+			uint16 BG3Y_H;
+			uint16 WIN0H;
+			uint16 WIN1H;
+			uint16 WIN0V;
+			uint16 WIN1V;
+			uint16 WININ;
+			uint16 WINOUT;
+			uint16 MOSAIC;
+			uint16 unused4e;
+			uint16 BLDMOD; // BLDCNT
+			uint16 COLEV; // BLDALPHA
+			uint16 COLY;
+			// 0x56
+			uint8 unused56[0xA];
+			// 0x60
+			uint8 soundRegs[0x50];
+			// 0xB0
+			uint16 DM0SAD_L;
+			uint16 DM0SAD_H;
+			uint16 DM0DAD_L;
+			uint16 DM0DAD_H;
+			uint16 DM0CNT_L;
+			uint16 DM0CNT_H;
+			uint16 DM1SAD_L;
+			uint16 DM1SAD_H;
+			uint16 DM1DAD_L;
+			uint16 DM1DAD_H;
+			uint16 DM1CNT_L;
+			uint16 DM1CNT_H;
+			uint16 DM2SAD_L;
+			uint16 DM2SAD_H;
+			uint16 DM2DAD_L;
+			uint16 DM2DAD_H;
+			uint16 DM2CNT_L;
+			uint16 DM2CNT_H;
+			uint16 DM3SAD_L;
+			uint16 DM3SAD_H;
+			uint16 DM3DAD_L;
+			uint16 DM3DAD_H;
+			uint16 DM3CNT_L;
+			uint16 DM3CNT_H;
+			// 0xE0
+			uint8 unusedE0[0x20];
+			// 0x100
+			uint16 TM0D; // TM0CNT_L
+			uint16 TM0CNT; // TM0CNT_H
+			uint16 TM1D; // TM1CNT_L
+			uint16 TM1CNT; // TM1CNT_H
+			uint16 TM2D; // TM2CNT_L
+			uint16 TM2CNT; // TM2CNT_H
+			uint16 TM3D; // TM3CNT_L
+			uint16 TM3CNT; // TM3CNT_H
+			// 0x110
+			uint8 unused110[0xF0];
+			uint16 IE;
+			uint16 IF;
+			uint16 WAITCNT;
+			uint16 unused206;
+			uint16 IME;
+		};
+	};
+
 	u8 bios[0x4000] __attribute__ ((aligned(4))) {0};
-	u8 ioMem[0x400] __attribute__ ((aligned(4))) {0};
+	IoMem ioMem;
 	u8 internalRAM[0x8000] __attribute__ ((aligned(4))) {0};
 	u8 workRAM[0x40000] __attribute__ ((aligned(4))) {0};
 	u8 rom[0x2000000] __attribute__ ((aligned(4))) {0};
@@ -39,31 +139,6 @@ static auto &workRAM = gMem.workRAM;
 static auto &internalRAM = gMem.internalRAM;
 static auto &ioMem = gMem.ioMem;
 static auto &rom = gMem.rom;
-
-static uint16a &DM0SAD_L = *((uint16a*)&ioMem[0xB0]);
-static uint16a &DM0SAD_H = *((uint16a*)&ioMem[0xB2]);
-static uint16a &DM0DAD_L = *((uint16a*)&ioMem[0xB4]);
-static uint16a &DM0DAD_H = *((uint16a*)&ioMem[0xB6]);
-static uint16a &DM0CNT_L = *((uint16a*)&ioMem[0xB8]);
-static uint16a &DM0CNT_H = *((uint16a*)&ioMem[0xBA]);
-static uint16a &DM1SAD_L = *((uint16a*)&ioMem[0xBC]);
-static uint16a &DM1SAD_H = *((uint16a*)&ioMem[0xBE]);
-static uint16a &DM1DAD_L = *((uint16a*)&ioMem[0xC0]);
-static uint16a &DM1DAD_H = *((uint16a*)&ioMem[0xC2]);
-static uint16a &DM1CNT_L = *((uint16a*)&ioMem[0xC4]);
-static uint16a &DM1CNT_H = *((uint16a*)&ioMem[0xC6]);
-static uint16a &DM2SAD_L = *((uint16a*)&ioMem[0xC8]);
-static uint16a &DM2SAD_H = *((uint16a*)&ioMem[0xCA]);
-static uint16a &DM2DAD_L = *((uint16a*)&ioMem[0xCC]);
-static uint16a &DM2DAD_H = *((uint16a*)&ioMem[0xCE]);
-static uint16a &DM2CNT_L = *((uint16a*)&ioMem[0xD0]);
-static uint16a &DM2CNT_H = *((uint16a*)&ioMem[0xD2]);
-static uint16a &DM3SAD_L = *((uint16a*)&ioMem[0xD4]);
-static uint16a &DM3SAD_H = *((uint16a*)&ioMem[0xD6]);
-static uint16a &DM3DAD_L = *((uint16a*)&ioMem[0xD8]);
-static uint16a &DM3DAD_H = *((uint16a*)&ioMem[0xDA]);
-static uint16a &DM3CNT_L = *((uint16a*)&ioMem[0xDC]);
-static uint16a &DM3CNT_H = *((uint16a*)&ioMem[0xDE]);
 
 struct GBADMA
 {
@@ -94,30 +169,30 @@ struct GBADMA
 	  dma3Source = 0;
 	  dma3Dest = 0;
 
-	  DM0SAD_L = 0x0000;
-	  DM0SAD_H = 0x0000;
-	  DM0DAD_L = 0x0000;
-	  DM0DAD_H = 0x0000;
-	  DM0CNT_L = 0x0000;
-	  DM0CNT_H = 0x0000;
-	  DM1SAD_L = 0x0000;
-	  DM1SAD_H = 0x0000;
-	  DM1DAD_L = 0x0000;
-	  DM1DAD_H = 0x0000;
-	  DM1CNT_L = 0x0000;
-	  DM1CNT_H = 0x0000;
-	  DM2SAD_L = 0x0000;
-	  DM2SAD_H = 0x0000;
-	  DM2DAD_L = 0x0000;
-	  DM2DAD_H = 0x0000;
-	  DM2CNT_L = 0x0000;
-	  DM2CNT_H = 0x0000;
-	  DM3SAD_L = 0x0000;
-	  DM3SAD_H = 0x0000;
-	  DM3DAD_L = 0x0000;
-	  DM3DAD_H = 0x0000;
-	  DM3CNT_L = 0x0000;
-	  DM3CNT_H = 0x0000;
+	  ioMem.DM0SAD_L = 0x0000;
+	  ioMem.DM0SAD_H = 0x0000;
+	  ioMem.DM0DAD_L = 0x0000;
+	  ioMem.DM0DAD_H = 0x0000;
+	  ioMem.DM0CNT_L = 0x0000;
+	  ioMem.DM0CNT_H = 0x0000;
+	  ioMem.DM1SAD_L = 0x0000;
+	  ioMem.DM1SAD_H = 0x0000;
+	  ioMem.DM1DAD_L = 0x0000;
+	  ioMem.DM1DAD_H = 0x0000;
+	  ioMem.DM1CNT_L = 0x0000;
+	  ioMem.DM1CNT_H = 0x0000;
+	  ioMem.DM2SAD_L = 0x0000;
+	  ioMem.DM2SAD_H = 0x0000;
+	  ioMem.DM2DAD_L = 0x0000;
+	  ioMem.DM2DAD_H = 0x0000;
+	  ioMem.DM2CNT_L = 0x0000;
+	  ioMem.DM2CNT_H = 0x0000;
+	  ioMem.DM3SAD_L = 0x0000;
+	  ioMem.DM3SAD_H = 0x0000;
+	  ioMem.DM3DAD_L = 0x0000;
+	  ioMem.DM3DAD_H = 0x0000;
+	  ioMem.DM3CNT_L = 0x0000;
+	  ioMem.DM3CNT_H = 0x0000;
 	}
 };
 
@@ -149,61 +224,10 @@ struct GBATimers
 	u16 timer3Value = 0;
 };
 
-static uint16a &TM0D = *((uint16a*)&ioMem[0x100]);
-static uint16a &TM0CNT = *((uint16a*)&ioMem[0x102]);
-static uint16a &TM1D = *((uint16a*)&ioMem[0x104]);
-static uint16a &TM1CNT = *((uint16a*)&ioMem[0x106]);
-static uint16a &TM2D = *((uint16a*)&ioMem[0x108]);
-static uint16a &TM2CNT = *((uint16a*)&ioMem[0x10A]);
-static uint16a &TM3D = *((uint16a*)&ioMem[0x10C]);
-static uint16a &TM3CNT = *((uint16a*)&ioMem[0x10E]);
-
 static const int layerSettings = 0xff00;
 
 typedef u16 MixColorType;
-void mode0RenderLine(MixColorType *);
-
-static uint16a &DISPCNT = *((uint16a*)&ioMem[0x00]);
-static uint16a &DISPSTAT = *((uint16a*)&ioMem[0x04]);
-static uint16a &VCOUNT = *((uint16a*)&ioMem[0x06]);
-static uint16a &BG0CNT = *((uint16a*)&ioMem[0x08]);
-static uint16a &BG1CNT = *((uint16a*)&ioMem[0x0A]);
-static uint16a &BG2CNT = *((uint16a*)&ioMem[0x0C]);
-static uint16a &BG3CNT = *((uint16a*)&ioMem[0x0E]);
-static uint16a &BG0HOFS = *((uint16a*)&ioMem[0x10]);
-static uint16a &BG0VOFS = *((uint16a*)&ioMem[0x12]);
-static uint16a &BG1HOFS = *((uint16a*)&ioMem[0x14]);
-static uint16a &BG1VOFS = *((uint16a*)&ioMem[0x16]);
-static uint16a &BG2HOFS = *((uint16a*)&ioMem[0x18]);
-static uint16a &BG2VOFS = *((uint16a*)&ioMem[0x1A]);
-static uint16a &BG3HOFS = *((uint16a*)&ioMem[0x1C]);
-static uint16a &BG3VOFS = *((uint16a*)&ioMem[0x1E]);
-static uint16a &BG2PA = *((uint16a*)&ioMem[0x20]);
-static uint16a &BG2PB = *((uint16a*)&ioMem[0x22]);
-static uint16a &BG2PC = *((uint16a*)&ioMem[0x24]);
-static uint16a &BG2PD = *((uint16a*)&ioMem[0x26]);
-static uint16a &BG2X_L = *((uint16a*)&ioMem[0x28]);
-static uint16a &BG2X_H = *((uint16a*)&ioMem[0x2A]);
-static uint16a &BG2Y_L = *((uint16a*)&ioMem[0x2C]);
-static uint16a &BG2Y_H = *((uint16a*)&ioMem[0x2E]);
-static uint16a &BG3PA = *((uint16a*)&ioMem[0x30]);
-static uint16a &BG3PB = *((uint16a*)&ioMem[0x32]);
-static uint16a &BG3PC = *((uint16a*)&ioMem[0x34]);
-static uint16a &BG3PD = *((uint16a*)&ioMem[0x36]);
-static uint16a &BG3X_L = *((uint16a*)&ioMem[0x38]);
-static uint16a &BG3X_H = *((uint16a*)&ioMem[0x3A]);
-static uint16a &BG3Y_L = *((uint16a*)&ioMem[0x3C]);
-static uint16a &BG3Y_H = *((uint16a*)&ioMem[0x3E]);
-static uint16a &WIN0H = *((uint16a*)&ioMem[0x40]);
-static uint16a &WIN1H = *((uint16a*)&ioMem[0x42]);
-static uint16a &WIN0V = *((uint16a*)&ioMem[0x44]);
-static uint16a &WIN1V = *((uint16a*)&ioMem[0x46]);
-static uint16a &WININ = *((uint16a*)&ioMem[0x48]);
-static uint16a &WINOUT = *((uint16a*)&ioMem[0x4A]);
-static uint16a &MOSAIC = *((uint16a*)&ioMem[0x4C]);
-static uint16a &BLDMOD = *((uint16a*)&ioMem[0x50]); // BLDCNT
-static uint16a &COLEV = *((uint16a*)&ioMem[0x52]); // BLDALPHA
-static uint16a &COLY = *((uint16a*)&ioMem[0x54]); // BLDY
+void mode0RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
 
 struct GBALCD
 {
@@ -224,7 +248,7 @@ struct GBALCD
 	u8 vram[0x20000] __attribute__ ((aligned(4))) {0};
 	u8 paletteRAM[0x400] __attribute__ ((aligned(4))) {0};
 	u8 oam[0x400] __attribute__ ((aligned(4))) {0};
-	void (*renderLine)(MixColorType *lineMix) = mode0RenderLine;
+	void (*renderLine)(MixColorType *lineMix, const GBAMem::IoMem &ioMem) = mode0RenderLine;
 	bool fxOn = false;
 	bool windowOn = false;
 	MixColorType *lineMix = nullptr;
@@ -266,48 +290,48 @@ struct GBALCD
 	void resetAll(bool useBios, bool skipBios)
 	{
 		reset();
-		DISPCNT  = 0x0080;
-		DISPSTAT = 0x0000;
-		VCOUNT   = (useBios && !skipBios) ? 0 :0x007E;
-		BG0CNT   = 0x0000;
-		BG1CNT   = 0x0000;
-		BG2CNT   = 0x0000;
-		BG3CNT   = 0x0000;
-		BG0HOFS  = 0x0000;
-		BG0VOFS  = 0x0000;
-		BG1HOFS  = 0x0000;
-		BG1VOFS  = 0x0000;
-		BG2HOFS  = 0x0000;
-		BG2VOFS  = 0x0000;
-		BG3HOFS  = 0x0000;
-		BG3VOFS  = 0x0000;
-		BG2PA    = 0x0100;
-		BG2PB    = 0x0000;
-		BG2PC    = 0x0000;
-		BG2PD    = 0x0100;
-		BG2X_L   = 0x0000;
-		BG2X_H   = 0x0000;
-		BG2Y_L   = 0x0000;
-		BG2Y_H   = 0x0000;
-		BG3PA    = 0x0100;
-		BG3PB    = 0x0000;
-		BG3PC    = 0x0000;
-		BG3PD    = 0x0100;
-		BG3X_L   = 0x0000;
-		BG3X_H   = 0x0000;
-		BG3Y_L   = 0x0000;
-		BG3Y_H   = 0x0000;
-		WIN0H    = 0x0000;
-		WIN1H    = 0x0000;
-		WIN0V    = 0x0000;
-		WIN1V    = 0x0000;
-		WININ    = 0x0000;
-		WINOUT   = 0x0000;
-		MOSAIC   = 0x0000;
-		BLDMOD   = 0x0000;
-		COLEV    = 0x0000;
-		COLY     = 0x0000;
-		layerEnable = DISPCNT & layerSettings;
+		ioMem.DISPCNT  = 0x0080;
+		ioMem.DISPSTAT = 0x0000;
+		ioMem.VCOUNT   = (useBios && !skipBios) ? 0 :0x007E;
+		ioMem.BG0CNT   = 0x0000;
+		ioMem.BG1CNT   = 0x0000;
+		ioMem.BG2CNT   = 0x0000;
+		ioMem.BG3CNT   = 0x0000;
+		ioMem.BG0HOFS  = 0x0000;
+		ioMem.BG0VOFS  = 0x0000;
+		ioMem.BG1HOFS  = 0x0000;
+		ioMem.BG1VOFS  = 0x0000;
+		ioMem.BG2HOFS  = 0x0000;
+		ioMem.BG2VOFS  = 0x0000;
+		ioMem.BG3HOFS  = 0x0000;
+		ioMem.BG3VOFS  = 0x0000;
+		ioMem.BG2PA    = 0x0100;
+		ioMem.BG2PB    = 0x0000;
+		ioMem.BG2PC    = 0x0000;
+		ioMem.BG2PD    = 0x0100;
+		ioMem.BG2X_L   = 0x0000;
+		ioMem.BG2X_H   = 0x0000;
+		ioMem.BG2Y_L   = 0x0000;
+		ioMem.BG2Y_H   = 0x0000;
+		ioMem.BG3PA    = 0x0100;
+		ioMem.BG3PB    = 0x0000;
+		ioMem.BG3PC    = 0x0000;
+		ioMem.BG3PD    = 0x0100;
+		ioMem.BG3X_L   = 0x0000;
+		ioMem.BG3X_H   = 0x0000;
+		ioMem.BG3Y_L   = 0x0000;
+		ioMem.BG3Y_H   = 0x0000;
+		ioMem.WIN0H    = 0x0000;
+		ioMem.WIN1H    = 0x0000;
+		ioMem.WIN0V    = 0x0000;
+		ioMem.WIN1V    = 0x0000;
+		ioMem.WININ    = 0x0000;
+		ioMem.WINOUT   = 0x0000;
+		ioMem.MOSAIC   = 0x0000;
+		ioMem.BLDMOD   = 0x0000;
+		ioMem.COLEV    = 0x0000;
+		ioMem.COLY     = 0x0000;
+		layerEnable = ioMem.DISPCNT & layerSettings;
 	}
 };
 
@@ -353,7 +377,7 @@ static const memoryMap map[256] =
 	{ (u8 *)&dummyAddress, 0 },
 	{ gMem.workRAM, 0x3FFFF },
 	{ gMem.internalRAM, 0x7FFF },
-	{ gMem.ioMem, 0x3FF },
+	{ gMem.ioMem.b, 0x3FF },
 	{ gLcd.paletteRAM, 0x3FF },
 	{ gLcd.vram, 0x1FFFF },
 	{ gLcd.oam, 0x3FF },
@@ -453,6 +477,7 @@ static const uint cpuBitsSet[256] =
 //#define VBAM_USE_SWITICKS
 //#define VBAM_USE_IRQTICKS
 #define VBAM_USE_CPU_PREFETCH
+#define VBAM_USE_DELAYED_CPU_FLAGS
 
 struct ARM7TDMI
 {
@@ -475,17 +500,20 @@ private:
 #endif
 public:
 	u32 busPrefetchCount = 0;
-	u16 IE = 0;
+	/*u16 IE = 0;
 	u16 IF = 0;
-	u16 IME = 0;
+	u16 IME = 0;*/
+#ifdef VBAM_USE_DELAYED_CPU_FLAGS
 	u32 lastArithmeticRes = 1;
 	/*u32 lastArithmeticLhs = 1;
 	u32 lastArithmeticRhs = 0;
 	bool lastArithmeticAdd = 0;*/
+#else
+	bool N_FLAG = 0;
+	bool Z_FLAG = 0;
+#endif
 	// TODO: eliminate C_FLAG and V_FLAG
-	//bool N_FLAG;
 	bool C_FLAG = 0;
-	//bool Z_FLAG;
 	bool V_FLAG = 0;
 	bool busPrefetch = 0;
 	bool busPrefetchEnable = 0;
@@ -495,8 +523,100 @@ public:
 	//u8 cpuBitsSet[256];
 	//u8 cpuLowestBitSet[256];
 
-	bool nFlag() const { return (s32)lastArithmeticRes < 0; }
-	bool zFlag() const { return lastArithmeticRes == 0; }
+	static bool calcNFlag(u32 result)
+	{
+		return (s32)result < 0;
+	}
+
+	static bool calcZFlag(u32 result)
+	{
+		return result == 0;
+	}
+
+	bool nFlag() const
+	{
+		#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+			return calcNFlag(lastArithmeticRes);
+		#else
+			return N_FLAG;
+		#endif
+	}
+
+	bool zFlag() const
+	{
+		#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+			return calcZFlag(lastArithmeticRes);
+		#else
+			return Z_FLAG;
+		#endif
+	}
+
+	bool cFlag() const
+	{
+		return C_FLAG;
+	}
+
+	bool vFlag() const
+	{
+		return V_FLAG;
+	}
+
+	void setNZFlag(bool n, bool z)
+	{
+#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+		if(n)
+			lastArithmeticRes = -1;
+		else if(z)
+			lastArithmeticRes = 0;
+		else
+			lastArithmeticRes = 1;
+#else
+		N_FLAG = n;
+		Z_FLAG = z;
+#endif
+	}
+
+	void resetFlags()
+	{
+		setNZFlag(0, 0);
+		//setCFlag(0);
+		//setVFlag(0);
+	}
+
+	void setNZFlagParam(u32 res)
+	{
+#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+		lastArithmeticRes = res;
+#else
+		N_FLAG = calcNFlag(res);
+		Z_FLAG = calcZFlag(res);
+#endif
+	}
+
+	void setNZFlagParam(u32 low, u32 high)
+	{
+#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+		lastArithmeticRes = low; if(!lastArithmeticRes && high) lastArithmeticRes = 1;
+#else
+		N_FLAG = (low & 0x80000000) ? true : false;
+		Z_FLAG = low || high ? false : true;
+#endif
+	}
+
+	void updateNZFlags(bool N_FLAG, bool Z_FLAG/*, bool C_FLAG, bool V_FLAG*/)
+	{
+#ifdef VBAM_USE_DELAYED_CPU_FLAGS
+		//logMsg("updateNZCVFlags %d:%d:%d:%d", N_FLAG, Z_FLAG, C_FLAG, V_FLAG);
+		setNZFlag(N_FLAG, Z_FLAG);
+		//setCFlag(C_FLAG);
+		//setVFlag(V_FLAG);
+#else
+		var_selfs(N_FLAG);
+		var_selfs(Z_FLAG);
+		//var_selfs(C_FLAG);
+		//var_selfs(V_FLAG);
+#endif
+	}
 
 	void ARM_PREFETCH() ATTRS(always_inline)
   {
@@ -555,7 +675,7 @@ public:
 		armState = true;
 		armMode = 0x1F;
 		armIrqEnable = false;
-		lastArithmeticRes = 1;
+		resetFlags();
 		C_FLAG = V_FLAG = /*N_FLAG = Z_FLAG =*/ false;
 		reg[13].I = 0x03007F00;
 		reg[14].I = 0x00000000;
@@ -580,9 +700,9 @@ public:
 	{
 		memset(&reg[0], 0, sizeof(reg));
 
-		IE       = 0x0000;
-		IF       = 0x0000;
-		IME      = 0x0000;
+		ioMem.IE       = 0x0000;
+		ioMem.IF       = 0x0000;
+		ioMem.IME      = 0x0000;
 
 		armMode = 0x1F;
 
@@ -608,7 +728,7 @@ public:
 			}
 		}
 		armState = true;
-		lastArithmeticRes = 1;
+		resetFlags();
 		C_FLAG = V_FLAG = /*N_FLAG = Z_FLAG =*/ false;
 
 		// disable FIQ
@@ -644,16 +764,6 @@ public:
 	  reg[16].I = CPSR;
 	}
 
-	void updateNZFlags(bool N_FLAG, bool Z_FLAG)
-	{
-		if(Z_FLAG)
-			lastArithmeticRes = 0;
-		else if(N_FLAG)
-			lastArithmeticRes = -1;
-		else
-			lastArithmeticRes = 1;
-	}
-
 	void updateFlags(bool breakLoop = true)
 	{
 	  u32 CPSR = reg[16].I;
@@ -666,7 +776,7 @@ public:
 	  armState = (CPSR & 0x20) ? false : true;
 	  armIrqEnable = (CPSR & 0x80) ? false : true;
 	  if(breakLoop) {
-	      if (armIrqEnable && (IF & IE) && (IME & 1))
+	      if (armIrqEnable && (ioMem.IF & ioMem.IE) && (ioMem.IME & 1))
 	        cpuNextEvent = cpuTotalTicks;
 	  }
 	}

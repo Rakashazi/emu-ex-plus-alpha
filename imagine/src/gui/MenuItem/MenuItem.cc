@@ -74,8 +74,9 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 
 	void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
 	{
+		offStr = onStr = nullptr;
 		DualTextMenuItem::init(str, on ? "On" : "Off", active, face);
-		this->on = on;
+		var_selfs(on);
 	}
 
 	void BoolMenuItem::set(bool val)
@@ -84,7 +85,10 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 		{
 			//logMsg("setting bool: %d", val);
 			on = val;
-			t2.setString(val ? "On" : "Off");
+			if(onStr)
+				t2.setString(val ? onStr : offStr);
+			else
+				t2.setString(val ? "On" : "Off");
 			t2.compile();
 			Base::displayNeedsUpdate();
 		}
@@ -104,14 +108,16 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	{
 		using namespace Gfx;
 		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		if(on)
+		if(onStr) // custom strings
+			setColor(0., 1., 1.); // aqua
+		else if(on)
 			setColor(0., 1., 0., 1.);
 		else
 			setColor(1., 0., 0., 1.);
 		draw2ndText(xPos, yPos, xSize, ySize, align);
 	}
 
-	void BoolTextMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+	void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
 	{
 		var_selfs(offStr);
 		var_selfs(onStr);
@@ -119,7 +125,7 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 		var_selfs(on);
 	}
 
-	void BoolTextMenuItem::set(bool val)
+	/*void BoolTextMenuItem::set(bool val)
 	{
 		if(val != on)
 		{
@@ -129,23 +135,23 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 			t2.compile();
 			Base::displayNeedsUpdate();
 		}
-	}
+	}*/
 
-	void BoolTextMenuItem::toggle()
+	/*void BoolTextMenuItem::toggle()
 	{
 		if(on)
 			set(0);
 		else
 			set(1);
-	}
+	}*/
 
-	void BoolTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+	/*void BoolTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 	{
 		using namespace Gfx;
 		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
 		setColor(0., 1., 1.); // aqua
 		draw2ndText(xPos, yPos, xSize, ySize, align);
-	}
+	}*/
 
 
 	void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)

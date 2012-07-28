@@ -73,10 +73,11 @@ int EmuSystem::setupFrameSkip(uint optionVal)
 	TimeSys timeTotal = realTime - startTime;
 
 	int emuFrame = timeTotal.divByUSecs(vidSysIsPAL() ? palUSecs : ntscUSecs);
-	//logMsg("on frame %d, was %d", emuFrame, emuFrameNow);
-	if(emuFrame <= emuFrameNow)
+	//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
+	assert(emuFrame >= emuFrameNow);
+	if(emuFrame == emuFrameNow)
 	{
-		//logMsg("repeating frame");
+		//logMsg("repeating frame %d", emuFrame);
 		return -1;
 	}
 	else

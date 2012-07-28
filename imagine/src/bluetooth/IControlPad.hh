@@ -15,7 +15,7 @@ public:
 		FUNC_GP_REPORTS,
 	};
 
-	CallResult open(BluetoothAddr addr);
+	CallResult open(BluetoothAddr addr, BluetoothAdapter &adapter);
 	void close();
 	void removeFromSystem();
 
@@ -41,6 +41,6 @@ private:
 	static const int nubDeadzone = 64;
 
 	static uint findFreeDevId();
-	void processBtnReport(const uchar *btnData, uint player/*, ThreadPThread *thread = nullptr*/);
-	void processNubDataForButtonEmulation(const schar *nubData, uint player/*, ThreadPThread *thread = nullptr*/);
+	void processBtnReport(const uchar *btnData, uint player);
+	void processNubDataForButtonEmulation(const schar *nubData, uint player);
 };

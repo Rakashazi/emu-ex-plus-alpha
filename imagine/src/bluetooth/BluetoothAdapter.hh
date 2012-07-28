@@ -18,6 +18,7 @@ public:
 	static void setScanCacheUsage(bool on) { useScanCache = on; }
 	static bool scanCacheUsage() { return useScanCache; }
 	virtual void close() = 0;
+	virtual void constructSocket(void *mem);
 
 	enum { INIT_FAILED, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
 		SCAN_COMPLETE, SCAN_COMPLETE_NO_DEVS_USED, SOCKET_OPEN_FAILED };
@@ -62,6 +63,5 @@ class BluetoothInputDevice
 public:
 	//constexpr BluetoothInputDevice() { }
 	virtual ~BluetoothInputDevice() { }
-	//virtual void close();
 	virtual void removeFromSystem() = 0;
 };

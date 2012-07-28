@@ -25,7 +25,10 @@ namespace Audio
 
 PcmFormat preferredPcmFormat = { 44100, &SampleFormats::s16, 2 };
 static PcmFormat pcmFmt;
-static uchar localBuff[(44100/60)*4*6];
+static uint bufferFrames = 800;
+static uint buffers = 8;
+static int startPlaybackBytes = 0;
+static uchar *localBuff = nullptr;
 static RingBuffer<int> rBuff;
 static bool isPlaying = 0;
 
@@ -43,6 +46,24 @@ static void audioCallback(void *userdata, Uint8 *buf, int bytes)
 		//logMsg("%d bytes in buffer", rBuff.written);
 	}
 }
+
+void setHintPcmFramesPerWrite(uint frames)
+{
+	logMsg("setting buffer frames to %d", frames);
+	assert(frames < 2000);
+	bufferFrames = frames;
+	assert(!isOpen());
+}
+
+void setHintPcmMaxBuffers(uint maxBuffers)
+{
+	logMsg("setting max buffers to %d", maxBuffers);
+	assert(maxBuffers < 100);
+	buffers = maxBuffers;
+	assert(!isOpen());
+}
+
+uint hintPcmMaxBuffers() { return buffers; }
 
 static void startPcm()
 {
@@ -66,14 +87,23 @@ CallResult openPcm(const PcmFormat &format)
 	spec.samples = 1024;
 	spec.callback = audioCallback;
 	//spec.userdata = 0;
-
+	uint bufferSize = format.framesToBytes(bufferFrames) * buffers;
+	startPlaybackBytes = format.framesToBytes(bufferFrames) * buffers-1;
+	localBuff = (uchar*)mem_alloc(bufferSize);
+	if(!localBuff)
+	{
+		logMsg("error allocation audio buffer");
+		return OUT_OF_MEMORY;
+	}
+	logMsg("allocated %d for audio buffer", bufferSize);
+	rBuff.init(localBuff, bufferSize);
 	if(SDL_OpenAudio(&spec, 0) < 0)
 	{
 		logErr("error in SDL_OpenAudio");
 		return INVALID_PARAMETER;
 	}
-	logMsg("opened audio %dHz with buffer %d samples %d size", spec.freq, spec.samples, spec.size);
 	pcmFmt = format;
+	logMsg("opened audio %dHz with buffer %d samples %d size", spec.freq, spec.samples, spec.size);
 	return OK;
 }
 
@@ -87,7 +117,7 @@ void writePcm(uchar *buffer, uint framesToWrite)
 		//logMsg("overrun, wrote %d out of %d bytes", written, bytes);
 	}
 	SDL_UnlockAudio();
-	if(!isPlaying && rBuff.written >= rBuff.buffSize)
+	if(!isPlaying && rBuff.written >= startPlaybackBytes)
 	{
 		startPcm();
 	}
@@ -100,6 +130,8 @@ void closePcm()
 		isPlaying = 0;
 		SDL_CloseAudio();
 		rBuff.reset();
+		mem_free(localBuff);
+		localBuff = nullptr;
 		mem_zero(pcmFmt);
 	}
 }
@@ -125,7 +157,6 @@ CallResult init()
 		// Init SDL here if not using base SDL module
 		SDL_Init(SDL_INIT_NOPARACHUTE | SDL_INIT_AUDIO);
 	#endif
-	rBuff.init(localBuff, sizeof(localBuff));
 	return OK;
 }
 

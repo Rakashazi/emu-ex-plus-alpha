@@ -13,4 +13,7 @@ jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down, jboole
 // dlsym extra functions from supplied libandroid.so
 bool dlLoadAndroidFuncs(void *libandroid);
 
+// EditText-based Input
+void textInputEndedMsg(const char* str, jstring jStr);
+
 }

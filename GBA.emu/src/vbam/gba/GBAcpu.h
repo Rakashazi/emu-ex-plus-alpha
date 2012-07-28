@@ -24,7 +24,7 @@ static const bool CONFIG_TRIGGER_ARM_STATE_EVENT = 0;
 
 #define UPDATE_REG(address, value)\
   {\
-    WRITE16LE(((u16 *)&ioMem[address]),value);\
+    WRITE16LE(((u16 *)&ioMem.b[address]),value);\
   }\
 
 

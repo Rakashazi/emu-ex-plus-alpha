@@ -1104,15 +1104,15 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       case GSA_16_BIT_WRITE_IOREGS:
         if ((cheatsList[i].address <= 0x3FF) && (cheatsList[i].address != 0x6) &&
             (cheatsList[i].address != 0x130))
-          ioMem[cheatsList[i].address & 0x3FE]=cheatsList[i].value & 0xFFFF;
+          ioMem.b[cheatsList[i].address & 0x3FE]=cheatsList[i].value & 0xFFFF;
         break;
       case GSA_32_BIT_WRITE_IOREGS:
         if (cheatsList[i].address<=0x3FF)
         {
           if (((cheatsList[i].address & 0x3FC) != 0x6) && ((cheatsList[i].address & 0x3FC) != 0x130))
-            ioMem[cheatsList[i].address & 0x3FC]= (cheatsList[i].value & 0xFFFF);
+            ioMem.b[cheatsList[i].address & 0x3FC]= (cheatsList[i].value & 0xFFFF);
           if ((((cheatsList[i].address & 0x3FC)+2) != 0x6) && ((cheatsList[i].address & 0x3FC) +2) != 0x130)
-            ioMem[(cheatsList[i].address & 0x3FC) + 2 ]= ((cheatsList[i].value>>16 ) & 0xFFFF);
+            ioMem.b[(cheatsList[i].address & 0x3FC) + 2 ]= ((cheatsList[i].value>>16 ) & 0xFFFF);
         }
         break;
       case GSA_8_BIT_IF_TRUE3:

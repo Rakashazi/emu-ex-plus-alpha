@@ -48,9 +48,10 @@ static jobject jHandler = 0, glView = 0;
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 static JavaClassMethod jSetAutoOrientation;
 #endif
-static JavaInstMethod jSetKeepScreenOn, jPostDelayed, jRemoveCallbacks; /*, jPost, jHasMessages*/
-JavaInstMethod jShowIme, jHideIme;
-static JavaClassMethod jSwapBuffers;
+static JavaInstMethod<jboolean> jRemoveCallbacks, jPostDelayed; /*, jPost, jHasMessages*/
+static JavaInstMethod<void> jSetKeepScreenOn, jSetStatusBar;
+JavaInstMethod<void> jShowIme, jHideIme;
+static JavaClassMethod<void> jSwapBuffers;
 static jfieldID jAllowKeyRepeatsId, jHandleVolumeKeysId, glViewId;
 static jobject jTimerCallbackRunnable;
 static const ushort MSG_FD_EVENTS = 1;
@@ -61,36 +62,36 @@ uint appState = APP_RUNNING; //TODO: should start as APP_PAUSED, but BaseActivit
 
 #ifdef CONFIG_BLUEZ
 
-JavaClassMethod jObtain;
-JavaInstMethod jSendToTarget;
+JavaClassMethod<jobject> jObtain;
+JavaInstMethod<void> jSendToTarget;
 static jfieldID msgHandlerId;
 jobject msgHandler;
 
 #endif
 
-JavaVM* jVM = 0;
+JavaVM *jVM = nullptr;
+JNIEnv *jEnv = nullptr;
 
-/*void statusBarHidden(uint hidden)
+void setStatusBarHidden(uint hidden)
 {
-	jclass cls = (*jEnv)->FindClass(jEnv, "com/imagine/BaseActivity");
-	if(cls == NULL)
+	static bool isHidden = 1; // assume app starts fullscreen
+	hidden = hidden ? 1 : 0;
+	if(hidden != isHidden)
 	{
-		logMsg("can't find class");
+		if(!jSetStatusBar.m)
+		{
+			jSetStatusBar.setup(jEnv, jBaseActivityCls, "setStatusBar", "(Z)V");
+		}
+		isHidden = hidden;
+		jSetStatusBar(jEnv, jBaseActivity, (jboolean)hidden);
 	}
-	jmethodID mid = (*jEnv)->GetStaticMethodID(jEnv, cls, "setStatusBar", "(B)V");
-	if (mid == 0)
-	{
-		logMsg("can't find method");
-		return;
-	}
-	(*jEnv)->CallStaticVoidMethod(jEnv, cls, mid, (char)hidden);
-}*/
+}
 
 void setIdleDisplayPowerSave(bool on)
 {
 	jint keepOn = !on;
 	logMsg("keep screen on: %d", keepOn);
-	jEnv->CallVoidMethod(glView, jSetKeepScreenOn.m, (jboolean)keepOn);
+	jSetKeepScreenOn(jEnv, glView, (jboolean)keepOn);
 }
 
 void setOSNavigationStyle(uint flags) { }
@@ -105,14 +106,14 @@ void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
 	{
 		logMsg("canceling callback");
 		timerCallbackFunc = 0;
-		jEnv->CallBooleanMethod(jHandler, jRemoveCallbacks.m, jTimerCallbackRunnable);
+		jRemoveCallbacks(jEnv, jHandler, jTimerCallbackRunnable);
 	}
 	if(!f)
 		return;
 	logMsg("setting callback to run in %d ms", ms);
 	timerCallbackFunc = f;
 	timerCallbackFuncCtx = ctx;
-	jEnv->CallBooleanMethod(jHandler, jPostDelayed.m, jTimerCallbackRunnable, (jlong)ms);
+	jPostDelayed(jEnv, jHandler, jTimerCallbackRunnable, (jlong)ms);
 }
 
 static jboolean JNICALL timerCallback(JNIEnv*  env, jobject thiz, jboolean isPaused)
@@ -196,16 +197,17 @@ static void JNICALL nativeInit(JNIEnv*  env, jobject thiz, jint w, jint h)
 
 static void JNICALL nativeResize(JNIEnv*  env, jobject thiz, jint w, jint h)
 {
-	//logMsg("resize event");
-	mainWin.rect.x2 = w;
-	mainWin.rect.y2 = h;
-	resizeEvent(w, h);
+	logMsg("resize event %dx%d", w, h);
+	mainWin.w = w; mainWin.h = h;
+	mainWin.rect.x2 = w; mainWin.rect.y2 = h;
+	resizeEvent(mainWin);
+	gfxUpdate = 1;
 	//logMsg("done resize");
 }
 
 static jboolean JNICALL nativeRender(JNIEnv*  env, jobject thiz)
 {
-	//logMsg("doing render");
+	logMsg("doing render");
 	runEngine();
 	//if(ret) logMsg("frame rendered");
 	return gfxUpdate;
@@ -214,15 +216,15 @@ static jboolean JNICALL nativeRender(JNIEnv*  env, jobject thiz)
 void openGLUpdateScreen()
 {
 	//if(!gfxUpdate) logMsg("sleeping after this frame");
-	jEnv->CallStaticVoidMethod(jSwapBuffers.c, jSwapBuffers.m, gfxUpdate);
+	jSwapBuffers(aEnv(), gfxUpdate);
 }
 
 #ifdef CONFIG_BLUETOOTH
 void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg, int intArg2)
 {
 	assert(thread.jEnv);
-	jobject jMsg = thread.jEnv->CallStaticObjectMethod(jObtain.c, jObtain.m, msgHandler, shortArg + (type << 16), intArg, intArg2);
-	thread.jEnv->CallVoidMethod(jMsg, jSendToTarget.m);
+	jobject jMsg = jObtain(thread.jEnv, msgHandler, shortArg + (type << 16), intArg, intArg2);
+	jSendToTarget(thread.jEnv, jMsg);
 	thread.jEnv->DeleteLocalRef(jMsg);
 }
 
@@ -348,9 +350,11 @@ static jboolean JNICALL handleAndroidMsg(JNIEnv *env, jobject thiz, jint arg1, j
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }
 
-static jboolean JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
+#if 0
+static jboolean JNICALL layoutChange(JNIEnv* env, jobject thiz, jint x, jint y, jint w, jint h)
 {
-	assert(height >= 0);
+	logMsg("view layout changed to %d:%d:%d:%d", x, y, x+w, y+h);
+	/*assert(height >= 0);
 	if(visibleScreenY == (uint)height)
 		return 0;
 	logMsg("layout change, view height %d", height);
@@ -358,9 +362,20 @@ static jboolean JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
 	if(!glView)
 		return 0;
 	var_copy(prevGfxUpdateState, gfxUpdate);
-	resizeEvent(mainWin.rect.x2, visibleScreenY);
-	return prevGfxUpdateState == 0 && gfxUpdate;
+	mainWin.rect.y2 = visibleScreenY;
+	resizeEvent(mainWin);
+	return prevGfxUpdateState == 0 && gfxUpdate;*/
+	/*mainWin.rect.x = x; mainWin.rect.y = y;
+	mainWin.w = w; mainWin.h = h;
+	mainWin.rect.x2 = x+w; mainWin.rect.y2 = y+h;
+	resizeEvent(mainWin);*/
+	gfxUpdate = 1;
+	return 1;
 }
+#endif
+
+JNIEnv* eEnv() { return jEnv; }
+JNIEnv* aEnv() { return jEnv; }
 
 }
 
@@ -377,8 +392,8 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
 	jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
-	jShowIme.setup(jEnv, jBaseActivityCls, "showIme", "(I)V");
-	jHideIme.setup(jEnv, jBaseActivityCls, "hideIme", "(I)V");
+	/*jShowIme.setup(jEnv, jBaseActivityCls, "showIme", "(I)V");
+	jHideIme.setup(jEnv, jBaseActivityCls, "hideIme", "(I)V");*/
 	jAllowKeyRepeatsId = jEnv->GetStaticFieldID(jBaseActivityCls, "allowKeyRepeats", "Z");
 	jHandleVolumeKeysId = jEnv->GetStaticFieldID(jBaseActivityCls, "handleVolumeKeys", "Z");
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
@@ -418,7 +433,7 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	    {"envConfig", "(Ljava/lang/String;Ljava/lang/String;FFIIIIILjava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;)V", (void *)&envConfig},
 	    {"handleAndroidMsg", "(III)Z", (void *)&handleAndroidMsg},
 	    {"keyEvent", "(IIZ)Z", (void *)&Input::keyEvent},
-	    {"layoutChange", "(I)Z", (void *)&Base::layoutChange},
+	    //{"layoutChange", "(IIII)Z", (void *)&Base::layoutChange},
 	};
 
 	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));

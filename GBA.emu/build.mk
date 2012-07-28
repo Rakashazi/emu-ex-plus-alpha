@@ -1,6 +1,13 @@
 ifndef inc_main
 inc_main := 1
 
+ifeq ($(ARCH), armv7)
+ ifneq ($(config_compiler), clang)
+  # -fexpensive-optimizations seems to cause miscompile on ARM GCC 4.7.x (Golden Sun)
+  HIGH_OPTIMIZE_CFLAGS := -O3 -fno-expensive-optimizations $(HIGH_OPTIMIZE_CFLAGS_MISC)
+ endif
+endif
+
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/VbamApi.cc

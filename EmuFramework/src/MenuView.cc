@@ -246,7 +246,7 @@ void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 
 	if(Bluetooth::initBT() == OK)
 	{
-		BluetoothAdapterSys::defaultAdapter()->statusDelegate().bind<&btStatus>();
+		BluetoothAdapter::defaultAdapter()->statusDelegate().bind<&btStatus>();
 		if(Bluetooth::startBT())
 		{
 			popup.post("Starting Scan...\nSee website for device-specific help", 4);

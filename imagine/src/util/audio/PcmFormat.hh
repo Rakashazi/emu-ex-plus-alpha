@@ -47,6 +47,16 @@ public:
 		return frames * sample->toBytes() * channels;
 	}
 
+	float framesToMSecs(uint frames) const
+	{
+		return ((float)frames / rate) * 1000.;
+	}
+
+	uint mSecsToFrames(float mSecs) const
+	{
+		return (mSecs / 1000.) * rate;
+	}
+
 	uint bytesToFrames(uint bytes) const
 	{
 		return bytes / sample->toBytes() / channels;

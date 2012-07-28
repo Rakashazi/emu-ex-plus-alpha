@@ -9,9 +9,9 @@ class BtstackBluetoothAdapter : public BluetoothAdapter
 public:
 	//constexpr BtstackBluetoothAdapter() { }
 	static BtstackBluetoothAdapter *defaultAdapter();
-	fbool startScan();
-	void close();
-
+	fbool startScan() override;
+	void close() override;
+	void constructSocket(void *mem) override;
 	void packetHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 private:
 	uint state = HCI_STATE_OFF, scanResponses = 0;
@@ -26,10 +26,10 @@ class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
 	constexpr BtstackBluetoothSocket() { }
-	CallResult openL2cap(BluetoothAddr addr, uint psm);
-	CallResult openRfcomm(BluetoothAddr addr, uint channel);
-	void close();
-	CallResult write(const void *data, size_t size);
+	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
+	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
+	void close() override;
+	CallResult write(const void *data, size_t size) override;
 
 	const void *pin(uint &size);
 	void setPin(const void *pin, uint size);

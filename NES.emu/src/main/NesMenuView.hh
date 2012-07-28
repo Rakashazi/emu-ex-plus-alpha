@@ -369,8 +369,8 @@ private:
 
 	struct CheatMenuItem : public BoolMenuItem
 	{
-		constexpr CheatMenuItem(): idx(0) { }
-		int idx;
+		constexpr CheatMenuItem() { }
+		int idx = 0;
 		void init(int idx, const char *name, bool on) { BoolMenuItem::init(name, on); var_selfs(idx); }
 
 		void select(View *view, const InputEvent &e)

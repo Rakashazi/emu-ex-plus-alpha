@@ -57,12 +57,12 @@ CallResult openGLInit()
 	return OK;
 }
 
-CallResult openGLSetOutputVideoMode(uint x, uint y)
+CallResult openGLSetOutputVideoMode(const Base::Window &win)
 {
 	#ifdef CONFIG_ENV_WEBOS
 	drawContext = SDL_SetVideoMode(0, 0, 0, SDL_OPENGL); // always full-screen
 	#else
-	drawContext = SDL_SetVideoMode(x, y, 0, SDL_OPENGL /*| SDL_RESIZABLE*/);
+	drawContext = SDL_SetVideoMode(win.w, win.h, 0, SDL_OPENGL /*| SDL_RESIZABLE*/);
 	#endif
 	if(!drawContext)
 	{
@@ -72,7 +72,7 @@ CallResult openGLSetOutputVideoMode(uint x, uint y)
 	return OK;
 }
 
-CallResult openGLSetMultisampleVideoMode(uint x, uint y)
+CallResult openGLSetMultisampleVideoMode(const Base::Window &win)
 {
 	/*SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
@@ -110,7 +110,7 @@ char * getArg(uint arg) { return(globalArgv[arg]); }
 void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
 
 #ifdef CONFIG_ENV_WEBOS
-void statusBarOrientation(uint o)
+void setSystemOrientation(uint o)
 {
 	switch(o)
 	{
@@ -407,16 +407,16 @@ int main(int argc, char** argv)
 		logMsg("screen metrics from device: %dx%d pixels %dx%d DPI %f AR", metrics.horizontalPixels, metrics.verticalPixels,
 				metrics.horizontalDPI, metrics.verticalDPI, metrics.aspectRatio);
 		setupScreenSizeFromDevice(metrics);
-		newXSize = mainWin.rect.x2 = metrics.horizontalPixels;
-		newYSize = mainWin.rect.y2 = metrics.verticalPixels;
+		mainWin.w = mainWin.rect.x2 = metrics.horizontalPixels;
+		mainWin.h = mainWin.rect.y2 = metrics.verticalPixels;
 		logMsg("screen size in MM %dx%d", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
 		PDL_SetTouchAggression(PDL_AGGRESSION_MORETOUCHES);
 	#else
 		//TODO:
 		Gfx::viewMMWidth_ = 100;
 		Gfx::viewMMHeight_ = 100;
-		newXSize = mainWin.rect.x2 = 320;
-		newYSize = mainWin.rect.y2 = 480;
+		mainWin.w = mainWin.rect.x2 = 320;
+		mainWin.h = mainWin.rect.y2 = 480;
 	#endif
 	globalArgc = argc;
 	globalArgv = argv;

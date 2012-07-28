@@ -83,7 +83,7 @@ enum {
 	CFGKEY_NGPKEY_LANGUAGE = 269,
 };
 
-static Option<OptionMethodValidatedVar<uint8, optionIsValidWithMax<1> > > optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
+static Option<OptionMethodVar<uint8, optionIsValidWithMax<1> > > optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
 
 void EmuSystem::initOptions()
 {

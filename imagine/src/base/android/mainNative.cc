@@ -182,19 +182,24 @@ DLList<PollWaitTimer*> PollWaitTimer::timerList(timerListNode);
 namespace Base
 {
 
+static JNIEnv* eJEnv = nullptr;
 static fbool engineIsInit = 0;
-static JavaInstMethod jGetRotation;
+static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy;
 jclass jSurfaceTextureCls;
-JavaInstMethod postUIThread, jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
+JavaInstMethod<void> postUIThread, jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
 static PollWaitTimer timerCallback;
 static bool aHasFocus = 1;
+JavaVM* jVM = 0;
 
 // Public implementation
 
+JNIEnv* eEnv() { assert(eJEnv); return eJEnv; }
+JNIEnv* aEnv() { return appInstance()->activity->env; }
+
 uint appState = APP_PAUSED;
 
-void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
+void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 {
 	assert(appInstance()->msgwrite);
 	assert(type != MSG_INPUT); // currently all code should use main event loop for input events
@@ -207,11 +212,42 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 	}
 }
 
+void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
+{
+	sendMessageToMain(type, shortArg, intArg, intArg2);
+}
+
+#ifdef CONFIG_ANDROIDBT
+static const ushort MSG_BT_DATA = 150;
+
+void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
+{
+	int msg[3] = { MSG_BT_DATA, (int)&socket, len };
+	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
+	{
+		logErr("unable to write message header to pipe: %s", strerror(errno));
+	}
+	if(::write(appInstance()->msgwrite, data, len) != len)
+	{
+		logErr("unable to write bt data to pipe: %s", strerror(errno));
+	}
+}
+#endif
+
+void sendTextEntryEnded(const char *str, jstring jStr)
+{
+	int msg[3] = { APP_CMD_TEXT_ENTRY_ENDED, (int)str, (int)jStr };
+	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
+	{
+		logErr("unable to write text input message to pipe: %s", strerror(errno));
+	}
+}
+
 void setIdleDisplayPowerSave(bool on)
 {
 	jint keepOn = !on;
 	logMsg("keep screen on: %d", keepOn);
-	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 0, keepOn);
+	postUIThread(eEnv(), jBaseActivity, 0, keepOn);
 }
 
 void setOSNavigationStyle(uint flags)
@@ -220,7 +256,7 @@ void setOSNavigationStyle(uint flags)
 	// OS_NAV_STYLE_DIM -> SYSTEM_UI_FLAG_LOW_PROFILE (1)
 	// OS_NAV_STYLE_HIDDEN -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (2)
 	// 0 -> SYSTEM_UI_FLAG_VISIBLE
-	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 1, flags);
+	postUIThread(eEnv(), jBaseActivity, 1, flags);
 }
 
 void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
@@ -365,6 +401,7 @@ static void configChange(struct android_app* app, jint hardKeyboardState, jint n
 
 	if(setOrientationOS(orientation) && androidSDK() < 11)
 	{
+		logMsg("doing extra screen updates for orientation change");
 		// hack for some Android 2.3 devices that won't return the correct window size
 		// in the next redraw event unless a certain amount of frames are rendered
 		if(appState == APP_RUNNING && eglWin.isDrawable())
@@ -373,8 +410,8 @@ static void configChange(struct android_app* app, jint hardKeyboardState, jint n
 			{
 				int w = ANativeWindow_getWidth(app->window);
 				int h = ANativeWindow_getHeight(app->window);
-				mainWin.rect.x2 = w; mainWin.rect.y2 = h;
-				resizeEvent(w, h);
+				mainWin.w = w; mainWin.h = h;
+				resizeEvent(mainWin);
 				gfxUpdate = 1;
 				runEngine();
 			}
@@ -403,6 +440,20 @@ static void appResumed()
 	}
 }
 
+void setStatusBarHidden(uint hidden)
+{
+	static bool isHidden = 1; // assume app starts fullscreen
+	hidden = hidden ? 1 : 0;
+	if(hidden != isHidden)
+	{
+		isHidden = hidden;
+		logMsg("setting app fullscreen: %d", (int)hidden);
+		ANativeActivity_setWindowFlags(appInstance()->activity,
+				hidden ? AWINDOW_FLAG_FULLSCREEN : 0,
+				hidden ? 0 : AWINDOW_FLAG_FULLSCREEN);
+	}
+}
+
 void onAppCmd(struct android_app* app, uint32 cmd)
 {
 	uint cmdType = cmd & 0xFFFF;
@@ -421,12 +472,13 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			eglWin.init(app->window);
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
-			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
 			logMsg("window init, size %d,%d", w, h);
 			if(!engineIsInit)
+			{
 				nativeInit(w, h);
+			}
 			else
-				resizeEvent(w, h);
+				resizeEvent(mainWin);
 		}
 		bcase APP_CMD_TERM_WINDOW:
 		//logMsg("got APP_CMD_TERM_WINDOW");
@@ -438,11 +490,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		if(app->window)
 		{
 			gfxUpdate = 1;
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
-			logMsg("window gained focus, size %d,%d", w, h);
-			resizeEvent(w, h);
+			logMsg("window gained focus");
 		}
 		appFocus(1);
 		bcase APP_CMD_LOST_FOCUS:
@@ -460,9 +508,9 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		{
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
-			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
+			mainWin.w = w; mainWin.h = h;
 			logMsg("window resize to %d,%d", w, h);
-			resizeEvent(w, h);
+			resizeEvent(mainWin);
 			if(eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
@@ -471,32 +519,35 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		}
 		bcase APP_CMD_CONTENT_RECT_CHANGED:
 		{
-			var_ref(rect, app->contentRect);
+			auto &rect = app->contentRect;
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
-			mainWin.rect.x2 = w; mainWin.rect.y2 = h;
-			logMsg("content rect changed to %d,%d %d,%d, window size %d,%d", rect.left, rect.top, rect.right, rect.bottom, w, h);
-			resizeEvent(w, h);
+			logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d", rect.left, rect.top, rect.right, rect.bottom, w, h);
+			mainWin.w = w; mainWin.h = h;
+			mainWin.rect.x = rect.left; mainWin.rect.y = rect.top;
+			mainWin.rect.x2 = rect.right; mainWin.rect.y2 = rect.bottom;
+			resizeEvent(mainWin);
 			if(eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
 				runEngine();
 			}
 		}
-		bcase APP_CMD_LAYOUT_CHANGED:
+		/*bcase APP_CMD_LAYOUT_CHANGED:
 		{
-			//logMsg("layout change, visible height %d", visibleScreenY);
-			resizeEvent(newXSize, visibleScreenY);
+			logMsg("layout change, visible bottom %d", visibleScreenY);
+			mainWin.rect.y2 = visibleScreenY;
+			resizeEvent(mainWin);
 			if(appState == APP_RUNNING && eglWin.isDrawable())
 			{
 				gfxUpdate = 1;
 				runEngine();
 			}
-		}
+		}*/
 		bcase APP_CMD_CONFIG_CHANGED:
 		configChange(app, AConfiguration_getKeysHidden(app->config),
 				AConfiguration_getNavHidden(app->config),
-				jEnv->CallIntMethod(jDpy, jGetRotation.m));
+				jGetRotation(eEnv(), jDpy));
 		bcase APP_CMD_PAUSE:
 		appPaused();
 		bcase APP_CMD_RESUME:
@@ -508,6 +559,26 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		app->activity->vm->DetachCurrentThread();
 		::exit(0);
 		bcase APP_CMD_INPUT_CHANGED:
+		bcase APP_CMD_TEXT_ENTRY_ENDED:
+		{
+			const char *str;
+			read(app->msgread, &str, sizeof(str));
+			jstring jStr;
+			read(app->msgread, &jStr, sizeof(jStr));
+			Input::textInputEndedMsg(str, jStr);
+		}
+		#ifdef CONFIG_ANDROIDBT
+		bcase MSG_BT_DATA:
+		{
+			BluetoothSocket *s;
+			read(app->msgread, &s, sizeof(s));
+			int size;
+			read(app->msgread, &size, sizeof(size));
+			uchar buff[48];
+			read(app->msgread, buff, size);
+			s->onDataDelegate().invoke(buff, size);
+		}
+		#endif
 		bdefault:
 		if(cmdType >= MSG_START)
 		{
@@ -548,18 +619,18 @@ void disableSurfaceTexture()
 	ANativeWindow_fromSurfaceTexture = nullptr;
 }
 
-static void JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
+/*static void JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
 {
-	assert(height >= 0);
-	if(visibleScreenY == (uint)height)
+	assert(bottom >= 0);
+	if(visibleScreenY == (uint)bottom)
 		return;
-	logMsg("layout change, view height %d", height);
-	visibleScreenY = height;
+	logMsg("layout change, view height %d", bottom);
+	visibleScreenY = bottom;
 	if(!engineIsInit)
 		return;
 	uint32 cmd = APP_CMD_LAYOUT_CHANGED;
 	write(appInstance()->msgwrite, &cmd, sizeof(cmd));
-}
+}*/
 
 void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 {
@@ -569,23 +640,30 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	// get class loader instance from Activity
 	jclass jNativeActivityCls = jEnv->FindClass("android/app/NativeActivity");
 	assert(jNativeActivityCls);
-	jmethodID jGetClassLoaderID = jEnv->GetMethodID(jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
-	assert(jGetClassLoaderID);
-	jobject jClsLoader = jEnv->CallObjectMethod(inst, jGetClassLoaderID);
+	JavaInstMethod<jobject> jGetClassLoader;
+	jGetClassLoader.setup(jEnv, jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
+	//jmethodID jGetClassLoaderID = jEnv->GetMethodID(jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
+	//assert(jGetClassLoaderID);
+	jobject jClsLoader = jGetClassLoader(jEnv, inst);
 	assert(jClsLoader);
 
 	jclass jClsLoaderCls = jEnv->FindClass("java/lang/ClassLoader");
 	assert(jClsLoaderCls);
-	jmethodID jLoadClassID = jEnv->GetMethodID(jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-	assert(jLoadClassID);
+	JavaInstMethod<jobject> jLoadClass;
+	jLoadClass.setup(jEnv, jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+	//jmethodID jLoadClassID = jEnv->GetMethodID(jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+	//assert(jLoadClassID);
 
 	// BaseActivity members
-	jstring baseActivityStr = jEnv->NewStringUTF("com/imagine/BaseActivity");
-	jBaseActivityCls = (jclass)jEnv->NewGlobalRef(jEnv->CallObjectMethod(jClsLoader, jLoadClassID, baseActivityStr));
-	jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
-	jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-	jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
-	postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+	{
+		jstring baseActivityStr = jEnv->NewStringUTF("com/imagine/BaseActivity");
+		jBaseActivityCls = (jclass)jEnv->NewGlobalRef(jLoadClass(jEnv, jClsLoader, baseActivityStr));
+		jEnv->DeleteLocalRef(baseActivityStr);
+		jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
+		jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
+		postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+	}
 
 	if(Base::androidSDK() >= 14)
 	{
@@ -610,7 +688,7 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	static JNINativeMethod activityMethods[] =
 	{
 	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;Z)V", (void *)&Base::jEnvConfig},
-	    {"layoutChange", "(I)V", (void *)&Base::layoutChange},
+	    //{"layoutChange", "(I)V", (void *)&Base::layoutChange},
 	};
 
 	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
@@ -654,14 +732,15 @@ void android_main(struct android_app* state)
 	logMsg("started native thread");
 	dlLoadFuncs();
 	{
-		var_copy(act, state->activity);
-		var_copy(config, state->config);
+		auto act = state->activity;
+		auto config = state->config;
+		jVM = act->vm;
 		jBaseActivity = act->clazz;
-		if(act->vm->AttachCurrentThread(&jEnv, 0) != 0)
+		if(act->vm->AttachCurrentThread(&eJEnv, 0) != 0)
 		{
 			bug_exit("error attaching jEnv to thread");
 		}
-		envConfig(jEnv->CallIntMethod(jDpy, jGetRotation.m),
+		envConfig(jGetRotation(eEnv(), jDpy),
 			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
 	}
 	eglWin.initEGL();

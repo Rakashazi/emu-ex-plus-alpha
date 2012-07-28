@@ -27,7 +27,7 @@ public:
 	// Sets buffer(s) to generate sound into. If left and right are NULL, output is mono.
 	// If all are NULL, no output is generated but other emulation still runs.
 	// If chan is specified, only that channel's output is changed, otherwise all are.
-	static const int osc_count = 4; // 0: Square 1, 1: Square 2, 2: Wave, 3: Noise
+	static const unsigned int osc_count = 4; // 0: Square 1, 1: Square 2, 2: Wave, 3: Noise
 	void set_output( Blip_Buffer* center, Blip_Buffer* left = NULL, Blip_Buffer* right = NULL,
 			int chan = osc_count );
 

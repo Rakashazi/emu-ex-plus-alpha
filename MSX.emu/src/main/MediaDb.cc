@@ -42,7 +42,8 @@ extern "C" {
 #include <util/cLang.h>
 #include <util/branch.h>
 #include <logger/interface.h>
-#define BOOST_THROW_EXCEPTION_HPP_INCLUDED
+// throw_exception.hpp, Boost 1.50
+#define UUID_AA15E74A856F11E08B8D93F24824019B
 #define BOOST_THROW_EXCEPTION(x)
 #include <boost/uuid/sha1.hpp>
 

@@ -76,6 +76,6 @@ extern bool skipSaveGameBattery; // skip battery data when reading save states
 extern bool skipSaveGameCheats;  // skip cheat list data when reading save states
 static const int customBackdropColor = -1;
 
-static uint16a &P1 = *((uint16a*)&ioMem[0x130]);
+static uint16a &P1 = *((uint16a*)&ioMem.b[0x130]);
 
 #endif // GLOBALS_H

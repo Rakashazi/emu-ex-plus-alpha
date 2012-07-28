@@ -41,7 +41,7 @@ endif
 #COMPILE_FLAGS += -ftemplate-depth-100
 LDFLAGS += -dead_strip
 ifdef RELEASE
- LDFLAGS += -Wl,-S,-x
+ LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs
 endif
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 

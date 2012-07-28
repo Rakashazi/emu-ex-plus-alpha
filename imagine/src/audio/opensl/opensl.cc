@@ -1,0 +1,315 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define thisModuleName "audio:opensl"
+#include <engine-globals.h>
+#include <audio/Audio.hh>
+#include <logger/interface.h>
+#include <util/number.h>
+#include <util/thread/pthread.hh>
+#include <base/android/private.hh>
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
+
+namespace Audio
+{
+using namespace Base;
+
+PcmFormat preferredPcmFormat { 44100, &SampleFormats::s16, 2 };
+PcmFormat pcmFormat;
+
+static SLEngineItf slI = nullptr;
+static SLObjectItf outMix = nullptr, player = nullptr;
+static SLPlayItf playerI = nullptr;
+static SLAndroidSimpleBufferQueueItf slBuffQI = nullptr;
+static uint bufferFrames = 800, currQBuf = 0;
+static uint buffers = 8;
+static uchar **qBuffer = nullptr;
+static bool isPlaying = 0;
+static uint buffersQueued_ = 0;
+static MutexPThread buffersQueuedLock;
+
+// runs on internal OpenSL ES thread
+static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
+{
+	buffersQueuedLock.lock();
+	buffersQueued_--;
+	/*static int debugCount = 0;
+	if(countToValueLooped(debugCount, 30))
+	{
+		logMsg("buffers queued %u", buffersQueued_);
+	}*/
+	buffersQueuedLock.unlock();
+}
+
+CallResult openPcm(const PcmFormat &format)
+{
+	if(player)
+	{
+		logWarn("called openPcm when pcm already on");
+		return OK;
+	}
+	pcmFormat = format;
+	logMsg("creating playback %dHz %d buffers", format.rate, buffers);
+	assert(format.sample->bits == 16);
+	SLDataLocator_AndroidSimpleBufferQueue buffQLoc = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, buffers };
+	SLDataFormat_PCM slFormat =
+	{
+		SL_DATAFORMAT_PCM, (SLuint32)format.channels, (SLuint32)format.rate * 1000, // as milliHz
+		SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
+		format.channels == 1 ? SL_SPEAKER_FRONT_CENTER : SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+		SL_BYTEORDER_LITTLEENDIAN
+	};
+	SLDataSource audioSrc = { &buffQLoc, &slFormat };
+	SLDataLocator_OutputMix outMixLoc = { SL_DATALOCATOR_OUTPUTMIX, outMix };
+	SLDataSink sink = { &outMixLoc, nullptr };
+	const SLInterfaceID ids[] = { SL_IID_ANDROIDSIMPLEBUFFERQUEUE };
+	const SLboolean req[sizeofArray(ids)] = { SL_BOOLEAN_TRUE };
+	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, sizeofArray(ids), ids, req);
+	if(result != SL_RESULT_SUCCESS)
+	{
+		logErr("CreateAudioPlayer returned 0x%X", (uint)result);
+		player = nullptr;
+		return INVALID_PARAMETER;
+	}
+
+	result = (*player)->Realize(player, SL_BOOLEAN_FALSE);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*player)->GetInterface(player, SL_IID_PLAY, &playerI);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
+	assert(result == SL_RESULT_SUCCESS);
+
+	buffersQueued_ = 0;
+	result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
+	assert(result == SL_RESULT_SUCCESS);
+	(*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
+
+	auto bufferBytes = pcmFormat.framesToBytes(bufferFrames);
+	logMsg("allocating %d bytes per buffer", bufferBytes);
+	uint bufferPointerTableSize = sizeof(uchar*) * buffers;
+	// combined allocation of pointer table and actual buffer data
+	void *bufferStorage = mem_alloc(bufferPointerTableSize + (bufferBytes * buffers));
+	assert(bufferStorage);
+	uchar **bufferBlock = (uchar**)bufferStorage;
+	uchar *startOfBufferData = (uchar*)bufferStorage + bufferPointerTableSize;
+	bufferBlock[0] = startOfBufferData;
+	iterateTimes(buffers-1, i)
+	{
+		bufferBlock[i+1] = bufferBlock[i] + bufferBytes;
+	}
+	qBuffer = bufferBlock;
+
+	return OK;
+}
+
+void closePcm()
+{
+	if(player)
+	{
+		logMsg("closing pcm");
+		currQBuf = 0;
+		isPlaying = 0;
+		(*player)->Destroy(player);
+		mem_free(qBuffer);
+		player = nullptr;
+	}
+	else
+		logMsg("called closePcm when pcm already off");
+}
+
+bool isOpen()
+{
+	return player;
+}
+
+static void commitSLBuffer(void *b, uint bytes)
+{
+	SLresult result = (*slBuffQI)->Enqueue(slBuffQI, b, bytes);
+	if(result != SL_RESULT_SUCCESS)
+	{
+		logWarn("Enqueue returned 0x%X", (uint)result);
+		return;
+	}
+	//logMsg("queued buffer %d with %d bytes, %d on queue, %lld %lld", currQBuf, (int)b->mAudioDataByteSize, buffersQueued+1, lastTimestamp.mHostTime, lastTimestamp.mWordClockTime);
+	IG::incWrappedSelf(currQBuf, buffers);
+	buffersQueuedLock.lock();
+	buffersQueued_++;
+	buffersQueuedLock.unlock();
+}
+
+static uint buffersQueued()
+{
+	return buffersQueued_;
+	/*SLAndroidSimpleBufferQueueState state;
+	(*slBuffQI)->GetState(slBuffQI, &state);
+
+	static int debugCount = 0;
+	if(countToValueLooped(debugCount, 30))
+	{
+		//logMsg("queue state: %u count, %u index", (uint)state.count, (uint)state.index);
+	}
+
+	return state.count;*/
+}
+
+static void checkXRun(uint queued)
+{
+	/*SLmillisecond pos;
+	(*playerI)->GetPosition(playerI, &pos);*/
+
+	if(unlikely(isPlaying && queued == 0))
+	{
+		//logMsg("xrun, no buffers queued");
+		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
+		isPlaying = 0;
+	}
+}
+
+static void startPlaybackIfNeeded(uint queued)
+{
+	if(unlikely(!isPlaying && queued >= buffers-1))
+	{
+		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
+		if(result == SL_RESULT_SUCCESS)
+		{
+			isPlaying = 1;
+		}
+		else
+			logErr("SetPlayState returned 0x%X", (uint)result);
+	}
+}
+
+static BufferContext audioBuffLockCtx;
+
+BufferContext *getPlayBuffer(uint wantedFrames)
+{
+	if(unlikely(!player))
+		return nullptr;
+
+	auto queued = buffersQueued();
+	if(queued == buffers)
+	{
+		//logDMsg("can't write data with full buffers");
+		return nullptr;
+	}
+	auto b = qBuffer[currQBuf];
+	audioBuffLockCtx.data = b;
+	audioBuffLockCtx.frames = IG::min(wantedFrames, bufferFrames);
+	return &audioBuffLockCtx;
+}
+
+void commitPlayBuffer(BufferContext *buffer, uint frames)
+{
+	assert(frames <= buffer->frames);
+	auto queued = buffersQueued();
+	checkXRun(queued);
+	commitSLBuffer(qBuffer[currQBuf], pcmFormat.framesToBytes(frames));
+	startPlaybackIfNeeded(queued+1);
+}
+
+void writePcm(uchar *samples, uint framesToWrite)
+{
+	if(unlikely(!player))
+		return;
+
+	auto queued = buffersQueued();
+
+	checkXRun(queued);
+	if(framesToWrite > bufferFrames)
+	{
+		logMsg("need more than one buffer to write all data");
+	}
+	while(framesToWrite)
+	{
+		if(queued == buffers)
+		{
+			logMsg("can't write data with full buffers");
+			break;
+		}
+
+		uint framesToWriteInBuffer = IG::min(framesToWrite, bufferFrames);
+		uint bytesToWriteInBuffer = pcmFormat.framesToBytes(framesToWriteInBuffer);
+		auto b = qBuffer[currQBuf];
+		memcpy(b, samples, bytesToWriteInBuffer);
+		commitSLBuffer(b, bytesToWriteInBuffer);
+		//qFrames += framesToWriteInBuffer;
+		samples += bytesToWriteInBuffer;
+		framesToWrite -= framesToWriteInBuffer;
+		queued++;
+	}
+	startPlaybackIfNeeded(queued);
+}
+
+int frameDelay()
+{
+	return 0; // TODO
+}
+
+int framesFree()
+{
+	return 0; // TODO
+}
+
+void setHintPcmFramesPerWrite(uint frames)
+{
+	logMsg("setting queue buffer frames to %d", frames);
+	assert(frames < 2000);
+	bufferFrames = frames;
+	assert(!isOpen());
+}
+
+void setHintPcmMaxBuffers(uint maxBuffers)
+{
+	logMsg("setting max buffers to %d", maxBuffers);
+	assert(maxBuffers < 100);
+	buffers = maxBuffers;
+	assert(!isOpen());
+}
+
+uint hintPcmMaxBuffers() { return buffers; }
+
+CallResult init()
+{
+	logMsg("doing init");
+	JavaInstMethod<void> jSetVolumeControlStream;
+	jSetVolumeControlStream.setup(eEnv(), jBaseActivityCls, "setVolumeControlStream", "(I)V");
+	jSetVolumeControlStream(eEnv(), jBaseActivity, 3);
+
+	// engine object
+	SLObjectItf slE;
+	SLresult result = slCreateEngine(&slE, 0, nullptr, 0, nullptr, nullptr);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*slE)->Realize(slE, SL_BOOLEAN_FALSE);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
+	assert(result == SL_RESULT_SUCCESS);
+
+	// output mix object
+	const SLInterfaceID ids[] = { SL_IID_VOLUME };
+	const SLboolean req[sizeofArray(ids)] = { SL_BOOLEAN_FALSE };
+	result = (*slI)->CreateOutputMix(slI, &outMix, sizeofArray(ids), ids, req);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*outMix)->Realize(outMix, SL_BOOLEAN_FALSE);
+	assert(result == SL_RESULT_SUCCESS);
+
+	buffersQueuedLock.create();
+
+	return OK;
+}
+
+}
+
+#undef thisModuleName

@@ -2,14 +2,20 @@
 #include "GBAGfx.h"
 #include "Globals.h"
 
-void mode4RenderLine(MixColorType *lineMix)
+void mode4RenderLine(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line2[240];
 	//gfxClearArray(line2);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   if(layerEnable & 0x400) {
     int changed = gfxBG2Changed;
@@ -17,13 +23,13 @@ void mode4RenderLine(MixColorType *lineMix)
     if(gfxLastVCOUNT > VCOUNT)
       changed = 3;
 
-    gfxDrawRotScreen256(BG2CNT, BG2X_L, BG2X_H, BG2Y_L, BG2Y_H,
-                        BG2PA, BG2PB, BG2PC, BG2PD,
+    gfxDrawRotScreen256(ioMem.BG2CNT, ioMem.BG2X_L, ioMem.BG2X_H, ioMem.BG2Y_L, ioMem.BG2Y_H,
+    		ioMem.BG2PA, ioMem.BG2PB, ioMem.BG2PC, ioMem.BG2PD,
                         gfxBG2X, gfxBG2Y, changed,
-                        line2);
+                        line2, VCOUNT, MOSAIC, DISPCNT, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {
@@ -77,17 +83,23 @@ void mode4RenderLine(MixColorType *lineMix)
     lineMix[x] = convColor(color);
   }
   gfxBG2Changed = 0;
-  gfxLastVCOUNT = VCOUNT;
+  gfxLastVCOUNT = ioMem.VCOUNT;
 }
 
-void mode4RenderLineNoWindow(MixColorType *lineMix)
+void mode4RenderLineNoWindow(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line2[240];
 	//gfxClearArray(line2);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   if(layerEnable & 0x400) {
     int changed = gfxBG2Changed;
@@ -95,13 +107,13 @@ void mode4RenderLineNoWindow(MixColorType *lineMix)
     if(gfxLastVCOUNT > VCOUNT)
       changed = 3;
 
-    gfxDrawRotScreen256(BG2CNT, BG2X_L, BG2X_H, BG2Y_L, BG2Y_H,
-                        BG2PA, BG2PB, BG2PC, BG2PD,
+    gfxDrawRotScreen256(ioMem.BG2CNT, ioMem.BG2X_L, ioMem.BG2X_H, ioMem.BG2Y_L, ioMem.BG2Y_H,
+    		ioMem.BG2PA, ioMem.BG2PB, ioMem.BG2PC, ioMem.BG2PD,
                         gfxBG2X, gfxBG2Y, changed,
-                        line2);
+                        line2, VCOUNT, MOSAIC, DISPCNT, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {
@@ -199,14 +211,24 @@ void mode4RenderLineNoWindow(MixColorType *lineMix)
   gfxLastVCOUNT = VCOUNT;
 }
 
-void mode4RenderLineAll(MixColorType *lineMix)
+void mode4RenderLineAll(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line2[240];
 	//gfxClearArray(line2);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto WIN0V = ioMem.WIN0V;
+  const auto WIN1V = ioMem.WIN1V;
+  const auto WININ = ioMem.WININ;
+  const auto WINOUT = ioMem.WINOUT;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   bool inWindow0 = false;
   bool inWindow1 = false;
@@ -236,14 +258,14 @@ void mode4RenderLineAll(MixColorType *lineMix)
     if(gfxLastVCOUNT > VCOUNT)
       changed = 3;
 
-    gfxDrawRotScreen256(BG2CNT, BG2X_L, BG2X_H, BG2Y_L, BG2Y_H,
-                        BG2PA, BG2PB, BG2PC, BG2PD,
+    gfxDrawRotScreen256(ioMem.BG2CNT, ioMem.BG2X_L, ioMem.BG2X_H, ioMem.BG2Y_L, ioMem.BG2Y_H,
+    		ioMem.BG2PA, ioMem.BG2PB, ioMem.BG2PC, ioMem.BG2PD,
                         gfxBG2X, gfxBG2Y, changed,
-                        line2);
+                        line2, VCOUNT, MOSAIC, DISPCNT, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
-  gfxDrawOBJWin(lineOBJWin);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
+  gfxDrawOBJWin(lineOBJWin, VCOUNT, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {

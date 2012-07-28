@@ -21,7 +21,7 @@ import android.content.*;
 final class NotificationHelper
 {
 	private static NotificationManager notificationManager = null;
-	public static void addNotification(Context ctx, String onShow, String title, String message)
+	static void addNotification(Context ctx, String onShow, String title, String message)
 	{
 		if(notificationManager == null)
 			notificationManager = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -38,7 +38,7 @@ final class NotificationHelper
 		notificationManager.notify(1, notification);
 	}
 	
-	public static void removeNotification()
+	static void removeNotification()
 	{
 		if(notificationManager != null)
 			notificationManager.cancel(1);

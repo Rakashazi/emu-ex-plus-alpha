@@ -8,7 +8,7 @@ extern TimedMotion<GC> projAngleM;
 fbool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
 fbool glPointerStateHack = 0, glBrokenNpot = 0;
 
-#ifdef CONFIG_BLUETOOTH
+#ifdef CONFIG_BLUEZ
 	#include "bluez.hh"
 #endif
 
@@ -46,22 +46,22 @@ namespace Surface
 
 using namespace Surface;
 
-JNIEnv* jEnv = 0;
+//static JNIEnv* aJEnv = nullptr;
 jclass jBaseActivityCls = 0;
 jobject jBaseActivity = 0;
-static JavaInstMethod jSetRequestedOrientation;
-static JavaInstMethod jAddNotification, jRemoveNotification;
+static JavaInstMethod<void> jSetRequestedOrientation;
+static JavaInstMethod<void> jAddNotification, jRemoveNotification;
 static jobject vibrator = 0;
 static jclass vibratorCls = 0;
-static JavaInstMethod jVibrate;
-const char *appPath = 0;
+static JavaInstMethod<void> jVibrate;
+const char *appPath = nullptr;
 static uint aSDK = aMinSDK;
 static int osOrientation = -1;
 static float androidXDPI = 0, androidYDPI = 0, // DPI reported by OS
 		xDPI = 0, yDPI = 0; // Active DPI
 int devType = DEV_TYPE_GENERIC;
 static int aHardKeyboardState = 0;
-static const char *filesDir = 0, *eStoreDir = 0;
+static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static bool hasPermanentMenuKey = 1;
 static uint visibleScreenY = 1;
 
@@ -84,7 +84,7 @@ void exitVal(int returnVal)
 	appState = APP_EXITING;
 	//callSafe(onAppExitHandler, onAppExitHandlerCtx, 0);
 	onExit(0);
-	jEnv->CallVoidMethod(jBaseActivity, jRemoveNotification.m);
+	jRemoveNotification(eEnv(), jBaseActivity);
 	logMsg("exiting");
 	::exit(returnVal);
 }
@@ -142,14 +142,14 @@ void vibrate(uint ms)
 	if(vibrator)
 	{
 		//logDMsg("vibrating for %u ms", ms);
-		jEnv->CallVoidMethod(vibrator, jVibrate.m, (jlong)ms);
+		jVibrate(eEnv(), vibrator, (jlong)ms);
 	}
 }
 
 void addNotification(const char *onShow, const char *title, const char *message)
 {
 	logMsg("adding notificaion icon");
-	jEnv->CallVoidMethod(jBaseActivity, jAddNotification.m, jEnv->NewStringUTF(onShow), jEnv->NewStringUTF(title), jEnv->NewStringUTF(message));
+	jAddNotification(eEnv(), jBaseActivity, eEnv()->NewStringUTF(onShow), eEnv()->NewStringUTF(title), eEnv()->NewStringUTF(message));
 }
 
 // Private implementation
@@ -165,10 +165,10 @@ uint androidSDK()
 	return IG::max(aMinSDK, aSDK);
 }
 
-static void resizeEvent(uint x, uint y)
+static void resizeEvent(const Window &win)
 {
-	var_copy(prevTriggerGfxResize, triggerGfxResize);
-	generic_resizeEvent(x, y);
+	auto prevTriggerGfxResize = triggerGfxResize;
+	generic_resizeEvent(win);
 	if(prevTriggerGfxResize != triggerGfxResize)
 	{
 		setupDPI();
@@ -177,19 +177,18 @@ static void resizeEvent(uint x, uint y)
 
 static void setupDPI()
 {
-	assert(newXSize);
 	assert(osOrientation != -1);
 	float xdpi = isStraightOrientation(osOrientation) ? xDPI : yDPI;
 	float ydpi = isStraightOrientation(osOrientation) ? yDPI : xDPI;
-	Gfx::viewMMWidth_ = ((float)newXSize / xdpi) * 25.4;
-	Gfx::viewMMHeight_ = ((float)newYSize / ydpi) * 25.4;
+	Gfx::viewMMWidth_ = ((float)mainWin.w / xdpi) * 25.4;
+	Gfx::viewMMHeight_ = ((float)mainWin.h / ydpi) * 25.4;
 	logMsg("calc display size %dx%d MM", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
 }
 
 static void initialScreenSizeSetup(uint w, uint h)
 {
-	newXSize = mainWin.rect.x2 = w;
-	newYSize = mainWin.rect.y2 = h;
+	mainWin.w = mainWin.rect.x2 = w;
+	mainWin.h = mainWin.rect.y2 = h;
 	setupDPI();
 	if(androidSDK() < 9 && unlikely(Gfx::viewMMWidth_ > 9000)) // hack for Archos Tablets
 	{
@@ -220,9 +219,9 @@ static void setDeviceType(const char *dev)
 		logMsg("device needs glFinish() hack");
 		glSyncHackBlacklisted = 1;
 	}
-	else if(androidSDK() < 11 && string_equal(dev, "vision"))
+	else if(androidSDK() < 11 && (string_equal(dev, "vision") || string_equal(dev, "ace")))
 	{
-		// T-Mobile G2 (HTC Desire Z)
+		// T-Mobile G2 (HTC Desire Z), HTC Desire HD
 		logMsg("device has broken npot support");
 		glBrokenNpot = 1;
 	}
@@ -258,7 +257,6 @@ static void setHardKeyboardState(int hardKeyboardState)
 		aHardKeyboardState = hardKeyboardState;
 		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 		const InputDevChange change = { 0, InputEvent::DEV_KEYBOARD, hardKeyboardIsPresent() ? InputDevChange::SHOWN : InputDevChange::HIDDEN };
-		//callSafe(onInputDevChangeHandler, onInputDevChangeHandlerCtx, change);
 		onInputDevChange(change);
 	}
 }
@@ -295,7 +293,7 @@ void setAutoOrientation(bool on)
 	if(!on)
 		preferedOrientation = rotateView;
 	logMsg("setting auto-orientation: %s", on ? "on" : "off");
-	jEnv->CallStaticVoidMethod(jSetAutoOrientation.c, jSetAutoOrientation.m, (jbyte)on, (jint)rotateView);
+	jSetAutoOrientation(jEnv, (jbyte)on, (jint)rotateView);
 }
 
 #else
@@ -343,25 +341,17 @@ uint setOrientation(uint o)
 {
 	using namespace Base;
 	logMsg("requested orientation change to %s", orientationName(o));
-	/*if(o == VIEW_ROTATE_AUTO)
+	int toSet;
+	switch(o)
 	{
-		// set auto
-		jEnv->CallVoidMethod(jBaseActivity, jSetRequestedOrientation.m, -1); // SCREEN_ORIENTATION_UNSPECIFIED
+		default: bug_branch("%d", o);
+		case VIEW_ROTATE_AUTO: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
+		bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
+		bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
+		bcase VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 6 : 1; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 	}
-	else*/
-	{
-		int toSet;
-		switch(o)
-		{
-			default: bug_branch("%d", o);
-			case VIEW_ROTATE_AUTO: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
-			bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
-			bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
-			bcase VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-			bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 6 : 1; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-		}
-		jEnv->CallVoidMethod(jBaseActivity, jSetRequestedOrientation.m, toSet);
-	}
+	jSetRequestedOrientation(eEnv(), jBaseActivity, toSet);
 	return 1;
 }
 

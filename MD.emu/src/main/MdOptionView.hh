@@ -40,63 +40,45 @@ class MdOptionView : public OptionView
 {
 private:
 
-	struct SixButtonPadMenuItem : public BoolMenuItem
+	BoolMenuItem sixButtonPad, multitap, smsFM, bigEndianSram;
+
+	static void sixButtonPadHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init(bool on) { BoolMenuItem::init("6-button Gamepad", on); }
+		item.toggle();
+		option6BtnPad = item.on;
+		setupMDInput();
+		vController.place();
+	}
 
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			option6BtnPad = on;
-			setupMDInput();
-			vController.place();
-		}
-	} sixButtonPad;
-
-	struct MultitapMenuItem : public BoolMenuItem
+	static void multitapHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init(bool on) { BoolMenuItem::init("4-Player Adapter", on); }
+		item.toggle();
+		usingMultiTap = item.on;
+		setupMDInput();
+	}
 
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			usingMultiTap = on;
-			setupMDInput();
-		}
-	} multitap;
-
-	struct smsFMMenuItem : public BoolMenuItem
+	static void smsFMHandler(BoolMenuItem &item, const InputEvent &e)
 	{
-		void init() { BoolMenuItem::init("MarkIII FM Sound Unit", optionSmsFM); }
+		item.toggle();
+		optionSmsFM = item.on;
+		config_ym2413_enabled = optionSmsFM;
+	}
 
-		void select(View *view, const InputEvent &e)
-		{
-			toggle();
-			optionSmsFM = on;
-			config_ym2413_enabled = optionSmsFM;
-		}
-	} smsFM;
-
-	struct BigEndianSramMenuItem : public BoolMenuItem
+	void confirmBigEndianSramAlert(const InputEvent &e)
 	{
-		void init() { BoolMenuItem::init("Use Big-Endian SRAM", optionBigEndianSram); }
+		bigEndianSram.toggle();
+		optionBigEndianSram = bigEndianSram.on;
+	}
 
-		void confirmAlert(const InputEvent &e)
-		{
-			toggle();
-			optionBigEndianSram = on;
-		}
-
-		void select(View *view, const InputEvent &e)
-		{
-			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
-					"Turn on to make them compatible with other emulators like Gens. "
-					"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
-			ynAlertView.onYesDelegate().bind<BigEndianSramMenuItem, &BigEndianSramMenuItem::confirmAlert>(this);
-			ynAlertView.place(Gfx::viewportRect());
-			modalView = &ynAlertView;
-		}
-	} bigEndianSram;
+	void bigEndianSramHandler(BoolMenuItem &item, const InputEvent &e)
+	{
+		ynAlertView.init("Warning, this changes the format of SRAM saves files. "
+				"Turn on to make them compatible with other emulators like Gens. "
+				"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
+		ynAlertView.onYesDelegate().bind<MdOptionView, &MdOptionView::confirmBigEndianSramAlert>(this);
+		ynAlertView.place(Gfx::viewportRect());
+		modalView = &ynAlertView;
+	}
 
 	MultiChoiceSelectMenuItem region;
 
@@ -184,21 +166,25 @@ public:
 	void loadAudioItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadAudioItems(item, items);
-		smsFM.init(); item[items++] = &smsFM;
+		smsFM.init("MarkIII FM Sound Unit", optionSmsFM); item[items++] = &smsFM;
+		smsFM.selectDelegate().bind<&smsFMHandler>();
 	}
 
 	void loadInputItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadInputItems(item, items);
 		inputPortsInit(); item[items++] = &inputPorts;
-		sixButtonPad.init(option6BtnPad); item[items++] = &sixButtonPad;
-		multitap.init(usingMultiTap); item[items++] = &multitap;
+		sixButtonPad.init("6-button Gamepad", option6BtnPad); item[items++] = &sixButtonPad;
+		sixButtonPad.selectDelegate().bind<&sixButtonPadHandler>();
+		multitap.init("4-Player Adapter", usingMultiTap); item[items++] = &multitap;
+		multitap.selectDelegate().bind<&multitapHandler>();
 	}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		bigEndianSram.init(); item[items++] = &bigEndianSram;
+		bigEndianSram.init("Use Big-Endian SRAM", optionBigEndianSram); item[items++] = &bigEndianSram;
+		bigEndianSram.selectDelegate().bind<MdOptionView, &MdOptionView::bigEndianSramHandler>(this);
 		regionInit(); item[items++] = &region;
 		cdBiosPath[0].init("Select USA CD BIOS", REGION_USA); item[items++] = &cdBiosPath[0];
 		cdBiosPath[1].init("Select Japan CD BIOS", REGION_JAPAN_NTSC); item[items++] = &cdBiosPath[1];

@@ -10,9 +10,9 @@ class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
 	static BluezBluetoothAdapter *defaultAdapter();
-	fbool startScan();
-	void close();
-
+	fbool startScan() override;
+	void close() override;
+	void constructSocket(void *mem) override;
 	CallResult doScan();
 private:
 	int devId = -1, socket = -1;
@@ -26,10 +26,10 @@ class BluezBluetoothSocket : public BluetoothSocket
 public:
 	constexpr BluezBluetoothSocket():
 		pollEvDel(Base::PollEventDelegate::create<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this)) { }
-	CallResult openL2cap(BluetoothAddr addr, uint psm);
-	CallResult openRfcomm(BluetoothAddr addr, uint channel);
-	void close();
-	CallResult write(const void *data, size_t size);
+	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
+	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
+	void close() override;
+	CallResult write(const void *data, size_t size) override;
 	int readPendingData(int events);
 private:
 	Base::PollEventDelegate pollEvDel;

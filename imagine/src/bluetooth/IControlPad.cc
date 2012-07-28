@@ -86,9 +86,12 @@ uint IControlPad::findFreeDevId()
 	return 0;
 }
 
-CallResult IControlPad::open(BluetoothAddr addr)
+CallResult IControlPad::open(BluetoothAddr addr, BluetoothAdapter &adapter)
 {
 	logMsg("connecting to iCP");
+#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
+	adapter.constructSocket(sock.obj);
+#endif
 	sock.onDataDelegate().bind<IControlPad, &IControlPad::dataHandler>(this);
 	sock.onStatusDelegate().bind<IControlPad, &IControlPad::statusHandler>(this);
 	//var_selfs(player);
@@ -222,10 +225,7 @@ void IControlPad::processBtnReport(const uchar *btnData, uint player)
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -252,10 +252,7 @@ void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint pl
 				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
 				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
 			};
-			/*if(thread)
-				Base::sendInputMessageToMain(*thread, player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED);
-			else*/
-				Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
 		}
 		*e = newState;
 	}

@@ -17,6 +17,7 @@
 
 #include <gui/View.hh>
 #include <gui/MenuItem/MenuItem.hh>
+#include <audio/Audio.hh>
 
 void removeModalView();
 static void setupDrawing(bool force = 0);
@@ -209,6 +210,27 @@ protected:
 		}
 		autoSaveState.init("Auto-save State", str, val, sizeofArray(str));
 		autoSaveState.valueDelegate().bind<&autoSaveStateSet>();
+	}
+
+	MultiChoiceSelectMenuItem statusBar;
+
+	static void statusBarSet(MultiChoiceMenuItem &, int val)
+	{
+		optionHideStatusBar = val;
+		setupStatusBarInMenu();
+	}
+
+	void statusBarInit()
+	{
+		static const char *str[] =
+		{
+			"Off", "In Game", "On",
+		};
+		int val = 2;
+		if(optionHideStatusBar < 2)
+			val = optionHideStatusBar;
+		statusBar.init("Hide Status Bar", str, val, sizeofArray(str));
+		statusBar.valueDelegate().bind<&statusBarSet>();
 	}
 
 	MultiChoiceSelectMenuItem frameSkip;
@@ -516,7 +538,7 @@ protected:
 	static void btScanCacheHandler(BoolMenuItem &item, const InputEvent &e)
 	{
 		item.toggle();
-		BluetoothAdapter::setScanCacheUsage(item.on);
+		optionBlueToothScanCache = item.on;
 	}
 	#endif
 
@@ -609,6 +631,22 @@ protected:
 		aspectRatio.init("Aspect Ratio", str, optionAspectRatio, sizeofArray(str));
 		aspectRatio.valueDelegate().bind<&aspectRatioSet>();
 	}
+
+#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+	MultiChoiceSelectMenuItem soundBuffers;
+
+	static void soundBuffersSet(MultiChoiceMenuItem &, int val)
+	{
+		optionSoundBuffers = val+4;
+	}
+
+	void soundBuffersInit()
+	{
+		static const char *str[] = { "4", "5", "6", "7", "8", "9", "10" };
+		soundBuffers.init("Buffer Size In Frames", str, IG::max((int)optionSoundBuffers - 4, 0), sizeofArray(str));
+		soundBuffers.valueDelegate().bind<&soundBuffersSet>();
+	}
+#endif
 
 	MultiChoiceSelectMenuItem zoom;
 
@@ -830,6 +868,9 @@ protected:
 		snd.init("Sound", optionSound); item[items++] = &snd;
 		snd.selectDelegate().bind<&soundHandler>();
 		if(!optionSoundRate.isConst) { audioRateInit(); item[items++] = &audioRate; }
+#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+		soundBuffersInit(); item[items++] = &soundBuffers;
+#endif
 	}
 
 	void loadInputItems(MenuItem *item[], uint &items)
@@ -861,7 +902,7 @@ protected:
 		btScanSecsInit(); item[items++] = &btScanSecs;
 		keepBtActive.init("Background Bluetooth", optionKeepBluetoothActive); item[items++] = &keepBtActive;
 		keepBtActive.selectDelegate().bind<&keepBtActiveHandler>();
-		btScanCache.init("Bluetooth Scan Cache", BluetoothAdapter::scanCacheUsage()); item[items++] = &btScanCache;
+		btScanCache.init("Bluetooth Scan Cache", optionBlueToothScanCache); item[items++] = &btScanCache;
 		btScanCache.selectDelegate().bind<&btScanCacheHandler>();
 		#endif
 		#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
@@ -927,6 +968,10 @@ protected:
 		{
 			hideOSNav.init("Hide OS Navigation", optionHideOSNav); item[items++] = &hideOSNav;
 			hideOSNav.selectDelegate().bind<&hideOSNavHandler>();
+		}
+		if(!optionHideStatusBar.isConst)
+		{
+			statusBarInit(); item[items++] = &statusBar;
 		}
 	}
 

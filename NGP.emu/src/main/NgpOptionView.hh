@@ -3,7 +3,7 @@
 
 class NgpOptionView : public OptionView
 {
-	BoolTextMenuItem ngpLanguage;
+	BoolMenuItem ngpLanguage;
 
 	static void ngpLanguageHandler(BoolMenuItem &item, const InputEvent &e)
 	{

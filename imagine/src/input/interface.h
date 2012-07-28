@@ -55,18 +55,17 @@ static const uchar maxCursors =
 
 // OS text input support
 typedef Delegate<void (const char *str)> InputTextDelegate;
-//typedef void (*InputTextCallback)(void *user, const char *str);
-#if defined(CONFIG_BASE_IOS)
+#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
 	#define CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	static const bool SYSTEM_CAN_COLLECT_TEXT = 1;
-	uint startSysTextInput(InputTextDelegate callback, const char *initialText);
+	uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText);
 	void cancelSysTextInput();
 	void finishSysTextInput();
 	void placeSysTextInput(const Rect2<int> &rect);
 	const Rect2<int> &sysTextInputRect();
 #else
 	static const bool SYSTEM_CAN_COLLECT_TEXT = 0;
-	static uint startSysTextInput(InputTextDelegate callback, const char *initialText) { return 0; }
+	static uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText) { return 0; }
 #endif
 
 // relative pointer/trackball support

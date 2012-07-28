@@ -117,7 +117,7 @@ static void applyGBPalette(uint idx)
 		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
 }
 
-static Option<OptionMethodValidatedVar<uint8, optionIsValidWithMax<sizeofArrayConst(gbPal)-1> > > optionGBPal
+static Option<OptionMethodVar<uint8, optionIsValidWithMax<sizeofArrayConst(gbPal)-1> > > optionGBPal
 		(CFGKEY_GB_PAL_IDX, 0);
 
 namespace gambatte

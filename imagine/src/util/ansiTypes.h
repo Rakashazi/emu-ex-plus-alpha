@@ -38,6 +38,8 @@ typedef signed char schar;
 typedef int_fast8_t fbool;
 
 // Types without strict aliasing
+typedef uint8 __attribute__((__may_alias__)) uint8a;
+typedef int8 __attribute__((__may_alias__)) int8a;
 typedef uint16 __attribute__((__may_alias__)) uint16a;
 typedef int16 __attribute__((__may_alias__)) int16a;
 typedef uint32 __attribute__((__may_alias__)) uint32a;

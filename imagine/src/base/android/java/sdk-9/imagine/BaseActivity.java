@@ -15,8 +15,13 @@
 
 package com.imagine;
 
+import android.widget.*;
 import android.app.*;
 import android.content.*;
+import android.content.DialogInterface.*;
+import android.view.inputmethod.*;
+import android.graphics.drawable.*;
+import android.view.View.*;
 import android.os.*;
 import android.view.*;
 import android.graphics.*;
@@ -25,6 +30,7 @@ import android.hardware.*;
 import android.media.*;
 import android.content.res.Configuration;
 import android.view.inputmethod.InputMethodManager;
+import android.bluetooth.*;
 import java.lang.reflect.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
@@ -35,28 +41,10 @@ public final class BaseActivity extends NativeActivity
 	private native void jEnvConfig(float xdpi, float ydpi, int refreshRate, Display dpy, String devName,
 			String filesPath, String eStoragePath, String apkPath, Vibrator sysVibrator,
 			boolean hasPermanentMenuKey);
-	private native void layoutChange(int height);
+	//private native void layoutChange(int bottom);
 
-	private static Method setSystemUiVisibility;
-
-	static
-	{
-		if(android.os.Build.VERSION.SDK_INT >= 11)
-			initReflectionMethods();
-	};
-
-	private static void initReflectionMethods()
-	{
-		try
-		{
-			setSystemUiVisibility = View.class.getMethod("setSystemUiVisibility", new Class[] { int.class } );
-		}
-		catch (NoSuchMethodException nsme)
-		{
-			//Log.i(logTag, "setSystemUiVisibility not present even though SDK >= 11"); // should never happen
-		}
-	}
-
+	private static Method setSystemUiVisibility =
+		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	
 	private void setupEnv()
 	{
@@ -64,6 +52,7 @@ public final class BaseActivity extends NativeActivity
 		//contentView = findViewById(android.R.id.content);//getWindow().getDecorView();
 		//view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
 		
+		Bluetooth.adapter = BluetoothAdapter.getDefaultAdapter();
 		Display dpy = getWindowManager().getDefaultDisplay();
 		DisplayMetrics metrics = new DisplayMetrics();
 		dpy.getMetrics(metrics);
@@ -118,7 +107,7 @@ public final class BaseActivity extends NativeActivity
 					getWindow().getDecorView().setKeepScreenOn(param == 0 ? false : true);
 				}
 			});
-		else if(func == SHOW_SOFT_INPUT)
+		/*else if(func == SHOW_SOFT_INPUT)
 			runOnUiThread(new Runnable()
 			{
 				public void run()
@@ -136,7 +125,7 @@ public final class BaseActivity extends NativeActivity
 					InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
 					mIMM.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
 				}
-			});
+			});*/
 		else
 		{
 			if(setSystemUiVisibility != null)
@@ -173,16 +162,39 @@ public final class BaseActivity extends NativeActivity
 		NotificationHelper.removeNotification();
 	}
 	
-	@Override public void onGlobalLayout()
+	static native void onBTScanStatus(int result);
+	static native boolean onScanDeviceClass(int btClass);
+	static native void onScanDeviceName(String name, String addr);
+	
+	public BluetoothAdapter btDefaultAdapter()
+	{
+		//Log.i(logTag, "btDefaultAdapter()");
+		return Bluetooth.defaultAdapter(this);
+	}
+	
+	public int btStartScan(BluetoothAdapter adapter)
+	{
+		//Log.i(logTag, "btStartScan()");
+		return Bluetooth.startScan(this, adapter);
+	}
+	
+	public BluetoothSocket btOpenSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
+	{
+		//Log.i(logTag, "btOpenSocket()");
+		return Bluetooth.openSocket(adapter, address, ch, l2cap);
+	}
+	
+	/*@Override public void onGlobalLayout()
 	{
 		super.onGlobalLayout();
 		Rect r = new Rect();
 		View view = getWindow().getDecorView();//findViewById(android.R.id.activityRoot);
 		view.getWindowVisibleDisplayFrame(r);
-		int visibleY = r.bottom - r.top;
+		//int visibleY = r.bottom - r.top;
 		//Log.i(logTag, "height " + view.getRootView().getHeight() + ", visible " + visibleY);
-		layoutChange(visibleY);
-     }
+		//layoutChange(visibleY);
+		layoutChange(r.bottom);
+     }*/
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
@@ -203,6 +215,43 @@ public final class BaseActivity extends NativeActivity
 		super.onDestroy();
 	}
 	
+	static native void sysTextInputEnded(String text);
+	
+	public void startSysTextInput(final String initialText, final String promptText,
+		final int x, final int y, final int width, final int height)
+	{
+		final Activity act = this;
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				TextEntry.startSysTextInput(act, initialText, promptText, x, y, width, height);
+			}
+		});
+	}
+	
+	public void finishSysTextInput(final boolean canceled)
+	{
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				TextEntry.finishSysTextInput(canceled);
+			}
+		});
+	}
+	
+	public void placeSysTextInput(final int x, final int y, final int width, final int height)
+	{
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				TextEntry.placeSysTextInput(x, y, width, height);
+			}
+		});
+	}
+
 	@Override public void surfaceDestroyed(SurfaceHolder holder)
 	{
 		//Log.i(logTag, "surfaceDestroyed");

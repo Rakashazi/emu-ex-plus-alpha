@@ -303,6 +303,9 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
+	#ifdef CONFIG_BASE_IOS_SETUID
+		fixFilePermissions(saveStr);
+	#endif
 	if(CPUWriteState(saveStr))
 		return STATE_RESULT_OK;
 	else
@@ -325,6 +328,9 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
+		#ifdef CONFIG_BASE_IOS_SETUID
+			fixFilePermissions(saveStr);
+		#endif
 		CPUWriteState(saveStr);
 	}
 }
@@ -336,6 +342,9 @@ void EmuSystem::saveBackupMem()
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
 		snprintf(saveStr, sizeof(saveStr), "%s%s", gameName, ".sav");
+		#ifdef CONFIG_BASE_IOS_SETUID
+			fixFilePermissions(saveStr);
+		#endif
 		CPUWriteBatteryFile(saveStr);
 	}
 }
@@ -357,6 +366,9 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	closeGame(allowAutosaveState);
 
 	string_copy(gamePath, FsSys::workDir());
+	#ifdef CONFIG_BASE_IOS_SETUID
+		fixFilePermissions(gamePath);
+	#endif
 	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
 	logMsg("full game path: %s", fullGamePath);
 	systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;

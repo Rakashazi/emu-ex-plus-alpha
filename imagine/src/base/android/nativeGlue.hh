@@ -301,6 +301,9 @@ enum {
     // After onGlobalLayout() in Java, used to notify of visble height changes
     // due to Soft Input covering the view
     APP_CMD_LAYOUT_CHANGED,
+
+    // EditText-based Input
+    APP_CMD_TEXT_ENTRY_ENDED
 };
 
 /**

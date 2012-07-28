@@ -26,7 +26,7 @@ namespace Bluetooth
 {
 	uint scanSecs = 4;
 	uint maxGamepadsPerType = 5;
-	static BluetoothAdapterSys *bta = 0;
+	static BluetoothAdapter *bta = 0;
 
 	static bool testSupportedBTDevClasses(const uchar devClass[3])
 	{
@@ -37,7 +37,7 @@ namespace Bluetooth
 
 	fbool onClass(const uchar devClass[3])
 	{
-		logMsg("class: %d:%d:%d", devClass[0], devClass[1], devClass[2]);
+		logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
 		return testSupportedBTDevClasses(devClass);
 	}
 
@@ -52,7 +52,7 @@ namespace Bluetooth
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(name, addr) != OK)
+			if(dev->open(name, addr, *bta) != OK)
 			{
 				delete dev;
 				return;
@@ -66,7 +66,7 @@ namespace Bluetooth
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(addr) != OK)
+			if(dev->open(addr, *bta) != OK)
 			{
 				delete dev;
 				return;
@@ -80,7 +80,7 @@ namespace Bluetooth
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(addr) != OK)
+			if(dev->open(addr, *bta) != OK)
 			{
 				delete dev;
 				return;
@@ -99,7 +99,7 @@ namespace Bluetooth
 		if(bta)
 			return OK; // already init
 
-		bta = BluetoothAdapterSys::defaultAdapter();
+		bta = BluetoothAdapter::defaultAdapter();
 		if(!bta)
 			return UNSUPPORTED_OPERATION;
 		btInputDevList.init();

@@ -18,6 +18,7 @@
 #include <config.h>
 #include <util/number.h>
 #include <util/2DOrigin.h>
+#include <util/operators.hh>
 #ifdef CONFIG_GFX
 #include <gfx/viewport.hh>
 #endif
@@ -25,13 +26,18 @@
 //TODO: remove old code
 
 template<class T>
-class Rect2
+class Rect2 : NotEquals< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
 
 	constexpr Rect2() { }
 	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) { }
+
+	bool operator ==(Rect2 const& rhs) const
+	{
+		return x == rhs.x && y == rhs.y && x2 == rhs.x2 && y2 == rhs.y2;
+	}
 
 	void setZero()
 	{
@@ -204,9 +210,9 @@ public:
 		return r;
 	}
 
-	T xSize() const { return (x2 - x) + 1; }
+	T xSize() const { return (x2 - x); }
 
-	T ySize() const { return (y2 - y) + 1; }
+	T ySize() const { return (y2 - y); }
 
 	IG::Point2D<T> size() const
 	{

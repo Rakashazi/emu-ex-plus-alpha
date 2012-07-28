@@ -17,10 +17,16 @@
 
 #include "Option.hh"
 #include <config/env.hh>
+#include <bluetooth/BluetoothAdapter.hh>
+#include <audio/Audio.hh>
 
 static BasicByteOption optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 BasicByteOption optionSound(CFGKEY_SOUND, 1);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<48000> > > optionSoundRate(CFGKEY_SOUND_RATE,
+#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+static Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers, optionIsValidWithMinMax<3, 10, uint> >, uint8>
+	optionSoundBuffers(CFGKEY_SOUND_BUFFERS, 8);
+#endif
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<48000> > > optionSoundRate(CFGKEY_SOUND_RATE,
 		(Config::envIsPS3 || Config::envIsLinux) ? 48000 : 44100, Config::envIsPS3);
 static BasicByteOption optionLargeFonts(CFGKEY_FONT_Y_PIXELS, Config::envIsWebOS3,
 		(Config::envIsWebOS && !Config::envIsWebOS3));
@@ -37,12 +43,15 @@ static BasicByteOption optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Conf
 static BasicByteOption optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 static BasicByteOption optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
 static BasicByteOption optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
+static BasicByteOption optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAndroid && !Config::envIsIOS);
 
 #ifdef CONFIG_BLUETOOTH
 static BasicByteOption optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0);
+static Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>
+	optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
 #endif
 
-typedef OptionMethodValidatedVar<uint32, GfxBufferImage::isFilterValid> OptionMethodImgFilter;
+typedef OptionMethodVar<uint32, GfxBufferImage::isFilterValid> OptionMethodImgFilter;
 static Option<OptionMethodImgFilter, uint8> optionImgFilter(CFGKEY_GAME_IMG_FILTER, GfxBufferImage::linear);
 
 static struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
@@ -98,10 +107,10 @@ static struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
 	}
 } optionAspectRatio(0);
 
-typedef OptionMethodValidatedVar<uint8, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL> > OptionMethodOverlayEffect;
+typedef OptionMethodVar<uint8, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL> > OptionMethodOverlayEffect;
 static Option<OptionMethodOverlayEffect, uint8> optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0);
 
-typedef OptionMethodValidatedVar<uint8, optionIsValidWithMax<100> > OptionMethodOverlayEffectLevel;
+typedef OptionMethodVar<uint8, optionIsValidWithMax<100> > OptionMethodOverlayEffectLevel;
 static Option<OptionMethodOverlayEffectLevel, uint8> optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25);
 
 Option<OptionMethodRelPointerDecel> optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
@@ -114,7 +123,7 @@ bool optionOrientationIsValid(uint32 val)
 			val == Gfx::VIEW_ROTATE_90 ||
 			val == Gfx::VIEW_ROTATE_270;
 }
-typedef OptionMethodValidatedVar<uint32, optionOrientationIsValid> OptionMethodOrientation;
+typedef OptionMethodVar<uint32, optionOrientationIsValid> OptionMethodOrientation;
 static Option<OptionMethodOrientation, uint8> optionGameOrientation(CFGKEY_GAME_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Gfx::VIEW_ROTATE_90 : Gfx::VIEW_ROTATE_0,
 		Config::envIsPS3);
@@ -124,12 +133,12 @@ static Option<OptionMethodOrientation, uint8> optionMenuOrientation(CFGKEY_MENU_
 		Config::envIsPS3);
 
 
-typedef OptionMethodValidatedVar<uint32, optionIsValidWithMax<2> > OptionMethodTouchCtrl;
+typedef OptionMethodVar<uint32, optionIsValidWithMax<2> > OptionMethodTouchCtrl;
 static Option<OptionMethodTouchCtrl, uint8> optionTouchCtrl(CFGKEY_TOUCH_CONTROL_DISPLAY,
 		(Config::envIsLinux || Config::envIsPS3) ? 0 : 2,
 		Config::envIsPS3);
 
-typedef OptionMethodValidatedVar<uint32, optionIsValidWithMax<255> > OptionMethodTouchCtrlAlpha;
+typedef OptionMethodVar<uint32, optionIsValidWithMax<255> > OptionMethodTouchCtrlAlpha;
 static Option<OptionMethodTouchCtrlAlpha, uint8> optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
 		255 * .5,
 		Config::envIsPS3);
@@ -143,36 +152,36 @@ bool isValidOption2DOCenterBtn(_2DOrigin val)
 	return val.isValid() && !val.onYCenter();
 }
 
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<1400> >, uint16> optionTouchCtrlSize
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<1400> >, uint16> optionTouchCtrlSize
 		(CFGKEY_TOUCH_CONTROL_SIZE,
 		(Config::envIsWebOS && !Config::envIsWebOS3) ? 800 : Config::envIsWebOS3 ? 1400 : 850,
 		Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<160> >, uint16> optionTouchDpadDeadzone
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<160> >, uint16> optionTouchDpadDeadzone
 		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
 		135,
 		Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMinMax<1000,2500> >, uint16> optionTouchDpadDiagonalSensitivity
+static Option<OptionMethodVar<uint32, optionIsValidWithMinMax<1000,2500> >, uint16> optionTouchDpadDiagonalSensitivity
 		(CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY,
 		1750,
 		Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<400> >, uint16> optionTouchCtrlBtnSpace
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<400> >, uint16> optionTouchCtrlBtnSpace
 		(CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE,
 		200,
 		Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<5> >, uint16> optionTouchCtrlBtnStagger
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<5> >, uint16> optionTouchCtrlBtnStagger
 		(CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER,
 		1,
 		Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<3> >, uint16> optionTouchCtrlTriggerBtnPos
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<3> >, uint16> optionTouchCtrlTriggerBtnPos
 		(CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS,
 		0, Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraXBtnSize
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraXBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE,
 		200, Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSize
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE,
 		1000, Config::envIsPS3);
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSizeMultiRow
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSizeMultiRow
 		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW,
 		200, Config::envIsPS3);
 
@@ -195,7 +204,7 @@ bool optionFrameSkipIsValid(uint32 val)
 	return val == EmuSystem::optionFrameSkipAuto || val <= limit;
 }
 
-static Option<OptionMethodValidatedVar<uint32, optionFrameSkipIsValid >, uint8> optionFrameSkip
+static Option<OptionMethodVar<uint32, optionFrameSkipIsValid >, uint8> optionFrameSkip
 		(CFGKEY_FRAME_SKIP,
 		#if defined(CONFIG_BASE_IOS)
 			#ifdef __ARM_ARCH_6K__
@@ -215,7 +224,7 @@ bool optionImageZoomIsValid(uint32 val)
 {
 	return val == optionImageZoomIntegerOnly || val <= 100;
 }
-static Option<OptionMethodValidatedVar<uint32, optionImageZoomIsValid>, uint8> optionImageZoom
+static Option<OptionMethodVar<uint32, optionImageZoomIsValid>, uint8> optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100);
 
 static struct OptionDPI : public Option<OptionMethodVar<uint32> >
@@ -319,7 +328,7 @@ static struct OptionRecentGames : public OptionBase
 	}
 } optionRecentGames;
 
-static Option<OptionMethodValidatedVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
+static Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
 (CFGKEY_TOUCH_CONTROL_IMG_PIXELS,
 	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 	64,

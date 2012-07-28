@@ -11,7 +11,7 @@ public:
 	constexpr TimeTimeval(): t() { }
 	constexpr TimeTimeval(struct timeval t): t(t) { }
 
-	void setUSecs(int usecs)
+	void setUSecs(long int usecs)
 	{
 		t = (struct timeval){ 0, usecs };
 	}
@@ -21,31 +21,31 @@ public:
 		gettimeofday(&t, 0);
 	}
 
-	uint toMs()
+	long int toMs()
 	{
-		uint ms1 = t.tv_sec * mSecPerSec;
-		uint ms2 = t.tv_usec / 1000;
+		long int ms1 = t.tv_sec * mSecPerSec;
+		long int ms2 = t.tv_usec / 1000;
 		return ms1 + ms2;
 	}
 
-	void addUSec(int us)
+	void addUSec(long int us)
 	{
-		int secsAdd = us / uSecPerSec;
-		int usecsAdd = us % uSecPerSec;
+		long int secsAdd = us / uSecPerSec;
+		long int usecsAdd = us % uSecPerSec;
 		timeval add;
 		add.tv_sec = secsAdd;
 		add.tv_usec = usecsAdd;
 		t = timeval_add(t, add);
 	}
 
-	uint divByUSecs(int usecs)
+	uint divByUSecs(long int usecs)
 	{
 		return timeval_divUsecs(t, usecs);
 	}
 
-	uint modByUSecs(int usecs)
+	uint modByUSecs(long int usecs)
 	{
-		return ((t.tv_sec * 1000000) + t.tv_usec) % usecs;
+		return (((int64)t.tv_sec * 1000000) + t.tv_usec) % usecs;
 	}
 
 	TimeTimeval & operator -=(TimeTimeval const& diminuend)

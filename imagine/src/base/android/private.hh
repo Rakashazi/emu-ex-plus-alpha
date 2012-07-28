@@ -9,7 +9,10 @@
 namespace Base
 {
 
-extern JNIEnv* jEnv; // JNIEnv of main thread
+extern JavaVM* jVM;
+//extern JNIEnv* jEnv; // JNIEnv of main thread
+JNIEnv* aEnv(); // JNIEnv of activity thread
+JNIEnv* eEnv(); // JNIEnv of main event thread
 
 #if CONFIG_ENV_ANDROID_MINSDK >= 9
 // NativeActivity Instance
@@ -19,12 +22,12 @@ android_app *appInstance();
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
-extern JavaInstMethod postUIThread;
-extern JavaInstMethod jShowIme, jHideIme;
+extern JavaInstMethod<void> postUIThread;
+extern JavaInstMethod<void> jShowIme, jHideIme;
 
 // SurfaceTexture JNI
 extern jclass jSurfaceTextureCls;
-extern JavaInstMethod jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
+extern JavaInstMethod<void> jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
 
 #if CONFIG_ENV_ANDROID_MINSDK >= 9
 
@@ -40,7 +43,13 @@ void setSDK(uint sdk);
 // Init JNI variables from native glue Activity thread
 void jniInit(JNIEnv *jEnv, jobject inst);
 
+// Android Bluetooth
+static const ushort MSG_BT_SOCKET_STATUS_DELEGATE = 151;
+
 #endif
+
+// EditText-based Input
+void sendTextEntryEnded(const char *str, jstring jStr);
 
 }
 

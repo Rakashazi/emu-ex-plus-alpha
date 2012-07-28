@@ -17,12 +17,11 @@ static hci_open_devProto hci_open_devSym;
 static hci_read_remote_nameProto hci_read_remote_nameSym;
 static hci_get_routeProto hci_get_routeSym;
 
-static void *libbluetooth;
-bool bluez_loaded = 0;
+static void *libbluetooth = nullptr;
 
 CallResult bluez_dl()
 {
-	if(bluez_loaded)
+	if(libbluetooth)
 		return OK;
 	libbluetooth = dlopen("/system/lib/libbluetooth.so", RTLD_LOCAL | RTLD_LAZY);
 	if(!libbluetooth)
@@ -40,39 +39,39 @@ CallResult bluez_dl()
 	{
 		logErr("missing bluetooth functions");
 		dlclose(libbluetooth);
+		libbluetooth = nullptr;
 		return INVALID_PARAMETER;
 	}
 	logMsg("all symbols loaded");
-	bluez_loaded = 1;
 	return OK;
 }
 
 CLINK int hci_inquiry(int dev_id, int len, int num_rsp, const uint8_t *lap, inquiry_info **ii, long flags)
 {
-	assert(bluez_loaded);
+	assert(libbluetooth);
 	return hci_inquirySym(dev_id, len, num_rsp, lap, ii, flags);
 }
 
 CLINK int hci_close_dev(int dd)
 {
-	assert(bluez_loaded);
+	assert(libbluetooth);
 	return hci_close_devSym(dd);
 }
 
 CLINK int hci_open_dev(int dev_id)
 {
-	assert(bluez_loaded);
+	assert(libbluetooth);
 	return hci_open_devSym(dev_id);
 }
 
 CLINK int hci_read_remote_name(int dd, const bdaddr_t *bdaddr, int len, char *name, int to)
 {
-	assert(bluez_loaded);
+	assert(libbluetooth);
 	return hci_read_remote_nameSym(dd, bdaddr, len, name, to);
 }
 
 CLINK int hci_get_route(bdaddr_t *bdaddr)
 {
-	assert(bluez_loaded);
+	assert(libbluetooth);
 	return hci_get_routeSym(bdaddr);
 }

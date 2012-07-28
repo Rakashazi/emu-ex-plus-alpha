@@ -203,10 +203,11 @@ uint appState = APP_RUNNING;
 			logMsg("running on Retina Display");
 			eaglLayer.contentsScale = 2.0;
 			pointScale = 2;
-			newXSize *= 2;
-			newYSize *= 2;
 			mainWin.rect.x2 *= 2;
 			mainWin.rect.y2 *= 2;
+			mainWin.w *= 2;
+			mainWin.h *= 2;
+			currWin = mainWin;
 	    }
 	}
 	#endif
@@ -612,8 +613,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	#endif
 
 	CGRect rect = [[UIScreen mainScreen] bounds];
-	newXSize = mainWin.rect.x2 = rect.size.width;
-	newYSize = mainWin.rect.y2 = rect.size.height;
+	mainWin.w = mainWin.rect.x2 = rect.size.width;
+	mainWin.h = mainWin.rect.y2 = rect.size.height;
+	currWin = mainWin;
 	// Create a full-screen window
 	devWindow = [[UIWindow alloc] initWithFrame:rect];
 	
@@ -770,9 +772,39 @@ void setVideoInterval(uint interval)
 	[Base::displayLink setFrameInterval:interval];
 }
 
-void statusBarHidden(uint hidden)
+static void setViewportForStatusbar(UIApplication *sharedApp)
 {
-	[[UIApplication sharedApplication] setStatusBarHidden: hidden ? YES : NO animated:YES];
+	using namespace Gfx;
+	mainWin.rect.x = mainWin.rect.y = 0;
+	mainWin.rect.x2 = mainWin.w;
+	mainWin.rect.y2 = mainWin.h;
+	//logMsg("status bar hidden %d", sharedApp.statusBarHidden);
+	if(!sharedApp.statusBarHidden)
+	{
+		bool isSideways = rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
+		auto statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
+		if(isSideways)
+		{
+			if(rotateView == VIEW_ROTATE_270)
+				mainWin.rect.x = statusBarHeight;
+			else
+				mainWin.rect.x2 -= statusBarHeight;
+		}
+		else
+		{
+			mainWin.rect.y = statusBarHeight;
+		}
+		logMsg("status bar height %d", (int)statusBarHeight);
+		logMsg("adjusted window to %d:%d:%d:%d", mainWin.rect.x, mainWin.rect.y, mainWin.rect.x2, mainWin.rect.y2);
+	}
+}
+
+void setStatusBarHidden(uint hidden)
+{
+	auto sharedApp = [UIApplication sharedApplication];
+	[sharedApp setStatusBarHidden: hidden ? YES : NO animated:YES];
+	setViewportForStatusbar(sharedApp);
+	generic_resizeEvent(mainWin);
 }
 
 static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
@@ -787,7 +819,7 @@ static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orient
 	}
 }
 
-void statusBarOrientation(uint o)
+void setSystemOrientation(uint o)
 {
 	using namespace Input;
 	if(vKeyboardTextDelegate.hasCallback()) // TODO: allow orientation change without aborting text input
@@ -796,7 +828,9 @@ void statusBarOrientation(uint o)
 		vKeyboardTextDelegate.invoke(nullptr);
 		vKeyboardTextDelegate.clear();
 	}
-	[[UIApplication sharedApplication] setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:NO];
+	auto sharedApp = [UIApplication sharedApplication];
+	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
+	setViewportForStatusbar(sharedApp);
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching

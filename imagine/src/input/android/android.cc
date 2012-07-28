@@ -62,19 +62,40 @@ void showSoftInput()
 {
 	using namespace Base;
 	logMsg("showing soft input");
-	jEnv->CallVoidMethod(jBaseActivity, jShowIme.m, 0);
+	jShowIme(aEnv(), jBaseActivity, 0);
 }
 
 void hideSoftInput()
 {
 	using namespace Base;
 	logMsg("hiding soft input");
-	jEnv->CallVoidMethod(jBaseActivity, jHideIme.m, 0);
+	jHideIme(aEnv(), jBaseActivity, 0);
 }
 
 CallResult init()
 {
 	return OK;
+}
+
+static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
+{
+	if(vKeyboardTextDelegate.hasCallback())
+	{
+		if(jStr)
+		{
+			const char *str = env->GetStringUTFChars(jStr, 0);
+			logMsg("running text entry callback with text: %s", str);
+			vKeyboardTextDelegate.invoke(str);
+			env->ReleaseStringUTFChars(jStr, str);
+		}
+		else
+		{
+			logMsg("canceled text entry callback");
+			vKeyboardTextDelegate.invoke(nullptr);
+		}
+	}
+	else
+		vKeyboardTextDelegate.clear();
 }
 
 }

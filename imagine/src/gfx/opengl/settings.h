@@ -51,13 +51,17 @@ TextureSizeSupport textureSizeSupport =
 
 static float zRange = 1000.0;
 
-static void resizeGLScene(GLsizei width, GLsizei height)
+static void resizeGLScene(const Base::Window &win)
 {
-	if(Base::window().rect.y2 != height)
-		logMsg("non-fullscreen viewport with y %d", Base::window().rect.y2 - height);
-	glViewport(0, Base::window().rect.y2 - height, width, height);
+	auto width = win.rect.xSize();
+	auto height = win.rect.ySize();
+	logMsg("glViewport %d:%d:%d:%d from window %d:%d:%d:%d", win.rect.x, win.h - win.rect.y2, width, height,
+			win.rect.x, win.rect.y, win.rect.x2, win.rect.y2);
+	glViewport(win.rect.x,
+		win.h - win.rect.y2,
+		width, height);
 
-	if(height == 0 || width == 0)
+	if(width == 0 || height == 0)
 	{
 		bug_exit("view is invisible");
 		return; // view is invisible, do nothing
@@ -118,15 +122,14 @@ static void resizeGLScene(GLsizei width, GLsizei height)
 	}*/
 }
 
-void resizeDisplay(uint x, uint y)
+void resizeDisplay(const Base::Window &win)
 {
 	Gfx::GfxViewState oldState =
 	{
 		proj.w, proj.h, proj.aspectRatio,
 		viewPixelWidth_, viewPixelHeight_
 	};
-	logMsg("resizing viewport to %dx%d", x, y);
-	resizeGLScene(x, y);
+	resizeGLScene(win);
 
 	//logMsg("calling view space callback %p", viewSpaceCallback.func);
 	//callSafe(viewChangeHandler, viewChangeHandlerCtx, &oldState);
@@ -157,11 +160,11 @@ uint setOrientation(uint o)
 			projAngleM.initLinear(projAngleM.now, IG::toRadians(orientationToGC(rotateView)), 10);
 			Base::displayNeedsUpdate();
 		}
-		resizeDisplay(viewPixelWidth_, viewPixelHeight_);
+		Base::setSystemOrientation(o);
+		resizeDisplay(Base::window());
 		#ifdef CONFIG_INPUT
 			configureInputForOrientation();
 		#endif
-		Base::statusBarOrientation(o);
 		return 1;
 	}
 	else

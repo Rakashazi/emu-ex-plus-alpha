@@ -159,6 +159,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_REMEMBER_LAST_MENU: optionRememberLastMenu.readFromIO(io, size);
 			bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
 			bcase CFGKEY_SHOW_MENU_ICON: optionShowMenuIcon.readFromIO(io, size);
+			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
 			#if defined(CONFIG_BASE_ANDROID)
 			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 			bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
@@ -173,6 +174,10 @@ static bool readConfig2(Io *io)
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
+			bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
+			#endif
+			#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
 			#endif
 			// start gui keys
 			bcase CFGKEY_KEY_LOAD_GAME: readKeyConfig2(io, 0, size);
@@ -270,6 +275,7 @@ static OptionBase *cfgFileOption[] =
 	&optionNotificationIcon,
 	&optionTitleBar,
 	&optionIdleDisplayPowerSave,
+	&optionHideStatusBar,
 #if defined(CONFIG_BASE_ANDROID)
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
@@ -288,6 +294,10 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,
+	&optionBlueToothScanCache,
+	#endif
+	#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+	&optionSoundBuffers,
 	#endif
 };
 

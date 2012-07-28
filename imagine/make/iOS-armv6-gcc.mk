@@ -11,3 +11,5 @@ ASMFLAGS += -arch armv6
 system_externalSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/armv6
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib
+# avoid compaints about armv7 libclang_rt.ios.a
+LDFLAGS += -Wl,-allow_sub_type_mismatches

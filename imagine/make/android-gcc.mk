@@ -18,7 +18,6 @@ else
  android_soName := imagine
 endif
 
-#CPPFLAGS += -isystem $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/libs/armeabi-v7a/include
 ifndef android_stdcxx
  ifdef cxxExceptions
   android_stdcxx := gnu
@@ -28,7 +27,7 @@ ifndef android_stdcxx
 endif
 
 ifeq ($(android_stdcxx), gnu)
- android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/libs/$(android_abi)/libgnustl_static.a
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/4.7.2/libs/$(android_abi)/libgnustl_static.a
 else
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
 endif
@@ -46,8 +45,6 @@ LDFLAGS += -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-soname,lib$(android_soName
 LDLIBS += -L$(android_ndkSysroot)/usr/lib -lc -lm #-lgcc
 
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-
-#CPPFLAGS += -isystem $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/include
 
 LDFLAGS += -s -Wl,-O1,--gc-sections,--sort-common
 OPTIMIZE_LDFLAGS +=

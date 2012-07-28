@@ -76,7 +76,7 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	logMsg("init vkeyboard");
 }
 
-uint startSysTextInput(InputTextDelegate callback, const char *initialText)
+uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText)
 {
 	logMsg("starting system text input");
 	vKeyboardTextDelegate = callback;

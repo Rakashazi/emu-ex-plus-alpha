@@ -43,7 +43,6 @@
 #define C_FLAG cpu.C_FLAG
 #define Z_FLAG cpu.zFlag()
 #define V_FLAG cpu.V_FLAG
-#define lastArithmeticRes cpu.lastArithmeticRes
 #define armState cpu.armState
 #define armNextPC cpu.armNextPC
 #define armMode cpu.armMode
@@ -53,9 +52,6 @@
 #define busPrefetchEnable cpu.busPrefetchEnable
 
 ///////////////////////////////////////////////////////////////////////////
-
-//#define clockTicks clockTicks_arm
-//static int clockTicks;
 
 static INSN_REGPARM void armUnknownInsn(ARM7TDMI &cpu, u32 opcode, int &clockTicks)
 {
@@ -159,12 +155,12 @@ static void count(u32 opcode, int cond_res)
 // C core
 
 #define C_SETCOND_LOGICAL \
-		lastArithmeticRes = res;\
+		cpu.setNZFlagParam(res);\
     C_FLAG = C_OUT;
 //N_FLAG = ((s32)res < 0) ? true : false;\ Z_FLAG = (res == 0) ? true : false;
 #define C_SETCOND_ADD \
 		C_FLAG = (unsigned)res < (unsigned)lhs;\
-		lastArithmeticRes = res;\
+		cpu.setNZFlagParam(res);\
     V_FLAG = (NEG(lhs) & NEG(rhs) & POS(res)) |        \
               (POS(lhs) & POS(rhs) & NEG(res));
     //C_FLAG = (NEG(lhs) & NEG(rhs)) |                   \
@@ -172,7 +168,7 @@ static void count(u32 opcode, int cond_res)
               (NEG(rhs) & POS(res));
 //N_FLAG = ((s32)res < 0) ? true : false;\ Z_FLAG = (res == 0) ? true : false;
 #define C_SETCOND_SUB \
-		lastArithmeticRes = res;\
+		cpu.setNZFlagParam(res);\
     V_FLAG = (NEG(lhs) & POS(rhs) & POS(res)) |        \
               (POS(lhs) & NEG(rhs) & NEG(res));\
     C_FLAG = (NEG(lhs) & POS(rhs)) |                   \
@@ -508,12 +504,13 @@ static void count(u32 opcode, int cond_res)
  #define SETCOND_NONE /*nothing*/
 #endif
 #ifndef SETCOND_MUL
- #define SETCOND_MUL lastArithmeticRes = reg[dest].I;
+ #define SETCOND_MUL cpu.setNZFlagParam(reg[dest].I);
      //N_FLAG = ((s32)reg[dest].I < 0) ? true : false;    \
      Z_FLAG = reg[dest].I ? false : true;
 #endif
 #ifndef SETCOND_MULL
- #define SETCOND_MULL lastArithmeticRes = reg[dest].I; if(!lastArithmeticRes && reg[acc].I) lastArithmeticRes = 1;
+ #define SETCOND_MULL cpu.setNZFlagParam(reg[dest].I, reg[acc].I);
+		//lastArithmeticRes = reg[dest].I; if(!lastArithmeticRes && reg[acc].I) lastArithmeticRes = 1;
      //N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
      Z_FLAG = reg[dest].I || reg[acc].I ? false : true;
 #endif

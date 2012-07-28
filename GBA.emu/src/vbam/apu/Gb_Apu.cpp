@@ -115,7 +115,7 @@ void Gb_Apu::reduce_clicks( bool reduce )
 	if ( reduce && wave.mode != mode_agb ) // AGB already eliminates clicks
 		dac_off_amp = -Gb_Osc::dac_bias;
 
-	for ( int i = 0; i < osc_count; i++ )
+	for ( unsigned int i = 0; i < osc_count; i++ )
 		oscs [i]->dac_off_amp = dac_off_amp;
 
 	// AGB always eliminates clicks on wave channel using same method

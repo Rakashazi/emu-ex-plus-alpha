@@ -27,8 +27,6 @@
 static BluezBluetoothAdapter defaultBluezAdapter;
 uint scanSecs = 4;
 
-bool BluetoothAdapter::useScanCache = 1;
-
 bool BluezBluetoothAdapter::openDefault()
 {
 	if(socket > 0)
@@ -70,11 +68,6 @@ BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter()
 		return &defaultBluezAdapter;
 	else
 		return nullptr;
-}
-
-BluetoothAdapter *BluetoothAdapter::defaultAdapter()
-{
-	return BluezBluetoothAdapter::defaultAdapter();
 }
 
 CallResult BluezBluetoothAdapter::doScan()
@@ -153,6 +146,11 @@ fbool BluezBluetoothAdapter::startScan()
 		logMsg("previous bluetooth detection still running");
 		return 0;
 	}
+}
+
+void BluezBluetoothAdapter::constructSocket(void *mem)
+{
+	new(mem) BluezBluetoothSocket();
 }
 
 int BluezBluetoothSocket::readPendingData(int events)

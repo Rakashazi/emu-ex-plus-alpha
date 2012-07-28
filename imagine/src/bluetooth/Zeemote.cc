@@ -40,10 +40,12 @@ uint Zeemote::findFreeDevId()
 	return 0;
 }
 
-CallResult Zeemote::open(BluetoothAddr addr)
+CallResult Zeemote::open(BluetoothAddr addr, BluetoothAdapter &adapter)
 {
 	logMsg("connecting to Zeemote");
-	//var_selfs(player);
+#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
+	adapter.constructSocket(sock.obj);
+#endif
 	sock.onDataDelegate().bind<Zeemote, &Zeemote::dataHandler>(this);
 	sock.onStatusDelegate().bind<Zeemote, &Zeemote::statusHandler>(this);
 	#ifdef CONFIG_BTSTACK

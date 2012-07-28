@@ -139,4 +139,66 @@ static void handleKeyEvent(int key, int down, uint devId, uint metaState)
 			Input::onInputEvent(InputEvent(devId, InputEvent::DEV_KEYBOARD, key & 0xff, action, metaState));
 }
 
+static InputTextDelegate vKeyboardTextDelegate;
+static Rect2<int> textRect(8, 200, 8+304, 200+48);
+static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTextInput;
+static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr);
+
+static void setupTextInputJni()
+{
+	using namespace Base;
+	if(!jStartSysTextInput.m)
+	{
+		logMsg("setting up text input JNI");
+		jStartSysTextInput.setup(eEnv(), jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIII)V");
+		jFinishSysTextInput.setup(eEnv(), jBaseActivityCls, "finishSysTextInput", "(Z)V");
+		jPlaceSysTextInput.setup(eEnv(), jBaseActivityCls, "placeSysTextInput", "(IIII)V");
+
+		static JNINativeMethod activityMethods[] =
+		{
+				{"sysTextInputEnded", "(Ljava/lang/String;)V", (void *)&textInputEnded}
+		};
+		eEnv()->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+	}
+}
+
+uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText)
+{
+	using namespace Base;
+	setupTextInputJni();
+	logMsg("starting system text input");
+	vKeyboardTextDelegate = callback;
+	jStartSysTextInput(eEnv(), jBaseActivity, eEnv()->NewStringUTF(initialText), eEnv()->NewStringUTF(promptText),
+		textRect.x, textRect.y, textRect.xSize(), textRect.ySize());
+	return 0;
+}
+
+void cancelSysTextInput()
+{
+	using namespace Base;
+	setupTextInputJni();
+	vKeyboardTextDelegate.clear();
+	jFinishSysTextInput(eEnv(), jBaseActivity, 1);
+}
+
+void finishSysTextInput()
+{
+	using namespace Base;
+	setupTextInputJni();
+	jFinishSysTextInput(eEnv(), jBaseActivity, 0);
+}
+
+void placeSysTextInput(const Rect2<int> &rect)
+{
+	using namespace Base;
+	setupTextInputJni();
+	textRect = rect;
+	jPlaceSysTextInput(eEnv(), jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
+}
+
+const Rect2<int> &sysTextInputRect()
+{
+	return textRect;
+}
+
 }

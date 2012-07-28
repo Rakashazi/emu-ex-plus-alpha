@@ -292,83 +292,83 @@ static const u32 myROM[] = {
 static bool saveNFlag, saveZFlag;
 
 static const variable_desc saveGameStruct[] = {
-  { &DISPCNT  , sizeof(u16) },
-  { &DISPSTAT , sizeof(u16) },
-  { &VCOUNT   , sizeof(u16) },
-  { &BG0CNT   , sizeof(u16) },
-  { &BG1CNT   , sizeof(u16) },
-  { &BG2CNT   , sizeof(u16) },
-  { &BG3CNT   , sizeof(u16) },
-  { &BG0HOFS  , sizeof(u16) },
-  { &BG0VOFS  , sizeof(u16) },
-  { &BG1HOFS  , sizeof(u16) },
-  { &BG1VOFS  , sizeof(u16) },
-  { &BG2HOFS  , sizeof(u16) },
-  { &BG2VOFS  , sizeof(u16) },
-  { &BG3HOFS  , sizeof(u16) },
-  { &BG3VOFS  , sizeof(u16) },
-  { &BG2PA    , sizeof(u16) },
-  { &BG2PB    , sizeof(u16) },
-  { &BG2PC    , sizeof(u16) },
-  { &BG2PD    , sizeof(u16) },
-  { &BG2X_L   , sizeof(u16) },
-  { &BG2X_H   , sizeof(u16) },
-  { &BG2Y_L   , sizeof(u16) },
-  { &BG2Y_H   , sizeof(u16) },
-  { &BG3PA    , sizeof(u16) },
-  { &BG3PB    , sizeof(u16) },
-  { &BG3PC    , sizeof(u16) },
-  { &BG3PD    , sizeof(u16) },
-  { &BG3X_L   , sizeof(u16) },
-  { &BG3X_H   , sizeof(u16) },
-  { &BG3Y_L   , sizeof(u16) },
-  { &BG3Y_H   , sizeof(u16) },
-  { &WIN0H    , sizeof(u16) },
-  { &WIN1H    , sizeof(u16) },
-  { &WIN0V    , sizeof(u16) },
-  { &WIN1V    , sizeof(u16) },
-  { &WININ    , sizeof(u16) },
-  { &WINOUT   , sizeof(u16) },
-  { &MOSAIC   , sizeof(u16) },
-  { &BLDMOD   , sizeof(u16) },
-  { &COLEV    , sizeof(u16) },
-  { &COLY     , sizeof(u16) },
-  { &DM0SAD_L , sizeof(u16) },
-  { &DM0SAD_H , sizeof(u16) },
-  { &DM0DAD_L , sizeof(u16) },
-  { &DM0DAD_H , sizeof(u16) },
-  { &DM0CNT_L , sizeof(u16) },
-  { &DM0CNT_H , sizeof(u16) },
-  { &DM1SAD_L , sizeof(u16) },
-  { &DM1SAD_H , sizeof(u16) },
-  { &DM1DAD_L , sizeof(u16) },
-  { &DM1DAD_H , sizeof(u16) },
-  { &DM1CNT_L , sizeof(u16) },
-  { &DM1CNT_H , sizeof(u16) },
-  { &DM2SAD_L , sizeof(u16) },
-  { &DM2SAD_H , sizeof(u16) },
-  { &DM2DAD_L , sizeof(u16) },
-  { &DM2DAD_H , sizeof(u16) },
-  { &DM2CNT_L , sizeof(u16) },
-  { &DM2CNT_H , sizeof(u16) },
-  { &DM3SAD_L , sizeof(u16) },
-  { &DM3SAD_H , sizeof(u16) },
-  { &DM3DAD_L , sizeof(u16) },
-  { &DM3DAD_H , sizeof(u16) },
-  { &DM3CNT_L , sizeof(u16) },
-  { &DM3CNT_H , sizeof(u16) },
-  { &TM0D     , sizeof(u16) },
-  { &TM0CNT   , sizeof(u16) },
-  { &TM1D     , sizeof(u16) },
-  { &TM1CNT   , sizeof(u16) },
-  { &TM2D     , sizeof(u16) },
-  { &TM2CNT   , sizeof(u16) },
-  { &TM3D     , sizeof(u16) },
-  { &TM3CNT   , sizeof(u16) },
+  { &ioMem.DISPCNT  , sizeof(u16) },
+  { &ioMem.DISPSTAT , sizeof(u16) },
+  { &ioMem.VCOUNT   , sizeof(u16) },
+  { &ioMem.BG0CNT   , sizeof(u16) },
+  { &ioMem.BG1CNT   , sizeof(u16) },
+  { &ioMem.BG2CNT   , sizeof(u16) },
+  { &ioMem.BG3CNT   , sizeof(u16) },
+  { &ioMem.BG0HOFS  , sizeof(u16) },
+  { &ioMem.BG0VOFS  , sizeof(u16) },
+  { &ioMem.BG1HOFS  , sizeof(u16) },
+  { &ioMem.BG1VOFS  , sizeof(u16) },
+  { &ioMem.BG2HOFS  , sizeof(u16) },
+  { &ioMem.BG2VOFS  , sizeof(u16) },
+  { &ioMem.BG3HOFS  , sizeof(u16) },
+  { &ioMem.BG3VOFS  , sizeof(u16) },
+  { &ioMem.BG2PA    , sizeof(u16) },
+  { &ioMem.BG2PB    , sizeof(u16) },
+  { &ioMem.BG2PC    , sizeof(u16) },
+  { &ioMem.BG2PD    , sizeof(u16) },
+  { &ioMem.BG2X_L   , sizeof(u16) },
+  { &ioMem.BG2X_H   , sizeof(u16) },
+  { &ioMem.BG2Y_L   , sizeof(u16) },
+  { &ioMem.BG2Y_H   , sizeof(u16) },
+  { &ioMem.BG3PA    , sizeof(u16) },
+  { &ioMem.BG3PB    , sizeof(u16) },
+  { &ioMem.BG3PC    , sizeof(u16) },
+  { &ioMem.BG3PD    , sizeof(u16) },
+  { &ioMem.BG3X_L   , sizeof(u16) },
+  { &ioMem.BG3X_H   , sizeof(u16) },
+  { &ioMem.BG3Y_L   , sizeof(u16) },
+  { &ioMem.BG3Y_H   , sizeof(u16) },
+  { &ioMem.WIN0H    , sizeof(u16) },
+  { &ioMem.WIN1H    , sizeof(u16) },
+  { &ioMem.WIN0V    , sizeof(u16) },
+  { &ioMem.WIN1V    , sizeof(u16) },
+  { &ioMem.WININ    , sizeof(u16) },
+  { &ioMem.WINOUT   , sizeof(u16) },
+  { &ioMem.MOSAIC   , sizeof(u16) },
+  { &ioMem.BLDMOD   , sizeof(u16) },
+  { &ioMem.COLEV    , sizeof(u16) },
+  { &ioMem.COLY     , sizeof(u16) },
+  { &ioMem.DM0SAD_L , sizeof(u16) },
+  { &ioMem.DM0SAD_H , sizeof(u16) },
+  { &ioMem.DM0DAD_L , sizeof(u16) },
+  { &ioMem.DM0DAD_H , sizeof(u16) },
+  { &ioMem.DM0CNT_L , sizeof(u16) },
+  { &ioMem.DM0CNT_H , sizeof(u16) },
+  { &ioMem.DM1SAD_L , sizeof(u16) },
+  { &ioMem.DM1SAD_H , sizeof(u16) },
+  { &ioMem.DM1DAD_L , sizeof(u16) },
+  { &ioMem.DM1DAD_H , sizeof(u16) },
+  { &ioMem.DM1CNT_L , sizeof(u16) },
+  { &ioMem.DM1CNT_H , sizeof(u16) },
+  { &ioMem.DM2SAD_L , sizeof(u16) },
+  { &ioMem.DM2SAD_H , sizeof(u16) },
+  { &ioMem.DM2DAD_L , sizeof(u16) },
+  { &ioMem.DM2DAD_H , sizeof(u16) },
+  { &ioMem.DM2CNT_L , sizeof(u16) },
+  { &ioMem.DM2CNT_H , sizeof(u16) },
+  { &ioMem.DM3SAD_L , sizeof(u16) },
+  { &ioMem.DM3SAD_H , sizeof(u16) },
+  { &ioMem.DM3DAD_L , sizeof(u16) },
+  { &ioMem.DM3DAD_H , sizeof(u16) },
+  { &ioMem.DM3CNT_L , sizeof(u16) },
+  { &ioMem.DM3CNT_H , sizeof(u16) },
+  { &ioMem.TM0D     , sizeof(u16) },
+  { &ioMem.TM0CNT   , sizeof(u16) },
+  { &ioMem.TM1D     , sizeof(u16) },
+  { &ioMem.TM1CNT   , sizeof(u16) },
+  { &ioMem.TM2D     , sizeof(u16) },
+  { &ioMem.TM2CNT   , sizeof(u16) },
+  { &ioMem.TM3D     , sizeof(u16) },
+  { &ioMem.TM3CNT   , sizeof(u16) },
   { &P1       , sizeof(u16) },
-  { &gGba.cpu.IE       , sizeof(u16) },
-  { &gGba.cpu.IF       , sizeof(u16) },
-  { &gGba.cpu.IME      , sizeof(u16) },
+  { &ioMem.IE       , sizeof(u16) },
+  { &ioMem.IF       , sizeof(u16) },
+  { &ioMem.IME      , sizeof(u16) },
   { &gGba.cpu.holdState, sizeof(bool) },
 #ifdef VBAM_USE_HOLDTYPE
   { &holdType, sizeof(int) },
@@ -457,13 +457,13 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
   if(timer0On && (timer0Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer0Ticks;
   }
-  if(timer1On && !(TM1CNT & 4) && (timer1Ticks < cpuLoopTicks)) {
+  if(timer1On && !(ioMem.TM1CNT & 4) && (timer1Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer1Ticks;
   }
-  if(timer2On && !(TM2CNT & 4) && (timer2Ticks < cpuLoopTicks)) {
+  if(timer2On && !(ioMem.TM2CNT & 4) && (timer2Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer2Ticks;
   }
-  if(timer3On && !(TM3CNT & 4) && (timer3Ticks < cpuLoopTicks)) {
+  if(timer3On && !(ioMem.TM3CNT & 4) && (timer3Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer3Ticks;
   }
 #ifdef PROFILING
@@ -493,8 +493,8 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
 
 static void CPUUpdateWindow0()
 {
-  int x00 = WIN0H>>8;
-  int x01 = WIN0H & 255;
+  int x00 = ioMem.WIN0H>>8;
+  int x01 = ioMem.WIN0H & 255;
 
   if(x00 <= x01) {
     for(int i = 0; i < 240; i++) {
@@ -509,8 +509,8 @@ static void CPUUpdateWindow0()
 
 static void CPUUpdateWindow1()
 {
-  int x00 = WIN1H>>8;
-  int x01 = WIN1H & 255;
+  int x00 = ioMem.WIN1H>>8;
+  int x01 = ioMem.WIN1H & 255;
 
   if(x00 <= x01) {
     for(int i = 0; i < 240; i++) {
@@ -570,7 +570,7 @@ static bool CPUWriteState(gzFile gzFile)
   utilGzWrite(gzFile, oam, 0x400);
   u32 dummyPix[241*162] = {0};
   utilGzWrite(gzFile, dummyPix, 4*241*162);
-  utilGzWrite(gzFile, ioMem, 0x400);
+  utilGzWrite(gzFile, ioMem.b, 0x400);
 
   eepromSaveGame(gzFile);
   flashSaveGame(gzFile);
@@ -700,7 +700,7 @@ static bool CPUReadState(gzFile gzFile)
     utilGzRead(gzFile, dummyPix, 4*240*160);
   else
     utilGzRead(gzFile, dummyPix, 4*241*162);
-  utilGzRead(gzFile, ioMem, 0x400);
+  utilGzRead(gzFile, ioMem.b, 0x400);
 
   if(skipSaveGameBattery) {
     // skip eeprom data
@@ -733,31 +733,31 @@ static bool CPUReadState(gzFile gzFile)
     (b) = (temp) >> 16;\
     (c) = (temp) & 0xFFFF;
 
-    SWAP(gGba.dma.dma0Source, DM0SAD_H, DM0SAD_L);
-    SWAP(gGba.dma.dma0Dest,   DM0DAD_H, DM0DAD_L);
-    SWAP(gGba.dma.dma1Source, DM1SAD_H, DM1SAD_L);
-    SWAP(gGba.dma.dma1Dest,   DM1DAD_H, DM1DAD_L);
-    SWAP(gGba.dma.dma2Source, DM2SAD_H, DM2SAD_L);
-    SWAP(gGba.dma.dma2Dest,   DM2DAD_H, DM2DAD_L);
-    SWAP(gGba.dma.dma3Source, DM3SAD_H, DM3SAD_L);
-    SWAP(gGba.dma.dma3Dest,   DM3DAD_H, DM3DAD_L);
+    SWAP(gGba.dma.dma0Source, ioMem.DM0SAD_H, ioMem.DM0SAD_L);
+    SWAP(gGba.dma.dma0Dest,   ioMem.DM0DAD_H, ioMem.DM0DAD_L);
+    SWAP(gGba.dma.dma1Source, ioMem.DM1SAD_H, ioMem.DM1SAD_L);
+    SWAP(gGba.dma.dma1Dest,   ioMem.DM1DAD_H, ioMem.DM1DAD_L);
+    SWAP(gGba.dma.dma2Source, ioMem.DM2SAD_H, ioMem.DM2SAD_L);
+    SWAP(gGba.dma.dma2Dest,   ioMem.DM2DAD_H, ioMem.DM2DAD_L);
+    SWAP(gGba.dma.dma3Source, ioMem.DM3SAD_H, ioMem.DM3SAD_L);
+    SWAP(gGba.dma.dma3Dest,   ioMem.DM3DAD_H, ioMem.DM3DAD_L);
   }
 
   if(version <= SAVE_GAME_VERSION_8) {
-  	gGba.timers.timer0ClockReload = TIMER_TICKS[TM0CNT & 3];
-  	gGba.timers.timer1ClockReload = TIMER_TICKS[TM1CNT & 3];
-  	gGba.timers.timer2ClockReload = TIMER_TICKS[TM2CNT & 3];
-  	gGba.timers.timer3ClockReload = TIMER_TICKS[TM3CNT & 3];
+  	gGba.timers.timer0ClockReload = TIMER_TICKS[ioMem.TM0CNT & 3];
+  	gGba.timers.timer1ClockReload = TIMER_TICKS[ioMem.TM1CNT & 3];
+  	gGba.timers.timer2ClockReload = TIMER_TICKS[ioMem.TM2CNT & 3];
+  	gGba.timers.timer3ClockReload = TIMER_TICKS[ioMem.TM3CNT & 3];
 
-  	gGba.timers.timer0Ticks = ((0x10000 - TM0D) << gGba.timers.timer0ClockReload) - gGba.timers.timer0Ticks;
-  	gGba.timers.timer1Ticks = ((0x10000 - TM1D) << gGba.timers.timer1ClockReload) - gGba.timers.timer1Ticks;
-  	gGba.timers.timer2Ticks = ((0x10000 - TM2D) << gGba.timers.timer2ClockReload) - gGba.timers.timer2Ticks;
-  	gGba.timers.timer3Ticks = ((0x10000 - TM3D) << gGba.timers.timer3ClockReload) - gGba.timers.timer3Ticks;
+  	gGba.timers.timer0Ticks = ((0x10000 - ioMem.TM0D) << gGba.timers.timer0ClockReload) - gGba.timers.timer0Ticks;
+  	gGba.timers.timer1Ticks = ((0x10000 - ioMem.TM1D) << gGba.timers.timer1ClockReload) - gGba.timers.timer1Ticks;
+  	gGba.timers.timer2Ticks = ((0x10000 - ioMem.TM2D) << gGba.timers.timer2ClockReload) - gGba.timers.timer2Ticks;
+  	gGba.timers.timer3Ticks = ((0x10000 - ioMem.TM3D) << gGba.timers.timer3ClockReload) - gGba.timers.timer3Ticks;
     interp_rate();
   }
 
   // set pointers!
-  layerEnable = layerSettings & DISPCNT;
+  layerEnable = layerSettings & ioMem.DISPCNT;
 
   CPUUpdateRender();
   CPUUpdateRenderBuffers(true);
@@ -1311,9 +1311,9 @@ int CPULoadRom(const char *szFile)
 
   memset(internalRAM, 0, sizeof(internalRAM));
 
-  gLcd.reset();
+  memset(ioMem.b, 0, sizeof(ioMem));
 
-  memset(ioMem, 0, sizeof(ioMem));
+  gLcd.reset();
 
   flashInit();
   eepromInit();
@@ -1340,7 +1340,7 @@ void doMirroring (bool b)
   }
 }
 
-static const char *dispModeName(void (*renderLine)(MixColorType *lineMix))
+static const char *dispModeName(void (*renderLine)(MixColorType *lineMix, const GBAMem::IoMem &ioMem))
 {
 	if(renderLine == mode0RenderLine) return "0";
 	else if(renderLine == mode0RenderLineNoWindow) return "0NW";
@@ -1363,21 +1363,21 @@ static const char *dispModeName(void (*renderLine)(MixColorType *lineMix))
 	else return "Invalid";
 }
 
-void blankLine(MixColorType *lineMix)
+static void blankLine(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 	for(int x = 0; x < 240; x++)
 		lineMix[x] = convColor(0x7fff);
 }
 
-void blankLineUpdateLastVCount(MixColorType *lineMix)
+static void blankLineUpdateLastVCount(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
-	blankLine(lineMix);
-	gfxLastVCOUNT = VCOUNT;
+	blankLine(lineMix, ioMem);
+	gfxLastVCOUNT = ioMem.VCOUNT;
 }
 
 void CPUUpdateRender()
 {
-  switch(DISPCNT & 7) {
+  switch(ioMem.DISPCNT & 7) {
   case 0:
     if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
        cpuDisableSfx)
@@ -1435,10 +1435,10 @@ void CPUUpdateRender()
     break;
   }
 
-  if(DISPCNT & 0x80)
+  if(ioMem.DISPCNT & 0x80)
   {
 	  systemMessage(0, "Set forced blank");
-	  renderLine = ((DISPCNT & 7) == 0) ? blankLine : blankLineUpdateLastVCount;
+	  renderLine = ((ioMem.DISPCNT & 7) == 0) ? blankLine : blankLineUpdateLastVCount;
   }
   else
   {
@@ -1453,16 +1453,13 @@ static void CPUUpdateCPSR()
 
 void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 {
-	int &cpuNextEvent = cpu.cpuNextEvent;
-	int &cpuTotalTicks = cpu.cpuTotalTicks;
-	bool &armState = cpu.armState;
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef VBAM_USE_SWITICKS
-	int &SWITicks = cpu.SWITicks;
+	auto &SWITicks = cpu.SWITicks;
 #endif
-	bool &holdState = cpu.holdState;
+	auto &holdState = cpu.holdState;
   static bool disableMessage = false;
-  //if(armState) comment >>= 16;
+  //if(cpu.armState) comment >>= 16;
 #ifdef BKPT_SUPPORT
   if(comment == 0xff) {
     dbgOutput(NULL, reg[0].I);
@@ -1496,7 +1493,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 #ifdef SDL
   if(comment == 0xf9) {
     //emulating = 0;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     cpuBreakLoop = true;
     return;
   }
@@ -1505,7 +1502,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 #ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("SWI: %08x at %08x (0x%08x,0x%08x,0x%08x,VCOUNT = %2d)\n", comment,
-          armState ? armNextPC - 4: armNextPC -2,
+          cpu.armState ? armNextPC - 4: armNextPC -2,
           reg[0].I,
           reg[1].I,
           reg[2].I,
@@ -1539,7 +1536,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 #ifdef VBAM_USE_HOLDTYPE
     holdType = -1;
 #endif
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x03:
 #ifdef GBA_LOGGING
@@ -1553,7 +1550,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
     holdType = -1;
 #endif
     gGba.stopState = true;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x04:
 #ifdef GBA_LOGGING
@@ -1774,7 +1771,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 #ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("SWI: %08x at %08x (0x%08x,0x%08x,0x%08x,VCOUNT = %2d)\n", comment,
-          armState ? armNextPC - 4: armNextPC -2,
+          cpu.armState ? armNextPC - 4: armNextPC -2,
           reg[0].I,
           reg[1].I,
           reg[2].I,
@@ -1795,31 +1792,30 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 
 void CPUCompareVCOUNT(ARM7TDMI &cpu)
 {
-	u16 &IF = cpu.IF;
-  if(VCOUNT == (DISPSTAT >> 8)) {
-    DISPSTAT |= 4;
+  if(ioMem.VCOUNT == (ioMem.DISPSTAT >> 8)) {
+  	ioMem.DISPSTAT |= 4;
     //UPDATE_REG(0x04, DISPSTAT);
 
-    if(DISPSTAT & 0x20) {
-      IF |= 4;
-      UPDATE_REG(0x202, IF);
+    if(ioMem.DISPSTAT & 0x20) {
+    	ioMem.IF |= 4;
+      //UPDATE_REG(0x202, IF);
     }
   } else {
-    DISPSTAT &= 0xFFFB;
+  	ioMem.DISPSTAT &= 0xFFFB;
     //UPDATE_REG(0x4, DISPSTAT);
   }
   if (layerEnableDelay>0)
   {
       layerEnableDelay--;
       if (layerEnableDelay==1)
-          layerEnable = layerSettings & DISPCNT;
+          layerEnable = layerSettings & ioMem.DISPCNT;
   }
 
 }
 
 void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
   int sm = s >> 24;
   int dm = d >> 24;
   int sw = 0;
@@ -1899,9 +1895,7 @@ void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
 
 void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
 {
-	int &cpuNextEvent = cpu.cpuNextEvent;
-	int &cpuTotalTicks = cpu.cpuTotalTicks;
-	u16 &IF = cpu.IF;
+	auto &IF = ioMem.IF;
 	auto &dma0Source = gGba.dma.dma0Source;
 	auto &dma0Dest = gGba.dma.dma0Dest;
 	auto &dma1Source = gGba.dma.dma1Source;
@@ -1912,11 +1906,11 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
 	auto &dma3Dest = gGba.dma.dma3Dest;
 
   // DMA 0
-  if((DM0CNT_H & 0x8000) && (dmamask & 1)) {
-    if(((DM0CNT_H >> 12) & 3) == reason) {
+  if((ioMem.DM0CNT_H & 0x8000) && (dmamask & 1)) {
+    if(((ioMem.DM0CNT_H >> 12) & 3) == reason) {
       u32 sourceIncrement = 4;
       u32 destIncrement = 4;
-      switch((DM0CNT_H >> 7) & 3) {
+      switch((ioMem.DM0CNT_H >> 7) & 3) {
       case 0:
         break;
       case 1:
@@ -1926,7 +1920,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         sourceIncrement = 0;
         break;
       }
-      switch((DM0CNT_H >> 5) & 3) {
+      switch((ioMem.DM0CNT_H >> 5) & 3) {
       case 0:
         break;
       case 1:
@@ -1947,33 +1941,33 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
       }
 #endif
       doDMA(cpu, dma0Source, dma0Dest, sourceIncrement, destIncrement,
-            DM0CNT_L ? DM0CNT_L : 0x4000,
-            DM0CNT_H & 0x0400);
+      		ioMem.DM0CNT_L ? ioMem.DM0CNT_L : 0x4000,
+            		ioMem.DM0CNT_H & 0x0400);
       gGba.dma.cpuDmaHack = true;
 
-      if(DM0CNT_H & 0x4000) {
+      if(ioMem.DM0CNT_H & 0x4000) {
         IF |= 0x0100;
-        UPDATE_REG(0x202, IF);
-        cpuNextEvent = cpuTotalTicks;
+        //UPDATE_REG(0x202, IF);
+        cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((DM0CNT_H >> 5) & 3) == 3) {
-        dma0Dest = DM0DAD_L | (DM0DAD_H << 16);
+      if(((ioMem.DM0CNT_H >> 5) & 3) == 3) {
+        dma0Dest = ioMem.DM0DAD_L | (ioMem.DM0DAD_H << 16);
       }
 
-      if(!(DM0CNT_H & 0x0200) || (reason == 0)) {
-        DM0CNT_H &= 0x7FFF;
+      if(!(ioMem.DM0CNT_H & 0x0200) || (reason == 0)) {
+      	ioMem.DM0CNT_H &= 0x7FFF;
         //UPDATE_REG(0xBA, DM0CNT_H);
       }
     }
   }
 
   // DMA 1
-  if((DM1CNT_H & 0x8000) && (dmamask & 2)) {
-    if(((DM1CNT_H >> 12) & 3) == reason) {
+  if((ioMem.DM1CNT_H & 0x8000) && (dmamask & 2)) {
+    if(((ioMem.DM1CNT_H >> 12) & 3) == reason) {
       u32 sourceIncrement = 4;
       u32 destIncrement = 4;
-      switch((DM1CNT_H >> 7) & 3) {
+      switch((ioMem.DM1CNT_H >> 7) & 3) {
       case 0:
         break;
       case 1:
@@ -1983,7 +1977,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         sourceIncrement = 0;
         break;
       }
-      switch((DM1CNT_H >> 5) & 3) {
+      switch((ioMem.DM1CNT_H >> 5) & 3) {
       case 0:
         break;
       case 1:
@@ -2015,34 +2009,34 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         }
 #endif
         doDMA(cpu, dma1Source, dma1Dest, sourceIncrement, destIncrement,
-              DM1CNT_L ? DM1CNT_L : 0x4000,
-              DM1CNT_H & 0x0400);
+        		ioMem.DM1CNT_L ? ioMem.DM1CNT_L : 0x4000,
+        				ioMem.DM1CNT_H & 0x0400);
       }
       gGba.dma.cpuDmaHack = true;
 
-      if(DM1CNT_H & 0x4000) {
+      if(ioMem.DM1CNT_H & 0x4000) {
         IF |= 0x0200;
-        UPDATE_REG(0x202, IF);
-        cpuNextEvent = cpuTotalTicks;
+        //UPDATE_REG(0x202, IF);
+        cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((DM1CNT_H >> 5) & 3) == 3) {
-        dma1Dest = DM1DAD_L | (DM1DAD_H << 16);
+      if(((ioMem.DM1CNT_H >> 5) & 3) == 3) {
+        dma1Dest = ioMem.DM1DAD_L | (ioMem.DM1DAD_H << 16);
       }
 
-      if(!(DM1CNT_H & 0x0200) || (reason == 0)) {
-        DM1CNT_H &= 0x7FFF;
+      if(!(ioMem.DM1CNT_H & 0x0200) || (reason == 0)) {
+      	ioMem.DM1CNT_H &= 0x7FFF;
         //UPDATE_REG(0xC6, DM1CNT_H);
       }
     }
   }
 
   // DMA 2
-  if((DM2CNT_H & 0x8000) && (dmamask & 4)) {
-    if(((DM2CNT_H >> 12) & 3) == reason) {
+  if((ioMem.DM2CNT_H & 0x8000) && (dmamask & 4)) {
+    if(((ioMem.DM2CNT_H >> 12) & 3) == reason) {
       u32 sourceIncrement = 4;
       u32 destIncrement = 4;
-      switch((DM2CNT_H >> 7) & 3) {
+      switch((ioMem.DM2CNT_H >> 7) & 3) {
       case 0:
         break;
       case 1:
@@ -2052,7 +2046,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         sourceIncrement = 0;
         break;
       }
-      switch((DM2CNT_H >> 5) & 3) {
+      switch((ioMem.DM2CNT_H >> 5) & 3) {
       case 0:
         break;
       case 1:
@@ -2085,34 +2079,34 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         }
 #endif
         doDMA(cpu, dma2Source, dma2Dest, sourceIncrement, destIncrement,
-              DM2CNT_L ? DM2CNT_L : 0x4000,
-              DM2CNT_H & 0x0400);
+        		ioMem.DM2CNT_L ? ioMem.DM2CNT_L : 0x4000,
+        				ioMem.DM2CNT_H & 0x0400);
       }
       gGba.dma.cpuDmaHack = true;
 
-      if(DM2CNT_H & 0x4000) {
+      if(ioMem.DM2CNT_H & 0x4000) {
         IF |= 0x0400;
-        UPDATE_REG(0x202, IF);
-        cpuNextEvent = cpuTotalTicks;
+        //UPDATE_REG(0x202, IF);
+        cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((DM2CNT_H >> 5) & 3) == 3) {
-        dma2Dest = DM2DAD_L | (DM2DAD_H << 16);
+      if(((ioMem.DM2CNT_H >> 5) & 3) == 3) {
+        dma2Dest = ioMem.DM2DAD_L | (ioMem.DM2DAD_H << 16);
       }
 
-      if(!(DM2CNT_H & 0x0200) || (reason == 0)) {
-        DM2CNT_H &= 0x7FFF;
+      if(!(ioMem.DM2CNT_H & 0x0200) || (reason == 0)) {
+      	ioMem.DM2CNT_H &= 0x7FFF;
         //UPDATE_REG(0xD2, DM2CNT_H);
       }
     }
   }
 
   // DMA 3
-  if((DM3CNT_H & 0x8000) && (dmamask & 8)) {
-    if(((DM3CNT_H >> 12) & 3) == reason) {
+  if((ioMem.DM3CNT_H & 0x8000) && (dmamask & 8)) {
+    if(((ioMem.DM3CNT_H >> 12) & 3) == reason) {
       u32 sourceIncrement = 4;
       u32 destIncrement = 4;
-      switch((DM3CNT_H >> 7) & 3) {
+      switch((ioMem.DM3CNT_H >> 7) & 3) {
       case 0:
         break;
       case 1:
@@ -2122,7 +2116,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
         sourceIncrement = 0;
         break;
       }
-      switch((DM3CNT_H >> 5) & 3) {
+      switch((ioMem.DM3CNT_H >> 5) & 3) {
       case 0:
         break;
       case 1:
@@ -2143,20 +2137,20 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
       }
 #endif
       doDMA(cpu, dma3Source, dma3Dest, sourceIncrement, destIncrement,
-            DM3CNT_L ? DM3CNT_L : 0x10000,
-            DM3CNT_H & 0x0400);
-      if(DM3CNT_H & 0x4000) {
+      		ioMem.DM3CNT_L ? ioMem.DM3CNT_L : 0x10000,
+      				ioMem.DM3CNT_H & 0x0400);
+      if(ioMem.DM3CNT_H & 0x4000) {
         IF |= 0x0800;
-        UPDATE_REG(0x202, IF);
-        cpuNextEvent = cpuTotalTicks;
+        //UPDATE_REG(0x202, IF);
+        cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((DM3CNT_H >> 5) & 3) == 3) {
-        dma3Dest = DM3DAD_L | (DM3DAD_H << 16);
+      if(((ioMem.DM3CNT_H >> 5) & 3) == 3) {
+        dma3Dest = ioMem.DM3DAD_L | (ioMem.DM3DAD_H << 16);
       }
 
-      if(!(DM3CNT_H & 0x0200) || (reason == 0)) {
-        DM3CNT_H &= 0x7FFF;
+      if(!(ioMem.DM3CNT_H & 0x0200) || (reason == 0)) {
+      	ioMem.DM3CNT_H &= 0x7FFF;
         //UPDATE_REG(0xDE, DM3CNT_H);
       }
     }
@@ -2165,12 +2159,10 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
 
 void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 {
-	auto &cpuNextEvent = cpu.cpuNextEvent;
-	auto &cpuTotalTicks = cpu.cpuTotalTicks;
 	auto &armIrqEnable = cpu.armIrqEnable;
-	auto &IE = cpu.IE;
-	auto &IF = cpu.IF;
-	auto &IME = cpu.IME;
+	auto &IE = ioMem.IE;
+	auto &IF = ioMem.IF;
+	auto &IME = ioMem.IME;
 	auto &busPrefetchCount = cpu.busPrefetchCount;
 	auto &busPrefetch = cpu.busPrefetch;
 	auto &busPrefetchEnable = cpu.busPrefetchEnable;
@@ -2210,13 +2202,13 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
     { // we need to place the following code in { } because we declare & initialize variables in a case statement
       if((value & 7) > 5) {
         // display modes above 0-5 are prohibited
-        DISPCNT = (value & 7);
+      	ioMem.DISPCNT = (value & 7);
       }
-      bool change = (0 != ((DISPCNT ^ value) & 0x80));
-      bool changeBG = (0 != ((DISPCNT ^ value) & 0x0F00));
-      u16 changeBGon = ((~DISPCNT) & value) & 0x0F00; // these layers are being activated
+      bool change = (0 != ((ioMem.DISPCNT ^ value) & 0x80));
+      bool changeBG = (0 != ((ioMem.DISPCNT ^ value) & 0x0F00));
+      u16 changeBGon = ((~ioMem.DISPCNT) & value) & 0x0F00; // these layers are being activated
 
-      DISPCNT = (value & 0xFFF7); // bit 3 can only be accessed by the BIOS to enable GBC mode
+      ioMem.DISPCNT = (value & 0xFFF7); // bit 3 can only be accessed by the BIOS to enable GBC mode
       //UPDATE_REG(0x00, DISPCNT);
 
       if(changeBGon) {
@@ -2229,11 +2221,11 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 
       windowOn = (layerEnable & 0x6000) ? true : false;
       if(change && !((value & 0x80))) {
-        if(!(DISPSTAT & 1)) {
+        if(!(ioMem.DISPSTAT & 1)) {
           lcdTicks = 1008;
           //      VCOUNT = 0;
           //      UPDATE_REG(0x06, VCOUNT);
-          DISPSTAT &= 0xFFFC;
+          ioMem.DISPSTAT &= 0xFFFC;
           //UPDATE_REG(0x04, DISPSTAT);
           CPUCompareVCOUNT(cpu);
         }
@@ -2242,180 +2234,180 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
       CPUUpdateRender();
       // we only care about changes in BG0-BG3
       if(changeBG) {
-      	logMsg("changed bg mode: %d", DISPCNT & 7);
+      	logMsg("changed bg mode: %d", ioMem.DISPCNT & 7);
         CPUUpdateRenderBuffers(false);
       }
       break;
     }
   case 0x04:
-    DISPSTAT = (value & 0xFF38) | (DISPSTAT & 7);
+  	ioMem.DISPSTAT = (value & 0xFF38) | (ioMem.DISPSTAT & 7);
     //UPDATE_REG(0x04, DISPSTAT);
     break;
   case 0x06:
     // not writable
     break;
   case 0x08:
-    BG0CNT = (value & 0xDFCF);
+  	ioMem.BG0CNT = (value & 0xDFCF);
     //UPDATE_REG(0x08, BG0CNT);
     break;
   case 0x0A:
-    BG1CNT = (value & 0xDFCF);
+  	ioMem.BG1CNT = (value & 0xDFCF);
     //UPDATE_REG(0x0A, BG1CNT);
     break;
   case 0x0C:
-    BG2CNT = (value & 0xFFCF);
+  	ioMem.BG2CNT = (value & 0xFFCF);
     //UPDATE_REG(0x0C, BG2CNT);
     break;
   case 0x0E:
-    BG3CNT = (value & 0xFFCF);
+  	ioMem.BG3CNT = (value & 0xFFCF);
     //UPDATE_REG(0x0E, BG3CNT);
     break;
   case 0x10:
-    BG0HOFS = value & 511;
+  	ioMem.BG0HOFS = value & 511;
     //UPDATE_REG(0x10, BG0HOFS);
     break;
   case 0x12:
-    BG0VOFS = value & 511;
+  	ioMem.BG0VOFS = value & 511;
     //UPDATE_REG(0x12, BG0VOFS);
     break;
   case 0x14:
-    BG1HOFS = value & 511;
+  	ioMem.BG1HOFS = value & 511;
     //UPDATE_REG(0x14, BG1HOFS);
     break;
   case 0x16:
-    BG1VOFS = value & 511;
+  	ioMem.BG1VOFS = value & 511;
     //UPDATE_REG(0x16, BG1VOFS);
     break;
   case 0x18:
-    BG2HOFS = value & 511;
+  	ioMem.BG2HOFS = value & 511;
     //UPDATE_REG(0x18, BG2HOFS);
     break;
   case 0x1A:
-    BG2VOFS = value & 511;
+  	ioMem.BG2VOFS = value & 511;
     //UPDATE_REG(0x1A, BG2VOFS);
     break;
   case 0x1C:
-    BG3HOFS = value & 511;
+  	ioMem.BG3HOFS = value & 511;
     //UPDATE_REG(0x1C, BG3HOFS);
     break;
   case 0x1E:
-    BG3VOFS = value & 511;
+  	ioMem.BG3VOFS = value & 511;
     //UPDATE_REG(0x1E, BG3VOFS);
     break;
   case 0x20:
-    BG2PA = value;
+  	ioMem.BG2PA = value;
     //UPDATE_REG(0x20, BG2PA);
     break;
   case 0x22:
-    BG2PB = value;
+  	ioMem.BG2PB = value;
     //UPDATE_REG(0x22, BG2PB);
     break;
   case 0x24:
-    BG2PC = value;
+  	ioMem.BG2PC = value;
     //UPDATE_REG(0x24, BG2PC);
     break;
   case 0x26:
-    BG2PD = value;
+  	ioMem.BG2PD = value;
     //UPDATE_REG(0x26, BG2PD);
     break;
   case 0x28:
-    BG2X_L = value;
+  	ioMem.BG2X_L = value;
     //UPDATE_REG(0x28, BG2X_L);
     gfxBG2Changed |= 1;
     break;
   case 0x2A:
-    BG2X_H = (value & 0xFFF);
+  	ioMem.BG2X_H = (value & 0xFFF);
     //UPDATE_REG(0x2A, BG2X_H);
     gfxBG2Changed |= 1;
     break;
   case 0x2C:
-    BG2Y_L = value;
+  	ioMem.BG2Y_L = value;
     //UPDATE_REG(0x2C, BG2Y_L);
     gfxBG2Changed |= 2;
     break;
   case 0x2E:
-    BG2Y_H = value & 0xFFF;
+  	ioMem.BG2Y_H = value & 0xFFF;
     //UPDATE_REG(0x2E, BG2Y_H);
     gfxBG2Changed |= 2;
     break;
   case 0x30:
-    BG3PA = value;
+  	ioMem.BG3PA = value;
     //UPDATE_REG(0x30, BG3PA);
     break;
   case 0x32:
-    BG3PB = value;
+  	ioMem.BG3PB = value;
     //UPDATE_REG(0x32, BG3PB);
     break;
   case 0x34:
-    BG3PC = value;
+  	ioMem.BG3PC = value;
     //UPDATE_REG(0x34, BG3PC);
     break;
   case 0x36:
-    BG3PD = value;
+  	ioMem.BG3PD = value;
     //UPDATE_REG(0x36, BG3PD);
     break;
   case 0x38:
-    BG3X_L = value;
+  	ioMem.BG3X_L = value;
     //UPDATE_REG(0x38, BG3X_L);
     gfxBG3Changed |= 1;
     break;
   case 0x3A:
-    BG3X_H = value & 0xFFF;
+  	ioMem.BG3X_H = value & 0xFFF;
     //UPDATE_REG(0x3A, BG3X_H);
     gfxBG3Changed |= 1;
     break;
   case 0x3C:
-    BG3Y_L = value;
+  	ioMem.BG3Y_L = value;
     //UPDATE_REG(0x3C, BG3Y_L);
     gfxBG3Changed |= 2;
     break;
   case 0x3E:
-    BG3Y_H = value & 0xFFF;
+  	ioMem.BG3Y_H = value & 0xFFF;
     //UPDATE_REG(0x3E, BG3Y_H);
     gfxBG3Changed |= 2;
     break;
   case 0x40:
-    WIN0H = value;
+  	ioMem.WIN0H = value;
     //UPDATE_REG(0x40, WIN0H);
     CPUUpdateWindow0();
     break;
   case 0x42:
-    WIN1H = value;
+  	ioMem.WIN1H = value;
     //UPDATE_REG(0x42, WIN1H);
     CPUUpdateWindow1();
     break;
   case 0x44:
-    WIN0V = value;
+  	ioMem.WIN0V = value;
     //UPDATE_REG(0x44, WIN0V);
     break;
   case 0x46:
-    WIN1V = value;
+  	ioMem.WIN1V = value;
     //UPDATE_REG(0x46, WIN1V);
     break;
   case 0x48:
-    WININ = value & 0x3F3F;
+  	ioMem.WININ = value & 0x3F3F;
     //UPDATE_REG(0x48, WININ);
     break;
   case 0x4A:
-    WINOUT = value & 0x3F3F;
+  	ioMem.WINOUT = value & 0x3F3F;
     //UPDATE_REG(0x4A, WINOUT);
     break;
   case 0x4C:
-    MOSAIC = value;
+  	ioMem.MOSAIC = value;
     //UPDATE_REG(0x4C, MOSAIC);
     break;
   case 0x50:
-    BLDMOD = value & 0x3FFF;
+  	ioMem.BLDMOD = value & 0x3FFF;
     //UPDATE_REG(0x50, BLDMOD);
-    fxOn = ((BLDMOD>>6)&3) != 0;
+    fxOn = ((ioMem.BLDMOD>>6)&3) != 0;
     CPUUpdateRender();
     break;
   case 0x52:
-    COLEV = value & 0x1F1F;
+  	ioMem.COLEV = value & 0x1F1F;
     //UPDATE_REG(0x52, COLEV);
     break;
   case 0x54:
-    COLY = value & 0x1F;
+  	ioMem.COLY = value & 0x1F;
     //UPDATE_REG(0x54, COLY);
     break;
   case 0x60:
@@ -2450,144 +2442,144 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
     soundEvent(address&0xFF, value);
     break;
   case 0xB0:
-    DM0SAD_L = value;
+  	ioMem.DM0SAD_L = value;
     //UPDATE_REG(0xB0, DM0SAD_L);
     break;
   case 0xB2:
-    DM0SAD_H = value & 0x07FF;
+  	ioMem.DM0SAD_H = value & 0x07FF;
     //UPDATE_REG(0xB2, DM0SAD_H);
     break;
   case 0xB4:
-    DM0DAD_L = value;
+  	ioMem.DM0DAD_L = value;
     //UPDATE_REG(0xB4, DM0DAD_L);
     break;
   case 0xB6:
-    DM0DAD_H = value & 0x07FF;
+  	ioMem.DM0DAD_H = value & 0x07FF;
     //UPDATE_REG(0xB6, DM0DAD_H);
     break;
   case 0xB8:
-    DM0CNT_L = value & 0x3FFF;
+  	ioMem.DM0CNT_L = value & 0x3FFF;
     //UPDATE_REG(0xB8, 0);
     break;
   case 0xBA:
     {
-      bool start = ((DM0CNT_H ^ value) & 0x8000) ? true : false;
+      bool start = ((ioMem.DM0CNT_H ^ value) & 0x8000) ? true : false;
       value &= 0xF7E0;
 
-      DM0CNT_H = value;
+      ioMem.DM0CNT_H = value;
       //UPDATE_REG(0xBA, DM0CNT_H);
 
       if(start && (value & 0x8000)) {
-        dma0Source = DM0SAD_L | (DM0SAD_H << 16);
-        dma0Dest = DM0DAD_L | (DM0DAD_H << 16);
+        dma0Source = ioMem.DM0SAD_L | (ioMem.DM0SAD_H << 16);
+        dma0Dest = ioMem.DM0DAD_L | (ioMem.DM0DAD_H << 16);
         CPUCheckDMA(cpu,0, 1);
       }
     }
     break;
   case 0xBC:
-    DM1SAD_L = value;
+  	ioMem.DM1SAD_L = value;
     //UPDATE_REG(0xBC, DM1SAD_L);
     break;
   case 0xBE:
-    DM1SAD_H = value & 0x0FFF;
+  	ioMem.DM1SAD_H = value & 0x0FFF;
     //UPDATE_REG(0xBE, DM1SAD_H);
     break;
   case 0xC0:
-    DM1DAD_L = value;
+  	ioMem.DM1DAD_L = value;
     //UPDATE_REG(0xC0, DM1DAD_L);
     break;
   case 0xC2:
-    DM1DAD_H = value & 0x07FF;
+  	ioMem.DM1DAD_H = value & 0x07FF;
     //UPDATE_REG(0xC2, DM1DAD_H);
     break;
   case 0xC4:
-    DM1CNT_L = value & 0x3FFF;
+  	ioMem.DM1CNT_L = value & 0x3FFF;
     //UPDATE_REG(0xC4, 0);
     break;
   case 0xC6:
     {
-      bool start = ((DM1CNT_H ^ value) & 0x8000) ? true : false;
+      bool start = ((ioMem.DM1CNT_H ^ value) & 0x8000) ? true : false;
       value &= 0xF7E0;
 
-      DM1CNT_H = value;
+      ioMem.DM1CNT_H = value;
       //UPDATE_REG(0xC6, DM1CNT_H);
 
       if(start && (value & 0x8000)) {
-        dma1Source = DM1SAD_L | (DM1SAD_H << 16);
-        dma1Dest = DM1DAD_L | (DM1DAD_H << 16);
+        dma1Source = ioMem.DM1SAD_L | (ioMem.DM1SAD_H << 16);
+        dma1Dest = ioMem.DM1DAD_L | (ioMem.DM1DAD_H << 16);
         CPUCheckDMA(cpu,0, 2);
       }
     }
     break;
   case 0xC8:
-    DM2SAD_L = value;
+  	ioMem.DM2SAD_L = value;
     //UPDATE_REG(0xC8, DM2SAD_L);
     break;
   case 0xCA:
-    DM2SAD_H = value & 0x0FFF;
+  	ioMem.DM2SAD_H = value & 0x0FFF;
     //UPDATE_REG(0xCA, DM2SAD_H);
     break;
   case 0xCC:
-    DM2DAD_L = value;
+  	ioMem.DM2DAD_L = value;
     //UPDATE_REG(0xCC, DM2DAD_L);
     break;
   case 0xCE:
-    DM2DAD_H = value & 0x07FF;
+  	ioMem.DM2DAD_H = value & 0x07FF;
     //UPDATE_REG(0xCE, DM2DAD_H);
     break;
   case 0xD0:
-    DM2CNT_L = value & 0x3FFF;
+  	ioMem.DM2CNT_L = value & 0x3FFF;
     //UPDATE_REG(0xD0, 0);
     break;
   case 0xD2:
     {
-      bool start = ((DM2CNT_H ^ value) & 0x8000) ? true : false;
+      bool start = ((ioMem.DM2CNT_H ^ value) & 0x8000) ? true : false;
 
       value &= 0xF7E0;
 
-      DM2CNT_H = value;
+      ioMem.DM2CNT_H = value;
       //UPDATE_REG(0xD2, DM2CNT_H);
 
       if(start && (value & 0x8000)) {
-        dma2Source = DM2SAD_L | (DM2SAD_H << 16);
-        dma2Dest = DM2DAD_L | (DM2DAD_H << 16);
+        dma2Source = ioMem.DM2SAD_L | (ioMem.DM2SAD_H << 16);
+        dma2Dest = ioMem.DM2DAD_L | (ioMem.DM2DAD_H << 16);
 
         CPUCheckDMA(cpu,0, 4);
       }
     }
     break;
   case 0xD4:
-    DM3SAD_L = value;
+  	ioMem.DM3SAD_L = value;
     //UPDATE_REG(0xD4, DM3SAD_L);
     break;
   case 0xD6:
-    DM3SAD_H = value & 0x0FFF;
+  	ioMem.DM3SAD_H = value & 0x0FFF;
     //UPDATE_REG(0xD6, DM3SAD_H);
     break;
   case 0xD8:
-    DM3DAD_L = value;
+  	ioMem.DM3DAD_L = value;
     //UPDATE_REG(0xD8, DM3DAD_L);
     break;
   case 0xDA:
-    DM3DAD_H = value & 0x0FFF;
+  	ioMem.DM3DAD_H = value & 0x0FFF;
     //UPDATE_REG(0xDA, DM3DAD_H);
     break;
   case 0xDC:
-    DM3CNT_L = value;
+  	ioMem.DM3CNT_L = value;
     //UPDATE_REG(0xDC, 0);
     break;
   case 0xDE:
     {
-      bool start = ((DM3CNT_H ^ value) & 0x8000) ? true : false;
+      bool start = ((ioMem.DM3CNT_H ^ value) & 0x8000) ? true : false;
 
       value &= 0xFFE0;
 
-      DM3CNT_H = value;
+      ioMem.DM3CNT_H = value;
       //UPDATE_REG(0xDE, DM3CNT_H);
 
       if(start && (value & 0x8000)) {
-        dma3Source = DM3SAD_L | (DM3SAD_H << 16);
-        dma3Dest = DM3DAD_L | (DM3DAD_H << 16);
+        dma3Source = ioMem.DM3SAD_L | (ioMem.DM3SAD_H << 16);
+        dma3Dest = ioMem.DM3DAD_L | (ioMem.DM3DAD_H << 16);
         CPUCheckDMA(cpu,0,8);
       }
     }
@@ -2599,7 +2591,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x102:
     timer0Value = value;
     timerOnOffDelay|=1;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x104:
     timer1Reload = value;
@@ -2608,7 +2600,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x106:
     timer1Value = value;
     timerOnOffDelay|=2;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x108:
     timer2Reload = value;
@@ -2616,7 +2608,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x10A:
     timer2Value = value;
     timerOnOffDelay|=4;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x10C:
     timer3Reload = value;
@@ -2624,7 +2616,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x10E:
     timer3Value = value;
     timerOnOffDelay|=8;
-    cpuNextEvent = cpuTotalTicks;
+    cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
 
 
@@ -2655,7 +2647,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 
   case COMM_JOYCNT:
 	  {
-		  u16 cur = READ16LE(&ioMem[COMM_JOYCNT]);
+		  u16 cur = READ16LE(&ioMem.b[COMM_JOYCNT]);
 
 		  if (value & JOYCNT_RESET)			cur &= ~JOYCNT_RESET;
 		  if (value & JOYCNT_RECV_COMPLETE)	cur &= ~JOYCNT_RECV_COMPLETE;
@@ -2675,25 +2667,25 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 
   case COMM_JOY_TRANS_L:
 	  UPDATE_REG(COMM_JOY_TRANS_L, value);
-	  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem[COMM_JOYSTAT]) | JOYSTAT_SEND);
+	  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) | JOYSTAT_SEND);
 	  break;
   case COMM_JOY_TRANS_H:
 	  UPDATE_REG(COMM_JOY_TRANS_H, value);
 	  break;
 
   case COMM_JOYSTAT:
-	  UPDATE_REG(COMM_JOYSTAT, (READ16LE(&ioMem[COMM_JOYSTAT]) & 0xf) | (value & 0xf0));
+	  UPDATE_REG(COMM_JOYSTAT, (READ16LE(&ioMem.b[COMM_JOYSTAT]) & 0xf) | (value & 0xf0));
 	  break;
 
   case 0x200:
     IE = value & 0x3FFF;
-    UPDATE_REG(0x200, IE);
+    //UPDATE_REG(0x200, IE);
     if ((IME & 1) && (IF & IE) && armIrqEnable)
-      cpuNextEvent = cpuTotalTicks;
+      cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x202:
     IF ^= (value & IF);
-    UPDATE_REG(0x202, IF);
+    //UPDATE_REG(0x202, IF);
     break;
   case 0x204:
     {
@@ -2742,9 +2734,9 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
     break;
   case 0x208:
     IME = value & 1;
-    UPDATE_REG(0x208, IME);
+    //UPDATE_REG(0x208, IME);
     if ((IME & 1) && (IF & IE) && armIrqEnable)
-      cpuNextEvent = cpuTotalTicks;
+      cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x300:
     if(value != 0)
@@ -2786,12 +2778,12 @@ void applyTimer(ARM7TDMI &cpu)
     timer0ClockReload = TIMER_TICKS[timer0Value & 3];
     if(!timer0On && (timer0Value & 0x80)) {
       // reload the counter
-      TM0D = timer0Reload;
-      timer0Ticks = (0x10000 - TM0D) << timer0ClockReload;
+    	ioMem.TM0D = timer0Reload;
+      timer0Ticks = (0x10000 - ioMem.TM0D) << timer0ClockReload;
       //UPDATE_REG(0x100, TM0D);
     }
     timer0On = timer0Value & 0x80 ? true : false;
-    TM0CNT = timer0Value & 0xC7;
+    ioMem.TM0CNT = timer0Value & 0xC7;
     interp_rate();
     //UPDATE_REG(0x102, TM0CNT);
     //    CPUUpdateTicks();
@@ -2801,12 +2793,12 @@ void applyTimer(ARM7TDMI &cpu)
     timer1ClockReload = TIMER_TICKS[timer1Value & 3];
     if(!timer1On && (timer1Value & 0x80)) {
       // reload the counter
-      TM1D = timer1Reload;
-      timer1Ticks = (0x10000 - TM1D) << timer1ClockReload;
+    	ioMem.TM1D = timer1Reload;
+      timer1Ticks = (0x10000 - ioMem.TM1D) << timer1ClockReload;
       //UPDATE_REG(0x104, TM1D);
     }
     timer1On = timer1Value & 0x80 ? true : false;
-    TM1CNT = timer1Value & 0xC7;
+    ioMem.TM1CNT = timer1Value & 0xC7;
     interp_rate();
     //UPDATE_REG(0x106, TM1CNT);
   }
@@ -2815,12 +2807,12 @@ void applyTimer(ARM7TDMI &cpu)
     timer2ClockReload = TIMER_TICKS[timer2Value & 3];
     if(!timer2On && (timer2Value & 0x80)) {
       // reload the counter
-      TM2D = timer2Reload;
-      timer2Ticks = (0x10000 - TM2D) << timer2ClockReload;
+    	ioMem.TM2D = timer2Reload;
+      timer2Ticks = (0x10000 - ioMem.TM2D) << timer2ClockReload;
       //UPDATE_REG(0x108, TM2D);
     }
     timer2On = timer2Value & 0x80 ? true : false;
-    TM2CNT = timer2Value & 0xC7;
+    ioMem.TM2CNT = timer2Value & 0xC7;
     //UPDATE_REG(0x10A, TM2CNT);
   }
   if (timerOnOffDelay & 8)
@@ -2828,12 +2820,12 @@ void applyTimer(ARM7TDMI &cpu)
     timer3ClockReload = TIMER_TICKS[timer3Value & 3];
     if(!timer3On && (timer3Value & 0x80)) {
       // reload the counter
-      TM3D = timer3Reload;
-      timer3Ticks = (0x10000 - TM3D) << timer3ClockReload;
+    	ioMem.TM3D = timer3Reload;
+      timer3Ticks = (0x10000 - ioMem.TM3D) << timer3ClockReload;
       //UPDATE_REG(0x10C, TM3D);
     }
     timer3On = timer3Value & 0x80 ? true : false;
-    TM3CNT = timer3Value & 0xC7;
+    ioMem.TM3CNT = timer3Value & 0xC7;
     //UPDATE_REG(0x10E, TM3CNT);
   }
   cpu.cpuNextEvent = CPUUpdateTicks(cpu);
@@ -2957,21 +2949,21 @@ void CPUReset()
       }
   }
   rtcReset();
+  // clean io memory
+  memset(ioMem.b, 0, 0x400);
   // clean OAM, palette, picture, & vram
   gLcd.resetAll(useBios, skipBios);
-  // clean io memory
-  memset(ioMem, 0, 0x400);
 
-  lineMix = &gLcd.pix[240 * VCOUNT];
+  lineMix = &gLcd.pix[240 * ioMem.VCOUNT];
   gGba.dma.reset();
-  TM0D     = 0x0000;
-  TM0CNT   = 0x0000;
-  TM1D     = 0x0000;
-  TM1CNT   = 0x0000;
-  TM2D     = 0x0000;
-  TM2CNT   = 0x0000;
-  TM3D     = 0x0000;
-  TM3CNT   = 0x0000;
+  ioMem.TM0D     = 0x0000;
+  ioMem.TM0CNT   = 0x0000;
+  ioMem.TM1D     = 0x0000;
+  ioMem.TM1CNT   = 0x0000;
+  ioMem.TM2D     = 0x0000;
+  ioMem.TM2CNT   = 0x0000;
+  ioMem.TM3D     = 0x0000;
+  ioMem.TM3CNT   = 0x0000;
   P1       = 0x03FF;
   gGba.cpu.reset(cpuIsMultiBoot, useBios, skipBios);
 
@@ -3139,33 +3131,31 @@ void CPUInterrupt(ARM7TDMI &cpu)
 
 void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	ARM7TDMI cpu = gGba.cpu;
-	int &cpuNextEvent = cpu.cpuNextEvent;
-	int &cpuTotalTicks = cpu.cpuTotalTicks;
-	bool &holdState = cpu.holdState;
-	bool &armIrqEnable = cpu.armIrqEnable;
+	auto cpu = gGba.cpu;
+	auto &holdState = cpu.holdState;
+	auto &armIrqEnable = cpu.armIrqEnable;
 #ifdef VBAM_USE_SWITICKS
-	int &SWITicks = cpu.SWITicks;
+	auto &SWITicks = cpu.SWITicks;
 #endif
 #ifdef VBAM_USE_IRQTICKS
-	int &IRQTicks = cpu.IRQTicks;
+	auto &IRQTicks = cpu.IRQTicks;
 #endif
-	u16 &IE = cpu.IE;
-	u16 &IF = cpu.IF;
-	u16 &IME = cpu.IME;
+	auto &IE = ioMem.IE;
+	auto &IF = ioMem.IF;
+	auto &IME = ioMem.IME;
   int clockTicks;
   int timerOverflow = 0;
   // variable used by the CPU core
-  cpuTotalTicks = 0;
+  cpu.cpuTotalTicks = 0;
 
   // shuffle2: what's the purpose?
   if(gba_link_enabled)
-    cpuNextEvent = 1;
+    cpu.cpuNextEvent = 1;
 
   bool cpuBreakLoop = false;
-  cpuNextEvent = CPUUpdateTicks(cpu);
-  /*if(cpuNextEvent > ticks)
-    cpuNextEvent = ticks;*/
+  cpu.cpuNextEvent = CPUUpdateTicks(cpu);
+  /*if(cpu.cpuNextEvent > ticks)
+    cpu.cpuNextEvent = ticks;*/
 
   do {
 #ifndef FINAL_VERSION
@@ -3219,10 +3209,10 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
     } else
       clockTicks = CPUUpdateTicks(cpu);
 
-    cpuTotalTicks += clockTicks;
+    cpu.cpuTotalTicks += clockTicks;
 
-    if(cpuTotalTicks >= cpuNextEvent) {
-      int remainingTicks = cpuTotalTicks - cpuNextEvent;
+    if(cpu.cpuTotalTicks >= cpu.cpuNextEvent) {
+      int remainingTicks = cpu.cpuTotalTicks - cpu.cpuNextEvent;
 
 #ifdef VBAM_USE_SWITICKS
       if (SWITicks)
@@ -3233,8 +3223,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
       }
 #endif
 
-      clockTicks = cpuNextEvent;
-      cpuTotalTicks = 0;
+      clockTicks = cpu.cpuNextEvent;
+      cpu.cpuTotalTicks = 0;
       gGba.dma.cpuDmaHack = false;
 
     updateLoop:
@@ -3252,48 +3242,48 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
 
       if(lcdTicks <= 0) {
-        if(DISPSTAT & 1) { // V-BLANK
+        if(ioMem.DISPSTAT & 1) { // V-BLANK
           // if in V-Blank mode, keep computing...
-          if(DISPSTAT & 2) {
+          if(ioMem.DISPSTAT & 2) {
             lcdTicks += 1008;
-            VCOUNT++; //lineMix += 240;
+            ioMem.VCOUNT++; //lineMix += 240;
             //UPDATE_REG(0x06, VCOUNT);
-            DISPSTAT &= 0xFFFD;
+            ioMem.DISPSTAT &= 0xFFFD;
             //UPDATE_REG(0x04, DISPSTAT);
             CPUCompareVCOUNT(cpu);
           } else {
             lcdTicks += 224;
-            DISPSTAT |= 2;
+            ioMem.DISPSTAT |= 2;
             //UPDATE_REG(0x04, DISPSTAT);
-            if(DISPSTAT & 16) {
+            if(ioMem.DISPSTAT & 16) {
               IF |= 2;
-              UPDATE_REG(0x202, IF);
+              //UPDATE_REG(0x202, IF);
             }
           }
 
-          if(VCOUNT >= 228) { //Reaching last line
-            DISPSTAT &= 0xFFFC;
+          if(ioMem.VCOUNT >= 228) { //Reaching last line
+          	ioMem.DISPSTAT &= 0xFFFC;
             //UPDATE_REG(0x04, DISPSTAT);
-            VCOUNT = 0; lineMix = gLcd.pix;
+          	ioMem.VCOUNT = 0; lineMix = gLcd.pix;
             //UPDATE_REG(0x06, VCOUNT);
             CPUCompareVCOUNT(cpu);
           }
         } else {
 
-          if(DISPSTAT & 2) {
+          if(ioMem.DISPSTAT & 2) {
             // if in H-Blank, leave it and move to drawing mode
-            VCOUNT++; lineMix += 240;
+          	ioMem.VCOUNT++; lineMix += 240;
             //UPDATE_REG(0x06, VCOUNT);
 
             lcdTicks += 1008;
-            DISPSTAT &= 0xFFFD;
-            if(VCOUNT == 160) {
+            ioMem.DISPSTAT &= 0xFFFD;
+            if(ioMem.VCOUNT == 160) {
             	// update input
               // TODO: motion sensor
               /*if(cpuEEPROMSensorEnabled)
                 systemUpdateMotionSensor();*/
               //UPDATE_REG(0x130, P1);
-              u16 P1CNT = READ16LE(((u16 *)&ioMem[0x132]));
+              u16 P1CNT = READ16LE(((u16 *)&ioMem.b[0x132]));
               // this seems wrong, but there are cases where the game
               // can enter the stop state without requesting an IRQ from
               // the joypad.
@@ -3302,12 +3292,12 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
                 if(P1CNT & 0x8000) {
                   if(p1 == (P1CNT & 0x3FF)) {
                     IF |= 0x1000;
-                    UPDATE_REG(0x202, IF);
+                    //UPDATE_REG(0x202, IF);
                   }
                 } else {
                   if(p1 & P1CNT) {
                     IF |= 0x1000;
-                    UPDATE_REG(0x202, IF);
+                    //UPDATE_REG(0x202, IF);
                   }
                 }
               }
@@ -3317,12 +3307,12 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
               /*if((cheatsEnabled) && (mastercode==0))
                 remainingTicks += cheatsCheckKeys(cpu, P1^0x3FF, ext);*/
 
-              DISPSTAT |= 1;
-              DISPSTAT &= 0xFFFD;
+              ioMem.DISPSTAT |= 1;
+              ioMem.DISPSTAT &= 0xFFFD;
               //UPDATE_REG(0x04, DISPSTAT);
-              if(DISPSTAT & 0x0008) {
+              if(ioMem.DISPSTAT & 0x0008) {
                 IF |= 1;
-                UPDATE_REG(0x202, IF);
+                //UPDATE_REG(0x202, IF);
               }
               CPUCheckDMA(cpu, 1, 0x0f);
 
@@ -3347,18 +3337,16 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             	{
             	}*/
 
-              (*renderLine)(lineMix);
-              switch(systemColorDepth) {
+              (*renderLine)(lineMix, ioMem);
+              /*switch(systemColorDepth) {
 				#ifdef SUPPORT_PIX_16BIT
                 case 16:
                 {
                 	if(!directColorLookup)
                 	{
-                  //u16 *dest = (u16 *)pix + 240 * (VCOUNT);
-                  //memcpy(dest, lineMix, 240*2);*/
 										for(int x = 0; x < 240; x++)
 										{
-											lineMix[x] = systemColorMap.map16[lineMix[x]];
+											//lineMix[x] = systemColorMap.map16[lineMix[x]];
 										}
                 	}
                 }
@@ -3387,20 +3375,28 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
                 }
                 break;
 				#endif
-              }
+              }*/
             }
-            if(VCOUNT == 159 && likely(renderGfx))
+            if(ioMem.VCOUNT == 159 && likely(renderGfx))
             {
-           		systemDrawScreen();
+            	if(likely(processGfx) && !directColorLookup)
+            	{
+            		for(int x = 0; x < 240*160; x++)
+            		{
+            			gLcd.pix[x] = systemColorMap.map16[gLcd.pix[x]];
+            		}
+            	}
+            	if(likely(renderGfx))
+            		systemDrawScreen();
             }
             // entering H-Blank
-            DISPSTAT |= 2;
+            ioMem.DISPSTAT |= 2;
             //UPDATE_REG(0x04, DISPSTAT);
             lcdTicks += 224;
             CPUCheckDMA(cpu, 2, 0x0f);
-            if(DISPSTAT & 16) {
+            if(ioMem.DISPSTAT & 16) {
               IF |= 2;
-              UPDATE_REG(0x202, IF);
+              //UPDATE_REG(0x202, IF);
             }
           }
         }
@@ -3444,26 +3440,26 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             timer0Ticks += (0x10000 - timer0Reload) << timer0ClockReload;
             timerOverflow |= 1;
             soundTimerOverflow(cpu, 0);
-            if(TM0CNT & 0x40) {
+            if(ioMem.TM0CNT & 0x40) {
               IF |= 0x08;
-              UPDATE_REG(0x202, IF);
+              //UPDATE_REG(0x202, IF);
             }
           }
-          TM0D = 0xFFFF - (timer0Ticks >> timer0ClockReload);
+          ioMem.TM0D = 0xFFFF - (timer0Ticks >> timer0ClockReload);
           //UPDATE_REG(0x100, TM0D);
         }
 
         if(timer1On) {
-          if(TM1CNT & 4) {
+          if(ioMem.TM1CNT & 4) {
             if(timerOverflow & 1) {
-              TM1D++;
-              if(TM1D == 0) {
-                TM1D += timer1Reload;
+            	ioMem.TM1D++;
+              if(ioMem.TM1D == 0) {
+              	ioMem.TM1D += timer1Reload;
                 timerOverflow |= 2;
                 soundTimerOverflow(cpu, 1);
-                if(TM1CNT & 0x40) {
+                if(ioMem.TM1CNT & 0x40) {
                   IF |= 0x10;
-                  UPDATE_REG(0x202, IF);
+                  //UPDATE_REG(0x202, IF);
                 }
               }
               //UPDATE_REG(0x104, TM1D);
@@ -3474,26 +3470,26 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
               timer1Ticks += (0x10000 - timer1Reload) << timer1ClockReload;
               timerOverflow |= 2;
               soundTimerOverflow(cpu, 1);
-              if(TM1CNT & 0x40) {
+              if(ioMem.TM1CNT & 0x40) {
                 IF |= 0x10;
-                UPDATE_REG(0x202, IF);
+                //UPDATE_REG(0x202, IF);
               }
             }
-            TM1D = 0xFFFF - (timer1Ticks >> timer1ClockReload);
+            ioMem.TM1D = 0xFFFF - (timer1Ticks >> timer1ClockReload);
             //UPDATE_REG(0x104, TM1D);
           }
         }
 
         if(timer2On) {
-          if(TM2CNT & 4) {
+          if(ioMem.TM2CNT & 4) {
             if(timerOverflow & 2) {
-              TM2D++;
-              if(TM2D == 0) {
-                TM2D += timer2Reload;
+            	ioMem.TM2D++;
+              if(ioMem.TM2D == 0) {
+              	ioMem.TM2D += timer2Reload;
                 timerOverflow |= 4;
-                if(TM2CNT & 0x40) {
+                if(ioMem.TM2CNT & 0x40) {
                   IF |= 0x20;
-                  UPDATE_REG(0x202, IF);
+                  //UPDATE_REG(0x202, IF);
                 }
               }
               //UPDATE_REG(0x108, TM2D);
@@ -3503,25 +3499,25 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             if(timer2Ticks <= 0) {
               timer2Ticks += (0x10000 - timer2Reload) << timer2ClockReload;
               timerOverflow |= 4;
-              if(TM2CNT & 0x40) {
+              if(ioMem.TM2CNT & 0x40) {
                 IF |= 0x20;
-                UPDATE_REG(0x202, IF);
+                //UPDATE_REG(0x202, IF);
               }
             }
-            TM2D = 0xFFFF - (timer2Ticks >> timer2ClockReload);
+            ioMem.TM2D = 0xFFFF - (timer2Ticks >> timer2ClockReload);
             //UPDATE_REG(0x108, TM2D);
           }
         }
 
         if(timer3On) {
-          if(TM3CNT & 4) {
+          if(ioMem.TM3CNT & 4) {
             if(timerOverflow & 4) {
-              TM3D++;
-              if(TM3D == 0) {
-                TM3D += timer3Reload;
-                if(TM3CNT & 0x40) {
+            	ioMem.TM3D++;
+              if(ioMem.TM3D == 0) {
+              	ioMem.TM3D += timer3Reload;
+                if(ioMem.TM3CNT & 0x40) {
                   IF |= 0x40;
-                  UPDATE_REG(0x202, IF);
+                  //UPDATE_REG(0x202, IF);
                 }
               }
               //UPDATE_REG(0x10C, TM3D);
@@ -3530,12 +3526,12 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
               timer3Ticks -= clockTicks;
             if(timer3Ticks <= 0) {
               timer3Ticks += (0x10000 - timer3Reload) << timer3ClockReload;
-              if(TM3CNT & 0x40) {
+              if(ioMem.TM3CNT & 0x40) {
                 IF |= 0x40;
-                UPDATE_REG(0x202, IF);
+                //UPDATE_REG(0x202, IF);
               }
             }
-            TM3D = 0xFFFF - (timer3Ticks >> timer3ClockReload);
+            ioMem.TM3D = 0xFFFF - (timer3Ticks >> timer3ClockReload);
             //UPDATE_REG(0x10C, TM3D);
           }
         }
@@ -3575,11 +3571,11 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 		  LinkUpdate(clockTicks);
 	  }
 
-      cpuNextEvent = CPUUpdateTicks(cpu);
+      cpu.cpuNextEvent = CPUUpdateTicks(cpu);
 
       if(gGba.dma.cpuDmaTicksToUpdate > 0) {
-        if(gGba.dma.cpuDmaTicksToUpdate > cpuNextEvent)
-          clockTicks = cpuNextEvent;
+        if(gGba.dma.cpuDmaTicksToUpdate > cpu.cpuNextEvent)
+          clockTicks = cpu.cpuNextEvent;
         else
           clockTicks = gGba.dma.cpuDmaTicksToUpdate;
         gGba.dma.cpuDmaTicksToUpdate -= clockTicks;
@@ -3591,7 +3587,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
 	  // shuffle2: what's the purpose?
 	  if(gba_link_enabled)
-  	       cpuNextEvent = 1;
+  	       cpu.cpuNextEvent = 1;
 
       if(IF && (IME & 1) && armIrqEnable) {
         int res = IF & IE;
@@ -3620,11 +3616,11 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             	gGba.intState = true;
 #ifdef VBAM_USE_IRQTICKS
               IRQTicks=7;
-              if (cpuNextEvent> IRQTicks)
-                cpuNextEvent = IRQTicks;
+              if (cpu.cpuNextEvent> IRQTicks)
+                cpu.cpuNextEvent = IRQTicks;
 #else
-							if (cpuNextEvent> 7)
-								cpuNextEvent = 7;
+							if (cpu.cpuNextEvent> 7)
+								cpu.cpuNextEvent = 7;
 #endif
             }
             else
@@ -3648,8 +3644,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
       }
 
       if(remainingTicks > 0) {
-        if(remainingTicks > cpuNextEvent)
-          clockTicks = cpuNextEvent;
+        if(remainingTicks > cpu.cpuNextEvent)
+          clockTicks = cpu.cpuNextEvent;
         else
           clockTicks = remainingTicks;
         remainingTicks -= clockTicks;
@@ -3661,8 +3657,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
       if (gGba.timers.timerOnOffDelay)
           applyTimer(cpu);
 
-      /*if(cpuNextEvent > ticks)
-        cpuNextEvent = ticks;*/
+      /*if(cpu.cpuNextEvent > ticks)
+        cpu.cpuNextEvent = ticks;*/
 
       /*if(ticks <= 0 || cpuBreakLoop)
         break;*/

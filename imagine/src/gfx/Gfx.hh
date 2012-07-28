@@ -8,14 +8,15 @@
 #include <gfx/viewport.hh>
 #include <gfx/Projector.hh>
 #include <util/pixel.h>
+#include <base/Base.hh>
 
 namespace Gfx
 {
 
 // init & control
 CallResult init() ATTRS(cold);
-CallResult setOutputVideoMode(uint x, uint y) ATTRS(cold);
-void resizeDisplay(uint x, uint y);
+CallResult setOutputVideoMode(const Base::Window &win) ATTRS(cold);
+void resizeDisplay(const Base::Window &win);
 
 // commit/sync
 void renderFrame();

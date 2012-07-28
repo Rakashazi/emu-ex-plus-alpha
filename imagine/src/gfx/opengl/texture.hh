@@ -741,24 +741,18 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		var_selfs(tid);
 		pix.init(0, pixmap.format, pixmap.x, pixmap.y, 0);
 		logMsg("creating SurfaceTexture with id %d", tid);
-		surfaceTex = jEnv->NewObject(jSurfaceTextureCls, jSurfaceTexture.m, tid);
+		surfaceTex = eEnv()->NewObject(jSurfaceTextureCls, jSurfaceTexture.m, tid);
 		assert(surfaceTex);
-		surfaceTex = jEnv->NewGlobalRef(surfaceTex);
+		surfaceTex = eEnv()->NewGlobalRef(surfaceTex);
 		//jEnv->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
 
-		nativeWin = ANativeWindow_fromSurfaceTexture(jEnv, surfaceTex);
+		nativeWin = ANativeWindow_fromSurfaceTexture(eEnv(), surfaceTex);
 		assert(nativeWin);
 		logMsg("got native window %p from SurfaceTexture %p", nativeWin, surfaceTex);
 		if(ANativeWindow_setBuffersGeometry(nativeWin, pixmap.x, pixmap.y, winFormat) < 0)
 		{
 			logErr("error in ANativeWindow_setBuffersGeometry");
 		}
-		/*ANativeWindow_Buffer buffer;
-		ANativeWindow_lock(nativeWin, &buffer, 0);
-		ANativeWindow_unlockAndPost(nativeWin);
-		jEnv->CallVoidMethod(surfaceTex, jUpdateTexImage.m);*/
-		/*activeInst = this;
-		didFrameUpdate = 0;*/
 	}
 
 	/*void write()
@@ -798,7 +792,7 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 	{
 		using namespace Base;
 		ANativeWindow_unlockAndPost(nativeWin);
-		jEnv->CallVoidMethod(surfaceTex, jUpdateTexImage.m);
+		jUpdateTexImage(eEnv(), surfaceTex);
 		// texture implicitly bound in updateTexImage()
 		glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tid;
 		//didFrameUpdate = 1;
@@ -810,8 +804,8 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		logMsg("deinit SurfaceTexture, releasing window");
 		ANativeWindow_release(nativeWin);
 		//logMsg("releasing SurfaceTexture");
-		jEnv->CallVoidMethod(surfaceTex, jSurfaceTextureRelease.m);
-		jEnv->DeleteGlobalRef(surfaceTex);
+		jSurfaceTextureRelease(eEnv(), surfaceTex);
+		eEnv()->DeleteGlobalRef(surfaceTex);
 		Gfx::freeTexRef(tid);
 		tid = 0;
 		//activeInst = 0;

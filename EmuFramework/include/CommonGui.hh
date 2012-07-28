@@ -564,9 +564,17 @@ static void initOptions()
 	#endif
 }
 
+static void setupStatusBarInMenu()
+{
+	if(!optionHideStatusBar.isConst)
+		Base::setStatusBarHidden(optionHideStatusBar > 1);
+}
 
-
-
+static void setupStatusBarInGame()
+{
+	if(!optionHideStatusBar.isConst)
+		Base::setStatusBarHidden(optionHideStatusBar);
+}
 
 void removeModalView()
 {
@@ -732,6 +740,7 @@ void startGameFromMenu()
 {
 	applyOSNavStyle();
 	Base::setIdleDisplayPowerSave(0);
+	setupStatusBarInGame();
 	if(!optionFrameSkip.isConst && optionFrameSkip != EmuSystem::optionFrameSkipAuto)
 		Gfx::setVideoInterval((int)optionFrameSkip + 1);
 	logMsg("running game");
@@ -794,6 +803,7 @@ static void restoreMenuFromGame()
 	#endif
 		(int)optionIdleDisplayPowerSave);
 	//Base::setLowProfileNavigation(0);
+	setupStatusBarInMenu();
 	EmuSystem::pause();
 	if(!optionFrameSkip.isConst)
 		Gfx::setVideoInterval(1);
@@ -1331,9 +1341,9 @@ static void mainInitCommon()
 	Gfx::setClear(1);
 
 	#ifdef CONFIG_AUDIO_COREAUDIO_LARGE_BUFFER_FRAMES
-	Audio::hintPcmFramesPerWrite(1600);
+	Audio::setHintPcmFramesPerWrite(1600);
 	#elif defined(CONFIG_AUDIO_COREAUDIO_MED_BUFFER_FRAMES)
-	Audio::hintPcmFramesPerWrite(950);
+	Audio::setHintPcmFramesPerWrite(950);
 	#endif
 
 	initOptions();
@@ -1358,6 +1368,7 @@ static void mainInitCommon()
 	EmuSystem::setupAutoSaveStateTime(optionAutoSaveState.val);
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
+	setupStatusBarInMenu();
 
 	emuView.gameView.init();
 	emuView.disp.init();

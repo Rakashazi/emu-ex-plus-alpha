@@ -41,19 +41,19 @@ CallResult init()
 	return OK;
 }
 
-CallResult setOutputVideoMode(uint x, uint y)
+CallResult setOutputVideoMode(const Base::Window &win)
 {
 	if(forceNoMultisample)
 	{
-		Base::openGLSetOutputVideoMode(x, y);
+		Base::openGLSetOutputVideoMode(win);
 	}
 	else
 	{
-		if(Base::openGLSetMultisampleVideoMode(x, y) != OK)
+		if(Base::openGLSetMultisampleVideoMode(win) != OK)
 		{
 			logMsg("multisample video mode not supported");
 			forceNoMultisample = 1;
-			Base::openGLSetOutputVideoMode(x, y);
+			Base::openGLSetOutputVideoMode(win);
 		}
 	}
 
@@ -61,8 +61,8 @@ CallResult setOutputVideoMode(uint x, uint y)
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // avoid blending with the video layer
 	#endif
 
-	logMsg("resizing viewport to %dx%d", x, y);
-	resizeGLScene(x, y);
+	//logMsg("resizing viewport to %dx%d", x, y);
+	resizeGLScene(win);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // WebOS does clear in base module
 	
 	extensions = (const char*)glGetString(GL_EXTENSIONS);
@@ -165,7 +165,8 @@ CallResult setOutputVideoMode(uint x, uint y)
 
 	glcEnableClientState(GL_VERTEX_ARRAY);
 
-	return(OK);
+	glClear(GL_COLOR_BUFFER_BIT);
+	return OK;
 }
 
 }

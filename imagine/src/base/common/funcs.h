@@ -22,7 +22,7 @@
 	#include <audio/Audio.hh>
 #endif
 
-#ifdef CONFIG_BLUEZ
+#if defined CONFIG_BLUEZ || defined CONFIG_ANDROIDBT
 	#include <bluetooth/sys.hh>
 #endif
 
@@ -41,8 +41,8 @@ namespace Base
 #endif
 
 static fbool triggerGfxResize = 0;
-static uint newXSize = 0, newYSize = 0;
-
+//static uint newXSize = 0, newYSize = 0;
+static Window mainWin, currWin;
 fbool gfxUpdate = 0;
 static void generic_displayNeedsUpdate()
 {
@@ -50,21 +50,24 @@ static void generic_displayNeedsUpdate()
 	gfxUpdate = 1;
 }
 
-static Window mainWin;
 const Window &window()
 {
 	return mainWin;
 }
 
 #ifdef CONFIG_GFX
-static int generic_resizeEvent(uint x, uint y, bool force = 0)
+static int generic_resizeEvent(const Window &win, bool force = 0)
 {
-	newXSize = x; newYSize = y;
-	uint oldX = Gfx::viewPixelWidth(), oldY = Gfx::viewPixelHeight();
+	//newXSize = x; newYSize = y;
+	//uint oldX = Gfx::viewPixelWidth(), oldY = Gfx::viewPixelHeight();
 	// do gfx_resizeDisplay only if the window-size changed
-	if(force || (newXSize != Gfx::viewPixelWidth()) || (newYSize != Gfx::viewPixelHeight()))
+	//if(force || (newXSize != Gfx::viewPixelWidth()) || (newYSize != Gfx::viewPixelHeight()))
+	if(force || currWin != win)
 	{
-		logMsg("resizing display area %dx%d -> %dx%d", oldX, oldY, x, y);
+		logMsg("resizing display area %d:%d:%d:%d -> %d:%d:%d:%d",
+				currWin.rect.x, currWin.rect.y, currWin.rect.x2, currWin.rect.y2,
+				win.rect.x, win.rect.y, win.rect.x2, win.rect.y2);
+		currWin = win;
 		triggerGfxResize = 1;
 		gfxUpdate = 1;
 		return 1;
@@ -84,7 +87,8 @@ static void engineInit()
 	
 	#ifdef CONFIG_GFX
 		doOrExit(Gfx::init());
-		doOrExit(Gfx::setOutputVideoMode(newXSize, newYSize));
+		currWin = mainWin;
+		doOrExit(Gfx::setOutputVideoMode(mainWin));
 	#endif
 
 	#ifdef CONFIG_INPUT
@@ -103,7 +107,7 @@ static uint runEngine()
 	#ifdef CONFIG_GFX
 	if(unlikely(triggerGfxResize))
 	{
-		Gfx::resizeDisplay(newXSize, newYSize);
+		Gfx::resizeDisplay(currWin);
 		triggerGfxResize = 0;
 	}
 	#endif
@@ -147,7 +151,7 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 {
 	switch(type)
 	{
-		#ifdef CONFIG_BLUEZ
+		#if defined CONFIG_BLUEZ || defined CONFIG_ANDROIDBT
 		/*case MSG_INPUT:
 		{
 			Input::onInputEvent(InputEvent(shortArg, intArg & 0xFFFF, intArg2, intArg >> 16));
@@ -168,8 +172,16 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 		bcase MSG_BT_SCAN_STATUS_DELEGATE:
 		{
 			logMsg("got bluetooth adapter status delegate message");
-			BluetoothAdapterSys::defaultAdapter()->statusDelegate().invoke(intArg, intArg2);
+			BluetoothAdapter::defaultAdapter()->statusDelegate().invoke(intArg, intArg2);
 		}
+		#if defined CONFIG_ANDROIDBT
+		bcase MSG_BT_SOCKET_STATUS_DELEGATE:
+		{
+			logMsg("got bluetooth socket status delegate message");
+			auto s = (BluetoothSocket*)intArg2;
+			s->onStatusDelegate().invoke(*s, intArg);
+		}
+		#endif
 		#endif
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		bcase MSG_ORIENTATION_CHANGE:

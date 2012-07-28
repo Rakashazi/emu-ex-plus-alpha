@@ -22,10 +22,10 @@ extern bool cpuEEPROMSensorEnabled;
 static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
 {
 	bool &armState = cpu.armState;
-	reg_pair (&reg)[45] = cpu.reg;
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &reg = cpu.reg;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
 	auto &cpuDmaHack = gGba.dma.cpuDmaHack;
 	auto &cpuDmaLast = gGba.dma.cpuDmaLast;
 #ifdef GBA_LOGGING
@@ -64,11 +64,11 @@ static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
   case 4:
 	  if((address < 0x4000400) && ioReadable[address & 0x3fc]) {
 		  if(ioReadable[(address & 0x3fc) + 2]) {
-			  value = READ32LE(((u32 *)&ioMem[address & 0x3fC]));
+			  value = READ32LE(((u32 *)&ioMem.b[address & 0x3fC]));
 			  if ((address & 0x3fc) == COMM_JOY_RECV_L)
-				  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem[COMM_JOYSTAT]) & ~JOYSTAT_RECV);
+				  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) & ~JOYSTAT_RECV);
 		  } else {
-			  value = READ16LE(((u16 *)&ioMem[address & 0x3fc]));
+			  value = READ16LE(((u16 *)&ioMem.b[address & 0x3fc]));
 		  }
 	  }
 	  else
@@ -79,7 +79,7 @@ static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
     break;
   case 6:
     address = (address & 0x1fffc);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
     {
       value = 0;
       break;
@@ -155,13 +155,13 @@ unreadable:
 
 static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
 {
-	bool &armState = cpu.armState;
-	int &cpuNextEvent = cpu.cpuNextEvent;
-	int &cpuTotalTicks = cpu.cpuTotalTicks;
-	reg_pair (&reg)[45] = cpu.reg;
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &armState = cpu.armState;
+	auto &cpuNextEvent = cpu.cpuNextEvent;
+	auto &cpuTotalTicks = cpu.cpuTotalTicks;
+	auto &reg = cpu.reg;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
 	auto &timer0Value = gGba.timers.timer0Value;
 	auto &timer0On = gGba.timers.timer0On;
 	auto &timer0Ticks = gGba.timers.timer0Ticks;
@@ -219,19 +219,19 @@ static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
   case 4:
     if((address < 0x4000400) && ioReadable[address & 0x3fe])
     {
-      value =  READ16LE(((u16 *)&ioMem[address & 0x3fe]));
+      value =  READ16LE(((u16 *)&ioMem.b[address & 0x3fe]));
       if (((address & 0x3fe)>0xFF) && ((address & 0x3fe)<0x10E))
       {
         if (((address & 0x3fe) == 0x100) && timer0On)
           value = 0xFFFF - ((timer0Ticks-cpuTotalTicks) >> timer0ClockReload);
         else
-          if (((address & 0x3fe) == 0x104) && timer1On && !(TM1CNT & 4))
+          if (((address & 0x3fe) == 0x104) && timer1On && !(ioMem.TM1CNT & 4))
             value = 0xFFFF - ((timer1Ticks-cpuTotalTicks) >> timer1ClockReload);
           else
-            if (((address & 0x3fe) == 0x108) && timer2On && !(TM2CNT & 4))
+            if (((address & 0x3fe) == 0x108) && timer2On && !(ioMem.TM2CNT & 4))
               value = 0xFFFF - ((timer2Ticks-cpuTotalTicks) >> timer2ClockReload);
             else
-              if (((address & 0x3fe) == 0x10C) && timer3On && !(TM3CNT & 4))
+              if (((address & 0x3fe) == 0x10C) && timer3On && !(ioMem.TM3CNT & 4))
                 value = 0xFFFF - ((timer3Ticks-cpuTotalTicks) >> timer3ClockReload);
       }
     }
@@ -242,7 +242,7 @@ static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
     break;
   case 6:
     address = (address & 0x1fffe);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
     {
       value = 0;
       break;
@@ -311,11 +311,11 @@ static inline u16 CPUReadHalfWordSigned(ARM7TDMI &cpu, u32 address)
 
 static inline u8 CPUReadByte(ARM7TDMI &cpu, u32 address)
 {
-	bool &armState = cpu.armState;
-	reg_pair (&reg)[45] = cpu.reg;
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &armState = cpu.armState;
+	auto &reg = cpu.reg;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
 	auto &cpuDmaHack = gGba.dma.cpuDmaHack;
 	auto &cpuDmaLast = gGba.dma.cpuDmaLast;
   switch(address >> 24) {
@@ -338,13 +338,13 @@ static inline u8 CPUReadByte(ARM7TDMI &cpu, u32 address)
     return internalRAM[address & 0x7fff];
   case 4:
     if((address < 0x4000400) && ioReadable[address & 0x3ff])
-      return ioMem[address & 0x3ff];
+      return ioMem.b[address & 0x3ff];
     else goto unreadable;
   case 5:
     return paletteRAM[address & 0x3ff];
   case 6:
     address = (address & 0x1ffff);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
       return 0;
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
@@ -400,9 +400,9 @@ unreadable:
 
 static inline void CPUWriteMemory(ARM7TDMI &cpu, u32 address, u32 value)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
 
 #ifdef GBA_LOGGING
   if(address & 3) {
@@ -451,7 +451,7 @@ static inline void CPUWriteMemory(ARM7TDMI &cpu, u32 address, u32 value)
     break;
   case 0x06:
     address = (address & 0x1fffc);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
       return;
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
@@ -502,9 +502,9 @@ unwritable:
 
 static inline void CPUWriteHalfWord(ARM7TDMI &cpu, u32 address, u16 value)
 {
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
 #ifdef GBA_LOGGING
   if(address & 1) {
     if(systemVerbose & VERBOSE_UNALIGNED_MEMORY) {
@@ -551,7 +551,7 @@ static inline void CPUWriteHalfWord(ARM7TDMI &cpu, u32 address, u16 value)
     break;
   case 6:
     address = (address & 0x1fffe);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
       return;
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
@@ -612,12 +612,12 @@ unwritable:
 
 static inline void CPUWriteByte(ARM7TDMI &cpu, u32 address, u8 b)
 {
-	int &cpuNextEvent = cpu.cpuNextEvent;
-	int &cpuTotalTicks = cpu.cpuTotalTicks;
-	bool &holdState = cpu.holdState;
-	u8 (&paletteRAM)[0x400] = gLcd.paletteRAM;
-	u8 (&vram)[0x20000] = gLcd.vram;
-	u8 (&oam)[0x400] = gLcd.oam;
+	auto &cpuNextEvent = cpu.cpuNextEvent;
+	auto &cpuTotalTicks = cpu.cpuTotalTicks;
+	auto &holdState = cpu.holdState;
+	auto &paletteRAM = gLcd.paletteRAM;
+	auto &vram = gLcd.vram;
+	auto &oam = gLcd.oam;
   switch(address >> 24) {
   case 2:
 #ifdef BKPT_SUPPORT
@@ -692,9 +692,9 @@ static inline void CPUWriteByte(ARM7TDMI &cpu, u32 address, u8 b)
       default: // every other register
         u32 lowerBits = address & 0x3fe;
         if(address & 1) {
-          CPUUpdateRegister(cpu, lowerBits, (READ16LE(&ioMem[lowerBits]) & 0x00FF) | (b << 8));
+          CPUUpdateRegister(cpu, lowerBits, (READ16LE(&ioMem.b[lowerBits]) & 0x00FF) | (b << 8));
         } else {
-          CPUUpdateRegister(cpu, lowerBits, (READ16LE(&ioMem[lowerBits]) & 0xFF00) | b);
+          CPUUpdateRegister(cpu, lowerBits, (READ16LE(&ioMem.b[lowerBits]) & 0xFF00) | b);
         }
       }
       break;
@@ -706,14 +706,14 @@ static inline void CPUWriteByte(ARM7TDMI &cpu, u32 address, u8 b)
     break;
   case 6:
     address = (address & 0x1fffe);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
       return;
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
 
     // no need to switch
     // byte writes to OBJ VRAM are ignored
-    if ((address) < objTilesAddress[((DISPCNT&7)+1)>>2])
+    if ((address) < objTilesAddress[((ioMem.DISPCNT&7)+1)>>2])
     {
 #ifdef BKPT_SUPPORT
       if(freezeVRAM[address])

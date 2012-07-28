@@ -19,7 +19,7 @@
 //#define HAVE_ZLIB_H
 
 // Uncomment if you get errors in the bool section of blargg_common.h
-//#define BLARGG_COMPILER_HAS_BOOL 1
+#define BLARGG_COMPILER_HAS_BOOL 1
 
 // Uncomment to disable out-of-memory exceptions
 //#include <memory>

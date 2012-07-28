@@ -9,6 +9,10 @@
 	#include <audio/config.hh>
 #endif
 
+#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO || defined CONFIG_AUDIO_SDL
+	#define CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+#endif
+
 namespace Audio
 {
 
@@ -34,7 +38,9 @@ static BufferContext *getPlayBuffer(uint wantedFrames) { return 0; }
 static void commitPlayBuffer(BufferContext *buffer, uint frames) {}
 static int frameDelay() { return 0; }
 static int framesFree() { return 0; }
-static void hintPcmFramesPerWrite(uint frames) { }
+static void setHintPcmFramesPerWrite(uint frames) { }
+static void setHintPcmMaxBuffers(uint buffers) { }
+static uint hintPcmMaxBuffers() { return 0; }
 
 #else
 
@@ -50,7 +56,9 @@ BufferContext *getPlayBuffer(uint wantedFrames);
 void commitPlayBuffer(BufferContext *buffer, uint frames);
 int frameDelay();
 int framesFree();
-void hintPcmFramesPerWrite(uint frames);
+void setHintPcmFramesPerWrite(uint frames);
+void setHintPcmMaxBuffers(uint buffers);
+uint hintPcmMaxBuffers();
 
 #endif
 

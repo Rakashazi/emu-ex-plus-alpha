@@ -25,71 +25,42 @@ void softResetHandler(TextMenuItem &, const InputEvent &e)
 	}
 }
 
-struct DifficultyMenuItem : public BoolTextMenuItem
+void colorHandler(BoolMenuItem &item, const InputEvent &e)
 {
-	constexpr DifficultyMenuItem(): BoolTextMenuItem(), left(0) { }
-	bool left;
-	void init(bool left)
-	{
-		var_selfs(left);
-		BoolTextMenuItem::init(left ? "Left (P1) Difficulty" : "Right (P2) Difficulty",
-				"A", "B", left ? p1DiffB : p2DiffB);
-	}
+	item.toggle();
+	vcsColor = item.on;
+}
 
-	void refreshActive()
-	{
-		if(left)
-			set(p1DiffB);
-		else
-			set(p2DiffB);
-	}
-
-	void select(View *view, const InputEvent &e)
-	{
-		toggle();
-		if(left)
-		{
-			p1DiffB = on;
-		}
-		else
-		{
-			p2DiffB = on;
-		}
-	}
-};
-
-struct ColorBWMenuItem : public BoolMenuItem
+void leftDiffHandler(BoolMenuItem &item, const InputEvent &e)
 {
-	constexpr ColorBWMenuItem() { }
-	void init() { BoolMenuItem::init("Color", vcsColor); }
+	item.toggle();
+	p1DiffB = item.on;
+}
 
-	void refreshActive()
-	{
-		set(vcsColor);
-	}
-
-	void select(View *view, const InputEvent &e)
-	{
-		toggle();
-		vcsColor = on;
-	}
-};
+void rightDiffHandler(BoolMenuItem &item, const InputEvent &e)
+{
+	item.toggle();
+	p2DiffB = item.on;
+}
 
 static class VCSSwitchesView : public BaseMenuView
 {
 	MenuItem *item[4] = {nullptr};
 	TextMenuItem softReset;
-	DifficultyMenuItem diff1, diff2;
-	ColorBWMenuItem color;
+	BoolMenuItem diff1, diff2;
+	BoolMenuItem color;
 public:
 	constexpr VCSSwitchesView(): BaseMenuView("Switches")	{ }
 
 	void init(bool highlightFirst)
 	{
 		uint i = 0;
-		diff1.init(1); item[i++] = &diff1;
-		diff2.init(0); item[i++] = &diff2;
-		color.init(); item[i++] = &color;
+		diff1.init("Left (P1) Difficulty", "A", "B", p1DiffB); item[i++] = &diff1;
+		diff1.selectDelegate().bind<&leftDiffHandler>();
+		diff2.init("Right (P2) Difficulty", "A", "B", p2DiffB); item[i++] = &diff2;
+		diff2.selectDelegate().bind<&rightDiffHandler>();
+		color.init("Color", vcsColor); item[i++] = &color;
+		color.selectDelegate().bind<&colorHandler>();
 		softReset.init("Soft Reset"); item[i++] = &softReset;
 		softReset.selectDelegate().bind<&softResetHandler>();
 		assert(i <= sizeofArray(item));
@@ -98,9 +69,9 @@ public:
 
 	void onShow()
 	{
-		diff1.refreshActive();
-		diff2.refreshActive();
-		color.refreshActive();
+		diff1.set(p1DiffB);
+		diff2.set(p2DiffB);
+		color.set(vcsColor);
 	}
 
 } vcsSwitchesView;
@@ -108,27 +79,16 @@ public:
 class VCSMenuView : public MenuView
 {
 private:
-	struct SwitchesMenuItem : public TextMenuItem
+	TextMenuItem switches;
+
+	static void switchesHandler(TextMenuItem &, const InputEvent &e)
 	{
-		void init()
+		if(EmuSystem::gameIsRunning())
 		{
-			TextMenuItem::init("Console Switches");
+			vcsSwitchesView.init(!e.isPointer());
+			viewStack.pushAndShow(&vcsSwitchesView);
 		}
-
-		void refreshActive()
-		{
-			active = EmuSystem::gameIsRunning();
-		}
-
-		void select(View *view, const InputEvent &e)
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				vcsSwitchesView.init(!e.isPointer());
-				viewStack.pushAndShow(&vcsSwitchesView);
-			}
-		}
-	} switches;
+	}
 
 	MenuItem *item[STANDARD_ITEMS + 1];
 
@@ -137,14 +97,15 @@ public:
 	void onShow()
 	{
 		MenuView::onShow();
-		switches.refreshActive();
+		switches.active = EmuSystem::gameIsRunning();
 	}
 
 	void init(bool highlightFirst)
 	{
 		uint items = 0;
 		loadFileBrowserItems(item, items);
-		switches.init(); item[items++] = &switches;
+		switches.init("Console Switches"); item[items++] = &switches;
+		switches.selectDelegate().bind<&switchesHandler>();
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
 		BaseMenuView::init(item, items, highlightFirst);

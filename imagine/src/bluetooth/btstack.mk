@@ -5,10 +5,11 @@ ifndef iOSAppStore
 
 include $(IMAGINE_PATH)/make/package/btstack.mk
 
-configDefs += CONFIG_BLUETOOTH CONFIG_BTSTACK
+include $(imagineSrcDir)/bluetooth/bluetooth.mk
 
-SRC += bluetooth/BtstackBluetoothAdapter.cc bluetooth/BluetoothInputDevScanner.cc \
-bluetooth/Wiimote.cc bluetooth/IControlPad.cc bluetooth/Zeemote.cc
+configDefs += CONFIG_BTSTACK
+
+SRC += bluetooth/BtstackBluetoothAdapter.cc
 
 endif
 

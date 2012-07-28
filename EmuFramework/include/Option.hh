@@ -29,44 +29,48 @@ struct OptionBase
 	virtual bool writeToIO(Io *io) = 0;
 };
 
-template <class T, T (*GET)(), void (*SET)(T)>
-struct OptionMethodFunc
+template <class T>
+bool OptionMethodIsAlwaysValid(T)
+{
+	return 1;
+}
+
+template <class T, bool (&VALID)(T v)>
+struct OptionMethodBase
+{
+	constexpr OptionMethodBase() { }
+	bool isValidVal(T v)
+	{
+		return VALID(v);
+	}
+};
+
+template <class T, T (&GET)(), void (&SET)(T), bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
+struct OptionMethodFunc : public OptionMethodBase<T, VALID>
 {
 	constexpr OptionMethodFunc() { }
 	constexpr OptionMethodFunc(T init) { }
 	T get() const { return GET(); }
 	void set(T v) { SET(v); }
-	bool isValidVal(T v) { return 1; }
 };
 
-template <class T, T &val>
-struct OptionMethodRef
+template <class T, T &val, bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
+struct OptionMethodRef : public OptionMethodBase<T, VALID>
 {
 	constexpr OptionMethodRef() { }
 	constexpr OptionMethodRef(T init) { }
 	T get() const { return val; }
 	void set(T v) { val = v; }
-	bool isValidVal(T v) { return 1; }
 };
 
-template <class T>
-struct OptionMethodVar
+template <class T, bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
+struct OptionMethodVar : public OptionMethodBase<T, VALID>
 {
 	constexpr OptionMethodVar() { }
 	constexpr OptionMethodVar(T init): val(init) { }
 	T val;
 	T get() const { return val; }
 	void set(T v) { val = v; }
-	bool isValidVal(T v) { return 1; }
-};
-
-template <class T, bool (*VALID)(T v)>
-struct OptionMethodValidatedVar : public OptionMethodVar<T>
-{
-	constexpr OptionMethodValidatedVar(): OptionMethodVar<T>() { }
-	constexpr OptionMethodValidatedVar(T init): OptionMethodVar<T>(init) { }
-	void set(T v) { assert(isValidVal(v)); OptionMethodVar<T>::val = v; }
-	bool isValidVal(T v) { return VALID(v); }
 };
 
 template <class V, class SERIALIZED_T = typeof(V().get())>
@@ -144,7 +148,7 @@ public:
 	}
 };
 
-typedef Option<OptionMethodVar<uint32>, uint8> BasicByteOption;
+typedef Option<OptionMethodVar<uint8>, uint8> BasicByteOption;
 
 template <uint16 KEY>
 struct PathOption : public OptionBase
@@ -218,10 +222,10 @@ bool optionIsValidWithMinMax(T val)
 
 bool isValidOption2DO(_2DOrigin val);
 bool isValidOption2DOCenterBtn(_2DOrigin val);
-typedef Option<OptionMethodValidatedVar<_2DOrigin, isValidOption2DO>, uint8> Option2DOrigin;
-typedef Option<OptionMethodValidatedVar<_2DOrigin, isValidOption2DOCenterBtn>, uint8> Option2DOriginC;
+typedef Option<OptionMethodVar<_2DOrigin, isValidOption2DO>, uint8> Option2DOrigin;
+typedef Option<OptionMethodVar<_2DOrigin, isValidOption2DOCenterBtn>, uint8> Option2DOriginC;
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
-typedef OptionMethodValidatedVar<uint32, optionIsValidWithMax<optionRelPointerDecelHigh> > OptionMethodRelPointerDecel;
+typedef OptionMethodVar<uint32, optionIsValidWithMax<optionRelPointerDecelHigh> > OptionMethodRelPointerDecel;
 
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_AUTO_SAVE_STATE = 2, CFGKEY_LAST_DIR = 3, CFGKEY_TOUCH_CONTROL_VIRBRATE = 4,
@@ -246,7 +250,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_OVERLAY_EFFECT = 43, CFGKEY_OVERLAY_EFFECT_LEVEL = 44,
 	CFGKEY_LOW_PROFILE_OS_NAV = 45, CFGKEY_IDLE_DISPLAY_POWER_SAVE = 46,
 	CFGKEY_SHOW_MENU_ICON = 47, CFGKEY_KEEP_BLUETOOTH_ACTIVE = 48,
-	CFGKEY_HIDE_OS_NAV = 49,
+	CFGKEY_HIDE_OS_NAV = 49, CFGKEY_HIDE_STATUS_BAR = 50,
+	CFGKEY_BLUETOOTH_SCAN_CACHE = 51, CFGKEY_SOUND_BUFFERS = 52,
 
 	CFGKEY_KEY_LOAD_GAME = 100, CFGKEY_KEY_OPEN_MENU = 101,
 	CFGKEY_KEY_SAVE_STATE = 102, CFGKEY_KEY_LOAD_STATE = 103,

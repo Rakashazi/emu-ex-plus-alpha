@@ -48,9 +48,9 @@ static bool pcmOpen = 0;
 
 // JNI classes/methods
 static jclass audioTrackCls;
-static JavaInstMethod jAudioTrack, jPlay, jStop, jWrite, /*jSetPlaybackRate,*/ jGetPlaybackHeadPosition,
-	jSetVolumeControlStream, jRelease;
-static JavaClassMethod jGetMinBufferSize;
+static JavaInstMethod<void> jAudioTrack, jPlay, jStop, jRelease;
+static JavaInstMethod<jint> jWrite, jGetPlaybackHeadPosition;//, jSetPlaybackRate;
+static JavaClassMethod<jint> jGetMinBufferSize;
 static jobject audioTrk = nullptr;
 
 static int trkFramesWritten, // total frames written to track since opening
@@ -72,27 +72,24 @@ CallResult openPcm(const PcmFormat &format)
 	//logMsg("opening pcm");
 
 	assert(audioTrk == nullptr);
-	//if(unlikely(!audioTrk))
-	{
-		using namespace AudioFormat;
-		int channelConfig = format.channels == 1 ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO;
-		int audioFormat = (format.sample->bits == 16) ? ENCODING_PCM_16BIT : ENCODING_PCM_8BIT;
+	using namespace AudioFormat;
+	int channelConfig = format.channels == 1 ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO;
+	int audioFormat = (format.sample->bits == 16) ? ENCODING_PCM_16BIT : ENCODING_PCM_8BIT;
 
-		trkBufferSize = 2*jEnv->CallStaticIntMethod(jGetMinBufferSize.c, jGetMinBufferSize.m, format.rate, channelConfig, audioFormat);
-		trkBufferFrames = format.bytesToFrames(trkBufferSize);
-		audioTrk = jEnv->NewObject(audioTrackCls, jAudioTrack.m, AudioManager::STREAM_MUSIC, format.rate,
-			channelConfig, audioFormat, trkBufferSize, AudioTrack::MODE_STREAM);
-		logMsg("created %dHz track with buffer size %d, frames %d", format.rate, trkBufferSize, trkBufferFrames);
-		jthrowable exc = jEnv->ExceptionOccurred();
-		if(exc)
-		{
-			logErr("exception while creating track");
-			audioTrk = nullptr;
-			jEnv->ExceptionClear();
-			return INVALID_PARAMETER;
-		}
-		audioTrk = jEnv->NewGlobalRef(audioTrk);
+	trkBufferSize = 2*jGetMinBufferSize(eEnv(), format.rate, channelConfig, audioFormat);
+	trkBufferFrames = format.bytesToFrames(trkBufferSize);
+	audioTrk = eEnv()->NewObject(audioTrackCls, jAudioTrack.m, AudioManager::STREAM_MUSIC, format.rate,
+		channelConfig, audioFormat, trkBufferSize, AudioTrack::MODE_STREAM);
+	logMsg("created %dHz track with buffer size %d, frames %d", format.rate, trkBufferSize, trkBufferFrames);
+	jthrowable exc = eEnv()->ExceptionOccurred();
+	if(exc)
+	{
+		logErr("exception while creating track");
+		audioTrk = nullptr;
+		eEnv()->ExceptionClear();
+		return INVALID_PARAMETER;
 	}
+	audioTrk = eEnv()->NewGlobalRef(audioTrk);
 	trkFramesWritten = 0;
 	jSamplesFrames = format.bytesToFrames(jSamplesBytes);
 	//logMsg("opened audio @ %dHz", format.rate);
@@ -107,8 +104,8 @@ void closePcm()
 	{
 		logMsg("closing pcm");
 		//jEnv->CallVoidMethod(audioTrk, jStop.m);
-		jEnv->CallVoidMethod(audioTrk, jRelease.m);
-		jEnv->DeleteGlobalRef(audioTrk);
+		jRelease(eEnv(), audioTrk);
+		eEnv()->DeleteGlobalRef(audioTrk);
 		audioTrk = nullptr;
 		isPlaying = 0;
 		mem_zero(pcmFormat);
@@ -144,7 +141,7 @@ static void writeToTrack(uint frames)
 	{
 		//logMsg("trying to write %d frames, %d delay", frames, audio_frameDelay());
 	}
-	int written = jEnv->CallIntMethod(audioTrk, jWrite.m, jSamples, 0, pcmFormat.framesToBytes(frames));
+	int written = jWrite(eEnv(), audioTrk, jSamples, 0, pcmFormat.framesToBytes(frames));
 	trkFramesWritten += pcmFormat.bytesToFrames(written);
 
 	static int debugCount = 0;
@@ -156,7 +153,7 @@ static void writeToTrack(uint frames)
 	if(unlikely(!isPlaying && trkFramesWritten >= trkBufferFrames))
 	{
 		logMsg("starting playback after %d frames written", trkFramesWritten);
-		jEnv->CallVoidMethod(audioTrk, jPlay.m);
+		jPlay(eEnv(), audioTrk);
 		isPlaying = 1;
 	}
 
@@ -171,7 +168,7 @@ void commitPlayBuffer(BufferContext *buffer, uint frames)
 	//logMsg("commit %d frames", frames);
 	assert(frames <= buffer->frames);
 	if(unlikely(jSamplesArrayIsCopy))
-		jEnv->ReleaseByteArrayElements(jSamples, (jbyte*)audioBuffLockCtx.data, JNI_COMMIT);
+		eEnv()->ReleaseByteArrayElements(jSamples, (jbyte*)audioBuffLockCtx.data, JNI_COMMIT);
 	writeToTrack(frames);
 }
 
@@ -181,14 +178,14 @@ void writePcm(uchar *samples, uint framesToWrite)
 		return;
 
 	framesToWrite = IG::min(framesToWrite, jSamplesFrames);
-	jEnv->SetByteArrayRegion(jSamples, 0, pcmFormat.framesToBytes(framesToWrite), (jbyte*)samples);
+	eEnv()->SetByteArrayRegion(jSamples, 0, pcmFormat.framesToBytes(framesToWrite), (jbyte*)samples);
 	writeToTrack(framesToWrite);
 }
 
 int frameDelay()
 {
 	if(likely(audioTrk != 0))
-		return trkFramesWritten - jEnv->CallIntMethod(audioTrk, jGetPlaybackHeadPosition.m);
+		return trkFramesWritten - jGetPlaybackHeadPosition(eEnv(), audioTrk);
 	else
 		return 0;
 }
@@ -206,19 +203,20 @@ void hintPcmFramesPerWrite(uint frames) { }
 CallResult init()
 {
 	//logMsg("init audio");
-	jSetVolumeControlStream.setup(jEnv, jBaseActivityCls, "setVolumeControlStream", "(I)V");
-	jEnv->CallVoidMethod(jBaseActivity, jSetVolumeControlStream.m, AudioManager::STREAM_MUSIC);
-	audioTrackCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/media/AudioTrack"));
-	jAudioTrack.setup(jEnv, audioTrackCls, "<init>", "(IIIIII)V");
-	jGetMinBufferSize.setup(jEnv, audioTrackCls, "getMinBufferSize", "(III)I");
-	jPlay.setup(jEnv, audioTrackCls, "play", "()V");
-	jStop.setup(jEnv, audioTrackCls, "stop", "()V");
-	jWrite.setup(jEnv, audioTrackCls, "write", "([BII)I");
+	JavaInstMethod<void> jSetVolumeControlStream;
+	jSetVolumeControlStream.setup(eEnv(), jBaseActivityCls, "setVolumeControlStream", "(I)V");
+	jSetVolumeControlStream(eEnv(), jBaseActivity, AudioManager::STREAM_MUSIC);
+	audioTrackCls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/media/AudioTrack"));
+	jAudioTrack.setup(eEnv(), audioTrackCls, "<init>", "(IIIIII)V");
+	jGetMinBufferSize.setup(eEnv(), audioTrackCls, "getMinBufferSize", "(III)I");
+	jPlay.setup(eEnv(), audioTrackCls, "play", "()V");
+	jStop.setup(eEnv(), audioTrackCls, "stop", "()V");
+	jWrite.setup(eEnv(), audioTrackCls, "write", "([BII)I");
 	//jSetPlaybackRate.setup(jEnv, audioTrackCls, "setPlaybackRate", "(I)I");
-	jGetPlaybackHeadPosition.setup(jEnv, audioTrackCls, "getPlaybackHeadPosition", "()I");
-	jRelease.setup(jEnv, audioTrackCls, "release", "()V");
-	jSamples = (jbyteArray)jEnv->NewGlobalRef(jEnv->NewByteArray(jSamplesBytes));
-	audioBuffLockCtx.data = jEnv->GetByteArrayElements(jSamples, &jSamplesArrayIsCopy);
+	jGetPlaybackHeadPosition.setup(eEnv(), audioTrackCls, "getPlaybackHeadPosition", "()I");
+	jRelease.setup(eEnv(), audioTrackCls, "release", "()V");
+	jSamples = (jbyteArray)eEnv()->NewGlobalRef(eEnv()->NewByteArray(jSamplesBytes));
+	audioBuffLockCtx.data = eEnv()->GetByteArrayElements(jSamples, &jSamplesArrayIsCopy);
 	if(jSamplesArrayIsCopy) logWarn("jSamples array is a copy");
 	if(!audioBuffLockCtx.data)
 	{

@@ -2,7 +2,7 @@
 #include "Globals.h"
 #include "GBAGfx.h"
 
-void mode0RenderLine(MixColorType *lineMix)
+void mode0RenderLine(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line0[240];
@@ -15,25 +15,31 @@ void mode0RenderLine(MixColorType *lineMix)
 	//gfxClearArray(line3);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   if(layerEnable & 0x0100) {
-    gfxDrawTextScreen(BG0CNT, BG0HOFS, BG0VOFS, line0);
+    gfxDrawTextScreen(ioMem.BG0CNT, ioMem.BG0HOFS, ioMem.BG0VOFS, line0, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0200) {
-    gfxDrawTextScreen(BG1CNT, BG1HOFS, BG1VOFS, line1);
+    gfxDrawTextScreen(ioMem.BG1CNT, ioMem.BG1HOFS, ioMem.BG1VOFS, line1, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0400) {
-    gfxDrawTextScreen(BG2CNT, BG2HOFS, BG2VOFS, line2);
+    gfxDrawTextScreen(ioMem.BG2CNT, ioMem.BG2HOFS, ioMem.BG2VOFS, line2, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0800) {
-    gfxDrawTextScreen(BG3CNT, BG3HOFS, BG3VOFS, line3);
+    gfxDrawTextScreen(ioMem.BG3CNT, ioMem.BG3HOFS, ioMem.BG3VOFS, line3, VCOUNT, MOSAIC, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {
@@ -118,7 +124,7 @@ void mode0RenderLine(MixColorType *lineMix)
   }
 }
 
-void mode0RenderLineNoWindow(MixColorType *lineMix)
+void mode0RenderLineNoWindow(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line0[240];
@@ -131,25 +137,31 @@ void mode0RenderLineNoWindow(MixColorType *lineMix)
 	//gfxClearArray(line3);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   if(layerEnable & 0x0100) {
-    gfxDrawTextScreen(BG0CNT, BG0HOFS, BG0VOFS, line0);
+    gfxDrawTextScreen(ioMem.BG0CNT, ioMem.BG0HOFS, ioMem.BG0VOFS, line0, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0200) {
-    gfxDrawTextScreen(BG1CNT, BG1HOFS, BG1VOFS, line1);
+    gfxDrawTextScreen(ioMem.BG1CNT, ioMem.BG1HOFS, ioMem.BG1VOFS, line1, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0400) {
-    gfxDrawTextScreen(BG2CNT, BG2HOFS, BG2VOFS, line2);
+    gfxDrawTextScreen(ioMem.BG2CNT, ioMem.BG2HOFS, ioMem.BG2VOFS, line2, VCOUNT, MOSAIC, palette);
   }
 
   if(layerEnable & 0x0800) {
-    gfxDrawTextScreen(BG3CNT, BG3HOFS, BG3VOFS, line3);
+    gfxDrawTextScreen(ioMem.BG3CNT, ioMem.BG3HOFS, ioMem.BG3VOFS, line3, VCOUNT, MOSAIC, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {
@@ -297,7 +309,7 @@ void mode0RenderLineNoWindow(MixColorType *lineMix)
   }
 }
 
-void mode0RenderLineAll(MixColorType *lineMix)
+void mode0RenderLineAll(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
 {
 #ifdef GBALCD_TEMP_LINE_BUFFER
 	u32 line0[240];
@@ -310,7 +322,17 @@ void mode0RenderLineAll(MixColorType *lineMix)
 	//gfxClearArray(line3);
 	u32 lineOBJ[240];
 #endif
-  u16 *palette = (u16 *)paletteRAM;
+  const u16 *palette = (u16 *)paletteRAM;
+  const auto BLDMOD = ioMem.BLDMOD;
+  const auto COLEV = ioMem.COLEV;
+  const auto COLY = ioMem.COLY;
+  const auto WIN0V = ioMem.WIN0V;
+  const auto WIN1V = ioMem.WIN1V;
+  const auto WININ = ioMem.WININ;
+  const auto WINOUT = ioMem.WINOUT;
+  const auto VCOUNT = ioMem.VCOUNT;
+  const auto MOSAIC = ioMem.MOSAIC;
+  const auto DISPCNT = ioMem.DISPCNT;
 
   bool inWindow0 = false;
   bool inWindow1 = false;
@@ -335,23 +357,23 @@ void mode0RenderLineAll(MixColorType *lineMix)
   }
 
   if((layerEnable & 0x0100)) {
-    gfxDrawTextScreen(BG0CNT, BG0HOFS, BG0VOFS, line0);
+    gfxDrawTextScreen(ioMem.BG0CNT, ioMem.BG0HOFS, ioMem.BG0VOFS, line0, VCOUNT, MOSAIC, palette);
   }
 
   if((layerEnable & 0x0200)) {
-    gfxDrawTextScreen(BG1CNT, BG1HOFS, BG1VOFS, line1);
+    gfxDrawTextScreen(ioMem.BG1CNT, ioMem.BG1HOFS, ioMem.BG1VOFS, line1, VCOUNT, MOSAIC, palette);
   }
 
   if((layerEnable & 0x0400)) {
-    gfxDrawTextScreen(BG2CNT, BG2HOFS, BG2VOFS, line2);
+    gfxDrawTextScreen(ioMem.BG2CNT, ioMem.BG2HOFS, ioMem.BG2VOFS, line2, VCOUNT, MOSAIC, palette);
   }
 
   if((layerEnable & 0x0800)) {
-    gfxDrawTextScreen(BG3CNT, BG3HOFS, BG3VOFS, line3);
+    gfxDrawTextScreen(ioMem.BG3CNT, ioMem.BG3HOFS, ioMem.BG3VOFS, line3, VCOUNT, MOSAIC, palette);
   }
 
-  gfxDrawSprites(lineOBJ);
-  gfxDrawOBJWin(lineOBJWin);
+  gfxDrawSprites(lineOBJ, VCOUNT, MOSAIC, DISPCNT);
+  gfxDrawOBJWin(lineOBJWin, VCOUNT, DISPCNT);
 
   u32 backdrop;
   if(customBackdropColor == -1) {

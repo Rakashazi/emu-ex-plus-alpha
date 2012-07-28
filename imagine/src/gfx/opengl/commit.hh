@@ -119,7 +119,7 @@ void renderFrame()
 	{
 		//logMsg("animating rotation");
 		projAngleM.update();
-		resizeGLScene(viewPixelWidth_, viewPixelHeight_);
+		resizeGLScene(Base::window());
 		Base::displayNeedsUpdate();
 	}
 

@@ -11,7 +11,6 @@ void disableSurfaceTexture();
 }
 
 // Bluez dlsym functions
-extern bool bluez_loaded;
 CallResult bluez_dl();
 
 extern fbool glSyncHackBlacklisted, glSyncHackEnabled;

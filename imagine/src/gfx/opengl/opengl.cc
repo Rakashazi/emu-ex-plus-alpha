@@ -248,18 +248,19 @@ void setClipRectBounds(int x, int y, int w, int h)
 	switch(rotateView)
 	{
 		bcase VIEW_ROTATE_0:
-			y = (viewPixelHeight() - y) - h;
+			y = (Base::window().rect.ySize() - y) - h;
 		bcase VIEW_ROTATE_90:
-			y = (viewPixelHeight() - y) - h;
+			y = (Base::window().rect.xSize() - y) - h;
 			IG::swap(x, y);
 			IG::swap(w, h);
 		bcase VIEW_ROTATE_270:
+			y += Base::window().rect.x;
 			IG::swap(x, y);
 			IG::swap(w, h);
 			//TODO: VIEW_ROTATE_180
 	}
 	#else
-	y = (viewPixelHeight() - y) - h;
+	y = (Base::window().rect.ySize() - y) - h;
 	#endif
 	//logMsg("setting Scissor %d,%d size %d,%d", x, y, w, h);
 	glScissor(x, y, w, h);

@@ -30,24 +30,26 @@ static JoystickID joystickID[maxJoysticks];
 struct JNIInputDevice
 {
 	static jclass cls;
-	static JavaClassMethod getDeviceIds, getDevice;
-	static JavaInstMethod getName, getSources;
+	static JavaClassMethod<jobject> getDeviceIds, getDevice;
+	static JavaInstMethod<jobject> getName;
+	static JavaInstMethod<jint> getSources;
 	static const jint SOURCE_GAMEPAD = 0x00000401, SOURCE_JOYSTICK = 0x01000010;
 
 	static void jniInit()
 	{
 		using namespace Base;
-		cls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/InputDevice"));
-		getDeviceIds.setup(jEnv, cls, "getDeviceIds", "()[I");
-		getDevice.setup(jEnv, cls, "getDevice", "(I)Landroid/view/InputDevice;");
-		getName.setup(jEnv, cls, "getName", "()Ljava/lang/String;");
-		getSources.setup(jEnv, cls, "getSources", "()I");
+		cls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/view/InputDevice"));
+		getDeviceIds.setup(eEnv(), cls, "getDeviceIds", "()[I");
+		getDevice.setup(eEnv(), cls, "getDevice", "(I)Landroid/view/InputDevice;");
+		getName.setup(eEnv(), cls, "getName", "()Ljava/lang/String;");
+		getSources.setup(eEnv(), cls, "getSources", "()I");
 	}
 };
 
 jclass JNIInputDevice::cls = 0;
-JavaClassMethod JNIInputDevice::getDeviceIds, JNIInputDevice::getDevice;
-JavaInstMethod JNIInputDevice::getName, JNIInputDevice::getSources;
+JavaClassMethod<jobject> JNIInputDevice::getDeviceIds, JNIInputDevice::getDevice;
+JavaInstMethod<jobject> JNIInputDevice::getName;
+JavaInstMethod<jint> JNIInputDevice::getSources;
 
 void setKeyRepeat(bool on)
 {
@@ -65,14 +67,14 @@ void showSoftInput()
 {
 	using namespace Base;
 	logMsg("showing soft input");
-	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 2, 0);
+	postUIThread(eEnv(), jBaseActivity, 2, 0);
 }
 
 void hideSoftInput()
 {
 	using namespace Base;
 	logMsg("hiding soft input");
-	jEnv->CallVoidMethod(jBaseActivity, postUIThread.m, 3, 0);
+	postUIThread(eEnv(), jBaseActivity, 3, 0);
 }
 
 fbool sendInputToIME = 1;
@@ -149,7 +151,10 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 							//logMsg("non-action pointer idx %d", i);
 							pAction = AMOTION_EVENT_ACTION_MOVE;
 						}
-						handleTouchEvent(pAction, AMotionEvent_getX(event, i), AMotionEvent_getY(event, i), AMotionEvent_getPointerId(event, i));
+						handleTouchEvent(pAction,
+							AMotionEvent_getX(event, i) - Base::window().rect.x,
+							AMotionEvent_getY(event, i) - Base::window().rect.y,
+							AMotionEvent_getPointerId(event, i));
 					}
 					return 1;
 				}
@@ -268,6 +273,37 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 	return 0;
 }
 
+void textInputEndedMsg(const char* str, jstring jStr)
+{
+	vKeyboardTextDelegate.invoke(str);
+	vKeyboardTextDelegate.clear();
+	if(jStr)
+	{
+		Base::eEnv()->ReleaseStringUTFChars(jStr, str);
+		Base::eEnv()->DeleteGlobalRef(jStr);
+	}
+}
+
+static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
+{
+	if(vKeyboardTextDelegate.hasCallback())
+	{
+		if(jStr)
+		{
+			const char *str = env->GetStringUTFChars(jStr, 0);
+			logMsg("running text entry callback with text: %s", str);
+			Base::sendTextEntryEnded(str, (jstring)env->NewGlobalRef(jStr));
+		}
+		else
+		{
+			logMsg("canceled text entry callback");
+			Base::sendTextEntryEnded(nullptr, nullptr);
+		}
+	}
+	else
+		vKeyboardTextDelegate.clear();
+}
+
 bool dlLoadAndroidFuncs(void *libandroid)
 {
 	if(Base::androidSDK() < 12)
@@ -291,21 +327,21 @@ CallResult init()
 	{
 		JNIInputDevice::jniInit();
 		using namespace Base;
-		jintArray jID = (jintArray)jEnv->CallStaticObjectMethod(JNIInputDevice::getDeviceIds.c, JNIInputDevice::getDeviceIds.m);
-		jint *id = jEnv->GetIntArrayElements(jID, 0);
+		jintArray jID = (jintArray)JNIInputDevice::getDeviceIds(eEnv());
+		jint *id = eEnv()->GetIntArrayElements(jID, 0);
 		logMsg("checking input devices");
 		uint devId = 0;
-		iterateTimes(jEnv->GetArrayLength(jID), i)
+		iterateTimes(eEnv()->GetArrayLength(jID), i)
 		{
-			jobject dev = jEnv->CallStaticObjectMethod(JNIInputDevice::getDevice.c, JNIInputDevice::getDevice.m, id[i]);
-			jint src = jEnv->CallIntMethod(dev, JNIInputDevice::getSources.m);
-			jstring jName = (jstring)jEnv->CallObjectMethod(dev, JNIInputDevice::getName.m);
+			jobject dev = JNIInputDevice::getDevice(eEnv(), id[i]);
+			jint src = JNIInputDevice::getSources(eEnv(), dev);
+			jstring jName = (jstring)JNIInputDevice::getName(eEnv(), dev);
 			if(!jName)
 			{
 				logWarn("no name from device %d, id %d", i, id[i]);
 				continue;
 			}
-			const char *name = jEnv->GetStringUTFChars(jName, 0);
+			const char *name = eEnv()->GetStringUTFChars(jName, 0);
 			bool isJoystick = bit_isMaskSet(src, JNIInputDevice::SOURCE_GAMEPAD) || bit_isMaskSet(src, JNIInputDevice::SOURCE_JOYSTICK);
 			logMsg("#%d: %s, id %d, source %X, is Gamepad/JS %d", i, name, id[i], src, isJoystick);
 			if(isJoystick && joysticks < maxJoysticks)
@@ -324,9 +360,9 @@ CallResult init()
 				logMsg("Joystick ID %d -> %d", id[i], joystickID[joysticks].devId);
 				joysticks++;
 			}
-			jEnv->ReleaseStringUTFChars(jName, name);
+			eEnv()->ReleaseStringUTFChars(jName, name);
 		}
-		jEnv->ReleaseIntArrayElements(jID, id, 0);
+		eEnv()->ReleaseIntArrayElements(jID, id, 0);
 	}
 	return OK;
 }
