@@ -8,10 +8,6 @@ extern TimedMotion<GC> projAngleM;
 fbool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
 fbool glPointerStateHack = 0, glBrokenNpot = 0;
 
-#ifdef CONFIG_BLUEZ
-	#include "bluez.hh"
-#endif
-
 namespace Base
 {
 
@@ -123,6 +119,7 @@ void setDPI(float dpi)
 
 bool isInputDevPresent(uint type)
 {
+#ifdef CONFIG_INPUT
 	switch(type)
 	{
 		case InputEvent::DEV_KEYBOARD:
@@ -133,6 +130,7 @@ bool isInputDevPresent(uint type)
 		//case InputEvent::DEV_ICONTROLPAD: return Bluetooth::iCPs();
 		#endif
 	}
+#endif
 	return 0;
 }
 
@@ -201,6 +199,7 @@ static void initialScreenSizeSetup(uint w, uint h)
 
 static void setDeviceType(const char *dev)
 {
+	assert(Config::ENV_ANDROID_MINSDK >= 4);
 	#ifdef __ARM_ARCH_7A__
 	//if(strstr(board, "sholes"))
 	if(androidSDK() > 8 && (strstr(dev, "R800") || string_equal(dev, "zeus")))
@@ -256,8 +255,10 @@ static void setHardKeyboardState(int hardKeyboardState)
 	{
 		aHardKeyboardState = hardKeyboardState;
 		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
+#ifdef CONFIG_INPUT
 		const InputDevChange change = { 0, InputEvent::DEV_KEYBOARD, hardKeyboardIsPresent() ? InputDevChange::SHOWN : InputDevChange::HIDDEN };
 		onInputDevChange(change);
+#endif
 	}
 }
 

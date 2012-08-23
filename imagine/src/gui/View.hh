@@ -34,6 +34,19 @@ public:
 	virtual void clearSelection() { } // de-select any items from previous input
 	virtual void onShow() { }
 
+	static View *modalView;
+	typedef Delegate<void ()> RemoveModalViewDelegate;
+	static RemoveModalViewDelegate removeModalViewDel;
+	static RemoveModalViewDelegate &removeModalViewDelegate() { return removeModalViewDel; }
+	static void removeModalView()
+	{
+		assert(modalView);
+		modalView->deinit();
+		modalView = nullptr;
+		removeModalViewDel.invokeSafe();
+		Base::displayNeedsUpdate();
+	}
+
 	static ResourceFace *defaultFace;
 
 	void (*dismissHandler)() = nullptr;

@@ -41,6 +41,14 @@ static const bool envIsWebOS3 =
 	0
 #endif
 ;
+
+static const uint ENV_ANDROID_MINSDK =
+#if CONFIG_ENV_ANDROID_MINSDK
+		CONFIG_ENV_ANDROID_MINSDK
+#else
+		0
+#endif
+;
 }
 
 #if CONFIG_ENV_ANDROID_MINSDK == 4

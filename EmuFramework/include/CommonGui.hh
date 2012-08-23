@@ -16,11 +16,11 @@
 #pragma once
 
 #include <gui/View.hh>
+#include <gui/AlertView.hh>
 #include "EmuSystem.hh"
 #include "Recent.hh"
-#include "AlertView.hh"
 #include "Screenshot.hh"
-#include "ViewStack.hh"
+#include <util/gui/ViewStack.hh>
 #include <VideoImageOverlay.hh>
 #include "EmuOptions.hh"
 #include <EmuInput.hh>
@@ -33,7 +33,6 @@
 
 bool isMenuDismissKey(const InputEvent &e);
 void startGameFromMenu();
-void removeModalView();
 static bool touchControlsApplicable();
 EmuFilePicker fPicker;
 CreditsView credits(creditsViewStr);
@@ -57,7 +56,7 @@ void onRightNavBtn(const InputEvent &e)
 
 BasicNavView viewNav(NavView::OnInputDelegate::create<&onLeftNavBtn>(), NavView::OnInputDelegate::create<&onRightNavBtn>());
 static bool menuViewIsActive = 1;
-View *modalView = 0;
+
 static Rect2<int> emuMenuB, emuFFB;
 MsgPopup popup;
 
@@ -550,16 +549,16 @@ static void initOptions()
 			if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
 				optionTouchCtrlSize.initDefault(1400);
 		#endif
-		optionTouchCtrlTriggerBtnPos.initDefault(TRIGGERS_SPLIT);
 		optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
-		#if !defined(CONFIG_BASE_IOS)
-			optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
+		#ifdef CONFIG_BASE_ANDROID
+			if(!optionTouchCtrlImgRes.isConst)
+				optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
 		#endif
 	#endif
 
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		optionDirectTexture.initDefault(gfx_androidDirectTextureSupported() && gfx_androidDirectTextureSupportWhitelisted());
-		gfx_setAndroidDirectTexture(optionDirectTexture);
+		optionDirectTexture.initDefault(Gfx::supportsAndroidDirectTextureWhitelisted());
+		Gfx::setUseAndroidDirectTexture(optionDirectTexture);
 		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
 	#endif
 }
@@ -576,17 +575,13 @@ static void setupStatusBarInGame()
 		Base::setStatusBarHidden(optionHideStatusBar);
 }
 
-void removeModalView()
+void onRemoveModalView()
 {
-	modalView->deinit();
-	modalView = 0;
 	if(!menuViewIsActive)
 	{
 		startGameFromMenu();
 	}
-	Base::displayNeedsUpdate();
 }
-
 
 static bool touchControlsAreOn = 0;
 
@@ -1248,8 +1243,8 @@ void onDraw()
 		return;
 	}
 
-	if(modalView)
-		modalView->draw();
+	if(View::modalView)
+		View::modalView->draw();
 	else if(menuViewIsActive)
 		viewStack.draw();
 	popup.draw();
@@ -1263,8 +1258,8 @@ static void handleInputEvent(const InputEvent &e)
 	{
 		emuView.inputEvent(e);
 	}
-	else if(modalView)
-		modalView->inputEvent(e);
+	else if(View::modalView)
+		View::modalView->inputEvent(e);
 	else if(menuViewIsActive)
 	{
 		if(e.state == INPUT_PUSHED && e.isDefaultCancelButton())
@@ -1308,8 +1303,8 @@ void onViewChange(GfxViewState *)
 	popup.place();
 	emuView.place();
 	viewStack.place(Gfx::viewportRect());
-	if(modalView)
-		modalView->place(Gfx::viewportRect());
+	if(View::modalView)
+		View::modalView->place(Gfx::viewportRect());
 	logMsg("done view change");
 }
 }
@@ -1340,12 +1335,6 @@ static void mainInitCommon()
 {
 	Gfx::setClear(1);
 
-	#ifdef CONFIG_AUDIO_COREAUDIO_LARGE_BUFFER_FRAMES
-	Audio::setHintPcmFramesPerWrite(1600);
-	#elif defined(CONFIG_AUDIO_COREAUDIO_MED_BUFFER_FRAMES)
-	Audio::setHintPcmFramesPerWrite(950);
-	#endif
-
 	initOptions();
 	EmuSystem::initOptions();
 	#ifdef CONFIG_BASE_ANDROID
@@ -1359,9 +1348,8 @@ static void mainInitCommon()
 	Bluetooth::maxGamepadsPerType = EmuSystem::maxPlayers;
 	#endif
 
-	ResourceFace *faceRes = ResourceFace::loadAsset("Vera.ttf");
-	assert(faceRes);
-	View::defaultFace = faceRes;
+	View::defaultFace = ResourceFace::loadAsset("Vera.ttf");
+	assert(View::defaultFace);
 
 	loadConfigFile();
 	EmuSystem::configAudioRate();
@@ -1389,6 +1377,7 @@ static void mainInitCommon()
 
 	menuIcon.init(getArrowAsset());
 
+	View::removeModalViewDelegate().bind<&onRemoveModalView>();
 	//logMsg("setting up view stack");
 	viewNav.init(View::defaultFace, View::needsBackControl ? getArrowAsset() : 0,
 			!Config::envIsPS3 ? getArrowAsset() : 0, navViewGrad, sizeofArray(navViewGrad));

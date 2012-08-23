@@ -37,7 +37,7 @@ void BtnConfigMenuItem::select(View *view, const InputEvent &e)
 {
 	btnSetView.onSet = this;
 	btnSetView.place(Gfx::viewportRect());
-	modalView = &btnSetView;
+	View::modalView = &btnSetView;
 }
 
 void BtnConfigMenuItem::setButton(const InputEvent &e)

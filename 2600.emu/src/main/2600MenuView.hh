@@ -21,7 +21,7 @@ void softResetHandler(TextMenuItem &, const InputEvent &e)
 		ynAlertView.init("Really Soft Reset Game?", !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&softResetConfirmAlert>();
 		ynAlertView.place(Gfx::viewportRect());
-		modalView = &ynAlertView;
+		View::modalView = &ynAlertView;
 	}
 }
 

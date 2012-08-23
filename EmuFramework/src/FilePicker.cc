@@ -19,12 +19,11 @@
 #include <EmuSystem.hh>
 #include <Recent.hh>
 #include <resource2/image/png/ResourceImagePng.h>
-#include "ViewStack.hh"
+#include <util/gui/ViewStack.hh>
 #include <gui/FSPicker/FSPicker.hh>
 
 extern ViewStack viewStack;
 void startGameFromMenu();
-void removeModalView();
 bool isMenuDismissKey(const InputEvent &e);
 extern MsgPopup popup;
 extern DLList<RecentGameInfo> recentGameList;
@@ -95,7 +94,7 @@ void BenchmarkFilePicker::onSelectFile(const char* name, const InputEvent &e)
 
 void BenchmarkFilePicker::onClose(const InputEvent &e)
 {
-	removeModalView();
+	View::removeModalView();
 }
 
 #undef thisModuleName

@@ -5,7 +5,14 @@ ifndef android_minSDK
 endif
 
 ifeq ($(android_minSDK), 4)
- config_android_noArmv7=1 # only build ARMv6 for older Android OS
+ # only build ARMv6 for older Android OS
+ config_android_noArmv7=1
+ config_android_noX86=1
+endif
+
+ifeq ($(android_minSDK), 5)
+ # only build X86 on Android 2.3+
+ config_android_noX86=1
 endif
 
 ifndef android_targetSDK
@@ -49,11 +56,17 @@ $(android_antProperties) :
 
 endif 
 
-ifneq ($(wildcard res/android/assets),)
+ifneq ($(wildcard res/android/assets-$(android_minSDK)),)
+android_assetsSrcPath := res/android/assets-$(android_minSDK)
+else ifneq ($(wildcard res/android/assets),)
+android_assetsSrcPath := res/android/assets
+endif
+
 android_assetsPath := $(android_targetPath)/assets
+ifdef android_assetsSrcPath
 $(android_assetsPath) :
 	@mkdir -p $(@D)
-	ln -s ../../res/android/assets $@
+	ln -s ../../$(android_assetsSrcPath) $@
 endif
 
 ifneq ($(wildcard res/icons/icon-48.png),)
@@ -138,7 +151,21 @@ $(android_armv7ReleaseSOPath) : android-armv7-release
 
 endif
 
-android-release : $(android_armv6ReleaseSOPath) $(android_armv7ReleaseSOPath)
+ifndef config_android_noX86
+
+android_x86SOPath := $(android_targetPath)/libs-debug/x86/lib$(android_soName).so
+android-x86 :
+	$(MAKE) -j3 -f android-$(android_minSDK)-x86.mk
+$(android_x86SOPath) : android-x86
+
+android_x86ReleaseSOPath := $(android_targetPath)/libs-release/x86/lib$(android_soName).so
+android-x86-release :
+	$(MAKE) -j3 -f android-$(android_minSDK)-x86-release.mk
+$(android_x86ReleaseSOPath) : android-x86-release
+
+endif
+
+android-release : $(android_armv6ReleaseSOPath) $(android_armv7ReleaseSOPath) $(android_x86ReleaseSOPath)
 
 # apks
 
@@ -153,7 +180,7 @@ ifndef android_antTarget
 endif
 
 android_apkPath := $(android_targetPath)/bin-debug/$(android_metadata_project)-$(android_antTarget).apk
-android-apk : $(android_projectDeps) $(android_armv7SOPath) $(android_armv6SOPath)
+android-apk : $(android_projectDeps) $(android_armv7SOPath) $(android_armv6SOPath) $(android_x86SOPath)
 	rm -f $(android_targetPath)/bin-debug/$(android_metadata_project)-$(android_antTarget)-unsigned.apk.d
 	rm -f $(android_targetPath)/bin-debug/$(android_metadata_project).ap_.d
 	rm -f $(android_targetPath)/bin-debug/classes.dex.d
@@ -167,7 +194,7 @@ android-install-only :
 	adb install -r $(android_apkPath)
 
 android_apkReleasePath := $(android_targetPath)/bin-release/$(android_metadata_project)-$(android_antTarget).apk
-android-release-apk : $(android_projectDeps) $(android_armv7ReleaseSOPath) $(android_armv6ReleaseSOPath)
+android-release-apk : $(android_projectDeps) $(android_armv7ReleaseSOPath) $(android_armv6ReleaseSOPath) $(android_x86ReleaseSOPath)
 	rm -f $(android_targetPath)/bin-release/$(android_metadata_project)-$(android_antTarget)-unsigned.apk.d
 	rm -f $(android_targetPath)/bin-release/$(android_metadata_project).ap_.d
 	rm -f $(android_targetPath)/bin-release/classes.dex.d
@@ -191,9 +218,15 @@ android-release-check :
 	@echo "Checking compiled release version of $(android_metadata_project) (SDK $(android_minSDK)) $(android_metadata_version)"
 	@strings $(android_targetPath)/libs-release/*/*.so | grep " $(android_metadata_version)"
 
+android-release-clean:
+	rm -f $(android_armv6ReleaseSOPath) $(android_armv7ReleaseSOPath) $(android_x86ReleaseSOPath)
+	rm -rf build/android-$(android_minSDK)-armv6-release build/android-$(android_minSDK)-armv7-release build/android-$(android_minSDK)-x86-release
+
 .PHONY: android-metadata  \
 android-armv6 android-armv7 android-armv6-release android-armv7-release android-release \
+android-x86 android-x86-release \
 android-apk android-install android-install-only \
 android-release-apk android-release-install android-release-install-only \
 android-release-ready \
-android-check android-release-check
+android-check android-release-check \
+android-release-clean

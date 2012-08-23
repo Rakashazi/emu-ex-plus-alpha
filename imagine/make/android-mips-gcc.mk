@@ -22,5 +22,6 @@ endif
 CPPFLAGS += -D__ANDROID__
 COMPILE_FLAGS += -fno-short-enums
 LDLIBS += -nostartfiles
+noDoubleFloat=1
 
 include $(currPath)/android-gcc.mk

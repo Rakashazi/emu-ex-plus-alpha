@@ -30,7 +30,45 @@
 
 void* android_app_entry(void* param);
 
-ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
+namespace Gfx
+{
+AndroidSurfaceTextureConfig surfaceTextureConf;
+
+void AndroidSurfaceTextureConfig::init(JNIEnv *jEnv)
+{
+	if(Base::androidSDK() >= 14)
+	{
+		logMsg("setting up SurfaceTexture JNI");
+		// Surface members
+		jSurfaceCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/Surface"));
+		jSurface.setup(jEnv, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
+		jSurfaceRelease.setup(jEnv, jSurfaceCls, "release", "()V");
+		// SurfaceTexture members
+		jSurfaceTextureCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/graphics/SurfaceTexture"));
+		jSurfaceTexture.setup(jEnv, jSurfaceTextureCls, "<init>", "(I)V");
+		//jSetDefaultBufferSize.setup(jEnv, jSurfaceTextureCls, "setDefaultBufferSize", "(II)V");
+		jUpdateTexImage.setup(jEnv, jSurfaceTextureCls, "updateTexImage", "()V");
+		jSurfaceTextureRelease.setup(jEnv, jSurfaceTextureCls, "release", "()V");
+		use = 1;
+	}
+}
+
+void AndroidSurfaceTextureConfig::deinit()
+{
+	// TODO
+	jSurfaceTextureCls = nullptr;
+	use = 0;
+}
+
+bool supportsAndroidSurfaceTexture() { return surfaceTextureConf.isSupported(); }
+bool useAndroidSurfaceTexture() { return surfaceTextureConf.isSupported() ? surfaceTextureConf.use : 0; };
+void setUseAndroidSurfaceTexture(bool on)
+{
+	if(surfaceTextureConf.isSupported())
+		surfaceTextureConf.use = on;
+}
+
+}
 
 namespace Base
 {
@@ -186,8 +224,7 @@ static JNIEnv* eJEnv = nullptr;
 static fbool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy;
-jclass jSurfaceTextureCls;
-JavaInstMethod<void> postUIThread, jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
+JavaInstMethod<void> postUIThread;
 static PollWaitTimer timerCallback;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
@@ -294,10 +331,17 @@ void openGLUpdateScreen()
 {
 	/*TimeSys preTime;
 	preTime.setTimeNow();*/
+	/*logMsg("swap buffers, surface %d %d, context %d, display %d", (int)eglGetCurrentSurface(EGL_DRAW), (int)eglGetCurrentSurface(EGL_READ),
+			(int)eglGetCurrentContext(), (int)eglGetCurrentDisplay());*/
 	eglWin.swap();
 	/*TimeSys postTime;
 	postTime.setTimeNow();
 	logMsg("swap took %f", double(postTime - preTime));*/
+}
+
+bool surfaceTextureSupported()
+{
+	return Gfx::surfaceTextureConf.isSupported();
 }
 
 // Private implementation
@@ -440,17 +484,22 @@ static void appResumed()
 	}
 }
 
+static bool statusBarIsHidden = 1; // assume app starts fullscreen
+
 void setStatusBarHidden(uint hidden)
 {
-	static bool isHidden = 1; // assume app starts fullscreen
 	hidden = hidden ? 1 : 0;
-	if(hidden != isHidden)
+	if(hidden != statusBarIsHidden)
 	{
-		isHidden = hidden;
-		logMsg("setting app fullscreen: %d", (int)hidden);
-		ANativeActivity_setWindowFlags(appInstance()->activity,
-				hidden ? AWINDOW_FLAG_FULLSCREEN : 0,
-				hidden ? 0 : AWINDOW_FLAG_FULLSCREEN);
+		statusBarIsHidden = hidden;
+		// changing window full-screen state may cause the window to re-create
+		// so we need to queue it up for later in case other
+		// window messages haven't been handled yet
+		int msg[1] = { APP_CMD_TOGGLE_FULL_SCREEN_WINDOW };
+		if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
+		{
+			logErr("unable to write toggle full screen message to pipe: %s", strerror(errno));
+		}
 	}
 }
 
@@ -472,7 +521,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			eglWin.init(app->window);
 			int w = ANativeWindow_getWidth(app->window);
 			int h = ANativeWindow_getHeight(app->window);
-			logMsg("window init, size %d,%d", w, h);
+			logMsg("done window init, size %d,%d", w, h);
 			if(!engineIsInit)
 			{
 				nativeInit(w, h);
@@ -481,7 +530,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 				resizeEvent(mainWin);
 		}
 		bcase APP_CMD_TERM_WINDOW:
-		//logMsg("got APP_CMD_TERM_WINDOW");
+		logMsg("window destroyed");
 		pthread_mutex_lock(&app->mutex);
 		eglWin.destroySurface();
 		pthread_cond_signal(&app->cond);
@@ -544,6 +593,22 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 				runEngine();
 			}
 		}*/
+		bcase APP_CMD_TOGGLE_FULL_SCREEN_WINDOW:
+		{
+			logMsg("setting app window fullscreen: %d", (int)statusBarIsHidden);
+			ANativeActivity_setWindowFlags(appInstance()->activity,
+				statusBarIsHidden ? AWINDOW_FLAG_FULLSCREEN : 0,
+				statusBarIsHidden ? 0 : AWINDOW_FLAG_FULLSCREEN);
+			sleepMs(50); // OS BUG: setting flags may cause instant destruction of the window,
+				// including in mid EGL swap. Depending on the device driver, this will either
+				// be ignored, create visual artifacts, or crash the app.
+				// There doesn't seem to be any reliable method to sync the completion of
+				// setWindowFlags in the Activity thread and there's no way to know
+				// whether a particular call will actually re-create the window.
+				// Thus, the only "solution" at the moment is to sleep for couple frames
+				// and hope the app will find out about any window destruction
+				// before another EGL swap
+		}
 		bcase APP_CMD_CONFIG_CHANGED:
 		configChange(app, AConfiguration_getKeysHidden(app->config),
 				AConfiguration_getNavHidden(app->config),
@@ -561,11 +626,13 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		bcase APP_CMD_INPUT_CHANGED:
 		bcase APP_CMD_TEXT_ENTRY_ENDED:
 		{
+			#ifdef CONFIG_INPUT
 			const char *str;
 			read(app->msgread, &str, sizeof(str));
 			jstring jStr;
 			read(app->msgread, &jStr, sizeof(jStr));
 			Input::textInputEndedMsg(str, jStr);
+			#endif
 		}
 		#ifdef CONFIG_ANDROIDBT
 		bcase MSG_BT_DATA:
@@ -607,16 +674,6 @@ static int getPollTimeout()
 	/*if(pollTimeout == -1)
 		logMsg("will poll for next event");*/
 	return pollTimeout;
-}
-
-bool hasSurfaceTexture()
-{
-	return ANativeWindow_fromSurfaceTexture != nullptr;
-}
-
-void disableSurfaceTexture()
-{
-	ANativeWindow_fromSurfaceTexture = nullptr;
 }
 
 /*static void JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
@@ -665,21 +722,7 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 		postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
 	}
 
-	if(Base::androidSDK() >= 14)
-	{
-		//logMsg("setting up SurfaceView JNI");
-		// Surface members
-		//jSurfaceCls = jEnv->FindClass("android/view/Surface");
-		//jSurface.setup(jEnv, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-		//jSurfaceRelease.setup(jEnv, jSurfaceCls, "release", "()V");
-
-		// SurfaceTexture members
-		jSurfaceTextureCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/graphics/SurfaceTexture"));
-		jSurfaceTexture.setup(jEnv, jSurfaceTextureCls, "<init>", "(I)V");
-		//jSetDefaultBufferSize.setup(jEnv, jSurfaceTextureCls, "setDefaultBufferSize", "(II)V");
-		jUpdateTexImage.setup(jEnv, jSurfaceTextureCls, "updateTexImage", "()V");
-		jSurfaceTextureRelease.setup(jEnv, jSurfaceTextureCls, "release", "()V");
-	}
+	Gfx::surfaceTextureConf.init(jEnv);
 
 	// Display members
 	jclass jDisplayCls = jEnv->FindClass("android/view/Display");
@@ -709,15 +752,6 @@ static void dlLoadFuncs()
 	{
 		logWarn("unable to dlopen libandroid.so");
 		return;
-	}
-
-	if(Base::androidSDK() >= 14)
-	{
-		if((ANativeWindow_fromSurfaceTexture = (ANativeWindow* (*)(JNIEnv*, jobject))dlsym(libandroid, "ANativeWindow_fromSurfaceTexture"))
-				== 0)
-		{
-			logWarn("ANativeWindow_fromSurfaceTexture not found");
-		}
 	}
 
 	#ifdef CONFIG_INPUT_ANDROID
@@ -772,16 +806,16 @@ void android_main(struct android_app* state)
 		if(!gfxUpdate)
 			logMsg("out of event loop without gfxUpdate, returned %d", ident);
 
-		if(unlikely(appState != APP_RUNNING))
+		if(unlikely(appState != APP_RUNNING || !eglWin.isDrawable()))
 		{
 			if(gfxUpdate)
 				logMsg("app gfx update halted");
 			gfxUpdate = 0; // halt screen updates
+			if(!eglWin.isDrawable())
+				logWarn("EGL surface not drawable");
 		}
 		else
 		{
-			if(!eglWin.isDrawable())
-				logMsg("drawing without EGL surface");
 			/*TimeSys prevTime = realTime;
 			realTime.setTimeNow();
 			logMsg("%f since last screen update", double(realTime - prevTime));*/

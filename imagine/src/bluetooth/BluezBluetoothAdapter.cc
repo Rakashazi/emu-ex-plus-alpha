@@ -24,6 +24,11 @@
 #include <errno.h>
 #include <util/collection/DLList.hh>
 
+#ifdef CONFIG_BASE_ANDROID
+// Bluez dlsym functions
+CLINK CallResult bluez_dl();
+#endif
+
 static BluezBluetoothAdapter defaultBluezAdapter;
 uint scanSecs = 4;
 

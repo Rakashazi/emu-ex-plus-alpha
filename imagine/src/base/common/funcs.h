@@ -28,6 +28,8 @@
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
+
+#include <sys/resource.h>
 #endif
 
 namespace Base
@@ -41,7 +43,6 @@ namespace Base
 #endif
 
 static fbool triggerGfxResize = 0;
-//static uint newXSize = 0, newYSize = 0;
 static Window mainWin, currWin;
 fbool gfxUpdate = 0;
 static void generic_displayNeedsUpdate()
@@ -58,10 +59,7 @@ const Window &window()
 #ifdef CONFIG_GFX
 static int generic_resizeEvent(const Window &win, bool force = 0)
 {
-	//newXSize = x; newYSize = y;
-	//uint oldX = Gfx::viewPixelWidth(), oldY = Gfx::viewPixelHeight();
 	// do gfx_resizeDisplay only if the window-size changed
-	//if(force || (newXSize != Gfx::viewPixelWidth()) || (newYSize != Gfx::viewPixelHeight()))
 	if(force || currWin != win)
 	{
 		logMsg("resizing display area %d:%d:%d:%d -> %d:%d:%d:%d",
@@ -81,6 +79,18 @@ const char copyright[] = "Imagine is Copyright 2010, 2011 Robert Broglia";
 static void engineInit() ATTRS(cold);
 static void engineInit()
 {
+	#if defined(__unix__)
+		struct rlimit stack;
+		getrlimit(RLIMIT_STACK, &stack);
+		stack.rlim_cur = 16 * 1024 * 1024;
+		assert(stack.rlim_cur <= stack.rlim_max);
+		setrlimit(RLIMIT_STACK, &stack);
+		#ifndef NDEBUG
+		getrlimit(RLIMIT_STACK, &stack);
+		logMsg("stack limit %u:%u", (uint)stack.rlim_cur, (uint)stack.rlim_max);
+		#endif
+	#endif
+
 	logDMsg("%s", copyright);
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
 	mem_init();

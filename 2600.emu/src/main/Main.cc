@@ -605,6 +605,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 	mainInitCommon();
 	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 	EmuSystem::pcmFormat.channels = 1;

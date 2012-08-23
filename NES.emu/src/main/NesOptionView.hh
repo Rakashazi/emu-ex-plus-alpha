@@ -12,12 +12,12 @@ public:
 	{
 		snprintf(fdsBiosPath, sizeof(fdsBiosPath), "%s/%s", FsSys::workDir(), name);
 		logMsg("set fds bios %s", fdsBiosPath);
-		removeModalView();
+		View::removeModalView();
 	}
 
 	static void onClose(const InputEvent &e)
 	{
-		removeModalView();
+		View::removeModalView();
 	}
 
 	static void init(bool highlightFirst)

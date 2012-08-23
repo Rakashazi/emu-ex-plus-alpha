@@ -18,7 +18,6 @@
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/gui/BaseMenuView.hh>
 
-void removeModalView();
 void startGameFromMenu();
 bool isMenuDismissKey(const InputEvent &e);
 
@@ -133,7 +132,6 @@ public:
 };
 
 extern MultiChoiceView multiChoiceView;
-extern View *modalView;
 
 struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 {
@@ -148,6 +146,6 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	{
 		multiChoiceView.init(this, !e.isPointer());
 		multiChoiceView.place(Gfx::viewportRect());
-		modalView = &multiChoiceView;
+		View::modalView = &multiChoiceView;
 	}
 };

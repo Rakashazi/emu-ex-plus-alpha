@@ -59,6 +59,8 @@ int framesFree();
 void setHintPcmFramesPerWrite(uint frames);
 void setHintPcmMaxBuffers(uint buffers);
 uint hintPcmMaxBuffers();
+void setHintStrictUnderrunCheck(bool on);
+bool hintStrictUnderrunCheck();
 
 #endif
 

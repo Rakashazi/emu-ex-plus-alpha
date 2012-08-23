@@ -1,5 +1,7 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
 include $(currPath)/iOS-gcc.mk
+ARCH := arm
+SUBARCH := armv7
 
 ifndef targetSuffix
  targetSuffix := -armv7

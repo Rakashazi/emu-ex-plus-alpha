@@ -40,12 +40,12 @@ public:
 				}*/
 		}
 
-		removeModalView();
+		View::removeModalView();
 	}
 
 	void onClose(const InputEvent &e)
 	{
-		removeModalView();
+		View::removeModalView();
 	}
 
 	/*void inputEvent(const InputEvent &e)

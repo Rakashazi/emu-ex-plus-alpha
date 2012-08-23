@@ -130,7 +130,7 @@ static void android_app_pre_exec_cmd(struct android_app* android_app, uint32 cmd
             break;
 
         case APP_CMD_TERM_WINDOW:
-        	logMsg("APP_CMD_TERM_WINDOW");
+        	//logMsg("APP_CMD_TERM_WINDOW");
             pthread_cond_broadcast(&android_app->cond);
             break;
 
@@ -162,7 +162,7 @@ static void android_app_pre_exec_cmd(struct android_app* android_app, uint32 cmd
 static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cmd) {
     switch (cmd) {
         case APP_CMD_TERM_WINDOW:
-        	logMsg("APP_CMD_TERM_WINDOW");
+        	//logMsg("APP_CMD_TERM_WINDOW");
             pthread_mutex_lock(&android_app->mutex);
             android_app->window = NULL;
             pthread_cond_broadcast(&android_app->cond);
@@ -203,12 +203,16 @@ void process_input(struct android_app* app)
 	if(AInputQueue_getEvent(app->inputQueue, &event) >= 0)
 	{
 		//LOGI("New input event: type=%d\n", AInputEvent_getType(event));
+#ifdef CONFIG_INPUT
 		if(Input::sendInputToIME && AInputQueue_preDispatchEvent(app->inputQueue, event))
 		{
 			return;
 		}
 		int32_t handled = Input::onInputEvent(app, event);
 		AInputQueue_finishEvent(app->inputQueue, event, handled);
+#else
+		AInputQueue_finishEvent(app->inputQueue, event, 0);
+#endif
 	}
 	else
 	{

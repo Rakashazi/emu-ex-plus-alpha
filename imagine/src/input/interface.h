@@ -347,7 +347,7 @@ namespace ICade
 
 static bool isVolumeKey(InputButton event)
 {
-	#if defined(CONFIG_BASE_SDL) || !defined(INPUT_SUPPORTS_KEYBOARD)
+	#if defined CONFIG_BASE_SDL || defined CONFIG_BASE_MACOSX || !defined INPUT_SUPPORTS_KEYBOARD
 		return 0;
 	#else
 		return event == Key::VOL_UP || event == Key::VOL_DOWN;

@@ -1115,6 +1115,8 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
+
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
 	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
@@ -1198,7 +1200,7 @@ CallResult onInit()
 		ynAlertView.init(InstallMSXSystem::installMessage(), keyBasedInputIsPresent());
 		ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();
 		ynAlertView.place(Gfx::viewportRect());
-		modalView = &ynAlertView;
+		View::modalView = &ynAlertView;
 	}
 
 	Gfx::onViewChange();

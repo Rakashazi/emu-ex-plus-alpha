@@ -24,19 +24,17 @@ $(GEO)/memory.c $(GEO)/neoboot.c $(GEO)/neocrypt.c $(GEO)/pd4990a.c $(GEO)/resfi
 $(GEO)/timer.c $(GEO)/video.c $(GEO)/unzip.c
 
 ifeq ($(ENV), webos)
- use68KCyclone := 1
  LDLIBS += -lpthread
 endif
-ifeq ($(ENV), android)
- use68KCyclone := 1
-endif
 
-ifeq ($(use68KCyclone), 1)
- SRC += $(GEO)/video_arm.s
- SRC += $(GEO)/cyclone_interf.c $(GEO)/cyclone/Cyclone.s
-else ifeq ($(ENV), iOS)
- SRC += $(GEO)/cyclone_interf.c $(GEO)/cyclone/Cyclone-apple.s
- #LDFLAGS += -Wl,-no_pie
+ifeq ($(ARCH), arm)
+ ifeq ($(ENV), iOS)
+  SRC += $(GEO)/cyclone_interf.c $(GEO)/cyclone/Cyclone-apple.s
+  #LDFLAGS += -Wl,-no_pie
+ else
+  SRC += $(GEO)/video_arm.s
+  SRC += $(GEO)/cyclone_interf.c $(GEO)/cyclone/Cyclone.s
+ endif
 else
  SRC += $(GEO)/generator68k_interf.c \
  $(GEO)/generator68k/cpu68k.c $(GEO)/generator68k/reg68k.c $(GEO)/generator68k/diss68k.c $(GEO)/generator68k/tab68k.c \

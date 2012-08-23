@@ -9,7 +9,7 @@ BASE_CFLAGS := -std=gnu99 -fno-common
 BASE_CXXFLAGS = -Woverloaded-virtual $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
-ifeq ($(ENV), android) # exceptions off by default on Android
+ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches
  BASE_CXXFLAGS += $(if $(cxxExceptions),-fexceptions,)
 endif
 

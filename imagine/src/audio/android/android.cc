@@ -198,7 +198,9 @@ int framesFree()
 		return 0;
 }
 
-void hintPcmFramesPerWrite(uint frames) { }
+void setHintPcmFramesPerWrite(uint frames) { }
+void setHintPcmMaxBuffers(uint maxBuffers) { }
+uint hintPcmMaxBuffers() { return 0; }
 
 CallResult init()
 {

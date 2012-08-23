@@ -15,7 +15,7 @@
 
 #define thisModuleName "creditsView"
 #include <CreditsView.hh>
-#include "ViewStack.hh"
+#include <util/gui/ViewStack.hh>
 extern ViewStack viewStack;
 
 void CreditsView::draw ()

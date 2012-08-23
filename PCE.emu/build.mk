@@ -28,7 +28,6 @@ mednafen/video/surface.cpp mednafen/general.cpp mednafen/error.cpp mednafen/math
 COMPRESS_SRC := mednafen/compress/blz.c mednafen/compress/minilzo.c mednafen/compress/quicklz.c
 SRC += $(MDFN_SRC) $(COMPRESS_SRC)
 # mednafen/pce_fast/hes.cpp mednafen/memory.cpp mednafen/error.cpp mednafen/general.cpp
-# mednafen/cdrom/cdromfile.cpp
 
 include $(IMAGINE_PATH)/make/package/libvorbis.mk
 include $(IMAGINE_PATH)/make/package/libsndfile.mk

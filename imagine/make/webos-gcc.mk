@@ -1,4 +1,5 @@
 ENV := webos
+ARCH := arm
 ifeq ($(origin CC), default)
 	CC := arm-none-linux-gnueabi-gcc
 endif

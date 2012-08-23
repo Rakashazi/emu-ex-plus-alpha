@@ -1,8 +1,8 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
-ARCH := armv6
+SUBARCH := armv6
 android_abi := armeabi
 
-android_cpuFlags := -march=armv5te -mtune=xscale -msoft-float
+android_cpuFlags = -march=armv5te -mtune=xscale -msoft-float
 
 ifdef arm_fpu
  android_cpuFlags += -mfpu=$(arm_fpu)

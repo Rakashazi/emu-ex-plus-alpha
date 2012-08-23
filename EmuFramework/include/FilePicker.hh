@@ -20,7 +20,6 @@
 
 bool isMenuDismissKey(const InputEvent &e);
 void startGameFromMenu();
-void removeModalView();
 
 class EmuFilePicker : public FSPicker
 {

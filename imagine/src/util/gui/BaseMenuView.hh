@@ -22,11 +22,11 @@
 class BaseMenuView : public View, public GuiTableSource
 {
 public:
-	constexpr BaseMenuView() : item(0), items(0) { }
-	constexpr BaseMenuView(const char *name) : View(name), item(0), items(0) { }
+	constexpr BaseMenuView() { }
+	constexpr BaseMenuView(const char *name) : View(name) { }
 
-	MenuItem **item;
-	uint items;
+	MenuItem **item = nullptr;
+	uint items = 0;
 	Rect2<int> viewFrame;
 	ScrollableGuiTable1D tbl;
 	//FadeViewAnimation<10> fade;

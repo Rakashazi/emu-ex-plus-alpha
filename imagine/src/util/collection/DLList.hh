@@ -159,7 +159,7 @@ public:
 		newN->d = d; // copy the data
 
 		size++;
-		logMsg("added %p to list, size %d", &d, size);
+		//logMsg("added %p to list, size %d", &d, size);
 		return 1;
 	}
 
@@ -216,7 +216,7 @@ public:
 
 		free.add(n);
 		size--;
-		logMsg("removed node %p, size %d", n, size);
+		//logMsg("removed node %p, size %d", n, size);
 		assert(size >= 0);
 	}
 
@@ -227,7 +227,7 @@ public:
 			if(n->d == d)
 			{
 				removeNode(n);
-				logMsg("removed %p from list", &d);
+				//logMsg("removed %p from list", &d);
 				return 1;
 			}
 		}

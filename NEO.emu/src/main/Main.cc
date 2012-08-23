@@ -737,10 +737,10 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	{
 		if(backgroundRomLoading)
 		{
-			if(modalView) modalView->deinit();
+			if(View::modalView) View::modalView->deinit();
 			loadGameInBackgroundView.init();
 			loadGameInBackgroundView.place(Gfx::viewportRect());
-			modalView = &loadGameInBackgroundView;
+			View::modalView = &loadGameInBackgroundView;
 			Base::displayNeedsUpdate();
 			globalAllowAutosaveState = allowAutosaveState;
 			backgroundThread.create(1, loadGameThread, 0);
@@ -847,12 +847,12 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 	{
 		bcase MSG_LOAD_FAILED:
 		{
-			removeModalView();
+			View::removeModalView();
 			popup.printf(4, 1, "%s", romerror);
 		}
 		bcase MSG_LOAD_OK:
 		{
-			removeModalView();
+			View::removeModalView();
 			loadGamePhase2(globalAllowAutosaveState);
 			EmuSystem::loadGameCompleteDelegate().invoke(1);
 		}

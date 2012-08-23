@@ -663,6 +663,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);

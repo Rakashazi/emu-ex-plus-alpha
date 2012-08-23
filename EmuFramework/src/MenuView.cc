@@ -17,10 +17,10 @@
 #define PROTOTYPES_ONLY
 #include <MenuView.hh>
 #include <Recent.hh>
-#include <AlertView.hh>
+#include <gui/AlertView.hh>
 #include <MsgPopup.hh>
 #include <EmuSystem.hh>
-#include <ViewStack.hh>
+#include <util/gui/ViewStack.hh>
 #include <CreditsView.hh>
 #include <FilePicker.hh>
 #include <StateSlotView.hh>
@@ -34,7 +34,6 @@ extern YesNoAlertView ynAlertView;
 extern MsgPopup popup;
 extern ViewStack viewStack;
 extern CreditsView credits;
-extern View *modalView;
 extern EmuFilePicker fPicker;
 extern OptionCategoryView oMenu;
 extern RecentGameView rMenu;
@@ -62,7 +61,7 @@ void resetHandler(TextMenuItem &, const InputEvent &e)
 		ynAlertView.init("Really Reset Game?", !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmResetAlert>();
 		ynAlertView.place(Gfx::viewportRect());
-		modalView = &ynAlertView;
+		View::modalView = &ynAlertView;
 	}
 }
 
@@ -85,7 +84,7 @@ void loadStateHandler(TextMenuItem &item, const InputEvent &e)
 		ynAlertView.init("Really Load State?", !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmLoadStateAlert>();
 		ynAlertView.place(Gfx::viewportRect());
-		modalView = &ynAlertView;
+		View::modalView = &ynAlertView;
 	}
 }
 
@@ -125,7 +124,7 @@ void saveStateHandler(TextMenuItem &, const InputEvent &e)
 			ynAlertView.init("Really Overwrite State?", !e.isPointer());
 			ynAlertView.onYesDelegate().bind<&confirmSaveStateAlert>();
 			ynAlertView.place(Gfx::viewportRect());
-			modalView = &ynAlertView;
+			View::modalView = &ynAlertView;
 		}
 	}
 }
@@ -164,7 +163,7 @@ void benchmarkHandler(TextMenuItem &, const InputEvent &e)
 	//static BenchmarkFilePicker picker;
 	fPicker.initForBenchmark(!e.isPointer());
 	fPicker.place(Gfx::viewportRect());
-	modalView = &fPicker;
+	View::modalView = &fPicker;
 	Base::displayNeedsUpdate();
 }
 
@@ -265,7 +264,7 @@ void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 				ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
 				ynAlertView.onYesDelegate().bind<&confirmBluetoothScanAlert>();
 				ynAlertView.place(Gfx::viewportRect());
-				modalView = &ynAlertView;
+				View::modalView = &ynAlertView;
 			}
 		#elif defined(CONFIG_BASE_ANDROID)
 			popup.postError("Bluetooth not accessible, verify it's on and your Android version is compatible");
@@ -290,7 +289,7 @@ void bluetoothDisconnectHandler(TextMenuItem &item, const InputEvent &e)
 		ynAlertView.init(str, !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmBluetoothDisconnectAlert>();
 		ynAlertView.place(Gfx::viewportRect());
-		modalView = &ynAlertView;
+		View::modalView = &ynAlertView;
 	}
 }
 

@@ -13,7 +13,7 @@ public:
 
 	void setUSecs(long int usecs)
 	{
-		t = (struct timeval){ 0, usecs };
+		t = (struct timeval){ 0, (typeof(t.tv_usec))usecs };
 	}
 
 	void setTimeNow()

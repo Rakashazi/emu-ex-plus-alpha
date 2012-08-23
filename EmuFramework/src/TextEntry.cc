@@ -2,7 +2,6 @@
 #include <gui/GuiTable1D/GuiTable1D.hh>
 
 ResourceImage *getXAsset();
-void removeModalView();
 
 void TextEntry::setAcceptingInput(bool on)
 {

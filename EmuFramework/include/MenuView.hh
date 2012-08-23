@@ -27,7 +27,6 @@
 #include <MultiChoiceView.hh>
 
 void startGameFromMenu();
-void removeModalView();
 
 class OptionCategoryView : public BaseMenuView
 {

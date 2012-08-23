@@ -45,6 +45,8 @@
 		#else
 			#define ARCH_STR "armv7"
 		#endif
+	#elif defined __i386__
+		#define ARCH_STR "x86"
 	#else
 		#define ARCH_STR "armv6"
 	#endif

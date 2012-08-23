@@ -21,15 +21,15 @@
 #include <unistd.h>
 #include <errno.h>
 
-#if defined(__APPLE__)
+#if defined CONFIG_BASE_IOS
 	#define SELECTOR_CONST
 #else
 	#define SELECTOR_CONST const
 #endif
 
-#if defined(CONFIG_BASE_ANDROID)
+#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_MACOSX)
 	#define CMP_CAST (int (*)(const dirent**, const dirent**))
-#elif defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_MACOSX)
+#elif defined(CONFIG_BASE_IOS)
 	#define CMP_CAST (int (*)(const void*, const void*))
 #else
 	#define CMP_CAST

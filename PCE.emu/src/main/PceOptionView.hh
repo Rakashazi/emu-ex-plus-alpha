@@ -10,12 +10,12 @@ public:
 	{
 		snprintf(sysCardPath, sizeof(sysCardPath), "%s/%s", FsSys::workDir(), name);
 		logMsg("set system card %s", sysCardPath);
-		removeModalView();
+		View::removeModalView();
 	}
 
 	static void onClose(const InputEvent &e)
 	{
-		removeModalView();
+		View::removeModalView();
 	}
 
 	static void init(bool highlightFirst)

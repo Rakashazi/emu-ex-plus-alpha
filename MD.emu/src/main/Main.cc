@@ -881,6 +881,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;

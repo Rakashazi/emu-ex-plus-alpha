@@ -303,7 +303,9 @@ enum {
     APP_CMD_LAYOUT_CHANGED,
 
     // EditText-based Input
-    APP_CMD_TEXT_ENTRY_ENDED
+    APP_CMD_TEXT_ENTRY_ENDED,
+
+    APP_CMD_TOGGLE_FULL_SCREEN_WINDOW
 };
 
 /**

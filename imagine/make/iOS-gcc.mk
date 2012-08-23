@@ -46,7 +46,6 @@ endif
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
 CPPFLAGS += -I$(IMAGINE_PATH)/bundle/darwin-iOS/include
-LDLIBS += -L$(IMAGINE_PATH)/bundle/darwin-iOS/lib
 noDoubleFloat=1
 
 # clang SVN doesn't seem to handle ASM properly so use as directly

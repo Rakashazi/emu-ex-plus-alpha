@@ -96,7 +96,7 @@ void setIdleDisplayPowerSave(bool on)
 
 void setOSNavigationStyle(uint flags) { }
 
-bool hasSurfaceTexture() { return 0; }
+bool surfaceTextureSupported() { return 0; }
 
 static TimerCallbackFunc timerCallbackFunc = 0;
 static void *timerCallbackFuncCtx = 0;
@@ -207,7 +207,7 @@ static void JNICALL nativeResize(JNIEnv*  env, jobject thiz, jint w, jint h)
 
 static jboolean JNICALL nativeRender(JNIEnv*  env, jobject thiz)
 {
-	logMsg("doing render");
+	//logMsg("doing render");
 	runEngine();
 	//if(ret) logMsg("frame rendered");
 	return gfxUpdate;

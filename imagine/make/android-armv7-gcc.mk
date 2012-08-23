@@ -1,5 +1,5 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
-ARCH := armv7
+SUBARCH := armv7
 android_abi := armeabi-v7a
 
 ifndef arm_fpu

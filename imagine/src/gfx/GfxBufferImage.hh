@@ -7,31 +7,6 @@
 class ResourceImage;
 #endif
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	bool gfx_androidDirectTextureSupported();
-	bool gfx_androidDirectTextureSupportWhitelisted();
-	int gfx_androidDirectTextureError();
-	void gfx_setAndroidDirectTexture(bool on);
-
-	enum
-	{
-		ANDROID_DT_SUCCESS,
-		ANDROID_DT_ERR_NO_EGL_IMG_EXT,
-		ANDROID_DT_ERR_NO_LIBEGL, ANDROID_DT_ERR_NO_CREATE_IMG, ANDROID_DT_ERR_NO_DESTROY_IMG,
-		ANDROID_DT_ERR_NO_GET_DISPLAY, ANDROID_DT_ERR_GET_DISPLAY,
-		ANDROID_DT_ERR_NO_LIBHARDWARE, ANDROID_DT_ERR_NO_HW_GET_MODULE,
-		ANDROID_DT_ERR_NO_GRALLOC_MODULE, ANDROID_DT_ERR_NO_ALLOC_DEVICE,
-
-		ANDROID_DT_ERR_TEST_ALLOC, ANDROID_DT_ERR_TEST_LOCK,
-		ANDROID_DT_ERR_TEST_UNLOCK, ANDROID_DT_ERR_TEST_IMG_CREATE,
-		ANDROID_DT_ERR_TEST_TARGET_TEXTURE,
-
-		ANDROID_DT_ERR_FORCE_DISABLE
-	};
-
-	const char *gfx_androidDirectTextureErrorString(int err);
-#endif
-
 class GfxTextureDesc
 {
 public:
@@ -122,12 +97,13 @@ public:
 		return init(pix, upload, filter, hints, 0);
 	}
 	#if defined(CONFIG_RESOURCE_IMAGE)
-	CallResult init(ResourceImage &img, uint filter = linear, uint hints = 0);
+	CallResult init(ResourceImage &img, uint filter = linear, uint hints = 0, bool textured = 0);
 	//CallResult subInit(ResourceImage &img, int x, int y, int xSize, int ySize);
 	#endif
 
 	void removeBacker() { backingImg = 0; }
 	void setFilter(uint filter);
+	void setRepeatMode(uint xMode, uint yMode);
 	void deinit();
 	void write(Pixmap &p);
 	void replace(Pixmap &p);

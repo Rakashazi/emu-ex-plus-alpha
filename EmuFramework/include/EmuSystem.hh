@@ -21,7 +21,7 @@
 #include <util/audio/PcmFormat.hh>
 #include <config/env.hh>
 #include <gui/FSPicker/FSPicker.hh>
-#include <ViewStack.hh>
+#include <util/gui/ViewStack.hh>
 
 extern BasicNavView viewNav;
 

@@ -19,7 +19,6 @@
 #include <gui/MenuItem/MenuItem.hh>
 #include <audio/Audio.hh>
 
-void removeModalView();
 static void setupDrawing(bool force = 0);
 
 class ButtonConfigCategoryView : public BaseMenuView
@@ -124,6 +123,16 @@ protected:
 		item.toggle();
 		optionSound = item.on;
 	}
+
+	#ifdef CONFIG_AUDIO_OPENSL_ES
+	BoolMenuItem sndUnderrunCheck;
+
+	static void soundUnderrunCheckHandler(BoolMenuItem &item, const InputEvent &e)
+	{
+		item.toggle();
+		optionSoundUnderrunCheck = item.on;
+	}
+	#endif
 
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	BoolMenuItem useOSInputMethod;
@@ -317,11 +326,11 @@ protected:
 	{
 		if(!item.active)
 		{
-			popup.postError(gfx_androidDirectTextureErrorString(gfx_androidDirectTextureError()));
+			popup.postError(Gfx::androidDirectTextureError());
 			return;
 		}
 		item.toggle();
-		gfx_setAndroidDirectTexture(item.on);
+		Gfx::setUseAndroidDirectTexture(item.on);
 		optionDirectTexture.val = item.on;
 		if(emuView.vidImg.impl)
 			emuView.reinitImage();
@@ -642,7 +651,7 @@ protected:
 
 	void soundBuffersInit()
 	{
-		static const char *str[] = { "4", "5", "6", "7", "8", "9", "10" };
+		static const char *str[] = { "4", "5", "6", "7", "8", "9", "10", "11", "12" };
 		soundBuffers.init("Buffer Size In Frames", str, IG::max((int)optionSoundBuffers - 4, 0), sizeofArray(str));
 		soundBuffers.valueDelegate().bind<&soundBuffersSet>();
 	}
@@ -844,9 +853,9 @@ protected:
 		overlayEffectLevelInit(); item[items++] = &overlayEffectLevel;
 		zoomInit(); item[items++] = &zoom;
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		if(!Base::hasSurfaceTexture())
+		if(Base::androidSDK() < 14)
 		{
-			directTexture.init("Direct Texture", optionDirectTexture, gfx_androidDirectTextureSupported()); item[items++] = &directTexture;
+			directTexture.init("Direct Texture", optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
 			directTexture.selectDelegate().bind<&directTextureHandler>();
 		}
 		if(!optionGLSyncHack.isConst)
@@ -870,6 +879,10 @@ protected:
 		if(!optionSoundRate.isConst) { audioRateInit(); item[items++] = &audioRate; }
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 		soundBuffersInit(); item[items++] = &soundBuffers;
+#endif
+#ifdef CONFIG_AUDIO_OPENSL_ES
+		sndUnderrunCheck.init("Strict Underrun Check", optionSoundUnderrunCheck); item[items++] = &sndUnderrunCheck;
+		sndUnderrunCheck.selectDelegate().bind<&soundUnderrunCheckHandler>();
 #endif
 	}
 

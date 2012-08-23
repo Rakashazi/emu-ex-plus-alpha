@@ -11,54 +11,7 @@
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/Delegate.hh>
 #include <gui/View.hh>
-
-
-// TODO: move *NavView into separate file,
-class NavView
-{
-public:
-	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
-
-	constexpr NavView() { }
-	constexpr NavView(OnInputDelegate onLeftNavBtn, OnInputDelegate onRightNavBtn):
-			onLeftNavBtn(onLeftNavBtn), onRightNavBtn(onRightNavBtn) { }
-
-	OnInputDelegate onLeftNavBtn, onRightNavBtn;
-	OnInputDelegate &leftNavBtnDelegate() { return onLeftNavBtn; }
-	OnInputDelegate &rightNavBtnDelegate() { return onRightNavBtn; }
-
-	Rect2<int> leftBtn, rightBtn, textRect;
-	GfxText text;
-	Rect2<int> viewRect;
-	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
-
-	void setLeftBtnActive(bool on) { leftBtnActive = on; }
-	void setRightBtnActive(bool on) { rightBtnActive = on; }
-	void setTitle(const char *title) { text.setString(title); }
-
-	void init(ResourceFace *face);
-	virtual void deinit() = 0;
-	void deinitText();
-	virtual void place();
-	void inputEvent(const InputEvent &e);
-	virtual void draw() = 0;
-};
-
-class BasicNavView : public NavView
-{
-public:
-	constexpr BasicNavView() { }
-	constexpr BasicNavView(OnInputDelegate left, OnInputDelegate right): NavView(left, right) { }
-	GfxSprite leftSpr, rightSpr;
-	GfxLGradient bg;
-	void init(ResourceFace *face, ResourceImage *leftRes, ResourceImage *rightRes,
-			const GfxLGradientStopDesc *gradStop, uint gradStops);
-	void setBackImage(ResourceImage *img);
-	void draw();
-	void place();
-	void deinit();
-};
-
+#include <gui/NavView.hh>
 
 class FSNavView : public BasicNavView
 {
@@ -66,8 +19,8 @@ public:
 	constexpr FSNavView() { }
 	constexpr FSNavView(OnInputDelegate left, OnInputDelegate right): BasicNavView(left, right) { }
 	void init(ResourceFace *face, ResourceImage *backRes, ResourceImage *closeRes, bool singleDir);
-	void draw();
-	void place();
+	void draw() override;
+	void place() override;
 };
 
 class FSPicker : public View, public GuiTableSource

@@ -437,6 +437,8 @@ static const bool useGLCache = 1;
 	static const bool glPointerStateHack = 0;
 #endif
 
+static const bool glEnableStateHack = 0;
+
 static void glcMatrixMode(GLenum mode)
 { if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }
 static void glcBindTexture(GLenum target, GLuint texture)
@@ -448,12 +450,12 @@ static void glcBlendFunc(GLenum sfactor, GLenum dfactor)
 static void glcBlendEquation(GLenum mode)
 { if(useGLCache) glState.blendEquation(mode); else glBlendEquation(mode); }
 static void glcEnable(GLenum cap)
-{ if(useGLCache) glState.enable(cap); else glEnable(cap); }
+{ if(useGLCache && likely(!glEnableStateHack)) glState.enable(cap); else glEnable(cap); }
 static void glcDisable(GLenum cap)
-{ if(useGLCache) glState.disable(cap); else glDisable(cap); }
+{ if(useGLCache && likely(!glEnableStateHack)) glState.disable(cap); else glDisable(cap); }
 static GLboolean glcIsEnabled(GLenum cap)
 {
-	if(useGLCache)
+	if(useGLCache && likely(!glEnableStateHack))
 		return glState.isEnabled(cap);
 	else
 		#if !defined(CONFIG_BASE_PS3)

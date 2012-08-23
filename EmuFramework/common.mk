@@ -18,13 +18,12 @@ endif
 include $(imagineSrcDir)/gui/GuiTable1D/build.mk
 include $(imagineSrcDir)/gui/MenuItem/build.mk
 include $(imagineSrcDir)/gui/FSPicker/build.mk
+include $(imagineSrcDir)/gui/AlertView.mk
 include $(imagineSrcDir)/resource2/font/freetype/build.mk
 include $(imagineSrcDir)/resource2/image/png/build.mk
 
 ifeq ($(ENV), android)
- ifneq ($(ARCH), x86)
-  configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE
- endif
+ configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE
 endif
 
 else
@@ -75,7 +74,7 @@ endif
 CPPFLAGS += -I../EmuFramework/include
 VPATH += ../EmuFramework/src
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
-AlertView.cc Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
+Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc
 
 ifneq ($(ENV), ps3)

@@ -35,23 +35,22 @@ static SLObjectItf outMix = nullptr, player = nullptr;
 static SLPlayItf playerI = nullptr;
 static SLAndroidSimpleBufferQueueItf slBuffQI = nullptr;
 static uint bufferFrames = 800, currQBuf = 0;
-static uint buffers = 8;
+static uint buffers = 10;
 static uchar **qBuffer = nullptr;
-static bool isPlaying = 0;
-static uint buffersQueued_ = 0;
-static MutexPThread buffersQueuedLock;
+static bool isPlaying = 0, reachedEndOfPlayback = 0, strictUnderrunCheck = 1;
 
 // runs on internal OpenSL ES thread
-static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
+/*static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
 {
-	buffersQueuedLock.lock();
-	buffersQueued_--;
-	/*static int debugCount = 0;
-	if(countToValueLooped(debugCount, 30))
-	{
-		logMsg("buffers queued %u", buffersQueued_);
-	}*/
-	buffersQueuedLock.unlock();
+}*/
+
+// runs on internal OpenSL ES thread
+static void playCallback(SLPlayItf caller, void *, SLuint32 event)
+{
+	//logMsg("play event %X", (int)event);
+	assert(event == SL_PLAYEVENT_HEADSTALLED || event == SL_PLAYEVENT_HEADATEND);
+	logMsg("got playback end event");
+	reachedEndOfPlayback = 1;
 }
 
 CallResult openPcm(const PcmFormat &format)
@@ -75,8 +74,8 @@ CallResult openPcm(const PcmFormat &format)
 	SLDataSource audioSrc = { &buffQLoc, &slFormat };
 	SLDataLocator_OutputMix outMixLoc = { SL_DATALOCATOR_OUTPUTMIX, outMix };
 	SLDataSink sink = { &outMixLoc, nullptr };
-	const SLInterfaceID ids[] = { SL_IID_ANDROIDSIMPLEBUFFERQUEUE };
-	const SLboolean req[sizeofArray(ids)] = { SL_BOOLEAN_TRUE };
+	const SLInterfaceID ids[] = { SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME };
+	const SLboolean req[sizeofArray(ids)] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE };
 	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, sizeofArray(ids), ids, req);
 	if(result != SL_RESULT_SUCCESS)
 	{
@@ -92,9 +91,15 @@ CallResult openPcm(const PcmFormat &format)
 	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
 
-	buffersQueued_ = 0;
-	result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
+	/*result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
+	assert(result == SL_RESULT_SUCCESS);*/
+	result = (*playerI)->RegisterCallback(playerI, playCallback, nullptr);
 	assert(result == SL_RESULT_SUCCESS);
+
+	uint playStateEvMask = SL_PLAYEVENT_HEADSTALLED;
+	if(strictUnderrunCheck)
+		playStateEvMask = SL_PLAYEVENT_HEADATEND;
+	(*playerI)->SetCallbackEventsMask(playerI, playStateEvMask);
 	(*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
 
 	auto bufferBytes = pcmFormat.framesToBytes(bufferFrames);
@@ -125,6 +130,7 @@ void closePcm()
 		(*player)->Destroy(player);
 		mem_free(qBuffer);
 		player = nullptr;
+		reachedEndOfPlayback = 0;
 	}
 	else
 		logMsg("called closePcm when pcm already off");
@@ -145,34 +151,29 @@ static void commitSLBuffer(void *b, uint bytes)
 	}
 	//logMsg("queued buffer %d with %d bytes, %d on queue, %lld %lld", currQBuf, (int)b->mAudioDataByteSize, buffersQueued+1, lastTimestamp.mHostTime, lastTimestamp.mWordClockTime);
 	IG::incWrappedSelf(currQBuf, buffers);
-	buffersQueuedLock.lock();
-	buffersQueued_++;
-	buffersQueuedLock.unlock();
 }
 
 static uint buffersQueued()
 {
-	return buffersQueued_;
-	/*SLAndroidSimpleBufferQueueState state;
+	SLAndroidSimpleBufferQueueState state;
 	(*slBuffQI)->GetState(slBuffQI, &state);
-
-	static int debugCount = 0;
+	/*static int debugCount = 0;
 	if(countToValueLooped(debugCount, 30))
 	{
 		//logMsg("queue state: %u count, %u index", (uint)state.count, (uint)state.index);
-	}
-
-	return state.count;*/
+	}*/
+	return state.count;
 }
 
 static void checkXRun(uint queued)
 {
 	/*SLmillisecond pos;
-	(*playerI)->GetPosition(playerI, &pos);*/
+	(*playerI)->GetPosition(playerI, &pos);
+	logMsg("pos: %u/, %d", pcmFormat.mSecsToFrames(pos));*/
 
-	if(unlikely(isPlaying && queued == 0))
+	if(unlikely(isPlaying && reachedEndOfPlayback))
 	{
-		//logMsg("xrun, no buffers queued");
+		logMsg("xrun");
 		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
 		isPlaying = 0;
 	}
@@ -182,9 +183,11 @@ static void startPlaybackIfNeeded(uint queued)
 {
 	if(unlikely(!isPlaying && queued >= buffers-1))
 	{
+		reachedEndOfPlayback = 0;
 		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
 		if(result == SL_RESULT_SUCCESS)
 		{
+			logMsg("started playback with %d buffers", buffers);
 			isPlaying = 1;
 		}
 		else
@@ -230,7 +233,7 @@ void writePcm(uchar *samples, uint framesToWrite)
 	checkXRun(queued);
 	if(framesToWrite > bufferFrames)
 	{
-		logMsg("need more than one buffer to write all data");
+		logMsg("need more than one buffer to write %d frames", framesToWrite);
 	}
 	while(framesToWrite)
 	{
@@ -245,7 +248,6 @@ void writePcm(uchar *samples, uint framesToWrite)
 		auto b = qBuffer[currQBuf];
 		memcpy(b, samples, bytesToWriteInBuffer);
 		commitSLBuffer(b, bytesToWriteInBuffer);
-		//qFrames += framesToWriteInBuffer;
 		samples += bytesToWriteInBuffer;
 		framesToWrite -= framesToWriteInBuffer;
 		queued++;
@@ -281,6 +283,16 @@ void setHintPcmMaxBuffers(uint maxBuffers)
 
 uint hintPcmMaxBuffers() { return buffers; }
 
+void setHintStrictUnderrunCheck(bool on)
+{
+	strictUnderrunCheck = on;
+}
+
+bool hintStrictUnderrunCheck()
+{
+	return strictUnderrunCheck;
+}
+
 CallResult init()
 {
 	logMsg("doing init");
@@ -298,14 +310,10 @@ CallResult init()
 	assert(result == SL_RESULT_SUCCESS);
 
 	// output mix object
-	const SLInterfaceID ids[] = { SL_IID_VOLUME };
-	const SLboolean req[sizeofArray(ids)] = { SL_BOOLEAN_FALSE };
-	result = (*slI)->CreateOutputMix(slI, &outMix, sizeofArray(ids), ids, req);
+	result = (*slI)->CreateOutputMix(slI, &outMix, 0, nullptr, nullptr);
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*outMix)->Realize(outMix, SL_BOOLEAN_FALSE);
 	assert(result == SL_RESULT_SUCCESS);
-
-	buffersQueuedLock.create();
 
 	return OK;
 }

@@ -157,10 +157,15 @@ public:
 			circleBtnSpr[1].setImg(pics, 33./64., 83./h, 1., 114./h);
 			circleBtnSpr[2].setImg(pics, 0., 115./h, 32./64., 147./h);
 			circleBtnSpr[3].setImg(pics, 33./64., 116./h, 1., 147./h);
-			if(faceBtns == 6)
+			if(faceBtns >= 6)
 			{
 				circleBtnSpr[4].setImg(pics, 0., 148./h, 32./64., 180./h);
 				circleBtnSpr[5].setImg(pics, 33./64., 149./h, 1., 180./h);
+			}
+			if(faceBtns == 8)
+			{
+				circleBtnSpr[6].setImg(pics, 0., 181./h, 32./64., 213./h);
+				circleBtnSpr[7].setImg(pics, 33./64., 182./h, 1., 213./h);
 			}
 		}
 	}
@@ -256,18 +261,24 @@ public:
 			{
 				if(triggerPos == TRIGGERS_INLINE)
 				{
+					Area *btnMap8[] = { &faceBtn[0], &faceBtn[1], &faceBtn[2], &faceBtn[6], &faceBtn[3], &faceBtn[4], &faceBtn[5],  &faceBtn[7] };
 					Area *btnMap6[] = { &faceBtn[1], &faceBtn[0], &faceBtn[5], &faceBtn[3], &faceBtn[2], &faceBtn[4] };
 					Area *btnMap4[] = { &faceBtn[1], &faceBtn[0], &faceBtn[2], &faceBtn[3] };
-					if(activeFaceBtns == 6)
+					if(activeFaceBtns == 8)
+						layoutBtnRows(btnMap8, sizeofArray(btnMap8), 2, centerBtnYOffset, btnAreaXOffset);
+					else if(activeFaceBtns == 6)
 						layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, centerBtnYOffset, btnAreaXOffset);
 					else
 						layoutBtnRows(btnMap4, sizeofArray(btnMap4), 2, centerBtnYOffset, btnAreaXOffset);
 				}
 				else
 				{
+					Area *btnMap8[] = { &faceBtn[0], &faceBtn[1], &faceBtn[2], &faceBtn[3], &faceBtn[4], &faceBtn[5], };
 					Area *btnMap6[] = { &faceBtn[1], &faceBtn[0], &faceBtn[3], &faceBtn[2] };
 					Area *btnMap4[] = { &faceBtn[1], &faceBtn[0] };
-					if(activeFaceBtns == 6)
+					if(activeFaceBtns == 8)
+						layoutBtnRows(btnMap8, sizeofArray(btnMap8), 2, centerBtnYOffset, btnAreaXOffset);
+					else if(activeFaceBtns == 6)
 						layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, centerBtnYOffset, btnAreaXOffset);
 					else
 						layoutBtnRows(btnMap4, sizeofArray(btnMap4), 1, centerBtnYOffset, btnAreaXOffset);
@@ -297,7 +308,7 @@ public:
 				forEachInArray(faceBtnBound, e)
 				{
 					bool useExtraSize = 0;
-					if(e_i < 4 || triggerPos == TRIGGERS_INLINE)
+					if((int)e_i < (int)faceBtns-2 || triggerPos == TRIGGERS_INLINE)
 						useExtraSize = 1;
 					e->setPosRel(faceBtn[e_i].xIPos(C2DO), faceBtn[e_i].yIPos(C2DO),
 						faceBtn[0].iXSize + (useExtraSize ? extraXSize : 0),

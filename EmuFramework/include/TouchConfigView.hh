@@ -320,7 +320,7 @@ class TouchConfigView : public BaseMenuView
 			bcase 200: init = 2;
 			bcase 500: init = 3;
 		}
-		btnExtraYSizeMultiRow.init((systemFaceBtns == 4 || (systemFaceBtns == 6 && systemHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str), 0);
+		btnExtraYSizeMultiRow.init((systemFaceBtns == 4 || (systemFaceBtns >= 6 && systemHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str), 0);
 		btnExtraYSizeMultiRow.valueDelegate().bind<&btnExtraYSizeMultiRowSet>();
 	}
 

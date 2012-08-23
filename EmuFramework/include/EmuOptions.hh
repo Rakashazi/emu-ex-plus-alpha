@@ -23,8 +23,12 @@
 static BasicByteOption optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 BasicByteOption optionSound(CFGKEY_SOUND, 1);
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-static Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers, optionIsValidWithMinMax<3, 10, uint> >, uint8>
-	optionSoundBuffers(CFGKEY_SOUND_BUFFERS, 8);
+static Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers, optionIsValidWithMinMax<3, 12, uint> >, uint8>
+	optionSoundBuffers(CFGKEY_SOUND_BUFFERS, Config::envIsAndroid ? 10 : 8);
+#endif
+#ifdef CONFIG_AUDIO_OPENSL_ES
+static Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>
+	optionSoundUnderrunCheck(CFGKEY_SOUND_UNDERRUN_CHECK, 1);
 #endif
 static Option<OptionMethodVar<uint32, optionIsValidWithMax<48000> > > optionSoundRate(CFGKEY_SOUND_RATE,
 		(Config::envIsPS3 || Config::envIsLinux) ? 48000 : 44100, Config::envIsPS3);
@@ -44,6 +48,8 @@ static BasicByteOption optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndr
 static BasicByteOption optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
 static BasicByteOption optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
 static BasicByteOption optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAndroid && !Config::envIsIOS);
+static Option<OptionMethodRef<bool, input_swappedGamepadConfirm>, uint8>
+	optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, 0);
 
 #ifdef CONFIG_BLUETOOTH
 static BasicByteOption optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0);
@@ -174,7 +180,7 @@ static Option<OptionMethodVar<uint32, optionIsValidWithMax<5> >, uint16> optionT
 		Config::envIsPS3);
 static Option<OptionMethodVar<uint32, optionIsValidWithMax<3> >, uint16> optionTouchCtrlTriggerBtnPos
 		(CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS,
-		0, Config::envIsPS3);
+		3 /*TRIGGERS_SPLIT*/, Config::envIsPS3);
 static Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraXBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE,
 		200, Config::envIsPS3);
@@ -329,13 +335,7 @@ static struct OptionRecentGames : public OptionBase
 } optionRecentGames;
 
 static Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
-(CFGKEY_TOUCH_CONTROL_IMG_PIXELS,
-	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-	64,
-	#else
-	128,
-	#endif
-	Config::envIsIOS || Config::envIsWebOS3);
+(CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128, Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9);
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	static struct OptionDirectTexture : public Option<OptionMethodVar<uint32>, uint8>
@@ -346,9 +346,9 @@ static Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optio
 			if(!Option<OptionMethodVar<uint32>, uint8>::readFromIO(io, readSize))
 				return 0;
 			logMsg("read direct texture option %d", val);
-			if(!gfx_androidDirectTextureSupported())
+			if(!Gfx::supportsAndroidDirectTexture())
 				val = 0;
-			gfx_setAndroidDirectTexture(val);
+			Gfx::setUseAndroidDirectTexture(val);
 			return 1;
 		}
 	} optionDirectTexture;

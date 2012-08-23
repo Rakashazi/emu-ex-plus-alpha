@@ -25,10 +25,6 @@ extern jobject jBaseActivity;
 extern JavaInstMethod<void> postUIThread;
 extern JavaInstMethod<void> jShowIme, jHideIme;
 
-// SurfaceTexture JNI
-extern jclass jSurfaceTextureCls;
-extern JavaInstMethod<void> jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
-
 #if CONFIG_ENV_ANDROID_MINSDK >= 9
 
 // Dispatch a command from native glue
@@ -53,6 +49,37 @@ void sendTextEntryEnded(const char *str, jstring jStr);
 
 }
 
-// Extra dlsym function for SurfaceTexture
 struct ANativeWindow;
-extern ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture);
+
+namespace Gfx
+{
+
+// SurfaceTexture JNI
+struct AndroidSurfaceTextureConfig
+{
+	constexpr AndroidSurfaceTextureConfig() { }
+	jclass jSurfaceCls = nullptr, jSurfaceTextureCls = nullptr;
+	JavaInstMethod<void> jSurface, jSurfaceRelease,
+		jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
+	bool use = 0;
+	// Extra dlsym function from libandroid.so
+	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
+
+	void init(JNIEnv *jEnv);
+	void deinit();
+
+	bool isSupported()
+	{
+		return jSurfaceTextureCls;
+	}
+
+	void setUse(bool on)
+	{
+		if(isSupported())
+			use = on;
+	}
+};
+
+extern AndroidSurfaceTextureConfig surfaceTextureConf;
+
+}

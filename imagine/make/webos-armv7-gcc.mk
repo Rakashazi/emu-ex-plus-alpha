@@ -1,5 +1,6 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
 
+SUBARCH := armv7
 webos_cpuFlags := -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 #-mthumb #-march=armv7-a
 

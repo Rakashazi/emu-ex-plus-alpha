@@ -146,12 +146,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
 			bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
-			bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM:
-			{
-				uint8 b;
-				io->readVar(&b);
-				input_swappedGamepadConfirm = b;
-			}
+			bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
 			bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
 			bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
 			bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
@@ -178,6 +173,9 @@ static bool readConfig2(Io *io)
 			#endif
 			#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
+			#endif
+			#ifdef CONFIG_AUDIO_OPENSL_ES
+			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
 			#endif
 			// start gui keys
 			bcase CFGKEY_KEY_LOAD_GAME: readKeyConfig2(io, 0, size);
@@ -265,6 +263,7 @@ static OptionBase *cfgFileOption[] =
 	&optionTouchCtrlExtraYBtnSizeMultiRow,
 	&optionTouchDpadDiagonalSensitivity,
 	&optionShowMenuIcon,
+	&optionSwappedGamepadConfirm,
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	&optionUseOSInputMethod,
 	#endif
@@ -299,6 +298,9 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 	&optionSoundBuffers,
 	#endif
+	#ifdef CONFIG_AUDIO_OPENSL_ES
+	&optionSoundUnderrunCheck,
+	#endif
 };
 
 static void writeConfig2(Io *io)
@@ -319,13 +321,6 @@ static void writeConfig2(Io *io)
 			io->writeVar((uint16)e->ioSize());
 			e->writeToIO(io);
 		}
-	}
-
-	if(input_swappedGamepadConfirm == 1)
-	{
-		io->writeVar((uint16)3);
-		io->writeVar((uint16)CFGKEY_SWAPPED_GAMEPAD_CONFIM);
-		io->writeVar((uint8)input_swappedGamepadConfirm);
 	}
 
 	writeKeyConfig2(io, 0, CFGKEY_KEY_LOAD_GAME);

@@ -16,11 +16,9 @@
 #pragma once
 
 #include <util/gui/BaseMenuView.hh>
-#include <AlertView.hh>
+#include <gui/AlertView.hh>
 #include <EmuInput.hh>
 
-void removeModalView();
-extern View *modalView;
 extern YesNoAlertView ynAlertView;
 extern KeyMapping keyMapping;
 void buildKeyMapping();

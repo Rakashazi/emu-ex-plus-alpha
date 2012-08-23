@@ -132,17 +132,15 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	#endif
 
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
-			if(!Base::hasSurfaceTexture())
-		#endif
-				directTextureConf.checkForEGLImageKHR(rendererName);
+		if(Base::androidSDK() < 14)
+			directTextureConf.checkForEGLImageKHR(rendererName);
 	#endif
 
 	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
-		if(Base::hasSurfaceTexture() && !strstr(extensions, "GL_OES_EGL_image_external"))
+		if(surfaceTextureConf.isSupported() && !strstr(extensions, "GL_OES_EGL_image_external"))
 		{
 			logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
-			Base::disableSurfaceTexture();
+			surfaceTextureConf.deinit();
 		}
 	#endif
 

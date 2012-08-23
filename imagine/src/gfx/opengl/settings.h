@@ -4,11 +4,14 @@
 	#include <input/interface.h>
 #endif
 
+#ifdef CONFIG_BASE_ANDROID
+#include <base/android/libhardwarePrivate.h>
+#include <base/android/private.hh>
+#include <base/android/public.hh>
+#endif
+
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	#include <dlfcn.h>
-	#include <base/android/libhardwarePrivate.h>
-	#include <base/android/private.hh>
-	#include <base/android/public.hh>
 	#if CONFIG_ENV_ANDROID_MINSDK < 9
 		#include <base/android/EGLPrivate.h>
 		static EGLDisplay eglDisplay = 0;
@@ -432,6 +435,21 @@ static void checkForDrawTexture()
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 
+struct DirectTextureGfxBufferImage: public TextureGfxBufferImage
+{
+	constexpr DirectTextureGfxBufferImage() { }
+	Pixmap eglPixmap;
+	android_native_buffer_t eglBuf;
+	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
+
+	static bool testSupport(const char **errorStr);
+	bool init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
+	void write(Pixmap &p, uint hints);
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen);
+	void unlock();
+	void deinit();
+};
+
 static void dummyIncRef(struct android_native_base_t* base)
 {
 	logMsg("called incRef");
@@ -462,8 +480,8 @@ static void setupAndroidNativeBuffer(android_native_buffer_t &eglBuf, int x, int
 
 struct AndroidDirectTextureConfig
 {
-	fbool useEGLImageKHR = 0, supportEGLImageKHR = 0, whitelistedEGLImageKHR = 0;
-	int errorEGLImageKHR = 0;
+	bool useEGLImageKHR = 0, whitelistedEGLImageKHR = 0;
+	const char *errorStr = "";
 	static const EGLint eglImgAttrs[];//= { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 	static const GLenum directTextureTarget;// = GL_TEXTURE_2D;
 private:
@@ -474,35 +492,47 @@ private:
 public:
 	constexpr AndroidDirectTextureConfig() { }
 
+	bool isSupported() const { return grallocMod; }
+
 	void checkForEGLImageKHR(const char *rendererName)
 	{
-		if(strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
-		{
-			logMsg("white-listed for EGLImageKHR");
-			whitelistedEGLImageKHR = 1;
-		}
-
 		if(strstr(rendererName, "NVIDIA") // disable on Tegra, unneeded and causes lock-ups currently
 			|| string_equal(rendererName, "VideoCore IV HW")) // seems to crash Samsung Galaxy Y on eglCreateImageKHR, maybe other devices
 		{
 			logMsg("force-disabling EGLImageKHR due to GPU");
-			errorEGLImageKHR = ANDROID_DT_ERR_FORCE_DISABLE;
+			errorStr = "Unsupported GPU";
 		}
 		else
-			errorEGLImageKHR = enableEGLImageKHR();
-		supportEGLImageKHR = errorEGLImageKHR == ANDROID_DT_SUCCESS;
+		{
+			if(strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
+			{
+				logMsg("white-listed for EGLImageKHR");
+				whitelistedEGLImageKHR = 1;
+			}
+
+			if(!enableEGLImageKHR())
+			{
+				logWarn("can't use EGLImageKHR: %s", errorStr);
+			}
+		}
 	}
 
-	int enableEGLImageKHR()
+	bool enableEGLImageKHR()
 	{
-		logMsg("attempting to setup EGLImageKHR support");
+		#ifdef NDEBUG
+		bool verbose = 0;
+		#else
+		bool verbose = 1;
+		#endif
+		static const char *basicEGLErrorStr = "Unsupported libEGL";
+		static const char *basicLibhardwareErrorStr = "Unsupported libhardware";
 
-		int ret;
+		logMsg("attempting to setup EGLImageKHR support");
 
 		if(strstr(extensions, "GL_OES_EGL_image") == 0)
 		{
-			logWarn("no GL_OES_EGL_image");
-			return ANDROID_DT_ERR_NO_EGL_IMG_EXT;
+			errorStr = "No OES_EGL_image extension";
+			return 0;
 		}
 
 		/*if(strstr(extensions, "GL_OES_EGL_image_external") || strstr(rendererName, "Adreno"))
@@ -511,14 +541,13 @@ public:
 			directTextureTarget = GL_TEXTURE_EXTERNAL_OES;
 		}*/
 
-
 		void *libegl = 0, *libhardware = 0;
 
 		#if CONFIG_ENV_ANDROID_MINSDK < 9
 		if((libegl = dlopen("/system/lib/libEGL.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
 		{
-			logWarn("unable to dlopen libEGL.so");
-			ret = ANDROID_DT_ERR_NO_LIBEGL; goto FAIL;
+			errorStr = verbose ? "Can't load libEGL.so" : basicEGLErrorStr;
+			goto FAIL;
 		}
 
 		//char const *(*eglQueryString)(EGLDisplay, EGLint) = (char const *(*)(EGLDisplay, EGLint))dlsym(libegl, "eglQueryString");
@@ -528,15 +557,16 @@ public:
 		if((eglCreateImageKHR = (EGLImageKHR(*)(EGLDisplay, EGLContext, EGLenum, EGLClientBuffer, const EGLint *))dlsym(libegl, "eglCreateImageKHR"))
 			== 0)
 		{
-			logWarn("eglCreateImageKHR not found");
-			ret = ANDROID_DT_ERR_NO_CREATE_IMG; goto FAIL;
+
+			errorStr = verbose ? "Can't find eglCreateImageKHR" : basicEGLErrorStr;
+			goto FAIL;
 		}
 
 		//logMsg("eglDestroyImageKHR @ %p", eglCreateImageKHR);
 		if((eglDestroyImageKHR = (EGLBoolean(*)(EGLDisplay, EGLImageKHR))dlsym(libegl, "eglDestroyImageKHR")) == 0)
 		{
-			logWarn("eglDestroyImageKHR not found");
-			ret = ANDROID_DT_ERR_NO_DESTROY_IMG; goto FAIL;
+			errorStr = verbose ? "Can't find eglDestroyImageKHR" : basicEGLErrorStr;
+			goto FAIL;
 		}
 		/*eglGetCurrentDisplay = (EGLDisplay(*)())dlsym(libegl, "eglGetCurrentDisplay");
 		logMsg("eglGetCurrentDisplay @ %p", eglGetCurrentDisplay);*/
@@ -545,139 +575,70 @@ public:
 		//logMsg("eglGetDisplay @ %p", eglGetDisplay);
 		if((eglGetDisplay = (EGLDisplay(*)(EGLNativeDisplayType))dlsym(libegl, "eglGetDisplay")) == 0)
 		{
-			logWarn("eglGetDisplay not found");
-			ret = ANDROID_DT_ERR_NO_GET_DISPLAY; goto FAIL;
+			errorStr = verbose ? "Can't find eglGetDisplay" : basicEGLErrorStr;
+			goto FAIL;
 		}
 
 
 		if((eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY)
 		{
-			logWarn("failed to get EGL display");
-			ret = ANDROID_DT_ERR_GET_DISPLAY; goto FAIL;
+			errorStr = verbose ? "Failed to get EGL display" : basicEGLErrorStr;
+			goto FAIL;
 		}
 		logMsg("got EGL display: %d", (int)eglDisplay);
 		#endif
 
 		if((libhardware = dlopen("/system/lib/libhardware.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
 		{
-			logWarn("unable to dlopen libhardware.so");
-			ret = ANDROID_DT_ERR_NO_LIBHARDWARE; goto FAIL;
+			errorStr = verbose ? "Can't load libhardware.so" : basicLibhardwareErrorStr;
+			goto FAIL;
 		}
 
 		//logMsg("hw_get_module @ %p", hw_get_module);
 		if((hw_get_module = (int(*)(const char *, const struct hw_module_t **))dlsym(libhardware, "hw_get_module")) == 0)
 		{
-			logWarn("hw_get_module not found");
-			ret = ANDROID_DT_ERR_NO_HW_GET_MODULE; goto FAIL;
+			errorStr = verbose ? "Can't find hw_get_module" : basicLibhardwareErrorStr;
+			goto FAIL;
 		}
 
 		if(hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&grallocMod) != 0)
 		{
-			logWarn("error loading gralloc module");
-			ret = ANDROID_DT_ERR_NO_GRALLOC_MODULE; goto FAIL;
+			errorStr = verbose ? "Can't load gralloc module" : basicLibhardwareErrorStr;
+			goto FAIL;
 		}
 
 		gralloc_open((const hw_module_t*)grallocMod, &allocDev);
 		if(!allocDev)
 		{
-			logWarn("error getting alloc device");
-			ret = ANDROID_DT_ERR_NO_ALLOC_DEVICE; goto FAIL;
+			errorStr = verbose ? "Can't load allocator device" : basicLibhardwareErrorStr;
+			goto FAIL;
 		}
 		logMsg("alloc device @ %p", allocDev);
 
-		ret = testEGLImageKHR();
-		if(ret != ANDROID_DT_SUCCESS)
+		if(!DirectTextureGfxBufferImage::testSupport(&errorStr))
 		{
 			goto FAIL;
 		}
 
 		useEGLImageKHR = 1;
 		logMsg("using EGLImageKHR");
-		return ret;
+		return 1;
 
 		FAIL:
 		if(libegl)
 		{
 			dlclose(libegl);
-			libegl = 0;
+			libegl = nullptr;
 		}
 		if(libhardware)
 		{
 			dlclose(libhardware);
-			libhardware = 0;
+			libhardware = nullptr;
 		}
+		grallocMod = nullptr;
 		//TODO: free allocDev if needed
 
-		return ret;
-	}
-
-	int testEGLImageKHR(int x = 256, int y = 256)
-	{
-		uint ref = 0;
-		int ret = ANDROID_DT_SUCCESS
-				, glErr;
-		EGLImageKHR eglImg = 0;
-		var_copy(eglDisplay, Base::getAndroidEGLDisplay());
-		glGenTextures(1, &ref);
-		glcBindTexture(GL_TEXTURE_2D, ref);
-
-		android_native_buffer_t eglBuf;
-		setupAndroidNativeBuffer(eglBuf, x, y, HAL_PIXEL_FORMAT_RGB_565,
-				GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE);
-		/*if(allocDev->alloc(allocDev, eglBuf.width, eglBuf.height, eglBuf.format,
-				eglBuf.usage, &eglBuf.handle, &eglBuf.stride) != 0)*/
-		if(allocBuffer(eglBuf) != 0)
-		{
-			logMsg("error in alloc buffer");
-			ret = ANDROID_DT_ERR_TEST_ALLOC; goto CLEANUP;
-		}
-
-		void *data;
-		//if(grallocMod->lock(grallocMod, eglBuf.handle, GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, x, y, &data) != 0)
-		if(lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, x, y, data) != 0)
-		{
-			logMsg("error locking");
-			ret = ANDROID_DT_ERR_TEST_LOCK; goto CLEANUP;
-		}
-
-		//if(grallocMod->unlock(grallocMod, eglBuf.handle) != 0)
-		if(unlockBuffer(eglBuf) != 0)
-		{
-			logMsg("error unlocking");
-			ret = ANDROID_DT_ERR_TEST_UNLOCK; goto CLEANUP;
-		}
-
-		eglImg = eglCreateImageKHR(eglDisplay, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, (EGLClientBuffer)&eglBuf, eglImgAttrs);
-		if(eglImg == EGL_NO_IMAGE_KHR)
-		{
-			logMsg("error creating EGL image");
-			ret = ANDROID_DT_ERR_TEST_IMG_CREATE; goto CLEANUP;
-		}
-
-		while (glGetError() != GL_NO_ERROR) { }
-		glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
-		glErr = glGetError();
-		if(glErr != GL_NO_ERROR)
-		{
-			logErr("%s in glEGLImageTargetTexture2DOES", glErrorToString(glErr));
-			ret = ANDROID_DT_ERR_TEST_TARGET_TEXTURE; goto CLEANUP;
-		}
-
-		logMsg("all tests passed");
-
-		CLEANUP:
-
-		if(eglImg != EGL_NO_IMAGE_KHR)
-		{
-			logMsg("calling eglDestroyImageKHR");
-			eglDestroyImageKHR(eglDisplay, eglImg);
-		}
-		if(eglBuf.handle)
-		{
-			freeBuffer(eglBuf);
-		}
-		glcDeleteTextures(1, &ref);
-		return ret;
+		return 0;
 	}
 
 	int allocBuffer(android_native_buffer_t &eglBuf)
@@ -715,17 +676,24 @@ const GLenum AndroidDirectTextureConfig::directTextureTarget = GL_TEXTURE_2D;
 
 static AndroidDirectTextureConfig directTextureConf;
 
-static android_native_buffer_t eglBuf;
-static EGLImageKHR eglImg;
-
-bool gfx_androidDirectTextureSupported() { return directTextureConf.supportEGLImageKHR; }
-bool gfx_androidDirectTextureSupportWhitelisted() { return directTextureConf.whitelistedEGLImageKHR; }
-int gfx_androidDirectTextureError() { return directTextureConf.errorEGLImageKHR; }
-
-void gfx_setAndroidDirectTexture(bool on)
+namespace Gfx
 {
-	if(directTextureConf.supportEGLImageKHR)
+
+bool supportsAndroidDirectTexture() { return directTextureConf.isSupported(); }
+bool supportsAndroidDirectTextureWhitelisted() { return directTextureConf.whitelistedEGLImageKHR; }
+const char* androidDirectTextureError() { return directTextureConf.errorStr; }
+
+bool useAndroidDirectTexture()
+{
+	return supportsAndroidDirectTexture() ? directTextureConf.useEGLImageKHR : 0;
+}
+
+void setUseAndroidDirectTexture(bool on)
+{
+	if(supportsAndroidDirectTexture())
 		directTextureConf.useEGLImageKHR = on;
+}
+
 }
 
 #endif

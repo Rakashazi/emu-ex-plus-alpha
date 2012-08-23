@@ -2,16 +2,22 @@
 
 #include "sdk.hh"
 
-namespace Base
+namespace Gfx
 {
 
-bool hasSurfaceTexture();
-void disableSurfaceTexture();
+#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+	bool supportsAndroidDirectTexture();
+	bool supportsAndroidDirectTextureWhitelisted();
+	const char* androidDirectTextureError();
+	bool useAndroidDirectTexture();
+	void setUseAndroidDirectTexture(bool on);
+#endif
+
+bool supportsAndroidSurfaceTexture();
+bool useAndroidSurfaceTexture();
+void setUseAndroidSurfaceTexture(bool on);
 
 }
-
-// Bluez dlsym functions
-CallResult bluez_dl();
 
 extern fbool glSyncHackBlacklisted, glSyncHackEnabled;
 extern fbool glPointerStateHack, glBrokenNpot;

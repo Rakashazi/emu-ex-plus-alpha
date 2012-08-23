@@ -792,6 +792,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
 	//Settings.FrameTimePAL = 20000;
 	//Settings.FrameTimeNTSC = 16667;
 	//Settings.ForceNTSC = 1;
