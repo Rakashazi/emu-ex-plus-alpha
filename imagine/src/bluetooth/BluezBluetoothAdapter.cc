@@ -44,7 +44,7 @@ bool BluezBluetoothAdapter::openDefault()
 	devId = hci_get_route(0);
 	if(devId < 0)
 	{
-		logMsg("no routes");
+		logMsg("no routes, errno: %d, %s", errno, strerror(errno));
 		return 0;
 	}
 	socket = hci_open_dev(devId);
@@ -56,15 +56,24 @@ bool BluezBluetoothAdapter::openDefault()
 	return 1;
 }
 
+void BluezBluetoothAdapter::cancelScan()
+{
+	scanCancelled = 1;
+}
+
 void BluezBluetoothAdapter::close()
 {
+	if(inDetect)
+	{
+		cancelScan();
+		inDetect = 0;
+	}
 	if(socket > 0)
 	{
 		logMsg("closing BT device socket");
 		::close(socket);
-		socket = 0;
+		socket = -1;
 	}
-	inDetect = 0;
 }
 
 BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter()
@@ -91,6 +100,13 @@ CallResult BluezBluetoothAdapter::doScan()
 		return INVALID_PARAMETER;
 	}
 
+	if(scanCancelled)
+	{
+		logMsg("cancelled scan after hci_inquiry");
+		sendBTScanStatusDelegate(runThread, SCAN_CANCELLED);
+		return OK;
+	}
+
 	logMsg("%d devices", devices);
 	if(devices == 0)
 	{
@@ -100,7 +116,6 @@ CallResult BluezBluetoothAdapter::doScan()
 	}
 	else
 		sendBTScanStatusDelegate(runThread, SCAN_PROCESSING, devices);
-	bool usedDevice = 0, hadError = 0;
 	iterateTimes(devices, i)
 	{
 		if(!onScanDeviceClass.invoke(deviceInfo[i].dev_class))
@@ -108,25 +123,36 @@ CallResult BluezBluetoothAdapter::doScan()
 			logMsg("skipping device due to class %X:%X:%X", deviceInfo[i].dev_class[0], deviceInfo[i].dev_class[1], deviceInfo[i].dev_class[2]);
 			continue;
 		}
+
+		if(scanCancelled)
+		{
+			logMsg("cancelled scan in hci_read_remote_name loop");
+			sendBTScanStatusDelegate(runThread, SCAN_CANCELLED);
+			return OK;
+		}
+
 		char name[248];
 		if(hci_read_remote_name(socket, &deviceInfo[i].bdaddr, sizeof(name), name, 0) < 0)
 		{
 			logMsg("error reading device name");
 			sendBTScanStatusDelegate(runThread, SCAN_NAME_FAILED);
-			hadError = 1;
 			continue;
 		}
 		logMsg("device name: %s", name);
-		usedDevice = 1;
 		BluetoothAddr addr;
 		memcpy(addr.b, deviceInfo[i].bdaddr.b, 6);
 		onScanDeviceName.invoke(name, addr);
 	}
 	if(deviceInfo) free(deviceInfo);
-	if(usedDevice)
-		sendBTScanStatusDelegate(runThread, SCAN_COMPLETE);
-	else if(!hadError) // don't clobber error message
-		sendBTScanStatusDelegate(runThread, SCAN_COMPLETE_NO_DEVS_USED);
+
+	if(scanCancelled)
+	{
+		logMsg("cancelled scan after hci_read_remote_name loop");
+		sendBTScanStatusDelegate(runThread, SCAN_CANCELLED);
+		return OK;
+	}
+
+	sendBTScanStatusDelegate(runThread, SCAN_COMPLETE);
 	return OK;
 }
 
@@ -142,6 +168,7 @@ fbool BluezBluetoothAdapter::startScan()
 {
 	if(!inDetect)
 	{
+		scanCancelled = 0;
 		inDetect = 1;
 		runThread.create(1, runScan, this);
 		return 1;
@@ -184,13 +211,13 @@ int BluezBluetoothSocket::readPendingData(int events)
 	{
 		uchar buff[48];
 		int bytesToRead = fd_bytesReadable(fd);
-		logMsg("%d bytes ready on socket %d", bytesToRead, fd);
+		//logMsg("%d bytes ready on socket %d", bytesToRead, fd);
 		do
 		{
-			int len = read(fd, buff, IG::min((uint)bytesToRead, uint(sizeof buff)));
+			auto len = read(fd, buff, IG::min((size_t)bytesToRead, sizeof buff));
 			if(unlikely(len <= 0))
 			{
-				logMsg("error %d reading packet from socket %d", len == -1 ? errno : len, fd);
+				logMsg("error %d reading packet from socket %d", len == -1 ? errno : 0, fd);
 				onStatus.invoke(*this, STATUS_ERROR);
 				return 0;
 			}
@@ -240,7 +267,6 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 	}
 	fd_setNonblock(fd, 0);
 
-	//pollEvDel.bind<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this);
 	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }
@@ -274,7 +300,6 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 		//logMsg("success");
 	}
 	fd_setNonblock(fd, 0);
-	//pollEvDel.bind<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this);
 	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }

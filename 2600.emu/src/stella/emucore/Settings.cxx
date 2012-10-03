@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 2401 2012-03-03 00:56:31Z stephena $
+// $Id: Settings.cxx 2504 2012-05-27 19:27:55Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -40,10 +40,10 @@ Settings::Settings(OSystem* osystem)
   setInternal("video", "soft");
 
   // OpenGL specific options
-  setInternal("gl_filter", "nearest");
+  setInternal("gl_inter", "false");
   setInternal("gl_aspectn", "90");
   setInternal("gl_aspectp", "100");
-  setInternal("gl_fsmax", "true");
+  setInternal("gl_fsscale", "false");
   setInternal("gl_lib", "libGL.so");
   setInternal("gl_vsync", "true");
   setInternal("gl_vbo", "true");
@@ -59,6 +59,22 @@ Settings::Settings(OSystem* osystem)
   setInternal("timing", "sleep");
   setInternal("uimessages", "true");
 
+  // TV filtering options
+  setInternal("tv_filter", "0");
+  setInternal("tv_scanlines", "40");
+  setInternal("tv_scaninter", "true");
+  // TV options when using 'custom' mode
+  setInternal("tv_contrast", "0.0");
+  setInternal("tv_brightness", "0.0");
+  setInternal("tv_hue", "0.0");
+  setInternal("tv_saturation", "0.0");
+  setInternal("tv_gamma", "0.0");
+  setInternal("tv_sharpness", "0.0");
+  setInternal("tv_resolution", "0.0");
+  setInternal("tv_artifacts", "0.0");
+  setInternal("tv_fringing", "0.0");
+  setInternal("tv_bleed", "0.0");
+
   // Sound options
   setInternal("sound", "true");
   setInternal("fragsize", "512");
@@ -73,7 +89,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("combomap", "");
   setInternal("joydeadzone", "13");
   setInternal("joyallow4", "false");
-  setInternal("mcontrol", "auto");
+  setInternal("usemouse", "true");
   setInternal("dsense", "5");
   setInternal("msense", "7");
   setInternal("saport", "lr");
@@ -95,7 +111,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("cfgdir", "");
 
   // ROM browser options
-  setInternal("uselauncher", "true");
+  setInternal("exitlauncher", "false");
   setInternal("launcherres", "640x480");
   setInternal("launcherfont", "medium");
   setInternal("launcherexts", "allroms");
@@ -120,10 +136,11 @@ Settings::Settings(OSystem* osystem)
   setExternal("romloadcount", "0");
   setExternal("maxres", "");
 
-  // Debugger options
-  setInternal("resolvedata", "auto");
-  setInternal("gfxformat", "2");
-  setInternal("showaddr", "true");
+  // Debugger disassembly options
+  setInternal("dis.resolvedata", "auto");
+  setInternal("dis.gfxformat", "2");
+  setInternal("dis.showaddr", "true");
+  setInternal("dis.relocate", "false");
 
   // Thumb ARM emulation options
   setInternal("thumb.trapfatal", "true");
@@ -255,13 +272,13 @@ void Settings::validate()
   if(s != "sleep" && s != "busy")  setInternal("timing", "sleep");
 
 #ifdef DISPLAY_OPENGL
-  s = getString("gl_filter");
-  if(s != "linear" && s != "nearest")  setInternal("gl_filter", "nearest");
-
   i = getInt("gl_aspectn");
   if(i < 80 || i > 120)  setInternal("gl_aspectn", "100");
   i = getInt("gl_aspectp");
   if(i < 80 || i > 120)  setInternal("gl_aspectp", "100");
+
+  i = getInt("tv_filter");
+  if(i < 0 || i > 5)  setInternal("tv_filter", "0");
 #endif
 
 #ifdef SOUND_SUPPORT
@@ -276,10 +293,6 @@ void Settings::validate()
   i = getInt("joydeadzone");
   if(i < 0)        setInternal("joydeadzone", "0");
   else if(i > 29)  setInternal("joydeadzone", "29");
-
-  s = getString("mcontrol");
-  if(s != "never" && s != "auto" && s != "rom")
-  setInternal("mcontrol", "auto");
 
   if(i < 1)        setInternal("dsense", "1");
   else if(i > 10)  setInternal("dsense", "10");

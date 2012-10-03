@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: FSNode.cxx 2477 2012-05-16 20:52:33Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -72,11 +72,11 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
     return false;
 
   AbstractFSList tmp;
+  tmp.reserve(fslist.capacity());
 
   if (!_realNode->getChildren(tmp, mode, hidden))
     return false;
 
-  fslist.clear();
   for (AbstractFSList::iterator i = tmp.begin(); i != tmp.end(); ++i)
   {
     fslist.push_back(FilesystemNode(*i));
@@ -142,6 +142,15 @@ bool FilesystemNode::isDirectory() const
     return false;
 
   return _realNode->isDirectory();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FilesystemNode::isFile() const
+{
+  if (_realNode == 0)
+    return false;
+
+  return _realNode->isFile();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

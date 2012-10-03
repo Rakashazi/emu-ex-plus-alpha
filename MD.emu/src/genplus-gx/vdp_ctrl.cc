@@ -39,6 +39,7 @@
   bg_name_dirty[name] |= (1 << ((addr >> 2) & 7));  \
 }
 
+#if 0
 /* VDP context */
 RamU<0x400> sat;     /* Internal copy of sprite attribute table */
 RamU<0x10000> vram;  /* Video RAM (64K x 8-bit) */
@@ -83,6 +84,9 @@ void (*vdp_68k_data_w)(unsigned int data);
 void (*vdp_z80_data_w)(unsigned int data);
 unsigned int (*vdp_68k_data_r)(void);
 unsigned int (*vdp_z80_data_r)(void);
+#endif
+
+VDP vdp;
 
 /* Tables that define the playfield layout */
 static const uint8 hscroll_mask_table[] = { 0x00, 0x07, 0xF8, 0xFF };

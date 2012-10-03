@@ -22,10 +22,12 @@ class VideoImageOverlay
 	GfxBufferImage img;
 	Pixmap pix;
 	GfxSprite spr;
-	uint effect;
+	uint effect = NO_EFFECT;
 
 public:
-	GC intensity;
+	GC intensity = 0.25;
+
+	constexpr	VideoImageOverlay() { }
 
 	enum
 	{
@@ -36,8 +38,6 @@ public:
 
 		MAX_EFFECT_VAL = CRT_RGB_2
 	};
-
-	constexpr	VideoImageOverlay(): effect(NO_EFFECT), intensity(0.25) { }
 
 	void setEffect(uint effect);
 	void place(const GfxSprite &disp);

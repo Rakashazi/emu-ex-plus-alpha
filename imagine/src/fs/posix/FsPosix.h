@@ -27,6 +27,11 @@ public:
 	static CallResult mkdir(const char *dir);
 	static CallResult rename(const char *oldname, const char *newname);
 
+	static const uint timeStrSize = 26; // 26 bytes needed for asctime_r (from glibc & Apple man pages)
+	typedef char timeStr[timeStrSize];
+
+	static CallResult mTimeAsStr(const char *path, timeStr time);
+
 	static bool fileExists(const char *path)
 	{
 		return fileType(path) != TYPE_NONE;

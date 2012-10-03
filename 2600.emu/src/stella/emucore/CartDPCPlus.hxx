@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartDPCPlus.hxx 2526 2012-06-04 19:20:27Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_DPC_PLUS_HXX
@@ -34,7 +34,7 @@ class Thumbulator;
   the DPC chip see David P. Crane's United States Patent Number 4,644,495.
 
   @author  Darrell Spice Jr, Fred Quimby, Stephen Anthony
-  @version $Id: CartDPCPlus.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: CartDPCPlus.hxx 2526 2012-06-04 19:20:27Z stephena $
 */
 class CartridgeDPCPlus : public Cartridge
 {
@@ -150,6 +150,11 @@ class CartridgeDPCPlus : public Cartridge
 
   private:
     /** 
+      Sets the initial state of the DPC pointers and RAM
+    */
+    void setInitialState();
+
+    /** 
       Clocks the random number generator to move it to its next state
     */
     void clockRandomNumberGenerator();
@@ -181,8 +186,8 @@ class CartridgeDPCPlus : public Cartridge
     // Pointer to the 4K display ROM image of the cartridge
     uInt8* myDisplayImage;
 
-    // Pointer to the DPC 8k RAM image
-    uInt8* myDPCRAM;
+    // The DPC 8k RAM image
+    uInt8 myDPCRAM[8192];
 
 #ifdef THUMB_SUPPORT
     // Pointer to the Thumb ARM emulator object
@@ -238,7 +243,7 @@ class CartridgeDPCPlus : public Cartridge
     Int32 mySystemCycles;
 
     // Fractional DPC music OSC clocks unused during the last update
-    SysDDec myFractionalClocks;
+    double myFractionalClocks;
 };
 
 #endif

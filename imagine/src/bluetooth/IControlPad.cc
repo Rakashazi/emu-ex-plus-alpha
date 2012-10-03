@@ -19,7 +19,7 @@
 #include <util/bits.h>
 #include <util/collection/DLList.hh>
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 3> btInputDevList;
+extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
 
 static const PackedInputAccess iCPDataAccess[] =
@@ -86,7 +86,7 @@ uint IControlPad::findFreeDevId()
 	return 0;
 }
 
-CallResult IControlPad::open(BluetoothAddr addr, BluetoothAdapter &adapter)
+CallResult IControlPad::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to iCP");
 #if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT

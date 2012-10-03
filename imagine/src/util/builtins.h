@@ -17,6 +17,8 @@
 // Shortcut for GCC attributes
 #define ATTRS(...) __attribute__((__VA_ARGS__))
 
+#define INITFIRST __attribute__((init_priority(101)))
+
 #define var_isConst(E) __builtin_constant_p(E)
 #define likely(E) __builtin_expect((E),1)
 #define unlikely(E) __builtin_expect((E),0)

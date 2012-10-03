@@ -303,7 +303,7 @@ unsigned char z80_sms_port_r(unsigned int port)
 
       if ((port >= 0xF0) && (config_ym2413_enabled))
       {
-        return YM2413Read(port & 3); 
+        return YM2413Read(port & 3);
       }
 
       return z80_unused_port_r(port);

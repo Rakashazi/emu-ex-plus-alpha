@@ -340,7 +340,8 @@ bool MDFND_ExitBlockingLoop(void) { return 0; }
 int MDFN_RawInputStateAction(StateMem *sm, int load, int data_only) { return 1; }
 void MDFND_SetMovieStatus(StateStatusStruct *status) { }
 void MDFND_SetStateStatus(StateStatusStruct *status) { }
-int MDFNNET_SendState(void) { return 0; }
+void NetplaySendState(void) { }
+void MDFND_NetplayText(const uint8 *text, bool NetEcho) { }
 
 uint32 MDFND_GetTime(void)
 {

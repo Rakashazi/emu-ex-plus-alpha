@@ -962,7 +962,7 @@ static INSN_REGPARM void arm121(ARM7TDMI &cpu, u32 opcode, int &clockTicks)
 #define OP_STRH   CPUWriteHalfWord(cpu, address, reg[dest].W.W0)
 #define OP_STRB   CPUWriteByte(cpu, address, reg[dest].B.B0)
 #define OP_LDR    reg[dest].I = CPUReadMemory(cpu, address)
-#define OP_LDRH   reg[dest].I = CPUReadHalfWord(cpu, address)
+#define OP_LDRH   reg[dest].I = CPUReadHalfWordNoRot(cpu, address)
 #define OP_LDRB   reg[dest].I = CPUReadByte(cpu, address)
 #define OP_LDRSH  reg[dest].I = (s16)CPUReadHalfWordSigned(cpu, address)
 #define OP_LDRSB  reg[dest].I = (s8)CPUReadByte(cpu, address)
@@ -1400,7 +1400,7 @@ static INSN_REGPARM void arm7F6(ARM7TDMI &cpu, u32 opcode, int &clockTicks) { LD
     }
 #define LDM_REG(bit,num) \
     if (opcode & (1U<<(bit))) {                         \
-        reg[(num)].I = CPUReadMemory(cpu, address);          \
+        reg[(num)].I = CPUReadMemoryNoRot(cpu, address);          \
         if (!count) {                                   \
             clockTicks += 1 + dataTicksAccess32(cpu, address);\
         } else {                                        \
@@ -1518,7 +1518,7 @@ static INSN_REGPARM void arm7F6(ARM7TDMI &cpu, u32 opcode, int &clockTicks) { LD
     LDM_LOW;                                            \
     LDM_HIGH;                                           \
     if (opcode & (1U<<15)) {                            \
-        reg[15].I = CPUReadMemory(cpu, address);             \
+        reg[15].I = CPUReadMemoryNoRot(cpu, address);             \
         if (!count) {                                   \
             clockTicks += 1 + dataTicksAccess32(cpu, address);\
         } else {                                        \
@@ -1544,7 +1544,7 @@ static INSN_REGPARM void arm7F6(ARM7TDMI &cpu, u32 opcode, int &clockTicks) { LD
     LDM_LOW;                                            \
     if (opcode & (1U<<15)) {                            \
         LDM_HIGH;                                       \
-        reg[15].I = CPUReadMemory(cpu, address);             \
+        reg[15].I = CPUReadMemoryNoRot(cpu, address);             \
         if (!count) {                                   \
             clockTicks += 1 + dataTicksAccess32(cpu, address); \
         } else {                                        \

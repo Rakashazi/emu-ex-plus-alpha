@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartEFSC.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartEFSC.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,7 @@ CartridgeEFSC::CartridgeEFSC(const uInt8* image, uInt32 size, const Settings& se
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(65536u, size));
+  memcpy(myImage, image, BSPF_min(65536u, size));
   createCodeAccessBase(65536);
 
   // This cart contains 128 bytes extended RAM @ 0x1000
@@ -208,11 +208,12 @@ bool CartridgeEFSC::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
+    out.putShort(myCurrentBank);
+    out.putByteArray(myRAM, 128);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeEFSC::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeEFSC::save" << endl;
     return false;
   }
 
@@ -227,11 +228,12 @@ bool CartridgeEFSC::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16) in.getInt();
+    myCurrentBank = in.getShort();
+    in.getByteArray(myRAM, 128);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeEFSC::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeEFSC::load" << endl;
     return false;
   }
 

@@ -47,22 +47,8 @@ bool CPUWriteState(const char *);
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build(42./255., 82./255., 190./255., 1.) },
-	{ .3, VertexColorPixelFormat.build(42./255., 82./255., 190./255., 1.) },
-	{ .97, VertexColorPixelFormat.build((42./255.) * .6, (82./255.) * .6, (190./255.) * .6, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 const uint EmuSystem::maxPlayers = 1;
-static const uint systemFaceBtns = 4, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
 uint EmuSystem::aspectRatioX = 3, EmuSystem::aspectRatioY = 2;
-#define systemAspectRatioString "3:2"
 #include "CommonGui.hh"
 
 // controls
@@ -97,6 +83,7 @@ enum
 	gbaKeyIdxATurbo,
 	gbaKeyIdxBTurbo,
 	gbaKeyIdxAB,
+	gbaKeyIdxRB,
 };
 
 namespace GbaKeyStatus
@@ -160,6 +147,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case gbaKeyIdxL: return L;
 		case gbaKeyIdxR: return R;
 		case gbaKeyIdxAB: return A | B;
+		case gbaKeyIdxRB: return R | B;
 		default: bug_branch("%d", input);
 	}
 	return 0;
@@ -183,7 +171,7 @@ enum
 	CFGKEY_GBAKEY_A = 266, CFGKEY_GBAKEY_B = 267,
 	CFGKEY_GBAKEY_A_TURBO = 268, CFGKEY_GBAKEY_B_TURBO = 269,
 	CFGKEY_GBAKEY_L = 270, CFGKEY_GBAKEY_R = 271,
-	CFGKEY_GBAKEY_AB = 272,
+	CFGKEY_GBAKEY_AB = 272, CFGKEY_GBAKEY_RB = 273,
 };
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -208,6 +196,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_GBAKEY_L: readKeyConfig2(io, gbaKeyIdxL, readSize);
 		bcase CFGKEY_GBAKEY_R: readKeyConfig2(io, gbaKeyIdxR, readSize);
 		bcase CFGKEY_GBAKEY_AB: readKeyConfig2(io, gbaKeyIdxAB, readSize);
+		bcase CFGKEY_GBAKEY_RB: readKeyConfig2(io, gbaKeyIdxRB, readSize);
 	}
 	return 1;
 }
@@ -231,6 +220,7 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, gbaKeyIdxL, CFGKEY_GBAKEY_L);
 	writeKeyConfig2(io, gbaKeyIdxR, CFGKEY_GBAKEY_R);
 	writeKeyConfig2(io, gbaKeyIdxAB, CFGKEY_GBAKEY_AB);
+	writeKeyConfig2(io, gbaKeyIdxRB, CFGKEY_GBAKEY_RB);
 }
 
 static bool isGBAExtension(const char *name)
@@ -245,12 +235,6 @@ static int gbaFsFilter(const char *name, int type)
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = gbaFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbaFsFilter;
-
-#include "GbaOptionView.hh"
-static GbaOptionView oCategoryMenu;
-
-#include "GbaMenuView.hh"
-static GbaMenuView mMenu;
 
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565
@@ -312,7 +296,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_IO_ERROR;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -361,9 +345,9 @@ void EmuSystem::closeSystem()
 	CPUCleanUp();
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame();
 
 	string_copy(gamePath, FsSys::workDir());
 	#ifdef CONFIG_BASE_IOS_SETUID
@@ -376,7 +360,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	int size = CPULoadRom(fullGamePath);
 	if(size == 0)
 	{
-		logMsg("failed to load rom");
+		popup.postError("Error loading ROM");
 		return 0;
 	}
 	string_copyUpToLastCharInstance(gameName, path, '.');
@@ -388,13 +372,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	snprintf(saveStr, sizeof(saveStr), "%s%s", gameName, ".sav");
 	CPUReadBatteryFile(saveStr);
 	emuView.initImage(0, 240, 160);
-
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		CPUReadState(saveStr);
-	}
 
 	logMsg("started emu");
 	return 1;
@@ -465,7 +442,16 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	mainInitCommon();
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build(42./255., 82./255., 190./255., 1.) },
+		{ .3, VertexColorPixelFormat.build(42./255., 82./255., 190./255., 1.) },
+		{ .97, VertexColorPixelFormat.build((42./255.) * .6, (82./255.) * .6, (190./255.) * .6, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
+	mainInitCommon(navViewGrad);
 	emuView.initPixmap((uchar*)gLcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
 

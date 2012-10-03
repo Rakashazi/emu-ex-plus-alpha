@@ -53,6 +53,7 @@ static JavaInstMethod<void> jVibrate;
 const char *appPath = nullptr;
 static uint aSDK = aMinSDK;
 static int osOrientation = -1;
+static bool osAnimatesRotation = 0;
 static float androidXDPI = 0, androidYDPI = 0, // DPI reported by OS
 		xDPI = 0, yDPI = 0; // Active DPI
 int devType = DEV_TYPE_GENERIC;
@@ -316,7 +317,7 @@ static bool setOrientationOS(int o)
 			//Gfx::setupScreenSize();
 		}*/
 
-		if(androidSDK() < 11)
+		if(!osAnimatesRotation)
 		{
 			GC rotAngle = orientationDiffTable[osOrientation][o];
 			logMsg("animating from %d degrees", (int)rotAngle);

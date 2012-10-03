@@ -15,7 +15,7 @@ enum { IMAGE_ALPHA_CHANNEL_NONE, IMAGE_ALPHA_CHANNEL_USED, IMAGE_ALPHA_CHANNEL_I
 class ResourceImage : /*public Resource,*/ public GfxUsableImage, public RefCount<ResourceImage>
 {
 public:
-	//constexpr ResourceImage() { }
+	constexpr ResourceImage() { }
 	virtual ~ResourceImage() { }
 
 	void init();

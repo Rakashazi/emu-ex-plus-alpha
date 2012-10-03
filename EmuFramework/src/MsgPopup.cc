@@ -17,6 +17,8 @@
 #include <MsgPopup.hh>
 #include <gui/View.hh>
 
+using namespace Base;
+
 void MsgPopup::init()
 {
 	//logMsg("init MsgPopup");
@@ -27,7 +29,10 @@ void MsgPopup::init()
 void MsgPopup::clear()
 {
 	if(text.str)
-		Base::setTimerCallback(0, 0, 0);
+	{
+		cancelCallback(callbackRef);
+		callbackRef = nullptr;
+	}
 	text.str = 0;
 }
 
@@ -38,10 +43,10 @@ void MsgPopup::place()
 		text.compile();
 }
 
-void MsgPopup::unpost(void *ctx)
+void MsgPopup::unpost()
 {
-	MsgPopup *msg = (MsgPopup*)ctx;
-	msg->text.str = 0;
+	callbackRef = nullptr;
+	text.str = 0;
 	Base::displayNeedsUpdate();
 }
 
@@ -51,7 +56,9 @@ void MsgPopup::post(const char *msg, int secs, bool error)
 	text.setString(msg);
 	text.compile();
 	this->error = error;
-	Base::setTimerCallbackSec(unpost, this, secs);
+	auto callback = CallbackDelegate::create<MsgPopup,&MsgPopup::unpost>(this);
+	cancelCallback(callbackRef);
+	callbackRef = callbackAfterDelaySec(callback, secs);
 }
 
 void MsgPopup::postError(const char *msg, int secs)

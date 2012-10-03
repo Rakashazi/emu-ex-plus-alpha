@@ -1,18 +1,18 @@
 #pragma once
 
-#include "sys.hh"
+#include <bluetooth/sys.hh>
 #include <input/interface.h>
 #include <util/collection/DLList.hh>
 
 struct Zeemote : public BluetoothInputDevice
 {
 public:
-	//constexpr Zeemote() { }
-	CallResult open(BluetoothAddr addr, BluetoothAdapter &adapter);
+	Zeemote(BluetoothAddr addr): addr(addr) { }
+	CallResult open(BluetoothAdapter &adapter) override;
 
 	void close();
 
-	void removeFromSystem();
+	void removeFromSystem() override;
 
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const uchar *packet, size_t size);
@@ -31,7 +31,8 @@ private:
 	uint inputBufferPos = 0;
 	uint packetSize = 0;
 	bool prevBtnPush[4] = {0}, stickBtn[4] = {0};
-	uint player = 0;
+	uint player;
+	BluetoothAddr addr;
 
 	static const uint RID_VERSION = 0x03, RID_BTN_METADATA = 0x04, RID_CONFIG_DATA = 0x05,
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;

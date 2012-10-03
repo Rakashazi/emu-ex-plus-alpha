@@ -21,6 +21,7 @@
 #include "private.hh"
 #include <base/Base.hh>
 #include <base/common/funcs.h>
+#include <util/collection/DLList.hh>
 #include <semaphore.h>
 #include "ndkCompat.h"
 
@@ -48,12 +49,13 @@ static jobject jHandler = 0, glView = 0;
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 static JavaClassMethod jSetAutoOrientation;
 #endif
-static JavaInstMethod<jboolean> jRemoveCallbacks, jPostDelayed; /*, jPost, jHasMessages*/
+static JavaInstMethod<jboolean> jRemoveCallbacks; /*, jPost, jHasMessages*/
+static JavaInstMethod<jobject> jPostCallback;
 static JavaInstMethod<void> jSetKeepScreenOn, jSetStatusBar;
 JavaInstMethod<void> jShowIme, jHideIme;
 static JavaClassMethod<void> jSwapBuffers;
 static jfieldID jAllowKeyRepeatsId, jHandleVolumeKeysId, glViewId;
-static jobject jTimerCallbackRunnable;
+//static jobject jTimerCallbackRunnable;
 static const ushort MSG_FD_EVENTS = 1;
 static int ePoll;
 static ThreadPThread epollThread;
@@ -98,37 +100,64 @@ void setOSNavigationStyle(uint flags) { }
 
 bool surfaceTextureSupported() { return 0; }
 
-static TimerCallbackFunc timerCallbackFunc = 0;
-static void *timerCallbackFuncCtx = 0;
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
+struct Callback
 {
-	if(timerCallbackFunc)
+	constexpr Callback() { }
+	constexpr Callback(CallbackDelegate del): del(del) { }
+	CallbackDelegate del;
+	jobject runnable = nullptr;
+
+	bool operator ==(Callback const& rhs) const
+	{
+		return del == rhs.del;
+	}
+};
+
+DLList<Callback>::Node DLListNodeArray(timerListNode, 4);
+DLList<Callback> timerList {timerListNode};
+
+void cancelCallback(CallbackRef *ref)
+{
+	auto callback = (Callback*)ref;
+	if(ref)
 	{
 		logMsg("canceling callback");
-		timerCallbackFunc = 0;
-		jRemoveCallbacks(jEnv, jHandler, jTimerCallbackRunnable);
+		jRemoveCallbacks(jEnv, jHandler, callback->runnable);
+		timerList.remove(*callback);
 	}
-	if(!f)
-		return;
-	logMsg("setting callback to run in %d ms", ms);
-	timerCallbackFunc = f;
-	timerCallbackFuncCtx = ctx;
-	jPostDelayed(jEnv, jHandler, jTimerCallbackRunnable, (jlong)ms);
 }
 
-static jboolean JNICALL timerCallback(JNIEnv*  env, jobject thiz, jboolean isPaused)
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
 {
-	if(timerCallbackFunc)
+	if(timerList.isFull())
 	{
-		if(isPaused)
-			logMsg("running callback with app paused");
-		else
-			logMsg("running callback");
-		timerCallbackFunc(timerCallbackFuncCtx);
-		timerCallbackFunc = 0;
-		return !isPaused && gfxUpdate;
+		logErr("max timers reached");
+		return nullptr;
 	}
-	return 0;
+	logMsg("setting callback to run in %d ms", ms);
+	timerList.add(Callback(callback));
+	auto callbackArg = timerList.first();
+	assert(callbackArg);
+	jobject runnable = jPostCallback(jEnv, jBaseActivity, (jint)callbackArg, (jint)ms);
+	assert(runnable);
+	callbackArg->runnable = jEnv->NewGlobalRef(runnable);
+	//jPostDelayed(jEnv, jHandler, jTimerCallbackRunnable, (jlong)ms);
+	return (CallbackRef*)callbackArg;
+}
+
+static jboolean JNICALL timerCallback(JNIEnv*  env, jobject thiz, jboolean isPaused, jint callbackAddr)
+{
+	if(isPaused)
+		logMsg("running callback with app paused");
+	else
+		logMsg("running callback");
+	assert(callbackAddr);
+	auto callback = (Callback*)callbackAddr;
+	assert(timerList.contains(*callback));
+	jEnv->DeleteGlobalRef(callback->runnable);
+	callback->del.invoke();
+	timerList.remove(*callback);
+	return !isPaused && gfxUpdate;
 }
 
 static void JNICALL envConfig(JNIEnv*  env, jobject thiz, jstring filesPath, jstring eStoragePath,
@@ -179,9 +208,9 @@ static void JNICALL nativeInit(JNIEnv*  env, jobject thiz, jint w, jint h)
 	//logMsg("msgHandler %p", msgHandler);
 	#endif
 	glView = env->NewGlobalRef(env->GetStaticObjectField(jBaseActivityCls, glViewId));
-	jfieldID timerCallbackRunnableId = env->GetStaticFieldID(jBaseActivityCls, "timerCallbackRunnable", "Ljava/lang/Runnable;");
+	/*jfieldID timerCallbackRunnableId = env->GetStaticFieldID(jBaseActivityCls, "timerCallbackRunnable", "Ljava/lang/Runnable;");
 	assert(timerCallbackRunnableId);
-	jTimerCallbackRunnable = env->NewGlobalRef(env->GetStaticObjectField(jBaseActivityCls, timerCallbackRunnableId));
+	jTimerCallbackRunnable = env->NewGlobalRef(env->GetStaticObjectField(jBaseActivityCls, timerCallbackRunnableId));*/
 	//logMsg("jTimerCallbackRunnable %p", jTimerCallbackRunnable);
 	jfieldID handlerID = env->GetStaticFieldID(jGLViewCls, "handler", "Landroid/os/Handler;");
 	assert(handlerID);
@@ -392,6 +421,7 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
 	jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
+	jPostCallback.setup(jEnv, jBaseActivityCls, "postCallback", "(II)Ljava/lang/Runnable;");
 	/*jShowIme.setup(jEnv, jBaseActivityCls, "showIme", "(I)V");
 	jHideIme.setup(jEnv, jBaseActivityCls, "hideIme", "(I)V");*/
 	jAllowKeyRepeatsId = jEnv->GetStaticFieldID(jBaseActivityCls, "allowKeyRepeats", "Z");
@@ -404,7 +434,7 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 
 	// Handler members
 	jHandlerCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/os/Handler"));
-	jPostDelayed.setup(jEnv, jHandlerCls, "postDelayed", "(Ljava/lang/Runnable;J)Z");
+	//jPostDelayed.setup(jEnv, jHandlerCls, "postDelayed", "(Ljava/lang/Runnable;J)Z");
 	jRemoveCallbacks.setup(jEnv, jHandlerCls, "removeCallbacks", "(Ljava/lang/Runnable;)V");
 	//jPost.setup(env, jHandlerCls, "post", "(Ljava/lang/Runnable;)Z");
 	//jHasMessages.setup(env, jHandlerCls, "hasMessages", "(I)Z");
@@ -425,7 +455,7 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 
 	static JNINativeMethod activityMethods[] =
 	{
-	    {"timerCallback", "(Z)Z", (void *)&timerCallback},
+	    {"timerCallback", "(ZI)Z", (void *)&timerCallback},
 	    {"appPaused", "()V", (void *)&appPaused},
 	    {"appResumed", "(Z)V", (void *)&appResumed},
 	    {"appFocus", "(Z)Z", (void *)&appFocus},

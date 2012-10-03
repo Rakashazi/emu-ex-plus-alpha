@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Booster.cxx 2405 2012-03-04 19:20:29Z stephena $
+// $Id: Booster.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -129,16 +129,21 @@ void BoosterGrip::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BoosterGrip::setMouseControl(
-    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+bool BoosterGrip::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
 {
-  // In 'automatic' mode, both axes on the mouse map to a single normal booster
-  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  // Currently, the booster-grip takes full control of the mouse, using both
+  // axes for its two degrees of movement, and the left/right buttons for
+  // fire and booster, respectively
+  if(xtype == Controller::BoosterGrip && ytype == Controller::BoosterGrip &&
+     xid == yid)
   {
-    myControlID = ((myJack == Left && ctrlID == 0) ||
-                   (myJack == Right && ctrlID == 1)
-                  ) ? ctrlID : -1;
+    myControlID = ((myJack == Left && xid == 0) ||
+                   (myJack == Right && xid == 1)
+                  ) ? xid : -1;
   }
-  else  // Otherwise, boosters are not used in 'non-auto' mode
+  else
     myControlID = -1;
+
+  return true;
 }

@@ -1,4 +1,4 @@
-ENV := macOSX
+ENV := macosx
 
 ifeq ($(config_compiler),gcc)
  ifeq ($(origin CC), default)
@@ -16,7 +16,7 @@ else
 endif
 
 ifdef RELEASE
-	COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
+ COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
 OSX_SYSROOT := /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk

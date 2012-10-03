@@ -61,30 +61,26 @@ static void fd_setNonblock(int fd, bool on)
 	}
 }
 
-static size_t fd_bytesReadable(int fd)
+static int fd_bytesReadable(int fd)
 {
-	size_t bytes;
+	int bytes = 0;
 	if(ioctl(fd, FIONREAD, (char*)&bytes) < 0)
 	{
 		logErr("failed ioctl FIONREAD");
 		return 0;
 	}
+	assert(bytes >= 0);
 	return bytes;
 }
 
 static void fd_skipAvailableData(int fd)
 {
-	size_t bytesToSkip = 0;
-	if(ioctl(fd, FIONREAD, (char*)&bytesToSkip) < 0)
-	{
-		logErr("failed ioctl FIONREAD");
-		return;
-	}
-	logMsg("skipping %d bytes", (int)bytesToSkip);
+	int bytesToSkip = fd_bytesReadable(fd);
+	logMsg("skipping %d bytes", bytesToSkip);
 	char dummy[8];
 	while(bytesToSkip)
 	{
-		int ret = read(fd, dummy, IG::min(bytesToSkip, sizeof dummy));
+		int ret = read(fd, dummy, IG::min((size_t)bytesToSkip, sizeof dummy));
 		if(ret < 0)
 		{
 			logMsg("error in read()");

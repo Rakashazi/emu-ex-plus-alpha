@@ -15,11 +15,11 @@
 
 #include <Recent.hh>
 
-static DLList<RecentGameInfo>::Node recentGameListNode[10];
-DLList<RecentGameInfo> recentGameList(recentGameListNode);
+StaticDLList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 
 void recent_addGame(const char *fullPath, const char *name)
 {
+	logMsg("adding %s to recent list, current size: %d", name, recentGameList.size);
 	RecentGameInfo recent;
 	string_copy(recent.path, fullPath, sizeof(recent.path));
 	string_copy(recent.name, name, sizeof(recent.name));

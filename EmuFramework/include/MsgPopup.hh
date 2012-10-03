@@ -23,13 +23,14 @@ class MsgPopup
 public:
 	constexpr MsgPopup() { }
 	GfxText text;
+	Base::CallbackRef *callbackRef = nullptr;
 	bool error = 0;
-	char str[1024] = {0};
+	char str[1024] {0};
 
 	void init();
 	void clear();
 	void place();
-	static void unpost(void *ctx); // for timer callback
+	void unpost();
 	void post(const char *msg, int secs = 3, bool error = 0);
 	void postError(const char *msg, int secs = 3);
 	void draw();

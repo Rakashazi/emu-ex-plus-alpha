@@ -176,7 +176,8 @@ Io* IoFd::create (const char *location, uint mode, CallResult *errorOut)
 		return 0;
 	}
 
-	inst->fd= fd;
+	//logMsg("fd %d", fd);
+	inst->fd = fd;
 	return inst;
 }
 

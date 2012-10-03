@@ -7,11 +7,10 @@ ifndef targetSuffix
  targetSuffix := -armv6
 endif
 
-CHOST := arm-apple-darwin11
+IOS_SYSROOT = /Applications/Xcode44.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.1.sdk
 IOS_FLAGS += -arch armv6
 ASMFLAGS += -arch armv6
+CHOST := $(shell $(CC) -arch armv6 -dumpmachine)
 system_externalSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/armv6
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib
-# avoid complaints about armv7 libclang_rt.ios.a
-LDFLAGS += -Wl,-allow_sub_type_mismatches

@@ -23,6 +23,7 @@
 #include <util/branch.h>
 #include <util/bits.h>
 #include <util/basicMath.hh>
+#include <util/operators.hh>
 #include <config/imagineTypes.h>
 #include <math.h>
 
@@ -141,12 +142,40 @@ static T divUp(T x, T y)
 }
 
 template <class T>
-struct Point2D
+struct Point2D : public Arithmetics< Point2D<T> >
 {
-	T x, y;
+	T x = 0, y = 0;
 
 	constexpr Point2D() { }
 	constexpr Point2D(T x, T y) : x(x), y(y) { }
+
+	Point2D<T> & operator +=(Point2D<T> const& summand)
+	{
+		x += summand.x;
+		y += summand.y;
+		return *this;
+	}
+
+	Point2D<T> & operator -=(Point2D<T> const& diminuend)
+	{
+		x -= diminuend.x;
+		y -= diminuend.y;
+		return *this;
+	}
+
+	Point2D<T> & operator *=(Point2D<T> const& factor)
+	{
+		x *= factor.x;
+		y *= factor.y;
+		return *this;
+	}
+
+	Point2D<T> & operator /=(Point2D<T> const& divisor)
+	{
+		x /= divisor.x;
+		y /= divisor.y;
+		return *this;
+	}
 };
 
 

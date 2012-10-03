@@ -17,20 +17,48 @@
 #include <Option.hh>
 #include <audio/Audio.hh>
 extern BasicByteOption optionSound;
+extern BasicByteOption optionAutoSaveState;
 
 bool EmuSystem::active = 0;
 FsSys::cPath EmuSystem::gamePath = "";
 FsSys::cPath EmuSystem::fullGamePath = "";
 char EmuSystem::gameName[256] = "";
 char EmuSystem::fullGameName[256] = "";
-int EmuSystem::autoSaveStateFrameCount = 0;
-int EmuSystem::autoSaveStateFrames = 0;
 TimeSys EmuSystem::startTime;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
+Base::CallbackRef *EmuSystem::autoSaveStateCallbackRef = nullptr;
+
+void saveAutoStateFromTimer();
+static const auto autoSaveStateCallback = Base::CallbackDelegate::create<&saveAutoStateFromTimer>();
+
+void saveAutoStateFromTimer()
+{
+	logMsg("auto-save state timer fired");
+	EmuSystem::saveAutoState();
+	EmuSystem::autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback, 60*optionAutoSaveState);
+}
+
+void EmuSystem::cancelAutoSaveStateTimer()
+{
+	if(autoSaveStateCallbackRef)
+	{
+		Base::cancelCallback(autoSaveStateCallbackRef);
+		autoSaveStateCallbackRef = nullptr;
+	}
+}
+
+void EmuSystem::startAutoSaveStateTimer()
+{
+	if(optionAutoSaveState > 1)
+	{
+		assert(!autoSaveStateCallbackRef);
+		autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback, 60*optionAutoSaveState); // minutes to seconds
+	}
+}
 
 void EmuSystem::startSound()
 {
@@ -54,6 +82,19 @@ bool EmuSystem::stateExists(int slot)
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, slot);
 	return FsSys::fileExists(saveStr);
+}
+
+bool EmuSystem::loadAutoState()
+{
+	if(optionAutoSaveState)
+	{
+		if(loadState(-1))
+		{
+			logMsg("loaded autosave-state");
+			return 1;
+		}
+	}
+	return 0;
 }
 
 //static int autoFrameSkipLevel = 0;

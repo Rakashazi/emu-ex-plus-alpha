@@ -15,5 +15,6 @@ ifndef PROFILE
 endif
 LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu,--sort-common
 
+CPPFLAGS += -I/usr/include/boost-1_50
 ENV := linux
 configDefs += CONFIG_ENV_LINUX

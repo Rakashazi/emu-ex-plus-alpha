@@ -59,6 +59,8 @@ typedef unsigned short uint_least16_t;
 
 #endif
 
+#define GAMBATTE_COLOR_RGB565
+
 namespace gambatte {
 #ifdef GAMBATTE_COLOR_RGB565
 static const bool usingRGB565Color = 1;

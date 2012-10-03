@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.cxx 2370 2012-01-28 15:19:41Z stephena $
+// $Id: TrackBall.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include <cstdlib>
@@ -29,7 +29,8 @@ TrackBall::TrackBall(Jack jack, const Event& event, const System& system,
                      Type type)
   : Controller(jack, event, system, type),
     myHCounter(0),
-    myVCounter(0)
+    myVCounter(0),
+    myMouseEnabled(false)
 {
   // This code in ::read() is set up to always return IOPortA values in
   // the lower 4 bits data value
@@ -115,6 +116,9 @@ uInt8 TrackBall::read()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TrackBall::update()
 {
+  if(!myMouseEnabled)
+    return;
+
   // Get the current mouse position
   myHCounter = myEvent.get(Event::MouseAxisXValue);
   myVCounter = myEvent.get(Event::MouseAxisYValue);
@@ -133,6 +137,19 @@ void TrackBall::update()
   // Get mouse button state
   myDigitalPinState[Six] = (myEvent.get(Event::MouseButtonLeftValue) == 0) &&
                            (myEvent.get(Event::MouseButtonRightValue) == 0);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool TrackBall::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
+{
+  // Currently, the various trackball controllers take full control of the
+  // mouse, and use both mouse buttons for the single fire button
+  // As well, there's no separate setting for x and y axis, so any
+  // combination of Controller and id is valid
+  myMouseEnabled = (xtype == myType || ytype == myType) &&
+                   (xid != -1 || yid != -1);
+  return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

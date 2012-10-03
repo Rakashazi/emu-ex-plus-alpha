@@ -24,35 +24,6 @@
 
 uint32 frameskip_active = 0;
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((34./255.) * .4, (15./255.) * .4, (64./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Option";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
-const uint EmuSystem::maxPlayers = 1;
-static const uint systemFaceBtns = 2, systemCenterBtns = 1;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 1;
-uint EmuSystem::aspectRatioX = 20, EmuSystem::aspectRatioY = 19;
-#define systemAspectRatioString "20:19"
-#include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 // controls
 
 enum
@@ -83,7 +54,22 @@ enum {
 	CFGKEY_NGPKEY_LANGUAGE = 269,
 };
 
-static Option<OptionMethodVar<uint8, optionIsValidWithMax<1> > > optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
+static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
+
+const uint EmuSystem::maxPlayers = 1;
+uint EmuSystem::aspectRatioX = 20, EmuSystem::aspectRatioY = 19;
+#include "CommonGui.hh"
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
 
 void EmuSystem::initOptions()
 {
@@ -115,6 +101,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
+	optionNGPLanguage.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, ngpKeyIdxUp, CFGKEY_NGPKEY_UP);
 	writeKeyConfig2(io, ngpKeyIdxRight, CFGKEY_NGPKEY_RIGHT);
 	writeKeyConfig2(io, ngpKeyIdxDown, CFGKEY_NGPKEY_DOWN);
@@ -128,7 +115,6 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, ngpKeyIdxB, CFGKEY_NGPKEY_B);
 	writeKeyConfig2(io, ngpKeyIdxATurbo, CFGKEY_NGPKEY_A_TURBO);
 	writeKeyConfig2(io, ngpKeyIdxBTurbo, CFGKEY_NGPKEY_B_TURBO);
-	optionNGPLanguage.writeWithKeyIfNotDefault(io);
 }
 
 static bool isROMExtension(const char *name)
@@ -150,12 +136,6 @@ static int ngpFsFilter(const char *name, int type)
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = ngpFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ngpFsFilter;
-
-#include "NgpOptionView.hh"
-static NgpOptionView oCategoryMenu;
-
-#include "NgpMenuView.hh"
-static NgpMenuView mMenu;
 
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 
@@ -268,7 +248,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -423,7 +403,7 @@ static bool romLoad(const char *filename)
 #include "Z80_interface.h"
 #include "interrupt.h"
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
 
@@ -448,19 +428,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 
 	emuView.initImage(0, ngpResX, ngpResY);
 
-	bool loadedState = 0;
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-			loadedState = state_restore(saveStr);
-	}
-
-	if(!loadedState)
-	{
-		rom_bootHacks();
-	}
+	rom_bootHacks();
 
 	logMsg("started emu");
 	return 1;
@@ -614,7 +582,16 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	mainInitCommon();
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((34./255.) * .4, (15./255.) * .4, (64./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
+	mainInitCommon(navViewGrad);
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)cfb, pixFmt, ngpResX, ngpResY);
 	gfx_buildMonoConvMap();

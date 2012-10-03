@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE7.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartE7.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,7 @@ CartridgeE7::CartridgeE7(const uInt8* image, uInt32 size, const Settings& settin
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(16384u, size));
+  memcpy(myImage, image, BSPF_min(16384u, size));
   createCodeAccessBase(16384 + 2048);
 
   // This cart can address a 1024 byte bank of RAM @ 0x1000
@@ -167,7 +167,7 @@ bool CartridgeE7::poke(uInt16 address, uInt8)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeE7::bankRAM(uInt16 bank)
-{ 
+{
   if(bankLocked()) return;
 
   // Remember what bank we're in
@@ -300,24 +300,14 @@ bool CartridgeE7::save(Serializer& out) const
 {
   try
   {
-    uInt32 i;
-
     out.putString(name());
-
-    out.putInt(2);
-    for(i = 0; i < 2; ++i)
-      out.putInt(myCurrentSlice[i]);
-
-    out.putInt(myCurrentRAM);
-
-    // The 2048 bytes of RAM
-    out.putInt(2048);
-    for(i = 0; i < 2048; ++i)
-      out.putByte((char)myRAM[i]);
+    out.putShortArray(myCurrentSlice, 2);
+    out.putShort(myCurrentRAM);
+    out.putByteArray(myRAM, 2048);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeE7::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeE7::save" << endl;
     return false;
   }
 
@@ -332,22 +322,13 @@ bool CartridgeE7::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    uInt32 i, limit;
-
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myCurrentSlice[i] = (uInt16) in.getInt();
-
-    myCurrentRAM = (uInt16) in.getInt();
-
-    // The 2048 bytes of RAM
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myRAM[i] = (uInt8) in.getByte();
+    in.getShortArray(myCurrentSlice, 2);
+    myCurrentRAM = in.getShort();
+    in.getByteArray(myRAM, 2048);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeE7::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeE7::load" << endl;
     return false;
   }
 

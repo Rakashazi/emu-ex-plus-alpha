@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartFA.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,7 @@ CartridgeFA::CartridgeFA(const uInt8* image, uInt32 size, const Settings& settin
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(12288u, size));
+  memcpy(myImage, image, BSPF_min(12288u, size));
   createCodeAccessBase(12288);
 
   // This cart contains 256 bytes extended RAM @ 0x1000
@@ -244,16 +244,12 @@ bool CartridgeFA::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
-
-    // The 256 bytes of RAM
-    out.putInt(256);
-    for(uInt32 i = 0; i < 256; ++i)
-      out.putByte((char)myRAM[i]);
+    out.putShort(myCurrentBank);
+    out.putByteArray(myRAM, 256);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeFA::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeFA::save" << endl;
     return false;
   }
 
@@ -268,15 +264,12 @@ bool CartridgeFA::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16) in.getInt();
-
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 i = 0; i < limit; ++i)
-      myRAM[i] = (uInt8) in.getByte();
+    myCurrentBank = in.getShort();
+    in.getByteArray(myRAM, 256);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeFA::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeFA::load" << endl;
     return false;
   }
 

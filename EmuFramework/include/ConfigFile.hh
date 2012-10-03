@@ -21,7 +21,7 @@ extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 static void readKeyConfig2(Io *io, uint buttonIdx, /*uint cat,*/uint readSize)
 {
 	uint8 numBtns;
-	io->readVar(&numBtns);
+	io->readVar(numBtns);
 	logMsg("key config for idx %d, %d btns", buttonIdx, numBtns);
 	readSize--;
 	if(readSize != numBtns*4U)
@@ -33,9 +33,9 @@ static void readKeyConfig2(Io *io, uint buttonIdx, /*uint cat,*/uint readSize)
 	iterateTimes(numBtns, i)
 	{
 		uint16 devId;
-		io->readVar(&devId);
+		io->readVar(devId);
 		uint16 savedButton;
-		io->readVar(&savedButton);
+		io->readVar(savedButton);
 
 		if(!devId)
 			devId = Config::envIsPS3 ? InputEvent::DEV_PS3PAD : InputEvent::DEV_KEYBOARD;
@@ -60,7 +60,7 @@ static bool readConfig2(Io *io)
 	int dirChange = 0;
 
 	uint8 blockSize;
-	io->readVar(&blockSize);
+	io->readVar(blockSize);
 
 	if(blockSize != 2)
 	{
@@ -71,7 +71,7 @@ static bool readConfig2(Io *io)
 	while(!io->eof())
 	{
 		uint16 size;
-		io->readVar(&size);
+		io->readVar(size);
 
 		if(!size)
 		{
@@ -86,10 +86,10 @@ static bool readConfig2(Io *io)
 		}
 
 		uint16 key;
-		io->readVar(&key);
+		io->readVar(key);
 		size -= 2;
 
-		logMsg("got config key %u", key);
+		logMsg("got config key %u, size %u", key, size);
 		switch(key)
 		{
 			default:
@@ -119,6 +119,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: optionTouchCtrlExtraYBtnSize.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
 			bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
+			bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
 			bcase CFGKEY_FRAME_SKIP: optionFrameSkip.readFromIO(io, size);
 			#if defined(CONFIG_BASE_ANDROID)
 			bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
@@ -205,12 +206,13 @@ static void writeKeyConfig2(Io *io, uint buttonIdx, uint16 cfgKey)
 
 	if(keyDiff)
 	{
-		logMsg("writing key config %d", cfgKey);
-		io->writeVar(uint16(2 + 1 + (keyDiff*4)));
+		uint16 dataSize = 2 + 1 + (keyDiff*4);
+		logMsg("writing key config %d, size %d", cfgKey, dataSize);
+		io->writeVar(dataSize);
 		io->writeVar(cfgKey);
 
 		uint8 numBtns = keyDiff;
-		io->writeVar(&numBtns);
+		io->writeVar(numBtns);
 		int wroteKeys = 0;
 
 		forEachDInArray(supportedInputDev, dev)
@@ -220,9 +222,9 @@ static void writeKeyConfig2(Io *io, uint buttonIdx, uint16 cfgKey)
 				continue;
 
 			uint16 devId = dev;
-			io->writeVar(&devId);
+			io->writeVar(devId);
 			uint16 savedButton = key;
-			io->writeVar(&savedButton);
+			io->writeVar(savedButton);
 			wroteKeys++;
 			logMsg("wrote %s key idx %d, %s", InputEvent::devTypeName(dev),
 					buttonIdx, Input::buttonName(dev, savedButton));
@@ -234,6 +236,7 @@ static void writeKeyConfig2(Io *io, uint buttonIdx, uint16 cfgKey)
 static OptionBase *cfgFileOption[] =
 {
 	&optionAutoSaveState,
+	&optionConfirmAutoLoadState,
 	&optionSound,
 	&optionSoundRate,
 	&optionAspectRatio,
@@ -311,7 +314,7 @@ static void writeConfig2(Io *io)
 		return;
 	}
 
-	uchar blockHeaderSize = 2;
+	uint8 blockHeaderSize = 2;
 	io->writeVar(blockHeaderSize);
 
 	forEachDInArray(cfgFileOption, e)
@@ -336,9 +339,8 @@ static void writeConfig2(Io *io)
 	{
 		logErr("option string too long to write");
 	}
-	else
+	else if(!string_equal(FsSys::workDir(), Base::storagePath()))
 	{
-		// TODO: last directory code may be omitted on iOS non-jailbreak build
 		logMsg("saving current directory: %s", FsSys::workDir());
 		io->writeVar((uint16)(2 + len));
 		io->writeVar((uint16)CFGKEY_LAST_DIR);

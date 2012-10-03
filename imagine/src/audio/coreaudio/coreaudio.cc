@@ -29,6 +29,7 @@ static bool isPlaying = 0, qIsOpen = 0;
 //static AudioTimeStamp lastTimestamp;
 //static float timestampNanosecScaler;
 static MutexPThread buffersQueuedLock;
+static BufferContext audioBuffLockCtx;
 
 /*static bool queuePlaying()
 {
@@ -197,8 +198,6 @@ static void startPlaybackIfNeeded()
 			isPlaying = 1;
 	}
 }
-
-static BufferContext audioBuffLockCtx;
 
 BufferContext *getPlayBuffer(uint wantedFrames)
 {

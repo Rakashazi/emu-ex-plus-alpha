@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPC.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartDPC.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -127,9 +127,9 @@ inline void CartridgeDPC::updateMusicModeDataFetchers()
   mySystemCycles = mySystem->cycles();
 
   // Calculate the number of DPC OSC clocks since the last update
-  SysDDec clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
+  double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
   Int32 wholeClocks = (Int32)clocks;
-  myFractionalClocks = clocks - (SysDDec)wholeClocks;
+  myFractionalClocks = clocks - (double)wholeClocks;
 
   if(wholeClocks <= 0)
   {
@@ -477,47 +477,36 @@ bool CartridgeDPC::save(Serializer& out) const
 {
   try
   {
-    uInt32 i;
-
     out.putString(name());
 
     // Indicates which bank is currently active
-    out.putInt(myCurrentBank);
+    out.putShort(myCurrentBank);
 
     // The top registers for the data fetchers
-    out.putInt(8);
-    for(i = 0; i < 8; ++i)
-      out.putByte((char)myTops[i]);
+    out.putByteArray(myTops, 8);
 
     // The bottom registers for the data fetchers
-    out.putInt(8);
-    for(i = 0; i < 8; ++i)
-      out.putByte((char)myBottoms[i]);
+    out.putByteArray(myBottoms, 8);
 
     // The counter registers for the data fetchers
-    out.putInt(8);
-    for(i = 0; i < 8; ++i)
-      out.putInt(myCounters[i]);
+    out.putShortArray(myCounters, 8);
 
     // The flag registers for the data fetchers
-    out.putInt(8);
-    for(i = 0; i < 8; ++i)
-      out.putByte((char)myFlags[i]);
+    out.putByteArray(myFlags, 8);
 
     // The music mode flags for the data fetchers
-    out.putInt(3);
-    for(i = 0; i < 3; ++i)
+    for(int i = 0; i < 3; ++i)
       out.putBool(myMusicMode[i]);
 
     // The random number generator register
-    out.putByte((char)myRandomNumber);
+    out.putByte(myRandomNumber);
 
     out.putInt(mySystemCycles);
     out.putInt((uInt32)(myFractionalClocks * 100000000.0));
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeDPC::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeDPC::save" << endl;
     return false;
   }
 
@@ -532,46 +521,35 @@ bool CartridgeDPC::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    uInt32 i, limit;
-
     // Indicates which bank is currently active
-    myCurrentBank = (uInt16) in.getInt();
+    myCurrentBank = in.getShort();
 
     // The top registers for the data fetchers
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myTops[i] = (uInt8) in.getByte();
+    in.getByteArray(myTops, 8);
 
     // The bottom registers for the data fetchers
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myBottoms[i] = (uInt8) in.getByte();
+    in.getByteArray(myBottoms, 8);
 
     // The counter registers for the data fetchers
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myCounters[i] = (uInt16) in.getInt();
+    in.getShortArray(myCounters, 8);
 
     // The flag registers for the data fetchers
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myFlags[i] = (uInt8) in.getByte();
+    in.getByteArray(myFlags, 8);
 
     // The music mode flags for the data fetchers
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
+    for(int i = 0; i < 3; ++i)
       myMusicMode[i] = in.getBool();
 
     // The random number generator register
-    myRandomNumber = (uInt8) in.getByte();
+    myRandomNumber = in.getByte();
 
     // Get system cycles and fractional clocks
-    mySystemCycles = in.getInt();
-    myFractionalClocks = (SysDDec)in.getInt() / 100000000.0;
+    mySystemCycles = (Int32)in.getInt();
+    myFractionalClocks = (double)in.getInt() / 100000000.0;
   }
-  catch(const char* msg)
+  catch(...)
   {
-  	cerr << "ERROR: CartridgeDPC::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeDPC::load" << endl;
     return false;
   }
 

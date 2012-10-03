@@ -779,4 +779,6 @@ namespace Input
 			default: return 0;
 		}
 	}
+
+	bool keyInputIsPresent();
 }

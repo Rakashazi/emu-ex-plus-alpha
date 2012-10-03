@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <util/cLang.h>
 #include <string.h>
+#include <Option.hh>
 #include <fs/sys.hh>
 
 extern "C"
@@ -19,6 +20,7 @@ extern Machine *machine;
 static HdType hdType[MAX_HD_COUNT] = { (HdType)0 };
 RomType currentRomType[2] = { 0 };
 extern char machineBasePath[];
+static BoardTimer* fdcTimer = nullptr;
 
 Mixer* boardGetMixer()
 {
@@ -43,13 +45,24 @@ void boardChangeDiskette(int driveId, char* fileName, const char* fileInZipFile)
     diskChange(driveId, fileName, fileInZipFile);
 }
 
+bool fdcActive = 0;
+extern BasicByteOption optionSkipFdcAccess;
+
+static void onFdcDone(void* ref, UInt32 time)
+{
+    fdcActive = 0;
+    logMsg("ended FDC activity");
+}
+
 void boardSetFdcActive()
 {
-	/*static int fdcTimingEnable = 1;
-    if (!fdcTimingEnable) {
-        boardTimerAdd(fdcTimer, boardSystemTime() + (UInt32)((UInt64)500 * boardFrequency() / 1000));
-        fdcActive = 1;
-    }*/
+	if(optionSkipFdcAccess)
+	{
+		if(!fdcActive)
+			logMsg("FDC active");
+		boardTimerAdd(fdcTimer, boardSystemTime() + (UInt32)((UInt64)300 * boardFrequency() / 1000));
+		fdcActive = 1;
+	}
 }
 
 void boardSetDataBus(UInt8 value, UInt8 defValue, int useDef)
@@ -408,6 +421,9 @@ void boardInit(UInt32* systemTime)
         dummy_timer.timeout  = 0;
         timerList = &dummy_timer;
     }
+
+    if(!fdcTimer)
+    	fdcTimer = boardTimerCreate(onFdcDone, NULL);
 }
 
 #undef thisModuleName

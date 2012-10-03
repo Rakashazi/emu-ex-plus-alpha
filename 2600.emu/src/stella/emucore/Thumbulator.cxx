@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Thumbulator.cxx 2523 2012-06-03 18:05:14Z stephena $
 //============================================================================
 
 //============================================================================
@@ -31,7 +31,7 @@
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Thumbulator::Thumbulator(uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal)
+Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal)
   : rom(rom_ptr),
     ram(ram_ptr),
     copydata(0),

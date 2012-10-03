@@ -13,10 +13,12 @@ public:
 	constexpr AndroidBluetoothAdapter() { }
 	static AndroidBluetoothAdapter *defaultAdapter();
 	fbool startScan() override;
+	void cancelScan() override;
 	void close() override;
 	void constructSocket(void *mem) override;
 //private:
 	bool openDefault();
+	bool scanCancelled = 0;
 	jobject adapter = nullptr;
 };
 
@@ -32,6 +34,7 @@ public:
 	jobject socket = nullptr, outStream = nullptr;
 	static void* readThreadFunc(void *);
 	ThreadPThread readThread;
+	bool isClosing = 0;
 	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);
 };
 

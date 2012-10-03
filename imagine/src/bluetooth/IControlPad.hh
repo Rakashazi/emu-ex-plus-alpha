@@ -1,13 +1,13 @@
 #pragma once
 
-#include "sys.hh"
+#include <bluetooth/sys.hh>
 #include <input/interface.h>
 #include <util/collection/DLList.hh>
 
 struct IControlPad : public BluetoothInputDevice
 {
 public:
-	//constexpr IControlPad() { }
+	IControlPad(BluetoothAddr addr): addr(addr) { }
 	enum
 	{
 		FUNC_NONE,
@@ -15,9 +15,9 @@ public:
 		FUNC_GP_REPORTS,
 	};
 
-	CallResult open(BluetoothAddr addr, BluetoothAdapter &adapter);
+	CallResult open(BluetoothAdapter &adapter) override;
 	void close();
-	void removeFromSystem();
+	void removeFromSystem() override;
 
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const uchar *packet, size_t size);
@@ -39,6 +39,7 @@ private:
 	uchar prevBtnData[2] = {0};
 	bool nubBtn[8] = {0};
 	static const int nubDeadzone = 64;
+	BluetoothAddr addr;
 
 	static uint findFreeDevId();
 	void processBtnReport(const uchar *btnData, uint player);

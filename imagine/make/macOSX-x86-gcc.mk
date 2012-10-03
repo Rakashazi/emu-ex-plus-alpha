@@ -5,5 +5,5 @@ ARCH := x86
 CPPFLAGS += -arch i386
 LDFLAGS += -arch i386
 
-CPPFLAGS += -I$(IMAGINE_PATH)/bundle/macosx-x86/usr/include
-LDLIBS += -L$(IMAGINE_PATH)/bundle/macosx-x86/usr/lib
+CPPFLAGS += -I$(IMAGINE_PATH)/bundle/macosx-x86/include
+LDLIBS += -L$(IMAGINE_PATH)/bundle/macosx-x86/lib

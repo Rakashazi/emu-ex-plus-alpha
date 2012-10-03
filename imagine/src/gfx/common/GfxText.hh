@@ -10,23 +10,19 @@
 
 void GfxText::init()
 {
-	face = NULL;
-	str = NULL;
+
+}
+
+void GfxText::deinit()
+{
+	//face = nullptr;
+	//str = nullptr;
 	slen = 0;
-	//inst->spr.img = NULL;
 	spaceSize = 0;
 	nominalHeight = 0;
 	yLineStart = 0;
 	maxLines = 0;
 	maxLineSize = 0;
-}
-
-void GfxText::deinit()
-{
-	/*if(inst->spr.img != NULL)
-	{
-		gfxSprite_deinit(&inst->spr);
-	}*/
 }
 
 void GfxText::setString(const char *str)

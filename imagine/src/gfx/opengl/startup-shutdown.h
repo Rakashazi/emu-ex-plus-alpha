@@ -66,8 +66,9 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // WebOS does clear in base module
 	
 	extensions = (const char*)glGetString(GL_EXTENSIONS);
-	assert(extensions != 0);
+	assert(extensions);
 	version = (const char*)glGetString(GL_VERSION);
+	assert(version);
 	rendererName = (const char*)glGetString(GL_RENDERER);
 	logMsg("version: %s (%s)\nextensions: %s", version, rendererName, extensions);
 	

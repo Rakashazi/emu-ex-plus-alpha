@@ -28,12 +28,14 @@
 #include "MultiChoiceView.hh"
 #include "ConfigFile.hh"
 #include "FilePicker.hh"
+#include <EmuView.hh>
 
 #include <meta.h>
 
 bool isMenuDismissKey(const InputEvent &e);
 void startGameFromMenu();
 static bool touchControlsApplicable();
+void loadGameCompleteFromFilePicker(uint result, const InputEvent &e);
 EmuFilePicker fPicker;
 CreditsView credits(creditsViewStr);
 YesNoAlertView ynAlertView;
@@ -60,67 +62,7 @@ static bool menuViewIsActive = 1;
 static Rect2<int> emuMenuB, emuFFB;
 MsgPopup popup;
 
-class EmuView : public View
-{
-public:
-	GfxSprite disp;
-	Pixmap vidPix;
-	GfxBufferImage vidImg;
-	VideoImageOverlay vidImgOverlay;
-	Area gameView;
-
-	void deinit() { }
-	Rect2<int> rect;
-	Rect2<int> &viewRect() { return rect; }
-
-	void place();
-	void placeEmu(); // game content only
-	template <bool active>
-	void drawContent();
-	void runFrame();
-	void draw();
-	void inputEvent(const InputEvent &e);
-
-	void placeOverlay()
-	{
-		vidImgOverlay.place(disp);
-	}
-
-	void updateAndDrawContent()
-	{
-		vidImg.write(vidPix);
-		drawContent<1>();
-	}
-
-	void initPixmap(uchar *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint extraPitch = 0)
-	{
-		vidPix.init(pixBuff, format, x, y, extraPitch);
-	}
-
-	void reinitImage()
-	{
-		vidImg.init(vidPix, 0, optionImgFilter);
-		disp.setImg(&vidImg);
-	}
-
-	void resizeImage(uint x, uint y, uint extraPitch = 0)
-	{
-		logMsg("setting emuView pixmap size %dx%d", x, y);
-		vidPix.x = x;
-		vidPix.y = y;
-		vidPix.pitch = (x * vidPix.format->bytesPerPixel) + extraPitch;
-		vidImg.init(vidPix, 0, optionImgFilter);
-		disp.setImg(&vidImg);
-	}
-
-	void initImage(bool force, uint x, uint y, uint extraPitch = 0)
-	{
-		if(force || !disp.img || vidPix.x != x || vidPix.y != y)
-		{
-			resizeImage(x, y, extraPitch);
-		}
-	}
-} emuView;
+EmuView emuView;
 
 namespace Gfx
 {
@@ -427,11 +369,10 @@ static GC largeFontMM =
 #ifndef CONFIG_BASE_PS3
 
 	#include "VController.hh"
-	typedef VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout> SysVController;
-	static SysVController vController;
+	SysVController vController;
 
-	static void refreshTouchConfigMenu();
-	static void setupVControllerPosition()
+	void refreshTouchConfigMenu();
+	void setupVControllerPosition()
 	{
 		vController.gp.dp.origin = optionTouchCtrlDpadPos;
 		vController.gp.btnO = optionTouchCtrlFaceBtnPos;
@@ -459,7 +400,7 @@ static GC largeFontMM =
 					|| &a == &optionTouchCtrlDpadPos.val || &b == &optionTouchCtrlDpadPos.val); // one is the dpad/face btn. group
 	}
 
-	static void resolveOnScreenCollisions(_2DOrigin *movedObj = 0)
+	void resolveOnScreenCollisions(_2DOrigin *movedObj = 0)
 	{
 		_2DOrigin *obj[] = { &optionTouchCtrlFaceBtnPos.val, &optionTouchCtrlDpadPos.val, &optionTouchCtrlCenterBtnPos.val, &optionTouchCtrlMenuPos.val, &optionTouchCtrlFFPos.val };
 		iterateTimes(sizeofArray(obj), i)
@@ -502,7 +443,7 @@ static GC largeFontMM =
 		}
 	}
 
-	static void updateVControlImg()
+	void updateVControlImg()
 	{
 		vController.setImg(ResourceImagePng::loadAsset((optionTouchCtrlImgRes == 128U) ? "overlays128.png" : "overlays64.png"));
 		#ifdef CONFIG_VCONTROLLER_KEYBOARD
@@ -563,7 +504,7 @@ static void initOptions()
 	#endif
 }
 
-static void setupStatusBarInMenu()
+void setupStatusBarInMenu()
 {
 	if(!optionHideStatusBar.isConst)
 		Base::setStatusBarHidden(optionHideStatusBar > 1);
@@ -664,9 +605,10 @@ void EmuView::placeEmu()
 }
 
 #ifdef INPUT_SUPPORTS_POINTER
-static void setupVControllerVars()
+void setupVControllerVars()
 {
 	vController.gp.btnSize = Gfx::xMMSize(int(optionTouchCtrlSize) / 100.);
+	logMsg("set on-screen button size: %f, %d pixels", (double)vController.gp.btnSize, Gfx::toIXSize(vController.gp.btnSize));
 	vController.gp.dp.deadzone = Gfx::xMMSizeToPixel(int(optionTouchDpadDeadzone) / 100.);
 	vController.gp.dp.diagonalSensitivity = optionTouchDpadDiagonalSensitivity / 1000.;
 	vController.gp.btnSpace = Gfx::xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
@@ -707,23 +649,11 @@ static void setupVolKeysInGame()
 	#endif
 }
 
-static bool keyBasedInputIsPresent()
-{
-	return Base::isInputDevPresent(InputEvent::DEV_KEYBOARD)
-	#ifdef CONFIG_BLUETOOTH
-		|| Bluetooth::devsConnected()
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-		|| Input::iCadeActive()
-	#endif
-	;
-}
-
 static bool trackFPS = 0;
 static TimeSys prevFrameTime;
 static uint frameCount = 0;
 
-static void applyOSNavStyle()
+void applyOSNavStyle()
 {
 	uint flags = 0;
 	if(optionLowProfileOSNav) flags|= Base::OS_NAV_STYLE_DIM;
@@ -745,7 +675,7 @@ void startGameFromMenu()
 	{
 		bcase 0: touchControlsAreOn = 0;
 		bcase 1: touchControlsAreOn = 1;
-		bcase 2: touchControlsAreOn = !keyBasedInputIsPresent();
+		bcase 2: touchControlsAreOn = !Input::keyInputIsPresent();
 		bdefault: bug_branch("%d", (int)optionTouchCtrl);
 	}
 	//logMsg("touch control state: %d", touchControlsAreOn);
@@ -832,11 +762,12 @@ void onExit(bool backgrounded)
 	{
 		EmuSystem::saveAutoState();
 		EmuSystem::saveBackupMem();
-		EmuSystem::resetAutoSaveStateTime();
-		char title[48];
-		snprintf(title, sizeof(title), "%s was suspended", CONFIG_APP_NAME);
 		if(optionNotificationIcon)
+		{
+			char title[48];
+			snprintf(title, sizeof(title), "%s was suspended", CONFIG_APP_NAME);
 			Base::addNotification(title, title, EmuSystem::gameName);
+		}
 	}
 	else
 	{
@@ -1028,7 +959,6 @@ void EmuView::runFrame()
 			{
 				EmuSystem::runFrame(0, 0, renderAudio);
 			}
-			EmuSystem::autoSaveStateFrameCount -= framesToSkip;
 		}
 		else if(framesToSkip == -1)
 		{
@@ -1038,12 +968,6 @@ void EmuView::runFrame()
 	}
 
 	EmuSystem::runFrame(1, 1, renderAudio);
-	EmuSystem::autoSaveStateFrameCount--;
-	if(EmuSystem::autoSaveStateFrames && EmuSystem::autoSaveStateFrameCount <= 0)
-	{
-		EmuSystem::saveAutoState();
-		EmuSystem::resetAutoSaveStateTime();
-	}
 }
 
 void EmuView::draw()
@@ -1135,7 +1059,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					{
 						restoreMenuFromGame();
 						viewStack.popToRoot();
-						fPicker.init(keyBasedInputIsPresent());
+						fPicker.init(Input::keyInputIsPresent());
 						viewStack.useNavView = 0;
 						viewStack.pushAndShow(&fPicker);
 						return;
@@ -1183,9 +1107,9 @@ void EmuView::inputEvent(const InputEvent &e)
 					bcase guiKeyIdxExit:
 					if(e.state == INPUT_PUSHED)
 					{
-						ynAlertView.init("Really Exit?", keyBasedInputIsPresent());
+						ynAlertView.init("Really Exit?", Input::keyInputIsPresent());
 						ynAlertView.onYesDelegate().bind<&confirmExitAppAlert>();
-						ynAlertView.place(Gfx::viewportRect());
+						ynAlertView.placeRect(Gfx::viewportRect());
 						modalView = &ynAlertView;
 						restoreMenuFromGame();
 						return;
@@ -1287,7 +1211,7 @@ static void handleInputEvent(const InputEvent &e)
 	}
 }
 
-static void setupFont()
+void setupFont()
 {
 	logMsg("setting up font, large: %d", (int)optionLargeFonts);
 	View::defaultFace->applySettings(FontSettings(Gfx::yMMSizeToPixel(optionLargeFonts ? largeFontMM : fontMM)));
@@ -1304,7 +1228,7 @@ void onViewChange(GfxViewState *)
 	emuView.place();
 	viewStack.place(Gfx::viewportRect());
 	if(View::modalView)
-		View::modalView->place(Gfx::viewportRect());
+		View::modalView->placeRect(Gfx::viewportRect());
 	logMsg("done view change");
 }
 }
@@ -1331,7 +1255,8 @@ ResourceImage *getXAsset()
 	return res;
 }
 
-static void mainInitCommon()
+template <size_t NAV_GRAD_SIZE>
+static void mainInitCommon(const GfxLGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
 {
 	Gfx::setClear(1);
 
@@ -1353,7 +1278,6 @@ static void mainInitCommon()
 
 	loadConfigFile();
 	EmuSystem::configAudioRate();
-	EmuSystem::setupAutoSaveStateTime(optionAutoSaveState.val);
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
 	setupStatusBarInMenu();
@@ -1379,8 +1303,8 @@ static void mainInitCommon()
 
 	View::removeModalViewDelegate().bind<&onRemoveModalView>();
 	//logMsg("setting up view stack");
-	viewNav.init(View::defaultFace, View::needsBackControl ? getArrowAsset() : 0,
-			!Config::envIsPS3 ? getArrowAsset() : 0, navViewGrad, sizeofArray(navViewGrad));
+	viewNav.init(View::defaultFace, View::needsBackControl ? getArrowAsset() : nullptr,
+			!Config::envIsPS3 ? getArrowAsset() : nullptr, navViewGrad, sizeofArray(navViewGrad));
 	viewNav.setRightBtnActive(0);
 	viewStack.init();
 	if(optionTitleBar)
@@ -1408,9 +1332,31 @@ static void mainInitCommon()
 
 #ifndef CONFIG_BASE_PS3
 #include "TouchConfigView.hh"
-static TouchConfigView tcMenu(touchConfigFaceBtnName, touchConfigCenterBtnName);
+TouchConfigView tcMenu(touchConfigFaceBtnName, touchConfigCenterBtnName);
 #endif
 
 #include "CommonViewControl.hh"
 
 #include "ButtonConfigView.hh"
+
+#include <MenuView.hh>
+
+#include <main/EmuMenuViews.hh>
+static SystemOptionView oCategoryMenu;
+static SystemMenuView mMenu;
+
+void OptionCategoryView::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+{
+	oCategoryMenu.init(i, !e.isPointer());
+	viewStack.pushAndShow(&oCategoryMenu);
+}
+
+ButtonConfigView bcMenu;
+
+OptionCategoryView oMenu;
+
+StateSlotView ssMenu;
+
+RecentGameView rMenu;
+
+InputPlayerMapView ipmMenu;

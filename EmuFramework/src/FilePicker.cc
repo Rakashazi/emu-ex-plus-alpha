@@ -17,16 +17,18 @@
 #include <FilePicker.hh>
 #include <MsgPopup.hh>
 #include <EmuSystem.hh>
+#include <EmuOptions.hh>
 #include <Recent.hh>
 #include <resource2/image/png/ResourceImagePng.h>
 #include <util/gui/ViewStack.hh>
 #include <gui/FSPicker/FSPicker.hh>
+#include <gui/AlertView.hh>
 
 extern ViewStack viewStack;
+extern YesNoAlertView ynAlertView;
 void startGameFromMenu();
 bool isMenuDismissKey(const InputEvent &e);
 extern MsgPopup popup;
-extern DLList<RecentGameInfo> recentGameList;
 ResourceImage *getArrowAsset();
 ResourceImage *getXAsset();
 
@@ -49,12 +51,54 @@ void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 	onCloseDelegate().bind<&BenchmarkFilePicker::onClose>();
 }
 
-void loadGameCompleteFromFilePicker(uint result = 1)
+void loadGameComplete(bool tryAutoState, bool addToRecent)
 {
-	if(result)
-	{
+	if(tryAutoState)
+		EmuSystem::loadAutoState();
+	if(addToRecent)
 		recent_addGame();
-		startGameFromMenu();
+	startGameFromMenu();
+}
+
+template <bool tryAutoState>
+void loadGameCompleteConfirmAutoLoadState(const InputEvent &e)
+{
+	loadGameComplete(tryAutoState, 1);
+}
+
+bool showAutoStateConfirm(const InputEvent &e)
+{
+	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
+	{
+		return 0;
+	}
+	FsSys::cPath saveStr;
+	EmuSystem::sprintStateFilename(saveStr, -1);
+	if(FsSys::fileExists(saveStr))
+	{
+		FsSys::timeStr date = "";
+		FsSys::mTimeAsStr(saveStr, date);
+		static char msg[96] = "";
+		snprintf(msg, sizeof(msg), "Continue auto-save state from %s? \"No\" restarts the game.", date);
+		ynAlertView.init(msg, !e.isPointer());
+		ynAlertView.onYesDelegate().bind<&loadGameCompleteConfirmAutoLoadState<1>>();
+		ynAlertView.onNoDelegate().bind<&loadGameCompleteConfirmAutoLoadState<0>>();
+		ynAlertView.placeRect(Gfx::viewportRect());
+		View::modalView = &ynAlertView;
+		Base::displayNeedsUpdate();
+		return 1;
+	}
+	return 0;
+}
+
+void loadGameCompleteFromFilePicker(uint result, const InputEvent &e)
+{
+	if(!result)
+		return;
+
+	if(!showAutoStateConfirm(e))
+	{
+		loadGameComplete(1, 1);
 	}
 }
 
@@ -63,7 +107,7 @@ void GameFilePicker::onSelectFile(const char* name, const InputEvent &e)
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
 	if(EmuSystem::loadGame(name))
 	{
-		loadGameCompleteFromFilePicker();
+		loadGameCompleteFromFilePicker(1, e);
 	}
 }
 
@@ -72,7 +116,7 @@ void GameFilePicker::onClose(const InputEvent &e)
 	viewStack.popAndShow();
 }
 
-void loadGameCompleteFromBenchmarkFilePicker(uint result = 1)
+void loadGameCompleteFromBenchmarkFilePicker(uint result, const InputEvent &e)
 {
 	if(result)
 	{
@@ -87,9 +131,9 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result = 1)
 void BenchmarkFilePicker::onSelectFile(const char* name, const InputEvent &e)
 {
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromBenchmarkFilePicker>();
-	if(!EmuSystem::loadGame(name, 0))
+	if(!EmuSystem::loadGame(name))
 		return;
-	loadGameCompleteFromBenchmarkFilePicker();
+	loadGameCompleteFromBenchmarkFilePicker(1, e);
 }
 
 void BenchmarkFilePicker::onClose(const InputEvent &e)

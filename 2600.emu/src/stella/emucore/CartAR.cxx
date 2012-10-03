@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartAR.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -467,33 +467,23 @@ bool CartridgeAR::save(Serializer& out) const
 {
   try
   {
-    uInt32 i;
-
     out.putString(name());
 
     // Indicates the offest within the image for the corresponding bank
-    out.putInt(2);
-    for(i = 0; i < 2; ++i)
-      out.putInt(myImageOffset[i]);
+    out.putIntArray(myImageOffset, 2);
 
     // The 6K of RAM and 2K of ROM contained in the Supercharger
-    out.putInt(8192);
-    for(i = 0; i < 8192; ++i)
-      out.putByte((char)myImage[i]);
+    out.putByteArray(myImage, 8192);
 
     // The 256 byte header for the current 8448 byte load
-    out.putInt(256);
-    for(i = 0; i < 256; ++i)
-      out.putByte((char)myHeader[i]);
+    out.putByteArray(myHeader, 256);
 
     // All of the 8448 byte loads associated with the game 
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    out.putInt(myNumberOfLoadImages * 8448);
-    for(i = 0; i < (uInt32) myNumberOfLoadImages * 8448; ++i)
-      out.putInt(myLoadImages[i]);
+    out.putByteArray(myLoadImages, myNumberOfLoadImages * 8448);
 
     // Indicates how many 8448 loads there are
-    out.putByte((char)myNumberOfLoadImages);
+    out.putByte(myNumberOfLoadImages);
 
     // Indicates if the RAM is write enabled
     out.putBool(myWriteEnabled);
@@ -505,7 +495,7 @@ bool CartridgeAR::save(Serializer& out) const
     out.putInt(myPowerRomCycle);
 
     // Data hold register used for writing
-    out.putByte((char)myDataHoldRegister);
+    out.putByte(myDataHoldRegister);
 
     // Indicates number of distinct accesses when data hold register was set
     out.putInt(myNumberOfDistinctAccesses);
@@ -513,9 +503,9 @@ bool CartridgeAR::save(Serializer& out) const
     // Indicates if a write is pending or not
     out.putBool(myWritePending);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeAR::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeAR::save" << endl;
     return false;
   }
 
@@ -530,31 +520,21 @@ bool CartridgeAR::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    uInt32 i, limit;
-
     // Indicates the offest within the image for the corresponding bank
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myImageOffset[i] = (uInt32) in.getInt();
+    in.getIntArray(myImageOffset, 2);
 
     // The 6K of RAM and 2K of ROM contained in the Supercharger
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myImage[i] = (uInt8) in.getByte();
+    in.getByteArray(myImage, 8192);
 
     // The 256 byte header for the current 8448 byte load
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myHeader[i] = (uInt8) in.getByte();
+    in.getByteArray(myHeader, 256);
 
     // All of the 8448 byte loads associated with the game 
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myLoadImages[i] = (uInt8) in.getInt();
+    in.getByteArray(myLoadImages, myNumberOfLoadImages * 8448);
 
     // Indicates how many 8448 loads there are
-    myNumberOfLoadImages = (uInt8) in.getByte();
+    myNumberOfLoadImages = in.getByte();
 
     // Indicates if the RAM is write enabled
     myWriteEnabled = in.getBool();
@@ -566,17 +546,17 @@ bool CartridgeAR::load(Serializer& in)
     myPowerRomCycle = (Int32) in.getInt();
 
     // Data hold register used for writing
-    myDataHoldRegister = (uInt8) in.getByte();
+    myDataHoldRegister = in.getByte();
 
     // Indicates number of distinct accesses when data hold register was set
-    myNumberOfDistinctAccesses = (uInt32) in.getInt();
+    myNumberOfDistinctAccesses = in.getInt();
 
     // Indicates if a write is pending or not
     myWritePending = in.getBool();
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeAR::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeAR::load" << endl;
     return false;
   }
 
@@ -625,7 +605,7 @@ uInt8 CartridgeAR::ourDummyROMCode[] = {
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeAR::ourDefaultHeader[256] = {
+const uInt8 CartridgeAR::ourDefaultHeader[256] = {
   0xac, 0xfa, 0x0f, 0x18, 0x62, 0x00, 0x24, 0x02,
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
   0x00, 0x04, 0x08, 0x0c, 0x10, 0x14, 0x18, 0x1c,

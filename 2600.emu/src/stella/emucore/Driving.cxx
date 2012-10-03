@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.cxx 2405 2012-03-04 19:20:29Z stephena $
+// $Id: Driving.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -136,31 +136,34 @@ void Driving::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Driving::setMouseControl(
-    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+bool Driving::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
 {
-  // In 'automatic' mode, only the X-axis is used
-  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  // When the mouse emulates a single driving controller, only the X-axis is
+  // used, and both mouse buttons map to the same 'fire' event
+  if(xtype == Controller::Driving && ytype == Controller::Driving && xid == yid)
   {
-    myControlID = ((myJack == Left && ctrlID == 0) ||
-                   (myJack == Right && ctrlID == 1)
-                  ) ? ctrlID : -1;
+    myControlID = ((myJack == Left && xid == 0) ||
+                   (myJack == Right && xid == 1)
+                  ) ? xid : -1;
     myControlIDX = myControlIDY = -1;
   }
   else
   {
-    // The following is somewhat complex, but we need to pre-process as much
-    // as possible, so that ::update() can run quickly
+    // Otherwise, each axis can be mapped to a separate driving controller,
+    // and the buttons map to separate (corresponding) controllers
     myControlID = -1;
     if(myJack == Left)
     {
-      myControlIDX = xaxis == MouseControl::Driving0 ? 0 : -1;
-      myControlIDY = yaxis == MouseControl::Driving0 ? 0 : -1;
+      myControlIDX = (xtype == Controller::Driving && xid == 0) ? 0 : -1;
+      myControlIDY = (ytype == Controller::Driving && yid == 0) ? 0 : -1;
     }
     else  // myJack == Right
     {
-      myControlIDX = xaxis == MouseControl::Driving1 ? 1 : -1;
-      myControlIDY = yaxis == MouseControl::Driving1 ? 1 : -1;
+      myControlIDX = (xtype == Controller::Driving && xid == 1) ? 1 : -1;
+      myControlIDY = (ytype == Controller::Driving && yid == 1) ? 1 : -1;
     }
   }
+
+  return true;
 }

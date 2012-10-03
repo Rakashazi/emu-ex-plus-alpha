@@ -156,6 +156,12 @@ void FSPicker::onRightNavBtn(const InputEvent &e)
 
 void FSPicker::inputEvent(const InputEvent &e)
 {
+	if(e.isDefaultCancelButton() && e.state == INPUT_PUSHED)
+	{
+		onClose.invoke(e);
+		return;
+	}
+
 	const char* dirChange = 0;
 	if(!singleDir && e.state == INPUT_PUSHED && e.isDefaultLeftButton())
 	{

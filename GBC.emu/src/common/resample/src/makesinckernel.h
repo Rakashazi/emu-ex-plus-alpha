@@ -22,7 +22,7 @@
 #include <cmath>
 #include <cstdlib>
 
-void makeSincKernel(short *kernel, unsigned phases,
-		unsigned phaseLen, SysDDec fc, SysDDec (*win)(long m, long M));
+void makeSincKernel(short *kernel, unsigned phases, unsigned phaseLen,
+		SysDDec fc, SysDDec (*win)(long m, long M), SysDDec gain);
 
 #endif

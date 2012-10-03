@@ -1,5 +1,5 @@
 #include "BluetoothAdapter.hh"
-#include "sys.hh"
+#include <bluetooth/sys.hh>
 
 #if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
 bool useBluezBT = 1;

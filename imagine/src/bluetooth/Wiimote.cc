@@ -24,7 +24,7 @@ const uchar Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
 const uchar Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
 const uchar Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 3> btInputDevList;
+extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Wiimote::devList;
 
 uint Wiimote::findFreeDevId()
@@ -43,11 +43,9 @@ uint Wiimote::findFreeDevId()
 	return 0;
 }
 
-CallResult Wiimote::open(const char *name, BluetoothAddr addr, BluetoothAdapter &adapter)
+CallResult Wiimote::open(BluetoothAdapter &adapter)
 {
 	logMsg("opening Wiimote");
-	//var_selfs(player);
-	var_selfs(addr);
 #if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
 	adapter.constructSocket(ctlSock.obj);
 	adapter.constructSocket(intSock.obj);

@@ -26,11 +26,10 @@
 namespace gambatte {
 
 Memory::Memory(const Interrupter &interrupter_in)
-: vrambank(vram),
-  getInput(0),
+: getInput(0),
   divLastUpdate(0),
   lastOamDmaUpdate(DISABLED_TIME),
-  display(ioamhram, vram, VideoInterruptRequester(&intreq)),
+  display(ioamhram, 0, VideoInterruptRequester(&intreq)),
   interrupter(interrupter_in),
   dmaSource(0),
   dmaDestination(0),
@@ -43,7 +42,6 @@ Memory::Memory(const Interrupter &interrupter_in)
 }
 
 void Memory::setStatePtrs(SaveState &state) {
-	state.mem.vram.set(vram, sizeof vram);
 	state.mem.ioamhram.set(ioamhram, sizeof ioamhram);
 
 	cart.setStatePtrs(state);
@@ -96,8 +94,7 @@ void Memory::loadState(const SaveState &state) {
 			? serialCntFrom(intreq.eventTime(SERIAL) - state.cpu.cycleCounter, ioamhram[0x102] & isCgb() * 2)
 			: 8;
 
-	vrambank = vram + (ioamhram[0x14F] & isCgb()) * 0x2000;
-	
+	cart.setVrambank(ioamhram[0x14F] & isCgb());
 	cart.setOamDmaSrc(OAM_DMA_SRC_OFF);
 	cart.setWrambank(isCgb() && (ioamhram[0x170] & 0x07) ? ioamhram[0x170] & 0x07 : 1);
 
@@ -113,7 +110,7 @@ void Memory::loadState(const SaveState &state) {
 	blanklcd = false;
 	
 	if (!isCgb())
-		std::memset(vram + 0x2000, 0, 0x2000);
+		std::memset(cart.vramdata() + 0x2000, 0, 0x2000);
 }
 
 void Memory::setEndtime(const unsigned long cycleCounter, const unsigned long inc) {
@@ -420,7 +417,7 @@ const unsigned char * Memory::oamDmaSrcPtr() const {
 	switch (cart.oamDmaSrc()) {
 	case OAM_DMA_SRC_ROM:  return cart.romdata(ioamhram[0x146] >> 6) + (ioamhram[0x146] << 8);
 	case OAM_DMA_SRC_SRAM: return cart.rsrambankptr() ? cart.rsrambankptr() + (ioamhram[0x146] << 8) : 0;
-	case OAM_DMA_SRC_VRAM: return vrambank + (ioamhram[0x146] << 8 & 0x1FFF);
+	case OAM_DMA_SRC_VRAM: return cart.vrambankptr() + (ioamhram[0x146] << 8);
 	case OAM_DMA_SRC_WRAM: return cart.wramdata(ioamhram[0x146] >> 4 & 1) + (ioamhram[0x146] << 8 & 0xFFF);
 	case OAM_DMA_SRC_INVALID:
 	case OAM_DMA_SRC_OFF:  break;
@@ -549,7 +546,7 @@ unsigned Memory::nontrivial_read(const unsigned P, const unsigned long cycleCoun
 				if (!display.vramAccessible(cycleCounter))
 					return 0xFF;
 
-				return vrambank[P - 0x8000];
+				return cart.vrambankptr()[P];
 			}
 
 			if (cart.rsrambankptr())
@@ -842,7 +839,7 @@ void Memory::nontrivial_ff_write(const unsigned P, unsigned data, const unsigned
 		return;
 	case 0x4F:
 		if (isCgb()) {
-			vrambank = vram + (data & 0x01) * 0x2000;
+			cart.setVrambank(data & 1);
 			ioamhram[0x14F] = 0xFE | data;
 		}
 
@@ -965,7 +962,7 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 				cart.mbcWrite(P, data);
 			} else if (display.vramAccessible(cycleCounter)) {
 				display.vramChange(cycleCounter);
-				vrambank[P - 0x8000] = data;
+				cart.vrambankptr()[P] = data;
 			}
 		} else if (P < 0xC000) {
 			if (cart.wsrambankptr())
@@ -986,15 +983,15 @@ void Memory::nontrivial_write(const unsigned P, const unsigned data, const unsig
 		ioamhram[P - 0xFE00] = data;
 }
 
-int Memory::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
-	if (const int fail = cart.loadROM(romfile, forceDmg, multicartCompat))
+LoadRes Memory::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
+	if (LoadRes const fail = cart.loadROM(romfile, forceDmg, multicartCompat))
 		return fail;
 
 	sound.init(cart.isCgb());
-	display.reset(ioamhram, cart.isCgb());
+	display.reset(ioamhram, cart.vramdata(), cart.isCgb());
 	interrupter.setGameShark(std::string());
 
-	return 0;
+	return LOADRES_OK;
 }
 
 unsigned Memory::fillSoundBuffer(const unsigned long cycleCounter) {

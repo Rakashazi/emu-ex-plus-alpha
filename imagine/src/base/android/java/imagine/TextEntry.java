@@ -39,7 +39,7 @@ class TextEntry
 			if(editBox.getId() == 0)
 			{
 				Log.i(logTag, "text input canceled");
-				BaseActivity.sysTextInputEnded(null);
+				BaseActivity.endSysTextInput(null);
 			}
 		}
 		
@@ -60,7 +60,7 @@ class TextEntry
 		@Override public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
 		{
 			Log.i(logTag, "got editor action " + actionId);
-			BaseActivity.sysTextInputEnded(editBox.getText().toString());
+			BaseActivity.endSysTextInput(editBox.getText().toString());
 			editBox.setId(1); // indicate text entry was not canceled
 			dismiss();
 			return false;

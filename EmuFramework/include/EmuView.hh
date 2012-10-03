@@ -1,0 +1,85 @@
+#pragma once
+
+#include <gfx/GfxSprite.hh>
+#include <gfx/GfxBufferImage.hh>
+#include <VideoImageOverlay.hh>
+
+class EmuView : public View
+{
+public:
+	constexpr EmuView() { }
+	GfxSprite disp;
+	uchar *pixBuff = nullptr;
+	Pixmap vidPix;
+	GfxBufferImage vidImg;
+	VideoImageOverlay vidImgOverlay;
+	Area gameView;
+
+	void deinit() { }
+	Rect2<int> rect;
+	Rect2<int> &viewRect() { return rect; }
+
+	void place();
+	void placeEmu(); // game content only
+	template <bool active>
+	void drawContent();
+	void runFrame();
+	void draw();
+	void inputEvent(const InputEvent &e);
+
+	void placeOverlay()
+	{
+		vidImgOverlay.place(disp);
+	}
+
+	void updateAndDrawContent()
+	{
+		vidImg.write(vidPix);
+		drawContent<1>();
+	}
+
+	void initPixmap(uchar *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint extraPitch = 0)
+	{
+		vidPix.init(pixBuff, format, x, y, extraPitch);
+		var_selfs(pixBuff);
+	}
+
+	void reinitImage()
+	{
+		vidImg.init(vidPix, 0, optionImgFilter);
+		disp.setImg(&vidImg);
+	}
+
+	void resizeImage(uint x, uint y, uint extraPitch = 0)
+	{
+		resizeImage(0, 0, x, y, x, y, extraPitch);
+	}
+
+	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint extraPitch = 0)
+	{
+		Pixmap basePix;
+		basePix.init(pixBuff, vidPix.format, totalX, totalY, extraPitch);
+		vidPix.initSubPixmap(basePix, xO, yO, x, y);
+		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView", xO, yO, x, y, totalX, totalY);
+		vidImg.init(vidPix, 0, optionImgFilter);
+		disp.setImg(&vidImg);
+		if(optionImageZoom == optionImageZoomIntegerOnly)
+			placeEmu();
+	}
+
+	void initImage(bool force, uint x, uint y, uint extraPitch = 0)
+	{
+		if(force || !disp.img || vidPix.x != x || vidPix.y != y)
+		{
+			resizeImage(x, y, extraPitch);
+		}
+	}
+
+	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint extraPitch = 0)
+	{
+		if(force || !disp.img || vidPix.x != x || vidPix.y != y)
+		{
+			resizeImage(xO, yO, x, y, totalX, totalY, extraPitch);
+		}
+	}
+};

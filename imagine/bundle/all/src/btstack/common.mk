@@ -10,7 +10,7 @@ C_OBJ := $(addprefix $(objDir)/,$(C_SRC:.c=.o))
 OBJC_OBJ := $(addprefix $(objDir)/,$(OBJC_SRC:.m=.o))
 OBJ := $(C_OBJ) $(OBJC_OBJ)
 
-CPPFLAGS += -I$(btstackSrcDir)/include $(PP_CFLAGS) -I.
+CPPFLAGS += -I$(btstackSrcDir)/include -I.
 
 all : $(outputLibFile)
 

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.hxx 2370 2012-01-28 15:19:41Z stephena $
+// $Id: TrackBall.hxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #ifndef TRACKBALL_HXX
@@ -36,7 +36,7 @@
     AmigaMouse:  Amiga Mouse
 
   @author  Stephen Anthony & z26 team
-  @version $Id: TrackBall.hxx 2370 2012-01-28 15:19:41Z stephena $
+  @version $Id: TrackBall.hxx 2444 2012-04-19 13:00:02Z stephena $
 */
 class TrackBall : public Controller
 {
@@ -71,6 +71,25 @@ class TrackBall : public Controller
     */
     void update();
 
+    /**
+      Determines how this controller will treat values received from the
+      X/Y axis and left/right buttons of the mouse.  Since not all controllers
+      use the mouse the same way (or at all), it's up to the specific class to
+      decide how to use this data.
+
+      In the current implementation, the left button is tied to the X axis,
+      and the right one tied to the Y axis.
+
+      @param xtype  The controller to use for x-axis data
+      @param xid    The controller ID to use for x-axis data (-1 for no id)
+      @param ytype  The controller to use for y-axis data
+      @param yid    The controller ID to use for y-axis data (-1 for no id)
+
+      @return  Whether the controller supports using the mouse
+    */
+    bool setMouseControl(
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+
   private:
     // Counter to iterate through the gray codes
     int myHCounter, myVCounter;
@@ -88,6 +107,9 @@ class TrackBall : public Controller
     int myTrakBallDown;
 
     int myScanCountH, myScanCountV, myCountH, myCountV;
+
+    // Whether to use the mouse to emulate this controller
+    int myMouseEnabled;  
 
     // CX-22
     static const uInt32 ourTrakBallTableTB_H[2][2];

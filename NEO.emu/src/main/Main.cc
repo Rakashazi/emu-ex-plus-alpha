@@ -86,35 +86,6 @@ static ROM_DEF *activeDrv = 0;
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B/C/D", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
-const uint EmuSystem::maxPlayers = 2;
-static const uint systemFaceBtns = 4, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include <CommonGui.hh>
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 // controls
 
 enum
@@ -165,6 +136,38 @@ static BasicByteOption optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA);
 static BasicByteOption optionTimerInt(CFGKEY_TIMER_INT, 2);
 static BasicByteOption optionCreateAndUseCache(CFGKEY_CREATE_USE_CACHE, 0);
 static BasicByteOption optionStrictROMChecking(CFGKEY_STRICT_ROM_CHECKING, 0);
+
+static void setTimerIntOption()
+{
+	switch(optionTimerInt)
+	{
+		bcase 0: conf.raster = 0;
+		bcase 1: conf.raster = 1;
+		bcase 2:
+			bool needsTimer = 0;
+			if(EmuSystem::gameIsRunning() && (strstr(EmuSystem::fullGameName, "Sidekicks 2") || strstr(EmuSystem::fullGameName, "Sidekicks 3")
+					|| strstr(EmuSystem::fullGameName, "Ultimate 11") || strstr(EmuSystem::fullGameName, "Neo-Geo Cup")
+					|| strstr(EmuSystem::fullGameName, "Spin Master")))
+				needsTimer = 1;
+			if(needsTimer) logMsg("auto enabled timer interrupt");
+			conf.raster = needsTimer;
+	}
+}
+
+const uint EmuSystem::maxPlayers = 2;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include <CommonGui.hh>
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
 
 CLINK int gn_strictROMChecking()
 {
@@ -222,6 +225,12 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
+	optionListAllGames.writeWithKeyIfNotDefault(io);
+	optionBIOSType.writeWithKeyIfNotDefault(io);
+	optionMVSCountry.writeWithKeyIfNotDefault(io);
+	optionTimerInt.writeWithKeyIfNotDefault(io);
+	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
+	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, neogeoKeyIdxUp, CFGKEY_NEOGEOKEY_UP);
 	writeKeyConfig2(io, neogeoKeyIdxRight, CFGKEY_NEOGEOKEY_RIGHT);
 	writeKeyConfig2(io, neogeoKeyIdxDown, CFGKEY_NEOGEOKEY_DOWN);
@@ -242,55 +251,7 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, neogeoKeyIdxYTurbo, CFGKEY_NEOGEOKEY_Y_TURBO);
 	writeKeyConfig2(io, neogeoKeyIdxABC, CFGKEY_NEOGEOKEY_ABC);
 	writeKeyConfig2(io, neogeoKeyIdxTestSwitch, CFGKEY_NEOGEOKEY_TEST_SWITCH);
-	if(!optionListAllGames.isDefault())
-	{
-		io->writeVar((uint16)optionListAllGames.ioSize());
-		optionListAllGames.writeToIO(io);
-	}
-	if(!optionBIOSType.isDefault())
-	{
-		io->writeVar((uint16)optionBIOSType.ioSize());
-		optionBIOSType.writeToIO(io);
-	}
-	if(!optionMVSCountry.isDefault())
-	{
-		io->writeVar((uint16)optionMVSCountry.ioSize());
-		optionMVSCountry.writeToIO(io);
-	}
-	if(!optionTimerInt.isDefault())
-	{
-		io->writeVar((uint16)optionTimerInt.ioSize());
-		optionTimerInt.writeToIO(io);
-	}
-	if(!optionCreateAndUseCache.isDefault())
-	{
-		io->writeVar((uint16)optionCreateAndUseCache.ioSize());
-		optionCreateAndUseCache.writeToIO(io);
-	}
-	if(!optionStrictROMChecking.isDefault())
-	{
-		io->writeVar((uint16)optionStrictROMChecking.ioSize());
-		optionStrictROMChecking.writeToIO(io);
-	}
 }
-
-static void setTimerIntOption()
-{
-	switch(optionTimerInt)
-	{
-		bcase 0: conf.raster = 0;
-		bcase 1: conf.raster = 1;
-		bcase 2:
-			bool needsTimer = 0;
-			if(EmuSystem::gameIsRunning() && (strstr(EmuSystem::fullGameName, "Sidekicks 2") || strstr(EmuSystem::fullGameName, "Sidekicks 3")
-					|| strstr(EmuSystem::fullGameName, "Ultimate 11") || strstr(EmuSystem::fullGameName, "Neo-Geo Cup")
-					|| strstr(EmuSystem::fullGameName, "Spin Master")))
-				needsTimer = 1;
-			if(needsTimer) logMsg("auto enabled timer interrupt");
-			conf.raster = needsTimer;
-	}
-}
-
 
 static bool isNeoGeoExtension(const char *name)
 {
@@ -306,13 +267,8 @@ FsDirFilterFunc EmuFilePicker::defaultFsFilter = neogeoFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = neogeoFsFilter;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-static uint16 screenBuff[352*256] __attribute__ ((aligned (8)));
+static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
 static GN_Surface sdlSurf;
-
-#include "NeoOptionView.hh"
-static NeoOptionView oCategoryMenu;
-#include "NeoMenuView.hh"
-static NeoMenuView mMenu;
 
 namespace NGKey
 {
@@ -479,7 +435,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -556,7 +512,7 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 
 #endif
 
-static void loadGamePhase2(bool allowAutosaveState)
+static void loadGamePhase2()
 {
 	string_copy(EmuSystem::gameName, activeDrv->name, sizeof(EmuSystem::gameName));
 	string_copy(EmuSystem::fullGameName, activeDrv->longname, sizeof(EmuSystem::fullGameName));
@@ -566,17 +522,6 @@ static void loadGamePhase2(bool allowAutosaveState)
 
 	emuView.initImage(0, 304, 224, (FBResX-304)*2);
 	setTimerIntOption();
-
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		EmuSystem::sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-		{
-			logMsg("loading auto-save state");
-			load_stateWithName(saveStr);
-		}
-	}
 
 	logMsg("finished loading game");
 }
@@ -634,8 +579,6 @@ void gn_update_pbar(int pos)
 	}
 }
 
-static bool globalAllowAutosaveState = 0;
-
 class LoadGameInBackgroundView : public View
 {
 public:
@@ -667,7 +610,7 @@ public:
 
 	void place(Rect2<int> rect)
 	{
-		View::place(rect);
+		View::placeRect(rect);
 	}
 
 	void place()
@@ -698,9 +641,9 @@ public:
 
 static LoadGameInBackgroundView loadGameInBackgroundView;
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame(1);
 
 	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
 	#ifdef CONFIG_BASE_IOS_SETUID
@@ -742,7 +685,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 			loadGameInBackgroundView.place(Gfx::viewportRect());
 			View::modalView = &loadGameInBackgroundView;
 			Base::displayNeedsUpdate();
-			globalAllowAutosaveState = allowAutosaveState;
 			backgroundThread.create(1, loadGameThread, 0);
 			return 0;
 		}
@@ -769,7 +711,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 		}
 	}
 
-	loadGamePhase2(allowAutosaveState);
+	loadGamePhase2();
 	return 1;
 }
 
@@ -853,8 +795,8 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 		bcase MSG_LOAD_OK:
 		{
 			View::removeModalView();
-			loadGamePhase2(globalAllowAutosaveState);
-			EmuSystem::loadGameCompleteDelegate().invoke(1);
+			loadGamePhase2();
+			EmuSystem::loadGameCompleteDelegate().invoke(1, InputEvent{});
 		}
 		bcase MSG_START_PROGRESS:
 		{
@@ -888,7 +830,16 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 
 CallResult onInit()
 {
-	mainInitCommon();
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
+	mainInitCommon(navViewGrad);
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 	emuView.initPixmap((uchar*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, (FBResX-304)*2);
 	visible_area.x = 0;//16;

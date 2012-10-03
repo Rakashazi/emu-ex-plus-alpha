@@ -14,19 +14,20 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Event.hxx 2405 2012-03-04 19:20:29Z stephena $
+// $Id: Event.hxx 2447 2012-04-19 20:11:16Z stephena $
 //============================================================================
 
 #ifndef EVENT_HXX
 #define EVENT_HXX
 
 #include "bspf.hxx"
+#include "StellaKeys.hxx"
 
 class Event;
 
 /**
   @author  Bradford W. Mott
-  @version $Id: Event.hxx 2405 2012-03-04 19:20:29Z stephena $
+  @version $Id: Event.hxx 2447 2012-04-19 20:11:16Z stephena $
 */
 class Event
 {
@@ -107,11 +108,27 @@ class Event
     {
       for(uInt32 i = 0; i < LastType; ++i)
         myValues[i] = Event::NoType;
+
+      for(uInt32 i = 0; i < KBDK_LAST; ++i)
+        myKeyTable[i] = false;
     }
+
+    /**
+      Get the keytable associated with this event
+    */
+    const bool* getKeys() const { return myKeyTable; }
+
+    /**
+      Set the value associated with the event of the specified type
+    */
+    void setKey(StellaKey key, bool state) { myKeyTable[key] = state; }
 
   private:
     // Array of values associated with each event type
     Int32 myValues[LastType];
+
+    // Array of keyboard key states
+    bool myKeyTable[KBDK_LAST];
 };
 
 #endif

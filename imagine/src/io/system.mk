@@ -8,7 +8,7 @@ else ifeq ($(ENV), android)
 else ifeq ($(ENV), iOS)
 	include $(imagineSrcDir)/io/fd/build.mk
 	include $(imagineSrcDir)/io/mmap/fd/build.mk
-else ifeq ($(ENV), macOSX)
+else ifeq ($(ENV), macosx)
 	include $(imagineSrcDir)/io/fd/build.mk
 	include $(imagineSrcDir)/io/mmap/fd/build.mk
 else ifeq ($(ENV), webos)

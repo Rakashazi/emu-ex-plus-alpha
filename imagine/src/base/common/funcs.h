@@ -79,7 +79,7 @@ const char copyright[] = "Imagine is Copyright 2010, 2011 Robert Broglia";
 static void engineInit() ATTRS(cold);
 static void engineInit()
 {
-	#if defined(__unix__)
+	#if defined __unix__ || defined CONFIG_BASE_MACOSX
 		struct rlimit stack;
 		getrlimit(RLIMIT_STACK, &stack);
 		stack.rlim_cur = 16 * 1024 * 1024;
@@ -140,10 +140,8 @@ static uint runEngine()
 	return frameRendered;
 }
 
-#ifndef CONFIG_SUPCXX
-	// needed by GCC when not compiling with libstdc++/libsupc++
-	CLINK void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
-#endif
+// needed by GCC when not compiling with libstdc++/libsupc++, or to override it
+CLINK void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
 
 #if defined(__unix__) || defined(__APPLE__)
 void sleepUs(int us)
@@ -219,28 +217,71 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 
 }
 
-void* operator new (size_t size)
+#ifdef USES_POLL_WAIT_TIMER
+
+#include <base/common/PollWaitTimer.hh>
+
+DLList<PollWaitTimer>::Node DLListNodeArray(PollWaitTimer::timerListNode, 4);
+DLList<PollWaitTimer> PollWaitTimer::timerList {timerListNode};
+
+namespace Base
+{
+
+void cancelCallback(CallbackRef *ref)
+{
+	if(ref)
+		((PollWaitTimer*)ref)->remove();
+}
+
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
+{
+	PollWaitTimer timer(callback);
+	if(!timer.add(ms))
+	{
+		return nullptr;
+	}
+	return (CallbackRef*)timer.timerList.first();
+}
+
+}
+
+#endif
+
+void* operator new (std::size_t size)
 #ifdef __EXCEPTIONS
-	throw ()
+	throw (std::bad_alloc)
 #endif
 { return mem_alloc(size); }
 
-void* operator new[] (size_t size)
+void* operator new[] (std::size_t size)
 #ifdef __EXCEPTIONS
-	throw ()
+	throw (std::bad_alloc)
 #endif
 { return mem_alloc(size); }
 
-void *operator new (size_t size, void *o)
+/*void *operator new (size_t size, void *o)
 #ifdef __EXCEPTIONS
 	throw ()
 #endif
 {
 	//logMsg("called placement new, %d bytes @ %p", (int)size, o);
 	return o;
-}
+}*/
 
 //void* operator new (size_t size, long unsigned int) { return mem_alloc(size); }
 
 void operator delete (void *o) { mem_free(o); }
 void operator delete[] (void *o) { mem_free(o); }
+
+#ifdef __EXCEPTIONS
+namespace __gnu_cxx
+{
+
+EVISIBLE void __verbose_terminate_handler()
+{
+	logMsg("terminated by uncaught exception");
+  abort();
+}
+
+}
+#endif

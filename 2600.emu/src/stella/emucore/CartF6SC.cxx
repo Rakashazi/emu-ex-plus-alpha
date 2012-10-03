@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF6SC.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartF6SC.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,7 @@ CartridgeF6SC::CartridgeF6SC(const uInt8* image, uInt32 size, const Settings& se
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(16384u, size));
+  memcpy(myImage, image, BSPF_min(16384u, size));
   createCodeAccessBase(16384);
 
   // This cart contains 128 bytes extended RAM @ 0x1000
@@ -254,17 +254,12 @@ bool CartridgeF6SC::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
-
-    // The 128 bytes of RAM
-    out.putInt(128);
-    for(uInt32 i = 0; i < 128; ++i)
-      out.putByte((char)myRAM[i]);
-
+    out.putShort(myCurrentBank);
+    out.putByteArray(myRAM, 128);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeF6SC::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeF6SC::save" << endl;
     return false;
   }
 
@@ -279,16 +274,12 @@ bool CartridgeF6SC::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16) in.getInt();
-
-    // The 128 bytes of RAM
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 i = 0; i < limit; ++i)
-      myRAM[i] = (uInt8) in.getByte();
+    myCurrentBank = in.getShort();
+    in.getByteArray(myRAM, 128);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeF6SC::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeF6SC::load" << endl;
     return false;
   }
 

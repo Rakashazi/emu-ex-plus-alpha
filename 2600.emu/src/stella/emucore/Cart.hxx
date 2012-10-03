@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Cart.hxx 2453 2012-04-29 19:43:28Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_HXX
@@ -45,7 +45,7 @@ typedef Common::Array<RamArea> RamAreaList;
   0x1000-0x2000 area (or its mirrors).
  
   @author  Bradford W. Mott
-  @version $Id: Cart.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: Cart.hxx 2453 2012-04-29 19:43:28Z stephena $
 */
 class Cartridge : public Device
 {
@@ -61,11 +61,13 @@ class Cartridge : public Device
       @param dtype    The detected bankswitch type of the ROM image
       @param id       Any extra info about the ROM (currently which part
                       of a multiload game is being accessed
+      @param system   The osystem associated with the system
       @param settings The settings associated with the system
       @return   Pointer to the new cartridge object allocated on the heap
     */
     static Cartridge* create(const uInt8* image, uInt32 size, string& md5,
-                             string& dtype, string& id, Settings& settings);
+                             string& dtype, string& id,
+                             const OSystem& system, Settings& settings);
 
     /**
       Create a new cartridge
@@ -189,6 +191,14 @@ class Cartridge : public Device
     */
     virtual string name() const = 0;
 
+    /**
+      Informs the cartridge about the name of the ROM file used when
+      creating this cart.
+
+      @param name  The properties file name of the ROM
+    */
+    virtual void setRomName(const string& name) { }
+
   protected:
     /**
       Add the given area to the RamArea list for this cart.
@@ -280,6 +290,11 @@ class Cartridge : public Device
       Returns true if the image is probably a 4A50 bankswitching cartridge
     */
     static bool isProbably4A50(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably a CTY bankswitching cartridge
+    */
+    static bool isProbablyCTY(const uInt8* image, uInt32 size);
 
     /**
       Returns true if the image is probably a CV bankswitching cartridge

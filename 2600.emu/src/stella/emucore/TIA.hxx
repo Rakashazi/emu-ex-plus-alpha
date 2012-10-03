@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 2366 2012-01-22 21:01:13Z stephena $
+// $Id: TIA.hxx 2527 2012-06-05 16:32:35Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -41,7 +41,7 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 2366 2012-01-22 21:01:13Z stephena $
+  @version $Id: TIA.hxx 2527 2012-06-05 16:32:35Z stephena $
 */
 class TIA : public Device
 {
@@ -190,9 +190,9 @@ class TIA : public Device
     /**
       Answers the width and height of the frame buffer
     */
-    uInt32 width() const  { return myFrameWidth;  }
-    uInt32 height() const { return myFrameHeight; }
-    uInt32 ystart() const { return myFrameYStart; }
+    inline uInt32 width() const  { return myFrameWidth;  }
+    inline uInt32 height() const { return myFrameHeight; }
+    inline uInt32 ystart() const { return myFrameYStart; }
 
     /**
       Changes the current Height/YStart properties.
@@ -217,6 +217,13 @@ class TIA : public Device
     */
     void enableColorLoss(bool mode)
       { myColorLossEnabled = myFramerate <= 55 ? mode : false; }
+
+    /**
+      Answers whether this TIA runs at NTSC or PAL scanrates,
+      based on how many frames of out the total count are PAL frames.
+    */
+    bool isPAL()
+      { return float(myPALFrameCounter) / myFrameCounter >= (25.0/60.0); }
 
     /**
       Answers the current color clock we've gotten to on this scanline.
@@ -272,16 +279,8 @@ class TIA : public Device
     bool scanlinePos(uInt16& x, uInt16& y) const;
 
     /**
-      Enables/disables all TIABit bits.  Note that disabling a graphical
-      object also disables its collisions.
-
-      @param mode  Whether to enable or disable all bits
-    */
-    void enableBits(bool mode);
-
-    /**
-      Enables/disable/toggle the specified TIA bit.  Note that disabling a
-      graphical object also disables its collisions.
+      Enables/disable/toggle the specified (or all) TIA bit(s).  Note that
+      disabling a graphical object also disables its collisions.
 
       @param mode  1/0 indicates on/off, and values greater than 1 mean
                    flip the bit from its current state
@@ -289,16 +288,10 @@ class TIA : public Device
       @return  Whether the bit was enabled or disabled
     */
     bool toggleBit(TIABit b, uInt8 mode = 2);
+    bool toggleBits();
 
     /**
-      Enables/disables all TIABit collisions.
-
-      @param mode  Whether to enable or disable all collisions
-    */
-    void enableCollisions(bool mode);
-
-    /**
-      Enables/disable/toggle the specified TIA bit collision.
+      Enables/disable/toggle the specified (or all) TIA bit collision(s).
 
       @param mode  1/0 indicates on/off, and values greater than 1 mean
                    flip the collision from its current state
@@ -306,6 +299,7 @@ class TIA : public Device
       @return  Whether the collision was enabled or disabled
     */
     bool toggleCollision(TIABit b, uInt8 mode = 2);
+    bool toggleCollisions();
 
     /**
       Toggle the display of HMOVE blanks.
@@ -344,6 +338,21 @@ class TIA : public Device
 #endif
 
   private:
+    /**
+      Enables/disables all TIABit bits.  Note that disabling a graphical
+      object also disables its collisions.
+
+      @param mode  Whether to enable or disable all bits
+    */
+    void enableBits(bool mode);
+
+    /**
+      Enables/disables all TIABit collisions.
+
+      @param mode  Whether to enable or disable all collisions
+    */
+    void enableCollisions(bool mode);
+
     // Update the current frame buffer to the specified color clock
     void updateFrame(Int32 clock);
 
@@ -413,9 +422,6 @@ class TIA : public Device
 
     // Indicates the height of the frame in scanlines
     uInt32 myFrameHeight;
-
-    // Indicates offset in color clocks when display should begin
-    uInt32 myStartDisplayOffset;
 
     // Indicates offset in color clocks when display should stop
     uInt32 myStopDisplayOffset;
@@ -613,11 +619,17 @@ class TIA : public Device
     // Automatic framerate correction based on number of scanlines
     bool myAutoFrameEnabled;
 
-    // Number of frames displayed by this TIA
-    int myFrameCounter;
+    // Number of total frames displayed by this TIA
+    uInt32 myFrameCounter;
+
+    // Number of PAL frames displayed by this TIA
+    uInt32 myPALFrameCounter;
 
     // The framerate currently in use by the Console
     float myFramerate;
+
+    // Whether TIA bits/collisions are currently enabled/disabled
+    bool myBitsEnabled, myCollisionsEnabled;
 
   private:
     // Copy constructor isn't supported by this class so make it private

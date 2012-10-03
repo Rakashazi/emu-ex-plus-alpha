@@ -203,12 +203,14 @@ typedef Delegate<int (int event)> PollEventDelegate;
 #endif
 
 // timer event support
-typedef void(*TimerCallbackFunc)(void*);
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms);
+using CallbackDelegate = Delegate<void ()>;
+struct CallbackRef;
+void cancelCallback(CallbackRef *ref);
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms);
 
-static void setTimerCallbackSec(TimerCallbackFunc f, void *ctx, int s)
+static CallbackRef *callbackAfterDelaySec(CallbackDelegate callback, int s)
 {
-	setTimerCallback(f, ctx, s * 1000);
+	return callbackAfterDelay(callback, s * 1000);
 }
 
 // app file system paths

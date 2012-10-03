@@ -20,13 +20,14 @@
 #include "IControlPad.hh"
 #include <util/collection/DLList.hh>
 
-StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 3> btInputDevList;
+StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
+StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> btInputDevPendingList;
 
 namespace Bluetooth
 {
 	uint scanSecs = 4;
 	uint maxGamepadsPerType = 5;
-	static BluetoothAdapter *bta = 0;
+	static BluetoothAdapter *bta = nullptr;
 
 	static bool testSupportedBTDevClasses(const uchar devClass[3])
 	{
@@ -46,52 +47,56 @@ namespace Bluetooth
 		logMsg("name: %s", name);
 		if(strstr(name, "Nintendo RVL-CNT-01"))
 		{
-			Wiimote *dev = new Wiimote;
+			Wiimote *dev = new Wiimote(addr);
 			if(!dev)
 			{
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(name, addr, *bta) != OK)
-			{
-				delete dev;
-				return;
-			}
+			btInputDevPendingList.add(dev);
 		}
 		else if(strstr(name, "iControlPad-"))
 		{
-			IControlPad *dev = new IControlPad;
+			IControlPad *dev = new IControlPad(addr);
 			if(!dev)
 			{
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(addr, *bta) != OK)
-			{
-				delete dev;
-				return;
-			}
+			btInputDevPendingList.add(dev);
 		}
 		else if(strstr(name, "Zeemote JS1"))
 		{
-			Zeemote *dev = new Zeemote;
+			Zeemote *dev = new Zeemote(addr);
 			if(!dev)
 			{
 				logErr("out of memory");
 				return;
 			}
-			if(dev->open(addr, *bta) != OK)
-			{
-				delete dev;
-				return;
-			}
+			btInputDevPendingList.add(dev);
+		}
+	}
+
+	static void removePendingDevs()
+	{
+		if(btInputDevPendingList.size)
+			logMsg("removing %d devices in pending list", btInputDevPendingList.size);
+		forEachInDLList(&btInputDevPendingList, e)
+		{
+			delete e;
+			e_it.removeElem();
 		}
 	}
 
 	bool startBT()
 	{
 		assert(bta);
-		return bta->startScan();
+		if(!bta->inDetect)
+		{
+			removePendingDevs();
+			return bta->startScan();
+		}
+		return 0;
 	}
 
 	CallResult initBT()
@@ -102,10 +107,6 @@ namespace Bluetooth
 		bta = BluetoothAdapter::defaultAdapter();
 		if(!bta)
 			return UNSUPPORTED_OPERATION;
-		btInputDevList.init();
-		Wiimote::devList.init();
-		IControlPad::devList.init();
-		Zeemote::devList.init();
 		bta->scanDeviceClassDelegate().bind<&onClass>();
 		bta->scanDeviceNameDelegate().bind<&onName>();
 		return OK;
@@ -122,10 +123,30 @@ namespace Bluetooth
 		}
 	}
 
+	uint pendingDevs()
+	{
+		return btInputDevPendingList.size;
+	}
+
+	void connectPendingDevs()
+	{
+		logMsg("connecting to %d devices", btInputDevPendingList.size);
+		forEachInDLList(&btInputDevPendingList, e)
+		{
+			if(e->open(*bta) != OK)
+			{
+				delete e;
+			}
+			// e is added to btInputDevList
+			e_it.removeElem();
+		}
+	}
+
 	void closeBT()
 	{
 		if(!bta)
 			return; // Bluetooth was never used
+		removePendingDevs();
 		closeDevs();
 		bta->close();
 		bta = 0;

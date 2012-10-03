@@ -28,7 +28,7 @@ Cartridge0840::Cartridge0840(const uInt8* image, uInt32 size, const Settings& se
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(8192u, size));
+  memcpy(myImage, image, BSPF_min(8192u, size));
   createCodeAccessBase(8192);
 
   // Remember startup bank
@@ -198,11 +198,11 @@ bool Cartridge0840::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
+    out.putShort(myCurrentBank);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge0840::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge0840::save" << endl;
     return false;
   }
 
@@ -217,11 +217,11 @@ bool Cartridge0840::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16)in.getInt();
+    myCurrentBank = in.getShort();
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge0840::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge0840::load" << endl;
     return false;
   }
 

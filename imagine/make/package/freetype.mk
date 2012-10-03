@@ -8,7 +8,8 @@ else
  ifeq ($(ENV), webos)
   CPPFLAGS +=  -I$(WEBOS_PDK_PATH)/include/freetype2
   LDLIBS += -lfreetype
- else ifeq ($(ENV), macOSX)
+ else ifeq ($(ENV), macosx)
+  # MacPorts version
   CPPFLAGS +=  -I/opt/local/include/freetype2
   LDLIBS += /opt/local/lib/libfreetype.a -lz
  else ifneq ($(ENV), linux)

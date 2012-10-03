@@ -425,7 +425,8 @@ bool StateSaver::saveState(const SaveState &state,
 		file.write(it->label, it->labelsize);
 		(*it->save)(file, state);
 	}
-	return true;
+
+	return !file.fail();
 }
 
 bool StateSaver::loadState(SaveState &state, const std::string &filename) {

@@ -668,6 +668,7 @@ MDFNGI EmulatedPCE_Fast =
  NULL,
  NULL,
  MemRead,
+ false,
  StateAction,
  Emulate,
  PCEINPUT_SetInput,

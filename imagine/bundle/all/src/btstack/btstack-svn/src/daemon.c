@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 by Matthias Ringwald
+ * Copyright (C) 2009-2012 by Matthias Ringwald
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,6 +13,9 @@
  * 3. Neither the name of the copyright holders nor the names of
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
+ * 4. Any redistribution, use, or modification is done solely for
+ *    personal benefit and not for any commercial purpose or for
+ *    monetary gain.
  *
  * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -26,6 +29,8 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * Please inquire about commercial licensing options at btstack@ringwald.ch
  *
  */
 
@@ -130,8 +135,6 @@ static void daemon_no_connections_timeout(struct timer *ts){
 }
 
 static int btstack_command_handler(connection_t *connection, uint8_t *packet, uint16_t size){
-
-    hci_dump_packet( HCI_COMMAND_DATA_PACKET, 1, packet, size);
     
     bd_addr_t addr;
     uint16_t cid;
@@ -147,9 +150,11 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
     // BTstack internal commands - 16 Bit OpCode, 8 Bit ParamLen, Params...
     switch (READ_CMD_OCF(packet)){
         case BTSTACK_GET_STATE:
+            log_info("BTSTACK_GET_STATE");
             hci_emit_state();
             break;
         case BTSTACK_SET_POWER_MODE:
+            log_info("BTSTACK_SET_POWER_MODE %u", packet[3]);
             // track client power requests
             client = client_for_connection(connection);
             if (!client) break;
@@ -163,15 +168,18 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
             }
             break;
         case BTSTACK_GET_VERSION:
+            log_info("BTSTACK_GET_VERSION");
             hci_emit_btstack_version();
             break;   
 #ifdef USE_BLUETOOL
         case BTSTACK_SET_SYSTEM_BLUETOOTH_ENABLED:
+            log_info("BTSTACK_SET_SYSTEM_BLUETOOTH_ENABLED %u", packet[3]);
             iphone_system_bt_set_enabled(packet[3]);
             hci_emit_system_bluetooth_enabled(iphone_system_bt_enabled());
             break;
             
         case BTSTACK_GET_SYSTEM_BLUETOOTH_ENABLED:
+            log_info("BTSTACK_GET_SYSTEM_BLUETOOTH_ENABLED");
             hci_emit_system_bluetooth_enabled(iphone_system_bt_enabled());
             break;
 #else
@@ -181,6 +189,7 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
             break;
 #endif
         case BTSTACK_SET_DISCOVERABLE:
+            log_info("BTSTACK_SET_DISCOVERABLE discoverable %u)", packet[3]);
             // track client discoverable requests
             client = client_for_connection(connection);
             if (!client) break;
@@ -190,7 +199,6 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
             break;
         case BTSTACK_SET_BLUETOOTH_ENABLED:
             log_info("BTSTACK_SET_BLUETOOTH_ENABLED: %u\n", packet[3]);
-
             if (packet[3]) {
                 // global enable
                 global_enable = 1;
@@ -289,6 +297,7 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
                 // NOTE: hack for non-iOS platforms
                 rfcomm_channel = rfcomm_channel_generator++;
             }
+            log_info("RFCOMM_EVENT_PERSISTENT_CHANNEL %u", rfcomm_channel);
             uint8_t event[4];
             event[0] = RFCOMM_EVENT_PERSISTENT_CHANNEL;
             event[1] = sizeof(event) - 2;
@@ -305,12 +314,17 @@ static int btstack_command_handler(connection_t *connection, uint8_t *packet, ui
             break;
         case SDP_UNREGISTER_SERVICE_RECORD:
             service_record_handle = READ_BT_32(packet, 3);
+            log_info("SDP_UNREGISTER_SERVICE_RECORD handle 0x%x ", service_record_handle);
             sdp_unregister_service_internal(connection, service_record_handle);
             break;
         default:
             log_error("Error: command %u not implemented\n:", READ_CMD_OCF(packet));
             break;
     }
+    
+    // verbose log info on command before dumped command unknown to PacketLogger or Wireshark
+    hci_dump_packet( HCI_COMMAND_DATA_PACKET, 1, packet, size);
+
     return 0;
 }
 

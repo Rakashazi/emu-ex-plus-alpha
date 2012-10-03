@@ -30,7 +30,14 @@ void startGameFromMenu();
 
 class OptionCategoryView : public BaseMenuView
 {
-	TextMenuItem subConfig[5];
+	TextMenuItem subConfig[5]
+	{
+		"Video",
+		"Audio",
+		"Input",
+		"System",
+		"GUI"
+	};
 
 	MenuItem *item[5] = {nullptr};
 public:
@@ -44,7 +51,7 @@ class RecentGameView : public BaseMenuView
 {
 private:
 	TextMenuItem recentGame[10];
-	TextMenuItem clear;
+	TextMenuItem clear {"Clear List", TextMenuItem::SelectDelegate::create<&clearRecentMenuHandler>()};
 
 	static void clearRecentMenuHandler(TextMenuItem &, const InputEvent &e);
 
@@ -71,8 +78,8 @@ private:
 
 	struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
 	{
-		constexpr InputPlayerMapMenuItem(): player(0) { }
-		uint *player;
+		constexpr InputPlayerMapMenuItem() { }
+		uint *player = nullptr;
 		void init(const char *name, uint *player)
 		{
 			this->player = player;
@@ -93,66 +100,61 @@ public:
 	void init(bool highlightFirst);
 };
 
-// TODO: refactor contents of ifdef block
-#ifndef PROTOTYPES_ONLY
-
-void OptionCategoryView::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
-{
-	oCategoryMenu.init(i, !e.isPointer());
-	viewStack.pushAndShow(&oCategoryMenu);
-}
-
-OptionCategoryView oMenu;
-
-StateSlotView ssMenu;
-
-RecentGameView rMenu;
-
-InputPlayerMapView ipmMenu;
-
-#endif
-
 class MenuView : public BaseMenuView
 {
 protected:
-	TextMenuItem loadGame;
+	TextMenuItem loadGame {"Load Game"};
 
-	TextMenuItem reset;
+	TextMenuItem reset {"Reset"};
 
-	TextMenuItem loadState;
+	TextMenuItem loadState {"Load State"};
 
-	TextMenuItem recentGames;
+	TextMenuItem recentGames {"Recent Games"};
 
-	TextMenuItem saveState;
+	TextMenuItem saveState {"Save State"};
 
 	TextMenuItem stateSlot;
 
 	char stateSlotText[sizeof("State Slot (0)")] = {0};
 
-	TextMenuItem options;
+	TextMenuItem options {"Options"};
 
-	TextMenuItem inputPlayerMap;
+	TextMenuItem inputPlayerMap {"Input/Player Mapping"};
 
-	TextMenuItem benchmark;
+	TextMenuItem benchmark {"Benchmark Game"};
 
 	#ifdef CONFIG_BLUETOOTH
-	TextMenuItem scanWiimotes;
+	TextMenuItem scanWiimotes {"Scan for Wiimotes/iCP/JS1"};
 
-	TextMenuItem bluetoothDisconnect;
+	TextMenuItem bluetoothDisconnect {"Disconnect Bluetooth"};
 	#endif
 
-	TextMenuItem about;
+	TextMenuItem about {"About"};
 
-	TextMenuItem exitApp;
+	TextMenuItem exitApp {"Exit"};
 
-	TextMenuItem screenshot;
+	TextMenuItem screenshot {"Game Screenshot"};
 
 public:
 	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION) { }
 
 	static const uint STANDARD_ITEMS = 14;
+	static const uint MAX_SYSTEM_ITEMS = 2;
 
 	void onShow();
 	void loadFileBrowserItems(MenuItem *item[], uint &items);
 	void loadStandardItems(MenuItem *item[], uint &items);
+
+protected:
+	MenuItem *item[STANDARD_ITEMS + MAX_SYSTEM_ITEMS] {nullptr};
+
+public:
+	virtual void init(bool highlightFirst)
+	{
+		uint items = 0;
+		loadFileBrowserItems(item, items);
+		loadStandardItems(item, items);
+		assert(items <= sizeofArray(item));
+		BaseMenuView::init(item, items, highlightFirst);
+	}
 };

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MindLink.hxx 2322 2012-01-02 16:37:17Z stephena $
+// $Id: MindLink.hxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #ifndef MINDLINK_HXX
@@ -38,7 +38,7 @@
   addressable by DigitalPin number.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: MindLink.hxx 2322 2012-01-02 16:37:17Z stephena $
+  @version $Id: MindLink.hxx 2444 2012-04-19 13:00:02Z stephena $
 */
 class MindLink : public Controller
 {
@@ -59,9 +59,21 @@ class MindLink : public Controller
 
   public:
     /**
-      Called after *all* digital pins have been written on Port A.
+      Write the given value to the specified digital pin for this
+      controller.  Writing is only allowed to the pins associated
+      with the PIA.  Therefore you cannot write to pin six.
+
+      @param pin The pin of the controller jack to write to
+      @param value The value to write to the pin
     */
-    void controlWrite() { nextMindlinkBit(); }
+    void write(DigitalPin pin, bool value) { myDigitalPinState[pin] = value; }
+
+    /**
+      Called after *all* digital pins have been written on Port A.
+
+      @param value  The entire contents of the SWCHA register
+    */
+    void controlWrite(uInt8) { nextMindlinkBit(); }
 
     /**
       Update the entire digital and analog pin state according to the
@@ -69,27 +81,38 @@ class MindLink : public Controller
     */
     void update();
 
+    /**
+      Determines how this controller will treat values received from the
+      X/Y axis and left/right buttons of the mouse.  Since not all controllers
+      use the mouse the same way (or at all), it's up to the specific class to
+      decide how to use this data.
+
+      In the current implementation, the left button is tied to the X axis,
+      and the right one tied to the Y axis.
+
+      @param xtype  The controller to use for x-axis data
+      @param xid    The controller ID to use for x-axis data (-1 for no id)
+      @param ytype  The controller to use for y-axis data
+      @param yid    The controller ID to use for y-axis data (-1 for no id)
+
+      @return  Whether the controller supports using the mouse
+    */
+    bool setMouseControl(
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+
   private:
     void nextMindlinkBit();
 
   private:
-    uInt8 myMask1, myMask2, myMask3;
-
-    // Internal state of the port pins
-    uInt8 myIOPort;
-
     // Position value in Mindlink controller
     // Gets transferred bitwise (16 bits) 
     int myMindlinkPos;
 
-    // Position for player 1 (0x2800-0x3800)
-    int myMindlinkPos1;
-
-    // Position for player 2 (0x1000-0x2000)
-    int myMindlinkPos2;
-
     // Which bit to transfer next
     int myMindlinkShift;
+
+    // Whether to use the mouse to emulate this controller
+    int myMouseEnabled;  
 };
 
 #endif

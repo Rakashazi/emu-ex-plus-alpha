@@ -13,8 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-// TODO remove once header is refactored
-#define PROTOTYPES_ONLY
 #include <MenuView.hh>
 #include <Recent.hh>
 #include <gui/AlertView.hh>
@@ -25,6 +23,7 @@
 #include <FilePicker.hh>
 #include <StateSlotView.hh>
 #include <EmuInput.hh>
+#include <EmuOptions.hh>
 #include <util/strings.h>
 #ifdef CONFIG_BLUETOOTH
 	#include <bluetooth/sys.hh>
@@ -60,7 +59,7 @@ void resetHandler(TextMenuItem &, const InputEvent &e)
 	{
 		ynAlertView.init("Really Reset Game?", !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmResetAlert>();
-		ynAlertView.place(Gfx::viewportRect());
+		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}
 }
@@ -83,7 +82,7 @@ void loadStateHandler(TextMenuItem &item, const InputEvent &e)
 	{
 		ynAlertView.init("Really Load State?", !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmLoadStateAlert>();
-		ynAlertView.place(Gfx::viewportRect());
+		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}
 }
@@ -123,7 +122,7 @@ void saveStateHandler(TextMenuItem &, const InputEvent &e)
 		{
 			ynAlertView.init("Really Overwrite State?", !e.isPointer());
 			ynAlertView.onYesDelegate().bind<&confirmSaveStateAlert>();
-			ynAlertView.place(Gfx::viewportRect());
+			ynAlertView.placeRect(Gfx::viewportRect());
 			View::modalView = &ynAlertView;
 		}
 	}
@@ -162,7 +161,7 @@ void benchmarkHandler(TextMenuItem &, const InputEvent &e)
 {
 	//static BenchmarkFilePicker picker;
 	fPicker.initForBenchmark(!e.isPointer());
-	fPicker.place(Gfx::viewportRect());
+	fPicker.placeRect(Gfx::viewportRect());
 	View::modalView = &fPicker;
 	Base::displayNeedsUpdate();
 }
@@ -203,12 +202,16 @@ void btStatus(uint status, int arg)
 		}
 		bcase BluetoothAdapter::SCAN_COMPLETE:
 		{
-			//popup.post("Connecting to devices...");
-			//Base::displayNeedsUpdate();
-		}
-		bcase BluetoothAdapter::SCAN_COMPLETE_NO_DEVS_USED:
-		{
-			popup.post("Scan complete, no recognized devices");
+			int devs = Bluetooth::pendingDevs();
+			if(devs)
+			{
+				popup.printf(2, 0, "Connecting to %d device(s)...", devs);
+				Bluetooth::connectPendingDevs();
+			}
+			else
+			{
+				popup.post("Scan complete, no recognized devices");
+			}
 			Base::displayNeedsUpdate();
 		}
 		bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
@@ -263,7 +266,7 @@ void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 			{
 				ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
 				ynAlertView.onYesDelegate().bind<&confirmBluetoothScanAlert>();
-				ynAlertView.place(Gfx::viewportRect());
+				ynAlertView.placeRect(Gfx::viewportRect());
 				View::modalView = &ynAlertView;
 			}
 		#elif defined(CONFIG_BASE_ANDROID)
@@ -288,7 +291,7 @@ void bluetoothDisconnectHandler(TextMenuItem &item, const InputEvent &e)
 		snprintf(str, sizeof(str), "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
 		ynAlertView.init(str, !e.isPointer());
 		ynAlertView.onYesDelegate().bind<&confirmBluetoothDisconnectAlert>();
-		ynAlertView.place(Gfx::viewportRect());
+		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}
 }
@@ -329,19 +332,19 @@ void MenuView::onShow()
 
 void MenuView::loadFileBrowserItems(MenuItem *item[], uint &items)
 {
-	loadGame.init("Load Game"); item[items++] = &loadGame;
+	loadGame.init(); item[items++] = &loadGame;
 	loadGame.selectDelegate().bind<&loadGameHandler>();
-	recentGames.init("Recent Games"); item[items++] = &recentGames;
+	recentGames.init(); item[items++] = &recentGames;
 	recentGames.selectDelegate().bind<&recentGamesHandler>();
 }
 
 void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 {
-	reset.init("Reset"); item[items++] = &reset;
+	reset.init(); item[items++] = &reset;
 	reset.selectDelegate().bind<&resetHandler>();
-	loadState.init("Load State"); item[items++] = &loadState;
+	loadState.init(); item[items++] = &loadState;
 	loadState.selectDelegate().bind<&loadStateHandler>();
-	saveState.init("Save State"); item[items++] = &saveState;
+	saveState.init(); item[items++] = &saveState;
 	saveState.selectDelegate().bind<&saveStateHandler>();
 
 	strcpy(stateSlotText, "State Slot (0)"); // TODO do in constructor
@@ -349,26 +352,26 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 	stateSlot.init(stateSlotText); item[items++] = &stateSlot;
 	stateSlot.selectDelegate().bind<&stateSlotHandler>();
 
-	options.init("Options"); item[items++] = &options;
+	options.init(); item[items++] = &options;
 	options.selectDelegate().bind<&optionsHandler>();
 	#ifdef CONFIG_BLUETOOTH
-	scanWiimotes.init("Scan for Wiimotes/iCP/JS1"); item[items++] = &scanWiimotes;
+	scanWiimotes.init(); item[items++] = &scanWiimotes;
 	scanWiimotes.selectDelegate().bind<&bluetoothScanHandler>();
-	bluetoothDisconnect.init("Disconnect Bluetooth"); item[items++] = &bluetoothDisconnect;
+	bluetoothDisconnect.init(); item[items++] = &bluetoothDisconnect;
 	bluetoothDisconnect.selectDelegate().bind<&bluetoothDisconnectHandler>();
 	#endif
 	if(EmuSystem::maxPlayers > 1)
 	{
-		inputPlayerMap.init("Input/Player Mapping"); item[items++] = &inputPlayerMap;
+		inputPlayerMap.init(); item[items++] = &inputPlayerMap;
 		inputPlayerMap.selectDelegate().bind<&inputPlayerMapHandler>();
 	}
-	benchmark.init("Benchmark Game"); item[items++] = &benchmark;
+	benchmark.init(); item[items++] = &benchmark;
 	benchmark.selectDelegate().bind<&benchmarkHandler>();
-	screenshot.init("Game Screenshot"); item[items++] = &screenshot;
+	screenshot.init(); item[items++] = &screenshot;
 	screenshot.selectDelegate().bind<&screenshotHandler>();
-	about.init("About"); item[items++] = &about;
+	about.init(); item[items++] = &about;
 	about.selectDelegate().bind<&aboutHandler>();
-	exitApp.init("Exit"); item[items++] = &exitApp;
+	exitApp.init(); item[items++] = &exitApp;
 	exitApp.selectDelegate().bind<&exitAppHandler>();
 }
 
@@ -426,11 +429,28 @@ void InputPlayerMapView::init(bool highlightFirst)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-void loadGameCompleteFromRecentItem(uint result = 1)
+extern void loadGameComplete(bool tryAutoState, bool addToRecent);
+
+static void loadGameCompleteConfirmYesAutoLoadState(const InputEvent &e)
 {
-	if(result)
+	loadGameComplete(1, 0);
+}
+
+static void loadGameCompleteConfirmNoAutoLoadState(const InputEvent &e)
+{
+	loadGameComplete(0, 0);
+}
+
+bool showAutoStateConfirm(const InputEvent &e);
+
+void loadGameCompleteFromRecentItem(uint result, const InputEvent &e)
+{
+	if(!result)
+		return;
+
+	if(!showAutoStateConfirm(e))
 	{
-		startGameFromMenu();
+		loadGameComplete(1, 0);
 	}
 }
 
@@ -443,7 +463,7 @@ void RecentGameInfo::handleMenuSelection(TextMenuItem &, const InputEvent &e)
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromRecentItem>();
 	if(EmuSystem::loadGame(file))
 	{
-		loadGameCompleteFromRecentItem();
+		loadGameCompleteFromRecentItem(1, e);
 	}
 }
 
@@ -463,8 +483,7 @@ void RecentGameView::init(bool highlightFirst)
 		recentGame[rIdx].selectDelegate().bind<RecentGameInfo, &RecentGameInfo::handleMenuSelection>(&e);
 		rIdx++;
 	}
-	clear.init("Clear List", recentGameList.size); item[i++] = &clear;
-	clear.selectDelegate().bind<&clearRecentMenuHandler>();
+	clear.init(recentGameList.size); item[i++] = &clear;
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);
 }
@@ -473,10 +492,9 @@ void OptionCategoryView::init(bool highlightFirst)
 {
 	//logMsg("running option category init");
 	uint i = 0;
-	static const char *name[] = { "Video", "Audio", "Input", "System", "GUI" };
 	forEachInArray(subConfig, e)
 	{
-		e->init(name[e_i]); item[i++] = e;
+		e->init(); item[i++] = e;
 	}
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);

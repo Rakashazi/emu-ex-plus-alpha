@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Serializer.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Serializer.hxx 2487 2012-05-20 14:23:48Z stephena $
 //============================================================================
 
 #ifndef SERIALIZER_HXX
@@ -28,15 +28,16 @@
   read from/written to a binary stream in a system-independent way.  The
   stream can be either an actual file, or an in-memory structure.
 
-  Bytes are written as characters, integers are written as 4 characters
-  (32-bit), strings are written as characters prepended by the length of the
-  string, boolean values are written using a special character pattern.
+  Bytes are written as characters, shorts as 2 characters (16-bits),
+  integers as 4 characters (32-bits), strings are written as characters
+  prepended by the length of the string, boolean values are written using
+  a special character pattern.
 
-  All bytes and ints should be cast to their appropriate data type upon
+  All bytes, shorts and ints should be cast to their appropriate data type upon
   method return.
 
   @author  Stephen Anthony
-  @version $Id: Serializer.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: Serializer.hxx 2487 2012-05-20 14:23:48Z stephena $
 */
 class Serializer
 {
@@ -73,18 +74,50 @@ class Serializer
     void reset(void);
 
     /**
-      Reads a byte value (8-bit) from the current input stream.
+      Reads a byte value (unsigned 8-bit) from the current input stream.
 
-      @result The char value which has been read from the stream.
+      @result The byte value which has been read from the stream.
     */
-    char getByte(void);
+    uInt8 getByte(void);
 
     /**
-      Reads an int value (32-bit) from the current input stream.
+      Reads a byte array (unsigned 8-bit) from the current input stream.
+
+      @param array  The location to store the bytes read
+      @param size   The size of the array (number of bytes to read)
+    */
+    void getByteArray(uInt8* array, uInt32 size);
+
+
+    /**
+      Reads a short value (unsigned 16-bit) from the current input stream.
+
+      @result The short value which has been read from the stream.
+    */
+    uInt16 getShort(void);
+
+    /**
+      Reads a short array (unsigned 16-bit) from the current input stream.
+
+      @param array  The location to store the shorts read
+      @param size   The size of the array (number of shorts to read)
+    */
+    void getShortArray(uInt16* array, uInt32 size);
+
+    /**
+      Reads an int value (unsigned 32-bit) from the current input stream.
 
       @result The int value which has been read from the stream.
     */
-    int getInt(void);
+    uInt32 getInt(void);
+
+    /**
+      Reads an integer array (unsigned 32-bit) from the current input stream.
+
+      @param array  The location to store the integers read
+      @param size   The size of the array (number of integers to read)
+    */
+    void getIntArray(uInt32* array, uInt32 size);
 
     /**
       Reads a string from the current input stream.
@@ -101,18 +134,49 @@ class Serializer
     bool getBool(void);
 
     /**
-      Writes an byte value (8-bit) to the current output stream.
+      Writes an byte value (unsigned 8-bit) to the current output stream.
 
       @param value The byte value to write to the output stream.
     */
-    void putByte(char value);
+    void putByte(uInt8 value);
 
     /**
-      Writes an int value (32-bit) to the current output stream.
+      Writes a byte array (unsigned 8-bit) to the current output stream.
+
+      @param array  The bytes to write
+      @param size   The size of the array (number of bytes to write)
+    */
+    void putByteArray(const uInt8* array, uInt32 size);
+
+    /**
+      Writes a short value (unsigned 16-bit) to the current output stream.
+
+      @param value The short value to write to the output stream.
+    */
+    void putShort(uInt16 value);
+
+    /**
+      Writes a short array (unsigned 16-bit) to the current output stream.
+
+      @param array  The short to write
+      @param size   The size of the array (number of shorts to write)
+    */
+    void putShortArray(const uInt16* array, uInt32 size);
+
+    /**
+      Writes an int value (unsigned 32-bit) to the current output stream.
 
       @param value The int value to write to the output stream.
     */
-    void putInt(int value);
+    void putInt(uInt32 value);
+
+    /**
+      Writes an integer array (unsigned 32-bit) to the current output stream.
+
+      @param array  The integers to write
+      @param size   The size of the array (number of integers to write)
+    */
+    void putIntArray(const uInt32* array, uInt32 size);
 
     /**
       Writes a string to the current output stream.

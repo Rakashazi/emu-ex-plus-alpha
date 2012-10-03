@@ -248,7 +248,8 @@ struct GBALCD
 	u8 vram[0x20000] __attribute__ ((aligned(4))) {0};
 	u8 paletteRAM[0x400] __attribute__ ((aligned(4))) {0};
 	u8 oam[0x400] __attribute__ ((aligned(4))) {0};
-	void (*renderLine)(MixColorType *lineMix, const GBAMem::IoMem &ioMem) = mode0RenderLine;
+	typedef void (*RenderLineFunc)(MixColorType *lineMix, const GBAMem::IoMem &ioMem);
+	RenderLineFunc renderLine = mode0RenderLine;
 	bool fxOn = false;
 	bool windowOn = false;
 	MixColorType *lineMix = nullptr;
@@ -360,34 +361,43 @@ static auto &vram = gLcd.vram;
 static auto &oam = gLcd.oam;
 static auto &layerEnable = gLcd.layerEnable;
 
-typedef struct {
-  u8 *address;
-  u32 mask;
-} memoryMap;
+struct memoryMap {
+	//constexpr memoryMap() { }
+	//constexpr memoryMap(u8 *address, u32 mask): address(address), mask(mask) { }
+  u8 *address;// = nullptr;
+  u32 mask;// = 0;
+#ifdef USE_MEM_HANDLERS
+  u32 (*read8)(u32 address) = nullptr;
+  u32 (*read16)(u32 address) = nullptr;
+  u32 (*read32)(u32 address) = nullptr;
+  void (*write8)(u32 address, u32 data) = nullptr;
+  void (*write16)(u32 address, u32 data) = nullptr;
+  void (*write32)(u32 address, u32 data) = nullptr;
+#endif
+};
 
 #ifndef NO_GBA_MAP
-//extern memoryMap map[256];
 
 #define PP_DUMMY_MAP(z, n, text) { (u8 *)&dummyAddress, 0 },
 #define PP_DUMMY_MAP_REPEAT(n) BOOST_PP_REPEAT(n, PP_DUMMY_MAP, )
 static int dummyAddress = 0;
 static const memoryMap map[256] =
 {
-	{ gMem.bios, 0x3FFF },
+	{ gMem.bios, 0x3FFF /*, biosRead8, biosRead16, biosRead32*/ },
 	{ (u8 *)&dummyAddress, 0 },
 	{ gMem.workRAM, 0x3FFFF },
 	{ gMem.internalRAM, 0x7FFF },
-	{ gMem.ioMem.b, 0x3FF },
+	{ gMem.ioMem.b, 0x3FF /*, ioMemRead8, ioMemRead16, ioMemRead32*/ },
 	{ gLcd.paletteRAM, 0x3FF },
-	{ gLcd.vram, 0x1FFFF },
+	{ gLcd.vram, 0x1FFFF /*, vramRead8, vramRead16, vramRead32*/ },
 	{ gLcd.oam, 0x3FF },
-	{ gMem.rom, 0x1FFFFFF },
+	{ gMem.rom, 0x1FFFFFF /*, nullptr, rtcRead16*/ },
 	{ gMem.rom, 0x1FFFFFF },
 	{ gMem.rom, 0x1FFFFFF },
 	{ (u8 *)&dummyAddress, 0 },
 	{ gMem.rom, 0x1FFFFFF },
-	{ (u8 *)&dummyAddress, 0 },
-	{ flashSaveMemory, 0xFFFF },
+	{ (u8 *)&dummyAddress, 0 /*, eepromRead32, eepromRead32, eepromRead32*/ },
+	{ flashSaveMemory, 0xFFFF /*, flashRead32, flashRead32, flashRead32*/ },
 	PP_DUMMY_MAP_REPEAT(241)
 };
 #endif
@@ -445,14 +455,14 @@ typedef union {
 #define R14_FIQ  43
 #define SPSR_FIQ 44
 
-#define CPUReadByteQuick(addr) \
-  map[(addr)>>24].address[(addr) & map[(addr)>>24].mask]
+static inline u32 CPUReadByteQuick(u32 addr)
+	{ return map[addr>>24].address[addr & map[addr>>24].mask]; }
 
-#define CPUReadHalfWordQuick(addr) \
-  READ16LE(((u16*)&map[(addr)>>24].address[(addr) & map[(addr)>>24].mask]))
+static inline u32 CPUReadHalfWordQuick(u32 addr)
+	{ return READ16LE(((u16*)&map[addr>>24].address[addr & map[addr>>24].mask])); }
 
-#define CPUReadMemoryQuick(addr) \
-  READ32LE(((u32*)&map[(addr)>>24].address[(addr) & map[(addr)>>24].mask]))
+static inline u32 CPUReadMemoryQuick(u32 addr)
+	{ return READ32LE(((u32*)&map[addr>>24].address[addr & map[addr>>24].mask])); }
 
 static const uint cpuBitsSet[256] =
 {

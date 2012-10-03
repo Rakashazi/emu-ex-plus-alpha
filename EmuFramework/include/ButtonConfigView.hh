@@ -80,11 +80,6 @@ public:
 		Input::setHandleVolumeKeys(0);
 	}
 
-	void place(Rect2<int> rect)
-	{
-		View::place(rect);
-	}
-
 	void place()
 	{
 		text.compile();
@@ -93,11 +88,14 @@ public:
 		unbind.compile();
 		cancel.compile();
 
-		unbindB.setPosRel(viewFrame.xPos(LB2DO), viewFrame.yPos(LB2DO),
-				viewFrame.xSize()/2, Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
-
-		cancelB.setPosRel(viewFrame.xPos(RB2DO), viewFrame.yPos(RB2DO),
-				viewFrame.xSize()/2, Gfx::toIYSize(unbind.nominalHeight*2), RB2DO);
+		Rect2<int> btnFrame;
+		btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
+		unbindB = btnFrame;
+		unbindB.x = (viewFrame.xSize()/2)*0;
+		unbindB.x2 = (viewFrame.xSize()/2)*1;
+		cancelB = btnFrame;
+		cancelB.x = (viewFrame.xSize()/2)*1;
+		cancelB.x2 = (viewFrame.xSize()/2)*2;
 		#endif
 	}
 
@@ -176,5 +174,3 @@ public:
 	void confirmUnbindKeysAlert(const InputEvent &e);
 	void resetHandler(TextMenuItem &, const InputEvent &e);
 };
-
-static ButtonConfigView bcMenu;

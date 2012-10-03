@@ -16,7 +16,14 @@
 #pragma once
 
 #include <io/Io.hh>
+#include <bluetooth/sys.hh>
+#include <gui/View.hh>
 #include <util/2DOrigin.h>
+#include <VideoImageOverlay.hh>
+#include <EmuSystem.hh>
+#include <Recent.hh>
+#include <audio/Audio.hh>
+#include <util/strings.h>
 
 struct OptionBase
 {
@@ -130,7 +137,7 @@ public:
 		}
 
 		SERIALIZED_T x;
-		if(io->readVar(&x) != OK)
+		if(io->readVar(x) != OK)
 		{
 			logErr("error reading option from io");
 			return 0;
@@ -220,12 +227,33 @@ bool optionIsValidWithMinMax(T val)
 	return val >= MIN && val <= MAX;
 }
 
+bool optionOrientationIsValid(uint32 val);
+using OptionMethodOrientation = Option<OptionMethodVar<uint32, optionOrientationIsValid>, uint8>;
+
 bool isValidOption2DO(_2DOrigin val);
 bool isValidOption2DOCenterBtn(_2DOrigin val);
-typedef Option<OptionMethodVar<_2DOrigin, isValidOption2DO>, uint8> Option2DOrigin;
-typedef Option<OptionMethodVar<_2DOrigin, isValidOption2DOCenterBtn>, uint8> Option2DOriginC;
+using Option2DOrigin = Option<OptionMethodVar<_2DOrigin, isValidOption2DO>, uint8>;
+using Option2DOriginC = Option<OptionMethodVar<_2DOrigin, isValidOption2DOCenterBtn>, uint8>;
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
-typedef OptionMethodVar<uint32, optionIsValidWithMax<optionRelPointerDecelHigh> > OptionMethodRelPointerDecel;
+using OptionMethodRelPointerDecel = Option<OptionMethodVar<uint32, optionIsValidWithMax<optionRelPointerDecelHigh> > >;
+using OptionMethodTouchCtrlAlpha = Option<OptionMethodVar<uint32, optionIsValidWithMax<255> >, uint8>;
+using OptionSoundRate = Option<OptionMethodVar<uint32, optionIsValidWithMax<48000> > >;
+using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
+using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, input_swappedGamepadConfirm>, uint8>;
+using OptionMethodImgFilter = Option<OptionMethodVar<uint32, GfxBufferImage::isFilterValid>, uint8>;
+using OptionMethodOverlayEffect = Option<OptionMethodVar<uint8, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL> >, uint8>;
+using OptionMethodOverlayEffectLevel = Option<OptionMethodVar<uint8, optionIsValidWithMax<100> >, uint8>;
+using OptionMethodTouchCtrl = Option<OptionMethodVar<uint32, optionIsValidWithMax<2> >, uint8>;
+
+#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers, optionIsValidWithMinMax<3, 12, uint> >, uint8>;
+#endif
+#ifdef CONFIG_AUDIO_OPENSL_ES
+using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>;
+#endif
+#ifdef CONFIG_BLUETOOTH
+using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>;
+#endif
 
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_AUTO_SAVE_STATE = 2, CFGKEY_LAST_DIR = 3, CFGKEY_TOUCH_CONTROL_VIRBRATE = 4,
@@ -252,7 +280,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_SHOW_MENU_ICON = 47, CFGKEY_KEEP_BLUETOOTH_ACTIVE = 48,
 	CFGKEY_HIDE_OS_NAV = 49, CFGKEY_HIDE_STATUS_BAR = 50,
 	CFGKEY_BLUETOOTH_SCAN_CACHE = 51, CFGKEY_SOUND_BUFFERS = 52,
-	CFGKEY_SOUND_UNDERRUN_CHECK = 53,
+	CFGKEY_SOUND_UNDERRUN_CHECK = 53, CFGKEY_CONFIRM_AUTO_LOAD_STATE = 54,
 
 	CFGKEY_KEY_LOAD_GAME = 100, CFGKEY_KEY_OPEN_MENU = 101,
 	CFGKEY_KEY_SAVE_STATE = 102, CFGKEY_KEY_LOAD_STATE = 103,
@@ -261,3 +289,170 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 
 	// 256+ is reserved
 };
+
+struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
+{
+	constexpr OptionAspectRatio(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32>, uint8>(CFGKEY_GAME_ASPECT_RATIO, defaultVal, isConst) { }
+
+	uint ioSize()
+	{
+		return 2 + 2;
+	}
+
+	bool writeToIO(Io *io)
+	{
+		io->writeVar((uint16)CFGKEY_GAME_ASPECT_RATIO);
+		uint x = EmuSystem::aspectRatioX, y = EmuSystem::aspectRatioY;
+		if(val == 1)
+		{
+			x = 1; y = 1;
+		}
+		else if(val == 2)
+		{
+			x = 0; y = 0;
+		}
+		logMsg("writing aspect ratio config %u:%u", x, y);
+		io->writeVar((uint8)x);
+		io->writeVar((uint8)y);
+		return 1;
+	}
+
+	bool readFromIO(Io *io, uint readSize)
+	{
+		if(isConst || readSize != 2)
+		{
+			logMsg("skipping %d byte option value, expected %d", readSize, 2);
+			io->seekRel(readSize);
+			return 0;
+		}
+
+		uint8 x, y;
+		io->readVar(x);
+		io->readVar(y);
+		logMsg("read aspect ratio config %u,%u", x, y);
+		val = 0;
+		if(x == 1 && y == 1)
+		{
+			val = 1;
+		}
+		else if(x == 0 && y == 0)
+		{
+			val = 2;
+		}
+		return 1;
+	}
+};
+
+static const uint optionImageZoomIntegerOnly = 255;
+
+struct OptionDPI : public Option<OptionMethodVar<uint32> >
+{
+	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) { }
+
+	bool writeToIO(Io *io)
+	{
+		logMsg("writing dpi config %u", val * 100);
+		io->writeVar((uint16)CFGKEY_DPI);
+		io->writeVar((uint32)(val * 100));
+		return 1;
+	}
+
+	bool readFromIO(Io *io, uint readSize)
+	{
+		bool ret = Option<OptionMethodVar<uint32> >::readFromIO(io, readSize);
+		if(ret)
+		{
+			logMsg("read dpi config %u", val);
+			val /= 100;
+			if(val != 0 && (val < 96 || val > 320))
+				val = defaultVal;
+		}
+		return ret;
+	}
+};
+
+struct OptionRecentGames : public OptionBase
+{
+	bool isDefault() const { return recentGameList.size == 0; }
+	const uint16 key = CFGKEY_RECENT_GAMES;
+
+	bool writeToIO(Io *io)
+	{
+		logMsg("writing recent list");
+		io->writeVar(key);
+		forEachInDLList(&recentGameList, e)
+		{
+			uint len = strlen(e.path);
+			io->writeVar((uint16)len);
+			io->fwrite(e.path, len, 1);
+		}
+		return 1;
+	}
+
+	bool readFromIO(Io *io, uint readSize)
+	{
+		while(readSize && recentGameList.size < 10)
+		{
+			if(readSize < 2)
+			{
+				logMsg("expected string length but only %d bytes left", readSize);
+				break;
+			}
+
+			uint16 len;
+			io->readVar(len);
+			readSize -= 2;
+
+			if(len > readSize)
+			{
+				logMsg("string length %d longer than %d bytes left", len, readSize);
+				break;
+			}
+
+			RecentGameInfo info;
+			io->read(info.path, len);
+			info.path[len] = 0;
+			readSize -= len;
+			char *baseName = baseNamePos(info.path);
+			string_copyUpToLastCharInstance(info.name, baseName, '.');
+			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
+			recentGameList.addToEnd(info);
+		}
+
+		if(readSize)
+		{
+			logMsg("skipping excess %d bytes", readSize);
+			io->seekRel(readSize);
+		}
+
+		return 1;
+	}
+
+	uint ioSize()
+	{
+		uint strSizes = 0;
+		forEachInDLList(&recentGameList, e)
+		{
+			strSizes += 2;
+			strSizes += strlen(e.path);
+		}
+		return sizeof(key) + strSizes;
+	}
+};
+
+#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+	struct OptionDirectTexture : public Option<OptionMethodVar<uint32>, uint8>
+	{
+		constexpr OptionDirectTexture(): Option<OptionMethodVar<uint32>, uint8>(CFGKEY_DIRECT_TEXTURE, 0) { }
+		bool readFromIO(Io *io, uint readSize)
+		{
+			if(!Option<OptionMethodVar<uint32>, uint8>::readFromIO(io, readSize))
+				return 0;
+			logMsg("read direct texture option %d", val);
+			if(!Gfx::supportsAndroidDirectTexture())
+				val = 0;
+			Gfx::setUseAndroidDirectTexture(val);
+			return 1;
+		}
+	};
+#endif

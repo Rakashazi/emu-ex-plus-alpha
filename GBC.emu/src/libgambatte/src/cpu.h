@@ -76,12 +76,13 @@ public:
 	}
 #endif
 	
-	int load(const std::string &romfile, bool forceDmg, bool multicartCompat) {
+	LoadRes load(std::string const &romfile, bool forceDmg, bool multicartCompat) {
 		return memory.loadROM(romfile, forceDmg, multicartCompat);
 	}
 	
 	bool loaded() const { return memory.loaded(); }
-	const char * romTitle() const { return memory.romTitle(); }
+	char const * romTitle() const { return memory.romTitle(); }
+	PakInfo const pakInfo(bool multicartCompat) const { return memory.pakInfo(multicartCompat); }
 	
 	void setSoundBuffer(uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
 	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }

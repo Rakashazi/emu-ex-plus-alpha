@@ -26,38 +26,10 @@
 	#define OTHER_SUFFIX_STR "D"
 #endif
 
-#ifdef CONFIG_BASE_IOS
-	#ifdef __ARM_ARCH_6K__
-		#define ARCH_STR "armv6"
-	#else
-		#define ARCH_STR "armv7"
-	#endif
-#elif defined(CONFIG_ENV_WEBOS)
-	#ifdef __ARM_ARCH_6J__
-		#define ARCH_STR "armv6"
-	#else
-		#define ARCH_STR "armv7"
-	#endif
-#elif defined(CONFIG_BASE_ANDROID)
-	#ifdef __ARM_ARCH_7A__
-		#ifdef __ARM_NEON__
-			#define ARCH_STR "armv7-neon"
-		#else
-			#define ARCH_STR "armv7"
-		#endif
-	#elif defined __i386__
-		#define ARCH_STR "x86"
-	#else
-		#define ARCH_STR "armv6"
-	#endif
-#else
-	#define ARCH_STR
-#endif
-
 #ifdef ENV_NOTE
-	#define PLATFORM_INFO_STR ENV_NOTE " (" ARCH_STR ")"
+	#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
 #else
-	#define PLATFORM_INFO_STR "(" ARCH_STR ")"
+	#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 

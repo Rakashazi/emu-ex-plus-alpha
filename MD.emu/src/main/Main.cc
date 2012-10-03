@@ -33,35 +33,6 @@
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build(0., 0., .6 * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B/C", *touchConfigCenterBtnName = "Mode/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
-const uint EmuSystem::maxPlayers = 4;
-static const uint systemFaceBtns = 6, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 1;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -78,6 +49,40 @@ KeyCategory category[categories] =
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
 static int8 mdInputPortDev[2] = { -1, -1 };
+
+uint isROMExtension(const char *name)
+{
+	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "smd") ||
+			string_hasDotExtension(name, "md") || string_hasDotExtension(name, "gen")
+		#ifndef NO_SYSTEM_PBC
+			|| string_hasDotExtension(name, "sms")
+		#endif
+			;
+}
+
+static bool isMDExtension(const char *name)
+{
+	return isROMExtension(name) || string_hasDotExtension(name, "zip");
+}
+
+static bool isMDCDExtension(const char *name)
+{
+	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "iso");
+}
+
+static int mdROMFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isMDExtension(name);
+}
+
+static int mdFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isMDExtension(name)
+	#ifndef NO_SCD
+		|| isMDCDExtension(name)
+	#endif
+	;
+}
 
 // controls
 
@@ -133,6 +138,21 @@ static PathOption<CFGKEY_MD_CD_BIOS_USA_PATH> optionCDBiosUsaPath(cdBiosUSAPath,
 static PathOption<CFGKEY_MD_CD_BIOS_JPN_PATH> optionCDBiosJpnPath(cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
 static PathOption<CFGKEY_MD_CD_BIOS_EUR_PATH> optionCDBiosEurPath(cdBiosEurPath, sizeof(cdBiosEurPath), "");
 
+const uint EmuSystem::maxPlayers = 4;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include "CommonGui.hh"
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
+
 void EmuSystem::initOptions()
 {
 	#ifndef CONFIG_BASE_ANDROID
@@ -181,21 +201,9 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
-	if(!optionBigEndianSram.isDefault())
-	{
-		io->writeVar((uint16)optionBigEndianSram.ioSize());
-		optionBigEndianSram.writeToIO(io);
-	}
-	if(!optionSmsFM.isDefault())
-	{
-		io->writeVar((uint16)optionSmsFM.ioSize());
-		optionSmsFM.writeToIO(io);
-	}
-	if(!option6BtnPad.isDefault())
-	{
-		io->writeVar((uint16)option6BtnPad.ioSize());
-		option6BtnPad.writeToIO(io);
-	}
+	optionBigEndianSram.writeWithKeyIfNotDefault(io);
+	optionSmsFM.writeWithKeyIfNotDefault(io);
+	option6BtnPad.writeWithKeyIfNotDefault(io);
 	optionCDBiosUsaPath.writeToIO(io);
 	optionCDBiosJpnPath.writeToIO(io);
 	optionCDBiosEurPath.writeToIO(io);
@@ -223,53 +231,14 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, mdKeyIdxZTurbo, CFGKEY_MDKEY_Z_TURBO);
 }
 
-uint isROMExtension(const char *name)
-{
-	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "smd") ||
-			string_hasDotExtension(name, "md") || string_hasDotExtension(name, "gen")
-		#ifndef NO_SYSTEM_PBC
-			|| string_hasDotExtension(name, "sms")
-		#endif
-			;
-}
-
-static bool isMDExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static bool isMDCDExtension(const char *name)
-{
-	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "iso");
-}
-
-static int mdROMFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isMDExtension(name);
-}
-
-static int mdFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isMDExtension(name)
-	#ifndef NO_SCD
-		|| isMDCDExtension(name)
-	#endif
-	;
-}
-
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = mdFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = mdROMFsFilter;
-
-#include "MdOptionView.hh"
-static MdOptionView oCategoryMenu;
-#include "MdMenuView.hh"
-static MdMenuView mMenu;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 
 static const uint mdMaxResX = 320, mdMaxResY = 240;
 static int mdResX = 256, mdResY = 224;
-static uint16 nativePixBuff[mdMaxResX*mdMaxResY] __attribute__ ((aligned (8)));
+static uint16 nativePixBuff[mdMaxResX*mdMaxResY] __attribute__ ((aligned (8))) {0};
 t_bitmap bitmap = { (uint8*)nativePixBuff, mdResY, mdResX * pixFmt->bytesPerPixel };
 
 static uint ptrInputToSysButton(uint input)
@@ -335,9 +304,12 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
+static uint playerIdxMap[4] = { 0 };
+
 void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 {
-	uint16 &padData = input.pad[usingMultiTap ? player : player * 4];
+	assert(player <= 4);
+	uint16 &padData = input.pad[playerIdxMap[player]];
 	if(state == INPUT_PUSHED)
 		setBits(padData, emuKey);
 	else
@@ -352,8 +324,6 @@ void commitVideoFrame()
 		mdResY = bitmap.viewport.h;
 		bitmap.pitch = mdResX * pixFmt->bytesPerPixel;
 		emuView.resizeImage(mdResX, mdResY);
-		if(optionImageZoom == optionImageZoomIntegerOnly)
-			emuView.placeEmu();
 	}
 	emuView.updateAndDrawContent();
 }
@@ -363,13 +333,38 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	//logMsg("frame start");
 	system_frame(!processGfx, renderGfx);
 
-	int frames = audio_update();
+	int16 audioMemBuff[snd.buffer_size * 2];
+	int16 *audioBuff = nullptr;
+	#ifdef USE_NEW_AUDIO
+	Audio::BufferContext *aBuff = nullptr;
 	if(renderAudio)
 	{
-		//int frames = audio_update();
+		if(!(aBuff = Audio::getPlayBuffer(snd.buffer_size)))
+		{
+			return;
+		}
+		audioBuff = (int16*)aBuff->data;
+		assert(aBuff->frames >= (uint)snd.buffer_size);
+	}
+	else
+	{
+		audioBuff = audioMemBuff;
+	}
+	#else
+	audioBuff = audioMemBuff;
+	#endif
+
+	int frames = audio_update(audioBuff);
+	if(renderAudio)
+	{
 		//logMsg("%d frames", frames);
-		if(likely(frames))
-			Audio::writePcm((uchar*)snd.buffer, frames);
+		#ifdef USE_NEW_AUDIO
+		if(renderAudio)
+			Audio::commitPlayBuffer(aBuff, frames);
+		#else
+		if(renderAudio)
+			Audio::writePcm((uchar*)audioBuff, frames);
+		#endif
 	}
 	//logMsg("frame end");
 }
@@ -484,7 +479,7 @@ int EmuSystem::saveState()
 	return saveMDState(saveStr);
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -599,6 +594,10 @@ static void setupMDInput()
 	if(!EmuSystem::gameIsRunning())
 		return;
 
+	mem_zero(playerIdxMap);
+	playerIdxMap[0] = 0;
+	playerIdxMap[1] = 4;
+
 	uint mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
 	iterateTimes(4, i)
 		config.input[i].padtype = mdPad;
@@ -611,10 +610,20 @@ static void setupMDInput()
 		return;
 	}
 
-	if(usingMultiTap)
+	if(cart.special & HW_J_CART)
+	{
+		input.system[0] = input.system[1] = SYSTEM_MD_GAMEPAD;
+		playerIdxMap[2] = 5;
+		playerIdxMap[3] = 6;
+	}
+	else if(usingMultiTap)
 	{
 		input.system[0] = SYSTEM_TEAMPLAYER;
 		input.system[1] = 0;
+
+		playerIdxMap[1] = 1;
+		playerIdxMap[2] = 2;
+		playerIdxMap[3] = 3;
 	}
 	else
 	{
@@ -674,9 +683,9 @@ static uint detectISORegion(Io *iso)
 	return REGION_USA;
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame();
 
 	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
 	#ifdef CONFIG_BASE_IOS_SETUID
@@ -816,13 +825,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 		}
 	}
 
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		loadMDState(saveStr);
-	}
-
 	emuView.initImage(0, mdResX, mdResY);
 
 	logMsg("started emu");
@@ -881,8 +883,17 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build(0., 0., .6 * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	Audio::setHintPcmFramesPerWrite(950); // for PAL
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
 	config_ym2413_enabled = optionSmsFM;
@@ -894,7 +905,6 @@ CallResult onInit()
 	Gfx::onViewChange();
 	mMenu.show();
 
-	//Input::eventHandler(onInputEvent);
 	Base::displayNeedsUpdate();
 	return(OK);
 }

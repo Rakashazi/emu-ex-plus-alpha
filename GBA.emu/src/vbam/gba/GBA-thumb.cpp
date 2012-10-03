@@ -998,7 +998,7 @@ static INSN_REGPARM int thumb5A(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
   if (busPrefetchCount == 0)
     busPrefetch = busPrefetchEnable;
   u32 address = reg[(opcode>>3)&7].I + reg[(opcode>>6)&7].I;
-  reg[opcode&7].I = CPUReadHalfWord(cpu, address);
+  reg[opcode&7].I = CPUReadHalfWordNoRot(cpu, address);
   return 3 + dataTicksAccess32(cpu, address) + codeTicksAccess16(cpu, armNextPC);
 }
 
@@ -1078,7 +1078,7 @@ static INSN_REGPARM int thumb88(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
   if (busPrefetchCount == 0)
     busPrefetch = busPrefetchEnable;
   u32 address = reg[(opcode>>3)&7].I + (((opcode>>6)&31)<<1);
-  reg[opcode&7].I = CPUReadHalfWord(cpu, address);
+  reg[opcode&7].I = CPUReadHalfWordNoRot(cpu, address);
   return 3 + dataTicksAccess16(cpu, address) + codeTicksAccess16(cpu, armNextPC);
 }
 
@@ -1310,7 +1310,7 @@ static inline ATTRS(always_inline) int THUMB_LDM_REG_func(ARM7TDMI &cpu, u32 opc
 		int &count, u32 &address, const u32 val, const u32 r)
 {
 	if(opcode & (val)) {
-	    reg[(r)].I = CPUReadMemory(cpu, address);
+	    reg[(r)].I = CPUReadMemoryNoRot(cpu, address);
 	    int clockTicks = 0;
 	    if (!count) {
 	        clockTicks += 1 + dataTicksAccess32(cpu, address);
@@ -1746,8 +1746,9 @@ int thumbExecute(ARM7TDMI &cpu)
     u32 opcode = cpu.prefetchThumbOpcode();
 
     busPrefetch = false;
-    if (busPrefetchCount & 0xFFFFFF00)
-      busPrefetchCount = 0x100 | (busPrefetchCount & 0xFF);
+    // TODO: check if used
+    /*if (busPrefetchCount & 0xFFFFFF00)
+      busPrefetchCount = 0x100 | (busPrefetchCount & 0xFF);*/
     u32 oldArmNextPC = armNextPC;
 #ifndef FINAL_VERSION
     if(armNextPC == stop) {

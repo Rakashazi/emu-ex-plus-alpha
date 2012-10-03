@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartMC.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -249,22 +249,17 @@ bool CartridgeMC::save(Serializer& out) const
 {
   try
   {
-    uInt32 i;
     out.putString(name());
 
     // The currentBlock array
-    out.putInt(4);
-    for(i = 0; i < 4; ++i)
-      out.putByte((char)myCurrentBlock[i]);
+    out.putByteArray(myCurrentBlock, 4);
 
     // The 32K of RAM
-    out.putInt(32 * 1024);
-    for(i = 0; i < 32 * 1024; ++i)
-      out.putByte((char)myRAM[i]);
+    out.putByteArray(myRAM, 32 * 1024);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeMC::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeMC::save" << endl;
     return false;
   }
 
@@ -276,24 +271,18 @@ bool CartridgeMC::load(Serializer& in)
 {
   try
   {
-    uInt32 i, limit;
-
     if(in.getString() != name())
       return false;
 
     // The currentBlock array
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myCurrentBlock[i] = (uInt8) in.getByte();
+    in.getByteArray(myCurrentBlock, 4);
 
     // The 32K of RAM
-    limit = (uInt32) in.getInt();
-    for(i = 0; i < limit; ++i)
-      myRAM[i] = (uInt8) in.getByte();
+    in.getByteArray(myRAM, 32 * 1024);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeMC::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeMC::load" << endl;
     return false;
   }
 

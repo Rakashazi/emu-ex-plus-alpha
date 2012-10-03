@@ -47,4 +47,4 @@ const ResamplerInfo ResamplerInfo::resamplers[] = {
 	{ "Highest quality (CIC + sinc chain)", ChainSincInfo<Kaiser70Sinc>::create }
 };
 
-const unsigned ResamplerInfo::num_ = sizeof(ResamplerInfo::resamplers) / sizeof(ResamplerInfo);
+const std::size_t ResamplerInfo::num_ = sizeof ResamplerInfo::resamplers / sizeof *ResamplerInfo::resamplers;

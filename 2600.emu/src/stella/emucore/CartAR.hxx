@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartAR.hxx 2453 2012-04-29 19:43:28Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEAR_HXX
@@ -36,7 +36,7 @@ class System;
   and one bank of ROM.  All 6K of the RAM can be read and written.
 
   @author  Bradford W. Mott
-  @version $Id: CartAR.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: CartAR.hxx 2453 2012-04-29 19:43:28Z stephena $
 */
 class CartridgeAR : public Cartridge
 {
@@ -219,7 +219,7 @@ class CartridgeAR : public Cartridge
 
     // Default 256-byte header to use if one isn't included in the ROM
     // This data comes from z26
-    static uInt8 ourDefaultHeader[256];
+    static const uInt8 ourDefaultHeader[256];
 };
 
 #endif

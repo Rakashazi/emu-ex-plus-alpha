@@ -68,6 +68,7 @@ extern "C"
 #include <blueMSX/Utils/ziphelper.h>
 
 BoardInfo boardInfo = { 0 };
+extern bool fdcActive;
 Machine *machine = 0;
 Mixer *mixer = 0;
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
@@ -90,101 +91,6 @@ char hdName[4][512] = { "", "", "", "" };
 
 static bool insertDisk(const char *path, uint slot = 0);
 static bool insertROM(const char *path, uint slot = 0);
-
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Space/KB";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
-#define CONFIG_VCONTROLLER_KEYBOARD
-const uint EmuSystem::maxPlayers = 2;
-static const uint systemFaceBtns = 2, systemCenterBtns = 2;;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include <CommonGui.hh>
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Joystick Controls", gamepadName, gameActionKeys),
-		KeyCategory("Coleco Numeric Controls", colecoName, gameActionKeys + gamepadKeys),
-		KeyCategory("Keyboard Controls", kbName, gameActionKeys + gamepadKeys + colecoKeys),
-};
-
-}
-
-static const uint msxKeyboardKeys = 92;
-
-enum
-{
-	msxKeyIdxUp = EmuControls::systemKeyMapStart,
-	msxKeyIdxRight,
-	msxKeyIdxDown,
-	msxKeyIdxLeft,
-	msxKeyIdxLeftUp,
-	msxKeyIdxRightUp,
-	msxKeyIdxRightDown,
-	msxKeyIdxLeftDown,
-	msxKeyIdxJS1,
-	msxKeyIdxJS2,
-	msxKeyIdxJS1Turbo,
-	msxKeyIdxJS2Turbo,
-	msxKeyIdxColecoStart,
-	msxKeyIdxColecoEnd = msxKeyIdxColecoStart + (EmuControls::colecoKeys - 1),
-	msxKeyIdxToggleKb,
-	msxKeyIdxKbStart,
-	msxKeyIdxKbEnd = msxKeyIdxKbStart + (msxKeyboardKeys - 1)
-};
-
-static const uint msxKeyConfigBase = 384;
-static const uint msxJSKeys = 13;
-
-enum { CFGKEY_MACHINE_NAME = 256 };
-
-#define optionMachineNameDefault "MSX2"
-static char optionMachineNameStr[128] = optionMachineNameDefault;
-static PathOption<CFGKEY_MACHINE_NAME> optionMachineName(optionMachineNameStr, optionMachineNameDefault);
-static uint activeBoardType = BOARD_MSX;
-
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
-		#define readKeyCase(z, n, text) bcase (n)+msxKeyConfigBase: readKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, readSize);
-		BOOST_PP_REPEAT(105, readKeyCase, ) break; // first arg must be msxJSKeys + msxKeyboardKeys
-		#undef readKeyCase
-	}
-	return 1;
-}
-
-void EmuSystem::writeConfig(Io *io)
-{
-	if(!optionMachineName.isDefault())
-	{
-		optionMachineName.writeToIO(io);
-	}
-	#define writeKeyCase(z, n, text) writeKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, (n)+msxKeyConfigBase);
-	BOOST_PP_REPEAT(105, writeKeyCase, ) // first arg must be msxJSKeys + msxKeyboardKeys
-	#undef writeKeyCase
-}
-
-void EmuSystem::initOptions()
-{
-	optionSoundRate.initDefault(44100);
-	optionSoundRate.isConst = 1;
-}
 
 static bool isTapeExtension(const char *name)
 {
@@ -227,20 +133,97 @@ static int isMSXTapeExtension(const char *name, int type)
 	return isTapeExtension(name) || string_hasDotExtension(name, "zip");
 }
 
+static const uint msxKeyboardKeys = 92;
+
+enum
+{
+	msxKeyIdxUp = EmuControls::systemKeyMapStart,
+	msxKeyIdxRight,
+	msxKeyIdxDown,
+	msxKeyIdxLeft,
+	msxKeyIdxLeftUp,
+	msxKeyIdxRightUp,
+	msxKeyIdxRightDown,
+	msxKeyIdxLeftDown,
+	msxKeyIdxJS1,
+	msxKeyIdxJS2,
+	msxKeyIdxJS1Turbo,
+	msxKeyIdxJS2Turbo,
+	msxKeyIdxColecoStart,
+	msxKeyIdxColecoEnd = msxKeyIdxColecoStart + (EmuControls::colecoKeys - 1),
+	msxKeyIdxToggleKb,
+	msxKeyIdxKbStart,
+	msxKeyIdxKbEnd = msxKeyIdxKbStart + (msxKeyboardKeys - 1)
+};
+
+static const uint msxKeyConfigBase = 384;
+static const uint msxJSKeys = 13;
+
+enum { CFGKEY_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257 };
+
+#define optionMachineNameDefault "MSX2"
+static char optionMachineNameStr[128] = optionMachineNameDefault;
+static PathOption<CFGKEY_MACHINE_NAME> optionMachineName(optionMachineNameStr, optionMachineNameDefault);
+BasicByteOption optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
+static uint activeBoardType = BOARD_MSX;
+const uint EmuSystem::maxPlayers = 2;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include <CommonGui.hh>
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Joystick Controls", gamepadName, gameActionKeys),
+		KeyCategory("Coleco Numeric Controls", colecoName, gameActionKeys + gamepadKeys),
+		KeyCategory("Keyboard Controls", kbName, gameActionKeys + gamepadKeys + colecoKeys),
+};
+
+}
+
+bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
+		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
+		#define readKeyCase(z, n, text) bcase (n)+msxKeyConfigBase: readKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, readSize);
+		BOOST_PP_REPEAT(105, readKeyCase, ) break; // first arg must be msxJSKeys + msxKeyboardKeys
+		#undef readKeyCase
+	}
+	return 1;
+}
+
+void EmuSystem::writeConfig(Io *io)
+{
+	if(!optionMachineName.isDefault())
+	{
+		optionMachineName.writeToIO(io);
+	}
+	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
+	#define writeKeyCase(z, n, text) writeKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, (n)+msxKeyConfigBase);
+	BOOST_PP_REPEAT(105, writeKeyCase, ) // first arg must be msxJSKeys + msxKeyboardKeys
+	#undef writeKeyCase
+}
+
+void EmuSystem::initOptions()
+{
+	optionSoundRate.initDefault(44100);
+	optionSoundRate.isConst = 1;
+}
+
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = msxFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = msxFsFilter;
-
-#include "MsxOptionView.hh"
-static MsxOptionView oCategoryMenu;
-#include "MsxMenuView.hh"
-static MsxMenuView mMenu;
 
 static const uint msxMaxResX = (256) * 2, msxResY = 224,
 		msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
 
 static uint msxResX = msxMaxResX/2;
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8)));
+static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
 //static uint16 dummyLine[msxMaxFrameBuffResX] __attribute__ ((aligned (8)));
 
 static uint kbToEventMap[] =
@@ -371,18 +354,6 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 	}
 }
 
-/*static void setupDrawing(bool force)
-{
-	if(force || (!disp.img || vidPix.x != msxResX))
-	{
-		//logMsg("x %d, old x %d", msxResX, vidPix.x);
-		vidPix.init((uchar*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
-		vidImg.init(vidPix, 0, optionImgFilter);
-		//logMsg("setting img %p", &vidImg);
-		disp.setImg(&vidImg);
-	}
-}*/
-
 // frameBuffer implementation
 Pixel* frameBufferGetLine(FrameBuffer* frameBuffer, int y)
 {
@@ -404,8 +375,6 @@ void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 		if(emuView.vidPix.x != msxResX)
 		{
 			emuView.resizeImage(msxResX, msxResY);
-			if(optionImageZoom == optionImageZoomIntegerOnly)
-				emuView.placeEmu();
 		}
 	}
 }
@@ -490,6 +459,7 @@ static void destroyMSX()
 {
 	assert(machine);
 	logMsg("destroying MSX");
+	fdcActive = 0;
 	if(msxIsInit())
 	{
 		ejectMedia();
@@ -696,6 +666,7 @@ static bool insertDisk(const char *path, uint slot)
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
+	fdcActive = 0;
 	//boardInfo.softReset();
 	FsSys::chdir(EmuSystem::gamePath);
 	boardInfo.destroy();
@@ -851,7 +822,7 @@ static int loadBlueMSXState(const char *filename)
 	return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -888,9 +859,9 @@ void EmuSystem::closeSystem()
 	destroyMSX();
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame(1);
 
 	strcpy(gamePath, FsSys::workDir());
 	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", FsSys::workDir(), path);
@@ -902,7 +873,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	}
 
 	// First, try to load auto-save which will initialize the MSX with stored parameters
-	if(allowAutosaveState && optionAutoSaveState)
+	/*if(allowAutosaveState && optionAutoSaveState)
 	{
 		string_copyUpToLastCharInstance(gameName, path, '.');
 		FsSys::cPath saveStr;
@@ -914,7 +885,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 			return 1;
 		}
 		strcpy(gameName, ""); // clear game name from save state failure
-	}
+	}*/
 
 	// No auto-save, initialize and boot the MSX with the selected media
 	if(!initMachine(optionMachineName)) // make sure machine is set to user's selection
@@ -1086,6 +1057,33 @@ void RefreshScreen(int screenMode)
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	//skipFrame = !processGfx;
+
+	// fast-forward during floppy access, but stop if access ends
+	if(unlikely(fdcActive && renderGfx))
+	{
+		iterateTimes(4, i)
+		{
+			boardInfo.run(boardInfo.cpuRef);
+			((R800*)boardInfo.cpuRef)->terminate = 0;
+			bool useFrame = !fdcActive;
+			if(useFrame)
+			{
+				logMsg("FDC activity ended while fast-forwarding");
+				renderToScreen = 1;
+				commitVideoFrame();
+			}
+			mixerSync(mixer);
+			UInt32 samples;
+			uchar *audio = (uchar*)mixerGetBuffer(mixer, &samples);
+			if(useFrame)
+			{
+				Audio::writePcm(audio, samples/2);
+				return; // done with frame for this update
+			}
+		}
+	}
+
+	// regular frame update
 	if(renderGfx)
 		renderToScreen = 1;
 	boardInfo.run(boardInfo.cpuRef);
@@ -1115,6 +1113,15 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 
 	/*mediaDbCreateRomdb();
@@ -1125,7 +1132,7 @@ CallResult onInit()
 	mixer = mixerCreate();
 	assert(mixer);
 
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
 	emuView.initPixmap((uchar*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
 
 	// Init general emu
@@ -1197,16 +1204,15 @@ CallResult onInit()
 
 	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
 	{
-		ynAlertView.init(InstallMSXSystem::installMessage(), keyBasedInputIsPresent());
+		ynAlertView.init(InstallMSXSystem::installMessage(), Input::keyInputIsPresent());
 		ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();
-		ynAlertView.place(Gfx::viewportRect());
+		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}
 
 	Gfx::onViewChange();
 	mMenu.show();
 
-	//Input::eventHandler(onInputEvent);
 	Base::displayNeedsUpdate();
 	return OK;
 }

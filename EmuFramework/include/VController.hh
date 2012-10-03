@@ -70,8 +70,6 @@ public:
 	int getInput(int cx, int cy);
 };
 
-enum TriggerPosType { TRIGGERS_INLINE = 0, TRIGGERS_RIGHT = 1, TRIGGERS_LEFT = 2, TRIGGERS_SPLIT = 3 };
-
 template <uint faceBtns, uint centerBtns = 2, bool hasTriggerButtons = 0, bool revFaceMapping = 0>
 class VControllerGamepad
 {
@@ -636,3 +634,6 @@ public:
 		gp.draw();
 	}
 };
+
+typedef VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout> SysVController;
+extern SysVController vController;

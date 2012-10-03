@@ -276,8 +276,8 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 	};
 	
 	// timer callback
-	private static native boolean timerCallback(boolean isPaused);
-	private static Runnable timerCallbackRunnable = new Runnable()
+	private static native boolean timerCallback(boolean isPaused, int cCallbackAddr);
+	/*private static Runnable timerCallbackRunnable = new Runnable()
 	{
 		public void run()
 		{
@@ -286,7 +286,23 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 				glView.postUpdate();
 			}
 		}
-	};
+	};*/
+	
+	public Runnable postCallback(final int cCallbackAddr, int ms)
+	{
+		Runnable run = new Runnable()
+		{
+			public void run()
+			{
+				if(timerCallback(isPaused, cCallbackAddr))
+				{
+					glView.postUpdate();
+				}
+			}
+		};
+		GLView.handler.postDelayed(run, ms);
+		return run;
+	}
 	
 	public void addNotification(String onShow, String title, String message)
 	{
@@ -298,7 +314,31 @@ public final class BaseActivity extends Activity implements OnGlobalLayoutListen
 		NotificationHelper.removeNotification();
 	}
 	
-	static native void sysTextInputEnded(String text);
+	static native boolean sysTextInputEnded(String text);
+	
+	public static void endSysTextInput(String text)
+	{
+		if(sysTextInputEnded(text))
+		{
+			glView.postUpdate();
+		}
+	}
+	
+	public void startSysTextInput(final String initialText, final String promptText,
+			final int x, final int y, final int width, final int height)
+	{
+		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height);
+	}
+	
+	public void finishSysTextInput(final boolean canceled)
+	{
+		TextEntry.finishSysTextInput(canceled);
+	}
+	
+	public void placeSysTextInput(final int x, final int y, final int width, final int height)
+	{
+		TextEntry.placeSysTextInput(x, y, width, height);
+	}
 	
 	public void showIme(int mode)
 	{

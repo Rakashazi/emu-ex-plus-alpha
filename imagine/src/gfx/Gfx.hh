@@ -34,7 +34,7 @@ extern bool preferBGRA, preferBGR;
 enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
 void setBlendMode(uint mode);
 
-enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE };
+enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
 void setImgMode(uint mode);
 
 enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };

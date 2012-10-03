@@ -18,6 +18,13 @@ struct Projector
 		aspectRatio;
 	Matrix4x4<GC> mat, matInv;
 
+	void updateMMSize()
+	{
+		mmToXScale = w/(GC)viewMMWidth();
+		mmToYScale = h/(GC)viewMMHeight();
+		logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
+	}
+
 	void setMatrix(Matrix4x4<GC> &mat, bool isSideways)
 	{
 		var_selfs(mat);
@@ -38,9 +45,8 @@ struct Projector
 		pixToYScale = h / (GC)viewPixelHeight();
 		xToPixScale = (GC)viewPixelWidth() / w;
 		yToPixScale = (GC)viewPixelHeight() / h;
-		mmToXScale = w/(GC)viewMMWidth();
-		mmToYScale = h/(GC)viewMMHeight();
-		logMsg("view size %fx%f, to pix %fx%f, to view %fx%f", (double)w, (double)h, (double)xToPixScale, (double)yToPixScale, (double)pixToXScale, (double)pixToYScale);
+		logMsg("projector size %fx%f, to pix %fx%f, to view %fx%f",
+			(double)w, (double)h, (double)xToPixScale, (double)yToPixScale, (double)pixToXScale, (double)pixToYScale);
 	}
 
 	bool project(GC objx, GC objy, GC objz, GC &winx, GC &winy, GC &winz)
@@ -167,6 +173,16 @@ static int toIYPos(GC y)
 	//logMsg("unproject y %f", y);
 	return toIYSize(-(y - proj.hHalf));
 	//return -(y - GC(viewPixelHeight())/GC(2));
+}
+
+static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
+{
+	Rect2<GC> r;
+	r.x = Gfx::iXPos(x);
+	r.y = Gfx::iYPos(y2); // flip y-axis
+	r.x2 = Gfx::iXPos(x2);
+	r.y2 = Gfx::iYPos(y);
+	return r;
 }
 
 

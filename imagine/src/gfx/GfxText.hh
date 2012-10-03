@@ -6,12 +6,14 @@
 
 #include "GfxSprite.hh"
 #include <util/2DOrigin.h>
+#include <util/basicString.h>
 #include <resource2/face/ResourceFace.hh>
 
 class GfxText
 {
 public:
 	constexpr GfxText() { }
+	constexpr GfxText(const char *str): str(str), slen(string_len(str)) { }
 	void init();
 	void init(const char *str)
 	{

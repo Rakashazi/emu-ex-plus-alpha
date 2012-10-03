@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: System.hxx 2523 2012-06-03 18:05:14Z stephena $
 //============================================================================
 
 #ifndef SYSTEM_HXX
@@ -43,7 +43,7 @@ class NullDevice;
   6507 based system and 65536 (2^16) bytes for a 6502 based system.
 
   @author  Bradford W. Mott
-  @version $Id: System.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: System.hxx 2523 2012-06-03 18:05:14Z stephena $
 */
 class System : public Serializable
 {
@@ -214,7 +214,7 @@ class System : public Serializable
     /**
       Answers whether the system is currently in device autodetect mode.
     */
-    bool autodectMode() const { return mySystemInAutodetect; }
+    bool autodetectMode() const { return mySystemInAutodetect; }
 
   public:
     /**

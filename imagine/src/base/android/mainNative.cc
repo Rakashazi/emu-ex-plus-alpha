@@ -21,8 +21,8 @@
 #include <engine-globals.h>
 #include <base/android/sdk.hh>
 #include <base/Base.hh>
+#define USES_POLL_WAIT_TIMER
 #include <base/common/funcs.h>
-#include <base/common/PollWaitTimer.hh>
 #include <input/android/private.hh>
 #include <android/window.h>
 #include <dlfcn.h>
@@ -212,9 +212,6 @@ struct EGLWindow
 
 }
 
-DLList<PollWaitTimer*>::Node PollWaitTimer::timerListNode[4];
-DLList<PollWaitTimer*> PollWaitTimer::timerList(timerListNode);
-
 #include "common.hh"
 
 namespace Base
@@ -296,11 +293,6 @@ void setOSNavigationStyle(uint flags)
 	postUIThread(eEnv(), jBaseActivity, 1, flags);
 }
 
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
-{
-	timerCallback.setCallback(f, ctx, ms);
-}
-
 void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
 {
 	logMsg("adding fd %d to looper", fd);
@@ -360,7 +352,7 @@ bool windowIsDrawable()
 // runs from activity thread, do not use jEnv
 static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
 		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
-		jboolean hasPermanentMenuKey)
+		jboolean hasPermanentMenuKey, jboolean animatesRotation)
 {
 	logMsg("doing java env config");
 	logMsg("set screen DPI size %f,%f", (double)xdpi, (double)ydpi);
@@ -395,7 +387,13 @@ static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat yd
 		logMsg("device has software nav buttons");
 	}
 
-	var_copy(act, appInstance());
+	osAnimatesRotation = animatesRotation;
+	if(!osAnimatesRotation)
+	{
+		logMsg("app handles rotation animations");
+	}
+
+	auto act = appInstance();
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -539,13 +537,20 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		if(app->window)
 		{
 			gfxUpdate = 1;
-			logMsg("window gained focus");
 		}
 		appFocus(1);
 		bcase APP_CMD_LOST_FOCUS:
 		appFocus(0);
 		bcase APP_CMD_WINDOW_REDRAW_NEEDED:
 		{
+			// re-check if window size changed since some devices may "forget"
+			// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
+			// putting the device to sleep in portrait, then sliding the gamepad open
+			// causes a content rect change with swapped window width/height
+			int w = ANativeWindow_getWidth(app->window);
+			int h = ANativeWindow_getHeight(app->window);
+			mainWin.w = w; mainWin.h = h;
+			resizeEvent(mainWin);
 			logMsg("window redraw needed");
 			if(eglWin.isDrawable())
 			{
@@ -730,7 +735,7 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 
 	static JNINativeMethod activityMethods[] =
 	{
-	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;Z)V", (void *)&Base::jEnvConfig},
+	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;ZZ)V", (void *)&Base::jEnvConfig},
 	    //{"layoutChange", "(I)V", (void *)&Base::layoutChange},
 	};
 

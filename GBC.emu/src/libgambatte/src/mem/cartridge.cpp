@@ -17,12 +17,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "cartridge.h"
-#include "../file/file.h"
+#include "file/file.h"
 #include "../savestate.h"
-#include <cstdio>
+#include "pakinfo_internal.h"
 #include <cstring>
 #include <fstream>
-#include <logger/interface.h>
 
 namespace gambatte {
 
@@ -443,6 +442,7 @@ static bool hasRtc(const unsigned headerByte0x147) {
 }
 
 void Cartridge::setStatePtrs(SaveState &state) {
+	state.mem.vram.set(memptrs.vramdata(), memptrs.vramdataend() - memptrs.vramdata());
 	state.mem.sram.set(memptrs.rambankdata(), memptrs.rambankdataend() - memptrs.rambankdata());
 	state.mem.wram.set(memptrs.wramdata(0), memptrs.wramdataend() - memptrs.wramdata(0));
 }
@@ -504,11 +504,15 @@ static unsigned pow2ceil(unsigned n) {
 	return n;
 }
 
-int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bool multicartCompat) {
+static bool presumedMulti64Mbc1(unsigned char const header[], unsigned const rombanks) {
+	return header[0x147] == 1 && header[0x149] == 0 && rombanks == 64;
+}
+
+LoadRes Cartridge::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
 	const std::auto_ptr<File> rom(newFileInstance(romfile));
 
 	if (rom->fail())
-		return -1;
+		return LOADRES_IO_ERROR;
 	
 	unsigned rambanks = 1;
 	unsigned rombanks = 2;
@@ -520,36 +524,36 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 		rom->read(reinterpret_cast<char*>(header), sizeof header);
 
 		switch (header[0x0147]) {
-		case 0x00: logMsg("Plain ROM loaded."); type = PLAIN; break;
-		case 0x01: logMsg("MBC1 ROM loaded."); type = MBC1; break;
-		case 0x02: logMsg("MBC1 ROM+RAM loaded."); type = MBC1; break;
-		case 0x03: logMsg("MBC1 ROM+RAM+BATTERY loaded."); type = MBC1; break;
-		case 0x05: logMsg("MBC2 ROM loaded."); type = MBC2; break;
-		case 0x06: logMsg("MBC2 ROM+BATTERY loaded."); type = MBC2; break;
-		case 0x08: logMsg("Plain ROM with additional RAM loaded."); type = PLAIN; break;
-		case 0x09: logMsg("Plain ROM with additional RAM and Battery loaded."); type = PLAIN; break;
-		case 0x0B: logMsg("MM01 ROM not supported."); return -1;
-		case 0x0C: logMsg("MM01 ROM not supported."); return -1;
-		case 0x0D: logMsg("MM01 ROM not supported."); return -1;
-		case 0x0F: logMsg("MBC3 ROM+TIMER+BATTERY loaded."); type = MBC3; break;
-		case 0x10: logMsg("MBC3 ROM+TIMER+RAM+BATTERY loaded."); type = MBC3; break;
-		case 0x11: logMsg("MBC3 ROM loaded."); type = MBC3; break;
-		case 0x12: logMsg("MBC3 ROM+RAM loaded."); type = MBC3; break;
-		case 0x13: logMsg("MBC3 ROM+RAM+BATTERY loaded."); type = MBC3; break;
-		case 0x15: logMsg("MBC4 ROM not supported."); return -1;
-		case 0x16: logMsg("MBC4 ROM not supported."); return -1;
-		case 0x17: logMsg("MBC4 ROM not supported."); return -1;
-		case 0x19: logMsg("MBC5 ROM loaded."); type = MBC5; break;
-		case 0x1A: logMsg("MBC5 ROM+RAM loaded."); type = MBC5; break;
-		case 0x1B: logMsg("MBC5 ROM+RAM+BATTERY loaded."); type = MBC5; break;
-		case 0x1C: logMsg("MBC5+RUMBLE ROM not supported."); type = MBC5; break;
-		case 0x1D: logMsg("MBC5+RUMBLE+RAM ROM not suported."); type = MBC5; break;
-		case 0x1E: logMsg("MBC5+RUMBLE+RAM+BATTERY ROM not supported."); type = MBC5; break;
-		case 0xFC: logMsg("Pocket Camera ROM not supported."); return -1;
-		case 0xFD: logMsg("Bandai TAMA5 ROM not supported."); return -1;
-		case 0xFE: logMsg("HuC3 ROM not supported."); return -1;
-		case 0xFF: logMsg("HuC1 ROM+RAM+BATTERY loaded."); type = HUC1; break;
-		default: logMsg("Wrong data-format, corrupt or unsupported ROM."); return -1;
+		case 0x00: type = PLAIN; break;
+		case 0x01:
+		case 0x02:
+		case 0x03: type = MBC1; break;
+		case 0x05:
+		case 0x06: type = MBC2; break;
+		case 0x08:
+		case 0x09: type = PLAIN; break;
+		case 0x0B:
+		case 0x0C:
+		case 0x0D: return LOADRES_UNSUPPORTED_MBC_MMM01;
+		case 0x0F:
+		case 0x10:
+		case 0x11:
+		case 0x12:
+		case 0x13: type = MBC3; break;
+		case 0x15:
+		case 0x16:
+		case 0x17: return LOADRES_UNSUPPORTED_MBC_MBC4;
+		case 0x19:
+		case 0x1A:
+		case 0x1B:
+		case 0x1C:
+		case 0x1D:
+		case 0x1E: type = MBC5; break;
+		case 0xFC: return LOADRES_UNSUPPORTED_MBC_POCKET_CAMERA;
+		case 0xFD: return LOADRES_UNSUPPORTED_MBC_TAMA5;
+		case 0xFE: return LOADRES_UNSUPPORTED_MBC_HUC3;
+		case 0xFF: type = HUC1; break;
+		default:   return LOADRES_BAD_FILE_OR_UNKNOWN_MBC;
 		}
 
 		/*switch (header[0x0148]) {
@@ -566,39 +570,14 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 		case 0x53: rombanks = 80; break;
 		case 0x54: rombanks = 96; break;
 		default: return -1;
-		}
+		}*/
 
-		logMsgn("rombanks: %u\n", rombanks);*/
-
-		switch (header[0x0149]) {
-		case 0x00: /*logMsg("No RAM");*/ rambanks = type == MBC2; break;
-		case 0x01: /*logMsg("2kB RAM");*/ /*rambankrom=1; break;*/
-		case 0x02: /*logMsg("8kB RAM");*/
-			rambanks = 1;
-			break;
-		case 0x03: /*logMsg("32kB RAM");*/
-			rambanks = 4;
-			break;
-		case 0x04: /*logMsg("128kB RAM");*/
-			rambanks = 16;
-			break;
-		case 0x05: /*logMsg("undocumented kB RAM");*/
-			rambanks = 16;
-			break;
-		default: /*logMsg("Wrong data-format, corrupt or unsupported ROM loaded.");*/
-			rambanks = 16;
-			break;
-		}
-		
+		rambanks = numRambanksFromH14x(header[0x147], header[0x149]);
 		cgb = header[0x0143] >> 7 & (1 ^ forceDmg);
-		logMsgn("cgb: %d\n", cgb);
 	}
 
-	logMsgn("rambanks: %u\n", rambanks);
-
-	const std::size_t filesize = rom->size();
-	rombanks = pow2ceil(filesize / 0x4000);
-	logMsgn("rombanks: %u\n", static_cast<unsigned>(filesize / 0x4000));
+	std::size_t const filesize = rom->size();
+	rombanks = std::max(pow2ceil(filesize / 0x4000), 2u);
 	
 	defaultSaveBasePath.clear();
 	ggUndoList.clear();
@@ -612,15 +591,14 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 	enforce8bit(memptrs.romdata(), rombanks * 0x4000ul);
 	
 	if (rom->fail())
-		return -1;
+		return LOADRES_IO_ERROR;
 
 	defaultSaveBasePath = stripExtension(romfile);
 	
 	switch (type) {
 	case PLAIN: mbc.reset(new Mbc0(memptrs)); break;
 	case MBC1:
-		if (!rambanks && rombanks == 64 && multicartCompat) {
-			logMsg("Multi-ROM \"MBC1\" presumed");
+		if (multicartCompat && presumedMulti64Mbc1(memptrs.romdata(), rombanks)) {
 			mbc.reset(new Mbc1Multi64(memptrs));
 		} else
 			mbc.reset(new Mbc1(memptrs));
@@ -632,7 +610,7 @@ int Cartridge::loadROM(const std::string &romfile, const bool forceDmg, const bo
 	case HUC1: mbc.reset(new HuC1(memptrs)); break;
 	}
 
-	return 0;
+	return LOADRES_OK;
 }
 
 static bool hasBattery(const unsigned char headerByte0x147) {
@@ -736,6 +714,17 @@ void Cartridge::setGameGenie(const std::string &codes) {
 			applyGameGenie(code);
 		}
 	}
+}
+
+PakInfo const Cartridge::pakInfo(bool const multipakCompat) const {
+	if (loaded()) {
+		unsigned const rombs = rombanks(memptrs);
+		return PakInfo(multipakCompat && presumedMulti64Mbc1(memptrs.romdata(), rombs),
+		               rombs,
+		               memptrs.romdata());
+	}
+
+	return PakInfo();
 }
 
 }

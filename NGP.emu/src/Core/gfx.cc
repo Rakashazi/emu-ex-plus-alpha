@@ -45,7 +45,7 @@
 
 //=============================================================================
 
-uint16 cfb[256*256] __attribute__ ((aligned (8)));
+uint16 cfb[256*256] __attribute__ ((aligned (8))) {0};
 uint8 zbuffer[256];
 
 uint16* cfb_scanline;	//set = scanline * SCREEN_WIDTH

@@ -6,6 +6,22 @@ void TextMenuItem::init(const char *str, bool active, ResourceFace *face)
 	this->active = active;
 }
 
+void TextMenuItem::init(const char *str, ResourceFace *face)
+{
+	t.init(str, face);
+}
+
+void TextMenuItem::init(bool active, ResourceFace *face)
+{
+	t.setFace(face);
+	this->active = active;
+}
+
+void TextMenuItem::init()
+{
+	t.setFace(View::defaultFace);
+}
+
 void TextMenuItem::deinit()
 {
 	t.deinit();
@@ -39,6 +55,15 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	void DualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
 	{
 		TextMenuItem::init(str, active, face);
+		if(str2)
+			t2.init(str2, face);
+		else
+			t2.init(face);
+	}
+
+	void DualTextMenuItem::init(const char *str2, bool active, ResourceFace *face)
+	{
+		TextMenuItem::init(active, face);
 		if(str2)
 			t2.init(str2, face);
 		else
@@ -79,6 +104,29 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 		var_selfs(on);
 	}
 
+	void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+	{
+		var_selfs(offStr);
+		var_selfs(onStr);
+		DualTextMenuItem::init(str, on ? onStr : offStr, active, face);
+		var_selfs(on);
+	}
+
+	void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
+	{
+		offStr = onStr = nullptr;
+		DualTextMenuItem::init(on ? "On" : "Off", active, face);
+		var_selfs(on);
+	}
+
+	void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+	{
+		var_selfs(offStr);
+		var_selfs(onStr);
+		DualTextMenuItem::init(on ? onStr : offStr, active, face);
+		var_selfs(on);
+	}
+
 	void BoolMenuItem::set(bool val)
 	{
 		if(val != on)
@@ -115,14 +163,6 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 		else
 			setColor(1., 0., 0., 1.);
 		draw2ndText(xPos, yPos, xSize, ySize, align);
-	}
-
-	void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
-	{
-		var_selfs(offStr);
-		var_selfs(onStr);
-		DualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-		var_selfs(on);
 	}
 
 	/*void BoolTextMenuItem::set(bool val)

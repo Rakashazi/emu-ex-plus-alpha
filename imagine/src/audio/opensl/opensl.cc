@@ -38,6 +38,7 @@ static uint bufferFrames = 800, currQBuf = 0;
 static uint buffers = 10;
 static uchar **qBuffer = nullptr;
 static bool isPlaying = 0, reachedEndOfPlayback = 0, strictUnderrunCheck = 1;
+static BufferContext audioBuffLockCtx;
 
 // runs on internal OpenSL ES thread
 /*static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
@@ -61,7 +62,7 @@ CallResult openPcm(const PcmFormat &format)
 		return OK;
 	}
 	pcmFormat = format;
-	logMsg("creating playback %dHz %d buffers", format.rate, buffers);
+	logMsg("creating playback %dHz, %d channels, %d buffers", format.rate, format.channels, buffers);
 	assert(format.sample->bits == 16);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, buffers };
 	SLDataFormat_PCM slFormat =
@@ -194,8 +195,6 @@ static void startPlaybackIfNeeded(uint queued)
 			logErr("SetPlayState returned 0x%X", (uint)result);
 	}
 }
-
-static BufferContext audioBuffLockCtx;
 
 BufferContext *getPlayBuffer(uint wantedFrames)
 {

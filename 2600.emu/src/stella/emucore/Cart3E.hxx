@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Cart3E.hxx 2487 2012-05-20 14:23:48Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3E_HXX
@@ -58,7 +58,7 @@ class System;
   any problems. (Famous last words...)
 
   @author  B. Watson
-  @version $Id: Cart3E.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: Cart3E.hxx 2487 2012-05-20 14:23:48Z stephena $
 */
 
 class Cartridge3E : public Cartridge
@@ -174,7 +174,7 @@ class Cartridge3E : public Cartridge
     uInt8* myImage;
 
     // RAM contents. For now every ROM gets all 32K of potential RAM
-    uInt8 myRam[32 * 1024];
+    uInt8 myRAM[32 * 1024];
 
     // Size of the ROM image
     uInt32 mySize;

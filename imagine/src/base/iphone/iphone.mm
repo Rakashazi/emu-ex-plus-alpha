@@ -109,29 +109,24 @@ static UIViewController *viewCtrl;
 static const int USE_DEPTH_BUFFER = 0;
 static int openglViewIsInit = 0;
 
-static NSTimer *mainTimer = 0;
-static TimerCallbackFunc timerCallbackFunc = 0;
-static void *timerCallbackFuncCtx = 0;
-
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
+void cancelCallback(CallbackRef *ref)
 {
-	if(timerCallbackFunc)
+	if(ref)
 	{
-		logMsg("canceling callback");
-		timerCallbackFunc = 0;
-		if(mainTimer)
-		{
-			[mainTimer invalidate];
-			//[mainTimer release];
-			mainTimer = 0;
-		}
+		logMsg("cancelling callback with ref %p", ref);
+		[NSObject cancelPreviousPerformRequestsWithTarget:mainApp selector:@selector(timerCallback:) object:(id)ref];
 	}
-	if(!f)
-		return;
+}
+
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
+{
 	logMsg("setting callback to run in %d ms", ms);
-	timerCallbackFunc = f;
-	timerCallbackFuncCtx = ctx;
-	mainTimer = [NSTimer scheduledTimerWithTimeInterval: (float)ms/1000. target:mainApp selector:@selector(timerCallback:) userInfo:nil repeats: NO];
+	CallbackDelegate del(callback);
+	NSData *callbackArg = [[NSData alloc] initWithBytes:&del length:sizeof(del)];
+	assert(callbackArg);
+	[mainApp performSelector:@selector(timerCallback:) withObject:(id)callbackArg afterDelay:(float)ms/1000.];
+	[callbackArg release];
+	return (CallbackRef*)callbackArg;
 }
 
 bool isInputDevPresent(uint type)
@@ -501,6 +496,7 @@ uint appState = APP_RUNNING;
 {
 	return;
 	using namespace Base;
+	#ifndef NDEBUG
 	CGSize keyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
 	logMsg("keyboard shown with size %d", (int)keyboardSize.height * pointScale);
 	int visibleY = IG::max(1, int(mainWin.rect.y2 - keyboardSize.height * pointScale));
@@ -510,6 +506,7 @@ uint appState = APP_RUNNING;
 	else
 		Gfx::viewMMHeight_ = 75. * visibleFraction;*/
 	//generic_resizeEvent(mainWin.rect.x2, visibleY);
+	#endif
 	displayNeedsUpdate();
 }
 
@@ -518,11 +515,6 @@ uint appState = APP_RUNNING;
 	return;
 	using namespace Base;
 	logMsg("keyboard hidden");
-	if(isIPad)
-		Gfx::viewMMHeight_ = 197;
-	else
-		Gfx::viewMMHeight_ = 75;
-	//generic_resizeEvent(mainWin.rect.x2, mainWin.rect.y2);
 	displayNeedsUpdate();
 }
 
@@ -593,14 +585,14 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}*/
 	
 	// TODO: get real DPI if possible
-	// based on iPhone/iPod DPI of 163 (326 retina) 
-	Gfx::viewMMWidth_ = 50, Gfx::viewMMHeight_ = 75;
+	// based on iPhone/iPod DPI of 163 (326 retina)
+	uint unscaledDPI = 163;
 	#if !defined(__ARM_ARCH_6K__) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 30200)
 	logMsg("testing for iPad");
 	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
 	{
 		// based on iPad DPI of 132 (264 retina) 
-    	Gfx::viewMMWidth_ = 148, Gfx::viewMMHeight_ = 197;
+		unscaledDPI = 132;
 		isIPad = 1;
 		logMsg("running on iPad");
 		
@@ -615,6 +607,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	CGRect rect = [[UIScreen mainScreen] bounds];
 	mainWin.w = mainWin.rect.x2 = rect.size.width;
 	mainWin.h = mainWin.rect.y2 = rect.size.height;
+	Gfx::viewMMWidth_ = roundf((mainWin.w / (float)unscaledDPI) * 25.4);
+	Gfx::viewMMHeight_ = roundf((mainWin.h / (float)unscaledDPI) * 25.4);
+	logMsg("set screen MM size %dx%d", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
 	currWin = mainWin;
 	// Create a full-screen window
 	devWindow = [[UIWindow alloc] initWithFrame:rect];
@@ -727,15 +722,14 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	glFinish();
 }
 
-- (void)timerCallback:(NSTimer*)timer
+- (void)timerCallback:(id)callback
 {
 	using namespace Base;
-	if(timerCallbackFunc)
-	{
-		logMsg("running callback");
-		timerCallbackFunc(timerCallbackFuncCtx);
-		timerCallbackFunc = 0;
-	}
+	logMsg("running callback");
+	NSData *callbackData = (NSData*)callback;
+	CallbackDelegate del;
+	[callbackData getBytes:&del length:sizeof(del)];
+	del.invoke();
 }
 
 - (void)handleThreadMessage:(NSValue *)arg
@@ -802,7 +796,11 @@ static void setViewportForStatusbar(UIApplication *sharedApp)
 void setStatusBarHidden(uint hidden)
 {
 	auto sharedApp = [UIApplication sharedApplication];
-	[sharedApp setStatusBarHidden: hidden ? YES : NO animated:YES];
+	#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 30200
+		[sharedApp setStatusBarHidden: hidden ? YES : NO withAnimation: UIStatusBarAnimationFade];
+	#else
+		[sharedApp setStatusBarHidden: hidden ? YES : NO animated:YES];
+	#endif
 	setViewportForStatusbar(sharedApp);
 	generic_resizeEvent(mainWin);
 }

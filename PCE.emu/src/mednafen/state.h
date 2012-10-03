@@ -34,7 +34,7 @@ int32 smem_seek(StateMem *st, uint32 offset, int whence);
 int smem_write32le(StateMem *st, uint32 b);
 int smem_read32le(StateMem *st, uint32 *b);
 
-int MDFNSS_SaveSM(StateMem *st, int wantpreview, int data_only, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const MDFN_Rect *LineWidths = (MDFN_Rect *)NULL);
+int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const MDFN_Rect *LineWidths = (MDFN_Rect *)NULL);
 int MDFNSS_LoadSM(StateMem *st, int haspreview, int data_only);
 
 void MDFNSS_CheckStates(void);
@@ -67,24 +67,24 @@ typedef struct {
 	   //uint32 struct_size;	// Only used for MDFNSTATE_ARRAYOFS, sizeof(struct) that members of the linked SFORMAT struct are in.
 } SFORMAT;
 
-static INLINE uint32 SF_IS_BOOL(bool *) { return(1); }
-static INLINE uint32 SF_IS_BOOL(void *) { return(0); }
+INLINE uint32 SF_IS_BOOL(bool *) { return(1); }
+INLINE uint32 SF_IS_BOOL(void *) { return(0); }
 
-static INLINE uint32 SF_FORCE_AB(bool *) { return(0); }
+INLINE uint32 SF_FORCE_AB(bool *) { return(0); }
 
-static INLINE uint32 SF_FORCE_A8(int8 *) { return(0); }
-static INLINE uint32 SF_FORCE_A8(uint8 *) { return(0); }
+INLINE uint32 SF_FORCE_A8(int8 *) { return(0); }
+INLINE uint32 SF_FORCE_A8(uint8 *) { return(0); }
 
-static INLINE uint32 SF_FORCE_A16(int16 *) { return(0); }
-static INLINE uint32 SF_FORCE_A16(uint16 *) { return(0); }
+INLINE uint32 SF_FORCE_A16(int16 *) { return(0); }
+INLINE uint32 SF_FORCE_A16(uint16 *) { return(0); }
 
-static INLINE uint32 SF_FORCE_A32(int32 *) { return(0); }
-static INLINE uint32 SF_FORCE_A32(uint32 *) { return(0); }
+INLINE uint32 SF_FORCE_A32(int32 *) { return(0); }
+INLINE uint32 SF_FORCE_A32(uint32 *) { return(0); }
 
-static INLINE uint32 SF_FORCE_A64(int64 *) { return(0); }
-static INLINE uint32 SF_FORCE_A64(uint64 *) { return(0); }
+INLINE uint32 SF_FORCE_A64(int64 *) { return(0); }
+INLINE uint32 SF_FORCE_A64(uint64 *) { return(0); }
 
-static INLINE int SF_FORCE_D(double *) { return(0); }
+INLINE int SF_FORCE_D(double *) { return(0); }
 
 #define SFVARN(x, n) { &x, SF_IS_BOOL(&x) ? 1 : uint32(sizeof(x)), MDFNSTATE_RLSB | (SF_IS_BOOL(&x) ? MDFNSTATE_BOOL : 0), n }
 #define SFVAR(x) SFVARN(x, #x)

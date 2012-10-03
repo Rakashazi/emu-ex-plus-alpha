@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Serializer.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Serializer.cxx 2492 2012-05-21 21:33:39Z stephena $
 //============================================================================
 
 #include <fstream>
@@ -37,6 +37,7 @@ Serializer::Serializer(const string& filename, bool readonly)
       if(str && str->is_open())
       {
         myStream = str;
+        myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
         reset();
       }
       else
@@ -59,6 +60,7 @@ Serializer::Serializer(const string& filename, bool readonly)
     if(str && str->is_open())
     {
       myStream = str;
+      myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
       reset();
     }
     else
@@ -77,6 +79,7 @@ Serializer::Serializer(void)
   // the stream before it is used for the first time
   if(myStream)
   {
+  	myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
     putBool(true);
     reset();
   }
@@ -104,16 +107,14 @@ bool Serializer::isValid(void)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Serializer::reset(void)
 {
+	myStream->clear();
   myStream->seekg(ios_base::beg);
   myStream->seekp(ios_base::beg);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-char Serializer::getByte(void)
+uInt8 Serializer::getByte(void)
 {
-  if(myStream->eof())
-    throw "Serializer::getByte() end of file";
-
   char buf;
   myStream->read(&buf, 1);
 
@@ -121,18 +122,39 @@ char Serializer::getByte(void)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int Serializer::getInt(void)
+void Serializer::getByteArray(uInt8* array, uInt32 size)
 {
-  if(myStream->eof())
-    throw "Serializer::getInt() end of file";
+  myStream->read((char*)array, size);
+}
 
-  int val = 0;
-  unsigned char buf[4];
-  myStream->read((char*)buf, 4);
-  for(int i = 0; i < 4; ++i)
-    val += (int)(buf[i]) << (i<<3);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt16 Serializer::getShort(void)
+{
+  uInt16 val = 0;
+  myStream->read((char*)&val, sizeof(uInt16));
 
   return val;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::getShortArray(uInt16* array, uInt32 size)
+{
+  myStream->read((char*)array, sizeof(uInt16)*size);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 Serializer::getInt(void)
+{
+	uInt32 val = 0;
+	myStream->read((char*)&val, sizeof(uInt32));
+
+  return val;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::getIntArray(uInt32* array, uInt32 size)
+{
+  myStream->read((char*)array, sizeof(uInt32)*size);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -140,11 +162,8 @@ string Serializer::getString(void)
 {
   int len = getInt();
   string str;
-  str.resize((string::size_type)len);
-  myStream->read(&str[0], (streamsize)len);
-
-  if(myStream->bad())
-    throw "Serializer::getString() file read failed";
+  str.resize(len);
+  myStream->read(&str[0], len);
 
   return str;
 }
@@ -152,35 +171,43 @@ string Serializer::getString(void)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Serializer::getBool(void)
 {
-  char b = getByte();
-  if(b == (char)TruePattern)
-    return true;
-  else if(b == (char)FalsePattern)
-    return false;
-  else
-    throw "Serializer::getBool() data corruption";
-
-  return false;  // to stop compiler from complaining
+	return getByte() == TruePattern;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::putByte(char value)
+void Serializer::putByte(uInt8 value)
 {
-  myStream->write(&value, 1);
-  if(myStream->bad())
-    throw "Serializer::putByte() file write failed";
+  myStream->write((char*)&value, 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::putInt(int value)
+void Serializer::putByteArray(const uInt8* array, uInt32 size)
 {
-  unsigned char buf[4];
-  for(int i = 0; i < 4; ++i)
-    buf[i] = (value >> (i<<3)) & 0xff;
+  myStream->write((char*)array, size);
+}
 
-  myStream->write((char*)buf, 4);
-  if(myStream->bad())
-    throw "Serializer::putInt() file write failed";
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putShort(uInt16 value)
+{
+  myStream->write((char*)&value, sizeof(uInt16));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putShortArray(const uInt16* array, uInt32 size)
+{
+  myStream->write((char*)array, sizeof(uInt16)*size);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putInt(uInt32 value)
+{
+  myStream->write((char*)&value, sizeof(uInt32));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putIntArray(const uInt32* array, uInt32 size)
+{
+  myStream->write((char*)array, sizeof(uInt32)*size);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -188,10 +215,7 @@ void Serializer::putString(const string& str)
 {
   int len = str.length();
   putInt(len);
-  myStream->write(str.data(), (streamsize)len);
-
-  if(myStream->bad())
-    throw "Serializer::putString() file write failed";
+  myStream->write(str.data(), len);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.cxx 2343 2012-01-08 16:55:10Z stephena $
+// $Id: System.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -321,9 +321,9 @@ bool System::save(Serializer& out) const
       if(!myDevices[i]->save(out))
         return false;
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: System::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: System::save" << endl;
     return false;
   }
 
@@ -338,8 +338,8 @@ bool System::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCycles = (uInt32) in.getInt();
-    myDataBusState = (uInt8) in.getByte();
+    myCycles = in.getInt();
+    myDataBusState = in.getByte();
 
     // Next, load state for the CPU
     if(!myM6502->load(in))
@@ -350,9 +350,9 @@ bool System::load(Serializer& in)
       if(!myDevices[i]->load(in))
         return false;
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: System::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: System::load" << endl;
     return false;
   }
 

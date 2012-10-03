@@ -33,35 +33,6 @@
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
-	{ .3, VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
-	{ .97, VertexColorPixelFormat.build(.5 * .4, 0., 0., 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
-const uint EmuSystem::maxPlayers = 4;
-static const uint systemFaceBtns = 2, systemCenterBtns = 2;;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 static uint fceuCheats = 0;
 
 #include <fceu/driver.h>
@@ -70,6 +41,36 @@ static uint fceuCheats = 0;
 #include <fceu/ppu.h>
 #include <fceu/fds.h>
 #include <fceu/input.h>
+
+static bool isFDSBIOSExtension(const char *name)
+{
+	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
+}
+
+static bool isFDSExtension(const char *name)
+{
+	return string_hasDotExtension(name, "fds");
+}
+
+static bool isROMExtension(const char *name)
+{
+	return string_hasDotExtension(name, "nes") || string_hasDotExtension(name, "unf");
+}
+
+static bool isNESExtension(const char *name)
+{
+	return isROMExtension(name) || isFDSExtension(name) || string_hasDotExtension(name, "zip");
+}
+
+static int biosFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isFDSBIOSExtension(name);
+}
+
+static int nesFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isNESExtension(name);
+}
 
 // controls
 
@@ -112,6 +113,21 @@ FsSys::cPath fdsBiosPath = "";
 static PathOption<CFGKEY_FDS_BIOS_PATH> optionFdsBiosPath(fdsBiosPath, sizeof(fdsBiosPath), "");
 static BasicByteOption optionFourScore(CFGKEY_FOUR_SCORE, 0);
 
+const uint EmuSystem::maxPlayers = 4;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include "CommonGui.hh"
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
+
 void EmuSystem::initOptions() { }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -143,11 +159,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
-	if(!optionFourScore.isDefault())
-	{
-		io->writeVar((uint16)optionFourScore.ioSize());
-		optionFourScore.writeToIO(io);
-	}
+	optionFourScore.writeWithKeyIfNotDefault(io);
 	optionFdsBiosPath.writeToIO(io);
 	writeKeyConfig2(io, nesKeyIdxUp, CFGKEY_NESKEY_UP);
 	writeKeyConfig2(io, nesKeyIdxRight, CFGKEY_NESKEY_RIGHT);
@@ -166,45 +178,8 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, nesKeyIdxAB, CFGKEY_NESKEY_A_B);
 }
 
-static bool isFDSBIOSExtension(const char *name)
-{
-	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
-}
-
-static bool isFDSExtension(const char *name)
-{
-	return string_hasDotExtension(name, "fds");
-}
-
-static bool isROMExtension(const char *name)
-{
-	return string_hasDotExtension(name, "nes") || string_hasDotExtension(name, "unf");
-}
-
-static bool isNESExtension(const char *name)
-{
-	return isROMExtension(name) || isFDSExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static int biosFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isFDSBIOSExtension(name);
-}
-
-static int nesFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isNESExtension(name);
-}
-
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = nesFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = nesFsFilter;
-
-#include "NesOptionView.hh"
-static NesOptionView oCategoryMenu;
-
-#include "NesMenuView.hh"
-static NesMenuView mMenu;
-
 
 #ifdef USE_PIX_RGB565
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
@@ -290,7 +265,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -442,9 +417,9 @@ static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int 
 	return 1;
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame();
 
 	fceuReturnedError = 0;
 	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
@@ -480,14 +455,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	setupNESInputPorts();
 	EmuSystem::configAudioRate();
 	emuView.initImage(0, nesPixX, nesVisiblePixY);
-
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-			FCEUI_LoadState(saveStr);
-	}
 
 	logMsg("started emu");
 	return 1;
@@ -663,8 +630,17 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
+		{ .3, VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
+		{ .97, VertexColorPixelFormat.build(.5 * .4, 0., 0., 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	Audio::setHintPcmFramesPerWrite(950); // for PAL
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
 	backupSavestates = 0;

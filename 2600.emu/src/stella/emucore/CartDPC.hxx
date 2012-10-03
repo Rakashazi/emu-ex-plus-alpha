@@ -192,7 +192,7 @@ class CartridgeDPC : public Cartridge
     Int32 mySystemCycles;
 
     // Fractional DPC music OSC clocks unused during the last update
-    SysDDec myFractionalClocks;
+    double myFractionalClocks;
 };
 
 #endif

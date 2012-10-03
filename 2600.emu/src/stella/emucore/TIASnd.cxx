@@ -379,7 +379,7 @@ void TIASound::process(Sample* buffer, uInt32 samples)
       case Hardware2Mono:  // mono sampling with 2 hardware channels
         while((samples > 0) && (myOutputCounter >= myTIAFrequency))
         {
-          uInt8 byte = (((myP4[0] & 8) ? v0 : 0) +
+        	Sample byte = (((myP4[0] & 8) ? v0 : 0) +
               ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
           *(buffer++) = byte;
           *(buffer++) = byte;

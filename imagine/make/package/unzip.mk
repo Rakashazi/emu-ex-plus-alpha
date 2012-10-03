@@ -1,17 +1,12 @@
 ifndef inc_pkg_unzip
 inc_pkg_unzip := 1
 
-ifdef package_unzip_externalPath
-	CPPFLAGS += -I$(package_unzip_externalPath)/include
-	LDLIBS += $(package_unzip_externalPath)/lib/unzip.o $(package_unzip_externalPath)/lib/ioapi.o $(package_unzip_externalPath)/lib/zip.o
+ifneq ($(ENV), linux)
+ CPPFLAGS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include pkg-config minizip --cflags --static --define-variable=prefix=$(system_externalSysroot))
+ LDLIBS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config minizip --libs --static --define-variable=prefix=$(system_externalSysroot))
 else
-	ifeq ($(ENV), macOSX)
-		LDLIBS += $(IMAGINE_PATH)/bundle/macosx-x86/usr/lib/unzip.o $(IMAGINE_PATH)/bundle/macosx-x86/usr/lib/ioapi.o $(IMAGINE_PATH)/bundle/macosx-x86/usr/lib/zip.o
-	else
-		LDLIBS += $(system_externalSysroot)/lib/unzip.o $(system_externalSysroot)/lib/ioapi.o $(system_externalSysroot)/lib/zip.o
-	endif
+ CPPFLAGS += $(shell pkg-config minizip --cflags)
+ LDLIBS += $(shell pkg-config minizip --libs)
 endif
-
-LDLIBS += -lz
 
 endif

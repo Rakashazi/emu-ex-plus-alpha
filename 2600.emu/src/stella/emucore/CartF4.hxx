@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF4.hxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartF4.hxx 2453 2012-04-29 19:43:28Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF4_HXX
@@ -30,7 +30,7 @@ class System;
   are eight 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF4.hxx 2325 2012-01-02 20:31:42Z stephena $
+  @version $Id: CartF4.hxx 2453 2012-04-29 19:43:28Z stephena $
 */
 class CartridgeF4 : public Cartridge
 {
@@ -141,7 +141,7 @@ class CartridgeF4 : public Cartridge
     // Indicates which bank is currently active
     uInt16 myCurrentBank;
 
-    // The 16K ROM image of the cartridge
+    // The 32K ROM image of the cartridge
     uInt8 myImage[32768];
 };
 

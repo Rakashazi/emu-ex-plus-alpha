@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 2412 2012-03-14 01:19:23Z stephena $
+// $Id: M6532.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -119,7 +119,7 @@ uInt8 M6532::peek(uInt16 addr)
   {
     case 0x00:    // SWCHA - Port A I/O Register (Joystick)
     {
-    	uInt8 value = (myConsole.controller(Controller::Left).read() << 4) |
+      uInt8 value = (myConsole.controller(Controller::Left).read() << 4) |
                      myConsole.controller(Controller::Right).read();
 
       // Each pin is high (1) by default and will only go low (0) if either
@@ -272,24 +272,24 @@ void M6532::setPinState(bool swcha)
       if(DDR bit is input)       set output as 1
       else if(DDR bit is output) set output as bit in ORA
   */
-  uInt8 a = myOutA | ~myDDRA;
-
   Controller& port0 = myConsole.controller(Controller::Left);
-  port0.write(Controller::One, a & 0x10);
-  port0.write(Controller::Two, a & 0x20);
-  port0.write(Controller::Three, a & 0x40);
-  port0.write(Controller::Four, a & 0x80);
-
   Controller& port1 = myConsole.controller(Controller::Right);
-  port1.write(Controller::One, a & 0x01);
-  port1.write(Controller::Two, a & 0x02);
-  port1.write(Controller::Three, a & 0x04);
-  port1.write(Controller::Four, a & 0x08);
+
+  uInt8 ioport = myOutA | ~myDDRA;
+
+  port0.write(Controller::One,   ioport & 0x10);
+  port0.write(Controller::Two,   ioport & 0x20);
+  port0.write(Controller::Three, ioport & 0x40);
+  port0.write(Controller::Four,  ioport & 0x80);
+  port1.write(Controller::One,   ioport & 0x01);
+  port1.write(Controller::Two,   ioport & 0x02);
+  port1.write(Controller::Three, ioport & 0x04);
+  port1.write(Controller::Four,  ioport & 0x08);
 
   if(swcha)
   {
-    port0.controlWrite();
-    port1.controlWrite();
+    port0.controlWrite(ioport);
+    port1.controlWrite(ioport);
   }
 }
 
@@ -301,9 +301,7 @@ bool M6532::save(Serializer& out) const
     out.putString(name());
 
     // Output the RAM
-    out.putInt(128);
-    for(uInt32 t = 0; t < 128; ++t)
-      out.putByte((char)myRAM[t]);
+    out.putByteArray(myRAM, 128);
 
     out.putInt(myTimer);
     out.putInt(myIntervalShift);
@@ -311,18 +309,15 @@ bool M6532::save(Serializer& out) const
     out.putBool(myInterruptEnabled);
     out.putBool(myInterruptTriggered);
 
-    out.putByte((char)myDDRA);
-    out.putByte((char)myDDRB);
-    out.putByte((char)myOutA);
-    out.putByte((char)myOutB);
-    out.putByte((char)myOutTimer[0]);
-    out.putByte((char)myOutTimer[1]);
-    out.putByte((char)myOutTimer[2]);
-    out.putByte((char)myOutTimer[3]);
+    out.putByte(myDDRA);
+    out.putByte(myDDRB);
+    out.putByte(myOutA);
+    out.putByte(myOutB);
+    out.putByteArray(myOutTimer, 4);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: M6532::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: M6532::save" << endl;
     return false;
   }
 
@@ -338,28 +333,23 @@ bool M6532::load(Serializer& in)
       return false;
 
     // Input the RAM
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 t = 0; t < limit; ++t)
-      myRAM[t] = (uInt8) in.getByte();
+    in.getByteArray(myRAM, 128);
 
-    myTimer = (uInt32) in.getInt();
-    myIntervalShift = (uInt32) in.getInt();
-    myCyclesWhenTimerSet = (uInt32) in.getInt();
+    myTimer = in.getInt();
+    myIntervalShift = in.getInt();
+    myCyclesWhenTimerSet = in.getInt();
     myInterruptEnabled = in.getBool();
     myInterruptTriggered = in.getBool();
 
-    myDDRA = (uInt8) in.getByte();
-    myDDRB = (uInt8) in.getByte();
-    myOutA = (uInt8) in.getByte();
-    myOutB = (uInt8) in.getByte();
-    myOutTimer[0] = (uInt8) in.getByte();
-    myOutTimer[1] = (uInt8) in.getByte();
-    myOutTimer[2] = (uInt8) in.getByte();
-    myOutTimer[3] = (uInt8) in.getByte();
+    myDDRA = in.getByte();
+    myDDRB = in.getByte();
+    myOutA = in.getByte();
+    myOutB = in.getByte();
+    in.getByteArray(myOutTimer, 4);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: M6532::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: M6532::load" << endl;
     return false;
   }
 

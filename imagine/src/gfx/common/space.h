@@ -14,6 +14,7 @@ void setupScreenSize()
 	assert(viewMMWidth_ != 0 && viewMMHeight_ != 0);
 	mmToPixelXScaler = (GC)viewPixelWidth() / (GC)viewMMWidth();
 	mmToPixelYScaler = (GC)viewPixelHeight() / (GC)viewMMHeight();
+	proj.updateMMSize();
 }
 
 static GC orientationToGC(uint o)

@@ -43,6 +43,11 @@ public:
 		}
 	}
 
+	NavView *navView() const
+	{
+		return nav;
+	}
+
 	void place(const Rect2<int> &rect)
 	{
 		viewRect = rect;
@@ -61,7 +66,7 @@ public:
 			nav->place();
 			customViewRect.y += nav->viewRect.ySize();
 		}
-		top()->place(customViewRect);
+		top()->placeRect(customViewRect);
 	}
 
 	void inputEvent(const InputEvent &e)

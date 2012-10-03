@@ -26,19 +26,27 @@ static AndroidBluetoothAdapter defaultAndroidAdapter;
 
 static JavaInstMethod<jint> jStartScan, jInRead;
 static JavaInstMethod<jobject> jDefaultAdapter, jOpenSocket, jBtSocketInputStream, jBtSocketOutputStream;
-static JavaInstMethod<void> jBtSocketClose, jOutWrite;
+static JavaInstMethod<void> jBtSocketClose, jOutWrite, jCancelScan;
 
 // runs in activity thread
 static void JNICALL btScanStatus(JNIEnv* env, jobject thiz, jint res)
 {
 	logMsg("scan complete");
-	Base::sendBTScanStatusDelegate(AndroidBluetoothAdapter::SCAN_COMPLETE);
+	if(defaultAndroidAdapter.scanCancelled)
+		Base::sendBTScanStatusDelegate(AndroidBluetoothAdapter::SCAN_CANCELLED);
+	else
+		Base::sendBTScanStatusDelegate(AndroidBluetoothAdapter::SCAN_COMPLETE);
 	defaultAndroidAdapter.inDetect = 0;
 }
 
 // runs in activity thread
 static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jint classInt)
 {
+	if(defaultAndroidAdapter.scanCancelled)
+	{
+		logMsg("scan cancelled with handling device class");
+		return 0;
+	}
 	logMsg("got class %X", classInt);
 	uchar classByte[3];
 	classByte[2] = classInt >> 16;
@@ -55,6 +63,11 @@ static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jint classInt
 // runs in activity thread
 static void JNICALL scanDeviceName(JNIEnv* env, jobject thiz, jstring name, jstring addr)
 {
+	if(defaultAndroidAdapter.scanCancelled)
+	{
+		logMsg("scan cancelled with handling device name");
+		return;
+	}
 	const char *nameStr = env->GetStringUTFChars(name, 0);
 	BluetoothAddr addrByte;
 	{
@@ -78,6 +91,7 @@ bool AndroidBluetoothAdapter::openDefault()
 		logMsg("JNI setup");
 		jDefaultAdapter.setup(eEnv(), jBaseActivityCls, "btDefaultAdapter", "()Landroid/bluetooth/BluetoothAdapter;");
 		jStartScan.setup(eEnv(), jBaseActivityCls, "btStartScan", "(Landroid/bluetooth/BluetoothAdapter;)I");
+		jCancelScan.setup(eEnv(), jBaseActivityCls, "btCancelScan", "(Landroid/bluetooth/BluetoothAdapter;)V");
 		jOpenSocket.setup(eEnv(), jBaseActivityCls, "btOpenSocket", "(Landroid/bluetooth/BluetoothAdapter;Ljava/lang/String;IZ)Landroid/bluetooth/BluetoothSocket;");
 
 		jclass jBluetoothSocketCls = eEnv()->FindClass("android/bluetooth/BluetoothSocket");
@@ -104,7 +118,7 @@ bool AndroidBluetoothAdapter::openDefault()
 		eEnv()->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 	}
 
-	logMsg("opening default BT adapter, %p", jBaseActivity);
+	logMsg("opening default BT adapter");
 	adapter = jDefaultAdapter(eEnv(), jBaseActivity);
 	if(!adapter)
 	{
@@ -117,9 +131,20 @@ bool AndroidBluetoothAdapter::openDefault()
 	return 1;
 }
 
+void AndroidBluetoothAdapter::cancelScan()
+{
+	using namespace Base;
+	scanCancelled = 1;
+	jCancelScan(eEnv(), jBaseActivity, adapter);
+}
+
 void AndroidBluetoothAdapter::close()
 {
-	inDetect = 0;
+	if(inDetect)
+	{
+		cancelScan();
+		inDetect = 0;
+	}
 }
 
 AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter()
@@ -135,15 +160,15 @@ fbool AndroidBluetoothAdapter::startScan()
 	using namespace Base;
 	if(!inDetect)
 	{
+		scanCancelled = 0;
 		inDetect = 1;
-		logMsg("start scan");
+		logMsg("starting scan");
 		if(!jStartScan(eEnv(), jBaseActivity, adapter))
 		{
 			inDetect = 0;
 			logMsg("failed to start scan");
 			return 0;
 		}
-		logMsg("started scan");
 		return 1;
 	}
 	else
@@ -191,9 +216,13 @@ void* AndroidBluetoothSocket::readThreadFunc(void *arg)
 		//logMsg("read %d bytes", len);
 		if(unlikely(len <= 0 || jEnv->ExceptionOccurred()))
 		{
-			logMsg("error reading packet from in stream %p", jInput);
+			if(s.isClosing)
+				logMsg("input stream %p closing", jInput);
+			else
+				logMsg("error reading packet from input stream %p", jInput);
 			jEnv->ExceptionClear();
-			Base::sendBTSocketStatusDelegate(s, STATUS_ERROR);
+			if(!s.isClosing)
+				Base::sendBTSocketStatusDelegate(s, STATUS_ERROR);
 			break;
 		}
 		Base::sendBTSocketData(s, len, data);
@@ -252,6 +281,7 @@ void AndroidBluetoothSocket::close()
 		logMsg("closing socket");
 		JNIEnv *jEnv;
 		Base::jVM->GetEnv((void**) &jEnv, JNI_VERSION_1_6);
+		isClosing = 1;
 		jEnv->DeleteGlobalRef(outStream);
 		jBtSocketClose(jEnv, socket);
 		jEnv->DeleteGlobalRef(socket);

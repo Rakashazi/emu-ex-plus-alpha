@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Version.hxx 2435 2012-03-30 21:07:57Z stephena $
+// $Id: Version.hxx 2537 2012-06-10 00:34:46Z stephena $
 //============================================================================
 
 #ifndef VERSION_HXX
@@ -22,7 +22,7 @@
 
 #include <cstdlib>
 
-#define STELLA_VERSION "3.6.1"
-#define STELLA_BUILD atoi("$Rev: 2435 $" + 6)
+#define STELLA_VERSION "3.7.2"
+#define STELLA_BUILD atoi("$Rev: 2537 $" + 6)
 
 #endif

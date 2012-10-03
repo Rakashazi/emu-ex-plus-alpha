@@ -44,7 +44,6 @@ public:
 
 	void init(const char *msgText, const char *initialContent = "");
 	void deinit();
-	void place(Rect2<int> rect);
 	void place();
 	void inputEvent(const InputEvent &e);
 	void draw();

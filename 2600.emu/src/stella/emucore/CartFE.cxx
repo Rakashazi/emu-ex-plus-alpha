@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFE.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartFE.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -31,7 +31,7 @@ CartridgeFE::CartridgeFE(const uInt8* image, uInt32 size, const Settings& settin
     myLastAddressChanged(false)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(8192u, size));
+  memcpy(myImage, image, BSPF_min(8192u, size));
 
   // We use System::PageAccess.codeAccessBase, but don't allow its use
   // through a pointer, since the address space of FE carts can change
@@ -164,12 +164,12 @@ bool CartridgeFE::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myLastAddress1);
-    out.putInt(myLastAddress2);
+    out.putShort(myLastAddress1);
+    out.putShort(myLastAddress2);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeFE::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeFE::save" << endl;
     return false;
   }
 
@@ -184,12 +184,12 @@ bool CartridgeFE::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myLastAddress1 = (uInt16)in.getInt();
-    myLastAddress2 = (uInt16)in.getInt();
+    myLastAddress1 = in.getShort();
+    myLastAddress2 = in.getShort();
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeF8SC::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeF8SC::load" << endl;
     return false;
   }
 

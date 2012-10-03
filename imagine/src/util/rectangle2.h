@@ -103,8 +103,7 @@ public:
 
 	void setXPosRel(T newX, T size, _2DOrigin origin)
 	{
-		if(size <= 0) size = 1;
-		size--;
+		assert(size >= 0);
 		newX = origin.adjustX(newX, size, LTIC2DO);
 		x = newX;
 		x2 = newX + size;
@@ -112,8 +111,7 @@ public:
 
 	void setYPosRel(T newY, T size, _2DOrigin origin)
 	{
-		if(size <= 0) size = 1;
-		size--;
+		assert(size >= 0);
 		newY = origin.invertYIfCartesian().adjustY(newY, size, LTIC2DO);
 		y = newY;
 		y2 = newY + size;
@@ -141,6 +139,11 @@ public:
 		setPosRel(pos.x, pos.y, size, size, origin);
 	}
 
+	void setPosRel(IG::Point2D<T> pos, T xSize, T ySize, _2DOrigin origin)
+	{
+		setPosRel(pos.x, pos.y, xSize, ySize, origin);
+	}
+
 	#ifdef CONFIG_GFX
 	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
 	{
@@ -158,12 +161,12 @@ public:
 
 	void setRel(T newX, T newY, T xSize, T ySize)
 	{
-		if(xSize <= 0) xSize = 1;
+		assert(xSize >= 0);
 		x = newX;
-		x2 = newX + (xSize-1);
-		if(xSize <= 0) xSize = 1;
+		x2 = newX + xSize;
+		assert(ySize >= 0);
 		y = newY;
-		y2 = newY + (ySize-1);
+		y2 = newY + ySize;
 		//logMsg("set rect to %d,%d %d,%d", x, y, x2, y2);
 	}
 

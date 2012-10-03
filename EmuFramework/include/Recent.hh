@@ -24,8 +24,9 @@
 
 struct RecentGameInfo
 {
-	FsSys::cPath path;
-	char name[256];
+	constexpr RecentGameInfo() { }
+	FsSys::cPath path {0};
+	char name[256] {0};
 
 	bool operator ==(RecentGameInfo const& rhs) const
 	{
@@ -33,9 +34,11 @@ struct RecentGameInfo
 	}
 
 	void handleMenuSelection(TextMenuItem &, const InputEvent &e);
+
+	static constexpr uint MAX_RECENT = 10;
 };
 
-extern DLList<RecentGameInfo> recentGameList;
+extern StaticDLList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 
 void recent_addGame(const char *fullPath, const char *name);
 

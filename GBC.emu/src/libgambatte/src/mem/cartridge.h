@@ -19,9 +19,10 @@
 #ifndef CARTRIDGE_H
 #define CARTRIDGE_H
 
+#include "loadres.h"
 #include "memptrs.h"
 #include "rtc.h"
-#include "../savestate.h"
+#include "savestate.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -62,13 +63,16 @@ public:
 	
 	const unsigned char * rmem(unsigned area) const { return memptrs.rmem(area); }
 	unsigned char * wmem(unsigned area) const { return memptrs.wmem(area); }
+	unsigned char * vramdata() const { return memptrs.vramdata(); }
 	unsigned char * romdata(unsigned area) const { return memptrs.romdata(area); }
 	unsigned char * wramdata(unsigned area) const { return memptrs.wramdata(area); }
 	const unsigned char * rdisabledRam() const { return memptrs.rdisabledRam(); }
 	const unsigned char * rsrambankptr() const { return memptrs.rsrambankptr(); }
 	unsigned char * wsrambankptr() const { return memptrs.wsrambankptr(); }
+	unsigned char * vrambankptr() const { return memptrs.vrambankptr(); }
 	OamDmaSrc oamDmaSrc() const { return memptrs.oamDmaSrc(); }
 	
+	void setVrambank(unsigned bank) { memptrs.setVrambank(bank); }
 	void setWrambank(unsigned bank) { memptrs.setWrambank(bank); }
 	void setOamDmaSrc(OamDmaSrc oamDmaSrc) { memptrs.setOamDmaSrc(oamDmaSrc); }
 	
@@ -83,8 +87,9 @@ public:
 	void saveSavedata();
 	const std::string saveBasePath() const;
 	void setSaveDir(const std::string &dir);
-	int loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
-	const char * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
+	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	char const * romTitle() const { return reinterpret_cast<const char *>(memptrs.romdata() + 0x134); }
+	class PakInfo const pakInfo(bool multicartCompat) const;
 	void setGameGenie(const std::string &codes);
 };
 

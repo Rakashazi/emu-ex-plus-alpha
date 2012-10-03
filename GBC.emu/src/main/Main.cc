@@ -22,33 +22,136 @@
 #include <resample/resamplerinfo.h>
 static gambatte::GB gbEmu;
 
-static const GfxLGradientStopDesc navViewGrad[] =
+struct GbcCheat
 {
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((0./255.) * .4, (77./255.) * .4, (74./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	constexpr GbcCheat() { }
+	uchar flags = 0;
+	char name[64] {0};
+	char code[12] {0};
+
+	static const uint ON = BIT(0);
+
+	bool isOn()
+	{
+		return flags & ON;
+	}
+
+	void toggleOn()
+	{
+		toggleBits(flags, ON);
+		// if(game running) refresh cheats
+	}
+
+	bool operator ==(GbcCheat const& rhs) const
+	{
+		return string_equal(code, rhs.code);
+	}
 };
+static StaticDLList<GbcCheat, 255> cheatList;
+static bool cheatsModified = 0;
 
-static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
-const uint EmuSystem::maxPlayers = 1;
-static const uint systemFaceBtns = 2, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 10, EmuSystem::aspectRatioY = 9;
-#define systemAspectRatioString "10:9"
-#include "CommonGui.hh"
-
-namespace EmuControls
+static void applyCheats()
 {
+	if(EmuSystem::gameIsRunning())
+	{
+		std::string ggCodeStr, gsCodeStr;
+		forEachInDLList(&cheatList, e)
+		{
+			if(!e.isOn())
+				continue;
+			std::string &codeStr = strstr(e.code, "-") ? ggCodeStr : gsCodeStr;
+			if(codeStr.size())
+				codeStr += ";";
+			codeStr += e.code;
+		}
+		gbEmu.setGameGenie(ggCodeStr);
+		gbEmu.setGameShark(gsCodeStr);
+		if(ggCodeStr.size())
+			logMsg("set GG codes: %s", ggCodeStr.c_str());
+		if(gsCodeStr.size())
+			logMsg("set GS codes: %s", gsCodeStr.c_str());
+	}
+}
 
-KeyCategory category[categories] =
+static void writeCheatFile()
 {
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
+	if(!cheatsModified)
+		return;
 
+	FsSys::cPath filename;
+	sprintf(filename, "%s/%s.gbcht", EmuSystem::gamePath, EmuSystem::gameName);
+
+	if(!cheatList.size)
+	{
+		logMsg("deleting cheats file %s", filename);
+		FsSys::remove(filename);
+		cheatsModified = 0;
+		return;
+	}
+
+	auto file = IoSys::create(filename);
+	if(!file)
+	{
+		logMsg("error creating cheats file %s", filename);
+		return;
+	}
+	logMsg("writing cheats file %s", filename);
+
+	int version = 0;
+	file->writeVar((uint8)version);
+	file->writeVar((uint16)cheatList.size);
+	forEachInDLList(&cheatList, e)
+	{
+		file->writeVar((uint8)e.flags);
+		file->writeVar((uint16)strlen(e.name));
+		file->fwrite(e.name, strlen(e.name), 1);
+		file->writeVar((uint8)strlen(e.code));
+		file->fwrite(e.code, strlen(e.code), 1);
+	}
+	file->close();
+	cheatsModified = 0;
+}
+
+static void readCheatFile()
+{
+	FsSys::cPath filename;
+	sprintf(filename, "%s/%s.gbcht", EmuSystem::gamePath, EmuSystem::gameName);
+	auto file = IoSys::open(filename);
+	if(!file)
+	{
+		return;
+	}
+	logMsg("reading cheats file %s", filename);
+
+	uint8 version = 0;
+	file->readVar(version);
+	if(version != 0)
+	{
+		logMsg("skipping due to version code %d", version);
+		file->close();
+		return;
+	}
+	uint16 size = 0;
+	file->readVar(size);
+	iterateTimes(size, i)
+	{
+		GbcCheat cheat;
+		uint8 flags = 0;
+		file->readVar(flags);
+		cheat.flags = flags;
+		uint16 nameLen = 0;
+		file->readVar(nameLen);
+		file->read(cheat.name, IG::min(uint16(sizeof(cheat.name)-1), nameLen));
+		uint8 codeLen = 0;
+		file->readVar(codeLen);
+		file->read(cheat.code, IG::min(uint8(sizeof(cheat.code)-1), codeLen));
+		if(!cheatList.addToEnd(cheat))
+		{
+			logMsg("cheat list full while reading from file");
+			break;
+		}
+	}
+	file->close();
 }
 
 // controls
@@ -117,7 +220,7 @@ static void applyGBPalette(uint idx)
 		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
 }
 
-static Option<OptionMethodVar<uint8, optionIsValidWithMax<sizeofArrayConst(gbPal)-1> > > optionGBPal
+static Option<OptionMethodVar<uint8, optionIsValidWithMax<sizeofArray(gbPal)-1> > > optionGBPal
 		(CFGKEY_GB_PAL_IDX, 0);
 
 namespace gambatte
@@ -127,6 +230,21 @@ extern bool useFullColorSaturation;
 
 static BasicByteOption optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
 static Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation(CFGKEY_FULL_GBC_SATURATION, 0);
+
+const uint EmuSystem::maxPlayers = 1;
+uint EmuSystem::aspectRatioX = 10, EmuSystem::aspectRatioY = 9;
+#include "CommonGui.hh"
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -156,21 +274,9 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
-	if(!optionGBPal.isDefault())
-	{
-		io->writeVar((uint16)optionGBPal.ioSize());
-		optionGBPal.writeToIO(io);
-	}
-	if(!optionReportAsGba.isDefault())
-	{
-		io->writeVar((uint16)optionReportAsGba.ioSize());
-		optionReportAsGba.writeToIO(io);
-	}
-	if(!optionFullGbcSaturation.isDefault())
-	{
-		io->writeVar((uint16)optionFullGbcSaturation.ioSize());
-		optionFullGbcSaturation.writeToIO(io);
-	}
+	optionGBPal.writeWithKeyIfNotDefault(io);
+	optionReportAsGba.writeWithKeyIfNotDefault(io);
+	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, gbcKeyIdxUp, CFGKEY_GBCKEY_UP);
 	writeKeyConfig2(io, gbcKeyIdxRight, CFGKEY_GBCKEY_RIGHT);
 	writeKeyConfig2(io, gbcKeyIdxDown, CFGKEY_GBCKEY_DOWN);
@@ -211,20 +317,15 @@ static int gbcFsFilter(const char *name, int type)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = gbcFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbcFsFilter;
 
-#include "GbcOptionView.hh"
-static GbcOptionView oCategoryMenu;
-#include "GbcMenuView.hh"
-static GbcMenuView mMenu;
-
 static const int gbResX = 160, gbResY = 144;
 
 #ifdef GAMBATTE_COLOR_RGB565
 	static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 #else
-	static const PixelFormatDesc *pixFmt = &PixelFormatARGB8888;
+	static const PixelFormatDesc *pixFmt = &PixelFormatBGRA8888;
 #endif
 
-static gambatte::PixelType screenBuff[gbResX*gbResY] __attribute__ ((aligned (8)));
+static gambatte::PixelType screenBuff[gbResX*gbResY] __attribute__ ((aligned (8))) {0};
 
 static class GbcInput : public gambatte::InputGetter
 {
@@ -297,19 +398,6 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 		unsetBits(gbcInput.bits, emuKey);
 }
 
-/*static void setupDrawing(bool force)
-{
-	if(force || !disp.img)
-	{
-		vidPix.init((uchar*)screenBuff, pixFmt, gbResX, gbResY);
-		vidImg.init(vidPix, 0, optionImgFilter);
-		disp.setImg(&vidImg);
-
-	}
-}*/
-
-static bool renderToScreen = 0;
-
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
@@ -344,7 +432,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -363,6 +451,8 @@ void EmuSystem::saveBackupMem()
 {
 	logMsg("saving battery");
 	gbEmu.saveSavedata();
+
+	writeCheatFile();
 }
 
 void EmuSystem::saveAutoState()
@@ -382,26 +472,28 @@ void EmuSystem::saveAutoState()
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
+	cheatList.removeAll();
+	cheatsModified = 0;
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
 static bool touchControlsApplicable() { return 1; }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(1);
+	closeGame();
 
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
+	string_copy(gamePath, FsSys::workDir());
 	#ifdef CONFIG_BASE_IOS_SETUID
 		fixFilePermissions(gamePath);
 	#endif
 	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
 	logMsg("full game path: %s", fullGamePath);
 
-	if(gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0) < 0)
+	auto result = gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	if(result != gambatte::LOADRES_OK)
 	{
-		logMsg("failed to load game");
-		popup.postError("Error loading game");
+		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
 		return 0;
 	}
 	string_copyUpToLastCharInstance(gameName, path, '.');
@@ -409,13 +501,8 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 
 	emuView.initImage(0, gbResX, gbResY);
 
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-			gbEmu.loadState(saveStr);
-	}
+	readCheatFile();
+	applyCheats();
 
 	logMsg("started emu");
 	return 1;
@@ -482,11 +569,7 @@ namespace gambatte
 
 void commitVideoFrame()
 {
-	if(likely(renderToScreen))
-	{
-		emuView.updateAndDrawContent();
-		renderToScreen = 0;
-	}
+	emuView.updateAndDrawContent();
 }
 
 }
@@ -496,11 +579,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	uint8 snd[(35112+2064)*4] ATTRS(aligned(4));
 	unsigned samples;
 
-	if(renderGfx)
-		renderToScreen = 1;
-
 	samples = 35112;
-	int frameSample = gbEmu.runFor(processGfx ? screenBuff : 0, 160, (uint_least32_t*)snd, samples);
+	int frameSample = gbEmu.runFor(processGfx ? screenBuff : 0, 160, (uint_least32_t*)snd, samples, renderGfx);
 	if(renderAudio)
 	{
 		if(frameSample == -1)
@@ -539,7 +619,16 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	mainInitCommon();
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((0./255.) * .4, (77./255.) * .4, (74./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
+	mainInitCommon(navViewGrad);
 	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);
 	applyGBPalette(optionGBPal);
 	gbEmu.setInputGetter(&gbcInput);

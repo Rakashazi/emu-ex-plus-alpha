@@ -18,6 +18,8 @@ else
  android_soName := imagine
 endif
 
+include $(currPath)/gcc.mk
+
 ifndef android_stdcxx
  ifdef cxxExceptions
   android_stdcxx := gnu
@@ -27,12 +29,12 @@ ifndef android_stdcxx
 endif
 
 ifeq ($(android_stdcxx), gnu)
- android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/4.7.2/libs/$(android_abi)/libgnustl_static.a
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/libgnustl_static.a
 else
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
 endif
 
-include $(currPath)/gcc.mk
+include $(IMAGINE_PATH)/make/package/stdc++-headers.mk
 
 #BASE_CXXFLAGS += -fno-use-cxa-atexit
 # -fstack-protector
@@ -41,7 +43,7 @@ COMPILE_FLAGS += -ffunction-sections -fdata-sections \
 ASMFLAGS += -Wa,--noexecstack $(android_cpuFlags)
 LDFLAGS += $(android_cpuFlags)
 WARNINGS_CFLAGS += -Wno-psabi
-LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-soname,lib$(android_soName).so -shared
+LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now,-soname,lib$(android_soName).so -shared
 LDLIBS += -L$(android_ndkSysroot)/usr/lib -lm
 
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)

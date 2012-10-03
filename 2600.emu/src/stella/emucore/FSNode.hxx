@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: FSNode.hxx 2477 2012-05-16 20:52:33Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -202,14 +202,15 @@ class FilesystemNode
 
     /**
      * Indicates whether the path refers to a directory or not.
-     *
-     * @todo Currently we assume that a node that is not a directory
-     * automatically is a file (ignoring things like symlinks or pipes).
-     * That might actually be OK... but we could still add an isFile method.
-     * Or even replace isDirectory by a getType() method that can return values like
-     * kDirNodeType, kFileNodeType, kInvalidNodeType.
      */
     virtual bool isDirectory() const;
+
+    /**
+     * Indicates whether the path refers to a real file or not.
+     *
+     * Currently, a symlink or pipe is not considered a file.
+     */
+    virtual bool isFile() const;
 
     /**
      * Indicates whether the object referred by this path can be read from or not.
@@ -318,6 +319,11 @@ class AbstractFilesystemNode
     virtual bool isDirectory() const = 0;
 
     /**
+     * Indicates whether this path refers to a real file or not.
+     */
+    virtual bool isFile() const = 0;
+
+    /**
      * Indicates whether the object referred by this path can be read from or not.
      *
      * If the path refers to a directory, readability implies being able to read
@@ -342,10 +348,6 @@ class AbstractFilesystemNode
      * @return bool true if the object can be written to, false otherwise.
      */
     virtual bool isWritable() const = 0;
-
-    /* TODO:
-    bool isFile();
-    */
 
     /**
       Create a directory from the given path.

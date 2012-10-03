@@ -46,22 +46,32 @@ namespace PCE_Fast
 	extern vce_t vce;
 }
 
-static const GfxLGradientStopDesc navViewGrad[] =
+static bool isHuCardExtension(const char *name)
 {
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
+	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx") || string_hasDotExtension(name, "zip");
+}
 
-static const char *touchConfigFaceBtnName = "I/II", *touchConfigCenterBtnName = "Select/Run";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+static bool isCDExtension(const char *name)
+{
+	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue");
+}
+
+static int pceHuCDFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isHuCardExtension(name) || isCDExtension(name);
+}
+
+static int pceHuFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isHuCardExtension(name);
+}
+
+BasicByteOption optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
+FsSys::cPath sysCardPath = "";
+static PathOption<CFGKEY_SYSCARD_PATH> optionSysCardPath(sysCardPath, sizeof(sysCardPath), "");
+
 const uint EmuSystem::maxPlayers = 5;
-static const uint systemFaceBtns = 6, systemCenterBtns = 2;;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
 #include "CommonGui.hh"
 
 namespace EmuControls
@@ -74,10 +84,6 @@ KeyCategory category[categories] =
 };
 
 }
-
-BasicByteOption optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
-FsSys::cPath sysCardPath = "";
-static PathOption<CFGKEY_SYSCARD_PATH> optionSysCardPath(sysCardPath, sizeof(sysCardPath), "");
 
 void EmuSystem::initOptions() { }
 
@@ -108,13 +114,6 @@ enum
 #if defined(CONFIG_BASE_PS3)
 const char *ps3_productCode = "PCEE00000";
 #endif
-
-#include "PceFS.hh"
-#include "PceOptionView.hh"
-static PceOptionView oCategoryMenu;
-
-#include "PceMenuView.hh"
-static PceMenuView mMenu;
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -148,13 +147,8 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
-	if(!optionArcadeCard.isDefault())
-	{
-		io->writeVar((uint16)optionArcadeCard.ioSize());
-		optionArcadeCard.writeToIO(io);
-	}
+	optionArcadeCard.writeWithKeyIfNotDefault(io);
 	optionSysCardPath.writeToIO(io);
-
 	writeKeyConfig2(io, pceKeyIdxUp, CFGKEY_PCEKEY_UP);
 	writeKeyConfig2(io, pceKeyIdxRight, CFGKEY_PCEKEY_RIGHT);
 	writeKeyConfig2(io, pceKeyIdxDown, CFGKEY_PCEKEY_DOWN);
@@ -175,6 +169,9 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, pceKeyIdxVI, CFGKEY_PCEKEY_VI);
 }
 
+FsDirFilterFunc EmuFilePicker::defaultFsFilter = pceHuCDFsFilter;
+FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = pceHuFsFilter;
+
 static EmulateSpecStruct espec;
 static std::vector<CDIF *> CDInterfaces;
 
@@ -188,7 +185,7 @@ static
 #else
 	uint32
 #endif
-	pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8)));
+	pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
 static MDFN_Rect lineWidth[vidBufferY];
 static MDFN_Rect currRect;
 static const MDFN_PixelFormat mPixFmtRGB565 = { 16, MDFN_COLORSPACE_RGB, { 11 }, { 5 }, { 0 }, 16, 5, 6, 5, 8 };
@@ -209,7 +206,6 @@ static const MDFN_PixelFormat mPixFmtBGRA8888 = { 32, MDFN_COLORSPACE_RGB, { 16 
 	#endif
 #endif
 static MDFN_Surface mSurface;
-static Pixmap vidPixFull;
 
 static void initVideoFormat()
 {
@@ -224,16 +220,6 @@ static void initVideoFormat()
 }
 
 static uint16 inputBuff[5] = { 0 }; // 5 gamepad buffers
-
-static void setupDrawing(bool force)
-{
-	MDFN_Rect &rect = currRect;
-	logMsg("set rect %d,%d %d,%d", rect.x, rect.y, rect.w, rect.h);
-	vidPixFull.init((uchar*)pixBuff, pixFmt, rect.w, vidBufferY);
-	emuView.vidPix.initSubPixmap(vidPixFull, rect.x, rect.y, rect.w, rect.h);
-	emuView.vidImg.init(emuView.vidPix, 0, optionImgFilter);
-	emuView.disp.setImg(&emuView.vidImg);
-}
 
 void EmuSystem::saveAutoState()
 {
@@ -312,7 +298,7 @@ static void writeCDMD5()
 bool EmuSystem::vidSysIsPAL() { return 0; }
 static bool touchControlsApplicable() { return 1; }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
 
@@ -392,26 +378,15 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 		PCE_Fast::applyVideoFormat(&espec);
 
 		currRect = (MDFN_Rect){0, 4, 256, 232};//espec.DisplayRect;
-		setupDrawing();
+		emuView.initImage(0, currRect.x, currRect.y, currRect.w, currRect.h, currRect.w, vidBufferY);
 	}
 
 	{
-		bool previousState = 0;
-		if(allowAutosaveState && optionAutoSaveState)
-		{
-			std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, "ncq");
-			logMsg("loading autosave-state %s", statePath.c_str());
-			previousState = MDFNI_LoadState(statePath.c_str(), 0);
-		}
-
-		if(!previousState)
-		{
-			// run 1 frame so vce line count is computed
-			logMsg("no previous state, running 1st frame");
-			espec.skip = 1;
-			espec.SoundBuf = 0;
-			emuSys->Emulate(&espec);
-		}
+		// run 1 frame so vce line count is computed
+		//logMsg("no previous state, running 1st frame");
+		espec.skip = 1;
+		espec.SoundBuf = 0;
+		emuSys->Emulate(&espec);
 	}
 
 	configAudioRate();
@@ -458,9 +433,7 @@ void MDFND_commitVideoFrame()
 						espec.DisplayRect.w != currRect.w || espec.DisplayRect.h != currRect.h))
 		{
 			currRect = espec.DisplayRect;
-			setupDrawing();
-			if(optionImageZoom == optionImageZoomIntegerOnly)
-				emuView.placeEmu();
+			emuView.resizeImage(currRect.x, currRect.y, currRect.w, currRect.h, currRect.w, vidBufferY);
 		}
 
 		emuView.updateAndDrawContent();
@@ -623,7 +596,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	char ext[] = { "nc0" };
 	ext[2] = saveSlotChar(saveStateSlot);
@@ -654,13 +627,23 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	mem_zero(espec);
 	// espec.SoundRate is set in mainInitCommon()
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
 	#ifndef CONFIG_BASE_PS3
 	vController.gp.activeFaceBtns = 2;
 	#endif
 	initVideoFormat();
+	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 
 	emuSys->soundchan = 0;
 	emuSys->soundrate = 0;

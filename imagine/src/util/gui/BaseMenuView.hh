@@ -54,15 +54,11 @@ public:
 		}
 	}
 
-	void place(Rect2<int> rect)
-	{
-		View::place(rect);
-	}
-
 	void place()
 	{
 		iterateTimes(items, i)
 		{
+			//logMsg("compile item %d", i);
 			item[i]->compile();
 		}
 

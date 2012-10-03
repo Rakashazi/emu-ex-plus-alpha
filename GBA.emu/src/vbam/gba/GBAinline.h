@@ -19,7 +19,280 @@ extern bool cpuFlashEnabled;
 extern bool cpuEEPROMEnabled;
 extern bool cpuEEPROMSensorEnabled;
 
-static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
+// Handlers (TODO)
+
+static inline u32 armRotLoad32(u32 value, u32 address, bool rot = 1)
+{
+  if(rot && (address & 3))
+  {
+    int shift = (address & 3) << 3;
+    return (value >> shift) | (value << (32 - shift));
+  }
+  return value;
+}
+
+static inline u32 unreadableRead32(ARM7TDMI &cpu, u32 address)
+{
+	auto &cpuDmaHack = gGba.dma.cpuDmaHack;
+	auto &cpuDmaLast = gGba.dma.cpuDmaLast;
+	bool &armState = cpu.armState;
+	auto &reg = cpu.reg;
+#ifdef GBA_LOGGING
+	if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+		log("Illegal word read: %08x at %08x\n", address, armMode ?
+			armNextPC - 4 : armNextPC - 2);
+	}
+#endif
+
+	if(cpuDmaHack) {
+		return armRotLoad32(cpuDmaLast, address);
+	} else {
+		if(armState) {
+			return armRotLoad32(CPUReadMemoryQuick(reg[15].I), address);
+		} else {
+			return armRotLoad32(CPUReadHalfWordQuick(reg[15].I) |
+				CPUReadHalfWordQuick(reg[15].I) << 16, address);
+		}
+	}
+}
+
+static inline u32 biosRead32(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+	if(reg[15].I >> 24) {
+		if(address < 0x4000) {
+#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal word read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+#endif
+
+			return armRotLoad32(READ32LE(((u32 *)&biosProtected)), address);
+		}
+		else return unreadableRead32(cpu, address);
+	} else
+		return armRotLoad32(READ32LE(((u32 *)&bios[address & 0x3FFC])), address);
+}
+
+static inline u32 ioMemRead32(ARM7TDMI &cpu, u32 address)
+{
+  if((address < 0x4000400) && ioReadable[address & 0x3fc]) {
+	  if(ioReadable[(address & 0x3fc) + 2]) {
+		  if ((address & 0x3fc) == COMM_JOY_RECV_L)
+			  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) & ~JOYSTAT_RECV);
+		  return armRotLoad32(READ32LE(((u32 *)&ioMem.b[address & 0x3fC])), address);
+	  } else {
+	  	return armRotLoad32(READ16LE(((u16 *)&ioMem.b[address & 0x3fc])), address);
+	  }
+  }
+  else
+  	return unreadableRead32(cpu, address);
+}
+
+static inline u32 vramRead32(ARM7TDMI &cpu, u32 address)
+{
+	address = (address & 0x1fffc);
+	if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+	{
+		return 0;
+	}
+	if ((address & 0x18000) == 0x18000)
+		address &= 0x17fff;
+	return armRotLoad32(READ32LE(((u32 *)&vram[address])), address);
+}
+
+static inline u32 eepromRead32(ARM7TDMI &cpu, u32 address)
+{
+  if(cpuEEPROMEnabled)
+    // no need to swap this
+    return eepromRead(address);
+  return unreadableRead32(cpu, address);
+}
+
+static inline u32 flashRead32(ARM7TDMI &cpu, u32 address)
+{
+  if(cpuFlashEnabled | cpuSramEnabled)
+    // no need to swap this
+    return flashRead(address);
+  else
+  	return unreadableRead32(cpu, address);
+}
+
+static inline u32 armRotLoad16(u32 value, u32 address, bool rot = 1)
+{
+	if(rot && (address & 1))
+	{
+	   return (value >> 8) | (value << 24);
+	}
+	return value;
+}
+
+static inline u32 unreadableRead16(ARM7TDMI &cpu, u32 address)
+{
+	auto &cpuDmaHack = gGba.dma.cpuDmaHack;
+	auto &cpuDmaLast = gGba.dma.cpuDmaLast;
+	auto &reg = cpu.reg;
+	bool &armState = cpu.armState;
+#ifdef GBA_LOGGING
+	if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+		log("Illegal halfword read: %08x at %08x\n", address, armMode ?
+			armNextPC - 4 : armNextPC - 2);
+	}
+#endif
+	if(cpuDmaHack) {
+		return armRotLoad16(cpuDmaLast & 0xFFFF, address);
+	} else {
+		if(armState) {
+			return armRotLoad16(CPUReadHalfWordQuick(reg[15].I + (address & 2)), address);
+		} else {
+			return armRotLoad16(CPUReadHalfWordQuick(reg[15].I), address);
+		}
+	}
+}
+
+static inline u32 biosRead16(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+  if (reg[15].I >> 24) {
+		if(address < 0x4000) {
+	#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal halfword read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+	#endif
+			return armRotLoad16(READ16LE(((u16 *)&biosProtected[address&2])), address);
+		} else return unreadableRead16(cpu, address);
+	} else
+		return armRotLoad16(READ16LE(((u16 *)&bios[address & 0x3FFE])), address);
+}
+
+
+
+static inline u32 ioMemRead16(ARM7TDMI &cpu, u32 address)
+{
+	auto &cpuTotalTicks = cpu.cpuTotalTicks;
+	auto &timer0Value = gGba.timers.timer0Value;
+	auto &timer0On = gGba.timers.timer0On;
+	auto &timer0Ticks = gGba.timers.timer0Ticks;
+	auto &timer0Reload = gGba.timers.timer0Reload;
+	auto &timer0ClockReload  = gGba.timers.timer0ClockReload;
+	auto &timer1Value = gGba.timers.timer1Value;
+	auto &timer1On = gGba.timers.timer1On;
+	auto &timer1Ticks = gGba.timers.timer1Ticks;
+	auto &timer1Reload = gGba.timers.timer1Reload;
+	auto &timer1ClockReload  = gGba.timers.timer1ClockReload;
+	auto &timer2Value = gGba.timers.timer2Value;
+	auto &timer2On = gGba.timers.timer2On;
+	auto &timer2Ticks = gGba.timers.timer2Ticks;
+	auto &timer2Reload = gGba.timers.timer2Reload;
+	auto &timer2ClockReload  = gGba.timers.timer2ClockReload;
+	auto &timer3Value = gGba.timers.timer3Value;
+	auto &timer3On = gGba.timers.timer3On;
+	auto &timer3Ticks = gGba.timers.timer3Ticks;
+	auto &timer3Reload = gGba.timers.timer3Reload;
+	auto &timer3ClockReload  = gGba.timers.timer3ClockReload;
+  if((address < 0x4000400) && ioReadable[address & 0x3fe])
+  {
+    if (((address & 0x3fe)>0xFF) && ((address & 0x3fe)<0x10E))
+    {
+      if (((address & 0x3fe) == 0x100) && timer0On)
+      	return armRotLoad16(0xFFFF - ((timer0Ticks-cpuTotalTicks) >> timer0ClockReload), address);
+      else
+        if (((address & 0x3fe) == 0x104) && timer1On && !(ioMem.TM1CNT & 4))
+        	return armRotLoad16(0xFFFF - ((timer1Ticks-cpuTotalTicks) >> timer1ClockReload), address);
+        else
+          if (((address & 0x3fe) == 0x108) && timer2On && !(ioMem.TM2CNT & 4))
+          	return armRotLoad16(0xFFFF - ((timer2Ticks-cpuTotalTicks) >> timer2ClockReload), address);
+          else
+            if (((address & 0x3fe) == 0x10C) && timer3On && !(ioMem.TM3CNT & 4))
+            	return armRotLoad16(0xFFFF - ((timer3Ticks-cpuTotalTicks) >> timer3ClockReload), address);
+    }
+    return armRotLoad16(READ16LE(((u16 *)&ioMem.b[address & 0x3fe])), address);
+  }
+  else return unreadableRead16(cpu, address);
+}
+
+static inline u32 vramRead16(ARM7TDMI &cpu, u32 address)
+{
+  address = (address & 0x1fffe);
+  if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+  {
+  	return 0;
+  }
+  if ((address & 0x18000) == 0x18000)
+    address &= 0x17fff;
+  return armRotLoad16(READ16LE(((u16 *)&vram[address])), address);
+}
+
+static inline u32 rtcRead16(ARM7TDMI &cpu, u32 address)
+{
+	if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8)
+  	return armRotLoad16(rtcRead(address), address);
+  else
+  	return armRotLoad16(READ16LE(((u16 *)&rom[address & 0x1FFFFFE])), address);
+}
+
+static inline u32 unreadableRead8(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+	auto &cpuDmaHack = gGba.dma.cpuDmaHack;
+	auto &cpuDmaLast = gGba.dma.cpuDmaLast;
+	bool &armState = cpu.armState;
+#ifdef GBA_LOGGING
+	if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+		log("Illegal byte read: %08x at %08x\n", address, armMode ?
+			armNextPC - 4 : armNextPC - 2);
+	}
+#endif
+	if(cpuDmaHack) {
+		return cpuDmaLast & 0xFF;
+	} else {
+		if(armState) {
+			return CPUReadByteQuick(reg[15].I+(address & 3));
+		} else {
+			return CPUReadByteQuick(reg[15].I+(address & 1));
+		}
+	}
+}
+
+static inline u32 biosRead8(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+	if (reg[15].I >> 24) {
+		if(address < 0x4000) {
+#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal byte read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+#endif
+			return biosProtected[address & 3];
+		} else return unreadableRead8(cpu, address);
+	}
+	return bios[address & 0x3FFF];
+}
+
+static inline u32 ioMemRead8(ARM7TDMI &cpu, u32 address)
+{
+	if((address < 0x4000400) && ioReadable[address & 0x3ff])
+		return ioMem.b[address & 0x3ff];
+	else return unreadableRead8(cpu, address);
+}
+
+static inline u32 vramRead8(ARM7TDMI &cpu, u32 address)
+{
+  address = (address & 0x1ffff);
+  if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    return 0;
+  if ((address & 0x18000) == 0x18000)
+    address &= 0x17fff;
+  return vram[address];
+}
+
+template <bool rot>
+static inline u32 CPUReadMemoryBase(ARM7TDMI &cpu, u32 address)
 {
 	bool &armState = cpu.armState;
 	auto &reg = cpu.reg;
@@ -37,7 +310,6 @@ static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
   }
 #endif
 
-  u32 value;
   switch(address >> 24) {
   case 0:
     if(reg[15].I >> 24) {
@@ -49,54 +321,54 @@ static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
         }
 #endif
 
-        value = READ32LE(((u32 *)&biosProtected));
+        return armRotLoad32(READ32LE(((u32 *)&biosProtected)), address, rot);
       }
       else goto unreadable;
     } else
-      value = READ32LE(((u32 *)&bios[address & 0x3FFC]));
+    	return armRotLoad32(READ32LE(((u32 *)&bios[address & 0x3FFC])), address, rot);
     break;
   case 2:
-    value = READ32LE(((u32 *)&workRAM[address & 0x3FFFC]));
+  	return armRotLoad32(READ32LE(((u32 *)&workRAM[address & 0x3FFFC])), address, rot);
     break;
   case 3:
-    value = READ32LE(((u32 *)&internalRAM[address & 0x7ffC]));
+  	return armRotLoad32(READ32LE(((u32 *)&internalRAM[address & 0x7ffC])), address, rot);
     break;
   case 4:
 	  if((address < 0x4000400) && ioReadable[address & 0x3fc]) {
 		  if(ioReadable[(address & 0x3fc) + 2]) {
-			  value = READ32LE(((u32 *)&ioMem.b[address & 0x3fC]));
 			  if ((address & 0x3fc) == COMM_JOY_RECV_L)
 				  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) & ~JOYSTAT_RECV);
+			  return armRotLoad32(READ32LE(((u32 *)&ioMem.b[address & 0x3fC])), address, rot);
 		  } else {
-			  value = READ16LE(((u16 *)&ioMem.b[address & 0x3fc]));
+		  	return armRotLoad32(READ16LE(((u16 *)&ioMem.b[address & 0x3fc])), address, rot);
 		  }
 	  }
 	  else
 		  goto unreadable;
 	  break;
   case 5:
-    value = READ32LE(((u32 *)&paletteRAM[address & 0x3fC]));
+  	return armRotLoad32(READ32LE(((u32 *)&paletteRAM[address & 0x3fC])), address, rot);
     break;
   case 6:
     address = (address & 0x1fffc);
     if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
     {
-      value = 0;
+    	return 0;
       break;
     }
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
-    value = READ32LE(((u32 *)&vram[address]));
+    return armRotLoad32(READ32LE(((u32 *)&vram[address])), address, rot);
     break;
   case 7:
-    value = READ32LE(((u32 *)&oam[address & 0x3FC]));
+  	return armRotLoad32(READ32LE(((u32 *)&oam[address & 0x3FC])), address, rot);
     break;
   case 8:
   case 9:
   case 10:
   case 11:
   case 12:
-    value = READ32LE(((u32 *)&rom[address&0x1FFFFFC]));
+  	return armRotLoad32(READ32LE(((u32 *)&rom[address&0x1FFFFFC])), address, rot);
     break;
   case 13:
     if(cpuEEPROMEnabled)
@@ -118,18 +390,18 @@ unreadable:
 #endif
 
     if(cpuDmaHack) {
-      value = cpuDmaLast;
+    	return armRotLoad32(cpuDmaLast, address, rot);
     } else {
       if(armState) {
-        value = CPUReadMemoryQuick(reg[15].I);
+      	return armRotLoad32(CPUReadMemoryQuick(reg[15].I), address, rot);
       } else {
-        value = CPUReadHalfWordQuick(reg[15].I) |
-          CPUReadHalfWordQuick(reg[15].I) << 16;
+      	return armRotLoad32(CPUReadHalfWordQuick(reg[15].I) |
+          CPUReadHalfWordQuick(reg[15].I) << 16, address, rot);
       }
     }
   }
 
-  if(address & 3) {
+  /*if(address & 3) {
 #ifdef C_CORE
     int shift = (address & 3) << 3;
     value = (value >> shift) | (value << (32 - shift));
@@ -150,10 +422,24 @@ unreadable:
 #endif
 #endif
   }
-  return value;
+  return value;*/
 }
 
-static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
+static inline u32 CPUReadMemory(ARM7TDMI &cpu, u32 address)
+{
+	return CPUReadMemoryBase<1>(cpu, address);
+}
+
+static inline u32 CPUReadMemoryNoRot(ARM7TDMI &cpu, u32 address)
+{
+	return CPUReadMemoryBase<1>(cpu, address);
+}
+
+
+
+
+template <bool rot>
+static inline u32 CPUReadHalfWordBase(ARM7TDMI &cpu, u32 address)
 {
 	auto &armState = cpu.armState;
 	auto &cpuNextEvent = cpu.cpuNextEvent;
@@ -193,8 +479,6 @@ static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
   }
 #endif
 
-  u32 value;
-
   switch(address >> 24) {
   case 0:
     if (reg[15].I >> 24) {
@@ -205,64 +489,63 @@ static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
             armNextPC - 4 : armNextPC - 2);
         }
 #endif
-        value = READ16LE(((u16 *)&biosProtected[address&2]));
+        return armRotLoad16(READ16LE(((u16 *)&biosProtected[address&2])), address, rot);
       } else goto unreadable;
     } else
-      value = READ16LE(((u16 *)&bios[address & 0x3FFE]));
+    	return armRotLoad16(READ16LE(((u16 *)&bios[address & 0x3FFE])), address, rot);
     break;
   case 2:
-    value = READ16LE(((u16 *)&workRAM[address & 0x3FFFE]));
+  	return armRotLoad16(READ16LE(((u16 *)&workRAM[address & 0x3FFFE])), address, rot);
     break;
   case 3:
-    value = READ16LE(((u16 *)&internalRAM[address & 0x7ffe]));
+  	return armRotLoad16(READ16LE(((u16 *)&internalRAM[address & 0x7ffe])), address, rot);
     break;
   case 4:
     if((address < 0x4000400) && ioReadable[address & 0x3fe])
     {
-      value =  READ16LE(((u16 *)&ioMem.b[address & 0x3fe]));
       if (((address & 0x3fe)>0xFF) && ((address & 0x3fe)<0x10E))
       {
         if (((address & 0x3fe) == 0x100) && timer0On)
-          value = 0xFFFF - ((timer0Ticks-cpuTotalTicks) >> timer0ClockReload);
+        	return armRotLoad16(0xFFFF - ((timer0Ticks-cpuTotalTicks) >> timer0ClockReload), address, rot);
         else
           if (((address & 0x3fe) == 0x104) && timer1On && !(ioMem.TM1CNT & 4))
-            value = 0xFFFF - ((timer1Ticks-cpuTotalTicks) >> timer1ClockReload);
+          	return armRotLoad16(0xFFFF - ((timer1Ticks-cpuTotalTicks) >> timer1ClockReload), address, rot);
           else
             if (((address & 0x3fe) == 0x108) && timer2On && !(ioMem.TM2CNT & 4))
-              value = 0xFFFF - ((timer2Ticks-cpuTotalTicks) >> timer2ClockReload);
+            	return armRotLoad16(0xFFFF - ((timer2Ticks-cpuTotalTicks) >> timer2ClockReload), address, rot);
             else
               if (((address & 0x3fe) == 0x10C) && timer3On && !(ioMem.TM3CNT & 4))
-                value = 0xFFFF - ((timer3Ticks-cpuTotalTicks) >> timer3ClockReload);
+              	return armRotLoad16(0xFFFF - ((timer3Ticks-cpuTotalTicks) >> timer3ClockReload), address, rot);
       }
+      return armRotLoad16(READ16LE(((u16 *)&ioMem.b[address & 0x3fe])), address, rot);
     }
     else goto unreadable;
     break;
   case 5:
-    value = READ16LE(((u16 *)&paletteRAM[address & 0x3fe]));
+  	return armRotLoad16(READ16LE(((u16 *)&paletteRAM[address & 0x3fe])), address, rot);
     break;
   case 6:
     address = (address & 0x1fffe);
     if (((ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
     {
-      value = 0;
+    	return 0;
       break;
     }
     if ((address & 0x18000) == 0x18000)
       address &= 0x17fff;
-    value = READ16LE(((u16 *)&vram[address]));
+    return armRotLoad16(READ16LE(((u16 *)&vram[address])), address, rot);
     break;
   case 7:
-    value = READ16LE(((u16 *)&oam[address & 0x3fe]));
+  	return armRotLoad16(READ16LE(((u16 *)&oam[address & 0x3fe])), address, rot);
     break;
   case 8:
-  case 9:
-  case 10:
-  case 11:
-  case 12:
+  	/*if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8)
+  	  return armRotLoad16(rtcRead(address), address, rot);*/
+  case 9 ... 12:
     if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8)
-      value = rtcRead(address);
+    	return armRotLoad16(rtcRead(address), address, rot);
     else
-      value = READ16LE(((u16 *)&rom[address & 0x1FFFFFE]));
+    	return armRotLoad16(READ16LE(((u16 *)&rom[address & 0x1FFFFFE])), address, rot);
     break;
   case 13:
     if(cpuEEPROMEnabled)
@@ -283,22 +566,32 @@ unreadable:
     }
 #endif
     if(cpuDmaHack) {
-      value = cpuDmaLast & 0xFFFF;
+    	return armRotLoad16(cpuDmaLast & 0xFFFF, address, rot);
     } else {
       if(armState) {
-        value = CPUReadHalfWordQuick(reg[15].I + (address & 2));
+      	return armRotLoad16(CPUReadHalfWordQuick(reg[15].I + (address & 2)), address, rot);
       } else {
-        value = CPUReadHalfWordQuick(reg[15].I);
+      	return armRotLoad16(CPUReadHalfWordQuick(reg[15].I), address, rot);
       }
     }
     break;
   }
 
-  if(address & 1) {
+  /*if(address & 1) {
     value = (value >> 8) | (value << 24);
   }
 
-  return value;
+  return value;*/
+}
+
+static inline u32 CPUReadHalfWord(ARM7TDMI &cpu, u32 address)
+{
+	return CPUReadHalfWordBase<1>(cpu, address);
+}
+
+static inline u32 CPUReadHalfWordNoRot(ARM7TDMI &cpu, u32 address)
+{
+	return CPUReadHalfWordBase<1>(cpu, address);
 }
 
 static inline u16 CPUReadHalfWordSigned(ARM7TDMI &cpu, u32 address)

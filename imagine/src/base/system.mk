@@ -4,7 +4,7 @@ else ifeq ($(ENV), android)
 	include $(imagineSrcDir)/base/android/build.mk
 else ifeq ($(ENV), iOS)
 	include $(imagineSrcDir)/base/iphone/build.mk
-else ifeq ($(ENV), macOSX)
+else ifeq ($(ENV), macosx)
 	include $(imagineSrcDir)/base/osx/build.mk
 else ifeq ($(ENV), webos)
 	include $(imagineSrcDir)/base/sdl/build.mk

@@ -31,35 +31,6 @@
 
 static int snesInputPort = SNES_JOYPAD;
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "A/B/X/Y", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
-const uint EmuSystem::maxPlayers = 5;
-static const uint systemFaceBtns = 6, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include <CommonGui.hh>
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 // controls
 
 enum
@@ -102,6 +73,21 @@ enum {
 };
 
 static BasicByteOption optionMultitap(CFGKEY_MULTITAP, 0);
+
+const uint EmuSystem::maxPlayers = 5;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include <CommonGui.hh>
+
+namespace EmuControls
+{
+
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+
+}
 
 void EmuSystem::initOptions()
 {
@@ -151,12 +137,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(Io *io)
 {
-	if(!optionMultitap.isDefault())
-	{
-		io->writeVar((uint16)optionMultitap.ioSize());
-		optionMultitap.writeToIO(io);
-	}
-
+	optionMultitap.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, s9xKeyIdxUp, CFGKEY_SNESKEY_UP);
 	writeKeyConfig2(io, s9xKeyIdxRight, CFGKEY_SNESKEY_RIGHT);
 	writeKeyConfig2(io, s9xKeyIdxDown, CFGKEY_SNESKEY_DOWN);
@@ -202,11 +183,6 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = snesFsFilter;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 //static uint16 screenBuff[512*478] __attribute__ ((aligned (8))); // moved to globals.cpp
-
-#include "S9XOptionView.hh"
-static S9xOptionView oCategoryMenu;
-#include "S9XMenuView.hh"
-static S9xMenuView mMenu;
 
 #ifdef USE_SNES9X_15X
 uint16 *S9xGetJoypadBits(uint idx);
@@ -343,16 +319,6 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 
 static int snesResX = 256, snesResY = 224;
 
-static void setupDrawing(bool force)
-{
-	if(force || (!emuView.disp.img || emuView.vidPix.x != (uint)snesResX || emuView.vidPix.y != (uint)snesResY))
-	{
-		emuView.vidPix.init((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
-		emuView.vidImg.init(emuView.vidPix, 0, optionImgFilter);
-		emuView.disp.setImg(&emuView.vidImg);
-	}
-}
-
 static bool renderToScreen = 0;
 
 #ifdef USE_SNES9X_15X
@@ -374,9 +340,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 				logMsg("resolution changed to %d,%d", width, height);
 				snesResX = width;
 				snesResY = height;
-				setupDrawing();
-				if(optionImageZoom == optionImageZoomIntegerOnly)
-					emuView.placeEmu();
+				emuView.resizeImage(snesResX, snesResY);
 			}
 		}
 
@@ -439,7 +403,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -537,9 +501,9 @@ static void setupSNESInput()
 	#endif
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame();
 
 	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
 	#ifdef CONFIG_BASE_IOS_SETUID
@@ -566,18 +530,7 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	sprintSRAMFilename(saveStr);
 	Memory.LoadSRAM(saveStr);
 
-	setupDrawing();
-
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-		{
-			logMsg("loading auto-save state");
-			S9xUnfreezeGame(saveStr);
-		}
-	}
+	emuView.initImage(0, snesResX, snesResY);
 
 	IPPU.RenderThisFrame = TRUE;
 	EmuSystem::configAudioRate();
@@ -610,9 +563,8 @@ void EmuSystem::configAudioRate()
 	logMsg("emu sound rate %d", Settings.SoundPlaybackRate);
 }
 
-static void doS9xAudio()
+static void doS9xAudio(bool renderAudio)
 {
-	assert(optionSound);
 	#ifdef USE_SNES9X_15X
 	const uint samples = S9xGetSampleCount();
 	#else
@@ -620,20 +572,25 @@ static void doS9xAudio()
 	#endif
 	uint frames = samples/2;
 
+	int16 audioMemBuff[samples];
+	int16 *audioBuff = nullptr;
 	#ifdef USE_NEW_AUDIO
-	static Audio::BufferContext *aBuff = 0;
-	int16 *audioBuff = 0;
-	if((aBuff = Audio::getPlayBuffer(frames)))
+	Audio::BufferContext *aBuff = nullptr;
+	if(renderAudio)
 	{
+		if(!(aBuff = Audio::getPlayBuffer(frames)))
+		{
+			return;
+		}
 		audioBuff = (int16*)aBuff->data;
 		assert(aBuff->frames >= frames);
 	}
 	else
 	{
-		return;
+		audioBuff = audioMemBuff;
 	}
 	#else
-	int16 audioBuff[samples];
+	audioBuff = audioMemBuff;
 	#endif
 
 
@@ -648,9 +605,11 @@ static void doS9xAudio()
 	#endif
 
 	#ifdef USE_NEW_AUDIO
-	Audio::commitPlayBuffer(aBuff, frames);
+	if(renderAudio)
+		Audio::commitPlayBuffer(aBuff, frames);
 	#else
-	Audio::writePcm((uchar*)audioBuff, frames);
+	if(renderAudio)
+		Audio::writePcm((uchar*)audioBuff, frames);
 	#endif
 }
 
@@ -669,8 +628,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		renderToScreen = 1;
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
-	if(renderAudio)
-		doS9xAudio();
+	doS9xAudio(renderAudio);
 }
 
 namespace Input
@@ -706,7 +664,6 @@ void onInputEvent(const InputEvent &e)
 
 			bcase SNES_MOUSE_SWAPPED:
 			{
-				//Rect<int> fullScreen(0, 0, gfx_viewPixelWidth(), gfx_viewPixelHeight());
 				var_copy(dragState, Input::dragState(e.devId));
 				static bool dragWithButton = 0; // true to start next mouse drag with a button held
 				switch(mouseScroll.inputEvent(Gfx::viewportRect(), e))
@@ -792,6 +749,15 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
 	//Settings.FrameTimePAL = 20000;
 	//Settings.FrameTimeNTSC = 16667;
@@ -847,7 +813,8 @@ CallResult onInit()
 	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
 	#endif
 
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
+	emuView.initPixmap((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
 
 	mMenu.init(Config::envIsPS3);
 	viewStack.push(&mMenu);

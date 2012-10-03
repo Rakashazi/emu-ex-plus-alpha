@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.cxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartE0.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,7 @@ CartridgeE0::CartridgeE0(const uInt8* image, uInt32 size, const Settings& settin
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-	memcpy(myImage, image, BSPF_min(8192u, size));
+  memcpy(myImage, image, BSPF_min(8192u, size));
   createCodeAccessBase(8192);
 }
 
@@ -235,14 +235,11 @@ bool CartridgeE0::save(Serializer& out) const
   try
   {
     out.putString(name());
-
-    out.putInt(4);
-    for(uInt32 i = 0; i < 4; ++i)
-      out.putInt(myCurrentSlice[i]);
+    out.putShortArray(myCurrentSlice, 4);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeE0::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeE0::save" << endl;
     return false;
   }
 
@@ -257,13 +254,11 @@ bool CartridgeE0::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 i = 0; i < limit; ++i)
-      myCurrentSlice[i] = (uInt16) in.getInt();
+    in.getShortArray(myCurrentSlice, 4);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeE0::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeE0::load" << endl;
     return false;
   }
 

@@ -23,13 +23,18 @@ else
  include $(currPath)/clang.mk
 endif
 
+ifdef ios_linkerPath
+ # define an alternate PATH when linking
+ LD = PATH=$(ios_linkerPath):$(PATH) $(CC)
+endif
+
 ifdef RELEASE
  COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
  # base engine code needs at least iOS 3.1
 minIOSVer := 3.1
-IOS_SYSROOT := /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.1.sdk
+IOS_SYSROOT = /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.0.sdk
 IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
 CPPFLAGS += $(IOS_FLAGS)
 LDFLAGS += $(IOS_FLAGS)
@@ -39,7 +44,9 @@ ifneq ($(config_compiler),clang)
  COMPILE_FLAGS += -fsingle-precision-constant -ftree-vectorize
 endif
 #COMPILE_FLAGS += -ftemplate-depth-100
-LDFLAGS += -dead_strip
+ifndef ios_noDeadStrip
+ LDFLAGS += -dead_strip
+endif
 ifdef RELEASE
  LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs
 endif

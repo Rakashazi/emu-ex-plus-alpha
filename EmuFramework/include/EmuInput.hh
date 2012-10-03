@@ -19,6 +19,7 @@
 	#include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include <TurboInput.hh>
+#include <EmuSystem.hh>
 
 struct KeyCategory
 {
@@ -31,12 +32,6 @@ struct KeyCategory
 	const char **keyName;
 	uint keys;
 	uint configOffset;
-};
-
-struct ConstKeyProfile
-{
-	const char *name;
-	const uint *key;
 };
 
 struct KeyProfile
@@ -252,7 +247,6 @@ static const int guiKeyIdxGameScreenshot = 5;
 static const int guiKeyIdxExit = 6;
 
 #include <inGameActionKeys.hh>
-#include <main/EmuControls.hh>
 
 namespace EmuControls
 {

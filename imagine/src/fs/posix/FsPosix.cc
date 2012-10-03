@@ -21,15 +21,17 @@
 #include <unistd.h>
 #include <errno.h>
 
-#if defined CONFIG_BASE_IOS
+#if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100
+	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
 	#define SELECTOR_CONST
 #else
 	#define SELECTOR_CONST const
 #endif
 
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_MACOSX)
+#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_MACOSX) || (defined(CONFIG_BASE_IOS) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000)
 	#define CMP_CAST (int (*)(const dirent**, const dirent**))
 #elif defined(CONFIG_BASE_IOS)
+	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
 	#define CMP_CAST (int (*)(const void*, const void*))
 #else
 	#define CMP_CAST
@@ -276,6 +278,33 @@ int FsPosix::fileType(const char *path)
 	}
 	else
 		return Fs::TYPE_NONE;
+}
+
+CallResult FsPosix::mTimeAsStr(const char *path, timeStr time)
+{
+	logMsg("checking m-time for %s", path);
+	struct stat s;
+	if(stat(path, &s) == 0)
+	{
+		struct tm bTime;
+		time_t mTime = s.st_mtime; // st_mtime isn't time_t on Android so convert if needed
+		if(!localtime_r(&mTime, &bTime))
+		{
+			logErr("localtime_r failed");
+			return INVALID_PARAMETER;
+		}
+		if(!asctime_r(&bTime, time))
+		{
+			logErr("asctime_r failed");
+			return INVALID_PARAMETER;
+		}
+		uint len = strlen(time);
+		if(len && time[len-1] == '\n')
+			time[len-1] = 0;
+		return OK;
+	}
+	else
+		return IO_ERROR;
 }
 
 uint FsPosix::fileSize(const char *path)

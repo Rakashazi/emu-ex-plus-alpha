@@ -5,7 +5,7 @@ include $(IMAGINE_PATH)/make/package/bluez.mk
 
 include $(imagineSrcDir)/bluetooth/bluetooth.mk
 
-configDefs += CONFIG_BLUEZ
+configDefs += CONFIG_BLUETOOTH_BLUEZ
 
 SRC += bluetooth/BluezBluetoothAdapter.cc
 

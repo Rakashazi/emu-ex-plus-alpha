@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 by Matthias Ringwald
+ * Copyright (C) 2009-2012 by Matthias Ringwald
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,6 +13,9 @@
  * 3. Neither the name of the copyright holders nor the names of
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
+ * 4. Any redistribution, use, or modification is done solely for
+ *    personal benefit and not for any commercial purpose or for
+ *    monetary gain.
  *
  * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -26,6 +29,8 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * Please inquire about commercial licensing options at btstack@ringwald.ch
  *
  */
 
@@ -188,7 +193,7 @@ void static socket_connection_emit_nr_connections(void){
 int socket_connection_hci_process(struct data_source *ds) {
     connection_t *conn = (connection_t *) ds;
     
-    size_t maxToRead = 0;
+    int maxToRead = 0;
     ioctl(ds->fd, FIONREAD, (char*)&maxToRead);
     int bytesToRead = maxToRead;
     
@@ -243,11 +248,11 @@ int socket_connection_hci_process(struct data_source *ds) {
 		        linked_list_add_tail(&parked, (linked_item_t *) ds);
 		    }
 		}
-		
+	
 		// update bytes read from socket
 		bytesToRead -= bytes_read;
 	} while(bytesToRead > 0);
-	
+
 	return 0;
 }
 

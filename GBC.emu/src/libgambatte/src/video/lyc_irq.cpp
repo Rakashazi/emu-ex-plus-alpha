@@ -17,9 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "lyc_irq.h"
-#include "../counterdef.h"
+#include "counterdef.h"
 #include "ly_counter.h"
-#include "../savestate.h"
+#include "savestate.h"
 #include <algorithm>
 
 namespace gambatte {

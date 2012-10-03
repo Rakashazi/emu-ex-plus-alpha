@@ -25,7 +25,7 @@
 #elif defined CONFIG_BLUEZ
 	#include "BluezBluetoothAdapter.hh"
 	#define BluetoothSocketSys BluezBluetoothSocket
-#else
+#elif defined CONFIG_ANDROIDBT
 	#include "AndroidBluetoothAdapter.hh"
 	#define BluetoothSocketSys AndroidBluetoothSocket
 #endif

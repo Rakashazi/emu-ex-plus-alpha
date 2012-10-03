@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.hxx 2412 2012-03-14 01:19:23Z stephena $
+// $Id: Console.hxx 2527 2012-06-05 16:32:35Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -54,7 +54,7 @@ struct ConsoleInfo
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 2412 2012-03-14 01:19:23Z stephena $
+  @version $Id: Console.hxx 2527 2012-06-05 16:32:35Z stephena $
 */
 class Console : public Serializable
 {
@@ -181,8 +181,10 @@ class Console : public Serializable
   public:
     /**
       Toggle between NTSC/PAL/SECAM (and variants) display format.
+
+      @param direction +1 indicates increase, -1 indicates decrease.
     */
-    void toggleFormat();
+    void toggleFormat(int direction = 1);
 
     /**
       Toggle between the available palettes.
@@ -265,7 +267,7 @@ class Console : public Serializable
     void toggleBLBit() const { toggleTIABit(BLBit, "BL"); }
     void togglePFBit() const { toggleTIABit(PFBit, "PF"); }
     void toggleHMOVE() const;
-    void enableBits(bool enable) const;
+    void toggleBits() const;
 
     /**
       Toggles the TIA collisions specified in the method name.
@@ -276,7 +278,7 @@ class Console : public Serializable
     void toggleM1Collision() const { toggleTIACollision(M1Bit, "M1"); }
     void toggleBLCollision() const { toggleTIACollision(BLBit, "BL"); }
     void togglePFCollision() const { toggleTIACollision(PFBit, "PF"); }
-    void enableCollisions(bool enable) const;
+    void toggleCollisions() const;
 
     /**
       Toggles the TIA 'fixed debug colors' mode.
@@ -284,6 +286,12 @@ class Console : public Serializable
     void toggleFixedColors() const;
 
   private:
+    /**
+      Sets various properties of the TIA (YStart, Height, etc) based on
+      the current display format.
+    */
+    void setTIAProperties();
+
     /**
       Adds the left and right controllers to the console.
     */
@@ -334,11 +342,11 @@ class Console : public Serializable
     System* mySystem;
 
     // Pointer to the Cartridge (the debugger needs it)
-    Cartridge *myCart;
+    Cartridge* myCart;
 
     // Pointer to the 6532 (aka RIOT) (the debugger needs it)
     // A RIOT of my own! (...with apologies to The Clash...)
-    M6532 *myRiot;
+    M6532* myRiot;
 
     // Pointer to CompuMate handler (only used in CompuMate ROMs)
     CompuMate* myCMHandler;
@@ -348,6 +356,9 @@ class Console : public Serializable
 
     // The currently defined display framerate
     float myFramerate;
+
+    // Display format currently in use
+    uInt32 myCurrentFormat;
 
     // Indicates whether an external palette was found and
     // successfully loaded

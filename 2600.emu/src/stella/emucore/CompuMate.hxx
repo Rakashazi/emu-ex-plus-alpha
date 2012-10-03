@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.hxx 2414 2012-03-15 15:22:57Z stephena $
+// $Id: CompuMate.hxx 2447 2012-04-19 20:11:16Z stephena $
 //============================================================================
 
 #ifndef COMPUMATE_HXX
@@ -37,7 +37,7 @@
   CMControl's, taking care of their creation and communication between them.
 
   @author  Stephen Anthony
-  @version $Id: CompuMate.hxx 2414 2012-03-15 15:22:57Z stephena $
+  @version $Id: CompuMate.hxx 2447 2012-04-19 20:11:16Z stephena $
 */
 class CompuMate
 {
@@ -99,8 +99,10 @@ class CompuMate
       public:
         /**
           Called after *all* digital pins have been written on Port A.
+
+          @param value  The entire contents of the SWCHA register
         */
-        void controlWrite() { myHandler.update(); }
+        void controlWrite(uInt8) { myHandler.update(); }
 
         /**
           Update the entire digital and analog pin state according to the
@@ -120,6 +122,9 @@ class CompuMate
 
     // Left and right controllers
     CMControl *myLeftController, *myRightController;
+
+    // The keyboard state array (tells us the current state of the keyboard)
+    const bool* myKeyTable;
 
     // System cycle at which the update() method is called
     // Multiple calls at the same cycle should be ignored

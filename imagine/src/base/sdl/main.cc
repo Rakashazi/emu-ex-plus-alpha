@@ -26,7 +26,7 @@
 #include <gfx/Gfx.hh>
 #include <input/interface.h>
 #include <logger/interface.h>
-
+#include <util/collection/DLList.hh>
 #include <base/Base.hh>
 #include <base/common/funcs.h>
 
@@ -228,18 +228,14 @@ const char *storagePath() { return "/media/internal"; }
 
 #endif
 
-static TimerCallbackFunc timerCallbackFunc = 0;
-static void *timerCallbackFuncCtx = 0;
-static SDL_TimerID sdlTimerId = 0;
 static Uint32 sdlTimerCallback(Uint32 interval, void* param)
 {
 	//logMsg("sending SDL_USEREVENT for timer");
 	SDL_Event ev = { SDL_USEREVENT };
 	ev.user.code = 0;
-	ev.user.data1 = (void*)timerCallbackFunc;
+	ev.user.data1 = (void*)param;
 	ev.user.data2 = 0;
 	SDL_PushEvent(&ev);
-	sdlTimerId = 0;
 	return 0;
 }
 
@@ -253,22 +249,65 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 	SDL_PushEvent(&ev);
 }
 
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
+struct Callback
 {
-	if(sdlTimerId)
+	constexpr Callback() { }
+	constexpr Callback(CallbackDelegate del): del(del) { }
+	CallbackDelegate del;
+	SDL_TimerID timerId = 0;
+
+	bool operator ==(Callback const& rhs) const
 	{
-		SDL_RemoveTimer(sdlTimerId);
+		return del == rhs.del;
 	}
-	if(!f)
+};
+
+static DLList<Callback>::Node DLListNodeArray(timerListNode, 4);
+static DLList<Callback> timerList {timerListNode};
+
+void cancelCallback(CallbackRef *ref)
+{
+	auto callback = (Callback*)ref;
+	if(ref)
 	{
 		logMsg("canceling callback");
-		timerCallbackFunc = 0;
-		return;
+		// According to the SDL source code, SDL_RemoveTimer will block if a timer
+		// callback is running on a thread, so the following code can only run
+		// when the timer callback is fully complete and not executing part-way
+		if(SDL_RemoveTimer(callback->timerId) == SDL_FALSE)
+		{
+			// timer already ran, find & remove event from queue so it doesn't reach event loop
+			SDL_Event ev[4];
+			int events = SDL_PeepEvents(ev, sizeofArray(ev), SDL_GETEVENT, SDL_EVENTMASK(SDL_USEREVENT));
+			iterateTimes(events, i)
+			{
+				if(ev[i].user.code == 0 && ev[i].user.data1 == ref)
+				{
+					logMsg("removed callback from event queue");
+				}
+				else
+				{
+					// not the event we're looking for, re-add to queue
+					SDL_PushEvent(&ev[i]);
+				}
+			}
+		}
+		timerList.remove(*callback);
+	}
+}
+
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
+{
+	if(timerList.isFull())
+	{
+		logErr("max timers reached");
+		return nullptr;
 	}
 	logMsg("setting callback to run in %d ms", ms);
-	timerCallbackFunc = f;
-	timerCallbackFuncCtx = ctx;
-	sdlTimerId = SDL_AddTimer(ms, sdlTimerCallback, 0);
+	Callback callbackArg(callback);
+	timerList.add(callbackArg);
+	timerList.first()->timerId = SDL_AddTimer(ms, sdlTimerCallback, timerList.first());
+	return (CallbackRef*)timerList.first();
 }
 
 static void eventHandler(SDL_Event &event)
@@ -286,14 +325,13 @@ static void eventHandler(SDL_Event &event)
 			logMsg("got SDL_USEREVENT %d", id);
 			if(id == 0)
 			{
-				if(timerCallbackFunc && event.user.data1 == timerCallbackFunc)
-				{
-					logMsg("running callback");
-					timerCallbackFunc(timerCallbackFuncCtx);
-					timerCallbackFunc = 0;
-					if(appState != APP_RUNNING)
-						gfxUpdate = 0; // cancel gfx update if app not active
-				}
+				auto callback = (Callback*)event.user.data1;
+				assert(timerList.contains(*callback));
+				logMsg("running callback");
+				callback->del.invoke();
+				timerList.remove(*callback);
+				if(appState != APP_RUNNING)
+					gfxUpdate = 0; // cancel gfx update if app not active
 			}
 			else
 			{

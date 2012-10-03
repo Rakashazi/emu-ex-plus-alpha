@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.cxx 2343 2012-01-08 16:55:10Z stephena $
+// $Id: StateManager.cxx 2527 2012-06-05 16:32:35Z stephena $
 //============================================================================
 
 #include <sstream>
@@ -30,7 +30,7 @@
 
 #include "StateManager.hxx"
 
-#define STATE_HEADER "03050500state"
+#define STATE_HEADER "03070100state"
 #define MOVIE_HEADER "03030000movie"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -314,9 +314,9 @@ bool StateManager::saveState(Serializer& out)
       }
     }
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: StateManager::saveState(Serializer&)" << endl << "  " << msg << endl;
+    cerr << "ERROR: StateManager::saveState(Serializer&)" << endl;
   }
   return false;
 }

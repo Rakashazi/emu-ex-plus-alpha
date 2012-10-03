@@ -2,6 +2,10 @@
 #include <input/interface.h>
 #include <gfx/Gfx.hh>
 
+#ifdef CONFIG_BLUETOOTH
+#include <bluetooth/BluetoothInputDevScanner.hh>
+#endif
+
 struct PointerState
 {
 	constexpr PointerState() { }
@@ -410,6 +414,18 @@ const char *buttonName(uint dev, InputButton b)
 		#endif
 	}
 	return "Unknown";
+}
+
+bool keyInputIsPresent()
+{
+	return Base::isInputDevPresent(InputEvent::DEV_KEYBOARD)
+	#ifdef CONFIG_BLUETOOTH
+		|| Bluetooth::devsConnected()
+	#endif
+	#ifdef CONFIG_INPUT_ICADE
+		|| Input::iCadeActive()
+	#endif
+	;
 }
 
 }

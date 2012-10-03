@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Cart3E.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -58,9 +58,9 @@ void Cartridge3E::reset()
   // Initialize RAM
   if(mySettings.getBool("ramrandom"))
     for(uInt32 i = 0; i < 32768; ++i)
-      myRam[i] = mySystem->randGenerator().next();
+      myRAM[i] = mySystem->randGenerator().next();
   else
-    memset(myRam, 0, 32768);
+    memset(myRAM, 0, 32768);
 
   // We'll map the startup bank into the first segment upon reset
   bank(myStartBank);
@@ -111,7 +111,7 @@ uInt8 Cartridge3E::peek(uInt16 address)
     else
     {
       if(address < 0x0400)
-        return myRam[(address & 0x03FF) + ((myCurrentBank - 256) << 10)];
+        return myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)];
       else
       {
         // Reading from the write port triggers an unwanted write
@@ -122,7 +122,7 @@ uInt8 Cartridge3E::peek(uInt16 address)
         else
         {
           triggerReadFromWritePort(peekAddress);
-          return myRam[(address & 0x03FF) + ((myCurrentBank - 256) << 10)] = value;
+          return myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)] = value;
         }
       }
     }
@@ -207,7 +207,7 @@ bool Cartridge3E::bank(uInt16 bank)
     // Map read-port RAM image into the system
     for(address = 0x1000; address < 0x1400; address += (1 << shift))
     {
-      access.directPeekBase = &myRam[offset + (address & 0x03FF)];
+      access.directPeekBase = &myRAM[offset + (address & 0x03FF)];
       access.codeAccessBase = &myCodeAccessBase[mySize + offset + (address & 0x03FF)];
       mySystem->setPageAccess(address >> shift, access);
     }
@@ -218,7 +218,7 @@ bool Cartridge3E::bank(uInt16 bank)
     // Map write-port RAM image into the system
     for(address = 0x1400; address < 0x1800; address += (1 << shift))
     {
-      access.directPokeBase = &myRam[offset + (address & 0x03FF)];
+      access.directPokeBase = &myRAM[offset + (address & 0x03FF)];
       access.codeAccessBase = &myCodeAccessBase[mySize + offset + (address & 0x03FF)];
       mySystem->setPageAccess(address >> shift, access);
     }
@@ -253,7 +253,7 @@ bool Cartridge3E::patch(uInt16 address, uInt8 value)
     if(myCurrentBank < 256)
       myImage[(address & 0x07FF) + (myCurrentBank << 11)] = value;
     else
-      myRam[(address & 0x03FF) + ((myCurrentBank - 256) << 10)] = value;
+      myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)] = value;
   }
   else
     myImage[(address & 0x07FF) + mySize - 2048] = value;
@@ -274,16 +274,12 @@ bool Cartridge3E::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
-
-    // Output RAM
-    out.putInt(32768);
-    for(uInt32 addr = 0; addr < 32768; ++addr)
-      out.putByte((char)myRam[addr]);
+    out.putShort(myCurrentBank);
+    out.putByteArray(myRAM, 32768);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge3E::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge3E::save" << endl;
     return false;
   }
 
@@ -298,16 +294,12 @@ bool Cartridge3E::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16) in.getInt();
-
-    // Input RAM
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 addr = 0; addr < limit; ++addr)
-      myRam[addr] = (uInt8) in.getByte();
+    myCurrentBank = in.getShort();
+    in.getByteArray(myRAM, 32768);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge3E::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge3E::load" << endl;
     return false;
   }
 

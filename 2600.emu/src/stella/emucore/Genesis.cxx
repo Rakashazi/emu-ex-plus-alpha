@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Genesis.cxx 2405 2012-03-04 19:20:29Z stephena $
+// $Id: Genesis.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -105,16 +105,20 @@ void Genesis::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Genesis::setMouseControl(
-    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+bool Genesis::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
 {
-  // In 'automatic' mode, both axes on the mouse map to a single Genesis
-  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  // Currently, the Genesis controller takes full control of the mouse, using
+  // both axes for its two degrees of movement, and the left/right buttons for
+  // 'B' and 'C', respectively
+  if(xtype == Controller::Genesis && ytype == Controller::Genesis && xid == yid)
   {
-    myControlID = ((myJack == Left && ctrlID == 0) ||
-                   (myJack == Right && ctrlID == 1)
-                  ) ? ctrlID : -1;
+    myControlID = ((myJack == Left && xid == 0) ||
+                   (myJack == Right && xid == 1)
+                  ) ? xid : -1;
   }
-  else  // Otherwise, Genesis controllers are not used in 'non-auto' mode
+  else
     myControlID = -1;
+
+  return true;
 }

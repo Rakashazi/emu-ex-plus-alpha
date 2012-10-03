@@ -77,10 +77,11 @@ CallResult init()
 	return OK;
 }
 
-static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
+static jboolean JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 {
 	if(vKeyboardTextDelegate.hasCallback())
 	{
+		auto prevGfxUpdateState = gfxUpdate;
 		if(jStr)
 		{
 			const char *str = env->GetStringUTFChars(jStr, 0);
@@ -93,9 +94,13 @@ static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 			logMsg("canceled text entry callback");
 			vKeyboardTextDelegate.invoke(nullptr);
 		}
+		return prevGfxUpdateState == 0 && gfxUpdate;
 	}
 	else
+	{
 		vKeyboardTextDelegate.clear();
+		return 0;
+	}
 }
 
 }

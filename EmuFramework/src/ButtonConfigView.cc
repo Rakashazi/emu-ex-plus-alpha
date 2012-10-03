@@ -15,7 +15,7 @@
 
 #include <ButtonConfigView.hh>
 #include <inGameActionKeys.hh>
-#include <main/EmuControls.hh>
+#include <main/EmuConfig.hh>
 extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 
 void BtnConfigMenuItem::init(const char *name, uint *btn, uint dev)
@@ -36,7 +36,7 @@ void BtnConfigMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize,
 void BtnConfigMenuItem::select(View *view, const InputEvent &e)
 {
 	btnSetView.onSet = this;
-	btnSetView.place(Gfx::viewportRect());
+	btnSetView.placeRect(Gfx::viewportRect());
 	View::modalView = &btnSetView;
 }
 
@@ -110,6 +110,6 @@ void ButtonConfigView::resetHandler(TextMenuItem &, const InputEvent &e)
 {
 	ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
 	ynAlertView.onYesDelegate().bind<ButtonConfigView, &ButtonConfigView::confirmUnbindKeysAlert>(this);
-	ynAlertView.place(Gfx::viewportRect());
+	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 }

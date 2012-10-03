@@ -6,44 +6,33 @@
 class PollWaitTimer
 {
 public:
-	Base::TimerCallbackFunc func;
-	void *funcCtx;
+	Base::CallbackDelegate callback;
 	TimeSys targetTime;
-	static DLList<PollWaitTimer*>::Node timerListNode[4];
-	static DLList<PollWaitTimer*> timerList;
+	static DLList<PollWaitTimer>::Node timerListNode[4];
+	static DLList<PollWaitTimer> timerList;
 
-	void init()
+	constexpr PollWaitTimer() { }
+	constexpr PollWaitTimer(Base::CallbackDelegate callback): callback(callback) { }
+
+	bool operator ==(PollWaitTimer const& rhs) const
 	{
-
-	}
-
-	void init(Base::TimerCallbackFunc f, void *ctx, int ms)
-	{
-		 setCallback(f, ctx, ms);
+		return callback == rhs.callback;
 	}
 
 	void remove()
 	{
 		logMsg("removing callback");
-		func = 0;
-		timerList.remove(this);
+		timerList.remove(*this);
 	}
 
-	void setCallback(Base::TimerCallbackFunc f, void *ctx, int ms)
+	int add(int ms)
 	{
-		if(!f)
-		{
-			remove();
-			return;
-		}
 		logMsg("setting callback to run in %d ms", ms);
-		func = f;
-		funcCtx = ctx;
 		TimeSys callTime;
 		callTime.setTimeNow();
 		callTime.addUSec(ms * 1000);
 		targetTime = callTime;
-		timerList.add(this);
+		return timerList.add(*this);
 	}
 
 	int calcPollWaitForFunc() const
@@ -69,10 +58,10 @@ public:
 		PollWaitTimer *closest = 0;
 		forEachInDLList(&timerList, e)
 		{
-			if(e->targetTime > closestTime)
+			if(e.targetTime > closestTime)
 			{
-				closestTime = e->targetTime;
-				closest = e;
+				closestTime = e.targetTime;
+				closest = &e;
 			}
 		}
 		return closest;
@@ -89,10 +78,10 @@ public:
 			// TODO: sort list by targetTime so only part of the list may be checked
 			forEachInDLList(&timerList, e)
 			{
-				if(now >= e->targetTime)
+				if(now >= e.targetTime)
 				{
-					logMsg("running callback %p", e->func);
-					e->func(e->funcCtx);
+					logMsg("running callback");
+					e.callback.invoke();
 					e_it.removeElem();
 				}
 			}

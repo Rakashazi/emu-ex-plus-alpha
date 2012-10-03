@@ -4,9 +4,9 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-pkgName := libvorbis
 libvorbisVer := 1.3.3
 libvorbisSrcDir := libvorbis-$(libvorbisVer)
+libvorbisSrcArchive := libvorbis-$(libvorbisVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/lib/.libs/libvorbis.a $(buildDir)/lib/.libs/libvorbisfile.a
@@ -23,6 +23,11 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
+$(libvorbisSrcDir)/configure : $(libvorbisSrcArchive)
+	@echo "Extracting libvorbis..."
+	tar -xJf $^
+	cp ../gnuconfig/config.* $(libvorbisSrcDir)/
+
 $(outputLibFile) : $(makeFile)
 	@echo "Building libvorbis..."
 	$(MAKE) -C $(<D)
@@ -30,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libvorbisSrcDir)/configure
 	@echo "Configuring libvorbis..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" $$dir/$(libvorbisSrcDir)/configure --disable-docs --disable-examples --disable-oggtest --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libvorbisSrcDir)/configure --disable-docs --disable-examples --disable-oggtest --disable-shared --host=$(CHOST) $(buildArg)
 

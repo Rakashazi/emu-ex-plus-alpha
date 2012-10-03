@@ -1386,7 +1386,7 @@ static void Fixit1(void)
 
 // native pixel buffer
 NATIVE_PIX_TYPE nativeCol[256];
-NATIVE_PIX_TYPE	nativePixBuff[nesPixX*nesVisiblePixY] __attribute__ ((aligned (8)));
+NATIVE_PIX_TYPE	nativePixBuff[nesPixX*nesVisiblePixY] __attribute__ ((aligned (8))) {0};
 static uint8 lineBuffer[272] __attribute__ ((aligned (4)));
 
 void MMC5_hb(int);     //Ugh ugh ugh.

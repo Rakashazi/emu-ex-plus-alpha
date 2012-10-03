@@ -4,7 +4,7 @@ else ifeq ($(ENV), android)
 	include $(imagineSrcDir)/logger/stdio/build.mk
 else ifeq ($(ENV), iOS)
 	include $(imagineSrcDir)/logger/stdio/build.mk
-else ifeq ($(ENV), macOSX)
+else ifeq ($(ENV), macosx)
 	include $(imagineSrcDir)/logger/stdio/build.mk
 else ifeq ($(ENV), webos)
 	include $(imagineSrcDir)/logger/stdio/build.mk

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: DefProps.hxx 2412 2012-03-14 01:19:23Z stephena $
+// $Id: DefProps.hxx 2515 2012-05-29 17:09:27Z stephena $
 //============================================================================
 
 #ifndef DEF_PROPS_HXX
@@ -27,7 +27,7 @@
   regenerated and the application recompiled.
 */
 
-#define DEF_PROPS_SIZE 3277
+#define DEF_PROPS_SIZE 3281
 
 static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "000509d1ed2b8d30a9d94be1b3b5febb", "Greg Zumwalt", "", "Jungle Jane (2003) (Greg Zumwalt) (Hack)", "Hack of Pitfall!", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -216,7 +216,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "0dfbdadf8f1bc718e7e1bb3ccd5fef3d", "", "", "Mr. Pac-Man (New start tune) (El Destructo)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "0e0808227ef41f6825c06f25082c2e56", "", "", "Candi (Hack) [a]", "Hack of Space Invaders", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "0e08cd2c5bcf11c6a7e5a009a7715b6a", "", "", "Boing! (PD) [a1]", "", "New Release", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "0e224ea74310da4e7e2103400eb1b4bf", "Atari, Peter C. Niday, Howard Scott Warshaw", "", "Mind Maze (10-10-1984) (Atari) (Prototype)", "Uses the Mindlink Controller", "Prototype", "", "", "", "", "", "", "MINDLINK", "", "", "", "", "", "", "", "" }, 
+  { "0e224ea74310da4e7e2103400eb1b4bf", "Atari, Peter C. Niday, Howard Scott Warshaw", "", "Mind Maze (10-10-1984) (Atari) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "MINDLINK", "", "", "", "", "", "", "" }, 
   { "0e4b2b6e014a93ef8be896823da0d4ec", "", "", "Skiing (208 in 1) (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "0e713d4e272ea7322c5b27d645f56dd0", "Home Vision - Gem International Corp.", "VCS83105", "Panda Chase (1983) (Home Vision) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "0e7e73421606873b544e858c59dc283e", "Digivision", "", "Super Soccer (Digivision)", "AKA RealSports Soccer", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
@@ -331,7 +331,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "16e04823887c547dc24bc70dff693df4", "Atari", "CX26163P", "Tennis (32 in 1) (1988) (Atari) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "16f494f20af5dc803bc35939ef924020", "Mark De Smet", "", "Video Simon (Mark De Smet)", "", "New Release", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "16fbb36a6124567405a235821e8f69ee", "", "", "Star Fire (28-11-2002) (MP)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "170e7589a48739cfb9cc782cbb0fe25a", "M Network, Hal Finney - INTV", "MT5666", "Astroblast (1982) (M Network) [fixed]", "", "Uncommon", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "170e7589a48739cfb9cc782cbb0fe25a", "M Network, Hal Finney - INTV", "MT5666", "Astroblast (1982) (M Network) [fixed]", "Can also use left joystick", "Uncommon", "", "", "", "", "", "", "PADDLES", "", "YES", "", "", "", "", "", "" }, 
   { "171cd6b55267573e6a9c2921fb720794", "Kurt Howe", "", "Adventure 34 (Kurt Howe) (Hack)", "Hack of Adventure", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "1733772165d7b886a94e2b4ed0f74ccd", "", "", "Boring Journey Escape (Hack)", "Hack of Journey - Escape", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "230", "", "" }, 
   { "1738b2e3f25ab3eef3cecb95e1d0d957", "", "", "Hangman Monkey Biglist1 (Hack)", "Hack of Hangman", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -621,7 +621,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "2d9e5d8d083b6367eda880e80dfdfaeb", "Selchow & Righter - QDI", "87", "Glib (1983) (Selchow & Righter)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2d9e65959808a6098c16c82a59c9d9dc", "Arcadia Corporation, Stephen Harland Landrum", "AR-4400", "Dragonstomper (1 of 3) (1982) (Arcadia) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2dbc92688f9ba92a7e086d62be9df79d", "", "", "How to Draw a Playfield (1997) (Jim Crawford) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "2dbdca3058035d2b40c734dcf06a86d9", "Thomas Jentzsch", "", "Asteroids DC+ (Thomas Jentzsch) (Hack)", "Uses the Joystick (left) or Steering (right) Controller", "Hack", "", "", "", "", "", "", "", "DRIVING", "", "54", "", "", "", "YES", "" }, 
+  { "2dbdca3058035d2b40c734dcf06a86d9", "Thomas Jentzsch", "", "Asteroids DC+ (Thomas Jentzsch) (Hack)", "Uses the Joystick (left) or Steering (right) Controller", "Hack", "", "", "", "", "", "", "", "DRIVING", "", "58", "", "", "", "YES", "" }, 
   { "2dcf9ce486393cd36ca0928cd53b96cb", "Atari - GCC, Mike Feinstein, John Allred", "CX2688, CX2688P", "Jungle Hunt (1983) (Atari) (PAL) [a2]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2dfec1615c49501fefc02165c81955e6", "", "", "Song (05-11-2002) (Paul Slocum)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "2e0aed5bb619edcefa3fafb4fbe7c551", "", "", "Qb (2.06) (Retroactive) (NTSC)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
@@ -829,7 +829,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "3d48b8b586a09bdbf49f1a016bf4d29a", "Video Game Cartridge - Ariola", "TP-606", "Hole Hunter (Video Game Cartridge)", "AKA Topy", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "3d6fc7a19be76d808aa233415cb583fc", "CCE", "C-833", "Target Practice (1983) (CCE)", "AKA Carnival", "", "", "", "", "", "", "", "", "", "", "", "", "26", "214", "", "" }, 
   { "3d7749fb9c2f91a276dfe494495234c5", "Jone Yuan Telephonic Enterprise Co", "", "Checkers (Jone Yuan)", "2600 Screen Search Console", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "3d7aad37c55692814211c8b590a0334c", "Atari, Dan Oliver", "", "Telepathy (1983) (Atari) (Prototype)", "Uses the Mindlink Controller", "Prototype", "", "", "", "", "", "", "MINDLINK", "", "", "", "", "", "", "", "" }, 
+  { "3d7aad37c55692814211c8b590a0334c", "Atari, Dan Oliver", "", "Telepathy (1983) (Atari) (Prototype)", "Uses both left joystick and right Mindlink controllers (press Fire on respective controller to begin)", "Prototype", "", "", "", "", "", "", "", "MINDLINK", "", "78", "", "", "", "", "" }, 
   { "3d8a2d6493123a53ade45e3e2c5cafa0", "Atari, Jim Huether - Sears", "CX2629 - 6-99843, 49-75118", "Sky Diver (1979) (Atari) (4K)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "3d934bb980e2e63e1ead3e7756928ccd", "Activision, Steve Cartwright - Ariola", "EAX-017, EAX-017-04I - 711 017-720", "MegaMania (1982) (Activision) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "3d9c2fccf8b11630762ff00811c19277", "", "", "Challenge of.... Nexar, The (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -954,7 +954,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "469473ff6fed8cc8d65f3c334f963aab", "Atari, Bruce Poehlman, Gary Stark", "", "Dune (07-10-1984) (Atari) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "23", "", "YES", "" }, 
   { "46c021a3e9e2fd00919ca3dd1a6b76d8", "Atari, Jim Huether - Sears", "CX2629 - 6-99843, 49-75118", "Sky Diver (1979) (Atari)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "46c43fdcbce8fde3a91ebeafc05b7cbd", "", "", "Invaders Demo (PAL) (2001) (Eckhard Stolberg)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "46e9428848c9ea71a4d8f91ff81ac9cc", "Telegames", "", "Astroblast (1989) (Telegames) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "46e9428848c9ea71a4d8f91ff81ac9cc", "Telegames", "", "Astroblast (1989) (Telegames) (PAL)", "Can also use left joystick", "", "", "", "", "", "", "", "PADDLES", "", "YES", "", "", "", "", "", "" }, 
   { "4702d8d9b48a332724af198aeac9e469", "Atari, Jerome Domurat, Steve Woita", "CX2699", "Taz (1983) (Atari) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "470878b9917ea0348d64b5750af149aa", "Atari, Suki Lee - Sears", "CX2658 - 49-75128", "Math Gran Prix (1982) (Atari)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "47464694e9cce07fdbfd096605bf39d4", "Activision, Dan Kitchen", "EAK-050-04", "Double Dragon (1989) (Activision) (PAL) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -1128,6 +1128,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "54785fa29e28aae6038929ba29d33d38", "", "", "Poker Squares (V0.19) (2001) (B. Watson)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "5494b9ee403d9757f0fd1f749e80214a", "Larry Petit", "", "Xenophobe Arcade (2003) (Larry Petit) (Hack)", "Hack of Xenophobe", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "54a1c1255ed45eb8f71414dadb1cf669", "Spectravideo", "SA-212", "Mangia' (1983) (Spectravideo)", "", "", "", "", "", "", "", "", "", "", "", "", "", "28", "", "", "" }, 
+  { "54bafc299423f5a50b8bc3a797914706", "SOLID Corp. (D. Scott Williamson)", "CX2655*", "Star Castle 2600 (SolidCorp) (PAL)", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "54da3b0b3f43f5b37911c135b9432b49", "", "", "Halloween III Revision (Hack)", "Hack of Kaboom!", "Hack", "", "", "", "", "", "", "PADDLES", "", "", "", "", "", "", "", "" }, 
   { "54f7efa6428f14b9f610ad0ca757e26c", "Apollo - Games by Apollo, Steve Stringfellow", "AP-2005", "Shark Attack (1982) (Apollo)", "AKA Lochjaw", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "551a64a945d7d6ece81e9c1047acedbc", "Matthias Jaap", "", "Coffee Cup Soccer (Matthias Jaap) (Hack)", "Hack of Pele's Soccer", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -1272,7 +1273,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "60a61da9b2f43dd7e13a5093ec41a53d", "VentureVision, Dan Oliver", "VV2001", "Rescue Terra I (1982) (VentureVision)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "60bbd425cb7214ddb9f9a31948e91ecb", "Activision, Bob Whitehead", "AG-005, CAG-005, AG-005-04", "Skiing (1980) (Activision) (4K)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "60d304582d33e2957b73eb300a7495bb", "", "", "Jam Demo 2 (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "60e0ea3cbe0913d39803477945e9e5ec", "Atari, Joe Decuir - Sears", "CX2621 - 99806, 6-99806, 49-75104", "Video Olympics (1977) (Atari)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES_IAXDR", "", "YES", "10", "", "", "", "", "" }, 
+  { "60e0ea3cbe0913d39803477945e9e5ec", "Atari, Joe Decuir - Sears", "CX2621 - 99806, 6-99806, 49-75104", "Video Olympics (1977) (Atari)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES_IAXDR", "", "YES", "", "", "", "", "", "" }, 
   { "613abf596c304ef6dbd8f3351920c37a", "", "", "Boring Pac-Man (Hack)", "Hack of Pac-Man", "Hack", "", "", "", "", "", "", "", "", "", "", "", "33", "", "", "" }, 
   { "6141c095d0aee4e734bebfaac939030a", "Rainbow Vision - Suntek", "SS-017", "Mariana (Rainbow Vision) (PAL)", "AKA Seaquest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "61426cee013306e7f7367534ab124747", "", "", "One Blue Bar Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -1540,7 +1541,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "74f623833429d35341b7a84bc09793c0", "Zellers", "", "Radar (Zellers)", "AKA Exocet", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "75028162bfc4cc8e74b04e320f9e6a3f", "Atari, Greg Easter, Mimi Nyden", "CX26107", "Snow White and the Seven Dwarfs (02-09-1983) (Atari) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "7511c34518a9a124ea773f5b0b5c9a48", "", "", "Donkey Kong (208 in 1) (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "75169c08b56e4e6c36681e599c4d8cc5", "M Network, Hal Finney - INTV", "MT5666", "Astroblast (1982) (M Network)", "", "Uncommon", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "75169c08b56e4e6c36681e599c4d8cc5", "M Network, Hal Finney - INTV", "MT5666", "Astroblast (1982) (M Network)", "Can also use left joystick", "Uncommon", "", "", "", "", "", "", "PADDLES", "", "YES", "", "", "", "", "", "" }, 
   { "753375d183c713cfa0aa7298d1f3067b", "Arcadia Corporation, Steve Hales, Stephen Harland Landrum", "AR-4102", "Suicide Mission (1982) (Arcadia) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "7550b821ee56fb5833dca2be88622d5a", "", "", "Multiple Moving Objects Demo (B. Watson)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "75511bb694662301c9e71df645f4b5a7", "Activision, Bob Whitehead - Ariola", "EAG-011, PAG-011 - 711 011-715", "Stampede (1981) (Activision) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -1892,6 +1893,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "90578a63441de4520be5324e8f015352", "Bit Corporation", "PGP204", "Open Sesame (4 Game in One Dark Green) (1983) (BitCorp) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "256", "YES", "" }, 
   { "9072c142728a3a3d994956d03bfacba2", "Fabrizio Zavagli", "", "Crash Dive (Fabrizio Zavagli) (PAL60)", "NTSC Conversion", "Hack", "", "", "", "", "", "", "", "", "", "", "PAL60", "30", "", "", "" }, 
   { "90b1799dddb8bf748ee286d22e609480", "", "", "Ship Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "90b647bfb6b18af35fcf613573ad2eec", "AtariAge (Chris Walton)", "", "Juno First (2009)", "AtariVox supported", "Homebrew", "", "", "", "", "", "", "", "ATARIVOX", "", "", "", "", "", "YES", "" }, 
   { "90ccf4f30a5ad8c801090b388ddd5613", "Arcadia Corporation, Stephen Harland Landrum", "AR-4400", "Dragonstomper (1982) (Arcadia)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "90d77e966793754ab4312c47b42900b1", "Imagic, Brad Stewart", "720105-2A, IA3400P, EIX-005-04I", "Fire Fighter (1982) (Imagic) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "90f502cbf4438a95f69f848cef36eb64", "Digitel", "", "River Raid II (1985) (Digitel)", "AKA River Raid", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2435,7 +2437,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "bff8f8f53a8aeb1ee804004ccbb08313", "", "", "Droid Demo 22 (David Conrad Schweinsberg) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "bffe34516aaa3cbf5d307eab382a7e95", "", "", "Euchre (Release Candidate) (PAL) (28-09-2002) (Erik Eid)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "c00734a2233ef683d9b6e622ac97a5c8", "Atari, Jerome Domurat, Howard Scott Warshaw", "CX26133", "A-Team, The (03-30-1984) (Atari) (Prototype)", "AKA Saboteur", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "c00b65d1bae0aef6a1b5652c9c2156a1", "Atari, Joe Decuir - Sears", "CX2621 - 99806, 6-99806, 49-75104", "Video Olympics (1977) (Atari) (4K)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES_IAXDR", "", "YES", "10", "", "", "", "", "" }, 
+  { "c00b65d1bae0aef6a1b5652c9c2156a1", "Atari, Joe Decuir - Sears", "CX2621 - 99806, 6-99806, 49-75104", "Video Olympics (1977) (Atari) (4K)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES_IAXDR", "", "YES", "", "", "", "", "", "" }, 
   { "c02e1afa0671e438fd526055c556d231", "Atari", "", "A-Team (Atari) (Prototype) (PAL60)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "PAL60", "", "", "", "" }, 
   { "c032c2bd7017fdfbba9a105ec50f800e", "Activision, Charlie Heath", "", "Thwocker (04-09-1984) (Activision) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "c033dc1d7b6fde41b9cadce9638909bb", "", "", "Skeleton (V1.1) (06-09-2002) (Eric Ball)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2580,7 +2582,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "cbc373fbcb1653b4c56bfabba33ea50d", "CCE", "", "Super Voleyball (CCE)", "AKA RealSports Volleyball", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "cbced209dd0575a27212d3eee6aee3bc", "Apollo - Games by Apollo, Ed Salvo, Byron Parks", "AP-2003", "Racquetball (1981) (Apollo)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "cbd981a23c592fb9ab979223bb368cd5", "Atari, Carla Meninsky - Sears", "CX2660 - 49-75187", "Star Raiders (1982) (Atari)", "Uses Joystick (left) and Keypad (right) Controllers", "", "", "", "", "", "", "", "", "KEYBOARD", "", "", "", "", "", "", "" }, 
-  { "cbe5a166550a8129a5e6d374901dffad", "Atari, Carla Meninsky - Sears", "CX2610 - 49-75127", "Warlords (1981) (Atari)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES", "PADDLES", "", "01", "", "", "", "", "" }, 
+  { "cbe5a166550a8129a5e6d374901dffad", "Atari, Carla Meninsky - Sears", "CX2610 - 49-75127", "Warlords (1981) (Atari)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES", "PADDLES", "", "", "", "", "", "", "" }, 
   { "cbeafd37f15e0dddb0540dbe15c545a4", "", "", "Black and White Fast Scolling Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "cc03c68b8348b62331964d7a3dbec381", "Jone Yuan Telephonic Enterprise Co", "", "Marauder (Jone Yuan)", "2600 Screen Search Console", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "cc12581e079cd18330a89902625b8347", "Dave Neuman", "", "Space Battle (PAL)", "", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2772,6 +2774,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "d97fd5e6e1daacd909559a71f189f14b", "M Network, Steve Crandall, Patricia Lewis Du Long", "MT4646", "Rocky & Bullwinkle (04-20-1983) (M Network) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d9ab6b67a17da51e5ad13717e93fa2e2", "", "", "Turbo (Coleco) Prototype Fake v0.1 (TJ)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d9b49f0678776e04916fa5478685a819", "Activision, John Van Ryzin - Ariola", "EAZ-036-04, EAZ-036-04B, EAZ-036-04I - 711 036-720", "H.E.R.O. (1984) (Activision) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "d9c9cece2e769c7985494b1403a25721", "SOLID Corp. (D. Scott Williamson)", "CX2655*", "Star Castle 2600 (SolidCorp)", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "d9da2ae7c7894a29b43b3c6b79f3b7a2", "Atari, Rob Fulop", "CX2633, CX2633P", "Night Driver (1980) (Atari) (PAL) (4K)", "Uses the Paddle Controllers (left only)", "", "", "", "", "", "", "", "PADDLES", "", "", "", "", "", "", "YES", "" }, 
   { "d9fbf1113114fb3a3c97550a0689f10f", "ZiMAG - Emag - Vidco", "713-111 - GN-050", "Pizza Chef (1983) (ZiMAG) (Prototype)", "AKA Pizza Time", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "da0fb2a484d0d2d8f79d6e063c94063d", "", "", "Air Raiders (1982) (Unknown) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -3237,6 +3240,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "fa6fe97a10efb9e74c0b5a816e6e1958", "ZiMAG - Emag - Vidco", "707-111 - GN-030", "Tanks But No Tanks (1983) (ZiMAG)", "AKA Phantom Tank", "", "", "", "", "", "", "", "", "", "", "", "", "30", "", "", "" }, 
   { "fa7ce62e7fd77e02b3e2198d70742f80", "Atari, Peter C. Niday", "CX26108", "Donald Duck's Speedboat (04-18-1983) (Atari) (Prototype) (PAL)", "AKA Donald Duck's Regatta", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fa7e11a3dbea4365975cd2f094e61d25", "Tim Snider", "", "Mystery Science Theater 2600 (1999) (Tim Snider) (Hack)", "Hack of Megamania", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "fa98d48cd609c9babc819e0a1bd8d598", "AtariAge (Chris Walton)", "", "Juno First (2009) (PAL60)", "AtariVox supported", "Homebrew", "", "", "", "", "", "", "", "ATARIVOX", "", "", "PAL60", "", "", "YES", "" }, 
   { "fabca526d57de46768b392f758f1a008", "", "", "Laseresal 2600 (16-12-2001) (Andrew Wallace) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fac28963307b6e85082ccd77c88325e7", "CCE", "", "Berzerk (CCE)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fadb89f9b23beb4d43a7895c532757e2", "Galaga Games", "", "River Raid (1984) (Galaga Games) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -3285,7 +3289,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "fdf6680b2b1e8054293a39700a765692", "", "", "Alpha Demo - The Beta Demo 2 (2000) (MP)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fe0b7f27e3ad50bbf9ff468ee56d553d", "", "", "Lines Demo (Eckhard Stolberg) (PAL) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fe0bc4bb92c1c4de7d5706aaa8d8c10d", "", "", "Sprite Demo 2 (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
-  { "fe3b461d4c8b179fe68bc77760294c25", "Atari, Joe Decuir", "CX2621, CX2621P", "Video Olympics (1977) (Atari) (PAL) (4K)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES", "PADDLES", "", "10", "", "", "", "", "" }, 
+  { "fe3b461d4c8b179fe68bc77760294c25", "Atari, Joe Decuir", "CX2621, CX2621P", "Video Olympics (1977) (Atari) (PAL) (4K)", "Uses the Paddle Controllers", "", "", "", "", "", "", "", "PADDLES_IAXDR", "", "YES", "", "", "", "", "", "" }, 
   { "fe67087f9c22655ce519616fc6c6ef4d", "Atari, Randy Bowker", "CX26142", "Crack'ed (11-28-1988) (Atari) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fe6abc0f63e31e2646c9c600926b5b7f", "Atari", "CX26137", "4 in 1 (02-19-1987) (Atari) (Prototype)", "Home Run, Canyon Bomber, Sky Diver, Night Driver", "Prototype", "", "4IN1", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fe870018332a0221eb59fb18b0c6bccc", "", "", "Incoming (08-11-2002) (Ben Larson) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 

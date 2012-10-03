@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.cxx 2359 2012-01-17 22:20:20Z stephena $
+// $Id: TIA.cxx 2527 2012-06-05 16:32:35Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -54,7 +54,10 @@ TIA::TIA(Console& console, Sound& sound, Settings& settings)
     myColorLossEnabled(false),
     myPartialFrameFlag(false),
     myAutoFrameEnabled(false),
-    myFrameCounter(0)
+    myFrameCounter(0),
+    myPALFrameCounter(0),
+    myBitsEnabled(true),
+    myCollisionsEnabled(true)
 {
   // Allocate buffers for two frame buffers
   myCurrentFrameBuffer = new uInt8[160 * 320];
@@ -139,37 +142,8 @@ void TIA::reset()
   // Should undriven pins be randomly driven high or low?
   myTIAPinsDriven = mySettings.getBool("tiadriven");
 
-  myFrameCounter = 0;
+  myFrameCounter = myPALFrameCounter = 0;
   myScanlineCountForLastFrame = 0;
-  myAutoFrameEnabled = (mySettings.getInt("framerate") <= 0);
-  myFramerate = myConsole.getFramerate();
-
-  if(myFramerate > 55.0)  // NTSC
-  {
-  	myFixedColor[P0Color]     = 0x30303030;
-  	myFixedColor[P1Color]     = 0x16161616;
-  	myFixedColor[M0Color]     = 0x38383838;
-  	myFixedColor[M1Color]     = 0x12121212;
-  	myFixedColor[BLColor]     = 0x7e7e7e7e;
-  	myFixedColor[PFColor]     = 0x76767676;
-  	myFixedColor[BKColor]     = 0x0a0a0a0a;
-  	myFixedColor[HBLANKColor] = 0x0e0e0e0e;
-    myColorLossEnabled = false;
-    myMaximumNumberOfScanlines = 290;
-  }
-  else
-  {
-  	myFixedColor[P0Color]     = 0x62626262;
-  	myFixedColor[P1Color]     = 0x26262626;
-  	myFixedColor[M0Color]     = 0x68686868;
-  	myFixedColor[M1Color]     = 0x2e2e2e2e;
-  	myFixedColor[BLColor]     = 0xdededede;
-  	myFixedColor[PFColor]     = 0xd8d8d8d8;
-  	myFixedColor[BKColor]     = 0x1c1c1c1c;
-  	myFixedColor[HBLANKColor] = 0x0e0e0e0e;
-    myColorLossEnabled = mySettings.getBool("colorloss");
-    myMaximumNumberOfScanlines = 342;
-  }
 
   myCurrentP0Mask = &TIATables::PxMask[0][0][0][0];
   myCurrentP1Mask = &TIATables::PxMask[0][0][0][0];
@@ -195,8 +169,37 @@ void TIA::frameReset()
   // Calculate color clock offsets for starting and stopping frame drawing
   // Note that although we always start drawing at scanline zero, the
   // framebuffer that is exposed outside the class actually starts at 'ystart'
-  myFramePointerOffset = myFrameWidth * myFrameYStart;
-  myStartDisplayOffset = 0;
+  myFramePointerOffset = 160 * myFrameYStart;
+
+  myAutoFrameEnabled = (mySettings.getInt("framerate") <= 0);
+  myFramerate = myConsole.getFramerate();
+
+  if(myFramerate > 55.0)  // NTSC
+  {
+    myFixedColor[P0Color]     = 0x30303030;
+    myFixedColor[P1Color]     = 0x16161616;
+    myFixedColor[M0Color]     = 0x38383838;
+    myFixedColor[M1Color]     = 0x12121212;
+    myFixedColor[BLColor]     = 0x7e7e7e7e;
+    myFixedColor[PFColor]     = 0x76767676;
+    myFixedColor[BKColor]     = 0x0a0a0a0a;
+    myFixedColor[HBLANKColor] = 0x0e0e0e0e;
+    myColorLossEnabled = false;
+    myMaximumNumberOfScanlines = 290;
+  }
+  else
+  {
+    myFixedColor[P0Color]     = 0x62626262;
+    myFixedColor[P1Color]     = 0x26262626;
+    myFixedColor[M0Color]     = 0x68686868;
+    myFixedColor[M1Color]     = 0x2e2e2e2e;
+    myFixedColor[BLColor]     = 0xdededede;
+    myFixedColor[PFColor]     = 0xd8d8d8d8;
+    myFixedColor[BKColor]     = 0x1c1c1c1c;
+    myFixedColor[HBLANKColor] = 0x0e0e0e0e;
+    myColorLossEnabled = mySettings.getBool("colorloss");
+    myMaximumNumberOfScanlines = 342;
+  }
 
   // NTSC screens will process at least 262 scanlines,
   // while PAL will have at least 312
@@ -210,7 +213,7 @@ void TIA::frameReset()
 
   // Reasonable values to start and stop the current frame drawing
   myClockWhenFrameStarted = mySystem->cycles() * 3;
-  myClockStartDisplay = myClockWhenFrameStarted + myStartDisplayOffset;
+  myClockStartDisplay = myClockWhenFrameStarted;
   myClockStopDisplay = myClockWhenFrameStarted + myStopDisplayOffset;
   myClockAtLastUpdate = myClockWhenFrameStarted;
   myClocksToEndOfScanLine = 228;
@@ -281,58 +284,52 @@ bool TIA::save(Serializer& out) const
     out.putInt(myScanlineCountForLastFrame);
     out.putInt(myVSYNCFinishClock);
 
-    out.putByte((char)myEnabledObjects);
-    out.putByte((char)myDisabledObjects);
+    out.putByte(myEnabledObjects);
+    out.putByte(myDisabledObjects);
 
-    out.putByte((char)myVSYNC);
-    out.putByte((char)myVBLANK);
-    out.putByte((char)myNUSIZ0);
-    out.putByte((char)myNUSIZ1);
+    out.putByte(myVSYNC);
+    out.putByte(myVBLANK);
+    out.putByte(myNUSIZ0);
+    out.putByte(myNUSIZ1);
 
-    out.putInt(myColor[P0Color]);
-    out.putInt(myColor[P1Color]);
-    out.putInt(myColor[PFColor]);
-    out.putInt(myColor[BKColor]);
-    out.putInt(myColor[M0Color]);
-    out.putInt(myColor[M1Color]);
-    out.putInt(myColor[BLColor]);
+    out.putIntArray(myColor, 8);
 
-    out.putByte((char)myCTRLPF);
-    out.putByte((char)myPlayfieldPriorityAndScore);
+    out.putByte(myCTRLPF);
+    out.putByte(myPlayfieldPriorityAndScore);
     out.putBool(myREFP0);
     out.putBool(myREFP1);
     out.putInt(myPF);
-    out.putByte((char)myGRP0);
-    out.putByte((char)myGRP1);
-    out.putByte((char)myDGRP0);
-    out.putByte((char)myDGRP1);
+    out.putByte(myGRP0);
+    out.putByte(myGRP1);
+    out.putByte(myDGRP0);
+    out.putByte(myDGRP1);
     out.putBool(myENAM0);
     out.putBool(myENAM1);
     out.putBool(myENABL);
     out.putBool(myDENABL);
-    out.putByte((char)myHMP0);
-    out.putByte((char)myHMP1);
-    out.putByte((char)myHMM0);
-    out.putByte((char)myHMM1);
-    out.putByte((char)myHMBL);
+    out.putByte(myHMP0);
+    out.putByte(myHMP1);
+    out.putByte(myHMM0);
+    out.putByte(myHMM1);
+    out.putByte(myHMBL);
     out.putBool(myVDELP0);
     out.putBool(myVDELP1);
     out.putBool(myVDELBL);
     out.putBool(myRESMP0);
     out.putBool(myRESMP1);
-    out.putInt(myCollision);
+    out.putShort(myCollision);
     out.putInt(myCollisionEnabledMask);
-    out.putByte((char)myCurrentGRP0);
-    out.putByte((char)myCurrentGRP1);
+    out.putByte(myCurrentGRP0);
+    out.putByte(myCurrentGRP1);
 
     out.putBool(myDumpEnabled);
     out.putInt(myDumpDisabledCycle);
 
-    out.putInt(myPOSP0);
-    out.putInt(myPOSP1);
-    out.putInt(myPOSM0);
-    out.putInt(myPOSM1);
-    out.putInt(myPOSBL);
+    out.putShort(myPOSP0);
+    out.putShort(myPOSP1);
+    out.putShort(myPOSM0);
+    out.putShort(myPOSM1);
+    out.putShort(myPOSBL);
 
     out.putInt(myMotionClockP0);
     out.putInt(myMotionClockP1);
@@ -359,13 +356,14 @@ bool TIA::save(Serializer& out) const
     out.putBool(myHMOVEBlankEnabled);
 
     out.putInt(myFrameCounter);
+    out.putInt(myPALFrameCounter);
 
     // Save the sound sample stuff ...
     mySound.save(out);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: TIA::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: TIA::save" << endl;
     return false;
   }
 
@@ -387,61 +385,55 @@ bool TIA::load(Serializer& in)
     myClockStopDisplay = (Int32) in.getInt();
     myClockAtLastUpdate = (Int32) in.getInt();
     myClocksToEndOfScanLine = (Int32) in.getInt();
-    myScanlineCountForLastFrame = (uInt32) in.getInt();
+    myScanlineCountForLastFrame = in.getInt();
     myVSYNCFinishClock = (Int32) in.getInt();
 
-    myEnabledObjects = (uInt8) in.getByte();
-    myDisabledObjects = (uInt8) in.getByte();
+    myEnabledObjects = in.getByte();
+    myDisabledObjects = in.getByte();
 
-    myVSYNC = (uInt8) in.getByte();
-    myVBLANK = (uInt8) in.getByte();
-    myNUSIZ0 = (uInt8) in.getByte();
-    myNUSIZ1 = (uInt8) in.getByte();
+    myVSYNC = in.getByte();
+    myVBLANK = in.getByte();
+    myNUSIZ0 = in.getByte();
+    myNUSIZ1 = in.getByte();
 
-    myColor[P0Color] = (uInt32) in.getInt();
-    myColor[P1Color] = (uInt32) in.getInt();
-    myColor[PFColor] = (uInt32) in.getInt();
-    myColor[BKColor] = (uInt32) in.getInt();
-    myColor[M0Color] = (uInt32) in.getInt();
-    myColor[M1Color] = (uInt32) in.getInt();
-    myColor[BLColor] = (uInt32) in.getInt();
+    in.getIntArray(myColor, 8);
 
-    myCTRLPF = (uInt8) in.getByte();
-    myPlayfieldPriorityAndScore = (uInt8) in.getByte();
+    myCTRLPF = in.getByte();
+    myPlayfieldPriorityAndScore = in.getByte();
     myREFP0 = in.getBool();
     myREFP1 = in.getBool();
-    myPF = (uInt32) in.getInt();
-    myGRP0 = (uInt8) in.getByte();
-    myGRP1 = (uInt8) in.getByte();
-    myDGRP0 = (uInt8) in.getByte();
-    myDGRP1 = (uInt8) in.getByte();
+    myPF = in.getInt();
+    myGRP0 = in.getByte();
+    myGRP1 = in.getByte();
+    myDGRP0 = in.getByte();
+    myDGRP1 = in.getByte();
     myENAM0 = in.getBool();
     myENAM1 = in.getBool();
     myENABL = in.getBool();
     myDENABL = in.getBool();
-    myHMP0 = (uInt8) in.getByte();
-    myHMP1 = (uInt8) in.getByte();
-    myHMM0 = (uInt8) in.getByte();
-    myHMM1 = (uInt8) in.getByte();
-    myHMBL = (uInt8) in.getByte();
+    myHMP0 = in.getByte();
+    myHMP1 = in.getByte();
+    myHMM0 = in.getByte();
+    myHMM1 = in.getByte();
+    myHMBL = in.getByte();
     myVDELP0 = in.getBool();
     myVDELP1 = in.getBool();
     myVDELBL = in.getBool();
     myRESMP0 = in.getBool();
     myRESMP1 = in.getBool();
-    myCollision = (uInt16) in.getInt();
+    myCollision = in.getShort();
     myCollisionEnabledMask = in.getInt();
-    myCurrentGRP0 = (uInt8) in.getByte();
-    myCurrentGRP1 = (uInt8) in.getByte();
+    myCurrentGRP0 = in.getByte();
+    myCurrentGRP1 = in.getByte();
 
     myDumpEnabled = in.getBool();
     myDumpDisabledCycle = (Int32) in.getInt();
 
-    myPOSP0 = (Int16) in.getInt();
-    myPOSP1 = (Int16) in.getInt();
-    myPOSM0 = (Int16) in.getInt();
-    myPOSM1 = (Int16) in.getInt();
-    myPOSBL = (Int16) in.getInt();
+    myPOSP0 = (Int16) in.getShort();
+    myPOSP1 = (Int16) in.getShort();
+    myPOSM0 = (Int16) in.getShort();
+    myPOSM1 = (Int16) in.getShort();
+    myPOSBL = (Int16) in.getShort();
 
     myMotionClockP0 = (Int32) in.getInt();
     myMotionClockP1 = (Int32) in.getInt();
@@ -454,8 +446,8 @@ bool TIA::load(Serializer& in)
     myStartM0 = (Int32) in.getInt();
     myStartM1 = (Int32) in.getInt();
 
-    mySuppressP0 = (uInt8) in.getByte();
-    mySuppressP1 = (uInt8) in.getByte();
+    mySuppressP0 = in.getByte();
+    mySuppressP1 = in.getByte();
 
     myHMP0mmr = in.getBool();
     myHMP1mmr = in.getBool();
@@ -467,7 +459,8 @@ bool TIA::load(Serializer& in)
     myPreviousHMOVEPos = (Int32) in.getInt();
     myHMOVEBlankEnabled = in.getBool();
 
-    myFrameCounter = (Int32) in.getInt();
+    myFrameCounter = in.getInt();
+    myPALFrameCounter = in.getInt();
 
     // Load the sound sample stuff ...
     mySound.load(in);
@@ -477,9 +470,9 @@ bool TIA::load(Serializer& in)
     toggleFixedColors(0);
     myAllowHMOVEBlanks = true;
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: TIA::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: TIA::load" << endl;
     return false;
   }
 
@@ -493,13 +486,11 @@ bool TIA::saveDisplay(Serializer& out) const
   {
     out.putBool(myPartialFrameFlag);
     out.putInt(myFramePointerClocks);
-
-    for(int i = 0; i < 160*320; ++i)
-      out.putByte(myCurrentFrameBuffer[i]);
+    out.putByteArray(myCurrentFrameBuffer, 160*320);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: TIA::saveDisplay" << endl << "  " << msg << endl;
+  	cerr << "ERROR: TIA::saveDisplay" << endl;
     return false;
   }
 
@@ -512,26 +503,24 @@ bool TIA::loadDisplay(Serializer& in)
   try
   {
     myPartialFrameFlag = in.getBool();
-    myFramePointerClocks = (uInt32) in.getInt();
+    myFramePointerClocks = in.getInt();
 
     // Reset frame buffer pointer and data
     clearBuffers();
     myFramePointer = myCurrentFrameBuffer;
-    for(int i = 0; i < 160*320; ++i)
-      myCurrentFrameBuffer[i] =
-      #ifndef NO_DUAL_FRAME_BUFFER
-    		  myPreviousFrameBuffer[i] =
-      #endif
-      (uInt8) in.getByte();
+    in.getByteArray(myCurrentFrameBuffer, 160*320);
+    #ifndef NO_DUAL_FRAME_BUFFER
+    memcpy(myPreviousFrameBuffer, myCurrentFrameBuffer, 160*320);
+    #endif
 
     // If we're in partial frame mode, make sure to re-create the screen
     // as it existed when the state was saved
     if(myPartialFrameFlag)
       myFramePointer += myFramePointerClocks;
   }
-  catch(const char* msg)
+  catch(...)
   {
-  	cerr << "ERROR: TIA::loadDisplay" << endl << "  " << msg << endl;
+    cerr << "ERROR: TIA::loadDisplay" << endl;
     return false;
   }
 
@@ -579,7 +568,7 @@ inline void TIA::startFrame()
 
   // Setup clocks that'll be used for drawing this frame
   myClockWhenFrameStarted = -1 * clocks;
-  myClockStartDisplay = myClockWhenFrameStarted + myStartDisplayOffset;
+  myClockStartDisplay = myClockWhenFrameStarted;
   myClockStopDisplay = myClockWhenFrameStarted + myStopDisplayOffset;
   myClockAtLastUpdate = myClockStartDisplay;
   myClocksToEndOfScanLine = 228;
@@ -626,6 +615,8 @@ inline void TIA::endFrame()
 
   // Stats counters
   myFrameCounter++;
+  if(myScanlineCountForLastFrame >= 287)
+    myPALFrameCounter++;
 
   // Recalculate framerate. attempting to auto-correct for scanline 'jumps'
   if(myFrameCounter % 8 == 0 && myAutoFrameEnabled &&
@@ -643,22 +634,34 @@ inline void TIA::endFrame()
       myStopDisplayOffset = offset;
   }
 
-  // This is a bit of a hack for those ROMs which generate too many
-  // scanlines each frame, usually caused by VBLANK taking too long
-  // When this happens, the frame pointers sometimes get 'confused',
-  // and the framebuffer class doesn't properly overwrite data from
-  // the previous frame, causing graphical garbage
-  //
-  // We basically erase the entire contents of both buffers, making
-  // sure that they're also different from one another
-  // This will force the framebuffer class to completely re-render
-  // the screen
-  if(previousCount > myMaximumNumberOfScanlines &&
-     myScanlineCountForLastFrame <= myMaximumNumberOfScanlines)
+  // The following handle cases where scanlines either go too high or too
+  // low compared to the previous frame, in which case certain portions
+  // of the framebuffer are cleared to zero (black pixels)
+  // Due to the FrameBuffer class (potentially) doing dirty-rectangle
+  // updates, each internal buffer must be set slightly differently,
+  // otherwise they won't know anything has changed
+  // Hence, the front buffer is set to pixel 0, and the back to pixel 1
+
+  // Did we generate too many scanlines?
+  // (usually caused by VBLANK taking too long)
+  // If so, blank entire viewable area
+  if(myScanlineCountForLastFrame > 342 && previousCount <= 342)
   {
     memset(myCurrentFrameBuffer, 0, 160 * 320);
     #ifndef NO_DUAL_FRAME_BUFFER
     memset(myPreviousFrameBuffer, 1, 160 * 320);
+    #endif
+  }
+  // Did the number of scanlines decrease?
+  // If so, blank scanlines that weren't rendered this frame
+  else if(myScanlineCountForLastFrame < previousCount &&
+          myScanlineCountForLastFrame < 320 && previousCount < 320)
+  {
+    uInt32 offset = myScanlineCountForLastFrame * 160,
+           stride = (previousCount - myScanlineCountForLastFrame) * 160;
+    memset(myCurrentFrameBuffer + offset, 0, stride);
+    #ifndef NO_DUAL_FRAME_BUFFER
+    memset(myPreviousFrameBuffer + offset, 1, stride);
     #endif
   }
 }
@@ -714,6 +717,14 @@ bool TIA::toggleBit(TIABit b, uInt8 mode)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool TIA::toggleBits()
+{
+  myBitsEnabled = !myBitsEnabled;
+  enableBits(myBitsEnabled);
+  return myBitsEnabled;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::enableCollisions(bool mode)
 {
   toggleCollision(P0Bit, mode ? 1 : 0);
@@ -754,6 +765,14 @@ bool TIA::toggleCollision(TIABit b, uInt8 mode)
   myCollisionEnabledMask = (enabled << 16) | mask;
 
   return on;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool TIA::toggleCollisions()
+{
+  myCollisionsEnabled = !myCollisionsEnabled;
+  enableCollisions(myCollisionsEnabled);
+  return myCollisionsEnabled;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

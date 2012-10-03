@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MindLink.cxx 2366 2012-01-22 21:01:13Z stephena $
+// $Id: MindLink.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -23,12 +23,15 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MindLink::MindLink(Jack jack, const Event& event, const System& system)
   : Controller(jack, event, system, Controller::MindLink),
-    myIOPort(0xff),
     myMindlinkPos(0x2800),
-    myMindlinkPos1(0x2800),
-    myMindlinkPos2(0x1000),
-    myMindlinkShift(1)
+    myMindlinkShift(1),
+    myMouseEnabled(false)
 {
+  myDigitalPinState[One]   = true;
+  myDigitalPinState[Two]   = true;
+  myDigitalPinState[Three] = true;
+  myDigitalPinState[Four]  = true;
+
   // Analog pins are never used by the MindLink
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
 }
@@ -41,61 +44,51 @@ MindLink::~MindLink()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MindLink::update()
 {
-  myIOPort |= 0xf0;
-  if(0)//MPdirection & 0x01)
-    myMindlinkPos = myMindlinkPos2 + 0x1800;
-  else
-    myMindlinkPos = myMindlinkPos1;
-	
+  myDigitalPinState[One]   =
+  myDigitalPinState[Two]   =
+  myDigitalPinState[Three] =
+  myDigitalPinState[Four]  = true;
+
+  if(!myMouseEnabled)
+    return;
+
   myMindlinkPos = (myMindlinkPos & 0x3fffffff) +
                   (myEvent.get(Event::MouseAxisXValue) << 3);
   if(myMindlinkPos < 0x2800)
     myMindlinkPos = 0x2800;
   if(myMindlinkPos >= 0x3800)
     myMindlinkPos = 0x3800;
-	
-
-  if(0)//MPdirection & 0x01)
-  {
-    myMindlinkPos2 = myMindlinkPos - 0x1800;
-    myMindlinkPos = myMindlinkPos2;
-  }
-  else
-    myMindlinkPos1 = myMindlinkPos;
 
   myMindlinkShift = 1;
   nextMindlinkBit();
 
   if(myEvent.get(Event::MouseButtonLeftValue) ||
      myEvent.get(Event::MouseButtonRightValue))
-    myMindlinkPos |= 0x4000; /* this bit starts a game */
-
-//cerr << HEX4 << (int)myMindlinkPos << " : " << HEX2 << (int)myIOPort << endl;
-
-  // Convert IOPort values back to booleans
-  myDigitalPinState[One]   = myIOPort & 0x10;
-  myDigitalPinState[Two]   = myIOPort & 0x20;
-  myDigitalPinState[Three] = myIOPort & 0x40;
-  myDigitalPinState[Four]  = myIOPort & 0x80;
+    myMindlinkPos |= 0x4000;  // this bit starts a game
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MindLink::nextMindlinkBit()
 {
-  if(myIOPort & 0x10)
+  if(myDigitalPinState[One])
   {
-    myIOPort &= 0x3f;
+    myDigitalPinState[Three] = false;
+    myDigitalPinState[Four]  = false;
     if(myMindlinkPos & myMindlinkShift)
-      myIOPort |= 0x80;
+      myDigitalPinState[Four] = true;
     myMindlinkShift <<= 1;
-
-  myDigitalPinState[One]   = myIOPort & 0x10;
-  myDigitalPinState[Two]   = myIOPort & 0x20;
-  myDigitalPinState[Three] = myIOPort & 0x40;
-  myDigitalPinState[Four]  = myIOPort & 0x80;
-
-
-cerr << dec << (int)myMindlinkShift << " : " << HEX2 << (int)myIOPort << endl;
-
 	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool MindLink::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
+{
+  // Currently, the mindlink takes full control of the mouse, but only ever
+  // uses the x-axis, and both mouse buttons for the single mindlink button
+  // As well, there's no separate setting for x and y axis, so any
+  // combination of Controller and id is valid
+  myMouseEnabled = (xtype == myType || ytype == myType) &&
+                   (xid != -1 || yid != -1);
+  return true;
 }

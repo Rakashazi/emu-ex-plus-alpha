@@ -31,7 +31,7 @@ class EmuSystem
 	static bool active;
 	static FsSys::cPath gamePath, fullGamePath;
 	static char gameName[256], fullGameName[256];
-	static int autoSaveStateFrameCount, autoSaveStateFrames;
+	static Base::CallbackRef *autoSaveStateCallbackRef;
 	static int saveStateSlot;
 	static TimeSys startTime;
 	static int emuFrameNow;
@@ -40,23 +40,9 @@ class EmuSystem
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
 
-	static void resetAutoSaveStateTime()
-	{
-		autoSaveStateFrameCount = autoSaveStateFrames;
-		logMsg("reset auto-save state counter to %d", autoSaveStateFrameCount);
-	}
-	static void setupAutoSaveStateTime(int option)
-	{
-		switch(option)
-		{
-			bcase 0 ... 1: autoSaveStateFrames = 0;
-			bdefault:
-				autoSaveStateFrames = 60*60*option; // minutes to frames
-		}
-		resetAutoSaveStateTime();
-	}
-
-	static int loadState();
+	static void cancelAutoSaveStateTimer();
+	static void startAutoSaveStateTimer();
+	static int loadState(int slot = saveStateSlot);
 	static int saveState();
 	static bool stateExists(int slot);
 	static void sprintStateFilename(char *str, size_t size, int slot,
@@ -67,14 +53,15 @@ class EmuSystem
 	{
 		sprintStateFilename(str, S, slot, gamePath, gameName);
 	}
+	static bool loadAutoState();
 	static void saveAutoState();
 	static void saveBackupMem();
 	static void resetGame();
 	static void initOptions();
 	static void writeConfig(Io *io);
 	static bool readConfig(Io *io, uint key, uint readSize);
-	static int loadGame(const char *path, bool allowAutosaveState = 1);
-	typedef Delegate<void (uint result)> LoadGameCompleteDelegate;
+	static int loadGame(const char *path);
+	typedef Delegate<void (uint result, const InputEvent &e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &loadGameCompleteDelegate() { return loadGameCompleteDel; }
 	static void runFrame(bool renderGfx, bool processGfx, bool renderAudio) ATTRS(hot);
@@ -114,6 +101,7 @@ class EmuSystem
 	{
 		active = 0;
 		stopSound();
+		cancelAutoSaveStateTimer();
 	}
 
 	static void start()
@@ -123,6 +111,7 @@ class EmuSystem
 		emuFrameNow = -1;
 		startSound();
 		startTime.setTimeNow();
+		startAutoSaveStateTimer();
 	}
 
 	static void closeSystem();
@@ -136,7 +125,7 @@ class EmuSystem
 			closeSystem();
 			strcpy(gameName, "");
 			strcpy(fullGameName, "");
-			resetAutoSaveStateTime();
+			cancelAutoSaveStateTimer();
 			viewNav.setRightBtnActive(0);
 		}
 	}
@@ -156,3 +145,16 @@ static const char *stateResultToStr(int res)
 		default: bug_branch("%d", res); return 0;
 	}
 }
+
+enum TriggerPosType { TRIGGERS_INLINE = 0, TRIGGERS_RIGHT = 1, TRIGGERS_LEFT = 2, TRIGGERS_SPLIT = 3 };
+
+#include <CreditsView.hh>
+
+struct ConstKeyProfile
+{
+	const char *name;
+	const uint *key;
+};
+
+#include <inGameActionKeys.hh>
+#include <main/EmuConfig.hh>

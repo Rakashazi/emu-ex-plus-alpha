@@ -40,7 +40,7 @@ public final class BaseActivity extends NativeActivity
 	private static String logTag = "BaseActivity";
 	private native void jEnvConfig(float xdpi, float ydpi, int refreshRate, Display dpy, String devName,
 			String filesPath, String eStoragePath, String apkPath, Vibrator sysVibrator,
-			boolean hasPermanentMenuKey);
+			boolean hasPermanentMenuKey, boolean osAnimatesRotation);
 	//private native void layoutChange(int bottom);
 
 	private static Method setSystemUiVisibility =
@@ -56,6 +56,13 @@ public final class BaseActivity extends NativeActivity
 		Display dpy = getWindowManager().getDefaultDisplay();
 		DisplayMetrics metrics = new DisplayMetrics();
 		dpy.getMetrics(metrics);
+		//Log.i(logTag, "Metrics: " + metrics.toString());
+		boolean osAnimatesRotation = false;
+		if(android.os.Build.VERSION.SDK_INT >= 11 || android.os.Build.DISPLAY.contains("cyano"))
+		{
+			// Disable our rotation animation on Android 3.0+ or CM7
+			osAnimatesRotation = true;
+		}
 		//int xMM = (int)(((float)metrics.widthPixels / metrics.xdpi) * 25.4);
 		//int yMM = (int)(((float)metrics.heightPixels / metrics.ydpi) * 25.4);
 		int orientation = dpy.getRotation();
@@ -91,7 +98,7 @@ public final class BaseActivity extends NativeActivity
 			isStraightOrientation ? metrics.ydpi : metrics.xdpi,
 			(int)dpy.getRefreshRate(), dpy, android.os.Build.DEVICE,
 			context.getFilesDir().getAbsolutePath(), Environment.getExternalStorageDirectory().getAbsolutePath(),
-			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey);
+			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey, osAnimatesRotation);
 	}
 	
 	private static final int SET_KEEP_SCREEN_ON = 0, SET_SYSTEM_UI_VISIBILITY = 1,
@@ -178,6 +185,11 @@ public final class BaseActivity extends NativeActivity
 		return Bluetooth.startScan(this, adapter);
 	}
 	
+	public void btCancelScan(BluetoothAdapter adapter)
+	{
+		Bluetooth.cancelScan(this, adapter);
+	}
+	
 	public BluetoothSocket btOpenSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
 	{
 		//Log.i(logTag, "btOpenSocket()");
@@ -216,6 +228,11 @@ public final class BaseActivity extends NativeActivity
 	}
 	
 	static native void sysTextInputEnded(String text);
+	
+	public static void endSysTextInput(String text)
+	{
+		sysTextInputEnded(text);
+	}
 	
 	public void startSysTextInput(final String initialText, final String promptText,
 		final int x, final int y, final int width, final int height)

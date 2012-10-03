@@ -16,7 +16,7 @@ else ifeq ($(ENV), android)
  endif
 else ifeq ($(ENV), iOS)
  LDLIBS += -framework OpenGLES
-else ifeq ($(ENV), macOSX)
+else ifeq ($(ENV), macosx)
  configDefs += CONFIG_GFX_OPENGL_GLEW_STATIC
  LDLIBS += -framework OpenGL -framework CoreVideo
 else ifeq ($(ENV), webos)

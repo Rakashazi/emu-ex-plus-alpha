@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StellaKeys.hxx 2423 2012-03-16 21:02:01Z stephena $
+// $Id: StellaKeys.hxx 2447 2012-04-19 20:11:16Z stephena $
 //============================================================================
 
 #ifndef STELLA_KEYS_HXX
@@ -311,17 +311,5 @@ typedef enum {
 // Just pass SDLMod directly as int (placeholder for now)
 // The underlying code doesn't need to know how it's implemented
 typedef int StellaMod;
-
-// Wrapper around the SDL_GetKeyState function
-// This can be used as-is since KBDK keys and SDL keys are the same
-/*class StellaKeys
-{
-  public:
-    static uInt8* GetKeyState()
-    {
-      SDL_PumpEvents();
-      return SDL_GetKeyState(NULL);
-    }
-};*/
 
 #endif /* StellaKeys */

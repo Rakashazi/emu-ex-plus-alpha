@@ -20,6 +20,11 @@ class Delegate<R(ARGS...)>
   	constexpr Callback(InstancePtr inst, InternalFunction func): inst(inst), func(func) { }
   	InstancePtr inst = nullptr;
   	InternalFunction func = nullptr;
+
+  	bool operator ==(Callback const& rhs) const
+  	{
+  		return inst == rhs.inst && func == rhs.func;
+  	}
   };
 
   // turns a free function into our internal function stub
@@ -98,6 +103,11 @@ public:
 	bool hasCallback() const
 	{
 		return callback.func != nullptr;
+	}
+
+	bool operator ==(Delegate const& rhs) const
+	{
+		return callback == rhs.callback;
 	}
 
 private:

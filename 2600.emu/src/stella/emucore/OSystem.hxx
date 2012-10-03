@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
+// $Id: OSystem.hxx 2471 2012-05-13 18:06:56Z stephena $
 //============================================================================
 
 #ifndef OSYSTEM_HXX
@@ -50,13 +50,21 @@ struct Resolution {
 };
 typedef Common::Array<Resolution> ResolutionList;
 
+struct TimingInfo {
+  uInt64 start;
+  uInt64 current;
+  uInt64 virt;
+  uInt64 totalTime;
+  uInt64 totalFrames;
+};
+
 /**
   This class provides an interface for accessing operating system specific
   functions.  It also comprises an overall parent object, to which all the
   other objects belong.
 
   @author  Stephen Anthony
-  @version $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
+  @version $Id: OSystem.hxx 2471 2012-05-13 18:06:56Z stephena $
 */
 class OSystem
 {

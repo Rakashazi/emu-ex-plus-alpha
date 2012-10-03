@@ -912,7 +912,7 @@ void MixBGSPR_16BPP(const uint32 count_in, const uint8 *bg_linebuf_in, const uin
 }
 
 
-/*#ifdef ARCH_X86
+#ifdef ARCH_X86
 
 #ifdef __x86_64__
 
@@ -1000,15 +1000,16 @@ void MixBGSPR_x86(const uint32 count, const uint8 *bg_linebuf, const uint16 *spr
 
         "addl $1, %%ecx\n\t"
         "jnz BoomBuggy\n\t"
+
    "pop %%ebx\n\t"
  : "=c" (dummy), "=a" (dummy)
  : "d" (bg_linebuf + count), "S" (spr_linebuf + count), "D" (target + count), "c" (count), "a" (vce.color_table_cache)
- : "memory", "cc", "rbp"
+ : "memory", "cc", "ebp"
  );
 }
 #endif
 
-#endif // ARCH_X86*/
+#endif // ARCH_X86
 
 template<typename T>
 void MixBGOnly(const uint32 count, const uint8 *bg_linebuf, T *target)
@@ -1616,10 +1617,10 @@ void VDC_Init(int sgx)
 
  MixBGSPR = MixBGSPR_Generic;
 
- /*#ifdef ARCH_X86
+ #ifdef ARCH_X86
  // FIXME: cmov
  MixBGSPR = MixBGSPR_x86;
- #endif*/
+ #endif
 
 }
 

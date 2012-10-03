@@ -34,31 +34,21 @@ static PerPad_struct *pad[2];
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
+static bool isCDExtension(const char *name)
 {
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },
-	{ .3, VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },
-	{ .97, VertexColorPixelFormat.build(.2 * .4, 0., 0., 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
+	return string_hasDotExtension(name, "cue") ||
+			string_hasDotExtension(name, "iso") ||
+			string_hasDotExtension(name, "bin");
+}
 
-static const char *touchConfigFaceBtnName = "A-Z", *touchConfigCenterBtnName = "Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
-const uint EmuSystem::maxPlayers = 2;
-static const uint systemFaceBtns = 8, systemCenterBtns = 1;
-static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
-#include <CommonGui.hh>
+static int ssFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR || isCDExtension(name);
+}
 
-namespace EmuControls
+static int ssBiosFsFilter(const char *name, int type)
 {
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
+	return type == Fs::TYPE_DIR || string_hasDotExtension(name, "bin");
 }
 
 CLINK void DisplayMessage(const char* str) { }
@@ -235,6 +225,48 @@ enum {
 FsSys::cPath biosPath = "";
 static PathOption<CFGKEY_BIOS_PATH> optionBiosPath(biosPath, sizeof(biosPath), "");
 
+static const int SH2CORE_DYNAREC = 2;
+static yabauseinit_struct yinit =
+{
+	PERCORE_DUMMY,
+	#ifdef SH2_DYNAREC
+	SH2CORE_DYNAREC,
+	#else
+	SH2CORE_INTERPRETER,
+	#endif
+	VIDCORE_SOFT,
+	SNDCORE_IMAGINE,
+	#if defined(HAVE_Q68)
+	M68KCORE_Q68,
+	#else
+	M68KCORE_C68K,
+	#endif
+	CDCORE_ISO,
+	CART_NONE,
+	REGION_AUTODETECT,
+	biosPath,
+	EmuSystem::fullGamePath,
+	bupPath,
+	mpegPath,
+	cartPath,
+	nullptr,
+	VIDEOFORMATTYPE_NTSC
+};
+
+
+const uint EmuSystem::maxPlayers = 2;
+uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+#include <CommonGui.hh>
+
+namespace EmuControls
+{
+KeyCategory category[categories] =
+{
+		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
+};
+}
+
 void EmuSystem::initOptions()
 {
 	optionNotificationIcon.initDefault(0);
@@ -314,60 +346,10 @@ void EmuSystem::writeConfig(Io *io)
 	writeKeyConfig2(io, ssKeyIdxZTurbo, CFGKEY_SS_Z_TURBO);
 }
 
-static const int SH2CORE_DYNAREC = 2;
-static yabauseinit_struct yinit =
-{
-	PERCORE_DUMMY,
-	#ifdef SH2_DYNAREC
-	SH2CORE_DYNAREC,
-	#else
-	SH2CORE_INTERPRETER,
-	#endif
-	VIDCORE_SOFT,
-	SNDCORE_IMAGINE,
-	#if defined(HAVE_Q68)
-	M68KCORE_Q68,
-	#else
-	M68KCORE_C68K,
-	#endif
-	CDCORE_ISO,
-	CART_NONE,
-	REGION_AUTODETECT,
-	biosPath,
-	EmuSystem::fullGamePath,
-	bupPath,
-	mpegPath,
-	cartPath,
-	nullptr,
-	VIDEOFORMATTYPE_NTSC
-};
-
-static bool isCDExtension(const char *name)
-{
-	return string_hasDotExtension(name, "cue") ||
-			string_hasDotExtension(name, "iso") ||
-			string_hasDotExtension(name, "bin");
-}
-
-static int ssFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isCDExtension(name);
-}
-
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = ssFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ssFsFilter;
 
-static int ssBiosFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || string_hasDotExtension(name, "bin");
-}
-
 static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
-
-#include "SSOptionView.hh"
-static SSOptionView oCategoryMenu;
-#include "SSMenuView.hh"
-static SSMenuView mMenu;
 
 static uint ptrInputToSysButton(int input)
 {
@@ -458,16 +440,6 @@ static int ssResX = 320, ssResY = 224;
 
 static bool renderToScreen = 0;
 
-static void setupDrawing(bool force)
-{
-	if(force || (!emuView.disp.img || emuView.vidPix.x != (uint)ssResX || emuView.vidPix.y != (uint)ssResY))
-	{
-		emuView.vidPix.init((uchar*)dispbuffer, pixFmt, ssResX, ssResY);
-		emuView.vidImg.init(emuView.vidPix, 0, optionImgFilter);
-		emuView.disp.setImg(&emuView.vidImg);
-	}
-}
-
 CLINK void YuiSwapBuffers()
 {
 	//logMsg("YuiSwapBuffers");
@@ -480,9 +452,7 @@ CLINK void YuiSwapBuffers()
 			logMsg("resolution changed to %d,%d", width, height);
 			ssResX = width;
 			ssResY = height;
-			setupDrawing();
-			if(optionImageZoom == optionImageZoomIntegerOnly)
-				emuView.placeEmu();
+			emuView.resizeImage(ssResX, ssResY);
 		}
 
 		emuView.updateAndDrawContent();
@@ -538,7 +508,7 @@ int EmuSystem::saveState()
 		return STATE_RESULT_IO_ERROR;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -590,9 +560,9 @@ void EmuSystem::closeSystem()
 bool EmuSystem::vidSysIsPAL() { return 0; }
 static bool touchControlsApplicable() { return 1; }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
-	closeGame(allowAutosaveState);
+	closeGame();
 
 	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
 	#ifdef CONFIG_BASE_IOS_SETUID
@@ -609,7 +579,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
-	setupDrawing();
 
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
@@ -620,16 +589,6 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 
 	emuView.initImage(0, ssResX, ssResY);
 
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr))
-		{
-			logMsg("loading auto-save state");
-			YabLoadState(saveStr);
-		}
-	}
 	//EmuSystem::configAudioRate();
 	logMsg("finished loading game");
 	return 1;
@@ -670,9 +629,19 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },
+		{ .3, VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },
+		{ .97, VertexColorPixelFormat.build(.2 * .4, 0., 0., 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	ScspSetFrameAccurate(1);
 
-	mainInitCommon();
+	mainInitCommon(navViewGrad);
+	emuView.initPixmap((uchar*)dispbuffer, pixFmt, ssResX, ssResY);
 
 	mMenu.init(Config::envIsPS3);
 	viewStack.push(&mMenu);

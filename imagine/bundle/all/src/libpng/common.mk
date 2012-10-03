@@ -8,9 +8,9 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-pkgName := libpng
-libpngVer := 1.5.12
+libpngVer := 1.5.13
 libpngSrcDir := libpng-$(libpngVer)
+libpngSrcArchive := libpng-$(libpngVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/.libs/libpng15.a
@@ -29,6 +29,10 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
+$(libpngSrcDir)/configure : $(libpngSrcArchive)
+	@echo "Extracting libpng..."
+	tar -xJf $^
+
 $(outputLibFile) : $(makeFile)
 	@echo "Building libpng..."
 	$(MAKE) -C $(<D)
@@ -36,7 +40,7 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libpngSrcDir)/configure
 	@echo "Configuring libpng..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" $$dir/$(libpngSrcDir)/configure --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libpngSrcDir)/configure --disable-shared --host=$(CHOST) $(buildArg)
 	touch $(buildDir)/pnglibconf.dfn
 	touch $(buildDir)/pnglibconf.out
 	dir=`pwd` && cp $$dir/$(pnglibconfFile) $(buildDir)/pnglibconf.h

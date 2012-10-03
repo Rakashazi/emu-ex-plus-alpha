@@ -31,43 +31,7 @@ else
 # TODO: rework non-embedded build
 CPPFLAGS += -include $(IMAGINE_PATH)/build/$(buildName)/gen/config.h
 LDLIBS += $(IMAGINE_PATH)/lib/$(buildName)/libimagine.a
-include $(IMAGINE_PATH)/make/package/libpng.mk
-include $(IMAGINE_PATH)/make/package/freetype.mk
-include $(IMAGINE_PATH)/make/package/opengl.mk
-
-ifeq ($(ENV), linux)
- include $(IMAGINE_PATH)/make/package/bluez.mk
-else ifeq ($(ENV), android)
- include $(IMAGINE_PATH)/make/package/bluez.mk
-else ifeq ($(ENV), iOS)
- include $(IMAGINE_PATH)/make/package/btstack.mk
-endif
-
-ifeq ($(ENV), linux)
- LDLIBS +=  -lasound
-else ifeq ($(ENV), iOS)
- LDLIBS += -framework AudioToolbox -framework CoreAudio
-else ifeq ($(ENV), macOSX)
- LDLIBS += -framework AudioToolbox -framework CoreAudio
-else ifeq ($(ENV), ps3)
- LDLIBS += -laudio_stub
-endif
-
-ifeq ($(ENV), linux)
- LDLIBS += -lXi -lX11 -lrt
-else ifeq ($(ENV), android)
- ifeq ($(android_hasSDK9), 1)
-  LDLIBS += -lEGL -landroid
- endif
-else ifeq ($(ENV), iOS)
- LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -lobjc
-else ifeq ($(ENV), macOSX)
- LDLIBS += -framework AppKit
-else ifeq ($(ENV), webos)
- include $(IMAGINE_PATH)/make/package/sdl.mk
-else ifeq ($(ENV), ps3)
- LDLIBS += -lusbd_stub -lfs_stub -lio_stub -lsysutil_stub -ldbgfont -lresc_stub -lgcm_cmd -lgcm_sys_stub -lsysmodule_stub -lm
-endif
+include $(IMAGINE_PATH)/build/$(buildName)/gen/flags.mk
 
 endif
 
@@ -75,7 +39,8 @@ CPPFLAGS += -I../EmuFramework/include
 VPATH += ../EmuFramework/src
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
-StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc
+StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
+TouchConfigView.cc EmuOptions.cc OptionView.cc
 
 ifneq ($(ENV), ps3)
 SRC += VController.cc

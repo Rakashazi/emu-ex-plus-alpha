@@ -1,15 +1,16 @@
 #pragma once
 
-#include "sys.hh"
+#include <bluetooth/sys.hh>
 #include <input/interface.h>
 #include <util/collection/DLList.hh>
 
 class Wiimote : public BluetoothInputDevice
 {
 public:
-	CallResult open(const char *name, BluetoothAddr addr, BluetoothAdapter &adapter);
+	Wiimote(BluetoothAddr addr): addr(addr) { }
+	CallResult open(BluetoothAdapter &adapter) override;
 	void close();
-	void removeFromSystem();
+	void removeFromSystem() override;
 	bool dataHandler(const uchar *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void requestStatus();

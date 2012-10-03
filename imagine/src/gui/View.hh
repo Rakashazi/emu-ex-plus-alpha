@@ -24,15 +24,16 @@ public:
 	virtual void deinit() = 0;
 	virtual Rect2<int> &viewRect() = 0;
 	virtual void place() = 0;
-	void place(const Rect2<int> &rect)
-	{
-		this->viewRect() = rect;
-		place();
-	}
 	virtual void draw() = 0;
 	virtual void inputEvent(const InputEvent &event) = 0;
 	virtual void clearSelection() { } // de-select any items from previous input
 	virtual void onShow() { }
+
+	void placeRect(Rect2<int> rect)
+	{
+		this->viewRect() = rect;
+		place();
+	}
 
 	static View *modalView;
 	typedef Delegate<void ()> RemoveModalViewDelegate;
@@ -48,8 +49,6 @@ public:
 	}
 
 	static ResourceFace *defaultFace;
-
-	void (*dismissHandler)() = nullptr;
 
 	enum { SHOW, ACTIVE, HIDE };
 	ViewAnimation *animation = nullptr;
@@ -73,16 +72,14 @@ public:
 
 	void doDismiss()
 	{
-		logMsg("dimiss view with hanlder %p", dismissHandler);
+		//logMsg("dimiss view with hanlder %p", dismissHandler);
 		deinit();
-		if(dismissHandler)
-			dismissHandler();
+		/*if(dismissHandler)
+			dismissHandler();*/
 	}
 
-	void dismiss(void (*handler)() = 0)
+	void dismiss()
 	{
-		if(handler)
-			dismissHandler = handler;
 		if(!animation)
 		{
 			doDismiss();

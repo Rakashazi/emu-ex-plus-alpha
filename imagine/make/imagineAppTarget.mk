@@ -10,7 +10,7 @@ targetFile := $(target)$(targetSuffix)$(targetExtension)
 $(targetDir)/$(targetFile) : $(OBJ)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD)$(LD) -o $@ $^ $(LDFLAGS)
+	$(PRINT_CMD) $(LD) -o $@ $^ $(LDFLAGS)
 ifeq ($(ENV), iOS)
 ifndef iOSNoCodesign
 	@echo "Signing $@"

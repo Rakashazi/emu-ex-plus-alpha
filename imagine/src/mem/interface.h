@@ -33,12 +33,14 @@ static void mem_freeSafe(void* buffer) { if(buffer != NULL) mem_free(buffer); }
 
 #ifdef __cplusplus
 
+#include <new>
+
 // default placement new for realloc()
-void *operator new (size_t size, void *o)
+/*void *operator new (size_t size, void *o)
 #ifdef __EXCEPTIONS
 	throw ()
 #endif
-;
+;*/
 
 // TODO: this only works if the class has a trivial destructor
 template <class T>

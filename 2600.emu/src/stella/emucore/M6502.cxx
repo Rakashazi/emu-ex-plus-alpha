@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.cxx 2359 2012-01-17 22:20:20Z stephena $
+// $Id: M6502.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 //#define DEBUG_OUTPUT
@@ -245,7 +245,7 @@ bool M6502::execute(uInt32 number)
 #ifdef DEBUGGER_SUPPORT
       if(myJustHitTrapFlag)
       {
-      	if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address))
+        if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address))
         {
           myJustHitTrapFlag = false;
           return true;
@@ -256,7 +256,7 @@ bool M6502::execute(uInt32 number)
       {
         if(myBreakPoints->isSet(PC))
         {
-        	if(myDebugger && myDebugger->start("BP: ", PC))
+          if(myDebugger && myDebugger->start("BP: ", PC))
             return true;
         }
       }
@@ -376,38 +376,38 @@ bool M6502::save(Serializer& out) const
   {
     out.putString(CPU);
 
-    out.putByte((char)A);   // Accumulator
-    out.putByte((char)X);   // X index register
-    out.putByte((char)Y);   // Y index register
-    out.putByte((char)SP);  // Stack Pointer
-    out.putByte((char)IR);  // Instruction register
-    out.putInt(PC);         // Program Counter
+    out.putByte(A);    // Accumulator
+    out.putByte(X);    // X index register
+    out.putByte(Y);    // Y index register
+    out.putByte(SP);   // Stack Pointer
+    out.putByte(IR);   // Instruction register
+    out.putShort(PC);  // Program Counter
 
-    out.putBool(N);     // N flag for processor status register
-    out.putBool(V);     // V flag for processor status register
-    out.putBool(B);     // B flag for processor status register
-    out.putBool(D);     // D flag for processor status register
-    out.putBool(I);     // I flag for processor status register
-    out.putBool(notZ);  // Z flag complement for processor status register
-    out.putBool(C);     // C flag for processor status register
+    out.putBool(N);    // N flag for processor status register
+    out.putBool(V);    // V flag for processor status register
+    out.putBool(B);    // B flag for processor status register
+    out.putBool(D);    // D flag for processor status register
+    out.putBool(I);    // I flag for processor status register
+    out.putBool(notZ); // Z flag complement for processor status register
+    out.putBool(C);    // C flag for processor status register
 
-    out.putByte((char)myExecutionStatus);
+    out.putByte(myExecutionStatus);
 
     // Indicates the number of distinct memory accesses
     out.putInt(myNumberOfDistinctAccesses);
     // Indicates the last address(es) which was accessed
-    out.putInt(myLastAddress);
-    out.putInt(myLastPeekAddress);
-    out.putInt(myLastPokeAddress);
-    out.putInt(myLastSrcAddressS);
-    out.putInt(myLastSrcAddressA);
-    out.putInt(myLastSrcAddressX);
-    out.putInt(myLastSrcAddressY);
-    out.putInt(myDataAddressForPoke);
+    out.putShort(myLastAddress);
+    out.putShort(myLastPeekAddress);
+    out.putShort(myLastPokeAddress);
+    out.putShort(myLastSrcAddressS);
+    out.putShort(myLastSrcAddressA);
+    out.putShort(myLastSrcAddressX);
+    out.putShort(myLastSrcAddressY);
+    out.putShort(myDataAddressForPoke);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: M6502::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: M6502::save" << endl;
     return false;
   }
 
@@ -424,38 +424,38 @@ bool M6502::load(Serializer& in)
     if(in.getString() != CPU)
       return false;
 
-    A = (uInt8) in.getByte();   // Accumulator
-    X = (uInt8) in.getByte();   // X index register
-    Y = (uInt8) in.getByte();   // Y index register
-    SP = (uInt8) in.getByte();  // Stack Pointer
-    IR = (uInt8) in.getByte();  // Instruction register
-    PC = (uInt16) in.getInt();  // Program Counter
+    A = in.getByte();    // Accumulator
+    X = in.getByte();    // X index register
+    Y = in.getByte();    // Y index register
+    SP = in.getByte();   // Stack Pointer
+    IR = in.getByte();   // Instruction register
+    PC = in.getShort();  // Program Counter
 
-    N = in.getBool();     // N flag for processor status register
-    V = in.getBool();     // V flag for processor status register
-    B = in.getBool();     // B flag for processor status register
-    D = in.getBool();     // D flag for processor status register
-    I = in.getBool();     // I flag for processor status register
-    notZ = in.getBool();  // Z flag complement for processor status register
-    C = in.getBool();     // C flag for processor status register
+    N = in.getBool();    // N flag for processor status register
+    V = in.getBool();    // V flag for processor status register
+    B = in.getBool();    // B flag for processor status register
+    D = in.getBool();    // D flag for processor status register
+    I = in.getBool();    // I flag for processor status register
+    notZ = in.getBool(); // Z flag complement for processor status register
+    C = in.getBool();    // C flag for processor status register
 
-    myExecutionStatus = (uInt8) in.getByte();
+    myExecutionStatus = in.getByte();
 
     // Indicates the number of distinct memory accesses
-    myNumberOfDistinctAccesses = (uInt32) in.getInt();
+    myNumberOfDistinctAccesses = in.getInt();
     // Indicates the last address(es) which was accessed
-    myLastAddress = (uInt16) in.getInt();
-    myLastPeekAddress = (uInt16) in.getInt();
-    myLastPokeAddress = (uInt16) in.getInt();
-    myLastSrcAddressS = (uInt16) in.getInt();
-    myLastSrcAddressA = (uInt16) in.getInt();
-    myLastSrcAddressX = (uInt16) in.getInt();
-    myLastSrcAddressY = (uInt16) in.getInt();
-    myDataAddressForPoke = (uInt16) in.getInt();
+    myLastAddress = in.getShort();
+    myLastPeekAddress = in.getShort();
+    myLastPokeAddress = in.getShort();
+    myLastSrcAddressS = in.getShort();
+    myLastSrcAddressA = in.getShort();
+    myLastSrcAddressX = in.getShort();
+    myLastSrcAddressY = in.getShort();
+    myDataAddressForPoke = in.getShort();
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: M6502::laod" << endl << "  " << msg << endl;
+    cerr << "ERROR: M6502::laod" << endl;
     return false;
   }
 

@@ -42,7 +42,7 @@ SIZE_OPTIMIZE_CFLAGS := -Os $(NORMAL_OPTIMIZE_CFLAGS_MISC)
 ifneq ($(origin HIGH_OPTIMIZE_CFLAGS), file)
  HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 endif
-WHOLE_PROGRAM_CFLAGS += -fipa-struct-reorg -fipa-matrix-reorg -fwhole-program
+WHOLE_PROGRAM_CFLAGS += -fwhole-program
 
 ifdef O_SIZE
  OPTIMIZE_CFLAGS = $(SIZE_OPTIMIZE_CFLAGS)
@@ -57,8 +57,11 @@ else
 endif
 
 ifdef RELEASE
- NO_LOGGER := 1
+ ifndef LOGGER
+  NO_LOGGER := 1
+ endif
  CPPFLAGS += -DNDEBUG
+ OPTIMIZE_CFLAGS += -fno-stack-protector
 endif
 
 ifdef PROFILE

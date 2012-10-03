@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Paddles.cxx 2405 2012-03-04 19:20:29Z stephena $
+// $Id: Paddles.cxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -43,6 +43,7 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
 
   // As much as possible, precompute which events we care about for
   // a given port; this will speed up processing in update()
+
   // Consider whether this is the left or right port
   if(myJack == Left)
   {
@@ -221,7 +222,8 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
   myKeyRepeat0 = myKeyRepeat1 = false;
   myPaddleRepeat0 = myPaddleRepeat1 = myLastAxisX = myLastAxisY = 0;
 
-  myCharge[0] = myCharge[1] = myLastCharge[0] = myLastCharge[1] = 0;
+  myCharge[0] = myCharge[1] = TRIGRANGE / 2;
+  myLastCharge[0] = myLastCharge[1] = 0;
 
   // Paranoid mode: defaults for the global variables should be set
   // before the first instance of this class is instantiated
@@ -381,17 +383,17 @@ void Paddles::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Paddles::setMouseControl(
-    MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID)
+bool Paddles::setMouseControl(
+    Controller::Type xtype, int xid, Controller::Type ytype, int yid)
 {
   // In 'automatic' mode, both axes on the mouse map to a single paddle,
   // and the paddle axis and direction settings are taken into account
   // This overrides any other mode
-  if(xaxis == MouseControl::Automatic || yaxis == MouseControl::Automatic)
+  if(xtype == Controller::Paddles && ytype == Controller::Paddles && xid == yid)
   {
-    myMPaddleID = ((myJack == Left && (ctrlID == 0 || ctrlID == 1)) ||
-                   (myJack == Right && (ctrlID == 2 || ctrlID == 3))
-                  ) ? ctrlID & 0x01 : -1;
+    myMPaddleID = ((myJack == Left && (xid == 0 || xid == 1)) ||
+                   (myJack == Right && (xid == 2 || xid == 3))
+                  ) ? xid & 0x01 : -1;
     myMPaddleIDX = myMPaddleIDY = -1;
   }
   else
@@ -399,37 +401,19 @@ void Paddles::setMouseControl(
     // The following is somewhat complex, but we need to pre-process as much
     // as possible, so that ::update() can run quickly
     myMPaddleID = -1;
-    if(myJack == Left)
+    if(myJack == Left && xtype == Controller::Paddles)
     {
-      switch(xaxis)
-      {
-        case MouseControl::Paddle0:  myMPaddleIDX = 0;  break;
-        case MouseControl::Paddle1:  myMPaddleIDX = 1;  break;
-        default:                     myMPaddleIDX = -1; break;
-      }
-      switch(yaxis)
-      {
-        case MouseControl::Paddle0:  myMPaddleIDY = 0;  break;
-        case MouseControl::Paddle1:  myMPaddleIDY = 1;  break;
-        default:                     myMPaddleIDY = -1; break;
-      }
+      myMPaddleIDX = (xid == 0 || xid == 1) ? xid & 0x01 : -1;
+      myMPaddleIDY = (yid == 0 || yid == 1) ? yid & 0x01 : -1;
     }
-    else  // myJack == Right
+    else if(myJack == Right && ytype == Controller::Paddles)
     {
-      switch(xaxis)
-      {
-        case MouseControl::Paddle2:  myMPaddleIDX = 0;  break;
-        case MouseControl::Paddle3:  myMPaddleIDX = 1;  break;
-        default:                     myMPaddleIDX = -1; break;
-      }
-      switch(yaxis)
-      {
-        case MouseControl::Paddle2:  myMPaddleIDY = 0;  break;
-        case MouseControl::Paddle3:  myMPaddleIDY = 1;  break;
-        default:                     myMPaddleIDY = -1; break;
-      }
+      myMPaddleIDX = (xid == 2 || xid == 3) ? xid & 0x01 : -1;
+      myMPaddleIDY = (yid == 2 || yid == 3) ? yid & 0x01 : -1;
     }
   }
+
+  return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

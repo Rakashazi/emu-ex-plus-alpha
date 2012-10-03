@@ -160,7 +160,7 @@ if [ $minSDK = 9 ]
 then
 	echo '	<supports-screens android:xlargeScreens="true" />' >> $outPath
 	echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-	targetSDKOutput='android:targetSdkVersion="15"'
+	targetSDKOutput='android:targetSdkVersion="16"'
 fi
 
 if [ $noIcon ]

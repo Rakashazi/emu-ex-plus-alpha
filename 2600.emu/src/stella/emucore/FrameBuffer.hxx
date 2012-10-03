@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FrameBuffer.hxx 2332 2012-01-03 20:52:45Z stephena $
+// $Id: FrameBuffer.hxx 2524 2012-06-04 15:52:56Z stephena $
 //============================================================================
 
 #ifndef FRAMEBUFFER_HXX

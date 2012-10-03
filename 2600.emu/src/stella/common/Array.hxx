@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Array.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Array.hxx 2448 2012-04-20 20:47:53Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -58,6 +58,13 @@ class Array
         delete [] _data;
     }
 
+    void reserve(int capacity)
+    {
+      if(capacity <= _capacity)
+        return;
+      ensureCapacity(capacity - 128);
+    }
+
     void push_back(const T& element)
     {
       ensureCapacity(_size + 1);
@@ -69,15 +76,6 @@ class Array
       ensureCapacity(_size + array._size);
       for(int i = 0; i < array._size; i++)
         _data[_size++] = array._data[i];
-    }
-
-    void push_back_unique(const T& element)
-    {
-      if(!contains(element))
-      {
-        ensureCapacity(_size + 1);
-        _data[_size++] = element;
-      }
     }
 
     void insert_at(int idx, const T& element)
@@ -106,8 +104,6 @@ class Array
       return tmp;
     }
 
-    // TODO: insert, remove, ...
-
     T& operator [](int idx)
     {
       assert(idx >= 0 && idx < _size);
@@ -134,6 +130,7 @@ class Array
     }
 
     unsigned int size() const { return _size; }
+    unsigned int capacity() const { return _capacity; }
 
     void clear()
     {
@@ -169,15 +166,6 @@ class Array
     const_iterator end() const
     {
       return _data + _size;
-    }
-
-    bool contains(const T &key) const
-    {
-      for (const_iterator i = begin(); i != end(); ++i) {
-        if (*i == key)
-          return true;
-      }
-      return false;
     }
 
   protected:

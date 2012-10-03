@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Thumbulator.hxx 2523 2012-06-03 18:05:14Z stephena $
 //============================================================================
 
 //============================================================================
@@ -62,7 +62,7 @@
 class Thumbulator
 {
   public:
-    Thumbulator(uInt16* rom, uInt16* ram, bool traponfatal);
+    Thumbulator(const uInt16* rom, uInt16* ram, bool traponfatal);
     ~Thumbulator();
 
     /**
@@ -119,7 +119,7 @@ class Thumbulator
     int reset ( void );
 
   private:
-    uInt16* rom;
+    const uInt16* rom;
     uInt16* ram;
     Int32 copydata;
 

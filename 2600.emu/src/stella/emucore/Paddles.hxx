@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Paddles.hxx 2371 2012-01-29 17:08:51Z stephena $
+// $Id: Paddles.hxx 2491 2012-05-21 17:30:14Z stephena $
 //============================================================================
 
 #ifndef PADDLES_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 pair of paddle controllers.
 
   @author  Bradford W. Mott
-  @version $Id: Paddles.hxx 2371 2012-01-29 17:08:51Z stephena $
+  @version $Id: Paddles.hxx 2491 2012-05-21 17:30:14Z stephena $
 */
 class Paddles : public Controller
 {
@@ -64,20 +64,21 @@ class Paddles : public Controller
     /**
       Determines how this controller will treat values received from the
       X/Y axis and left/right buttons of the mouse.  Since not all controllers
-      use the mouse, it's up to the specific class to decide how to use this data.
-
-      If either of the axis is set to 'Automatic', then we automatically
-      use the ctrlID for the control type.
+      use the mouse the same way (or at all), it's up to the specific class to
+      decide how to use this data.
 
       In the current implementation, the left button is tied to the X axis,
       and the right one tied to the Y axis.
 
-      @param xaxis   How the controller should use x-axis data
-      @param yaxis   How the controller should use y-axis data
-      @param ctrlID  The controller ID to use axis 'auto' mode
+      @param xtype  The controller to use for x-axis data
+      @param xid    The controller ID to use for x-axis data (-1 for no id)
+      @param ytype  The controller to use for y-axis data
+      @param yid    The controller ID to use for y-axis data (-1 for no id)
+
+      @return  Whether the controller supports using the mouse
     */
-    void setMouseControl(
-        MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID = -1);
+    bool setMouseControl(
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
 
     /**
       Sets the sensitivity for digital emulation of paddle movement.
@@ -125,8 +126,6 @@ class Paddles : public Controller
     int myCharge[2], myLastCharge[2];
     int myLastAxisX, myLastAxisY;
     int myAxisDigitalZero, myAxisDigitalOne;
-
-    bool mySwapPorts;
 
     static int _DIGITAL_SENSITIVITY, _DIGITAL_DISTANCE;
     static int _MOUSE_SENSITIVITY;

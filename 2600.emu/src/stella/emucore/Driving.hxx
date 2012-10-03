@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.hxx 2372 2012-01-29 17:33:36Z stephena $
+// $Id: Driving.hxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #ifndef DRIVING_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 Indy 500 driving controller.
 
   @author  Bradford W. Mott
-  @version $Id: Driving.hxx 2372 2012-01-29 17:33:36Z stephena $
+  @version $Id: Driving.hxx 2444 2012-04-19 13:00:02Z stephena $
 */
 class Driving : public Controller
 {
@@ -58,20 +58,21 @@ class Driving : public Controller
     /**
       Determines how this controller will treat values received from the
       X/Y axis and left/right buttons of the mouse.  Since not all controllers
-      use the mouse, it's up to the specific class to decide how to use this data.
-
-      If either of the axis is set to 'Automatic', then we automatically
-      use the ctrlID for the control type.
+      use the mouse the same way (or at all), it's up to the specific class to
+      decide how to use this data.
 
       In the current implementation, the left button is tied to the X axis,
       and the right one tied to the Y axis.
 
-      @param xaxis   How the controller should use x-axis data
-      @param yaxis   How the controller should use y-axis data
-      @param ctrlID  The controller ID to use axis 'auto' mode
+      @param xtype  The controller to use for x-axis data
+      @param xid    The controller ID to use for x-axis data (-1 for no id)
+      @param ytype  The controller to use for y-axis data
+      @param yid    The controller ID to use for y-axis data (-1 for no id)
+
+      @return  Whether the controller supports using the mouse
     */
-    void setMouseControl(
-        MouseControl::Axis xaxis, MouseControl::Axis yaxis, int ctrlID = -1);
+    bool setMouseControl(
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
 
   private:
     // Counter to iterate through the gray codes
@@ -89,10 +90,10 @@ class Driving : public Controller
     Event::Type myCWEvent, myCCWEvent, myFireEvent,
                 myXAxisValue, myYAxisValue, myAxisMouseMotion;
 
-    // Controller to emulate in mouse axis 'automatic' mode
+    // Controller to emulate in normal mouse axis mode
     int myControlID;
 
-    // Controller to emulate in mouse axis 'specific' mode
+    // Controllers to emulate in 'specific' mouse axis mode
     int myControlIDX, myControlIDY;
 };
 

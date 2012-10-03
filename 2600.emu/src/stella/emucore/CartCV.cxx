@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: CartCV.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -204,15 +204,11 @@ bool CartridgeCV::save(Serializer& out) const
   try
   {
     out.putString(name());
-
-    // Output RAM
-    out.putInt(1024);
-    for(uInt32 addr = 0; addr < 1024; ++addr)
-      out.putByte((char)myRAM[addr]);
+    out.putByteArray(myRAM, 1024);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeCV::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeCV::save" << endl;
     return false;
   }
 
@@ -227,14 +223,11 @@ bool CartridgeCV::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    // Input RAM
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 addr = 0; addr < limit; ++addr)
-      myRAM[addr] = (uInt8) in.getByte();
+    in.getByteArray(myRAM, 1024);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeCV::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeCV::load" << endl;
     return false;
   }
 

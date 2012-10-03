@@ -62,7 +62,6 @@ typedef struct
   float frame_rate; /* Output Frame rate (usually 50 or 60 frames per second) */
   int enabled;      /* 1= sound emulation is enabled */
   int buffer_size;  /* Size of sound buffer (in bytes) */
-  int16 *buffer; /* Signed 16-bit stereo sound data */
   struct
   {
 	FMSampleType *pos;
@@ -88,7 +87,7 @@ extern uint8 system_hw;
 extern int audio_init(int samplerate,float framerate);
 extern void audio_reset(void);
 extern void audio_shutdown(void);
-extern int audio_update(void);
+extern int audio_update(int16 *sb);
 extern void audio_set_equalizer(void);
 extern void system_init(void);
 extern void system_reset(void);

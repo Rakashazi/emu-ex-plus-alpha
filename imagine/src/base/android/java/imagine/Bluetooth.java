@@ -68,6 +68,12 @@ final class Bluetooth
         return 1;
 	}
 	
+	static void cancelScan(Activity act, BluetoothAdapter adapter)
+	{
+		adapter.cancelDiscovery();
+		devs.clear();
+	}
+	
 	static BluetoothSocket openSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
 	{
 		BluetoothDevice dev = adapter.getRemoteDevice(address);
@@ -132,16 +138,6 @@ final class Bluetooth
 		{
 			//Log.i(logTag, "discovery finished with " + devs.size() + " devs");
 			
-			for(BluetoothDevice d : devs)
-			{
-				//Log.i(logTag, "uuids " + d.getUuids());
-				if(!BaseActivity.onScanDeviceClass(d.getBluetoothClass().getDeviceClass()))
-				{
-					continue;
-				}
-				BaseActivity.onScanDeviceName(d.getName(), d.getAddress());
-			}
-			
 			devs.clear();
 			
 			BaseActivity.onBTScanStatus(1);
@@ -173,6 +169,11 @@ final class Bluetooth
 				}
 				
 				devs.add(found);
+				
+				if(BaseActivity.onScanDeviceClass(found.getBluetoothClass().getDeviceClass()))
+				{
+					BaseActivity.onScanDeviceName(found.getName(), found.getAddress());
+				}
 			}
 		}
 	};	

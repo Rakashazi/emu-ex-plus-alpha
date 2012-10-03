@@ -77,7 +77,7 @@ final class GLView extends SurfaceView implements SurfaceHolder.Callback, Messag
 	private static EglHelper mEglHelper;
 	//private static GL10 gl;
 	private static MessageQueue queue;
-	private static Handler handler;
+	static Handler handler;
 	private static Runnable painter;
 	private static boolean idleHandlerActive;//runnableInQueue;
 	

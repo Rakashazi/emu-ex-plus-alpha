@@ -431,9 +431,9 @@ void TextureGfxBufferImage::replace(Pixmap &p, uint hints)
 	replaceGLTexture(p, 1, pixelToOGLInternalFormat(*p.format), hints, GL_TEXTURE_2D);
 }
 
-Pixmap *TextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen) { return 0; }
+Pixmap *TextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return fallback; }
 
-void TextureGfxBufferImage::unlock() { }
+void TextureGfxBufferImage::unlock(Pixmap *pix, uint hints) { write(*pix, hints); }
 
 void TextureGfxBufferImage::deinit()
 {
@@ -591,7 +591,7 @@ void DirectTextureGfxBufferImage::write(Pixmap &p, uint hints)
 	unlock();
 }
 
-Pixmap *DirectTextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen)
+Pixmap *DirectTextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback)
 {
 	void *data;
 	if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, x, y, xlen, ylen, data) != 0)
@@ -603,7 +603,7 @@ Pixmap *DirectTextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen)
 	return &eglPixmap;
 }
 
-void DirectTextureGfxBufferImage::unlock()
+void DirectTextureGfxBufferImage::unlock(Pixmap *pix, uint hints)
 {
 	directTextureConf.unlockBuffer(eglBuf);
 }
@@ -686,7 +686,7 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		bug_exit("TODO");
 	}
 
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen)
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr)
 	{
 		ANativeWindow_Buffer buffer;
 		//ARect rect = { x, y, xlen, ylen };
@@ -697,7 +697,7 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		return &pix;
 	}
 
-	void unlock()
+	void unlock(Pixmap *pix = nullptr, uint hints = 0)
 	{
 		using namespace Base;
 		using namespace Gfx;
@@ -952,10 +952,8 @@ CallResult GfxBufferImage::init(Pixmap &pix, bool upload, uint filter, uint hint
 
 void GfxBufferImage::write(Pixmap &p) { GfxBufferImageImpl::write(p, hints); }
 void GfxBufferImage::replace(Pixmap &p) { GfxBufferImageImpl::replace(p, hints); }
-/*void GfxBufferImage::write(Pixmap &p) { implPtr()->write(p, hints); }
-void GfxBufferImage::replace(Pixmap &p) { implPtr()->replace(p, hints); }
-Pixmap *GfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen) { return implPtr()->lock(x, y, xlen, ylen); }
-void GfxBufferImage::unlock() { implPtr()->unlock(); }*/
+void GfxBufferImage::unlock(Pixmap *p) { GfxBufferImageImpl::unlock(p, hints); }
+
 void GfxBufferImage::deinit()
 {
 	if(!isInit())

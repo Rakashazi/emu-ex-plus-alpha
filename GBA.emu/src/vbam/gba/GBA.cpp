@@ -442,8 +442,8 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
 #endif
   int cpuLoopTicks = lcdTicks;
 
-  if(soundTicks < cpuLoopTicks)
-    cpuLoopTicks = soundTicks;
+  /*if(soundTicks < cpuLoopTicks)
+    cpuLoopTicks = soundTicks;*/
 
   auto &timer0On = gGba.timers.timer0On;
   auto &timer0Ticks = gGba.timers.timer0Ticks;
@@ -1377,64 +1377,6 @@ static void blankLineUpdateLastVCount(MixColorType *lineMix, const GBAMem::IoMem
 
 void CPUUpdateRender()
 {
-  switch(ioMem.DISPCNT & 7) {
-  case 0:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode0RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode0RenderLineNoWindow;
-    else
-      renderLine = mode0RenderLineAll;
-    break;
-  case 1:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode1RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode1RenderLineNoWindow;
-    else
-      renderLine = mode1RenderLineAll;
-    break;
-  case 2:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode2RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode2RenderLineNoWindow;
-    else
-      renderLine = mode2RenderLineAll;
-    break;
-  case 3:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode3RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode3RenderLineNoWindow;
-    else
-      renderLine = mode3RenderLineAll;
-    break;
-  case 4:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode4RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode4RenderLineNoWindow;
-    else
-      renderLine = mode4RenderLineAll;
-    break;
-  case 5:
-    if((!fxOn && !windowOn && !(layerEnable & 0x8000)) ||
-       cpuDisableSfx)
-      renderLine = mode5RenderLine;
-    else if(fxOn && !windowOn && !(layerEnable & 0x8000))
-      renderLine = mode5RenderLineNoWindow;
-    else
-      renderLine = mode5RenderLineAll;
-  default:
-    break;
-  }
-
   if(ioMem.DISPCNT & 0x80)
   {
 	  systemMessage(0, "Set forced blank");
@@ -1442,6 +1384,19 @@ void CPUUpdateRender()
   }
   else
   {
+  	static const GBALCD::RenderLineFunc norm[8] =
+  		{ mode0RenderLine, mode1RenderLine, mode2RenderLine, mode3RenderLine, mode4RenderLine, mode5RenderLine,
+  		blankLine };
+  	static const GBALCD::RenderLineFunc noWin[8] =
+			{ mode0RenderLineNoWindow, mode1RenderLineNoWindow, mode2RenderLineNoWindow, mode3RenderLineNoWindow, mode4RenderLineNoWindow, mode5RenderLineNoWindow,
+			blankLine };
+  	static const GBALCD::RenderLineFunc all[8] =
+			{ mode0RenderLineAll, mode1RenderLineAll, mode2RenderLineAll, mode3RenderLineAll, mode4RenderLineAll, mode5RenderLineAll,
+			blankLine };
+  	uint mode = ioMem.DISPCNT & 7;
+  	renderLine = ((!fxOn && !windowOn && !(layerEnable & 0x8000)) || cpuDisableSfx) ? norm[mode] :
+  			(fxOn && !windowOn && !(layerEnable & 0x8000)) ? noWin[mode] :
+  			all[mode];
 	  //systemMessage(0, "Set mode %s\n", dispModeName(renderLine));
   }
 }
@@ -1904,32 +1859,12 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
 	auto &dma2Dest = gGba.dma.dma2Dest;
 	auto &dma3Source = gGba.dma.dma3Source;
 	auto &dma3Dest = gGba.dma.dma3Dest;
-
+	static const u32 addrControlMap[4] = { 4, (u32)-4, 0, 4 };
   // DMA 0
   if((ioMem.DM0CNT_H & 0x8000) && (dmamask & 1)) {
     if(((ioMem.DM0CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = 4;
-      u32 destIncrement = 4;
-      switch((ioMem.DM0CNT_H >> 7) & 3) {
-      case 0:
-        break;
-      case 1:
-        sourceIncrement = (u32)-4;
-        break;
-      case 2:
-        sourceIncrement = 0;
-        break;
-      }
-      switch((ioMem.DM0CNT_H >> 5) & 3) {
-      case 0:
-        break;
-      case 1:
-        destIncrement = (u32)-4;
-        break;
-      case 2:
-        destIncrement = 0;
-        break;
-      }
+      u32 sourceIncrement = addrControlMap[(ioMem.DM0CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(ioMem.DM0CNT_H >> 5) & 3];
 #ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA0) {
         int count = (DM0CNT_L ? DM0CNT_L : 0x4000) << 1;
@@ -1965,28 +1900,8 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
   // DMA 1
   if((ioMem.DM1CNT_H & 0x8000) && (dmamask & 2)) {
     if(((ioMem.DM1CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = 4;
-      u32 destIncrement = 4;
-      switch((ioMem.DM1CNT_H >> 7) & 3) {
-      case 0:
-        break;
-      case 1:
-        sourceIncrement = (u32)-4;
-        break;
-      case 2:
-        sourceIncrement = 0;
-        break;
-      }
-      switch((ioMem.DM1CNT_H >> 5) & 3) {
-      case 0:
-        break;
-      case 1:
-        destIncrement = (u32)-4;
-        break;
-      case 2:
-        destIncrement = 0;
-        break;
-      }
+      u32 sourceIncrement = addrControlMap[(ioMem.DM1CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(ioMem.DM1CNT_H >> 5) & 3];
       if(reason == 3) {
 #ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA1) {
@@ -2034,28 +1949,8 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
   // DMA 2
   if((ioMem.DM2CNT_H & 0x8000) && (dmamask & 4)) {
     if(((ioMem.DM2CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = 4;
-      u32 destIncrement = 4;
-      switch((ioMem.DM2CNT_H >> 7) & 3) {
-      case 0:
-        break;
-      case 1:
-        sourceIncrement = (u32)-4;
-        break;
-      case 2:
-        sourceIncrement = 0;
-        break;
-      }
-      switch((ioMem.DM2CNT_H >> 5) & 3) {
-      case 0:
-        break;
-      case 1:
-        destIncrement = (u32)-4;
-        break;
-      case 2:
-        destIncrement = 0;
-        break;
-      }
+      u32 sourceIncrement = addrControlMap[(ioMem.DM2CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(ioMem.DM2CNT_H >> 5) & 3];
       if(reason == 3) {
 #ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA2) {
@@ -2104,28 +1999,8 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
   // DMA 3
   if((ioMem.DM3CNT_H & 0x8000) && (dmamask & 8)) {
     if(((ioMem.DM3CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = 4;
-      u32 destIncrement = 4;
-      switch((ioMem.DM3CNT_H >> 7) & 3) {
-      case 0:
-        break;
-      case 1:
-        sourceIncrement = (u32)-4;
-        break;
-      case 2:
-        sourceIncrement = 0;
-        break;
-      }
-      switch((ioMem.DM3CNT_H >> 5) & 3) {
-      case 0:
-        break;
-      case 1:
-        destIncrement = (u32)-4;
-        break;
-      case 2:
-        destIncrement = 0;
-        break;
-      }
+      u32 sourceIncrement = addrControlMap[(ioMem.DM3CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(ioMem.DM3CNT_H >> 5) & 3];
 #ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA3) {
         int count = (DM3CNT_L ? DM3CNT_L : 0x10000) << 1;
@@ -3400,6 +3275,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             }
           }
         }
+
+
       }
 
 	    // we shouldn't be doing sound in stop state, but we loose synchronization
@@ -3665,6 +3542,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
     }
   } while(!cpuBreakLoop);
+
   gGba.cpu = cpu;
 }
 

@@ -74,12 +74,6 @@ int audio_init (int samplerate, float framerate)
   snd.fm.buffer = (FMSampleType*) malloc(snd.buffer_size * sizeof(FMSampleType) * 2);
   if (!snd.fm.buffer) return (-1);
 
-#ifndef NGC
-  /* Output buffer */
-  snd.buffer = (int16 *) malloc(snd.buffer_size * 2 * sizeof(int16));
-  if (!snd.buffer) return (-1);
-#endif
-
 	#ifndef NO_SCD
 		scd_pcm_setRate(samplerate);
 	#endif
@@ -113,9 +107,6 @@ void audio_reset(void)
   snd.fm.pos  = snd.fm.buffer;
   if (snd.psg.buffer) memset (snd.psg.buffer, 0, snd.buffer_size * sizeof(int16));
   if (snd.fm.buffer) memset (snd.fm.buffer, 0, snd.buffer_size * sizeof(FMSampleType) * 2);
-#ifndef NGC
-  if (snd.buffer) memset (snd.buffer, 0, snd.buffer_size * 2 * sizeof(int16));
-#endif
 }
 
 void audio_set_equalizer(void)
@@ -131,15 +122,12 @@ void audio_shutdown(void)
   /* Sound buffers */
   if (snd.fm.buffer) free(snd.fm.buffer);
   if (snd.psg.buffer) free(snd.psg.buffer);
-#ifndef NGC
-  if (snd.buffer) free(snd.buffer);
-#endif
 
   /* Resampling buffer */
   Fir_Resampler_shutdown();
 }
 
-int audio_update (void)
+int audio_update (int16 *sb)
 {
   int32 i, l, r;
   int32 ll = llp;
@@ -154,11 +142,11 @@ int audio_update (void)
   FMSampleType *fm       = snd.fm.buffer;
   int16 *psg      = snd.psg.buffer;
 
-#ifdef NGC
+/*#ifdef NGC
   int16 *sb = (int16 *) soundbuffer[mixbuffer];
 #else
   int16 *sb = snd.buffer;
-#endif
+#endif*/
 
   /* get number of available samples */
   int size = sound_update(mcycles_vdp);

@@ -928,7 +928,10 @@ void setGameSpecificSettings()
 		{
 			logMsg("loading settings for: %s", e->gameName);
 			if(e->rtcEnabled >= 0)
+			{
+				logMsg("using RTC");
 				rtcEnable(e->rtcEnabled);
+			}
 			if(e->flashSize > 0)
 				flashSetSize(e->flashSize);
 			if(e->saveType >= 0)

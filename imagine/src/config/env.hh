@@ -66,3 +66,33 @@ static const uint ENV_ANDROID_MINSDK =
 	 #define ENV_NOTE "WebOS 1.x-2.x"
 	#endif
 #endif
+
+// Platform architecture
+
+#if defined __x86_64__
+	#define CONFIG_ARCH_STR "x86_64"
+#elif defined __i386__
+	#define CONFIG_ARCH_STR "x86"
+#elif defined __powerpc__
+	#define CONFIG_ARCH_STR "ppc"
+#elif defined __mips__
+	#define CONFIG_ARCH_STR "mips"
+#elif __arm__
+	#if defined __ARM_ARCH_7A__
+		// default Android & iOS ARMv7 profile
+		#define CONFIG_ARCH_STR "armv7"
+	#elif defined __ARM_ARCH_7S__
+		#define CONFIG_ARCH_STR "armv7s"
+	#elif defined __ARM_ARCH_6__ || defined __ARM_ARCH_6K__ || defined __ARM_ARCH_6J__
+		// default iOS ARMv6 profile -> __ARM_ARCH_6K__
+		// default WebOS ARMv6 profile -> __ARM_ARCH_6J__
+		#define CONFIG_ARCH_STR "armv6"
+	#elif defined __ARM_ARCH_5TE__
+		// default Android "ARMv6" profile
+		#define CONFIG_ARCH_STR "armv5"
+	#else
+		#define CONFIG_ARCH_STR "arm"
+	#endif
+#else
+	#warning Compiling on unknown architecture
+#endif

@@ -19,7 +19,8 @@
 #include "makesinckernel.h"
 #include "array.h"
 
-void makeSincKernel(short *const kernel, const unsigned phases, const unsigned phaseLen, SysDDec fc, SysDDec (*win)(long m, long M)) {
+void makeSincKernel(short *const kernel, const unsigned phases,
+		const unsigned phaseLen, SysDDec fc, SysDDec (*win)(long m, long M), SysDDec const maxAllowedGain) {
 	static const SysDDec PI = 3.14159265358979323846;
 	fc /= phases;
 	
@@ -58,7 +59,7 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 				maxabsgain = absgain;
 		}
 		
-		const SysDDec gain = (0x10000 - 0.5 * phaseLen) / maxabsgain;
+		const SysDDec gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
 		
 		for (long i = 0; i < M + 1; ++i)
 			kernel[i] = std::floor(dkernel[i] * gain + 0.5);
@@ -67,7 +68,6 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 	// The following is equivalent to the more readable version above
 	
 	const long M = static_cast<long>(phaseLen) * phases - 1;
-	
 	const Array<SysDDec> dkernel(M / 2 + 1);
 	
 	{
@@ -129,7 +129,7 @@ void makeSincKernel(short *const kernel, const unsigned phases, const unsigned p
 		}
 	}
 	
-	const SysDDec gain = (0x10000 - 0.5 * phaseLen) / maxabsgain;
+	const SysDDec gain = (0x10000 - 0.5 * phaseLen) * maxAllowedGain / maxabsgain;
 	const SysDDec *dk = dkernel;
 	
 	for (unsigned ph = 0; ph < phases; ++ph) {

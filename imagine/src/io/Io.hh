@@ -37,7 +37,7 @@ enum { IO_SEEK_ABS, IO_SEEK_ABS_END, IO_SEEK_ADD, IO_SEEK_SUB };
 class Io
 {
 public:
-	//constexpr Io() { }
+	constexpr Io() { }
 	virtual ~Io() { }
 
 	// reading
@@ -113,19 +113,13 @@ public:
 	virtual int eof() = 0;
 
 	template <class T>
-	CallResult readVar(T *var)
+	CallResult readVar(T &var)
 	{
-		return read(var, sizeof(T));
+		return read(&var, sizeof(T));
 	}
 
 	template <class T>
-	size_t writeVar(T *var)
-	{
-		return fwrite(var, sizeof(T), 1);
-	}
-
-	template <class T>
-	size_t writeVar(T var)
+	size_t writeVar(const T &var)
 	{
 		return fwrite(&var, sizeof(T), 1);
 	}

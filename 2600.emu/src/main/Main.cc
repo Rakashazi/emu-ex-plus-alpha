@@ -25,6 +25,7 @@
 #include <stella/emucore/StateManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
+#include "ImagineSound.hh"
 
 #include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
@@ -41,7 +42,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#include "ImagineSound.hh"
 static ImagineSound *vcsSound = 0;
 static uint16 tiaColorMap[256];
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
@@ -61,22 +61,8 @@ static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 	#define CONFIG_FILE_NAME "config"
 #endif
 
-static const GfxLGradientStopDesc navViewGrad[] =
-{
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
-static const char *touchConfigFaceBtnName = "JS Buttons", *touchConfigCenterBtnName = "Select/Reset";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 const uint EmuSystem::maxPlayers = 2;
-static const uint systemFaceBtns = 2, systemCenterBtns = 2;
-static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#define systemAspectRatioString "4:3"
 #include "CommonGui.hh"
 
 namespace EmuControls
@@ -118,11 +104,6 @@ enum
 	vcsKeyIdxKeyboard1Base,
 	vcsKeyIdxKeyboard2Base = vcsKeyIdxKeyboard1Base + 12,
 };
-
-#include "2600OptionView.hh"
-static VCSOptionView oCategoryMenu;
-#include "2600MenuView.hh"
-static VCSMenuView mMenu;
 
 enum {
 	CFGKEY_VCSKEY_UP = 256, CFGKEY_VCSKEY_RIGHT = 257,
@@ -186,7 +167,7 @@ void EmuSystem::writeConfig(Io *io)
 }
 
 static const uint vidBufferX = 160, vidBufferY = 320;
-static uint16 pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8)));
+static uint16 pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
 
 static bool isVCSRomExtension(const char *name)
 {
@@ -328,7 +309,7 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 	}
 }
 
-int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
+int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
 
@@ -359,25 +340,13 @@ int EmuSystem::loadGame(const char *path, bool allowAutosaveState)
 	string cartId;//, romType("AUTO-DETECT");
 	Settings &settings = osystem.settings();
 	settings.setInt("romloadcount", 0);
-	cartridge = Cartridge::create(buff, size, md5, romType, cartId, settings);
+	cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
 	console = new Console(&osystem, cartridge, props);
 	osystem.myConsole = console;
 
 	emuView.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
-
-	if(allowAutosaveState && optionAutoSaveState)
-	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		Serializer state(string(saveStr), 1);
-		if(stateManager.loadState(state))
-		{
-			logMsg("loaded autosave-state %s", saveStr);
-			updateSwitchValues();
-		}
-	}
 	configAudioRate();
 	return 1;
 }
@@ -552,7 +521,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		vcsSound->processAudio((TIASound::Sample*)aBuff->data, aBuff->frames);
 		Audio::commitPlayBuffer(aBuff, aBuff->frames);
 		#else
-		TIASound::Sample buff[tiaSamplesPerFrame];
+		TIASound::Sample buff[tiaSamplesPerFrame*soundChannels];
 		vcsSound->processAudio(buff, tiaSamplesPerFrame);
 		Audio::writePcm((uchar*)buff, tiaSamplesPerFrame);
 		#endif
@@ -581,7 +550,7 @@ int EmuSystem::saveState()
 	return STATE_RESULT_OK;
 }
 
-int EmuSystem::loadState()
+int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
@@ -605,11 +574,20 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	static const GfxLGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
-	mainInitCommon();
-	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-	EmuSystem::pcmFormat.channels = 1;
+	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(TIASound::Sample)*8);
+	mainInitCommon(navViewGrad);
+	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 
 	Settings *settings = new Settings(&osystem);
 	settings->setInt("framerate", 60);

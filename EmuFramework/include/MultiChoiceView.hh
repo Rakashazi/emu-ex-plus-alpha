@@ -17,6 +17,7 @@
 
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/gui/BaseMenuView.hh>
+#include <EmuSystem.hh>
 
 void startGameFromMenu();
 bool isMenuDismissKey(const InputEvent &e);
@@ -49,11 +50,6 @@ public:
 		}
 
 		BaseMenuView::inputEvent(e);
-	}
-
-	void place(Rect2<int> rect)
-	{
-		View::place(rect);
 	}
 
 	void place()
@@ -145,7 +141,7 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	void handleChoices(TextMenuItem &, const InputEvent &e)
 	{
 		multiChoiceView.init(this, !e.isPointer());
-		multiChoiceView.place(Gfx::viewportRect());
+		multiChoiceView.placeRect(Gfx::viewportRect());
 		View::modalView = &multiChoiceView;
 	}
 };

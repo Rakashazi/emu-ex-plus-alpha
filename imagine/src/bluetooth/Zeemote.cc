@@ -19,7 +19,7 @@
 #include <util/bits.h>
 #include <util/collection/DLList.hh>
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 3> btInputDevList;
+extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
 
 const uchar Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
@@ -40,7 +40,7 @@ uint Zeemote::findFreeDevId()
 	return 0;
 }
 
-CallResult Zeemote::open(BluetoothAddr addr, BluetoothAdapter &adapter)
+CallResult Zeemote::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to Zeemote");
 #if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT

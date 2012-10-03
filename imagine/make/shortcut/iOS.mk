@@ -26,9 +26,11 @@ $(iOS_armv6ReleaseExec) : ios-armv6-release
 
 ios-armv6-install : $(iOS_armv6Exec)
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
-	scp $(iOS_armv6Exec) root@$(ios_installHost):$(iOS_deviceExecPath)
+	scp $^ root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
 
 endif
 
@@ -46,9 +48,11 @@ $(iOS_armv7ReleaseExec) : ios-armv7-release
 
 ios-armv7-install : $(iOS_armv7Exec)
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
-	scp $(iOS_armv7Exec) root@$(ios_installHost):$(iOS_deviceExecPath)
+	scp $^ root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
 
 endif
 
@@ -90,19 +94,25 @@ ios-install : $(ios_fatExec)
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
 	scp $< root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
 
 ios-release-install : $(ios_fatReleaseExec)
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
 	scp $< root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
 
 ios-release-install-only :
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
 	scp $(ios_fatReleaseExec) root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
 
 # metadata
 
@@ -119,7 +129,9 @@ ios-metadata : $(iOS_plist)
 iOS_tar := $(iOS_targetPath)/$(iOS_metadata_bundleName)-$(iOS_metadata_version)-iOS.tar.gz
 $(iOS_tar) : # depends on $(ios_fatReleaseExec) $(iOS_plist) $(ios_setuidLauncher)
 	chmod a+x $(ios_fatReleaseExec)
+ifdef iOS_metadata_setuid
 	chmod gu+s $(ios_fatReleaseExec)
+endif
 	tar -chzf $@ $(ios_fatReleaseExec) $(ios_resourcePath)/* $(ios_iconPath)/* \
 	--transform='s,^$(iOS_targetPath)/bin-release/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,'
 ios-release-tar : $(iOS_tar)
@@ -131,5 +143,9 @@ ios-release-check :
 	@echo "Checking compiled release version of $(iOS_metadata_bundleName) $(iOS_metadata_version)"
 	strings $(ios_fatReleaseExec) | grep " $(iOS_metadata_version)"
 
+ios-release-clean:
+	rm -f $(ios_fatReleaseExec) $(iOS_armv6ReleaseExec) $(iOS_armv7ReleaseExec)
+	rm -rf build/ios-armv6-release/ build/ios-armv7-release/
+
 .PHONY: ios-armv6 ios-armv7 ios-armv6-release ios-armv7-release ios-metadata ios-release-build ios-armv7-install \
- ios-armv6-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install
+ ios-armv6-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install ios-release-clean

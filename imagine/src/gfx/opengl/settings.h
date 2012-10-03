@@ -58,8 +58,8 @@ static void resizeGLScene(const Base::Window &win)
 {
 	auto width = win.rect.xSize();
 	auto height = win.rect.ySize();
-	logMsg("glViewport %d:%d:%d:%d from window %d:%d:%d:%d", win.rect.x, win.h - win.rect.y2, width, height,
-			win.rect.x, win.rect.y, win.rect.x2, win.rect.y2);
+	logMsg("glViewport %d:%d:%d:%d from window %d:%d:%d:%d (%d,%d)", win.rect.x, win.h - win.rect.y2, width, height,
+			win.rect.x, win.rect.y, win.rect.x2, win.rect.y2, win.w, win.h);
 	glViewport(win.rect.x,
 		win.h - win.rect.y2,
 		width, height);
@@ -222,17 +222,21 @@ static uchar forceNoAutoMipmapGeneration = 0;
 
 static void checkForAutoMipmapGeneration()
 {
+	bool use = 0;
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoAutoMipmapGeneration && GLEW_SGIS_generate_mipmap)
+	use = !forceNoAutoMipmapGeneration && GLEW_SGIS_generate_mipmap;
+	#elif defined CONFIG_BASE_ANDROID
+	// Older Android devices may only support OpenGL ES 1.0
+	use = !forceNoAutoMipmapGeneration && (Base::androidSDK() >= 10  || strstr(version, "1.1"));
+	#else
+	use = !forceNoAutoMipmapGeneration;
+	#endif
+	if(use)
 	{
 		logMsg("automatic mipmap generation supported");
 		useAutoMipmapGeneration = 1;
-
 		//glHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
 	}
-	#else
-		useAutoMipmapGeneration = 1;
-	#endif
 }
 
 static uchar useMultisample = 0;
@@ -444,10 +448,10 @@ struct DirectTextureGfxBufferImage: public TextureGfxBufferImage
 
 	static bool testSupport(const char **errorStr);
 	bool init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
-	void write(Pixmap &p, uint hints);
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen);
-	void unlock();
-	void deinit();
+	void write(Pixmap &p, uint hints) override;
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
+	void unlock(Pixmap *p = nullptr, uint hints = 0) override;
+	void deinit() override;
 };
 
 static void dummyIncRef(struct android_native_base_t* base)

@@ -1,6 +1,6 @@
 #pragma once
 
-static void refreshTouchConfigMenu()
+void refreshTouchConfigMenu()
 {
 #ifndef CONFIG_BASE_PS3
 	if(viewStack.top() == &tcMenu)

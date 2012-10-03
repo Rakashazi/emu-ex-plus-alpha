@@ -13,11 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define thisModuleName "AlertView"
+
 #include <gui/AlertView.hh>
 
 void AlertView::init(const char *label, MenuItem **menuItem, bool highlightFirst)
 {
-	labelFrame.init();
 	text.init(label, View::defaultFace);
 	menu.init(menuItem, 2, highlightFirst, C2DO);
 	menu.tbl.onlyScrollIfNeeded = 1;
@@ -42,14 +43,12 @@ void AlertView::place()
 	viewFrame.setPosRel(rect.xSize()/2, rect.ySize()/2,
 			xSize, labelYSize + menuYSize, C2DO);
 
-	labelFrame.setXSize(Gfx::iXSize(viewFrame.xSize()));
-	labelFrame.setYSize(Gfx::iYSize(labelYSize));
-	labelFrame.setPos(&viewFrame, 0, 0, LT2DO, LT2DO);
+	labelFrame = Gfx::unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);
 
 	Rect2<int> menuViewFrame;
 	menuViewFrame.setPosRel(viewFrame.x, viewFrame.y + labelYSize,
 			viewFrame.xSize(), menuYSize, LT2DO);
-	menu.place(menuViewFrame);
+	menu.placeRect(menuViewFrame);
 }
 
 void AlertView::inputEvent(const InputEvent &e)
@@ -71,7 +70,7 @@ void AlertView::draw()
 	setBlendMode(BLEND_MODE_ALPHA);
 	resetTransforms();
 	setColor(.4, .4, .4, .8);
-	GeomRect::draw(&labelFrame);
+	GeomRect::draw(labelFrame);
 	setColor(.1, .1, .1, .6);
 	GeomRect::draw(menu.viewRect());
 

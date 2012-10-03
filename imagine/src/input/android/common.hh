@@ -142,7 +142,13 @@ static void handleKeyEvent(int key, int down, uint devId, uint metaState)
 static InputTextDelegate vKeyboardTextDelegate;
 static Rect2<int> textRect(8, 200, 8+304, 200+48);
 static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTextInput;
-static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr);
+static
+#if CONFIG_ENV_ANDROID_MINSDK >= 9
+void
+#else
+jboolean
+#endif
+JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr);
 
 static void setupTextInputJni()
 {
@@ -156,7 +162,11 @@ static void setupTextInputJni()
 
 		static JNINativeMethod activityMethods[] =
 		{
+			#if CONFIG_ENV_ANDROID_MINSDK >= 9
 				{"sysTextInputEnded", "(Ljava/lang/String;)V", (void *)&textInputEnded}
+			#else
+				{"sysTextInputEnded", "(Ljava/lang/String;)Z", (void *)&textInputEnded}
+			#endif
 		};
 		eEnv()->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 	}

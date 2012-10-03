@@ -25,7 +25,7 @@ class AlertView : public View
 {
 public:
 	constexpr AlertView() { }
-	Area labelFrame;
+	Rect2<GC> labelFrame;
 	GfxText text;
 	BaseMenuView menu;
 	Rect2<int> rect;
@@ -33,26 +33,20 @@ public:
 	Rect2<int> &viewRect() { return rect; }
 
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
-	void deinit();
-
-	void place(Rect2<int> rect)
-	{
-		View::place(rect);
-	}
-
-	void place();
-	void inputEvent(const InputEvent &e);
-	void draw();
+	void deinit() override;
+	void place() override;
+	void inputEvent(const InputEvent &e) override;
+	void draw() override;
 };
 
 class YesNoAlertView : public AlertView
 {
 public:
-	constexpr YesNoAlertView(): yes(TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)),
-		no(TextMenuItem::SelectDelegate::create<&selectNo>()) { }
+	constexpr YesNoAlertView() { }
 	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
 
-	TextMenuItem yes, no;
+	TextMenuItem yes {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)},
+		no {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectNo>(this)};
 
 	void selectYes(TextMenuItem &, const InputEvent &e)
 	{
@@ -60,9 +54,10 @@ public:
 		onYes.invoke(e);
 	}
 
-	static void selectNo(TextMenuItem &, const InputEvent &e)
+	void selectNo(TextMenuItem &, const InputEvent &e)
 	{
 		removeModalView();
+		onNo.invokeSafe(e);
 	}
 
 	MenuItem *menuItem[2] = {nullptr};
@@ -71,10 +66,16 @@ public:
 	OnInputDelegate onYes;
 	OnInputDelegate &onYesDelegate() { return onYes; }
 
+	// Optional delegates
+	OnInputDelegate onNo;
+	OnInputDelegate &onNoDelegate() { return onNo; }
+
 	void init(const char *label, bool highlightFirst)
 	{
 		yes.init("Yes"); menuItem[0] = &yes;
 		no.init("No"); menuItem[1] = &no;
+		onYes.clear();
+		onNo.clear();
 		AlertView::init(label, menuItem, highlightFirst);
 	}
 };

@@ -155,11 +155,6 @@ void CollectTextInputView::deinit()
 	#endif
 }
 
-void CollectTextInputView::place(Rect2<int> rect)
-{
-	View::place(rect);
-}
-
 void CollectTextInputView::place()
 {
 	using namespace Gfx;
@@ -168,16 +163,18 @@ void CollectTextInputView::place()
 		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace->nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(-Gfx::gXSize(cancelBtn)/3., -Gfx::gYSize(cancelBtn)/3., Gfx::gXSize(cancelBtn)/3., Gfx::gYSize(cancelBtn)/3.);
 	}
+	message.maxLineSize = Gfx::proj.w * 0.95;
 	message.compile();
-	Area a;
-	a.setXSize(gXSize(rect) * 0.95);
-	a.setYSize(Gfx::iYSize(View::defaultFace->nominalHeight())*1.5);
+	Rect2<int> textRect;
+	int xSize = rect.xSize() * 0.95;
+	int ySize = View::defaultFace->nominalHeight()*1.5;
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-	a.setPos(gXPos(rect, C2DO), gYPos(rect, C2DO), C2DO, C2DO);
-	textEntry.place(a.toIntRect());
+	textRect.setPosRel(rect.xPos(C2DO), rect.yPos(C2DO), xSize, ySize, C2DO);
+	textEntry.place(textRect);
 	#else
-	a.setPos(gXPos(rect, C2DO), gYPos(rect, C2DO) + proj.h/4., C2DO, C2DO);
-	Input::placeSysTextInput(a.toIntRect());
+	//a.setPos(gXPos(rect, C2DO), gYPos(rect, C2DO) + proj.h/4., C2DO, C2DO);
+	textRect.setPosRel(rect.xPos(C2DO), rect.yPos(C2DO) - Gfx::viewPixelHeight()/4, xSize, ySize, C2DO);
+	Input::placeSysTextInput(textRect);
 	#endif
 }
 

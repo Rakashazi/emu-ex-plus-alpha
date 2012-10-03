@@ -3,7 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc
+SRC += main/Main.cc main/ImagineSound.cc
 
 include ../EmuFramework/common.mk
 
@@ -23,7 +23,7 @@ $(STELLA)/CartEF.cxx $(STELLA)/CartEFSC.cxx $(STELLA)/CartF4.cxx $(STELLA)/CartF
 $(STELLA)/CartF6SC.cxx $(STELLA)/CartF8.cxx $(STELLA)/CartF8SC.cxx $(STELLA)/CartFA.cxx $(STELLA)/CartFE.cxx \
 $(STELLA)/CartMC.cxx $(STELLA)/CartF0.cxx $(STELLA)/CartCV.cxx $(STELLA)/CartUA.cxx $(STELLA)/Cart0840.cxx \
 $(STELLA)/CartSB.cxx $(STELLA)/CartX07.cxx $(STELLA)/CartFA2.cxx $(STELLA)/CartCM.cxx $(STELLA)/MindLink.cxx \
-$(STELLA)/CompuMate.cxx $(STELLA)/Thumbulator.cxx
+$(STELLA)/CartCTY.cxx $(STELLA)/CompuMate.cxx $(STELLA)/Thumbulator.cxx
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk

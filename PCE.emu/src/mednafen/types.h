@@ -61,7 +61,7 @@ struct mtuarray
 
 #ifdef __GNUC__
 
-  #define INLINE inline //__attribute__((always_inline))
+  #define INLINE inline __attribute__((always_inline))
   #define NO_INLINE //__attribute__((noinline))
 
   #if defined(__386__) || defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_I386)

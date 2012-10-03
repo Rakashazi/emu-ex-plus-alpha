@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.cxx 2435 2012-03-30 21:07:57Z stephena $
+// $Id: Cart.cxx 2530 2012-06-07 15:34:43Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -30,6 +30,9 @@
 #include "Cart4A50.hxx"
 #include "Cart4K.hxx"
 #include "CartAR.hxx"
+#include "CartCM.hxx"
+#include "CartCTY.hxx"
+#include "CartCV.hxx"
 #include "CartDPC.hxx"
 #include "CartDPCPlus.hxx"
 #include "CartE0.hxx"
@@ -47,10 +50,8 @@
 #include "CartFA2.hxx"
 #include "CartFE.hxx"
 #include "CartMC.hxx"
-#include "CartCV.hxx"
-#include "CartCM.hxx"
-#include "CartUA.hxx"
 #include "CartSB.hxx"
+#include "CartUA.hxx"
 #include "CartX07.hxx"
 #include "MD5.hxx"
 #include "Props.hxx"
@@ -62,7 +63,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
-     string& dtype, string& id, Settings& settings)
+     string& dtype, string& id, const OSystem& osystem, Settings& settings)
 {
   Cartridge* cartridge = 0;
   string type = dtype;
@@ -94,7 +95,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
       type = createFromMultiCart(image, size, 2, md5, id, settings);
       buf << id;
     }
-
+    else
+      dtype = "WRONG_SIZE";
   }
   else if(type == "4IN1")
   {
@@ -105,6 +107,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
       type = createFromMultiCart(image, size, 4, md5, id, settings);
       buf << id;
     }
+    else
+      dtype = "WRONG_SIZE";
   }
   else if(type == "8IN1")
   {
@@ -115,6 +119,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
       type = createFromMultiCart(image, size, 8, md5, id, settings);
       buf << id;
     }
+    else
+      dtype = "WRONG_SIZE";
   }
   else if(type == "16IN1")
   {
@@ -125,6 +131,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
       type = createFromMultiCart(image, size, 16, md5, id, settings);
       buf << id;
     }
+    else
+      dtype = "WRONG_SIZE";
   }
   else if(type == "32IN1")
   {
@@ -135,10 +143,38 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
       type = createFromMultiCart(image, size, 32, md5, id, settings);
       buf << id;
     }
+    else
+      dtype = "WRONG_SIZE";
+  }
+  else if(type == "64IN1")
+  {
+    // Make sure we have a valid sized image
+    if(size == 64*2048 || size == 64*4096)
+    {
+      dtype = type;
+      type = createFromMultiCart(image, size, 64, md5, id, settings);
+      buf << id;
+    }
+    else
+      dtype = "WRONG_SIZE";
+  }
+  else if(type == "128IN1")
+  {
+    // Make sure we have a valid sized image
+    if(size == 128*2048 || size == 128*4096)
+    {
+      dtype = type;
+      type = createFromMultiCart(image, size, 128, md5, id, settings);
+      buf << id;
+    }
+    else
+      dtype = "WRONG_SIZE";
   }
 
   // We should know the cart's type by now so let's create it
-  if(type == "2K")
+  if(type == "0840")
+    cartridge = new Cartridge0840(image, size, settings);
+  else if(type == "2K")
     cartridge = new Cartridge2K(image, size, settings);
   else if(type == "3E")
     cartridge = new Cartridge3E(image, size, settings);
@@ -150,6 +186,12 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     cartridge = new Cartridge4K(image, size, settings);
   else if(type == "AR")
     cartridge = new CartridgeAR(image, size, settings);
+  else if(type == "CM")
+    cartridge = new CartridgeCM(image, size, settings);
+  else if(type == "CTY")
+    cartridge = new CartridgeCTY(image, size, osystem);
+  else if(type == "CV")
+    cartridge = new CartridgeCV(image, size, settings);
   else if(type == "DPC")
     cartridge = new CartridgeDPC(image, size, settings);
   else if(type == "DPC+")
@@ -162,6 +204,8 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
     cartridge = new CartridgeEF(image, size, settings);
   else if(type == "EFSC")
     cartridge = new CartridgeEFSC(image, size, settings);
+  else if(type == "F0" || type == "MB")
+    cartridge = new CartridgeF0(image, size, settings);
   else if(type == "F4")
     cartridge = new CartridgeF4(image, size, settings);
   else if(type == "F4SC")
@@ -177,25 +221,19 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
   else if(type == "FA" || type == "FASC")
     cartridge = new CartridgeFA(image, size, settings);
   else if(type == "FA2")
-    cartridge = new CartridgeFA2(image, size, settings);
+    cartridge = new CartridgeFA2(image, size, osystem);
   else if(type == "FE")
     cartridge = new CartridgeFE(image, size, settings);
   else if(type == "MC")
     cartridge = new CartridgeMC(image, size, settings);
-  else if(type == "F0" || type == "MB")
-    cartridge = new CartridgeF0(image, size, settings);
-  else if(type == "CV")
-    cartridge = new CartridgeCV(image, size, settings);
-  else if(type == "CM")
-    cartridge = new CartridgeCM(image, size, settings);
   else if(type == "UA")
     cartridge = new CartridgeUA(image, size, settings);
-  else if(type == "0840")
-    cartridge = new Cartridge0840(image, size, settings);
   else if(type == "SB")
     cartridge = new CartridgeSB(image, size, settings);
   else if(type == "X07")
     cartridge = new CartridgeX07(image, size, settings);
+  else if(dtype == "WRONG_SIZE")
+    cerr << "ERROR: Invalid cartridge size for type " << type << " ..." << endl;
   else
     cerr << "ERROR: Invalid cartridge type " << type << " ..." << endl;
 
@@ -299,7 +337,7 @@ void Cartridge::registerRamArea(uInt16 start, uInt16 size,
 void Cartridge::triggerReadFromWritePort(uInt16 address)
 {
 #ifdef DEBUGGER_SUPPORT
-  if(!mySystem->autodectMode())
+  if(!mySystem->autodetectMode())
     Debugger::debugger().cartDebug().triggerReadFromWritePort(address);
 #endif
 }
@@ -398,6 +436,8 @@ string Cartridge::autodetectType(const uInt8* image, uInt32 size)
       type = "3F";
     else if(isProbablyDPCplus(image, size))
       type = "DPC+";
+    else if(isProbablyCTY(image, size))
+      type = "CTY";
     else
       type = "F4";
   }
@@ -562,13 +602,19 @@ bool Cartridge::isProbably4A50(const uInt8* image, uInt32 size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Cartridge::isProbablyCTY(const uInt8* image, uInt32 size)
+{
+  return false;  // TODO - add autodetection
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge::isProbablyCV(const uInt8* image, uInt32 size)
 {
   // CV RAM access occurs at addresses $f3ff and $f400
   // These signatures are attributed to the MESS project
   uInt8 signature[2][3] = {
-    { 0x9D, 0xFF, 0xF3 },  // STA $F3FF
-    { 0x99, 0x00, 0xF4 }   // STA $F400
+    { 0x9D, 0xFF, 0xF3 },  // STA $F3FF.X
+    { 0x99, 0x00, 0xF4 }   // STA $F400.Y
   };
   if(searchForBytes(image, size, signature[0], 3, 1))
     return true;

@@ -37,11 +37,16 @@ class TextMenuItem : public MenuItem
 public:
 	typedef Delegate<void (TextMenuItem &item, const InputEvent &e)> SelectDelegate;
 	constexpr TextMenuItem() { }
+	constexpr TextMenuItem(const char *str): t(str) { }
 	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
+	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): t(str), selectDel(selectDel) { }
 	GfxText t;
-	bool active = 0;
+	bool active = 1;
 
-	void init(const char *str, bool active = 1, ResourceFace *face = View::defaultFace);
+	void init(const char *str, bool active, ResourceFace *face = View::defaultFace);
+	void init(const char *str, ResourceFace *face = View::defaultFace);
+	void init(bool active, ResourceFace *face = View::defaultFace);
+	void init();
 	void deinit() override;
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	void compile() override;
@@ -57,9 +62,13 @@ class DualTextMenuItem : public TextMenuItem
 {
 public:
 	constexpr DualTextMenuItem() { }
+	constexpr DualTextMenuItem(const char *str): TextMenuItem(str) { }
+	constexpr DualTextMenuItem(SelectDelegate selectDel): TextMenuItem(selectDel) { }
+	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): TextMenuItem(str, selectDel) { }
 	GfxText t2;
 
 	void init(const char *str, const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
+	void init(const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void compile() override;
 	void draw2ndText(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;
@@ -70,17 +79,22 @@ public:
 class BoolMenuItem : public DualTextMenuItem
 {
 public:
+	typedef Delegate<void (BoolMenuItem &item, const InputEvent &e)> SelectDelegate;
 	constexpr BoolMenuItem() { }
+	constexpr BoolMenuItem(const char *str): DualTextMenuItem(str) { }
+	constexpr BoolMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
+	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): DualTextMenuItem(str), selectDel(selectDel) { }
 	bool on = 0;
 	const char *offStr = nullptr, *onStr = nullptr;
 	void init(const char *str, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
 	void init(const char *str, const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
+	void init(bool on, bool active = 1, ResourceFace *face = View::defaultFace);
+	void init(const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
 	void set(bool val);
 	void toggle();
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 
 	void select(View *parent, const InputEvent &e) override;
-	typedef Delegate<void (BoolMenuItem &item, const InputEvent &e)> SelectDelegate;
 	SelectDelegate selectDel;
 	SelectDelegate &selectDelegate() { return selectDel; }
 };

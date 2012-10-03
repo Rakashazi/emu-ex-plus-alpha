@@ -123,22 +123,12 @@ static inline void gfxDrawTextScreen(u16 control, u16 hofs, u16 vofs,
   u8 *charBase = &vram[((control >> 2) & 0x03) * 0x4000];
   u16 *screenBase = (u16 *)&vram[((control >> 8) & 0x1f) * 0x800];
   u32 prio = ((control & 3)<<25) + 0x1000000;
-  int sizeX = 256;
-  int sizeY = 256;
-  switch((control >> 14) & 3) {
-  case 0:
-    break;
-  case 1:
-    sizeX = 512;
-    break;
-  case 2:
-    sizeY = 512;
-    break;
-  case 3:
-    sizeX = 512;
-    sizeY = 512;
-    break;
-  }
+
+  static const int widthMap[4] = { 256, 512, 256, 512 };
+  static const int heightMap[4] = { 256, 256, 512, 512 };
+  u32 mapSize = (control >> 14) & 3;
+  int sizeX = widthMap[mapSize];
+  int sizeY = heightMap[mapSize];
 
   int maskX = sizeX-1;
   int maskY = sizeY-1;
@@ -273,21 +263,10 @@ static inline void gfxDrawRotScreen(u16 control,
   u8 *screenBase = (u8 *)&vram[((control >> 8) & 0x1f) * 0x800];
   int prio = ((control & 3) << 25) + 0x1000000;
 
-  int sizeX = 128;
-  int sizeY = 128;
-  switch((control >> 14) & 3) {
-  case 0:
-    break;
-  case 1:
-    sizeX = sizeY = 256;
-    break;
-  case 2:
-    sizeX = sizeY = 512;
-    break;
-  case 3:
-    sizeX = sizeY = 1024;
-    break;
-  }
+  static const int rotMap[4] = { 128, 256, 512, 1024 };
+  u32 mapSize = (control >> 14) & 3;
+  int sizeX = rotMap[mapSize];
+  int sizeY = rotMap[mapSize];
 
   int maskX = sizeX-1;
   int maskY = sizeY-1;
@@ -725,7 +704,7 @@ static inline void gfxDrawSprites(u32 *lineOBJ, const u16 VCOUNT, const u16 MOSA
 
       lineOBJpix-=2;
       if (lineOBJpix<=0)
-        continue;
+        break;
 
       if ((a0 & 0x0c00) == 0x0c00)
         a0 &=0xF3FF;
@@ -1184,7 +1163,7 @@ static inline void gfxDrawOBJWin(u32 *lineOBJWin, const u16 VCOUNT, const u16 DI
       sprites++;
 
       if (lineOBJpix<=0)
-        continue;
+        break;
 
       // ignores non OBJ-WIN and disabled OBJ-WIN
       if(((a0 & 0x0c00) != 0x0800) || ((a0 & 0x0300) == 0x0200))

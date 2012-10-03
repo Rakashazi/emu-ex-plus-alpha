@@ -150,7 +150,7 @@ FileWrapper::~FileWrapper()
  }
  catch(std::exception &e)
  {
-  MDFN_PrintError("%s", e.what());
+	//MDFND_PrintError(e.what());
  }
 }
 

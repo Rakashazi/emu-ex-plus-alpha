@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Switches.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Switches.cxx 2487 2012-05-20 14:23:48Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -113,7 +113,7 @@ bool Switches::save(Serializer& out) const
 {
   try
   {
-    out.putByte((char)mySwitches);
+    out.putByte(mySwitches);
   }
   catch(...)
   {
@@ -128,7 +128,7 @@ bool Switches::load(Serializer& in)
 {
   try
   {
-    mySwitches = (uInt8) in.getByte();
+    mySwitches = in.getByte();
   }
   catch(...)
   {

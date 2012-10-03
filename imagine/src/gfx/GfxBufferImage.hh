@@ -33,8 +33,8 @@ struct GfxBufferImageInterface : public GfxTextureDesc
 	virtual ~GfxBufferImageInterface() { }
 	virtual void write(Pixmap &p, uint hints) = 0;
 	virtual void replace(Pixmap &p, uint hints) = 0;
-	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen) = 0;
-	virtual void unlock() = 0;
+	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) = 0;
+	virtual void unlock(Pixmap *pix, uint hints) = 0;
 	virtual void deinit() = 0;
 };
 
@@ -48,8 +48,8 @@ struct TextureGfxBufferImage:
 	constexpr TextureGfxBufferImage() { }
 	void write(Pixmap &p, uint hints);
 	void replace(Pixmap &p, uint hints);
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen);
-	void unlock();
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback);
+	void unlock(Pixmap *pix, uint hints);
 	void deinit();
 	const GfxTextureDesc &textureDesc() const { return *this; };
 	GfxTextureDesc &textureDesc() { return *this; };
@@ -62,8 +62,8 @@ struct TextureGfxBufferVImpl
 	GfxBufferImageInterface *impl = nullptr;
 	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
 	void replace(Pixmap &p, uint hints) { impl->replace(p, hints); };
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen) { return impl->lock(x, y, xlen, ylen); }
-	void unlock() { impl->unlock(); }
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return impl->lock(x, y, xlen, ylen, fallback); }
+	void unlock(Pixmap *pix, uint hints) { impl->unlock(pix, hints); }
 	void deinit() { impl->deinit(); delete impl; impl = 0; }
 	const GfxTextureDesc &textureDesc() const { assert(impl); return *impl; };
 	GfxTextureDesc &textureDesc() { assert(impl); return *impl; };
@@ -107,4 +107,5 @@ public:
 	void deinit();
 	void write(Pixmap &p);
 	void replace(Pixmap &p);
+	void unlock(Pixmap *p);
 };

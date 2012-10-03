@@ -14,18 +14,18 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MouseControl.hxx 2371 2012-01-29 17:08:51Z stephena $
+// $Id: MouseControl.hxx 2444 2012-04-19 13:00:02Z stephena $
 //============================================================================
 
 #ifndef MOUSE_CONTROL_HXX
 #define MOUSE_CONTROL_HXX
 
 class Console;
-class Controller;
 class Properties;
 
 #include "bspf.hxx"
 #include "Array.hxx"
+#include "Control.hxx"
 
 /**
   The mouse can control various virtual 'controllers' in many different
@@ -47,7 +47,8 @@ class MouseControl
     enum Axis
     {
       Paddle0 = 0, Paddle1, Paddle2, Paddle3,
-      Driving0, Driving1, Automatic, NoControl
+      Driving0, Driving1, MindLink0, MindLink1,
+      NoControl
     };
 
   public:
@@ -76,6 +77,7 @@ class MouseControl
     void addLeftControllerModes(bool noswap);
     void addRightControllerModes(bool noswap);
     void addPaddleModes(int lport, int rport, int lname, int rname);
+    bool controllerSupportsMouse(Controller& controller);
 
   private:
     const Properties& myProps;
@@ -83,29 +85,30 @@ class MouseControl
     Controller& myRightController;
 
     struct MouseMode {
-      Axis xaxis, yaxis;
-      int controlID;
+      Controller::Type xtype, ytype;
+      int xid, yid;
       string message;
 
-      MouseMode()
-        : xaxis(NoControl),
-          yaxis(NoControl),
-          controlID(-1),
-          message("")  { }
-      MouseMode(const string& msg)
-        : xaxis(NoControl),
-          yaxis(NoControl),
-          controlID(-1),
+      MouseMode(const string& msg = "")
+        : xtype(Controller::Joystick),
+          ytype(Controller::Joystick),
+          xid(-1),
+          yid(-1),
           message(msg)  { }
-      MouseMode(Axis x, Axis y, int id, const string& msg)
-        : xaxis(x),
-          yaxis(y),
-          controlID(id),
+      MouseMode(Controller::Type xtype, int xid,
+                Controller::Type ytype, int yid,
+                const string& msg)
+        : xtype(xtype),
+          ytype(ytype),
+          xid(xid),
+          yid(yid),
           message(msg)  { }
+
       friend ostream& operator<<(ostream& os, const MouseMode& mm)
       {
-        os << "xaxis=" << mm.xaxis << ", yaxis=" << mm.yaxis
-           << ", id=" << mm.controlID << ", msg=" << mm.message;
+        os << "xtype=" << mm.xtype << ", xid=" << mm.xid
+           << ", ytype=" << mm.ytype << ", yid=" << mm.yid
+           << ", msg=" << mm.message;
         return os;
       }
     };

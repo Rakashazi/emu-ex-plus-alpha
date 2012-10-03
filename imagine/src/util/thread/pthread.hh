@@ -130,7 +130,7 @@ class MutexPThread
 {
 	bool init = 0, locked = 0;
 public:
-	pthread_mutex_t mutex; // TODO use accessor
+	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // TODO use accessor
 	constexpr MutexPThread(): mutex() { }
 	bool create()
 	{
@@ -188,7 +188,7 @@ public:
 
 class CondVarPThread
 {
-	pthread_cond_t cond;
+	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 	pthread_mutex_t *mutex = nullptr;
 	bool init = 0;
 public:

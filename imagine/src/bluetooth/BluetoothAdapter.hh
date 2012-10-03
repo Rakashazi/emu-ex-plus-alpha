@@ -2,26 +2,34 @@
 
 #include <engine-globals.h>
 #include <util/Delegate.hh>
+#include <util/operators.hh>
 
-struct BluetoothAddr
+struct BluetoothAddr : public NotEquals<BluetoothAddr>
 {
 	constexpr BluetoothAddr() { }
 	uchar b[6] = {0};
+
+	bool operator ==(BluetoothAddr const& rhs) const
+	{
+		return memcmp(b, rhs.b, sizeof(b)) == 0;
+	}
+
 } __attribute__((packed));
 
 class BluetoothAdapter
 {
 public:
-	//constexpr BluetoothAdapter() { }
+	constexpr BluetoothAdapter() { }
 	static BluetoothAdapter *defaultAdapter();
 	virtual fbool startScan() = 0;
+	virtual void cancelScan() = 0;
 	static void setScanCacheUsage(bool on) { useScanCache = on; }
 	static bool scanCacheUsage() { return useScanCache; }
 	virtual void close() = 0;
 	virtual void constructSocket(void *mem);
 
 	enum { INIT_FAILED, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
-		SCAN_COMPLETE, SCAN_COMPLETE_NO_DEVS_USED, SOCKET_OPEN_FAILED };
+		SCAN_COMPLETE, SCAN_CANCELLED, SOCKET_OPEN_FAILED };
 	typedef Delegate<void (uint statusCode, int arg)> OnStatusDelegate;
 	OnStatusDelegate &statusDelegate() { return onStatus; }
 
@@ -61,7 +69,7 @@ protected:
 class BluetoothInputDevice
 {
 public:
-	//constexpr BluetoothInputDevice() { }
+	virtual CallResult open(BluetoothAdapter &adapter) = 0;
 	virtual ~BluetoothInputDevice() { }
 	virtual void removeFromSystem() = 0;
 };

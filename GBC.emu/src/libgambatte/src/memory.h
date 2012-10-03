@@ -21,26 +21,25 @@
 
 #include "gambatte.h"
 #include "mem/cartridge.h"
-#include "video.h"
-#include "sound.h"
 #include "interrupter.h"
+#include "pakinfo.h"
+#include "sound.h"
 #include "tima.h"
+#include "video.h"
 
 namespace gambatte {
 class InputGetter;
 class FilterInfo;
 
 class Memory {
+	Cartridge cart;
 	unsigned char ioamhram[0x200];
-	unsigned char vram[0x2000 * 2];
-	unsigned char *vrambank;
 	
 	InputGetter *getInput;
 	unsigned long divLastUpdate;
 	unsigned long lastOamDmaUpdate;
 	
 	InterruptRequester intreq;
-	Cartridge cart;
 	Tima tima;
 	LCD display;
 	PSG sound;
@@ -76,7 +75,8 @@ public:
 	explicit Memory(const Interrupter &interrupter);
 	
 	bool loaded() const { return cart.loaded(); }
-	const char * romTitle() const { return cart.romTitle(); }
+	char const * romTitle() const { return cart.romTitle(); }
+	PakInfo const pakInfo(bool multicartCompat) const { return cart.pakInfo(multicartCompat); }
 
 	void setStatePtrs(SaveState &state);
 	unsigned long saveState(SaveState &state, unsigned long cc);
@@ -133,7 +133,7 @@ public:
 	unsigned long event(unsigned long cycleCounter) __attribute__ ((hot));
 	unsigned long resetCounters(unsigned long cycleCounter);
 
-	int loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
+	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
 	void setSaveDir(const std::string &dir) { cart.setSaveDir(dir); }
 
 	void setInputGetter(InputGetter *getInput) {

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Settings.hxx 2471 2012-05-13 18:06:56Z stephena $
 //============================================================================
 
 #ifndef SETTINGS_HXX
@@ -29,7 +29,7 @@ class OSystem;
   This class provides an interface for accessing frontend specific settings.
 
   @author  Stephen Anthony
-  @version $Id: Settings.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: Settings.hxx 2471 2012-05-13 18:06:56Z stephena $
 */
 class Settings
 {
@@ -169,7 +169,7 @@ class Settings
     static string trim(string& str)
     {
       string::size_type first = str.find_first_not_of(' ');
-      return (first == string::npos) ? string() :
+      return (first == string::npos) ? EmptyString :
               str.substr(first, str.find_last_not_of(' ')-first+1);
     }
 

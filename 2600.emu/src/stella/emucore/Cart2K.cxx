@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart2K.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Cart2K.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -141,9 +141,9 @@ bool Cartridge2K::save(Serializer& out) const
   {
     out.putString(name());
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge2K::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge2K::save" << endl;
     return false;
   }
 
@@ -158,9 +158,9 @@ bool Cartridge2K::load(Serializer& in)
     if(in.getString() != name())
       return false;
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: Cartridge2K::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: Cartridge2K::load" << endl;
     return false;
   }
 

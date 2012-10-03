@@ -14,18 +14,22 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.cxx 2435 2012-03-30 21:07:57Z stephena $
+// $Id: CartFA2.cxx 2499 2012-05-25 12:41:19Z stephena $
 //============================================================================
 
 #include <cassert>
 #include <cstring>
 
+#include "OSystem.hxx"
+#include "Serializer.hxx"
 #include "System.hxx"
 #include "CartFA2.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const Settings& settings)
-  : Cartridge(settings),
+CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osystem)
+  : Cartridge(osystem.settings()),
+    myOSystem(osystem),
+    myRamAccessTimeout(0),
     mySize(size)
 {
   // Allocate array for the ROM image
@@ -106,6 +110,12 @@ uInt8 CartridgeFA2::peek(uInt16 address)
   // Switch banks if necessary
   switch(address)
   {
+    case 0x0FF4:
+      // Load/save RAM to/from Harmony cart flash
+      if(mySize == 28*1024 && !bankLocked())
+        return ramReadWrite();
+      break;
+
     case 0x0FF5:
       // Set the current bank to the first 4k bank
       bank(0);
@@ -171,6 +181,12 @@ bool CartridgeFA2::poke(uInt16 address, uInt8)
   // Switch banks if necessary
   switch(address)
   {
+    case 0x0FF4:
+      // Load/save RAM to/from Harmony cart flash
+      if(mySize == 28*1024 && !bankLocked())
+        ramReadWrite();
+      break;
+
     case 0x0FF5:
       // Set the current bank to the first 4k bank
       bank(0);
@@ -231,14 +247,14 @@ bool CartridgeFA2::bank(uInt16 bank)
   System::PageAccess access(0, 0, 0, this, System::PA_READ);
 
   // Set the page accessing methods for the hot spots
-  for(uInt32 i = (0x1FF5 & ~mask); i < 0x2000; i += (1 << shift))
+  for(uInt32 i = (0x1FF4 & ~mask); i < 0x2000; i += (1 << shift))
   {
     access.codeAccessBase = &myCodeAccessBase[offset + (i & 0x0FFF)];
     mySystem->setPageAccess(i >> shift, access);
   }
 
   // Setup the page access methods for the current bank
-  for(uInt32 address = 0x1200; address < (0x1FF5U & ~mask);
+  for(uInt32 address = 0x1200; address < (0x1FF4U & ~mask);
       address += (1 << shift))
   {
     access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
@@ -291,16 +307,12 @@ bool CartridgeFA2::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putInt(myCurrentBank);
-
-    // The 256 bytes of RAM
-    out.putInt(256);
-    for(uInt32 i = 0; i < 256; ++i)
-      out.putByte((char)myRAM[i]);
+    out.putShort(myCurrentBank);
+    out.putByteArray(myRAM, 256);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeFA2::save" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeFA2::save" << endl;
     return false;
   }
 
@@ -315,15 +327,12 @@ bool CartridgeFA2::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = (uInt16) in.getInt();
-
-    uInt32 limit = (uInt32) in.getInt();
-    for(uInt32 i = 0; i < limit; ++i)
-      myRAM[i] = (uInt8) in.getByte();
+    myCurrentBank = in.getShort();
+    in.getByteArray(myRAM, 256);
   }
-  catch(const char* msg)
+  catch(...)
   {
-    cerr << "ERROR: CartridgeFA2::load" << endl << "  " << msg << endl;
+    cerr << "ERROR: CartridgeFA2::load" << endl;
     return false;
   }
 
@@ -331,4 +340,88 @@ bool CartridgeFA2::load(Serializer& in)
   bank(myCurrentBank);
 
   return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void CartridgeFA2::setRomName(const string& name)
+{
+  myFlashFile = myOSystem.eepromDir() + name + "_flash.dat";
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 CartridgeFA2::ramReadWrite()
+{
+  /* The following algorithm implements accessing Harmony cart flash
+
+    1. Wait for an access to hotspot location $1FF4 (return 1 in bit 6
+       while busy).
+
+    2. Read byte 256 of RAM+ memory to determine the operation requested
+       (1 = read, 2 = write).
+
+    3. Save or load the entire 256 bytes of RAM+ memory to a file.
+
+    4. Set byte 256 of RAM+ memory to zero to indicate success (will
+       always happen in emulation).
+
+    5. Return 0 (in bit 6) on the next access to $1FF4, if enough time has
+       passed to complete the operation on a real system (0.5 ms for read,
+       101 ms for write).
+  */
+
+  // First access sets the timer
+  if(myRamAccessTimeout == 0)
+  {
+    // Remember when the first access was made
+    myRamAccessTimeout = myOSystem.getTicks();
+
+    // We go ahead and do the access now, and only return when a sufficient
+    // amount of time has passed
+    Serializer serializer(myFlashFile);
+    if(serializer.isValid())
+    {
+      if(myRAM[255] == 1)       // read
+      {
+        try
+        {
+          serializer.getByteArray(myRAM, 256);
+        }
+        catch(...)
+        {
+          memset(myRAM, 0, 256);
+        }
+        myRamAccessTimeout += 500;  // Add 0.5 ms delay for read
+      }
+      else if(myRAM[255] == 2)  // write
+      {
+        try
+        {
+          serializer.putByteArray(myRAM, 256);
+        }
+        catch(...)
+        {
+          // Maybe add logging here that save failed?
+          cerr << name() << ": ERROR saving score table" << endl;
+        }
+        myRamAccessTimeout += 101000;  // Add 101 ms delay for write
+      }
+    }
+    // Bit 6 is 1, busy
+    return myImage[(myCurrentBank << 12) + 0xFF4] | 0x40;
+  }
+  else
+  {
+    // Have we reached the timeout value yet?
+    if(myOSystem.getTicks() >= myRamAccessTimeout)
+    {
+      myRamAccessTimeout = 0;  // Turn off timer
+      myRAM[255] = 0;          // Successful operation
+
+      // Bit 6 is 0, ready/success
+      return myImage[(myCurrentBank << 12) + 0xFF4] & ~0x40;
+    }
+    else
+      // Bit 6 is 1, busy
+      return myImage[(myCurrentBank << 12) + 0xFF4] | 0x40;
+  }
 }
