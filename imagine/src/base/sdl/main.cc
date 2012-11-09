@@ -24,7 +24,7 @@
 #endif
 
 #include <gfx/Gfx.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <logger/interface.h>
 #include <util/collection/DLList.hh>
 #include <base/Base.hh>
@@ -156,7 +156,7 @@ const char *storagePath() { return "/media/internal"; }
 		}
 	}
 
-	static int sensorPollFunc(ThreadPThread &thread)
+	static ptrsize sensorPollFunc(ThreadPThread &thread)
 	{
 		logMsg("sensor poll thread started");
 		while(sensorPollThreadActive)
@@ -197,7 +197,7 @@ const char *storagePath() { return "/media/internal"; }
 		}
 		sensorPollThreadActive = 1;
 		if(!sensorPollThread.running)
-			sensorPollThread.create(0, sensorPollFunc, 0);
+			sensorPollThread.create(0, ThreadPThread::EntryDelegate::create<&sensorPollFunc>());
 	}
 
 	static void stopSensorPoll()
@@ -470,6 +470,11 @@ int main(int argc, char** argv)
 	#endif
 
 	engineInit();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	#ifdef CONFIG_BASE_SDL_PDL
+		// Don't render into video layer
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+	#endif
 	//SDL_WM_SetCaption("SDL", "SDL");
 
 	for(;;)

@@ -4,33 +4,34 @@
 
 #if defined(CONFIG_RESOURCE_FACE)
 
+#include <float.h>
 #include "GfxSprite.hh"
 #include <util/2DOrigin.h>
 #include <util/basicString.h>
 #include <resource2/face/ResourceFace.hh>
 
-class GfxText
+namespace Gfx
+{
+
+class Text
 {
 public:
-	constexpr GfxText() { }
-	constexpr GfxText(const char *str): str(str), slen(string_len(str)) { }
-	void init();
+	constexpr Text() { }
+	constexpr Text(const char *str): str(str) { }
+
 	void init(const char *str)
 	{
-		init();
 		setString(str);
 	}
 
 	void init(const char *str, ResourceFace *face)
 	{
-		init();
 		setString(str);
 		setFace(face);
 	}
 
 	void init(ResourceFace *face)
 	{
-		init();
 		setFace(face);
 	}
 
@@ -49,15 +50,28 @@ public:
 		draw(xPos, yPos, o, LT2DO);
 	}
 
+	static constexpr ushort NO_MAX_LINES = 0-1;
+	static constexpr GC NO_MAX_LINE_SIZE = FLT_MAX;
+
+	struct LineInfo
+	{
+		GC size;
+		uint chars;
+	};
+
 	ResourceFace *face = nullptr;
 	GC spaceSize = 0;
 	GC nominalHeight = 0;
 	GC yLineStart = 0;
 	GC xSize = 0, ySize = 0;
-	GC maxLineSize = 0;
+	GC maxLineSize = NO_MAX_LINE_SIZE;
 	const char *str = nullptr;
-	uint slen = 0;
-	ushort maxLines = 0;
+	uint chars = 0;
+	ushort lines = 0;
+	ushort maxLines = NO_MAX_LINES;
+	LineInfo *lineInfo = nullptr;
 };
+
+}
 
 #endif

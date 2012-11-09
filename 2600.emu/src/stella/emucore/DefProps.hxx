@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: DefProps.hxx 2515 2012-05-29 17:09:27Z stephena $
+// $Id: DefProps.hxx 2548 2012-09-04 13:25:42Z stephena $
 //============================================================================
 
 #ifndef DEF_PROPS_HXX
@@ -27,7 +27,7 @@
   regenerated and the application recompiled.
 */
 
-#define DEF_PROPS_SIZE 3281
+#define DEF_PROPS_SIZE 3288
 
 static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "000509d1ed2b8d30a9d94be1b3b5febb", "Greg Zumwalt", "", "Jungle Jane (2003) (Greg Zumwalt) (Hack)", "Hack of Pitfall!", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -424,6 +424,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "1edfbde1dba5498c14dcb80277cd9b99", "", "", "Death Derby (v0006) (2001) (Glenn Saunders) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "1ee2cfc7d0333b96bd11f7f3ec8ce8bc", "Arcadia Corporation, Dennis Caswell", "AR-4200", "Escape from the Mindmaster (4 of 4) (1982) (Arcadia) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "1ee9c1ba95cef2cf987d63f176c54ac3", "Atari - GCC, Mark Ackerman, Glenn Parker", "CX2675, CX2675P", "Ms. Pac-Man (1982) (Atari) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "1ef04e7e508296a8d9eb61cc7dae2e5d", "SOLID Corp. (D. Scott Williamson)", "CX2655-069", "Star Castle 2600 (SolidCorp) [069]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "1f21666b8f78b65051b7a609f1d48608", "K-Tel Vision", "", "Vulture Attack (1982) (K-Tel Vision)", "AKA Condor Attack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "1f2ae0c70a04c980c838c2cdc412cf45", "Atari - GCC", "CX2698", "Rubik's Cube (1984) (Atari)", "AKA Atari Video Cube", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "1f349dd41c3f93c4214e5e308dccb056", "", "", "Virtual Pet Demo 2 (CRACKERS) (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -582,6 +583,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "2abc3d46b3f2140160759e2e10bc86d9", "", "", "Gunfight 2600 - Beta Release! (2001) (MP)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2ac3a08cfbf1942ba169c3e9e6c47e09", "Activision, Dan Kitchen", "EAK-046-04B", "Fighter Pilot (1988) (Activision) (PAL)", "AKA Tomcat - The F-14 Fighter Simulator", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2ae700c9dba843a68dfdca40d7d86bd6", "TechnoVision - Thomas Jentzsch", "", "Pharaoh's Curse (Thomas Jentzsch)", "NTSC Conversion", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "40", "240", "YES", "" }, 
+  { "2aeedcc6eb1602efb77161b0cef832ab", "SOLID Corp. (D. Scott Williamson)", "CX2655-025", "Star Castle 2600 (SolidCorp) [025]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "2b1589c7e1f394ae6a1c046944f06688", "Carrere Video, Todd Marshall, Wes Trager, Henry Will IV - Teldec", "USC2003", "Eggomania (1983) (Carrere Video) (PAL)", "Uses the Paddle Controllers (left only)", "", "", "", "", "", "", "", "PADDLES", "", "", "", "", "", "", "", "" }, 
   { "2b27eb194e13f3b38d23c879cc1e3abf", "Quelle", "402.272 9", "Super-Ferrari (1983) (Quelle) (PAL)", "AKA Enduro", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "2b42da79a682ed6e2d735facbf70107e", "", "", "DKjr Improved (Hack)", "Hack of Donkey Kong Jr.", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -779,6 +781,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "396f7bc90ab4fa4975f8c74abe4e81f0", "Atari, Larry Kaplan - Sears", "CX2612 - 99804, 49-75103", "Street Racer (1977) (Atari)", "Uses the Paddle Controllers (swapped)", "", "", "", "", "", "", "", "PADDLES", "", "YES", "10", "", "", "", "", "" }, 
   { "39790a2e9030751d7db414e13f1b6960", "", "", "Robotfindskitten2600 (26-04-2003) (Jeremy Penner) [a1]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "39a6a5a2e1f6297cceaa48bb03af02e9", "", "", "Pitfall 2 Plus (Hack)", "Hack of Pitfall 2", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "39b94d41bd3b01c12b4054c1a8733783", "SOLID Corp. (D. Scott Williamson)", "CX2655-016", "Star Castle 2600 (SolidCorp) [016]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "39bf392448c8bd39d48acc95ed3b423f", "", "", "Greeting Cart Barb (SnailSoft)(PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "39c78d682516d79130b379fa9deb8d1c", "Apollo - Games by Apollo, Ed Salvo", "AP-1001", "Skeet Shoot (1981) (Apollo)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "39d36366ae7e6dfd53393fb9ebab02a0", "CCE", "C-811", "River Raid (1983) (CCE) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2441,6 +2444,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "c02e1afa0671e438fd526055c556d231", "Atari", "", "A-Team (Atari) (Prototype) (PAL60)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "PAL60", "", "", "", "" }, 
   { "c032c2bd7017fdfbba9a105ec50f800e", "Activision, Charlie Heath", "", "Thwocker (04-09-1984) (Activision) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "c033dc1d7b6fde41b9cadce9638909bb", "", "", "Skeleton (V1.1) (06-09-2002) (Eric Ball)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "c0589bb73858924389077fa3c2e9441a", "SOLID Corp. (D. Scott Williamson)", "CX2655-014", "Star Castle 2600 (SolidCorp) [014]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "c05f367fa4767ceb27abadf0066df7f4", "", "", "TomInv (31-07-2001) (TJ)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "c08d0cee43077d3055febb00e5745c1d", "HES - Activision", "", "Super Hit Pak - River Raid, Sky Jinks, Grand Prix, Fishing Derby, Checkers (HES) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "c0a68837c60e15d1fc5a40c9a62894bc", "Arcadia Corporation, Kevin Norman", "7 AR-4103", "Killer Satellites (1983) (Arcadia) (Prototype)", "", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2625,6 +2629,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "ce64812eb83c95723b04fb56d816910b", "Retroactive", "", "Qb (V2.04) (NTSC) (2001) (Retroactive)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "ce6c4270f605ad3ce5e82678b0fc71f8", "", "", "Vertical Rainbow Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "ce82a675c773ff21e0ffc0a4d1c90a71", "", "", "Defender 2 (Genesis)", "Genesis controller (C is smartbomb)", "Hack of Defender 2", "", "", "", "", "", "", "GENESIS", "", "", "", "", "", "", "", "" }, 
+  { "ce8467ae2a3a5bc88ca72a2ce44ce28c", "SOLID Corp. (D. Scott Williamson)", "CX2655-015", "Star Castle 2600 (SolidCorp) (PAL) [015]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "ce89529d6e98a13ddf3d84827bbdfe68", "", "", "Kung Fu Sprite Demo 2 (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "ce904c0ae58d36d085cd506989116b0b", "Telegames", "5687 A279", "International Soccer (1989) (Telegames) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "cea9f72036dc6f7af5eff52459066290", "Retroactive", "", "Qb (2.07) (Retroactive) (Stella)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
@@ -2784,7 +2789,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "da64f33d0521d5c9958e5d2d4434ff95", "", "", "Star Fire - Return of the Starfield (MP)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "da66d75e4b47fab99733529743f86f4f", "Digitel", "", "Chopper Command (1983) (Digitel)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "da732c57697ad7d7af414998fa527e75", "Atari, Glenn Axworthy", "CX26129", "Midnight Magic (1984) (Atari) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
-  { "da79aad11572c80a96e261e4ac6392d0", "Salu - Ubi Soft, Dennis M. Kiss", "460673", "Pick 'n' Pile (1990) (Salu) (PAL)", "", "", "", "", "", "", "", "YES", "", "", "", "", "PAL", "38", "256", "YES", "" }, 
+  { "da79aad11572c80a96e261e4ac6392d0", "Salu - Ubi Soft, Dennis M. Kiss", "460673", "Pick 'n' Pile (1990) (Salu) (PAL)", "", "", "", "", "", "", "", "YES", "", "", "", "", "", "38", "256", "YES", "" }, 
   { "da7a17dcdaa62d6971393c0a6faf202a", "", "", "Flag Capture (208 in 1) (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dab844deed4c752632b5e786b0f47999", "", "", "Super Challenge Baseball (208 in 1) (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dac38b4dd3da73bb7b2e9d70c61d2b7c", "", "", "Hangman Monkey Biglist3 (Hack)", "Hack of Hangman", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2820,6 +2825,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "dcec46a98f45b193f07239611eb878c2", "", "", "Bars and Text Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dd08e18cfee87a0e7fc19a684b36e124", "Atari - GCC, Kevin Osborn", "CX2689, CX2689P", "Kangaroo (1983) (Atari) (PAL) [a]", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dd0cbe5351551a538414fb9e37fc56e8", "Xonox - K-Tel Software, Anthony R. Henderson", "99006, 6220", "Sir Lancelot (1983) (Xonox) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "dd0de0f61af2a2a4878e377b880a3933", "SOLID Corp. (D. Scott Williamson)", "CX2655-013", "Star Castle 2600 (SolidCorp) [013]", "http://starcastle2600.blogspot.com/p/star-castle-2600-story.html", "Homebrew", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "dd10b5ee37fdbf909423f2998a1f3179", "", "", "Space Instigators (V1.9) (21-10-2002) (CT)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dd1422ffd538e2e33b339ebeef4f259d", "Atari, Tod Frye", "", "Red Vs. Blue (1981) (Atari) (Prototype)", "RealSports Football Beta", "Prototype", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "dd17711a30ad60109c8beace0d4a76e8", "", "", "Karate (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "20", "", "", "" }, 
@@ -3256,6 +3262,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "fb531febf8e155328ec0cd39ef77a122", "", "", "Worm War I (208 in 1) (Unknown) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "fb5c8af97bd8ffe88323656f462645a7", "", "", "Interlace Demo (Glenn Saunders)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 
   { "fb833ed50c865a9a505a125fc9d79a7e", "Home Vision - Gem International Corp.", "", "Zoo Fun (1983) (Home Vision) (PAL)", "AKA Panda Chase", "", "", "", "", "", "", "", "", "", "", "", "", "30", "", "", "" }, 
+  { "fb884ffd89013331a6f01ae3f6abd214", "Activision, David Crane", "", "Venetian Blinds Demo (1982) (Activision) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fb88c400d602fe759ae74ef1716ee84e", "20th Century Fox Video Games, Bill Aspromonte", "11031", "Crash Dive (1983) (20th Century Fox)", "AKA Voyage to the Bottom of the Sea", "", "", "", "", "", "", "", "", "", "", "", "", "30", "", "", "" }, 
   { "fb91da78455d9b1606913fbf8c859772", "", "", "Split Screen (Ballblazer) Demo (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "fb91dfc36cddaa54b09924ae8fd96199", "Parker Brothers, Mark Lesser", "PB5590", "Frogger II (1984) (Parker Bros) (PAL)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "YES", "" }, 

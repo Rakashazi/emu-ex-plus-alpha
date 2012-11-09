@@ -15,7 +15,6 @@
 
 #define thisModuleName "input:android"
 #include <base/android/sdk.hh>
-#include <input/interface.h>
 #include <input/common/common.h>
 #include <util/jni.hh>
 #include <base/android/ndkCompat.h>
@@ -23,7 +22,7 @@
 
 namespace Base
 {
-extern fbool gfxUpdate;
+extern bool gfxUpdate;
 }
 
 #include "common.hh"
@@ -38,7 +37,7 @@ jboolean JNICALL touchEvent(JNIEnv *env, jobject thiz, jint action, jint x, jint
 	#if CONFIG_ENV_ANDROID_MINSDK == 4
 		pid = 0; // no multi-touch
 	#endif
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	if(!handleTouchEvent(action, x, y, pid))
 		return 0;
 	return prevGfxUpdateState == 0 && gfxUpdate;
@@ -46,14 +45,14 @@ jboolean JNICALL touchEvent(JNIEnv *env, jobject thiz, jint action, jint x, jint
 
 jboolean JNICALL trackballEvent(JNIEnv *env, jobject thiz, jint action, jfloat x, jfloat y)
 {
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	handleTrackballEvent(action, x, y);
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }
 
 jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down, jboolean metaState)
 {
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	handleKeyEvent(key, down, 0, metaState);
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }

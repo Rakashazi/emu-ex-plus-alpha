@@ -10,7 +10,6 @@ void ImagineSound::open()
 	myTIASound.outputFrequency(EmuSystem::pcmFormat.rate);
 	//myTIASound.tiaFrequency(tiafreq);
 	myTIASound.channels(soundChannels, 0);
-	myTIASound.clipVolume(0);
 
 	myLastRegisterSetCycle = 0;
 }

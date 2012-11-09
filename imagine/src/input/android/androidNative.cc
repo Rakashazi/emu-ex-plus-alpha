@@ -1,6 +1,5 @@
 #define thisModuleName "input:android"
 #include <base/android/sdk.hh>
-#include <input/interface.h>
 #include <input/common/common.h>
 #include <base/android/nativeGlue.hh>
 #include <base/android/private.hh>
@@ -14,8 +13,9 @@ namespace Input
 {
 
 static float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index) = 0;
-static fbool handleVolumeKeys = 0;
-static fbool allowKeyRepeats = 1;
+static bool handleVolumeKeys = 0;
+static bool allowKeyRepeats = 1;
+static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 
 static const uint maxJoysticks = 5;
 static uint joysticks = 0;
@@ -77,14 +77,14 @@ void hideSoftInput()
 	postUIThread(eEnv(), jBaseActivity, 3, 0);
 }
 
-fbool sendInputToIME = 1;
-void setEventsUseOSInputMethod(fbool on)
+bool sendInputToIME = 1;
+void setEventsUseOSInputMethod(bool on)
 {
 	logMsg("set IME use %s", on ? "On" : "Off");
 	sendInputToIME = on;
 }
 
-fbool eventsUseOSInputMethod()
+bool eventsUseOSInputMethod()
 {
 	return sendInputToIME;
 }
@@ -100,6 +100,7 @@ static const char* aInputSourceToStr(uint source)
 		case AINPUT_SOURCE_MOUSE: return "Mouse";
 		case AINPUT_SOURCE_TRACKBALL: return "Trackball";
 		case AINPUT_SOURCE_TOUCHPAD: return "Touchpad";
+		case AINPUT_SOURCE_JOYSTICK: return "Joystick";
 		case AINPUT_SOURCE_ANY: return "Any";
 		default:  return "Unhandled value";
 	}
@@ -107,8 +108,8 @@ static const char* aInputSourceToStr(uint source)
 
 int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 {
-	var_copy(type, AInputEvent_getType(event));
-	var_copy(source, AInputEvent_getSource(event));
+	auto type = AInputEvent_getType(event);
+	auto source = AInputEvent_getSource(event);
 	switch(type)
 	{
 		case AINPUT_EVENT_TYPE_MOTION:
@@ -158,7 +159,7 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 					}
 					return 1;
 				}
-				case 0x01000010: // Joystick
+				case AINPUT_SOURCE_JOYSTICK: // Joystick
 				{
 					uint eventDevID = 0;
 					uint id = AInputEvent_getDeviceId(event);
@@ -208,7 +209,7 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 							pos[0] = AMotionEvent_getX(event, 0);
 							pos[1] = AMotionEvent_getY(event, 0);
 						}
-						logMsg("from Joystick, %f, %f", (double)pos[0], (double)pos[1]);
+						//logMsg("from Joystick, %f, %f", (double)pos[0], (double)pos[1]);
 						static bool stickBtn[maxJoysticks][maxAxes][4] = { { { 0 } } };
 						forEachInArray(stickBtn[eventDevID][i], e)
 						{
@@ -244,6 +245,8 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
 			uint keyCode = AKeyEvent_getKeyCode(event);
+			if(!keyCode) // ignore "unknown" key codes
+				return 0;
 			if(!handleVolumeKeys &&
 				(keyCode == Key::VOL_UP || keyCode == Key::VOL_DOWN))
 				return 0;
@@ -321,52 +324,56 @@ bool dlLoadAndroidFuncs(void *libandroid)
 	return 1;
 }
 
+void rescanDevices()
+{
+	joysticks = 0;
+	using namespace Base;
+	jintArray jID = (jintArray)JNIInputDevice::getDeviceIds(eEnv());
+	jint *id = eEnv()->GetIntArrayElements(jID, 0);
+	logMsg("checking input devices");
+	uint devId = 0;
+	iterateTimes(eEnv()->GetArrayLength(jID), i)
+	{
+		jobject dev = JNIInputDevice::getDevice(eEnv(), id[i]);
+		jint src = JNIInputDevice::getSources(eEnv(), dev);
+		jstring jName = (jstring)JNIInputDevice::getName(eEnv(), dev);
+		if(!jName)
+		{
+			logWarn("no name from device %d, id %d", i, id[i]);
+			continue;
+		}
+		const char *name = eEnv()->GetStringUTFChars(jName, 0);
+		bool isJoystick = bit_isMaskSet(src, JNIInputDevice::SOURCE_GAMEPAD) || bit_isMaskSet(src, JNIInputDevice::SOURCE_JOYSTICK);
+		logMsg("#%d: %s, id %d, source %X, is Gamepad/JS %d", i, name, id[i], src, isJoystick);
+		if(isJoystick && joysticks < maxJoysticks)
+		{
+			joystickID[joysticks].osId = id[i];
+			if(strstr(name, "-zeus")) // map Xperia Play slide-out gamepad to idx 0
+			{
+				joystickID[joysticks].devId = 0;
+				if(devId == 0) devId++; // only increment devId if first device
+			}
+			else
+			{
+				joystickID[joysticks].devId = devId;
+				devId++;
+			}
+			logMsg("Joystick ID %d -> %d", id[i], joystickID[joysticks].devId);
+			joysticks++;
+		}
+		eEnv()->ReleaseStringUTFChars(jName, name);
+	}
+	eEnv()->ReleaseIntArrayElements(jID, id, 0);
+}
+
 CallResult init()
 {
 	if(Base::androidSDK() >= 12)
 	{
 		JNIInputDevice::jniInit();
-		using namespace Base;
-		jintArray jID = (jintArray)JNIInputDevice::getDeviceIds(eEnv());
-		jint *id = eEnv()->GetIntArrayElements(jID, 0);
-		logMsg("checking input devices");
-		uint devId = 0;
-		iterateTimes(eEnv()->GetArrayLength(jID), i)
-		{
-			jobject dev = JNIInputDevice::getDevice(eEnv(), id[i]);
-			jint src = JNIInputDevice::getSources(eEnv(), dev);
-			jstring jName = (jstring)JNIInputDevice::getName(eEnv(), dev);
-			if(!jName)
-			{
-				logWarn("no name from device %d, id %d", i, id[i]);
-				continue;
-			}
-			const char *name = eEnv()->GetStringUTFChars(jName, 0);
-			bool isJoystick = bit_isMaskSet(src, JNIInputDevice::SOURCE_GAMEPAD) || bit_isMaskSet(src, JNIInputDevice::SOURCE_JOYSTICK);
-			logMsg("#%d: %s, id %d, source %X, is Gamepad/JS %d", i, name, id[i], src, isJoystick);
-			if(isJoystick && joysticks < maxJoysticks)
-			{
-				joystickID[joysticks].osId = id[i];
-				if(strstr(name, "-zeus")) // map Xperia Play slide-out gamepad to idx 0
-				{
-					joystickID[joysticks].devId = 0;
-					if(devId == 0) devId++; // only increment devId if first device
-				}
-				else
-				{
-					joystickID[joysticks].devId = devId;
-					devId++;
-				}
-				logMsg("Joystick ID %d -> %d", id[i], joystickID[joysticks].devId);
-				joysticks++;
-			}
-			eEnv()->ReleaseStringUTFChars(jName, name);
-		}
-		eEnv()->ReleaseIntArrayElements(jID, id, 0);
+		rescanDevices();
 	}
 	return OK;
 }
 
 }
-
-#undef thisModuleName

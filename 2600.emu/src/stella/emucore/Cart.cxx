@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.cxx 2530 2012-06-07 15:34:43Z stephena $
+// $Id: Cart.cxx 2547 2012-07-14 18:56:57Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -74,11 +74,11 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
   // See if we should try to auto-detect the cartridge type
   // If we ask for extended info, always do an autodetect
   string autodetect = "";
-  if(type == "AUTO-DETECT" || settings.getBool("rominfo"))
+  if(type == "AUTO" || settings.getBool("rominfo"))
   {
     const string& detected = autodetectType(image, size);
     autodetect = "*";
-    if(type != "AUTO-DETECT" && type != detected)
+    if(type != "AUTO" && type != detected)
       cerr << "Auto-detection not consistent: " << type << ", " << detected << endl;
 
     type = detected;

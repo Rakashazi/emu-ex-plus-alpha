@@ -17,7 +17,7 @@
 
 extern uchar comFlagsSync[2];
 extern uchar comSync[0x20];
-extern fbool doingSync;
+extern bool doingSync;
 extern uchar comWriteTarget;
 extern uint comFlagsPoll[2];
 extern uint comPoll[0x20];
@@ -393,11 +393,13 @@ void subGateWrite8(uint address, uint data)
 				}
 				sCD.gate[0x33] = data;
 			bcase 0x34: // fader
-				//logMsg("set fader %02x", data);
+				logMsg("set fader %02x", data);
 				sCD.gate[0x34] = data & 0x7f;
+				scd_updateCddaVol();
 			bcase 0x35: // fader
-				//logMsg("set fader 2 %02x", data);
+				logMsg("set fader low %02x", data);
 				sCD.gate[0x35] = data;
+				scd_updateCddaVol();
 			bcase 0x37:
 			{
 				logMsg("CCD control: %02x", data);

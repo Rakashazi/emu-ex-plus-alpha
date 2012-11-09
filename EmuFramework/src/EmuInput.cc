@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/interface.h>
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
 #include <Option.hh>
@@ -275,4 +274,32 @@ void commonUpdateInput()
 			EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.yAction);
 	}
 #endif
+}
+
+bool isMenuDismissKey(const InputEvent &e)
+{
+	switch(e.devType)
+	{
+		#ifdef CONFIG_BLUETOOTH
+		case InputEvent::DEV_WIIMOTE: return e.button == Input::Wiimote::HOME;
+		case InputEvent::DEV_ICONTROLPAD: return e.button == Input::iControlPad::Y;
+		case InputEvent::DEV_ZEEMOTE: return e.button == Input::Zeemote::POWER;
+		#endif
+		#ifdef CONFIG_INPUT_ICADE
+		case InputEvent::DEV_ICADE: return e.button == Input::ICade::E;
+		#endif
+		#if defined(CONFIG_BASE_PS3)
+		case InputEvent::DEV_PS3PAD:
+			return e.button == Input::Ps3::TRIANGLE || e.button == Input::Ps3::L2;
+		#endif
+		default:
+			return 0
+			#if defined(CONFIG_ENV_WEBOS) && CONFIG_ENV_WEBOS_OS <= 2
+				|| e.button == Input::Key::RCTRL
+			#endif
+			#ifdef INPUT_SUPPORTS_KEYBOARD
+				|| e.button == Input::Key::MENU
+			#endif
+			;
+	}
 }

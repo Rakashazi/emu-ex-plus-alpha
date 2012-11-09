@@ -6,15 +6,11 @@
 template <class T>
 struct Array2D
 {
-	constexpr Array2D() { }
-	uint columns = 0;
 	T *arr = nullptr;
+	uint columns = 0;
 
-	void init(T *arr, uint columns)
-	{
-		var_selfs(arr);
-		var_selfs(columns);
-	}
+	constexpr Array2D() { }
+	constexpr Array2D(T *arr, uint columns): arr(arr), columns(columns) { }
 
 	operator T*() const
 	{

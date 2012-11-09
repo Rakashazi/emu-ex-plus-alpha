@@ -17,7 +17,6 @@
 
 void NavView::init(ResourceFace *face)
 {
-	text.init();
 	text.setFace(face);
 	leftBtnActive = rightBtnActive = 1;
 	hasBackBtn = hasCloseBtn = 0;
@@ -60,7 +59,7 @@ void NavView::place()
 // BasicNavView
 
 void BasicNavView::init(ResourceFace *face, ResourceImage *backRes, ResourceImage *closeRes,
-		const GfxLGradientStopDesc *gradStop, uint gradStops)
+		const Gfx::LGradientStopDesc *gradStop, uint gradStops)
 {
 	NavView::init(face);
 	leftSpr.init(-.5, -.5, .5, .5, backRes);
@@ -110,8 +109,8 @@ void BasicNavView::draw()
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_INTENSITY);
 			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
-			applyRollRotate(angle_fromDegree(90));
-			leftSpr.draw(0);
+			applyRollRotate(angleFromDegree(90));
+			leftSpr.draw();
 		}
 	}
 	if(rightSpr.img)
@@ -125,8 +124,8 @@ void BasicNavView::draw()
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_INTENSITY);
 			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
-			applyRollRotate(angle_fromDegree(180));
-			rightSpr.draw(0);
+			applyRollRotate(angleFromDegree(180));
+			rightSpr.draw();
 		}
 	}
 }

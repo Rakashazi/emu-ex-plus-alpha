@@ -18,7 +18,7 @@
 #include <fs/sys.hh>
 #include <util/basicString.h>
 #include <util/collection/DLList.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <gui/MenuItem/MenuItem.hh>
 #include "EmuSystem.hh"
 

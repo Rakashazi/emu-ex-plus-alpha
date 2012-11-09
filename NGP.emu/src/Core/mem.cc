@@ -95,22 +95,22 @@ should stop "Gals Fighters" from writing all over itself.
 //=============================================================================
 
 //Hack way of returning good EEPROM status.
-fbool eepromStatusEnable = FALSE;
+bool eepromStatusEnable = FALSE;
 static uint32 eepromStatus;
 
 uint8 ram[1 + RAM_END - RAM_START];
 
-fbool debug_abort_memory = FALSE;
-fbool debug_mask_memory_error_messages = FALSE;
+bool debug_abort_memory = FALSE;
+bool debug_mask_memory_error_messages = FALSE;
 
-fbool memory_unlock_flash_write = FALSE;
-fbool memory_flash_error = FALSE;
-fbool memory_flash_command = FALSE;
+bool memory_unlock_flash_write = FALSE;
+bool memory_flash_error = FALSE;
+bool memory_flash_command = FALSE;
 
 //=============================================================================
 
 #ifdef NEOPOP_DEBUG
-static void memory_error(uint32 address, fbool read)
+static void memory_error(uint32 address, bool read)
 {
 	debug_abort_memory = TRUE;
 

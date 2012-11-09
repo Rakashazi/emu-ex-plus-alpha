@@ -761,7 +761,7 @@ void srcRRC()
 //===== RL (mem)
 void srcRL()
 {
-	fbool tempC;
+	bool tempC;
 
 	switch(size)
 	{
@@ -794,7 +794,7 @@ void srcRL()
 //===== RR (mem)
 void srcRR()
 {
-	fbool tempC;
+	bool tempC;
 
 	switch(size)
 	{

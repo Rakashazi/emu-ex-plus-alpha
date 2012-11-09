@@ -22,10 +22,10 @@
 #define OPT_RAM		0x0010
 #define OPT_REGS	0x0020
 
-fbool read_chunk(FILE *, uint32 *, uint32 *);
-fbool read_header(FILE *);
-fbool read_SNAP(FILE *, uint32);
+bool read_chunk(FILE *, uint32 *, uint32 *);
+bool read_header(FILE *);
+bool read_SNAP(FILE *, uint32);
 
-fbool write_header(FILE *);
-fbool write_EOD(FILE *);
-fbool write_SNAP(FILE *, int);
+bool write_header(FILE *);
+bool write_EOD(FILE *);
+bool write_SNAP(FILE *, int);

@@ -9,11 +9,14 @@
 #include <resource2/image/ResourceImage.h>
 #endif
 
+namespace Gfx
+{
+
 template<class BaseRect>
-class GfxSpriteBase : public BaseRect
+class SpriteBase : public BaseRect
 {
 public:
-	constexpr GfxSpriteBase() { }
+	constexpr SpriteBase() { }
 	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, GfxBufferImage *img);
 	CallResult init(Coordinate x = 0, Coordinate y = 0, Coordinate x2 = 0, Coordinate y2 = 0)
 	{
@@ -52,7 +55,7 @@ public:
 	#endif
 
 
-	void draw(uint manageBlend = 1) const;
+	void draw() const;
 
 	void deinitAndFreeImg()
 	{
@@ -67,5 +70,7 @@ public:
 	GfxBufferImage *img = nullptr;
 };
 
-typedef GfxSpriteBase<GfxTexRect> GfxSprite;
-typedef GfxSpriteBase<GfxColTexQuad> GfxShadedSprite;
+typedef SpriteBase<GfxTexRect> Sprite;
+typedef SpriteBase<GfxColTexQuad> ShadedSprite;
+
+}

@@ -7,7 +7,8 @@ SRC += main/Main.cc main/ImagineSound.cc
 
 include ../EmuFramework/common.mk
 
-CPPFLAGS += -DHAVE_GETTIMEOFDAY -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT -DSysDDec=float -Isrc/stella/common
+CPPFLAGS += -DHAVE_GETTIMEOFDAY -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT \
+-DSTELLA_MINIMAL_SETTINGS -DSysDDec=float -Isrc/stella/common
 
 # Stella sources
 STELLA := stella/emucore

@@ -34,11 +34,7 @@ static void setupVertexArrayPointers(const Vtx *v, int numV)
 	if(Vtx::hasTexture)
 	{
 		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		#ifdef _4D_TEX_COORD
-		glcTexCoordPointer(4, GL_TEX_ARRAY_TYPE, sizeof(typename Vtx::POD), (uchar*)v + Vtx::textureOffset);
-		#else
 		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(typename Vtx::POD), (uchar*)v + Vtx::textureOffset);
-		#endif
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
 	}

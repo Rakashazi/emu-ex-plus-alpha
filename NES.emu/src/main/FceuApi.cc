@@ -17,24 +17,24 @@ FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }
 
 #ifndef NDEBUG
-void FCEUD_Message(const char *s) { logger_printfn(0, "%s", s); }
+void FCEUD_Message(const char *s) { logger_printf(0, "%s", s); }
 
 void FCEU_DispMessageOnMovie(const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
-	logger_vprintfn(0, format, ap);
-	logger_printfn(0, "\n");
+	logger_vprintf(0, format, ap);
 	va_end(ap);
+	logger_printf(0, "\n");
 }
 
 void FCEU_DispMessage(const char *format, int disppos=0, ...)
 {
 	va_list ap;
 	va_start(ap, disppos);
-	logger_vprintfn(0, format, ap);
-	logger_printfn(0, "\n");
+	logger_vprintf(0, format, ap);
 	va_end(ap);
+	logger_printf(0, "\n");
 }
 #endif
 

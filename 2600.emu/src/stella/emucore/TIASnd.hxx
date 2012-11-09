@@ -70,11 +70,6 @@ class TIASound
     */
     string channels(uInt32 hardware, bool stereo);
 
-    /**
-      Set volume clipping (decrease volume range by half to eliminate popping)
-    */
-    void clipVolume(bool clip);
-
   public:
     /**
       Sets the specified sound register to the given value
@@ -99,7 +94,7 @@ class TIASound
       @param buffer The location to store generated samples
       @param samples The number of samples to generate
     */
-    typedef uInt16 Sample;
+    typedef Int16 Sample;
     void process(Sample* buffer, uInt32 samples);
 
     /**
@@ -160,7 +155,6 @@ class TIASound
     Int32  myTIAFrequency;
     Int32  myOutputCounter;
     uInt32 myVolumePercentage;
-    uInt8  myVolumeClip;
 };
 
 #endif

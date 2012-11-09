@@ -12,4 +12,6 @@ else
  SRC += base/android/main.cc
 endif
 
+SRC += base/android/privateApi/libhardware.c
+
 endif

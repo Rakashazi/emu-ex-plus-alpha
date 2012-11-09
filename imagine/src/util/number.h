@@ -34,9 +34,9 @@ static const bool supportsFloat = !CONFIG_TYPES_NO_FLOAT;
 static const bool supportsDouble = !CONFIG_TYPES_NO_DOUBLE;
 
 template<class T>
-static T toRadians(T degrees) { return degrees * (T)(M_PI / 180.0); }
+static constexpr T toRadians(T degrees) { return degrees * (T)(M_PI / 180.0); }
 template<class T>
-static T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
+static constexpr T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
 
 static void testFloatSupport() { if(!supportsFloat) bug_exit("float used without support"); }
 static void testDoubleSupport() { if(!supportsDouble) bug_exit("double used without support"); }

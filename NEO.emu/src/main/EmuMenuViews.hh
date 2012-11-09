@@ -5,7 +5,7 @@ class SystemOptionView : public OptionView
 {
 private:
 
-	MultiChoiceSelectMenuItem timer;
+	MultiChoiceSelectMenuItem timer {"Emulate Timer"};
 
 	static void timerSet(MultiChoiceMenuItem &, int val)
 	{
@@ -19,11 +19,11 @@ private:
 		{
 				"Off", "On", "Auto"
 		};
-		timer.init("Emulate Timer", str, IG::min(2, (int)optionTimerInt), sizeofArray(str));
+		timer.init(str, IG::min(2, (int)optionTimerInt), sizeofArray(str));
 		timer.valueDelegate().bind<&timerSet>();
 	}
 
-	MultiChoiceSelectMenuItem region;
+	MultiChoiceSelectMenuItem region {"MVS Region"};
 
 	static void regionSet(MultiChoiceMenuItem &, int val)
 	{
@@ -42,11 +42,11 @@ private:
 		{
 			setting = conf.country;
 		}
-		region.init("MVS Region", str, setting, sizeofArray(str));
+		region.init(str, setting, sizeofArray(str));
 		region.valueDelegate().bind<&regionSet>();
 	}
 
-	MultiChoiceSelectMenuItem bios;
+	MultiChoiceSelectMenuItem bios {"BIOS Type"};
 
 	static void biosSet(MultiChoiceMenuItem &, int val)
 	{
@@ -65,7 +65,7 @@ private:
 		{
 			setting = 1;
 		}
-		bios.init("BIOS Type", str, setting, sizeofArray(str));
+		bios.init(str, setting, sizeofArray(str));
 		bios.valueDelegate().bind<&biosSet>();
 	}
 
@@ -414,9 +414,14 @@ private:
 		void loadGame()
 		{
 			EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
-			if(EmuSystem::loadGame(entry->filename))
+			auto res = EmuSystem::loadGame(entry->filename);
+			if(res == 1)
 			{
 				loadGameCompleteFromFilePicker(1, InputEvent{});
+			}
+			else if(res == 0)
+			{
+				EmuSystem::clearGamePaths();
 			}
 		}
 
@@ -483,7 +488,7 @@ public:
 class UnibiosSwitchesView : public BaseMenuView
 {
 	MenuItem *item[2];
-	MultiChoiceSelectMenuItem region;
+	MultiChoiceSelectMenuItem region {"Region"};
 	BoolMenuItem system;
 public:
 
@@ -502,7 +507,7 @@ public:
 		};
 		int setting = 0;
 		setting = memory.memcard[3] & 0x3;
-		region.init("Region", str, setting, sizeofArray(str));
+		region.init(str, setting, sizeofArray(str));
 		region.valueDelegate().bind<&regionSet>();
 	}
 

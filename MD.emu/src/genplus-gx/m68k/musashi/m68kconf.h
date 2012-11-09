@@ -205,9 +205,9 @@
  * If you define INLINE in the makefile, it will override this value.
  * NOTE: not enabling inline functions will SEVERELY slow down emulation.
  */
-#ifndef INLINE
-#define INLINE static __inline__
-#endif /* INLINE */
+#ifndef SINLINE
+#define SINLINE static __inline__
+#endif /* SINLINE */
 
 #endif /* M68K_COMPILE_FOR_MAME */
 

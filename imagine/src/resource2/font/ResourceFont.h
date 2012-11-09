@@ -1,7 +1,7 @@
 #pragma once
 #include <engine-globals.h>
 #include <resource2/font/common/glyphTable.h>
-#include <resource2/Resource.h>
+#include <data-type/font/FontData.hh>
 #include <assert.h>
 
 class FontSettings
@@ -42,11 +42,6 @@ public:
 	int pixelWidth = 0, pixelHeight = 0;
 };
 
-#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-	#include <data-type/font/freetype-2/reader.h>
-	typedef FT_Size FaceSizeData;
-#endif
-
 class ResourceFace;
 #include <resource2/image/glyph/ResourceImageGlyph.h>
 
@@ -56,20 +51,16 @@ public:
 	virtual ~ResourceFont() { }
 
 	CallResult initWithName(const char * name);
+	ResourceImageGlyph *createRenderable(int c, ResourceFace *face, GlyphEntry *entry);
+	int minUsablePixels() const;
 
 	virtual void free() = 0;
-	virtual int currentCharYOffset() const = 0;
-	virtual int currentCharXOffset() const = 0;
-	virtual int currentCharXAdvance() const = 0;
-	virtual void charBitmap(uchar** bitmap, int* x, int* y, int* pitch) const = 0;
-	virtual CallResult activeChar(int idx) = 0;
-	virtual int currentCharXSize() const = 0;
-	virtual int currentCharYSize() const = 0;
-	virtual int currentFaceDescender() const = 0;
-	virtual int currentFaceAscender() const = 0;
-	virtual int minUsablePixels() const = 0;
-	virtual ResourceImageGlyph *createRenderable(int c, ResourceFace *face, GlyphEntry *entry) = 0;
-	virtual CallResult newSize(FontSettings* settings, FaceSizeData* sizeDataAddr) = 0;
-	virtual CallResult applySize(FaceSizeData sizeData) = 0;
-	virtual void freeSize(FaceSizeData sizeData) = 0;
+	virtual void charBitmap(void* &bitmap, int &x, int &y, int &pitch) = 0;
+	virtual void unlockCharBitmap(void *data) { }
+	virtual CallResult activeChar(int idx, GlyphMetrics &metrics) = 0;
+	//virtual int currentFaceDescender() const = 0;
+	//virtual int currentFaceAscender() const = 0;
+	virtual CallResult newSize(FontSettings* settings, FontSizeRef &sizeRef) = 0;
+	virtual CallResult applySize(FontSizeRef &sizeData) = 0;
+	virtual void freeSize(FontSizeRef &sizeData) = 0;
 };

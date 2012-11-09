@@ -19,7 +19,7 @@
 #include <gfx/GeomRect.hh>
 #include <gfx/GfxLGradient.hh>
 #include <util/rectangle2.h>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <util/Delegate.hh>
 
 class NavView
@@ -36,7 +36,7 @@ public:
 	OnInputDelegate &rightNavBtnDelegate() { return onRightNavBtn; }
 
 	Rect2<int> leftBtn, rightBtn, textRect;
-	GfxText text;
+	Gfx::Text text;
 	Rect2<int> viewRect;
 	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
 
@@ -57,10 +57,10 @@ class BasicNavView : public NavView
 public:
 	constexpr BasicNavView() { }
 	constexpr BasicNavView(OnInputDelegate left, OnInputDelegate right): NavView(left, right) { }
-	GfxSprite leftSpr, rightSpr;
-	GfxLGradient bg;
+	Gfx::Sprite leftSpr, rightSpr;
+	Gfx::LGradient bg;
 	void init(ResourceFace *face, ResourceImage *leftRes, ResourceImage *rightRes,
-			const GfxLGradientStopDesc *gradStop, uint gradStops);
+			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 	void setBackImage(ResourceImage *img);
 	void draw() override;
 	void place() override;

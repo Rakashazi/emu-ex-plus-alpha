@@ -35,11 +35,6 @@ public:
 	uchar isGrayScale() const { return pixelFormat()->isGrayscale(); }
 	uchar bitsPP() const { return pixelFormat()->bitsPerPixel; }
 
-	void setupPixmap(Pixmap &p)
-	{
-		p.init(0, pixelFormat(), width(), height(), 0);
-	}
-
 	GfxBufferImage gfxD;
 	void deinit() { freeRef(); }
 };

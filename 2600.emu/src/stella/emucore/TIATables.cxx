@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIATables.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: TIATables.cxx 2547 2012-07-14 18:56:57Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -25,9 +25,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIATables::computeAllTables()
 {
-  for(uInt32 i = 0; i < 640; ++i)
-    DisabledMask[i] = 0;
-
+  memset(DisabledMask, 0, 640);
   buildCollisionMaskTable();
   buildPxMaskTable();
   buildMxMaskTable();
@@ -102,10 +100,9 @@ void TIATables::buildPxMaskTable()
   Int32 x, suppress, nusiz;
 
   // Set the player mask table to all zeros
-  for(suppress = 0; suppress < 2; ++suppress)
-    for(nusiz = 0; nusiz < 8; ++nusiz)
-      for(x = 0; x < 160; ++x)
-        PxMask[0][suppress][nusiz][x] = 0x00;
+  for(nusiz = 0; nusiz < 8; ++nusiz)
+    for(x = 0; x < 160; ++x)
+      PxMask[0][0][nusiz][x] = PxMask[0][1][nusiz][x] = 0x00;
 
   // Now, compute the player mask table
   for(suppress = 0; suppress < 2; ++suppress)
@@ -194,15 +191,14 @@ void TIATables::buildPxMaskTable()
   // Now, copy data for alignments of 1, 2 and 3
   for(uInt32 align = 1; align < 4; ++align)
   {
-    for(suppress = 0; suppress < 2; ++suppress)
+    for(nusiz = 0; nusiz < 8; ++nusiz)
     {
-      for(nusiz = 0; nusiz < 8; ++nusiz)
+      for(x = 0; x < 320; ++x)
       {
-        for(x = 0; x < 320; ++x)
-        {
-          PxMask[align][suppress][nusiz][x] =
-              PxMask[0][suppress][nusiz][(x + 320 - align) % 320];
-        }
+        PxMask[align][0][nusiz][x] =
+            PxMask[0][0][nusiz][(x + 320 - align) % 320];
+        PxMask[align][1][nusiz][x] =
+            PxMask[0][1][nusiz][(x + 320 - align) % 320];
       }
     }
   }
@@ -662,7 +658,7 @@ const Int16 TIATables::PokeDelay[64] = {
   0,  // HMCLR
   0,  // CXCLR
       // remaining values are undefined TIA write locations
-  0,  0,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

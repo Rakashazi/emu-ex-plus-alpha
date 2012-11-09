@@ -35,7 +35,7 @@ static void touchCtrlHandler(BoolMenuItem &item, const InputEvent &e)
 
 void OptionView::touchCtrlInit()
 {
-	touchCtrl.init("On-screen Controls", int(optionTouchCtrl));
+	touchCtrl.init(int(optionTouchCtrl));
 	touchCtrl.selectDelegate().bind<&touchCtrlHandler>();
 }
 #else
@@ -50,7 +50,7 @@ void OptionView::touchCtrlInit()
 	{
 		"Off", "On", "Auto"
 	};
-	touchCtrl.init("On-screen Controls", str, int(optionTouchCtrl), sizeofArray(str));
+	touchCtrl.init(str, int(optionTouchCtrl), sizeofArray(str));
 	touchCtrl.valueDelegate().bind<&touchCtrlSet>();
 }
 #endif
@@ -90,7 +90,7 @@ void OptionView::autoSaveStateInit()
 		bcase 15: val = 2;
 		bcase 30: val = 3;
 	}
-	autoSaveState.init("Auto-save State", str, val, sizeofArray(str));
+	autoSaveState.init(str, val, sizeofArray(str));
 	autoSaveState.valueDelegate().bind<&autoSaveStateSet>();
 }
 
@@ -109,7 +109,7 @@ void OptionView::statusBarInit()
 	int val = 2;
 	if(optionHideStatusBar < 2)
 		val = optionHideStatusBar;
-	statusBar.init("Hide Status Bar", str, val, sizeofArray(str));
+	statusBar.init(str, val, sizeofArray(str));
 	statusBar.valueDelegate().bind<&statusBarSet>();
 }
 
@@ -141,7 +141,7 @@ void OptionView::frameSkipInit()
 	int val = int(optionFrameSkip);
 	if(optionFrameSkip.val == EmuSystem::optionFrameSkipAuto)
 		val = -1;
-	frameSkip.init("Frame Skip", str, val, sizeofArray(str), baseVal);
+	frameSkip.init(str, val, sizeofArray(str), baseVal);
 	frameSkip.valueDelegate().bind<&frameSkipSet>();
 }
 
@@ -182,30 +182,44 @@ void OptionView::audioRateInit()
 		bcase 48000: val = 3;
 	}
 
-	audioRate.init("Sound Rate", str, val, rates);
+	audioRate.init(str, val, rates);
 	audioRate.valueDelegate().bind<&audioRateSet>();
 }
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-static void directTextureHandler(BoolMenuItem &item, const InputEvent &e)
-{
-	if(!item.active)
-	{
-		popup.postError(Gfx::androidDirectTextureError());
-		return;
-	}
-	item.toggle();
-	Gfx::setUseAndroidDirectTexture(item.on);
-	optionDirectTexture.val = item.on;
-	if(emuView.vidImg.impl)
-		emuView.reinitImage();
-}
+#ifdef CONFIG_BASE_ANDROID
 
-static void glSyncHackHandler(BoolMenuItem &item, const InputEvent &e)
-{
-	item.toggle();
-	glSyncHackEnabled = item.on;
-}
+	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		static void directTextureHandler(BoolMenuItem &item, const InputEvent &e)
+		{
+			if(!item.active)
+			{
+				popup.postError(Gfx::androidDirectTextureError());
+				return;
+			}
+			item.toggle();
+			Gfx::setUseAndroidDirectTexture(item.on);
+			optionDirectTexture.val = item.on;
+			if(emuView.vidImg.impl)
+				emuView.reinitImage();
+		}
+	#endif
+
+	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		static void surfaceTextureHandler(BoolMenuItem &item, const InputEvent &e)
+		{
+			item.toggle();
+			optionSurfaceTexture = item.on;
+			if(emuView.vidImg.impl)
+				emuView.reinitImage();
+		}
+	#endif
+
+	static void glSyncHackHandler(BoolMenuItem &item, const InputEvent &e)
+	{
+		item.toggle();
+		glSyncHackEnabled = item.on;
+	}
+
 #endif
 
 void confirmAutoLoadStateHandler(BoolMenuItem &item, const InputEvent &e)
@@ -364,7 +378,7 @@ void OptionView::btScanSecsInit()
 		bcase 8: val = 3;
 		bcase 10: val = 4;
 	}
-	btScanSecs.init("Bluetooth Scan", str, val, sizeofArray(str));
+	btScanSecs.init(str, val, sizeofArray(str));
 	btScanSecs.valueDelegate().bind<&btScanSecsSet>();
 }
 
@@ -381,7 +395,7 @@ void btScanCacheHandler(BoolMenuItem &item, const InputEvent &e)
 }
 #endif
 
-enum { O_AUTO = -1, O_90, O_270, O_0 };
+enum { O_AUTO = -1, O_90, O_270, O_0, O_180 };
 
 int convertOrientationMenuValueToOption(int val)
 {
@@ -393,11 +407,13 @@ int convertOrientationMenuValueToOption(int val)
 		return Gfx::VIEW_ROTATE_270;
 	else if(val == O_0)
 		return Gfx::VIEW_ROTATE_0;
-	assert(0);
+	else if(val == O_180)
+		return Gfx::VIEW_ROTATE_180;
+	bug_exit("invalid value %d", val);
 	return 0;
 }
 
-static void orientationInit(MultiChoiceSelectMenuItem &item, const char *name, uint option)
+static void orientationInit(MultiChoiceSelectMenuItem &item, uint option)
 {
 	static const char *str[] =
 	{
@@ -406,9 +422,9 @@ static void orientationInit(MultiChoiceSelectMenuItem &item, const char *name, u
 		#endif
 
 		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || (defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2)
-		"Landscape", "Landscape 2", "Portrait"
+		"Landscape", "Landscape 2", "Portrait", "Portrait 2"
 		#else
-		"90 Left", "90 Right", "Standard"
+		"90 Left", "90 Right", "Standard", "Upside Down"
 		#endif
 	};
 	int baseVal = 0;
@@ -422,7 +438,9 @@ static void orientationInit(MultiChoiceSelectMenuItem &item, const char *name, u
 		initVal = O_270;
 	else if(option == Gfx::VIEW_ROTATE_0)
 		initVal = O_0;
-	item.init(name, str, initVal, sizeofArray(str), baseVal);
+	else if(option == Gfx::VIEW_ROTATE_180)
+		initVal = O_180;
+	item.init(str, initVal, sizeofArray(str), baseVal);
 }
 
 void gameOrientationSet(MultiChoiceMenuItem &, int val)
@@ -433,7 +451,7 @@ void gameOrientationSet(MultiChoiceMenuItem &, int val)
 
 void OptionView::gameOrientationInit()
 {
-	orientationInit(gameOrientation, "Orientation", optionGameOrientation);
+	orientationInit(gameOrientation, optionGameOrientation);
 	gameOrientation.valueDelegate().bind<&gameOrientationSet>();
 }
 
@@ -447,7 +465,7 @@ void menuOrientationSet(MultiChoiceMenuItem &, int val)
 
 void OptionView::menuOrientationInit()
 {
-	orientationInit(menuOrientation, "Orientation", optionMenuOrientation);
+	orientationInit(menuOrientation, optionMenuOrientation);
 	menuOrientation.valueDelegate().bind<&menuOrientationSet>();
 }
 
@@ -461,7 +479,7 @@ void aspectRatioSet(MultiChoiceMenuItem &, int val)
 void OptionView::aspectRatioInit()
 {
 	static const char *str[] = { systemAspectRatioString, "1:1", "Full Screen" };
-	aspectRatio.init("Aspect Ratio", str, optionAspectRatio, sizeofArray(str));
+	aspectRatio.init(str, optionAspectRatio, sizeofArray(str));
 	aspectRatio.valueDelegate().bind<&aspectRatioSet>();
 }
 
@@ -474,7 +492,7 @@ void OptionView::aspectRatioInit()
 	void OptionView::soundBuffersInit()
 	{
 		static const char *str[] = { "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-		soundBuffers.init("Buffer Size In Frames", str, IG::max((int)optionSoundBuffers - 4, 0), sizeofArray(str));
+		soundBuffers.init(str, IG::max((int)optionSoundBuffers - 4, 0), sizeofArray(str));
 		soundBuffers.valueDelegate().bind<&soundBuffersSet>();
 	}
 #endif
@@ -505,7 +523,7 @@ void OptionView::zoomInit()
 		bcase 70: val = 3;
 		bcase optionImageZoomIntegerOnly: val = 4;
 	}
-	zoom.init("Zoom", str, val, sizeofArray(str));
+	zoom.init(str, val, sizeofArray(str));
 	zoom.valueDelegate().bind<&zoomSet>();
 }
 
@@ -545,7 +563,7 @@ void OptionView::dpiInit()
 		bcase 320: init = 8;
 	}
 	assert(init < sizeofArray(str));
-	dpi.init("DPI Override", str, init, sizeofArray(str));
+	dpi.init(str, init, sizeofArray(str));
 	dpi.valueDelegate().bind<&dpiSet>();
 }
 
@@ -559,7 +577,7 @@ void imgFilterSet(MultiChoiceMenuItem &, int val)
 void OptionView::imgFilterInit()
 {
 	static const char *str[] = { "None", "Linear" };
-	imgFilter.init("Image Filter", str, optionImgFilter, sizeofArray(str));
+	imgFilter.init(str, optionImgFilter, sizeofArray(str));
 	imgFilter.valueDelegate().bind<&imgFilterSet>();
 }
 
@@ -591,7 +609,7 @@ void OptionView::overlayEffectInit()
 		bcase VideoImageOverlay::CRT_RGB: init = 4;
 		bcase VideoImageOverlay::CRT_RGB_2: init = 5;
 	}
-	overlayEffect.init("Overlay Effect", str, init, sizeofArray(str));
+	overlayEffect.init(str, init, sizeofArray(str));
 	overlayEffect.valueDelegate().bind<&overlayEffectSet>();
 }
 
@@ -624,7 +642,7 @@ void OptionView::overlayEffectLevelInit()
 		bcase 75: init = 5;
 		bcase 100: init = 6;
 	}
-	overlayEffectLevel.init("Overlay Effect Level", str, init, sizeofArray(str));
+	overlayEffectLevel.init(str, init, sizeofArray(str));
 	overlayEffectLevel.valueDelegate().bind<&overlayEffectLevelSet>();
 }
 
@@ -650,9 +668,38 @@ void OptionView::relativePointerDecelInit()
 		init = 1;
 	if(optionRelPointerDecel == optionRelPointerDecelHigh)
 		init = 2;
-	relativePointerDecel.init("Trackball Sensitivity", str, init, sizeofArray(str));
+	relativePointerDecel.init(str, init, sizeofArray(str));
 	relativePointerDecel.valueDelegate().bind<&relativePointerDecelSet>();
 }
+
+#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+
+void processPrioritySet(MultiChoiceMenuItem &, int val)
+{
+	if(val == 0)
+		optionProcessPriority.val = 0;
+	else if(val == 1)
+		optionProcessPriority.val = -6;
+	else if(val == 2)
+		optionProcessPriority.val = -14;
+	Base::setProcessPriority(optionProcessPriority);
+}
+
+void OptionView::processPriorityInit()
+{
+	static const char *str[] = { "Normal", "High", "Very High" };
+	auto prio = Base::processPriority();
+	int init = 0;
+	if(optionProcessPriority.val == 0)
+		init = 0;
+	if(optionProcessPriority.val == -6)
+		init = 1;
+	if(optionProcessPriority.val == -14)
+		init = 2;
+	processPriority.init("Process Priority", str, init, sizeofArray(str));
+	processPriority.valueDelegate().bind<&processPrioritySet>();
+}
+#endif
 
 void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 {
@@ -664,17 +711,26 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	overlayEffectInit(); item[items++] = &overlayEffect;
 	overlayEffectLevelInit(); item[items++] = &overlayEffectLevel;
 	zoomInit(); item[items++] = &zoom;
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	if(Base::androidSDK() < 14)
-	{
-		directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
-		directTexture.selectDelegate().bind<&directTextureHandler>();
-	}
-	if(!optionGLSyncHack.isConst)
-	{
-		glSyncHack.init(optionGLSyncHack); item[items++] = &glSyncHack;
-		glSyncHack.selectDelegate().bind<&glSyncHackHandler>();
-	}
+	#ifdef CONFIG_BASE_ANDROID
+		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		if(Base::androidSDK() < 14)
+		{
+			directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
+			directTexture.selectDelegate().bind<&directTextureHandler>();
+		}
+		#endif
+		#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		if(Base::androidSDK() >= 14)
+		{
+			surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
+			surfaceTexture.selectDelegate().bind<&surfaceTextureHandler>();
+		}
+		#endif
+		if(!optionGLSyncHack.isConst)
+		{
+			glSyncHack.init(optionGLSyncHack); item[items++] = &glSyncHack;
+			glSyncHack.selectDelegate().bind<&glSyncHackHandler>();
+		}
 	#endif
 	if(!optionDitherImage.isConst)
 	{
@@ -743,6 +799,9 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	autoSaveStateInit(); item[items++] = &autoSaveState;
 	confirmAutoLoadState.init(optionConfirmAutoLoadState); item[items++] = &confirmAutoLoadState;
 	confirmAutoLoadState.selectDelegate().bind<&confirmAutoLoadStateHandler>();
+	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
+	processPriorityInit(); item[items++] = &processPriority;
+	#endif
 }
 
 void OptionView::loadGUIItems(MenuItem *item[], uint &items)

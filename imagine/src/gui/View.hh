@@ -1,7 +1,7 @@
 #pragma once
 
 #include <base/Base.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <input/DragPointer.hh>
 #include <resource2/face/ResourceFace.hh>
 

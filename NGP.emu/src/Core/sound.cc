@@ -82,7 +82,7 @@
 
 //=============================================================================
 
-fbool mute;
+bool mute;
 
 SoundChip toneChip;
 SoundChip noiseChip;

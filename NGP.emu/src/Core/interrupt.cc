@@ -99,11 +99,11 @@ uint32 timer_hint;
 uint32 timer_clock0, timer_clock1, timer_clock2, timer_clock3;
 uint8 timer[4];	//Up-counters
 
-fbool gfx_hack = FALSE;
+bool gfx_hack = FALSE;
 
 //=============================================================================
 
-static fbool h_int = FALSE, timer0, timer2;
+static bool h_int = FALSE, timer0, timer2;
 
 //=============================================================================
 

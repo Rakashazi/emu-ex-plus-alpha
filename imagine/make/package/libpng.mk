@@ -2,13 +2,8 @@ ifndef inc_pkg_libpng
 inc_pkg_libpng := 1
 
 ifdef package_libpng_externalPath
-  CPPFLAGS +=  -I$(package_libpng_externalPath)/include
-  LDLIBS += -L$(package_libpng_externalPath)/lib
-
- ifdef package_zlib_externalPath
-  CPPFLAGS +=  -I$(package_zlib_externalPath)/include
-  LDLIBS += -L$(package_zlib_externalPath)/lib
- endif
+ CPPFLAGS +=  -I$(package_libpng_externalPath)/include
+ LDLIBS += -L$(package_libpng_externalPath)/lib
 
  LDLIBS +=  -lpng14 -lz
 else
@@ -18,7 +13,7 @@ else
  else ifeq ($(ENV), macosx)
   # MacPorts version
   LDLIBS += /opt/local/lib/libpng15.a -lz
- else ifneq ($(ENV), linux)
+ else ifeq ($(CROSS_COMPILE), 1)
   CPPFLAGS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include pkg-config libpng --cflags --static --define-variable=prefix=$(system_externalSysroot))
   LDLIBS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config libpng --libs --static --define-variable=prefix=$(system_externalSysroot))
  else

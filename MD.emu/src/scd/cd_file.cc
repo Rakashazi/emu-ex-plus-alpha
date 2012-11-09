@@ -20,207 +20,120 @@
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp
 //#define DEBUG_CD
 
-int Load_ISO(const char *iso_name, int is_bin)
+bool MDFN_GetSettingB(const char *name) { return 0; }
+
+void MDFN_printf(const char *format, ...) throw()
 {
-	int i, j, num_track, Cur_LBA, index, ret, iso_name_len;
+	#ifdef USE_LOGGER
+	va_list args;
+	va_start( args, format );
+	logger_vprintf(LOG_M, format, args);
+	va_end( args );
+	#endif
+}
+
+static CDAccess *cdImage = nullptr;
+
+int Load_ISO(CDAccess *cd)
+{
 	_scd_track *Tracks = sCD.TOC.Tracks;
-	char tmp_name[1024], tmp_ext[10];
-	Io *pmf;
-	static const char *exts[] = {
-		"%02d.mp3", " %02d.mp3", "-%02d.mp3", "_%02d.mp3", " - %02d.mp3",
-		"%d.mp3", " %d.mp3", "-%d.mp3", "_%d.mp3", " - %d.mp3",
-#if CASE_SENSITIVE_FS
-		"%02d.MP3", " %02d.MP3", "-%02d.MP3", "_%02d.MP3", " - %02d.MP3",
-#endif
-	};
-
-	//if (PicoCDLoadProgressCB != 0) PicoCDLoadProgressCB(1);
-
-	Unload_ISO();
-
-	Tracks[0].ftype = is_bin ? TYPE_BIN : TYPE_ISO;
-
-	Tracks[0].F = pmf = IoSys::open(iso_name);
-	if (Tracks[0].F == 0)
+	CDUtility::TOC toc;
+	cd->Read_TOC(&toc);
+	uint currLBA = 0;
+	sCD.cddaLBA = 0;
+	sCD.cddaDataLeftover = 0;
+	iterateTimes(99, i)
 	{
-		Tracks[0].ftype = 0;
-		Tracks[0].Length = 0;
-		return -1;
+		if(i+1 > toc.last_track)
+			break;
+		auto lba = toc.tracks[i+1].lba;
+		auto length = toc.tracks[i+2].lba - lba;
+		CDUtility::LBA_to_AMSF(toc.tracks[i+1].lba, &sCD.TOC.Tracks[i].MSF.M, &sCD.TOC.Tracks[i].MSF.S, &sCD.TOC.Tracks[i].MSF.F);
+		sCD.TOC.Tracks[i].ftype = toc.tracks[i+1].control ? TYPE_ISO : TYPE_MP3;
+		sCD.TOC.Tracks[i].Length = length;
+		logMsg("Track #%d: LBA %d MSF %d:%d:%d Length %d Type %d",
+				i+1, lba, sCD.TOC.Tracks[i].MSF.M, sCD.TOC.Tracks[i].MSF.S, sCD.TOC.Tracks[i].MSF.F, length, sCD.TOC.Tracks[i].ftype);
+		currLBA += length;
 	}
 
-	if (Tracks[0].ftype == TYPE_ISO)
-		Tracks[0].Length = pmf->size() >> 11;	// size in sectors
-	else	Tracks[0].Length = pmf->size() / 2352;
-
-	Tracks[0].MSF.M = 0; // minutes
-	Tracks[0].MSF.S = 2; // seconds
-	Tracks[0].MSF.F = 0; // frames
-
-	logMsg("Track 0 - %02d:%02d:%02d DATA, %d sectors", Tracks[0].MSF.M, Tracks[0].MSF.S, Tracks[0].MSF.F, Tracks[0].Length);
-
-	Cur_LBA = Tracks[0].Length;				// Size in sectors
-
-	iso_name_len = strlen(iso_name);
-	if (iso_name_len >= sizeof(tmp_name))
-		iso_name_len = sizeof(tmp_name) - 1;
-
-	/*for (num_track = 2, i = 0; i < 100; i++)
-	{
-		//if (PicoCDLoadProgressCB != NULL && i > 1) PicoCDLoadProgressCB(i);
-
-		for (j = 0; j < sizeof(exts)/sizeof(char *); j++)
-		{
-			int ext_len;
-			Io *tmp_file;
-			sprintf(tmp_ext, exts[j], i);
-			ext_len = strlen(tmp_ext);
-
-			memcpy(tmp_name, iso_name, iso_name_len + 1);
-			tmp_name[iso_name_len - 4] = 0;
-			strcat(tmp_name, tmp_ext);
-
-			tmp_file = IoSys::open(tmp_name);//fopen(tmp_name, "rb");
-			if (!tmp_file && i > 1 && iso_name_len > ext_len) {
-				tmp_name[iso_name_len - ext_len] = 0;
-				strcat(tmp_name, tmp_ext);
-				tmp_file = IoSys::open(tmp_name);//fopen(tmp_name, "rb");
-			}
-
-			if (tmp_file)
-			{
-				int fs;
-				index = num_track - 1;
-
-				ret = fseek(tmp_file, 0, SEEK_END);
-				fs = ftell(tmp_file);				// used to calculate lenght
-				fseek(tmp_file, 0, SEEK_SET);
-
-#if DONT_OPEN_MANY_FILES
-				// some systems (like PSP) can't have many open files at a time,
-				// so we work with their names instead.
-				fclose(tmp_file);
-				tmp_file = (void *) strdup(tmp_name);
-#endif
-				// TODO mp3
-				//Tracks[index].KBtps = (short) mp3_get_bitrate(tmp_file, fs);
-				Tracks[index].KBtps = 192;
-				Tracks[index].KBtps >>= 3;
-				if (ret != 0 || Tracks[index].KBtps <= 0)
-				{
-					logMsg("Error track %i: rate %i", index, Tracks[index].KBtps);
-#if !DONT_OPEN_MANY_FILES
-					fclose(tmp_file);
-#else
-					free(tmp_file);
-#endif
-					continue;
-				}
-
-				Tracks[index].F = tmp_file;
-
-				LBA_to_MSF(Cur_LBA, &Tracks[index].MSF);
-
-				// MP3 File
-				Tracks[index].ftype = TYPE_MP3;
-				fs *= 75;
-				fs /= Tracks[index].KBtps * 1000;
-				Tracks[index].Length = fs;
-				Cur_LBA += Tracks[index].Length;
-
-				logMsg("Track %i: %s - %02d:%02d:%02d len=%i AUDIO", index, tmp_name, Tracks[index].MSF.M,
-					Tracks[index].MSF.S, Tracks[index].MSF.F, fs);
-
-				num_track++;
-				break;
-			}
-		}
-	}*/
-
-	// Fake some CD tracks
-	num_track = 2;
-	iterateTimes(51, i)
-	{
-		int index = num_track - 1;
-		LBA_to_MSF(Cur_LBA, &Tracks[index].MSF);
-		Tracks[index].Length = 4500*4;
-		Cur_LBA += Tracks[index].Length;
-		num_track++;
-	}
-
-	sCD.TOC.Last_Track = num_track - 1;
-
-	index = num_track - 1;
-
-	LBA_to_MSF(Cur_LBA, &Tracks[index].MSF);
-
-	logMsg("End CD - %02d:%02d:%02d\n\n", Tracks[index].MSF.M,
-		Tracks[index].MSF.S, Tracks[index].MSF.F);
-
-	//if (PicoCDLoadProgressCB != NULL) PicoCDLoadProgressCB(100);
+	logMsg("last track %d", toc.last_track);
+	sCD.TOC.Last_Track = toc.last_track;
+	LBA_to_MSF(currLBA, &sCD.TOC.Tracks[toc.last_track].MSF);
+	cdImage = cd;
 	return 0;
 }
 
-
 void Unload_ISO(void)
 {
-	int i;
-
-	if (sCD.TOC.Tracks[0].F) fclose(sCD.TOC.Tracks[0].F);
-
-	for(i = 1; i < 100; i++)
-	{
-		if (sCD.TOC.Tracks[i].F != NULL)
-#if !DONT_OPEN_MANY_FILES
-			fclose(sCD.TOC.Tracks[i].F);
-#else
-			free(sCD.TOC.Tracks[i].F);
-#endif
-	}
+	sCD.Status_CDD = 0;
+	delete cdImage;
+	cdImage = nullptr;
 	memset(sCD.TOC.Tracks, 0, sizeof(sCD.TOC.Tracks));
 }
 
 static void readLBA(void *dest, int lba)
 {
-	bool isBin = sCD.TOC.Tracks[0].ftype == TYPE_BIN;
+	cdImage->Read_Sector((uint8*)dest, lba, 2048);
+}
 
-	int pos = isBin ? (lba * 2352 + 16) : (lba << 11);
-	//logMsg("seeking to lba %d, %d", lba, pos);
-	fseek(sCD.TOC.Tracks[0].F, pos, SEEK_SET);
-	fread(dest, 2048, 1, sCD.TOC.Tracks[0].F);
+static void readCddaLBA(void *dest, int lba)
+{
+	cdImage->Read_Sector((uint8*)dest, lba, 2352);
+}
+
+int readCDDA(void *dest, uint size)
+{
+	if(!sCD.gate[0x36] && sCD.Status_CDD == 0x0100/*sCD.Cur_Track > 1 /*sCD.audioTrack && sCD.Status_CDD == 0x0100*/)
+	{
+		auto cddaBuffPos = (int32*)dest;
+		auto sizeToWrite = size;
+		//logMsg("%d frames in buffer", size);
+		if(sCD.cddaDataLeftover)
+		{
+			//logMsg("reading %d frames of left-over CDDA", cddaDataLeftover);
+			int32 cddaSector[588];
+			cdImage->Read_Sector((uint8*)cddaSector, sCD.cddaLBA, 2352);
+			uint copySize = IG::min((uint)sCD.cddaDataLeftover, sizeToWrite);
+			memcpy(cddaBuffPos, cddaSector + (588-sCD.cddaDataLeftover), copySize*4);
+			sCD.cddaDataLeftover -= copySize;
+			if(!sCD.cddaDataLeftover)
+				sCD.cddaLBA++;
+			cddaBuffPos += copySize;
+			sizeToWrite -= copySize;
+		}
+		while(sizeToWrite >= 588)
+		{
+			//logMsg("reading 588 frames");
+			cdImage->Read_Sector((uint8*)cddaBuffPos, sCD.cddaLBA, 2352);
+			sCD.cddaLBA++;
+			cddaBuffPos += 588;
+			sizeToWrite -= 588;
+		}
+		if(sizeToWrite)
+		{
+			//logMsg("reading %d frames left", sizeToWrite);
+			int32 cddaSector[588];
+			cdImage->Read_Sector((uint8*)cddaSector, sCD.cddaLBA, 2352);
+			memcpy(cddaBuffPos, cddaSector, sizeToWrite*4);
+			sCD.cddaDataLeftover = 588 - sizeToWrite;
+		}
+
+		// apply fader
+		{
+			auto sample = (int16*)dest;
+			iterateTimes(size*2, i)
+			{
+				sample[i] = (sample[i] * sCD.volume) / 1024;
+			}
+		}
+		sCD.Cur_LBA = sCD.cddaLBA+12;
+		return 1;
+	}
+	return 0;
 }
 
 int FILE_Read_One_LBA_CDC(void)
 {
-//	static char cp_buf[2560];
-
-	if (sCD.gate[0x36] & 1)					// DATA
-	{
-		if (sCD.TOC.Tracks[0].F == NULL)
-		{
-			logMsg("no file for data track");
-			return -1;
-		}
-
-		// moved below..
-		//fseek(sCD.TOC.Tracks[0].F, where_read, SEEK_SET);
-		//fread(cp_buf, 1, 2048, sCD.TOC.Tracks[0].F);
-
-		//logMsg("Read file CDC 1 data sector :");
-	}
-	else									// AUDIO
-	{
-		// int rate, channel;
-
-		// if (sCD.TOC.Tracks[sCD.Cur_Track - 1].ftype == TYPE_MP3)
-		{
-			// TODO
-			// MP3_Update(cp_buf, &rate, &channel, 0);
-			// Write_CD_Audio((short *) cp_buf, rate, channel, 588);
-		}
-
-		//logMsg("Read file CDC 1 audio sector :");
-	}
-
 	// Update CDC stuff
 
 	CDC_Update_Header();
@@ -277,8 +190,8 @@ int FILE_Read_One_LBA_CDC(void)
 			if (sCD.cdc.CTRL.B.B0 & 0x04)	// WRRQ : this bit enable write to buffer
 			{
 				// CAUTION : lookahead bit not implemented
-
-				//memcpy(&sCD.cdc.Buffer[sCD.cdc.PT.N], cp_buf, 2352);
+				//logMsg("read audio lba %d", sCD.Cur_LBA);
+				readCddaLBA(sCD.cdc.Buffer + sCD.cdc.PT.N, sCD.Cur_LBA);
 			}
 		}
 	}
@@ -316,36 +229,14 @@ int FILE_Read_One_LBA_CDC(void)
 	return 0;
 }
 
-
 int FILE_Play_CD_LBA(void)
 {
 	int index = sCD.Cur_Track - 1;
 	sCD.audioTrack = index;
+	sCD.cddaLBA = Track_to_LBA(sCD.Cur_Track);
+	sCD.cddaDataLeftover = 0;
 
 	logMsg("Play track #%i", sCD.Cur_Track);
 
-	if (sCD.TOC.Tracks[index].F == NULL)
-	{
-		return 1;
-	}
-
-	if (sCD.TOC.Tracks[index].ftype == TYPE_MP3)
-	{
-		int pos1024 = 0;
-		int Track_LBA_Pos = sCD.Cur_LBA - Track_to_LBA(sCD.Cur_Track);
-		if (Track_LBA_Pos < 0) Track_LBA_Pos = 0;
-		if (Track_LBA_Pos)
-			pos1024 = Track_LBA_Pos * 1024 / sCD.TOC.Tracks[index].Length;
-
-		//TODO mp3
-		//mp3_start_play(sCD.TOC.Tracks[index].F, pos1024);
-	}
-	else
-	{
-		return 3;
-	}
-
 	return 0;
 }
-
-#undef thisModuleName

@@ -3,14 +3,16 @@
 #include <gfx/GfxSprite.hh>
 #include <gfx/GfxBufferImage.hh>
 #include <VideoImageOverlay.hh>
+#include <gui/View.hh>
+#include <EmuOptions.hh>
 
 class EmuView : public View
 {
 public:
 	constexpr EmuView() { }
-	GfxSprite disp;
+	Gfx::Sprite disp;
 	uchar *pixBuff = nullptr;
-	Pixmap vidPix;
+	Pixmap vidPix {PixelFormatRGB565};
 	GfxBufferImage vidImg;
 	VideoImageOverlay vidImgOverlay;
 	Area gameView;
@@ -40,7 +42,8 @@ public:
 
 	void initPixmap(uchar *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint extraPitch = 0)
 	{
-		vidPix.init(pixBuff, format, x, y, extraPitch);
+		new(&vidPix) Pixmap(*format);
+		vidPix.init(pixBuff, x, y, extraPitch);
 		var_selfs(pixBuff);
 	}
 
@@ -57,8 +60,8 @@ public:
 
 	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint extraPitch = 0)
 	{
-		Pixmap basePix;
-		basePix.init(pixBuff, vidPix.format, totalX, totalY, extraPitch);
+		Pixmap basePix(vidPix.format);
+		basePix.init(pixBuff, totalX, totalY, extraPitch);
 		vidPix.initSubPixmap(basePix, xO, yO, x, y);
 		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView", xO, yO, x, y, totalX, totalY);
 		vidImg.init(vidPix, 0, optionImgFilter);

@@ -33,6 +33,9 @@ static void mem_freeSafe(void* buffer) { if(buffer != NULL) mem_free(buffer); }
 
 #ifdef __cplusplus
 
+static void* mem_calloc(size_t size) ATTRS(malloc, alloc_size(1));
+static void* mem_calloc(size_t size) { return mem_calloc(1, size); }
+
 #include <new>
 
 // default placement new for realloc()

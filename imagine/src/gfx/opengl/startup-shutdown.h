@@ -23,15 +23,7 @@ CallResult init()
 	#endif
 
 	if( Base::openGLInit() != OK )
-		return (INIT_ERROR);
-
-	#if defined(USE_TEX_CACHE)
-		texReuseCache_initWithArray(&texCache, texCacheStore, TEX_CACHE_ENTRIES);
-	#endif
-
-	//log_mPrintf(LOGGER_MESSAGE,"done init");
-
-	//geom_test_init();
+		return INIT_ERROR;
 
 	if(animateOrientationChange)
 	{
@@ -57,19 +49,14 @@ CallResult setOutputVideoMode(const Base::Window &win)
 		}
 	}
 
-	#if defined(CONFIG_ENV_WEBOS)
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // avoid blending with the video layer
-	#endif
-
 	//logMsg("resizing viewport to %dx%d", x, y);
 	resizeGLScene(win);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // WebOS does clear in base module
 	
-	extensions = (const char*)glGetString(GL_EXTENSIONS);
+	auto extensions = (const char*)glGetString(GL_EXTENSIONS);
 	assert(extensions);
-	version = (const char*)glGetString(GL_VERSION);
+	auto version = (const char*)glGetString(GL_VERSION);
 	assert(version);
-	rendererName = (const char*)glGetString(GL_RENDERER);
+	auto rendererName = (const char*)glGetString(GL_RENDERER);
 	logMsg("version: %s (%s)\nextensions: %s", version, rendererName, extensions);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -84,6 +71,7 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	glDepthFunc(GL_LEQUAL);
 	#endif
 	
+	setClearColor(0., 0., 0.);
 	if(Config::envIsAndroid || Config::envIsWebOS)
 	{
 		glDisable(GL_MULTISAMPLE);
@@ -97,8 +85,8 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	//setVisibleGeomFace(BOTH_FACES);
 
 	#ifndef CONFIG_GFX_OPENGL_ES
-	//glAlphaFunc(GL_GREATER,0.0f);
-	//glEnable(GL_ALPHA_TEST);
+	//glcAlphaFunc(GL_GREATER,0.0f);
+	//glcEnable(GL_ALPHA_TEST);
 	#endif
 
 	GLint texSize;
@@ -109,15 +97,15 @@ CallResult setOutputVideoMode(const Base::Window &win)
 
 	vsyncEnable();
 	checkForAnisotropicFiltering();
-	checkForAutoMipmapGeneration();
+	checkForAutoMipmapGeneration(version);
 	checkForMultisample();
 	checkForVertexArrays();
-	checkForNonPow2Textures();
-	checkForBGRPixelSupport();
+	checkForNonPow2Textures(extensions, rendererName);
+	checkForBGRPixelSupport(extensions);
 	checkForTextureClampToEdge();
 	checkForCompressedTexturesSupport();
 	checkForFBOFuncs();
-	checkForVBO();
+	checkForVBO(version);
 	if(useFBOFuncs) useAutoMipmapGeneration = 0; // prefer FBO mipmap function if present
 
 	/*#ifdef CONFIG_GFX_OPENGL_ES
@@ -134,14 +122,21 @@ CallResult setOutputVideoMode(const Base::Window &win)
 
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(Base::androidSDK() < 14)
-			directTextureConf.checkForEGLImageKHR(rendererName);
+			directTextureConf.checkForEGLImageKHR(extensions, rendererName);
 	#endif
-
 	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
 		if(surfaceTextureConf.isSupported() && !strstr(extensions, "GL_OES_EGL_image_external"))
 		{
 			logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
 			surfaceTextureConf.deinit();
+		}
+		if(surfaceTextureConf.use && strstr(rendererName, "Adreno"))
+		{
+			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
+			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
+			// This hack will fix-up the GL state cache manually when that happens.
+			logMsg("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+			surfaceTextureConf.texture2dBindingHack = 1;
 		}
 	#endif
 
@@ -163,8 +158,6 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	}
 
 	glcEnableClientState(GL_VERTEX_ARRAY);
-
-	glClear(GL_COLOR_BUFFER_BIT);
 	return OK;
 }
 

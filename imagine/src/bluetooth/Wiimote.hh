@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bluetooth/sys.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <util/collection/DLList.hh>
 
 class Wiimote : public BluetoothInputDevice
@@ -34,7 +34,7 @@ private:
 	int extension = EXT_NONE;
 	uint player = 0;
 	uint function = FUNC_NONE;
-	fbool stickBtn[8] = {0};
+	bool stickBtn[8] = {0};
 	uchar prevBtnData[2] = {0};
 	uchar prevExtData[6] = {0};
 	BluetoothAddr addr;

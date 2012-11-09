@@ -1,5 +1,5 @@
 #pragma once
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <gfx/Gfx.hh>
 
 #ifdef CONFIG_BLUETOOTH
@@ -426,6 +426,21 @@ bool keyInputIsPresent()
 		|| Input::iCadeActive()
 	#endif
 	;
+}
+
+const char *eventActionToStr(int action)
+{
+	switch(action)
+	{
+		default:
+		case INPUT_UNUSED: return "Unknown";
+		case INPUT_RELEASED: return "Released";
+		case INPUT_PUSHED: return "Pushed";
+		case INPUT_MOVED: return "Moved";
+		case INPUT_MOVED_RELATIVE: return "Moved Relative";
+		case INPUT_EXIT_VIEW: return "Left View";
+		case INPUT_ENTER_VIEW: return "Entered View";
+	}
 }
 
 }

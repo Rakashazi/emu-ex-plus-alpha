@@ -9,7 +9,7 @@ class BtstackBluetoothAdapter : public BluetoothAdapter
 public:
 	constexpr BtstackBluetoothAdapter() { }
 	static BtstackBluetoothAdapter *defaultAdapter();
-	fbool startScan() override;
+	bool startScan() override;
 	void cancelScan() override;
 	void close() override;
 	void constructSocket(void *mem) override;

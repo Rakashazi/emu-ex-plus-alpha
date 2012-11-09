@@ -30,17 +30,17 @@ static void read_REGS(const uint8 *);
 static void write1(uint8 *, uint8);
 static void write2(uint8 *, uint16);
 static void write4(uint8 *, uint32);
-static fbool write_chunk(FILE *, uint32, const uint8 *, uint32);
+static bool write_chunk(FILE *, uint32, const uint8 *, uint32);
 static void write_soundchip(const SoundChip *, uint8 **);
-static fbool write_FLSH(FILE *, const uint8 *, uint32);
-static fbool write_RAM(FILE *);
-static fbool write_REGS(FILE *);
-static fbool write_ROM(FILE *);
-static fbool write_ROMH(FILE *);
-static fbool write_TIME(FILE *);
+static bool write_FLSH(FILE *, const uint8 *, uint32);
+static bool write_RAM(FILE *);
+static bool write_REGS(FILE *);
+static bool write_ROM(FILE *);
+static bool write_ROMH(FILE *);
+static bool write_TIME(FILE *);
 
 
-fbool read_chunk(FILE *fp, uint32 *tagp, uint32 *sizep)
+bool read_chunk(FILE *fp, uint32 *tagp, uint32 *sizep)
 {
 	uint8 buf[SIZE_CHUNK];
 	
@@ -53,7 +53,7 @@ fbool read_chunk(FILE *fp, uint32 *tagp, uint32 *sizep)
 	return TRUE;
 }
 
-fbool read_header(FILE *fp)
+bool read_header(FILE *fp)
 {
 	uint8 buf[HEADER_SIZE];
 
@@ -66,7 +66,7 @@ fbool read_header(FILE *fp)
 	return TRUE;
 }
 
-fbool read_SNAP(FILE *fp, uint32 size)
+bool read_SNAP(FILE *fp, uint32 size)
 {
 	uint8 *data, *end, *p;
 	#define new new_SNAP
@@ -178,7 +178,7 @@ fbool read_SNAP(FILE *fp, uint32 size)
 }
 
 
-fbool write_header(FILE *fp)
+bool write_header(FILE *fp)
 {
 	if (fwrite(HEADER, 1, HEADER_SIZE, fp) != HEADER_SIZE)
 		return FALSE;
@@ -186,17 +186,17 @@ fbool write_header(FILE *fp)
 	return TRUE;
 }
 
-fbool write_EOD(FILE *fp)
+bool write_EOD(FILE *fp)
 {
 	return write_chunk(fp, TAG_EOD, NULL, SIZE_EOD);
 }
 
-fbool write_SNAP(FILE *fp, int options)
+bool write_SNAP(FILE *fp, int options)
 {
 	uint32 size;
 	int flash_size;
 	uint8 *flash;
-	fbool ret;
+	bool ret;
 
 	if (options & OPT_ROMH && options & OPT_ROM)
 		return FALSE;
@@ -365,7 +365,7 @@ static void write4(uint8 *p, uint32 val)
 	p[3] = val & 0xff;
 }
 
-static fbool write_chunk(FILE *fp, uint32 name, const uint8 *data, uint32 size)
+static bool write_chunk(FILE *fp, uint32 name, const uint8 *data, uint32 size)
 {
 	uint8 buf[SIZE_CHUNK], *p;
 	int ret;
@@ -404,17 +404,17 @@ static void write_soundchip(const SoundChip *chip, uint8 **pp)
 	write4(p, chip->NoiseFB), p+=4;
 }
 
-static fbool write_FLSH(FILE *fp, const uint8 *data, uint32 size)
+static bool write_FLSH(FILE *fp, const uint8 *data, uint32 size)
 {
 	return write_chunk(fp, TAG_FLSH, data, size);
 }
 
-static fbool write_RAM(FILE *fp)
+static bool write_RAM(FILE *fp)
 {
 	return write_chunk(fp, TAG_RAM, ram, SIZE_RAM);
 }
 
-static fbool write_REGS(FILE *fp)
+static bool write_REGS(FILE *fp)
 {
 	uint8 data[SIZE_REGS], *p;
 	int i, j;
@@ -474,17 +474,17 @@ static fbool write_REGS(FILE *fp)
 	return write_chunk(fp, TAG_REGS, data, SIZE_REGS);
 }
 
-static fbool write_ROM(FILE *fp)
+static bool write_ROM(FILE *fp)
 {
 	return write_chunk(fp, TAG_ROM, rom.data, SIZE_ROM);
 }
 
-static fbool write_ROMH(FILE *fp)
+static bool write_ROMH(FILE *fp)
 {
 	return write_chunk(fp, TAG_ROMH, (uint8*)rom_header, SIZE_ROMH);
 }
 
-static fbool write_TIME(FILE *fp)
+static bool write_TIME(FILE *fp)
 {
 	uint8 data[SIZE_TIME];
 

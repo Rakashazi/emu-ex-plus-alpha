@@ -12,7 +12,7 @@ iOS_plist := $(ios_resourcePath)/Info.plist
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone4s
 
-ifndef config_iOS_noArmv6
+ifndef ios_noArmv6
 
 iOS_armv6Exec := $(iOS_targetPath)/bin-debug/$(iOS_metadata_exec)-armv6
 ios-armv6 :
@@ -32,9 +32,17 @@ ifdef iOS_metadata_setuid
 	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
 endif
 
+ios-armv6-release-install : $(iOS_armv6ReleaseExec)
+	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
+	scp $^ root@$(ios_installHost):$(iOS_deviceExecPath)
+	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
+	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
 endif
 
-ifndef config_iOS_noArmv7
+endif
+
+ifndef ios_noArmv7
 
 iOS_armv7Exec := $(iOS_targetPath)/bin-debug/$(iOS_metadata_exec)-armv7
 ios-armv7 :
@@ -47,6 +55,14 @@ ios-armv7-release :
 $(iOS_armv7ReleaseExec) : ios-armv7-release 
 
 ios-armv7-install : $(iOS_armv7Exec)
+	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
+	scp $^ root@$(ios_installHost):$(iOS_deviceExecPath)
+	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
+ifdef iOS_metadata_setuid
+	ssh root@$(ios_installHost) chmod gu+s $(iOS_deviceExecPath)
+endif
+
+ios-armv7-release-install : $(iOS_armv7ReleaseExec)
 	ssh root@$(ios_installHost) rm -f $(iOS_deviceExecPath)
 	scp $^ root@$(ios_installHost):$(iOS_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(iOS_deviceExecPath)
@@ -147,5 +163,5 @@ ios-release-clean:
 	rm -f $(ios_fatReleaseExec) $(iOS_armv6ReleaseExec) $(iOS_armv7ReleaseExec)
 	rm -rf build/ios-armv6-release/ build/ios-armv7-release/
 
-.PHONY: ios-armv6 ios-armv7 ios-armv6-release ios-armv7-release ios-metadata ios-release-build ios-armv7-install \
- ios-armv6-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install ios-release-clean
+.PHONY: ios-armv6 ios-armv7 ios-armv6-release ios-armv7-release ios-metadata ios-build ios-release-build ios-armv7-install \
+ ios-armv6-install ios-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install ios-release-clean

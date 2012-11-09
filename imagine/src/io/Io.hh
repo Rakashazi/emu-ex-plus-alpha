@@ -126,7 +126,7 @@ public:
 
 	CallResult writeToIO(Io *io)
 	{
-		var_copy(bytesToWrite, size());
+		auto bytesToWrite = size();
 		uchar buff[4096];
 		while(bytesToWrite)
 		{

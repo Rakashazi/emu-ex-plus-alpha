@@ -20,6 +20,7 @@
 #include <util/strings.h>
 #include <unistd.h>
 #include <errno.h>
+#include "FsPosix.hh"
 
 #if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100
 	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
@@ -37,8 +38,6 @@
 	#define CMP_CAST
 #endif
 
-#include "FsPosix.h"
-
 // scandir selectors
 
 static int noDotRefs(SELECTOR_CONST struct dirent *entry)
@@ -49,7 +48,7 @@ static int noDotRefs(SELECTOR_CONST struct dirent *entry)
 	else return 1;
 }
 
-static FsDirFilterFunc currentFilter = 0;
+static FsDirFilterFunc currentFilter = nullptr;
 
 static const char* dTypeToString(unsigned char d_type)
 {

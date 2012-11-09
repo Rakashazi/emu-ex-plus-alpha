@@ -142,32 +142,37 @@ protected:
 	#ifdef CONFIG_ENV_WEBOS
 	BoolMenuItem touchCtrl;
 	#else
-	MultiChoiceSelectMenuItem touchCtrl;
+	MultiChoiceSelectMenuItem touchCtrl {"On-screen Controls"};
 	#endif
 
 	void touchCtrlInit();
 
 	TextMenuItem touchCtrlConfig {"On-screen Config"};
 
-	MultiChoiceSelectMenuItem autoSaveState;
+	MultiChoiceSelectMenuItem autoSaveState {"Auto-save State"};
 
 	void autoSaveStateInit();
 
-	MultiChoiceSelectMenuItem statusBar;
+	MultiChoiceSelectMenuItem statusBar {"Hide Status Bar"};
 
 	void statusBarInit();
 
-	MultiChoiceSelectMenuItem frameSkip;
+	MultiChoiceSelectMenuItem frameSkip {"Frame Skip"};
 
 	void frameSkipInit();
 
-	MultiChoiceSelectMenuItem audioRate;
+	MultiChoiceSelectMenuItem audioRate {"Sound Rate"};
 
 	void audioRateInit();
 
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	BoolMenuItem directTexture {"Direct Texture"};
-	BoolMenuItem glSyncHack {"GPU Sync Hack"};
+	#ifdef CONFIG_BASE_ANDROID
+		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+			BoolMenuItem directTexture {"Direct Texture"};
+		#endif
+		#if CONFIG_ENV_ANDROID_MINSDK >= 9
+			BoolMenuItem surfaceTexture {"Fast CPU->GPU Copy"};
+		#endif
+		BoolMenuItem glSyncHack {"GPU Sync Hack"};
 	#endif
 
 	BoolMenuItem confirmAutoLoadState {"Confirm Auto-load State"};
@@ -206,7 +211,7 @@ protected:
 	TextMenuItem iCPButtonConfig {"iControlPad Key Config"};
 	TextMenuItem zeemoteButtonConfig {"Zeemote JS1 Key Config"};
 
-	MultiChoiceSelectMenuItem btScanSecs;
+	MultiChoiceSelectMenuItem btScanSecs {"Bluetooth Scan"};
 
 	void btScanSecsInit();
 
@@ -215,47 +220,52 @@ protected:
 	BoolMenuItem btScanCache {"Bluetooth Scan Cache"};
 	#endif
 
-	MultiChoiceSelectMenuItem gameOrientation;
+	MultiChoiceSelectMenuItem gameOrientation {"Orientation"};
 
 	void gameOrientationInit();
 
-	MultiChoiceSelectMenuItem menuOrientation;
+	MultiChoiceSelectMenuItem menuOrientation {"Orientation"};
 
 	void menuOrientationInit();
 
-	MultiChoiceSelectMenuItem aspectRatio;
+	MultiChoiceSelectMenuItem aspectRatio {"Aspect Ratio"};
 
 	void aspectRatioInit();
 
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-	MultiChoiceSelectMenuItem soundBuffers;
+	MultiChoiceSelectMenuItem soundBuffers {"Buffer Size In Frames"};
 
 	void soundBuffersInit();
 #endif
 
-	MultiChoiceSelectMenuItem zoom;
+	MultiChoiceSelectMenuItem zoom {"Zoom"};
 
 	void zoomInit();
 
-	MultiChoiceSelectMenuItem dpi;
+	MultiChoiceSelectMenuItem dpi {"DPI Override"};
 
 	void dpiInit();
 
-	MultiChoiceSelectMenuItem imgFilter;
+	MultiChoiceSelectMenuItem imgFilter {"Image Filter"};
 
 	void imgFilterInit();
 
-	MultiChoiceSelectMenuItem overlayEffect;
+	MultiChoiceSelectMenuItem overlayEffect {"Overlay Effect"};
 
 	void overlayEffectInit();
 
-	MultiChoiceSelectMenuItem overlayEffectLevel;
+	MultiChoiceSelectMenuItem overlayEffectLevel {"Overlay Effect Level"};
 
 	void overlayEffectLevelInit();
 
-	MultiChoiceSelectMenuItem relativePointerDecel;
+	MultiChoiceSelectMenuItem relativePointerDecel {"Trackball Sensitivity"};
 
 	void relativePointerDecelInit();
+
+#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	void processPriorityInit();
+	MultiChoiceSelectMenuItem processPriority;
+#endif
 
 	virtual void loadVideoItems(MenuItem *item[], uint &items);
 

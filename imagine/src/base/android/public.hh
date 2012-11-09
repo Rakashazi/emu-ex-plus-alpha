@@ -19,5 +19,14 @@ void setUseAndroidSurfaceTexture(bool on);
 
 }
 
-extern fbool glSyncHackBlacklisted, glSyncHackEnabled;
-extern fbool glPointerStateHack, glBrokenNpot;
+namespace Base
+{
+
+void setProcessPriority(int nice);
+int processPriority();
+bool apkSignatureIsConsistent();
+
+}
+
+extern bool glSyncHackBlacklisted, glSyncHackEnabled;
+extern bool glPointerStateHack, glBrokenNpot;

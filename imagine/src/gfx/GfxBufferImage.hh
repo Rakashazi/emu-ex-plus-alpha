@@ -53,7 +53,7 @@ struct TextureGfxBufferImage:
 	void deinit();
 	const GfxTextureDesc &textureDesc() const { return *this; };
 	GfxTextureDesc &textureDesc() { return *this; };
-	fbool isInit() { return tid != 0; }
+	bool isInit() { return tid != 0; }
 };
 
 struct TextureGfxBufferVImpl
@@ -67,7 +67,7 @@ struct TextureGfxBufferVImpl
 	void deinit() { impl->deinit(); delete impl; impl = 0; }
 	const GfxTextureDesc &textureDesc() const { assert(impl); return *impl; };
 	GfxTextureDesc &textureDesc() { assert(impl); return *impl; };
-	fbool isInit() { return impl != nullptr; }
+	bool isInit() { return impl != nullptr; }
 };
 
 #ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
@@ -80,10 +80,10 @@ class GfxBufferImage: public GfxBufferImageImpl
 {
 private:
 	uint hints = 0;
-	fbool hasMipmaps_ = 0;
+	bool hasMipmaps_ = 0;
 	GfxUsableImage *backingImg = nullptr;
 	void testMipmapSupport(uint x, uint y);
-	fbool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
+	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 			uint usedX, uint usedY, uint hints, uint filter);
 public:
 	constexpr GfxBufferImage() { }

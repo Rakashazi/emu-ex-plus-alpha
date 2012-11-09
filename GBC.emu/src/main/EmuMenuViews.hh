@@ -3,7 +3,7 @@
 
 class SystemOptionView : public OptionView
 {
-	MultiChoiceSelectMenuItem gbPalette;
+	MultiChoiceSelectMenuItem gbPalette {"GB Palette"};
 
 	void gbPaletteInit()
 	{
@@ -11,7 +11,7 @@ class SystemOptionView : public OptionView
 		{
 			"Original", "Brown", "Red", "Dark Brown", "Pastel", "Orange", "Yellow", "Blue", "Dark Blue", "Gray", "Green", "Dark Green", "Reverse"
 		};
-		gbPalette.init("GB Palette", str, int(optionGBPal), sizeofArray(str));
+		gbPalette.init(str, int(optionGBPal), sizeofArray(str));
 		gbPalette.valueDelegate().bind<&gbPaletteSet>();
 	}
 
@@ -20,6 +20,29 @@ class SystemOptionView : public OptionView
 		optionGBPal.val = val;
 		applyGBPalette(val);
 	}
+
+	MultiChoiceSelectMenuItem resampler {"Resampler"};
+	const char *resamplerName[4] {nullptr};
+	void resamplerInit()
+	{
+		logMsg("%d resamplers", (int)ResamplerInfo::num());
+		auto resamplers = IG::min(ResamplerInfo::num(), sizeofArray(resamplerName));
+		iterateTimes(resamplers, i)
+		{
+			ResamplerInfo r = ResamplerInfo::get(i);
+			logMsg("%d %s", i, r.desc);
+			resamplerName[i] = r.desc;
+		}
+		resampler.init(resamplerName, int(optionAudioResampler), resamplers);
+		resampler.valueDelegate().bind<&resamplerSet>();
+	}
+
+	static void resamplerSet(MultiChoiceMenuItem &, int val)
+	{
+		optionAudioResampler = val;
+		EmuSystem::configAudioRate();
+	}
+
 
 	BoolMenuItem reportAsGba {"Report system as GBA", BoolMenuItem::SelectDelegate::create<&reportAsGbaHandler>()};
 
@@ -43,6 +66,12 @@ class SystemOptionView : public OptionView
 
 public:
 	constexpr SystemOptionView() { }
+
+	void loadAudioItems(MenuItem *item[], uint &items)
+	{
+		OptionView::loadAudioItems(item, items);
+		resamplerInit(); item[items++] = &resampler;
+	}
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{

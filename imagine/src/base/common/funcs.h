@@ -7,7 +7,7 @@
 #endif
 
 #ifdef CONFIG_INPUT
-	#include <input/interface.h>
+	#include <input/Input.hh>
 #endif
 
 #ifdef CONFIG_GFX
@@ -42,9 +42,9 @@ namespace Base
 	uint refreshRate() { return refreshRate_; }
 #endif
 
-static fbool triggerGfxResize = 0;
+static bool triggerGfxResize = 0;
 static Window mainWin, currWin;
-fbool gfxUpdate = 0;
+bool gfxUpdate = 0;
 static void generic_displayNeedsUpdate()
 {
 	//logMsg("posting display update");

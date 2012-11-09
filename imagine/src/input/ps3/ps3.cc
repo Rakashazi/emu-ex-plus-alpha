@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "input:ps3"
-#include <input/interface.h>
 #include <input/common/common.h>
 #include <base/Base.hh>
 #include <cell/pad.h>

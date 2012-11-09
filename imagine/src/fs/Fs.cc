@@ -26,6 +26,3 @@
 #include <util/strings.h>
 #include <base/Base.hh>
 #include "sys.hh"
-
-
-#undef thisModuleName

@@ -22,17 +22,14 @@ extern int thumbExecute(ARM7TDMI &cpu) ATTRS(hot);
 
 static const bool CONFIG_TRIGGER_ARM_STATE_EVENT = 0;
 
-#define UPDATE_REG(address, value)\
+#define UPDATE_REG(gba, address, value)\
   {\
-    WRITE16LE(((u16 *)&ioMem.b[address]),value);\
+    WRITE16LE(((u16 *)&(gba)->mem.ioMem.b[address]),value);\
   }\
 
 
 extern u32 mastercode;
-extern uint memoryWait[16];
-extern uint memoryWait32[16];
-extern uint memoryWaitSeq[16];
-extern uint memoryWaitSeq32[16];
+
 extern void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment);
 
 
@@ -42,7 +39,7 @@ inline int dataTicksAccess16(ARM7TDMI &cpu, u32 address) // DATA 8/16bits NON SE
 	u32 &busPrefetchCount = cpu.busPrefetchCount;
 	bool &busPrefetch = cpu.busPrefetch;
   int addr = (address>>24)&15;
-  int value =  memoryWait[addr];
+  int value =  cpu.memoryWait[addr];
 
   if ((addr>=0x08) || (addr < 0x02))
   {
@@ -65,7 +62,7 @@ inline int dataTicksAccess32(ARM7TDMI &cpu, u32 address) // DATA 32bits NON SEQ
 	u32 &busPrefetchCount = cpu.busPrefetchCount;
 	bool &busPrefetch = cpu.busPrefetch;
   int addr = (address>>24)&15;
-  int value = memoryWait32[addr];
+  int value = cpu.memoryWait32[addr];
 
   if ((addr>=0x08) || (addr < 0x02))
   {
@@ -88,7 +85,7 @@ inline int dataTicksAccessSeq16(ARM7TDMI &cpu, u32 address)// DATA 8/16bits SEQ
 	u32 &busPrefetchCount = cpu.busPrefetchCount;
 	bool &busPrefetch = cpu.busPrefetch;
   int addr = (address>>24)&15;
-  int value = memoryWaitSeq[addr];
+  int value = cpu.memoryWaitSeq[addr];
 
   if ((addr>=0x08) || (addr < 0x02))
   {
@@ -111,7 +108,7 @@ inline int dataTicksAccessSeq32(ARM7TDMI &cpu, u32 address)// DATA 32bits SEQ
 	u32 &busPrefetchCount = cpu.busPrefetchCount;
 	bool &busPrefetch = cpu.busPrefetch;
   int addr = (address>>24)&15;
-  int value =  memoryWaitSeq32[addr];
+  int value =  cpu.memoryWaitSeq32[addr];
 
   if ((addr>=0x08) || (addr < 0x02))
   {
@@ -147,18 +144,18 @@ inline int codeTicksAccess16(ARM7TDMI &cpu, u32 address) // THUMB NON SEQ
         return 0;
       }
       busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr]-1;
+      return cpu.memoryWaitSeq[addr]-1;
     }
     else
     {
       busPrefetchCount=0;
-      return memoryWait[addr];
+      return cpu.memoryWait[addr];
     }
   }
   else
   {
     busPrefetchCount = 0;
-    return memoryWait[addr];
+    return cpu.memoryWait[addr];
   }
 }
 
@@ -178,18 +175,18 @@ inline int codeTicksAccess32(ARM7TDMI &cpu, u32 address) // ARM NON SEQ
         return 0;
       }
       busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr] - 1;
+      return cpu.memoryWaitSeq[addr] - 1;
     }
     else
     {
       busPrefetchCount = 0;
-      return memoryWait32[addr];
+      return cpu.memoryWait32[addr];
     }
   }
   else
   {
     busPrefetchCount = 0;
-    return memoryWait32[addr];
+    return cpu.memoryWait32[addr];
   }
 }
 
@@ -210,15 +207,15 @@ inline int codeTicksAccessSeq16(ARM7TDMI &cpu, u32 address) // THUMB SEQ
     if (busPrefetchCount>0xFF)
     {
       busPrefetchCount=0;
-      return memoryWait[addr];
+      return cpu.memoryWait[addr];
     }
     else
-      return memoryWaitSeq[addr];
+      return cpu.memoryWaitSeq[addr];
   }
   else
   {
     busPrefetchCount = 0;
-    return memoryWaitSeq[addr];
+    return cpu.memoryWaitSeq[addr];
   }
 }
 
@@ -238,20 +235,20 @@ inline int codeTicksAccessSeq32(ARM7TDMI &cpu, u32 address) // ARM SEQ
         return 0;
       }
       busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr];
+      return cpu.memoryWaitSeq[addr];
     }
     else
     if (busPrefetchCount>0xFF)
     {
       busPrefetchCount=0;
-      return memoryWait32[addr];
+      return cpu.memoryWait32[addr];
     }
     else
-      return memoryWaitSeq32[addr];
+      return cpu.memoryWaitSeq32[addr];
   }
   else
   {
-    return memoryWaitSeq32[addr];
+    return cpu.memoryWaitSeq32[addr];
   }
 }
 

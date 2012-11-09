@@ -55,7 +55,7 @@ static INSN_REGPARM int thumbUnknownInsn(ARM7TDMI &cpu, u32 opcode, u32 oldArmNe
   if(systemVerbose & VERBOSE_UNDEFINED)
     log("Undefined THUMB instruction %04x at %08x\n", opcode, armNextPC-2);
 #endif
-  cpu.undefinedException();
+  cpu.undefinedException(cpu.gba->mem.ioMem);
   return calcTicksFromOldPC(cpu, oldArmNextPC);
 }
 
@@ -937,7 +937,7 @@ static INSN_REGPARM int thumb48(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
   if (busPrefetchCount == 0)
     busPrefetch = busPrefetchEnable;
   u32 address = (reg[15].I & 0xFFFFFFFC) + ((opcode & 0xFF) << 2);
-  reg[regist].I = CPUReadMemoryQuick(address);
+  reg[regist].I = CPUReadMemoryQuick(cpu, address);
   busPrefetchCount=0;
   return 3 + dataTicksAccess32(cpu, address) + codeTicksAccess16(cpu, armNextPC);
 }
@@ -1100,7 +1100,7 @@ static INSN_REGPARM int thumb98(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
   if (busPrefetchCount == 0)
     busPrefetch = busPrefetchEnable;
   u32 address = reg[13].I + ((opcode&255)<<2);
-  reg[regist].I = CPUReadMemoryQuick(address);
+  reg[regist].I = CPUReadMemoryQuick(cpu, address);
   return 3 + dataTicksAccess32(cpu, address) + codeTicksAccess16(cpu, armNextPC);
 }
 

@@ -105,9 +105,14 @@ void loadGameCompleteFromFilePicker(uint result, const InputEvent &e)
 void GameFilePicker::onSelectFile(const char* name, const InputEvent &e)
 {
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
-	if(EmuSystem::loadGame(name))
+	auto res = EmuSystem::loadGame(name);
+	if(res == 1)
 	{
 		loadGameCompleteFromFilePicker(1, e);
+	}
+	else if(res == 0)
+	{
+		EmuSystem::clearGamePaths();
 	}
 }
 
@@ -131,9 +136,15 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const InputEvent &e)
 void BenchmarkFilePicker::onSelectFile(const char* name, const InputEvent &e)
 {
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromBenchmarkFilePicker>();
-	if(!EmuSystem::loadGame(name))
-		return;
-	loadGameCompleteFromBenchmarkFilePicker(1, e);
+	auto res = EmuSystem::loadGame(name);
+	if(res == 1)
+	{
+		loadGameCompleteFromBenchmarkFilePicker(1, e);
+	}
+	else if(res == 0)
+	{
+		EmuSystem::clearGamePaths();
+	}
 }
 
 void BenchmarkFilePicker::onClose(const InputEvent &e)

@@ -56,7 +56,7 @@ GB::~GB() {
 }
 
 long GB::runFor(gambatte::PixelType *const videoBuf, const int pitch,
-			gambatte::uint_least32_t *const soundBuf, unsigned &samples, bool notifyVideoCallback) {
+			gambatte::uint_least32_t *const soundBuf, unsigned &samples, void (*videoFrameCallback)()) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;
@@ -65,10 +65,9 @@ long GB::runFor(gambatte::PixelType *const videoBuf, const int pitch,
 	p_->cpu.setVideoBuffer(videoBuf, pitch);
 	p_->cpu.setSoundBuffer(soundBuf);
 	const long cyclesSinceBlit = p_->cpu.runFor(samples * 2);
-	if(notifyVideoCallback)
+	if(videoFrameCallback)
 	{
-		void commitVideoFrame();
-		commitVideoFrame();
+		videoFrameCallback();
 	}
 	samples = p_->cpu.fillSoundBuffer();
 	

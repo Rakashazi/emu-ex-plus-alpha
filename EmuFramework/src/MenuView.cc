@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <libgen.h>
 #include <MenuView.hh>
 #include <Recent.hh>
 #include <gui/AlertView.hh>
@@ -456,14 +457,18 @@ void loadGameCompleteFromRecentItem(uint result, const InputEvent &e)
 
 void RecentGameInfo::handleMenuSelection(TextMenuItem &, const InputEvent &e)
 {
-	FsSys::cPath dir, file;
-	dirName(path, dir);
-	baseName(path, file);
-	FsSys::chdir(dir);
+	FsSys::cPath dirNameTemp;
+	strcpy(dirNameTemp, path);
+	FsSys::chdir(dirname(dirNameTemp));
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromRecentItem>();
-	if(EmuSystem::loadGame(file))
+	auto res = EmuSystem::loadGame(path);
+	if(res == 1)
 	{
 		loadGameCompleteFromRecentItem(1, e);
+	}
+	else if(res == 0)
+	{
+		EmuSystem::clearGamePaths();
 	}
 }
 

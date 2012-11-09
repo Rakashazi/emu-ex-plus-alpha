@@ -156,21 +156,20 @@ CallResult BluezBluetoothAdapter::doScan()
 	return OK;
 }
 
-static int runScan(ThreadPThread &thread)
+ptrsize BluezBluetoothAdapter::runScan(ThreadPThread &thread)
 {
-	BluezBluetoothAdapter *adapter = (BluezBluetoothAdapter*)thread.arg;
-	adapter->doScan();
-	adapter->inDetect = 0;
+	doScan();
+	inDetect = 0;
 	return 0;
 }
 
-fbool BluezBluetoothAdapter::startScan()
+bool BluezBluetoothAdapter::startScan()
 {
 	if(!inDetect)
 	{
 		scanCancelled = 0;
 		inDetect = 1;
-		runThread.create(1, runScan, this);
+		runThread.create(1, ThreadPThread::EntryDelegate::create<BluezBluetoothAdapter, &BluezBluetoothAdapter::runScan>(this));
 		return 1;
 	}
 	else

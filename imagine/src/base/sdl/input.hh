@@ -68,8 +68,8 @@ void setKeyRepeat(bool on)
 
 #if CONFIG_ENV_WEBOS_OS >= 3
 
-static fbool softInputActive = 0;
-fbool softInputIsActive() { return softInputActive; }
+static bool softInputActive = 0;
+bool softInputIsActive() { return softInputActive; }
 
 void showSoftInput()
 {

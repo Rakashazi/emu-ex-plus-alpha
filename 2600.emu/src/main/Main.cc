@@ -238,7 +238,7 @@ static void updateSwitchValues()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 {
@@ -312,23 +312,12 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", FsSys::workDir(), path);
-	logMsg("full game path: %s", fullGamePath);
-
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
-
+	setupGamePaths(path);
 	uchar buff[MAX_ROM_SIZE];
 	string md5;
 	uint32 size;
 	if(!openROM(buff, path, size))
 	{
-		strcpy(gameName, "");
 		popup.post("Error loading game", 1);
 		return 0;
 	}
@@ -337,7 +326,7 @@ int EmuSystem::loadGame(const char *path)
 	osystem.propSet().getMD5(md5, props);
 
 	string romType = props.get(Cartridge_Type);
-	string cartId;//, romType("AUTO-DETECT");
+	string cartId;
 	Settings &settings = osystem.settings();
 	settings.setInt("romloadcount", 0);
 	cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
@@ -574,7 +563,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },

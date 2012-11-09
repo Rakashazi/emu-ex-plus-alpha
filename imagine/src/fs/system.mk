@@ -2,7 +2,7 @@ ifeq ($(ENV), linux)
 	include $(imagineSrcDir)/fs/posix/build.mk
 else ifeq ($(ENV), android)
 	include $(imagineSrcDir)/fs/posix/build.mk
-else ifeq ($(ENV), iOS)
+else ifeq ($(ENV), ios)
 	include $(imagineSrcDir)/fs/posix/build.mk
 else ifeq ($(ENV), macosx)
 	include $(imagineSrcDir)/fs/posix/build.mk

@@ -19,7 +19,7 @@
 
 #include "ResourceFont.h"
 
-CallResult ResourceFont::initWithName (const char *name)
+CallResult ResourceFont::initWithName(const char *name)
 {
 	/*if(Resource::initWithName(name) != OK)
 	{
@@ -28,4 +28,12 @@ CallResult ResourceFont::initWithName (const char *name)
 	return OK;
 }
 
-#undef thisModuleName
+ResourceImageGlyph *ResourceFont::createRenderable(int c, ResourceFace *face, GlyphEntry *entry)
+{
+	return ResourceImageGlyph::createWithFace(face, entry);
+}
+
+int ResourceFont::minUsablePixels() const
+{
+	return 16;
+}

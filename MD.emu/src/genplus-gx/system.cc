@@ -39,6 +39,7 @@ uint32 mcycles_vdp;
 //uint32 mcycles_68k;
 uint8 system_hw;
 void (*system_frame)(int do_skip, uint renderGfx);
+int (*audioUpdateFunc)(int16 *sb);
 
 template <bool hasSegaCD = 0>
 static void system_frame_md(int do_skip, uint renderGfx);
@@ -62,6 +63,7 @@ int audio_init (int samplerate, float framerate)
   /* Default settings */
   snd.sample_rate = samplerate;
   snd.frame_rate  = framerate;
+  snd.cddaRatio = 44100./snd.sample_rate;
 
   /* Calculate the sound buffer size (for one frame) */
   snd.buffer_size = (int)(samplerate / framerate) + 32;
@@ -127,7 +129,8 @@ void audio_shutdown(void)
   Fir_Resampler_shutdown();
 }
 
-int audio_update (int16 *sb)
+template <bool hasSegaCD>
+int audioUpdateAll(int16 *sb)
 {
   int32 i, l, r;
   int32 ll = llp;
@@ -142,12 +145,6 @@ int audio_update (int16 *sb)
   FMSampleType *fm       = snd.fm.buffer;
   int16 *psg      = snd.psg.buffer;
 
-/*#ifdef NGC
-  int16 *sb = (int16 *) soundbuffer[mixbuffer];
-#else
-  int16 *sb = snd.buffer;
-#endif*/
-
   /* get number of available samples */
   int size = sound_update(mcycles_vdp);
 
@@ -157,10 +154,33 @@ int audio_update (int16 *sb)
 	#ifndef NO_SCD
 	int16 cdPCMBuff[size*2];
 	int16 *cdPCM = cdPCMBuff;
-	fbool doPCM = sCD.isActive && (sCD.pcm.control & 0x80) && sCD.pcm.enabled;
+	bool doPCM = hasSegaCD && sCD.isActive && (sCD.pcm.control & 0x80) && sCD.pcm.enabled;
 	if(doPCM)
 	{
 		scd_pcm_update(cdPCMBuff, size, 1);
+	}
+	auto cddaRatio = snd.cddaRatio;
+	uint cddaFrames = round((float)size*cddaRatio);
+	int16 cddaBuff[cddaFrames*2];
+	int16 *cdda = cddaBuff;
+	int16 cddaRemsampledBuff[size*2];
+	extern int readCDDA(void *dest, uint size);
+	bool doCDDA = hasSegaCD && readCDDA(cddaBuff, cddaFrames);
+	if(doCDDA && snd.sample_rate != 44100)
+	{
+		auto cddaPtr = (int32*)cddaBuff;
+		auto cddaResampledPtr = (int32*)cddaRemsampledBuff;
+		iterateTimes(size, i)
+		{
+			uint samplePos = round(i * cddaRatio);
+			if(samplePos > cddaFrames)
+			{
+				logMsg("resample pos %u too high", samplePos);
+				samplePos = cddaFrames-1;
+			}
+			cddaResampledPtr[i] = cddaPtr[samplePos];
+		}
+		cdda = cddaRemsampledBuff;
 	}
 	#endif
 
@@ -207,6 +227,11 @@ int audio_update (int16 *sb)
 			l += *cdPCM++;
 			r += *cdPCM++;
 		}
+    if(doCDDA)
+    {
+    	l += *cdda++;
+    	r += *cdda++;
+    }
 		#endif
 
     /* filtering */
@@ -259,6 +284,14 @@ int audio_update (int16 *sb)
   return size;
 }
 
+template int audioUpdateAll<0>(int16 *sb);
+template int audioUpdateAll<1>(int16 *sb);
+
+int audio_update(int16 *sb)
+{
+	return audioUpdateFunc(sb);
+}
+
 /****************************************************************
  * Virtual Genesis initialization
  ****************************************************************/
@@ -277,6 +310,11 @@ void system_init(void)
 	sCD.isActive ? system_frame_md<1> :
 	#endif
 	system_frame_md<0>;
+  audioUpdateFunc =
+	#ifndef NO_SCD
+	sCD.isActive ? audioUpdateAll<1> :
+	#endif
+	audioUpdateAll<0>;
 }
 
 /****************************************************************

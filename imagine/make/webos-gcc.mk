@@ -1,4 +1,5 @@
 ENV := webos
+CROSS_COMPILE := 1
 ARCH := arm
 ifeq ($(origin CC), default)
 	CC := arm-none-linux-gnueabi-gcc
@@ -36,7 +37,7 @@ WARNINGS_CFLAGS += -Wdouble-promotion -Wno-psabi
 LDLIBS += -L$(WEBOS_PDK_PATH)/device/lib -Wl,--allow-shlib-undefined
 
 OPTIMIZE_LDFLAGS += 
-LDFLAGS += $(webos_cpuFlags) -Wl,-O1,--as-needed,--hash-style=gnu,--sort-common,--gc-sections
+LDFLAGS += $(webos_cpuFlags) -Wl,-O1,--as-needed,--hash-style=gnu,--gc-sections
 
 # strip by default since it slows down package install due to much larger executables
 LDFLAGS += -s

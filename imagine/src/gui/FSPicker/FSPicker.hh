@@ -4,9 +4,9 @@
 #include <gfx/GeomRect.hh>
 #include <gfx/GfxLGradient.hh>
 #include <util/rectangle2.h>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <fs/sys.hh>
-#include <resource2/font/freetype/ResourceFontFreetype.h>
+#include <resource2/face/ResourceFace.hh>
 #include <gui/GuiTable1D/GuiTable1D.hh>
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/Delegate.hh>

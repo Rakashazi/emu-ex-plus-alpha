@@ -86,7 +86,7 @@ struct CHEATF *cheats=0,*cheatsl=0;
 #define CHEATC_NOSHOW   0xC000
 
 static uint16 *CheatComp=0;
-static int savecheats;
+static int savecheats = 0;
 
 static DECLFR(SubCheatsRead)
 {

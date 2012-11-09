@@ -296,20 +296,12 @@ static void writeCDMD5()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", FsSys::workDir(), path);
-	logMsg("full game path: %s", fullGamePath);
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
+	setupGamePaths(path);
 
 	if(isHuCardExtension(path))
 	{
@@ -399,7 +391,6 @@ int EmuSystem::loadGame(const char *path)
 		delete CDInterfaces[0];
 		CDInterfaces.clear();
 	}
-	strcpy(gameName, "");
 	return 0;
 }
 
@@ -627,7 +618,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },

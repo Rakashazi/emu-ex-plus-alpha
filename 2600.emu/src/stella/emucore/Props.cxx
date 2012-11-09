@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Props.cxx 2366 2012-01-22 21:01:13Z stephena $
+// $Id: Props.cxx 2547 2012-07-14 18:56:57Z stephena $
 //============================================================================
 
 #include <cctype>
@@ -59,8 +59,11 @@ void Properties::set(PropertyType key, const string& value)
 
     switch(key)
     {
-      case Cartridge_Sound:
       case Cartridge_Type:
+      case Display_Format:
+        if(BSPF_equalsIgnoreCase(myProperties[key], "AUTO-DETECT"))
+          myProperties[key] = "AUTO";
+      case Cartridge_Sound:
       case Console_LeftDifficulty:
       case Console_RightDifficulty:
       case Console_TelevisionType:
@@ -69,7 +72,6 @@ void Properties::set(PropertyType key, const string& value)
       case Controller_Right:
       case Controller_SwapPaddles:
       case Controller_MouseAxis:
-      case Display_Format:
       case Display_Phosphor:
       {
         transform(myProperties[key].begin(), myProperties[key].end(),
@@ -301,27 +303,27 @@ void Properties::printHeader()
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const char* Properties::ourDefaultProperties[LastPropType] = {
-  "",            // Cartridge.MD5
-  "",            // Cartridge.Manufacturer
-  "",            // Cartridge.ModelNo
-  "Untitled",    // Cartridge.Name
-  "",            // Cartridge.Note
-  "",            // Cartridge.Rarity
-  "MONO",        // Cartridge.Sound
-  "AUTO-DETECT", // Cartridge.Type
-  "B",           // Console.LeftDifficulty
-  "B",           // Console.RightDifficulty
-  "COLOR",       // Console.TelevisionType
-  "NO",          // Console.SwapPorts
-  "JOYSTICK",    // Controller.Left
-  "JOYSTICK",    // Controller.Right
-  "NO",          // Controller.SwapPaddles
-  "AUTO",        // Controller.MouseAxis
-  "AUTO-DETECT", // Display.Format
-  "34",          // Display.YStart
-  "210",         // Display.Height
-  "NO",          // Display.Phosphor
-  "77"           // Display.PPBlend
+  "",          // Cartridge.MD5
+  "",          // Cartridge.Manufacturer
+  "",          // Cartridge.ModelNo
+  "Untitled",  // Cartridge.Name
+  "",          // Cartridge.Note
+  "",          // Cartridge.Rarity
+  "MONO",      // Cartridge.Sound
+  "AUTO",      // Cartridge.Type
+  "B",         // Console.LeftDifficulty
+  "B",         // Console.RightDifficulty
+  "COLOR",     // Console.TelevisionType
+  "NO",        // Console.SwapPorts
+  "JOYSTICK",  // Controller.Left
+  "JOYSTICK",  // Controller.Right
+  "NO",        // Controller.SwapPaddles
+  "AUTO",      // Controller.MouseAxis
+  "AUTO",      // Display.Format
+  "34",        // Display.YStart
+  "210",       // Display.Height
+  "NO",        // Display.Phosphor
+  "77"         // Display.PPBlend
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -21,7 +21,7 @@ class BluetoothAdapter
 public:
 	constexpr BluetoothAdapter() { }
 	static BluetoothAdapter *defaultAdapter();
-	virtual fbool startScan() = 0;
+	virtual bool startScan() = 0;
 	virtual void cancelScan() = 0;
 	static void setScanCacheUsage(bool on) { useScanCache = on; }
 	static bool scanCacheUsage() { return useScanCache; }
@@ -33,13 +33,13 @@ public:
 	typedef Delegate<void (uint statusCode, int arg)> OnStatusDelegate;
 	OnStatusDelegate &statusDelegate() { return onStatus; }
 
-	typedef Delegate<fbool (const uchar devClass[3])> OnScanDeviceClassDelegate;
+	typedef Delegate<bool (const uchar devClass[3])> OnScanDeviceClassDelegate;
 	OnScanDeviceClassDelegate &scanDeviceClassDelegate() { return onScanDeviceClass; }
 
 	typedef Delegate<void (const char *name, BluetoothAddr addr)> OnScanDeviceNameDelegate;
 	OnScanDeviceNameDelegate &scanDeviceNameDelegate() { return onScanDeviceName; }
 
-	fbool inDetect = 0;
+	bool inDetect = 0;
 	static bool useScanCache;
 protected:
 	OnStatusDelegate onStatus;

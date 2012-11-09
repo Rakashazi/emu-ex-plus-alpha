@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #pragma once
-#include <input/interface.h>
+#include <input/Input.hh>
 #ifdef CONFIG_BLUETOOTH
 	#include <bluetooth/BluetoothInputDevScanner.hh>
 #endif

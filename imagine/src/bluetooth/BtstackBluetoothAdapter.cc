@@ -199,7 +199,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 			/*logMsg("%s ch 0x%02X, size %d",
 					packet_type == L2CAP_DATA_PACKET ? "L2CAP_DATA_PACKET" : "RFCOMM_DATA_PACKET",
 					(int)channel, size);*/
-			var_copy(sock, BtstackBluetoothSocket::findSocket(channel));
+			auto sock = BtstackBluetoothSocket::findSocket(channel);
 			if(!sock)
 			{
 				bug_exit("can't find socket");
@@ -328,7 +328,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					bd_addr_t addr;
 					bt_flip_addr(addr, &packet[2]);
 					logMsg("got HCI_EVENT_PIN_CODE_REQUEST from %s", bd_addr_to_str(addr));
-					var_copy(sock, BtstackBluetoothSocket::findSocket(addr));
+					auto sock = BtstackBluetoothSocket::findSocket(addr);
 					if(!sock)
 					{
 						logWarn("can't find socket");
@@ -543,7 +543,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					logMsg("got %s for 0x%02X",
 						packet[0] == L2CAP_EVENT_CHANNEL_CLOSED ? "L2CAP_EVENT_CHANNEL_CLOSED" : "RFCOMM_EVENT_CHANNEL_CLOSED",
 						channel);
-					var_copy(sock, BtstackBluetoothSocket::findSocket(channel));
+					auto sock = BtstackBluetoothSocket::findSocket(channel);
 					if(!sock)
 					{
 						logMsg("socket already removed from list");
@@ -568,7 +568,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 	//logMsg("end packet");
 }
 
-fbool BtstackBluetoothAdapter::startScan()
+bool BtstackBluetoothAdapter::startScan()
 {
 	if(!inDetect)
 	{

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gfx/Gfx.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <util/rectangle2.h>
 
 class ContentDrag

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.hxx 2444 2012-04-19 13:00:02Z stephena $
+// $Id: Control.hxx 2558 2012-10-24 10:10:32Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -58,13 +58,14 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 2444 2012-04-19 13:00:02Z stephena $
+  @version $Id: Control.hxx 2558 2012-10-24 10:10:32Z stephena $
 */
 class Controller : public Serializable
 {
   /**
     Riot debug class needs special access to the underlying controller state
   */
+  friend class M6532;
   friend class RiotDebug;
   friend class CompuMate;
 
@@ -114,12 +115,12 @@ class Controller : public Serializable
     /**
       Returns the jack that this controller is plugged into.
     */
-    const Jack jack() const { return myJack; }
+    Jack jack() const { return myJack; }
 
     /**
       Returns the type of this controller.
     */
-    const Type type() const { return myType; }
+    Type type() const { return myType; }
 
     /**
       Read the entire state of all digital pins for this controller.

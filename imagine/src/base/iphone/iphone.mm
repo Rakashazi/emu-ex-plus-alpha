@@ -163,6 +163,19 @@ uint appState = APP_RUNNING;
 
 }
 
+@interface ImagineUIViewController : UIViewController
+
+@end
+
+@implementation ImagineUIViewController
+
+- (BOOL)shouldAutorotate
+{
+	return NO;
+}
+
+@end
+
 // A class extension to declare private methods
 @interface EAGLView ()
 
@@ -626,6 +639,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	Base::engineInit();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	Base::setAutoOrientation(1);
     
     /*{
@@ -650,7 +664,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// view controller init
 	if(usingiOS4)
 	{
-		viewCtrl = [[UIViewController alloc] init];
+		viewCtrl = [[ImagineUIViewController alloc] init];
 		viewCtrl.view = glView;
 		[glView release];
 		devWindow.rootViewController = viewCtrl;
@@ -671,12 +685,11 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	uint o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
 	if(o == 255)
 		return;
-	if(o != Gfx::VIEW_ROTATE_180)
-	{
-		logMsg("new orientation %s", Gfx::orientationName(o));
-		Gfx::preferedOrientation = o;
-		Gfx::setOrientation(Gfx::preferedOrientation);
-	}
+	if(o == Gfx::VIEW_ROTATE_180 && !Base::isIPad)
+		return; // ignore upside-down orientation unless using iPad
+	logMsg("new orientation %s", Gfx::orientationName(o));
+	Gfx::preferedOrientation = o;
+	Gfx::setOrientation(Gfx::preferedOrientation);
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
@@ -947,13 +960,13 @@ bool setUIDEffective()
 namespace Input
 {
 
-void setICadeActive(fbool active)
+void setICadeActive(bool active)
 {
 	Base::iCade.init(Base::glView);
 	Base::iCade.setActive(active);
 }
 
-fbool iCadeActive()
+bool iCadeActive()
 {
 	return Base::iCade.isActive();
 }

@@ -479,7 +479,7 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 CLINK char romerror[1024];
 
@@ -514,13 +514,11 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 
 static void loadGamePhase2()
 {
-	string_copy(EmuSystem::gameName, activeDrv->name, sizeof(EmuSystem::gameName));
 	string_copy(EmuSystem::fullGameName, activeDrv->longname, sizeof(EmuSystem::fullGameName));
-	logMsg("set game name: %s, long: %s", EmuSystem::gameName, EmuSystem::fullGameName);
+	logMsg("set long game name: %s", EmuSystem::fullGameName);
 	free(activeDrv);
 	activeDrv = 0;
 
-	emuView.initImage(0, 304, 224, (FBResX-304)*2);
 	setTimerIntOption();
 
 	logMsg("finished loading game");
@@ -531,7 +529,7 @@ static ThreadPThread backgroundThread;
 
 enum { MSG_LOAD_FAILED = Base::MSG_USER, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
 
-static int loadGameThread(ThreadPThread &thread)
+ptrsize loadGameThread(ThreadPThread &thread)
 {
 	using namespace Base;
 
@@ -541,6 +539,7 @@ static int loadGameThread(ThreadPThread &thread)
 	if(!init_game(activeDrv->name))
 	{
 		sendMessageToMain(thread, MSG_LOAD_FAILED, 0, 0, 0);
+		EmuSystem::clearGamePaths();
 		free(activeDrv); activeDrv = 0;
 		return 0;
 	}
@@ -582,7 +581,7 @@ void gn_update_pbar(int pos)
 class LoadGameInBackgroundView : public View
 {
 public:
-	GfxText text;
+	Gfx::Text text;
 	Rect2<int> rect;
 	Rect2<int> &viewRect() { return rect; }
 
@@ -644,13 +643,8 @@ static LoadGameInBackgroundView loadGameInBackgroundView;
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
+	emuView.initImage(0, 304, 224, (FBResX-304)*2);
+	setupGamePaths(path);
 
 	{
 		ROM_DEF *drv = dr_check_zip(path);
@@ -685,8 +679,8 @@ int EmuSystem::loadGame(const char *path)
 			loadGameInBackgroundView.place(Gfx::viewportRect());
 			View::modalView = &loadGameInBackgroundView;
 			Base::displayNeedsUpdate();
-			backgroundThread.create(1, loadGameThread, 0);
-			return 0;
+			backgroundThread.create(1, ThreadPThread::EntryDelegate::create<&loadGameThread>());
+			return -1;
 		}
 		else
 		{
@@ -830,7 +824,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },

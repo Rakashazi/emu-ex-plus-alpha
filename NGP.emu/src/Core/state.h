@@ -80,7 +80,7 @@ typedef struct
 	uint8 f_dash;
 	uint32 gprBank[4][4], gpr[4];
 	
-	fbool eepromStatusEnable;
+	bool eepromStatusEnable;
 
 	//Z80 Registers
 	Z80 Z80_regs;

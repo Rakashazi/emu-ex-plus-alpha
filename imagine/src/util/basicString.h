@@ -59,7 +59,7 @@ static int string_equal(const char *s1, const char *s2)
 static char *string_dup(const char *s) ATTRS(nonnull);
 static char *string_dup(const char *s)
 {
-	var_copy(bytes, strlen(s)+1);
+	auto bytes = strlen(s)+1;
 	char *dup = (char*)mem_alloc(bytes);
 	if(dup)
 		memcpy(dup, s, bytes);

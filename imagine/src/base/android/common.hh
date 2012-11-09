@@ -5,8 +5,8 @@
 #include <util/branch.h>
 
 extern TimedMotion<GC> projAngleM;
-fbool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
-fbool glPointerStateHack = 0, glBrokenNpot = 0;
+bool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
+bool glPointerStateHack = 0, glBrokenNpot = 0;
 
 namespace Base
 {
@@ -350,6 +350,7 @@ uint setOrientation(uint o)
 		case VIEW_ROTATE_AUTO: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
 		bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
 		bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
+		bcase VIEW_ROTATE_180: toSet = androidSDK() > 8 ? 9 : 1; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
 		bcase VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
 		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 6 : 1; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 	}

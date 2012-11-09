@@ -63,11 +63,14 @@ void VideoImageOverlay::setEffect(uint effect)
 	switch(effect)
 	{
 		bcase SCANLINES ... SCANLINES_2:
-			pix.init(scanlinePixmapBuff, &PixelFormatIA88, 1, 2);
+			new(&pix) Pixmap(PixelFormatIA88);
+			pix.init(scanlinePixmapBuff, 1, 2);
 		bcase CRT:
-			pix.init(crtPixmapBuff, &PixelFormatIA88, 8, 8);
+			new(&pix) Pixmap(PixelFormatIA88);
+			pix.init(crtPixmapBuff, 8, 8);
 		bcase CRT_RGB ... CRT_RGB_2:
-			pix.init((uchar*)crtRgbPixmapBuff, &PixelFormatRGBA8888, 16, 2);//8, 2);
+			new(&pix) Pixmap(PixelFormatRGBA8888);
+			pix.init((uchar*)crtRgbPixmapBuff, 16, 2);//8, 2);
 		bdefault: // turn off effect
 			if(spr.img)
 				spr.deinitAndFreeImg();
@@ -80,7 +83,7 @@ void VideoImageOverlay::setEffect(uint effect)
 	img.write(pix);
 }
 
-void VideoImageOverlay::place(const GfxSprite &disp)
+void VideoImageOverlay::place(const Gfx::Sprite &disp)
 {
 	if(spr.img)
 	{
@@ -123,6 +126,6 @@ void VideoImageOverlay::draw()
 		setColor(1., 1., 1., intensity);
 		setImgMode(IMG_MODE_MODULATE);
 		setBlendMode(BLEND_MODE_ALPHA);
-		spr.draw(0);
+		spr.draw();
 	}
 }

@@ -2,17 +2,20 @@
 
 #include <gfx/GeomQuadMesh.hh>
 
-struct GfxLGradientStopDesc
+namespace Gfx
+{
+
+struct LGradientStopDesc
 {
 	GC pos;
 	VertexColor color;
 };
 
-class GfxLGradient
+class LGradient
 {
 public:
-	constexpr GfxLGradient() { }
-	CallResult init(uint stops, const GfxLGradientStopDesc *stop, Coordinate x1, Coordinate x2)
+	constexpr LGradient() { }
+	CallResult init(uint stops, const LGradientStopDesc *stop, Coordinate x1, Coordinate x2)
 	{
 		assert(stops >= 2);
 		var_selfs(stop);
@@ -85,5 +88,7 @@ public:
 private:
 	GeomQuadMesh g;
 	uint stops = 0;
-	const GfxLGradientStopDesc *stop = 0;
+	const LGradientStopDesc *stop = 0;
 };
+
+}

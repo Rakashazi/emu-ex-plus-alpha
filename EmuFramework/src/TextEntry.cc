@@ -210,7 +210,7 @@ void CollectTextInputView::draw()
 		setColor(COLOR_WHITE);
 		setBlendMode(BLEND_MODE_INTENSITY);
 		loadTranslate(gXPos(cancelBtn, C2DO), gYPos(cancelBtn, C2DO));
-		cancelSpr.draw(0);
+		cancelSpr.draw();
 	}
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	setColor(0.25);

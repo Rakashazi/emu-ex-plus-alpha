@@ -40,7 +40,7 @@ void soundShutdown();
 //// GBA sound options
 
 uint soundGetSampleRate();
-void soundSetSampleRate(uint sampleRate);
+void soundSetSampleRate(GBASys &gba, uint sampleRate);
 
 // Sound settings
 extern bool &soundInterpolation; // 1 if PCM should have low-pass filtering
@@ -57,14 +57,14 @@ extern float &soundFiltering;    // 0.0 = none, 1.0 = max
 #define FIFOB_H 0xa6
 
 // Resets emulated sound hardware
-void soundReset();
+void soundReset(GBASys &gba);
 
 // Emulates write to sound hardware
-void soundEvent( u32 addr, u8  data );
-void soundEvent( u32 addr, u16 data ); // TODO: error-prone to overload like this
+void soundEvent( GBASys &gba, u32 addr, u8  data );
+void soundEvent( GBASys &gba, u32 addr, u16 data ); // TODO: error-prone to overload like this
 
 // Notifies emulator that a timer has overflowed
-void soundTimerOverflow(ARM7TDMI &cpu, int which );
+void soundTimerOverflow(GBASys &gba, ARM7TDMI &cpu, int which );
 
 // Notifies emulator that PCM rate may have changed
 void interp_rate();
@@ -76,7 +76,7 @@ extern int &soundTicks;          // Number of 16.8 MHz clocks until soundTick() 
 
 // Saves/loads emulator state
 void soundSaveGame( gzFile );
-void soundReadGame( gzFile, int version );
+void soundReadGame( GBASys &gba, gzFile, int version );
 
 class Multi_Buffer;
 

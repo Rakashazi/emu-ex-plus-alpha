@@ -5,9 +5,9 @@ metadata_confDeps := ../EmuFramework/metadata/conf.mk
 linux-x86 : linux-x86.mk
 	$(MAKE) -f $<
 
-config_android_noArmv7 := 1
-config_iOS_noArmv6 := 1
-config_webOS_noArmv6 := 1
+android_noArmv7 := 1
+ios_noArmv6 := 1
+webos_noArmv6 := 1
 
 include $(IMAGINE_PATH)/make/shortcut/webos.mk
 

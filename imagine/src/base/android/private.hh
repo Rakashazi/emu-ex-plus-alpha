@@ -62,6 +62,7 @@ struct AndroidSurfaceTextureConfig
 	JavaInstMethod<void> jSurface, jSurfaceRelease,
 		jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
 	bool use = 0;
+	bool texture2dBindingHack = 0;
 	// Extra dlsym function from libandroid.so
 	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
 

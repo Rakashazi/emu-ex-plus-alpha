@@ -59,14 +59,14 @@ void* translate_address_write(uint32 address) __attribute__ ((hot));
 
 void dump_memory(uint32 start, uint32 length);
 
-extern fbool debug_abort_memory;
-extern fbool debug_mask_memory_error_messages;
+extern bool debug_abort_memory;
+extern bool debug_mask_memory_error_messages;
 
-extern fbool memory_unlock_flash_write;
-extern fbool memory_flash_error;
-extern fbool memory_flash_command;
+extern bool memory_unlock_flash_write;
+extern bool memory_flash_error;
+extern bool memory_flash_command;
 
-extern fbool eepromStatusEnable;
+extern bool eepromStatusEnable;
 
 //=============================================================================
 

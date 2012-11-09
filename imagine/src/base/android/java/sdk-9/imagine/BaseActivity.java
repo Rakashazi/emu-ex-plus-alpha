@@ -31,6 +31,7 @@ import android.media.*;
 import android.content.res.Configuration;
 import android.view.inputmethod.InputMethodManager;
 import android.bluetooth.*;
+import android.content.pm.*;
 import java.lang.reflect.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
@@ -40,18 +41,31 @@ public final class BaseActivity extends NativeActivity
 	private static String logTag = "BaseActivity";
 	private native void jEnvConfig(float xdpi, float ydpi, int refreshRate, Display dpy, String devName,
 			String filesPath, String eStoragePath, String apkPath, Vibrator sysVibrator,
-			boolean hasPermanentMenuKey, boolean osAnimatesRotation);
+			boolean hasPermanentMenuKey, boolean osAnimatesRotation, int sigHash);
 	//private native void layoutChange(int bottom);
-
+	private boolean surfaceIs32Bit = false;
 	private static Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	
+	private int sigHash()
+	{
+		try
+		{
+			Signature[] sig = getPackageManager().getPackageInfo(getApplicationContext().getPackageName(), PackageManager.GET_SIGNATURES).signatures;
+			//Log.i(logTag, "sig hash " + sig[0].hashCode());
+			return sig[0].hashCode();
+		}
+		catch(PackageManager.NameNotFoundException e)
+		{
+			return 0;
+		}
+	}
+
 	private void setupEnv()
 	{
 		//Log.i(logTag, "got focus view " + getWindow().getDecorView());
 		//contentView = findViewById(android.R.id.content);//getWindow().getDecorView();
 		//view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
-		
 		Bluetooth.adapter = BluetoothAdapter.getDefaultAdapter();
 		Display dpy = getWindowManager().getDefaultDisplay();
 		DisplayMetrics metrics = new DisplayMetrics();
@@ -98,7 +112,7 @@ public final class BaseActivity extends NativeActivity
 			isStraightOrientation ? metrics.ydpi : metrics.xdpi,
 			(int)dpy.getRefreshRate(), dpy, android.os.Build.DEVICE,
 			context.getFilesDir().getAbsolutePath(), Environment.getExternalStorageDirectory().getAbsolutePath(),
-			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey, osAnimatesRotation);
+			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey, osAnimatesRotation, sigHash());
 	}
 	
 	private static final int SET_KEEP_SCREEN_ON = 0, SET_SYSTEM_UI_VISIBILITY = 1,
@@ -277,8 +291,11 @@ public final class BaseActivity extends NativeActivity
 		// resuming the app and ANativeWindow_setBuffersGeometry() has no effect.
 		// Explicitly setting the format here seems to fix the problem. Android bug?
 		if(android.os.Build.VERSION.SDK_INT < 11)
-			getWindow().setFormat(PixelFormat.RGB_565);
-		else
-			getWindow().setFormat(PixelFormat.RGBA_8888);
+		{
+			if(surfaceIs32Bit)
+				getWindow().setFormat(PixelFormat.RGBA_8888);
+			else
+				getWindow().setFormat(PixelFormat.RGB_565);
+		}
 	}
 }

@@ -5,10 +5,10 @@
 class TextureSizeSupport
 {
 public:
-	fbool nonPow2;
-	fbool nonSquare;
-	fbool filtering;
-	fbool nonPow2CanMipmap;
+	bool nonPow2;
+	bool nonSquare;
+	bool filtering;
+	bool nonPow2CanMipmap;
 	uint minXSize, minYSize;
 	uint maxXSize, maxYSize;
 
@@ -41,9 +41,9 @@ public:
 		if(minYSize && y < minYSize) y = minYSize;
 	}
 
-	fbool supportsMipmaps(uint imageX, uint imageY)
+	bool supportsMipmaps(uint imageX, uint imageY)
 	{
-		// TODO: setup and use nowPow2CanMipmap variable
+		// TODO: setup and use nonPow2CanMipmap variable
 		return IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY);
 	}
 };

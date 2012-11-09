@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SaveKey.hxx 2353 2012-01-13 21:13:10Z stephena $
+// $Id: SaveKey.hxx 2558 2012-10-24 10:10:32Z stephena $
 //============================================================================
 
 #ifndef SAVEKEY_HXX
@@ -32,7 +32,7 @@ class MT24LC256;
   driver code.
 
   @author  Stephen Anthony
-  @version $Id: SaveKey.hxx 2353 2012-01-13 21:13:10Z stephena $
+  @version $Id: SaveKey.hxx 2558 2012-10-24 10:10:32Z stephena $
 */
 class SaveKey : public Controller
 {
@@ -54,6 +54,8 @@ class SaveKey : public Controller
     virtual ~SaveKey();
 
   public:
+    using Controller::read;
+
     /**
       Read the value of the specified digital pin for this controller.
 

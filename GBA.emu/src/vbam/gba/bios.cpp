@@ -876,13 +876,13 @@ void BIOS_RegisterRamReset(ARM7TDMI &cpu, u32 flags)
   if(flags) {
     if(flags & 0x01) {
       // clear work RAM
-      memset(workRAM, 0, 0x40000);
+      memset(cpu.gba->mem.workRAM, 0, 0x40000);
     }
     if(flags & 0x02) {
       // clear internal RAM
-      memset(internalRAM, 0, 0x7e00); // don't clear 0x7e00-0x7fff
+      memset(cpu.gba->mem.internalRAM, 0, 0x7e00); // don't clear 0x7e00-0x7fff
     }
-    gLcd.registerRamReset(flags);
+    cpu.gba->lcd.registerRamReset(flags);
     /*if(flags & 0x04) {
       // clear palette RAM
       memset(paletteRAM, 0, 0x400);
@@ -1083,8 +1083,8 @@ void BIOS_SoftReset(ARM7TDMI &cpu)
   }
 #endif
 
-  cpu.softReset(internalRAM[0x7ffa]);
-  memset(&internalRAM[0x7e00], 0, 0x200);
+  cpu.softReset(cpu.gba->mem.internalRAM[0x7ffa]);
+  memset(&cpu.gba->mem.internalRAM[0x7e00], 0, 0x200);
 
   /*armState = true;
   armMode = 0x1F;

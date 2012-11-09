@@ -266,7 +266,7 @@ int EmuSystem::loadState(int saveStateSlot)
 	return STATE_RESULT_NO_FILE;
 }
 
-fbool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
+bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
 {
 	return IoSys::readFromFile(filename, buffer, bufferLength) ? 1 : 0;
 }
@@ -277,14 +277,14 @@ static void sprintSaveFilename(char (&str)[S])
 	snprintf(str, S, "%s/%s.ngf", EmuSystem::gamePath, EmuSystem::gameName);
 }
 
-fbool system_io_flash_read(uchar* buffer, uint32 len)
+bool system_io_flash_read(uchar* buffer, uint32 len)
 {
 	FsSys::cPath saveStr;
 	sprintSaveFilename(saveStr);
 	return IoSys::readFromFile(saveStr, buffer, len) ? 1 : 0;
 }
 
-fbool system_io_flash_write(uchar* buffer, uint32 len)
+bool system_io_flash_write(uchar* buffer, uint32 len)
 {
 	if(!len)
 		return 0;
@@ -325,7 +325,7 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 #define HAVE_LIBZ
 static bool romLoad(const char *filename)
@@ -406,13 +406,8 @@ static bool romLoad(const char *filename)
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
+	emuView.initImage(0, ngpResX, ngpResY);
+	setupGamePaths(path);
 
 	if(!romLoad(fullGamePath))
 	{
@@ -420,13 +415,9 @@ int EmuSystem::loadGame(const char *path)
 		popup.postError("Error loading game");
 		return 0;
 	}
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
 	rom_loaded();
 	logMsg("name from NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
 	reset();
-
-	emuView.initImage(0, ngpResX, ngpResY);
 
 	rom_bootHacks();
 
@@ -509,12 +500,12 @@ void onInputEvent(const InputEvent &e)
 }
 }
 
-fbool system_comms_read(uchar* buffer)
+bool system_comms_read(uchar* buffer)
 {
 	return 0;
 }
 
-fbool system_comms_poll(uchar* buffer)
+bool system_comms_poll(uchar* buffer)
 {
 	return 0;
 }
@@ -537,9 +528,9 @@ void system_message(const char* format, ...)
 	#ifdef USE_LOGGER
 	va_list args;
 	va_start(args, format);
-	logger_vprintfn(LOG_M, format, args);
+	logger_vprintf(LOG_M, format, args);
 	va_end( args );
-	logger_printfn(LOG_M, "\n");
+	logger_printf(LOG_M, "\n");
 	#endif
 }
 #endif
@@ -582,7 +573,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },

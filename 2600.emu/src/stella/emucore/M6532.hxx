@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.hxx 2381 2012-02-04 15:17:30Z stephena $
+// $Id: M6532.hxx 2553 2012-09-16 17:32:45Z stephena $
 //============================================================================
 
 #ifndef M6532_HXX
@@ -29,10 +29,15 @@ class Settings;
 #include "System.hxx"
 
 /**
-  RIOT
+  This class models the M6532 RAM-I/O-Timer (aka RIOT) chip in the 2600
+  console.  Note that since the M6507 CPU doesn't contain an interrupt line,
+  the following functionality relating to the RIOT IRQ line is not emulated:
 
-  @author  Bradford W. Mott
-  @version $Id: M6532.hxx 2381 2012-02-04 15:17:30Z stephena $
+    - A3 to enable/disable interrupt from timer to IRQ
+    - A1 to enable/disable interrupt from PA7 to IRQ
+
+  @author  Bradford W. Mott and Stephen Anthony
+  @version $Id: M6532.hxx 2553 2012-09-16 17:32:45Z stephena $
 */
 class M6532 : public Device
 {
@@ -68,6 +73,11 @@ class M6532 : public Device
       to override this method for devices that remember cycle counts.
     */
     void systemCyclesReset();
+
+    /**
+      Update the entire digital and analog pin state of ports A and B.
+    */
+    void update();
 
     /**
       Install 6532 in the specified system.  Invoked by the system
@@ -137,6 +147,13 @@ class M6532 : public Device
     void setPinState(bool shcha);
 
   private:
+    // Accessible bits in the interrupt flag register
+    // All other bits are always zeroed
+    enum {
+      TimerBit = 0x80,
+      PA7Bit = 0x40
+    };
+
     // Reference to the console
     const Console& myConsole;
 
@@ -155,12 +172,6 @@ class M6532 : public Device
     // Indicates the number of cycles when the timer was last set
     Int32 myCyclesWhenTimerSet;
 
-    // Indicates if a timer interrupt has been enabled
-    bool myInterruptEnabled;
-
-    // Indicates if a read from timer has taken place after interrupt occured
-    bool myInterruptTriggered;
-
     // Data Direction Register for Port A
     uInt8 myDDRA;
 
@@ -172,6 +183,17 @@ class M6532 : public Device
 
     // Last value written to Port B
     uInt8 myOutB;
+
+    // Interrupt Flag Register
+    uInt8 myInterruptFlag;
+
+    // Whether the timer flag (as currently set) can be used
+    // If it isn't valid, it will be updated as required
+    bool myTimerFlagValid;
+
+    // Used to determine whether an active transition on PA7 has occurred
+    // True is positive edge-detect, false is negative edge-detect
+    bool myEdgeDetectPositive;
 
     // Last value written to the timer registers
     uInt8 myOutTimer[4];

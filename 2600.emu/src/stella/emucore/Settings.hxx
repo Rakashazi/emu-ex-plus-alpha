@@ -33,6 +33,8 @@ class OSystem;
 */
 class Settings
 {
+  friend class OSystem;
+
   public:
     /**
       Create a new settings abstract class
@@ -45,16 +47,7 @@ class Settings
     virtual ~Settings();
 
   public:
-    /**
-      This method should be called to load the current settings from an rc file.
-    */
-    //virtual void loadConfig();
-
-    /**
-      This method should be called to save the current settings to an rc file.
-    */
-    //virtual void saveConfig();
-
+#ifndef STELLA_MINIMAL_SETTINGS
     /**
       This method should be called to load the arguments from the commandline.
 
@@ -72,6 +65,7 @@ class Settings
       This method should be called to display usage information.
     */
     void usage();
+#endif
 
     /**
       Get the value assigned to the specified key.  If the key does
@@ -157,6 +151,19 @@ class Settings
       @param value The value to assign to the setting
     */
     void setSize(const string& key, const int value1, const int value2);
+
+#ifndef STELLA_MINIMAL_SETTINGS
+  protected:
+    /**
+      This method will be called to load the current settings from an rc file.
+    */
+    virtual void loadConfig();
+
+    /**
+      This method will be called to save the current settings to an rc file.
+    */
+    virtual void saveConfig();
+#endif
 
   private:
     // Copy constructor isn't supported by this class so make it private

@@ -27,12 +27,12 @@ static const uint8 config_addr_error = 1;
 
 #define MAX_INPUTS 8
 
-typedef struct
+struct t_input_config
 {
   unsigned char padtype;
-} t_input_config;
+};
 
-typedef struct 
+struct t_config
 {
   uint8 region_detect;
   uint8 tmss;
@@ -40,4 +40,4 @@ typedef struct
   uint8 hot_swap;
   uint8 romtype;
   t_input_config input[MAX_INPUTS];
-} t_config;
+};

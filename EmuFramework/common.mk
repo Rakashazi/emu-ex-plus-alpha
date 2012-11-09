@@ -19,7 +19,7 @@ include $(imagineSrcDir)/gui/GuiTable1D/build.mk
 include $(imagineSrcDir)/gui/MenuItem/build.mk
 include $(imagineSrcDir)/gui/FSPicker/build.mk
 include $(imagineSrcDir)/gui/AlertView.mk
-include $(imagineSrcDir)/resource2/font/freetype/build.mk
+include $(imagineSrcDir)/resource2/font/system.mk
 include $(imagineSrcDir)/resource2/image/png/build.mk
 
 ifeq ($(ENV), android)
@@ -40,7 +40,7 @@ VPATH += ../EmuFramework/src
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
-TouchConfigView.cc EmuOptions.cc OptionView.cc
+TouchConfigView.cc EmuOptions.cc OptionView.cc EmuView.cc
 
 ifneq ($(ENV), ps3)
 SRC += VController.cc

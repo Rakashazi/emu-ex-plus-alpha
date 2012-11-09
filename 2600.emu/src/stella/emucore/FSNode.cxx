@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2477 2012-05-16 20:52:33Z stephena $
+// $Id: FSNode.cxx 2540 2012-06-14 21:26:38Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -38,12 +38,7 @@ FilesystemNode::FilesystemNode(AbstractFilesystemNode *realNode)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FilesystemNode::FilesystemNode(const string& p)
 {
-  AbstractFilesystemNode* tmp = 0;
-  if (p.empty() || p == "." || p == "~")
-    tmp = AbstractFilesystemNode::makeHomeDirectoryFileNode();
-  else
-    tmp = AbstractFilesystemNode::makeFileNodePath(p);
-
+  AbstractFilesystemNode* tmp = AbstractFilesystemNode::makeFileNodePath(p);
   _realNode = Common::SharedPtr<AbstractFilesystemNode>(tmp);
 }
 
@@ -78,9 +73,7 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
     return false;
 
   for (AbstractFSList::iterator i = tmp.begin(); i != tmp.end(); ++i)
-  {
     fslist.push_back(FilesystemNode(*i));
-  }
 
   return true;
 }

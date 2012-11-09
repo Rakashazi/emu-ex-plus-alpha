@@ -15,8 +15,11 @@ void TexVertexQuad::draw() const
 }
 */
 
+namespace Gfx
+{
+
 template<class BaseRect>
-CallResult GfxSpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, GfxBufferImage *img)
+CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, GfxBufferImage *img)
 {
 	BaseRect::init(x, y, x2, y2);
 
@@ -30,31 +33,28 @@ CallResult GfxSpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, GfxBufferImag
 }
 
 template<class BaseRect>
-void GfxSpriteBase<BaseRect>::setImg(GfxBufferImage *img)
+void SpriteBase<BaseRect>::setImg(GfxBufferImage *img)
 {
 	var_selfs(img);
 	::mapImg(BaseRect::v, img ? &img->textureDesc() : 0);
 }
 
 template<class BaseRect>
-void GfxSpriteBase<BaseRect>::setImg(GfxBufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
+void SpriteBase<BaseRect>::setImg(GfxBufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 {
 	var_selfs(img);
 	::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 
 template<class BaseRect>
-void GfxSpriteBase<BaseRect>::deinit()
+void SpriteBase<BaseRect>::deinit()
 {
 	BaseRect::deinit();
 }
 
 template<class BaseRect>
-void GfxSpriteBase<BaseRect>::draw(uint manageBlend) const
+void SpriteBase<BaseRect>::draw() const
 {
-	assert(!manageBlend);
-
-	//gfx_setActiveTexture(img->tid);
 	Gfx::setActiveTexture(img->textureDesc().tid, img->textureDesc().target);
 
 	/*#if defined(CONFIG_GFX_OPENGL_ES) && !defined(CONFIG_BASE_PS3)
@@ -73,5 +73,7 @@ void GfxSpriteBase<BaseRect>::draw(uint manageBlend) const
 	}
 }
 
-template class GfxSpriteBase<GfxTexRect>;
-template class GfxSpriteBase<GfxColTexQuad>;
+template class SpriteBase<GfxTexRect>;
+template class SpriteBase<GfxColTexQuad>;
+
+}

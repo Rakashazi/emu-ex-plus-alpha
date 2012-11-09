@@ -50,7 +50,7 @@ private:
 		setupNESFourScore();
 	}
 
-	MultiChoiceSelectMenuItem inputPorts;
+	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
 
 	void inputPortsInit()
 	{
@@ -66,7 +66,7 @@ private:
 		else if(nesInputPortDev[0] == SI_ZAPPER && nesInputPortDev[1] == SI_GAMEPAD)
 			setting = 3;
 
-		inputPorts.init("Input Ports", str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, sizeofArray(str));
 		inputPorts.valueDelegate().bind<&inputPortsSet>();
 	}
 
@@ -478,6 +478,16 @@ private:
 
 		void select(View *view, const InputEvent &e)
 		{
+			uint32 a;
+			uint8 v;
+			int compare, type;
+			FCEUI_GetCheat(idx, nullptr, &a, &v, &compare, 0, &type);
+			if(!on && type && a == 0 && v == 0 && compare == -1)
+			{
+				// Don't turn on null Game Genie codes
+				popup.postError("Game Genie code isn't set", 2);
+				return;
+			}
 			toggle();
 			FCEUI_ToggleCheat(idx);
 		}
@@ -565,8 +575,10 @@ static void refreshCheatViews()
 {
 	editCheatListView.deinit();
 	editCheatListView.init(0);
+	editCheatListView.place();
 	cheatsMenu.deinit();
 	cheatsMenu.init(0);
+	cheatsMenu.place();
 }
 
 class SystemMenuView : public MenuView

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <gfx/Gfx.hh>
 #include <util/rectangle2.h>
 

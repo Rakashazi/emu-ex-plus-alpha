@@ -60,6 +60,7 @@ typedef struct
 {
   int sample_rate;  /* Output Sample rate (8000-48000) */
   float frame_rate; /* Output Frame rate (usually 50 or 60 frames per second) */
+  float cddaRatio;
   int enabled;      /* 1= sound emulation is enabled */
   int buffer_size;  /* Size of sound buffer (in bytes) */
   struct

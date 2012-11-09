@@ -301,10 +301,10 @@ u8 v3_deadtable2[256] = {
 #define CHEAT_IS_HEX(a) ( ((a)>='A' && (a) <='F') || ((a) >='0' && (a) <= '9'))
 
 #define CHEAT_PATCH_ROM_16BIT(a,v) \
-  WRITE16LE(((u16 *)&rom[(a) & 0x1ffffff]), v);
+  WRITE16LE(((u16 *)&cpu.gba->mem.rom[(a) & 0x1ffffff]), v);
 
 #define CHEAT_PATCH_ROM_32BIT(a,v) \
-  WRITE32LE(((u32 *)&rom[(a) & 0x1ffffff]), v);
+  WRITE32LE(((u32 *)&cpu.gba->mem.rom[(a) & 0x1ffffff]), v);
 
 static bool isMultilineWithData(int i)
 {
@@ -1104,15 +1104,15 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       case GSA_16_BIT_WRITE_IOREGS:
         if ((cheatsList[i].address <= 0x3FF) && (cheatsList[i].address != 0x6) &&
             (cheatsList[i].address != 0x130))
-          ioMem.b[cheatsList[i].address & 0x3FE]=cheatsList[i].value & 0xFFFF;
+        	cpu.gba->mem.ioMem.b[cheatsList[i].address & 0x3FE]=cheatsList[i].value & 0xFFFF;
         break;
       case GSA_32_BIT_WRITE_IOREGS:
         if (cheatsList[i].address<=0x3FF)
         {
           if (((cheatsList[i].address & 0x3FC) != 0x6) && ((cheatsList[i].address & 0x3FC) != 0x130))
-            ioMem.b[cheatsList[i].address & 0x3FC]= (cheatsList[i].value & 0xFFFF);
+          	cpu.gba->mem.ioMem.b[cheatsList[i].address & 0x3FC]= (cheatsList[i].value & 0xFFFF);
           if ((((cheatsList[i].address & 0x3FC)+2) != 0x6) && ((cheatsList[i].address & 0x3FC) +2) != 0x130)
-            ioMem.b[(cheatsList[i].address & 0x3FC) + 2 ]= ((cheatsList[i].value>>16 ) & 0xFFFF);
+          	cpu.gba->mem.ioMem.b[(cheatsList[i].address & 0x3FC) + 2 ]= ((cheatsList[i].value>>16 ) & 0xFFFF);
         }
         break;
       case GSA_8_BIT_IF_TRUE3:
@@ -1421,7 +1421,7 @@ void cheatsEnable(int i)
   }
 }
 
-void cheatsDisable(int i)
+void cheatsDisable(ARM7TDMI &cpu, int i)
 {
   if(i >= 0 && i < cheatsNumber) {
     switch(cheatsList[i].size) {
@@ -1609,13 +1609,13 @@ void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3
   cheatsDecryptGSACode(address, value, v3);
 
   if(value == 0x1DC0DE) {
-    u32 gamecode = READ32LE(((u32 *)&rom[0xac]));
+    u32 gamecode = READ32LE(((u32 *)&cpu.gba->mem.rom[0xac]));
     if(gamecode != address) {
       char buffer[5];
       *((uint32a *)buffer) = address;
       buffer[4] = 0;
       char buffer2[5];
-      *((uint32a *)buffer2) = READ32LE(((u32 *)&rom[0xac]));
+      *((uint32a *)buffer2) = READ32LE(((u32 *)&cpu.gba->mem.rom[0xac]));
       buffer2[4] = 0;
       systemMessage(MSG_GBA_CODE_WARNING, N_("Warning: cheats are for game %s. Current game is %s.\nCodes may not work correctly."),
                     buffer, buffer2);
@@ -2514,7 +2514,7 @@ void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
       {
         if(!cheatsCBATableGenerated)
           cheatsCBAGenTable();
-        u32 crc = cheatsCBACalcCRC(rom, 0x10000);
+        u32 crc = cheatsCBACalcCRC(cpu.gba->mem.rom, 0x10000);
         if(crc != address) {
           systemMessage(MSG_CBA_CODE_WARNING,
                         N_("Warning: Codes seem to be for a different game.\nCodes may not work correctly."));

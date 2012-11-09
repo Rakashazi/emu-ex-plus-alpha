@@ -52,6 +52,11 @@ public:
 		return ((float)frames / rate) * 1000.;
 	}
 
+	float framesToUSecs(uint frames) const
+	{
+		return ((float)frames / rate) * 1000000.;
+	}
+
 	uint mSecsToFrames(float mSecs) const
 	{
 		return (mSecs / 1000.) * rate;

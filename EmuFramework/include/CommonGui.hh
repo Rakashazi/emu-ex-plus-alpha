@@ -34,12 +34,12 @@
 
 bool isMenuDismissKey(const InputEvent &e);
 void startGameFromMenu();
-static bool touchControlsApplicable();
+bool touchControlsApplicable();
 void loadGameCompleteFromFilePicker(uint result, const InputEvent &e);
 EmuFilePicker fPicker;
 CreditsView credits(creditsViewStr);
 YesNoAlertView ynAlertView;
-static GfxSprite menuIcon;
+Gfx::Sprite menuIcon;
 MultiChoiceView multiChoiceView;
 ViewStack viewStack;
 
@@ -75,7 +75,7 @@ void onViewChange(Gfx::GfxViewState * = 0);
 #endif
 
 // used on iOS to allow saves on incorrectly root-owned files/dirs
-static void fixFilePermissions(const char *path)
+void fixFilePermissions(const char *path)
 {
 	if(FsSys::hasWriteAccess(path) == 0)
 	{
@@ -269,7 +269,7 @@ namespace CATS
 #endif
 
 //static int soundRateDelta = 0;
-static bool ffGuiKeyPush = 0, ffGuiTouch = 0;
+bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 
 
 
@@ -313,34 +313,6 @@ static bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 	playerActiveKeyInput[iCadeInputPlayer] = 1;
 	#endif
 }*/
-
-bool isMenuDismissKey(const InputEvent &e)
-{
-	switch(e.devType)
-	{
-		#ifdef CONFIG_BLUETOOTH
-		case InputEvent::DEV_WIIMOTE: return e.button == Input::Wiimote::HOME;
-		case InputEvent::DEV_ICONTROLPAD: return e.button == Input::iControlPad::Y;
-		case InputEvent::DEV_ZEEMOTE: return e.button == Input::Zeemote::POWER;
-		#endif
-		#ifdef CONFIG_INPUT_ICADE
-		case InputEvent::DEV_ICADE: return e.button == Input::ICade::E;
-		#endif
-		#if defined(CONFIG_BASE_PS3)
-		case InputEvent::DEV_PS3PAD:
-			return e.button == Input::Ps3::TRIANGLE || e.button == Input::Ps3::L2;
-		#endif
-		default:
-			return 0
-			#if defined(CONFIG_ENV_WEBOS) && CONFIG_ENV_WEBOS_OS <= 2
-				|| e.button == Input::Key::RCTRL
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-				|| e.button == Input::Key::MENU
-			#endif
-			;
-	}
-}
 
 
 
@@ -453,57 +425,6 @@ static GC largeFontMM =
 
 #endif
 
-static void initOptions()
-{
-	#ifdef CONFIG_BASE_IOS
-		if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
-			optionLargeFonts.initDefault(1);
-	#endif
-
-	#ifdef CONFIG_BASE_ANDROID
-		if(Base::hasHardwareNavButtons())
-		{
-			optionLowProfileOSNav.isConst = 1;
-			optionHideOSNav.isConst = 1;
-			optionShowMenuIcon.initDefault(0);
-			optionDitherImage.initDefault(0);
-		}
-		else
-			optionBackNavigation.initDefault(1);
-
-		if(Base::androidSDK() >= 11)
-		{
-			optionGLSyncHack.isConst = 1;
-			// don't change dither setting on Android 3.0+
-			optionDitherImage.isConst = 1;
-			if(Base::refreshRate() == 60)
-			{
-				// TODO: more testing needed with audio sync
-				/*logMsg("using default frame-skip 0");
-				optionFrameSkip.initDefault(0);*/
-			}
-		}
-	#endif
-
-	#ifdef INPUT_SUPPORTS_POINTER
-		#ifdef CONFIG_BASE_IOS
-			if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
-				optionTouchCtrlSize.initDefault(1400);
-		#endif
-		optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
-		#ifdef CONFIG_BASE_ANDROID
-			if(!optionTouchCtrlImgRes.isConst)
-				optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
-		#endif
-	#endif
-
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		optionDirectTexture.initDefault(Gfx::supportsAndroidDirectTextureWhitelisted());
-		Gfx::setUseAndroidDirectTexture(optionDirectTexture);
-		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
-	#endif
-}
-
 void setupStatusBarInMenu()
 {
 	if(!optionHideStatusBar.isConst)
@@ -524,85 +445,9 @@ void onRemoveModalView()
 	}
 }
 
-static bool touchControlsAreOn = 0;
+bool touchControlsAreOn = 0;
 
-void EmuView::placeEmu()
-{
-	if(EmuSystem::gameIsRunning())
-	{
-		if(optionImageZoom != optionImageZoomIntegerOnly)
-		{
-			if(optionAspectRatio == 0U)
-				gameView.init(EmuSystem::aspectRatioX, EmuSystem::aspectRatioY);
-			else if(optionAspectRatio == 1U)
-				gameView.init(1, 1);
-			else if(optionAspectRatio == 2U)
-				gameView.init();
-			gameView.setSizeViewSpaceBestFit();
-		}
-		else
-		{
-			gameView.init();
-			uint scaleFactor;
-			// TODO: generalize this?
-			uint gameX = vidPix.x, gameY = vidPix.y;
-			GC gameAR = GC(gameX) / GC(gameY);
-			if(gameAR >= 2) // avoid overly wide images
-			{
-				logMsg("unscaled image too wide, doubling height to compensate");
-				gameY *= 2;
-				gameAR = GC(gameX) / GC(gameY);
-			}
-			if(gameAR > Gfx::proj.aspectRatio)
-			{
-				scaleFactor = IG::max(1U, Gfx::viewPixelWidth() / gameX);
-				logMsg("using x scale factor %d", scaleFactor);
-			}
-			else
-			{
-				scaleFactor = IG::max(1U, Gfx::viewPixelHeight() / gameY);
-				logMsg("using y scale factor %d", scaleFactor);
-			}
-			gameView.setXSize(Gfx::iXSize(gameX * scaleFactor));
-			gameView.setYSize(Gfx::iYSize(gameY * scaleFactor));
-		}
-		gameView.setPosOrigin(C2DO, C2DO);
-		GC yOffset = 0;
-		#ifdef INPUT_SUPPORTS_POINTER
-		if(Gfx::proj.aspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
-		{
-			if(vController.gp.dp.origin.onBottom() && vController.gp.btnO.onBottom())
-			{
-				logMsg("moving game view to top");
-				gameView.setPosOrigin(CT2DO, CT2DO);
-				if(vController.gp.cenBtnO.onTop())
-					yOffset = Gfx::iXSize(-vController.gp.centerBtnBound[0].ySize());
-			}
-			else if(vController.gp.dp.origin.onTop() && vController.gp.btnO.onTop())
-			{
-				logMsg("moving game view to bottom");
-				gameView.setPosOrigin(CB2DO, CB2DO);
-				if(vController.gp.cenBtnO.onBottom())
-					yOffset = Gfx::iXSize(vController.gp.centerBtnBound[0].ySize());
-			}
-		}
-		#endif
 
-		if(optionImageZoom.val == optionImageZoomIntegerOnly)
-		{
-			gameView.alignToPixelUnits();
-		}
-		else if(optionImageZoom.val != 100)
-		{
-			Area unzoomed = gameView;
-			gameView.scaleSize(GC(optionImageZoom.val) / 100.);
-			gameView.setPos(&unzoomed, C2DO, C2DO);
-		}
-
-		disp.setPos(gameView.xPos(LB2DO), gameView.yPos(LB2DO) + yOffset, gameView.xPos(RT2DO), gameView.yPos(RT2DO) + yOffset);
-	}
-	placeOverlay();
-}
 
 #ifdef INPUT_SUPPORTS_POINTER
 void setupVControllerVars()
@@ -808,6 +653,28 @@ void onFocusChange(uint in)
 	}
 }
 
+void onDragDrop(const char *filename)
+{
+	auto type = FsSys::fileType(filename);
+	if(type != Fs::TYPE_FILE)
+		return;
+	if(!EmuFilePicker::defaultFsFilter(filename, type))
+		return;
+	FsSys::cPath dir, file;
+	dirName(filename, dir);
+	baseName(filename, file);
+	FsSys::chdir(dir);
+	logMsg("opening file %s in dir %s from DnD", file, dir);
+	restoreMenuFromGame();
+	GameFilePicker::onSelectFile(file, InputEvent{});
+}
+
+void onInterProcessMessage(const char *filename)
+{
+	logMsg("got IPC: %s", filename);
+	// TODO
+}
+
 void onResume(bool focused)
 {
 	if(optionPauseUnfocused)
@@ -890,7 +757,7 @@ void takeGameScreenshot()
 
 void EmuView::place()
 {
-	emuView.placeEmu();
+	placeEmu();
 	//if(emuActive)
 	{
 		#ifndef CONFIG_BASE_PS3
@@ -914,86 +781,7 @@ void EmuView::place()
 	}
 }
 
-template <bool active>
-void EmuView::drawContent()
-{
-	using namespace Gfx;
-	disp.draw(0);
-	vidImgOverlay.draw();
-	#ifndef CONFIG_BASE_PS3
-		if(active && ((touchControlsAreOn && touchControlsApplicable())
-		#ifdef CONFIG_VCONTROLLER_KEYBOARD
-			|| vController.kbMode
-		#endif
-		))
-		{
-			vController.draw();
-			if(optionShowMenuIcon)
-			{
-				setBlendMode(BLEND_MODE_INTENSITY);
-				menuIcon.draw(0);
-			}
-		}
-	#endif
-	popup.draw();
-}
 
-void EmuView::runFrame()
-{
-	commonUpdateInput();
-	bool renderAudio = optionSound;
-
-	if(unlikely(ffGuiKeyPush || ffGuiTouch))
-	{
-		iterateTimes(4, i)
-		{
-			EmuSystem::runFrame(0, 0, 0);
-		}
-	}
-	else
-	{
-		int framesToSkip = EmuSystem::setupFrameSkip(optionFrameSkip);
-		if(framesToSkip > 0)
-		{
-			iterateTimes(framesToSkip, i)
-			{
-				EmuSystem::runFrame(0, 0, renderAudio);
-			}
-		}
-		else if(framesToSkip == -1)
-		{
-			emuView.drawContent<1>();
-			return;
-		}
-	}
-
-	EmuSystem::runFrame(1, 1, renderAudio);
-}
-
-void EmuView::draw()
-{
-	using namespace Gfx;
-	if(likely(EmuSystem::active))
-	{
-		resetTransforms();
-		setBlendMode(0);
-		setImgMode(IMG_MODE_REPLACE);
-		#ifdef CONFIG_BASE_PS3
-		setColor(1., 1., 1., 1.); // hack to work-around non-working GFX_IMG_MODE_REPLACE
-		#endif
-		Base::displayNeedsUpdate();
-
-		runFrame();
-	}
-	else if(EmuSystem::gameIsRunning())
-	{
-		setBlendMode(0);
-		setImgMode(IMG_MODE_MODULATE);
-		setColor(.33, .33, .33, 1.);
-		resetTransforms();
-		drawContent<0>();
-	}
-}
 
 void EmuView::inputEvent(const InputEvent &e)
 {
@@ -1057,6 +845,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					bcase guiKeyIdxLoadGame:
 					if(e.state == INPUT_PUSHED)
 					{
+						logMsg("open load game menu from key event");
 						restoreMenuFromGame();
 						viewStack.popToRoot();
 						fPicker.init(Input::keyInputIsPresent());
@@ -1068,6 +857,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					bcase guiKeyIdxMenu:
 					if(e.state == INPUT_PUSHED)
 					{
+						logMsg("open menu from key event");
 						restoreMenuFromGame();
 						return;
 					}
@@ -1092,7 +882,6 @@ void EmuView::inputEvent(const InputEvent &e)
 						if(ret != STATE_RESULT_OK && ret != STATE_RESULT_OTHER_ERROR)
 						{
 							popup.postError(stateResultToStr(ret));
-							//popup.postError("No State Exists");
 						}
 						return;
 					}
@@ -1107,6 +896,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					bcase guiKeyIdxExit:
 					if(e.state == INPUT_PUSHED)
 					{
+						logMsg("request exit from key event");
 						ynAlertView.init("Really Exit?", Input::keyInputIsPresent());
 						ynAlertView.onYesDelegate().bind<&confirmExitAppAlert>();
 						ynAlertView.placeRect(Gfx::viewportRect());
@@ -1148,7 +938,7 @@ namespace Gfx
 void onDraw()
 {
 	emuView.draw();
-	if(likely(EmuSystem::active))
+	if(likely(EmuSystem::isActive()))
 	{
 		if(trackFPS)
 		{
@@ -1177,8 +967,15 @@ void onDraw()
 
 static void handleInputEvent(const InputEvent &e)
 {
-	//logMsg("%s from %s", Input::buttonName(e.devType, e.button), e.devTypeName(e.devType));
-	if(likely(EmuSystem::active))
+	/*if(e.isPointer())
+	{
+		logMsg("Pointer %s @ %d,%d", Input::eventActionToStr(e.state), e.x, e.y);
+	}
+	else
+	{
+		logMsg("%s %s from %s", Input::buttonName(e.devType, e.button), Input::eventActionToStr(e.state), e.devTypeName(e.devType));
+	}*/
+	if(likely(EmuSystem::isActive()))
 	{
 		emuView.inputEvent(e);
 	}
@@ -1256,7 +1053,7 @@ ResourceImage *getXAsset()
 }
 
 template <size_t NAV_GRAD_SIZE>
-static void mainInitCommon(const GfxLGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
+static void mainInitCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
 {
 	Gfx::setClear(1);
 
@@ -1273,10 +1070,14 @@ static void mainInitCommon(const GfxLGradientStopDesc (&navViewGrad)[NAV_GRAD_SI
 	Bluetooth::maxGamepadsPerType = EmuSystem::maxPlayers;
 	#endif
 
-	View::defaultFace = ResourceFace::loadAsset("Vera.ttf");
+	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
 
 	loadConfigFile();
+	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+		if((int8)optionProcessPriority != 0)
+			Base::setProcessPriority(optionProcessPriority);
+	#endif
 	EmuSystem::configAudioRate();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
@@ -1328,6 +1129,18 @@ static void mainInitCommon(const GfxLGradientStopDesc (&navViewGrad)[NAV_GRAD_SI
 	//logMsg("setting menu orientation");
 	// set orientation last since it can trigger onViewChange()
 	Gfx::setValidOrientations(optionMenuOrientation, 1);
+	Base::setAcceptDnd(1);
+
+	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	if(!Base::apkSignatureIsConsistent())
+	{
+		ynAlertView.init("Warning: App has been modified by 3rd party, use at your own risk", 0);
+		ynAlertView.onNoDelegate().bind<&confirmExitAppAlert>();
+		ynAlertView.placeRect(Gfx::viewportRect());
+		View::modalView = &ynAlertView;
+		Base::displayNeedsUpdate();
+	}
+	#endif
 }
 
 #ifndef CONFIG_BASE_PS3

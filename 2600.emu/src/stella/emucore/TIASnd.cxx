@@ -26,8 +26,7 @@ TIASound::TIASound(Int32 outputFrequency, Int32 tiaFrequency)
     myOutputFrequency(outputFrequency),
     myTIAFrequency(tiaFrequency),
     myOutputCounter(0),
-    myVolumePercentage(100),
-    myVolumeClip(128)
+    myVolumePercentage(100)
 {
   reset();
 }
@@ -74,12 +73,6 @@ string TIASound::channels(uInt32 hardware, bool stereo)
     case Hardware2Stereo: return "Hardware2Stereo";
     default:              return EmptyString;
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIASound::clipVolume(bool clip)
-{
-  myVolumeClip = clip ? 128 : 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,8 +154,8 @@ void TIASound::process(Sample* buffer, uInt32 samples)
 
   if(sizeof(Sample) == 2)
   {
-  	v0 <<= 8;
-  	v1 <<= 8;
+  	v0 = v0 * 0xFFFF / 0xFF;
+  	v1 = v1 * 0xFFFF / 0xFF;
   }
 
   // Loop until the sample buffer is full
@@ -380,7 +373,7 @@ void TIASound::process(Sample* buffer, uInt32 samples)
         while((samples > 0) && (myOutputCounter >= myTIAFrequency))
         {
         	Sample byte = (((myP4[0] & 8) ? v0 : 0) +
-              ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
+              ((myP4[1] & 8) ? v1 : 0));
           *(buffer++) = byte;
           *(buffer++) = byte;
           myOutputCounter -= myTIAFrequency;
@@ -391,8 +384,8 @@ void TIASound::process(Sample* buffer, uInt32 samples)
       case Hardware2Stereo:  // stereo sampling with 2 hardware channels
         while((samples > 0) && (myOutputCounter >= myTIAFrequency))
         {
-          *(buffer++) = ((myP4[0] & 8) ? v0 : 0) + myVolumeClip;
-          *(buffer++) = ((myP4[1] & 8) ? v1 : 0) + myVolumeClip;
+          *(buffer++) = ((myP4[0] & 8) ? v0 : 0);
+          *(buffer++) = ((myP4[1] & 8) ? v1 : 0);
           myOutputCounter -= myTIAFrequency;
           samples--;
         }
@@ -402,7 +395,7 @@ void TIASound::process(Sample* buffer, uInt32 samples)
         while((samples > 0) && (myOutputCounter >= myTIAFrequency))
         {
           *(buffer++) = (((myP4[0] & 8) ? v0 : 0) +
-              ((myP4[1] & 8) ? v1 : 0)) + myVolumeClip;
+              ((myP4[1] & 8) ? v1 : 0));
           myOutputCounter -= myTIAFrequency;
           samples--;
         }

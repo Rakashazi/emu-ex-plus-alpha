@@ -1,6 +1,8 @@
 #ifndef __MDFN_CDROM_CDUTILITY_H
 #define __MDFN_CDROM_CDUTILITY_H
 
+#include "../types.h"
+
 namespace CDUtility
 {
  // Call once at app startup before creating any threads that could potentially cause re-entrancy to these functions.

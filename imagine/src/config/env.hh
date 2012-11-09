@@ -49,6 +49,13 @@ static const uint ENV_ANDROID_MINSDK =
 		0
 #endif
 ;
+
+#if (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK < 9)
+	static const bool UNICODE_CHARS = 0;
+#else
+	#define CONFIG_UNICODE_CHARS
+	static const bool UNICODE_CHARS = 1;
+#endif
 }
 
 #if CONFIG_ENV_ANDROID_MINSDK == 4

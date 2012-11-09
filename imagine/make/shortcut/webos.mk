@@ -3,7 +3,7 @@ webOS_targetPath := target/webOS
 
 # executables
 
-ifndef config_webOS_noArmv6
+ifndef webos_noArmv6
 
 webOS_armv6Exec := $(webOS_targetPath)/bin-debug/armv6
 webos-armv6 :
@@ -17,7 +17,7 @@ $(webOS_armv6ReleaseExec) : webos-armv6-release
 
 endif
 
-ifndef config_webOS_noArmv7
+ifndef webos_noArmv7
 
 webOS_armv7Exec := $(webOS_targetPath)/bin-debug/armv7
 webos-armv7 :
@@ -79,6 +79,10 @@ webos-release-install-only :
 
 webos-release-ready : 
 	cp $(webOS_ipkRelease) ../releases-bin/webOS/
+
+webos-release-clean:
+	rm -f $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_3armv7ReleaseExec)
+	rm -rf build/webos-armv6-release/ build/webos-armv7-release/ build/webos-3-armv7-release/
 
 .PHONY: webos-metadata webos-armv6 webos-armv7 webos-3-armv7 webos-armv6-release webos-armv7-release webos-3-armv7-release webos-release \
  webos-ipk webos-release-ipk webos-release-install webos-install webos-release-ready

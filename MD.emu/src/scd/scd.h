@@ -6,22 +6,26 @@
 #include "cd_sys.h"
 #include "gfx_cd.h"
 #include <genplus-gx/m68k/musashi/InstructionCycleTableSCD.hh>
+#include <mednafen/cdrom/CDAccess.h>
 #include <util/builtins.h>
 
 struct SegaCD
 {
 	constexpr SegaCD(): cpu(m68kCyclesSCD, 1) { }
 	M68KCPU cpu;
-	fbool isActive = 0;
+	bool isActive = 0;
 	uchar busreq = 0;
 	uint stopwatchTimer = 0;
 	uint counter75hz = 0;
 	int timer_int3 = 0;
+	uint volume = 1024;
 
 	uchar gate[0x200] = {0};
 
 	_scd_toc TOC;
-	fbool CDD_Complete = 0;
+	int32 cddaLBA = 0;
+	uint16 cddaDataLeftover = 0;
+	bool CDD_Complete = 0;
 	uint Status_CDD = 0;
 	uint Status_CDC = 0;
 	int Cur_LBA = 0;
@@ -75,8 +79,8 @@ struct SegaCD
 
 	uchar bcramReg = 0;
 	uchar audioTrack = 0;
-	fbool subResetPending = 0;
-	fbool delayedDMNA = 0;
+	bool subResetPending = 0;
+	bool delayedDMNA = 0;
 };
 
 extern SegaCD sCD;
@@ -112,8 +116,9 @@ void scd_reset();
 void scd_memmap();
 void scd_update();
 void scd_checkDma();
+void scd_updateCddaVol();
 int scd_saveState(uint8 *state);
 int scd_loadState(uint8 *state);
 
-int Insert_CD(const char *iso_name, int is_bin);
+int Insert_CD(CDAccess *cd);
 void Stop_CD();

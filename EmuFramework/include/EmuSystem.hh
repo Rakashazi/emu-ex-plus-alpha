@@ -28,7 +28,10 @@ extern BasicNavView viewNav;
 class EmuSystem
 {
 	public:
-	static bool active;
+	enum class State { OFF, STARTING, PAUSED, ACTIVE };
+	static State state;
+	static bool isActive() { return state == State::ACTIVE; }
+	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static FsSys::cPath gamePath, fullGamePath;
 	static char gameName[256], fullGameName[256];
 	static Base::CallbackRef *autoSaveStateCallbackRef;
@@ -79,6 +82,15 @@ class EmuSystem
 	static void stopSound();
 	static void startSound();
 	static int setupFrameSkip(uint optionVal);
+	static void setupGamePaths(const char *filePath);
+
+	static void clearGamePaths()
+	{
+		strcpy(gameName, "");
+		strcpy(fullGameName, "");
+		strcpy(gamePath, "");
+		strcpy(fullGamePath, "");
+	}
 
 	static TimeSys benchmark()
 	{
@@ -99,14 +111,15 @@ class EmuSystem
 
 	static void pause()
 	{
-		active = 0;
+		if(isActive())
+			state = State::PAUSED;
 		stopSound();
 		cancelAutoSaveStateTimer();
 	}
 
 	static void start()
 	{
-		active = 1;
+		state = State::ACTIVE;
 		clearInputBuffers();
 		emuFrameNow = -1;
 		startSound();
@@ -123,10 +136,10 @@ class EmuSystem
 				saveAutoState();
 			logMsg("closing game %s", gameName);
 			closeSystem();
-			strcpy(gameName, "");
-			strcpy(fullGameName, "");
+			clearGamePaths();
 			cancelAutoSaveStateTimer();
 			viewNav.setRightBtnActive(0);
+			state = State::OFF;
 		}
 	}
 };

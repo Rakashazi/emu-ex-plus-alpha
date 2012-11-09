@@ -59,7 +59,7 @@
 
 //=============================================================================
 
-fbool language_english = 1;
+bool language_english = 1;
 
 COLOURMODE system_colour;
 
@@ -70,7 +70,7 @@ uint32 frame_count;
 //=============================================================================
 
 #ifdef NEOPOP_DEBUG
-static fbool debug_abort_instruction = FALSE;
+static bool debug_abort_instruction = FALSE;
 #endif
 
 #ifndef NDEBUG
@@ -116,11 +116,11 @@ void emulate(void)
 #include "TLCS900h_disassemble.h"
 
 //Debug Message Filters
-fbool filter_sound;
-fbool filter_bios;
-fbool filter_comms;
-fbool filter_dma;
-fbool filter_mem;
+bool filter_sound;
+bool filter_bios;
+bool filter_comms;
+bool filter_dma;
+bool filter_mem;
 
 char* disassemble(void)
 {
@@ -136,7 +136,7 @@ char* disassemble(void)
 		return TLCS900h_disassemble();
 }
 
-void emulate_debug(fbool dis_TLCS900h, fbool dis_Z80)
+void emulate_debug(bool dis_TLCS900h, bool dis_Z80)
 {
 	unsigned int gotVBL = 0;
 	while(!gotVBL)

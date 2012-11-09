@@ -21,6 +21,9 @@
 #include <gambatte.h>
 #include <resample/resamplerinfo.h>
 static gambatte::GB gbEmu;
+static float audioFramesPerUpdateScaler;
+static Resampler *resampler = nullptr;
+static uint8 activeResampler = 1;
 
 struct GbcCheat
 {
@@ -183,7 +186,7 @@ enum {
 	CFGKEY_GBCKEY_LEFT_UP = 266, CFGKEY_GBCKEY_RIGHT_UP = 267,
 	CFGKEY_GBCKEY_RIGHT_DOWN = 268, CFGKEY_GBCKEY_LEFT_DOWN = 269,
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
-	CFGKEY_FULL_GBC_SATURATION = 272,
+	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273
 };
 
 struct GBPalette
@@ -222,13 +225,14 @@ static void applyGBPalette(uint idx)
 
 static Option<OptionMethodVar<uint8, optionIsValidWithMax<sizeofArray(gbPal)-1> > > optionGBPal
 		(CFGKEY_GB_PAL_IDX, 0);
+static BasicByteOption optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
+static BasicByteOption optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
 
 namespace gambatte
 {
 extern bool useFullColorSaturation;
 }
 
-static BasicByteOption optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
 static Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation(CFGKEY_FULL_GBC_SATURATION, 0);
 
 const uint EmuSystem::maxPlayers = 1;
@@ -254,6 +258,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_GB_PAL_IDX: optionGBPal.readFromIO(io, readSize);
 		bcase CFGKEY_REPORT_AS_GBA: optionReportAsGba.readFromIO(io, readSize);
 		bcase CFGKEY_FULL_GBC_SATURATION: optionFullGbcSaturation.readFromIO(io, readSize);
+		bcase CFGKEY_AUDIO_RESAMPLER: optionAudioResampler.readFromIO(io, readSize);
 		bcase CFGKEY_GBCKEY_UP:	readKeyConfig2(io, gbcKeyIdxUp, readSize);
 		bcase CFGKEY_GBCKEY_RIGHT: readKeyConfig2(io, gbcKeyIdxRight, readSize);
 		bcase CFGKEY_GBCKEY_DOWN: readKeyConfig2(io, gbcKeyIdxDown, readSize);
@@ -277,6 +282,7 @@ void EmuSystem::writeConfig(Io *io)
 	optionGBPal.writeWithKeyIfNotDefault(io);
 	optionReportAsGba.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
+	optionAudioResampler.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, gbcKeyIdxUp, CFGKEY_GBCKEY_UP);
 	writeKeyConfig2(io, gbcKeyIdxRight, CFGKEY_GBCKEY_RIGHT);
 	writeKeyConfig2(io, gbcKeyIdxDown, CFGKEY_GBCKEY_DOWN);
@@ -325,7 +331,14 @@ static const int gbResX = 160, gbResY = 144;
 	static const PixelFormatDesc *pixFmt = &PixelFormatBGRA8888;
 #endif
 
-static gambatte::PixelType screenBuff[gbResX*gbResY] __attribute__ ((aligned (8))) {0};
+static const uint PADDING_HACK_SIZE =
+#ifdef CONFIG_BASE_ANDROID
+	gbResX*9; // Adreno 205 crashing due to driver bug reading beyond the array bounds, add some padding
+#else
+	0;
+#endif
+
+static gambatte::PixelType screenBuff[(gbResX*gbResY)+PADDING_HACK_SIZE] __attribute__ ((aligned (8))) {0};
 
 static class GbcInput : public gambatte::InputGetter
 {
@@ -477,29 +490,19 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
 {
+	emuView.initImage(0, gbResX, gbResY);
 	closeGame();
-
-	string_copy(gamePath, FsSys::workDir());
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
-
+	setupGamePaths(path);
 	auto result = gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0);
 	if(result != gambatte::LOADRES_OK)
 	{
 		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
 		return 0;
 	}
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
-
-	emuView.initImage(0, gbResX, gbResY);
 
 	readCheatFile();
 	applyCheats();
@@ -512,9 +515,6 @@ void EmuSystem::clearInputBuffers()
 {
 	gbcInput.bits = 0;
 }
-
-static float audioFramesPerUpdateScaler;
-static Resampler *resampler = 0;
 
 void EmuSystem::configAudioRate()
 {
@@ -529,16 +529,14 @@ void EmuSystem::configAudioRate()
 	long outputRate = float(optionSoundRate)*.9965;
 	#endif
 	audioFramesPerUpdateScaler = outputRate/2097152.;
-	iterateTimes(ResamplerInfo::num(), i)
+	if(optionAudioResampler >= ResamplerInfo::num())
+		optionAudioResampler = IG::min((int)ResamplerInfo::num(), 1);
+	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
 	{
-		ResamplerInfo r = ResamplerInfo::get(i);
-		logMsg("%d %s", i, r.desc);
-	}
-	if(!resampler || resampler->outRate() != outputRate)
-	{
-		logMsg("setting up resampler for output rate %ldHz", outputRate);
+		logMsg("setting up resampler %d for output rate %ldHz", (int)optionAudioResampler, outputRate);
 		delete resampler;
-		resampler = ResamplerInfo::get(1).create(2097152, outputRate, 35112 + 2064);
+		resampler = ResamplerInfo::get(optionAudioResampler).create(2097152, outputRate, 35112 + 2064);
+		activeResampler = optionAudioResampler;
 	}
 }
 
@@ -564,14 +562,9 @@ static void writeAudio(const int16 *srcBuff, unsigned srcFrames)
 	#endif
 }
 
-namespace gambatte
-{
-
-void commitVideoFrame()
+static void commitVideoFrame()
 {
 	emuView.updateAndDrawContent();
-}
-
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -580,7 +573,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	unsigned samples;
 
 	samples = 35112;
-	int frameSample = gbEmu.runFor(processGfx ? screenBuff : 0, 160, (uint_least32_t*)snd, samples, renderGfx);
+	int frameSample = gbEmu.runFor(processGfx ? screenBuff : nullptr, 160, (uint_least32_t*)snd, samples,
+		renderGfx ? commitVideoFrame : nullptr);
 	if(renderAudio)
 	{
 		if(frameSample == -1)
@@ -619,7 +613,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },

@@ -32,13 +32,213 @@
 #define _stricmp strcasecmp
 #endif
 
-GBASys gGba;
-GBALCD gLcd;
-GBAMem gMem;
+#define PP_DUMMY_MAP(z, n, text) memoryMap{ (u8 *)&dummyAddress, 0, nullptr, nullptr, nullptr },
+#define PP_DUMMY_MAP_REPEAT(n) BOOST_PP_REPEAT(n, PP_DUMMY_MAP, )
+static int dummyAddress = 0;
+static const memoryMap gbaMap[256] =
+{
+	memoryMap{ gGba.mem.bios, 0x3FFF , biosRead8, biosRead16, biosRead32 },
+	memoryMap{ (u8 *)&dummyAddress, 0, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.workRAM, 0x3FFFF, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.internalRAM, 0x7FFF, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.ioMem.b, 0x3FF , ioMemRead8, ioMemRead16, ioMemRead32 },
+	memoryMap{ gGba.lcd.paletteRAM, 0x3FF, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.lcd.vram, 0x1FFFF , vramRead8, vramRead16, vramRead32 },
+	memoryMap{ gGba.lcd.oam, 0x3FF, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.rom, 0x1FFFFFF , nullptr, rtcRead16, nullptr },
+	memoryMap{ gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr },
+	memoryMap{ (u8 *)&dummyAddress, 0, nullptr, nullptr, nullptr },
+	memoryMap{ gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr },
+	memoryMap{ (u8 *)&dummyAddress, 0 , eepromRead32, eepromRead32, eepromRead32 },
+	memoryMap{ flashSaveMemory, 0xFFFF , flashRead32, flashRead32, flashRead32 },
+	PP_DUMMY_MAP_REPEAT(241)
+};
 
+GBASys gGba;
+
+#ifdef USE_MEM_HANDLERS
+u32 biosRead32(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+	if(reg[15].I >> 24) {
+		if(address < 0x4000) {
+#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal word read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+#endif
+
+			return armRotLoad32(READ32LE(((u32 *)&cpu.gba->biosProtected)), address);
+		}
+		else return unreadableRead32(cpu, address);
+	} else
+		return armRotLoad32(READ32LE(((u32 *)&cpu.gba->mem.bios[address & 0x3FFC])), address);
+}
+
+u32 ioMemRead32(ARM7TDMI &cpu, u32 address)
+{
+  if((address < 0x4000400) && ioReadable[address & 0x3fc]) {
+	  if(ioReadable[(address & 0x3fc) + 2]) {
+		  if ((address & 0x3fc) == COMM_JOY_RECV_L)
+			  UPDATE_REG(cpu.gba, COMM_JOYSTAT, READ16LE(&cpu.gba->mem.ioMem.b[COMM_JOYSTAT]) & ~JOYSTAT_RECV);
+		  return armRotLoad32(READ32LE(((u32 *)&cpu.gba->mem.ioMem.b[address & 0x3fC])), address);
+	  } else {
+	  	return armRotLoad32(READ16LE(((u16 *)&cpu.gba->mem.ioMem.b[address & 0x3fc])), address);
+	  }
+  }
+  else
+  	return unreadableRead32(cpu, address);
+}
+
+u32 vramRead32(ARM7TDMI &cpu, u32 address)
+{
+	address = (address & 0x1fffc);
+	if (((cpu.gba->mem.ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+	{
+		return 0;
+	}
+	if ((address & 0x18000) == 0x18000)
+		address &= 0x17fff;
+	return armRotLoad32(READ32LE(((u32 *)&cpu.gba->lcd.vram[address])), address);
+}
+
+u32 eepromRead32(ARM7TDMI &cpu, u32 address)
+{
+  if(cpuEEPROMEnabled)
+    // no need to swap this
+    return eepromRead(address);
+  return unreadableRead32(cpu, address);
+}
+
+u32 flashRead32(ARM7TDMI &cpu, u32 address)
+{
+  if(cpuFlashEnabled | cpuSramEnabled)
+    // no need to swap this
+    return flashRead(address);
+  else
+  	return unreadableRead32(cpu, address);
+}
+
+u32 biosRead16(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+  if (reg[15].I >> 24) {
+		if(address < 0x4000) {
+	#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal halfword read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+	#endif
+			return armRotLoad16(READ16LE(((u16 *)&cpu.gba->biosProtected[address&2])), address);
+		} else return unreadableRead16(cpu, address);
+	} else
+		return armRotLoad16(READ16LE(((u16 *)&cpu.gba->mem.bios[address & 0x3FFE])), address);
+}
+
+
+u32 biosRead8(ARM7TDMI &cpu, u32 address)
+{
+	auto &reg = cpu.reg;
+	if (reg[15].I >> 24) {
+		if(address < 0x4000) {
+#ifdef GBA_LOGGING
+			if(systemVerbose & VERBOSE_ILLEGAL_READ) {
+				log("Illegal byte read: %08x at %08x\n", address, armMode ?
+					armNextPC - 4 : armNextPC - 2);
+			}
+#endif
+			return cpu.gba->biosProtected[address & 3];
+		} else return unreadableRead8(cpu, address);
+	}
+	return cpu.gba->mem.bios[address & 0x3FFF];
+}
+
+u32 ioMemRead8(ARM7TDMI &cpu, u32 address)
+{
+	if((address < 0x4000400) && ioReadable[address & 0x3ff])
+		return cpu.gba->mem.ioMem.b[address & 0x3ff];
+	else return unreadableRead8(cpu, address);
+}
+
+u32 vramRead8(ARM7TDMI &cpu, u32 address)
+{
+  address = (address & 0x1ffff);
+  if (((cpu.gba->mem.ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+    return 0;
+  if ((address & 0x18000) == 0x18000)
+    address &= 0x17fff;
+  return cpu.gba->lcd.vram[address];
+}
+
+u32 ioMemRead16(ARM7TDMI &cpu, u32 address)
+{
+	auto &cpuTotalTicks = cpu.cpuTotalTicks;
+	auto &timer0Value = cpu.gba->timers.timer0Value;
+	auto &timer0On = cpu.gba->timers.timer0On;
+	auto &timer0Ticks = cpu.gba->timers.timer0Ticks;
+	auto &timer0Reload = cpu.gba->timers.timer0Reload;
+	auto &timer0ClockReload  = cpu.gba->timers.timer0ClockReload;
+	auto &timer1Value = cpu.gba->timers.timer1Value;
+	auto &timer1On = cpu.gba->timers.timer1On;
+	auto &timer1Ticks = cpu.gba->timers.timer1Ticks;
+	auto &timer1Reload = cpu.gba->timers.timer1Reload;
+	auto &timer1ClockReload  = cpu.gba->timers.timer1ClockReload;
+	auto &timer2Value = cpu.gba->timers.timer2Value;
+	auto &timer2On = cpu.gba->timers.timer2On;
+	auto &timer2Ticks = cpu.gba->timers.timer2Ticks;
+	auto &timer2Reload = cpu.gba->timers.timer2Reload;
+	auto &timer2ClockReload  = cpu.gba->timers.timer2ClockReload;
+	auto &timer3Value = cpu.gba->timers.timer3Value;
+	auto &timer3On = cpu.gba->timers.timer3On;
+	auto &timer3Ticks = cpu.gba->timers.timer3Ticks;
+	auto &timer3Reload = cpu.gba->timers.timer3Reload;
+	auto &timer3ClockReload  = cpu.gba->timers.timer3ClockReload;
+  if((address < 0x4000400) && ioReadable[address & 0x3fe])
+  {
+    if (((address & 0x3fe)>0xFF) && ((address & 0x3fe)<0x10E))
+    {
+      if (((address & 0x3fe) == 0x100) && timer0On)
+      	return armRotLoad16(0xFFFF - ((timer0Ticks-cpuTotalTicks) >> timer0ClockReload), address);
+      else
+        if (((address & 0x3fe) == 0x104) && timer1On && !(cpu.gba->mem.ioMem.TM1CNT & 4))
+        	return armRotLoad16(0xFFFF - ((timer1Ticks-cpuTotalTicks) >> timer1ClockReload), address);
+        else
+          if (((address & 0x3fe) == 0x108) && timer2On && !(cpu.gba->mem.ioMem.TM2CNT & 4))
+          	return armRotLoad16(0xFFFF - ((timer2Ticks-cpuTotalTicks) >> timer2ClockReload), address);
+          else
+            if (((address & 0x3fe) == 0x10C) && timer3On && !(cpu.gba->mem.ioMem.TM3CNT & 4))
+            	return armRotLoad16(0xFFFF - ((timer3Ticks-cpuTotalTicks) >> timer3ClockReload), address);
+    }
+    return armRotLoad16(READ16LE(((u16 *)&cpu.gba->mem.ioMem.b[address & 0x3fe])), address);
+  }
+  else return unreadableRead16(cpu, address);
+}
+
+u32 vramRead16(ARM7TDMI &cpu, u32 address)
+{
+  address = (address & 0x1fffe);
+  if (((cpu.gba->mem.ioMem.DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
+  {
+  	return 0;
+  }
+  if ((address & 0x18000) == 0x18000)
+    address &= 0x17fff;
+  return armRotLoad16(READ16LE(((u16 *)&cpu.gba->lcd.vram[address])), address);
+}
+
+u32 rtcRead16(ARM7TDMI &cpu, u32 address)
+{
+	if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8)
+  	return armRotLoad16(rtcRead(*cpu.gba, address), address);
+  else
+  	return armRotLoad16(READ16LE(((u16 *)&cpu.gba->mem.rom[address & 0x1FFFFFE])), address);
+}
+#endif
 
 u32 mastercode = 0;
-static auto &layerEnableDelay = gLcd.layerEnableDelay;
 
 int gbaSaveType = 0; // used to remember the save type on reset
 #ifdef VBAM_USE_HOLDTYPE
@@ -66,14 +266,9 @@ u8 freezeOAM[0x400];
 bool debugger_last;
 #endif
 
-static auto &lcdTicks = gLcd.lcdTicks;
 void (*cpuSaveGameFunc)(u32,u8) = flashSaveDecide;
-static auto &renderLine = gLcd.renderLine;
-static auto &fxOn = gLcd.fxOn;
-static auto &windowOn = gLcd.windowOn;
 static const bool trackOAM = 1, oamUpdated = 1;
 
-static auto &lineMix = gLcd.lineMix;
 static const int TIMER_TICKS[4] = {
   0,
   6,
@@ -90,24 +285,12 @@ static const bool isInRom [16]=
   { false, false, false, false, false, false, false, false,
     true, true, true, true, true, true, false, false };
 
-uint memoryWait[16] =
-  { 0, 0, 2, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 0 };
-uint memoryWait32[16] =
-  { 0, 0, 5, 0, 0, 1, 1, 0, 7, 7, 9, 9, 13, 13, 4, 0 };
-uint memoryWaitSeq[16] =
-  { 0, 0, 2, 0, 0, 0, 0, 0, 2, 2, 4, 4, 8, 8, 4, 0 };
-uint memoryWaitSeq32[16] =
-  { 0, 0, 5, 0, 0, 1, 1, 0, 5, 5, 9, 9, 17, 17, 4, 0 };
-
 // The videoMemoryWait constants are used to add some waitstates
 // if the opcode access video memory data outside of vblank/hblank
 // It seems to happen on only one ticks for each pixel.
 // Not used for now (too problematic with current code).
 //const u8 videoMemoryWait[16] =
 //  {0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-
-u8 biosProtected[4];
 
 #ifdef WORDS_BIGENDIAN
 bool cpuBiosSwapped = false;
@@ -292,90 +475,90 @@ static const u32 myROM[] = {
 static bool saveNFlag, saveZFlag;
 
 static const variable_desc saveGameStruct[] = {
-  { &ioMem.DISPCNT  , sizeof(u16) },
-  { &ioMem.DISPSTAT , sizeof(u16) },
-  { &ioMem.VCOUNT   , sizeof(u16) },
-  { &ioMem.BG0CNT   , sizeof(u16) },
-  { &ioMem.BG1CNT   , sizeof(u16) },
-  { &ioMem.BG2CNT   , sizeof(u16) },
-  { &ioMem.BG3CNT   , sizeof(u16) },
-  { &ioMem.BG0HOFS  , sizeof(u16) },
-  { &ioMem.BG0VOFS  , sizeof(u16) },
-  { &ioMem.BG1HOFS  , sizeof(u16) },
-  { &ioMem.BG1VOFS  , sizeof(u16) },
-  { &ioMem.BG2HOFS  , sizeof(u16) },
-  { &ioMem.BG2VOFS  , sizeof(u16) },
-  { &ioMem.BG3HOFS  , sizeof(u16) },
-  { &ioMem.BG3VOFS  , sizeof(u16) },
-  { &ioMem.BG2PA    , sizeof(u16) },
-  { &ioMem.BG2PB    , sizeof(u16) },
-  { &ioMem.BG2PC    , sizeof(u16) },
-  { &ioMem.BG2PD    , sizeof(u16) },
-  { &ioMem.BG2X_L   , sizeof(u16) },
-  { &ioMem.BG2X_H   , sizeof(u16) },
-  { &ioMem.BG2Y_L   , sizeof(u16) },
-  { &ioMem.BG2Y_H   , sizeof(u16) },
-  { &ioMem.BG3PA    , sizeof(u16) },
-  { &ioMem.BG3PB    , sizeof(u16) },
-  { &ioMem.BG3PC    , sizeof(u16) },
-  { &ioMem.BG3PD    , sizeof(u16) },
-  { &ioMem.BG3X_L   , sizeof(u16) },
-  { &ioMem.BG3X_H   , sizeof(u16) },
-  { &ioMem.BG3Y_L   , sizeof(u16) },
-  { &ioMem.BG3Y_H   , sizeof(u16) },
-  { &ioMem.WIN0H    , sizeof(u16) },
-  { &ioMem.WIN1H    , sizeof(u16) },
-  { &ioMem.WIN0V    , sizeof(u16) },
-  { &ioMem.WIN1V    , sizeof(u16) },
-  { &ioMem.WININ    , sizeof(u16) },
-  { &ioMem.WINOUT   , sizeof(u16) },
-  { &ioMem.MOSAIC   , sizeof(u16) },
-  { &ioMem.BLDMOD   , sizeof(u16) },
-  { &ioMem.COLEV    , sizeof(u16) },
-  { &ioMem.COLY     , sizeof(u16) },
-  { &ioMem.DM0SAD_L , sizeof(u16) },
-  { &ioMem.DM0SAD_H , sizeof(u16) },
-  { &ioMem.DM0DAD_L , sizeof(u16) },
-  { &ioMem.DM0DAD_H , sizeof(u16) },
-  { &ioMem.DM0CNT_L , sizeof(u16) },
-  { &ioMem.DM0CNT_H , sizeof(u16) },
-  { &ioMem.DM1SAD_L , sizeof(u16) },
-  { &ioMem.DM1SAD_H , sizeof(u16) },
-  { &ioMem.DM1DAD_L , sizeof(u16) },
-  { &ioMem.DM1DAD_H , sizeof(u16) },
-  { &ioMem.DM1CNT_L , sizeof(u16) },
-  { &ioMem.DM1CNT_H , sizeof(u16) },
-  { &ioMem.DM2SAD_L , sizeof(u16) },
-  { &ioMem.DM2SAD_H , sizeof(u16) },
-  { &ioMem.DM2DAD_L , sizeof(u16) },
-  { &ioMem.DM2DAD_H , sizeof(u16) },
-  { &ioMem.DM2CNT_L , sizeof(u16) },
-  { &ioMem.DM2CNT_H , sizeof(u16) },
-  { &ioMem.DM3SAD_L , sizeof(u16) },
-  { &ioMem.DM3SAD_H , sizeof(u16) },
-  { &ioMem.DM3DAD_L , sizeof(u16) },
-  { &ioMem.DM3DAD_H , sizeof(u16) },
-  { &ioMem.DM3CNT_L , sizeof(u16) },
-  { &ioMem.DM3CNT_H , sizeof(u16) },
-  { &ioMem.TM0D     , sizeof(u16) },
-  { &ioMem.TM0CNT   , sizeof(u16) },
-  { &ioMem.TM1D     , sizeof(u16) },
-  { &ioMem.TM1CNT   , sizeof(u16) },
-  { &ioMem.TM2D     , sizeof(u16) },
-  { &ioMem.TM2CNT   , sizeof(u16) },
-  { &ioMem.TM3D     , sizeof(u16) },
-  { &ioMem.TM3CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.DISPCNT  , sizeof(u16) },
+  { &gGba.mem.ioMem.DISPSTAT , sizeof(u16) },
+  { &gGba.mem.ioMem.VCOUNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG0CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG1CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG0HOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG0VOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG1HOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG1VOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2HOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2VOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3HOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3VOFS  , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2PA    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2PB    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2PC    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2PD    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2X_L   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2X_H   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2Y_L   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG2Y_H   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3PA    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3PB    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3PC    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3PD    , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3X_L   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3X_H   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3Y_L   , sizeof(u16) },
+  { &gGba.mem.ioMem.BG3Y_H   , sizeof(u16) },
+  { &gGba.mem.ioMem.WIN0H    , sizeof(u16) },
+  { &gGba.mem.ioMem.WIN1H    , sizeof(u16) },
+  { &gGba.mem.ioMem.WIN0V    , sizeof(u16) },
+  { &gGba.mem.ioMem.WIN1V    , sizeof(u16) },
+  { &gGba.mem.ioMem.WININ    , sizeof(u16) },
+  { &gGba.mem.ioMem.WINOUT   , sizeof(u16) },
+  { &gGba.mem.ioMem.MOSAIC   , sizeof(u16) },
+  { &gGba.mem.ioMem.BLDMOD   , sizeof(u16) },
+  { &gGba.mem.ioMem.COLEV    , sizeof(u16) },
+  { &gGba.mem.ioMem.COLY     , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0SAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0SAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0DAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0DAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0CNT_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM0CNT_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1SAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1SAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1DAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1DAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1CNT_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM1CNT_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2SAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2SAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2DAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2DAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2CNT_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM2CNT_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3SAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3SAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3DAD_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3DAD_H , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3CNT_L , sizeof(u16) },
+  { &gGba.mem.ioMem.DM3CNT_H , sizeof(u16) },
+  { &gGba.mem.ioMem.TM0D     , sizeof(u16) },
+  { &gGba.mem.ioMem.TM0CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.TM1D     , sizeof(u16) },
+  { &gGba.mem.ioMem.TM1CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.TM2D     , sizeof(u16) },
+  { &gGba.mem.ioMem.TM2CNT   , sizeof(u16) },
+  { &gGba.mem.ioMem.TM3D     , sizeof(u16) },
+  { &gGba.mem.ioMem.TM3CNT   , sizeof(u16) },
   { &P1       , sizeof(u16) },
-  { &ioMem.IE       , sizeof(u16) },
-  { &ioMem.IF       , sizeof(u16) },
-  { &ioMem.IME      , sizeof(u16) },
+  { &gGba.mem.ioMem.IE       , sizeof(u16) },
+  { &gGba.mem.ioMem.IF       , sizeof(u16) },
+  { &gGba.mem.ioMem.IME      , sizeof(u16) },
   { &gGba.cpu.holdState, sizeof(bool) },
 #ifdef VBAM_USE_HOLDTYPE
   { &holdType, sizeof(int) },
 #else
   { &holdTypeDummy, sizeof(int) },
 #endif
-  { &lcdTicks, sizeof(int) },
+  { &gGba.lcd.lcdTicks, sizeof(int) },
   { &gGba.timers.timer0On , sizeof(bool) },
   { &gGba.timers.timer0Ticks , sizeof(int) },
   { &gGba.timers.timer0Reload , sizeof(int) },
@@ -400,8 +583,8 @@ static const variable_desc saveGameStruct[] = {
   { &gGba.dma.dma2Dest , sizeof(u32) },
   { &gGba.dma.dma3Source , sizeof(u32) },
   { &gGba.dma.dma3Dest , sizeof(u32) },
-  { &fxOn, sizeof(bool) },
-  { &windowOn, sizeof(bool) },
+  { &gGba.lcd.fxOn, sizeof(bool) },
+  { &gGba.lcd.windowOn, sizeof(bool) },
   { &saveNFlag , sizeof(bool) },
   { &gGba.cpu.C_FLAG , sizeof(bool) },
   { &saveZFlag , sizeof(bool) },
@@ -440,30 +623,30 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
 #ifdef VBAM_USE_IRQTICKS
 	int &IRQTicks = cpu.IRQTicks;
 #endif
-  int cpuLoopTicks = lcdTicks;
+  int cpuLoopTicks = cpu.gba->lcd.lcdTicks;
 
   /*if(soundTicks < cpuLoopTicks)
     cpuLoopTicks = soundTicks;*/
 
-  auto &timer0On = gGba.timers.timer0On;
-  auto &timer0Ticks = gGba.timers.timer0Ticks;
-  auto &timer1On = gGba.timers.timer1On;
-  auto &timer1Ticks = gGba.timers.timer1Ticks;
-  auto &timer2On = gGba.timers.timer2On;
-  auto &timer2Ticks = gGba.timers.timer2Ticks;
-  auto &timer3On = gGba.timers.timer3On;
-  auto &timer3Ticks = gGba.timers.timer3Ticks;
+  auto &timer0On = cpu.gba->timers.timer0On;
+  auto &timer0Ticks = cpu.gba->timers.timer0Ticks;
+  auto &timer1On = cpu.gba->timers.timer1On;
+  auto &timer1Ticks = cpu.gba->timers.timer1Ticks;
+  auto &timer2On = cpu.gba->timers.timer2On;
+  auto &timer2Ticks = cpu.gba->timers.timer2Ticks;
+  auto &timer3On = cpu.gba->timers.timer3On;
+  auto &timer3Ticks = cpu.gba->timers.timer3Ticks;
 
   if(timer0On && (timer0Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer0Ticks;
   }
-  if(timer1On && !(ioMem.TM1CNT & 4) && (timer1Ticks < cpuLoopTicks)) {
+  if(timer1On && !(cpu.gba->mem.ioMem.TM1CNT & 4) && (timer1Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer1Ticks;
   }
-  if(timer2On && !(ioMem.TM2CNT & 4) && (timer2Ticks < cpuLoopTicks)) {
+  if(timer2On && !(cpu.gba->mem.ioMem.TM2CNT & 4) && (timer2Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer2Ticks;
   }
-  if(timer3On && !(ioMem.TM3CNT & 4) && (timer3Ticks < cpuLoopTicks)) {
+  if(timer3On && !(cpu.gba->mem.ioMem.TM3CNT & 4) && (timer3Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer3Ticks;
   }
 #ifdef PROFILING
@@ -491,70 +674,70 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
   return cpuLoopTicks;
 }
 
-static void CPUUpdateWindow0()
+static void CPUUpdateWindow0(GBASys &gba)
 {
-  int x00 = ioMem.WIN0H>>8;
-  int x01 = ioMem.WIN0H & 255;
+  int x00 = gba.mem.ioMem.WIN0H>>8;
+  int x01 = gba.mem.ioMem.WIN0H & 255;
 
   if(x00 <= x01) {
     for(int i = 0; i < 240; i++) {
-      gfxInWin0[i] = (i >= x00 && i < x01);
+      gba.lcd.gfxInWin0[i] = (i >= x00 && i < x01);
     }
   } else {
     for(int i = 0; i < 240; i++) {
-      gfxInWin0[i] = (i >= x00 || i < x01);
+    	gba.lcd.gfxInWin0[i] = (i >= x00 || i < x01);
     }
   }
 }
 
-static void CPUUpdateWindow1()
+static void CPUUpdateWindow1(GBASys &gba)
 {
-  int x00 = ioMem.WIN1H>>8;
-  int x01 = ioMem.WIN1H & 255;
+  int x00 = gba.mem.ioMem.WIN1H>>8;
+  int x01 = gba.mem.ioMem.WIN1H & 255;
 
   if(x00 <= x01) {
     for(int i = 0; i < 240; i++) {
-      gfxInWin1[i] = (i >= x00 && i < x01);
+    	gba.lcd.gfxInWin1[i] = (i >= x00 && i < x01);
     }
   } else {
     for(int i = 0; i < 240; i++) {
-      gfxInWin1[i] = (i >= x00 || i < x01);
+    	gba.lcd.gfxInWin1[i] = (i >= x00 || i < x01);
     }
   }
 }
 
-static void CPUUpdateRenderBuffers(bool force)
+static void CPUUpdateRenderBuffers(GBASys &gba, bool force)
 {
-  if(!(layerEnable & 0x0100) || force) {
-    gfxClearArray(line0);
+  if(!(gba.lcd.layerEnable & 0x0100) || force) {
+    gfxClearArray(gba.lcd.line0);
   }
-  if(!(layerEnable & 0x0200) || force) {
-  	gfxClearArray(line1);
+  if(!(gba.lcd.layerEnable & 0x0200) || force) {
+  	gfxClearArray(gba.lcd.line1);
   }
-  if(!(layerEnable & 0x0400) || force) {
-  	gfxClearArray(line2);
+  if(!(gba.lcd.layerEnable & 0x0400) || force) {
+  	gfxClearArray(gba.lcd.line2);
   }
-  if(!(layerEnable & 0x0800) || force) {
-  	gfxClearArray(line3);
+  if(!(gba.lcd.layerEnable & 0x0800) || force) {
+  	gfxClearArray(gba.lcd.line3);
   }
 }
 
-static bool CPUWriteState(gzFile gzFile)
+static bool CPUWriteState(GBASys &gba, gzFile gzFile)
 {
   utilWriteInt(gzFile, SAVE_GAME_VERSION);
 
-  utilGzWrite(gzFile, &rom[0xa0], 16);
+  utilGzWrite(gzFile, &gba.mem.rom[0xa0], 16);
 
   utilWriteInt(gzFile, useBios);
 
-  utilGzWrite(gzFile, &gGba.cpu.reg[0], sizeof(gGba.cpu.reg));
+  utilGzWrite(gzFile, &gba.cpu.reg[0], sizeof(gba.cpu.reg));
 
-  saveNFlag = gGba.cpu.nFlag();
-  saveZFlag = gGba.cpu.zFlag();
+  saveNFlag = gba.cpu.nFlag();
+  saveZFlag = gba.cpu.zFlag();
   utilWriteData(gzFile, saveGameStruct);
 
   // new to version 0.7.1
-  utilWriteInt(gzFile, gGba.stopState);
+  utilWriteInt(gzFile, gba.stopState);
   // new to version 0.8
 #ifdef VBAM_USE_IRQTICKS
   utilWriteInt(gzFile, gCpu.IRQTicks);
@@ -563,14 +746,14 @@ static bool CPUWriteState(gzFile gzFile)
   utilWriteInt(gzFile, dummyIRQTicks);
 #endif
 
-  utilGzWrite(gzFile, internalRAM, 0x8000);
-  utilGzWrite(gzFile, paletteRAM, 0x400);
-  utilGzWrite(gzFile, workRAM, 0x40000);
-  utilGzWrite(gzFile, vram, 0x20000);
-  utilGzWrite(gzFile, oam, 0x400);
+  utilGzWrite(gzFile, gba.mem.internalRAM, 0x8000);
+  utilGzWrite(gzFile, gba.lcd.paletteRAM, 0x400);
+  utilGzWrite(gzFile, gba.mem.workRAM, 0x40000);
+  utilGzWrite(gzFile, gba.lcd.vram, 0x20000);
+  utilGzWrite(gzFile, gba.lcd.oam, 0x400);
   u32 dummyPix[241*162] = {0};
   utilGzWrite(gzFile, dummyPix, 4*241*162);
-  utilGzWrite(gzFile, ioMem.b, 0x400);
+  utilGzWrite(gzFile, gba.mem.ioMem.b, 0x400);
 
   eepromSaveGame(gzFile);
   flashSaveGame(gzFile);
@@ -584,7 +767,7 @@ static bool CPUWriteState(gzFile gzFile)
   return true;
 }
 
-bool CPUWriteState(const char *file)
+bool CPUWriteState(GBASys &gba, const char *file)
 {
   gzFile gzFile = utilGzOpen(file, "wb");
 
@@ -593,14 +776,14 @@ bool CPUWriteState(const char *file)
     return false;
   }
 
-  bool res = CPUWriteState(gzFile);
+  bool res = CPUWriteState(gba, gzFile);
 
   utilGzClose(gzFile);
 
   return res;
 }
 
-bool CPUWriteMemState(char *memory, int available)
+bool CPUWriteMemState(GBASys &gba, char *memory, int available)
 {
   gzFile gzFile = utilMemGzOpen(memory, available, "w");
 
@@ -608,7 +791,7 @@ bool CPUWriteMemState(char *memory, int available)
     return false;
   }
 
-  bool res = CPUWriteState(gzFile);
+  bool res = CPUWriteState(gba, gzFile);
 
   long pos = utilGzMemTell(gzFile)+8;
 
@@ -620,7 +803,7 @@ bool CPUWriteMemState(char *memory, int available)
   return res;
 }
 
-static bool CPUReadState(gzFile gzFile)
+static bool CPUReadState(GBASys &gba, gzFile gzFile)
 {
   int version = utilReadInt(gzFile);
 
@@ -635,7 +818,7 @@ static bool CPUReadState(gzFile gzFile)
 
   utilGzRead(gzFile, romname, 16);
 
-  if(memcmp(&rom[0xa0], romname, 16) != 0) {
+  if(memcmp(&gba.mem.rom[0xa0], romname, 16) != 0) {
     romname[16]=0;
     for(int i = 0; i < 16; i++)
       if(romname[i] < 32)
@@ -656,22 +839,22 @@ static bool CPUReadState(gzFile gzFile)
     return false;
   }
 
-  utilGzRead(gzFile, &gGba.cpu.reg[0], sizeof(gGba.cpu.reg));
+  utilGzRead(gzFile, &gba.cpu.reg[0], sizeof(gba.cpu.reg));
 
   utilReadData(gzFile, saveGameStruct);
-  gGba.cpu.updateNZFlags(saveNFlag, saveZFlag);
+  gba.cpu.updateNZFlags(saveNFlag, saveZFlag);
 
   if(version < SAVE_GAME_VERSION_3)
-  	gGba.stopState = false;
+  	gba.stopState = false;
   else
-  	gGba.stopState = utilReadInt(gzFile) ? true : false;
+  	gba.stopState = utilReadInt(gzFile) ? true : false;
 
   if(version < SAVE_GAME_VERSION_4)
   {
 #ifdef VBAM_USE_IRQTICKS
   	gCpu.IRQTicks = 0;
 #endif
-  	gGba.intState = false;
+  	gba.intState = false;
   }
   else
   {
@@ -686,21 +869,21 @@ static bool CPUReadState(gzFile gzFile)
     }
 #else
     utilReadInt(gzFile);
-    gGba.intState = false;
+    gba.intState = false;
 #endif
   }
 
-  utilGzRead(gzFile, internalRAM, 0x8000);
-  utilGzRead(gzFile, paletteRAM, 0x400);
-  utilGzRead(gzFile, workRAM, 0x40000);
-  utilGzRead(gzFile, vram, 0x20000);
-  utilGzRead(gzFile, oam, 0x400);
+  utilGzRead(gzFile, gba.mem.internalRAM, 0x8000);
+  utilGzRead(gzFile, gba.lcd.paletteRAM, 0x400);
+  utilGzRead(gzFile, gba.mem.workRAM, 0x40000);
+  utilGzRead(gzFile, gba.lcd.vram, 0x20000);
+  utilGzRead(gzFile, gba.lcd.oam, 0x400);
   u32 dummyPix[241*162];
   if(version < SAVE_GAME_VERSION_6)
     utilGzRead(gzFile, dummyPix, 4*240*160);
   else
     utilGzRead(gzFile, dummyPix, 4*241*162);
-  utilGzRead(gzFile, ioMem.b, 0x400);
+  utilGzRead(gzFile, gba.mem.ioMem.b, 0x400);
 
   if(skipSaveGameBattery) {
     // skip eeprom data
@@ -711,7 +894,7 @@ static bool CPUReadState(gzFile gzFile)
     eepromReadGame(gzFile, version);
     flashReadGame(gzFile, version);
   }
-  soundReadGame(gzFile, version);
+  soundReadGame(gba, gzFile, version);
 
   if(version > SAVE_GAME_VERSION_1) {
     if(skipSaveGameCheats) {
@@ -733,36 +916,36 @@ static bool CPUReadState(gzFile gzFile)
     (b) = (temp) >> 16;\
     (c) = (temp) & 0xFFFF;
 
-    SWAP(gGba.dma.dma0Source, ioMem.DM0SAD_H, ioMem.DM0SAD_L);
-    SWAP(gGba.dma.dma0Dest,   ioMem.DM0DAD_H, ioMem.DM0DAD_L);
-    SWAP(gGba.dma.dma1Source, ioMem.DM1SAD_H, ioMem.DM1SAD_L);
-    SWAP(gGba.dma.dma1Dest,   ioMem.DM1DAD_H, ioMem.DM1DAD_L);
-    SWAP(gGba.dma.dma2Source, ioMem.DM2SAD_H, ioMem.DM2SAD_L);
-    SWAP(gGba.dma.dma2Dest,   ioMem.DM2DAD_H, ioMem.DM2DAD_L);
-    SWAP(gGba.dma.dma3Source, ioMem.DM3SAD_H, ioMem.DM3SAD_L);
-    SWAP(gGba.dma.dma3Dest,   ioMem.DM3DAD_H, ioMem.DM3DAD_L);
+    SWAP(gba.dma.dma0Source, gba.mem.ioMem.DM0SAD_H, gba.mem.ioMem.DM0SAD_L);
+    SWAP(gba.dma.dma0Dest,   gba.mem.ioMem.DM0DAD_H, gba.mem.ioMem.DM0DAD_L);
+    SWAP(gba.dma.dma1Source, gba.mem.ioMem.DM1SAD_H, gba.mem.ioMem.DM1SAD_L);
+    SWAP(gba.dma.dma1Dest,   gba.mem.ioMem.DM1DAD_H, gba.mem.ioMem.DM1DAD_L);
+    SWAP(gba.dma.dma2Source, gba.mem.ioMem.DM2SAD_H, gba.mem.ioMem.DM2SAD_L);
+    SWAP(gba.dma.dma2Dest,   gba.mem.ioMem.DM2DAD_H, gba.mem.ioMem.DM2DAD_L);
+    SWAP(gba.dma.dma3Source, gba.mem.ioMem.DM3SAD_H, gba.mem.ioMem.DM3SAD_L);
+    SWAP(gba.dma.dma3Dest,   gba.mem.ioMem.DM3DAD_H, gba.mem.ioMem.DM3DAD_L);
   }
 
   if(version <= SAVE_GAME_VERSION_8) {
-  	gGba.timers.timer0ClockReload = TIMER_TICKS[ioMem.TM0CNT & 3];
-  	gGba.timers.timer1ClockReload = TIMER_TICKS[ioMem.TM1CNT & 3];
-  	gGba.timers.timer2ClockReload = TIMER_TICKS[ioMem.TM2CNT & 3];
-  	gGba.timers.timer3ClockReload = TIMER_TICKS[ioMem.TM3CNT & 3];
+  	gba.timers.timer0ClockReload = TIMER_TICKS[gba.mem.ioMem.TM0CNT & 3];
+  	gba.timers.timer1ClockReload = TIMER_TICKS[gba.mem.ioMem.TM1CNT & 3];
+  	gba.timers.timer2ClockReload = TIMER_TICKS[gba.mem.ioMem.TM2CNT & 3];
+  	gba.timers.timer3ClockReload = TIMER_TICKS[gba.mem.ioMem.TM3CNT & 3];
 
-  	gGba.timers.timer0Ticks = ((0x10000 - ioMem.TM0D) << gGba.timers.timer0ClockReload) - gGba.timers.timer0Ticks;
-  	gGba.timers.timer1Ticks = ((0x10000 - ioMem.TM1D) << gGba.timers.timer1ClockReload) - gGba.timers.timer1Ticks;
-  	gGba.timers.timer2Ticks = ((0x10000 - ioMem.TM2D) << gGba.timers.timer2ClockReload) - gGba.timers.timer2Ticks;
-  	gGba.timers.timer3Ticks = ((0x10000 - ioMem.TM3D) << gGba.timers.timer3ClockReload) - gGba.timers.timer3Ticks;
+  	gba.timers.timer0Ticks = ((0x10000 - gba.mem.ioMem.TM0D) << gba.timers.timer0ClockReload) - gba.timers.timer0Ticks;
+  	gba.timers.timer1Ticks = ((0x10000 - gba.mem.ioMem.TM1D) << gba.timers.timer1ClockReload) - gba.timers.timer1Ticks;
+  	gba.timers.timer2Ticks = ((0x10000 - gba.mem.ioMem.TM2D) << gba.timers.timer2ClockReload) - gba.timers.timer2Ticks;
+  	gba.timers.timer3Ticks = ((0x10000 - gba.mem.ioMem.TM3D) << gba.timers.timer3ClockReload) - gba.timers.timer3Ticks;
     interp_rate();
   }
 
   // set pointers!
-  layerEnable = layerSettings & ioMem.DISPCNT;
+  gba.lcd.layerEnable = layerSettings & gba.mem.ioMem.DISPCNT;
 
-  CPUUpdateRender();
-  CPUUpdateRenderBuffers(true);
-  CPUUpdateWindow0();
-  CPUUpdateWindow1();
+  CPUUpdateRender(gba);
+  CPUUpdateRenderBuffers(gba, true);
+  CPUUpdateWindow0(gba);
+  CPUUpdateWindow1(gba);
   gbaSaveType = 0;
   switch(saveType) {
   case 0:
@@ -790,36 +973,36 @@ static bool CPUReadState(gzFile gzFile)
     gbaSaveType = 3;
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-  if(gGba.cpu.armState) {
-  	gGba.cpu.ARM_PREFETCH();
+  if(gba.cpu.armState) {
+  	gba.cpu.ARM_PREFETCH();
   } else {
-  	gGba.cpu.THUMB_PREFETCH();
+  	gba.cpu.THUMB_PREFETCH();
   }
 
-  CPUUpdateRegister(gGba.cpu, 0x204, CPUReadHalfWordQuick(0x4000204));
+  CPUUpdateRegister(gba.cpu, 0x204, CPUReadHalfWordQuick(gba.cpu, 0x4000204));
 
   return true;
 }
 
-bool CPUReadMemState(char *memory, int available)
+bool CPUReadMemState(GBASys &gba, char *memory, int available)
 {
   gzFile gzFile = utilMemGzOpen(memory, available, "r");
 
-  bool res = CPUReadState(gzFile);
+  bool res = CPUReadState(gba, gzFile);
 
   utilGzClose(gzFile);
 
   return res;
 }
 
-bool CPUReadState(const char * file)
+bool CPUReadState(GBASys &gba, const char * file)
 {
   gzFile gzFile = utilGzOpen(file, "rb");
 
   if(gzFile == NULL)
     return false;
 
-  bool res = CPUReadState(gzFile);
+  bool res = CPUReadState(gba, gzFile);
 
   utilGzClose(gzFile);
 
@@ -851,7 +1034,7 @@ bool CPUExportEepromFile(const char *fileName)
   return true;
 }
 
-bool CPUWriteBatteryFile(const char *fileName)
+bool CPUWriteBatteryFile(GBASys &gba, const char *fileName)
 {
   if(gbaSaveType == 0) {
     if(eepromInUse)
@@ -899,7 +1082,7 @@ bool CPUWriteBatteryFile(const char *fileName)
   return true;
 }
 
-bool CPUReadGSASnapshot(const char *fileName)
+bool CPUReadGSASnapshot(GBASys &gba, const char *fileName)
 {
   int i;
   FILE *file = fopen(fileName, "rb");
@@ -933,7 +1116,7 @@ bool CPUReadGSASnapshot(const char *fileName)
   for(i = 0; i < 16; i++)
     if(buffer[i] < 32)
       buffer[i] = 32;
-  memcpy(buffer2, &rom[0xa0], 16);
+  memcpy(buffer2, &gba.mem.rom[0xa0], 16);
   buffer2[16] = 0;
   for(i = 0; i < 16; i++)
     if(buffer2[i] < 32)
@@ -960,11 +1143,11 @@ bool CPUReadGSASnapshot(const char *fileName)
     return false;
   }
   fclose(file);
-  CPUReset();
+  CPUReset(gba);
   return true;
 }
 
-bool CPUReadGSASPSnapshot(const char *fileName)
+bool CPUReadGSASPSnapshot(GBASys &gba, const char *fileName)
 {
   const char gsvfooter[] = "xV4\x12";
   const size_t namepos=0x0c, namesz=12;
@@ -983,7 +1166,7 @@ bool CPUReadGSASPSnapshot(const char *fileName)
   fread(savename, 1, namesz, file);
   savename[namesz] = 0;
 
-  memcpy(romname, &rom[0xa0], namesz);
+  memcpy(romname, &gba.mem.rom[0xa0], namesz);
   romname[namesz] = 0;
 
   if(memcmp(romname, savename, namesz)) {
@@ -1015,12 +1198,12 @@ bool CPUReadGSASPSnapshot(const char *fileName)
   fread(flashSaveMemory, 1, FLASH_128K_SZ, file);
 
   fclose(file);
-  CPUReset();
+  CPUReset(gba);
   return true;
 }
 
 
-bool CPUWriteGSASnapshot(const char *fileName,
+bool CPUWriteGSASnapshot(GBASys &gba, const char *fileName,
                          const char *title,
                          const char *desc,
                          const char *notes)
@@ -1058,11 +1241,11 @@ bool CPUWriteGSASnapshot(const char *fileName,
 
   char *temp = new char[0x2001c];
   memset(temp, 0, 28);
-  memcpy(temp, &rom[0xa0], 16); // copy internal name
-  temp[0x10] = rom[0xbe]; // reserved area (old checksum)
-  temp[0x11] = rom[0xbf]; // reserved area (old checksum)
-  temp[0x12] = rom[0xbd]; // complement check
-  temp[0x13] = rom[0xb0]; // maker
+  memcpy(temp, &gba.mem.rom[0xa0], 16); // copy internal name
+  temp[0x10] = gba.mem.rom[0xbe]; // reserved area (old checksum)
+  temp[0x11] = gba.mem.rom[0xbf]; // reserved area (old checksum)
+  temp[0x12] = gba.mem.rom[0xbd]; // complement check
+  temp[0x13] = gba.mem.rom[0xb0]; // maker
   temp[0x14] = 1; // 1 save ?
   memcpy(&temp[0x1c], flashSaveMemory, saveSize); // copy save
   fwrite(temp, 1, totalSize, file); // write save + header
@@ -1080,7 +1263,7 @@ bool CPUWriteGSASnapshot(const char *fileName,
   return true;
 }
 
-bool CPUImportEepromFile(const char *fileName)
+bool CPUImportEepromFile(GBASys &gba, const char *fileName)
 {
   FILE *file = fopen(fileName, "rb");
 
@@ -1124,7 +1307,7 @@ bool CPUImportEepromFile(const char *fileName)
   return true;
 }
 
-bool CPUReadBatteryFile(const char *fileName)
+bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
 {
 	// Converted to Imagine IO funcs due to WebOS fread glitch
   auto *file = IoSys::open(fileName);
@@ -1262,7 +1445,7 @@ void CPUCleanUp()
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 }
 
-int CPULoadRom(const char *szFile)
+int CPULoadRom(GBASys &gba, const char *szFile)
 {
   romSize = 0x2000000;
   /*if(rom != NULL) {
@@ -1271,9 +1454,9 @@ int CPULoadRom(const char *szFile)
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
-  memset(workRAM, 0, sizeof(workRAM));
+  memset(gba.mem.workRAM, 0, sizeof(gba.mem.workRAM));
 
-  u8 *whereToLoad = cpuIsMultiBoot ? workRAM : rom;
+  u8 *whereToLoad = cpuIsMultiBoot ? gba.mem.workRAM : gba.mem.rom;
 
 #ifndef NO_DEBUGGER
   if(CPUIsELF(szFile)) {
@@ -1300,30 +1483,30 @@ int CPULoadRom(const char *szFile)
 	  }
   }
 
-  u16 *temp = (u16 *)(rom+((romSize+1)&~1));
+  u16 *temp = (u16 *)(gba.mem.rom+((romSize+1)&~1));
   int i;
   for(i = (romSize+1)&~1; i < 0x2000000; i+=2) {
     WRITE16LE(temp, (i >> 1) & 0xFFFF);
     temp++;
   }
 
-  memset(bios, 0, sizeof(bios));
+  memset(gba.mem.bios, 0, sizeof(gba.mem.bios));
 
-  memset(internalRAM, 0, sizeof(internalRAM));
+  memset(gba.mem.internalRAM, 0, sizeof(gba.mem.internalRAM));
 
-  memset(ioMem.b, 0, sizeof(ioMem));
+  memset(gba.mem.ioMem.b, 0, sizeof(gba.mem.ioMem));
 
-  gLcd.reset();
+  gba.lcd.reset();
 
   flashInit();
   eepromInit();
 
-  CPUUpdateRenderBuffers(true);
+  CPUUpdateRenderBuffers(gba, true);
 
   return romSize;
 }
 
-void doMirroring (bool b)
+void doMirroring (GBASys &gba, bool b)
 {
   u32 mirroredRomSize = (((romSize)>>20) & 0x3F)<<20;
   if ((mirroredRomSize <=0x800000) && (b))
@@ -1334,13 +1517,13 @@ void doMirroring (bool b)
     while (mirroredRomAddress<0x01000000)
     {
     	logMsg("copying rom with size %X to %X", mirroredRomSize, mirroredRomAddress);
-      memcpy ((u16 *)(rom+mirroredRomAddress), (u16 *)(rom), mirroredRomSize);
+      memcpy ((u16 *)(gba.mem.rom+mirroredRomAddress), (u16 *)(gba.mem.rom), mirroredRomSize);
       mirroredRomAddress+=mirroredRomSize;
     }
   }
 }
 
-static const char *dispModeName(void (*renderLine)(MixColorType *lineMix, const GBAMem::IoMem &ioMem))
+static const char *dispModeName(GBALCD::RenderLineFunc renderLine)
 {
 	if(renderLine == mode0RenderLine) return "0";
 	else if(renderLine == mode0RenderLineNoWindow) return "0NW";
@@ -1363,24 +1546,24 @@ static const char *dispModeName(void (*renderLine)(MixColorType *lineMix, const 
 	else return "Invalid";
 }
 
-static void blankLine(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
+static void blankLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
 	for(int x = 0; x < 240; x++)
 		lineMix[x] = convColor(0x7fff);
 }
 
-static void blankLineUpdateLastVCount(MixColorType *lineMix, const GBAMem::IoMem &ioMem)
+static void blankLineUpdateLastVCount(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
-	blankLine(lineMix, ioMem);
-	gfxLastVCOUNT = ioMem.VCOUNT;
+	blankLine(lineMix, lcd, ioMem);
+	lcd.gfxLastVCOUNT = ioMem.VCOUNT;
 }
 
-void CPUUpdateRender()
+void CPUUpdateRender(GBASys &gba)
 {
-  if(ioMem.DISPCNT & 0x80)
+  if(gba.mem.ioMem.DISPCNT & 0x80)
   {
 	  systemMessage(0, "Set forced blank");
-	  renderLine = ((ioMem.DISPCNT & 7) == 0) ? blankLine : blankLineUpdateLastVCount;
+	  gba.lcd.renderLine = ((gba.mem.ioMem.DISPCNT & 7) == 0) ? blankLine : blankLineUpdateLastVCount;
   }
   else
   {
@@ -1393,17 +1576,17 @@ void CPUUpdateRender()
   	static const GBALCD::RenderLineFunc all[8] =
 			{ mode0RenderLineAll, mode1RenderLineAll, mode2RenderLineAll, mode3RenderLineAll, mode4RenderLineAll, mode5RenderLineAll,
 			blankLine };
-  	uint mode = ioMem.DISPCNT & 7;
-  	renderLine = ((!fxOn && !windowOn && !(layerEnable & 0x8000)) || cpuDisableSfx) ? norm[mode] :
-  			(fxOn && !windowOn && !(layerEnable & 0x8000)) ? noWin[mode] :
+  	uint mode = gba.mem.ioMem.DISPCNT & 7;
+  	gba.lcd.renderLine = ((!gba.lcd.fxOn && !gba.lcd.windowOn && !(gba.lcd.layerEnable & 0x8000)) || cpuDisableSfx) ? norm[mode] :
+  			(gba.lcd.fxOn && !gba.lcd.windowOn && !(gba.lcd.layerEnable & 0x8000)) ? noWin[mode] :
   			all[mode];
 	  //systemMessage(0, "Set mode %s\n", dispModeName(renderLine));
   }
 }
 
-static void CPUUpdateCPSR()
+static void CPUUpdateCPSR(GBASys &gba)
 {
-	gGba.cpu.updateCPSR();
+	gba.cpu.updateCPSR();
 }
 
 void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
@@ -1464,7 +1647,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
           VCOUNT);
     }
 #endif
-    cpu.softwareInterrupt();
+    cpu.softwareInterrupt(cpu.gba->mem.ioMem);
     return;
   }
   // This would be correct, but it causes problems if uncommented
@@ -1504,7 +1687,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 #ifdef VBAM_USE_HOLDTYPE
     holdType = -1;
 #endif
-    gGba.stopState = true;
+    cpu.gba->stopState = true;
     cpu.cpuNextEvent = cpu.cpuTotalTicks;
     break;
   case 0x04:
@@ -1516,7 +1699,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
           VCOUNT);
     }
 #endif
-    cpu.softwareInterrupt();
+    cpu.softwareInterrupt(cpu.gba->mem.ioMem);
     break;
   case 0x05:
 #ifdef GBA_LOGGING
@@ -1525,13 +1708,13 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
           VCOUNT);
     }
 #endif
-    cpu.softwareInterrupt();
+    cpu.softwareInterrupt(cpu.gba->mem.ioMem);
     break;
   case 0x06:
-  	cpu.softwareInterrupt();
+  	cpu.softwareInterrupt(cpu.gba->mem.ioMem);
     break;
   case 0x07:
-  	cpu.softwareInterrupt();
+  	cpu.softwareInterrupt(cpu.gba->mem.ioMem);
     break;
   case 0x08:
     BIOS_Sqrt(cpu);
@@ -1747,28 +1930,28 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
 
 void CPUCompareVCOUNT(ARM7TDMI &cpu)
 {
-  if(ioMem.VCOUNT == (ioMem.DISPSTAT >> 8)) {
-  	ioMem.DISPSTAT |= 4;
+  if(cpu.gba->mem.ioMem.VCOUNT == (cpu.gba->mem.ioMem.DISPSTAT >> 8)) {
+  	cpu.gba->mem.ioMem.DISPSTAT |= 4;
     //UPDATE_REG(0x04, DISPSTAT);
 
-    if(ioMem.DISPSTAT & 0x20) {
-    	ioMem.IF |= 4;
+    if(cpu.gba->mem.ioMem.DISPSTAT & 0x20) {
+    	cpu.gba->mem.ioMem.IF |= 4;
       //UPDATE_REG(0x202, IF);
     }
   } else {
-  	ioMem.DISPSTAT &= 0xFFFB;
+  	cpu.gba->mem.ioMem.DISPSTAT &= 0xFFFB;
     //UPDATE_REG(0x4, DISPSTAT);
   }
-  if (layerEnableDelay>0)
+  if (cpu.gba->lcd.layerEnableDelay>0)
   {
-      layerEnableDelay--;
-      if (layerEnableDelay==1)
-          layerEnable = layerSettings & ioMem.DISPCNT;
+  	cpu.gba->lcd.layerEnableDelay--;
+      if (cpu.gba->lcd.layerEnableDelay==1)
+      	cpu.gba->lcd.layerEnable = layerSettings & cpu.gba->mem.ioMem.DISPCNT;
   }
 
 }
 
-void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
+void doDMA(GBASys &gba, ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
 {
 	auto &reg = cpu.reg;
   int sm = s >> 24;
@@ -1777,7 +1960,7 @@ void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
   int dw = 0;
   int sc = c;
 
-  gGba.dma.cpuDmaCount = c;
+  gba.dma.cpuDmaCount = c;
   // This is done to get the correct waitstates.
   if (sm>15)
       sm=15;
@@ -1797,8 +1980,8 @@ void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
       }
     } else {
       while(c != 0) {
-      	gGba.dma.cpuDmaLast = CPUReadMemory(cpu, s);
-        CPUWriteMemory(cpu, d, gGba.dma.cpuDmaLast);
+      	gba.dma.cpuDmaLast = CPUReadMemory(cpu, s);
+        CPUWriteMemory(cpu, d, gba.dma.cpuDmaLast);
         d += di;
         s += si;
         c--;
@@ -1816,9 +1999,9 @@ void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
       }
     } else {
       while(c != 0) {
-      	gGba.dma.cpuDmaLast = CPUReadHalfWord(cpu, s);
-        CPUWriteHalfWord(cpu, d, gGba.dma.cpuDmaLast);
-        gGba.dma.cpuDmaLast |= (gGba.dma.cpuDmaLast<<16);
+      	gba.dma.cpuDmaLast = CPUReadHalfWord(cpu, s);
+        CPUWriteHalfWord(cpu, d, gba.dma.cpuDmaLast);
+        gba.dma.cpuDmaLast |= (gba.dma.cpuDmaLast<<16);
         d += di;
         s += si;
         c--;
@@ -1826,45 +2009,45 @@ void doDMA(ARM7TDMI &cpu, u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
     }
   }
 
-  gGba.dma.cpuDmaCount = 0;
+  gba.dma.cpuDmaCount = 0;
 
   int totalTicks = 0;
 
   if(transfer32) {
-      sw =1+memoryWaitSeq32[sm & 15];
-      dw =1+memoryWaitSeq32[dm & 15];
-      totalTicks = (sw+dw)*(sc-1) + 6 + memoryWait32[sm & 15] +
-          memoryWaitSeq32[dm & 15];
+      sw =1+cpu.memoryWaitSeq32[sm & 15];
+      dw =1+cpu.memoryWaitSeq32[dm & 15];
+      totalTicks = (sw+dw)*(sc-1) + 6 + cpu.memoryWait32[sm & 15] +
+      		cpu.memoryWaitSeq32[dm & 15];
   }
   else
   {
-     sw = 1+memoryWaitSeq[sm & 15];
-     dw = 1+memoryWaitSeq[dm & 15];
-      totalTicks = (sw+dw)*(sc-1) + 6 + memoryWait[sm & 15] +
-          memoryWaitSeq[dm & 15];
+     sw = 1+cpu.memoryWaitSeq[sm & 15];
+     dw = 1+cpu.memoryWaitSeq[dm & 15];
+      totalTicks = (sw+dw)*(sc-1) + 6 + cpu.memoryWait[sm & 15] +
+      		cpu.memoryWaitSeq[dm & 15];
   }
 
-  gGba.dma.cpuDmaTicksToUpdate += totalTicks;
+  gba.dma.cpuDmaTicksToUpdate += totalTicks;
 
 }
 
-void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
+void CPUCheckDMA(GBASys &gba, ARM7TDMI &cpu, int reason, int dmamask)
 {
-	auto &IF = ioMem.IF;
-	auto &dma0Source = gGba.dma.dma0Source;
-	auto &dma0Dest = gGba.dma.dma0Dest;
-	auto &dma1Source = gGba.dma.dma1Source;
-	auto &dma1Dest = gGba.dma.dma1Dest;
-	auto &dma2Source = gGba.dma.dma2Source;
-	auto &dma2Dest = gGba.dma.dma2Dest;
-	auto &dma3Source = gGba.dma.dma3Source;
-	auto &dma3Dest = gGba.dma.dma3Dest;
+	auto &IF = gba.mem.ioMem.IF;
+	auto &dma0Source = gba.dma.dma0Source;
+	auto &dma0Dest = gba.dma.dma0Dest;
+	auto &dma1Source = gba.dma.dma1Source;
+	auto &dma1Dest = gba.dma.dma1Dest;
+	auto &dma2Source = gba.dma.dma2Source;
+	auto &dma2Dest = gba.dma.dma2Dest;
+	auto &dma3Source = gba.dma.dma3Source;
+	auto &dma3Dest = gba.dma.dma3Dest;
 	static const u32 addrControlMap[4] = { 4, (u32)-4, 0, 4 };
   // DMA 0
-  if((ioMem.DM0CNT_H & 0x8000) && (dmamask & 1)) {
-    if(((ioMem.DM0CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = addrControlMap[(ioMem.DM0CNT_H >> 7) & 3];
-      u32 destIncrement = addrControlMap[(ioMem.DM0CNT_H >> 5) & 3];
+  if((gba.mem.ioMem.DM0CNT_H & 0x8000) && (dmamask & 1)) {
+    if(((gba.mem.ioMem.DM0CNT_H >> 12) & 3) == reason) {
+      u32 sourceIncrement = addrControlMap[(gba.mem.ioMem.DM0CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(gba.mem.ioMem.DM0CNT_H >> 5) & 3];
 #ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA0) {
         int count = (DM0CNT_L ? DM0CNT_L : 0x4000) << 1;
@@ -1875,33 +2058,33 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
             count);
       }
 #endif
-      doDMA(cpu, dma0Source, dma0Dest, sourceIncrement, destIncrement,
-      		ioMem.DM0CNT_L ? ioMem.DM0CNT_L : 0x4000,
-            		ioMem.DM0CNT_H & 0x0400);
-      gGba.dma.cpuDmaHack = true;
+      doDMA(gba, cpu, dma0Source, dma0Dest, sourceIncrement, destIncrement,
+      		gba.mem.ioMem.DM0CNT_L ? gba.mem.ioMem.DM0CNT_L : 0x4000,
+      				gba.mem.ioMem.DM0CNT_H & 0x0400);
+      gba.dma.cpuDmaHack = true;
 
-      if(ioMem.DM0CNT_H & 0x4000) {
+      if(gba.mem.ioMem.DM0CNT_H & 0x4000) {
         IF |= 0x0100;
         //UPDATE_REG(0x202, IF);
         cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((ioMem.DM0CNT_H >> 5) & 3) == 3) {
-        dma0Dest = ioMem.DM0DAD_L | (ioMem.DM0DAD_H << 16);
+      if(((gba.mem.ioMem.DM0CNT_H >> 5) & 3) == 3) {
+        dma0Dest = gba.mem.ioMem.DM0DAD_L | (gba.mem.ioMem.DM0DAD_H << 16);
       }
 
-      if(!(ioMem.DM0CNT_H & 0x0200) || (reason == 0)) {
-      	ioMem.DM0CNT_H &= 0x7FFF;
+      if(!(gba.mem.ioMem.DM0CNT_H & 0x0200) || (reason == 0)) {
+      	gba.mem.ioMem.DM0CNT_H &= 0x7FFF;
         //UPDATE_REG(0xBA, DM0CNT_H);
       }
     }
   }
 
   // DMA 1
-  if((ioMem.DM1CNT_H & 0x8000) && (dmamask & 2)) {
-    if(((ioMem.DM1CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = addrControlMap[(ioMem.DM1CNT_H >> 7) & 3];
-      u32 destIncrement = addrControlMap[(ioMem.DM1CNT_H >> 5) & 3];
+  if((gba.mem.ioMem.DM1CNT_H & 0x8000) && (dmamask & 2)) {
+    if(((gba.mem.ioMem.DM1CNT_H >> 12) & 3) == reason) {
+      u32 sourceIncrement = addrControlMap[(gba.mem.ioMem.DM1CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(gba.mem.ioMem.DM1CNT_H >> 5) & 3];
       if(reason == 3) {
 #ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA1) {
@@ -1910,7 +2093,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
               16);
         }
 #endif
-        doDMA(cpu, dma1Source, dma1Dest, sourceIncrement, 0, 4,
+        doDMA(gba, cpu, dma1Source, dma1Dest, sourceIncrement, 0, 4,
               0x0400);
       } else {
 #ifdef GBA_LOGGING
@@ -1923,34 +2106,34 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
               count);
         }
 #endif
-        doDMA(cpu, dma1Source, dma1Dest, sourceIncrement, destIncrement,
-        		ioMem.DM1CNT_L ? ioMem.DM1CNT_L : 0x4000,
-        				ioMem.DM1CNT_H & 0x0400);
+        doDMA(gba, cpu, dma1Source, dma1Dest, sourceIncrement, destIncrement,
+        		gba.mem.ioMem.DM1CNT_L ? gba.mem.ioMem.DM1CNT_L : 0x4000,
+        				gba.mem.ioMem.DM1CNT_H & 0x0400);
       }
-      gGba.dma.cpuDmaHack = true;
+      gba.dma.cpuDmaHack = true;
 
-      if(ioMem.DM1CNT_H & 0x4000) {
+      if(gba.mem.ioMem.DM1CNT_H & 0x4000) {
         IF |= 0x0200;
         //UPDATE_REG(0x202, IF);
         cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((ioMem.DM1CNT_H >> 5) & 3) == 3) {
-        dma1Dest = ioMem.DM1DAD_L | (ioMem.DM1DAD_H << 16);
+      if(((gba.mem.ioMem.DM1CNT_H >> 5) & 3) == 3) {
+        dma1Dest = gba.mem.ioMem.DM1DAD_L | (gba.mem.ioMem.DM1DAD_H << 16);
       }
 
-      if(!(ioMem.DM1CNT_H & 0x0200) || (reason == 0)) {
-      	ioMem.DM1CNT_H &= 0x7FFF;
+      if(!(gba.mem.ioMem.DM1CNT_H & 0x0200) || (reason == 0)) {
+      	gba.mem.ioMem.DM1CNT_H &= 0x7FFF;
         //UPDATE_REG(0xC6, DM1CNT_H);
       }
     }
   }
 
   // DMA 2
-  if((ioMem.DM2CNT_H & 0x8000) && (dmamask & 4)) {
-    if(((ioMem.DM2CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = addrControlMap[(ioMem.DM2CNT_H >> 7) & 3];
-      u32 destIncrement = addrControlMap[(ioMem.DM2CNT_H >> 5) & 3];
+  if((gba.mem.ioMem.DM2CNT_H & 0x8000) && (dmamask & 4)) {
+    if(((gba.mem.ioMem.DM2CNT_H >> 12) & 3) == reason) {
+      u32 sourceIncrement = addrControlMap[(gba.mem.ioMem.DM2CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(gba.mem.ioMem.DM2CNT_H >> 5) & 3];
       if(reason == 3) {
 #ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA2) {
@@ -1960,7 +2143,7 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
               count);
         }
 #endif
-        doDMA(cpu, dma2Source, dma2Dest, sourceIncrement, 0, 4,
+        doDMA(gba, cpu, dma2Source, dma2Dest, sourceIncrement, 0, 4,
               0x0400);
       } else {
 #ifdef GBA_LOGGING
@@ -1973,34 +2156,34 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
               count);
         }
 #endif
-        doDMA(cpu, dma2Source, dma2Dest, sourceIncrement, destIncrement,
-        		ioMem.DM2CNT_L ? ioMem.DM2CNT_L : 0x4000,
-        				ioMem.DM2CNT_H & 0x0400);
+        doDMA(gba, cpu, dma2Source, dma2Dest, sourceIncrement, destIncrement,
+        		gba.mem.ioMem.DM2CNT_L ? gba.mem.ioMem.DM2CNT_L : 0x4000,
+        				gba.mem.ioMem.DM2CNT_H & 0x0400);
       }
-      gGba.dma.cpuDmaHack = true;
+      gba.dma.cpuDmaHack = true;
 
-      if(ioMem.DM2CNT_H & 0x4000) {
+      if(gba.mem.ioMem.DM2CNT_H & 0x4000) {
         IF |= 0x0400;
         //UPDATE_REG(0x202, IF);
         cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((ioMem.DM2CNT_H >> 5) & 3) == 3) {
-        dma2Dest = ioMem.DM2DAD_L | (ioMem.DM2DAD_H << 16);
+      if(((gba.mem.ioMem.DM2CNT_H >> 5) & 3) == 3) {
+        dma2Dest = gba.mem.ioMem.DM2DAD_L | (gba.mem.ioMem.DM2DAD_H << 16);
       }
 
-      if(!(ioMem.DM2CNT_H & 0x0200) || (reason == 0)) {
-      	ioMem.DM2CNT_H &= 0x7FFF;
+      if(!(gba.mem.ioMem.DM2CNT_H & 0x0200) || (reason == 0)) {
+      	gba.mem.ioMem.DM2CNT_H &= 0x7FFF;
         //UPDATE_REG(0xD2, DM2CNT_H);
       }
     }
   }
 
   // DMA 3
-  if((ioMem.DM3CNT_H & 0x8000) && (dmamask & 8)) {
-    if(((ioMem.DM3CNT_H >> 12) & 3) == reason) {
-      u32 sourceIncrement = addrControlMap[(ioMem.DM3CNT_H >> 7) & 3];
-      u32 destIncrement = addrControlMap[(ioMem.DM3CNT_H >> 5) & 3];
+  if((gba.mem.ioMem.DM3CNT_H & 0x8000) && (dmamask & 8)) {
+    if(((gba.mem.ioMem.DM3CNT_H >> 12) & 3) == reason) {
+      u32 sourceIncrement = addrControlMap[(gba.mem.ioMem.DM3CNT_H >> 7) & 3];
+      u32 destIncrement = addrControlMap[(gba.mem.ioMem.DM3CNT_H >> 5) & 3];
 #ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA3) {
         int count = (DM3CNT_L ? DM3CNT_L : 0x10000) << 1;
@@ -2011,21 +2194,21 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
             count);
       }
 #endif
-      doDMA(cpu, dma3Source, dma3Dest, sourceIncrement, destIncrement,
-      		ioMem.DM3CNT_L ? ioMem.DM3CNT_L : 0x10000,
-      				ioMem.DM3CNT_H & 0x0400);
-      if(ioMem.DM3CNT_H & 0x4000) {
+      doDMA(gba, cpu, dma3Source, dma3Dest, sourceIncrement, destIncrement,
+      		gba.mem.ioMem.DM3CNT_L ? gba.mem.ioMem.DM3CNT_L : 0x10000,
+      				gba.mem.ioMem.DM3CNT_H & 0x0400);
+      if(gba.mem.ioMem.DM3CNT_H & 0x4000) {
         IF |= 0x0800;
         //UPDATE_REG(0x202, IF);
         cpu.cpuNextEvent = cpu.cpuTotalTicks;
       }
 
-      if(((ioMem.DM3CNT_H >> 5) & 3) == 3) {
-        dma3Dest = ioMem.DM3DAD_L | (ioMem.DM3DAD_H << 16);
+      if(((gba.mem.ioMem.DM3CNT_H >> 5) & 3) == 3) {
+        dma3Dest = gba.mem.ioMem.DM3DAD_L | (gba.mem.ioMem.DM3DAD_H << 16);
       }
 
-      if(!(ioMem.DM3CNT_H & 0x0200) || (reason == 0)) {
-      	ioMem.DM3CNT_H &= 0x7FFF;
+      if(!(gba.mem.ioMem.DM3CNT_H & 0x0200) || (reason == 0)) {
+      	gba.mem.ioMem.DM3CNT_H &= 0x7FFF;
         //UPDATE_REG(0xDE, DM3CNT_H);
       }
     }
@@ -2035,41 +2218,42 @@ void CPUCheckDMA(ARM7TDMI &cpu, int reason, int dmamask)
 void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 {
 	auto &armIrqEnable = cpu.armIrqEnable;
-	auto &IE = ioMem.IE;
-	auto &IF = ioMem.IF;
-	auto &IME = ioMem.IME;
+	auto &IE = cpu.gba->mem.ioMem.IE;
+	auto &IF = cpu.gba->mem.ioMem.IF;
+	auto &IME = cpu.gba->mem.ioMem.IME;
 	auto &busPrefetchCount = cpu.busPrefetchCount;
 	auto &busPrefetch = cpu.busPrefetch;
 	auto &busPrefetchEnable = cpu.busPrefetchEnable;
-	auto &dma0Source = gGba.dma.dma0Source;
-	auto &dma0Dest = gGba.dma.dma0Dest;
-	auto &dma1Source = gGba.dma.dma1Source;
-	auto &dma1Dest = gGba.dma.dma1Dest;
-	auto &dma2Source = gGba.dma.dma2Source;
-	auto &dma2Dest = gGba.dma.dma2Dest;
-	auto &dma3Source = gGba.dma.dma3Source;
-	auto &dma3Dest = gGba.dma.dma3Dest;
-	auto &timerOnOffDelay = gGba.timers.timerOnOffDelay;
-	auto &timer0Value = gGba.timers.timer0Value;
-	auto &timer0On = gGba.timers.timer0On;
-	auto &timer0Ticks = gGba.timers.timer0Ticks;
-	auto &timer0ClockReload  = gGba.timers.timer0ClockReload;
-	auto &timer0Reload  = gGba.timers.timer0Reload;
-	auto &timer1Value = gGba.timers.timer1Value;
-	auto &timer1On = gGba.timers.timer1On;
-	auto &timer1Ticks = gGba.timers.timer1Ticks;
-	auto &timer1ClockReload  = gGba.timers.timer1ClockReload;
-	auto &timer1Reload  = gGba.timers.timer1Reload;
-	auto &timer2Value = gGba.timers.timer2Value;
-	auto &timer2On = gGba.timers.timer2On;
-	auto &timer2Ticks = gGba.timers.timer2Ticks;
-	auto &timer2ClockReload  = gGba.timers.timer2ClockReload;
-	auto &timer2Reload  = gGba.timers.timer2Reload;
-	auto &timer3Value = gGba.timers.timer3Value;
-	auto &timer3On = gGba.timers.timer3On;
-	auto &timer3Ticks = gGba.timers.timer3Ticks;
-	auto &timer3ClockReload  = gGba.timers.timer3ClockReload;
-	auto &timer3Reload  = gGba.timers.timer3Reload;
+	auto &dma0Source = cpu.gba->dma.dma0Source;
+	auto &dma0Dest = cpu.gba->dma.dma0Dest;
+	auto &dma1Source = cpu.gba->dma.dma1Source;
+	auto &dma1Dest = cpu.gba->dma.dma1Dest;
+	auto &dma2Source = cpu.gba->dma.dma2Source;
+	auto &dma2Dest = cpu.gba->dma.dma2Dest;
+	auto &dma3Source = cpu.gba->dma.dma3Source;
+	auto &dma3Dest = cpu.gba->dma.dma3Dest;
+	auto &timerOnOffDelay = cpu.gba->timers.timerOnOffDelay;
+	auto &timer0Value = cpu.gba->timers.timer0Value;
+	auto &timer0On = cpu.gba->timers.timer0On;
+	auto &timer0Ticks = cpu.gba->timers.timer0Ticks;
+	auto &timer0ClockReload  = cpu.gba->timers.timer0ClockReload;
+	auto &timer0Reload  = cpu.gba->timers.timer0Reload;
+	auto &timer1Value = cpu.gba->timers.timer1Value;
+	auto &timer1On = cpu.gba->timers.timer1On;
+	auto &timer1Ticks = cpu.gba->timers.timer1Ticks;
+	auto &timer1ClockReload  = cpu.gba->timers.timer1ClockReload;
+	auto &timer1Reload  = cpu.gba->timers.timer1Reload;
+	auto &timer2Value = cpu.gba->timers.timer2Value;
+	auto &timer2On = cpu.gba->timers.timer2On;
+	auto &timer2Ticks = cpu.gba->timers.timer2Ticks;
+	auto &timer2ClockReload  = cpu.gba->timers.timer2ClockReload;
+	auto &timer2Reload  = cpu.gba->timers.timer2Reload;
+	auto &timer3Value = cpu.gba->timers.timer3Value;
+	auto &timer3On = cpu.gba->timers.timer3On;
+	auto &timer3Ticks = cpu.gba->timers.timer3Ticks;
+	auto &timer3ClockReload  = cpu.gba->timers.timer3ClockReload;
+	auto &timer3Reload  = cpu.gba->timers.timer3Reload;
+	auto &ioMem = cpu.gba->mem.ioMem;
 
   switch(address)
   {
@@ -2077,27 +2261,27 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
     { // we need to place the following code in { } because we declare & initialize variables in a case statement
       if((value & 7) > 5) {
         // display modes above 0-5 are prohibited
-      	ioMem.DISPCNT = (value & 7);
+      	cpu.gba->mem.ioMem.DISPCNT = (value & 7);
       }
-      bool change = (0 != ((ioMem.DISPCNT ^ value) & 0x80));
-      bool changeBG = (0 != ((ioMem.DISPCNT ^ value) & 0x0F00));
-      u16 changeBGon = ((~ioMem.DISPCNT) & value) & 0x0F00; // these layers are being activated
+      bool change = (0 != ((cpu.gba->mem.ioMem.DISPCNT ^ value) & 0x80));
+      bool changeBG = (0 != ((cpu.gba->mem.ioMem.DISPCNT ^ value) & 0x0F00));
+      u16 changeBGon = ((~cpu.gba->mem.ioMem.DISPCNT) & value) & 0x0F00; // these layers are being activated
 
       ioMem.DISPCNT = (value & 0xFFF7); // bit 3 can only be accessed by the BIOS to enable GBC mode
       //UPDATE_REG(0x00, DISPCNT);
 
       if(changeBGon) {
-        layerEnableDelay = 4;
-        layerEnable = layerSettings & value & (~changeBGon);
+      	cpu.gba->lcd.layerEnableDelay = 4;
+      	cpu.gba->lcd.layerEnable = layerSettings & value & (~changeBGon);
       } else {
-        layerEnable = layerSettings & value;
+      	cpu.gba->lcd.layerEnable = layerSettings & value;
         // CPUUpdateTicks();
       }
 
-      windowOn = (layerEnable & 0x6000) ? true : false;
+      cpu.gba->lcd.windowOn = (cpu.gba->lcd.layerEnable & 0x6000) ? true : false;
       if(change && !((value & 0x80))) {
         if(!(ioMem.DISPSTAT & 1)) {
-          lcdTicks = 1008;
+        	cpu.gba->lcd.lcdTicks = 1008;
           //      VCOUNT = 0;
           //      UPDATE_REG(0x06, VCOUNT);
           ioMem.DISPSTAT &= 0xFFFC;
@@ -2106,11 +2290,11 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
         }
         //        (*renderLine)();
       }
-      CPUUpdateRender();
+      CPUUpdateRender(*cpu.gba);
       // we only care about changes in BG0-BG3
       if(changeBG) {
       	logMsg("changed bg mode: %d", ioMem.DISPCNT & 7);
-        CPUUpdateRenderBuffers(false);
+        CPUUpdateRenderBuffers(*cpu.gba, false);
       }
       break;
     }
@@ -2188,22 +2372,22 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x28:
   	ioMem.BG2X_L = value;
     //UPDATE_REG(0x28, BG2X_L);
-    gfxBG2Changed |= 1;
+  	cpu.gba->lcd.gfxBG2Changed |= 1;
     break;
   case 0x2A:
   	ioMem.BG2X_H = (value & 0xFFF);
     //UPDATE_REG(0x2A, BG2X_H);
-    gfxBG2Changed |= 1;
+  	cpu.gba->lcd.gfxBG2Changed |= 1;
     break;
   case 0x2C:
   	ioMem.BG2Y_L = value;
     //UPDATE_REG(0x2C, BG2Y_L);
-    gfxBG2Changed |= 2;
+  	cpu.gba->lcd.gfxBG2Changed |= 2;
     break;
   case 0x2E:
   	ioMem.BG2Y_H = value & 0xFFF;
     //UPDATE_REG(0x2E, BG2Y_H);
-    gfxBG2Changed |= 2;
+  	cpu.gba->lcd.gfxBG2Changed |= 2;
     break;
   case 0x30:
   	ioMem.BG3PA = value;
@@ -2224,32 +2408,32 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x38:
   	ioMem.BG3X_L = value;
     //UPDATE_REG(0x38, BG3X_L);
-    gfxBG3Changed |= 1;
+  	cpu.gba->lcd.gfxBG3Changed |= 1;
     break;
   case 0x3A:
   	ioMem.BG3X_H = value & 0xFFF;
     //UPDATE_REG(0x3A, BG3X_H);
-    gfxBG3Changed |= 1;
+  	cpu.gba->lcd.gfxBG3Changed |= 1;
     break;
   case 0x3C:
   	ioMem.BG3Y_L = value;
     //UPDATE_REG(0x3C, BG3Y_L);
-    gfxBG3Changed |= 2;
+  	cpu.gba->lcd.gfxBG3Changed |= 2;
     break;
   case 0x3E:
   	ioMem.BG3Y_H = value & 0xFFF;
     //UPDATE_REG(0x3E, BG3Y_H);
-    gfxBG3Changed |= 2;
+  	cpu.gba->lcd.gfxBG3Changed |= 2;
     break;
   case 0x40:
   	ioMem.WIN0H = value;
     //UPDATE_REG(0x40, WIN0H);
-    CPUUpdateWindow0();
+    CPUUpdateWindow0(*cpu.gba);
     break;
   case 0x42:
   	ioMem.WIN1H = value;
     //UPDATE_REG(0x42, WIN1H);
-    CPUUpdateWindow1();
+    CPUUpdateWindow1(*cpu.gba);
     break;
   case 0x44:
   	ioMem.WIN0V = value;
@@ -2274,8 +2458,8 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x50:
   	ioMem.BLDMOD = value & 0x3FFF;
     //UPDATE_REG(0x50, BLDMOD);
-    fxOn = ((ioMem.BLDMOD>>6)&3) != 0;
-    CPUUpdateRender();
+  	cpu.gba->lcd.fxOn = ((ioMem.BLDMOD>>6)&3) != 0;
+    CPUUpdateRender(*cpu.gba);
     break;
   case 0x52:
   	ioMem.COLEV = value & 0x1F1F;
@@ -2297,8 +2481,8 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x7c:
   case 0x80:
   case 0x84:
-    soundEvent(address&0xFF, (u8)(value & 0xFF));
-    soundEvent((address&0xFF)+1, (u8)(value>>8));
+    soundEvent(*cpu.gba, address&0xFF, (u8)(value & 0xFF));
+    soundEvent(*cpu.gba, (address&0xFF)+1, (u8)(value>>8));
     break;
   case 0x82:
   case 0x88:
@@ -2314,7 +2498,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x9a:
   case 0x9c:
   case 0x9e:
-    soundEvent(address&0xFF, value);
+    soundEvent(*cpu.gba, address&0xFF, value);
     break;
   case 0xB0:
   	ioMem.DM0SAD_L = value;
@@ -2347,7 +2531,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
       if(start && (value & 0x8000)) {
         dma0Source = ioMem.DM0SAD_L | (ioMem.DM0SAD_H << 16);
         dma0Dest = ioMem.DM0DAD_L | (ioMem.DM0DAD_H << 16);
-        CPUCheckDMA(cpu,0, 1);
+        CPUCheckDMA(*cpu.gba, cpu,0, 1);
       }
     }
     break;
@@ -2382,7 +2566,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
       if(start && (value & 0x8000)) {
         dma1Source = ioMem.DM1SAD_L | (ioMem.DM1SAD_H << 16);
         dma1Dest = ioMem.DM1DAD_L | (ioMem.DM1DAD_H << 16);
-        CPUCheckDMA(cpu,0, 2);
+        CPUCheckDMA(*cpu.gba, cpu,0, 2);
       }
     }
     break;
@@ -2419,7 +2603,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
         dma2Source = ioMem.DM2SAD_L | (ioMem.DM2SAD_H << 16);
         dma2Dest = ioMem.DM2DAD_L | (ioMem.DM2DAD_H << 16);
 
-        CPUCheckDMA(cpu,0, 4);
+        CPUCheckDMA(*cpu.gba, cpu,0, 4);
       }
     }
     break;
@@ -2455,7 +2639,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
       if(start && (value & 0x8000)) {
         dma3Source = ioMem.DM3SAD_L | (ioMem.DM3SAD_H << 16);
         dma3Dest = ioMem.DM3DAD_L | (ioMem.DM3DAD_H << 16);
-        CPUCheckDMA(cpu,0,8);
+        CPUCheckDMA(*cpu.gba, cpu,0,8);
       }
     }
     break;
@@ -2504,7 +2688,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 	  {
 		  LinkSSend(value);
 	  }
-	  UPDATE_REG(COMM_SIODATA8, value);
+	  UPDATE_REG(cpu.gba, COMM_SIODATA8, value);
 	  break;
 
   case 0x130:
@@ -2513,11 +2697,11 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 	  break;
 
   case 0x132:
-	  UPDATE_REG(0x132, value & 0xC3FF);
+	  UPDATE_REG(cpu.gba, 0x132, value & 0xC3FF);
 	  break;
 
   case COMM_RCNT:
-	  StartGPLink(value);
+	  StartGPLink(cpu.gba, value);
 	  break;
 
   case COMM_JOYCNT:
@@ -2529,27 +2713,27 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
 		  if (value & JOYCNT_SEND_COMPLETE)	cur &= ~JOYCNT_SEND_COMPLETE;
 		  if (value & JOYCNT_INT_ENABLE)	cur |= JOYCNT_INT_ENABLE;
 
-		  UPDATE_REG(COMM_JOYCNT, cur);
+		  UPDATE_REG(cpu.gba, COMM_JOYCNT, cur);
 	  }
 	  break;
 
   case COMM_JOY_RECV_L:
-	  UPDATE_REG(COMM_JOY_RECV_L, value);
+	  UPDATE_REG(cpu.gba, COMM_JOY_RECV_L, value);
 	  break;
   case COMM_JOY_RECV_H:
-	  UPDATE_REG(COMM_JOY_RECV_H, value);	  
+	  UPDATE_REG(cpu.gba, COMM_JOY_RECV_H, value);
 	  break;
 
   case COMM_JOY_TRANS_L:
-	  UPDATE_REG(COMM_JOY_TRANS_L, value);
-	  UPDATE_REG(COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) | JOYSTAT_SEND);
+	  UPDATE_REG(cpu.gba, COMM_JOY_TRANS_L, value);
+	  UPDATE_REG(cpu.gba, COMM_JOYSTAT, READ16LE(&ioMem.b[COMM_JOYSTAT]) | JOYSTAT_SEND);
 	  break;
   case COMM_JOY_TRANS_H:
-	  UPDATE_REG(COMM_JOY_TRANS_H, value);
+	  UPDATE_REG(cpu.gba, COMM_JOY_TRANS_H, value);
 	  break;
 
   case COMM_JOYSTAT:
-	  UPDATE_REG(COMM_JOYSTAT, (READ16LE(&ioMem.b[COMM_JOYSTAT]) & 0xf) | (value & 0xf0));
+	  UPDATE_REG(cpu.gba, COMM_JOYSTAT, (READ16LE(&ioMem.b[COMM_JOYSTAT]) & 0xf) | (value & 0xf0));
 	  break;
 
   case 0x200:
@@ -2564,34 +2748,34 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
     break;
   case 0x204:
     {
-      memoryWait[0x0e] = memoryWaitSeq[0x0e] = gamepakRamWaitState[value & 3];
+    	cpu.memoryWait[0x0e] = cpu.memoryWaitSeq[0x0e] = gamepakRamWaitState[value & 3];
 
       if(!speedHack) {
-        memoryWait[0x08] = memoryWait[0x09] = gamepakWaitState[(value >> 2) & 3];
-        memoryWaitSeq[0x08] = memoryWaitSeq[0x09] =
+      	cpu.memoryWait[0x08] = cpu.memoryWait[0x09] = gamepakWaitState[(value >> 2) & 3];
+      	cpu.memoryWaitSeq[0x08] = cpu.memoryWaitSeq[0x09] =
           gamepakWaitState0[(value >> 4) & 1];
 
-        memoryWait[0x0a] = memoryWait[0x0b] = gamepakWaitState[(value >> 5) & 3];
-        memoryWaitSeq[0x0a] = memoryWaitSeq[0x0b] =
+      	cpu.memoryWait[0x0a] = cpu.memoryWait[0x0b] = gamepakWaitState[(value >> 5) & 3];
+      	cpu.memoryWaitSeq[0x0a] = cpu.memoryWaitSeq[0x0b] =
           gamepakWaitState1[(value >> 7) & 1];
 
-        memoryWait[0x0c] = memoryWait[0x0d] = gamepakWaitState[(value >> 8) & 3];
-        memoryWaitSeq[0x0c] = memoryWaitSeq[0x0d] =
+      	cpu.memoryWait[0x0c] = cpu.memoryWait[0x0d] = gamepakWaitState[(value >> 8) & 3];
+      	cpu.memoryWaitSeq[0x0c] = cpu.memoryWaitSeq[0x0d] =
           gamepakWaitState2[(value >> 10) & 1];
       } else {
-        memoryWait[0x08] = memoryWait[0x09] = 3;
-        memoryWaitSeq[0x08] = memoryWaitSeq[0x09] = 1;
+      	cpu.memoryWait[0x08] = cpu.memoryWait[0x09] = 3;
+      	cpu.memoryWaitSeq[0x08] = cpu.memoryWaitSeq[0x09] = 1;
 
-        memoryWait[0x0a] = memoryWait[0x0b] = 3;
-        memoryWaitSeq[0x0a] = memoryWaitSeq[0x0b] = 1;
+      	cpu.memoryWait[0x0a] = cpu.memoryWait[0x0b] = 3;
+      	cpu.memoryWaitSeq[0x0a] = cpu.memoryWaitSeq[0x0b] = 1;
 
-        memoryWait[0x0c] = memoryWait[0x0d] = 3;
-        memoryWaitSeq[0x0c] = memoryWaitSeq[0x0d] = 1;
+      	cpu.memoryWait[0x0c] = cpu.memoryWait[0x0d] = 3;
+      	cpu.memoryWaitSeq[0x0c] = cpu.memoryWaitSeq[0x0d] = 1;
       }
 
       for(int i = 8; i < 15; i++) {
-        memoryWait32[i] = memoryWait[i] + memoryWaitSeq[i] + 1;
-        memoryWaitSeq32[i] = memoryWaitSeq[i]*2 + 1;
+      	cpu.memoryWait32[i] = cpu.memoryWait[i] + cpu.memoryWaitSeq[i] + 1;
+      	cpu.memoryWaitSeq32[i] = cpu.memoryWaitSeq[i]*2 + 1;
       }
 
       if((value & 0x4000) == 0x4000) {
@@ -2603,7 +2787,7 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
         busPrefetch = false;
         busPrefetchCount = 0;
       }
-      UPDATE_REG(0x204, value & 0x7FFF);
+      UPDATE_REG(cpu.gba, 0x204, value & 0x7FFF);
 
     }
     break;
@@ -2616,37 +2800,38 @@ void CPUUpdateRegister(ARM7TDMI &cpu, u32 address, u16 value)
   case 0x300:
     if(value != 0)
       value &= 0xFFFE;
-    UPDATE_REG(0x300, value);
+    UPDATE_REG(cpu.gba, 0x300, value);
     break;
   default:
-    UPDATE_REG(address&0x3FE, value);
+    UPDATE_REG(cpu.gba, address&0x3FE, value);
     break;
   }
 }
 
-void applyTimer(ARM7TDMI &cpu)
+void applyTimer(GBASys &gba, ARM7TDMI &cpu)
 {
-	auto &timerOnOffDelay = gGba.timers.timerOnOffDelay;
-	auto &timer0Value = gGba.timers.timer0Value;
-	auto &timer0On = gGba.timers.timer0On;
-	auto &timer0Ticks = gGba.timers.timer0Ticks;
-	auto &timer0ClockReload  = gGba.timers.timer0ClockReload;
-	auto &timer0Reload  = gGba.timers.timer0Reload;
-	auto &timer1Value = gGba.timers.timer1Value;
-	auto &timer1On = gGba.timers.timer1On;
-	auto &timer1Ticks = gGba.timers.timer1Ticks;
-	auto &timer1ClockReload  = gGba.timers.timer1ClockReload;
-	auto &timer1Reload  = gGba.timers.timer1Reload;
-	auto &timer2Value = gGba.timers.timer2Value;
-	auto &timer2On = gGba.timers.timer2On;
-	auto &timer2Ticks = gGba.timers.timer2Ticks;
-	auto &timer2ClockReload  = gGba.timers.timer2ClockReload;
-	auto &timer2Reload  = gGba.timers.timer2Reload;
-	auto &timer3Value = gGba.timers.timer3Value;
-	auto &timer3On = gGba.timers.timer3On;
-	auto &timer3Ticks = gGba.timers.timer3Ticks;
-	auto &timer3ClockReload  = gGba.timers.timer3ClockReload;
-	auto &timer3Reload  = gGba.timers.timer3Reload;
+	auto &ioMem = gba.mem.ioMem;
+	auto &timerOnOffDelay = gba.timers.timerOnOffDelay;
+	auto &timer0Value = gba.timers.timer0Value;
+	auto &timer0On = gba.timers.timer0On;
+	auto &timer0Ticks = gba.timers.timer0Ticks;
+	auto &timer0ClockReload  = gba.timers.timer0ClockReload;
+	auto &timer0Reload  = gba.timers.timer0Reload;
+	auto &timer1Value = gba.timers.timer1Value;
+	auto &timer1On = gba.timers.timer1On;
+	auto &timer1Ticks = gba.timers.timer1Ticks;
+	auto &timer1ClockReload  = gba.timers.timer1ClockReload;
+	auto &timer1Reload  = gba.timers.timer1Reload;
+	auto &timer2Value = gba.timers.timer2Value;
+	auto &timer2On = gba.timers.timer2On;
+	auto &timer2Ticks = gba.timers.timer2Ticks;
+	auto &timer2ClockReload  = gba.timers.timer2ClockReload;
+	auto &timer2Reload  = gba.timers.timer2Reload;
+	auto &timer3Value = gba.timers.timer3Value;
+	auto &timer3On = gba.timers.timer3On;
+	auto &timer3Ticks = gba.timers.timer3Ticks;
+	auto &timer3ClockReload  = gba.timers.timer3ClockReload;
+	auto &timer3Reload  = gba.timers.timer3Reload;
 
   if (timerOnOffDelay & 1)
   {
@@ -2707,7 +2892,7 @@ void applyTimer(ARM7TDMI &cpu)
   timerOnOffDelay = 0;
 }
 
-void CPUInit(const char *biosFileName, bool useBiosFile)
+void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
 {
 #ifdef WORDS_BIGENDIAN
   if(!cpuBiosSwapped) {
@@ -2726,7 +2911,7 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
     int size = 0x4000;
     if(utilLoad(biosFileName,
                 CPUIsGBABios,
-                bios,
+                gba.mem.bios,
                 size)) {
       if(size == 0x4000)
         useBios = true;
@@ -2736,15 +2921,15 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
   }
 
   if(!useBios) {
-    memcpy(bios, myROM, sizeof(myROM));
+    memcpy(gba.mem.bios, myROM, sizeof(myROM));
   }
 
   int i = 0;
 
-  biosProtected[0] = 0x00;
-  biosProtected[1] = 0xf0;
-  biosProtected[2] = 0x29;
-  biosProtected[3] = 0xe1;
+  gba.biosProtected[0] = 0x00;
+  gba.biosProtected[1] = 0xf0;
+  gba.biosProtected[2] = 0x29;
+  gba.biosProtected[3] = 0xe1;
 
   /*FILE *outFile = fopen("cpuBitsSet.txt", "wb");
   for(i = 0; i < 256; i++) {
@@ -2798,9 +2983,11 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
   for(i = 0x304; i < 0x400; i++)
     ioReadable[i] = false;*/
 
+  memcpy(gba.cpu.map, gbaMap, sizeof(gbaMap));
+
   if(romSize < 0x1fe2000) {
-  	*((uint16a *)&rom[0x1fe209c]) = 0xdffa; // SWI 0xFA
-  	*((uint16a *)&rom[0x1fe209e]) = 0x4770; // BX LR
+  	*((uint16a *)&gba.mem.rom[0x1fe209c]) = 0xdffa; // SWI 0xFA
+  	*((uint16a *)&gba.mem.rom[0x1fe209e]) = 0x4770; // BX LR
   } else {
 #ifdef VBAM_USE_AGB_PRINT
     agbPrintEnable(false);
@@ -2808,7 +2995,7 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
   }
 }
 
-void CPUReset()
+void CPUReset(GBASys &gba)
 {
   if(gbaSaveType == 0) {
     if(eepromInUse)
@@ -2825,22 +3012,22 @@ void CPUReset()
   }
   rtcReset();
   // clean io memory
-  memset(ioMem.b, 0, 0x400);
+  memset(gba.mem.ioMem.b, 0, 0x400);
   // clean OAM, palette, picture, & vram
-  gLcd.resetAll(useBios, skipBios);
+  gba.lcd.resetAll(useBios, skipBios, gba.mem.ioMem);
 
-  lineMix = &gLcd.pix[240 * ioMem.VCOUNT];
-  gGba.dma.reset();
-  ioMem.TM0D     = 0x0000;
-  ioMem.TM0CNT   = 0x0000;
-  ioMem.TM1D     = 0x0000;
-  ioMem.TM1CNT   = 0x0000;
-  ioMem.TM2D     = 0x0000;
-  ioMem.TM2CNT   = 0x0000;
-  ioMem.TM3D     = 0x0000;
-  ioMem.TM3CNT   = 0x0000;
+  gba.lcd.lineMix = &gba.lcd.pix[240 * gba.mem.ioMem.VCOUNT];
+  gba.dma.reset(gba.mem.ioMem);
+  gba.mem.ioMem.TM0D     = 0x0000;
+  gba.mem.ioMem.TM0CNT   = 0x0000;
+  gba.mem.ioMem.TM1D     = 0x0000;
+  gba.mem.ioMem.TM1CNT   = 0x0000;
+  gba.mem.ioMem.TM2D     = 0x0000;
+  gba.mem.ioMem.TM2CNT   = 0x0000;
+  gba.mem.ioMem.TM3D     = 0x0000;
+  gba.mem.ioMem.TM3CNT   = 0x0000;
   P1       = 0x03FF;
-  gGba.cpu.reset(cpuIsMultiBoot, useBios, skipBios);
+  gba.cpu.reset(gba.mem.ioMem, cpuIsMultiBoot, useBios, skipBios);
 
   //UPDATE_REG(0x00, DISPCNT);
   //UPDATE_REG(0x06, VCOUNT);
@@ -2849,41 +3036,41 @@ void CPUReset()
   //UPDATE_REG(0x30, BG3PA);
   //UPDATE_REG(0x36, BG3PD);
   //UPDATE_REG(0x130, P1);
-  UPDATE_REG(0x88, 0x200);
+  UPDATE_REG(&gba, 0x88, 0x200);
 
 #ifdef VBAM_USE_HOLDTYPE
   holdType = 0;
 #endif
 
-  biosProtected[0] = 0x00;
-  biosProtected[1] = 0xf0;
-  biosProtected[2] = 0x29;
-  biosProtected[3] = 0xe1;
+  gba.biosProtected[0] = 0x00;
+  gba.biosProtected[1] = 0xf0;
+  gba.biosProtected[2] = 0x29;
+  gba.biosProtected[3] = 0xe1;
 
-  lcdTicks = (useBios && !skipBios) ? 1008 : 208;
-  gGba.timers.timer0On = false;
-  gGba.timers.timer0Ticks = 0;
-  gGba.timers.timer0Reload = 0;
-  gGba.timers.timer0ClockReload  = 0;
-  gGba.timers.timer1On = false;
-  gGba.timers.timer1Ticks = 0;
-  gGba.timers.timer1Reload = 0;
-  gGba.timers.timer1ClockReload  = 0;
-  gGba.timers.timer2On = false;
-  gGba.timers.timer2Ticks = 0;
-  gGba.timers.timer2Reload = 0;
-  gGba.timers.timer2ClockReload  = 0;
-  gGba.timers.timer3On = false;
-  gGba.timers.timer3Ticks = 0;
-  gGba.timers.timer3Reload = 0;
-  gGba.timers.timer3ClockReload  = 0;
+  gba.lcd.lcdTicks = (useBios && !skipBios) ? 1008 : 208;
+  gba.timers.timer0On = false;
+  gba.timers.timer0Ticks = 0;
+  gba.timers.timer0Reload = 0;
+  gba.timers.timer0ClockReload  = 0;
+  gba.timers.timer1On = false;
+  gba.timers.timer1Ticks = 0;
+  gba.timers.timer1Reload = 0;
+  gba.timers.timer1ClockReload  = 0;
+  gba.timers.timer2On = false;
+  gba.timers.timer2Ticks = 0;
+  gba.timers.timer2Reload = 0;
+  gba.timers.timer2ClockReload  = 0;
+  gba.timers.timer3On = false;
+  gba.timers.timer3Ticks = 0;
+  gba.timers.timer3Reload = 0;
+  gba.timers.timer3ClockReload  = 0;
   cpuSaveGameFunc = flashSaveDecide;
-  renderLine = mode0RenderLine;
-  fxOn = false;
-  windowOn = false;
+  gba.lcd.renderLine = mode0RenderLine;
+  gba.lcd.fxOn = false;
+  gba.lcd.windowOn = false;
   saveType = 0;
 
-  CPUUpdateRenderBuffers(true);
+  CPUUpdateRenderBuffers(gba, true);
 
   /*for(int i = 0; i < 256; i++) {
     map[i].address = (u8 *)&dummyAddress;
@@ -2918,20 +3105,20 @@ void CPUReset()
   eepromReset();
   flashReset();
 
-  soundReset();
+  soundReset(gba);
 
-  CPUUpdateWindow0();
-  CPUUpdateWindow1();
+  CPUUpdateWindow0(gba);
+  CPUUpdateWindow1(gba);
 
   // make sure registers are correctly initialized if not using BIOS
   if(!useBios) {
     if(cpuIsMultiBoot)
-      BIOS_RegisterRamReset(gGba.cpu, 0xfe);
+      BIOS_RegisterRamReset(gba.cpu, 0xfe);
     else
-      BIOS_RegisterRamReset(gGba.cpu, 0xff);
+      BIOS_RegisterRamReset(gba.cpu, 0xff);
   } else {
     if(cpuIsMultiBoot)
-      BIOS_RegisterRamReset(gGba.cpu, 0xfe);
+      BIOS_RegisterRamReset(gba.cpu, 0xfe);
   }
 
   switch(cpuSaveType) {
@@ -2984,29 +3171,29 @@ void CPUReset()
     break;
   }
 
-  gGba.cpu.ARM_PREFETCH();
+  gba.cpu.ARM_PREFETCH();
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
-  gGba.dma.cpuDmaHack = false;
+  gba.dma.cpuDmaHack = false;
 
   //SWITicks = 0;
 }
 
-void CPUInterrupt(ARM7TDMI &cpu)
+void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 {
-	cpu.interrupt();
+	cpu.interrupt(gba.mem.ioMem);
 
   //  if(!holdState)
-  biosProtected[0] = 0x02;
-  biosProtected[1] = 0xc0;
-  biosProtected[2] = 0x5e;
-  biosProtected[3] = 0xe5;
+	gba.biosProtected[0] = 0x02;
+	gba.biosProtected[1] = 0xc0;
+	gba.biosProtected[2] = 0x5e;
+	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
+void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio)
 {
-	auto cpu = gGba.cpu;
+	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;
 	auto &armIrqEnable = cpu.armIrqEnable;
 #ifdef VBAM_USE_SWITICKS
@@ -3015,6 +3202,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 #ifdef VBAM_USE_IRQTICKS
 	auto &IRQTicks = cpu.IRQTicks;
 #endif
+	auto &ioMem = gba.mem.ioMem;
 	auto &IE = ioMem.IE;
 	auto &IF = ioMem.IF;
 	auto &IME = ioMem.IME;
@@ -3100,7 +3288,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
       clockTicks = cpu.cpuNextEvent;
       cpu.cpuTotalTicks = 0;
-      gGba.dma.cpuDmaHack = false;
+      gba.dma.cpuDmaHack = false;
 
     updateLoop:
 
@@ -3113,21 +3301,21 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
       }
 #endif
 
-      lcdTicks -= clockTicks;
+      gba.lcd.lcdTicks -= clockTicks;
 
 
-      if(lcdTicks <= 0) {
+      if(gba.lcd.lcdTicks <= 0) {
         if(ioMem.DISPSTAT & 1) { // V-BLANK
           // if in V-Blank mode, keep computing...
           if(ioMem.DISPSTAT & 2) {
-            lcdTicks += 1008;
+          	gba.lcd.lcdTicks += 1008;
             ioMem.VCOUNT++; //lineMix += 240;
             //UPDATE_REG(0x06, VCOUNT);
             ioMem.DISPSTAT &= 0xFFFD;
             //UPDATE_REG(0x04, DISPSTAT);
             CPUCompareVCOUNT(cpu);
           } else {
-            lcdTicks += 224;
+          	gba.lcd.lcdTicks += 224;
             ioMem.DISPSTAT |= 2;
             //UPDATE_REG(0x04, DISPSTAT);
             if(ioMem.DISPSTAT & 16) {
@@ -3139,7 +3327,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
           if(ioMem.VCOUNT >= 228) { //Reaching last line
           	ioMem.DISPSTAT &= 0xFFFC;
             //UPDATE_REG(0x04, DISPSTAT);
-          	ioMem.VCOUNT = 0; lineMix = gLcd.pix;
+          	ioMem.VCOUNT = 0; gba.lcd.lineMix = gba.lcd.pix;
             //UPDATE_REG(0x06, VCOUNT);
             CPUCompareVCOUNT(cpu);
           }
@@ -3147,10 +3335,10 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
           if(ioMem.DISPSTAT & 2) {
             // if in H-Blank, leave it and move to drawing mode
-          	ioMem.VCOUNT++; lineMix += 240;
+          	ioMem.VCOUNT++; gba.lcd.lineMix += 240;
             //UPDATE_REG(0x06, VCOUNT);
 
-            lcdTicks += 1008;
+          	gba.lcd.lcdTicks += 1008;
             ioMem.DISPSTAT &= 0xFFFD;
             if(ioMem.VCOUNT == 160) {
             	// update input
@@ -3162,7 +3350,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
               // this seems wrong, but there are cases where the game
               // can enter the stop state without requesting an IRQ from
               // the joypad.
-              if((P1CNT & 0x4000) || gGba.stopState) {
+              if((P1CNT & 0x4000) || gba.stopState) {
                 u16 p1 = (0x3FF ^ P1) & 0x3FF;
                 if(P1CNT & 0x8000) {
                   if(p1 == (P1CNT & 0x3FF)) {
@@ -3189,7 +3377,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
                 IF |= 1;
                 //UPDATE_REG(0x202, IF);
               }
-              CPUCheckDMA(cpu, 1, 0x0f);
+              CPUCheckDMA(gba, cpu, 1, 0x0f);
 
               cpuBreakLoop = 1; // stop when frame ready
             }
@@ -3212,7 +3400,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             	{
             	}*/
 
-              (*renderLine)(lineMix, ioMem);
+              (*gba.lcd.renderLine)(gba.lcd.lineMix, gba.lcd, ioMem);
               /*switch(systemColorDepth) {
 				#ifdef SUPPORT_PIX_16BIT
                 case 16:
@@ -3258,7 +3446,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             	{
             		for(int x = 0; x < 240*160; x++)
             		{
-            			gLcd.pix[x] = systemColorMap.map16[gLcd.pix[x]];
+            			gba.lcd.pix[x] = systemColorMap.map16[gba.lcd.pix[x]];
             		}
             	}
             	if(likely(renderGfx))
@@ -3267,8 +3455,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             // entering H-Blank
             ioMem.DISPSTAT |= 2;
             //UPDATE_REG(0x04, DISPSTAT);
-            lcdTicks += 224;
-            CPUCheckDMA(cpu, 2, 0x0f);
+            gba.lcd.lcdTicks += 224;
+            CPUCheckDMA(gba, cpu, 2, 0x0f);
             if(ioMem.DISPSTAT & 16) {
               IF |= 2;
               //UPDATE_REG(0x202, IF);
@@ -3288,35 +3476,35 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
         soundTicks += SOUND_CLOCK_TICKS;
       }
 
-      if(!gGba.stopState) {
-      	auto &timerOnOffDelay = gGba.timers.timerOnOffDelay;
-      	auto &timer0Value = gGba.timers.timer0Value;
-      	auto &timer0On = gGba.timers.timer0On;
-      	auto &timer0Ticks = gGba.timers.timer0Ticks;
-      	auto &timer0ClockReload  = gGba.timers.timer0ClockReload;
-      	auto &timer0Reload  = gGba.timers.timer0Reload;
-      	auto &timer1Value = gGba.timers.timer1Value;
-      	auto &timer1On = gGba.timers.timer1On;
-      	auto &timer1Ticks = gGba.timers.timer1Ticks;
-      	auto &timer1ClockReload  = gGba.timers.timer1ClockReload;
-      	auto &timer1Reload  = gGba.timers.timer1Reload;
-      	auto &timer2Value = gGba.timers.timer2Value;
-      	auto &timer2On = gGba.timers.timer2On;
-      	auto &timer2Ticks = gGba.timers.timer2Ticks;
-      	auto &timer2ClockReload  = gGba.timers.timer2ClockReload;
-      	auto &timer2Reload  = gGba.timers.timer2Reload;
-      	auto &timer3Value = gGba.timers.timer3Value;
-      	auto &timer3On = gGba.timers.timer3On;
-      	auto &timer3Ticks = gGba.timers.timer3Ticks;
-      	auto &timer3ClockReload  = gGba.timers.timer3ClockReload;
-      	auto &timer3Reload  = gGba.timers.timer3Reload;
+      if(!gba.stopState) {
+      	auto &timerOnOffDelay = gba.timers.timerOnOffDelay;
+      	auto &timer0Value = gba.timers.timer0Value;
+      	auto &timer0On = gba.timers.timer0On;
+      	auto &timer0Ticks = gba.timers.timer0Ticks;
+      	auto &timer0ClockReload  = gba.timers.timer0ClockReload;
+      	auto &timer0Reload  = gba.timers.timer0Reload;
+      	auto &timer1Value = gba.timers.timer1Value;
+      	auto &timer1On = gba.timers.timer1On;
+      	auto &timer1Ticks = gba.timers.timer1Ticks;
+      	auto &timer1ClockReload  = gba.timers.timer1ClockReload;
+      	auto &timer1Reload  = gba.timers.timer1Reload;
+      	auto &timer2Value = gba.timers.timer2Value;
+      	auto &timer2On = gba.timers.timer2On;
+      	auto &timer2Ticks = gba.timers.timer2Ticks;
+      	auto &timer2ClockReload  = gba.timers.timer2ClockReload;
+      	auto &timer2Reload  = gba.timers.timer2Reload;
+      	auto &timer3Value = gba.timers.timer3Value;
+      	auto &timer3On = gba.timers.timer3On;
+      	auto &timer3Ticks = gba.timers.timer3Ticks;
+      	auto &timer3ClockReload  = gba.timers.timer3ClockReload;
+      	auto &timer3Reload  = gba.timers.timer3Reload;
 
         if(timer0On) {
           timer0Ticks -= clockTicks;
           if(timer0Ticks <= 0) {
             timer0Ticks += (0x10000 - timer0Reload) << timer0ClockReload;
             timerOverflow |= 1;
-            soundTimerOverflow(cpu, 0);
+            soundTimerOverflow(gba, cpu, 0);
             if(ioMem.TM0CNT & 0x40) {
               IF |= 0x08;
               //UPDATE_REG(0x202, IF);
@@ -3333,7 +3521,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
               if(ioMem.TM1D == 0) {
               	ioMem.TM1D += timer1Reload;
                 timerOverflow |= 2;
-                soundTimerOverflow(cpu, 1);
+                soundTimerOverflow(gba, cpu, 1);
                 if(ioMem.TM1CNT & 0x40) {
                   IF |= 0x10;
                   //UPDATE_REG(0x202, IF);
@@ -3346,7 +3534,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             if(timer1Ticks <= 0) {
               timer1Ticks += (0x10000 - timer1Reload) << timer1ClockReload;
               timerOverflow |= 2;
-              soundTimerOverflow(cpu, 1);
+              soundTimerOverflow(gba, cpu, 1);
               if(ioMem.TM1CNT & 0x40) {
                 IF |= 0x10;
                 //UPDATE_REG(0x202, IF);
@@ -3450,15 +3638,15 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
       cpu.cpuNextEvent = CPUUpdateTicks(cpu);
 
-      if(gGba.dma.cpuDmaTicksToUpdate > 0) {
-        if(gGba.dma.cpuDmaTicksToUpdate > cpu.cpuNextEvent)
+      if(gba.dma.cpuDmaTicksToUpdate > 0) {
+        if(gba.dma.cpuDmaTicksToUpdate > cpu.cpuNextEvent)
           clockTicks = cpu.cpuNextEvent;
         else
-          clockTicks = gGba.dma.cpuDmaTicksToUpdate;
-        gGba.dma.cpuDmaTicksToUpdate -= clockTicks;
-        if(gGba.dma.cpuDmaTicksToUpdate < 0)
-        	gGba.dma.cpuDmaTicksToUpdate = 0;
-        gGba.dma.cpuDmaHack = true;
+          clockTicks = gba.dma.cpuDmaTicksToUpdate;
+        gba.dma.cpuDmaTicksToUpdate -= clockTicks;
+        if(gba.dma.cpuDmaTicksToUpdate < 0)
+        	gba.dma.cpuDmaTicksToUpdate = 0;
+        gba.dma.cpuDmaHack = true;
         goto updateLoop;
       }
 
@@ -3468,19 +3656,19 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
 
       if(IF && (IME & 1) && armIrqEnable) {
         int res = IF & IE;
-        if(gGba.stopState)
+        if(gba.stopState)
           res &= 0x3080;
         if(res) {
-          if (gGba.intState)
+          if (gba.intState)
           {
 #ifdef VBAM_USE_IRQTICKS
             if (!IRQTicks)
 #endif
             {
-              CPUInterrupt(cpu);
-              gGba.intState = false;
+              CPUInterrupt(gba, cpu);
+              gba.intState = false;
               holdState = false;
-              gGba.stopState = false;
+              gba.stopState = false;
 #ifdef VBAM_USE_HOLDTYPE
               holdType = 0;
 #endif
@@ -3490,7 +3678,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
           {
             if (!holdState)
             {
-            	gGba.intState = true;
+            	gba.intState = true;
 #ifdef VBAM_USE_IRQTICKS
               IRQTicks=7;
               if (cpu.cpuNextEvent> IRQTicks)
@@ -3502,9 +3690,9 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
             }
             else
             {
-              CPUInterrupt(cpu);
+              CPUInterrupt(gba, cpu);
               holdState = false;
-              gGba.stopState = false;
+              gba.stopState = false;
 #ifdef VBAM_USE_HOLDTYPE
               holdType = 0;
 #endif
@@ -3531,8 +3719,8 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
         goto updateLoop;
       }
 
-      if (gGba.timers.timerOnOffDelay)
-          applyTimer(cpu);
+      if (gba.timers.timerOnOffDelay)
+          applyTimer(gba, cpu);
 
       /*if(cpu.cpuNextEvent > ticks)
         cpu.cpuNextEvent = ticks;*/
@@ -3543,7 +3731,7 @@ void CPULoop(bool renderGfx, bool processGfx, bool renderAudio)
     }
   } while(!cpuBreakLoop);
 
-  gGba.cpu = cpu;
+  gba.cpu = cpu;
 }
 
 

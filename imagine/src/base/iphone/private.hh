@@ -5,7 +5,6 @@
 namespace Base
 {
 
-void setVideoInterval(uint interval);
 void nsLog(const char* msg, va_list arg);
 
 }

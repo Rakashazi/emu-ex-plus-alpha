@@ -23,9 +23,9 @@ void systemMessage(int num, const char *msg, ...)
 	#ifdef USE_LOGGER
 	va_list args;
 	va_start( args, msg );
-	logger_vprintfn(LOG_M, msg, args);
+	logger_vprintf(LOG_M, msg, args);
 	va_end( args );
-	logger_printfn(LOG_M, "\n");
+	logger_printf(LOG_M, "\n");
 	#endif
 }
 #endif
@@ -67,7 +67,7 @@ static void resetGameSettings()
 	flashSetSize(0x10000);
 }
 
-void setGameSpecificSettings()
+void setGameSpecificSettings(GBASys &gba)
 {
 	resetGameSettings();
 	bool mirroringEnable = 0;
@@ -171,6 +171,14 @@ void setGameSpecificSettings()
 	        "Pokemon Mystery Dungeon - Red Rescue Team (USA, Australia)",
 	        "B24E",
 	        -1,
+	        -1,
+	        131072,
+	        -1
+	        },
+	        {
+	        "Pokemon Mystery Dungeon - Red Rescue Team (Europe)",
+	        "B24P",
+	        3,
 	        -1,
 	        131072,
 	        -1
@@ -922,9 +930,10 @@ void setGameSpecificSettings()
 	};
 
 	resetGameSettings();
+	logMsg("game id: %c%c%c%c", gba.mem.rom[0xac], gba.mem.rom[0xad], gba.mem.rom[0xae], gba.mem.rom[0xaf]);
 	forEachInArray(setting, e)
 	{
-		if(mem_equal(e->gameID, &gMem.rom[0xac], 4))
+		if(mem_equal(e->gameID, &gba.mem.rom[0xac], 4))
 		{
 			logMsg("loading settings for: %s", e->gameName);
 			if(e->rtcEnabled >= 0)
@@ -933,18 +942,28 @@ void setGameSpecificSettings()
 				rtcEnable(e->rtcEnabled);
 			}
 			if(e->flashSize > 0)
+			{
+				logMsg("using flash size %d", e->flashSize);
 				flashSetSize(e->flashSize);
+			}
 			if(e->saveType >= 0)
+			{
+				logMsg("using save type %d", e->saveType);
 				cpuSaveType = e->saveType;
+			}
 			if(e->mirroringEnabled >= 0)
+			{
+				logMsg("using mirroring");
 				mirroringEnable = e->mirroringEnabled;
+			}
 			break;
 		}
 	}
 
-	switch(gMem.rom[0xac])
+	switch(gba.mem.rom[0xac])
 	{
 		bcase 'F': // Classic NES
+			logMsg("using classic NES series settings");
 			cpuSaveType = 1; // EEPROM
 			mirroringEnable = 1;
 		bcase 'K': // Accelerometers
@@ -955,5 +974,5 @@ void setGameSpecificSettings()
 		bcase 'U': // Boktai solar sensor and clock
 			rtcEnable(true);
 	}
-	doMirroring(mirroringEnable);
+	doMirroring(gba, mirroringEnable);
 }

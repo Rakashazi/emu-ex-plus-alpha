@@ -402,7 +402,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 {
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
-	fbool pushed = state == INPUT_PUSHED;
+	bool pushed = state == INPUT_PUSHED;
 	switch(emuKey)
 	{
 		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);
@@ -558,18 +558,14 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
+	emuView.initImage(0, ssResX, ssResY);
+	setupGamePaths(path);
 
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
 	snprintf(bupPath, sizeof(bupPath), "%s/bkram.bin", gamePath);
 	if(YabauseInit(&yinit) != 0)
 	{
@@ -583,11 +579,6 @@ int EmuSystem::loadGame(const char *path)
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
-
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
-
-	emuView.initImage(0, ssResX, ssResY);
 
 	//EmuSystem::configAudioRate();
 	logMsg("finished loading game");
@@ -629,7 +620,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },

@@ -174,7 +174,7 @@ extern int linkid;
 
 // stubs to keep #ifdef's out of mainline
 #define StartLink(x)
-#define StartGPLink(x) UPDATE_REG(COMM_RCNT, x);
+#define StartGPLink(gba, x) UPDATE_REG(gba, COMM_RCNT, x);
 #define LinkSSend(x)
 #define LinkUpdate(x)
 #define JoyBusUpdate(x)

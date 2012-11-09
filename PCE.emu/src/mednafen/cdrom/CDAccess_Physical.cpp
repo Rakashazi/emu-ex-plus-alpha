@@ -200,7 +200,9 @@ void CDAccess_Physical::Read_TOC(TOC *toc)
  *toc = PhysTOC;
 }
 
-void CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
+bool CDAccess_Physical::Read_Sector(uint8 *buf, int32 lba, uint32 size) { return false; } // TODO
+
+bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
 {
  mmc_cdb_t cdb = {{0, }};
  int cdio_rc;
@@ -241,6 +243,7 @@ void CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
    throw(MDFN_Error(0, _("MMC Read Error; libcdio return code %d"), cdio_rc));
   }
  }
+ return true;
 }
 
 CDAccess_Physical::CDAccess_Physical(const char *path)

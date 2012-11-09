@@ -61,7 +61,7 @@ static INSN_REGPARM void armUnknownInsn(ARM7TDMI &cpu, u32 opcode, int &clockTic
             armNextPC-4);
     }
 #endif
-    cpu.undefinedException();
+    cpu.undefinedException(cpu.gba->mem.ioMem);
 }
 
 #ifdef BKPT_SUPPORT
@@ -566,7 +566,7 @@ static void count(u32 opcode, int cond_res)
     }
 
 #define MODECHANGE_NO  /*nothing*/
-#define MODECHANGE_YES CPUSwitchMode(reg[17].I & 0x1f, false);
+#define MODECHANGE_YES CPUSwitchMode(cpu.gba->mem.ioMem, reg[17].I & 0x1f, false);
 
 #define DEFINE_ALU_INSN_C(CODE1, CODE2, OP, MODECHANGE) \
   static INSN_REGPARM void arm##CODE1##0(ARM7TDMI &cpu, u32 opcode, int &clockTicks) { ALU_INSN(ALU_INIT_C, VALUE_LSL_IMM_C, OP_##OP, MODECHANGE_##MODECHANGE, 0); }\
@@ -800,9 +800,9 @@ static INSN_REGPARM void arm120(ARM7TDMI &cpu, u32 opcode, int &clockTicks)
         if (opcode & 0x00080000)
             newValue = (newValue & 0x00FFFFFF) | (value & 0xFF000000);
         newValue |= 0x10;
-        CPUSwitchMode(newValue & 0x1F, false);
+        CPUSwitchMode(cpu.gba->mem.ioMem, newValue & 0x1F, false);
         reg[16].I = newValue;
-        CPUUpdateFlags();
+        CPUUpdateFlags(cpu.gba->mem.ioMem);
         if (!armState) {  // this should not be allowed, but it seems to work
             THUMB_PREFETCH;
             reg[15].I = armNextPC + 2;
@@ -856,9 +856,9 @@ static INSN_REGPARM void arm320(ARM7TDMI &cpu, u32 opcode, int &clockTicks)
 
         newValue |= 0x10;
 
-        CPUSwitchMode(newValue & 0x1F, false);
+        CPUSwitchMode(cpu.gba->mem.ioMem, newValue & 0x1F, false);
         reg[16].I = newValue;
-        CPUUpdateFlags();
+        CPUUpdateFlags(cpu.gba->mem.ioMem);
         if (!armState) {  // this should not be allowed, but it seems to work
             THUMB_PREFETCH;
             reg[15].I = armNextPC + 2;
@@ -1556,7 +1556,7 @@ static INSN_REGPARM void arm7F6(ARM7TDMI &cpu, u32 opcode, int &clockTicks) { LD
     }
 #define LDM_ALL_2B \
     if (opcode & (1U<<15)) {                            \
-        CPUSwitchMode(reg[17].I & 0x1F, false);         \
+        CPUSwitchMode(cpu.gba->mem.ioMem, reg[17].I & 0x1F, false);         \
         if (armState) {                                 \
             armNextPC = reg[15].I & 0xFFFFFFFC;         \
             reg[15].I = armNextPC + 4;                  \

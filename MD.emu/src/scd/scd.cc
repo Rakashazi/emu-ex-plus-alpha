@@ -153,6 +153,13 @@ void scd_deinit()
 	sCD.isActive = 0;
 }
 
+void scd_updateCddaVol()
+{
+	auto fader = (sCD.gate[0x34] << 4) | (sCD.gate[0x35] >> 4);
+	sCD.volume = (fader & 0x7fc) ? (fader & 0x7fc) : (fader & 0x03);
+	logMsg("set volume multipler %d", sCD.volume);
+}
+
 void scd_reset()
 {
 	logMsg("doing SCD reset");
@@ -168,6 +175,7 @@ void scd_reset()
 	mem_zero(sCD.gate);
 	mem_zero(sCD.pcm);
 	sCD.gate[0x3] = 1; // 2M word RAM mode with m68k access after reset
+	sCD.volume = 1024;
 
 	scd_resetSubCpu();
 	sCD.subResetPending = 1; // s68k reset pending
@@ -378,6 +386,7 @@ int scd_loadState(uint8 *state)
   load_param(&sCD.counter75hz, 4);
   load_param(&sCD.timer_int3, 4);
   load_param(&sCD.gate, sizeof(sCD.gate));
+  scd_updateCddaVol();
   load_param(&sCD.CDD_Complete, 1);
   load_param(&sCD.Status_CDD, 4);
   load_param(&sCD.Status_CDC, 4);
@@ -403,8 +412,11 @@ int scd_loadState(uint8 *state)
   load_param(&sCD.subResetPending, 1);
   load_param(&sCD.delayedDMNA, 1);
 
-  uchar reserved[30];
-  load_param(reserved, 30);
+  load_param(&sCD.cddaLBA, 4);
+  load_param(&sCD.cddaDataLeftover, 2);
+
+  uchar reserved[24];
+  load_param(reserved, 24);
 
   updateSegaCdMemMap(sCD);
 
@@ -470,8 +482,11 @@ int scd_saveState(uint8 *state)
   save_param(&sCD.subResetPending, 1);
   save_param(&sCD.delayedDMNA, 1);
 
-  uchar reserved[30] = { 0 };
-  save_param(reserved, 30);
+  save_param(&sCD.cddaLBA, 4);
+  save_param(&sCD.cddaDataLeftover, 2);
+
+  uchar reserved[24] {0};
+  save_param(reserved, 24);
 
   return bufferptr;
 }

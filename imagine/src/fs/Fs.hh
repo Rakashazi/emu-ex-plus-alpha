@@ -14,7 +14,7 @@ public:
 	virtual const char *entryFilename(uint index) const = 0;
 	virtual void closeDir() = 0;
 
-	static const uint OPEN_UNSORT = BIT(0);
+	static constexpr uint OPEN_UNSORT = BIT(0);
 	enum { TYPE_NONE = 0, TYPE_FILE, TYPE_DIR };
 
 	static int sortMTime(const char *name1, long int mtime1, const char *name2, long int mtime2)

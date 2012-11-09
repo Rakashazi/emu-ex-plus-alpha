@@ -33,12 +33,12 @@ class TextEntry
 		
 		@Override public void onDismiss()
 		{
-			Log.i(logTag, "popup dismissed");
+			//Log.i(logTag, "popup dismissed");
 			editBox.setText(null);
 			editBox.setImeActionLabel(null, 0);
 			if(editBox.getId() == 0)
 			{
-				Log.i(logTag, "text input canceled");
+				//Log.i(logTag, "text input canceled");
 				BaseActivity.endSysTextInput(null);
 			}
 		}
@@ -51,7 +51,7 @@ class TextEntry
 			if (//(event.getAction() == MotionEvent.ACTION_DOWN) &&
 				((x < 0) || (x >= getWidth()) || (y < 0) || (y >= getHeight())))
 			{
-				Log.i(logTag, "popup touch outside " + x + "," + y);
+				//Log.i(logTag, "popup touch outside " + x + "," + y);
 				return true;
 			}
 			return false;
@@ -59,7 +59,7 @@ class TextEntry
 
 		@Override public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
 		{
-			Log.i(logTag, "got editor action " + actionId);
+			//Log.i(logTag, "got editor action " + actionId);
 			BaseActivity.endSysTextInput(editBox.getText().toString());
 			editBox.setId(1); // indicate text entry was not canceled
 			dismiss();

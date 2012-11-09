@@ -55,11 +55,17 @@ scd/memMain.cc scd/memSub.cc
 
 SRC += $(GPLUS_SRC) fileio/fileio.cc
 
-include $(IMAGINE_PATH)/make/package/unzip.mk
+CPPFLAGS += -I../PCE.emu/src/include -I../PCE.emu/src
+VPATH += ../PCE.emu/src/mednafen
+CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H
+SRC += error.cpp endian.cpp FileWrapper.cpp general.cpp \
+cdrom/audioreader.cpp cdrom/lec.cpp \
+cdrom/recover-raw.cpp cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp \
+cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp cdrom/CDUtility.cpp
 
-ifeq ($(ENV), iOS)
+include $(IMAGINE_PATH)/make/package/libvorbis.mk
+include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
-endif
 
 ifndef target
 target := mdemu

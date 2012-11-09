@@ -22,6 +22,8 @@
 #include <base/android/private.hh>
 #include "utils.hh"
 
+using namespace Base;
+
 static AndroidBluetoothAdapter defaultAndroidAdapter;
 
 static JavaInstMethod<jint> jStartScan, jInRead;
@@ -84,7 +86,6 @@ bool AndroidBluetoothAdapter::openDefault()
 	if(adapter)
 		return 1;
 
-	using namespace Base;
 	// setup JNI
 	if(jDefaultAdapter.m == 0)
 	{
@@ -119,21 +120,21 @@ bool AndroidBluetoothAdapter::openDefault()
 	}
 
 	logMsg("opening default BT adapter");
-	adapter = jDefaultAdapter(eEnv(), jBaseActivity);
-	if(!adapter)
+	auto localAdapter = jDefaultAdapter(eEnv(), jBaseActivity);
+	if(!localAdapter)
 	{
 		logErr("error opening adapter");
 		return 0;
 	}
-	logMsg("success %p", adapter);
-	adapter = eEnv()->NewGlobalRef(adapter);
-
+	logMsg("success %p", localAdapter);
+	adapter = eEnv()->NewGlobalRef(localAdapter); // may be accessed by activity thread
+	assert(adapter);
+	eEnv()->DeleteLocalRef(localAdapter);
 	return 1;
 }
 
 void AndroidBluetoothAdapter::cancelScan()
 {
-	using namespace Base;
 	scanCancelled = 1;
 	jCancelScan(eEnv(), jBaseActivity, adapter);
 }
@@ -155,9 +156,8 @@ AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter()
 		return nullptr;
 }
 
-fbool AndroidBluetoothAdapter::startScan()
+bool AndroidBluetoothAdapter::startScan()
 {
-	using namespace Base;
 	if(!inDetect)
 	{
 		scanCancelled = 0;
@@ -239,18 +239,20 @@ void* AndroidBluetoothSocket::readThreadFunc(void *arg)
 
 CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel, bool l2cap)
 {
-	JNIEnv *jEnv;
-	Base::jVM->GetEnv((void**) &jEnv, JNI_VERSION_1_6);
 	char addrStr[18];
 	ba2str(&bdaddr, addrStr);
 	//jbyteArray jAddr = jEnv->NewByteArray(sizeof(BluetoothAddr));
 	//jEnv->SetByteArrayRegion(jAddr, 0, sizeof(BluetoothAddr), (jbyte *)bdaddr.b);
-	socket = jEnv->NewGlobalRef(jOpenSocket(jEnv, Base::jBaseActivity,
-		AndroidBluetoothAdapter::defaultAdapter()->adapter, jEnv->NewStringUTF(addrStr), channel, l2cap ? 1 : 0));
-	if(socket)
+	auto localSocket = jOpenSocket(eEnv(), Base::jBaseActivity,
+		AndroidBluetoothAdapter::defaultAdapter()->adapter, eEnv()->NewStringUTF(addrStr), channel, l2cap ? 1 : 0);
+	if(localSocket)
 	{
-		logMsg("opened Bluetooth socket %p", socket);
-		outStream = jEnv->NewGlobalRef(jBtSocketOutputStream(jEnv, socket));
+		logMsg("opened Bluetooth socket %p", localSocket);
+		socket = eEnv()->NewGlobalRef(localSocket); // accessed by readThreadFunc thread
+		assert(socket);
+		eEnv()->DeleteLocalRef(localSocket);
+		outStream = jBtSocketOutputStream(eEnv(), socket);
+		logMsg("opened output stream %p", outStream);
 		if(onStatus.invoke(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
 		{
 			logMsg("starting read thread");
@@ -279,12 +281,10 @@ void AndroidBluetoothSocket::close()
 	if(socket)
 	{
 		logMsg("closing socket");
-		JNIEnv *jEnv;
-		Base::jVM->GetEnv((void**) &jEnv, JNI_VERSION_1_6);
 		isClosing = 1;
-		jEnv->DeleteGlobalRef(outStream);
-		jBtSocketClose(jEnv, socket);
-		jEnv->DeleteGlobalRef(socket);
+		eEnv()->DeleteLocalRef(outStream);
+		jBtSocketClose(eEnv(), socket);
+		eEnv()->DeleteGlobalRef(socket);
 		socket = nullptr;
 	}
 }
@@ -292,11 +292,9 @@ void AndroidBluetoothSocket::close()
 CallResult AndroidBluetoothSocket::write(const void *data, size_t size)
 {
 	logMsg("writing %d bytes", size);
-	JNIEnv *jEnv;
-	Base::jVM->GetEnv((void**) &jEnv, JNI_VERSION_1_6);
-	jbyteArray jData = jEnv->NewByteArray(size);
-	jEnv->SetByteArrayRegion(jData, 0, size, (jbyte *)data);
-	jOutWrite(jEnv, outStream, jData, 0, size);
-	jEnv->DeleteLocalRef(jData);
+	jbyteArray jData = eEnv()->NewByteArray(size);
+	eEnv()->SetByteArrayRegion(jData, 0, size, (jbyte *)data);
+	jOutWrite(eEnv(), outStream, jData, 0, size);
+	eEnv()->DeleteLocalRef(jData);
 	return OK;
 }

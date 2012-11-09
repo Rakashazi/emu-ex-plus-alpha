@@ -1,11 +1,11 @@
 #pragma once
 
 #ifdef CONFIG_INPUT
-	#include <input/interface.h>
+	#include <input/Input.hh>
 #endif
 
 #ifdef CONFIG_BASE_ANDROID
-#include <base/android/libhardwarePrivate.h>
+#include <base/android/privateApi/gralloc.h>
 #include <base/android/private.hh>
 #include <base/android/public.hh>
 #endif
@@ -13,7 +13,7 @@
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	#include <dlfcn.h>
 	#if CONFIG_ENV_ANDROID_MINSDK < 9
-		#include <base/android/EGLPrivate.h>
+		#include <base/android/privateApi/EGL.h>
 		static EGLDisplay eglDisplay = 0;
 		static EGLImageKHR (*eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) = 0;
 		static EGLBoolean (*eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image) = 0;
@@ -72,7 +72,6 @@ static void resizeGLScene(const Base::Window &win)
 
 	glcMatrixMode(GL_PROJECTION);
 
-	//fovy = 45.0;
 	GC fovy = M_PI/4.0;
 
 	bool isSideways = rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
@@ -93,7 +92,7 @@ static void resizeGLScene(const Base::Window &win)
 	}*/
 	Gfx::proj.setMatrix(mat, isSideways);
 	setupScreenSize();
-	if(animateOrientationChange)
+	if(animateOrientationChange && !projAngleM.isComplete())
 	{
 		logMsg("animated rotation %f", (double)IG::toDegrees(projAngleM.now));
 		rMat.zRotationLH(projAngleM.now);
@@ -133,9 +132,6 @@ void resizeDisplay(const Base::Window &win)
 		viewPixelWidth_, viewPixelHeight_
 	};
 	resizeGLScene(win);
-
-	//logMsg("calling view space callback %p", viewSpaceCallback.func);
-	//callSafe(viewChangeHandler, viewChangeHandlerCtx, &oldState);
 	Gfx::onViewChange(&oldState);
 }
 
@@ -220,7 +216,7 @@ static void checkForAnisotropicFiltering()
 static uchar useAutoMipmapGeneration = 0;
 static uchar forceNoAutoMipmapGeneration = 0;
 
-static void checkForAutoMipmapGeneration()
+static void checkForAutoMipmapGeneration(const char *version)
 {
 	bool use = 0;
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -273,7 +269,7 @@ static void checkForVertexArrays()
 
 static uchar forceNoNonPow2Textures = 0;
 
-static void checkForNonPow2Textures()
+static void checkForNonPow2Textures(const char *extensions, const char *rendererName)
 {
 	if(forceNoNonPow2Textures)
 		return;
@@ -328,7 +324,7 @@ bool preferBGRA = 0, preferBGR = 0;
 	#define GL_BGRA GL_BGRA_EXT
 #endif
 
-static void checkForBGRPixelSupport()
+static void checkForBGRPixelSupport(const char *extensions)
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
 		#ifdef CONFIG_BASE_IOS
@@ -405,7 +401,7 @@ static void checkForFBOFuncs()
 static uchar useVBOFuncs = 0;
 static uchar forceNoVBOFuncs = 1;
 
-static void checkForVBO()
+static void checkForVBO(const char *version)
 {
 	if(!forceNoVBOFuncs &&
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -425,7 +421,7 @@ static void checkForVBO()
 static bool useDrawTex = 0;
 static bool forceNoDrawTex = 0;
 
-static void checkForDrawTexture()
+static void checkForDrawTexture(const char *extensions)
 {
 	// Limited usefulness due to no 90deg rotation support
 	if(!forceNoDrawTex && strstr(extensions, "GL_OES_draw_texture") != 0)
@@ -442,7 +438,7 @@ static void checkForDrawTexture()
 struct DirectTextureGfxBufferImage: public TextureGfxBufferImage
 {
 	constexpr DirectTextureGfxBufferImage() { }
-	Pixmap eglPixmap;
+	Pixmap eglPixmap {PixelFormatRGB565};
 	android_native_buffer_t eglBuf;
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
 
@@ -452,6 +448,9 @@ struct DirectTextureGfxBufferImage: public TextureGfxBufferImage
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
 	void unlock(Pixmap *p = nullptr, uint hints = 0) override;
 	void deinit() override;
+
+private:
+	bool initTexture(Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr = nullptr);
 };
 
 static void dummyIncRef(struct android_native_base_t* base)
@@ -489,7 +488,6 @@ struct AndroidDirectTextureConfig
 	static const EGLint eglImgAttrs[];//= { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 	static const GLenum directTextureTarget;// = GL_TEXTURE_2D;
 private:
-	int (*hw_get_module)(const char *id, const struct hw_module_t **module) = nullptr;
 	gralloc_module_t const *grallocMod = nullptr;
 	alloc_device_t *allocDev = nullptr;
 
@@ -498,7 +496,7 @@ public:
 
 	bool isSupported() const { return grallocMod; }
 
-	void checkForEGLImageKHR(const char *rendererName)
+	void checkForEGLImageKHR(const char *extensions, const char *rendererName)
 	{
 		if(strstr(rendererName, "NVIDIA") // disable on Tegra, unneeded and causes lock-ups currently
 			|| string_equal(rendererName, "VideoCore IV HW")) // seems to crash Samsung Galaxy Y on eglCreateImageKHR, maybe other devices
@@ -514,14 +512,14 @@ public:
 				whitelistedEGLImageKHR = 1;
 			}
 
-			if(!enableEGLImageKHR())
+			if(!enableEGLImageKHR(extensions))
 			{
 				logWarn("can't use EGLImageKHR: %s", errorStr);
 			}
 		}
 	}
 
-	bool enableEGLImageKHR()
+	bool enableEGLImageKHR(const char *extensions)
 	{
 		#ifdef NDEBUG
 		bool verbose = 0;
@@ -545,7 +543,7 @@ public:
 			directTextureTarget = GL_TEXTURE_EXTERNAL_OES;
 		}*/
 
-		void *libegl = 0, *libhardware = 0;
+		void *libegl = 0;
 
 		#if CONFIG_ENV_ANDROID_MINSDK < 9
 		if((libegl = dlopen("/system/lib/libEGL.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
@@ -592,16 +590,9 @@ public:
 		logMsg("got EGL display: %d", (int)eglDisplay);
 		#endif
 
-		if((libhardware = dlopen("/system/lib/libhardware.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
+		if(libhardware_dl() != OK)
 		{
-			errorStr = verbose ? "Can't load libhardware.so" : basicLibhardwareErrorStr;
-			goto FAIL;
-		}
-
-		//logMsg("hw_get_module @ %p", hw_get_module);
-		if((hw_get_module = (int(*)(const char *, const struct hw_module_t **))dlsym(libhardware, "hw_get_module")) == 0)
-		{
-			errorStr = verbose ? "Can't find hw_get_module" : basicLibhardwareErrorStr;
+			errorStr = verbose ? "Incompatible libhardware.so" : basicLibhardwareErrorStr;
 			goto FAIL;
 		}
 
@@ -633,11 +624,6 @@ public:
 		{
 			dlclose(libegl);
 			libegl = nullptr;
-		}
-		if(libhardware)
-		{
-			dlclose(libhardware);
-			libhardware = nullptr;
 		}
 		grallocMod = nullptr;
 		//TODO: free allocDev if needed

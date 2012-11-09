@@ -8,7 +8,7 @@ class GuiButton
 {
 public:
 	Rect2<int> btn;
-	GfxSprite img;
+	Gfx::Sprite img;
 
 	void draw ()
 	{

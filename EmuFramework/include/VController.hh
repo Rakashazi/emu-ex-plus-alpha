@@ -35,19 +35,19 @@ public:
 	Rect2<int> padArea;
 	int deadzone = 0;
 	float diagonalSensitivity = 0;
-	GfxSprite spr;
+	Gfx::Sprite spr;
 	_2DOrigin origin;
 
 	GfxBufferImage mapImg;
-	Pixmap mapPix;
-	GfxSprite mapSpr;
-	fbool visualizeBounds = 0;
+	Pixmap mapPix {PixelFormatRGB565};
+	Gfx::Sprite mapSpr;
+	bool visualizeBounds = 0;
 
 	void init();
 	void setImg(ResourceImage *dpadR, GC texHeight);
 	void place(GC padFullSize, GC centerBtnYOffset);
 	void draw();
-	void setBoundingAreaVisible(fbool on);
+	void setBoundingAreaVisible(bool on);
 	int getInput(int cx, int cy);
 private:
 	void updateBoundingAreaGfx();
@@ -56,7 +56,7 @@ private:
 class VControllerKeyboard
 {
 public:
-	GfxSprite spr;
+	Gfx::Sprite spr;
 	Area area;
 	uint keyXSize, keyYSize;
 	static const uint cols = 10;
@@ -75,7 +75,7 @@ class VControllerGamepad
 {
 public:
 	Rect2<int> faceBtnBound[faceBtns], centerBtnBound[centerBtns];
-	GfxSprite circleBtnSpr[faceBtns], centerBtnSpr[centerBtns];
+	Gfx::Sprite circleBtnSpr[faceBtns], centerBtnSpr[centerBtns];
 	Area faceBtn[faceBtns], centerBtn[centerBtns];
 	VControllerDPad dp;
 	Area btnArea;
@@ -84,7 +84,7 @@ public:
 	GC btnSize, btnSpace, btnStagger, btnRowShift;
 	GC btnExtraXSize, btnExtraYSize, btnExtraYSizeMultiRow;
 	_2DOrigin btnO, cenBtnO;
-	fbool showBoundingArea;
+	bool showBoundingArea;
 
 	void init(float alpha, GC size)
 	{
@@ -110,13 +110,13 @@ public:
 		activeFaceBtns = faceBtns;
 	}
 
-	void setBoundingAreaVisible(fbool on)
+	void setBoundingAreaVisible(bool on)
 	{
 		showBoundingArea = on;
 		dp.setBoundingAreaVisible(on);
 	}
 
-	fbool boundingAreaVisible()
+	bool boundingAreaVisible()
 	{
 		return showBoundingArea;
 	}
@@ -417,7 +417,7 @@ public:
 				//if(faceBtnI[e_i])
 				if(showBoundingArea)
 					{ Gfx::resetTransforms(); GeomRect::draw(faceBtnBound[e_i]); }
-				circleBtnSpr[e_i].draw(0);
+				circleBtnSpr[e_i].draw();
 			}
 		}
 
@@ -427,7 +427,7 @@ public:
 			//if(centerBtnI[e_i])
 			if(showBoundingArea)
 				{ Gfx::resetTransforms(); GeomRect::draw(centerBtnBound[e_i]); }
-			centerBtnSpr[e_i].draw(0);
+			centerBtnSpr[e_i].draw();
 		}
 	}
 };
@@ -454,12 +454,12 @@ public:
 		gp.setImg(pics);
 	}
 
-	void setBoundingAreaVisible(fbool on)
+	void setBoundingAreaVisible(bool on)
 	{
 		gp.setBoundingAreaVisible(on);
 	}
 
-	fbool boundingAreaVisible()
+	bool boundingAreaVisible()
 	{
 		return gp.boundingAreaVisible();
 	}
@@ -574,7 +574,7 @@ public:
 	void applyInput(const InputEvent &e)
 	{
 		assert(e.isPointer());
-		var_copy(drag, Input::dragState(e.devId));
+		auto drag = Input::dragState(e.devId);
 
 		int elem[2] = { -1, -1 };
 		if(drag->pushed) // make sure the cursor isn't hovering
@@ -585,7 +585,7 @@ public:
 		// release old buttons
 		iterateTimes(2, i)
 		{
-			var_copy(vBtn, ptrElem[e.devId][i]);
+			auto vBtn = ptrElem[e.devId][i];
 			if(vBtn != -1 && !mem_findFirstValue(elem, vBtn))
 			{
 				//logMsg("releasing %d", vBtn);
@@ -596,7 +596,7 @@ public:
 		// push new buttons
 		iterateTimes(2, i)
 		{
-			var_copy(vBtn, elem[i]);
+			auto vBtn = elem[i];
 			if(vBtn != -1 && !mem_findFirstValue(ptrElem[e.devId], vBtn))
 			{
 				//logMsg("pushing %d", vBtn);

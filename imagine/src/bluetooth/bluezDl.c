@@ -13,19 +13,17 @@ typedef int (*hci_read_remote_nameProto)(int dd, const bdaddr_t *bdaddr, int len
 typedef int (*hci_get_routeProto)(bdaddr_t *bdaddr);
 typedef int (*hci_devidProto)(const char *str);
 
-static hci_inquiryProto hci_inquirySym;
-static hci_close_devProto hci_close_devSym;
-static hci_open_devProto hci_open_devSym;
-static hci_read_remote_nameProto hci_read_remote_nameSym;
-static hci_get_routeProto hci_get_routeSym;
+static hci_inquiryProto hci_inquirySym = 0;
+static hci_close_devProto hci_close_devSym = 0;
+static hci_open_devProto hci_open_devSym = 0;
+static hci_read_remote_nameProto hci_read_remote_nameSym = 0;
+static hci_get_routeProto hci_get_routeSym = 0;
 
-static void *libbluetooth = 0;
-
-CLINK CallResult bluez_dl()
+CallResult bluez_dl()
 {
-	if(libbluetooth)
+	if(hci_inquirySym)
 		return OK;
-	libbluetooth = dlopen("/system/lib/libbluetooth.so", RTLD_LOCAL | RTLD_LAZY);
+	void *libbluetooth = dlopen("/system/lib/libbluetooth.so", RTLD_LOCAL | RTLD_LAZY);
 	if(!libbluetooth)
 	{
 		logErr("libbluetooth not found");
@@ -41,39 +39,39 @@ CLINK CallResult bluez_dl()
 	{
 		logErr("missing bluetooth functions");
 		dlclose(libbluetooth);
-		libbluetooth = 0;
+		hci_inquirySym = 0;
 		return INVALID_PARAMETER;
 	}
 	logMsg("all symbols loaded");
 	return OK;
 }
 
-CLINK int hci_inquiry(int dev_id, int len, int num_rsp, const uint8_t *lap, inquiry_info **ii, long flags)
+int hci_inquiry(int dev_id, int len, int num_rsp, const uint8_t *lap, inquiry_info **ii, long flags)
 {
-	assert(libbluetooth);
+	assert(hci_inquirySym);
 	return hci_inquirySym(dev_id, len, num_rsp, lap, ii, flags);
 }
 
-CLINK int hci_close_dev(int dd)
+int hci_close_dev(int dd)
 {
-	assert(libbluetooth);
+	assert(hci_close_devSym);
 	return hci_close_devSym(dd);
 }
 
-CLINK int hci_open_dev(int dev_id)
+int hci_open_dev(int dev_id)
 {
-	assert(libbluetooth);
+	assert(hci_open_devSym);
 	return hci_open_devSym(dev_id);
 }
 
-CLINK int hci_read_remote_name(int dd, const bdaddr_t *bdaddr, int len, char *name, int to)
+int hci_read_remote_name(int dd, const bdaddr_t *bdaddr, int len, char *name, int to)
 {
-	assert(libbluetooth);
+	assert(hci_read_remote_nameSym);
 	return hci_read_remote_nameSym(dd, bdaddr, len, name, to);
 }
 
-CLINK int hci_get_route(bdaddr_t *bdaddr)
+int hci_get_route(bdaddr_t *bdaddr)
 {
-	assert(libbluetooth);
+	assert(hci_get_routeSym);
 	return hci_get_routeSym(bdaddr);
 }

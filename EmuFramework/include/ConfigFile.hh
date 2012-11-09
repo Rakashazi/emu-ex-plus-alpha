@@ -160,9 +160,13 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 			bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
 			bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-			#endif
 			#if defined(SUPPORT_ANDROID_DIRECT_TEXTURE)
 			bcase CFGKEY_DIRECT_TEXTURE: optionDirectTexture.readFromIO(io, size);
+			#endif
+			#if CONFIG_ENV_ANDROID_MINSDK >= 9
+			bcase CFGKEY_SURFACE_TEXTURE: optionSurfaceTexture.readFromIO(io, size);
+			bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
+			#endif
 			bcase CFGKEY_GL_SYNC_HACK: optionGLSyncHack.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
@@ -278,19 +282,23 @@ static OptionBase *cfgFileOption[] =
 	&optionTitleBar,
 	&optionIdleDisplayPowerSave,
 	&optionHideStatusBar,
-#if defined(CONFIG_BASE_ANDROID)
-	&optionLowProfileOSNav,
-	&optionHideOSNav,
-	&optionDitherImage,
-#endif
 #if defined(CONFIG_INPUT_ANDROID)
 	&optionBackNavigation,
 #endif
 	&optionRememberLastMenu,
+#ifdef CONFIG_BASE_ANDROID
+	&optionLowProfileOSNav,
+	&optionHideOSNav,
+	&optionDitherImage,
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	&optionDirectTexture,
-	&optionGLSyncHack,
+		&optionDirectTexture,
 	#endif
+	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		&optionSurfaceTexture,
+		&optionProcessPriority,
+	#endif
+	&optionGLSyncHack,
+#endif
 	#ifdef CONFIG_INPUT_ICADE
 	&optionICade,
 	#endif

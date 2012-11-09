@@ -392,7 +392,7 @@ static void setupNESFourScore()
 }
 
 bool EmuSystem::vidSysIsPAL() { return PAL; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 static void setupNESInputPorts()
 {
@@ -420,14 +420,9 @@ static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int 
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-
+	emuView.initImage(0, nesPixX, nesVisiblePixY);
+	setupGamePaths(path);
 	fceuReturnedError = 0;
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
 	FCEUI_SetVidSystem(0); // default to NTSC
 	if(!FCEUI_LoadGame(fullGamePath, 1))
 	{
@@ -450,11 +445,8 @@ int EmuSystem::loadGame(const char *path)
 	if(fceuCheats)
 		logMsg("%d total cheats", fceuCheats);
 
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
 	setupNESInputPorts();
 	EmuSystem::configAudioRate();
-	emuView.initImage(0, nesPixX, nesVisiblePixY);
 
 	logMsg("started emu");
 	return 1;
@@ -551,7 +543,7 @@ namespace Input
 {
 void onInputEvent(const InputEvent &e)
 {
-	if(EmuSystem::active)
+	if(EmuSystem::isActive())
 	{
 		if(unlikely(e.isPointer() && usingZapper))
 		{
@@ -630,7 +622,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },

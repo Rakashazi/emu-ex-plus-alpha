@@ -64,24 +64,11 @@ void abort() ATTRS(noreturn);
 #endif
 
 // drag & drop
-/*typedef void(*DragDropFunc)(void*, void*);
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32)
-	uint getDragDropNumFiles(void *ddHnd);
-	void getDragDropFilename(void *ddHnd, uint i, char* filename, uint bufferSize);
-	void dragDropEventHandler(DragDropFunc handler, void *userPtr);
+#if defined (CONFIG_BASE_X11)
+	void setAcceptDnd(bool on);
 #else
-	static uint getDragDropNumFiles(void *ddHnd) { return 0; };
-	static void getDragDropFilename(void *ddHnd, uint i, char* filename, uint bufferSize) { }
-	static void dragDropEventHandler(DragDropFunc handler, void *userPtr) { }
-#endif*/
-
-// app instance management
-/*typedef void(*AltInstanceFunc)(void*, void*);
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32)
-	void altInstanceEventHandler(AltInstanceFunc handler, void *userPtr);
-#else
-	static void altInstanceEventHandler(AltInstanceFunc handler, void *userPtr) { }
-#endif*/
+	static void setAcceptDnd(bool on) { }
+#endif
 
 // Input device status
 
@@ -105,27 +92,11 @@ struct InputDevChange
 
 // Worker thread -> Main thread messages
 
-static const ushort MSG_START = 127, MSG_INPUT = 127, MSG_INPUTDEV_CHANGE = 128, MSG_BT = 129,
-		MSG_BT_SCAN_STATUS_DELEGATE = 130, MSG_ORIENTATION_CHANGE = 131,
+static const ushort MSG_START = 127, MSG_BT_SCAN_STATUS_DELEGATE = 130, MSG_ORIENTATION_CHANGE = 131,
 		MSG_USER = 255;
 void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg, int intArg2);
 // version used when thread context isn't needed
 void sendMessageToMain(int type, int shortArg, int intArg, int intArg2);
-
-/*static void sendInputMessageToMain(ThreadPThread &thread, uint dev, uint devType, uint btn, uint action)
-{
-	sendMessageToMain(thread, MSG_INPUT, dev, devType + (action << 16), btn);
-}
-
-static void sendInputDevChangeMessageToMain(ThreadPThread &thread, uint id, uint type, uint state)
-{
-	sendMessageToMain(thread, MSG_INPUTDEV_CHANGE, state, type, id);
-}
-
-static void sendBTMessageToMain(ThreadPThread &thread, uint event)
-{
-	sendMessageToMain(thread, MSG_BT, 0, event, 0);
-}*/
 
 static void sendBTScanStatusDelegate(ThreadPThread &thread, uint status, int arg = 0)
 {
@@ -135,6 +106,13 @@ static void sendBTScanStatusDelegate(ThreadPThread &thread, uint status, int arg
 // Graphics update notification
 
 void displayNeedsUpdate();
+
+// Window display swap interval
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_IOS)
+	void setVideoInterval(uint interval);
+#else
+	static void setVideoInterval(uint interval) { }
+#endif
 
 // App run state
 
@@ -187,9 +165,10 @@ uint refreshRate();
 typedef Delegate<int (int event)> PollEventDelegate;
 
 #if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	static const uint POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT, POLLEV_ERR = ALOOPER_EVENT_ERROR;
+	static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
+		POLLEV_ERR = ALOOPER_EVENT_ERROR, POLLEV_HUP = ALOOPER_EVENT_HANGUP;
 #elif defined (CONFIG_BASE_X11) || (defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9)
-	static const uint POLLEV_IN = EPOLLIN, POLLEV_OUT = EPOLLOUT, POLLEV_ERR = EPOLLERR;
+	static const int POLLEV_IN = EPOLLIN, POLLEV_OUT = EPOLLOUT, POLLEV_ERR = EPOLLERR, POLLEV_HUP = EPOLLHUP;
 #endif
 
 #if defined (CONFIG_BASE_X11) || defined(CONFIG_BASE_ANDROID)
@@ -317,6 +296,13 @@ void onFocusChange(uint in);
 
 // Called when a known input device addition/removal/change occurs
 void onInputDevChange(const InputDevChange &change);
+
+// Called when a file is dropped into into the app's window
+// if app enables setAcceptDnd()
+void onDragDrop(const char *filename);
+
+// Called when another process sends the app a message
+void onInterProcessMessage(const char *filename);
 
 // Called when app returns from backgrounded state
 void onResume(bool focused);

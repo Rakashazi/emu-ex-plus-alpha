@@ -80,7 +80,7 @@ extern uint8 timer[4];	//Up-counters
 extern uint32 timer_clock0, timer_clock1, timer_clock2, timer_clock3;
 
 // Set this value to fix problems with glitching extra lines.
-extern fbool gfx_hack;
+extern bool gfx_hack;
 
 //=============================================================================
 #endif

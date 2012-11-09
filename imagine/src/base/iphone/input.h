@@ -1,5 +1,5 @@
 #pragma once
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <input/common/common.h>
 #include <input/DragPointer.hh>
 
@@ -67,7 +67,11 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.clearButtonMode = UITextFieldViewModeNever;
 
 	vkbdField.textColor = [UIColor blackColor];
-	vkbdField.textAlignment = UITextAlignmentLeft;
+#ifdef __ARM_ARCH_6K__
+	vkbdField.textAlignment = UITextAlignmentLeft; // deprecated on newer SDKs
+#else
+	vkbdField.textAlignment = NSTextAlignmentLeft;
+#endif
 	vkbdField.font = [UIFont systemFontOfSize:24.0];
 	vkbdField.text = text;
 	vkbdField.delegate = Base::mainApp;

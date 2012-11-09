@@ -5,7 +5,7 @@
 namespace Gfx
 {
 
-static uint newTexRef()
+static GfxTextureHandle newTexRef()
 {
 	GLuint ref;
 	glGenTextures(1, &ref);
@@ -13,7 +13,7 @@ static uint newTexRef()
 	return ref;
 }
 
-static void freeTexRef(uint texRef)
+static void freeTexRef(GfxTextureHandle texRef)
 {
 	//logMsg("deleting texture id %u", texRef);
 	glcDeleteTextures(1, &texRef);
@@ -295,8 +295,8 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
 	//logMsg("writeGLTexture");
 	uint alignment = setUnpackAlignForPitch(pix.pitch);
 	assert((ptrsize)pix.data % (ptrsize)alignment == 0);
-	GLenum format = pixelFormatToOGLFormat(*pix.format);
-	GLenum dataType = pixelFormatToOGLDataType(*pix.format);
+	GLenum format = pixelFormatToOGLFormat(pix.format);
+	GLenum dataType = pixelFormatToOGLDataType(pix.format);
 	uint xSize = includePadding ? pix.pitchPixels() : pix.x;
 	#ifndef CONFIG_GFX_OPENGL_ES
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, (!includePadding && pix.isPadded()) ? pix.pitchPixels() : 0);
@@ -311,7 +311,7 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
 		}
 	#else
 		clearGLError();
-		if(includePadding || pix.pitch == pix.x * pix.format->bytesPerPixel)
+		if(includePadding || pix.pitch == pix.x * pix.format.bytesPerPixel)
 		{
 			//logMsg("pitch equals x size optimized case");
 			glTexSubImage2D(target, 0, 0, 0,
@@ -358,8 +358,8 @@ static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool
 	#ifndef CONFIG_GFX_OPENGL_ES
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	#endif
-	GLenum format = pixelFormatToOGLFormat(*pix.format);
-	GLenum dataType = pixelFormatToOGLDataType(*pix.format);
+	GLenum format = pixelFormatToOGLFormat(pix.format);
+	GLenum dataType = pixelFormatToOGLDataType(pix.format);
 	uint xSize = includePadding ? pix.pitchPixels() : pix.x;
 	if(includePadding && pix.pitchPixels() != pix.x)
 		logMsg("including padding in texture size, %d", pix.pitchPixels());
@@ -428,7 +428,7 @@ void TextureGfxBufferImage::write(Pixmap &p, uint hints)
 void TextureGfxBufferImage::replace(Pixmap &p, uint hints)
 {
 	glcBindTexture(GL_TEXTURE_2D, tid);
-	replaceGLTexture(p, 1, pixelToOGLInternalFormat(*p.format), hints, GL_TEXTURE_2D);
+	replaceGLTexture(p, 1, pixelToOGLInternalFormat(p.format), hints, GL_TEXTURE_2D);
 }
 
 Pixmap *TextureGfxBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return fallback; }
@@ -478,8 +478,8 @@ bool DirectTextureGfxBufferImage::testSupport(const char **errorStr)
 	glGenTextures(1, &ref);
 	glcBindTexture(GL_TEXTURE_2D, ref);
 
-	Pixmap pix;
-	pix.init(nullptr, &PixelFormatRGB565, 256, 256);
+	Pixmap pix(PixelFormatRGB565);
+	pix.init(nullptr, 256, 256);
 	DirectTextureGfxBufferImage directTex;
 	if(directTex.init(pix, ref, 256, 256, errorStr))
 	{
@@ -494,9 +494,9 @@ bool DirectTextureGfxBufferImage::testSupport(const char **errorStr)
 	}
 }
 
-bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr)
+bool DirectTextureGfxBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr)
 {
-	int androidFormat = pixelFormatToDirectAndroidFormat(*pix.format);
+	int androidFormat = pixelFormatToDirectAndroidFormat(pix.format);
 	if(androidFormat == GGL_PIXEL_FORMAT_NONE)
 	{
 		logMsg("format cannot be used");
@@ -507,9 +507,10 @@ bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uin
 	setupAndroidNativeBuffer(eglBuf, usedX, usedY, androidFormat,
 		/*GRALLOC_USAGE_SW_READ_OFTEN |*/ GRALLOC_USAGE_SW_WRITE_OFTEN
 		/*| GRALLOC_USAGE_HW_RENDER*/ | GRALLOC_USAGE_HW_TEXTURE);
-	if(directTextureConf.allocBuffer(eglBuf) != 0)
+	int err;
+	if((err = directTextureConf.allocBuffer(eglBuf)) != 0)
 	{
-		logMsg("error in alloc buffer");
+		logMsg("error in alloc buffer: %s", strerror(-err));
 		if(errorStr) *errorStr = "Allocation failed";
 		goto CLEANUP;
 	}
@@ -520,23 +521,26 @@ bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uin
 	{
 		logMsg("error registering");
 	}*/
-	logMsg("testing locking");
-	void *data;
-	if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, usedX, usedY, data) != 0)
+	if(testLock)
 	{
-		logMsg("error locking");
-		if(errorStr) *errorStr = "Lock failed";
-		goto CLEANUP;
-	}
-	logMsg("data addr %p", data);
-	//printPrivHnd(eglBuf.handle);
-	//memset(data, 0, eglBuf.stride * eglBuf.height * 2);
-	logMsg("unlocking");
-	if(directTextureConf.unlockBuffer(eglBuf) != 0)
-	{
-		logMsg("error unlocking");
-		if(errorStr) *errorStr = "Unlock failed";
-		goto CLEANUP;
+		logMsg("testing locking");
+		void *data;
+		if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, usedX, usedY, data) != 0)
+		{
+			logMsg("error locking");
+			if(errorStr) *errorStr = "Lock failed";
+			goto CLEANUP;
+		}
+		logMsg("data addr %p", data);
+		//printPrivHnd(eglBuf.handle);
+		//memset(data, 0, eglBuf.stride * eglBuf.height * 2);
+		logMsg("unlocking");
+		if(directTextureConf.unlockBuffer(eglBuf) != 0)
+		{
+			logMsg("error unlocking");
+			if(errorStr) *errorStr = "Unlock failed";
+			goto CLEANUP;
+		}
 	}
 	//printPrivHnd(eglBuf.handle);
 
@@ -557,8 +561,9 @@ bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uin
 		goto CLEANUP;
 	}
 
-	eglPixmap.init(0, pix.format, usedX, usedY, 0);
-	eglPixmap.pitch = eglBuf.stride * eglPixmap.format->bytesPerPixel;
+	new(&eglPixmap) Pixmap(pix.format);
+	eglPixmap.init(0, usedX, usedY, 0);
+	eglPixmap.pitch = eglBuf.stride * eglPixmap.format.bytesPerPixel;
 
 	return 1;
 
@@ -575,6 +580,28 @@ bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uin
 	}
 	return 0;
 }
+
+bool DirectTextureGfxBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr)
+{
+	return initTexture(pix, usedX, usedY, 1, errorStr);
+}
+
+/*void DirectTextureGfxBufferImage::replace(Pixmap &p, uint hints)
+{
+	glcBindTexture(GL_TEXTURE_2D, tid);
+	if(eglBuf.handle)
+	{
+		eglDestroyImageKHR(Base::getAndroidEGLDisplay(), eglImg);
+		if(directTextureConf.freeBuffer(eglBuf) != 0)
+		{
+			logWarn("error freeing buffer");
+		}
+	}
+	if(!initTexture(p, usedX, usedY, 0))
+	{
+		logErr("error redefining EGL texture");
+	}
+}*/
 
 void DirectTextureGfxBufferImage::write(Pixmap &p, uint hints)
 {
@@ -611,10 +638,13 @@ void DirectTextureGfxBufferImage::unlock(Pixmap *pix, uint hints)
 void DirectTextureGfxBufferImage::deinit()
 {
 	logMsg("freeing EGL image");
-	eglDestroyImageKHR(Base::getAndroidEGLDisplay(), eglImg);
-	if(directTextureConf.freeBuffer(eglBuf) != 0)
+	if(eglBuf.handle)
 	{
-		logWarn("error freeing buffer");
+		eglDestroyImageKHR(Base::getAndroidEGLDisplay(), eglImg);
+		if(directTextureConf.freeBuffer(eglBuf) != 0)
+		{
+			logWarn("error freeing buffer");
+		}
 	}
 	TextureGfxBufferImage::deinit();
 	Gfx::freeTexRef(tid);
@@ -631,37 +661,30 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 {
 	jobject surfaceTex, surface;
 	ANativeWindow* nativeWin;
-	Pixmap pix, *backingPix;
+	Pixmap pix {PixelFormatRGB565}, *backingPix;
 	void init(int tid, Pixmap &pixmap)
 	{
 		using namespace Base;
 		using namespace Gfx;
 		backingPix = &pixmap; // not yet used
 
-		int winFormat = pixelFormatToDirectAndroidFormat(*pixmap.format);
-		assert(winFormat);
-
 		var_selfs(tid);
-		pix.init(0, pixmap.format, pixmap.x, pixmap.y, 0);
+		new(&pix) Pixmap(pixmap.format);
+		pix.init(0, pixmap.x, pixmap.y, 0);
 		logMsg("creating SurfaceTexture with id %d", tid);
 		surfaceTex = eEnv()->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tid);
 		assert(surfaceTex);
-		surfaceTex = eEnv()->NewGlobalRef(surfaceTex);
 		//jEnv->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
 
 		surface = eEnv()->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
 		assert(surface);
-		surface = eEnv()->NewGlobalRef(surface);
 
 		// ANativeWindow_fromSurfaceTexture was removed from Android 4.1
 		//nativeWin = surfaceTextureConf.ANativeWindow_fromSurfaceTexture(eEnv(), surfaceTex);
 		nativeWin = ANativeWindow_fromSurface(eEnv(), surface);
 		assert(nativeWin);
 		logMsg("got native window %p from Surface %p", nativeWin, surface);
-		if(ANativeWindow_setBuffersGeometry(nativeWin, pixmap.x, pixmap.y, winFormat) < 0)
-		{
-			logErr("error in ANativeWindow_setBuffersGeometry");
-		}
+		replace(pixmap, 0);
 	}
 
 	/*void write()
@@ -681,9 +704,14 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		unlock();
 	}
 
-	void replace(Pixmap &p, uint hints)
+	void replace(Pixmap &pixmap, uint hints)
 	{
-		bug_exit("TODO");
+		int winFormat = pixelFormatToDirectAndroidFormat(pixmap.format);
+		assert(winFormat);
+		if(ANativeWindow_setBuffersGeometry(nativeWin, pixmap.x, pixmap.y, winFormat) < 0)
+		{
+			logErr("error in ANativeWindow_setBuffersGeometry");
+		}
 	}
 
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr)
@@ -691,7 +719,7 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		ANativeWindow_Buffer buffer;
 		//ARect rect = { x, y, xlen, ylen };
 		ANativeWindow_lock(nativeWin, &buffer, 0/*&rect*/);
-		pix.pitch = buffer.stride * pix.format->bytesPerPixel;
+		pix.pitch = buffer.stride * pix.format.bytesPerPixel;
 		pix.data = (uchar*)buffer.bits;
 		//logMsg("locked buffer %p with pitch %d", buffer.bits, buffer.stride);
 		return &pix;
@@ -714,17 +742,28 @@ struct SurfaceTextureGfxBufferImage: public GfxBufferImageInterface
 		logMsg("deinit SurfaceTexture, releasing window");
 		ANativeWindow_release(nativeWin);
 		surfaceTextureConf.jSurfaceRelease(eEnv(), surface);
-		eEnv()->DeleteGlobalRef(surface);
+		eEnv()->DeleteLocalRef(surface);
 		surfaceTextureConf.jSurfaceTextureRelease(eEnv(), surfaceTex);
-		eEnv()->DeleteGlobalRef(surfaceTex);
+		eEnv()->DeleteLocalRef(surfaceTex);
 		Gfx::freeTexRef(tid);
 		tid = 0;
+
+		if(surfaceTextureConf.texture2dBindingHack)
+		{
+			GLint realTexture = 0;
+			glGetIntegerv(GL_TEXTURE_BINDING_2D, &realTexture);
+			if(glState.bindTextureState.GL_TEXTURE_2D_state != (GLuint)realTexture)
+			{
+				logMsg("setting GL_TEXTURE_2D binding state to %d, should be %d", realTexture, glState.bindTextureState.GL_TEXTURE_2D_state);
+			}
+			glState.bindTextureState.GL_TEXTURE_2D_state = realTexture;
+		}
 	}
 };
 
 #endif
 
-fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
+bool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 	uint usedX, uint usedY, uint hints, uint filter)
 {
 	//logMsg("createGLTexture");
@@ -735,7 +774,7 @@ fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat
 		texTarget = GL_TEXTURE_EXTERNAL_OES;
 	}
 	#endif
-	//int newTexture = 0;
+
 	auto texRef = Gfx::newTexRef();
 	if(texRef == 0)
 	{
@@ -757,7 +796,7 @@ fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 		if(Gfx::surfaceTextureConf.use)
 		{
-			logMsg("using SurfaceTexture, %dx%d %s", usedX, usedY, pix.format->name);
+			logMsg("using SurfaceTexture, %dx%d %s", usedX, usedY, pix.format.name);
 			pix.x = usedX;
 			pix.y = usedY;
 			auto *surfaceTex = new SurfaceTextureGfxBufferImage;
@@ -771,7 +810,7 @@ fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(directTextureConf.useEGLImageKHR)
 		{
-			logMsg("using EGL image for texture, %dx%d %s", usedX, usedY, pix.format->name);
+			logMsg("using EGL image for texture, %dx%d %s", usedX, usedY, pix.format.name);
 			auto *directTex = new DirectTextureGfxBufferImage;
 			if(directTex->init(pix, texRef, usedX, usedY))
 			{
@@ -788,8 +827,9 @@ fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat
 			}
 		}
 		#endif
-
-		includePadding = 1; // avoid slow OpenGL ES upload case, should be faster on OpenGL too
+		#ifdef CONFIG_GFX_OPENGL_ES
+		includePadding = 1; // avoid slow OpenGL ES upload case
+		#endif
 	}
 
 	if(hasMipmaps())
@@ -804,20 +844,14 @@ fbool GfxBufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat
 		#endif
 	}
 	{
-		GLenum format = pixelFormatToOGLFormat(*pix.format);
-		GLenum dataType = pixelFormatToOGLDataType(*pix.format);
+		GLenum format = pixelFormatToOGLFormat(pix.format);
+		GLenum dataType = pixelFormatToOGLDataType(pix.format);
 		logMsg("%s texture %dx%d with internal format %s from image %s:%s", upload ? "uploading" : "creating", pix.x, pix.y, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 	}
-	if(/*newTexture && */replaceGLTexture(pix, upload, internalFormat, includePadding, texTarget))
+	if(replaceGLTexture(pix, upload, internalFormat, includePadding, texTarget))
 	{
 		//logMsg("success");
 	}
-	/*else if(upload && !writeGLTexture(pix, includePadding, texTarget))
-	{
-		logErr("error writing texture");
-		texReuseCache_doneUsing(&texCache, texRef);
-		return 0;
-	}*/
 
 	#ifndef CONFIG_GFX_OPENGL_ES
 	if(upload && useFBOFuncs)
@@ -859,8 +893,8 @@ CallResult GfxBufferImage::init(ResourceImage &img, uint filter, uint hints, boo
 	uint texX, texY;
 	textureSizeSupport.findBufferXYPixels(texX, texY, img.width(), img.height());
 
-	var_copy(pixFmt, swapRGBToPreferedOrder(img.pixelFormat()));
-	Pixmap texPix;
+	auto pixFmt = swapRGBToPreferedOrder(img.pixelFormat());
+	Pixmap texPix(*pixFmt);
 	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
 	#if defined(CONFIG_BASE_PS3)
 	//logMsg("alloc in heap"); // PS3 has 1MB stack limit
@@ -871,12 +905,9 @@ CallResult GfxBufferImage::init(ResourceImage &img, uint filter, uint hints, boo
 	uchar uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
 	#endif
 	mem_zero(uploadPixStore, uploadPixStoreSize);
-	texPix.init(uploadPixStore, pixFmt, texX, texY, 0);
+	texPix.init(uploadPixStore, texX, texY, 0);
 	img.getImage(&texPix);
-	fbool isDirect;
-	/*GfxTextureHandle tid = createGLTexture(&texPix, 1, pixelToOGLInternalFormat(*texPix.format), wrapMode,
-			wrapMode, img.width(), img.height(), hints, *this, filter, isDirect);*/
-	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(*texPix.format), wrapMode,
+	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(texPix.format), wrapMode,
 			wrapMode, img.width(), img.height(), hints, filter))
 	{
 		#if defined(CONFIG_BASE_PS3)
@@ -922,8 +953,8 @@ CallResult GfxBufferImage::init(Pixmap &pix, bool upload, uint filter, uint hint
 	textureSizeSupport.findBufferXYPixels(texX, texY, xSize, pix.y,
 		(hints & HINT_STREAM) ? TextureSizeSupport::streamHint : 0);
 
-	Pixmap texPix;
-	texPix.init(0, pix.format, texX, texY, 0);
+	Pixmap texPix(pix.format);
+	texPix.init(0, texX, texY, 0);
 
 	/*uchar uploadPixStore[texX * texY * pix.format->bytesPerPixel];
 
@@ -933,10 +964,7 @@ CallResult GfxBufferImage::init(Pixmap &pix, bool upload, uint filter, uint hint
 		pix.copy(0, 0, 0, 0, &uploadPix, 0, 0);
 	}*/
 	assert(upload == 0);
-	fbool isDirect;
-	/*GfxTextureHandle tid = createGLTexture(&texPix, upload, pixelToOGLInternalFormat(*pix.format),
-			wrapMode, wrapMode, pix.x, pix.y, hints, *this, filter, isDirect);*/
-	if(!setupTexture(texPix, upload, pixelToOGLInternalFormat(*pix.format),
+	if(!setupTexture(texPix, upload, pixelToOGLInternalFormat(pix.format),
 			wrapMode, wrapMode, pix.x, pix.y, hints, filter))
 	{
 		return INVALID_PARAMETER;
@@ -951,7 +979,10 @@ CallResult GfxBufferImage::init(Pixmap &pix, bool upload, uint filter, uint hint
 }
 
 void GfxBufferImage::write(Pixmap &p) { GfxBufferImageImpl::write(p, hints); }
-void GfxBufferImage::replace(Pixmap &p) { GfxBufferImageImpl::replace(p, hints); }
+void GfxBufferImage::replace(Pixmap &p)
+{
+	GfxBufferImageImpl::replace(p, hints);
+}
 void GfxBufferImage::unlock(Pixmap *p) { GfxBufferImageImpl::unlock(p, hints); }
 
 void GfxBufferImage::deinit()

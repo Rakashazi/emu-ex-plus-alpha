@@ -257,7 +257,7 @@ void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg
 	thread.jEnv->DeleteLocalRef(jMsg);
 }
 
-static int runEpoll(ThreadPThread &thread)
+static ptrsize runEpoll(ThreadPThread &thread)
 {
 	for(;;)
 	{
@@ -291,7 +291,7 @@ static void setupEpoll()
 		ePoll = epoll_create(8);
 		assert(ePoll);
 		sem_init(&ePollWaitSem, 0, 0);
-		epollThread.create(1, runEpoll, 0);
+		epollThread.create(1, ThreadPThread::EntryDelegate::create<runEpoll>());
 	}
 }
 
@@ -346,14 +346,14 @@ static void JNICALL appResumed(JNIEnv*  env, jobject thiz, jboolean hasFocus)
 static jboolean JNICALL appFocus(JNIEnv*  env, jobject thiz, jboolean hasFocus)
 {
 	logMsg("focus change: %d", (int)hasFocus);
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	onFocusChange(hasFocus);
 	return appState == APP_RUNNING && prevGfxUpdateState == 0 && gfxUpdate;
 }
 
 static jboolean JNICALL handleAndroidMsg(JNIEnv *env, jobject thiz, jint arg1, jint arg2, jint arg3)
 {
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	int type = arg1 >> 16, shortArg = arg1 & 0xFFFF;
 	switch(type)
 	{

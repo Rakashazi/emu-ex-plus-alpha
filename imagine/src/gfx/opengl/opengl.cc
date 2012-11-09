@@ -25,8 +25,6 @@
 #include <resource2/image/ResourceImage.h>
 #endif
 
-static const char *extensions, *version, *rendererName;
-
 uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
 
 #ifdef CONFIG_GFX_OPENGL_GLEW_STATIC
@@ -152,8 +150,6 @@ void setImgMode(uint mode)
 		bcase IMG_MODE_MODULATE: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		bcase IMG_MODE_ADD: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
 		bcase IMG_MODE_BLEND: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-			//GLfloat col[4] = { 1, 1, 0, 0 } ;
-			//glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, col);
 	}
 }
 
@@ -258,7 +254,8 @@ void setClipRectBounds(int x, int y, int w, int h)
 			y += Base::window().rect.x;
 			IG::swap(x, y);
 			IG::swap(w, h);
-			//TODO: VIEW_ROTATE_180
+		bcase VIEW_ROTATE_180:
+			y += Base::window().rect.x;
 	}
 	#else
 	y = (Base::window().rect.ySize() - y) - h;
@@ -284,5 +281,3 @@ void setClearColor(GColor r, GColor g, GColor b, GColor a)
 }
 
 }
-
-#undef thisModuleName

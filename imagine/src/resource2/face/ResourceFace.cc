@@ -20,43 +20,161 @@
 #include "ResourceFace.hh"
 
 #ifdef CONFIG_RESOURCE_FONT_FREETYPE
-
-#include <resource2/font/freetype/ResourceFontFreetype.h>
-
+	#include <resource2/font/ResourceFontFreetype.hh>
+	#ifdef CONFIG_PACKAGE_FONTCONFIG
+		#include <fontconfig/fontconfig.h>
+	#endif
+#elif defined CONFIG_RESOURCE_FONT_ANDROID
+	#include <resource2/font/ResourceFontAndroid.hh>
+#elif defined CONFIG_RESOURCE_FONT_UIKIT
+	#include <resource2/font/ResourceFontUIKit.hh>
 #endif
 
-void ResourceFace::initGlyphTable ()
+// definitions for the Unicode Basic Multilingual Plane (BMP)
+static const uint unicodeBmpChars = 0xFFFE;
+
+// location & size of the surrogate/private chars
+static const uint unicodeBmpPrivateStart = 0xD800, unicodeBmpPrivateEnd = 0xF8FF;
+static const uint unicodeBmpPrivateChars = 0x2100;
+
+static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
+
+static const uint glyphTableEntries = ResourceFace::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
+
+void ResourceFace::initGlyphTable()
 {
 	//logMsg("initGlyphTable");
-	uint tableEntries = numDrawableAsciiChars;
-	iterateTimes(tableEntries, i)
+	iterateTimes(glyphTableEntries, i)
 	{
-		glyphTable[i].glyph = NULL;
+		glyphTable[i].glyph = nullptr;
 	}
 }
 
 ResourceFace *ResourceFace::load(const char *path, FontSettings *set)
 {
-	ResourceFont *font = NULL;
+	ResourceFont *font = nullptr;
 	#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-	font = ResourceFontFreetype::load(path);
+		font = ResourceFontFreetype::load(path);
 	#endif
-	if(font == NULL)
-		return NULL;
+	if(!font)
+		return nullptr;
 
 	return create(font, set);
 }
 
 ResourceFace *ResourceFace::load(Io* io, FontSettings *set)
 {
-	ResourceFont *font = NULL;
+	ResourceFont *font = nullptr;
 	#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-	font = ResourceFontFreetype::load(io);
+		font = ResourceFontFreetype::load(io);
 	#endif
-	if(font == NULL)
-		return NULL;
+	if(!font)
+		return nullptr;
 
 	return create(font, set);
+}
+
+#ifdef CONFIG_PACKAGE_FONTCONFIG
+static CallResult getFontFilenameWithPattern(FcPattern *pat, char *&filename, FcPattern *&matchPatOut)
+{
+	FcDefaultSubstitute(pat);
+	if(!FcConfigSubstitute(nullptr, pat, FcMatchPattern))
+	{
+		logErr("error applying font substitutions");
+		FcPatternDestroy(pat);
+		return INVALID_PARAMETER;
+	}
+	FcResult result;
+	auto matchPat = FcFontMatch(nullptr, pat, &result);
+	FcPatternDestroy(pat);
+	if(!matchPat || result == FcResultNoMatch)
+	{
+		logErr("fontconfig couldn't find a valid font");
+		if(matchPat)
+			FcPatternDestroy(matchPat);
+		return INVALID_PARAMETER;
+	}
+	if(!FcPatternGetString(matchPat, FC_FILE, 0, (FcChar8**)&filename) == FcResultMatch)
+	{
+		logErr("fontconfig font missing file path");
+		FcPatternDestroy(matchPat);
+		return INVALID_PARAMETER;
+	}
+	matchPatOut = matchPat;
+	return OK;
+}
+
+static ResourceFontFreetype *loadSystemSans()
+{
+	auto pat = FcPatternCreate();
+	if(!pat)
+	{
+		logErr("error allocating fontconfig pattern");
+		return nullptr;
+	}
+	FcPatternAddString(pat, FC_FAMILY, (const FcChar8*)"sans");
+	char *filename;
+	FcPattern *matchPat;
+	if(getFontFilenameWithPattern(pat, filename, matchPat) != OK)
+	{
+		return nullptr;
+	}
+	auto font = ResourceFontFreetype::load(filename);
+	FcPatternDestroy(matchPat);
+	return font;
+}
+
+static void addonSystemJa(ResourceFontFreetype *font)
+{
+	auto pat = FcPatternCreate();
+	if(!pat)
+	{
+		logErr("error allocating fontconfig pattern");
+		return;
+	}
+	FcPatternAddString(pat, FC_LANG, (const FcChar8*)"ja");
+	char *filename;
+	FcPattern *matchPat;
+	if(getFontFilenameWithPattern(pat, filename, matchPat) != OK)
+	{
+		return;
+	}
+	font->loadIntoSlot((char*)filename, 1);
+	FcPatternDestroy(matchPat);
+}
+#endif
+
+ResourceFace *ResourceFace::loadSystem(FontSettings *set)
+{
+	#ifdef CONFIG_RESOURCE_FONT_ANDROID
+		auto *font = ResourceFontAndroid::loadSystem();
+		if(!font)
+			return nullptr;
+		return create(font, set);
+	#elif defined CONFIG_RESOURCE_FONT_UIKIT
+		auto *font = ResourceFontUIKit::loadSystem();
+		if(!font)
+			return nullptr;
+		return create(font, set);
+	#elif defined CONFIG_ENV_WEBOS
+		return load("/usr/share/fonts/PreludeCondensed-Medium.ttf", set);
+	#else
+		#ifdef CONFIG_PACKAGE_FONTCONFIG
+			logMsg("locating system fonts with fontconfig");
+			if(!FcInitLoadConfigAndFonts())
+			{
+				logErr("error initializing fontconfig");
+				return nullptr;
+			}
+			auto font = loadSystemSans();
+			if(!font)
+				return nullptr;
+			addonSystemJa(font);
+			return create(font, set);
+		#else
+			return loadAsset("Vera.ttf", set);
+		#endif
+	#endif
 }
 
 ResourceFace *ResourceFace::create(ResourceFace *face, FontSettings *set)
@@ -67,22 +185,21 @@ ResourceFace *ResourceFace::create(ResourceFace *face, FontSettings *set)
 ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 {
 	ResourceFace *inst = new ResourceFace;
-	if(inst == NULL)
+	if(!inst)
 	{
 		logErr("out of memory");
-		return NULL;
+		return nullptr;
 	}
 
-	logMsg("allocating glyph table, %d entries", numDrawableAsciiChars);
-	inst->glyphTable = (GlyphEntry*)mem_alloc(sizeof(GlyphEntry) * numDrawableAsciiChars);
+	logMsg("allocating glyph table, %d entries", glyphTableEntries);
+	inst->glyphTable = (GlyphEntry*)mem_alloc(sizeof(GlyphEntry) * glyphTableEntries);
 	if(!inst->glyphTable)
 	{
 		delete inst;
 		logErr("out of memory");
-		return 0;
+		return nullptr;
 	}
 
-	//inst->init();
 	inst->font = font;
 	inst->initGlyphTable();
 
@@ -90,7 +207,7 @@ ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 	{
 		inst->settings = *set;
 		inst->settings.process();
-		font->newSize(&inst->settings, &inst->faceSize);
+		font->newSize(&inst->settings, inst->faceSize);
 	}
 	else
 	{
@@ -104,7 +221,7 @@ ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 void ResourceFace::free ()
 {
 	font->freeSize(faceSize);
-	iterateTimes(numDrawableAsciiChars, i)
+	iterateTimes(glyphTableEntries, i)
 	{
 		glyphTable[i].glyph->freeSafe();
 	}
@@ -125,7 +242,7 @@ void ResourceFace::calcNominalHeight()
 
 	assert(mGly != NULL && gGly != NULL);
 
-	nominalHeight_ = mGly->ySize + (gGly->ySize/2);
+	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
 }
 
 CallResult ResourceFace::applySettings (FontSettings set)
@@ -142,14 +259,14 @@ CallResult ResourceFace::applySettings (FontSettings set)
 		{
 			logMsg("flushing glyph cache");
 			font->freeSize(faceSize);
-			iterateTimes(numDrawableAsciiChars, i)
+			iterateTimes(glyphTableEntries, i)
 			{
 				glyphTable[i].glyph->freeSafe();
 			}
 		}
 
 		settings = set;
-		font->newSize(&settings, &faceSize);
+		font->newSize(&settings, faceSize);
 		initGlyphTable();
 		calcNominalHeight();
 		return OK;
@@ -158,78 +275,80 @@ CallResult ResourceFace::applySettings (FontSettings set)
 		return RESOURCE_FACE_SETTINGS_UNCHANGED;
 }
 
-int ResourceFace::maxDescender () const { font->applySize(faceSize); return font->currentFaceDescender(); }
-int ResourceFace::maxAscender () const { font->applySize(faceSize); return font->currentFaceAscender(); }
+//int ResourceFace::maxDescender () { font->applySize(faceSize); return font->currentFaceDescender(); }
+//int ResourceFace::maxAscender () { font->applySize(faceSize); return font->currentFaceAscender(); }
 
-CallResult ResourceFace::writeCurrentChar (Pixmap *out)
+CallResult ResourceFace::writeCurrentChar(Pixmap *out)
 {
-	uchar *bitmap = NULL;
+	void *bitmap = nullptr;
 	int bX = 0, bY = 0, bPitch;
-	font->charBitmap(&bitmap, &bX, &bY, &bPitch);
-	//logDMsg("copying char %dx%d, pitch %d", bX, bY, bPitch);
-	//assert(bX == bPitch);
-
-	/*if(bX <= 64)
-	{
-		iterateTimes(bY, yPos)
-		{
-			char line[3*64 + 1];
-			uint linePos = 0;
-			iterateTimes(bPitch, xPos)
-			{
-				sprintf(&line[linePos], "%02X ", bitmap[bPitch * yPos + xPos]);
-				linePos += 3;
-			}
-			line[linePos] = 0;
-			logMsg("%s", line);
-		}
-	}*/
-
-	assert(bX != 0 && bY != 0 && bitmap != NULL);
-	Pixmap src;
-	src.init(bitmap, &PixelFormatI8, bX, bY, bPitch - bX);
+	font->charBitmap(bitmap, bX, bY, bPitch);
+	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", bX, bY, bPitch, out->x, out->y, out->pitch);
+	assert(bX != 0 && bY != 0 && bitmap != nullptr);
+	Pixmap src(PixelFormatI8);
+	src.init((uchar*)bitmap, bX, bY, bPitch - bX);
 	src.copy(0, 0, 0, 0, out, 0, 0);
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
+	font->unlockCharBitmap(bitmap);
 	return OK;
 }
 
-// make sure resourceFont_applySize() has been called before entering this function
-CallResult ResourceFace::cacheChar (int c, int tableIdx)
+CallResult ResourceFace::cacheChar(int c, int tableIdx)
 {
-	doOrReturn(font->activeChar(c));
+	GlyphMetrics metrics;
+	// make sure applySize() has been called on the font object first
+	doOrReturn(font->activeChar(c, metrics));
 	//logMsg("setting up table entry %d", tableIdx);
-	glyphTable[tableIdx].xSize = font->currentCharXSize();
-	glyphTable[tableIdx].ySize = font->currentCharYSize();
-	glyphTable[tableIdx].xOffset = font->currentCharXOffset();
-	glyphTable[tableIdx].yOffset = font->currentCharYOffset();
-	glyphTable[tableIdx].xAdvance = font->currentCharXAdvance();
+	glyphTable[tableIdx].metrics = metrics;
 	glyphTable[tableIdx].glyph = font->createRenderable(c, this, &glyphTable[tableIdx]);
 	return OK;
 }
 
-static CallResult mapCharToTable(int c, int *tableIdx)
+static CallResult mapCharToTable(uint c, uint &tableIdx)
 {
-	if(charIsDrawableAscii(c))
+	if(ResourceFace::supportsUnicode)
 	{
-		*tableIdx = c - firstDrawableAsciiChar;
-		return OK;
+		if(c < unicodeBmpChars && charIsDrawableUnicode(c))
+		{
+			if(c < unicodeBmpPrivateStart)
+			{
+				tableIdx = c;
+				return OK;
+			}
+			else if(c > unicodeBmpPrivateEnd)
+			{
+				tableIdx = c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
+				return OK;
+			}
+			else
+				return INVALID_PARAMETER;
+		}
+		else return INVALID_PARAMETER;
 	}
-	else return INVALID_PARAMETER;
+	else
+	{
+		if(charIsDrawableAscii(c))
+		{
+			tableIdx = c - firstDrawableAsciiChar;
+			return OK;
+		}
+		else return INVALID_PARAMETER;
+	}
 }
 
-CallResult ResourceFace::precache (const char *string)
+CallResult ResourceFace::precache(const char *string)
 {
 	assert(settings.areValid());
 	font->applySize(faceSize);
 	for(int i = 0, c = string[i]; c != 0; c = string[++i])
 	{
-		int tableIdx;
-		if(mapCharToTable(c, &tableIdx) != OK)
+		uint tableIdx;
+		if(mapCharToTable(c, tableIdx) != OK)
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
 		}
-		if(glyphTable[tableIdx].glyph != NULL)
+		if(glyphTable[tableIdx].glyph)
 		{
 			//logMsg( "%c already cached", c);
 			continue;
@@ -241,51 +360,20 @@ CallResult ResourceFace::precache (const char *string)
 	return OK;
 }
 
-CallResult ResourceFace::getGlyph (ResourceImageGlyph **glyphAddr, int c)
+GlyphEntry *ResourceFace::glyphEntry(int c)
 {
 	assert(settings.areValid());
-	int tableIdx;
-	doOrReturn(mapCharToTable(c, &tableIdx));
-	if(glyphTable[tableIdx].glyph == NULL)
-	{
-		//logMsg("char %c not in table, caching now", c);
-		font->applySize(faceSize);
-		doOrReturn(cacheChar(c, tableIdx));
-	}
-
-	*glyphAddr = glyphTable[tableIdx].glyph;
-
-	return OK;
-}
-
-void ResourceFace::lookupCharBounds (int c, int *width, int *height, int *yLineOffset, int *xOffset, int *xAdvance)
-{
-	int tableIdx = 0;
-	if(mapCharToTable(c, &tableIdx) == OK)
-	{
-		*width = glyphTable[tableIdx].xSize;
-		*height = glyphTable[tableIdx].ySize;
-		*yLineOffset = glyphTable[tableIdx].yOffset;
-		*xOffset = glyphTable[tableIdx].xOffset;
-		*xAdvance = glyphTable[tableIdx].xAdvance;
-	}
-}
-
-GlyphEntry *ResourceFace::glyphEntry (int c)
-{
-	assert(settings.areValid());
-	int tableIdx;
-	if(mapCharToTable(c, &tableIdx) != OK)
-		return NULL;
-	if(glyphTable[tableIdx].glyph == NULL)
+	uint tableIdx;
+	if(mapCharToTable(c, tableIdx) != OK)
+		return nullptr;
+	assert(tableIdx < glyphTableEntries);
+	if(!glyphTable[tableIdx].glyph)
 	{
 		//logMsg("char %c not in table, caching now", c);
 		font->applySize(faceSize);
 		if(cacheChar(c, tableIdx))
-			return NULL;
+			return nullptr;
 	}
 
 	return &glyphTable[tableIdx];
 }
-
-#undef thisModuleName

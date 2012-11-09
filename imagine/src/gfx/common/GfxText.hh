@@ -7,51 +7,40 @@
 
 #include <ctype.h>
 #include <gfx/GfxText.hh>
+#include <util/Delegate.hh>
+#include <util/strings.h>
 
-void GfxText::init()
+namespace Gfx
 {
 
-}
-
-void GfxText::deinit()
+void Text::deinit()
 {
-	//face = nullptr;
-	//str = nullptr;
-	slen = 0;
 	spaceSize = 0;
 	nominalHeight = 0;
 	yLineStart = 0;
-	maxLines = 0;
-	maxLineSize = 0;
+	xSize = ySize = 0;
+	chars = 0;
+	lines = 0;
+	if(lineInfo)
+	{
+		mem_free(lineInfo);
+		lineInfo = nullptr;
+	}
 }
 
-void GfxText::setString(const char *str)
+void Text::setString(const char *str)
 {
 	assert(str);
 	this->str = str;
-	slen = strlen(str);
 }
 
-void GfxText::setFace(ResourceFace *face)
+void Text::setFace(ResourceFace *face)
 {
 	assert(face);
 	this->face = face;
 }
 
-/*static bool isStartOfTextUnit(char prev, char c)
-{
-	assert(c != 0);
-	if(prev == 0 ||
-		isblank(c) ||
-		(isblank(prev) && isalnum(c)))
-	{
-		logMsg("%c is start of text unit", c);
-		return 1;
-	}
-	return 0;
-}*/
-
-static GC xSizeOfChar(ResourceFace *face, char c, GC spaceX)
+static GC xSizeOfChar(ResourceFace *face, int c, GC spaceX)
 {
 	assert(c != '\0');
 	if(c == ' ')
@@ -61,194 +50,162 @@ static GC xSizeOfChar(ResourceFace *face, char c, GC spaceX)
 
 	GlyphEntry *gly = face->glyphEntry(c);
 	if(gly != NULL)
-		return Gfx::iXSize(gly->xAdvance);
+		return Gfx::iXSize(gly->metrics.xAdvance);
 	else
 		return 0;
 }
 
-static GC xSizeOfTextUnit(ResourceFace *face, const char *s, GC spaceX)
-{
-	if(s[0] == ' ')
-		return spaceX;
-	if(s[0] == '\n' || s[0] == '\0')
-		return 0;
-
-	GC xSize = 0;
-	GlyphEntry *gly = face->glyphEntry(s[0]);
-	if(gly != NULL)
-		xSize = Gfx::iXSize(gly->xAdvance);
-
-	int i = 1;
-	while(isgraph(s[i]))
-	{
-		xSize += xSizeOfChar(face, s[i], spaceX);
-		i++;
-	}
-	return xSize;
-}
-
-static int charsInNextTextUnit(const char *s)
-{
-	if(s[0] == '\0')
-		return 0;
-	if(isspace(s[0]))
-		return 1;
-
-	int  i = 0;
-	while(isgraph(s[i]))
-	{
-		i++;
-	}
-
-	return i == 0 ? 1 : i;
-}
-
-static uint charsInLine(ResourceFace *face, const char *s, GC spaceX, GC xMaxSize, GC *xSize)
-{
-	GC size = 0;
-	int chars, total = 0;
-	while((chars = charsInNextTextUnit(s)) > 0)
-	{
-		if(s[0] == '\n')
-		{
-			total++;
-			break;
-		}
-
-		GC unitSize = xSizeOfTextUnit(face, s, spaceX);
-		if(total != 0 && xMaxSize != (GC)0 && unitSize + size > xMaxSize)
-			break;
-
-		size += unitSize;
-		s += chars;
-		total += chars;
-	}
-
-	if(xSize != NULL)
-		*xSize = size;
-	return total;
-}
-
-void GfxText::compile()
+void Text::compile()
 {
 	assert(face);
 	assert(str);
+	//logMsg("compiling text %s", str);
 	
 	// TODO: move calc into Face class
 	GlyphEntry *mGly = face->glyphEntry('M');
 	GlyphEntry *gGly = face->glyphEntry('g');
 	
-	if(mGly == NULL || gGly == NULL)
+	if(!mGly || !gGly)
 	{
 		logErr("error reading measurement glyphs to compile text");
 		return;
 	}
 
-	yLineStart = Gfx::alignYToPixel(Gfx::iYSize(gGly->ySize - gGly->yOffset));
+	yLineStart = Gfx::alignYToPixel(Gfx::iYSize(gGly->metrics.ySize - gGly->metrics.yOffset));
 	
-	int spaceSizeI = mGly->xSize/2;
+	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = Gfx::iXSize(spaceSizeI);
-	nominalHeight = Gfx::alignYToPixel(Gfx::iYSize(mGly->ySize) + Gfx::iYSize(gGly->ySize/2));
+	nominalHeight = Gfx::alignYToPixel(Gfx::iYSize(mGly->metrics.ySize) + Gfx::iYSize(gGly->metrics.ySize/2));
 	int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
 	
-	int lines = 0;
-	// calc x text size
-	//int xLineSize = 0, xSizeI = 0;
+	lines = 1;
 	GC xLineSize = 0, maxXLineSize = 0;
-	const char *s = str; uint charsToHandle = 0;
-	while(s[0] != '\0' && (charsToHandle = charsInLine(face, s, spaceSize, maxLineSize, &xLineSize)) > 0)
+	const char *s = str;
+	uint c = 0, prevC = 0;
+	GC textBlockSize = 0;
+	uint textBlockIdx = 0, currLineIdx = 0;
+	uint charIdx = 0, charsInLine = 0;
+	CallResult res;
+	while((res = string_convertCharCode(&s, c)) == OK)
 	{
-		lines++;
-		maxXLineSize = IG::max(xLineSize, maxXLineSize);
-		s += charsToHandle;
-	}
-	/*iterateTimes(slen, i)
-	{
-		GlyphEntry *gly = face->glyphEntry(str[i]);
-		if(gly == NULL)
+		auto cSize = xSizeOfChar(face, c, spaceSize);
+		charsInLine++;
+
+		// Is this the start of a text block?
+		if(isgraph(c) && isspace(prevC))
 		{
-			if(str[i] == '\n')
-			{
-				lines++;
-				xSizeI = IG::max(xLineSize, xSizeI);
-				//logMsg("new line, prev line was %d pixels", xLineSize);
-				xLineSize = 0;
-			}
-			else
-				xLineSize += spaceSizeI;
-			continue;
+			textBlockIdx = charIdx;
+			textBlockSize = 0;
 		}
-		
-		xLineSize += gly->xAdvance;
-	}*/
-	//logMsg("x size of %d pixels", max(xLineSize, xSize));
-	//xSize = gfx_iXSize(IG::max(xLineSize, xSizeI));
+		xLineSize += cSize;
+		textBlockSize += cSize;
+
+		if(lines < maxLines)
+		{
+			bool wentToNextLine = 0;
+			// Go to next line?
+			if(c == '\n')
+			{
+				wentToNextLine = 1;
+				lineInfo = (LineInfo*)mem_realloc(lineInfo, sizeof(LineInfo)*(lines+1));
+				assert(lineInfo);
+				// Don't break text
+				//logMsg("new line %d without text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
+				lineInfo[lines-1].size = xLineSize;
+				lineInfo[lines-1].chars = charsInLine;
+				maxXLineSize = IG::max(xLineSize, maxXLineSize);
+				xLineSize = 0;
+				charsInLine = 0;
+			}
+			else if(xLineSize > maxLineSize && textBlockIdx != currLineIdx)
+			{
+				wentToNextLine = 1;
+				lineInfo = (LineInfo*)mem_realloc(lineInfo, sizeof(LineInfo)*(lines+1));
+				assert(lineInfo);
+				// Line has more than 1 block and is too big, needs text break
+				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
+				xLineSize -= textBlockSize;
+				uint charsInNextLine = (charIdx - textBlockIdx) + 1;
+				lineInfo[lines-1].size = xLineSize;
+				lineInfo[lines-1].chars = charsInLine - charsInNextLine;
+				maxXLineSize = IG::max(xLineSize, maxXLineSize);
+				xLineSize = textBlockSize;
+				charsInLine = charsInNextLine;
+				//logMsg("break @ char %d with line starting @ %d, %d chars moved to next line, leaving %d", textBlockIdx, currLineIdx, charsInNextLine, lineInfo[lines-1].chars);
+			}
+
+			if(wentToNextLine)
+			{
+				textBlockIdx = currLineIdx = charIdx+1;
+				textBlockSize = 0;
+				lines++;
+			}
+		}
+		charIdx++;
+		prevC = c;
+	}
+	chars = charIdx;
+	if(lines > 1) // Add info of last line (1 line case doesn't use per-line info)
+	{
+		lineInfo[lines-1].size = xLineSize;
+		lineInfo[lines-1].chars = charsInLine;
+	}
+	maxXLineSize = IG::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
 	ySize = Gfx::alignYToPixel(nominalHeight * (GC)lines);
 }
 
-void GfxText::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
+void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 {
 	using namespace Gfx;
 	assert(face != NULL && str != NULL);
 
-	GfxSprite spr;
+	resetTransforms();
+	setBlendMode(BLEND_MODE_INTENSITY);
+	Sprite spr;
 	spr.init(0, 0, 1, 1);
 
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
 	yPos = Gfx::alignYToPixel(o.adjustY(yPos, ySize, LT2DO));
-	//xPos = floorMult(xPos, xPerI);
-	//yPos = floorMult(yPos, yPerI);
-	//xPos = floor(xPos);
-	//yPos = floor(yPos);
 	yPos -= nominalHeight - yLineStart;
 	GC xOrig = xPos;
 	
-	//logMsg("printing %s", inst->str);
-	//logMsg("drawing text at %f,%f", xPos, yPos);
-	uchar line = 1;
-	GC xLineSize = 0;//, xMaxSize = 0;
-	uint charsToHandle = 0;
+	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
+	auto xViewLimit = proj.wHalf;
 	const char *s = str;
-	setBlendMode(BLEND_MODE_INTENSITY);
-	while(s[0] != '\0' && (charsToHandle = charsInLine(face, s, spaceSize, maxLineSize, &xLineSize)) > 0)
+	uint totalCharsDrawn = 0;
+	if(lines > 1)
 	{
-		bool setXPos = 0;
-		if(s == str)
-			setXPos = 1;
-		else if(line != maxLines) // break lines on loop 2+
+		assert(lineInfo);
+	}
+	iterateTimes(lines, l)
+	{
+		// Get line info (1 line case doesn't use per-line info)
+		GC xLineSize = lines > 1 ? lineInfo[l].size : xSize;
+		uint charsToDraw = lines > 1 ? lineInfo[l].chars : chars;
+		xPos = alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
+		//logMsg("line %d, %d chars", l, charsToDraw);
+		iterateTimes(charsToDraw, i)
 		{
-			//logMsg("breaking line");
-			line++;
-			yPos -= nominalHeight;
-			setXPos = 1;
-		}
-
-		if(setXPos)
-		{
-			xPos = alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
-		}
-
-		GC xViewLimit = proj.wHalf;
-		iterateTimes(charsToHandle, i)
-		{
-			if(s[i] == '\n')
+			uint c;
+			auto res = string_convertCharCode(&s, c);
+			if(res != OK)
 			{
-				if(line == maxLines)
-				{
-					// convert newline to space if max lines reached
-					xPos += spaceSize;
-					continue;
-				}
-				else
-					break;
+				logWarn("failed char conversion while drawing line %d, char %d, result %d", l, i, res);
+				return;
 			}
-			GlyphEntry *gly = face->glyphEntry(s[i]);
 
-			if(gly == NULL)
+			if(c == '\n')
 			{
+				continue;
+			}
+
+			GlyphEntry *gly = face->glyphEntry(c);
+			if(!gly)
+			{
+				//logMsg("no glyph for %X", c);
 				xPos += spaceSize;
 				continue;
 			}
@@ -257,17 +214,20 @@ void GfxText::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 				//logMsg("skipped %c, off right screen edge", s[i]);
 				continue;
 			}
-			GC xSize = iXSize(gly->xSize);
+			GC xSize = iXSize(gly->metrics.xSize);
 
 			spr.setImg(gly->glyph);
-			loadTranslate(xPos + iXSize(gly->xOffset), yPos - iYSize(gly->ySize - gly->yOffset));
-			applyScale(xSize, iYSize(gly->ySize));
-			xPos += Gfx::iXSize(gly->xAdvance);
-
+			auto x = xPos + iXSize(gly->metrics.xOffset);
+			auto y = yPos - iYSize(gly->metrics.ySize - gly->metrics.yOffset);
+			spr.setPos(x, y, x + xSize, y + iYSize(gly->metrics.ySize));
 			//logMsg("drawing");
-			spr.draw(0);
+			spr.draw();
+			xPos += Gfx::iXSize(gly->metrics.xAdvance);
 		}
-
-		s += charsToHandle;
+		yPos -= nominalHeight;
+		totalCharsDrawn += charsToDraw;
 	}
+	assert(totalCharsDrawn <= chars);
+}
+
 }

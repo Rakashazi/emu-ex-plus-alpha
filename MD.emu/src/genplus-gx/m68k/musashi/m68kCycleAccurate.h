@@ -73,7 +73,7 @@ typedef signed short SHORT;
 // Unsigned division
 //
 
-INLINE unsigned getDivu68kCycles( DWORD dividend, WORD divisor)
+SINLINE unsigned getDivu68kCycles( DWORD dividend, WORD divisor)
 {
   int i;
 
@@ -119,7 +119,7 @@ INLINE unsigned getDivu68kCycles( DWORD dividend, WORD divisor)
 // Signed division
 //
 
-INLINE unsigned getDivs68kCycles( LONG dividend, SHORT divisor)
+SINLINE unsigned getDivs68kCycles( LONG dividend, SHORT divisor)
 {
 
   //if( (SHORT) divisor == 0)
@@ -167,7 +167,7 @@ INLINE unsigned getDivs68kCycles( LONG dividend, SHORT divisor)
 // Unsigned multiplication
 //
 
-INLINE unsigned getMulu68kCycles( WORD source)
+SINLINE unsigned getMulu68kCycles( WORD source)
 {
   unsigned mcycles = 266;
 
@@ -190,7 +190,7 @@ INLINE unsigned getMulu68kCycles( WORD source)
 // Signed multiplication
 //
 
-INLINE unsigned getMuls68kCycles( SHORT source)
+SINLINE unsigned getMuls68kCycles( SHORT source)
 {
   unsigned mcycles = 266;
 

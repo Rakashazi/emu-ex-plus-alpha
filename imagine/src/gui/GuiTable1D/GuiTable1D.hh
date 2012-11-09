@@ -1,6 +1,6 @@
 #pragma once
 #include <util/rectangle2.h>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <gfx/Gfx.hh>
 #include <config/env.hh>
 
@@ -56,7 +56,7 @@ class ScrollableGuiTable1D : public GuiTable1D, public ScrollView1D
 {
 public:
 	constexpr ScrollableGuiTable1D() { }
-	fbool onlyScrollIfNeeded = 0;
+	bool onlyScrollIfNeeded = 0;
 
 	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO)
 	{
@@ -89,7 +89,7 @@ public:
 		updateView();
 	}
 
-	void setScrollableIfNeeded(fbool yes)
+	void setScrollableIfNeeded(bool yes)
 	{
 		onlyScrollIfNeeded = 1;
 	}

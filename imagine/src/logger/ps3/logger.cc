@@ -51,12 +51,12 @@ void logger_update()
 	cellDbgFontDraw();
 }
 
-void logger_vprintfn(LoggerSeverity severity, const char* msg, va_list args)
+void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 {
 	cellDbgFontConsoleVprintf(cID, msg, args);
 }
 
-void logger_printfn(LoggerSeverity severity, const char* msg, ...)
+void logger_printf(LoggerSeverity severity, const char* msg, ...)
 {
 	if(severity > loggerVerbosity) return;
 	va_list args;

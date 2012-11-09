@@ -2,7 +2,7 @@
 #include <bluetooth/sys.hh>
 
 #if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-bool useBluezBT = 1;
+static bool useBluezBT = 1;
 #endif
 
 bool BluetoothAdapter::useScanCache = 1;

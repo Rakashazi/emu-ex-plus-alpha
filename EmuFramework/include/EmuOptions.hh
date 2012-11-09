@@ -97,18 +97,25 @@ extern OptionRecentGames optionRecentGames;
 
 extern Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes;
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	extern OptionDirectTexture optionDirectTexture;
-
+#ifdef CONFIG_BASE_ANDROID
+	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		extern OptionDirectTexture optionDirectTexture;
+	#endif
+	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		extern Option<OptionMethodFunc<bool, Gfx::useAndroidSurfaceTexture, Gfx::setUseAndroidSurfaceTexture>, uint8> optionSurfaceTexture;
+		extern Option<OptionMethodVar<int8, optionIsValidWithMinMax<-17, 0> > > optionProcessPriority;
+	#endif
 	extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
 
 #ifdef CONFIG_INPUT_ICADE
-	extern Option<OptionMethodFunc<fbool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade;
+	extern Option<OptionMethodFunc<bool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade;
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	extern Option<OptionMethodFunc<fbool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
+	extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 #endif
 
 extern Option<OptionMethodFunc<uint, Gfx::dither, Gfx::setDither>, uint8> optionDitherImage;
+
+void initOptions();

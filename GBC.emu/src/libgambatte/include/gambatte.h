@@ -69,7 +69,7 @@ public:
 	  */
 	long runFor(gambatte::PixelType *videoBuf, int pitch,
 			gambatte::uint_least32_t *soundBuf, unsigned &samples,
-			bool notifyVideoCallback);
+			void (*videoFrameCallback)());
 	
 	/** Reset to initial state.
 	  * Equivalent to reloading a ROM image, or turning a Game Boy Color off and on again.

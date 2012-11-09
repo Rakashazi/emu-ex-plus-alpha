@@ -13,7 +13,7 @@ HIGH_OPTIMIZE_CFLAGS_MISC += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
-LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu,--sort-common
+LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu
 
 CPPFLAGS += -I/usr/include/boost-1_50
 ENV := linux

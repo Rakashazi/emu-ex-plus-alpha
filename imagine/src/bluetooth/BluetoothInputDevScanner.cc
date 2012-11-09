@@ -36,7 +36,7 @@ namespace Bluetooth
 				Zeemote::isSupportedClass(devClass);
 	}
 
-	fbool onClass(const uchar devClass[3])
+	bool onClass(const uchar devClass[3])
 	{
 		logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
 		return testSupportedBTDevClasses(devClass);
@@ -146,6 +146,11 @@ namespace Bluetooth
 	{
 		if(!bta)
 			return; // Bluetooth was never used
+		if(bta->inDetect)
+		{
+			logMsg("keeping BT active due to scan");
+			return;
+		}
 		removePendingDevs();
 		closeDevs();
 		bta->close();

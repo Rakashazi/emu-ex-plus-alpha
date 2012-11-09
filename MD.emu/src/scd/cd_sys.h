@@ -40,9 +40,7 @@ struct _scd_track
 //	unsigned char Num; // unused
 	_msf MSF;
 	char ftype = 0; // TYPE_ISO, TYPE_BIN, TYPE_MP3
-	Io *F = nullptr;
 	int Length = 0;
-	short KBtps = 0; // kbytes per sec for mp3s (bitrate / 1000 / 8)
 };
 
 struct _scd_toc

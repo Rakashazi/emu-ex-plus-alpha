@@ -20,8 +20,8 @@
 class VideoImageOverlay
 {
 	GfxBufferImage img;
-	Pixmap pix;
-	GfxSprite spr;
+	Pixmap pix {PixelFormatIA88};
+	Gfx::Sprite spr;
 	uint effect = NO_EFFECT;
 
 public:
@@ -40,6 +40,6 @@ public:
 	};
 
 	void setEffect(uint effect);
-	void place(const GfxSprite &disp);
+	void place(const Gfx::Sprite &disp);
 	void draw();
 };

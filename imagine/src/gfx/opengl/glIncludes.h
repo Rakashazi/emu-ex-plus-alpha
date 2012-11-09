@@ -26,9 +26,7 @@
 #elif defined(CONFIG_BASE_PS3)
 	#define CONFIG_GFX_OPENGL_ES 1
 	#include <PSGL/psgl.h>
-#endif
-
-#if defined(CONFIG_BASE_X11)
+#elif defined(CONFIG_BASE_X11)
 	#if defined(CONFIG_GFX_OPENGL_ES)
 		#define GL_GLEXT_PROTOTYPES
 		#include <GLES/gl.h>

@@ -80,97 +80,97 @@ enum { PIXEL_UNKNOWN, PIXEL_RGB888, PIXEL_RGBA8888, PIXEL_BGR888, PIXEL_BGRA8888
 	PIXEL_ARGB8888, PIXEL_ABGR8888, PIXEL_IA53, PIXEL_AI35, PIXEL_IA88,
 	PIXEL_ARGB4444, PIXEL_BGRA4444, PIXEL_END } ;
 
-static const PixelFormatDesc PixelFormatRGB888 =
+static constexpr PixelFormatDesc PixelFormatRGB888 =
 {
 	16, 8, 0, 0, // shifts
 	8, 8, 8, 0, // bits
 	24, 3, 0, "RGB888", PIXEL_RGB888
 };
-static const PixelFormatDesc PixelFormatRGBA8888 =
+static constexpr PixelFormatDesc PixelFormatRGBA8888 =
 {
 	24, 16, 8, 0, // shifts
 	8, 8, 8, 8, // bits
 	32, 4, 0, "RGBA8888", PIXEL_RGBA8888
 };
-static const PixelFormatDesc PixelFormatARGB8888 =
+static constexpr PixelFormatDesc PixelFormatARGB8888 =
 {
 	16, 8, 0, 24, // shifts
 	8, 8, 8, 8, // bits
 	32, 4, 0, "ARGB8888", PIXEL_ARGB8888
 };
-static const PixelFormatDesc PixelFormatBGR888 =
+static constexpr PixelFormatDesc PixelFormatBGR888 =
 {
 	0, 8, 16, 0, // shifts
 	8, 8, 8, 0, // bits
 	24, 3, 1, "BGR888", PIXEL_BGR888
 };
-static const PixelFormatDesc PixelFormatBGRA8888 =
+static constexpr PixelFormatDesc PixelFormatBGRA8888 =
 {
 	8, 16, 24, 0, // shifts
 	8, 8, 8, 8, // bits
 	32, 4, 1, "BGRA8888", PIXEL_BGRA8888
 };
-static const PixelFormatDesc PixelFormatABGR8888 =
+static constexpr PixelFormatDesc PixelFormatABGR8888 =
 {
 	0, 8, 16, 24, // shifts
 	8, 8, 8, 8, // bits
 	32, 4, 1, "ABGR8888", PIXEL_ABGR8888
 };
-static const PixelFormatDesc PixelFormatRGB565 =
+static constexpr PixelFormatDesc PixelFormatRGB565 =
 {
 	11, 5, 0, 0, // shifts
 	5, 6, 5, 0, // bits
 	16, 2, 0, "RGB565", PIXEL_RGB565
 };
-static const PixelFormatDesc PixelFormatARGB1555 =
+static constexpr PixelFormatDesc PixelFormatARGB1555 =
 {
 	10, 5, 0, 15, // shifts
 	5, 5, 5, 1, // bits
 	16, 2, 0, "ARGB1555", PIXEL_ARGB1555
 };
-static const PixelFormatDesc PixelFormatABGR1555 =
+static constexpr PixelFormatDesc PixelFormatABGR1555 =
 {
 	10, 5, 0, 15, // shifts
 	5, 5, 5, 1, // bits
 	16, 2, 1, "ABGR1555", PIXEL_ABGR1555
 };
-static const PixelFormatDesc PixelFormatARGB4444 =
+static constexpr PixelFormatDesc PixelFormatARGB4444 =
 {
 	8, 4, 0, 12, // shifts
 	4, 4, 4, 4, // bits
 	16, 2, 0, "ARGB4444", PIXEL_ARGB4444
 };
-static const PixelFormatDesc PixelFormatBGRA4444 =
+static constexpr PixelFormatDesc PixelFormatBGRA4444 =
 {
 	4, 8, 12, 0, // shifts
 	4, 4, 4, 4, // bits
 	16, 2, 0, "BGRA4444", PIXEL_BGRA4444
 };
-/*static const PixelFormatDesc PixelFormat1555XRGB = { 10, 5, 0, 0,
+/*static constexpr PixelFormatDesc PixelFormat1555XRGB = { 10, 5, 0, 0,
 	5, 5, 5, 0,
 	16, 2, 0, "XRGB1555", 0 };
-static const PixelFormatDesc PixelFormat1555XBGR = { 0, 5, 10, 0,
+static constexpr PixelFormatDesc PixelFormat1555XBGR = { 0, 5, 10, 0,
 	5, 5, 5, 0,
 	16, 2, 1, "XBGR1555", 0 };
-static const PixelFormatDesc PixelFormat1555ABGR = { 0, 5, 10, 15,
+static constexpr PixelFormatDesc PixelFormat1555ABGR = { 0, 5, 10, 15,
 	5, 5, 5, 1,
 	16, 2, 1, "ABGR1555", 0 };
-static const PixelFormatDesc PixelFormat5551RGBA = { 1, 6, 11, 0,
+static constexpr PixelFormatDesc PixelFormat5551RGBA = { 1, 6, 11, 0,
 	5, 5, 5, 1,
 	16, 2, 0, "RGBA5551", 0 };*/
-static const PixelFormatDesc PixelFormatI8 =
+static constexpr PixelFormatDesc PixelFormatI8 =
 {
 	0, 0, 0, 0, // shifts
 	8, 8, 8, 0, // bits
 	8, 1, 0, "I8", PIXEL_I8
 };
-/*static const PixelFormatDesc PixelFormat5I3A = { 5, 5, 5, 0,
+/*static constexpr PixelFormatDesc PixelFormat5I3A = { 5, 5, 5, 0,
 	5, 5, 5, 3,
 	8, 1, 0, "IA53", 0 };
-static const PixelFormatDesc PixelFormat3A5I = { 0, 0, 0, 5,
+static constexpr PixelFormatDesc PixelFormat3A5I = { 0, 0, 0, 5,
 	5, 5, 5, 3,
 	8, 1, 0, "AI35", 0 };*/
-static const PixelFormatDesc PixelFormatIA88 =
+static constexpr PixelFormatDesc PixelFormatIA88 =
 {
 	8, 8, 8, 0, // shifts
 	8, 8, 8, 8, // bits

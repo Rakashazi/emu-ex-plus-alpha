@@ -13,13 +13,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <libgen.h>
 #include <EmuSystem.hh>
 #include <Option.hh>
 #include <audio/Audio.hh>
 extern BasicByteOption optionSound;
 extern BasicByteOption optionAutoSaveState;
 
-bool EmuSystem::active = 0;
+EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FsSys::cPath EmuSystem::gamePath = "";
 FsSys::cPath EmuSystem::fullGamePath = "";
 char EmuSystem::gameName[256] = "";
@@ -31,6 +32,7 @@ Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::CallbackRef *EmuSystem::autoSaveStateCallbackRef = nullptr;
+void fixFilePermissions(const char *path);
 
 void saveAutoStateFromTimer();
 static const auto autoSaveStateCallback = Base::CallbackDelegate::create<&saveAutoStateFromTimer>();
@@ -154,4 +156,41 @@ int EmuSystem::setupFrameSkip(uint optionVal)
 		return -1;
 	}
 	return skip;*/
+}
+
+void EmuSystem::setupGamePaths(const char *filePath)
+{
+	{
+		// find the realpath the dirname portion separately in case the file is a symlink
+		FsSys::cPath dirNameTemp;
+		string_copy(dirNameTemp, filePath);
+		strcpy(gamePath, dirname(dirNameTemp));
+		char realPath[PATH_MAX];
+		if(!realpath(gamePath, realPath))
+		{
+			gamePath[0] = 0;
+			logErr("error in realpath()");
+			return;
+		}
+		strcpy(gamePath, realPath); // destination is always large enough
+		logMsg("set game directory: %s", gamePath);
+		#ifdef CONFIG_BASE_IOS_SETUID
+			fixFilePermissions(gamePath);
+		#endif
+	}
+
+	{
+		FsSys::cPath baseNameTemp;
+		string_copy(baseNameTemp, filePath);
+		string_copy(gameName, basename(baseNameTemp));
+
+		string_printf(fullGamePath, "%s/%s", gamePath, gameName);
+		logMsg("set full game path: %s", fullGamePath);
+
+		// If gameName has an extension, truncate it
+		auto dotPos = strrchr(gameName, '.');
+		if(dotPos)
+			*dotPos = 0;
+		logMsg("set game name: %s", gameName);
+	}
 }

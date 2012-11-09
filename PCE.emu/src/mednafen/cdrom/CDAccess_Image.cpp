@@ -678,7 +678,111 @@ CDAccess_Image::CDAccess_Image(const char *path)
  ImageOpen(path);
 }
 
-void CDAccess_Image::Read_Raw_Sector(uint8 *buf, int32 lba)
+bool CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
+{
+	bool TrackFound = FALSE;
+
+	for(int32 track = FirstTrack; track < (FirstTrack + NumTracks); track++)
+	{
+	 CDRFILE_TRACK_INFO *ct = &Tracks[track];
+
+	 if(lba >= (ct->LBA - ct->pregap_dv - ct->pregap) && lba < (ct->LBA + ct->sectors + ct->postgap))
+	 {
+		TrackFound = TRUE;
+
+		// Handle pregap and postgap reading
+		if(lba < (ct->LBA - ct->pregap_dv) || lba >= (ct->LBA + ct->sectors))
+		{
+		 //printf("Pre/post-gap read, LBA=%d(LBA-track_start_LBA=%d)\n", lba, lba - ct->LBA);
+		 memset(buf, 0, size);	// Null sector data, per spec
+		}
+		else
+		{
+		 if(ct->AReader)
+		 {
+			 if(size != 2352)
+			 {
+				 MDFN_printf("skipping cdda sector read\n");
+				 return false;
+			 }
+			int16 AudioBuf[588 * 2];
+			int frames_read = ct->AReader->Read((ct->FileOffset / 4) + (lba - ct->LBA) * 588, AudioBuf, 588);
+
+			ct->LastSamplePos += frames_read;
+
+			if(frames_read < 0 || frames_read > 588)	// This shouldn't happen.
+			{
+				MDFN_printf("Error: frames_read out of range: %d\n", frames_read);
+			 frames_read = 0;
+			}
+
+			if(frames_read < 588)
+			 memset((uint8 *)AudioBuf + frames_read * 2 * sizeof(int16), 0, (588 - frames_read) * 2 * sizeof(int16));
+
+			for(int i = 0; i < 588 * 2; i++)
+			 MDFN_en16lsb(buf + i * 2, AudioBuf[i]);
+		 }
+		 else	// Binary, woo.
+		 {
+			long SeekPos = ct->FileOffset;
+			long LBARelPos = lba - ct->LBA;
+
+			SeekPos += LBARelPos * DI_Size_Table[ct->DIFormat];
+
+      if(ct->SubchannelMode)
+       SeekPos += 96 * (lba - ct->LBA);
+
+			fseek(ct->fp, SeekPos, SEEK_SET);
+
+			switch(ct->DIFormat)
+			{
+	case DI_FORMAT_AUDIO:
+		if(size != 2352)
+		{
+			MDFN_printf("skipping cdda sector read\n");
+			return false;
+		}
+		fread(buf, 1, 2352, ct->fp);
+
+		if(ct->RawAudioMSBFirst)
+		 Endian_A16_Swap(buf, 588 * 2);
+		break;
+
+	case DI_FORMAT_MODE1:
+		if(size != 2048)
+		{
+			MDFN_printf("skipping data sector read\n");
+			return false;
+		}
+		fread(buf, 1, 2048, ct->fp);
+		break;
+
+	case DI_FORMAT_MODE1_RAW:
+		if(size != 2048)
+		{
+			MDFN_printf("skipping data sector read\n");
+			return false;
+		}
+		fseek(ct->fp, 12 + 3 + 1, SEEK_CUR);
+		fread(buf, 1, 2048, ct->fp);
+		break;
+			}
+
+		 }
+		} // end if audible part of audio track read.
+		break;
+	 } // End if LBA is in range
+	} // end track search loop
+
+	if(!TrackFound)
+	{
+		MDFN_printf("Could not find track for sector %u!\n", lba);
+	}
+
+	return TrackFound;
+}
+
+bool CDAccess_Image::Read_Raw_Sector(uint8 *buf, int32 lba)
 {
   bool TrackFound = FALSE;
   uint8 SimuQ[0xC];
@@ -783,10 +887,12 @@ void CDAccess_Image::Read_Raw_Sector(uint8 *buf, int32 lba)
    } // End if LBA is in range
   } // end track search loop
 
-  if(!TrackFound)
-  {
-   throw(MDFN_Error(0, _("Could not find track for sector %u!"), lba));
-  }
+	if(!TrackFound)
+	{
+		MDFN_printf("Could not find track for sector %u!\n", lba);
+	}
+
+	return TrackFound;
 
 #if 0
  if(qbuf[0] & 0x40)

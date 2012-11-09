@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.cxx 2527 2012-06-05 16:32:35Z stephena $
+// $Id: Console.cxx 2547 2012-07-14 18:56:57Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -112,8 +112,7 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
   // Auto-detect NTSC/PAL mode if it's requested
   string autodetected = "";
   myDisplayFormat = myProperties.get(Display_Format);
-  if(myDisplayFormat == "AUTO-DETECT" ||
-     myOSystem->settings().getBool("rominfo"))
+  if(myDisplayFormat == "AUTO" || myOSystem->settings().getBool("rominfo"))
   {
     // Run the TIA, looking for PAL scanline patterns
     // We turn off the SuperCharger progress bars, otherwise the SC BIOS
@@ -125,7 +124,7 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     for(int i = 0; i < 60; ++i)
       myTIA->update();
     myDisplayFormat = myTIA->isPAL() ? "PAL" : "NTSC";
-    if(myProperties.get(Display_Format) == "AUTO-DETECT")
+    if(myProperties.get(Display_Format) == "AUTO")
     {
       autodetected = "*";
       myCurrentFormat = 0;
@@ -251,7 +250,7 @@ void Console::toggleFormat(int direction)
       myTIA->update();
       myDisplayFormat = myTIA->isPAL() ? "PAL" : "NTSC";
       message = "Auto-detect mode: " + myDisplayFormat;
-      saveformat = "AUTO-DETECT";
+      saveformat = "AUTO";
       break;
     case 1:
       saveformat = myDisplayFormat  = "NTSC";

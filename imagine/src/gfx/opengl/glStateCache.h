@@ -3,11 +3,25 @@
 #include <config/env.hh>
 #include "glIncludes.h"
 
+static GLenum textureTargetToGet(GLenum target)
+{
+	switch(target)
+	{
+		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
+		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
+		#endif
+		default: bug_branch("%d", target); return 0;
+	}
+}
+
 class GLStateCache
 {
 public:
 	constexpr GLStateCache() { }
 	
+	static constexpr bool verifyState = 0;
+
 	GLenum matrixModeState = GL_INVALID_ENUM;
 	void matrixMode(GLenum mode)
 	{
@@ -36,7 +50,7 @@ public:
 			#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 			GLTARGET_CASE(GL_TEXTURE_EXTERNAL_OES);
 			#endif
-		default: return 0;
+		default: bug_branch("%d", target); return nullptr;
 		}
 		#undef GLTARGET_CASE
 	}
@@ -44,20 +58,26 @@ public:
 	void bindTexture(GLenum target, GLuint texture)
 	{
 		GLuint *state = getBindTextureState(target);
-		assert(state);
-		/*if(unlikely(!state))
-		{
-			// unmanaged target
-			logMsg("glBindTexture unmanaged target %d", (int)target);
-			glBindTexture(target, texture);
-			return;
-		}*/
-
 		if(texture != *state)
 		{
 			//logMsg("binding texture %d to target %d", texture, target);
 			glBindTexture(target, texture);
 			*state = texture;
+		}
+
+		/*if(target == GL_TEXTURE_EXTERNAL_OES)
+		{
+			logMsg("bound texture %d TEXTURE_EXTERNAL_OES", texture);
+		}*/
+
+		if(verifyState)
+		{
+			GLint realTexture = 0;
+			glGetIntegerv(textureTargetToGet(target), &realTexture);
+			if(texture != (GLuint)realTexture)
+			{
+				bug_exit("out of sync, expected %u but got %u", texture, realTexture);
+			}
 		}
 	}
 
@@ -67,11 +87,15 @@ public:
 		// If a texture that is currently bound is deleted, the binding reverts to 0 (the default texture)
 		iterateTimes(n, i)
 		{
+			//logMsg("deleting texture %d", textures[i]);
 			if(textures[i] == bindTextureState.GL_TEXTURE_2D_state)
 				bindTextureState.GL_TEXTURE_2D_state = 0;
 			#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 			if(textures[i] == bindTextureState.GL_TEXTURE_EXTERNAL_OES_state)
+			{
+				//logMsg("is bound to TEXTURE_EXTERNAL_OES");
 				bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = 0;
+			}
 			#endif
 		}
 
@@ -102,24 +126,24 @@ public:
 	struct GLStateCaps
 	{
 		constexpr GLStateCaps() { }
-		fbool GL_ALPHA_TEST_state = 0;
-		fbool GL_DEPTH_TEST_state = 0;
-		fbool GL_FOG_state = 0;
-		fbool GL_BLEND_state = 0;
-		fbool GL_SCISSOR_TEST_state = 0;
-		fbool GL_CULL_FACE_state = 0;
-		fbool GL_TEXTURE_2D_state = 0;
+		bool GL_ALPHA_TEST_state = 0;
+		bool GL_DEPTH_TEST_state = 0;
+		bool GL_FOG_state = 0;
+		bool GL_BLEND_state = 0;
+		bool GL_SCISSOR_TEST_state = 0;
+		bool GL_CULL_FACE_state = 0;
+		bool GL_TEXTURE_2D_state = 0;
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		fbool GL_TEXTURE_EXTERNAL_OES_state = 0;
+		bool GL_TEXTURE_EXTERNAL_OES_state = 0;
 		#endif
-		fbool GL_DITHER_state = 1;
+		bool GL_DITHER_state = 1;
 		#ifndef CONFIG_GFX_OPENGL_ES
 		// extensions
-		fbool GL_MULTISAMPLE_ARB_state = 0;
+		bool GL_MULTISAMPLE_ARB_state = 0;
 		#endif
 	} stateCap;
 
-	fbool *getCap(GLenum cap)
+	bool *getCap(GLenum cap)
 	{
 		#define GLCAP_CASE(cap) case cap: return &stateCap.cap ## _state
 		switch(cap)
@@ -145,7 +169,7 @@ public:
 
 	void enable(GLenum cap)
 	{
-		fbool *state = getCap(cap);
+		bool *state = getCap(cap);
 		if(unlikely(!state))
 		{
 			// unmanaged cap
@@ -161,11 +185,17 @@ public:
 			glEnable(cap);
 			*state = 1;
 		}
+
+		if(verifyState)
+		{
+			if(!glIsEnabled(cap))
+				bug_exit("state %d out of sync", cap);
+		}
 	}
 
 	void disable(GLenum cap)
 	{
-		fbool *state = getCap(cap);
+		bool *state = getCap(cap);
 		if(unlikely(!state))
 		{
 			// unmanaged cap
@@ -181,11 +211,17 @@ public:
 			glDisable(cap);
 			*state = 0;
 		}
+
+		if(verifyState)
+		{
+			if(glIsEnabled(cap))
+				bug_exit("state %d out of sync", cap);
+		}
 	}
 
 	GLboolean isEnabled(GLenum cap)
 	{
-		fbool *state = getCap(cap);
+		bool *state = getCap(cap);
 		if(unlikely(!state))
 		{
 			// unmanaged cap
@@ -203,11 +239,11 @@ public:
 	struct GLClientStateCaps
 	{
 		constexpr GLClientStateCaps() { }
-		fbool GL_TEXTURE_COORD_ARRAY_state = 0;
-		fbool GL_COLOR_ARRAY_state = 0;
+		bool GL_TEXTURE_COORD_ARRAY_state = 0;
+		bool GL_COLOR_ARRAY_state = 0;
 	} clientStateCap;
 
-	fbool *getClientCap(GLenum cap)
+	bool *getClientCap(GLenum cap)
 	{
 		#define GLCAP_CASE(cap) case cap: return &clientStateCap.cap ## _state
 		switch(cap)
@@ -221,7 +257,7 @@ public:
 
 	void enableClientState(GLenum cap)
 	{
-		fbool *state = getClientCap(cap);
+		bool *state = getClientCap(cap);
 		if(unlikely(!state))
 		{
 			// unmanaged cap
@@ -236,11 +272,17 @@ public:
 			glEnableClientState(cap);
 			*state = 1;
 		}
+
+		if(verifyState)
+		{
+			if(!glIsEnabled(cap))
+				bug_exit("state %d out of sync", cap);
+		}
 	}
 
 	void disableClientState(GLenum cap)
 	{
-		fbool *state = getClientCap(cap);
+		bool *state = getClientCap(cap);
 		if(unlikely(!state))
 		{
 			// unmanaged cap
@@ -254,6 +296,12 @@ public:
 			//logMsg("glDisableClientState %d", (int)cap);
 			glDisableClientState(cap);
 			*state = 0;
+		}
+
+		if(verifyState)
+		{
+			if(glIsEnabled(cap))
+				bug_exit("state %d out of sync", cap);
 		}
 	}
 

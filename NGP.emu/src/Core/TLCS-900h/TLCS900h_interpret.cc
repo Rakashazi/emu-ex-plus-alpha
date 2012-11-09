@@ -72,7 +72,7 @@ uint8		first;		//The first byte
 uint8		R;			//big R
 uint8		second;		//The second opcode
 
-fbool	brCode;		//Register code used?
+bool	brCode;		//Register code used?
 uint8		rCode;		//The code
 
 uint32		cycles;			//How many state changes?
@@ -452,7 +452,7 @@ uint32 generic_SBC_L(uint32 dst, uint32 src)
 
 //=============================================================================
 
-fbool conditionCode(int cc)
+bool conditionCode(int cc)
 {
 	switch(cc)
 	{

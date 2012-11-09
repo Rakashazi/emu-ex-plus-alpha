@@ -32,7 +32,7 @@
 namespace Input
 {
 int32_t onInputEvent(android_app* app, AInputEvent* event);
-extern fbool sendInputToIME;
+extern bool sendInputToIME;
 }
 
 static struct android_app aAppInst; // global app instance
@@ -44,6 +44,8 @@ android_app *appInstance()
 {
 	return &aAppInst;
 }
+
+pid_t activityTid = 0;
 
 }
 
@@ -199,24 +201,35 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
 
 void process_input(struct android_app* app)
 {
-	AInputEvent* event = NULL;
-	if(AInputQueue_getEvent(app->inputQueue, &event) >= 0)
+	AInputEvent* event = nullptr;
+	int events = 0;
+	do
 	{
+		if(AInputQueue_getEvent(app->inputQueue, &event) < 0)
+		{
+			logWarn("error getting input event from queue");
+			break;
+		}
 		//LOGI("New input event: type=%d\n", AInputEvent_getType(event));
 #ifdef CONFIG_INPUT
+		//logMsg("input event start");
 		if(Input::sendInputToIME && AInputQueue_preDispatchEvent(app->inputQueue, event))
 		{
-			return;
+			//logMsg("input event used by pre-dispatch");
+			events++;
+			continue;
 		}
-		int32_t handled = Input::onInputEvent(app, event);
+		auto handled = Input::onInputEvent(app, event);
 		AInputQueue_finishEvent(app->inputQueue, event, handled);
+		//logMsg("input event end");
 #else
 		AInputQueue_finishEvent(app->inputQueue, event, 0);
 #endif
-	}
-	else
+		events++;
+	} while(AInputQueue_hasEvents(app->inputQueue));
+	if(events > 1)
 	{
-		logWarn("Failure reading next input event: %s\n", strerror(errno));
+		//logMsg("processed %d input events", events);
 	}
 }
 
@@ -486,6 +499,7 @@ static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
 	logMsg("called ANativeActivity_onCreate");
+	activityTid = gettid();
 	activity->callbacks->onDestroy = onDestroy;
 	activity->callbacks->onStart = onStart;
 	activity->callbacks->onResume = onResume;

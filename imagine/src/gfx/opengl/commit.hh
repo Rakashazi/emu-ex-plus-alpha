@@ -1,13 +1,6 @@
 #pragma once
 
-#if defined(CONFIG_BASE_IOS)
-	#include <base/iphone/private.hh>
-#endif
-
-namespace Base
-{
-	void openGLUpdateScreen();
-}
+#include <base/private.hh>
 
 namespace Gfx
 {
@@ -31,19 +24,7 @@ void waitVideoSync()
 
 void setVideoInterval(uint interval)
 {
-	#ifdef CONFIG_GFX_OPENGL_GLX
-	if(GLXEW_SGI_swap_control)
-	{
-		assert(interval > 0);
-		logMsg("set swap interval %d", interval);
-		glXSwapIntervalSGI(interval);
-	}
-	#elif defined(CONFIG_BASE_IOS)
-		Base::setVideoInterval(interval);
-	#elif defined(CONFIG_ENV_WEBOS)
-		/*void base_pdl_setVideoInterval(uint interval);
-		base_pdl_setVideoInterval(interval);*/
-	#endif
+	Base::setVideoInterval(interval);
 }
 
 /*void gfx_initFrameClockTime()
@@ -96,8 +77,8 @@ void clear()
 	#if defined(CONFIG_GFX_OPENGL_ES)
 		// always clear screen to trigger a discarded buffer optimization
 		// TODO: test other systems to determine the what's best
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		//glClear(GL_COLOR_BUFFER_BIT);
 	#else
 		if(clearColorBufferBit || clearZBufferBit)
 		{
@@ -109,12 +90,6 @@ void clear()
 
 void renderFrame()
 {
-	#if defined(USE_TEX_CACHE)
-		texReuseCache_update(&texCache);
-	#endif
-
-	//geom_test_draw();
-
 	if(unlikely(animateOrientationChange && !projAngleM.isComplete()))
 	{
 		//logMsg("animating rotation");
@@ -124,28 +99,6 @@ void renderFrame()
 	}
 
 	Gfx::onDraw();
-	//if(likely(drawHandler != 0))
-	//	drawHandler(drawHandlerCtx);
-
-	/*#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	const bool forceUpdateSurfaceTextures = 0;
-	//logMsg("active surface texture %p", SurfaceTextureGfxBufferImage::activeInst);
-	var_copy(surfaceTex, SurfaceTextureGfxBufferImage::activeInst);
-	if(forceUpdateSurfaceTextures && surfaceTex)
-	{
-		if(surfaceTex->didFrameUpdate)
-		{
-			//logMsg("Surface Texture was updated this frame");
-		}
-		else
-		{
-			logMsg("Surface Texture not updated this frame, updating now");
-			surfaceTex->write();
-		}
-		surfaceTex->didFrameUpdate = 0;
-	}
-
-	#endif*/
 
 	//glFlush();
 	//glFinish();

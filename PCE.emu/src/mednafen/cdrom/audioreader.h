@@ -6,12 +6,12 @@
 class MDFN_Object
 {
 	public:
-	INLINE MDFN_Object()
+	MDFN_Object()
 	{
 
 	}
 
-	INLINE ~MDFN_Object()
+	~MDFN_Object()
 	{
 
 	}
@@ -43,7 +43,7 @@ class AudioReader : public MDFN_Object
  virtual int64 Read_(int16 *buffer, int64 frames);
  virtual bool Seek_(int64 frame_offset);
  virtual int64 FrameCount(void);
- INLINE int64 Read(int64 frame_offset, int16 *buffer, int64 frames)
+ int64 Read(int64 frame_offset, int16 *buffer, int64 frames)
  {
   int64 ret;
 

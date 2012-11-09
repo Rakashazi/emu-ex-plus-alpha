@@ -92,7 +92,7 @@ void  ResourceImagePng::free ()
 
 CallResult  ResourceImagePng::getImage (Pixmap* dest)
 {
-	return(png.readImage(io, dest->data, dest->pitch, *dest->format));
+	return(png.readImage(io, dest->data, dest->pitch, dest->format));
 }
 
 int  ResourceImagePng::alphaChannelType ()

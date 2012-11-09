@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: MT24LC256.cxx 2558 2012-10-24 10:10:32Z stephena $
 //============================================================================
 
 #include <cassert>

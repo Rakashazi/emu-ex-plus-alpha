@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 2477 2012-05-16 20:52:33Z stephena $
+// $Id: FSNode.hxx 2540 2012-06-14 21:26:38Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -116,7 +116,7 @@ class FilesystemNode
      * Create a new FilesystemNode referring to the specified path. This is
      * the counterpart to the path() method.
      *
-     * If path is empty or equals "." or "~", then a node representing the
+     * If path is empty or equals '~', then a node representing the
      * "home directory" will be created. If that is not possible (since e.g. the
      * operating system doesn't support the concept), some other directory is
      * used (usually the root directory).
@@ -375,15 +375,6 @@ class AbstractFilesystemNode
     virtual AbstractFilesystemNode* getParent() const = 0;
 
     /**
-     * Returns a node representing the "home directory".
-     *
-     * On Unix, this will be the value of $HOME.
-     * On Windows, it will be the 'My Documents' folder.
-     * Otherwise, it should just return the same value as getRoot().
-     */
-    static AbstractFilesystemNode* makeHomeDirectoryFileNode();
-
-    /**
      * Construct a node based on a path; the path is in the same format as it
      * would be for calls to fopen().
      *
@@ -395,6 +386,8 @@ class AbstractFilesystemNode
      */
     static AbstractFilesystemNode* makeFileNodePath(const string& path);
 
+    // TODO - the following method isn't actually used anywhere in
+    //        the current code (2012-06-14)
     /**
      * Returns a special node representing the filesystem root.
      * The starting point for any file system browsing.

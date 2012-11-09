@@ -29,7 +29,7 @@ void MDFN_printf(const char *format, ...) throw()
 	#ifdef USE_LOGGER
 	va_list args;
 	va_start( args, format );
-	logger_vprintfn(LOG_M, format, args);
+	logger_vprintf(LOG_M, format, args);
 	va_end( args );
 	#endif
 }
@@ -39,7 +39,7 @@ void MDFN_PrintError(const char *format, ...) throw()
 	#ifdef USE_LOGGER
 	va_list args;
 	va_start( args, format );
-	logger_vprintfn(LOG_E, format, args);
+	logger_vprintf(LOG_E, format, args);
 	va_end( args );
 	#endif
 }
@@ -49,7 +49,7 @@ void MDFN_DispMessage(const char *format, ...) throw()
 	#ifdef USE_LOGGER
 	va_list args;
 	va_start( args, format );
-	logger_vprintfn(LOG_M, format, args);
+	logger_vprintf(LOG_M, format, args);
 	va_end( args );
 	#endif
 }

@@ -3,7 +3,7 @@
 #include <fs/Fs.hh>
 
 #ifdef CONFIG_FS_POSIX
-	#include <fs/posix/FsPosix.h>
+	#include <fs/posix/FsPosix.hh>
 	#define FsSys FsPosix
 #endif
 

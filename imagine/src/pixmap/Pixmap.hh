@@ -6,24 +6,24 @@
 class PixmapDesc
 {
 public:
-	constexpr PixmapDesc() { }
+	constexpr PixmapDesc(const PixelFormatDesc &format): format(format) { }
 	uint x = 0, y = 0;
 	uint pitch = 0;
-	const PixelFormatDesc *format = nullptr;
+	const PixelFormatDesc &format;
 
 	uint sizeOfNumPixels(uint num) const
 	{
-		return(num * format->bytesPerPixel);
+		return(num * format.bytesPerPixel);
 	}
 
 	uint sizeOfImage() const
 	{
-		return(x * y * format->bytesPerPixel);
+		return(x * y * format.bytesPerPixel);
 	}
 
 	uint pitchPixels() const
 	{
-		return pitch / format->bytesPerPixel;
+		return pitch / format.bytesPerPixel;
 	}
 
 	bool isPadded() const
@@ -39,29 +39,28 @@ private:
 	uchar *nextPixelOnLine(uchar *pixel) const;
 
 public:
-	constexpr Pixmap() { }
+	constexpr Pixmap(const PixelFormatDesc &format): PixmapDesc(format) { }
 	uchar *data = nullptr;
 
 	uchar *getPixel(uint x, uint y) const;
 
-	void init(uchar *data, const PixelFormatDesc *format, uint x, uint y, uint extraPitch = 0)
+	void init(uchar *data, uint x, uint y, uint extraPitch = 0)
 	{
 		this->data = data;
-		this->format = format;
 		this->x = x;
 		this->y = y;
-		this->pitch = (x * format->bytesPerPixel) + extraPitch;
+		this->pitch = (x * format.bytesPerPixel) + extraPitch;
 		//logMsg("init %dx%d pixmap, pitch %d", x, y, pitch);
 	}
 
 	// version in which Pixmap manages memory, data must be 0 or previously allocated with mem_alloc
-	void init(const PixelFormatDesc *format, uint x, uint y, uint extraPitch = 0)
+	void init(uint x, uint y, uint extraPitch = 0)
 	{
 		// TODO: realloc
 		if(data)
 			mem_free(data);
-		uchar *data = (uchar*)mem_alloc(x * y * format->bytesPerPixel + extraPitch * y);
-		init(data, format, x, y, extraPitch);
+		uchar *data = (uchar*)mem_alloc(x * y * format.bytesPerPixel + extraPitch * y);
+		init(data, x, y, extraPitch);
 	}
 
 	void deinitManaged()

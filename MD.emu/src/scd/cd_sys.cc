@@ -201,17 +201,18 @@ void Reset_CD(void)
 }
 
 
-int Insert_CD(const char *iso_name, int is_bin)
+int Insert_CD(CDAccess *cd)
 {
 	int ret = 0;
 
 	CD_Present = 0;
 	sCD.Status_CDD = NOCD;
 
-	if (iso_name != NULL)
+	if(cd)
 	{
-		ret = Load_ISO(iso_name, is_bin);
-		if (ret == 0) {
+		ret = Load_ISO(cd);
+		if(ret == 0)
+		{
 			CD_Present = 1;
 			sCD.Status_CDD = READY;
 		}
@@ -274,6 +275,8 @@ int Stop_CDD_c1(void)
 	sCD.cdd.Ext = 0;
 
 	sCD.CDD_Complete = 1;
+
+	sCD.audioTrack = 0;
 
 	return 0;
 }
@@ -503,6 +506,7 @@ int Play_CDD_c3(void)
 	if (sCD.Cur_Track == 1)
 	{
 		sCD.gate[0x36] |=  0x01;				// DATA
+		sCD.audioTrack = 0;
 	}
 	else
 	{

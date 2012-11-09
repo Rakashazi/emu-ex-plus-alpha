@@ -11,7 +11,7 @@ $(targetDir)/$(targetFile) : $(OBJ)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
 	$(PRINT_CMD) $(LD) -o $@ $^ $(LDFLAGS)
-ifeq ($(ENV), iOS)
+ifeq ($(ENV), ios)
 ifndef iOSNoCodesign
 	@echo "Signing $@"
 	$(PRINT_CMD)ldid -S $@

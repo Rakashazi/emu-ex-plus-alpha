@@ -32,7 +32,7 @@ void VControllerDPad::updateBoundingAreaGfx()
 {
 	if(visualizeBounds)
 	{
-		mapPix.init(&PixelFormatRGB565, padArea.xSize(), padArea.ySize());
+		mapPix.init(padArea.xSize(), padArea.ySize());
 		mapImg.init(mapPix, 0, GfxBufferImage::linear, 0);
 		mapSpr.init(&mapImg);
 
@@ -64,7 +64,7 @@ void VControllerDPad::place(GC padFullSize, GC centerBtnYOffset)
 	updateBoundingAreaGfx();
 }
 
-void VControllerDPad::setBoundingAreaVisible(fbool on)
+void VControllerDPad::setBoundingAreaVisible(bool on)
 {
 	visualizeBounds = on;
 	if(!on)
@@ -85,11 +85,11 @@ void VControllerDPad::setBoundingAreaVisible(fbool on)
 void VControllerDPad::draw()
 {
 	//{ gfx_resetTransforms(); GeomRect::draw(padArea); }
-	spr.draw(0);
+	spr.draw();
 
 	if(visualizeBounds)
 	{
-		mapSpr.draw(0);
+		mapSpr.draw();
 	}
 }
 
@@ -161,7 +161,7 @@ void VControllerKeyboard::place(GC btnSize, GC yOffset)
 
 void VControllerKeyboard::draw()
 {
-	spr.draw(0);
+	spr.draw();
 }
 
 int VControllerKeyboard::getInput(int cx, int cy)

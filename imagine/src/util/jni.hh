@@ -127,10 +127,10 @@ public:
 		assert(m != 0);
 	}
 
-	T operator()(JNIEnv* j, jobject obj, ...);
+	T operator()(JNIEnv* j, jobject obj, ...) const;
 };
 
-template<> inline void JavaInstMethod<void>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline void JavaInstMethod<void>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -138,7 +138,7 @@ template<> inline void JavaInstMethod<void>::operator()(JNIEnv* j, jobject obj, 
 	va_end(args);
 }
 
-template<> inline jobject JavaInstMethod<jobject>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jobject JavaInstMethod<jobject>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -147,7 +147,7 @@ template<> inline jobject JavaInstMethod<jobject>::operator()(JNIEnv* j, jobject
 	return ret;
 }
 
-template<> inline jboolean JavaInstMethod<jboolean>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jboolean JavaInstMethod<jboolean>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -156,7 +156,7 @@ template<> inline jboolean JavaInstMethod<jboolean>::operator()(JNIEnv* j, jobje
 	return ret;
 }
 
-template<> inline jbyte JavaInstMethod<jbyte>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jbyte JavaInstMethod<jbyte>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -165,7 +165,7 @@ template<> inline jbyte JavaInstMethod<jbyte>::operator()(JNIEnv* j, jobject obj
 	return ret;
 }
 
-template<> inline jchar JavaInstMethod<jchar>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jchar JavaInstMethod<jchar>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -174,7 +174,7 @@ template<> inline jchar JavaInstMethod<jchar>::operator()(JNIEnv* j, jobject obj
 	return ret;
 }
 
-template<> inline jshort JavaInstMethod<jshort>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jshort JavaInstMethod<jshort>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -183,7 +183,7 @@ template<> inline jshort JavaInstMethod<jshort>::operator()(JNIEnv* j, jobject o
 	return ret;
 }
 
-template<> inline jint JavaInstMethod<jint>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jint JavaInstMethod<jint>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -192,7 +192,7 @@ template<> inline jint JavaInstMethod<jint>::operator()(JNIEnv* j, jobject obj, 
 	return ret;
 }
 
-template<> inline jlong JavaInstMethod<jlong>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jlong JavaInstMethod<jlong>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -201,7 +201,7 @@ template<> inline jlong JavaInstMethod<jlong>::operator()(JNIEnv* j, jobject obj
 	return ret;
 }
 
-template<> inline jfloat JavaInstMethod<jfloat>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jfloat JavaInstMethod<jfloat>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -210,7 +210,7 @@ template<> inline jfloat JavaInstMethod<jfloat>::operator()(JNIEnv* j, jobject o
 	return ret;
 }
 
-template<> inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject obj, ...)
+template<> inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject obj, ...) const
 {
 	va_list args;
 	va_start(args, obj);
@@ -222,8 +222,9 @@ template<> inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject
 static void javaStringDup(JNIEnv* env, const char *&dest, jstring jstr)
 {
 	const char *str = env->GetStringUTFChars(jstr, 0);
-	if (str == NULL)
+	if(!str)
 	{
+		dest = nullptr;
 		return; // OutOfMemoryError thrown
 	}
 	dest = string_dup(str);

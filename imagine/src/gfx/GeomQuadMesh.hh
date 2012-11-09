@@ -7,7 +7,6 @@ class GeomQuadMesh
 {
 public:
 	constexpr GeomQuadMesh() { }
-	//CallResult init(VertexPos *q, uint qSize, VertexPos *span, uint extraSpans, VertexColor color, uint blend);
 	CallResult init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color = 0);
 	template <size_t S1, size_t S2>
 	CallResult init(const VertexPos (&x)[S1], const VertexPos (&y)[S2], VertexColor color = 0)

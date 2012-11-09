@@ -1,12 +1,17 @@
 #pragma once
 
-class ResourceImageGlyph;
-struct GlyphEntry
+struct GlyphMetrics
 {
-	ResourceImageGlyph *glyph;
 	int xSize;
 	int ySize;
 	int xOffset;
 	int yOffset;
 	int xAdvance;
+};
+
+class ResourceImageGlyph;
+struct GlyphEntry
+{
+	ResourceImageGlyph *glyph;
+	GlyphMetrics metrics;
 };

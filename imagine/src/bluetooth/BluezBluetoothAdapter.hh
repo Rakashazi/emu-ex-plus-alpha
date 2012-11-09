@@ -10,17 +10,18 @@ class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
 	static BluezBluetoothAdapter *defaultAdapter();
-	fbool startScan() override;
+	bool startScan() override;
 	void cancelScan() override;
 	void close() override;
 	void constructSocket(void *mem) override;
-	CallResult doScan();
 private:
 	int devId = -1, socket = -1;
 private:
 	ThreadPThread runThread;
 	bool scanCancelled = 0;
 	bool openDefault();
+	CallResult doScan();
+	ptrsize runScan(ThreadPThread &thread);
 };
 
 class BluezBluetoothSocket : public BluetoothSocket

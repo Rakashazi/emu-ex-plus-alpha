@@ -21,7 +21,7 @@
 // NormalInt scales floats to/from 0-1 when constructed/converted
 template<class T, unsigned int S>
 class NormalInt : NotEquals< NormalInt<T,S> >,
-	Arithmetics< NormalInt<T,S> >/*, ArithmeticsConv< NormalInt<T,S> >*/
+	Arithmetics< NormalInt<T,S> >
 {
 public:
 	T val;
@@ -79,7 +79,7 @@ public:
 
 template<unsigned int S>
 class NormalFloat : NotEquals< NormalFloat<S> >,
-	Arithmetics< NormalFloat<S> >/*, ArithmeticsConv< NormalFloat<S> >*/
+	Arithmetics< NormalFloat<S> >
 {
 public:
 	float val;
@@ -91,8 +91,8 @@ public:
 	constexpr NormalFloat(double num) : val(num) { }
 	constexpr NormalFloat(int num) : val((float)num / (float)S) { }
 	constexpr NormalFloat(unsigned int num) : val((float)num / (float)S) { }
-	constexpr NormalFloat(short num) : val((float)num / (float)S) { }
-	constexpr NormalFloat(char num) : val((float)num / (float)S) { }
+	constexpr NormalFloat(short num) : NormalFloat((int)num) { }
+	constexpr NormalFloat(char num) : NormalFloat((int)num) { }
 
 	operator float() const { return val; }
 	operator double() const { return val; }
@@ -143,9 +143,4 @@ public:
 		result.val = -val;
 		return result;
 	}
-
-	/*bool operator !=(NormalFloat<S> const& rhs) const
-	{
-		return val != rhs.val;
-	}*/
 };

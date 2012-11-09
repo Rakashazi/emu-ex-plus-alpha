@@ -52,200 +52,183 @@ void TextMenuItem::select(View *parent, const InputEvent &e)
 	selectDel.invokeSafe(*this, e);
 }
 
-	void DualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
+void DualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
+{
+	TextMenuItem::init(str, active, face);
+	if(str2)
+		t2.init(str2, face);
+	else
+		t2.init(face);
+}
+
+void DualTextMenuItem::init(const char *str2, bool active, ResourceFace *face)
+{
+	TextMenuItem::init(active, face);
+	if(str2)
+		t2.init(str2, face);
+	else
+		t2.init(face);
+}
+
+void DualTextMenuItem::deinit()
+{
+	t2.deinit();
+	TextMenuItem::deinit();
+}
+
+void DualTextMenuItem::compile()
+{
+	TextMenuItem::compile();
+	if(t2.str)
 	{
-		TextMenuItem::init(str, active, face);
-		if(str2)
-			t2.init(str2, face);
-		else
-			t2.init(face);
+		t2.compile();
 	}
+}
 
-	void DualTextMenuItem::init(const char *str2, bool active, ResourceFace *face)
-	{
-		TextMenuItem::init(active, face);
-		if(str2)
-			t2.init(str2, face);
-		else
-			t2.init(face);
-	}
+void DualTextMenuItem::draw2ndText(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+{
+	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO, LT2DO);
+}
 
-	void DualTextMenuItem::deinit()
-	{
-		t2.deinit();
-		TextMenuItem::deinit();
-	}
-
-	void DualTextMenuItem::compile()
-	{
-		TextMenuItem::compile();
-		if(t2.str)
-		{
-			t2.compile();
-		}
-	}
-
-	void DualTextMenuItem::draw2ndText(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
-	{
-		t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO, LT2DO);
-	}
-
-	void DualTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
-	{
-		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		if(t2.str)
-			DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
-	}
-
-	void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
-	{
-		offStr = onStr = nullptr;
-		DualTextMenuItem::init(str, on ? "On" : "Off", active, face);
-		var_selfs(on);
-	}
-
-	void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
-	{
-		var_selfs(offStr);
-		var_selfs(onStr);
-		DualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-		var_selfs(on);
-	}
-
-	void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
-	{
-		offStr = onStr = nullptr;
-		DualTextMenuItem::init(on ? "On" : "Off", active, face);
-		var_selfs(on);
-	}
-
-	void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
-	{
-		var_selfs(offStr);
-		var_selfs(onStr);
-		DualTextMenuItem::init(on ? onStr : offStr, active, face);
-		var_selfs(on);
-	}
-
-	void BoolMenuItem::set(bool val)
-	{
-		if(val != on)
-		{
-			//logMsg("setting bool: %d", val);
-			on = val;
-			if(onStr)
-				t2.setString(val ? onStr : offStr);
-			else
-				t2.setString(val ? "On" : "Off");
-			t2.compile();
-			Base::displayNeedsUpdate();
-		}
-	}
-
-	void BoolMenuItem::toggle()
-	{
-		if(on)
-			set(0);
-		else
-			set(1);
-	}
-
-	void BoolMenuItem::select(View *parent, const InputEvent &e) { selectDel.invokeSafe(*this, e); }
-
-	void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
-	{
-		using namespace Gfx;
-		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		if(onStr) // custom strings
-			setColor(0., 1., 1.); // aqua
-		else if(on)
-			setColor(0., 1., 0., 1.);
-		else
-			setColor(1., 0., 0., 1.);
-		draw2ndText(xPos, yPos, xSize, ySize, align);
-	}
-
-	/*void BoolTextMenuItem::set(bool val)
-	{
-		if(val != on)
-		{
-			//logMsg("setting bool: %d", val);
-			on = val;
-			t2.setString(val ? onStr : offStr);
-			t2.compile();
-			Base::displayNeedsUpdate();
-		}
-	}*/
-
-	/*void BoolTextMenuItem::toggle()
-	{
-		if(on)
-			set(0);
-		else
-			set(1);
-	}*/
-
-	/*void BoolTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
-	{
-		using namespace Gfx;
-		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		setColor(0., 1., 1.); // aqua
-		draw2ndText(xPos, yPos, xSize, ySize, align);
-	}*/
-
-
-	void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
-	{
-		val -= baseVal;
-		if(!initialDisplayStr) assert(val >= 0);
-		DualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
-		assert(val < max);
-		choice = val;
-		choices = max;
-		this->baseVal = baseVal;
-		this->choiceStr = choiceStr;
-	}
-
-	void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
-	{
-		using namespace Gfx;
-		TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-		setColor(0., 1., 1.); // aqua
+void DualTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+{
+	TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	if(t2.str)
 		DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
-	}
+}
 
-	bool MultiChoiceMenuItem::updateVal(int val)
-	{
-		assert(val >= 0 && val < choices);
-		if(val != choice)
-		{
-			choice = val;
-			t2.setString(choiceStr[val]);
-			t2.compile();
-			Base::displayNeedsUpdate();
-			return 1;
-		}
-		return 0;
-	}
+void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
+{
+	offStr = onStr = nullptr;
+	DualTextMenuItem::init(str, on ? "On" : "Off", active, face);
+	var_selfs(on);
+}
 
-	void MultiChoiceMenuItem::setVal(int val)
-	{
-		if(updateVal(val))
-		{
-			doSet(val + baseVal);
-		}
-	}
+void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+{
+	var_selfs(offStr);
+	var_selfs(onStr);
+	DualTextMenuItem::init(str, on ? onStr : offStr, active, face);
+	var_selfs(on);
+}
 
-	bool MultiChoiceMenuItem::set(int val, const InputEvent &e)
+void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
+{
+	offStr = onStr = nullptr;
+	DualTextMenuItem::init(on ? "On" : "Off", active, face);
+	var_selfs(on);
+}
+
+void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+{
+	var_selfs(offStr);
+	var_selfs(onStr);
+	DualTextMenuItem::init(on ? onStr : offStr, active, face);
+	var_selfs(on);
+}
+
+void BoolMenuItem::set(bool val)
+{
+	if(val != on)
 	{
-		setVal(val);
+		//logMsg("setting bool: %d", val);
+		on = val;
+		if(onStr)
+			t2.setString(val ? onStr : offStr);
+		else
+			t2.setString(val ? "On" : "Off");
+		t2.compile();
+		Base::displayNeedsUpdate();
+	}
+}
+
+void BoolMenuItem::toggle()
+{
+	if(on)
+		set(0);
+	else
+		set(1);
+}
+
+void BoolMenuItem::select(View *parent, const InputEvent &e) { selectDel.invokeSafe(*this, e); }
+
+void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+{
+	using namespace Gfx;
+	TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	if(onStr) // custom strings
+		setColor(0., 1., 1.); // aqua
+	else if(on)
+		setColor(0., 1., 0., 1.);
+	else
+		setColor(1., 0., 0., 1.);
+	draw2ndText(xPos, yPos, xSize, ySize, align);
+}
+
+void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
+{
+	val -= baseVal;
+	if(!initialDisplayStr) assert(val >= 0);
+	DualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
+	assert(val < max);
+	choice = val;
+	choices = max;
+	this->baseVal = baseVal;
+	this->choiceStr = choiceStr;
+}
+
+void MultiChoiceMenuItem::init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
+{
+	val -= baseVal;
+	if(!initialDisplayStr) assert(val >= 0);
+	DualTextMenuItem::init(initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
+	assert(val < max);
+	choice = val;
+	choices = max;
+	this->baseVal = baseVal;
+	this->choiceStr = choiceStr;
+}
+
+void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+{
+	using namespace Gfx;
+	TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	setColor(0., 1., 1.); // aqua
+	DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
+}
+
+bool MultiChoiceMenuItem::updateVal(int val)
+{
+	assert(val >= 0 && val < choices);
+	if(val != choice)
+	{
+		choice = val;
+		t2.setString(choiceStr[val]);
+		t2.compile();
+		Base::displayNeedsUpdate();
 		return 1;
 	}
+	return 0;
+}
 
-	void MultiChoiceMenuItem::cycle(int direction)
+void MultiChoiceMenuItem::setVal(int val)
+{
+	if(updateVal(val))
 	{
-		if(direction > 0)
-			setVal(IG::incWrapped(choice, choices));
-		else if(direction < 0)
-			setVal(IG::decWrapped(choice, choices));
+		doSet(val + baseVal);
 	}
+}
+
+bool MultiChoiceMenuItem::set(int val, const InputEvent &e)
+{
+	setVal(val);
+	return 1;
+}
+
+void MultiChoiceMenuItem::cycle(int direction)
+{
+	if(direction > 0)
+		setVal(IG::incWrapped(choice, choices));
+	else if(direction < 0)
+		setVal(IG::decWrapped(choice, choices));
+}

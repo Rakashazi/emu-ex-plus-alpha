@@ -58,7 +58,7 @@ extern uint8 second;			//Second byte
 extern uint8 R;				//(second & 7)
 extern uint8 rCode;
 extern uint32 cycles;
-extern fbool brCode;
+extern bool brCode;
 
 //=============================================================================
 
@@ -124,7 +124,7 @@ uint32 generic_SBC_L(uint32 dst, uint32 src) __attribute__ ((hot));
 //=============================================================================
 
 //Confirms a condition code check
-fbool conditionCode(int cc) __attribute__ ((hot));
+bool conditionCode(int cc) __attribute__ ((hot));
 
 //=============================================================================
 

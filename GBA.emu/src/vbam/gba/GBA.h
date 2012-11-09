@@ -25,7 +25,9 @@
 
 struct GBAMem
 {
+#ifndef __clang__
 	constexpr GBAMem() { }
+#endif
 
 	union IoMem
 	{
@@ -124,21 +126,91 @@ struct GBAMem
 			uint16 unused206;
 			uint16 IME;
 		};
+
+		void resetDmaRegs()
+		{
+		  DM0SAD_L = 0x0000;
+		  DM0SAD_H = 0x0000;
+		  DM0DAD_L = 0x0000;
+		  DM0DAD_H = 0x0000;
+		  DM0CNT_L = 0x0000;
+		  DM0CNT_H = 0x0000;
+		  DM1SAD_L = 0x0000;
+		  DM1SAD_H = 0x0000;
+		  DM1DAD_L = 0x0000;
+		  DM1DAD_H = 0x0000;
+		  DM1CNT_L = 0x0000;
+		  DM1CNT_H = 0x0000;
+		  DM2SAD_L = 0x0000;
+		  DM2SAD_H = 0x0000;
+		  DM2DAD_L = 0x0000;
+		  DM2DAD_H = 0x0000;
+		  DM2CNT_L = 0x0000;
+		  DM2CNT_H = 0x0000;
+		  DM3SAD_L = 0x0000;
+		  DM3SAD_H = 0x0000;
+		  DM3DAD_L = 0x0000;
+		  DM3DAD_H = 0x0000;
+		  DM3CNT_L = 0x0000;
+		  DM3CNT_H = 0x0000;
+		}
+
+		void resetLcdRegs(bool useBios, bool skipBios)
+		{
+			DISPCNT  = 0x0080;
+			DISPSTAT = 0x0000;
+			VCOUNT   = (useBios && !skipBios) ? 0 :0x007E;
+			BG0CNT   = 0x0000;
+			BG1CNT   = 0x0000;
+			BG2CNT   = 0x0000;
+			BG3CNT   = 0x0000;
+			BG0HOFS  = 0x0000;
+			BG0VOFS  = 0x0000;
+			BG1HOFS  = 0x0000;
+			BG1VOFS  = 0x0000;
+			BG2HOFS  = 0x0000;
+			BG2VOFS  = 0x0000;
+			BG3HOFS  = 0x0000;
+			BG3VOFS  = 0x0000;
+			BG2PA    = 0x0100;
+			BG2PB    = 0x0000;
+			BG2PC    = 0x0000;
+			BG2PD    = 0x0100;
+			BG2X_L   = 0x0000;
+			BG2X_H   = 0x0000;
+			BG2Y_L   = 0x0000;
+			BG2Y_H   = 0x0000;
+			BG3PA    = 0x0100;
+			BG3PB    = 0x0000;
+			BG3PC    = 0x0000;
+			BG3PD    = 0x0100;
+			BG3X_L   = 0x0000;
+			BG3X_H   = 0x0000;
+			BG3Y_L   = 0x0000;
+			BG3Y_H   = 0x0000;
+			WIN0H    = 0x0000;
+			WIN1H    = 0x0000;
+			WIN0V    = 0x0000;
+			WIN1V    = 0x0000;
+			WININ    = 0x0000;
+			WINOUT   = 0x0000;
+			MOSAIC   = 0x0000;
+			BLDMOD   = 0x0000;
+			COLEV    = 0x0000;
+			COLY     = 0x0000;
+		}
 	};
 
 	u8 bios[0x4000] __attribute__ ((aligned(4))) {0};
 	IoMem ioMem;
 	u8 internalRAM[0x8000] __attribute__ ((aligned(4))) {0};
 	u8 workRAM[0x40000] __attribute__ ((aligned(4))) {0};
-	u8 rom[0x2000000] __attribute__ ((aligned(4))) {0};
+	u8 rom[0x2000000] __attribute__ ((aligned(4)))
+#ifndef __clang__
+	{0}
+#endif
+	;
 };
-
-extern GBAMem gMem;
-static auto &bios = gMem.bios;
-static auto &workRAM = gMem.workRAM;
-static auto &internalRAM = gMem.internalRAM;
-static auto &ioMem = gMem.ioMem;
-static auto &rom = gMem.rom;
 
 struct GBADMA
 {
@@ -158,7 +230,7 @@ struct GBADMA
 	u32 dma3Source = 0;
 	u32 dma3Dest = 0;
 
-	void reset()
+	void reset(GBAMem::IoMem &ioMem)
 	{
 	  dma0Source = 0;
 	  dma0Dest = 0;
@@ -169,30 +241,7 @@ struct GBADMA
 	  dma3Source = 0;
 	  dma3Dest = 0;
 
-	  ioMem.DM0SAD_L = 0x0000;
-	  ioMem.DM0SAD_H = 0x0000;
-	  ioMem.DM0DAD_L = 0x0000;
-	  ioMem.DM0DAD_H = 0x0000;
-	  ioMem.DM0CNT_L = 0x0000;
-	  ioMem.DM0CNT_H = 0x0000;
-	  ioMem.DM1SAD_L = 0x0000;
-	  ioMem.DM1SAD_H = 0x0000;
-	  ioMem.DM1DAD_L = 0x0000;
-	  ioMem.DM1DAD_H = 0x0000;
-	  ioMem.DM1CNT_L = 0x0000;
-	  ioMem.DM1CNT_H = 0x0000;
-	  ioMem.DM2SAD_L = 0x0000;
-	  ioMem.DM2SAD_H = 0x0000;
-	  ioMem.DM2DAD_L = 0x0000;
-	  ioMem.DM2DAD_H = 0x0000;
-	  ioMem.DM2CNT_L = 0x0000;
-	  ioMem.DM2CNT_H = 0x0000;
-	  ioMem.DM3SAD_L = 0x0000;
-	  ioMem.DM3SAD_H = 0x0000;
-	  ioMem.DM3DAD_L = 0x0000;
-	  ioMem.DM3DAD_H = 0x0000;
-	  ioMem.DM3CNT_L = 0x0000;
-	  ioMem.DM3CNT_H = 0x0000;
+	  ioMem.resetDmaRegs();
 	}
 };
 
@@ -227,7 +276,8 @@ struct GBATimers
 static const int layerSettings = 0xff00;
 
 typedef u16 MixColorType;
-void mode0RenderLine(MixColorType *, const GBAMem::IoMem &ioMem);
+struct GBALCD;
+void mode0RenderLine(MixColorType *, GBALCD &lcd, const GBAMem::IoMem &ioMem);
 
 struct GBALCD
 {
@@ -248,7 +298,7 @@ struct GBALCD
 	u8 vram[0x20000] __attribute__ ((aligned(4))) {0};
 	u8 paletteRAM[0x400] __attribute__ ((aligned(4))) {0};
 	u8 oam[0x400] __attribute__ ((aligned(4))) {0};
-	typedef void (*RenderLineFunc)(MixColorType *lineMix, const GBAMem::IoMem &ioMem);
+	typedef void (*RenderLineFunc)(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem);
 	RenderLineFunc renderLine = mode0RenderLine;
 	bool fxOn = false;
 	bool windowOn = false;
@@ -288,119 +338,13 @@ struct GBALCD
 		memset(pix, 0, sizeof(pix));
 	}
 
-	void resetAll(bool useBios, bool skipBios)
+	void resetAll(bool useBios, bool skipBios, GBAMem::IoMem &ioMem)
 	{
 		reset();
-		ioMem.DISPCNT  = 0x0080;
-		ioMem.DISPSTAT = 0x0000;
-		ioMem.VCOUNT   = (useBios && !skipBios) ? 0 :0x007E;
-		ioMem.BG0CNT   = 0x0000;
-		ioMem.BG1CNT   = 0x0000;
-		ioMem.BG2CNT   = 0x0000;
-		ioMem.BG3CNT   = 0x0000;
-		ioMem.BG0HOFS  = 0x0000;
-		ioMem.BG0VOFS  = 0x0000;
-		ioMem.BG1HOFS  = 0x0000;
-		ioMem.BG1VOFS  = 0x0000;
-		ioMem.BG2HOFS  = 0x0000;
-		ioMem.BG2VOFS  = 0x0000;
-		ioMem.BG3HOFS  = 0x0000;
-		ioMem.BG3VOFS  = 0x0000;
-		ioMem.BG2PA    = 0x0100;
-		ioMem.BG2PB    = 0x0000;
-		ioMem.BG2PC    = 0x0000;
-		ioMem.BG2PD    = 0x0100;
-		ioMem.BG2X_L   = 0x0000;
-		ioMem.BG2X_H   = 0x0000;
-		ioMem.BG2Y_L   = 0x0000;
-		ioMem.BG2Y_H   = 0x0000;
-		ioMem.BG3PA    = 0x0100;
-		ioMem.BG3PB    = 0x0000;
-		ioMem.BG3PC    = 0x0000;
-		ioMem.BG3PD    = 0x0100;
-		ioMem.BG3X_L   = 0x0000;
-		ioMem.BG3X_H   = 0x0000;
-		ioMem.BG3Y_L   = 0x0000;
-		ioMem.BG3Y_H   = 0x0000;
-		ioMem.WIN0H    = 0x0000;
-		ioMem.WIN1H    = 0x0000;
-		ioMem.WIN0V    = 0x0000;
-		ioMem.WIN1V    = 0x0000;
-		ioMem.WININ    = 0x0000;
-		ioMem.WINOUT   = 0x0000;
-		ioMem.MOSAIC   = 0x0000;
-		ioMem.BLDMOD   = 0x0000;
-		ioMem.COLEV    = 0x0000;
-		ioMem.COLY     = 0x0000;
+		ioMem.resetLcdRegs(useBios, skipBios);
 		layerEnable = ioMem.DISPCNT & layerSettings;
 	}
 };
-
-extern GBALCD gLcd;
-
-#ifndef GBALCD_TEMP_LINE_BUFFER
-static auto &line0 = gLcd.line0;
-static auto &line1 = gLcd.line1;
-static auto &line2 = gLcd.line2;
-static auto &line3 = gLcd.line3;
-static auto &lineOBJ = gLcd.lineOBJ;
-#endif
-static auto &lineOBJWin = gLcd.lineOBJWin;
-static auto &gfxInWin0 = gLcd.gfxInWin0;
-static auto &gfxInWin1 = gLcd.gfxInWin1;
-static auto &lineOBJpixleft = gLcd.lineOBJpixleft;
-static auto &gfxBG2Changed = gLcd.gfxBG2Changed;
-static auto &gfxBG3Changed = gLcd.gfxBG3Changed;
-static auto &gfxBG2X = gLcd.gfxBG2X;
-static auto &gfxBG2Y = gLcd.gfxBG2Y;
-static auto &gfxBG3X = gLcd.gfxBG3X;
-static auto &gfxBG3Y = gLcd.gfxBG3Y;
-static auto &gfxLastVCOUNT = gLcd.gfxLastVCOUNT;
-static auto &paletteRAM = gLcd.paletteRAM;
-static auto &vram = gLcd.vram;
-static auto &oam = gLcd.oam;
-static auto &layerEnable = gLcd.layerEnable;
-
-struct memoryMap {
-	//constexpr memoryMap() { }
-	//constexpr memoryMap(u8 *address, u32 mask): address(address), mask(mask) { }
-  u8 *address;// = nullptr;
-  u32 mask;// = 0;
-#ifdef USE_MEM_HANDLERS
-  u32 (*read8)(u32 address) = nullptr;
-  u32 (*read16)(u32 address) = nullptr;
-  u32 (*read32)(u32 address) = nullptr;
-  void (*write8)(u32 address, u32 data) = nullptr;
-  void (*write16)(u32 address, u32 data) = nullptr;
-  void (*write32)(u32 address, u32 data) = nullptr;
-#endif
-};
-
-#ifndef NO_GBA_MAP
-
-#define PP_DUMMY_MAP(z, n, text) { (u8 *)&dummyAddress, 0 },
-#define PP_DUMMY_MAP_REPEAT(n) BOOST_PP_REPEAT(n, PP_DUMMY_MAP, )
-static int dummyAddress = 0;
-static const memoryMap map[256] =
-{
-	{ gMem.bios, 0x3FFF /*, biosRead8, biosRead16, biosRead32*/ },
-	{ (u8 *)&dummyAddress, 0 },
-	{ gMem.workRAM, 0x3FFFF },
-	{ gMem.internalRAM, 0x7FFF },
-	{ gMem.ioMem.b, 0x3FF /*, ioMemRead8, ioMemRead16, ioMemRead32*/ },
-	{ gLcd.paletteRAM, 0x3FF },
-	{ gLcd.vram, 0x1FFFF /*, vramRead8, vramRead16, vramRead32*/ },
-	{ gLcd.oam, 0x3FF },
-	{ gMem.rom, 0x1FFFFFF /*, nullptr, rtcRead16*/ },
-	{ gMem.rom, 0x1FFFFFF },
-	{ gMem.rom, 0x1FFFFFF },
-	{ (u8 *)&dummyAddress, 0 },
-	{ gMem.rom, 0x1FFFFFF },
-	{ (u8 *)&dummyAddress, 0 /*, eepromRead32, eepromRead32, eepromRead32*/ },
-	{ flashSaveMemory, 0xFFFF /*, flashRead32, flashRead32, flashRead32*/ },
-	PP_DUMMY_MAP_REPEAT(241)
-};
-#endif
 
 typedef union {
   struct {
@@ -455,14 +399,12 @@ typedef union {
 #define R14_FIQ  43
 #define SPSR_FIQ 44
 
-static inline u32 CPUReadByteQuick(u32 addr)
-	{ return map[addr>>24].address[addr & map[addr>>24].mask]; }
+struct ARM7TDMI;
+static inline u32 CPUReadByteQuick(ARM7TDMI &cpu, u32 addr);
 
-static inline u32 CPUReadHalfWordQuick(u32 addr)
-	{ return READ16LE(((u16*)&map[addr>>24].address[addr & map[addr>>24].mask])); }
+static inline u32 CPUReadHalfWordQuick(ARM7TDMI &cpu, u32 addr);
 
-static inline u32 CPUReadMemoryQuick(u32 addr)
-	{ return READ32LE(((u32*)&map[addr>>24].address[addr & map[addr>>24].mask])); }
+static inline u32 CPUReadMemoryQuick(ARM7TDMI &cpu, u32 addr);
 
 static const uint cpuBitsSet[256] =
 {
@@ -484,14 +426,39 @@ static const uint cpuBitsSet[256] =
 		4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
+//#define USE_MEM_HANDLERS
+struct memoryMap {
+	typedef u32 (*readFunc)(ARM7TDMI &cpu, u32 address);
+	constexpr memoryMap() { }
+	#ifdef USE_MEM_HANDLERS
+	constexpr memoryMap(u8 *address, u32 mask, readFunc read8, readFunc read16, readFunc read32):
+			address(address), mask(mask), read8(read8), read16(read16), read32(read32) { }
+	#else
+	constexpr memoryMap(u8 *address, u32 mask, readFunc read8, readFunc read16, readFunc read32):
+		address(address), mask(mask) { }
+	#endif
+  u8 *address = nullptr;
+  u32 mask = 0;
+#ifdef USE_MEM_HANDLERS
+  u32 (*read8)(ARM7TDMI &cpu, u32 address) = nullptr;
+  u32 (*read16)(ARM7TDMI &cpu, u32 address) = nullptr;
+  u32 (*read32)(ARM7TDMI &cpu, u32 address) = nullptr;
+  /*void (*write8)(u32 address, u32 data) = nullptr;
+  void (*write16)(u32 address, u32 data) = nullptr;
+  void (*write32)(u32 address, u32 data) = nullptr;*/
+#endif
+};
+
 //#define VBAM_USE_SWITICKS
 //#define VBAM_USE_IRQTICKS
 #define VBAM_USE_CPU_PREFETCH
 #define VBAM_USE_DELAYED_CPU_FLAGS
 
+struct GBASys;
+
 struct ARM7TDMI
 {
-	constexpr ARM7TDMI() { }
+	constexpr ARM7TDMI(GBASys *gba): gba(gba) { }
 
 	reg_pair reg[45] {{{0}}};
 	u32 armNextPC = 0;
@@ -532,6 +499,16 @@ public:
 	bool holdState = false;
 	//u8 cpuBitsSet[256];
 	//u8 cpuLowestBitSet[256];
+	GBASys *gba;
+	uint memoryWait[16] =
+	  { 0, 0, 2, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 0 };
+	uint memoryWait32[16] =
+	  { 0, 0, 5, 0, 0, 1, 1, 0, 7, 7, 9, 9, 13, 13, 4, 0 };
+	uint memoryWaitSeq[16] =
+	  { 0, 0, 2, 0, 0, 0, 0, 0, 2, 2, 4, 4, 8, 8, 4, 0 };
+	uint memoryWaitSeq32[16] =
+	  { 0, 0, 5, 0, 0, 1, 1, 0, 5, 5, 9, 9, 17, 17, 4, 0 };
+	memoryMap map[256];
 
 	static bool calcNFlag(u32 result)
 	{
@@ -631,30 +608,30 @@ public:
 	void ARM_PREFETCH() ATTRS(always_inline)
   {
 #ifdef VBAM_USE_CPU_PREFETCH
-    cpuPrefetch[0] = CPUReadMemoryQuick(armNextPC);
-    cpuPrefetch[1] = CPUReadMemoryQuick(armNextPC+4);
+    cpuPrefetch[0] = CPUReadMemoryQuick(*this, armNextPC);
+    cpuPrefetch[1] = CPUReadMemoryQuick(*this, armNextPC+4);
 #endif
   }
 
 	void THUMB_PREFETCH() ATTRS(always_inline)
   {
 #ifdef VBAM_USE_CPU_PREFETCH
-    cpuPrefetch[0] = CPUReadHalfWordQuick(armNextPC);
-    cpuPrefetch[1] = CPUReadHalfWordQuick(armNextPC+2);
+    cpuPrefetch[0] = CPUReadHalfWordQuick(*this, armNextPC);
+    cpuPrefetch[1] = CPUReadHalfWordQuick(*this, armNextPC+2);
 #endif
   }
 
 	void ARM_PREFETCH_NEXT() ATTRS(always_inline)
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
-		cpuPrefetch[1] = CPUReadMemoryQuick(armNextPC+4);
+		cpuPrefetch[1] = CPUReadMemoryQuick(*this, armNextPC+4);
 #endif
 	}
 
 	void THUMB_PREFETCH_NEXT() ATTRS(always_inline)
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
-		cpuPrefetch[1] = CPUReadHalfWordQuick(armNextPC+2);
+		cpuPrefetch[1] = CPUReadHalfWordQuick(*this, armNextPC+2);
 #endif
 	}
 
@@ -706,7 +683,7 @@ public:
 		}
 	}
 
-	void reset(bool cpuIsMultiBoot, bool useBios, bool skipBios)
+	void reset(GBAMem::IoMem &ioMem, bool cpuIsMultiBoot, bool useBios, bool skipBios)
 	{
 		memset(&reg[0], 0, sizeof(reg));
 
@@ -774,7 +751,7 @@ public:
 	  reg[16].I = CPSR;
 	}
 
-	void updateFlags(bool breakLoop = true)
+	void updateFlags(const GBAMem::IoMem &ioMem, bool breakLoop = true)
 	{
 	  u32 CPSR = reg[16].I;
 
@@ -791,11 +768,11 @@ public:
 	  }
 	}
 
-	void undefinedException()
+	void undefinedException(const GBAMem::IoMem &ioMem)
 	{
 	  u32 PC = reg[15].I;
 	  bool savedArmState = armState;
-	  switchMode(0x1b, true, false);
+	  switchMode(ioMem, 0x1b, true, false);
 	  reg[14].I = PC - (savedArmState ? 4 : 2);
 	  reg[15].I = 0x04;
 	  armState = true;
@@ -805,11 +782,11 @@ public:
 	  reg[15].I += 4;
 	}
 
-	void softwareInterrupt()
+	void softwareInterrupt(const GBAMem::IoMem &ioMem)
 	{
 	  u32 PC = reg[15].I;
 	  bool savedArmState = armState;
-	  switchMode(0x13, true, false);
+	  switchMode(ioMem, 0x13, true, false);
 	  reg[14].I = PC - (savedArmState ? 4 : 2);
 	  reg[15].I = 0x08;
 	  armState = true;
@@ -819,11 +796,11 @@ public:
 	  reg[15].I += 4;
 	}
 
-	void interrupt()
+	void interrupt(const GBAMem::IoMem &ioMem)
 	{
 		u32 PC = reg[15].I;
 		bool savedState = armState;
-		switchMode(0x12, true, false);
+		switchMode(ioMem, 0x12, true, false);
 		reg[14].I = PC;
 		if(!savedState)
 			reg[14].I += 2;
@@ -853,7 +830,7 @@ public:
 	#endif
 
 
-	void switchMode(int mode, bool saveState, bool breakLoop)
+	void switchMode(const GBAMem::IoMem &ioMem, int mode, bool saveState, bool breakLoop)
 	{
 	  //  if(armMode == mode)
 	  //    return;
@@ -963,13 +940,13 @@ public:
 	    break;
 	  }
 	  armMode = mode;
-	  updateFlags(breakLoop);
+	  updateFlags(ioMem, breakLoop);
 	  updateCPSR();
 	}
 
-	void switchMode(int mode, bool saveState)
+	void switchMode(const GBAMem::IoMem &ioMem, int mode, bool saveState)
 	{
-	  switchMode(mode, saveState, true);
+	  switchMode(ioMem, mode, saveState, true);
 	}
 
 	u32 oldPC()
@@ -980,17 +957,47 @@ public:
 
 struct GBASys
 {
+#ifndef __clang__
 	constexpr GBASys() { }
+#endif
 	bool intState = false;
 	bool stopState = false;
-	ARM7TDMI cpu;
+	ARM7TDMI cpu {this};
+	u8 biosProtected[4] {0};
+	GBALCD lcd;
 	GBATimers timers;
 	GBADMA dma;
+	GBAMem mem;
 };
 
 extern GBASys gGba;
 
-extern u8 biosProtected[4];
+u32 biosRead8(ARM7TDMI &cpu, u32 address);
+u32 biosRead16(ARM7TDMI &cpu, u32 address);
+u32 biosRead32(ARM7TDMI &cpu, u32 address);
+
+u32 ioMemRead8(ARM7TDMI &cpu, u32 address);
+u32 ioMemRead16(ARM7TDMI &cpu, u32 address);
+u32 ioMemRead32(ARM7TDMI &cpu, u32 address);
+
+u32 vramRead8(ARM7TDMI &cpu, u32 address);
+u32 vramRead16(ARM7TDMI &cpu, u32 address);
+u32 vramRead32(ARM7TDMI &cpu, u32 address);
+
+u32 rtcRead16(ARM7TDMI &cpu, u32 address);
+
+u32 eepromRead32(ARM7TDMI &cpu, u32 address);
+
+u32 flashRead32(ARM7TDMI &cpu, u32 address);
+
+static inline u32 CPUReadByteQuick(ARM7TDMI &cpu, u32 addr)
+	{ return cpu.map[addr>>24].address[addr & cpu.map[addr>>24].mask]; }
+
+static inline u32 CPUReadHalfWordQuick(ARM7TDMI &cpu, u32 addr)
+	{ return READ16LE(((u16*)&cpu.map[addr>>24].address[addr & cpu.map[addr>>24].mask])); }
+
+static inline u32 CPUReadMemoryQuick(ARM7TDMI &cpu, u32 addr)
+	{ return READ32LE(((u32*)&cpu.map[addr>>24].address[addr & cpu.map[addr>>24].mask])); }
 
 extern void (*cpuSaveGameFunc)(u32,u8);
 
@@ -1015,19 +1022,19 @@ extern bool CPUImportEepromFile(const char *);
 extern bool CPUWritePNGFile(const char *);
 extern bool CPUWriteBMPFile(const char *);
 extern void CPUCleanUp();
-extern void CPUUpdateRender();
-extern bool CPUReadMemState(char *, int);
-extern bool CPUReadState(const char *);
-extern bool CPUWriteMemState(char *, int);
-extern bool CPUWriteState(const char *);
-extern int CPULoadRom(const char *);
-extern void doMirroring(bool);
+extern void CPUUpdateRender(GBASys &gba);
+extern bool CPUReadMemState(GBASys &gba, char *, int);
+extern bool CPUReadState(GBASys &gba, const char *);
+extern bool CPUWriteMemState(GBASys &gba, char *, int);
+extern bool CPUWriteState(GBASys &gba, const char *);
+extern int CPULoadRom(GBASys &gba, const char *);
+extern void doMirroring(GBASys &gba, bool);
 extern void CPUUpdateRegister(ARM7TDMI &cpu, u32, u16);
 extern void applyTimer(ARM7TDMI &cpu);
-extern void CPUInit(const char *,bool);
-extern void CPUReset();
+extern void CPUInit(GBASys &gba, const char *,bool);
+extern void CPUReset(GBASys &gba);
 extern void CPULoop(int);
-extern void CPUCheckDMA(ARM7TDMI &cpu, int,int);
+extern void CPUCheckDMA(GBASys &gba, ARM7TDMI &cpu, int,int);
 extern bool CPUIsGBAImage(const char *);
 extern bool CPUIsZipFile(const char *);
 #ifdef PROFILING

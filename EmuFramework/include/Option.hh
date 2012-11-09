@@ -215,13 +215,13 @@ struct PathOption : public OptionBase
 	}
 };
 
-template<uint MAX, class T>
+template<int MAX, class T>
 bool optionIsValidWithMax(T val)
 {
 	return val <= MAX;
 }
 
-template<uint MIN, uint MAX, class T>
+template<int MIN, int MAX, class T>
 bool optionIsValidWithMinMax(T val)
 {
 	return val >= MIN && val <= MAX;
@@ -281,6 +281,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_HIDE_OS_NAV = 49, CFGKEY_HIDE_STATUS_BAR = 50,
 	CFGKEY_BLUETOOTH_SCAN_CACHE = 51, CFGKEY_SOUND_BUFFERS = 52,
 	CFGKEY_SOUND_UNDERRUN_CHECK = 53, CFGKEY_CONFIRM_AUTO_LOAD_STATE = 54,
+	CFGKEY_SURFACE_TEXTURE = 55, CFGKEY_PROCESS_PRIORITY = 56,
 
 	CFGKEY_KEY_LOAD_GAME = 100, CFGKEY_KEY_OPEN_MENU = 101,
 	CFGKEY_KEY_SAVE_STATE = 102, CFGKEY_KEY_LOAD_STATE = 103,

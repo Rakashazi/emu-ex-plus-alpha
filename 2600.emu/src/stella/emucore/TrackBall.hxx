@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.hxx 2444 2012-04-19 13:00:02Z stephena $
+// $Id: TrackBall.hxx 2558 2012-10-24 10:10:32Z stephena $
 //============================================================================
 
 #ifndef TRACKBALL_HXX
@@ -36,7 +36,7 @@
     AmigaMouse:  Amiga Mouse
 
   @author  Stephen Anthony & z26 team
-  @version $Id: TrackBall.hxx 2444 2012-04-19 13:00:02Z stephena $
+  @version $Id: TrackBall.hxx 2558 2012-10-24 10:10:32Z stephena $
 */
 class TrackBall : public Controller
 {
@@ -57,6 +57,8 @@ class TrackBall : public Controller
     virtual ~TrackBall();
 
   public:
+    using Controller::read;
+
     /**
       Read the entire state of all digital pins for this controller.
       Note that this method must use the lower 4 bits, and zero the upper bits.

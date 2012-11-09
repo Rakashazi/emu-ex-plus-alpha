@@ -6,29 +6,21 @@
 
 /*#ifdef CONFIG_BASE_ANDROID
 	typedef Fixed16S16 TransformCoordinate;
-	typedef Fixed16S16POD TransformCoordinatePOD;
 	typedef Fixed16S16 Angle;
-	typedef Fixed16S16POD AnglePOD;
 	typedef Fixed16S16 VertexPos;
-	typedef Fixed16S16POD VertexPosPOD;
 	#define GL_VERT_ARRAY_TYPE GL_FIXED
 	typedef Fixed16S16 TextureCoordinate;
-	typedef Fixed16S16POD TextureCoordinatePOD;
 	#define GL_TEX_ARRAY_TYPE GL_FIXED
 	#define GL_USE_OES_FIXED
 #else*/
 	typedef float TransformCoordinate;
-	typedef float TransformCoordinatePOD;
 	typedef float VertexPos;
-	typedef float VertexPosPOD;
 	typedef float Angle;
-	typedef float AnglePOD;
 	typedef float TextureCoordinate;
-	typedef float TextureCoordinatePOD;
 //#endif
 
-#define angle_fromDegree(deg)  ((Angle)(deg))
-#define angle_fromRadian(rad)  angle_fromDegree(toDegrees(rad))
+static constexpr Angle angleFromDegree(Angle deg) { return deg; }
+static constexpr Angle angleFromRadian(Angle rad) { return angleFromDegree(IG::toDegrees(rad)); }
 
 static const uint gColor_steps = 255;
 typedef NormalFloat<gColor_steps> GColor;
@@ -36,9 +28,8 @@ typedef NormalFloat<gColor_steps> GColorD;
 //typedef NormalFixed<int32, 16, int64, gColor_steps> GColor;
 //typedef NormalFixed<int32, 16, int64, gColor_steps> GColorD;
 
-typedef uint GfxTextureHandle;
-
-typedef ushort VertexIndex;
+typedef GLuint GfxTextureHandle;
+typedef GLushort VertexIndex;
 typedef uint VertexColor;
 typedef uint VertexArrayRef;
 
@@ -64,7 +55,7 @@ public:
 
 struct VertexPOD
 {
-	VertexPosPOD x,y;
+	VertexPos x,y;
 };
 
 class Vertex : public VertexPOD, public VertexInfo
@@ -80,7 +71,7 @@ static_assertIsPod(Vertex);
 
 struct ColVertexPOD
 {
-	VertexPosPOD x,y;
+	VertexPos x,y;
 	uint color;
 };
 
@@ -99,8 +90,8 @@ static_assertIsPod(ColVertex);
 
 struct TexVertexPOD
 {
-	VertexPosPOD x,y;
-	TextureCoordinatePOD u,v;
+	VertexPos x,y;
+	TextureCoordinate u,v;
 };
 
 class TexVertex : public TexVertexPOD, public VertexInfo
@@ -118,8 +109,8 @@ static_assertIsPod(TexVertex);
 
 struct ColTexVertexPOD
 {
-	VertexPosPOD x, y;
-	TextureCoordinatePOD u, v;
+	VertexPos x, y;
+	TextureCoordinate u, v;
 	uint color;
 };
 

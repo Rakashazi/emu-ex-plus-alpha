@@ -27,6 +27,8 @@
 	#include <base/iphone/private.hh>
 #endif
 
+static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
+static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
 
 static const bool useExternalLogFile = 0;
@@ -68,7 +70,12 @@ CallResult logger_init()
 	return OK;
 }
 
-void logger_vprintfn(LoggerSeverity severity, const char* msg, va_list args)
+static void printToLogLineBuffer(const char* msg, va_list args)
+{
+	vsnprintf(logLineBuffer + strlen(logLineBuffer), sizeof(logLineBuffer) - strlen(logLineBuffer), msg, args);
+}
+
+void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 {
 	if(severity > loggerVerbosity) return;
 
@@ -77,23 +84,44 @@ void logger_vprintfn(LoggerSeverity severity, const char* msg, va_list args)
 		va_list args2;
 		va_copy(args2, args);
 		vfprintf(logExternalFile, msg, args2);
+		va_end(args2);
 		fflush(logExternalFile);
 	}
 
+	if(bufferLogLineOutput && !strchr(msg, '\n'))
+	{
+		printToLogLineBuffer(msg, args);
+		return;
+	}
+
 	#ifdef CONFIG_BASE_ANDROID
-		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
+		if(strlen(logLineBuffer))
+		{
+			printToLogLineBuffer(msg, args);
+			__android_log_write(ANDROID_LOG_INFO, "imagine", logLineBuffer);
+			logLineBuffer[0] = 0;
+		}
+		else
+			__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
 	#elif defined(CONFIG_BASE_IOS)
-		Base::nsLog(msg, args);
+		if(strlen(logLineBuffer))
+		{
+			printToLogLineBuffer(msg, args);
+			Base::nsLog("%s", logLineBuffer);
+			logLineBuffer[0] = 0;
+		}
+		else
+			Base::nsLog(msg, args);
 	#else
 		vfprintf(stderr, msg, args);
 	#endif
 }
 
-void logger_printfn(LoggerSeverity severity, const char* msg, ...)
+void logger_printf(LoggerSeverity severity, const char* msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
-	logger_vprintfn(severity, msg, args);
+	logger_vprintf(severity, msg, args);
 	va_end(args);
 }
 

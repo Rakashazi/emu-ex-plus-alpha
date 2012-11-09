@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 2527 2012-06-05 16:32:35Z stephena $
+// $Id: TIA.hxx 2547 2012-07-14 18:56:57Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -41,7 +41,7 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 2527 2012-06-05 16:32:35Z stephena $
+  @version $Id: TIA.hxx 2547 2012-07-14 18:56:57Z stephena $
 */
 class TIA : public Device
 {
@@ -557,24 +557,12 @@ class TIA : public Device
     // It's VERY important that the BL, M0, M1, P0 and P1 current
     // mask pointers are always on a uInt32 boundary.  Otherwise,
     // the TIA code will fail on a good number of CPUs.
-
-    // Pointer to the currently active mask array for the ball
-    uInt8* myCurrentBLMask;
-
-    // Pointer to the currently active mask array for missle 0
-    uInt8* myCurrentM0Mask;
-
-    // Pointer to the currently active mask array for missle 1
-    uInt8* myCurrentM1Mask;
-
-    // Pointer to the currently active mask array for player 0
-    uInt8* myCurrentP0Mask;
-
-    // Pointer to the currently active mask array for player 1
-    uInt8* myCurrentP1Mask;
-
-    // Pointer to the currently active mask array for the playfield
-    uInt32* myCurrentPFMask;
+    const uInt8* myP0Mask;
+    const uInt8* myM0Mask;
+    const uInt8* myM1Mask;
+    const uInt8* myP1Mask;
+    const uInt8* myBLMask;
+    const uInt32* myPFMask;
 
     // Audio values; only used by TIADebug
     uInt8 myAUDV0, myAUDV1, myAUDC0, myAUDC1, myAUDF0, myAUDF1;

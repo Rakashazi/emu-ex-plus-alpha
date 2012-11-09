@@ -30,12 +30,13 @@ static const char pathSeparator[] = { '/'
 };
 static const uint numPathSeparators = sizeofArrayConst(pathSeparator);
 
-static char *dirNameCutoffPoint(char *path)
+template <class T>
+static T *dirNameCutoffPoint(T *path)
 {
-	char *cutoffPoint = NULL;
+	T *cutoffPoint = NULL;
 	for(uint i = 0; i < numPathSeparators; i++)
 	{
-		char *possibleCutoff = strrchr(path, pathSeparator[i]);
+		T *possibleCutoff = strrchr(path, pathSeparator[i]);
 		if(possibleCutoff > cutoffPoint)
 			cutoffPoint = possibleCutoff;
 	}
@@ -51,9 +52,9 @@ static void dirNameInPlace(char *path)
 	else strcpy(path, ".");
 }
 
-static void dirName(char *path, char *pathOut)
+static void dirName(const char *path, char *pathOut)
 {
-	char *cutoffPoint = dirNameCutoffPoint(path);
+	const char *cutoffPoint = dirNameCutoffPoint(path);
 
 	if(cutoffPoint != NULL)
 	{
@@ -83,12 +84,13 @@ static char *dirNameCpy(char *path)
 	return pathOut;
 }
 
-static char *baseNamePos(char *path)
+template <class T>
+static T *baseNamePos(T *path)
 {
-	char *pos = path;
+	T *pos = path;
 	for(uint i = 0; i < numPathSeparators; i++)
 	{
-		char *possiblePos = strrchr(path, pathSeparator[i]);
+		T *possiblePos = strrchr(path, pathSeparator[i]);
 		if(possiblePos > pos)
 			pos = possiblePos+1;
 	}
@@ -102,9 +104,9 @@ static void baseNameInPlace(char *path)
 		strcpy(path, copyPoint);
 }
 
-static void baseName(char *path, char *pathOut)
+static void baseName(const char *path, char *pathOut)
 {
-	char *cutoffPoint = baseNamePos(path);
+	const char *cutoffPoint = baseNamePos(path);
 
 	assert(*cutoffPoint != 0); // TODO: other cases
 	strcpy(pathOut, cutoffPoint);
@@ -179,6 +181,16 @@ static int charIsDrawableAscii(int c)
 	else return 0;
 }
 
+static int charIsDrawableUnicode(int c)
+{
+	return !(
+			(c >= 0x0 && c < '!')
+			|| (c > '~' && c < 0xA1)
+			|| (c >= 0x2000 && c <= 0x200F)
+			|| (c == 0x3000)
+			);
+}
+
 static void string_copyUpToLastCharInstance(char *dest, const char *src, char c)
 {
 	const char *limit = strrchr(src, c);
@@ -210,3 +222,29 @@ static void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
 		dest[i] = src[i];
 	}
 }
+
+#ifdef __cplusplus
+
+#ifdef CONFIG_UNICODE_CHARS
+	#include <util/utf.hh>
+#endif
+
+static CallResult string_convertCharCode(const char** sourceStart, uint &c)
+{
+#ifdef CONFIG_UNICODE_CHARS
+	switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
+	{
+		case UTF::conversionOK: return OK;
+		case UTF::reachedNullChar: return OUT_OF_BOUNDS;
+		default: return INVALID_PARAMETER;
+	}
+#else
+	c = **sourceStart;
+	if(c == '\0')
+		return OUT_OF_BOUNDS;
+	*sourceStart += 1;
+	return OK;
+#endif
+}
+
+#endif

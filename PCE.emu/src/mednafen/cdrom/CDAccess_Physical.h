@@ -8,15 +8,17 @@ class CDAccess_Physical : public CDAccess
  public:
 
  CDAccess_Physical(const char *path);
- virtual ~CDAccess_Physical();
+ ~CDAccess_Physical() override;
 
- virtual void Read_Raw_Sector(uint8 *buf, int32 lba);
+ bool Read_Sector(uint8 *buf, int32 lba, uint32 size) override;
 
- virtual void Read_TOC(CDUtility::TOC *toc);
+ bool Read_Raw_Sector(uint8 *buf, int32 lba) override;
 
- virtual bool Is_Physical(void);
+ void Read_TOC(CDUtility::TOC *toc) override;
 
- virtual void Eject(bool eject_status);
+ bool Is_Physical(void) override;
+
+ void Eject(bool eject_status) override;
  private:
 
  void *p_cdio;

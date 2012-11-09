@@ -67,7 +67,7 @@ static bool isMDExtension(const char *name)
 
 static bool isMDCDExtension(const char *name)
 {
-	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "iso");
+	return string_hasDotExtension(name, "cue");
 }
 
 static int mdROMFsFilter(const char *name, int type)
@@ -126,13 +126,15 @@ enum {
 	CFGKEY_MDKEY_RIGHT_DOWN = 276, CFGKEY_MDKEY_LEFT_DOWN = 277,
 	CFGKEY_MDKEY_BIG_ENDIAN_SRAM = 278, CFGKEY_MDKEY_SMS_FM = 279,
 	CFGKEY_MDKEY_6_BTN_PAD = 280, CFGKEY_MD_CD_BIOS_USA_PATH = 281,
-	CFGKEY_MD_CD_BIOS_JPN_PATH = 282, CFGKEY_MD_CD_BIOS_EUR_PATH = 283
+	CFGKEY_MD_CD_BIOS_JPN_PATH = 282, CFGKEY_MD_CD_BIOS_EUR_PATH = 283,
+	CFGKEY_MD_REGION = 284
 };
 
 static bool usingMultiTap = 0;
 static BasicByteOption optionBigEndianSram(CFGKEY_MDKEY_BIG_ENDIAN_SRAM, 0);
 static BasicByteOption optionSmsFM(CFGKEY_MDKEY_SMS_FM, 1);
 static BasicByteOption option6BtnPad(CFGKEY_MDKEY_6_BTN_PAD, 0);
+static BasicByteOption optionRegion(CFGKEY_MD_REGION, 0);
 FsSys::cPath cdBiosUSAPath = "", cdBiosJpnPath = "", cdBiosEurPath = "";
 static PathOption<CFGKEY_MD_CD_BIOS_USA_PATH> optionCDBiosUsaPath(cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
 static PathOption<CFGKEY_MD_CD_BIOS_JPN_PATH> optionCDBiosJpnPath(cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
@@ -194,6 +196,16 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_MD_CD_BIOS_USA_PATH: optionCDBiosUsaPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_JPN_PATH: optionCDBiosJpnPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_EUR_PATH: optionCDBiosEurPath.readFromIO(io, readSize);
+		bcase CFGKEY_MD_REGION:
+		{
+			optionRegion.readFromIO(io, readSize);
+			if(optionRegion < 4)
+			{
+				config.region_detect = optionRegion;
+			}
+			else
+				optionRegion = 0;
+		}
 		bdefault: return 0;
 	}
 	return 1;
@@ -207,6 +219,7 @@ void EmuSystem::writeConfig(Io *io)
 	optionCDBiosUsaPath.writeToIO(io);
 	optionCDBiosJpnPath.writeToIO(io);
 	optionCDBiosEurPath.writeToIO(io);
+	optionRegion.writeWithKeyIfNotDefault(io);
 	writeKeyConfig2(io, mdKeyIdxUp, CFGKEY_MDKEY_UP);
 	writeKeyConfig2(io, mdKeyIdxRight, CFGKEY_MDKEY_RIGHT);
 	writeKeyConfig2(io, mdKeyIdxDown, CFGKEY_MDKEY_DOWN);
@@ -370,7 +383,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 }
 
 bool EmuSystem::vidSysIsPAL() { return vdp_pal; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 void EmuSystem::resetGame()
 {
@@ -661,56 +674,63 @@ static void doAudioInit()
 	audio_init(optionSoundRate, fps);
 }
 
-static uint detectISORegion(Io *iso)
+static uint detectISORegion(uint8 bootSector[0x800])
 {
-	iso->seekA(0x20b);
-	auto bootByte = iso->fgetc();
+	auto bootByte = bootSector[0x20b];
 
-	if(bootByte == 0x20) // use the region code
-	{
-		iso->seekA(0x200);
-		bootByte = iso->fgetc();
-		if(bootByte == 0x4a) return REGION_JAPAN_NTSC;
-		else if(bootByte == 0x55) return REGION_USA;
+	if(bootByte == 0x7a)
+		return REGION_USA;
+	else if(bootByte == 0x64)
 		return REGION_EUROPE;
-	}
-
-	if(bootByte == 0xa1) return REGION_JAPAN_NTSC;
-	else if(bootByte == 0x64) return REGION_EUROPE;
-
-	if(bootByte != 0x7a)
-		bug_exit("handle region detection byte %X", bootByte);
-	return REGION_USA;
+	else
+		return REGION_JAPAN_NTSC;
 }
 
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
-	if(string_hasDotExtension(path, "iso")
-		|| (string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) > 1024*1024*10)) // CD
+	emuView.initImage(0, mdResX, mdResY);
+	// check if loading a .bin with matching .cue
+	if(string_hasDotExtension(path, "bin"))
 	{
-		uint region;
+		FsSys::cPath possibleCuePath {0};
+		auto len = strlen(path);
+		strcpy(possibleCuePath, path);
+		possibleCuePath[len-3] = 0; // delete extension
+		strcat(possibleCuePath, "cue");
+		if(FsSys::fileExists(possibleCuePath))
+		{
+			logMsg("loading %s instead of .bin file", possibleCuePath);
+			setupGamePaths(possibleCuePath);
+		}
+		else
+			setupGamePaths(path);
+	}
+	else
+		setupGamePaths(path);
+	CDAccess *cd = nullptr;
+	if(string_hasDotExtension(fullGamePath, "cue")) // CD
+	{
+		try
+		{
+			cd = cdaccess_open(fullGamePath);
+		}
+		catch(std::exception &e)
+		{
+			popup.printf(4, 1, "%s", e.what());
+			return 0;
+		}
+
+		uint region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
 	  else if (config.region_detect == 2) region = REGION_EUROPE;
 	  else if (config.region_detect == 3) region = REGION_JAPAN_NTSC;
 	  else if (config.region_detect == 4) region = REGION_JAPAN_PAL;
 	  else
 	  {
-			Io *iso = IoSys::open(fullGamePath);
-			if(!iso)
-			{
-				popup.post("Error loading CD", 1);
-				return 0;
-			}
-			region = detectISORegion(iso);
-			delete iso;
+	  	uint8 bootSector[2048];
+	  	cd->Read_Sector(bootSector, 0, 2048);
+			region = detectISORegion(bootSector);
 	  }
 
 		const char *biosPath = optionCDBiosJpnPath;
@@ -723,6 +743,7 @@ int EmuSystem::loadGame(const char *path)
 		if(!strlen(biosPath))
 		{
 			popup.printf(4, 1, "Set a %s BIOS in the Options", biosName);
+			delete cd;
 			return 0;
 		}
 
@@ -731,16 +752,20 @@ int EmuSystem::loadGame(const char *path)
 		if(!load_rom(loadFullGamePath)) // load_rom can modify the string
 		{
 			popup.printf(4, 1, "Error loading BIOS: %s", biosPath);
+			delete cd;
 			return 0;
 		}
 		if(!sCD.isActive)
 		{
 			popup.printf(4, 1, "Invalid BIOS: %s", biosPath);
+			delete cd;
 			return 0;
 		}
 	}
-	else // ROM
+	else if(isMDExtension(fullGamePath) // ROM
+			&& FsSys::fileSize(fullGamePath) <= 1024*1024*10) // prevent large .bin files meant for CDs from loading
 	{
+		logMsg("loading ROM %s", fullGamePath);
 		FsSys::cPath loadFullGamePath;
 		strcpy(loadFullGamePath, fullGamePath);
 		if(!load_rom(loadFullGamePath)) // load_rom can modify the string
@@ -749,9 +774,11 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
-
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
+	else
+	{
+		popup.post("Invalid game", 1);
+		return 0;
+	}
 
 	doAudioInit();
 	system_init();
@@ -774,7 +801,7 @@ int EmuSystem::loadGame(const char *path)
 			logMsg("no BRAM on disk, formatting");
 			mem_zero(bram);
 			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
-			var_copy(sramFormatStart, sram.sram + 0x10000 - sizeof(fmt64kSram));
+			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
 			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
 			for(uint i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
 			{
@@ -818,14 +845,14 @@ int EmuSystem::loadGame(const char *path)
 
 	if(sCD.isActive)
 	{
-		if(Insert_CD(fullGamePath, string_hasDotExtension(path, "bin")) != 0)
+		if(Insert_CD(cd) != 0)
 		{
 			popup.post("Error loading CD", 1);
+			delete cd;
+			closeGame();
 			return 0;
 		}
 	}
-
-	emuView.initImage(0, mdResX, mdResY);
 
 	logMsg("started emu");
 	return 1;
@@ -850,7 +877,7 @@ namespace Input
 {
 void onInputEvent(const InputEvent &e)
 {
-	if(EmuSystem::active)
+	if(EmuSystem::isActive())
 	{
 		int gunDevIdx = 4;
 		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
@@ -883,7 +910,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },

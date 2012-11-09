@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bluetooth/sys.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <util/collection/DLList.hh>
 
 struct Zeemote : public BluetoothInputDevice

@@ -16,7 +16,7 @@ private:
 
 	BoolMenuItem multitap;
 
-	MultiChoiceSelectMenuItem inputPorts;
+	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
 
 	void inputPortsInit()
 	{
@@ -30,7 +30,7 @@ private:
 		if(snesInputPort == SNES_MOUSE_SWAPPED)
 			setting = 2;
 
-		inputPorts.init("Input Ports", str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, sizeofArray(str));
 		inputPorts.valueDelegate().bind<&inputPortsSet>();
 	}
 

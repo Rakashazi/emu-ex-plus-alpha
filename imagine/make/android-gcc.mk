@@ -1,4 +1,5 @@
 ENV := android
+CROSS_COMPILE := 1
 
 android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_minSDK)/arch-$(android_ndkArch)
 
@@ -34,6 +35,10 @@ else
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
 endif
 
+ifdef ANDROID_APK_SIGNATURE_HASH
+ CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
+endif
+
 include $(IMAGINE_PATH)/make/package/stdc++-headers.mk
 
 #BASE_CXXFLAGS += -fno-use-cxa-atexit
@@ -47,6 +52,5 @@ LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now,-soname,lib$(androi
 LDLIBS += -L$(android_ndkSysroot)/usr/lib -lm
 
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-
-LDFLAGS += -s -Wl,-O1,--gc-sections,--sort-common
+LDFLAGS += -s -Wl,-O1,--gc-sections
 OPTIMIZE_LDFLAGS +=

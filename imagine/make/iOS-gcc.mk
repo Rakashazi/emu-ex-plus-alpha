@@ -1,4 +1,5 @@
-ENV := iOS
+ENV := ios
+CROSS_COMPILE := 1
 
 ifndef targetDir
  ifdef O_RELEASE
@@ -34,8 +35,14 @@ endif
 
  # base engine code needs at least iOS 3.1
 minIOSVer := 3.1
-IOS_SYSROOT = /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.0.sdk
-IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
+ifeq ($(ARCH),x86)
+ IOS_SYSROOT = /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator6.0.sdk
+ IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer) -fobjc-abi-version=2 -fobjc-legacy-dispatch
+else
+ #IOS_SYSROOT = /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.0.sdk
+ IOS_SYSROOT = ~/Desktop/Xcode46-DP1.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.1.sdk
+ IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
+endif
 CPPFLAGS += $(IOS_FLAGS)
 LDFLAGS += $(IOS_FLAGS)
 

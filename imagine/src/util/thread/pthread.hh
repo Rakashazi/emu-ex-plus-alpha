@@ -1,6 +1,7 @@
 #pragma once
 #include <engine-globals.h>
 #include <logger/interface.h>
+#include <util/Delegate.hh>
 #include <assert.h>
 #include <pthread.h>
 #ifndef CONFIG_BASE_PS3
@@ -8,11 +9,7 @@
 #endif
 
 #if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
-#include <jni.h>
-namespace Base
-{
-	extern JavaVM* jVM;
-}
+	#include <base/android/private.hh>
 #endif
 
 class ThreadPThread
@@ -22,10 +19,11 @@ public:
 
 	constexpr ThreadPThread() { }
 
-	bool create(uint type, int (*entry)(ThreadPThread &), void *arg)
+	typedef Delegate<ptrsize (ThreadPThread &thread)> EntryDelegate;
+
+	bool create(uint type, EntryDelegate entry)
 	{
 		this->entry = entry;
-		this->arg = arg;
 
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -93,8 +91,7 @@ public:
 		#endif
 	}*/
 
-	int (*entry)(ThreadPThread &thread) = nullptr;
-	void *arg = nullptr;
+	EntryDelegate entry;
 private:
 	pthread_t id = 0;
 
@@ -106,23 +103,23 @@ public:
 private:
 	static void *wrapper(void *runData)
 	{
-		ThreadPThread *run = (ThreadPThread*)runData;
+		auto &run = *((ThreadPThread*)runData);
 		//logMsg("running thread func %p", run->entry);
 		#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
-		if(Base::jVM->AttachCurrentThread(&run->jEnv, 0) != 0)
+		if(Base::jVM->AttachCurrentThread(&run.jEnv, 0) != 0)
 		{
 			logErr("error attaching jEnv to thread");
 			return 0;
 		}
 		#endif
-		assert(run->entry);
-		run->entry(*run);
+		assert(run.entry.hasCallback());
+		auto res = run.entry.invoke(run);
 		#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
-		if(run->jEnv)
+		if(run.jEnv)
 			Base::jVM->DetachCurrentThread();
 		#endif
-		run->running = 0;
-		return 0;
+		run.running = 0;
+		return (void*)res;
 	}
 };
 

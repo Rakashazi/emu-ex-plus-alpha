@@ -188,7 +188,8 @@ if [ $xperiaPlayOpt ]
 then
 	if [ $minSDK == 9 ]
 	then
-		echo '	<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/icon" />' >> $outPath
+		echo '	<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
+	<meta-data android:name="game_icon" android:resource="@drawable/iconbig" />' >> $outPath
 	fi
 fi
 

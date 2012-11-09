@@ -17,7 +17,7 @@
 
 #include "GuiTable1D.hh"
 #include <gfx/GeomRect.hh>
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <base/Base.hh>
 
 GC GuiTable1D::globalXIndent = 0;
@@ -172,7 +172,7 @@ int GuiTable1D::visibleCells() const
 
 int GuiTable1D::offscreenCells() const
 {
-	var_copy(y, viewRect.yPos(LT2DO));
+	auto y = viewRect.yPos(LT2DO);
 	return (Gfx::iYPos(y) - Gfx::proj.hHalf)/Gfx::iYSize(yCellSize);
 }
 
@@ -181,8 +181,8 @@ void GuiTable1D::draw()
 	using namespace Gfx;
 	if(cells == 0)
 		return;
-	var_copy(y, viewRect.yPos(LT2DO));
-	var_copy(x, viewRect.xPos(LT2DO));
+	auto y = viewRect.yPos(LT2DO);
+	auto x = viewRect.xPos(LT2DO);
 	// TODO: fix calculations
 	int visYCells = visibleCells();
 	//int visYCells = ceil(gfx_viewHeight()/gfx_iYSize(yCellSize)) + 1;

@@ -5,7 +5,7 @@ ifdef noDoubleFloat
  include $(IMAGINE_PATH)/make/package/tremor.mk
 else
  configDefs += CONFIG_PACKAGE_LIBVORBIS
- ifneq ($(ENV), linux)
+ ifeq ($(CROSS_COMPILE), 1)
   CPPFLAGS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include pkg-config vorbisfile --cflags --static --define-variable=prefix=$(system_externalSysroot))
   LDLIBS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config vorbisfile --libs --static --define-variable=prefix=$(system_externalSysroot))
  else

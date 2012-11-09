@@ -199,7 +199,7 @@ typedef union
 
 struct M68KCPU
 {
-	constexpr M68KCPU(const unsigned char (&cycles)[0x10000], fbool hasWorkingTas):
+	constexpr M68KCPU(const unsigned char (&cycles)[0x10000], bool hasWorkingTas):
 		cycles(cycles), hasWorkingTas(hasWorkingTas) { }
 
   static const uint cpu_type = 1;     /* CPU Type: 68000, 68008, 68010, 68EC020, or 68020 */
@@ -248,7 +248,7 @@ struct M68KCPU
   uint instr_mode = 0;   /* Stores whether we are in instruction mode or group 0/1 exception mode */
   uint run_mode = 0;     /* Stores whether we are processing a reset, bus error, address error, or something else */
 #endif
-  const fbool hasWorkingTas;
+  const bool hasWorkingTas;
 
   /* Clocks required for instructions / exceptions */
   static const uint cyc_bcc_notake_b = -2 * 7;

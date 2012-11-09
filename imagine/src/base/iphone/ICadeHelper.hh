@@ -1,6 +1,6 @@
 #pragma once
 
-#include <input/interface.h>
+#include <input/Input.hh>
 #include <input/common/iCade.hh>
 
 struct ICadeHelper

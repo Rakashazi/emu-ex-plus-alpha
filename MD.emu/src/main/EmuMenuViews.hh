@@ -80,7 +80,7 @@ private:
 		modalView = &ynAlertView;
 	}
 
-	MultiChoiceSelectMenuItem region;
+	MultiChoiceSelectMenuItem region {"Game Region"};
 
 	void regionInit()
 	{
@@ -94,12 +94,13 @@ private:
 			setting = config.region_detect;
 		}
 
-		region.init("Game Region", str, setting, sizeofArray(str));
+		region.init(str, setting, sizeofArray(str));
 		region.valueDelegate().bind<&regionSet>();
 	}
 
 	static void regionSet(MultiChoiceMenuItem &, int val)
 	{
+		optionRegion = val;
 		config.region_detect = val;
 	}
 
@@ -118,7 +119,7 @@ private:
 		}
 	} cdBiosPath[3];
 
-	MultiChoiceSelectMenuItem inputPorts;
+	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
 
 	void inputPortsInit()
 	{
@@ -134,7 +135,7 @@ private:
 		else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
 			setting = 3;
 
-		inputPorts.init("Input Ports", str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, sizeofArray(str));
 		inputPorts.valueDelegate().bind<&inputPortsSet>();
 	}
 

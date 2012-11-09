@@ -5,20 +5,20 @@ namespace Input
 
 #ifndef CONFIG_BASE_IOS
 
-static fbool iCadeActive_ = 0;
-void setICadeActive(fbool active)
+static bool iCadeActive_ = 0;
+void setICadeActive(bool active)
 {
 	iCadeActive_ = active;
 }
 
-fbool iCadeActive()
+bool iCadeActive()
 {
 	return iCadeActive_;
 }
 
 #endif
 
-static fbool processICadeKey(uchar c, uint action)
+static bool processICadeKey(uchar c, uint action)
 {
 	static const char *ON_STATES  = "wdxayhujikol";
 	static const char *OFF_STATES = "eczqtrfnmpgv";

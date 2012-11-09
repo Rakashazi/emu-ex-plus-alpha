@@ -22,7 +22,7 @@ class MsgPopup
 {
 public:
 	constexpr MsgPopup() { }
-	GfxText text;
+	Gfx::Text text;
 	Base::CallbackRef *callbackRef = nullptr;
 	bool error = 0;
 	char str[1024] {0};

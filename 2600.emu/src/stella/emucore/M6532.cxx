@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 2499 2012-05-25 12:41:19Z stephena $
+// $Id: M6532.cxx 2554 2012-09-27 22:17:27Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -54,14 +54,19 @@ void M6532::reset()
   myTimer = (0xff - (mySystem->randGenerator().next() % 0xfe)) << 10;
   myIntervalShift = 10;
   myCyclesWhenTimerSet = 0;
-  myInterruptEnabled = false;
-  myInterruptTriggered = false;
 
   // Zero the I/O registers
   myDDRA = myDDRB = myOutA = myOutB = 0x00;
 
   // Zero the timer registers
   myOutTimer[0] = myOutTimer[1] = myOutTimer[2] = myOutTimer[3] = 0x00;
+
+  // Zero the interrupt flag register and mark D7 as invalid
+  myInterruptFlag = 0x00;
+  myTimerFlagValid = false;
+
+  // Edge-detect set to negative (high to low)
+  myEdgeDetectPositive = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -74,6 +79,29 @@ void M6532::systemCyclesReset()
   // We should also inform any 'smart' controllers as well
   myConsole.controller(Controller::Left).systemCyclesReset();
   myConsole.controller(Controller::Right).systemCyclesReset();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6532::update()
+{
+  Controller& port0 = myConsole.controller(Controller::Left);
+  Controller& port1 = myConsole.controller(Controller::Right);
+
+  // Get current PA7 state
+  bool prevPA7 = port0.myDigitalPinState[Controller::Four];
+
+  // Update entire port state
+  port0.update();
+  port1.update();
+  myConsole.switches().update();
+
+  // Get new PA7 state
+  bool currPA7 = port0.myDigitalPinState[Controller::Four];
+
+  // PA7 Flag is set on active transition in appropriate direction
+  if((!myEdgeDetectPositive && prevPA7 && !currPA7) ||
+     (myEdgeDetectPositive && !prevPA7 && currPA7))
+    myInterruptFlag |= PA7Bit;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,41 +172,45 @@ uInt8 M6532::peek(uInt16 addr)
       return myDDRB;
     }
 
-    case 0x04:    // Timer Output
+    case 0x04:    // INTIM - Timer Output
     case 0x06:
     {
-      myInterruptTriggered = false;
-      Int32 timer = timerClocks();
+      // Timer Flag is always cleared when accessing INTIM
+      myInterruptFlag &= ~TimerBit;
 
-      // See if the timer has expired yet?
-      // Note that this constant comes from z26, and corresponds to
-      // 256 intervals of T1024T (ie, the maximum that the timer should hold)
-      // I'm not sure why this is required, but quite a few PAL ROMs fail
-      // if we just check >= 0.
-      if(!(timer & 0x40000))
+      // Get number of clocks since timer was set
+      Int32 timer = timerClocks();  
+      if(timer >= 0)
       {
+        // Return at 'divide by TIMxT' interval rate
         return (timer >> myIntervalShift) & 0xff;
       }
       else
       {
-        if(timer != -1)
-          myInterruptTriggered = true;
+        // Return at 'divide by 1' rate
+        uInt8 divByOne = timer & 0xff;
 
-        // According to the M6532 documentation, the timer continues to count
-        // down to -255 timer clocks after wraparound.  However, it isn't
-        // entirely clear what happens *after* if reaches -255.
-        // For now, we'll let it continuously wrap around.
-        return timer & 0xff;
+        // Timer flag has been updated; don't update it again on TIMINT read
+        if(divByOne != 0 && divByOne != 255)
+          myTimerFlagValid = true;
+
+        return divByOne;
       }
     }
 
-    case 0x05:    // Interrupt Flag
+    case 0x05:    // TIMINT/INSTAT - Interrupt Flag
     case 0x07:
     {
-      if((timerClocks() >= 0) || (myInterruptEnabled && myInterruptTriggered))
-        return 0x00;
-      else
-        return 0x80;
+      // Update timer flag if it is invalid and timer has expired
+      if(!myTimerFlagValid && timerClocks() < 0)
+      {
+        myInterruptFlag |= TimerBit;
+        myTimerFlagValid = true;
+      }
+      // PA7 Flag is always cleared after accessing TIMINT
+      uInt8 result = myInterruptFlag;
+      myInterruptFlag &= ~PA7Bit;
+      return result;
     }
 
     default:
@@ -205,13 +237,16 @@ bool M6532::poke(uInt16 addr, uInt8 value)
   }
 
   // A2 distinguishes I/O registers from the timer
+  // A2 = 1 is write to timer
+  // A2 = 0 is write to I/O
   if((addr & 0x04) != 0)
   {
+    // A4 = 1 is write to TIMxT (x = 1, 8, 64, 1024)
+    // A4 = 0 is write to edge detect control
     if((addr & 0x10) != 0)
-    {
-      myInterruptEnabled = (addr & 0x08);
-      setTimerRegister(value, addr & 0x03);
-    }
+      setTimerRegister(value, addr & 0x03);  // A1A0 determines interval
+    else
+      myEdgeDetectPositive = addr & 0x01;    // A0 determines direction
   }
   else
   {
@@ -252,11 +287,14 @@ void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 {
   static const uInt8 shift[] = { 0, 3, 6, 10 };
 
-  myInterruptTriggered = false;
   myIntervalShift = shift[interval];
   myOutTimer[interval] = value;
   myTimer = value << myIntervalShift;
   myCyclesWhenTimerSet = mySystem->cycles();
+
+  // Interrupt timer flag is cleared (and invalid) when writing to the timer
+  myInterruptFlag &= ~TimerBit;
+  myTimerFlagValid = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,19 +338,20 @@ bool M6532::save(Serializer& out) const
   {
     out.putString(name());
 
-    // Output the RAM
     out.putByteArray(myRAM, 128);
 
     out.putInt(myTimer);
     out.putInt(myIntervalShift);
     out.putInt(myCyclesWhenTimerSet);
-    out.putBool(myInterruptEnabled);
-    out.putBool(myInterruptTriggered);
 
     out.putByte(myDDRA);
     out.putByte(myDDRB);
     out.putByte(myOutA);
     out.putByte(myOutB);
+
+    out.putByte(myInterruptFlag);
+    out.putBool(myTimerFlagValid);
+    out.putBool(myEdgeDetectPositive);
     out.putByteArray(myOutTimer, 4);
   }
   catch(...)
@@ -332,19 +371,20 @@ bool M6532::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    // Input the RAM
     in.getByteArray(myRAM, 128);
 
     myTimer = in.getInt();
     myIntervalShift = in.getInt();
     myCyclesWhenTimerSet = in.getInt();
-    myInterruptEnabled = in.getBool();
-    myInterruptTriggered = in.getBool();
 
     myDDRA = in.getByte();
     myDDRB = in.getByte();
     myOutA = in.getByte();
     myOutB = in.getByte();
+
+    myInterruptFlag = in.getByte();
+    myTimerFlagValid = in.getBool();
+    myEdgeDetectPositive = in.getBool();
     in.getByteArray(myOutTimer, 4);
   }
   catch(...)

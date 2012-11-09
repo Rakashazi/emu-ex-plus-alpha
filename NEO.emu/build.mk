@@ -28,7 +28,7 @@ ifeq ($(ENV), webos)
 endif
 
 ifeq ($(ARCH), arm)
- ifeq ($(ENV), iOS)
+ ifeq ($(ENV), ios)
   SRC += $(GEO)/cyclone_interf.c $(GEO)/cyclone/Cyclone-apple.s
   #LDFLAGS += -Wl,-no_pie
  else

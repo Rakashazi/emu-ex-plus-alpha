@@ -26,7 +26,7 @@ class AlertView : public View
 public:
 	constexpr AlertView() { }
 	Rect2<GC> labelFrame;
-	GfxText text;
+	Gfx::Text text;
 	BaseMenuView menu;
 	Rect2<int> rect;
 
@@ -51,7 +51,7 @@ public:
 	void selectYes(TextMenuItem &, const InputEvent &e)
 	{
 		removeModalView();
-		onYes.invoke(e);
+		onYes.invokeSafe(e);
 	}
 
 	void selectNo(TextMenuItem &, const InputEvent &e)
@@ -62,11 +62,9 @@ public:
 
 	MenuItem *menuItem[2] = {nullptr};
 
-	// Required delegates
+	// Optional delegates
 	OnInputDelegate onYes;
 	OnInputDelegate &onYesDelegate() { return onYes; }
-
-	// Optional delegates
 	OnInputDelegate onNo;
 	OnInputDelegate &onNoDelegate() { return onNo; }
 

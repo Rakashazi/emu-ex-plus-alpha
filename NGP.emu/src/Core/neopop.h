@@ -66,7 +66,7 @@
 
 15 AUG 2002 - neopop_uk
 =======================================
-- Replaced 'bool', 'true' and 'false' with fbool, TRUE and FALSE for
+- Replaced 'bool', 'true' and 'false' with bool, TRUE and FALSE for
 	better compatibility with other compilers.
 
 18 AUG 2002 - neopop_uk
@@ -197,7 +197,7 @@ RomHeader;
 	void reset(void);
 
 /* Fill the bios rom area with a bios. call once at program start */
-	fbool bios_install(void);
+	bool bios_install(void);
 
 #define RAM_START	0x000000
 #define RAM_END		0x00BFFF
@@ -212,7 +212,7 @@ RomHeader;
 	extern uint32 frame_count;
 
 	// false = Japanese.
-	extern fbool language_english;
+	extern bool language_english;
 
 /*!	Emulate a single instruction with correct TLCS900h:Z80 timing */
 
@@ -319,7 +319,7 @@ RomHeader;
 	// Speed of DAC playback
 #define DAC_FREQUENCY		8000 //hz
 
-	extern fbool mute;
+	extern bool mute;
 
 /*!	Fills the given buffer with sound data */
 
@@ -345,8 +345,8 @@ RomHeader;
 // Core <--> System-IO Interface
 //-----------------------------------------------------------------------------
 
-	fbool state_restore(const char* filename);
-	fbool state_store(const char* filename);
+	bool state_restore(const char* filename);
+	bool state_store(const char* filename);
 
 		//=========================================
 
@@ -354,14 +354,14 @@ RomHeader;
 	high-level communications have been established, then return FALSE.
 	If buffer is NULL, then no data is read, only status is returned */
 
-	fbool system_comms_read(uint8* buffer);
+	bool system_comms_read(uint8* buffer);
 
 
 /*! Peeks at any data from the other system. If no data is available or
 	no high-level communications have been established, then return FALSE.
 	If buffer is NULL, then no data is read, only status is returned */
 
-	fbool system_comms_poll(uint8* buffer);
+	bool system_comms_poll(uint8* buffer);
 
 
 /*! Writes a byte from the other system. This function should block until
@@ -373,31 +373,31 @@ RomHeader;
 /*! Reads as much of the file specified by 'filename' into the given, 
 	preallocated buffer. This is rom data */
 
-	fbool system_io_rom_read(char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_rom_read(char* filename, uint8* buffer, uint32 bufferLength);
 
 
 /*! Reads the "appropriate" (system specific) flash data into the given
 	preallocated buffer. The emulation core doesn't care where from. */
 
-	fbool system_io_flash_read(uint8* buffer, uint32 bufferLength);
+	bool system_io_flash_read(uint8* buffer, uint32 bufferLength);
 
 
 /*! Writes the given flash data into an "appropriate" (system specific)
 	place. The emulation core doesn't care where to. */
 
-	fbool system_io_flash_write(uint8* buffer, uint32 bufferLength);
+	bool system_io_flash_write(uint8* buffer, uint32 bufferLength);
 
 
 /*! Reads from the file specified by 'filename' into the given preallocated
 	buffer. This is state data. */
 
-	fbool system_io_state_read(const char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_state_read(const char* filename, uint8* buffer, uint32 bufferLength);
 	
 
 /*! Writes to the file specified by 'filename' from the given buffer.
 	This is state data. */
 
-	fbool system_io_state_write(const char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_state_write(const char* filename, uint8* buffer, uint32 bufferLength);
 
 
 //-----------------------------------------------------------------------------
@@ -408,16 +408,16 @@ RomHeader;
 
 	//Debugger message filters
 	//(TRUE = allow messages to be generated)
-	extern fbool filter_mem;
-	extern fbool filter_bios;
-	extern fbool filter_comms;
-	extern fbool filter_dma;
-	extern fbool filter_sound;
+	extern bool filter_mem;
+	extern bool filter_bios;
+	extern bool filter_comms;
+	extern bool filter_dma;
+	extern bool filter_sound;
 
 
 /*! Emulate a single instruction in Debug mode, checking for exceptions */
 
-	void emulate_debug(fbool dis_TLCS900h, fbool dis_Z80);
+	void emulate_debug(bool dis_TLCS900h, bool dis_Z80);
 
 
 /*!	Disassembles a single instruction from $PC, as TLCS-900h or Z80

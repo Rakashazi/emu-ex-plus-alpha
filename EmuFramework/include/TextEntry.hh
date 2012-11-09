@@ -8,7 +8,7 @@ class TextEntry
 public:
 	constexpr TextEntry() { }
 	Rect2<int> b;
-	GfxText t;
+	Gfx::Text t;
 	char str[128] = {0};
 	bool acceptingInput = 0;
 	bool multiLine = 0;
@@ -28,8 +28,8 @@ public:
 	constexpr CollectTextInputView(): View("Text Entry") { }
 
 	Rect2<int> cancelBtn;
-	GfxSprite cancelSpr;
-	GfxText message;
+	Gfx::Sprite cancelSpr;
+	Gfx::Text message;
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	TextEntry textEntry;
 	#endif

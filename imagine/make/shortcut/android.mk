@@ -6,13 +6,13 @@ endif
 
 ifeq ($(android_minSDK), 4)
  # only build ARMv6 for older Android OS
- config_android_noArmv7=1
- config_android_noX86=1
+ android_noArmv7=1
+ android_noX86=1
 endif
 
 ifeq ($(android_minSDK), 5)
  # only build X86 on Android 2.3+
- config_android_noX86=1
+ android_noX86=1
 endif
 
 ifndef android_targetSDK
@@ -90,9 +90,19 @@ $(android_drawableXhdpiIconPath) :
 	ln -s ../../../../res/icons/icon-96.png $@
 endif
 
+ifneq ($(wildcard res/icons/icon-144.png),)
+android_drawableXxhdpiIconPath := $(android_targetPath)/res/drawable-xxhdpi/icon.xml
+# "iconbig" used by Xperia Play launcher, links to xxhdpi icon
+$(android_drawableXxhdpiIconPath) :
+	@mkdir -p $(@D) $(android_targetPath)/res/drawable/
+	ln -s ../../../../res/icons/icon-144.png $(android_targetPath)/res/drawable/icon144.png
+	echo -e "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<bitmap xmlns:android=\"http://schemas.android.com/apk/res/android\" android:src=\"@drawable/icon144\" />" > $@
+	cp $@ $(android_targetPath)/res/drawable/iconbig.xml
+endif
+
 android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath)
 ifeq ($(android_hasSDK9), 1)
- android_drawableIconPaths += $(android_drawableXhdpiIconPath)
+ android_drawableIconPaths += $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath)
 endif
 
 android_imagineJavaSrcPath := $(android_targetPath)/src/com/imagine
@@ -123,7 +133,7 @@ endif
 
 # native libs
 
-ifndef config_android_noArmv6
+ifndef android_noArmv6
 
 android_armv6SOPath := $(android_targetPath)/lib-debug/armeabi/lib$(android_soName).so
 android-armv6 :
@@ -137,7 +147,7 @@ $(android_armv6ReleaseSOPath) : android-armv6-release
 
 endif
 
-ifndef config_android_noArmv7
+ifndef android_noArmv7
 
 android_armv7SOPath := $(android_targetPath)/libs-debug/armeabi-v7a/lib$(android_soName).so
 android-armv7 :
@@ -151,7 +161,7 @@ $(android_armv7ReleaseSOPath) : android-armv7-release
 
 endif
 
-ifndef config_android_noX86
+ifndef android_noX86
 
 android_x86SOPath := $(android_targetPath)/libs-debug/x86/lib$(android_soName).so
 android-x86 :
@@ -181,9 +191,6 @@ endif
 
 android_apkPath := $(android_targetPath)/bin-debug/$(android_metadata_project)-$(android_antTarget).apk
 android-apk : $(android_projectDeps) $(android_armv7SOPath) $(android_armv6SOPath) $(android_x86SOPath)
-	rm -f $(android_targetPath)/bin-debug/$(android_metadata_project)-$(android_antTarget)-unsigned.apk.d
-	rm -f $(android_targetPath)/bin-debug/$(android_metadata_project).ap_.d
-	rm -f $(android_targetPath)/bin-debug/classes.dex.d
 	cd $(android_targetPath) && ANT_OPTS=-Dimagine.path=$(IMAGINE_PATH) ant $(antVerbose) -Dout.dir=bin-debug \
 -Dnative.libs.absolute.dir=libs-debug -Djar.libs.dir=libs-debug $(android_antTarget)
 
@@ -195,9 +202,6 @@ android-install-only :
 
 android_apkReleasePath := $(android_targetPath)/bin-release/$(android_metadata_project)-$(android_antTarget).apk
 android-release-apk : $(android_projectDeps) $(android_armv7ReleaseSOPath) $(android_armv6ReleaseSOPath) $(android_x86ReleaseSOPath)
-	rm -f $(android_targetPath)/bin-release/$(android_metadata_project)-$(android_antTarget)-unsigned.apk.d
-	rm -f $(android_targetPath)/bin-release/$(android_metadata_project).ap_.d
-	rm -f $(android_targetPath)/bin-release/classes.dex.d
 	cd $(android_targetPath) && ANT_OPTS=-Dimagine.path=$(IMAGINE_PATH) ant $(antVerbose) -Dout.dir=bin-release \
 -Dnative.libs.absolute.dir=libs-release -Djar.libs.dir=libs-debug $(android_antTarget)
 

@@ -33,7 +33,7 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const InputEven
 	if(pushed && e.devId != devId)
 		return NO_CHANGE;
 
-	var_copy(dragState, Input::dragState(e.devId));
+	auto dragState = Input::dragState(e.devId);
 	if(bt.overlaps(e.x, e.y) && e.state == INPUT_PUSHED)
 	{
 		pushed = 1;
@@ -160,7 +160,7 @@ void KScroll::decel2()
 bool KScroll::inputEvent(const InputEvent &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
-	var_copy(dragState, Input::dragState(e.devId));
+	auto dragState = Input::dragState(e.devId);
 	switch(ContentDrag::inputEvent(*viewFrame, e))
 	{
 		case ContentDrag::PUSHED:
@@ -308,7 +308,7 @@ void ScrollView1D::draw()
 int ScrollView1D::inputEvent(const InputEvent &e)
 {
 	int scrollHasControl = 0;
-	var_copy(oldOffset, scroll.offset);
+	auto oldOffset = scroll.offset;
 	if(scroll.inputEvent(0, contentFrame->ySize() - viewFrame.ySize(), e))
 	{
 		scrollHasControl = 1;

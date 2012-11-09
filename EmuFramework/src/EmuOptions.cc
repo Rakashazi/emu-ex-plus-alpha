@@ -1,11 +1,14 @@
 #include <Option.hh>
 #include <EmuSystem.hh>
+#include "VController.hh"
+extern SysVController vController;
 
 bool optionOrientationIsValid(uint32 val)
 {
 	return val == Gfx::VIEW_ROTATE_AUTO ||
 			val == Gfx::VIEW_ROTATE_0 ||
 			val == Gfx::VIEW_ROTATE_90 ||
+			val == Gfx::VIEW_ROTATE_180 ||
 			val == Gfx::VIEW_ROTATE_270;
 }
 
@@ -173,17 +176,74 @@ OptionRecentGames optionRecentGames;
 Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
 (CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128, Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9);
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-OptionDirectTexture optionDirectTexture;
-Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
+#ifdef CONFIG_BASE_ANDROID
+	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		OptionDirectTexture optionDirectTexture;
+	#endif
+	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		Option<OptionMethodFunc<bool, Gfx::useAndroidSurfaceTexture, Gfx::setUseAndroidSurfaceTexture>, uint8> optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, 1);
+		Option<OptionMethodVar<int8, optionIsValidWithMinMax<-17, 0> > > optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0);
+	#endif
+	Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
 #endif
 
 #ifdef CONFIG_INPUT_ICADE
-	Option<OptionMethodFunc<fbool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade(CFGKEY_ICADE, 0);
+	Option<OptionMethodFunc<bool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade(CFGKEY_ICADE, 0);
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	Option<OptionMethodFunc<fbool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
+	Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
 #endif
 
 Option<OptionMethodFunc<uint, Gfx::dither, Gfx::setDither>, uint8> optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
+
+void initOptions()
+{
+	#ifdef CONFIG_BASE_IOS
+		if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
+			optionLargeFonts.initDefault(1);
+	#endif
+
+	#ifdef CONFIG_BASE_ANDROID
+		if(Base::hasHardwareNavButtons())
+		{
+			optionLowProfileOSNav.isConst = 1;
+			optionHideOSNav.isConst = 1;
+			optionShowMenuIcon.initDefault(0);
+			optionDitherImage.initDefault(0);
+		}
+		else
+			optionBackNavigation.initDefault(1);
+
+		if(Base::androidSDK() >= 11)
+		{
+			optionGLSyncHack.isConst = 1;
+			// don't change dither setting on Android 3.0+
+			optionDitherImage.isConst = 1;
+			if(Base::refreshRate() == 60)
+			{
+				// TODO: more testing needed with audio sync
+				/*logMsg("using default frame-skip 0");
+				optionFrameSkip.initDefault(0);*/
+			}
+		}
+	#endif
+
+	#ifdef INPUT_SUPPORTS_POINTER
+		#ifdef CONFIG_BASE_IOS
+			if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
+				optionTouchCtrlSize.initDefault(1400);
+		#endif
+		optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
+		#ifdef CONFIG_BASE_ANDROID
+			if(!optionTouchCtrlImgRes.isConst)
+				optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
+		#endif
+	#endif
+
+	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		optionDirectTexture.initDefault(Gfx::supportsAndroidDirectTextureWhitelisted());
+		Gfx::setUseAndroidDirectTexture(optionDirectTexture);
+		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
+	#endif
+}

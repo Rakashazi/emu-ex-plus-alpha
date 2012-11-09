@@ -20,12 +20,6 @@
 #include <config/version.h>
 #include <meta.h>
 
-#ifdef NDEBUG
-	#define OTHER_SUFFIX_STR
-#else
-	#define OTHER_SUFFIX_STR "D"
-#endif
-
 #ifdef ENV_NOTE
 	#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
 #else
@@ -37,7 +31,7 @@ class CreditsView : public View
 {
 public:
 	constexpr CreditsView(const char *str): View(CONFIG_APP_NAME " " IMAGINE_VERSION), str(str) { }
-	GfxText text;
+	Gfx::Text text;
 	FadeViewAnimation<10> fade;
 	const char *str;
 	Rect2<int> rect;

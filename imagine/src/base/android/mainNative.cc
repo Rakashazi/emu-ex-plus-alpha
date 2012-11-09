@@ -26,7 +26,13 @@
 #include <input/android/private.hh>
 #include <android/window.h>
 #include <dlfcn.h>
+#include <util/linux/uevent.h>
+
 #include "private.hh"
+
+#ifdef CONFIG_RESOURCE_FONT_ANDROID
+	void setupResourceFontAndroidJni(JNIEnv *jEnv, jobject jClsLoader, const JavaInstMethod<jobject> &jLoadClass);
+#endif
 
 void* android_app_entry(void* param);
 
@@ -118,12 +124,6 @@ struct EGLWindow
 		assert(display != EGL_NO_DISPLAY);
 		eglInitialize(display, 0, 0);
 
-		if(Base::androidSDK() >= 11)
-		{
-			logMsg("defaulting to 32-bit color");
-			winFormat = WINDOW_FORMAT_RGBA_8888;
-		}
-
 		//printEGLConfs(display);
 
 		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
@@ -138,6 +138,7 @@ struct EGLWindow
 			logMsg("changing window format from %d to %d", currFormat, winFormat);
 			ANativeWindow_setBuffersGeometry(win, 0, 0, winFormat);
 		}
+		logMsg("current window format: %d", ANativeWindow_getFormat(win));
 
 		if(!gotFormat)
 		{
@@ -194,6 +195,16 @@ struct EGLWindow
 		}
 	}
 
+	void destroyContext()
+	{
+		logMsg("destroying GL context");
+		assert(surface == EGL_NO_SURFACE);
+		assert(context != EGL_NO_CONTEXT);
+		eglDestroyContext(display, context);
+		context = EGL_NO_CONTEXT;
+		gotFormat = 0;
+	}
+
 	bool verifyContext()
 	{
 		return eglGetCurrentContext() != EGL_NO_CONTEXT;
@@ -218,13 +229,16 @@ namespace Base
 {
 
 static JNIEnv* eJEnv = nullptr;
-static fbool engineIsInit = 0;
+static bool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy;
 JavaInstMethod<void> postUIThread;
 static PollWaitTimer timerCallback;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
+extern pid_t activityTid;
+static bool sigMatchesAPK = 1;
+static jfieldID jSurfaceIs32BitId;
 
 // Public implementation
 
@@ -236,7 +250,6 @@ uint appState = APP_PAUSED;
 void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 {
 	assert(appInstance()->msgwrite);
-	assert(type != MSG_INPUT); // currently all code should use main event loop for input events
 	uint16 shortArg16 = shortArg;
 	int msg[3] = { (shortArg16 << 16) | type, intArg, intArg2 };
 	logMsg("sending msg type %d with args %d %d %d", msg[0] & 0xFFFF, msg[0] >> 16, msg[1], msg[2]);
@@ -313,12 +326,6 @@ void removePollEvent(int fd)
 	assert(ret != -1);
 }
 
-void destroyPollEvent(int fd)
-{
-	logMsg("removing fd %d from looper", fd);
-	ALooper_removeFd(appInstance()->looper, fd);
-}
-
 void openGLUpdateScreen()
 {
 	/*TimeSys preTime;
@@ -334,6 +341,24 @@ void openGLUpdateScreen()
 bool surfaceTextureSupported()
 {
 	return Gfx::surfaceTextureConf.isSupported();
+}
+
+void setProcessPriority(int nice)
+{
+	assert(nice > -20);
+	logMsg("setting process nice level: %d", nice);
+	setpriority(PRIO_PROCESS, 0, nice);
+	setpriority(PRIO_PROCESS, activityTid, nice == 0 ? 0 : nice-1);
+}
+
+int processPriority()
+{
+	return getpriority(PRIO_PROCESS, 0);
+}
+
+bool apkSignatureIsConsistent()
+{
+	return sigMatchesAPK;
 }
 
 // Private implementation
@@ -352,7 +377,7 @@ bool windowIsDrawable()
 // runs from activity thread, do not use jEnv
 static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
 		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
-		jboolean hasPermanentMenuKey, jboolean animatesRotation)
+		jboolean hasPermanentMenuKey, jboolean animatesRotation, jint sigHash)
 {
 	logMsg("doing java env config");
 	logMsg("set screen DPI size %f,%f", (double)xdpi, (double)ydpi);
@@ -393,6 +418,17 @@ static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat yd
 		logMsg("app handles rotation animations");
 	}
 
+	if(Base::androidSDK() >= 11)
+	{
+		logMsg("defaulting to 32-bit color");
+		eglWin.winFormat = WINDOW_FORMAT_RGBA_8888;
+		env->SetBooleanField(thiz, jSurfaceIs32BitId, 1);
+	}
+
+	#ifdef ANDROID_APK_SIGNATURE_HASH
+		sigMatchesAPK = sigHash == ANDROID_APK_SIGNATURE_HASH;
+	#endif
+
 	auto act = appInstance();
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -417,9 +453,20 @@ static void envConfig(int orientation, int hardKeyboardState, int navigationStat
 	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 }
 
-static void nativeInit(jint w, jint h)
+static void nativeInit(struct android_app* app, int w, int h)
 {
-	doOrExit(logger_init());
+	// Hack for Adreno chips that have display artifacts when using 32-bit color.
+	// Detect it early here since the context needs to be recreated.
+	if(Base::androidSDK() >= 11 && strstr((const char*)glGetString(GL_RENDERER), "Adreno"))
+	{
+		logMsg("device has broken 32-bit surfaces, switching to 16-bit");
+		eglWin.destroySurface();
+		eglWin.destroyContext();
+		eglWin.winFormat = WINDOW_FORMAT_RGB_565;
+		eEnv()->SetBooleanField(jBaseActivity, jSurfaceIs32BitId, 0);
+		eglWin.init(app->window);
+	}
+	doOrExit(logger_init()); // TODO: move to eariler in init
 	initialScreenSizeSetup(w, h);
 	engineInit();
 	logMsg("done init");
@@ -430,7 +477,7 @@ static bool appFocus(bool hasFocus)
 {
 	aHasFocus = hasFocus;
 	logMsg("focus change: %d", (int)hasFocus);
-	var_copy(prevGfxUpdateState, gfxUpdate);
+	auto prevGfxUpdateState = gfxUpdate;
 	if(engineIsInit)
 		onFocusChange(hasFocus);
 	return appState == APP_RUNNING && prevGfxUpdateState == 0 && gfxUpdate;
@@ -522,10 +569,11 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			logMsg("done window init, size %d,%d", w, h);
 			if(!engineIsInit)
 			{
-				nativeInit(w, h);
+				nativeInit(app, w, h);
 			}
 			else
 				resizeEvent(mainWin);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		}
 		bcase APP_CMD_TERM_WINDOW:
 		logMsg("window destroyed");
@@ -669,7 +717,7 @@ static int getPollTimeout()
 {
 	// When waiting for events:
 	// 1. If rendering, don't block
-	// 2. Else if a timer is active, block for its remaining time
+	// 2. Else if a timer is active, block for at most its remaining time
 	// 3. Else block until next event
 	int pollTimeout = gfxUpdate ? 0 :
 		PollWaitTimer::hasCallbacks() ? PollWaitTimer::getNextCallback()->calcPollWaitForFunc() :
@@ -725,7 +773,12 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 		jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 		jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
 		postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+		jSurfaceIs32BitId = jEnv->GetFieldID(jBaseActivityCls, "surfaceIs32Bit", "Z");
 	}
+
+	#ifdef CONFIG_RESOURCE_FONT_ANDROID
+		setupResourceFontAndroidJni(jEnv, jClsLoader, jLoadClass);
+	#endif
 
 	Gfx::surfaceTextureConf.init(jEnv);
 
@@ -735,7 +788,7 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 
 	static JNINativeMethod activityMethods[] =
 	{
-	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;ZZ)V", (void *)&Base::jEnvConfig},
+	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;ZZI)V", (void *)&Base::jEnvConfig},
 	    //{"layoutChange", "(I)V", (void *)&Base::layoutChange},
 	};
 
@@ -764,6 +817,42 @@ static void dlLoadFuncs()
 	#endif
 }
 
+static int ueventFd = 0;
+int ueventFdHandler(int events)
+{
+	static const uint UEVENT_BUFFER_SIZE = 1024;
+	if(events == Base::POLLEV_IN)
+	{
+		bool inputChange = 0;
+		char buf[UEVENT_BUFFER_SIZE];
+		int size = 0;
+		while((size = recv(ueventFd, buf, sizeof(buf), 0)) > 0)
+		{
+			//logMsg("uevent: %s", buf);
+			// NOTE: could also use InputManager class on Android 4.1+
+			if(strstr(buf, "add") || strstr(buf, "remove"))
+			{
+				if(strstr(buf, "/event") && strstr(buf, "(input)"))
+				{
+					logMsg("uevent: %s", buf);
+					inputChange = 1;
+				}
+			}
+		}
+		if(size == -1 && errno != EAGAIN)
+		{
+			logErr("uevent recv failed: %s", strerror(errno));
+			return 1;
+		}
+		if(inputChange)
+		{
+			Input::rescanDevices();
+		}
+		//logMsg("done reading uevents");
+	}
+	return 1;
+}
+
 void android_main(struct android_app* state)
 {
 	using namespace Base;
@@ -783,6 +872,16 @@ void android_main(struct android_app* state)
 			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
 	}
 	eglWin.initEGL();
+
+	if(Base::androidSDK() >= 12)
+	{
+		ueventFd = openUeventFd();
+		if (ueventFd >= 0)
+		{
+			auto ueventPoll = PollEventDelegate::create<&ueventFdHandler>();
+			addPollEvent2(ueventFd, ueventPoll);
+		}
+	}
 
 	/*TimeSys realTime;
 	realTime.setTimeNow();*/
@@ -828,5 +927,3 @@ void android_main(struct android_app* state)
 		}
 	}
 }
-
-#undef thisModuleName

@@ -279,7 +279,7 @@ void regDAA()
 {
 	uint16 resultC;
 	uint8 src = rCodeB(rCode), result, added = 0, half;
-	fbool setC = FALSE;
+	bool setC = FALSE;
 
 	uint8 upper4 = (src & 0xF0);
 	uint8 lower4 = (src & 0x0F);
@@ -1469,7 +1469,7 @@ void regRRCi()
 void regRLi()
 {
 	int i;
-	fbool tempC;
+	bool tempC;
 	uint8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
 
@@ -1531,7 +1531,7 @@ void regRLi()
 void regRRi()
 {
 	int i;
-	fbool tempC;
+	bool tempC;
 	uint8 sa = FETCH8 & 0xF;
 	if (sa == 0) sa = 16;
 
@@ -1875,7 +1875,7 @@ void regRRCA()
 void regRLA()
 {
 	int i;
-	fbool tempC;
+	bool tempC;
 	uint8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;
 
@@ -1937,7 +1937,7 @@ void regRLA()
 void regRRA()
 {
 	int i;
-	fbool tempC;
+	bool tempC;
 	uint8 sa = REGA & 0xF;
 	if (sa == 0) sa = 16;
 

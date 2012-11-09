@@ -37,7 +37,7 @@
 15 AUG 2002 - neopop_uk
 =======================================
 - Removed storing the 'halt' state as the variable no longer exists.
-- Changed 'int reserved1' into 'fbool eepromStatusEnable'
+- Changed 'int reserved1' into 'bool eepromStatusEnable'
 
 //---------------------------------------------------------------------------
 */
@@ -52,13 +52,13 @@
 
 //=============================================================================
 
-static fbool read_state_0050(const char* filename);
-static fbool read_state_0060(const char* filename);
+static bool read_state_0050(const char* filename);
+static bool read_state_0060(const char* filename);
 
 //-----------------------------------------------------------------------------
 // state_restore()
 //-----------------------------------------------------------------------------
-fbool state_restore(const char* filename)
+bool state_restore(const char* filename)
 {
 	uint16 version;
 
@@ -94,7 +94,7 @@ fbool state_restore(const char* filename)
 //-----------------------------------------------------------------------------
 // state_store()
 //-----------------------------------------------------------------------------
-fbool state_store(const char* filename)
+bool state_store(const char* filename)
 {
 	FILE *fp;
 	int ret, options;
@@ -117,7 +117,7 @@ fbool state_store(const char* filename)
 
 //=============================================================================
 
-static fbool read_state_0050(const char* filename)
+static bool read_state_0050(const char* filename)
 {
 	NEOPOPSTATE0050	state;
 	int i,j;
@@ -186,7 +186,7 @@ static fbool read_state_0050(const char* filename)
 	return FALSE;
 }
 
-static fbool read_state_0060(const char* filename)
+static bool read_state_0060(const char* filename)
 {
 	FILE *fp;
 	uint32 tag, size;

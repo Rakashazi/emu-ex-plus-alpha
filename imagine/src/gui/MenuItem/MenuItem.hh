@@ -40,7 +40,7 @@ public:
 	constexpr TextMenuItem(const char *str): t(str) { }
 	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
 	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): t(str), selectDel(selectDel) { }
-	GfxText t;
+	Gfx::Text t;
 	bool active = 1;
 
 	void init(const char *str, bool active, ResourceFace *face = View::defaultFace);
@@ -65,7 +65,7 @@ public:
 	constexpr DualTextMenuItem(const char *str): TextMenuItem(str) { }
 	constexpr DualTextMenuItem(SelectDelegate selectDel): TextMenuItem(selectDel) { }
 	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): TextMenuItem(str, selectDel) { }
-	GfxText t2;
+	Gfx::Text t2;
 
 	void init(const char *str, const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
 	void init(const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
@@ -102,11 +102,17 @@ public:
 class MultiChoiceMenuItem : public DualTextMenuItem
 {
 public:
+	typedef Delegate<void (MultiChoiceMenuItem &item, int val)> ValueDelegate;
+
 	constexpr MultiChoiceMenuItem() { }
+	constexpr MultiChoiceMenuItem(const char *str): DualTextMenuItem(str) { }
+	constexpr MultiChoiceMenuItem(ValueDelegate valueDel): valueDel(valueDel) { }
+	constexpr MultiChoiceMenuItem(const char *str, ValueDelegate valueDel): DualTextMenuItem(str), valueDel(valueDel) { }
 	int choice = 0, choices = 0, baseVal = 0;
 	const char **choiceStr = nullptr;
 
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
+	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	bool updateVal(int val);
 	void setVal(int val);
@@ -114,7 +120,6 @@ public:
 	virtual void doSet(int val) { valueDel.invoke(*this, val); }
 	void cycle(int direction);
 
-	typedef Delegate<void (MultiChoiceMenuItem &item, int val)> ValueDelegate;
 	ValueDelegate valueDel;
 	ValueDelegate &valueDelegate() { return valueDel; }
 };

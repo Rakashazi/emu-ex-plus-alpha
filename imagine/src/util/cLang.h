@@ -5,11 +5,10 @@
 
 // C-Language helper macros
 
+#ifndef __cplusplus
 // make a copy of <var> named <name>, automatically setting the type
 #define var_copy(name, val) typeof(val) name = val
-
-// make a reference of <var> named <name>, automatically setting the type
-#define var_ref(name, val) typeof(val)& name = val
+#endif
 
 // assign variable to class member variable of the same name
 #define var_selfSet(name) this->name = name;

@@ -19,26 +19,26 @@ public:
 	{
 		return load(openAppAssetIo(name), set);
 	}
+	static ResourceFace * loadSystem(FontSettings * set = 0);
 	void free();
 	CallResult applySettings(FontSettings set);
-	int maxDescender() const;
-	int maxAscender() const;
+	//int maxDescender();
+	//int maxAscender();
 	CallResult writeCurrentChar(Pixmap * out);
 	CallResult precache(const char * string);
 	CallResult precacheAlphaNum()
 	{
 		return precache("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
-	CallResult getGlyph(ResourceImageGlyph * * glyphAddr, int c);
-	void lookupCharBounds(int c, int * width, int * height, int * yLineOffset, int * xOffset, int * xAdvance);
 	GlyphEntry * glyphEntry(int c);
 	uint nominalHeight() const;
 
 	FontSettings settings;
+	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 private:
 	ResourceFont *font = nullptr;
 	GlyphEntry *glyphTable = nullptr;
-	FaceSizeData faceSize = nullptr;
+	FontSizeRef faceSize;
 	uint nominalHeight_ = 0;
 
 	void calcNominalHeight();

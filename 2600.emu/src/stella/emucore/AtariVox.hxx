@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: AtariVox.hxx 2353 2012-01-13 21:13:10Z stephena $
+// $Id: AtariVox.hxx 2558 2012-10-24 10:10:32Z stephena $
 //============================================================================
 
 #ifndef ATARIVOX_HXX
@@ -33,7 +33,7 @@ class MT24LC256;
   driver code.
 
   @author  B. Watson
-  @version $Id: AtariVox.hxx 2353 2012-01-13 21:13:10Z stephena $
+  @version $Id: AtariVox.hxx 2558 2012-10-24 10:10:32Z stephena $
 */
 class AtariVox : public Controller
 {
@@ -58,6 +58,8 @@ class AtariVox : public Controller
     virtual ~AtariVox();
 
   public:
+    using Controller::read;
+
     /**
       Read the value of the specified digital pin for this controller.
 

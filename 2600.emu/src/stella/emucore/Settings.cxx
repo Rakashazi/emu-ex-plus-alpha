@@ -14,12 +14,16 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 2504 2012-05-27 19:27:55Z stephena $
+// $Id: Settings.cxx 2556 2012-10-17 13:49:33Z stephena $
 //============================================================================
 
 #include <cassert>
 #include <sstream>
+
+#ifndef STELLA_MINIMAL_SETTINGS
 #include <fstream>
+#endif
+
 #include <algorithm>
 
 #include "bspf.hxx"
@@ -36,6 +40,7 @@ Settings::Settings(OSystem* osystem)
   // Add this settings object to the OSystem
   myOSystem->attach(this);
 
+#ifndef STELLA_MINIMAL_SETTINGS
   // Add options that are common to all versions of Stella
   setInternal("video", "soft");
 
@@ -54,14 +59,16 @@ Settings::Settings(OSystem* osystem)
   setInternal("fullres", "auto");
   setInternal("center", "false");
   setInternal("grabmouse", "true");
+#endif
   setInternal("palette", "standard");
   setInternal("colorloss", "true");
+#ifndef STELLA_MINIMAL_SETTINGS
   setInternal("timing", "sleep");
   setInternal("uimessages", "true");
 
   // TV filtering options
   setInternal("tv_filter", "0");
-  setInternal("tv_scanlines", "40");
+  setInternal("tv_scanlines", "25");
   setInternal("tv_scaninter", "true");
   // TV options when using 'custom' mode
   setInternal("tv_contrast", "0.0");
@@ -88,7 +95,9 @@ Settings::Settings(OSystem* osystem)
   setInternal("joymap", "");
   setInternal("combomap", "");
   setInternal("joydeadzone", "13");
+#endif
   setInternal("joyallow4", "false");
+#ifndef STELLA_MINIMAL_SETTINGS
   setInternal("usemouse", "true");
   setInternal("dsense", "5");
   setInternal("msense", "7");
@@ -128,6 +137,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("autoslot", "false");
   setInternal("loglevel", "1");
   setInternal("logtoconsole", "0");
+#endif
   setInternal("tiadriven", "false");
   setInternal("ramrandom", "true");
   setInternal("avoxport", "");
@@ -136,11 +146,13 @@ Settings::Settings(OSystem* osystem)
   setExternal("romloadcount", "0");
   setExternal("maxres", "");
 
+#ifndef STELLA_MINIMAL_SETTINGS
   // Debugger disassembly options
   setInternal("dis.resolvedata", "auto");
   setInternal("dis.gfxformat", "2");
   setInternal("dis.showaddr", "true");
   setInternal("dis.relocate", "false");
+#endif
 
   // Thumb ARM emulation options
   setInternal("thumb.trapfatal", "true");
@@ -153,8 +165,9 @@ Settings::~Settings()
   myExternalSettings.clear();
 }
 
+#ifndef STELLA_MINIMAL_SETTINGS
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*void Settings::loadConfig()
+void Settings::loadConfig()
 {
   string line, key, value;
   string::size_type equalPos, garbage;
@@ -196,7 +209,7 @@ Settings::~Settings()
   }
 
   in.close();
-}*/
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Settings::loadCommandLine(int argc, char** argv)
@@ -258,7 +271,9 @@ string Settings::loadCommandLine(int argc, char** argv)
 
   return "";
 }
+#endif
 
+#ifndef STELLA_MINIMAL_SETTINGS
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::validate()
 {
@@ -279,6 +294,7 @@ void Settings::validate()
 
   i = getInt("tv_filter");
   if(i < 0 || i > 5)  setInternal("tv_filter", "0");
+
 #endif
 
 #ifdef SOUND_SUPPORT
@@ -327,7 +343,7 @@ void Settings::validate()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*void Settings::usage()
+void Settings::usage()
 {
   cout << endl
     << "Stella version " << STELLA_VERSION << endl
@@ -344,14 +360,26 @@ void Settings::validate()
     << "                 gl              SDL OpenGL mode\n"
     << endl
     << "  -gl_lib       <name>         Specify the OpenGL library\n"
-    << "  -gl_filter    <type>         Type is one of the following:\n"
-    << "                 nearest         Normal scaling (GL_NEAREST)\n"
-    << "                 linear          Blurred scaling (GL_LINEAR)\n"
+    << "  -gl_inter     <1|0>          Enable interpolated (smooth) scaling\n"
     << "  -gl_aspectn   <number>       Scale the TIA width by the given percentage in NTSC mode\n"
     << "  -gl_aspectp   <number>       Scale the TIA width by the given percentage in PAL mode\n"
-    << "  -gl_fsmax     <1|0>          Stretch GL image in fullscreen emulation mode\n"
+    << "  -gl_fsscale   <1|0>          Stretch GL image in fullscreen emulation mode to max/integer scale\n"
     << "  -gl_vsync     <1|0>          Enable 'synchronize to vertical blank interrupt'\n"
     << "  -gl_vbo       <1|0>          Enable 'vertex buffer objects'\n"
+    << endl
+    << "  -tv_filter    <0-5>          Set TV effects off (0) or to specified mode (1-5)\n"
+    << "  -tv_scanlines <0-100>        Set scanline intensity to percentage (0 disables completely)\n"
+    << "  -tv_scaninter <1|0>          Enable interpolated (smooth) scanlines\n"
+    << "  -tv_contrast    <value>      Set TV effects custom contrast to value 1.0 - 1.0\n"
+    << "  -tv_brightness  <value>      Set TV effects custom brightness to value 1.0 - 1.0\n"
+    << "  -tv_hue         <value>      Set TV effects custom hue to value 1.0 - 1.0\n"
+    << "  -tv_saturation  <value>      Set TV effects custom saturation to value 1.0 - 1.0\n"
+    << "  -tv_gamma       <value>      Set TV effects custom gamma to value 1.0 - 1.0\n"
+    << "  -tv_sharpness   <value>      Set TV effects custom sharpness to value 1.0 - 1.0\n"
+    << "  -tv_resolution  <value>      Set TV effects custom resolution to value 1.0 - 1.0\n"
+    << "  -tv_artifacts   <value>      Set TV effects custom artifacts to value 1.0 - 1.0\n"
+    << "  -tv_fringing    <value>      Set TV effects custom fringing to value 1.0 - 1.0\n"
+    << "  -tv_bleed       <value>      Set TV effects custom bleed to value 1.0 - 1.0\n"
     << endl
   #endif
     << "  -tia_filter   <filter>       Use the specified filter in emulation mode\n"
@@ -381,8 +409,7 @@ void Settings::validate()
     << "  -logtoconsole <1|0>          Log output to console/commandline\n"
     << "  -joydeadzone  <number>       Sets 'deadzone' area for analog joysticks (0-29)\n"
     << "  -joyallow4    <1|0>          Allow all 4 directions on a joystick to be pressed simultaneously\n"
-    << "  -mcontrol     <never|auto|   Use mouse axes as specified controller type (see manual)\n"
-    << "                 rom>\n"
+    << "  -usemouse     <1|0>          Use mouse as a controller as specified by ROM properties (see manual)\n"
     << "  -dsense       <number>       Sensitivity of digital emulated paddle movement (1-10)\n"
     << "  -msense       <number>       Sensitivity of mouse emulated paddle movement (1-15)\n"
     << "  -saport       <lr|rl>        How to assign virtual ports to multiple Stelladaptor/2600-daptors\n"
@@ -397,7 +424,7 @@ void Settings::validate()
     << endl
     << "  -rominfo      <rom>          Display detailed information for the given ROM\n"
     << "  -listrominfo                 Display contents of stella.pro, one line per ROM entry\n"
-    << "  -uselauncher  <1|0>          Use the built-in ROM launcher\n"
+    << "  -exitlauncher <1|0>          On exiting a ROM, go back to the ROM launcher\n"
     << "  -launcherres  <WxH>          The resolution to use in ROM launcher mode\n"
     << "  -launcherfont <small|medium| Use the specified font in the ROM launcher\n"
     << "                 large>\n"
@@ -427,10 +454,13 @@ void Settings::validate()
     << " The following options are meant for developers\n"
     << " Arguments are more fully explained in the manual\n"
     << endl
-    << "   -resolvedata  <never|       Set automatic code vs. data determination in the disassembler\n"
-    << "                  always|auto>\n"
-    << "   -gfxformat    <2|16>        Set base to use for displaying GFX sections in the disassembler\n"
-    << "   -showaddr     <1|0>         Show opcode addresses in the disassembler\n"
+    << "   -dis.resolvedata <never|    Set automatic code vs. data determination in disassembler\n"
+    << "                     always|\n"
+    << "                     auto>\n"
+    << "   -dis.gfxformat   <2|16>     Set base to use for displaying GFX sections in disassembler\n"
+    << "   -dis.showaddr    <1|0>      Show opcode addresses in disassembler\n"
+    << "   -dis.relocate    <1|0>      Relocate calls out of address range in disassembler\n"
+    << endl
     << "   -debuggerres  <WxH>         The resolution to use in debugger mode\n"
     << "   -break        <address>     Set a breakpoint at 'address'\n"
     << "   -debug                      Start in debugger mode\n"
@@ -453,10 +483,10 @@ void Settings::validate()
     << "   -ppblend     <arg>          Sets the 'Display.PPBlend' property\n"
   #endif
     << endl << flush;
-}*/
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*void Settings::saveConfig()
+void Settings::saveConfig()
 {
   // Do a quick scan of the internal settings to see if any have
   // changed.  If not, we don't need to save them at all.
@@ -503,7 +533,8 @@ void Settings::validate()
   }
 
   out.close();
-}*/
+}
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::setInt(const string& key, const int value)
@@ -553,8 +584,8 @@ void Settings::setString(const string& key, const string& value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::getSize(const string& key, int& x, int& y) const
 {
-	char c = '\0';
-	x = y = -1;
+  char c = '\0';
+  x = y = -1;
   string size = getString(key);
   istringstream buf(size);
   buf >> x >> c >> y;

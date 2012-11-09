@@ -12,7 +12,7 @@ class AndroidBluetoothAdapter : public BluetoothAdapter
 public:
 	constexpr AndroidBluetoothAdapter() { }
 	static AndroidBluetoothAdapter *defaultAdapter();
-	fbool startScan() override;
+	bool startScan() override;
 	void cancelScan() override;
 	void close() override;
 	void constructSocket(void *mem) override;

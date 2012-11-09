@@ -310,7 +310,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 {
-	var_copy(padData, S9xGetJoypadBits(player));
+	auto padData = S9xGetJoypadBits(player);
 	if(state == INPUT_PUSHED)
 		setBits(*padData, emuKey);
 	else
@@ -460,7 +460,7 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return snesInputPort == SNES_JOYPAD; }
+bool touchControlsApplicable() { return snesInputPort == SNES_JOYPAD; }
 
 static void setupSNESInput()
 {
@@ -504,13 +504,9 @@ static void setupSNESInput()
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
+	emuView.initImage(0, snesResX, snesResY);
+	setupGamePaths(path);
 
-	string_copy(gamePath, FsSys::workDir(), sizeof(gamePath));
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
 	if(snesInputPort == SNES_MOUSE_SWAPPED)
 	{
 		Settings.Mouse = 1;
@@ -523,14 +519,10 @@ int EmuSystem::loadGame(const char *path)
 		return 0;
 	}
 	setupSNESInput();
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
 
 	FsSys::cPath saveStr;
 	sprintSRAMFilename(saveStr);
 	Memory.LoadSRAM(saveStr);
-
-	emuView.initImage(0, snesResX, snesResY);
 
 	IPPU.RenderThisFrame = TRUE;
 	EmuSystem::configAudioRate();
@@ -635,7 +627,7 @@ namespace Input
 {
 void onInputEvent(const InputEvent &e)
 {
-	if(unlikely(EmuSystem::active && e.isPointer()))
+	if(unlikely(EmuSystem::isActive() && e.isPointer()))
 	{
 		switch(snesInputPort)
 		{
@@ -664,7 +656,7 @@ void onInputEvent(const InputEvent &e)
 
 			bcase SNES_MOUSE_SWAPPED:
 			{
-				var_copy(dragState, Input::dragState(e.devId));
+				auto dragState = Input::dragState(e.devId);
 				static bool dragWithButton = 0; // true to start next mouse drag with a button held
 				switch(mouseScroll.inputEvent(Gfx::viewportRect(), e))
 				{
@@ -749,7 +741,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },

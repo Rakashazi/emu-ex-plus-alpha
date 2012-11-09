@@ -14,7 +14,7 @@ else ifeq ($(ENV), android)
  else
   include $(imagineSrcDir)/audio/android/build.mk
  endif
-else ifeq ($(ENV), iOS)
+else ifeq ($(ENV), ios)
  include $(imagineSrcDir)/audio/coreaudio/build.mk
 else ifeq ($(ENV), macosx)
  include $(imagineSrcDir)/audio/coreaudio/build.mk

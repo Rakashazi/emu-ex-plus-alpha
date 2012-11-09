@@ -31,14 +31,13 @@
 #include <vbam/gba/Sound.h>
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
-void setGameSpecificSettings();
-void CPULoop(bool renderGfx, bool processGfx, bool renderAudio);
-void CPUReset();
+void setGameSpecificSettings(GBASys &gba);
+void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio);
 void CPUCleanUp();
-bool CPUReadBatteryFile(const char *);
-bool CPUWriteBatteryFile(const char *);
-bool CPUReadState(const char *);
-bool CPUWriteState(const char *);
+bool CPUReadBatteryFile(GBASys &gba, const char *);
+bool CPUWriteBatteryFile(GBASys &gba, const char *);
+bool CPUReadState(GBASys &gba, const char *);
+bool CPUWriteState(GBASys &gba, const char *);
 
 
 #ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
@@ -225,7 +224,9 @@ void EmuSystem::writeConfig(Io *io)
 
 static bool isGBAExtension(const char *name)
 {
-	return string_hasDotExtension(name, "gba") || string_hasDotExtension(name, "zip");
+	return string_hasDotExtension(name, "gba")
+			|| string_hasDotExtension(name, "zip")
+			|| string_hasDotExtension(name, "7z");
 }
 
 static int gbaFsFilter(const char *name, int type)
@@ -260,12 +261,10 @@ void EmuSystem::initOptions()
 	#endif
 }
 
-extern GBALCD gLcd;
-
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
-	CPUReset();
+	CPUReset(gGba);
 }
 
 static char saveSlotChar(int slot)
@@ -290,7 +289,7 @@ int EmuSystem::saveState()
 	#ifdef CONFIG_BASE_IOS_SETUID
 		fixFilePermissions(saveStr);
 	#endif
-	if(CPUWriteState(saveStr))
+	if(CPUWriteState(gGba, saveStr))
 		return STATE_RESULT_OK;
 	else
 		return STATE_RESULT_IO_ERROR;
@@ -300,7 +299,7 @@ int EmuSystem::loadState(int saveStateSlot)
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	if(CPUReadState(saveStr))
+	if(CPUReadState(gGba, saveStr))
 		return STATE_RESULT_OK;
 	else
 		return STATE_RESULT_IO_ERROR;
@@ -315,7 +314,7 @@ void EmuSystem::saveAutoState()
 		#ifdef CONFIG_BASE_IOS_SETUID
 			fixFilePermissions(saveStr);
 		#endif
-		CPUWriteState(saveStr);
+		CPUWriteState(gGba, saveStr);
 	}
 }
 
@@ -329,12 +328,12 @@ void EmuSystem::saveBackupMem()
 		#ifdef CONFIG_BASE_IOS_SETUID
 			fixFilePermissions(saveStr);
 		#endif
-		CPUWriteBatteryFile(saveStr);
+		CPUWriteBatteryFile(gGba, saveStr);
 	}
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 void EmuSystem::clearInputBuffers() { P1 = 0x03FF; }
 
 void EmuSystem::closeSystem()
@@ -348,31 +347,22 @@ void EmuSystem::closeSystem()
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-
-	string_copy(gamePath, FsSys::workDir());
-	#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
-	#endif
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", gamePath, path);
-	logMsg("full game path: %s", fullGamePath);
+	emuView.initImage(0, 240, 160);
+	setupGamePaths(path);
 	systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 	soundInit();
-	int size = CPULoadRom(fullGamePath);
+	int size = CPULoadRom(gGba, fullGamePath);
 	if(size == 0)
 	{
 		popup.postError("Error loading ROM");
 		return 0;
 	}
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
-	setGameSpecificSettings();
-	CPUInit(0, 0);
-	CPUReset();
+	setGameSpecificSettings(gGba);
+	CPUInit(gGba, 0, 0);
+	CPUReset(gGba);
 	FsSys::cPath saveStr;
 	snprintf(saveStr, sizeof(saveStr), "%s%s", gameName, ".sav");
-	CPUReadBatteryFile(saveStr);
-	emuView.initImage(0, 240, 160);
-
+	CPUReadBatteryFile(gGba, saveStr);
 	logMsg("started emu");
 	return 1;
 }
@@ -415,7 +405,7 @@ void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	CPULoop(renderGfx, processGfx, renderAudio);
+	CPULoop(gGba, renderGfx, processGfx, renderAudio);
 }
 
 namespace Input
@@ -432,7 +422,7 @@ void EmuSystem::configAudioRate()
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	soundSetSampleRate(optionSoundRate *.9954);
+	soundSetSampleRate(gGba, optionSoundRate *.9954);
 }
 
 namespace Base
@@ -442,7 +432,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build(42./255., 82./255., 190./255., 1.) },
@@ -452,7 +442,7 @@ CallResult onInit()
 	};
 
 	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)gLcd.pix, pixFmt, 240, 160);
+	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
 
 	mMenu.init(Config::envIsPS3);

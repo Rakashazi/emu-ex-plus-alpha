@@ -24,20 +24,14 @@ ResourceImageGlyph *ResourceImageGlyph::createWithFace(ResourceFace *face, Glyph
 {
 	//logMsg("creating glyph");
 	ResourceImageGlyph *inst = new ResourceImageGlyph;
-	if(inst == NULL)
+	if(!inst)
 	{
 		logErr("out of memory");
-		return NULL;
+		return nullptr;
 	}
 
 	inst->face = face;
 	inst->idx = idx;
-
-	/*if(inst->initWithName(NULL) != OK)
-	{
-		inst->free();
-		return NULL;
-	}*/
 
 	inst->gfxD.init(*inst, GfxBufferImage::linear, GfxBufferImage::HINT_NO_MINIFY);
 	inst->ResourceImage::init();
@@ -53,34 +47,32 @@ void ResourceImageGlyph::free()
 	delete this;
 }
 
-CallResult ResourceImageGlyph::getImage (Pixmap* dest) //+
+CallResult ResourceImageGlyph::getImage(Pixmap* dest)
 {
 	return face->writeCurrentChar(dest);
 }
 
-int ResourceImageGlyph::alphaChannelType () //+
+int ResourceImageGlyph::alphaChannelType()
 {
 	return IMAGE_ALPHA_CHANNEL_IS_INTENSITY;
 }
 
-uint ResourceImageGlyph::width () //+
+uint ResourceImageGlyph::width()
 {
-	return idx->xSize;
+	return idx->metrics.xSize;
 }
 
-uint ResourceImageGlyph::height () //+
+uint ResourceImageGlyph::height()
 {
-	return idx->ySize;
+	return idx->metrics.ySize;
 }
 
-const PixelFormatDesc *ResourceImageGlyph::pixelFormat () const
+const PixelFormatDesc *ResourceImageGlyph::pixelFormat() const
 {
 	return &PixelFormatI8;
 }
 
-float ResourceImageGlyph::aspectRatio () //+
+float ResourceImageGlyph::aspectRatio()
 {
-	return (float)idx->xSize / (float)idx->ySize;
+	return (float)idx->metrics.xSize / (float)idx->metrics.ySize;
 }
-
-#undef thisModuleName

@@ -6,19 +6,19 @@
 
 uchar *Pixmap::getPixel(uint x, uint y) const
 {
-	return(data + format->offsetBytes(x, y, pitch));
+	return(data + format.offsetBytes(x, y, pitch));
 }
 
 uchar *Pixmap::nextPixelOnLine(uchar *pixel) const
 {
-	return(pixel + format->bytesPerPixel);
+	return(pixel + format.bytesPerPixel);
 }
 
 void Pixmap::subPixmapOffsets(Pixmap *sub, uint *x, uint *y) const
 {
 	ptrsize dataOffset = sub->data - data;
 	assert(dataOffset < Pixmap::sizeOfImage());
-	*x = ((uint)dataOffset % pitch) / format->bytesPerPixel;
+	*x = ((uint)dataOffset % pitch) / format.bytesPerPixel;
 	*y = (uint)dataOffset / pitch;
 }
 
@@ -33,10 +33,10 @@ void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap *dest, int d
 	assert(height <= (int)dest->y + destY);
 	if(data == dest->data)
 	{
-		assert(dest->format->bytesPerPixel <= format->bytesPerPixel);
+		assert(dest->format.bytesPerPixel <= format.bytesPerPixel);
 	}
 	//logMsg("copying %s to %s", dest->format->name, format->name);
-	assert(format->id == dest->format->id);
+	assert(format.id == dest->format.id);
 	//if(format->id == dest->format->id)
 	{
 		uchar *srcData = getPixel(srcX, srcY);
@@ -45,7 +45,7 @@ void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap *dest, int d
 		{
 			// whole block
 			//logDMsg("copying whole block");
-			memcpy(destData, srcData, format->bytesPerPixel * width * height);
+			memcpy(destData, srcData, format.bytesPerPixel * width * height);
 		}
 		else
 		{
@@ -53,7 +53,7 @@ void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap *dest, int d
 			for(int y = srcY; y < height; y++)
 			{
 				//memcpy(dest->getPixel(destX, destY+y), getPixel(srcX, y), format->bytesPerPixel * width);
-				memcpy(destData, srcData, format->bytesPerPixel * width);
+				memcpy(destData, srcData, format.bytesPerPixel * width);
 				srcData += pitch;
 				destData += dest->pitch;
 			}
@@ -68,7 +68,6 @@ void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap *dest, int d
 void Pixmap::initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint ylen)
 {
 	this->data = orig.getPixel(x, y);
-	this->format = orig.format;
 	this->x = xlen;
 	this->y = ylen;
 	this->pitch = orig.pitch;
@@ -77,7 +76,7 @@ void Pixmap::initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint y
 void Pixmap::copyHLineToRectFromSelf(uint xStart, uint yStart, uint xlen, uint xDest, uint yDest, uint yDestLen)
 {
 	uchar *srcLine = Pixmap::getPixel(xStart, yStart);
-	uint runLen = xlen * format->bytesPerPixel;
+	uint runLen = xlen * format.bytesPerPixel;
 	for(uint y = 0; y < yDestLen; y++)
 	{
 		uchar *destline = Pixmap::getPixel(xDest, yDest+y);
@@ -93,7 +92,7 @@ void Pixmap::copyVLineToRectFromSelf(uint xStart, uint yStart, uint ylen, uint x
 		uchar *destPixel = Pixmap::getPixel(xDest, yDest+y);
 		for(uint x = 0; x < xDestLen; x++)
 		{
-			memcpy(destPixel, srcPixel, format->bytesPerPixel);
+			memcpy(destPixel, srcPixel, format.bytesPerPixel);
 			destPixel = Pixmap::nextPixelOnLine(destPixel);
 		}
 	}
@@ -107,7 +106,7 @@ void Pixmap::copyPixelToRectFromSelf(uint xStart, uint yStart, uint xDest, uint 
 		uchar *destPixel = Pixmap::getPixel(xDest, yDest+y);
 		for(uint x = 0; x < xDestLen; x++)
 		{
-			memcpy(destPixel, srcPixel, format->bytesPerPixel);
+			memcpy(destPixel, srcPixel, format.bytesPerPixel);
 			destPixel = Pixmap::nextPixelOnLine(destPixel);
 		}
 	}
@@ -118,7 +117,7 @@ void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
 	for(uint y = 0; y < ylen; y++)
 	{
 		uchar *destPixel = Pixmap::getPixel(xStart, yStart+y);
-		memset(destPixel, 0, format->bytesPerPixel * xlen);
+		memset(destPixel, 0, format.bytesPerPixel * xlen);
 	}
 }
 

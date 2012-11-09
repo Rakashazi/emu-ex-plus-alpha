@@ -14,7 +14,7 @@ else ifeq ($(ENV), android)
  ifneq ($(ARCH), x86)
   LDLIBS += -ldl
  endif
-else ifeq ($(ENV), iOS)
+else ifeq ($(ENV), ios)
  LDLIBS += -framework OpenGLES
 else ifeq ($(ENV), macosx)
  configDefs += CONFIG_GFX_OPENGL_GLEW_STATIC

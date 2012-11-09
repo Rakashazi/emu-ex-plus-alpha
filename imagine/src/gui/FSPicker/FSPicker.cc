@@ -17,7 +17,7 @@
 
 #include "FSPicker.hh"
 
-static const GfxLGradientStopDesc fsNavViewGrad[] =
+static const Gfx::LGradientStopDesc fsNavViewGrad[] =
 {
 	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	{ .03, VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
@@ -62,7 +62,7 @@ void FSNavView::draw()
 			setBlendMode(BLEND_MODE_INTENSITY);
 			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
 			//applyRollRotate(angle_fromDegree(90));
-			leftSpr.draw(0);
+			leftSpr.draw();
 		}
 	}
 	if(rightSpr.img)
@@ -72,7 +72,7 @@ void FSNavView::draw()
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_INTENSITY);
 			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
-			rightSpr.draw(0);
+			rightSpr.draw();
 		}
 	}
 }
@@ -100,9 +100,8 @@ void FSPicker::init(const char *path, ResourceImage *backRes, ResourceImage *clo
 	#endif
 	text = 0;
 	faceRes = face;
-	//viewFrame = view;
-	this->filter = filter;
-	this->singleDir = singleDir;
+	var_selfs(filter);
+	var_selfs(singleDir);
 	navV.init(face, backRes, closeRes, singleDir);
 	loadDir(path);
 }
@@ -222,7 +221,7 @@ void FSPicker::loadDir(const char *path)
 	{
 		// TODO free old pointer on failure
 		text = realloc(text, dir.numEntries());
-		if(text == 0)
+		if(!text)
 		{
 			logMsg("out of memory loading directory");
 			Base::exit(); // TODO: handle without exiting

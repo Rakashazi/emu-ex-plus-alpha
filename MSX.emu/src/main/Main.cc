@@ -852,7 +852,7 @@ void EmuSystem::saveAutoState()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-static bool touchControlsApplicable() { return 1; }
+bool touchControlsApplicable() { return 1; }
 
 void EmuSystem::closeSystem()
 {
@@ -862,10 +862,8 @@ void EmuSystem::closeSystem()
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-
-	strcpy(gamePath, FsSys::workDir());
-	snprintf(fullGamePath, sizeof(fullGamePath), "%s/%s", FsSys::workDir(), path);
-	logMsg("full game path: %s", fullGamePath);
+	emuView.initImage(0, msxResX, msxResY);
+	setupGamePaths(path);
 
 	if(!machine && !initMachine(optionMachineName)) // make sure machine is allocated
 	{
@@ -1003,10 +1001,6 @@ int EmuSystem::loadGame(const char *path)
 		bug_exit("unknown file extension used");
 	}
 
-	string_copyUpToLastCharInstance(gameName, path, '.');
-	logMsg("set game name: %s", gameName);
-
-	emuView.initImage(0, msxResX, msxResY);
 	logMsg("started emu");
 	return 1;
 }
@@ -1113,7 +1107,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const GfxLGradientStopDesc navViewGrad[] =
+	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
@@ -1138,7 +1132,6 @@ CallResult onInit()
 	// Init general emu
 	langInit();
 	videoManagerReset();
-	//fdcTimer = boardTimerCreate(onFdcDone, NULL);
 	tapeSetReadOnly(1);
 	mediaDbSetDefaultRomType(ROM_UNKNOWN);
 

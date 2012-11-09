@@ -5,7 +5,7 @@
 
 uchar comFlagsSync[2] = { 0 };
 uchar comSync[0x20] = { 0 };
-fbool doingSync = 0;
+bool doingSync = 0;
 uchar comWriteTarget = 0;
 uint comFlagsPoll[2] = { 0 };
 uint comPoll[0x20] = { 0 };
@@ -483,7 +483,7 @@ void updateMainCpuPrgMap(SegaCD &sCD, uint newBank)
 	{
 		for (int i=0x2; i<0x4; i++)
 		{
-			var_copy(newBase, &sCD.prg.bank[newBank][(i-2)<<16]);
+			auto newBase = &sCD.prg.bank[newBank][(i-2)<<16];
 			//if(newBase != mm68k.memory_map[i].base) logMsg("PRG new base addr %p", newBase);
 			mm68k.memory_map[i].base = newBase;
 			mm68k.memory_map[i].read8    = 0;

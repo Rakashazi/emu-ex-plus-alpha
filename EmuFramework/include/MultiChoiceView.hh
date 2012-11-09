@@ -132,10 +132,19 @@ extern MultiChoiceView multiChoiceView;
 struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 {
 	constexpr MultiChoiceSelectMenuItem() { }
+	constexpr MultiChoiceSelectMenuItem(const char *str): MultiChoiceMenuItem(str) { }
+	constexpr MultiChoiceSelectMenuItem(ValueDelegate valueDel): MultiChoiceMenuItem(valueDel) { }
+	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) { }
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
 	{
 		selectDel.bind<MultiChoiceSelectMenuItem, &MultiChoiceSelectMenuItem::handleChoices>(this);
 		MultiChoiceMenuItem::init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
+	}
+
+	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
+	{
+		selectDel.bind<MultiChoiceSelectMenuItem, &MultiChoiceSelectMenuItem::handleChoices>(this);
+		MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 	}
 
 	void handleChoices(TextMenuItem &, const InputEvent &e)

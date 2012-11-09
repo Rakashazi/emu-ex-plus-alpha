@@ -9,7 +9,8 @@
 	#include <audio/config.hh>
 #endif
 
-#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO || defined CONFIG_AUDIO_SDL
+#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO || \
+	defined CONFIG_AUDIO_SDL || defined CONFIG_AUDIO_ALSA
 	#define CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 #endif
 
@@ -18,8 +19,9 @@ namespace Audio
 
 struct BufferContext
 {
-	void *data;
-	uframes frames;
+	constexpr BufferContext() { }
+	void *data = nullptr;
+	uframes frames = 0;
 };
 
 static const PcmFormat maxFormat { maxRate, &SampleFormats::s16, 2 };

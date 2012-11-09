@@ -43,7 +43,7 @@ static class ButtonConfigSetView : public View
 	#endif
 	;
 
-	GfxText text
+	Gfx::Text text
 	#ifndef CONFIG_BASE_PS3
 	, unbind, cancel
 	#endif

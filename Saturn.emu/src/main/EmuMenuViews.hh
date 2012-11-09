@@ -37,7 +37,7 @@ private:
 		Base::displayNeedsUpdate();
 	}
 
-	MultiChoiceSelectMenuItem sh2Core;
+	MultiChoiceSelectMenuItem sh2Core {"SH2"};
 
 	void sh2CoreInit()
 	{
@@ -54,7 +54,7 @@ private:
 			cores++;
 		}
 
-		sh2Core.init("SH2", str, setting, cores);
+		sh2Core.init(str, setting, cores);
 		sh2Core.valueDelegate().bind<&sh2CoreSet>();
 	}
 
