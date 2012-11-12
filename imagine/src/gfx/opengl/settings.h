@@ -196,10 +196,10 @@ static GLfloat maximumAnisotropy, anisotropy = 0, forceAnisotropy = 0;
 static bool useAnisotropicFiltering = 0;
 static bool forceNoAnisotropicFiltering = 1;
 
-static void checkForAnisotropicFiltering()
+static void checkForAnisotropicFiltering(const char *extensions)
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoAnisotropicFiltering && GLEW_EXT_texture_filter_anisotropic)
+	if(!forceNoAnisotropicFiltering && strstr(extensions, "GL_EXT_texture_filter_anisotropic"))
 	{
 		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
 		logMsg("anisotropic filtering supported, max value: %f", maximumAnisotropy);
@@ -216,11 +216,11 @@ static void checkForAnisotropicFiltering()
 static uchar useAutoMipmapGeneration = 0;
 static uchar forceNoAutoMipmapGeneration = 0;
 
-static void checkForAutoMipmapGeneration(const char *version)
+static void checkForAutoMipmapGeneration(const char *extensions, const char *version)
 {
 	bool use = 0;
 	#ifndef CONFIG_GFX_OPENGL_ES
-	use = !forceNoAutoMipmapGeneration && GLEW_SGIS_generate_mipmap;
+	use = !forceNoAutoMipmapGeneration && strstr(extensions, "GL_SGIS_generate_mipmap");
 	#elif defined CONFIG_BASE_ANDROID
 	// Older Android devices may only support OpenGL ES 1.0
 	use = !forceNoAutoMipmapGeneration && (Base::androidSDK() >= 10  || strstr(version, "1.1"));
@@ -239,30 +239,19 @@ static uchar useMultisample = 0;
 static uchar forceNoMultisample = 1;
 static uchar forceNoMultisampleHint = 0;
 
-static void checkForMultisample()
+static void checkForMultisample(const char *extensions)
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoMultisample && GLEW_ARB_multisample)
+	if(!forceNoMultisample && strstr(extensions, "GL_ARB_multisample"))
 	{
 		logMsg("multisample antialiasing supported");
 		useMultisample = 1;
-		if(!forceNoMultisampleHint && GLEW_NV_multisample_filter_hint)
+		if(!forceNoMultisampleHint && strstr(extensions, "GL_NV_multisample_filter_hint"))
 		{
 			logMsg("multisample hints supported");
 			glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 		}
 		glcEnable(GL_MULTISAMPLE_ARB);
-	}
-	#endif
-}
-
-static void checkForVertexArrays()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!GLEW_VERSION_1_1)
-	{
-		logErr("OpenGL 1.1 vertex arrays not supported");
-		Base::exit();
 	}
 	#endif
 }
@@ -291,7 +280,7 @@ static void checkForNonPow2Textures(const char *extensions, const char *renderer
 			|| strstr(extensions, "GL_ARB_texture_non_power_of_two")
 			)
 	#else
-	if(GLEW_ARB_texture_non_power_of_two)
+	if(strstr(extensions, "GL_ARB_texture_non_power_of_two"))
 	#endif
 	{
 		#ifdef CONFIG_BASE_ANDROID
@@ -335,7 +324,7 @@ static void checkForBGRPixelSupport(const char *extensions)
 			if(strstr(extensions, "GL_EXT_texture_format_BGRA8888") != NULL)
 		#endif
 	#else
-		if(!forceNoBGRPixels && GLEW_VERSION_1_2)
+		if(!forceNoBGRPixels)
 	#endif
 	{
 		supportBGRPixels = 1;
@@ -352,30 +341,14 @@ static void checkForBGRPixelSupport(const char *extensions)
 
 }
 
-static uchar useTextureClampToEdge = 0;
-static uchar forceNoTextureClampToEdge = 0;
-
-static void checkForTextureClampToEdge()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoTextureClampToEdge && GLEW_VERSION_1_2)
-	{
-		useTextureClampToEdge = 1;
-		logMsg("Texture clamp to edge mode supported");
-	}
-	#else
-	useTextureClampToEdge = 1;
-	#endif
-}
-
 static uchar supportCompressedTextures = 0;
 static uchar useCompressedTextures = 0;
 static uchar forceNoCompressedTextures = 1;
 
-static void checkForCompressedTexturesSupport()
+static void checkForCompressedTexturesSupport(bool hasGL1_3)
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoCompressedTextures && GLEW_VERSION_1_3)
+	if(!forceNoCompressedTextures && hasGL1_3)
 	{
 		supportCompressedTextures = 1;
 		useCompressedTextures = 1;
@@ -387,10 +360,10 @@ static void checkForCompressedTexturesSupport()
 static uchar useFBOFuncs = 0;
 static uchar forceNoFBOFuncs = 1;
 
-static void checkForFBOFuncs()
+static void checkForFBOFuncs(const char *extensions)
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoFBOFuncs && GLEW_EXT_framebuffer_object)
+	if(!forceNoFBOFuncs && strstr(extensions, "GL_EXT_framebuffer_object"))
 	{
 		useFBOFuncs = 1;
 		logMsg("FBO functions are supported");
@@ -401,11 +374,11 @@ static void checkForFBOFuncs()
 static uchar useVBOFuncs = 0;
 static uchar forceNoVBOFuncs = 1;
 
-static void checkForVBO(const char *version)
+static void checkForVBO(const char *version, bool hasGL1_5)
 {
 	if(!forceNoVBOFuncs &&
 	#ifndef CONFIG_GFX_OPENGL_ES
-		GLEW_VERSION_1_5
+		hasGL1_5
 	#else
 		strstr(version, " 1.0") == NULL // make sure OpenGL-ES is not 1.0
 	#endif

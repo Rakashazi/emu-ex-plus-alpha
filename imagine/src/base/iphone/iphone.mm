@@ -109,6 +109,17 @@ static UIViewController *viewCtrl;
 static const int USE_DEPTH_BUFFER = 0;
 static int openglViewIsInit = 0;
 
+void precomposeUnicodeString(const char *src, char *dest, uint destSize)
+{
+	auto decomp = [[NSString alloc] initWithBytesNoCopy:(void*)src length:strlen(src) encoding:NSUTF8StringEncoding freeWhenDone:false];
+	@autoreleasepool
+	{
+		auto precomp = [decomp precomposedStringWithCanonicalMapping];
+		[decomp release];
+		string_copy(dest, [precomp UTF8String], destSize);
+	}
+}
+
 void cancelCallback(CallbackRef *ref)
 {
 	if(ref)
@@ -1002,5 +1013,3 @@ int main(int argc, char *argv[])
 	[pool release];
 	return retVal;
 }
-
-#undef thisModuleName

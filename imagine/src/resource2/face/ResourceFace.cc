@@ -46,7 +46,7 @@ void ResourceFace::initGlyphTable()
 	//logMsg("initGlyphTable");
 	iterateTimes(glyphTableEntries, i)
 	{
-		glyphTable[i].glyph = nullptr;
+		mem_zero(glyphTable[i]);
 	}
 }
 
@@ -295,9 +295,19 @@ CallResult ResourceFace::writeCurrentChar(Pixmap *out)
 
 CallResult ResourceFace::cacheChar(int c, int tableIdx)
 {
+	if(glyphTable[tableIdx].metrics.ySize == -1)
+	{
+		// failed to previously cache char
+		return INVALID_PARAMETER;
+	}
 	GlyphMetrics metrics;
 	// make sure applySize() has been called on the font object first
-	doOrReturn(font->activeChar(c, metrics));
+	if(font->activeChar(c, metrics) != OK)
+	{
+		// mark failed attempt
+		glyphTable[tableIdx].metrics.ySize = -1;
+		return INVALID_PARAMETER;
+	}
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = metrics;
 	glyphTable[tableIdx].glyph = font->createRenderable(c, this, &glyphTable[tableIdx]);
@@ -308,6 +318,7 @@ static CallResult mapCharToTable(uint c, uint &tableIdx)
 {
 	if(ResourceFace::supportsUnicode)
 	{
+		//logMsg("mapping char 0x%X", c);
 		if(c < unicodeBmpChars && charIsDrawableUnicode(c))
 		{
 			if(c < unicodeBmpPrivateStart)
@@ -321,7 +332,9 @@ static CallResult mapCharToTable(uint c, uint &tableIdx)
 				return OK;
 			}
 			else
+			{
 				return INVALID_PARAMETER;
+			}
 		}
 		else return INVALID_PARAMETER;
 	}
@@ -336,6 +349,7 @@ static CallResult mapCharToTable(uint c, uint &tableIdx)
 	}
 }
 
+// TODO: update for unicode
 CallResult ResourceFace::precache(const char *string)
 {
 	assert(settings.areValid());
@@ -354,8 +368,8 @@ CallResult ResourceFace::precache(const char *string)
 			continue;
 		}
 
-		logMsg( "precaching char %c", c);
-		doOrReturn(cacheChar(c, tableIdx));
+		logMsg("precaching char %c", c);
+		cacheChar(c, tableIdx);
 	}
 	return OK;
 }
@@ -369,10 +383,10 @@ GlyphEntry *ResourceFace::glyphEntry(int c)
 	assert(tableIdx < glyphTableEntries);
 	if(!glyphTable[tableIdx].glyph)
 	{
-		//logMsg("char %c not in table, caching now", c);
 		font->applySize(faceSize);
-		if(cacheChar(c, tableIdx))
+		if(cacheChar(c, tableIdx) != OK)
 			return nullptr;
+		logMsg("char 0x%X was not in table, cached", c);
 	}
 
 	return &glyphTable[tableIdx];

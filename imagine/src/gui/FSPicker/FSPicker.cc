@@ -111,6 +111,7 @@ void FSPicker::deinit()
 	dir.closeDir();
 	delete[] text;
 	navV.deinit();
+	tbl.cells = 0;
 }
 
 void FSPicker::place()
@@ -238,5 +239,3 @@ void FSPicker::loadDir(const char *path)
 	navV.setTitle(FsSys::workDir());
 	#endif
 }
-
-#undef thisModuleName

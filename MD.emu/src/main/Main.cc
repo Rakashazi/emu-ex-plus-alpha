@@ -67,7 +67,7 @@ static bool isMDExtension(const char *name)
 
 static bool isMDCDExtension(const char *name)
 {
-	return string_hasDotExtension(name, "cue");
+	return string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "iso");
 }
 
 static int mdROMFsFilter(const char *name, int type)
@@ -709,7 +709,8 @@ int EmuSystem::loadGame(const char *path)
 	else
 		setupGamePaths(path);
 	CDAccess *cd = nullptr;
-	if(string_hasDotExtension(fullGamePath, "cue")) // CD
+	if(isMDCDExtension(fullGamePath) ||
+		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) >= 1024*1024*10)) // CD
 	{
 		try
 		{
@@ -762,8 +763,7 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
-	else if(isMDExtension(fullGamePath) // ROM
-			&& FsSys::fileSize(fullGamePath) <= 1024*1024*10) // prevent large .bin files meant for CDs from loading
+	else if(isMDExtension(fullGamePath)) // ROM
 	{
 		logMsg("loading ROM %s", fullGamePath);
 		FsSys::cPath loadFullGamePath;

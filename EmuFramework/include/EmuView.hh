@@ -31,7 +31,7 @@ public:
 
 	void placeOverlay()
 	{
-		vidImgOverlay.place(disp);
+		vidImgOverlay.place(disp, vidPix.y);
 	}
 
 	void updateAndDrawContent()

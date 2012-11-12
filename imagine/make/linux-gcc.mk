@@ -1,5 +1,9 @@
 ENV := linux
 
+ifndef O_RELEASE
+ targetExtension := -debug
+endif
+
 ifeq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := clang

@@ -196,12 +196,9 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 		{
 			logMsg("got orientation change message");
 			uint o = shortArg;
-			if(o != Gfx::VIEW_ROTATE_180)
-			{
-				logMsg("new orientation %s", Gfx::orientationName(o));
-				Gfx::preferedOrientation = o;
-				Gfx::setOrientation(Gfx::preferedOrientation);
-			}
+			logMsg("new orientation %s", Gfx::orientationName(o));
+			Gfx::preferedOrientation = o;
+			Gfx::setOrientation(Gfx::preferedOrientation);
 		}
 		#endif
 		bdefault:

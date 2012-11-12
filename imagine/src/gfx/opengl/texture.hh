@@ -44,12 +44,8 @@ static int bestClampMode(bool textured)
 		logMsg("repeating image");
 		return GL_REPEAT;
 	}
-	#ifndef CONFIG_GFX_OPENGL_ES
-		return useTextureClampToEdge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
-	#else
-		return GL_CLAMP_TO_EDGE;
-		//return GL_MIRRORED_REPEAT;
-	#endif
+	return GL_CLAMP_TO_EDGE;
+	//return GL_MIRRORED_REPEAT;
 }
 
 static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)

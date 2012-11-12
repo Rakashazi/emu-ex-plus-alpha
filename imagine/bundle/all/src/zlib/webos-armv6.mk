@@ -1,0 +1,1 @@
+../../make/webos-armv6.mk

@@ -653,9 +653,20 @@ void onFocusChange(uint in)
 	}
 }
 
-void onDragDrop(const char *filename)
+static void handleOpenFileCommand(const char *filename)
 {
 	auto type = FsSys::fileType(filename);
+	if(type == Fs::TYPE_DIR)
+	{
+		logMsg("changing to dir %s from external command", filename);
+		restoreMenuFromGame();
+		FsSys::chdir(filename);
+		viewStack.popToRoot();
+		fPicker.init(Input::keyInputIsPresent());
+		viewStack.useNavView = 0;
+		viewStack.pushAndShow(&fPicker);
+		return;
+	}
 	if(type != Fs::TYPE_FILE)
 		return;
 	if(!EmuFilePicker::defaultFsFilter(filename, type))
@@ -664,15 +675,21 @@ void onDragDrop(const char *filename)
 	dirName(filename, dir);
 	baseName(filename, file);
 	FsSys::chdir(dir);
-	logMsg("opening file %s in dir %s from DnD", file, dir);
+	logMsg("opening file %s in dir %s from external command", file, dir);
 	restoreMenuFromGame();
 	GameFilePicker::onSelectFile(file, InputEvent{});
+}
+
+void onDragDrop(const char *filename)
+{
+	logMsg("got DnD: %s", filename);
+	handleOpenFileCommand(filename);
 }
 
 void onInterProcessMessage(const char *filename)
 {
 	logMsg("got IPC: %s", filename);
-	// TODO
+	handleOpenFileCommand(filename);
 }
 
 void onResume(bool focused)

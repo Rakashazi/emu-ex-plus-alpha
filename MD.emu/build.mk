@@ -57,7 +57,7 @@ SRC += $(GPLUS_SRC) fileio/fileio.cc
 
 CPPFLAGS += -I../PCE.emu/src/include -I../PCE.emu/src
 VPATH += ../PCE.emu/src/mednafen
-CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H
+CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES
 SRC += error.cpp endian.cpp FileWrapper.cpp general.cpp \
 cdrom/audioreader.cpp cdrom/lec.cpp \
 cdrom/recover-raw.cpp cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp \

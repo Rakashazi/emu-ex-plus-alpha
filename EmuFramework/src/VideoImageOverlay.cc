@@ -83,23 +83,11 @@ void VideoImageOverlay::setEffect(uint effect)
 	img.write(pix);
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 {
 	if(spr.img)
 	{
 		spr.setPos(disp);
-		// TODO: get line count directly from pixmap
-		uint lines = 224;
-		if(string_equal(CONFIG_APP_NAME, "2600.emu"))
-			lines = 210;
-		else if(string_equal(CONFIG_APP_NAME, "PCE.emu"))
-			lines = 232;
-		else if(string_equal(CONFIG_APP_NAME, "GBC.emu"))
-			lines = 144;
-		else if(string_equal(CONFIG_APP_NAME, "NGP.emu"))
-			lines = 152;
-		else if(string_equal(CONFIG_APP_NAME, "GBA.emu"))
-			lines = 160;
 		float width = lines*(EmuSystem::aspectRatioX/(float)EmuSystem::aspectRatioY);
 		//logMsg("width %f", (double)width);
 		switch(effect)

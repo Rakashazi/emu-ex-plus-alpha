@@ -2,12 +2,12 @@ ifndef inc_pkg_opengl
 inc_pkg_opengl := 1
 
 ifeq ($(ENV), linux)
+ # TODO: use pkg-config
  ifdef config_gfx_openGLES
  LDLIBS += -lGLESv1_CM -lEGL -lm
  configDefs += CONFIG_GFX_OPENGL_ES
  else
- #configDefs += CONFIG_GFX_OPENGL_GLEW_STATIC
- LDLIBS += -lGL -lGLEW
+ LDLIBS += -lGL
  endif
 else ifeq ($(ENV), android)
  LDLIBS += -lGLESv1_CM

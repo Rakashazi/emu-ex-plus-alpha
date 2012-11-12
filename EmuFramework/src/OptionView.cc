@@ -781,8 +781,11 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 	zeemoteButtonConfig.init(); item[items++] = &zeemoteButtonConfig;
 	zeemoteButtonConfig.selectDelegate().bind<&zeemoteButtonConfigHandler>();
 	btScanSecsInit(); item[items++] = &btScanSecs;
-	keepBtActive.init(optionKeepBluetoothActive); item[items++] = &keepBtActive;
-	keepBtActive.selectDelegate().bind<&keepBtActiveHandler>();
+	if(!optionKeepBluetoothActive.isConst)
+	{
+		keepBtActive.init(optionKeepBluetoothActive); item[items++] = &keepBtActive;
+		keepBtActive.selectDelegate().bind<&keepBtActiveHandler>();
+	}
 	btScanCache.init(optionBlueToothScanCache); item[items++] = &btScanCache;
 	btScanCache.selectDelegate().bind<&btScanCacheHandler>();
 	#endif

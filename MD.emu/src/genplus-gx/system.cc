@@ -154,7 +154,7 @@ int audioUpdateAll(int16 *sb)
 	#ifndef NO_SCD
 	int16 cdPCMBuff[size*2];
 	int16 *cdPCM = cdPCMBuff;
-	bool doPCM = hasSegaCD && sCD.isActive && (sCD.pcm.control & 0x80) && sCD.pcm.enabled;
+	bool doPCM = hasSegaCD && (sCD.pcm.control & 0x80) && sCD.pcm.enabled;
 	if(doPCM)
 	{
 		scd_pcm_update(cdPCMBuff, size, 1);

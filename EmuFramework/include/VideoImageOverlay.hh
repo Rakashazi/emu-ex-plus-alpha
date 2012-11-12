@@ -40,6 +40,6 @@ public:
 	};
 
 	void setEffect(uint effect);
-	void place(const Gfx::Sprite &disp);
+	void place(const Gfx::Sprite &disp, uint lines);
 	void draw();
 };

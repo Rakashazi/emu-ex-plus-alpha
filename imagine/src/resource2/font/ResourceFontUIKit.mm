@@ -102,9 +102,13 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		
 		// measure max bounds
 		CGSize size = [str sizeWithFont:activeFont];
-		//logMsg("char %c size %f:%f", idx, size.width, size.height);
-		if(!size.width)
+		if(!size.width || !size.height)
+		{
+			logMsg("invalid char 0x%X size %f:%f", idx, size.width, size.height);
+			[str release];
 			return INVALID_PARAMETER;
+		}
+		//logMsg("char %c size %f:%f", idx, size.width, size.height);
 		cXFullSize = size.width;
 		cYFullSize = size.height;
 		

@@ -276,7 +276,30 @@ void CDAccess_Image::ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int t
  track->sectors = sectors;
 }
 
+void CDAccess_Image::ImageOpenBinary(const char *path, bool isIso)
+{
+	NumTracks = FirstTrack = LastTrack = 1;
+	total_sectors = 0;
 
+	auto &track = Tracks[1];
+	if(nullptr == (track.fp = IoSys::open(path)))
+	{
+		ErrnoHolder ene(errno);
+		throw(MDFN_Error(ene.Errno(), _("Could not open file \"%s\": %s"), path, ene.StrError()));
+	}
+	track.FirstFileInstance = 1;
+	track.Format = CD_TRACK_FORMAT_DATA;
+	track.DIFormat = DI_FORMAT_MODE1_RAW;
+	if(isIso)
+	{
+		track.DIFormat = DI_FORMAT_MODE1;
+		track.postgap = 150;
+		total_sectors += track.postgap;
+	}
+
+	track.sectors = GetSectorCount(&track);
+	total_sectors += track.sectors;
+}
 
 void CDAccess_Image::ImageOpen(const char *path)
 {
@@ -291,6 +314,22 @@ void CDAccess_Image::ImageOpen(const char *path)
  memset(&TmpTrack, 0, sizeof(TmpTrack));
 
  MDFN_GetFilePathComponents(path, &base_dir, &file_base, &file_ext);
+
+ #ifdef MDFN_CD_SUPPORTS_BINARY_IMAGES
+ if(!strcasecmp(file_ext.c_str(), ".iso") || !strcasecmp(file_ext.c_str(), ".bin"))
+ {
+	 ImageOpenBinary(path, !strcasecmp(file_ext.c_str(), ".iso"));
+		MDFN_printf("NumTracks: %d FirstTrack: %d LastTrack: %d total_sectors: %d\n", NumTracks, FirstTrack, LastTrack, total_sectors);
+		for(int i = 0; i <= LastTrack; i++)
+		{
+		 MDFN_printf("LBA: Format: %d DIFormat: %d pregap: %d pregap_dv: %d postgap: %d index: %d %d sectors: %d "
+			 "FirstFileInstance: %d FileOffset: %d SubchannelMode: %d LastSamplePos: %d\n",
+			 Tracks[i].Format, Tracks[i].DIFormat, Tracks[i].pregap, Tracks[i].pregap_dv, Tracks[i].postgap, Tracks[i].index[0],
+			 Tracks[i].index[1], Tracks[i].sectors, Tracks[i].FirstFileInstance, (int)Tracks[i].FileOffset, Tracks[i].SubchannelMode, Tracks[i].LastSamplePos);
+		}
+	 return;
+ }
+ #endif
 
  if(!strcasecmp(file_ext.c_str(), ".toc"))
  {
@@ -671,6 +710,15 @@ void CDAccess_Image::ImageOpen(const char *path)
  } // end to track loop
 
  total_sectors = RunningLBA;
+
+ MDFN_printf("NumTracks: %d FirstTrack: %d LastTrack: %d total_sectors: %d\n", NumTracks, FirstTrack, LastTrack, total_sectors);
+ for(int i = 0; i <= LastTrack; i++)
+ {
+	 MDFN_printf("LBA: Format: %d DIFormat: %d pregap: %d pregap_dv: %d postgap: %d index: %d %d sectors: %d "
+		 "FirstFileInstance: %d FileOffset: %d SubchannelMode: %d LastSamplePos: %d\n",
+		 Tracks[i].Format, Tracks[i].DIFormat, Tracks[i].pregap, Tracks[i].pregap_dv, Tracks[i].postgap, Tracks[i].index[0],
+		 Tracks[i].index[1], Tracks[i].sectors, Tracks[i].FirstFileInstance, (int)Tracks[i].FileOffset, Tracks[i].SubchannelMode, Tracks[i].LastSamplePos);
+ }
 }
 
 CDAccess_Image::CDAccess_Image(const char *path)

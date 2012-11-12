@@ -22,6 +22,13 @@
 #include <errno.h>
 #include "FsPosix.hh"
 
+#ifdef __APPLE__
+namespace Base
+{
+	void precomposeUnicodeString(const char *src, char *dest, uint destSize);
+}
+#endif
+
 #if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100
 	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
 	#define SELECTOR_CONST
@@ -151,7 +158,7 @@ static int customSorter(const struct dirent **e1, const struct dirent **e2)
 	return currentSorter((*e1)->d_name, s1.st_mtime, (*e2)->d_name, s2.st_mtime);
 }
 
-CallResult FsPosix::openDir (const char* path, uint flags, FsDirFilterFunc f, FsDirSortFunc s)
+CallResult FsPosix::openDir(const char* path, uint flags, FsDirFilterFunc f, FsDirSortFunc s)
 {
 	currentFilter = f;
 	currentSorter = s;
@@ -174,6 +181,15 @@ CallResult FsPosix::openDir (const char* path, uint flags, FsDirFilterFunc f, Fs
 		currentFilter ? customSelector : noDotRefs,
 		(flags & Fs::OPEN_UNSORT) ? 0 : (currentSorter ? CMP_CAST customSorter : CMP_CAST alphasort));
 
+	#ifdef __APPLE__
+		// Precompose all strings for text renderer
+		// TODO: make optional when renderer supports decomposed unicode
+		iterateTimes(numEntries_, i)
+		{
+			Base::precomposeUnicodeString(entry[i]->d_name, entry[i]->d_name, sizeof(entry[i]->d_name));
+		}
+	#endif
+
 	if(!string_equal(path, ".")) // switch back to original working dir
 	{
 		if(chdir(prevWorkDir) != 0)
@@ -193,7 +209,7 @@ CallResult FsPosix::openDir (const char* path, uint flags, FsDirFilterFunc f, Fs
 	return OK;
 }
 
-void FsPosix::closeDir ()  //+
+void FsPosix::closeDir()
 {
 	// TODO: test this and make sure it's correct
 	iterateTimes(numEntries_, i)
@@ -218,13 +234,13 @@ CallResult fs_posix_nextEntryInDir(FsHnd hnd, DirEntryHnd* entryAddr, DirHnd dir
 	return OK;
 }*/
 
-const char *FsPosix::entryFilename (uint index) const
+const char *FsPosix::entryFilename(uint index) const
 {
 	//logDMsg("entry name is %s", thisEntry[index]->d_name);
 	return entry[index]->d_name;
 }
 
-uint FsPosix::numEntries () const //+
+uint FsPosix::numEntries() const
 {
 	return numEntries_;
 }
@@ -260,6 +276,11 @@ char *FsPosix::workDir()
 		}
 		else
 		{
+			#ifdef __APPLE__
+				// Precompose all strings for text renderer
+				// TODO: make optional when renderer supports decomposed unicode
+				Base::precomposeUnicodeString(wDir, wDir, sizeof(wDir));
+			#endif
 			workDirChanged = 0;
 			return wDir;
 		}
@@ -399,9 +420,9 @@ CallResult FsPosix::rename(const char *oldname, const char *newname)
 
 CallResult FsPosix::changeToAppDir(const char *launchCmd)
 {
-	char path[strlen(launchCmd)+1];
+	cPath path;
 	logMsg("app called with cmd %s", launchCmd);
-	strcpy(path, launchCmd);
+	string_copy(path, launchCmd);
 	dirNameInPlace(path);
 	if(chdir(path) != 0)
 	{
@@ -416,5 +437,3 @@ CallResult FsPosix::changeToAppDir(const char *launchCmd)
 	}
 	return OK;
 }
-
-#undef thisModuleName

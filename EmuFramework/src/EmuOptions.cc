@@ -51,7 +51,7 @@ BasicByteOption optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAnd
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, 0);
 
 #ifdef CONFIG_BLUETOOTH
-BasicByteOption optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0);
+BasicByteOption optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
 OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
 #endif
 
@@ -174,7 +174,7 @@ OptionDPI optionDPI(0,
 OptionRecentGames optionRecentGames;
 
 Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes
-(CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128, Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9);
+(CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128, Config::envIsLinux || Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9);
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE

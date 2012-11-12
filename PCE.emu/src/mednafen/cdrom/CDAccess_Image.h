@@ -85,6 +85,7 @@ class CDAccess_Image : public CDAccess
  std::string base_dir;
 
  void ImageOpen(const char *path);
+ void ImageOpenBinary(const char *path, bool isIso);
 
  // MakeSubPQ will OR the simulated P and Q subchannel data into SubPWBuf.
  void MakeSubPQ(int32 lba, uint8 *SubPWBuf);

@@ -140,10 +140,11 @@ protected:
 	#endif
 
 	#ifdef CONFIG_ENV_WEBOS
-	BoolMenuItem touchCtrl;
+	BoolMenuItem
 	#else
-	MultiChoiceSelectMenuItem touchCtrl {"On-screen Controls"};
+	MultiChoiceSelectMenuItem
 	#endif
+	touchCtrl {"On-screen Controls"};
 
 	void touchCtrlInit();
 

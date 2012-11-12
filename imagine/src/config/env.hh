@@ -56,6 +56,13 @@ static const uint ENV_ANDROID_MINSDK =
 	#define CONFIG_UNICODE_CHARS
 	static const bool UNICODE_CHARS = 1;
 #endif
+
+#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
+	#define CONFIG_BASE_CAN_BACKGROUND_APP
+	static const bool BASE_CAN_BACKGROUND_APP = 1;
+#else
+	static const bool BASE_CAN_BACKGROUND_APP = 0;
+#endif
 }
 
 #if CONFIG_ENV_ANDROID_MINSDK == 4

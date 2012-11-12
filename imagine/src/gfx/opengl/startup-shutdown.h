@@ -60,15 +60,28 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	logMsg("version: %s (%s)\nextensions: %s", version, rendererName, extensions);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
-	GLenum err = glewInit();
-	if (err != GLEW_OK)
-	{
-		logErr("could not init Glew, error: %s", glewGetErrorString(err));
-		return(INVALID_PARAMETER);
-	}
+		#ifndef CONFIG_BASE_X11
+		GLenum err = glewInit();
+		if (err != GLEW_OK)
+		{
+			logErr("could not init Glew, error: %s", glewGetErrorString(err));
+			return(INVALID_PARAMETER);
+		}
+		#endif
 	
 	glClearDepth(1.0f);
 	glDepthFunc(GL_LEQUAL);
+	auto dotPos = strchr(version, '.');
+	int majorVer = dotPos[-1]-'0' , minorVer = dotPos[1]-'0';
+	const bool hasGL1_5 = (majorVer > 1) || (majorVer == 1 && minorVer >= 5);
+	const bool hasGL1_4 = hasGL1_5 || (majorVer == 1 && minorVer >= 4);
+	const bool hasGL1_3 = hasGL1_4 || (majorVer == 1 && minorVer >= 3);
+	const bool hasGL1_2 = hasGL1_3 || (majorVer == 1 && minorVer >= 2);
+	const bool hasGL1_1 = hasGL1_2 || (majorVer == 1 && minorVer >= 1);
+	assert(hasGL1_1); // needed for Vertex Arrays
+	#else
+	const bool hasGL1_3 = 0;
+	const bool hasGL1_5 = 0;
 	#endif
 	
 	setClearColor(0., 0., 0.);
@@ -96,16 +109,14 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	logMsg("max texture size is %d", texSize);
 
 	vsyncEnable();
-	checkForAnisotropicFiltering();
-	checkForAutoMipmapGeneration(version);
-	checkForMultisample();
-	checkForVertexArrays();
+	checkForAnisotropicFiltering(extensions);
+	checkForAutoMipmapGeneration(extensions, version);
+	checkForMultisample(extensions);
 	checkForNonPow2Textures(extensions, rendererName);
 	checkForBGRPixelSupport(extensions);
-	checkForTextureClampToEdge();
-	checkForCompressedTexturesSupport();
-	checkForFBOFuncs();
-	checkForVBO(version);
+	checkForCompressedTexturesSupport(hasGL1_3);
+	checkForFBOFuncs(extensions);
+	checkForVBO(version, hasGL1_5);
 	if(useFBOFuncs) useAutoMipmapGeneration = 0; // prefer FBO mipmap function if present
 
 	/*#ifdef CONFIG_GFX_OPENGL_ES
@@ -132,15 +143,23 @@ CallResult setOutputVideoMode(const Base::Window &win)
 		}
 		if(surfaceTextureConf.use && strstr(rendererName, "Adreno"))
 		{
-			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
-			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
-			// This hack will fix-up the GL state cache manually when that happens.
-			logMsg("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-			surfaceTextureConf.texture2dBindingHack = 1;
+			if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
+			{
+				logWarn("buggy SurfaceTexture implementation, disabling");
+				surfaceTextureConf.deinit();
+			}
+			else
+			{
+				// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
+				// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
+				// This hack will fix-up the GL state cache manually when that happens.
+				logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+				surfaceTextureConf.texture2dBindingHack = 1;
+			}
 		}
 	#endif
 
-	#ifdef CONFIG_GFX_OPENGL_GLX
+	/*#ifdef CONFIG_GFX_OPENGL_GLX
 	if(GLXEW_SGI_video_sync)
 	{
 		useSGIVidSync = 1;
@@ -155,7 +174,7 @@ CallResult setOutputVideoMode(const Base::Window &win)
 		//oneFrameTime.setUSecs(16666);
 		//firstOneFrameTime.setUSecs(19500);
 		//gfx_frameClockTime = 0;
-	}
+	}*/
 
 	glcEnableClientState(GL_VERTEX_ARRAY);
 	return OK;
