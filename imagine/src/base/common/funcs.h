@@ -242,6 +242,22 @@ CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
 
 }
 
+static int getPollTimeout()
+{
+	// When waiting for events:
+	// 1. If rendering, don't block
+	// 2. Else if a timer is active, block for at most its remaining time
+	// 3. Else block until next event
+	int pollTimeout = Base::gfxUpdate ? 0 :
+		PollWaitTimer::hasCallbacks() ? PollWaitTimer::getNextCallback()->calcPollWaitForFunc() :
+		-1;
+	/*if(pollTimeout >= 2000)
+		logMsg("will poll for at most %d ms", pollTimeout);*/
+	/*if(pollTimeout == -1)
+		logMsg("will poll for next event");*/
+	return pollTimeout;
+}
+
 #endif
 
 void* operator new (std::size_t size)

@@ -210,7 +210,6 @@ void initOptions()
 			optionLowProfileOSNav.isConst = 1;
 			optionHideOSNav.isConst = 1;
 			optionShowMenuIcon.initDefault(0);
-			optionDitherImage.initDefault(0);
 		}
 		else
 			optionBackNavigation.initDefault(1);
@@ -226,6 +225,10 @@ void initOptions()
 				/*logMsg("using default frame-skip 0");
 				optionFrameSkip.initDefault(0);*/
 			}
+		}
+		else
+		{
+			optionDitherImage.initDefault(0);
 		}
 	#endif
 

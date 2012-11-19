@@ -34,7 +34,7 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const InputEven
 		return NO_CHANGE;
 
 	auto dragState = Input::dragState(e.devId);
-	if(bt.overlaps(e.x, e.y) && e.state == INPUT_PUSHED)
+	if(e.pushed(Input::Pointer::LBUTTON) && bt.overlaps(e.x, e.y))
 	{
 		pushed = 1;
 		devId = e.devId;
@@ -221,7 +221,35 @@ bool KScroll::inputEvent(const InputEvent &e)
 bool KScroll::inputEvent(int minClip, int maxClip, const InputEvent &e)
 {
 	prevOffset = offset;
-	bool ret = e.isPointer() ? inputEvent(e) : 0;
+	bool ret = 0;
+	#ifdef INPUT_SUPPORTS_MOUSE
+	if(e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN)
+	{
+		if(e.pushed() && offset >= minClip && offset <= maxClip)
+		{
+			bool clip = 1; // snap to edges
+			if(offset == minClip || offset == maxClip)
+			{
+				clip = 0; // if exactly at edge don't clip for snap-back
+			}
+			auto vel = Gfx::yMMSizeToPixel(10.0);
+			offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
+			if(clip)
+			{
+				if(offset < minClip)
+					offset = minClip;
+				else if(offset > maxClip)
+					offset = maxClip;
+			}
+			Base::displayNeedsUpdate();
+		}
+		ret = 1;
+	}
+	else
+	#endif
+	{
+		ret = e.isPointer() ? inputEvent(e) : 0;
+	}
 	clipDragOverEdge(minClip, maxClip);
 	if(maxClip < minClip)
 		maxClip = minClip;

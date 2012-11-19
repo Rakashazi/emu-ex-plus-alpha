@@ -563,7 +563,6 @@ bool touchControlsApplicable() { return 1; }
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-	emuView.initImage(0, ssResX, ssResY);
 	setupGamePaths(path);
 
 	snprintf(bupPath, sizeof(bupPath), "%s/bkram.bin", gamePath);
@@ -575,6 +574,8 @@ int EmuSystem::loadGame(const char *path)
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
+	emuView.initPixmap((uchar*)dispbuffer, pixFmt, ssResX, ssResY);
+	emuView.initImage(0, ssResX, ssResY);
 
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
@@ -632,7 +633,6 @@ CallResult onInit()
 	ScspSetFrameAccurate(1);
 
 	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)dispbuffer, pixFmt, ssResX, ssResY);
 
 	mMenu.init(Config::envIsPS3);
 	viewStack.push(&mMenu);

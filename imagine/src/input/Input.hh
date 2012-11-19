@@ -25,10 +25,17 @@ namespace Input
 {
 // mouse/pointer/touch support
 #ifndef CONFIG_INPUT_PS3
-	static const bool supportsPointer = 1;
+	static const bool SUPPORTS_POINTER = 1;
 	#define INPUT_SUPPORTS_POINTER
 #else
-	static const bool supportsPointer = 0;
+	static const bool SUPPORTS_POINTER = 0;
+#endif
+
+#ifdef CONFIG_BASE_X11
+	static const bool SUPPORTS_MOUSE = 1;
+	#define INPUT_SUPPORTS_MOUSE
+#else
+	static const bool SUPPORTS_MOUSE = 0;
 #endif
 
 static const uchar maxCursors =
@@ -468,7 +475,7 @@ public:
 
 	bool isPointer() const
 	{
-		return Input::supportsPointer && (devType == DEV_POINTER/*input_eventIsFromPointer(button)*/ || stateIsPointer());
+		return Input::SUPPORTS_POINTER && (devType == DEV_POINTER/*input_eventIsFromPointer(button)*/ || stateIsPointer());
 	}
 
 	bool isRelativePointer() const
@@ -542,6 +549,9 @@ public:
 			#endif
 			#ifdef CONFIG_BASE_PS3
 			case DEV_PS3PAD: return swapped ? isDefaultActionButton(0) : (button == Input::Ps3::CIRCLE);
+			#endif
+			#ifdef INPUT_SUPPORTS_MOUSE
+			case DEV_POINTER: return button == Input::Pointer::DOWN_BUTTON;
 			#endif
 			#ifdef INPUT_SUPPORTS_KEYBOARD
 			default:

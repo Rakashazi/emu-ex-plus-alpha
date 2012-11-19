@@ -27,7 +27,7 @@ void GuiTable1D::init(GuiTableSource *src, int cells, _2DOrigin align)
 	this->src = src;
 	this->cells = cells;
 	selected = -1;
-	if(!Input::supportsPointer && cells)
+	if(!Input::SUPPORTS_POINTER && cells)
 		selected = 0;
 	this->align = align;
 	selectedIsActivated = 0;
@@ -54,7 +54,7 @@ int GuiTable1D::inputEvent(const InputEvent &e)
 
 	if(e.isPointer())
 	{
-		if(!viewRect.overlaps(e.x, e.y))
+		if(!viewRect.overlaps(e.x, e.y) || e.button != Input::Pointer::LBUTTON)
 		{
 			//logMsg("cursor not in table");
 			return -1;
