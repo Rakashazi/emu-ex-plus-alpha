@@ -24,8 +24,10 @@
 #include <util/bits.h>
 #include <util/basicMath.hh>
 #include <util/operators.hh>
+#include <util/Rational.hh>
 #include <config/imagineTypes.h>
 #include <math.h>
+#include <boost/type_traits/is_integral.hpp>
 
 namespace IG
 {
@@ -383,23 +385,68 @@ static bool isPowerOf2(T x)
 }
 
 template <class T, class T2>
-static void setSizesWithRatioY(T &xSize, T &ySize, T2 aspectRatio, T2 y)
+static void setSizesWithRatioY(T &xSize, T &ySize, T2 aspectRatio, T y)
 {
 	ySize = y;
 	if(aspectRatio) // treat 0 AR as a no-op, xSize doesn't get modified
 	{
-		xSize = y * aspectRatio;
+		T2 res = (T2)y * aspectRatio;
+		xSize = boost::is_integral<T>::value ? roundf(res) : res;
 	}
 }
 
 template <class T, class T2>
-static void setSizesWithRatioX(T &xSize, T &ySize, T2 aspectRatio, T2 x)
+static void setSizesWithRatioX(T &xSize, T &ySize, T2 aspectRatio, T x)
 {
 	xSize = x;
 	if(aspectRatio) // treat 0 AR as a no-op, ySize doesn't get modified
 	{
-		ySize = x / aspectRatio;
+		T2 res = (T2)x / aspectRatio;
+		ySize = boost::is_integral<T>::value ? roundf(res) : res;
 	}
+}
+
+template <class T, class T2>
+static void setSizesWithRatioBestFit(T &xSize, T &ySize, T2 destAspectRatio, T x, T y)
+{
+	Rational sourceRat {x,y};
+	auto sourceAspectRatio = (T2)sourceRat;
+	logMsg("ar %f %f, %d %d", sourceAspectRatio, destAspectRatio, x, y);
+	if(destAspectRatio == sourceAspectRatio)
+	{
+		xSize = x;
+		ySize = y;
+	}
+	else if(destAspectRatio > sourceAspectRatio)
+	{
+		IG::setSizesWithRatioX(xSize, ySize, destAspectRatio, x);
+	}
+	else
+	{
+		IG::setSizesWithRatioY(xSize, ySize, destAspectRatio, y);
+	}
+}
+
+template <class T, class T2>
+static IG::Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
+{
+	Rational sourceRat {x,y};
+	auto sourceAspectRatio = (T2)sourceRat;
+	T xSize = 0, ySize = 0;
+	if(destAspectRatio == sourceAspectRatio)
+	{
+		xSize = x;
+		ySize = y;
+	}
+	else if(destAspectRatio > sourceAspectRatio)
+	{
+		IG::setSizesWithRatioX(xSize, ySize, destAspectRatio, x);
+	}
+	else
+	{
+		IG::setSizesWithRatioY(xSize, ySize, destAspectRatio, y);
+	}
+	return {xSize, ySize};
 }
 
 template <class T>

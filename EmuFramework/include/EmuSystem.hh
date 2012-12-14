@@ -34,6 +34,7 @@ class EmuSystem
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static FsSys::cPath gamePath, fullGamePath;
 	static char gameName[256], fullGameName[256];
+	static FsSys::cPath savePath_;
 	static Base::CallbackRef *autoSaveStateCallbackRef;
 	static int saveStateSlot;
 	static TimeSys startTime;
@@ -48,17 +49,19 @@ class EmuSystem
 	static int loadState(int slot = saveStateSlot);
 	static int saveState();
 	static bool stateExists(int slot);
+	static const char *savePath() { return strlen(savePath_) ? savePath_ : gamePath; }
 	static void sprintStateFilename(char *str, size_t size, int slot,
-		const char *gamePath = EmuSystem::gamePath, const char *gameName = EmuSystem::gameName);
+		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName);
 	template <size_t S>
 	static void sprintStateFilename(char (&str)[S], int slot,
-		const char *gamePath = EmuSystem::gamePath, const char *gameName = EmuSystem::gameName)
+		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName)
 	{
-		sprintStateFilename(str, S, slot, gamePath, gameName);
+		sprintStateFilename(str, S, slot, statePath, gameName);
 	}
 	static bool loadAutoState();
 	static void saveAutoState();
 	static void saveBackupMem();
+	static void savePathChanged();
 	static void resetGame();
 	static void initOptions();
 	static void writeConfig(Io *io);

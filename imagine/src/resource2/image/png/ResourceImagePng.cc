@@ -119,5 +119,3 @@ float  ResourceImagePng::aspectRatio ()
 {
 	return (float)png.getWidth() / (float)png.getHeight();
 }
-
-#undef thisModuleName

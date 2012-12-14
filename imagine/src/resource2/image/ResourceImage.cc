@@ -60,5 +60,3 @@ ResourceImage *ResourceImage::load (const char *name)
 	logMsg("failed to load image %s", name);
 	return NULL;
 }
-
-#undef thisModuleName

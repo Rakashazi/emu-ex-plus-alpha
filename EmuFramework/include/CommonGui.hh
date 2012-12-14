@@ -42,6 +42,7 @@ YesNoAlertView ynAlertView;
 Gfx::Sprite menuIcon;
 MultiChoiceView multiChoiceView;
 ViewStack viewStack;
+extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 
 void onLeftNavBtn(const InputEvent &e)
 {
@@ -473,6 +474,7 @@ void setupVControllerVars()
 			vController.gp.btnRowShift = -(vController.gp.btnSize + vController.gp.btnSpace);
 		break;
 	}
+	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 }
 #endif
 
@@ -511,7 +513,7 @@ void startGameFromMenu()
 	applyOSNavStyle();
 	Base::setIdleDisplayPowerSave(0);
 	setupStatusBarInGame();
-	if(!optionFrameSkip.isConst && optionFrameSkip != EmuSystem::optionFrameSkipAuto)
+	if(!optionFrameSkip.isConst && (uint)optionFrameSkip != EmuSystem::optionFrameSkipAuto)
 		Gfx::setVideoInterval((int)optionFrameSkip + 1);
 	logMsg("running game");
 	menuViewIsActive = 0;
@@ -712,7 +714,7 @@ void onResume(bool focused)
 void onInputDevChange(const Base::InputDevChange &change)
 {
 	logMsg("got input dev change");
-	if(optionTouchCtrl == 2U)
+	if((uint)optionTouchCtrl == 2)
 	{
 		if(change.added() || change.shown())
 		{
@@ -785,11 +787,11 @@ void EmuView::place()
 			}
 			if(optionTouchCtrlMenuPos != NULL2DO)
 			{
-				emuMenuB.setPosRel(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlMenuPos, optionTouchCtrlMenuPos);
+				emuMenuB = Gfx::relRectFromViewport(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlMenuPos, optionTouchCtrlMenuPos);
 			}
 			if(optionTouchCtrlFFPos != NULL2DO)
 			{
-				emuFFB.setPosRel(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlFFPos, optionTouchCtrlFFPos);
+				emuFFB = Gfx::relRectFromViewport(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlFFPos, optionTouchCtrlFFPos);
 			}
 			using namespace Gfx;
 			menuIcon.setPos(gXPos(emuMenuB, LB2DO) + gXSize(emuMenuB) / 4.0, gYPos(emuMenuB, LB2DO) + gYSize(emuMenuB) / 3.0,
@@ -1069,11 +1071,8 @@ ResourceImage *getXAsset()
 	return res;
 }
 
-template <size_t NAV_GRAD_SIZE>
-static void mainInitCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
+static void mainInitCommon()
 {
-	Gfx::setClear(1);
-
 	initOptions();
 	EmuSystem::initOptions();
 	#ifdef CONFIG_BASE_ANDROID
@@ -1087,10 +1086,55 @@ static void mainInitCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_
 	Bluetooth::maxGamepadsPerType = EmuSystem::maxPlayers;
 	#endif
 
+	loadConfigFile();
+
+	Base::setWindowPixelBestColorHint(optionBestColorModeHint);
+
+	#ifdef CONFIG_BASE_IOS_SETUID
+		CATS::whatYouSay();
+
+		const char *emuPatch = "/Applications/EMUPatcher.app/EMUPatcher";
+		if(FsSys::fileExists(emuPatch))
+		{
+			Base::setUIDEffective();
+			FsSys::remove(emuPatch);
+			Base::setUIDReal();
+		}
+	#endif
+}
+
+#ifndef CONFIG_BASE_PS3
+#include "TouchConfigView.hh"
+TouchConfigView tcMenu(touchConfigFaceBtnName, touchConfigCenterBtnName);
+#endif
+
+#include "CommonViewControl.hh"
+
+#include "ButtonConfigView.hh"
+
+#include <MenuView.hh>
+
+#include <main/EmuMenuViews.hh>
+static SystemOptionView oCategoryMenu;
+static SystemMenuView mMenu;
+
+template <size_t NAV_GRAD_SIZE>
+static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
+{
+	Gfx::setClear(1);
+	if(!optionDitherImage.isConst)
+	{
+		Gfx::setDither(optionDitherImage);
+	}
+
+	#ifdef CONFIG_BASE_ANDROID
+		if(!optionTouchCtrlImgRes.isConst)
+			optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
+	#endif
+
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
 
-	loadConfigFile();
 	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
 		if((int8)optionProcessPriority != 0)
 			Base::setProcessPriority(optionProcessPriority);
@@ -1131,18 +1175,6 @@ static void mainInitCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_
 		viewStack.setNavView(&viewNav);
 	}
 
-	#ifdef CONFIG_BASE_IOS_SETUID
-		CATS::whatYouSay();
-
-		const char *emuPatch = "/Applications/EMUPatcher.app/EMUPatcher";
-		if(FsSys::fileExists(emuPatch))
-		{
-			Base::setUIDEffective();
-			FsSys::remove(emuPatch);
-			Base::setUIDReal();
-		}
-	#endif
-
 	//logMsg("setting menu orientation");
 	// set orientation last since it can trigger onViewChange()
 	Gfx::setValidOrientations(optionMenuOrientation, 1);
@@ -1158,22 +1190,14 @@ static void mainInitCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_
 		Base::displayNeedsUpdate();
 	}
 	#endif
+
+	mMenu.init(Config::envIsPS3);
+	viewStack.push(&mMenu);
+	Gfx::onViewChange();
+	mMenu.show();
+
+	Base::displayNeedsUpdate();
 }
-
-#ifndef CONFIG_BASE_PS3
-#include "TouchConfigView.hh"
-TouchConfigView tcMenu(touchConfigFaceBtnName, touchConfigCenterBtnName);
-#endif
-
-#include "CommonViewControl.hh"
-
-#include "ButtonConfigView.hh"
-
-#include <MenuView.hh>
-
-#include <main/EmuMenuViews.hh>
-static SystemOptionView oCategoryMenu;
-static SystemMenuView mMenu;
 
 void OptionCategoryView::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
 {

@@ -55,12 +55,6 @@ static OSystem osystem;
 static StateManager stateManager(&osystem);
 static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "2600emu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
@@ -197,9 +191,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *savePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
 }
 
 void EmuSystem::saveAutoState()
@@ -556,12 +550,28 @@ int EmuSystem::loadState(int saveStateSlot)
 	return STATE_RESULT_OK;
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Base
 {
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
+{
+	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
+	EmuSystem::pcmFormat.channels = soundChannels;
+	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(TIASound::Sample)*8);
+	mainInitCommon();
+	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
+
+	Settings *settings = new Settings(&osystem);
+	settings->setInt("framerate", 60);
+
+	return OK;
+}
+
+CallResult onWindowInit()
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -572,24 +582,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
-	EmuSystem::pcmFormat.channels = soundChannels;
-	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(TIASound::Sample)*8);
-	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-
-	Settings *settings = new Settings(&osystem);
-	settings->setInt("framerate", 60);
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 
 }
-
-#undef thisModuleName

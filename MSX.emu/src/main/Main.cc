@@ -29,12 +29,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "MsxEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
 #define Fixed MacTypes_Fixed
@@ -163,8 +157,8 @@ enum { CFGKEY_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257 };
 
 #define optionMachineNameDefault "MSX2"
 static char optionMachineNameStr[128] = optionMachineNameDefault;
-static PathOption<CFGKEY_MACHINE_NAME> optionMachineName(optionMachineNameStr, optionMachineNameDefault);
-BasicByteOption optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
+static PathOption optionMachineName(CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault);
+Byte1Option optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
 static uint activeBoardType = BOARD_MSX;
 const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -689,9 +683,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 static char saveStateVersion[] = "blueMSX - state  v 8";
@@ -1092,6 +1086,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	}
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 void onInputEvent(const InputEvent &e)
@@ -1107,15 +1103,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-		{ .3, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-		{ .97, VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
-		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 
 	/*mediaDbCreateRomdb();
@@ -1126,7 +1113,7 @@ CallResult onInit()
 	mixer = mixerCreate();
 	assert(mixer);
 
-	mainInitCommon(navViewGrad);
+	mainInitCommon();
 	emuView.initPixmap((uchar*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
 
 	// Init general emu
@@ -1192,8 +1179,21 @@ CallResult onInit()
 	fixFilePermissions(machineBasePath);
 	#endif
 
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
+	return OK;
+}
+
+CallResult onWindowInit()
+{
+	static const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+
+	mainInitWindowCommon(navViewGrad);
 
 	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
 	{
@@ -1202,14 +1202,7 @@ CallResult onInit()
 		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}
-
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
 	return OK;
 }
 
 }
-
-#undef thisModuleName

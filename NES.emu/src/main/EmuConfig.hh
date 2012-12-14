@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
+	#define CONFIG_FILE_NAME "NesEmu.config"
+#else
+	#define CONFIG_FILE_NAME "config"
+#endif
+
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
 static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;;

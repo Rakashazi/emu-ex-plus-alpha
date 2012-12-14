@@ -240,5 +240,3 @@ CallResult init()
 }
 
 }
-
-#undef thisModuleName

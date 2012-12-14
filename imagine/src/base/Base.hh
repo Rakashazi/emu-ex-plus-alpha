@@ -48,6 +48,14 @@ struct Window : NotEquals<Window>
 
 const Window &window();
 
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	void setWindowPixelBestColorHint(bool best);
+	bool windowPixelBestColorHintDefault();
+#else
+	static void setWindowPixelBestColorHint(bool best) { }
+	bool windowPixelBestColorHintDefault() { return 1; }
+#endif
+
 // App exit
 void exitVal(int returnVal) ATTRS(noreturn);
 static void exit() { exitVal(0); }
@@ -147,17 +155,6 @@ uint refreshRate();
 	void openURL(const char *url);
 #else
 	static void openURL(const char *url) { }
-#endif
-
-// OpenGL windowing system support
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32) || defined (CONFIG_BASE_SDL)
-	CallResult openGLInit();
-	CallResult openGLSetOutputVideoMode(const Base::Window &win);
-	CallResult openGLSetMultisampleVideoMode(const Base::Window &win);
-#else
-	static CallResult openGLInit() { return OK; }
-	static CallResult openGLSetOutputVideoMode(const Base::Window &win) { return OK; }
-	static CallResult openGLSetMultisampleVideoMode(const Base::Window &win) { return OK; }
 #endif
 
 // poll()-like event system support (WIP API)
@@ -311,7 +308,10 @@ void onResume(bool focused);
 // If backgrounded == true, app may eventually resume execution
 void onExit(bool backgrounded);
 
-// Called on app startup
+// Called on app startup, before the graphics context is initialized
 CallResult onInit() ATTRS(cold);
+
+// Called on app window creation, after the graphics context is initialized
+CallResult onWindowInit() ATTRS(cold);
 
 } // Base

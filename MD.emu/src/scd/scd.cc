@@ -351,7 +351,7 @@ void scd_update()
 	//logMsg("done");
 }
 
-int scd_loadState(uint8 *state)
+int scd_loadState(uint8 *state, uint exVersion)
 {
 	logMsg("loading CD state");
 	int bufferptr = 0;
@@ -379,6 +379,10 @@ int scd_loadState(uint8 *state)
     load_param(&tmp32, 4); m68k_set_reg(sCD.cpu, M68K_REG_PC, tmp32);
     load_param(&tmp16, 2); m68k_set_reg(sCD.cpu, M68K_REG_SR, tmp16);
     load_param(&tmp32, 4); m68k_set_reg(sCD.cpu, M68K_REG_USP,tmp32);
+    if(exVersion >= 1)
+		{
+			load_param(&tmp32, 4); m68k_set_reg(sCD.cpu, M68K_REG_ISP,tmp32);
+		}
   }
 
   load_param(&sCD.busreq, sizeof(sCD.busreq));
@@ -450,6 +454,7 @@ int scd_saveState(uint8 *state)
     tmp32 = m68k_get_reg(sCD.cpu, M68K_REG_PC);  save_param(&tmp32, 4);
     tmp16 = m68k_get_reg(sCD.cpu, M68K_REG_SR);  save_param(&tmp16, 2);
     tmp32 = m68k_get_reg(sCD.cpu, M68K_REG_USP); save_param(&tmp32, 4);
+    tmp32 = m68k_get_reg(sCD.cpu, M68K_REG_ISP); save_param(&tmp32, 4);
   }
 
   save_param(&sCD.busreq, sizeof(sCD.busreq));

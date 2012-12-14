@@ -102,5 +102,3 @@ void MsgPopup::printf(uint secs, bool error, const char *format, ...)
 	//logMsg("%s", str);
 	post(str, secs, error);
 }
-
-#undef thisModuleName

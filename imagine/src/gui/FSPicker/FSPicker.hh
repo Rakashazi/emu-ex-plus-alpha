@@ -40,6 +40,12 @@ public:
 	void drawElement(const GuiTable1D *table, uint element, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i) override;
 
+	// convenience onClose handler
+	static void onCloseModal(const InputEvent &e)
+	{
+		View::removeModalView();
+	}
+
 	typedef Delegate<void (const char* name, const InputEvent &e)> OnSelectFileDelegate;
 	OnSelectFileDelegate onSelectFile;
 	typedef Delegate<void (const InputEvent &e)> OnCloseDelegate;

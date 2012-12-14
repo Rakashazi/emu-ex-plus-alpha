@@ -47,7 +47,7 @@
 namespace Base
 {
 	static Display *dpy;
-	static X11Window win;
+	static X11Window win = None;
 }
 
 #include "input.hh"
@@ -80,6 +80,17 @@ static void cleanup()
 {
 	XDestroyWindow(dpy, win);
 	XCloseDisplay(dpy);
+}
+
+void setWindowPixelBestColorHint(bool best)
+{
+	assert(win == None); // should only call before initial window is created
+	glCtx.useMaxColorBits = best;
+}
+
+bool windowPixelBestColorHintDefault()
+{
+	return 1; // always prefer the best color format
 }
 
 // TODO: move into generic header after testing
@@ -148,19 +159,6 @@ void setWindowTitle(char *name)
 	}
 }
 
-CallResult openGLInit()
-{
-	#ifdef CONFIG_GFX_OPENGL_ES
-
-	#else
-	int glxMajorVersion, glxMinorVersion;
-	glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
-	logMsg("GLX version %d.%d", glxMajorVersion, glxMinorVersion);
-	#endif
-
-	return OK;
-}
-
 static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 {
 	win = glCtx.init(dpy, screen, xres, yres, multisample, ExposureMask |
@@ -174,10 +172,7 @@ static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 	XSetWMProtocols(dpy, win, &wmDelete, 1);
 	XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
 	XMapRaised(dpy, win);
-
-	uint depth;
-	safeXGetGeometry(dpy, win, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &depth);
-	logMsg("using depth %d", depth);
+	logMsg("using depth %d", xDrawableDepth(dpy, win));
 
 	// setup xinput2
 	XIEventMask eventmask;
@@ -278,7 +273,7 @@ static int devIdToPointer(int id)
 	return 0;
 }
 
-static CallResult initWindow()
+static CallResult initX()
 {
 	/*if(!XInitThreads())
 	{
@@ -471,7 +466,6 @@ static int eventHandler(XEvent event)
 						}
 						else
 						{
-							//input_x11_passKeydown(k, repeated, ievent.mods.effective & ShiftMask);
 							using namespace Input;
 							if(!repeated || Input::allowKeyRepeats)
 							{
@@ -603,12 +597,12 @@ int msgFdHandler(int events)
 
 }
 
-static int epollWaitWrapper(int __epfd, struct epoll_event *__events,
-	int __maxevents, int __timeout)
+static int epollWaitWrapper(int epfd, struct epoll_event *events,
+	int maxevents, int timeout)
 {
 	x11FDHandler(0);  // must check X before entering epoll since some events may be
 										// in memory queue and won't trigger the FD
-	return epoll_wait(__epfd, __events, __maxevents, __timeout);
+	return epoll_wait(epfd, events, maxevents, timeout);
 }
 
 int main(int argc, char** argv)
@@ -675,12 +669,40 @@ int main(int argc, char** argv)
 		}
 	}
 
-	doOrElse(initWindow(), return 1);
-
+	doOrElse(initX(), return 1);
+	doOrExit(onInit());
 	dispX = DisplayWidth(dpy, screen);
 	dispY = DisplayHeight(dpy, screen);
-	mainWin.w = mainWin.rect.x2 = 1024;
-	mainWin.h = mainWin.rect.y2 = 768;
+	{
+		int x = 1024;
+		int y = 768;
+
+		// try to crop window to workable desktop area
+		long *workArea;
+		int format;
+		unsigned long items;
+		unsigned long bytesAfter;
+		uchar *prop;
+		Atom type;
+		Atom _NET_WORKAREA = XInternAtom(dpy, "_NET_WORKAREA", 0);
+		if(XGetWindowProperty(dpy, DefaultRootWindow(dpy),
+			_NET_WORKAREA, 0, ~0, False,
+			XA_CARDINAL, &type, &format, &items, &bytesAfter, (uchar **)&workArea) || !workArea)
+		{
+			logWarn("error getting desktop work area");
+		}
+		else
+		{
+			logMsg("%ld %ld work area: %ld:%ld:%ld:%ld", items, bytesAfter, workArea[0], workArea[1], workArea[2], workArea[3]);
+			x = IG::min(x, (int)workArea[2]);
+			y = IG::min(y, (int)workArea[3]);
+			XFree(workArea);
+		}
+
+		mainWin.w = mainWin.rect.x2 = x;
+		mainWin.h = mainWin.rect.y2 = y;
+	}
+
 	setupScreenSizeFromX11();
 	updateViewSize();
 
@@ -694,7 +716,7 @@ int main(int argc, char** argv)
 	
 	auto x11Poll = PollEventDelegate::create<&x11FDHandler>();
 	addPollEvent2(ConnectionNumber(dpy), x11Poll);
-
+	openGLSetOutputVideoMode(mainWin);
 	engineInit();
 
 	//logMsg("entering main loop");

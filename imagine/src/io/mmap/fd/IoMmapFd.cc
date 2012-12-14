@@ -50,5 +50,3 @@ void IoMmapFd::close()
 		data = nullptr;
 	}
 }
-
-#undef thisModuleName

@@ -118,7 +118,7 @@ void scd_update();
 void scd_checkDma();
 void scd_updateCddaVol();
 int scd_saveState(uint8 *state);
-int scd_loadState(uint8 *state);
+int scd_loadState(uint8 *state, uint exVersion);
 
 int Insert_CD(CDAccess *cd);
 void Stop_CD();

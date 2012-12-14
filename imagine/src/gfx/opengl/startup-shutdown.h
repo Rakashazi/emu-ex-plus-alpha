@@ -14,7 +14,7 @@ static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameT
 namespace Gfx
 {
 
-CallResult init()
+CallResult setOutputVideoMode(const Base::Window &win)
 {
 	logMsg("running init");
 
@@ -22,31 +22,9 @@ CallResult init()
 		logMsg("error checking off");
 	#endif
 
-	if( Base::openGLInit() != OK )
-		return INIT_ERROR;
-
 	if(animateOrientationChange)
 	{
 		projAngleM.init(0);
-	}
-
-	return OK;
-}
-
-CallResult setOutputVideoMode(const Base::Window &win)
-{
-	if(forceNoMultisample)
-	{
-		Base::openGLSetOutputVideoMode(win);
-	}
-	else
-	{
-		if(Base::openGLSetMultisampleVideoMode(win) != OK)
-		{
-			logMsg("multisample video mode not supported");
-			forceNoMultisample = 1;
-			Base::openGLSetOutputVideoMode(win);
-		}
 	}
 
 	//logMsg("resizing viewport to %dx%d", x, y);
@@ -60,7 +38,7 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	logMsg("version: %s (%s)\nextensions: %s", version, rendererName, extensions);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
-		#ifndef CONFIG_BASE_X11
+		#if !defined CONFIG_BASE_X11 && !defined CONFIG_BASE_MACOSX
 		GLenum err = glewInit();
 		if (err != GLEW_OK)
 		{
@@ -131,6 +109,29 @@ CallResult setOutputVideoMode(const Base::Window &win)
 		//checkForDrawTexture();
 	#endif
 
+	/*#ifdef CONFIG_GFX_OPENGL_GLX
+	if(GLXEW_SGI_video_sync)
+	{
+		useSGIVidSync = 1;
+		glXGetVideoSyncSGI(&gfx_frameTime);
+	}
+	else
+	#endif
+	{
+		//logMsg("no video sync counter, using system time");
+		startFrameTime.setTimeNow();
+		//halfFrameTime.setUSecs(16000/2);
+		//oneFrameTime.setUSecs(16666);
+		//firstOneFrameTime.setUSecs(19500);
+		//gfx_frameClockTime = 0;
+	}*/
+
+	glcEnableClientState(GL_VERTEX_ARRAY);
+	return OK;
+}
+
+void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
+{
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(Base::androidSDK() < 14)
 			directTextureConf.checkForEGLImageKHR(extensions, rendererName);
@@ -158,26 +159,6 @@ CallResult setOutputVideoMode(const Base::Window &win)
 			}
 		}
 	#endif
-
-	/*#ifdef CONFIG_GFX_OPENGL_GLX
-	if(GLXEW_SGI_video_sync)
-	{
-		useSGIVidSync = 1;
-		glXGetVideoSyncSGI(&gfx_frameTime);
-	}
-	else
-	#endif
-	{
-		//logMsg("no video sync counter, using system time");
-		startFrameTime.setTimeNow();
-		//halfFrameTime.setUSecs(16000/2);
-		//oneFrameTime.setUSecs(16666);
-		//firstOneFrameTime.setUSecs(19500);
-		//gfx_frameClockTime = 0;
-	}*/
-
-	glcEnableClientState(GL_VERTEX_ARRAY);
-	return OK;
 }
 
 }

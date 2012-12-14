@@ -18,7 +18,8 @@ else
   LDLIBS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config libpng --libs --static --define-variable=prefix=$(system_externalSysroot))
  else
   CPPFLAGS += $(shell pkg-config libpng --cflags)
-  LDLIBS += $(shell pkg-config libpng --libs)
+  # GOLD linker complains if -lz not explicitly linked
+  LDLIBS += $(shell pkg-config libpng --libs) -lz
  endif
 endif
 

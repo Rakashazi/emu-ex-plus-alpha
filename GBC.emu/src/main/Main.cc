@@ -12,12 +12,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "GbcEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 #include <gambatte.h>
 #include <resample/resamplerinfo.h>
 static gambatte::GB gbEmu;
@@ -82,7 +76,7 @@ static void writeCheatFile()
 		return;
 
 	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.gbcht", EmuSystem::gamePath, EmuSystem::gameName);
+	sprintf(filename, "%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName);
 
 	if(!cheatList.size)
 	{
@@ -118,7 +112,7 @@ static void writeCheatFile()
 static void readCheatFile()
 {
 	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.gbcht", EmuSystem::gamePath, EmuSystem::gameName);
+	sprintf(filename, "%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName);
 	auto file = IoSys::open(filename);
 	if(!file)
 	{
@@ -223,10 +217,10 @@ static void applyGBPalette(uint idx)
 		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
 }
 
-static Option<OptionMethodVar<uint8, optionIsValidWithMax<sizeofArray(gbPal)-1> > > optionGBPal
-		(CFGKEY_GB_PAL_IDX, 0);
-static BasicByteOption optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
-static BasicByteOption optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
+static Byte1Option optionGBPal
+		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<sizeofArray(gbPal)-1>);
+static Byte1Option optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
+static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
 
 namespace gambatte
 {
@@ -427,9 +421,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.gqs", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -466,6 +460,11 @@ void EmuSystem::saveBackupMem()
 	gbEmu.saveSavedata();
 
 	writeCheatFile();
+}
+
+void EmuSystem::savePathChanged()
+{
+	gbEmu.setSaveDir(savePath());
 }
 
 void EmuSystem::saveAutoState()
@@ -613,6 +612,16 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	mainInitCommon();
+	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);
+	applyGBPalette(optionGBPal);
+	gbEmu.setInputGetter(&gbcInput);
+	gbEmu.setSaveDir(EmuSystem::savePath());
+	return OK;
+}
+
+CallResult onWindowInit()
+{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -622,20 +631,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);
-	applyGBPalette(optionGBPal);
-	gbEmu.setInputGetter(&gbcInput);
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
-	return(OK);
+	mainInitWindowCommon(navViewGrad);
+	return OK;
 }
 
 }
-
-#undef thisModuleName

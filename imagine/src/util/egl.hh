@@ -4,6 +4,28 @@
 #include <logger/interface.h>
 #include <util/cLang.h>
 
+static const EGLint eglAttrWinLowColor[] =
+{
+	EGL_NONE
+};
+
+static const EGLint eglAttrWinMaxRGB[] =
+{
+	EGL_BLUE_SIZE, 1,
+	EGL_GREEN_SIZE, 1,
+	EGL_RED_SIZE, 1,
+	EGL_NONE
+};
+
+static const EGLint eglAttrWinMaxRGBA[] =
+{
+	EGL_BLUE_SIZE, 1,
+	EGL_GREEN_SIZE, 1,
+	EGL_RED_SIZE, 1,
+	EGL_ALPHA_SIZE, 1,
+	EGL_NONE
+};
+
 static const char* eglSurfaceTypeToStr(EGLint type)
 {
 	switch(type & 0x7)

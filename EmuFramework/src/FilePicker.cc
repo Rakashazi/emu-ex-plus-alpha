@@ -151,5 +151,3 @@ void BenchmarkFilePicker::onClose(const InputEvent &e)
 {
 	View::removeModalView();
 }
-
-#undef thisModuleName

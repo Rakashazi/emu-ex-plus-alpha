@@ -39,13 +39,6 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *);
 bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
-
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "GbaEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 const uint EmuSystem::maxPlayers = 1;
 uint EmuSystem::aspectRatioX = 3, EmuSystem::aspectRatioY = 2;
 #include "CommonGui.hh"
@@ -277,9 +270,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	sprintf(str, "%s/%s%c.sgm", gamePath, gameName, saveSlotChar(slot));
+	sprintf(str, "%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -324,7 +317,7 @@ void EmuSystem::saveBackupMem()
 	{
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
-		snprintf(saveStr, sizeof(saveStr), "%s%s", gameName, ".sav");
+		snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
 		#ifdef CONFIG_BASE_IOS_SETUID
 			fixFilePermissions(saveStr);
 		#endif
@@ -361,7 +354,7 @@ int EmuSystem::loadGame(const char *path)
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	FsSys::cPath saveStr;
-	snprintf(saveStr, sizeof(saveStr), "%s%s", gameName, ".sav");
+	snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
 	CPUReadBatteryFile(gGba, saveStr);
 	logMsg("started emu");
 	return 1;
@@ -425,12 +418,22 @@ void EmuSystem::configAudioRate()
 	soundSetSampleRate(gGba, optionSoundRate *.9954);
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Base
 {
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
+{
+	mainInitCommon();
+	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);
+	utilUpdateSystemColorMaps(0);
+	return OK;
+}
+
+CallResult onWindowInit()
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -441,16 +444,7 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);
-	utilUpdateSystemColorMaps(0);
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 

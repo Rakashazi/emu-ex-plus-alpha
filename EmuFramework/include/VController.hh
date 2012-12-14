@@ -20,12 +20,8 @@
 #include <base/Base.hh>
 #include <input/DragPointer.hh>
 #include <resource2/image/ResourceImage.h>
-#include <Option.hh>
+#include <EmuOptions.hh>
 #include <EmuSystem.hh>
-
-extern Option2DOrigin optionTouchCtrlFaceBtnPos;
-extern Option2DOrigin optionTouchCtrlDpadPos;
-extern BasicByteOption optionVibrateOnPush;
 
 class VControllerDPad
 {
@@ -74,21 +70,21 @@ template <uint faceBtns, uint centerBtns = 2, bool hasTriggerButtons = 0, bool r
 class VControllerGamepad
 {
 public:
+	constexpr VControllerGamepad() { }
 	Rect2<int> faceBtnBound[faceBtns], centerBtnBound[centerBtns];
 	Gfx::Sprite circleBtnSpr[faceBtns], centerBtnSpr[centerBtns];
 	Area faceBtn[faceBtns], centerBtn[centerBtns];
 	VControllerDPad dp;
 	Area btnArea;
-	uint triggerPos;
-	uint activeFaceBtns;
-	GC btnSize, btnSpace, btnStagger, btnRowShift;
-	GC btnExtraXSize, btnExtraYSize, btnExtraYSizeMultiRow;
-	_2DOrigin btnO, cenBtnO;
-	bool showBoundingArea;
+	uint triggerPos = 0;
+	uint activeFaceBtns = faceBtns;
+	GC btnSize = 0, btnSpace = 0, btnStagger = 0, btnRowShift = 0;
+	GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
+	_2DOrigin btnO {RB2DO}, cenBtnO;
+	bool showBoundingArea = 0;
 
 	void init(float alpha, GC size)
 	{
-		circleBtnSpr[0].img = 0;
 		dp.init();
 
 		forEachInArray(faceBtn, e)
@@ -102,12 +98,6 @@ public:
 		}
 
 		btnSize = size;
-		btnSpace = 0;
-		btnStagger = 0;
-		btnO = RB2DO;
-		btnExtraXSize = btnExtraYSize = btnExtraYSizeMultiRow = 0.001;
-		showBoundingArea = 0;
-		activeFaceBtns = faceBtns;
 	}
 
 	void setBoundingAreaVisible(bool on)

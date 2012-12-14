@@ -318,5 +318,3 @@ CallResult init()
 }
 
 }
-
-#undef thisModuleName

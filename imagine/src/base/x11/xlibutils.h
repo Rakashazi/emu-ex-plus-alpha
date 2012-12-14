@@ -67,7 +67,7 @@ static const char *xIEventTypeToStr(int type)
 }
 
 // same as XGetGeometry but can pass null args for unwanted values
-Status safeXGetGeometry(Display *display, Drawable d, X11Window *root_return, int *x_return, int *y_return,
+static Status safeXGetGeometry(Display *display, Drawable d, X11Window *root_return, int *x_return, int *y_return,
 		unsigned int *width_return, unsigned int *height_return, unsigned int *border_width_return, unsigned int *depth_return)
 {
 	uint borderDummy;
@@ -80,4 +80,11 @@ Status safeXGetGeometry(Display *display, Drawable d, X11Window *root_return, in
 		x_return ? x_return : &xDummy, y_return ? y_return : &yDummy,
 		width_return ? width_return : &widthDummy, height_return ? height_return : &heightDummy,
 		border_width_return ? border_width_return : &borderDummy, depth_return ? depth_return : &depthDummy);
+}
+
+static uint xDrawableDepth(Display *dpy, Drawable d)
+{
+	uint depth;
+	safeXGetGeometry(dpy, d, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &depth);
+	return depth;
 }

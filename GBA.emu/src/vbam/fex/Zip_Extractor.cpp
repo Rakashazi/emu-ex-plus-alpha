@@ -320,7 +320,7 @@ blargg_err_t Zip_Extractor::first_read( int count )
 	// Determine compression
 	{
 		int method = get_le16( e.method );
-		if ( (method && method != Z_DEFLATED) || get_le16( e.vers ) > 20 )
+		if ( (method && method != Z_DEFLATED) || (get_le16( e.vers ) & 0xFF) > 20 )
 			return BLARGG_ERR( BLARGG_ERR_FILE_FEATURE, "compression method" );
 		file_deflated = (method != 0);
 	}

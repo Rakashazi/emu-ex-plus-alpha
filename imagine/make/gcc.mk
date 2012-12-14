@@ -8,9 +8,6 @@ ifdef O_LTO
 endif
 
 gccVersion := $(shell $(CC) -dumpversion)
-# TODO: remove, GCC 4.7 now required
-#gccFeatures4_6 := $(shell expr $(gccVersion) \>= 4.6)
-#gccFeatures4_7 := $(shell expr $(gccVersion) \>= 4.7)
 
 #WHOLE_PROGRAM_CFLAGS += -fipa-pta
 BASE_CXXFLAGS += -std=gnu++0x

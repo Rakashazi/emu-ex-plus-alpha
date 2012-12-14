@@ -15,14 +15,13 @@
 
 #include <libgen.h>
 #include <EmuSystem.hh>
-#include <Option.hh>
+#include <EmuOptions.hh>
 #include <audio/Audio.hh>
-extern BasicByteOption optionSound;
-extern BasicByteOption optionAutoSaveState;
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FsSys::cPath EmuSystem::gamePath = "";
 FsSys::cPath EmuSystem::fullGamePath = "";
+FsSys::cPath EmuSystem::savePath_ = "";
 char EmuSystem::gameName[256] = "";
 char EmuSystem::fullGameName[256] = "";
 TimeSys EmuSystem::startTime;

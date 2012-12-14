@@ -19,7 +19,15 @@ else
  android_soName := imagine
 endif
 
-include $(currPath)/gcc.mk
+ifeq ($(config_compiler),clang)
+ # TODO: not 100% working yet
+ ifeq ($(origin CC), default)
+  CC := clang
+ endif
+ include $(currPath)/clang.mk
+else
+ include $(currPath)/gcc.mk
+endif
 
 ifndef android_stdcxx
  ifdef cxxExceptions

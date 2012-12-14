@@ -6,7 +6,8 @@ ifeq ($(CROSS_COMPILE), 1)
  LDLIBS += $(shell PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config minizip --libs --static --define-variable=prefix=$(system_externalSysroot))
 else
  CPPFLAGS += $(shell pkg-config minizip --cflags)
- LDLIBS += $(shell pkg-config minizip --libs)
+ # GOLD linker complains if -lz not explicitly linked
+ LDLIBS += $(shell pkg-config minizip --libs) -lz
 endif
 
 endif

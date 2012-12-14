@@ -155,7 +155,8 @@ void setImgMode(uint mode)
 
 void setBlendEquation(uint mode)
 {
-#ifndef CONFIG_ENV_WEBOS
+#if !defined CONFIG_GFX_OPENGL \
+	|| (defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_PS3)
 	glcBlendEquation(mode == BLEND_EQ_ADD ? GL_FUNC_ADD :
 			mode == BLEND_EQ_SUB ? GL_FUNC_SUBTRACT :
 			mode == BLEND_EQ_RSUB ? GL_FUNC_REVERSE_SUBTRACT :

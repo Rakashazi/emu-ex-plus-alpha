@@ -12,12 +12,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "Snes9x.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 #include <snes9x.h>
 #ifdef USE_SNES9X_15X
 	#include <apu/apu.h>
@@ -72,7 +66,7 @@ enum {
 	CFGKEY_MULTITAP = 276,
 };
 
-static BasicByteOption optionMultitap(CFGKEY_MULTITAP, 0);
+static Byte1Option optionMultitap(CFGKEY_MULTITAP, 0);
 
 const uint EmuSystem::maxPlayers = 5;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -377,9 +371,9 @@ static char saveSlotChar(int slot)
 	#define FREEZE_EXT "s96"
 #endif
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c." FREEZE_EXT, gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
 }
 
 #undef FREEZE_EXT
@@ -387,7 +381,7 @@ void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char
 template <size_t S>
 static void sprintSRAMFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::gamePath, EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName);
 }
 
 int EmuSystem::saveState()
@@ -623,6 +617,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	doS9xAudio(renderAudio);
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 void onInputEvent(const InputEvent &e)
@@ -741,15 +737,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-		{ .3, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-		{ .97, VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
-		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
 	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
 	//Settings.FrameTimePAL = 20000;
 	//Settings.FrameTimeNTSC = 16667;
@@ -805,18 +792,24 @@ CallResult onInit()
 	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
 	#endif
 
-	mainInitCommon(navViewGrad);
+	mainInitCommon();
 	emuView.initPixmap((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
+	return OK;
+}
 
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
+CallResult onWindowInit()
+{
+	static const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
 
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 
 }
-
-#undef thisModuleName

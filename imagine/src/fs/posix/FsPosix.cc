@@ -23,10 +23,7 @@
 #include "FsPosix.hh"
 
 #ifdef __APPLE__
-namespace Base
-{
-	void precomposeUnicodeString(const char *src, char *dest, uint destSize);
-}
+#include <util/apple/string.h>
 #endif
 
 #if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100
@@ -186,7 +183,7 @@ CallResult FsPosix::openDir(const char* path, uint flags, FsDirFilterFunc f, FsD
 		// TODO: make optional when renderer supports decomposed unicode
 		iterateTimes(numEntries_, i)
 		{
-			Base::precomposeUnicodeString(entry[i]->d_name, entry[i]->d_name, sizeof(entry[i]->d_name));
+			precomposeUnicodeString(entry[i]->d_name, entry[i]->d_name, sizeof(entry[i]->d_name));
 		}
 	#endif
 
@@ -258,32 +255,27 @@ char *FsPosix::workDir()
 	if(workDirChanged)
 	{
 		//logMsg("getting working dir");
-		/*char *envPWD;
-		if((envPWD = getenv ("PWD")) == 0)
-		{
-			logWarn("unable to get working dir from env");
-		}
-		else
-		{
-			string_copy(wDir, envPWD, sizeof(wDir));
-			workDirChanged = 0;
-			return wDir;
+		// TODO: look into getenv("PWD") instead of getcwd
+		/*{
+			auto currentDirName = getenv("PWD");
+			if(!currentDirName)
+			{
+				logWarn("unable to get working dir from getenv");
+				return wDir;
+			}
+			string_copy(wDir, currentDirName);
 		}*/
-
 		if(!getcwd(wDir, sizeof(wDir)))
 		{
 			logWarn("unable to get working dir from getcwd");
-		}
-		else
-		{
-			#ifdef __APPLE__
-				// Precompose all strings for text renderer
-				// TODO: make optional when renderer supports decomposed unicode
-				Base::precomposeUnicodeString(wDir, wDir, sizeof(wDir));
-			#endif
-			workDirChanged = 0;
 			return wDir;
 		}
+		#ifdef __APPLE__
+			// Precompose all strings for text renderer
+			// TODO: make optional when renderer supports decomposed unicode
+			precomposeUnicodeString(wDir, wDir, sizeof(wDir));
+		#endif
+		workDirChanged = 0;
 	}
 	return wDir;
 }

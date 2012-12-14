@@ -23,3 +23,7 @@ LDLIBS += -L$(system_externalSysroot)/lib
 LDLIBS += -Wl,-shared,-dynamic-linker,/system/bin/linker,-X
 
 include $(currPath)/android-gcc.mk
+
+ifeq ($(config_compiler),clang)
+ android_cpuFlags += -target i686-none-linux-android
+endif

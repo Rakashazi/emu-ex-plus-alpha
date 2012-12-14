@@ -328,5 +328,3 @@ int IoFd::eof()
 	//logMsg("called eof");
 	return IoFd::size() == (uint)ftell() ? 1 : 0;
 }
-
-#undef thisModuleName

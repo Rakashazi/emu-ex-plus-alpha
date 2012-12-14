@@ -26,6 +26,7 @@
 #include <ButtonConfigView.hh>
 #include <TouchConfigView.hh>
 #include <EmuView.hh>
+#include <FilePicker.hh>
 
 extern YesNoAlertView ynAlertView;
 extern ButtonConfigView bcMenu;
@@ -33,6 +34,7 @@ extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 extern ViewStack viewStack;
 extern TouchConfigView tcMenu;
 extern EmuView emuView;
+extern EmuFilePicker fPicker;
 void setupStatusBarInMenu();
 void setupFont();
 void applyOSNavStyle();
@@ -200,6 +202,17 @@ protected:
 
 	BoolMenuItem rememberLastMenu {"Remember Last Menu"};
 
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	BoolMenuItem bestColorModeHint {"Use Highest Color Mode"};
+	void bestColorModeHintHandler(BoolMenuItem &item, const InputEvent &e);
+	void confirmBestColorModeHintAlert(const InputEvent &e);
+#endif
+
+	void savePathUpdated(const char *newPath);
+	void savePathHandler(TextMenuItem &, const InputEvent &e);
+	char savePathStr[256] {0};
+	TextMenuItem savePath {""};
+
 	TextMenuItem buttonConfig {"Key Config"};
 
 	#ifdef CONFIG_INPUT_ICADE
@@ -283,4 +296,60 @@ public:
 	constexpr OptionView(): BaseMenuView("Options") { }
 
 	void init(uint idx, bool highlightFirst);
+};
+
+class BiosSelectMenu : public BaseMultiChoiceView
+{
+public:
+	constexpr BiosSelectMenu() { }
+	constexpr BiosSelectMenu(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type))
+		:biosPathStr(biosPathStr), fsFilter(fsFilter) { }
+	TextMenuItem choiceEntry[2];
+	MenuItem *choiceEntryItem[2] {nullptr};
+	typedef Delegate<void ()> BiosChangeDelegate;
+	BiosChangeDelegate biosChangeDel;
+	FsSys::cPath *biosPathStr = nullptr;
+	int (*fsFilter)(const char *name, int type) = nullptr;
+
+	void onSelectFile(const char* name, const InputEvent &e)
+	{
+		logMsg("size %d", (int)sizeof(*biosPathStr));
+		snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
+		biosChangeDel.invokeSafe();
+		View::removeModalView();
+	}
+
+	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
+	{
+		var_selfs(biosPathStr);
+		var_selfs(fsFilter);
+		init(highlightFirst);
+	}
+
+	void init(bool highlightFirst)
+	{
+		assert(biosPathStr);
+		choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
+		choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
+		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
+	}
+
+	void onSelectElement(const GuiTable1D *, const InputEvent &e, uint i)
+	{
+		removeModalView();
+		if(i == 0)
+		{
+			fPicker.init(!e.isPointer(), fsFilter);
+			fPicker.onSelectFileDelegate().bind<BiosSelectMenu, &BiosSelectMenu::onSelectFile>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+		else
+		{
+			strcpy(*biosPathStr, "");
+			biosChangeDel.invokeSafe();
+		}
+	}
 };

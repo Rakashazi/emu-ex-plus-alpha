@@ -1,40 +1,9 @@
 #pragma once
 #include "OptionView.hh"
 #include <util/cLang.h>
+#include <libgen.h>
 
 static void setupMDInput();
-
-class CDBIOSFilePicker
-{
-	static char *path;
-public:
-	static void onSelectFile(const char* name, const InputEvent &e)
-	{
-		snprintf(path, sizeof(FsSys::cPath), "%s/%s", FsSys::workDir(), name);
-		logMsg("set bios %s", path);
-		View::removeModalView();
-	}
-
-	static void onClose(const InputEvent &e)
-	{
-		View::removeModalView();
-	}
-
-	static void init(bool highlightFirst, uint region)
-	{
-		switch(region)
-		{
-			bdefault: path = cdBiosUSAPath;
-			bcase REGION_JAPAN_NTSC: path = optionCDBiosJpnPath;
-			bcase REGION_EUROPE: path = optionCDBiosEurPath;
-		}
-		fPicker.init(highlightFirst, mdROMFsFilter);
-		fPicker.onSelectFileDelegate().bind<&CDBIOSFilePicker::onSelectFile>();
-		fPicker.onCloseDelegate().bind<&CDBIOSFilePicker::onClose>();
-	}
-};
-
-char *CDBIOSFilePicker::path = cdBiosUSAPath;
 
 class SystemOptionView : public OptionView
 {
@@ -104,20 +73,84 @@ private:
 		config.region_detect = val;
 	}
 
-	struct CdBiosPathMenuItem : public TextMenuItem
+	static int regionCodeToIdx(int region)
 	{
-		constexpr CdBiosPathMenuItem() { }
-		uint region = 0;
-		void init(const char *name, uint region) { TextMenuItem::init(name); var_selfs(region); }
-
-		void select(View *view, const InputEvent &e)
+		switch(region)
 		{
-			CDBIOSFilePicker::init(!e.isPointer(), region);
-			fPicker.placeRect(Gfx::viewportRect());
-			modalView = &fPicker;
-			Base::displayNeedsUpdate();
+			default: return 0;
+			case REGION_JAPAN_NTSC: return 1;
+			case REGION_EUROPE: return 2;
 		}
-	} cdBiosPath[3];
+	}
+
+	static FsSys::cPath &regionCodeToStrBuffer(int region)
+	{
+		switch(region)
+		{
+			default: return cdBiosUSAPath;
+			case REGION_JAPAN_NTSC: return cdBiosJpnPath;
+			case REGION_EUROPE: return cdBiosEurPath;
+		}
+	}
+
+	BiosSelectMenu biosSelectMenu;
+	char cdBiosPathStr[3][256] { {0} };
+	TextMenuItem cdBiosPath[3];
+
+	template <size_t S>
+	static void printBiosMenuEntryStr(char (&str)[S], int region)
+	{
+		const char *path = "";
+		switch(region)
+		{
+			bdefault: path = cdBiosUSAPath;
+			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath;
+			bcase REGION_EUROPE: path = cdBiosEurPath;
+		}
+		const char *regionStr = "";
+		switch(region)
+		{
+			bdefault: regionStr = "USA";
+			bcase REGION_JAPAN_NTSC: regionStr = "Japan";
+			bcase REGION_EUROPE: regionStr = "Europe";
+		}
+		char basenameStr[S];
+		strcpy(basenameStr, path);
+		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? basename(basenameStr) : "None set");
+	}
+
+	template <int region>
+	void cdBiosPathUpdated()
+	{
+		auto idx = regionCodeToIdx(region);
+		logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region));
+		printBiosMenuEntryStr(cdBiosPathStr[idx], region);
+		cdBiosPath[idx].compile();
+	}
+
+	template <int region>
+	void cdBiosPathHandler(TextMenuItem &item, const InputEvent &e)
+	{
+		biosSelectMenu.init(&regionCodeToStrBuffer(region), mdROMFsFilter, !e.isPointer());
+		biosSelectMenu.placeRect(Gfx::viewportRect());
+		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::cdBiosPathUpdated<region>>(this);
+		modalView = &biosSelectMenu;
+		Base::displayNeedsUpdate();
+	}
+
+	void cdBiosPathInit(MenuItem *item[], uint &items)
+	{
+		const int region[3] = { REGION_USA, REGION_JAPAN_NTSC, REGION_EUROPE };
+		iterateTimes(3, i)
+		{
+			printBiosMenuEntryStr(cdBiosPathStr[i], region[i]);
+			cdBiosPath[i].init(cdBiosPathStr[i]); item[items++] = &cdBiosPath[i];
+		}
+
+		cdBiosPath[0].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_USA>>(this);
+		cdBiosPath[1].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_JAPAN_NTSC>>(this);
+		cdBiosPath[2].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_EUROPE>>(this);
+	}
 
 	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
 
@@ -187,9 +220,7 @@ public:
 		bigEndianSram.init("Use Big-Endian SRAM", optionBigEndianSram); item[items++] = &bigEndianSram;
 		bigEndianSram.selectDelegate().bind<SystemOptionView, &SystemOptionView::bigEndianSramHandler>(this);
 		regionInit(); item[items++] = &region;
-		cdBiosPath[0].init("Select USA CD BIOS", REGION_USA); item[items++] = &cdBiosPath[0];
-		cdBiosPath[1].init("Select Japan CD BIOS", REGION_JAPAN_NTSC); item[items++] = &cdBiosPath[1];
-		cdBiosPath[2].init("Select Europe CD BIOS", REGION_EUROPE); item[items++] = &cdBiosPath[2];
+		cdBiosPathInit(item, items);
 	}
 
 	void init(uint idx, bool highlightFirst)

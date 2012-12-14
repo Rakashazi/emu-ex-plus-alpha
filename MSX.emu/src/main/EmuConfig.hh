@@ -2,6 +2,12 @@
 
 #include <util/preprocessor/repeat.h>
 
+#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
+	#define CONFIG_FILE_NAME "MsxEmu.config"
+#else
+	#define CONFIG_FILE_NAME "config"
+#endif
+
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Space/KB";
 static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 #define CONFIG_VCONTROLLER_KEYBOARD

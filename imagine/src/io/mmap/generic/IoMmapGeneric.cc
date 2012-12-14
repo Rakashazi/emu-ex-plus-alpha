@@ -42,5 +42,3 @@ void IoMmapGeneric::close()
 	if(free)
 		free((void*)data);
 }
-
-#undef thisModuleName

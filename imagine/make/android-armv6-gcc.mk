@@ -22,3 +22,7 @@ ifeq ($(android_hasSDK9), 1)
 else
  android_cpuFlags += -march=armv5te -mtune=xscale -msoft-float
 endif
+
+ifeq ($(config_compiler),clang)
+ android_cpuFlags += -target armv5te-none-linux-androideabi
+endif

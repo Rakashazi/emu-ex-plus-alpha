@@ -27,12 +27,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "NesEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 static uint fceuCheats = 0;
 
 #include <fceu/driver.h>
@@ -110,8 +104,8 @@ enum {
 };
 
 FsSys::cPath fdsBiosPath = "";
-static PathOption<CFGKEY_FDS_BIOS_PATH> optionFdsBiosPath(fdsBiosPath, sizeof(fdsBiosPath), "");
-static BasicByteOption optionFourScore(CFGKEY_FOUR_SCORE, 0);
+static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, sizeof(fdsBiosPath), "");
+static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
 
 const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -247,9 +241,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.fc%c", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -461,7 +455,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
-	bool usingTimer = optionFrameSkip == optionFrameSkipAuto || PAL;
+	bool usingTimer = (uint)optionFrameSkip == optionFrameSkipAuto || PAL;
 	float rate = (float)optionSoundRate * (PAL ? 1. : 1.0016);
 	#if defined(CONFIG_ENV_WEBOS)
 	if(optionFrameSkip != optionFrameSkipAuto)
@@ -615,12 +609,36 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 		unsetBits(padData, emuKey << playerInputShift(player));
 }
 
+void EmuSystem::savePathChanged()
+{
+	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
+	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+}
+
 namespace Base
 {
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
+{
+	Audio::setHintPcmFramesPerWrite(950); // for PAL
+	mainInitCommon();
+	EmuSystem::pcmFormat.channels = 1;
+	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
+	backupSavestates = 0;
+	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
+	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+	if(!FCEUI_Initialize())
+	{
+		logErr("error in FCEUI_Initialize");
+		Base::abort();
+	}
+	//FCEUI_SetSoundQuality(2);
+	return OK;
+}
+
+CallResult onWindowInit()
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -631,29 +649,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	Audio::setHintPcmFramesPerWrite(950); // for PAL
-	mainInitCommon(navViewGrad);
-	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
-	backupSavestates = 0;
-	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::gamePath);
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::gamePath);
-	if(!FCEUI_Initialize())
-	{
-		logErr("error in FCEUI_Initialize");
-		Base::abort();
-	}
-	//FCEUI_SetSoundQuality(2);
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 
 }
-
-#undef thisModuleName

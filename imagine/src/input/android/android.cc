@@ -103,5 +103,3 @@ static jboolean JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 }
 
 }
-
-#undef thisModuleName

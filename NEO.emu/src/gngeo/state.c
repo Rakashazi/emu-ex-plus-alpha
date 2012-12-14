@@ -441,7 +441,7 @@ bool save_state(char *game,int slot) {
 
 #else
 
-static char *getGngeoDir()
+static const char *getGngeoDir()
 {
 #ifdef EMBEDDED_FS
 	return ROOTPATH"save/";

@@ -260,5 +260,3 @@ int IoZip::eof()
 {
 	return unzeof(zip);
 }
-
-#undef thisModuleName

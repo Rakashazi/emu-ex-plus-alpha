@@ -95,6 +95,10 @@
 			#undef Window
 			#undef BOOL
 		#endif
+	#elif defined CONFIG_BASE_MACOSX
+		#define GL_GLEXT_PROTOTYPES
+		#include <GL/gl.h>
+		#include <GL/glext.h>
 	#else
 		// for using the standard GLEW lib
 		#include <GL/glew.h>

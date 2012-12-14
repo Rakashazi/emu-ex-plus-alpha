@@ -20,82 +20,79 @@
 #include <bluetooth/BluetoothAdapter.hh>
 #include <audio/Audio.hh>
 
-extern BasicByteOption optionAutoSaveState;
-extern BasicByteOption optionConfirmAutoLoadState;
-extern BasicByteOption optionSound;
+extern Byte1Option optionAutoSaveState;
+extern Byte1Option optionConfirmAutoLoadState;
+extern Byte1Option optionSound;
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 extern OptionAudioHintPcmMaxBuffers optionSoundBuffers;
 #endif
 #ifdef CONFIG_AUDIO_OPENSL_ES
 extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
 #endif
-extern OptionSoundRate optionSoundRate;
-extern BasicByteOption optionLargeFonts;
-extern BasicByteOption optionVibrateOnPush;
-extern BasicByteOption optionPauseUnfocused;
-extern BasicByteOption optionNotificationIcon;
-extern BasicByteOption optionTitleBar;
+extern Byte4Option optionSoundRate;
+extern Byte1Option optionLargeFonts;
+extern Byte1Option optionVibrateOnPush;
+extern Byte1Option optionPauseUnfocused;
+extern Byte1Option optionNotificationIcon;
+extern Byte1Option optionTitleBar;
 extern OptionBackNavigation optionBackNavigation;
-extern BasicByteOption optionRememberLastMenu;
-extern BasicByteOption optionLowProfileOSNav;
-extern BasicByteOption optionHideOSNav;
-extern BasicByteOption optionIdleDisplayPowerSave;
-extern BasicByteOption optionShowMenuIcon;
-extern BasicByteOption optionHideStatusBar;
+extern Byte1Option optionRememberLastMenu;
+extern Byte1Option optionLowProfileOSNav;
+extern Byte1Option optionHideOSNav;
+extern Byte1Option optionIdleDisplayPowerSave;
+extern Byte1Option optionShowMenuIcon;
+extern Byte1Option optionHideStatusBar;
 extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
 
 #ifdef CONFIG_BLUETOOTH
-extern BasicByteOption optionKeepBluetoothActive;
+extern Byte1Option optionKeepBluetoothActive;
 extern OptionBlueToothScanCache optionBlueToothScanCache;
 #endif
 
-extern OptionMethodImgFilter optionImgFilter;
+extern Byte4s1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
 
 
-extern OptionMethodOverlayEffect optionOverlayEffect;
-extern OptionMethodOverlayEffectLevel optionOverlayEffectLevel;
+extern Byte1Option optionOverlayEffect;
+extern Byte1Option optionOverlayEffectLevel;
 
-extern OptionMethodRelPointerDecel optionRelPointerDecel;
+static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
+extern Byte4Option optionRelPointerDecel;
 
+extern Byte4s1Option optionGameOrientation;
+extern Byte4s1Option optionMenuOrientation;
 
-extern OptionMethodOrientation optionGameOrientation;
-extern OptionMethodOrientation optionMenuOrientation;
+extern Byte1Option optionTouchCtrl;
 
-extern OptionMethodTouchCtrl optionTouchCtrl;
+extern Byte1Option optionTouchCtrlAlpha;
 
-extern OptionMethodTouchCtrlAlpha optionTouchCtrlAlpha;
-
-bool isValidOption2DO(_2DOrigin val);
-bool isValidOption2DOCenterBtn(_2DOrigin val);
-
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<1400> >, uint16> optionTouchCtrlSize;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<160> >, uint16> optionTouchDpadDeadzone;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMinMax<1000,2500> >, uint16> optionTouchDpadDiagonalSensitivity;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<400> >, uint16> optionTouchCtrlBtnSpace;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<5> >, uint16> optionTouchCtrlBtnStagger;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<3> >, uint16> optionTouchCtrlTriggerBtnPos;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraXBtnSize;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSize;
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<1000> >, uint16> optionTouchCtrlExtraYBtnSizeMultiRow;
+extern Byte4s2Option optionTouchCtrlSize;
+extern Byte4s2Option optionTouchDpadDeadzone;
+extern Byte4s2Option optionTouchDpadDiagonalSensitivity;
+extern Byte4s2Option optionTouchCtrlBtnSpace;
+extern Byte4s2Option optionTouchCtrlBtnStagger;
+extern Byte4s2Option optionTouchCtrlTriggerBtnPos;
+extern Byte4s2Option optionTouchCtrlExtraXBtnSize;
+extern Byte4s2Option optionTouchCtrlExtraYBtnSize;
+extern Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow;
+extern Byte1Option optionTouchCtrlBoundingBoxes;
 
 extern Option2DOrigin optionTouchCtrlDpadPos;
 extern Option2DOrigin optionTouchCtrlFaceBtnPos;
-extern Option2DOriginC optionTouchCtrlCenterBtnPos;
+extern Option2DOrigin optionTouchCtrlCenterBtnPos;
 extern Option2DOrigin optionTouchCtrlMenuPos;
 extern Option2DOrigin optionTouchCtrlFFPos;
 
-bool optionFrameSkipIsValid(uint32 val);
-extern Option<OptionMethodVar<uint32, optionFrameSkipIsValid >, uint8> optionFrameSkip;
+extern Byte1Option optionFrameSkip;
 
-bool optionImageZoomIsValid(uint32 val);
-extern Option<OptionMethodVar<uint32, optionImageZoomIsValid>, uint8> optionImageZoom;
+static const uint optionImageZoomIntegerOnly = 255;
+extern Byte1Option optionImageZoom;
 
 extern OptionDPI optionDPI;
 
 extern OptionRecentGames optionRecentGames;
 
-extern Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optionTouchCtrlImgRes;
+extern Byte4s2Option optionTouchCtrlImgRes;
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
@@ -103,7 +100,7 @@ extern Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optio
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		extern Option<OptionMethodFunc<bool, Gfx::useAndroidSurfaceTexture, Gfx::setUseAndroidSurfaceTexture>, uint8> optionSurfaceTexture;
-		extern Option<OptionMethodVar<int8, optionIsValidWithMinMax<-17, 0> > > optionProcessPriority;
+		extern SByte1Option optionProcessPriority;
 	#endif
 	extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
@@ -116,6 +113,12 @@ extern Option<OptionMethodVar<uint32, optionIsValidWithMax<128> >, uint16> optio
 	extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 #endif
 
-extern Option<OptionMethodFunc<uint, Gfx::dither, Gfx::setDither>, uint8> optionDitherImage;
+extern Byte1Option optionDitherImage;
+
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	extern Byte1Option optionBestColorModeHint;
+#endif
+
+extern PathOption optionSavePath;
 
 void initOptions();

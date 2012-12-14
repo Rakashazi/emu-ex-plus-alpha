@@ -347,5 +347,3 @@ int ScrollView1D::inputEvent(const InputEvent &e)
 	}
 	return scrollHasControl;
 }
-
-#undef thisModuleName

@@ -2,6 +2,7 @@
 
 #include <engine-globals.h>
 #include <util/bits.h>
+#include <util/rectangle2.h>
 
 namespace Gfx
 {
@@ -49,5 +50,36 @@ extern uint viewMMWidth_, viewMMHeight_; // in MM
 static uint viewMMWidth() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewMMHeight_ : viewMMWidth_; }
 static uint viewMMHeight() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewMMWidth_ : viewMMHeight_; }
 void setupScreenSize(); // called after DPI update in base module
+
+// shortcuts for creating rectangles with origins in a viewport
+static Rect2<int> relRectFromViewport(int newX, int newY, int xSize, int ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+{
+	// adjust to the requested origin on the screen
+	newX = LTIC2DO.adjustX(newX, (int)Gfx::viewPixelWidth(), screenOrigin.invertYIfCartesian());
+	newY = LTIC2DO.adjustY(newY, (int)Gfx::viewPixelHeight(), screenOrigin.invertYIfCartesian());
+	Rect2<int> rect;
+	rect.setPosRel(newX, newY, xSize, ySize, posOrigin);
+	return rect;
+}
+
+static Rect2<int> relRectFromViewport(int newX, int newY, int size, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+{
+	return relRectFromViewport(newX, newY, size, size, posOrigin, screenOrigin);
+}
+
+static Rect2<int> relRectFromViewport(int newX, int newY, IG::Point2D<int> size, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+{
+	return relRectFromViewport(newX, newY, size.x, size.y, posOrigin, screenOrigin);
+}
+
+static IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio)
+{
+	return IG::sizesWithRatioBestFit(destAspectRatio, (int)viewPixelWidth(), (int)viewPixelHeight());
+}
+
+static Rect2<int> rectWithRatioBestFitFromViewport(int newX, int newY, Rational aR, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+{
+	return relRectFromViewport(newX, newY, sizesWithRatioBestFitFromViewport((float)aR), posOrigin, screenOrigin);
+}
 
 }

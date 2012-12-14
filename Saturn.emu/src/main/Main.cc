@@ -28,12 +28,6 @@ extern "C"
 
 static PerPad_struct *pad[2];
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "SaturnEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 static bool isCDExtension(const char *name)
 {
 	return string_hasDotExtension(name, "cue") ||
@@ -223,7 +217,7 @@ enum {
 };
 
 FsSys::cPath biosPath = "";
-static PathOption<CFGKEY_BIOS_PATH> optionBiosPath(biosPath, sizeof(biosPath), "");
+static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, sizeof(biosPath), "");
 
 static const int SH2CORE_DYNAREC = 2;
 static yabauseinit_struct yinit =
@@ -490,9 +484,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.yss", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -565,7 +559,7 @@ int EmuSystem::loadGame(const char *path)
 	closeGame();
 	setupGamePaths(path);
 
-	snprintf(bupPath, sizeof(bupPath), "%s/bkram.bin", gamePath);
+	snprintf(bupPath, sizeof(bupPath), "%s/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");
@@ -606,6 +600,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	YabauseEmulate();
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 void onInputEvent(const InputEvent &e)
@@ -621,6 +617,13 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	ScspSetFrameAccurate(1);
+	mainInitCommon();
+	return OK;
+}
+
+CallResult onWindowInit()
+{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -630,19 +633,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	ScspSetFrameAccurate(1);
-
-	mainInitCommon(navViewGrad);
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 
 }
-
-#undef thisModuleName

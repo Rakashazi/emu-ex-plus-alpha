@@ -38,6 +38,8 @@ void* android_app_entry(void* param);
 
 namespace Gfx
 {
+extern void setupAndroidOGLExtensions(const char *extensions, const char *rendererName);
+
 AndroidSurfaceTextureConfig surfaceTextureConf;
 
 void AndroidSurfaceTextureConfig::init(JNIEnv *jEnv)
@@ -79,41 +81,14 @@ void setUseAndroidSurfaceTexture(bool on)
 namespace Base
 {
 
-static const EGLint attribs16BPP[] =
-{
-	EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-	//EGL_DEPTH_SIZE, 24,
-	EGL_NONE
-};
-
-static const EGLint attribs24BPP[] =
-{
-	EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-	EGL_BLUE_SIZE, 8,
-	EGL_GREEN_SIZE, 8,
-	EGL_RED_SIZE, 8,
-	EGL_NONE
-};
-
-static const EGLint attribs32BPP[] =
-{
-	EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-	EGL_BLUE_SIZE, 8,
-	EGL_GREEN_SIZE, 8,
-	EGL_RED_SIZE, 8,
-	EGL_ALPHA_SIZE, 8,
-	EGL_NONE
-};
-
 struct EGLWindow
 {
 	EGLDisplay display = EGL_NO_DISPLAY;
 	EGLSurface surface = EGL_NO_SURFACE;
 	EGLContext context = EGL_NO_CONTEXT;
 	EGLConfig config = 0;
-	int winFormat = defaultWinFormat;
-	bool gotFormat = 0;
-	static constexpr int defaultWinFormat = WINDOW_FORMAT_RGB_565;
+	bool useMaxColorBits = 0;
+	bool has32BppColorBugs = 0;
 
 	constexpr EGLWindow() { }
 
@@ -129,43 +104,56 @@ struct EGLWindow
 		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
 	}
 
-	void init(ANativeWindow *win)
+	void initContext(ANativeWindow *win)
+	{
+		if(!useMaxColorBits)
+		{
+			logMsg("requesting lowest color config");
+		}
+		const EGLint *attribs = useMaxColorBits ? eglAttrWinMaxRGBA : eglAttrWinLowColor;
+		EGLint configs = 0;
+		eglChooseConfig(display, attribs, &config, 1, &configs);
+		#ifndef NDEBUG
+		printEGLConf(display, config);
+		#endif
+
+		assert(context == EGL_NO_CONTEXT);
+
+		logMsg("creating GL context");
+		context = eglCreateContext(display, config, 0, 0);
+
+		initSurface(win);
+	}
+
+	static int winFormatFromConfig(EGLDisplay display, EGLConfig config)
+	{
+		EGLint nId;
+		eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nId);
+		if(!nId)
+		{
+			nId = WINDOW_FORMAT_RGBA_8888;
+			EGLint redSize;
+			eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
+			if(redSize < 8)
+				nId = WINDOW_FORMAT_RGB_565;
+			logWarn("config didn't provide a native format id, guessing %d", nId);
+		}
+		return nId;
+	}
+
+	void initSurface(ANativeWindow *win)
 	{
 		assert(display != EGL_NO_DISPLAY);
+		int configFormat = winFormatFromConfig(display, config);
 		int currFormat = ANativeWindow_getFormat(win);
-		if(currFormat != winFormat)
+		if(currFormat != configFormat)
 		{
-			logMsg("changing window format from %d to %d", currFormat, winFormat);
-			ANativeWindow_setBuffersGeometry(win, 0, 0, winFormat);
+			logMsg("changing window format from %d to %d", currFormat, configFormat);
+			ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
 		}
 		logMsg("current window format: %d", ANativeWindow_getFormat(win));
 
-		if(!gotFormat)
-		{
-			const EGLint *attribs = attribs16BPP;
-
-			switch(winFormat)
-			{
-				//bcase WINDOW_FORMAT_RGBX_8888: attribs = attribs24BPP;
-				bcase WINDOW_FORMAT_RGBA_8888: attribs = attribs32BPP;
-			}
-
-			//EGLConfig config;
-			EGLint configs = 0;
-			eglChooseConfig(display, attribs, &config, 1, &configs);
-			#ifndef NDEBUG
-			printEGLConf(display, config);
-			#endif
-			//EGLint format;
-			//eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-			gotFormat = 1;
-		}
-
-		if(context == EGL_NO_CONTEXT)
-		{
-			logMsg("creating GL context");
-			context = eglCreateContext(display, config, 0, 0);
-		}
+		assert(context != EGL_NO_CONTEXT);
 
 		assert(surface == EGL_NO_SURFACE);
 		logMsg("creating window surface");
@@ -197,12 +185,12 @@ struct EGLWindow
 
 	void destroyContext()
 	{
+		destroySurface();
 		logMsg("destroying GL context");
 		assert(surface == EGL_NO_SURFACE);
 		assert(context != EGL_NO_CONTEXT);
 		eglDestroyContext(display, context);
 		context = EGL_NO_CONTEXT;
-		gotFormat = 0;
 	}
 
 	bool verifyContext()
@@ -246,6 +234,17 @@ JNIEnv* eEnv() { assert(eJEnv); return eJEnv; }
 JNIEnv* aEnv() { return appInstance()->activity->env; }
 
 uint appState = APP_PAUSED;
+
+void setWindowPixelBestColorHint(bool best)
+{
+	assert(!engineIsInit); // should only call before initial window is created
+	eglWin.useMaxColorBits = best;
+}
+
+bool windowPixelBestColorHintDefault()
+{
+	return Base::androidSDK() >= 11 && !eglWin.has32BppColorBugs;
+}
 
 void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 {
@@ -420,9 +419,8 @@ static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat yd
 
 	if(Base::androidSDK() >= 11)
 	{
-		logMsg("defaulting to 32-bit color");
-		eglWin.winFormat = WINDOW_FORMAT_RGBA_8888;
-		env->SetBooleanField(thiz, jSurfaceIs32BitId, 1);
+		logMsg("defaulting to highest color mode");
+		eglWin.useMaxColorBits = 1;
 	}
 
 	#ifdef ANDROID_APK_SIGNATURE_HASH
@@ -453,21 +451,35 @@ static void envConfig(int orientation, int hardKeyboardState, int navigationStat
 	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 }
 
-static void nativeInit(struct android_app* app, int w, int h)
+static void initGfxContext(struct android_app* app)
 {
-	// Hack for Adreno chips that have display artifacts when using 32-bit color.
-	// Detect it early here since the context needs to be recreated.
-	if(Base::androidSDK() >= 11 && strstr((const char*)glGetString(GL_RENDERER), "Adreno"))
+	auto prevUseMaxRGBBits = eglWin.useMaxColorBits;
+	// Init OpenGL early so onInit() can set Android-specific bits,
+	// and for detecting GPUs that need to default in 16-bit color
+	eglWin.initEGL();
+	eglWin.initContext(app->window);
 	{
-		logMsg("device has broken 32-bit surfaces, switching to 16-bit");
-		eglWin.destroySurface();
-		eglWin.destroyContext();
-		eglWin.winFormat = WINDOW_FORMAT_RGB_565;
-		eEnv()->SetBooleanField(jBaseActivity, jSurfaceIs32BitId, 0);
-		eglWin.init(app->window);
+		auto extensions = (const char*)glGetString(GL_EXTENSIONS);
+		assert(extensions);
+		auto rendererName = (const char*)glGetString(GL_RENDERER);
+		// Hack for Adreno chips that have display artifacts when using 32-bit color.
+		if(Base::androidSDK() >= 11 && strstr(rendererName, "Adreno"))
+		{
+			logMsg("device may have broken 32-bit surfaces, defaulting to 16-bit");
+			eglWin.useMaxColorBits = 0;
+			eglWin.has32BppColorBugs = 1;
+		}
+		Gfx::setupAndroidOGLExtensions(extensions, rendererName);
 	}
-	doOrExit(logger_init()); // TODO: move to eariler in init
-	initialScreenSizeSetup(w, h);
+	doOrExit(onInit());
+	if(prevUseMaxRGBBits != eglWin.useMaxColorBits)
+	{
+		// reinit context to handle changed EGL config
+		eglWin.destroyContext();
+		eglWin.initContext(app->window);
+		eEnv()->SetBooleanField(jBaseActivity, jSurfaceIs32BitId, eglWin.useMaxColorBits);
+	}
+	initialScreenSizeSetup(ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
 	engineInit();
 	logMsg("done init");
 	engineIsInit = 1;
@@ -563,16 +575,17 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		bcase APP_CMD_INIT_WINDOW:
 		if(app->window)
 		{
-			eglWin.init(app->window);
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			logMsg("done window init, size %d,%d", w, h);
+			logMsg("doing window init, size %d,%d", ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
 			if(!engineIsInit)
 			{
-				nativeInit(app, w, h);
+				initGfxContext(app);
 			}
 			else
+			{
+				eglWin.initSurface(app->window);
+				mainWin.w = ANativeWindow_getWidth(app->window); mainWin.h = ANativeWindow_getHeight(app->window);
 				resizeEvent(mainWin);
+			}
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		}
 		bcase APP_CMD_TERM_WINDOW:
@@ -801,9 +814,18 @@ static void dlLoadFuncs()
 	#endif
 }
 
+
+static Base::CallbackRef *inputRescanCallbackRef = nullptr;
+void inputRescanCallback()
+{
+	Input::rescanDevices();
+	inputRescanCallbackRef = nullptr;
+}
+
 static int ueventFd = 0;
 int ueventFdHandler(int events)
 {
+	using namespace Base;
 	static const uint UEVENT_BUFFER_SIZE = 1024;
 	if(events == Base::POLLEV_IN)
 	{
@@ -814,9 +836,9 @@ int ueventFdHandler(int events)
 		{
 			//logMsg("uevent: %s", buf);
 			// NOTE: could also use InputManager class on Android 4.1+
-			if(strstr(buf, "add") || strstr(buf, "remove"))
+			if(strstr(buf, "add@") || strstr(buf, "remove@"))
 			{
-				if(strstr(buf, "/event") && strstr(buf, "(input)"))
+				if(strstr(buf, "/event"))
 				{
 					logMsg("uevent: %s", buf);
 					inputChange = 1;
@@ -830,7 +852,9 @@ int ueventFdHandler(int events)
 		}
 		if(inputChange)
 		{
-			Input::rescanDevices();
+			if(inputRescanCallbackRef)
+				cancelCallback(inputRescanCallbackRef);
+			inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 100);
 		}
 		//logMsg("done reading uevents");
 	}
@@ -855,7 +879,6 @@ void android_main(struct android_app* state)
 		envConfig(jGetRotation(eEnv(), jDpy),
 			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
 	}
-	eglWin.initEGL();
 
 	if(Base::androidSDK() >= 12)
 	{

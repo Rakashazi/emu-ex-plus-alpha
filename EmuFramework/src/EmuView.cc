@@ -14,7 +14,7 @@ void EmuView::placeEmu()
 {
 	if(EmuSystem::gameIsRunning())
 	{
-		if(optionImageZoom != optionImageZoomIntegerOnly)
+		if((uint)optionImageZoom != optionImageZoomIntegerOnly)
 		{
 			if(optionAspectRatio == 0U)
 				gameView.init(EmuSystem::aspectRatioX, EmuSystem::aspectRatioY);

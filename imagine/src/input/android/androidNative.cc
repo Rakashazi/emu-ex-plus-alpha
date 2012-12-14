@@ -251,7 +251,8 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 				(keyCode == Key::VOL_UP || keyCode == Key::VOL_DOWN))
 				return 0;
 			uint devId = 0;
-			if(bit_isMaskSet(source, JNIInputDevice::SOURCE_GAMEPAD))
+			auto isGamepad = bit_isMaskSet(source, JNIInputDevice::SOURCE_GAMEPAD);
+			if(isGamepad)
 			{
 				uint id = AInputEvent_getDeviceId(event);
 				iterateTimes(joysticks, i)
@@ -265,7 +266,9 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 				//logMsg("input from JS %d -> %d", id, devId);
 			}
 			//logMsg("key event, code: %d source: %d repeat: %d action: %d", keyCode, source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
-			if(allowKeyRepeats || AKeyEvent_getRepeatCount(event) == 0)
+			if(allowKeyRepeats || AKeyEvent_getRepeatCount(event) == 0 ||
+					isGamepad)	// always accept repeats from gamepads because 2+ pads pushing the same button is
+											// considered a repeat by the OS
 			{
 				handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, devId, AKeyEvent_getMetaState(event) & AMETA_SHIFT_ON);
 			}

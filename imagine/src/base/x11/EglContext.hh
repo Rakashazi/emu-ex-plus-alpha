@@ -14,25 +14,28 @@
 
 class EglContext
 {
-	EGLDisplay eglDpy;
-	EGLSurface eglSurface;
-	EGLContext eglCtx;
+	EGLDisplay display = EGL_NO_DISPLAY;
+	EGLSurface surface = EGL_NO_SURFACE;
+	EGLContext context = EGL_NO_CONTEXT;
 
 public:
+	constexpr EglContext() { }
+	bool useMaxColorBits = 1;
 
 	void makeCurrent()
 	{
-		assert(eglCtx);
-		eglMakeCurrent(eglDpy, eglSurface, eglSurface, eglCtx);
+		assert(context);
+		eglMakeCurrent(display, surface, surface, context);
 	}
 
 	void swap()
 	{
-		eglSwapBuffers(eglDpy, eglSurface);
+		eglSwapBuffers(display, surface);
 	}
 
 	X11Window init(Display *dpy, int screen, uint xres, uint yres, bool multisample, long event_mask)
 	{
+		logMsg("setting up EGL window");
 		XSetWindowAttributes attr = { 0 };
 		attr.event_mask = event_mask;
 		X11Window win = XCreateWindow(dpy, RootWindow(dpy, screen),
@@ -46,38 +49,35 @@ public:
 			return 0;
 		}
 
-		eglDpy  =  eglGetDisplay((EGLNativeDisplayType)dpy);
-		if(eglDpy == EGL_NO_DISPLAY)
+		display  =  eglGetDisplay((EGLNativeDisplayType)dpy);
+		if(display == EGL_NO_DISPLAY)
 		{
 			logErr("error getting EGL display");
 			return 0;
 		}
 
-		if(!eglInitialize(eglDpy, NULL, NULL))
+		if(!eglInitialize(display, nullptr, nullptr))
 		{
 			logErr("error initializing EGL");
 			return 0;
 		}
 
-		printEGLConfs(eglDpy);
+		//printEGLConfs(display);
 
-		static EGLint eglAttr[] =
-		{
-			//EGL_BUFFER_SIZE, 16,
-			//EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-			EGL_NONE
-		};
-
+		const EGLint *attribs = useMaxColorBits ? eglAttrWinMaxRGB : eglAttrWinLowColor;
 		EGLConfig config;
 		EGLint configs;
-		if(!eglChooseConfig(eglDpy, eglAttr, &config, 1, &configs))
+		if(!eglChooseConfig(display, attribs, &config, 1, &configs))
 		{
 			logErr("error choosing config: 0x%X", (int)eglGetError());
 			return 0;
 		}
+		#ifndef NDEBUG
+		printEGLConf(display, config);
+		#endif
 
-		eglSurface = eglCreateWindowSurface(eglDpy, config, win, NULL);
-		if(eglSurface == EGL_NO_SURFACE )
+		surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)win, nullptr);
+		if(surface == EGL_NO_SURFACE)
 		{
 			logErr("error creating window surface: 0x%X", (int)eglGetError());
 			return 0;
@@ -87,8 +87,8 @@ public:
 		EGL_CONTEXT_CLIENT_VERSION, 1,
 		EGL_NONE
 		};
-		eglCtx = eglCreateContext(eglDpy, config, EGL_NO_CONTEXT, ctxAttr);
-		if(eglCtx == EGL_NO_CONTEXT)
+		context = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
+		if(context == EGL_NO_CONTEXT)
 		{
 			logErr("error creating context: 0x%X", (int)eglGetError());
 			return 0;
@@ -101,16 +101,16 @@ public:
 	{
 		assert(interval > 0);
 		logMsg("set swap interval %d", interval);
-		eglSwapInterval(eglDpy, interval);
+		eglSwapInterval(display, interval);
 	}
 
 	void deinit()
 	{
-		eglDestroyContext(eglDpy, eglCtx);
-		eglDestroySurface(eglDpy, eglSurface);
-		eglTerminate(eglDpy);
-		eglCtx = 0;
-		eglSurface = 0;
-		eglDpy = 0;
+		eglDestroyContext(display, context);
+		eglDestroySurface(display, surface);
+		eglTerminate(display);
+		display = EGL_NO_DISPLAY;
+		surface = EGL_NO_SURFACE;
+		context = EGL_NO_CONTEXT;
 	}
 };

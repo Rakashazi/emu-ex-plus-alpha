@@ -66,6 +66,8 @@ void VControllerDPad::place(GC padFullSize, GC centerBtnYOffset)
 
 void VControllerDPad::setBoundingAreaVisible(bool on)
 {
+	if(visualizeBounds == on)
+		return;
 	visualizeBounds = on;
 	if(!on)
 	{
@@ -194,4 +196,3 @@ int VControllerKeyboard::getInput(int cx, int cy)
 	}
 	return -1;
 }
-#undef thisModuleName

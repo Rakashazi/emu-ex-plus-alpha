@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
+	#define CONFIG_FILE_NAME "Snes9x.config"
+#else
+	#define CONFIG_FILE_NAME "config"
+#endif
+
 static const char *touchConfigFaceBtnName = "A/B/X/Y", *touchConfigCenterBtnName = "Select/Start";
 static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;

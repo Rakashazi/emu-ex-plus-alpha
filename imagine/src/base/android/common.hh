@@ -182,6 +182,7 @@ static void setupDPI()
 	Gfx::viewMMWidth_ = ((float)mainWin.w / xdpi) * 25.4;
 	Gfx::viewMMHeight_ = ((float)mainWin.h / ydpi) * 25.4;
 	logMsg("calc display size %dx%d MM", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
+	assert(Gfx::viewMMWidth_ && Gfx::viewMMHeight_);
 }
 
 static void initialScreenSizeSetup(uint w, uint h)

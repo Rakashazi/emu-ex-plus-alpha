@@ -1,7 +1,6 @@
 #define thisModuleName "main"
 #include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -70,21 +69,14 @@ extern "C"
 		return &conf;
 	}
 
-	char *get_gngeo_dir(void)
+	const char *get_gngeo_dir(void)
 	{
-		static char path[] = "./";
-		return path;
+		return EmuSystem::savePath();
 	}
 }
 
 CLINK void main_frame();
 static ROM_DEF *activeDrv = 0;
-
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "NeoEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
 
 // controls
 
@@ -130,12 +122,12 @@ enum {
 	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
 };
 
-static BasicByteOption optionListAllGames(CFGKEY_LIST_ALL_GAMES, 0);
-static BasicByteOption optionBIOSType(CFGKEY_BIOS_TYPE, SYS_UNIBIOS);
-static BasicByteOption optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA);
-static BasicByteOption optionTimerInt(CFGKEY_TIMER_INT, 2);
-static BasicByteOption optionCreateAndUseCache(CFGKEY_CREATE_USE_CACHE, 0);
-static BasicByteOption optionStrictROMChecking(CFGKEY_STRICT_ROM_CHECKING, 0);
+static Byte1Option optionListAllGames(CFGKEY_LIST_ALL_GAMES, 0);
+static Byte1Option optionBIOSType(CFGKEY_BIOS_TYPE, SYS_UNIBIOS);
+static Byte1Option optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA);
+static Byte1Option optionTimerInt(CFGKEY_TIMER_INT, 2);
+static Byte1Option optionCreateAndUseCache(CFGKEY_CREATE_USE_CACHE, 0);
+static Byte1Option optionStrictROMChecking(CFGKEY_STRICT_ROM_CHECKING, 0);
 
 static void setTimerIntOption()
 {
@@ -417,9 +409,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -627,11 +619,10 @@ public:
 			resetTransforms();
 			setBlendMode(0);
 			setColor(.0, .0, .75);
-			Area bar;
-			bar.setXSize(IG::scalePointRange((GC)pos, (GC)0, (GC)max, (GC)0, proj.w));
-			bar.setYSize(text.ySize*1.5);
-			bar.setPos(0, 0, LC2DO, LC2DO);
-			GeomRect::draw(&bar);
+			auto bar = proj.relRect(0, 0,
+					IG::scalePointRange((GC)pos, (GC)0, (GC)max, (GC)0, proj.w), text.ySize*1.5,
+					LC2DO, LC2DO);
+			GeomRect::draw(bar);
 		}
 		setColor(COLOR_WHITE);
 		text.draw(0, 0, C2DO, C2DO);
@@ -764,6 +755,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	}
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 
@@ -824,16 +817,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 
 CallResult onInit()
 {
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
-		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
-	mainInitCommon(navViewGrad);
+	mainInitCommon();
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 	emuView.initPixmap((uchar*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, (FBResX-304)*2);
 	visible_area.x = 0;//16;
@@ -859,16 +843,22 @@ CallResult onInit()
 		string_copy(e.name, drv->longname, sizeof(e.name));
 		free(drv);
 	}
+	return OK;
+}
 
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
+CallResult onWindowInit()
+{
+	static const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
 
-	Base::displayNeedsUpdate();
-	return(OK);
+	mainInitWindowCommon(navViewGrad);
+	return OK;
 }
 
 }
-
-#undef thisModuleName

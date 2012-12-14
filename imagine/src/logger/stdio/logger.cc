@@ -124,5 +124,3 @@ void logger_printf(LoggerSeverity severity, const char* msg, ...)
 	logger_vprintf(severity, msg, args);
 	va_end(args);
 }
-
-#undef thisModuleName

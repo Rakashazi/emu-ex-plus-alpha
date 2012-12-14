@@ -310,7 +310,9 @@ bool preferBGRA = 0, preferBGR = 0;
 	#define GL_BGRA 0x80E1
 #elif defined(CONFIG_GFX_OPENGL_ES) && defined(CONFIG_BASE_X11)
 	// Mesa uses GL_BGRA_EXT
-	#define GL_BGRA GL_BGRA_EXT
+	#ifndef GL_BGRA
+		#define GL_BGRA GL_BGRA_EXT
+	#endif
 #endif
 
 static void checkForBGRPixelSupport(const char *extensions)

@@ -179,7 +179,7 @@ const char * S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
 const char *S9xGetFilename (const char *ex)
 {
 	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::gamePath, EmuSystem::gameName, ex);
+	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
 	return s;
 }
 
@@ -191,13 +191,13 @@ const char *S9xGetFilenameInc (const char *e)
 
 const char *S9xGetSnapshotDirectory()
 {
-	return EmuSystem::gamePath;
+	return EmuSystem::savePath();
 }
 
 extern "C" char* osd_GetPackDir()
 {
 	static char	filename[PATH_MAX + 1];
-	strcpy(filename, EmuSystem::gamePath);
+	strcpy(filename, EmuSystem::savePath());
 
 	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
 	{

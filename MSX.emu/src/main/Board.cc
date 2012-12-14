@@ -46,7 +46,7 @@ void boardChangeDiskette(int driveId, char* fileName, const char* fileInZipFile)
 }
 
 bool fdcActive = 0;
-extern BasicByteOption optionSkipFdcAccess;
+extern Byte1Option optionSkipFdcAccess;
 
 static void onFdcDone(void* ref, UInt32 time)
 {

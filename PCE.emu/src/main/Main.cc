@@ -28,12 +28,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "PceEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
@@ -66,9 +60,9 @@ static int pceHuFsFilter(const char *name, int type)
 	return type == Fs::TYPE_DIR || isHuCardExtension(name);
 }
 
-BasicByteOption optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
+Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::cPath sysCardPath = "";
-static PathOption<CFGKEY_SYSCARD_PATH> optionSysCardPath(sysCardPath, sizeof(sysCardPath), "");
+static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, sizeof(sysCardPath), "");
 
 const uint EmuSystem::maxPlayers = 5;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -254,9 +248,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.%s.nc%c", gamePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -603,6 +597,8 @@ int EmuSystem::loadState(int saveStateSlot)
 	return STATE_RESULT_NO_FILE;
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 void onInputEvent(const InputEvent &e)
@@ -618,18 +614,9 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
-		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
 	mem_zero(espec);
 	// espec.SoundRate is set in mainInitCommon()
-	mainInitCommon(navViewGrad);
+	mainInitCommon();
 	#ifndef CONFIG_BASE_PS3
 	vController.gp.activeFaceBtns = 2;
 	#endif
@@ -640,16 +627,22 @@ CallResult onInit()
 	emuSys->soundrate = 0;
 	emuSys->name = (uint8*)EmuSystem::gameName;
 	emuSys->rotated = 0;
+	return OK;
+}
 
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
+CallResult onWindowInit()
+{
+	static const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .3, VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .97, VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
+		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
 
-	Base::displayNeedsUpdate();
+	mainInitWindowCommon(navViewGrad);
 	return OK;
 }
 
 }
-
-#undef thisModuleName

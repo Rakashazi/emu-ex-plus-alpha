@@ -109,17 +109,6 @@ static UIViewController *viewCtrl;
 static const int USE_DEPTH_BUFFER = 0;
 static int openglViewIsInit = 0;
 
-void precomposeUnicodeString(const char *src, char *dest, uint destSize)
-{
-	auto decomp = [[NSString alloc] initWithBytesNoCopy:(void*)src length:strlen(src) encoding:NSUTF8StringEncoding freeWhenDone:false];
-	@autoreleasepool
-	{
-		auto precomp = [decomp precomposedStringWithCanonicalMapping];
-		[decomp release];
-		string_copy(dest, [precomp UTF8String], destSize);
-	}
-}
-
 void cancelCallback(CallbackRef *ref)
 {
 	if(ref)
@@ -647,6 +636,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 	
+	doOrExit(onInit());
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	Base::engineInit();

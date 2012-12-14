@@ -44,7 +44,7 @@ class SystemOptionView : public OptionView
 	}
 
 
-	BoolMenuItem reportAsGba {"Report system as GBA", BoolMenuItem::SelectDelegate::create<&reportAsGbaHandler>()};
+	BoolMenuItem reportAsGba {"Report Hardware as GBA", BoolMenuItem::SelectDelegate::create<&reportAsGbaHandler>()};
 
 	static void reportAsGbaHandler(BoolMenuItem &item, const InputEvent &e)
 	{

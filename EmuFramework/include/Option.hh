@@ -42,39 +42,40 @@ bool OptionMethodIsAlwaysValid(T)
 	return 1;
 }
 
-template <class T, bool (&VALID)(T v)>
+template <class T>
 struct OptionMethodBase
 {
-	constexpr OptionMethodBase() { }
+	constexpr OptionMethodBase(bool (&validator)(T v)): validator(validator) { }
+	bool (&validator)(T v);
 	bool isValidVal(T v)
 	{
-		return VALID(v);
+		return validator(v);
 	}
 };
 
-template <class T, T (&GET)(), void (&SET)(T), bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
-struct OptionMethodFunc : public OptionMethodBase<T, VALID>
+template <class T, T (&GET)(), void (&SET)(T)>
+struct OptionMethodFunc : public OptionMethodBase<T>
 {
-	constexpr OptionMethodFunc() { }
-	constexpr OptionMethodFunc(T init) { }
+	constexpr OptionMethodFunc(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
+	constexpr OptionMethodFunc(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
 	T get() const { return GET(); }
 	void set(T v) { SET(v); }
 };
 
-template <class T, T &val, bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
-struct OptionMethodRef : public OptionMethodBase<T, VALID>
+template <class T, T &val>
+struct OptionMethodRef : public OptionMethodBase<T>
 {
-	constexpr OptionMethodRef() { }
-	constexpr OptionMethodRef(T init) { }
+	constexpr OptionMethodRef(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
+	constexpr OptionMethodRef(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
 	T get() const { return val; }
 	void set(T v) { val = v; }
 };
 
-template <class T, bool (&VALID)(T v) = OptionMethodIsAlwaysValid>
-struct OptionMethodVar : public OptionMethodBase<T, VALID>
+template <class T>
+struct OptionMethodVar : public OptionMethodBase<T>
 {
-	constexpr OptionMethodVar() { }
-	constexpr OptionMethodVar(T init): val(init) { }
+	constexpr OptionMethodVar(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
+	constexpr OptionMethodVar(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator), val(init) { }
 	T val;
 	T get() const { return val; }
 	void set(T v) { val = v; }
@@ -89,7 +90,8 @@ public:
 	typedef typeof(V().get()) T;
 	T defaultVal;
 
-	constexpr Option(uint16 key, T defaultVal = 0, bool isConst = 0): OptionBase(isConst), V(defaultVal), KEY(key), defaultVal(defaultVal) { }
+	constexpr Option(uint16 key, T defaultVal = 0, bool isConst = 0, bool (&validator)(T v) = OptionMethodIsAlwaysValid):
+		OptionBase(isConst), V(defaultVal, validator), KEY(key), defaultVal(defaultVal) { }
 
 	Option & operator = (T other)
 	{
@@ -155,18 +157,16 @@ public:
 	}
 };
 
-typedef Option<OptionMethodVar<uint8>, uint8> BasicByteOption;
-
-template <uint16 KEY>
 struct PathOption : public OptionBase
 {
 	char *val;
 	uint strSize;
 	const char *defaultVal;
+	const uint16 KEY;
 
-	constexpr PathOption(char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal) { }
+	constexpr PathOption(uint16 key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) { }
 	template <size_t S>
-	constexpr PathOption(char (&val)[S], const char *defaultVal): PathOption(val, S, defaultVal) { }
+	constexpr PathOption(uint16 key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) { }
 
 	bool isDefault() const { return string_equal(val, defaultVal); }
 
@@ -227,26 +227,18 @@ bool optionIsValidWithMinMax(T val)
 	return val >= MIN && val <= MAX;
 }
 
-bool optionOrientationIsValid(uint32 val);
-using OptionMethodOrientation = Option<OptionMethodVar<uint32, optionOrientationIsValid>, uint8>;
+typedef Option<OptionMethodVar<sint8>, sint8> SByte1Option;
+typedef Option<OptionMethodVar<uint8>, uint8> Byte1Option;
+typedef Option<OptionMethodVar<uint32>, uint16> Byte4s2Option;
+typedef Option<OptionMethodVar<uint32>, uint32> Byte4Option;
+typedef Option<OptionMethodVar<uint32>, uint8> Byte4s1Option;
 
-bool isValidOption2DO(_2DOrigin val);
-bool isValidOption2DOCenterBtn(_2DOrigin val);
-using Option2DOrigin = Option<OptionMethodVar<_2DOrigin, isValidOption2DO>, uint8>;
-using Option2DOriginC = Option<OptionMethodVar<_2DOrigin, isValidOption2DOCenterBtn>, uint8>;
-static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
-using OptionMethodRelPointerDecel = Option<OptionMethodVar<uint32, optionIsValidWithMax<optionRelPointerDecelHigh> > >;
-using OptionMethodTouchCtrlAlpha = Option<OptionMethodVar<uint32, optionIsValidWithMax<255> >, uint8>;
-using OptionSoundRate = Option<OptionMethodVar<uint32, optionIsValidWithMax<48000> > >;
+using Option2DOrigin = Option<OptionMethodVar<_2DOrigin >, uint8>;
 using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, input_swappedGamepadConfirm>, uint8>;
-using OptionMethodImgFilter = Option<OptionMethodVar<uint32, GfxBufferImage::isFilterValid>, uint8>;
-using OptionMethodOverlayEffect = Option<OptionMethodVar<uint8, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL> >, uint8>;
-using OptionMethodOverlayEffectLevel = Option<OptionMethodVar<uint8, optionIsValidWithMax<100> >, uint8>;
-using OptionMethodTouchCtrl = Option<OptionMethodVar<uint32, optionIsValidWithMax<2> >, uint8>;
 
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers, optionIsValidWithMinMax<3, 12, uint> >, uint8>;
+using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers >, uint8>;
 #endif
 #ifdef CONFIG_AUDIO_OPENSL_ES
 using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>;
@@ -282,6 +274,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_BLUETOOTH_SCAN_CACHE = 51, CFGKEY_SOUND_BUFFERS = 52,
 	CFGKEY_SOUND_UNDERRUN_CHECK = 53, CFGKEY_CONFIRM_AUTO_LOAD_STATE = 54,
 	CFGKEY_SURFACE_TEXTURE = 55, CFGKEY_PROCESS_PRIORITY = 56,
+	CFGKEY_SAVE_PATH = 57, CFGKEY_BEST_COLOR_MODE_HINT = 58,
+	CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES = 59,
 
 	CFGKEY_KEY_LOAD_GAME = 100, CFGKEY_KEY_OPEN_MENU = 101,
 	CFGKEY_KEY_SAVE_STATE = 102, CFGKEY_KEY_LOAD_STATE = 103,
@@ -344,7 +338,7 @@ struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
 	}
 };
 
-static const uint optionImageZoomIntegerOnly = 255;
+
 
 struct OptionDPI : public Option<OptionMethodVar<uint32> >
 {
@@ -390,8 +384,9 @@ struct OptionRecentGames : public OptionBase
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize)
+	bool readFromIO(Io *io, uint readSize_)
 	{
+		int readSize = readSize_;
 		while(readSize && recentGameList.size < 10)
 		{
 			if(readSize < 2)

@@ -54,5 +54,3 @@ void CreditsView::deinit ()
 {
 	text.deinit();
 }
-
-#undef thisModuleName

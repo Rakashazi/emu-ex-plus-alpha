@@ -115,6 +115,16 @@ struct Projector
 	{
 		return unProject(objx, objy, objz, objx, objy, objz);
 	}
+
+	Rect2<GC> relRect(GC newX, GC newY, GC xSize, GC ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+	{
+		// adjust to the requested origin on the screen
+		newX = C2DO.adjustX(newX, w, screenOrigin);
+		newY = C2DO.adjustY(newY, h, screenOrigin);
+		Rect2<GC> rect;
+		rect.setPosRel(newX, newY, xSize, ySize, posOrigin);
+		return rect;
+	}
 };
 
 extern Projector proj;
@@ -185,6 +195,10 @@ static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
 	return r;
 }
 
+static Rect2<GC> unProjectRect(const Rect2<int> &src)
+{
+	return unProjectRect(src.x, src.y, src.x2, src.y2);
+}
 
 static GC alignXToPixel(GC x)
 {

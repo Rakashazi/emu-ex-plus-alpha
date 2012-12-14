@@ -1,47 +1,44 @@
 #pragma once
 #include "OptionView.hh"
+#include <libgen.h>
 
 static bool isFDSBIOSExtension(const char *name);
 static void setupNESInputPorts();
 static void setupNESFourScore();
 
-class DiskSystemBIOSFilePicker
-{
-public:
-	static void onSelectFile(const char* name, const InputEvent &e)
-	{
-		snprintf(fdsBiosPath, sizeof(fdsBiosPath), "%s/%s", FsSys::workDir(), name);
-		logMsg("set fds bios %s", fdsBiosPath);
-		View::removeModalView();
-	}
-
-	static void onClose(const InputEvent &e)
-	{
-		View::removeModalView();
-	}
-
-	static void init(bool highlightFirst)
-	{
-		fPicker.init(highlightFirst, biosFsFilter);
-		fPicker.onSelectFileDelegate().bind<&DiskSystemBIOSFilePicker::onSelectFile>();
-		fPicker.onCloseDelegate().bind<&DiskSystemBIOSFilePicker::onClose>();
-	}
-};
-
 class SystemOptionView : public OptionView
 {
 private:
-	TextMenuItem fdsBiosPath;
 
-	static void fdsBiosPathHandler(TextMenuItem &, const InputEvent &e)
+	BiosSelectMenu biosSelectMenu {&::fdsBiosPath, biosFsFilter};
+	char fdsBiosPathStr[256] {0};
+	TextMenuItem fdsBiosPath {""};
+
+	template <size_t S>
+	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		DiskSystemBIOSFilePicker::init(!e.isPointer());
-		fPicker.placeRect(Gfx::viewportRect());
-		modalView = &fPicker;
+		char basenameStr[S];
+		strcpy(basenameStr, ::fdsBiosPath);
+		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? basename(basenameStr) : "None set");
+	}
+
+	void biosPathUpdated()
+	{
+		logMsg("set fds bios %s", ::fdsBiosPath);
+		printBiosMenuEntryStr(fdsBiosPathStr);
+		fdsBiosPath.compile();
+	}
+
+	void fdsBiosPathHandler(TextMenuItem &, const InputEvent &e)
+	{
+		biosSelectMenu.init(!e.isPointer());
+		biosSelectMenu.placeRect(Gfx::viewportRect());
+		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::biosPathUpdated>(this);
+		modalView = &biosSelectMenu;
 		Base::displayNeedsUpdate();
 	}
 
-	BoolMenuItem fourScore;
+	BoolMenuItem fourScore {"4-Player Adapter"};
 
 	static void fourScoreHandler(BoolMenuItem &item, const InputEvent &e)
 	{
@@ -99,15 +96,17 @@ public:
 	{
 		OptionView::loadInputItems(item, items);
 		inputPortsInit(); item[items++] = &inputPorts;
-		fourScore.init("4-Player Adapter", optionFourScore); item[items++] = &fourScore;
+		fourScore.init(optionFourScore); item[items++] = &fourScore;
 		fourScore.selectDelegate().bind<&fourScoreHandler>();
 	}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		fdsBiosPath.init("Select Disk System BIOS"); item[items++] = &fdsBiosPath;
-		fdsBiosPath.selectDelegate().bind<&fdsBiosPathHandler>();
+		//fdsBiosPath.init("Select Disk System BIOS"); item[items++] = &fdsBiosPath;
+		printBiosMenuEntryStr(fdsBiosPathStr);
+		fdsBiosPath.init(fdsBiosPathStr); item[items++] = &fdsBiosPath;
+		fdsBiosPath.selectDelegate().bind<SystemOptionView, &SystemOptionView::fdsBiosPathHandler>(this);
 	}
 };
 

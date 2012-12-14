@@ -18,7 +18,7 @@
 #include "Option.hh"
 
 extern FsSys::cPath sysCardPath;
-extern BasicByteOption optionArcadeCard;
+extern Byte1Option optionArcadeCard;
 #include <EmuSystem.hh>
 
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
@@ -226,7 +226,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_SAV:
 		{
 			assert(cd1);
-			std::string path(EmuSystem::gamePath);
+			std::string path(EmuSystem::savePath());
 			path += PSS;
 			path += EmuSystem::gameName;
 			path += ".";

@@ -72,6 +72,11 @@ public:
 		return scaler(y);
 	}
 
+	bool isYCartesian() const
+	{
+		return isCartesian(y);
+	}
+
 	static int isCartesian(int type)
 	{
 		return type == _2DORIGIN_MIN || type ==_2DORIGIN_MAX || type ==_2DORIGIN_CENTER;
@@ -277,32 +282,32 @@ public:
 };
 
 // cartesian origin shortcuts sorted clockwise
-static const _2DOrigin CenterTop2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MAX);
+static constexpr _2DOrigin CenterTop2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MAX);
 #define CT2DO CenterTop2DOrigin
-static const _2DOrigin RightTop2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MAX);
+static constexpr _2DOrigin RightTop2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MAX);
 #define RT2DO RightTop2DOrigin
-static const _2DOrigin RightCenter2DOrigin(_2DORIGIN_MAX, _2DORIGIN_CENTER);
+static constexpr _2DOrigin RightCenter2DOrigin(_2DORIGIN_MAX, _2DORIGIN_CENTER);
 #define RC2DO RightCenter2DOrigin
-static const _2DOrigin RightBottom2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MIN);
+static constexpr _2DOrigin RightBottom2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MIN);
 #define RB2DO RightBottom2DOrigin
-static const _2DOrigin CenterBottom2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MIN);
+static constexpr _2DOrigin CenterBottom2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MIN);
 #define CB2DO CenterBottom2DOrigin
-static const _2DOrigin LeftBottom2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN);
+static constexpr _2DOrigin LeftBottom2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN);
 #define LB2DO LeftBottom2DOrigin
-static const _2DOrigin LeftCenter2DOrigin(_2DORIGIN_MIN, _2DORIGIN_CENTER);
+static constexpr _2DOrigin LeftCenter2DOrigin(_2DORIGIN_MIN, _2DORIGIN_CENTER);
 #define LC2DO LeftCenter2DOrigin
-static const _2DOrigin LeftTop2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX);
+static constexpr _2DOrigin LeftTop2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX);
 #define LT2DO LeftTop2DOrigin
 
-static const _2DOrigin Center2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER);
+static constexpr _2DOrigin Center2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER);
 #define C2DO Center2DOrigin
 
-static const _2DOrigin LeftBottomInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX_INVERSE_CARTESIAN);
+static constexpr _2DOrigin LeftBottomInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX_INVERSE_CARTESIAN);
 #define LBIC2DO LeftBottomInvCart2DOrigin
-static const _2DOrigin LeftTopInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN);
+static constexpr _2DOrigin LeftTopInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN);
 #define LTIC2DO LeftTopInvCart2DOrigin
-static const _2DOrigin CenterInvCart2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER_INVERSE_CARTESIAN);
+static constexpr _2DOrigin CenterInvCart2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER_INVERSE_CARTESIAN);
 #define CIC2DO CenterInvCart2DOrigin
 
-static const _2DOrigin Null2DOrigin(_2DORIGIN_NONE, _2DORIGIN_NONE);
+static constexpr _2DOrigin Null2DOrigin(_2DORIGIN_NONE, _2DORIGIN_NONE);
 #define NULL2DO Null2DOrigin

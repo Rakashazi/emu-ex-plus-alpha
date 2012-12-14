@@ -17,3 +17,7 @@ CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib
 
 include $(currPath)/android-arm.mk
+
+ifeq ($(config_compiler),clang)
+ android_cpuFlags += -target armv7-none-linux-androideabi
+endif

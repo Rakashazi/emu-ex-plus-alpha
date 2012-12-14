@@ -16,12 +16,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "NgpEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 uint32 frameskip_active = 0;
 
 // controls
@@ -230,9 +224,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.ngs", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -274,7 +268,7 @@ bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLeng
 template <size_t S>
 static void sprintSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.ngf", EmuSystem::gamePath, EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName);
 }
 
 bool system_io_flash_read(uchar* buffer, uint32 len)
@@ -566,12 +560,26 @@ void system_debug_clear(void) { }
 void gfx_buildColorConvMap();
 void gfx_buildMonoConvMap();
 
+void EmuSystem::savePathChanged() { }
+
 namespace Base
 {
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
+{
+	mainInitCommon();
+	EmuSystem::pcmFormat.channels = 1;
+	emuView.initPixmap((uchar*)cfb, pixFmt, ngpResX, ngpResY);
+	gfx_buildMonoConvMap();
+	gfx_buildColorConvMap();
+	system_colour = COLOURMODE_AUTO;
+	bios_install();
+	return OK;
+}
+
+CallResult onWindowInit()
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -582,23 +590,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitCommon(navViewGrad);
-	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((uchar*)cfb, pixFmt, ngpResX, ngpResY);
-	gfx_buildMonoConvMap();
-	gfx_buildColorConvMap();
-	system_colour = COLOURMODE_AUTO;
-	bios_install();
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
-	return(OK);
+	mainInitWindowCommon(navViewGrad);
+	return OK;
 }
 
 }
-
-#undef thisModuleName

@@ -252,5 +252,3 @@ Rect2<int> GuiTable1D::focusRect()
 	else
 		return Rect2<int>();
 }
-
-#undef thisModuleName

@@ -19,9 +19,6 @@
 #include <util/number.h>
 #include <util/2DOrigin.h>
 #include <util/operators.hh>
-#ifdef CONFIG_GFX
-#include <gfx/viewport.hh>
-#endif
 
 //TODO: remove old code
 
@@ -30,6 +27,7 @@ class Rect2 : NotEquals< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
+	static constexpr _2DOrigin o = LTIC2DO;
 
 	constexpr Rect2() { }
 	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) { }
@@ -37,11 +35,6 @@ public:
 	bool operator ==(Rect2 const& rhs) const
 	{
 		return x == rhs.x && y == rhs.y && x2 == rhs.x2 && y2 == rhs.y2;
-	}
-
-	void setZero()
-	{
-		x = y = x2 = y2 = 0;
 	}
 
 	bool overlaps(const Rect2 &other) const
@@ -68,7 +61,7 @@ public:
 
 	T xCenter() const
 	{
-		return ((x2 - x) / 2) + x;
+		return IG::midpoint(x, x2);
 	}
 
 	T xPos(_2DOrigin origin) const
@@ -83,12 +76,19 @@ public:
 
 	T yCenter() const
 	{
-		return ((y2 - y) / 2) + y;
+		return IG::midpoint(y, y2);
 	}
 
 	T yPos(_2DOrigin origin) const
 	{
-		switch(origin.invertYIfCartesian().yScaler())
+		return yPos(origin, o);
+	}
+
+	T yPos(_2DOrigin origin, _2DOrigin rectOrigin) const
+	{
+		if(!rectOrigin.isYCartesian())
+			origin = origin.invertYIfCartesian();
+		switch(origin.yScaler())
 		{
 			case -1: return y;
 			case 1: return y2;
@@ -101,30 +101,63 @@ public:
 		return IG::Point2D<T>(xPos(origin), yPos(origin));
 	}
 
+	// set x2,y2 coordinates relative to x,y
+
+	void setRelX(T newX, T xSize)
+	{
+		assert(xSize >= 0);
+		x = newX;
+		x2 = newX + xSize;
+	}
+
+	void setRelY(T newY, T ySize)
+	{
+		assert(ySize >= 0);
+		y = newY;
+		y2 = newY + ySize;
+	}
+
+	void setRel(T newX, T newY, T xSize, T ySize)
+	{
+		setRelX(newX, xSize);
+		setRelY(newY, ySize);
+		//logMsg("set rect to %d,%d %d,%d", x, y, x2, y2);
+	}
+
+	// same as above, but transform x,y to the specified corner
+
 	void setXPosRel(T newX, T size, _2DOrigin origin)
 	{
-		assert(size >= 0);
-		newX = origin.adjustX(newX, size, LTIC2DO);
-		x = newX;
-		x2 = newX + size;
+		newX = origin.adjustX(newX, size, o);
+		setRelX(newX, size);
+	}
+
+	void setYPosRel(T newY, T size, _2DOrigin origin, _2DOrigin rectOrigin)
+	{
+		if(!rectOrigin.isYCartesian())
+			origin = origin.invertYIfCartesian();
+		newY = origin.adjustY(newY, size, o);
+		setRelY(newY, size);
 	}
 
 	void setYPosRel(T newY, T size, _2DOrigin origin)
 	{
-		assert(size >= 0);
-		newY = origin.invertYIfCartesian().adjustY(newY, size, LTIC2DO);
-		y = newY;
-		y2 = newY + size;
+		setYPosRel(newY, size, origin, o);
+	}
+
+	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin origin, _2DOrigin rectOrigin)
+	{
+		setXPosRel(newX, xSize, origin);
+		setYPosRel(newY, ySize, origin, rectOrigin);
+		//logMsg("set rect pos to %d,%d %d,%d", x, y, x2, y2);
 	}
 
 	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin origin)
 	{
-		setXPosRel(newX, xSize, origin);
-		setYPosRel(newY, ySize, origin);
-		//logMsg("set rect pos to %d,%d %d,%d", x, y, x2, y2);
+		setPosRel(newX, newY, xSize, ySize, origin, o);
 	}
 
-	void setPosRel(T newX, T newY, T size, _2DOrigin origin)
+	void setPosRel(T newX, T newY, T size, _2DOrigin origin) // square shortcut
 	{
 		setPosRel(newX, newY, size, size, origin);
 	}
@@ -134,7 +167,7 @@ public:
 		setPosRel(pos.x, pos.y, size.x, size.y, origin);
 	}
 
-	void setPosRel(IG::Point2D<T> pos, T size, _2DOrigin origin)
+	void setPosRel(IG::Point2D<T> pos, T size, _2DOrigin origin) // square shortcut
 	{
 		setPosRel(pos.x, pos.y, size, size, origin);
 	}
@@ -144,7 +177,7 @@ public:
 		setPosRel(pos.x, pos.y, xSize, ySize, origin);
 	}
 
-	#ifdef CONFIG_GFX
+	/*#ifdef CONFIG_GFX
 	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
 	{
 		// adjust to the requested origin on the screen
@@ -157,20 +190,9 @@ public:
 	{
 		setPosRel(newX, newY, size, size, posOrigin, screenOrigin);
 	}
-	#endif
+	#endif*/
 
-	void setRel(T newX, T newY, T xSize, T ySize)
-	{
-		assert(xSize >= 0);
-		x = newX;
-		x2 = newX + xSize;
-		assert(ySize >= 0);
-		y = newY;
-		y2 = newY + ySize;
-		//logMsg("set rect to %d,%d %d,%d", x, y, x2, y2);
-	}
-
-	void setRelCentered(T newX, T newY, T xSize, T ySize)
+	/*void setRelCentered(T newX, T newY, T xSize, T ySize)
 	{
 		x = x2 = newX;
 		y = y2 = newY;
@@ -180,15 +202,31 @@ public:
 		y -= halfSizeY;
 		x2 += halfSizeX;
 		y2 += halfSizeY;
-	}
+	}*/
+
+	// set x,y, automatically setting x2,y2 to keep the same size
 
 	void setXPos(T newX)
 	{
 		IG::setLinked(x, newX, x2);
 	}
 
+	void setXPos(T newX, _2DOrigin origin)
+	{
+		newX = origin.adjustX(newX, xSize(), o);
+		setXPos(newX);
+	}
+
 	void setYPos(T newY)
 	{
+		IG::setLinked(y, newY, y2);
+	}
+
+	void setYPos(T newY, _2DOrigin origin)
+	{
+		if(!o.isYCartesian())
+			origin = origin.invertYIfCartesian();
+		newY = origin.adjustY(newY, ySize(), o);
 		IG::setLinked(y, newY, y2);
 	}
 
@@ -200,9 +238,8 @@ public:
 
 	void setPos(T newX, T newY, _2DOrigin origin)
 	{
-		newX = origin.adjustX(newX, xSize(), LTIC2DO);
-		newY = origin.invertYIfCartesian().adjustY(newY, ySize(), LTIC2DO);
-		setPos(newX, newY);
+		setXPos(newX, origin);
+		setYPos(newY, origin);
 	}
 
 	static Rect2 createRel(T newX, T newY, T xSize, T ySize)
@@ -225,7 +262,12 @@ public:
 	// fit x,x2 inside r's x,x2 at the nearest edge
 	int fitInX(const Rect2 &r)
 	{
-		if(x < r.x)
+		if(xSize() > r.xSize())
+		{
+			setXPos(r.x, CT2DO);
+			return 1;
+		}
+		else if(x < r.x)
 		{
 			setXPos(r.x);
 			return -1;
@@ -241,7 +283,12 @@ public:
 	// fit y,y2 inside r's y,y2 at the nearest edge
 	int fitInY(const Rect2 &r)
 	{
-		if(y < r.y)
+		if(ySize() > r.ySize())
+		{
+			setYPos(r.x, CIC2DO);
+			return 1;
+		}
+		else if(y < r.y)
 		{
 			setYPos(r.y);
 			return -1;

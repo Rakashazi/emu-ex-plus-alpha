@@ -469,6 +469,7 @@ int main(int argc, char** argv)
 		appPath = getcwd(0, 0);
 	#endif
 
+	doOrExit(onInit());
 	engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_BASE_SDL_PDL
@@ -500,5 +501,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
-#undef thisModuleName

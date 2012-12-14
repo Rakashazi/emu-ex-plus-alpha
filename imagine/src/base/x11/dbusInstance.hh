@@ -3,7 +3,7 @@
 #include <dbus/dbus.h>
 
 static DBusConnection *bus = nullptr;
-static const char *instanceName = "ImagineApp-" CONFIG_APP_NAME;
+static const char *instanceName = CONFIG_APP_ID "-instance";
 
 #define DBUS_APP_OBJECT_PATH "/com/explusalpha/imagine"
 #define DBUS_APP_INTERFACE CONFIG_APP_ID

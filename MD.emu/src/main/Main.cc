@@ -27,12 +27,6 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "MdEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
-
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -131,14 +125,14 @@ enum {
 };
 
 static bool usingMultiTap = 0;
-static BasicByteOption optionBigEndianSram(CFGKEY_MDKEY_BIG_ENDIAN_SRAM, 0);
-static BasicByteOption optionSmsFM(CFGKEY_MDKEY_SMS_FM, 1);
-static BasicByteOption option6BtnPad(CFGKEY_MDKEY_6_BTN_PAD, 0);
-static BasicByteOption optionRegion(CFGKEY_MD_REGION, 0);
+static Byte1Option optionBigEndianSram(CFGKEY_MDKEY_BIG_ENDIAN_SRAM, 0);
+static Byte1Option optionSmsFM(CFGKEY_MDKEY_SMS_FM, 1);
+static Byte1Option option6BtnPad(CFGKEY_MDKEY_6_BTN_PAD, 0);
+static Byte1Option optionRegion(CFGKEY_MD_REGION, 0);
 FsSys::cPath cdBiosUSAPath = "", cdBiosJpnPath = "", cdBiosEurPath = "";
-static PathOption<CFGKEY_MD_CD_BIOS_USA_PATH> optionCDBiosUsaPath(cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
-static PathOption<CFGKEY_MD_CD_BIOS_JPN_PATH> optionCDBiosJpnPath(cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
-static PathOption<CFGKEY_MD_CD_BIOS_EUR_PATH> optionCDBiosEurPath(cdBiosEurPath, sizeof(cdBiosEurPath), "");
+static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
+static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
+static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, sizeof(cdBiosEurPath), "");
 
 const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -404,21 +398,21 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *gamePath, const char *gameName)
+void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.gp", gamePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
 }
 
 template <size_t S>
 static void sprintSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::gamePath, EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName);
 }
 
 template <size_t S>
 static void sprintBRAMSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.brm", EmuSystem::gamePath, EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName);
 }
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
@@ -873,6 +867,8 @@ void EmuSystem::configAudioRate()
 	logMsg("md sound buffer size %d", snd.buffer_size);
 }
 
+void EmuSystem::savePathChanged() { }
+
 namespace Input
 {
 void onInputEvent(const InputEvent &e)
@@ -910,6 +906,18 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit()
 {
+	Audio::setHintPcmFramesPerWrite(950); // for PAL
+	mainInitCommon();
+	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
+	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
+	config_ym2413_enabled = optionSmsFM;
+	static uint8 cartMem[MAXROMSIZE] __attribute__ ((aligned (8)));
+	cart.rom = cartMem;
+	return OK;
+}
+
+CallResult onWindowInit()
+{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -919,23 +927,8 @@ CallResult onInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	Audio::setHintPcmFramesPerWrite(950); // for PAL
-	mainInitCommon(navViewGrad);
-	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
-	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
-	config_ym2413_enabled = optionSmsFM;
-	static uint8 cartMem[MAXROMSIZE] __attribute__ ((aligned (8)));
-	cart.rom = cartMem;
-
-	mMenu.init(Config::envIsPS3);
-	viewStack.push(&mMenu);
-	Gfx::onViewChange();
-	mMenu.show();
-
-	Base::displayNeedsUpdate();
-	return(OK);
+	mainInitWindowCommon(navViewGrad);
+	return OK;
 }
 
 }
-
-#undef thisModuleName

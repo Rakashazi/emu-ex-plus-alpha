@@ -96,7 +96,6 @@ static void engineInit()
 	mem_init();
 	
 	#ifdef CONFIG_GFX
-		doOrExit(Gfx::init());
 		currWin = mainWin;
 		doOrExit(Gfx::setOutputVideoMode(mainWin));
 	#endif
@@ -109,7 +108,7 @@ static void engineInit()
 		doOrExit(Audio::init());
 	#endif
 
-	doOrExit(onInit());
+	doOrExit(onWindowInit());
 }
 
 static uint runEngine()

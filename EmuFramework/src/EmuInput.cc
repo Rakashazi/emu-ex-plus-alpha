@@ -15,9 +15,7 @@
 
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
-#include <Option.hh>
-
-extern OptionMethodRelPointerDecel optionRelPointerDecel;
+#include <EmuOptions.hh>
 
 #ifdef INPUT_SUPPORTS_POINTER
 uint pointerInputPlayer = 0;

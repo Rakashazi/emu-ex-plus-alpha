@@ -499,7 +499,3 @@ void setHandleVolumeKeys(bool on)
 }
 
 }
-
-
-
-#undef thisModuleName

@@ -160,5 +160,3 @@ int IoMmap::eof()
 	else
 		return 0;
 }
-
-#undef thisModuleName

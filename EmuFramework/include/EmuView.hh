@@ -66,7 +66,7 @@ public:
 		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView", xO, yO, x, y, totalX, totalY);
 		vidImg.init(vidPix, 0, optionImgFilter);
 		disp.setImg(&vidImg);
-		if(optionImageZoom == optionImageZoomIntegerOnly)
+		if((uint)optionImageZoom == optionImageZoomIntegerOnly)
 			placeEmu();
 	}
 

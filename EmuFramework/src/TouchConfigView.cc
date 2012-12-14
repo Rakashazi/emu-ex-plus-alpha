@@ -351,7 +351,8 @@ BoolMenuItem boundingBoxes;
 void boundingBoxesHandler(BoolMenuItem &item, const InputEvent &e)
 {
 	item.toggle();
-	vController.setBoundingAreaVisible(item.on);
+	optionTouchCtrlBoundingBoxes = item.on;
+	setupVControllerVars();
 	Base::displayNeedsUpdate();
 }
 
@@ -400,7 +401,7 @@ void TouchConfigView::init(bool highlightFirst)
 	{
 		btnExtraYSizeMultiRowInit(); text[i++] = &btnExtraYSizeMultiRow;
 	}
-	boundingBoxes.init(vController.boundingAreaVisible()); text[i++] = &boundingBoxes;
+	boundingBoxes.init(optionTouchCtrlBoundingBoxes); text[i++] = &boundingBoxes;
 	boundingBoxes.selectDelegate().bind<&boundingBoxesHandler>();
 	if(!optionVibrateOnPush.isConst)
 	{

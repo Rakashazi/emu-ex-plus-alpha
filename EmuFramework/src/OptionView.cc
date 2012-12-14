@@ -1,8 +1,11 @@
+#include <libgen.h>
 #include <OptionView.hh>
 #include <MsgPopup.hh>
+#include <FilePicker.hh>
 
 static ButtonConfigCategoryView bcatMenu;
 extern MsgPopup popup;
+extern EmuFilePicker fPicker;
 
 void soundHandler(BoolMenuItem &item, const InputEvent &e)
 {
@@ -278,6 +281,7 @@ void altGamepadConfirmHandler(BoolMenuItem &item, const InputEvent &e)
 void ditherHandler(BoolMenuItem &item, const InputEvent &e)
 {
 	item.toggle();
+	optionDitherImage = item.on;
 	Gfx::setDither(item.on);
 }
 
@@ -701,6 +705,104 @@ void OptionView::processPriorityInit()
 }
 #endif
 
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+void OptionView::confirmBestColorModeHintAlert(const InputEvent &e)
+{
+	bestColorModeHint.toggle();
+	optionBestColorModeHint = bestColorModeHint.on;
+}
+
+void OptionView::bestColorModeHintHandler(BoolMenuItem &item, const InputEvent &e)
+{
+	if(Config::envIsAndroid)
+	{
+		ynAlertView.init("This option takes effect next time you launch the app. "
+				"Not all devices properly support high color modes so turn this off "
+				"if you experience graphics problems.", !e.isPointer());
+		ynAlertView.onYesDelegate().bind<OptionView, &OptionView::confirmBestColorModeHintAlert>(this);
+		ynAlertView.placeRect(Gfx::viewportRect());
+		modalView = &ynAlertView;
+	}
+	else
+	{
+		confirmBestColorModeHintAlert(e);
+	}
+}
+#endif
+
+typedef Delegate<void (const char *newPath)> PathChangeDelegate;
+
+static int dirFsFilter(const char *name, int type)
+{
+	return type == Fs::TYPE_DIR;
+}
+
+template <size_t S>
+static void printPathMenuEntryStr(char (&str)[S])
+{
+	char basenameStr[S];
+	strcpy(basenameStr, optionSavePath);
+	string_printf(str, "Save Path: %s", strlen(optionSavePath) ? basename(basenameStr) : "Same as Game");
+}
+
+void OptionView::savePathUpdated(const char *newPath)
+{
+	printPathMenuEntryStr(savePathStr);
+	savePath.compile();
+	EmuSystem::savePathChanged();
+}
+
+static class SavePathSelectMenu : public BaseMultiChoiceView
+{
+public:
+	constexpr SavePathSelectMenu() { }
+	TextMenuItem choiceEntry[2];
+	MenuItem *choiceEntryItem[2] {nullptr};
+	PathChangeDelegate pathChangeDel;
+
+	void onClose(const InputEvent &e)
+	{
+		snprintf(optionSavePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
+		logMsg("set save path %s", (char*)optionSavePath);
+		pathChangeDel.invokeSafe(optionSavePath);
+		View::removeModalView();
+	}
+
+	void init(bool highlightFirst)
+	{
+		choiceEntry[0].init("Set Custom Path"); choiceEntryItem[0] = &choiceEntry[0];
+		choiceEntry[1].init("Same as Game"); choiceEntryItem[1] = &choiceEntry[1];
+		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
+	}
+
+	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	{
+		removeModalView();
+		if(i == 0)
+		{
+			fPicker.init(!e.isPointer(), dirFsFilter);
+			fPicker.onCloseDelegate().bind<SavePathSelectMenu, &SavePathSelectMenu::onClose>(this);
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+		else
+		{
+			strcpy(optionSavePath, "");
+			pathChangeDel.invokeSafe("");
+		}
+	}
+} pathSelectMenu;
+
+void OptionView::savePathHandler(TextMenuItem &, const InputEvent &e)
+{
+	pathSelectMenu.init(!e.isPointer());
+	pathSelectMenu.placeRect(Gfx::viewportRect());
+	pathSelectMenu.pathChangeDel.bind<OptionView, &OptionView::savePathUpdated>(this);
+	modalView = &pathSelectMenu;
+	Base::displayNeedsUpdate();
+}
+
 void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 {
 	name_ = "Video Options";
@@ -732,9 +834,13 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 			glSyncHack.selectDelegate().bind<&glSyncHackHandler>();
 		}
 	#endif
+	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+		bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
+		bestColorModeHint.selectDelegate().bind<OptionView, &OptionView::bestColorModeHintHandler>(this);
+	#endif
 	if(!optionDitherImage.isConst)
 	{
-		dither.init(Gfx::dither()); item[items++] = &dither;
+		dither.init(optionDitherImage); item[items++] = &dither;
 		dither.selectDelegate().bind<&ditherHandler>();
 	}
 }
@@ -802,6 +908,9 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	autoSaveStateInit(); item[items++] = &autoSaveState;
 	confirmAutoLoadState.init(optionConfirmAutoLoadState); item[items++] = &confirmAutoLoadState;
 	confirmAutoLoadState.selectDelegate().bind<&confirmAutoLoadStateHandler>();
+	printPathMenuEntryStr(savePathStr);
+	savePath.init(savePathStr, optionConfirmAutoLoadState); item[items++] = &savePath;
+	savePath.selectDelegate().bind<OptionView, &OptionView::savePathHandler>(this);
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	processPriorityInit(); item[items++] = &processPriority;
 	#endif

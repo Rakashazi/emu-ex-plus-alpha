@@ -54,13 +54,6 @@ public:
 		setPos(x, y, x+xSize, y+ySize);
 	}
 
-	static void draw(const Area *a)
-	{
-		Rect2<GC> d(a->xPos(LB2DO), a->yPos(LB2DO),
-				a->xPos(LB2DO) + a->xSize, a->yPos(LB2DO) + a->ySize);
-		draw(d);
-	}
-
 	static void draw(const Rect2<int> &b)
 	{
 		using namespace Gfx;

@@ -346,5 +346,3 @@ CallResult Png::readImage (Io * stream, void* buffer, uint pitch, const PixelFor
 	png_destroy_info_struct(png, pngInfopAddr);
 	return OK;
 }
-
-#undef thisModuleName

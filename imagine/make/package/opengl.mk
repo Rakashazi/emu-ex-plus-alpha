@@ -4,10 +4,16 @@ inc_pkg_opengl := 1
 ifeq ($(ENV), linux)
  # TODO: use pkg-config
  ifdef config_gfx_openGLES
- LDLIBS += -lGLESv1_CM -lEGL -lm
- configDefs += CONFIG_GFX_OPENGL_ES
+  ifeq ($(ARCH), arm)
+   LDLIBS += -lGLES_CM
+  else
+   # Mesa
+   LDLIBS += -lGLESv1_CM
+  endif
+  LDLIBS += -lEGL -lm
+  configDefs += CONFIG_GFX_OPENGL_ES
  else
- LDLIBS += -lGL
+  LDLIBS += -lGL -lm
  endif
 else ifeq ($(ENV), android)
  LDLIBS += -lGLESv1_CM
@@ -17,7 +23,6 @@ else ifeq ($(ENV), android)
 else ifeq ($(ENV), ios)
  LDLIBS += -framework OpenGLES
 else ifeq ($(ENV), macosx)
- configDefs += CONFIG_GFX_OPENGL_GLEW_STATIC
  LDLIBS += -framework OpenGL -framework CoreVideo
 else ifeq ($(ENV), webos)
  LDLIBS += -lGLES_CM $(webos_libm)

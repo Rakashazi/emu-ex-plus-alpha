@@ -120,5 +120,3 @@ void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
 		memset(destPixel, 0, format.bytesPerPixel * xlen);
 	}
 }
-
-#undef thisModuleName

@@ -27,6 +27,7 @@
 #include "private.hh"
 #include <util/builtins.h>
 #include <logger/interface.h>
+#include <engine-globals.h>
 #include <assert.h>
 
 namespace Input
@@ -199,15 +200,23 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
     // Can't touch android_app object after this.
 }*/
 
+// Enable on Android 3.1+ to fix strange behavior where the OS
+// claims we haven't processed all input events even though we have.
+// This only seems to happen under heavy input event load, like
+// when using multiple joysticks. Everything seems to work
+// properly if we keep calling AInputQueue_getEvent until
+// it returns an error instead of using AInputQueue_hasEvents
+static bool exhaustInputWithGetEvent = 0;
 void process_input(struct android_app* app)
 {
-	AInputEvent* event = nullptr;
 	int events = 0;
 	do
 	{
+		AInputEvent* event = nullptr;
 		if(AInputQueue_getEvent(app->inputQueue, &event) < 0)
 		{
-			logWarn("error getting input event from queue");
+			if(!exhaustInputWithGetEvent)
+				logWarn("error getting input event from queue");
 			break;
 		}
 		//LOGI("New input event: type=%d\n", AInputEvent_getType(event));
@@ -221,12 +230,12 @@ void process_input(struct android_app* app)
 		}
 		auto handled = Input::onInputEvent(app, event);
 		AInputQueue_finishEvent(app->inputQueue, event, handled);
-		//logMsg("input event end");
+		//logMsg("input event end: %s", handled ? "handled" : "not handled");
 #else
 		AInputQueue_finishEvent(app->inputQueue, event, 0);
 #endif
 		events++;
-	} while(AInputQueue_hasEvents(app->inputQueue));
+	} while(exhaustInputWithGetEvent || AInputQueue_hasEvents(app->inputQueue));
 	if(events > 1)
 	{
 		//logMsg("processed %d input events", events);
@@ -498,6 +507,7 @@ static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
 
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
+	doOrExit(logger_init());
 	logMsg("called ANativeActivity_onCreate");
 	activityTid = gettid();
 	activity->callbacks->onDestroy = onDestroy;
@@ -520,6 +530,8 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	//LOGI("sdk: %d, internal path: %s, external path: %s", activity->sdkVersion, activity->internalDataPath, activity->externalDataPath);
 	using namespace Base;
 	setSDK(activity->sdkVersion);
+	if(Base::androidSDK() >= 12)
+		exhaustInputWithGetEvent = 1;
 	jniInit(activity->env, activity->clazz);
 	activity->instance = android_app_create(activity, savedState, savedStateSize);
 }

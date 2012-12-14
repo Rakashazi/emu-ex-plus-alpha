@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
+	#define CONFIG_FILE_NAME "PceEmu.config"
+#else
+	#define CONFIG_FILE_NAME "config"
+#endif
+
 static const char *touchConfigFaceBtnName = "I/II", *touchConfigCenterBtnName = "Select/Run";
 static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;;

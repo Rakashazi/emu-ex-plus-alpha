@@ -269,6 +269,7 @@ int main2()
 		FsPs3::initWorkDir();
 	#endif
 
+	doOrExit(onInit());
 	Base::engineInit();
 	logMsg("done init");
 

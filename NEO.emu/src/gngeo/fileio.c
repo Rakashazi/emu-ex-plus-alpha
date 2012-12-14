@@ -151,7 +151,7 @@ void open_nvram(char *name) {
     int len = strlen(name) + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
-    sprintf(filename, "%s%s.nv", gngeo_dir, name);
+    sprintf(filename, "%s/%s.nv", gngeo_dir, name);
     // converted to low-level io funcs due to WebOS bug
     if ((f = open(filename, O_RDONLY, 0)) <= 0)//if ((f = fopen(filename, "rb")) == 0)
         return;
@@ -175,7 +175,7 @@ void open_memcard(char *name) {
     int len = strlen("memcard") + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
-    sprintf(filename, "%s%s", gngeo_dir, "memcard");
+    sprintf(filename, "%s/%s", gngeo_dir, "memcard");
 
     if ((f = fopen(filename, "rb")) == 0)
         return;
@@ -205,7 +205,7 @@ void save_nvram(char *name) {
 
     filename = (char *) alloca(len);
 
-    sprintf(filename, "%s%s.nv", gngeo_dir, name);
+    sprintf(filename, "%s/%s.nv", gngeo_dir, name);
 
     if ((f = fopen(filename, "wb")) != NULL) {
         fwrite(memory.sram, 1, 0x10000, f);
@@ -226,7 +226,7 @@ void save_memcard(char *name) {
     int len = strlen("memcard") + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
-    sprintf(filename, "%s%s", gngeo_dir, "memcard");
+    sprintf(filename, "%s/%s", gngeo_dir, "memcard");
 
     if ((f = fopen(filename, "wb")) != NULL) {
         fwrite(memory.memcard, 1, 0x800, f);
@@ -246,7 +246,7 @@ int close_game(void) {
 }
 
 bool load_game_config(char *rom_name) {
-	char *gpath;
+	const char *gpath;
 	char *drconf;
 #ifdef EMBEDDED_FS
     gpath=ROOTPATH"conf/";
