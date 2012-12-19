@@ -84,7 +84,7 @@ static CallResult getFontFilenameWithPattern(FcPattern *pat, char *&filename, Fc
 		FcPatternDestroy(pat);
 		return INVALID_PARAMETER;
 	}
-	FcResult result;
+	FcResult result = FcResultMatch;
 	auto matchPat = FcFontMatch(nullptr, pat, &result);
 	FcPatternDestroy(pat);
 	if(!matchPat || result == FcResultNoMatch)

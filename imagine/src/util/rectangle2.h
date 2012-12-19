@@ -27,7 +27,12 @@ class Rect2 : NotEquals< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
-	static constexpr _2DOrigin o = LTIC2DO;
+	#ifdef __clang__
+		// hack for clang due to missing symbol issue
+		#define o LTIC2DO
+	#else
+		static constexpr _2DOrigin o = LTIC2DO;
+	#endif
 
 	constexpr Rect2() { }
 	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) { }
@@ -348,5 +353,9 @@ public:
 		gfx_applyScale(gXSize(), gYSize());
 	}
 	#endif*/
+
+	#ifdef __clang__
+		#undef o
+	#endif
 };
 

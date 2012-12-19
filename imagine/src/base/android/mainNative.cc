@@ -164,12 +164,30 @@ struct EGLWindow
 			logErr("error in eglMakeCurrent");
 			abort();
 		}
-		logMsg("window size: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+		logMsg("window size: %d,%d, from EGL: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win), width(), height());
 
 		/*if(eglSwapInterval(display, 1) != EGL_TRUE)
 		{
 			logErr("error in eglSwapInterval");
 		}*/
+	}
+
+	EGLint width()
+	{
+		assert(surface != EGL_NO_SURFACE);
+		assert(display != EGL_NO_DISPLAY);
+		EGLint w;
+		eglQuerySurface(display, surface, EGL_WIDTH, &w);
+		return w;
+	}
+
+	EGLint height()
+	{
+		assert(surface != EGL_NO_SURFACE);
+		assert(display != EGL_NO_DISPLAY);
+		EGLint h;
+		eglQuerySurface(display, surface, EGL_HEIGHT, &h);
+		return h;
 	}
 
 	void destroySurface()
@@ -560,6 +578,20 @@ void setStatusBarHidden(uint hidden)
 	}
 }
 
+static bool updateWinSize(Window &win, ANativeWindow* nWin)
+{
+	auto w = ANativeWindow_getWidth(nWin);
+	auto h = ANativeWindow_getHeight(nWin);
+	if(w < 0 || h < 0)
+	{
+		logMsg("error getting native window size");
+		return 0;
+	}
+	win.w = w;
+	win.h = h;
+	return 1;
+}
+
 void onAppCmd(struct android_app* app, uint32 cmd)
 {
 	uint cmdType = cmd & 0xFFFF;
@@ -583,7 +615,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 			else
 			{
 				eglWin.initSurface(app->window);
-				mainWin.w = ANativeWindow_getWidth(app->window); mainWin.h = ANativeWindow_getHeight(app->window);
+				updateWinSize(mainWin, app->window);
 				resizeEvent(mainWin);
 			}
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -597,6 +629,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		bcase APP_CMD_GAINED_FOCUS:
 		if(app->window)
 		{
+			logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
 			gfxUpdate = 1;
 		}
 		appFocus(1);
@@ -604,49 +637,63 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		appFocus(0);
 		bcase APP_CMD_WINDOW_REDRAW_NEEDED:
 		{
-			// re-check if window size changed since some devices may "forget"
-			// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
-			// putting the device to sleep in portrait, then sliding the gamepad open
-			// causes a content rect change with swapped window width/height
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			mainWin.w = w; mainWin.h = h;
-			resizeEvent(mainWin);
-			logMsg("window redraw needed");
 			if(eglWin.isDrawable())
 			{
+				// re-check if window size changed since some devices may "forget"
+				// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
+				// putting the device to sleep in portrait, then sliding the gamepad open
+				// causes a content rect change with swapped window width/height
+				if(!updateWinSize(mainWin, app->window))
+				{
+					logWarn("skipping window redraw");
+					break;
+				}
+				logMsg("window redraw, size %d,%d", mainWin.w, mainWin.h);
+				resizeEvent(mainWin);
 				gfxUpdate = 1;
 				runEngine();
+			}
+			else
+			{
+				logWarn("window redraw without valid surface");
 			}
 		}
 		bcase APP_CMD_WINDOW_RESIZED:
 		{
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			mainWin.w = w; mainWin.h = h;
-			logMsg("window resize to %d,%d", w, h);
-			resizeEvent(mainWin);
 			if(eglWin.isDrawable())
 			{
+				if(!updateWinSize(mainWin, app->window))
+				{
+					logWarn("skipping window resize");
+					break;
+				}
+				logMsg("window resize to %d,%d", mainWin.w, mainWin.h);
+				resizeEvent(mainWin);
 				gfxUpdate = 1;
 				runEngine();
+			}
+			else
+			{
+				logWarn("window resize without valid surface");
 			}
 		}
 		bcase APP_CMD_CONTENT_RECT_CHANGED:
 		{
 			auto &rect = app->contentRect;
-			int w = ANativeWindow_getWidth(app->window);
-			int h = ANativeWindow_getHeight(app->window);
-			logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d", rect.left, rect.top, rect.right, rect.bottom, w, h);
-			mainWin.w = w; mainWin.h = h;
 			mainWin.rect.x = rect.left; mainWin.rect.y = rect.top;
 			mainWin.rect.x2 = rect.right; mainWin.rect.y2 = rect.bottom;
-			resizeEvent(mainWin);
 			if(eglWin.isDrawable())
 			{
-				gfxUpdate = 1;
-				runEngine();
+				if(updateWinSize(mainWin, app->window))
+				{
+					resizeEvent(mainWin);
+					gfxUpdate = 1;
+					runEngine();
+					gfxUpdate = 1;
+				}
 			}
+			logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d%s",
+				rect.left, rect.top, rect.right, rect.bottom, mainWin.w, mainWin.h, eglWin.isDrawable() ? "" : ", no valid surface");
 		}
 		/*bcase APP_CMD_LAYOUT_CHANGED:
 		{

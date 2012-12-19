@@ -53,7 +53,7 @@ const Window &window();
 	bool windowPixelBestColorHintDefault();
 #else
 	static void setWindowPixelBestColorHint(bool best) { }
-	bool windowPixelBestColorHintDefault() { return 1; }
+	static bool windowPixelBestColorHintDefault() { return 1; }
 #endif
 
 // App exit

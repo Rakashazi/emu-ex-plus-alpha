@@ -1088,7 +1088,9 @@ static void mainInitCommon()
 
 	loadConfigFile();
 
-	Base::setWindowPixelBestColorHint(optionBestColorModeHint);
+	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+		Base::setWindowPixelBestColorHint(optionBestColorModeHint);
+	#endif
 
 	#ifdef CONFIG_BASE_IOS_SETUID
 		CATS::whatYouSay();

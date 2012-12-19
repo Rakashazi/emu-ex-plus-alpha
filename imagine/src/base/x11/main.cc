@@ -719,7 +719,7 @@ int main(int argc, char** argv)
 	openGLSetOutputVideoMode(mainWin);
 	engineInit();
 
-	//logMsg("entering main loop");
+	logMsg("entering event loop");
 	for(;;)
 	{
 		struct epoll_event event[8];
