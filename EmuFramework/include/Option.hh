@@ -435,20 +435,3 @@ struct OptionRecentGames : public OptionBase
 		return sizeof(key) + strSizes;
 	}
 };
-
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	struct OptionDirectTexture : public Option<OptionMethodVar<uint32>, uint8>
-	{
-		constexpr OptionDirectTexture(): Option<OptionMethodVar<uint32>, uint8>(CFGKEY_DIRECT_TEXTURE, 0) { }
-		bool readFromIO(Io *io, uint readSize)
-		{
-			if(!Option<OptionMethodVar<uint32>, uint8>::readFromIO(io, readSize))
-				return 0;
-			logMsg("read direct texture option %d", val);
-			if(!Gfx::supportsAndroidDirectTexture())
-				val = 0;
-			Gfx::setUseAndroidDirectTexture(val);
-			return 1;
-		}
-	};
-#endif

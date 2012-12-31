@@ -38,12 +38,6 @@ ifeq ($(ENV), iOS)
  include $(IMAGINE_PATH)/make/package/stdc++.mk
 endif
 
-ifndef target
-target := ngpemu
-endif
-
-OTHER_ALL_OBJ = $(NEOPOP_OBJ) $(C_OBJ)
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

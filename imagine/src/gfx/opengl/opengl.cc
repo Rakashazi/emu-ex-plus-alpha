@@ -37,38 +37,13 @@ uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
 	#include <OpenGL/OpenGL.h>
 #endif
 
-static const char *glErrorToString(GLenum err)
-{
-	switch(err)
-	{
-		case GL_NO_ERROR: return "No Error";
-		case GL_INVALID_ENUM: return "Invalid Enum";
-		case GL_INVALID_VALUE: return "Invalid Value";
-		case GL_INVALID_OPERATION: return "Invalid Operation";
-		case GL_STACK_OVERFLOW: return "Stack Overflow";
-		case GL_STACK_UNDERFLOW: return "Stack Underflow";
-		case GL_OUT_OF_MEMORY: return "Out of Memory";
-		default: return "Unknown Error";
-	}
-}
-
-#ifndef NDEBUG
-	#define CHECK_GL_ERRORS
-#endif
-
-#ifndef CHECK_GL_ERRORS
-	static void clearGLError() { }
-	#define glErrorCase(errorLabel) for(int errorLabel = 0; errorLabel == 1;)
-#else
-	static void clearGLError() { while (glGetError() != GL_NO_ERROR) { } }
-	#define glErrorCase(errorLabel) for(GLenum errorLabel = glGetError(); errorLabel != GL_NO_ERROR; errorLabel = GL_NO_ERROR)
-#endif
-
 #include "glStateCache.h"
 #include <util/Matrix4x4.hh>
 #include <util/Motion.hh>
+#include "utils.h"
 #include <gfx/common/space.h>
 
+GLStateCache glState;
 static int animateOrientationChange = !Config::envIsWebOS3;
 TimedMotion<GC> projAngleM;
 

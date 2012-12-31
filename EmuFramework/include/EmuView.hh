@@ -13,7 +13,7 @@ public:
 	Gfx::Sprite disp;
 	uchar *pixBuff = nullptr;
 	Pixmap vidPix {PixelFormatRGB565};
-	GfxBufferImage vidImg;
+	Gfx::BufferImage vidImg;
 	VideoImageOverlay vidImgOverlay;
 	Area gameView;
 

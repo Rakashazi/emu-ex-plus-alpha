@@ -212,7 +212,7 @@ android-release-install-only :
 	adb install -r $(android_apkReleasePath)
 
 android-release-ready : 
-	cp $(android_apkReleasePath) ../releases-bin/android/$(android_metadata_project)-$(android_minSDK)-$(android_metadata_version).apk
+	cp $(android_apkReleasePath) $(IMAGINE_PATH)/../releases-bin/android/$(android_metadata_project)-$(android_minSDK)-$(android_metadata_version).apk
 
 android-check :
 	@echo "Checking compiled debug version of $(android_metadata_project) (SDK $(android_minSDK)) $(android_metadata_version)"

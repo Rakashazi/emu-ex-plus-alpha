@@ -17,12 +17,12 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase() { }
-	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, GfxBufferImage *img);
+	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, BufferImage *img);
 	CallResult init(Coordinate x = 0, Coordinate y = 0, Coordinate x2 = 0, Coordinate y2 = 0)
 	{
-		return init(x, y, x2, y2, (GfxBufferImage*)nullptr);
+		return init(x, y, x2, y2, (BufferImage*)nullptr);
 	}
-	CallResult init(GfxBufferImage *img)
+	CallResult init(BufferImage *img)
 	{
 		return init(0, 0, 0, 0, img);
 	}
@@ -30,27 +30,27 @@ public:
 	#if defined(CONFIG_RESOURCE_IMAGE)
 	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, ResourceImage *img)
 	{
-		return init(x, y, x2, y2, img ? &img->gfxD : (GfxBufferImage*)nullptr);
+		return init(x, y, x2, y2, img ? &img->gfxD : (BufferImage*)nullptr);
 	}
 	CallResult init(ResourceImage *img)
 	{
-		return init(img ? &img->gfxD : (GfxBufferImage*)nullptr);
+		return init(img ? &img->gfxD : (BufferImage*)nullptr);
 	}
 	#endif
 
 	void deinit();
 
-	void setImg(GfxBufferImage *img);
-	void setImg(GfxBufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
+	void setImg(BufferImage *img);
+	void setImg(BufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
 
 	#if defined(CONFIG_RESOURCE_IMAGE)
 	void setImg(ResourceImage *img)
 	{
-		setImg(img ? &img->gfxD : (GfxBufferImage*)nullptr);
+		setImg(img ? &img->gfxD : (BufferImage*)nullptr);
 	}
 	void setImg(ResourceImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 	{
-		setImg(img ? &img->gfxD : (GfxBufferImage*)nullptr, leftTexU, topTexV, rightTexU, bottomTexV);
+		setImg(img ? &img->gfxD : (BufferImage*)nullptr, leftTexU, topTexV, rightTexU, bottomTexV);
 	}
 	#endif
 
@@ -67,10 +67,15 @@ public:
 		}
 	}
 
-	GfxBufferImage *img = nullptr;
+	BufferImage *img = nullptr;
+	#if defined CONFIG_BASE_ANDROID
+	uint flags = 0;
+	static constexpr uint HINT_NO_MATRIX_TRANSFORM = BIT(0);
+	int screenX = 0, screenY = 0, screenX2 = 0, screenY2 = 0;
+	#endif
 };
 
-typedef SpriteBase<GfxTexRect> Sprite;
-typedef SpriteBase<GfxColTexQuad> ShadedSprite;
+typedef SpriteBase<TexRect> Sprite;
+typedef SpriteBase<ColTexQuad> ShadedSprite;
 
 }

@@ -230,7 +230,7 @@ unsigned short Read_CDC_Host(int is_sub)
 	/*logMsg("Read_CDC_Host sub=%i d=%04x dac=%04x dbc=%04x", is_sub,
 		(sCD.cdc.Buffer[addr]<<8) | sCD.cdc.Buffer[addr+1], sCD.cdc.DAC.N, sCD.cdc.DBC.N);*/
 
-	assert(addr+1 < sizeof(sCD.cdc.Buffer));
+	assert(addr+1 < (int)sizeof(sCD.cdc.Buffer));
 	return (sCD.cdc.Buffer[addr]<<8) | sCD.cdc.Buffer[addr+1];
 }
 

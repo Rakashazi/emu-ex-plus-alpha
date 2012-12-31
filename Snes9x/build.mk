@@ -8,39 +8,32 @@ endif
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/S9XApi.cc
-
 include ../EmuFramework/common.mk
 
-SNES9X := snes9x-1.43
-CPPFLAGS += -Isrc/snes9x-1.43 -DHAVE_STRINGS_H -DVAR_CYCLES -DRIGHTSHIFT_IS_SAR -DZLIB -DUNZIP_SUPPORT -DSysDDec=float \
--DUSE_OPENGL -DCPU_SHUTDOWN -DSPC700_SHUTDOWN -DEXECUTE_SUPERFX_PER_LINE -DSPC700_C -DSDD1_DECOMP -DNOASM -DPIXEL_FORMAT=RGB565
-# -DNO_INLINE_SET_GET
+snes9xPath := snes9x
+CPPFLAGS += -Isrc/snes9x -Isrc/snes9x/apu/bapu -DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR \
+-DZLIB -DUNZIP_SUPPORT -DSysDDec=float -DUSE_OPENGL -DPIXEL_FORMAT=RGB565
+#-DHAVE_MKSTEMP -DUSE_THREADS -DJMA_SUPPORT
 
-# snes9x sources
-SNES9X_SRC += $(SNES9X)/c4.cpp $(SNES9X)/c4emu.cpp $(SNES9X)/cheats.cpp
-SNES9X_SRC += $(SNES9X)/cheats2.cpp $(SNES9X)/clip.cpp
-SNES9X_SRC += $(SNES9X)/cpu.cpp $(SNES9X)/cpuexec.cpp $(SNES9X)/cpuops.cpp
-SNES9X_SRC += $(SNES9X)/dma.cpp $(SNES9X)/dsp1.cpp $(SNES9X)/data.cpp
-SNES9X_SRC += $(SNES9X)/fxemu.cpp $(SNES9X)/fxinst.cpp $(SNES9X)/gfx.cpp
-SNES9X_SRC += $(SNES9X)/globals.cpp $(SNES9X)/loadzip.cpp $(SNES9X)/memmap.cpp
-SNES9X_SRC += $(SNES9X)/movie.cpp $(SNES9X)/obc1.cpp $(SNES9X)/ppu.cpp
-SNES9X_SRC += $(SNES9X)/sa1.cpp $(SNES9X)/sa1cpu.cpp $(SNES9X)/sdd1.cpp
-SNES9X_SRC += $(SNES9X)/sdd1emu.cpp $(SNES9X)/seta.cpp $(SNES9X)/seta010.cpp $(SNES9X)/seta011.cpp
-SNES9X_SRC += $(SNES9X)/seta018.cpp $(SNES9X)/snapshot.cpp $(SNES9X)/spc7110.cpp
-SNES9X_SRC += $(SNES9X)/srtc.cpp $(SNES9X)/tile.cpp
-SNES9X_SRC += $(SNES9X)/spc700.cpp $(SNES9X)/soundux.cpp $(SNES9X)/apu.cpp
-SRC += $(SNES9X_SRC)
+snes9xSrc := bsx.cpp c4.cpp c4emu.cpp cheats.cpp \
+cheats2.cpp clip.cpp controls.cpp cpu.cpp cpuexec.cpp \
+cpuops.cpp dma.cpp dsp.cpp dsp1.cpp dsp2.cpp dsp3.cpp \
+dsp4.cpp fxemu.cpp fxinst.cpp gfx.cpp globals.cpp \
+loadzip.cpp memmap.cpp movie.cpp obc1.cpp ppu.cpp \
+stream.cpp sa1.cpp sa1cpu.cpp sdd1.cpp sdd1emu.cpp \
+seta.cpp seta010.cpp seta011.cpp seta018.cpp \
+snapshot.cpp spc7110.cpp srtc.cpp tile.cpp apu/apu.cpp \
+apu/bapu/dsp/sdsp.cpp apu/bapu/dsp/SPC_DSP.cpp \
+apu/bapu/smp/smp.cpp apu/bapu/smp/smp_state.cpp
+# conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp
 
-#SRC += $(SNES9X)/jma/7zlzma.cpp $(SNES9X)/unzip/crc32.cpp $(SNES9X)/unzip/iiostrm.cpp
-#SRC += $(SNES9X)/jma/inbyte.cpp $(SNES9X)/unzip/jma.cpp $(SNES9X)/unzip/lzma.cpp
-#SRC += $(SNES9X)/jma/lzmadec.cpp $(SNES9X)/unzip/s9x-jma.cpp $(SNES9X)/unzip/winout.cpp
+#SRC += jma/7zlzma.cpp unzip/crc32.cpp unzip/iiostrm.cpp \
+jma/inbyte.cpp unzip/jma.cpp unzip/lzma.cpp \
+jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
+
+SRC += main/Main.cc main/S9XApi.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
-
-ifndef target
-target := s9x
-endif
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

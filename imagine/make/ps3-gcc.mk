@@ -4,6 +4,10 @@ CROSS_COMPILE := 1
 CHOST := powerpc64
 targetExtension := .elf
 
+ifndef target
+ target = $(metadata_exec)
+endif
+
 SONY_SDK := /usr/local/cell
 #SONY_CC := wine $(SONY_SDK)/host-win32/ppu/bin/ppu-lv2-gcc.exe
 

@@ -128,3 +128,23 @@ public:
 };
 
 static_assertIsPod(ColTexVertex);
+
+namespace Gfx
+{
+
+GfxTextureHandle newTexRef();
+void freeTexRef(GfxTextureHandle texRef);
+
+#ifndef NDEBUG
+	#define CHECK_GL_ERRORS
+#endif
+
+#ifndef CHECK_GL_ERRORS
+	static void clearGLError() { }
+	#define glErrorCase(errorLabel) for(int errorLabel = 0; errorLabel == 1;)
+#else
+	static void clearGLError() { while (glGetError() != GL_NO_ERROR) { } }
+	#define glErrorCase(errorLabel) for(GLenum errorLabel = glGetError(); errorLabel != GL_NO_ERROR; errorLabel = GL_NO_ERROR)
+#endif
+
+}

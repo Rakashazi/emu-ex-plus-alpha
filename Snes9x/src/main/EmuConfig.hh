@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "Snes9x.config"
+	#define CONFIG_FILE_NAME "Snes9xP.config"
 #else
 	#define CONFIG_FILE_NAME "config"
 #endif

@@ -6,11 +6,14 @@
 #include <gfx/GfxBufferImage.hh>
 #include <util/edge.h>
 
+namespace Gfx
+{
+
 template<class Vtx>
-class GfxQuadGeneric
+class QuadGeneric
 {
 public:
-	constexpr GfxQuadGeneric() { }
+	constexpr QuadGeneric() { }
 	CallResult init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
 	void deinit();
 	void setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
@@ -32,7 +35,7 @@ public:
 		setPos(x, y,  x, y2,  x2, y2,  x2, y);
 	}
 
-	void setPos(const GfxQuadGeneric &quad)
+	void setPos(const QuadGeneric &quad)
 	{
 		memcpy(v, quad.v, sizeof(v));
 	}
@@ -64,7 +67,7 @@ public:
 
 	static void draw(const Rect2<GC> &d)
 	{
-		GfxQuadGeneric<Vtx> rect;
+		QuadGeneric<Vtx> rect;
 		rect.init(d);
 		rect.draw();
 	}
@@ -73,32 +76,34 @@ protected:
 	Vtx v[4];
 };
 
-typedef GfxQuadGeneric<Vertex> GfxQuad;
+typedef QuadGeneric<Vertex> Quad;
 
-class GfxTexQuad : public GfxQuadGeneric<TexVertex>
+class TexQuad : public QuadGeneric<TexVertex>
 {
 public:
-	constexpr GfxTexQuad() { }
-	void mapImg(const GfxBufferImage &img);
+	constexpr TexQuad() { }
+	void mapImg(const BufferImage &img);
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
 };
 
-class GfxColQuad : public GfxQuadGeneric<ColVertex>
+class ColQuad : public QuadGeneric<ColVertex>
 {
 public:
-	constexpr GfxColQuad() { }
+	constexpr ColQuad() { }
 	void setColor(GColor r, GColor g, GColor b, GColor a, uint edges = EDGE_AI);
 	void setColorRGB(GColor r, GColor g, GColor b, uint edges = EDGE_AI);
 	void setColorAlpha(GColor a, uint edges = EDGE_AI);
 };
 
-class GfxColTexQuad : public GfxQuadGeneric<ColTexVertex>
+class ColTexQuad : public QuadGeneric<ColTexVertex>
 {
 public:
-	constexpr GfxColTexQuad() { }
-	void mapImg(const GfxBufferImage &img);
+	constexpr ColTexQuad() { }
+	void mapImg(const BufferImage &img);
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
 	void setColor(GColor r, GColor g, GColor b, GColor a, uint edges = EDGE_AI);
 	void setColorRGB(GColor r, GColor g, GColor b, uint edges = EDGE_AI);
 	void setColorAlpha(GColor a, uint edges = EDGE_AI);
 };
+
+}

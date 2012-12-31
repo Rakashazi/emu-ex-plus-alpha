@@ -34,7 +34,7 @@ public:
 	Gfx::Sprite spr;
 	_2DOrigin origin;
 
-	GfxBufferImage mapImg;
+	Gfx::BufferImage mapImg;
 	Pixmap mapPix {PixelFormatRGB565};
 	Gfx::Sprite mapSpr;
 	bool visualizeBounds = 0;
@@ -391,6 +391,7 @@ public:
 
 	void draw()
 	{
+		using namespace Gfx;
 		if(optionTouchCtrlDpadPos != NULL2DO)
 		{
 			dp.draw();

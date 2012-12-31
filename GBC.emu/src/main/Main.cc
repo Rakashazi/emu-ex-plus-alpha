@@ -521,9 +521,9 @@ void EmuSystem::configAudioRate()
 	#ifdef CONFIG_BASE_IOS
 	long outputRate = (float)optionSoundRate*.99555;
 	#elif defined(CONFIG_BASE_ANDROID)
-	long outputRate = optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.9956 : (float)optionSoundRate*.9954;
+	long outputRate = (uint)optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.9956 : (float)optionSoundRate*.9954;
 	#elif defined(CONFIG_ENV_WEBOS)
-	long outputRate = optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.99555 : (float)optionSoundRate*.963;
+	long outputRate = (uint)optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.99555 : (float)optionSoundRate*.963;
 	#else
 	long outputRate = float(optionSoundRate)*.9965;
 	#endif

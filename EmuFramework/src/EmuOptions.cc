@@ -57,7 +57,7 @@ OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1
 
 OptionAspectRatio optionAspectRatio(0);
 
-Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, GfxBufferImage::linear, 0, GfxBufferImage::isFilterValid);
+Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::linear, 0, Gfx::BufferImage::isFilterValid);
 
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
@@ -182,10 +182,11 @@ Byte4s2Option optionTouchCtrlImgRes
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		OptionDirectTexture optionDirectTexture;
+		// Default & current setting isn't known until OpenGL init
+		Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		Option<OptionMethodFunc<bool, Gfx::useAndroidSurfaceTexture, Gfx::setUseAndroidSurfaceTexture>, uint8> optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, 1);
+		Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, 1);
 		SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 	#endif
 	Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
@@ -215,6 +216,7 @@ void initOptions()
 	#endif
 
 	#ifdef CONFIG_BASE_ANDROID
+		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
 		if(Base::hasHardwareNavButtons())
 		{
 			optionLowProfileOSNav.isConst = 1;
@@ -252,11 +254,5 @@ void initOptions()
 
 	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
 		optionBestColorModeHint.initDefault(Base::windowPixelBestColorHintDefault());
-	#endif
-
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		optionDirectTexture.initDefault(Gfx::supportsAndroidDirectTextureWhitelisted());
-		Gfx::setUseAndroidDirectTexture(optionDirectTexture);
-		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
 	#endif
 }

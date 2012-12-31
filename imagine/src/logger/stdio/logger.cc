@@ -32,14 +32,14 @@ static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
 
 static const bool useExternalLogFile = 0;
-static FILE *logExternalFile = 0;
+static FILE *logExternalFile = nullptr;
 
 static const char *externalLogPath()
 {
 	#ifdef CONFIG_BASE_IOS
 		const char *prefix = "/var/mobile";
 	#elif defined(CONFIG_BASE_ANDROID)
-		const char *prefix = Base::documentsPath();
+		const char *prefix = Base::storagePath();
 	#elif defined(CONFIG_ENV_WEBOS)
 		const char *prefix = "/media/internal";
 	#else

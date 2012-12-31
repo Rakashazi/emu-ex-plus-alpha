@@ -21,12 +21,12 @@ public:
     return gcd_inner(IG::max(a, b), IG::min(a, b));
   }
 
-	operator bool() const
+  constexpr operator bool() const
 	{
-		return(numer > 0);
+		return numer > 0;
 	}
 
-	operator float() const
+	constexpr operator float() const
 	{
 		return (float)numer/(float)denom;
 	}

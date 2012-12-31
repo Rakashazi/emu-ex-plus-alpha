@@ -153,7 +153,7 @@ endif
 ios-release-tar : $(iOS_tar)
 
 ios-release-ready : $(iOS_tar)
-	cp $(iOS_tar) ../releases-bin/iOS
+	cp $(iOS_tar) $(IMAGINE_PATH)/../releases-bin/iOS
 
 ios-release-check :
 	@echo "Checking compiled release version of $(iOS_metadata_bundleName) $(iOS_metadata_version)"

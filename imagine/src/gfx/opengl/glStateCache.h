@@ -1,7 +1,16 @@
 #pragma once
 
 #include <config/env.hh>
+#include <util/cLang.h>
 #include "glIncludes.h"
+
+#ifdef CONFIG_BASE_ANDROID
+	#include <base/android/public.hh>
+#else
+	static const bool glPointerStateHack = 0;
+#endif
+
+static const bool glEnableStateHack = 0;
 
 static GLenum textureTargetToGet(GLenum target)
 {
@@ -478,14 +487,8 @@ public:
 	}
 };
 
-static GLStateCache glState;
+extern GLStateCache glState;
 static const bool useGLCache = 1;
-
-#ifndef CONFIG_BASE_ANDROID
-	static const bool glPointerStateHack = 0;
-#endif
-
-static const bool glEnableStateHack = 0;
 
 static void glcMatrixMode(GLenum mode)
 { if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }

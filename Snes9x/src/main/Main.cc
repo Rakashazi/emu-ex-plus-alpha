@@ -13,7 +13,7 @@
 #include <CommonFrameworkIncludes.hh>
 
 #include <snes9x.h>
-#ifdef USE_SNES9X_15X
+#ifndef SNES9X_VERSION_1_4
 	#include <apu/apu.h>
 	#include <controls.h>
 #else
@@ -23,7 +23,21 @@
 #include <memmap.h>
 #include <snapshot.h>
 
+#ifndef SNES9X_VERSION_1_4
+
+static const int SNES_AUTO_INPUT = 255;
+static const int SNES_JOYPAD = CTL_JOYPAD;
+static const int SNES_MOUSE_SWAPPED = CTL_MOUSE;
+static const int SNES_SUPERSCOPE = CTL_SUPERSCOPE;
+static int snesInputPort = SNES_AUTO_INPUT;
+static int snesActiveInputPort = SNES_JOYPAD;
+
+#else
+
 static int snesInputPort = SNES_JOYPAD;
+static const int &snesActiveInputPort = snesInputPort;
+
+#endif
 
 // controls
 
@@ -176,23 +190,6 @@ FsDirFilterFunc EmuFilePicker::defaultFsFilter = snesFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = snesFsFilter;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-//static uint16 screenBuff[512*478] __attribute__ ((aligned (8))); // moved to globals.cpp
-
-#ifdef USE_SNES9X_15X
-uint16 *S9xGetJoypadBits(uint idx);
-#else
-static uint16 joypadData[5];
-static uint16 *S9xGetJoypadBits(uint idx)
-{
-	return &joypadData[idx];
-}
-
-CLINK uint32 S9xReadJoypad(int which)
-{
-	assert(which < 5);
-	//logMsg("reading joypad %d", which);
-	return 0x80000000 | joypadData[which];
-}
 
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 
@@ -224,6 +221,27 @@ CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
 	y = snesPointerY;
 	buttons = snesPointerBtns;
 	return 1;
+}
+
+#ifndef SNES9X_VERSION_1_4
+uint16 *S9xGetJoypadBits(uint idx);
+uint8 *S9xGetMouseBits(uint idx);
+uint8 *S9xGetMouseDeltaBits(uint idx);
+int16 *S9xGetMousePosBits(uint idx);
+int16 *S9xGetSuperscopePosBits();
+uint8 *S9xGetSuperscopeBits();
+#else
+static uint16 joypadData[5];
+static uint16 *S9xGetJoypadBits(uint idx)
+{
+	return &joypadData[idx];
+}
+
+CLINK uint32 S9xReadJoypad(int which)
+{
+	assert(which < 5);
+	//logMsg("reading joypad %d", which);
+	return 0x80000000 | joypadData[which];
 }
 
 bool JustifierOffscreen()
@@ -315,7 +333,7 @@ static int snesResX = 256, snesResY = 224;
 
 static bool renderToScreen = 0;
 
-#ifdef USE_SNES9X_15X
+#ifndef SNES9X_VERSION_1_4
 bool8 S9xDeinitUpdate (int width, int height)
 #else
 bool8 S9xDeinitUpdate(int width, int height, bool8)
@@ -365,7 +383,7 @@ static char saveSlotChar(int slot)
 	}
 }
 
-#ifdef USE_SNES9X_15X
+#ifndef SNES9X_VERSION_1_4
 	#define FREEZE_EXT "frz"
 #else
 	#define FREEZE_EXT "s96"
@@ -454,13 +472,110 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-bool touchControlsApplicable() { return snesInputPort == SNES_JOYPAD; }
+bool touchControlsApplicable() { return snesActiveInputPort == SNES_JOYPAD; }
 
 static void setupSNESInput()
 {
-	#ifdef USE_SNES9X_15X
-	S9xSetController(0, CTL_JOYPAD, 0, 0, 0, 0);
-	S9xSetController(1, CTL_JOYPAD, 1, 0, 0, 0);
+	#ifndef SNES9X_VERSION_1_4
+	int inputSetup = snesInputPort;
+	if(inputSetup == SNES_AUTO_INPUT)
+	{
+		inputSetup = SNES_JOYPAD;
+		if(EmuSystem::gameIsRunning() && !strncmp((const char *) Memory.NSRTHeader + 24, "NSRT", 4))
+		{
+			switch (Memory.NSRTHeader[29])
+			{
+				case 0x00:	// Everything goes
+				break;
+
+				case 0x10:	// Mouse in Port 0
+				inputSetup = SNES_MOUSE_SWAPPED;
+				break;
+
+				case 0x01:	// Mouse in Port 1
+				inputSetup = SNES_MOUSE_SWAPPED;
+				break;
+
+				case 0x03:	// Super Scope in Port 1
+				inputSetup = SNES_SUPERSCOPE;
+				break;
+
+				case 0x06:	// Multitap in Port 1
+				//S9xSetController(1, CTL_MP5,        1, 2, 3, 4);
+				break;
+
+				case 0x66:	// Multitap in Ports 0 and 1
+				//S9xSetController(0, CTL_MP5,        0, 1, 2, 3);
+				//S9xSetController(1, CTL_MP5,        4, 5, 6, 7);
+				break;
+
+				case 0x08:	// Multitap in Port 1, Mouse in new Port 1
+				inputSetup = SNES_MOUSE_SWAPPED;
+				break;
+
+				case 0x04:	// Pad or Super Scope in Port 1
+				inputSetup = SNES_SUPERSCOPE;
+				break;
+
+				case 0x05:	// Justifier - Must ask user...
+				//S9xSetController(1, CTL_JUSTIFIER,  1, 0, 0, 0);
+				break;
+
+				case 0x20:	// Pad or Mouse in Port 0
+				inputSetup = SNES_MOUSE_SWAPPED;
+				break;
+
+				case 0x22:	// Pad or Mouse in Port 0 & 1
+				inputSetup = SNES_MOUSE_SWAPPED;
+				break;
+
+				case 0x24:	// Pad or Mouse in Port 0, Pad or Super Scope in Port 1
+				// There should be a toggles here for what to put in, I'm leaving it at gamepad for now
+				break;
+
+				case 0x27:	// Pad or Mouse in Port 0, Pad or Mouse or Super Scope in Port 1
+				// There should be a toggles here for what to put in, I'm leaving it at gamepad for now
+				break;
+
+				// Not Supported yet
+				case 0x99:	// Lasabirdie
+				break;
+
+				case 0x0A:	// Barcode Battler
+				break;
+			}
+		}
+		if(inputSetup != SNES_JOYPAD)
+			logMsg("using automatic input %d", inputSetup);
+	}
+
+	if(inputSetup == SNES_MOUSE_SWAPPED)
+	{
+		S9xSetController(0, CTL_MOUSE, 0, 0, 0, 0);
+		S9xSetController(1, CTL_JOYPAD, 1, 0, 0, 0);
+		logMsg("setting mouse input");
+	}
+	else if(inputSetup == SNES_SUPERSCOPE)
+	{
+		S9xSetController(0, CTL_JOYPAD, 0, 0, 0, 0);
+		S9xSetController(1, CTL_SUPERSCOPE, 0, 0, 0, 0);
+		logMsg("setting superscope input");
+	}
+	else // Joypad
+	{
+		if(optionMultitap)
+		{
+			S9xSetController(0, CTL_JOYPAD, 0, 0, 0, 0);
+			S9xSetController(1, CTL_MP5, 1, 2, 3, 4);
+			logMsg("setting 5-player joypad input");
+		}
+		else
+		{
+			S9xSetController(0, CTL_JOYPAD, 0, 0, 0, 0);
+			S9xSetController(1, CTL_JOYPAD, 1, 0, 0, 0);
+		}
+	}
+	snesActiveInputPort = inputSetup;
 	#else
 	Settings.MultiPlayer5Master = Settings.MultiPlayer5 = 0;
 	Settings.MouseMaster = Settings.Mouse = 0;
@@ -501,11 +616,6 @@ int EmuSystem::loadGame(const char *path)
 	emuView.initImage(0, snesResX, snesResY);
 	setupGamePaths(path);
 
-	if(snesInputPort == SNES_MOUSE_SWAPPED)
-	{
-		Settings.Mouse = 1;
-		Settings.ControllerOption = SNES_MOUSE_SWAPPED;
-	}
 	if(!Memory.LoadROM(fullGamePath))
 	{
 		logMsg("failed to load game");
@@ -545,68 +655,91 @@ void EmuSystem::configAudioRate()
 	if(optionFrameSkip != optionFrameSkipAuto)
 		Settings.SoundPlaybackRate = (float)optionSoundRate * (42660./44100.); // better sync with Pre's refresh rate
 	#endif
+	#ifndef SNES9X_VERSION_1_4
+	S9xUpdatePlaybackRate();
+	#else
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
+	#endif
 	logMsg("emu sound rate %d", Settings.SoundPlaybackRate);
 }
 
 static void doS9xAudio(bool renderAudio)
 {
-	#ifdef USE_SNES9X_15X
-	const uint samples = S9xGetSampleCount();
+	#ifndef SNES9X_VERSION_1_4
+		const uint samples = S9xGetSampleCount();
 	#else
-	const uint samples = Settings.SoundPlaybackRate*2 / 60;
+		const uint samples = Settings.SoundPlaybackRate*2 / 60;
 	#endif
 	uint frames = samples/2;
 
 	int16 audioMemBuff[samples];
 	int16 *audioBuff = nullptr;
 	#ifdef USE_NEW_AUDIO
-	Audio::BufferContext *aBuff = nullptr;
-	if(renderAudio)
-	{
-		if(!(aBuff = Audio::getPlayBuffer(frames)))
+		Audio::BufferContext *aBuff = nullptr;
+		if(renderAudio)
 		{
-			return;
+			if(!(aBuff = Audio::getPlayBuffer(frames)))
+			{
+				return;
+			}
+			audioBuff = (int16*)aBuff->data;
+			assert(aBuff->frames >= frames);
 		}
-		audioBuff = (int16*)aBuff->data;
-		assert(aBuff->frames >= frames);
-	}
-	else
-	{
-		audioBuff = audioMemBuff;
-	}
+		else
+		{
+			audioBuff = audioMemBuff;
+		}
 	#else
-	audioBuff = audioMemBuff;
+		audioBuff = audioMemBuff;
 	#endif
 
 
-	#ifdef USE_SNES9X_15X
-	if(!S9xMixSamples((uint8_t*)audioBuff, samples))
-	{
-		logMsg("not enough samples ready from SNES");
-	}
-	else
+	#ifndef SNES9X_VERSION_1_4
+		if(!S9xMixSamples((uint8_t*)audioBuff, samples))
+		{
+			logMsg("not enough samples ready from SNES");
+		}
+		else
 	#else
-	S9xMixSamples((uint8_t*)audioBuff, samples);
+		S9xMixSamples((uint8_t*)audioBuff, samples);
 	#endif
 
 	#ifdef USE_NEW_AUDIO
-	if(renderAudio)
-		Audio::commitPlayBuffer(aBuff, frames);
+		if(renderAudio)
+			Audio::commitPlayBuffer(aBuff, frames);
 	#else
-	if(renderAudio)
-		Audio::writePcm((uchar*)audioBuff, frames);
+		if(renderAudio)
+			Audio::writePcm((uchar*)audioBuff, frames);
 	#endif
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	if(unlikely(snesInputPort != SNES_JOYPAD))
+	if(unlikely(snesActiveInputPort != SNES_JOYPAD))
 	{
 		if(doubleClickFrames)
 			doubleClickFrames--;
 		if(rightClickFrames)
 			rightClickFrames--;
+
+		#ifndef SNES9X_VERSION_1_4
+		switch(snesActiveInputPort)
+		{
+			bcase SNES_MOUSE_SWAPPED:
+			{
+				int x,y;
+				uint32 buttons;
+				S9xReadMousePosition(0, x, y, buttons);
+				*S9xGetMouseBits(0) &= ~(0x40 | 0x80);
+				if(buttons == 1)
+					*S9xGetMouseBits(0) |= 0x40;
+				else if(buttons == 2)
+					*S9xGetMouseBits(0) |= 0x80;
+				S9xGetMousePosBits(0)[0] = x;
+				S9xGetMousePosBits(0)[1] = y;
+			}
+		}
+		#endif
 	}
 
 	IPPU.RenderThisFrame = processGfx ? TRUE : FALSE;
@@ -625,13 +758,16 @@ void onInputEvent(const InputEvent &e)
 {
 	if(unlikely(EmuSystem::isActive() && e.isPointer()))
 	{
-		switch(snesInputPort)
+		switch(snesActiveInputPort)
 		{
 			bcase SNES_SUPERSCOPE:
 			{
 				if(e.state == INPUT_RELEASED)
 				{
 					snesPointerBtns = 0;
+					#ifndef SNES9X_VERSION_1_4
+					*S9xGetSuperscopeBits() = 0;
+					#endif
 				}
 				if(emuView.gameView.overlaps(e.x, e.y))
 				{
@@ -642,12 +778,23 @@ void onInputEvent(const InputEvent &e)
 					if(e.state == INPUT_PUSHED)
 					{
 						snesPointerBtns = 1;
+						#ifndef SNES9X_VERSION_1_4
+						*S9xGetSuperscopeBits() = 0x80;
+						#endif
 					}
 				}
 				else if(e.state == INPUT_PUSHED)
 				{
 					snesPointerBtns = 2;
+					#ifndef SNES9X_VERSION_1_4
+					*S9xGetSuperscopeBits() = 0x40;
+					#endif
 				}
+
+				#ifndef SNES9X_VERSION_1_4
+				S9xGetSuperscopePosBits()[0] = snesPointerX;
+				S9xGetSuperscopePosBits()[1] = snesPointerY;
+				#endif
 			}
 
 			bcase SNES_MOUSE_SWAPPED:
@@ -738,58 +885,25 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 CallResult onInit()
 {
 	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
-	//Settings.FrameTimePAL = 20000;
-	//Settings.FrameTimeNTSC = 16667;
-	//Settings.ForceNTSC = 1;
-	//Settings.SixteenBitSound = TRUE; made const
-	//Settings.Transparency = TRUE;
-	//Settings.AutoSaveDelay = 30;
-
-	#ifdef USE_SNES9X_15X
-	Settings.CartAName[0] = 0;
-	Settings.CartBName[0] = 0;
-	Settings.WrongMovieStateProtection = TRUE;
-	Settings.DumpStreamsMaxFrames = -1;
-	Settings.HDMATimingHack = 100;
-	Settings.BlockInvalidVRAMAccessMaster = TRUE;
-	Settings.SoundInputRate = 31977;//32000;
+	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
+	#ifndef SNES9X_VERSION_1_4
+		GFX.Screen = screenBuff;
 	#else
-	//Settings.ShutdownMaster = TRUE;
-	//Settings.CyclesPercentage = 100; made const
-	//Settings.NextAPUEnabled = 1; made const
-	assert(Settings.FrameTime == Settings.FrameTimeNTSC);
-	//Settings.OpenGLEnable = 1; made const
-	//Settings.SixteenBit = TRUE; made const
-	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
-	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
-	#endif
-
-	#if 0
-	//CPU.Flags = 0;
-	GFX.Pitch = 1024;
-	#ifdef USE_SNES9X_15X
-	GFX.Screen = screenBuff;
-	#else
-	GFX.Screen = (uint8*)screenBuff;
-	// made static
-	/*static uint8 SubScreen[512*478*2] __attribute__ ((aligned (4))),
-		ZBuffer[512*478] __attribute__ ((aligned (4))),
-		SubZBuffer[512*478] __attribute__ ((aligned (4)));
-	GFX.SubScreen = SubScreen;
-	GFX.ZBuffer = ZBuffer;
-	GFX.SubZBuffer = SubZBuffer;*/
-	#endif
+		GFX.Screen = (uint8*)screenBuff;
 	#endif
 
 	Memory.Init();
 	S9xGraphicsInit();
 	S9xInitAPU();
 	assert(Settings.Stereo == TRUE);
-	//Settings.SoundPlaybackRate = 44100; // dummy rate, really set in mainInitCommon()
-	#ifdef USE_SNES9X_15X
-	S9xInitSound(20, 0);
+	#ifndef SNES9X_VERSION_1_4
+		S9xInitSound(20, 0);
+		S9xUnmapAllControls();
 	#else
-	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
+		S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
+		assert(Settings.FrameTime == Settings.FrameTimeNTSC);
+		assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
+		assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
 
 	mainInitCommon();

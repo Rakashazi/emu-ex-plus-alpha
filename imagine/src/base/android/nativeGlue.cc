@@ -206,7 +206,7 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
 // when using multiple joysticks. Everything seems to work
 // properly if we keep calling AInputQueue_getEvent until
 // it returns an error instead of using AInputQueue_hasEvents
-static bool exhaustInputWithGetEvent = 0;
+bool exhaustInputWithGetEvent = 0;
 void process_input(struct android_app* app)
 {
 	int events = 0;
@@ -507,7 +507,6 @@ static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
 
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
-	doOrExit(logger_init());
 	logMsg("called ANativeActivity_onCreate");
 	activityTid = gettid();
 	activity->callbacks->onDestroy = onDestroy;

@@ -125,10 +125,6 @@ ifeq ($(ENV), iOS)
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 endif
 
-ifndef target
-target := msxemu
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

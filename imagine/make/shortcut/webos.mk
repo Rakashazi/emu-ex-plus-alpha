@@ -78,7 +78,7 @@ webos-release-install-only :
 	palm-install $(webOS_ipkRelease)
 
 webos-release-ready : 
-	cp $(webOS_ipkRelease) ../releases-bin/webOS/
+	cp $(webOS_ipkRelease) $(IMAGINE_PATH)/../releases-bin/webOS/
 
 webos-release-clean:
 	rm -f $(webOS_armv7ReleaseExec) $(webOS_armv6ReleaseExec) $(webOS_3armv7ReleaseExec)

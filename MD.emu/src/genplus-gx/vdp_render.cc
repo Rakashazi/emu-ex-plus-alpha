@@ -36,7 +36,9 @@ extern sms_ntsc_t *sms_ntsc;
 #define LUT_MAX     (6)
 #define LUT_SIZE    (0x10000)
 
-#define ALIGN_LONG
+#if defined __ARM_ARCH_5TE__
+	#define ALIGN_LONG
+#endif
 #define ALT_RENDERER
 
 #ifdef ALIGN_LONG

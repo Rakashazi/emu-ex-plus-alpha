@@ -212,6 +212,7 @@ void OptionView::audioRateInit()
 		{
 			item.toggle();
 			optionSurfaceTexture = item.on;
+			Gfx::setUseAndroidSurfaceTexture(item.on);
 			if(emuView.vidImg.impl)
 				emuView.reinitImage();
 		}
@@ -490,13 +491,13 @@ void OptionView::aspectRatioInit()
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 	void soundBuffersSet(MultiChoiceMenuItem &, int val)
 	{
-		optionSoundBuffers = val+4;
+		optionSoundBuffers = val+3;
 	}
 
 	void OptionView::soundBuffersInit()
 	{
-		static const char *str[] = { "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-		soundBuffers.init(str, IG::max((int)optionSoundBuffers - 4, 0), sizeofArray(str));
+		static const char *str[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
+		soundBuffers.init(str, IG::max((int)optionSoundBuffers - 3, 0), sizeofArray(str));
 		soundBuffers.valueDelegate().bind<&soundBuffersSet>();
 	}
 #endif
@@ -766,6 +767,7 @@ public:
 		logMsg("set save path %s", (char*)optionSavePath);
 		pathChangeDel.invokeSafe(optionSavePath);
 		View::removeModalView();
+		workDirStack.pop();
 	}
 
 	void init(bool highlightFirst)
@@ -780,6 +782,8 @@ public:
 		removeModalView();
 		if(i == 0)
 		{
+			workDirStack.push();
+			FsSys::chdir(optionSavePath);
 			fPicker.init(!e.isPointer(), dirFsFilter);
 			fPicker.onCloseDelegate().bind<SavePathSelectMenu, &SavePathSelectMenu::onClose>(this);
 			fPicker.placeRect(Gfx::viewportRect());
@@ -817,6 +821,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(Base::androidSDK() < 14)
 		{
+			assert(optionDirectTexture != OPTION_DIRECT_TEXTURE_UNSET);
 			directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
 			directTexture.selectDelegate().bind<&directTextureHandler>();
 		}

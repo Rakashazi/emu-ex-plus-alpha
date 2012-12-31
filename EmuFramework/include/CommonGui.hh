@@ -29,6 +29,7 @@
 #include "ConfigFile.hh"
 #include "FilePicker.hh"
 #include <EmuView.hh>
+#include <libgen.h>
 
 #include <meta.h>
 
@@ -43,6 +44,20 @@ Gfx::Sprite menuIcon;
 MultiChoiceView multiChoiceView;
 ViewStack viewStack;
 extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
+WorkDirStack<1> workDirStack;
+
+void chdirFromFilePath(const char *path)
+{
+	FsSys::cPath dirNameTemp;
+	string_copy(dirNameTemp, path);
+	FsSys::chdir(dirname(dirNameTemp));
+}
+
+void onCloseModalPopWorkDir(const InputEvent &e)
+{
+	View::removeModalView();
+	workDirStack.pop();
+}
 
 void onLeftNavBtn(const InputEvent &e)
 {
@@ -105,14 +120,10 @@ namespace CATS
 		0x27, 0x16, 0x3, 0x14, 0x1F, 0x12, 0x5, 0x77,
 	};
 	static char ad2101[] = { 0x14, 0x18, 0x1A, 0x59, 0x12, 0xF, 0x7, 0x1B, 0x2, 0x4, 0x16, 0x1B, 0x7, 0x1F, 0x16, 0x59,
-			0x7, 0x14, 0x12, 0x12, 0x1A, 0x2, 0x59, 0x1B, 0x1E, 0x4, 0x3, 0x77, };
-	static char ad2102[] = { 0x14, 0x18, 0x1A, 0x59, 0x12, 0xF, 0x7, 0x1B, 0x2, 0x4, 0x16, 0x1B, 0x7, 0x1F, 0x16, 0x59,
 			0x19, 0x12, 0x4, 0x12, 0x1A, 0x2, 0x59, 0x1B, 0x1E, 0x4, 0x3, 0x77, };
-	static char ad2103[] = { 0x14, 0x18, 0x1A, 0x59, 0x12, 0xF, 0x7, 0x1B, 0x2, 0x4, 0x16, 0x1B, 0x7, 0x1F, 0x16, 0x59,
+	static char ad2102[] = { 0x14, 0x18, 0x1A, 0x59, 0x12, 0xF, 0x7, 0x1B, 0x2, 0x4, 0x16, 0x1B, 0x7, 0x1F, 0x16, 0x59,
 			0x10, 0x15, 0x14, 0x12, 0x1A, 0x2, 0x59, 0x1B, 0x1E, 0x4, 0x3, 0x77, };
-	static char ad2104[] = { 0x14, 0x18, 0x1A, 0x59, 0x12, 0xF, 0x7, 0x1B, 0x2, 0x4, 0x16, 0x1B, 0x7, 0x1F, 0x16, 0x59,
-			0x1A, 0x13, 0x12, 0x1A, 0x2, 0x59, 0x1B, 0x1E, 0x4, 0x3, 0x77, };
-	static char *in[] = { ad2101, ad2102, ad2103, ad2104 };
+	static char *in[] = { ad2101, ad2102 };
 	static char makeYourTime[] =
 	{
 		0x58, 0x1, 0x16, 0x5, 0x58, 0x1B, 0x1E, 0x15, 0x58, 0x13, 0x7, 0x1C, 0x10, 0x58, 0x1E, 0x19,
@@ -219,8 +230,6 @@ namespace CATS
 	{
 		weGetSignal(ad2101);
 		weGetSignal(ad2102);
-		weGetSignal(ad2103);
-		weGetSignal(ad2104);
 		weGetSignal(makeYourTime);
 		weGetSignal(greatJustice);
 		weGetSignal(theBomb);
@@ -1129,6 +1138,30 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 		Gfx::setDither(optionDitherImage);
 	}
 
+	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+		if((int8)optionProcessPriority != 0)
+			Base::setProcessPriority(optionProcessPriority);
+
+		if(!optionSurfaceTexture.isConst && (bool)optionSurfaceTexture != Gfx::useAndroidSurfaceTexture())
+		{
+			Gfx::setUseAndroidSurfaceTexture(optionSurfaceTexture);
+		}
+	#endif
+
+	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		optionDirectTexture.defaultVal = Gfx::supportsAndroidDirectTextureWhitelisted();
+		if(optionDirectTexture == OPTION_DIRECT_TEXTURE_UNSET || !Gfx::supportsAndroidDirectTexture())
+		{
+			optionDirectTexture = Gfx::useAndroidDirectTexture();
+		}
+		else
+		{
+			logMsg("using direct texture setting from config file");
+			Gfx::setUseAndroidDirectTexture(optionDirectTexture);
+		}
+		// optionDirectTexture is treated as a boolean value after this point
+	#endif
+
 	#ifdef CONFIG_BASE_ANDROID
 		if(!optionTouchCtrlImgRes.isConst)
 			optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
@@ -1137,10 +1170,6 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
 
-	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
-		if((int8)optionProcessPriority != 0)
-			Base::setProcessPriority(optionProcessPriority);
-	#endif
 	EmuSystem::configAudioRate();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
@@ -1148,6 +1177,9 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 
 	emuView.gameView.init();
 	emuView.disp.init();
+	#if defined CONFIG_BASE_ANDROID
+	emuView.disp.flags = Gfx::Sprite::HINT_NO_MATRIX_TRANSFORM;
+	#endif
 	emuView.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuView.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
 	keyMapping.buildAll();

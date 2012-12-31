@@ -34,9 +34,11 @@
 Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal)
   : rom(rom_ptr),
     ram(ram_ptr),
-    copydata(0),
-    DBUG(0),  // dump detailed execution trace
+    copydata(0)
+#ifdef THUMB_DEBUG_SUPPORT
+    ,DBUG(0),  // dump detailed execution trace
     DISS(0)   // dump Thumb instruction trace
+#endif
 {
   trapFatalErrors(traponfatal);
 }
@@ -47,12 +49,17 @@ Thumbulator::~Thumbulator()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef THUMB_DEBUG_SUPPORT
 string Thumbulator::run( void )
+#else
+void Thumbulator::run( void )
+#endif
 {
   reset();
   for(;;)
   {
     if (execute()) break;
+		#ifdef THUMB_DEBUG_SUPPORT
     if (instructions > 500000) // way more than would otherwise be possible
     {
       DISS=1; // dump instructions
@@ -65,9 +72,12 @@ string Thumbulator::run( void )
       //throw "instructions > 501000";
       return statusMsg.str();
     }
+		#endif
   }
   //dump_counters();
+	#ifdef THUMB_DEBUG_SUPPORT
   return statusMsg.str();
+	#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

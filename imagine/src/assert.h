@@ -12,10 +12,10 @@
 	#include <stdlib.h>
 	#ifdef __cplusplus
 		#define assert(condition) if(!(condition)) \
-		{ logger_printf(0, "assert failed: %s in " __FILE__ ", line %d , in function %s", #condition, __LINE__, __PRETTY_FUNCTION__); ::abort(); }
+		{ logger_printfn(0, "assert failed: %s in " __FILE__ ", line %d , in function %s", #condition, __LINE__, __PRETTY_FUNCTION__); ::abort(); }
 	#else
 		#define assert(condition) if(!(condition)) \
-		{ logger_printf(0, "assert failed: %s in " __FILE__ ", line %d , in function %s", #condition, __LINE__, __PRETTY_FUNCTION__); abort(); }
+		{ logger_printfn(0, "assert failed: %s in " __FILE__ ", line %d , in function %s", #condition, __LINE__, __PRETTY_FUNCTION__); abort(); }
 	#endif
 #else
 	#define assert(condition) { }

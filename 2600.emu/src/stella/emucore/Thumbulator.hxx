@@ -73,7 +73,11 @@ class Thumbulator
       @return  The results of any debugging output (if enabled),
                otherwise an empty string
     */
+		#ifdef THUMB_DEBUG_SUPPORT
     string run();
+		#else
+    void run();
+		#endif
 
     /**
       Normally when a fatal error is encountered, the ARM emulation
@@ -139,8 +143,14 @@ class Thumbulator
     uInt64 reads;
     uInt64 writes;
 
+		#ifdef THUMB_DEBUG_SUPPORT
     Int32 DBUG; // dump detailed execution trace
     Int32 DISS; // dump Thumb instruction trace
+		#else
+    static const Int32 DBUG = 0; // dump detailed execution trace
+    static const Int32 DISS = 0; // dump Thumb instruction trace
+		#endif
+
     ostringstream statusMsg;
 
     static bool trapOnFatal;

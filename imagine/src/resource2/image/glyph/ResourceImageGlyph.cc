@@ -33,7 +33,7 @@ ResourceImageGlyph *ResourceImageGlyph::createWithFace(ResourceFace *face, Glyph
 	inst->face = face;
 	inst->idx = idx;
 
-	inst->gfxD.init(*inst, GfxBufferImage::linear, GfxBufferImage::HINT_NO_MINIFY);
+	inst->gfxD.init(*inst, Gfx::BufferImage::linear, Gfx::BufferImage::HINT_NO_MINIFY);
 	inst->ResourceImage::init();
 
 	return inst;

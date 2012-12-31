@@ -1,6 +1,10 @@
 ENV := ios
 CROSS_COMPILE := 1
 
+ifndef target
+ target = $(metadata_exec)
+endif
+
 ifndef targetDir
  ifdef O_RELEASE
   targetDir := target/iOS/bin-release

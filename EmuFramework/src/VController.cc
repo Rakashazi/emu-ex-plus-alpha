@@ -33,7 +33,7 @@ void VControllerDPad::updateBoundingAreaGfx()
 	if(visualizeBounds)
 	{
 		mapPix.init(padArea.xSize(), padArea.ySize());
-		mapImg.init(mapPix, 0, GfxBufferImage::linear, 0);
+		mapImg.init(mapPix, 0, Gfx::BufferImage::linear, 0);
 		mapSpr.init(&mapImg);
 
 		iterateTimes(mapPix.y, y)

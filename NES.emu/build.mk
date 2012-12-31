@@ -58,10 +58,6 @@ SRC += $(FCEUX_SRC) fceu/mappers/emu2413.cc
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 
-ifndef target
-target := nesemu
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

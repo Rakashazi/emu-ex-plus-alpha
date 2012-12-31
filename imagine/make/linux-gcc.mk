@@ -1,5 +1,9 @@
 ENV := linux
 
+ifndef target
+ target = $(metadata_exec)
+endif
+
 ifndef O_RELEASE
  targetExtension := -debug
 endif

@@ -30,11 +30,7 @@ else
 endif
 
 ifndef android_stdcxx
- ifdef cxxExceptions
-  android_stdcxx := gnu
- else
-  android_stdcxx := stlport
- endif
+ android_stdcxx := gnu
 endif
 
 ifeq ($(android_stdcxx), gnu)

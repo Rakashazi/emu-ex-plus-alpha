@@ -639,6 +639,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	doOrExit(onInit());
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
+	#ifdef CONFIG_INPUT_ICADE
+		iCade.init(glView);
+	#endif
 	Base::engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	Base::setAutoOrientation(1);
@@ -709,7 +712,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		Base::startAnimation();
 	Base::onResume(1);
 	#ifdef CONFIG_INPUT_ICADE
-	iCade.didBecomeActive();
+		iCade.didBecomeActive();
 	#endif
 }
 
@@ -719,7 +722,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("app exiting");
 	//Base::stopAnimation();
 	Base::appState = APP_EXITING;
-	//callSafe(Base::onAppExitHandler, Base::onAppExitHandlerCtx, 0);
 	Base::onExit(0);
 }
 
@@ -731,7 +733,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::stopAnimation();
 	Base::onExit(1);
 	#ifdef CONFIG_INPUT_ICADE
-	iCade.didEnterBackground();
+		iCade.didEnterBackground();
 	#endif
 	glFinish();
 }
@@ -963,7 +965,6 @@ namespace Input
 
 void setICadeActive(bool active)
 {
-	Base::iCade.init(Base::glView);
 	Base::iCade.setActive(active);
 }
 

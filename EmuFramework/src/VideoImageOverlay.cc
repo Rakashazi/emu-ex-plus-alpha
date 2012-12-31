@@ -78,7 +78,7 @@ void VideoImageOverlay::setEffect(uint effect)
 	}
 
 	bool mipmapFilter = 1;
-	img.init(pix, 0, GfxBufferImage::linear, mipmapFilter ? 0 : GfxBufferImage::HINT_NO_MINIFY, 1);
+	img.init(pix, 0, Gfx::BufferImage::linear, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
 	spr.init(&img);
 	img.write(pix);
 }

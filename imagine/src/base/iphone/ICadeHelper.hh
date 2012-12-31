@@ -15,6 +15,10 @@ struct ICadeHelper
 			logMsg("init iCade helper");
 			dummyInputView = [[UIView alloc] initWithFrame:CGRectZero];
 			var_selfs(mainView);
+			if(active)
+			{
+				[mainView becomeFirstResponder];
+			}
 		}
 	}
 
@@ -22,6 +26,8 @@ struct ICadeHelper
 	{
 		var_selfs(active);
 		logMsg("set iCade active %d", active);
+		if(!mainView)
+			return;
 		if(active)
 		{
 			[mainView becomeFirstResponder];

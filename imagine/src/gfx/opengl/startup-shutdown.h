@@ -105,8 +105,9 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	}
 	#endif*/
 
-	#if defined(CONFIG_GFX_OPENGL_ES) && !defined(CONFIG_BASE_PS3)
-		//checkForDrawTexture();
+	#ifdef CONFIG_BASE_ANDROID
+		checkForDrawTexture(extensions, rendererName);
+		setupAndroidOGLExtensions(extensions, rendererName);
 	#endif
 
 	/*#ifdef CONFIG_GFX_OPENGL_GLX
@@ -130,7 +131,8 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	return OK;
 }
 
-void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
+#ifdef CONFIG_BASE_ANDROID
+static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
 {
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(Base::androidSDK() < 14)
@@ -160,5 +162,6 @@ void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
 		}
 	#endif
 }
+#endif
 
 }

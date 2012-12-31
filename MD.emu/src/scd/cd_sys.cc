@@ -80,7 +80,7 @@ void LBA_to_MSF(int lba, _msf *MSF)
 
 static unsigned int MSF_to_Track(_msf *MSF)
 {
-	int i, Start, Cur;
+	uint i, Start, Cur;
 
 	Start = (MSF->M << 16) + (MSF->S << 8) + MSF->F;
 
@@ -114,7 +114,7 @@ static unsigned int LBA_to_Track(int lba)
 static void Track_to_MSF(int track, _msf *MSF)
 {
 	if (track < 1) track = 1;
-	else if (track > sCD.TOC.Last_Track) track = sCD.TOC.Last_Track;
+	else if (track > (int)sCD.TOC.Last_Track) track = sCD.TOC.Last_Track;
 
 	MSF->M = sCD.TOC.Tracks[track - 1].MSF.M;
 	MSF->S = sCD.TOC.Tracks[track - 1].MSF.S;
@@ -454,7 +454,7 @@ int Get_Track_Adr_CDD_c25(void)
 //	else if (!(CDC.CTRL.B.B0 & 0x80)) sCD.cdd.status |= sCD.Status_CDD;
 	sCD.cdd.status |= sCD.Status_CDD;
 
-	if (track_number > sCD.TOC.Last_Track) track_number = sCD.TOC.Last_Track;
+	if (track_number > (int)sCD.TOC.Last_Track) track_number = sCD.TOC.Last_Track;
 	else if (track_number < 1) track_number = 1;
 
 	sCD.cdd.Minute = INT_TO_BCDW(sCD.TOC.Tracks[track_number - 1].MSF.M);

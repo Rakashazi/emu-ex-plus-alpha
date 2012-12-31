@@ -704,7 +704,7 @@ int EmuSystem::loadGame(const char *path)
 		setupGamePaths(path);
 	CDAccess *cd = nullptr;
 	if(isMDCDExtension(fullGamePath) ||
-		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) >= 1024*1024*10)) // CD
+		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) > 1024*1024*10)) // CD
 	{
 		try
 		{

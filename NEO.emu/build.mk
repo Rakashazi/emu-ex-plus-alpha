@@ -44,10 +44,6 @@ else
  $(GEO)/generator68k/cpu68k-c.c $(GEO)/generator68k/cpu68k-d.c $(GEO)/generator68k/cpu68k-e.c $(GEO)/generator68k/cpu68k-f.c
 endif
 
-ifndef target
-target := neoemu
-endif
-
 configInc += <gngeo-config.h>
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

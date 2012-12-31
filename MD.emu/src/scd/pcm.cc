@@ -132,7 +132,7 @@ void scd_pcm_update(PCMSampleType *buffer, int length, int stereo)
 			k = (addr >> PCM_STEP_SHIFT) + 1;
 			addr = (addr + step) & 0x7FFFFFF;
 
-			for(; k < (addr >> PCM_STEP_SHIFT); k++)
+			for(; k < int(addr >> PCM_STEP_SHIFT); k++)
 			{
 				if (sCD.pcmMem.b[k] == 0xff)
 				{

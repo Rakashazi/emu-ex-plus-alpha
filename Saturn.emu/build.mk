@@ -48,10 +48,6 @@ SRC += yabause/q68/q68.c yabause/q68/q68-core.c yabause/m68kq68.c
 CPPFLAGS += -DHAVE_Q68=1
 # TODO: -DQ68_USE_JIT=1
 
-ifndef target
- target := saturnemu
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

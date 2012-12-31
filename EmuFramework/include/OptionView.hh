@@ -39,6 +39,9 @@ void setupStatusBarInMenu();
 void setupFont();
 void applyOSNavStyle();
 ResourceImage *getArrowAsset();
+extern WorkDirStack<1> workDirStack;
+void onCloseModalPopWorkDir(const InputEvent &e);
+void chdirFromFilePath(const char *path);
 
 class ButtonConfigCategoryView : public BaseMenuView
 {
@@ -317,6 +320,7 @@ public:
 		snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
 		biosChangeDel.invokeSafe();
 		View::removeModalView();
+		workDirStack.pop();
 	}
 
 	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
@@ -339,9 +343,11 @@ public:
 		removeModalView();
 		if(i == 0)
 		{
+			workDirStack.push();
+			chdirFromFilePath(*biosPathStr);
 			fPicker.init(!e.isPointer(), fsFilter);
 			fPicker.onSelectFileDelegate().bind<BiosSelectMenu, &BiosSelectMenu::onSelectFile>(this);
-			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.onCloseDelegate().bind<&onCloseModalPopWorkDir>();
 			fPicker.placeRect(Gfx::viewportRect());
 			modalView = &fPicker;
 			Base::displayNeedsUpdate();

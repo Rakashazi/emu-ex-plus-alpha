@@ -19,7 +19,7 @@
 
 class VideoImageOverlay
 {
-	GfxBufferImage img;
+	Gfx::BufferImage img;
 	Pixmap pix {PixelFormatIA88};
 	Gfx::Sprite spr;
 	uint effect = NO_EFFECT;

@@ -12,7 +12,7 @@ enum { IMAGE_ALPHA_CHANNEL_NONE, IMAGE_ALPHA_CHANNEL_USED, IMAGE_ALPHA_CHANNEL_I
 //enum { IMAGE_CLASS_UNKNOWN, IMAGE_CLASS_TEXTURE, IMAGE_CLASS_NON_REPEATING, IMAGE_CLASS_NR = IMAGE_CLASS_NON_REPEATING, IMAGE_CLASS_TILED };
 //enum { IMAGE_EDGES_UNKNOWN, IMAGE_EDGES_HARD, IMAGE_EDGES_SOFT };
 
-class ResourceImage : /*public Resource,*/ public GfxUsableImage, public RefCount<ResourceImage>
+class ResourceImage : /*public Resource,*/ public Gfx::UsableImage, public RefCount<ResourceImage>
 {
 public:
 	constexpr ResourceImage() { }
@@ -35,6 +35,6 @@ public:
 	uchar isGrayScale() const { return pixelFormat()->isGrayscale(); }
 	uchar bitsPP() const { return pixelFormat()->bitsPerPixel; }
 
-	GfxBufferImage gfxD;
+	Gfx::BufferImage gfxD;
 	void deinit() { freeRef(); }
 };

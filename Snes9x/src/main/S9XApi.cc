@@ -4,7 +4,7 @@
 
 #include <sys/stat.h>
 #include <snes9x.h>
-#ifdef USE_SNES9X_15X
+#ifndef SNES9X_VERSION_1_4
 	#include <apu/apu.h>
 	#include <controls.h>
 #else
@@ -13,6 +13,7 @@
 #endif
 #include <display.h>
 #include <memmap.h>
+#include <EmuSystem.hh>
 
 void S9xMessage(int, int, const char *msg)
 {
@@ -25,7 +26,7 @@ void S9xMessage(int, int, const char *msg)
 	return;
 }*/
 
-#ifdef USE_SNES9X_15X
+#ifndef SNES9X_VERSION_1_4
 
 bool8 S9xContinueUpdate (int width, int height)
 {
@@ -36,6 +37,45 @@ void S9xHandlePortCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 {
 
 }
+
+bool8 S9xOpenSoundDevice()
+{
+	return TRUE;
+}
+
+const char * S9xGetCrosshair (int idx)
+{
+	return nullptr;
+}
+
+void S9xDrawCrosshair (const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y)
+{
+
+}
+
+void S9xSetSoundMute (bool8 mute)
+{
+
+}
+
+const char * S9xGetDirectory (enum s9x_getdirtype dirtype)
+{
+	return EmuSystem::savePath();
+}
+
+const char * S9xGetFilenameInc (const char *ex, enum s9x_getdirtype dirtype)
+{
+	bug_exit("S9xGetFilenameInc not used yet");
+	return nullptr;
+}
+
+const char * S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
+{
+	static char	s[PATH_MAX + 1];
+	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
+	return s;
+}
+
 #else
 
 /*bool8 S9xOpenSoundDevice(int mode, bool8 stereo, int buffer_size)
@@ -49,12 +89,53 @@ extern "C" void S9xLoadSDD1Data()
 	Settings.SDD1Pack = TRUE;
 }
 
-#endif
-
-bool S9xPollButton (uint32 id, bool *pressed)
+const char *S9xGetFilename (const char *ex)
 {
+	static char	s[PATH_MAX + 1];
+	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
+	return s;
+}
+
+const char *S9xGetFilenameInc (const char *e)
+{
+	assert(0); // not used yet
 	return 0;
 }
+
+const char *S9xGetSnapshotDirectory()
+{
+	return EmuSystem::savePath();
+}
+
+extern "C" char* osd_GetPackDir()
+{
+	static char	filename[PATH_MAX + 1];
+	strcpy(filename, EmuSystem::savePath());
+
+	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
+	{
+		strcat(filename, "/SPL4-SP7");
+	}
+	else if(!strncmp((char*)&Memory.ROM [0xffc0], "MOMOTETSU HAPPY      ",21))
+	{
+		strcat(filename, "/SMHT-SP7");
+	}
+	else if(!strncmp((char*)&Memory.ROM [0xffc0], "HU TENGAI MAKYO ZERO ", 21))
+	{
+		strcat(filename, "/FEOEZSP7");
+	}
+	else if(!strncmp((char*)&Memory.ROM [0xffc0], "JUMP TENGAIMAKYO ZERO",21))
+	{
+		strcat(filename, "/SJUMPSP7");
+	}
+	else
+	{
+		strcat(filename, "/MISC-SP7");
+	}
+	return filename;
+}
+
+#endif
 
 bool S9xPollAxis (uint32 id, int16 *value)
 {
@@ -68,10 +149,8 @@ bool S9xPollPointer (uint32 id, int16 *x, int16 *y)
 
 void S9xExit (void)
 {
-	assert(0);
+	bug_exit("should not be called");
 }
-
-//bool8 S9xOpenSoundDevice () { return 1; }
 
 void S9xToggleSoundChannel (int c)
 {
@@ -87,7 +166,7 @@ void S9xToggleSoundChannel (int c)
 
 const char * S9xStringInput (const char *message)
 {
-	assert(0);
+	bug_exit("should not be called");
 	return 0;
 }
 
@@ -151,79 +230,6 @@ void _makepath (char *path, const char *, const char *dir, const char *fname, co
 	}
 }
 
-extern FsSys::cPath gamePath;
-#include <EmuSystem.hh>
-
-#ifdef USE_SNES9X_15X
-
-const char * S9xGetDirectory (enum s9x_getdirtype dirtype)
-{
-	return gamePath;
-}
-
-const char * S9xGetFilenameInc (const char *ex, enum s9x_getdirtype dirtype)
-{
-	assert(0); // not used yet
-	return 0;
-}
-
-const char * S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
-{
-	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s.%s", gamePath, EmuSystem::gameName, ex);
-	return s;
-}
-
-#else
-
-const char *S9xGetFilename (const char *ex)
-{
-	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
-	return s;
-}
-
-const char *S9xGetFilenameInc (const char *e)
-{
-	assert(0); // not used yet
-	return 0;
-}
-
-const char *S9xGetSnapshotDirectory()
-{
-	return EmuSystem::savePath();
-}
-
-extern "C" char* osd_GetPackDir()
-{
-	static char	filename[PATH_MAX + 1];
-	strcpy(filename, EmuSystem::savePath());
-
-	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
-	{
-		strcat(filename, "/SPL4-SP7");
-	}
-	else if(!strncmp((char*)&Memory.ROM [0xffc0], "MOMOTETSU HAPPY      ",21))
-	{
-		strcat(filename, "/SMHT-SP7");
-	}
-	else if(!strncmp((char*)&Memory.ROM [0xffc0], "HU TENGAI MAKYO ZERO ", 21))
-	{
-		strcat(filename, "/FEOEZSP7");
-	}
-	else if(!strncmp((char*)&Memory.ROM [0xffc0], "JUMP TENGAIMAKYO ZERO",21))
-	{
-		strcat(filename, "/SJUMPSP7");
-	}
-	else
-	{
-		strcat(filename, "/MISC-SP7");
-	}
-	return filename;
-}
-
-#endif
-
 const char * S9xChooseFilename (bool8 read_only)
 {
 	return 0;
@@ -265,5 +271,3 @@ bool8 S9xDoScreenshot (int, int) { return 1; }
 
 // from gfx.h
 void S9xDisplayMessages (uint16 *, int, int, int, int) { }
-
-#undef thisModuleName

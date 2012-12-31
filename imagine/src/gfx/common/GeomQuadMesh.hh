@@ -2,6 +2,9 @@
 
 #include <gfx/GeomQuadMesh.hh>
 
+namespace Gfx
+{
+
 CallResult GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color)
 {
 	if(xVals < 2 || yVals < 2)
@@ -97,4 +100,6 @@ void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
 					: (currV-xIdx)->y;
 			currV++;
 		}
+}
+
 }

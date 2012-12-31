@@ -1,5 +1,7 @@
 embedImagine := 1
 
+emuFrameworkPath := $(currPath)
+
 ifdef embedImagine
 
 ifneq ($(ENV), ps3)
@@ -35,8 +37,9 @@ include $(IMAGINE_PATH)/build/$(buildName)/gen/flags.mk
 
 endif
 
-CPPFLAGS += -I../EmuFramework/include
-VPATH += ../EmuFramework/src
+CPPFLAGS += -I$(emuFrameworkPath)/include
+VPATH += $(emuFrameworkPath)/src
+
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \

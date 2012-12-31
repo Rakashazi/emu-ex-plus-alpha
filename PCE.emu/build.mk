@@ -45,10 +45,6 @@ endif
 
 configInc += <mednafen-config.h>
 
-ifndef target
-target := pceemu
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

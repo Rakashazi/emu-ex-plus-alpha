@@ -68,10 +68,6 @@ include $(IMAGINE_PATH)/make/package/libsndfile.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 
-ifndef target
-target := mdemu
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

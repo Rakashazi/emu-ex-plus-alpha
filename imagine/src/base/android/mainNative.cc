@@ -27,6 +27,7 @@
 #include <android/window.h>
 #include <dlfcn.h>
 #include <util/linux/uevent.h>
+#include <fs/sys.hh>
 
 #include "private.hh"
 
@@ -38,8 +39,6 @@ void* android_app_entry(void* param);
 
 namespace Gfx
 {
-extern void setupAndroidOGLExtensions(const char *extensions, const char *rendererName);
-
 AndroidSurfaceTextureConfig surfaceTextureConf;
 
 void AndroidSurfaceTextureConfig::init(JNIEnv *jEnv)
@@ -100,6 +99,8 @@ struct EGLWindow
 		eglInitialize(display, 0, 0);
 
 		//printEGLConfs(display);
+		//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
+		//printEGLConfsWithAttr(display, eglAttrWinLowColor);
 
 		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
 	}
@@ -110,7 +111,7 @@ struct EGLWindow
 		{
 			logMsg("requesting lowest color config");
 		}
-		const EGLint *attribs = useMaxColorBits ? eglAttrWinMaxRGBA : eglAttrWinLowColor;
+		auto *attribs = useMaxColorBits ? eglAttrWinMaxRGBA : eglAttrWinLowColor;
 		EGLint configs = 0;
 		eglChooseConfig(display, attribs, &config, 1, &configs);
 		#ifndef NDEBUG
@@ -149,8 +150,8 @@ struct EGLWindow
 		if(currFormat != configFormat)
 		{
 			logMsg("changing window format from %d to %d", currFormat, configFormat);
-			ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
 		}
+		ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
 		logMsg("current window format: %d", ANativeWindow_getFormat(win));
 
 		assert(context != EGL_NO_CONTEXT);
@@ -391,75 +392,6 @@ bool windowIsDrawable()
 	return eglWin.isDrawable();
 }
 
-// runs from activity thread, do not use jEnv
-static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
-		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
-		jboolean hasPermanentMenuKey, jboolean animatesRotation, jint sigHash)
-{
-	logMsg("doing java env config");
-	logMsg("set screen DPI size %f,%f", (double)xdpi, (double)ydpi);
-	// DPI values must come in un-rotated from DisplayMetrics
-	androidXDPI = xDPI = xdpi;
-	androidYDPI = yDPI = ydpi;
-
-	jDpy = env->NewGlobalRef(dpy);
-	refreshRate_ = refreshRate;
-	logMsg("refresh rate: %d", refreshRate);
-
-	const char *devNameStr = env->GetStringUTFChars(devName, 0);
-	logMsg("device name: %s", devNameStr);
-	setDeviceType(devNameStr);
-	env->ReleaseStringUTFChars(devName, devNameStr);
-
-	filesDir = env->GetStringUTFChars(filesPath, 0);
-	eStoreDir = env->GetStringUTFChars(eStoragePath, 0);
-	appPath = env->GetStringUTFChars(apkPath, 0);
-	logMsg("apk @ %s", appPath);
-
-	if(sysVibrator)
-	{
-		logMsg("Vibrator object present");
-		vibrator = env->NewGlobalRef(sysVibrator);
-		setupVibration(env);
-	}
-
-	Base::hasPermanentMenuKey = hasPermanentMenuKey;
-	if(!hasPermanentMenuKey)
-	{
-		logMsg("device has software nav buttons");
-	}
-
-	osAnimatesRotation = animatesRotation;
-	if(!osAnimatesRotation)
-	{
-		logMsg("app handles rotation animations");
-	}
-
-	if(Base::androidSDK() >= 11)
-	{
-		logMsg("defaulting to highest color mode");
-		eglWin.useMaxColorBits = 1;
-	}
-
-	#ifdef ANDROID_APK_SIGNATURE_HASH
-		sigMatchesAPK = sigHash == ANDROID_APK_SIGNATURE_HASH;
-	#endif
-
-	auto act = appInstance();
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&act->thread, &attr, android_app_entry, act);
-
-	// Wait for thread to start.
-	pthread_mutex_lock(&act->mutex);
-	while (!act->running)
-	{
-		pthread_cond_wait(&act->cond, &act->mutex);
-	}
-	pthread_mutex_unlock(&act->mutex);
-}
-
 static void envConfig(int orientation, int hardKeyboardState, int navigationState)
 {
 	logMsg("doing native env config, starting orientation %d", orientation);
@@ -469,35 +401,11 @@ static void envConfig(int orientation, int hardKeyboardState, int navigationStat
 	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 }
 
-static void initGfxContext(struct android_app* app)
+static void initGfxContext(ANativeWindow* win)
 {
-	auto prevUseMaxRGBBits = eglWin.useMaxColorBits;
-	// Init OpenGL early so onInit() can set Android-specific bits,
-	// and for detecting GPUs that need to default in 16-bit color
 	eglWin.initEGL();
-	eglWin.initContext(app->window);
-	{
-		auto extensions = (const char*)glGetString(GL_EXTENSIONS);
-		assert(extensions);
-		auto rendererName = (const char*)glGetString(GL_RENDERER);
-		// Hack for Adreno chips that have display artifacts when using 32-bit color.
-		if(Base::androidSDK() >= 11 && strstr(rendererName, "Adreno"))
-		{
-			logMsg("device may have broken 32-bit surfaces, defaulting to 16-bit");
-			eglWin.useMaxColorBits = 0;
-			eglWin.has32BppColorBugs = 1;
-		}
-		Gfx::setupAndroidOGLExtensions(extensions, rendererName);
-	}
-	doOrExit(onInit());
-	if(prevUseMaxRGBBits != eglWin.useMaxColorBits)
-	{
-		// reinit context to handle changed EGL config
-		eglWin.destroyContext();
-		eglWin.initContext(app->window);
-		eEnv()->SetBooleanField(jBaseActivity, jSurfaceIs32BitId, eglWin.useMaxColorBits);
-	}
-	initialScreenSizeSetup(ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
+	eglWin.initContext(win);
+	initialScreenSizeSetup(ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
 	engineInit();
 	logMsg("done init");
 	engineIsInit = 1;
@@ -592,6 +500,116 @@ static bool updateWinSize(Window &win, ANativeWindow* nWin)
 	return 1;
 }
 
+static Base::CallbackRef *inputRescanCallbackRef = nullptr;
+static void inputRescanCallback()
+{
+	Input::rescanDevices();
+	inputRescanCallbackRef = nullptr;
+}
+
+static int ueventFd = 0;
+static int ueventFdHandler(int events)
+{
+	using namespace Base;
+	static const uint UEVENT_BUFFER_SIZE = 1024;
+	if(events == Base::POLLEV_IN)
+	{
+		bool inputChange = 0;
+		char buf[UEVENT_BUFFER_SIZE];
+		int size = 0;
+		while((size = recv(ueventFd, buf, sizeof(buf), 0)) > 0)
+		{
+			//logMsg("uevent: %s", buf);
+			// NOTE: could also use InputManager class on Android 4.1+
+			if(strstr(buf, "add@") || strstr(buf, "remove@"))
+			{
+				if(strstr(buf, "/event"))
+				{
+					logMsg("uevent: %s", buf);
+					inputChange = 1;
+				}
+			}
+		}
+		if(size == -1 && errno != EAGAIN)
+		{
+			logErr("uevent recv failed: %s", strerror(errno));
+			return 1;
+		}
+		if(inputChange)
+		{
+			if(inputRescanCallbackRef)
+				cancelCallback(inputRescanCallbackRef);
+			inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 100);
+		}
+		//logMsg("done reading uevents");
+	}
+	return 1;
+}
+
+static void initWindow(ANativeWindow *win)
+{
+	if(win)
+	{
+		if(!engineIsInit)
+		{
+			logMsg("doing first window init");
+			initGfxContext(win);
+		}
+		else
+		{
+			logMsg("doing window init, size %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+			eglWin.initSurface(win);
+			updateWinSize(mainWin, win);
+			resizeEvent(mainWin);
+		}
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	}
+}
+
+static void windowNeedsRedraw(ANativeWindow *win)
+{
+	if(eglWin.isDrawable())
+	{
+		// re-check if window size changed since some devices may "forget"
+		// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
+		// putting the device to sleep in portrait, then sliding the gamepad open
+		// causes a content rect change with swapped window width/height
+		if(!updateWinSize(mainWin, win))
+		{
+			logWarn("skipping window redraw");
+			return;
+		}
+		logMsg("window redraw, size %d,%d", mainWin.w, mainWin.h);
+		resizeEvent(mainWin);
+		gfxUpdate = 1;
+		runEngine();
+	}
+	else
+	{
+		logWarn("window redraw without valid surface");
+	}
+}
+
+static void windowResized(ANativeWindow *win)
+{
+	if(eglWin.isDrawable())
+	{
+		if(!updateWinSize(mainWin, win))
+		{
+			logWarn("skipping window resize");
+			return;
+		}
+		logMsg("window resize to %d,%d", mainWin.w, mainWin.h);
+		resizeEvent(mainWin);
+		gfxUpdate = 1;
+		runEngine();
+	}
+	else
+	{
+		logWarn("window resize without valid surface");
+	}
+}
+
 void onAppCmd(struct android_app* app, uint32 cmd)
 {
 	uint cmdType = cmd & 0xFFFF;
@@ -605,21 +623,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		*((struct saved_state*)app->savedState) = engine->state;
 		app->savedStateSize = sizeof(struct saved_state);*/
 		bcase APP_CMD_INIT_WINDOW:
-		if(app->window)
-		{
-			logMsg("doing window init, size %d,%d", ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
-			if(!engineIsInit)
-			{
-				initGfxContext(app);
-			}
-			else
-			{
-				eglWin.initSurface(app->window);
-				updateWinSize(mainWin, app->window);
-				resizeEvent(mainWin);
-			}
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		}
+		initWindow(app->window);
 		bcase APP_CMD_TERM_WINDOW:
 		logMsg("window destroyed");
 		pthread_mutex_lock(&app->mutex);
@@ -636,47 +640,9 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		bcase APP_CMD_LOST_FOCUS:
 		appFocus(0);
 		bcase APP_CMD_WINDOW_REDRAW_NEEDED:
-		{
-			if(eglWin.isDrawable())
-			{
-				// re-check if window size changed since some devices may "forget"
-				// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
-				// putting the device to sleep in portrait, then sliding the gamepad open
-				// causes a content rect change with swapped window width/height
-				if(!updateWinSize(mainWin, app->window))
-				{
-					logWarn("skipping window redraw");
-					break;
-				}
-				logMsg("window redraw, size %d,%d", mainWin.w, mainWin.h);
-				resizeEvent(mainWin);
-				gfxUpdate = 1;
-				runEngine();
-			}
-			else
-			{
-				logWarn("window redraw without valid surface");
-			}
-		}
+		windowNeedsRedraw(app->window);
 		bcase APP_CMD_WINDOW_RESIZED:
-		{
-			if(eglWin.isDrawable())
-			{
-				if(!updateWinSize(mainWin, app->window))
-				{
-					logWarn("skipping window resize");
-					break;
-				}
-				logMsg("window resize to %d,%d", mainWin.w, mainWin.h);
-				resizeEvent(mainWin);
-				gfxUpdate = 1;
-				runEngine();
-			}
-			else
-			{
-				logWarn("window resize without valid surface");
-			}
-		}
+		windowResized(app->window);
 		bcase APP_CMD_CONTENT_RECT_CHANGED:
 		{
 			auto &rect = app->contentRect;
@@ -786,6 +752,91 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 	write(appInstance()->msgwrite, &cmd, sizeof(cmd));
 }*/
 
+// runs from activity thread, do not use jEnv
+static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
+		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
+		jboolean hasPermanentMenuKey, jboolean animatesRotation, jint sigHash)
+{
+	logMsg("doing java env config");
+
+	filesDir = env->GetStringUTFChars(filesPath, 0);
+	eStoreDir = env->GetStringUTFChars(eStoragePath, 0);
+	doOrExit(logger_init());
+	appPath = env->GetStringUTFChars(apkPath, 0);
+	logMsg("apk @ %s", appPath);
+
+	logMsg("set screen DPI size %f,%f", (double)xdpi, (double)ydpi);
+	// DPI values must come in un-rotated from DisplayMetrics
+	androidXDPI = xDPI = xdpi;
+	androidYDPI = yDPI = ydpi;
+
+	jDpy = env->NewGlobalRef(dpy);
+	refreshRate_ = refreshRate;
+	logMsg("refresh rate: %d", refreshRate);
+
+	const char *devNameStr = env->GetStringUTFChars(devName, 0);
+	logMsg("device name: %s", devNameStr);
+	setDeviceType(devNameStr);
+	env->ReleaseStringUTFChars(devName, devNameStr);
+
+	if(sysVibrator)
+	{
+		logMsg("Vibrator object present");
+		vibrator = env->NewGlobalRef(sysVibrator);
+		setupVibration(env);
+	}
+
+	Base::hasPermanentMenuKey = hasPermanentMenuKey;
+	if(!hasPermanentMenuKey)
+	{
+		logMsg("device has software nav buttons");
+	}
+
+	osAnimatesRotation = animatesRotation;
+	if(!osAnimatesRotation)
+	{
+		logMsg("app handles rotation animations");
+	}
+
+	if(Base::androidSDK() >= 11)
+	{
+		if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
+		{
+			// Hack for Adreno chips that have display artifacts when using 32-bit color.
+			logMsg("device may have broken 32-bit surfaces, defaulting to low color");
+			eglWin.useMaxColorBits = 0;
+			eglWin.has32BppColorBugs = 1;
+		}
+		else
+		{
+			logMsg("defaulting to highest color mode");
+			eglWin.useMaxColorBits = 1;
+		}
+	}
+
+	#ifdef ANDROID_APK_SIGNATURE_HASH
+		sigMatchesAPK = sigHash == ANDROID_APK_SIGNATURE_HASH;
+	#endif
+
+	doOrExit(onInit());
+	if(Base::androidSDK() < 11)
+		env->SetBooleanField(thiz, jSurfaceIs32BitId, eglWin.useMaxColorBits);
+
+	auto act = appInstance();
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_create(&act->thread, &attr, android_app_entry, act);
+
+	// Wait for thread to start.
+	pthread_mutex_lock(&act->mutex);
+	while (!act->running)
+	{
+		pthread_cond_wait(&act->cond, &act->mutex);
+	}
+	pthread_mutex_unlock(&act->mutex);
+}
+
 void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 {
 	using namespace Base;
@@ -796,8 +847,6 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	assert(jNativeActivityCls);
 	JavaInstMethod<jobject> jGetClassLoader;
 	jGetClassLoader.setup(jEnv, jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
-	//jmethodID jGetClassLoaderID = jEnv->GetMethodID(jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
-	//assert(jGetClassLoaderID);
 	jobject jClsLoader = jGetClassLoader(jEnv, inst);
 	assert(jClsLoader);
 
@@ -805,8 +854,6 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	assert(jClsLoaderCls);
 	JavaInstMethod<jobject> jLoadClass;
 	jLoadClass.setup(jEnv, jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-	//jmethodID jLoadClassID = jEnv->GetMethodID(jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-	//assert(jLoadClassID);
 
 	// BaseActivity members
 	{
@@ -839,8 +886,6 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 }
 
-}
-
 static void dlLoadFuncs()
 {
 	void *libandroid = 0;
@@ -861,52 +906,9 @@ static void dlLoadFuncs()
 	#endif
 }
 
-
-static Base::CallbackRef *inputRescanCallbackRef = nullptr;
-void inputRescanCallback()
-{
-	Input::rescanDevices();
-	inputRescanCallbackRef = nullptr;
 }
 
-static int ueventFd = 0;
-int ueventFdHandler(int events)
-{
-	using namespace Base;
-	static const uint UEVENT_BUFFER_SIZE = 1024;
-	if(events == Base::POLLEV_IN)
-	{
-		bool inputChange = 0;
-		char buf[UEVENT_BUFFER_SIZE];
-		int size = 0;
-		while((size = recv(ueventFd, buf, sizeof(buf), 0)) > 0)
-		{
-			//logMsg("uevent: %s", buf);
-			// NOTE: could also use InputManager class on Android 4.1+
-			if(strstr(buf, "add@") || strstr(buf, "remove@"))
-			{
-				if(strstr(buf, "/event"))
-				{
-					logMsg("uevent: %s", buf);
-					inputChange = 1;
-				}
-			}
-		}
-		if(size == -1 && errno != EAGAIN)
-		{
-			logErr("uevent recv failed: %s", strerror(errno));
-			return 1;
-		}
-		if(inputChange)
-		{
-			if(inputRescanCallbackRef)
-				cancelCallback(inputRescanCallbackRef);
-			inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 100);
-		}
-		//logMsg("done reading uevents");
-	}
-	return 1;
-}
+extern bool exhaustInputWithGetEvent;
 
 void android_main(struct android_app* state)
 {
@@ -927,12 +929,12 @@ void android_main(struct android_app* state)
 			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
 	}
 
+	auto ueventPoll = PollEventDelegate::create<&ueventFdHandler>();
 	if(Base::androidSDK() >= 12)
 	{
 		ueventFd = openUeventFd();
-		if (ueventFd >= 0)
+		if(ueventFd >= 0)
 		{
-			auto ueventPoll = PollEventDelegate::create<&ueventFdHandler>();
 			addPollEvent2(ueventFd, ueventPoll);
 		}
 	}
@@ -977,6 +979,12 @@ void android_main(struct android_app* state)
 			/*TimeSys prevTime = realTime;
 			realTime.setTimeNow();
 			logMsg("%f since last screen update", double(realTime - prevTime));*/
+			if(likely(state->inputQueue != nullptr) && (exhaustInputWithGetEvent || AInputQueue_hasEvents(state->inputQueue)))
+			{
+				// some devices may delay reporting input events (stock rom on R800i for example),
+				// check for any before rendering frame to avoid extra latency
+				process_input(state);
+			}
 			runEngine();
 		}
 	}

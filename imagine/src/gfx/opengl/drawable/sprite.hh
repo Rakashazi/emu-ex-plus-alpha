@@ -19,7 +19,7 @@ namespace Gfx
 {
 
 template<class BaseRect>
-CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, GfxBufferImage *img)
+CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, BufferImage *img)
 {
 	BaseRect::init(x, y, x2, y2);
 
@@ -32,15 +32,35 @@ CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, GfxBufferImage *
 	return OK;
 }
 
+#if defined CONFIG_BASE_ANDROID
+static void setupCropRect(BufferImage *img)
+{
+	assert(useDrawTex);
+	logMsg("setting GL_TEXTURE_CROP_RECT_OES %d,%d", img->xSize, img->ySize);
+	GLint coords[] = {0, (int)img->ySize, (int)img->xSize, -(int)img->ySize};
+	#if !defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+	GLenum target = GL_TEXTURE_2D;
+	#else
+	GLenum target = img->textureDesc().target;
+	#endif
+	Gfx::setActiveTexture(img->textureDesc().tid, target);
+	glTexParameteriv(target, GL_TEXTURE_CROP_RECT_OES, coords);
+}
+#endif
+
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(GfxBufferImage *img)
+void SpriteBase<BaseRect>::setImg(BufferImage *img)
 {
 	var_selfs(img);
 	::mapImg(BaseRect::v, img ? &img->textureDesc() : 0);
+	#if defined CONFIG_BASE_ANDROID
+	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex)
+		setupCropRect(img);
+	#endif
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(GfxBufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
+void SpriteBase<BaseRect>::setImg(BufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 {
 	var_selfs(img);
 	::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
@@ -57,23 +77,19 @@ void SpriteBase<BaseRect>::draw() const
 {
 	Gfx::setActiveTexture(img->textureDesc().tid, img->textureDesc().target);
 
-	/*#if defined(CONFIG_GFX_OPENGL_ES) && !defined(CONFIG_BASE_PS3)
-	if(useDrawTex && projAngleM.isComplete())
+	#if defined CONFIG_BASE_ANDROID
+	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex && projAngleM.isComplete())
 	{
-		int xSize = gfx_toIXSize(v[2].x - v[0].x);
-		int ySize = gfx_toIYSize(v[1].y - v[0].y);
-		glDrawTexiOES(gfx_viewPixelWidth()/2 - (xSize/2),
-				gfx_viewPixelHeight()/2 - (ySize/2),
-				1, xSize, ySize);
+		glDrawTexiOES(screenX, screenY, 1, screenX2, screenY2);
 	}
 	else
-	#endif*/
+	#endif
 	{
 		BaseRect::draw();
 	}
 }
 
-template class SpriteBase<GfxTexRect>;
-template class SpriteBase<GfxColTexQuad>;
+template class SpriteBase<TexRect>;
+template class SpriteBase<ColTexQuad>;
 
 }

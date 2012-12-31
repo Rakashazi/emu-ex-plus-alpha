@@ -3,6 +3,9 @@
 #include <gfx/Gfx.hh>
 #include <util/Array2D.hh>
 
+namespace Gfx
+{
+
 class GeomQuadMesh
 {
 public:
@@ -36,3 +39,5 @@ public:
 	uint idxs = 0;
 	VertexIndex *i = nullptr;
 } ;
+
+}

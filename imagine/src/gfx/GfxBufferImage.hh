@@ -7,10 +7,13 @@
 class ResourceImage;
 #endif
 
-class GfxTextureDesc
+namespace Gfx
+{
+
+class TextureDesc
 {
 public:
-	constexpr GfxTextureDesc() { }
+	constexpr TextureDesc() { }
 	GfxTextureHandle tid = 0;
 	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 	GLenum target = GL_TEXTURE_2D;
@@ -21,16 +24,16 @@ public:
 	TextureCoordinate yStart = 0, yEnd = 0;
 };
 
-class GfxUsableImage
+class UsableImage
 {
 public:
-	constexpr GfxUsableImage() { }
+	constexpr UsableImage() { }
 	virtual void deinit() = 0;
 };
 
-struct GfxBufferImageInterface : public GfxTextureDesc
+struct BufferImageInterface : public TextureDesc
 {
-	virtual ~GfxBufferImageInterface() { }
+	virtual ~BufferImageInterface() { }
 	virtual void write(Pixmap &p, uint hints) = 0;
 	virtual void replace(Pixmap &p, uint hints) = 0;
 	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) = 0;
@@ -38,55 +41,56 @@ struct GfxBufferImageInterface : public GfxTextureDesc
 	virtual void deinit() = 0;
 };
 
-struct TextureGfxBufferImage:
+struct TextureBufferImage:
 #ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-	public GfxBufferImageInterface
+	public BufferImageInterface
 #else
-	public GfxTextureDesc
+	public TextureDesc
 #endif
 {
-	constexpr TextureGfxBufferImage() { }
+	constexpr TextureBufferImage() { }
 	void write(Pixmap &p, uint hints);
 	void replace(Pixmap &p, uint hints);
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback);
 	void unlock(Pixmap *pix, uint hints);
 	void deinit();
-	const GfxTextureDesc &textureDesc() const { return *this; };
-	GfxTextureDesc &textureDesc() { return *this; };
+	const TextureDesc &textureDesc() const { return *this; };
+	TextureDesc &textureDesc() { return *this; };
 	bool isInit() { return tid != 0; }
 };
 
-struct TextureGfxBufferVImpl
+struct TextureBufferVImpl
 {
-	constexpr TextureGfxBufferVImpl() { }
-	GfxBufferImageInterface *impl = nullptr;
+	constexpr TextureBufferVImpl() { }
+	BufferImageInterface *impl = nullptr;
 	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
 	void replace(Pixmap &p, uint hints) { impl->replace(p, hints); };
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return impl->lock(x, y, xlen, ylen, fallback); }
 	void unlock(Pixmap *pix, uint hints) { impl->unlock(pix, hints); }
 	void deinit() { impl->deinit(); delete impl; impl = 0; }
-	const GfxTextureDesc &textureDesc() const { assert(impl); return *impl; };
-	GfxTextureDesc &textureDesc() { assert(impl); return *impl; };
+	const TextureDesc &textureDesc() const { assert(impl); return *impl; };
+	TextureDesc &textureDesc() { assert(impl); return *impl; };
 	bool isInit() { return impl != nullptr; }
 };
 
 #ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-	typedef TextureGfxBufferVImpl GfxBufferImageImpl;
+	typedef TextureBufferVImpl BufferImageImpl;
 #else
-	typedef TextureGfxBufferImage GfxBufferImageImpl;
+	typedef TextureBufferImage BufferImageImpl;
 #endif
 
-class GfxBufferImage: public GfxBufferImageImpl
+class BufferImage: public BufferImageImpl
 {
 private:
 	uint hints = 0;
 	bool hasMipmaps_ = 0;
-	GfxUsableImage *backingImg = nullptr;
+	UsableImage *backingImg = nullptr;
 	void testMipmapSupport(uint x, uint y);
 	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 			uint usedX, uint usedY, uint hints, uint filter);
 public:
-	constexpr GfxBufferImage() { }
+	constexpr BufferImage() { }
+	uint xSize = 0, ySize = 0; // the actual x,y size of the image content
 	static const uint nearest = 0, linear = 1;
 	static bool isFilterValid(uint v) { return v <= 1; }
 	bool hasMipmaps();
@@ -109,3 +113,5 @@ public:
 	void replace(Pixmap &p);
 	void unlock(Pixmap *p);
 };
+
+}

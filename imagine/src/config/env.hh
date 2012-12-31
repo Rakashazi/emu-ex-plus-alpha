@@ -110,3 +110,18 @@ static const uint ENV_ANDROID_MINSDK =
 #else
 	#warning Compiling on unknown architecture
 #endif
+
+// Automatic CONFIG_GFX_* settings
+
+#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS
+	#define CONFIG_GFX_OPENGL_ES 1
+#endif
+
+#if defined CONFIG_BASE_ANDROID
+	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		#define CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES 1
+	#endif
+	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES) || defined(SUPPORT_ANDROID_DIRECT_TEXTURE)
+		#define CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL 1
+	#endif
+#endif

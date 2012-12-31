@@ -96,21 +96,21 @@ extern Byte4s2Option optionTouchCtrlImgRes;
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		extern OptionDirectTexture optionDirectTexture;
+		static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
+		extern Byte1Option optionDirectTexture;
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		extern Option<OptionMethodFunc<bool, Gfx::useAndroidSurfaceTexture, Gfx::setUseAndroidSurfaceTexture>, uint8> optionSurfaceTexture;
+		extern Byte1Option optionSurfaceTexture;
 		extern SByte1Option optionProcessPriority;
+	#endif
+	#if defined CONFIG_INPUT_ANDROID
+		extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 	#endif
 	extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
 
 #ifdef CONFIG_INPUT_ICADE
 	extern Option<OptionMethodFunc<bool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade;
-#endif
-
-#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 #endif
 
 extern Byte1Option optionDitherImage;

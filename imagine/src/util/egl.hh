@@ -6,11 +6,13 @@
 
 static const EGLint eglAttrWinLowColor[] =
 {
+	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_NONE
 };
 
 static const EGLint eglAttrWinMaxRGB[] =
 {
+	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 1,
 	EGL_GREEN_SIZE, 1,
 	EGL_RED_SIZE, 1,
@@ -19,6 +21,7 @@ static const EGLint eglAttrWinMaxRGB[] =
 
 static const EGLint eglAttrWinMaxRGBA[] =
 {
+	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 1,
 	EGL_GREEN_SIZE, 1,
 	EGL_RED_SIZE, 1,
@@ -82,6 +85,18 @@ static void printEGLConfs(EGLDisplay display)
 	EGLConfig conf[96];
 	EGLint num = 0;
 	eglGetConfigs(display, conf, sizeofArray(conf), &num);
+	logMsg("got %d configs", num);
+	iterateTimes(num, i)
+	{
+		printEGLConf(display, conf[i]);
+	}
+}
+
+static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
+{
+	EGLConfig conf[96];
+	EGLint num = 0;
+	eglChooseConfig(display, attr, conf, sizeofArray(conf), &num);
 	logMsg("got %d configs", num);
 	iterateTimes(num, i)
 	{
