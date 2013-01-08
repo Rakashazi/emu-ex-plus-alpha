@@ -201,7 +201,7 @@ void OptionView::audioRateInit()
 			}
 			item.toggle();
 			Gfx::setUseAndroidDirectTexture(item.on);
-			optionDirectTexture.val = item.on;
+			optionDirectTexture = item.on;
 			if(emuView.vidImg.impl)
 				emuView.reinitImage();
 		}
@@ -827,7 +827,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 		}
 		#endif
 		#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		if(Base::androidSDK() >= 14)
+		if(Base::androidSDK() >= 14 && !optionSurfaceTexture.isConst)
 		{
 			surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
 			surfaceTexture.selectDelegate().bind<&surfaceTextureHandler>();

@@ -175,7 +175,7 @@ bool DirectTextureBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, 
 
 bool DirectTextureBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr)
 {
-	return initTexture(pix, usedX, usedY, 1, errorStr);
+	return initTexture(pix, usedX, usedY, !directTextureConf.whitelistedEGLImageKHR, errorStr);
 }
 
 /*void DirectTextureBufferImage::replace(Pixmap &p, uint hints)

@@ -74,7 +74,7 @@ static int generic_resizeEvent(const Window &win, bool force = 0)
 }
 #endif
 
-const char copyright[] = "Imagine is Copyright 2010, 2011 Robert Broglia";
+const char copyright[] = "Imagine is Copyright 2010-2013 Robert Broglia";
 
 static void engineInit() ATTRS(cold);
 static void engineInit()

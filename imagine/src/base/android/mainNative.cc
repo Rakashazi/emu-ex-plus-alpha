@@ -64,10 +64,11 @@ void AndroidSurfaceTextureConfig::deinit()
 {
 	// TODO
 	jSurfaceTextureCls = nullptr;
-	use = 0;
+	use = whiteListed = 0;
 }
 
 bool supportsAndroidSurfaceTexture() { return surfaceTextureConf.isSupported(); }
+bool supportsAndroidSurfaceTextureWhitelisted() { return surfaceTextureConf.isSupported() && surfaceTextureConf.whiteListed; };
 bool useAndroidSurfaceTexture() { return surfaceTextureConf.isSupported() ? surfaceTextureConf.use : 0; };
 void setUseAndroidSurfaceTexture(bool on)
 {

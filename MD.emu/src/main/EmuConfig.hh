@@ -7,7 +7,7 @@
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B/C", *touchConfigCenterBtnName = "Mode/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
+static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 1;
 #define systemAspectRatioString "4:3"

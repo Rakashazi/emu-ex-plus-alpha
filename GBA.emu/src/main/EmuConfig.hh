@@ -7,7 +7,7 @@
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 static const uint systemFaceBtns = 4, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
 static const char *systemAspectRatioString = "3:2";

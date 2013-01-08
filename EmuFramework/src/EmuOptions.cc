@@ -186,7 +186,7 @@ Byte4s2Option optionTouchCtrlImgRes
 		Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, 1);
+		Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
 		SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 	#endif
 	Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);

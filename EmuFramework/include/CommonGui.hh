@@ -1142,15 +1142,32 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 		if((int8)optionProcessPriority != 0)
 			Base::setProcessPriority(optionProcessPriority);
 
-		if(!optionSurfaceTexture.isConst && (bool)optionSurfaceTexture != Gfx::useAndroidSurfaceTexture())
+		optionSurfaceTexture.defaultVal = Gfx::supportsAndroidSurfaceTextureWhitelisted();
+		if(!Gfx::supportsAndroidSurfaceTexture())
 		{
+			optionSurfaceTexture = 0;
+			optionSurfaceTexture.isConst = 1;
+		}
+		else if(optionSurfaceTexture == OPTION_SURFACE_TEXTURE_UNSET)
+		{
+			optionSurfaceTexture = Gfx::useAndroidSurfaceTexture();
+		}
+		else
+		{
+			logMsg("using surface texture setting from config file");
 			Gfx::setUseAndroidSurfaceTexture(optionSurfaceTexture);
 		}
+		// optionSurfaceTexture is treated as a boolean value after this point
 	#endif
 
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		optionDirectTexture.defaultVal = Gfx::supportsAndroidDirectTextureWhitelisted();
-		if(optionDirectTexture == OPTION_DIRECT_TEXTURE_UNSET || !Gfx::supportsAndroidDirectTexture())
+		if(!Gfx::supportsAndroidDirectTexture())
+		{
+			optionDirectTexture = 0;
+			optionDirectTexture.isConst = 1;
+		}
+		else if(optionDirectTexture == OPTION_DIRECT_TEXTURE_UNSET)
 		{
 			optionDirectTexture = Gfx::useAndroidDirectTexture();
 		}
@@ -1177,7 +1194,7 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 
 	emuView.gameView.init();
 	emuView.disp.init();
-	#if defined CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	emuView.disp.flags = Gfx::Sprite::HINT_NO_MATRIX_TRANSFORM;
 	#endif
 	emuView.vidImgOverlay.setEffect(optionOverlayEffect);

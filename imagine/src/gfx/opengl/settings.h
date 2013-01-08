@@ -211,7 +211,7 @@ static void checkForAnisotropicFiltering(const char *extensions)
 static uchar useAutoMipmapGeneration = 0;
 static uchar forceNoAutoMipmapGeneration = 0;
 
-static void checkForAutoMipmapGeneration(const char *extensions, const char *version)
+static void checkForAutoMipmapGeneration(const char *extensions, const char *version, const char *rendererName)
 {
 	bool use = 0;
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -219,6 +219,11 @@ static void checkForAutoMipmapGeneration(const char *extensions, const char *ver
 	#elif defined CONFIG_BASE_ANDROID
 	// Older Android devices may only support OpenGL ES 1.0
 	use = !forceNoAutoMipmapGeneration && (Base::androidSDK() >= 10  || strstr(version, "1.1"));
+	if(strstr(rendererName, "GC800 Graphics"))
+	{
+		logMsg("automatic mipmap generation bugged on Vivante, disabling");
+		use = 0;
+	}
 	#else
 	use = !forceNoAutoMipmapGeneration;
 	#endif
@@ -376,7 +381,7 @@ static void checkForVBO(const char *version, bool hasGL1_5)
 	}
 }
 
-#ifdef CONFIG_BASE_ANDROID
+#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 
 static bool useDrawTex = 0;
 static bool forceNoDrawTex = 0;
@@ -384,12 +389,14 @@ static bool forceNoDrawTex = 0;
 static void checkForDrawTexture(const char *extensions, const char *rendererName)
 {
 	// Limited usefulness due to no 90deg rotation support,
-	// so only use on Android since OS takes care of screen orientation
+	// only use on Android since OS takes care of screen orientation,
+	// but there are lots of GPUs that produce blank out even though
+	// they "support" this extension so don't actually use for now
 	if(!forceNoDrawTex && strstr(extensions, "GL_OES_draw_texture"))
 	{
-		if(strstr(rendererName, "NVIDIA"))
+		if(strstr(rendererName, "NVIDIA") || string_equal(rendererName, "VideoCore IV HW"))
 		{
-			// completely blank output on Tegra
+			// completely blank output on Tegra & VideoCore
 			logMsg("ignoring reported Draw Texture extension due to driver bugs");
 			return;
 		}
@@ -421,20 +428,20 @@ void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, con
 	}
 	else
 	{
-		if(strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
-		{
-			logMsg("white-listed for EGLImageKHR");
-			whitelistedEGLImageKHR = 1;
-		}
-
-		if(!enableEGLImageKHR(extensions))
+		if(!setupEGLImageKHR(extensions))
 		{
 			logWarn("can't use EGLImageKHR: %s", errorStr);
+			return;
+		}
+		if(strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
+		{
+			logMsg("enabling by default on white-listed hardware");
+			useEGLImageKHR = whitelistedEGLImageKHR = 1;
 		}
 	}
 }
 
-bool AndroidDirectTextureConfig::enableEGLImageKHR(const char *extensions)
+bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 {
 	#ifdef NDEBUG
 	bool verbose = 0;
@@ -530,8 +537,7 @@ bool AndroidDirectTextureConfig::enableEGLImageKHR(const char *extensions)
 		goto FAIL;
 	}
 
-	useEGLImageKHR = 1;
-	logMsg("using EGLImageKHR");
+	logMsg("EGLImageKHR works");
 	return 1;
 
 	FAIL:

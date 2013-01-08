@@ -1,11 +1,16 @@
 NEW=
 for def in $2; do
-	NEW="${NEW}#define $def
+	NEW="${NEW}#define ${def/=/ }
 "
 done
 
 for inc in $3; do
 	NEW="${NEW}#include $inc
+"
+done
+
+for inc in $4; do
+	NEW="${NEW}#include_next $inc
 "
 done
 

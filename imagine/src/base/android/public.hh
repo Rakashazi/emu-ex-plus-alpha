@@ -14,6 +14,7 @@ namespace Gfx
 #endif
 
 bool supportsAndroidSurfaceTexture();
+bool supportsAndroidSurfaceTextureWhitelisted();
 bool useAndroidSurfaceTexture();
 void setUseAndroidSurfaceTexture(bool on);
 

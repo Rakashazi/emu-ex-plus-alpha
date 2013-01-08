@@ -88,7 +88,7 @@ CallResult setOutputVideoMode(const Base::Window &win)
 
 	vsyncEnable();
 	checkForAnisotropicFiltering(extensions);
-	checkForAutoMipmapGeneration(extensions, version);
+	checkForAutoMipmapGeneration(extensions, version, rendererName);
 	checkForMultisample(extensions);
 	checkForNonPow2Textures(extensions, rendererName);
 	checkForBGRPixelSupport(extensions);
@@ -105,8 +105,8 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	}
 	#endif*/
 
-	#ifdef CONFIG_BASE_ANDROID
-		checkForDrawTexture(extensions, rendererName);
+	#if defined CONFIG_BASE_ANDROID
+		//checkForDrawTexture(extensions, rendererName);
 		setupAndroidOGLExtensions(extensions, rendererName);
 	#endif
 
@@ -148,17 +148,15 @@ static void setupAndroidOGLExtensions(const char *extensions, const char *render
 		{
 			if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
 			{
-				logWarn("buggy SurfaceTexture implementation, disabling");
-				surfaceTextureConf.deinit();
+				logWarn("buggy SurfaceTexture implementation, disabling by default");
+				surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
 			}
-			else
-			{
-				// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
-				// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
-				// This hack will fix-up the GL state cache manually when that happens.
-				logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-				surfaceTextureConf.texture2dBindingHack = 1;
-			}
+
+			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
+			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
+			// This hack will fix-up the GL state cache manually when that happens.
+			logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+			surfaceTextureConf.texture2dBindingHack = 1;
 		}
 	#endif
 }

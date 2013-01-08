@@ -3,7 +3,7 @@ SUBARCH := armv7
 android_abi := armeabi-v7a
 
 ifndef arm_fpu
- arm_fpu := vfp
+ arm_fpu := vfpv3-d16
 endif
 
 ifndef android_armv7State

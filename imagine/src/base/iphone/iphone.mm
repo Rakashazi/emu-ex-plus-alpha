@@ -7,6 +7,8 @@
 
 #include <base/Base.hh>
 #include <fs/sys.hh>
+#undef NSEC_PER_SEC
+#undef USEC_PER_SEC
 #include <base/common/funcs.h>
 
 #import <UIKit/UIKit.h>

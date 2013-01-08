@@ -74,7 +74,7 @@ struct AndroidSurfaceTextureConfig
 	jclass jSurfaceCls = nullptr, jSurfaceTextureCls = nullptr;
 	JavaInstMethod<void> jSurface, jSurfaceRelease,
 		jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
-	bool use = 0;
+	bool use = 0, whiteListed = 1;
 	bool texture2dBindingHack = 0;
 	// Extra dlsym function from libandroid.so
 	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
@@ -110,7 +110,7 @@ public:
 	constexpr AndroidDirectTextureConfig() { }
 	bool isSupported() const { return grallocMod; }
 	void checkForEGLImageKHR(const char *extensions, const char *rendererName);
-	bool enableEGLImageKHR(const char *extensions);
+	bool setupEGLImageKHR(const char *extensions);
 	int allocBuffer(android_native_buffer_t &eglBuf);
 	int lockBuffer(android_native_buffer_t &eglBuf, int usage, int l, int t, int w, int h, void *&data);
 	int unlockBuffer(android_native_buffer_t &eglBuf);

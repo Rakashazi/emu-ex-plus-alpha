@@ -7,7 +7,7 @@ endif
 targetFile := $(target)$(targetSuffix)$(targetExtension)
 
 # standard target
-$(targetDir)/$(targetFile) : $(OBJ)
+$(targetDir)/$(targetFile) : $(OBJ) $(imagineStaticLib)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
 	$(PRINT_CMD) $(LD) -o $@ $^ $(LDFLAGS)

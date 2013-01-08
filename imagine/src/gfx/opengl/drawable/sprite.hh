@@ -32,7 +32,7 @@ CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, BufferImage *img
 	return OK;
 }
 
-#if defined CONFIG_BASE_ANDROID
+#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 static void setupCropRect(BufferImage *img)
 {
 	assert(useDrawTex);
@@ -53,7 +53,7 @@ void SpriteBase<BaseRect>::setImg(BufferImage *img)
 {
 	var_selfs(img);
 	::mapImg(BaseRect::v, img ? &img->textureDesc() : 0);
-	#if defined CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex)
 		setupCropRect(img);
 	#endif
@@ -77,7 +77,7 @@ void SpriteBase<BaseRect>::draw() const
 {
 	Gfx::setActiveTexture(img->textureDesc().tid, img->textureDesc().target);
 
-	#if defined CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex && projAngleM.isComplete())
 	{
 		glDrawTexiOES(screenX, screenY, 1, screenX2, screenY2);

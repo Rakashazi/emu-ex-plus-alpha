@@ -379,8 +379,10 @@ void TextureBufferImage::deinit()
 bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 	uint usedX, uint usedY, uint hints, uint filter)
 {
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	xSize = usedX;
 	ySize = usedY;
+	#endif
 	//logMsg("createGLTexture");
 	GLenum texTarget = GL_TEXTURE_2D;
 	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)

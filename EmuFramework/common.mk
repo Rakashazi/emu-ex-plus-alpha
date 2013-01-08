@@ -1,4 +1,6 @@
-embedImagine := 1
+ifneq ($(ENV), android)
+ embedImagine := 1
+endif
 
 emuFrameworkPath := $(currPath)
 
@@ -31,9 +33,12 @@ endif
 else
 
 # TODO: rework non-embedded build
-CPPFLAGS += -include $(IMAGINE_PATH)/build/$(buildName)/gen/config.h
-LDLIBS += $(IMAGINE_PATH)/lib/$(buildName)/libimagine.a
-include $(IMAGINE_PATH)/build/$(buildName)/gen/flags.mk
+configIncNext := <config.h>
+imagineLibPath := $(IMAGINE_PATH)/lib/$(buildName)
+imagineStaticLib := $(IMAGINE_PATH)/lib/$(buildName)/libimagine.a
+CPPFLAGS += -I$(IMAGINE_PATH)/build/$(buildName)/gen
+CPPFLAGS += $(shell PKG_CONFIG_PATH=$(imagineLibPath) PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(IMAGINE_PATH)/src pkg-config imagine --cflags --static --define-variable=prefix=$(system_externalSysroot))
+LDLIBS += -L$(imagineLibPath) $(shell PKG_CONFIG_PATH=$(imagineLibPath) PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config imagine --libs --static --define-variable=prefix=$(system_externalSysroot))
 
 endif
 

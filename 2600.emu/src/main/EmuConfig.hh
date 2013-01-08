@@ -7,7 +7,7 @@
 #endif
 
 static const char *touchConfigFaceBtnName = "JS Buttons", *touchConfigCenterBtnName = "Select/Reset";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
+static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
 static const char *systemAspectRatioString = "4:3";

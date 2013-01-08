@@ -12,7 +12,7 @@ all : $(genConfigH) $(genMetaH) main
 $(genConfigH) :
 	@echo "Generating Config $@"
 	@mkdir -p $(@D)
-	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configDefs)" "$(configInc)"
+	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configDefs)" "$(configInc)" "$(configIncNext)"
 config : $(genConfigH)
 
 include metadata/conf.mk

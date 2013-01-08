@@ -104,7 +104,7 @@ bool EmuSystem::loadAutoState()
 int EmuSystem::setupFrameSkip(uint optionVal)
 {
 	static const uint maxFrameSkip = 6;
-	static const uint ntscUSecs = 16666, palUSecs = 20000;
+	static const uint ntscNSecs = 16666666, palNSecs = 20000000;
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source
@@ -114,7 +114,7 @@ int EmuSystem::setupFrameSkip(uint optionVal)
 	realTime.setTimeNow();
 	TimeSys timeTotal = realTime - startTime;
 
-	int emuFrame = timeTotal.divByUSecs(vidSysIsPAL() ? palUSecs : ntscUSecs);
+	int emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
 	//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
 	assert(emuFrame >= emuFrameNow);
 	if(emuFrame == emuFrameNow)

@@ -84,7 +84,7 @@ void EmuView::placeEmu()
 		}
 
 		disp.setPos(gameView.xPos(LB2DO), gameView.yPos(LB2DO) + yOffset, gameView.xPos(RT2DO), gameView.yPos(RT2DO) + yOffset);
-		#if defined CONFIG_BASE_ANDROID
+		#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 		disp.screenX = gameView.xIPos(LB2DO);
 		disp.screenY = Gfx::viewPixelHeight() - gameView.yIPos(LB2DO);
 		disp.screenX2 = gameView.iXSize;

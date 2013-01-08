@@ -54,7 +54,6 @@ public:
 	static PollWaitTimer *getNextCallback()
 	{
 		TimeSys closestTime;
-		closestTime.setUSecs(0);
 		PollWaitTimer *closest = 0;
 		forEachInDLList(&timerList, e)
 		{

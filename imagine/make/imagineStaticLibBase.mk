@@ -2,11 +2,10 @@ CPPFLAGS += -I$(genPath) -Isrc
 VPATH += src
 
 genConfigH = $(genPath)/config.h
-genLibsMake = $(genPath)/flags.mk
 
 .SUFFIXES: 
 .PHONY: all main config
-all : $(genConfigH) $(genLibsMake) main
+all : $(genConfigH) config main
 
 # config.h is only built if not present, needs manual deletion to update
 $(genConfigH) :
@@ -14,12 +13,7 @@ $(genConfigH) :
 	@mkdir -p $(@D)
 	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configDefs)" "$(configInc)"
 
-$(genLibsMake) :
-	@echo "Generating Flags Makefile $@"
-	@mkdir -p $(@D)
-	$(PRINT_CMD)echo -e "LDLIBS += $(LDLIBS)\nCPPFLAGS += $(CPPFLAGS)" > $@
-
-config : $(genConfigH) $(genLibsMake)
+config : $(genConfigH)
 
 ifndef NO_LOGGER
 

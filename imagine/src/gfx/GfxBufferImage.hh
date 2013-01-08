@@ -90,7 +90,9 @@ private:
 			uint usedX, uint usedY, uint hints, uint filter);
 public:
 	constexpr BufferImage() { }
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	uint xSize = 0, ySize = 0; // the actual x,y size of the image content
+	#endif
 	static const uint nearest = 0, linear = 1;
 	static bool isFilterValid(uint v) { return v <= 1; }
 	bool hasMipmaps();
