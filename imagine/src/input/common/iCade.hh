@@ -3,25 +3,19 @@
 namespace Input
 {
 
-#ifndef CONFIG_BASE_IOS
-
-static bool iCadeActive_ = 0;
-void setICadeActive(bool active)
-{
-	iCadeActive_ = active;
-}
-
-bool iCadeActive()
-{
-	return iCadeActive_;
-}
-
-#endif
-
-static bool processICadeKey(uchar c, uint action)
+static bool processICadeKey(uchar c, uint action, const Device &dev)
 {
 	static const char *ON_STATES  = "wdxayhujikol";
 	static const char *OFF_STATES = "eczqtrfnmpgv";
+
+	#ifndef CONFIG_BASE_IOS
+	using namespace ICade;
+	static const Key keycodeMap[14] =
+	{
+		UP, RIGHT, DOWN, LEFT,
+		A, B, C, D, E, F, G, H
+	};
+	#endif
 
 	if(c == 0)
 		return 0; // ignore null character
@@ -31,8 +25,12 @@ static bool processICadeKey(uchar c, uint action)
 	{
 		//logMsg("handling iCade on-state key %c", *p);
 		int index = p-ON_STATES;
-		if(action == INPUT_PUSHED)
-			Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_PUSHED, 0));
+		if(action == PUSHED)
+			#ifdef CONFIG_BASE_IOS
+				onInputEvent(Input::Event(0, Event::MAP_ICADE, index+1, PUSHED, 0, &dev));
+			#else
+				onInputEvent(Input::Event(0, Event::MAP_ICADE, keycodeMap[index], PUSHED, 0, &dev));
+			#endif
 		return 1;
 	}
 	else
@@ -42,8 +40,12 @@ static bool processICadeKey(uchar c, uint action)
 		{
 			//logMsg("handling iCade off-state key %c", *p);
 			int index = p-OFF_STATES;
-			if(action == INPUT_PUSHED)
-				Input::onInputEvent(InputEvent(0, InputEvent::DEV_ICADE, index+1, INPUT_RELEASED, 0));
+			if(action == PUSHED)
+				#ifdef CONFIG_BASE_IOS
+					onInputEvent(Input::Event(0, Event::MAP_ICADE, index+1, RELEASED, 0, &dev));
+				#else
+					onInputEvent(Input::Event(0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, &dev));
+				#endif
 			return 1;
 		}
 	}

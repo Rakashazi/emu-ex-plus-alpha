@@ -196,23 +196,11 @@ enum
 	ssKeyIdxCTurbo,
 	ssKeyIdxXTurbo,
 	ssKeyIdxYTurbo,
-	ssKeyIdxZTurbo
+	ssKeyIdxZTurbo,
+	ssKeyIdxLastGamepad = ssKeyIdxZTurbo
 };
 
 enum {
-	CFGKEY_SS_UP = 256, CFGKEY_SS_RIGHT = 257,
-	CFGKEY_SS_DOWN = 258, CFGKEY_SS_LEFT = 259,
-	CFGKEY_SS_LEFT_UP = 260, CFGKEY_SS_RIGHT_UP = 261,
-	CFGKEY_SS_RIGHT_DOWN = 262, CFGKEY_SS_LEFT_DOWN = 263,
-	CFGKEY_SS_START = 264,
-	CFGKEY_SS_A = 265, CFGKEY_SS_B = 266,
-	CFGKEY_SS_C = 267, CFGKEY_SS_X = 268,
-	CFGKEY_SS_Y = 269, CFGKEY_SS_Z = 270,
-	CFGKEY_SS_L = 271, CFGKEY_SS_R = 272,
-	CFGKEY_SS_A_TURBO = 273, CFGKEY_SS_B_TURBO = 274,
-	CFGKEY_SS_C_TURBO = 275, CFGKEY_SS_X_TURBO = 276,
-	CFGKEY_SS_Y_TURBO = 277, CFGKEY_SS_Z_TURBO = 278,
-
 	CFGKEY_BIOS_PATH = 279
 };
 
@@ -252,15 +240,6 @@ const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include <CommonGui.hh>
 
-namespace EmuControls
-{
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-}
-
 void EmuSystem::initOptions()
 {
 	optionNotificationIcon.initDefault(0);
@@ -283,29 +262,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_SS_UP: readKeyConfig2(io, ssKeyIdxUp, readSize);
-		bcase CFGKEY_SS_RIGHT: readKeyConfig2(io, ssKeyIdxRight, readSize);
-		bcase CFGKEY_SS_DOWN: readKeyConfig2(io, ssKeyIdxDown, readSize);
-		bcase CFGKEY_SS_LEFT: readKeyConfig2(io, ssKeyIdxLeft, readSize);
-		bcase CFGKEY_SS_LEFT_UP: readKeyConfig2(io, ssKeyIdxLeftUp, readSize);
-		bcase CFGKEY_SS_RIGHT_UP: readKeyConfig2(io, ssKeyIdxRightUp, readSize);
-		bcase CFGKEY_SS_RIGHT_DOWN: readKeyConfig2(io, ssKeyIdxRightDown, readSize);
-		bcase CFGKEY_SS_LEFT_DOWN: readKeyConfig2(io, ssKeyIdxLeftDown, readSize);
-		bcase CFGKEY_SS_START: readKeyConfig2(io, ssKeyIdxStart, readSize);
-		bcase CFGKEY_SS_A: readKeyConfig2(io, ssKeyIdxA, readSize);
-		bcase CFGKEY_SS_B: readKeyConfig2(io, ssKeyIdxB, readSize);
-		bcase CFGKEY_SS_C: readKeyConfig2(io, ssKeyIdxC, readSize);
-		bcase CFGKEY_SS_X: readKeyConfig2(io, ssKeyIdxX, readSize);
-		bcase CFGKEY_SS_Y: readKeyConfig2(io, ssKeyIdxY, readSize);
-		bcase CFGKEY_SS_Z: readKeyConfig2(io, ssKeyIdxZ, readSize);
-		bcase CFGKEY_SS_L: readKeyConfig2(io, ssKeyIdxL, readSize);
-		bcase CFGKEY_SS_R: readKeyConfig2(io, ssKeyIdxR, readSize);
-		bcase CFGKEY_SS_A_TURBO: readKeyConfig2(io, ssKeyIdxATurbo, readSize);
-		bcase CFGKEY_SS_B_TURBO: readKeyConfig2(io, ssKeyIdxBTurbo, readSize);
-		bcase CFGKEY_SS_C_TURBO: readKeyConfig2(io, ssKeyIdxCTurbo, readSize);
-		bcase CFGKEY_SS_X_TURBO: readKeyConfig2(io, ssKeyIdxXTurbo, readSize);
-		bcase CFGKEY_SS_Y_TURBO: readKeyConfig2(io, ssKeyIdxYTurbo, readSize);
-		bcase CFGKEY_SS_Z_TURBO: readKeyConfig2(io, ssKeyIdxZTurbo, readSize);
 		bcase CFGKEY_BIOS_PATH: optionBiosPath.readFromIO(io, readSize);
 	}
 	return 1;
@@ -314,30 +270,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 void EmuSystem::writeConfig(Io *io)
 {
 	optionBiosPath.writeToIO(io);
-
-	writeKeyConfig2(io, ssKeyIdxUp, CFGKEY_SS_UP);
-	writeKeyConfig2(io, ssKeyIdxRight, CFGKEY_SS_RIGHT);
-	writeKeyConfig2(io, ssKeyIdxDown, CFGKEY_SS_DOWN);
-	writeKeyConfig2(io, ssKeyIdxLeft, CFGKEY_SS_LEFT);
-	writeKeyConfig2(io, ssKeyIdxLeftUp, CFGKEY_SS_LEFT_UP);
-	writeKeyConfig2(io, ssKeyIdxRightUp, CFGKEY_SS_RIGHT_UP);
-	writeKeyConfig2(io, ssKeyIdxRightDown, CFGKEY_SS_RIGHT_DOWN);
-	writeKeyConfig2(io, ssKeyIdxLeftDown, CFGKEY_SS_LEFT_DOWN);
-	writeKeyConfig2(io, ssKeyIdxStart, CFGKEY_SS_START);
-	writeKeyConfig2(io, ssKeyIdxA, CFGKEY_SS_A);
-	writeKeyConfig2(io, ssKeyIdxB, CFGKEY_SS_B);
-	writeKeyConfig2(io, ssKeyIdxC, CFGKEY_SS_C);
-	writeKeyConfig2(io, ssKeyIdxX, CFGKEY_SS_X);
-	writeKeyConfig2(io, ssKeyIdxY, CFGKEY_SS_Y);
-	writeKeyConfig2(io, ssKeyIdxZ, CFGKEY_SS_Z);
-	writeKeyConfig2(io, ssKeyIdxL, CFGKEY_SS_L);
-	writeKeyConfig2(io, ssKeyIdxR, CFGKEY_SS_R);
-	writeKeyConfig2(io, ssKeyIdxATurbo, CFGKEY_SS_A_TURBO);
-	writeKeyConfig2(io, ssKeyIdxBTurbo, CFGKEY_SS_B_TURBO);
-	writeKeyConfig2(io, ssKeyIdxCTurbo, CFGKEY_SS_C_TURBO);
-	writeKeyConfig2(io, ssKeyIdxXTurbo, CFGKEY_SS_X_TURBO);
-	writeKeyConfig2(io, ssKeyIdxYTurbo, CFGKEY_SS_Y_TURBO);
-	writeKeyConfig2(io, ssKeyIdxZTurbo, CFGKEY_SS_Z_TURBO);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = ssFsFilter;
@@ -345,36 +277,28 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ssFsFilter;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return ssKeyIdxA;
-		case SysVController::F_ELEM+1: return ssKeyIdxB;
-		case SysVController::F_ELEM+2: return ssKeyIdxC;
-		case SysVController::F_ELEM+3: return ssKeyIdxX;
-		case SysVController::F_ELEM+4: return ssKeyIdxY;
-		case SysVController::F_ELEM+5: return ssKeyIdxZ;
-		case SysVController::F_ELEM+6: return ssKeyIdxL;
-		case SysVController::F_ELEM+7: return ssKeyIdxR;
+	uint playerOffset = player ? EmuControls::gamepadKeys : 0;
+	map[SysVController::F_ELEM] = ssKeyIdxA + playerOffset;
+	map[SysVController::F_ELEM+1] = ssKeyIdxB + playerOffset;
+	map[SysVController::F_ELEM+2] = ssKeyIdxC + playerOffset;
+	map[SysVController::F_ELEM+3] = ssKeyIdxX + playerOffset;
+	map[SysVController::F_ELEM+4] = ssKeyIdxY + playerOffset;
+	map[SysVController::F_ELEM+5] = ssKeyIdxZ + playerOffset;
+	map[SysVController::F_ELEM+6] = ssKeyIdxL + playerOffset;
+	map[SysVController::F_ELEM+7] = ssKeyIdxR + playerOffset;
 
-		case SysVController::C_ELEM: return ssKeyIdxStart;
+	map[SysVController::C_ELEM] = ssKeyIdxStart + playerOffset;
 
-		case SysVController::D_ELEM: return ssKeyIdxLeftUp;
-		case SysVController::D_ELEM+1: return ssKeyIdxUp;
-		case SysVController::D_ELEM+2: return ssKeyIdxRightUp;
-		case SysVController::D_ELEM+3: return ssKeyIdxLeft;
-		case SysVController::D_ELEM+5: return ssKeyIdxRight;
-		case SysVController::D_ELEM+6: return ssKeyIdxLeftDown;
-		case SysVController::D_ELEM+7: return ssKeyIdxDown;
-		case SysVController::D_ELEM+8: return ssKeyIdxRightDown;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = ssKeyIdxLeftUp + playerOffset;
+	map[SysVController::D_ELEM+1] = ssKeyIdxUp + playerOffset;
+	map[SysVController::D_ELEM+2] = ssKeyIdxRightUp + playerOffset;
+	map[SysVController::D_ELEM+3] = ssKeyIdxLeft + playerOffset;
+	map[SysVController::D_ELEM+5] = ssKeyIdxRight + playerOffset;
+	map[SysVController::D_ELEM+6] = ssKeyIdxLeftDown + playerOffset;
+	map[SysVController::D_ELEM+7] = ssKeyIdxDown + playerOffset;
+	map[SysVController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -388,15 +312,27 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case ssKeyIdxATurbo:
 		case ssKeyIdxBTurbo:
 		case ssKeyIdxCTurbo:
+		case ssKeyIdxXTurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxYTurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxZTurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxATurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxBTurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxCTurbo + EmuControls::gamepadKeys:
 			turbo = 1;
 		default: return input;
 	}
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
+	uint player = 0;
+	if(emuKey > ssKeyIdxLastGamepad)
+	{
+		player = 1;
+		emuKey -= EmuControls::gamepadKeys;
+	}
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
-	bool pushed = state == INPUT_PUSHED;
+	bool pushed = state == Input::PUSHED;
 	switch(emuKey)
 	{
 		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);
@@ -604,7 +540,7 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -615,7 +551,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	ScspSetFrameAccurate(1);
 	mainInitCommon();

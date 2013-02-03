@@ -266,7 +266,7 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 	}
 	fd_setNonblock(fd, 0);
 
-	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
+	Base::addPollEvent(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }
 
@@ -299,25 +299,25 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 		//logMsg("success");
 	}
 	fd_setNonblock(fd, 0);
-	Base::addPollEvent2(fd, pollEvDel, Base::POLLEV_OUT);
+	Base::addPollEvent(fd, pollEvDel, Base::POLLEV_OUT);
 	return OK;
 }
 
 void BluezBluetoothSocket::close()
 {
-	if(fd > 0)
+	if(fd >= 0)
 	{
 		if(Base::hasFDEvents)
 			Base::removePollEvent(fd);
 		if(::close(fd) != 0)
 			logWarn("error closing socket");
-		fd = 0;
+		fd = -1;
 	}
 }
 
 CallResult BluezBluetoothSocket::write(const void *data, size_t size)
 {
-	assert(fd > 0);
+	assert(fd >= 0);
 	if(fd_writeAll(fd, data, size) != (ssize_t)size)
 	{
 		return IO_ERROR;

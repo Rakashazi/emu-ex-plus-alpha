@@ -5,7 +5,7 @@ class SystemOptionView : public OptionView
 {
 	BoolMenuItem ngpLanguage;
 
-	static void ngpLanguageHandler(BoolMenuItem &item, const InputEvent &e)
+	static void ngpLanguageHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		language_english = item.on;

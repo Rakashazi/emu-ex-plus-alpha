@@ -31,6 +31,7 @@ public:
 	static StaticDLList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys ctlSock, intSock;
+	Input::Device *device = nullptr;
 	int extension = EXT_NONE;
 	uint player = 0;
 	uint function = FUNC_NONE;
@@ -65,7 +66,7 @@ private:
 	void processNunchukButtons(const uchar *packet, uint player);
 };
 
-static const PackedInputAccess wiimoteDataAccess[] =
+static const Input::PackedInputAccess wiimoteDataAccess[] =
 {
 	{ 0, BIT(0), Input::Wiimote::DOWN }, // map to sideways control
 	{ 0, BIT(1), Input::Wiimote::UP },
@@ -81,7 +82,7 @@ static const PackedInputAccess wiimoteDataAccess[] =
 	{ 1, BIT(7), Input::Wiimote::HOME },
 };
 
-static const PackedInputAccess wiimoteCCDataAccess[] =
+static const Input::PackedInputAccess wiimoteCCDataAccess[] =
 {
 	{ 4, BIT(7), Input::Wiimote::RIGHT },
 	{ 4, BIT(6), Input::Wiimote::DOWN },
@@ -101,7 +102,7 @@ static const PackedInputAccess wiimoteCCDataAccess[] =
 	{ 5, BIT(0), Input::Wiimote::UP },
 };
 
-static const PackedInputAccess wiimoteNunchukDataAccess[] =
+static const Input::PackedInputAccess wiimoteNunchukDataAccess[] =
 {
 	{ 5, BIT(1), Input::Wiimote::NUN_C },
 	{ 5, BIT(0), Input::Wiimote::NUN_Z },

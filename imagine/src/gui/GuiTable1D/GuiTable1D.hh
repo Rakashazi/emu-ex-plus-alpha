@@ -11,7 +11,7 @@ class GuiTableSource
 public:
 	constexpr GuiTableSource() { }
 	virtual void drawElement(const GuiTable1D *table, uint element, GC xPos, GC yPos, GC xSize, GC ySize, _2DOrigin align) const = 0;
-	virtual void onSelectElement(const GuiTable1D *table, const InputEvent &event, uint element) = 0;
+	virtual void onSelectElement(const GuiTable1D *table, const Input::Event &event, uint element) = 0;
 };
 
 class GuiTable1D
@@ -27,7 +27,7 @@ public:
 	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO);
 	void setXCellSize(int s);
 	void setYCellSize(int s);
-	int inputEvent(const InputEvent &event);
+	int inputEvent(const Input::Event &event);
 	void draw();
 	Rect2<int> focusRect();
 	static GC globalXIndent;
@@ -119,7 +119,7 @@ public:
 		scrollToFocusRect();
 	}
 
-	void inputEvent(const InputEvent &e)
+	void inputEvent(const Input::Event &e)
 	{
 		bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
 		if(handleScroll && ScrollView1D::inputEvent(e))

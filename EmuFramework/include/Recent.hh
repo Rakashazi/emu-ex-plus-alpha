@@ -33,7 +33,7 @@ struct RecentGameInfo
 		return string_equal(path, rhs.path);
 	}
 
-	void handleMenuSelection(TextMenuItem &, const InputEvent &e);
+	void handleMenuSelection(TextMenuItem &, const Input::Event &e);
 
 	static constexpr uint MAX_RECENT = 10;
 };

@@ -1,17 +1,17 @@
-/*  This file is part of NES.emu.
+/*  This file is part of MD.emu.
 
-	NES.emu is free software: you can redistribute it and/or modify
+	MD.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	NES.emu is distributed in the hope that it will be useful,
+	MD.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
 #include <resource2/image/png/ResourceImagePng.h>
@@ -38,7 +38,10 @@
 #include "vdp_ctrl.h"
 #include "genesis.h"
 #include "genplus-config.h"
+#ifndef NO_SCD
 #include <scd/scd.h>
+#endif
+#include <main/Cheats.hh>
 
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
@@ -107,47 +110,27 @@ enum
 };
 
 enum {
-	CFGKEY_MDKEY_UP = 256, CFGKEY_MDKEY_RIGHT = 257,
-	CFGKEY_MDKEY_DOWN = 258, CFGKEY_MDKEY_LEFT = 259,
-	CFGKEY_MDKEY_MODE = 260, CFGKEY_MDKEY_START = 261,
-	CFGKEY_MDKEY_A = 262, CFGKEY_MDKEY_B = 263,
-	CFGKEY_MDKEY_C = 264, CFGKEY_MDKEY_X = 265,
-	CFGKEY_MDKEY_Y = 266, CFGKEY_MDKEY_Z = 267,
-	CFGKEY_MDKEY_A_TURBO = 268, CFGKEY_MDKEY_B_TURBO = 269,
-	CFGKEY_MDKEY_C_TURBO = 270, CFGKEY_MDKEY_X_TURBO = 271,
-	CFGKEY_MDKEY_Y_TURBO = 272, CFGKEY_MDKEY_Z_TURBO = 273,
-	CFGKEY_MDKEY_LEFT_UP = 274, CFGKEY_MDKEY_RIGHT_UP = 275,
-	CFGKEY_MDKEY_RIGHT_DOWN = 276, CFGKEY_MDKEY_LEFT_DOWN = 277,
-	CFGKEY_MDKEY_BIG_ENDIAN_SRAM = 278, CFGKEY_MDKEY_SMS_FM = 279,
-	CFGKEY_MDKEY_6_BTN_PAD = 280, CFGKEY_MD_CD_BIOS_USA_PATH = 281,
+	CFGKEY_BIG_ENDIAN_SRAM = 278, CFGKEY_SMS_FM = 279,
+	CFGKEY_6_BTN_PAD = 280, CFGKEY_MD_CD_BIOS_USA_PATH = 281,
 	CFGKEY_MD_CD_BIOS_JPN_PATH = 282, CFGKEY_MD_CD_BIOS_EUR_PATH = 283,
 	CFGKEY_MD_REGION = 284
 };
 
 static bool usingMultiTap = 0;
-static Byte1Option optionBigEndianSram(CFGKEY_MDKEY_BIG_ENDIAN_SRAM, 0);
-static Byte1Option optionSmsFM(CFGKEY_MDKEY_SMS_FM, 1);
-static Byte1Option option6BtnPad(CFGKEY_MDKEY_6_BTN_PAD, 0);
+static Byte1Option optionBigEndianSram(CFGKEY_BIG_ENDIAN_SRAM, 0);
+static Byte1Option optionSmsFM(CFGKEY_SMS_FM, 1);
+static Byte1Option option6BtnPad(CFGKEY_6_BTN_PAD, 0);
 static Byte1Option optionRegion(CFGKEY_MD_REGION, 0);
+#ifndef NO_SCD
 FsSys::cPath cdBiosUSAPath = "", cdBiosJpnPath = "", cdBiosEurPath = "";
 static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
 static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
 static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, sizeof(cdBiosEurPath), "");
+#endif
 
 const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
 
 void EmuSystem::initOptions()
 {
@@ -162,34 +145,14 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
 	switch(key)
 	{
-		bcase CFGKEY_MDKEY_UP: readKeyConfig2(io, mdKeyIdxUp, readSize);
-		bcase CFGKEY_MDKEY_RIGHT: readKeyConfig2(io, mdKeyIdxRight, readSize);
-		bcase CFGKEY_MDKEY_DOWN: readKeyConfig2(io, mdKeyIdxDown, readSize);
-		bcase CFGKEY_MDKEY_LEFT: readKeyConfig2(io, mdKeyIdxLeft, readSize);
-		bcase CFGKEY_MDKEY_LEFT_UP: readKeyConfig2(io, mdKeyIdxLeftUp, readSize);
-		bcase CFGKEY_MDKEY_RIGHT_UP: readKeyConfig2(io, mdKeyIdxRightUp, readSize);
-		bcase CFGKEY_MDKEY_RIGHT_DOWN: readKeyConfig2(io, mdKeyIdxRightDown, readSize);
-		bcase CFGKEY_MDKEY_LEFT_DOWN: readKeyConfig2(io, mdKeyIdxLeftDown, readSize);
-		bcase CFGKEY_MDKEY_MODE: readKeyConfig2(io, mdKeyIdxMode, readSize);
-		bcase CFGKEY_MDKEY_START: readKeyConfig2(io, mdKeyIdxStart, readSize);
-		bcase CFGKEY_MDKEY_A: readKeyConfig2(io, mdKeyIdxA, readSize);
-		bcase CFGKEY_MDKEY_B: readKeyConfig2(io, mdKeyIdxB, readSize);
-		bcase CFGKEY_MDKEY_C: readKeyConfig2(io, mdKeyIdxC, readSize);
-		bcase CFGKEY_MDKEY_X: readKeyConfig2(io, mdKeyIdxX, readSize);
-		bcase CFGKEY_MDKEY_Y: readKeyConfig2(io, mdKeyIdxY, readSize);
-		bcase CFGKEY_MDKEY_Z: readKeyConfig2(io, mdKeyIdxZ, readSize);
-		bcase CFGKEY_MDKEY_A_TURBO: readKeyConfig2(io, mdKeyIdxATurbo, readSize);
-		bcase CFGKEY_MDKEY_B_TURBO: readKeyConfig2(io, mdKeyIdxBTurbo, readSize);
-		bcase CFGKEY_MDKEY_C_TURBO: readKeyConfig2(io, mdKeyIdxCTurbo, readSize);
-		bcase CFGKEY_MDKEY_X_TURBO: readKeyConfig2(io, mdKeyIdxXTurbo, readSize);
-		bcase CFGKEY_MDKEY_Y_TURBO: readKeyConfig2(io, mdKeyIdxYTurbo, readSize);
-		bcase CFGKEY_MDKEY_Z_TURBO: readKeyConfig2(io, mdKeyIdxZTurbo, readSize);
-		bcase CFGKEY_MDKEY_BIG_ENDIAN_SRAM: optionBigEndianSram.readFromIO(io, readSize);
-		bcase CFGKEY_MDKEY_SMS_FM: optionSmsFM.readFromIO(io, readSize);
-		bcase CFGKEY_MDKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
+		bcase CFGKEY_BIG_ENDIAN_SRAM: optionBigEndianSram.readFromIO(io, readSize);
+		bcase CFGKEY_SMS_FM: optionSmsFM.readFromIO(io, readSize);
+		bcase CFGKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
+		#ifndef NO_SCD
 		bcase CFGKEY_MD_CD_BIOS_USA_PATH: optionCDBiosUsaPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_JPN_PATH: optionCDBiosJpnPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_EUR_PATH: optionCDBiosEurPath.readFromIO(io, readSize);
+		#endif
 		bcase CFGKEY_MD_REGION:
 		{
 			optionRegion.readFromIO(io, readSize);
@@ -210,32 +173,12 @@ void EmuSystem::writeConfig(Io *io)
 	optionBigEndianSram.writeWithKeyIfNotDefault(io);
 	optionSmsFM.writeWithKeyIfNotDefault(io);
 	option6BtnPad.writeWithKeyIfNotDefault(io);
+	#ifndef NO_SCD
 	optionCDBiosUsaPath.writeToIO(io);
 	optionCDBiosJpnPath.writeToIO(io);
 	optionCDBiosEurPath.writeToIO(io);
+	#endif
 	optionRegion.writeWithKeyIfNotDefault(io);
-	writeKeyConfig2(io, mdKeyIdxUp, CFGKEY_MDKEY_UP);
-	writeKeyConfig2(io, mdKeyIdxRight, CFGKEY_MDKEY_RIGHT);
-	writeKeyConfig2(io, mdKeyIdxDown, CFGKEY_MDKEY_DOWN);
-	writeKeyConfig2(io, mdKeyIdxLeft, CFGKEY_MDKEY_LEFT);
-	writeKeyConfig2(io, mdKeyIdxLeftUp, CFGKEY_MDKEY_LEFT_UP);
-	writeKeyConfig2(io, mdKeyIdxRightUp, CFGKEY_MDKEY_RIGHT_UP);
-	writeKeyConfig2(io, mdKeyIdxRightDown, CFGKEY_MDKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, mdKeyIdxLeftDown, CFGKEY_MDKEY_LEFT_DOWN);
-	writeKeyConfig2(io, mdKeyIdxMode, CFGKEY_MDKEY_MODE);
-	writeKeyConfig2(io, mdKeyIdxStart, CFGKEY_MDKEY_START);
-	writeKeyConfig2(io, mdKeyIdxA, CFGKEY_MDKEY_A);
-	writeKeyConfig2(io, mdKeyIdxB, CFGKEY_MDKEY_B);
-	writeKeyConfig2(io, mdKeyIdxC, CFGKEY_MDKEY_C);
-	writeKeyConfig2(io, mdKeyIdxX, CFGKEY_MDKEY_X);
-	writeKeyConfig2(io, mdKeyIdxY, CFGKEY_MDKEY_Y);
-	writeKeyConfig2(io, mdKeyIdxZ, CFGKEY_MDKEY_Z);
-	writeKeyConfig2(io, mdKeyIdxATurbo, CFGKEY_MDKEY_A_TURBO);
-	writeKeyConfig2(io, mdKeyIdxBTurbo, CFGKEY_MDKEY_B_TURBO);
-	writeKeyConfig2(io, mdKeyIdxCTurbo, CFGKEY_MDKEY_C_TURBO);
-	writeKeyConfig2(io, mdKeyIdxXTurbo, CFGKEY_MDKEY_X_TURBO);
-	writeKeyConfig2(io, mdKeyIdxYTurbo, CFGKEY_MDKEY_Y_TURBO);
-	writeKeyConfig2(io, mdKeyIdxZTurbo, CFGKEY_MDKEY_Z_TURBO);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = mdFsFilter;
@@ -248,64 +191,60 @@ static int mdResX = 256, mdResY = 224;
 static uint16 nativePixBuff[mdMaxResX*mdMaxResY] __attribute__ ((aligned (8))) {0};
 t_bitmap bitmap = { (uint8*)nativePixBuff, mdResY, mdResX * pixFmt->bytesPerPixel };
 
-static uint ptrInputToSysButton(uint input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return INPUT_A;
-		case SysVController::F_ELEM+1: return INPUT_B;
-		case SysVController::F_ELEM+2: return INPUT_C;
-		case SysVController::F_ELEM+3: return INPUT_X;
-		case SysVController::F_ELEM+4: return INPUT_Y;
-		case SysVController::F_ELEM+5: return INPUT_Z;
+	uint playerMask = player << 30;
+	map[SysVController::F_ELEM] = INPUT_A | playerMask;
+	map[SysVController::F_ELEM+1] = INPUT_B | playerMask;
+	map[SysVController::F_ELEM+2] = INPUT_C | playerMask;
+	map[SysVController::F_ELEM+3] = INPUT_X | playerMask;
+	map[SysVController::F_ELEM+4] = INPUT_Y | playerMask;
+	map[SysVController::F_ELEM+5] = INPUT_Z | playerMask;
 
-		case SysVController::C_ELEM: return INPUT_MODE;
-		case SysVController::C_ELEM+1: return INPUT_START;
+	map[SysVController::C_ELEM] = INPUT_MODE | playerMask;
+	map[SysVController::C_ELEM+1] = INPUT_START | playerMask;
 
-		case SysVController::D_ELEM: return INPUT_UP | INPUT_LEFT;
-		case SysVController::D_ELEM+1: return INPUT_UP;
-		case SysVController::D_ELEM+2: return INPUT_UP | INPUT_RIGHT;
-		case SysVController::D_ELEM+3: return INPUT_LEFT;
-		case SysVController::D_ELEM+5: return INPUT_RIGHT;
-		case SysVController::D_ELEM+6: return INPUT_DOWN | INPUT_LEFT;
-		case SysVController::D_ELEM+7: return INPUT_DOWN;
-		case SysVController::D_ELEM+8: return INPUT_DOWN | INPUT_RIGHT;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = INPUT_UP | INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+1] = INPUT_UP | playerMask;
+	map[SysVController::D_ELEM+2] = INPUT_UP | INPUT_RIGHT | playerMask;
+	map[SysVController::D_ELEM+3] = INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+5] = INPUT_RIGHT | playerMask;
+	map[SysVController::D_ELEM+6] = INPUT_DOWN | INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+7] = INPUT_DOWN | playerMask;
+	map[SysVController::D_ELEM+8] = INPUT_DOWN | INPUT_RIGHT | playerMask;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
+	assert(input >= mdKeyIdxUp);
+	uint player = (input - mdKeyIdxUp) / EmuControls::gamepadKeys;
+	uint playerMask = player << 30;
+	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
-		case mdKeyIdxUp: return INPUT_UP;
-		case mdKeyIdxRight: return INPUT_RIGHT;
-		case mdKeyIdxDown: return INPUT_DOWN;
-		case mdKeyIdxLeft: return INPUT_LEFT;
-		case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP;
-		case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP;
-		case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN;
-		case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN;
-		case mdKeyIdxMode: return INPUT_MODE;
-		case mdKeyIdxStart: return INPUT_START;
+		case mdKeyIdxUp: return INPUT_UP | playerMask;
+		case mdKeyIdxRight: return INPUT_RIGHT | playerMask;
+		case mdKeyIdxDown: return INPUT_DOWN | playerMask;
+		case mdKeyIdxLeft: return INPUT_LEFT | playerMask;
+		case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP | playerMask;
+		case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP | playerMask;
+		case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN | playerMask;
+		case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
+		case mdKeyIdxMode: return INPUT_MODE | playerMask;
+		case mdKeyIdxStart: return INPUT_START | playerMask;
 		case mdKeyIdxATurbo: turbo = 1;
-		case mdKeyIdxA: return INPUT_A;
+		case mdKeyIdxA: return INPUT_A | playerMask;
 		case mdKeyIdxBTurbo: turbo = 1;
-		case mdKeyIdxB: return INPUT_B;
+		case mdKeyIdxB: return INPUT_B | playerMask;
 		case mdKeyIdxCTurbo: turbo = 1;
-		case mdKeyIdxC: return INPUT_C;
+		case mdKeyIdxC: return INPUT_C | playerMask;
 		case mdKeyIdxXTurbo: turbo = 1;
-		case mdKeyIdxX: return INPUT_X;
+		case mdKeyIdxX: return INPUT_X | playerMask;
 		case mdKeyIdxYTurbo: turbo = 1;
-		case mdKeyIdxY: return INPUT_Y;
+		case mdKeyIdxY: return INPUT_Y | playerMask;
 		case mdKeyIdxZTurbo: turbo = 1;
-		case mdKeyIdxZ: return INPUT_Z;
+		case mdKeyIdxZ: return INPUT_Z | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
@@ -313,11 +252,12 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 static uint playerIdxMap[4] = { 0 };
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
+	uint player = emuKey >> 30; // player is encoded in upper 2 bits of input code
 	assert(player <= 4);
 	uint16 &padData = input.pad[playerIdxMap[player]];
-	if(state == INPUT_PUSHED)
+	if(state == Input::PUSHED)
 		setBits(padData, emuKey);
 	else
 		unsetBits(padData, emuKey);
@@ -338,6 +278,7 @@ void commitVideoFrame()
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	//logMsg("frame start");
+	RAMCheatUpdate();
 	system_frame(!processGfx, renderGfx);
 
 	int16 audioMemBuff[snd.buffer_size * 2];
@@ -382,9 +323,11 @@ bool touchControlsApplicable() { return 1; }
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
+	#ifndef NO_SCD
 	if(sCD.isActive)
 		system_reset();
 	else
+	#endif
 		gen_reset(0);
 }
 
@@ -546,6 +489,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		if(IoSys::writeToNewFile(saveStr, sramPtr, 0x10000) == IO_ERROR)
 			logMsg("error creating sram file");
 	}
+	writeCheatFile();
 }
 
 void EmuSystem::saveAutoState()
@@ -564,11 +508,14 @@ void EmuSystem::saveAutoState()
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
+	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
 		scd_deinit();
 	}
+	#endif
 	old_system[0] = old_system[1] = -1;
+	clearCheatList();
 }
 
 const char *mdInputSystemToStr(uint8 system)
@@ -684,6 +631,7 @@ int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
 	emuView.initImage(0, mdResX, mdResY);
+	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
 	if(string_hasDotExtension(path, "bin"))
 	{
@@ -701,7 +649,9 @@ int EmuSystem::loadGame(const char *path)
 			setupGamePaths(path);
 	}
 	else
+	#endif
 		setupGamePaths(path);
+	#ifndef NO_SCD
 	CDAccess *cd = nullptr;
 	if(isMDCDExtension(fullGamePath) ||
 		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) > 1024*1024*10)) // CD
@@ -757,7 +707,9 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
-	else if(isMDExtension(fullGamePath)) // ROM
+	else
+	#endif
+	if(isMDExtension(fullGamePath)) // ROM
 	{
 		logMsg("loading ROM %s", fullGamePath);
 		FsSys::cPath loadFullGamePath;
@@ -837,6 +789,7 @@ int EmuSystem::loadGame(const char *path)
 
 	system_reset();
 
+	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
 		if(Insert_CD(cd) != 0)
@@ -847,6 +800,10 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
+	#endif
+
+	readCheatFile();
+	applyCheats();
 
 	logMsg("started emu");
 	return 1;
@@ -871,7 +828,7 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	if(EmuSystem::isActive())
 	{
@@ -884,12 +841,12 @@ void onInputEvent(const InputEvent &e)
 				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)bitmap.viewport.w);
 				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)bitmap.viewport.h);
 			}
-			if(e.state == INPUT_PUSHED)
+			if(e.state == Input::PUSHED)
 			{
 				input.pad[gunDevIdx] |= INPUT_A;
 				logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
 			}
-			else if(e.state == INPUT_RELEASED)
+			else if(e.state == Input::RELEASED)
 			{
 				unsetBits(input.pad[gunDevIdx], INPUT_A);
 			}
@@ -904,15 +861,13 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
 	config_ym2413_enabled = optionSmsFM;
-	static uint8 cartMem[MAXROMSIZE] __attribute__ ((aligned (8)));
-	cart.rom = cartMem;
 	return OK;
 }
 

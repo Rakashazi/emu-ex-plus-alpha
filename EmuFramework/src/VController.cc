@@ -16,6 +16,20 @@
 #define thisModuleName "vController"
 #include <VController.hh>
 
+template<>
+void VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout>::updateMapping(uint player)
+{
+	updateVControllerMapping(player, map);
+}
+
+#ifdef CONFIG_VCONTROLLER_KEYBOARD
+template<>
+void VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout>::updateKeyboardMapping()
+{
+	updateVControllerKeyboardMapping(kb.mode, kbMap);
+}
+#endif
+
 void VControllerDPad::init()
 {
 	origin = LT2DO;

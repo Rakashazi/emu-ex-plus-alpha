@@ -28,7 +28,7 @@ static const char pathSeparator[] = { '/'
 		, '\\'
 #endif
 };
-static const uint numPathSeparators = sizeofArrayConst(pathSeparator);
+static const uint numPathSeparators = sizeofArray(pathSeparator);
 
 template <class T>
 static T *dirNameCutoffPoint(T *path)

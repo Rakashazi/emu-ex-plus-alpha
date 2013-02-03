@@ -33,7 +33,7 @@ public:
 
 	void addUSec(long int us)
 	{
-		timeval add {us / USEC_PER_SEC, us % USEC_PER_SEC};
+		timeval add {us / USEC_PER_SEC, (typeof(t.tv_usec))(us % USEC_PER_SEC)};
 		t = timeval_add(t, add);
 	}
 

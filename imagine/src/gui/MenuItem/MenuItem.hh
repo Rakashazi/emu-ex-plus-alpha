@@ -29,13 +29,13 @@ public:
 	virtual int ySize() = 0;
 	virtual GC xSize() = 0;
 	virtual void deinit() = 0;
-	virtual void select(View *parent, const InputEvent &e) { bug_exit("unimplemented select()"); };
+	virtual void select(View *parent, const Input::Event &e) { bug_exit("unimplemented select()"); };
 };
 
 class TextMenuItem : public MenuItem
 {
 public:
-	typedef Delegate<void (TextMenuItem &item, const InputEvent &e)> SelectDelegate;
+	typedef Delegate<void (TextMenuItem &item, const Input::Event &e)> SelectDelegate;
 	constexpr TextMenuItem() { }
 	constexpr TextMenuItem(const char *str): t(str) { }
 	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
@@ -52,7 +52,7 @@ public:
 	void compile() override;
 	int ySize() override;
 	GC xSize() override;
-	void select(View *parent, const InputEvent &e) override;
+	void select(View *parent, const Input::Event &e) override;
 
 	SelectDelegate selectDel;
 	SelectDelegate &selectDelegate() { return selectDel; }
@@ -79,7 +79,7 @@ public:
 class BoolMenuItem : public DualTextMenuItem
 {
 public:
-	typedef Delegate<void (BoolMenuItem &item, const InputEvent &e)> SelectDelegate;
+	typedef Delegate<void (BoolMenuItem &item, const Input::Event &e)> SelectDelegate;
 	constexpr BoolMenuItem() { }
 	constexpr BoolMenuItem(const char *str): DualTextMenuItem(str) { }
 	constexpr BoolMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
@@ -94,7 +94,7 @@ public:
 	void toggle();
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 
-	void select(View *parent, const InputEvent &e) override;
+	void select(View *parent, const Input::Event &e) override;
 	SelectDelegate selectDel;
 	SelectDelegate &selectDelegate() { return selectDel; }
 };
@@ -116,7 +116,7 @@ public:
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	bool updateVal(int val);
 	void setVal(int val);
-	bool set(int val, const InputEvent &e);
+	bool set(int val, const Input::Event &e);
 	virtual void doSet(int val) { valueDel.invoke(*this, val); }
 	void cycle(int direction);
 

@@ -31,7 +31,7 @@ apu/bapu/smp/smp.cpp apu/bapu/smp/smp_state.cpp
 jma/inbyte.cpp unzip/jma.cpp unzip/lzma.cpp \
 jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
 
-SRC += main/Main.cc main/S9XApi.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
+SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 

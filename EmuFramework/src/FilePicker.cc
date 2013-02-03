@@ -27,7 +27,7 @@
 extern ViewStack viewStack;
 extern YesNoAlertView ynAlertView;
 void startGameFromMenu();
-bool isMenuDismissKey(const InputEvent &e);
+bool isMenuDismissKey(const Input::Event &e);
 extern MsgPopup popup;
 ResourceImage *getArrowAsset();
 ResourceImage *getXAsset();
@@ -61,12 +61,12 @@ void loadGameComplete(bool tryAutoState, bool addToRecent)
 }
 
 template <bool tryAutoState>
-void loadGameCompleteConfirmAutoLoadState(const InputEvent &e)
+void loadGameCompleteConfirmAutoLoadState(const Input::Event &e)
 {
 	loadGameComplete(tryAutoState, 1);
 }
 
-bool showAutoStateConfirm(const InputEvent &e)
+bool showAutoStateConfirm(const Input::Event &e)
 {
 	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
 	{
@@ -91,7 +91,7 @@ bool showAutoStateConfirm(const InputEvent &e)
 	return 0;
 }
 
-void loadGameCompleteFromFilePicker(uint result, const InputEvent &e)
+void loadGameCompleteFromFilePicker(uint result, const Input::Event &e)
 {
 	if(!result)
 		return;
@@ -102,7 +102,7 @@ void loadGameCompleteFromFilePicker(uint result, const InputEvent &e)
 	}
 }
 
-void GameFilePicker::onSelectFile(const char* name, const InputEvent &e)
+void GameFilePicker::onSelectFile(const char* name, const Input::Event &e)
 {
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
 	auto res = EmuSystem::loadGame(name);
@@ -116,12 +116,12 @@ void GameFilePicker::onSelectFile(const char* name, const InputEvent &e)
 	}
 }
 
-void GameFilePicker::onClose(const InputEvent &e)
+void GameFilePicker::onClose(const Input::Event &e)
 {
 	viewStack.popAndShow();
 }
 
-void loadGameCompleteFromBenchmarkFilePicker(uint result, const InputEvent &e)
+void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 {
 	if(result)
 	{
@@ -133,7 +133,7 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const InputEvent &e)
 	}
 }
 
-void BenchmarkFilePicker::onSelectFile(const char* name, const InputEvent &e)
+void BenchmarkFilePicker::onSelectFile(const char* name, const Input::Event &e)
 {
 	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromBenchmarkFilePicker>();
 	auto res = EmuSystem::loadGame(name);
@@ -147,7 +147,7 @@ void BenchmarkFilePicker::onSelectFile(const char* name, const InputEvent &e)
 	}
 }
 
-void BenchmarkFilePicker::onClose(const InputEvent &e)
+void BenchmarkFilePicker::onClose(const Input::Event &e)
 {
 	View::removeModalView();
 }

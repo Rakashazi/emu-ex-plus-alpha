@@ -27,7 +27,7 @@ public:
 	void drawContent();
 	void runFrame();
 	void draw();
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 
 	void placeOverlay()
 	{

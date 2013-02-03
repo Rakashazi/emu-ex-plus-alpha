@@ -5,7 +5,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 include ../EmuFramework/common.mk
 
-CPPFLAGS += -DHAVE_GETTIMEOFDAY -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT \
+CPPFLAGS += -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT \
 -DSTELLA_MINIMAL_SETTINGS -DSysDDec=float -Isrc/stella/common
 
 stellaSrc := Console.cxx Cart.cxx Props.cxx MD5.cxx Settings.cxx \
@@ -23,7 +23,7 @@ CartSB.cxx CartX07.cxx CartFA2.cxx CartCM.cxx MindLink.cxx \
 CartCTY.cxx CompuMate.cxx Thumbulator.cxx
 
 stellaPath := stella/emucore
-SRC += main/Main.cc main/ImagineSound.cc $(addprefix $(stellaPath)/,$(stellaSrc))
+SRC += main/Main.cc main/EmuControls.cc main/EmuControls.cc main/ImagineSound.cc $(addprefix $(stellaPath)/,$(stellaSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk

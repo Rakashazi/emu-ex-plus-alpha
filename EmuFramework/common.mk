@@ -49,7 +49,7 @@ SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
 TouchConfigView.cc EmuOptions.cc OptionView.cc EmuView.cc \
-ConfigFile.cc
+ConfigFile.cc InputManagerView.cc
 
 ifneq ($(ENV), ps3)
 SRC += VController.cc

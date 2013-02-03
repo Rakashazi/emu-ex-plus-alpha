@@ -6,7 +6,7 @@
 namespace Input
 {
 
-namespace Key
+namespace Keycode
 {
 	static const uint ESCAPE = SDLK_ESCAPE,
 	ENTER = SDLK_RETURN,
@@ -52,6 +52,8 @@ namespace Key
 
 	static const uint COUNT = 0xfff + 1;
 };
+
+typedef uint16 Key;
 
 namespace Pointer
 {

@@ -67,21 +67,20 @@ class EmuSystem
 	static void writeConfig(Io *io);
 	static bool readConfig(Io *io, uint key, uint readSize);
 	static int loadGame(const char *path);
-	typedef Delegate<void (uint result, const InputEvent &e)> LoadGameCompleteDelegate;
+	typedef Delegate<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &loadGameCompleteDelegate() { return loadGameCompleteDel; }
 	static void runFrame(bool renderGfx, bool processGfx, bool renderAudio) ATTRS(hot);
 	static bool vidSysIsPAL();
 	static void configAudioRate();
 	static void clearInputBuffers();
-	static void handleInputAction(uint player, uint state, uint emuKey);
+	static void handleInputAction(uint state, uint emuKey);
 	static uint translateInputAction(uint input, bool &turbo);
 	static uint translateInputAction(uint input)
 	{
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
-	static void handleOnScreenInputAction(uint state, uint emuKey);
 	static void stopSound();
 	static void startSound();
 	static int setupFrameSkip(uint optionVal);
@@ -164,13 +163,13 @@ static const char *stateResultToStr(int res)
 
 enum TriggerPosType { TRIGGERS_INLINE = 0, TRIGGERS_RIGHT = 1, TRIGGERS_LEFT = 2, TRIGGERS_SPLIT = 3 };
 
-#include <CreditsView.hh>
-
-struct ConstKeyProfile
+static const char *stateNameStr(int slot)
 {
-	const char *name;
-	const uint *key;
-};
+	assert(slot >= -1 && slot < 10);
+	static const char *str[] = { "Auto", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+	return str[slot+1];
+}
 
+#include <CreditsView.hh>
 #include <inGameActionKeys.hh>
 #include <main/EmuConfig.hh>

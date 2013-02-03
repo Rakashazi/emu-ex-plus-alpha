@@ -27,7 +27,7 @@ void ContentDrag::init(uint axis)
 	this->axis = axis;
 }
 
-ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const InputEvent &e)
+ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const Input::Event &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pushed && e.devId != devId)
@@ -49,7 +49,7 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const InputEven
 		active = 1;
 		return ENTERED_ACTIVE;
 	}
-	else if(active && (e.state == INPUT_RELEASED || e.state == INPUT_EXIT_VIEW))
+	else if(active && (e.state == Input::RELEASED || e.state == Input::EXIT_VIEW))
 	{
 		active = 0;
 		pushed = 0;
@@ -59,7 +59,7 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const InputEven
 	{
 		return ACTIVE;
 	}
-	else if(e.state == INPUT_RELEASED)
+	else if(e.state == Input::RELEASED)
 	{
 		pushed = 0;
 		return RELEASED;
@@ -157,7 +157,7 @@ void KScroll::decel2()
 	}
 }
 
-bool KScroll::inputEvent(const InputEvent &e)
+bool KScroll::inputEvent(const Input::Event &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	auto dragState = Input::dragState(e.devId);
@@ -218,7 +218,7 @@ bool KScroll::inputEvent(const InputEvent &e)
 	#endif
 }
 
-bool KScroll::inputEvent(int minClip, int maxClip, const InputEvent &e)
+bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 {
 	prevOffset = offset;
 	bool ret = 0;
@@ -333,7 +333,7 @@ void ScrollView1D::draw()
 	}
 }
 
-int ScrollView1D::inputEvent(const InputEvent &e)
+int ScrollView1D::inputEvent(const Input::Event &e)
 {
 	int scrollHasControl = 0;
 	auto oldOffset = scroll.offset;

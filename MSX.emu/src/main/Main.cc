@@ -139,12 +139,50 @@ enum
 	msxKeyIdxRightUp,
 	msxKeyIdxRightDown,
 	msxKeyIdxLeftDown,
-	msxKeyIdxJS1,
-	msxKeyIdxJS2,
-	msxKeyIdxJS1Turbo,
-	msxKeyIdxJS2Turbo,
-	msxKeyIdxColecoStart,
-	msxKeyIdxColecoEnd = msxKeyIdxColecoStart + (EmuControls::colecoKeys - 1),
+	msxKeyIdxJS1Btn,
+	msxKeyIdxJS2Btn,
+	msxKeyIdxJS1BtnTurbo,
+	msxKeyIdxJS2BtnTurbo,
+
+	msxKeyIdxUp2,
+	msxKeyIdxRight2,
+	msxKeyIdxDown2,
+	msxKeyIdxLeft2,
+	msxKeyIdxLeftUp2,
+	msxKeyIdxRightUp2,
+	msxKeyIdxRightDown2,
+	msxKeyIdxLeftDown2,
+	msxKeyIdxJS1Btn2,
+	msxKeyIdxJS2Btn2,
+	msxKeyIdxJS1BtnTurbo2,
+	msxKeyIdxJS2BtnTurbo2,
+
+	msxKeyIdxColeco0Num,
+	msxKeyIdxColeco1Num,
+	msxKeyIdxColeco2Num,
+	msxKeyIdxColeco3Num,
+	msxKeyIdxColeco4Num,
+	msxKeyIdxColeco5Num,
+	msxKeyIdxColeco6Num,
+	msxKeyIdxColeco7Num,
+	msxKeyIdxColeco8Num,
+	msxKeyIdxColeco9Num,
+	msxKeyIdxColecoStar,
+	msxKeyIdxColecoHash,
+
+	msxKeyIdxColeco0Num2,
+	msxKeyIdxColeco1Num2,
+	msxKeyIdxColeco2Num2,
+	msxKeyIdxColeco3Num2,
+	msxKeyIdxColeco4Num2,
+	msxKeyIdxColeco5Num2,
+	msxKeyIdxColeco6Num2,
+	msxKeyIdxColeco7Num2,
+	msxKeyIdxColeco8Num2,
+	msxKeyIdxColeco9Num2,
+	msxKeyIdxColecoStar2,
+	msxKeyIdxColecoHash2,
+
 	msxKeyIdxToggleKb,
 	msxKeyIdxKbStart,
 	msxKeyIdxKbEnd = msxKeyIdxKbStart + (msxKeyboardKeys - 1)
@@ -164,19 +202,6 @@ const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include <CommonGui.hh>
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Joystick Controls", gamepadName, gameActionKeys),
-		KeyCategory("Coleco Numeric Controls", colecoName, gameActionKeys + gamepadKeys),
-		KeyCategory("Keyboard Controls", kbName, gameActionKeys + gamepadKeys + colecoKeys),
-};
-
-}
-
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
 	switch(key)
@@ -184,9 +209,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		default: return 0;
 		bcase CFGKEY_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
 		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
-		#define readKeyCase(z, n, text) bcase (n)+msxKeyConfigBase: readKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, readSize);
-		BOOST_PP_REPEAT(105, readKeyCase, ) break; // first arg must be msxJSKeys + msxKeyboardKeys
-		#undef readKeyCase
 	}
 	return 1;
 }
@@ -198,9 +220,6 @@ void EmuSystem::writeConfig(Io *io)
 		optionMachineName.writeToIO(io);
 	}
 	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
-	#define writeKeyCase(z, n, text) writeKeyConfig2(io, (n)+EmuControls::systemKeyMapStart, (n)+msxKeyConfigBase);
-	BOOST_PP_REPEAT(105, writeKeyCase, ) // first arg must be msxJSKeys + msxKeyboardKeys
-	#undef writeKeyCase
 }
 
 void EmuSystem::initOptions()
@@ -220,7 +239,7 @@ static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
 //static uint16 dummyLine[msxMaxFrameBuffResX] __attribute__ ((aligned (8)));
 
-static uint kbToEventMap[] =
+static SysVController::KbMap kbToEventMap
 {
 	EC_Q, EC_W, EC_E, EC_R, EC_T, EC_Y, EC_U, EC_I, EC_O, EC_P,
 	EC_A, EC_S, EC_D, EC_F, EC_G, EC_H, EC_J, EC_K, EC_L, EC_NONE,
@@ -228,7 +247,7 @@ static uint kbToEventMap[] =
 	EC_NONE, EC_NONE, EC_NONE, EC_SPACE, EC_SPACE, EC_SPACE, EC_SPACE, EC_CTRL, EC_CTRL, EC_RETURN
 };
 
-static uint kbToEventMap2[] =
+static SysVController::KbMap kbToEventMap2
 {
 	EC_F1, EC_F1, EC_F2, EC_F2, EC_F3, EC_F3, EC_F4, EC_F4, EC_F5, EC_F5, // 0-9
 	EC_1, EC_2, EC_3, EC_4, EC_5, EC_6, EC_7, EC_8, EC_9, EC_0, // 10-19
@@ -240,10 +259,11 @@ static void setupVKeyboardMap(uint boardType)
 {
 	if(boardType == BOARD_COLECO)
 	{
+		uint playerShift = pointerInputPlayer ? 12 : 0;
 		iterateTimes(9, i) // 1 - 9
-			kbToEventMap2[10 + i] = EC_COLECO1_1 + i;
-		kbToEventMap2[19] = EC_COLECO1_0;
-		kbToEventMap2[23] = EC_COLECO1_STAR;
+			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
+		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
+		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;
 	}
 	else
 	{
@@ -251,42 +271,35 @@ static void setupVKeyboardMap(uint boardType)
 			kbToEventMap2[10 + i] = EC_1 + i;
 		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
 	}
+	vController.updateKeyboardMapping();
 }
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 {
-	if(vController.kbMode)
-	{
-		assert(input < (int)sizeofArray(kbToEventMap));
-		uint key = vController.kb.mode == 0 ? kbToEventMap[input] : kbToEventMap2[input];
-		return key;
-	}
-	else
-	{
-		switch(input)
-		{
-			bcase SysVController::F_ELEM: return EC_JOY1_BUTTON2;
-			bcase SysVController::F_ELEM+1: return EC_JOY1_BUTTON1;
-
-			bcase SysVController::C_ELEM: return activeBoardType == BOARD_COLECO ? EC_COLECO1_STAR : EC_SPACE;
-			bcase SysVController::C_ELEM+1: return EC_KEYCOUNT;
-
-			bcase SysVController::D_ELEM: return EC_JOY1_UP | (EC_JOY1_LEFT << 8);
-			bcase SysVController::D_ELEM+1: return EC_JOY1_UP;
-			bcase SysVController::D_ELEM+2: return EC_JOY1_UP | (EC_JOY1_RIGHT << 8);
-			bcase SysVController::D_ELEM+3: return EC_JOY1_LEFT;
-			bcase SysVController::D_ELEM+5: return EC_JOY1_RIGHT;
-			bcase SysVController::D_ELEM+6: return EC_JOY1_DOWN | (EC_JOY1_LEFT << 8);
-			bcase SysVController::D_ELEM+7: return EC_JOY1_DOWN;
-			bcase SysVController::D_ELEM+8: return EC_JOY1_DOWN | (EC_JOY1_RIGHT << 8);
-			bdefault: bug_branch("%d", input); return 0;
-		}
-	}
+	memcpy(map, mode ? kbToEventMap2 : kbToEventMap, sizeof(SysVController::KbMap));
 }
 
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::F_ELEM] = player ? EC_JOY2_BUTTON2 : EC_JOY1_BUTTON2;
+	map[SysVController::F_ELEM+1] = player ? EC_JOY2_BUTTON1 : EC_JOY1_BUTTON1;
+
+	map[SysVController::C_ELEM] = activeBoardType == BOARD_COLECO ? (player ? EC_COLECO2_STAR : EC_COLECO1_STAR)
+																	: EC_SPACE;
+	map[SysVController::C_ELEM+1] = EC_KEYCOUNT;
+
+	uint up = player ? EC_JOY2_UP : EC_JOY1_UP;
+	uint down = player ? EC_JOY2_DOWN : EC_JOY1_DOWN;
+	uint left = player ? EC_JOY2_LEFT : EC_JOY1_LEFT;
+	uint right = player ? EC_JOY2_RIGHT : EC_JOY1_RIGHT;
+	map[SysVController::D_ELEM] = up | (left << 8);
+	map[SysVController::D_ELEM+1] = up;
+	map[SysVController::D_ELEM+2] = up | (right << 8);
+	map[SysVController::D_ELEM+3] = left;
+	map[SysVController::D_ELEM+5] = right;
+	map[SysVController::D_ELEM+6] = down | (left << 8);
+	map[SysVController::D_ELEM+7] = down;
+	map[SysVController::D_ELEM+8] = down | (right << 8);
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -302,13 +315,30 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case msxKeyIdxRightUp: return EC_JOY1_RIGHT | (EC_JOY1_UP << 8);
 		case msxKeyIdxRightDown: return EC_JOY1_RIGHT | (EC_JOY1_DOWN << 8);
 		case msxKeyIdxLeftDown: return EC_JOY1_LEFT | (EC_JOY1_DOWN << 8);
-		case msxKeyIdxJS1Turbo: turbo = 1;
-		case msxKeyIdxJS1: return EC_JOY1_BUTTON1;
-		case msxKeyIdxJS2Turbo: turbo = 1;
-		case msxKeyIdxJS2: return EC_JOY1_BUTTON2;
+		case msxKeyIdxJS1BtnTurbo: turbo = 1;
+		case msxKeyIdxJS1Btn: return EC_JOY1_BUTTON1;
+		case msxKeyIdxJS2BtnTurbo: turbo = 1;
+		case msxKeyIdxJS2Btn: return EC_JOY1_BUTTON2;
+
+		case msxKeyIdxUp2: return EC_JOY2_UP;
+		case msxKeyIdxRight2: return EC_JOY2_RIGHT;
+		case msxKeyIdxDown2: return EC_JOY2_DOWN;
+		case msxKeyIdxLeft2: return EC_JOY2_LEFT;
+		case msxKeyIdxLeftUp2: return EC_JOY2_LEFT | (EC_JOY2_UP << 8);
+		case msxKeyIdxRightUp2: return EC_JOY2_RIGHT | (EC_JOY2_UP << 8);
+		case msxKeyIdxRightDown2: return EC_JOY2_RIGHT | (EC_JOY2_DOWN << 8);
+		case msxKeyIdxLeftDown2: return EC_JOY2_LEFT | (EC_JOY2_DOWN << 8);
+		case msxKeyIdxJS1BtnTurbo2: turbo = 1;
+		case msxKeyIdxJS1Btn2: return EC_JOY2_BUTTON1;
+		case msxKeyIdxJS2BtnTurbo2: turbo = 1;
+		case msxKeyIdxJS2Btn2: return EC_JOY2_BUTTON2;
+
+		case msxKeyIdxColeco0Num ... msxKeyIdxColecoHash :
+			return (input - msxKeyIdxColeco0Num) + EC_COLECO1_0;
+		case msxKeyIdxColeco0Num2 ... msxKeyIdxColecoHash2 :
+			return (input - msxKeyIdxColeco0Num) + EC_COLECO2_0;
+
 		case msxKeyIdxToggleKb: return EC_KEYCOUNT;
-		case msxKeyIdxColecoStart ... msxKeyIdxColecoEnd :
-			return (input - msxKeyIdxColecoStart) + EC_COLECO1_0;
 		case msxKeyIdxKbStart ... msxKeyIdxKbEnd :
 			return (input - msxKeyIdxKbStart) + 1;
 		default: bug_branch("%d", input);
@@ -316,34 +346,22 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
 	uint event1 = emuKey & 0xFF;
 	if(event1 == EC_KEYCOUNT)
 	{
-		if(state == INPUT_PUSHED)
+		if(state == Input::PUSHED)
 			vController.toggleKeyboard();
 	}
 	else
 	{
 		assert(event1 < EC_KEYCOUNT);
-		uint playerShift = 0;
-		if(player)
-		{
-			switch(emuKey)
-			{
-				bcase EC_JOY1_UP ... EC_JOY1_BUTTON6:
-				case EC_JOY1_WHEELA ... EC_JOY1_WHEELB:
-					playerShift = 10;
-				bcase EC_COLECO1_0 ... EC_COLECO1_HASH:
-					playerShift = 12;
-			}
-		}
-		eventMap[event1 + playerShift] = state == INPUT_PUSHED;
+		eventMap[event1] = state == Input::PUSHED;
 		uint event2 = emuKey >> 8;
 		if(event2) // extra event for diagonals
 		{
-			eventMap[event2 + playerShift] = state == INPUT_PUSHED;
+			eventMap[event2] = state == Input::PUSHED;
 		}
 	}
 }
@@ -1090,7 +1108,7 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -1101,7 +1119,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 

@@ -21,12 +21,11 @@
 #include <engine-globals.h>
 #include <base/android/sdk.hh>
 #include <base/Base.hh>
-#define USES_POLL_WAIT_TIMER
 #include <base/common/funcs.h>
 #include <input/android/private.hh>
 #include <android/window.h>
 #include <dlfcn.h>
-#include <util/linux/uevent.h>
+#include <sys/inotify.h>
 #include <fs/sys.hh>
 
 #include "private.hh"
@@ -241,12 +240,12 @@ static bool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy;
 JavaInstMethod<void> postUIThread;
-static PollWaitTimer timerCallback;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
 extern pid_t activityTid;
 static bool sigMatchesAPK = 1;
 static jfieldID jSurfaceIs32BitId;
+static bool resumeAppOnWindowInit = 0;
 
 // Public implementation
 
@@ -325,7 +324,7 @@ void setOSNavigationStyle(uint flags)
 	postUIThread(eEnv(), jBaseActivity, 1, flags);
 }
 
-void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
+void addPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
 	logMsg("adding fd %d to looper", fd);
 	assert(appInstance()->looper);
@@ -335,7 +334,7 @@ void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
 
 void modPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
-	addPollEvent2(fd, handler, events);
+	addPollEvent(fd, handler, events);
 }
 
 void removePollEvent(int fd)
@@ -459,12 +458,17 @@ static void appPaused()
 
 static void appResumed()
 {
-	logMsg("app resumed");
 	appState = APP_RUNNING;
-	if(engineIsInit)
+	if(eglWin.isDrawable())
 	{
+		logMsg("app resumed");
 		onResume(aHasFocus);
 		displayNeedsUpdate();
+	}
+	else
+	{
+		logMsg("app resumed without window, delaying onResume handler");
+		resumeAppOnWindowInit = 1;
 	}
 }
 
@@ -508,41 +512,17 @@ static void inputRescanCallback()
 	inputRescanCallbackRef = nullptr;
 }
 
-static int ueventFd = 0;
-static int ueventFdHandler(int events)
+static int inputDevNotifyFd = 0;
+static int inputDevNotifyFdHandler(int events)
 {
-	using namespace Base;
-	static const uint UEVENT_BUFFER_SIZE = 1024;
+	logMsg("got inotify event");
 	if(events == Base::POLLEV_IN)
 	{
-		bool inputChange = 0;
-		char buf[UEVENT_BUFFER_SIZE];
-		int size = 0;
-		while((size = recv(ueventFd, buf, sizeof(buf), 0)) > 0)
-		{
-			//logMsg("uevent: %s", buf);
-			// NOTE: could also use InputManager class on Android 4.1+
-			if(strstr(buf, "add@") || strstr(buf, "remove@"))
-			{
-				if(strstr(buf, "/event"))
-				{
-					logMsg("uevent: %s", buf);
-					inputChange = 1;
-				}
-			}
-		}
-		if(size == -1 && errno != EAGAIN)
-		{
-			logErr("uevent recv failed: %s", strerror(errno));
-			return 1;
-		}
-		if(inputChange)
-		{
-			if(inputRescanCallbackRef)
-				cancelCallback(inputRescanCallbackRef);
-			inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 100);
-		}
-		//logMsg("done reading uevents");
+		char buffer[16384];
+		auto size = read (inputDevNotifyFd, buffer, sizeof(buffer));
+		if(inputRescanCallbackRef)
+			cancelCallback(inputRescanCallbackRef);
+		inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 250);
 	}
 	return 1;
 }
@@ -562,6 +542,13 @@ static void initWindow(ANativeWindow *win)
 			eglWin.initSurface(win);
 			updateWinSize(mainWin, win);
 			resizeEvent(mainWin);
+			if(resumeAppOnWindowInit)
+			{
+				logMsg("running delayed onResume handler");
+				onResume(aHasFocus);
+				displayNeedsUpdate();
+				resumeAppOnWindowInit = 0;
+			}
 		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
@@ -701,7 +688,7 @@ void onAppCmd(struct android_app* app, uint32 cmd)
 		logMsg("app stopped");
 		bcase APP_CMD_DESTROY:
 		logMsg("app destroyed");
-		app->activity->vm->DetachCurrentThread();
+		//app->activity->vm->DetachCurrentThread();
 		::exit(0);
 		bcase APP_CMD_INPUT_CHANGED:
 		bcase APP_CMD_TEXT_ENTRY_ENDED:
@@ -819,7 +806,7 @@ static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat yd
 		sigMatchesAPK = sigHash == ANDROID_APK_SIGNATURE_HASH;
 	#endif
 
-	doOrExit(onInit());
+	doOrExit(onInit(0, nullptr));
 	if(Base::androidSDK() < 11)
 		env->SetBooleanField(thiz, jSurfaceIs32BitId, eglWin.useMaxColorBits);
 
@@ -909,8 +896,6 @@ static void dlLoadFuncs()
 
 }
 
-extern bool exhaustInputWithGetEvent;
-
 void android_main(struct android_app* state)
 {
 	using namespace Base;
@@ -930,13 +915,18 @@ void android_main(struct android_app* state)
 			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
 	}
 
-	auto ueventPoll = PollEventDelegate::create<&ueventFdHandler>();
+	auto inputDevNotifyPoll = PollEventDelegate::create<&inputDevNotifyFdHandler>();
 	if(Base::androidSDK() >= 12)
 	{
-		ueventFd = openUeventFd();
-		if(ueventFd >= 0)
+		inputDevNotifyFd = inotify_init();
+		if(inputDevNotifyFd >= 0)
 		{
-			addPollEvent2(ueventFd, ueventPoll);
+			auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
+			addPollEvent(inputDevNotifyFd, inputDevNotifyPoll);
+		}
+		else
+		{
+			logErr("couldn't create inotify instance");
 		}
 	}
 
@@ -962,8 +952,6 @@ void android_main(struct android_app* state)
 		if(ident == -4)
 			logMsg("out of looper with error");
 
-		PollWaitTimer::processCallbacks();
-
 		if(!gfxUpdate)
 			logMsg("out of event loop without gfxUpdate, returned %d", ident);
 
@@ -980,7 +968,7 @@ void android_main(struct android_app* state)
 			/*TimeSys prevTime = realTime;
 			realTime.setTimeNow();
 			logMsg("%f since last screen update", double(realTime - prevTime));*/
-			if(likely(state->inputQueue != nullptr) && (exhaustInputWithGetEvent || AInputQueue_hasEvents(state->inputQueue)))
+			if(likely(state->inputQueue != nullptr) && AInputQueue_hasEvents(state->inputQueue) == 1)
 			{
 				// some devices may delay reporting input events (stock rom on R800i for example),
 				// check for any before rendering frame to avoid extra latency

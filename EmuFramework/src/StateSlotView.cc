@@ -17,7 +17,7 @@
 
 extern ViewStack viewStack;
 
-void StateSlotView::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+void StateSlotView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 {
 	EmuSystem::saveStateSlot = i-1;
 	logMsg("set state slot %d", EmuSystem::saveStateSlot);
@@ -27,17 +27,32 @@ void StateSlotView::onSelectElement(const GuiTable1D *table, const InputEvent &e
 void StateSlotView::init(bool highlightFirst)
 {
 	uint i = 0;
-	stateSlot[0].init("Auto", EmuSystem::stateExists(-1)); item[i] = &stateSlot[i]; i++;
-	stateSlot[1].init("0", EmuSystem::stateExists(0)); item[i] = &stateSlot[i]; i++;
-	stateSlot[2].init("1", EmuSystem::stateExists(1)); item[i] = &stateSlot[i]; i++;
-	stateSlot[3].init("2", EmuSystem::stateExists(2)); item[i] = &stateSlot[i]; i++;
-	stateSlot[4].init("3", EmuSystem::stateExists(3)); item[i] = &stateSlot[i]; i++;
-	stateSlot[5].init("4", EmuSystem::stateExists(4)); item[i] = &stateSlot[i]; i++;
-	stateSlot[6].init("5", EmuSystem::stateExists(5)); item[i] = &stateSlot[i]; i++;
-	stateSlot[7].init("6", EmuSystem::stateExists(6)); item[i] = &stateSlot[i]; i++;
-	stateSlot[8].init("7", EmuSystem::stateExists(7)); item[i] = &stateSlot[i]; i++;
-	stateSlot[9].init("8", EmuSystem::stateExists(8)); item[i] = &stateSlot[i]; i++;
-	stateSlot[10].init("9", EmuSystem::stateExists(9)); item[i] = &stateSlot[i]; i++;
+
+	for(int slot = -1; slot < 10; slot++)
+	{
+		auto idx = slot+1;
+
+		if(EmuSystem::gameIsRunning())
+		{
+			FsSys::cPath saveStr;
+			EmuSystem::sprintStateFilename(saveStr, slot);
+			bool fileExists = FsSys::fileExists(saveStr);
+			if(fileExists)
+			{
+				FsSys::timeStr date = "";
+				FsSys::mTimeAsStr(saveStr, date);
+				string_printf(stateStr[idx], "%s (%s)", stateNameStr(slot), date);
+			}
+			else
+				string_printf(stateStr[idx], "%s", stateNameStr(slot));
+			stateSlot[idx].init(stateStr[idx], fileExists); item[i] = &stateSlot[idx]; i++;
+		}
+		else
+		{
+			string_printf(stateStr[idx], "%s", stateNameStr(slot));
+			stateSlot[idx].init(stateStr[idx], false); item[i] = &stateSlot[idx]; i++;
+		}
+	}
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);
 }

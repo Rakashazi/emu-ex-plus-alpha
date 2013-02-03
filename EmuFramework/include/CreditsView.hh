@@ -38,7 +38,7 @@ public:
 	Rect2<int> &viewRect() { return rect; }
 	void draw ();
 	void place ();
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 	void init ();
 	void deinit ();
 };

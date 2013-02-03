@@ -16,23 +16,10 @@
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
+#include <InputManagerView.hh>
 
 #ifdef INPUT_SUPPORTS_POINTER
 uint pointerInputPlayer = 0;
-#endif
-#ifdef INPUT_SUPPORTS_KEYBOARD
-uint keyboardInputPlayer[5] = { 0, 1, 2, 3, 4 };
-#endif
-#ifdef CONFIG_BASE_PS3
-uint gamepadInputPlayer[5] = { 0, 1, 2, 3, 4 };
-#endif
-#ifdef CONFIG_BLUETOOTH
-uint wiimoteInputPlayer[5] = { 0, 1, 2, 3, 4 };
-uint iControlPadInputPlayer[5] = { 0, 1, 2, 3, 4 };
-uint zeemoteInputPlayer[5] = { 0, 1, 2, 3, 4 };
-#endif
-#ifdef CONFIG_INPUT_ICADE
-uint iCadeInputPlayer = 0;
 #endif
 
 struct RelPtr  // for Android trackball
@@ -42,134 +29,26 @@ struct RelPtr  // for Android trackball
 };
 static RelPtr relPtr = { 0 };
 
-KeyMapping keyMapping;
-
 TurboInput turboActions;
-
-KeyConfig<EmuControls::systemTotalKeys> keyConfig;
-
-namespace EmuControls
-{
-
-static KeyProfileManager keyProfileManager[supportedInputDevs] =
-{
-	#ifdef INPUT_SUPPORTS_KEYBOARD
-	KeyProfileManager(kb),
-	#endif
-	#ifdef CONFIG_BASE_PS3
-	KeyProfileManager(ps3Pad),
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	KeyProfileManager(wii),
-	KeyProfileManager(iCP),
-	KeyProfileManager(zeemote),
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-	KeyProfileManager(iCade),
-	#endif
-};
-
-KeyProfileManager &profileManager(uint devType)
-{
-	return keyProfileManager[inputDevTypeSlot(devType)];
-}
-
-}
-
-void KeyMapping::buildAll()
-{
-	build(EmuControls::category);
-}
-
-template <size_t S>
-void KeyMapping::build(KeyCategory (&category)[S])
-{
-	using namespace EmuControls;
-	logMsg("rebuilding input maps");
-	#ifdef INPUT_SUPPORTS_KEYBOARD
-	mem_zero(keyActions);
-	#endif
-	#ifdef CONFIG_BASE_PS3
-	mem_zero(ps3Actions);
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	mem_zero(wiimoteActions);
-	mem_zero(icpActions);
-	mem_zero(zeemoteActions);
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-	mem_zero(iCadeActions);
-	#endif
-
-	{
-		forEachDInArray(supportedInputDev, dev)
-		{
-			logMsg("mapping actions to %s", InputEvent::devTypeName(dev));
-			Action (*actionMap)[maxKeyActions];
-			mapFromDevType(dev, actionMap);
-			uint *keyArr = keyConfig.key(dev);
-
-			iterateTimes(keyConfig.totalKeys, k)
-			{
-				uint key = keyArr[k];
-				//logMsg("key %u %s", key, Input::buttonName(dev, key));
-				assert(key < InputEvent::devTypeNumKeys(dev));
-				Action *slot = mem_findFirstZeroValue(actionMap[key]);
-				if(slot)
-					*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
-			}
-		}
-	}
-}
-
-void resetBaseKeyProfile(uint devType)
-{
-	using namespace EmuControls;
-
-	logMsg("setting base keys (%d total)", keyConfig.totalKeys);
-	forEachDInArray(supportedInputDev, dev)
-	{
-		// devType == InputEvent::DEV_NULL sets all device types
-		if(devType != InputEvent::DEV_NULL && devType != dev)
-			continue;
-		logMsg("setting base keys for %s, profile %d, %p", InputEvent::devTypeName(dev),
-				EmuControls::profileManager(/**cat,*/ dev).baseProfile, keyConfig.key(/**cat,*/ dev));
-		keyConfig.loadBaseProfile(/**cat,*/ dev);
-
-		/*iterateTimes(cat->keys, k)
-		{
-			uint key = keyConfig.key(cat_i, dev)[k];
-			logMsg("key %u %s", key, Input::buttonName(dev, key));
-		}*/
-		/*iterateTimes(category[0].keys, k)
-		{
-			uint key = keyConfig.key(0, InputEvent::DEV_WIIMOTE)[k];
-			logMsg("current key %u %s", key, Input::buttonName(InputEvent::DEV_WIIMOTE, key));
-		}*/
-	}
-
-	/*iterateTimes(keyConfig.totalKeys, k)
-	{
-		uint dev = InputEvent::DEV_KEYBOARD;
-		uint key = keyConfig.key(dev)[k];
-		logMsg("key %u %s", key, Input::buttonName(dev, key));
-	}*/
-}
-
-void buildKeyMapping()
-{
-	keyMapping.build(EmuControls::category);
-}
+extern ViewStack viewStack;
+extern InputManagerDeviceView imdMenu;
+extern InputManagerView imMenu;
+uint inputDevConfs = 0;
+InputDeviceConfig inputDevConf[Input::MAX_DEVS];
+StaticDLList<InputDeviceSavedConfig, MAX_SAVED_INPUT_DEVICES> savedInputDevList;
+KeyMapping keyMapping;
+StaticDLList<KeyConfig, MAX_CUSTOM_KEY_CONFIGS> customKeyConfig;
+bool physicalControlsPresent = 0;
 
 #ifdef INPUT_SUPPORTS_POINTER
-void processRelPtr(const InputEvent &e)
+void processRelPtr(const Input::Event &e)
 {
 	using namespace IG;
 	if(relPtr.x != 0 && signOf(relPtr.x) != signOf(e.x))
 	{
 		//logMsg("reversed trackball X direction");
 		relPtr.x = e.x;
-		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.xAction);
+		EmuSystem::handleInputAction(Input::RELEASED, relPtr.xAction);
 	}
 	else
 		relPtr.x += e.x;
@@ -177,14 +56,14 @@ void processRelPtr(const InputEvent &e)
 	if(e.x)
 	{
 		relPtr.xAction = EmuSystem::translateInputAction(e.x > 0 ? EmuControls::systemKeyMapStart+1 : EmuControls::systemKeyMapStart+3);
-		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_PUSHED, relPtr.xAction);
+		EmuSystem::handleInputAction(Input::PUSHED, relPtr.xAction);
 	}
 
 	if(relPtr.y != 0 && signOf(relPtr.y) != signOf(e.y))
 	{
 		//logMsg("reversed trackball Y direction");
 		relPtr.y = e.y;
-		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.yAction);
+		EmuSystem::handleInputAction(Input::RELEASED, relPtr.yAction);
 	}
 	else
 		relPtr.y += e.y;
@@ -192,40 +71,12 @@ void processRelPtr(const InputEvent &e)
 	if(e.y)
 	{
 		relPtr.yAction = EmuSystem::translateInputAction(e.y > 0 ? EmuControls::systemKeyMapStart+2 : EmuControls::systemKeyMapStart);
-		EmuSystem::handleInputAction(pointerInputPlayer, INPUT_PUSHED, relPtr.yAction);
+		EmuSystem::handleInputAction(Input::PUSHED, relPtr.yAction);
 	}
 
 	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
 }
 #endif
-
-uint mapInputToPlayer(const InputEvent &e)
-{
-	switch(e.devType)
-	{
-	#ifdef CONFIG_BLUETOOTH
-		case InputEvent::DEV_WIIMOTE:
-			return (e.devId < EmuSystem::maxPlayers) ? wiimoteInputPlayer[e.devId] : 0;
-		case InputEvent::DEV_ICONTROLPAD:
-			return (e.devId < EmuSystem::maxPlayers) ? iControlPadInputPlayer[e.devId] : 0;
-		case InputEvent::DEV_ZEEMOTE:
-			return (e.devId < EmuSystem::maxPlayers) ? zeemoteInputPlayer[e.devId] : 0;
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-		case InputEvent::DEV_ICADE:
-			return iCadeInputPlayer;
-	#endif
-	#ifdef CONFIG_BASE_PS3
-		case InputEvent::DEV_PS3PAD:
-			return (e.devId < EmuSystem::maxPlayers) ? gamepadInputPlayer[e.devId] : 0;
-	#endif
-		default: // all other keys from devices map to keyboard/OS input
-		#ifdef INPUT_SUPPORTS_KEYBOARD
-			return (e.devId < EmuSystem::maxPlayers) ? keyboardInputPlayer[e.devId] : 0;
-		#endif
-			bug_branch("%d", e.devType); return 0;
-	}
-}
 
 void commonInitInput()
 {
@@ -246,12 +97,12 @@ void commonUpdateInput()
 			if(turboClock == 0)
 			{
 				//logMsg("turbo push for player %d, action %d", e->player, e->action);
-				EmuSystem::handleInputAction(e->player, INPUT_PUSHED, e->action);
+				EmuSystem::handleInputAction(Input::PUSHED, e->action);
 			}
 			else if(turboClock == turboFrames/2)
 			{
 				//logMsg("turbo release for player %d, action %d", e->player, e->action);
-				EmuSystem::handleInputAction(e->player, INPUT_RELEASED, e->action);
+				EmuSystem::handleInputAction(Input::RELEASED, e->action);
 			}
 		}
 	}
@@ -263,41 +114,418 @@ void commonUpdateInput()
 	{
 		relPtr.x = clipToZeroSigned(relPtr.x, (int)optionRelPointerDecel * -signOf(relPtr.x));
 		if(!relPtr.x)
-			EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.xAction);
+			EmuSystem::handleInputAction(Input::RELEASED, relPtr.xAction);
 	}
 	if(relPtr.y)
 	{
 		relPtr.y = clipToZeroSigned(relPtr.y, (int)optionRelPointerDecel * -signOf(relPtr.y));
 		if(!relPtr.y)
-			EmuSystem::handleInputAction(pointerInputPlayer, INPUT_RELEASED, relPtr.yAction);
+			EmuSystem::handleInputAction(Input::RELEASED, relPtr.yAction);
 	}
 #endif
 }
 
-bool isMenuDismissKey(const InputEvent &e)
+bool isMenuDismissKey(const Input::Event &e)
 {
-	switch(e.devType)
+	using namespace Input;
+	switch(e.map)
 	{
 		#ifdef CONFIG_BLUETOOTH
-		case InputEvent::DEV_WIIMOTE: return e.button == Input::Wiimote::HOME;
-		case InputEvent::DEV_ICONTROLPAD: return e.button == Input::iControlPad::Y;
-		case InputEvent::DEV_ZEEMOTE: return e.button == Input::Zeemote::POWER;
+		case Event::MAP_WIIMOTE: return e.button == Wiimote::HOME;
+		case Event::MAP_ICONTROLPAD: return e.button == iControlPad::Y;
+		case Event::MAP_ZEEMOTE: return e.button == Zeemote::POWER;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case InputEvent::DEV_ICADE: return e.button == Input::ICade::E;
+		case Event::MAP_ICADE: return e.button == ICade::G;
 		#endif
 		#if defined(CONFIG_BASE_PS3)
-		case InputEvent::DEV_PS3PAD:
-			return e.button == Input::Ps3::TRIANGLE || e.button == Input::Ps3::L2;
+		case Event::MAP_PS3PAD:
+			return e.button == Ps3::TRIANGLE || e.button == Ps3::L2;
 		#endif
-		default:
+		case Event::MAP_KEYBOARD:
+			#ifdef CONFIG_BASE_ANDROID
+			switch(e.device->subtype)
+			{
+				case Device::SUBTYPE_PS3_CONTROLLER:
+					return e.button == Keycode::GAME_1 || e.button == Keycode::MENU;
+			}
+			#endif
 			return 0
 			#if defined(CONFIG_ENV_WEBOS) && CONFIG_ENV_WEBOS_OS <= 2
-				|| e.button == Input::Key::RCTRL
+				|| e.button == Keycode::RCTRL
 			#endif
 			#ifdef INPUT_SUPPORTS_KEYBOARD
-				|| e.button == Input::Key::MENU
+				|| e.button == Keycode::MENU
 			#endif
 			;
 	}
+	return 0;
+}
+
+void updateInputDevices()
+{
+	using namespace Input;
+	assert(devList.size);
+	int i = 0;
+	forEachInDLList(&devList, e)
+	{
+		logMsg("input device %d: name: %s, id: %d, map: %d", i, e.name(), e.devId, e.map());
+		inputDevConf[i].dev = &e;
+		inputDevConf[i].reset();
+		forEachInDLList(&savedInputDevList, saved)
+		{
+			if(saved.matchesDevice(e))
+			{
+				logMsg("has saved config");
+				inputDevConf[i].setSavedConf(&saved);
+			}
+		}
+		i++;
+	}
+	inputDevConfs = i;
+
+	physicalControlsPresent = keyInputIsPresent();
+	if(physicalControlsPresent)
+	{
+		logMsg("Physical controls are present");
+	}
+
+	if(viewStack.contains(&imMenu))
+	{
+		if(View::modalView)
+			View::removeModalView();
+		viewStack.popToRoot();
+		imMenu.init(0);
+		viewStack.pushAndShow(&imMenu);
+	}
+
+	keyMapping.buildAll();
+}
+
+// KeyConfig
+
+const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
+{
+	switch(dev.map())
+	{
+		case Input::Event::MAP_KEYBOARD:
+		{
+			#ifdef CONFIG_BASE_ANDROID
+			switch(dev.subtype)
+			{
+				case Input::Device::SUBTYPE_XPERIA_PLAY:
+					return defaultConfigsForDevice(dev)[1]; // Xperia Play mapping must always be 2nd config
+				case Input::Device::SUBTYPE_PS3_CONTROLLER:
+					return defaultConfigsForDevice(dev)[2]; // PS3 mapping must always be 3rd config
+			}
+			#endif
+			return defaultConfigsForDevice(dev)[0];
+		}
+	}
+	return defaultConfigsForDevice(dev)[0];
+}
+
+const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
+{
+	switch(map)
+	{
+		#ifdef INPUT_SUPPORTS_KEYBOARD
+		case Input::Event::MAP_KEYBOARD:
+			size = EmuControls::defaultKeyProfiles;
+			return EmuControls::defaultKeyProfile;
+		#endif
+		#ifdef CONFIG_BLUETOOTH
+		case Input::Event::MAP_WIIMOTE:
+			size = EmuControls::defaultWiimoteProfiles;
+			return EmuControls::defaultWiimoteProfile;
+		case Input::Event::MAP_ICONTROLPAD:
+			size = EmuControls::defaultIControlPadProfiles;
+			return EmuControls::defaultIControlPadProfile;
+		case Input::Event::MAP_ZEEMOTE:
+			size = EmuControls::defaultZeemoteProfiles;
+			return EmuControls::defaultZeemoteProfile;
+		#endif
+//		#ifdef CONFIG_BASE_PS3
+//		case MAP_PS3PAD: bug_exit("TODO");
+//		#endif
+		#ifdef CONFIG_INPUT_ICADE
+		case Input::Event::MAP_ICADE:
+			size = EmuControls::defaultICadeProfiles;
+			return EmuControls::defaultICadeProfile;
+		#endif
+	}
+	return nullptr;
+}
+
+const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev, uint &size)
+{
+	auto conf = defaultConfigsForInputMap(dev.map(), size);
+	if(!conf)
+	{
+		bug_exit("device type %d missing default configs", dev.map());
+		return nullptr;
+	}
+	return conf;
+}
+
+const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
+{
+	uint size;
+	return defaultConfigsForDevice(dev, size);
+}
+
+// InputDeviceConfig
+
+void InputDeviceConfig::reset()
+{
+	assert(dev);
+	savedConf = nullptr;
+	player = dev->devId < EmuSystem::maxPlayers ? dev->devId : 0;
+	enabled = 1;
+}
+
+void InputDeviceConfig::deleteConf()
+{
+	if(savedConf)
+	{
+		logMsg("removing device config for %s", savedConf->name);
+		auto removed = savedInputDevList.remove(*savedConf);
+		assert(removed);
+		savedConf = nullptr;
+	}
+}
+
+#ifdef CONFIG_INPUT_ICADE
+bool InputDeviceConfig::setICadeMode(bool on)
+{
+	// delete device's config since its properties will change with iCade mode switch
+	deleteConf();
+	dev->setICadeMode(on);
+	save();
+	if(!savedConf)
+	{
+		logErr("can't save iCade mode");
+		return 0;
+	}
+	savedConf->iCadeMode = on;
+	return 1;
+}
+
+bool InputDeviceConfig::iCadeMode()
+{
+	return dev->iCadeMode();
+}
+#endif
+
+bool InputDeviceConfig::mapJoystickAxis1ToDpad()
+{
+	return dev->mapJoystickAxis1ToDpad;
+}
+
+void InputDeviceConfig::setMapJoystickAxis1ToDpad(bool on)
+{
+	dev->mapJoystickAxis1ToDpad = on;
+}
+
+const KeyConfig &InputDeviceConfig::keyConf()
+{
+	if(savedConf && savedConf->keyConf)
+	{
+		//logMsg("has saved config %p", savedConf->keyConf_);
+		return *savedConf->keyConf;
+	}
+	return KeyConfig::defaultConfigForDevice(*dev);
+}
+
+bool InputDeviceConfig::setKeyConf(const KeyConfig &kConf)
+{
+	save();
+	if(!savedConf)
+	{
+		logErr("can't set key config");
+		return 0;
+	}
+	savedConf->keyConf = &kConf;
+	return 1;
+}
+
+void InputDeviceConfig::setDefaultKeyConf()
+{
+	if(savedConf)
+	{
+		savedConf->keyConf = nullptr;
+	}
+}
+
+KeyConfig *InputDeviceConfig::mutableKeyConf()
+{
+	auto currConf = &keyConf();
+	//logMsg("curr key config %p", currConf);
+	forEachInDLList(&customKeyConfig, e)
+	{
+		//logMsg("checking key config %p", &e);
+		if(&e == currConf)
+		{
+			return &e;
+		}
+	}
+	return nullptr;
+}
+
+KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(const char *name)
+{
+	if(!customKeyConfig.addToEnd())
+	{
+		bug_exit("should no be called with full key config list");
+		return nullptr;
+	}
+	auto newConf = customKeyConfig.last();
+	*newConf = keyConf();
+	string_copy(newConf->name, name);
+	if(!setKeyConf(*newConf))
+	{
+		// No space left for new device settings
+		customKeyConfig.removeLast();
+		return nullptr;
+	}
+	return newConf;
+}
+
+void InputDeviceConfig::save()
+{
+	if(!savedConf)
+	{
+		if(!savedInputDevList.addToEnd())
+		{
+			logWarn("no more space for device configs");
+			return;
+		}
+		logMsg("allocated new device config, %d total", savedInputDevList.size);
+		savedConf = savedInputDevList.last();
+		*savedConf = InputDeviceSavedConfig();
+	}
+	savedConf->player = player;
+	savedConf->enabled = enabled;
+	savedConf->devId = dev->devId;
+	savedConf->mapJoystickAxis1ToDpad = dev->mapJoystickAxis1ToDpad;
+	#ifdef CONFIG_INPUT_ICADE
+	savedConf->iCadeMode = dev->iCadeMode();
+	#endif
+	string_copy(savedConf->name, dev->name());
+}
+
+void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
+{
+	var_selfs(savedConf);
+	if(savedConf)
+	{
+		player = savedConf->player;
+		enabled = savedConf->enabled;
+		dev->mapJoystickAxis1ToDpad = savedConf->mapJoystickAxis1ToDpad;
+		#ifdef CONFIG_INPUT_ICADE
+		dev->setICadeMode(savedConf->iCadeMode);
+		#endif
+	}
+}
+
+// KeyMapping
+
+void KeyMapping::buildAll()
+{
+	assert((int)inputDevConfs == Input::devList.size);
+	// calculate & allocate complete map including all devices
+	{
+		uint totalKeys = 0;
+		forEachInDLList(&Input::devList, e)
+		{
+			totalKeys += Input::Event::mapNumKeys(e.map());
+		}
+		if(unlikely(!totalKeys))
+		{
+			logMsg("no keys in mapping");
+			if(inputDevActionTablePtr[0])
+			{
+				mem_free(inputDevActionTablePtr[0]);
+				inputDevActionTablePtr[0] = nullptr;
+			}
+			return;
+		}
+		logMsg("allocating key mapping with %d keys", totalKeys);
+		inputDevActionTablePtr[0] = (ActionGroup*)mem_realloc(inputDevActionTablePtr[0], totalKeys * sizeof(ActionGroup));
+		mem_zero(inputDevActionTablePtr[0], totalKeys * sizeof(ActionGroup));
+	}
+	uint totalKeys = 0;
+	int i = 0;
+	forEachInDLList(&Input::devList, e)
+	{
+		if(i)
+		{
+			// [0] is the base pointer to the allocated map, subsequent elements
+			// point to an offset within it
+			inputDevActionTablePtr[i] = &inputDevActionTablePtr[0][totalKeys];
+		}
+		auto mapKeys = Input::Event::mapNumKeys(e.map());
+		totalKeys += mapKeys;
+		auto actionGroup = inputDevActionTablePtr[i];
+		if(!inputDevConf[i].enabled)
+		{
+			i++;
+			continue;
+		}
+		KeyConfig::KeyArray key;
+		memcpy(key, inputDevConf[i].keyConf().key(), sizeof(key));
+		if(inputDevConf[i].player != InputDeviceConfig::PLAYER_MULTI)
+		{
+			logMsg("transposing keys for player %d", inputDevConf[i].player+1);
+			EmuControls::transposeKeysForPlayer(key, inputDevConf[i].player);
+		}
+		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
+		{
+			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
+			assert(key[k] < Input::Event::mapNumKeys(e.map()));
+			auto slot = mem_findFirstZeroValue(actionGroup[key[k]]);
+			if(slot)
+				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
+		}
+
+		i++;
+	}
+}
+
+namespace EmuControls
+{
+
+void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory)
+{
+	if(player == 0)
+	{
+		// clear P2 joystick keys
+		mem_zero(&key[category[startCategory+1].configOffset], category[startCategory+1].keys * sizeof(KeyConfig::Key));
+	}
+	else
+	{
+		// transpose joystick keys
+		memcpy(&key[category[startCategory+1].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+		mem_zero(&key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+	}
+}
+
+void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory)
+{
+	iterateTimes(EmuSystem::maxPlayers, i)
+	{
+		if(player && i == player)
+		{
+			//logMsg("moving to player %d map", i);
+			memcpy(&key[category[i+startCategory].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+			mem_zero(&key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+		}
+		else if(i)
+		{
+			//logMsg("clearing player %d map", i);
+			mem_zero(&key[category[i+startCategory].configOffset], category[i+startCategory].keys * sizeof(KeyConfig::Key));
+		}
+	}
+}
+
 }

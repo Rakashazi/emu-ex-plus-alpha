@@ -5,9 +5,7 @@
 #define GC X11GC_
 #define Window X11Window
 #define BOOL X11BOOL
-#define GLX_GLXEXT_PROTOTYPES
 #include <GL/glx.h>
-#include <GL/glxext.h>
 #undef Time
 #undef Pixmap
 #undef GC
@@ -48,7 +46,9 @@ class GlxContext
 	GLXContext ctx = nullptr;
 	Display *dpy = nullptr;
 	X11Window win {0};
-	bool doubleBuffered = 0, supportsSwapInterval = 0;
+	bool doubleBuffered = 0;
+	int (*glXSwapIntervalSGI)(int interval) = nullptr;
+	int (*glXSwapIntervalMESA)(unsigned int interval) = nullptr;
 
 	bool createContext(XVisualInfo *vi)
 	{
@@ -87,9 +87,6 @@ public:
 
 	X11Window init(Display *dpy, int screen, uint xres, uint yres, bool multisample, long event_mask)
 	{
-		int glxMajorVersion, glxMinorVersion;
-		glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
-		logMsg("GLX version %d.%d", glxMajorVersion, glxMinorVersion);
 		if(!useMaxColorBits)
 		{
 			logMsg("requesting lowest color config");
@@ -193,22 +190,41 @@ public:
 		auto extensions = glXQueryExtensionsString(dpy, screen);
 		if(strstr(extensions, "GLX_SGI_swap_control"))
 		{
-			supportsSwapInterval = 1;
+			glXSwapIntervalSGI = (int (*)(int))glXGetProcAddress((const GLubyte*) "glXSwapIntervalSGI");
+			if(glXSwapIntervalSGI)
+			{
+				logMsg("has glXSwapIntervalSGI");
+			}
+		}
+		else if(strstr(extensions, "GLX_MESA_swap_control"))
+		{
+			glXSwapIntervalMESA = (int (*)(unsigned int))glXGetProcAddress((const GLubyte*) "glXSwapIntervalMESA");
+			if(glXSwapIntervalMESA)
+			{
+				logMsg("has glXSwapIntervalMESA");
+			}
 		}
 		else
 		{
-			logWarn("no glXSwapIntervalSGI support");
+			logWarn("no glXSwapInterval support");
 		}
 		return win;
 	}
 
 	void setSwapInterval(uint interval)
 	{
-		if(supportsSwapInterval)
-		{
-			assert(interval > 0);
+		assert(interval > 0);
+
+		if(glXSwapIntervalSGI || glXSwapIntervalMESA)
 			logMsg("set swap interval %d", interval);
+
+		if(glXSwapIntervalSGI)
+		{
 			glXSwapIntervalSGI(interval);
+		}
+		else if(glXSwapIntervalMESA)
+		{
+			glXSwapIntervalMESA(interval);
 		}
 	}
 

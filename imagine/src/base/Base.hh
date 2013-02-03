@@ -61,41 +61,11 @@ void exitVal(int returnVal) ATTRS(noreturn);
 static void exit() { exitVal(0); }
 void abort() ATTRS(noreturn);
 
-// Console args
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32) \
-	|| defined (CONFIG_BASE_SDL) || defined(CONFIG_BASE_GENERIC)
-	uint numArgs();
-	char * getArg(uint arg);
-#else
-	static uint numArgs() { return 0; }
-	static char * getArg(uint arg) { return 0; }
-#endif
-
 // drag & drop
 #if defined (CONFIG_BASE_X11)
 	void setAcceptDnd(bool on);
 #else
 	static void setAcceptDnd(bool on) { }
-#endif
-
-// Input device status
-
-struct InputDevChange
-{
-	uint devId, devType;
-	uint state;
-	enum { ADDED, REMOVED, SHOWN, HIDDEN };
-
-	bool added() const { return state == ADDED; }
-	bool removed() const { return state == REMOVED; }
-	bool shown() const { return state == SHOWN; }
-	bool hidden() const { return state == HIDDEN; }
-};
-
-#if defined(CONFIG_ENV_WEBOS)
-	static bool isInputDevPresent(uint type) { return 0; }
-#else
-	bool isInputDevPresent(uint type);
 #endif
 
 // Worker thread -> Main thread messages
@@ -157,7 +127,7 @@ uint refreshRate();
 	static void openURL(const char *url) { }
 #endif
 
-// poll()-like event system support (WIP API)
+// poll()-like event system support
 
 typedef Delegate<int (int event)> PollEventDelegate;
 
@@ -171,7 +141,7 @@ typedef Delegate<int (int event)> PollEventDelegate;
 #if defined (CONFIG_BASE_X11) || defined(CONFIG_BASE_ANDROID)
 	#define CONFIG_BASE_HAS_FD_EVENTS
 	static const bool hasFDEvents = 1;
-	void addPollEvent2(int fd, PollEventDelegate &handler, uint events = POLLEV_IN); // caller is in charge of handler's memory
+	void addPollEvent(int fd, PollEventDelegate &handler, uint events = POLLEV_IN); // caller is in charge of handler's memory
 	void modPollEvent(int fd, PollEventDelegate &handler, uint events);
 	void removePollEvent(int fd); // unregister the fd (must still be open)
 #else
@@ -291,9 +261,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2);
 // Called when app window enters/exits focus
 void onFocusChange(uint in);
 
-// Called when a known input device addition/removal/change occurs
-void onInputDevChange(const InputDevChange &change);
-
 // Called when a file is dropped into into the app's window
 // if app enables setAcceptDnd()
 void onDragDrop(const char *filename);
@@ -309,7 +276,7 @@ void onResume(bool focused);
 void onExit(bool backgrounded);
 
 // Called on app startup, before the graphics context is initialized
-CallResult onInit() ATTRS(cold);
+CallResult onInit(int argc, char** argv) ATTRS(cold);
 
 // Called on app window creation, after the graphics context is initialized
 CallResult onWindowInit() ATTRS(cold);

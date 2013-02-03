@@ -285,6 +285,15 @@ CallResult ResourceFace::writeCurrentChar(Pixmap *out)
 	font->charBitmap(bitmap, bX, bY, bPitch);
 	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", bX, bY, bPitch, out->x, out->y, out->pitch);
 	assert(bX != 0 && bY != 0 && bitmap != nullptr);
+	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	if(!bPitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
+	{
+		logWarn("invalid pitch returned for char bitmap");
+		bX = out->x;
+		bY = out->y;
+		bPitch = out->pitch;
+	}
+	#endif
 	Pixmap src(PixelFormatI8);
 	src.init((uchar*)bitmap, bX, bY, bPitch - bX);
 	src.copy(0, 0, 0, 0, out, 0, 0);

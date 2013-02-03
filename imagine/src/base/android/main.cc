@@ -295,7 +295,7 @@ static void setupEpoll()
 	}
 }
 
-void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
+void addPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
 	setupEpoll();
 	logMsg("adding fd %d to epoll", fd);

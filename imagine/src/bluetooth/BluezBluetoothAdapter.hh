@@ -35,5 +35,5 @@ public:
 	int readPendingData(int events);
 private:
 	Base::PollEventDelegate pollEvDel {Base::PollEventDelegate::create<BluezBluetoothSocket, &BluezBluetoothSocket::readPendingData>(this)};
-	int fd = 0;
+	int fd = -1;
 };

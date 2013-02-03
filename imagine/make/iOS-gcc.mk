@@ -30,7 +30,7 @@ endif
 
  # base engine code needs at least iOS 3.1
 minIOSVer := 3.1
-IOS_SDK ?= 6.0
+IOS_SDK ?= 6.1
 ifeq ($(ARCH),x86)
  IOS_SYSROOT ?= $(shell xcode-select --print-path)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer) -fobjc-abi-version=2 -fobjc-legacy-dispatch
@@ -41,8 +41,10 @@ endif
 CPPFLAGS += $(IOS_FLAGS)
 LDFLAGS += $(IOS_FLAGS)
 
-ifndef ios_noDeadStrip
- LDFLAGS += -dead_strip
+ifneq ($(SUBARCH),armv6)
+ ifndef ios_noDeadStrip
+  LDFLAGS += -dead_strip
+ endif
 endif
 ifdef RELEASE
  LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs

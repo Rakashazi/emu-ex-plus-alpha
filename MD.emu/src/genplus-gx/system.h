@@ -95,5 +95,10 @@ extern void system_reset(void);
 extern void system_shutdown(void);
 extern void (*system_frame)(int do_skip, uint renderGfx);
 
+static bool emuSystemIs16Bit()
+{
+	return system_hw != SYSTEM_PBC;
+}
+
 #endif /* _SYSTEM_H_ */
 

@@ -235,7 +235,7 @@ typedef Option<OptionMethodVar<uint32>, uint8> Byte4s1Option;
 
 using Option2DOrigin = Option<OptionMethodVar<_2DOrigin >, uint8>;
 using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
-using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, input_swappedGamepadConfirm>, uint8>;
+using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, Input::swappedGamepadConfirm>, uint8>;
 
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers >, uint8>;
@@ -276,11 +276,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_SURFACE_TEXTURE = 55, CFGKEY_PROCESS_PRIORITY = 56,
 	CFGKEY_SAVE_PATH = 57, CFGKEY_BEST_COLOR_MODE_HINT = 58,
 	CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES = 59,
-
-	CFGKEY_KEY_LOAD_GAME = 100, CFGKEY_KEY_OPEN_MENU = 101,
-	CFGKEY_KEY_SAVE_STATE = 102, CFGKEY_KEY_LOAD_STATE = 103,
-	CFGKEY_KEY_FAST_FORWARD = 104, CFGKEY_KEY_SCREENSHOT = 105,
-	CFGKEY_KEY_EXIT = 106,
+	CFGKEY_INPUT_KEY_CONFIGS = 60, CFGKEY_INPUT_DEVICE_CONFIGS = 61,
+	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63
 
 	// 256+ is reserved
 };

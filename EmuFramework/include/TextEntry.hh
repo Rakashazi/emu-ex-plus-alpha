@@ -16,7 +16,7 @@ public:
 	CallResult init(const char *initText, ResourceFace *face);
 	void deinit();
 	void setAcceptingInput(bool on);
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 	void draw();
 	void place();
 	void place(Rect2<int> rect);
@@ -28,7 +28,9 @@ public:
 	constexpr CollectTextInputView(): View("Text Entry") { }
 
 	Rect2<int> cancelBtn;
+	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	Gfx::Sprite cancelSpr;
+	#endif
 	Gfx::Text message;
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	TextEntry textEntry;
@@ -45,7 +47,7 @@ public:
 	void init(const char *msgText, const char *initialContent = "");
 	void deinit();
 	void place();
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 	void draw();
 
 	#ifdef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT

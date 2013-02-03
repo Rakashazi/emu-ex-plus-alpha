@@ -43,6 +43,10 @@ extern Byte1Option optionIdleDisplayPowerSave;
 extern Byte1Option optionShowMenuIcon;
 extern Byte1Option optionHideStatusBar;
 extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
+extern Byte1Option optionConfirmOverwriteState;
+#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+extern Byte1Option optionNotifyInputDeviceChange;
+#endif
 
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;
@@ -108,10 +112,6 @@ extern Byte4s2Option optionTouchCtrlImgRes;
 		extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 	#endif
 	extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
-#endif
-
-#ifdef CONFIG_INPUT_ICADE
-	extern Option<OptionMethodFunc<bool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade;
 #endif
 
 extern Byte1Option optionDitherImage;

@@ -25,7 +25,7 @@ private:
 		biosPath.compile();
 	}
 
-	void biosPathHandler(TextMenuItem &, const InputEvent &e)
+	void biosPathHandler(TextMenuItem &, const Input::Event &e)
 	{
 		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.placeRect(Gfx::viewportRect());

@@ -102,11 +102,6 @@ void exitVal(int returnVal)
 }
 void abort() { ::abort(); }
 
-static int globalArgc;
-static char** globalArgv;
-uint numArgs() { return(globalArgc); }
-char * getArg(uint arg) { return(globalArgv[arg]); }
-
 void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
 
 #ifdef CONFIG_ENV_WEBOS
@@ -456,8 +451,6 @@ int main(int argc, char** argv)
 		mainWin.w = mainWin.rect.x2 = 320;
 		mainWin.h = mainWin.rect.y2 = 480;
 	#endif
-	globalArgc = argc;
-	globalArgv = argv;
 
 	logger_init();
 
@@ -469,7 +462,7 @@ int main(int argc, char** argv)
 		appPath = getcwd(0, 0);
 	#endif
 
-	doOrExit(onInit());
+	doOrExit(onInit(argc, argv));
 	engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_BASE_SDL_PDL

@@ -21,6 +21,26 @@ void S9xMessage(int, int, const char *msg)
 		logMsg("%s", msg);
 }
 
+void S9xPrintf(const char* msg, ...)
+{
+#ifdef USE_LOGGER
+	va_list args;
+	va_start(args, msg);
+	logger_vprintf(LOG_M, msg, args);
+	va_end(args);
+#endif
+}
+
+void S9xPrintfError(const char* msg, ...)
+{
+#ifdef USE_LOGGER
+	va_list args;
+	va_start(args, msg);
+	logger_vprintf(LOG_E, msg, args);
+	va_end(args);
+#endif
+}
+
 /*void S9xSetPalette (void)
 {
 	return;

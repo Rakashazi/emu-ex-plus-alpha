@@ -11,7 +11,7 @@ public:
 
 	void pointerEvent(uint button, uint state, int x, int y)
 	{
-		if(state == INPUT_PUSHED)
+		if(state == Input::PUSHED)
 		{
 			pushX = x;
 			pushY = y;
@@ -19,7 +19,7 @@ public:
 			pushed = 1;
 			//logMsg("pushX %d pushY %d", pushX, pushY);
 		}
-		else if(state == INPUT_RELEASED)
+		else if(state == Input::RELEASED)
 		{
 			pushed = 0;
 		}

@@ -435,6 +435,9 @@ void mapper_8k_w(int offset, unsigned int data)
       break;
     }
   }
+
+  /* update ROM patches when banking has changed */
+  ROMCheatUpdate();
 }
     
 void mapper_16k_w(int offset, unsigned int data)
@@ -574,6 +577,9 @@ void mapper_16k_w(int offset, unsigned int data)
       break;
     }
   }
+
+  /* update ROM patches when banking has changed */
+  ROMCheatUpdate();
 }
 
 static void write_mapper_none(unsigned int address, unsigned char data)

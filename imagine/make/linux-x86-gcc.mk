@@ -6,6 +6,6 @@ COMPILE_FLAGS += -m32
 LDFLAGS += -m32
 ASMFLAGS += -m32
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/linux-x86/usr
+system_externalSysroot := $(IMAGINE_PATH)/bundle/linux-x86
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib

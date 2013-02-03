@@ -225,6 +225,8 @@ class TIA : public Device
     bool isPAL()
       { return float(myPALFrameCounter) / myFrameCounter >= (25.0/60.0); }
 
+    uInt32 frameCounter() { return myFrameCounter; }
+
     /**
       Answers the current color clock we've gotten to on this scanline.
 

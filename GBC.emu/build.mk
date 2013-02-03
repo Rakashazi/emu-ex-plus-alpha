@@ -19,7 +19,7 @@ src/mem/memptrs.cpp src/interruptrequester.cpp src/file/file_zip.cpp \
 src/mem/pakinfo.cpp src/loadres.cpp
 
 libgambattePath := libgambatte
-SRC += main/Main.cc $(addprefix $(libgambattePath)/,$(libgambatteSrc))
+SRC += main/Main.cc main/EmuControls.cc $(addprefix $(libgambattePath)/,$(libgambatteSrc))
 
 gambatteCommonSrc := resample/src/resamplerinfo.cpp resample/src/makesinckernel.cpp \
 resample/src/chainresampler.cpp resample/src/u48div.cpp resample/src/i0.cpp \

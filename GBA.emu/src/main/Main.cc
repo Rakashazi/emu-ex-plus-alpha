@@ -45,17 +45,6 @@ uint EmuSystem::aspectRatioX = 3, EmuSystem::aspectRatioY = 2;
 
 // controls
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 enum
 {
 	gbaKeyIdxUp = EmuControls::systemKeyMapStart,
@@ -111,9 +100,25 @@ static uint ptrInputToSysButton(int input)
 	}
 }
 
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	using namespace GbaKeyStatus;
+	map[SysVController::F_ELEM] = A;
+	map[SysVController::F_ELEM+1] = B;
+	map[SysVController::F_ELEM+2] = L;
+	map[SysVController::F_ELEM+3] = R;
+
+	map[SysVController::C_ELEM] = SELECT;
+	map[SysVController::C_ELEM+1] = START;
+
+	map[SysVController::D_ELEM] = UP | LEFT;
+	map[SysVController::D_ELEM+1] = UP;
+	map[SysVController::D_ELEM+2] = UP | RIGHT;
+	map[SysVController::D_ELEM+3] = LEFT;
+	map[SysVController::D_ELEM+5] = RIGHT;
+	map[SysVController::D_ELEM+6] = DOWN | LEFT;
+	map[SysVController::D_ELEM+7] = DOWN;
+	map[SysVController::D_ELEM+8] = DOWN | RIGHT;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -145,9 +150,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	if(state == INPUT_PUSHED)
+	if(state == Input::PUSHED)
 		unsetBits(P1, emuKey);
 	else
 		setBits(P1, emuKey);
@@ -155,15 +160,7 @@ void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
 
 enum
 {
-	CFGKEY_GBAKEY_UP = 256, CFGKEY_GBAKEY_RIGHT = 257,
-	CFGKEY_GBAKEY_DOWN = 258, CFGKEY_GBAKEY_LEFT = 259,
-	CFGKEY_GBAKEY_LEFT_UP = 260, CFGKEY_GBAKEY_RIGHT_UP = 261,
-	CFGKEY_GBAKEY_RIGHT_DOWN = 262, CFGKEY_GBAKEY_LEFT_DOWN = 263,
-	CFGKEY_GBAKEY_SELECT = 264, CFGKEY_GBAKEY_START = 265,
-	CFGKEY_GBAKEY_A = 266, CFGKEY_GBAKEY_B = 267,
-	CFGKEY_GBAKEY_A_TURBO = 268, CFGKEY_GBAKEY_B_TURBO = 269,
-	CFGKEY_GBAKEY_L = 270, CFGKEY_GBAKEY_R = 271,
-	CFGKEY_GBAKEY_AB = 272, CFGKEY_GBAKEY_RB = 273,
+	//	CFGKEY_* = 256 // no config keys defined yet
 };
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -171,48 +168,13 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_GBAKEY_UP: readKeyConfig2(io, gbaKeyIdxUp, readSize);
-		bcase CFGKEY_GBAKEY_RIGHT: readKeyConfig2(io, gbaKeyIdxRight, readSize);
-		bcase CFGKEY_GBAKEY_DOWN: readKeyConfig2(io, gbaKeyIdxDown, readSize);
-		bcase CFGKEY_GBAKEY_LEFT: readKeyConfig2(io, gbaKeyIdxLeft, readSize);
-		bcase CFGKEY_GBAKEY_LEFT_UP: readKeyConfig2(io, gbaKeyIdxLeftUp, readSize);
-		bcase CFGKEY_GBAKEY_RIGHT_UP: readKeyConfig2(io, gbaKeyIdxRightUp, readSize);
-		bcase CFGKEY_GBAKEY_RIGHT_DOWN: readKeyConfig2(io, gbaKeyIdxRightDown, readSize);
-		bcase CFGKEY_GBAKEY_LEFT_DOWN: readKeyConfig2(io, gbaKeyIdxLeftDown, readSize);
-		bcase CFGKEY_GBAKEY_SELECT: readKeyConfig2(io, gbaKeyIdxSelect, readSize);
-		bcase CFGKEY_GBAKEY_START: readKeyConfig2(io, gbaKeyIdxStart, readSize);
-		bcase CFGKEY_GBAKEY_A: readKeyConfig2(io, gbaKeyIdxA, readSize);
-		bcase CFGKEY_GBAKEY_B: readKeyConfig2(io, gbaKeyIdxB, readSize);
-		bcase CFGKEY_GBAKEY_A_TURBO: readKeyConfig2(io, gbaKeyIdxATurbo, readSize);
-		bcase CFGKEY_GBAKEY_B_TURBO: readKeyConfig2(io, gbaKeyIdxBTurbo, readSize);
-		bcase CFGKEY_GBAKEY_L: readKeyConfig2(io, gbaKeyIdxL, readSize);
-		bcase CFGKEY_GBAKEY_R: readKeyConfig2(io, gbaKeyIdxR, readSize);
-		bcase CFGKEY_GBAKEY_AB: readKeyConfig2(io, gbaKeyIdxAB, readSize);
-		bcase CFGKEY_GBAKEY_RB: readKeyConfig2(io, gbaKeyIdxRB, readSize);
 	}
 	return 1;
 }
 
 void EmuSystem::writeConfig(Io *io)
 {
-	writeKeyConfig2(io, gbaKeyIdxUp, CFGKEY_GBAKEY_UP);
-	writeKeyConfig2(io, gbaKeyIdxRight, CFGKEY_GBAKEY_RIGHT);
-	writeKeyConfig2(io, gbaKeyIdxDown, CFGKEY_GBAKEY_DOWN);
-	writeKeyConfig2(io, gbaKeyIdxLeft, CFGKEY_GBAKEY_LEFT);
-	writeKeyConfig2(io, gbaKeyIdxLeftUp, CFGKEY_GBAKEY_LEFT_UP);
-	writeKeyConfig2(io, gbaKeyIdxRightUp, CFGKEY_GBAKEY_RIGHT_UP);
-	writeKeyConfig2(io, gbaKeyIdxRightDown, CFGKEY_GBAKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, gbaKeyIdxLeftDown, CFGKEY_GBAKEY_LEFT_DOWN);
-	writeKeyConfig2(io, gbaKeyIdxSelect, CFGKEY_GBAKEY_SELECT);
-	writeKeyConfig2(io, gbaKeyIdxStart, CFGKEY_GBAKEY_START);
-	writeKeyConfig2(io, gbaKeyIdxA, CFGKEY_GBAKEY_A);
-	writeKeyConfig2(io, gbaKeyIdxB, CFGKEY_GBAKEY_B);
-	writeKeyConfig2(io, gbaKeyIdxATurbo, CFGKEY_GBAKEY_A_TURBO);
-	writeKeyConfig2(io, gbaKeyIdxBTurbo, CFGKEY_GBAKEY_B_TURBO);
-	writeKeyConfig2(io, gbaKeyIdxL, CFGKEY_GBAKEY_L);
-	writeKeyConfig2(io, gbaKeyIdxR, CFGKEY_GBAKEY_R);
-	writeKeyConfig2(io, gbaKeyIdxAB, CFGKEY_GBAKEY_AB);
-	writeKeyConfig2(io, gbaKeyIdxRB, CFGKEY_GBAKEY_RB);
+
 }
 
 static bool isGBAExtension(const char *name)
@@ -404,7 +366,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 namespace Input
 {
 
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -425,7 +387,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	mainInitCommon();
 	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);

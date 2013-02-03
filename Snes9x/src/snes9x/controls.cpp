@@ -703,7 +703,7 @@ void S9xSetController (int port, enum controllers controller, int8 id1, int8 id2
 			return;
 
 		default:
-			fprintf(stderr, "Unknown controller type %d\n", controller);
+			S9xPrintfError("Unknown controller type %d\n", controller);
 			break;
 	}
 
@@ -3325,7 +3325,7 @@ void S9xControlEOF (void)
 	pad_read      = false;
 }
 
-void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg, const char *bg)
+/*void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg, const char *bg)
 {
 	struct crosshair	*c;
 	int8				fgcolor = -1, bgcolor = -1;
@@ -3446,7 +3446,7 @@ void S9xGetControllerCrosshair (enum crosscontrols ctl, int8 *idx, const char **
 
 	if (bg)
 		*bg = color_names[c->bg];
-}
+}*/
 
 void S9xControlPreSaveState (struct SControlSnapshot *s)
 {

@@ -71,7 +71,6 @@ static const GC orientationDiffTable[4][4] =
 };
 
 static void setupDPI();
-static bool hardKeyboardIsPresent();
 
 // Public implementation
 
@@ -116,23 +115,6 @@ void setDPI(float dpi)
 	}
 	setupDPI();
 	Gfx::setupScreenSize();
-}
-
-bool isInputDevPresent(uint type)
-{
-#ifdef CONFIG_INPUT
-	switch(type)
-	{
-		case InputEvent::DEV_KEYBOARD:
-			if(hardKeyboardIsPresent()) logMsg("hard keyboard present");
-			return hardKeyboardIsPresent();
-		#ifdef CONFIG_BLUETOOTH
-		//case InputEvent::DEV_WIIMOTE: return Bluetooth::wiimotes();
-		//case InputEvent::DEV_ICONTROLPAD: return Bluetooth::iCPs();
-		#endif
-	}
-#endif
-	return 0;
 }
 
 void vibrate(uint ms)
@@ -246,7 +228,7 @@ static const char *hardKeyboardNavStateToStr(int state)
 	}
 }
 
-static bool hardKeyboardIsPresent()
+bool hardKeyboardIsPresent()
 {
 	return aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
 }
@@ -258,8 +240,8 @@ static void setHardKeyboardState(int hardKeyboardState)
 		aHardKeyboardState = hardKeyboardState;
 		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 #ifdef CONFIG_INPUT
-		const InputDevChange change = { 0, InputEvent::DEV_KEYBOARD, hardKeyboardIsPresent() ? InputDevChange::SHOWN : InputDevChange::HIDDEN };
-		onInputDevChange(change);
+		const Input::DeviceChange change = { 0, Input::Event::MAP_KEYBOARD, hardKeyboardIsPresent() ? Input::DeviceChange::SHOWN : Input::DeviceChange::HIDDEN };
+		Input::onInputDevChange(change);
 #endif
 	}
 }

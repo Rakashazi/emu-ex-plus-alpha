@@ -3,7 +3,7 @@
 namespace Input
 {
 
-namespace Key
+namespace Keycode
 {
 	static const uint
 	//SYS_HOME = 3, // Never sent to apps
@@ -95,11 +95,24 @@ namespace Key
 
 	GAME_1 = 188, GAME_2 = 189, GAME_3 = 190, GAME_4 = 191, GAME_5 = 192, GAME_6 = 193,
 	GAME_7 = 194, GAME_8 = 195, GAME_9 = 196, GAME_10 = 197, GAME_11 = 198, GAME_12 = 199,
-	GAME_13 = 200, GAME_14 = 201, GAME_15 = 202, GAME_16 = 203
-	;
+	GAME_13 = 200, GAME_14 = 201, GAME_15 = 202, GAME_16 = 203,
+
+	// Our own key-codes for analog -> digital joystick axis emulation
+	JS1_XAXIS_POS = 240, JS1_XAXIS_NEG = 241,
+	JS1_YAXIS_POS = 242, JS1_YAXIS_NEG = 243,
+
+	JS2_XAXIS_POS = 244, JS2_XAXIS_NEG = 245,
+	JS2_YAXIS_POS = 246, JS2_YAXIS_NEG = 247,
+
+	JS3_XAXIS_POS = 248, JS3_XAXIS_NEG = 249,
+	JS3_YAXIS_POS = 250, JS3_YAXIS_NEG = 251,
+
+	JS_LTRIGGER_AXIS = 252, JS_RTRIGGER_AXIS = 253;
 
 	static const uint COUNT = 0xff + 1;
 }
+
+typedef uint8 Key;
 
 namespace Pointer
 {

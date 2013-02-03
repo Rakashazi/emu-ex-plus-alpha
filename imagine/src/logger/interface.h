@@ -1,8 +1,6 @@
 #pragma once
 
-#ifdef IMAGINE_SRC
-	#include <config.h>
-#endif
+#include <config.h>
 #include <config/imagineTypes.h>
 #include <stdarg.h>
 #include <util/ansiTypes.h>
@@ -32,9 +30,8 @@ CLINK void logger_vprintf(LoggerSeverity severity, const char* msg, va_list arg)
 
 static CallResult logger_init() { return OK; }
 static void logger_update() { }
-static void logger_dummy() { }
-#define logger_printf(severity, msg, ...) logger_dummy()
-#define logger_vprintf(severity, msg, arg) logger_dummy()
+static void logger_printf(LoggerSeverity severity, const char* msg, ...) { }
+static void logger_vprintf(LoggerSeverity severity, const char* msg, va_list arg) { }
 
 #endif // USE_LOGGER
 

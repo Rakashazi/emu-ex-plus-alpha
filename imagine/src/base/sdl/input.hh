@@ -34,14 +34,14 @@ static void mouseEvent(uint button, int p, uint action, int x, int y)
 	#endif
 	dragStateArr[p].pointerEvent(button, action, m[p].x, m[p].y);
 	//logMsg("p %d @ %d,%d %d", p, m[p].x, m[p].y, action);
-	Input::onInputEvent(InputEvent(p, InputEvent::DEV_POINTER, button, action, m[p].x, m[p].y));
+	Input::onInputEvent(Input::Event(p, Input::Event::MAP_POINTER, button, action, m[p].x, m[p].y));
 }
 
 static void keyEvent(SDL_keysym k, uint action)
 {
-	assert(k.sym < Key::COUNT);
+	assert(k.sym < Keycode::COUNT);
 	uint modifiers = k.mod & KMOD_SHIFT;
-	//logMsg("key %d %s, action %d", k.sym, Input::buttonName(InputEvent::DEV_KEYBOARD, k.sym), action);
+	//logMsg("key %d %s, action %d", k.sym, Input::buttonName(Input::Event::MAP_KEYBOARD, k.sym), action);
 	#if CONFIG_ENV_WEBOS_OS >= 3
 	if(unlikely(k.sym == 24)) // WebOS Dismiss Keyboard
 	{
@@ -55,7 +55,7 @@ static void keyEvent(SDL_keysym k, uint action)
 	#ifdef CONFIG_INPUT_ICADE
 	if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k.sym, modifiers), action)))
 	#endif
-		Input::onInputEvent(InputEvent(0, InputEvent::DEV_KEYBOARD, k.sym & 0xFFF, action, modifiers));
+		Input::onInputEvent(Input::Event(0, InputEvent::MAP_KEYBOARD, k.sym & 0xFFF, action, modifiers));
 }
 
 void setKeyRepeat(bool on)

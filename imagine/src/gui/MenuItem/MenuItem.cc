@@ -46,7 +46,7 @@ void TextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coor
 void TextMenuItem::compile() { t.compile(); }
 int TextMenuItem::ySize() { return t.face->nominalHeight(); }
 GC TextMenuItem::xSize() { return t.xSize; }
-void TextMenuItem::select(View *parent, const InputEvent &e)
+void TextMenuItem::select(View *parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	selectDel.invokeSafe(*this, e);
@@ -150,7 +150,7 @@ void BoolMenuItem::toggle()
 		set(1);
 }
 
-void BoolMenuItem::select(View *parent, const InputEvent &e) { selectDel.invokeSafe(*this, e); }
+void BoolMenuItem::select(View *parent, const Input::Event &e) { selectDel.invokeSafe(*this, e); }
 
 void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 {
@@ -219,7 +219,7 @@ void MultiChoiceMenuItem::setVal(int val)
 	}
 }
 
-bool MultiChoiceMenuItem::set(int val, const InputEvent &e)
+bool MultiChoiceMenuItem::set(int val, const Input::Event &e)
 {
 	setVal(val);
 	return 1;

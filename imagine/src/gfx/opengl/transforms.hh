@@ -3,6 +3,11 @@
 namespace Gfx
 {
 
+void setTransformTarget(TransformTargetEnum target)
+{
+	glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
+}
+
 void applyTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
 {
 	glTranslatef(x, y, z);
@@ -30,7 +35,6 @@ void applyYawRotate(Angle t)
 
 void loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
 {
-	glcMatrixMode(GL_MODELVIEW);
 	Matrix4x4<float> mat;
 	mat.translate(x, y, z);
 	glLoadMatrixf((GLfloat *)&mat.v[0]);
@@ -38,7 +42,6 @@ void loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordi
 
 void loadIdentTransform()
 {
-	glcMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }
 

@@ -334,5 +334,5 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
  */
 void android_main(struct android_app* app);
 
-void process_input(struct android_app* app);
+extern void (*process_input)(struct android_app* app);
 void process_cmd(struct android_app* app);

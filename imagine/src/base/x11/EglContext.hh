@@ -24,7 +24,7 @@ public:
 
 	void makeCurrent()
 	{
-		assert(context);
+		assert(context != EGL_NO_CONTEXT);
 		eglMakeCurrent(display, surface, surface, context);
 	}
 
@@ -62,6 +62,10 @@ public:
 			return 0;
 		}
 
+		#ifndef CONFIG_GFX_OPENGL_ES
+			eglBindAPI(EGL_OPENGL_API);
+		#endif
+
 		//printEGLConfs(display);
 
 		const EGLint *attribs = useMaxColorBits ? eglAttrWinMaxRGB : eglAttrWinLowColor;
@@ -73,7 +77,7 @@ public:
 			return 0;
 		}
 		#ifndef NDEBUG
-		printEGLConf(display, config);
+			printEGLConf(display, config);
 		#endif
 
 		surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)win, nullptr);
@@ -83,11 +87,15 @@ public:
 			return 0;
 		}
 
-		EGLint ctxAttr[] = {
-		EGL_CONTEXT_CLIENT_VERSION, 1,
-		EGL_NONE
-		};
-		context = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
+		#ifdef CONFIG_GFX_OPENGL_ES
+			EGLint ctxAttr[] = {
+			EGL_CONTEXT_CLIENT_VERSION, 1,
+			EGL_NONE
+			};
+			context = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
+		#else
+			context = eglCreateContext(display, config, EGL_NO_CONTEXT, nullptr);
+		#endif
 		if(context == EGL_NO_CONTEXT)
 		{
 			logErr("error creating context: 0x%X", (int)eglGetError());

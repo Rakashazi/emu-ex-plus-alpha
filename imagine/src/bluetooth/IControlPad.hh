@@ -32,6 +32,7 @@ public:
 	static StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
+	Input::Device *device = nullptr;
 	uchar inputBuffer[6] = {0};
 	uint inputBufferPos = 0;
 	uint player = 0;

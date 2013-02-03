@@ -60,6 +60,8 @@ void sendTextEntryEnded(const char *str, jstring jStr);
 
 EGLDisplay getAndroidEGLDisplay();
 
+bool hardKeyboardIsPresent();
+
 }
 
 struct ANativeWindow;

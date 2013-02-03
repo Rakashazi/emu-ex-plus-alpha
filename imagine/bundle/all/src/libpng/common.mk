@@ -8,7 +8,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-libpngVer := 1.5.13
+libpngVer := 1.5.14
 libpngSrcDir := libpng-$(libpngVer)
 libpngSrcArchive := libpng-$(libpngVer).tar.xz
 

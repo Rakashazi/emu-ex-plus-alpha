@@ -16,6 +16,6 @@ bool dlLoadAndroidFuncs(void *libandroid);
 // EditText-based Input
 void textInputEndedMsg(const char* str, jstring jStr);
 
-void rescanDevices();
+void rescanDevices(bool firstRun = 0);
 
 }

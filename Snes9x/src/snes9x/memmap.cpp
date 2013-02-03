@@ -2299,7 +2299,7 @@ void CMemory::ParseSNESHeader (uint8 *RomHeader)
 	{
 		if (!(((RomHeader[0x29] & 0x20) && CalculatedSize <  0x100000) ||
 			 (!(RomHeader[0x29] & 0x20) && CalculatedSize == 0x100000)))
-			printf("BS: Size mismatch\n");
+			S9xPrintf("BS: Size mismatch\n");
 
 		// FIXME
 		int	p = 0;
@@ -2992,7 +2992,7 @@ void CMemory::Map_Initialize (void)
 
 void CMemory::Map_LoROMMap (void)
 {
-	printf("Map_LoROMMap\n");
+	S9xPrintf("Map_LoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3020,7 +3020,7 @@ void CMemory::Map_LoROMMap (void)
 
 void CMemory::Map_NoMAD1LoROMMap (void)
 {
-	printf("Map_NoMAD1LoROMMap\n");
+	S9xPrintf("Map_NoMAD1LoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3039,11 +3039,11 @@ void CMemory::Map_NoMAD1LoROMMap (void)
 void CMemory::Map_JumboLoROMMap (void)
 {
 	// XXX: Which game uses this?
-	printf("Map_JumboLoROMMap\n");
+	S9xPrintf("Map_JumboLoROMMap\n");
 	map_System();
 
 	map_lorom_offset(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize - 0x400000, 0x400000);
-	map_lorom_offset(0x40, 0x7f, 0x0000, 0xffff, CalculatedSize - 0x400000, 0x400000);
+	map_lorom_offset(0x40, 0x7f, 0x0000, 0xffff, CalculatedSize - 0x600000, 0x600000);
 	map_lorom_offset(0x80, 0xbf, 0x8000, 0xffff, 0x400000, 0);
 	map_lorom_offset(0xc0, 0xff, 0x0000, 0xffff, 0x400000, 0x200000);
 
@@ -3056,7 +3056,7 @@ void CMemory::Map_JumboLoROMMap (void)
 void CMemory::Map_ROM24MBSLoROMMap (void)
 {
 	// PCB: BSC-1A5M-01, BSC-1A7M-10
-	printf("Map_ROM24MBSLoROMMap\n");
+	S9xPrintf("Map_ROM24MBSLoROMMap\n");
 	map_System();
 
 	map_lorom_offset(0x00, 0x1f, 0x8000, 0xffff, 0x100000, 0);
@@ -3072,7 +3072,7 @@ void CMemory::Map_ROM24MBSLoROMMap (void)
 
 void CMemory::Map_SRAM512KLoROMMap (void)
 {
-	printf("Map_SRAM512KLoROMMap\n");
+	S9xPrintf("Map_SRAM512KLoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3092,7 +3092,7 @@ void CMemory::Map_SRAM512KLoROMMap (void)
 
 void CMemory::Map_SufamiTurboLoROMMap (void)
 {
-	printf("Map_SufamiTurboLoROMMap\n");
+	S9xPrintf("Map_SufamiTurboLoROMMap\n");
 	map_System();
 
 	map_lorom_offset(0x00, 0x1f, 0x8000, 0xffff, 0x40000, 0);
@@ -3122,7 +3122,7 @@ void CMemory::Map_SufamiTurboLoROMMap (void)
 void CMemory::Map_SufamiTurboPseudoLoROMMap (void)
 {
 	// for combined images
-	printf("Map_SufamiTurboPseudoLoROMMap\n");
+	S9xPrintf("Map_SufamiTurboPseudoLoROMMap\n");
 	map_System();
 
 	map_lorom_offset(0x00, 0x1f, 0x8000, 0xffff, 0x40000, 0);
@@ -3145,7 +3145,7 @@ void CMemory::Map_SufamiTurboPseudoLoROMMap (void)
 
 void CMemory::Map_SuperFXLoROMMap (void)
 {
-	printf("Map_SuperFXLoROMMap\n");
+	S9xPrintf("Map_SuperFXLoROMMap\n");
 	map_System();
 
 	// Replicate the first 2Mb of the ROM at ROM + 2MB such that each 32K
@@ -3174,7 +3174,7 @@ void CMemory::Map_SuperFXLoROMMap (void)
 
 void CMemory::Map_SetaDSPLoROMMap (void)
 {
-	printf("Map_SetaDSPLoROMMap\n");
+	S9xPrintf("Map_SetaDSPLoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3192,7 +3192,7 @@ void CMemory::Map_SetaDSPLoROMMap (void)
 
 void CMemory::Map_SDD1LoROMMap (void)
 {
-	printf("Map_SDD1LoROMMap\n");
+	S9xPrintf("Map_SDD1LoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3210,7 +3210,7 @@ void CMemory::Map_SDD1LoROMMap (void)
 
 void CMemory::Map_SA1LoROMMap (void)
 {
-	printf("Map_SA1LoROMMap\n");
+	S9xPrintf("Map_SA1LoROMMap\n");
 	map_System();
 
 	map_lorom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3252,7 +3252,7 @@ void CMemory::Map_SA1LoROMMap (void)
 
 void CMemory::Map_GNEXTSA1LoROMMap (void)
 {
-	printf("Map_GNEXTSA1LoROMMap\n");
+	S9xPrintf("Map_GNEXTSA1LoROMMap\n");
 	map_System();
 
 	map_lorom_offset(0x00, 0x3f, 0x8000, 0xffff, Multi.cartSizeA, Multi.cartOffsetA);
@@ -3297,7 +3297,7 @@ void CMemory::Map_GNEXTSA1LoROMMap (void)
 
 void CMemory::Map_HiROMMap (void)
 {
-	printf("Map_HiROMMap\n");
+	S9xPrintf("Map_HiROMMap\n");
 	map_System();
 
 	map_hirom(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize);
@@ -3316,7 +3316,7 @@ void CMemory::Map_HiROMMap (void)
 
 void CMemory::Map_ExtendedHiROMMap (void)
 {
-	printf("Map_ExtendedHiROMMap\n");
+	S9xPrintf("Map_ExtendedHiROMMap\n");
 	map_System();
 
 	map_hirom_offset(0x00, 0x3f, 0x8000, 0xffff, CalculatedSize - 0x400000, 0x400000);
@@ -3332,7 +3332,7 @@ void CMemory::Map_ExtendedHiROMMap (void)
 
 void CMemory::Map_SameGameHiROMMap (void)
 {
-	printf("Map_SameGameHiROMMap\n");
+	S9xPrintf("Map_SameGameHiROMMap\n");
 	map_System();
 
 	map_hirom_offset(0x00, 0x1f, 0x8000, 0xffff, Multi.cartSizeA, Multi.cartOffsetA);
@@ -3352,7 +3352,7 @@ void CMemory::Map_SameGameHiROMMap (void)
 
 void CMemory::Map_SPC7110HiROMMap (void)
 {
-	printf("Map_SPC7110HiROMMap\n");
+	S9xPrintf("Map_SPC7110HiROMMap\n");
 	map_System();
 
 	map_index(0x00, 0x00, 0x6000, 0x7fff, MAP_HIROM_SRAM, MAP_TYPE_RAM);
@@ -3709,7 +3709,7 @@ void CMemory::ApplyROMFixes (void)
 		if (match_na("BATTLE GRANDPRIX")) // Battle Grandprix
 		{
 			Timings.DMACPUSync = 20;
-			printf("DMA sync: %d\n", Timings.DMACPUSync);
+			S9xPrintf("DMA sync: %d\n", Timings.DMACPUSync);
 		}
 	}
 
@@ -3722,7 +3722,7 @@ void CMemory::ApplyROMFixes (void)
 		if (match_na("Aero the AcroBat 2"))
 		{
 			Timings.IRQPendCount = 2;
-			printf("IRQ count hack: %d\n", Timings.IRQPendCount);
+			S9xPrintf("IRQ count hack: %d\n", Timings.IRQPendCount);
 		}
 	}
 
@@ -3732,7 +3732,7 @@ void CMemory::ApplyROMFixes (void)
 		if (match_na("X-MEN")) // Spider-Man and the X-Men
 		{
 			Settings.BlockInvalidVRAMAccess = FALSE;
-			printf("Invalid VRAM access hack\n");
+			S9xPrintf("Invalid VRAM access hack\n");
 		}
 	}
 
@@ -3770,7 +3770,7 @@ void CMemory::ApplyROMFixes (void)
 		if (match_nn("UNIRACERS")) // Uniracers
 		{
 			SNESGameFixes.Uniracers = TRUE;
-			printf("Applied Uniracers hack.\n");
+			S9xPrintf("Applied Uniracers hack.\n");
 		}
 	}
 }
@@ -3873,7 +3873,7 @@ static bool8 ReadUPSPatch (Stream *r, long, int32 &rom_size)
 		//itself is corrupted, which should be detected by the patch CRC32 check
 		//above anyway. errors due to the wrong ROM or patch file being used are
 		//already caught above.
-		fprintf(stderr, "WARNING: UPS patching appears to have failed.\nGame may not be playable.\n");
+		S9xPrintfError("WARNING: UPS patching appears to have failed.\nGame may not be playable.\n");
 		return true;
 	}
 }
@@ -3968,7 +3968,7 @@ static bool8 ReadBPSPatch (Stream *r, long, int32 &rom_size)
 		return true;
 	} else {
 		delete[] patched_rom;
-		fprintf(stderr, "WARNING: BPS patching failed.\nROM has not been altered.\n");
+		S9xPrintfError("WARNING: BPS patching failed.\nROM has not been altered.\n");
 		return false;
 	}
 }
@@ -4090,7 +4090,7 @@ static int unzFindExtension (unzFile &file, const char *ext, bool restart, bool 
 		if (len >= l + 1 && name[len - l - 1] == '.' && strcasecmp(name + len - l, ext) == 0 && unzOpenCurrentFile(file) == UNZ_OK)
 		{
 			if (print)
-				printf("Using patch %s", name);
+				S9xPrintf("Using patch %s", name);
 
 			return (port);
 		}
@@ -4122,18 +4122,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
 	{
-		printf("Using BPS patch %s", fname);
+		S9xPrintf("Using BPS patch %s", fname);
 
 		ret = ReadBPSPatch(new fStream(patch_file), 0, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 #ifdef UNZIP_SUPPORT
@@ -4145,15 +4145,15 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			int	port = unzFindExtension(file, "bps");
 			if (port == UNZ_OK)
 			{
-				printf(" in %s", rom_filename);
+				S9xPrintf(" in %s", rom_filename);
 
 				ret = ReadBPSPatch(new unzStream(file), offset, rom_size);
 				unzCloseCurrentFile(file);
 
 				if (ret)
-					printf("!\n");
+					S9xPrintf("!\n");
 				else
-					printf(" failed!\n");
+					S9xPrintf(" failed!\n");
 			}
 		}
 	}
@@ -4163,18 +4163,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(n, "rb")) != NULL)
 	{
-		printf("Using BPS patch %s", n);
+		S9xPrintf("Using BPS patch %s", n);
 
 		ret = ReadBPSPatch(new fStream(patch_file), 0, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 	// UPS
@@ -4183,18 +4183,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
 	{
-		printf("Using UPS patch %s", fname);
+		S9xPrintf("Using UPS patch %s", fname);
 
 		ret = ReadUPSPatch(new fStream(patch_file), 0, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 #ifdef UNZIP_SUPPORT
@@ -4206,15 +4206,15 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			int	port = unzFindExtension(file, "ups");
 			if (port == UNZ_OK)
 			{
-				printf(" in %s", rom_filename);
+				S9xPrintf(" in %s", rom_filename);
 
 				ret = ReadUPSPatch(new unzStream(file), offset, rom_size);
 				unzCloseCurrentFile(file);
 
 				if (ret)
-					printf("!\n");
+					S9xPrintf("!\n");
 				else
-					printf(" failed!\n");
+					S9xPrintf(" failed!\n");
 			}
 		}
 	}
@@ -4224,18 +4224,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(n, "rb")) != NULL)
 	{
-		printf("Using UPS patch %s", n);
+		S9xPrintf("Using UPS patch %s", n);
 
 		ret = ReadUPSPatch(new fStream(patch_file), 0, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 	// IPS
@@ -4244,18 +4244,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
 	{
-		printf("Using IPS patch %s", fname);
+		S9xPrintf("Using IPS patch %s", fname);
 
 		ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 	if (_MAX_EXT > 6)
@@ -4271,19 +4271,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(fname, "rb")))
 				break;
 
-			printf("Using IPS patch %s", fname);
+			S9xPrintf("Using IPS patch %s", fname);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i < 1000);
@@ -4307,19 +4307,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(fname, "rb")))
 				break;
 
-			printf("Using IPS patch %s", fname);
+			S9xPrintf("Using IPS patch %s", fname);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i != 0);
@@ -4341,19 +4341,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(fname, "rb")))
 				break;
 
-			printf("Using IPS patch %s", fname);
+			S9xPrintf("Using IPS patch %s", fname);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i < 10);
@@ -4371,18 +4371,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			int	port = unzFindExtension(file, "ips");
 			while (port == UNZ_OK)
 			{
-				printf(" in %s", rom_filename);
+				S9xPrintf(" in %s", rom_filename);
 
 				ret = ReadIPSPatch(new unzStream(file), offset, rom_size);
 				unzCloseCurrentFile(file);
 
 				if (ret)
 				{
-					printf("!\n");
+					S9xPrintf("!\n");
 					flag = true;
 				}
 				else
-					printf(" failed!\n");
+					S9xPrintf(" failed!\n");
 
 				port = unzFindExtension(file, "ips", false);
 			}
@@ -4398,24 +4398,24 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 					if (unzFindExtension(file, ips) != UNZ_OK)
 						break;
 
-					printf(" in %s", rom_filename);
+					S9xPrintf(" in %s", rom_filename);
 
 					ret = ReadIPSPatch(new unzStream(file), offset, rom_size);
 					unzCloseCurrentFile(file);
 
 					if (ret)
 					{
-						printf("!\n");
+						S9xPrintf("!\n");
 						flag = true;
 					}
 					else
 					{
-						printf(" failed!\n");
+						S9xPrintf(" failed!\n");
 						break;
 					}
 
 					if (unzFindExtension(file, ips, false, false) == UNZ_OK)
-						printf("WARNING: Ignoring extra .%s files!\n", ips);
+						S9xPrintf("WARNING: Ignoring extra .%s files!\n", ips);
 				} while (++i < 1000);
 			}
 
@@ -4432,24 +4432,24 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 					if (unzFindExtension(file, ips) != UNZ_OK)
 						break;
 
-					printf(" in %s", rom_filename);
+					S9xPrintf(" in %s", rom_filename);
 
 					ret = ReadIPSPatch(new unzStream(file), offset, rom_size);
 					unzCloseCurrentFile(file);
 
 					if (ret)
 					{
-						printf("!\n");
+						S9xPrintf("!\n");
 						flag = true;
 					}
 					else
 					{
-						printf(" failed!\n");
+						S9xPrintf(" failed!\n");
 						break;
 					}
 
 					if (unzFindExtension(file, ips, false, false) == UNZ_OK)
-						printf("WARNING: Ignoring extra .%s files!\n", ips);
+						S9xPrintf("WARNING: Ignoring extra .%s files!\n", ips);
 				} while (++i != 0);
 			}
 
@@ -4464,24 +4464,24 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 					if (unzFindExtension(file, ips) != UNZ_OK)
 						break;
 
-					printf(" in %s", rom_filename);
+					S9xPrintf(" in %s", rom_filename);
 
 					ret = ReadIPSPatch(new unzStream(file), offset, rom_size);
 					unzCloseCurrentFile(file);
 
 					if (ret)
 					{
-						printf("!\n");
+						S9xPrintf("!\n");
 						flag = true;
 					}
 					else
 					{
-						printf(" failed!\n");
+						S9xPrintf(" failed!\n");
 						break;
 					}
 
 					if (unzFindExtension(file, ips, false, false) == UNZ_OK)
-						printf("WARNING: Ignoring extra .%s files!\n", ips);
+						S9xPrintf("WARNING: Ignoring extra .%s files!\n", ips);
 				} while (++i < 10);
 			}
 
@@ -4497,18 +4497,18 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 
 	if ((patch_file = OPEN_FSTREAM(n, "rb")) != NULL)
 	{
-		printf("Using IPS patch %s", n);
+		S9xPrintf("Using IPS patch %s", n);
 
 		ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
         CLOSE_FSTREAM(patch_file);
 
 		if (ret)
 		{
-			printf("!\n");
+			S9xPrintf("!\n");
 			return;
 		}
 		else
-			printf(" failed!\n");
+			S9xPrintf(" failed!\n");
 	}
 
 	if (_MAX_EXT > 6)
@@ -4524,19 +4524,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(n, "rb")))
 				break;
 
-			printf("Using IPS patch %s", n);
+			S9xPrintf("Using IPS patch %s", n);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i < 1000);
@@ -4560,19 +4560,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(n, "rb")))
 				break;
 
-			printf("Using IPS patch %s", n);
+			S9xPrintf("Using IPS patch %s", n);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i != 0);
@@ -4594,19 +4594,19 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 			if (!(patch_file = OPEN_FSTREAM(n, "rb")))
 				break;
 
-			printf("Using IPS patch %s", n);
+			S9xPrintf("Using IPS patch %s", n);
 
 			ret = ReadIPSPatch(new fStream(patch_file), offset, rom_size);
             CLOSE_FSTREAM(patch_file);
 
 			if (ret)
 			{
-				printf("!\n");
+				S9xPrintf("!\n");
 				flag = true;
 			}
 			else
 			{
-				printf(" failed!\n");
+				S9xPrintf(" failed!\n");
 				break;
 			}
 		} while (++i < 10);

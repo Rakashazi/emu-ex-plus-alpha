@@ -6,6 +6,7 @@
 
 /* Global data */
 extern t_config config;
+void ROMCheatUpdate();
 
 #include <fileio/fileio.h>
 

@@ -101,21 +101,10 @@ enum
 	neogeoKeyIdxXTurbo,
 	neogeoKeyIdxYTurbo,
 	neogeoKeyIdxABC,
-	neogeoKeyIdxTestSwitch
+	neogeoKeyIdxTestSwitch = EmuControls::systemKeyMapStart + EmuControls::joystickKeys*2
 };
 
 enum {
-	CFGKEY_NEOGEOKEY_UP = 256, CFGKEY_NEOGEOKEY_RIGHT = 257,
-	CFGKEY_NEOGEOKEY_DOWN = 258, CFGKEY_NEOGEOKEY_LEFT = 259,
-	CFGKEY_NEOGEOKEY_LEFT_UP = 260, CFGKEY_NEOGEOKEY_RIGHT_UP = 261,
-	CFGKEY_NEOGEOKEY_RIGHT_DOWN = 262, CFGKEY_NEOGEOKEY_LEFT_DOWN = 263,
-	CFGKEY_NEOGEOKEY_SELECT = 264, CFGKEY_NEOGEOKEY_START = 265,
-	CFGKEY_NEOGEOKEY_A = 266, CFGKEY_NEOGEOKEY_B = 267,
-	CFGKEY_NEOGEOKEY_X = 268, CFGKEY_NEOGEOKEY_Y = 269,
-	CFGKEY_NEOGEOKEY_A_TURBO = 270, CFGKEY_NEOGEOKEY_B_TURBO = 271,
-	CFGKEY_NEOGEOKEY_X_TURBO = 272, CFGKEY_NEOGEOKEY_Y_TURBO = 273,
-	CFGKEY_NEOGEOKEY_ABC = 274,
-
 	CFGKEY_LIST_ALL_GAMES = 275, CFGKEY_BIOS_TYPE = 276,
 	CFGKEY_MVS_COUNTRY = 277, CFGKEY_TIMER_INT = 278,
 	CFGKEY_CREATE_USE_CACHE = 279,
@@ -150,17 +139,6 @@ const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include <CommonGui.hh>
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 CLINK int gn_strictROMChecking()
 {
 	return optionStrictROMChecking;
@@ -185,26 +163,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_NEOGEOKEY_UP: readKeyConfig2(io, neogeoKeyIdxUp, readSize);
-		bcase CFGKEY_NEOGEOKEY_RIGHT: readKeyConfig2(io, neogeoKeyIdxRight, readSize);
-		bcase CFGKEY_NEOGEOKEY_DOWN: readKeyConfig2(io, neogeoKeyIdxDown, readSize);
-		bcase CFGKEY_NEOGEOKEY_LEFT: readKeyConfig2(io, neogeoKeyIdxLeft, readSize);
-		bcase CFGKEY_NEOGEOKEY_LEFT_UP: readKeyConfig2(io, neogeoKeyIdxLeftUp, readSize);
-		bcase CFGKEY_NEOGEOKEY_RIGHT_UP: readKeyConfig2(io, neogeoKeyIdxRightUp, readSize);
-		bcase CFGKEY_NEOGEOKEY_RIGHT_DOWN: readKeyConfig2(io, neogeoKeyIdxRightDown, readSize);
-		bcase CFGKEY_NEOGEOKEY_LEFT_DOWN: readKeyConfig2(io, neogeoKeyIdxLeftDown, readSize);
-		bcase CFGKEY_NEOGEOKEY_SELECT: readKeyConfig2(io, neogeoKeyIdxSelect, readSize);
-		bcase CFGKEY_NEOGEOKEY_START: readKeyConfig2(io, neogeoKeyIdxStart, readSize);
-		bcase CFGKEY_NEOGEOKEY_A: readKeyConfig2(io, neogeoKeyIdxA, readSize);
-		bcase CFGKEY_NEOGEOKEY_B: readKeyConfig2(io, neogeoKeyIdxB, readSize);
-		bcase CFGKEY_NEOGEOKEY_X: readKeyConfig2(io, neogeoKeyIdxX, readSize);
-		bcase CFGKEY_NEOGEOKEY_Y: readKeyConfig2(io, neogeoKeyIdxY, readSize);
-		bcase CFGKEY_NEOGEOKEY_A_TURBO: readKeyConfig2(io, neogeoKeyIdxATurbo, readSize);
-		bcase CFGKEY_NEOGEOKEY_B_TURBO: readKeyConfig2(io, neogeoKeyIdxBTurbo, readSize);
-		bcase CFGKEY_NEOGEOKEY_X_TURBO: readKeyConfig2(io, neogeoKeyIdxXTurbo, readSize);
-		bcase CFGKEY_NEOGEOKEY_Y_TURBO: readKeyConfig2(io, neogeoKeyIdxYTurbo, readSize);
-		bcase CFGKEY_NEOGEOKEY_ABC: readKeyConfig2(io, neogeoKeyIdxABC, readSize);
-		bcase CFGKEY_NEOGEOKEY_TEST_SWITCH: readKeyConfig2(io, neogeoKeyIdxTestSwitch, readSize);
 		bcase CFGKEY_LIST_ALL_GAMES: optionListAllGames.readFromIO(io, readSize);
 		bcase CFGKEY_BIOS_TYPE: optionBIOSType.readFromIO(io, readSize);
 		bcase CFGKEY_MVS_COUNTRY: optionMVSCountry.readFromIO(io, readSize);
@@ -223,26 +181,6 @@ void EmuSystem::writeConfig(Io *io)
 	optionTimerInt.writeWithKeyIfNotDefault(io);
 	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
 	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
-	writeKeyConfig2(io, neogeoKeyIdxUp, CFGKEY_NEOGEOKEY_UP);
-	writeKeyConfig2(io, neogeoKeyIdxRight, CFGKEY_NEOGEOKEY_RIGHT);
-	writeKeyConfig2(io, neogeoKeyIdxDown, CFGKEY_NEOGEOKEY_DOWN);
-	writeKeyConfig2(io, neogeoKeyIdxLeft, CFGKEY_NEOGEOKEY_LEFT);
-	writeKeyConfig2(io, neogeoKeyIdxLeftUp, CFGKEY_NEOGEOKEY_LEFT_UP);
-	writeKeyConfig2(io, neogeoKeyIdxRightUp, CFGKEY_NEOGEOKEY_RIGHT_UP);
-	writeKeyConfig2(io, neogeoKeyIdxRightDown, CFGKEY_NEOGEOKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, neogeoKeyIdxLeftDown, CFGKEY_NEOGEOKEY_LEFT_DOWN);
-	writeKeyConfig2(io, neogeoKeyIdxSelect, CFGKEY_NEOGEOKEY_SELECT);
-	writeKeyConfig2(io, neogeoKeyIdxStart, CFGKEY_NEOGEOKEY_START);
-	writeKeyConfig2(io, neogeoKeyIdxA, CFGKEY_NEOGEOKEY_A);
-	writeKeyConfig2(io, neogeoKeyIdxB, CFGKEY_NEOGEOKEY_B);
-	writeKeyConfig2(io, neogeoKeyIdxX, CFGKEY_NEOGEOKEY_X);
-	writeKeyConfig2(io, neogeoKeyIdxY, CFGKEY_NEOGEOKEY_Y);
-	writeKeyConfig2(io, neogeoKeyIdxATurbo, CFGKEY_NEOGEOKEY_A_TURBO);
-	writeKeyConfig2(io, neogeoKeyIdxBTurbo, CFGKEY_NEOGEOKEY_B_TURBO);
-	writeKeyConfig2(io, neogeoKeyIdxXTurbo, CFGKEY_NEOGEOKEY_X_TURBO);
-	writeKeyConfig2(io, neogeoKeyIdxYTurbo, CFGKEY_NEOGEOKEY_Y_TURBO);
-	writeKeyConfig2(io, neogeoKeyIdxABC, CFGKEY_NEOGEOKEY_ABC);
-	writeKeyConfig2(io, neogeoKeyIdxTestSwitch, CFGKEY_NEOGEOKEY_TEST_SWITCH);
 }
 
 static bool isNeoGeoExtension(const char *name)
@@ -270,120 +208,122 @@ namespace NGKey
 	START2 = BIT(2), SELECT2 = BIT(3),
 
 	UP = BIT(0), DOWN = BIT(1), LEFT = BIT(2), RIGHT = BIT(3),
-	A = BIT(4), B = BIT(5), C = BIT(6), D = BIT(7);
+	A = BIT(4), B = BIT(5), C = BIT(6), D = BIT(7),
+
+	START_EMU_INPUT = BIT(8),
+	SELECT_COIN_EMU_INPUT = BIT(9),
+	SERVICE_EMU_INPUT = BIT(10);
 }
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	using namespace NGKey;
-	switch(input)
-	{
-		case SysVController::F_ELEM: return A;
-		case SysVController::F_ELEM+1: return B;
-		case SysVController::F_ELEM+2: return C;
-		case SysVController::F_ELEM+3: return D;
+	uint playerMask = player << 11;
+	map[SysVController::F_ELEM] = A | playerMask;
+	map[SysVController::F_ELEM+1] = B | playerMask;
+	map[SysVController::F_ELEM+2] = C | playerMask;
+	map[SysVController::F_ELEM+3] = D | playerMask;
 
-		case SysVController::C_ELEM: return COIN1 << 16;
-		case SysVController::C_ELEM+1: return START1 << 24;
+	map[SysVController::C_ELEM] = SELECT_COIN_EMU_INPUT | playerMask;
+	map[SysVController::C_ELEM+1] = START_EMU_INPUT | playerMask;
 
-		case SysVController::D_ELEM: return UP | LEFT;
-		case SysVController::D_ELEM+1: return UP;
-		case SysVController::D_ELEM+2: return UP | RIGHT;
-		case SysVController::D_ELEM+3: return LEFT;
-		case SysVController::D_ELEM+5: return RIGHT;
-		case SysVController::D_ELEM+6: return DOWN | LEFT;
-		case SysVController::D_ELEM+7: return DOWN;
-		case SysVController::D_ELEM+8: return DOWN | RIGHT;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = UP | LEFT | playerMask;
+	map[SysVController::D_ELEM+1] = UP | playerMask;
+	map[SysVController::D_ELEM+2] = UP | RIGHT | playerMask;
+	map[SysVController::D_ELEM+3] = LEFT | playerMask;
+	map[SysVController::D_ELEM+5] = RIGHT | playerMask;
+	map[SysVController::D_ELEM+6] = DOWN | LEFT | playerMask;
+	map[SysVController::D_ELEM+7] = DOWN | playerMask;
+	map[SysVController::D_ELEM+8] = DOWN | RIGHT | playerMask;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
 	using namespace NGKey;
+	if(unlikely(input == neogeoKeyIdxTestSwitch))
+	{
+		return SERVICE_EMU_INPUT;
+	}
+	assert(input >= neogeoKeyIdxUp);
+	uint player = (input - neogeoKeyIdxUp) / EmuControls::joystickKeys;
+	uint playerMask = player << 11;
+	input -= EmuControls::joystickKeys * player;
 	switch(input)
 	{
-		case neogeoKeyIdxUp: return UP;
-		case neogeoKeyIdxRight: return RIGHT;
-		case neogeoKeyIdxDown: return DOWN;
-		case neogeoKeyIdxLeft: return LEFT;
-		case neogeoKeyIdxLeftUp: return LEFT | UP;
-		case neogeoKeyIdxRightUp: return RIGHT | UP;
-		case neogeoKeyIdxRightDown: return RIGHT | DOWN;
-		case neogeoKeyIdxLeftDown: return LEFT | DOWN;
-		case neogeoKeyIdxSelect: return COIN1 << 16;
-		case neogeoKeyIdxStart: return START1 << 24;
-		case neogeoKeyIdxTestSwitch: return SERVICE << 16;
+		case neogeoKeyIdxUp: return UP | playerMask;
+		case neogeoKeyIdxRight: return RIGHT | playerMask;
+		case neogeoKeyIdxDown: return DOWN | playerMask;
+		case neogeoKeyIdxLeft: return LEFT | playerMask;
+		case neogeoKeyIdxLeftUp: return LEFT | UP | playerMask;
+		case neogeoKeyIdxRightUp: return RIGHT | UP | playerMask;
+		case neogeoKeyIdxRightDown: return RIGHT | DOWN | playerMask;
+		case neogeoKeyIdxLeftDown: return LEFT | DOWN | playerMask;
+		case neogeoKeyIdxSelect: return SELECT_COIN_EMU_INPUT | playerMask;
+		case neogeoKeyIdxStart: return START_EMU_INPUT | playerMask;
 		case neogeoKeyIdxXTurbo: turbo = 1;
-		case neogeoKeyIdxX: return C;
+		case neogeoKeyIdxX: return C | playerMask;
 		case neogeoKeyIdxYTurbo: turbo = 1;
-		case neogeoKeyIdxY: return D;
+		case neogeoKeyIdxY: return D | playerMask;
 		case neogeoKeyIdxATurbo: turbo = 1;
-		case neogeoKeyIdxA: return A;
+		case neogeoKeyIdxA: return A | playerMask;
 		case neogeoKeyIdxBTurbo: turbo = 1;
-		case neogeoKeyIdxB: return B;
-		case neogeoKeyIdxABC: return A | B | C;
+		case neogeoKeyIdxB: return B | playerMask;
+		case neogeoKeyIdxABC: return A | B | C | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
+	uint player = emuKey >> 11;
+
 	if(emuKey & 0xFF) // joystick
 	{
-		if(state == INPUT_PUSHED)
-			unsetBits(player ? memory.intern_p2 : memory.intern_p1, emuKey);
+		if(state == Input::PUSHED)
+			unsetBits(player ? memory.intern_p2 : memory.intern_p1, emuKey & 0xFF);
 		else
-			setBits(player ? memory.intern_p2 : memory.intern_p1, emuKey);
+			setBits(player ? memory.intern_p2 : memory.intern_p1, emuKey & 0xFF);
 		return;
 	}
 
-	emuKey >>= 16;
-
-	if(emuKey & 0xFF) // coin/select
+	if(emuKey & NGKey::SELECT_COIN_EMU_INPUT)
 	{
-		if(emuKey == NGKey::SERVICE)
+		if(conf.system == SYS_ARCADE)
 		{
-			if(state == INPUT_PUSHED)
-				conf.test_switch = 1; // Test Switch is reset to 0 after every frame
-		}
-		else if(conf.system == SYS_ARCADE)
-		{
-			if(player)
-				emuKey = NGKey::COIN2;
-			if(state == INPUT_PUSHED)
-				unsetBits(memory.intern_coin, emuKey);
+			uint bits = player ? NGKey::COIN2 : NGKey::COIN1;
+			if(state == Input::PUSHED)
+				unsetBits(memory.intern_coin, bits);
 			else
-				setBits(memory.intern_coin, emuKey);
+				setBits(memory.intern_coin, bits);
 		}
 		else
 		{
 			// convert COIN to SELECT
-			emuKey = player ? NGKey::SELECT2 : NGKey::SELECT1;
-			if(state == INPUT_PUSHED)
-				unsetBits(memory.intern_start, emuKey);
+			uint bits = player ? NGKey::SELECT2 : NGKey::SELECT1;
+			if(state == Input::PUSHED)
+				unsetBits(memory.intern_start, bits);
 			else
-				setBits(memory.intern_start, emuKey);
+				setBits(memory.intern_start, bits);
 		}
 		return;
 	}
 
-	emuKey >>= 8;
-	if(emuKey & 0xFF) // start
+	if(emuKey & NGKey::START_EMU_INPUT)
 	{
-		if(player)
-			emuKey = NGKey::START2;
-		if(state == INPUT_PUSHED)
-			unsetBits(memory.intern_start, emuKey);
+		uint bits = player ? NGKey::START2 : NGKey::START1;
+		if(state == Input::PUSHED)
+			unsetBits(memory.intern_start, bits);
 		else
-			setBits(memory.intern_start, emuKey);
+			setBits(memory.intern_start, bits);
+		return;
+	}
+
+	if(emuKey & NGKey::SERVICE_EMU_INPUT)
+	{
+		if(state == Input::PUSHED)
+			conf.test_switch = 1; // Test Switch is reset to 0 after every frame
 		return;
 	}
 }
@@ -609,7 +549,7 @@ public:
 		text.compile();
 	}
 
-	void inputEvent(const InputEvent &e) { }
+	void inputEvent(const Input::Event &e) { }
 
 	void draw()
 	{
@@ -760,7 +700,7 @@ void EmuSystem::savePathChanged() { }
 namespace Input
 {
 
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -783,7 +723,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 		{
 			View::removeModalView();
 			loadGamePhase2();
-			EmuSystem::loadGameCompleteDelegate().invoke(1, InputEvent{});
+			EmuSystem::loadGameCompleteDelegate().invoke(1, Input::Event{});
 		}
 		bcase MSG_START_PROGRESS:
 		{
@@ -815,7 +755,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 	}
 }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	mainInitCommon();
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right

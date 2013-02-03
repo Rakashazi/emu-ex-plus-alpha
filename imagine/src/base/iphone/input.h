@@ -131,6 +131,18 @@ void finishSysTextInput()
 
 #endif
 
+bool Device::anyTypeBitsPresent(uint typeBits)
+{
+	if(typeBits & TYPE_BIT_GAMEPAD)
+	{
+		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
+		// or the device list size is not 1 due to BTstack connections from other controllers
+		return devList.first()->iCadeMode_ || devList.size != 1;
+	}
+	// no other device types supported
+	return 0;
+}
+
 void setKeyRepeat(bool on)
 {
 	// TODO
@@ -138,6 +150,9 @@ void setKeyRepeat(bool on)
 
 CallResult init()
 {
+	#if defined CONFIG_INPUT_ICADE
+	addDevice(Device{0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller"});
+	#endif
 	return OK;
 }
 

@@ -172,13 +172,6 @@ enum
 };
 
 enum {
-	CFGKEY_GBCKEY_UP = 256, CFGKEY_GBCKEY_RIGHT = 257,
-	CFGKEY_GBCKEY_DOWN = 258, CFGKEY_GBCKEY_LEFT = 259,
-	CFGKEY_GBCKEY_SELECT = 260, CFGKEY_GBCKEY_START = 261,
-	CFGKEY_GBCKEY_A = 262, CFGKEY_GBCKEY_B = 263,
-	CFGKEY_GBCKEY_A_TURBO = 264, CFGKEY_GBCKEY_B_TURBO = 265,
-	CFGKEY_GBCKEY_LEFT_UP = 266, CFGKEY_GBCKEY_RIGHT_UP = 267,
-	CFGKEY_GBCKEY_RIGHT_DOWN = 268, CFGKEY_GBCKEY_LEFT_DOWN = 269,
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
 	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273
 };
@@ -233,17 +226,6 @@ const uint EmuSystem::maxPlayers = 1;
 uint EmuSystem::aspectRatioX = 10, EmuSystem::aspectRatioY = 9;
 #include "CommonGui.hh"
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
 	switch(key)
@@ -253,20 +235,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_REPORT_AS_GBA: optionReportAsGba.readFromIO(io, readSize);
 		bcase CFGKEY_FULL_GBC_SATURATION: optionFullGbcSaturation.readFromIO(io, readSize);
 		bcase CFGKEY_AUDIO_RESAMPLER: optionAudioResampler.readFromIO(io, readSize);
-		bcase CFGKEY_GBCKEY_UP:	readKeyConfig2(io, gbcKeyIdxUp, readSize);
-		bcase CFGKEY_GBCKEY_RIGHT: readKeyConfig2(io, gbcKeyIdxRight, readSize);
-		bcase CFGKEY_GBCKEY_DOWN: readKeyConfig2(io, gbcKeyIdxDown, readSize);
-		bcase CFGKEY_GBCKEY_LEFT: readKeyConfig2(io, gbcKeyIdxLeft, readSize);
-		bcase CFGKEY_GBCKEY_LEFT_UP: readKeyConfig2(io, gbcKeyIdxLeftUp, readSize);
-		bcase CFGKEY_GBCKEY_RIGHT_UP: readKeyConfig2(io, gbcKeyIdxRightUp, readSize);
-		bcase CFGKEY_GBCKEY_RIGHT_DOWN: readKeyConfig2(io, gbcKeyIdxRightDown, readSize);
-		bcase CFGKEY_GBCKEY_LEFT_DOWN: readKeyConfig2(io, gbcKeyIdxLeftDown, readSize);
-		bcase CFGKEY_GBCKEY_SELECT: readKeyConfig2(io, gbcKeyIdxSelect, readSize);
-		bcase CFGKEY_GBCKEY_START: readKeyConfig2(io, gbcKeyIdxStart, readSize);
-		bcase CFGKEY_GBCKEY_A: readKeyConfig2(io, gbcKeyIdxA, readSize);
-		bcase CFGKEY_GBCKEY_B: readKeyConfig2(io, gbcKeyIdxB, readSize);
-		bcase CFGKEY_GBCKEY_A_TURBO: readKeyConfig2(io, gbcKeyIdxATurbo, readSize);
-		bcase CFGKEY_GBCKEY_B_TURBO: readKeyConfig2(io, gbcKeyIdxBTurbo, readSize);
 	}
 	return 1;
 }
@@ -277,20 +245,6 @@ void EmuSystem::writeConfig(Io *io)
 	optionReportAsGba.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	optionAudioResampler.writeWithKeyIfNotDefault(io);
-	writeKeyConfig2(io, gbcKeyIdxUp, CFGKEY_GBCKEY_UP);
-	writeKeyConfig2(io, gbcKeyIdxRight, CFGKEY_GBCKEY_RIGHT);
-	writeKeyConfig2(io, gbcKeyIdxDown, CFGKEY_GBCKEY_DOWN);
-	writeKeyConfig2(io, gbcKeyIdxLeft, CFGKEY_GBCKEY_LEFT);
-	writeKeyConfig2(io, gbcKeyIdxLeftUp, CFGKEY_GBCKEY_LEFT_UP);
-	writeKeyConfig2(io, gbcKeyIdxRightUp, CFGKEY_GBCKEY_RIGHT_UP);
-	writeKeyConfig2(io, gbcKeyIdxRightDown, CFGKEY_GBCKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, gbcKeyIdxLeftDown, CFGKEY_GBCKEY_LEFT_DOWN);
-	writeKeyConfig2(io, gbcKeyIdxSelect, CFGKEY_GBCKEY_SELECT);
-	writeKeyConfig2(io, gbcKeyIdxStart, CFGKEY_GBCKEY_START);
-	writeKeyConfig2(io, gbcKeyIdxA, CFGKEY_GBCKEY_A);
-	writeKeyConfig2(io, gbcKeyIdxB, CFGKEY_GBCKEY_B);
-	writeKeyConfig2(io, gbcKeyIdxATurbo, CFGKEY_GBCKEY_A_TURBO);
-	writeKeyConfig2(io, gbcKeyIdxBTurbo, CFGKEY_GBCKEY_B_TURBO);
 }
 
 void EmuSystem::initOptions()
@@ -344,32 +298,23 @@ public:
 	unsigned operator()() { return bits; }
 } gbcInput;
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	using namespace gambatte;
-	switch(input)
-	{
-		case SysVController::F_ELEM: return InputGetter::A;
-		case SysVController::F_ELEM+1: return InputGetter::B;
+	map[SysVController::F_ELEM] = InputGetter::A;
+	map[SysVController::F_ELEM+1] = InputGetter::B;
 
-		case SysVController::C_ELEM: return InputGetter::SELECT;
-		case SysVController::C_ELEM+1: return InputGetter::START;
+	map[SysVController::C_ELEM] = InputGetter::SELECT;
+	map[SysVController::C_ELEM+1] = InputGetter::START;
 
-		case SysVController::D_ELEM: return InputGetter::UP | InputGetter::LEFT;
-		case SysVController::D_ELEM+1: return InputGetter::UP;
-		case SysVController::D_ELEM+2: return InputGetter::UP | InputGetter::RIGHT;
-		case SysVController::D_ELEM+3: return InputGetter::LEFT;
-		case SysVController::D_ELEM+5: return InputGetter::RIGHT;
-		case SysVController::D_ELEM+6: return InputGetter::DOWN | InputGetter::LEFT;
-		case SysVController::D_ELEM+7: return InputGetter::DOWN;
-		case SysVController::D_ELEM+8: return InputGetter::DOWN | InputGetter::RIGHT;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = InputGetter::UP | InputGetter::LEFT;
+	map[SysVController::D_ELEM+1] = InputGetter::UP;
+	map[SysVController::D_ELEM+2] = InputGetter::UP | InputGetter::RIGHT;
+	map[SysVController::D_ELEM+3] = InputGetter::LEFT;
+	map[SysVController::D_ELEM+5] = InputGetter::RIGHT;
+	map[SysVController::D_ELEM+6] = InputGetter::DOWN | InputGetter::LEFT;
+	map[SysVController::D_ELEM+7] = InputGetter::DOWN;
+	map[SysVController::D_ELEM+8] = InputGetter::DOWN | InputGetter::RIGHT;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -397,9 +342,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	if(state == INPUT_PUSHED)
+	if(state == Input::PUSHED)
 		setBits(gbcInput.bits, emuKey);
 	else
 		unsetBits(gbcInput.bits, emuKey);
@@ -599,7 +544,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -610,7 +555,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	mainInitCommon();
 	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);

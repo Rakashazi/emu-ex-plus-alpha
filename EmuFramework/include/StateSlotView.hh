@@ -21,7 +21,8 @@
 class StateSlotView : public BaseMenuView
 {
 private:
-	static const uint stateSlots = 11;
+	static constexpr uint stateSlots = 11;
+	char stateStr[stateSlots][40] { { 0 } };
 	TextMenuItem stateSlot[stateSlots];
 
 	MenuItem *item[stateSlots] = {nullptr};
@@ -29,5 +30,5 @@ public:
 	constexpr StateSlotView(): BaseMenuView("State Slot") { }
 
 	void init(bool highlightFirst);
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i);
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i);
 };

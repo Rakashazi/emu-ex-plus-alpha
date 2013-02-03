@@ -415,8 +415,8 @@ struct SSettings
 	char	CartAName[PATH_MAX + 1] {0};
 	char	CartBName[PATH_MAX + 1] {0};
 
-	bool8	DisableGameSpecificHacks = 0;
-	static const bool8	BlockInvalidVRAMAccessMaster = 1;
+	static const bool8	DisableGameSpecificHacks = 0;
+	bool8	BlockInvalidVRAMAccessMaster = 1;
 	bool8	BlockInvalidVRAMAccess = 0;
 	int32	HDMATimingHack = 100;
 
@@ -448,9 +448,9 @@ struct SSettings
 
 	bool8	ApplyCheats = 0;
 	bool8	NoPatch = 0;
-	int32	AutoSaveDelay = 30;
+	static const int32	AutoSaveDelay = 30;
 	static const bool8	DontSaveOopsSnapshot = 0;
-	bool8	UpAndDown = 0;
+	static const bool8	UpAndDown = 0;
 
 	static const bool8	OpenGLEnable = 1;
 };
@@ -477,6 +477,8 @@ void S9xSetPause(uint32);
 void S9xClearPause(uint32);
 void S9xExit(void);
 void S9xMessage(int, int, const char *);
+void S9xPrintf(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
+void S9xPrintfError(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
 
 extern struct SSettings			Settings;
 extern struct SCPUState			CPU;

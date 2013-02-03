@@ -20,7 +20,7 @@
 #include <EmuSystem.hh>
 
 void startGameFromMenu();
-bool isMenuDismissKey(const InputEvent &e);
+bool isMenuDismissKey(const Input::Event &e);
 
 class BaseMultiChoiceView : public BaseMenuView
 {
@@ -28,9 +28,9 @@ public:
 	constexpr BaseMultiChoiceView() { }
 	Rect2<int> viewFrame;
 
-	void inputEvent(const InputEvent &e)
+	void inputEvent(const Input::Event &e)
 	{
-		if(e.state == INPUT_PUSHED)
+		if(e.state == Input::PUSHED)
 		{
 			if(e.isDefaultCancelButton())
 			{
@@ -84,15 +84,27 @@ class MultiChoiceView : public BaseMultiChoiceView
 public:
 	constexpr MultiChoiceView() { }
 
-	typedef Delegate<bool (int i, const InputEvent &e)> OnInputDelegate;
+	typedef Delegate<bool (int i, const Input::Event &e)> OnInputDelegate;
 	OnInputDelegate onSelect;
-	TextMenuItem choiceEntry[13];
-	MenuItem *choiceEntryItem[13] = {nullptr};
+	TextMenuItem choiceEntry[18];
+	MenuItem *choiceEntryItem[18] = {nullptr};
 
 	// Required delegates
 	OnInputDelegate &onSelectDelegate() { return onSelect; }
 
 	void init(const char **choice, uint choices, bool highlightCurrent)
+	{
+		assert(choices <= sizeofArray(choiceEntry));
+		iterateTimes(choices, i)
+		{
+			choiceEntry[i].init(choice[i]);
+			choiceEntryItem[i] = &choiceEntry[i];
+		}
+		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, C2DO);
+	}
+
+	template <size_t S, size_t S2>
+	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent)
 	{
 		assert(choices <= sizeofArray(choiceEntry));
 		iterateTimes(choices, i)
@@ -119,10 +131,10 @@ public:
 		onSelect.bind<MultiChoiceMenuItem, &MultiChoiceMenuItem::set>(src);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		logMsg("set choice %d", i);
-		if(onSelect.invoke((int)i, e))
+		if(onSelect.invoke((int)i, e)) // TODO: Delegate should handle removeModalView()
 			removeModalView();
 	}
 };
@@ -147,7 +159,7 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 		MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 	}
 
-	void handleChoices(TextMenuItem &, const InputEvent &e)
+	void handleChoices(TextMenuItem &, const Input::Event &e)
 	{
 		multiChoiceView.init(this, !e.isPointer());
 		multiChoiceView.placeRect(Gfx::viewportRect());

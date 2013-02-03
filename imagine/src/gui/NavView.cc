@@ -22,10 +22,10 @@ void NavView::init(ResourceFace *face)
 	hasBackBtn = hasCloseBtn = 0;
 }
 
-void NavView::inputEvent(const InputEvent &e)
+void NavView::inputEvent(const Input::Event &e)
 {
 	assert(e.isPointer());
-	if(e.state == INPUT_PUSHED)
+	if(e.state == Input::PUSHED)
 	{
 		if(hasCloseBtn && rightBtnActive && rightBtn.overlaps(e.x, e.y))
 		{

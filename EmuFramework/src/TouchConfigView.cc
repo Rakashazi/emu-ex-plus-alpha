@@ -334,7 +334,7 @@ void TouchConfigView::btnStaggerInit()
 	btnStagger.valueDelegate().bind<&btnStaggerSet>();
 }
 
-void imageResolutionHandler(BoolMenuItem &item, const InputEvent &e)
+void imageResolutionHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	uint newRes = item.on ? 128 : 64;
@@ -348,7 +348,7 @@ void imageResolutionHandler(BoolMenuItem &item, const InputEvent &e)
 
 BoolMenuItem boundingBoxes;
 
-void boundingBoxesHandler(BoolMenuItem &item, const InputEvent &e)
+void boundingBoxesHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionTouchCtrlBoundingBoxes = item.on;
@@ -356,13 +356,13 @@ void boundingBoxesHandler(BoolMenuItem &item, const InputEvent &e)
 	Base::displayNeedsUpdate();
 }
 
-void vibrateHandler(BoolMenuItem &item, const InputEvent &e)
+void vibrateHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionVibrateOnPush = item.on;
 }
 
-void showMenuIconHandler(BoolMenuItem &item, const InputEvent &e)
+void showMenuIconHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionShowMenuIcon = item.on;

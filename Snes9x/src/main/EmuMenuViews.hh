@@ -7,7 +7,7 @@ class SystemOptionView : public OptionView
 {
 private:
 
-	static void multitapHandler(BoolMenuItem &item, const InputEvent &e)
+	static void multitapHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionMultitap = item.on;
@@ -69,8 +69,27 @@ private:
 		setupSNESInput();
 	}
 
+	#ifndef SNES9X_VERSION_1_4
+	BoolMenuItem blockInvalidVRAMAccess;
+	static void blockInvalidVRAMAccessHandler(BoolMenuItem &item, const Input::Event &e)
+	{
+		item.toggle();
+		optionBlockInvalidVRAMAccess = item.on;
+		Settings.BlockInvalidVRAMAccessMaster = item.on;
+	}
+	#endif
+
 public:
 	constexpr SystemOptionView() { }
+
+	void loadSystemItems(MenuItem *item[], uint &items)
+	{
+		OptionView::loadSystemItems(item, items);
+		#ifndef SNES9X_VERSION_1_4
+		blockInvalidVRAMAccess.init("Block Invalid VRAM Access", optionBlockInvalidVRAMAccess); item[items++] = &blockInvalidVRAMAccess;
+		blockInvalidVRAMAccess.selectDelegate().bind<&blockInvalidVRAMAccessHandler>();
+		#endif
+	}
 
 	void loadInputItems(MenuItem *item[], uint &items)
 	{

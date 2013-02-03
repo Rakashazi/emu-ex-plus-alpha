@@ -28,23 +28,26 @@
 #include "MultiChoiceView.hh"
 #include "ConfigFile.hh"
 #include "FilePicker.hh"
+#include <InputManagerView.hh>
 #include <EmuView.hh>
+#include <TextEntry.hh>
 #include <libgen.h>
 
 #include <meta.h>
 
-bool isMenuDismissKey(const InputEvent &e);
+bool isMenuDismissKey(const Input::Event &e);
 void startGameFromMenu();
 bool touchControlsApplicable();
-void loadGameCompleteFromFilePicker(uint result, const InputEvent &e);
+void loadGameCompleteFromFilePicker(uint result, const Input::Event &e);
 EmuFilePicker fPicker;
 CreditsView credits(creditsViewStr);
 YesNoAlertView ynAlertView;
 Gfx::Sprite menuIcon;
 MultiChoiceView multiChoiceView;
+CollectTextInputView textInputView;
 ViewStack viewStack;
-extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 WorkDirStack<1> workDirStack;
+static bool updateInpueDevicesOnResume = 0;
 
 void chdirFromFilePath(const char *path)
 {
@@ -53,18 +56,18 @@ void chdirFromFilePath(const char *path)
 	FsSys::chdir(dirname(dirNameTemp));
 }
 
-void onCloseModalPopWorkDir(const InputEvent &e)
+void onCloseModalPopWorkDir(const Input::Event &e)
 {
 	View::removeModalView();
 	workDirStack.pop();
 }
 
-void onLeftNavBtn(const InputEvent &e)
+void onLeftNavBtn(const Input::Event &e)
 {
 	viewStack.popAndShow();
 }
 
-void onRightNavBtn(const InputEvent &e)
+void onRightNavBtn(const Input::Event &e)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -281,51 +284,6 @@ namespace CATS
 //static int soundRateDelta = 0;
 bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 
-
-
-/*static void updateActivePlayerKeyInputs()
-{
-	mem_zero(playerActiveKeyInput);
-	#ifdef INPUT_SUPPORTS_POINTER
-	playerActiveKeyInput[pointerInputPlayer] = 1;
-	//logMsg("pointer -> player %d", pointerInputPlayer);
-	#endif
-	#ifdef INPUT_SUPPORTS_KEYBOARD
-	playerActiveKeyInput[keyboardInputPlayer] = 1;
-	//logMsg("keyboard -> player %d", keyboardInputPlayer);
-	#endif
-	#ifdef CONFIG_BASE_PS3
-	iterateTimes((int)maxPlayers, i)
-	{
-		playerActiveKeyInput[gamepadInputPlayer[i]] = 1;
-	}
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	iterateTimes(Bluetooth::wiimotes(), i)
-	{
-		playerActiveKeyInput[wiimoteInputPlayer[i]] = 1;
-		//logMsg("wiimote %d -> player %d", i, wiimoteInputPlayer[i]);
-	}
-	#ifdef CONFIG_BLUETOOTH_ICP
-	iterateTimes(Bluetooth::iCPs(), i)
-	{
-		playerActiveKeyInput[iControlPadInputPlayer[i]] = 1;
-		//logMsg("iCP -> player %d", iControlPadInputPlayer);
-	}
-	#endif
-	iterateTimes(Bluetooth::zeemotes(), i)
-	{
-		playerActiveKeyInput[zeemoteInputPlayer[i]] = 1;
-		//logMsg("zeemote -> player %d", zeemoteInputPlayer);
-	}
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-	playerActiveKeyInput[iCadeInputPlayer] = 1;
-	#endif
-}*/
-
-
-
 static GC fontMM =
 #if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
 	3.5
@@ -487,19 +445,46 @@ void setupVControllerVars()
 }
 #endif
 
-
+void updateOnScreenControlVisible()
+{
+	if((uint)optionTouchCtrl == 2)
+	{
+		if(touchControlsAreOn && physicalControlsPresent)
+		{
+			logMsg("turning off on-screen controls");
+			touchControlsAreOn = 0;
+			emuView.placeEmu();
+		}
+		else if(!touchControlsAreOn && !physicalControlsPresent)
+		{
+			logMsg("turning on on-screen controls");
+			touchControlsAreOn = 1;
+			emuView.placeEmu();
+		}
+	}
+}
 
 static void setupVolKeysInGame()
 {
 	using namespace EmuControls;
 	#if defined(INPUT_SUPPORTS_KEYBOARD)
-	uint *key = keyConfig.key(InputEvent::DEV_KEYBOARD);
-	iterateTimes(keyConfig.totalKeys, k)
+	iterateTimes(inputDevConfs, i)
 	{
-		if(Input::isVolumeKey(key[k]))
+		if(!inputDevConf[i].enabled ||
+			inputDevConf[i].dev->map() != Input::Event::MAP_KEYBOARD ||
+			!inputDevConf[i].savedConf) // no default configs use volume keys
 		{
-			Input::setHandleVolumeKeys(1);
-			return;
+			continue;
+		}
+		auto key = inputDevConf[i].keyConf().key();
+		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
+		{
+			if(Input::isVolumeKey(key[k]))
+			{
+				logMsg("key config has volume keys");
+				Input::setHandleVolumeKeys(1);
+				return;
+			}
 		}
 	}
 	#endif
@@ -531,7 +516,7 @@ void startGameFromMenu()
 	{
 		bcase 0: touchControlsAreOn = 0;
 		bcase 1: touchControlsAreOn = 1;
-		bcase 2: touchControlsAreOn = !Input::keyInputIsPresent();
+		bcase 2: touchControlsAreOn = !physicalControlsPresent;
 		bdefault: bug_branch("%d", (int)optionTouchCtrl);
 	}
 	//logMsg("touch control state: %d", touchControlsAreOn);
@@ -603,7 +588,7 @@ static void restoreMenuFromGame()
 
 
 
-void confirmExitAppAlert(const InputEvent &e)
+void confirmExitAppAlert(const Input::Event &e)
 {
 	Base::exit();
 }
@@ -621,7 +606,7 @@ void onExit(bool backgrounded)
 		if(optionNotificationIcon)
 		{
 			char title[48];
-			snprintf(title, sizeof(title), "%s was suspended", CONFIG_APP_NAME);
+			string_printf(title, "%s was suspended", CONFIG_APP_NAME);
 			Base::addNotification(title, title, EmuSystem::gameName);
 		}
 	}
@@ -688,7 +673,7 @@ static void handleOpenFileCommand(const char *filename)
 	FsSys::chdir(dir);
 	logMsg("opening file %s in dir %s from external command", file, dir);
 	restoreMenuFromGame();
-	GameFilePicker::onSelectFile(file, InputEvent{});
+	GameFilePicker::onSelectFile(file, Input::Event{});
 }
 
 void onDragDrop(const char *filename)
@@ -705,6 +690,13 @@ void onInterProcessMessage(const char *filename)
 
 void onResume(bool focused)
 {
+	if(updateInpueDevicesOnResume)
+	{
+		updateInputDevices();
+		updateOnScreenControlVisible();
+		updateInpueDevicesOnResume = 0;
+	}
+
 	if(optionPauseUnfocused)
 		onFocusChange(focused); // let focus handler deal with resuming emulation
 	else
@@ -718,46 +710,6 @@ void onResume(bool focused)
 			Base::displayNeedsUpdate();
 		}
 	}
-}
-
-void onInputDevChange(const Base::InputDevChange &change)
-{
-	logMsg("got input dev change");
-	if((uint)optionTouchCtrl == 2)
-	{
-		if(change.added() || change.shown())
-		{
-			logMsg("turning off on-screen controls");
-			touchControlsAreOn = 0;
-			emuView.placeEmu();
-		}
-		#ifdef CONFIG_BLUETOOTH
-		else if(!Bluetooth::devsConnected())
-		{
-			logMsg("turning on on-screen controls");
-			touchControlsAreOn = 1;
-			emuView.placeEmu();
-		}
-		#endif
-	}
-
-	if(Base::appIsRunning() && (change.added() || change.removed()))
-	{
-		popup.printf(2, 0, "%s %d %s", InputEvent::devTypeName(change.devType), change.devId + 1, change.added() ? "connected" : "disconnected");
-		Base::displayNeedsUpdate();
-	}
-
-	if(menuViewIsActive)
-		Base::setIdleDisplayPowerSave(
-		#ifdef CONFIG_BLUETOOTH
-			Bluetooth::devsConnected() ? 0 :
-		#endif
-			(int)optionIdleDisplayPowerSave);
-
-	#ifdef CONFIG_BLUETOOTH
-		if(viewStack.size == 1) // update bluetooth items
-			viewStack.top()->onShow();
-	#endif
 }
 
 }
@@ -809,20 +761,18 @@ void EmuView::place()
 	}
 }
 
-
-
-void EmuView::inputEvent(const InputEvent &e)
+void EmuView::inputEvent(const Input::Event &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(e.isPointer())
 	{
-		if(e.state == INPUT_PUSHED && optionTouchCtrlMenuPos != NULL2DO && emuMenuB.overlaps(e.x, e.y))
+		if(e.state == Input::PUSHED && optionTouchCtrlMenuPos != NULL2DO && emuMenuB.overlaps(e.x, e.y))
 		{
 			viewStack.top()->clearSelection();
 			restoreMenuFromGame();
 			return;
 		}
-		else if(e.state == INPUT_PUSHED && optionTouchCtrlFFPos != NULL2DO && emuFFB.overlaps(e.x, e.y))
+		else if(e.state == Input::PUSHED && optionTouchCtrlFFPos != NULL2DO && emuFFB.overlaps(e.x, e.y))
 		{
 			toggle(ffGuiTouch);
 		}
@@ -843,20 +793,18 @@ void EmuView::inputEvent(const InputEvent &e)
 	#endif
 	{
 		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-		if(e.state == INPUT_PUSHED && e.button == Input::Key::ESCAPE)
+		if(e.state == Input::PUSHED && e.button == Input::Keycode::ESCAPE)
 		{
 			restoreMenuFromGame();
 			return;
 		}
 		#endif
-		KeyMapping::Action (*actionMap)[KeyMapping::maxKeyActions];
-		keyMapping.mapFromDevType(e.devType, actionMap);
-		bool handledSystemControl = 0;
-		uint player = mapInputToPlayer(e);//e.devId;
-		//logMsg("player %d input %s", player, Input::buttonName(e.devType, e.button));
+		assert(e.device);
+		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device->idx][e.button];
+		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
 		iterateTimes(KeyMapping::maxKeyActions, i)
 		{
-			KeyMapping::Action action = actionMap[e.button][i];
+			auto action = actionMap[i];
 			if(action != 0)
 			{
 				using namespace EmuControls;
@@ -866,12 +814,12 @@ void EmuView::inputEvent(const InputEvent &e)
 				{
 					bcase guiKeyIdxFastForward:
 					{
-						ffGuiKeyPush = e.state == INPUT_PUSHED;
+						ffGuiKeyPush = e.state == Input::PUSHED;
 						logMsg("fast-forward key state: %d", ffGuiKeyPush);
 					}
 
 					bcase guiKeyIdxLoadGame:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						logMsg("open load game menu from key event");
 						restoreMenuFromGame();
@@ -883,7 +831,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					}
 
 					bcase guiKeyIdxMenu:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						logMsg("open menu from key event");
 						restoreMenuFromGame();
@@ -891,7 +839,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					}
 
 					bcase guiKeyIdxSaveState:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						int ret = EmuSystem::saveState();
 						if(ret != STATE_RESULT_OK)
@@ -904,7 +852,7 @@ void EmuView::inputEvent(const InputEvent &e)
 					}
 
 					bcase guiKeyIdxLoadState:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						int ret = EmuSystem::loadState();
 						if(ret != STATE_RESULT_OK && ret != STATE_RESULT_OTHER_ERROR)
@@ -914,15 +862,34 @@ void EmuView::inputEvent(const InputEvent &e)
 						return;
 					}
 
+					bcase guiKeyIdxDecStateSlot:
+					if(e.state == Input::PUSHED)
+					{
+						EmuSystem::saveStateSlot--;
+						if(EmuSystem::saveStateSlot < -1)
+							EmuSystem::saveStateSlot = 9;
+						popup.printf(1, 0, "State Slot: %s", stateNameStr(EmuSystem::saveStateSlot));
+					}
+
+					bcase guiKeyIdxIncStateSlot:
+					if(e.state == Input::PUSHED)
+					{
+						auto prevSlot = EmuSystem::saveStateSlot;
+						EmuSystem::saveStateSlot++;
+						if(EmuSystem::saveStateSlot > 9)
+							EmuSystem::saveStateSlot = -1;
+						popup.printf(1, 0, "State Slot: %s", stateNameStr(EmuSystem::saveStateSlot));
+					}
+
 					bcase guiKeyIdxGameScreenshot:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						takeGameScreenshot();
 						return;
 					}
 
 					bcase guiKeyIdxExit:
-					if(e.state == INPUT_PUSHED)
+					if(e.state == Input::PUSHED)
 					{
 						logMsg("request exit from key event");
 						ynAlertView.init("Really Exit?", Input::keyInputIsPresent());
@@ -938,20 +905,19 @@ void EmuView::inputEvent(const InputEvent &e)
 						//logMsg("action %d, %d", emuKey, state);
 						bool turbo;
 						uint sysAction = EmuSystem::translateInputAction(action, turbo);
-						//logMsg("action %d -> %d, pushed %d", action, sysAction, e.state == INPUT_PUSHED);
+						//logMsg("action %d -> %d, pushed %d", action, sysAction, e.state == Input::PUSHED);
 						if(turbo)
 						{
-							if(e.state == INPUT_PUSHED)
+							if(e.state == Input::PUSHED)
 							{
-								turboActions.addEvent(player, sysAction);
+								turboActions.addEvent(sysAction);
 							}
 							else
 							{
-								turboActions.removeEvent(player, sysAction);
+								turboActions.removeEvent(sysAction);
 							}
 						}
-						EmuSystem::handleInputAction(player, e.state, sysAction);
-						handledSystemControl = 1;
+						EmuSystem::handleInputAction(e.state, sysAction);
 					}
 				}
 			}
@@ -993,7 +959,59 @@ void onDraw()
 }
 }
 
-static void handleInputEvent(const InputEvent &e)
+namespace Input
+{
+
+void onInputDevChange(const DeviceChange &change)
+{
+	logMsg("got input dev change");
+
+	if(Base::appIsRunning())
+	{
+		updateInputDevices();
+		updateOnScreenControlVisible();
+
+		if(change.added() || change.removed())
+		{
+			if(change.map == Input::Event::MAP_KEYBOARD || change.map == Input::Event::MAP_ICADE)
+			{
+				#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+				if(optionNotifyInputDeviceChange)
+				#endif
+				{
+					popup.post("Input devices have changed", 2, 0);
+					Base::displayNeedsUpdate();
+				}
+			}
+			else
+			{
+				popup.printf(2, 0, "%s %d %s", Input::Event::mapName(change.map), change.devId + 1, change.added() ? "connected" : "disconnected");
+				Base::displayNeedsUpdate();
+			}
+		}
+
+		#ifdef CONFIG_BLUETOOTH
+			if(viewStack.size == 1) // update bluetooth items
+				viewStack.top()->onShow();
+		#endif
+	}
+	else
+	{
+		logMsg("delaying input device changes until app resumes");
+		updateInpueDevicesOnResume = 1;
+	}
+
+	if(menuViewIsActive)
+		Base::setIdleDisplayPowerSave(
+		#ifdef CONFIG_BLUETOOTH
+			Bluetooth::devsConnected() ? 0 :
+		#endif
+			(int)optionIdleDisplayPowerSave);
+}
+
+}
+
+static void handleInputEvent(const Input::Event &e)
 {
 	/*if(e.isPointer())
 	{
@@ -1001,7 +1019,7 @@ static void handleInputEvent(const InputEvent &e)
 	}
 	else
 	{
-		logMsg("%s %s from %s", Input::buttonName(e.devType, e.button), Input::eventActionToStr(e.state), e.devTypeName(e.devType));
+		logMsg("%s %s from %s", Input::buttonName(e.map, e.button), Input::eventActionToStr(e.state), e.mapName(e.map));
 	}*/
 	if(likely(EmuSystem::isActive()))
 	{
@@ -1011,7 +1029,7 @@ static void handleInputEvent(const InputEvent &e)
 		View::modalView->inputEvent(e);
 	else if(menuViewIsActive)
 	{
-		if(e.state == INPUT_PUSHED && e.isDefaultCancelButton())
+		if(e.state == Input::PUSHED && e.isDefaultCancelButton())
 		{
 			if(viewStack.size == 1)
 			{
@@ -1020,12 +1038,12 @@ static void handleInputEvent(const InputEvent &e)
 				{
 					startGameFromMenu();
 				}
-				else if(e.devType == InputEvent::DEV_KEYBOARD && (Config::envIsAndroid || Config::envIsLinux))
+				else if(e.map == Input::Event::MAP_KEYBOARD && (Config::envIsAndroid || Config::envIsLinux))
 					Base::exit();
 			}
 			else viewStack.popAndShow();
 		}
-		if(e.state == INPUT_PUSHED && isMenuDismissKey(e))
+		if(e.state == Input::PUSHED && isMenuDismissKey(e))
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -1084,11 +1102,6 @@ static void mainInitCommon()
 {
 	initOptions();
 	EmuSystem::initOptions();
-	#ifdef CONFIG_BASE_ANDROID
-		if(Base::runningDeviceType() == Base::DEV_TYPE_XPERIA_PLAY)
-			EmuControls::profileManager(InputEvent::DEV_KEYBOARD).baseProfile = 1; // Index 1 is always Play profile
-	#endif
-	resetBaseKeyProfile();
 
 	#ifdef CONFIG_BLUETOOTH
 	assert(EmuSystem::maxPlayers <= 5);
@@ -1120,8 +1133,6 @@ TouchConfigView tcMenu(touchConfigFaceBtnName, touchConfigCenterBtnName);
 #endif
 
 #include "CommonViewControl.hh"
-
-#include "ButtonConfigView.hh"
 
 #include <MenuView.hh>
 
@@ -1187,6 +1198,9 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
 
+	updateInputDevices();
+	updateOnScreenControlVisible();
+	vController.updateMapping(0);
 	EmuSystem::configAudioRate();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
@@ -1199,7 +1213,6 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	#endif
 	emuView.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuView.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
-	keyMapping.buildAll();
 
 	if(optionDPI != 0U)
 		Base::setDPI(optionDPI);
@@ -1250,13 +1263,11 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	Base::displayNeedsUpdate();
 }
 
-void OptionCategoryView::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+void OptionCategoryView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 {
 	oCategoryMenu.init(i, !e.isPointer());
 	viewStack.pushAndShow(&oCategoryMenu);
 }
-
-ButtonConfigView bcMenu;
 
 OptionCategoryView oMenu;
 
@@ -1264,4 +1275,5 @@ StateSlotView ssMenu;
 
 RecentGameView rMenu;
 
-InputPlayerMapView ipmMenu;
+InputManagerView imMenu;
+InputManagerDeviceView imdMenu;

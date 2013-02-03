@@ -3,7 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/FceuApi.cc
+SRC += main/Main.cc main/EmuControls.cc main/FceuApi.cc
 
 include ../EmuFramework/common.mk
 

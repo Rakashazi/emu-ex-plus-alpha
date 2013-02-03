@@ -68,17 +68,6 @@ const uint EmuSystem::maxPlayers = 5;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 void EmuSystem::initOptions() { }
 
 extern char MDFN_cdErrorStr[256];
@@ -117,24 +106,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_ARCADE_CARD: optionArcadeCard.readFromIO(io, readSize);
 		bcase CFGKEY_SYSCARD_PATH: optionSysCardPath.readFromIO(io, readSize);
 		logMsg("syscard path %s", sysCardPath);
-		bcase CFGKEY_PCEKEY_UP: readKeyConfig2(io, pceKeyIdxUp, readSize);
-		bcase CFGKEY_PCEKEY_RIGHT: readKeyConfig2(io, pceKeyIdxRight, readSize);
-		bcase CFGKEY_PCEKEY_DOWN: readKeyConfig2(io, pceKeyIdxDown, readSize);
-		bcase CFGKEY_PCEKEY_LEFT: readKeyConfig2(io, pceKeyIdxLeft, readSize);
-		bcase CFGKEY_PCEKEY_LEFT_UP: readKeyConfig2(io, pceKeyIdxLeftUp, readSize);
-		bcase CFGKEY_PCEKEY_RIGHT_UP: readKeyConfig2(io, pceKeyIdxRightUp, readSize);
-		bcase CFGKEY_PCEKEY_RIGHT_DOWN: readKeyConfig2(io, pceKeyIdxRightDown, readSize);
-		bcase CFGKEY_PCEKEY_LEFT_DOWN: readKeyConfig2(io, pceKeyIdxLeftDown, readSize);
-		bcase CFGKEY_PCEKEY_SELECT: readKeyConfig2(io, pceKeyIdxSelect, readSize);
-		bcase CFGKEY_PCEKEY_RUN: readKeyConfig2(io, pceKeyIdxRun, readSize);
-		bcase CFGKEY_PCEKEY_I: readKeyConfig2(io, pceKeyIdxI, readSize);
-		bcase CFGKEY_PCEKEY_II: readKeyConfig2(io, pceKeyIdxII, readSize);
-		bcase CFGKEY_PCEKEY_I_TURBO: readKeyConfig2(io, pceKeyIdxITurbo, readSize);
-		bcase CFGKEY_PCEKEY_II_TURBO: readKeyConfig2(io, pceKeyIdxIITurbo, readSize);
-		bcase CFGKEY_PCEKEY_III: readKeyConfig2(io, pceKeyIdxIII, readSize);
-		bcase CFGKEY_PCEKEY_IV: readKeyConfig2(io, pceKeyIdxIV, readSize);
-		bcase CFGKEY_PCEKEY_V: readKeyConfig2(io, pceKeyIdxV, readSize);
-		bcase CFGKEY_PCEKEY_VI: readKeyConfig2(io, pceKeyIdxVI, readSize);
 	}
 	return 1;
 }
@@ -143,24 +114,6 @@ void EmuSystem::writeConfig(Io *io)
 {
 	optionArcadeCard.writeWithKeyIfNotDefault(io);
 	optionSysCardPath.writeToIO(io);
-	writeKeyConfig2(io, pceKeyIdxUp, CFGKEY_PCEKEY_UP);
-	writeKeyConfig2(io, pceKeyIdxRight, CFGKEY_PCEKEY_RIGHT);
-	writeKeyConfig2(io, pceKeyIdxDown, CFGKEY_PCEKEY_DOWN);
-	writeKeyConfig2(io, pceKeyIdxLeft, CFGKEY_PCEKEY_LEFT);
-	writeKeyConfig2(io, pceKeyIdxLeftUp, CFGKEY_PCEKEY_LEFT_UP);
-	writeKeyConfig2(io, pceKeyIdxRightUp, CFGKEY_PCEKEY_RIGHT_UP);
-	writeKeyConfig2(io, pceKeyIdxRightDown, CFGKEY_PCEKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, pceKeyIdxLeftDown, CFGKEY_PCEKEY_LEFT_DOWN);
-	writeKeyConfig2(io, pceKeyIdxSelect, CFGKEY_PCEKEY_SELECT);
-	writeKeyConfig2(io, pceKeyIdxRun, CFGKEY_PCEKEY_RUN);
-	writeKeyConfig2(io, pceKeyIdxI, CFGKEY_PCEKEY_I);
-	writeKeyConfig2(io, pceKeyIdxII, CFGKEY_PCEKEY_II);
-	writeKeyConfig2(io, pceKeyIdxITurbo, CFGKEY_PCEKEY_I_TURBO);
-	writeKeyConfig2(io, pceKeyIdxIITurbo, CFGKEY_PCEKEY_II_TURBO);
-	writeKeyConfig2(io, pceKeyIdxIII, CFGKEY_PCEKEY_III);
-	writeKeyConfig2(io, pceKeyIdxIV, CFGKEY_PCEKEY_IV);
-	writeKeyConfig2(io, pceKeyIdxV, CFGKEY_PCEKEY_V);
-	writeKeyConfig2(io, pceKeyIdxVI, CFGKEY_PCEKEY_VI);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = pceHuCDFsFilter;
@@ -474,35 +427,28 @@ static void commitEmuAudio(bool render)
 }
 
 #ifdef INPUT_SUPPORTS_POINTER
-static uint ptrInputToSysButton(int input)
+
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		bcase SysVController::F_ELEM: return BIT(0);
-		bcase SysVController::F_ELEM+1: return BIT(1);
-		bcase SysVController::F_ELEM+2: return BIT(0) << 8;
-		bcase SysVController::F_ELEM+3: return BIT(1) << 8;
-		bcase SysVController::F_ELEM+4: return BIT(2) << 8;
-		bcase SysVController::F_ELEM+5: return BIT(3) << 8;
+	uint playerMask = player << 12;
+	map[SysVController::F_ELEM] = BIT(0) | playerMask;
+	map[SysVController::F_ELEM+1] = BIT(1) | playerMask;
+	map[SysVController::F_ELEM+2] = BIT(8) | playerMask;
+	map[SysVController::F_ELEM+3] = BIT(9) | playerMask;
+	map[SysVController::F_ELEM+4] = BIT(10) | playerMask;
+	map[SysVController::F_ELEM+5] = BIT(11) | playerMask;
 
-		bcase SysVController::C_ELEM: return BIT(2);
-		bcase SysVController::C_ELEM+1: return BIT(3);
+	map[SysVController::C_ELEM] = BIT(2) | playerMask;
+	map[SysVController::C_ELEM+1] = BIT(3) | playerMask;
 
-		bcase SysVController::D_ELEM: return BIT(4) | BIT(7);
-		bcase SysVController::D_ELEM+1: return BIT(4); // up
-		bcase SysVController::D_ELEM+2: return BIT(4) | BIT(5);
-		bcase SysVController::D_ELEM+3: return BIT(7); // left
-		bcase SysVController::D_ELEM+5: return BIT(5); // right
-		bcase SysVController::D_ELEM+6: return BIT(6) | BIT(7);
-		bcase SysVController::D_ELEM+7: return BIT(6); // down
-		bcase SysVController::D_ELEM+8: return BIT(6) | BIT(5);
-		bdefault: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = BIT(4) | BIT(7) | playerMask;
+	map[SysVController::D_ELEM+1] = BIT(4) | playerMask;
+	map[SysVController::D_ELEM+2] = BIT(4) | BIT(5) | playerMask;
+	map[SysVController::D_ELEM+3] = BIT(7) | playerMask;
+	map[SysVController::D_ELEM+5] = BIT(5) | playerMask;
+	map[SysVController::D_ELEM+6] = BIT(6) | BIT(7) | playerMask;
+	map[SysVController::D_ELEM+7] = BIT(6) | playerMask;
+	map[SysVController::D_ELEM+8] = BIT(6) | BIT(5) | playerMask;
 }
 
 #endif
@@ -510,34 +456,40 @@ void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
+	assert(input >= pceKeyIdxUp);
+	uint player = (input - pceKeyIdxUp) / EmuControls::gamepadKeys;
+	uint playerMask = player << 12;
+	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
-		case pceKeyIdxUp: return BIT(4);
-		case pceKeyIdxRight: return BIT(5);
-		case pceKeyIdxDown: return BIT(6);
-		case pceKeyIdxLeft: return BIT(7);
-		case pceKeyIdxLeftUp: return BIT(7) | BIT(4);
-		case pceKeyIdxRightUp: return BIT(5) | BIT(4);
-		case pceKeyIdxRightDown: return BIT(5) | BIT(6);
-		case pceKeyIdxLeftDown: return BIT(7) | BIT(6);
-		case pceKeyIdxSelect: return BIT(2);
-		case pceKeyIdxRun: return BIT(3);
+		case pceKeyIdxUp: return BIT(4) | playerMask;
+		case pceKeyIdxRight: return BIT(5) | playerMask;
+		case pceKeyIdxDown: return BIT(6) | playerMask;
+		case pceKeyIdxLeft: return BIT(7) | playerMask;
+		case pceKeyIdxLeftUp: return BIT(7) | BIT(4) | playerMask;
+		case pceKeyIdxRightUp: return BIT(5) | BIT(4) | playerMask;
+		case pceKeyIdxRightDown: return BIT(5) | BIT(6) | playerMask;
+		case pceKeyIdxLeftDown: return BIT(7) | BIT(6) | playerMask;
+		case pceKeyIdxSelect: return BIT(2) | playerMask;
+		case pceKeyIdxRun: return BIT(3) | playerMask;
 		case pceKeyIdxITurbo: turbo = 1;
-		case pceKeyIdxI: return BIT(0);
+		case pceKeyIdxI: return BIT(0) | playerMask;
 		case pceKeyIdxIITurbo: turbo = 1;
-		case pceKeyIdxII: return BIT(1);
-		case pceKeyIdxIII: return BIT(0) << 8;
-		case pceKeyIdxIV: return BIT(1) << 8;
-		case pceKeyIdxV: return BIT(2) << 8;
-		case pceKeyIdxVI: return BIT(3) << 8;
+		case pceKeyIdxII: return BIT(1) | playerMask;
+		case pceKeyIdxIII: return BIT(8) | playerMask;
+		case pceKeyIdxIV: return BIT(9) | playerMask;
+		case pceKeyIdxV: return BIT(10) | playerMask;
+		case pceKeyIdxVI: return BIT(11) | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	if(state == INPUT_PUSHED)
+	uint player = emuKey >> 12;
+	assert(player < maxPlayers);
+	if(state == Input::PUSHED)
 		setBits(inputBuff[player], emuKey);
 	else
 		unsetBits(inputBuff[player], emuKey);
@@ -601,7 +553,7 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -612,7 +564,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	mem_zero(espec);
 	// espec.SoundRate is set in mainInitCommon()

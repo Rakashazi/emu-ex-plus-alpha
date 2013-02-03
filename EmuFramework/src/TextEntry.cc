@@ -18,7 +18,7 @@ void TextEntry::setAcceptingInput(bool on)
 	acceptingInput = on;
 }
 
-void TextEntry::inputEvent(const InputEvent &e)
+void TextEntry::inputEvent(const Input::Event &e)
 {
 	if(e.isPointer() && e.pushed() && b.overlaps(e.x, e.y))
 	{
@@ -38,7 +38,7 @@ void TextEntry::inputEvent(const InputEvent &e)
 			return;
 		}
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		else if(e.button == Input::Key::BACK_SPACE)
+		else if(e.button == Input::Keycode::BACK_SPACE)
 		{
 			int len = strlen(str);
 			if(len > 0)
@@ -112,12 +112,14 @@ void TextEntry::deinit()
 
 void CollectTextInputView::init(const char *msgText, const char *initialContent)
 {
+	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl)
 	{
 		auto res = getXAsset();
 		res->ref();
 		cancelSpr.init(-.5, -.5, .5, .5, res);
 	}
+	#endif
 	message.init(msgText, View::defaultFace);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	textEntry.init(initialContent, View::defaultFace);
@@ -145,8 +147,10 @@ void CollectTextInputView::gotText(const char *str)
 
 void CollectTextInputView::deinit()
 {
+	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.img)
 		cancelSpr.deinitAndFreeImg();
+	#endif
 	message.deinit();
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	textEntry.deinit();
@@ -158,11 +162,13 @@ void CollectTextInputView::deinit()
 void CollectTextInputView::place()
 {
 	using namespace Gfx;
+	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.img)
 	{
 		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace->nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(-Gfx::gXSize(cancelBtn)/3., -Gfx::gYSize(cancelBtn)/3., Gfx::gXSize(cancelBtn)/3., Gfx::gYSize(cancelBtn)/3.);
 	}
+	#endif
 	message.maxLineSize = Gfx::proj.w * 0.95;
 	message.compile();
 	Rect2<int> textRect;
@@ -178,9 +184,9 @@ void CollectTextInputView::place()
 	#endif
 }
 
-void CollectTextInputView::inputEvent(const InputEvent &e)
+void CollectTextInputView::inputEvent(const Input::Event &e)
 {
-	if(e.state == INPUT_PUSHED)
+	if(e.state == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps(e.x, e.y)))
 		{
@@ -205,6 +211,7 @@ void CollectTextInputView::inputEvent(const InputEvent &e)
 void CollectTextInputView::draw()
 {
 	using namespace Gfx;
+	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.img)
 	{
 		setColor(COLOR_WHITE);
@@ -212,6 +219,7 @@ void CollectTextInputView::draw()
 		loadTranslate(gXPos(cancelBtn, C2DO), gYPos(cancelBtn, C2DO));
 		cancelSpr.draw();
 	}
+	#endif
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	setColor(0.25);
 	shadeMod();

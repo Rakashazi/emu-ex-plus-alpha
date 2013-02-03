@@ -90,14 +90,6 @@ enum
 static ESI nesInputPortDev[2] = { SI_UNSET, SI_UNSET };
 
 enum {
-	CFGKEY_NESKEY_UP = 256, CFGKEY_NESKEY_RIGHT = 257,
-	CFGKEY_NESKEY_DOWN = 258, CFGKEY_NESKEY_LEFT = 259,
-	CFGKEY_NESKEY_SELECT = 260, CFGKEY_NESKEY_START = 261,
-	CFGKEY_NESKEY_A = 262, CFGKEY_NESKEY_B = 263,
-	CFGKEY_NESKEY_A_TURBO = 264, CFGKEY_NESKEY_B_TURBO = 265,
-	CFGKEY_NESKEY_LEFT_UP = 266, CFGKEY_NESKEY_RIGHT_UP = 267,
-	CFGKEY_NESKEY_RIGHT_DOWN = 268, CFGKEY_NESKEY_LEFT_DOWN = 269,
-
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
 
 	CFGKEY_NESKEY_A_B = 272,
@@ -111,17 +103,6 @@ const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
 
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
-
 void EmuSystem::initOptions() { }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -132,21 +113,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_FOUR_SCORE: optionFourScore.readFromIO(io, readSize);
 		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
 		logMsg("fds bios path %s", fdsBiosPath);
-		bcase CFGKEY_NESKEY_UP: readKeyConfig2(io, nesKeyIdxUp, readSize);
-		bcase CFGKEY_NESKEY_RIGHT: readKeyConfig2(io, nesKeyIdxRight, readSize);
-		bcase CFGKEY_NESKEY_DOWN: readKeyConfig2(io, nesKeyIdxDown, readSize);
-		bcase CFGKEY_NESKEY_LEFT: readKeyConfig2(io, nesKeyIdxLeft, readSize);
-		bcase CFGKEY_NESKEY_LEFT_UP: readKeyConfig2(io, nesKeyIdxLeftUp, readSize);
-		bcase CFGKEY_NESKEY_RIGHT_UP: readKeyConfig2(io, nesKeyIdxRightUp, readSize);
-		bcase CFGKEY_NESKEY_RIGHT_DOWN: readKeyConfig2(io, nesKeyIdxRightDown, readSize);
-		bcase CFGKEY_NESKEY_LEFT_DOWN: readKeyConfig2(io, nesKeyIdxLeftDown, readSize);
-		bcase CFGKEY_NESKEY_SELECT: readKeyConfig2(io, nesKeyIdxSelect, readSize);
-		bcase CFGKEY_NESKEY_START: readKeyConfig2(io, nesKeyIdxStart, readSize);
-		bcase CFGKEY_NESKEY_A: readKeyConfig2(io, nesKeyIdxA, readSize);
-		bcase CFGKEY_NESKEY_B: readKeyConfig2(io, nesKeyIdxB, readSize);
-		bcase CFGKEY_NESKEY_A_TURBO: readKeyConfig2(io, nesKeyIdxATurbo, readSize);
-		bcase CFGKEY_NESKEY_B_TURBO: readKeyConfig2(io, nesKeyIdxBTurbo, readSize);
-		bcase CFGKEY_NESKEY_A_B: readKeyConfig2(io, nesKeyIdxAB, readSize);
 	}
 	return 1;
 }
@@ -155,21 +121,6 @@ void EmuSystem::writeConfig(Io *io)
 {
 	optionFourScore.writeWithKeyIfNotDefault(io);
 	optionFdsBiosPath.writeToIO(io);
-	writeKeyConfig2(io, nesKeyIdxUp, CFGKEY_NESKEY_UP);
-	writeKeyConfig2(io, nesKeyIdxRight, CFGKEY_NESKEY_RIGHT);
-	writeKeyConfig2(io, nesKeyIdxDown, CFGKEY_NESKEY_DOWN);
-	writeKeyConfig2(io, nesKeyIdxLeft, CFGKEY_NESKEY_LEFT);
-	writeKeyConfig2(io, nesKeyIdxLeftUp, CFGKEY_NESKEY_LEFT_UP);
-	writeKeyConfig2(io, nesKeyIdxRightUp, CFGKEY_NESKEY_RIGHT_UP);
-	writeKeyConfig2(io, nesKeyIdxRightDown, CFGKEY_NESKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, nesKeyIdxLeftDown, CFGKEY_NESKEY_LEFT_DOWN);
-	writeKeyConfig2(io, nesKeyIdxSelect, CFGKEY_NESKEY_SELECT);
-	writeKeyConfig2(io, nesKeyIdxStart, CFGKEY_NESKEY_START);
-	writeKeyConfig2(io, nesKeyIdxA, CFGKEY_NESKEY_A);
-	writeKeyConfig2(io, nesKeyIdxB, CFGKEY_NESKEY_B);
-	writeKeyConfig2(io, nesKeyIdxATurbo, CFGKEY_NESKEY_A_TURBO);
-	writeKeyConfig2(io, nesKeyIdxBTurbo, CFGKEY_NESKEY_B_TURBO);
-	writeKeyConfig2(io, nesKeyIdxAB, CFGKEY_NESKEY_A_B);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = nesFsFilter;
@@ -183,26 +134,23 @@ static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
 
 const char *fceuReturnedError = 0;
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return BIT(0);
-		case SysVController::F_ELEM+1: return BIT(1);
+	uint playerMask = player << 8;
+	map[SysVController::F_ELEM] = BIT(0) | playerMask;
+	map[SysVController::F_ELEM+1] = BIT(1) | playerMask;
 
-		case SysVController::C_ELEM: return BIT(2);
-		case SysVController::C_ELEM+1: return BIT(3);
+	map[SysVController::C_ELEM] = BIT(2) | playerMask;
+	map[SysVController::C_ELEM+1] = BIT(3) | playerMask;
 
-		case SysVController::D_ELEM: return BIT(4) | BIT(6);
-		case SysVController::D_ELEM+1: return BIT(4); // up
-		case SysVController::D_ELEM+2: return BIT(4) | BIT(7);
-		case SysVController::D_ELEM+3: return BIT(6); // left
-		case SysVController::D_ELEM+5: return BIT(7); // right
-		case SysVController::D_ELEM+6: return BIT(5) | BIT(6);
-		case SysVController::D_ELEM+7: return BIT(5); // down
-		case SysVController::D_ELEM+8: return BIT(5) | BIT(7);
-		default: bug_branch("%d", input); return 0;
-	}
+	map[SysVController::D_ELEM] = BIT(4) | BIT(6) | playerMask;
+	map[SysVController::D_ELEM+1] = BIT(4) | playerMask;
+	map[SysVController::D_ELEM+2] = BIT(4) | BIT(7) | playerMask;
+	map[SysVController::D_ELEM+3] = BIT(6) | playerMask;
+	map[SysVController::D_ELEM+5] = BIT(7) | playerMask;
+	map[SysVController::D_ELEM+6] = BIT(5) | BIT(6) | playerMask;
+	map[SysVController::D_ELEM+7] = BIT(5) | playerMask;
+	map[SysVController::D_ELEM+8] = BIT(5) | BIT(7) | playerMask;
 }
 
 static uint32 padData = 0, zapperData[3];
@@ -218,9 +166,48 @@ static uint playerInputShift(uint player)
 	return 0;
 }
 
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
+uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	turbo = 0;
+	assert(input >= nesKeyIdxUp);
+	uint player = (input - nesKeyIdxUp) / EmuControls::gamepadKeys;
+	uint playerMask = player << 8;
+	input -= EmuControls::gamepadKeys * player;
+	switch(input)
+	{
+		case nesKeyIdxUp: return BIT(4) | playerMask;
+		case nesKeyIdxRight: return BIT(7) | playerMask;
+		case nesKeyIdxDown: return BIT(5) | playerMask;
+		case nesKeyIdxLeft: return BIT(6) | playerMask;
+		case nesKeyIdxLeftUp: return BIT(6) | BIT(4) | playerMask;
+		case nesKeyIdxRightUp: return BIT(7) | BIT(4) | playerMask;
+		case nesKeyIdxRightDown: return BIT(7) | BIT(5) | playerMask;
+		case nesKeyIdxLeftDown: return BIT(6) | BIT(5) | playerMask;
+		case nesKeyIdxSelect: return BIT(2) | playerMask;
+		case nesKeyIdxStart: return BIT(3) | playerMask;
+		case nesKeyIdxATurbo: turbo = 1;
+		case nesKeyIdxA: return BIT(0) | playerMask;
+		case nesKeyIdxBTurbo: turbo = 1;
+		case nesKeyIdxB: return BIT(1) | playerMask;
+		case nesKeyIdxAB: return BIT(0) | BIT(1) | playerMask;
+		default: bug_branch("%d", input);
+	}
+	return 0;
+}
+
+void EmuSystem::handleInputAction(uint state, uint emuKey)
+{
+	uint player = emuKey >> 8;
+	auto key = emuKey & 0xFF;
+	if(unlikely(GameInfo->type==GIT_VSUNI)) // TODO: make coin insert separate key
+	{
+		if(state == Input::PUSHED && key == BIT(3))
+			FCEUI_VSUniCoin();
+	}
+	if(state == Input::PUSHED)
+		setBits(padData, key << playerInputShift(player));
+	else
+		unsetBits(padData, key << playerInputShift(player));
 }
 
 static const uint audioMaxFramesPerUpdate = (Audio::maxRate/49)*2;
@@ -535,13 +522,13 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	if(EmuSystem::isActive())
 	{
 		if(unlikely(e.isPointer() && usingZapper))
 		{
-			if(e.state == INPUT_PUSHED)
+			if(e.state == Input::PUSHED)
 			{
 				zapperData[2] = 0;
 				if(emuView.gameView.overlaps(e.x, e.y))
@@ -561,7 +548,7 @@ void onInputEvent(const InputEvent &e)
 					zapperData[2] |= 0x2;
 				}
 			}
-			else if(e.state == INPUT_RELEASED)
+			else if(e.state == Input::RELEASED)
 			{
 				zapperData[2] = 0;
 			}
@@ -569,44 +556,6 @@ void onInputEvent(const InputEvent &e)
 	}
 	handleInputEvent(e);
 }
-}
-
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
-{
-	turbo = 0;
-	switch(input)
-	{
-		case nesKeyIdxUp: return BIT(4);
-		case nesKeyIdxRight: return BIT(7);
-		case nesKeyIdxDown: return BIT(5);
-		case nesKeyIdxLeft: return BIT(6);
-		case nesKeyIdxLeftUp: return BIT(6) | BIT(4);
-		case nesKeyIdxRightUp: return BIT(7) | BIT(4);
-		case nesKeyIdxRightDown: return BIT(7) | BIT(5);
-		case nesKeyIdxLeftDown: return BIT(6) | BIT(5);
-		case nesKeyIdxSelect: return BIT(2);
-		case nesKeyIdxStart: return BIT(3);
-		case nesKeyIdxATurbo: turbo = 1;
-		case nesKeyIdxA: return BIT(0);
-		case nesKeyIdxBTurbo: turbo = 1;
-		case nesKeyIdxB: return BIT(1);
-		case nesKeyIdxAB: return BIT(0) | BIT(1);
-		default: bug_branch("%d", input);
-	}
-	return 0;
-}
-
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
-{
-	if(unlikely(GameInfo->type==GIT_VSUNI)) // TODO: make coin insert separate key
-	{
-		if(state == INPUT_PUSHED && emuKey == BIT(3))
-			FCEUI_VSUniCoin();
-	}
-	if(state == INPUT_PUSHED)
-		setBits(padData, emuKey << playerInputShift(player));
-	else
-		unsetBits(padData, emuKey << playerInputShift(player));
 }
 
 void EmuSystem::savePathChanged()
@@ -620,7 +569,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();

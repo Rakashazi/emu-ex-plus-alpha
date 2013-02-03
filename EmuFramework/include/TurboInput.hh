@@ -21,7 +21,6 @@ struct TurboInput
 	{
 		constexpr Action() { }
 		uint action = 0;
-		uchar player = 0;
 
 		bool operator ==(uint rhs) const
 		{
@@ -38,25 +37,24 @@ struct TurboInput
 		mem_zero(activeAction);
 	}
 
-	void addEvent(uchar player, uint action)
+	void addEvent(uint action)
 	{
 		Action *slot = mem_findFirstZeroValue(activeAction);
 		if(slot)
 		{
 			slot->action = action;
-			slot->player = player;
-			logMsg("added turbo event for player %d, action %d", player, action);
+			logMsg("added turbo event action %d", action);
 		}
 	}
 
-	void removeEvent(uchar player, uint action)
+	void removeEvent(uint action)
 	{
 		forEachInArray(activeAction, e)
 		{
-			if(e->action == action && e->player ==  player)
+			if(e->action == action)
 			{
 				e->action = 0;
-				logMsg("removed turbo event for player %d, action %d", player, action);
+				logMsg("removed turbo event action %d", action);
 			}
 		}
 	}

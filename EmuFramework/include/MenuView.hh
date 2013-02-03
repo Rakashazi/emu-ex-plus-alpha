@@ -25,6 +25,7 @@
 #endif
 #include <config/version.h>
 #include <MultiChoiceView.hh>
+#include <VController.hh>
 
 void startGameFromMenu();
 
@@ -44,7 +45,7 @@ public:
 	constexpr OptionCategoryView(): BaseMenuView("Options") { }
 
 	void init(bool highlightFirst);
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i);
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i);
 };
 
 class RecentGameView : public BaseMenuView
@@ -53,7 +54,7 @@ private:
 	TextMenuItem recentGame[10];
 	TextMenuItem clear {"Clear List", TextMenuItem::SelectDelegate::create<&clearRecentMenuHandler>()};
 
-	static void clearRecentMenuHandler(TextMenuItem &, const InputEvent &e);
+	static void clearRecentMenuHandler(TextMenuItem &, const Input::Event &e);
 
 	MenuItem *item[1 + 10 + 1] = {nullptr};
 public:
@@ -62,42 +63,22 @@ public:
 	void init(bool highlightFirst);
 };
 
-class InputPlayerMapView : public BaseMenuView
+struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
 {
-private:
-	static const uint numDevs = 5 // key
-	+ 1 // pointer
-	+ 1 // iCade
-	#ifdef CONFIG_BASE_PS3
-	+ 5
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	+ (Bluetooth::maxGamepadsPerTypeStorage*3)
-	#endif
-	;
-
-	struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
+	constexpr InputPlayerMapMenuItem() { }
+	uint *player = nullptr;
+	void init(const char *name, uint *player)
 	{
-		constexpr InputPlayerMapMenuItem() { }
-		uint *player = nullptr;
-		void init(const char *name, uint *player)
-		{
-			this->player = player;
-			static const char *str[] = { "1", "2", "3", "4", "5" };
-			MultiChoiceSelectMenuItem::init(name, str, *player, EmuSystem::maxPlayers);
-		}
+		this->player = player;
+		static const char *str[] = { "1", "2", "3", "4", "5" };
+		MultiChoiceSelectMenuItem::init(name, str, *player, EmuSystem::maxPlayers);
+	}
 
-		void doSet(int val)
-		{
-			*player = val;
-		}
-	} inputMap[numDevs];
-
-	MenuItem *item[numDevs + 1] = {nullptr};
-public:
-	constexpr InputPlayerMapView(): BaseMenuView("Input/Player Mapping") { }
-
-	void init(bool highlightFirst);
+	void doSet(int val)
+	{
+		*player = val;
+		vController.updateMapping(*player);
+	}
 };
 
 class MenuView : public BaseMenuView
@@ -115,11 +96,12 @@ protected:
 
 	TextMenuItem stateSlot;
 
-	char stateSlotText[sizeof("State Slot (0)")] = {0};
+	char stateSlotText[sizeof("State Slot (0)")] = // Can't init with string literal due to GCC bug #43453
+			{'S', 't', 'a', 't', 'e', ' ', 'S', 'l', 'o', 't', ' ', '(', '0', ')' };
 
 	TextMenuItem options {"Options"};
 
-	TextMenuItem inputPlayerMap {"Input/Player Mapping"};
+	TextMenuItem inputManager {"Input Device Setup"};
 
 	TextMenuItem benchmark {"Benchmark Game"};
 
@@ -138,7 +120,7 @@ protected:
 public:
 	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION) { }
 
-	static const uint STANDARD_ITEMS = 14;
+	static const uint STANDARD_ITEMS = 15;
 	static const uint MAX_SYSTEM_ITEMS = 2;
 
 	void onShow();

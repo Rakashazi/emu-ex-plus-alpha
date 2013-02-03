@@ -35,7 +35,7 @@ public:
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
-	void inputEvent(const InputEvent &e) override;
+	void inputEvent(const Input::Event &e) override;
 	void draw() override;
 };
 
@@ -43,18 +43,18 @@ class YesNoAlertView : public AlertView
 {
 public:
 	constexpr YesNoAlertView() { }
-	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
+	typedef Delegate<void (const Input::Event &e)> OnInputDelegate;
 
 	TextMenuItem yes {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)},
 		no {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectNo>(this)};
 
-	void selectYes(TextMenuItem &, const InputEvent &e)
+	void selectYes(TextMenuItem &, const Input::Event &e)
 	{
 		removeModalView();
 		onYes.invokeSafe(e);
 	}
 
-	void selectNo(TextMenuItem &, const InputEvent &e)
+	void selectNo(TextMenuItem &, const Input::Event &e)
 	{
 		removeModalView();
 		onNo.invokeSafe(e);

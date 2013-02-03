@@ -51,9 +51,9 @@ void AlertView::place()
 	menu.placeRect(menuViewFrame);
 }
 
-void AlertView::inputEvent(const InputEvent &e)
+void AlertView::inputEvent(const Input::Event &e)
 {
-	if(e.state == INPUT_PUSHED)
+	if(e.state == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton())
 		{

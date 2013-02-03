@@ -46,10 +46,10 @@ static ImagineSound *vcsSound = 0;
 static uint16 tiaColorMap[256];
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 static uint tiaSoundRate = 0, tiaSamplesPerFrame = 0;
+static Console *console = 0;
 #include "MiscStella.hh"
 #define MAX_ROM_SIZE  512 * 1024
 
-static Console *console = 0;
 static Cartridge *cartridge = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
@@ -58,20 +58,6 @@ static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 const uint EmuSystem::maxPlayers = 2;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Joystick Controls", gamepadName, gameActionKeys),
-		KeyCategory("Console Switches", switchName, gameActionKeys + gamepadKeys),
-		KeyCategory("Keyboard Controller 1", keyboardName, gameActionKeys + gamepadKeys + switchKeys),
-		KeyCategory("Keyboard Controller 2", keyboardName, gameActionKeys + gamepadKeys + switchKeys + keyboardKeys),
-};
-
-}
 
 void EmuSystem::initOptions()
 {
@@ -90,6 +76,18 @@ enum
 	vcsKeyIdxLeftDown,
 	vcsKeyIdxJSBtn,
 	vcsKeyIdxJSBtnTurbo,
+
+	vcsKeyIdxUp2,
+	vcsKeyIdxRight2,
+	vcsKeyIdxDown2,
+	vcsKeyIdxLeft2,
+	vcsKeyIdxLeftUp2,
+	vcsKeyIdxRightUp2,
+	vcsKeyIdxRightDown2,
+	vcsKeyIdxLeftDown2,
+	vcsKeyIdxJSBtn2,
+	vcsKeyIdxJSBtnTurbo2,
+
 	vcsKeyIdxSelect,
 	vcsKeyIdxReset,
 	vcsKeyIdxP1Diff,
@@ -100,15 +98,7 @@ enum
 };
 
 enum {
-	CFGKEY_VCSKEY_UP = 256, CFGKEY_VCSKEY_RIGHT = 257,
-	CFGKEY_VCSKEY_DOWN = 258, CFGKEY_VCSKEY_LEFT = 259,
-	CFGKEY_VCSKEY_LEFT_UP = 260, CFGKEY_VCSKEY_RIGHT_UP = 261,
-	CFGKEY_VCSKEY_RIGHT_DOWN = 262, CFGKEY_VCSKEY_LEFT_DOWN = 263,
-	CFGKEY_VCSKEY_SELECT = 264, CFGKEY_VCSKEY_JSBTN = 265,
-	CFGKEY_VCSKEY_JSBTN_TURBO = 266, CFGKEY_VCSKEY_P1_DIFF = 267,
-	CFGKEY_VCSKEY_P2_DIFF = 268, CFGKEY_VCSKEY_RESET = 269,
-	CFGKEY_VCSKEY_COLOR_BW = 270,
-	CFGKEY_VCSKEY_KEYBOARD_BASE = 271, // 24 keys, next value is 295
+//	CFGKEY_* = 256 // no config keys defined yet
 };
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -116,48 +106,14 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_VCSKEY_UP: readKeyConfig2(io, vcsKeyIdxUp, readSize);
-		bcase CFGKEY_VCSKEY_RIGHT: readKeyConfig2(io, vcsKeyIdxRight, readSize);
-		bcase CFGKEY_VCSKEY_DOWN: readKeyConfig2(io, vcsKeyIdxDown, readSize);
-		bcase CFGKEY_VCSKEY_LEFT: readKeyConfig2(io, vcsKeyIdxLeft, readSize);
-		bcase CFGKEY_VCSKEY_LEFT_UP: readKeyConfig2(io, vcsKeyIdxLeftUp, readSize);
-		bcase CFGKEY_VCSKEY_RIGHT_UP: readKeyConfig2(io, vcsKeyIdxRightUp, readSize);
-		bcase CFGKEY_VCSKEY_RIGHT_DOWN: readKeyConfig2(io, vcsKeyIdxRightDown, readSize);
-		bcase CFGKEY_VCSKEY_LEFT_DOWN: readKeyConfig2(io, vcsKeyIdxLeftDown, readSize);
-		bcase CFGKEY_VCSKEY_JSBTN: readKeyConfig2(io, vcsKeyIdxJSBtn, readSize);
-		bcase CFGKEY_VCSKEY_JSBTN_TURBO: readKeyConfig2(io, vcsKeyIdxJSBtnTurbo, readSize);
-		bcase CFGKEY_VCSKEY_P1_DIFF: readKeyConfig2(io, vcsKeyIdxP1Diff, readSize);
-		bcase CFGKEY_VCSKEY_P2_DIFF: readKeyConfig2(io, vcsKeyIdxP2Diff, readSize);
-		bcase CFGKEY_VCSKEY_RESET: readKeyConfig2(io, vcsKeyIdxReset, readSize);
-		bcase CFGKEY_VCSKEY_SELECT: readKeyConfig2(io, vcsKeyIdxSelect, readSize);
-		bcase CFGKEY_VCSKEY_COLOR_BW: readKeyConfig2(io, vcsKeyIdxColorBW, readSize);
-		#define readKeyCase(z, n, text) bcase (n)+CFGKEY_VCSKEY_KEYBOARD_BASE: readKeyConfig2(io, (n)+vcsKeyIdxKeyboard1Base, readSize);
-		BOOST_PP_REPEAT(24, readKeyCase, ) break;
-		#undef readKeyCase
+		// no config keys defined yet
 	}
 	return 1;
 }
 
 void EmuSystem::writeConfig(Io *io)
 {
-	writeKeyConfig2(io, vcsKeyIdxUp, CFGKEY_VCSKEY_UP);
-	writeKeyConfig2(io, vcsKeyIdxRight, CFGKEY_VCSKEY_RIGHT);
-	writeKeyConfig2(io, vcsKeyIdxDown, CFGKEY_VCSKEY_DOWN);
-	writeKeyConfig2(io, vcsKeyIdxLeft, CFGKEY_VCSKEY_LEFT);
-	writeKeyConfig2(io, vcsKeyIdxLeftUp, CFGKEY_VCSKEY_LEFT_UP);
-	writeKeyConfig2(io, vcsKeyIdxRightUp, CFGKEY_VCSKEY_RIGHT_UP);
-	writeKeyConfig2(io, vcsKeyIdxRightDown, CFGKEY_VCSKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, vcsKeyIdxLeftDown, CFGKEY_VCSKEY_LEFT_DOWN);
-	writeKeyConfig2(io, vcsKeyIdxJSBtn, CFGKEY_VCSKEY_JSBTN);
-	writeKeyConfig2(io, vcsKeyIdxJSBtnTurbo, CFGKEY_VCSKEY_JSBTN_TURBO);
-	writeKeyConfig2(io, vcsKeyIdxP1Diff, CFGKEY_VCSKEY_P1_DIFF);
-	writeKeyConfig2(io, vcsKeyIdxP2Diff, CFGKEY_VCSKEY_P2_DIFF);
-	writeKeyConfig2(io, vcsKeyIdxReset, CFGKEY_VCSKEY_RESET);
-	writeKeyConfig2(io, vcsKeyIdxSelect, CFGKEY_VCSKEY_SELECT);
-	writeKeyConfig2(io, vcsKeyIdxColorBW, CFGKEY_VCSKEY_COLOR_BW);
-	#define writeKeyCase(z, n, text) writeKeyConfig2(io, (n)+vcsKeyIdxKeyboard1Base, (n)+CFGKEY_VCSKEY_KEYBOARD_BASE);
-	BOOST_PP_REPEAT(24, writeKeyCase, )
-	#undef writeKeyCase
+
 }
 
 static const uint vidBufferX = 160, vidBufferY = 320;
@@ -365,31 +321,27 @@ void EmuSystem::configAudioRate()
 
 static const uint audioMaxFramesPerUpdate = (Audio::maxRate/59)*2;
 
-static uint ptrInputToSysButton(uint input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return Event::JoystickZeroFire;
-		case SysVController::F_ELEM+1: return Event::JoystickZeroFire5;
+	uint playerShift = player ? 7 : 0;
+	map[SysVController::F_ELEM] = Event::JoystickZeroFire + playerShift;
+	map[SysVController::F_ELEM+1] = Event::JoystickZeroFire5 + playerShift;
 
-		case SysVController::C_ELEM: return Event::ConsoleSelect;
-		case SysVController::C_ELEM+1: return Event::ConsoleReset;
+	map[SysVController::C_ELEM] = Event::ConsoleSelect;
+	map[SysVController::C_ELEM+1] = Event::ConsoleReset;
 
-		case SysVController::D_ELEM: return (uint)Event::JoystickZeroUp | ((uint)Event::JoystickZeroLeft << 8);
-		case SysVController::D_ELEM+1: return Event::JoystickZeroUp; // up
-		case SysVController::D_ELEM+2: return (uint)Event::JoystickZeroUp | ((uint)Event::JoystickZeroRight << 8);
-		case SysVController::D_ELEM+3: return Event::JoystickZeroLeft; // left
-		case SysVController::D_ELEM+5: return Event::JoystickZeroRight; // right
-		case SysVController::D_ELEM+6: return (uint)Event::JoystickZeroDown | ((uint)Event::JoystickZeroLeft << 8);
-		case SysVController::D_ELEM+7: return Event::JoystickZeroDown; // down
-		case SysVController::D_ELEM+8: return (uint)Event::JoystickZeroDown | ((uint)Event::JoystickZeroRight << 8);
-		default: bug_branch("%d", input); return Event::NoType;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = (((uint)Event::JoystickZeroUp) + playerShift)
+																| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
+	map[SysVController::D_ELEM+1] = Event::JoystickZeroUp + playerShift; // up
+	map[SysVController::D_ELEM+2] = ((uint)Event::JoystickZeroUp  + playerShift)
+																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
+	map[SysVController::D_ELEM+3] = Event::JoystickZeroLeft + playerShift; // left
+	map[SysVController::D_ELEM+5] = Event::JoystickZeroRight + playerShift; // right
+	map[SysVController::D_ELEM+6] = ((uint)Event::JoystickZeroDown + playerShift)
+																	| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
+	map[SysVController::D_ELEM+7] = Event::JoystickZeroDown + playerShift; // down
+	map[SysVController::D_ELEM+8] = ((uint)Event::JoystickZeroDown + playerShift)
+																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -405,9 +357,21 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxRightUp: return Event::JoystickZeroRight | (Event::JoystickZeroUp << 8);
 		case vcsKeyIdxRightDown: return Event::JoystickZeroRight | (Event::JoystickZeroDown << 8);
 		case vcsKeyIdxLeftDown: return Event::JoystickZeroLeft | (Event::JoystickZeroDown << 8);
-		case vcsKeyIdxSelect: return Event::ConsoleSelect;
 		case vcsKeyIdxJSBtnTurbo: turbo = 1;
 		case vcsKeyIdxJSBtn: return Event::JoystickZeroFire;
+
+		case vcsKeyIdxUp2: return Event::JoystickOneUp;
+		case vcsKeyIdxRight2: return Event::JoystickOneRight;
+		case vcsKeyIdxDown2: return Event::JoystickOneDown;
+		case vcsKeyIdxLeft2: return Event::JoystickOneLeft;
+		case vcsKeyIdxLeftUp2: return Event::JoystickOneLeft | (Event::JoystickOneUp << 8);
+		case vcsKeyIdxRightUp2: return Event::JoystickOneRight | (Event::JoystickOneUp << 8);
+		case vcsKeyIdxRightDown2: return Event::JoystickOneRight | (Event::JoystickOneDown << 8);
+		case vcsKeyIdxLeftDown2: return Event::JoystickOneLeft | (Event::JoystickOneDown << 8);
+		case vcsKeyIdxJSBtnTurbo2: turbo = 1;
+		case vcsKeyIdxJSBtn2: return Event::JoystickOneFire;
+
+		case vcsKeyIdxSelect: return Event::ConsoleSelect;
 		case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
 		case vcsKeyIdxP2Diff: return Event::Combo2; // toggle P2 diff
 		case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
@@ -421,58 +385,63 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	Event &ev = osystem.eventHandler().event();
+	auto &ev = osystem.eventHandler().event();
 	uint event1 = emuKey & 0xFF;
-	uint playerShift = player ? 7 : 0;
 
 	//logMsg("got key %d", emuKey);
 
 	switch(event1)
 	{
 		bcase Event::Combo1:
-			if(state != INPUT_PUSHED)
+			if(state != Input::PUSHED)
 				break;
 			toggle(p1DiffB);
 			popup.post(p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A", 1);
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 		bcase Event::Combo2:
-			if(state != INPUT_PUSHED)
+			if(state != Input::PUSHED)
 				break;
 			toggle(p2DiffB);
 			popup.post(p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A", 1);
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 		bcase Event::Combo3:
-			if(state != INPUT_PUSHED)
+			if(state != Input::PUSHED)
 				break;
 			toggle(vcsColor);
 			popup.post(vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W", 1);
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
 		bcase Event::JoystickZeroFire5: // TODO: add turbo support for on-screen controls to framework
-			ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
-			if(state == INPUT_PUSHED)
-				turboActions.addEvent(player, Event::JoystickZeroFire);
+			ev.set(Event::Type(Event::JoystickZeroFire), state == Input::PUSHED);
+			if(state == Input::PUSHED)
+				turboActions.addEvent(Event::JoystickZeroFire);
 			else
-				turboActions.removeEvent(player, Event::JoystickZeroFire);
+				turboActions.removeEvent(Event::JoystickZeroFire);
+		bcase Event::JoystickOneFire5: // TODO: add turbo support for on-screen controls to framework
+			ev.set(Event::Type(Event::JoystickOneFire), state == Input::PUSHED);
+			if(state == Input::PUSHED)
+				turboActions.addEvent(Event::JoystickOneFire);
+			else
+				turboActions.removeEvent(Event::JoystickOneFire);
 		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
-			ev.set(Event::Type(event1), state == INPUT_PUSHED);
+			ev.set(Event::Type(event1), state == Input::PUSHED);
 		bdefault:
-			ev.set(Event::Type(event1 + playerShift), state == INPUT_PUSHED);
+			ev.set(Event::Type(event1), state == Input::PUSHED);
 			uint event2 = emuKey >> 8;
 			if(event2) // extra event for diagonals
 			{
-				ev.set(Event::Type(event2 + playerShift), state == INPUT_PUSHED);
+				ev.set(Event::Type(event2), state == Input::PUSHED);
 			}
 	}
 }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -557,7 +526,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 	EmuSystem::pcmFormat.channels = soundChannels;

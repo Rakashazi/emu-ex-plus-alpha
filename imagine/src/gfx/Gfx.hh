@@ -100,6 +100,9 @@ static void shadeModAlpha()
 
 // transforms
 
+enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
+void setTransformTarget(TransformTargetEnum target);
+
 void applyTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z);
 static void applyTranslate(TransformCoordinate x, TransformCoordinate y) { applyTranslate(x, y, Gfx::proj.focal); }
 void loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z);

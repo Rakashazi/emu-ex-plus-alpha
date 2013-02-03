@@ -71,7 +71,7 @@ private:
 
 	BoolMenuItem listAll;
 
-	static void listAllHandler(BoolMenuItem &item, const InputEvent &e)
+	static void listAllHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionListAllGames = item.on;
@@ -79,7 +79,7 @@ private:
 
 	BoolMenuItem createAndUseCache;
 
-	static void createAndUseCacheHandler(BoolMenuItem &item, const InputEvent &e)
+	static void createAndUseCacheHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionCreateAndUseCache = item.on;
@@ -87,7 +87,7 @@ private:
 
 	BoolMenuItem strictROMChecking;
 
-	static void strictROMCheckingHandler(BoolMenuItem &item, const InputEvent &e)
+	static void strictROMCheckingHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionStrictROMChecking = item.on;
@@ -417,7 +417,7 @@ private:
 			auto res = EmuSystem::loadGame(entry->filename);
 			if(res == 1)
 			{
-				loadGameCompleteFromFilePicker(1, InputEvent{});
+				loadGameCompleteFromFilePicker(1, Input::Event{});
 			}
 			else if(res == 0)
 			{
@@ -425,12 +425,12 @@ private:
 			}
 		}
 
-		void confirmAlert(const InputEvent &e)
+		void confirmAlert(const Input::Event &e)
 		{
 			loadGame();
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(active)
 			{
@@ -487,12 +487,13 @@ public:
 
 class UnibiosSwitchesView : public BaseMenuView
 {
-	MenuItem *item[2];
+	MenuItem *item[2] {nullptr};
 	MultiChoiceSelectMenuItem region {"Region"};
 	BoolMenuItem system;
 public:
+	constexpr UnibiosSwitchesView(): BaseMenuView("Unibios Switches") { }
 
-	static void systemHandler(BoolMenuItem &item, const InputEvent &e)
+	static void systemHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		updateBits(memory.memcard[2], item.on ? BIT(7) : 0, 0x80);
@@ -543,7 +544,7 @@ class SystemMenuView : public MenuView
 {
 private:
 
-	static void gameListHandler(TextMenuItem &, const InputEvent &e)
+	static void gameListHandler(TextMenuItem &, const Input::Event &e)
 	{
 		if(!gameListMenu.init(!e.isPointer()))
 		{
@@ -555,7 +556,7 @@ private:
 
 	TextMenuItem gameList;
 
-	static void unibiosSwitchesHandler(TextMenuItem &item, const InputEvent &e)
+	static void unibiosSwitchesHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		if(EmuSystem::gameIsRunning())
 		{
@@ -571,7 +572,7 @@ private:
 		}
 	}
 
-	TextMenuItem unibiosSwitches;
+	TextMenuItem unibiosSwitches { "Unibios Switches" };
 
 public:
 	constexpr SystemMenuView() { }
@@ -588,7 +589,7 @@ public:
 		loadFileBrowserItems(item, items);
 		gameList.init("Load Game From List"); item[items++] = &gameList;
 		gameList.selectDelegate().bind<&gameListHandler>();
-		unibiosSwitches.init("Unibios Switches"); item[items++] = &unibiosSwitches;
+		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
 		unibiosSwitches.selectDelegate().bind<&unibiosSwitchesHandler>();
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));

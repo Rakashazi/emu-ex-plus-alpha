@@ -149,7 +149,7 @@ static void android_app_pre_exec_cmd(struct android_app* android_app, uint32 cmd
             break;
 
         case APP_CMD_CONFIG_CHANGED:
-        	logMsg("APP_CMD_CONFIG_CHANGED");
+        	//logMsg("APP_CMD_CONFIG_CHANGED");
             AConfiguration_fromAssetManager(android_app->config,
                     android_app->activity->assetManager);
             //print_cur_config(android_app);
@@ -200,14 +200,45 @@ static void android_app_post_exec_cmd(struct android_app* android_app, uint32 cm
     // Can't touch android_app object after this.
 }*/
 
-// Enable on Android 3.1+ to fix strange behavior where the OS
+static void handleInputEvent(struct android_app* app, AInputEvent* event)
+{
+	#ifdef CONFIG_INPUT
+		//logMsg("input event start");
+		if(Input::sendInputToIME && AInputQueue_preDispatchEvent(app->inputQueue, event))
+		{
+			//logMsg("input event used by pre-dispatch");
+			return;
+		}
+		auto handled = Input::onInputEvent(app, event);
+		AInputQueue_finishEvent(app->inputQueue, event, handled);
+		//logMsg("input event end: %s", handled ? "handled" : "not handled");
+	#else
+		AInputQueue_finishEvent(app->inputQueue, event, 0);
+	#endif
+}
+
+// Use on Android 3.1+ to fix strange behavior where the OS
 // claims we haven't processed all input events even though we have.
 // This only seems to happen under heavy input event load, like
 // when using multiple joysticks. Everything seems to work
 // properly if we keep calling AInputQueue_getEvent until
 // it returns an error instead of using AInputQueue_hasEvents
-bool exhaustInputWithGetEvent = 0;
-void process_input(struct android_app* app)
+static void processInputWithGetEvent(struct android_app* app)
+{
+	int events = 0;
+	AInputEvent* event = nullptr;
+	while(AInputQueue_getEvent(app->inputQueue, &event) >= 0)
+	{
+		handleInputEvent(app, event);
+		events++;
+	}
+	if(events > 1)
+	{
+		//logMsg("processed %d input events", events);
+	}
+}
+
+static void processInputWithHasEvents(struct android_app* app)
 {
 	int events = 0;
 	do
@@ -215,32 +246,19 @@ void process_input(struct android_app* app)
 		AInputEvent* event = nullptr;
 		if(AInputQueue_getEvent(app->inputQueue, &event) < 0)
 		{
-			if(!exhaustInputWithGetEvent)
-				logWarn("error getting input event from queue");
+			logWarn("error getting input event from queue");
 			break;
 		}
-		//LOGI("New input event: type=%d\n", AInputEvent_getType(event));
-#ifdef CONFIG_INPUT
-		//logMsg("input event start");
-		if(Input::sendInputToIME && AInputQueue_preDispatchEvent(app->inputQueue, event))
-		{
-			//logMsg("input event used by pre-dispatch");
-			events++;
-			continue;
-		}
-		auto handled = Input::onInputEvent(app, event);
-		AInputQueue_finishEvent(app->inputQueue, event, handled);
-		//logMsg("input event end: %s", handled ? "handled" : "not handled");
-#else
-		AInputQueue_finishEvent(app->inputQueue, event, 0);
-#endif
+		handleInputEvent(app, event);
 		events++;
-	} while(exhaustInputWithGetEvent || AInputQueue_hasEvents(app->inputQueue));
+	} while(AInputQueue_hasEvents(app->inputQueue) == 1);
 	if(events > 1)
 	{
 		//logMsg("processed %d input events", events);
 	}
 }
+
+void (*process_input)(struct android_app* app) = processInputWithHasEvents;
 
 void process_cmd(struct android_app* app)
 {
@@ -530,7 +548,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	using namespace Base;
 	setSDK(activity->sdkVersion);
 	if(Base::androidSDK() >= 12)
-		exhaustInputWithGetEvent = 1;
+		process_input = processInputWithGetEvent;
 	jniInit(activity->env, activity->clazz);
 	activity->instance = android_app_create(activity, savedState, savedStateSize);
 }

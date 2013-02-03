@@ -57,21 +57,6 @@ CallResult Zeemote::open(BluetoothAdapter &adapter)
 		return IO_ERROR;
 	}
 
-	// try to read first packet
-
-	/*int len = read(sock, inputBuffer, 1);
-	if(len == -1)
-	{
-		logMsg("error reading first packet");
-		::close(sock);
-		return IO_ERROR;
-	}
-	packetSize = inputBuffer[0] + 1;
-	inputBufferPos = 1;
-	logMsg("first packet size %d", packetSize);
-
-	Base::sendInputDevChangeMessageToMain(runThread, i, InputEvent::DEV_ZEEMOTE, Base::InputDevChange::ADDED);
-*/
 	return OK;
 }
 
@@ -86,7 +71,8 @@ void Zeemote::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Base::onInputDevChange((Base::InputDevChange){ player, InputEvent::DEV_ZEEMOTE, Base::InputDevChange::REMOVED });
+		Input::removeDevice((Input::Device){player, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"});
+		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ZEEMOTE, Input::DeviceChange::REMOVED });
 	}
 }
 
@@ -103,7 +89,9 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 			delete this;
 			return 0;
 		}
-		Base::onInputDevChange((Base::InputDevChange){ player, InputEvent::DEV_ZEEMOTE, Base::InputDevChange::ADDED });
+		Input::addDevice((Input::Device){player, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"});
+		device = Input::devList.last();
+		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ZEEMOTE, Input::DeviceChange::ADDED });
 		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
@@ -182,6 +170,7 @@ const char *Zeemote::reportIDToStr(uint id)
 
 void Zeemote::processBtnReport(const uchar *btnData, uint player)
 {
+	using namespace Input;
 	uchar btnPush[4] = { 0 };
 	iterateTimes(4, i)
 	{
@@ -196,7 +185,7 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			bool newState = btnPush[i];
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, code, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			onInputEvent(Event(player, Event::MAP_ZEEMOTE, code, newState ? PUSHED : RELEASED, 0, device));
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
@@ -205,6 +194,7 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 
 void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
 {
+	using namespace Input;
 	//logMsg("CC sticks left %dx%d right %dx%d", pos[0], pos[1], pos[2], pos[3]);
 	forEachInArray(stickBtn, e)
 	{
@@ -223,7 +213,7 @@ void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
 			{
 				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
 			};
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ZEEMOTE, btnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			onInputEvent(Event(player, Event::MAP_ZEEMOTE, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
 		}
 		*e = newState;
 	}

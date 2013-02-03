@@ -22,3 +22,6 @@
 #define var_isConst(E) __builtin_constant_p(E)
 #define likely(E) __builtin_expect((E),1)
 #define unlikely(E) __builtin_expect((E),0)
+
+#define PP_STRINGIFY(A) #A
+#define PP_STRINGIFY_EXP(A) PP_STRINGIFY(A)

@@ -53,8 +53,22 @@ static void initPointer()
 	normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
 }
 
+bool Device::anyTypeBitsPresent(uint typeBits)
+{
+	if(typeBits & TYPE_BIT_KEYBOARD)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+static Device *kbDevice = nullptr;
+
 CallResult init()
 {
+	// TODO: get actual device list from XI2
+	addDevice(Device{0, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, "Keyboard"});
+	kbDevice = devList.last();
 	initPointer();
 	return OK;
 }
@@ -73,9 +87,9 @@ static void showCursor()
 
 static void updatePointer(uint event, int p, uint action, int x, int y)
 {
-	pointerPos(x, y, &Input::m[p].x, &Input::m[p].y);
+	Input::pointerPos(x, y, &Input::m[p].x, &Input::m[p].y);
 	Input::dragStateArr[p].pointerEvent(event, action, Input::m[p].x, Input::m[p].y);
-	Input::onInputEvent(InputEvent(p, InputEvent::DEV_POINTER, event, action, Input::m[p].x, Input::m[p].y));
+	Input::onInputEvent(Input::Event(p, Input::Event::MAP_POINTER, event, action, Input::m[p].x, Input::m[p].y, nullptr));
 }
 
 static void handlePointerButton(uint button, int p, uint action, int x, int y)
@@ -86,23 +100,23 @@ static void handlePointerButton(uint button, int p, uint action, int x, int y)
 static void handlePointerMove(int x, int y, int p)
 {
 	Input::m[p].inWin = 1;
-	updatePointer(0, p, INPUT_MOVED, x, y);
+	updatePointer(0, p, Input::MOVED, x, y);
 }
 
 static void handlePointerEnter(int p, int x, int y)
 {
 	Input::m[p].inWin = 1;
-	updatePointer(0, p, INPUT_ENTER_VIEW, x, y);
+	updatePointer(0, p, Input::ENTER_VIEW, x, y);
 }
 
 static void handlePointerLeave(int p, int x, int y)
 {
 	Input::m[p].inWin = 0;
-	updatePointer(0, p, INPUT_EXIT_VIEW, x, y);
+	updatePointer(0, p, Input::EXIT_VIEW, x, y);
 }
 
 static void handleKeyEv(KeySym k, uint action, bool isShiftPushed)
 {
 	//logMsg("got keysym %d", (int)k);
-	Input::onInputEvent(InputEvent(0, InputEvent::DEV_KEYBOARD, k & 0xFFFF, action, isShiftPushed));
+	Input::onInputEvent(Input::Event(0, Input::Event::MAP_KEYBOARD, k & 0xFFFF, action, isShiftPushed, Input::kbDevice));
 }

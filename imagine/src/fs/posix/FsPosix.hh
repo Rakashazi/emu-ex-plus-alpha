@@ -15,7 +15,7 @@ public:
 	const char *entryFilename(uint index) const override;
 	void closeDir() override;
 
-	CallResult openDir(const char* path, uint flags = 0, FsDirFilterFunc f = 0, FsDirSortFunc s = 0);
+	CallResult openDir(const char* path, uint flags = 0, FsDirFilterFunc f = nullptr, FsDirSortFunc s = nullptr);
 
 	static int chdir(const char *dir);
 	static int fileType(const char *path);

@@ -31,7 +31,7 @@ public:
 	
 	static constexpr bool verifyState = 0;
 
-	GLenum matrixModeState = GL_INVALID_ENUM;
+	GLenum matrixModeState = GL_MODELVIEW;
 	void matrixMode(GLenum mode)
 	{
 		if(mode != matrixModeState)

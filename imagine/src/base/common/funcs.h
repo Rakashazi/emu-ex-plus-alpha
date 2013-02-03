@@ -213,51 +213,17 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 
 }
 
-#ifdef USES_POLL_WAIT_TIMER
-
-#include <base/common/PollWaitTimer.hh>
-
-DLList<PollWaitTimer>::Node DLListNodeArray(PollWaitTimer::timerListNode, 4);
-DLList<PollWaitTimer> PollWaitTimer::timerList {timerListNode};
-
-namespace Base
-{
-
-void cancelCallback(CallbackRef *ref)
-{
-	if(ref)
-		((PollWaitTimer*)ref)->remove();
-}
-
-CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
-{
-	PollWaitTimer timer(callback);
-	if(!timer.add(ms))
-	{
-		return nullptr;
-	}
-	return (CallbackRef*)timer.timerList.first();
-}
-
-}
-
 static int getPollTimeout()
 {
 	// When waiting for events:
 	// 1. If rendering, don't block
-	// 2. Else if a timer is active, block for at most its remaining time
-	// 3. Else block until next event
+	// 2. Else block until next event
 	int pollTimeout = Base::gfxUpdate ? 0 :
-		PollWaitTimer::hasCallbacks() ? PollWaitTimer::getNextCallback()->calcPollWaitForFunc() :
 		-1;
-	/*if(pollTimeout >= 2000)
-		logMsg("will poll for at most %d ms", pollTimeout);*/
 	/*if(pollTimeout == -1)
 		logMsg("will poll for next event");*/
 	return pollTimeout;
 }
-
-#endif
 
 void* operator new (std::size_t size)
 #ifdef __EXCEPTIONS
@@ -282,8 +248,8 @@ void* operator new[] (std::size_t size)
 
 //void* operator new (size_t size, long unsigned int) { return mem_alloc(size); }
 
-void operator delete (void *o) { mem_free(o); }
-void operator delete[] (void *o) { mem_free(o); }
+void operator delete (void *o) noexcept { mem_free(o); }
+void operator delete[] (void *o) noexcept { mem_free(o); }
 
 #ifdef __EXCEPTIONS
 namespace __gnu_cxx
@@ -291,7 +257,7 @@ namespace __gnu_cxx
 
 EVISIBLE void __verbose_terminate_handler()
 {
-	logMsg("terminated by uncaught exception");
+	logErr("terminated by uncaught exception");
   abort();
 }
 

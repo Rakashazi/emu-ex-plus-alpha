@@ -69,7 +69,7 @@ public:
 		top()->placeRect(customViewRect);
 	}
 
-	void inputEvent(const InputEvent &e)
+	void inputEvent(const Input::Event &e)
 	{
 		if(useNavView && nav && e.isPointer() && nav->viewRect.overlaps(e.x, e.y))
 		{
@@ -137,6 +137,15 @@ public:
 		Base::displayNeedsUpdate();
 	}
 
+	void popTo(View *v)
+	{
+		while(size > 1 && view[size-1] != v)
+			pop();
+		place();
+		top()->show();
+		Base::displayNeedsUpdate();
+	}
+
 	void show()
 	{
 		top()->show();
@@ -146,5 +155,15 @@ public:
 	{
 		assert(size != 0);
 		return view[size-1];
+	}
+
+	bool contains(View *v)
+	{
+		iterateTimes(size, i)
+		{
+			if(view[i] == v)
+				return 1;
+		}
+		return 0;
 	}
 };

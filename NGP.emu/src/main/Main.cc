@@ -38,13 +38,6 @@ enum
 };
 
 enum {
-	CFGKEY_NGPKEY_UP = 256, CFGKEY_NGPKEY_RIGHT = 257,
-	CFGKEY_NGPKEY_DOWN = 258, CFGKEY_NGPKEY_LEFT = 259,
-	CFGKEY_NGPKEY_OPTION = 260,
-	CFGKEY_NGPKEY_A = 261, CFGKEY_NGPKEY_B = 262,
-	CFGKEY_NGPKEY_A_TURBO = 263, CFGKEY_NGPKEY_B_TURBO = 264,
-	CFGKEY_NGPKEY_LEFT_UP = 265, CFGKEY_NGPKEY_RIGHT_UP = 266,
-	CFGKEY_NGPKEY_RIGHT_DOWN = 267, CFGKEY_NGPKEY_LEFT_DOWN = 268,
 	CFGKEY_NGPKEY_LANGUAGE = 269,
 };
 
@@ -53,17 +46,6 @@ static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNG
 const uint EmuSystem::maxPlayers = 1;
 uint EmuSystem::aspectRatioX = 20, EmuSystem::aspectRatioY = 19;
 #include "CommonGui.hh"
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
 
 void EmuSystem::initOptions()
 {
@@ -75,19 +57,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_NGPKEY_UP:	readKeyConfig2(io, ngpKeyIdxUp, readSize);
-		bcase CFGKEY_NGPKEY_RIGHT: readKeyConfig2(io, ngpKeyIdxRight, readSize);
-		bcase CFGKEY_NGPKEY_DOWN: readKeyConfig2(io, ngpKeyIdxDown, readSize);
-		bcase CFGKEY_NGPKEY_LEFT: readKeyConfig2(io, ngpKeyIdxLeft, readSize);
-		bcase CFGKEY_NGPKEY_LEFT_UP: readKeyConfig2(io, ngpKeyIdxLeftUp, readSize);
-		bcase CFGKEY_NGPKEY_RIGHT_UP: readKeyConfig2(io, ngpKeyIdxRightUp, readSize);
-		bcase CFGKEY_NGPKEY_RIGHT_DOWN: readKeyConfig2(io, ngpKeyIdxRightDown, readSize);
-		bcase CFGKEY_NGPKEY_LEFT_DOWN: readKeyConfig2(io, ngpKeyIdxLeftDown, readSize);
-		bcase CFGKEY_NGPKEY_OPTION: readKeyConfig2(io, ngpKeyIdxOption, readSize);
-		bcase CFGKEY_NGPKEY_A: readKeyConfig2(io, ngpKeyIdxA, readSize);
-		bcase CFGKEY_NGPKEY_B: readKeyConfig2(io, ngpKeyIdxB, readSize);
-		bcase CFGKEY_NGPKEY_A_TURBO: readKeyConfig2(io, ngpKeyIdxATurbo, readSize);
-		bcase CFGKEY_NGPKEY_B_TURBO: readKeyConfig2(io, ngpKeyIdxBTurbo, readSize);
 		bcase CFGKEY_NGPKEY_LANGUAGE: optionNGPLanguage.readFromIO(io, readSize);
 	}
 	return 1;
@@ -96,19 +65,6 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 void EmuSystem::writeConfig(Io *io)
 {
 	optionNGPLanguage.writeWithKeyIfNotDefault(io);
-	writeKeyConfig2(io, ngpKeyIdxUp, CFGKEY_NGPKEY_UP);
-	writeKeyConfig2(io, ngpKeyIdxRight, CFGKEY_NGPKEY_RIGHT);
-	writeKeyConfig2(io, ngpKeyIdxDown, CFGKEY_NGPKEY_DOWN);
-	writeKeyConfig2(io, ngpKeyIdxLeft, CFGKEY_NGPKEY_LEFT);
-	writeKeyConfig2(io, ngpKeyIdxLeftUp, CFGKEY_NGPKEY_LEFT_UP);
-	writeKeyConfig2(io, ngpKeyIdxRightUp, CFGKEY_NGPKEY_RIGHT_UP);
-	writeKeyConfig2(io, ngpKeyIdxRightDown, CFGKEY_NGPKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, ngpKeyIdxLeftDown, CFGKEY_NGPKEY_LEFT_DOWN);
-	writeKeyConfig2(io, ngpKeyIdxOption, CFGKEY_NGPKEY_OPTION);
-	writeKeyConfig2(io, ngpKeyIdxA, CFGKEY_NGPKEY_A);
-	writeKeyConfig2(io, ngpKeyIdxB, CFGKEY_NGPKEY_B);
-	writeKeyConfig2(io, ngpKeyIdxATurbo, CFGKEY_NGPKEY_A_TURBO);
-	writeKeyConfig2(io, ngpKeyIdxBTurbo, CFGKEY_NGPKEY_B_TURBO);
 }
 
 static bool isROMExtension(const char *name)
@@ -138,30 +94,21 @@ static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;//&PixelFormatBGRA4444
 static const uint ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return ctrlABit;
-		case SysVController::F_ELEM+1: return ctrlBBit;
+	map[SysVController::F_ELEM] = ctrlABit;
+	map[SysVController::F_ELEM+1] = ctrlBBit;
 
-		case SysVController::C_ELEM: return ctrlOptionBit;
+	map[SysVController::C_ELEM] = ctrlOptionBit;
 
-		case SysVController::D_ELEM: return ctrlUpBit | ctrlLeftBit;
-		case SysVController::D_ELEM+1: return ctrlUpBit;
-		case SysVController::D_ELEM+2: return ctrlUpBit | ctrlRightBit;
-		case SysVController::D_ELEM+3: return ctrlLeftBit;
-		case SysVController::D_ELEM+5: return ctrlRightBit;
-		case SysVController::D_ELEM+6: return ctrlDownBit | ctrlLeftBit;
-		case SysVController::D_ELEM+7: return ctrlDownBit;
-		case SysVController::D_ELEM+8: return ctrlDownBit | ctrlRightBit;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = ctrlUpBit | ctrlLeftBit;
+	map[SysVController::D_ELEM+1] = ctrlUpBit;
+	map[SysVController::D_ELEM+2] = ctrlUpBit | ctrlRightBit;
+	map[SysVController::D_ELEM+3] = ctrlLeftBit;
+	map[SysVController::D_ELEM+5] = ctrlRightBit;
+	map[SysVController::D_ELEM+6] = ctrlDownBit | ctrlLeftBit;
+	map[SysVController::D_ELEM+7] = ctrlDownBit;
+	map[SysVController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -187,24 +134,14 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
 	uchar &ctrlBits = ram[0x6F82];
-	if(state == INPUT_PUSHED)
+	if(state == Input::PUSHED)
 		setBits(ctrlBits, emuKey);
 	else
 		unsetBits(ctrlBits, emuKey);
 }
-
-/*static void setupDrawing(bool force)
-{
-	if(force || !disp.img)
-	{
-		vidPix.init((uchar*)cfb, pixFmt, ngpResX, ngpResY);
-		vidImg.init(vidPix, 0, optionImgFilter);
-		disp.setImg(&vidImg);
-	}
-}*/
 
 static bool renderToScreen = 0;
 
@@ -488,7 +425,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	handleInputEvent(e);
 }
@@ -567,7 +504,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	mainInitCommon();
 	EmuSystem::pcmFormat.channels = 1;

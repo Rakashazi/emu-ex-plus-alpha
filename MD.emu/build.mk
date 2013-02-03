@@ -6,13 +6,13 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc
+SRC += main/Main.cc main/EmuControls.cc main/Cheats.cc
 
 include ../EmuFramework/common.mk
 
 CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \
 -DSysDDec=float -DSysLDDec=float -DNO_SYSTEM_PICO
-# -DNO_SVP -DNO_SYSTEM_PBC -DNO_SCD
+# -DNO_SVP -DNO_SYSTEM_PBC
 
 GPLUS := genplus-gx
 
@@ -48,25 +48,37 @@ $(GPLUS)/input_hw/lightgun.cc $(GPLUS)/input_hw/mouse.cc $(GPLUS)/input_hw/teamp
 $(GPLUS)/input_hw/xe_a1p.cc \
 $(GPLUS)/input_hw/sportspad.cc $(GPLUS)/input_hw/paddle.cc
 
-# Sega CD support
-
-GPLUS_SRC += scd/scd.cc scd/LC89510.cc scd/cd_sys.cc scd/gfx_cd.cc scd/pcm.cc scd/cd_file.cc \
-scd/memMain.cc scd/memSub.cc
-
 SRC += $(GPLUS_SRC) fileio/fileio.cc
 
-CPPFLAGS += -I../PCE.emu/src/include -I../PCE.emu/src
-VPATH += ../PCE.emu/src/mednafen
-CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DHAVE_LIBSNDFILE
-SRC += error.cpp endian.cpp FileWrapper.cpp general.cpp \
-cdrom/audioreader.cpp cdrom/lec.cpp \
-cdrom/recover-raw.cpp cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp \
-cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp cdrom/CDUtility.cpp
+# Sega CD support
 
-include $(IMAGINE_PATH)/make/package/libvorbis.mk
-include $(IMAGINE_PATH)/make/package/libsndfile.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
+ifneq ($(SUBARCH), armv6)
+ hasSCD := 1
+endif
+
+ifdef hasSCD
+ SRC += scd/scd.cc scd/LC89510.cc scd/cd_sys.cc scd/gfx_cd.cc scd/pcm.cc scd/cd_file.cc \
+ scd/memMain.cc scd/memSub.cc
+
+ CPPFLAGS += -I../PCE.emu/src/include -I../PCE.emu/src
+ VPATH += ../PCE.emu/src/mednafen
+ CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DHAVE_LIBSNDFILE
+ SRC += error.cpp endian.cpp FileWrapper.cpp general.cpp \
+ cdrom/audioreader.cpp cdrom/lec.cpp \
+ cdrom/recover-raw.cpp cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp \
+ cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp cdrom/CDUtility.cpp
+
+ include $(IMAGINE_PATH)/make/package/libvorbis.mk
+ include $(IMAGINE_PATH)/make/package/libsndfile.mk
+else
+ CPPFLAGS += -DNO_SCD
+endif
+
+# TODO: not needed if not building CD support
 include $(IMAGINE_PATH)/make/package/stdc++.mk
+
+include $(IMAGINE_PATH)/make/package/unzip.mk
+
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

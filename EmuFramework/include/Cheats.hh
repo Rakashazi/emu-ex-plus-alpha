@@ -5,7 +5,7 @@ class BaseCheatsView : public BaseMenuView
 private:
 	TextMenuItem edit {"Add/Edit", TextMenuItem::SelectDelegate::create<&editHandler>()};
 
-	static void editHandler(TextMenuItem &item, const InputEvent &e)
+	static void editHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		editCheatListView.init(!e.isPointer());
 		viewStack.pushAndShow(&editCheatListView);

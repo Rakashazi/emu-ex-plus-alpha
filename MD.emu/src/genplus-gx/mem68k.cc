@@ -115,7 +115,7 @@ unsigned int eeprom_read_word(unsigned int address)
   {
     return eeprom_read(1);
   }
-  return *(uint16 *)(cart.rom + address);
+  return *(uint16a *)(cart.rom + address);
 }
 
 void eeprom_write_byte(unsigned int address, unsigned int data)

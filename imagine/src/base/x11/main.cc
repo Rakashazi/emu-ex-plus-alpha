@@ -8,7 +8,6 @@
 #include <base/Base.hh>
 #include <util/strings.h>
 #include <util/time/sys.hh>
-#define USES_POLL_WAIT_TIMER
 #include <base/common/funcs.h>
 
 #ifdef CONFIG_FS
@@ -139,11 +138,6 @@ void setAcceptDnd(bool on)
 	else
 		disableXdnd(dpy, win);
 }
-
-static int globalArgc;
-static char** globalArgv;
-uint numArgs() { return(globalArgc); }
-char * getArg(uint arg) { return(globalArgv[arg]); }
 
 void setWindowTitle(char *name)
 {
@@ -442,9 +436,9 @@ static int eventHandler(XEvent event)
 				switch(ievent.evtype)
 				{
 					bcase XI_ButtonPress:
-						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), INPUT_PUSHED, ievent.event_x, ievent.event_y);
+						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), Input::PUSHED, ievent.event_x, ievent.event_y);
 					bcase XI_ButtonRelease:
-						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), INPUT_RELEASED, ievent.event_x, ievent.event_y);
+						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), Input::RELEASED, ievent.event_x, ievent.event_y);
 					bcase XI_Motion:
 						handlePointerMove(ievent.event_x, ievent.event_y, devIdToPointer(ievent.deviceid));
 					bcase XI_Enter:
@@ -470,9 +464,10 @@ static int eventHandler(XEvent event)
 							if(!repeated || Input::allowKeyRepeats)
 							{
 								#ifdef CONFIG_INPUT_ICADE
-								if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k, 0), INPUT_PUSHED)))
+								if(!Input::kbDevice->iCadeMode()
+										|| (Input::kbDevice->iCadeMode() && !processICadeKey(decodeAscii(k, 0), Input::PUSHED, *Input::kbDevice)))
 								#endif
-									handleKeyEv(k, INPUT_PUSHED, ievent.mods.effective & ShiftMask);
+									handleKeyEv(k, Input::PUSHED, ievent.mods.effective & ShiftMask);
 							}
 						}
 					}
@@ -480,7 +475,7 @@ static int eventHandler(XEvent event)
 					{
 						KeySym k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 						//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
-						handleKeyEv(k, INPUT_RELEASED, 0);
+						handleKeyEv(k, Input::RELEASED, 0);
 					}
 				}
 				XFreeEventData(dpy, &event.xcookie);
@@ -508,7 +503,7 @@ int x11FDHandler(int events)
 	return 1;
 }
 
-void addPollEvent2(int fd, PollEventDelegate &handler, uint events)
+void addPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
 	struct epoll_event ev = { 0 };
 	ev.data.ptr = &handler;
@@ -556,15 +551,6 @@ void setDPI(float dpi)
 	Gfx::setupScreenSize();
 }
 
-bool isInputDevPresent(uint type)
-{
-	switch(type)
-	{
-		case InputEvent::DEV_KEYBOARD: return 1;
-	}
-	return 0;
-}
-
 void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 {
 	uint16 shortArg16 = shortArg;
@@ -608,8 +594,6 @@ static int epollWaitWrapper(int epfd, struct epoll_event *events,
 int main(int argc, char** argv)
 {
 	using namespace Base;
-	globalArgc = argc;
-	globalArgv = argv;
 
 	doOrExit(logger_init());
 
@@ -670,7 +654,7 @@ int main(int argc, char** argv)
 	}
 
 	doOrElse(initX(), return 1);
-	doOrExit(onInit());
+	doOrExit(onInit(argc, argv));
 	dispX = DisplayWidth(dpy, screen);
 	dispY = DisplayHeight(dpy, screen);
 	{
@@ -712,10 +696,10 @@ int main(int argc, char** argv)
 	}
 
 	auto msgPoll = PollEventDelegate::create<&msgFdHandler>();
-	addPollEvent2(msgPipe[0], msgPoll);
+	addPollEvent(msgPipe[0], msgPoll);
 	
 	auto x11Poll = PollEventDelegate::create<&x11FDHandler>();
-	addPollEvent2(ConnectionNumber(dpy), x11Poll);
+	addPollEvent(ConnectionNumber(dpy), x11Poll);
 	openGLSetOutputVideoMode(mainWin);
 	engineInit();
 
@@ -744,7 +728,6 @@ int main(int argc, char** argv)
 				bug_exit("epoll_wait failed with errno %d", errno);
 		}
 		runEngine();
-		PollWaitTimer::processCallbacks();
 	}
 	return 0;
 }

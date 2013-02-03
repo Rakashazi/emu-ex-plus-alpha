@@ -34,10 +34,10 @@ void CreditsView::place ()
 	text.compile();
 }
 
-void CreditsView::inputEvent(const InputEvent &e)
+void CreditsView::inputEvent(const Input::Event &e)
 {
-	if((e.isPointer() && rect.overlaps(e.x, e.y) && e.state == INPUT_RELEASED)
-			|| (!e.isPointer() && e.state == INPUT_PUSHED))
+	if((e.isPointer() && rect.overlaps(e.x, e.y) && e.state == Input::RELEASED)
+			|| (!e.isPointer() && e.state == Input::PUSHED))
 	{
 		viewStack.popAndShow();
 	}

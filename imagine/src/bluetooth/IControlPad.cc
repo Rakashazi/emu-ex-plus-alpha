@@ -22,7 +22,7 @@
 extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
 
-static const PackedInputAccess iCPDataAccess[] =
+static const Input::PackedInputAccess iCPDataAccess[] =
 {
 	{ 0, BIT(2), Input::iControlPad::LEFT },
 	{ 0, BIT(1), Input::iControlPad::RIGHT },
@@ -94,33 +94,11 @@ CallResult IControlPad::open(BluetoothAdapter &adapter)
 #endif
 	sock.onDataDelegate().bind<IControlPad, &IControlPad::dataHandler>(this);
 	sock.onStatusDelegate().bind<IControlPad, &IControlPad::statusHandler>(this);
-	//var_selfs(player);
 	if(sock.openRfcomm(addr, 1) != OK)
 	{
 		logErr("error opening socket");
 		return IO_ERROR;
 	}
-
-	/*if(fd_writeAll(sock, setLEDPulseInverse, sizeof setLEDPulseInverse) != sizeof setLEDPulseInverse)
-	{
-		logErr("error writing SET_LED_MODE");
-		::close(sock);
-		return IO_ERROR;
-	}
-	doOrReturn(getOKReply());
-
-	if(fd_writeAll(sock, turnOnReports, sizeof turnOnReports) != sizeof turnOnReports)
-	{
-		logErr("error writing GP_REPORTS");
-		::close(sock);
-		return IO_ERROR;
-	}
-	doOrReturn(getOKReply());
-
-	inputBufferPos = 0;
-	devId = i;
-	devType = InputEvent::DEV_ICONTROLPAD;
-	Base::sendInputDevChangeMessageToMain(runThread, i, InputEvent::DEV_ICONTROLPAD, Base::InputDevChange::ADDED);*/
 
 	return OK;
 }
@@ -136,7 +114,8 @@ void IControlPad::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Base::onInputDevChange((Base::InputDevChange){ player, InputEvent::DEV_ICONTROLPAD, Base::InputDevChange::REMOVED });
+		Input::removeDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
+		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ICONTROLPAD, Input::DeviceChange::REMOVED });
 	}
 }
 
@@ -155,7 +134,9 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 		}
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
-		Base::onInputDevChange((Base::InputDevChange){ player, InputEvent::DEV_ICONTROLPAD, Base::InputDevChange::ADDED });
+		Input::addDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
+		device = Input::devList.last();
+		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ICONTROLPAD, Input::DeviceChange::ADDED });
 		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
@@ -185,7 +166,7 @@ bool IControlPad::dataHandler(const uchar *packet, size_t size)
 			logMsg("got OK reply");
 			if(function == FUNC_SET_LED_MODE)
 			{
-				logMsg("turing on GP_REPORTS");
+				logMsg("turning on GP_REPORTS");
 				sock.write(turnOnReports, sizeof turnOnReports);
 				function = FUNC_GP_REPORTS;
 				return 1;
@@ -218,6 +199,7 @@ bool IControlPad::dataHandler(const uchar *packet, size_t size)
 
 void IControlPad::processBtnReport(const uchar *btnData, uint player)
 {
+	using namespace Input;
 	forEachInArray(iCPDataAccess, e)
 	{
 		bool oldState = prevBtnData[e->byteOffset] & e->mask,
@@ -225,7 +207,7 @@ void IControlPad::processBtnReport(const uchar *btnData, uint player)
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, e->keyEvent, newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			onInputEvent(Event(player, Event::MAP_ICONTROLPAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, device));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -233,6 +215,7 @@ void IControlPad::processBtnReport(const uchar *btnData, uint player)
 
 void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint player)
 {
+	using namespace Input;
 	//logMsg("iCP nubs %d %d %d %d", (int)nubData[0], (int)nubData[1], (int)nubData[2], (int)nubData[3]);
 	forEachInArray(nubBtn, e)
 	{
@@ -252,7 +235,7 @@ void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint pl
 				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
 				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
 			};
-			Input::onInputEvent(InputEvent(player, InputEvent::DEV_ICONTROLPAD, nubBtnEvent[e_i], newState ? INPUT_PUSHED : INPUT_RELEASED, 0));
+			onInputEvent(Event(player, Event::MAP_ICONTROLPAD, nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
 		}
 		*e = newState;
 	}

@@ -36,7 +36,7 @@ $(outputLibFile) : $(pcFile)
 
 $(configureFile) : $(zlibSrcDir)/configure.ac
 	@echo "Generating configure for minizip..."
-	cd $(zlibSrcDir) && autoreconf -isf
+	cd $(zlibSrcDir) && autoreconf -if
 
 $(pcFile) : $(configureFile)
 	@echo "Configuring minizip..."

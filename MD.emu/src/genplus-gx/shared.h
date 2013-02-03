@@ -31,7 +31,9 @@
 #include "ggenie.h"
 #include "areplay.h"
 #include "svp.h"
+#ifndef NO_SCD
 #include "scd/scd.h"
+#endif
 #include "osd.h"
 
 #endif /* _SHARED_H_ */

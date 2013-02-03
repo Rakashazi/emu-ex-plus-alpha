@@ -14,3 +14,7 @@ ifdef O_LTO
  #OPTIMIZE_CFLAGS = -O4 $(NORMAL_OPTIMIZE_CFLAGS_MISC)
  LDFLAGS += $(COMPILE_FLAGS) $(WHOLE_PROGRAM_CFLAGS)
 endif
+
+ifeq ($(ENV),linux)
+ CPPFLAGS += -D__extern_always_inline=inline
+endif

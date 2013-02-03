@@ -3,18 +3,17 @@
 #include <MsgPopup.hh>
 #include <FilePicker.hh>
 
-static ButtonConfigCategoryView bcatMenu;
 extern MsgPopup popup;
 extern EmuFilePicker fPicker;
 
-void soundHandler(BoolMenuItem &item, const InputEvent &e)
+void soundHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionSound = item.on;
 }
 
 #ifdef CONFIG_AUDIO_OPENSL_ES
-static void soundUnderrunCheckHandler(BoolMenuItem &item, const InputEvent &e)
+static void soundUnderrunCheckHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionSoundUnderrunCheck = item.on;
@@ -22,7 +21,7 @@ static void soundUnderrunCheckHandler(BoolMenuItem &item, const InputEvent &e)
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-static void useOSInputMethodHandler(BoolMenuItem &item, const InputEvent &e)
+static void useOSInputMethodHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	Input::setEventsUseOSInputMethod(!item.on);
@@ -30,7 +29,7 @@ static void useOSInputMethodHandler(BoolMenuItem &item, const InputEvent &e)
 #endif
 
 #ifdef CONFIG_ENV_WEBOS
-static void touchCtrlHandler(BoolMenuItem &item, const InputEvent &e)
+static void touchCtrlHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionTouchCtrl = item.on;
@@ -58,7 +57,7 @@ void OptionView::touchCtrlInit()
 }
 #endif
 
-void touchCtrlConfigHandler(TextMenuItem &, const InputEvent &e)
+void touchCtrlConfigHandler(TextMenuItem &, const Input::Event &e)
 {
 	#ifndef CONFIG_BASE_PS3
 		logMsg("init touch config menu");
@@ -192,7 +191,7 @@ void OptionView::audioRateInit()
 #ifdef CONFIG_BASE_ANDROID
 
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		static void directTextureHandler(BoolMenuItem &item, const InputEvent &e)
+		static void directTextureHandler(BoolMenuItem &item, const Input::Event &e)
 		{
 			if(!item.active)
 			{
@@ -208,7 +207,7 @@ void OptionView::audioRateInit()
 	#endif
 
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		static void surfaceTextureHandler(BoolMenuItem &item, const InputEvent &e)
+		static void surfaceTextureHandler(BoolMenuItem &item, const Input::Event &e)
 		{
 			item.toggle();
 			optionSurfaceTexture = item.on;
@@ -218,7 +217,7 @@ void OptionView::audioRateInit()
 		}
 	#endif
 
-	static void glSyncHackHandler(BoolMenuItem &item, const InputEvent &e)
+	static void glSyncHackHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		glSyncHackEnabled = item.on;
@@ -226,19 +225,25 @@ void OptionView::audioRateInit()
 
 #endif
 
-void confirmAutoLoadStateHandler(BoolMenuItem &item, const InputEvent &e)
+void confirmAutoLoadStateHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionConfirmAutoLoadState = item.on;
 }
 
-void pauseUnfocusedHandler(BoolMenuItem &item, const InputEvent &e)
+void confirmOverwriteStateHandler(BoolMenuItem &item, const Input::Event &e)
+{
+	item.toggle();
+	optionConfirmOverwriteState = item.on;
+}
+
+void pauseUnfocusedHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionPauseUnfocused = item.on;
 }
 
-void largeFontsHandler(BoolMenuItem &item, const InputEvent &e)
+void largeFontsHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionLargeFonts = item.on;
@@ -246,47 +251,47 @@ void largeFontsHandler(BoolMenuItem &item, const InputEvent &e)
 	Gfx::onViewChange(nullptr);
 }
 
-void notificationIconHandler(BoolMenuItem &item, const InputEvent &e)
+void notificationIconHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionNotificationIcon = item.on;
 }
 
-void lowProfileOSNavHandler(BoolMenuItem &item, const InputEvent &e)
+void lowProfileOSNavHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionLowProfileOSNav = item.on;
 	applyOSNavStyle();
 }
 
-void hideOSNavHandler(BoolMenuItem &item, const InputEvent &e)
+void hideOSNavHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionHideOSNav = item.on;
 	applyOSNavStyle();
 }
 
-void idleDisplayPowerSaveHandler(BoolMenuItem &item, const InputEvent &e)
+void idleDisplayPowerSaveHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionIdleDisplayPowerSave = item.on;
 	Base::setIdleDisplayPowerSave(item.on);
 }
 
-void altGamepadConfirmHandler(BoolMenuItem &item, const InputEvent &e)
+void altGamepadConfirmHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
-	input_swappedGamepadConfirm = item.on;
+	Input::swappedGamepadConfirm = item.on;
 }
 
-void ditherHandler(BoolMenuItem &item, const InputEvent &e)
+void ditherHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionDitherImage = item.on;
 	Gfx::setDither(item.on);
 }
 
-void navViewHandler(BoolMenuItem &item, const InputEvent &e)
+void navViewHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionTitleBar = item.on;
@@ -294,7 +299,7 @@ void navViewHandler(BoolMenuItem &item, const InputEvent &e)
 	Gfx::onViewChange(nullptr);
 }
 
-void backNavHandler(BoolMenuItem &item, const InputEvent &e)
+void backNavHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	View::setNeedsBackControl(item.on);
@@ -302,57 +307,13 @@ void backNavHandler(BoolMenuItem &item, const InputEvent &e)
 	Gfx::onViewChange(nullptr);
 }
 
-void rememberLastMenuHandler(BoolMenuItem &item, const InputEvent &e)
+void rememberLastMenuHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionRememberLastMenu = item.on;
 }
 
-void buttonConfigHandler(TextMenuItem &, const InputEvent &e)
-{
-	#if defined(CONFIG_BASE_PS3)
-		bcatMenu.init(InputEvent::DEV_PS3PAD, !e.isPointer());
-	#elif defined(INPUT_SUPPORTS_KEYBOARD)
-		bcatMenu.init(InputEvent::DEV_KEYBOARD, !e.isPointer());
-	#else
-		bug_exit("invalid dev type in initButtonConfigMenu");
-	#endif
-	viewStack.pushAndShow(&bcatMenu);
-}
-
-#ifdef CONFIG_INPUT_ICADE
-void iCadeHandler(BoolMenuItem &item, const InputEvent &e)
-{
-	item.toggle();
-	Input::setICadeActive(item.on);
-}
-
-void iCadeButtonConfigHandler(TextMenuItem &, const InputEvent &e)
-{
-	bcatMenu.init(InputEvent::DEV_ICADE, !e.isPointer());
-	viewStack.pushAndShow(&bcatMenu);
-}
-#endif
-
 #ifdef CONFIG_BLUETOOTH
-
-void wiiButtonConfigHandler(TextMenuItem &, const InputEvent &e)
-{
-	bcatMenu.init(InputEvent::DEV_WIIMOTE, !e.isPointer());
-	viewStack.pushAndShow(&bcatMenu);
-}
-
-void iCPButtonConfigHandler(TextMenuItem &, const InputEvent &e)
-{
-	bcatMenu.init(InputEvent::DEV_ICONTROLPAD, !e.isPointer());
-	viewStack.pushAndShow(&bcatMenu);
-}
-
-void zeemoteButtonConfigHandler(TextMenuItem &, const InputEvent &e)
-{
-	bcatMenu.init(InputEvent::DEV_ZEEMOTE, !e.isPointer());
-	viewStack.pushAndShow(&bcatMenu);
-}
 
 void btScanSecsSet(MultiChoiceMenuItem &, int val)
 {
@@ -387,13 +348,13 @@ void OptionView::btScanSecsInit()
 	btScanSecs.valueDelegate().bind<&btScanSecsSet>();
 }
 
-void keepBtActiveHandler(BoolMenuItem &item, const InputEvent &e)
+void keepBtActiveHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionKeepBluetoothActive = item.on;
 }
 
-void btScanCacheHandler(BoolMenuItem &item, const InputEvent &e)
+void btScanCacheHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionBlueToothScanCache = item.on;
@@ -707,13 +668,13 @@ void OptionView::processPriorityInit()
 #endif
 
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
-void OptionView::confirmBestColorModeHintAlert(const InputEvent &e)
+void OptionView::confirmBestColorModeHintAlert(const Input::Event &e)
 {
 	bestColorModeHint.toggle();
 	optionBestColorModeHint = bestColorModeHint.on;
 }
 
-void OptionView::bestColorModeHintHandler(BoolMenuItem &item, const InputEvent &e)
+void OptionView::bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	if(Config::envIsAndroid)
 	{
@@ -761,7 +722,7 @@ public:
 	MenuItem *choiceEntryItem[2] {nullptr};
 	PathChangeDelegate pathChangeDel;
 
-	void onClose(const InputEvent &e)
+	void onClose(const Input::Event &e)
 	{
 		snprintf(optionSavePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
 		logMsg("set save path %s", (char*)optionSavePath);
@@ -777,7 +738,7 @@ public:
 		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		removeModalView();
 		if(i == 0)
@@ -798,7 +759,7 @@ public:
 	}
 } pathSelectMenu;
 
-void OptionView::savePathHandler(TextMenuItem &, const InputEvent &e)
+void OptionView::savePathHandler(TextMenuItem &, const Input::Event &e)
 {
 	pathSelectMenu.init(!e.isPointer());
 	pathSelectMenu.placeRect(Gfx::viewportRect());
@@ -874,23 +835,7 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 		touchCtrlConfig.init(); item[items++] = &touchCtrlConfig;
 		touchCtrlConfig.selectDelegate().bind<&touchCtrlConfigHandler>();
 	}
-	#if !defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_PS3)
-	buttonConfig.init(); item[items++] = &buttonConfig;
-	buttonConfig.selectDelegate().bind<&buttonConfigHandler>();
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-	iCade.init(Input::iCadeActive()); item[items++] = &iCade;
-	iCade.selectDelegate().bind<&iCadeHandler>();
-	iCadeButtonConfig.init(); item[items++] = &iCadeButtonConfig;
-	iCadeButtonConfig.selectDelegate().bind<&iCadeButtonConfigHandler>();
-	#endif
 	#ifdef CONFIG_BLUETOOTH
-	wiiButtonConfig.init(); item[items++] = &wiiButtonConfig;
-	wiiButtonConfig.selectDelegate().bind<&wiiButtonConfigHandler>();
-	iCPButtonConfig.init(); item[items++] = &iCPButtonConfig;
-	iCPButtonConfig.selectDelegate().bind<&iCPButtonConfigHandler>();
-	zeemoteButtonConfig.init(); item[items++] = &zeemoteButtonConfig;
-	zeemoteButtonConfig.selectDelegate().bind<&zeemoteButtonConfigHandler>();
 	btScanSecsInit(); item[items++] = &btScanSecs;
 	if(!optionKeepBluetoothActive.isConst)
 	{
@@ -913,6 +858,8 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	autoSaveStateInit(); item[items++] = &autoSaveState;
 	confirmAutoLoadState.init(optionConfirmAutoLoadState); item[items++] = &confirmAutoLoadState;
 	confirmAutoLoadState.selectDelegate().bind<&confirmAutoLoadStateHandler>();
+	confirmOverwriteState.init(optionConfirmOverwriteState); item[items++] = &confirmOverwriteState;
+	confirmOverwriteState.selectDelegate().bind<&confirmOverwriteStateHandler>();
 	printPathMenuEntryStr(savePathStr);
 	savePath.init(savePathStr, optionConfirmAutoLoadState); item[items++] = &savePath;
 	savePath.selectDelegate().bind<OptionView, &OptionView::savePathHandler>(this);
@@ -954,7 +901,7 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	}
 	if(!optionDPI.isConst) { dpiInit(); item[items++] = &dpi; }
 	#ifndef CONFIG_ENV_WEBOS
-	altGamepadConfirm.init(input_swappedGamepadConfirm); item[items++] = &altGamepadConfirm;
+	altGamepadConfirm.init(Input::swappedGamepadConfirm); item[items++] = &altGamepadConfirm;
 	altGamepadConfirm.selectDelegate().bind<&altGamepadConfirmHandler>();
 	#endif
 	if(!optionIdleDisplayPowerSave.isConst)

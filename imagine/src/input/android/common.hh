@@ -1,5 +1,6 @@
 #pragma once
 
+#include <base/android/private.hh>
 #include <input/DragPointer.hh>
 
 #ifdef CONFIG_INPUT_ICADE
@@ -23,9 +24,9 @@ DragPointer *dragState(int p)
 	return &m[p].dragState;
 }
 
-int cursorX(int p) { assert(p < Input::maxCursors); return m[p].s.x; }
-int cursorY(int p) { assert(p < Input::maxCursors); return m[p].s.y; }
-int cursorIsInView(int p) { assert(p < Input::maxCursors); return m[p].s.inWin; }
+int cursorX(int p) { assert(p < maxCursors); return m[p].s.x; }
+int cursorY(int p) { assert(p < maxCursors); return m[p].s.y; }
+int cursorIsInView(int p) { assert(p < maxCursors); return m[p].s.inWin; }
 
 static const char *androidEventEnumToStr(uint e)
 {
@@ -44,7 +45,7 @@ static const char *androidEventEnumToStr(uint e)
 static void processTouch(uint idx, uint action, TouchState &p)
 {
 	p.dragState.pointerEvent(Pointer::LBUTTON, action, p.s.x, p.s.y);
-	Input::onInputEvent(InputEvent(idx, InputEvent::DEV_POINTER, Pointer::LBUTTON, action, p.s.x, p.s.y));
+	onInputEvent(Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, p.s.x, p.s.y, nullptr));
 }
 
 static bool handleTouchEvent(int action, int x, int y, int pid)
@@ -55,7 +56,7 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 		case AMOTION_EVENT_ACTION_DOWN:
 		case AMOTION_EVENT_ACTION_POINTER_DOWN:
 			//logMsg("touch down for %d", pid);
-			iterateTimes((uint)Input::maxCursors, i) // find a free touch element
+			iterateTimes((uint)maxCursors, i) // find a free touch element
 			{
 				if(m[i].id == -1)
 				{
@@ -63,25 +64,25 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 					p.id = pid;
 					pointerPos(x, y, &p.s.x, &p.s.y);
 					p.s.inWin = 1;
-					processTouch(i, INPUT_PUSHED, p);
+					processTouch(i, PUSHED, p);
 					break;
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_UP:
 		//case AMOTION_EVENT_ACTION_CANCEL: // calling code always uses AMOTION_EVENT_ACTION_UP
-			forEachInArray(Input::m, p)
+			forEachInArray(m, p)
 			{
 				if(p->s.inWin)
 				{
 					//logMsg("touch up for %d from gesture end", p_i);
 					p->id = -1;
 					p->s.inWin = 0;
-					processTouch(p_i, INPUT_RELEASED, *p);
+					processTouch(p_i, RELEASED, *p);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
 			//logMsg("touch up for %d", pid);
-			iterateTimes((uint)Input::maxCursors, i) // find the touch element
+			iterateTimes((uint)maxCursors, i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
@@ -89,20 +90,20 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 					p.id = -1;
 					pointerPos(x, y, &p.s.x, &p.s.y);
 					p.s.inWin = 0;
-					processTouch(i, INPUT_RELEASED, p);
+					processTouch(i, RELEASED, p);
 					break;
 				}
 			}
 		bdefault:
 			// move event
 			//logMsg("event id %d", action);
-			iterateTimes((uint)Input::maxCursors, i) // find the touch element
+			iterateTimes((uint)maxCursors, i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
 					auto &p = m[i];
 					pointerPos(x, y, &p.s.x, &p.s.y);
-					processTouch(i, INPUT_MOVED, p);
+					processTouch(i, MOVED, p);
 					break;
 				}
 			}
@@ -124,19 +125,19 @@ static void handleTrackballEvent(int action, float x, float y)
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
-		Input::onInputEvent(InputEvent(0, InputEvent::DEV_REL_POINTER, 0, INPUT_MOVED_RELATIVE, xTrans, yTrans));
+		onInputEvent(Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, xTrans, yTrans, nullptr));
 	else
-		Input::onInputEvent(InputEvent(0, InputEvent::DEV_REL_POINTER, Key::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? INPUT_PUSHED : INPUT_RELEASED, 0));
+		onInputEvent(Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, nullptr));
 }
 
-static void handleKeyEvent(int key, int down, uint devId, uint metaState)
+static void handleKeyEvent(int key, int down, uint devId, uint metaState, const Device &dev)
 {
-	assert((uint)key < Key::COUNT);
-	uint action = down ? INPUT_PUSHED : INPUT_RELEASED;
+	assert((uint)key < Keycode::COUNT);
+	uint action = down ? PUSHED : RELEASED;
 	#ifdef CONFIG_INPUT_ICADE
-		if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(key, 0), action)))
+		if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(decodeAscii(key, 0), action, dev)))
 	#endif
-			Input::onInputEvent(InputEvent(devId, InputEvent::DEV_KEYBOARD, key & 0xff, action, metaState));
+			onInputEvent(Event(devId, Event::MAP_KEYBOARD, key & 0xff, action, metaState, &dev));
 }
 
 static InputTextDelegate vKeyboardTextDelegate;
@@ -209,6 +210,22 @@ void placeSysTextInput(const Rect2<int> &rect)
 const Rect2<int> &sysTextInputRect()
 {
 	return textRect;
+}
+
+bool Device::anyTypeBitsPresent(uint typeBits)
+{
+	if((typeBits & TYPE_BIT_KEYBOARD) && Base::hardKeyboardIsPresent())
+	{
+		logMsg("hard keyboard present");
+		return 1;
+	}
+
+	forEachInDLList(&Input::devList, e)
+	{
+		if(e.typeBits() & typeBits)
+			return 1;
+	}
+	return 0;
 }
 
 }

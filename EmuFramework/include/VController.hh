@@ -52,11 +52,12 @@ private:
 class VControllerKeyboard
 {
 public:
+	constexpr VControllerKeyboard() { }
 	Gfx::Sprite spr;
 	Area area;
-	uint keyXSize, keyYSize;
+	uint keyXSize = 0, keyYSize = 0;
 	static const uint cols = 10;
-	uint mode;
+	uint mode = 0;
 
 	void init();
 	void updateImg();
@@ -427,12 +428,27 @@ template <uint faceBtns, uint centerBtns, bool hasTriggerButtons = 0, bool revFa
 class VController
 {
 public:
-	int ptrElem[Input::maxCursors][2], prevPtrElem[Input::maxCursors][2];
+	constexpr VController() { }
+
+	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
+	int ptrElem[Input::maxCursors][2] { { 0 } }, prevPtrElem[Input::maxCursors][2] { { 0 } };
 	VControllerGamepad<faceBtns, centerBtns, hasTriggerButtons, revFaceMapping> gp;
-	float alpha;
+	float alpha = 0;
+	typedef uint Map[D_ELEM+9];
+	Map map {0};
 	#ifdef CONFIG_VCONTROLLER_KEYBOARD
 	VControllerKeyboard kb;
-	uint kbMode;
+	uint kbMode = 0;
+	typedef uint KbMap[40];
+	KbMap kbMap {0};
+	#else
+	static constexpr uint kbMode = 0;
+	#endif
+
+	void updateMapping(uint player);
+
+	#ifdef CONFIG_VCONTROLLER_KEYBOARD
+		void updateKeyboardMapping();
 	#endif
 
 	bool hasTriggers() const
@@ -455,6 +471,22 @@ public:
 		return gp.boundingAreaVisible();
 	}
 
+	void inputAction(uint action, uint vBtn)
+	{
+		#ifdef CONFIG_VCONTROLLER_KEYBOARD
+		if(kbMode)
+		{
+			assert(vBtn < sizeofArray(kbMap));
+			EmuSystem::handleInputAction(action, kbMap[vBtn]);
+		}
+		else
+		#endif
+		{
+			assert(vBtn < sizeofArray(map));
+			EmuSystem::handleInputAction(action, map[vBtn]);
+		}
+	}
+
 	void resetInput(bool init = 0)
 	{
 		iterateTimes(Input::maxCursors, i)
@@ -462,7 +494,7 @@ public:
 			iterateTimes(2, j)
 			{
 				if(!init && ptrElem[i][j] != -1) // release old key, if any
-					EmuSystem::handleOnScreenInputAction(INPUT_RELEASED, ptrElem[i][j]);
+					inputAction(Input::RELEASED, ptrElem[i][j]);
 				ptrElem[i][j] = -1;
 				prevPtrElem[i][j] = -1;
 			}
@@ -498,9 +530,7 @@ public:
 	}
 	#endif
 
-	static const int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
-
-	void findElementUnderPos(const InputEvent &e, int elemOut[2])
+	void findElementUnderPos(const Input::Event &e, int elemOut[2])
 	{
 		#ifdef CONFIG_VCONTROLLER_KEYBOARD
 		if(kbMode)
@@ -519,6 +549,7 @@ public:
 				toggle(kb.mode);
 				kb.updateImg();
 				resetInput();
+				updateKeyboardMapping();
 			}
 			else
 				elemOut[0] = kbChar;
@@ -562,7 +593,7 @@ public:
 		}
 	}
 
-	void applyInput(const InputEvent &e)
+	void applyInput(const Input::Event &e)
 	{
 		assert(e.isPointer());
 		auto drag = Input::dragState(e.devId);
@@ -580,7 +611,7 @@ public:
 			if(vBtn != -1 && !mem_findFirstValue(elem, vBtn))
 			{
 				//logMsg("releasing %d", vBtn);
-				EmuSystem::handleOnScreenInputAction(INPUT_RELEASED, vBtn);
+				inputAction(Input::RELEASED, vBtn);
 			}
 		}
 
@@ -591,7 +622,7 @@ public:
 			if(vBtn != -1 && !mem_findFirstValue(ptrElem[e.devId], vBtn))
 			{
 				//logMsg("pushing %d", vBtn);
-				EmuSystem::handleOnScreenInputAction(INPUT_PUSHED, vBtn);
+				inputAction(Input::PUSHED, vBtn);
 				if(optionVibrateOnPush)
 				{
 					Base::vibrate(32);
@@ -628,3 +659,8 @@ public:
 
 typedef VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout> SysVController;
 extern SysVController vController;
+void updateVControllerMapping(uint player, SysVController::Map &map);
+#ifdef CONFIG_VCONTROLLER_KEYBOARD
+	void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map);
+#endif
+

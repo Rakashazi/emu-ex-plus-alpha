@@ -6,7 +6,7 @@
 namespace Input
 {
 
-namespace Key
+namespace Keycode
 {
 	static const uint ESCAPE = XK_Escape,
 	F1 = XK_F1,
@@ -40,8 +40,9 @@ namespace Key
 	DELETE = XK_Delete,
 	TAB = XK_Tab,
 	SEARCH = XK_Find,
-	VOL_UP = XF86XK_AudioRaiseVolume,
-	VOL_DOWN = XF86XK_AudioLowerVolume,
+	// convert volume keys into 16-bit values and shift to avoid some conflicts with other keysyms
+	VOL_UP = (XF86XK_AudioRaiseVolume >> 4) & 0xFFFF,
+	VOL_DOWN = (XF86XK_AudioLowerVolume >> 4) & 0xFFFF,
 	SCROLL_LOCK = XK_Scroll_Lock,
 	END = XK_End,
 	INSERT = XK_Insert,
@@ -53,6 +54,8 @@ namespace Key
 
 	static const uint COUNT = 0xffff + 1;
 };
+
+typedef uint16 Key;
 
 namespace Pointer
 {

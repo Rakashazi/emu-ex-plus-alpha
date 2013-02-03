@@ -66,7 +66,7 @@ public:
 		tbl.place(&viewFrame);
 	}
 
-	void inputEvent(const InputEvent &e)
+	void inputEvent(const Input::Event &e)
 	{
 		tbl.inputEvent(e);
 	}
@@ -92,7 +92,7 @@ public:
 		item[i]->draw(xPos, yPos, xSize, ySize, align);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		item[i]->select(this, e);
 	}

@@ -109,7 +109,7 @@ static dbus_bool_t addDbusWatch(DBusWatch *watch, void *conn)
 		logMsg("adding dbus readable watch %p with fd %d", watch, fd);
 		auto handler = new DBusWatchHandler((DBusConnection*)conn, watch);
 		dbus_watch_set_data(watch, handler, nullptr);
-		addPollEvent2(fd, handler->pollEvDel, events);
+		addPollEvent(fd, handler->pollEvDel, events);
 	}
 	else
 	{

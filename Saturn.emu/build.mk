@@ -14,7 +14,7 @@ ifneq ($(config_compiler),clang)
  HIGH_OPTIMIZE_CFLAGS = -O3 -fno-tree-vectorize $(HIGH_OPTIMIZE_CFLAGS_MISC)
 endif
 
-SRC += main/Main.cc
+SRC += main/Main.cc main/EmuControls.cc
 
 include ../EmuFramework/common.mk
 
@@ -22,7 +22,7 @@ CPPFLAGS += -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 -DSysDDe
 -DVERSION=\"0.9.10\"
 
 ifeq ($(ARCH), arm)
- ifneq ($(ENV), iOS)
+ ifneq ($(ENV), ios)
   CPPFLAGS += -DUSE_DYNAREC=1 -DSH2_DYNAREC=1
   SRC += yabause/sh2_dynarec/linkage_arm.s yabause/sh2_dynarec/sh2_dynarec.c
  endif

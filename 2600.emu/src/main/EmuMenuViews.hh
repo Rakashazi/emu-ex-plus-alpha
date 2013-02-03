@@ -9,7 +9,7 @@ public:
 
 #include "MenuView.hh"
 
-void softResetConfirmAlert(const InputEvent &e)
+void softResetConfirmAlert(const Input::Event &e)
 {
 	Event &ev = osystem.eventHandler().event();
 	ev.clear();
@@ -21,7 +21,7 @@ void softResetConfirmAlert(const InputEvent &e)
 	startGameFromMenu();
 }
 
-void softResetHandler(TextMenuItem &, const InputEvent &e)
+void softResetHandler(TextMenuItem &, const Input::Event &e)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -32,19 +32,19 @@ void softResetHandler(TextMenuItem &, const InputEvent &e)
 	}
 }
 
-void colorHandler(BoolMenuItem &item, const InputEvent &e)
+void colorHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	vcsColor = item.on;
 }
 
-void leftDiffHandler(BoolMenuItem &item, const InputEvent &e)
+void leftDiffHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	p1DiffB = item.on;
 }
 
-void rightDiffHandler(BoolMenuItem &item, const InputEvent &e)
+void rightDiffHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	p2DiffB = item.on;
@@ -88,7 +88,7 @@ class SystemMenuView : public MenuView
 private:
 	TextMenuItem switches {"Console Switches"};
 
-	static void switchesHandler(TextMenuItem &, const InputEvent &e)
+	static void switchesHandler(TextMenuItem &, const Input::Event &e)
 	{
 		if(EmuSystem::gameIsRunning())
 		{

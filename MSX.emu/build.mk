@@ -6,7 +6,7 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/BlueMSXApi.cc main/Board.cc
+SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
 
 include ../EmuFramework/common.mk
 include $(IMAGINE_PATH)/src/io/zip/build.mk

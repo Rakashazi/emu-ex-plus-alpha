@@ -23,14 +23,11 @@
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
 #include <MultiChoiceView.hh>
-#include <ButtonConfigView.hh>
 #include <TouchConfigView.hh>
 #include <EmuView.hh>
 #include <FilePicker.hh>
 
 extern YesNoAlertView ynAlertView;
-extern ButtonConfigView bcMenu;
-extern KeyConfig<EmuControls::systemTotalKeys> keyConfig;
 extern ViewStack viewStack;
 extern TouchConfigView tcMenu;
 extern EmuView emuView;
@@ -40,96 +37,8 @@ void setupFont();
 void applyOSNavStyle();
 ResourceImage *getArrowAsset();
 extern WorkDirStack<1> workDirStack;
-void onCloseModalPopWorkDir(const InputEvent &e);
+void onCloseModalPopWorkDir(const Input::Event &e);
 void chdirFromFilePath(const char *path);
-
-class ButtonConfigCategoryView : public BaseMenuView
-{
-	struct ProfileItem
-	{
-		const char *name[10];
-		uint names;
-		uint val;
-		uint devType;
-
-		void init(uint devType, KeyProfileManager *profileMgr)
-		{
-			names = profileMgr->defaultProfiles + 1;
-			assert(names < sizeofArray(name));
-			name[0] = "Unbind All";
-			iterateTimes(profileMgr->defaultProfiles, i)
-			{
-				name[i+1] = profileMgr->defaultProfile[i].name;
-			}
-			var_selfSet(devType);
-		}
-
-		void profileHandler(TextMenuItem &, const InputEvent &e)
-		{
-			multiChoiceView.init(name, names, !e.isPointer());
-			multiChoiceView.onSelectDelegate().bind<ProfileItem, &ProfileItem::setProfileFromChoice>(this);
-			multiChoiceView.placeRect(Gfx::viewportRect());
-			modalView = &multiChoiceView;
-		}
-
-		bool setProfileFromChoice(int val, const InputEvent &e)
-		{
-			removeModalView();
-			this->val = val;
-			ynAlertView.init("Really apply new key bindings?", !e.isPointer());
-			ynAlertView.onYesDelegate().bind<ProfileItem, &ProfileItem::confirmAlert>(this);
-			ynAlertView.placeRect(Gfx::viewportRect());
-			modalView = &ynAlertView;
-			return 0;
-		}
-
-		void confirmAlert(const InputEvent &e)
-		{
-			keyConfig.loadProfile(devType, val-1);
-			keyMapping.build(EmuControls::category);
-		}
-
-	} profileItem;
-	TextMenuItem profile;
-
-	struct CategoryItem
-	{
-		KeyCategory *cat;
-		uint devType;
-		void init(KeyCategory *cat, uint devType)
-		{
-			var_selfs(cat);
-			var_selfs(devType);
-		}
-
-		void categoryHandler(TextMenuItem &, const InputEvent &e)
-		{
-			bcMenu.init(cat, devType, !e.isPointer());
-			viewStack.pushAndShow(&bcMenu);
-		}
-	} catItem[sizeofArrayConst(EmuControls::category)];
-	TextMenuItem cat[sizeofArrayConst(EmuControls::category)];
-
-	MenuItem *item[sizeofArrayConst(EmuControls::category) + 1];
-public:
-	void init(uint devType, bool highlightFirst)
-	{
-		using namespace EmuControls;
-		name_ = InputEvent::devTypeName(devType);
-		uint i = 0;
-		profile.init("Load Defaults"); item[i++] = &profile;
-		profileItem.init(devType, &EmuControls::profileManager(devType));
-		profile.selectDelegate().bind<ProfileItem, &ProfileItem::profileHandler>(&profileItem);
-		forEachInArray(category, c)
-		{
-			cat[c_i].init(c->name); item[i++] = &cat[c_i];
-			catItem[c_i].init(c, devType);
-			cat[c_i].selectDelegate().bind<CategoryItem, &CategoryItem::categoryHandler>(&catItem[c_i]);
-		}
-		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
-	}
-};
 
 class OptionView : public BaseMenuView
 {
@@ -205,28 +114,20 @@ protected:
 
 	BoolMenuItem rememberLastMenu {"Remember Last Menu"};
 
+	BoolMenuItem confirmOverwriteState {"Confirm Overwrite State"};
+
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
 	BoolMenuItem bestColorModeHint {"Use Highest Color Mode"};
-	void bestColorModeHintHandler(BoolMenuItem &item, const InputEvent &e);
-	void confirmBestColorModeHintAlert(const InputEvent &e);
+	void bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e);
+	void confirmBestColorModeHintAlert(const Input::Event &e);
 #endif
 
 	void savePathUpdated(const char *newPath);
-	void savePathHandler(TextMenuItem &, const InputEvent &e);
+	void savePathHandler(TextMenuItem &, const Input::Event &e);
 	char savePathStr[256] {0};
 	TextMenuItem savePath {""};
 
-	TextMenuItem buttonConfig {"Key Config"};
-
-	#ifdef CONFIG_INPUT_ICADE
-	BoolMenuItem iCade {"Use iCade"};
-	TextMenuItem iCadeButtonConfig {"iCade Key Config"};
-	#endif
-
 	#ifdef CONFIG_BLUETOOTH
-	TextMenuItem wiiButtonConfig {"Wiimote Key Config"};
-	TextMenuItem iCPButtonConfig {"iControlPad Key Config"};
-	TextMenuItem zeemoteButtonConfig {"Zeemote JS1 Key Config"};
 
 	MultiChoiceSelectMenuItem btScanSecs {"Bluetooth Scan"};
 
@@ -314,7 +215,7 @@ public:
 	FsSys::cPath *biosPathStr = nullptr;
 	int (*fsFilter)(const char *name, int type) = nullptr;
 
-	void onSelectFile(const char* name, const InputEvent &e)
+	void onSelectFile(const char* name, const Input::Event &e)
 	{
 		logMsg("size %d", (int)sizeof(*biosPathStr));
 		snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
@@ -338,7 +239,7 @@ public:
 		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
 	}
 
-	void onSelectElement(const GuiTable1D *, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *, const Input::Event &e, uint i)
 	{
 		removeModalView();
 		if(i == 0)

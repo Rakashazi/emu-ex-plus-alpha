@@ -562,18 +562,18 @@ void S9xOutputCheatSearchResults (SCheatData *d)
 	for (i = 0; i < 0x20000; i++)
 	{
 		if (TEST_BIT(d->WRAM_BITS, i))
-			printf("WRAM: %05x: %02x\n", i, d->RAM[i]);
+			S9xPrintf("WRAM: %05x: %02x\n", i, d->RAM[i]);
 	}
 
 	for (i = 0; i < 0x10000; i++)
 	{
 		if (TEST_BIT(d->SRAM_BITS, i))
-			printf("SRAM: %04x: %02x\n", i, d->SRAM[i]);
+			S9xPrintf("SRAM: %04x: %02x\n", i, d->SRAM[i]);
 	}
 
 	for (i = 0; i < 0x2000; i++)
 	{
 		if (TEST_BIT(d->IRAM_BITS, i))
-			printf("IRAM: %05x: %02x\n", i, d->FillRAM[i + 0x3000]);
+			S9xPrintf("IRAM: %05x: %02x\n", i, d->FillRAM[i + 0x3000]);
 	}
 }

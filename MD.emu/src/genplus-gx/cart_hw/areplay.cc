@@ -205,10 +205,10 @@ void areplay_set_status(int status)
         if (action_replay.status == AR_SWITCH_ON)
         {
           /* restore original data */
-          *(uint16 *)(cart.rom + action_replay.addr[0]) = action_replay.old[0];
-          *(uint16 *)(cart.rom + action_replay.addr[1]) = action_replay.old[1];
-          *(uint16 *)(cart.rom + action_replay.addr[2]) = action_replay.old[2];
-          *(uint16 *)(cart.rom + action_replay.addr[3]) = action_replay.old[3];
+          *(uint16a *)(cart.rom + action_replay.addr[0]) = action_replay.old[0];
+          *(uint16a *)(cart.rom + action_replay.addr[1]) = action_replay.old[1];
+          *(uint16a *)(cart.rom + action_replay.addr[2]) = action_replay.old[2];
+          *(uint16a *)(cart.rom + action_replay.addr[3]) = action_replay.old[3];
         }
         break;
       }
@@ -231,16 +231,16 @@ void areplay_set_status(int status)
           action_replay.addr[3] = (action_replay.regs[11] | ((action_replay.regs[12]  & 0x3f00) << 8)) << 1;
 
           /* save original data */
-          action_replay.old[0] = *(uint16 *)(cart.rom + action_replay.addr[0]);
-          action_replay.old[1] = *(uint16 *)(cart.rom + action_replay.addr[1]);
-          action_replay.old[2] = *(uint16 *)(cart.rom + action_replay.addr[2]);
-          action_replay.old[3] = *(uint16 *)(cart.rom + action_replay.addr[3]);
+          action_replay.old[0] = *(uint16a *)(cart.rom + action_replay.addr[0]);
+          action_replay.old[1] = *(uint16a *)(cart.rom + action_replay.addr[1]);
+          action_replay.old[2] = *(uint16a *)(cart.rom + action_replay.addr[2]);
+          action_replay.old[3] = *(uint16a *)(cart.rom + action_replay.addr[3]);
 
           /* patch new data */
-          *(uint16 *)(cart.rom + action_replay.addr[0]) = action_replay.data[0];
-          *(uint16 *)(cart.rom + action_replay.addr[1]) = action_replay.data[1];
-          *(uint16 *)(cart.rom + action_replay.addr[2]) = action_replay.data[2];
-          *(uint16 *)(cart.rom + action_replay.addr[3]) = action_replay.data[3];
+          *(uint16a *)(cart.rom + action_replay.addr[0]) = action_replay.data[0];
+          *(uint16a *)(cart.rom + action_replay.addr[1]) = action_replay.data[1];
+          *(uint16a *)(cart.rom + action_replay.addr[2]) = action_replay.data[2];
+          *(uint16a *)(cart.rom + action_replay.addr[3]) = action_replay.data[3];
         }
         break;
       }

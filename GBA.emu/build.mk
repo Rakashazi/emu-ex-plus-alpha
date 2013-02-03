@@ -44,7 +44,7 @@ vbamSrc += 7z_C/7zAlloc.c 7z_C/Bra.c 7z_C/7zBuf.c 7z_C/CpuArch.c 7z_C/7zDec.c \
 7z_C/LzmaDec.c 7z_C/Bcj2.c 7z_C/Bra86.c 7z_C/Ppmd7.c 7z_C/Ppmd7Dec.c
 
 vbamPath := vbam
-SRC += main/Main.cc main/VbamApi.cc $(addprefix $(vbamPath)/,$(vbamSrc))
+SRC += main/Main.cc main/EmuControls.cc main/VbamApi.cc $(addprefix $(vbamPath)/,$(vbamSrc))
 
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

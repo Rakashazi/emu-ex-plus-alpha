@@ -18,7 +18,7 @@ struct InstallMSXSystem
 			;
 	}
 
-	static void confirmAlert(const InputEvent &e)
+	static void confirmAlert(const Input::Event &e)
 	{
 		CallResult ret = FsSys::mkdir(machineBasePath);
 		if(ret != OK && ret != ALREADY_EXISTS)
@@ -105,7 +105,7 @@ public:
 		srcEntry = src;
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		assert((int)i < srcEntry->choices);
 		logMsg("set choice %d", i);
@@ -177,7 +177,7 @@ private:
 					currentMachineIdx, machines, 0, 1, currentMachineIdx == -1 ? "None" : 0);
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(!machines)
 			{
@@ -213,7 +213,7 @@ private:
 		constexpr InstallCBIOSMenuItem() { }
 		void init() { TextMenuItem::init("Install MSX C-BIOS"); }
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			ynAlertView.init(InstallMSXSystem::installMessage(), !e.isPointer());
 			ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();
@@ -224,7 +224,7 @@ private:
 	} installCBIOS;
 	#endif
 
-	static void skipFdcAccessHandler(BoolMenuItem &item, const InputEvent &e)
+	static void skipFdcAccessHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionSkipFdcAccess = item.on;
@@ -269,7 +269,7 @@ class MsxMediaChangeListener
 public:
 	constexpr MsxMediaChangeListener() { }
 	virtual void onMediaChange(const char *name) = 0;
-	virtual void onActionFromModalView(uint action, const InputEvent &e) = 0;
+	virtual void onActionFromModalView(uint action, const Input::Event &e) = 0;
 };
 
 class MsxMediaFilePicker
@@ -280,7 +280,7 @@ public:
 	uint type = ROM, slot = 0;
 	MsxMediaChangeListener *listener = nullptr;
 
-	void onSelectFile(const char* name, const InputEvent &e)
+	void onSelectFile(const char* name, const Input::Event &e)
 	{
 		switch(type)
 		{
@@ -306,7 +306,7 @@ public:
 		View::removeModalView();
 	}
 
-	void onClose(const InputEvent &e)
+	void onClose(const Input::Event &e)
 	{
 		View::removeModalView();
 	}
@@ -344,7 +344,7 @@ public:
 		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		listener->onActionFromModalView(i, e);
 	}
@@ -371,7 +371,7 @@ public:
 		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		listener->onActionFromModalView(i, e);
 	}
@@ -419,7 +419,7 @@ private:
 			refreshLabel();
 		}
 
-		void onActionFromModalView(uint action, const InputEvent &e)
+		void onActionFromModalView(uint action, const Input::Event &e)
 		{
 			if(action == 0)
 			{
@@ -437,7 +437,7 @@ private:
 			}
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(!active) return;
 			if(strlen(hdName[slot]))
@@ -483,7 +483,7 @@ private:
 			}
 		}
 
-		void onActionFromModalView(uint action, const InputEvent &e)
+		void onActionFromModalView(uint action, const Input::Event &e)
 		{
 			if(action == 0)
 			{
@@ -523,7 +523,7 @@ private:
 			}
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			insertEjectRomMenu.init(this, !e.isPointer());
 			insertEjectRomMenu.placeRect(Gfx::viewportRect());
@@ -552,7 +552,7 @@ private:
 			TextMenuItem::compile();
 		}
 
-		void onActionFromModalView(uint action, const InputEvent &e)
+		void onActionFromModalView(uint action, const Input::Event &e)
 		{
 			if(action == 0)
 			{
@@ -570,7 +570,7 @@ private:
 			}
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(strlen(diskName[slot]))
 			{
@@ -630,7 +630,7 @@ private:
 			active = EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX;
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(active)
 			{

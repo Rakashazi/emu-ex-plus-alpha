@@ -18,7 +18,7 @@
 #include <gui/FSPicker/FSPicker.hh>
 #include <EmuSystem.hh>
 
-bool isMenuDismissKey(const InputEvent &e);
+bool isMenuDismissKey(const Input::Event &e);
 void startGameFromMenu();
 
 class EmuFilePicker : public FSPicker
@@ -31,9 +31,9 @@ public:
 	void init(bool highlightFirst, FsDirFilterFunc filter = defaultFsFilter, bool singleDir = 0);
 	void initForBenchmark(bool highlightFirst, bool singleDir = 0);
 
-	void inputEvent(const InputEvent &e)
+	void inputEvent(const Input::Event &e)
 	{
-		if(e.state == INPUT_PUSHED)
+		if(e.state == Input::PUSHED)
 		{
 			if(e.isDefaultCancelButton())
 			{
@@ -59,13 +59,13 @@ public:
 class GameFilePicker
 {
 public:
-	static void onSelectFile(const char* name, const InputEvent &e);
-	static void onClose(const InputEvent &e);
+	static void onSelectFile(const char* name, const Input::Event &e);
+	static void onClose(const Input::Event &e);
 };
 
 class BenchmarkFilePicker
 {
 public:
-	static void onSelectFile(const char* name, const InputEvent &e);
-	static void onClose(const InputEvent &e);
+	static void onSelectFile(const char* name, const Input::Event &e);
+	static void onClose(const Input::Event &e);
 };

@@ -45,11 +45,8 @@ void OSystem::setFramerate(float framerate) { }
 
 uInt64 OSystem::getTicks() const
 {
-  // Gettimeofday natively refers to the UNIX epoch (a set time in the past)
-  timeval now;
-  gettimeofday(&now, 0);
-
-  return uInt64(now.tv_sec) * 1000000 + now.tv_usec;
+	assert(::console);
+	return ::console->tia().frameCounter() * 16666;
 }
 
 EventHandler::EventHandler(OSystem*)

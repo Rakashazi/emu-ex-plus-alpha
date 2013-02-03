@@ -27,7 +27,7 @@ private:
 		sysCardPath.compile();
 	}
 
-	void sysCardPathHandler(TextMenuItem &, const InputEvent &e)
+	void sysCardPathHandler(TextMenuItem &, const Input::Event &e)
 	{
 		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.placeRect(Gfx::viewportRect());
@@ -38,13 +38,13 @@ private:
 
 	BoolMenuItem arcadeCard {"Arcade Card"}, sixButtonPad {"6-button support"};
 
-	static void arcadeCardHandler(BoolMenuItem &item, const InputEvent &e)
+	static void arcadeCardHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionArcadeCard = item.on;
 	}
 
-	static void sixButtonPadHandler(BoolMenuItem &item, const InputEvent &e)
+	static void sixButtonPadHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		PCE_Fast::AVPad6Enabled[0] = item.on;

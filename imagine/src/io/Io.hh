@@ -118,6 +118,17 @@ public:
 		return read(&var, sizeof(T));
 	}
 
+	template <class T, class DEST_T>
+	CallResult readVarAsType(DEST_T &var)
+	{
+		T v;
+		auto ret = readVar(v);
+		if(ret != OK)
+			return ret;
+		var = v;
+		return OK;
+	}
+
 	template <class T>
 	size_t writeVar(const T &var)
 	{

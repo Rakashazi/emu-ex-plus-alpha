@@ -35,26 +35,26 @@ public:
 			FsDirFilterFunc filter = 0, bool singleDir = 0, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
-	void inputEvent(const InputEvent &e) override;
+	void inputEvent(const Input::Event &e) override;
 	void draw() override;
 	void drawElement(const GuiTable1D *table, uint element, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i) override;
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
 
 	// convenience onClose handler
-	static void onCloseModal(const InputEvent &e)
+	static void onCloseModal(const Input::Event &e)
 	{
 		View::removeModalView();
 	}
 
-	typedef Delegate<void (const char* name, const InputEvent &e)> OnSelectFileDelegate;
+	typedef Delegate<void (const char* name, const Input::Event &e)> OnSelectFileDelegate;
 	OnSelectFileDelegate onSelectFile;
-	typedef Delegate<void (const InputEvent &e)> OnCloseDelegate;
+	typedef Delegate<void (const Input::Event &e)> OnCloseDelegate;
 	OnCloseDelegate onClose;
 	OnSelectFileDelegate &onSelectFileDelegate() { return onSelectFile; }
 	OnCloseDelegate &onCloseDelegate() { return onClose; }
 
-	void onLeftNavBtn(const InputEvent &e);
-	void onRightNavBtn(const InputEvent &e);
+	void onLeftNavBtn(const Input::Event &e);
+	void onRightNavBtn(const Input::Event &e);
 	Rect2<int> &viewRect() { return viewFrame; }
 	void clearSelection()
 	{
@@ -72,5 +72,5 @@ private:
 	bool singleDir = 0;
 
 	void loadDir(const char *path);
-	void changeDirByInput(const char *path, const InputEvent &e);
+	void changeDirByInput(const char *path, const Input::Event &e);
 };

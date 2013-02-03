@@ -23,7 +23,7 @@ public:
 
 	enum State { INACTIVE, PUSHED, ENTERED_ACTIVE, ACTIVE, LEFT_ACTIVE, RELEASED, NO_CHANGE };
 
-	State inputEvent(const Rect2<int> &bt, const InputEvent &e);
+	State inputEvent(const Rect2<int> &bt, const Input::Event &e);
 };
 
 class KScroll : public ContentDrag
@@ -41,8 +41,8 @@ public:
 	bool clipOverEdge(int minC, int maxC);
 	void clipDragOverEdge(int minC, int maxC);
 	void decel2();
-	bool inputEvent(const InputEvent &e);
-	bool inputEvent(int minClip, int maxClip, const InputEvent &e);
+	bool inputEvent(const Input::Event &e);
+	bool inputEvent(int minClip, int maxClip, const Input::Event &e);
 	void setOffset(int o);
 	void animate(int minClip, int maxClip);
 
@@ -65,7 +65,7 @@ public:
 	void place(Rect2<int> *frame);
 	void updateGfx();
 	void draw();
-	int inputEvent(const InputEvent &e);
+	int inputEvent(const Input::Event &e);
 
 private:
 	Rect2<int> *contentFrame = nullptr;

@@ -134,7 +134,7 @@ void FSPicker::place()
 	navV.place();
 }
 
-void FSPicker::changeDirByInput(const char *path, const InputEvent &e)
+void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
 {
 	loadDir(path);
 	if(!e.isPointer() && tbl.cells)
@@ -143,27 +143,27 @@ void FSPicker::changeDirByInput(const char *path, const InputEvent &e)
 	Base::displayNeedsUpdate();
 }
 
-void FSPicker::onLeftNavBtn(const InputEvent &e)
+void FSPicker::onLeftNavBtn(const Input::Event &e)
 {
 	changeDirByInput("..", e);
 }
 
-void FSPicker::onRightNavBtn(const InputEvent &e)
+void FSPicker::onRightNavBtn(const Input::Event &e)
 {
 	//onClose();
 	onClose.invoke(e);
 }
 
-void FSPicker::inputEvent(const InputEvent &e)
+void FSPicker::inputEvent(const Input::Event &e)
 {
-	if(e.isDefaultCancelButton() && e.state == INPUT_PUSHED)
+	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
 		onClose.invoke(e);
 		return;
 	}
 
 	const char* dirChange = 0;
-	if(!singleDir && e.state == INPUT_PUSHED && e.isDefaultLeftButton())
+	if(!singleDir && e.state == Input::PUSHED && e.isDefaultLeftButton())
 	{
 		logMsg("going up a dir");
 		changeDirByInput("..", e);
@@ -196,7 +196,7 @@ void FSPicker::drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coo
 	text[i].draw(xPos, yPos, xSize, ySize, align);
 }
 
-void FSPicker::onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+void FSPicker::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 {
 	assert(i < dir.numEntries());
 	if(FsSys::fileType(dir.entryFilename(i)) == Fs::TYPE_DIR)

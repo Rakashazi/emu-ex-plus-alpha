@@ -66,36 +66,17 @@ enum
 };
 
 enum {
-	CFGKEY_SNESKEY_UP = 256, CFGKEY_SNESKEY_RIGHT = 257,
-	CFGKEY_SNESKEY_DOWN = 258, CFGKEY_SNESKEY_LEFT = 259,
-	CFGKEY_SNESKEY_SELECT = 260, CFGKEY_SNESKEY_START = 261,
-	CFGKEY_SNESKEY_A = 262, CFGKEY_SNESKEY_B = 263,
-	CFGKEY_SNESKEY_X = 264, CFGKEY_SNESKEY_Y = 265,
-	CFGKEY_SNESKEY_L = 266, CFGKEY_SNESKEY_R = 267,
-	CFGKEY_SNESKEY_A_TURBO = 268, CFGKEY_SNESKEY_B_TURBO = 269,
-	CFGKEY_SNESKEY_X_TURBO = 270, CFGKEY_SNESKEY_Y_TURBO = 271,
-	CFGKEY_SNESKEY_LEFT_UP = 272, CFGKEY_SNESKEY_RIGHT_UP = 273,
-	CFGKEY_SNESKEY_RIGHT_DOWN = 274, CFGKEY_SNESKEY_LEFT_DOWN = 275,
-
-	CFGKEY_MULTITAP = 276,
+	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277
 };
 
 static Byte1Option optionMultitap(CFGKEY_MULTITAP, 0);
+#ifndef SNES9X_VERSION_1_4
+static Byte1Option optionBlockInvalidVRAMAccess(CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1);
+#endif
 
 const uint EmuSystem::maxPlayers = 5;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include <CommonGui.hh>
-
-namespace EmuControls
-{
-
-KeyCategory category[categories] =
-{
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad Controls", gamepadName, gameActionKeys),
-};
-
-}
 
 void EmuSystem::initOptions()
 {
@@ -119,26 +100,9 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_MULTITAP: optionMultitap.readFromIO(io, readSize);
-		bcase CFGKEY_SNESKEY_UP: readKeyConfig2(io, s9xKeyIdxUp, readSize);
-		bcase CFGKEY_SNESKEY_RIGHT: readKeyConfig2(io, s9xKeyIdxRight, readSize);
-		bcase CFGKEY_SNESKEY_DOWN: readKeyConfig2(io, s9xKeyIdxDown, readSize);
-		bcase CFGKEY_SNESKEY_LEFT: readKeyConfig2(io, s9xKeyIdxLeft, readSize);
-		bcase CFGKEY_SNESKEY_LEFT_UP: readKeyConfig2(io, s9xKeyIdxLeftUp, readSize);
-		bcase CFGKEY_SNESKEY_RIGHT_UP: readKeyConfig2(io, s9xKeyIdxRightUp, readSize);
-		bcase CFGKEY_SNESKEY_RIGHT_DOWN: readKeyConfig2(io, s9xKeyIdxRightDown, readSize);
-		bcase CFGKEY_SNESKEY_LEFT_DOWN: readKeyConfig2(io, s9xKeyIdxLeftDown, readSize);
-		bcase CFGKEY_SNESKEY_SELECT: readKeyConfig2(io, s9xKeyIdxSelect, readSize);
-		bcase CFGKEY_SNESKEY_START: readKeyConfig2(io, s9xKeyIdxStart, readSize);
-		bcase CFGKEY_SNESKEY_A: readKeyConfig2(io, s9xKeyIdxA, readSize);
-		bcase CFGKEY_SNESKEY_B: readKeyConfig2(io, s9xKeyIdxB, readSize);
-		bcase CFGKEY_SNESKEY_X: readKeyConfig2(io, s9xKeyIdxX, readSize);
-		bcase CFGKEY_SNESKEY_Y: readKeyConfig2(io, s9xKeyIdxY, readSize);
-		bcase CFGKEY_SNESKEY_L: readKeyConfig2(io, s9xKeyIdxL, readSize);
-		bcase CFGKEY_SNESKEY_R: readKeyConfig2(io, s9xKeyIdxR, readSize);
-		bcase CFGKEY_SNESKEY_A_TURBO: readKeyConfig2(io, s9xKeyIdxATurbo, readSize);
-		bcase CFGKEY_SNESKEY_B_TURBO: readKeyConfig2(io, s9xKeyIdxBTurbo, readSize);
-		bcase CFGKEY_SNESKEY_X_TURBO: readKeyConfig2(io, s9xKeyIdxXTurbo, readSize);
-		bcase CFGKEY_SNESKEY_Y_TURBO: readKeyConfig2(io, s9xKeyIdxYTurbo, readSize);
+		#ifndef SNES9X_VERSION_1_4
+		bcase CFGKEY_BLOCK_INVALID_VRAM_ACCESS: optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
+		#endif
 	}
 	return 1;
 }
@@ -146,26 +110,9 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 void EmuSystem::writeConfig(Io *io)
 {
 	optionMultitap.writeWithKeyIfNotDefault(io);
-	writeKeyConfig2(io, s9xKeyIdxUp, CFGKEY_SNESKEY_UP);
-	writeKeyConfig2(io, s9xKeyIdxRight, CFGKEY_SNESKEY_RIGHT);
-	writeKeyConfig2(io, s9xKeyIdxDown, CFGKEY_SNESKEY_DOWN);
-	writeKeyConfig2(io, s9xKeyIdxLeft, CFGKEY_SNESKEY_LEFT);
-	writeKeyConfig2(io, s9xKeyIdxLeftUp, CFGKEY_SNESKEY_LEFT_UP);
-	writeKeyConfig2(io, s9xKeyIdxRightUp, CFGKEY_SNESKEY_RIGHT_UP);
-	writeKeyConfig2(io, s9xKeyIdxRightDown, CFGKEY_SNESKEY_RIGHT_DOWN);
-	writeKeyConfig2(io, s9xKeyIdxLeftDown, CFGKEY_SNESKEY_LEFT_DOWN);
-	writeKeyConfig2(io, s9xKeyIdxSelect, CFGKEY_SNESKEY_SELECT);
-	writeKeyConfig2(io, s9xKeyIdxStart, CFGKEY_SNESKEY_START);
-	writeKeyConfig2(io, s9xKeyIdxA, CFGKEY_SNESKEY_A);
-	writeKeyConfig2(io, s9xKeyIdxB, CFGKEY_SNESKEY_B);
-	writeKeyConfig2(io, s9xKeyIdxX, CFGKEY_SNESKEY_X);
-	writeKeyConfig2(io, s9xKeyIdxY, CFGKEY_SNESKEY_Y);
-	writeKeyConfig2(io, s9xKeyIdxL, CFGKEY_SNESKEY_L);
-	writeKeyConfig2(io, s9xKeyIdxR, CFGKEY_SNESKEY_R);
-	writeKeyConfig2(io, s9xKeyIdxATurbo, CFGKEY_SNESKEY_A_TURBO);
-	writeKeyConfig2(io, s9xKeyIdxBTurbo, CFGKEY_SNESKEY_B_TURBO);
-	writeKeyConfig2(io, s9xKeyIdxXTurbo, CFGKEY_SNESKEY_X_TURBO);
-	writeKeyConfig2(io, s9xKeyIdxYTurbo, CFGKEY_SNESKEY_Y_TURBO);
+	#ifndef SNES9X_VERSION_1_4
+	optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
+	#endif
 }
 
 static bool isROMExtension(const char *name)
@@ -259,74 +206,72 @@ static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 static uint doubleClickFrames, rightClickFrames;
 static ContentDrag mouseScroll;
 
-static uint ptrInputToSysButton(int input)
+void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	switch(input)
-	{
-		case SysVController::F_ELEM: return SNES_A_MASK;
-		case SysVController::F_ELEM+1: return SNES_B_MASK;
-		case SysVController::F_ELEM+2: return SNES_X_MASK;
-		case SysVController::F_ELEM+3: return SNES_Y_MASK;
-		case SysVController::F_ELEM+4: return SNES_TL_MASK;
-		case SysVController::F_ELEM+5: return SNES_TR_MASK;
+	uint playerMask = player << 29;
+	map[SysVController::F_ELEM] = SNES_A_MASK | playerMask;
+	map[SysVController::F_ELEM+1] = SNES_B_MASK | playerMask;
+	map[SysVController::F_ELEM+2] = SNES_X_MASK | playerMask;
+	map[SysVController::F_ELEM+3] = SNES_Y_MASK | playerMask;
+	map[SysVController::F_ELEM+4] = SNES_TL_MASK | playerMask;
+	map[SysVController::F_ELEM+5] = SNES_TR_MASK | playerMask;
 
-		case SysVController::C_ELEM: return SNES_SELECT_MASK;
-		case SysVController::C_ELEM+1: return SNES_START_MASK;
+	map[SysVController::C_ELEM] = SNES_SELECT_MASK | playerMask;
+	map[SysVController::C_ELEM+1] = SNES_START_MASK | playerMask;
 
-		case SysVController::D_ELEM: return SNES_UP_MASK | SNES_LEFT_MASK;
-		case SysVController::D_ELEM+1: return SNES_UP_MASK;
-		case SysVController::D_ELEM+2: return SNES_UP_MASK | SNES_RIGHT_MASK;
-		case SysVController::D_ELEM+3: return SNES_LEFT_MASK;
-		case SysVController::D_ELEM+5: return SNES_RIGHT_MASK;
-		case SysVController::D_ELEM+6: return SNES_DOWN_MASK | SNES_LEFT_MASK;
-		case SysVController::D_ELEM+7: return SNES_DOWN_MASK;
-		case SysVController::D_ELEM+8: return SNES_DOWN_MASK | SNES_RIGHT_MASK;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void EmuSystem::handleOnScreenInputAction(uint state, uint vCtrlKey)
-{
-	handleInputAction(pointerInputPlayer, state, ptrInputToSysButton(vCtrlKey));
+	map[SysVController::D_ELEM] = SNES_UP_MASK | SNES_LEFT_MASK | playerMask;
+	map[SysVController::D_ELEM+1] = SNES_UP_MASK | playerMask;
+	map[SysVController::D_ELEM+2] = SNES_UP_MASK | SNES_RIGHT_MASK | playerMask;
+	map[SysVController::D_ELEM+3] = SNES_LEFT_MASK | playerMask;
+	map[SysVController::D_ELEM+5] = SNES_RIGHT_MASK | playerMask;
+	map[SysVController::D_ELEM+6] = SNES_DOWN_MASK | SNES_LEFT_MASK | playerMask;
+	map[SysVController::D_ELEM+7] = SNES_DOWN_MASK | playerMask;
+	map[SysVController::D_ELEM+8] = SNES_DOWN_MASK | SNES_RIGHT_MASK | playerMask;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
+	assert(input >= s9xKeyIdxUp);
+	uint player = (input - s9xKeyIdxUp) / EmuControls::gamepadKeys;
+	uint playerMask = player << 29;
+	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
-		case s9xKeyIdxUp: return SNES_UP_MASK;
-		case s9xKeyIdxRight: return SNES_RIGHT_MASK;
-		case s9xKeyIdxDown: return SNES_DOWN_MASK;
-		case s9xKeyIdxLeft: return SNES_LEFT_MASK;
-		case s9xKeyIdxLeftUp: return SNES_LEFT_MASK | SNES_UP_MASK;
-		case s9xKeyIdxRightUp: return SNES_RIGHT_MASK | SNES_UP_MASK;
-		case s9xKeyIdxRightDown: return SNES_RIGHT_MASK | SNES_DOWN_MASK;
-		case s9xKeyIdxLeftDown: return SNES_LEFT_MASK | SNES_DOWN_MASK;
-		case s9xKeyIdxSelect: return SNES_SELECT_MASK;
-		case s9xKeyIdxStart: return SNES_START_MASK;
+		case s9xKeyIdxUp: return SNES_UP_MASK | playerMask;
+		case s9xKeyIdxRight: return SNES_RIGHT_MASK | playerMask;
+		case s9xKeyIdxDown: return SNES_DOWN_MASK | playerMask;
+		case s9xKeyIdxLeft: return SNES_LEFT_MASK | playerMask;
+		case s9xKeyIdxLeftUp: return SNES_LEFT_MASK | SNES_UP_MASK | playerMask;
+		case s9xKeyIdxRightUp: return SNES_RIGHT_MASK | SNES_UP_MASK | playerMask;
+		case s9xKeyIdxRightDown: return SNES_RIGHT_MASK | SNES_DOWN_MASK | playerMask;
+		case s9xKeyIdxLeftDown: return SNES_LEFT_MASK | SNES_DOWN_MASK | playerMask;
+		case s9xKeyIdxSelect: return SNES_SELECT_MASK | playerMask;
+		case s9xKeyIdxStart: return SNES_START_MASK | playerMask;
 		case s9xKeyIdxXTurbo: turbo = 1;
-		case s9xKeyIdxX: return SNES_X_MASK;
+		case s9xKeyIdxX: return SNES_X_MASK | playerMask;
 		case s9xKeyIdxYTurbo: turbo = 1;
-		case s9xKeyIdxY: return SNES_Y_MASK;
+		case s9xKeyIdxY: return SNES_Y_MASK | playerMask;
 		case s9xKeyIdxATurbo: turbo = 1;
-		case s9xKeyIdxA: return SNES_A_MASK;
+		case s9xKeyIdxA: return SNES_A_MASK | playerMask;
 		case s9xKeyIdxBTurbo: turbo = 1;
-		case s9xKeyIdxB: return SNES_B_MASK;
-		case s9xKeyIdxL: return SNES_TL_MASK;
-		case s9xKeyIdxR: return SNES_TR_MASK;
+		case s9xKeyIdxB: return SNES_B_MASK | playerMask;
+		case s9xKeyIdxL: return SNES_TL_MASK | playerMask;
+		case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint player, uint state, uint emuKey)
+void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
+	uint player = emuKey >> 29; // player is encoded in upper 3 bits of input code
+	assert(player < maxPlayers);
 	auto padData = S9xGetJoypadBits(player);
-	if(state == INPUT_PUSHED)
-		setBits(*padData, emuKey);
+	if(state == Input::PUSHED)
+		setBits(*padData, emuKey & 0xFFFF);
 	else
-		unsetBits(*padData, emuKey);
+		unsetBits(*padData, emuKey & 0xFFFF);
 }
 
 static int snesResX = 256, snesResY = 224;
@@ -754,7 +699,7 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const InputEvent &e)
+void onInputEvent(const Input::Event &e)
 {
 	if(unlikely(EmuSystem::isActive() && e.isPointer()))
 	{
@@ -762,7 +707,7 @@ void onInputEvent(const InputEvent &e)
 		{
 			bcase SNES_SUPERSCOPE:
 			{
-				if(e.state == INPUT_RELEASED)
+				if(e.state == RELEASED)
 				{
 					snesPointerBtns = 0;
 					#ifndef SNES9X_VERSION_1_4
@@ -775,7 +720,7 @@ void onInputEvent(const InputEvent &e)
 					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)256.);
 					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)224.);
 					//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
-					if(e.state == INPUT_PUSHED)
+					if(e.state == PUSHED)
 					{
 						snesPointerBtns = 1;
 						#ifndef SNES9X_VERSION_1_4
@@ -783,7 +728,7 @@ void onInputEvent(const InputEvent &e)
 						#endif
 					}
 				}
-				else if(e.state == INPUT_PUSHED)
+				else if(e.state == PUSHED)
 				{
 					snesPointerBtns = 2;
 					#ifndef SNES9X_VERSION_1_4
@@ -882,7 +827,7 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
-CallResult onInit()
+CallResult onInit(int argc, char** argv)
 {
 	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
@@ -899,6 +844,7 @@ CallResult onInit()
 	#ifndef SNES9X_VERSION_1_4
 		S9xInitSound(20, 0);
 		S9xUnmapAllControls();
+		Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
 	#else
 		S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
 		assert(Settings.FrameTime == Settings.FrameTimeNTSC);

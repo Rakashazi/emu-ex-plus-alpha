@@ -44,7 +44,7 @@ void GuiTable1D::setYCellSize(int s)
 	viewRect.y2 = viewRect.y + ((cells * s)-1);
 }
 
-int GuiTable1D::inputEvent(const InputEvent &e)
+int GuiTable1D::inputEvent(const Input::Event &e)
 {
 	using namespace IG;
 	if(cells == 0)
@@ -60,7 +60,7 @@ int GuiTable1D::inputEvent(const InputEvent &e)
 			return -1;
 		}
 
-		if(e.state == INPUT_PUSHED)
+		if(e.state == Input::PUSHED)
 		{
 			int i = (Input::cursorY() - viewRect.y) / yCellSize;
 			logMsg("input pushed on cell %d", i);
@@ -71,7 +71,7 @@ int GuiTable1D::inputEvent(const InputEvent &e)
 			}
 		}
 
-		if(e.state == INPUT_RELEASED) // TODO, need to check that INPUT_PUSHED was sent on entry
+		if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
 		{
 			int i = (Input::cursorY() - viewRect.y) / yCellSize;
 			//logMsg("input released on cell %d", i);
@@ -115,12 +115,7 @@ int GuiTable1D::inputEvent(const InputEvent &e)
 			Base::displayNeedsUpdate();
 			//selectChanged = 1;
 		}
-		else if(e.pushed() && (e.isDefaultActionButton() ||
-				e.isDefaultRightButton()
-				#ifdef INPUT_SUPPORTS_KEYBOARD
-				|| e.button == Input::Key::ENTER
-				#endif
-				))
+		else if(e.pushed() && e.isDefaultConfirmButton())
 		{
 			if(selected != -1)
 			{

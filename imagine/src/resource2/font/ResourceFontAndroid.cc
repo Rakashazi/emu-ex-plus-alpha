@@ -82,13 +82,34 @@ void ResourceFontAndroid::free ()
 	delete this;
 }
 
+static const char *androidBitmapResultToStr(int result)
+{
+	switch(result)
+	{
+		case ANDROID_BITMAP_RESULT_SUCCESS: return "Success";
+		case ANDROID_BITMAP_RESULT_BAD_PARAMETER: return "Bad Parameter";
+		case ANDROID_BITMAP_RESULT_JNI_EXCEPTION: return "JNI Exception";
+		case ANDROID_BITMAP_RESULT_ALLOCATION_FAILED: return "Allocation Failed";
+		default: return "Unknown";
+	}
+}
+
 void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 {
 	assert(!lockedBitmap);
 	lockedBitmap = jCharBitmap(eEnv(), renderer);
 	AndroidBitmapInfo info;
-	AndroidBitmap_getInfo(eEnv(), lockedBitmap, &info);
-	AndroidBitmap_lockPixels(eEnv(), lockedBitmap, &data);
+	{
+		auto res = AndroidBitmap_getInfo(eEnv(), lockedBitmap, &info);
+		//logMsg("AndroidBitmap_getInfo returned %s", androidBitmapResultToStr(res));
+		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
+		//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
+	}
+	{
+		auto res = AndroidBitmap_lockPixels(eEnv(), lockedBitmap, &data);
+		//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
+		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
+	}
 	x = info.width;
 	y = info.height;
 	pitch = info.stride;
@@ -112,10 +133,15 @@ CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 		metrics.xOffset = jCurrentCharXOffset(eEnv(), renderer);
 		metrics.yOffset = jCurrentCharYOffset(eEnv(), renderer);
 		metrics.xAdvance = jCurrentCharXAdvance(eEnv(), renderer);
+		//logMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
+		//		metrics.xOffset, metrics.yOffset, metrics.xAdvance);
 		return OK;
 	}
 	else
+	{
+		logMsg("char not available");
 		return INVALID_PARAMETER;
+	}
 }
 
 /*int ResourceFontAndroid::currentFaceDescender () const

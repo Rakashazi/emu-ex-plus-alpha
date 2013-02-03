@@ -25,7 +25,7 @@
 class NavView
 {
 public:
-	typedef Delegate<void (const InputEvent &e)> OnInputDelegate;
+	typedef Delegate<void (const Input::Event &e)> OnInputDelegate;
 
 	constexpr NavView() { }
 	constexpr NavView(OnInputDelegate onLeftNavBtn, OnInputDelegate onRightNavBtn):
@@ -48,7 +48,7 @@ public:
 	virtual void deinit() = 0;
 	void deinitText();
 	virtual void place();
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 	virtual void draw() = 0;
 };
 

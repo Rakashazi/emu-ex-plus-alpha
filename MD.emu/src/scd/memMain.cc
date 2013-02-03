@@ -141,7 +141,7 @@ uint mainGateRead16(uint address)
 				return sCD.gate[4]<<8;
 			bcase 6:
 				//logMsg("read h-int");
-				return *(uint16 *)(cart.rom + 0x72);
+				return *(uint16a *)(cart.rom + 0x72);
 			bcase 8:
 				bug_exit("gate reg 8");
 				return Read_CDC_Host(0);

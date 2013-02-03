@@ -4,6 +4,7 @@
 #include <util/number.h>
 #include <util/rectangle2.h>
 #include <util/Delegate.hh>
+#include <util/collection/DLList.hh>
 
 #ifdef CONFIG_BASE_X11
 	#include <base/x11/inputDefs.hh>
@@ -19,10 +20,9 @@
 	#include <input/ps3/inputDefs.hh>
 #endif
 
-typedef uint InputButton;
-
 namespace Input
 {
+
 // mouse/pointer/touch support
 #ifndef CONFIG_INPUT_PS3
 	static const bool SUPPORTS_POINTER = 1;
@@ -91,9 +91,12 @@ typedef Delegate<void (const char *str)> InputTextDelegate;
 	static const bool supportsKeyboard = 0;
 #endif
 
-#ifdef CONFIG_INPUT_ICADE
-void setICadeActive(bool active);
-bool iCadeActive();
+// dynamic input device list from system
+#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9)
+	static const bool hasSystemDeviceHotswap = 1;
+	#define INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+#else
+	static const bool hasSystemDeviceHotswap = 0;
 #endif
 
 static const uint MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
@@ -180,7 +183,7 @@ static constexpr uint asciiKey(uint c)
 		0;
 }
 
-static uint decodeAscii(InputButton k, bool isShiftPushed)
+static uint decodeAscii(Key k, bool isShiftPushed)
 {
 	switch(k)
 	{
@@ -214,7 +217,7 @@ static uint decodeAscii(InputButton k, bool isShiftPushed)
 	return 0;
 }
 
-static bool isAsciiKey(InputButton k)
+static bool isAsciiKey(Key k)
 {
 	return decodeAscii(k, 0) != 0;
 }
@@ -224,7 +227,7 @@ static bool isAsciiKey(InputButton k)
 // TODO
 static constexpr uint asciiKey(uint c) { return c; }
 
-static uint decodeAscii(InputButton k, bool isShiftPushed)
+static uint decodeAscii(Key k, bool isShiftPushed)
 {
 	bug_exit("TODO");
 	return 0;
@@ -234,24 +237,23 @@ static uint decodeAscii(InputButton k, bool isShiftPushed)
 
 static constexpr uint asciiKey(uint c) { return c; }
 
-static uint decodeAscii(InputButton k, bool isShiftPushed)
+static uint decodeAscii(Key k, bool isShiftPushed)
 {
 	if(isShiftPushed && (k >= 'a' || k <= 'z'))
 		k -= 32;
 	switch(k)
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Key::ENTER: return '\n';
-		case Key::BACK_SPACE: return '\b';
+		case Keycode::ENTER: return '\n';
+		case Keycode::BACK_SPACE: return '\b';
 		#endif
 		case ' ' ... '~': return k;
 	}
 	return 0;
 }
 
-static bool isAsciiKey(InputButton k)
+static bool isAsciiKey(Key k)
 {
-	//return k >= ' '  && k <= '~';
 	return decodeAscii(k, 0) != 0;
 }
 
@@ -335,6 +337,8 @@ namespace Ps3
 
 namespace ICade
 {
+#ifdef CONFIG_BASE_IOS
+	// dedicated mapping
 	static const uint UP = 1,
 	RIGHT = 2,
 	DOWN = 3,
@@ -350,27 +354,125 @@ namespace ICade
 	;
 
 	static const uint COUNT = 13;
+#else
+	// mapping overlaps system/keyboard so the same "device" can send iCade
+	// events as well as other key events that don't conflict with its mapping.
+	// Here we just use all the On-States since they won't be sent as regular
+	// key events.
+	static const uint UP = asciiKey('w'),
+		RIGHT = asciiKey('d'),
+		DOWN = asciiKey('x'),
+		LEFT = asciiKey('a'),
+		A = asciiKey('y'),
+		B = asciiKey('h'),
+		C = asciiKey('u'),
+		D = asciiKey('j'),
+		E = asciiKey('i'),
+		F = asciiKey('k'),
+		G = asciiKey('o'),
+		H = asciiKey('l')
+		;
+
+	static const uint COUNT = Keycode::COUNT;
+#endif
 }
 
-static bool isVolumeKey(InputButton event)
+static bool isVolumeKey(Key event)
 {
 	#if defined CONFIG_BASE_SDL || defined CONFIG_BASE_MACOSX || !defined INPUT_SUPPORTS_KEYBOARD
 		return 0;
 	#else
-		return event == Key::VOL_UP || event == Key::VOL_DOWN;
+		return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
 	#endif
 }
 
-const char *buttonName(uint dev, InputButton b) ATTRS(const);
+const char *buttonName(uint map, Key b) ATTRS(const);
 
-}
+struct Device
+{
+private:
+	uint map_ = 0;
+	#ifdef CONFIG_INPUT_ICADE
+		bool iCadeMode_ = 0;
+	#endif
+	uint type_ = 0;
+public:
+	uint devId = 0, subtype = 0, idx = 0;
+	const char *name_ = nullptr;
+	bool mapJoystickAxis1ToDpad = 0;
 
-enum { INPUT_UNUSED, INPUT_RELEASED, INPUT_PUSHED, INPUT_MOVED, INPUT_MOVED_RELATIVE, INPUT_EXIT_VIEW, INPUT_ENTER_VIEW };
+	constexpr Device() { }
+	constexpr Device(uint devId, uint map, uint type, const char *name_): map_(map), type_(type), devId(devId), name_(name_) { }
 
-enum { INPUT_POINTER_NORMAL, INPUT_POINTER_INVERT };
-void input_xPointerTransform(uint mode);
-void input_yPointerTransform(uint mode);
-void input_pointerAxis(uint mode);
+	static constexpr uint SUBTYPE_NONE = 0,
+			SUBTYPE_XPERIA_PLAY = 1,
+			SUBTYPE_PS3_CONTROLLER = 2
+			;
+
+	static constexpr uint
+			TYPE_BIT_KEY_MISC = BIT(0),
+			TYPE_BIT_KEYBOARD = BIT(1),
+			TYPE_BIT_GAMEPAD = BIT(2),
+			TYPE_BIT_JOYSTICK = BIT(3)
+			;
+
+	bool hasGamepad() const
+	{
+		return typeBits() & TYPE_BIT_GAMEPAD;
+	}
+
+	bool hasJoystick() const
+	{
+		return typeBits() & TYPE_BIT_JOYSTICK;
+	}
+
+	const char *name() const { return name_; }
+	uint map() const;
+
+	uint typeBits() const
+	{
+		return
+		#ifdef CONFIG_INPUT_ICADE
+			iCadeMode_ ? TYPE_BIT_GAMEPAD :
+		#endif
+		type_;
+	}
+	void setTypeBits(uint type) { type_ = type; }
+
+	bool operator ==(Device const& rhs) const
+	{
+		return devId == rhs.devId && map_ == rhs.map_ && string_equal(name(), rhs.name());
+	}
+
+	#ifdef CONFIG_INPUT_ICADE
+		void setICadeMode(bool on);
+		bool iCadeMode() const { return iCadeMode_; }
+	#endif
+
+	// TODO
+	//bool isDisconnectable() { return 0; }
+	//void disconnect() { }
+
+	#if defined CONFIG_ENV_WEBOS
+		bool anyTypeBitsPresent(uint typeBits) { bug_exit("TODO"); return 0; }
+	#else
+		static bool anyTypeBitsPresent(uint typeBits);
+	#endif
+};
+
+static constexpr uint MAX_DEVS = 16;
+extern StaticDLList<Device, MAX_DEVS> devList;
+
+void addDevice(Device d);
+void removeDevice(Device d);
+void indexDevices();
+
+enum { UNUSED, RELEASED, PUSHED, MOVED, MOVED_RELATIVE, EXIT_VIEW, ENTER_VIEW };
+enum { POINTER_NORMAL, POINTER_INVERT };
+
+void xPointerTransform(uint mode);
+void yPointerTransform(uint mode);
+void pointerAxis(uint mode);
 
 struct PackedInputAccess
 {
@@ -391,109 +493,114 @@ struct PackedInputAccess
 
 };
 
-extern bool input_swappedGamepadConfirm;
+extern bool swappedGamepadConfirm;
 
-class InputEvent
+class Event
 {
 public:
-	enum { DEV_NULL = 0, DEV_KEYBOARD, DEV_POINTER, DEV_REL_POINTER, DEV_WIIMOTE, DEV_ICONTROLPAD,
-		DEV_ZEEMOTE, DEV_ICADE, DEV_PS3PAD };
+	static constexpr uint MAP_NULL = 0,
+		MAP_KEYBOARD = 1,
+		MAP_POINTER = 2,
+		MAP_REL_POINTER = 3,
+		MAP_WIIMOTE = 10, MAP_WIIMOTE_CC = 11,
+		MAP_ICONTROLPAD = 20,
+		MAP_ZEEMOTE = 21,
+		MAP_ICADE = 22,
+		MAP_PS3PAD = 23
+		;
 
-	static const char *devTypeName(uint devType)
+	static const char *mapName(uint map)
 	{
-		switch(devType)
+		switch(map)
 		{
-			case DEV_NULL: return "Null";
-			#ifdef CONFIG_BASE_ANDROID
-			case DEV_KEYBOARD: return "Key Input";
-			#else
-			case DEV_KEYBOARD: return "Keyboard";
-			#endif
-			case DEV_POINTER: return "Pointer";
-			case DEV_REL_POINTER: return "Relative Pointer";
+			case MAP_NULL: return "Null";
+			case MAP_KEYBOARD: return "Key Input";
+			case MAP_POINTER: return "Pointer";
+			case MAP_REL_POINTER: return "Relative Pointer";
 			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return "Wiimote";
-			case DEV_ICONTROLPAD: return "iControlPad";
-			case DEV_ZEEMOTE: return "Zeemote JS1";
+			case MAP_WIIMOTE: return "Wiimote";
+			case MAP_ICONTROLPAD: return "iControlPad";
+			case MAP_ZEEMOTE: return "Zeemote JS1";
 			#endif
 			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return "PS3 Gamepad";
+			case MAP_PS3PAD: return "PS3 Gamepad";
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return "iCade";
+			case MAP_ICADE: return "iCade";
 			#endif
 			default: return "Unknown";
 		}
 	}
 
-	const char *devTypeName()
+	const char *mapName()
 	{
-		return devTypeName(devType);
+		return mapName(map);
 	}
 
-	static uint devTypeNumKeys(uint devType)
+	static uint mapNumKeys(uint map)
 	{
-		switch(devType)
+		switch(map)
 		{
-			case DEV_NULL: return 0;
+			case MAP_NULL: return 0;
 			#ifdef INPUT_SUPPORTS_KEYBOARD
-			case DEV_KEYBOARD: return Input::Key::COUNT;
+			case MAP_KEYBOARD: return Input::Keycode::COUNT;
 			#endif
 			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return Input::Wiimote::COUNT;
-			case DEV_ICONTROLPAD: return Input::iControlPad::COUNT;
-			case DEV_ZEEMOTE: return Input::Zeemote::COUNT;
+			case MAP_WIIMOTE: return Input::Wiimote::COUNT;
+			case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
+			case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
 			#endif
 			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return Input::Ps3::COUNT;
+			case MAP_PS3PAD: return Input::Ps3::COUNT;
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return Input::ICade::COUNT;
+			case MAP_ICADE: return Input::ICade::COUNT;
 			#endif
-			default: bug_branch("%d", devType); return 0;
+			default: bug_branch("%d", map); return 0;
 		}
 	}
 
-	constexpr InputEvent() { }
+	constexpr Event() { }
 
-	constexpr InputEvent(uint devId, uint devType, InputButton button, uint state, int x, int y)
-		: devId(devId), devType(devType), button(button), state(state), x(x), y(y) { }
+	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, const Device *device)
+		: devId(devId), map(map), button(button), state(state), x(x), y(y), device(device) { }
 
-	constexpr InputEvent(uint devId, uint devType, InputButton button, uint state, uint metaState)
-		: devId(devId), devType(devType), button(button), state(state), metaState(metaState) { }
+	constexpr Event(uint devId, uint map, Key button, uint state, uint metaState, const Device *device)
+		: devId(devId), map(map), button(button), state(state), metaState(metaState), device(device) { }
 
-	uint devId = 0, devType = DEV_NULL;
-	InputButton button = 0;
+	uint devId = 0, map = MAP_NULL;
+	Key button = 0;
 	uint state = 0;
 	int x = 0, y = 0;
 	uint metaState = 0;
+	const Device *device = nullptr;
 
 	bool stateIsPointer() const
 	{
-		return state == INPUT_MOVED || state == INPUT_EXIT_VIEW || state == INPUT_ENTER_VIEW;
+		return state == MOVED || state == EXIT_VIEW || state == ENTER_VIEW;
 	}
 
 	bool isPointer() const
 	{
-		return Input::SUPPORTS_POINTER && (devType == DEV_POINTER/*input_eventIsFromPointer(button)*/ || stateIsPointer());
+		return Input::SUPPORTS_POINTER && (map == MAP_POINTER/*input_eventIsFromPointer(button)*/ || stateIsPointer());
 	}
 
 	bool isRelativePointer() const
 	{
-		return Input::supportsRelativePointer && state == INPUT_MOVED_RELATIVE;
+		return Input::supportsRelativePointer && state == MOVED_RELATIVE;
 	}
 
 	bool isGamepad() const
 	{
-		switch(devType)
+		switch(map)
 		{
 			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE:
-			case DEV_ICONTROLPAD:
-			case DEV_ZEEMOTE: return 1;
+			case MAP_WIIMOTE:
+			case MAP_ICONTROLPAD:
+			case MAP_ZEEMOTE: return 1;
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return 1;
+			case MAP_ICADE: return 1;
 			#endif
 			default : return 0;
 		}
@@ -506,247 +613,36 @@ public:
 
 	bool isKeyboard() const
 	{
-		return Input::supportsKeyboard && devType == DEV_KEYBOARD;
+		return Input::supportsKeyboard && map == MAP_KEYBOARD;
 	}
 
-	bool isDefaultActionButton(uint swapped = input_swappedGamepadConfirm) const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return swapped ? isDefaultCancelButton(0) :
-					(button == Input::Wiimote::_1 || button == Input::Wiimote::B || button == Input::Wiimote::NUN_Z);
-			case DEV_ICONTROLPAD: return swapped ? isDefaultCancelButton(0) : (button == Input::iControlPad::X);
-			case DEV_ZEEMOTE: return swapped ? isDefaultCancelButton(0) : (button == Input::Zeemote::A);
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return swapped ? isDefaultCancelButton(0) : (button == Input::ICade::H || button == Input::ICade::A);
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::Ps3::CROSS);
-			#endif
-			default:
-				return 0 //button == Input::asciiKey('z')
-				#ifdef CONFIG_BASE_ANDROID
-				|| button == Input::Key::CENTER || button == Input::Key::GAME_A || button == Input::Key::GAME_1
-				#endif
-				;
-		}
-	}
-
-	bool isDefaultCancelButton(uint swapped = input_swappedGamepadConfirm) const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return swapped ? isDefaultActionButton(0) :
-					(button == Input::Wiimote::_2 || button == Input::Wiimote::A || button == Input::Wiimote::NUN_C);
-			case DEV_ICONTROLPAD: return swapped ? isDefaultActionButton(0) : (button == Input::iControlPad::B);
-			case DEV_ZEEMOTE: return swapped ? isDefaultActionButton(0) : (button == Input::Zeemote::B);
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return swapped ? isDefaultActionButton(0) : (button == Input::ICade::G || button == Input::ICade::C);
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return swapped ? isDefaultActionButton(0) : (button == Input::Ps3::CIRCLE);
-			#endif
-			#ifdef INPUT_SUPPORTS_MOUSE
-			case DEV_POINTER: return button == Input::Pointer::DOWN_BUTTON;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default:
-				return button == Input::Key::ESCAPE //|| button == Input::asciiKey('x')
-					#ifdef CONFIG_INPUT_ANDROID
-					|| button == Input::Key::GAME_B || button == Input::Key::GAME_2
-					#endif
-					;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultLeftButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE:
-				return button == Input::Wiimote::LEFT || button == Input::Wiimote::CC_LSTICK_LEFT || button == Input::Wiimote::NUN_STICK_LEFT;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::LEFT || button == Input::iControlPad::LNUB_LEFT;
-			case DEV_ZEEMOTE: return button == Input::Zeemote::LEFT;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::LEFT;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::LEFT;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default:
-				return button == Input::Key::LEFT
-				#ifdef CONFIG_ENV_WEBOS
-				|| button == Input::asciiKey('d')
-				#endif
-				;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultRightButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE:
-				return button == Input::Wiimote::RIGHT || button == Input::Wiimote::CC_LSTICK_RIGHT || button == Input::Wiimote::NUN_STICK_RIGHT;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::RIGHT || button == Input::iControlPad::LNUB_RIGHT;
-			case DEV_ZEEMOTE: return button == Input::Zeemote::RIGHT;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::RIGHT;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::RIGHT;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default:
-				return button == Input::Key::RIGHT
-				#ifdef CONFIG_ENV_WEBOS
-				|| button == Input::asciiKey('g')
-				#endif
-				;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultUpButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE:
-				return button == Input::Wiimote::UP || button == Input::Wiimote::CC_LSTICK_UP || button == Input::Wiimote::NUN_STICK_UP;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::UP || button == Input::iControlPad::LNUB_UP;
-			case DEV_ZEEMOTE: return button == Input::Zeemote::UP;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::UP;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::UP;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default:
-				return button == Input::Key::UP
-				#ifdef CONFIG_ENV_WEBOS
-				|| button == Input::asciiKey('r')
-				#endif
-				;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultDownButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE:
-				return button == Input::Wiimote::DOWN || button == Input::Wiimote::CC_LSTICK_DOWN || button == Input::Wiimote::NUN_STICK_DOWN;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::DOWN || button == Input::iControlPad::LNUB_DOWN;
-			case DEV_ZEEMOTE: return button == Input::Zeemote::DOWN;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::DOWN;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::DOWN;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default:
-				return button == Input::Key::DOWN
-				#ifdef CONFIG_ENV_WEBOS
-				|| button == Input::asciiKey('c')
-				#endif
-				;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultPageUpButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return button == Input::Wiimote::PLUS || button == Input::Wiimote::L;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::L;
-			case DEV_ZEEMOTE: return 0;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::B;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::L1;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default: return button == Input::Key::PGUP
-			#ifdef CONFIG_BASE_ANDROID
-					|| button == Input::Key::GAME_L1
-			#endif
-					;
-			#endif
-		}
-		return 0;
-	}
-
-	bool isDefaultPageDownButton() const
-	{
-		switch(devType)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case DEV_WIIMOTE: return button == Input::Wiimote::MINUS || button == Input::Wiimote::R;
-			case DEV_ICONTROLPAD: return button == Input::iControlPad::R;
-			case DEV_ZEEMOTE: return 0;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case DEV_ICADE: return button == Input::ICade::D;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case DEV_PS3PAD: return button == Input::Ps3::R1;
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			default: return button == Input::Key::PGDOWN
-			#ifdef CONFIG_BASE_ANDROID
-					|| button == Input::Key::GAME_R1
-			#endif
-					;
-			#endif
-		}
-		return 0;
-	}
+	bool isDefaultConfirmButton(uint swapped = Input::swappedGamepadConfirm) const;
+	bool isDefaultCancelButton(uint swapped = Input::swappedGamepadConfirm) const;
+	bool isDefaultLeftButton() const;
+	bool isDefaultRightButton() const;
+	bool isDefaultUpButton() const;
+	bool isDefaultDownButton() const;
+	bool isDefaultPageUpButton() const;
+	bool isDefaultPageDownButton() const;
 
 	bool pushed() const
 	{
-		return state == INPUT_PUSHED;
+		return state == PUSHED;
 	}
 
-	bool pushed(InputButton button) const
+	bool pushed(Key button) const
 	{
 		return pushed() && this->button == button;
 	}
 
 	bool released() const
 	{
-		return state == INPUT_RELEASED;
+		return state == RELEASED;
 	}
 
 	bool moved() const
 	{
-		return state == INPUT_MOVED;
+		return state == MOVED;
 	}
 
 	uint decodeAscii() const
@@ -760,35 +656,54 @@ public:
 	}
 };
 
-namespace Input
+// Input device status
+
+struct DeviceChange
 {
-	void onInputEvent(const InputEvent &event);
+	uint devId, map;
+	uint state;
+	enum { ADDED, REMOVED, SHOWN, HIDDEN };
 
-	static uint devButtonCount(uint devType)
+	bool added() const { return state == ADDED; }
+	bool removed() const { return state == REMOVED; }
+	bool shown() const { return state == SHOWN; }
+	bool hidden() const { return state == HIDDEN; }
+};
+
+static uint devButtonCount(uint map)
+{
+	switch(map)
 	{
-		switch(devType)
-		{
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-			case InputEvent::DEV_KEYBOARD: return Key::COUNT;
-			case InputEvent::DEV_POINTER: return Key::COUNT;
-			case InputEvent::DEV_REL_POINTER: return Key::COUNT;
-			#endif
-			#ifdef CONFIG_BLUETOOTH
-			case InputEvent::DEV_WIIMOTE: return Wiimote::COUNT;
-			case InputEvent::DEV_ICONTROLPAD: return iControlPad::COUNT;
-			case InputEvent::DEV_ZEEMOTE: return Zeemote::COUNT;
-			#endif
-			#ifdef CONFIG_BASE_PS3
-			case InputEvent::DEV_PS3PAD: return Ps3::COUNT;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case InputEvent::DEV_ICADE: return ICade::COUNT;
-			#endif
-			default: return 0;
-		}
+		#ifdef INPUT_SUPPORTS_KEYBOARD
+		case Input::Event::MAP_KEYBOARD: return Keycode::COUNT;
+		case Input::Event::MAP_POINTER: return Keycode::COUNT;
+		case Input::Event::MAP_REL_POINTER: return Keycode::COUNT;
+		#endif
+		#ifdef CONFIG_BLUETOOTH
+		case Input::Event::MAP_WIIMOTE: return Wiimote::COUNT;
+		case Input::Event::MAP_ICONTROLPAD: return iControlPad::COUNT;
+		case Input::Event::MAP_ZEEMOTE: return Zeemote::COUNT;
+		#endif
+		#ifdef CONFIG_BASE_PS3
+		case Input::Event::MAP_PS3PAD: return Ps3::COUNT;
+		#endif
+		#ifdef CONFIG_INPUT_ICADE
+		case Input::Event::MAP_ICADE: return ICade::COUNT;
+		#endif
+		default: return 0;
 	}
+}
 
-	bool keyInputIsPresent();
+bool keyInputIsPresent();
 
-	const char *eventActionToStr(int action);
+const char *eventActionToStr(int action);
+
+// App Callbacks
+
+// Called when a known input device addition/removal/change occurs
+void onInputDevChange(const DeviceChange &change);
+
+// Called to process an event from an input device
+void onInputEvent(const Input::Event &event);
+
 }

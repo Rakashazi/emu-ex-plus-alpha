@@ -29,7 +29,7 @@ private:
 		fdsBiosPath.compile();
 	}
 
-	void fdsBiosPathHandler(TextMenuItem &, const InputEvent &e)
+	void fdsBiosPathHandler(TextMenuItem &, const Input::Event &e)
 	{
 		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.placeRect(Gfx::viewportRect());
@@ -40,7 +40,7 @@ private:
 
 	BoolMenuItem fourScore {"4-Player Adapter"};
 
-	static void fourScoreHandler(BoolMenuItem &item, const InputEvent &e)
+	static void fourScoreHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionFourScore = item.on;
@@ -103,7 +103,6 @@ public:
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		//fdsBiosPath.init("Select Disk System BIOS"); item[items++] = &fdsBiosPath;
 		printBiosMenuEntryStr(fdsBiosPathStr);
 		fdsBiosPath.init(fdsBiosPathStr); item[items++] = &fdsBiosPath;
 		fdsBiosPath.selectDelegate().bind<SystemOptionView, &SystemOptionView::fdsBiosPathHandler>(this);
@@ -113,7 +112,6 @@ public:
 #include "MenuView.hh"
 #include <TextEntry.hh>
 
-static CollectTextInputView cheatInputView;
 static void refreshCheatViews();
 void EncodeGG(char *str, int a, int v, int c);
 
@@ -175,18 +173,16 @@ private:
 			ggCode.compile();
 			Base::displayNeedsUpdate();
 		}
-		//viewStack.popAndShow();
 		removeModalView();
 		return 0;
 	}
 
-	void ggCodeHandler(TextMenuItem &item, const InputEvent &e)
+	void ggCodeHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input Game Genie code", ggCodeStr);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleGgCodeFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input Game Genie code", ggCodeStr);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleGgCodeFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 	uint handleNameFromTextInput(const char *str)
@@ -200,18 +196,16 @@ private:
 			name.compile();
 			Base::displayNeedsUpdate();
 		}
-		//viewStack.popAndShow();
 		removeModalView();
 		return 0;
 	}
 
-	void nameHandler(TextMenuItem &item, const InputEvent &e)
+	void nameHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input description", name.t.str);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleNameFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input description", name.t.str);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleNameFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 	uint handleAddrFromTextInput(const char *str)
@@ -231,18 +225,16 @@ private:
 			addr.compile();
 			Base::displayNeedsUpdate();
 		}
-		//viewStack.popAndShow();
 		removeModalView();
 		return 0;
 	}
 
-	void addrHandler(TextMenuItem &item, const InputEvent &e)
+	void addrHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input 4-digit hex", addrStr);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleAddrFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input 4-digit hex", addrStr);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleAddrFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 	uint handleValFromTextInput(const char *str)
@@ -262,18 +254,16 @@ private:
 			value.compile();
 			Base::displayNeedsUpdate();
 		}
-		//viewStack.popAndShow();
 		removeModalView();
 		return 0;
 	}
 
-	void valHandler(TextMenuItem &item, const InputEvent &e)
+	void valHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input 2-digit hex", valueStr);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleValFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input 2-digit hex", valueStr);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleValFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 	uint handleCompFromTextInput(const char *str)
@@ -300,21 +290,19 @@ private:
 			comp.compile();
 			Base::displayNeedsUpdate();
 		}
-		//viewStack.popAndShow();
 		removeModalView();
 		return 0;
 	}
 
-	void compHandler(TextMenuItem &item, const InputEvent &e)
+	void compHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input 2-digit hex or blank", compStr);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleCompFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input 2-digit hex or blank", compStr);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleCompFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
-	void removeHandler(TextMenuItem &item, const InputEvent &e)
+	void removeHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		assert(fceuCheats != 0);
 		FCEUI_DelCheat(idx);
@@ -407,30 +395,28 @@ private:
 		return 0;
 	}
 
-	void addGGHandler(TextMenuItem &item, const InputEvent &e)
+	void addGGHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		addCheatType = 1;
-		cheatInputView.init("Input description");
-		cheatInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input description");
+		textInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
-	void addRAMHandler(TextMenuItem &item, const InputEvent &e)
+	void addRAMHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		addCheatType = 0;
-		cheatInputView.init("Input description");
-		cheatInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
-		//viewStack.pushAndShow(&cheatInputView);
+		textInputView.init("Input description");
+		textInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 public:
 	constexpr EditCheatListView(): BaseMenuView("Edit Cheats") { }
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		if(i < 2)
 			item[i]->select(this, e);
@@ -475,7 +461,7 @@ private:
 		int idx = 0;
 		void init(int idx, const char *name, bool on) { BoolMenuItem::init(name, on); var_selfs(idx); }
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			uint32 a;
 			uint8 v;
@@ -522,7 +508,7 @@ private:
 			this->side = side;
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(side < FCEU_FDSSides())
 			{
@@ -540,7 +526,7 @@ private:
 			TextMenuItem::init("Eject", FCEU_FDSInserted());
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(FCEU_FDSInserted())
 			{
@@ -605,7 +591,7 @@ private:
 			compile();
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
@@ -617,7 +603,7 @@ private:
 		}
 	} fdsControl;
 
-	static void cheatsHandler(TextMenuItem &item, const InputEvent &e)
+	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		if(EmuSystem::gameIsRunning())
 		{

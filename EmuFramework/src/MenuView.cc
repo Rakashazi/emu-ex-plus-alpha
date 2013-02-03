@@ -25,6 +25,7 @@
 #include <StateSlotView.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
+#include <InputManagerView.hh>
 #include <util/strings.h>
 #ifdef CONFIG_BLUETOOTH
 	#include <bluetooth/sys.hh>
@@ -37,24 +38,24 @@ extern CreditsView credits;
 extern EmuFilePicker fPicker;
 extern OptionCategoryView oMenu;
 extern RecentGameView rMenu;
-extern InputPlayerMapView ipmMenu;
+extern InputManagerView imMenu;
 extern StateSlotView ssMenu;
 void takeGameScreenshot();
 
-void loadGameHandler(TextMenuItem &, const InputEvent &e)
+void loadGameHandler(TextMenuItem &, const Input::Event &e)
 {
 	fPicker.init(!e.isPointer());
 	viewStack.useNavView = 0;
 	viewStack.pushAndShow(&fPicker);
 }
 
-void confirmResetAlert(const InputEvent &e)
+void confirmResetAlert(const Input::Event &e)
 {
 	EmuSystem::resetGame();
 	startGameFromMenu();
 }
 
-void resetHandler(TextMenuItem &, const InputEvent &e)
+void resetHandler(TextMenuItem &, const Input::Event &e)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -65,7 +66,7 @@ void resetHandler(TextMenuItem &, const InputEvent &e)
 	}
 }
 
-void confirmLoadStateAlert(const InputEvent &e)
+void confirmLoadStateAlert(const Input::Event &e)
 {
 	int ret = EmuSystem::loadState();
 	if(ret != STATE_RESULT_OK)
@@ -77,7 +78,7 @@ void confirmLoadStateAlert(const InputEvent &e)
 		startGameFromMenu();
 }
 
-void loadStateHandler(TextMenuItem &item, const InputEvent &e)
+void loadStateHandler(TextMenuItem &item, const Input::Event &e)
 {
 	if(item.active && EmuSystem::gameIsRunning())
 	{
@@ -88,7 +89,7 @@ void loadStateHandler(TextMenuItem &item, const InputEvent &e)
 	}
 }
 
-void recentGamesHandler(TextMenuItem &, const InputEvent &e)
+void recentGamesHandler(TextMenuItem &, const Input::Event &e)
 {
 	if(recentGameList.size)
 	{
@@ -106,16 +107,16 @@ void doSaveState()
 		startGameFromMenu();
 }
 
-void confirmSaveStateAlert(const InputEvent &e)
+void confirmSaveStateAlert(const Input::Event &e)
 {
 	doSaveState();
 }
 
-void saveStateHandler(TextMenuItem &, const InputEvent &e)
+void saveStateHandler(TextMenuItem &, const Input::Event &e)
 {
 	if(EmuSystem::gameIsRunning())
 	{
-		if(!EmuSystem::stateExists(EmuSystem::saveStateSlot))
+		if(!optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot))
 		{
 			doSaveState();
 		}
@@ -140,27 +141,26 @@ char saveSlotChar(int slot)
 	}
 }
 
-void stateSlotHandler(TextMenuItem &, const InputEvent &e)
+void stateSlotHandler(TextMenuItem &, const Input::Event &e)
 {
 	ssMenu.init(!e.isPointer());
 	viewStack.pushAndShow(&ssMenu);
 }
 
-void optionsHandler(TextMenuItem &, const InputEvent &e)
+void optionsHandler(TextMenuItem &, const Input::Event &e)
 {
 	oMenu.init(!e.isPointer());
 	viewStack.pushAndShow(&oMenu);
 }
 
-void inputPlayerMapHandler(TextMenuItem &, const InputEvent &e)
+void inputManagerHandler(TextMenuItem &, const Input::Event &e)
 {
-	ipmMenu.init(!e.isPointer());
-	viewStack.pushAndShow(&ipmMenu);
+	imMenu.init(!e.isPointer());
+	viewStack.pushAndShow(&imMenu);
 }
 
-void benchmarkHandler(TextMenuItem &, const InputEvent &e)
+void benchmarkHandler(TextMenuItem &, const Input::Event &e)
 {
-	//static BenchmarkFilePicker picker;
 	fPicker.initForBenchmark(!e.isPointer());
 	fPicker.placeRect(Gfx::viewportRect());
 	View::modalView = &fPicker;
@@ -225,7 +225,7 @@ void btStatus(uint status, int arg)
 
 #ifdef CONFIG_BTSTACK
 
-void confirmBluetoothScanAlert(const InputEvent &e)
+void confirmBluetoothScanAlert(const Input::Event &e)
 {
 	logMsg("launching Cydia");
 	Base::openURL("cydia://package/ch.ringwald.btstack");
@@ -240,7 +240,7 @@ namespace CATS
 }
 #endif
 
-void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
+void bluetoothScanHandler(TextMenuItem &, const Input::Event &e)
 {
 	#ifdef CONFIG_BASE_IOS_SETUID
 		if(FsSys::fileExists(CATS::warWasBeginning))
@@ -279,12 +279,12 @@ void bluetoothScanHandler(TextMenuItem &, const InputEvent &e)
 	Base::displayNeedsUpdate();
 }
 
-void confirmBluetoothDisconnectAlert(const InputEvent &e)
+void confirmBluetoothDisconnectAlert(const Input::Event &e)
 {
 	Bluetooth::closeBT();
 }
 
-void bluetoothDisconnectHandler(TextMenuItem &item, const InputEvent &e)
+void bluetoothDisconnectHandler(TextMenuItem &item, const Input::Event &e)
 {
 	if(Bluetooth::devsConnected())
 	{
@@ -299,18 +299,18 @@ void bluetoothDisconnectHandler(TextMenuItem &item, const InputEvent &e)
 
 #endif
 
-void aboutHandler(TextMenuItem &, const InputEvent &e)
+void aboutHandler(TextMenuItem &, const Input::Event &e)
 {
 	credits.init();
 	viewStack.pushAndShow(&credits);
 }
 
-void exitAppHandler(TextMenuItem &, const InputEvent &e)
+void exitAppHandler(TextMenuItem &, const Input::Event &e)
 {
 	Base::exit();
 }
 
-void screenshotHandler(TextMenuItem &item, const InputEvent &e)
+void screenshotHandler(TextMenuItem &item, const Input::Event &e)
 {
 	if(EmuSystem::gameIsRunning())
 		takeGameScreenshot();
@@ -348,24 +348,20 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 	saveState.init(); item[items++] = &saveState;
 	saveState.selectDelegate().bind<&saveStateHandler>();
 
-	strcpy(stateSlotText, "State Slot (0)"); // TODO do in constructor
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
 	stateSlot.init(stateSlotText); item[items++] = &stateSlot;
 	stateSlot.selectDelegate().bind<&stateSlotHandler>();
 
 	options.init(); item[items++] = &options;
 	options.selectDelegate().bind<&optionsHandler>();
+	inputManager.init(); item[items++] = &inputManager;
+	inputManager.selectDelegate().bind<&inputManagerHandler>();
 	#ifdef CONFIG_BLUETOOTH
 	scanWiimotes.init(); item[items++] = &scanWiimotes;
 	scanWiimotes.selectDelegate().bind<&bluetoothScanHandler>();
 	bluetoothDisconnect.init(); item[items++] = &bluetoothDisconnect;
 	bluetoothDisconnect.selectDelegate().bind<&bluetoothDisconnectHandler>();
 	#endif
-	if(EmuSystem::maxPlayers > 1)
-	{
-		inputPlayerMap.init(); item[items++] = &inputPlayerMap;
-		inputPlayerMap.selectDelegate().bind<&inputPlayerMapHandler>();
-	}
 	benchmark.init(); item[items++] = &benchmark;
 	benchmark.selectDelegate().bind<&benchmarkHandler>();
 	screenshot.init(); item[items++] = &screenshot;
@@ -376,75 +372,21 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 	exitApp.selectDelegate().bind<&exitAppHandler>();
 }
 
-void InputPlayerMapView::init(bool highlightFirst)
-{
-	uint i = 0, iMaps = 0;
-	assert(EmuSystem::maxPlayers <= 5);
-	#ifdef INPUT_SUPPORTS_POINTER
-	inputMap[iMaps].init("Touch Screen", &pointerInputPlayer); item[i] = &inputMap[iMaps++]; i++;
-	#endif
-	#if !defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_PS3) && defined(INPUT_SUPPORTS_KEYBOARD)
-		#ifdef CONFIG_BASE_ANDROID
-		if(Base::androidSDK() >= 12)
-		{
-			iterateTimes(EmuSystem::maxPlayers, p)
-			{
-				static const char *str[] = { "Keyboard/HID Gamepad 1", "HID Gamepad 2", "HID Gamepad 3", "HID Gamepad 4", "HID Gamepad 5" };
-				inputMap[iMaps].init(str[p], &keyboardInputPlayer[p]); item[i] = &inputMap[iMaps++]; i++;
-			}
-		}
-		else
-		#endif
-		{
-			inputMap[iMaps].init("Keyboard", &keyboardInputPlayer[0]); item[i] = &inputMap[iMaps++]; i++;
-		}
-	#endif
-	#ifdef CONFIG_INPUT_ICADE
-	inputMap[iMaps].init("iCade", &iCadeInputPlayer); item[i] = &inputMap[iMaps++]; i++;
-	#endif
-	#if defined(CONFIG_BASE_PS3)
-	iterateTimes((int)EmuSystem::maxPlayers, p)
-	{
-		static const char *str[] = { "Controller 1", "Controller 2", "Controller 3", "Controller 4", "Controller 5" };
-		inputMap[iMaps].init(str[p], &gamepadInputPlayer[p]); item[i] = &inputMap[iMaps++]; i++;
-	}
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	iterateTimes((int)EmuSystem::maxPlayers, p)
-	{
-		static const char *str[] = { "Wiimote 1", "Wiimote 2", "Wiimote 3", "Wiimote 4", "Wiimote 5" };
-		inputMap[iMaps].init(str[p], &wiimoteInputPlayer[p]); item[i] = &inputMap[iMaps++]; i++;
-	}
-	iterateTimes((int)EmuSystem::maxPlayers, p)
-	{
-		static const char *str[] = { "iControlPad 1", "iControlPad 2", "iControlPad 3", "iControlPad 4", "iControlPad 5" };
-		inputMap[iMaps].init(str[p], &iControlPadInputPlayer[p]); item[i] = &inputMap[iMaps++]; i++;
-	}
-	iterateTimes((int)EmuSystem::maxPlayers, p)
-	{
-		static const char *str[] = { "Zeemote JS1 1", "Zeemote JS1 2", "Zeemote JS1 3", "Zeemote JS1 4", "Zeemote JS1 5" };
-		inputMap[iMaps].init(str[p], &zeemoteInputPlayer[p]); item[i] = &inputMap[iMaps++]; i++;
-	}
-	#endif
-	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
-}
-
 extern void loadGameComplete(bool tryAutoState, bool addToRecent);
 
-static void loadGameCompleteConfirmYesAutoLoadState(const InputEvent &e)
+static void loadGameCompleteConfirmYesAutoLoadState(const Input::Event &e)
 {
 	loadGameComplete(1, 0);
 }
 
-static void loadGameCompleteConfirmNoAutoLoadState(const InputEvent &e)
+static void loadGameCompleteConfirmNoAutoLoadState(const Input::Event &e)
 {
 	loadGameComplete(0, 0);
 }
 
-bool showAutoStateConfirm(const InputEvent &e);
+bool showAutoStateConfirm(const Input::Event &e);
 
-void loadGameCompleteFromRecentItem(uint result, const InputEvent &e)
+void loadGameCompleteFromRecentItem(uint result, const Input::Event &e)
 {
 	if(!result)
 		return;
@@ -455,7 +397,7 @@ void loadGameCompleteFromRecentItem(uint result, const InputEvent &e)
 	}
 }
 
-void RecentGameInfo::handleMenuSelection(TextMenuItem &, const InputEvent &e)
+void RecentGameInfo::handleMenuSelection(TextMenuItem &, const Input::Event &e)
 {
 	FsSys::cPath dirNameTemp;
 	strcpy(dirNameTemp, path);
@@ -472,7 +414,7 @@ void RecentGameInfo::handleMenuSelection(TextMenuItem &, const InputEvent &e)
 	}
 }
 
-void RecentGameView::clearRecentMenuHandler(TextMenuItem &, const InputEvent &e)
+void RecentGameView::clearRecentMenuHandler(TextMenuItem &, const Input::Event &e)
 {
 	recentGameList.removeAll();
 	viewStack.popAndShow();

@@ -30,6 +30,7 @@
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
+#include <util/memory.h>
 
 #define CART_CNT (48)
 
@@ -567,17 +568,17 @@ void md_cart_init(void)
   /**********************************************
         Cartridge Extra Hardware
   ***********************************************/
-  memset(&cart.hw, 0, sizeof(T_CART_HW));
+  mem_zero(cart.hw);
 
   /* search for game into database */
-  for (i=0; i < CART_CNT + 1; i++)
+  for (i=0; i < CART_CNT; i++)
   {
     /* known cart found ! */
     if ((rominfo.checksum == rom_database[i].chk_1) &&
         (rominfo.realchecksum == rom_database[i].chk_2))
     {
       /* retrieve hardware information */
-      memcpy(&cart.hw, &(rom_database[i].cart_hw), sizeof(T_CART_HW));
+      memcpy(&cart.hw, &(rom_database[i].cart_hw), sizeof(cart.hw));
 
       /* initialize memory handlers for $400000-$7FFFFF region */
       int j = rom_database[i].bank_start;
@@ -599,7 +600,7 @@ void md_cart_init(void)
       }
 
       /* leave loop */
-      i = CART_CNT + 1;
+      break;
     }
   }
 

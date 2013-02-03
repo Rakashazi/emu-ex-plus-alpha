@@ -20,20 +20,6 @@
 #include <EmuInput.hh>
 
 extern YesNoAlertView ynAlertView;
-extern KeyMapping keyMapping;
-void buildKeyMapping();
-
-struct BtnConfigMenuItem : public DualTextMenuItem
-{
-	uint *btn = nullptr; uint dev = 0;
-	void init(const char *name, uint *btn, uint dev);
-
-	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;
-
-	void select(View *view, const InputEvent &e);
-
-	void setButton(const InputEvent &e);
-};
 
 static class ButtonConfigSetView : public View
 {
@@ -50,108 +36,21 @@ static class ButtonConfigSetView : public View
 	;
 
 public:
-	BtnConfigMenuItem *onSet = nullptr;
-	uint devType = 0;
+	constexpr ButtonConfigSetView() { }
+
+	typedef Delegate<void (const Input::Event &e)> OnSetDelegate;
+	OnSetDelegate onSet;
+	const Input::Device *dev = nullptr;
+	const Input::Device *savedDev = nullptr;
 
 	Rect2<int> &viewRect() { return viewFrame; }
 
-	void init(uint devType, BtnConfigMenuItem *onSet = 0)
-	{
-		this->devType = devType;
-		if(!Config::envIsPS3)
-			text.init("Push a key to set", View::defaultFace);
-		else
-			text.init("Push a key to set\n\nUse Square in previous screen to unbind", View::defaultFace);
-		#ifndef CONFIG_BASE_PS3
-		unbind.init("Unbind", View::defaultFace);
-		cancel.init("Cancel", View::defaultFace);
-		#endif
-		this->onSet = onSet;
-		Input::setHandleVolumeKeys(1);
-	}
-
-	void deinit()
-	{
-		text.deinit();
-		#ifndef CONFIG_BASE_PS3
-		unbind.deinit();
-		cancel.deinit();
-		#endif
-		Input::setHandleVolumeKeys(0);
-	}
-
-	void place()
-	{
-		text.compile();
-
-		#ifndef CONFIG_BASE_PS3
-		unbind.compile();
-		cancel.compile();
-
-		Rect2<int> btnFrame;
-		btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
-		unbindB = btnFrame;
-		unbindB.x = (viewFrame.xSize()/2)*0;
-		unbindB.x2 = (viewFrame.xSize()/2)*1;
-		cancelB = btnFrame;
-		cancelB.x = (viewFrame.xSize()/2)*1;
-		cancelB.x2 = (viewFrame.xSize()/2)*2;
-		#endif
-	}
-
-	void inputEvent(const InputEvent &e)
-	{
-		if(e.isPointer() && e.state == INPUT_RELEASED)
-		{
-			#ifndef CONFIG_BASE_PS3
-			if(unbindB.overlaps(e.x, e.y))
-			{
-				logMsg("unbinding key");
-				if(onSet)
-					onSet->setButton(InputEvent());
-				removeModalView();
-			}
-			else if(cancelB.overlaps(e.x, e.y))
-			{
-				removeModalView();
-			}
-			#endif
-		}
-		else if(!e.isPointer() && e.state == INPUT_PUSHED)
-		{
-			if((devType != InputEvent::DEV_KEYBOARD && e.devType != devType)
-				|| (devType == InputEvent::DEV_KEYBOARD && (e.isGamepad())))
-			{
-				logMsg("ignoring input from device type %s", InputEvent::devTypeName(e.devType));
-				return;
-			}
-			if(onSet)
-				onSet->setButton(e);
-			removeModalView();
-		}
-	}
-
-	void draw()
-	{
-		using namespace Gfx;
-		setBlendMode(0);
-		resetTransforms();
-		setColor(.4, .4, .4, 1.);
-		GeomRect::draw(viewFrame);
-		#ifndef CONFIG_BASE_PS3
-		setColor(.2, .2, .2, 1.);
-		GeomRect::draw(unbindB);
-		GeomRect::draw(cancelB);
-		#endif
-
-		setColor(COLOR_WHITE);
-		#ifndef CONFIG_BASE_PS3
-		unbind.draw(gXPos(unbindB, C2DO), gYPos(unbindB, C2DO), C2DO);
-		cancel.draw(gXPos(cancelB, C2DO), gYPos(cancelB, C2DO), C2DO);
-		#endif
-		text.draw(0, 0, C2DO);
-	}
-} btnSetView;
+	void init(Input::Device &dev);
+	void deinit();
+	void place();
+	void inputEvent(const Input::Event &e);
+	void draw();
+} btnSetView2;
 
 
 
@@ -159,18 +58,28 @@ class ButtonConfigView : public BaseMenuView
 {
 	TextMenuItem reset;
 
-	void inputEvent(const InputEvent &e);
+	void inputEvent(const Input::Event &e);
 
 	MenuItem **text = nullptr;
+
+	struct BtnConfigMenuItem : public DualTextMenuItem
+	{
+		void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;
+	};
+
 	BtnConfigMenuItem *btn = nullptr;
 
 public:
 	constexpr ButtonConfigView() { }
-	KeyCategory *cat = nullptr;
-	uint devType = 0;
-	void init(KeyCategory *cat,
-			uint devType, bool highlightFirst);
+	const KeyCategory *cat = nullptr;
+	InputDeviceConfig *devConf = nullptr;
+	int keyToSet = 0;
+
+	void init(const KeyCategory *cat,
+		InputDeviceConfig &devConf, bool highlightFirst);
 	void deinit();
-	void confirmUnbindKeysAlert(const InputEvent &e);
-	void resetHandler(TextMenuItem &, const InputEvent &e);
+	void confirmUnbindKeysAlert(const Input::Event &e);
+	void resetHandler(TextMenuItem &, const Input::Event &e);
+	void onSet(const Input::Event &e);
+	void onSelectElement(const GuiTable1D *, const Input::Event &e, uint i);
 };

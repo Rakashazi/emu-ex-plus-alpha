@@ -46,7 +46,7 @@ class SystemOptionView : public OptionView
 
 	BoolMenuItem reportAsGba {"Report Hardware as GBA", BoolMenuItem::SelectDelegate::create<&reportAsGbaHandler>()};
 
-	static void reportAsGbaHandler(BoolMenuItem &item, const InputEvent &e)
+	static void reportAsGbaHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionReportAsGba = item.on;
@@ -54,7 +54,7 @@ class SystemOptionView : public OptionView
 
 	BoolMenuItem fullSaturation {"Saturated GBC Colors", BoolMenuItem::SelectDelegate::create<&fullSaturationHandler>()};
 
-	static void fullSaturationHandler(BoolMenuItem &item, const InputEvent &e)
+	static void fullSaturationHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
 		optionFullGbcSaturation = item.on;
@@ -91,7 +91,6 @@ public:
 #include <TextEntry.hh>
 
 static const uint maxCheats = 255;
-static CollectTextInputView cheatInputView;
 static void refreshCheatViews();
 
 class EditCheatView : public BaseMenuView
@@ -137,12 +136,12 @@ private:
 		return 0;
 	}
 
-	void ggCodeHandler(TextMenuItem &item, const InputEvent &e)
+	void ggCodeHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleGgCodeFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
+		textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleGgCodeFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 	uint handleNameFromTextInput(const char *str)
@@ -159,15 +158,15 @@ private:
 		return 0;
 	}
 
-	void nameHandler(TextMenuItem &item, const InputEvent &e)
+	void nameHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input description", cheat->name);
-		cheatInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleNameFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
+		textInputView.init("Input description", cheat->name);
+		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleNameFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
-	void removeHandler(TextMenuItem &item, const InputEvent &e)
+	void removeHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		cheatList.remove(*cheat);
 		cheatsModified = 1;
@@ -233,18 +232,18 @@ private:
 		return 0;
 	}
 
-	void addGGGSHandler(TextMenuItem &item, const InputEvent &e)
+	void addGGGSHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		cheatInputView.init("Input description");
-		cheatInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
-		cheatInputView.placeRect(Gfx::viewportRect());
-		modalView = &cheatInputView;
+		textInputView.init("Input description");
+		textInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
+		textInputView.placeRect(Gfx::viewportRect());
+		modalView = &textInputView;
 	}
 
 public:
 	constexpr EditCheatListView(): BaseMenuView("Edit Cheats") { }
 
-	void onSelectElement(const GuiTable1D *table, const InputEvent &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		if(i < 1)
 			item[i]->select(this, e);
@@ -291,7 +290,7 @@ private:
 			logMsg("added cheat %s : %s", cheat.name, cheat.code);
 		}
 
-		void select(View *view, const InputEvent &e)
+		void select(View *view, const Input::Event &e)
 		{
 			toggle();
 			cheat->toggleOn();
@@ -327,7 +326,7 @@ static void refreshCheatViews()
 
 class SystemMenuView : public MenuView
 {
-	static void cheatsHandler(TextMenuItem &item, const InputEvent &e)
+	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
 	{
 		if(EmuSystem::gameIsRunning())
 		{

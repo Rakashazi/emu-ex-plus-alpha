@@ -101,7 +101,7 @@ static void resizeGLScene(const Base::Window &win)
 	}
 	else
 	{
-		logMsg("no rotation");
+		//logMsg("no rotation");
 	}
 	glLoadMatrixf((GLfloat *)&mat.v[0]);
 	//mat.print();
@@ -117,6 +117,7 @@ static void resizeGLScene(const Base::Window &win)
 		Gfx::proj.unProject(x,y,z);
 		logMsg("unprojected to %f %f %f",x,y,z);
 	}*/
+	glcMatrixMode(GL_MODELVIEW);
 }
 
 void resizeDisplay(const Base::Window &win)
@@ -135,9 +136,10 @@ void resizeDisplay(const Base::Window &win)
 #ifdef CONFIG_INPUT
 void configureInputForOrientation()
 {
-	input_xPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_90 ? INPUT_POINTER_NORMAL : INPUT_POINTER_INVERT);
-	input_yPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_270 ? INPUT_POINTER_NORMAL : INPUT_POINTER_INVERT);
-	input_pointerAxis(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_180 ? INPUT_POINTER_NORMAL : INPUT_POINTER_INVERT);
+	using namespace Input;
+	xPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_90 ? POINTER_NORMAL : POINTER_INVERT);
+	yPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_270 ? POINTER_NORMAL : POINTER_INVERT);
+	pointerAxis(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_180 ? POINTER_NORMAL : POINTER_INVERT);
 }
 #endif
 

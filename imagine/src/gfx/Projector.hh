@@ -22,7 +22,7 @@ struct Projector
 	{
 		mmToXScale = w/(GC)viewMMWidth();
 		mmToYScale = h/(GC)viewMMHeight();
-		logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
+		//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
 	}
 
 	void setMatrix(Matrix4x4<GC> &mat, bool isSideways)

@@ -7,8 +7,7 @@
 
 #include <base/Base.hh>
 #include <fs/sys.hh>
-#undef NSEC_PER_SEC
-#undef USEC_PER_SEC
+#include <util/time/sys.hh>
 #include <base/common/funcs.h>
 
 #import <UIKit/UIKit.h>
@@ -129,11 +128,6 @@ CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
 	[mainApp performSelector:@selector(timerCallback:) withObject:(id)callbackArg afterDelay:(float)ms/1000.];
 	[callbackArg release];
 	return (CallbackRef*)callbackArg;
-}
-
-bool isInputDevPresent(uint type)
-{
-	return 0;
 }
 
 void openGLUpdateScreen()
@@ -369,6 +363,7 @@ uint appState = APP_RUNNING;
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	using namespace Base;
+	using namespace Input;
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find a free touch element
@@ -380,8 +375,8 @@ uint appState = APP_RUNNING;
 				CGPoint startTouchPosition = [touch locationInView:self];
 				pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale, &p.s.x, &p.s.y);
 				p.s.inWin = 1;
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_PUSHED, p.s.x, p.s.y);
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_PUSHED, p.s.x, p.s.y));
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, p.s.x, p.s.y);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, p.s.x, p.s.y, nullptr));
 				break;
 			}
 		}
@@ -391,6 +386,7 @@ uint appState = APP_RUNNING;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	using namespace Base;
+	using namespace Input;
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
@@ -400,8 +396,8 @@ uint appState = APP_RUNNING;
 				auto &p = Input::m[i];
 				CGPoint currentTouchPosition = [touch locationInView:self];
 				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_MOVED, p.s.x, p.s.y);
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_MOVED, p.s.x, p.s.y));
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, p.s.x, p.s.y);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, p.s.x, p.s.y, nullptr));
 				break;
 			}
 		}
@@ -411,6 +407,7 @@ uint appState = APP_RUNNING;
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	using namespace Base;
+	using namespace Input;
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
@@ -422,8 +419,8 @@ uint appState = APP_RUNNING;
 				p.s.inWin = 0;
 				CGPoint currentTouchPosition = [touch locationInView:self];
 				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, INPUT_RELEASED, p.s.x, p.s.y);
-				Input::onInputEvent(InputEvent(i, InputEvent::DEV_POINTER, Input::Pointer::LBUTTON, INPUT_RELEASED, p.s.x, p.s.y));
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, p.s.x, p.s.y);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, p.s.x, p.s.y, nullptr));
 				break;
 			}
 		}
@@ -638,7 +635,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 	
-	doOrExit(onInit());
+	doOrExit(onInit(0, nullptr)); // TODO: args
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	#ifdef CONFIG_INPUT_ICADE
@@ -965,19 +962,20 @@ bool setUIDEffective()
 namespace Input
 {
 
-void setICadeActive(bool active)
+void Device::setICadeMode(bool on)
 {
-	Base::iCade.setActive(active);
-}
-
-bool iCadeActive()
-{
-	return Base::iCade.isActive();
+	assert(map_ == Input::Event::MAP_ICADE); // BT Keyboard always treated as iCade
+	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+	iCadeMode_ = on;
+	Base::iCade.setActive(on);
 }
 
 }
 
 #endif
+
+double TimeMach::timebaseNSec = 0, TimeMach::timebaseUSec = 0,
+	TimeMach::timebaseMSec = 0, TimeMach::timebaseSec = 0;
 
 int main(int argc, char *argv[])
 {
@@ -987,6 +985,7 @@ int main(int argc, char *argv[])
 	#endif
 	
 	doOrExit(logger_init());
+	TimeMach::setTimebase();
 	
 	#ifdef CONFIG_BASE_IOS_SETUID
 	logMsg("real UID %d, effective UID %d", realUID, effectiveUID);

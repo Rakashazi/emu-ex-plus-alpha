@@ -154,7 +154,7 @@ namespace Bluetooth
 		removePendingDevs();
 		closeDevs();
 		bta->close();
-		bta = 0;
+		bta = nullptr;
 	}
 
 	uint devsConnected()

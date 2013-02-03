@@ -436,7 +436,7 @@ bool8 S9xInitSound (int buffer_ms, int lag_ms)
 	if (Settings.SixteenBitSound)
 		spc::buffer_size <<= 1;
 
-	printf("Sound buffer size: %d (%d samples)\n", spc::buffer_size, sample_count);
+	S9xPrintf("Sound buffer size: %d (%d samples)\n", spc::buffer_size, sample_count);
 
 	if (spc::landing_buffer)
 		delete[] spc::landing_buffer;
@@ -488,7 +488,7 @@ void S9xDumpSPCSnapshot (void)
 static void SPCSnapshotCallback (void)
 {
 	S9xSPCDump(S9xGetFilenameInc((".spc"), SPC_DIR));
-	printf("Dumped key-on triggered spc snapshot.\n");
+	S9xPrintf("Dumped key-on triggered spc snapshot.\n");
 }
 
 bool8 S9xInitAPU (void)
@@ -572,7 +572,7 @@ void S9xAPUEndScanline (void)
 void S9xAPUTimingSetSpeedup (int ticks)
 {
 	if (ticks != 0)
-		printf("APU speedup hack: %d\n", ticks);
+		S9xPrintf("APU speedup hack: %d\n", ticks);
 
 	spc::timing_hack_denominator = 256 - ticks;
 
@@ -769,7 +769,7 @@ bool8 S9xSPCDump (const char *filename)
 	SNES::smp.save_spc (buf);
 
 	if ((ignore = fwrite(buf, SPC_FILE_SIZE, 1, fs)) <= 0)
-		fprintf (stderr, "Couldn't write file %s.\n", filename);
+		S9xPrintfError ("Couldn't write file %s.\n", filename);
 
 	fclose(fs);
 

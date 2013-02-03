@@ -45,14 +45,15 @@ final class FontRenderer
 			Rect rect = new Rect();
 			paint.getTextBounds(cStr, 0, 1, rect);
 			int xSize = rect.right - rect.left;
-			if(xSize == 0)
+			int ySize = rect.bottom - rect.top;
+			if(xSize == 0 || ySize == 0)
 				return false;
 			float[] w = new float[2];
 			paint.getTextWidths(cStr, 0, 1, w);
 			advance = (int)w[0];
 			//Log.i(logTag, "active char " + (char)idx + " rect " + rect.left + ":" + rect.right + ":" + rect.top + ":" + rect.bottom);
 			cXSize = xSize;
-			cYSize = rect.bottom - rect.top;
+			cYSize = ySize;
 			left = rect.left;
 			top = -rect.top;
 			bottom = rect.bottom;

@@ -36,7 +36,7 @@ extern sms_ntsc_t *sms_ntsc;
 #define LUT_MAX     (6)
 #define LUT_SIZE    (0x10000)
 
-#if defined __ARM_ARCH_5TE__
+#if __ARM_ARCH < 6 || (defined __ANDROID__ && __ARM_ARCH < 7)
 	#define ALIGN_LONG
 #endif
 #define ALT_RENDERER

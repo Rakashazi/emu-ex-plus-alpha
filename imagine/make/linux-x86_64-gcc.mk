@@ -10,6 +10,6 @@ else
  ASMFLAGS += -m64
 endif
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/linux-x86_64/usr
+system_externalSysroot := $(IMAGINE_PATH)/bundle/linux-x86_64
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib

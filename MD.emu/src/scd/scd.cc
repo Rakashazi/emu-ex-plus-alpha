@@ -181,7 +181,7 @@ void scd_reset()
 	sCD.subResetPending = 1; // s68k reset pending
 	sCD.busreq = 0;
 
-	*(uint *)(cart.rom + 0x70) = 0xffffffff; // reset hint vector (simplest way to implement reg6)
+	*(uint32a *)(cart.rom + 0x70) = 0xffffffff; // reset hint vector (simplest way to implement reg6)
 
 	LC89510_Reset();
 	Reset_CD();

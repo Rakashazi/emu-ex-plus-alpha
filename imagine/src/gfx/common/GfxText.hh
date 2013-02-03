@@ -76,7 +76,7 @@ void Text::compile()
 	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = Gfx::iXSize(spaceSizeI);
 	nominalHeight = Gfx::alignYToPixel(Gfx::iYSize(mGly->metrics.ySize) + Gfx::iYSize(gGly->metrics.ySize/2));
-	int maxLineSizeI = Gfx::toIXSize(maxLineSize);
+	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
 	
 	lines = 1;

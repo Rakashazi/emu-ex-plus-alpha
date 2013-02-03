@@ -27,6 +27,7 @@ public:
 	static StaticDLList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
+	Input::Device *device = nullptr;
 	uchar inputBuffer[46] = {0};
 	uint inputBufferPos = 0;
 	uint packetSize = 0;

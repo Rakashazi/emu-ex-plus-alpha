@@ -17,7 +17,5 @@
 
 #include <io/Io.hh>
 
-void readKeyConfig2(Io *io, uint buttonIdx, uint readSize);
-void writeKeyConfig2(Io *io, uint buttonIdx, uint16 cfgKey);
 void loadConfigFile();
 void saveConfigFile();

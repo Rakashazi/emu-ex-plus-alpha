@@ -47,8 +47,11 @@ Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
 Byte1Option optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
 Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAndroid && !Config::envIsIOS);
-
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, 0);
+Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
+#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Input::hasSystemDeviceHotswap, !Input::hasSystemDeviceHotswap);
+#endif
 
 #ifdef CONFIG_BLUETOOTH
 Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
@@ -192,10 +195,6 @@ Byte4s2Option optionTouchCtrlImgRes
 	Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
 #endif
 
-#ifdef CONFIG_INPUT_ICADE
-	Option<OptionMethodFunc<bool, Input::iCadeActive, Input::setICadeActive>, uint8> optionICade(CFGKEY_ICADE, 0);
-#endif
-
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
 #endif
@@ -228,6 +227,7 @@ void initOptions()
 
 		if(Base::androidSDK() >= 11)
 		{
+			optionNotificationIcon.initDefault(0);
 			optionGLSyncHack.isConst = 1;
 			// don't change dither setting on Android 3.0+
 			optionDitherImage.isConst = 1;
@@ -242,6 +242,14 @@ void initOptions()
 		{
 			optionDitherImage.initDefault(0);
 		}
+
+		#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+			if(Base::androidSDK() < 12)
+			{
+				optionNotifyInputDeviceChange.initDefault(0);
+				optionNotifyInputDeviceChange.isConst = 1;
+			}
+		#endif
 	#endif
 
 	#ifdef INPUT_SUPPORTS_POINTER

@@ -26,8 +26,16 @@ CallResult Io::readLine(void* buffer, uint maxBytes)
 			break;
 		}
 
-		if(*charBuffer == '\n')
+		if(*charBuffer == '\r') // Windows new line
 		{
+			*charBuffer = 0;
+			charBuffer++;
+			seekF(1); // skip \n
+			break;
+		}
+		else if(*charBuffer == '\n')
+		{
+			*charBuffer = 0;
 			charBuffer++;
 			break;
 		}

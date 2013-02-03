@@ -29,7 +29,7 @@ enum
 };
 
 // TODO: fix extra string added to end
-ENUM(xdndAtomStr, 13,
+ENUM(xdndAtomStr, 11,
      (
       XdndAware,
       XdndEnter,
@@ -41,15 +41,23 @@ ENUM(xdndAtomStr, 13,
       XdndActionPrivate,
       XdndSelection,
       XdndFinished,
-      iSelectionProperty,
-     ));
+      iSelectionProperty
+     ),
+     static char xdndAtomStr[][sizeof("iSelectionProperty")]);
 
-static Atom xdndAtom[sizeofArrayConst(xdndAtomStr)];
+static Atom xdndAtom[sizeofArray(xdndAtomStr)];
 static const Atom currentDNDVersion = 5;
 
 static void registerXdndAtoms(Display *dpy)
 {
-	if(!XInternAtoms (dpy, (char**)xdndAtomStr, sizeofArray(xdndAtom), False, xdndAtom))
+	uint atoms = sizeofArray(xdndAtomStr);
+	char *strPtr[atoms];
+	iterateTimes(atoms, i)
+	{
+		strPtr[i] = xdndAtomStr[i];
+	}
+	//logMsg("%d atoms, last %s", atoms, xdndAtomStr[atoms-1]);
+	if(!XInternAtoms(dpy, strPtr, atoms, False, xdndAtom))
 	{
 		logWarn("XDND atoms could not be created, drag & drop may not function");
 	}

@@ -7,7 +7,7 @@ ifndef targetSuffix
  targetSuffix := -x86
 endif
 
-minIOSVer := 4.3
+minIOSVer := 5.0
 IOS_FLAGS += -arch i386
 ASMFLAGS += -arch i386
 CHOST := $(shell $(CC) -arch i386 -dumpmachine)
