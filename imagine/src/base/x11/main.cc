@@ -33,8 +33,6 @@
 #undef Window
 #undef BOOL
 
-#define CONFIG_MACHINE_OPEN_PANDORA
-
 // Choose GLX or EGL
 #ifdef CONFIG_GFX_OPENGL_ES
 #include "EglContext.hh"
