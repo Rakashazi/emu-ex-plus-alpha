@@ -28,35 +28,35 @@ static class ButtonConfigSetView : public View
 	, unbindB, cancelB
 	#endif
 	;
-
+	char str[64] {0};
 	Gfx::Text text
 	#ifndef CONFIG_BASE_PS3
 	, unbind, cancel
 	#endif
 	;
 
-public:
-	constexpr ButtonConfigSetView() { }
-
-	typedef Delegate<void (const Input::Event &e)> OnSetDelegate;
-	OnSetDelegate onSet;
+	typedef Delegate<void (const Input::Event &e)> SetDelegate;
+	SetDelegate onSetD;
 	const Input::Device *dev = nullptr;
 	const Input::Device *savedDev = nullptr;
 
-	Rect2<int> &viewRect() { return viewFrame; }
+public:
+	constexpr ButtonConfigSetView() { }
 
-	void init(Input::Device &dev);
+	Rect2<int> &viewRect() { return viewFrame; }
+	void init(Input::Device &dev, const char *actionName);
 	void deinit();
 	void place();
 	void inputEvent(const Input::Event &e);
-	void draw();
+	void draw(Gfx::FrameTimeBase frameTime);
+	SetDelegate &onSet() { return onSetD; }
 } btnSetView2;
 
 
 
 class ButtonConfigView : public BaseMenuView
 {
-	TextMenuItem reset;
+	TextMenuItem reset {"Unbind All", TextMenuItem::SelectDelegate::create<template_mfunc(ButtonConfigView, resetHandler)>(this)};
 
 	void inputEvent(const Input::Event &e);
 
@@ -68,12 +68,12 @@ class ButtonConfigView : public BaseMenuView
 	};
 
 	BtnConfigMenuItem *btn = nullptr;
-
-public:
-	constexpr ButtonConfigView() { }
 	const KeyCategory *cat = nullptr;
 	InputDeviceConfig *devConf = nullptr;
 	int keyToSet = 0;
+
+public:
+	constexpr ButtonConfigView() { }
 
 	void init(const KeyCategory *cat,
 		InputDeviceConfig &devConf, bool highlightFirst);

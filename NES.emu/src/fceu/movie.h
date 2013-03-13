@@ -1,8 +1,6 @@
 #ifndef __MOVIE_H_
 #define __MOVIE_H_
 
-#define PROGRESSBAR_UPDATE_RATE 2000	// in frames of greenzone
-
 #include <vector>
 #include <map>
 #include <string>
@@ -12,7 +10,6 @@
 #include "input/zapper.h"
 #include "utils/guid.h"
 #include "utils/md5.h"
-#define wstring string
 
 struct FCEUFILE;
 
@@ -46,7 +43,7 @@ typedef struct
 	MD5DATA md5_of_rom_used;
 	std::string name_of_rom_used;
 
-	std::vector<std::wstring> comments;
+	std::vector<std::string> comments;
 	std::vector<std::string> subtitles;
 } MOVIE_INFO;
 
@@ -61,7 +58,7 @@ enum EMOVIEMODE
 	MOVIEMODE_INACTIVE = 1,
 	MOVIEMODE_RECORD = 2,
 	MOVIEMODE_PLAY = 4,
-	MOVIEMODE_TASEDIT = 8,
+	MOVIEMODE_TASEDITOR = 8,
 	MOVIEMODE_FINISHED = 16
 };
 
@@ -85,6 +82,7 @@ bool FCEUMOV_ShouldPause(void);
 int FCEUMOV_GetFrame(void);
 int FCEUI_GetLagCount(void);
 bool FCEUI_GetLagged(void);
+void FCEUI_SetLagFlag(bool value);
 
 int FCEUMOV_WriteState(EMUFILE* os);
 bool FCEUMOV_ReadState(EMUFILE* is, uint32 size);
@@ -93,7 +91,8 @@ bool FCEUMOV_PostLoad();
 
 bool FCEUMOV_FromPoweron();
 
-void CreateCleanMovie();
+void FCEUMOV_CreateCleanMovie();
+void FCEUMOV_ClearCommands();
 
 class MovieData;
 class MovieRecord
@@ -176,7 +175,7 @@ public:
 	std::string romFilename;
 	std::vector<uint8> savestate;
 	std::vector<MovieRecord> records;
-	std::vector<std::wstring> comments;
+	std::vector<std::string> comments;
 	std::vector<std::string> subtitles;
 	//this is the RERECORD COUNT. please rename variable.
 	int rerecordCount;
@@ -184,6 +183,7 @@ public:
 
 	//was the frame data stored in binary?
 	bool binaryFlag;
+	// TAS Editor project files contain additional data after input
 	int loadFrameCount;
 
 	//which ports are defined for the movie
@@ -228,6 +228,7 @@ public:
 	int dump(EMUFILE* os, bool binary);
 
 	void clearRecordRange(int start, int len);
+	void eraseRecords(int at, int frames = 1);
 	void insertEmpty(int at, int frames);
 	void cloneRegion(int at, int frames);
 	
@@ -253,13 +254,12 @@ extern bool subtitlesOnAVI;
 extern bool freshMovie;
 extern bool movie_readonly;
 extern bool autoMovieBackup;
-extern int pauseframe;
 extern bool fullSaveStateLoads;
 //--------------------------------------------------
 void FCEUI_MakeBackupMovie(bool dispMessage);
 void FCEUI_CreateMovieFile(std::string fn);
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author);
-bool FCEUI_LoadMovie(const char *fname, bool read_only, bool tasedit, int _stopframe);
+void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author);
+bool FCEUI_LoadMovie(const char *fname, bool read_only, int _stopframe);
 void FCEUI_MoviePlayFromBeginning(void);
 void FCEUI_StopMovie(void);
 bool FCEUI_MovieGetInfo(FCEUFILE* fp, MOVIE_INFO& info, bool skipFrameCount = false);
@@ -279,7 +279,5 @@ void ProcessSubtitles(void);
 void FCEU_DisplaySubtitles(const char *format, ...);
 
 void poweron(bool shouldDisableBatteryLoading);
-
-#undef wstring
 
 #endif //__MOVIE_H_

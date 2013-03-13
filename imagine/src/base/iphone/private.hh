@@ -5,6 +5,7 @@
 namespace Base
 {
 
-void nsLog(const char* msg, va_list arg);
+void nsLog(const char* str);
+void nsLogv(const char* format, va_list arg);
 
 }

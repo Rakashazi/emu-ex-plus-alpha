@@ -64,7 +64,7 @@ uint16 FCEU_de16lsb(uint8 *morp);
 
 //well. just for the sake of consistency
 int write8le(uint8 b, EMUFILE *fp);
-//inline int write8le(uint8* b, EMUFILE *fp) { return write8le(*b,fp); }
+inline int write8le(uint8* b, EMUFILE *fp) { return write8le(*b,fp); }
 int write16le(uint16 b, EMUFILE* os);
 int write32le(uint32 b, EMUFILE* os);
 int write64le(uint64 b, EMUFILE* os);
@@ -94,14 +94,14 @@ int readle(T *Bufo, EMUFILE*is)
 }
 
 template<typename T>
-int writele(T Bufo, EMUFILE*os)
+int writele(T *Bufo, EMUFILE*os)
 {
 	CTASSERT(sizeof(T)==1||sizeof(T)==2||sizeof(T)==4||sizeof(T)==8);
 	switch(sizeof(T)) {
-		case 1: return write8le((uint8)Bufo,os);
-		case 2: return write16le((uint16)Bufo,os);
-		case 4: return write32le((uint32)Bufo,os);
-		case 8: return write64le((uint64)Bufo,os);
+		case 1: return write8le(*(uint8*)Bufo,os);
+		case 2: return write16le(*(uint16*)Bufo,os);
+		case 4: return write32le(*(uint32*)Bufo,os);
+		case 8: return write64le(*(uint64*)Bufo,os);
 		default:
 			return 0;
 	}

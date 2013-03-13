@@ -101,7 +101,7 @@ private:
 	int fd = -1;
 };
 
-StaticDLList<TimerFdHandler, 4> timerList;
+StaticDLList<TimerFdHandler, 5> timerList;
 
 void onTimerComplete(TimerFdHandler *timer)
 {

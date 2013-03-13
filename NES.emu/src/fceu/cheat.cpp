@@ -15,7 +15,7 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <stdlib.h>
@@ -85,8 +85,8 @@ struct CHEATF *cheats=0,*cheatsl=0;
 #define CHEATC_EXCLUDED 0x4000
 #define CHEATC_NOSHOW   0xC000
 
-static uint16 *CheatComp=0;
-static int savecheats = 0;
+static uint16 *CheatComp = 0;
+int savecheats = 0;
 
 static DECLFR(SubCheatsRead)
 {
@@ -214,7 +214,6 @@ void FCEU_LoadGameCheats(FILE *override)
 	}
 
 	FCEU_DispMessage("Cheats file loaded.",0); //Tells user a cheats file was loaded.
-	FCEU_printf("Cheats file loaded.\n",0);	 //Sends message to message log.
 	while(fgets(linebuf,2048,fp))
 	{
 		char *tbuf=linebuf;
@@ -268,7 +267,8 @@ void FCEU_LoadGameCheats(FILE *override)
 				namebuf[x]=0;
 				break;
 			}
-			else if(namebuf[x]<0x20) namebuf[x]=' ';
+			else if(namebuf[x] > 0x00 && namebuf[x] < 0x20)
+				namebuf[x]=0x20;
 		}
 
 		AddCheatEntry(namebuf,addr,val,doc?compare:-1,status,type);
@@ -594,7 +594,7 @@ int FCEUI_DecodePAR(const char *str, int *a, int *v, int *c, int *type)
 /* name can be NULL if the name isn't going to be changed. */
 /* same goes for a, v, and s(except the values of each one must be <0) */
 
-int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare,int s, int type)
+int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int c, int s, int type)
 {
 	struct CHEATF *next=cheats;
 	uint32 x=0;
@@ -606,8 +606,7 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 			if(name)
 			{
 				char *t;
-
-				if((t=(char *)realloc(next->name,strlen(name)+1)))
+				if((t=(char *)realloc(next->name, strlen(name)+1)))
 				{
 					next->name=t;
 					strcpy(next->name,name);
@@ -621,8 +620,8 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 				next->val=v;
 			if(s>=0)
 				next->status=s;
-			if(compare>=-1)
-				next->compare=compare;
+			if(c>=-1)
+				next->compare=c;
 			next->type=type;
 
 			savecheats=1;
@@ -677,6 +676,15 @@ static int InitCheatComp(void)
 void FCEUI_CheatSearchSetCurrentAsOriginal(void)
 {
 	uint32 x;
+
+	if(!CheatComp)
+	{
+		if(InitCheatComp())
+		{
+			CheatMemErr();
+			return;
+		}
+	}
 	for(x=0x000;x<0x10000;x++)
 		if(!(CheatComp[x]&CHEATC_NOSHOW))
 		{

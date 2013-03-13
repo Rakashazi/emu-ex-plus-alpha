@@ -184,7 +184,7 @@ const KeyConfig defaultWiimoteProfile[] =
 {
 	{
 			Input::Event::MAP_WIIMOTE,
-			"Default Wiimote",
+			"Default",
 			{
 					EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
 
@@ -208,57 +208,63 @@ const KeyConfig defaultWiimoteProfile[] =
 				0,
 			}
 	},
-	{
-			Input::Event::MAP_WIIMOTE,
-			"Default Classic Controller",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
-
-				Input::Wiimote::UP,
-				Input::Wiimote::RIGHT,
-				Input::Wiimote::DOWN,
-				Input::Wiimote::LEFT,
-				0,
-				0,
-				0,
-				0,
-				Input::Wiimote::MINUS,
-				Input::Wiimote::PLUS,
-				Input::Wiimote::B,
-				Input::Wiimote::Y,
-				Input::Wiimote::A,
-				Input::Wiimote::X,
-			}
-	},
-	{
-			Input::Event::MAP_WIIMOTE,
-			"Default Classic Controller (6-button)",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
-
-				Input::Wiimote::UP,
-				Input::Wiimote::RIGHT,
-				Input::Wiimote::DOWN,
-				Input::Wiimote::LEFT,
-				0,
-				0,
-				0,
-				0,
-				Input::Wiimote::MINUS,
-				Input::Wiimote::PLUS,
-				Input::Wiimote::R,
-				Input::Wiimote::A,
-				0,
-				0,
-				Input::Wiimote::B,
-				Input::Wiimote::Y,
-				Input::Wiimote::X,
-				Input::Wiimote::L,
-			}
-	}
 };
 
 const uint defaultWiimoteProfiles = sizeofArray(defaultWiimoteProfile);
+
+const KeyConfig defaultWiiCCProfile[] =
+{
+	{
+		Input::Event::MAP_WII_CC,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
+
+			Input::WiiCC::UP,
+			Input::WiiCC::RIGHT,
+			Input::WiiCC::DOWN,
+			Input::WiiCC::LEFT,
+			0,
+			0,
+			0,
+			0,
+			Input::WiiCC::MINUS,
+			Input::WiiCC::PLUS,
+			Input::WiiCC::B,
+			Input::WiiCC::Y,
+			Input::WiiCC::A,
+			Input::WiiCC::X,
+		}
+	},
+	{
+		Input::Event::MAP_WII_CC,
+		"Default (6-button)",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
+
+			Input::WiiCC::UP,
+			Input::WiiCC::RIGHT,
+			Input::WiiCC::DOWN,
+			Input::WiiCC::LEFT,
+			0,
+			0,
+			0,
+			0,
+			Input::WiiCC::MINUS,
+			Input::WiiCC::PLUS,
+			Input::WiiCC::R,
+			Input::WiiCC::A,
+			0,
+			0,
+			Input::WiiCC::B,
+			Input::WiiCC::Y,
+			Input::WiiCC::X,
+			Input::WiiCC::L,
+		}
+	}
+};
+
+const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
 
 // iControlPad
 
@@ -266,7 +272,7 @@ const KeyConfig defaultIControlPadProfile[] =
 {
 	{
 			Input::Event::MAP_ICONTROLPAD,
-			"Default iControlPad",
+			"Default",
 			{
 					EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
 
@@ -300,7 +306,7 @@ const KeyConfig defaultICadeProfile[] =
 {
 	{
 			Input::Event::MAP_ICADE,
-			"Default iCade",
+			"Default",
 			{
 					EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
@@ -330,7 +336,7 @@ const KeyConfig defaultZeemoteProfile[] =
 {
 	{
 			Input::Event::MAP_ZEEMOTE,
-			"Default Zeemote",
+			"Default",
 			{
 					EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 

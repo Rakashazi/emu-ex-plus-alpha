@@ -329,6 +329,6 @@ public:
 	const char *faceBtnName, *centerBtnName;
 
 	void init(bool highlightFirst);
-	void draw();
+	void draw(Gfx::FrameTimeBase frameTime);
 	void updatePositionVals();
 };

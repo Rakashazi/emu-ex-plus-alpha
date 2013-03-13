@@ -16,6 +16,11 @@
 #define BT_P       0x20  //break type, ppu mem
 #define BT_S       0x40  //break type, sprite mem
 
+#define BREAK_TYPE_STEP -1
+#define BREAK_TYPE_BADOP -2
+#define BREAK_TYPE_CYCLES_EXCEED -3
+#define BREAK_TYPE_INSTRUCTIONS_EXCEED -4
+
 //opbrktype is used to grab the breakpoint type that each instruction will cause.
 //WP_X is not used because ALL opcodes will have the execute bit set.
 static const uint8 opbrktype[256] = {
@@ -68,9 +73,10 @@ uint8 GetPPUMem(uint8 A);
 
 //---------CDLogger
 void LogCDVectors(int which);
-void LogCDData();
+void LogCDData(uint8 *opcode, uint16 A, int size);
 extern volatile int codecount, datacount, undefinedcount;
 extern unsigned char *cdloggerdata;
+extern unsigned int cdloggerdataSize;
 
 extern int debug_loggingCD;
 static INLINE void FCEUI_SetLoggingCD(int val) { debug_loggingCD = val; }

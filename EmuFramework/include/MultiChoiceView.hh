@@ -68,14 +68,14 @@ public:
 		tbl.place(&viewFrame);
 	}
 
-	void draw()
+	void draw(Gfx::FrameTimeBase frameTime)
 	{
 		using namespace Gfx;
 		resetTransforms();
 		setBlendMode(0);
 		setColor(.2, .2, .2, 1.);
 		GeomRect::draw(viewFrame);
-		BaseMenuView::draw();
+		BaseMenuView::draw(frameTime);
 	}
 };
 
@@ -159,7 +159,7 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 		MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 	}
 
-	void handleChoices(TextMenuItem &, const Input::Event &e)
+	void handleChoices(DualTextMenuItem &, const Input::Event &e)
 	{
 		multiChoiceView.init(this, !e.isPointer());
 		multiChoiceView.placeRect(Gfx::viewportRect());

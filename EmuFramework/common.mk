@@ -51,6 +51,10 @@ StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
 TouchConfigView.cc EmuOptions.cc OptionView.cc EmuView.cc \
 ConfigFile.cc InputManagerView.cc
 
+ifdef emuFramework_cheats
+ SRC += Cheats.cc
+endif
+
 ifneq ($(ENV), ps3)
 SRC += VController.cc
 endif

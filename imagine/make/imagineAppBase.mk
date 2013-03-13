@@ -19,6 +19,7 @@ include metadata/conf.mk
 $(genMetaH) :
 	@echo "Generating Metadata Header $@"
 	@mkdir -p $(@D)
+	echo \#pragma once > $@
 	echo \#define CONFIG_APP_NAME \"$(metadata_name)\" > $@
 	echo \#define CONFIG_APP_ID \"$(metadata_id)\" >> $@
 ifeq ($(ENV), ps3)
@@ -26,8 +27,8 @@ ifeq ($(ENV), ps3)
 endif
 metadata-header : $(genMetaH)
 
-ifndef NO_LOGGER
-
-include $(imagineSrcDir)/logger/system.mk
-
+ifneq ($(ENV), android)
+ ifndef NO_LOGGER
+  include $(imagineSrcDir)/logger/system.mk
+ endif
 endif

@@ -16,7 +16,7 @@ all : $(outputLibFile)
 
 install : $(outputLibFile)
 	@echo "Installing btstack to $(installDir)..."
-	@mkdir -p $(installIncludeDir)
+	@mkdir -p $(installIncludeDir) $(installDir)/lib
 	cp $(outputLibFile) $(installDir)/lib/
 	cp $(btstackSrcDir)/include/btstack/* $(installIncludeDir)/
 	cp config.h $(installIncludeDir)/

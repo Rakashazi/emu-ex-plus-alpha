@@ -39,15 +39,66 @@ import java.lang.reflect.*;
 public final class BaseActivity extends NativeActivity
 {
 	private static String logTag = "BaseActivity";
-	private native void jEnvConfig(float xdpi, float ydpi, int refreshRate, Display dpy, String devName,
-			String filesPath, String eStoragePath, String apkPath, Vibrator sysVibrator,
-			boolean hasPermanentMenuKey, boolean osAnimatesRotation, int sigHash);
 	//private native void layoutChange(int bottom);
+	native boolean drawWindow(long frameTimeNanos);
 	private boolean surfaceIs32Bit = false;
+	private static boolean hasChoreographer = false;
 	private static Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
+	private ChoreographerHelper choreographerHelper;
+
+	static
+	{
+		try
+		{
+			ChoreographerHelper.checkAvailable();
+			hasChoreographer = true;
+		}
+		catch(Throwable t)
+		{
+			// Choreographer class not availible
+		}
+	}
+
+	void postDrawWindow()
+	{
+		choreographerHelper.postDrawWindow();
+	}
 	
-	private int sigHash()
+	void cancelDrawWindow()
+	{
+		choreographerHelper.cancelDrawWindow();
+	}
+	
+	boolean hasPermanentMenuKey()
+	{
+		if(android.os.Build.VERSION.SDK_INT < 14) return true;
+		boolean hasKey = true;
+		try
+		{
+			Method hasPermanentMenuKeyFunc = ViewConfiguration.class.getMethod("hasPermanentMenuKey");
+			ViewConfiguration viewConf = ViewConfiguration.get(getApplicationContext());
+			try
+			{
+				hasKey = (Boolean)hasPermanentMenuKeyFunc.invoke(viewConf);
+			}
+			catch (IllegalAccessException ie)
+			{
+				//Log.i(logTag, "IllegalAccessException calling hasPermanentMenuKeyFunc");
+			}
+			catch (InvocationTargetException ite)
+			{
+				//Log.i(logTag, "InvocationTargetException calling hasPermanentMenuKeyFunc");
+			}
+		}
+		catch (NoSuchMethodException nsme)
+		{
+			//Log.i(logTag, "hasPermanentMenuKeyFunc not present even though SDK >= 14"); // should never happen
+		}
+		return hasKey;
+	}
+		
+	int sigHash()
 	{
 		try
 		{
@@ -60,117 +111,101 @@ public final class BaseActivity extends NativeActivity
 			return 0;
 		}
 	}
-
-	private void setupEnv()
+	
+	static boolean gbAnimatesRotation()
 	{
-		//Log.i(logTag, "got focus view " + getWindow().getDecorView());
-		//contentView = findViewById(android.R.id.content);//getWindow().getDecorView();
-		//view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
-		Bluetooth.adapter = BluetoothAdapter.getDefaultAdapter();
-		Display dpy = getWindowManager().getDefaultDisplay();
-		DisplayMetrics metrics = new DisplayMetrics();
-		dpy.getMetrics(metrics);
-		//Log.i(logTag, "Metrics: " + metrics.toString());
-		boolean osAnimatesRotation = false;
-		if(android.os.Build.VERSION.SDK_INT >= 11 || android.os.Build.DISPLAY.contains("cyano"))
+		// Check if Gingerbread OS provides rotation animation
+		return android.os.Build.DISPLAY.contains("cyano"); // Disable our rotation animation on CM7
+	}
+	
+	Display defaultDpy()
+	{
+		return getWindowManager().getDefaultDisplay();
+	}
+	
+	String apkPath()
+	{
+		return getApplicationInfo().sourceDir;
+	}
+	
+	String filesDir()
+	{
+		return getApplicationContext().getFilesDir().getAbsolutePath();
+	}
+	
+	static String extStorageDir()
+	{
+		return Environment.getExternalStorageDirectory().getAbsolutePath();
+	}
+	
+	static String devName()
+	{
+		return android.os.Build.DEVICE;
+	}
+	
+	Vibrator systemVibrator()
+	{
+		Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+		boolean hasVibrator = vibrator != null ? true : false;
+		if(hasVibrator && android.os.Build.VERSION.SDK_INT >= 11)
 		{
-			// Disable our rotation animation on Android 3.0+ or CM7
-			osAnimatesRotation = true;
-		}
-		//int xMM = (int)(((float)metrics.widthPixels / metrics.xdpi) * 25.4);
-		//int yMM = (int)(((float)metrics.heightPixels / metrics.ydpi) * 25.4);
-		int orientation = dpy.getRotation();
-		boolean isStraightOrientation = orientation == Surface.ROTATION_0 || orientation == Surface.ROTATION_180;
-		Context context = getApplicationContext();
-		boolean hasPermanentMenuKey = true;
-		if(android.os.Build.VERSION.SDK_INT >= 14)
-		{
+			// check if a vibrator is really present
 			try
 			{
-				Method hasPermanentMenuKeyFunc = ViewConfiguration.class.getMethod("hasPermanentMenuKey", new Class[] {});
-				ViewConfiguration viewConf = ViewConfiguration.get(context);
+				Method hasVibratorFunc = Vibrator.class.getMethod("hasVibrator");
 				try
 				{
-					hasPermanentMenuKey = (Boolean)hasPermanentMenuKeyFunc.invoke(viewConf);
+					hasVibrator = (Boolean)hasVibratorFunc.invoke(vibrator);
 				}
 				catch (IllegalAccessException ie)
 				{
-					//Log.i(logTag, "IllegalAccessException calling hasPermanentMenuKeyFunc");
+					//Log.i(logTag, "IllegalAccessException calling hasVibratorFunc");
 				}
 				catch (InvocationTargetException ite)
 				{
-					//Log.i(logTag, "InvocationTargetException calling hasPermanentMenuKeyFunc");
+					//Log.i(logTag, "InvocationTargetException calling hasVibratorFunc");
 				}
 			}
 			catch (NoSuchMethodException nsme)
 			{
-				//Log.i(logTag, "hasPermanentMenuKeyFunc not present even though SDK >= 14"); // should never happen
+				//Log.i(logTag, "hasVibratorFunc not present even though SDK >= 11"); // should never happen
 			}
 		}
-		Vibrator vibrator = (Vibrator)context.getSystemService(Context.VIBRATOR_SERVICE);
-		jEnvConfig(isStraightOrientation ? metrics.xdpi : metrics.ydpi,
-			isStraightOrientation ? metrics.ydpi : metrics.xdpi,
-			(int)dpy.getRefreshRate(), dpy, android.os.Build.DEVICE,
-			context.getFilesDir().getAbsolutePath(), Environment.getExternalStorageDirectory().getAbsolutePath(),
-			getApplicationInfo().sourceDir, vibrator, hasPermanentMenuKey, osAnimatesRotation, sigHash());
+		return hasVibrator ? vibrator : null;
 	}
 	
-	private static final int SET_KEEP_SCREEN_ON = 0, SET_SYSTEM_UI_VISIBILITY = 1,
-		SHOW_SOFT_INPUT = 2, HIDE_SOFT_INPUT = 3;
-	
-	public void postUIThread(int func, final int param)
+	void setKeepScreenOn(boolean on)
 	{
-		if(func == SET_KEEP_SCREEN_ON)
-			runOnUiThread(new Runnable()
-			{
-				public void run()
-				{
-					getWindow().getDecorView().setKeepScreenOn(param == 0 ? false : true);
-				}
-			});
-		/*else if(func == SHOW_SOFT_INPUT)
-			runOnUiThread(new Runnable()
-			{
-				public void run()
-				{
-					//getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-					InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-					mIMM.showSoftInput(getWindow().getDecorView(), 0);
-				}
-			});
-		else if(func == HIDE_SOFT_INPUT)
-			runOnUiThread(new Runnable()
-			{
-				public void run()
-				{
-					InputMethodManager mIMM = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-					mIMM.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
-				}
-			});*/
-		else
+		getWindow().getDecorView().setKeepScreenOn(on);
+	}
+	
+	void setUIVisibility(int mode)
+	{
+		if(setSystemUiVisibility == null)
 		{
-			if(setSystemUiVisibility != null)
-			{
-				runOnUiThread(new Runnable()
-				{
-					public void run()
-					{
-						try
-						{
-							setSystemUiVisibility.invoke(findViewById(android.R.id.content), param);
-						}
-						catch (IllegalAccessException ie)
-						{
-							//Log.i(logTag, "IllegalAccessException calling setSystemUiVisibility");
-						}
-						catch (InvocationTargetException ite)
-						{
-							//Log.i(logTag, "InvocationTargetException calling setSystemUiVisibility");
-						}
-					}
-				});
-			}
+			return;
 		}
+		try
+		{
+			setSystemUiVisibility.invoke(findViewById(android.R.id.content), mode);
+		}
+		catch (IllegalAccessException ie)
+		{
+			//Log.i(logTag, "IllegalAccessException calling setSystemUiVisibility");
+		}
+		catch (InvocationTargetException ite)
+		{
+			//Log.i(logTag, "InvocationTargetException calling setSystemUiVisibility");
+		}
+	}
+	
+	void setFullscreen(boolean fullscreen)
+	{
+		Window win = getWindow();
+		if(fullscreen)
+			win.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		else
+			win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 	}
 	
 	public void addNotification(String onShow, String title, String message)
@@ -224,8 +259,13 @@ public final class BaseActivity extends NativeActivity
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
+		if(hasChoreographer)
+		{
+			//Log.i(logTag, "using Choreographer");
+			choreographerHelper = new ChoreographerHelper(this);
+		}
+		Bluetooth.adapter = BluetoothAdapter.getDefaultAdapter();
 		super.onCreate(savedInstanceState);
-		setupEnv();
 	}
 	
 	@Override protected void onResume()
@@ -251,36 +291,17 @@ public final class BaseActivity extends NativeActivity
 	public void startSysTextInput(final String initialText, final String promptText,
 		final int x, final int y, final int width, final int height)
 	{
-		final Activity act = this;
-		runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				TextEntry.startSysTextInput(act, initialText, promptText, x, y, width, height);
-			}
-		});
+		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height);
 	}
 	
 	public void finishSysTextInput(final boolean canceled)
 	{
-		runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				TextEntry.finishSysTextInput(canceled);
-			}
-		});
+		TextEntry.finishSysTextInput(canceled);
 	}
 	
 	public void placeSysTextInput(final int x, final int y, final int width, final int height)
 	{
-		runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				TextEntry.placeSysTextInput(x, y, width, height);
-			}
-		});
+		TextEntry.placeSysTextInput(x, y, width, height);
 	}
 
 	@Override public void surfaceDestroyed(SurfaceHolder holder)

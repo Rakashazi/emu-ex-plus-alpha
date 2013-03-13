@@ -14,9 +14,9 @@ private:
 		setupSNESInput();
 	}
 
-	BoolMenuItem multitap;
+	BoolMenuItem multitap {"5-Player Adapter", BoolMenuItem::SelectDelegate::create<&multitapHandler>()};
 
-	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
+	MultiChoiceSelectMenuItem inputPorts {"Input Ports", MultiChoiceSelectMenuItem::ValueDelegate::create<&inputPortsSet>()};
 
 	#ifndef SNES9X_VERSION_1_4
 	static constexpr int SNES_JOYPAD_MENU_IDX = 1;
@@ -45,7 +45,6 @@ private:
 			setting = SNES_MOUSE_MENU_IDX;
 
 		inputPorts.init(str, setting, sizeofArray(str));
-		inputPorts.valueDelegate().bind<&inputPortsSet>();
 	}
 
 	static void inputPortsSet(MultiChoiceMenuItem &, int val)
@@ -70,7 +69,7 @@ private:
 	}
 
 	#ifndef SNES9X_VERSION_1_4
-	BoolMenuItem blockInvalidVRAMAccess;
+	BoolMenuItem blockInvalidVRAMAccess {"Block Invalid VRAM Access", BoolMenuItem::SelectDelegate::create<&blockInvalidVRAMAccessHandler>()};
 	static void blockInvalidVRAMAccessHandler(BoolMenuItem &item, const Input::Event &e)
 	{
 		item.toggle();
@@ -86,8 +85,7 @@ public:
 	{
 		OptionView::loadSystemItems(item, items);
 		#ifndef SNES9X_VERSION_1_4
-		blockInvalidVRAMAccess.init("Block Invalid VRAM Access", optionBlockInvalidVRAMAccess); item[items++] = &blockInvalidVRAMAccess;
-		blockInvalidVRAMAccess.selectDelegate().bind<&blockInvalidVRAMAccessHandler>();
+		blockInvalidVRAMAccess.init(optionBlockInvalidVRAMAccess); item[items++] = &blockInvalidVRAMAccess;
 		#endif
 	}
 
@@ -95,13 +93,43 @@ public:
 	{
 		OptionView::loadInputItems(item, items);
 		inputPortsInit(); item[items++] = &inputPorts;
-		multitap.init("5-Player Adapter", optionMultitap); item[items++] = &multitap;
-		multitap.selectDelegate().bind<&multitapHandler>();
+		multitap.init(optionMultitap); item[items++] = &multitap;
 	}
 };
 
+#include "EmuCheatViews.hh"
+#include "MenuView.hh"
+
 class SystemMenuView : public MenuView
 {
+	TextMenuItem cheats {"Cheats", TextMenuItem::SelectDelegate::create<&cheatsHandler>()};
+
+	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
+	{
+		if(EmuSystem::gameIsRunning())
+		{
+			cheatsMenu.init(!e.isPointer());
+			viewStack.pushAndShow(&cheatsMenu);
+		}
+	}
+
 public:
 	constexpr SystemMenuView() { }
+
+	void onShow()
+	{
+		MenuView::onShow();
+		cheats.active = EmuSystem::gameIsRunning();
+	}
+
+	void init(bool highlightFirst)
+	{
+		logMsg("init menu");
+		uint items = 0;
+		loadFileBrowserItems(item, items);
+		cheats.init(); item[items++] = &cheats;
+		loadStandardItems(item, items);
+		assert(items <= sizeofArray(item));
+		BaseMenuView::init(item, items, highlightFirst);
+	}
 };

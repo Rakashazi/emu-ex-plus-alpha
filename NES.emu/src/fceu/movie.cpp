@@ -40,14 +40,13 @@
 #include "./drivers/win/window.h"
 extern void AddRecentMovieFile(const char *filename);
 
-#include "./drivers/win/taseditlib/playback.h"
-extern void InputChangedRec();
-extern PLAYBACK playback;
+#include "./drivers/win/taseditor.h"
+extern bool emulator_must_run_taseditor;
 #endif
 
 using namespace std;
 
-#define MOVIE_VERSION           3 
+#define MOVIE_VERSION           3
 
 extern char FileBase[];
 extern bool AutoSS;		//Declared in fceu.cpp, keeps track if a auto-savestate has been made
@@ -59,6 +58,8 @@ bool subtitlesOnAVI = false;
 bool autoMovieBackup = false; //Toggle that determines if movies should be backed up automatically before altering them
 bool freshMovie = false;	  //True when a movie loads, false when movie is altered.  Used to determine if a movie has been altered since opening
 bool movieFromPoweron = true;
+
+static int _currCommand = 0;
 
 // Function declarations------------------------
 
@@ -104,6 +105,8 @@ MovieData currMovieData;
 MovieData defaultMovieData;
 int currRerecordCount;
 
+char lagcounterbuf[32] = {0};
+
 void MovieData::clearRecordRange(int start, int len)
 {
 	for(int i=0;i<len;i++)
@@ -112,64 +115,72 @@ void MovieData::clearRecordRange(int start, int len)
 	}
 }
 
+void MovieData::eraseRecords(int at, int frames)
+{
+	if (at < (int)records.size())
+	{
+		if (frames == 1)
+		{
+			// erase 1 frame
+			records.erase(records.begin() + at);
+		} else
+		{
+			// erase many frames
+			if (at + frames > (int)records.size())
+				frames = (int)records.size() - at;
+			records.erase(records.begin() + at, records.begin() + (at + frames));
+		}
+	}
+}
+
 void MovieData::insertEmpty(int at, int frames)
 {
-	if(at == -1) 
+	if (at == -1)
 	{
-		int currcount = records.size();
-		records.resize(currcount + frames);
-		clearRecordRange(currcount, frames);
+		records.resize(records.size() + frames);
 	} else
 	{
 		records.insert(records.begin() + at, frames, MovieRecord());
-		clearRecordRange(at,frames);
 	}
 }
 
 void MovieData::cloneRegion(int at, int frames)
 {
-	if(at == -1) return;
-	
+	if (at < 0) return;
+
 	records.insert(records.begin() + at, frames, MovieRecord());
 
 	for(int i = 0; i < frames; i++)
-		records[i+at].Clone(records[i + at + frames]);
+		records[i + at].Clone(records[i + at + frames]);
 }
-
+// ----------------------------------------------------------------------------
 MovieRecord::MovieRecord()
 {
-	joysticks.data[0] = 0;
-	joysticks.data[1] = 0;
-	joysticks.data[2] = 0;
-	joysticks.data[3] = 0;
-
 	commands = 0;
-
-	zappers[0].b = 0;
-	zappers[0].bogo = 0;
-	zappers[0].x = 0;
-	zappers[0].y = 0;
-	zappers[0].zaphit = 0;
-
-	zappers[1].b = 0;
-	zappers[1].bogo = 0;
-	zappers[1].x = 0;
-	zappers[1].y = 0;
-	zappers[1].zaphit = 0;
+	*(uint32*)&joysticks = 0;
+	memset(zappers, 0, sizeof(zappers));
 }
 
 void MovieRecord::clear()
-{ 
+{
 	commands = 0;
 	*(uint32*)&joysticks = 0;
-	memset(zappers,0,sizeof(zappers));
+	memset(zappers, 0, sizeof(zappers));
 }
 
 bool MovieRecord::Compare(MovieRecord& compareRec)
 {
 	//Joysticks, Zappers, and commands
 
-	if (this->joysticks != compareRec.joysticks) 
+	if (this->commands != compareRec.commands)
+		return false;
+	if ((*(uint32*)&(this->joysticks)) != (*(uint32*)&(compareRec.joysticks)))
+		return false;
+	if (memcmp(this->zappers, compareRec.zappers, sizeof(zappers)))
+		return false;
+
+	/*
+	if (this->joysticks != compareRec.joysticks)
 		return false;
 
 	//if new commands are ever recordable, they need to be added here if we go with this method
@@ -177,7 +188,7 @@ bool MovieRecord::Compare(MovieRecord& compareRec)
 	if(this->command_power() != compareRec.command_power()) return false;
 	if(this->command_fds_insert() != compareRec.command_fds_insert()) return false;
 	if(this->command_fds_select() != compareRec.command_fds_select()) return false;
-	
+
 	if (this->zappers[0].x != compareRec.zappers[0].x) return false;
 	if (this->zappers[0].y != compareRec.zappers[0].y) return false;
 	if (this->zappers[0].zaphit != compareRec.zappers[0].zaphit) return false;
@@ -189,32 +200,19 @@ bool MovieRecord::Compare(MovieRecord& compareRec)
 	if (this->zappers[1].zaphit != compareRec.zappers[1].zaphit) return false;
 	if (this->zappers[1].b != compareRec.zappers[1].b) return false;
 	if (this->zappers[1].bogo != compareRec.zappers[1].bogo) return false;
+	*/
 
 	return true;
 }
 void MovieRecord::Clone(MovieRecord& sourceRec)
 {
-	this->joysticks[0] = sourceRec.joysticks[0];
-	this->joysticks[1] = sourceRec.joysticks[1];
-	this->joysticks[2] = sourceRec.joysticks[2];
-	this->joysticks[3] = sourceRec.joysticks[3];
-
-	this->zappers[0].x = sourceRec.zappers[0].x;
-	this->zappers[0].y = sourceRec.zappers[0].y;
-	this->zappers[0].zaphit = sourceRec.zappers[0].zaphit;
-	this->zappers[0].b = sourceRec.zappers[0].b;
-	this->zappers[0].bogo = sourceRec.zappers[0].bogo;
-
-	this->zappers[1].x = sourceRec.zappers[1].x;
-	this->zappers[1].y = sourceRec.zappers[1].y;
-	this->zappers[1].zaphit = sourceRec.zappers[1].zaphit;
-	this->zappers[1].b = sourceRec.zappers[1].b;
-	this->zappers[1].bogo = sourceRec.zappers[1].bogo;
-
+	*(uint32*)&joysticks = *(uint32*)(&(sourceRec.joysticks));
+	memcpy(this->zappers, sourceRec.zappers, sizeof(zappers));
 	this->commands = sourceRec.commands;
 }
 
 const char MovieRecord::mnemonics[8] = {'A','B','S','T','U','D','L','R'};
+
 void MovieRecord::dumpJoy(EMUFILE* os, uint8 joystate)
 {
 	//these are mnemonics for each joystick bit.
@@ -276,7 +274,7 @@ void MovieRecord::parse(MovieData* md, EMUFILE* is)
 				zappers[port].bogo = uint32DecFromIstream(is);
 				zappers[port].zaphit = uint64DecFromIstream(is);
 			}
-			
+
 			is->fgetc(); //eat the pipe
 		}
 	}
@@ -348,11 +346,6 @@ void MovieRecord::dumpBinary(MovieData* md, EMUFILE* os, int index)
 
 void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
 {
-	if (false/*currMovieData.binaryFlag*/)
-	{
-		dumpBinary(md, os, index);
-		return;
-	}
 	//dump the misc commands
 	//*os << '|' << setw(1) << (int)commands;
 	os->fputc('|');
@@ -385,7 +378,7 @@ void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
 		}
 		os->fputc('|');
 	}
-	
+
 	//(no fcexp data is logged right now)
 	os->fputc('|');
 
@@ -400,6 +393,7 @@ MovieData::MovieData()
 	, PPUflag(false)
 	, rerecordCount(0)
 	, binaryFlag(false)
+	, loadFrameCount(-1)
 	, microphone(false)
 {
 	memset(&romChecksum,0,sizeof(MD5DATA));
@@ -444,7 +438,7 @@ void MovieData::installValue(std::string& key, std::string& val)
 	else if(key == "binary")
 		installBool(val,binaryFlag);
 	else if(key == "comment")
-		comments.push_back(mbstowcs(val));
+		comments.push_back(val);
 	else if (key == "subtitle")
 		subtitles.push_back(val); //mbstowcs(val));
 	else if(key == "savestate")
@@ -482,30 +476,31 @@ int MovieData::dump(EMUFILE *os, bool binary)
 	os->fprintf("NewPPU %d\n" , PPUflag?1:0 );
 
 	for(uint32 i=0;i<comments.size();i++)
-		os->fprintf("comment %s\n" , wcstombs(comments[i]).c_str() );
+		os->fprintf("comment %s\n" , comments[i].c_str() );
 
 	for(uint32 i=0;i<subtitles.size();i++)
 		os->fprintf("subtitle %s\n" , subtitles[i].c_str() );
-	
+
 	if(binary)
 		os->fprintf("binary 1\n" );
-		
-	if(savestate.size() != 0)
+
+	if(savestate.size())
 		os->fprintf("savestate %s\n" , BytesToString(&savestate[0],savestate.size()).c_str() );
 
-	if(FCEUMOV_Mode(MOVIEMODE_TASEDIT))
-		os->fprintf("length %d\n" , this->records.size() );
+	if (this->loadFrameCount >= 0)
+		os->fprintf("length %d\n" , this->loadFrameCount);
 
 	if(binary)
 	{
 		//put one | to start the binary dump
 		os->fputc('|');
 		for(int i=0;i<(int)records.size();i++)
-			records[i].dumpBinary(this,os,i);
-	}
-	else
+			records[i].dumpBinary(this, os, i);
+	} else
+	{
 		for(int i=0;i<(int)records.size();i++)
-			records[i].dump(this,os,i);
+			records[i].dump(this, os, i);
+	}
 
 	int end = os->ftell();
 	return end-start;
@@ -523,8 +518,14 @@ int FCEUI_GetLagCount(void)
 
 bool FCEUI_GetLagged(void)
 {
-	if (lagFlag) return true;
-	else return false;
+	if (lagFlag)
+		return true;
+	else
+		return false;
+}
+void FCEUI_SetLagFlag(bool value)
+{
+	lagFlag = (value) ? 1 : 0;
 }
 
 bool FCEUMOV_ShouldPause(void)
@@ -596,18 +597,23 @@ static void LoadFM2_binarychunk(MovieData& movieData, EMUFILE* fp, int size)
 //yuck... another custom text parser.
 bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 {
-    std::string a("length"), b("-1");
-	// Non-TAS projects consume until EOF
-	movieData.installValue(a, b);
+	// if there's no "binary" tag in the movie header, consider it as a movie in text format
+	movieData.binaryFlag = false;
+	// Non-TASEditor projects consume until EOF
+	movieData.loadFrameCount = -1;
 
-	//first, look for an fcm signature
-	char fcmbuf[3];
-	/*std::ios::pos_type*/ int curr = fp->ftell();
-	fp->fread(fcmbuf,3);
-	fp->fseek(curr,SEEK_SET);
-	if(!strncmp(fcmbuf,"FCM",3)) {
-		FCEU_PrintError("FCM File format is no longer supported. Please use Tools > Convert FCM");
-		return false;
+	int curr = fp->ftell();
+
+	if (!stopAfterHeader)
+	{
+		// first, look for an fcm signature
+		char fcmbuf[3];
+		fp->fread(fcmbuf,3);
+		fp->fseek(curr,SEEK_SET);
+		if(!strncmp(fcmbuf,"FCM",3)) {
+			FCEU_PrintError("FCM File format is no longer supported. Please use Tools > Convert FCM");
+			return false;
+		}
 	}
 
 	//movie must start with "version 3"
@@ -616,7 +622,7 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 	fp->fread(buf,9);
 	fp->fseek(curr,SEEK_SET);
 	if(fp->fail()) return false;
-	if(memcmp(buf,"version 3",9)) 
+	if(memcmp(buf,"version 3",9))
 		return false;
 
 	std::string key,value;
@@ -624,10 +630,10 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 		NEWLINE, KEY, SEPARATOR, VALUE, RECORD, COMMENT, SUBTITLE
 	} state = NEWLINE;
 	bool bail = false;
+	bool iswhitespace, isrecchar, isnewline;
+	int c;
 	for(;;)
 	{
-		bool iswhitespace, isrecchar, isnewline;
-		int c;
 		if(size--<=0) goto bail;
 		c = fp->fgetc();
 		if(c == -1)
@@ -639,13 +645,15 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 		{
 			LoadFM2_binarychunk(movieData, fp, size);
 			return true;
-		}
+		} else if (isnewline && movieData.loadFrameCount == movieData.records.size())
+			// exit prematurely if loaded the specified amound of records
+			return true;
 		switch(state)
 		{
 		case NEWLINE:
 			if(isnewline) goto done;
 			if(iswhitespace) goto done;
-			if(isrecchar) 
+			if(isrecchar)
 				goto dorecord;
 			//must be a key
 			key = "";
@@ -735,7 +743,7 @@ static void StopRecording()
 {
 	FCEU_DispMessage("Movie recording stopped.",0);
 	movieMode = MOVIEMODE_INACTIVE;
-	
+
 	closeRecordingMovie();
 }
 
@@ -743,7 +751,7 @@ void FCEUI_StopMovie()
 {
 	if(suppressMovieStop)
 		return;
-	
+
 	if(movieMode == MOVIEMODE_PLAY || movieMode == MOVIEMODE_FINISHED)
 		StopPlayback();
 	else if(movieMode == MOVIEMODE_RECORD)
@@ -787,7 +795,7 @@ void poweron(bool shouldDisableBatteryLoading)
 	disableBatteryLoading = 0;
 }
 
-void CreateCleanMovie()
+void FCEUMOV_CreateCleanMovie()
 {
 	currMovieData = MovieData();
 	currMovieData.palFlag = FCEUI_GetCurrentVidSystem(0,0)!=0;
@@ -796,14 +804,15 @@ void CreateCleanMovie()
 	currMovieData.guid.newGuid();
 	currMovieData.fourscore = FCEUI_GetInputFourscore();
 	currMovieData.microphone = FCEUI_GetInputMicrophone();
-	//currMovieData.ports[0] = InputType[0];
-	//currMovieData.ports[1] = InputType[1];
-	//currMovieData.ports[2] = InputType[2];
 	currMovieData.ports[0] = joyports[0].type;
 	currMovieData.ports[1] = joyports[1].type;
 	currMovieData.ports[2] = portFC.type;
 	currMovieData.fds = isFDS;
 	currMovieData.PPUflag = (newppu != 0);
+}
+void FCEUMOV_ClearCommands()
+{
+	_currCommand = 0;
 }
 
 bool FCEUMOV_FromPoweron()
@@ -824,9 +833,9 @@ void MovieData::dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel)
 }
 
 //begin playing an existing movie
-bool FCEUI_LoadMovie(const char *fname, bool _read_only, bool tasedit, int _pauseframe)
+bool FCEUI_LoadMovie(const char *fname, bool _read_only, int _pauseframe)
 {
-	if(!tasedit && !FCEU_IsValidUI(FCEUI_PLAYMOVIE))
+	if(!FCEU_IsValidUI(FCEUI_PLAYMOVIE))
 		return true;	//adelikat: file did not fail to load, so let's return true here, just do nothing
 
 	assert(fname);
@@ -839,7 +848,7 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, bool tasedit, int _paus
 	//--------------
 
 	currMovieData = MovieData();
-	
+
 	strcpy(curMovieFilename, fname);
 	FCEUFILE *fp = FCEU_fopen(fname,0,"rb",0);
 	if (!fp) return false;
@@ -869,12 +878,12 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, bool tasedit, int _paus
 	//fully reload the game to reinitialize everything before playing any movie
 	poweron(true);
 
-	//WE NEED TO LOAD A SAVESTATE
-	if(currMovieData.savestate.size() != 0)
+	if(currMovieData.savestate.size())
 	{
+		//WE NEED TO LOAD A SAVESTATE
 		movieFromPoweron = false;
 		bool success = MovieData::loadSavestateFrom(&currMovieData.savestate);
-		if(!success) return true;	//adelikat: I guess return true here?  False is only for a bad movie filename, if it got this far the file was god?
+		if(!success) return true;	//adelikat: I guess return true here?  False is only for a bad movie filename, if it got this far the file was good?
 	} else {
 		movieFromPoweron = true;
 	}
@@ -887,28 +896,20 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, bool tasedit, int _paus
 		FCEUI_SetVidSystem(0);
 
 	//force the input configuration stored in the movie to apply
-	FCEUD_SetInput(currMovieData.fourscore,currMovieData.microphone,(ESI)currMovieData.ports[0],(ESI)currMovieData.ports[1],(ESIFC)currMovieData.ports[2]);
+	FCEUD_SetInput(currMovieData.fourscore, currMovieData.microphone, (ESI)currMovieData.ports[0], (ESI)currMovieData.ports[1], (ESIFC)currMovieData.ports[2]);
 
 	//stuff that should only happen when we're ready to positively commit to the replay
-	if(tasedit)
-	{
-		currFrameCounter = 0;
-		pauseframe = _pauseframe;
-	}
-	else
-	{
-		currFrameCounter = 0;
-		pauseframe = _pauseframe;
-		movie_readonly = _read_only;
-		movieMode = MOVIEMODE_PLAY;
-		currRerecordCount = currMovieData.rerecordCount;
+	currFrameCounter = 0;
+	pauseframe = _pauseframe;
+	movie_readonly = _read_only;
+	movieMode = MOVIEMODE_PLAY;
+	currRerecordCount = currMovieData.rerecordCount;
 
-		if(movie_readonly)
-			FCEU_DispMessage("Replay started Read-Only.",0);
-		else
-			FCEU_DispMessage("Replay started Read+Write.",0);
-	}
-	
+	if(movie_readonly)
+		FCEU_DispMessage("Replay started Read-Only.",0);
+	else
+		FCEU_DispMessage("Replay started Read+Write.",0);
+
 #ifdef WIN32
 	SetMainWindowText();
 #endif
@@ -920,7 +921,7 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, bool tasedit, int _paus
 	    LoggingEnabled = 2;
 	}
 	#endif
-	
+
 	return true;
 }
 
@@ -936,10 +937,9 @@ static void openRecordingMovie(const char* fname)
 #endif
 }
 
-
+#if 0
 //begin recording a new movie
 //TODO - BUG - the record-from-another-savestate doesnt work.
-#define wstring string
 void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 {
 	if(!FCEU_IsValidUI(FCEUI_RECORDMOVIE))
@@ -953,10 +953,8 @@ void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 
 	currFrameCounter = 0;
 	LagCounterReset();
-	CreateCleanMovie();
-	// TODO: missing wstring
-	//if(author != L"") currMovieData.comments.push_back(L"author " + author);
-
+	FCEUMOV_CreateCleanMovie();
+	if(author != L"") currMovieData.comments.push_back(L"author " + author);
 
 	if(flags & MOVIE_FLAG_FROM_POWERON)
 	{
@@ -969,73 +967,76 @@ void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 		MovieData::dumpSavestateTo(&currMovieData.savestate,Z_BEST_COMPRESSION);
 	}
 
+	FCEUMOV_ClearCommands();
+
 	//we are going to go ahead and dump the header. from now on we will only be appending frames
 	currMovieData.dump(osRecordingMovie, false);
 
 	movieMode = MOVIEMODE_RECORD;
 	movie_readonly = false;
 	currRerecordCount = 0;
-	
+
 	FCEU_DispMessage("Movie recording started.",0);
 }
-#undef wstring
-
-static int _currCommand = 0;
+#endif
 
 //the main interaction point between the emulator and the movie system.
 //either dumps the current joystick state or loads one state from the movie
 void FCEUMOV_AddInputState()
 {
-	#ifdef _WIN32
-	if(movieMode == MOVIEMODE_TASEDIT)
+#ifdef _WIN32
+	if (movieMode == MOVIEMODE_TASEDITOR)
 	{
-		// if movie length is less than currFrame, pad it with empty frames
-		if((int)currMovieData.records.size() <= currFrameCounter)
-			currMovieData.insertEmpty(-1, 1 + currFrameCounter - (int)currMovieData.records.size());
+		// if movie length is less or equal to currFrame, pad it with empty frames
+		if (((int)currMovieData.records.size() - 1) < (currFrameCounter + 1))
+			currMovieData.insertEmpty(-1, (currFrameCounter + 1) - ((int)currMovieData.records.size() - 1));
 
 		MovieRecord* mr = &currMovieData.records[currFrameCounter];
-		if(movie_readonly || turbo || pauseframe > currFrameCounter)
+		if (TaseditorIsRecording())
 		{
-			// do not record buttons
-			//reset if necessary
-			if(mr->command_reset()) ResetNES();
-			joyports[0].load(mr);
-			joyports[1].load(mr);
-		}
-		else
-		{
-			// record buttons
-			// TODO: multitracking
-
+			// record commands and buttons
+			mr->commands |= _currCommand;
 			joyports[0].log(mr);
 			joyports[1].log(mr);
-			mr->commands = 0;
-
-			InputChangedRec();
+			Taseditor_RecordInput();
 		}
+		// replay buttons
+		joyports[0].load(mr);
+		joyports[1].load(mr);
+		// replay commands
+		if(mr->command_power())
+			PowerNES();
+		if(mr->command_reset())
+			ResetNES();
+		if(mr->command_fds_insert())
+			FCEU_FDSInsert();
+		if(mr->command_fds_select())
+			FCEU_FDSSelect();
+		_currCommand = 0;
 	} else
-	#endif
+#endif
 	if(movieMode == MOVIEMODE_PLAY)
 	{
 		//stop when we run out of frames
 		if(currFrameCounter >= (int)currMovieData.records.size())
 		{
 			FinishPlayback();
+			//tell all drivers to poll input and set up their logical states
+			for(int port=0;port<2;port++)
+				joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
+			portFC.driver->Update(portFC.ptr,portFC.attrib);
 		}
 		else
 		{
 			MovieRecord* mr = &currMovieData.records[currFrameCounter];
-			
+
 			//reset and power cycle if necessary
 			if(mr->command_power())
 				PowerNES();
-
 			if(mr->command_reset())
 				ResetNES();
-
 			if(mr->command_fds_insert())
 				FCEU_FDSInsert();
-			
 			if(mr->command_fds_select())
 				FCEU_FDSSelect();
 
@@ -1052,13 +1053,13 @@ void FCEUMOV_AddInputState()
 			}
 		}
 
-		//pause the movie at a specified frame 
+		//pause the movie at a specified frame
 		if(FCEUMOV_ShouldPause() && FCEUI_EmulationPaused()==0)
 		{
 			FCEUI_ToggleEmulationPause();
 			FCEU_DispMessage("Paused at specified movie frame",0);
 		}
-		
+
 	}
 	else if(movieMode == MOVIEMODE_RECORD)
 	{
@@ -1074,7 +1075,8 @@ void FCEUMOV_AddInputState()
 		if (fullSaveStateLoads && (currFrameCounter < (int)currMovieData.records.size()))
 			currMovieData.truncateAt(currFrameCounter);
 
-		mr.dump(&currMovieData, osRecordingMovie,currMovieData.records.size());
+		mr.dump(&currMovieData, osRecordingMovie,currMovieData.records.size());	// to disk
+
 		currMovieData.records.push_back(mr);
 	}
 
@@ -1085,11 +1087,11 @@ void FCEUMOV_AddInputState()
 }
 
 
-//TODO 
+//TODO
 void FCEUMOV_AddCommand(int cmd)
 {
 	// do nothing if not recording a movie
-	if(movieMode != MOVIEMODE_RECORD)
+	if(movieMode != MOVIEMODE_RECORD && movieMode != MOVIEMODE_TASEDITOR)
 		return;
 
 	//NOTE: EMOVIECMD matches FCEUNPCMD_RESET and FCEUNPCMD_POWER
@@ -1111,13 +1113,13 @@ void FCEU_DrawMovies(uint8 *XBuf)
 		int color = 0x20;
 		if(movieMode == MOVIEMODE_PLAY)
 			sprintf(counterbuf,"%d/%d",currFrameCounter,currMovieData.records.size());
-		else if(movieMode == MOVIEMODE_RECORD) 
+		else if(movieMode == MOVIEMODE_RECORD)
 			sprintf(counterbuf,"%d",currFrameCounter);
 		else if (movieMode == MOVIEMODE_FINISHED)
 		{
 			sprintf(counterbuf,"%d/%d (finished)",currFrameCounter,currMovieData.records.size());
 			color = 0x17; //Show red to get attention
-		} else if(movieMode == MOVIEMODE_TASEDIT)
+		} else if(movieMode == MOVIEMODE_TASEDITOR)
 		{
 			sprintf(counterbuf,"%d",currFrameCounter);
 		} else
@@ -1128,9 +1130,9 @@ void FCEU_DrawMovies(uint8 *XBuf)
 	}
 	if(rerecord_display && movieMode != MOVIEMODE_INACTIVE)
 	{
-		char counterbuf[32] = {0};	
+		char counterbuf[32] = {0};
 		sprintf(counterbuf,"%d",currMovieData.rerecordCount);
-		
+
 		if(counterbuf[0])
 			DrawTextTrans(ClipSidesOffset+XBuf+FCEU_TextScanlineOffsetFromBottom(50)+1, 256, (uint8*)counterbuf, 0x28+0x80);
 	}
@@ -1138,18 +1140,13 @@ void FCEU_DrawMovies(uint8 *XBuf)
 
 void FCEU_DrawLagCounter(uint8 *XBuf)
 {
-	uint8 color;
-	
-	if (lagFlag) color = 0x16+0x80; //If currently lagging display red
-	else color = 0x2A+0x80;         //else display green
-
-	if(lagCounterDisplay)
+	if (lagCounterDisplay)
 	{
-		char counterbuf[32] = {0};	
-		sprintf(counterbuf,"%d",lagCounter);
-		
-		if(counterbuf[0])
-			DrawTextTrans(ClipSidesOffset+XBuf+FCEU_TextScanlineOffsetFromBottom(40)+1, 256, (uint8*)counterbuf, color); //0x20+0x80
+		// If currently lagging - display red, else display green
+		uint8 color = (lagFlag) ? (0x16+0x80) : (0x2A+0x80);
+		sprintf(lagcounterbuf, "%d", lagCounter);
+		if(lagcounterbuf[0])
+			DrawTextTrans(ClipSidesOffset + XBuf + FCEU_TextScanlineOffsetFromBottom(40) + 1, 256, (uint8*)lagcounterbuf, color);
 	}
 }
 
@@ -1161,30 +1158,23 @@ int FCEUMOV_WriteState(EMUFILE* os)
 	else return 0;
 }
 
-bool CheckTimelines(MovieData& stateMovie, MovieData& currMovie, int& errorFr)
+// returns
+int CheckTimelines(MovieData& stateMovie, MovieData& currMovie)
 {
-	bool isInTimeline = true;
-	int length;
+	// end_frame = min(urrMovie.records.size(), stateMovie.records.size(), currFrameCounter)
+	int end_frame = currMovie.records.size();
+	if (end_frame > (int)stateMovie.records.size())
+		end_frame = stateMovie.records.size();
+	if (end_frame > currFrameCounter)
+		end_frame = currFrameCounter;
 
-	//First check, make sure we are checking is for a post-movie savestate, we just want to adjust the length for now, we will handle this situation later in another function
-	if (currFrameCounter <= stateMovie.getNumRecords())
-		length = currFrameCounter;							//Note: currFrameCounter corresponds to the framecounter in the savestate
-	else if (currFrameCounter > currMovie.getNumRecords())  //Now that we know the length of the records of the savestate we plan to load, let's match the length against the movie
-		length = currMovie.getNumRecords();				    //If length < currMovie records then this is a "future" event from the current movie, againt we will handle this situation later, we just want to find the right number of frames to compare
-	else
-		length = stateMovie.getNumRecords();
-
-	for (int x = 0; x < length; x++)
+	for (int x = 0; x < end_frame; x++)
 	{
 		if (!stateMovie.records[x].Compare(currMovie.records[x]))
-		{
-			isInTimeline = false;
-			errorFr = x;
-			break;
-		}
+			return x;
 	}
-
-	return isInTimeline;
+	// no mismatch found
+	return -1;
 }
 
 
@@ -1194,21 +1184,36 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 {
 	load_successful = false;
 
-	//a little rule: cant load states in read+write mode with a movie from an archive.
-	//so we are going to switch it to readonly mode in that case
-	if(!movie_readonly && FCEU_isFileInArchive(curMovieFilename)) {
-		FCEU_PrintError("Cannot loadstate in Read+Write with movie from archive. Movie is now Read-Only.");
-		movie_readonly = true;
+	if (!movie_readonly)
+	{
+		if (currMovieData.loadFrameCount >= 0)
+		{
+#ifdef WIN32
+			int result = MessageBox(hAppWnd, "This movie is a TAS Editor project file.\nIt can be modified in TAS Editor only.\n\nOpen it in TAS Editor now?", "Movie Replay", MB_YESNO);
+			if (result == IDYES)
+				emulator_must_run_taseditor = true;
+#else
+			FCEUI_printf("This movie is a TAS Editor project file! It can be modified in TAS Editor only.\nMovie is now Read-Only.\n");
+#endif
+			movie_readonly = true;
+		}
+		if (FCEU_isFileInArchive(curMovieFilename))
+		{
+			//a little rule: cant load states in read+write mode with a movie from an archive.
+			//so we are going to switch it to readonly mode in that case
+			FCEU_PrintError("Cannot loadstate in Read+Write with movie from archive. Movie is now Read-Only.");
+			movie_readonly = true;
+		}
 	}
 
 	MovieData tempMovieData = MovieData();
-	/*std::ios::pos_type*/ int curr = is->ftell();
+	int curr = is->ftell();
 	if(!LoadFM2(tempMovieData, is, size, false)) {
 		is->fseek((uint32)curr+size,SEEK_SET);
 		extern bool FCEU_state_loading_old_format;
 		if(FCEU_state_loading_old_format) {
 			if(movieMode == MOVIEMODE_PLAY || movieMode == MOVIEMODE_RECORD || movieMode == MOVIEMODE_FINISHED) {
-				//FCEUI_StopMovie();  //No reason to stop the movie, nothing destructive has happened yet.			
+				//FCEUI_StopMovie();  //No reason to stop the movie, nothing destructive has happened yet.
 				FCEU_PrintError("You have tried to use an old savestate while playing a movie. This is unsupported (since the old savestate has old-format movie data in it which can't be converted on the fly)");
 			}
 		}
@@ -1220,7 +1225,7 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 	//fully conforms to the savestate logic documented in the Laws of TAS
 	//http://tasvideos.org/LawsOfTAS/OnSavestates.html
 	//----------------
-		
+
 	/*
 	Playback or Recording + Read-only
 
@@ -1230,14 +1235,15 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
     * Check that movie and savestate-movie are in same timeline. If not then this is a wrong timeline error.
           o on error: a message informing that the savestate doesn't belong to this movie
                 + failstate: loadstate attempt canceled, movie can resume as if not attempted if user has backup savestates enabled else stop movie
-    * Check that savestate-movie is not greater than movie. If not then this is a future event error and is not allowed in read-only
+    * Check that savestate-movie is not greater than movie. If it's greater then this is a future event error and is not allowed in read-only
           o on error: message informing that the savestate is from a frame after the last frame of the movie
                 + failstate - loadstate attempt cancelled, movie can resume if user has backup savesattes enabled, else stop movie
-    * Check that savestate framcount <= savestate movie length. If not this is a post-movie savestate
-          o on post-movie: See post-movie event section. 
+    * Check that savestate framcount <= savestate movie length. If not this is a post-movie savestate and is not allowed in read-only
+          o on error: message informing that the savestate is from a frame after the last frame of the savestated movie
+                + failstate - loadstate attempt cancelled, movie can resume if user has backup savesattes enabled, else stop movie
     * All error checks have passed, state will be loaded
     * Movie contained in the savestate will be discarded
-    * Movie is now in Playback mode 
+    * Movie is now in Playback mode
 
 	Playback, Recording + Read+write
 
@@ -1245,23 +1251,23 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
           o on error: a message informing that the savestate doesn't belong to this movie. This is a GUID mismatch error. Give user a choice to load it anyway.
                 + failstate: if use declines, loadstate attempt canceled, movie can resume as if not attempted (stop movie if resume fails)canceled, movie can resume if backup savestates enabled else stopmovie
     * Check that savestate framcount <= savestate movie length. If not this is a post-movie savestate
-          o on post-movie: See post-movie event section. 
+          o on post-movie: See post-movie event section.
     * savestate passed all error checks and will now be loaded in its entirety and replace movie (note: there will be no truncation yet)
     * current framecount will be set to savestate framecount
     * on the next frame of input, movie will be truncated to framecount
-          o (note: savestate-movie can be a future event of the movie timeline, or a completely new timeline and it is still allowed) 
+          o (note: savestate-movie can be a future event of the movie timeline, or a completely new timeline and it is still allowed)
     * Rerecord count of movie will be incremented
-    * Movie is now in record mode 
+    * Movie is now in record mode
 
 	Post-movie savestate event
 
-    * Whan a savestate is loaded and is determined that the savestate-movie length is less than the savestate framecount then it is a post-movie savestate. These occur when a savestate was made during Movie Finished mode. 
+    * Whan a savestate is loaded and is determined that the savestate-movie length is less than the savestate framecount then it is a post-movie savestate. These occur when a savestate was made during Movie Finished mode.
 	* If read+write, the entire savestate movie will be loaded and replace current movie.
     * If read-only, the savestate movie will be discarded
     * Mode will be switched to Move Finished
     * Savestate will be loaded
     * Current framecount changes to savestate framecount
-    * User will have control of input as if Movie inactive mode 
+    * User will have control of input as if Movie inactive mode
 	*/
 
 	if(movieMode == MOVIEMODE_PLAY || movieMode == MOVIEMODE_RECORD || movieMode == MOVIEMODE_FINISHED)
@@ -1299,62 +1305,53 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 
 		closeRecordingMovie();
 
-		if(movie_readonly)
+		if (movie_readonly)
 		{
-			int errorFrame = 0;
-			bool sameTimeline =  CheckTimelines(tempMovieData, currMovieData, errorFrame);
-
-			if (sameTimeline)
+			// currFrameCounter at this point represents the savestate framecount
+			int frame_of_mismatch = CheckTimelines(tempMovieData, currMovieData);
+			if (frame_of_mismatch >= 0)
 			{
-				//if we made it this far, then the savestate has identical movie data but we want to know now if the state frame count is greater than current movie size and make this error
-				
-				//currFrameCounter at this point represents the savestate framecount
-				if(currFrameCounter > (int)currMovieData.records.size())
-				{
-					//TODO: turn frame counter to red to get attention
-					if (! (currFrameCounter > (int)tempMovieData.records.size() ) ) //This seemingly redundant check is necessary in order to not flag a post movie savestate as an error
-					{
-						if (!backupSavestates)	//If backups are disabled we can just resume normally since we can't restore so stop movie and inform user
-						{
-							FCEU_PrintError("Error: Savestate is from a frame (%d) after the final frame in the movie (%d). This is not permitted.\nUnable to restore backup, movie playback stopped.", currFrameCounter, currMovieData.records.size()-1);
-							FCEUI_StopMovie();
-						}
-						else
-						FCEU_PrintError("Savestate is from a frame (%d) after the final frame in the movie (%d). This is not permitted.", currFrameCounter, currMovieData.records.size()-1);
-
-						return false;
-					}
-				}
-				else
-				{
-					//Final test, if the savestate frame count is > savestate movie length, this was a post movie savestate
-					//currFrameCounter is currently savestate frame counter (not savestate movie size
-					if (currFrameCounter > (int)tempMovieData.records.size())
-					{
-						FinishPlayback();
-					}
-					else
-					{
-						//Finally, this is a savestate file for this movie
-						movieMode = MOVIEMODE_PLAY;
-					}
-
-				}
-				
-			}
-			else
-			{
-				//Wrong timeline, do apprioriate logic here
-				
+				// Wrong timeline, do apprioriate logic here
 				if (!backupSavestates)	//If backups are disabled we can just resume normally since we can't restore so stop movie and inform user
 				{
-					FCEU_PrintError("Error: Savestate not in the same timeline as movie!\nFrame %d branches from current timeline\nUnable to restore backup, movie playback stopped.", errorFrame);
+					FCEU_PrintError("Error: Savestate not in the same timeline as movie!\nFrame %d branches from current timeline\nUnable to restore backup, movie playback stopped.", frame_of_mismatch);
 					FCEUI_StopMovie();
-				}
-				else
-				FCEU_PrintError("Error: Savestate not in the same timeline as movie!\nFrame %d branches from current timeline", errorFrame);
-
+				} else
+					FCEU_PrintError("Error: Savestate not in the same timeline as movie!\nFrame %d branches from current timeline", frame_of_mismatch);
 				return false;
+			} else if (movieMode == MOVIEMODE_FINISHED
+				&& currFrameCounter > (int)currMovieData.records.size()
+				&& currMovieData.records.size() == tempMovieData.records.size())
+			{
+				// special case (in MOVIEMODE_FINISHED mode)
+				// allow loading post-movie savestates that were made after finishing current movie
+
+			} else if (currFrameCounter > (int)currMovieData.records.size())
+			{
+				// this is future event state, don't allow it
+				//TODO: turn frame counter to red to get attention
+				if (!backupSavestates)	//If backups are disabled we can just resume normally since we can't restore so stop movie and inform user
+				{
+					FCEU_PrintError("Error: Savestate is from a frame (%d) after the final frame in the movie (%d). This is not permitted.\nUnable to restore backup, movie playback stopped.", currFrameCounter, currMovieData.records.size()-1);
+					FCEUI_StopMovie();
+				} else
+					FCEU_PrintError("Savestate is from a frame (%d) after the final frame in the movie (%d). This is not permitted.", currFrameCounter, currMovieData.records.size()-1);
+				return false;
+			} else if (currFrameCounter > (int)tempMovieData.records.size())
+			{
+				// this is post-movie savestate, don't allow it
+				//TODO: turn frame counter to red to get attention
+				if (!backupSavestates)	//If backups are disabled we can just resume normally since we can't restore so stop movie and inform user
+				{
+					FCEU_PrintError("Error: Savestate is from a frame (%d) after the final frame in the savestated movie (%d). This is not permitted.\nUnable to restore backup, movie playback stopped.", currFrameCounter, tempMovieData.records.size()-1);
+					FCEUI_StopMovie();
+				} else
+					FCEU_PrintError("Savestate is from a frame (%d) after the final frame in the savestated movie (%d). This is not permitted.", currFrameCounter, tempMovieData.records.size()-1);
+				return false;
+			} else
+			{
+				// Finally, this is a savestate file for this movie
+				movieMode = MOVIEMODE_PLAY;
 			}
 		}
 		else //Read + write
@@ -1362,8 +1359,8 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 			if (currFrameCounter > (int)tempMovieData.records.size())
 			{
 				//This is a post movie savestate, handle it differently
-				//Recplae movie contents but then switch to movie finished mode
-				currMovieData = tempMovieData;	
+				//Replace movie contents but then switch to movie finished mode
+				currMovieData = tempMovieData;
 				openRecordingMovie(curMovieFilename);
 				currMovieData.dump(osRecordingMovie, false/*currMovieData.binaryFlag*/);
 				FinishPlayback();
@@ -1373,7 +1370,7 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 				//truncate before we copy, just to save some time, unless the user selects a full copy option
 				if (!fullSaveStateLoads)
 					tempMovieData.truncateAt(currFrameCounter); //we can only assume this here since we have checked that the frame counter is not greater than the movie data
-				currMovieData = tempMovieData;				
+				currMovieData = tempMovieData;
 #ifdef _S9XLUA_H
 				if(!FCEU_LuaRerecordCountSkip())
 					currRerecordCount++;
@@ -1388,7 +1385,7 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 			}
 		}
 	}
-	
+
 	load_successful = true;
 
 	return true;
@@ -1401,7 +1398,7 @@ void FCEUMOV_PreLoad(void)
 
 bool FCEUMOV_PostLoad(void)
 {
-	if(movieMode == MOVIEMODE_INACTIVE || movieMode == MOVIEMODE_TASEDIT)
+	if(movieMode == MOVIEMODE_INACTIVE || movieMode == MOVIEMODE_TASEDITOR)
 		return true;
 	else
 		return load_successful;
@@ -1477,30 +1474,29 @@ void FCEUI_SetMovieToggleReadOnly(bool which)
 void FCEUI_MovieToggleReadOnly()
 {
 	char message[260];
-	
+
 	if(movie_readonly)
 		strcpy(message, "Movie is now Read+Write");
 	else
 	{
 		strcpy(message, "Movie is now Read-Only");
 	}
-	
+
 	if(movieMode == MOVIEMODE_INACTIVE)
 		strcat(message, " (no movie)");
 	else if (movieMode == MOVIEMODE_FINISHED)
 		strcat(message, " (finished)");
-	
+
 	FCEU_DispMessage(message,0);
 	movie_readonly = !movie_readonly;
 }
 
 void FCEUI_MoviePlayFromBeginning(void)
 {
-	if (movieMode == MOVIEMODE_TASEDIT)
+	if (movieMode == MOVIEMODE_TASEDITOR)
 	{
-		movie_readonly = true;
 #ifdef WIN32
-		playback.jump(0);
+		Taseditor_EMUCMD(EMUCMD_MOVIE_PLAY_FROM_BEGINNING);
 #endif
 	} else if (movieMode != MOVIEMODE_INACTIVE)
 	{
@@ -1508,18 +1504,19 @@ void FCEUI_MoviePlayFromBeginning(void)
 		{
 			movie_readonly=true;
 			movieMode = MOVIEMODE_PLAY;
-			poweron(true);	
+			poweron(true);
 			currFrameCounter=0;
 			FCEU_DispMessage("Movie is now Read-Only. Playing from beginning.",0);
 		}
 		else
 		{
+			// movie starting from savestate - reload movie file
 			string str = curMovieFilename;
 			FCEUI_StopMovie();
-			if (FCEUI_LoadMovie(str.c_str(),1, 0, 0))
+			if (FCEUI_LoadMovie(str.c_str(), 1, 0))
 			{
 				movieMode = MOVIEMODE_PLAY;
-				movie_readonly=true;
+				movie_readonly = true;
 				FCEU_DispMessage("Movie is now Read-Only. Playing from beginning.",0);
 			}
 			//currMovieData.loadSavestateFrom(&currMovieData.savestate); //TODO: make something like this work instead so it doesn't have to reload
@@ -1540,7 +1537,7 @@ bool FCEUI_MovieGetInfo(FCEUFILE* fp, MOVIE_INFO& info, bool skipFrameCount)
 	MovieData md;
 	if(!LoadFM2(md, fp->stream, fp->size, skipFrameCount))
 		return false;
-	
+
 	info.movie_version = md.version;
 	info.poweron = md.savestate.size()==0;
 	info.reset = false; //Soft-reset isn't used from starting movies anymore, so this will be false, better for FCEUFILE to have that info (as |1| on the first frame indicates it
@@ -1561,30 +1558,32 @@ bool FCEUI_MovieGetInfo(FCEUFILE* fp, MOVIE_INFO& info, bool skipFrameCount)
 //This function creates an array of frame numbers and corresponding strings for displaying subtitles
 void LoadSubtitles(MovieData &moviedata)
 {
+	subtitleFrames.resize(0);
+	subtitleMessages.resize(0);
 	extern std::vector<string> subtitles;
 	for(uint32 i=0; i < moviedata.subtitles.size() ; i++)
 	{
 		std::string& subtitle = moviedata.subtitles[i];
 		size_t splitat = subtitle.find_first_of(' ');
 		std::string key, value;
-		
+
 		//If we can't split them, then don't process this one
 		if(splitat == std::string::npos)
-			{
-			}
+		{
+		}
 		//Else split the subtitle into the int and string arrays
 		else
-			{
-				key = subtitle.substr(0,splitat);
-				value = subtitle.substr(splitat+1);
-
-				subtitleFrames.push_back(atoi(key.c_str()));
-				subtitleMessages.push_back(value);
-			}
+		{
+			key = subtitle.substr(0,splitat);
+			value = subtitle.substr(splitat+1);
+			subtitleFrames.push_back(atoi(key.c_str()));
+			subtitleMessages.push_back(value);
+		}
 	}
 
 }
 
+#if 0
 //Every frame, this will be called to determine if a subtitle should be displayed, which one, and then to display it
 void ProcessSubtitles(void)
 {
@@ -1596,8 +1595,9 @@ void ProcessSubtitles(void)
 			FCEU_DisplaySubtitles("%s",subtitleMessages[i].c_str());
 	}
 }
+#endif
 
-void FCEU_DisplaySubtitles(const char *format, ...)
+void FCEU_DisplaySubtitles(char *format, ...)
 {
 	va_list ap;
 
@@ -1605,7 +1605,7 @@ void FCEU_DisplaySubtitles(const char *format, ...)
 	vsnprintf(subtitleMessage.errmsg,sizeof(subtitleMessage.errmsg),format,ap);
 	va_end(ap);
 
-	subtitleMessage.howlong = 300;
+	subtitleMessage.howlong = 400;
 	subtitleMessage.isMovieMessage = subtitlesOnAVI;
 	subtitleMessage.linesFromBottom = 0;
 }
@@ -1618,7 +1618,8 @@ void FCEUI_CreateMovieFile(std::string fn)
 	delete outf;											//clean up, delete file object
 }
 
-/*void FCEUI_MakeBackupMovie(bool dispMessage)
+#if 0
+void FCEUI_MakeBackupMovie(bool dispMessage)
 {
 	//This function generates backup movie files
 	string currentFn;					//Current movie fillename
@@ -1647,13 +1648,13 @@ void FCEUI_CreateMovieFile(std::string fn)
 		backupFn.append(".bak");		 //add extension
 
 		exist = CheckFileExists(backupFn.c_str());	//Check if file exists
-		
-		if (!exist) 
+
+		if (!exist)
 			break;						//Yeah yeah, I should use a do loop or something
 		else
 		{
 			backupFn = tempFn;			//Before we loop again, reset the filename
-			
+
 			if (backNum == 999)			//If 999 exists, we have overflowed, let's handle that
 			{
 				backupFn.append("-001.bak"); //We are going to simply overwrite 001.bak
@@ -1663,15 +1664,15 @@ void FCEUI_CreateMovieFile(std::string fn)
 		}
 	}
 	FCEUI_CreateMovieFile(backupFn);
-		
+
 	//TODO, decide if fstream successfully opened the file and print error message if it doesn't
 
-	if (dispMessage)	//If we should inform the user 
+	if (dispMessage)	//If we should inform the user
 	{
 		if (overflow)
 			FCEUI_DispMessage("Backup overflow, overwriting %s",0,backupFn.c_str()); //Inform user of overflow
 		else
 			FCEUI_DispMessage("%s created",0,backupFn.c_str()); //Inform user of backup filename
 	}
-}*/
-
+}
+#endif

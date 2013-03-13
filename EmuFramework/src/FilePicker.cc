@@ -79,10 +79,10 @@ bool showAutoStateConfirm(const Input::Event &e)
 		FsSys::timeStr date = "";
 		FsSys::mTimeAsStr(saveStr, date);
 		static char msg[96] = "";
-		snprintf(msg, sizeof(msg), "Continue auto-save state from %s? \"No\" restarts the game.", date);
-		ynAlertView.init(msg, !e.isPointer());
-		ynAlertView.onYesDelegate().bind<&loadGameCompleteConfirmAutoLoadState<1>>();
-		ynAlertView.onNoDelegate().bind<&loadGameCompleteConfirmAutoLoadState<0>>();
+		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", date);
+		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
+		ynAlertView.onYes().bind<&loadGameCompleteConfirmAutoLoadState<1>>();
+		ynAlertView.onNo().bind<&loadGameCompleteConfirmAutoLoadState<0>>();
 		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 		Base::displayNeedsUpdate();

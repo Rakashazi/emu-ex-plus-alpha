@@ -32,14 +32,12 @@ public:
 	virtual void select(View *parent, const Input::Event &e) { bug_exit("unimplemented select()"); };
 };
 
-class TextMenuItem : public MenuItem
+class BaseTextMenuItem : public MenuItem
 {
 public:
-	typedef Delegate<void (TextMenuItem &item, const Input::Event &e)> SelectDelegate;
-	constexpr TextMenuItem() { }
-	constexpr TextMenuItem(const char *str): t(str) { }
-	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
-	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): t(str), selectDel(selectDel) { }
+	constexpr BaseTextMenuItem() { }
+	constexpr BaseTextMenuItem(const char *str): t(str) { }
+
 	Gfx::Text t;
 	bool active = 1;
 
@@ -52,19 +50,28 @@ public:
 	void compile() override;
 	int ySize() override;
 	GC xSize() override;
-	void select(View *parent, const Input::Event &e) override;
-
-	SelectDelegate selectDel;
-	SelectDelegate &selectDelegate() { return selectDel; }
 };
 
-class DualTextMenuItem : public TextMenuItem
+class TextMenuItem : public BaseTextMenuItem
 {
 public:
-	constexpr DualTextMenuItem() { }
-	constexpr DualTextMenuItem(const char *str): TextMenuItem(str) { }
-	constexpr DualTextMenuItem(SelectDelegate selectDel): TextMenuItem(selectDel) { }
-	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): TextMenuItem(str, selectDel) { }
+	typedef Delegate<void (TextMenuItem &item, const Input::Event &e)> SelectDelegate;
+	SelectDelegate selectDel;
+	SelectDelegate &selectDelegate() { return selectDel; }
+
+	constexpr TextMenuItem() { }
+	constexpr TextMenuItem(const char *str): BaseTextMenuItem(str) { }
+	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
+	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectDel(selectDel) { }
+
+	void select(View *parent, const Input::Event &e) override;
+};
+
+class BaseDualTextMenuItem : public BaseTextMenuItem
+{
+public:
+	constexpr BaseDualTextMenuItem() { }
+	constexpr BaseDualTextMenuItem(const char *str): BaseTextMenuItem(str) { }
 	Gfx::Text t2;
 
 	void init(const char *str, const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
@@ -75,15 +82,30 @@ public:
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 };
 
+class DualTextMenuItem : public BaseDualTextMenuItem
+{
+public:
+	typedef Delegate<void (DualTextMenuItem &item, const Input::Event &e)> SelectDelegate;
+	SelectDelegate selectDel;
+	SelectDelegate &selectDelegate() { return selectDel; }
 
-class BoolMenuItem : public DualTextMenuItem
+	constexpr DualTextMenuItem() { }
+	constexpr DualTextMenuItem(const char *str): BaseDualTextMenuItem(str) { }
+	constexpr DualTextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
+	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectDel(selectDel) { }
+
+	void select(View *parent, const Input::Event &e) override;
+};
+
+
+class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
 	typedef Delegate<void (BoolMenuItem &item, const Input::Event &e)> SelectDelegate;
 	constexpr BoolMenuItem() { }
-	constexpr BoolMenuItem(const char *str): DualTextMenuItem(str) { }
+	constexpr BoolMenuItem(const char *str): BaseDualTextMenuItem(str) { }
 	constexpr BoolMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
-	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): DualTextMenuItem(str), selectDel(selectDel) { }
+	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectDel(selectDel) { }
 	bool on = 0;
 	const char *offStr = nullptr, *onStr = nullptr;
 	void init(const char *str, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
@@ -106,8 +128,8 @@ public:
 
 	constexpr MultiChoiceMenuItem() { }
 	constexpr MultiChoiceMenuItem(const char *str): DualTextMenuItem(str) { }
-	constexpr MultiChoiceMenuItem(ValueDelegate valueDel): valueDel(valueDel) { }
-	constexpr MultiChoiceMenuItem(const char *str, ValueDelegate valueDel): DualTextMenuItem(str), valueDel(valueDel) { }
+	constexpr MultiChoiceMenuItem(ValueDelegate valueD): valueD(valueD) { }
+	constexpr MultiChoiceMenuItem(const char *str, ValueDelegate valueD): DualTextMenuItem(str), valueD(valueD) { }
 	int choice = 0, choices = 0, baseVal = 0;
 	const char **choiceStr = nullptr;
 
@@ -117,9 +139,9 @@ public:
 	bool updateVal(int val);
 	void setVal(int val);
 	bool set(int val, const Input::Event &e);
-	virtual void doSet(int val) { valueDel.invoke(*this, val); }
+	virtual void doSet(int val) { valueD.invoke(*this, val); }
 	void cycle(int direction);
 
-	ValueDelegate valueDel;
-	ValueDelegate &valueDelegate() { return valueDel; }
+	ValueDelegate valueD;
+	ValueDelegate &onValue() { return valueD; }
 };

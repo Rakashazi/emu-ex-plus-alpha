@@ -15,48 +15,37 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
 
-namespace BoardDream
-{
-
 static uint8 latche;
 
-static void Sync(void)
-{
-  setprg16(0x8000,latche);
-  setprg16(0xC000,8);
+static void Sync(void) {
+	setprg16(0x8000, latche);
+	setprg16(0xC000, 8);
 }
 
-static DECLFW(DREAMWrite)
-{
-  latche=V&7;
-  Sync();
+static DECLFW(DREAMWrite) {
+	latche = V & 7;
+	Sync();
 }
 
-static void DREAMPower(void)
-{
-  latche=0;
-  Sync();
-  setchr8(0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x5020,0x5020,DREAMWrite);
+static void DREAMPower(void) {
+	latche = 0;
+	Sync();
+	setchr8(0);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x5020, 0x5020, DREAMWrite);
 }
 
-static void Restore(int version)
-{
-  Sync();
+static void Restore(int version) {
+	Sync();
 }
 
-}
-
-void DreamTech01_Init(CartInfo *info)
-{
-	using namespace BoardDream;
-  GameStateRestore=Restore;
-  info->Power=DREAMPower;
-  AddExState(&BoardDream::latche, 1, 0, "LATCH");
+void DreamTech01_Init(CartInfo *info) {
+	GameStateRestore = Restore;
+	info->Power = DREAMPower;
+	AddExState(&latche, 1, 0, "LATC");
 }

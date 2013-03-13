@@ -430,8 +430,8 @@ static void setSizesWithRatioBestFit(T &xSize, T &ySize, T2 destAspectRatio, T x
 template <class T, class T2>
 static IG::Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
 {
-	Rational sourceRat {x,y};
-	auto sourceAspectRatio = (T2)sourceRat;
+	//Rational sourceRat {x,y};
+	auto sourceAspectRatio = (T2)x/(T2)y;
 	T xSize = 0, ySize = 0;
 	if(destAspectRatio == sourceAspectRatio)
 	{

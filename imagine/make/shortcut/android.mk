@@ -21,7 +21,7 @@ ifndef android_targetSDK
   android_targetSDK := 8
  endif
  ifeq ($(android_minSDK), 9)
-  android_targetSDK := 13
+  android_targetSDK := 16
  endif
 endif
 
@@ -62,8 +62,8 @@ else ifneq ($(wildcard res/android/assets),)
 android_assetsSrcPath := res/android/assets
 endif
 
-android_assetsPath := $(android_targetPath)/assets
 ifdef android_assetsSrcPath
+android_assetsPath := $(android_targetPath)/assets
 $(android_assetsPath) :
 	@mkdir -p $(@D)
 	ln -s ../../$(android_assetsSrcPath) $@

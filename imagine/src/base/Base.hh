@@ -84,6 +84,11 @@ static void sendBTScanStatusDelegate(ThreadPThread &thread, uint status, int arg
 // Graphics update notification
 
 void displayNeedsUpdate();
+#if defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
+	bool supportsFrameTime();
+#else
+	static bool supportsFrameTime() { return 0; }
+#endif
 
 // Window display swap interval
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_IOS)
@@ -208,8 +213,10 @@ static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
 
 // vibration support
 #if defined(CONFIG_BASE_ANDROID)
+	bool hasVibrator();
 	void vibrate(uint ms);
 #else
+	static bool hasVibrator() { return 0; }
 	static void vibrate(uint ms) { }
 #endif
 

@@ -1,9 +1,10 @@
-#pragma once
-
+#ifndef _VIDEO_H_
+#define _VIDEO_H_
 int FCEU_InitVirtualVideo(void);
 void FCEU_KillVirtualVideo(void);
 int SaveSnapshot(void);
 int SaveSnapshot(char[]);
+void ResetScreenshotsCounter();
 uint32 GetScreenPixel(int x, int y, bool usebackup);
 int GetScreenPixelPalette(int x, int y, bool usebackup);
 //extern uint8 XBuf[256 * 240] __attribute__ ((aligned (4)));
@@ -31,4 +32,9 @@ void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur);
 
 std::string FCEUI_GetSnapshotAsName();
 void FCEUI_SetSnapshotAsName(std::string name);
+bool FCEUI_ShowFPS();
+void FCEUI_SetShowFPS(bool showFPS);
+void FCEUI_ToggleShowFPS();
+void ShowFPS();
 void snapAVI();
+#endif

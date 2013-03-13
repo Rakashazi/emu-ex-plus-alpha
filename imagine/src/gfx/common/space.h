@@ -7,7 +7,7 @@ namespace Gfx
 
 GC mmToPixelXScaler = 0, mmToPixelYScaler = 0;
 uint viewPixelWidth_ = 0, viewPixelHeight_ = 0, viewMMWidth_ = 0, viewMMHeight_ = 0;
-Projector proj = { 0 };
+Projector proj;
 
 void setupScreenSize()
 {

@@ -60,7 +60,7 @@ void IdentInputDeviceView::inputEvent(const Input::Event &e)
 	}
 }
 
-void IdentInputDeviceView::draw()
+void IdentInputDeviceView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(0);
@@ -120,7 +120,7 @@ bool InputManagerView::selectDeleteDeviceConfig(int i, const Input::Event &e)
 	removeModalView();
 	deleteDeviceConfigIdx = i;
 	ynAlertView.init(confirmDeleteDeviceSettingsStr, !e.isPointer());
-	ynAlertView.onYesDelegate().bind<InputManagerView, &InputManagerView::confirmDeleteDeviceConfig>(this);
+	ynAlertView.onYes().bind<InputManagerView, &InputManagerView::confirmDeleteDeviceConfig>(this);
 	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 	Base::displayNeedsUpdate();
@@ -165,7 +165,7 @@ bool InputManagerView::selectDeleteProfile(int i, const Input::Event &e)
 	removeModalView();
 	deleteProfileIdx = i;
 	ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
-	ynAlertView.onYesDelegate().bind<InputManagerView, &InputManagerView::confirmDeleteProfile>(this);
+	ynAlertView.onYes().bind<InputManagerView, &InputManagerView::confirmDeleteProfile>(this);
 	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 	Base::displayNeedsUpdate();
@@ -395,7 +395,7 @@ void InputManagerDeviceView::deleteProfileHandler(TextMenuItem &, const Input::E
 		return;
 	}
 	ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
-	ynAlertView.onYesDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmDeleteProfile>(this);
+	ynAlertView.onYes().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmDeleteProfile>(this);
 	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 	Base::displayNeedsUpdate();
@@ -455,7 +455,7 @@ void InputManagerDeviceView::deleteDeviceConfigHandler(TextMenuItem &item, const
 	if(item.active)
 	{
 		ynAlertView.init(confirmDeleteDeviceSettingsStr, !e.isPointer());
-		ynAlertView.onYesDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmDeleteDeviceConfig>(this);
+		ynAlertView.onYes().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmDeleteDeviceConfig>(this);
 		ynAlertView.placeRect(Gfx::viewportRect());
 		modalView = &ynAlertView;
 		Base::displayNeedsUpdate();
@@ -466,6 +466,7 @@ void InputManagerDeviceView::deleteDeviceConfigHandler(TextMenuItem &item, const
 	}
 }*/
 
+#ifdef CONFIG_INPUT_ICADE
 void InputManagerDeviceView::confirmICadeMode(const Input::Event &e)
 {
 	iCadeMode.toggle();
@@ -483,8 +484,8 @@ void InputManagerDeviceView::iCadeModeHandler(BoolMenuItem &item, const Input::E
 	#else
 		if(!item.on)
 		{
-			ynAlertView.init("This mode allows input from an iCade-compatible Bluetooth device, don't turn on if this isn't an iCade", !e.isPointer());
-			ynAlertView.onYesDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmICadeMode>(this);
+			ynAlertView.init("This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", !e.isPointer(), "Enable", "Cancel");
+			ynAlertView.onYes().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmICadeMode>(this);
 			ynAlertView.placeRect(Gfx::viewportRect());
 			modalView = &ynAlertView;
 			Base::displayNeedsUpdate();
@@ -493,6 +494,7 @@ void InputManagerDeviceView::iCadeModeHandler(BoolMenuItem &item, const Input::E
 			confirmICadeMode(e);
 	#endif
 }
+#endif
 
 uint InputManagerDeviceView::handleRenameProfileFromTextInput(const char *str)
 {
@@ -567,7 +569,7 @@ void InputManagerDeviceView::newProfileHandler(TextMenuItem &item, const Input::
 		return;
 	}
 	ynAlertView.init("Create a new profile? All keys from the current profile will be copied over.", !e.isPointer());
-	ynAlertView.onYesDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmNewProfile>(this);
+	ynAlertView.onYes().bind<InputManagerDeviceView, &InputManagerDeviceView::confirmNewProfile>(this);
 	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 }
@@ -587,12 +589,12 @@ void InputManagerDeviceView::init(bool highlightFirst, InputDeviceConfig &devCon
 	{
 		static const char *str[] = { "Multiple", "1", "2", "3", "4", "5" };
 		player.init("Player", str, playerConfToMenuIdx(devConf.player), EmuSystem::maxPlayers+1); item[i++] = &player;
-		player.valueDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::playerHandler>(this);
+		player.onValue().bind<InputManagerDeviceView, &InputManagerDeviceView::playerHandler>(this);
 	}
 	//enabled.init((bool)devConf.enabled); item[i++] = &enabled;
 	//enabled.selectDelegate().bind<InputManagerDeviceView, &InputManagerDeviceView::enabledHandler>(this);
 	#if defined CONFIG_INPUT_ICADE
-	if((devConf.dev->map() == Input::Event::MAP_KEYBOARD && !devConf.dev->hasGamepad())
+	if((devConf.dev->map() == Input::Event::MAP_KEYBOARD && devConf.dev->hasKeyboard())
 			|| devConf.dev->map() == Input::Event::MAP_ICADE)
 	{
 		iCadeMode.init(devConf.iCadeMode()); item[i++] = &iCadeMode;

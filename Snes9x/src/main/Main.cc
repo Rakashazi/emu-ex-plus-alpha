@@ -22,6 +22,9 @@
 #endif
 #include <memmap.h>
 #include <snapshot.h>
+#include <cheats.h>
+
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 
 #ifndef SNES9X_VERSION_1_4
 
@@ -146,8 +149,8 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
     	return 0;
 
     //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = IG::scalePointRange((float)snesPointerX, (float)emuView.gameView.iXSize, (float)256.);
-    y = IG::scalePointRange((float)snesPointerY, (float)emuView.gameView.iYSize, (float)224.);
+    x = IG::scalePointRange((float)snesPointerX, (float)emuView.gameRect.xSize(), (float)256.);
+    y = IG::scalePointRange((float)snesPointerY, (float)emuView.gameRect.ySize(), (float)224.);
     buttons = snesPointerBtns;
 
     if(snesMouseClick)
@@ -347,6 +350,12 @@ static void sprintSRAMFilename(char (&str)[S])
 	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName);
 }
 
+template <size_t S>
+static void sprintCheatsFilename(char (&str)[S])
+{
+	snprintf(str, S, "%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName);
+}
+
 int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
@@ -414,6 +423,13 @@ void S9xAutoSaveSRAM (void)
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
+	FsSys::cPath cheatsStr;
+	sprintCheatsFilename(cheatsStr);
+	if(!Cheat.num_cheats)
+		logMsg("no cheats present, removing .cht file if present");
+	else
+		logMsg("saving %d cheat(s)", Cheat.num_cheats);
+	S9xSaveCheatFile(cheatsStr);
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
@@ -714,11 +730,11 @@ void onInputEvent(const Input::Event &e)
 					*S9xGetSuperscopeBits() = 0;
 					#endif
 				}
-				if(emuView.gameView.overlaps(e.x, e.y))
+				if(emuView.gameRect.overlaps(e.x, e.y))
 				{
-					int xRel = e.x - emuView.gameView.xIPos(LT2DO), yRel = e.y - emuView.gameView.yIPos(LT2DO);
-					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)256.);
-					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)224.);
+					int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
+					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)256.);
+					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)224.);
 					//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
 					if(e.state == PUSHED)
 					{
@@ -844,7 +860,6 @@ CallResult onInit(int argc, char** argv)
 	#ifndef SNES9X_VERSION_1_4
 		S9xInitSound(20, 0);
 		S9xUnmapAllControls();
-		Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
 	#else
 		S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
 		assert(Settings.FrameTime == Settings.FrameTimeNTSC);
@@ -853,6 +868,9 @@ CallResult onInit(int argc, char** argv)
 	#endif
 
 	mainInitCommon();
+	#ifndef SNES9X_VERSION_1_4
+		Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
+	#endif
 	emuView.initPixmap((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
 	return OK;
 }

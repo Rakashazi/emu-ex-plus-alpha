@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 /// \file
@@ -24,8 +24,6 @@
 #include "xstring.h"
 #include <string>
 #include <ctype.h>
-
-#define wstring string
 
 ///Upper case routine. Returns number of characters modified
 int str_ucase(char *str) {
@@ -65,24 +63,20 @@ int str_ltrim(char *str, int flags) {
 	unsigned int i=0; //mbg merge 7/17/06 changed to unsigned int
 
 	while (str[0]) {
-		if ((str[0] != ' ') || (str[0] != '\t') || (str[0] != '\r') || (str[0] != '\n')) break;
-
 		if ((flags & STRIP_SP) && (str[0] == ' ')) {
 			i++;
 			strcpy(str,str+1);
-		}
-		if ((flags & STRIP_TAB) && (str[0] == '\t')) {
+		} else if ((flags & STRIP_TAB) && (str[0] == '\t')) {
 			i++;
 			strcpy(str,str+1);
-		}
-		if ((flags & STRIP_CR) && (str[0] == '\r')) {
+		} else if ((flags & STRIP_CR) && (str[0] == '\r')) {
 			i++;
 			strcpy(str,str+1);
-		}
-		if ((flags & STRIP_LF) && (str[0] == '\n')) {
+		} else if ((flags & STRIP_LF) && (str[0] == '\n')) {
 			i++;
 			strcpy(str,str+1);
-		}
+		} else
+			break;
 	}
 	return i;
 }
@@ -93,30 +87,23 @@ int str_ltrim(char *str, int flags) {
 ///Removes whitespace from right side of string, depending on the flags set (See STRIP_x definitions in xstring.h)
 ///Returns number of characters removed
 int str_rtrim(char *str, int flags) {
-	unsigned int i=0; //mbg merge 7/17/06 changed to unsigned int
+	unsigned int i=0, strl; //mbg merge 7/17/06 changed to unsigned int
 
-	while (strlen(str)) {
-		if ((str[strlen(str)-1] != ' ') ||
-			(str[strlen(str)-1] != '\t') ||
-			(str[strlen(str)-1] != '\r') ||
-			(str[strlen(str)-1] != '\n')) break;
-
+	while (strl = strlen(str)) {
 		if ((flags & STRIP_SP) && (str[0] == ' ')) {
 			i++;
-			str[strlen(str)-1] = 0;
-		}
-		if ((flags & STRIP_TAB) && (str[0] == '\t')) {
+			str[strl] = 0;
+		} else if ((flags & STRIP_TAB) && (str[0] == '\t')) {
 			i++;
-			str[strlen(str)-1] = 0;
-		}
-		if ((flags & STRIP_CR) && (str[0] == '\r')) {
+			str[strl] = 0;
+		} else if ((flags & STRIP_CR) && (str[0] == '\r')) {
 			i++;
-			str[strlen(str)-1] = 0;
-		}
-		if ((flags & STRIP_LF) && (str[0] == '\n')) {
+			str[strl] = 0;
+		} else if ((flags & STRIP_LF) && (str[0] == '\n')) {
 			i++;
-			str[strlen(str)-1] = 0;
-		}
+			str[strl] = 0;
+		} else
+			break;
 	}
 	return i;
 }
@@ -245,8 +232,8 @@ std::string BytesToString(const void* data, int len)
 			{
 				Base64Table[ input[0] >> 2 ],
 				Base64Table[ ((input[0] & 0x03) << 4) | (input[1] >> 4) ],
-				n<2 ? uchar('=') : uchar(Base64Table[ ((input[1] & 0x0F) << 2) | (input[2] >> 6) ]),
-				n<3 ? uchar('=') : uchar(Base64Table[ input[2] & 0x3F ])
+				n<2 ? (unsigned char)'=' : Base64Table[ ((input[1] & 0x0F) << 2) | (input[2] >> 6) ],
+				n<3 ? (unsigned char)'=' : Base64Table[ input[2] & 0x3F ]
 			};
 			ret.append(output, output+4);
 		}
@@ -444,7 +431,7 @@ void splitpath(const char* path, char* drv, char* dir, char* name, char* ext)
 		*name = '\0';
 	} else
 		for(s=p; s<end; )
-			*s++;
+			s++;
 
 	if (dir) {
 		for(s=path; s<p; )
@@ -741,7 +728,7 @@ namespace UtfConverter
         return result;
     }
 
-
+#if 0
     std::wstring FromUtf8(std::string& input) // string -> wstring
     {
         std::wstring result;
@@ -757,19 +744,20 @@ namespace UtfConverter
             SeqValue(result, input[pos]);
         return result;
     }
+#endif
 }
 #endif
 
-  
+
+#if 0
 //convert a std::string to std::wstring
 std::wstring mbstowcs(std::string str) // UTF8->UTF32
 {
-	return UtfConverter::FromUtf8(str);
-	/*try {
+	try {
 		return UtfConverter::FromUtf8(str);
 	} catch(std::exception) {
 		return L"(failed UTF-8 conversion)";
-	}*/
+	}
 }
 
 //convert a std::wstring to std::string
@@ -777,6 +765,7 @@ std::string wcstombs(std::wstring str) // UTF32->UTF8
 {
 	return UtfConverter::ToUtf8(str);
 }
+#endif
 
 
 //TODO - dont we already have another  function that can do this
@@ -806,5 +795,3 @@ std::string StripPath(std::string filename)
 	int x = filename.find_last_of("\\") + 1;
 	return filename.substr(x, filename.length() - x);
 }
-
-#undef wstring

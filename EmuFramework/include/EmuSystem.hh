@@ -38,6 +38,7 @@ class EmuSystem
 	static Base::CallbackRef *autoSaveStateCallbackRef;
 	static int saveStateSlot;
 	static TimeSys startTime;
+	static Gfx::FrameTimeBase startFrameTime;
 	static int emuFrameNow;
 	static Audio::PcmFormat pcmFormat;
 	static const uint optionFrameSkipAuto;
@@ -83,7 +84,7 @@ class EmuSystem
 	}
 	static void stopSound();
 	static void startSound();
-	static int setupFrameSkip(uint optionVal);
+	static int setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime);
 	static void setupGamePaths(const char *filePath);
 
 	static void clearGamePaths()
@@ -96,13 +97,12 @@ class EmuSystem
 
 	static TimeSys benchmark()
 	{
-		TimeSys now, after;
-		now.setTimeNow();
+		auto now = TimeSys::timeNow();
 		iterateTimes(180, i)
 		{
 			runFrame(0, 1, 0);
 		}
-		after.setTimeNow();
+		auto after = TimeSys::timeNow();
 		return after-now;
 	}
 
@@ -125,7 +125,8 @@ class EmuSystem
 		clearInputBuffers();
 		emuFrameNow = -1;
 		startSound();
-		startTime.setTimeNow();
+		startTime = {};
+		startFrameTime = 0;
 		startAutoSaveStateTimer();
 	}
 

@@ -23,7 +23,7 @@
 //TODO: remove old code
 
 template<class T>
-class Rect2 : NotEquals< Rect2<T> >
+class Rect2 : NotEquals< Rect2<T> >, Subtracts< Rect2<T> >, Adds< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
@@ -40,6 +40,42 @@ public:
 	bool operator ==(Rect2 const& rhs) const
 	{
 		return x == rhs.x && y == rhs.y && x2 == rhs.x2 && y2 == rhs.y2;
+	}
+
+	Rect2 & operator +=(Rect2 const& rhs)
+	{
+		x += rhs.x;
+		y += rhs.y;
+		x2 += rhs.x2;
+		y2 += rhs.y2;
+		return *this;
+	}
+
+	Rect2 & operator -=(Rect2 const& rhs)
+	{
+		x -= rhs.x;
+		y -= rhs.y;
+		x2 -= rhs.x2;
+		y2 -= rhs.y2;
+		return *this;
+	}
+
+	Rect2 & operator +=(IG::Point2D<T> const& rhs)
+	{
+		x += rhs.x;
+		y += rhs.y;
+		x2 += rhs.x;
+		y2 += rhs.y;
+		return *this;
+	}
+
+	Rect2 & operator -=(IG::Point2D<T> const& rhs)
+	{
+		x -= rhs.x;
+		y -= rhs.y;
+		x2 -= rhs.x;
+		y2 -= rhs.y;
+		return *this;
 	}
 
 	bool overlaps(const Rect2 &other) const

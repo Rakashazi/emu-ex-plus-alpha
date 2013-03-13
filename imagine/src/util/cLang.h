@@ -112,4 +112,8 @@ static bool countToValueLooped(T &counter, T val)
 // const int x = 1; Bar<template_ntype(x)> bar;
 #define template_ntype(var) typeof(var), var
 
+// Use when supplying a member function address to a Delegate to avoid
+// repeating the class name and produce the parameter pair
+#define template_mfunc(cls, mFunc) cls, &cls::mFunc
+
 #endif

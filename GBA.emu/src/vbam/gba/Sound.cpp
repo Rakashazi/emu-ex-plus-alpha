@@ -368,7 +368,7 @@ static void end_frame( blip_time_t time )
 	stereo_buffer.end_frame( time );
 }
 
-#if !defined(CONFIG_AUDIO_ALSA) && !defined(CONFIG_AUDIO_SDL) && !defined(CONFIG_AUDIO_PS3)
+#if !defined(CONFIG_AUDIO_ALSA) && !defined(CONFIG_AUDIO_SDL) && !defined(CONFIG_AUDIO_PS3) && !defined(CONFIG_AUDIO_COREAUDIO)
 	// use WIP direct buffer write API
 	#define USE_DIRECT_AUDIO_COMMIT
 #endif

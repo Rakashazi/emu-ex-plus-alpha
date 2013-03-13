@@ -63,6 +63,7 @@ void VertexInfo::draw(const Vtx *v, uint type, uint count)
 
 	Gfx::setupVertexArrayPointers(v, numV);
 	glDrawArrays(glType, 0, count);
+	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawArrays", err); });
 }
 
 template<class Vtx>
@@ -74,6 +75,7 @@ void VertexInfo::draw(const Vtx *v, const VertexIndex *idx, uint type, uint coun
 
 	Gfx::setupVertexArrayPointers(v, numV);
 	glDrawElements(glType, count, GL_UNSIGNED_SHORT, idx);
+	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawElements", err); });
 }
 
 template<class Vtx>

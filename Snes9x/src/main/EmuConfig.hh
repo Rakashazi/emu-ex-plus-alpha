@@ -1,16 +1,30 @@
 #pragma once
 
+#include <cheats.h>
+#include <meta.h>
+
 #ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "Snes9xP.config"
+	#ifdef SNES9X_VERSION_1_4
+		#define CONFIG_FILE_NAME "Snes9x.config"
+	#else
+		#define CONFIG_FILE_NAME "Snes9xP.config"
+	#endif
 #else
 	#define CONFIG_FILE_NAME "config"
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B/X/Y", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
 #define systemAspectRatioString "4:3"
+
+namespace EmuCheats
+{
+
+static const uint MAX = MAX_CHEATS;
+static const uint MAX_CODE_TYPES = 1;
+
+}
 
 namespace EmuControls
 {

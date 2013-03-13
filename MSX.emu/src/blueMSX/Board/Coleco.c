@@ -307,15 +307,13 @@ static void reset()
     deviceManagerReset();
 }
 
-extern char machineBasePath[];
-
 static void destroy() 
 {
   char wDir[1024];
 getcwd(wDir, sizeof(wDir));
-chdir(machineBasePath);
+chdir(machineBasePathStr());
 #ifndef NDEBUG
-fprintf(stderr, "switched to %s\n", machineBasePath);
+fprintf(stderr, "switched to %s\n", machineBasePathStr());
 #endif
 
     boardRemoveExternalDevices();
@@ -386,9 +384,9 @@ int colecoCreate(Machine* machine,
 
     char wDir[1024];
 	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePath);
+	chdir(machineBasePathStr());
 	#ifndef NDEBUG
-	fprintf(stderr, "switched to %s\n", machineBasePath);
+	fprintf(stderr, "switched to %s\n", machineBasePathStr());
 	#endif
 
     deviceManagerCreate();

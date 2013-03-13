@@ -43,12 +43,12 @@ namespace Surface
 using namespace Surface;
 
 //static JNIEnv* aJEnv = nullptr;
-jclass jBaseActivityCls = 0;
-jobject jBaseActivity = 0;
+jclass jBaseActivityCls = nullptr;
+jobject jBaseActivity = nullptr;
 static JavaInstMethod<void> jSetRequestedOrientation;
 static JavaInstMethod<void> jAddNotification, jRemoveNotification;
-static jobject vibrator = 0;
-static jclass vibratorCls = 0;
+static jobject vibrator = nullptr;
+static jclass vibratorCls = nullptr;
 static JavaInstMethod<void> jVibrate;
 const char *appPath = nullptr;
 static uint aSDK = aMinSDK;
@@ -57,7 +57,7 @@ static bool osAnimatesRotation = 0;
 static float androidXDPI = 0, androidYDPI = 0, // DPI reported by OS
 		xDPI = 0, yDPI = 0; // Active DPI
 int devType = DEV_TYPE_GENERIC;
-static int aHardKeyboardState = 0;
+static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static bool hasPermanentMenuKey = 1;
 static uint visibleScreenY = 1;
@@ -117,14 +117,32 @@ void setDPI(float dpi)
 	Gfx::setupScreenSize();
 }
 
+static void setupVibration(JNIEnv* jEnv)
+{
+	if(!vibratorCls)
+	{
+		//logMsg("setting up Vibrator class");
+		vibratorCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/os/Vibrator"));
+		jVibrate.setup(jEnv, vibratorCls, "vibrate", "(J)V");
+	}
+}
+
+bool hasVibrator()
+{
+	return vibrator;
+}
+
 void vibrate(uint ms)
 {
-	assert(vibratorCls);
-	if(vibrator)
+	if(unlikely(!vibrator))
+		return;
+	if(unlikely(!vibratorCls))
 	{
-		//logDMsg("vibrating for %u ms", ms);
-		jVibrate(eEnv(), vibrator, (jlong)ms);
+		setupVibration(eEnv());
 	}
+
+	//logDMsg("vibrating for %u ms", ms);
+	jVibrate(eEnv(), vibrator, (jlong)ms);
 }
 
 void addNotification(const char *onShow, const char *title, const char *message)
@@ -138,7 +156,6 @@ void addNotification(const char *onShow, const char *title, const char *message)
 void setSDK(uint sdk)
 {
 	aSDK = sdk;
-	logMsg("SDK API Level: %d", aSDK);
 }
 
 uint androidSDK()
@@ -146,10 +163,10 @@ uint androidSDK()
 	return IG::max(aMinSDK, aSDK);
 }
 
-static void resizeEvent(const Window &win)
+static void resizeEvent(const Window &win, bool force = 0)
 {
 	auto prevTriggerGfxResize = triggerGfxResize;
-	generic_resizeEvent(win);
+	generic_resizeEvent(win, force);
 	if(prevTriggerGfxResize != triggerGfxResize)
 	{
 		setupDPI();
@@ -222,16 +239,16 @@ static const char *hardKeyboardNavStateToStr(int state)
 {
 	switch(state)
 	{
+		case ACONFIGURATION_KEYSHIDDEN_ANY: return "undefined";
 		case ACONFIGURATION_KEYSHIDDEN_NO: return "no";
 		case ACONFIGURATION_KEYSHIDDEN_YES: return "yes";
-		default: return "undefined";
+		case ACONFIGURATION_KEYSHIDDEN_SOFT:  return "soft";
+		default: return "unknown";
 	}
 }
 
-bool hardKeyboardIsPresent()
-{
-	return aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
-}
+bool hasHardKeyboard() { return aHasHardKeyboard; }
+int hardKeyboardState() { return aHardKeyboardState; }
 
 static void setHardKeyboardState(int hardKeyboardState)
 {
@@ -240,20 +257,25 @@ static void setHardKeyboardState(int hardKeyboardState)
 		aHardKeyboardState = hardKeyboardState;
 		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 #ifdef CONFIG_INPUT
-		const Input::DeviceChange change = { 0, Input::Event::MAP_KEYBOARD, hardKeyboardIsPresent() ? Input::DeviceChange::SHOWN : Input::DeviceChange::HIDDEN };
+		const Input::DeviceChange change = { 0, Input::Event::MAP_KEYBOARD,
+				aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO ? Input::DeviceChange::SHOWN : Input::DeviceChange::HIDDEN };
 		Input::onInputDevChange(change);
 #endif
 	}
 }
 
-static void setupVibration(JNIEnv* jEnv)
+static void setKeyboardType(int keyboardType)
 {
-	if(!vibratorCls)
+	if(aKeyboardType != keyboardType)
 	{
-		//logMsg("setting up Vibrator class");
-		vibratorCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/os/Vibrator"));
-		jVibrate.setup(jEnv, vibratorCls, "vibrate", "(J)V");
+		logMsg("keyboard changed: %d", keyboardType);
+		aKeyboardType = keyboardType;
 	}
+}
+
+int keyboardType()
+{
+	return aKeyboardType;
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION

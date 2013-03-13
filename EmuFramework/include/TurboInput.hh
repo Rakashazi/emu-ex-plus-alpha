@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <util/memory/search.h>
+
 struct TurboInput
 {
 	struct Action
@@ -39,7 +41,7 @@ struct TurboInput
 
 	void addEvent(uint action)
 	{
-		Action *slot = mem_findFirstZeroValue(activeAction);
+		Action *slot = IG::mem_findFirstZeroValue(activeAction);
 		if(slot)
 		{
 			slot->action = action;

@@ -16,7 +16,7 @@
 * 
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include  <string.h>
@@ -39,6 +39,7 @@
 #include  "video.h"
 #include  "input.h"
 #include "driver.h"
+#include  "debug.h"
 
 
 #define VBlankON  (PPU[0]&0x80)   //Generate VBlank NMI
@@ -343,7 +344,7 @@ void (*PPU_hook)(uint32 A);
 uint8 vtoggle=0;
 uint8 XOffset=0;
 
-uint32 TempAddr=0,RefreshAddr=0;
+uint32 TempAddr=0,RefreshAddr=0,DummyRead=0;
 
 static int maxsprites=8;  
 
@@ -440,6 +441,19 @@ inline void FFCEUX_PPUWrite_Default(uint32 A, uint8 V) {
     }
 }
 
+volatile int rendercount, vromreadcount, undefinedvromcount, LogAddress = -1;
+unsigned char *cdloggervdata;
+unsigned int cdloggerVideoDataSize = 0;
+
+int GetCHRAddress(int A){
+	int result;
+	if((A > 0x1fff))return -1;
+	if(CHRsize[0] == 0)return -1;
+	result = &VPage[A>>10][A]-CHRptr[0];
+	if((result > (int)CHRsize[0]) || (result < 0))return -1;
+	else return result;
+}
+
 uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
 	uint32 tmp = A;
 
@@ -447,6 +461,19 @@ uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
 
 	if(tmp<0x2000)
 	{
+		if(debug_loggingCD)
+		{
+			int addr = GetCHRAddress(tmp);
+			if(addr != -1)
+			{
+				if(!(cdloggervdata[addr] & 1))
+				{
+					cdloggervdata[addr] |= 1;
+					if(!(cdloggervdata[addr] & 2))undefinedvromcount--;
+					rendercount++;
+				}
+			}
+		}
 		return VPage[tmp>>10][tmp];
 	}
 	else if (tmp < 0x3F00)
@@ -748,6 +775,21 @@ static DECLFR(A2007)
 	uint8 ret;
 	uint32 tmp=RefreshAddr&0x3FFF;
 
+	if(debug_loggingCD)
+	{
+		if(!DummyRead && (LogAddress != -1))
+		{
+			if(!(cdloggervdata[LogAddress] & 2))
+			{
+				cdloggervdata[LogAddress] |= 2;
+				if(!(cdloggervdata[LogAddress] & 1))undefinedvromcount--;
+				vromreadcount++;
+			}
+		}
+		else
+			DummyRead = 0;
+	}
+
 	if(newppu) {
         ret = VRAMBuffer;
 		RefreshAddr = ppur.get_2007access() & 0x3FFF;
@@ -771,8 +813,11 @@ static DECLFR(A2007)
                 ret &= 0x30;
             VRAMBuffer = CALL_PPUREAD(RefreshAddr - 0x1000);
         }
-        else
-		    VRAMBuffer = CALL_PPUREAD(RefreshAddr);
+        else {
+        	if(debug_loggingCD)
+        		LogAddress = GetCHRAddress(RefreshAddr);
+        	VRAMBuffer = CALL_PPUREAD(RefreshAddr);
+        }
 		ppur.increment2007(INC32!=0);
 		RefreshAddr = ppur.get_2007access();
         return ret;
@@ -789,6 +834,8 @@ static DECLFR(A2007)
 			PPUGenLatch=VRAMBuffer;
 			if(tmp<0x2000)
 			{
+				if(debug_loggingCD)
+					LogAddress = GetCHRAddress(tmp);
 				VRAMBuffer=VPage[tmp>>10][tmp];
 			}
 			else if (tmp < 0x3F00)
@@ -954,6 +1001,7 @@ static DECLFW(B2006)
 		TempAddr|=V;
 
 		RefreshAddr=TempAddr;
+		DummyRead=1;
 		if(PPU_hook)
 			PPU_hook(RefreshAddr);
 		//printf("%d, %04x\n",scanline,RefreshAddr);
@@ -1669,7 +1717,7 @@ static void RefreshSprites(void)
 	spork=0;
 	if(!numsprites) return;
 
-	memset(sprlinebuf,0x80,256);
+	FCEU_dwmemset(sprlinebuf,0x80808080,256);
 	numsprites--;
 	spr = (SPRB*)SPRBUF.b+numsprites;
 

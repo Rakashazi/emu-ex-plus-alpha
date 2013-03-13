@@ -2,8 +2,9 @@
 
 #include <util/collection/DLList.hh>
 #include <util/bits.h>
-#include <util/basicString.h>
+#include <EmuSystem.hh>
 
+// Needs to be a #define because it get strigified in Cheats.cc
 #define MAX_CHEAT_NAME_CHARS 127
 
 struct MdCheat
@@ -48,7 +49,6 @@ struct MdCheat
 	}
 };
 
-uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);
 void applyCheats();
 void clearCheats();
 void updateCheats(); // clears and applies cheats
@@ -58,8 +58,7 @@ void readCheatFile();
 void RAMCheatUpdate();
 void ROMCheatUpdate();
 
-static const uint maxCheats = 100;
-extern StaticDLList<MdCheat, maxCheats> cheatList;
-extern StaticDLList<MdCheat*, maxCheats> romCheatList;
-extern StaticDLList<MdCheat*, maxCheats> ramCheatList;
+extern StaticDLList<MdCheat, EmuCheats::MAX> cheatList;
+extern StaticDLList<MdCheat*, EmuCheats::MAX> romCheatList;
+extern StaticDLList<MdCheat*, EmuCheats::MAX> ramCheatList;
 extern bool cheatsModified;

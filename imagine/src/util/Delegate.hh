@@ -27,21 +27,21 @@ class Delegate<R(ARGS...)>
   	}
   };
 
-  // turns a free function into our internal function stub
-  template <R (*Function)(ARGS...)>
-  static inline R FunctionStub(InstancePtr, ARGS... args)
-  {
-    // we don't need the instance pointer because we're dealing with free functions
-    return (Function)(args...);
-  }
+	// turns a free function into our internal function stub
+	template <R (*Function)(ARGS...)>
+	static inline R FunctionStub(InstancePtr, ARGS... args)
+	{
+		// we don't need the instance pointer because we're dealing with free functions
+		return (Function)(args...);
+	}
 
-  // turns a member function into our internal function stub
-  template <class C, R (C::*Function)(ARGS...)>
-  static inline R ClassMethodStub(InstancePtr instance, ARGS... args)
-  {
-    // cast the instance pointer back into the original class instance
-    return (static_cast<C*>(instance)->*Function)(args...);
-  }
+	// turns a member function into our internal function stub
+	template <class C, R (C::*Function)(ARGS...)>
+	static inline R ClassMethodStub(InstancePtr instance, ARGS... args)
+	{
+		// cast the instance pointer back into the original class instance
+		return (static_cast<C*>(instance)->*Function)(args...);
+	}
 
 public:
   constexpr Delegate() { }
@@ -59,32 +59,24 @@ public:
   	return Delegate(instance, &ClassMethodStub<C, Function>);
   }
 
-  /// Binds a free function
-  template <R (*Function)(ARGS...)>
-  void bind(void)
-  {
-  	callback.inst = nullptr;
-  	callback.func = &FunctionStub<Function>;
-  }
+	/// Binds a free function
+	template <R (*Function)(ARGS...)>
+	void bind(void) { *this = create<Function>(); }
 
-  /// Binds a class method
-  template <class C, R (C::*Function)(ARGS...)>
-  void bind(C* instance)
-  {
-  	callback.inst = instance;
-    callback.func = &ClassMethodStub<C, Function>;
-  }
+	/// Binds a class method
+	template <class C, R (C::*Function)(ARGS...)>
+	void bind(C* instance) { *this = create<C, Function>(instance); }
 
 	/// Invokes the delegate
 	R invoke(ARGS... args) const
 	{
-		assert(callback.func != nullptr);
+		assert(callback.func);
 		return callback.func(callback.inst, args...);
 	}
 
 	R invokeSafe(ARGS... args) const
 	{
-		if(callback.func != nullptr)
+		if(callback.func)
 		{
 			return callback.func(callback.inst, args...);
 		}

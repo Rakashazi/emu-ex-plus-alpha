@@ -3,10 +3,16 @@ include $(currPath)/gcc-link.mk
 include $(currPath)/gcc-common.mk
 
 BASE_CXXFLAGS += -std=gnu++0x
-WARNINGS_CFLAGS += -Wno-unused-parameter -Wno-attributes
+WARNINGS_CFLAGS += -Wno-attributes
 
 ifndef RELEASE
  COMPILE_FLAGS += -g
+ ifneq ($(ENV), ios)
+  COMPILE_FLAGS += -fsanitize=address -fno-omit-frame-pointer
+  ifndef O_LTO
+   LDFLAGS += -fsanitize=address
+  endif
+ endif
 endif
 
 ifdef O_LTO

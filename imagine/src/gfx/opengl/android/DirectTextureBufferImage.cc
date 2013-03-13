@@ -144,11 +144,10 @@ bool DirectTextureBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, 
 		goto CLEANUP;
 	}
 
-	clearGLError();
+	handleGLErrors();
 	glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
-	glErrorCase(err)
+	if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glEGLImageTargetTexture2DOES", err); }))
 	{
-		logErr("%s in glEGLImageTargetTexture2DOES", glErrorToString(err));
 		if(errorStr) *errorStr = "glEGLImageTargetTexture2DOES failed";
 		goto CLEANUP;
 	}

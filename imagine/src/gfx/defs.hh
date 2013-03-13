@@ -9,6 +9,10 @@
 	#include <gfx/opengl/gfx-globals.hh>
 #endif
 
+#ifndef CONFIG_BASE_ANDROID
+	#define CONFIG_GFX_SOFT_ORIENTATION 1
+#endif
+
 typedef TransformCoordinate GC;
 typedef TransformCoordinate Coordinate;
 typedef TextureCoordinate GTexC;

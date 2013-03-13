@@ -15,14 +15,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include        <string.h>
 #include        <stdlib.h>
 #include        "share.h"
 
-#define side side_powerpad
+
 static char side;
 static uint32 pprsb[2];
 static uint32 pprdata[2];
@@ -83,4 +83,3 @@ INPUTC *FCEU_InitPowerpadB(int w)
  side='B';
  return(FCEU_InitPowerpad(w));
 }
-#undef side

@@ -36,7 +36,7 @@ public:
 	void deinit();
 	void place();
 	void inputEvent(const Input::Event &e);
-	void draw();
+	void draw(Gfx::FrameTimeBase frameTime);
 };
 
 class InputManagerView : public BaseMenuView

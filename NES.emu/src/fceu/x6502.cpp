@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <string.h>
@@ -405,7 +405,8 @@ void X6502_Init(void)
 
 void X6502_Power(void)
 {
- _count=_tcount=_IRQlow=_PC=_A=X.X=_Y=X.S=X.P=_PI=_DB=_jammed=0;
+ _count=_tcount=_IRQlow=_PC=_A=X.X=_Y=X.P=_PI=_DB=_jammed=0;
+ X.S=0xFD;
  timestamp=0;
  X6502_Reset();
 }

@@ -2,7 +2,7 @@
 
 #include <config/env.hh>
 #include <util/cLang.h>
-#include "glIncludes.h"
+#include "utils.h"
 
 #ifdef CONFIG_BASE_ANDROID
 	#include <base/android/public.hh>
@@ -29,7 +29,11 @@ class GLStateCache
 public:
 	constexpr GLStateCache() { }
 	
+#ifdef NDEBUG
 	static constexpr bool verifyState = 0;
+#else
+	bool verifyState = 0;
+#endif
 
 	GLenum matrixModeState = GL_MODELVIEW;
 	void matrixMode(GLenum mode)
@@ -37,6 +41,7 @@ public:
 		if(mode != matrixModeState)
 		{
 			glMatrixMode(mode);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glMatrixMode", err); });
 			matrixModeState = mode;
 		}
 	}
@@ -71,6 +76,7 @@ public:
 		{
 			//logMsg("binding texture %d to target %d", texture, target);
 			glBindTexture(target, texture);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glBindTexture", err); });
 			*state = texture;
 		}
 
@@ -82,10 +88,14 @@ public:
 		if(verifyState)
 		{
 			GLint realTexture = 0;
+			handleGLErrors();
 			glGetIntegerv(textureTargetToGet(target), &realTexture);
-			if(texture != (GLuint)realTexture)
+			if(!handleGLErrors([](GLenum, const char *err) { /*logWarn("%s in glGetIntegerv while verifying state", err);*/ }))
 			{
-				bug_exit("out of sync, expected %u but got %u", texture, realTexture);
+				if(texture != (GLuint)realTexture)
+				{
+					bug_exit("out of sync, expected %u but got %u, target %d", texture, realTexture, target);
+				}
 			}
 		}
 	}
@@ -96,7 +106,7 @@ public:
 		// If a texture that is currently bound is deleted, the binding reverts to 0 (the default texture)
 		iterateTimes(n, i)
 		{
-			//logMsg("deleting texture %d", textures[i]);
+			//logMsg("deleting texture %u", textures[i]);
 			if(textures[i] == bindTextureState.GL_TEXTURE_2D_state)
 				bindTextureState.GL_TEXTURE_2D_state = 0;
 			#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
@@ -117,6 +127,7 @@ public:
 		if(!(sfactor == blendFuncSfactor && dfactor == blendFuncDfactor))
 		{
 			glBlendFunc(sfactor, dfactor);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glBlendFunc", err); });
 			blendFuncSfactor = sfactor;
 			blendFuncDfactor = dfactor;
 		}
@@ -128,6 +139,7 @@ public:
 		if(mode != blendEquationState)
 		{
 			glBlendEquation(mode);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glBlendEquation", err); });
 			blendEquationState = mode;
 		}
 	}
@@ -184,6 +196,7 @@ public:
 			// unmanaged cap
 			logMsg("glEnable unmanaged %d", (int)cap);
 			glEnable(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glEnable", err); });
 			return;
 		}
 
@@ -192,13 +205,21 @@ public:
 			// not enabled
 			//logMsg("glEnable %d", (int)cap);
 			glEnable(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glEnable", err); });
 			*state = 1;
 		}
 
 		if(verifyState)
 		{
-			if(!glIsEnabled(cap))
-				bug_exit("state %d out of sync", cap);
+			handleGLErrors();
+			auto enabled = glIsEnabled(cap);
+			if(!handleGLErrors([](GLenum, const char *err) { /*logWarn("%s in glIsEnabled while verifying state", err);*/ }))
+			{
+				if(!enabled)
+				{
+						bug_exit("state %d out of sync", cap);
+				}
+			}
 		}
 	}
 
@@ -210,6 +231,7 @@ public:
 			// unmanaged cap
 			logMsg("glDisable unmanaged %d", (int)cap);
 			glDisable(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDisable", err); });
 			return;
 		}
 
@@ -218,13 +240,21 @@ public:
 			// is enabled
 			//logMsg("glDisable %d", (int)cap);
 			glDisable(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDisable", err); });
 			*state = 0;
 		}
 
 		if(verifyState)
 		{
-			if(glIsEnabled(cap))
-				bug_exit("state %d out of sync", cap);
+			handleGLErrors();
+			auto enabled = glIsEnabled(cap);
+			if(!handleGLErrors([](GLenum, const char *err) { /*logWarn("%s in glIsEnabled while verifying state", err);*/ }))
+			{
+				if(enabled)
+				{
+						bug_exit("state %d out of sync", cap);
+				}
+			}
 		}
 	}
 
@@ -272,6 +302,7 @@ public:
 			// unmanaged cap
 			logMsg("glEnableClientState unmanaged %d", (int)cap);
 			glEnableClientState(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glEnableClientState", err); });
 			return;
 		}
 
@@ -279,13 +310,21 @@ public:
 		{
 			//logMsg("glEnableClientState %d", (int)cap);
 			glEnableClientState(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glEnableClientState", err); });
 			*state = 1;
 		}
 
 		if(verifyState)
 		{
-			if(!glIsEnabled(cap))
-				bug_exit("state %d out of sync", cap);
+			handleGLErrors();
+			auto enabled = glIsEnabled(cap);
+			if(!handleGLErrors([](GLenum, const char *err) { logWarn("%s in glIsEnabled while verifying state", err); }))
+			{
+				if(!enabled)
+				{
+						bug_exit("state %d out of sync", cap);
+				}
+			}
 		}
 	}
 
@@ -297,6 +336,7 @@ public:
 			// unmanaged cap
 			logMsg("glDisableClientState unmanaged %d", (int)cap);
 			glDisableClientState(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDisableClientState", err); });
 			return;
 		}
 
@@ -304,13 +344,21 @@ public:
 		{
 			//logMsg("glDisableClientState %d", (int)cap);
 			glDisableClientState(cap);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDisableClientState", err); });
 			*state = 0;
 		}
 
 		if(verifyState)
 		{
-			if(glIsEnabled(cap))
-				bug_exit("state %d out of sync", cap);
+			handleGLErrors();
+			auto enabled = glIsEnabled(cap);
+			if(!handleGLErrors([](GLenum, const char *err) { logWarn("%s in glIsEnabled while verifying state", err); }))
+			{
+				if(enabled)
+				{
+						bug_exit("state %d out of sync", cap);
+				}
+			}
 		}
 	}
 
@@ -326,11 +374,13 @@ public:
 			{
 				GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state = param;
 				glTexEnvi(target, pname, param);
+				handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexEnvi", err); });
 			}
 		}
 		else // cases we don't handle
 		{
 			glTexEnvi(target, pname, param);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexEnvi", err); });
 		}
 	}
 
@@ -343,11 +393,13 @@ public:
 			{
 				memcpy(GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, params, sizeof(GLfloat)*4);
 				glTexEnvfv(target, pname, params);
+				handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexEnvfv", err); });
 			}
 		}
 		else // cases we don't handle
 		{
 			glTexEnvfv(target, pname, params);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexEnvfv", err); });
 		}
 	}
 
@@ -399,6 +451,7 @@ public:
 		if(applyGenericPointerState(&texCoordPointerState, size, type, stride, pointer))
 		{
 			glTexCoordPointer(size, type, stride, pointer);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexCoordPointer", err); });
 		}
 		else
 		{
@@ -416,6 +469,7 @@ public:
 		if(applyGenericPointerState(&colorPointerState, size, type, stride, pointer))
 		{
 			glColorPointer(size, type, stride, pointer);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glColorPointer", err); });
 		}
 		else
 		{
@@ -433,6 +487,7 @@ public:
 		if(applyGenericPointerState(&vertexPointerState, size, type, stride, pointer))
 		{
 			glVertexPointer(size, type, stride, pointer);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glVertexPointer", err); });
 		}
 		else
 		{
@@ -471,6 +526,7 @@ public:
 			// unmanaged param
 			logMsg("glPixelStorei unmanaged %d", (int)pname);
 			glPixelStorei(pname, param);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glPixelStorei", err); });
 			return;
 		}
 
@@ -478,6 +534,7 @@ public:
 		{
 			//logMsg("glPixelStorei %d set to %d", (int)pname, param);
 			glPixelStorei(pname, param);
+			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glPixelStorei", err); });
 			*state = param;
 			#ifndef CONFIG_GFX_OPENGL_ES
 			if(pname == GL_UNPACK_ROW_LENGTH && param != 0)

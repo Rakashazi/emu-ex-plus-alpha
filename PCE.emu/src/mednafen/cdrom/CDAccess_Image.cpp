@@ -282,6 +282,7 @@ void CDAccess_Image::ImageOpenBinary(const char *path, bool isIso)
 	total_sectors = 0;
 
 	auto &track = Tracks[1];
+	memset(&track, 0, sizeof(track));
 	if(nullptr == (track.fp = IoSys::open(path)))
 	{
 		ErrnoHolder ene(errno);

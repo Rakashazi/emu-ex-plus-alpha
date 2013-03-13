@@ -20,10 +20,6 @@ DragPointer *dragState(int p)
 	return &m[p].dragState;
 }
 
-int cursorX(int p) { return m[p].s.x; }
-int cursorY(int p) { return m[p].s.y; }
-int cursorIsInView(int p) { return m[p].s.inWin; }
-
 #if defined(IPHONE_VKEYBOARD)
 
 static CGRect toCGRect(const Rect2<int> &rect)
@@ -133,12 +129,14 @@ void finishSysTextInput()
 
 bool Device::anyTypeBitsPresent(uint typeBits)
 {
+	#ifdef CONFIG_INPUT_ICADE
 	if(typeBits & TYPE_BIT_GAMEPAD)
 	{
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers
 		return devList.first()->iCadeMode_ || devList.size != 1;
 	}
+	#endif
 	// no other device types supported
 	return 0;
 }

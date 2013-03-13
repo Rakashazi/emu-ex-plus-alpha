@@ -209,11 +209,11 @@ int BluezBluetoothSocket::readPendingData(int events)
 	else if(events & Base::POLLEV_IN)
 	{
 		uchar buff[48];
-		int bytesToRead = fd_bytesReadable(fd);
-		//logMsg("%d bytes ready on socket %d", bytesToRead, fd);
-		do
+		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(fd), fd);
+		while(fd_bytesReadable(fd))
 		{
-			auto len = read(fd, buff, IG::min((size_t)bytesToRead, sizeof buff));
+			//auto len = read(fd, buff, IG::min((size_t)bytesToRead, sizeof buff));
+			auto len = read(fd, buff, sizeof buff);
 			if(unlikely(len <= 0))
 			{
 				logMsg("error %d reading packet from socket %d", len == -1 ? errno : 0, fd);
@@ -221,12 +221,9 @@ int BluezBluetoothSocket::readPendingData(int events)
 				return 0;
 			}
 			//logMsg("read %d bytes from socket %d", len, fd);
-			bytesToRead -= len;
 			if(!onDataEvent.invoke(buff, len))
 				break; // socket was closed
-		} while(bytesToRead > 0);
-		/*bytesToRead = fd_bytesReadable(fd);
-		logMsg("%d bytes left on socket %d", bytesToRead, fd);*/
+		}
 	}
 	else if(events & Base::POLLEV_OUT)
 	{

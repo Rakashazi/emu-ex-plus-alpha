@@ -18,9 +18,10 @@ CallResult setOutputVideoMode(const Base::Window &win)
 {
 	logMsg("running init");
 
-	#ifndef CHECK_GL_ERRORS
-		logMsg("error checking off");
-	#endif
+	if(checkGLErrorsVerbose)
+		logMsg("using verbose error checks");
+	else if(checkGLErrors)
+		logMsg("using error checks");
 
 	if(animateOrientationChange)
 	{
@@ -139,24 +140,27 @@ static void setupAndroidOGLExtensions(const char *extensions, const char *render
 			directTextureConf.checkForEGLImageKHR(extensions, rendererName);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
-		if(surfaceTextureConf.isSupported() && !strstr(extensions, "GL_OES_EGL_image_external"))
+		if(surfaceTextureConf.isSupported())
 		{
-			logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
-			surfaceTextureConf.deinit();
-		}
-		if(surfaceTextureConf.use && strstr(rendererName, "Adreno"))
-		{
-			if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
+			if(!strstr(extensions, "GL_OES_EGL_image_external"))
 			{
-				logWarn("buggy SurfaceTexture implementation, disabling by default");
-				surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
+				logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
+				surfaceTextureConf.deinit();
 			}
+			else if(strstr(rendererName, "Adreno"))
+			{
+				if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
+				{
+					logWarn("buggy SurfaceTexture implementation, disabling by default");
+					surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
+				}
 
-			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
-			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
-			// This hack will fix-up the GL state cache manually when that happens.
-			logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-			surfaceTextureConf.texture2dBindingHack = 1;
+				// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
+				// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
+				// This hack will fix-up the GL state cache manually when that happens.
+				logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+				surfaceTextureConf.texture2dBindingHack = 1;
+			}
 		}
 	#endif
 }

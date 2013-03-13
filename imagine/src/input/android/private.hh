@@ -1,6 +1,7 @@
 #pragma once
 
 #include <jni.h>
+#include <android/input.h>
 
 namespace Input
 {
@@ -17,5 +18,8 @@ bool dlLoadAndroidFuncs(void *libandroid);
 void textInputEndedMsg(const char* str, jstring jStr);
 
 void rescanDevices(bool firstRun = 0);
+
+int32_t onInputEvent(AInputEvent* event);
+extern bool sendInputToIME;
 
 }

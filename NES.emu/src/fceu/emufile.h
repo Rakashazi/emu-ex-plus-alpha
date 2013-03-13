@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include <vector>
-//#include <algorithm>
+#include <algorithm>
 #include <string>
 #include <stdarg.h>
 
@@ -247,6 +247,12 @@ public:
 
 	virtual void fflush() {}
 
+	void set_len(s32 length)
+	{
+		len = length;
+		if(pos > length)
+			pos = length;
+	}
 	void trim()
 	{
 		vec->resize(len);
@@ -262,14 +268,7 @@ protected:
 	char mode[16];
 
 private:
-	void open(const char* fname, const char* mode)
-	{
-		fp = fopen(fname,mode);
-		if(!fp)
-			failbit = true;
-		this->fname = fname;
-		strcpy(this->mode,mode);
-	}
+	void open(const char* fname, const char* mode);
 
 public:
 

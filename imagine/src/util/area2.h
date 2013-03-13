@@ -145,8 +145,8 @@ public:
 		assert(xSize != (GC)0 || ySize != (GC)0); // area size should be initialized beforehand
 
 		// adjust to the requested origin on the screen
-		xPos_ = C2DO.adjustX(x, Gfx::proj.wHalf, Gfx::proj.w, screenOrigin);
-		yPos_ = C2DO.adjustY(y, Gfx::proj.hHalf, Gfx::proj.h, screenOrigin);
+		xPos_ = C2DO.adjustX(x, Gfx::proj.wHalf(), Gfx::proj.w, screenOrigin);
+		yPos_ = C2DO.adjustY(y, Gfx::proj.hHalf(), Gfx::proj.h, screenOrigin);
 		//logMsg("adjusting for screen 2DO %f,%f", CtoF(a->xPos), CtoF(a->yPos));
 
 		// adjust from the area position origin to the origin used for internal representation purposes

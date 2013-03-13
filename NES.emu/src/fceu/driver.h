@@ -97,11 +97,11 @@ void FCEUI_SetRenderPlanes(bool sprites, bool bg);
 void FCEUI_GetRenderPlanes(bool& sprites, bool& bg);
 
 //name=path and file to load.  returns null if it failed
-FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
+FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent = false);
 
 //same as FCEUI_LoadGame, except that it can load from a tempfile. 
 //name is the logical path to open; archiveFilename is the archive which contains name
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
+FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silent = false);
 
 //general purpose emulator initialization. returns true if successful
 bool FCEUI_Initialize();
@@ -212,7 +212,7 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 #define FCEUIOD_MOVIES  6	//.fm2 files
 #define FCEUIOD_MEMW    7	//memory watch fiels
 #define FCEUIOD_BBOT    8	//basicbot, obsolete
-#define FCEUIOD_MACRO   9	//macro files - tasedit, currently not implemented
+#define FCEUIOD_MACRO   9	//macro files - old TASEdit v0.1 paradigm, not implemented, probably obsolete
 #define FCEUIOD_INPUT   10	//input presets
 #define FCEUIOD_LUA     11	//lua scripts
 #define FCEUIOD_AVI		12	//default file for avi output
@@ -313,10 +313,10 @@ void FCEUD_CmdOpen(void);
 //new merge-era driver routines here:
 
 ///signals that the cpu core hit a breakpoint. this function should not return until the core is ready for the next cycle
-void FCEUD_DebugBreakpoint();
+void FCEUD_DebugBreakpoint(int bp_num);
 
 ///the driver should log the current instruction, if it wants (we should move the code in the win driver that does this to the shared area)
-void FCEUD_TraceInstruction();
+void FCEUD_TraceInstruction(uint8 *opcode, int size);
 
 ///the driver might should update its NTView (only used if debugging support is compiled in)
 void FCEUD_UpdateNTView(int scanline, bool drawall);
@@ -336,8 +336,8 @@ enum EFCEUI
 	FCEUI_NEXTSAVESTATE,FCEUI_PREVIOUSSAVESTATE,FCEUI_VIEWSLOTS,
 	FCEUI_STOPMOVIE, FCEUI_RECORDMOVIE, FCEUI_PLAYMOVIE,
 	FCEUI_OPENGAME, FCEUI_CLOSEGAME,
-	FCEUI_TASEDIT,
-	FCEUI_RESET, FCEUI_POWER,FCEUI_PLAYFROMBEGINNING
+	FCEUI_TASEDITOR,
+	FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
 };
 
 //checks whether an EFCEUI is valid right now

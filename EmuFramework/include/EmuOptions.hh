@@ -89,7 +89,7 @@ extern Option2DOrigin optionTouchCtrlFFPos;
 
 extern Byte1Option optionFrameSkip;
 
-static const uint optionImageZoomIntegerOnly = 255;
+static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 extern Byte1Option optionImageZoom;
 
 extern OptionDPI optionDPI;

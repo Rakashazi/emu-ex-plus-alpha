@@ -16,6 +16,7 @@
 #define thisModuleName "logger:stdio"
 #include <engine-globals.h>
 #include <base/Base.hh>
+#include <fs/sys.hh>
 #include <logger/interface.h>
 
 #include <stdarg.h>
@@ -34,7 +35,7 @@ uint loggerVerbosity = loggerMaxVerbosity;
 static const bool useExternalLogFile = 0;
 static FILE *logExternalFile = nullptr;
 
-static const char *externalLogPath()
+static void printExternalLogPath(FsSys::cPath &path)
 {
 	#ifdef CONFIG_BASE_IOS
 		const char *prefix = "/var/mobile";
@@ -45,21 +46,17 @@ static const char *externalLogPath()
 	#else
 		const char *prefix = ".";
 	#endif
-
-	static char path[128] = "";
-	if(!strlen(path))
-	{
-		sprintf(path, "%s/imagine.log", prefix);
-	}
-	return path;
+	string_printf(path, "%s/imagine.log", prefix);
 }
 
 CallResult logger_init()
 {
 	if(useExternalLogFile)
 	{
-		logMsg("external log file: %s", externalLogPath());
-		logExternalFile = fopen(externalLogPath(), "wb");
+		FsSys::cPath path;
+		printExternalLogPath(path);
+		logMsg("external log file: %s", path);
+		logExternalFile = fopen(path, "wb");
 		if(!logExternalFile)
 		{
 			return IO_ERROR;
@@ -107,11 +104,11 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 		if(strlen(logLineBuffer))
 		{
 			printToLogLineBuffer(msg, args);
-			Base::nsLog("%s", logLineBuffer);
+			Base::nsLog(logLineBuffer);
 			logLineBuffer[0] = 0;
 		}
 		else
-			Base::nsLog(msg, args);
+			Base::nsLogv(msg, args);
 	#else
 		vfprintf(stderr, msg, args);
 	#endif

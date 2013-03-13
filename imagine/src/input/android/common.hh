@@ -2,7 +2,6 @@
 
 #include <base/android/private.hh>
 #include <input/DragPointer.hh>
-
 #ifdef CONFIG_INPUT_ICADE
 #include <input/common/iCade.hh>
 #endif
@@ -24,10 +23,6 @@ DragPointer *dragState(int p)
 	return &m[p].dragState;
 }
 
-int cursorX(int p) { assert(p < maxCursors); return m[p].s.x; }
-int cursorY(int p) { assert(p < maxCursors); return m[p].s.y; }
-int cursorIsInView(int p) { assert(p < maxCursors); return m[p].s.inWin; }
-
 static const char *androidEventEnumToStr(uint e)
 {
 	switch(e)
@@ -42,15 +37,17 @@ static const char *androidEventEnumToStr(uint e)
 	return "Unknown";
 }
 
-static void processTouch(uint idx, uint action, TouchState &p)
+static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos)
 {
-	p.dragState.pointerEvent(Pointer::LBUTTON, action, p.s.x, p.s.y);
-	onInputEvent(Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, p.s.x, p.s.y, nullptr));
+	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
+	p.dragState.pointerEvent(Pointer::LBUTTON, action, pos);
+	onInputEvent(Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, nullptr));
 }
 
 static bool handleTouchEvent(int action, int x, int y, int pid)
 {
 	//logMsg("action: %s", androidEventEnumToStr(action));
+	auto pos = pointerPos(x, y);
 	switch(action)
 	{
 		case AMOTION_EVENT_ACTION_DOWN:
@@ -62,9 +59,8 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 				{
 					auto &p = m[i];
 					p.id = pid;
-					pointerPos(x, y, &p.s.x, &p.s.y);
 					p.s.inWin = 1;
-					processTouch(i, PUSHED, p);
+					processTouch(i, PUSHED, p, pos);
 					break;
 				}
 			}
@@ -75,9 +71,11 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 				if(p->s.inWin)
 				{
 					//logMsg("touch up for %d from gesture end", p_i);
+					int x = p->dragState.x;
+					int y = p->dragState.y;
 					p->id = -1;
 					p->s.inWin = 0;
-					processTouch(p_i, RELEASED, *p);
+					processTouch(p_i, RELEASED, *p, {x, y});
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
@@ -88,9 +86,8 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 				{
 					auto &p = m[i];
 					p.id = -1;
-					pointerPos(x, y, &p.s.x, &p.s.y);
 					p.s.inWin = 0;
-					processTouch(i, RELEASED, p);
+					processTouch(i, RELEASED, p, pos);
 					break;
 				}
 			}
@@ -102,8 +99,7 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 				if(m[i].id == pid)
 				{
 					auto &p = m[i];
-					pointerPos(x, y, &p.s.x, &p.s.y);
-					processTouch(i, MOVED, p);
+					processTouch(i, MOVED, p, pos);
 					break;
 				}
 			}
@@ -112,7 +108,8 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 	/*logMsg("pointer state:");
 	iterateTimes(sizeofArray(m), i)
 	{
-		logMsg("id: %d x: %d y: %d inWin: %d", m[i].id, m[i].s.x, m[i].s.y, m[i].s.inWin);
+		if(m[i].id != -1)
+			logMsg("id: %d x: %d y: %d inWin: %d", m[i].id, m[i].dragState.x, m[i].dragState.y, m[i].s.inWin);
 	}*/
 
 	return 1;
@@ -120,12 +117,12 @@ static bool handleTouchEvent(int action, int x, int y, int pid)
 
 static void handleTrackballEvent(int action, float x, float y)
 {
-	int iX = x * 1000., iY = y * 1000., xTrans, yTrans;
-	pointerPos(iX, iY, &xTrans, &yTrans);
+	int iX = x * 1000., iY = y * 1000.;
+	auto pos = pointerPos(iX, iY);
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
-		onInputEvent(Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, xTrans, yTrans, nullptr));
+		onInputEvent(Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, nullptr));
 	else
 		onInputEvent(Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, nullptr));
 }
@@ -214,16 +211,40 @@ const Rect2<int> &sysTextInputRect()
 
 bool Device::anyTypeBitsPresent(uint typeBits)
 {
-	if((typeBits & TYPE_BIT_KEYBOARD) && Base::hardKeyboardIsPresent())
+	if(typeBits & TYPE_BIT_KEYBOARD)
 	{
-		logMsg("hard keyboard present");
+		if(Base::keyboardType() == ACONFIGURATION_KEYBOARD_QWERTY)
+		{
+			if(Base::hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_YES || Base::hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_SOFT)
+			{
+				logMsg("keyboard present, but not in use");
+			}
+			else
+			{
+				logMsg("keyboard present");
+				return 1;
+			}
+		}
+		unsetBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
+	}
+
+	#ifdef __ARM_ARCH_7A__
+	if(Base::runningDeviceType() == Base::DEV_TYPE_XPERIA_PLAY &&
+		(typeBits & TYPE_BIT_GAMEPAD) && Base::hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
+	{
+		logMsg("Xperia-play gamepad in use");
 		return 1;
 	}
+	#endif
 
 	forEachInDLList(&Input::devList, e)
 	{
-		if(e.typeBits() & typeBits)
+		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
+				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
+		{
+			logMsg("device idx %d has bits 0x%X", e.idx, typeBits);
 			return 1;
+		}
 	}
 	return 0;
 }

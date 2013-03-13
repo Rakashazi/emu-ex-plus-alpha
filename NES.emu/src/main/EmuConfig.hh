@@ -7,10 +7,17 @@
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;;
 static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
 #define systemAspectRatioString "4:3"
+
+namespace EmuCheats
+{
+
+static const uint MAX = 254;
+static const uint MAX_CODE_TYPES = 2;
+
+}
 
 namespace EmuControls
 {

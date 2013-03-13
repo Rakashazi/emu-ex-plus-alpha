@@ -19,7 +19,6 @@ extern Mixer* mixer;
 extern Machine *machine;
 static HdType hdType[MAX_HD_COUNT] = { (HdType)0 };
 RomType currentRomType[2] = { 0 };
-extern char machineBasePath[];
 static BoardTimer* fdcTimer = nullptr;
 
 Mixer* boardGetMixer()
@@ -390,7 +389,7 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
     {
     	logMsg("loading ROM from Machine path");
 		strcpy(wDir, FsSys::workDir());
-		FsSys::chdir(machineBasePath);
+		FsSys::chdir(machineBasePathStr());
     }
 
     bool success;

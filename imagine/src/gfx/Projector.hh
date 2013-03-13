@@ -9,14 +9,26 @@ namespace Gfx
 {
 struct Projector
 {
-	GC wHalf, hHalf,
-		w, h,
-		focal,
-		xToPixScale, yToPixScale, // screen -> projection space at focal z
-		pixToXScale, pixToYScale, // projection -> screen space at focal z
-		mmToXScale, mmToYScale,   // MM of screen -> projection space at focal z
-		aspectRatio;
+	Rect2<GC> rect;
+	GC w = 0, h = 0,
+		focal = 0,
+		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
+		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
+		mmToXScale = 0, mmToYScale = 0,   // MM of screen -> projection space at focal z
+		aspectRatio = 0;
 	Matrix4x4<GC> mat, matInv;
+
+	constexpr Projector() { }
+
+	GC wHalf() const
+	{
+		return rect.x2;
+	}
+
+	GC hHalf() const
+	{
+		return rect.y;
+	}
 
 	void updateMMSize()
 	{
@@ -39,8 +51,10 @@ struct Projector
 		w = x2 - x, h = y2 - y;
 		/*if(isSideways)
 			IG::swap(w, h);*/
-		wHalf = w/2.;
-		hHalf = h/2.;
+		rect.x = -w/2.;
+		rect.y = h/2.;
+		rect.x2 = w/2.;
+		rect.y2 = -h/2.;
 		pixToXScale = w / (GC)viewPixelWidth();
 		pixToYScale = h / (GC)viewPixelHeight();
 		xToPixScale = (GC)viewPixelWidth() / w;
@@ -146,13 +160,13 @@ static GC iYSize(int y)
 
 static GC iXPos(int x)
 {
-	return iXSize(x) - proj.wHalf;
+	return iXSize(x) - proj.wHalf();
 	//return x - GC(viewPixelWidth())/GC(2);
 }
 
 static GC iYPos(int y)
 {
-	return -iYSize(y) + proj.hHalf;
+	return -iYSize(y) + proj.hHalf();
 	//return -y + GC(viewPixelHeight())/GC(2);
 }
 
@@ -174,17 +188,18 @@ static int toIYSize(GC y)
 static int toIXPos(GC x)
 {
 	//logMsg("unproject x %f", x);
-	return toIXSize(x + proj.wHalf);
+	return toIXSize(x + proj.wHalf());
 	//return x + GC(viewPixelWidth())/GC(2);
 }
 
 static int toIYPos(GC y)
 {
 	//logMsg("unproject y %f", y);
-	return toIYSize(-(y - proj.hHalf));
+	return toIYSize(-(y - proj.hHalf()));
 	//return -(y - GC(viewPixelHeight())/GC(2));
 }
 
+// TODO: remove
 static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
 {
 	Rect2<GC> r;
@@ -195,9 +210,30 @@ static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
 	return r;
 }
 
+// TODO: remove
 static Rect2<GC> unProjectRect(const Rect2<int> &src)
 {
 	return unProjectRect(src.x, src.y, src.x2, src.y2);
+}
+
+static Rect2<int> projectRect2(const Rect2<GC> &src)
+{
+	Rect2<int> r;
+	r.x = Gfx::toIXPos(src.x);
+	r.y = Gfx::toIYPos(src.y);
+	r.x2 = Gfx::toIXPos(src.x2);
+	r.y2 = Gfx::toIYPos(src.y2);
+	return r;
+}
+
+static Rect2<GC> unProjectRect2(const Rect2<int> &src)
+{
+	Rect2<GC> r;
+	r.x = Gfx::iXPos(src.x);
+	r.y = Gfx::iYPos(src.y);
+	r.x2 = Gfx::iXPos(src.x2);
+	r.y2 = Gfx::iYPos(src.y2);
+	return r;
 }
 
 static GC alignXToPixel(GC x)

@@ -16,6 +16,7 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
 
 // controls

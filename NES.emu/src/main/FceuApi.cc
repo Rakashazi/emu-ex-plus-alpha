@@ -4,6 +4,7 @@
 #include <fs/sys.hh>
 #include <stdio.h>
 #include <fceu/driver.h>
+#include <fceu/video.h>
 
 bool turbo = 0;
 int closeFinishedMovie = 0;
@@ -112,6 +113,24 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 	logMsg("called set input");
 }
 
+// for boards/transformer.cpp
+unsigned int *GetKeyboard(void)
+{
+	static unsigned int k[256] {0};
+	return k;
+}
+
+// from video.cpp
+void FCEUI_ToggleShowFPS() { }
+int FCEU_InitVirtualVideo(void) { return 1; }
+void FCEU_KillVirtualVideo(void) { }
+void FCEU_ResetMessages() { }
+void FCEU_PutImageDummy(void) { }
+void FCEU_PutImage(void) { }
+void FCEUI_SaveSnapshot(void) { }
+int ClipSidesOffset = 0;
+GUIMESSAGE subtitleMessage;
+
 // from drawing.cpp
 void DrawTextLineBG(uint8 *dest) { }
 void DrawMessage(bool beforeMovie) { }
@@ -130,6 +149,7 @@ int NSFLoad(const char *name, FCEUFILE *fp) { return 0; }
 volatile int datacount, undefinedcount;
 unsigned char *cdloggerdata;
 int GetPRGAddress(int A) { return 0; }
+int debug_loggingCD = 0;
 
 // from netplay.cpp
 int FCEUnetplay=0;
@@ -175,5 +195,3 @@ void EncodeGG(char *str, int a, int v, int c)
 	}
 	return;
 }
-
-#undef thisModuleName

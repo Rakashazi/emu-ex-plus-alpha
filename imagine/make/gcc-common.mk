@@ -21,7 +21,7 @@ ifndef NORMAL_WARNINGS_CFLAGS
 endif
 
 ifndef WARN_UNUSED
- WARNINGS_CFLAGS += $(NORMAL_WARNINGS_CFLAGS) -Wno-unused
+ WARNINGS_CFLAGS += $(NORMAL_WARNINGS_CFLAGS) -Wno-unused -Wno-unused-parameter
 endif
 
 # setup optimizations
@@ -31,8 +31,8 @@ ifdef O_RELEASE
  RELEASE := 1
 endif
 
-NORMAL_OPTIMIZE_CFLAGS_MISC := -Wdisabled-optimization -ffast-math -fmerge-all-constants
-ifndef PROFILE
+NORMAL_OPTIMIZE_CFLAGS_MISC := -ffast-math -fmerge-all-constants
+ifdef RELEASE
  NORMAL_OPTIMIZE_CFLAGS_MISC += -fomit-frame-pointer
 endif
 HIGH_OPTIMIZE_CFLAGS_MISC = $(NORMAL_OPTIMIZE_CFLAGS_MISC)
@@ -62,6 +62,7 @@ ifdef RELEASE
  endif
  CPPFLAGS += -DNDEBUG
  OPTIMIZE_CFLAGS += -fno-stack-protector
+ WARNINGS_CFLAGS += -Wdisabled-optimization
 endif
 
 ifdef PROFILE

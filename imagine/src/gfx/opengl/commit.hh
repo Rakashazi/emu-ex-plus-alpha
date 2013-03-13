@@ -52,23 +52,7 @@ void updateFrameTime()
 		glXGetVideoSyncSGI(&gfx_frameTime);
 		gfx_frameTimeRel = gfx_frameTime - prevFrameTime;
 	}
-	else
 	#endif
-	{
-		//static TimeSys prevTime;
-		TimeSys now;
-		now.setTimeNow();
-		TimeSys currFrameTime = now - startFrameTime;
-		#ifdef CONFIG_ENV_WEBOS
-		//uint currFrame = currFrameTime.divByUSecs(15936); // 62~63 fps
-		uint currFrame = currFrameTime.divByUSecs(19000);
-		#else
-		uint currFrame = currFrameTime.divByUSecs(16666);
-		#endif
-		//logMsg("now %f start %f, curr %f %d", (double)now, (double)startFrameTime, (double)currFrameTime, currFrame);
-		gfx_frameTimeRel = currFrame - gfx_frameTime;
-		gfx_frameTime = currFrame;
-	}
 	//logMsg("current frame %d, diff %d", gfx_frameTime, gfx_frameTimeRel);
 }
 
@@ -88,7 +72,7 @@ void clear()
 	#endif
 }
 
-void renderFrame()
+void renderFrame(Gfx::FrameTimeBase frameTime)
 {
 	if(unlikely(animateOrientationChange && !projAngleM.isComplete()))
 	{
@@ -98,7 +82,7 @@ void renderFrame()
 		Base::displayNeedsUpdate();
 	}
 
-	Gfx::onDraw();
+	Gfx::onDraw(frameTime);
 
 	//glFlush();
 	//glFinish();

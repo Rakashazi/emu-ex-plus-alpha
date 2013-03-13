@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 /*
@@ -25,7 +25,7 @@
 * http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
 *
 * Grammar of the parser:
-* 
+*
 * P         -> Connect
 * Connect   -> Compare {('||' | '&&') Compare}
 * Compare   -> Sum {('==' | '!=' | '<=' | '>=' | '<' | '>') Sum}
@@ -34,7 +34,7 @@
 * Primitive -> Number | Address | Register | Flag | PC Bank | '(' Connect ')'
 * Number    -> '#' [1-9A-F]*
 * Address   -> '$' [1-9A-F]* | '$' '[' Connect ']'
-* Register  -> 'A' | 'X' | 'Y' | 'R'
+* Register  -> 'A' | 'X' | 'Y' | 'P'
 * Flag      -> 'N' | 'C' | 'Z' | 'I' | 'B' | 'V'
 * PC Bank   -> 'K'
 */
@@ -152,7 +152,7 @@ int getNumber(unsigned int* number, const char** str)
 	{
 		return 0;
 	}
-	
+
 // Older, inferior version which doesn't work with leading zeros
 //	sprintf(buffer, "%X", *number);
 //	*str += strlen(buffer);
@@ -358,7 +358,7 @@ Condition* Term(const char** str)
 
 		if (!(mid = (Condition*)FCEU_dmalloc(sizeof(Condition))))
             return NULL;
-        
+
 		memset(mid, 0, sizeof(Condition));
 
 		mid->lhs = t;

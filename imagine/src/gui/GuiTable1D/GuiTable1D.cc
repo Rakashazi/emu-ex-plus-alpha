@@ -62,7 +62,7 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 
 		if(e.state == Input::PUSHED)
 		{
-			int i = (Input::cursorY() - viewRect.y) / yCellSize;
+			int i = (e.y - viewRect.y) / yCellSize;
 			logMsg("input pushed on cell %d", i);
 			if(i >= 0 && i < cells)
 			{
@@ -73,7 +73,7 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 
 		if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
 		{
-			int i = (Input::cursorY() - viewRect.y) / yCellSize;
+			int i = (e.y - viewRect.y) / yCellSize;
 			//logMsg("input released on cell %d", i);
 			if(i >= 0 && i < cells && selected == i)
 			{
@@ -168,7 +168,7 @@ int GuiTable1D::visibleCells() const
 int GuiTable1D::offscreenCells() const
 {
 	auto y = viewRect.yPos(LT2DO);
-	return (Gfx::iYPos(y) - Gfx::proj.hHalf)/Gfx::iYSize(yCellSize);
+	return (Gfx::iYPos(y) - Gfx::proj.hHalf())/Gfx::iYSize(yCellSize);
 }
 
 void GuiTable1D::draw()
@@ -213,7 +213,6 @@ void GuiTable1D::draw()
 			Rect2<GC> d(iXPos(x), iYPos(y) - iYSize(yCellSize),
 				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y));
 			GeomRect::draw(d);
-			setColor(COLOR_WHITE);
 		}
 		if(i != 0)
 		{
@@ -223,7 +222,6 @@ void GuiTable1D::draw()
 			Rect2<GC> d(iXPos(x), iYPos(y),
 				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y) + separatorYSize);
 			GeomRect::draw(d);
-			setColor(COLOR_WHITE);
 		}
 		y += yCellSize;
 	}

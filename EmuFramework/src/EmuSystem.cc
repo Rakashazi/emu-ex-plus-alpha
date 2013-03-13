@@ -25,6 +25,7 @@ FsSys::cPath EmuSystem::savePath_ = "";
 char EmuSystem::gameName[256] = "";
 char EmuSystem::fullGameName[256] = "";
 TimeSys EmuSystem::startTime;
+Gfx::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
@@ -101,21 +102,49 @@ bool EmuSystem::loadAutoState()
 //static int autoFrameSkipLevel = 0;
 //static int lowBufferFrames = (audio_maxRate/60)*3, highBufferFrames = (audio_maxRate/60)*5;
 
-int EmuSystem::setupFrameSkip(uint optionVal)
+int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
 	static const uint ntscNSecs = 16666666, palNSecs = 20000000;
+	static const auto ntscFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./60.),
+			palFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source
 	}
 
-	TimeSys realTime;
-	realTime.setTimeNow();
-	TimeSys timeTotal = realTime - startTime;
-
-	int emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
-	//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
+	int emuFrame;
+	if(Base::supportsFrameTime())
+	{
+		if(!startFrameTime)
+		{
+			startFrameTime = frameTime;
+			emuFrame = 0;
+			//logMsg("first frame time %f", (double)frameTime);
+		}
+		else
+		{
+			auto timeTotal = frameTime - startFrameTime;
+			auto frame = round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
+			emuFrame = frame;
+			//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
+		}
+	}
+	else
+	{
+		if(!startTime)
+		{
+			startTime.setTimeNow();
+			emuFrame = 0;
+			//logMsg("first frame time %f", (double)startTime);
+		}
+		else
+		{
+			auto timeTotal = TimeSys::timeNow() - startTime;
+			emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
+			//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
+		}
+	}
 	assert(emuFrame >= emuFrameNow);
 	if(emuFrame == emuFrameNow)
 	{

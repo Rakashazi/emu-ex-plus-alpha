@@ -15,7 +15,9 @@ public:
 	Pixmap vidPix {PixelFormatRGB565};
 	Gfx::BufferImage vidImg;
 	VideoImageOverlay vidImgOverlay;
-	Area gameView;
+
+	Rect2<int> gameRect;
+	Rect2<GC> gameRectG;
 
 	void deinit() { }
 	Rect2<int> rect;
@@ -25,8 +27,8 @@ public:
 	void placeEmu(); // game content only
 	template <bool active>
 	void drawContent();
-	void runFrame();
-	void draw();
+	void runFrame(Gfx::FrameTimeBase frameTime);
+	void draw(Gfx::FrameTimeBase frameTime);
 	void inputEvent(const Input::Event &e);
 
 	void placeOverlay()
@@ -66,7 +68,7 @@ public:
 		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView", xO, yO, x, y, totalX, totalY);
 		vidImg.init(vidPix, 0, optionImgFilter);
 		disp.setImg(&vidImg);
-		if((uint)optionImageZoom == optionImageZoomIntegerOnly)
+		if((uint)optionImageZoom > 100)
 			placeEmu();
 	}
 

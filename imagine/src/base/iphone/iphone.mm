@@ -9,6 +9,7 @@
 #include <fs/sys.hh>
 #include <util/time/sys.hh>
 #include <base/common/funcs.h>
+#include <meta.h>
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
@@ -283,7 +284,7 @@ uint appState = APP_RUNNING;
 		return;
 
 	//logMsg("screen update");
-	Base::runEngine();
+	Base::runEngine(Base::displayLink.timestamp);
 	if(!Base::gfxUpdate)
 	{
 		Base::stopAnimation();
@@ -301,6 +302,7 @@ uint appState = APP_RUNNING;
 
 - (BOOL)createFramebuffer
 {
+	logMsg("creating OpenGL framebuffers");
     glGenFramebuffersOES(1, &viewFramebuffer);
 	glGenRenderbuffersOES(1, &viewRenderbuffer);
 
@@ -333,6 +335,7 @@ uint appState = APP_RUNNING;
 
 - (void)destroyFramebuffer
 {
+	logMsg("deleting OpenGL framebuffers");
 	glDeleteFramebuffersOES(1, &viewFramebuffer);
 	viewFramebuffer = 0;
 	glDeleteRenderbuffersOES(1, &viewRenderbuffer);
@@ -373,10 +376,10 @@ uint appState = APP_RUNNING;
 				auto &p = Input::m[i];
 				p.touch = touch;
 				CGPoint startTouchPosition = [touch locationInView:self];
-				pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale, &p.s.x, &p.s.y);
+				auto pos = pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale);
 				p.s.inWin = 1;
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, p.s.x, p.s.y);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, p.s.x, p.s.y, nullptr));
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, pos);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, pos.x, pos.y, nullptr));
 				break;
 			}
 		}
@@ -395,9 +398,9 @@ uint appState = APP_RUNNING;
 			{
 				auto &p = Input::m[i];
 				CGPoint currentTouchPosition = [touch locationInView:self];
-				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, p.s.x, p.s.y);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, p.s.x, p.s.y, nullptr));
+				auto pos = pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale);
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, pos);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, pos.x, pos.y, nullptr));
 				break;
 			}
 		}
@@ -418,9 +421,9 @@ uint appState = APP_RUNNING;
 				p.touch = nil;
 				p.s.inWin = 0;
 				CGPoint currentTouchPosition = [touch locationInView:self];
-				pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale, &p.s.x, &p.s.y);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, p.s.x, p.s.y);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, p.s.x, p.s.y, nullptr));
+				auto pos = pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale);
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, pos);
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, pos.x, pos.y, nullptr));
 				break;
 			}
 		}
@@ -491,19 +494,22 @@ uint appState = APP_RUNNING;
 	using namespace Input;
 	logMsg("editing ended");
 	//inVKeyboard = 0;
-	if(vKeyboardTextDelegate.hasCallback())
-	{
-		logMsg("running text entry callback");
-		vKeyboardTextDelegate.invoke([textField.text UTF8String]);
-	}
+	auto delegate = vKeyboardTextDelegate;
 	vKeyboardTextDelegate.clear();
-	//vkbdField.text = @"";
+	char text[256];
+	string_copy(text, [textField.text UTF8String]);
 	[textField removeFromSuperview];
 	vkbdField = nil;
+	if(delegate.hasCallback())
+	{
+		logMsg("running text entry callback");
+		delegate.invoke(text);
+	}
 }
 
 #endif
 
+#if 0
 - (void)keyboardWasShown:(NSNotification *)notification
 {
 	return;
@@ -529,6 +535,7 @@ uint appState = APP_RUNNING;
 	logMsg("keyboard hidden");
 	displayNeedsUpdate();
 }
+#endif
 
 /*- (void) screenDidConnect:(NSNotification *)aNotification
 {
@@ -569,12 +576,12 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 }
 
-- (void)applicationDidFinishLaunching:(UIApplication *)application
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 	using namespace Base;
 	NSString *currSysVer = [[UIDevice currentDevice] systemVersion];
 	#ifndef NDEBUG
-	logMsg("in applicationDidFinishLaunching(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
+	//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
 	logMsg("iOS version %s", [currSysVer cStringUsingEncoding: NSASCIIStringEncoding]);
 	#endif
 	mainApp = self;
@@ -600,13 +607,10 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// based on iPhone/iPod DPI of 163 (326 retina)
 	uint unscaledDPI = 163;
 	#if !defined(__ARM_ARCH_6K__) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 30200)
-	logMsg("testing for iPad");
-	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+	if(isIPad)
 	{
 		// based on iPad DPI of 132 (264 retina) 
 		unscaledDPI = 132;
-		isIPad = 1;
-		logMsg("running on iPad");
 		
 		/*rotateView = preferedOrientation = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
 		logMsg("started in %s orientation", Gfx::orientationName(rotateView));
@@ -632,10 +636,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	
 	NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
 	[nCenter addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
-	[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
-	[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
+	//[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 	
-	doOrExit(onInit(0, nullptr)); // TODO: args
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	#ifdef CONFIG_INPUT_ICADE
@@ -644,26 +647,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	Base::setAutoOrientation(1);
-    
-    /*{
-    	mach_port_t mp;
-	    IOMasterPort(MACH_PORT_NULL,&mp);
-	    CFMutableDictionaryRef bt_matching = IOServiceNameMatching("bluetooth");
-	    mach_port_t bt_service = IOServiceGetMatchingService(mp, bt_matching);
-	
-	    // local-mac-address
-	    bd_addr_t address;
-	    CFTypeRef local_mac_address_ref = IORegistryEntrySearchCFProperty(bt_service,"IODeviceTree",CFSTR("local-mac-address"), kCFAllocatorDefault, 1);
-	    CFDataGetBytes(local_mac_address_ref,CFRangeMake(0,CFDataGetLength(local_mac_address_ref)),addr); // buffer needs to be unsigned char
-	
-	    IOObjectRelease(bt_service);
-	    
-	    // dump info
-	    char bd_addr_to_str_buffer[6*3];
-	    sprintf(bd_addr_to_str_buffer, "%02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-	    log_info("local-mac-address: %s\n", bd_addr_to_str_buffer);
-    }*/
-	
+
 	// view controller init
 	if(usingiOS4)
 	{
@@ -680,7 +664,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 
 	[devWindow makeKeyAndVisible];
-	logMsg("exiting applicationDidFinishLaunching");
+	logMsg("exiting didFinishLaunchingWithOptions");
+	return YES;
 }
 
 - (void)orientationChanged:(NSNotification *)notification
@@ -706,6 +691,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("became active");
+	if(!Base::openglViewIsInit)
+		[glView createFramebuffer];
 	Base::appState = APP_RUNNING;
 	if(Base::displayLink)
 		Base::startAnimation();
@@ -722,6 +709,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	//Base::stopAnimation();
 	Base::appState = APP_EXITING;
 	Base::onExit(0);
+	logMsg("app exited");
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
@@ -735,6 +723,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		iCade.didEnterBackground();
 	#endif
 	glFinish();
+	[glView destroyFramebuffer];
+	unlink("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
+	logMsg("entered background");
 }
 
 - (void)timerCallback:(id)callback
@@ -767,11 +758,16 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 namespace Base
 {
 
-void nsLog(const char* format, va_list arg)
+void nsLog(const char* str)
 {
-	char buff[256];
-	vsnprintf(buff, sizeof(buff), format, arg);
-	NSLog(@"%s", buff);
+	NSLog(@"%s", str);
+}
+
+void nsLogv(const char* format, va_list arg)
+{
+	auto formatStr = [[NSString alloc] initWithBytesNoCopy:(void*)format length:strlen(format) encoding:NSUTF8StringEncoding freeWhenDone:false];
+	NSLogv(formatStr, arg);
+	[formatStr release];
 }
 
 void setVideoInterval(uint interval)
@@ -811,6 +807,7 @@ static void setViewportForStatusbar(UIApplication *sharedApp)
 void setStatusBarHidden(uint hidden)
 {
 	auto sharedApp = [UIApplication sharedApplication];
+	assert(sharedApp);
 	#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 30200
 		[sharedApp setStatusBarHidden: hidden ? YES : NO withAnimation: UIStatusBarAnimationFade];
 	#else
@@ -842,6 +839,7 @@ void setSystemOrientation(uint o)
 		vKeyboardTextDelegate.clear();
 	}
 	auto sharedApp = [UIApplication sharedApplication];
+	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	setViewportForStatusbar(sharedApp);
 }
@@ -888,8 +886,10 @@ void openURL(const char *url)
 
 void setIdleDisplayPowerSave(bool on)
 {
-	[UIApplication sharedApplication].idleTimerDisabled = on ? NO : YES;
-	logMsg("set idleTimerDisabled %d", (int)[UIApplication sharedApplication].idleTimerDisabled);
+	auto sharedApp = [UIApplication sharedApplication];
+	assert(sharedApp);
+	sharedApp.idleTimerDisabled = on ? NO : YES;
+	logMsg("set idleTimerDisabled %d", (int)sharedApp.idleTimerDisabled);
 }
 
 void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
@@ -955,6 +955,11 @@ bool setUIDEffective()
 
 #endif
 
+bool supportsFrameTime()
+{
+	return true;
+}
+
 }
 
 #ifdef CONFIG_INPUT_ICADE
@@ -964,10 +969,14 @@ namespace Input
 
 void Device::setICadeMode(bool on)
 {
-	assert(map_ == Input::Event::MAP_ICADE); // BT Keyboard always treated as iCade
-	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
-	iCadeMode_ = on;
-	Base::iCade.setActive(on);
+	if(map_ == Input::Event::MAP_ICADE) // BT Keyboard always treated as iCade
+	{
+		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+		iCadeMode_ = on;
+		Base::iCade.setActive(on);
+	}
+	else if(on)
+		logWarn("tried to set iCade mode on device with map %d", map_);
 }
 
 }
@@ -999,9 +1008,19 @@ int main(int argc, char *argv[])
 	#ifdef CONFIG_FS
 	FsPosix::changeToAppDir(argv[0]);
 	#endif
+	
+	#if !defined(__ARM_ARCH_6K__) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 30200)
+	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+	{
+		isIPad = 1;
+		logMsg("running on iPad");
+	}
+	#endif
+	
+	doOrExit(onInit(argc, argv));
 
 	NSAutoreleasePool *pool = [NSAutoreleasePool new];
-	int retVal = UIApplicationMain(argc, argv, nil, @"MainApp");
-	[pool release];
-	return retVal;
+	UIApplicationMain(argc, argv, nil, @"MainApp");
+	//[pool release];
+	return 0;
 }

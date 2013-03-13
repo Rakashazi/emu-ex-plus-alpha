@@ -31,6 +31,8 @@
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+
 namespace PCE_Fast
 {
 	void HuCDumpSave(void);
@@ -68,7 +70,12 @@ const uint EmuSystem::maxPlayers = 5;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
 #include "CommonGui.hh"
 
-void EmuSystem::initOptions() { }
+void EmuSystem::initOptions()
+{
+	#ifndef CONFIG_BASE_ANDROID
+	optionFrameSkip.initDefault(optionFrameSkipAuto);
+	#endif
+}
 
 extern char MDFN_cdErrorStr[256];
 

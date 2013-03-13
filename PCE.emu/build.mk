@@ -34,10 +34,10 @@ include $(IMAGINE_PATH)/make/package/libsndfile.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 
-ifeq ($(ENV), linux)
- LDLIBS +=  /usr/lib/libcdio.so
- SRC += mednafen/cdrom/CDAccess_Physical.cpp
-endif
+#ifeq ($(ENV), linux)
+# LDLIBS +=  /usr/lib/libcdio.so
+# SRC += mednafen/cdrom/CDAccess_Physical.cpp
+#endif
 
 ifneq ($(ENV), android)
  LDLIBS += -lpthread

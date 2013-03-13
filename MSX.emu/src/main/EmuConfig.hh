@@ -9,7 +9,6 @@
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Space/KB";
-static const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 #define CONFIG_VCONTROLLER_KEYBOARD
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;;
 static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;

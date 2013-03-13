@@ -51,6 +51,7 @@
 #include "DeviceManager.h"
 #include "ramMapperIo.h"
 #include "CoinDevice.h"
+#include <logger/interface.h>
 
 void PatchZ80(void* ref, CpuRegs* cpuRegs);
 
@@ -98,14 +99,12 @@ static void reset()
     deviceManagerReset();
 }
 
-extern char machineBasePath[];
-
 static void destroy() {
     char wDir[1024];
 	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePath);
+	chdir(machineBasePathStr());
 	#ifndef NDEBUG
-	fprintf(stderr, "switched to %s\n", machineBasePath);
+	logMsg("switched to %s\n", machineBasePathStr());
 	#endif
 
     rtcDestroy(rtc);
@@ -123,7 +122,7 @@ static void destroy() {
     r800Destroy(r800);
 
 	#ifndef NDEBUG
-	fprintf(stderr, "back to %s\n", wDir);
+  logMsg("back to %s\n", wDir);
 	#endif
 	chdir(wDir);
 }
@@ -231,9 +230,9 @@ int msxCreate(Machine* machine,
 
     char wDir[1024];
 	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePath);
+	chdir(machineBasePathStr());
 	#ifndef NDEBUG
-	fprintf(stderr, "switched to %s\n", machineBasePath);
+	logMsg("switched to %s", machineBasePathStr());
 	#endif
 
     deviceManagerCreate();
@@ -270,7 +269,7 @@ int msxCreate(Machine* machine,
     success = machineInitialize(machine, &msxRam, &msxRamSize, &msxRamStart);
 	#ifndef NDEBUG
     if(!success)
-    	fprintf(stderr, "machineInitialize failed\n");
+    	logErr("machineInitialize failed");
 	#endif
 
     msxPsg = msxPsgCreate(machine->board.type == BOARD_MSX || 
@@ -290,7 +289,7 @@ int msxCreate(Machine* machine,
     }
 
 	#ifndef NDEBUG
-	fprintf(stderr, "back to %s\n", wDir);
+    logMsg("back to %s\n", wDir);
 	#endif
 	chdir(wDir);
 

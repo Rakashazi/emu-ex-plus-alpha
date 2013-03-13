@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 #pragma once
 #include <string>
@@ -121,10 +121,11 @@ template<typename T, int DIGITS, bool PAD> void putdec(EMUFILE* os, T dec)
 
 std::string mass_replace(const std::string &source, const std::string &victim, const std::string &replacement);
 
-#define wstring string
+#if 0
 std::wstring mbstowcs(std::string str);
 std::string wcstombs(std::wstring str);
-#undef wstring
+#endif
+
 
 
 //TODO - dont we already have another  function that can do this

@@ -52,7 +52,7 @@ private:
 		}
 
 		sh2Core.init(str, setting, cores);
-		sh2Core.valueDelegate().bind<&sh2CoreSet>();
+		sh2Core.onValue().bind<&sh2CoreSet>();
 	}
 
 	static void sh2CoreSet(MultiChoiceMenuItem &, int val)

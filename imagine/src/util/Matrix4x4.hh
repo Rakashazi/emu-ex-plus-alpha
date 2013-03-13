@@ -26,7 +26,7 @@ public:
 
 	union
 	{
-		T v[16];
+		T v[16] {0};
 		struct
 		{
 			T  _11, _12, _13, _14;
@@ -35,6 +35,8 @@ public:
 			T  _41, _42, _43, _44;
 		};
 	};
+
+	constexpr Matrix4x4() { }
 
 	void ident()
 	{

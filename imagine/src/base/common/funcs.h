@@ -111,7 +111,7 @@ static void engineInit()
 	doOrExit(onWindowInit());
 }
 
-static uint runEngine()
+static uint runEngine(Gfx::FrameTimeBase frameTime)
 {
 	#ifdef CONFIG_GFX
 	if(unlikely(triggerGfxResize))
@@ -126,7 +126,7 @@ static uint runEngine()
 		if(likely(gfxUpdate))
 		{
 			gfxUpdate = 0;
-			Gfx::renderFrame();
+			Gfx::renderFrame(frameTime);
 			frameRendered = 1;
 			//logMsg("rendered frame");
 		}
@@ -225,6 +225,14 @@ static int getPollTimeout()
 	return pollTimeout;
 }
 
+#if defined(__has_feature)
+	#if __has_feature(address_sanitizer)
+		#define CONFIG_BASE_NO_CUSTOM_NEW_DELETE
+	#endif
+#endif
+
+#ifndef CONFIG_BASE_NO_CUSTOM_NEW_DELETE
+
 void* operator new (std::size_t size)
 #ifdef __EXCEPTIONS
 	throw (std::bad_alloc)
@@ -250,6 +258,8 @@ void* operator new[] (std::size_t size)
 
 void operator delete (void *o) noexcept { mem_free(o); }
 void operator delete[] (void *o) noexcept { mem_free(o); }
+
+#endif
 
 #ifdef __EXCEPTIONS
 namespace __gnu_cxx

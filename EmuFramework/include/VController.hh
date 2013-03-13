@@ -16,12 +16,16 @@
 #pragma once
 #include <util/number.h>
 #include <util/area2.h>
+#include <util/memory/search.h>
 #include <gfx/GfxSprite.hh>
 #include <base/Base.hh>
 #include <input/DragPointer.hh>
 #include <resource2/image/ResourceImage.h>
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
+#include <TurboInput.hh>
+
+extern TurboInput turboActions;
 
 class VControllerDPad
 {
@@ -431,6 +435,7 @@ public:
 	constexpr VController() { }
 
 	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
+	static constexpr uint TURBO_BIT = BIT(31), ACTION_MASK = 0x7FFFFFFF;
 	int ptrElem[Input::maxCursors][2] { { 0 } }, prevPtrElem[Input::maxCursors][2] { { 0 } };
 	VControllerGamepad<faceBtns, centerBtns, hasTriggerButtons, revFaceMapping> gp;
 	float alpha = 0;
@@ -483,7 +488,20 @@ public:
 		#endif
 		{
 			assert(vBtn < sizeofArray(map));
-			EmuSystem::handleInputAction(action, map[vBtn]);
+			auto turbo = map[vBtn] & TURBO_BIT;
+			auto keyCode = map[vBtn] & ACTION_MASK;
+			if(turbo)
+			{
+				if(action == Input::PUSHED)
+				{
+					turboActions.addEvent(keyCode);
+				}
+				else
+				{
+					turboActions.removeEvent(keyCode);
+				}
+			}
+			EmuSystem::handleInputAction(action, keyCode);
 		}
 	}
 
@@ -595,6 +613,7 @@ public:
 
 	void applyInput(const Input::Event &e)
 	{
+		using namespace IG;
 		assert(e.isPointer());
 		auto drag = Input::dragState(e.devId);
 

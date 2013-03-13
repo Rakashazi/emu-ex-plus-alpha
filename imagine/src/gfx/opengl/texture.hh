@@ -12,13 +12,13 @@ GfxTextureHandle newTexRef()
 {
 	GLuint ref;
 	glGenTextures(1, &ref);
-	//logMsg("got texture id %u", ref);
+	//logMsg("created texture %u", ref);
 	return ref;
 }
 
 void freeTexRef(GfxTextureHandle texRef)
 {
-	//logMsg("deleting texture id %u", texRef);
+	//logMsg("deleting texture %u", texRef);
 	glcDeleteTextures(1, &texRef);
 }
 
@@ -191,7 +191,7 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 }
 
 enum { MIPMAP_NONE, MIPMAP_LINEAR, MIPMAP_NEAREST };
-static GLint openGLFilterType(uint imgFilter, uchar mipmapType)
+static GLint minFilterType(uint imgFilter, uchar mipmapType)
 {
 	if(imgFilter == BufferImage::nearest)
 	{
@@ -207,15 +207,20 @@ static GLint openGLFilterType(uint imgFilter, uchar mipmapType)
 	}
 }
 
+static GLint magFilterType(uint imgFilter)
+{
+	return imgFilter == BufferImage::nearest ? GL_NEAREST : GL_LINEAR;
+}
+
 static void setDefaultImageTextureParams(uint imgFilter, uchar mipmapType, int xWrapType, int yWrapType, uint usedX, uint usedY, GLenum target)
 {
 	//mipmapType = MIPMAP_NONE;
-	GLint filter = openGLFilterType(imgFilter, mipmapType);
 	glTexParameteri(target, GL_TEXTURE_WRAP_S, xWrapType);
 	glTexParameteri(target, GL_TEXTURE_WRAP_T, yWrapType);
-	if(filter != GL_LINEAR) // GL_LINEAR is the default
-		glTexParameteri(target, GL_TEXTURE_MAG_FILTER, filter);
-	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filter);
+	auto magFilter = magFilterType(imgFilter);
+	if(magFilter != GL_LINEAR) // GL_LINEAR is the default
+		glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilterType(imgFilter, mipmapType));
 	#ifndef CONFIG_ENV_WEBOS
 	if(useAnisotropicFiltering)
 		glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
@@ -236,24 +241,22 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
 	#ifndef CONFIG_GFX_OPENGL_ES
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, (!includePadding && pix.isPadded()) ? pix.pitchPixels() : 0);
 		//logMsg("writing %s %dx%d to %dx%d, xline %d", glImageFormatToString(format), 0, 0, pix->x, pix->y, pix->pitch / pix->format->bytesPerPixel);
-		clearGLError();
+		handleGLErrors();
 		glTexSubImage2D(target, 0, 0, 0,
 				xSize, pix.y, format, dataType, pix.data);
-		glErrorCase(err)
+		if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 		{
-			logErr("%s in glTexSubImage2D", glErrorToString(err));
 			return 0;
 		}
 	#else
-		clearGLError();
+		handleGLErrors();
 		if(includePadding || pix.pitch == pix.x * pix.format.bytesPerPixel)
 		{
 			//logMsg("pitch equals x size optimized case");
 			glTexSubImage2D(target, 0, 0, 0,
 					xSize, pix.y, format, dataType, pix.data);
-			glErrorCase(err)
+			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 			{
-				logErr("%s in glTexSubImage2D", glErrorToString(err));
 				return 0;
 			}
 		}
@@ -265,9 +268,9 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
 			{
 				glTexSubImage2D(target, 0, 0, y,
 						pix.x, 1, format, dataType, row);
-				glErrorCase(err)
+				if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 				{
-					logErr("%s in glTexSubImage2D, line %d", glErrorToString(err), y);
+					logErr("error in line %d", y);
 					return 0;
 				}
 				row += pix.pitch;
@@ -298,12 +301,11 @@ static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool
 	uint xSize = includePadding ? pix.pitchPixels() : pix.x;
 	if(includePadding && pix.pitchPixels() != pix.x)
 		logMsg("including padding in texture size, %d", pix.pitchPixels());
-	clearGLError();
+	handleGLErrors();
 	glTexImage2D(target, 0, internalFormat, xSize, pix.y,
 				0, format, dataType, upload ? pix.data : 0);
-	glErrorCase(err)
+	if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexImage2D", err); }))
 	{
-		logErr("%s in glTexImage2D", glErrorToString(err));
 		return 0;
 	}
 	return 1;
@@ -326,7 +328,6 @@ bool BufferImage::hasMipmaps()
 
 void BufferImage::setFilter(uint filter)
 {
-	auto filterGL = openGLFilterType(filter, hasMipmaps() ? MIPMAP_LINEAR : MIPMAP_NONE);
 	logMsg("setting texture filter %s", filter == BufferImage::nearest ? "nearest" : "linear");
 	#if !defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 	GLenum target = GL_TEXTURE_2D;
@@ -334,8 +335,14 @@ void BufferImage::setFilter(uint filter)
 	GLenum target = textureDesc().target;
 	#endif
 	Gfx::setActiveTexture(textureDesc().tid, target);
-	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, filterGL);
-	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filterGL);
+	auto magFilter = magFilterType(filter);
+	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+	if(handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexParameteri with GL_TEXTURE_MAG_FILTER", err); }))
+		logWarn("error with mag filter %d", magFilter);
+	auto minFilter = minFilterType(filter, hasMipmaps() ? MIPMAP_NEAREST : MIPMAP_NONE);
+	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+	if(handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexParameteri with GL_TEXTURE_MIN_FILTER", err); }))
+		logWarn("error with min filter %d", minFilter);
 }
 
 void BufferImage::setRepeatMode(uint xMode, uint yMode)
@@ -346,8 +353,14 @@ void BufferImage::setRepeatMode(uint xMode, uint yMode)
 	GLenum target = textureDesc().target;
 	#endif
 	Gfx::setActiveTexture(textureDesc().tid, target);
-	glTexParameteri(target, GL_TEXTURE_WRAP_S, xMode ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-	glTexParameteri(target, GL_TEXTURE_WRAP_T, yMode ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	auto wrapS = xMode ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+	glTexParameteri(target, GL_TEXTURE_WRAP_S, wrapS);
+	if(handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexParameteri with GL_TEXTURE_WRAP_S", err); }))
+		logWarn("error with wrap s %d", wrapS);
+	auto wrapT = yMode ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+	glTexParameteri(target, GL_TEXTURE_WRAP_T, wrapT);
+	if(handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexParameteri with GL_TEXTURE_WRAP_T", err); }))
+		logWarn("error with wrap t %d", wrapT);
 }
 
 void TextureBufferImage::write(Pixmap &p, uint hints)
@@ -399,9 +412,9 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 		return 0;
 	}
 
-	//logMsg("binding texture %d", texRef);
+	//logMsg("binding texture %u to target %d after creation", texRef, texTarget);
 	glcBindTexture(texTarget, texRef);
-	setDefaultImageTextureParams(filter, hasMipmaps() ? MIPMAP_LINEAR : MIPMAP_NONE, xWrapType, yWrapType, usedX, usedY, texTarget);
+	setDefaultImageTextureParams(filter, hasMipmaps() ? MIPMAP_NEAREST : MIPMAP_NONE, xWrapType, yWrapType, usedX, usedY, texTarget);
 
 	bool includePadding = 0; //include extra bytes when x != pitch ?
 	if(hints & BufferImage::HINT_STREAM)

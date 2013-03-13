@@ -23,6 +23,9 @@
 const uchar Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
 const uchar Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
 const uchar Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
+static const char ccDataBytes = 6;
+static const char nunchuckDataBytes = 6;
+static const char proDataBytes = 10;
 
 extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Wiimote::devList;
@@ -74,7 +77,7 @@ uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("Wiimote opened successfully");
 		player = findFreeDevId();
-		if(!devList.add(this) || !btInputDevList.add(this))
+		if(!devList.add(this) || !btInputDevList.add(this) || Input::devList.isFull())
 		{
 			logErr("No space left in BT input device list");
 			removeFromSystem();
@@ -85,7 +88,6 @@ uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
 		requestStatus();
 		Input::addDevice((Input::Device){player, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"});
 		device = Input::devList.last();
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_WIIMOTE, Input::DeviceChange::ADDED });
 		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
@@ -111,8 +113,13 @@ void Wiimote::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Input::removeDevice((Input::Device){player, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"});
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_WIIMOTE, Input::DeviceChange::REMOVED });
+		if(subDevice)
+		{
+			Input::removeDevice((Input::Device){player, subDevice->map(), Input::Device::TYPE_BIT_GAMEPAD, subDevice->name()});
+		}
+		auto map = device->map();
+		Input::removeDevice((Input::Device){player, map, Input::Device::TYPE_BIT_GAMEPAD, device->name()});
+		Input::onInputDevChange((Input::DeviceChange){ player, map, Input::DeviceChange::REMOVED });
 	}
 }
 
@@ -170,6 +177,8 @@ void Wiimote::sendDataModeByExtension()
 		bcase EXT_CC:
 		case EXT_NUNCHUK:
 			sendDataMode(0x32);
+		bcase EXT_WIIU_PRO:
+			sendDataMode(0x34);
 		bdefault:
 			sendDataMode(0x30);
 	}
@@ -187,12 +196,14 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 		bcase 0x30:
 		{
 			//logMsg("got core report");
+			assert(device);
 			processCoreButtons(packet, player);
 		}
 
 		bcase 0x32:
 		{
 			//logMsg("got core+extension report");
+			assert(device);
 			processCoreButtons(packet, player);
 			switch(extension)
 			{
@@ -205,8 +216,9 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 
 		bcase 0x34:
 		{
-			logMsg("got core+extension19 report");
-			//processCoreButtons(packet, player, inputThread());
+			//logMsg("got core+extension19 report");
+			assert(device);
+			processProButtons(packet, player);
 		}
 
 		bcase 0x20:
@@ -217,6 +229,14 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 				logMsg("extension disconnected");
 				extension = EXT_NONE;
 				sendDataMode(0x30);
+				if(subDevice)
+				{
+					auto name = subDevice->name();
+					auto map = subDevice->map();
+					subDevice = nullptr;
+					Input::removeDevice((Input::Device){player, map, Input::Device::TYPE_BIT_GAMEPAD, name});
+					Input::onInputDevChange((Input::DeviceChange){ player, map, Input::DeviceChange::REMOVED });
+				}
 			}
 			else if(!extension && (packet[4] & BIT(1)))
 			{
@@ -228,6 +248,11 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 				logMsg("no extension change");
 				// set report mode
 				sendDataModeByExtension();
+				if(!identifiedType)
+				{
+					Input::onInputDevChange((Input::DeviceChange){ player, device->map(), Input::DeviceChange::ADDED });
+					identifiedType = 1;
+				}
 			}
 		}
 
@@ -240,16 +265,29 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 				{
 					// CCs can have 0 or 1 in first byte, check only last 5 bytes
 					const uchar ccType[5] = { /*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x01 };
+					const uchar wiiUProType[5] = { /*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x20 };
 					const uchar nunchukType[6] = { 0x00, 0x00, 0xA4, 0x20, 0x00, 0x00 };
 					logMsg("ext type: %X %X %X %X %X %X",
 						packet[7], packet[8], packet[9], packet[10], packet[11], packet[12]);
 					if(memcmp(&packet[8], ccType, sizeof(ccType)) == 0)
 					{
 						logMsg("extension is CC");
+						if(Input::devList.isFull())
+						{
+							logMsg("ignoring CC because input list is full");
+							extension = EXT_UNKNOWN;
+							sendDataModeByExtension();
+							return 1;
+						}
 						extension = EXT_CC;
 						sendDataModeByExtension();
 						memset(prevExtData, 0xFF, sizeof(prevExtData));
 						mem_zero(stickBtn);
+						Input::addDevice((Input::Device){player, Input::Event::MAP_WII_CC, Input::Device::TYPE_BIT_GAMEPAD, "Wii Classic Controller"});
+						assert(!subDevice);
+						subDevice = Input::devList.last();
+						if(identifiedType)
+							Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_WII_CC, Input::DeviceChange::ADDED });
 					}
 					else if(memcmp(&packet[7], nunchukType, 6) == 0)
 					{
@@ -259,6 +297,16 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 						memset(prevExtData, 0xFF, sizeof(prevExtData));
 						mem_zero(stickBtn);
 					}
+					else if(memcmp(&packet[8], wiiUProType, sizeof(ccType)) == 0)
+					{
+						logMsg("extension is Wii U Pro");
+						extension = EXT_WIIU_PRO;
+						sendDataModeByExtension();
+						memset(prevExtData, 0xFF, sizeof(prevExtData));
+						mem_zero(stickBtn);
+						device->setMap(Input::Event::MAP_WII_CC);
+						device->name_ = "Wii U Pro Controller";
+					}
 					else
 					{
 						logMsg("unknown extension");
@@ -266,6 +314,12 @@ bool Wiimote::dataHandler(const uchar *packet, size_t size)
 						sendDataModeByExtension();
 					}
 					function = FUNC_NONE;
+
+					if(!identifiedType)
+					{
+						Input::onInputDevChange((Input::DeviceChange){ player, device->map(), Input::DeviceChange::ADDED });
+						identifiedType = 1;
+					}
 				}
 			}
 		}
@@ -312,6 +366,14 @@ void Wiimote::decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, i
 	rY = ccSticks[2] & 0x1F;
 }
 
+void Wiimote::decodeProSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY)
+{
+	lX = ccSticks[0] | (ccSticks[1] << 8);
+	lY = ccSticks[4] | (ccSticks[5] << 8);
+	rX = ccSticks[2] | (ccSticks[3] << 8);
+	rY = ccSticks[6] | (ccSticks[7] << 8);
+}
+
 void Wiimote::processStickDataForButtonEmulation(int player, const uchar *data)
 {
 	using namespace Input;
@@ -338,11 +400,11 @@ void Wiimote::processStickDataForButtonEmulation(int player, const uchar *data)
 		{
 			static const uint btnEvent[8] =
 			{
-				Input::Wiimote::CC_LSTICK_LEFT, Input::Wiimote::CC_LSTICK_RIGHT, Input::Wiimote::CC_LSTICK_DOWN, Input::Wiimote::CC_LSTICK_UP,
-				Input::Wiimote::CC_RSTICK_LEFT, Input::Wiimote::CC_RSTICK_RIGHT, Input::Wiimote::CC_RSTICK_DOWN, Input::Wiimote::CC_RSTICK_UP
+				Input::WiiCC::LSTICK_LEFT, Input::WiiCC::LSTICK_RIGHT, Input::WiiCC::LSTICK_DOWN, Input::WiiCC::LSTICK_UP,
+				Input::WiiCC::RSTICK_LEFT, Input::WiiCC::RSTICK_RIGHT, Input::WiiCC::RSTICK_DOWN, Input::WiiCC::RSTICK_UP
 			};
 			//logMsg("%s %s @ wiimote %d", buttonName(Event::MAP_WIIMOTE, btnEvent[e_i]), newState ? "pushed" : "released", player);
-			onInputEvent(Event(player, Event::MAP_WIIMOTE, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
+			onInputEvent(Event(player, Event::MAP_WII_CC, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, subDevice));
 		}
 		*e = newState;
 	}
@@ -376,10 +438,63 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 		{
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Event::MAP_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
-			onInputEvent(Event(player, Event::MAP_WIIMOTE, e->keyEvent, !newState ? PUSHED : RELEASED, 0, device));
+			onInputEvent(Event(player, Event::MAP_WII_CC, e->keyEvent, !newState ? PUSHED : RELEASED, 0, subDevice));
 		}
 	}
-	memcpy(prevExtData, ccData, sizeof(prevExtData));
+	memcpy(prevExtData, ccData, ccDataBytes);
+}
+
+void Wiimote::processProStickDataForButtonEmulation(int player, const uchar *data)
+{
+	using namespace Input;
+	int pos[4];
+	decodeProSticks(data, pos[0], pos[1], pos[2], pos[3]);
+	//logMsg("Pro sticks left %dx%d right %dx%d", pos[0], pos[1], pos[2], pos[3]);
+	forEachInArray(stickBtn, e)
+	{
+		bool newState;
+		switch(e_i)
+		{
+			case 0: newState = pos[0] < 2048-256; break;
+			case 1: newState = pos[0] > 2048+256; break;
+			case 2: newState = pos[1] < 2048-256; break;
+			case 3: newState = pos[1] > 2048+256; break;
+			case 4: newState = pos[2] < 2048-256; break;
+			case 5: newState = pos[2] > 2048+256; break;
+			case 6: newState = pos[3] < 2048-256; break;
+			case 7: newState = pos[3] > 2048+256; break;
+			default: bug_branch("%d", (int)e_i); return;
+		}
+		if(*e != newState)
+		{
+			static const uint btnEvent[8] =
+			{
+				Input::WiiCC::LSTICK_LEFT, Input::WiiCC::LSTICK_RIGHT, Input::WiiCC::LSTICK_DOWN, Input::WiiCC::LSTICK_UP,
+				Input::WiiCC::RSTICK_LEFT, Input::WiiCC::RSTICK_RIGHT, Input::WiiCC::RSTICK_DOWN, Input::WiiCC::RSTICK_UP
+			};
+			//logMsg("%s %s @ wiimote %d", buttonName(Event::MAP_WIIMOTE, btnEvent[e_i]), newState ? "pushed" : "released", player);
+			onInputEvent(Event(player, Event::MAP_WII_CC, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
+		}
+		*e = newState;
+	}
+}
+
+void Wiimote::processProButtons(const uchar *packet, uint player)
+{
+	using namespace Input;
+	const uchar *proData = &packet[4];
+	processProStickDataForButtonEmulation(player, proData);
+	forEachInArray(wiimoteProDataAccess, e)
+	{
+		int newState = e->updateState(prevExtData, proData);
+		if(newState != -1)
+		{
+			// note: buttons are 0 when pushed
+			//logMsg("%s %s @ wii u pro", buttonName(Event::MAP_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
+			onInputEvent(Event(player, Event::MAP_WII_CC, e->keyEvent, !newState ? PUSHED : RELEASED, 0, device));
+		}
+	}
+	memcpy(prevExtData, proData, proDataBytes);
 }
 
 void Wiimote::processNunchukStickDataForButtonEmulation(int player, const uchar *data)
@@ -428,5 +543,5 @@ void Wiimote::processNunchukButtons(const uchar *packet, uint player)
 			onInputEvent(Input::Event(player, Event::MAP_WIIMOTE, e->keyEvent, !newState ? PUSHED : RELEASED, 0, device));
 		}
 	}
-	memcpy(prevExtData, nunData, sizeof(prevExtData));
+	memcpy(prevExtData, nunData, nunchuckDataBytes);
 }

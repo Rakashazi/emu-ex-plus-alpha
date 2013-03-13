@@ -173,7 +173,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 	GC xOrig = xPos;
 	
 	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
-	auto xViewLimit = proj.wHalf;
+	auto xViewLimit = proj.wHalf();
 	const char *s = str;
 	uint totalCharsDrawn = 0;
 	if(lines > 1)

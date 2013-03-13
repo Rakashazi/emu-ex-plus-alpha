@@ -42,6 +42,7 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static ImagineSound *vcsSound = 0;
 static uint16 tiaColorMap[256];
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
@@ -325,7 +326,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	uint playerShift = player ? 7 : 0;
 	map[SysVController::F_ELEM] = Event::JoystickZeroFire + playerShift;
-	map[SysVController::F_ELEM+1] = Event::JoystickZeroFire5 + playerShift;
+	map[SysVController::F_ELEM+1] = (Event::JoystickZeroFire + playerShift) | SysVController::TURBO_BIT;
 
 	map[SysVController::C_ELEM] = Event::ConsoleSelect;
 	map[SysVController::C_ELEM+1] = Event::ConsoleReset;

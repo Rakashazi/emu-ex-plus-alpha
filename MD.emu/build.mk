@@ -8,6 +8,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/EmuControls.cc main/Cheats.cc
 
+emuFramework_cheats := 1
 include ../EmuFramework/common.mk
 
 CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \

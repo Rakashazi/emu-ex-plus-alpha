@@ -76,7 +76,7 @@ public:
 		tbl.clearSelection();
 	}
 
-	void draw()
+	void draw(Gfx::FrameTimeBase frameTime)
 	{
 		using namespace Gfx;
 		//if(!updateAnimation())

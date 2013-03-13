@@ -24,7 +24,7 @@ public:
 	virtual void deinit() = 0;
 	virtual Rect2<int> &viewRect() = 0;
 	virtual void place() = 0;
-	virtual void draw() = 0;
+	virtual void draw(Gfx::FrameTimeBase frameTime) = 0;
 	virtual void inputEvent(const Input::Event &event) = 0;
 	virtual void clearSelection() { } // de-select any items from previous input
 	virtual void onShow() { }

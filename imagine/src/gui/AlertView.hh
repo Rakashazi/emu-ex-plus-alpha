@@ -36,44 +36,55 @@ public:
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw() override;
+	void draw(Gfx::FrameTimeBase frameTime) override;
 };
 
 class YesNoAlertView : public AlertView
 {
 public:
 	constexpr YesNoAlertView() { }
-	typedef Delegate<void (const Input::Event &e)> OnInputDelegate;
-
-	TextMenuItem yes {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)},
-		no {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectNo>(this)};
+	typedef Delegate<void (const Input::Event &e)> InputDelegate;
 
 	void selectYes(TextMenuItem &, const Input::Event &e)
 	{
+		auto callback = onYesD;
 		removeModalView();
-		onYes.invokeSafe(e);
+		callback.invokeSafe(e);
 	}
 
 	void selectNo(TextMenuItem &, const Input::Event &e)
 	{
+		auto callback = onNoD;
 		removeModalView();
-		onNo.invokeSafe(e);
+		callback.invokeSafe(e);
 	}
 
 	MenuItem *menuItem[2] = {nullptr};
 
 	// Optional delegates
-	OnInputDelegate onYes;
-	OnInputDelegate &onYesDelegate() { return onYes; }
-	OnInputDelegate onNo;
-	OnInputDelegate &onNoDelegate() { return onNo; }
+	InputDelegate &onYes() { return onYesD; }
+	InputDelegate &onNo() { return onNoD; }
 
-	void init(const char *label, bool highlightFirst)
+	void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr)
 	{
-		yes.init("Yes"); menuItem[0] = &yes;
-		no.init("No"); menuItem[1] = &no;
-		onYes.clear();
-		onNo.clear();
+		yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
+		no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
+		assert(!onYesD.hasCallback());
+		assert(!onNoD.hasCallback());
 		AlertView::init(label, menuItem, highlightFirst);
 	}
+
+	void deinit() override
+	{
+		logMsg("deinit alert");
+		AlertView::deinit();
+		onYesD.clear();
+		onNoD.clear();
+	}
+
+private:
+	TextMenuItem yes {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)},
+		no {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectNo>(this)};
+	InputDelegate onYesD;
+	InputDelegate onNoD;
 };

@@ -9,12 +9,12 @@ class DragPointer
 public:
 	constexpr DragPointer() { }
 
-	void pointerEvent(uint button, uint state, int x, int y)
+	void pointerEvent(uint button, uint state, IG::Point2D<int> pos)
 	{
 		if(state == Input::PUSHED)
 		{
-			pushX = x;
-			pushY = y;
+			pushX = pos.x;
+			pushY = pos.y;
 			//time = gfx_frameTime;
 			pushed = 1;
 			//logMsg("pushX %d pushY %d", pushX, pushY);
@@ -25,8 +25,8 @@ public:
 		}
 		prevX = this->x;
 		prevY = this->y;
-		this->x = x;
-		this->y = y;
+		this->x = pos.x;
+		this->y = pos.y;
 		//logMsg("new drag state prevX %d prevY %d", prevX, prevY);
 	}
 

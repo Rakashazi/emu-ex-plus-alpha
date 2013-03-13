@@ -29,7 +29,14 @@ public:
 
 	void setTimeNow()
 	{
-		t = mach_absolute_time();
+		*this = timeNow();
+	}
+
+	static TimeMach timeNow()
+	{
+		TimeMach time;
+		time.t = mach_absolute_time();
+		return time;
 	}
 
 	long int toMs()
@@ -77,6 +84,11 @@ public:
 	operator double() const
 	{
 		return t * timebaseSec;
+	}
+
+	operator bool() const
+	{
+		return t;
 	}
 
 	bool operator <(TimeMach const& rhs) const

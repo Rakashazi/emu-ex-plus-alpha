@@ -27,7 +27,8 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-static uint fceuCheats = 0;
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
+uint fceuCheats = 0;
 
 #include <fceu/driver.h>
 #include <fceu/state.h>
@@ -441,6 +442,7 @@ void EmuSystem::clearInputBuffers()
 
 void EmuSystem::configAudioRate()
 {
+	Audio::setHintPcmFramesPerWrite(PAL ? 950 : 800);
 	pcmFormat.rate = optionSoundRate;
 	bool usingTimer = (uint)optionFrameSkip == optionFrameSkipAuto || PAL;
 	float rate = (float)optionSoundRate * (PAL ? 1. : 1.0016);
@@ -531,11 +533,11 @@ void onInputEvent(const Input::Event &e)
 			if(e.state == Input::PUSHED)
 			{
 				zapperData[2] = 0;
-				if(emuView.gameView.overlaps(e.x, e.y))
+				if(emuView.gameRect.overlaps(e.x, e.y))
 				{
-					int xRel = e.x - emuView.gameView.xIPos(LT2DO), yRel = e.y - emuView.gameView.yIPos(LT2DO);
-					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)256.);
-					int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)224.) + 8;
+					int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
+					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)256.);
+					int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)224.) + 8;
 					logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
 					zapperData[0] = xNes;
 					zapperData[1] = yNes;
@@ -571,7 +573,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);

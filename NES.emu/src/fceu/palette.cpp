@@ -15,7 +15,7 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <stdio.h>
@@ -45,6 +45,8 @@
 static int ntsccol=0;
 static int ntsctint=46+10;
 static int ntschue=72;
+
+bool force_grayscale = false;
 
 /* These are dynamically filled/generated palettes: */
 pal palettei[64];       // Custom palette for an individual game.
@@ -96,9 +98,9 @@ void FCEUI_SetNTSCTH(int n, int tint, int hue)
 static uint8 lastd=0;
 void SetNESDeemph(uint8 d, int force)
 {
-	static uint16 rtmul[7]={uint16(32768*1.239),uint16(32768*.794),uint16(32768*1.019),uint16(32768*.905),uint16(32768*1.023),uint16(32768*.741),uint16(32768*.75)};
-	static uint16 gtmul[7]={uint16(32768*.915),uint16(32768*1.086),uint16(32768*.98),uint16(32768*1.026),uint16(32768*.908),uint16(32768*.987),uint16(32768*.75)};
-	static uint16 btmul[7]={uint16(32768*.743),uint16(32768*.882),uint16(32768*.653),uint16(32768*1.277),uint16(32768*.979),uint16(32768*.101),uint16(32768*.75)};
+	static uint16 rtmul[7]={(uint16)(32768*1.239),(uint16)(32768*.794),(uint16)(32768*1.019),(uint16)(32768*.905),(uint16)(32768*1.023),(uint16)(32768*.741),(uint16)(32768*.75)};
+	static uint16 gtmul[7]={(uint16)(32768*.915),(uint16)(32768*1.086),(uint16)(32768*.98),(uint16)(32768*1.026),(uint16)(32768*.908),(uint16)(32768*.987),(uint16)(32768*.75)};
+	static uint16 btmul[7]={(uint16)(32768*.743),(uint16)(32768*.882),(uint16)(32768*.653),(uint16)(32768*1.277),(uint16)(32768*.979),(uint16)(32768*.101),(uint16)(32768*.75)};
 	uint32 r,g,b;
 	int x;
 

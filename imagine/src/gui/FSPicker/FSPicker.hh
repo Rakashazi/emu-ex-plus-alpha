@@ -36,7 +36,7 @@ public:
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw() override;
+	void draw(Gfx::FrameTimeBase frameTime) override;
 	void drawElement(const GuiTable1D *table, uint element, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
 

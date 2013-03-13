@@ -107,6 +107,7 @@ int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen
 //	 if(in[x]>mva){ mva=in[x]; printf("%ld\n",in[x]);}
 //	}
         max=(inlen-1)<<16;
+
 	if(FSettings.soundq==2)
          for(x=mrindex;x<max;x+=mrratio)
          {

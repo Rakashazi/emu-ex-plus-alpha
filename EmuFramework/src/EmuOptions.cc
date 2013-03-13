@@ -136,7 +136,7 @@ Option2DOrigin optionTouchCtrlMenuPos(CFGKEY_TOUCH_CONTROL_MENU_POS,
 		RT2DO
 	#endif
 	, 0, isValidOption2DO);
-Option2DOrigin optionTouchCtrlFFPos(CFGKEY_TOUCH_CONTROL_FF_POS, Config::envIsIOS ? LT2DO : NULL2DO, 0, isValidOption2DO);
+Option2DOrigin optionTouchCtrlFFPos(CFGKEY_TOUCH_CONTROL_FF_POS, Config::envIsIOS || Config::envIsAndroid ? LT2DO : NULL2DO, 0, isValidOption2DO);
 
 Byte1Option optionTouchCtrlBoundingBoxes(CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES, 0);
 
@@ -163,7 +163,7 @@ Byte1Option optionFrameSkip
 
 bool optionImageZoomIsValid(uint8 val)
 {
-	return val == optionImageZoomIntegerOnly || val <= 100;
+	return val == optionImageZoomIntegerOnly || optionImageZoomIntegerOnlyY || val <= 100;
 }
 Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
@@ -221,6 +221,7 @@ void initOptions()
 			optionLowProfileOSNav.isConst = 1;
 			optionHideOSNav.isConst = 1;
 			optionShowMenuIcon.initDefault(0);
+			optionTouchCtrlFFPos.initDefault(NULL2DO);
 		}
 		else
 			optionBackNavigation.initDefault(1);
@@ -250,6 +251,11 @@ void initOptions()
 				optionNotifyInputDeviceChange.isConst = 1;
 			}
 		#endif
+
+		if(!Base::hasVibrator())
+		{
+			optionVibrateOnPush.isConst = 1;
+		}
 	#endif
 
 	#ifdef INPUT_SUPPORTS_POINTER

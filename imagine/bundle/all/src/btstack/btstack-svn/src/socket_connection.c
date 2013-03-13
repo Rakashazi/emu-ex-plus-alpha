@@ -190,13 +190,16 @@ void static socket_connection_emit_nr_connections(void){
     // log_info("Nr connections changed,.. new %u\n", nr_connections); 
 }
 
+static int fdReadableBytes(int fd)
+{
+	int maxReadable = 0;
+	ioctl(fd, FIONREAD, (char*)&maxReadable);
+	return maxReadable;
+}
+
 int socket_connection_hci_process(struct data_source *ds) {
     connection_t *conn = (connection_t *) ds;
-    
-    int maxToRead = 0;
-    ioctl(ds->fd, FIONREAD, (char*)&maxToRead);
-    int bytesToRead = maxToRead;
-    
+
     do
     {
 		int bytes_read = read(ds->fd, &conn->buffer[conn->bytes_read], conn->bytes_to_read);
@@ -248,10 +251,7 @@ int socket_connection_hci_process(struct data_source *ds) {
 		        linked_list_add_tail(&parked, (linked_item_t *) ds);
 		    }
 		}
-	
-		// update bytes read from socket
-		bytesToRead -= bytes_read;
-	} while(bytesToRead > 0);
+	} while(fdReadableBytes(ds->fd));
 
 	return 0;
 }

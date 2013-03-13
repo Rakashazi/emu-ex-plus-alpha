@@ -11,7 +11,7 @@ gccVersion := $(shell $(CC) -dumpversion)
 
 #WHOLE_PROGRAM_CFLAGS += -fipa-pta
 BASE_CXXFLAGS += -std=gnu++0x
-NORMAL_WARNINGS_CFLAGS += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing) -Wno-unused-parameter
+NORMAL_WARNINGS_CFLAGS += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing)
 #NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn
 
 ifdef RELEASE

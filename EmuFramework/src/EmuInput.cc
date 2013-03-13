@@ -132,6 +132,7 @@ bool isMenuDismissKey(const Input::Event &e)
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case Event::MAP_WIIMOTE: return e.button == Wiimote::HOME;
+		case Event::MAP_WII_CC: return e.button == WiiCC::HOME;
 		case Event::MAP_ICONTROLPAD: return e.button == iControlPad::Y;
 		case Event::MAP_ZEEMOTE: return e.button == Zeemote::POWER;
 		#endif
@@ -165,7 +166,6 @@ bool isMenuDismissKey(const Input::Event &e)
 void updateInputDevices()
 {
 	using namespace Input;
-	assert(devList.size);
 	int i = 0;
 	forEachInDLList(&devList, e)
 	{
@@ -238,6 +238,9 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 		case Input::Event::MAP_WIIMOTE:
 			size = EmuControls::defaultWiimoteProfiles;
 			return EmuControls::defaultWiimoteProfile;
+		case Input::Event::MAP_WII_CC:
+			size = EmuControls::defaultWiiCCProfiles;
+			return EmuControls::defaultWiiCCProfile;
 		case Input::Event::MAP_ICONTROLPAD:
 			size = EmuControls::defaultIControlPadProfiles;
 			return EmuControls::defaultIControlPadProfile;
@@ -483,7 +486,7 @@ void KeyMapping::buildAll()
 		{
 			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
 			assert(key[k] < Input::Event::mapNumKeys(e.map()));
-			auto slot = mem_findFirstZeroValue(actionGroup[key[k]]);
+			auto slot = IG::mem_findFirstZeroValue(actionGroup[key[k]]);
 			if(slot)
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
 		}

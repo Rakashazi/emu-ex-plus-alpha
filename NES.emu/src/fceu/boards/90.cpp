@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
@@ -26,10 +26,7 @@
 // Mapper 209 much compicated hardware with decribed above features disabled by default and switchable by command
 // Mapper 211 the same mapper 209 but with forced nametable control
 
-namespace Board90
-{
-
-static int is209; 
+static int is209;
 static int is211;
 
 static uint8 IRQMode;        // from $c001
@@ -52,26 +49,26 @@ static uint8 chr[2];
 static uint16 names[4];
 static uint8 tekker;
 
-static SFORMAT Tek_StateRegs[]={
-  {&IRQMode, 1, "IRQMODE"},
-  {&IRQPre, 1, "IRQPRE"},
-  {&IRQPreSize, 1, "IRQPRESIZE"},
-  {&IRQCount, 1, "IRQC"},
-  {&IRQXOR, 1, "IRQXOR"},
-  {&IRQa, 1, "IRQa"},
-  {mul, 2, "MUL"},
-  {&regie, 1, "REGI"},
-  {tkcom, 4, "TKCO"},
-  {prgb, 4, "PRGB"},
-  {chr, 2, "CHRLATCH"},
-  {chrlow, 4, "CHRL"},
-  {chrhigh, 8, "CHRH"},
-  {&names[0], 2|FCEUSTATE_RLSB, "NMS0"},
-  {&names[1], 2|FCEUSTATE_RLSB, "NMS1"},
-  {&names[2], 2|FCEUSTATE_RLSB, "NMS2"},
-  {&names[3], 2|FCEUSTATE_RLSB, "NMS3"},
-  {&tekker, 1, "TEKR"},
-  {0}
+static SFORMAT Tek_StateRegs[] = {
+	{ &IRQMode, 1, "IRQM" },
+	{ &IRQPre, 1, "IRQP" },
+	{ &IRQPreSize, 1, "IRQR" },
+	{ &IRQCount, 1, "IRQC" },
+	{ &IRQXOR, 1, "IRQX" },
+	{ &IRQa, 1, "IRQA" },
+	{ mul, 2, "MUL" },
+	{ &regie, 1, "REGI" },
+	{ tkcom, 4, "TKCO" },
+	{ prgb, 4, "PRGB" },
+	{ chr, 2, "CLTC" },
+	{ chrlow, 4, "CHRL" },
+	{ chrhigh, 8, "CHRH" },
+	{ &names[0], 2 | FCEUSTATE_RLSB, "NMS0" },
+	{ &names[1], 2 | FCEUSTATE_RLSB, "NMS1" },
+	{ &names[2], 2 | FCEUSTATE_RLSB, "NMS2" },
+	{ &names[3], 2 | FCEUSTATE_RLSB, "NMS3" },
+	{ &tekker, 1, "TEKR" },
+	{ 0 }
 };
 
 static void mira(void)
@@ -290,7 +287,7 @@ static DECLFW(M90ModeWrite)
     tekprom();
     tekvrom();
     mira();
-    
+
 #ifdef DEBUG90
   switch (A&3)
   {
@@ -393,7 +390,7 @@ static void M90PPU(uint32 A)
     }
     lastread=A;
   }
-  
+
   if(is209)
   {
     uint8 l,h;
@@ -470,11 +467,9 @@ static void M90Power(void)
   tekvrom();
 }
 
-}
 
 void Mapper90_Init(CartInfo *info)
 {
-	using namespace Board90;
   is211=0;
   is209=0;
   info->Reset=togglie;
@@ -488,7 +483,6 @@ void Mapper90_Init(CartInfo *info)
 
 void Mapper209_Init(CartInfo *info)
 {
-	using namespace Board90;
   is211=0;
   is209=1;
   info->Reset=togglie;
@@ -502,7 +496,6 @@ void Mapper209_Init(CartInfo *info)
 
 void Mapper211_Init(CartInfo *info)
 {
-	using namespace Board90;
   is211=1;
   info->Reset=togglie;
   info->Power=M90Power;

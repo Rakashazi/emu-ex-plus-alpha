@@ -24,7 +24,14 @@ public:
 
 	void setTimeNow()
 	{
-		clock_gettime(CLOCK_MONOTONIC, &t);
+		*this = timeNow();
+	}
+
+	static TimeTimespec timeNow()
+	{
+		TimeTimespec time;
+		clock_gettime(CLOCK_MONOTONIC, &time.t);
+		return time;
 	}
 
 	long int toMs()
@@ -75,6 +82,11 @@ public:
 	operator double() const
 	{
 		return timespec_toDouble(t);
+	}
+
+	operator bool() const
+	{
+		return t.tv_sec != 0 || t.tv_nsec != 0;
 	}
 
 	bool operator <(TimeTimespec const& rhs) const

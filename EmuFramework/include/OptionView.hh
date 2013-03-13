@@ -43,14 +43,17 @@ void chdirFromFilePath(const char *path);
 class OptionView : public BaseMenuView
 {
 protected:
-	BoolMenuItem snd {"Sound"};
+	BoolMenuItem snd {"Sound", BoolMenuItem::SelectDelegate::create<&soundHandler>()};
+	static void soundHandler(BoolMenuItem &item, const Input::Event &e);
 
 	#ifdef CONFIG_AUDIO_OPENSL_ES
-	BoolMenuItem sndUnderrunCheck {"Strict Underrun Check"};
+	BoolMenuItem sndUnderrunCheck {"Strict Underrun Check", BoolMenuItem::SelectDelegate::create<&soundUnderrunCheckHandler>()};
+	static void soundUnderrunCheckHandler(BoolMenuItem &item, const Input::Event &e);
 	#endif
 
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	BoolMenuItem useOSInputMethod {"Skip OS Input Method"};
+	BoolMenuItem useOSInputMethod {"Skip OS Input Method", BoolMenuItem::SelectDelegate::create<&useOSInputMethodHandler>()};
+	static void useOSInputMethodHandler(BoolMenuItem &item, const Input::Event &e);
 	#endif
 
 	#ifdef CONFIG_ENV_WEBOS

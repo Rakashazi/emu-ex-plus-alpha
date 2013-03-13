@@ -446,7 +446,7 @@ struct SSettings
 	static const int8	StretchScreenshots = 0;
 	static const bool8	SnapshotScreenshots = 0;
 
-	bool8	ApplyCheats = 0;
+	static const bool8	ApplyCheats = 1;
 	bool8	NoPatch = 0;
 	static const int32	AutoSaveDelay = 30;
 	static const bool8	DontSaveOopsSnapshot = 0;

@@ -26,6 +26,7 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 static PerPad_struct *pad[2];
 
 static bool isCDExtension(const char *name)

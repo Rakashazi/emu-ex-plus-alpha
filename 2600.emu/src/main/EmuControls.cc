@@ -273,38 +273,44 @@ const KeyConfig defaultWiimoteProfile[] =
 				Input::Wiimote::A,
 			}
 	},
-	{
-			Input::Event::MAP_WIIMOTE,
-			"Default Classic Controller",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
-
-				// JS 1
-				Input::Wiimote::UP,
-				Input::Wiimote::RIGHT,
-				Input::Wiimote::DOWN,
-				Input::Wiimote::LEFT,
-				0,
-				0,
-				0,
-				0,
-				Input::Wiimote::Y,
-				Input::Wiimote::B,
-
-				// JS 2
-				PP_ZERO_LIST(10)
-
-				// Switches
-				Input::Wiimote::MINUS,
-				Input::Wiimote::PLUS,
-				Input::Wiimote::L,
-				Input::Wiimote::R,
-				Input::Wiimote::X,
-			}
-	},
 };
 
 const uint defaultWiimoteProfiles = sizeofArray(defaultWiimoteProfile);
+
+const KeyConfig defaultWiiCCProfile[] =
+{
+	{
+		Input::Event::MAP_WII_CC,
+		"Default Classic / Wii U Pro Controller",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
+
+			// JS 1
+			Input::WiiCC::UP,
+			Input::WiiCC::RIGHT,
+			Input::WiiCC::DOWN,
+			Input::WiiCC::LEFT,
+			0,
+			0,
+			0,
+			0,
+			Input::WiiCC::Y,
+			Input::WiiCC::B,
+
+			// JS 2
+			PP_ZERO_LIST(10)
+
+			// Switches
+			Input::WiiCC::MINUS,
+			Input::WiiCC::PLUS,
+			Input::WiiCC::L,
+			Input::WiiCC::R,
+			Input::WiiCC::X,
+		}
+	},
+};
+
+const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
 
 // iControlPad
 

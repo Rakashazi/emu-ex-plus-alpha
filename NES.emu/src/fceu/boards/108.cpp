@@ -15,55 +15,44 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
 
-namespace Board108
-{
-
 static uint8 reg;
 
-static SFORMAT StateRegs[]=
+static SFORMAT StateRegs[] =
 {
-  {&reg, 1, "REG"},
-  {0}
+	{ &reg, 1, "REG" },
+	{ 0 }
 };
 
-static void Sync(void)
-{
-  setprg8(0x6000,reg);
-  setprg32(0x8000,~0);
-  setchr8(0);
+static void Sync(void) {
+	setprg8(0x6000, reg);
+	setprg32(0x8000, ~0);
+	setchr8(0);
 }
 
-static DECLFW(M108Write)
-{
-   reg=V;
-   Sync();
+static DECLFW(M108Write) {
+	reg = V;
+	Sync();
 }
 
-static void M108Power(void)
-{
-  Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x8FFF,0x8FFF,M108Write);
+static void M108Power(void) {
+	Sync();
+	SetReadHandler(0x6000, 0x7FFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x8000, 0x8FFF, M108Write); // regular 108
+	SetWriteHandler(0xF000, 0xFFFF, M108Write); // simplified Kaiser BB Hack
 }
 
-static void StateRestore(int version)
-{
-  Sync();
+static void StateRestore(int version) {
+	Sync();
 }
 
+void Mapper108_Init(CartInfo *info) {
+	info->Power = M108Power;
+	GameStateRestore = StateRestore;
+	AddExState(&StateRegs, ~0, 0, 0);
 }
-
-void Mapper108_Init(CartInfo *info)
-{
-	using namespace Board108;
-  info->Power=M108Power;
-  GameStateRestore=Board108::StateRestore;
-  AddExState(&Board108::StateRegs, ~0, 0, 0);
-}
-

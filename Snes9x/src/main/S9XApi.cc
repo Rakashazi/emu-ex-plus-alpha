@@ -89,13 +89,6 @@ const char * S9xGetFilenameInc (const char *ex, enum s9x_getdirtype dirtype)
 	return nullptr;
 }
 
-const char * S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
-{
-	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
-	return s;
-}
-
 #else
 
 /*bool8 S9xOpenSoundDevice(int mode, bool8 stereo, int buffer_size)
@@ -107,13 +100,6 @@ extern "C" void S9xLoadSDD1Data()
 {
     Memory.FreeSDD1Data();
 	Settings.SDD1Pack = TRUE;
-}
-
-const char *S9xGetFilename (const char *ex)
-{
-	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s.%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
-	return s;
 }
 
 const char *S9xGetFilenameInc (const char *e)
@@ -156,6 +142,18 @@ extern "C" char* osd_GetPackDir()
 }
 
 #endif
+
+#ifndef SNES9X_VERSION_1_4
+const char *S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
+#else
+const char *S9xGetFilename (const char *ex)
+#endif
+{
+	static char	s[PATH_MAX + 1];
+	snprintf(s, PATH_MAX + 1, "%s/%s%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
+	//logMsg("built s9x path: %s", s);
+	return s;
+}
 
 bool S9xPollAxis (uint32 id, int16 *value)
 {

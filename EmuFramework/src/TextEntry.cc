@@ -7,11 +7,13 @@ void TextEntry::setAcceptingInput(bool on)
 {
 	if(on)
 	{
+		Input::setTranslateKeyboardEventsByModifiers(1);
 		Input::showSoftInput();
 		logMsg("accepting input");
 	}
 	else
 	{
+		Input::setTranslateKeyboardEventsByModifiers(0);
 		Input::hideSoftInput();
 		logMsg("stopped accepting input");
 	}
@@ -106,6 +108,7 @@ CallResult TextEntry::init(const char *initText, ResourceFace *face)
 
 void TextEntry::deinit()
 {
+	Input::setTranslateKeyboardEventsByModifiers(0);
 	Input::hideSoftInput();
 	t.deinit();
 }
@@ -125,7 +128,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent)
 	textEntry.init(initialContent, View::defaultFace);
 	textEntry.setAcceptingInput(1);
 	#else
-	Input::startSysTextInput(Input::InputTextDelegate::create<CollectTextInputView, &CollectTextInputView::gotText>(this), initialContent, msgText);
+	Input::startSysTextInput(Input::InputTextDelegate::create<template_mfunc(CollectTextInputView, gotText)>(this), initialContent, msgText);
 	#endif
 }
 
@@ -140,6 +143,7 @@ void CollectTextInputView::gotText(const char *str)
 	}
 	if(onTextDel.invoke(str))
 	{
+		logMsg("text collection canceled by text delegate");
 		removeModalView();
 	}
 }
@@ -208,7 +212,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	#endif
 }
 
-void CollectTextInputView::draw()
+void CollectTextInputView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	#ifndef CONFIG_BASE_ANDROID

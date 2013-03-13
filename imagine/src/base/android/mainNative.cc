@@ -1,22 +1,7 @@
-/*  This file is part of Imagine.
-
-	Imagine is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	Imagine is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
 #define thisModuleName "base:android"
 #include <stdlib.h>
 #include <errno.h>
-#include <util/egl.hh>
+
 #include <logger/interface.h>
 #include <engine-globals.h>
 #include <base/android/sdk.hh>
@@ -24,27 +9,35 @@
 #include <base/common/funcs.h>
 #include <input/android/private.hh>
 #include <android/window.h>
+#include <android/configuration.h>
+#include <android/looper.h>
+#include <android/native_activity.h>
 #include <dlfcn.h>
 #include <sys/inotify.h>
+#include <sys/eventfd.h>
 #include <fs/sys.hh>
-
+#include <util/fd-utils.h>
+#ifdef CONFIG_BLUETOOTH
+#include <bluetooth/BluetoothInputDevScanner.hh>
+#endif
 #include "private.hh"
+#include "common.hh"
+#include "EGLWindow.hh"
 
 #ifdef CONFIG_RESOURCE_FONT_ANDROID
 	void setupResourceFontAndroidJni(JNIEnv *jEnv, jobject jClsLoader, const JavaInstMethod<jobject> &jLoadClass);
 #endif
 
-void* android_app_entry(void* param);
-
 namespace Gfx
 {
+
 AndroidSurfaceTextureConfig surfaceTextureConf;
 
 void AndroidSurfaceTextureConfig::init(JNIEnv *jEnv)
 {
 	if(Base::androidSDK() >= 14)
 	{
-		logMsg("setting up SurfaceTexture JNI");
+		//logMsg("setting up SurfaceTexture JNI");
 		// Surface members
 		jSurfaceCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/Surface"));
 		jSurface.setup(jEnv, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
@@ -80,179 +73,41 @@ void setUseAndroidSurfaceTexture(bool on)
 namespace Base
 {
 
-struct EGLWindow
-{
-	EGLDisplay display = EGL_NO_DISPLAY;
-	EGLSurface surface = EGL_NO_SURFACE;
-	EGLContext context = EGL_NO_CONTEXT;
-	EGLConfig config = 0;
-	bool useMaxColorBits = 0;
-	bool has32BppColorBugs = 0;
-
-	constexpr EGLWindow() { }
-
-	void initEGL()
-	{
-		logMsg("doing EGL init");
-		display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-		assert(display != EGL_NO_DISPLAY);
-		eglInitialize(display, 0, 0);
-
-		//printEGLConfs(display);
-		//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
-		//printEGLConfsWithAttr(display, eglAttrWinLowColor);
-
-		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
-	}
-
-	void initContext(ANativeWindow *win)
-	{
-		if(!useMaxColorBits)
-		{
-			logMsg("requesting lowest color config");
-		}
-		auto *attribs = useMaxColorBits ? eglAttrWinMaxRGBA : eglAttrWinLowColor;
-		EGLint configs = 0;
-		eglChooseConfig(display, attribs, &config, 1, &configs);
-		#ifndef NDEBUG
-		printEGLConf(display, config);
-		#endif
-
-		assert(context == EGL_NO_CONTEXT);
-
-		logMsg("creating GL context");
-		context = eglCreateContext(display, config, 0, 0);
-
-		initSurface(win);
-	}
-
-	static int winFormatFromConfig(EGLDisplay display, EGLConfig config)
-	{
-		EGLint nId;
-		eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nId);
-		if(!nId)
-		{
-			nId = WINDOW_FORMAT_RGBA_8888;
-			EGLint redSize;
-			eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
-			if(redSize < 8)
-				nId = WINDOW_FORMAT_RGB_565;
-			logWarn("config didn't provide a native format id, guessing %d", nId);
-		}
-		return nId;
-	}
-
-	void initSurface(ANativeWindow *win)
-	{
-		assert(display != EGL_NO_DISPLAY);
-		int configFormat = winFormatFromConfig(display, config);
-		int currFormat = ANativeWindow_getFormat(win);
-		if(currFormat != configFormat)
-		{
-			logMsg("changing window format from %d to %d", currFormat, configFormat);
-		}
-		ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
-		logMsg("current window format: %d", ANativeWindow_getFormat(win));
-
-		assert(context != EGL_NO_CONTEXT);
-
-		assert(surface == EGL_NO_SURFACE);
-		logMsg("creating window surface");
-		surface = eglCreateWindowSurface(display, config, win, 0);
-
-		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
-		{
-			logErr("error in eglMakeCurrent");
-			abort();
-		}
-		logMsg("window size: %d,%d, from EGL: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win), width(), height());
-
-		/*if(eglSwapInterval(display, 1) != EGL_TRUE)
-		{
-			logErr("error in eglSwapInterval");
-		}*/
-	}
-
-	EGLint width()
-	{
-		assert(surface != EGL_NO_SURFACE);
-		assert(display != EGL_NO_DISPLAY);
-		EGLint w;
-		eglQuerySurface(display, surface, EGL_WIDTH, &w);
-		return w;
-	}
-
-	EGLint height()
-	{
-		assert(surface != EGL_NO_SURFACE);
-		assert(display != EGL_NO_DISPLAY);
-		EGLint h;
-		eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-		return h;
-	}
-
-	void destroySurface()
-	{
-		if(isDrawable())
-		{
-			logMsg("destroying window surface");
-			eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-			eglDestroySurface(display, surface);
-			surface = EGL_NO_SURFACE;
-		}
-	}
-
-	void destroyContext()
-	{
-		destroySurface();
-		logMsg("destroying GL context");
-		assert(surface == EGL_NO_SURFACE);
-		assert(context != EGL_NO_CONTEXT);
-		eglDestroyContext(display, context);
-		context = EGL_NO_CONTEXT;
-	}
-
-	bool verifyContext()
-	{
-		return eglGetCurrentContext() != EGL_NO_CONTEXT;
-	}
-
-	bool isDrawable()
-	{
-		return surface != EGL_NO_SURFACE;
-	}
-
-	void swap()
-	{
-		eglSwapBuffers(display, surface);
-	}
-} eglWin;
-
-}
-
-#include "common.hh"
-
-namespace Base
-{
+static void processInputWithGetEvent(AInputQueue *inputQueue);
+static void processInputWithHasEvents(AInputQueue *inputQueue);
+static void postDrawWindow();
+static void cancelDrawWindow();
+static int processInputCallback(int fd, int events, void* data);
+static void onResume(ANativeActivity* activity);
+static void onPause(ANativeActivity* activity);
 
 static JNIEnv* eJEnv = nullptr;
-static bool engineIsInit = 0;
+bool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy;
-JavaInstMethod<void> postUIThread;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
 extern pid_t activityTid;
 static bool sigMatchesAPK = 1;
 static jfieldID jSurfaceIs32BitId;
 static bool resumeAppOnWindowInit = 0;
-
-// Public implementation
-
-JNIEnv* eEnv() { assert(eJEnv); return eJEnv; }
-JNIEnv* aEnv() { return appInstance()->activity->env; }
-
+static bool hasChoreographer = 0, processedInputInDrawFrame = 0;
+static AInputQueue *inputQueue = nullptr;
+static ALooper *aLooper = nullptr;
+static ANativeWindow *nWin = nullptr;
+static int64 prevFrameTimeNanos = 0;
+static EGLWindow eglWin;
 uint appState = APP_PAUSED;
+static AConfiguration *aConfig = nullptr;
+static int writeMsgPipe = -1, drawWinEventFd = -1;
+static JavaInstMethod<void> jSetKeepScreenOn, jSetUIVisibility, jSetFullscreen,
+	jPostWinDraw, jCancelWinDraw, jPostDrawWindow, jCancelDrawWindow;
+static bool winDrawPosted = 0;
+static uint drawWinEventIdle = 0;
+static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHasEvents;
+static bool statusBarIsHidden = 1; // assume app starts fullscreen
+static CallbackRef *inputRescanCallbackRef = nullptr;
+static void (*didDrawWindowCallback)() = nullptr;
 
 void setWindowPixelBestColorHint(bool best)
 {
@@ -265,108 +120,39 @@ bool windowPixelBestColorHintDefault()
 	return Base::androidSDK() >= 11 && !eglWin.has32BppColorBugs;
 }
 
-void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
+static int pollEventCallback(int fd, int events, void* data)
 {
-	assert(appInstance()->msgwrite);
-	uint16 shortArg16 = shortArg;
-	int msg[3] = { (shortArg16 << 16) | type, intArg, intArg2 };
-	logMsg("sending msg type %d with args %d %d %d", msg[0] & 0xFFFF, msg[0] >> 16, msg[1], msg[2]);
-	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
-	{
-		logErr("unable to write message to pipe: %s", strerror(errno));
-	}
+	auto source = (PollEventDelegate*)data;
+	assert(source);
+	source->invoke(events);
+	if(gfxUpdate)
+		postDrawWindow();
+	return 1;
 }
 
-void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
-{
-	sendMessageToMain(type, shortArg, intArg, intArg2);
-}
-
-#ifdef CONFIG_ANDROIDBT
-static const ushort MSG_BT_DATA = 150;
-
-void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
-{
-	int msg[3] = { MSG_BT_DATA, (int)&socket, len };
-	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
-	{
-		logErr("unable to write message header to pipe: %s", strerror(errno));
-	}
-	if(::write(appInstance()->msgwrite, data, len) != len)
-	{
-		logErr("unable to write bt data to pipe: %s", strerror(errno));
-	}
-}
-#endif
-
-void sendTextEntryEnded(const char *str, jstring jStr)
-{
-	int msg[3] = { APP_CMD_TEXT_ENTRY_ENDED, (int)str, (int)jStr };
-	if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
-	{
-		logErr("unable to write text input message to pipe: %s", strerror(errno));
-	}
-}
-
-void setIdleDisplayPowerSave(bool on)
-{
-	jint keepOn = !on;
-	logMsg("keep screen on: %d", keepOn);
-	postUIThread(eEnv(), jBaseActivity, 0, keepOn);
-}
-
-void setOSNavigationStyle(uint flags)
-{
-	// Flags mapped directly
-	// OS_NAV_STYLE_DIM -> SYSTEM_UI_FLAG_LOW_PROFILE (1)
-	// OS_NAV_STYLE_HIDDEN -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (2)
-	// 0 -> SYSTEM_UI_FLAG_VISIBLE
-	postUIThread(eEnv(), jBaseActivity, 1, flags);
-}
-
-void addPollEvent(int fd, PollEventDelegate &handler, uint events)
+static void addPollEvent(ALooper *looper, int fd, PollEventDelegate &handler, uint events)
 {
 	logMsg("adding fd %d to looper", fd);
-	assert(appInstance()->looper);
-	int ret = ALooper_addFd(appInstance()->looper, fd, LOOPER_ID_USER, events, 0, &handler);
+	assert(looper);
+	int ret = ALooper_addFd(looper, fd, ALOOPER_POLL_CALLBACK, events, pollEventCallback, &handler);
 	assert(ret == 1);
 }
 
-void modPollEvent(int fd, PollEventDelegate &handler, uint events)
-{
-	addPollEvent(fd, handler, events);
-}
-
-void removePollEvent(int fd)
+static void removePollEvent(ALooper *looper, int fd)
 {
 	logMsg("removing fd %d from looper", fd);
-	int ret = ALooper_removeFd(appInstance()->looper, fd);
+	int ret = ALooper_removeFd(looper, fd);
 	assert(ret != -1);
 }
 
 void openGLUpdateScreen()
 {
-	/*TimeSys preTime;
-	preTime.setTimeNow();*/
-	/*logMsg("swap buffers, surface %d %d, context %d, display %d", (int)eglGetCurrentSurface(EGL_DRAW), (int)eglGetCurrentSurface(EGL_READ),
-			(int)eglGetCurrentContext(), (int)eglGetCurrentDisplay());*/
 	eglWin.swap();
-	/*TimeSys postTime;
-	postTime.setTimeNow();
-	logMsg("swap took %f", double(postTime - preTime));*/
 }
 
 bool surfaceTextureSupported()
 {
 	return Gfx::surfaceTextureConf.isSupported();
-}
-
-void setProcessPriority(int nice)
-{
-	assert(nice > -20);
-	logMsg("setting process nice level: %d", nice);
-	setpriority(PRIO_PROCESS, 0, nice);
-	setpriority(PRIO_PROCESS, activityTid, nice == 0 ? 0 : nice-1);
 }
 
 int processPriority()
@@ -379,26 +165,24 @@ bool apkSignatureIsConsistent()
 	return sigMatchesAPK;
 }
 
-// Private implementation
-
 EGLDisplay getAndroidEGLDisplay()
 {
 	assert(eglWin.display != EGL_NO_DISPLAY);
 	return eglWin.display;
 }
 
-bool windowIsDrawable()
+static void initConfig(AConfiguration* config)
 {
-	return eglWin.isDrawable();
-}
-
-static void envConfig(int orientation, int hardKeyboardState, int navigationState)
-{
-	logMsg("doing native env config, starting orientation %d", orientation);
-	osOrientation = orientation;
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navigationState = AConfiguration_getNavHidden(config);
+	auto keyboard = AConfiguration_getKeyboard(config);
 
 	aHardKeyboardState = (devType == DEV_TYPE_XPERIA_PLAY) ? navigationState : hardKeyboardState;
 	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
+
+	aKeyboardType = keyboard;
+	if(aKeyboardType != ACONFIGURATION_KEYBOARD_NOKEYS)
+		logMsg("keyboard type: %d", aKeyboardType);
 }
 
 static void initGfxContext(ANativeWindow* win)
@@ -411,38 +195,31 @@ static void initGfxContext(ANativeWindow* win)
 	engineIsInit = 1;
 }
 
-static bool appFocus(bool hasFocus)
+static void appFocus(bool hasFocus, ANativeWindow* window)
 {
 	aHasFocus = hasFocus;
 	logMsg("focus change: %d", (int)hasFocus);
-	auto prevGfxUpdateState = gfxUpdate;
+	if(hasFocus && window)
+	{
+		logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
+		gfxUpdate = 1;
+	}
 	if(engineIsInit)
 		onFocusChange(hasFocus);
-	return appState == APP_RUNNING && prevGfxUpdateState == 0 && gfxUpdate;
 }
 
-static void configChange(struct android_app* app, jint hardKeyboardState, jint navState, jint orientation)
+static void configChange(AConfiguration* config, ANativeWindow* window)
 {
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navState = AConfiguration_getNavHidden(config);
+	auto orientation = jGetRotation(eEnv(), jDpy);
+	auto keyboard = AConfiguration_getKeyboard(config);
 	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
 	setHardKeyboardState((devType == DEV_TYPE_XPERIA_PLAY) ? navState : hardKeyboardState);
 
-	if(setOrientationOS(orientation) && androidSDK() < 11)
+	if(setOrientationOS(orientation))
 	{
-		logMsg("doing extra screen updates for orientation change");
-		// hack for some Android 2.3 devices that won't return the correct window size
-		// in the next redraw event unless a certain amount of frames are rendered
-		if(appState == APP_RUNNING && eglWin.isDrawable())
-		{
-			iterateTimes(3, i)
-			{
-				int w = ANativeWindow_getWidth(app->window);
-				int h = ANativeWindow_getHeight(app->window);
-				mainWin.w = w; mainWin.h = h;
-				resizeEvent(mainWin);
-				gfxUpdate = 1;
-				runEngine();
-			}
-		}
+		//logMsg("changed OS orientation");
 	}
 }
 
@@ -450,10 +227,7 @@ static void appPaused()
 {
 	logMsg("app paused");
 	appState = APP_PAUSED;
-	if(engineIsInit)
-	{
-		onExit(1);
-	}
+	onExit(1);
 }
 
 static void appResumed()
@@ -472,54 +246,37 @@ static void appResumed()
 	}
 }
 
-static bool statusBarIsHidden = 1; // assume app starts fullscreen
-
-void setStatusBarHidden(uint hidden)
-{
-	hidden = hidden ? 1 : 0;
-	if(hidden != statusBarIsHidden)
-	{
-		statusBarIsHidden = hidden;
-		// changing window full-screen state may cause the window to re-create
-		// so we need to queue it up for later in case other
-		// window messages haven't been handled yet
-		int msg[1] = { APP_CMD_TOGGLE_FULL_SCREEN_WINDOW };
-		if(::write(appInstance()->msgwrite, &msg, sizeof(msg)) != sizeof(msg))
-		{
-			logErr("unable to write toggle full screen message to pipe: %s", strerror(errno));
-		}
-	}
-}
-
-static bool updateWinSize(Window &win, ANativeWindow* nWin)
+static void updateWinSize(Window &win, ANativeWindow* nWin)
 {
 	auto w = ANativeWindow_getWidth(nWin);
 	auto h = ANativeWindow_getHeight(nWin);
-	if(w < 0 || h < 0)
-	{
-		logMsg("error getting native window size");
-		return 0;
-	}
+	bool changed = w != win.w || h != win.h;
 	win.w = w;
 	win.h = h;
-	return 1;
+	if(w < 0 || h < 0)
+	{
+		bug_exit("error getting native window size");
+	}
+	if(changed)
+	{
+		logMsg("set window size %d,%d", w, h);
+	}
 }
 
-static Base::CallbackRef *inputRescanCallbackRef = nullptr;
 static void inputRescanCallback()
 {
 	Input::rescanDevices();
 	inputRescanCallbackRef = nullptr;
+	postDrawWindowIfNeeded();
 }
 
-static int inputDevNotifyFd = 0;
-static int inputDevNotifyFdHandler(int events)
+static int inputDevNotifyFdHandler(int fd, int events, void* data)
 {
 	logMsg("got inotify event");
 	if(events == Base::POLLEV_IN)
 	{
 		char buffer[16384];
-		auto size = read (inputDevNotifyFd, buffer, sizeof(buffer));
+		auto size = read(fd, buffer, sizeof(buffer));
 		if(inputRescanCallbackRef)
 			cancelCallback(inputRescanCallbackRef);
 		inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 250);
@@ -527,14 +284,23 @@ static int inputDevNotifyFdHandler(int events)
 	return 1;
 }
 
-static void initWindow(ANativeWindow *win)
+static void initWindow(ANativeActivity* activity, ANativeWindow *win)
 {
 	if(win)
 	{
 		if(!engineIsInit)
 		{
-			logMsg("doing first window init");
+			logMsg("doing window & gfx context init");
+			appState = APP_RUNNING;
 			initGfxContext(win);
+			if(inputQueue)
+			{
+				logMsg("attaching input queue");
+				AInputQueue_attachLooper(inputQueue, aLooper, ALOOPER_POLL_CALLBACK, processInputCallback, inputQueue);
+			}
+			// the following handlers should only ever be called after the initial window init
+			activity->callbacks->onResume = onResume;
+			activity->callbacks->onPause = onPause;
 		}
 		else
 		{
@@ -554,281 +320,70 @@ static void initWindow(ANativeWindow *win)
 	}
 }
 
+static void postDrawWindowCallback()
+{
+	gfxUpdate = 1;
+	postDrawWindow();
+	// re-check if window size changed in case OS didn't sync properly with app
+	updateWinSize(mainWin, nWin);
+	resizeEvent(mainWin);
+	triggerGfxResize = 1;
+	logMsg("extra window redraw, size %d,%d", mainWin.w, mainWin.h);
+	didDrawWindowCallback = nullptr;
+}
+
 static void windowNeedsRedraw(ANativeWindow *win)
 {
-	if(eglWin.isDrawable())
-	{
-		// re-check if window size changed since some devices may "forget"
-		// to send a proper resize event. For example, on a stock 2.3 Xperia Play,
-		// putting the device to sleep in portrait, then sliding the gamepad open
-		// causes a content rect change with swapped window width/height
-		if(!updateWinSize(mainWin, win))
-		{
-			logWarn("skipping window redraw");
-			return;
-		}
-		logMsg("window redraw, size %d,%d", mainWin.w, mainWin.h);
-		resizeEvent(mainWin);
-		gfxUpdate = 1;
-		runEngine();
-	}
-	else
-	{
-		logWarn("window redraw without valid surface");
-	}
+	assert(eglWin.isDrawable());
+	gfxUpdate = 1;
+	postDrawWindow();
+	// post an extra draw to avoid incorrect display if the window draws too early
+	// in an OS orientation change
+	didDrawWindowCallback = postDrawWindowCallback;
+	logMsg("window redraw, size %d,%d", mainWin.w, mainWin.h);
 }
 
 static void windowResized(ANativeWindow *win)
 {
-	if(eglWin.isDrawable())
-	{
-		if(!updateWinSize(mainWin, win))
-		{
-			logWarn("skipping window resize");
-			return;
-		}
-		logMsg("window resize to %d,%d", mainWin.w, mainWin.h);
-		resizeEvent(mainWin);
-		gfxUpdate = 1;
-		runEngine();
-	}
-	else
-	{
-		logWarn("window resize without valid surface");
-	}
+	assert(eglWin.isDrawable());
+	logMsg("window resized");
+	gfxUpdate = 1;
+	postDrawWindow();
+	updateWinSize(mainWin, win);
+	resizeEvent(mainWin);
 }
 
-void onAppCmd(struct android_app* app, uint32 cmd)
+static void contentRectChanged(const ARect &rect, ANativeWindow *win)
 {
-	uint cmdType = cmd & 0xFFFF;
-	switch (cmdType)
-	{
-		bcase APP_CMD_START:
-		logMsg("app started");
-		bcase APP_CMD_SAVE_STATE:
-		//logMsg("got APP_CMD_SAVE_STATE");
-		/*app->savedState = malloc(sizeof(struct saved_state));
-		*((struct saved_state*)app->savedState) = engine->state;
-		app->savedStateSize = sizeof(struct saved_state);*/
-		bcase APP_CMD_INIT_WINDOW:
-		initWindow(app->window);
-		bcase APP_CMD_TERM_WINDOW:
-		logMsg("window destroyed");
-		pthread_mutex_lock(&app->mutex);
-		eglWin.destroySurface();
-		pthread_cond_signal(&app->cond);
-		pthread_mutex_unlock(&app->mutex);
-		bcase APP_CMD_GAINED_FOCUS:
-		if(app->window)
-		{
-			logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
-			gfxUpdate = 1;
-		}
-		appFocus(1);
-		bcase APP_CMD_LOST_FOCUS:
-		appFocus(0);
-		bcase APP_CMD_WINDOW_REDRAW_NEEDED:
-		windowNeedsRedraw(app->window);
-		bcase APP_CMD_WINDOW_RESIZED:
-		windowResized(app->window);
-		bcase APP_CMD_CONTENT_RECT_CHANGED:
-		{
-			auto &rect = app->contentRect;
-			mainWin.rect.x = rect.left; mainWin.rect.y = rect.top;
-			mainWin.rect.x2 = rect.right; mainWin.rect.y2 = rect.bottom;
-			if(eglWin.isDrawable())
-			{
-				if(updateWinSize(mainWin, app->window))
-				{
-					resizeEvent(mainWin);
-					gfxUpdate = 1;
-					runEngine();
-					gfxUpdate = 1;
-				}
-			}
-			logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d%s",
-				rect.left, rect.top, rect.right, rect.bottom, mainWin.w, mainWin.h, eglWin.isDrawable() ? "" : ", no valid surface");
-		}
-		/*bcase APP_CMD_LAYOUT_CHANGED:
-		{
-			logMsg("layout change, visible bottom %d", visibleScreenY);
-			mainWin.rect.y2 = visibleScreenY;
-			resizeEvent(mainWin);
-			if(appState == APP_RUNNING && eglWin.isDrawable())
-			{
-				gfxUpdate = 1;
-				runEngine();
-			}
-		}*/
-		bcase APP_CMD_TOGGLE_FULL_SCREEN_WINDOW:
-		{
-			logMsg("setting app window fullscreen: %d", (int)statusBarIsHidden);
-			ANativeActivity_setWindowFlags(appInstance()->activity,
-				statusBarIsHidden ? AWINDOW_FLAG_FULLSCREEN : 0,
-				statusBarIsHidden ? 0 : AWINDOW_FLAG_FULLSCREEN);
-			sleepMs(50); // OS BUG: setting flags may cause instant destruction of the window,
-				// including in mid EGL swap. Depending on the device driver, this will either
-				// be ignored, create visual artifacts, or crash the app.
-				// There doesn't seem to be any reliable method to sync the completion of
-				// setWindowFlags in the Activity thread and there's no way to know
-				// whether a particular call will actually re-create the window.
-				// Thus, the only "solution" at the moment is to sleep for couple frames
-				// and hope the app will find out about any window destruction
-				// before another EGL swap
-		}
-		bcase APP_CMD_CONFIG_CHANGED:
-		configChange(app, AConfiguration_getKeysHidden(app->config),
-				AConfiguration_getNavHidden(app->config),
-				jGetRotation(eEnv(), jDpy));
-		bcase APP_CMD_PAUSE:
-		appPaused();
-		bcase APP_CMD_RESUME:
-		appResumed();
-		bcase APP_CMD_STOP:
-		logMsg("app stopped");
-		bcase APP_CMD_DESTROY:
-		logMsg("app destroyed");
-		//app->activity->vm->DetachCurrentThread();
-		::exit(0);
-		bcase APP_CMD_INPUT_CHANGED:
-		bcase APP_CMD_TEXT_ENTRY_ENDED:
-		{
-			#ifdef CONFIG_INPUT
-			const char *str;
-			read(app->msgread, &str, sizeof(str));
-			jstring jStr;
-			read(app->msgread, &jStr, sizeof(jStr));
-			Input::textInputEndedMsg(str, jStr);
-			#endif
-		}
-		#ifdef CONFIG_ANDROIDBT
-		bcase MSG_BT_DATA:
-		{
-			BluetoothSocket *s;
-			read(app->msgread, &s, sizeof(s));
-			int size;
-			read(app->msgread, &size, sizeof(size));
-			uchar buff[48];
-			read(app->msgread, buff, size);
-			s->onDataDelegate().invoke(buff, size);
-		}
-		#endif
-		bdefault:
-		if(cmdType >= MSG_START)
-		{
-			uint32 arg[2];
-			read(app->msgread, arg, sizeof(arg));
-			logMsg("got msg type %d with args %d %d %d", cmd & 0xFFFF, cmd >> 16, arg[0], arg[1]);
-			Base::processAppMsg(cmdType, cmd >> 16, arg[0], arg[1]);
-		}
-		else
-			logWarn("got unknown cmd %d", cmd);
-		break;
-	}
+	mainWin.rect.x = rect.left; mainWin.rect.y = rect.top;
+	mainWin.rect.x2 = rect.right; mainWin.rect.y2 = rect.bottom;
+	assert(eglWin.isDrawable());
+	gfxUpdate = 1;
+	postDrawWindow();
+	updateWinSize(mainWin, win);
+	resizeEvent(mainWin);
+
+	// Post an extra draw and delay applying the viewport to avoid incorrect display
+	// if the window draws too early in an OS UI animation (navigation bar slide, etc.)
+	// or the content rect is out of sync (happens mostly on pre-3.0 OS versions).
+	// For example, on a stock 2.3 Xperia Play,
+	// putting the device to sleep in portrait, then sliding the gamepad open
+	// may cause a content rect change with swapped window width/height.
+	// Another example, on the Archos Gamepad,
+	// removing the navigation bar can make the viewport off center
+	// if it's updated directly on the next frame.
+	triggerGfxResize = 0;
+	didDrawWindowCallback = postDrawWindowCallback;
+	logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d%s",
+		rect.left, rect.top, rect.right, rect.bottom, mainWin.w, mainWin.h, eglWin.isDrawable() ? "" : ", no valid surface");
 }
 
-/*static void JNICALL layoutChange(JNIEnv* env, jobject thiz, jint height)
+void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 {
-	assert(bottom >= 0);
-	if(visibleScreenY == (uint)bottom)
-		return;
-	logMsg("layout change, view height %d", bottom);
-	visibleScreenY = bottom;
-	if(!engineIsInit)
-		return;
-	uint32 cmd = APP_CMD_LAYOUT_CHANGED;
-	write(appInstance()->msgwrite, &cmd, sizeof(cmd));
-}*/
-
-// runs from activity thread, do not use jEnv
-static void JNICALL jEnvConfig(JNIEnv* env, jobject thiz, jfloat xdpi, jfloat ydpi, jint refreshRate, jobject dpy,
-		jstring devName, jstring filesPath, jstring eStoragePath, jstring apkPath, jobject sysVibrator,
-		jboolean hasPermanentMenuKey, jboolean animatesRotation, jint sigHash)
-{
-	logMsg("doing java env config");
-
-	filesDir = env->GetStringUTFChars(filesPath, 0);
-	eStoreDir = env->GetStringUTFChars(eStoragePath, 0);
-	doOrExit(logger_init());
-	appPath = env->GetStringUTFChars(apkPath, 0);
-	logMsg("apk @ %s", appPath);
-
-	logMsg("set screen DPI size %f,%f", (double)xdpi, (double)ydpi);
-	// DPI values must come in un-rotated from DisplayMetrics
-	androidXDPI = xDPI = xdpi;
-	androidYDPI = yDPI = ydpi;
-
-	jDpy = env->NewGlobalRef(dpy);
-	refreshRate_ = refreshRate;
-	logMsg("refresh rate: %d", refreshRate);
-
-	const char *devNameStr = env->GetStringUTFChars(devName, 0);
-	logMsg("device name: %s", devNameStr);
-	setDeviceType(devNameStr);
-	env->ReleaseStringUTFChars(devName, devNameStr);
-
-	if(sysVibrator)
-	{
-		logMsg("Vibrator object present");
-		vibrator = env->NewGlobalRef(sysVibrator);
-		setupVibration(env);
-	}
-
-	Base::hasPermanentMenuKey = hasPermanentMenuKey;
-	if(!hasPermanentMenuKey)
-	{
-		logMsg("device has software nav buttons");
-	}
-
-	osAnimatesRotation = animatesRotation;
-	if(!osAnimatesRotation)
-	{
-		logMsg("app handles rotation animations");
-	}
-
-	if(Base::androidSDK() >= 11)
-	{
-		if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
-		{
-			// Hack for Adreno chips that have display artifacts when using 32-bit color.
-			logMsg("device may have broken 32-bit surfaces, defaulting to low color");
-			eglWin.useMaxColorBits = 0;
-			eglWin.has32BppColorBugs = 1;
-		}
-		else
-		{
-			logMsg("defaulting to highest color mode");
-			eglWin.useMaxColorBits = 1;
-		}
-	}
-
-	#ifdef ANDROID_APK_SIGNATURE_HASH
-		sigMatchesAPK = sigHash == ANDROID_APK_SIGNATURE_HASH;
-	#endif
-
-	doOrExit(onInit(0, nullptr));
-	if(Base::androidSDK() < 11)
-		env->SetBooleanField(thiz, jSurfaceIs32BitId, eglWin.useMaxColorBits);
-
-	auto act = appInstance();
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&act->thread, &attr, android_app_entry, act);
-
-	// Wait for thread to start.
-	pthread_mutex_lock(&act->mutex);
-	while (!act->running)
-	{
-		pthread_cond_wait(&act->cond, &act->mutex);
-	}
-	pthread_mutex_unlock(&act->mutex);
-}
-
-void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
-{
+	auto jEnv = activity->env;
+	auto inst = activity->clazz;
 	using namespace Base;
-	logMsg("doing pre-app JNI setup");
+	logMsg("doing app creation");
 
 	// get class loader instance from Activity
 	jclass jNativeActivityCls = jEnv->FindClass("android/app/NativeActivity");
@@ -851,7 +406,94 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 		jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
 		jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 		jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
-		postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+		//postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+
+		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
+		{
+			logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
+			JavaInstMethod<jobject> jFilesDir;
+			jFilesDir.setup(jEnv, jBaseActivityCls, "filesDir", "()Ljava/lang/String;");
+			filesDir = jEnv->GetStringUTFChars((jstring)jFilesDir(jEnv, inst), 0);
+		}
+		else
+		{
+			filesDir = activity->internalDataPath;
+			//eStoreDir = activity->externalDataPath;
+		}
+
+		{
+			JavaClassMethod<jobject> extStorageDir;
+			extStorageDir.setup(jEnv, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;");
+			eStoreDir = jEnv->GetStringUTFChars((jstring)extStorageDir(jEnv), 0);
+			assert(filesDir);
+			assert(eStoreDir);
+			logMsg("internal storage path: %s", filesDir);
+			logMsg("external storage path: %s", eStoreDir);
+		}
+
+		doOrExit(logger_init());
+		logMsg("SDK API Level: %d", aSDK);
+
+		{
+			JavaInstMethod<jobject> jApkPath;
+			jApkPath.setup(jEnv, jBaseActivityCls, "apkPath", "()Ljava/lang/String;");
+			appPath = jEnv->GetStringUTFChars((jstring)jApkPath(jEnv, inst), 0);
+			logMsg("apk @ %s", appPath);
+		}
+
+		{
+			JavaClassMethod<jobject> jDevName;
+			jDevName.setup(jEnv, jBaseActivityCls, "devName", "()Ljava/lang/String;");
+			auto devName = (jstring)jDevName(jEnv);
+			const char *devNameStr = jEnv->GetStringUTFChars(devName, 0);
+			logMsg("device name: %s", devNameStr);
+			setDeviceType(devNameStr);
+			jEnv->ReleaseStringUTFChars(devName, devNameStr);
+		}
+
+		{
+			JavaInstMethod<jobject> jSysVibrator;
+			jSysVibrator.setup(jEnv, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;");
+			vibrator = jSysVibrator(jEnv, inst);
+			if(vibrator)
+			{
+				logMsg("Vibrator present");
+				vibrator = jEnv->NewGlobalRef(vibrator);
+			}
+		}
+
+		if(Base::androidSDK() >= 11)
+			osAnimatesRotation = 1;
+		else
+		{
+			JavaClassMethod<jboolean> jAnimatesRotation;
+			jAnimatesRotation.setup(jEnv, jBaseActivityCls, "gbAnimatesRotation", "()Z");
+			osAnimatesRotation = jAnimatesRotation(jEnv);
+		}
+		if(!osAnimatesRotation)
+		{
+			logMsg("app handles rotation animations");
+		}
+
+		if(Base::androidSDK() >= 14)
+		{
+			JavaInstMethod<jboolean> jHasPermanentMenuKey;
+			jHasPermanentMenuKey.setup(jEnv, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
+			Base::hasPermanentMenuKey = jHasPermanentMenuKey(jEnv, inst);
+			if(!Base::hasPermanentMenuKey)
+			{
+				logMsg("device has software nav buttons");
+			}
+		}
+		else
+			Base::hasPermanentMenuKey = 1;
+
+		#ifdef ANDROID_APK_SIGNATURE_HASH
+			JavaInstMethod<jint> jSigHash;
+			jSigHash.setup(jEnv, jBaseActivityCls, "sigHash", "()I");
+			sigMatchesAPK = jSigHash(jEnv, inst) == ANDROID_APK_SIGNATURE_HASH;
+		#endif
+
 		jSurfaceIs32BitId = jEnv->GetFieldID(jBaseActivityCls, "surfaceIs32Bit", "Z");
 	}
 
@@ -864,14 +506,58 @@ void jniInit(JNIEnv *jEnv, jobject inst) // uses JNIEnv from Activity thread
 	// Display members
 	jclass jDisplayCls = jEnv->FindClass("android/view/Display");
 	jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
+	JavaInstMethod<jfloat> jGetRefreshRate;
+	jGetRefreshRate.setup(jEnv, jDisplayCls, "getRefreshRate", "()F");
+	JavaInstMethod<void> jGetMetrics;
+	jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
 
-	static JNINativeMethod activityMethods[] =
+	JavaInstMethod<jobject> jDefaultDpy;
+	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
+	jDpy = jEnv->NewGlobalRef(jDefaultDpy(jEnv, inst));
+	refreshRate_ = jGetRefreshRate(jEnv, jDpy);
+	logMsg("refresh rate: %d", refreshRate_);
+	auto orientation = jGetRotation(jEnv, jDpy);
+	logMsg("starting orientation %d", orientation);
+	osOrientation = orientation;
+	bool isStraightOrientation = !Surface::isSidewaysOrientation(orientation);
+
+	// DisplayMetrics members
+	jclass jDisplayMetricsCls = jEnv->FindClass("android/util/DisplayMetrics");
+	JavaInstMethod<void> jDisplayMetrics;
+	jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
+	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
+	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
+
+	auto dpyMetrics = jEnv->NewObject(jDisplayMetricsCls, jDisplayMetrics.m);
+	assert(dpyMetrics);
+	jGetMetrics(jEnv, jDpy, dpyMetrics);
+	auto metricsXDPI = jEnv->GetFloatField(dpyMetrics, jXDPI);
+	auto metricsYDPI = jEnv->GetFloatField(dpyMetrics, jYDPI);
+
+	logMsg("set screen DPI size %f,%f", (double)metricsXDPI, (double)metricsYDPI);
+	// DPI values are un-rotated from DisplayMetrics
+	androidXDPI = xDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
+	androidYDPI = yDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
+
+	if(Base::androidSDK() >= 11)
 	{
-	    {"jEnvConfig", "(FFILandroid/view/Display;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/os/Vibrator;ZZI)V", (void *)&Base::jEnvConfig},
-	    //{"layoutChange", "(I)V", (void *)&Base::layoutChange},
-	};
+		if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
+		{
+			// Hack for Adreno chips that have display artifacts when using 32-bit color.
+			logMsg("device may have broken 32-bit surfaces, defaulting to low color");
+			eglWin.useMaxColorBits = 0;
+			eglWin.has32BppColorBugs = 1;
+		}
+		else
+		{
+			logMsg("defaulting to highest color mode");
+			eglWin.useMaxColorBits = 1;
+		}
+	}
 
-	jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+	doOrExit(onInit(0, nullptr));
+	if(Base::androidSDK() < 11)
+		jEnv->SetBooleanField(inst, jSurfaceIs32BitId, eglWin.useMaxColorBits);
 }
 
 static void dlLoadFuncs()
@@ -894,35 +580,499 @@ static void dlLoadFuncs()
 	#endif
 }
 
+static bool handleInputEvent(AInputQueue *inputQueue, AInputEvent* event)
+{
+	#ifdef CONFIG_INPUT
+		//logMsg("input event start");
+		if(Input::sendInputToIME && AInputQueue_preDispatchEvent(inputQueue, event))
+		{
+			//logMsg("input event used by pre-dispatch");
+			return 1;
+		}
+		auto handled = Input::onInputEvent(event);
+		AInputQueue_finishEvent(inputQueue, event, handled);
+		//logMsg("input event end: %s", handled ? "handled" : "not handled");
+	#else
+		AInputQueue_finishEvent(inputQueue, event, 0);
+	#endif
+	return 0;
 }
 
-void android_main(struct android_app* state)
+// Use on Android 4.1+ to fix a possible ANR where the OS
+// claims we haven't processed all input events even though we have.
+// This only seems to happen under heavy input event load, like
+// when using multiple joysticks. Everything seems to work
+// properly if we keep calling AInputQueue_getEvent until
+// it returns an error instead of using AInputQueue_hasEvents
+// and no warnings are printed to logcat unlike earlier
+// Android versions
+static void processInputWithGetEvent(AInputQueue *inputQueue)
 {
-	using namespace Base;
-	assert(!engineIsInit); // catch accidental activity restarts
-	logMsg("started native thread");
-	dlLoadFuncs();
+	int events = 0;
+	AInputEvent* event = nullptr;
+	while(AInputQueue_getEvent(inputQueue, &event) >= 0)
 	{
-		auto act = state->activity;
-		auto config = state->config;
-		jVM = act->vm;
-		jBaseActivity = act->clazz;
-		if(act->vm->AttachCurrentThread(&eJEnv, 0) != 0)
-		{
-			bug_exit("error attaching jEnv to thread");
-		}
-		envConfig(jGetRotation(eEnv(), jDpy),
-			AConfiguration_getKeysHidden(config), AConfiguration_getNavHidden(config));
+		handleInputEvent(inputQueue, event);
+		events++;
+	}
+	if(events > 1)
+	{
+		//logMsg("processed %d input events", events);
+	}
+}
+
+static void processInputWithHasEvents(AInputQueue *inputQueue)
+{
+	if(processedInputInDrawFrame)
+	{
+		// since we process input in drawWindow, we could get a callback without any input present
+		// and cause alogcat warnings upon calling AInputQueue_hasEvents
+		//logMsg("input was handled in frame update");
+		processedInputInDrawFrame = 0;
+		return;
 	}
 
-	auto inputDevNotifyPoll = PollEventDelegate::create<&inputDevNotifyFdHandler>();
+	int events = 0;
+	int32_t hasEventsRet;
+	// Note: never call AInputQueue_hasEvents on first iteration since it may return 0 even if
+	// events are present if they were pre-dispatched, leading to an endless stream of callbacks
+	do
+	{
+		AInputEvent* event = nullptr;
+		if(AInputQueue_getEvent(inputQueue, &event) < 0)
+		{
+			logWarn("error getting input event from queue");
+			break;
+		}
+		handleInputEvent(inputQueue, event);
+		events++;
+	} while((hasEventsRet = AInputQueue_hasEvents(inputQueue)) == 1);
+	if(events > 1)
+	{
+		//logMsg("processed %d input events", events);
+	}
+	if(hasEventsRet < 0)
+	{
+		logWarn("error %d in AInputQueue_hasEvents", hasEventsRet);
+	}
+}
+
+JNIEnv* eEnv() { assert(eJEnv); return eJEnv; }
+
+jobject eNewGlobalRef(jobject obj)
+{
+	return eEnv()->NewGlobalRef(obj);
+}
+
+void eDeleteGlobalRef(jobject obj)
+{
+	eEnv()->DeleteGlobalRef(obj);
+}
+
+void addPollEvent(int fd, PollEventDelegate &handler, uint events)
+{
+	addPollEvent(aLooper, fd, handler, events);
+}
+
+void modPollEvent(int fd, PollEventDelegate &handler, uint events)
+{
+	addPollEvent(aLooper, fd, handler, events);
+}
+
+void removePollEvent(int fd)
+{
+	removePollEvent(aLooper, fd);
+}
+
+void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
+{
+	assert(writeMsgPipe != -1);
+	uint16 shortArg16 = shortArg;
+	int msg[3] = { (shortArg16 << 16) | type, intArg, intArg2 };
+	logMsg("sending msg type %d with args %d %d %d", msg[0] & 0xFFFF, msg[0] >> 16, msg[1], msg[2]);
+	if(::write(writeMsgPipe, &msg, sizeof(msg)) != sizeof(msg))
+	{
+		logErr("unable to write message to pipe: %s", strerror(errno));
+	}
+}
+
+void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
+{
+	sendMessageToMain(type, shortArg, intArg, intArg2);
+}
+
+#ifdef CONFIG_ANDROIDBT
+static const ushort MSG_BT_DATA = 150;
+
+void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
+{
+	int msg[3] = { MSG_BT_DATA, (int)&socket, len };
+	if(::write(writeMsgPipe, &msg, sizeof(msg)) != sizeof(msg))
+	{
+		logErr("unable to write message header to pipe: %s", strerror(errno));
+	}
+	if(::write(writeMsgPipe, data, len) != len)
+	{
+		logErr("unable to write bt data to pipe: %s", strerror(errno));
+	}
+}
+#endif
+
+void setIdleDisplayPowerSave(bool on)
+{
+	jint keepOn = !on;
+	logMsg("keep screen on: %d", keepOn);
+	jSetKeepScreenOn(eEnv(), jBaseActivity, keepOn);
+}
+
+void setOSNavigationStyle(uint flags)
+{
+	// Flags mapped directly
+	// OS_NAV_STYLE_DIM -> SYSTEM_UI_FLAG_LOW_PROFILE (1)
+	// OS_NAV_STYLE_HIDDEN -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (2)
+	// 0 -> SYSTEM_UI_FLAG_VISIBLE
+	logMsg("setting UI visibility: 0x%X", flags);
+	jSetUIVisibility(eEnv(), jBaseActivity, flags);
+}
+
+void setProcessPriority(int nice)
+{
+	assert(nice > -20);
+	logMsg("setting process nice level: %d", nice);
+	setpriority(PRIO_PROCESS, 0, nice);
+}
+
+void setStatusBarHidden(uint hidden)
+{
+	hidden = hidden ? 1 : 0;
+	if(hidden != statusBarIsHidden)
+	{
+		statusBarIsHidden = hidden;
+		logMsg("setting app window fullscreen: %d", (int)statusBarIsHidden);
+		jSetFullscreen(eEnv(), jBaseActivity, hidden);
+	}
+}
+
+bool supportsFrameTime()
+{
+	return hasChoreographer;
+}
+
+static bool drawWindow(int64 frameTimeNanos)
+{
+	if(!gfxUpdate)
+	{
+		bug_exit("didn't request graphics update");
+	}
+	//logMsg("called drawWindow");
+
+	runEngine(frameTimeNanos);
+	if(unlikely(didDrawWindowCallback != nullptr))
+		didDrawWindowCallback();
+	if(gfxUpdate)
+	{
+		winDrawPosted = 1;
+		return 1;
+	}
+	else
+	{
+		winDrawPosted = 0;
+		return 0;
+	}
+}
+
+static void postDrawWindow()
+{
+	if(!winDrawPosted && nWin)
+	{
+		//logMsg("posted draw");
+		if(hasChoreographer)
+			jPostDrawWindow(eEnv(), jBaseActivity);
+		else
+		{
+			uint64_t post = 1;
+			auto ret = write(drawWinEventFd, &post, sizeof(post));
+			assert(ret == sizeof(post));
+		}
+		winDrawPosted = 1;
+	}
+}
+
+void postDrawWindowIfNeeded()
+{
+	if(gfxUpdate)
+		postDrawWindow();
+}
+
+static void cancelDrawWindow()
+{
+	if(winDrawPosted)
+	{
+		logMsg("canceled draw");
+		if(hasChoreographer)
+			jCancelDrawWindow(eEnv(), jBaseActivity);
+		else
+		{
+			uint64_t post;
+			read(drawWinEventFd, &post, sizeof(post));
+			drawWinEventIdle = 1; // force handler to idle since it could already be signaled by epoll
+		}
+		winDrawPosted = 0;
+	}
+}
+
+static int processInputCallback(int fd, int events, void* data)
+{
+	processInput((AInputQueue*)data);
+	postDrawWindowIfNeeded();
+	return 1;
+}
+
+static int drawWinEventFdHandler(int fd, int events, void* data)
+{
+	// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
+	if(drawWinEventIdle)
+	{
+		//logMsg("idled");
+		drawWinEventIdle--;
+		return 1;
+	}
+	else
+	{
+		// "idle" every other call if input fds are in use
+		// to avoid a frame of input lag
+		#ifdef CONFIG_BLUETOOTH
+		if(Bluetooth::devsConnected())
+			drawWinEventIdle = 1;
+		#endif
+	}
+
+	if(likely(inputQueue != nullptr) && AInputQueue_hasEvents(inputQueue) == 1)
+	{
+		// some devices may delay reporting input events (stock rom on R800i for example),
+		// check for any before rendering frame to avoid extra latency
+		processInput(inputQueue);
+		processedInputInDrawFrame = 1;
+	}
+	else
+		processedInputInDrawFrame = 0;
+
+	if(!drawWindow(0))
+	{
+		uint64_t post;
+		auto ret = read(drawWinEventFd, &post, sizeof(post));
+		assert(ret == sizeof(post));
+	}
+	return 1;
+}
+
+static int msgPipeFdHandler(int fd, int events, void* data)
+{
+	while(fd_bytesReadable(fd))
+	{
+		uint32 cmd;
+		if(read(fd, &cmd, sizeof(cmd)) != sizeof(cmd))
+		{
+			logErr("error reading command in message pipe");
+			return 1;
+		}
+
+		uint cmdType = cmd & 0xFFFF;
+		switch(cmdType)
+		{
+			#ifdef CONFIG_ANDROIDBT
+			bcase MSG_BT_DATA:
+			{
+				BluetoothSocket *s;
+				read(fd, &s, sizeof(s));
+				int size;
+				read(fd, &size, sizeof(size));
+				uchar buff[48];
+				read(fd, buff, size);
+				s->onDataDelegate().invoke(buff, size);
+			}
+			#endif
+			bdefault:
+			if(cmdType >= MSG_START)
+			{
+				uint32 arg[2];
+				read(fd, arg, sizeof(arg));
+				logMsg("got msg type %d with args %d %d %d", cmdType, cmd >> 16, arg[0], arg[1]);
+				Base::processAppMsg(cmdType, cmd >> 16, arg[0], arg[1]);
+			}
+			else
+				logWarn("got unknown cmd %d", cmd);
+			break;
+		}
+	}
+	postDrawWindowIfNeeded();
+	return 1;
+}
+
+static jboolean JNICALL drawWindowJNI(JNIEnv* env, jobject thiz, jlong frameTimeNanos)
+{
+	//logMsg("frame time %lld, diff %lld", (long long)frameTimeNanos, (long long)(frameTimeNanos - lastFrameTime));
+	prevFrameTimeNanos = frameTimeNanos;
+	return drawWindow(frameTimeNanos);
+}
+
+static void onDestroy(ANativeActivity* activity)
+{
+	::exit(0);
+}
+
+static void onStart(ANativeActivity* activity)
+{
+}
+
+static void onResume(ANativeActivity* activity)
+{
+	appResumed();
+	postDrawWindowIfNeeded();
+}
+
+static void* onSaveInstanceState(ANativeActivity* activity, size_t* outLen)
+{
+	return nullptr;
+}
+
+static void onPause(ANativeActivity* activity)
+{
+	appPaused();
+	gfxUpdate = 0;
+	cancelDrawWindow();
+}
+
+static void onStop(ANativeActivity* activity)
+{
+}
+
+static void onConfigurationChanged(ANativeActivity* activity)
+{
+	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
+	configChange(aConfig, nWin);
+	postDrawWindowIfNeeded();
+}
+
+static void onLowMemory(ANativeActivity* activity)
+{
+}
+
+static void onWindowFocusChanged(ANativeActivity* activity, int focused)
+{
+	appFocus(focused, nWin);
+	postDrawWindowIfNeeded();
+}
+
+static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* window)
+{
+	nWin = window;
+	initWindow(activity, window);
+	gfxUpdate = 1;
+	postDrawWindow();
+}
+
+static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* window)
+{
+	eglWin.destroySurface();
+	nWin = nullptr;
+	gfxUpdate = 0;
+	cancelDrawWindow();
+}
+
+static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
+{
+	inputQueue = queue;
+	if(engineIsInit)
+	{
+		logMsg("input queue created, attaching to looper");
+		AInputQueue_attachLooper(queue, aLooper, ALOOPER_POLL_CALLBACK, processInputCallback, queue);
+	}
+	else
+	{
+		logMsg("input queue created, waiting for initial window creation to attach");
+	}
+}
+
+static void onInputQueueDestroyed(ANativeActivity* activity, AInputQueue* queue)
+{
+	logMsg("input queue destroyed");
+	inputQueue = nullptr;
+	AInputQueue_detachLooper(queue);
+}
+
+static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
+{
+	windowResized(window);
+	postDrawWindowIfNeeded();
+}
+
+static void onNativeWindowRedrawNeeded(ANativeActivity* activity, ANativeWindow* window)
+{
+	windowNeedsRedraw(window);
+}
+
+static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
+{
+	contentRectChanged(*rect, nWin);
+}
+
+}
+
+CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
+{
+	logMsg("called ANativeActivity_onCreate");
+	using namespace Base;
+	setSDK(activity->sdkVersion);
+	if(Base::androidSDK() >= 16)
+		processInput = Base::processInputWithGetEvent;
+	activityInit(activity);
+
+	jVM = activity->vm;
+	jBaseActivity = activity->clazz;
+	eJEnv = activity->env;
+	jSetKeepScreenOn.setup(eJEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
+	jSetFullscreen.setup(eJEnv, jBaseActivityCls, "setFullscreen", "(Z)V");
+	jSetUIVisibility.setup(eJEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
+	aLooper = ALooper_forThread();
+	assert(aLooper);
+	if(Base::androidSDK() >= 16)
+	{
+		//logMsg("using Choreographer for display updates");
+		hasChoreographer = 1;
+		{
+			JNINativeMethod activityMethods[] =
+			{
+					{"drawWindow", "(J)Z", (void*)&Base::drawWindowJNI},
+			};
+			eJEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+		}
+		jPostDrawWindow.setup(eJEnv, jBaseActivityCls, "postDrawWindow", "()V");
+		jCancelDrawWindow.setup(eJEnv, jBaseActivityCls, "cancelDrawWindow", "()V");
+	}
+	else
+	{
+		drawWinEventFd = eventfd(0, 0);
+		if(drawWinEventFd == -1)
+		{
+			bug_exit("error creating eventfd: %d (%s)", errno, strerror(errno));
+		}
+		int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawWinEventFdHandler, nullptr);
+		assert(ret == 1);
+	}
+	Base::dlLoadFuncs();
+	aConfig = AConfiguration_new();
+	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
+	initConfig(aConfig);
 	if(Base::androidSDK() >= 12)
 	{
-		inputDevNotifyFd = inotify_init();
+		logMsg("setting up inotify");
+		int inputDevNotifyFd = inotify_init();
 		if(inputDevNotifyFd >= 0)
 		{
 			auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
-			addPollEvent(inputDevNotifyFd, inputDevNotifyPoll);
+			int ret = ALooper_addFd(aLooper, inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, inputDevNotifyFdHandler, nullptr);
+			assert(ret == 1);
 		}
 		else
 		{
@@ -930,51 +1080,29 @@ void android_main(struct android_app* state)
 		}
 	}
 
-	/*TimeSys realTime;
-	realTime.setTimeNow();*/
-	for(;;)
+	int msgPipe[2];
 	{
-		int ident, events, fd;
-		PollEventDelegate* source;
-		//logMsg("entering looper");
-		while((ident=ALooper_pollAll(getPollTimeout(), &fd, &events, (void**)&source)) >= 0)
-		{
-			//logMsg("out of looper with event id %d", ident);
-			switch(ident)
-			{
-				bcase LOOPER_ID_MAIN: process_cmd(state);
-				bcase LOOPER_ID_INPUT: if(likely(engineIsInit)) process_input(state);
-				bdefault: // LOOPER_ID_USER
-					assert(source);
-					source->invoke(events);
-			}
-		}
-		if(ident == -4)
-			logMsg("out of looper with error");
-
-		if(!gfxUpdate)
-			logMsg("out of event loop without gfxUpdate, returned %d", ident);
-
-		if(unlikely(appState != APP_RUNNING || !eglWin.isDrawable()))
-		{
-			if(gfxUpdate)
-				logMsg("app gfx update halted");
-			gfxUpdate = 0; // halt screen updates
-			if(!eglWin.isDrawable())
-				logWarn("EGL surface not drawable");
-		}
-		else
-		{
-			/*TimeSys prevTime = realTime;
-			realTime.setTimeNow();
-			logMsg("%f since last screen update", double(realTime - prevTime));*/
-			if(likely(state->inputQueue != nullptr) && AInputQueue_hasEvents(state->inputQueue) == 1)
-			{
-				// some devices may delay reporting input events (stock rom on R800i for example),
-				// check for any before rendering frame to avoid extra latency
-				process_input(state);
-			}
-			runEngine();
-		}
+		int ret = pipe(msgPipe);
+		assert(ret == 0);
+		ret = ALooper_addFd(aLooper, msgPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, msgPipeFdHandler, nullptr);
+		assert(ret == 1);
 	}
+	writeMsgPipe = msgPipe[1];
+
+	activity->callbacks->onDestroy = onDestroy;
+	//activity->callbacks->onStart = onStart;
+	//activity->callbacks->onResume = onResume;
+	//activity->callbacks->onSaveInstanceState = onSaveInstanceState;
+	//activity->callbacks->onPause = onPause;
+	activity->callbacks->onStop = onStop;
+	activity->callbacks->onConfigurationChanged = onConfigurationChanged;
+	//activity->callbacks->onLowMemory = onLowMemory;
+	activity->callbacks->onWindowFocusChanged = onWindowFocusChanged;
+	activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;
+	activity->callbacks->onNativeWindowDestroyed = onNativeWindowDestroyed;
+	activity->callbacks->onNativeWindowResized = onNativeWindowResized;
+	activity->callbacks->onNativeWindowRedrawNeeded = onNativeWindowRedrawNeeded;
+	activity->callbacks->onInputQueueCreated = onInputQueueCreated;
+	activity->callbacks->onInputQueueDestroyed = onInputQueueDestroyed;
+	activity->callbacks->onContentRectChanged = onContentRectChanged;
 }

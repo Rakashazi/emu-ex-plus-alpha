@@ -48,7 +48,7 @@ public:
 	void deinit();
 	void place();
 	void inputEvent(const Input::Event &e);
-	void draw();
+	void draw(Gfx::FrameTimeBase frameTime);
 
 	#ifdef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	void gotText(const char *str);

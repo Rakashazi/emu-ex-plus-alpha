@@ -20,15 +20,12 @@ static DragPointer dragStateArr[Input::maxCursors];
 static Cursor blankCursor = (Cursor)0;
 static Cursor normalCursor = (Cursor)0;
 uint numCursors = 0;
+bool translateKeycodes = 0;
 
 DragPointer *dragState(int p)
 {
 	return &dragStateArr[p];
 }
-
-int cursorX(int p) { return m[p].x; }
-int cursorY(int p) { return m[p].y; }
-int cursorIsInView(int p) { return m[p].inWin; }
 
 static bool allowKeyRepeats = 1;
 void setKeyRepeat(bool on)
@@ -39,18 +36,26 @@ void setKeyRepeat(bool on)
 static void initPointer()
 {
 	// make a blank cursor
-	X11Pixmap_ blank;
-	XColor dummy;
 	char data[1] = {0};
-	blank = XCreateBitmapFromData(dpy, win, data, 1, 1);
+	auto blank = XCreateBitmapFromData(dpy, win, data, 1, 1);
 	if(blank == None)
 	{
 		logErr("unable to create blank cursor");
 	}
+	XColor dummy;
 	blankCursor = XCreatePixmapCursor(dpy, blank, blank, &dummy, &dummy, 0, 0);
-	XFreePixmap (dpy, blank);
-
+	XFreePixmap(dpy, blank);
 	normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
+}
+
+void hideCursor()
+{
+	XDefineCursor(dpy, win, Input::blankCursor);
+}
+
+void showCursor()
+{
+	XDefineCursor(dpy, win, Input::normalCursor);
 }
 
 bool Device::anyTypeBitsPresent(uint typeBits)
@@ -62,6 +67,15 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	return 0;
 }
 
+void setTranslateKeyboardEventsByModifiers(bool on)
+{
+	if(on)
+		logMsg("translating key codes by modifier keys");
+	else
+		logMsg("using direct key codes");
+	translateKeycodes = on;
+}
+
 static Device *kbDevice = nullptr;
 
 CallResult init()
@@ -70,26 +84,21 @@ CallResult init()
 	addDevice(Device{0, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, "Keyboard"});
 	kbDevice = devList.last();
 	initPointer();
+	#ifdef CONFIG_MACHINE_OPEN_PANDORA
+	hideCursor();
+	#endif
 	return OK;
 }
 
 }
 
-static void hideCursor()
-{
-	XDefineCursor(dpy, win, Input::blankCursor);
-}
-
-static void showCursor()
-{
-	XDefineCursor(dpy, win, Input::normalCursor);
-}
-
 static void updatePointer(uint event, int p, uint action, int x, int y)
 {
-	Input::pointerPos(x, y, &Input::m[p].x, &Input::m[p].y);
-	Input::dragStateArr[p].pointerEvent(event, action, Input::m[p].x, Input::m[p].y);
-	Input::onInputEvent(Input::Event(p, Input::Event::MAP_POINTER, event, action, Input::m[p].x, Input::m[p].y, nullptr));
+	using namespace Input;
+	auto &state = dragStateArr[p];
+	auto pos = pointerPos(x, y);
+	state.pointerEvent(event, action, pos);
+	onInputEvent(Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, nullptr));
 }
 
 static void handlePointerButton(uint button, int p, uint action, int x, int y)

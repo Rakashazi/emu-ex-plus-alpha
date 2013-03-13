@@ -23,12 +23,13 @@ extern InputManagerView imMenu;
 extern InputManagerDeviceView imdMenu;
 extern MsgPopup popup;
 
-void ButtonConfigSetView::init(Input::Device &dev)
+void ButtonConfigSetView::init(Input::Device &dev, const char *actionName)
 {
 	if(!Config::envIsPS3)
-		text.init("Push a key to set", View::defaultFace);
+		string_printf(str, "Push a key to set\n%s", actionName);
 	else
-		text.init("Push a key to set\n\nUse Square in previous screen to unbind", View::defaultFace);
+		string_printf(str, "Push a key to set\n%s\nUse Square in previous screen to unbind", actionName);
+	text.init(str, View::defaultFace);
 	#ifndef CONFIG_BASE_PS3
 	unbind.init("Unbind", View::defaultFace);
 	cancel.init("Cancel", View::defaultFace);
@@ -76,7 +77,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 		if(unbindB.overlaps(e.x, e.y))
 		{
 			logMsg("unbinding key");
-			onSet.invoke(Input::Event());
+			onSet().invoke(Input::Event());
 			removeModalView();
 		}
 		else if(cancelB.overlaps(e.x, e.y))
@@ -107,12 +108,12 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			}
 			return;
 		}
-		onSet.invoke(e);
+		onSet().invoke(e);
 		removeModalView();
 	}
 }
 
-void ButtonConfigSetView::draw()
+void ButtonConfigSetView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(0);
@@ -130,13 +131,13 @@ void ButtonConfigSetView::draw()
 	unbind.draw(gXPos(unbindB, C2DO), gYPos(unbindB, C2DO), C2DO);
 	cancel.draw(gXPos(cancelB, C2DO), gYPos(cancelB, C2DO), C2DO);
 	#endif
-	text.draw(0, 0, C2DO);
+	text.draw(0, 0, C2DO, C2DO);
 }
 
 void ButtonConfigView::BtnConfigMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
-	TextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
 	setColor(1., 1., 0.); // yellow
 	DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
 }
@@ -200,7 +201,8 @@ void ButtonConfigView::onSet(const Input::Event &e)
 	if(!conf)
 		return;
 	auto &keyEntry = conf->key(*cat)[keyToSet];
-	logMsg("changing key mapping from %s to %s", Input::buttonName(devConf->dev->map(), keyEntry), Input::buttonName(devConf->dev->map(), e.button));
+	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
+		Input::buttonName(devConf->dev->map(), keyEntry), keyEntry, Input::buttonName(devConf->dev->map(), e.button), e.button);
 	keyEntry = e.button;
 	btn[keyToSet].t2.setString(Input::buttonName(devConf->dev->map(), e.button));
 	btn[keyToSet].t2.compile();
@@ -214,7 +216,7 @@ void ButtonConfigView::onSelectElement(const GuiTable1D *, const Input::Event &e
 	else
 	{
 		keyToSet = i - 1;
-		btnSetView2.init(*devConf->dev);
+		btnSetView2.init(*devConf->dev, btn[keyToSet].t.str);
 		btnSetView2.placeRect(Gfx::viewportRect());
 		View::modalView = &btnSetView2;
 	}
@@ -244,8 +246,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	uint tblEntries = cat->keys + 1;
 	text = new MenuItem*[tblEntries];
 	btn = new BtnConfigMenuItem[cat->keys];
-	reset.init("Unbind All"); text[i++] = &reset;
-	reset.selectDelegate().bind<ButtonConfigView, &ButtonConfigView::resetHandler>(this);
+	reset.init(); text[i++] = &reset;
 	iterateTimes(cat->keys, i2)
 	{
 		btn[i2].init(cat->keyName[i2], Input::buttonName(devConf.dev->map(), keyConfig.key(*cat)[i2]));
@@ -254,7 +255,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 
 	assert(i <= tblEntries);
 	BaseMenuView::init(text, i, highlightFirst);
-	btnSetView2.onSet.bind<ButtonConfigView, &ButtonConfigView::onSet>(this);
+	btnSetView2.onSet().bind<ButtonConfigView, &ButtonConfigView::onSet>(this);
 }
 
 void ButtonConfigView::deinit()
@@ -282,7 +283,7 @@ void ButtonConfigView::confirmUnbindKeysAlert(const Input::Event &e)
 void ButtonConfigView::resetHandler(TextMenuItem &, const Input::Event &e)
 {
 	ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
-	ynAlertView.onYesDelegate().bind<ButtonConfigView, &ButtonConfigView::confirmUnbindKeysAlert>(this);
+	ynAlertView.onYes().bind<ButtonConfigView, &ButtonConfigView::confirmUnbindKeysAlert>(this);
 	ynAlertView.placeRect(Gfx::viewportRect());
 	modalView = &ynAlertView;
 }

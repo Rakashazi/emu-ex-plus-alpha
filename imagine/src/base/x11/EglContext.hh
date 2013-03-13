@@ -38,18 +38,21 @@ public:
 		logMsg("setting up EGL window");
 		XSetWindowAttributes attr = { 0 };
 		attr.event_mask = event_mask;
-		X11Window win = XCreateWindow(dpy, RootWindow(dpy, screen),
-		              0, 0, xres, yres, 0,
-		              CopyFromParent, InputOutput,
-		              CopyFromParent, CWEventMask,
-		              &attr);
+		auto win = XCreateWindow(dpy, RootWindow(dpy, screen),
+				0, 0, xres, yres, 0, CopyFromParent, InputOutput,
+				CopyFromParent, CWEventMask, &attr);
 
 		if(!win)
 		{
 			return 0;
 		}
 
-		display  =  eglGetDisplay((EGLNativeDisplayType)dpy);
+		#ifdef CONFIG_MACHINE_OPEN_PANDORA
+			display  =  eglGetDisplay((EGLNativeDisplayType)nullptr);
+		#else
+			display  =  eglGetDisplay((EGLNativeDisplayType)dpy);
+		#endif
+
 		if(display == EGL_NO_DISPLAY)
 		{
 			logErr("error getting EGL display");
@@ -80,7 +83,11 @@ public:
 			printEGLConf(display, config);
 		#endif
 
-		surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)win, nullptr);
+		#ifdef CONFIG_MACHINE_OPEN_PANDORA
+			surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)EGL_DEFAULT_DISPLAY, nullptr);
+		#else
+			surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)win, nullptr);
+		#endif
 		if(surface == EGL_NO_SURFACE)
 		{
 			logErr("error creating window surface: 0x%X", (int)eglGetError());

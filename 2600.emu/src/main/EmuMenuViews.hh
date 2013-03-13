@@ -26,7 +26,7 @@ void softResetHandler(TextMenuItem &, const Input::Event &e)
 	if(EmuSystem::gameIsRunning())
 	{
 		ynAlertView.init("Really Soft Reset Game?", !e.isPointer());
-		ynAlertView.onYesDelegate().bind<&softResetConfirmAlert>();
+		ynAlertView.onYes().bind<&softResetConfirmAlert>();
 		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}

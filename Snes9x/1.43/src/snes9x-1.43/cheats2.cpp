@@ -109,7 +109,7 @@ void S9xAddCheat (bool8 enable, bool8 save_current_value,
     {
 	Cheat.c [Cheat.num_cheats].address = address;
 	Cheat.c [Cheat.num_cheats].byte = byte;
-	Cheat.c [Cheat.num_cheats].enabled = TRUE;
+	Cheat.c [Cheat.num_cheats].enabled = enable;
 	if (save_current_value)
 	{
 	    Cheat.c [Cheat.num_cheats].saved_byte = S9xGetByte (address);
@@ -219,7 +219,7 @@ void S9xRemoveCheats ()
 bool8 S9xLoadCheatFile (const char *filename)
 {
     Cheat.num_cheats = 0;
-/*
+
     FILE *fs = fopen (filename, "rb");
     uint8 data [28];
 
@@ -237,7 +237,7 @@ bool8 S9xLoadCheatFile (const char *filename)
 	Cheat.c [Cheat.num_cheats++].name [20] = 0;
     }
     fclose (fs);
-*/
+
     return (TRUE);
 }
 

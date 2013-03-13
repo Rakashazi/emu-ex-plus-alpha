@@ -3,6 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+emuFramework_cheats := 1
 include ../EmuFramework/common.mk
 
 CPPFLAGS += -DHAVE_STDINT_H -DGAMBATTE_CONST_FB_PITCH=160 -DGAMBATTE_NO_OSD -DSysDDec=float \
@@ -19,7 +20,7 @@ src/mem/memptrs.cpp src/interruptrequester.cpp src/file/file_zip.cpp \
 src/mem/pakinfo.cpp src/loadres.cpp
 
 libgambattePath := libgambatte
-SRC += main/Main.cc main/EmuControls.cc $(addprefix $(libgambattePath)/,$(libgambatteSrc))
+SRC += main/Main.cc main/EmuControls.cc main/Cheats.cc $(addprefix $(libgambattePath)/,$(libgambatteSrc))
 
 gambatteCommonSrc := resample/src/resamplerinfo.cpp resample/src/makesinckernel.cpp \
 resample/src/chainresampler.cpp resample/src/u48div.cpp resample/src/i0.cpp \

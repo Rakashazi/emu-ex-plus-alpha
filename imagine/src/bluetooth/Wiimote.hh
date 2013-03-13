@@ -31,14 +31,15 @@ public:
 	static StaticDLList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys ctlSock, intSock;
-	Input::Device *device = nullptr;
+	Input::Device *device = nullptr, *subDevice = nullptr;
 	int extension = EXT_NONE;
 	uint player = 0;
 	uint function = FUNC_NONE;
 	bool stickBtn[8] = {0};
 	uchar prevBtnData[2] = {0};
-	uchar prevExtData[6] = {0};
+	uchar prevExtData[10] = {0};
 	BluetoothAddr addr;
+	bool identifiedType = 0;
 
 	enum
 	{
@@ -50,7 +51,7 @@ private:
 
 	enum
 	{
-		EXT_NONE, EXT_CC, EXT_NUNCHUK, EXT_UNKNOWN
+		EXT_NONE, EXT_CC, EXT_NUNCHUK, EXT_WIIU_PRO, EXT_UNKNOWN
 	};
 
 	static uint findFreeDevId();
@@ -59,9 +60,12 @@ private:
 	static uchar playerLEDs(int player);
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
+	static void decodeProSticks(const uchar *proSticks, int &lX, int &lY, int &rX, int &rY);
 	void processStickDataForButtonEmulation(int player, const uchar *data);
+	void processProStickDataForButtonEmulation(int player, const uchar *data);
 	void processCoreButtons(const uchar *packet, uint player);
 	void processClassicButtons(const uchar *packet, uint player);
+	void processProButtons(const uchar *packet, uint player);
 	void processNunchukStickDataForButtonEmulation(int player, const uchar *data);
 	void processNunchukButtons(const uchar *packet, uint player);
 };
@@ -84,22 +88,42 @@ static const Input::PackedInputAccess wiimoteDataAccess[] =
 
 static const Input::PackedInputAccess wiimoteCCDataAccess[] =
 {
-	{ 4, BIT(7), Input::Wiimote::RIGHT },
-	{ 4, BIT(6), Input::Wiimote::DOWN },
-	{ 4, BIT(5), Input::Wiimote::L },
-	{ 4, BIT(4), Input::Wiimote::MINUS },
-	{ 4, BIT(3), Input::Wiimote::HOME },
-	{ 4, BIT(2), Input::Wiimote::PLUS },
-	{ 4, BIT(1), Input::Wiimote::R },
+	{ 4, BIT(7), Input::WiiCC::RIGHT },
+	{ 4, BIT(6), Input::WiiCC::DOWN },
+	{ 4, BIT(5), Input::WiiCC::L },
+	{ 4, BIT(4), Input::WiiCC::MINUS },
+	{ 4, BIT(3), Input::WiiCC::HOME },
+	{ 4, BIT(2), Input::WiiCC::PLUS },
+	{ 4, BIT(1), Input::WiiCC::R },
 
-	{ 5, BIT(7), Input::Wiimote::ZL },
-	{ 5, BIT(6), Input::Wiimote::B },
-	{ 5, BIT(5), Input::Wiimote::Y },
-	{ 5, BIT(4), Input::Wiimote::A },
-	{ 5, BIT(3), Input::Wiimote::X },
-	{ 5, BIT(2), Input::Wiimote::ZR },
-	{ 5, BIT(1), Input::Wiimote::LEFT },
-	{ 5, BIT(0), Input::Wiimote::UP },
+	{ 5, BIT(7), Input::WiiCC::ZL },
+	{ 5, BIT(6), Input::WiiCC::B },
+	{ 5, BIT(5), Input::WiiCC::Y },
+	{ 5, BIT(4), Input::WiiCC::A },
+	{ 5, BIT(3), Input::WiiCC::X },
+	{ 5, BIT(2), Input::WiiCC::ZR },
+	{ 5, BIT(1), Input::WiiCC::LEFT },
+	{ 5, BIT(0), Input::WiiCC::UP },
+};
+
+static const Input::PackedInputAccess wiimoteProDataAccess[] =
+{
+	{ 8, BIT(7), Input::WiiCC::RIGHT },
+	{ 8, BIT(6), Input::WiiCC::DOWN },
+	{ 8, BIT(5), Input::WiiCC::L },
+	{ 8, BIT(4), Input::WiiCC::MINUS },
+	{ 8, BIT(3), Input::WiiCC::HOME },
+	{ 8, BIT(2), Input::WiiCC::PLUS },
+	{ 8, BIT(1), Input::WiiCC::R },
+
+	{ 9, BIT(7), Input::WiiCC::ZL },
+	{ 9, BIT(6), Input::WiiCC::B },
+	{ 9, BIT(5), Input::WiiCC::Y },
+	{ 9, BIT(4), Input::WiiCC::A },
+	{ 9, BIT(3), Input::WiiCC::X },
+	{ 9, BIT(2), Input::WiiCC::ZR },
+	{ 9, BIT(1), Input::WiiCC::LEFT },
+	{ 9, BIT(0), Input::WiiCC::UP },
 };
 
 static const Input::PackedInputAccess wiimoteNunchukDataAccess[] =

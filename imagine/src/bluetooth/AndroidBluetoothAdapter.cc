@@ -253,6 +253,7 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 		eEnv()->DeleteLocalRef(localSocket);
 		outStream = jBtSocketOutputStream(eEnv(), socket);
 		logMsg("opened output stream %p", outStream);
+		outStream = Base::eNewGlobalRef(outStream);
 		if(onStatus.invoke(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
 		{
 			logMsg("starting read thread");
@@ -282,7 +283,7 @@ void AndroidBluetoothSocket::close()
 	{
 		logMsg("closing socket");
 		isClosing = 1;
-		eEnv()->DeleteLocalRef(outStream);
+		Base::eDeleteGlobalRef(outStream);
 		jBtSocketClose(eEnv(), socket);
 		eEnv()->DeleteGlobalRef(socket);
 		socket = nullptr;

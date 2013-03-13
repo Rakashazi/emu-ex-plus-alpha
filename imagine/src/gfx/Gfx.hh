@@ -19,7 +19,32 @@ CallResult setOutputVideoMode(const Base::Window &win) ATTRS(cold);
 void resizeDisplay(const Base::Window &win);
 
 // commit/sync
-void renderFrame();
+#if defined (CONFIG_BASE_IOS)
+	typedef double FrameTimeBase;
+
+	constexpr static double decimalFrameTimeBaseFromSec(double sec)
+	{
+		return sec;
+	}
+
+	constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
+	{
+		return sec;
+	}
+#else
+	typedef int64 FrameTimeBase;
+
+	constexpr static double decimalFrameTimeBaseFromSec(double sec)
+	{
+		return sec * (double)1000000000.;
+	}
+
+	constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
+	{
+		return decimalFrameTimeBaseFromSec(sec);
+	}
+#endif
+void renderFrame(FrameTimeBase frameTime);
 void waitVideoSync();
 void setVideoInterval(uint interval);
 void updateFrameTime();
@@ -155,7 +180,7 @@ struct GfxViewState
 
 // callbacks
 
-void onDraw();
+void onDraw(FrameTimeBase frameTime);
 void onViewChange(GfxViewState *oldState);
 
 }

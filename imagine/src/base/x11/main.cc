@@ -8,6 +8,7 @@
 #include <base/Base.hh>
 #include <util/strings.h>
 #include <util/time/sys.hh>
+#include <util/fd-utils.h>
 #include <base/common/funcs.h>
 
 #ifdef CONFIG_FS
@@ -31,6 +32,8 @@
 #undef GC
 #undef Window
 #undef BOOL
+
+#define CONFIG_MACHINE_OPEN_PANDORA
 
 // Choose GLX or EGL
 #ifdef CONFIG_GFX_OPENGL_ES
@@ -66,8 +69,10 @@ static Atom dragAction = None;
 static int xI2opcode;
 static float dispXMM, dispYMM;
 static int dispX, dispY;
-static int ePoll = 0;
+static int ePoll = -1;
 static int msgPipe[2] {0};
+static XkbDescPtr coreKeyboardDesc = nullptr;
+static int fbdev = -1;
 
 #ifdef CONFIG_GFX_OPENGL_ES
 static EglContext glCtx;
@@ -162,9 +167,14 @@ static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 	glCtx.makeCurrent();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	Atom wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+	auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &wmDelete, 1);
 	XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
+	#ifdef CONFIG_MACHINE_OPEN_PANDORA
+	auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
+	auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+	XChangeProperty(dpy, win, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
+	#endif
 	XMapRaised(dpy, win);
 	logMsg("using depth %d", xDrawableDepth(dpy, win));
 
@@ -198,20 +208,9 @@ CallResult openGLSetMultisampleVideoMode(const Base::Window &win)
 	return setupGLWindow(win.w, win.h, 1);
 }
 
-/*static bool isTrackingFrameTime = 0;
-
-void trackFrameTime(uint on)
-{
-	isTrackingFrameTime = on;
-	if(on)
-		gfx_initFrameClockTime();
-}*/
-
 void openGLUpdateScreen()
 {
 	glCtx.swap();
-	/*if(isTrackingFrameTime)
-		gfx_updateFrameClockTime();*/
 }
 
 void setVideoInterval(uint interval)
@@ -306,6 +305,8 @@ static CallResult initX()
 		logMsg("Device is attached to/paired with %d", device[i].attachment);
 	}
 	XIFreeDeviceInfo(device);
+
+	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
 	
 	screen = DefaultScreen(dpy);
 	logMsg("using default screen %d", screen);
@@ -348,7 +349,6 @@ static int eventHandler(XEvent event)
 			mainWin.rect.y2 = mainWin.h = event.xconfigure.height;
 			if(generic_resizeEvent(mainWin))
 			{
-				//gfx_updateFrameTime();
 				updateViewSize();
 			}
 		}
@@ -451,7 +451,14 @@ static int eventHandler(XEvent event)
 						onFocusChange(0);
 					bcase XI_KeyPress:
 					{
-						KeySym k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+						KeySym k;
+						if(Input::translateKeycodes)
+						{
+							unsigned int modsReturn;
+							XkbTranslateKeyCode(coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+						}
+						else
+							 k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 						bool repeated = ievent.flags & XIKeyRepeat;
 						//logMsg("press KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
 						if(k == XK_Return && ievent.mods.effective & Mod1Mask && !repeated)
@@ -473,7 +480,14 @@ static int eventHandler(XEvent event)
 					}
 					bcase XI_KeyRelease:
 					{
-						KeySym k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+						KeySym k;
+						if(Input::translateKeycodes)
+						{
+							unsigned int modsReturn;
+							XkbTranslateKeyCode(coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+						}
+						else
+							 k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 						//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
 						handleKeyEv(k, Input::RELEASED, 0);
 					}
@@ -508,7 +522,7 @@ void addPollEvent(int fd, PollEventDelegate &handler, uint events)
 	struct epoll_event ev = { 0 };
 	ev.data.ptr = &handler;
 	ev.events = events;
-	assert(ePoll);
+	assert(ePoll != -1);
 	epoll_ctl(ePoll, EPOLL_CTL_ADD, fd, &ev);
 }
 
@@ -517,7 +531,7 @@ void modPollEvent(int fd, PollEventDelegate &handler, uint events)
 	struct epoll_event ev = { 0 };
 	ev.data.ptr = &handler;
 	ev.events = /*EPOLLET|*/events;
-	assert(ePoll);
+	assert(ePoll != -1);
 	epoll_ctl(ePoll, EPOLL_CTL_MOD, fd, &ev);
 }
 
@@ -569,15 +583,18 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 
 int msgFdHandler(int events)
 {
-	uint32 msg[3];
-	if(read(msgPipe[0], msg, sizeof(msg)) == -1)
+	while(fd_bytesReadable(msgPipe[0]))
 	{
-		logErr("error reading from pipe");
-		return 1;
+		uint32 msg[3];
+		if(read(msgPipe[0], msg, sizeof(msg)) == -1)
+		{
+			logErr("error reading from pipe");
+			return 1;
+		}
+		auto cmd = msg[0] & 0xFFFF, shortArg = msg[0] >> 16;
+		logMsg("got msg type %d with args %d %d %d", cmd, shortArg, msg[1], msg[2]);
+		Base::processAppMsg(cmd, shortArg, msg[1], msg[2]);
 	}
-	auto cmd = msg[0] & 0xFFFF, shortArg = msg[0] >> 16;
-	logMsg("got msg type %d with args %d %d %d", cmd, shortArg, msg[1], msg[2]);
-	Base::processAppMsg(cmd, shortArg, msg[1], msg[2]);
 	return 1;
 }
 
@@ -658,6 +675,10 @@ int main(int argc, char** argv)
 	dispX = DisplayWidth(dpy, screen);
 	dispY = DisplayHeight(dpy, screen);
 	{
+		#ifdef CONFIG_MACHINE_OPEN_PANDORA
+		int x = 800;
+		int y = 480;
+		#else
 		int x = 1024;
 		int y = 768;
 
@@ -682,6 +703,7 @@ int main(int argc, char** argv)
 			y = IG::min(y, (int)workArea[3]);
 			XFree(workArea);
 		}
+		#endif
 
 		mainWin.w = mainWin.rect.x2 = x;
 		mainWin.h = mainWin.rect.y2 = y;
@@ -727,7 +749,7 @@ int main(int argc, char** argv)
 			else
 				bug_exit("epoll_wait failed with errno %d", errno);
 		}
-		runEngine();
+		runEngine(0);
 	}
 	return 0;
 }

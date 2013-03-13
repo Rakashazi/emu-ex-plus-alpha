@@ -15,79 +15,66 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
 
-namespace Board177
-{
-
 static uint8 reg;
 
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[]=
+static SFORMAT StateRegs[] =
 {
-  {&reg, 1, "REG"},
-  {0}
+	{ &reg, 1, "REG" },
+	{ 0 }
 };
 
-static void Sync(void)
-{
-  setchr8(0);
-  setprg8r(0x10,0x6000,0);
-  setprg32(0x8000,reg&0x1f);
-  setmirror(((reg&0x20)>>5)^1);
+static void Sync(void) {
+	setchr8(0);
+	setprg8r(0x10, 0x6000, 0);
+	setprg32(0x8000, reg & 0x1f);
+	setmirror(((reg & 0x20) >> 5) ^ 1);
 }
 
-static DECLFW(M177Write)
-{
-  reg=V;
-  Sync();
+static DECLFW(M177Write) {
+	reg = V;
+	Sync();
 }
 
-static void M177Power(void)
-{
-  reg=0;
-  Sync();     
-  SetReadHandler(0x6000,0x7fff,CartBR);
-  SetWriteHandler(0x6000,0x7fff,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M177Write);
+static void M177Power(void) {
+	reg = 0;
+	Sync();
+	SetReadHandler(0x6000, 0x7fff, CartBR);
+	SetWriteHandler(0x6000, 0x7fff, CartBW);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x8000, 0xFFFF, M177Write);
 }
 
-static void M177Close(void)
-{
-  if(WRAM)
-    FCEU_gfree(WRAM);
-  WRAM=NULL;
+static void M177Close(void) {
+	if (WRAM)
+		FCEU_gfree(WRAM);
+	WRAM = NULL;
 }
 
-static void StateRestore(int version)
-{
-  Sync();
+static void StateRestore(int version) {
+	Sync();
 }
 
-}
+void Mapper177_Init(CartInfo *info) {
+	info->Power = M177Power;
+	info->Close = M177Close;
+	GameStateRestore = StateRestore;
 
-void Mapper177_Init(CartInfo *info)
-{
-	using namespace Board177;
-  info->Power=M177Power;
-  info->Close=M177Close;
-  GameStateRestore=Board177::StateRestore;
+	WRAMSIZE = 8192;
+	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+	if (info->battery) {
+		info->SaveGame[0] = WRAM;
+		info->SaveGameLen[0] = WRAMSIZE;
+	}
 
-  Board177::WRAMSIZE=8192;
-  Board177::WRAM=(uint8*)FCEU_gmalloc(Board177::WRAMSIZE);
-  SetupCartPRGMapping(0x10,Board177::WRAM,Board177::WRAMSIZE,1);
-  AddExState(Board177::WRAM, Board177::WRAMSIZE, 0, "WRAM");
-  if(info->battery)
-  {
-    info->SaveGame[0]=Board177::WRAM;
-    info->SaveGameLen[0]=Board177::WRAMSIZE;
-  }
-
-  AddExState(&Board177::StateRegs, ~0, 0, 0);
+	AddExState(&StateRegs, ~0, 0, 0);
 }

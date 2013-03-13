@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * Dragon Ball Z 2 - Gekishin Freeza! (C)
  * Dragon Ball Z Gaiden - Saiya Jin Zetsumetsu Keikaku (C)
@@ -26,78 +26,72 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-namespace Board199
-{
+static uint8 *CHRRAM = NULL;
+static uint32 CHRRAMSIZE;
 
-static uint8 *CHRRAM=NULL; // and here too
-
-static void M199PW(uint32 A, uint8 V)
-{
-  setprg8(A,V);
-  setprg8(0xC000,EXPREGS[0]);
-  setprg8(0xE000,EXPREGS[1]);
+static void M199PW(uint32 A, uint8 V) {
+	setprg8(A, V);
+	setprg8(0xC000, EXPREGS[0]);
+	setprg8(0xE000, EXPREGS[1]);
 }
 
-static void M199CW(uint32 A, uint8 V)
-{
-  setchr1r((V<8)?0x10:0x00,A,V);
-  setchr1r((DRegBuf[0]<8)?0x10:0x00,0x0000,DRegBuf[0]);
-  setchr1r((EXPREGS[2]<8)?0x10:0x00,0x0400,EXPREGS[2]);
-  setchr1r((DRegBuf[1]<8)?0x10:0x00,0x0800,DRegBuf[1]);
-  setchr1r((EXPREGS[3]<8)?0x10:0x00,0x0c00,EXPREGS[3]);
+static void M199CW(uint32 A, uint8 V) {
+	setchr1r((V < 8) ? 0x10 : 0x00, A, V);
+	setchr1r((DRegBuf[0] < 8) ? 0x10 : 0x00, 0x0000, DRegBuf[0]);
+	setchr1r((EXPREGS[2] < 8) ? 0x10 : 0x00, 0x0400, EXPREGS[2]);
+	setchr1r((DRegBuf[1] < 8) ? 0x10 : 0x00, 0x0800, DRegBuf[1]);
+	setchr1r((EXPREGS[3] < 8) ? 0x10 : 0x00, 0x0c00, EXPREGS[3]);
 }
 
-static void M199MW(uint8 V)
-{
-//    FCEU_printf("%02x\n",V);
-  switch(V&3)
-  {
-    case 0: setmirror(MI_V); break;
-    case 1: setmirror(MI_H); break;
-    case 2: setmirror(MI_0); break;
-    case 3: setmirror(MI_1); break;
-  }
+static void M199MW(uint8 V) {
+//	FCEU_printf("%02x\n",V);
+	switch (V & 3) {
+	case 0: setmirror(MI_V); break;
+	case 1: setmirror(MI_H); break;
+	case 2: setmirror(MI_0); break;
+	case 3: setmirror(MI_1); break;
+	}
 }
 
-static DECLFW(M199Write)
-{
-  if((A==0x8001)&&(MMC3_cmd&8))
-  {
-//    FCEU_printf("%02x=>%02x\n",MMC3_cmd,V);
-    EXPREGS[MMC3_cmd&3]=V;
-    FixMMC3PRG(MMC3_cmd);
-    FixMMC3CHR(MMC3_cmd);
-  }
-  else    
-    if(A<0xC000)
-      MMC3_CMDWrite(A,V);
-    else
-      MMC3_IRQWrite(A,V);
+static DECLFW(M199Write) {
+	if ((A == 0x8001) && (MMC3_cmd & 8)) {
+		EXPREGS[MMC3_cmd & 3] = V;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	} else
+	if (A < 0xC000)
+		MMC3_CMDWrite(A, V);
+	else
+		MMC3_IRQWrite(A, V);
 }
 
-static void M199Power(void)
-{
-  EXPREGS[0]=~1;
-  EXPREGS[1]=~0;
-  EXPREGS[2]=1;
-  EXPREGS[3]=3;
-  GenMMC3Power();
-  SetWriteHandler(0x8000,0xFFFF,M199Write);
+static void M199Power(void) {
+	EXPREGS[0] = ~1;
+	EXPREGS[1] = ~0;
+	EXPREGS[2] = 1;
+	EXPREGS[3] = 3;
+	GenMMC3Power();
+	SetWriteHandler(0x8000, 0xFFFF, M199Write);
 }
 
+static void M199Close(void) {
+	if (CHRRAM)
+		FCEU_gfree(CHRRAM);
+	CHRRAM = NULL;
 }
 
-void Mapper199_Init(CartInfo *info)
-{
-	using namespace Board199;
-  int CHRRAMSize=1024*8;
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  cwrap=M199CW;
-  pwrap=M199PW;
-  mwrap=M199MW;
-  info->Power=M199Power;
-  Board199::CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
-  SetupCartCHRMapping(0x10, Board199::CHRRAM, CHRRAMSize, 1);
-  AddExState(Board199::CHRRAM, CHRRAMSize, 0, "CHRR");
-  AddExState(EXPREGS, 4, 0, "EXPR");
+void Mapper199_Init(CartInfo *info) {
+	GenMMC3_Init(info, 512, 256, 8, info->battery);
+	cwrap = M199CW;
+	pwrap = M199PW;
+	mwrap = M199MW;
+	info->Power = M199Power;
+	info->Close = M199Close;
+
+	CHRRAMSIZE = 8192;
+	CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+	SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
+
+	AddExState(EXPREGS, 4, 0, "EXPR");
 }

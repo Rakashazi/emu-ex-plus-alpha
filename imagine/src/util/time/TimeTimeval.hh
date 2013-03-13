@@ -21,7 +21,14 @@ public:
 
 	void setTimeNow()
 	{
-		gettimeofday(&t, 0);
+		*this = timeNow();
+	}
+
+	static TimeTimeval timeNow()
+	{
+		TimeTimeval time;
+		gettimeofday(&time.t, 0);
+		return time;
 	}
 
 	long int toMs()
@@ -72,6 +79,11 @@ public:
 	operator double() const
 	{
 		return timeval_toDouble(t);
+	}
+
+	operator bool() const
+	{
+		return t.tv_sec != 0 || t.tv_usec != 0;
 	}
 
 	bool operator <(TimeTimeval const& rhs) const

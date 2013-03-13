@@ -4,9 +4,6 @@
 #define AK2(x,y)        ( (FKB_##x) | (FKB_##y <<8) )
 #define AK(x)                 FKB_##x
 
-#define matrix matrix_suborkb
-#define ksmode ksmode_suborkb
-#define ksindex ksindex_suborkb
 static uint8 bufit[0x61];
 static uint8 ksmode;
 static uint8 ksindex;
@@ -95,6 +92,3 @@ INPUTCFC *FCEU_InitSuborKB(void)
  ksmode=ksindex=0;
  return(&SuborKB);
 }
-#undef ksmode
-#undef ksindex
-#undef matrix

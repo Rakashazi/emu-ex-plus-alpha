@@ -2,10 +2,10 @@ ifndef inc_pkg_libpng
 inc_pkg_libpng := 1
 
 ifdef package_libpng_externalPath
- CPPFLAGS +=  -I$(package_libpng_externalPath)/include
+ CPPFLAGS +=  -I$(package_libpng_externalPath)/include/libpng15
  LDLIBS += -L$(package_libpng_externalPath)/lib
 
- LDLIBS +=  -lpng14 -lz
+ LDLIBS +=  -lpng15 -lz
 else
  ifeq ($(ENV), webos)
   CPPFLAGS +=  -I$(WEBOS_PDK_PATH)/include/libpng12

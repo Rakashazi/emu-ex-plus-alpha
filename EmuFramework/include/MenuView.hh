@@ -84,38 +84,51 @@ struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
 class MenuView : public BaseMenuView
 {
 protected:
-	TextMenuItem loadGame {"Load Game"};
+	TextMenuItem loadGame {"Load Game", TextMenuItem::SelectDelegate::create<&loadGameHandler>()};
+	static void loadGameHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem reset {"Reset"};
+	TextMenuItem reset {"Reset", TextMenuItem::SelectDelegate::create<&resetHandler>()};
+	static void resetHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem loadState {"Load State"};
+	TextMenuItem loadState {"Load State", TextMenuItem::SelectDelegate::create<&loadStateHandler>()};
+	static void loadStateHandler(TextMenuItem &item, const Input::Event &e);
 
-	TextMenuItem recentGames {"Recent Games"};
+	TextMenuItem recentGames {"Recent Games", TextMenuItem::SelectDelegate::create<&recentGamesHandler>()};
+	static void recentGamesHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem saveState {"Save State"};
+	TextMenuItem saveState {"Save State", TextMenuItem::SelectDelegate::create<&saveStateHandler>()};
+	static void saveStateHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem stateSlot;
-
+	TextMenuItem stateSlot {TextMenuItem::SelectDelegate::create<&stateSlotHandler>()};
+	static void stateSlotHandler(TextMenuItem &, const Input::Event &e);
 	char stateSlotText[sizeof("State Slot (0)")] = // Can't init with string literal due to GCC bug #43453
 			{'S', 't', 'a', 't', 'e', ' ', 'S', 'l', 'o', 't', ' ', '(', '0', ')' };
 
-	TextMenuItem options {"Options"};
+	TextMenuItem options {"Options", TextMenuItem::SelectDelegate::create<&optionsHandler>()};
+	static void optionsHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem inputManager {"Input Device Setup"};
+	TextMenuItem inputManager {"Input Device Setup", TextMenuItem::SelectDelegate::create<&inputManagerHandler>()};
+	static void inputManagerHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem benchmark {"Benchmark Game"};
+	TextMenuItem benchmark {"Benchmark Game", TextMenuItem::SelectDelegate::create<&benchmarkHandler>()};
+	static void benchmarkHandler(TextMenuItem &, const Input::Event &e);
 
 	#ifdef CONFIG_BLUETOOTH
-	TextMenuItem scanWiimotes {"Scan for Wiimotes/iCP/JS1"};
+	TextMenuItem scanWiimotes {"Scan for Wiimotes/iCP/JS1", TextMenuItem::SelectDelegate::create<&bluetoothScanHandler>()};
+	static void bluetoothScanHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem bluetoothDisconnect {"Disconnect Bluetooth"};
+	TextMenuItem bluetoothDisconnect {"Disconnect Bluetooth", TextMenuItem::SelectDelegate::create<&bluetoothDisconnectHandler>()};
+	static void bluetoothDisconnectHandler(TextMenuItem &item, const Input::Event &e);
 	#endif
 
-	TextMenuItem about {"About"};
+	TextMenuItem about {"About", TextMenuItem::SelectDelegate::create<&aboutHandler>()};
+	static void aboutHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem exitApp {"Exit"};
+	TextMenuItem exitApp {"Exit", TextMenuItem::SelectDelegate::create<&exitAppHandler>()};
+	static void exitAppHandler(TextMenuItem &, const Input::Event &e);
 
-	TextMenuItem screenshot {"Game Screenshot"};
+	TextMenuItem screenshot {"Game Screenshot", TextMenuItem::SelectDelegate::create<&screenshotHandler>()};
+	static void screenshotHandler(TextMenuItem &item, const Input::Event &e);
 
 public:
 	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION) { }

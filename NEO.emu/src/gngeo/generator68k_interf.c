@@ -54,7 +54,7 @@ Uint8 *mem68k_memptr_ram(Uint32 addr);
 int diss68k_getdumpline(uint32 addr68k, uint8 *addr, char *dumpline);
 
 t_mem68k_def mem68k_def[] = {
-    {0x000, 0x1000, mem68k_memptr_bad,
+    {0x000, 0xFFF, mem68k_memptr_bad,
      mem68k_fetch_invalid_byte, mem68k_fetch_invalid_word,
      mem68k_fetch_invalid_long,
      mem68k_store_invalid_byte, mem68k_store_invalid_word,

@@ -15,7 +15,7 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <string.h>
@@ -80,6 +80,7 @@ endo:
     //if this was a miss, clear out the hit
     if(ZD[w].mzb&2)
         ZD[w].zaphit=0;
+        
 }      
 
 static INLINE int CheckColor(int w)
@@ -186,6 +187,7 @@ static void UpdateZapper(int w, void *data, int arg)
 	    ZD[w].mzx=ptr[0];
 	    ZD[w].mzy=ptr[1];
     }
+
 }
 
 static void LogZapper(int w, MovieRecord* mr)

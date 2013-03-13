@@ -87,7 +87,7 @@
 
 #ifdef CONFIG_BASE_X11
 	/* Define if we are compiling with libcdio support. */
-	#define HAVE_LIBCDIO 1
+	//#define HAVE_LIBCDIO 1
 #endif
 
 /* Define if we are compiling with libsndfile support. */

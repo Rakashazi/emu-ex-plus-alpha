@@ -8,6 +8,7 @@ endif
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+emuFramework_cheats := 1
 include ../../EmuFramework/common.mk
 
 snes9xPath := snes9x-1.43
@@ -33,7 +34,7 @@ spc700.cpp soundux.cpp apu.cpp
 jma/inbyte.cpp unzip/jma.cpp unzip/lzma.cpp \
 jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
 
-SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
+SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc main/Cheats.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 

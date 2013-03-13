@@ -9,6 +9,7 @@ ifeq ($(origin CC), default)
 endif
 config_gfx_openGLES := 1
 noDoubleFloat := 1
+configDefs += CONFIG_MACHINE_OPEN_PANDORA
 
 include $(currPath)/linux-gcc.mk
 

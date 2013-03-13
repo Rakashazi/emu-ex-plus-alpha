@@ -15,26 +15,29 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
-
-namespace BoardBonza
-{
 
 #define CARD_EXTERNAL_INSERED 0x80
 
 static uint8 prg_reg;
 static uint8 chr_reg;
-static SFORMAT StateRegs[]=
+static SFORMAT StateRegs[] =
 {
-  {&prg_reg, 1, "PREG"},
-  {&chr_reg, 1, "CREG"},
-  {0}
+	{ &prg_reg, 1, "PREG" },
+	{ &chr_reg, 1, "CREG" },
+	{ 0 }
 };
 
 /*
+
+cmd[0] = response on/off
+				0x00 - on
+				0x80 - off
+cmd[1] = cmd
+
 
 _GET_CHALLENGE:      .BYTE   0,$B4,  0,  0,$62
 
@@ -81,57 +84,50 @@ byte_8C29:           .BYTE   0,$76,  0,  0,  8
 byte_8CC6:           .BYTE   0,$78,  0,  0,$12
 */
 
-static uint8 sim0reset[0x1F] = { 0x3B, 0xE9, 0x00, 0xFF, 0xC1, 0x10, 0x31, 0xFE,
-                                 0x55, 0xC8, 0x10, 0x20, 0x55, 0x47, 0x4F, 0x53,
-                                 0x56, 0x53, 0x43, 0xAD, 0x10, 0x10, 0x10, 0x10,
-                                 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 }; 
+static uint8 sim0reset[0x1F] = {
+	0x3B, 0xE9, 0x00, 0xFF, 0xC1, 0x10, 0x31, 0xFE,
+	0x55, 0xC8, 0x10, 0x20, 0x55, 0x47, 0x4F, 0x53,
+	0x56, 0x53, 0x43, 0xAD, 0x10, 0x10, 0x10, 0x10,
+	0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10
+};
 
-static void Sync(void)
-{
-  setprg32(0x8000, prg_reg);
-  setchr8(chr_reg);
+static void Sync(void) {
+	setprg32(0x8000, prg_reg);
+	setchr8(chr_reg);
 }
 
-static void StateRestore(int version)
-{
-  Sync();
+static void StateRestore(int version) {
+	Sync();
 }
 
-static DECLFW(M216WriteHi)
-{
-  prg_reg=A&1;
-  chr_reg=(A&0x0E)>>1;
-  Sync();
+static DECLFW(M216WriteHi) {
+	prg_reg = A & 1;
+	chr_reg = (A & 0x0E) >> 1;
+	Sync();
 }
 
-static DECLFW(M216Write5000)
-{
-//  FCEU_printf("WRITE: %04x:%04x (PC=%02x cnt=%02x)\n",A,V,X.PC,sim0bcnt);
+static DECLFW(M216Write5000) {
+//	FCEU_printf("WRITE: %04x:%04x (PC=%02x cnt=%02x)\n",A,V,X.PC,sim0bcnt);
 }
 
-static DECLFR(M216Read5000)
-{
-//    FCEU_printf("READ: %04x PC=%04x out=%02x byte=%02x cnt=%02x bit=%02x\n",A,X.PC,sim0out,sim0byte,sim0bcnt,sim0bit);
-    return 0;
+static DECLFR(M216Read5000) {
+//	FCEU_printf("READ: %04x PC=%04x out=%02x byte=%02x cnt=%02x bit=%02x\n",A,X.PC,sim0out,sim0byte,sim0bcnt,sim0bit);
+	return 0;
 }
 
-static void Power(void)
-{
-  prg_reg = 0;
-  chr_reg = 0;
-  Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
-  SetWriteHandler(0x5000,0x5000,M216Write5000);
-  SetReadHandler(0x5000,0x5000,M216Read5000);
+static void Power(void) {
+	prg_reg = 0;
+	chr_reg = 0;
+	Sync();
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x8000, 0xFFFF, M216WriteHi);
+	SetWriteHandler(0x5000, 0x5000, M216Write5000);
+	SetReadHandler(0x5000, 0x5000, M216Read5000);
 }
 
-}
 
-void Mapper216_Init(CartInfo *info)
-{
-	using namespace BoardBonza;
-  info->Power=Power;
-  GameStateRestore=BoardBonza::StateRestore;
-  AddExState(&BoardBonza::StateRegs, ~0, 0, 0);
+void Mapper216_Init(CartInfo *info) {
+	info->Power = Power;
+	GameStateRestore = StateRestore;
+	AddExState(&StateRegs, ~0, 0, 0);
 }

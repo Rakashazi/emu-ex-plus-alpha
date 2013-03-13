@@ -7,6 +7,7 @@
 #include <util/time/sys.hh>
 #include <util/branch.h>
 #include <audio/Audio.hh>
+#include <main/Main.hh>
 
 int systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 SystemColorMap systemColorMap;
@@ -939,7 +940,7 @@ void setGameSpecificSettings(GBASys &gba)
 			if(e->rtcEnabled >= 0)
 			{
 				logMsg("using RTC");
-				rtcEnable(e->rtcEnabled);
+				detectedRtcGame = 1;
 			}
 			if(e->flashSize > 0)
 			{
@@ -972,7 +973,17 @@ void setGameSpecificSettings(GBASys &gba)
 		case 'V': // Drill Dozer
 			//rtcEnableWarioRumble(true);
 		bcase 'U': // Boktai solar sensor and clock
-			rtcEnable(true);
+		detectedRtcGame = 1;
 	}
 	doMirroring(gba, mirroringEnable);
+
+	if(detectedRtcGame && (uint)optionRtcEmulation == RTC_EMU_AUTO)
+	{
+		logMsg("automatically enabling RTC");
+		rtcEnable(true);
+	}
+	else
+	{
+		rtcEnable((uint)optionRtcEmulation == RTC_EMU_ON);
+	}
 }

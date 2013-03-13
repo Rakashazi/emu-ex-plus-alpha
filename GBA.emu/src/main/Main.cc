@@ -26,9 +26,10 @@
 #include <util/time/sys.hh>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
-
+#include <main/Main.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/Sound.h>
+#include <vbam/gba/RTC.h>
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
 void setGameSpecificSettings(GBASys &gba);
@@ -39,6 +40,7 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *);
 bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 const uint EmuSystem::maxPlayers = 1;
 uint EmuSystem::aspectRatioX = 3, EmuSystem::aspectRatioY = 2;
 #include "CommonGui.hh"
@@ -160,21 +162,25 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 enum
 {
-	//	CFGKEY_* = 256 // no config keys defined yet
+	CFGKEY_RTC_EMULATION = 256
 };
+
+Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
+bool detectedRtcGame = 0;
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
+		bcase CFGKEY_RTC_EMULATION: optionRtcEmulation.readFromIO(io, readSize);
 	}
 	return 1;
 }
 
 void EmuSystem::writeConfig(Io *io)
 {
-
+	optionRtcEmulation.writeWithKeyIfNotDefault(io);
 }
 
 static bool isGBAExtension(const char *name)
@@ -297,6 +303,7 @@ void EmuSystem::closeSystem()
 	logMsg("closing game %s", gameName);
 	saveBackupMem();
 	CPUCleanUp();
+	detectedRtcGame = 0;
 }
 
 int EmuSystem::loadGame(const char *path)

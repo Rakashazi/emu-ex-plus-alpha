@@ -7,7 +7,7 @@
 
 static uint8 Font6x7[792] =
 {
-	6,  0,  0,  0,  0,  0,  0,  0,
+	6,  0,  0,  0,  0,  0,  0,  0,	// 0x20 - Spacebar
 	3, 64, 64, 64, 64, 64,  0, 64,
 	5, 80, 80, 80,  0,  0,  0,  0,
 	6, 80, 80,248, 80,248, 80, 80,
@@ -23,7 +23,7 @@ static uint8 Font6x7[792] =
 	5,  0,  0,  0,240,  0,  0,  0,
 	3,  0,  0,  0,  0,  0,  0, 64,
 	5, 16, 16, 32, 32, 32, 64, 64,
-	6,112,136,136,136,136,136,112, //0
+	6,112,136,136,136,136,136,112,	// 0x30 - 0
 	6, 32, 96, 32, 32, 32, 32, 32,
 	6,112,136,  8, 48, 64,128,248,
 	6,112,136,  8, 48,  8,136,112,
@@ -38,9 +38,9 @@ static uint8 Font6x7[792] =
 	4,  0, 32, 64,128, 64, 32,  0,
 	5,  0,  0,240,  0,240,  0,  0,
 	4,  0,128, 64, 32, 64,128,  0,
-	5,112,136,  8, 16, 32,  0, 32,
-	6,112,136,136,184,176,128,112,
-	6,112,136,136,248,136,136,136, //A
+	6,112,136,  8, 16, 32,  0, 32,	// 0x3F - ?
+	6,112,136,136,184,176,128,112,	// 0x40 - @
+	6,112,136,136,248,136,136,136,	// 0x41 - A
 	6,240,136,136,240,136,136,240,
 	6,112,136,128,128,128,136,112,
 	6,224,144,136,136,136,144,224,
@@ -72,7 +72,7 @@ static uint8 Font6x7[792] =
 	4, 64,160,  0,  0,  0,  0,  0,
 	6,  0,  0,  0,  0,  0,  0,248,
 	3,128, 64,  0,  0,  0,  0,  0,
-	5,  0,  0, 96, 16,112,144,112, //a
+	5,  0,  0, 96, 16,112,144,112,	// 0x61 - a
 	5,128,128,224,144,144,144,224,
 	5,  0,  0,112,128,128,128,112,
 	5, 16, 16,112,144,144,144,112,
@@ -114,7 +114,7 @@ void DrawTextLineBG(uint8 *dest)
 		int offs;
 
 		if(y>=7) offs=otable[13-y];
-		else offs=otable[y];  
+		else offs=otable[y];
 
 		for(x=offs;x<(256-offs);x++)
 		{
@@ -136,7 +136,7 @@ void DrawMessage(bool beforeMovie)
 		uint8 *t;
 		guiMessage.howlong--;
 
-		if (guiMessage.linesFromBottom > 0) 
+		if (guiMessage.linesFromBottom > 0)
 			t=XBuf+FCEU_TextScanlineOffsetFromBottom(guiMessage.linesFromBottom)+1;
 		else
 			t=XBuf+FCEU_TextScanlineOffsetFromBottom(20)+1;
@@ -169,7 +169,7 @@ void DrawMessage(bool beforeMovie)
 		//don't display movie messages if we're not before the movie
 		if(beforeMovie && !subtitleMessage.isMovieMessage)
 			return;
-		
+
 		uint8 *tt;
 		subtitleMessage.howlong--;
 		tt=XBuf+FCEU_TextScanlineOffsetFromBottom(216);
@@ -307,7 +307,7 @@ static void drawstatus(uint8* XBuf, int n, int y, int xofs)
 	uint8* slines=sline_icons[n];
 	int i;
 
-	
+
 	XBuf += FCEU_TextScanlineOffsetFromBottom(y) + 240 + 255 + xofs;
 	for(i=0; slines[i]!=99; i+=3)
 	{
@@ -334,7 +334,7 @@ void FCEU_DrawRecordingStatus(uint8* XBuf)
 {
 	if(FCEUD_ShowStatusIcon())
 	{
-		bool hasPlayRecIcon = false;	
+		bool hasPlayRecIcon = false;
 		if(FCEUMOV_Mode(MOVIEMODE_RECORD))
 		{
 			drawstatus(XBuf-ClipSidesOffset,2,28,0);
@@ -388,11 +388,11 @@ void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur)
 					XBaf[12*256+x+z*21+z*1]=4;
 			}
 		}
-}  
+}
 
 static int FixJoedChar(uint8 ch)
 {
-	int c = ch; c -= 32;
+	int c = ch - 32;
 	return (c < 0 || c > 98) ? 0 : c;
 }
 static int JoedCharWidth(uint8 ch)
@@ -400,92 +400,123 @@ static int JoedCharWidth(uint8 ch)
 	return Font6x7[FixJoedChar(ch)*8];
 }
 
+char target[64][256];
+
 void DrawTextTransWH(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor, int max_w, int max_h, int border)
 {
-	unsigned beginx=2, x=beginx;
-	unsigned y=2;
+	unsigned int beginx=2, x=beginx;
+	unsigned int y=2;
 
-	char target[64][256] = {{0}};
+	memset(target, 0, 64 * 256);
 
 	assert(width==256);
 	if (max_w > 256) max_w = 256;
 	if (max_h >  64) max_h =  64;
 
+	int ch = 0, wid = 0, nx = 0, ny = 0, max_x = x, offs = 0;
+	int pixel_color;
 	for(; *textmsg; ++textmsg)
 	{
-		int ch, wid;
-
-		if(*textmsg == '\n') { x=beginx; y+=8; continue; }
-		ch  = FixJoedChar(*textmsg);
-		wid = JoedCharWidth(*textmsg);
-
-		int newx = x+wid;
-		if(newx >= (int)width) { x=beginx; y+=8; }
-
-		for(int ny=0; ny<7; ++ny)
+		if(*textmsg == '\n')
 		{
-			uint8 d = Font6x7[ch*8 + 1+ny];
-			for(int nx=0; nx<wid; ++nx)
+			// new line
+			x = beginx;
+			y += 8;
+			continue;
+		}
+		ch  = FixJoedChar(*textmsg);
+		wid = Font6x7[ch * 8];
+
+		if ((x + wid) >= (int)width)
+		{
+			// wrap to new line
+			x = beginx;
+			y += 8;
+		}
+
+		for(ny = 0; ny < 7; ++ny)
+		{
+			uint8 d = Font6x7[ch * 8 + 1 + ny];
+			for(nx = 0; nx < wid; ++nx)
 			{
-				int c = (d >> (7-nx)) & 1;
-				if(c)
+				pixel_color = (d >> (7 - nx)) & 1;
+				if (pixel_color)
 				{
-					if(y+ny >= 62) goto textoverflow;
-					target[y+ny][x+nx] = 2;
+					if (y + ny >= 62)
+					{
+						// Max border is 2, so the max safe y is 62 (since 64 is the max for the target array
+						goto textoverflow;
+					}
+					target[y + ny][x + nx] = 2;
+				} else
+				{
+					target[y + ny][x + nx] = 1;
 				}
-				else
-					target[y+ny][x+nx] = 1;
 			}
 		}
-    x += wid;
+		// proceed to next char
+		x += wid;
+		if (max_x < x)
+			max_x = x;
 
 	}
 textoverflow:
-	for(y=0; y<62; ++y)			//Max border is 2, so the max safe y is 62 (since 64 is the max for the target array
-		for(x=0; x<width; ++x)
+
+	max_x += 2;
+	if (max_x > width)
+		max_x = width;
+	int max_y = y + ny + 2;
+	if (max_y > 62)
+		max_y = 62;
+
+	// draw target buffer to screen buffer
+	for (y = 0; y < max_y; ++y)
+	{
+		for (x = 0; x < max_x; ++x)
 		{
-			int offs = y*width+x;
-			int c = 0;
+			offs = y * width + x;
+			pixel_color = target[y][x] * 100;
 
-			c += target[y][x] * 100;
-
-			if(border>=1){
-				x>=(     1) && (c += target[y][x-1]);
-				x<(width-1) && (c += target[y][x+1]);
-				y>=(     1) && (c += target[y-1][x]);
-				y<(16   -1) && (c += target[y+1][x]);
+			if(border>=1)
+			{
+				x>=(     1) && (pixel_color += target[y][x-1]);
+				x<(width-1) && (pixel_color += target[y][x+1]);
+				y>=(     1) && (pixel_color += target[y-1][x]);
+				y<(16   -1) && (pixel_color += target[y+1][x]);
 			}
-			if(border>=2){
-				x>=(     1) && (c += target[y][x-1]*10);
-				x<(width-1) && (c += target[y][x+1]*10);
-				y>=(     1) && (c += target[y-1][x]*10);
-				y<(16   -1) && (c += target[y+1][x]*10);
+			if(border>=2)
+			{
+				x>=(     1) && (pixel_color += target[y][x-1]*10);
+				x<(width-1) && (pixel_color += target[y][x+1]*10);
+				y>=(     1) && (pixel_color += target[y-1][x]*10);
+				y<(16   -1) && (pixel_color += target[y+1][x]*10);
 
-				x>=(     1) && y>=(  1) && (c += target[y-1][x-1]);
-				x<(width-1) && y>=(  1) && (c += target[y-1][x+1]);
-				x>=(     1) && y<(16-1) && (c += target[y+1][x-1]);
-				x<(width-1) && y<(16-1) && (c += target[y+1][x+1]);
+				x>=(     1) && y>=(  1) && (pixel_color += target[y-1][x-1]);
+				x<(width-1) && y>=(  1) && (pixel_color += target[y-1][x+1]);
+				x>=(     1) && y<(16-1) && (pixel_color += target[y+1][x-1]);
+				x<(width-1) && y<(16-1) && (pixel_color += target[y+1][x+1]);
 
-				x>=(     2) && (c += target[y][x-2]);
-				x<(width-2) && (c += target[y][x+2]);
-				y>=(     2) && (c += target[y-2][x]);
-				y<(16   -2) && (c += target[y+2][x]);
+				x>=(     2) && (pixel_color += target[y][x-2]);
+				x<(width-2) && (pixel_color += target[y][x+2]);
+				y>=(     2) && (pixel_color += target[y-2][x]);
+				y<(16   -2) && (pixel_color += target[y+2][x]);
 			}
 
-			if(c >= 200)
+			if(pixel_color >= 200)
 				dest[offs] = fgcolor;
-			else if(c >= 10)
+			else if(pixel_color >= 10)
 			{
 				if(dest[offs] < 0xA0)
 					dest[offs] = 0xC1;
 				else
 					dest[offs] = 0xD1;
 			}
-			else if(c > 0)
+			else if(pixel_color > 0)
 			{
 				dest[offs] = 0xCF;
 			}
 		}
+	}
 }
 
 void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor)

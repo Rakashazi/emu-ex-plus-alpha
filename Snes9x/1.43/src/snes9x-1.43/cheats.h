@@ -89,6 +89,8 @@
 #ifndef _CHEATS_H_
 #define _CHEATS_H_
 
+#include "port.h"
+
 struct SCheat
 {
     uint32  address;
@@ -126,6 +128,8 @@ typedef enum
 {
     S9X_8_BITS, S9X_16_BITS, S9X_24_BITS, S9X_32_BITS
 } S9xCheatDataSize;
+
+extern SCheatData	Cheat;
 
 void S9xInitCheatData ();
 

@@ -342,6 +342,8 @@ void subGateWrite8(uint address, uint data)
 			bcase 0x5:
 				//logMsg("s68k CDC reg addr: %x", data&0xf);
 				sCD.gate[subAddr] = data;
+			bcase 0x6:
+				sCD.gate[subAddr] = data;
 			bcase 0x7:
 				//logMsg("write CDC reg 0x%X", data);
 				CDC_Write_Reg(data);

@@ -171,7 +171,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 
 		case ContentDrag::ENTERED_ACTIVE:
 		{
-			//logMsg("%d %d", e.x, bt.x2- gfx_xMMSizeToPixel(1.));
+			//logMsg("in scroll");
 			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - Gfx::xMMSizeToPixel(7.5)))
 			{
 				logMsg("scrolling all content");
@@ -186,7 +186,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 
 		case ContentDrag::LEFT_ACTIVE:
 		{
-			//logMsg("out of scroll, with yVel %f", (float)vel);
+			//logMsg("out of scroll, with yVel %f", (double)vel);
 			//if(vel != (GC)0) // TODO: situations where a redraw is needed even with vel == 0
 				Base::displayNeedsUpdate();
 		}
@@ -223,7 +223,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 	prevOffset = offset;
 	bool ret = 0;
 	#ifdef INPUT_SUPPORTS_MOUSE
-	if(e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN)
+	if(e.isPointer() && (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
 	{
 		if(e.pushed() && offset >= minClip && offset <= maxClip)
 		{

@@ -44,7 +44,7 @@ namespace Keycode
 	BACK_SPACE = 67,
 
 	NUM = 78,
-	//79: head set hook
+	HEADSET_HOOK = 79,
 	FOCUS = 80,
 
 	MENU = 82,

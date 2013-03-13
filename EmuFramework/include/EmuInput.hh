@@ -206,6 +206,8 @@ extern const KeyCategory category[categories];
 
 extern const KeyConfig defaultWiimoteProfile[];
 extern const uint defaultWiimoteProfiles;
+extern const KeyConfig defaultWiiCCProfile[];
+extern const uint defaultWiiCCProfiles;
 extern const KeyConfig defaultIControlPadProfile[];
 extern const uint defaultIControlPadProfiles;
 extern const KeyConfig defaultICadeProfile[];

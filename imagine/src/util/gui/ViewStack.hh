@@ -78,9 +78,9 @@ public:
 		top()->inputEvent(e);
 	}
 
-	void draw()
+	void draw(Gfx::FrameTimeBase frameTime)
 	{
-		top()->draw();
+		top()->draw(frameTime);
 		if(useNavView && nav) nav->draw();
 	}
 

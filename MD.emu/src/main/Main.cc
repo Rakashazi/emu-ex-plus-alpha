@@ -43,6 +43,7 @@
 #endif
 #include <main/Cheats.hh>
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
 static int8 mdInputPortDev[2] = { -1, -1 };
@@ -605,6 +606,7 @@ static void setupMDInput()
 
 static void doAudioInit()
 {
+	Audio::setHintPcmFramesPerWrite(vdp_pal ? 950 : 800);
 	uint fps = vdp_pal ? 50 : 60;
 	#if defined(CONFIG_ENV_WEBOS)
 	if(optionFrameSkip != EmuSystem::optionFrameSkipAuto)
@@ -835,11 +837,11 @@ void onInputEvent(const Input::Event &e)
 		int gunDevIdx = 4;
 		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
 		{
-			if(emuView.gameView.overlaps(e.x, e.y))
+			if(emuView.gameRect.overlaps(e.x, e.y))
 			{
-				int xRel = e.x - emuView.gameView.xIPos(LT2DO), yRel = e.y - emuView.gameView.yIPos(LT2DO);
-				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameView.iXSize, (float)bitmap.viewport.w);
-				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameView.iYSize, (float)bitmap.viewport.h);
+				int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
+				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)bitmap.viewport.w);
+				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)bitmap.viewport.h);
 			}
 			if(e.state == Input::PUSHED)
 			{
@@ -863,7 +865,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	Audio::setHintPcmFramesPerWrite(950); // for PAL
 	mainInitCommon();
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;

@@ -66,7 +66,7 @@ const char* sramCreateFilenameWithSuffix(const char* romFilename, char* suffix, 
     }
     src--;
 
-    while (*src != '/' && *src != '\\' && src >= romFilename) {
+    while (src >= romFilename && *src != '/' && *src != '\\') {
         *--dst = *src--;
     }
 

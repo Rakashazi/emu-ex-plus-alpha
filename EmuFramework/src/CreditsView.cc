@@ -18,7 +18,7 @@
 #include <util/gui/ViewStack.hh>
 extern ViewStack viewStack;
 
-void CreditsView::draw ()
+void CreditsView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	if(!updateAnimation())
@@ -29,7 +29,7 @@ void CreditsView::draw ()
 			gXPos(rect, C2DO), gYPos(rect, C2DO), C2DO, C2DO);
 }
 
-void CreditsView::place ()
+void CreditsView::place()
 {
 	text.compile();
 }
@@ -43,14 +43,14 @@ void CreditsView::inputEvent(const Input::Event &e)
 	}
 }
 
-void CreditsView::init ()
+void CreditsView::init()
 {
 	text.init(str, View::defaultFace);
 	place();
 	View::init(&fade, 1);
 }
 
-void CreditsView::deinit ()
+void CreditsView::deinit()
 {
 	text.deinit();
 }

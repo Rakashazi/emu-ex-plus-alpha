@@ -6,14 +6,14 @@
 extern MsgPopup popup;
 extern EmuFilePicker fPicker;
 
-void soundHandler(BoolMenuItem &item, const Input::Event &e)
+void OptionView::soundHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionSound = item.on;
 }
 
 #ifdef CONFIG_AUDIO_OPENSL_ES
-static void soundUnderrunCheckHandler(BoolMenuItem &item, const Input::Event &e)
+void OptionView::soundUnderrunCheckHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionSoundUnderrunCheck = item.on;
@@ -21,7 +21,7 @@ static void soundUnderrunCheckHandler(BoolMenuItem &item, const Input::Event &e)
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-static void useOSInputMethodHandler(BoolMenuItem &item, const Input::Event &e)
+void OptionView::useOSInputMethodHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	Input::setEventsUseOSInputMethod(!item.on);
@@ -53,7 +53,7 @@ void OptionView::touchCtrlInit()
 		"Off", "On", "Auto"
 	};
 	touchCtrl.init(str, int(optionTouchCtrl), sizeofArray(str));
-	touchCtrl.valueDelegate().bind<&touchCtrlSet>();
+	touchCtrl.onValue().bind<&touchCtrlSet>();
 }
 #endif
 
@@ -93,7 +93,7 @@ void OptionView::autoSaveStateInit()
 		bcase 30: val = 3;
 	}
 	autoSaveState.init(str, val, sizeofArray(str));
-	autoSaveState.valueDelegate().bind<&autoSaveStateSet>();
+	autoSaveState.onValue().bind<&autoSaveStateSet>();
 }
 
 void statusBarSet(MultiChoiceMenuItem &, int val)
@@ -112,7 +112,7 @@ void OptionView::statusBarInit()
 	if(optionHideStatusBar < 2)
 		val = optionHideStatusBar;
 	statusBar.init(str, val, sizeofArray(str));
-	statusBar.valueDelegate().bind<&statusBarSet>();
+	statusBar.onValue().bind<&statusBarSet>();
 }
 
 void frameSkipSet(MultiChoiceMenuItem &, int val)
@@ -144,7 +144,7 @@ void OptionView::frameSkipInit()
 	if(optionFrameSkip.val == EmuSystem::optionFrameSkipAuto)
 		val = -1;
 	frameSkip.init(str, val, sizeofArray(str), baseVal);
-	frameSkip.valueDelegate().bind<&frameSkipSet>();
+	frameSkip.onValue().bind<&frameSkipSet>();
 }
 
 void audioRateSet(MultiChoiceMenuItem &, int val)
@@ -185,7 +185,7 @@ void OptionView::audioRateInit()
 	}
 
 	audioRate.init(str, val, rates);
-	audioRate.valueDelegate().bind<&audioRateSet>();
+	audioRate.onValue().bind<&audioRateSet>();
 }
 
 #ifdef CONFIG_BASE_ANDROID
@@ -345,7 +345,7 @@ void OptionView::btScanSecsInit()
 		bcase 10: val = 4;
 	}
 	btScanSecs.init(str, val, sizeofArray(str));
-	btScanSecs.valueDelegate().bind<&btScanSecsSet>();
+	btScanSecs.onValue().bind<&btScanSecsSet>();
 }
 
 void keepBtActiveHandler(BoolMenuItem &item, const Input::Event &e)
@@ -418,7 +418,7 @@ void gameOrientationSet(MultiChoiceMenuItem &, int val)
 void OptionView::gameOrientationInit()
 {
 	orientationInit(gameOrientation, optionGameOrientation);
-	gameOrientation.valueDelegate().bind<&gameOrientationSet>();
+	gameOrientation.onValue().bind<&gameOrientationSet>();
 }
 
 void menuOrientationSet(MultiChoiceMenuItem &, int val)
@@ -432,7 +432,7 @@ void menuOrientationSet(MultiChoiceMenuItem &, int val)
 void OptionView::menuOrientationInit()
 {
 	orientationInit(menuOrientation, optionMenuOrientation);
-	menuOrientation.valueDelegate().bind<&menuOrientationSet>();
+	menuOrientation.onValue().bind<&menuOrientationSet>();
 }
 
 void aspectRatioSet(MultiChoiceMenuItem &, int val)
@@ -446,7 +446,7 @@ void OptionView::aspectRatioInit()
 {
 	static const char *str[] = { systemAspectRatioString, "1:1", "Full Screen" };
 	aspectRatio.init(str, optionAspectRatio, sizeofArray(str));
-	aspectRatio.valueDelegate().bind<&aspectRatioSet>();
+	aspectRatio.onValue().bind<&aspectRatioSet>();
 }
 
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
@@ -459,7 +459,7 @@ void OptionView::aspectRatioInit()
 	{
 		static const char *str[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
 		soundBuffers.init(str, IG::max((int)optionSoundBuffers - 3, 0), sizeofArray(str));
-		soundBuffers.valueDelegate().bind<&soundBuffersSet>();
+		soundBuffers.onValue().bind<&soundBuffersSet>();
 	}
 #endif
 
@@ -472,6 +472,7 @@ void zoomSet(MultiChoiceMenuItem &, int val)
 		bcase 2: optionImageZoom.val = 80;
 		bcase 3: optionImageZoom.val = 70;
 		bcase 4: optionImageZoom.val = optionImageZoomIntegerOnly;
+		bcase 5: optionImageZoom.val = optionImageZoomIntegerOnlyY;
 	}
 	logMsg("set image zoom: %d", int(optionImageZoom));
 	emuView.placeEmu();
@@ -479,7 +480,7 @@ void zoomSet(MultiChoiceMenuItem &, int val)
 
 void OptionView::zoomInit()
 {
-	static const char *str[] = { "100%", "90%", "80%", "70%", "Integer-only" };
+	static const char *str[] = { "100%", "90%", "80%", "70%", "Integer-only", "Integer-only (Height)" };
 	int val = 0;
 	switch(optionImageZoom.val)
 	{
@@ -488,9 +489,10 @@ void OptionView::zoomInit()
 		bcase 80: val = 2;
 		bcase 70: val = 3;
 		bcase optionImageZoomIntegerOnly: val = 4;
+		bcase optionImageZoomIntegerOnlyY: val = 5;
 	}
 	zoom.init(str, val, sizeofArray(str));
-	zoom.valueDelegate().bind<&zoomSet>();
+	zoom.onValue().bind<&zoomSet>();
 }
 
 void dpiSet(MultiChoiceMenuItem &, int val)
@@ -530,7 +532,7 @@ void OptionView::dpiInit()
 	}
 	assert(init < sizeofArray(str));
 	dpi.init(str, init, sizeofArray(str));
-	dpi.valueDelegate().bind<&dpiSet>();
+	dpi.onValue().bind<&dpiSet>();
 }
 
 void imgFilterSet(MultiChoiceMenuItem &, int val)
@@ -544,7 +546,7 @@ void OptionView::imgFilterInit()
 {
 	static const char *str[] = { "None", "Linear" };
 	imgFilter.init(str, optionImgFilter, sizeofArray(str));
-	imgFilter.valueDelegate().bind<&imgFilterSet>();
+	imgFilter.onValue().bind<&imgFilterSet>();
 }
 
 void overlayEffectSet(MultiChoiceMenuItem &, int val)
@@ -576,7 +578,7 @@ void OptionView::overlayEffectInit()
 		bcase VideoImageOverlay::CRT_RGB_2: init = 5;
 	}
 	overlayEffect.init(str, init, sizeofArray(str));
-	overlayEffect.valueDelegate().bind<&overlayEffectSet>();
+	overlayEffect.onValue().bind<&overlayEffectSet>();
 }
 
 void overlayEffectLevelSet(MultiChoiceMenuItem &, int val)
@@ -609,7 +611,7 @@ void OptionView::overlayEffectLevelInit()
 		bcase 100: init = 6;
 	}
 	overlayEffectLevel.init(str, init, sizeofArray(str));
-	overlayEffectLevel.valueDelegate().bind<&overlayEffectLevelSet>();
+	overlayEffectLevel.onValue().bind<&overlayEffectLevelSet>();
 }
 
 void relativePointerDecelSet(MultiChoiceMenuItem &, int val)
@@ -635,7 +637,7 @@ void OptionView::relativePointerDecelInit()
 	if(optionRelPointerDecel == optionRelPointerDecelHigh)
 		init = 2;
 	relativePointerDecel.init(str, init, sizeofArray(str));
-	relativePointerDecel.valueDelegate().bind<&relativePointerDecelSet>();
+	relativePointerDecel.onValue().bind<&relativePointerDecelSet>();
 }
 
 #if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
@@ -663,7 +665,7 @@ void OptionView::processPriorityInit()
 	if(optionProcessPriority.val == -14)
 		init = 2;
 	processPriority.init("Process Priority", str, init, sizeofArray(str));
-	processPriority.valueDelegate().bind<&processPrioritySet>();
+	processPriority.onValue().bind<&processPrioritySet>();
 }
 #endif
 
@@ -676,12 +678,12 @@ void OptionView::confirmBestColorModeHintAlert(const Input::Event &e)
 
 void OptionView::bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e)
 {
-	if(Config::envIsAndroid)
+	if(!item.on && Config::envIsAndroid)
 	{
 		ynAlertView.init("This option takes effect next time you launch the app. "
 				"Not all devices properly support high color modes so turn this off "
-				"if you experience graphics problems.", !e.isPointer());
-		ynAlertView.onYesDelegate().bind<OptionView, &OptionView::confirmBestColorModeHintAlert>(this);
+				"if you experience graphics problems.", !e.isPointer(), "Enable", "Cancel");
+		ynAlertView.onYes().bind<OptionView, &OptionView::confirmBestColorModeHintAlert>(this);
 		ynAlertView.placeRect(Gfx::viewportRect());
 		modalView = &ynAlertView;
 	}
@@ -815,14 +817,12 @@ void OptionView::loadAudioItems(MenuItem *item[], uint &items)
 {
 	name_ = "Audio Options";
 	snd.init(optionSound); item[items++] = &snd;
-	snd.selectDelegate().bind<&soundHandler>();
 	if(!optionSoundRate.isConst) { audioRateInit(); item[items++] = &audioRate; }
 #ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 	soundBuffersInit(); item[items++] = &soundBuffers;
 #endif
 #ifdef CONFIG_AUDIO_OPENSL_ES
 	sndUnderrunCheck.init(optionSoundUnderrunCheck); item[items++] = &sndUnderrunCheck;
-	sndUnderrunCheck.selectDelegate().bind<&soundUnderrunCheckHandler>();
 #endif
 }
 
@@ -847,7 +847,6 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 	#endif
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	useOSInputMethod.init(!Input::eventsUseOSInputMethod()); item[items++] = &useOSInputMethod;
-	useOSInputMethod.selectDelegate().bind<&useOSInputMethodHandler>();
 	#endif
 	if(!optionRelPointerDecel.isConst) { relativePointerDecelInit(); item[items++] = &relativePointerDecel; }
 }

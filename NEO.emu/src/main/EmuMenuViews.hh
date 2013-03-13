@@ -20,7 +20,7 @@ private:
 				"Off", "On", "Auto"
 		};
 		timer.init(str, IG::min(2, (int)optionTimerInt), sizeofArray(str));
-		timer.valueDelegate().bind<&timerSet>();
+		timer.onValue().bind<&timerSet>();
 	}
 
 	MultiChoiceSelectMenuItem region {"MVS Region"};
@@ -43,7 +43,7 @@ private:
 			setting = conf.country;
 		}
 		region.init(str, setting, sizeofArray(str));
-		region.valueDelegate().bind<&regionSet>();
+		region.onValue().bind<&regionSet>();
 	}
 
 	MultiChoiceSelectMenuItem bios {"BIOS Type"};
@@ -66,7 +66,7 @@ private:
 			setting = 1;
 		}
 		bios.init(str, setting, sizeofArray(str));
-		bios.valueDelegate().bind<&biosSet>();
+		bios.onValue().bind<&biosSet>();
 	}
 
 	BoolMenuItem listAll;
@@ -141,6 +141,7 @@ static const RomListEntry romlist[] = {
 	{ "aof3k.zip", 0 },
 	{ "bakatono.zip", 0 },
 	{ "bangbead.zip", 0 },
+	{ "bbbuster.zip", 0 },
 	{ "bjourney.zip", 0 },
 	{ "blazstar.zip", 0 },
 	{ "breakers.zip", 0 },
@@ -180,6 +181,8 @@ static const RomListEntry romlist[] = {
 	{ "gpilots.zip", 0 },
 	{ "gpilotsh.zip", 0 },
 	{ "gururin.zip", 0 },
+	{ "ironclad.zip", 0 },
+	{ "ironclado.zip", 0 },
 	{ "irrmaze.zip", 1 },
 	{ "janshin.zip", 0 },
 	{ "jockeygp.zip", 1 },
@@ -363,6 +366,7 @@ static const RomListEntry romlist[] = {
 	},
 	{ "tpgolf.zip", 0 },
 	{ "trally.zip", 0 },
+	{ "totcarib.zip", 0 },
 	{ "turfmast.zip", 0 },
 	{ "twinspri.zip", 0 },
 	{ "tws96.zip",
@@ -437,7 +441,7 @@ private:
 				if(entry->bugs)
 				{
 					ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
-					ynAlertView.onYesDelegate().bind<GameMenuItem, &GameMenuItem::confirmAlert>(this);
+					ynAlertView.onYes().bind<GameMenuItem, &GameMenuItem::confirmAlert>(this);
 					ynAlertView.placeRect(Gfx::viewportRect());
 					modalView = &ynAlertView;
 				}
@@ -509,7 +513,7 @@ public:
 		int setting = 0;
 		setting = memory.memcard[3] & 0x3;
 		region.init(str, setting, sizeofArray(str));
-		region.valueDelegate().bind<&regionSet>();
+		region.onValue().bind<&regionSet>();
 	}
 
 	static void regionSet(MultiChoiceMenuItem &, int val)

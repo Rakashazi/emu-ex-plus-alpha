@@ -179,7 +179,7 @@ void FSPicker::inputEvent(const Input::Event &e)
 	}
 }
 
-void FSPicker::draw()
+void FSPicker::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);

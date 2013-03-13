@@ -15,34 +15,26 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
 
-namespace BoardMalee
-{
-
 static uint8 WRAM[2048];
 
-static void MALEEPower(void)
-{
-  setprg2r(0x10,0x7000,0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetReadHandler(0x6000,0x67FF,CartBR);
-  SetReadHandler(0x7000,0x77FF,CartBR);
-  SetWriteHandler(0x7000,0x77FF,CartBW);
-  setprg2r(1,0x6000,0);
-  setprg32(0x8000,0);
-  setchr8(0);
+static void MALEEPower(void) {
+	setprg2r(0x10, 0x7000, 0);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x6000, 0x67FF, CartBR);
+	SetReadHandler(0x7000, 0x77FF, CartBR);
+	SetWriteHandler(0x7000, 0x77FF, CartBW);
+	setprg2r(1, 0x6000, 0);
+	setprg32(0x8000, 0);
+	setchr8(0);
 }
 
-}
-
-void MALEE_Init(CartInfo *info)
-{
-	using namespace BoardMalee;
-  info->Power=MALEEPower;
-  SetupCartPRGMapping(0x10, BoardMalee::WRAM, 2048, 1);
-  AddExState(BoardMalee::WRAM, 2048, 0,"RAM");
+void MALEE_Init(CartInfo *info) {
+	info->Power = MALEEPower;
+	SetupCartPRGMapping(0x10, WRAM, 2048, 1);
+	AddExState(WRAM, 2048, 0, "WRAM");
 }

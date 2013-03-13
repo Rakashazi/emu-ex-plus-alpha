@@ -132,28 +132,15 @@ void setKeyRepeat(bool on);
 	static bool eventsUseOSInputMethod() { return 0; }
 #endif
 
-
 #ifdef INPUT_SUPPORTS_POINTER
 	extern uint numCursors;
-	int cursorX(int p = 0) ATTRS(pure);
-	int cursorY(int p = 0) ATTRS(pure);
-	int cursorIsInView(int p = 0) ATTRS(pure);
 	void hideCursor();
 	void showCursor();
 #else
 	static uint numCursors = 0;
-	static int cursorX(int p = 0) { return -1; }
-	static int cursorY(int p = 0) { return -1; }
-	static int cursorIsInView(int p = 0) { return 0; }
 	static void hideCursor() { }
 	static void showCursor() { }
 #endif
-
-static void cursorXY(int *x, int *y, int p = 0)
-{
-	*x = cursorX(p);
-	*y = cursorY(p);
-}
 
 static const uint numAsciiKeys = (('~' - '!') + 1);
 
@@ -261,27 +248,37 @@ static bool isAsciiKey(Key k)
 
 namespace Wiimote
 {
-	static const uint _1 = 1,
-	_2 = 2,
-	A = 3,
-	B = 4,
-	PLUS = 5,
-	MINUS = 6,
-	HOME = 7,
-	// Classic Controller-specific
-	L = 8, R = 9,
-	ZL = 10, ZR = 11,
-	X = 12, Y = 13,
-	CC_LSTICK_LEFT = 14, CC_LSTICK_RIGHT = 15, CC_LSTICK_UP = 16, CC_LSTICK_DOWN = 17,
-	CC_RSTICK_LEFT = 18, CC_RSTICK_RIGHT = 19, CC_RSTICK_UP = 20, CC_RSTICK_DOWN = 21,
-	// Directions
-	LEFT = 22, RIGHT = 23, UP = 24, DOWN = 25,
+	static const uint PLUS = 1,
+	MINUS = 2,
+	HOME = 3,
+	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
+	_1 = 8,
+	_2 = 9,
+	A = 10,
+	B = 11,
 	// Nunchuk
-	NUN_C = 26, NUN_Z = 27,
-	NUN_STICK_LEFT = 28, NUN_STICK_RIGHT = 29, NUN_STICK_UP = 30, NUN_STICK_DOWN = 31
+	NUN_C = 12, NUN_Z = 13,
+	NUN_STICK_LEFT = 14, NUN_STICK_RIGHT = 15, NUN_STICK_UP = 16, NUN_STICK_DOWN = 17
 	;
 
-	static const uint COUNT = 32;
+	static const uint COUNT = 14;
+}
+
+namespace WiiCC
+{
+	static const uint PLUS = 1,
+	MINUS = 2,
+	HOME = 3,
+	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
+	A = 8, B = 9,
+	X = 10, Y = 11,
+	L = 12, R = 13,
+	ZL = 14, ZR = 15,
+	LSTICK_LEFT = 16, LSTICK_RIGHT = 17, LSTICK_UP = 18, LSTICK_DOWN = 19,
+	RSTICK_LEFT = 20, RSTICK_RIGHT = 21, RSTICK_UP = 22, RSTICK_DOWN = 23
+	;
+
+	static const uint COUNT = 24;
 }
 
 namespace iControlPad
@@ -413,8 +410,14 @@ public:
 			TYPE_BIT_KEY_MISC = BIT(0),
 			TYPE_BIT_KEYBOARD = BIT(1),
 			TYPE_BIT_GAMEPAD = BIT(2),
-			TYPE_BIT_JOYSTICK = BIT(3)
+			TYPE_BIT_JOYSTICK = BIT(3),
+			TYPE_BIT_VIRTUAL = BIT(4)
 			;
+
+	bool hasKeyboard() const
+	{
+		return typeBits() & TYPE_BIT_KEYBOARD;
+	}
 
 	bool hasGamepad() const
 	{
@@ -426,8 +429,14 @@ public:
 		return typeBits() & TYPE_BIT_JOYSTICK;
 	}
 
+	bool isVirtual() const
+	{
+		return typeBits() & TYPE_BIT_VIRTUAL;
+	}
+
 	const char *name() const { return name_; }
 	uint map() const;
+	void setMap(uint map) { map_ = map; };
 
 	uint typeBits() const
 	{
@@ -460,7 +469,7 @@ public:
 	#endif
 };
 
-static constexpr uint MAX_DEVS = 16;
+static constexpr uint MAX_DEVS = Config::envIsAndroid ? 24 : 16;
 extern StaticDLList<Device, MAX_DEVS> devList;
 
 void addDevice(Device d);
@@ -502,7 +511,7 @@ public:
 		MAP_KEYBOARD = 1,
 		MAP_POINTER = 2,
 		MAP_REL_POINTER = 3,
-		MAP_WIIMOTE = 10, MAP_WIIMOTE_CC = 11,
+		MAP_WIIMOTE = 10, MAP_WII_CC = 11,
 		MAP_ICONTROLPAD = 20,
 		MAP_ZEEMOTE = 21,
 		MAP_ICADE = 22,
@@ -519,6 +528,7 @@ public:
 			case MAP_REL_POINTER: return "Relative Pointer";
 			#ifdef CONFIG_BLUETOOTH
 			case MAP_WIIMOTE: return "Wiimote";
+			case MAP_WII_CC: return "Classic / Wii U Pro Controller";
 			case MAP_ICONTROLPAD: return "iControlPad";
 			case MAP_ZEEMOTE: return "Zeemote JS1";
 			#endif
@@ -547,6 +557,7 @@ public:
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			case MAP_WIIMOTE: return Input::Wiimote::COUNT;
+			case MAP_WII_CC: return Input::WiiCC::COUNT;
 			case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
 			case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
 			#endif
@@ -596,6 +607,7 @@ public:
 		{
 			#ifdef CONFIG_BLUETOOTH
 			case MAP_WIIMOTE:
+			case MAP_WII_CC:
 			case MAP_ICONTROLPAD:
 			case MAP_ZEEMOTE: return 1;
 			#endif
@@ -647,7 +659,7 @@ public:
 
 	uint decodeAscii() const
 	{
-		return Input::decodeAscii(button, isShiftPushed());
+		return Input::decodeAscii(button, 0);
 	}
 
 	bool isShiftPushed() const
@@ -670,33 +682,15 @@ struct DeviceChange
 	bool hidden() const { return state == HIDDEN; }
 };
 
-static uint devButtonCount(uint map)
-{
-	switch(map)
-	{
-		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Input::Event::MAP_KEYBOARD: return Keycode::COUNT;
-		case Input::Event::MAP_POINTER: return Keycode::COUNT;
-		case Input::Event::MAP_REL_POINTER: return Keycode::COUNT;
-		#endif
-		#ifdef CONFIG_BLUETOOTH
-		case Input::Event::MAP_WIIMOTE: return Wiimote::COUNT;
-		case Input::Event::MAP_ICONTROLPAD: return iControlPad::COUNT;
-		case Input::Event::MAP_ZEEMOTE: return Zeemote::COUNT;
-		#endif
-		#ifdef CONFIG_BASE_PS3
-		case Input::Event::MAP_PS3PAD: return Ps3::COUNT;
-		#endif
-		#ifdef CONFIG_INPUT_ICADE
-		case Input::Event::MAP_ICADE: return ICade::COUNT;
-		#endif
-		default: return 0;
-	}
-}
-
 bool keyInputIsPresent();
 
 const char *eventActionToStr(int action);
+
+#ifdef CONFIG_BASE_X11
+	void setTranslateKeyboardEventsByModifiers(bool on);
+#else
+	static void setTranslateKeyboardEventsByModifiers(bool on) { }
+#endif
 
 // App Callbacks
 

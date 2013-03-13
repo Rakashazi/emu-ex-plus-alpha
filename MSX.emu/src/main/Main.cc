@@ -61,6 +61,7 @@ extern "C"
 
 #include <blueMSX/Utils/ziphelper.h>
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 BoardInfo boardInfo = { 0 };
 extern bool fdcActive;
 Machine *machine = 0;
@@ -68,14 +69,15 @@ Mixer *mixer = 0;
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
 #if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
-	char machineBasePath[] = "/User/Media/MSX.emu";
-#elif defined(CONFIG_BASE_ANDROID)
-	char machineBasePath[] = "/sdcard/MSX.emu";
-#elif defined(CONFIG_ENV_WEBOS)
-	char machineBasePath[] = "/media/internal/MSX.emu";
+	const char *machineBasePath = "/User/Media/MSX.emu";
 #else
 	FsSys::cPath machineBasePath = "";
 #endif
+
+const char *machineBasePathStr()
+{
+	return machineBasePath;
+}
 
 static char cartName[2][512] = { "", "" };
 extern RomType currentRomType[2];
@@ -1185,14 +1187,26 @@ CallResult onInit(int argc, char** argv)
 	mixerSetStereo(mixer, 1);
 	mixerEnableMaster(mixer, 1);
 	int logFrequency = 50;
-	int frequency = (int)(3579545 * pow(2.0, (logFrequency - 50) / 15.0515));
+	int frequency = (int)(3579545 * ::pow(2.0, (logFrequency - 50) / 15.0515));
 	mixerSetBoardFrequencyFixed(frequency);
 	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
-	#if defined(CONFIG_BASE_X11) || (defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB))
-		strcpy(machineBasePath, Base::appPath);
-		logMsg("set machine base path %s", machineBasePath);
+	#if !(defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB))
+		#if defined CONFIG_BASE_X11
+			// check for machine path in app dir
+			FsSys::cPath appDirMachineBasePath = "";
+			string_printf(appDirMachineBasePath, "%s/Machines", Base::appPath);
+			if(FsSys::fileExists(appDirMachineBasePath))
+			{
+				strcpy(machineBasePath, Base::appPath);
+			}
+			else
+		#endif
+			{
+				string_printf(machineBasePath, "%s/MSX.emu", Base::storagePath());
+			}
 	#endif
+	logMsg("machine base path %s", machineBasePath);
 	#ifdef CONFIG_BASE_IOS_SETUID
 	fixFilePermissions(machineBasePath);
 	#endif
@@ -1216,7 +1230,7 @@ CallResult onWindowInit()
 	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
 	{
 		ynAlertView.init(InstallMSXSystem::installMessage(), Input::keyInputIsPresent());
-		ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();
+		ynAlertView.onYes().bind<&InstallMSXSystem::confirmAlert>();
 		ynAlertView.placeRect(Gfx::viewportRect());
 		View::modalView = &ynAlertView;
 	}

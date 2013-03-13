@@ -1,4 +1,7 @@
 extern uint8 MMC3_cmd;
+extern uint8 mmc3opts;
+extern uint8 A000B;
+extern uint8 A001B;
 extern uint8 EXPREGS[8];
 extern uint8 DRegBuf[8];
 

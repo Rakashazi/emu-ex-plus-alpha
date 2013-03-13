@@ -66,3 +66,37 @@ static const char *glImageFormatToString(int format)
 		default: bug_branch("%d", format); return NULL;
 	}
 }
+
+// linker errors on some error check code due to GCC <= 4.7.2 lambda bug
+#if defined NDEBUG || (!defined __clang__ && GCC_VERSION < 40703)
+	static const bool checkGLErrors = 0;
+#else
+	static const bool checkGLErrors = 1;
+#endif
+
+static const bool checkGLErrorsVerbose = 1;
+
+static bool handleGLErrors(void (*callback)(GLenum error, const char *str) = nullptr)
+{
+	if(!checkGLErrors)
+		return 0;
+
+	bool gotError = 0;
+	GLenum error;
+	while((error = glGetError()) != GL_NO_ERROR)
+	{
+		gotError = 1;
+		if(callback)
+			callback(error, glErrorToString(error));
+		else
+			logWarn("clearing error: %s", glErrorToString(error));
+	}
+	return gotError;
+}
+
+static bool handleGLErrorsVerbose(void (*callback)(GLenum error, const char *str) = nullptr)
+{
+	if(!checkGLErrorsVerbose)
+		return 0;
+	return handleGLErrors(callback);
+}

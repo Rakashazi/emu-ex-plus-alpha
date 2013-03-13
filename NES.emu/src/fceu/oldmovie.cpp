@@ -543,7 +543,7 @@ EFCM_CONVERTRESULT convert_fcm(MovieData& md, std::string fname)
 
 
 	EMUFILE* fp = FCEUD_UTF8_fstream(fname, "rb");
-	if(!fp) FCM_CONVERTRESULT_FAILOPEN;
+	if(!fp) return FCM_CONVERTRESULT_FAILOPEN;
 
 	// read header
 	uint32 magic = 0;
@@ -589,7 +589,7 @@ EFCM_CONVERTRESULT convert_fcm(MovieData& md, std::string fname)
 
 	md.romFilename = readNullTerminatedAscii(fp);
 
-	md.comments.push_back(L"author  " + mbstowcs(readNullTerminatedAscii(fp)));
+	md.comments.push_back(L"author  " + readNullTerminatedAscii(fp));
 
 		//int metadata_length = savestate_offset - MOVIE_V1_HEADER_SIZE;
 	//uint8* metadata = new uint8[metadata_length];

@@ -78,12 +78,12 @@ Input::Wiimote::HOME, \
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT \
 0, \
-Input::Wiimote::HOME, \
+Input::WiiCC::HOME, \
 0, \
 0, \
 0, \
 0, \
-Input::Wiimote::ZR, \
+Input::WiiCC::ZR, \
 0, \
 0
 
@@ -152,16 +152,40 @@ Input::asciiKey('`'), \
 0, \
 Input::Keycode::ESCAPE
 
-#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
-0, \
+#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT_PROFILE_INIT \
+Input::asciiKey('l'), \
 Input::Keycode::MENU, \
+Input::Keycode::F9, \
+Input::Keycode::F12, \
+Input::asciiKey('['), \
+Input::asciiKey(']'), \
+Input::asciiKey('`'), \
 0, \
-0, \
-0, \
-0, \
-Input::Keycode::SEARCH, \
-0, \
-0
+Input::Keycode::ESCAPE
+
+#ifdef CONFIG_BASE_ANDROID
+	#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
+	0, \
+	Input::Keycode::MENU, \
+	0, \
+	0, \
+	0, \
+	0, \
+	Input::Keycode::SEARCH, \
+	0, \
+	0
+#else
+	#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
+	0, \
+	Input::Keycode::MENU, \
+	0, \
+	0, \
+	0, \
+	0, \
+	Input::Keycode::F11, \
+	0, \
+	0
+#endif
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT \
 	Input::Ps3::L1, \

@@ -15,7 +15,7 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 //  TODO: Add (better) file io error checking
@@ -377,9 +377,9 @@ bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
 	{
 		totalsize+=WriteStateChunk(os,6,FCEUMOV_STATEINFO);
 
-		//MBG tasedit HACK HACK HACK!
-		//do not save the movie state if we are in tasedit! that is a huge waste of time and space!
-		if(!FCEUMOV_Mode(MOVIEMODE_TASEDIT))
+		//MBG TAS Editor HACK HACK HACK!
+		//do not save the movie state if we are in Taseditor! That would be a huge waste of time and space!
+		if(!FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 		{
 			os->fseek(5,SEEK_CUR);
 			int size = FCEUMOV_WriteState(os);
@@ -421,11 +421,10 @@ bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
 	uLongf comprlen = -1;
 	if(compressionLevel != Z_NO_COMPRESSION && compressSavestates)
 	{
-		//worst case compression.
-		//zlib says "0.1% larger than sourceLen plus 12 bytes"
+		// worst case compression: zlib says "0.1% larger than sourceLen plus 12 bytes"
 		comprlen = (len>>9)+12 + len;
 		cbuf = new uint8[comprlen];
-		error = compress2(cbuf,&comprlen,(uint8*)ms.buf(),len,compressionLevel);
+		error = compress2(cbuf, &comprlen, (uint8*)ms.buf(), len, compressionLevel);
 	}
 
 	//dump the header
@@ -650,7 +649,6 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 
 	std::vector<uint8> buf(totalsize);
 
-	//not compressed:
 	if(comprlen != -1)
 	{
 		//load the compressed chunk and decompress
@@ -662,8 +660,7 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 		if(error != Z_OK || uncomprlen != totalsize)
 			return false;
 		//we dont need to restore the backup here because we havent messed with the emulator state yet
-	}
-	else
+	} else
 	{
 		is->fread((char*)&buf[0],totalsize);
 	}
@@ -681,14 +678,13 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 	{
 		GameStateRestore(stateversion);
 	}
-	if(x)
+	if (x)
 	{
 		FCEUPPU_LoadState(stateversion);
 		FCEUSND_LoadState(stateversion);
 		x=FCEUMOV_PostLoad();
-	}
-
-	if(!x && backup) {
+	} else if (backup)
+	{
 		msBackupSavestate.fseek(0,SEEK_SET);
 		FCEUSS_LoadFP(&msBackupSavestate,SSLOADPARAM_NOBACKUP);
 	}
@@ -1023,7 +1019,7 @@ void SwapSaveState()
 		redoSS = true;
 
 	FCEUI_DispMessage("%s restored",0,backup.c_str());
-	FCEUI_printf("%s restored\n",0,backup.c_str());
+	FCEUI_printf("%s restored\n",backup.c_str());
 }	
 	
 //------------------------------------------------------------------------------------------------------------------------------------------------------

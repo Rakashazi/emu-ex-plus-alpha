@@ -57,19 +57,19 @@ jboolean JNICALL keyEvent(JNIEnv *env, jobject thiz, jint key, jint down, jboole
 	return prevGfxUpdateState == 0 && gfxUpdate;
 }
 
-void showSoftInput()
-{
-	using namespace Base;
-	logMsg("showing soft input");
-	jShowIme(aEnv(), jBaseActivity, 0);
-}
-
-void hideSoftInput()
-{
-	using namespace Base;
-	logMsg("hiding soft input");
-	jHideIme(aEnv(), jBaseActivity, 0);
-}
+//void showSoftInput()
+//{
+//	using namespace Base;
+//	logMsg("showing soft input");
+//	jShowIme(aEnv(), jBaseActivity, 0);
+//}
+//
+//void hideSoftInput()
+//{
+//	using namespace Base;
+//	logMsg("hiding soft input");
+//	jHideIme(aEnv(), jBaseActivity, 0);
+//}
 
 CallResult init()
 {

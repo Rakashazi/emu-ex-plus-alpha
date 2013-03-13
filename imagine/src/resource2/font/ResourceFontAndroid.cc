@@ -71,14 +71,15 @@ ResourceFont *ResourceFontAndroid::loadSystem()
 		inst->free();
 		return nullptr;
 	}
+	inst->renderer = Base::eNewGlobalRef(inst->renderer);
 
 	return inst;
 }
 
 void ResourceFontAndroid::free ()
 {
-	//eEnv()->DeleteGlobalRef(renderer);
-	eEnv()->DeleteLocalRef(renderer);
+	if(renderer)
+		Base::eDeleteGlobalRef(renderer);
 	delete this;
 }
 
@@ -98,6 +99,7 @@ void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 {
 	assert(!lockedBitmap);
 	lockedBitmap = jCharBitmap(eEnv(), renderer);
+	lockedBitmap = Base::eNewGlobalRef(lockedBitmap);
 	AndroidBitmapInfo info;
 	{
 		auto res = AndroidBitmap_getInfo(eEnv(), lockedBitmap, &info);
@@ -119,7 +121,7 @@ void ResourceFontAndroid::unlockCharBitmap(void *data)
 {
 	AndroidBitmap_unlockPixels(eEnv(), lockedBitmap);
 	jUnlockCharBitmap(eEnv(), renderer, lockedBitmap);
-	eEnv()->DeleteLocalRef(lockedBitmap);
+	Base::eDeleteGlobalRef(lockedBitmap);
 	lockedBitmap = nullptr;
 }
 
@@ -151,7 +153,8 @@ int ResourceFontAndroid::currentFaceAscender () const
 
 CallResult ResourceFontAndroid::newSize (FontSettings* settings, FontSizeRef &sizeRef)
 {
-	sizeRef.ptr = jNewSize(eEnv(), renderer, settings->pixelHeight);
+	auto size = jNewSize(eEnv(), renderer, settings->pixelHeight);
+	sizeRef.ptr = Base::eNewGlobalRef(size);
 	return OK;
 }
 CallResult ResourceFontAndroid::applySize (FontSizeRef &sizeRef)
@@ -162,5 +165,5 @@ CallResult ResourceFontAndroid::applySize (FontSizeRef &sizeRef)
 void ResourceFontAndroid::freeSize (FontSizeRef &sizeRef)
 {
 	jFreeSize(eEnv(), renderer, sizeRef.ptr);
-	eEnv()->DeleteLocalRef((jobject)sizeRef.ptr);
+	Base::eDeleteGlobalRef((jobject)sizeRef.ptr);
 }

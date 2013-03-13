@@ -36,9 +36,9 @@ public:
 	const char *str;
 	Rect2<int> rect;
 	Rect2<int> &viewRect() { return rect; }
-	void draw ();
-	void place ();
+	void draw(Gfx::FrameTimeBase frameTime);
+	void place();
 	void inputEvent(const Input::Event &e);
-	void init ();
-	void deinit ();
+	void init();
+	void deinit();
 };

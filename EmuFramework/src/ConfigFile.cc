@@ -81,8 +81,23 @@ static bool readKeyConfig(Io *io, uint16 &size)
 
 			if(catSize > EmuControls::category[categoryIdx].keys * sizeof(KeyConfig::Key))
 				return 0;
-			io->read(keyConf.key(EmuControls::category[categoryIdx]), catSize);
+			auto key = keyConf.key(EmuControls::category[categoryIdx]);
+			io->read(key, catSize);
 			size -= catSize;
+
+			// verify keys
+			{
+				const auto keyMax = Input::Event::mapNumKeys(keyConf.map);
+				iterateTimes(EmuControls::category[categoryIdx].keys, i)
+				{
+					if(key[i] >= keyMax)
+					{
+						logWarn("key code 0x%X out of range for map type %d", key[i], keyConf.map);
+						key[i] = 0;
+					}
+				}
+			}
+
 			logMsg("read category %d", categoryIdx);
 		}
 

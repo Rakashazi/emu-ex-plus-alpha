@@ -10,7 +10,7 @@ iOS_plistTxt := $(iOS_targetPath)/Info.txt
 iOS_plist := $(ios_resourcePath)/Info.plist
 
 # Host/IP of the iOS device to install the app over SSH
-ios_installHost := iphone4s
+ios_installHost := iphone5
 
 ifndef ios_noArmv6
 
@@ -74,13 +74,13 @@ endif
 
 ios_fatExec := $(iOS_targetPath)/bin-debug/$(iOS_metadata_exec)
 
-$(ios_fatExec) : $(iOS_armv6Exec) $(iOS_armv7Exec)
+$(ios_fatExec) : $(iOS_armv6Exec) $(iOS_armv7Exec) $(iOS_armv7sExec)
 	@mkdir -p $(@D)
 	lipo -create $^ -output $@
 
 ios_fatReleaseExec := $(iOS_targetPath)/bin-release/$(iOS_metadata_exec)
 
-$(ios_fatReleaseExec) : $(iOS_armv6ReleaseExec) $(iOS_armv7ReleaseExec)
+$(ios_fatReleaseExec) : $(iOS_armv6ReleaseExec) $(iOS_armv7ReleaseExec) $(iOS_armv7sReleaseExec)
 	@mkdir -p $(@D)
 	lipo -create $^ -output $@
 
@@ -164,4 +164,5 @@ ios-release-clean:
 	rm -rf build/ios-armv6-release/ build/ios-armv7-release/
 
 .PHONY: ios-armv6 ios-armv7 ios-armv6-release ios-armv7-release ios-metadata ios-build ios-release-build ios-armv7-install \
- ios-armv6-install ios-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install ios-release-clean
+ ios-armv6-install ios-install ios-release-install ios-release-tar ios-release-ready ios-release-check ios-resources-install ios-release-clean \
+ ios-armv7s ios-armv7s-release ios-armv7s-install

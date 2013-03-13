@@ -216,7 +216,7 @@ private:
 		void select(View *view, const Input::Event &e)
 		{
 			ynAlertView.init(InstallMSXSystem::installMessage(), !e.isPointer());
-			ynAlertView.onYesDelegate().bind<&InstallMSXSystem::confirmAlert>();
+			ynAlertView.onYes().bind<&InstallMSXSystem::confirmAlert>();
 			ynAlertView.placeRect(Gfx::viewportRect());
 			modalView = &ynAlertView;
 			Base::displayNeedsUpdate();

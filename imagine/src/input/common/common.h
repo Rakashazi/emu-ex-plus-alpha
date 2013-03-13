@@ -51,7 +51,7 @@ void Device::setICadeMode(bool on)
 		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
 		iCadeMode_ = on;
 	}
-	else
+	else if(on)
 		logWarn("tried to set iCade mode on device with map %d", map_);
 }
 #endif
@@ -62,7 +62,8 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultCancelButton(0) :
-				(button == Input::Wiimote::_1 || button == Input::Wiimote::B || button == Input::Wiimote::NUN_Z);
+				(button == Input::Wiimote::_1 || button == Input::Wiimote::NUN_Z);
+		case MAP_WII_CC: return swapped ? isDefaultCancelButton(0) : button == Input::WiiCC::B;
 		case MAP_ICONTROLPAD: return swapped ? isDefaultCancelButton(0) : (button == Input::iControlPad::X);
 		case MAP_ZEEMOTE: return swapped ? isDefaultCancelButton(0) : (button == Input::Zeemote::A);
 		#endif
@@ -97,7 +98,8 @@ bool Event::isDefaultCancelButton(uint swapped) const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultConfirmButton(0) :
-				(button == Input::Wiimote::_2 || button == Input::Wiimote::A || button == Input::Wiimote::NUN_C);
+				(button == Input::Wiimote::_2 || button == Input::Wiimote::NUN_C);
+		case MAP_WII_CC: return swapped ? isDefaultConfirmButton(0) : button == Input::WiiCC::A;
 		case MAP_ICONTROLPAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::iControlPad::B);
 		case MAP_ZEEMOTE: return swapped ? isDefaultConfirmButton(0) : (button == Input::Zeemote::B);
 		#endif
@@ -135,7 +137,9 @@ bool Event::isDefaultLeftButton() const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
-			return button == Input::Wiimote::LEFT || button == Input::Wiimote::CC_LSTICK_LEFT || button == Input::Wiimote::NUN_STICK_LEFT;
+			return button == Input::Wiimote::LEFT || button == Input::Wiimote::NUN_STICK_LEFT;
+		case MAP_WII_CC:
+			return button == Input::WiiCC::LEFT || button == Input::WiiCC::LSTICK_LEFT;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::LEFT || button == Input::iControlPad::LNUB_LEFT;
 		case MAP_ZEEMOTE: return button == Input::Zeemote::LEFT;
 		#endif
@@ -166,7 +170,9 @@ bool Event::isDefaultRightButton() const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
-			return button == Input::Wiimote::RIGHT || button == Input::Wiimote::CC_LSTICK_RIGHT || button == Input::Wiimote::NUN_STICK_RIGHT;
+			return button == Input::Wiimote::RIGHT || button == Input::Wiimote::NUN_STICK_RIGHT;
+		case MAP_WII_CC:
+			return button == Input::WiiCC::RIGHT || button == Input::WiiCC::LSTICK_RIGHT;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::RIGHT || button == Input::iControlPad::LNUB_RIGHT;
 		case MAP_ZEEMOTE: return button == Input::Zeemote::RIGHT;
 		#endif
@@ -197,7 +203,9 @@ bool Event::isDefaultUpButton() const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
-			return button == Input::Wiimote::UP || button == Input::Wiimote::CC_LSTICK_UP || button == Input::Wiimote::NUN_STICK_UP;
+			return button == Input::Wiimote::UP || button == Input::Wiimote::NUN_STICK_UP;
+		case MAP_WII_CC:
+			return button == Input::WiiCC::UP || button == Input::WiiCC::LSTICK_UP;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::UP || button == Input::iControlPad::LNUB_UP;
 		case MAP_ZEEMOTE: return button == Input::Zeemote::UP;
 		#endif
@@ -228,7 +236,9 @@ bool Event::isDefaultDownButton() const
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
-			return button == Input::Wiimote::DOWN || button == Input::Wiimote::CC_LSTICK_DOWN || button == Input::Wiimote::NUN_STICK_DOWN;
+			return button == Input::Wiimote::DOWN || button == Input::Wiimote::NUN_STICK_DOWN;
+		case MAP_WII_CC:
+			return button == Input::WiiCC::DOWN || button == Input::WiiCC::LSTICK_DOWN;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::DOWN || button == Input::iControlPad::LNUB_DOWN;
 		case MAP_ZEEMOTE: return button == Input::Zeemote::DOWN;
 		#endif
@@ -258,7 +268,8 @@ bool Event::isDefaultPageUpButton() const
 	switch(map)
 	{
 		#ifdef CONFIG_BLUETOOTH
-		case MAP_WIIMOTE: return button == Input::Wiimote::PLUS || button == Input::Wiimote::L;
+		case MAP_WIIMOTE: return button == Input::Wiimote::PLUS;
+		case MAP_WII_CC: return button == Input::WiiCC::L;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::L;
 		case MAP_ZEEMOTE: return 0;
 		#endif
@@ -285,7 +296,8 @@ bool Event::isDefaultPageDownButton() const
 	switch(map)
 	{
 		#ifdef CONFIG_BLUETOOTH
-		case MAP_WIIMOTE: return button == Input::Wiimote::MINUS || button == Input::Wiimote::R;
+		case MAP_WIIMOTE: return button == Input::Wiimote::MINUS;
+		case MAP_WII_CC: return button == Input::WiiCC::R;
 		case MAP_ICONTROLPAD: return button == Input::iControlPad::R;
 		case MAP_ZEEMOTE: return 0;
 		#endif
@@ -312,7 +324,7 @@ bool swappedGamepadConfirm = 0;
 struct PointerState
 {
 	constexpr PointerState() { }
-	int x = 0, y = 0, inWin = 0;
+	int inWin = 0;
 };
 
 static uint xPointerTransform_ = POINTER_NORMAL;
@@ -333,17 +345,19 @@ void pointerAxis(uint mode)
 	pointerAxis_ = mode;
 }
 
-void pointerPos(int x, int y, int *xOut, int *yOut)
+IG::Point2D<int> pointerPos(int x, int y)
 {
+	IG::Point2D<int> pos;
 	// x,y axis is swapped first
-	*xOut = pointerAxis_ == POINTER_INVERT ? y : x;
-	*yOut = pointerAxis_ == POINTER_INVERT ? x : y;
+	pos.x = pointerAxis_ == POINTER_INVERT ? y : x;
+	pos.y = pointerAxis_ == POINTER_INVERT ? x : y;
 	
 	// then coordinates are inverted
 	if(xPointerTransform_ == POINTER_INVERT)
-		*xOut = Gfx::viewPixelWidth() - *xOut;
+		pos.x = Gfx::viewPixelWidth() - pos.x;
 	if(yPointerTransform_ == POINTER_INVERT)
-		*yOut = Gfx::viewPixelHeight() - *yOut;
+		pos.y = Gfx::viewPixelHeight() - pos.y;
+	return pos;
 }
 
 #ifdef INPUT_SUPPORTS_KEYBOARD
@@ -552,6 +566,7 @@ static const char *keyButtonName(Key b)
 		case Keycode::VOL_UP: return "Vol Up";
 		case Keycode::VOL_DOWN: return "Vol Down";
 		case Keycode::FOCUS: return "Focus";
+		case Keycode::HEADSET_HOOK: return "Headset Hook";
 
 		case Keycode::JS1_XAXIS_POS: return "X Axis+";
 		case Keycode::JS1_XAXIS_NEG: return "X Axis-";
@@ -585,20 +600,6 @@ static const char *wiimoteButtonName(Key b)
 		case Wiimote::PLUS: return "+";
 		case Wiimote::MINUS: return "-";
 		case Wiimote::HOME: return "Home";
-		case Wiimote::L: return "L";
-		case Wiimote::R: return "R";
-		case Wiimote::ZL: return "ZL";
-		case Wiimote::ZR: return "ZR";
-		case Wiimote::X: return "X";
-		case Wiimote::Y: return "Y";
-		case Wiimote::CC_LSTICK_LEFT: return "L:Left";
-		case Wiimote::CC_LSTICK_RIGHT: return "L:Right";
-		case Wiimote::CC_LSTICK_UP: return "L:Up";
-		case Wiimote::CC_LSTICK_DOWN: return "L:Down";
-		case Wiimote::CC_RSTICK_LEFT: return "R:Left";
-		case Wiimote::CC_RSTICK_RIGHT: return "R:Right";
-		case Wiimote::CC_RSTICK_UP: return "R:Up";
-		case Wiimote::CC_RSTICK_DOWN: return "R:Down";
 		case Wiimote::UP: return "Up";
 		case Wiimote::RIGHT: return "Right";
 		case Wiimote::DOWN: return "Down";
@@ -609,6 +610,38 @@ static const char *wiimoteButtonName(Key b)
 		case Wiimote::NUN_STICK_RIGHT: return "N:Right";
 		case Wiimote::NUN_STICK_UP: return "N:Up";
 		case Wiimote::NUN_STICK_DOWN: return "N:Down";
+	}
+	return "Unknown";
+}
+
+static const char *wiiCCButtonName(Key b)
+{
+	switch(b)
+	{
+		case 0: return "None";
+		case WiiCC::A: return "A";
+		case WiiCC::B: return "B";
+		case WiiCC::PLUS: return "+";
+		case WiiCC::MINUS: return "-";
+		case WiiCC::HOME: return "Home";
+		case WiiCC::L: return "L";
+		case WiiCC::R: return "R";
+		case WiiCC::ZL: return "ZL";
+		case WiiCC::ZR: return "ZR";
+		case WiiCC::X: return "X";
+		case WiiCC::Y: return "Y";
+		case WiiCC::LSTICK_LEFT: return "L:Left";
+		case WiiCC::LSTICK_RIGHT: return "L:Right";
+		case WiiCC::LSTICK_UP: return "L:Up";
+		case WiiCC::LSTICK_DOWN: return "L:Down";
+		case WiiCC::RSTICK_LEFT: return "R:Left";
+		case WiiCC::RSTICK_RIGHT: return "R:Right";
+		case WiiCC::RSTICK_UP: return "R:Up";
+		case WiiCC::RSTICK_DOWN: return "R:Down";
+		case WiiCC::UP: return "Up";
+		case WiiCC::RIGHT: return "Right";
+		case WiiCC::DOWN: return "Down";
+		case WiiCC::LEFT: return "Left";
 	}
 	return "Unknown";
 }
@@ -726,6 +759,7 @@ const char *buttonName(uint map, Key b)
 		#endif
 		#ifdef CONFIG_BLUETOOTH
 		case Input::Event::MAP_WIIMOTE: return wiimoteButtonName(b);
+		case Event::MAP_WII_CC: return wiiCCButtonName(b);
 		case Input::Event::MAP_ICONTROLPAD: return icpButtonName(b);
 		case Input::Event::MAP_ZEEMOTE: return zeemoteButtonName(b);
 		#endif

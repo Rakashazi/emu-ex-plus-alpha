@@ -15,62 +15,49 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include "mapinc.h"
 
-namespace Board235
-{
-
 static uint16 cmdreg;
-static SFORMAT StateRegs[]=
+static SFORMAT StateRegs[] =
 {
-  {&cmdreg, 2, "CMDREG"},
-  {0}
+	{ &cmdreg, 2, "CREG" },
+	{ 0 }
 };
 
-static void Sync(void)
-{
-  if(cmdreg&0x400)
-    setmirror(MI_0);
-  else
-    setmirror(((cmdreg>>13)&1)^1);
-  if(cmdreg&0x800)
-  {
-    setprg16(0x8000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
-    setprg16(0xC000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
-  }
-  else
-    setprg32(0x8000,((cmdreg&0x300)>>4)|(cmdreg&0x1F));
+static void Sync(void) {
+	if (cmdreg & 0x400)
+		setmirror(MI_0);
+	else
+		setmirror(((cmdreg >> 13) & 1) ^ 1);
+	if (cmdreg & 0x800) {
+		setprg16(0x8000, ((cmdreg & 0x300) >> 3) | ((cmdreg & 0x1F) << 1) | ((cmdreg >> 12) & 1));
+		setprg16(0xC000, ((cmdreg & 0x300) >> 3) | ((cmdreg & 0x1F) << 1) | ((cmdreg >> 12) & 1));
+	} else
+		setprg32(0x8000, ((cmdreg & 0x300) >> 4) | (cmdreg & 0x1F));
 }
 
-static DECLFW(M235Write)
-{
-  cmdreg=A;
-  Sync();
+static DECLFW(M235Write) {
+	cmdreg = A;
+	Sync();
 }
 
-static void M235Power(void)
-{
-  setchr8(0);
-  SetWriteHandler(0x8000,0xFFFF,M235Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  cmdreg=0;
-  Sync();
+static void M235Power(void) {
+	setchr8(0);
+	SetWriteHandler(0x8000, 0xFFFF, M235Write);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	cmdreg = 0;
+	Sync();
 }
 
-static void M235Restore(int version)
-{
-  Sync();
+static void M235Restore(int version) {
+	Sync();
 }
 
-}
-
-void Mapper235_Init(CartInfo *info)
-{
-	using namespace Board235;
-  info->Power=M235Power;
-  GameStateRestore=M235Restore;
-  AddExState(&Board235::StateRegs, ~0, 0, 0);
+void Mapper235_Init(CartInfo *info) {
+	info->Power = M235Power;
+	GameStateRestore = M235Restore;
+	AddExState(&StateRegs, ~0, 0, 0);
 }

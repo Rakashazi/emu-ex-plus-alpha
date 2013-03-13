@@ -15,76 +15,63 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
 
 #include "mapinc.h"
 
-namespace BoardEdu2000
-{
-
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint8 reg;
 
-static SFORMAT StateRegs[]=
+static SFORMAT StateRegs[] =
 {
-  {&reg, 1, "REG"},
-  {0}
+	{ &reg, 1, "REG" },
+	{ 0 }
 };
 
-static void Sync(void)
-{
-  setchr8(0);
-  setprg8r(0x10,0x6000,(reg&0xC0)>>6);
-  setprg32(0x8000,reg&0x1F);
-//  setmirror(((reg&0x20)>>5));
+static void Sync(void) {
+	setchr8(0);
+	setprg8r(0x10, 0x6000, (reg & 0xC0) >> 6);
+	setprg32(0x8000, reg & 0x1F);
+//	setmirror(((reg&0x20)>>5));
 }
 
-static DECLFW(UNLEDU2000HiWrite)
-{
-//  FCEU_printf("%04x:%02x\n",A,V);
-  reg=V;
-  Sync();
+static DECLFW(UNLEDU2000HiWrite) {
+//	FCEU_printf("%04x:%02x\n",A,V);
+	reg = V;
+	Sync();
 }
 
-static void UNLEDU2000Power(void)
-{
-  setmirror(MI_0);
-  SetReadHandler(0x6000,0xFFFF,CartBR);
-  SetWriteHandler(0x6000,0xFFFF,CartBW);
-  SetWriteHandler(0x8000,0xFFFF,UNLEDU2000HiWrite);
-  reg=0;
-  Sync();
+static void UNLEDU2000Power(void) {
+	setmirror(MI_0);
+	SetReadHandler(0x6000, 0xFFFF, CartBR);
+	SetWriteHandler(0x6000, 0xFFFF, CartBW);
+	SetWriteHandler(0x8000, 0xFFFF, UNLEDU2000HiWrite);
+	reg = 0;
+	Sync();
 }
 
-static void UNLEDU2000Close(void)
-{
-  if(WRAM)
-    FCEU_gfree(WRAM);
-  WRAM=NULL;
+static void UNLEDU2000Close(void) {
+	if (WRAM)
+		FCEU_gfree(WRAM);
+	WRAM = NULL;
 }
 
-static void UNLEDU2000Restore(int version)
-{
-  Sync();
+static void UNLEDU2000Restore(int version) {
+	Sync();
 }
 
-}
-
-void UNLEDU2000_Init(CartInfo *info)
-{
-	using namespace BoardEdu2000;
-  info->Power=UNLEDU2000Power;
-  info->Close=UNLEDU2000Close;
-  GameStateRestore=UNLEDU2000Restore;
-  BoardEdu2000::WRAM=(uint8*)FCEU_gmalloc(32768);
-  SetupCartPRGMapping(0x10,BoardEdu2000::WRAM,32768,1);
-  if(info->battery)
-  {
-  info->SaveGame[0]=BoardEdu2000::WRAM;
-  info->SaveGameLen[0]=32768;
-  }
-  AddExState(BoardEdu2000::WRAM, 32768, 0, "WRAM");
-  AddExState(BoardEdu2000::StateRegs, ~0, 0, 0);
+void UNLEDU2000_Init(CartInfo *info) {
+	info->Power = UNLEDU2000Power;
+	info->Close = UNLEDU2000Close;
+	GameStateRestore = UNLEDU2000Restore;
+	WRAM = (uint8*)FCEU_gmalloc(32768);
+	SetupCartPRGMapping(0x10, WRAM, 32768, 1);
+	if (info->battery) {
+		info->SaveGame[0] = WRAM;
+		info->SaveGameLen[0] = 32768;
+	}
+	AddExState(WRAM, 32768, 0, "WRAM");
+	AddExState(StateRegs, ~0, 0, 0);
 }

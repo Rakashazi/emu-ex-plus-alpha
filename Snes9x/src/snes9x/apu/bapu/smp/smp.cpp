@@ -148,7 +148,8 @@ void SMP::serialize(serializer &s) {
 #endif
 
 SMP::SMP() {
-  apuram = new uint8[64 * 1024];
+  apuram = new uint8[64 * 1024 * 2];
+  memset(apuram, 0, 64 * 1024 * 2);
 }
 
 SMP::~SMP() {

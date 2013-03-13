@@ -1,10 +1,10 @@
 #define thisModuleName "input:android"
 #include <base/android/sdk.hh>
 #include <input/common/common.h>
-#include <base/android/nativeGlue.hh>
 #include <base/android/private.hh>
 #include <util/jni.hh>
 #include <android/input.h>
+#include <android/configuration.h>
 #include <dlfcn.h>
 
 #include "common.hh"
@@ -37,55 +37,95 @@ static Device *builtinKeyboardDev = nullptr;
 static Device *virtualDev = nullptr;
 
 // JNI classes/methods
-struct JNIInputDevice
+
+class JObject
 {
+protected:
+	jobject o = nullptr;
+	constexpr JObject() { };
+	constexpr JObject(jobject o): o(o) { };
+
+public:
+	operator jobject() const
+	{
+		return o;
+	}
+};
+
+class AInputDeviceJ : public JObject
+{
+public:
+	constexpr AInputDeviceJ(jobject inputDevice): JObject(inputDevice) { };
+
+	static AInputDeviceJ getDevice(JNIEnv *j, jint id)
+	{
+		return AInputDeviceJ {getDevice_(j, id)};
+	}
+
+	static jintArray getDeviceIds(JNIEnv *j)
+	{
+		return (jintArray)getDeviceIds_(j);
+	}
+
+	jstring getName(JNIEnv *j)
+	{
+		return (jstring)getName_(j, o);
+	}
+
+	jint getSources(JNIEnv *j)
+	{
+		return getSources_(j, o);
+	}
+
+	jint getKeyboardType(JNIEnv *j)
+	{
+		return getKeyboardType_(j, o);
+	}
+
 	static jclass cls;
-	static JavaClassMethod<jobject> getDeviceIds, getDevice;
-	static JavaInstMethod<jobject> getName;
-	static JavaInstMethod<jint> getSources;
-	static constexpr jint SOURCE_DPAD = 0x00000201, SOURCE_GAMEPAD = 0x00000401, SOURCE_JOYSTICK = 0x01000010,
-			SOURCE_CLASS_BUTTON = 0x00000001;
+	static JavaClassMethod<jobject> getDeviceIds_, getDevice_;
+	static JavaInstMethod<jobject> getName_, getKeyCharacterMap_;
+	static JavaInstMethod<jint> getSources_, getKeyboardType_;
+	static constexpr jint SOURCE_CLASS_BUTTON = 0x00000001, SOURCE_CLASS_POINTER = 0x00000002, SOURCE_CLASS_TRACKBALL = 0x00000004,
+			SOURCE_CLASS_POSITION = 0x00000008, SOURCE_CLASS_JOYSTICK = 0x00000010;
+	static constexpr jint SOURCE_KEYBOARD = 0x00000101, SOURCE_DPAD = 0x00000201, SOURCE_GAMEPAD = 0x00000401,
+			SOURCE_TOUCHSCREEN = 0x00001002, SOURCE_MOUSE = 0x00002002, SOURCE_STYLUS = 0x00004002,
+			SOURCE_TRACKBALL = 0x00010004, SOURCE_TOUCHPAD = 0x00100008, SOURCE_JOYSTICK = 0x01000010;
+
+	static constexpr jint KEYBOARD_TYPE_NONE = 0,  KEYBOARD_TYPE_NON_ALPHABETIC = 1, KEYBOARD_TYPE_ALPHABETIC = 2;
 
 	static void jniInit()
 	{
 		using namespace Base;
 		cls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/view/InputDevice"));
-		getDeviceIds.setup(eEnv(), cls, "getDeviceIds", "()[I");
-		getDevice.setup(eEnv(), cls, "getDevice", "(I)Landroid/view/InputDevice;");
-		getName.setup(eEnv(), cls, "getName", "()Ljava/lang/String;");
-		getSources.setup(eEnv(), cls, "getSources", "()I");
+		getDeviceIds_.setup(eEnv(), cls, "getDeviceIds", "()[I");
+		getDevice_.setup(eEnv(), cls, "getDevice", "(I)Landroid/view/InputDevice;");
+		getName_.setup(eEnv(), cls, "getName", "()Ljava/lang/String;");
+		getSources_.setup(eEnv(), cls, "getSources", "()I");
+		getKeyboardType_.setup(eEnv(), cls, "getKeyboardType", "()I");
 	}
 };
 
-jclass JNIInputDevice::cls = 0;
-JavaClassMethod<jobject> JNIInputDevice::getDeviceIds, JNIInputDevice::getDevice;
-JavaInstMethod<jobject> JNIInputDevice::getName;
-JavaInstMethod<jint> JNIInputDevice::getSources;
+jclass AInputDeviceJ::cls = nullptr;
+JavaClassMethod<jobject> AInputDeviceJ::getDeviceIds_, AInputDeviceJ::getDevice_;
+JavaInstMethod<jobject> AInputDeviceJ::getName_, AInputDeviceJ::getKeyCharacterMap_;
+JavaInstMethod<jint> AInputDeviceJ::getSources_, AInputDeviceJ::getKeyboardType_;
 
 void setKeyRepeat(bool on)
 {
-	logMsg("set key repeat %s", on ? "On" : "Off");
-	allowKeyRepeats = on;
+	// always accept repeats on Android 3.1+ because 2+ devices pushing
+	// the same button is considered a repeat by the OS
+	if(Base::androidSDK() < 12)
+	{
+		logMsg("set key repeat %s", on ? "On" : "Off");
+		allowKeyRepeats = on;
+	}
 }
 
 void setHandleVolumeKeys(bool on)
 {
 	logMsg("set volume key use %s", on ? "On" : "Off");
 	handleVolumeKeys = on;
-}
-
-void showSoftInput()
-{
-	using namespace Base;
-	logMsg("showing soft input");
-	postUIThread(eEnv(), jBaseActivity, 2, 0);
-}
-
-void hideSoftInput()
-{
-	using namespace Base;
-	logMsg("hiding soft input");
-	postUIThread(eEnv(), jBaseActivity, 3, 0);
 }
 
 bool sendInputToIME = 1;
@@ -151,7 +191,7 @@ static const Device *deviceForInputId(int osId)
 	return nullptr;
 }
 
-int32_t onInputEvent(struct android_app* app, AInputEvent* event)
+int32_t onInputEvent(AInputEvent* event)
 {
 	auto type = AInputEvent_getType(event);
 	auto source = AInputEvent_getSource(event);
@@ -183,7 +223,10 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
 					{
 						// touch gesture ended
-						handleTouchEvent(AMOTION_EVENT_ACTION_UP, AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0), AMotionEvent_getPointerId(event, 0));
+						handleTouchEvent(AMOTION_EVENT_ACTION_UP,
+								AMotionEvent_getX(event, 0) - Base::window().rect.x,
+								AMotionEvent_getY(event, 0) - Base::window().rect.y,
+								AMotionEvent_getPointerId(event, 0));
 						return 1;
 					}
 					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
@@ -305,19 +348,17 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
-			//logMsg("key event, code: %d id: %d source: %d repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
-			if(!keyCode) // ignore "unknown" key codes
+			//logMsg("key event, code: %d id: %d source: 0x%X repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
+			if(unlikely(!keyCode)) // ignore "unknown" key codes
 				return 0;
 			if(!handleVolumeKeys &&
 				(keyCode == (int)Keycode::VOL_UP || keyCode == (int)Keycode::VOL_DOWN))
 			{
 				return 0;
 			}
-			auto isGamepad = bit_isMaskSet(source, JNIInputDevice::SOURCE_GAMEPAD);
+			//auto isGamepad = bit_isMaskSet(source, AInputDeviceJ::SOURCE_GAMEPAD);
 
-			// always accept repeats from gamepads because 2+ pads pushing the same button is
-			// considered a repeat by the OS
-			if(allowKeyRepeats || isGamepad || AKeyEvent_getRepeatCount(event) == 0)
+			if(allowKeyRepeats || AKeyEvent_getRepeatCount(event) == 0)
 			{
 				auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
 				if(unlikely(!dev))
@@ -337,35 +378,30 @@ int32_t onInputEvent(struct android_app* app, AInputEvent* event)
 	return 0;
 }
 
-void textInputEndedMsg(const char* str, jstring jStr)
-{
-	vKeyboardTextDelegate.invoke(str);
-	vKeyboardTextDelegate.clear();
-	if(jStr)
-	{
-		Base::eEnv()->ReleaseStringUTFChars(jStr, str);
-		Base::eEnv()->DeleteGlobalRef(jStr);
-	}
-}
-
 static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 {
-	if(vKeyboardTextDelegate.hasCallback())
+	auto delegate = vKeyboardTextDelegate;
+	vKeyboardTextDelegate.clear();
+	if(delegate.hasCallback())
 	{
 		if(jStr)
 		{
 			const char *str = env->GetStringUTFChars(jStr, 0);
 			logMsg("running text entry callback with text: %s", str);
-			Base::sendTextEntryEnded(str, (jstring)env->NewGlobalRef(jStr));
+			delegate.invoke(str);
+			env->ReleaseStringUTFChars(jStr, str);
 		}
 		else
 		{
 			logMsg("canceled text entry callback");
-			Base::sendTextEntryEnded(nullptr, nullptr);
+			delegate.invoke(nullptr);
 		}
 	}
 	else
-		vKeyboardTextDelegate.clear();
+	{
+		logMsg("text entry has no callback");
+	}
+	Base::postDrawWindowIfNeeded();
 }
 
 bool dlLoadAndroidFuncs(void *libandroid)
@@ -398,24 +434,24 @@ void rescanDevices(bool firstRun)
 
 	sysInputDevs = 0;
 	using namespace Base;
-	auto jID = (jintArray)JNIInputDevice::getDeviceIds(eEnv());
+	auto jID = AInputDeviceJ::getDeviceIds(eEnv());
 	auto id = eEnv()->GetIntArrayElements(jID, 0);
 	bool foundVirtual = 0;
 	logMsg("checking input devices");
 	iterateTimes(eEnv()->GetArrayLength(jID), i)
 	{
-		jobject dev = JNIInputDevice::getDevice(eEnv(), id[i]);
-		jint src = JNIInputDevice::getSources(eEnv(), dev);
-		jstring jName = (jstring)JNIInputDevice::getName(eEnv(), dev);
+		auto dev = AInputDeviceJ::getDevice(eEnv(), id[i]);
+		jint src = dev.getSources(eEnv());
+		jstring jName = dev.getName(eEnv());
 		if(!jName)
 		{
 			logWarn("no name from device %d, id %d", i, id[i]);
 			continue;
 		}
 		const char *name = eEnv()->GetStringUTFChars(jName, 0);
-		bool hasKeys = src & JNIInputDevice::SOURCE_CLASS_BUTTON;
+		bool hasKeys = src & AInputDeviceJ::SOURCE_CLASS_BUTTON;
 		logMsg("#%d: %s, id %d, source %X", i, name, id[i], src);
-		if(hasKeys && !devList.isFull())
+		if(hasKeys && !devList.isFull() && sysInputDevs != MAX_DEVS)
 		{
 			auto &sysInput = sysInputDev[sysInputDevs];
 			uint devId = 0;
@@ -441,16 +477,26 @@ void rescanDevices(bool firstRun)
 			{
 				foundVirtual = 1;
 				virtualDev = newDev;
+				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_VIRTUAL);
 			}
 
-			// Special device handling
-			if(bit_isMaskSet(src, JNIInputDevice::SOURCE_GAMEPAD) && !bit_isMaskSet(src, JNIInputDevice::SOURCE_DPAD))
+			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_GAMEPAD)
+					&& !bit_isMaskSet(src, AInputDeviceJ::SOURCE_TOUCHSCREEN)) // ignore some odd devices like "MHLRCP"
 			{
+				bool isGamepad = 1;
 				#ifdef __ARM_ARCH_7A__
 				if(strstr(name, "-zeus"))
 				{
 					logMsg("detected Xperia Play gamepad");
 					newDev->subtype = Device::SUBTYPE_XPERIA_PLAY;
+				}
+				else if(string_equal(name, "sii9234_rcp"))
+				{
+					// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
+					// but has only special function keys
+					logMsg("ignoring extra device bits");
+					src = 0;
+					isGamepad = 0;
 				}
 				else
 				#endif
@@ -463,28 +509,39 @@ void rescanDevices(bool firstRun)
 				{
 					logMsg("detected a gamepad");
 				}
-				newDev->setTypeBits(Device::TYPE_BIT_GAMEPAD);
+				if(isGamepad)
+					newDev->setTypeBits(Device::TYPE_BIT_GAMEPAD);
 			}
-			newDev->setTypeBits(newDev->typeBits() |
-					(bit_isMaskSet(src, JNIInputDevice::SOURCE_JOYSTICK) ? Device::TYPE_BIT_JOYSTICK : 0));
+			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD)
+					&& dev.getKeyboardType(eEnv()) == AInputDeviceJ::KEYBOARD_TYPE_ALPHABETIC)
+			{
+				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_KEYBOARD);
+				logMsg("detected an alpha-numeric keyboard");
+			}
+			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_JOYSTICK))
+			{
+				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_JOYSTICK);
+				logMsg("detected a joystick");
+			}
 
 			logMsg("added to list with device id %d", newDev->devId);
 			sysInputDevs++;
 		}
 		eEnv()->ReleaseStringUTFChars(jName, name);
+		eEnv()->DeleteLocalRef(dev);
 	}
 	eEnv()->ReleaseIntArrayElements(jID, id, 0);
 
 	if(!foundVirtual)
 	{
-		if(sysInputDevs == MAX_DEVS)
+		if(sysInputDevs == MAX_DEVS || devList.isFull())
 		{
 			// remove last device to make room
 			devList.remove(*sysInputDev[sysInputDevs-1].dev);
 			sysInputDevs--;
 		}
 		logMsg("no \"Virtual\" device id found, adding one");
-		Input::addDevice((Device){0, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEY_MISC, "Virtual"});
+		Input::addDevice((Device){0, Event::MAP_KEYBOARD, Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual"});
 		auto newDev = devList.last();
 		auto &sysInput = sysInputDev[sysInputDevs];
 		sysInput.osId = -1;
@@ -505,13 +562,14 @@ CallResult init()
 {
 	if(Base::androidSDK() >= 12)
 	{
-		JNIInputDevice::jniInit();
+		AInputDeviceJ::jniInit();
 		rescanDevices(1);
 	}
 	else
 	{
 		// no multi-input device support
-		Device genericKeyDev { 0, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEY_MISC, "Key Input (All Devices)" };
+		Device genericKeyDev { 0, Event::MAP_KEYBOARD,
+			Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Key Input (All Devices)" };
 		#ifdef __ARM_ARCH_7A__
 		if(Base::runningDeviceType() == Base::DEV_TYPE_XPERIA_PLAY)
 		{

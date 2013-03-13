@@ -23,7 +23,7 @@ void MsgPopup::init()
 {
 	//logMsg("init MsgPopup");
 	text.init(View::defaultFace);
-	text.maxLines = 4;
+	text.maxLines = 6;
 }
 
 void MsgPopup::clear()
@@ -77,8 +77,8 @@ void MsgPopup::draw()
 			setColor(1., 0, 0, .7);
 		else
 			setColor(0, 0, 1., .7);
-		Rect2<GC> rect(-Gfx::proj.wHalf, -Gfx::proj.hHalf,
-				Gfx::proj.wHalf, -Gfx::proj.hHalf + (text.ySize * 1.5));
+		Rect2<GC> rect(-Gfx::proj.wHalf(), -Gfx::proj.hHalf(),
+				Gfx::proj.wHalf(), -Gfx::proj.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		if(Input::softInputIsActive())
 		{

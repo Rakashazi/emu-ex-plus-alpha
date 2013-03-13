@@ -6,16 +6,15 @@
 
 static const EGLint eglAttrWinLowColor[] =
 {
-	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_NONE
 };
 
-static const EGLint eglAttrWinMaxRGB[] =
+static const EGLint eglAttrWinRGB888[] =
 {
 	EGL_CONFIG_CAVEAT, EGL_NONE,
-	EGL_BLUE_SIZE, 1,
-	EGL_GREEN_SIZE, 1,
-	EGL_RED_SIZE, 1,
+	EGL_BLUE_SIZE, 8,
+	EGL_GREEN_SIZE, 8,
+	EGL_RED_SIZE, 8,
 	EGL_NONE
 };
 

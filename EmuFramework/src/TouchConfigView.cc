@@ -72,7 +72,7 @@ void TouchConfigView::alphaInit()
 		"0%", "10%", "25%", "50%", "65%", "75%"
 	};
 	alpha.init("Blend Amount", str, alphaToMenuOption(optionTouchCtrlAlpha), sizeofArray(str), 0);
-	alpha.valueDelegate().bind<&alphaSet>();
+	alpha.onValue().bind<&alphaSet>();
 }
 
 void sizeSet(MultiChoiceMenuItem &, int val)
@@ -125,7 +125,7 @@ void TouchConfigView::sizeInit()
 	else if(optionTouchCtrlSize == 1400U)
 		init = 8;
 	size.init("Button Size", str, init, sizeofArray(str), 0);
-	size.valueDelegate().bind<&sizeSet>();
+	size.onValue().bind<&sizeSet>();
 }
 
 void deadzoneSet(MultiChoiceMenuItem &, int val)
@@ -154,7 +154,7 @@ void TouchConfigView::deadzoneInit()
 	else if(optionTouchDpadDeadzone == 160U)
 		init = 2;
 	deadzone.init("D-Pad Deadzone", str, init, sizeofArray(str), 0);
-	deadzone.valueDelegate().bind<&deadzoneSet>();
+	deadzone.onValue().bind<&deadzoneSet>();
 }
 
 void diagonalSensitivitySet(MultiChoiceMenuItem &, int val)
@@ -189,7 +189,7 @@ void TouchConfigView::diagonalSensitivityInit()
 	else if(optionTouchDpadDiagonalSensitivity == 2500U)
 		init = 4;
 	diagonalSensitivity.init("Diagonal Sensitivity", str, init, sizeofArray(str), 0);
-	diagonalSensitivity.valueDelegate().bind<&diagonalSensitivitySet>();
+	diagonalSensitivity.onValue().bind<&diagonalSensitivitySet>();
 }
 
 void btnSpaceSet(MultiChoiceMenuItem &, int val)
@@ -222,7 +222,7 @@ void TouchConfigView::btnSpaceInit()
 	else if(optionTouchCtrlBtnSpace == 400U)
 		init = 3;
 	btnSpace.init("Button Spacing", str, init, sizeofArray(str), 0);
-	btnSpace.valueDelegate().bind<&btnSpaceSet>();
+	btnSpace.onValue().bind<&btnSpaceSet>();
 }
 
 void btnExtraXSizeSet(MultiChoiceMenuItem &, int val)
@@ -252,7 +252,7 @@ void TouchConfigView::btnExtraXSizeInit()
 		bcase 500: init = 3;
 	}
 	btnExtraXSize.init("H Overlap", str, init, sizeofArray(str), 0);
-	btnExtraXSize.valueDelegate().bind<&btnExtraXSizeSet>();
+	btnExtraXSize.onValue().bind<&btnExtraXSizeSet>();
 }
 
 void btnExtraYSizeMultiRowSet(MultiChoiceMenuItem &, int val)
@@ -282,7 +282,7 @@ void TouchConfigView::btnExtraYSizeMultiRowInit()
 		bcase 500: init = 3;
 	}
 	btnExtraYSizeMultiRow.init((systemFaceBtns == 4 || (systemFaceBtns >= 6 && systemHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str), 0);
-	btnExtraYSizeMultiRow.valueDelegate().bind<&btnExtraYSizeMultiRowSet>();
+	btnExtraYSizeMultiRow.onValue().bind<&btnExtraYSizeMultiRowSet>();
 }
 
 void btnExtraYSizeSet(MultiChoiceMenuItem &, int val)
@@ -312,7 +312,7 @@ void TouchConfigView::btnExtraYSizeInit()
 		bcase 1000: init = 3;
 	}
 	btnExtraYSize.init("V Overlap", str, init, sizeofArray(str), 0);
-	btnExtraYSize.valueDelegate().bind<&btnExtraYSizeSet>();
+	btnExtraYSize.onValue().bind<&btnExtraYSizeSet>();
 }
 
 void btnStaggerSet(MultiChoiceMenuItem &, int val)
@@ -331,7 +331,7 @@ void TouchConfigView::btnStaggerInit()
 	assert(optionTouchCtrlBtnStagger < sizeofArray(str));
 	int init = optionTouchCtrlBtnStagger;
 	btnStagger.init("Button Stagger", str, init, sizeofArray(str), 0);
-	btnStagger.valueDelegate().bind<&btnStaggerSet>();
+	btnStagger.onValue().bind<&btnStaggerSet>();
 }
 
 void imageResolutionHandler(BoolMenuItem &item, const Input::Event &e)
@@ -417,12 +417,12 @@ void TouchConfigView::init(bool highlightFirst)
 	BaseMenuView::init(text, i, highlightFirst);
 }
 
-void TouchConfigView::draw()
+void TouchConfigView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	resetTransforms();
 	vController.draw(.5);
-	BaseMenuView::draw();
+	BaseMenuView::draw(frameTime);
 }
 
 void TouchConfigView::updatePositionVals()

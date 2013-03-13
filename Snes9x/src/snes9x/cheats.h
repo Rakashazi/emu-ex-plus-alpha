@@ -179,6 +179,8 @@
 #ifndef _CHEATS_H_
 #define _CHEATS_H_
 
+#include "port.h"
+
 #define MAX_CHEATS	150
 
 struct SCheat

@@ -9,7 +9,10 @@ class SystemOptionView : public OptionView
 {
 private:
 
-	BoolMenuItem sixButtonPad, multitap, smsFM, bigEndianSram;
+	BoolMenuItem sixButtonPad {BoolMenuItem::SelectDelegate::create<&sixButtonPadHandler>()},
+		multitap {BoolMenuItem::SelectDelegate::create<&multitapHandler>()},
+		smsFM {BoolMenuItem::SelectDelegate::create<&smsFMHandler>()},
+		bigEndianSram {BoolMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, bigEndianSramHandler)>(this)};
 
 	static void sixButtonPadHandler(BoolMenuItem &item, const Input::Event &e)
 	{
@@ -44,12 +47,12 @@ private:
 		ynAlertView.init("Warning, this changes the format of SRAM saves files. "
 				"Turn on to make them compatible with other emulators like Gens. "
 				"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
-		ynAlertView.onYesDelegate().bind<SystemOptionView, &SystemOptionView::confirmBigEndianSramAlert>(this);
+		ynAlertView.onYes().bind<SystemOptionView, &SystemOptionView::confirmBigEndianSramAlert>(this);
 		ynAlertView.placeRect(Gfx::viewportRect());
 		modalView = &ynAlertView;
 	}
 
-	MultiChoiceSelectMenuItem region {"Game Region"};
+	MultiChoiceSelectMenuItem region {"Game Region", MultiChoiceMenuItem::ValueDelegate::create<&regionSet>()};
 
 	void regionInit()
 	{
@@ -64,7 +67,6 @@ private:
 		}
 
 		region.init(str, setting, sizeofArray(str));
-		region.valueDelegate().bind<&regionSet>();
 	}
 
 	static void regionSet(MultiChoiceMenuItem &, int val)
@@ -96,7 +98,12 @@ private:
 
 	BiosSelectMenu biosSelectMenu;
 	char cdBiosPathStr[3][256] { {0} };
-	TextMenuItem cdBiosPath[3];
+	TextMenuItem cdBiosPath[3]
+	{
+		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_USA>)>(this) },
+		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_JAPAN_NTSC>)>(this) },
+		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_EUROPE>)>(this) }
+	};
 
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S], int region)
@@ -147,14 +154,10 @@ private:
 			printBiosMenuEntryStr(cdBiosPathStr[i], region[i]);
 			cdBiosPath[i].init(cdBiosPathStr[i]); item[items++] = &cdBiosPath[i];
 		}
-
-		cdBiosPath[0].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_USA>>(this);
-		cdBiosPath[1].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_JAPAN_NTSC>>(this);
-		cdBiosPath[2].selectDelegate().bind<SystemOptionView, &SystemOptionView::cdBiosPathHandler<REGION_EUROPE>>(this);
 	}
 	#endif
 
-	MultiChoiceSelectMenuItem inputPorts {"Input Ports"};
+	MultiChoiceSelectMenuItem inputPorts {"Input Ports", MultiChoiceMenuItem::ValueDelegate::create<&inputPortsSet>()};
 
 	void inputPortsInit()
 	{
@@ -171,7 +174,6 @@ private:
 			setting = 3;
 
 		inputPorts.init(str, setting, sizeofArray(str));
-		inputPorts.valueDelegate().bind<&inputPortsSet>();
 	}
 
 	static void inputPortsSet(MultiChoiceMenuItem &, int val)
@@ -203,7 +205,6 @@ public:
 	{
 		OptionView::loadAudioItems(item, items);
 		smsFM.init("MarkIII FM Sound Unit", optionSmsFM); item[items++] = &smsFM;
-		smsFM.selectDelegate().bind<&smsFMHandler>();
 	}
 
 	void loadInputItems(MenuItem *item[], uint &items)
@@ -211,16 +212,13 @@ public:
 		OptionView::loadInputItems(item, items);
 		inputPortsInit(); item[items++] = &inputPorts;
 		sixButtonPad.init("6-button Gamepad", option6BtnPad); item[items++] = &sixButtonPad;
-		sixButtonPad.selectDelegate().bind<&sixButtonPadHandler>();
 		multitap.init("4-Player Adapter", usingMultiTap); item[items++] = &multitap;
-		multitap.selectDelegate().bind<&multitapHandler>();
 	}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
 		bigEndianSram.init("Use Big-Endian SRAM", optionBigEndianSram); item[items++] = &bigEndianSram;
-		bigEndianSram.selectDelegate().bind<SystemOptionView, &SystemOptionView::bigEndianSramHandler>(this);
 		regionInit(); item[items++] = &region;
 		#ifndef NO_SCD
 		cdBiosPathInit(item, items);
@@ -243,264 +241,8 @@ public:
 	}
 };
 
+#include "EmuCheatViews.hh"
 #include "MenuView.hh"
-#include <TextEntry.hh>
-
-// TODO: refactor/merge cheat view code with GBC.emu & NES.emu
-
-static void refreshCheatViews();
-
-class EditCheatView : public BaseMenuView
-{
-private:
-	TextMenuItem name;
-	DualTextMenuItem ggCode {"Code"};
-	TextMenuItem remove {"Delete Cheat"};
-	MdCheat *cheat = nullptr;
-	MenuItem *item[3] = {nullptr};
-
-	static bool strIs16BitGGCode(const char *str)
-	{
-		return strlen(str) == 9 && str[4] == '-';
-	}
-
-	static bool strIs8BitGGCode(const char *str)
-	{
-		return strlen(str) == 11 && str[3] == '-' && str[7] == '-';
-	}
-
-	static bool strIs16BitARCode(const char *str)
-	{
-		return strlen(str) == 11 && str[6] == ':';
-	}
-
-	static bool strIs8BitARCode(const char *str)
-	{
-		return strlen(str) == 9 && str[6] == ':';
-	}
-
-	static bool strIs8BitCode(const char *str)
-	{
-		return strIs8BitGGCode(str) || strIs8BitARCode(str);
-	}
-
-	static bool strIs16BitCode(const char *str)
-	{
-		return strIs16BitGGCode(str) || strIs16BitARCode(str);
-	}
-
-	uint handleGgCodeFromTextInput(const char *str)
-	{
-		if(str)
-		{
-			string_copy(cheat->code, str);
-			string_toUpper(cheat->code);
-			if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
-			{
-				cheat->code[0]= 0;
-				popup.postError("Invalid code");
-				Base::displayNeedsUpdate();
-				return 1;
-			}
-
-			cheatsModified = 1;
-			updateCheats();
-			ggCode.compile();
-			Base::displayNeedsUpdate();
-		}
-		removeModalView();
-		return 0;
-	}
-
-	void ggCodeHandler(TextMenuItem &item, const Input::Event &e)
-	{
-		static const char *inputCode8BitStr = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
-		static const char *inputCode16BitStr = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
-		textInputView.init(emuSystemIs16Bit() ? inputCode16BitStr : inputCode8BitStr, cheat->code);
-		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleGgCodeFromTextInput>(this);
-		textInputView.placeRect(Gfx::viewportRect());
-		modalView = &textInputView;
-	}
-
-	uint handleNameFromTextInput(const char *str)
-	{
-		if(str)
-		{
-			logMsg("setting cheat name %s", str);
-			string_copy(cheat->name, str);
-			cheatsModified = 1;
-			name.compile();
-			Base::displayNeedsUpdate();
-		}
-		removeModalView();
-		return 0;
-	}
-
-	void nameHandler(TextMenuItem &item, const Input::Event &e)
-	{
-		textInputView.init("Input description", cheat->name);
-		textInputView.onTextDelegate().bind<EditCheatView, &EditCheatView::handleNameFromTextInput>(this);
-		textInputView.placeRect(Gfx::viewportRect());
-		modalView = &textInputView;
-	}
-
-	void removeHandler(TextMenuItem &item, const Input::Event &e)
-	{
-		cheatList.remove(*cheat);
-		cheatsModified = 1;
-		refreshCheatViews();
-		updateCheats();
-		viewStack.popAndShow();
-	}
-
-public:
-	constexpr EditCheatView(): BaseMenuView("")	{ }
-
-	void init(bool highlightFirst, MdCheat &cheat)
-	{
-		this->cheat = &cheat;
-
-		uint i = 0;
-		name.init(cheat.name); item[i++] = &name;
-		name.selectDelegate().bind<EditCheatView, &EditCheatView::nameHandler>(this);
-
-		name_ = "Edit Code";
-		ggCode.init(cheat.code); item[i++] = &ggCode;
-		ggCode.selectDelegate().bind<EditCheatView, &EditCheatView::ggCodeHandler>(this);
-
-		remove.init(); item[i++] = &remove;
-		remove.selectDelegate().bind<EditCheatView, &EditCheatView::removeHandler>(this);
-		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
-	}
-};
-
-static EditCheatView editCheatView;
-
-class EditCheatListView : public BaseMenuView
-{
-private:
-	TextMenuItem addGGGS;
-	TextMenuItem cheat[maxCheats];
-	MenuItem *item[maxCheats + 1] = {nullptr};
-
-	uint handleNameFromTextInput(const char *str)
-	{
-		if(str)
-		{
-			MdCheat c;
-			string_copy(c.name, str);
-			if(!cheatList.addToEnd(c))
-			{
-				logErr("error adding new cheat");
-				removeModalView();
-				return 0;
-			}
-			logMsg("added new cheat, %d total", cheatList.size);
-			cheatsModified = 1;
-			removeModalView();
-			refreshCheatViews();
-			editCheatView.init(0, *cheatList.last());
-			viewStack.pushAndShow(&editCheatView);
-		}
-		else
-		{
-			removeModalView();
-		}
-		return 0;
-	}
-
-	void addGGGSHandler(TextMenuItem &item, const Input::Event &e)
-	{
-		textInputView.init("Input description");
-		textInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
-		textInputView.placeRect(Gfx::viewportRect());
-		modalView = &textInputView;
-	}
-
-public:
-	constexpr EditCheatListView(): BaseMenuView("Edit Cheats") { }
-
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
-	{
-		if(i < 1)
-			item[i]->select(this, e);
-		else
-		{
-			editCheatView.init(!e.isPointer(), *cheatList.index(i - 1));
-			viewStack.pushAndShow(&editCheatView);
-		}
-	}
-
-	void init(bool highlightFirst)
-	{
-		uint i = 0;
-		addGGGS.init("Add Game Genie / Action Replay Code"); item[i++] = &addGGGS;
-		addGGGS.selectDelegate().bind<EditCheatListView, &EditCheatListView::addGGGSHandler>(this);
-		int cheats = IG::min(cheatList.size, (int)sizeofArray(cheat));
-		auto it = cheatList.iterator();
-		iterateTimes(cheats, c)
-		{
-			auto &thisCheat = it.obj();
-			cheat[c].init(thisCheat.name); item[i++] = &cheat[c];
-			it.advance();
-		}
-		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
-	}
-};
-
-static EditCheatListView editCheatListView;
-
-#include <Cheats.hh>
-
-class CheatsView : public BaseCheatsView
-{
-private:
-	struct CheatMenuItem : public BoolMenuItem
-	{
-		constexpr CheatMenuItem() { }
-		MdCheat *cheat = nullptr;
-		void init(MdCheat &cheat)
-		{
-			BoolMenuItem::init(cheat.name, cheat.isOn(), true, View::defaultFace);
-			this->cheat = &cheat;
-			logMsg("added cheat %s : %s", cheat.name, cheat.code);
-		}
-
-		void select(View *view, const Input::Event &e)
-		{
-			toggle();
-			cheat->toggleOn();
-			cheatsModified = 1;
-			updateCheats();
-		}
-	} cheat[maxCheats];
-
-public:
-	constexpr CheatsView() { }
-	void loadCheatItems(MenuItem *item[], uint &i)
-	{
-		int cheats = IG::min(cheatList.size, (int)sizeofArray(cheat));
-		auto it = cheatList.iterator();
-		iterateTimes(cheats, c)
-		{
-			auto &thisCheat = it.obj();
-			cheat[c].init(thisCheat); item[i++] = &cheat[c];
-			it.advance();
-		}
-	}
-};
-
-static CheatsView cheatsMenu;
-
-static void refreshCheatViews()
-{
-	editCheatListView.deinit();
-	editCheatListView.init(0);
-	cheatsMenu.deinit();
-	cheatsMenu.init(0);
-}
 
 class SystemMenuView : public MenuView
 {

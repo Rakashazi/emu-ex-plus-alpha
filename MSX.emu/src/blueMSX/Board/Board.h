@@ -34,6 +34,7 @@
 #include "VDP.h"
 #include "AudioMixer.h"
 #include <stdio.h>
+#include <config.h>
 
 typedef struct {
     struct {
@@ -203,6 +204,8 @@ void boardSetVideoAutodetect(int value);
 int  boardGetVideoAutodetect();
 
 void boardSetPeriodicCallback(BoardTimerCb cb, void* reference, UInt32 frequency);
+
+const char *machineBasePathStr();
 
 #endif /* BOARD_H */
 

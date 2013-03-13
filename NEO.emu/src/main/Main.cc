@@ -75,6 +75,7 @@ extern "C"
 	}
 }
 
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
 static ROM_DEF *activeDrv = 0;
 
@@ -551,7 +552,7 @@ public:
 
 	void inputEvent(const Input::Event &e) { }
 
-	void draw()
+	void draw(Gfx::FrameTimeBase frameTime)
 	{
 		using namespace Gfx;
 		if(max)
