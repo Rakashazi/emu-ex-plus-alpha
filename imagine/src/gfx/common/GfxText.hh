@@ -100,7 +100,7 @@ void Text::compile()
 		}
 		xLineSize += cSize;
 		textBlockSize += cSize;
-
+#ifndef CONFIG_BASE_PS3
 		if(lines < maxLines)
 		{
 			bool wentToNextLine = 0;
@@ -142,6 +142,7 @@ void Text::compile()
 				lines++;
 			}
 		}
+#endif
 		charIdx++;
 		prevC = c;
 	}

@@ -1,0 +1,7 @@
+This version of reSID has been modified for use with VICE.
+
+In particular, libtool is not used to build the library, and there
+might be some workarounds for various substandard compilers.
+
+Please get the original version if you want to use reSID in your own
+project.

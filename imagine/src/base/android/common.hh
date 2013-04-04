@@ -1,5 +1,6 @@
 #pragma once
 
+#include <config/machine.hh>
 #include <util/jni.hh>
 #include <util/Motion.hh>
 #include <util/branch.h>
@@ -56,7 +57,7 @@ static int osOrientation = -1;
 static bool osAnimatesRotation = 0;
 static float androidXDPI = 0, androidYDPI = 0, // DPI reported by OS
 		xDPI = 0, yDPI = 0; // Active DPI
-int devType = DEV_TYPE_GENERIC;
+static float aDensityDPI = 0;
 static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static bool hasPermanentMenuKey = 1;
@@ -93,11 +94,9 @@ void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
 const char *documentsPath() { return filesDir; }
 const char *storagePath() { return eStoreDir; }
 
-bool hasHardwareNavButtons() { return hasPermanentMenuKey; }
-
-int runningDeviceType()
+bool hasHardwareNavButtons()
 {
-	return devType;
+	return hasPermanentMenuKey;
 }
 
 void setDPI(float dpi)
@@ -127,6 +126,7 @@ static void setupVibration(JNIEnv* jEnv)
 	}
 }
 
+#if !defined CONFIG_MACHINE_OUYA
 bool hasVibrator()
 {
 	return vibrator;
@@ -144,6 +144,7 @@ void vibrate(uint ms)
 	//logDMsg("vibrating for %u ms", ms);
 	jVibrate(eEnv(), vibrator, (jlong)ms);
 }
+#endif
 
 void addNotification(const char *onShow, const char *title, const char *message)
 {
@@ -180,7 +181,9 @@ static void setupDPI()
 	float ydpi = isStraightOrientation(osOrientation) ? yDPI : xDPI;
 	Gfx::viewMMWidth_ = ((float)mainWin.w / xdpi) * 25.4;
 	Gfx::viewMMHeight_ = ((float)mainWin.h / ydpi) * 25.4;
-	logMsg("calc display size %dx%d MM", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
+	Gfx::viewSMMWidth_ = (mainWin.w / aDensityDPI) * 25.4;
+	Gfx::viewSMMHeight_ = (mainWin.h / aDensityDPI) * 25.4;
+	logMsg("calc display size %dx%d MM, scaled %dx%d MM", Gfx::viewMMWidth_, Gfx::viewMMHeight_, Gfx::viewSMMWidth_, Gfx::viewSMMHeight_);
 	assert(Gfx::viewMMWidth_ && Gfx::viewMMHeight_);
 }
 
@@ -201,36 +204,26 @@ static void initialScreenSizeSetup(uint w, uint h)
 static void setDeviceType(const char *dev)
 {
 	assert(Config::ENV_ANDROID_MINSDK >= 4);
-	#ifdef __ARM_ARCH_7A__
-	//if(strstr(board, "sholes"))
-	if(androidSDK() > 8 && (strstr(dev, "R800") || string_equal(dev, "zeus")))
+	if(Config::MACHINE_IS_GENERIC_ARMV7)
 	{
-		logMsg("running on Xperia Play");
-		devType = DEV_TYPE_XPERIA_PLAY;
+		if(androidSDK() < 11 && (strstr(dev, "shooter") || string_equal(dev, "inc")))
+		{
+			// Evo 3D/Shooter, & HTC Droid Incredible hack
+			logMsg("device needs glFinish() hack");
+			glSyncHackBlacklisted = 1;
+		}
+		else if(androidSDK() < 11 && (string_equal(dev, "vision") || string_equal(dev, "ace")))
+		{
+			// T-Mobile G2 (HTC Desire Z), HTC Desire HD
+			logMsg("device has broken npot support");
+			glBrokenNpot = 1;
+		}
+		else if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
+		{
+			logMsg("device needs gl*Pointer() hack");
+			glPointerStateHack = 1;
+		}
 	}
-	/*else if(testSDKGreater(10) && strstr(dev, "wingray"))
-	{
-		logMsg("running on Xoom");
-		devType = DEV_TYPE_XOOM;
-	}*/
-	else if(androidSDK() < 11 && (strstr(dev, "shooter") || string_equal(dev, "inc")))
-	{
-		// Evo 3D/Shooter, & HTC Droid Incredible hack
-		logMsg("device needs glFinish() hack");
-		glSyncHackBlacklisted = 1;
-	}
-	else if(androidSDK() < 11 && (string_equal(dev, "vision") || string_equal(dev, "ace")))
-	{
-		// T-Mobile G2 (HTC Desire Z), HTC Desire HD
-		logMsg("device has broken npot support");
-		glBrokenNpot = 1;
-	}
-	else if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
-	{
-		logMsg("device needs gl*Pointer() hack");
-		glPointerStateHack = 1;
-	}
-	#endif
 }
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*

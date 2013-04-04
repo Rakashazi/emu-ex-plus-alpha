@@ -18,12 +18,13 @@
 #include <logger/interface.h>
 #include <base/Base.hh>
 #include <util/strings.h>
+#include <util/string/generic.h>
 #include <unistd.h>
 #include <errno.h>
 #include "FsPosix.hh"
 
 #ifdef __APPLE__
-	#include <util/apple/string.h>
+	#include <util/string/apple.h>
 #endif
 
 #if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100

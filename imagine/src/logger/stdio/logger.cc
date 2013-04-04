@@ -35,6 +35,7 @@ uint loggerVerbosity = loggerMaxVerbosity;
 static const bool useExternalLogFile = 0;
 static FILE *logExternalFile = nullptr;
 
+#ifdef CONFIG_FS
 static void printExternalLogPath(FsSys::cPath &path)
 {
 	#ifdef CONFIG_BASE_IOS
@@ -48,9 +49,11 @@ static void printExternalLogPath(FsSys::cPath &path)
 	#endif
 	string_printf(path, "%s/imagine.log", prefix);
 }
+#endif
 
 CallResult logger_init()
 {
+	#ifdef CONFIG_FS
 	if(useExternalLogFile)
 	{
 		FsSys::cPath path;
@@ -62,6 +65,7 @@ CallResult logger_init()
 			return IO_ERROR;
 		}
 	}
+	#endif
 
 	//logMsg("init logger");
 	return OK;

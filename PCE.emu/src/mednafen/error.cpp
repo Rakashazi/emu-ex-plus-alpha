@@ -46,7 +46,12 @@ MDFN_Error::MDFN_Error(const ErrnoHolder &enh)
 {
  errno_code = enh.Errno();
 
+#ifdef CONFIG_BASE_PS3
+ error_message = (char*)malloc(128);
+ snprintf(error_message, 128, "%s", enh.StrError());
+#else
  asprintf(&error_message, "%s", enh.StrError());
+#endif
 }
 
 

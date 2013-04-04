@@ -29,11 +29,12 @@ struct SurfaceTextureBufferImage: public BufferImageInterface
 	Pixmap pix {PixelFormatRGB565}, *backingPix = nullptr;
 
 	void init(int tid, Pixmap &pixmap);
-	void write(Pixmap &p, uint hints);
-	void replace(Pixmap &pixmap, uint hints);
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr);
-	void unlock(Pixmap *pix = nullptr, uint hints = 0);
-	void deinit();
+	void write(Pixmap &p, uint hints) override;
+	void write(Pixmap &p, uint hints, uint alignment) override;
+	void replace(Pixmap &pixmap, uint hints) override;
+	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
+	void unlock(Pixmap *pix = nullptr, uint hints = 0) override;
+	void deinit() override;
 };
 
 }

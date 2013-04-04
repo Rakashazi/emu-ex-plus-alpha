@@ -92,13 +92,14 @@ static ESI nesInputPortDev[2] = { SI_UNSET, SI_UNSET };
 
 enum {
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
-
-	CFGKEY_NESKEY_A_B = 272,
+	CFGKEY_VIDEO_SYSTEM = 272,
 };
 
 FsSys::cPath fdsBiosPath = "";
 static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, sizeof(fdsBiosPath), "");
 static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
+static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
+static uint autoDetectedVidSysPAL = 0;
 
 const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -113,6 +114,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		default: return 0;
 		bcase CFGKEY_FOUR_SCORE: optionFourScore.readFromIO(io, readSize);
 		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
+		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		logMsg("fds bios path %s", fdsBiosPath);
 	}
 	return 1;
@@ -121,6 +123,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 void EmuSystem::writeConfig(Io *io)
 {
 	optionFourScore.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	optionFdsBiosPath.writeToIO(io);
 }
 
@@ -419,6 +422,15 @@ int EmuSystem::loadGame(const char *path)
 			popup.post("Error loading game", 1);
 		}
 		return 0;
+	}
+	autoDetectedVidSysPAL = PAL;
+	if((int)optionVideoSystem == 1)
+	{
+		FCEUI_SetVidSystem(0);
+	}
+	else if((int)optionVideoSystem == 2)
+	{
+		FCEUI_SetVidSystem(1);
 	}
 	if(vidSysIsPAL())
 		logMsg("using PAL timing");

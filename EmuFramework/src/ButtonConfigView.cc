@@ -23,16 +23,36 @@ extern InputManagerView imMenu;
 extern InputManagerDeviceView imdMenu;
 extern MsgPopup popup;
 
-void ButtonConfigSetView::init(Input::Device &dev, const char *actionName)
+#ifdef INPUT_SUPPORTS_POINTER
+bool ButtonConfigSetView::pointerUIIsInit()
 {
-	if(!Config::envIsPS3)
-		string_printf(str, "Push a key to set\n%s", actionName);
+	return unbindB.x != unbindB.x2;
+}
+
+void ButtonConfigSetView::initPointerUI()
+{
+	if(!pointerUIIsInit())
+	{
+		logMsg("init pointer UI elements");
+		unbind.init("Unbind", View::defaultFace);
+		cancel.init("Cancel", View::defaultFace);
+		unbindB.x2 = 1;
+	}
+}
+#endif
+
+void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool withPointerInput)
+{
+	if(withPointerInput)
+		string_printf(str, "Push key to set:\n%s", actionName);
 	else
-		string_printf(str, "Push a key to set\n%s\nUse Square in previous screen to unbind", actionName);
+		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nPush [Left] key in menu screen", actionName);
 	text.init(str, View::defaultFace);
-	#ifndef CONFIG_BASE_PS3
-	unbind.init("Unbind", View::defaultFace);
-	cancel.init("Cancel", View::defaultFace);
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(withPointerInput)
+	{
+		initPointerUI();
+	}
 	#endif
 	this->dev = &dev;
 	savedDev = nullptr;
@@ -43,9 +63,14 @@ void ButtonConfigSetView::deinit()
 {
 	savedDev = nullptr;
 	text.deinit();
-	#ifndef CONFIG_BASE_PS3
-	unbind.deinit();
-	cancel.deinit();
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(pointerUIIsInit())
+	{
+		unbind.deinit();
+		cancel.deinit();
+		unbindB = {};
+		cancelB = {};
+	}
 	#endif
 	Input::setHandleVolumeKeys(0);
 }
@@ -54,26 +79,35 @@ void ButtonConfigSetView::place()
 {
 	text.compile();
 
-	#ifndef CONFIG_BASE_PS3
-	unbind.compile();
-	cancel.compile();
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(pointerUIIsInit())
+	{
+		unbind.compile();
+		cancel.compile();
 
-	Rect2<int> btnFrame;
-	btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
-	unbindB = btnFrame;
-	unbindB.x = (viewFrame.xSize()/2)*0;
-	unbindB.x2 = (viewFrame.xSize()/2)*1;
-	cancelB = btnFrame;
-	cancelB.x = (viewFrame.xSize()/2)*1;
-	cancelB.x2 = (viewFrame.xSize()/2)*2;
+		Rect2<int> btnFrame;
+		btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
+		unbindB = btnFrame;
+		unbindB.x = (viewFrame.xSize()/2)*0;
+		unbindB.x2 = (viewFrame.xSize()/2)*1;
+		cancelB = btnFrame;
+		cancelB.x = (viewFrame.xSize()/2)*1;
+		cancelB.x2 = (viewFrame.xSize()/2)*2;
+	}
 	#endif
 }
 
 void ButtonConfigSetView::inputEvent(const Input::Event &e)
 {
-	if(e.isPointer() && e.state == Input::RELEASED)
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(e.isPointer() && !pointerUIIsInit())
 	{
-		#ifndef CONFIG_BASE_PS3
+		initPointerUI();
+		place();
+		Base::displayNeedsUpdate();
+	}
+	else if(pointerUIIsInit() && e.isPointer() && e.state == Input::RELEASED)
+	{
 		if(unbindB.overlaps(e.x, e.y))
 		{
 			logMsg("unbinding key");
@@ -84,9 +118,10 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 		{
 			removeModalView();
 		}
-		#endif
 	}
-	else if(!e.isPointer() && e.state == Input::PUSHED)
+	else
+	#endif
+	if(!e.isPointer() && e.state == Input::PUSHED)
 	{
 		auto d = e.device;
 		if(d != dev)
@@ -120,16 +155,22 @@ void ButtonConfigSetView::draw(Gfx::FrameTimeBase frameTime)
 	resetTransforms();
 	setColor(.4, .4, .4, 1.);
 	GeomRect::draw(viewFrame);
-	#ifndef CONFIG_BASE_PS3
-	setColor(.2, .2, .2, 1.);
-	GeomRect::draw(unbindB);
-	GeomRect::draw(cancelB);
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(pointerUIIsInit())
+	{
+		setColor(.2, .2, .2, 1.);
+		GeomRect::draw(unbindB);
+		GeomRect::draw(cancelB);
+	}
 	#endif
 
 	setColor(COLOR_WHITE);
-	#ifndef CONFIG_BASE_PS3
-	unbind.draw(gXPos(unbindB, C2DO), gYPos(unbindB, C2DO), C2DO);
-	cancel.draw(gXPos(cancelB, C2DO), gYPos(cancelB, C2DO), C2DO);
+	#ifdef INPUT_SUPPORTS_POINTER
+	if(pointerUIIsInit())
+	{
+		unbind.draw(gXPos(unbindB, C2DO), gYPos(unbindB, C2DO), C2DO);
+		cancel.draw(gXPos(cancelB, C2DO), gYPos(cancelB, C2DO), C2DO);
+	}
 	#endif
 	text.draw(0, 0, C2DO, C2DO);
 }
@@ -202,9 +243,9 @@ void ButtonConfigView::onSet(const Input::Event &e)
 		return;
 	auto &keyEntry = conf->key(*cat)[keyToSet];
 	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
-		Input::buttonName(devConf->dev->map(), keyEntry), keyEntry, Input::buttonName(devConf->dev->map(), e.button), e.button);
+			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.button), e.button);
 	keyEntry = e.button;
-	btn[keyToSet].t2.setString(Input::buttonName(devConf->dev->map(), e.button));
+	btn[keyToSet].t2.setString(devConf->dev->keyName(e.button));
 	btn[keyToSet].t2.compile();
 	keyMapping.buildAll();
 }
@@ -216,7 +257,7 @@ void ButtonConfigView::onSelectElement(const GuiTable1D *, const Input::Event &e
 	else
 	{
 		keyToSet = i - 1;
-		btnSetView2.init(*devConf->dev, btn[keyToSet].t.str);
+		btnSetView2.init(*devConf->dev, btn[keyToSet].t.str, e.isPointer());
 		btnSetView2.placeRect(Gfx::viewportRect());
 		View::modalView = &btnSetView2;
 	}
@@ -224,12 +265,13 @@ void ButtonConfigView::onSelectElement(const GuiTable1D *, const Input::Event &e
 
 void ButtonConfigView::inputEvent(const Input::Event &e)
 {
-	/*if(Config::envIsPS3 && e.pushed(Input::Ps3::SQUARE) && tbl.selected > 1)
+	if(e.pushed() && e.isDefaultLeftButton() && tbl.selected > 0)
 	{
-		bug_exit("TODO");
-		btn[tbl.selected-2].setButton(Input::Event());
+		keyToSet = tbl.selected-1;
+		onSet(Input::Event());
+		Base::displayNeedsUpdate();
 	}
-	else*/
+	else
 		BaseMenuView::inputEvent(e);
 }
 
@@ -249,7 +291,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	reset.init(); text[i++] = &reset;
 	iterateTimes(cat->keys, i2)
 	{
-		btn[i2].init(cat->keyName[i2], Input::buttonName(devConf.dev->map(), keyConfig.key(*cat)[i2]));
+		btn[i2].init(cat->keyName[i2], devConf.dev->keyName(keyConfig.key(*cat)[i2]));
 		text[i++] = &btn[i2];
 	}
 
@@ -274,7 +316,7 @@ void ButtonConfigView::confirmUnbindKeysAlert(const Input::Event &e)
 	conf->unbindCategory(*cat);
 	iterateTimes(cat->keys, i)
 	{
-		btn[i].t2.setString(Input::buttonName(devConf->dev->map(), devConf->keyConf().key(*cat)[i]));
+		btn[i].t2.setString(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
 		btn[i].t2.compile();
 	}
 	keyMapping.buildAll();

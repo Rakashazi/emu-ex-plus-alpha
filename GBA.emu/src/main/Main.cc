@@ -31,6 +31,7 @@
 #include <vbam/gba/Sound.h>
 #include <vbam/gba/RTC.h>
 #include <vbam/common/SoundDriver.h>
+#include <vbam/common/Patch.h>
 #include <vbam/Util.h>
 void setGameSpecificSettings(GBASys &gba);
 void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio);
@@ -240,7 +241,7 @@ static char saveSlotChar(int slot)
 
 void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
 {
-	sprintf(str, "%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
+	snprintf(str, size, "%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -306,6 +307,45 @@ void EmuSystem::closeSystem()
 	detectedRtcGame = 0;
 }
 
+static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
+{
+	FsSys::cPath patchStr;
+	string_printf(patchStr, "%s/%s.ips", patchDir, romName);
+	if(FsSys::fileExists(patchStr))
+	{
+		logMsg("applying IPS patch: %s", patchStr);
+		if(!patchApplyIPS(patchStr, &rom, &romSize))
+		{
+			popup.postError("Error applying IPS patch");
+			return false;
+		}
+		return true;
+	}
+	string_printf(patchStr, "%s/%s.ups", patchDir, romName);
+	if(FsSys::fileExists(patchStr))
+	{
+		logMsg("applying UPS patch: %s", patchStr);
+		if(!patchApplyUPS(patchStr, &rom, &romSize))
+		{
+			popup.postError("Error applying UPS patch");
+			return false;
+		}
+		return true;
+	}
+	string_printf(patchStr, "%s/%s.ppf", patchDir, romName);
+	if(FsSys::fileExists(patchStr))
+	{
+		logMsg("applying UPS patch: %s", patchStr);
+		if(!patchApplyPPF(patchStr, &rom, &romSize))
+		{
+			popup.postError("Error applying PPF patch");
+			return false;
+		}
+		return true;
+	}
+	return true; // no patch found
+}
+
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
@@ -320,6 +360,10 @@ int EmuSystem::loadGame(const char *path)
 		return 0;
 	}
 	setGameSpecificSettings(gGba);
+	if(!applyGamePatches(savePath(), gameName, gGba.mem.rom, size))
+	{
+		return 0;
+	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	FsSys::cPath saveStr;

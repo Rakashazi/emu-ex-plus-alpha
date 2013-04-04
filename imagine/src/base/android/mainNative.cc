@@ -108,6 +108,13 @@ static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHas
 static bool statusBarIsHidden = 1; // assume app starts fullscreen
 static CallbackRef *inputRescanCallbackRef = nullptr;
 static void (*didDrawWindowCallback)() = nullptr;
+static const char *buildDevice = nullptr;
+
+const char *androidBuildDevice()
+{
+	assert(buildDevice);
+	return buildDevice;
+}
 
 void setWindowPixelBestColorHint(bool best)
 {
@@ -177,7 +184,7 @@ static void initConfig(AConfiguration* config)
 	auto navigationState = AConfiguration_getNavHidden(config);
 	auto keyboard = AConfiguration_getKeyboard(config);
 
-	aHardKeyboardState = (devType == DEV_TYPE_XPERIA_PLAY) ? navigationState : hardKeyboardState;
+	aHardKeyboardState = Input::hasXperiaPlayGamepad() ? navigationState : hardKeyboardState;
 	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
 
 	aKeyboardType = keyboard;
@@ -215,7 +222,7 @@ static void configChange(AConfiguration* config, ANativeWindow* window)
 	auto orientation = jGetRotation(eEnv(), jDpy);
 	auto keyboard = AConfiguration_getKeyboard(config);
 	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
-	setHardKeyboardState((devType == DEV_TYPE_XPERIA_PLAY) ? navState : hardKeyboardState);
+	setHardKeyboardState(Input::hasXperiaPlayGamepad() ? navState : hardKeyboardState);
 
 	if(setOrientationOS(orientation))
 	{
@@ -445,12 +452,12 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 			JavaClassMethod<jobject> jDevName;
 			jDevName.setup(jEnv, jBaseActivityCls, "devName", "()Ljava/lang/String;");
 			auto devName = (jstring)jDevName(jEnv);
-			const char *devNameStr = jEnv->GetStringUTFChars(devName, 0);
-			logMsg("device name: %s", devNameStr);
-			setDeviceType(devNameStr);
-			jEnv->ReleaseStringUTFChars(devName, devNameStr);
+			buildDevice = jEnv->GetStringUTFChars(devName, 0);
+			logMsg("device name: %s", buildDevice);
+			setDeviceType(buildDevice);
 		}
 
+		if(!Config::MACHINE_IS_OUYA)
 		{
 			JavaInstMethod<jobject> jSysVibrator;
 			jSysVibrator.setup(jEnv, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;");
@@ -475,18 +482,21 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 			logMsg("app handles rotation animations");
 		}
 
-		if(Base::androidSDK() >= 14)
+		if(!Config::MACHINE_IS_OUYA)
 		{
-			JavaInstMethod<jboolean> jHasPermanentMenuKey;
-			jHasPermanentMenuKey.setup(jEnv, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
-			Base::hasPermanentMenuKey = jHasPermanentMenuKey(jEnv, inst);
-			if(!Base::hasPermanentMenuKey)
+			if(Base::androidSDK() >= 14)
 			{
-				logMsg("device has software nav buttons");
+				JavaInstMethod<jboolean> jHasPermanentMenuKey;
+				jHasPermanentMenuKey.setup(jEnv, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
+				Base::hasPermanentMenuKey = jHasPermanentMenuKey(jEnv, inst);
+				if(!Base::hasPermanentMenuKey)
+				{
+					logMsg("device has software nav buttons");
+				}
 			}
+			else
+				Base::hasPermanentMenuKey = 1;
 		}
-		else
-			Base::hasPermanentMenuKey = 1;
 
 		#ifdef ANDROID_APK_SIGNATURE_HASH
 			JavaInstMethod<jint> jSigHash;
@@ -508,8 +518,8 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 	jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
 	JavaInstMethod<jfloat> jGetRefreshRate;
 	jGetRefreshRate.setup(jEnv, jDisplayCls, "getRefreshRate", "()F");
-	JavaInstMethod<void> jGetMetrics;
-	jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
+	//JavaInstMethod<void> jGetMetrics;
+	//jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
 
 	JavaInstMethod<jobject> jDefaultDpy;
 	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
@@ -523,23 +533,40 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 
 	// DisplayMetrics members
 	jclass jDisplayMetricsCls = jEnv->FindClass("android/util/DisplayMetrics");
-	JavaInstMethod<void> jDisplayMetrics;
-	jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
+	//JavaInstMethod<void> jDisplayMetrics;
+	//jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
 	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
 	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
-
-	auto dpyMetrics = jEnv->NewObject(jDisplayMetricsCls, jDisplayMetrics.m);
+	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
+	JavaInstMethod<jobject> jDisplayMetrics;
+	jDisplayMetrics.setup(jEnv, jBaseActivityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
+	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
+	auto dpyMetrics = jDisplayMetrics(jEnv, inst);
 	assert(dpyMetrics);
-	jGetMetrics(jEnv, jDpy, dpyMetrics);
+	//auto dpyMetrics = jEnv->NewObject(jDisplayMetricsCls, jDisplayMetrics.m);
+	//jGetMetrics(jEnv, jDpy, dpyMetrics);
+	#ifndef NDEBUG
+	{
+		auto jDensity = jEnv->GetFieldID(jDisplayMetricsCls, "density", "F");
+		auto jDensityDPI = jEnv->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
+		auto jWidthPixels = jEnv->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
+		auto jHeightPixels = jEnv->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
+		logMsg("display density %f, densityDPI %d, %dx%d pixels",
+			(double)jEnv->GetFloatField(dpyMetrics, jDensity), jEnv->GetIntField(dpyMetrics, jDensityDPI),
+			jEnv->GetIntField(dpyMetrics, jWidthPixels), jEnv->GetIntField(dpyMetrics, jHeightPixels));
+	}
+	#endif
+
 	auto metricsXDPI = jEnv->GetFloatField(dpyMetrics, jXDPI);
 	auto metricsYDPI = jEnv->GetFloatField(dpyMetrics, jYDPI);
-
-	logMsg("set screen DPI size %f,%f", (double)metricsXDPI, (double)metricsYDPI);
+	aDensityDPI = 160.*jEnv->GetFloatField(dpyMetrics, jScaledDensity);
+	assert(aDensityDPI);
+	logMsg("set screen DPI size %f,%f, scaled density DPI %f", (double)metricsXDPI, (double)metricsYDPI, (double)aDensityDPI);
 	// DPI values are un-rotated from DisplayMetrics
 	androidXDPI = xDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
 	androidYDPI = yDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
 
-	if(Base::androidSDK() >= 11)
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
 	{
 		if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
 		{
@@ -786,7 +813,7 @@ static void postDrawWindow()
 	if(!winDrawPosted && nWin)
 	{
 		//logMsg("posted draw");
-		if(hasChoreographer)
+		if(jPostDrawWindow.m != 0)
 			jPostDrawWindow(eEnv(), jBaseActivity);
 		else
 		{
@@ -809,7 +836,7 @@ static void cancelDrawWindow()
 	if(winDrawPosted)
 	{
 		logMsg("canceled draw");
-		if(hasChoreographer)
+		if(jCancelDrawWindow.m != 0)
 			jCancelDrawWindow(eEnv(), jBaseActivity);
 		else
 		{
@@ -878,6 +905,7 @@ static int msgPipeFdHandler(int fd, int events, void* data)
 		}
 
 		uint cmdType = cmd & 0xFFFF;
+		logMsg("got thread message %d", cmdType);
 		switch(cmdType)
 		{
 			#ifdef CONFIG_ANDROIDBT
@@ -890,6 +918,14 @@ static int msgPipeFdHandler(int fd, int events, void* data)
 				uchar buff[48];
 				read(fd, buff, size);
 				s->onDataDelegate().invoke(buff, size);
+			}
+			bcase MSG_BT_SOCKET_STATUS_DELEGATE:
+			{
+				logMsg("got bluetooth socket status delegate message");
+				uint32 arg[2];
+				read(fd, arg, sizeof(arg));
+				auto &s = *((AndroidBluetoothSocket*)arg[1]);
+				s.onStatusDelegateMessage(arg[0]);
 			}
 			#endif
 			bdefault:
@@ -914,6 +950,11 @@ static jboolean JNICALL drawWindowJNI(JNIEnv* env, jobject thiz, jlong frameTime
 	//logMsg("frame time %lld, diff %lld", (long long)frameTimeNanos, (long long)(frameTimeNanos - lastFrameTime));
 	prevFrameTimeNanos = frameTimeNanos;
 	return drawWindow(frameTimeNanos);
+}
+
+static jboolean JNICALL drawWindowIdleJNI(JNIEnv* env, jobject thiz)
+{
+	return drawWindow(0);
 }
 
 static void onDestroy(ANativeActivity* activity)
@@ -1021,7 +1062,7 @@ static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
 
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
-	logMsg("called ANativeActivity_onCreate");
+	logMsg("called ANativeActivity_onCreate, thread ID %d", gettid());
 	using namespace Base;
 	setSDK(activity->sdkVersion);
 	if(Base::androidSDK() >= 16)
@@ -1053,32 +1094,50 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	else
 	{
 		drawWinEventFd = eventfd(0, 0);
-		if(drawWinEventFd == -1)
+		if(unlikely(drawWinEventFd == -1))
 		{
-			bug_exit("error creating eventfd: %d (%s)", errno, strerror(errno));
-		}
-		int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawWinEventFdHandler, nullptr);
-		assert(ret == 1);
-	}
-	Base::dlLoadFuncs();
-	aConfig = AConfiguration_new();
-	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-	initConfig(aConfig);
-	if(Base::androidSDK() >= 12)
-	{
-		logMsg("setting up inotify");
-		int inputDevNotifyFd = inotify_init();
-		if(inputDevNotifyFd >= 0)
-		{
-			auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
-			int ret = ALooper_addFd(aLooper, inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, inputDevNotifyFdHandler, nullptr);
-			assert(ret == 1);
+			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
+			{
+				JNINativeMethod activityMethods[] =
+				{
+						{"drawWindowIdle", "()Z", (void*)&Base::drawWindowIdleJNI},
+				};
+				eJEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+			}
+			jPostDrawWindow.setup(eJEnv, jBaseActivityCls, "postDrawWindowIdle", "()V");
+			jCancelDrawWindow.setup(eJEnv, jBaseActivityCls, "cancelDrawWindowIdle", "()V");
 		}
 		else
 		{
-			logErr("couldn't create inotify instance");
+			int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawWinEventFdHandler, nullptr);
+			assert(ret == 1);
 		}
 	}
+	Base::dlLoadFuncs();
+
+	#ifdef CONFIG_INPUT
+		if(Base::androidSDK() >= 12)
+		{
+			logMsg("setting up inotify");
+			int inputDevNotifyFd = inotify_init();
+			if(inputDevNotifyFd >= 0)
+			{
+				auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
+				int ret = ALooper_addFd(aLooper, inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, inputDevNotifyFdHandler, nullptr);
+				assert(ret == 1);
+			}
+			else
+			{
+				logErr("couldn't create inotify instance");
+			}
+		}
+
+		doOrExit(Input::init());
+	#endif
+
+	aConfig = AConfiguration_new();
+	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
+	initConfig(aConfig);
 
 	int msgPipe[2];
 	{

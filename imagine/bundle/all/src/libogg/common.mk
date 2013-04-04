@@ -26,7 +26,7 @@ install : $(outputLibFile)
 
 $(liboggSrcDir)/configure : $(liboggSrcArchive)
 	@echo "Extracting libogg..."
-	tar -xJf $^
+	tar -mxJf $^
 	cp ../gnuconfig/config.* $(liboggSrcDir)
 
 $(outputLibFile) : $(makeFile)

@@ -25,6 +25,8 @@
 #include <EmuSystem.hh>
 #include <TurboInput.hh>
 
+#ifndef CONFIG_BASE_PS3
+
 extern TurboInput turboActions;
 
 class VControllerDPad
@@ -683,3 +685,4 @@ void updateVControllerMapping(uint player, SysVController::Map &map);
 	void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map);
 #endif
 
+#endif

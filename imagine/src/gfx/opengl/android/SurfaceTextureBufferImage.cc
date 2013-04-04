@@ -59,6 +59,11 @@ void SurfaceTextureBufferImage::write(Pixmap &p, uint hints)
 	unlock();
 }
 
+void SurfaceTextureBufferImage::write(Pixmap &p, uint hints, uint alignment)
+{
+	write(p, hints);
+}
+
 void SurfaceTextureBufferImage::replace(Pixmap &pixmap, uint hints)
 {
 	int winFormat = pixelFormatToDirectAndroidFormat(pixmap.format);

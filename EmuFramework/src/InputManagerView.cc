@@ -27,7 +27,7 @@ extern CollectTextInputView textInputView;
 static ButtonConfigView bcMenu;
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
-void updateOnScreenControlVisible();
+void updateAutoOnScreenControlVisible();
 
 void IdentInputDeviceView::init()
 {
@@ -473,7 +473,7 @@ void InputManagerDeviceView::confirmICadeMode(const Input::Event &e)
 	devConf->setICadeMode(iCadeMode.on);
 	onShow();
 	physicalControlsPresent = EmuControls::keyInputIsPresent();
-	updateOnScreenControlVisible();
+	updateAutoOnScreenControlVisible();
 	keyMapping.buildAll();
 }
 

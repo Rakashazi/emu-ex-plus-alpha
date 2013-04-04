@@ -15,6 +15,9 @@ struct Projector
 		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
 		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
 		mmToXScale = 0, mmToYScale = 0,   // MM of screen -> projection space at focal z
+#ifdef CONFIG_BASE_ANDROID
+		smmToXScale = 0, smmToYScale = 0,
+#endif
 		aspectRatio = 0;
 	Matrix4x4<GC> mat, matInv;
 
@@ -34,6 +37,10 @@ struct Projector
 	{
 		mmToXScale = w/(GC)viewMMWidth();
 		mmToYScale = h/(GC)viewMMHeight();
+#ifdef CONFIG_BASE_ANDROID
+		smmToXScale = w/(GC)viewSMMWidth();
+		smmToYScale = h/(GC)viewSMMHeight();
+#endif
 		//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
 	}
 
@@ -248,6 +255,14 @@ static GC alignYToPixel(GC y)
 
 static GC xMMSize(GC mm) { return mm * proj.mmToXScale; }
 static GC yMMSize(GC mm) { return mm * proj.mmToYScale; }
+
+#ifdef CONFIG_BASE_ANDROID
+static GC xSMMSize(GC mm) { return mm * proj.smmToXScale; }
+static GC ySMMSize(GC mm) { return mm * proj.smmToYScale; }
+#else
+static GC xSMMSize(GC mm) { return xMMSize(mm); }
+static GC ySMMSize(GC mm) { return yMMSize(mm); }
+#endif
 
 static Coordinate gXSize(const Rect2<int> &r) { return iXSize(r.xSize()); }
 static Coordinate gYSize(const Rect2<int> &r) { return iYSize(r.ySize()); }

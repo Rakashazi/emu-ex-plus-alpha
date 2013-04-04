@@ -71,7 +71,7 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		case MAP_ICADE: return swapped ? isDefaultCancelButton(0) : (button == Input::ICade::A || button == Input::ICade::B);
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::Ps3::CROSS);
+		case MAP_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::PS3::CROSS);
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -107,7 +107,7 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		case MAP_ICADE: return swapped ? isDefaultConfirmButton(0) : (button == Input::ICade::C || button == Input::ICade::D);
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::Ps3::CIRCLE);
+		case MAP_PS3PAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::PS3::CIRCLE);
 		#endif
 		#ifdef INPUT_SUPPORTS_MOUSE
 		case MAP_POINTER: return button == Input::Pointer::DOWN_BUTTON;
@@ -147,7 +147,7 @@ bool Event::isDefaultLeftButton() const
 		case MAP_ICADE: return button == Input::ICade::LEFT;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::LEFT;
+		case MAP_PS3PAD: return button == Input::PS3::LEFT;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -180,7 +180,7 @@ bool Event::isDefaultRightButton() const
 		case MAP_ICADE: return button == Input::ICade::RIGHT;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::RIGHT;
+		case MAP_PS3PAD: return button == Input::PS3::RIGHT;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -213,7 +213,7 @@ bool Event::isDefaultUpButton() const
 		case MAP_ICADE: return button == Input::ICade::UP;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::UP;
+		case MAP_PS3PAD: return button == Input::PS3::UP;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -246,7 +246,7 @@ bool Event::isDefaultDownButton() const
 		case MAP_ICADE: return button == Input::ICade::DOWN;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::DOWN;
+		case MAP_PS3PAD: return button == Input::PS3::DOWN;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -277,7 +277,7 @@ bool Event::isDefaultPageUpButton() const
 		case MAP_ICADE: return button == Input::ICade::E;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::L1;
+		case MAP_PS3PAD: return button == Input::PS3::L1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -305,7 +305,7 @@ bool Event::isDefaultPageDownButton() const
 		case MAP_ICADE: return button == Input::ICade::F;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::Ps3::R1;
+		case MAP_PS3PAD: return button == Input::PS3::R1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -722,40 +722,99 @@ static const char *iCadeButtonName(Key b)
 		case ICade::DOWN: return "Down";
 		case ICade::LEFT: return "Left";
 	}
-	return "Unknown";
+	return nullptr;
 }
 
 static const char *ps3ButtonName(Key b)
 {
-	switch(b)
-	{
-		case 0: return "None";
-		case Ps3::CROSS: return "Cross";
-		case Ps3::CIRCLE: return "Circle";
-		case Ps3::SQUARE: return "Square";
-		case Ps3::TRIANGLE: return "Triangle";
-		case Ps3::L1: return "L1";
-		case Ps3::L2: return "L2";
-		case Ps3::L3: return "L3";
-		case Ps3::R1: return "R1";
-		case Ps3::R2: return "R2";
-		case Ps3::R3: return "R3";
-		case Ps3::SELECT: return "Select";
-		case Ps3::START: return "Start";
-		case Ps3::UP: return "Up";
-		case Ps3::RIGHT: return "Right";
-		case Ps3::DOWN: return "Down";
-		case Ps3::LEFT: return "Left";
-	}
-	return "Unknown";
+	#ifdef CONFIG_BASE_PS3
+		switch(b)
+		{
+			case 0: return "None";
+			case PS3::CROSS: return "Cross";
+			case PS3::CIRCLE: return "Circle";
+			case PS3::SQUARE: return "Square";
+			case PS3::TRIANGLE: return "Triangle";
+			case PS3::L1: return "L1";
+			case PS3::L2: return "L2";
+			case PS3::L3: return "L3";
+			case PS3::R1: return "R1";
+			case PS3::R2: return "R2";
+			case PS3::R3: return "R3";
+			case PS3::SELECT: return "Select";
+			case PS3::START: return "Start";
+			case PS3::UP: return "Up";
+			case PS3::RIGHT: return "Right";
+			case PS3::DOWN: return "Down";
+			case PS3::LEFT: return "Left";
+		}
+		return "Unknown";
+	#elif defined CONFIG_BASE_ANDROID
+		switch(b)
+		{
+			case PS3::CROSS: return "Cross";
+			case PS3::CIRCLE: return "Circle";
+			case PS3::SQUARE: return "Square";
+			case PS3::TRIANGLE: return "Triangle";
+			case PS3::PS: return "PS";
+			case Keycode::GAME_LEFT_THUMB: return "L3";
+			case Keycode::GAME_RIGHT_THUMB: return "R3";
+		}
+		return nullptr;
+	#else
+		return nullptr;
+	#endif
 }
 
-const char *buttonName(uint map, Key b)
+#ifdef CONFIG_BASE_ANDROID
+static const char *xperiaPlayButtonName(Key b)
 {
-	switch(map)
+	switch(b)
+	{
+		case XperiaPlay::CROSS: return "Cross";
+		case XperiaPlay::CIRCLE: return "Circle";
+		case XperiaPlay::SQUARE: return "Square";
+		case XperiaPlay::TRIANGLE: return "Triangle";
+	}
+	return nullptr;
+}
+
+static const char *ouyaButtonName(Key b)
+{
+	switch(b)
+	{
+		case Ouya::O: return "O";
+		case Ouya::U: return "U";
+		case Ouya::Y: return "Y";
+		case Ouya::A: return "A";
+		case Keycode::GAME_LEFT_THUMB: return "L3";
+		case Keycode::GAME_RIGHT_THUMB: return "R3";
+		case Keycode::MENU: return "System";
+	}
+	return nullptr;
+}
+#endif
+
+const char *Device::keyName(Key b) const
+{
+	switch(map())
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Input::Event::MAP_KEYBOARD: return keyButtonName(b);
+		case Input::Event::MAP_KEYBOARD:
+		{
+			const char *name = nullptr;
+			switch(subtype)
+			{
+				#ifdef CONFIG_BASE_ANDROID
+				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(b);
+				bcase Device::SUBTYPE_OUYA_CONTROLLER: name = ouyaButtonName(b);
+				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3ButtonName(b);
+				#endif
+			}
+			if(!name)
+				return keyButtonName(b);
+			return name;
+		}
 		#endif
 		#ifdef CONFIG_BLUETOOTH
 		case Input::Event::MAP_WIIMOTE: return wiimoteButtonName(b);
@@ -766,17 +825,18 @@ const char *buttonName(uint map, Key b)
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
 			auto name = iCadeButtonName(b);
-			#ifndef CONFIG_BASE_IOS
-			if(string_equal(name, "Unknown"))
+			if(!name)
 			{
-				// if it's not an iCade button, fall back to regular keys
-				return keyButtonName(b);
+				#ifdef CONFIG_BASE_IOS
+					return "Unknown";
+				#else
+					return keyButtonName(b); // if it's not an iCade button, fall back to regular keys
+				#endif
 			}
-			#endif
 			return name;
 		#endif
 		#ifdef CONFIG_BASE_PS3
-		case Input::Event::DEV_PS3PAD: return ps3ButtonName(b);
+		case Input::Event::MAP_PS3PAD: return ps3ButtonName(b);
 		#endif
 	}
 	return "Unknown";

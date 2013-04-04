@@ -63,6 +63,7 @@ static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
 struct KeyConfig
 {
 	uint map;
+	uint devSubtype;
 	char name[MAX_KEY_CONFIG_NAME_SIZE];
 	typedef Input::Key Key;
 	typedef Key KeyArray[MAX_KEY_CONFIG_KEYS];
@@ -221,4 +222,20 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player);
 void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
 void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
 
+#ifdef CONFIG_BASE_ANDROID
+static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
+{
+	Input::Event::MAP_KEYBOARD,
+	0,
+	"Android Navigation Keys",
+	{
+		EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+
+		Input::Keycode::UP,
+		Input::Keycode::RIGHT,
+		Input::Keycode::DOWN,
+		Input::Keycode::LEFT,
+	}
+};
+#endif
 }

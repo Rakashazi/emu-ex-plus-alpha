@@ -29,6 +29,8 @@
 
 #if defined(CONFIG_BASE_ANDROID)
 	#include <base/android/public.hh>
+#elif defined(CONFIG_BASE_IOS)
+	#include <base/iphone/public.hh>
 #endif
 
 namespace Base
@@ -48,7 +50,7 @@ struct Window : NotEquals<Window>
 
 const Window &window();
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
 	void setWindowPixelBestColorHint(bool best);
 	bool windowPixelBestColorHintDefault();
 #else
@@ -212,9 +214,10 @@ static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
 #endif
 
 // vibration support
-#if defined(CONFIG_BASE_ANDROID)
+#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	bool hasVibrator();
 	void vibrate(uint ms);
+	#define CONFIG_BASE_SUPPORTS_VIBRATOR
 #else
 	static bool hasVibrator() { return 0; }
 	static void vibrate(uint ms) { }
@@ -229,21 +232,6 @@ static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
 	static int realUID = 0, effectiveUID = 0;
 	static void setUIDReal() { }
 	static bool setUIDEffective() { return 0; }
-#endif
-
-// Device Identification
-enum { DEV_TYPE_GENERIC,
-#if defined (CONFIG_BASE_ANDROID)
-	DEV_TYPE_XPERIA_PLAY, DEV_TYPE_XOOM,
-#elif defined(CONFIG_BASE_IOS)
-	DEV_TYPE_IPAD,
-#endif
-};
-
-#if defined (CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS)
-	int runningDeviceType();
-#else
-	static int runningDeviceType() { return DEV_TYPE_GENERIC; }
 #endif
 
 // Notification icon
@@ -289,3 +277,13 @@ CallResult onInit(int argc, char** argv) ATTRS(cold);
 CallResult onWindowInit() ATTRS(cold);
 
 } // Base
+
+namespace Config
+{
+	static constexpr bool BASE_SUPPORTS_VIBRATOR =
+		#ifdef CONFIG_BASE_SUPPORTS_VIBRATOR
+			1;
+		#else
+			0;
+		#endif
+}

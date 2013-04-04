@@ -31,7 +31,7 @@ install : $(outputLibFile)
 
 $(libpngSrcDir)/configure : $(libpngSrcArchive)
 	@echo "Extracting libpng..."
-	tar -xJf $^
+	tar -mxJf $^
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libpng..."
@@ -40,7 +40,7 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libpngSrcDir)/configure
 	@echo "Configuring libpng..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libpngSrcDir)/configure --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && $$dir/$(libpngSrcDir)/configure --disable-shared --host=$(CHOST) $(buildArg) "CC=$(CC)" "CFLAGS=$(CPPFLAGS) $(CFLAGS)" "LD=$(LD)" "LDFLAGS=$(LDLIBS)"
 	touch $(buildDir)/pnglibconf.dfn
 	touch $(buildDir)/pnglibconf.out
 	dir=`pwd` && cp $$dir/$(pnglibconfFile) $(buildDir)/pnglibconf.h

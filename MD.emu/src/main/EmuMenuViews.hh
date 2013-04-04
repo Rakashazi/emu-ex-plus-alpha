@@ -1,7 +1,6 @@
 #pragma once
 #include "OptionView.hh"
 #include <util/cLang.h>
-#include <libgen.h>
 
 static void setupMDInput();
 
@@ -122,9 +121,7 @@ private:
 			bcase REGION_JAPAN_NTSC: regionStr = "Japan";
 			bcase REGION_EUROPE: regionStr = "Europe";
 		}
-		char basenameStr[S];
-		strcpy(basenameStr, path);
-		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? basename(basenameStr) : "None set");
+		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? string_basename(path) : "None set");
 	}
 
 	template <int region>
@@ -198,8 +195,30 @@ private:
 		setupMDInput();
 	}
 
+	MultiChoiceSelectMenuItem videoSystem {"Video System", MultiChoiceMenuItem::ValueDelegate::create<&videoSystemSet>()};
+
+	void videoSystemInit()
+	{
+		static const char *str[] =
+		{
+			"Auto", "NTSC", "PAL"
+		};
+		videoSystem.init(str, IG::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
+	}
+
+	static void videoSystemSet(MultiChoiceMenuItem &, int val)
+	{
+		optionVideoSystem = val;
+	}
+
 public:
 	constexpr SystemOptionView() { }
+
+	void loadVideoItems(MenuItem *item[], uint &items)
+	{
+		OptionView::loadVideoItems(item, items);
+		videoSystemInit(); item[items++] = &videoSystem;
+	}
 
 	void loadAudioItems(MenuItem *item[], uint &items)
 	{

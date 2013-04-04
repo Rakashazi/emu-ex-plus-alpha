@@ -19,98 +19,18 @@
 #include <util/basicString.h>
 #include <assert.h>
 #include <mem/interface.h>
-
-#define ASCII_LF 0xA
-#define ASCII_CR 0xD
-
-static const char pathSeparator[] = { '/'
-#ifdef CONFIG_BASE_WIN32
-		, '\\'
+#include <util/string/generic.h>
+#ifndef CONFIG_BASE_PS3
+	#include <libgen.h>
 #endif
-};
-static const uint numPathSeparators = sizeofArray(pathSeparator);
 
-template <class T>
-static T *dirNameCutoffPoint(T *path)
-{
-	T *cutoffPoint = NULL;
-	for(uint i = 0; i < numPathSeparators; i++)
-	{
-		T *possibleCutoff = strrchr(path, pathSeparator[i]);
-		if(possibleCutoff > cutoffPoint)
-			cutoffPoint = possibleCutoff;
-	}
-	return cutoffPoint;
-}
+#if !defined __APPLE__ && !defined __ANDROID__ && !defined CONFIG_BASE_PS3 && defined _GNU_SOURCE
+	#define CONFIG_USE_GNU_BASENAME
+#endif
 
-static void dirNameInPlace(char *path)
-{
-	char *cutoffPoint = dirNameCutoffPoint(path);
-
-	if(cutoffPoint != NULL)
-		*cutoffPoint = 0;
-	else strcpy(path, ".");
-}
-
-static void dirName(const char *path, char *pathOut)
-{
-	const char *cutoffPoint = dirNameCutoffPoint(path);
-
-	if(cutoffPoint != NULL)
-	{
-		size_t cpySize = cutoffPoint - path;
-		memcpy(pathOut, path, cpySize);
-		pathOut[cpySize] = 0;
-	}
-	else strcpy(pathOut, ".");
-}
-
-static char *dirNameCpy(char *path)
-{
-	char *cutoffPoint = dirNameCutoffPoint(path);
-	char *pathOut;
-	if(cutoffPoint != NULL)
-	{
-		size_t cpySize = cutoffPoint - path;
-		pathOut = (char*)mem_alloc(cpySize + 1);
-		memcpy(pathOut, path, cpySize);
-		pathOut[cpySize] = 0;
-	}
-	else
-	{
-		pathOut = (char*)mem_alloc(2);
-		strcpy(pathOut, ".");
-	}
-	return pathOut;
-}
-
-template <class T>
-static T *baseNamePos(T *path)
-{
-	T *pos = path;
-	for(uint i = 0; i < numPathSeparators; i++)
-	{
-		T *possiblePos = strrchr(path, pathSeparator[i]);
-		if(possiblePos > pos)
-			pos = possiblePos+1;
-	}
-	return pos;
-}
-
-static void baseNameInPlace(char *path)
-{
-	char *copyPoint = baseNamePos(path);
-	if(copyPoint != NULL)
-		strcpy(path, copyPoint);
-}
-
-static void baseName(const char *path, char *pathOut)
-{
-	const char *cutoffPoint = baseNamePos(path);
-
-	assert(*cutoffPoint != 0); // TODO: other cases
-	strcpy(pathOut, cutoffPoint);
-}
+#ifdef CONFIG_USE_GNU_BASENAME
+	#include <util/string/glibc.h>
+#endif
 
 static int hexToInt(char c)
 {
@@ -221,6 +141,40 @@ static void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
 		}
 		dest[i] = src[i];
 	}
+}
+
+static char *string_basename(const char *filename)
+{
+	#ifdef CONFIG_USE_GNU_BASENAME
+		return gnu_basename(filename);
+	#elif defined __ANDROID__
+		return basename(filename);
+	#elif defined CONFIG_BASE_PS3
+		char str[1024] {0};
+		baseName(filename, str);
+		return str;
+	#else
+		// standard version that modifies input
+		char temp[strlen(filename)+1];
+		memcpy(temp, filename, sizeof(temp));
+		return basename(temp);
+	#endif
+}
+
+static char *string_dirname(const char *filename)
+{
+	#if defined __ANDROID__
+		return dirname(filename);
+	#elif defined CONFIG_BASE_PS3
+		char str[1024] {0};
+		dirName(filename, str);
+		return str;
+	#else
+		// standard version that modifies input
+		char temp[strlen(filename)+1];
+		memcpy(temp, filename, sizeof(temp));
+		return dirname(temp);
+	#endif
 }
 
 #ifdef __cplusplus

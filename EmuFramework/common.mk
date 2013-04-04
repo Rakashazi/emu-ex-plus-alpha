@@ -1,10 +1,13 @@
-ifneq ($(ENV), android)
- embedImagine := 1
+ifeq ($(ENV), android)
+ staticLibImagine := 1
+endif
+ifeq ($(ENV), ios)
+ staticLibImagine := 1
 endif
 
 emuFrameworkPath := $(currPath)
 
-ifdef embedImagine
+ifndef staticLibImagine
 
 ifneq ($(ENV), ps3)
 configDefs += CONFIG_INPUT_ICADE
@@ -37,8 +40,8 @@ configIncNext := <config.h>
 imagineLibPath := $(IMAGINE_PATH)/lib/$(buildName)
 imagineStaticLib := $(IMAGINE_PATH)/lib/$(buildName)/libimagine.a
 CPPFLAGS += -I$(IMAGINE_PATH)/build/$(buildName)/gen
-CPPFLAGS += $(shell PKG_CONFIG_PATH=$(imagineLibPath) PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(IMAGINE_PATH)/src pkg-config imagine --cflags --static --define-variable=prefix=$(system_externalSysroot))
-LDLIBS += -L$(imagineLibPath) $(shell PKG_CONFIG_PATH=$(imagineLibPath) PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config imagine --libs --static --define-variable=prefix=$(system_externalSysroot))
+CPPFLAGS += $(shell PKG_CONFIG_PATH=$(imagineLibPath):$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(IMAGINE_PATH)/src pkg-config imagine --cflags --static --define-variable=prefix=$(system_externalSysroot))
+LDLIBS += -L$(imagineLibPath) $(shell PKG_CONFIG_PATH=$(imagineLibPath):$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config imagine --libs --static --define-variable=prefix=$(system_externalSysroot))
 
 endif
 
@@ -48,7 +51,7 @@ VPATH += $(emuFrameworkPath)/src
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
-TouchConfigView.cc EmuOptions.cc OptionView.cc EmuView.cc \
+EmuOptions.cc OptionView.cc EmuView.cc \
 ConfigFile.cc InputManagerView.cc
 
 ifdef emuFramework_cheats
@@ -56,5 +59,5 @@ ifdef emuFramework_cheats
 endif
 
 ifneq ($(ENV), ps3)
-SRC += VController.cc
+SRC += TouchConfigView.cc VController.cc
 endif

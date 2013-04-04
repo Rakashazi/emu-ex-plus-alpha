@@ -13,6 +13,6 @@ else
  SRC += base/android/main.cc
 endif
 
-SRC += base/android/privateApi/libhardware.c
+SRC += base/android/privateApi/libhardware.c util/string/generic.cc
 
 endif

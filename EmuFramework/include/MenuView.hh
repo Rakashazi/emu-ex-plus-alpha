@@ -63,6 +63,7 @@ public:
 	void init(bool highlightFirst);
 };
 
+#ifdef INPUT_SUPPORTS_POINTER
 struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
 {
 	constexpr InputPlayerMapMenuItem() { }
@@ -80,6 +81,7 @@ struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
 		vController.updateMapping(*player);
 	}
 };
+#endif
 
 class MenuView : public BaseMenuView
 {
@@ -134,7 +136,7 @@ public:
 	constexpr MenuView(): BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION) { }
 
 	static const uint STANDARD_ITEMS = 15;
-	static const uint MAX_SYSTEM_ITEMS = 2;
+	static const uint MAX_SYSTEM_ITEMS = 3;
 
 	void onShow();
 	void loadFileBrowserItems(MenuItem *item[], uint &items);

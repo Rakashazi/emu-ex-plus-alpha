@@ -1,1 +1,1 @@
-pkgName := minizip
+pkgName := zlib

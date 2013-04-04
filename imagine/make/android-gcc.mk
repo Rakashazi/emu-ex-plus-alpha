@@ -1,9 +1,22 @@
 ENV := android
 CROSS_COMPILE := 1
+configDefs += CONFIG_MACHINE_$(MACHINE)
 
-android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_minSDK)/arch-$(android_ndkArch)
-
+android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
 android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
+android_hasSDK14 := $(shell expr $(android_minSDK) \>= 14)
+
+ifeq ($(android_hasSDK14), 1)
+ android_ndkSDK := 14
+else ifeq ($(android_hasSDK9), 1)
+ android_ndkSDK := 9
+else ifeq ($(android_hasSDK5), 1)
+ android_ndkSDK := 5
+else
+ android_ndkSDK := 4
+endif
+
+android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
 
 ifndef targetDir
  ifdef O_RELEASE
@@ -19,6 +32,7 @@ else
  android_soName := imagine
 endif
 
+compiler_noSanitizeAddress := 1
 ifeq ($(config_compiler),clang)
  # TODO: not 100% working yet
  ifeq ($(origin CC), default)
@@ -35,6 +49,11 @@ endif
 
 ifeq ($(android_stdcxx), gnu)
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/libgnustl_static.a
+ ifeq ($(ARCH), arm)
+  ifeq ($(android_armState),-mthumb)
+   android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/thumb/libgnustl_static.a
+  endif	
+ endif
 else
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
 endif

@@ -8,9 +8,20 @@ ifdef O_LTO
 endif
 
 gccVersion := $(shell $(CC) -dumpversion)
+gcc_isAtLeastVer4_8 := $(shell expr $(gccVersion) \>= 4.8)
+
+ifndef RELEASE
+ ifndef compiler_noSanitizeAddress
+  ifeq ($(gcc_isAtLeastVer4_8), 1)
+   COMPILE_FLAGS += -fsanitize=address -fno-omit-frame-pointer
+   ifndef O_LTO
+    LDFLAGS += -fsanitize=address
+   endif
+  endif
+ endif
+endif
 
 #WHOLE_PROGRAM_CFLAGS += -fipa-pta
-BASE_CXXFLAGS += -std=gnu++0x
 NORMAL_WARNINGS_CFLAGS += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing)
 #NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn
 
@@ -30,4 +41,7 @@ ifdef cxxExceptions
 endif
 
 HIGH_OPTIMIZE_CFLAGS_MISC += -funsafe-loop-optimizations -Wunsafe-loop-optimizations
+ifndef gcc_noGraphite
+ HIGH_OPTIMIZE_CFLAGS_MISC += -floop-interchange -floop-strip-mine -floop-block
+endif
 HIGH_OPTIMIZE_CFLAGS := -O2 $(HIGH_OPTIMIZE_CFLAGS_MISC)

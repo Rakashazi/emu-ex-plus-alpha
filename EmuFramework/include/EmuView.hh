@@ -13,6 +13,7 @@ public:
 	Gfx::Sprite disp;
 	uchar *pixBuff = nullptr;
 	Pixmap vidPix {PixelFormatRGB565};
+	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 	Gfx::BufferImage vidImg;
 	VideoImageOverlay vidImgOverlay;
 
@@ -38,7 +39,7 @@ public:
 
 	void updateAndDrawContent()
 	{
-		vidImg.write(vidPix);
+		vidImg.write(vidPix, vidPixAlign);
 		drawContent<1>();
 	}
 

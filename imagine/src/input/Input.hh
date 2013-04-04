@@ -261,7 +261,7 @@ namespace Wiimote
 	NUN_STICK_LEFT = 14, NUN_STICK_RIGHT = 15, NUN_STICK_UP = 16, NUN_STICK_DOWN = 17
 	;
 
-	static const uint COUNT = 14;
+	static const uint COUNT = 18;
 }
 
 namespace WiiCC
@@ -312,46 +312,9 @@ namespace Zeemote
 	static const uint COUNT = 9;
 }
 
-namespace Ps3
-{
-	static const uint CROSS = 1,
-	CIRCLE = 2,
-	SQUARE = 3,
-	TRIANGLE = 4,
-	L1 = 5,
-	L2 = 6,
-	L3 = 7,
-	R1 = 8,
-	R2 = 9,
-	R3 = 10,
-	SELECT = 11,
-	START = 12,
-	UP = 13, RIGHT = 14, DOWN = 15, LEFT = 16
-	;
-
-	static const uint COUNT = 17;
-}
-
 namespace ICade
 {
-#ifdef CONFIG_BASE_IOS
-	// dedicated mapping
-	static const uint UP = 1,
-	RIGHT = 2,
-	DOWN = 3,
-	LEFT = 4,
-	A = 5,
-	B = 6,
-	C = 7,
-	D = 8,
-	E = 9,
-	F = 10,
-	G = 11,
-	H = 12
-	;
-
-	static const uint COUNT = 13;
-#else
+#if defined INPUT_SUPPORTS_KEYBOARD
 	// mapping overlaps system/keyboard so the same "device" can send iCade
 	// events as well as other key events that don't conflict with its mapping.
 	// Here we just use all the On-States since they won't be sent as regular
@@ -371,6 +334,23 @@ namespace ICade
 		;
 
 	static const uint COUNT = Keycode::COUNT;
+#else
+	// dedicated mapping
+	static const uint UP = 1,
+	RIGHT = 2,
+	DOWN = 3,
+	LEFT = 4,
+	A = 5,
+	B = 6,
+	C = 7,
+	D = 8,
+	E = 9,
+	F = 10,
+	G = 11,
+	H = 12
+	;
+
+	static const uint COUNT = 13;
 #endif
 }
 
@@ -382,8 +362,6 @@ static bool isVolumeKey(Key event)
 		return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
 	#endif
 }
-
-const char *buttonName(uint map, Key b) ATTRS(const);
 
 struct Device
 {
@@ -403,7 +381,9 @@ public:
 
 	static constexpr uint SUBTYPE_NONE = 0,
 			SUBTYPE_XPERIA_PLAY = 1,
-			SUBTYPE_PS3_CONTROLLER = 2
+			SUBTYPE_PS3_CONTROLLER = 2,
+			SUBTYPE_MOTO_DROID_KEYBOARD = 3,
+			SUBTYPE_OUYA_CONTROLLER = 4
 			;
 
 	static constexpr uint
@@ -457,6 +437,8 @@ public:
 		void setICadeMode(bool on);
 		bool iCadeMode() const { return iCadeMode_; }
 	#endif
+
+	const char *keyName(Key b) const;
 
 	// TODO
 	//bool isDisconnectable() { return 0; }
@@ -562,7 +544,7 @@ public:
 			case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
 			#endif
 			#ifdef CONFIG_BASE_PS3
-			case MAP_PS3PAD: return Input::Ps3::COUNT;
+			case MAP_PS3PAD: return Input::PS3::COUNT;
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
 			case MAP_ICADE: return Input::ICade::COUNT;
@@ -573,8 +555,8 @@ public:
 
 	constexpr Event() { }
 
-	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, const Device *device)
-		: devId(devId), map(map), button(button), state(state), x(x), y(y), device(device) { }
+	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, bool pointerIsTouch, const Device *device)
+		: devId(devId), map(map), button(button), state(state), x(x), y(y), device(device), pointerIsTouch(pointerIsTouch) { }
 
 	constexpr Event(uint devId, uint map, Key button, uint state, uint metaState, const Device *device)
 		: devId(devId), map(map), button(button), state(state), metaState(metaState), device(device) { }
@@ -585,6 +567,7 @@ public:
 	int x = 0, y = 0;
 	uint metaState = 0;
 	const Device *device = nullptr;
+	bool pointerIsTouch = 0;
 
 	bool stateIsPointer() const
 	{
@@ -601,22 +584,27 @@ public:
 		return Input::supportsRelativePointer && state == MOVED_RELATIVE;
 	}
 
-	bool isGamepad() const
+	bool isTouch() const
 	{
-		switch(map)
-		{
-			#ifdef CONFIG_BLUETOOTH
-			case MAP_WIIMOTE:
-			case MAP_WII_CC:
-			case MAP_ICONTROLPAD:
-			case MAP_ZEEMOTE: return 1;
-			#endif
-			#ifdef CONFIG_INPUT_ICADE
-			case MAP_ICADE: return 1;
-			#endif
-			default : return 0;
-		}
+		return Input::SUPPORTS_POINTER && pointerIsTouch;
 	}
+
+//	bool isGamepad() const
+//	{
+//		switch(map)
+//		{
+//			#ifdef CONFIG_BLUETOOTH
+//			case MAP_WIIMOTE:
+//			case MAP_WII_CC:
+//			case MAP_ICONTROLPAD:
+//			case MAP_ZEEMOTE: return 1;
+//			#endif
+//			#ifdef CONFIG_INPUT_ICADE
+//			case MAP_ICADE: return 1;
+//			#endif
+//			default : return 0;
+//		}
+//	}
 
 	bool isKey() const
 	{

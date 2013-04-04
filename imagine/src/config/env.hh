@@ -10,22 +10,21 @@ namespace Config
 enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, PS3 };
 static const uint ENV =
 #if defined(CONFIG_BASE_ANDROID)
-	ANDROID_
+	ANDROID_;
 #elif defined(CONFIG_BASE_IOS)
-	IOS
+	IOS;
 #elif defined(CONFIG_BASE_MACOSX)
-	MACOSX
+	MACOSX;
 #elif defined(CONFIG_ENV_WEBOS)
-	WEBOS
+	WEBOS;
 #elif defined(CONFIG_ENV_LINUX)
-	LINUX
+	LINUX;
 #elif defined(CONFIG_BASE_PS3)
-	PS3
+	PS3;
 #else
 	#warning "Unknown ENV type"
-	UNKNOWN
+	UNKNOWN;
 #endif
-;
 
 static const bool envIsAndroid = ENV == ANDROID_;
 static const bool envIsIOS = ENV == IOS;
@@ -36,19 +35,18 @@ static const bool envIsPS3 = ENV == PS3;
 
 static const bool envIsWebOS3 =
 #if CONFIG_ENV_WEBOS_OS >= 3
-	1
+	1;
 #else
-	0
+	0;
 #endif
-;
+static const bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
 
 static const uint ENV_ANDROID_MINSDK =
 #if CONFIG_ENV_ANDROID_MINSDK
-		CONFIG_ENV_ANDROID_MINSDK
+		CONFIG_ENV_ANDROID_MINSDK;
 #else
-		0
+		0;
 #endif
-;
 
 #if (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK < 9)
 	static const bool UNICODE_CHARS = 0;

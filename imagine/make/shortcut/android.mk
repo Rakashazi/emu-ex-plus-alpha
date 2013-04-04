@@ -1,5 +1,14 @@
 include $(IMAGINE_PATH)/make/android-metadata.mk
 
+ifdef android_ouyaBuild
+ android_minSDK := 16
+ android_noArmv6 := 1
+ android_noX86 := 1
+ targetPrefix := android-ouya
+else
+ targetPrefix := android
+endif
+
 ifndef android_minSDK 
  android_minSDK := 9
 endif
@@ -15,17 +24,26 @@ ifeq ($(android_minSDK), 5)
  android_noX86=1
 endif
 
+android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
+android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
+
+ifeq ($(android_hasSDK9), 1)
+ android_baseModuleSDK := 9
+else ifeq ($(android_hasSDK5), 1)
+ android_baseModuleSDK := 5
+else
+ android_baseModuleSDK := 4
+endif
+
 ifndef android_targetSDK
  android_targetSDK := $(android_minSDK)
  ifeq ($(android_minSDK), 5)
   android_targetSDK := 8
  endif
- ifeq ($(android_minSDK), 9)
+ ifeq ($(android_hasSDK9), 1)
   android_targetSDK := 16
  endif
 endif
-
-android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
 
 ifeq ($(android_hasSDK9), 1)
  android_soName := main
@@ -33,7 +51,7 @@ else
  android_soName := imagine
 endif
 
-android_targetPath := target/android-$(android_minSDK)
+android_targetPath := target/$(targetPrefix)-$(android_minSDK)
 
 # metadata
 
@@ -54,7 +72,7 @@ $(android_antProperties) :
 	@mkdir -p $(@D)
 	ln -s $(ANDROID_ANT_PROPERTIES) $@
 
-endif 
+endif
 
 ifneq ($(wildcard res/android/assets-$(android_minSDK)),)
 android_assetsSrcPath := res/android/assets-$(android_minSDK)
@@ -105,11 +123,19 @@ ifeq ($(android_hasSDK9), 1)
  android_drawableIconPaths += $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath)
 endif
 
+ifdef android_ouyaBuild
+ android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png
+ $(android_drawableXhdpiOuyaIconPath) :
+	@mkdir -p $(@D)
+	ln -s ../../../../res/icons/ouya_icon.png $@
+ android_drawableIconPaths := $(android_drawableXhdpiIconPath) $(android_drawableXhdpiOuyaIconPath)
+endif
+
 android_imagineJavaSrcPath := $(android_targetPath)/src/com/imagine
 
 $(android_imagineJavaSrcPath) :
 	@mkdir -p $(@D)
-	ln -s $(IMAGINE_PATH)/src/base/android/java/sdk-$(android_minSDK)/imagine $@
+	ln -s $(IMAGINE_PATH)/src/base/android/java/sdk-$(android_baseModuleSDK)/imagine $@
 
 android_stringsXml := $(android_targetPath)/res/values/strings.xml
 
@@ -137,12 +163,12 @@ ifndef android_noArmv6
 
 android_armv6SOPath := $(android_targetPath)/lib-debug/armeabi/lib$(android_soName).so
 android-armv6 :
-	$(MAKE) -j3 -f android-$(android_minSDK)-armv6.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-armv6.mk
 $(android_armv6SOPath) : android-armv6
 
 android_armv6ReleaseSOPath := $(android_targetPath)/lib-release/armeabi/lib$(android_soName).so
 android-armv6-release :
-	$(MAKE) -j3 -f android-$(android_minSDK)-armv6-release.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-armv6-release.mk
 $(android_armv6ReleaseSOPath) : android-armv6-release
 
 endif
@@ -151,12 +177,12 @@ ifndef android_noArmv7
 
 android_armv7SOPath := $(android_targetPath)/libs-debug/armeabi-v7a/lib$(android_soName).so
 android-armv7 :
-	$(MAKE) -j3 -f android-$(android_minSDK)-armv7.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-armv7.mk
 $(android_armv7SOPath) : android-armv7
 
 android_armv7ReleaseSOPath := $(android_targetPath)/libs-release/armeabi-v7a/lib$(android_soName).so
 android-armv7-release :
-	$(MAKE) -j3 -f android-$(android_minSDK)-armv7-release.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-armv7-release.mk
 $(android_armv7ReleaseSOPath) : android-armv7-release
 
 endif
@@ -165,12 +191,12 @@ ifndef android_noX86
 
 android_x86SOPath := $(android_targetPath)/libs-debug/x86/lib$(android_soName).so
 android-x86 :
-	$(MAKE) -j3 -f android-$(android_minSDK)-x86.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-x86.mk
 $(android_x86SOPath) : android-x86
 
 android_x86ReleaseSOPath := $(android_targetPath)/libs-release/x86/lib$(android_soName).so
 android-x86-release :
-	$(MAKE) -j3 -f android-$(android_minSDK)-x86-release.mk
+	$(MAKE) -j3 -f $(targetPrefix)-$(android_minSDK)-x86-release.mk
 $(android_x86ReleaseSOPath) : android-x86-release
 
 endif
@@ -224,7 +250,7 @@ android-release-check :
 
 android-release-clean:
 	rm -f $(android_armv6ReleaseSOPath) $(android_armv7ReleaseSOPath) $(android_x86ReleaseSOPath)
-	rm -rf build/android-$(android_minSDK)-armv6-release build/android-$(android_minSDK)-armv7-release build/android-$(android_minSDK)-x86-release
+	rm -rf build/$(targetPrefix)-$(android_minSDK)-armv6-release build/$(targetPrefix)-$(android_minSDK)-armv7-release build/$(targetPrefix)-$(android_minSDK)-x86-release
 
 .PHONY: android-metadata  \
 android-armv6 android-armv7 android-armv6-release android-armv7-release android-release \

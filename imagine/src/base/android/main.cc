@@ -217,6 +217,9 @@ static void JNICALL nativeInit(JNIEnv*  env, jobject thiz, jint w, jint h)
 	jHandler = env->NewGlobalRef(env->GetStaticObjectField(jGLViewCls, handlerID));
 	doOrExit(logger_init());
 	initialScreenSizeSetup(w, h);
+	#ifdef CONFIG_INPUT
+	doOrExit(Input::init());
+	#endif
 	engineInit();
 	logMsg("done init");
 	//logMsg("doc files path: %s", filesDir);

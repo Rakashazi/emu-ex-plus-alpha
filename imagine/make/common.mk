@@ -1,9 +1,3 @@
-ifneq ($(ENV), android) # embedded build
- CPPFLAGS += -DIMAGINE_SRC
-else
- configDefs += IMAGINE_SRC
-endif
-
 ifndef V
  PRINT_CMD := @
 endif

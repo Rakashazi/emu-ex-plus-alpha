@@ -9,7 +9,7 @@ else
 ifeq ($(ENV), linux)
  include $(imagineSrcDir)/audio/alsa/build.mk
 else ifeq ($(ENV), android)
- ifeq ($(android_minSDK), 9)
+ ifeq ($(android_hasSDK9), 1)
   include $(imagineSrcDir)/audio/opensl/build.mk
  else
   include $(imagineSrcDir)/audio/android/build.mk

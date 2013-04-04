@@ -1,0 +1,912 @@
+/* src/config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
+/* Should we enable AROS support. */
+#undef AMIGA_AROS
+
+/* Should we enable M68K AmigaOS support. */
+#undef AMIGA_M68K
+
+/* Should we enable Amiga Morphos support. */
+#undef AMIGA_MORPHOS
+
+/* Should we enable AmigaOS4 support. */
+#undef AMIGA_OS4
+
+/* Enable alternate OS4 includes. */
+#undef AMIGA_OS4_ALT
+
+/* Should we enable Amigaos support. */
+#undef AMIGA_SUPPORT
+
+/* Enable support for BSD style joysticks. */
+#undef BSD_JOYSTICK
+
+/* Enable cegcc support. */
+#undef CEGCC_COMPILE
+
+/* NLS datadirname. */
+#undef DATADIRNAME
+
+/* Enable debugging code */
+#undef DEBUG
+
+/* Use debugging of the zfile */
+#undef DEBUG_ZFILE
+
+/* Enable DINGOO compilation */
+#undef DINGOO
+
+/* Enable native DINGOO compilation */
+#undef DINGOO_NATIVE
+
+/* Enable DINGUX compilation */
+#undef DINGUX
+
+/* Enable SDL DINGUX compilation */
+#undef DINGUX_SDL
+
+/* Can we use the dos WATTCP library? */
+#undef DOS_TCP
+
+/* Can we use the dos PCAP library? */
+#undef DOS_TFE
+
+/* Is DWORD defined as long or int in the Windows header files? */
+#undef DWORD_IS_LONG
+
+/* Define if NLS support is enabled. */
+#undef ENABLE_NLS
+
+/* Enable support for the TextField widget. */
+#undef ENABLE_TEXTFIELD
+
+/* Use the memmap feature. */
+#undef FEATURE_CPUMEMHISTORY
+
+/* Enable GP2X compilation */
+#undef GP2X
+
+/* Enable SDL GP2X compilation */
+#undef GP2X_SDL
+
+/* Enable emulation for digital joysticks. */
+#undef HAS_DIGITAL_JOYSTICK
+
+/* Enable Mac IOHIDManager Joystick driver. */
+#undef HAS_HIDMGR
+
+/* Enable joystick emulation. */
+#undef HAS_JOYSTICK
+
+/* Support 64bit integer for Win32 performance counter */
+#undef HAS_LONGLONG_INTEGER
+
+/* Is only one canvas supported? */
+#undef HAS_SINGLE_CANVAS
+
+/* Enable internationalization support */
+#undef HAS_TRANSLATION
+
+/* Do we have UnlockResource()? */
+#undef HAS_UNLOCKRESOURCE
+
+/* Enable emulation for USB joysticks. */
+#undef HAS_USB_JOYSTICK
+
+/* Define to 1 if you have the `accept' function. */
+#undef HAVE_ACCEPT
+
+/* Define to 1 if you have the <allegro.h> header file. */
+#undef HAVE_ALLEGRO_H
+
+/* Define to 1 if you have the <alloca.h> header file. */
+#undef HAVE_ALLOCA_H
+
+/* Define to 1 if you have the <alsa/asoundlib.h> header file. */
+#undef HAVE_ALSA_ASOUNDLIB_H
+
+/* Define to 1 if you have the <aros/_timeval.h> header file. */
+#undef HAVE_AROS__TIMEVAL_H
+
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#undef HAVE_ARPA_INET_H
+
+/* Define to 1 if you have the <artsc.h> header file. */
+#undef HAVE_ARTSC_H
+
+/* Dingoo has atexit */
+#undef HAVE_ATEXIT
+
+/* Enable AudioUnit support. */
+#undef HAVE_AUDIO_UNIT
+
+/* Define to 1 if you have the `bind' function. */
+#undef HAVE_BIND
+
+/* Define to 1 if you have the <byteorder.h> header file. */
+#undef HAVE_BYTEORDER_H
+
+/* Enable Cairo rendering support */
+#undef HAVE_CAIRO
+
+/* Support for Catweasel MKIII. */
+#undef HAVE_CATWEASELMKIII
+
+/* Define to 1 if you have the <commctrl.h> header file. */
+#undef HAVE_COMMCTRL_H
+
+/* Define to 1 if you have the `connect' function. */
+#undef HAVE_CONNECT
+
+/* Define to 1 if you have the <cwsid.h> header file. */
+#undef HAVE_CWSID_H
+
+/* Support for DirectX9. */
+#undef HAVE_D3D9_H
+
+/* Define to 1 if you have the `dcgettext' function. */
+#undef HAVE_DCGETTEXT
+
+/* Define to 1 if you have the declaration of `sys_siglist', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SYS_SIGLIST
+
+/* Define to 1 if you have the <devices/ahi.h> header file. */
+#undef HAVE_DEVICES_AHI_H
+
+/* Use DirectInput joystick driver */
+#undef HAVE_DINPUT
+
+/* dinput.lib or libdinput.a are present */
+#undef HAVE_DINPUT_LIB
+
+/* Define to 1 if you have the <direct.h> header file. */
+#undef HAVE_DIRECT_H
+
+/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_DIRENT_H
+
+/* Define to 1 if you have the `dirname' function. */
+#undef HAVE_DIRNAME
+
+/* Define to 1 if you have the <dir.h> header file. */
+#undef HAVE_DIR_H
+
+/* Define to 1 if you have the <dmedia/audio.h> header file. */
+#undef HAVE_DMEDIA_AUDIO_H
+
+/* Can we use the dos NET library? */
+#undef HAVE_DOS_LIBNET
+
+/* dsound.lib or libdsound.a are present */
+#undef HAVE_DSOUND_LIB
+
+/* Support for dynamic library loading. */
+#undef HAVE_DYNLIB_SUPPORT
+
+/* Have editline library */
+#undef HAVE_EDITLINE
+
+/* Define to 1 if you have the <errno.h> header file. */
+#undef HAVE_ERRNO_H
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Have FFMPEG av* libs available */
+#undef HAVE_FFMPEG
+
+/* FFMPEG uses subdirs for headers */
+#undef HAVE_FFMPEG_HEADER_SUBDIRS
+
+/* Have FFMPEG swscale lib available */
+#undef HAVE_FFMPEG_SWSCALE
+
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
+
+/* Enable Fullscreen support. */
+#undef HAVE_FULLSCREEN
+
+/* Define to 1 if you have the `getcwd' function. */
+#undef HAVE_GETCWD
+
+/* Define to 1 if you have the `getdtablesize' function. */
+#undef HAVE_GETDTABLESIZE
+
+/* Define to 1 if you have the `gethostbyname' function. */
+#undef HAVE_GETHOSTBYNAME
+
+/* Define if gethostbyname2 can be used */
+#undef HAVE_GETHOSTBYNAME2
+
+/* Define if getipnodebyname can be used */
+#undef HAVE_GETIPNODEBYNAME
+
+/* Define to 1 if you have the `getpwuid' function. */
+#undef HAVE_GETPWUID
+
+/* Define to 1 if you have the `getrlimit' function. */
+#undef HAVE_GETRLIMIT
+
+/* Define if gettext if available. */
+#undef HAVE_GETTEXT
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#undef HAVE_GETTIMEOFDAY
+
+/* Can we use the GIF or UNGIF library? */
+#undef HAVE_GIF
+
+/* Is the GUID lib of DX SDK present? */
+#undef HAVE_GUIDLIB
+
+/* Support for HardSID. */
+#undef HAVE_HARDSID
+
+/* Define to 1 if you have the `htonl' function. */
+#undef HAVE_HTONL
+
+/* Define to 1 if you have the `htons' function. */
+#undef HAVE_HTONS
+
+/* Enable arbitrary window scaling */
+#undef HAVE_HWSCALE
+
+/* Define to 1 if you have the <hw/inout.h> header file. */
+#undef HAVE_HW_INOUT_H
+
+/* Define to 1 if you have the `i386_set_ioperm' function. */
+#undef HAVE_I386_SET_IOPERM
+
+/* Define to 1 if you have the <ieee1284.h> header file. */
+#undef HAVE_IEEE1284_H
+
+/* Define to 1 if you have the `in8' function. */
+#undef HAVE_IN8
+
+/* Define to 1 if you have the `inb_p' function. */
+#undef HAVE_INB_P
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define if the in_addr_t type is present. */
+#undef HAVE_IN_ADDR_T
+
+/* Define to 1 if you have the `ioperm' function. */
+#undef HAVE_IOPERM
+
+/* Define to 1 if you have the <io.h> header file. */
+#undef HAVE_IO_H
+
+/* Define if ipv6 can be used */
+#undef HAVE_IPV6
+
+/* Can we use the JPEG library? */
+#undef HAVE_JPEG
+
+/* Define to 1 if you have the `amd64' library (-lamd64). */
+#undef HAVE_LIBAMD64
+
+/* Define to 1 if you have the `bsd' library (-lbsd). */
+#undef HAVE_LIBBSD
+
+/* Define to 1 if you have the <libgen.h> header file. */
+#undef HAVE_LIBGEN_H
+
+/* Define to 1 if you have the `ieee1284' library (-lieee1284). */
+#undef HAVE_LIBIEEE1284
+
+/* use libintl for NLS. */
+#undef HAVE_LIBINTL_H
+
+/* Define to 1 if you have the `m' library (-lm). */
+#undef HAVE_LIBM
+
+/* Define to 1 if you have the `ossaudio' library (-lossaudio). */
+#undef HAVE_LIBOSSAUDIO
+
+/* Define to 1 if you have the <libusbhid.h> header file. */
+#undef HAVE_LIBUSBHID_H
+
+/* Define to 1 if you have the <libusb.h> header file. */
+#undef HAVE_LIBUSB_H
+
+/* Is libXpm available? */
+#undef HAVE_LIBXPM
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the <linux/soundcard.h> header file. */
+#undef HAVE_LINUX_SOUNDCARD_H
+
+/* Define to 1 if you have the `listen' function. */
+#undef HAVE_LISTEN
+
+/* Define to 1 if you have the <machine/cpufunc.h> header file. */
+#undef HAVE_MACHINE_CPUFUNC_H
+
+/* Define to 1 if you have the <machine/joystick.h> header file. */
+#undef HAVE_MACHINE_JOYSTICK_H
+
+/* Define to 1 if you have the <machine/pio.h> header file. */
+#undef HAVE_MACHINE_PIO_H
+
+/* Define to 1 if you have the <machine/soundcard.h> header file. */
+#undef HAVE_MACHINE_SOUNDCARD_H
+
+/* Define to 1 if you have the <machine/sysarch.h> header file. */
+#undef HAVE_MACHINE_SYSARCH_H
+
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
+
+/* Define to 1 if you have the `memmove' function. */
+#undef HAVE_MEMMOVE
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <midasdll.h> header file. */
+#undef HAVE_MIDASDLL_H
+
+/* Enable MIDI emulation. */
+#undef HAVE_MIDI
+
+/* Define to 1 if you have the `mkstemp' function. */
+#undef HAVE_MKSTEMP
+
+/* Define to 1 if you have the `mmap_device_io' function. */
+#undef HAVE_MMAP_DEVICE_IO
+
+/* Enable 1351 mouse support */
+#undef HAVE_MOUSE
+
+/* Use nanosleep instead of usleep */
+#undef HAVE_NANOSLEEP
+
+/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
+#undef HAVE_NDIR_H
+
+/* Define to 1 if you have the <netdb.h> header file. */
+#undef HAVE_NETDB_H
+
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#undef HAVE_NETINET_IN_H
+
+/* Enable netplay support */
+#undef HAVE_NETWORK
+
+/* Support for OpenCBM (former CBM4Linux). */
+#undef HAVE_OPENCBM
+
+/* Enable openGL synchronization */
+#undef HAVE_OPENGL_SYNC
+
+/* Define to 1 if you have the `out8' function. */
+#undef HAVE_OUT8
+
+/* Define to 1 if you have the `outb_p' function. */
+#undef HAVE_OUTB_P
+
+/* Enable support for Pango */
+#undef HAVE_PANGO
+
+/* Support for ParSID. */
+#undef HAVE_PARSID
+
+/* A libpcap version with pcap_inject is available */
+#undef HAVE_PCAP_INJECT
+
+/* A libpcap version with pcap_sendpacket is available */
+#undef HAVE_PCAP_SENDPACKET
+
+/* Can we use the PNG library? */
+#undef HAVE_PNG
+
+/* Define to 1 if you have the <process.h> header file. */
+#undef HAVE_PROCESS_H
+
+/* Define to 1 if you have the <proto/cybergraphics.h> header file. */
+#undef HAVE_PROTO_CYBERGRAPHICS_H
+
+/* Define to 1 if you have the <proto/openpci.h> header file. */
+#undef HAVE_PROTO_OPENPCI_H
+
+/* Define to 1 if you have the <proto/Picasso96API.h> header file. */
+#undef HAVE_PROTO_PICASSO96API_H
+
+/* Define to 1 if you have the <proto/Picasso96.h> header file. */
+#undef HAVE_PROTO_PICASSO96_H
+
+/* Define to 1 if you have the <pulse/simple.h> header file. */
+#undef HAVE_PULSE_SIMPLE_H
+
+/* Enable QuickTime support. */
+#undef HAVE_QUICKTIME
+
+/* Support for block device disk image access. */
+#undef HAVE_RAWDRIVE
+
+/* Are we using the readline library replacement? */
+#undef HAVE_READLINE
+
+/* Define to 1 if you have the `recv' function. */
+#undef HAVE_RECV
+
+/* Define to 1 if you have the <regex.h> header file. */
+#undef HAVE_REGEX_H
+
+/* This version provides ReSID support. */
+#undef HAVE_RESID
+
+/* This version provides ReSID-DTV support. */
+#undef HAVE_RESID_DTV
+
+/* This version provides ReSID_FP support. */
+#undef HAVE_RESID_FP
+
+/* Define to 1 if you have the `rewinddir' function. */
+#undef HAVE_REWINDDIR
+
+/* Does the `readline' library support `rl_readline_name'? */
+#undef HAVE_RLNAME
+
+/* Enable RS232 emulation. */
+#undef HAVE_RS232
+
+/* Enable SDLmain replacement */
+#undef HAVE_SDLMAIN
+
+/* Define to 1 if you have the <SDL_audio.h> header file. */
+#undef HAVE_SDL_AUDIO_H
+
+/* Define to 1 if you have the <SDL.h> header file. */
+#undef HAVE_SDL_H
+
+/* Define to 1 if you have the <SDL_main.h> header file. */
+#undef HAVE_SDL_MAIN_H
+
+/* Define to 1 if you have the `SDL_NumJoysticks' function. */
+#undef HAVE_SDL_NUMJOYSTICKS
+
+/* Define to 1 if you have the <SDL/SDL_audio.h> header file. */
+#undef HAVE_SDL_SDL_AUDIO_H
+
+/* Define to 1 if you have the <SDL/SDL.h> header file. */
+#undef HAVE_SDL_SDL_H
+
+/* Define to 1 if you have the <SDL/SDL_main.h> header file. */
+#undef HAVE_SDL_SDL_MAIN_H
+
+/* Define to 1 if you have the `send' function. */
+#undef HAVE_SEND
+
+/* Define to 1 if you have the <shlobj.h> header file. */
+#undef HAVE_SHLOBJ_H
+
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
+
+/* Use more accurate buffer fill reporting */
+#undef HAVE_SND_PCM_AVAIL
+
+/* Define to 1 if you have the `socket' function. */
+#undef HAVE_SOCKET
+
+/* Define to 1 if you have the <socket.h> header file. */
+#undef HAVE_SOCKET_H
+
+/* Define to 1 if the system has the type `socklen_t'. */
+#undef HAVE_SOCKLEN_T
+
+/* Define to 1 if you have the <soundcard.h> header file. */
+#undef HAVE_SOUNDCARD_H
+
+/* Static linking for lame libs */
+#undef HAVE_STATIC_LAME
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* We are using stdlib.h */
+#undef HAVE_STDLIB
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
+/* Define to 1 if you have the `strdup' function. */
+#undef HAVE_STRDUP
+
+/* Define to 1 if you have the `strerror' function. */
+#undef HAVE_STRERROR
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
+
+/* Define to 1 if you have the `swab' function. */
+#undef HAVE_SWAB
+
+/* Define to 1 if you have the <sys/audioio.h> header file. */
+#undef HAVE_SYS_AUDIOIO_H
+
+/* Define to 1 if you have the <sys/audio.h> header file. */
+#undef HAVE_SYS_AUDIO_H
+
+/* Define to 1 if you have the <sys/dirent.h> header file. */
+#undef HAVE_SYS_DIRENT_H
+
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_DIR_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/io.h> header file. */
+#undef HAVE_SYS_IO_H
+
+/* Define to 1 if you have the <sys/joystick.h> header file. */
+#undef HAVE_SYS_JOYSTICK_H
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_NDIR_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
+/* Define to 1 if you have the <sys/soundcard.h> header file. */
+#undef HAVE_SYS_SOUNDCARD_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Support for The Final Ethernet */
+#undef HAVE_TFE
+
+/* Define to 1 if you have the <UMS/UMSAudioDevice.h> header file. */
+#undef HAVE_UMS_UMSAUDIODEVICE_H
+
+/* Define to 1 if you have the <UMS/UMSBAUDDevice.h> header file. */
+#undef HAVE_UMS_UMSBAUDDEVICE_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <usbhid.h> header file. */
+#undef HAVE_USBHID_H
+
+/* Define to 1 if you have the <usb.h> header file. */
+#undef HAVE_USB_H
+
+/* Define to 1 if you have the `usleep' function. */
+#undef HAVE_USLEEP
+
+/* Define to 1 if the system has the type `u_short'. */
+#undef HAVE_U_SHORT
+
+/* Define to 1 if you have the `vfork' function. */
+#undef HAVE_VFORK
+
+/* Define to 1 if you have the <vfork.h> header file. */
+#undef HAVE_VFORK_H
+
+/* Enable VTE support */
+#undef HAVE_VTE
+
+/* Define to 1 if you have the <wchar.h> header file. */
+#undef HAVE_WCHAR_H
+
+/* Define to 1 if you have the <winioctl.h> header file. */
+#undef HAVE_WINIOCTL_H
+
+/* Define to 1 if `fork' works. */
+#undef HAVE_WORKING_FORK
+
+/* Define to 1 if `vfork' works. */
+#undef HAVE_WORKING_VFORK
+
+/* Use new XShm header */
+#undef HAVE_X11_EXTENSIONS_SHMPROTO_H
+
+/* Define to 1 if you have the <X11/Sunkeysym.h> header file. */
+#undef HAVE_X11_SUNKEYSYM_H
+
+/* Define to 1 if you have the <X11/xpm.h> header file. */
+#undef HAVE_X11_XPM_H
+
+/* Define to 1 if you have the <xpm.h> header file. */
+#undef HAVE_XPM_H
+
+/* Enable XRandR extension. */
+#undef HAVE_XRANDR
+
+/* Enable XVideo support. */
+#undef HAVE_XVIDEO
+
+/* Can we use the ZLIB compression library? */
+#undef HAVE_ZLIB
+
+/* Define to 1 if you have the `_XlcCloseConverter' function. */
+#undef HAVE__XLCCLOSECONVERTER
+
+/* Define to 1 if you have the `_XlcConvert' function. */
+#undef HAVE__XLCCONVERT
+
+/* Define to 1 if you have the `_XlcCurrentLC' function. */
+#undef HAVE__XLCCURRENTLC
+
+/* Define to 1 if you have the `_XlcOpenConverter' function. */
+#undef HAVE__XLCOPENCONVERTER
+
+/* Enable support for Linux style joysticks. */
+#undef LINUX_JOYSTICK
+
+/* Enable Mac OS X application bundles. */
+#undef MACOSX_BUNDLE
+
+/* Use Cocoa on Macs. */
+#undef MACOSX_COCOA
+
+/* Enable Mac OS X specific code. */
+#undef MACOSX_SUPPORT
+
+/* Enable Mac Joystick support. */
+#undef MAC_JOYSTICK
+
+/* are we compiling under Minix-Vmd */
+#undef MINIXVMD
+
+/* Define if this version of minix has the recv and send prototypes */
+#undef MINIX_HAS_RECV_SEND
+
+/* do we need minix support */
+#undef MINIX_SUPPORT
+
+/* Whether struct sockaddr::__ss_family exists */
+#undef NEED_PREFIXED_SS_FAMILY
+
+/* Enable NextStep 3.x support */
+#undef NEXTSTEP_COMPILE
+
+/* NLS local directory. */
+#undef NLS_LOCALEDIR
+
+/* Enable SCO Openserver 5.x support */
+#undef OPENSERVER5_COMPILE
+
+/* Enable SCO Openserver 6.x support */
+#undef OPENSERVER6_COMPILE
+
+/* Enable OpenStep 4.x support */
+#undef OPENSTEP_COMPILE
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* The current arch, cpu and compiler used. */
+#undef PLATFORM
+
+/* Enable morphos shared SDL library support. */
+#undef POWERSDL_AMIGA_INLINE
+
+/* Where do we want to install the executable? */
+#undef PREFIX
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#undef RETSIGTYPE
+
+/* Enable Rhapsody 5.x support */
+#undef RHAPSODY_COMPILE
+
+/* Enable amiga shared SDL library support. */
+#undef SDL_AMIGA_INLINE
+
+/* The size of `unsigned int', as computed by sizeof. */
+#undef SIZEOF_UNSIGNED_INT
+
+/* The size of `unsigned long', as computed by sizeof. */
+#undef SIZEOF_UNSIGNED_LONG
+
+/* The size of `unsigned short', as computed by sizeof. */
+#undef SIZEOF_UNSIGNED_SHORT
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Enable SCO Unixware 7.x support */
+#undef UNIXWARE_COMPILE
+
+/* Are we compiling for unix? */
+#undef UNIX_COMPILE
+
+/* Define if this version is unstable. */
+#undef UNSTABLE
+
+/* Enable aix sound support. */
+#undef USE_AIX_AUDIO
+
+/* Enable alsa support. */
+#undef USE_ALSA
+
+/* Enable aRts support. */
+#undef USE_ARTS
+
+/* Enable new color management code. */
+#undef USE_COLOR_MANAGEMENT
+
+/* Enable CoreAudio support. */
+#undef USE_COREAUDIO
+
+/* Enable sgi sound support. */
+#undef USE_DMEDIA
+
+/* Enable directx sound support. */
+#undef USE_DXSOUND
+
+/* Use embedded data files. */
+#undef USE_EMBEDDED
+
+/* Define when using gcc */
+#undef USE_GCC
+
+/* Use GNOME UI. */
+#undef USE_GNOMEUI
+
+/* Enable lamemp3 support. */
+#undef USE_LAMEMP3
+
+/* Use MIDAS Sound System instead of the Allegro library. */
+#undef USE_MIDAS_SOUND
+
+/* Enable MITSHM extensions. */
+#undef USE_MITSHM
+
+/* Enable oss support. */
+#undef USE_OSS
+
+/* Enable pulseaudio support. */
+#undef USE_PULSE
+
+/* Enable SDL UI support. */
+#undef USE_SDLUI
+
+/* Enable SDL sound support. */
+#undef USE_SDL_AUDIO
+
+/* Enable SDL prefix for header inclusion. */
+#undef USE_SDL_PREFIX
+
+/* Enable multithreaded UI. */
+#undef USE_UI_THREADS
+
+/* Are we using the Unix/X11/Xaw ui? */
+#undef USE_XAWUI
+
+/* Enable XF86 extensions. */
+#undef USE_XF86_EXTENSIONS
+
+/* Enable XF86 VidMode extensions. */
+#undef USE_XF86_VIDMODE_EXT
+
+/* Version number of package */
+#undef VERSION
+
+/* Win32 Version string. */
+#undef VERSION_RC
+
+/* Where should we lookup for data files? */
+#undef VICEDIR
+
+/* Support for The Final Ethernet */
+#undef VICE_USE_LIBNET_1_1
+
+/* owcc is being used. */
+#undef WATCOM_COMPILE
+
+/* Are we compiling for win32? */
+#undef WIN32_COMPILE
+
+/* Have windres ignore code page pragmas */
+#undef WINDRES_CP_IGNORE
+
+/* Enable WIZ compilation */
+#undef WIZ
+
+/* Enable SDL WIZ compilation */
+#undef WIZ_SDL
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
+
+/* Define to 1 if aros can handle auto resolving of library bases. */
+#undef WORKING_AROS_AUTO
+
+/* Enable _Xlc_* functions. */
+#undef XLC_FUNCS_PRESENT
+
+/* Define to 1 if the X Window System is missing or not being used. */
+#undef X_DISPLAY_MISSING
+
+/* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
+   `char[]'. */
+#undef YYTEXT_POINTER
+
+/* define when using the alpha compaq compiler */
+#undef __DECALPHA__
+
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+#undef inline
+#endif
+
+/* Define to `long int' if <sys/types.h> does not define. */
+#undef off_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t
+
+/* ss_family is not defined here, use __ss_family instead */
+#undef ss_family
+
+/* Define as `fork' if `vfork' does not work. */
+#undef vfork

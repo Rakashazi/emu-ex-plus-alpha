@@ -25,7 +25,7 @@ install : $(outputLibFile)
 
 $(libvorbisSrcDir)/configure : $(libvorbisSrcArchive)
 	@echo "Extracting libvorbis..."
-	tar -xJf $^
+	tar -mxJf $^
 	cp ../gnuconfig/config.* $(libvorbisSrcDir)/
 
 $(outputLibFile) : $(makeFile)

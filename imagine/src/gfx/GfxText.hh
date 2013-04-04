@@ -10,6 +10,11 @@
 #include <util/basicString.h>
 #include <resource2/face/ResourceFace.hh>
 
+#ifdef CONFIG_BASE_PS3
+	#undef FLT_MAX
+	#define FLT_MAX 1E+37
+#endif
+
 namespace Gfx
 {
 

@@ -36,9 +36,16 @@ typedef void (*Func)(void);
 CLINK Func* __ctors64_start;
 CLINK Func* __ctors64_end;
 
+CallResult logger_ps3_init(uint w, uint h);
+
 namespace Input
 {
 	void update();
+}
+
+void base_abort()
+{
+	Base::abort();
 }
 
 namespace Base
@@ -81,19 +88,6 @@ static void haltOnExit()
 
 void exitVal(int returnVal) { exitApp(); }
 void abort() { haltOnExit(); }
-
-/*void sysutilCallback(uint64_t status, uint64_t param, void* userdata)
-{
-	switch(status)
-	{
-		bcase CELL_SYSUTIL_REQUEST_EXITGAME:
-			exitApp();
-		bcase CELL_SYSUTIL_DRAWING_BEGIN:
-			onFocusChange(0);
-		bcase CELL_SYSUTIL_DRAWING_END:
-			onFocusChange(1);
-	}
-}*/
 
 /*static int getResolutionWidthHeight(const unsigned int resolutionId, unsigned int &w, unsigned int &h)
 {
@@ -169,11 +163,11 @@ void setupPSGL()
 	psglLoadShaderLibrary(shaderPath);*/
 	psglResetCurrentContext();
 
-	// set gfx vars early so logger_init() can access them
+	logger_ps3_init(deviceWidth, deviceHeight);
 	using namespace Gfx;
-	newXSize = viewPixelWidth_ = mainWin.rect.x2 = deviceWidth;
-	newYSize = viewPixelHeight_ = mainWin.rect.y2 = deviceHeight;
-	logMsg("init screen %dx%d", newXSize, newYSize);
+	viewPixelWidth_ = mainWin.w = mainWin.rect.x2 = deviceWidth;
+	viewPixelHeight_ = mainWin.h = mainWin.rect.y2 = deviceHeight;
+	logMsg("init screen %dx%d", deviceWidth, deviceHeight);
 	viewMMHeight_ = 330;
 	if(deviceHeight == 720 || deviceHeight == 1080)
 		viewMMWidth_ = 586;
@@ -206,35 +200,34 @@ void sleepMs(int ms)
 	sleepUs(ms*1000);
 }
 
-bool isInputDevPresent(uint type)
+CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
 {
-	// TODO
-	switch(type)
-	{
-		#ifdef CONFIG_INPUT
-		case InputEvent::DEV_KEYBOARD: return 1;
-		#endif
-		default: return 0;
-	}
+	//TODO
+	return nullptr;
 }
 
-static TimerCallbackFunc timerCallbackFunc = 0;
-static void *timerCallbackFuncCtx = 0;
-static uint timerCountDown = 0;
-void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
+void cancelCallback(CallbackRef *ref)
 {
-	if(timerCallbackFunc)
-	{
-		logMsg("canceling callback");
-		timerCallbackFunc = 0;
-	}
-	if(!f)
-		return;
-	logMsg("setting callback to run in %d ms, %d frames", ms, ms / 16);
-	timerCallbackFunc = f;
-	timerCallbackFuncCtx = ctx;
-	timerCountDown = ms / 16;
+	//TODO
 }
+
+//static TimerCallbackFunc timerCallbackFunc = 0;
+//static void *timerCallbackFuncCtx = 0;
+//static uint timerCountDown = 0;
+//void setTimerCallback(TimerCallbackFunc f, void *ctx, int ms)
+//{
+//	if(timerCallbackFunc)
+//	{
+//		logMsg("canceling callback");
+//		timerCallbackFunc = 0;
+//	}
+//	if(!f)
+//		return;
+//	logMsg("setting callback to run in %d ms, %d frames", ms, ms / 16);
+//	timerCallbackFunc = f;
+//	timerCallbackFuncCtx = ctx;
+//	timerCountDown = ms / 16;
+//}
 
 //void base_openURL(const char *url) { };
 
@@ -242,8 +235,7 @@ int main2()
 {
 	using namespace Base;
 
-	Func *funcarr = (Func*)&__ctors64_start;
-	//uchar *funcarrb = (uchar*)&__ctors64_start;
+	auto funcarr = (Func*)&__ctors64_start;
 	uint ctors = ((uint64)&__ctors64_end - (uint64)&__ctors64_start) / 8;
 	iterateTimes(ctors, i)
 	{
@@ -252,24 +244,21 @@ int main2()
 	}
 
 	sys_spu_initialize(6, 1);
-
 	while(!Base::videoOutIsReady())
 	{
 		// wait for video out
 	};
-
-	//cellSysutilRegisterCallback(0, Base::sysutilCallback, 0);
-
 	Base::setupPSGL();
-
-	doOrExit(logger_init());
 
 	#ifdef CONFIG_FS_PS3
 		cellSysmoduleLoadModule(CELL_SYSMODULE_FS);
 		FsPs3::initWorkDir();
 	#endif
 
-	doOrExit(onInit());
+	#ifdef CONFIG_INPUT
+	doOrExit(Input::init());
+	#endif
+	doOrExit(onInit(0, nullptr));
 	Base::engineInit();
 	logMsg("done init");
 
@@ -280,23 +269,21 @@ int main2()
 		#endif
 		cellSysutilCheckCallback();
 		Base::gfxUpdate = 1; // update gfx constantly for now
-		//updateFrame();
-		Base::runEngine();
-		if(unlikely(timerCallbackFunc != 0))
-		{
-			if(unlikely(timerCountDown == 0))
-			{
-				logMsg("running callback");
-				timerCallbackFunc(timerCallbackFuncCtx);
-				timerCallbackFunc = 0;
-			}
-			else
-				timerCountDown--;
-		}
+		Base::runEngine(0);
+		// TODO
+//		if(unlikely(timerCallbackFunc != 0))
+//		{
+//			if(unlikely(timerCountDown == 0))
+//			{
+//				logMsg("running callback");
+//				timerCallbackFunc(timerCallbackFuncCtx);
+//				timerCallbackFunc = 0;
+//			}
+//			else
+//				timerCountDown--;
+//		}
 	}
 	return 0;
 }
 
 }
-
-#undef thisModuleName

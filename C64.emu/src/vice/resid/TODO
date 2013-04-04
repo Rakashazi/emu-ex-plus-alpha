@@ -1,0 +1,10 @@
+* Refine the MOS 6581 filter model / parameters. Build an accurate MOS
+  8580 filter model.
+
+* Expose an interface for tunable filter parameters.
+
+* Write documentation. Possibly a paper describing how SID was reverse
+  engineered.
+
+* Implement a SID tune player. A PSID player, VSID, is partly
+  implemented in VICE.

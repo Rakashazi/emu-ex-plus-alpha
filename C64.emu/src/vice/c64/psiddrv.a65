@@ -1,0 +1,202 @@
+; 
+; psiddrv.a65 - PSID player.
+;
+; Written by
+;  Dag Lem  <resid@nimrod.no>
+;
+; This file is part of VICE, the Versatile Commodore Emulator.
+; See README for copyright notice.
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+;  02111-1307  USA.
+;
+
+	.fopt 0, "psiddrv.o65", 0
+	.fopt 3, "Dag Lem <resid@nimrod.no>", 0
+
+	.align 256
+
+start	jmp cold
+
+	; CBM80 backup
+cbm80	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+	; Parameters
+playnum	.byte 0
+playmax	.byte 0
+loadvec .word 0
+initvec	.word 0
+playvec	.word 0
+speed	.word 0, 0
+palflag .byte 0
+
+iomap	.byte 0
+
+	; User interrupt vectors
+irqusr	.word irqjob
+brkusr	.word irqexit
+nmiusr	.word nmijob
+
+	; Cold start
+	; Turn interrupts off
+cold	lda #$00
+	sta $d01a
+	lda $d019
+	sta $d019
+	lda #$7f
+	sta $dc0d
+	sta $dd0d
+	lda $dc0d
+	lda $dd0d
+
+	; Restore CBM80
+	ldx #$08
+store80	lda cbm80,x
+	sta $8000,x
+	dex
+	bpl store80
+
+	; Set interrupt vectors
+	; Don't step on the vectors if they're part of the PSID image
+	lda loadvec+1
+	cmp #$03
+	bcc vicras
+	bne initirq
+	lda loadvec
+	cmp #$1a
+	bcc vicras
+initirq	ldx #$05
+store03	lda irqusr,x
+	sta $0314,x
+	dex
+	bpl store03
+
+	; Set VICII raster to line 0
+vicras	lda #$1b
+	ldx #$00
+	sta $d011
+	stx $d012
+
+	; Set CIA 1 Timer A to 60Hz
+	lda palflag
+	beq ntsc
+pal	lda #$25
+	ldx #$40
+	bne timer
+ntsc	lda #$95
+	ldx #$42
+timer	sta $dc04
+	stx $dc05
+
+	; Maximum volume
+	lda #$0f
+	sta $d418
+
+	; Get song number
+	ldy playnum
+	dey
+	cpy playmax
+	bcc songset
+	ldy #$00
+songset	tya
+	pha
+
+	; No PLAY => tune must set up interrupts itself (CIA 1 running)
+	lda playvec+1
+	beq ciainit
+	jsr getmap
+	sta iomap
+
+	; Get shift number for speed bit
+	cpy #32
+	bcc shftset
+	ldy #31
+
+	; Find speed for current song number
+shftset	lda #$00
+	tax
+	sec
+shift	rol
+	bcc nxtshft
+	rol
+	inx
+nxtshft	dey
+	bpl shift
+	and speed,x
+	bne ciainit
+	
+	; Enable VICII raster interrupt
+vicinit	lda #$81
+	sta $d01a
+	bne doinit
+
+	; Enable CIA 1 timer A interrupt
+ciainit	lda #$81
+	ldx #$01
+	sta $dc0d
+	stx $dc0e
+
+	; Set I/O map and call song init routine
+doinit	lda #$2f
+	sta $00
+	lda initvec+1
+	jsr getmap
+	sta $01
+	pla
+	jsr init
+	lda playvec+1
+	beq run
+	lda #$36
+	sta $01
+
+run	cli
+idle	jmp idle
+
+	; init/play PSID
+init	jmp (initvec)
+play	jmp (playvec)
+
+	; Get required I/O map to reach address
+getmap	cmp #$e0
+	bcc kern_on
+	lda #$35
+	rts
+kern_on	cmp #$d0
+	bcc io_on
+	lda #$34
+	rts
+io_on	lda #$36
+	rts
+
+	; IRQ handler
+irqjob	lda playvec+1
+	beq noplay
+	lda iomap
+	sta $01
+	jsr play
+	lda #$36
+	sta $01
+noplay	lda $d019
+	sta $d019
+	lda $dc0d
+irqexit	pla
+	tay
+	pla
+	tax
+	pla
+	rti
+
+nmijob  bit $dd0d
+	rti

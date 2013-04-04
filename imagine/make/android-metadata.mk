@@ -62,12 +62,16 @@ ifdef android_metadata_bluetooth
  android_gen_metadata_args += --permission-bluetooth
 endif
 
-ifdef android_metadata_vibrate
- android_gen_metadata_args += --permission-vibrate
-endif
+ifdef android_ouyaBuild
+ android_gen_metadata_args += --ouya-build
+else
+ ifdef android_metadata_vibrate
+  android_gen_metadata_args += --permission-vibrate
+ endif
 
-ifndef metadata_noIcon
- ifdef android_metadata_xperiaPlayOptimized
-  android_gen_metadata_args += --xperia-play-optimized
+ ifndef metadata_noIcon
+  ifdef android_metadata_xperiaPlayOptimized
+   android_gen_metadata_args += --xperia-play-optimized
+  endif
  endif
 endif

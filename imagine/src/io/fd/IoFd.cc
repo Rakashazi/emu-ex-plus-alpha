@@ -43,7 +43,7 @@ static int openFile (const char *location, int flags, mode_t mode)
 
 	if(fd == -1)
 	{
-		logErr("error in open()");
+		//logErr("error in open()");
 		return fd;
 	}
 
@@ -66,8 +66,6 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 		flags |= O_RDONLY;
 	}
 
-	logMsg("opening file (%s) @ %s", mode & IO_OPEN_WRITE ? "rw" : "r", location);
-
 	#ifdef CONFIG_FS_PS3
 	char aPath[1024];
 	FsPs3::makePathAbs(location, aPath, sizeof(aPath));
@@ -78,6 +76,7 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 	int fd;
 	if((fd = openFile(location, flags, 0)) == -1)
 	{
+		logMsg("error opening file (%s) @ %s", mode & IO_OPEN_WRITE ? "rw" : "r", location);
 		if(errorOut)
 		{
 			switch(errno)
@@ -90,6 +89,8 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 		return 0;
 	}
 	
+	logMsg("opened file (%s) @ %s", mode & IO_OPEN_WRITE ? "rw" : "r", location);
+
 	// if the file is read-only try to use IoMmapFd instead
 	#ifdef CONFIG_IO_MMAP_FD
 		if(preferMmapIO && !(mode & IO_OPEN_WRITE))

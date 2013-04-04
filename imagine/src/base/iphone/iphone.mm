@@ -7,9 +7,9 @@
 
 #include <base/Base.hh>
 #include <fs/sys.hh>
+#include <config/machine.hh>
 #include <util/time/sys.hh>
 #include <base/common/funcs.h>
-#include <meta.h>
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
@@ -69,10 +69,11 @@ struct ThreadMsg
 const char *appPath = 0;
 static UIWindow *externalWindow = 0;
 static EAGLView *glView;
-static EAGLContext *mainContext;
+static EAGLContext *mainContext = nullptr;
 static CADisplayLink *displayLink = 0;
 static BOOL displayLinkActive = NO;
 static bool isIPad = 0;
+static bool useMaxColorBits = Config::MACHINE_IS_GENERIC_ARMV7;
 #ifdef __ARM_ARCH_6K__
 static bool usingiOS4 = 0;
 #else
@@ -219,9 +220,13 @@ uint appState = APP_RUNNING;
 
 	self.multipleTouchEnabled = YES;
 	eaglLayer.opaque = YES;
-	//eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
-	//	[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking,
-	//	kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
+	if(!Base::useMaxColorBits)
+	{
+		logMsg("using RGB565 surface");
+		eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
+			kEAGLColorFormatRGB565, kEAGLDrawablePropertyColorFormat, nil];
+		//[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking
+	}
 
 	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
 	assert(context);
@@ -379,7 +384,7 @@ uint appState = APP_RUNNING;
 				auto pos = pointerPos(startTouchPosition.x * pointScale, startTouchPosition.y * pointScale);
 				p.s.inWin = 1;
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, pos);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, pos.x, pos.y, nullptr));
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, pos.x, pos.y, true, nullptr));
 				break;
 			}
 		}
@@ -400,7 +405,7 @@ uint appState = APP_RUNNING;
 				CGPoint currentTouchPosition = [touch locationInView:self];
 				auto pos = pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale);
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, pos);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, pos.x, pos.y, nullptr));
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, pos.x, pos.y, true, nullptr));
 				break;
 			}
 		}
@@ -423,7 +428,7 @@ uint appState = APP_RUNNING;
 				CGPoint currentTouchPosition = [touch locationInView:self];
 				auto pos = pointerPos(currentTouchPosition.x * pointScale, currentTouchPosition.y * pointScale);
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, pos);
-				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, pos.x, pos.y, nullptr));
+				Input::onInputEvent(Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, pos.x, pos.y, true, nullptr));
 				break;
 			}
 		}
@@ -724,7 +729,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	#endif
 	glFinish();
 	[glView destroyFramebuffer];
-	unlink("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
 	logMsg("entered background");
 }
 
@@ -928,9 +932,9 @@ const char *storagePath()
 	#endif
 }
 
-int runningDeviceType()
+bool deviceIsIPad()
 {
-	return isIPad ? DEV_TYPE_IPAD : DEV_TYPE_GENERIC;
+	return isIPad;
 }
 
 #ifdef CONFIG_BASE_IOS_SETUID
@@ -958,6 +962,17 @@ bool setUIDEffective()
 bool supportsFrameTime()
 {
 	return true;
+}
+
+void setWindowPixelBestColorHint(bool best)
+{
+	assert(!mainContext); // should only call before initial window is created
+	useMaxColorBits = best;
+}
+
+bool windowPixelBestColorHintDefault()
+{
+	return Config::MACHINE_IS_GENERIC_ARMV7;
 }
 
 }
@@ -1003,6 +1018,11 @@ int main(int argc, char *argv[])
 		logMsg("manually loading Backgrounder.dylib");
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
 	}
+	if(access("/Library/MobileSubstrate/DynamicLibraries/Blutrol.dylib", F_OK) == 0)
+	{
+		logMsg("manually loading Blutrol.dylib");
+		dlopen("/Library/MobileSubstrate/DynamicLibraries/Blutrol.dylib", RTLD_LAZY | RTLD_GLOBAL);
+	}
 	#endif
 
 	#ifdef CONFIG_FS
@@ -1015,6 +1035,10 @@ int main(int argc, char *argv[])
 		isIPad = 1;
 		logMsg("running on iPad");
 	}
+	#endif
+	
+	#ifdef CONFIG_INPUT
+	doOrExit(Input::init());
 	#endif
 	
 	doOrExit(onInit(argc, argv));

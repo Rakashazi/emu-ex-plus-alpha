@@ -1,6 +1,5 @@
 #pragma once
 #include "OptionView.hh"
-#include <libgen.h>
 
 static bool isFDSBIOSExtension(const char *name);
 static void setupNESInputPorts();
@@ -17,9 +16,7 @@ private:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		char basenameStr[S];
-		strcpy(basenameStr, ::fdsBiosPath);
-		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? basename(basenameStr) : "None set");
+		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? string_basename(::fdsBiosPath) : "None set");
 	}
 
 	void biosPathUpdated()
@@ -88,8 +85,43 @@ private:
 		setupNESInputPorts();
 	}
 
+	MultiChoiceSelectMenuItem videoSystem {"Video System", MultiChoiceMenuItem::ValueDelegate::create<&videoSystemSet>()};
+
+	void videoSystemInit()
+	{
+		static const char *str[] =
+		{
+			"Auto", "NTSC", "PAL"
+		};
+		videoSystem.init(str, IG::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
+	}
+
+	static void videoSystemSet(MultiChoiceMenuItem &, int val)
+	{
+		optionVideoSystem = val;
+		switch(val)
+		{
+			bcase 0:
+				logMsg("using %s", autoDetectedVidSysPAL ? "PAL" : "NTSC");
+				FCEUI_SetVidSystem(autoDetectedVidSysPAL);
+			bcase 1:
+				logMsg("forcing NTSC");
+				FCEUI_SetVidSystem(0);
+			bcase 2:
+				logMsg("forcing PAL");
+				FCEUI_SetVidSystem(1);
+		}
+		EmuSystem::configAudioRate();
+	}
+
 public:
 	constexpr SystemOptionView() { }
+
+	void loadVideoItems(MenuItem *item[], uint &items)
+	{
+		OptionView::loadVideoItems(item, items);
+		videoSystemInit(); item[items++] = &videoSystem;
+	}
 
 	void loadInputItems(MenuItem *item[], uint &items)
 	{

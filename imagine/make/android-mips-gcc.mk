@@ -1,6 +1,9 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
 ARCH := mips
 android_abi := mips
+ifndef MACHINE
+ MACHINE := GENERIC_MIPS
+endif
 
 android_cpuFlags := -EL -mips32 -mhard-float
 

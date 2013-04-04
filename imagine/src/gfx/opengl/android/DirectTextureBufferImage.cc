@@ -209,6 +209,11 @@ void DirectTextureBufferImage::write(Pixmap &p, uint hints)
 	unlock();
 }
 
+void DirectTextureBufferImage::write(Pixmap &p, uint hints, uint alignment)
+{
+	write(p, hints);
+}
+
 Pixmap *DirectTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback)
 {
 	void *data;

@@ -36,16 +36,19 @@ import java.lang.reflect.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
-public final class BaseActivity extends NativeActivity
+public final class BaseActivity extends NativeActivity implements MessageQueue.IdleHandler
 {
 	private static String logTag = "BaseActivity";
 	//private native void layoutChange(int bottom);
 	native boolean drawWindow(long frameTimeNanos);
+	native boolean drawWindowIdle();
 	private boolean surfaceIs32Bit = false;
 	private static boolean hasChoreographer = false;
 	private static Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private ChoreographerHelper choreographerHelper;
+	private MessageQueue msgQueue;
+	private Handler handler;
 
 	static
 	{
@@ -68,6 +71,35 @@ public final class BaseActivity extends NativeActivity
 	void cancelDrawWindow()
 	{
 		choreographerHelper.cancelDrawWindow();
+	}
+	
+	void postDrawWindowIdle()
+	{
+		msgQueue.addIdleHandler(this);
+		handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to run in case of no pending msgs
+		//Log.i(logTag, "start idle handler");
+	}
+	
+	void cancelDrawWindowIdle()
+	{
+		//Log.i(logTag, "stop idle handler");
+		msgQueue.removeIdleHandler(this);
+	}
+
+	@Override public boolean queueIdle()
+	{
+		//Log.i(logTag, "in idle handler");
+		if(drawWindowIdle())
+		{
+			//Log.i(logTag, "will re-run");
+			handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to re-run in case of no pending msgs
+			return true;
+		}
+		else
+		{
+			//Log.i(logTag, "won't re-run");
+			return false;
+		}
 	}
 	
 	boolean hasPermanentMenuKey()
@@ -121,6 +153,11 @@ public final class BaseActivity extends NativeActivity
 	Display defaultDpy()
 	{
 		return getWindowManager().getDefaultDisplay();
+	}
+	
+	DisplayMetrics displayMetrics()
+	{
+		return getResources().getDisplayMetrics();
 	}
 	
 	String apkPath()
@@ -264,7 +301,11 @@ public final class BaseActivity extends NativeActivity
 			//Log.i(logTag, "using Choreographer");
 			choreographerHelper = new ChoreographerHelper(this);
 		}
-		Bluetooth.adapter = BluetoothAdapter.getDefaultAdapter();
+		else
+		{
+			msgQueue = Looper.myQueue();
+			handler = new Handler();
+		}
 		super.onCreate(savedInstanceState);
 	}
 	

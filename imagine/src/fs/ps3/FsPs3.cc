@@ -124,17 +124,16 @@ char *FsPs3::workDir()
 	return workPath;
 }
 
-#define S_ISDIR(mode) (mode & S_IFDIR)
-
 int FsPs3::fileType(const char *path)
 {
 	cPath aPath;
 	makePathAbs(path, aPath, sizeof(aPath));
 
-	struct stat s;
-	if(stat(aPath, &s) == 0)
+	CellFsStat s;
+	if(cellFsStat(aPath, &s) == CELL_FS_SUCCEEDED)
 	{
-		return S_ISDIR(s.st_mode) ? Fs::TYPE_DIR : Fs::TYPE_FILE;
+		//logMsg("%s has mode %d", aPath, s.st_mode);
+		return (s.st_mode & CELL_FS_S_IFDIR) ? Fs::TYPE_DIR : Fs::TYPE_FILE;
 	}
 	else
 		return Fs::TYPE_NONE;
@@ -158,7 +157,6 @@ void FsPs3::makePathAbs(const char *path, char *outPath, size_t size)
 {
 	// TODO: implement more complex cases and error checking
 	assert(workDir()[0] == '/');
-	logMsg("work dir %s", workDir());
 	if(path[0] == '/')
 	{
 		strcpy(outPath, path);
@@ -180,6 +178,12 @@ void FsPs3::makePathAbs(const char *path, char *outPath, size_t size)
 	{
 		sprintf(outPath, "%s/%s", strlen(workDir()) > 1 ? workDir() : "", path);
 	}
+	logMsg("converted to absolute path: %s", outPath);
 }
 
-#undef thisModuleName
+CallResult FsPs3::mTimeAsStr(const char *path, timeStr time)
+{
+	// TODO
+	time[0] = 0;
+	return OK;
+}

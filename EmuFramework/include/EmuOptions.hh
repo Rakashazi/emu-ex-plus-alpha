@@ -116,7 +116,8 @@ extern Byte4s2Option optionTouchCtrlImgRes;
 
 extern Byte1Option optionDitherImage;
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
+	#define USE_BEST_COLOR_MODE_OPTION
 	extern Byte1Option optionBestColorModeHint;
 #endif
 

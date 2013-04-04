@@ -128,6 +128,9 @@ void commonUpdateInput()
 bool isMenuDismissKey(const Input::Event &e)
 {
 	using namespace Input;
+	#ifdef INPUT_SUPPORTS_KEYBOARD
+	static const auto dismissKey = Config::envIsWebOS1 ? Keycode::RCTRL : Keycode::MENU;
+	#endif
 	switch(e.map)
 	{
 		#ifdef CONFIG_BLUETOOTH
@@ -141,24 +144,19 @@ bool isMenuDismissKey(const Input::Event &e)
 		#endif
 		#if defined(CONFIG_BASE_PS3)
 		case Event::MAP_PS3PAD:
-			return e.button == Ps3::TRIANGLE || e.button == Ps3::L2;
+			return e.button == PS3::TRIANGLE || e.button == PS3::L2;
 		#endif
+		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case Event::MAP_KEYBOARD:
 			#ifdef CONFIG_BASE_ANDROID
 			switch(e.device->subtype)
 			{
 				case Device::SUBTYPE_PS3_CONTROLLER:
-					return e.button == Keycode::GAME_1 || e.button == Keycode::MENU;
+					return e.button == PS3::PS;
 			}
 			#endif
-			return 0
-			#if defined(CONFIG_ENV_WEBOS) && CONFIG_ENV_WEBOS_OS <= 2
-				|| e.button == Keycode::RCTRL
-			#endif
-			#ifdef INPUT_SUPPORTS_KEYBOARD
-				|| e.button == Keycode::MENU
-			#endif
-			;
+			return e.button == dismissKey;
+		#endif
 	}
 	return 0;
 }
@@ -211,12 +209,15 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 		case Input::Event::MAP_KEYBOARD:
 		{
 			#ifdef CONFIG_BASE_ANDROID
-			switch(dev.subtype)
+			uint confs = 0;
+			auto conf = defaultConfigsForDevice(dev, confs);
+			iterateTimes(confs, i)
 			{
-				case Input::Device::SUBTYPE_XPERIA_PLAY:
-					return defaultConfigsForDevice(dev)[1]; // Xperia Play mapping must always be 2nd config
-				case Input::Device::SUBTYPE_PS3_CONTROLLER:
-					return defaultConfigsForDevice(dev)[2]; // PS3 mapping must always be 3rd config
+				// Look for the first config to match the device subtype
+				if(dev.subtype == conf[i].devSubtype)
+				{
+					return conf[i];
+				}
 			}
 			#endif
 			return defaultConfigsForDevice(dev)[0];

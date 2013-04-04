@@ -92,7 +92,7 @@ public:
 	// Required delegates
 	OnInputDelegate &onSelectDelegate() { return onSelect; }
 
-	void init(const char **choice, uint choices, bool highlightCurrent)
+	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = C2DO)
 	{
 		assert(choices <= sizeofArray(choiceEntry));
 		iterateTimes(choices, i)
@@ -100,11 +100,11 @@ public:
 			choiceEntry[i].init(choice[i]);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, C2DO);
+		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
 	}
 
 	template <size_t S, size_t S2>
-	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent)
+	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = C2DO)
 	{
 		assert(choices <= sizeofArray(choiceEntry));
 		iterateTimes(choices, i)
@@ -112,10 +112,10 @@ public:
 			choiceEntry[i].init(choice[i]);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, C2DO);
+		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
 	}
 
-	void init(MultiChoiceMenuItem *src, bool highlightCurrent)
+	void init(MultiChoiceMenuItem *src, bool highlightCurrent, _2DOrigin align = C2DO)
 	{
 		assert((uint)src->choices <= sizeofArray(choiceEntry));
 		iterateTimes(src->choices, i)
@@ -123,7 +123,7 @@ public:
 			choiceEntry[i].init(src->choiceStr[i], src->t2.face);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		BaseMenuView::init(choiceEntryItem, src->choices, 0, C2DO);
+		BaseMenuView::init(choiceEntryItem, src->choices, 0, align);
 		if(highlightCurrent)
 		{
 			tbl.selected = src->choice;

@@ -6,7 +6,11 @@ namespace Gfx
 {
 
 GC mmToPixelXScaler = 0, mmToPixelYScaler = 0;
-uint viewPixelWidth_ = 0, viewPixelHeight_ = 0, viewMMWidth_ = 0, viewMMHeight_ = 0;
+#ifdef CONFIG_BASE_ANDROID
+GC smmToPixelXScaler = 0, smmToPixelYScaler = 0;
+#endif
+uint viewPixelWidth_ = 0, viewPixelHeight_ = 0, viewMMWidth_ = 0, viewMMHeight_ = 0,
+	viewSMMWidth_ = 0, viewSMMHeight_ = 0;
 Projector proj;
 
 void setupScreenSize()
@@ -14,6 +18,10 @@ void setupScreenSize()
 	assert(viewMMWidth_ != 0 && viewMMHeight_ != 0);
 	mmToPixelXScaler = (GC)viewPixelWidth() / (GC)viewMMWidth();
 	mmToPixelYScaler = (GC)viewPixelHeight() / (GC)viewMMHeight();
+#ifdef CONFIG_BASE_ANDROID
+	smmToPixelXScaler = (GC)viewPixelWidth() / (GC)viewSMMWidth();
+	smmToPixelYScaler = (GC)viewPixelHeight() / (GC)viewSMMHeight();
+#endif
 	proj.updateMMSize();
 }
 

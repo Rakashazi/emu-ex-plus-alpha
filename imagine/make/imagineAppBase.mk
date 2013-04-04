@@ -26,9 +26,3 @@ ifeq ($(ENV), ps3)
 	echo \#define CONFIG_PS3_PRODUCT_ID \"$(ps3_productid)\" >> $@
 endif
 metadata-header : $(genMetaH)
-
-ifneq ($(ENV), android)
- ifndef NO_LOGGER
-  include $(imagineSrcDir)/logger/system.mk
- endif
-endif

@@ -1,5 +1,5 @@
 ifeq ($(ENV), android)
- ifeq ($(android_minSDK), 9)
+ ifeq ($(android_hasSDK9), 1)
   include $(imagineSrcDir)/resource2/font/android.mk
  else
   include $(imagineSrcDir)/resource2/font/freetype.mk

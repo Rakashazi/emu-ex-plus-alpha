@@ -112,6 +112,37 @@ namespace Keycode
 	static const uint COUNT = 0xff + 1;
 }
 
+namespace PS3
+{
+	using namespace Keycode;
+	static const uint CROSS = GAME_X,
+	CIRCLE = GAME_Y,
+	SQUARE = GAME_A,
+	TRIANGLE = GAME_B,
+	PS = Keycode::GAME_1
+	;
+}
+
+namespace XperiaPlay
+{
+	using namespace Keycode;
+	static const uint CROSS = CENTER,
+	CIRCLE = GAME_B, // re-mapped from "Back" in input event handler
+	SQUARE = GAME_X,
+	TRIANGLE = GAME_Y
+	;
+}
+
+namespace Ouya
+{
+	using namespace Keycode;
+	static const uint O = GAME_A,
+	U = GAME_X,
+	Y = GAME_Y,
+	A = GAME_B
+	;
+}
+
 typedef uint8 Key;
 
 namespace Pointer

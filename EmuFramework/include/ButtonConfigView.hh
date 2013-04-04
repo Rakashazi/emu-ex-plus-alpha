@@ -24,13 +24,13 @@ extern YesNoAlertView ynAlertView;
 static class ButtonConfigSetView : public View
 {
 	Rect2<int> viewFrame
-	#ifndef CONFIG_BASE_PS3
+	#ifdef INPUT_SUPPORTS_POINTER
 	, unbindB, cancelB
 	#endif
 	;
-	char str[64] {0};
+	char str[128] {0};
 	Gfx::Text text
-	#ifndef CONFIG_BASE_PS3
+	#ifdef INPUT_SUPPORTS_POINTER
 	, unbind, cancel
 	#endif
 	;
@@ -40,11 +40,13 @@ static class ButtonConfigSetView : public View
 	const Input::Device *dev = nullptr;
 	const Input::Device *savedDev = nullptr;
 
+	void initPointerUI();
+	bool pointerUIIsInit();
 public:
 	constexpr ButtonConfigSetView() { }
 
 	Rect2<int> &viewRect() { return viewFrame; }
-	void init(Input::Device &dev, const char *actionName);
+	void init(Input::Device &dev, const char *actionName, bool withPointerInput);
 	void deinit();
 	void place();
 	void inputEvent(const Input::Event &e);

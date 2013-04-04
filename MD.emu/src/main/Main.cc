@@ -114,7 +114,7 @@ enum {
 	CFGKEY_BIG_ENDIAN_SRAM = 278, CFGKEY_SMS_FM = 279,
 	CFGKEY_6_BTN_PAD = 280, CFGKEY_MD_CD_BIOS_USA_PATH = 281,
 	CFGKEY_MD_CD_BIOS_JPN_PATH = 282, CFGKEY_MD_CD_BIOS_EUR_PATH = 283,
-	CFGKEY_MD_REGION = 284
+	CFGKEY_MD_REGION = 284, CFGKEY_VIDEO_SYSTEM = 285,
 };
 
 static bool usingMultiTap = 0;
@@ -128,6 +128,8 @@ static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath,
 static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
 static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, sizeof(cdBiosEurPath), "");
 #endif
+static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
+static uint autoDetectedVidSysPAL = 0;
 
 const uint EmuSystem::maxPlayers = 4;
 uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
@@ -164,6 +166,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 			else
 				optionRegion = 0;
 		}
+		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		bdefault: return 0;
 	}
 	return 1;
@@ -174,6 +177,7 @@ void EmuSystem::writeConfig(Io *io)
 	optionBigEndianSram.writeWithKeyIfNotDefault(io);
 	optionSmsFM.writeWithKeyIfNotDefault(io);
 	option6BtnPad.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	#ifndef NO_SCD
 	optionCDBiosUsaPath.writeToIO(io);
 	optionCDBiosJpnPath.writeToIO(io);
@@ -727,6 +731,17 @@ int EmuSystem::loadGame(const char *path)
 		popup.post("Invalid game", 1);
 		return 0;
 	}
+	autoDetectedVidSysPAL = vdp_pal;
+	if((int)optionVideoSystem == 1)
+	{
+		vdp_pal = 0;
+	}
+	else if((int)optionVideoSystem == 2)
+	{
+		vdp_pal = 1;
+	}
+	if(vidSysIsPAL())
+		logMsg("using PAL timing");
 
 	doAudioInit();
 	system_init();

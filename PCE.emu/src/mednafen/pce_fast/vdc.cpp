@@ -911,6 +911,10 @@ void MixBGSPR_16BPP(const uint32 count_in, const uint8 *bg_linebuf_in, const uin
  }
 }
 
+#if defined __SANITIZE_ADDRESS__ && defined ARCH_X86
+	// disable asm when using frame pointer
+	#undef ARCH_X86
+#endif
 
 #ifdef ARCH_X86
 

@@ -19,6 +19,8 @@ void textInputEndedMsg(const char* str, jstring jStr);
 
 void rescanDevices(bool firstRun = 0);
 
+bool hasXperiaPlayGamepad();
+
 int32_t onInputEvent(AInputEvent* event);
 extern bool sendInputToIME;
 

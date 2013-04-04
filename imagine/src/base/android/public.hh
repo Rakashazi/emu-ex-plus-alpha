@@ -26,6 +26,7 @@ namespace Base
 void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();
+const char *androidBuildDevice();
 
 }
 

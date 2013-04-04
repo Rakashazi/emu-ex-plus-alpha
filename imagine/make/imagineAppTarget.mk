@@ -20,14 +20,8 @@ endif
 
 ifeq ($(ENV), ps3)
 
-#$(targetDir)/$(target).self: $(targetDir)/$(targetFile)
-#	fself.py $< $@
-
 $(targetDir)/pkg/USRDIR/EBOOT.BIN: $(targetDir)/$(targetFile)
 	make_self_npdrm $< $@ $(ps3_contentid)
-
-#$(targetDir)/pkg/USRDIR/EBOOT.BIN: $(targetDir)/$(targetFile)
-#	wine /usr/local/cell/host-win32/bin/make_fself_npdrm $< $@
 
 main: $(targetDir)/pkg/USRDIR/EBOOT.BIN
 
@@ -39,8 +33,10 @@ $(targetDir)/pkg/PARAM.SFO : $(SFOXML)
 	sfo.py -f $< $@
 
 $(targetDir)/$(target).pkg : $(targetDir)/pkg/PARAM.SFO $(targetDir)/pkg/USRDIR/EBOOT.BIN
-	pkg.py --contentid $(ps3_contentid) $(targetDir)/pkg/ $(targetDir)/$(target).pkg
-	package_finalize $(targetDir)/$(target).pkg
+	$(PKG_NPDRM) $(targetDir)/package.conf $(targetDir)/pkg
+#$(targetDir)/$(target).pkg : $(targetDir)/pkg/PARAM.SFO $(targetDir)/pkg/USRDIR/EBOOT.BIN
+#	pkg.py --contentid $(ps3_contentid) $(targetDir)/pkg/ $(targetDir)/$(target).pkg
+#	package_finalize $(targetDir)/$(target).pkg
 
 ps3-pkg : $(targetDir)/$(target).pkg
 

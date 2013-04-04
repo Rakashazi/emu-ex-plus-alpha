@@ -66,7 +66,7 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	setClearColor(0., 0., 0.);
 	if(Config::envIsAndroid || Config::envIsWebOS)
 	{
-		glDisable(GL_MULTISAMPLE);
+		//glDisable(GL_MULTISAMPLE);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 	}
 	//glcEnable(GL_TEXTURE_2D);

@@ -4,7 +4,7 @@ endif
 
 CBUILD := $(shell cc -dumpmachine)
 
-freetypeVer := 2.4.10
+freetypeVer := 2.4.11
 freetypeSrcDir := freetype-$(freetypeVer)
 freetypeSrcArchive := freetype-$(freetypeVer).tar.bz2
 
@@ -16,7 +16,7 @@ all : $(outputLibFile)
 
 $(freetypeSrcDir)/configure : $(freetypeSrcArchive)
 	@echo "Extracting freetype..."
-	tar -xjf $^
+	tar -mxjf $^
 	cd $(freetypeSrcDir) && patch -p1 < ../freetype.patch
 
 install : $(outputLibFile)

@@ -25,12 +25,12 @@
 static CellDbgFontConsoleId cID = -1;
 uint loggerVerbosity = loggerMaxVerbosity;
 
-CallResult logger_init()
+CallResult logger_ps3_init(uint w, uint h)
 {
 	CellDbgFontConfig cfg;
 	cfg.bufSize      = 4096;
-	cfg.screenWidth  = Gfx::viewPixelWidth_;
-	cfg.screenHeight = Gfx::viewPixelHeight_;
+	cfg.screenWidth  = w;
+	cfg.screenHeight = h;
 	cellDbgFontInit(&cfg);
 
 	CellDbgFontConsoleConfig ccfg0;

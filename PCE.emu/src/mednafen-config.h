@@ -455,11 +455,3 @@
 #define glthread_once                 libintl_once
 #define glthread_once_call            libintl_once_call
 #define glthread_once_singlethreaded  libintl_once_singlethreaded
-
-#ifdef CONFIG_BASE_PS3
-	#define S_ISREG(f) (1)
-	#define dup(old) (old)
-	#define u_int32_t unsigned int
-	#define u_int16_t unsigned short
-	#define u_int8_t unsigned char
-#endif

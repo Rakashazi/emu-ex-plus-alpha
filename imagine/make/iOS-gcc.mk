@@ -1,5 +1,6 @@
 ENV := ios
 CROSS_COMPILE := 1
+configDefs += CONFIG_MACHINE_$(MACHINE)
 
 ifndef target
  target = $(metadata_exec)
@@ -13,6 +14,7 @@ ifndef targetDir
  endif
 endif
 
+compiler_noSanitizeAddress := 1
 config_compiler := clang
 ifeq ($(origin CC), default)
  CC := clang

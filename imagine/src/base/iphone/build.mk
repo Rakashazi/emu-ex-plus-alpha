@@ -20,6 +20,6 @@ ifdef iOSMsgUI
 	LDLIBS += -framework MessageUI
 endif
 
-SRC += base/iphone/iphone.mm util/apple/string.mm
+SRC += base/iphone/iphone.mm util/string/apple.mm util/string/generic.cc
 
 endif

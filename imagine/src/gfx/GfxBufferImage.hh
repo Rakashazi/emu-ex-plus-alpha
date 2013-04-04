@@ -35,6 +35,7 @@ struct BufferImageInterface : public TextureDesc
 {
 	virtual ~BufferImageInterface() { }
 	virtual void write(Pixmap &p, uint hints) = 0;
+	virtual void write(Pixmap &p, uint hints, uint alignment) = 0;
 	virtual void replace(Pixmap &p, uint hints) = 0;
 	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) = 0;
 	virtual void unlock(Pixmap *pix, uint hints) = 0;
@@ -50,6 +51,7 @@ struct TextureBufferImage:
 {
 	constexpr TextureBufferImage() { }
 	void write(Pixmap &p, uint hints);
+	void write(Pixmap &p, uint hints, uint alignment);
 	void replace(Pixmap &p, uint hints);
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback);
 	void unlock(Pixmap *pix, uint hints);
@@ -64,6 +66,7 @@ struct TextureBufferVImpl
 	constexpr TextureBufferVImpl() { }
 	BufferImageInterface *impl = nullptr;
 	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
+	void write(Pixmap &p, uint hints, uint alignment) { impl->write(p, hints, alignment); };
 	void replace(Pixmap &p, uint hints) { impl->replace(p, hints); };
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return impl->lock(x, y, xlen, ylen, fallback); }
 	void unlock(Pixmap *pix, uint hints) { impl->unlock(pix, hints); }
@@ -106,12 +109,14 @@ public:
 	CallResult init(ResourceImage &img, uint filter = linear, uint hints = 0, bool textured = 0);
 	//CallResult subInit(ResourceImage &img, int x, int y, int xSize, int ySize);
 	#endif
+	static constexpr uint MAX_ASSUME_ALIGN = 8;
 
 	void removeBacker() { backingImg = 0; }
 	void setFilter(uint filter);
 	void setRepeatMode(uint xMode, uint yMode);
 	void deinit();
 	void write(Pixmap &p);
+	void write(Pixmap &p, uint assumeAlign);
 	void replace(Pixmap &p);
 	void unlock(Pixmap *p);
 };

@@ -25,7 +25,7 @@ install : $(outputLibFile)
 
 $(libsndfileSrcDir)/configure : $(libsndfileSrcArchive)
 	@echo "Extracting libsndfile..."
-	tar -xzf $^
+	tar -mxzf $^
 	cp ../gnuconfig/config.* $(libsndfileSrcDir)/Cfg/
 
 $(outputLibFile) : $(makeFile)

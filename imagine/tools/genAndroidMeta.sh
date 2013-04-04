@@ -41,6 +41,9 @@ do
 		--no-icon)
 			noIcon=1
 		;;
+		--ouya-build)
+			ouyaBuild=1
+		;;
 		# special actions
 		-v | --verbose)
 			verbose=1
@@ -114,12 +117,12 @@ then
 fi
 
 uiChanges='mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|orientation'
-if [ $minSDK != 4 ]
+if [ $minSDK -ge 5 ]
 then
 	uiChanges=${uiChanges}'|uiMode'
 fi
 
-if [ $minSDK == 9 ]
+if [ $minSDK -ge 9 ]
 then
 	uiChanges=${uiChanges}'|screenSize|smallestScreenSize'
 fi
@@ -129,7 +132,7 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"
 		package=\"$id\""  > $outPath
 
-if [ $minSDK != 4 ]
+if [ $minSDK -ge 5 ]
 then
 	echo '		android:installLocation="auto"' >> $outPath
 fi
@@ -145,7 +148,7 @@ if [ $bluetooth ]
 then
 	echo '	<uses-permission android:name="android.permission.BLUETOOTH" />
 	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />' >> $outPath
-	if [ $minSDK != 4 ]
+	if [ $minSDK -ge 5 ]
 	then
 	echo '	<uses-feature android:name="android.hardware.bluetooth" android:required="false" />' >> $outPath
 	fi
@@ -156,7 +159,7 @@ then
 	echo '	<uses-permission android:name="android.permission.VIBRATE" />' >> $outPath
 fi
 
-if [ $minSDK = 9 ]
+if [ $minSDK -ge 9 ]
 then
 	echo '	<supports-screens android:xlargeScreens="true" />' >> $outPath
 	echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
@@ -170,6 +173,15 @@ else
 	iconOutput="android:icon=\"@drawable/icon\""
 fi
 
+intentFilters="<action android:name=\"android.intent.action.MAIN\" />
+				<category android:name=\"android.intent.category.LAUNCHER\" />"
+
+if [ $ouyaBuild ]
+then
+	intentFilters="$intentFilters
+				<category android:name=\"tv.ouya.intent.category.GAME\" />"
+fi
+
 echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
 	<application android:label=\"@string/app_name\" $iconOutput>
 		<activity android:name=\"$activityName\"
@@ -179,14 +191,13 @@ echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
 				android:configChanges=\"$uiChanges\"
 				android:launchMode=\"singleInstance\">
 			<intent-filter>
-				<action android:name=\"android.intent.action.MAIN\" />
-				<category android:name=\"android.intent.category.LAUNCHER\" />
+				$intentFilters
 			</intent-filter>
 		</activity>" >> $outPath
 
 if [ $xperiaPlayOpt ]
 then
-	if [ $minSDK == 9 ]
+	if [ $minSDK -ge 9 ]
 	then
 		echo '	<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
 	<meta-data android:name="game_icon" android:resource="@drawable/iconbig" />' >> $outPath

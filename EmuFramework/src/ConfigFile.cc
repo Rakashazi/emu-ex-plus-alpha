@@ -264,7 +264,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
-			#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+			#ifdef USE_BEST_COLOR_MODE_OPTION
 			bcase CFGKEY_BEST_COLOR_MODE_HINT: optionBestColorModeHint.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_INPUT_KEY_CONFIGS:
@@ -492,7 +492,7 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_OPENSL_ES
 	&optionSoundUnderrunCheck,
 	#endif
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	#ifdef USE_BEST_COLOR_MODE_OPTION
 	&optionBestColorModeHint,
 	#endif
 };

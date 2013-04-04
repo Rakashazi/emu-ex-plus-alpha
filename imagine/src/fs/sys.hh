@@ -12,6 +12,7 @@
 	#define FsSys FsPs3
 #endif
 
+#ifdef CONFIG_FS
 template <uint SIZE>
 class WorkDirStack
 {
@@ -40,3 +41,4 @@ public:
 		FsSys::chdir(dir[size]);
 	}
 };
+#endif

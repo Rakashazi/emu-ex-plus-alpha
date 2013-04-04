@@ -48,46 +48,74 @@ const KeyConfig defaultKeyProfile[] =
 {
 #ifdef CONFIG_ENV_WEBOS
 	{
-			Input::Event::MAP_KEYBOARD,
-			"WebOS Keyboard",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
+		Input::Event::MAP_KEYBOARD,
+		0,
+		"WebOS Keyboard",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
-					EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-					asciiKey(' '),
-					Input::Keycode::ENTER,
-					asciiKey(','),
-					asciiKey('m'),
-					asciiKey('i'),
-					asciiKey('o'),
-			}
+			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
+			asciiKey(' '),
+			Input::Keycode::ENTER,
+			asciiKey(','),
+			asciiKey('m'),
+			asciiKey('i'),
+			asciiKey('o'),
+		}
 	},
 #endif
 #ifdef CONFIG_BASE_ANDROID
+	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
-			Input::Event::MAP_KEYBOARD,
-			"Android Nav + Keyboard",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+		Input::Event::MAP_KEYBOARD,
+		Input::Device::SUBTYPE_PS3_CONTROLLER,
+		"PS3 Controller",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
 
-					Input::Keycode::UP,
-					Input::Keycode::RIGHT,
-					Input::Keycode::DOWN,
-					Input::Keycode::LEFT,
-					0,
-					0,
-					0,
-					0,
-					asciiKey(' '),
-					Input::Keycode::ENTER,
-					asciiKey('c'),
-					asciiKey('x'),
-					asciiKey('f'),
-					asciiKey('d')
-			}
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0,
+			0,
+			0,
+			0,
+			Input::Keycode::GAME_SELECT,
+			Input::Keycode::GAME_START,
+			Input::Keycode::GAME_Y,
+			Input::Keycode::GAME_X,
+			Input::Keycode::GAME_B,
+			Input::Keycode::GAME_A,
+		}
 	},
 	{
+		Input::Event::MAP_KEYBOARD,
+		Input::Device::SUBTYPE_OUYA_CONTROLLER,
+		"OUYA Controller",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0,
+			0,
+			0,
+			0,
+			Input::Keycode::GAME_LEFT_THUMB,
+			Input::Keycode::GAME_RIGHT_THUMB,
+			Input::Ouya::A,
+			Input::Ouya::O,
+			Input::Ouya::Y,
+			Input::Ouya::U,
+		}
+	},
+	#ifdef CONFIG_MACHINE_GENERIC_ARMV7
+		{
 			Input::Event::MAP_KEYBOARD,
+			Input::Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
@@ -107,35 +135,13 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::GAME_Y,
 				Input::Keycode::GAME_X,
 			}
-	},
-	{
+		},
+		{
 			Input::Event::MAP_KEYBOARD,
-			"PS3 Controller",
+			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
+			"Droid/Milestone Keyboard",
 			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
-
-					Input::Keycode::UP,
-					Input::Keycode::RIGHT,
-					Input::Keycode::DOWN,
-					Input::Keycode::LEFT,
-					0,
-					0,
-					0,
-					0,
-					Input::Keycode::GAME_SELECT,
-					Input::Keycode::GAME_START,
-					Input::Keycode::GAME_Y,
-					Input::Keycode::GAME_X,
-					Input::Keycode::GAME_B,
-					Input::Keycode::GAME_A,
-			}
-	},
-#endif
-	{
-			Input::Event::MAP_KEYBOARD,
-			"Default Keyboard",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
+				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
 				Input::Keycode::UP,
 				Input::Keycode::RIGHT,
@@ -152,6 +158,31 @@ const KeyConfig defaultKeyProfile[] =
 				asciiKey('f'),
 				asciiKey('d')
 			}
+		},
+	#endif
+#endif
+	{
+		Input::Event::MAP_KEYBOARD,
+		0,
+		"PC Keyboard",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
+
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0,
+			0,
+			0,
+			0,
+			asciiKey(' '),
+			Input::Keycode::ENTER,
+			asciiKey('x'),
+			asciiKey('z'),
+			asciiKey('s'),
+			asciiKey('a')
+		}
 	},
 };
 
@@ -165,6 +196,7 @@ const KeyConfig defaultWiimoteProfile[] =
 {
 	{
 			Input::Event::MAP_WIIMOTE,
+			0,
 			"Default",
 			{
 					EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
@@ -193,6 +225,7 @@ const KeyConfig defaultWiiCCProfile[] =
 {
 	{
 		Input::Event::MAP_WII_CC,
+		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
@@ -223,6 +256,7 @@ const KeyConfig defaultIControlPadProfile[] =
 {
 	{
 			Input::Event::MAP_ICONTROLPAD,
+			0,
 			"Default",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
@@ -253,6 +287,7 @@ const KeyConfig defaultICadeProfile[] =
 {
 	{
 			Input::Event::MAP_ICADE,
+			0,
 			"Default",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
@@ -283,6 +318,7 @@ const KeyConfig defaultZeemoteProfile[] =
 {
 	{
 			Input::Event::MAP_ZEEMOTE,
+			0,
 			"Default",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,

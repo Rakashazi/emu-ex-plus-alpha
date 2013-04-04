@@ -167,6 +167,16 @@ extern GC mmToPixelXScaler, mmToPixelYScaler;
 static int xMMSizeToPixel(GC mm) { return int(mm * mmToPixelXScaler); }
 static int yMMSizeToPixel(GC mm) { return int(mm * mmToPixelYScaler); }
 
+#ifdef CONFIG_BASE_ANDROID
+extern GC smmToPixelXScaler, smmToPixelYScaler;
+
+static int xSMMSizeToPixel(GC mm) { return int(mm * smmToPixelXScaler); }
+static int ySMMSizeToPixel(GC mm) { return int(mm * smmToPixelYScaler); }
+#else
+static int xSMMSizeToPixel(GC mm) { return xMMSizeToPixel(mm); }
+static int ySMMSizeToPixel(GC mm) { return yMMSizeToPixel(mm); }
+#endif
+
 static Rect2<int> viewportRect()
 {
 	return Rect2<int>(0, 0, (int)viewPixelWidth(), (int)viewPixelHeight());

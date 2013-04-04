@@ -16,7 +16,9 @@ static GLenum textureTargetToGet(GLenum target)
 {
 	switch(target)
 	{
+		#if !defined CONFIG_BASE_PS3
 		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
+		#endif
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
 		#endif
@@ -209,6 +211,7 @@ public:
 			*state = 1;
 		}
 
+		#if !defined CONFIG_BASE_PS3
 		if(verifyState)
 		{
 			handleGLErrors();
@@ -221,6 +224,7 @@ public:
 				}
 			}
 		}
+		#endif
 	}
 
 	void disable(GLenum cap)
@@ -244,6 +248,7 @@ public:
 			*state = 0;
 		}
 
+		#if !defined CONFIG_BASE_PS3
 		if(verifyState)
 		{
 			handleGLErrors();
@@ -256,6 +261,7 @@ public:
 				}
 			}
 		}
+		#endif
 	}
 
 	GLboolean isEnabled(GLenum cap)
@@ -314,6 +320,7 @@ public:
 			*state = 1;
 		}
 
+		#if !defined CONFIG_BASE_PS3
 		if(verifyState)
 		{
 			handleGLErrors();
@@ -326,6 +333,7 @@ public:
 				}
 			}
 		}
+		#endif
 	}
 
 	void disableClientState(GLenum cap)
@@ -348,6 +356,7 @@ public:
 			*state = 0;
 		}
 
+		#if !defined CONFIG_BASE_PS3
 		if(verifyState)
 		{
 			handleGLErrors();
@@ -360,6 +369,7 @@ public:
 				}
 			}
 		}
+		#endif
 	}
 
 	GLint GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state = GL_MODULATE;

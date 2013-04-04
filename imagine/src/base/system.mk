@@ -11,3 +11,7 @@ else ifeq ($(ENV), webos)
 else ifeq ($(ENV), ps3)
 	include $(imagineSrcDir)/base/ps3/build.mk
 endif
+
+ifndef NO_LOGGER
+ include $(imagineSrcDir)/logger/system.mk
+endif

@@ -33,7 +33,7 @@ void setKeyRepeat(bool on)
 	allowKeyRepeats = on;
 }
 
-static void initPointer()
+static void initPerWindowData(X11Window win)
 {
 	// make a blank cursor
 	char data[1] = {0};
@@ -83,10 +83,6 @@ CallResult init()
 	// TODO: get actual device list from XI2
 	addDevice(Device{0, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, "Keyboard"});
 	kbDevice = devList.last();
-	initPointer();
-	#ifdef CONFIG_MACHINE_OPEN_PANDORA
-	hideCursor();
-	#endif
 	return OK;
 }
 
@@ -98,7 +94,7 @@ static void updatePointer(uint event, int p, uint action, int x, int y)
 	auto &state = dragStateArr[p];
 	auto pos = pointerPos(x, y);
 	state.pointerEvent(event, action, pos);
-	onInputEvent(Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, nullptr));
+	onInputEvent(Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, nullptr));
 }
 
 static void handlePointerButton(uint button, int p, uint action, int x, int y)

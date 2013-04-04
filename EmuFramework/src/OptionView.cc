@@ -1,10 +1,11 @@
-#include <libgen.h>
 #include <OptionView.hh>
 #include <MsgPopup.hh>
 #include <FilePicker.hh>
 
 extern MsgPopup popup;
 extern EmuFilePicker fPicker;
+void setOnScreenControls(bool on);
+void updateAutoOnScreenControlVisible();
 
 void OptionView::soundHandler(BoolMenuItem &item, const Input::Event &e)
 {
@@ -33,6 +34,7 @@ static void touchCtrlHandler(BoolMenuItem &item, const Input::Event &e)
 {
 	item.toggle();
 	optionTouchCtrl = item.on;
+	setOnScreenControls(item.on);
 }
 
 void OptionView::touchCtrlInit()
@@ -44,6 +46,10 @@ void OptionView::touchCtrlInit()
 void touchCtrlSet(MultiChoiceMenuItem &, int val)
 {
 	optionTouchCtrl = val;
+	if(val == 2)
+		updateAutoOnScreenControlVisible();
+	else
+		setOnScreenControls(val);
 }
 
 void OptionView::touchCtrlInit()
@@ -495,46 +501,6 @@ void OptionView::zoomInit()
 	zoom.onValue().bind<&zoomSet>();
 }
 
-void dpiSet(MultiChoiceMenuItem &, int val)
-{
-	switch(val)
-	{
-		bdefault: optionDPI.val = 0;
-		bcase 1: optionDPI.val = 96;
-		bcase 2: optionDPI.val = 120;
-		bcase 3: optionDPI.val = 130;
-		bcase 4: optionDPI.val = 160;
-		bcase 5: optionDPI.val = 220;
-		bcase 6: optionDPI.val = 240;
-		bcase 7: optionDPI.val = 265;
-		bcase 8: optionDPI.val = 320;
-	}
-	Base::setDPI(optionDPI);
-	logMsg("set DPI: %d", (int)optionDPI);
-	setupFont();
-	Gfx::onViewChange(nullptr);
-}
-
-void OptionView::dpiInit()
-{
-	static const char *str[] = { "Auto", "96", "120", "130", "160", "220", "240", "265", "320" };
-	uint init = 0;
-	switch(optionDPI)
-	{
-		bcase 96: init = 1;
-		bcase 120: init = 2;
-		bcase 130: init = 3;
-		bcase 160: init = 4;
-		bcase 220: init = 5;
-		bcase 240: init = 6;
-		bcase 265: init = 7;
-		bcase 320: init = 8;
-	}
-	assert(init < sizeofArray(str));
-	dpi.init(str, init, sizeofArray(str));
-	dpi.onValue().bind<&dpiSet>();
-}
-
 void imgFilterSet(MultiChoiceMenuItem &, int val)
 {
 	optionImgFilter.val = val;
@@ -669,7 +635,7 @@ void OptionView::processPriorityInit()
 }
 #endif
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+#ifdef USE_BEST_COLOR_MODE_OPTION
 void OptionView::confirmBestColorModeHintAlert(const Input::Event &e)
 {
 	bestColorModeHint.toggle();
@@ -689,7 +655,12 @@ void OptionView::bestColorModeHintHandler(BoolMenuItem &item, const Input::Event
 	}
 	else
 	{
-		confirmBestColorModeHintAlert(e);
+		ynAlertView.init("This option takes effect next time you launch the app. "
+				"If off, it may improve performance at the cost of color accuracy."
+				, !e.isPointer(), "Toggle", "Cancel");
+		ynAlertView.onYes().bind<OptionView, &OptionView::confirmBestColorModeHintAlert>(this);
+		ynAlertView.placeRect(Gfx::viewportRect());
+		modalView = &ynAlertView;
 	}
 }
 #endif
@@ -704,9 +675,7 @@ static int dirFsFilter(const char *name, int type)
 template <size_t S>
 static void printPathMenuEntryStr(char (&str)[S])
 {
-	char basenameStr[S];
-	strcpy(basenameStr, optionSavePath);
-	string_printf(str, "Save Path: %s", strlen(optionSavePath) ? basename(basenameStr) : "Same as Game");
+	string_printf(str, "Save Path: %s", strlen(optionSavePath) ? string_basename(optionSavePath) : "Same as Game");
 }
 
 void OptionView::savePathUpdated(const char *newPath)
@@ -716,12 +685,10 @@ void OptionView::savePathUpdated(const char *newPath)
 	EmuSystem::savePathChanged();
 }
 
-static class SavePathSelectMenu : public BaseMultiChoiceView
+static class SavePathSelectMenu
 {
 public:
 	constexpr SavePathSelectMenu() { }
-	TextMenuItem choiceEntry[2];
-	MenuItem *choiceEntryItem[2] {nullptr};
 	PathChangeDelegate pathChangeDel;
 
 	void onClose(const Input::Event &e)
@@ -735,14 +702,16 @@ public:
 
 	void init(bool highlightFirst)
 	{
-		choiceEntry[0].init("Set Custom Path"); choiceEntryItem[0] = &choiceEntry[0];
-		choiceEntry[1].init("Same as Game"); choiceEntryItem[1] = &choiceEntry[1];
-		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
+		static const char *str[] { "Set Custom Path", "Same as Game" };
+		multiChoiceView.init(str, sizeofArray(str), highlightFirst);
+		multiChoiceView.placeRect(Gfx::viewportRect());
+		multiChoiceView.onSelectDelegate().bind<template_mfunc(SavePathSelectMenu, onSelect)>(this);
+		View::modalView = &multiChoiceView;
 	}
 
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+	bool onSelect(int i, const Input::Event &e)
 	{
-		removeModalView();
+		View::removeModalView();
 		if(i == 0)
 		{
 			workDirStack.push();
@@ -750,7 +719,7 @@ public:
 			fPicker.init(!e.isPointer(), dirFsFilter);
 			fPicker.onCloseDelegate().bind<SavePathSelectMenu, &SavePathSelectMenu::onClose>(this);
 			fPicker.placeRect(Gfx::viewportRect());
-			modalView = &fPicker;
+			View::modalView = &fPicker;
 			Base::displayNeedsUpdate();
 		}
 		else
@@ -758,15 +727,14 @@ public:
 			strcpy(optionSavePath, "");
 			pathChangeDel.invokeSafe("");
 		}
+		return 0;
 	}
 } pathSelectMenu;
 
 void OptionView::savePathHandler(TextMenuItem &, const Input::Event &e)
 {
 	pathSelectMenu.init(!e.isPointer());
-	pathSelectMenu.placeRect(Gfx::viewportRect());
 	pathSelectMenu.pathChangeDel.bind<OptionView, &OptionView::savePathUpdated>(this);
-	modalView = &pathSelectMenu;
 	Base::displayNeedsUpdate();
 }
 
@@ -802,7 +770,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 			glSyncHack.selectDelegate().bind<&glSyncHackHandler>();
 		}
 	#endif
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	#ifdef USE_BEST_COLOR_MODE_OPTION
 		bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
 		bestColorModeHint.selectDelegate().bind<OptionView, &OptionView::bestColorModeHintHandler>(this);
 	#endif
@@ -898,7 +866,6 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 		largeFonts.init(optionLargeFonts); item[items++] = &largeFonts;
 		largeFonts.selectDelegate().bind<&largeFontsHandler>();
 	}
-	if(!optionDPI.isConst) { dpiInit(); item[items++] = &dpi; }
 	#ifndef CONFIG_ENV_WEBOS
 	altGamepadConfirm.init(Input::swappedGamepadConfirm); item[items++] = &altGamepadConfirm;
 	altGamepadConfirm.selectDelegate().bind<&altGamepadConfirmHandler>();

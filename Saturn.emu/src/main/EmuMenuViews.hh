@@ -1,6 +1,5 @@
 #pragma once
 #include "OptionView.hh"
-#include <libgen.h>
 
 class SystemOptionView : public OptionView
 {
@@ -13,9 +12,7 @@ private:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		char basenameStr[S];
-		strcpy(basenameStr, ::biosPath);
-		string_printf(str, "BIOS: %s", strlen(::biosPath) ? basename(basenameStr) : "None set");
+		string_printf(str, "BIOS: %s", strlen(::biosPath) ? string_basename(::biosPath) : "None set");
 	}
 
 	void biosPathUpdated()

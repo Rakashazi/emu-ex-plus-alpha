@@ -2,6 +2,7 @@
 #include <base/android/sdk.hh>
 #include <input/common/common.h>
 #include <base/android/private.hh>
+#include <config/machine.hh>
 #include <util/jni.hh>
 #include <android/input.h>
 #include <android/configuration.h>
@@ -12,7 +13,8 @@
 namespace Input
 {
 
-static float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index) = 0;
+typedef float (*AMotionEvent_getAxisValueProto)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
+static AMotionEvent_getAxisValueProto AMotionEvent_getAxisValue = nullptr;
 static bool handleVolumeKeys = 0;
 static bool allowKeyRepeats = 1;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
@@ -33,7 +35,6 @@ struct SysInputDevice
 	}
 };
 static SysInputDevice sysInputDev[maxSysInputDevs];
-static Device *builtinKeyboardDev = nullptr;
 static Device *virtualDev = nullptr;
 
 // JNI classes/methods
@@ -161,15 +162,13 @@ static void handleKeycodesForSpecialDevices(const Input::Device &dev, int32_t &k
 {
 	switch(dev.subtype)
 	{
-		#ifdef __ARM_ARCH_7A__
 		bcase Device::SUBTYPE_XPERIA_PLAY:
 		{
-			if(unlikely(keyCode == (int)Keycode::ESCAPE && (metaState & AMETA_ALT_ON)))
+			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::ESCAPE && (metaState & AMETA_ALT_ON)))
 			{
 				keyCode = Keycode::GAME_B;
 			}
 		}
-		#endif
 		bdefault: break;
 	}
 }
@@ -201,7 +200,7 @@ int32_t onInputEvent(AInputEvent* event)
 		{
 			int eventAction = AMotionEvent_getAction(event);
 			//logMsg("get motion event action %d", eventAction);
-
+			bool isTouch = 0;
 			switch(source)
 			{
 				case AINPUT_SOURCE_TRACKBALL:
@@ -216,6 +215,9 @@ int32_t onInputEvent(AInputEvent* event)
 					return 0;
 				}
 				case AINPUT_SOURCE_TOUCHSCREEN:
+				{
+					isTouch = 1;
+				}
 				case AINPUT_SOURCE_MOUSE:
 				{
 					//logMsg("from touchscreen or mouse");
@@ -226,7 +228,7 @@ int32_t onInputEvent(AInputEvent* event)
 						handleTouchEvent(AMOTION_EVENT_ACTION_UP,
 								AMotionEvent_getX(event, 0) - Base::window().rect.x,
 								AMotionEvent_getY(event, 0) - Base::window().rect.y,
-								AMotionEvent_getPointerId(event, 0));
+								AMotionEvent_getPointerId(event, 0), isTouch);
 						return 1;
 					}
 					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
@@ -243,7 +245,7 @@ int32_t onInputEvent(AInputEvent* event)
 						handleTouchEvent(pAction,
 							AMotionEvent_getX(event, i) - Base::window().rect.x,
 							AMotionEvent_getY(event, i) - Base::window().rect.y,
-							AMotionEvent_getPointerId(event, i));
+							AMotionEvent_getPointerId(event, i), isTouch);
 					}
 					return 1;
 				}
@@ -412,8 +414,7 @@ bool dlLoadAndroidFuncs(void *libandroid)
 	}
 	// Google seems to have forgotten to put AMotionEvent_getAxisValue() in the NDK libandroid.so even though it's
 	// present in at least Android 4.0, so we'll load it dynamically to be safe
-	if((AMotionEvent_getAxisValue = (float (*)(const AInputEvent*, int32_t, size_t))dlsym(libandroid, "AMotionEvent_getAxisValue"))
-			== 0)
+	if((AMotionEvent_getAxisValue = (AMotionEvent_getAxisValueProto)dlsym(libandroid, "AMotionEvent_getAxisValue")) == nullptr)
 	{
 		logWarn("AMotionEvent_getAxisValue not found");
 		return 0;
@@ -480,17 +481,15 @@ void rescanDevices(bool firstRun)
 				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_VIRTUAL);
 			}
 
-			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_GAMEPAD)
-					&& !bit_isMaskSet(src, AInputDeviceJ::SOURCE_TOUCHSCREEN)) // ignore some odd devices like "MHLRCP"
+			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_GAMEPAD))
 			{
 				bool isGamepad = 1;
-				#ifdef __ARM_ARCH_7A__
-				if(strstr(name, "-zeus"))
+				if(Config::MACHINE_IS_GENERIC_ARMV7 && strstr(name, "-zeus"))
 				{
 					logMsg("detected Xperia Play gamepad");
 					newDev->subtype = Device::SUBTYPE_XPERIA_PLAY;
 				}
-				else if(string_equal(name, "sii9234_rcp"))
+				else if(Config::MACHINE_IS_GENERIC_ARMV7 && (string_equal(name, "sii9234_rcp") || string_equal(name, "MHLRCP")))
 				{
 					// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 					// but has only special function keys
@@ -498,12 +497,15 @@ void rescanDevices(bool firstRun)
 					src = 0;
 					isGamepad = 0;
 				}
-				else
-				#endif
-				if(string_equal(name, "Sony PLAYSTATION(R)3 Controller"))
+				else if(string_equal(name, "Sony PLAYSTATION(R)3 Controller"))
 				{
 					logMsg("detected PS3 gamepad");
 					newDev->subtype = Device::SUBTYPE_PS3_CONTROLLER;
+				}
+				else if(string_equal(name, "OUYA Game Controller"))
+				{
+					logMsg("detected OUYA gamepad");
+					newDev->subtype = Device::SUBTYPE_OUYA_CONTROLLER;
 				}
 				else
 				{
@@ -558,6 +560,7 @@ void rescanDevices(bool firstRun)
 	}
 }
 
+
 CallResult init()
 {
 	if(Base::androidSDK() >= 12)
@@ -570,12 +573,19 @@ CallResult init()
 		// no multi-input device support
 		Device genericKeyDev { 0, Event::MAP_KEYBOARD,
 			Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Key Input (All Devices)" };
-		#ifdef __ARM_ARCH_7A__
-		if(Base::runningDeviceType() == Base::DEV_TYPE_XPERIA_PLAY)
+		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			genericKeyDev.subtype = Device::SUBTYPE_XPERIA_PLAY;
+			if(isXperiaPlayDeviceStr(Base::androidBuildDevice()))
+			{
+				logMsg("detected Xperia Play gamepad");
+				genericKeyDev.subtype = Device::SUBTYPE_XPERIA_PLAY;
+			}
+			else if(string_equal(Base::androidBuildDevice(), "sholes"))
+			{
+				logMsg("detected Droid/Milestone keyboard");
+				genericKeyDev.subtype = Device::SUBTYPE_MOTO_DROID_KEYBOARD;
+			}
 		}
-		#endif
 		Input::addDevice(genericKeyDev);
 		builtinKeyboardDev = devList.last();
 	}

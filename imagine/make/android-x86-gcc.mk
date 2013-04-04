@@ -5,6 +5,9 @@ ifndef android_minSDK
  android_minSDK := 9
 endif
 android_ndkArch := x86
+ifndef MACHINE
+ MACHINE := GENERIC_X86
+endif
 
 ifeq ($(origin CC), default)
  CC := i686-linux-android-gcc

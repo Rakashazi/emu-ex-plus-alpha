@@ -39,6 +39,8 @@ ifeq ($(ENV), android)
  else
   imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine-android-9.pc
  endif
+else ifeq ($(ENV), ios)
+ imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine-ios.pc
 endif
 
 include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk

@@ -27,7 +27,7 @@ vbamSrc := gba/GBA-thumb.cpp gba/bios.cpp gba/Globals.cpp \
 gba/Cheats.cpp gba/Mode0.cpp gba/CheatSearch.cpp gba/Mode1.cpp \
 gba/EEprom.cpp gba/Mode2.cpp gba/Mode3.cpp gba/Flash.cpp gba/Mode4.cpp \
 gba/GBA-arm.cpp gba/Mode5.cpp gba/GBA.cpp gba/gbafilter.cpp gba/RTC.cpp \
-gba/Sound.cpp gba/Sram.cpp common/memgzio.c Util.cpp
+gba/Sound.cpp gba/Sram.cpp common/memgzio.c common/Patch.cpp Util.cpp
 #gba/remote.cpp gba/GBASockClient.cpp gba/GBALink.cpp gba/agbprint.cpp
 # 7z_C/7zHeader.c 7z_C/7zItem.c gba/armdis.cpp gba/elf.cpp
 

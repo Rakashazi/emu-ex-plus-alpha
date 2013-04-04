@@ -29,7 +29,9 @@
 
 extern YesNoAlertView ynAlertView;
 extern ViewStack viewStack;
+#ifdef INPUT_SUPPORTS_POINTER
 extern TouchConfigView tcMenu;
+#endif
 extern EmuView emuView;
 extern EmuFilePicker fPicker;
 void setupStatusBarInMenu();
@@ -119,7 +121,7 @@ protected:
 
 	BoolMenuItem confirmOverwriteState {"Confirm Overwrite State"};
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
 	BoolMenuItem bestColorModeHint {"Use Highest Color Mode"};
 	void bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e);
 	void confirmBestColorModeHintAlert(const Input::Event &e);
@@ -162,10 +164,6 @@ protected:
 	MultiChoiceSelectMenuItem zoom {"Zoom"};
 
 	void zoomInit();
-
-	MultiChoiceSelectMenuItem dpi {"DPI Override"};
-
-	void dpiInit();
 
 	MultiChoiceSelectMenuItem imgFilter {"Image Filter"};
 

@@ -22,15 +22,35 @@ void freeTexRef(GfxTextureHandle texRef)
 	glcDeleteTextures(1, &texRef);
 }
 
-static uint setUnpackAlignForPitch(uint pitch)
+static uint unpackAlignForPitch(uint pitch)
 {
 	uint alignment = 1;
 	if(!Config::envIsPS3 && pitch % 8 == 0) alignment = 8;
 	else if(pitch % 4 == 0) alignment = 4;
 	else if(pitch % 2 == 0) alignment = 2;
-	//logMsg("setting unpack alignment %d", alignment);
-	glcPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-	//glcPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	return alignment;
+}
+
+static uint unpackAlignForAddr(void *srcAddr)
+{
+	auto addr = (ptrsize)srcAddr;
+	uint alignment = 1;
+	if(addr % 8 == 0) alignment = 8;
+	else if(addr % 4 == 0) alignment = 4;
+	else if(addr % 2 == 0) alignment = 2;
+	return alignment;
+}
+
+static uint unpackAlignForAddrAndPitch(void *srcAddr, uint pitch)
+{
+	uint alignmentForAddr = unpackAlignForAddr(srcAddr);
+	uint alignmentForPitch = unpackAlignForPitch(pitch);
+	if(alignmentForAddr < alignmentForPitch)
+	{
+		logMsg("using lowest alignment of address %p (%d) and pitch %d (%d)",
+				srcAddr, alignmentForAddr, pitch, alignmentForPitch);
+	}
+	uint alignment = IG::min(alignmentForPitch, alignmentForAddr);
 	return alignment;
 }
 
@@ -230,11 +250,15 @@ static void setDefaultImageTextureParams(uint imgFilter, uchar mipmapType, int x
 	//glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, col);
 }
 
-static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
+static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target, uint srcAlign)
 {
 	//logMsg("writeGLTexture");
-	uint alignment = setUnpackAlignForPitch(pix.pitch);
-	assert((ptrsize)pix.data % (ptrsize)alignment == 0);
+	//logMsg("setting source pixel row alignment: %d", srcAlign);
+	glcPixelStorei(GL_UNPACK_ALIGNMENT, srcAlign);
+	if((ptrsize)pix.data % (ptrsize)srcAlign != 0)
+	{
+		bug_exit("expected data from address %p to be aligned to %u bytes", pix.data, srcAlign);
+	}
 	GLenum format = pixelFormatToOGLFormat(pix.format);
 	GLenum dataType = pixelFormatToOGLDataType(pix.format);
 	uint xSize = includePadding ? pix.pitchPixels() : pix.x;
@@ -281,18 +305,13 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target)
 	return 1;
 }
 
-static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target)
+static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target, uint srcAlign)
 {
-	/*#ifdef CONFIG_GFX_OPENGL_ES // pal tex test
-	if(pix->format->id == PIXEL_IA88)
+	glcPixelStorei(GL_UNPACK_ALIGNMENT, srcAlign);
+	if((ptrsize)pix.data % (ptrsize)srcAlign != 0)
 	{
-		logMsg("testing pal tex");
-		return 1;
+		bug_exit("expected data from address %p to be aligned to %u bytes", pix.data, srcAlign);
 	}
-	#endif*/
-
-	uint alignment = setUnpackAlignForPitch(pix.pitch);
-	assert((ptrsize)pix.data % (ptrsize)alignment == 0);
 	#ifndef CONFIG_GFX_OPENGL_ES
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	#endif
@@ -309,6 +328,12 @@ static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool
 		return 0;
 	}
 	return 1;
+}
+
+static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target)
+{
+	uint alignment = unpackAlignForAddrAndPitch(pix.data, pix.pitch);
+	return replaceGLTexture(pix, upload, internalFormat, includePadding, target, alignment);
 }
 
 static const PixelFormatDesc *swapRGBToPreferedOrder(const PixelFormatDesc *fmt)
@@ -363,14 +388,20 @@ void BufferImage::setRepeatMode(uint xMode, uint yMode)
 		logWarn("error with wrap t %d", wrapT);
 }
 
-void TextureBufferImage::write(Pixmap &p, uint hints)
+void TextureBufferImage::write(Pixmap &p, uint hints, uint alignment)
 {
 	glcBindTexture(GL_TEXTURE_2D, tid);
-	writeGLTexture(p, hints, GL_TEXTURE_2D);
+	writeGLTexture(p, hints, GL_TEXTURE_2D, alignment);
 
 	#ifdef CONFIG_BASE_ANDROID
 		if(unlikely(glSyncHackEnabled)) glFinish();
 	#endif
+}
+
+void TextureBufferImage::write(Pixmap &p, uint hints)
+{
+	uint alignment = unpackAlignForAddrAndPitch(p.data, p.pitch);
+	write(p, hints, alignment);
 }
 
 void TextureBufferImage::replace(Pixmap &p, uint hints)
@@ -385,6 +416,7 @@ void TextureBufferImage::unlock(Pixmap *pix, uint hints) { write(*pix, hints); }
 
 void TextureBufferImage::deinit()
 {
+	logMsg("freeing texture 0x%X", tid);
 	freeTexRef(tid);
 	tid = 0;
 }
@@ -476,7 +508,7 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 	{
 		GLenum format = pixelFormatToOGLFormat(pix.format);
 		GLenum dataType = pixelFormatToOGLDataType(pix.format);
-		logMsg("%s texture %dx%d with internal format %s from image %s:%s", upload ? "uploading" : "creating", pix.x, pix.y, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+		logMsg("%s texture 0x%X with size %dx%d, internal format %s, from image %s:%s", upload ? "uploading" : "creating", texRef, pix.x, pix.y, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 	}
 	if(replaceGLTexture(pix, upload, internalFormat, includePadding, texTarget))
 	{
@@ -609,6 +641,7 @@ CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, 
 }
 
 void BufferImage::write(Pixmap &p) { BufferImageImpl::write(p, hints); }
+void BufferImage::write(Pixmap &p, uint assumeAlign) { BufferImageImpl::write(p, hints, assumeAlign); }
 void BufferImage::replace(Pixmap &p)
 {
 	BufferImageImpl::replace(p, hints);

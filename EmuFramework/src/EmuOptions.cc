@@ -1,7 +1,9 @@
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include "VController.hh"
+#ifdef INPUT_SUPPORTS_POINTER
 extern SysVController vController;
+#endif
 
 bool optionOrientationIsValid(uint32 val)
 {
@@ -30,7 +32,7 @@ Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
 Byte1Option optionLargeFonts(CFGKEY_FONT_Y_PIXELS, Config::envIsWebOS3,
 	(Config::envIsWebOS && !Config::envIsWebOS3));
 
-Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::envIsAndroid);
+Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
 Byte1Option optionPauseUnfocused(CFGKEY_PAUSE_UNFOCUSED, 1,
 	!(Config::envIsPS3 || Config::envIsLinux || Config::envIsAndroid));
@@ -201,7 +203,7 @@ Byte4s2Option optionTouchCtrlImgRes
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+#ifdef USE_BEST_COLOR_MODE_OPTION
 	Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 #endif
 
@@ -210,7 +212,7 @@ PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, sizeof(EmuSyst
 void initOptions()
 {
 	#ifdef CONFIG_BASE_IOS
-		if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
+		if(Base::deviceIsIPad())
 			optionLargeFonts.initDefault(1);
 	#endif
 
@@ -260,13 +262,13 @@ void initOptions()
 
 	#ifdef INPUT_SUPPORTS_POINTER
 		#ifdef CONFIG_BASE_IOS
-			if(Base::runningDeviceType() == Base::DEV_TYPE_IPAD)
+			if(Base::deviceIsIPad())
 				optionTouchCtrlSize.initDefault(1400);
 		#endif
 		optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
 	#endif
 
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	#ifdef USE_BEST_COLOR_MODE_OPTION
 		optionBestColorModeHint.initDefault(Base::windowPixelBestColorHintDefault());
 	#endif
 }

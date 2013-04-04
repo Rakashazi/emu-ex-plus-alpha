@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <libgen.h>
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
 #include <audio/Audio.hh>
@@ -190,9 +189,7 @@ void EmuSystem::setupGamePaths(const char *filePath)
 {
 	{
 		// find the realpath the dirname portion separately in case the file is a symlink
-		FsSys::cPath dirNameTemp;
-		string_copy(dirNameTemp, filePath);
-		strcpy(gamePath, dirname(dirNameTemp));
+		strcpy(gamePath, string_dirname(filePath));
 		char realPath[PATH_MAX];
 		if(!realpath(gamePath, realPath))
 		{
@@ -208,9 +205,7 @@ void EmuSystem::setupGamePaths(const char *filePath)
 	}
 
 	{
-		FsSys::cPath baseNameTemp;
-		string_copy(baseNameTemp, filePath);
-		string_copy(gameName, basename(baseNameTemp));
+		string_copy(gameName, string_basename(filePath));
 
 		string_printf(fullGamePath, "%s/%s", gamePath, gameName);
 		logMsg("set full game path: %s", fullGamePath);

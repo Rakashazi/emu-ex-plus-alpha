@@ -3,7 +3,9 @@
 #include <VController.hh>
 #include <MsgPopup.hh>
 
+#ifdef INPUT_SUPPORTS_POINTER
 extern SysVController vController;
+#endif
 extern bool touchControlsAreOn;
 bool touchControlsApplicable();
 extern bool ffGuiKeyPush, ffGuiTouch;
@@ -178,7 +180,7 @@ void EmuView::drawContent()
 	using namespace Gfx;
 	disp.draw();
 	vidImgOverlay.draw();
-	#ifndef CONFIG_BASE_PS3
+	#ifdef INPUT_SUPPORTS_POINTER
 		if(active && ((touchControlsAreOn && touchControlsApplicable())
 		#ifdef CONFIG_VCONTROLLER_KEYBOARD
 			|| vController.kbMode
@@ -195,6 +197,9 @@ void EmuView::drawContent()
 	#endif
 	popup.draw();
 }
+
+template void EmuView::drawContent<0>();
+template void EmuView::drawContent<1>();
 
 void EmuView::draw(Gfx::FrameTimeBase frameTime)
 {

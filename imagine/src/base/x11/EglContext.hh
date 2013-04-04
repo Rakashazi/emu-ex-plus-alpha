@@ -11,6 +11,7 @@
 #undef GC
 #undef Window
 #undef BOOL
+#include <config/machine.hh>
 
 class EglContext
 {
@@ -47,11 +48,7 @@ public:
 			return 0;
 		}
 
-		#ifdef CONFIG_MACHINE_OPEN_PANDORA
-			display  =  eglGetDisplay((EGLNativeDisplayType)nullptr);
-		#else
-			display  =  eglGetDisplay((EGLNativeDisplayType)dpy);
-		#endif
+		display  =  eglGetDisplay(Config::MACHINE_IS_OPEN_PANDORA ? (EGLNativeDisplayType)nullptr : (EGLNativeDisplayType)dpy);
 
 		if(display == EGL_NO_DISPLAY)
 		{
@@ -83,11 +80,8 @@ public:
 			printEGLConf(display, config);
 		#endif
 
-		#ifdef CONFIG_MACHINE_OPEN_PANDORA
-			surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)EGL_DEFAULT_DISPLAY, nullptr);
-		#else
-			surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)win, nullptr);
-		#endif
+		surface = eglCreateWindowSurface(display, config,
+			Config::MACHINE_IS_OPEN_PANDORA ? (EGLNativeWindowType)EGL_DEFAULT_DISPLAY : (EGLNativeWindowType)win, nullptr);
 		if(surface == EGL_NO_SURFACE)
 		{
 			logErr("error creating window surface: 0x%X", (int)eglGetError());

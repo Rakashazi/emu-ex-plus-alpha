@@ -28,12 +28,12 @@ final class Bluetooth
 	private static String logTag = "ImagineBluetooth";
 	private static final int TYPE_L2CAP = 3;
 	private static ArrayList<BluetoothDevice> devs = null;
-	static BluetoothAdapter adapter = null;
 	private static Constructor<?> l2capInsecureSocketConstructor = Util.getConstructor(BluetoothSocket.class, new Class[] {int.class, int.class, boolean.class, boolean.class, BluetoothDevice.class, int.class, ParcelUuid.class});
 	private static Method createInsecureRfcommSocket = Util.getMethod(BluetoothDevice.class, "createInsecureRfcommSocket", new Class[] { int.class });
 	
 	static BluetoothAdapter defaultAdapter(Activity act)
 	{
+		BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 		if(adapter == null)
 		{
 			//Log.i(logTag, "no bluetooth adapter found");

@@ -15,6 +15,8 @@
 
 #include <TouchConfigView.hh>
 
+void setupFont();
+
 //static const char *ctrlPosStr[] =
 //{
 //	"Top-Left", "Mid-Left", "Bottom-Left", "Top-Right", "Mid-Right", "Bottom-Right", "Top", "Bottom", "Off"
@@ -408,6 +410,7 @@ void TouchConfigView::init(bool highlightFirst)
 		vibrate.init(optionVibrateOnPush); text[i++] = &vibrate;
 		vibrate.selectDelegate().bind<&vibrateHandler>();
 	}
+	if(!optionDPI.isConst) { dpiInit(); text[i++] = &dpi; }
 	if(!optionTouchCtrlImgRes.isConst)
 	{
 		imageResolution.init(optionTouchCtrlImgRes == 128U ? 1 : 0); text[i++] = &imageResolution;
@@ -436,4 +439,44 @@ void TouchConfigView::updatePositionVals()
 	{
 		triggerPos.updateVal();
 	}
+}
+
+void TouchConfigView::dpiSet(MultiChoiceMenuItem &, int val)
+{
+	switch(val)
+	{
+		bdefault: optionDPI.val = 0;
+		bcase 1: optionDPI.val = 96;
+		bcase 2: optionDPI.val = 120;
+		bcase 3: optionDPI.val = 130;
+		bcase 4: optionDPI.val = 160;
+		bcase 5: optionDPI.val = 220;
+		bcase 6: optionDPI.val = 240;
+		bcase 7: optionDPI.val = 265;
+		bcase 8: optionDPI.val = 320;
+	}
+	Base::setDPI(optionDPI);
+	logMsg("set DPI: %d", (int)optionDPI);
+	setupFont();
+	Gfx::onViewChange(nullptr);
+}
+
+void TouchConfigView::dpiInit()
+{
+	static const char *str[] = { "Auto", "96", "120", "130", "160", "220", "240", "265", "320" };
+	uint init = 0;
+	switch(optionDPI)
+	{
+		bcase 96: init = 1;
+		bcase 120: init = 2;
+		bcase 130: init = 3;
+		bcase 160: init = 4;
+		bcase 220: init = 5;
+		bcase 240: init = 6;
+		bcase 265: init = 7;
+		bcase 320: init = 8;
+	}
+	assert(init < sizeofArray(str));
+	dpi.init(str, init, sizeofArray(str));
+	dpi.onValue().bind<&dpiSet>();
 }

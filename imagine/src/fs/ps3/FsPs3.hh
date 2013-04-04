@@ -25,6 +25,9 @@ public:
 	static int chown(const char *path, int owner, int group) { return 0; } // TODO
 	static int hasWriteAccess(const char *path) { return 1; } // TODO
 
+	typedef char timeStr[1]; // TODO
+	static CallResult mTimeAsStr(const char *path, timeStr time);
+
 	static bool fileExists(const char *path)
 	{
 		return fileType(path) != TYPE_NONE;
@@ -41,3 +44,11 @@ private:
 	int entries = 0;
 	static char workPath[CELL_FS_MAX_MP_LENGTH + CELL_FS_MAX_FS_PATH_LENGTH];
 };
+
+static const uint PATH_MAX = FsPs3::cPathSize;
+
+static char *realpath(const char *in, char *out)
+{
+	FsPs3::makePathAbs(in, out, PATH_MAX);
+	return out;
+}

@@ -31,6 +31,7 @@ struct DirectTextureBufferImage: public TextureBufferImage
 	static bool testSupport(const char **errorStr);
 	bool init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
 	void write(Pixmap &p, uint hints) override;
+	void write(Pixmap &p, uint hints, uint alignment) override;
 	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
 	void unlock(Pixmap *p = nullptr, uint hints = 0) override;
 	void deinit() override;

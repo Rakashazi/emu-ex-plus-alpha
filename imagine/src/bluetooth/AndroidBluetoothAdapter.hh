@@ -30,12 +30,23 @@ public:
 	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
 	void close() override;
 	CallResult write(const void *data, size_t size) override;
+	void onStatusDelegateMessage(int arg);
 
 	jobject socket = nullptr, outStream = nullptr;
-	static void* readThreadFunc(void *);
+	ptrsize readThreadFunc(ThreadPThread &thread);
 	ThreadPThread readThread;
+	ptrsize connectThreadFunc(ThreadPThread &thread);
+	ThreadPThread connectThread;
+	Base::PollEventDelegate pollEvDel {Base::PollEventDelegate::create<template_mfunc(AndroidBluetoothSocket, readPendingData)>(this)};
+	int nativeFd = -1;
+	uint channel = 0;
 	bool isClosing = 0;
+	bool isL2cap = 0;
+	char addrStr[18] {0};
+
+private:
 	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);
+	int readPendingData(int events);
 };
 
 namespace Base

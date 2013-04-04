@@ -21,16 +21,22 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
+$(buildDir)/Tremor/configure.in : $(libvorbisSrcDir)
+	@echo "Copying tremor source to: $(buildDir)"
+	@mkdir -p $(buildDir)
+	cp -r $(libvorbisSrcDir) $(buildDir)
+	patch -d $(buildDir)/Tremor -p1 < tremor-autoconf-1.13-fix.patch
+
 $(outputLibFile) : $(makeFile)
 	@echo "Building tremor..."
 	$(MAKE) -C $(<D)
 	
-$(libvorbisSrcDir)/configure : $(libvorbisSrcDir)/configure.in
+$(buildDir)/Tremor/configure : $(buildDir)/Tremor/configure.in
 	@echo "Generating configure for tremor..."
-	cd $(libvorbisSrcDir) && autoreconf -isf
+	cd $(buildDir)/Tremor && autoreconf -isf
 
-$(makeFile) : $(libvorbisSrcDir)/configure
+$(makeFile) : $(buildDir)/Tremor/configure
 	@echo "Configuring tremor..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include $$dir/Tremor/configure --disable-oggtest --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./Tremor/configure --disable-oggtest --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
 

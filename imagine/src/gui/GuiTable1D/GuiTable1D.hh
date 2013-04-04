@@ -3,6 +3,7 @@
 #include <input/Input.hh>
 #include <gfx/Gfx.hh>
 #include <config/env.hh>
+#include <config/machine.hh>
 
 class GuiTable1D;
 
@@ -35,9 +36,10 @@ public:
 	static void setDefaultXIndent()
 	{
 		GuiTable1D::globalXIndent =
-			(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(Gfx::xMMSize(1)) :
-			(Config::envIsPS3) ? /*floor*/(Gfx::xMMSize(16)) :
-			/*floor*/(Gfx::xMMSize(2));
+			(Config::MACHINE_IS_OUYA) ? Gfx::xSMMSize(4) :
+			(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(Gfx::xSMMSize(1)) :
+			(Config::envIsPS3) ? /*floor*/(Gfx::xSMMSize(16)) :
+			/*floor*/(Gfx::xSMMSize(2));
 	}
 
 	void clearSelection()

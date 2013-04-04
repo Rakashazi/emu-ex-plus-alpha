@@ -90,7 +90,7 @@ void KScroll::place()
 {
 	assert(contentFrame);
 	assert(viewFrame);
-	dragStartY = IG::max(1, Config::envIsAndroid ? Gfx::yMMSizeToPixel(1.5) : Gfx::yMMSizeToPixel(1.));
+	dragStartY = IG::max(1, Config::envIsAndroid ? Gfx::ySMMSizeToPixel(1.5) : Gfx::ySMMSizeToPixel(1.));
 	maxClip = contentFrame->ySize() - viewFrame->ySize();
 	if(viewFrame->ySize() > 0)
 		allowScrollWholeArea = contentFrame->ySize() / viewFrame->ySize() > 3;
@@ -172,7 +172,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 		case ContentDrag::ENTERED_ACTIVE:
 		{
 			//logMsg("in scroll");
-			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - Gfx::xMMSizeToPixel(7.5)))
+			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - Gfx::xSMMSizeToPixel(7.5)))
 			{
 				logMsg("scrolling all content");
 				scrollWholeArea = 1;
@@ -232,7 +232,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 			{
 				clip = 0; // if exactly at edge don't clip for snap-back
 			}
-			auto vel = Gfx::yMMSizeToPixel(10.0);
+			auto vel = Gfx::ySMMSizeToPixel(10.0);
 			offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
 			if(clip)
 			{

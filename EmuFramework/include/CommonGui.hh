@@ -31,7 +31,6 @@
 #include <InputManagerView.hh>
 #include <EmuView.hh>
 #include <TextEntry.hh>
-#include <libgen.h>
 
 #include <meta.h>
 
@@ -43,7 +42,9 @@ EmuFilePicker fPicker;
 extern const char *creditsViewStr;
 CreditsView credits(creditsViewStr);
 YesNoAlertView ynAlertView;
+#ifdef INPUT_SUPPORTS_POINTER
 Gfx::Sprite menuIcon;
+#endif
 MultiChoiceView multiChoiceView;
 CollectTextInputView textInputView;
 ViewStack viewStack;
@@ -52,9 +53,7 @@ static bool updateInpueDevicesOnResume = 0;
 
 void chdirFromFilePath(const char *path)
 {
-	FsSys::cPath dirNameTemp;
-	string_copy(dirNameTemp, path);
-	FsSys::chdir(dirname(dirNameTemp));
+	FsSys::chdir(string_dirname(path));
 }
 
 void onCloseModalPopWorkDir(const Input::Event &e)
@@ -117,9 +116,9 @@ void fixFilePermissions(const char *path)
 bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 
 static GC fontMM =
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
+#if defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
 	3.5
-#elif defined(CONFIG_ENV_WEBOS)
+#elif defined(CONFIG_BASE_ANDROID) || defined(CONFIG_ENV_WEBOS)
 	3.2
 #elif defined(CONFIG_BASE_PS3)
 	10
@@ -129,7 +128,9 @@ static GC fontMM =
 ;
 
 static GC largeFontMM =
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || defined(CONFIG_ENV_WEBOS)
+#if defined(CONFIG_BASE_ANDROID)
+	4.5
+#elif defined(CONFIG_BASE_IOS) || defined(CONFIG_ENV_WEBOS)
 	5
 #elif defined(CONFIG_BASE_PS3)
 	14
@@ -277,21 +278,25 @@ void setupVControllerVars()
 }
 #endif
 
-void updateOnScreenControlVisible()
+void setOnScreenControls(bool on)
+{
+	touchControlsAreOn = on;
+	emuView.placeEmu();
+}
+
+void updateAutoOnScreenControlVisible()
 {
 	if((uint)optionTouchCtrl == 2)
 	{
 		if(touchControlsAreOn && physicalControlsPresent)
 		{
-			logMsg("turning off on-screen controls");
-			touchControlsAreOn = 0;
-			emuView.placeEmu();
+			logMsg("auto-turning off on-screen controls");
+			setOnScreenControls(0);
 		}
 		else if(!touchControlsAreOn && !physicalControlsPresent)
 		{
-			logMsg("turning on on-screen controls");
-			touchControlsAreOn = 1;
-			emuView.placeEmu();
+			logMsg("auto-turning on on-screen controls");
+			setOnScreenControls(1);
 		}
 	}
 }
@@ -328,6 +333,8 @@ static uint frameCount = 0;
 
 void applyOSNavStyle()
 {
+	if(Base::hasHardwareNavButtons())
+		return;
 	uint flags = 0;
 	if(optionLowProfileOSNav) flags|= Base::OS_NAV_STYLE_DIM;
 	if(optionHideOSNav) flags|= Base::OS_NAV_STYLE_HIDDEN;
@@ -344,13 +351,6 @@ void startGameFromMenu()
 	logMsg("running game");
 	menuViewIsActive = 0;
 	viewNav.setRightBtnActive(1);
-	switch(optionTouchCtrl)
-	{
-		bcase 0: touchControlsAreOn = 0;
-		bcase 1: touchControlsAreOn = 1;
-		bcase 2: touchControlsAreOn = !physicalControlsPresent;
-		bdefault: bug_branch("%d", (int)optionTouchCtrl);
-	}
 	//logMsg("touch control state: %d", touchControlsAreOn);
 	#ifdef INPUT_SUPPORTS_POINTER
 	vController.resetInput();
@@ -449,6 +449,11 @@ void onExit(bool backgrounded)
 		if(!backgrounded || (backgrounded && !optionKeepBluetoothActive))
 			Bluetooth::closeBT();
 	#endif
+
+	#ifdef CONFIG_BASE_IOS
+		if(backgrounded)
+			unlink("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
+	#endif
 }
 
 void onFocusChange(uint in)
@@ -514,7 +519,7 @@ void onResume(bool focused)
 	if(updateInpueDevicesOnResume)
 	{
 		updateInputDevices();
-		updateOnScreenControlVisible();
+		updateAutoOnScreenControlVisible();
 		updateInpueDevicesOnResume = 0;
 	}
 
@@ -561,7 +566,7 @@ void EmuView::place()
 	placeEmu();
 	//if(emuActive)
 	{
-		#ifndef CONFIG_BASE_PS3
+		#ifdef INPUT_SUPPORTS_POINTER
 			//if(touchControlsAreOn())
 			{
 				setupVControllerVars();
@@ -569,11 +574,11 @@ void EmuView::place()
 			}
 			if(optionTouchCtrlMenuPos != NULL2DO)
 			{
-				emuMenuB = Gfx::relRectFromViewport(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlMenuPos, optionTouchCtrlMenuPos);
+				emuMenuB = Gfx::relRectFromViewport(0, 0, Gfx::xSMMSizeToPixel(9), optionTouchCtrlMenuPos, optionTouchCtrlMenuPos);
 			}
 			if(optionTouchCtrlFFPos != NULL2DO)
 			{
-				emuFFB = Gfx::relRectFromViewport(0, 0, Gfx::xMMSizeToPixel(9), optionTouchCtrlFFPos, optionTouchCtrlFFPos);
+				emuFFB = Gfx::relRectFromViewport(0, 0, Gfx::xSMMSizeToPixel(9), optionTouchCtrlFFPos, optionTouchCtrlFFPos);
 			}
 			using namespace Gfx;
 			menuIcon.setPos(gXPos(emuMenuB, LB2DO) + gXSize(emuMenuB) / 4.0, gYPos(emuMenuB, LB2DO) + gYSize(emuMenuB) / 3.0,
@@ -604,6 +609,17 @@ void EmuView::inputEvent(const Input::Event &e)
 			)
 		{
 			vController.applyInput(e);
+		}
+		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2
+			#ifdef CONFIG_VCONTROLLER_KEYBOARD
+			&& !vController.kbMode
+			#endif
+			&& e.isTouch() && e.state == Input::PUSHED
+			)
+		{
+			logMsg("turning on on-screen controls from touch input");
+			touchControlsAreOn = 1;
+			emuView.placeEmu();
 		}
 	}
 	else if(e.isRelativePointer())
@@ -790,7 +806,7 @@ void onInputDevChange(const DeviceChange &change)
 	if(Base::appIsRunning())
 	{
 		updateInputDevices();
-		updateOnScreenControlVisible();
+		updateAutoOnScreenControlVisible();
 
 		if(change.added() || change.removed())
 		{
@@ -834,14 +850,14 @@ void onInputDevChange(const DeviceChange &change)
 
 static void handleInputEvent(const Input::Event &e)
 {
-	/*if(e.isPointer())
+	if(e.isPointer())
 	{
-		logMsg("Pointer %s @ %d,%d", Input::eventActionToStr(e.state), e.x, e.y);
+		//logMsg("Pointer %s @ %d,%d", Input::eventActionToStr(e.state), e.x, e.y);
 	}
 	else
 	{
-		logMsg("%s %s from %s", Input::buttonName(e.map, e.button), Input::eventActionToStr(e.state), e.mapName(e.map));
-	}*/
+		//logMsg("%s %s from %s", e.device->keyName(e.button), Input::eventActionToStr(e.state), e.device->name());
+	}
 	if(likely(EmuSystem::isActive()))
 	{
 		emuView.inputEvent(e);
@@ -878,7 +894,7 @@ static void handleInputEvent(const Input::Event &e)
 void setupFont()
 {
 	logMsg("setting up font, large: %d", (int)optionLargeFonts);
-	View::defaultFace->applySettings(FontSettings(Gfx::yMMSizeToPixel(optionLargeFonts ? largeFontMM : fontMM)));
+	View::defaultFace->applySettings(FontSettings(Gfx::ySMMSizeToPixel(optionLargeFonts ? largeFontMM : fontMM)));
 	//View::defaultFace->applySettings(FontSettings(33));
 }
 
@@ -931,7 +947,7 @@ static void mainInitCommon()
 
 	loadConfigFile();
 
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID)
+	#ifdef USE_BEST_COLOR_MODE_OPTION
 		Base::setWindowPixelBestColorHint(optionBestColorModeHint);
 	#endif
 }
@@ -1008,8 +1024,13 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	assert(View::defaultFace);
 
 	updateInputDevices();
-	updateOnScreenControlVisible();
+	if((int)optionTouchCtrl == 2)
+		updateAutoOnScreenControlVisible();
+	else
+		setOnScreenControls(optionTouchCtrl);
+	#ifdef INPUT_SUPPORTS_POINTER
 	vController.updateMapping(0);
+	#endif
 	EmuSystem::configAudioRate();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle();
@@ -1026,14 +1047,13 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 		Base::setDPI(optionDPI);
 	setupFont();
 	popup.init();
-	#ifndef CONFIG_BASE_PS3
+	#ifdef INPUT_SUPPORTS_POINTER
 	vController.init((int)optionTouchCtrlAlpha / 255.0, Gfx::xMMSize(int(optionTouchCtrlSize) / 100.));
 	updateVControlImg();
 	resolveOnScreenCollisions();
 	setupVControllerPosition();
-	#endif
-
 	menuIcon.init(getArrowAsset());
+	#endif
 
 	View::removeModalViewDelegate().bind<&onRemoveModalView>();
 	//logMsg("setting up view stack");
@@ -1063,7 +1083,7 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	}
 	#endif
 
-	mMenu.init(Config::envIsPS3);
+	mMenu.init(Input::keyInputIsPresent());
 	viewStack.push(&mMenu);
 	Gfx::onViewChange();
 	mMenu.show();

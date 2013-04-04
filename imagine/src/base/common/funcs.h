@@ -99,10 +99,6 @@ static void engineInit()
 		currWin = mainWin;
 		doOrExit(Gfx::setOutputVideoMode(mainWin));
 	#endif
-
-	#ifdef CONFIG_INPUT
-		doOrExit(Input::init());
-	#endif	
 		
 	#ifdef CONFIG_AUDIO
 		doOrExit(Audio::init());
@@ -181,14 +177,6 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 			logMsg("got bluetooth adapter status delegate message");
 			BluetoothAdapter::defaultAdapter()->statusDelegate().invoke(intArg, intArg2);
 		}
-		#if defined CONFIG_ANDROIDBT
-		bcase MSG_BT_SOCKET_STATUS_DELEGATE:
-		{
-			logMsg("got bluetooth socket status delegate message");
-			auto s = (BluetoothSocket*)intArg2;
-			s->onStatusDelegate().invoke(*s, intArg);
-		}
-		#endif
 		#endif
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		bcase MSG_ORIENTATION_CHANGE:
@@ -245,16 +233,14 @@ void* operator new[] (std::size_t size)
 #endif
 { return mem_alloc(size); }
 
-/*void *operator new (size_t size, void *o)
-#ifdef __EXCEPTIONS
-	throw ()
-#endif
+#ifdef CONFIG_BASE_PS3
+void *operator new(_CSTD size_t size, _CSTD size_t align)
+	_THROW1(_XSTD bad_alloc)
 {
-	//logMsg("called placement new, %d bytes @ %p", (int)size, o);
-	return o;
-}*/
-
-//void* operator new (size_t size, long unsigned int) { return mem_alloc(size); }
+	//logMsg("called aligned new, size %d @ %d byte boundary", (int)size, (int)align);
+	return memalign(size, align);
+}
+#endif
 
 void operator delete (void *o) noexcept { mem_free(o); }
 void operator delete[] (void *o) noexcept { mem_free(o); }

@@ -18,12 +18,24 @@ public:
 
 	void setTimeNow()
 	{
-		t = sys_time_get_system_time();
+		*this = timeNow();
+	}
+
+	static TimePs3 timeNow()
+	{
+		TimePs3 time;
+		time.t = sys_time_get_system_time();
+		return time;
 	}
 
 	uint divByUSecs(int usecs)
 	{
 		return t / usecs;
+	}
+
+	uint divByNSecs(long int nsecs)
+	{
+		return t / (uint64_t)(nsecs / 1000);
 	}
 
 	TimePs3 & operator -=(TimePs3 const& diminuend)

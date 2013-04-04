@@ -208,20 +208,16 @@ private:
 	} msxMachine;
 
 	#if !defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_IOS_JB)
-	struct InstallCBIOSMenuItem : public TextMenuItem
+	static void installCBIOSHandler(TextMenuItem &, const Input::Event &e)
 	{
-		constexpr InstallCBIOSMenuItem() { }
-		void init() { TextMenuItem::init("Install MSX C-BIOS"); }
+		ynAlertView.init(InstallMSXSystem::installMessage(), !e.isPointer());
+		ynAlertView.onYes().bind<&InstallMSXSystem::confirmAlert>();
+		ynAlertView.placeRect(Gfx::viewportRect());
+		modalView = &ynAlertView;
+		Base::displayNeedsUpdate();
+	}
 
-		void select(View *view, const Input::Event &e)
-		{
-			ynAlertView.init(InstallMSXSystem::installMessage(), !e.isPointer());
-			ynAlertView.onYes().bind<&InstallMSXSystem::confirmAlert>();
-			ynAlertView.placeRect(Gfx::viewportRect());
-			modalView = &ynAlertView;
-			Base::displayNeedsUpdate();
-		}
-	} installCBIOS;
+	TextMenuItem installCBIOS {"Install MSX C-BIOS", TextMenuItem::SelectDelegate::create<&installCBIOSHandler>()};
 	#endif
 
 	static void skipFdcAccessHandler(BoolMenuItem &item, const Input::Event &e)
@@ -230,7 +226,7 @@ private:
 		optionSkipFdcAccess = item.on;
 	}
 
-	BoolMenuItem skipFdcAccess {"Fast-forward disk IO"};
+	BoolMenuItem skipFdcAccess {"Fast-forward disk IO", BoolMenuItem::SelectDelegate::create<&skipFdcAccessHandler>()};
 
 public:
 	constexpr SystemOptionView() { }
@@ -240,7 +236,6 @@ public:
 		OptionView::loadSystemItems(item, items);
 		msxMachine.init(); item[items++] = &msxMachine;
 		skipFdcAccess.init(optionSkipFdcAccess); item[items++] = &skipFdcAccess;
-		skipFdcAccess.selectDelegate().bind<&skipFdcAccessHandler>();
 		#if !defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_IOS_JB)
 		installCBIOS.init(); item[items++] = &installCBIOS;
 		#endif
@@ -264,329 +259,280 @@ public:
 
 #include "MenuView.hh"
 
-class MsxMediaChangeListener
-{
-public:
-	constexpr MsxMediaChangeListener() { }
-	virtual void onMediaChange(const char *name) = 0;
-	virtual void onActionFromModalView(uint action, const Input::Event &e) = 0;
-};
-
 class MsxMediaFilePicker
 {
 public:
-	constexpr MsxMediaFilePicker() { }
 	enum { ROM, DISK, TAPE };
-	uint type = ROM, slot = 0;
-	MsxMediaChangeListener *listener = nullptr;
 
-	void onSelectFile(const char* name, const Input::Event &e)
+	static FsDirFilterFunc fsFilter(uint type)
 	{
-		switch(type)
-		{
-			bcase ROM:
-				if(insertROM(name, slot))
-				{
-					listener->onMediaChange(name);
-				}
-			bcase DISK:
-				logMsg("inserting disk in slot %d", slot);
-				if(insertDisk(name, slot))
-				{
-					listener->onMediaChange(name);
-				}
-			/*bcase TAPE:
-				/*if(insertTape(name, slot))
-				{
-					strcpy(tapeName, name);
-					listener->onMediaChange();
-				}*/
-		}
-
-		View::removeModalView();
-	}
-
-	void onClose(const Input::Event &e)
-	{
-		View::removeModalView();
-	}
-
-	void init(uint type, uint slot, MsxMediaChangeListener *listener, bool highlightFirst)
-	{
-		this->type = type;
-		this->slot = slot;
-		this->listener = listener;
 		FsDirFilterFunc filter = isMSXROMExtension;
 		if(type == DISK)
 			filter = isMSXDiskExtension;
 		else if(type == TAPE)
 			filter = isMSXTapeExtension;
-		//BaseFilePicker::init(highlightFirst, filter, 1);
-		fPicker.init(highlightFirst, filter, 1);
-		fPicker.onSelectFileDelegate().bind<MsxMediaFilePicker, &MsxMediaFilePicker::onSelectFile>(this);
-		fPicker.onCloseDelegate().bind<MsxMediaFilePicker, &MsxMediaFilePicker::onClose>(this);
+		return filter;
 	}
 };
 
-class InsertEjectDiskMenu : public BaseMultiChoiceView
-{
-public:
-	constexpr InsertEjectDiskMenu() { }
-	TextMenuItem choiceEntry[2];
-	MenuItem *choiceEntryItem[2] {nullptr};
-	MsxMediaChangeListener *listener = nullptr;
+static const char *insertEjectDiskMenuStr[] { "Insert File", "Eject" };
 
-	void init(MsxMediaChangeListener *listener, bool highlightFirst)
-	{
-		var_selfSet(listener);
-		choiceEntry[0].init("Insert File"); choiceEntryItem[0] = &choiceEntry[0];
-		choiceEntry[1].init("Eject"); choiceEntryItem[1] = &choiceEntry[1];
-		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
-	}
-
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
-	{
-		listener->onActionFromModalView(i, e);
-	}
-};
-
-static InsertEjectDiskMenu insertEjectDiskMenu;
-
-class InsertEjectRomMenu : public BaseMultiChoiceView
-{
-public:
-	constexpr InsertEjectRomMenu() { }
-	TextMenuItem choiceEntry[5];
-	MenuItem *choiceEntryItem[5] {nullptr};
-	MsxMediaChangeListener *listener = nullptr;
-
-	void init(MsxMediaChangeListener *listener, bool highlightFirst)
-	{
-		var_selfSet(listener);
-		choiceEntry[0].init("Insert File"); choiceEntryItem[0] = &choiceEntry[0];
-		choiceEntry[1].init("Eject"); choiceEntryItem[1] = &choiceEntry[1];
-		choiceEntry[2].init("Insert SCC"); choiceEntryItem[2] = &choiceEntry[2];
-		choiceEntry[3].init("Insert SCC+"); choiceEntryItem[3] = &choiceEntry[3];
-		choiceEntry[4].init("Insert Sunrise IDE"); choiceEntryItem[4] = &choiceEntry[4];
-		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
-	}
-
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
-	{
-		listener->onActionFromModalView(i, e);
-	}
-};
-
-static InsertEjectRomMenu insertEjectRomMenu;
+static const char *insertEjectRomMenuStr[] { "Insert File", "Eject", "Insert SCC", "Insert SCC+", "Insert Sunrise IDE" };
 
 class MsxIOControlView : public BaseMenuView
 {
 private:
-	static MsxMediaFilePicker picker;
-	#if CONFIG_USE_IN_TABLE_NAV
-	MenuView::BackMenuItem back;
-	#endif
 
-	struct HDMenuItem : public TextMenuItem, public MsxMediaChangeListener
+	static const char *hdSlotPrefix[4];
+	char hdSlotStr[4][1024] { {0} };
+
+	void updateHDText(int slot)
 	{
-		constexpr HDMenuItem() { }
-		int slot = 0;
-		const char *prefix = nullptr;
-		char strBuff[1024] = {0};
-		void init(const char *str, int slot)
-		{
-			prefix = str;
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, hdName[slot]);
-			TextMenuItem::init(strBuff, boardGetHdType(slot/2) == HD_SUNRISEIDE);
-			this->slot = slot;
-		}
+		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot],
+			strlen(hdName[slot]) ? string_basename(hdName[slot]) : "");
+	}
 
-		void refreshLabel()
-		{
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, hdName[slot]);
-			TextMenuItem::compile();
-		}
-
-		void onCartUpdate()
-		{
-			active = boardGetHdType(slot/2) == HD_SUNRISEIDE;
-			refreshLabel();
-		}
-
-		void onMediaChange(const char *name)
-		{
-			strcpy(hdName[slot], name);
-			refreshLabel();
-		}
-
-		void onActionFromModalView(uint action, const Input::Event &e)
-		{
-			if(action == 0)
-			{
-				removeModalView();
-				picker.init(MsxMediaFilePicker::DISK, diskGetHdDriveId(slot / 2, slot % 2), this, !e.isPointer());
-				fPicker.placeRect(Gfx::viewportRect());
-				modalView = &fPicker;
-				Base::displayNeedsUpdate();
-			}
-			else
-			{
-				diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
-				onMediaChange("");
-				removeModalView();
-			}
-		}
-
-		void select(View *view, const Input::Event &e)
-		{
-			if(!active) return;
-			if(strlen(hdName[slot]))
-			{
-				insertEjectDiskMenu.init(this, !e.isPointer());
-				insertEjectDiskMenu.placeRect(Gfx::viewportRect());
-				modalView = &insertEjectDiskMenu;
-			}
-			else
-			{
-				picker.init(MsxMediaFilePicker::DISK, diskGetHdDriveId(slot / 2, slot % 2), this, !e.isPointer());
-				fPicker.placeRect(Gfx::viewportRect());
-				modalView = &fPicker;
-				Base::displayNeedsUpdate();
-			}
-		}
-	} hdSlot[4];
-
-	struct RomMenuItem : public TextMenuItem, public MsxMediaChangeListener
+	void updateHDStatusFromCartSlot(int cartSlot)
 	{
-		constexpr RomMenuItem() { }
-		int slot = 0;
-		const char *prefix = nullptr;
-		char strBuff[1024] {0};
-		HDMenuItem *hdMenuItem = nullptr;
-		void init(const char *str, int slot, HDMenuItem *hdMenuItem)
-		{
-			prefix = str;
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, cartName[slot]);
-			TextMenuItem::init(strBuff, slot < boardInfo.cartridgeCount);
-			var_selfs(slot);
-			var_selfs(hdMenuItem);
-		}
+		int hdSlotStart = cartSlot == 0 ? 0 : 2;
+		hdSlot[hdSlotStart].active = boardGetHdType(cartSlot/2) == HD_SUNRISEIDE;
+		hdSlot[hdSlotStart+1].active = boardGetHdType(cartSlot/2) == HD_SUNRISEIDE;
+		updateHDText(hdSlotStart);
+		updateHDText(hdSlotStart+1);
+	}
 
-		void onMediaChange(const char *name)
-		{
-			strcpy(cartName[slot], name);
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, cartName[slot]);
-			TextMenuItem::compile();
-			iterateTimes(2, i)
-			{
-				hdMenuItem[i].onCartUpdate();
-			}
-		}
-
-		void onActionFromModalView(uint action, const Input::Event &e)
-		{
-			if(action == 0)
-			{
-				removeModalView();
-				picker.init(MsxMediaFilePicker::ROM, slot, this, !e.isPointer());
-				fPicker.placeRect(Gfx::viewportRect());
-				modalView = &fPicker;
-				Base::displayNeedsUpdate();
-			}
-			else if(action == 1)
-			{
-				boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
-				onMediaChange("");
-				removeModalView();
-			}
-			else if(action == 2)
-			{
-				boardChangeCartridge(slot, ROM_SCC, "", 0);
-				onMediaChange("SCC");
-				removeModalView();
-			}
-			else if(action == 3)
-			{
-				boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
-				onMediaChange("SCC+");
-				removeModalView();
-			}
-			else if(action == 4)
-			{
-				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
-				{
-					popup.postError("Error loading Sunrise IDE device");
-				}
-				else
-					onMediaChange("Sunrise IDE");
-				removeModalView();
-			}
-		}
-
-		void select(View *view, const Input::Event &e)
-		{
-			insertEjectRomMenu.init(this, !e.isPointer());
-			insertEjectRomMenu.placeRect(Gfx::viewportRect());
-			modalView = &insertEjectRomMenu;
-		}
-	} romSlot[2];
-
-	struct DiskMenuItem : public TextMenuItem, public MsxMediaChangeListener
+	void onHDMediaChange(const char *name, int slot)
 	{
-		constexpr DiskMenuItem() { }
-		int slot = 0;
-		const char *prefix = nullptr;
-		char strBuff[1024] {0};
-		void init(const char *str, int slot)
-		{
-			prefix = str;
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, diskName[slot]);
-			TextMenuItem::init(strBuff, slot < boardInfo.diskdriveCount);
-			this->slot = slot;
-		}
+		strcpy(hdName[slot], name);
+		updateHDText(slot);
+		hdSlot[slot].compile();
+	}
 
-		void onMediaChange(const char *name)
+	template <int SLOT>
+	void onSelectHDFile(const char* name, const Input::Event &e)
+	{
+		auto id = diskGetHdDriveId(SLOT / 2, SLOT % 2);
+		logMsg("inserting hard drive id %d", id);
+		if(insertDisk(name, id))
 		{
-			strcpy(diskName[slot], name);
-			snprintf(strBuff, sizeof(strBuff), "%s %s", prefix, diskName[slot]);
-			TextMenuItem::compile();
+			onHDMediaChange(name, SLOT);
 		}
+		View::removeModalView();
+	}
 
-		void onActionFromModalView(uint action, const Input::Event &e)
+	template <int SLOT>
+	bool onSelectHDAction(int action, const Input::Event &e)
+	{
+		if(action == 0)
 		{
-			if(action == 0)
+			removeModalView();
+			fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+			fPicker.onSelectFileDelegate().bind<template_mfunc(MsxIOControlView, onSelectHDFile<SLOT>)>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+		else
+		{
+			diskChange(diskGetHdDriveId(SLOT / 2, SLOT % 2), 0, 0);
+			onHDMediaChange("", SLOT);
+			removeModalView();
+		}
+		return 0;
+	}
+
+	template <int SLOT>
+	void onSelectHD(TextMenuItem &item, const Input::Event &e)
+	{
+		if(!item.active) return;
+		if(strlen(hdName[SLOT]))
+		{
+			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
+			multiChoiceView.placeRect(Gfx::viewportRect());
+			multiChoiceView.onSelectDelegate().bind<template_mfunc(MsxIOControlView, onSelectHDAction<SLOT>)>(this);
+			modalView = &multiChoiceView;
+		}
+		else
+		{
+			fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+			fPicker.onSelectFileDelegate().bind<template_mfunc(MsxIOControlView, onSelectHDFile<SLOT>)>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+	}
+
+	TextMenuItem hdSlot[4]
+	{
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectHD<0>)>(this)},
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectHD<1>)>(this)},
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectHD<2>)>(this)},
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectHD<3>)>(this)}
+	};
+
+	static const char *romSlotPrefix[2];
+	char romSlotStr[2][1024] { {0} };
+
+	void updateROMText(int slot)
+	{
+		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot],
+			strlen(cartName[slot]) ? string_basename(cartName[slot]) : "");
+	}
+
+	void onROMMediaChange(const char *name, int slot)
+	{
+		strcpy(cartName[slot], name);
+		updateROMText(slot);
+		romSlot[slot].compile();
+		updateHDStatusFromCartSlot(slot);
+	}
+
+	template <int SLOT>
+	void onSelectROMFile(const char* name, const Input::Event &e)
+	{
+		if(insertROM(name, SLOT))
+		{
+			onROMMediaChange(name, SLOT);
+		}
+		View::removeModalView();
+	}
+
+	template <int SLOT>
+	bool onSelectROMAction(int action, const Input::Event &e)
+	{
+		if(action == 0)
+		{
+			removeModalView();
+			fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
+			fPicker.onSelectFileDelegate().bind<template_mfunc(MsxIOControlView, onSelectROMFile<SLOT>)>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+		else if(action == 1)
+		{
+			boardChangeCartridge(SLOT, ROM_UNKNOWN, 0, 0);
+			onROMMediaChange("", SLOT);
+			removeModalView();
+		}
+		else if(action == 2)
+		{
+			boardChangeCartridge(SLOT, ROM_SCC, "", 0);
+			onROMMediaChange("SCC", SLOT);
+			removeModalView();
+		}
+		else if(action == 3)
+		{
+			boardChangeCartridge(SLOT, ROM_SCCPLUS, "", 0);
+			onROMMediaChange("SCC+", SLOT);
+			removeModalView();
+		}
+		else if(action == 4)
+		{
+			if(!boardChangeCartridge(SLOT, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 			{
-				removeModalView();
-				picker.init(MsxMediaFilePicker::DISK, slot, this, !e.isPointer());
-				fPicker.placeRect(Gfx::viewportRect());
-				modalView = &fPicker;
-				Base::displayNeedsUpdate();
+				popup.postError("Error loading Sunrise IDE device");
 			}
 			else
-			{
-				diskChange(slot, 0, 0);
-				onMediaChange("");
-				removeModalView();
-			}
+				onROMMediaChange("Sunrise IDE", SLOT);
+			removeModalView();
 		}
+		return 0;
+	}
 
-		void select(View *view, const Input::Event &e)
+	template <int SLOT>
+	void onSelectROM(TextMenuItem &, const Input::Event &e)
+	{
+		multiChoiceView.init(insertEjectRomMenuStr, sizeofArray(insertEjectRomMenuStr), !e.isPointer());
+		multiChoiceView.placeRect(Gfx::viewportRect());
+		multiChoiceView.onSelectDelegate().bind<template_mfunc(MsxIOControlView, onSelectROMAction<SLOT>)>(this);
+		modalView = &multiChoiceView;
+	}
+
+	TextMenuItem romSlot[2]
+	{
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectROM<0>)>(this)},
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectROM<1>)>(this)}
+	};
+
+	static const char *diskSlotPrefix[2];
+	char diskSlotStr[2][1024] { {0} };
+
+	void updateDiskText(int slot)
+	{
+		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot],
+				strlen(diskName[slot]) ? string_basename(diskName[slot]) : "");
+	}
+
+	void onDiskMediaChange(const char *name, int slot)
+	{
+		strcpy(diskName[slot], name);
+		updateDiskText(slot);
+		diskSlot[slot].compile();
+	}
+
+	template <int SLOT>
+	void onSelectDiskFile(const char* name, const Input::Event &e)
+	{
+		logMsg("inserting disk in slot %d", SLOT);
+		if(insertDisk(name, SLOT))
 		{
-			if(strlen(diskName[slot]))
-			{
-				insertEjectDiskMenu.init(this, !e.isPointer());
-				insertEjectDiskMenu.placeRect(Gfx::viewportRect());
-				modalView = &insertEjectDiskMenu;
-			}
-			else
-			{
-				picker.init(MsxMediaFilePicker::DISK, slot, this, !e.isPointer());
-				fPicker.placeRect(Gfx::viewportRect());
-				modalView = &fPicker;
-				Base::displayNeedsUpdate();
-			}
+			onDiskMediaChange(name, SLOT);
 		}
-	} diskSlot[2];
+		View::removeModalView();
+	}
+
+	template <int SLOT>
+	bool onSelectDiskAction(int action, const Input::Event &e)
+	{
+		if(action == 0)
+		{
+			removeModalView();
+			fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+			fPicker.onSelectFileDelegate().bind<template_mfunc(MsxIOControlView, onSelectDiskFile<SLOT>)>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+			Base::displayNeedsUpdate();
+		}
+		else
+		{
+			diskChange(SLOT, 0, 0);
+			onDiskMediaChange("", SLOT);
+			removeModalView();
+		}
+		return 0;
+	}
+
+	template <int SLOT>
+	void onSelectDisk(TextMenuItem &, const Input::Event &e)
+	{
+		if(strlen(diskName[SLOT]))
+		{
+			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
+			multiChoiceView.placeRect(Gfx::viewportRect());
+			multiChoiceView.onSelectDelegate().bind<template_mfunc(MsxIOControlView, onSelectDiskAction<SLOT>)>(this);
+			modalView = &multiChoiceView;
+		}
+		else
+		{
+			fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+			fPicker.onSelectFileDelegate().bind<template_mfunc(MsxIOControlView, onSelectDiskFile<SLOT>)>(this);
+			fPicker.onCloseDelegate().bind<&FSPicker::onCloseModal>();
+			fPicker.placeRect(Gfx::viewportRect());
+			modalView = &fPicker;
+		}
+		Base::displayNeedsUpdate();
+	}
+
+	TextMenuItem diskSlot[2]
+	{
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectDisk<0>)>(this)},
+		{TextMenuItem::SelectDelegate::create<template_mfunc(MsxIOControlView, onSelectDisk<1>)>(this)}
+	};
 
 	MenuItem *item[9] {nullptr};
 public:
@@ -595,17 +541,21 @@ public:
 	void init(bool highlightFirst)
 	{
 		uint i = 0;
-		#if CONFIG_USE_IN_TABLE_NAV
-		back.init(); item[i++] = &back;
-		#endif
-		romSlot[0].init("ROM1:", 0, &hdSlot[0]); item[i++] = &romSlot[0];
-		romSlot[1].init("ROM2:", 1, &hdSlot[2]); item[i++] = &romSlot[1];
-		diskSlot[0].init("Disk1:", 0); item[i++] = &diskSlot[0];
-		diskSlot[1].init("Disk2:", 1); item[i++] = &diskSlot[1];
-		hdSlot[0].init("IDE1-M:", 0); item[i++] = &hdSlot[0];
-		hdSlot[1].init("IDE1-S:", 1); item[i++] = &hdSlot[1];
-		hdSlot[2].init("IDE2-M:", 2); item[i++] = &hdSlot[2];
-		hdSlot[3].init("IDE2-S:", 3); item[i++] = &hdSlot[3];
+		iterateTimes(2, slot)
+		{
+			updateROMText(slot);
+			romSlot[slot].init(romSlotStr[slot], (int)slot < boardInfo.cartridgeCount); item[i++] = &romSlot[slot];
+		}
+		iterateTimes(2, slot)
+		{
+			updateDiskText(slot);
+			diskSlot[slot].init(diskSlotStr[slot], (int)slot < boardInfo.diskdriveCount); item[i++] = &diskSlot[slot];
+		}
+		iterateTimes(4, slot)
+		{
+			updateHDText(slot);
+			hdSlot[slot].init(hdSlotStr[slot], boardGetHdType(slot/2) == HD_SUNRISEIDE); item[i++] = &hdSlot[slot];
+		}
 		assert(i <= sizeofArray(item));
 		BaseMenuView::init(item, i, highlightFirst);
 	}
@@ -613,46 +563,34 @@ public:
 
 static MsxIOControlView msxIoMenu;
 
-MsxMediaFilePicker MsxIOControlView::picker;
+const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
+const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
+const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
 class SystemMenuView : public MenuView
 {
 private:
-	struct MsxIOControlMenuItem : public TextMenuItem
+	static void msxIOControlHandler(TextMenuItem &item, const Input::Event &e)
 	{
-		void init()
+		if(item.active)
 		{
-			TextMenuItem::init("ROM/Disk Control");
+			FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
+			msxIoMenu.init(!e.isPointer());
+			viewStack.pushAndShow(&msxIoMenu);
 		}
+		else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
+		{
+			popup.post("Only used in MSX mode", 2);
+		}
+	}
 
-		void refreshActive()
-		{
-			active = EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX;
-		}
-
-		void select(View *view, const Input::Event &e)
-		{
-			if(active)
-			{
-				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
-				msxIoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&msxIoMenu);
-			}
-			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
-			{
-				popup.post("Only used in MSX mode", 2);
-			}
-		}
-	} msxIOControl;
+	TextMenuItem msxIOControl {"ROM/Disk Control", TextMenuItem::SelectDelegate::create<&msxIOControlHandler>()};
 
 public:
 	constexpr SystemMenuView() { }
 
 	void gameStopped()
 	{
-		#if CONFIG_USE_IN_TABLE_NAV
-		resumeGame.active = 0;
-		#endif
 		msxIOControl.active = 0;
 		reset.active = 0;
 		loadState.active = 0;
@@ -662,7 +600,7 @@ public:
 	void onShow()
 	{
 		MenuView::onShow();
-		msxIOControl.refreshActive();
+		msxIOControl.active = EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX;
 	}
 
 	void init(bool highlightFirst)

@@ -49,6 +49,14 @@ static uint viewPixelHeight() { return (rotateView == VIEW_ROTATE_90 || rotateVi
 extern uint viewMMWidth_, viewMMHeight_; // in MM
 static uint viewMMWidth() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewMMHeight_ : viewMMWidth_; }
 static uint viewMMHeight() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewMMWidth_ : viewMMHeight_; }
+#ifdef CONFIG_BASE_ANDROID
+extern uint viewSMMWidth_, viewSMMHeight_; // in MM from scaled screen units
+static uint viewSMMWidth() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewSMMHeight_ : viewSMMWidth_; }
+static uint viewSMMHeight() { return (rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270) ? viewSMMWidth_ : viewSMMHeight_; }
+#else
+static uint viewSMMWidth() { return viewMMWidth(); }
+static uint viewSMMHeight() { return viewMMHeight(); }
+#endif
 void setupScreenSize(); // called after DPI update in base module
 
 // shortcuts for creating rectangles with origins in a viewport

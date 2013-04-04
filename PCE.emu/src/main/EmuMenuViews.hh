@@ -1,6 +1,5 @@
 #pragma once
 #include "OptionView.hh"
-#include <libgen.h>
 
 static int pceHuFsFilter(const char *name, int type);
 
@@ -15,9 +14,7 @@ private:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		char basenameStr[S];
-		strcpy(basenameStr, ::sysCardPath);
-		string_printf(str, "System Card: %s", strlen(::sysCardPath) ? basename(basenameStr) : "None set");
+		string_printf(str, "System Card: %s", strlen(::sysCardPath) ? string_basename(::sysCardPath) : "None set");
 	}
 
 	void biosPathUpdated()

@@ -149,7 +149,7 @@ void EmuSystem::initOptions()
 {
 	optionAutoSaveState.initDefault(0);
 	#ifdef CONFIG_BASE_IOS
-		if(Base::runningDeviceType() != Base::DEV_TYPE_IPAD)
+		if(Base::deviceIsIPad())
 	#endif
 	{
 			if(!Config::envIsWebOS3)

@@ -9,7 +9,9 @@
 #include <util/strings.h>
 #include <util/time/sys.hh>
 #include <util/fd-utils.h>
+#include <util/string/generic.h>
 #include <base/common/funcs.h>
+#include <config/machine.hh>
 
 #ifdef CONFIG_FS
 #include <fs/sys.hh>
@@ -165,14 +167,16 @@ static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 	glCtx.makeCurrent();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+	Input::initPerWindowData(win);
 	auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &wmDelete, 1);
 	XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
-	#ifdef CONFIG_MACHINE_OPEN_PANDORA
-	auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
-	auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-	XChangeProperty(dpy, win, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
-	#endif
+	if(Config::MACHINE_IS_OPEN_PANDORA)
+	{
+		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
+		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+		XChangeProperty(dpy, win, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
+	}
 	XMapRaised(dpy, win);
 	logMsg("using depth %d", xDrawableDepth(dpy, win));
 
@@ -669,6 +673,9 @@ int main(int argc, char** argv)
 	}
 
 	doOrElse(initX(), return 1);
+	#ifdef CONFIG_INPUT
+	doOrExit(Input::init());
+	#endif
 	doOrExit(onInit(argc, argv));
 	dispX = DisplayWidth(dpy, screen);
 	dispY = DisplayHeight(dpy, screen);

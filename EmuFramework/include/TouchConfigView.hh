@@ -20,6 +20,8 @@
 #include <EmuOptions.hh>
 #include <VController.hh>
 
+#ifdef INPUT_SUPPORTS_POINTER
+
 void refreshTouchConfigMenu();
 void resolveOnScreenCollisions(_2DOrigin *movedObj);
 void setupVControllerPosition();
@@ -322,7 +324,11 @@ class TouchConfigView : public BaseMenuView
 
 	BoolMenuItem showMenuIcon {"Menu Icon"};
 
-	MenuItem *text[19] = {nullptr};
+	MultiChoiceSelectMenuItem dpi {"DPI Override"};
+	void dpiInit();
+	static void dpiSet(MultiChoiceMenuItem &, int val);
+
+	MenuItem *text[20] = {nullptr};
 public:
 	constexpr TouchConfigView(const char *faceBtnName, const char *centerBtnName) : BaseMenuView("On-screen Config"),
 		faceBtnName(faceBtnName), centerBtnName(centerBtnName) { }
@@ -332,3 +338,5 @@ public:
 	void draw(Gfx::FrameTimeBase frameTime);
 	void updatePositionVals();
 };
+
+#endif
