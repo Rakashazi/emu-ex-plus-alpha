@@ -5,9 +5,8 @@ configDefs += CONFIG_BASE_IOS CONFIG_INPUT
 
 ifdef config_ios_jb
  configDefs += CONFIG_BASE_IOS_JB
- ifdef iOS_metadata_setuid
-  configDefs += CONFIG_BASE_IOS_SETUID
- endif
+ # TODO should be handled by app itself
+ configDefs += CONFIG_BASE_IOS_SETUID
 else
  iOSNoCodesign := 1
 endif

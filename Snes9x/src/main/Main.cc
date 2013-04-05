@@ -87,7 +87,7 @@ void EmuSystem::initOptions()
 	optionFrameSkip.initDefault(optionFrameSkipAuto); // auto-frameskip default due to highly variable CPU usage
 	#endif
 	#ifdef CONFIG_BASE_IOS
-		if(Base::deviceIsIPad)
+		if(Base::deviceIsIPad())
 	#endif
 	{
 			if(!Config::envIsWebOS3)
