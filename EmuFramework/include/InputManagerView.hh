@@ -1,6 +1,6 @@
 #pragma once
 
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <input/Input.hh>
 #include <MenuView.hh>
@@ -27,34 +27,28 @@ class IdentInputDeviceView : public View
 public:
 	constexpr IdentInputDeviceView() { }
 
-	typedef Delegate<void (const Input::Event &e)> OnIdentInputDelegate;
+	typedef DelegateFunc<void (const Input::Event &e)> OnIdentInputDelegate;
 	OnIdentInputDelegate onIdentInput;
 
-	Rect2<int> &viewRect() { return viewFrame; }
+	Rect2<int> &viewRect() override { return viewFrame; }
 
 	void init();
-	void deinit();
-	void place();
-	void inputEvent(const Input::Event &e);
-	void draw(Gfx::FrameTimeBase frameTime);
+	void deinit() override;
+	void place() override;
+	void inputEvent(const Input::Event &e) override;
+	void draw(Gfx::FrameTimeBase frameTime) override;
 };
 
 class InputManagerView : public BaseMenuView
 {
 private:
-	#ifdef INPUT_SUPPORTS_POINTER
-		InputPlayerMapMenuItem pointerInput;
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+	InputPlayerMapMenuItem pointerInput;
 	#endif
 	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE] { {0} };
-	uint deleteDeviceConfigIdx = 0;
-	void confirmDeleteDeviceConfig(const Input::Event &e);
-	bool selectDeleteDeviceConfig(int i, const Input::Event &e);
 	void deleteDeviceConfigHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem deleteDeviceConfig {"Delete Saved Device Settings"};
 	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS] {nullptr};
-	uint deleteProfileIdx = 0;
-	void confirmDeleteProfile(const Input::Event &e);
-	bool selectDeleteProfile(int i, const Input::Event &e);
 	void deleteProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem deleteProfile {"Delete Saved Key Profile"};
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
@@ -69,16 +63,13 @@ private:
 	TextMenuItem identDevice {"Auto-detect Device To Setup"};
 	TextMenuItem inputDevName[Input::MAX_DEVS];
 	MenuItem *item[sizeofArrayConst(inputDevName) + 6] = {nullptr};
-	uint devStart = 0;
-	void onIdentInput(const Input::Event &e);
-	IdentInputDeviceView identView;
 public:
 	constexpr InputManagerView(): BaseMenuView("Input Device Setup") { }
 
 	char inputDevNameStr[Input::MAX_DEVS][80] { {0} };
 	void init(bool highlightFirst);
-	void onShow();
-	void onSelectElement(const GuiTable1D *, const Input::Event &e, uint i);
+	void deinit() override;
+	void onShow() override;
 };
 
 class InputManagerDeviceView : public BaseMenuView
@@ -87,8 +78,6 @@ private:
 	void playerHandler(MultiChoiceMenuItem &item, int val);
 	MultiChoiceSelectMenuItem player;
 
-	//void confirmDeleteDeviceConfig(const Input::Event &e);
-	//void deleteDeviceConfigHandler(TextMenuItem &, const Input::Event &e);
 	//TextMenuItem deleteDeviceConfig {"Delete Device Settings"};
 
 	char profileStr[128] {0};
@@ -96,16 +85,12 @@ private:
 	void loadProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem loadProfile;
 
-	uint handleRenameProfileFromTextInput(const char *str);
 	void renameProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem renameProfile {"Rename Profile"};
 
-	uint handleNewProfileFromTextInput(const char *str);
-	void confirmNewProfile(const Input::Event &e);
 	void newProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem newProfile {"New Profile"};
 
-	void confirmDeleteProfile(const Input::Event &e);
 	void deleteProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem deleteProfile {"Delete Profile"};
 
@@ -126,12 +111,9 @@ private:
 	TextMenuItem inputCategory[EmuControls::categories];
 	MenuItem *item[EmuControls::categories + 9] = {nullptr};
 	InputDeviceConfig *devConf = nullptr;
-	uint categoryStart = 0;
-	uint categoryMap[EmuControls::categories] {0};
 public:
 	constexpr InputManagerDeviceView() { }
 
 	void init(bool highlightFirst, InputDeviceConfig &devConf);
-	void onShow();
-	void onSelectElement(const GuiTable1D *, const Input::Event &e, uint i);
+	void onShow() override;
 };

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.cxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: PropsSet.cxx 2608 2013-02-13 23:09:31Z stephena $
 //============================================================================
 
 #include <fstream>
@@ -146,6 +146,23 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
   }
 
   return found;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
+                                     const string& md5, Properties& properties)
+{
+  if(!getMD5(md5, properties))
+  {
+    // Create a name suitable for using in properties
+    size_t pos = rom.getName().find_last_of("/\\");
+    const string& name = pos == string::npos ? rom.getName() :
+                         rom.getName().substr(pos+1);
+
+    properties.set(Cartridge_MD5, md5);
+    properties.set(Cartridge_Name, name);
+    insert(properties, false);
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

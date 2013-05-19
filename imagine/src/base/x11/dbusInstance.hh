@@ -3,10 +3,11 @@
 #include <dbus/dbus.h>
 
 static DBusConnection *bus = nullptr;
-static const char *instanceName = CONFIG_APP_ID "-instance";
+//static const char *instanceName = CONFIG_APP_ID "-instance";
 
 #define DBUS_APP_OBJECT_PATH "/com/explusalpha/imagine"
-#define DBUS_APP_INTERFACE CONFIG_APP_ID
+//#define DBUS_APP_INTERFACE CONFIG_APP_ID
+static const char *dbusAppInterface = nullptr;
 
 static bool initDBus()
 {
@@ -33,7 +34,7 @@ static void deinitDBus()
 static DBusHandlerResult dbusSignalHandler(DBusConnection *connection, DBusMessage *message, void *user_data)
 {
 	logMsg("got dbus signal");
-	if(dbus_message_is_signal(message, DBUS_APP_INTERFACE, "openPath"))
+	if(dbus_message_is_signal(message, dbusAppInterface, "openPath"))
 	{
 		DBusError error;
 		const char *path;
@@ -59,39 +60,40 @@ static DBusHandlerResult dbusSignalHandler(DBusConnection *connection, DBusMessa
 
 struct DBusWatchHandler
 {
-	constexpr DBusWatchHandler(DBusConnection *conn, DBusWatch *watch): conn(conn), watch(watch) { }
-	Base::PollEventDelegate pollEvDel {Base::PollEventDelegate::create<DBusWatchHandler, &DBusWatchHandler::handler>(this)};
-	DBusConnection *conn;
-	DBusWatch *watch;
-
-	int handler(int event)
+	DBusWatchHandler(DBusConnection *conn, DBusWatch *watch): conn(conn), watch(watch) { }
+	Base::PollEventDelegate pollEvDel
 	{
-		uint flags = 0;
-		if (event & POLLEV_IN)
-			flags |= DBUS_WATCH_READABLE;
-		if (event & POLLEV_OUT)
-			flags |= DBUS_WATCH_WRITABLE;
-		if (event & POLLEV_HUP)
-			flags |= DBUS_WATCH_HANGUP;
-		if (event & POLLEV_ERR)
-			flags |= DBUS_WATCH_ERROR;
-
-		while(!dbus_watch_handle(watch, flags))
+		[this](int event)
 		{
-			logWarn("dbus_watch_handle needs more memory");
+			uint flags = 0;
+			if (event & POLLEV_IN)
+				flags |= DBUS_WATCH_READABLE;
+			if (event & POLLEV_OUT)
+				flags |= DBUS_WATCH_WRITABLE;
+			if (event & POLLEV_HUP)
+				flags |= DBUS_WATCH_HANGUP;
+			if (event & POLLEV_ERR)
+				flags |= DBUS_WATCH_ERROR;
+
+			while(!dbus_watch_handle(watch, flags))
+			{
+				logWarn("dbus_watch_handle needs more memory");
+				return 1;
+			}
+
+			//dbus_connection_ref(conn);
+			int messages = 0;
+			while(dbus_connection_dispatch(conn) == DBUS_DISPATCH_DATA_REMAINS)
+			{
+				messages++;
+			}
+			//dbus_connection_unref(conn);
+			logMsg("dispatched %d dbus messages for watch %p", messages, watch);
 			return 1;
 		}
-
-		//dbus_connection_ref(conn);
-		int messages = 0;
-		while(dbus_connection_dispatch(conn) == DBUS_DISPATCH_DATA_REMAINS)
-		{
-			messages++;
-		}
-		//dbus_connection_unref(conn);
-		logMsg("dispatched %d dbus messages for watch %p", messages, watch);
-		return 1;
-	}
+	};
+	DBusConnection *conn;
+	DBusWatch *watch;
 };
 
 static dbus_bool_t addDbusWatch(DBusWatch *watch, void *conn)
@@ -131,10 +133,13 @@ static void removeDbusWatch(DBusWatch *watch, void *conn)
 	delete handler;
 }
 
-static bool setupDbusListener()
+static bool setupDbusListener(const char *name)
 {
 	DBusError err {0};
-	dbus_bus_add_match(bus, "type='signal',interface='" DBUS_APP_INTERFACE "',path='" DBUS_APP_OBJECT_PATH "'", &err);
+	dbusAppInterface = name;
+	char ruleStr[128];
+	string_printf(ruleStr, "type='signal',interface='%s',path='" DBUS_APP_OBJECT_PATH "'", name);
+	dbus_bus_add_match(bus, ruleStr, &err);
 	if(dbus_error_is_set(&err))
 	{
 		logWarn("error registering rule: %s", err.message);

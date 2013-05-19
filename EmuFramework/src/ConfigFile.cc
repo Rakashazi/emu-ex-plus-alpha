@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <util/number.h>
 #include <ConfigFile.hh>
@@ -198,6 +198,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: optionTouchCtrlExtraYBtnSize.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
+			bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
 			bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
 			bcase CFGKEY_FRAME_SKIP: optionFrameSkip.readFromIO(io, size);
@@ -216,7 +217,7 @@ static bool readConfig2(Io *io)
 				if(FsSys::chdir(lastDir) == 0)
 					dirChange = 1;
 			}
-			bcase CFGKEY_FONT_Y_PIXELS: logMsg("reading large font option"); optionLargeFonts.readFromIO(io, size);
+			bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 			bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
 			bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
 			bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
@@ -255,13 +256,18 @@ static bool readConfig2(Io *io)
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
-			bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
+				#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+				bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
+				#endif
 			#endif
 			#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_AUDIO_OPENSL_ES
 			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
+			#endif
+			#ifdef CONFIG_AUDIO_SOLO_MIX
+			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
 			#ifdef USE_BEST_COLOR_MODE_OPTION
@@ -427,7 +433,7 @@ static OptionBase *cfgFileOption[] =
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
 	&optionRelPointerDecel,
-	&optionLargeFonts,
+	&optionFontSize,
 	&optionPauseUnfocused,
 	&optionGameOrientation,
 	&optionMenuOrientation,
@@ -448,6 +454,7 @@ static OptionBase *cfgFileOption[] =
 	&optionTouchCtrlExtraYBtnSizeMultiRow,
 	&optionTouchDpadDiagonalSensitivity,
 	&optionTouchCtrlBoundingBoxes,
+	&optionTouchCtrlShowOnTouch,
 	&optionShowMenuIcon,
 	&optionSwappedGamepadConfirm,
 	&optionConfirmOverwriteState,
@@ -484,13 +491,18 @@ static OptionBase *cfgFileOption[] =
 #endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,
-	&optionBlueToothScanCache,
+		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+		&optionBlueToothScanCache,
+		#endif
 	#endif
 	#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
 	&optionSoundBuffers,
 	#endif
 	#ifdef CONFIG_AUDIO_OPENSL_ES
 	&optionSoundUnderrunCheck,
+	#endif
+	#ifdef CONFIG_AUDIO_SOLO_MIX
+	&optionAudioSoloMix,
 	#endif
 	#ifdef USE_BEST_COLOR_MODE_OPTION
 	&optionBestColorModeHint,

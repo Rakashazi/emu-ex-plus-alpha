@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,14 +11,17 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <data-type/image/libpng/reader.h>
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
+#include <EmuView.hh>
 #include <InputManagerView.hh>
-
-#ifdef INPUT_SUPPORTS_POINTER
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+#include <VController.hh>
+SysVController vController;
 uint pointerInputPlayer = 0;
 #endif
 
@@ -31,14 +34,15 @@ static RelPtr relPtr = { 0 };
 
 TurboInput turboActions;
 extern ViewStack viewStack;
-extern InputManagerDeviceView imdMenu;
-extern InputManagerView imMenu;
+extern InputManagerView *imMenu;
+extern EmuView emuView;
 uint inputDevConfs = 0;
 InputDeviceConfig inputDevConf[Input::MAX_DEVS];
 StaticDLList<InputDeviceSavedConfig, MAX_SAVED_INPUT_DEVICES> savedInputDevList;
 KeyMapping keyMapping;
 StaticDLList<KeyConfig, MAX_CUSTOM_KEY_CONFIGS> customKeyConfig;
 bool physicalControlsPresent = 0;
+bool touchControlsAreOn = 0;
 
 #ifdef INPUT_SUPPORTS_POINTER
 void processRelPtr(const Input::Event &e)
@@ -142,19 +146,28 @@ bool isMenuDismissKey(const Input::Event &e)
 		#ifdef CONFIG_INPUT_ICADE
 		case Event::MAP_ICADE: return e.button == ICade::G;
 		#endif
-		#if defined(CONFIG_BASE_PS3)
+		#if defined CONFIG_BASE_PS3
 		case Event::MAP_PS3PAD:
-			return e.button == PS3::TRIANGLE || e.button == PS3::L2;
+			return e.button == PS3::L2;
+		#elif defined CONFIG_BLUETOOTH_SERVER
+		case Event::MAP_PS3PAD:
+			return e.button == PS3::PS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case Event::MAP_KEYBOARD:
-			#ifdef CONFIG_BASE_ANDROID
 			switch(e.device->subtype)
 			{
+				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
-					return e.button == PS3::PS;
+					return e.button == Keycode::PS3::PS;
+				#endif
+				#ifdef CONFIG_MACHINE_PANDORA
+				case Device::SUBTYPE_PANDORA_HANDHELD:
+					return !translateKeyboardEventsByModifiers() // make sure not performing text input
+						&& e.button == Input::asciiKey(' ');
+				#endif
+				default: break;
 			}
-			#endif
 			return e.button == dismissKey;
 		#endif
 	}
@@ -188,13 +201,15 @@ void updateInputDevices()
 		logMsg("Physical controls are present");
 	}
 
-	if(viewStack.contains(&imMenu))
+	if(imMenu)
 	{
 		if(View::modalView)
 			View::removeModalView();
 		viewStack.popToRoot();
-		imMenu.init(0);
-		viewStack.pushAndShow(&imMenu);
+		auto &menu = *menuAllocator.allocNew<InputManagerView>();
+		imMenu = &menu;
+		menu.init(0);
+		viewStack.pushAndShow(&menu, &menuAllocator);
 	}
 
 	keyMapping.buildAll();
@@ -208,7 +223,7 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 	{
 		case Input::Event::MAP_KEYBOARD:
 		{
-			#ifdef CONFIG_BASE_ANDROID
+			#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_X11
 			uint confs = 0;
 			auto conf = defaultConfigsForDevice(dev, confs);
 			iterateTimes(confs, i)
@@ -249,9 +264,16 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 			size = EmuControls::defaultZeemoteProfiles;
 			return EmuControls::defaultZeemoteProfile;
 		#endif
-//		#ifdef CONFIG_BASE_PS3
-//		case MAP_PS3PAD: bug_exit("TODO");
-//		#endif
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER
+		case Input::Event::MAP_PS3PAD:
+			size = EmuControls::defaultPS3Profiles;
+			return EmuControls::defaultPS3Profile;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case Input::Event::MAP_EVDEV:
+			size = EmuControls::defaultEvdevProfiles;
+			return EmuControls::defaultEvdevProfile;
+		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
 			size = EmuControls::defaultICadeProfiles;
@@ -532,4 +554,184 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 	}
 }
 
+void setupVolKeysInGame()
+{
+	#if defined(INPUT_SUPPORTS_KEYBOARD)
+	iterateTimes(inputDevConfs, i)
+	{
+		if(!inputDevConf[i].enabled ||
+			inputDevConf[i].dev->map() != Input::Event::MAP_KEYBOARD ||
+			!inputDevConf[i].savedConf) // no default configs use volume keys
+		{
+			continue;
+		}
+		auto key = inputDevConf[i].keyConf().key();
+		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
+		{
+			if(Input::isVolumeKey(key[k]))
+			{
+				logMsg("key config has volume keys");
+				Input::setHandleVolumeKeys(1);
+				return;
+			}
+		}
+	}
+	#endif
+}
+
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+void setupVControllerVars()
+{
+	vController.gp.btnSize = Gfx::xMMSize(int(optionTouchCtrlSize) / 100.);
+	logMsg("set on-screen button size: %f, %d pixels", (double)vController.gp.btnSize, Gfx::toIXSize(vController.gp.btnSize));
+	vController.gp.dp.deadzone = Gfx::xMMSizeToPixel(int(optionTouchDpadDeadzone) / 100.);
+	vController.gp.dp.diagonalSensitivity = optionTouchDpadDiagonalSensitivity / 1000.;
+	vController.gp.btnSpace = Gfx::xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
+	vController.gp.btnRowShift = 0;
+	vController.gp.btnExtraXSize = optionTouchCtrlExtraXBtnSize / 1000.;
+	vController.gp.btnExtraYSize = optionTouchCtrlExtraYBtnSize / 1000.;
+	vController.gp.btnExtraYSizeMultiRow = optionTouchCtrlExtraYBtnSizeMultiRow / 1000.;
+	switch((int)optionTouchCtrlBtnStagger)
+	{
+		case 0: vController.gp.btnStagger = vController.gp.btnSize * -.75; break;
+		case 1: vController.gp.btnStagger = vController.gp.btnSize * -.5; break;
+		case 2: vController.gp.btnStagger = 0; break;
+		case 3: vController.gp.btnStagger = vController.gp.btnSize * .5; break;
+		case 4: vController.gp.btnStagger = vController.gp.btnSize * .75; break;
+		default:
+			vController.gp.btnStagger = vController.gp.btnSize + vController.gp.btnSpace;
+			vController.gp.btnRowShift = -(vController.gp.btnSize + vController.gp.btnSpace);
+		break;
+	}
+	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
+}
+#endif
+
+void setOnScreenControls(bool on)
+{
+	touchControlsAreOn = on;
+	emuView.placeEmu();
+}
+
+void updateAutoOnScreenControlVisible()
+{
+	if((uint)optionTouchCtrl == 2)
+	{
+		if(touchControlsAreOn && physicalControlsPresent)
+		{
+			logMsg("auto-turning off on-screen controls");
+			setOnScreenControls(0);
+		}
+		else if(!touchControlsAreOn && !physicalControlsPresent)
+		{
+			logMsg("auto-turning on on-screen controls");
+			setOnScreenControls(1);
+		}
+	}
+}
+
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+void setupVControllerPosition()
+{
+	vController.gp.dp.origin = optionTouchCtrlDpadPos;
+	vController.gp.btnO = optionTouchCtrlFaceBtnPos;
+	vController.gp.cenBtnO = optionTouchCtrlCenterBtnPos;
+	vController.gp.triggerPos = optionTouchCtrlTriggerBtnPos;
+}
+
+static const _2DOrigin allCornersO[] = { RT2DO, RC2DO, RB2DO, CB2DO, LB2DO, LC2DO, LT2DO, CT2DO };
+static const _2DOrigin onlyTopBottomO[] = { RT2DO, RB2DO, CB2DO, LB2DO, LT2DO, CT2DO };
+template <size_t S, size_t S2>
+static _2DOrigin getFreeOnScreenSpace(const _2DOrigin(&occupiedCorner)[S], const _2DOrigin(&wantedCorner)[S2])
+{
+	forEachInArray(wantedCorner, e)
+	{
+		if(!equalsAny(*e, occupiedCorner))
+			return *e;
+	}
+	return NULL2DO; // no free corners
+}
+
+static bool onScreenObjectCanOverlap(_2DOrigin &a, _2DOrigin &b)
+{
+	return (&a == &optionTouchCtrlCenterBtnPos.val || &b == &optionTouchCtrlCenterBtnPos.val) // one is the center btn. group, and
+		&& (&a == &optionTouchCtrlFaceBtnPos.val || &b == &optionTouchCtrlFaceBtnPos.val
+				|| &a == &optionTouchCtrlDpadPos.val || &b == &optionTouchCtrlDpadPos.val); // one is the dpad/face btn. group
+}
+
+void resolveOnScreenCollisions(_2DOrigin *movedObj)
+{
+	_2DOrigin *obj[] = { &optionTouchCtrlFaceBtnPos.val, &optionTouchCtrlDpadPos.val, &optionTouchCtrlCenterBtnPos.val, &optionTouchCtrlMenuPos.val, &optionTouchCtrlFFPos.val };
+	iterateTimes(sizeofArray(obj), i)
+	{
+		if(movedObj == obj[i] || *obj[i] == NULL2DO) // don't move object that was just placed, and ignore objects that are off
+		{
+			//logMsg("skipped obj %d", (int)i);
+			continue;
+		}
+
+		iterateTimes(sizeofArray(obj), j)
+		{
+			if(obj[i] != obj[j] && *obj[j] != NULL2DO && *obj[i] == *obj[j] && !onScreenObjectCanOverlap(*obj[i], *obj[j]))
+			{
+				_2DOrigin freeO;
+				if(obj[i] == &optionTouchCtrlCenterBtnPos.val)
+				{
+					// Center btns. can only collide with menu/ff hot-spots
+					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val };
+					freeO = getFreeOnScreenSpace(occupied, onlyTopBottomO);
+				}
+				else if(obj[i] == &optionTouchCtrlMenuPos.val || obj[i] == &optionTouchCtrlFFPos.val)
+				{
+					// Menu/ff hot-spots collide with everything
+					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val, optionTouchCtrlFaceBtnPos.val, optionTouchCtrlDpadPos.val, optionTouchCtrlCenterBtnPos.val, };
+					freeO = getFreeOnScreenSpace(occupied, allCornersO);
+				}
+				else
+				{
+					// Main btns. collide with others of themselves and Menu/ff hot-spots
+					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val, optionTouchCtrlFaceBtnPos.val, optionTouchCtrlDpadPos.val };
+					freeO = getFreeOnScreenSpace(occupied, allCornersO);
+				}
+				assert(freeO != NULL2DO);
+				logMsg("objs %d & %d collide, moving first to %d,%d", (int)i, (int)j, freeO.x, freeO.y);
+				*obj[i] = freeO;
+				break;
+			}
+		}
+	}
+}
+
+void updateVControlImg()
+{
+	{
+		static Gfx::BufferImage overlayImg;
+		PngFile png;
+		auto filename =
+		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
+		(optionTouchCtrlImgRes == 128U) ? "overlays128.png" : "overlays64.png";
+		#else
+		"overlays128.png";
+		#endif
+		if(png.loadAsset(filename) != OK)
+		{
+			bug_exit("couldn't load overlay png");
+		}
+		overlayImg.init(png);
+		vController.setImg(&overlayImg);
+	}
+	#ifdef CONFIG_VCONTROLLER_KEYBOARD
+	{
+		static Gfx::BufferImage kbOverlayImg;
+		PngFile png;
+		if(png.loadAsset("kbOverlay.png") != OK)
+		{
+			bug_exit("couldn't load kb overlay png");
+		}
+		kbOverlayImg.init(png);
+		vController.kb.setImg(&kbOverlayImg);
+	}
+	#endif
+}
+#endif
 }

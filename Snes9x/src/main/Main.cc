@@ -1,5 +1,4 @@
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -433,6 +432,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 256; }
+uint EmuSystem::multiresVideoBaseY() { return 239; }
 bool touchControlsApplicable() { return snesActiveInputPort == SNES_JOYPAD; }
 
 static void setupSNESInput()
@@ -590,7 +591,7 @@ int EmuSystem::loadGame(const char *path)
 	Memory.LoadSRAM(saveStr);
 
 	IPPU.RenderThisFrame = TRUE;
-	EmuSystem::configAudioRate();
+	EmuSystem::configAudioPlayback();
 	logMsg("finished loading game");
 	return 1;
 }
@@ -604,8 +605,8 @@ void EmuSystem::clearInputBuffers()
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	mouseScroll.init(ContentDrag::XY_AXIS);
-	mouseScroll.dragStartY = IG::max(1, Gfx::yMMSizeToPixel(1.));
-	mouseScroll.dragStartX = IG::max(1, Gfx::xMMSizeToPixel(1.));
+	mouseScroll.dragStartY = std::max(1, Gfx::yMMSizeToPixel(1.));
+	mouseScroll.dragStartX = std::max(1, Gfx::xMMSizeToPixel(1.));
 }
 
 void EmuSystem::configAudioRate()

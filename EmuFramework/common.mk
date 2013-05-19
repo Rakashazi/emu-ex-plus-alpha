@@ -1,8 +1,9 @@
-ifeq ($(ENV), android)
+ifneq ($(filter linux ios android,$(ENV)),)
  staticLibImagine := 1
 endif
-ifeq ($(ENV), ios)
- staticLibImagine := 1
+
+ifneq ($(filter linux ios android webos,$(ENV)),)
+ emuFramework_onScreenControls := 1
 endif
 
 emuFrameworkPath := $(currPath)
@@ -27,7 +28,7 @@ include $(imagineSrcDir)/gui/MenuItem/build.mk
 include $(imagineSrcDir)/gui/FSPicker/build.mk
 include $(imagineSrcDir)/gui/AlertView.mk
 include $(imagineSrcDir)/resource2/font/system.mk
-include $(imagineSrcDir)/resource2/image/png/build.mk
+include $(imagineSrcDir)/resource2/data-type/image/libpng/build.mk
 
 ifeq ($(ENV), android)
  configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE
@@ -37,11 +38,14 @@ else
 
 # TODO: rework non-embedded build
 configIncNext := <config.h>
-imagineLibPath := $(IMAGINE_PATH)/lib/$(buildName)
-imagineStaticLib := $(IMAGINE_PATH)/lib/$(buildName)/libimagine.a
-CPPFLAGS += -I$(IMAGINE_PATH)/build/$(buildName)/gen
-CPPFLAGS += $(shell PKG_CONFIG_PATH=$(imagineLibPath):$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(IMAGINE_PATH)/src pkg-config imagine --cflags --static --define-variable=prefix=$(system_externalSysroot))
-LDLIBS += -L$(imagineLibPath) $(shell PKG_CONFIG_PATH=$(imagineLibPath):$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG_SYSTEM_LIBRARY_PATH=$(system_externalSysroot)/lib pkg-config imagine --libs --static --define-variable=prefix=$(system_externalSysroot))
+imagineLibPath ?= $(IMAGINE_PATH)/lib/$(buildName)
+imagineStaticLib := $(imagineLibPath)/libimagine.a
+imagineIncludePath ?= $(IMAGINE_PATH)/build/$(buildName)/gen
+CPPFLAGS += -I$(imagineIncludePath)
+LDLIBS += -L$(imagineLibPath)
+PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(imagineLibPath)
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(PKG_CONFIG_SYSTEM_INCLUDE_PATH):$(IMAGINE_PATH)/src
+pkgConfigStaticDeps += imagine
 
 endif
 
@@ -52,12 +56,12 @@ SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
 EmuOptions.cc OptionView.cc EmuView.cc \
-ConfigFile.cc InputManagerView.cc
+ConfigFile.cc InputManagerView.cc FileUtils.cc
 
-ifdef emuFramework_cheats
+ifeq ($(emuFramework_cheats), 1)
  SRC += Cheats.cc
 endif
 
-ifneq ($(ENV), ps3)
-SRC += TouchConfigView.cc VController.cc
+ifeq ($(emuFramework_onScreenControls), 1)
+ SRC += TouchConfigView.cc VController.cc
 endif

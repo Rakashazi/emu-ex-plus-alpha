@@ -71,12 +71,15 @@
  #include "profile.h"
 #endif
 
+#if defined(SH2_DYNAREC)
+#include "sh2_dynarec/sh2_dynarec.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 
 yabsys_struct yabsys;
 const char *bupfilename = NULL;
 u64 tickfreq;
-void sh2_dynarec_init();
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -229,7 +232,11 @@ int YabauseInit(yabauseinit_struct *init)
    if (init->frameskip)
       EnableAutoFrameSkip();
 
-   OSDInit(OSDCORE_DEFAULT);
+#ifdef YAB_PORT_OSD
+   OSDChangeCore(init->osdcoretype);
+#else
+   OSDChangeCore(OSDCORE_DEFAULT);
+#endif
 
    if (init->biospath != NULL && strlen(init->biospath))
    {

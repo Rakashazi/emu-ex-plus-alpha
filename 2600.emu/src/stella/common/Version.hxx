@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Version.hxx 2564 2012-10-26 18:27:16Z stephena $
+// $Id: Version.hxx 2648 2013-03-03 21:05:43Z stephena $
 //============================================================================
 
 #ifndef VERSION_HXX
@@ -22,7 +22,7 @@
 
 #include <cstdlib>
 
-#define STELLA_VERSION "3.7.3"
-#define STELLA_BUILD atoi("$Rev: 2564 $" + 6)
+#define STELLA_VERSION "3.8.1"
+#define STELLA_BUILD atoi("$Rev: 2648 $" + 6)
 
 #endif

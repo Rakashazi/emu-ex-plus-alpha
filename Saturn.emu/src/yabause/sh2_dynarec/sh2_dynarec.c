@@ -29,9 +29,7 @@
 #include "../memory.h"
 #include "../sh2core.h"
 #include "../yabause.h"
-
-void add_to_linker(int addr,int target,int ext);
-int verify_dirty(pointer addr);
+#include "sh2_dynarec.h"
 
 #ifdef __i386__
 #include "assem_x86.h"
@@ -251,7 +249,7 @@ int tracedebug=0;
 
 //#define DEBUG_CYCLE_COUNT 1
 
-void nullf() {}
+void nullf(const char *format, ...) {}
 //#define assem_debug printf
 //#define inv_debug printf
 #define assem_debug nullf
@@ -833,7 +831,7 @@ void ll_remove_matching_addrs(struct ll_entry **head,int addr,int shift)
 // Remove all entries from linked list
 void ll_clear(struct ll_entry **head)
 {
-	struct ll_entry *cur;
+  struct ll_entry *cur;
   struct ll_entry *next;
   if(cur=*head) {
     *head=0;
@@ -5238,14 +5236,14 @@ void sh2_dynarec_init()
   int n;
   //printf("Init new dynarec\n");
   out=(u8 *)BASE_ADDR;
-	#ifdef __arm__
+  #ifdef __arm__
   mprotect(out, 1<<TARGET_SIZE_2, PROT_READ | PROT_WRITE | PROT_EXEC);
-	#else
+  #else
   if (mmap (out, 1<<TARGET_SIZE_2,
             PROT_READ | PROT_WRITE | PROT_EXEC,
             MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
             -1, 0) == MAP_FAILED) {printf("mmap() failed\n");}
-	#endif
+  #endif
   //for(n=0x80000;n<0x80800;n++)
   //  invalid_code[n]=1;
   for(n=0;n<131072;n++)
@@ -5322,9 +5320,9 @@ void SH2DynarecReset(SH2_struct *context) {
 void sh2_dynarec_cleanup()
 {
   int n;
-	#ifndef __arm__
+  #ifndef __arm__
   if (munmap ((void *)BASE_ADDR, 1<<TARGET_SIZE_2) < 0) {printf("munmap() failed\n");}
-	#endif
+  #endif
   munmap ((void *)0x80000000, 4194304);
   for(n=0;n<2048;n++) ll_clear(jump_in+n);
   for(n=0;n<2048;n++) ll_clear(jump_out+n);

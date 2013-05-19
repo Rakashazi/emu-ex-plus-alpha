@@ -27,7 +27,6 @@
 #include <stella/emucore/Paddles.hxx>
 #include "ImagineSound.hh"
 
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -189,6 +188,8 @@ static void updateSwitchValues()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
@@ -287,7 +288,7 @@ int EmuSystem::loadGame(const char *path)
 	emuView.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
-	configAudioRate();
+	configAudioPlayback();
 	return 1;
 }
 
@@ -471,10 +472,10 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		#ifdef USE_NEW_AUDIO
 		Audio::BufferContext *aBuff = Audio::getPlayBuffer(tiaSamplesPerFrame);
 		if(!aBuff) return;
-		vcsSound->processAudio((TIASound::Sample*)aBuff->data, aBuff->frames);
+		vcsSound->processAudio((Int16*)aBuff->data, aBuff->frames);
 		Audio::commitPlayBuffer(aBuff, aBuff->frames);
 		#else
-		TIASound::Sample buff[tiaSamplesPerFrame*soundChannels];
+		Int16 buff[tiaSamplesPerFrame*soundChannels];
 		vcsSound->processAudio(buff, tiaSamplesPerFrame);
 		Audio::writePcm((uchar*)buff, tiaSamplesPerFrame);
 		#endif
@@ -531,7 +532,7 @@ CallResult onInit(int argc, char** argv)
 {
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 	EmuSystem::pcmFormat.channels = soundChannels;
-	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(TIASound::Sample)*8);
+	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
 	mainInitCommon();
 	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 

@@ -20,12 +20,12 @@
 #include <gfx/GfxSprite.hh>
 #include <base/Base.hh>
 #include <input/DragPointer.hh>
-#include <resource2/image/ResourceImage.h>
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include <TurboInput.hh>
+#include <cmath>
 
-#ifndef CONFIG_BASE_PS3
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 
 extern TurboInput turboActions;
 
@@ -46,7 +46,7 @@ public:
 	bool visualizeBounds = 0;
 
 	void init();
-	void setImg(ResourceImage *dpadR, GC texHeight);
+	void setImg(Gfx::BufferImage *dpadR, GC texHeight);
 	void place(GC padFullSize, GC centerBtnYOffset);
 	void draw();
 	void setBoundingAreaVisible(bool on);
@@ -67,7 +67,7 @@ public:
 
 	void init();
 	void updateImg();
-	void setImg(ResourceImage *img);
+	void setImg(Gfx::BufferImage *img);
 	void place(GC btnSize, GC yOffset);
 	void draw();
 	int getInput(int cx, int cy);
@@ -118,13 +118,8 @@ public:
 		return showBoundingArea;
 	}
 
-	void setImg(ResourceImage *pics)
+	void setImg(Gfx::BufferImage *pics)
 	{
-		assert(pics);
-		if(circleBtnSpr[0].img)
-		{
-			circleBtnSpr[0].img->deinit();
-		}
 		GC h = faceBtns == 2 ? 128. : 256.;
 		dp.setImg(pics, h);
 		forEachInArray(centerBtnSpr, e)
@@ -170,8 +165,8 @@ public:
 		int btnsPerRow = btns/rows;
 		//Area btnArea; // area to place face buttons
 		btnArea.init(0, 1);
-		btnArea.setYSize(btnSize*rows + btnSpace*(rows-1) + IG::abs(btnStagger*(btnsPerRow-1)));
-		btnArea.setXSize(btnSize*btnsPerRow + btnSpace*(btnsPerRow-1) + IG::abs(btnRowShift*(rows-1)));
+		btnArea.setYSize(btnSize*rows + btnSpace*(rows-1) + std::abs(btnStagger*(btnsPerRow-1)));
+		btnArea.setXSize(btnSize*btnsPerRow + btnSpace*(btnsPerRow-1) + std::abs(btnRowShift*(rows-1)));
 		btnArea.setPos(btnAreaXOffset * -btnO.xScaler(), btnO.onYCenter() ? 0 : centerBtnYOffset * -btnO.yScaler(), btnO, btnO);
 
 		int row = 0, btnPos = 0;
@@ -463,7 +458,7 @@ public:
 		return hasTriggerButtons;
 	}
 
-	void setImg(ResourceImage *pics)
+	void setImg(Gfx::BufferImage *pics)
 	{
 		gp.setImg(pics);
 	}

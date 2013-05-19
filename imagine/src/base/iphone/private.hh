@@ -9,3 +9,8 @@ void nsLog(const char* str);
 void nsLogv(const char* format, va_list arg);
 
 }
+
+namespace Audio
+{
+	void initSession();
+}

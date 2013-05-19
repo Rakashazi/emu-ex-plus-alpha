@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIATables.cxx 2547 2012-07-14 18:56:57Z stephena $
+// $Id: TIATables.cxx 2617 2013-02-21 21:57:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -616,8 +616,8 @@ const Int16 TIATables::PokeDelay[64] = {
   1,  // VBLANK (0) / 1
   0,  // WSYNC
   0,  // RSYNC
-  8,  // NUSIZ0 (0) / 8    TODO - calculate this instead of hardcoding
-  8,  // NUSIZ1 (0) / 8    TODO - calculate this instead of hardcoding
+  0,  // NUSIZ0
+  0,  // NUSIZ1
   0,  // COLUP0
   0,  // COLUP1
   0,  // COLUPF

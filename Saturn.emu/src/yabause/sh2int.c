@@ -1,5 +1,5 @@
 /*  Copyright 2003-2005 Guillaume Duhamel
-    Copyright 2004-2007 Theo Berkau
+    Copyright 2004-2007, 2013 Theo Berkau
     Copyright 2005 Fabien Coulon
 
     This file is part of Yabause.
@@ -1053,7 +1053,7 @@ static void FASTCALL SH2macl(SH2_struct * sh)
    sh->regs.R[m] += 4;
 
    if ((s32) (tempn^tempm) < 0)
-      fnLmL =- 1;
+      fnLmL = -1;
    else
       fnLmL = 0;
    if (tempn < 0)
@@ -2704,6 +2704,8 @@ int SH2InterpreterInit()
    SH2ClearMemoryBreakpoints(SSH2);
    MSH2->breakpointEnabled = 0;
    SSH2->breakpointEnabled = 0;  
+   MSH2->backtraceEnabled = 0;
+   SSH2->backtraceEnabled = 0;
    
    return 0;
 }
@@ -2713,6 +2715,8 @@ int SH2DebugInterpreterInit() {
   SH2InterpreterInit();
   MSH2->breakpointEnabled = 1;
   SSH2->breakpointEnabled = 1;  
+  MSH2->backtraceEnabled = 1;
+  SSH2->backtraceEnabled = 1;
   return 0;
 }
 
@@ -2838,6 +2842,8 @@ FASTCALL void SH2DebugInterpreterExec(SH2_struct *context, u32 cycles)
       else
 #endif
       context->instruction = fetchlist[(context->regs.PC >> 20) & 0x0FF](context->regs.PC);
+
+      SH2HandleBackTrace(context);
 
       // Execute it
       opcodes[context->instruction](context);

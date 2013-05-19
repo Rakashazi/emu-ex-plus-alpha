@@ -4,7 +4,7 @@ SUBARCH := armv7
 webos_cpuFlags := -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 #-mthumb #-march=armv7-a
 
-include $(currPath)/webos-gcc.mk
+include $(buildSysPath)/webos-gcc.mk
 
 ifndef target
  ifeq ($(webos_osVersion), 3)
@@ -14,6 +14,10 @@ ifndef target
  endif
 endif
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/webos/armv7
-CPPFLAGS += -I$(system_externalSysroot)/include
-LDLIBS += -L$(system_externalSysroot)/lib
+extraSysroot := $(IMAGINE_PATH)/bundle/webos/armv7
+PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
+pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
+CPPFLAGS += -I$(extraSysroot)/include
+LDLIBS += -L$(extraSysroot)/lib

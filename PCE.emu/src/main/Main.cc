@@ -15,7 +15,6 @@
 
 #define thisModuleName "main"
 #include "MDFNWrapper.hh"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -250,6 +249,8 @@ static void writeCDMD5()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
@@ -335,7 +336,7 @@ int EmuSystem::loadGame(const char *path)
 		emuSys->Emulate(&espec);
 	}
 
-	configAudioRate();
+	configAudioPlayback();
 	return 1;
 
 	FAIL:

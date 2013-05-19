@@ -93,6 +93,28 @@ namespace Keycode
 	F1 = 131, F2 = 132, F3 = 133, F4 = 134, F5 = 135, F6 = 136,
 	F7 = 137, F8 = 138, F9 = 139, F10 = 140, F11 = 141, F12 = 142,
 
+	NUM_LOCK = 143,
+	NUMPAD_0 = 144,
+	NUMPAD_1 = 145,
+	NUMPAD_2 = 146,
+	NUMPAD_3 = 147,
+	NUMPAD_4 = 148,
+	NUMPAD_5 = 149,
+	NUMPAD_6 = 150,
+	NUMPAD_7 = 151,
+	NUMPAD_8 = 152,
+	NUMPAD_9 = 153,
+	NUMPAD_DIV = 154,
+	NUMPAD_MULT = 155,
+	NUMPAD_SUB = 156,
+	NUMPAD_ADD = 157,
+	NUMPAD_DOT = 158,
+	NUMPAD_COMMA = 159,
+	NUMPAD_ENTER = 160,
+	NUMPAD_EQUALS = 161,
+	// 162, left paren handled by ascii key macro
+	// 163, right paren handled by ascii key macro
+
 	GAME_1 = 188, GAME_2 = 189, GAME_3 = 190, GAME_4 = 191, GAME_5 = 192, GAME_6 = 193,
 	GAME_7 = 194, GAME_8 = 195, GAME_9 = 196, GAME_10 = 197, GAME_11 = 198, GAME_12 = 199,
 	GAME_13 = 200, GAME_14 = 201, GAME_15 = 202, GAME_16 = 203,
@@ -107,40 +129,60 @@ namespace Keycode
 	JS3_XAXIS_POS = 248, JS3_XAXIS_NEG = 249,
 	JS3_YAXIS_POS = 250, JS3_YAXIS_NEG = 251,
 
-	JS_LTRIGGER_AXIS = 252, JS_RTRIGGER_AXIS = 253;
+	JS_LTRIGGER_AXIS = 252, JS_RTRIGGER_AXIS = 253,
+	JS_GAS_AXIS = 254, JS_BRAKE_AXIS = 255;
 
 	static const uint COUNT = 0xff + 1;
-}
 
-namespace PS3
-{
-	using namespace Keycode;
-	static const uint CROSS = GAME_X,
-	CIRCLE = GAME_Y,
-	SQUARE = GAME_A,
-	TRIANGLE = GAME_B,
-	PS = Keycode::GAME_1
-	;
-}
+	namespace XperiaPlay
+	{
+		static const uint CROSS = CENTER,
+		CIRCLE = GAME_B, // re-mapped from "Back" in input event handler
+		SQUARE = GAME_X,
+		TRIANGLE = GAME_Y,
+		L1 = GAME_L1,
+		R1 = GAME_R1,
+		SELECT = GAME_SELECT,
+		START = GAME_START,
+		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT
+		;
+	}
 
-namespace XperiaPlay
-{
-	using namespace Keycode;
-	static const uint CROSS = CENTER,
-	CIRCLE = GAME_B, // re-mapped from "Back" in input event handler
-	SQUARE = GAME_X,
-	TRIANGLE = GAME_Y
-	;
-}
+	namespace Ouya
+	{
+		static const uint O = GAME_A,
+		U = GAME_X,
+		Y = GAME_Y,
+		A = GAME_B,
+		L1 = GAME_L1,
+		L2 = GAME_L2,
+		L3 = GAME_LEFT_THUMB,
+		R1 = GAME_R1,
+		R2 = GAME_R2,
+		R3 = GAME_RIGHT_THUMB,
+		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+		SYSTEM = MENU
+		;
+	}
 
-namespace Ouya
-{
-	using namespace Keycode;
-	static const uint O = GAME_A,
-	U = GAME_X,
-	Y = GAME_Y,
-	A = GAME_B
-	;
+	namespace PS3
+	{
+		static const uint CROSS = GAME_X,
+		CIRCLE = GAME_Y,
+		SQUARE = GAME_A,
+		TRIANGLE = GAME_B,
+		L1 = GAME_L1,
+		L2 = GAME_L2,
+		L3 = GAME_LEFT_THUMB,
+		R1 = GAME_R1,
+		R2 = GAME_R2,
+		R3 = GAME_RIGHT_THUMB,
+		SELECT = GAME_SELECT,
+		START = GAME_START,
+		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+		PS = GAME_1
+		;
+	}
 }
 
 typedef uint8 Key;

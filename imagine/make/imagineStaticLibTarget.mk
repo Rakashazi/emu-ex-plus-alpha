@@ -1,4 +1,5 @@
-include $(currPath)/imagineCommonTarget.mk
+include $(buildSysPath)/imagineCommonTarget.mk
+include $(buildSysPath)/evalPkgConfigCFlags.mk
 
 targetFile := $(target).a
 
@@ -11,7 +12,7 @@ $(targetDir)/$(targetFile) : $(OBJ)
 
 genPkgConf = $(targetDir)/imagine.pc
 
-$(genPkgConf) :
+$(genPkgConf) : $(imaginePkgconfigTemplate)
 	@echo "Generating pkg-config file $@"
 	@mkdir -p $(@D)
 	$(PRINT_CMD)cp $(imaginePkgconfigTemplate) $@

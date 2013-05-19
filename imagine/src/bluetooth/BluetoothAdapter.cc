@@ -1,28 +1,23 @@
 #include "BluetoothAdapter.hh"
 #include <bluetooth/sys.hh>
 
-#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-static bool useBluezBT = 1;
-#endif
-
+#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 bool BluetoothAdapter::useScanCache = 1;
+#endif
+#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+uint BluetoothAdapter::scanSecs = 4;
+#endif
 
 BluetoothAdapter *BluetoothAdapter::defaultAdapter()
 {
-	#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-		if(useBluezBT)
-		{
-			auto adapter = BluezBluetoothAdapter::defaultAdapter();
-			if(adapter)
-				return adapter;
-		}
-		logMsg("No Bluez, using Android BT");
+	#if defined CONFIG_BLUETOOTH_ANDROID
 		return AndroidBluetoothAdapter::defaultAdapter();
-	#elif defined CONFIG_BTSTACK
+	#elif defined CONFIG_BLUETOOTH_BTSTACK
 		return BtstackBluetoothAdapter::defaultAdapter();
-	#elif defined CONFIG_BLUEZ
+	#elif defined CONFIG_BLUETOOTH_BLUEZ && !defined CONFIG_BASE_ANDROID
 		return BluezBluetoothAdapter::defaultAdapter();
 	#else
-		return AndroidBluetoothAdapter::defaultAdapter();
+		static_assert(0, "no Bluetooth back-ends are selected");
+		return nullptr;
 	#endif
 }

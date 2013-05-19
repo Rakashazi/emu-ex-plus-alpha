@@ -1,8 +1,7 @@
 #define thisModuleName "base:x11"
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <engine-globals.h>
-#include <meta.h>
 #include <input/Input.hh>
 #include <logger/interface.h>
 #include <base/Base.hh>
@@ -12,9 +11,14 @@
 #include <util/string/generic.h>
 #include <base/common/funcs.h>
 #include <config/machine.hh>
+#include <algorithm>
 
 #ifdef CONFIG_FS
 #include <fs/sys.hh>
+#endif
+
+#ifdef CONFIG_INPUT_EVDEV
+#include <input/evdev/evdev.hh>
 #endif
 
 #define Time X11Time_
@@ -29,6 +33,7 @@
 #include <X11/extensions/XInput2.h>
 #include <X11/cursorfont.h>
 #include <X11/XKBlib.h>
+#include <X11/extensions/Xfixes.h>
 #undef Time
 #undef Pixmap
 #undef GC
@@ -52,6 +57,28 @@ namespace Base
 	static X11Window win = None;
 }
 
+namespace Config
+{
+	namespace Base
+	{
+	#if defined CONFIG_MACHINE_PANDORA
+	#define CONFIG_BASE_FBDEV_VSYNC
+	static const bool FBDEV_VSYNC = true;
+	#else
+	static const bool FBDEV_VSYNC = false;
+	#endif
+
+	static const bool XDND = !Config::MACHINE_IS_PANDORA;
+	}
+}
+
+#ifdef CONFIG_BASE_FBDEV_VSYNC
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
+#endif
+
 #include "input.hh"
 #include "xlibutils.h"
 #include "dbusInstance.hh"
@@ -62,16 +89,13 @@ namespace Base
 
 const char *appPath = nullptr;
 uint appState = APP_RUNNING;
-static int xPointerMapping[Input::maxCursors];
 static int screen;
 static X11Window draggerWin = None;
 static Atom dragAction = None;
-static int xI2opcode;
 static float dispXMM, dispYMM;
 static int dispX, dispY;
 static int ePoll = -1;
 static int msgPipe[2] {0};
-static XkbDescPtr coreKeyboardDesc = nullptr;
 static int fbdev = -1;
 
 #ifdef CONFIG_GFX_OPENGL_ES
@@ -138,16 +162,21 @@ static void fileURLToPath(char *url)
 
 void setAcceptDnd(bool on)
 {
+	if(!Config::Base::XDND)
+		return;
 	if(on)
 		enableXdnd(dpy, win);
 	else
 		disableXdnd(dpy, win);
 }
 
-void setWindowTitle(char *name)
+void setWindowTitle(const char *name)
 {
 	XTextProperty nameProp;
-	if(XStringListToTextProperty(&name, 1, &nameProp))
+	char tempName[128];
+	string_copy(tempName, name);
+	char *tempNameArr[1] {tempName};
+	if(XStringListToTextProperty(tempNameArr, 1, &nameProp))
 	{
 		XSetWMName(dpy, win, &nameProp);
 		XFree(nameProp.value);
@@ -170,14 +199,13 @@ static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 	Input::initPerWindowData(win);
 	auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &wmDelete, 1);
-	XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
-	if(Config::MACHINE_IS_OPEN_PANDORA)
+	//XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
+	if(Config::MACHINE_IS_PANDORA)
 	{
 		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
 		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 		XChangeProperty(dpy, win, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
 	}
-	XMapRaised(dpy, win);
 	logMsg("using depth %d", xDrawableDepth(dpy, win));
 
 	// setup xinput2
@@ -212,12 +240,39 @@ CallResult openGLSetMultisampleVideoMode(const Base::Window &win)
 
 void openGLUpdateScreen()
 {
+	#ifdef CONFIG_BASE_FBDEV_VSYNC
+	if(fbdev >= 0)
+	{
+		int arg = 0;
+		ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+	}
+	#endif
 	glCtx.swap();
 }
 
 void setVideoInterval(uint interval)
 {
 	glCtx.setSwapInterval(interval);
+}
+
+void setRefreshRate(uint rate)
+{
+	if(Config::MACHINE_IS_PANDORA)
+	{
+		if(rate == REFRESH_RATE_DEFAULT)
+			rate = 60;
+		if(rate != 50 && rate != 60)
+		{
+			logWarn("tried to set unsupported refresh rate: %u", rate);
+		}
+		char cmd[64];
+		string_printf(cmd, "sudo /usr/pandora/scripts/op_lcdrate.sh %u", rate);
+		int err = system(cmd);
+		if(err)
+		{
+			logErr("error setting refresh rate, %d", err);
+		}
+	}
 }
 
 static void toggleFullScreen()
@@ -236,38 +291,6 @@ void exitVal(int returnVal)
 
 void abort() { ::abort(); }
 
-static CallResult setupXInput2()
-{
-	// XInput Extension available?
-	int event, error;
-	if(!XQueryExtension(dpy, "XInputExtension", &xI2opcode, &event, &error))
-	{
-		logWarn("X Input extension not available");
-		return INVALID_PARAMETER;
-	}
-
-	// Which version of XI
-	int major = 2, minor = 0;
-	if(XIQueryVersion(dpy, &major, &minor) == BadRequest)
-	{
-		logWarn("XI2 not available. Server supports %d.%d", major, minor);
-		return INVALID_PARAMETER;
-	}
-	
-	return OK;
-}
-
-static int devIdToPointer(int id)
-{
-	iterateTimes(4, i)
-	{
-		if(id == xPointerMapping[i])
-			return i;
-	}
-	logWarn("warning: device id not present in pointer mapping");
-	return 0;
-}
-
 static CallResult initX()
 {
 	/*if(!XInitThreads())
@@ -282,33 +305,6 @@ static CallResult initX()
 		logErr("couldn't open display");
 		return INVALID_PARAMETER;
 	}
-
-	if(setupXInput2())
-	{
-		exit();
-	}
-
-	int ndevices;
-	XIDeviceInfo *device = XIQueryDevice(dpy, XIAllMasterDevices, &ndevices);
-	iterateTimes(ndevices, i)
-	{
-		logMsgNoBreak("Device %s (id: %d) is a: ", device[i].name, device[i].deviceid);
-
-		switch(device[i].use)
-		{
-			bcase XIMasterPointer:
-				logger_printfn(0, "master pointer");
-				xPointerMapping[Input::numCursors] = device[i].deviceid;
-				Input::numCursors++;
-			bcase XIMasterKeyboard:
-				logger_printfn(0, "master keyboard");
-			bdefault: logger_printfn(0, "other"); break;
-		}
-		logMsg("Device is attached to/paired with %d", device[i].attachment);
-	}
-	XIFreeDeviceInfo(device);
-
-	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
 	
 	screen = DefaultScreen(dpy);
 	logMsg("using default screen %d", screen);
@@ -366,7 +362,7 @@ static int eventHandler(XEvent event)
 				XFree(clientMsgName);
 				exitVal(0);
 			}
-			else if(dndInit)
+			else if(Config::Base::XDND && dndInit)
 			{
 				if(type == xdndAtom[XdndEnter])
 				{
@@ -403,7 +399,7 @@ static int eventHandler(XEvent event)
 		bcase SelectionNotify:
 		{
 			logMsg("SelectionNotify");
-			if(event.xselection.property != None)
+			if(Config::Base::XDND && event.xselection.property != None)
 			{
 				int format;
 				unsigned long numItems;
@@ -430,40 +426,41 @@ static int eventHandler(XEvent event)
 		}
 		bcase GenericEvent:
 		{
-			if(event.xcookie.extension == xI2opcode && XGetEventData(dpy, &event.xcookie))
+			if(event.xcookie.extension == Input::xI2opcode && XGetEventData(dpy, &event.xcookie))
 			{
 				XGenericEventCookie *cookie = &event.xcookie;
-				XIDeviceEvent &ievent = *((XIDeviceEvent*)cookie->data);
+				auto &ievent = *((XIDeviceEvent*)cookie->data);
 				//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));
 				switch(ievent.evtype)
 				{
 					bcase XI_ButtonPress:
-						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), Input::PUSHED, ievent.event_x, ievent.event_y);
+						handlePointerButton(ievent.detail, Input::devIdToPointer(ievent.deviceid), Input::PUSHED, ievent.event_x, ievent.event_y);
 					bcase XI_ButtonRelease:
-						handlePointerButton(ievent.detail, devIdToPointer(ievent.deviceid), Input::RELEASED, ievent.event_x, ievent.event_y);
+						handlePointerButton(ievent.detail, Input::devIdToPointer(ievent.deviceid), Input::RELEASED, ievent.event_x, ievent.event_y);
 					bcase XI_Motion:
-						handlePointerMove(ievent.event_x, ievent.event_y, devIdToPointer(ievent.deviceid));
+						handlePointerMove(ievent.event_x, ievent.event_y, Input::devIdToPointer(ievent.deviceid));
 					bcase XI_Enter:
-						handlePointerEnter(devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y);
+						handlePointerEnter(Input::devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y);
 					bcase XI_Leave:
-						handlePointerLeave(devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y);
+						handlePointerLeave(Input::devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y);
 					bcase XI_FocusIn:
 						onFocusChange(1);
 					bcase XI_FocusOut:
 						onFocusChange(0);
 					bcase XI_KeyPress:
 					{
+						auto dev = Input::deviceForInputId(ievent.sourceid);
 						KeySym k;
 						if(Input::translateKeycodes)
 						{
 							unsigned int modsReturn;
-							XkbTranslateKeyCode(coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+							XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
 						}
 						else
 							 k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 						bool repeated = ievent.flags & XIKeyRepeat;
 						//logMsg("press KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
-						if(k == XK_Return && ievent.mods.effective & Mod1Mask && !repeated)
+						if(k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
 						{
 							toggleFullScreen();
 						}
@@ -473,25 +470,51 @@ static int eventHandler(XEvent event)
 							if(!repeated || Input::allowKeyRepeats)
 							{
 								#ifdef CONFIG_INPUT_ICADE
-								if(!Input::kbDevice->iCadeMode()
-										|| (Input::kbDevice->iCadeMode() && !processICadeKey(decodeAscii(k, 0), Input::PUSHED, *Input::kbDevice)))
+								if(!dev->iCadeMode()
+										|| (dev->iCadeMode() && !processICadeKey(decodeAscii(k, 0), Input::PUSHED, *dev)))
 								#endif
-									handleKeyEv(k, Input::PUSHED, ievent.mods.effective & ShiftMask);
+									handleKeyEv(k, Input::PUSHED, ievent.mods.effective & ShiftMask, dev);
 							}
 						}
 					}
 					bcase XI_KeyRelease:
 					{
+						auto dev = Input::deviceForInputId(ievent.sourceid);
 						KeySym k;
 						if(Input::translateKeycodes)
 						{
 							unsigned int modsReturn;
-							XkbTranslateKeyCode(coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+							XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
 						}
 						else
 							 k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 						//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
-						handleKeyEv(k, Input::RELEASED, 0);
+						handleKeyEv(k, Input::RELEASED, 0, dev);
+					}
+					bcase XI_HierarchyChanged:
+					{
+						//logMsg("input device hierarchy changed");
+						auto &ev = *((XIHierarchyEvent*)cookie->data);
+						iterateTimes(ev.num_info, i)
+						{
+							if(ev.info[i].flags & XISlaveAdded)
+							{
+								int devices;
+								XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
+								if(devices)
+								{
+									if(device->use == XISlaveKeyboard)
+									{
+										Input::addXInputDevice(*device, true);
+									}
+									XIFreeDeviceInfo(device);
+								}
+							}
+							else if(ev.info[i].flags & XISlaveRemoved)
+							{
+								Input::removeXInputDevice(ev.info[i].deviceid);
+							}
+						}
 					}
 				}
 				XFreeEventData(dpy, &event.xcookie);
@@ -508,7 +531,7 @@ static int eventHandler(XEvent event)
 	return 1;
 }
 
-int x11FDHandler(int events)
+void x11FDHandler()
 {
 	while(XPending(dpy) > 0)
 	{
@@ -516,11 +539,11 @@ int x11FDHandler(int events)
 		XNextEvent(dpy, &event);
 		eventHandler(event);
 	}
-	return 1;
 }
 
 void addPollEvent(int fd, PollEventDelegate &handler, uint events)
 {
+	logMsg("adding fd %d to epoll", fd);
 	struct epoll_event ev = { 0 };
 	ev.data.ptr = &handler;
 	ev.events = events;
@@ -558,7 +581,7 @@ void setDPI(float dpi)
 	}
 	else
 	{
-		logMsg("requested DPI %f", dpi);
+		logMsg("requested DPI %f", (double)dpi);
 		dispXMM = ((float)dispX / dpi) * 25.4;
 		dispYMM = ((float)dispY / dpi) * 25.4;
 	}
@@ -583,21 +606,60 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 	sendMessageToMain(type, shortArg, intArg, intArg2);
 }
 
-int msgFdHandler(int events)
+void registerInstance(const char *name, int argc, char** argv)
 {
-	while(fd_bytesReadable(msgPipe[0]))
+	if(!bus)
 	{
-		uint32 msg[3];
-		if(read(msgPipe[0], msg, sizeof(msg)) == -1)
-		{
-			logErr("error reading from pipe");
-			return 1;
-		}
-		auto cmd = msg[0] & 0xFFFF, shortArg = msg[0] >> 16;
-		logMsg("got msg type %d with args %d %d %d", cmd, shortArg, msg[1], msg[2]);
-		Base::processAppMsg(cmd, shortArg, msg[1], msg[2]);
+		logErr("DBUS not init");
+		return;
 	}
-	return 1;
+
+	if(uniqueInstanceRunning(bus, name))
+	{
+		if(argc < 2)
+		{
+			dbus_connection_close(bus);
+			Base::exit();
+		}
+		// send msg
+		auto path = argv[1];
+		char realPath[PATH_MAX];
+		if(argv[1][0] != '/') // is path absolute?
+		{
+			if(!realpath(path, realPath))
+			{
+				logErr("error in realpath()");
+				Base::exitVal(1);
+			}
+			path = realPath;
+		}
+		logMsg("sending dbus signal to other instance with arg: %s", path);
+		DBusMessage *message = dbus_message_new_signal(DBUS_APP_OBJECT_PATH, name, "openPath");
+		assert(message);
+		dbus_message_append_args(message, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
+		dbus_connection_send(bus, message, nullptr);
+		dbus_message_unref(message);
+		dbus_connection_flush(bus);
+		dbus_connection_close(bus);
+		Base::exit();
+	}
+	else
+	{
+		// listen to dbus events
+		if(setupDbusListener(name))
+		{
+			if (!dbus_connection_set_watch_functions(bus, addDbusWatch,
+					removeDbusWatch, toggleDbusWatch, bus, nullptr))
+			{
+				logErr("dbus_connection_set_watch_functions failed");
+				deinitDBus();
+			}
+			else
+			{
+				logMsg("setup dbus listener");
+			}
+		}
+	}
 }
 
 }
@@ -605,7 +667,7 @@ int msgFdHandler(int events)
 static int epollWaitWrapper(int epfd, struct epoll_event *events,
 	int maxevents, int timeout)
 {
-	x11FDHandler(0);  // must check X before entering epoll since some events may be
+	x11FDHandler();  // must check X before entering epoll since some events may be
 										// in memory queue and won't trigger the FD
 	return epoll_wait(epfd, events, maxevents, timeout);
 }
@@ -622,53 +684,13 @@ int main(int argc, char** argv)
 
 	initDBus();
 	ePoll = epoll_create(8);
-	if(bus)
+
+	if(Config::Base::FBDEV_VSYNC)
 	{
-		if(uniqueInstanceRunning(bus, instanceName))
+		fbdev = open("/dev/fb0", O_RDONLY);
+		if(fbdev == -1)
 		{
-			if(argc < 2)
-			{
-				dbus_connection_close(bus);
-				return 0;
-			}
-			// send msg
-			auto path = argv[1];
-			char realPath[PATH_MAX];
-			if(argv[1][0] != '/') // is path absolute?
-			{
-				if(!realpath(path, realPath))
-				{
-					logErr("error in realpath()");
-					return 1;
-				}
-				path = realPath;
-			}
-			logMsg("sending dbus signal to other instance with arg: %s", path);
-			DBusMessage *message = dbus_message_new_signal(DBUS_APP_OBJECT_PATH, DBUS_APP_INTERFACE, "openPath");
-			assert(message);
-			dbus_message_append_args(message, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
-			dbus_connection_send(bus, message, nullptr);
-			dbus_message_unref(message);
-			dbus_connection_flush(bus);
-			dbus_connection_close(bus);
-			return 0;
-		}
-		else
-		{
-			// listen to dbus events
-			if(setupDbusListener())
-			{
-				if (!dbus_connection_set_watch_functions(bus, addDbusWatch,
-						removeDbusWatch, toggleDbusWatch, bus, nullptr))
-				{
-					logErr("dbus_connection_set_watch_functions failed");
-					deinitDBus();
-				}
-				else
-				{
-					logMsg("setup dbus listener");
-				}
-			}
+			logWarn("unable to open framebuffer device");
 		}
 	}
 
@@ -676,11 +698,14 @@ int main(int argc, char** argv)
 	#ifdef CONFIG_INPUT
 	doOrExit(Input::init());
 	#endif
+	#ifdef CONFIG_INPUT_EVDEV
+	Input::initEvdev();
+	#endif
 	doOrExit(onInit(argc, argv));
 	dispX = DisplayWidth(dpy, screen);
 	dispY = DisplayHeight(dpy, screen);
 	{
-		#ifdef CONFIG_MACHINE_OPEN_PANDORA
+		#ifdef CONFIG_MACHINE_PANDORA
 		int x = 800;
 		int y = 480;
 		#else
@@ -704,8 +729,8 @@ int main(int argc, char** argv)
 		else
 		{
 			logMsg("%ld %ld work area: %ld:%ld:%ld:%ld", items, bytesAfter, workArea[0], workArea[1], workArea[2], workArea[3]);
-			x = IG::min(x, (int)workArea[2]);
-			y = IG::min(y, (int)workArea[3]);
+			x = std::min(x, (int)workArea[2]);
+			y = std::min(y, (int)workArea[3]);
 			XFree(workArea);
 		}
 		#endif
@@ -722,26 +747,48 @@ int main(int argc, char** argv)
 		assert(res == 0);
 	}
 
-	auto msgPoll = PollEventDelegate::create<&msgFdHandler>();
+	PollEventDelegate msgPoll =
+		[](int events)
+		{
+			while(fd_bytesReadable(msgPipe[0]))
+			{
+				uint32 msg[3];
+				if(read(msgPipe[0], msg, sizeof(msg)) == -1)
+				{
+					logErr("error reading from pipe");
+					return 1;
+				}
+				auto cmd = msg[0] & 0xFFFF, shortArg = msg[0] >> 16;
+				logMsg("got msg type %d with args %d %d %d", cmd, shortArg, msg[1], msg[2]);
+				Base::processAppMsg(cmd, shortArg, msg[1], msg[2]);
+			}
+			return 1;
+		};
 	addPollEvent(msgPipe[0], msgPoll);
 	
-	auto x11Poll = PollEventDelegate::create<&x11FDHandler>();
+	PollEventDelegate x11Poll =
+		[](int events)
+		{
+			x11FDHandler();
+			return 1;
+		};
 	addPollEvent(ConnectionNumber(dpy), x11Poll);
 	openGLSetOutputVideoMode(mainWin);
 	engineInit();
+	XMapRaised(dpy, win);
 
 	logMsg("entering event loop");
 	for(;;)
 	{
-		struct epoll_event event[8];
+		struct epoll_event event[16];
 		int events;
 		while((events = epollWaitWrapper(ePoll, event, sizeofArray(event), getPollTimeout())) > 0)
 		{
 			//logMsg("%d events ready", events);
 			iterateTimes(events, i)
 			{
-				auto e = (PollEventDelegate*)event[i].data.ptr;
-				e->invoke(event[i].events);
+				auto &e = *((PollEventDelegate*)event[i].data.ptr);
+				e(event[i].events);
 			}
 		}
 		if(events == -1)

@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <mem/interface.h>
 #include <util/string/generic.h>
+#include <limits.h>
 #ifndef CONFIG_BASE_PS3
 	#include <libgen.h>
 #endif
@@ -143,7 +144,10 @@ static void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
 	}
 }
 
-static char *string_basename(const char *filename)
+#ifdef __cplusplus
+
+template <size_t S>
+static char *string_basename(const char *filename, char (&storage)[S])
 {
 	#ifdef CONFIG_USE_GNU_BASENAME
 		return gnu_basename(filename);
@@ -154,14 +158,15 @@ static char *string_basename(const char *filename)
 		baseName(filename, str);
 		return str;
 	#else
-		// standard version that modifies input
-		char temp[strlen(filename)+1];
-		memcpy(temp, filename, sizeof(temp));
-		return basename(temp);
+		// standard version can modify input, and returns a pointer within it
+		// BSD version can modify input, but always returns its own allocated storage
+		string_copy(storage, filename);
+		return basename(storage);
 	#endif
 }
 
-static char *string_dirname(const char *filename)
+template <size_t S>
+static char *string_dirname(const char *filename, char (&storage)[S])
 {
 	#if defined __ANDROID__
 		return dirname(filename);
@@ -170,14 +175,12 @@ static char *string_dirname(const char *filename)
 		dirName(filename, str);
 		return str;
 	#else
-		// standard version that modifies input
-		char temp[strlen(filename)+1];
-		memcpy(temp, filename, sizeof(temp));
-		return dirname(temp);
+		// standard version can modify input, and returns a pointer within it
+		// BSD version can modify input, but always returns its own allocated storage
+		string_copy(storage, filename);
+		return dirname(storage);
 	#endif
 }
-
-#ifdef __cplusplus
 
 #ifdef CONFIG_UNICODE_CHARS
 	#include <util/utf.hh>

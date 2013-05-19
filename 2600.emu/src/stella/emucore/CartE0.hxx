@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.hxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartE0.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEE0_HXX
@@ -39,7 +39,7 @@ class System;
   many different ways.
 
   @author  Bradford W. Mott
-  @version $Id: CartE0.hxx 2325 2012-01-02 20:31:42Z stephena $
+  @version $Id: CartE0.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeE0 : public Cartridge
 {

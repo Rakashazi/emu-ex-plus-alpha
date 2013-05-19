@@ -1,4 +1,4 @@
-/*  Copyright 2004-2008 Theo Berkau
+/*  Copyright 2004-2008, 2013 Theo Berkau
     Copyright 2005 Joost Peters
     Copyright 2005-2006 Guillaume Duhamel
     
@@ -22,9 +22,49 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <wchar.h>
 #include "cdbase.h"
 #include "error.h"
 #include "debug.h"
+
+#ifndef HAVE_STRICMP
+#ifdef HAVE_STRCASECMP
+#define stricmp strcasecmp
+#endif
+#endif
+
+#ifndef HAVE_WFOPEN
+static char * wcsdupstr(const wchar_t * path)
+{
+   char * mbs;
+   size_t len = wcstombs(NULL, path, 0);
+   if (len == (size_t) -1) return NULL;
+
+   mbs = malloc(len);
+   len = wcstombs(mbs, path, len);
+   if (len == (size_t) -1)
+   {
+      free(mbs);
+      return NULL;
+   }
+
+   return mbs;
+}
+
+static FILE * _wfopen(const wchar_t *wpath, const wchar_t *wmode)
+{
+   FILE * fd;
+   char * path = wcsdupstr(wpath);
+   char * mode = wcsdupstr(wmode);
+
+   if ((path == NULL) || (mode == NULL)) return NULL;
+
+   fd = fopen(path, mode);
+
+   free(path);
+   free(mode);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -191,43 +231,139 @@ static void DummyCDReadAheadFAD(UNUSED u32 FAD)
 // ISO Interface
 //////////////////////////////////////////////////////////////////////////////
 
-static const s8 syncHdr[12] = { 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
-static FILE *isofile=NULL;
-static int isofilesize=0;
-static int bytesPerSector = 0;
-static int isbincue = 0;
-static u32 isoTOC[102];
-static struct
+typedef struct
 {
-   u32 fadstart;
-   u32 fileoffset;
-} isooffsettbl[100];
+   u8 ctl_addr;
+   u32 fad_start;
+   u32 fad_end;
+   u32 file_offset;
+   u32 sector_size;
+   FILE *fp;
+   int file_size;
+   int file_id;
+   int interleaved_sub;
+} track_info_struct;
+
+typedef struct
+{
+   u32 fad_start;
+   u32 fad_end;
+   track_info_struct *track;
+   int track_num;
+} session_info_struct;
+
+typedef struct
+{
+   int session_num;
+   session_info_struct *session;
+} disc_info_struct;
+
+#pragma pack(push, 1)
+typedef struct
+{
+   u8 signature[16];
+   u8 version[2];
+   u16 medium_type;
+   u16 session_count;
+   u16 unused1[2];
+   u16 bca_length;
+   u32 unused2[2];
+   u32 bca_offset;
+   u32 unused3[6];
+   u32 disk_struct_offset;
+   u32 unused4[3];
+   u32 sessions_blocks_offset;
+   u32 dpm_blocks_offset;
+   u32 enc_key_offset;
+} mds_header_struct;
+
+typedef struct
+{
+   s32 session_start;
+   s32 session_end;
+   u16 session_number;
+   u8 total_blocks;
+   u8 leadin_blocks;
+   u16 first_track;
+   u16 last_track;
+   u32 unused;
+   u32 track_blocks_offset;
+} mds_session_struct;
+
+typedef struct
+{
+   u8 mode;
+   u8 subchannel_mode;
+   u8 addr_ctl;
+   u8 unused1;
+   u8 track_num;
+   u32 unused2;
+   u8 m;
+   u8 s;
+   u8 f;
+   u32 extra_offset;
+   u16 sector_size;
+   u8 unused3[18];
+   u32 start_sector;
+   u64 start_offset;
+   u8 session;
+   u8 unused4[3];
+   u32 footer_offset;
+   u8 unused5[24];
+} mds_track_struct;
+
+typedef struct
+{
+   u32 filename_offset;
+   u32 is_widechar;
+   u32 unused1;
+   u32 unused2;
+} mds_footer_struct;
+
+#pragma pack(pop)
+
+static const s8 syncHdr[12] = { 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
+enum IMG_TYPE { IMG_NONE, IMG_ISO, IMG_BINCUE, IMG_MDS, IMG_CCD, IMG_NRG };
+enum IMG_TYPE imgtype = IMG_ISO;
+static u32 isoTOC[102];
+static disc_info_struct disc;
 
 #define MSF_TO_FAD(m,s,f) ((m * 4500) + (s * 75) + f)
 
 //////////////////////////////////////////////////////////////////////////////
 
-static int InitBinCue(const char *cuefilename)
+static int LoadBinCue(const char *cuefilename, FILE *iso_file)
 {
    u32 size;
-   char *tempbuffer, *tempbuffer2;
-   unsigned int tracknum;
+   char *temp_buffer, *temp_buffer2;
+   unsigned int track_num;
    unsigned int indexnum, min, sec, frame;
    unsigned int pregap=0;
    char *p, *p2;
+   track_info_struct trk[100];
+   int file_size;
+   int i;
 
-   fseek(isofile, 0, SEEK_END);
-   size = ftell(isofile);
-   fseek(isofile, 0, SEEK_SET);
+   disc.session_num = 1;
+   disc.session = malloc(sizeof(session_info_struct) * disc.session_num);
+   if (disc.session == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      return -1;
+   }
+
+   fseek(iso_file, 0, SEEK_END);
+   size = ftell(iso_file);
+   fseek(iso_file, 0, SEEK_SET);
 
    // Allocate buffer with enough space for reading cue
-   if ((tempbuffer = (char *)calloc(size, 1)) == NULL)
+   if ((temp_buffer = (char *)calloc(size, 1)) == NULL)
       return -1;
 
    // Skip image filename
-   if (fscanf(isofile, "FILE \"%*[^\"]\" %*s\r\n") == EOF)
+   if (fscanf(iso_file, "FILE \"%*[^\"]\" %*s\r\n") == EOF)
    {
-      free(tempbuffer);
+      free(temp_buffer);
       return -1;
    }
 
@@ -235,75 +371,80 @@ static int InitBinCue(const char *cuefilename)
    for (;;)
    {
       // Retrieve a line in cue
-      if (fscanf(isofile, "%s", tempbuffer) == EOF)
+      if (fscanf(iso_file, "%s", temp_buffer) == EOF)
          break;
 
       // Figure out what it is
-      if (strncmp(tempbuffer, "TRACK", 5) == 0)
+      if (strncmp(temp_buffer, "TRACK", 5) == 0)
       {
          // Handle accordingly
-         if (fscanf(isofile, "%d %[^\r\n]\r\n", &tracknum, tempbuffer) == EOF)
+         if (fscanf(iso_file, "%d %[^\r\n]\r\n", &track_num, temp_buffer) == EOF)
             break;
 
-         if (strncmp(tempbuffer, "MODE1", 5) == 0 ||
-             strncmp(tempbuffer, "MODE2", 5) == 0)
+         if (strncmp(temp_buffer, "MODE1", 5) == 0 ||
+            strncmp(temp_buffer, "MODE2", 5) == 0)
          {
             // Figure out the track sector size
-            bytesPerSector = atoi(tempbuffer + 6);
-
-            // Update toc entry
-            isoTOC[tracknum-1] = 0x41000000;
+            trk[track_num-1].sector_size = atoi(temp_buffer + 6);
+            trk[track_num-1].ctl_addr = 0x41;
          }
-         else if (strncmp(tempbuffer, "AUDIO", 5) == 0)
+         else if (strncmp(temp_buffer, "AUDIO", 5) == 0)
          {
-            // fix me
             // Update toc entry
-            isoTOC[tracknum-1] = 0x01000000;
+            trk[track_num-1].sector_size = 2352;
+            trk[track_num-1].ctl_addr = 0x01;
          }
       }
-      else if (strncmp(tempbuffer, "INDEX", 5) == 0)
+      else if (strncmp(temp_buffer, "INDEX", 5) == 0)
       {
          // Handle accordingly
 
-         if (fscanf(isofile, "%d %d:%d:%d\r\n", &indexnum, &min, &sec, &frame) == EOF)
+         if (fscanf(iso_file, "%d %d:%d:%d\r\n", &indexnum, &min, &sec, &frame) == EOF)
             break;
 
          if (indexnum == 1)
          {
             // Update toc entry
-            isoTOC[tracknum-1] = (isoTOC[tracknum-1] & 0xFF000000) | (MSF_TO_FAD(min, sec, frame) + pregap + 150);
-
-            isooffsettbl[tracknum-1].fadstart = MSF_TO_FAD(min, sec, frame) + pregap + 150;
-            isooffsettbl[tracknum-1].fileoffset = pregap + 150;
+            trk[track_num-1].fad_start = (MSF_TO_FAD(min, sec, frame) + pregap + 150);
+            trk[track_num-1].file_offset = MSF_TO_FAD(min, sec, frame) * trk[track_num-1].sector_size;
          }
       }
-      else if (strncmp(tempbuffer, "PREGAP", 5) == 0)
+      else if (strncmp(temp_buffer, "PREGAP", 6) == 0)
       {
-         if (fscanf(isofile, "%d:%d:%d\r\n", &min, &sec, &frame) == EOF)
+         if (fscanf(iso_file, "%d:%d:%d\r\n", &min, &sec, &frame) == EOF)
             break;
 
          pregap += MSF_TO_FAD(min, sec, frame);
       }
-      else if (strncmp(tempbuffer, "POSTGAP", 5) == 0)
+      else if (strncmp(temp_buffer, "POSTGAP", 7) == 0)
       {
-         if (fscanf(isofile, "%d:%d:%d\r\n", &min, &sec, &frame) == EOF)
+         if (fscanf(iso_file, "%d:%d:%d\r\n", &min, &sec, &frame) == EOF)
             break;
+      }
+      else if (strncmp(temp_buffer, "FILE", 4) == 0)
+      {
+         YabSetError(YAB_ERR_OTHER, "Unsupported cue format");
+         free(temp_buffer);
+         return -1;
       }
    }
 
+   trk[track_num].file_offset = 0;
+   trk[track_num].fad_start = 0xFFFFFFFF;
+
    // Go back, retrieve image filename
-   fseek(isofile, 0, SEEK_SET);
-   fscanf(isofile, "FILE \"%[^\"]\" %*s\r\n", tempbuffer);
-   fclose(isofile);
+   fseek(iso_file, 0, SEEK_SET);
+   fscanf(iso_file, "FILE \"%[^\"]\" %*s\r\n", temp_buffer);
+   fclose(iso_file);
 
    // Now go and open up the image file, figure out its size, etc.
-   if ((isofile = fopen(tempbuffer, "rb")) == NULL)
+   if ((iso_file = fopen(temp_buffer, "rb")) == NULL)
    {
       // Ok, exact path didn't work. Let's trim the path and try opening the
       // file from the same directory as the cue.
 
       // find the start of filename
-      p = tempbuffer;
+      p = temp_buffer;
 
       for (;;)
       {
@@ -314,9 +455,9 @@ static int InitBinCue(const char *cuefilename)
       }
 
       // append directory of cue file with bin filename
-      if ((tempbuffer2 = (char *)calloc(strlen(cuefilename) + strlen(p) + 1, 1)) == NULL)
+      if ((temp_buffer2 = (char *)calloc(strlen(cuefilename) + strlen(p) + 1, 1)) == NULL)
       {
-         free(tempbuffer);
+         free(temp_buffer);
          return -1;
       }
 
@@ -332,125 +473,432 @@ static int InitBinCue(const char *cuefilename)
 
       // Make sure there was at least some kind of path, otherwise our
       // second check is pretty useless
-      if (cuefilename == p2 && tempbuffer == p)
+      if (cuefilename == p2 && temp_buffer == p)
       {
-         free(tempbuffer);
-         free(tempbuffer2);
+         free(temp_buffer);
+         free(temp_buffer2);
          return -1;
       }
 
-      strncpy(tempbuffer2, cuefilename, p2 - cuefilename);
-      strcat(tempbuffer2, p);
+      strncpy(temp_buffer2, cuefilename, p2 - cuefilename);
+      strcat(temp_buffer2, p);
 
       // Let's give it another try
-      isofile = fopen(tempbuffer2, "rb");
-      free(tempbuffer2);
+      iso_file = fopen(temp_buffer2, "rb");
+      free(temp_buffer2);
 
-      if (isofile == NULL)
+      if (iso_file == NULL)
       {
-         YabSetError(YAB_ERR_FILENOTFOUND, tempbuffer);
-         free(tempbuffer);
+         YabSetError(YAB_ERR_FILENOTFOUND, temp_buffer);
+         free(temp_buffer);
          return -1;
       }
    }
 
+   fseek(iso_file, 0, SEEK_END);
+   file_size = ftell(iso_file);
+   fseek(iso_file, 0, SEEK_SET);
+
+   for (i = 0; i < track_num; i++)
+   {
+      trk[i].fad_end = trk[i+1].fad_start-1;
+      trk[i].file_id = 0;
+      trk[i].fp = iso_file;
+      trk[i].file_size = file_size;
+   }
+
+   trk[track_num-1].fad_end = trk[track_num-1].fad_start+(file_size-trk[track_num-1].file_offset)/trk[track_num-1].sector_size;
+
+   disc.session[0].fad_start = 150;
+   disc.session[0].fad_end = trk[track_num-1].fad_end;
+   disc.session[0].track_num = track_num;
+   disc.session[0].track = malloc(sizeof(track_info_struct) * disc.session[0].track_num);
+   if (disc.session[0].track == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      free(disc.session);
+      disc.session = NULL;
+      return -1;
+   }
+
+   memcpy(disc.session[0].track, trk, track_num * sizeof(track_info_struct));
+
    // buffer is no longer needed
-   free(tempbuffer);
+   free(temp_buffer);
+   return 0;
+}
 
-   fseek(isofile, 0, SEEK_END);
-   isofilesize = ftell(isofile);
-   fseek(isofile, 0, SEEK_SET);
+//////////////////////////////////////////////////////////////////////////////
 
-   // Now then, generate rest of TOC
-   isoTOC[99] = (isoTOC[0] & 0xFF000000) | 0x010000;
-   isoTOC[100] = (isoTOC[tracknum - 1] & 0xFF000000) | (tracknum << 16);
-   isoTOC[101] = (isoTOC[tracknum - 1] & 0xFF000000) | ((isofilesize / bytesPerSector) + pregap + 150);
+int LoadMDSTracks(const char *mds_filename, FILE *iso_file, mds_session_struct *mds_session, session_info_struct *session)
+{
+   int i;
+   int track_num=0;
+   u32 fad_end;
 
-   isooffsettbl[tracknum].fileoffset = 0;
-   isooffsettbl[tracknum].fadstart = 0xFFFFFFFF;
+   session->track = malloc(sizeof(mds_track_struct) * mds_session->last_track);
+   if (session->track == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      return -1;
+   }
+
+   for (i = 0; i < mds_session->total_blocks; i++)
+   {
+      mds_track_struct track;
+      FILE *fp=NULL;
+      int file_size;
+
+      fseek(iso_file, mds_session->track_blocks_offset + i * sizeof(mds_track_struct), SEEK_SET);
+      if (fread(&track, 1, sizeof(mds_track_struct), iso_file) != sizeof(mds_track_struct))
+      {
+         YabSetError(YAB_ERR_FILEREAD, mds_filename);
+         free(session->track);
+         return -1;
+      }
+
+      if (track.track_num == 0xA2)
+         fad_end = MSF_TO_FAD(track.m, track.s, track.f);
+      if (!track.extra_offset)
+         continue;
+
+      if (track.footer_offset)
+      {
+         mds_footer_struct footer;
+         int found_dupe=0;
+         int j;
+
+         // Make sure we haven't already opened file already
+         for (j = 0; j < track_num; j++)
+         {
+            if (track.footer_offset == session->track[j].file_id)
+            {
+               found_dupe = 1;
+               break;
+            }
+         }
+
+         if (found_dupe)
+         {
+            fp = session->track[j].fp;
+            file_size = session->track[j].file_size;
+         }
+         else
+         {
+            fseek(iso_file, track.footer_offset, SEEK_SET);
+            if (fread(&footer, 1, sizeof(mds_footer_struct), iso_file) != sizeof(mds_footer_struct))
+            {
+               YabSetError(YAB_ERR_FILEREAD, mds_filename);
+               free(session->track);
+               return -1;
+            }
+
+            fseek(iso_file, footer.filename_offset, SEEK_SET);
+            if (footer.is_widechar)
+            {
+               wchar_t filename[512];
+               wchar_t img_filename[512];
+               memset(img_filename, 0, 512 * sizeof(wchar_t));
+
+               if (fwscanf(iso_file, L"%512c", img_filename) != 1)
+               {
+                  YabSetError(YAB_ERR_FILEREAD, mds_filename);
+                  free(session->track);
+                  return -1;
+               }
+
+               if (wcsncmp(img_filename, L"*.", 2) == 0)
+               {
+                  wchar_t *ext;
+                  swprintf(filename, sizeof(filename)/sizeof(wchar_t), L"%S", mds_filename);
+                  ext = wcsrchr(filename, '.');
+                  wcscpy(ext, img_filename+1);
+               }
+               else
+                  wcscpy(filename, img_filename);
+
+               fp = _wfopen(filename, L"rb");
+            }
+            else
+            {
+               char filename[512];
+               char img_filename[512];
+               memset(img_filename, 0, 512);
+
+               if (fscanf(iso_file, "%512c", img_filename) != 1)
+               {
+                  YabSetError(YAB_ERR_FILEREAD, mds_filename);
+                  free(session->track);
+                  return -1;
+               }
+
+               if (strncmp(img_filename, "*.", 2) == 0)
+               {
+                  char *ext;
+                  strcpy(filename, mds_filename);
+                  ext = strrchr(filename, '.');
+                  strcpy(ext, img_filename+1);
+               }
+               else
+                  strcpy(filename, img_filename);
+
+               fp = fopen(filename, "rb");
+            }
+
+            if (fp == NULL)
+            {
+               YabSetError(YAB_ERR_FILEREAD, mds_filename);
+               free(session->track);
+               return -1;
+            }
+
+            fseek(fp, 0, SEEK_END);
+            file_size = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+         }
+      }
+
+      session->track[track_num].ctl_addr = (((track.addr_ctl << 4) | (track.addr_ctl >> 4)) & 0xFF);
+      session->track[track_num].fad_start = track.start_sector+150;
+      if (track_num > 0)
+         session->track[track_num-1].fad_end = session->track[track_num].fad_start;
+      session->track[track_num].file_offset = track.start_offset;
+      session->track[track_num].sector_size = track.sector_size;
+      session->track[track_num].fp = fp;
+      session->track[track_num].file_size = file_size;
+      session->track[track_num].file_id = track.footer_offset;
+      session->track[track_num].interleaved_sub = track.subchannel_mode != 0 ? 1 : 0;
+
+      track_num++;
+   }
+
+   session->track[track_num-1].fad_end = fad_end;
+   session->fad_start = session->track[0].fad_start;
+   session->fad_end = fad_end;
+   session->track_num = track_num;
+   return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static int LoadMDS(const char *mds_filename, FILE *iso_file)
+{
+   s32 i;
+   mds_header_struct header;
+
+   fseek(iso_file, 0, SEEK_SET);
+
+   if (fread((void *)&header, 1, sizeof(mds_header_struct), iso_file) != sizeof(mds_header_struct))
+   {
+      YabSetError(YAB_ERR_FILEREAD, mds_filename);
+      return -1;
+   }
+   else if (memcmp(&header.signature,  "MEDIA DESCRIPTOR", sizeof(header.signature)))
+   {
+      YabSetError(YAB_ERR_OTHER, "Bad MDS header");
+      return -1;
+   }
+   else if (header.version[0] > 1)
+   {
+      YabSetError(YAB_ERR_OTHER, "Unsupported MDS version");
+      return -1;
+   }
+
+   if (header.medium_type & 0x10)
+   {
+      // DVD's aren't supported, not will they ever be
+      YabSetError(YAB_ERR_OTHER, "DVD's aren't supported");
+      return -1;
+   }
+
+   disc.session_num = header.session_count;
+   disc.session = malloc(sizeof(session_info_struct) * disc.session_num);
+   if (disc.session == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      return -1;
+   }
+
+   for (i = 0; i < header.session_count; i++)
+   {
+      mds_session_struct session;
+
+      fseek(iso_file, header.sessions_blocks_offset + i * sizeof(mds_session_struct), SEEK_SET);
+      if (fread(&session, 1, sizeof(mds_session_struct), iso_file) != sizeof(mds_session_struct))
+      {
+         free(disc.session);
+         YabSetError(YAB_ERR_FILEREAD, mds_filename);
+         return -1;
+      }
+
+      if (LoadMDSTracks(mds_filename, iso_file, &session, &disc.session[i]) != 0)
+         return -1;
+   }
+
+   fclose(iso_file);
 
    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static int LoadISO(FILE *iso_file)
+{
+   track_info_struct *track;
+
+   disc.session_num = 1;
+   disc.session = malloc(sizeof(session_info_struct) * disc.session_num);
+   if (disc.session == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      return -1;
+   }
+
+   disc.session[0].fad_start = 150;
+   disc.session[0].track_num = 1;
+   disc.session[0].track = malloc(sizeof(track_info_struct) * disc.session[0].track_num);
+   if (disc.session[0].track == NULL)
+   {
+      YabSetError(YAB_ERR_MEMORYALLOC, NULL);
+      free(disc.session);
+      disc.session = NULL;
+      return -1;
+   }
+
+   track = disc.session[0].track;
+   track->ctl_addr = 0x41;
+   track->fad_start = 150;
+   track->file_offset = 0;
+   track->fp = iso_file;
+   fseek(iso_file, 0, SEEK_END);
+   track->file_size = ftell(iso_file);
+   track->file_id = 0;
+
+   if (0 == (track->file_size % 2048))
+      track->sector_size = 2048;
+   else if (0 == (track->file_size % 2352))
+      track->sector_size = 2352;
+   else
+   {
+      YabSetError(YAB_ERR_OTHER, "Unsupported CD image!\n");
+      return -1;
+   }
+
+   disc.session[0].fad_end = track->fad_end = disc.session[0].fad_start + (track->file_size / track->sector_size);
+
+   return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void BuildTOC()
+{
+   int i;
+   session_info_struct *session=&disc.session[0];
+
+   for (i = 0; i < session->track_num; i++)
+   {
+      track_info_struct *track=&disc.session[0].track[i];
+      isoTOC[i] = (track->ctl_addr << 24) | track->fad_start;
+   }
+
+   isoTOC[99] = (isoTOC[0] & 0xFF000000) | 0x010000;
+   isoTOC[100] = (isoTOC[session->track_num - 1] & 0xFF000000) | (session->track_num << 16);
+   isoTOC[101] = (isoTOC[session->track_num - 1] & 0xFF000000) | session->fad_end;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static int ISOCDInit(const char * iso) {
    char header[6];
+   char *ext;
+   int ret;
+   FILE *iso_file;
 
    memset(isoTOC, 0xFF, 0xCC * 2);
+   memset(&disc, 0, sizeof(disc));
 
    if (!iso)
       return -1;
 
-   if (!(isofile = fopen(iso, "rb")))
+   if (!(iso_file = fopen(iso, "rb")))
    {
       YabSetError(YAB_ERR_FILENOTFOUND, (char *)iso);
       return -1;
    }
 
-   fread((void *)header, 1, 6, isofile);
+   fread((void *)header, 1, 6, iso_file);
+   ext = strrchr(iso, '.');
 
    // Figure out what kind of image format we're dealing with
-   if (strncmp(header, "FILE \"", 6) == 0)
+   if (strcasecmp(ext, ".CUE") == 0 && strncmp(header, "FILE \"", 6) == 0)
    {
       // It's a BIN/CUE
-      isbincue = 1;
-
-      // Generate TOC for bin file
-      if (InitBinCue(iso) != 0)
-      {
-         if (isofile)
-            free(isofile);
-         return -1;
-      }   
+      imgtype = IMG_BINCUE;
+      ret = LoadBinCue(iso, iso_file);
+   }
+   else if (strcasecmp(ext, ".MDS") == 0 && strncmp(header, "MEDIA ", sizeof(header)) == 0)
+   {
+      // It's a MDS
+      imgtype = IMG_MDS;
+      ret = LoadMDS(iso, iso_file);
    }
    else
    {
       // Assume it's an ISO file
-      isbincue = 0;
-
-      fseek(isofile, 0, SEEK_END);
-      isofilesize = ftell(isofile);
-	
-      if (0 == (isofilesize % 2048))
-         bytesPerSector = 2048;
-      else if (0 == (isofilesize % 2352))
-         bytesPerSector = 2352;
-      else
-      {
-         YabSetError(YAB_ERR_OTHER, "Unsupported CD image!\n");
-
-         return -1;
-      }
-
-      // Generate TOC
-      isoTOC[0] = 0x41000096;
-      isoTOC[99] = 0x41010000; 
-      isoTOC[100] = 0x41010000;
-      isoTOC[101] = (0x41 << 24) | (isofilesize / bytesPerSector);       //this isn't fully correct, but it does the job for now.
-
-      isooffsettbl[0].fileoffset = 150;
-      isooffsettbl[0].fadstart = 150;
-      isooffsettbl[1].fileoffset = 0;
-      isooffsettbl[1].fadstart = 0xFFFFFFFF;
+      imgtype = IMG_ISO;
+      ret = LoadISO(iso_file);
    }
 
+   if (ret != 0)
+   {
+      imgtype = IMG_NONE;
+
+      if (iso_file)
+         fclose(iso_file);
+      iso_file = NULL;
+      return -1;
+   }   
+
+   BuildTOC();
    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static void ISOCDDeInit(void) {
-   if (isofile)
+   int i, j, k;
+   if (disc.session)
    {
-      fclose(isofile);
+      for (i = 0; i < disc.session_num; i++)
+      {
+         if (disc.session[i].track)
+         {
+            for (j = 0; j < disc.session[i].track_num; j++)
+            {
+               if (disc.session[i].track[j].fp)
+               {
+                  fclose(disc.session[i].track[j].fp);
+
+                  // Make sure we don't close the same file twice
+                  for (k = j+1; k < disc.session[i].track_num; k++)
+                  {
+                     if (disc.session[i].track[j].file_id == disc.session[i].track[k].file_id)
+                        disc.session[i].track[k].fp = NULL;
+                  }
+               }
+            }
+            free(disc.session[i].track);
+         }
+      }
+      free(disc.session);
    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static int ISOCDGetStatus(void) {
-   return isofile != NULL ? 0 : 2;
+   return disc.session_num > 0 ? 0 : 2;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -464,40 +912,72 @@ static s32 ISOCDReadTOC(u32 * TOC) {
 //////////////////////////////////////////////////////////////////////////////
 
 static int ISOCDReadSectorFAD(u32 FAD, void *buffer) {
-        int sector;
-        int i;
-	
-        assert(isofile);
+   int i,j;
+   track_info_struct *track=NULL;
 
-        memset(buffer, 0, 2352);
+   assert(disc.session);
 
-        for (i = 1; i < 100; i++)
-        {
-           if (FAD < isooffsettbl[i].fadstart)
-           {             
-               sector = FAD - isooffsettbl[i-1].fileoffset;
-               break;
-           }
-        }
-	if (i == 100) {
-		CDLOG("Warning: Sector not found in track list");
-		return 0;
-	}
+   memset(buffer, 0, 2448);
 
-	if ((sector * bytesPerSector) >= isofilesize) {
-		CDLOG("Warning: Trying to read beyond end of CD image! (sector: %d)\n", sector);
-		return 0;
-	}
-	
-        fseek(isofile, sector * bytesPerSector, SEEK_SET);
-	
-	if (2048 == bytesPerSector) {
-		memcpy(buffer, syncHdr, 12);
-		fread((char *)buffer + 0x10, bytesPerSector, 1, isofile);
-	} else { //2352
-		fread(buffer, bytesPerSector, 1, isofile);
-	}
-	
+   for (i = 0; i < disc.session_num; i++)
+   {
+      for (j = 0; j < disc.session[i].track_num; j++)
+      {
+         if (FAD >= disc.session[i].track[j].fad_start &&
+             FAD <= disc.session[i].track[j].fad_end)
+         {             
+            track = &disc.session[i].track[j];
+            break;
+         }
+      }
+   }
+
+   if (track == NULL)
+   {
+      CDLOG("Warning: Sector not found in track list");
+      return 0;
+   }
+
+   fseek(track->fp, track->file_offset + (FAD-track->fad_start) * track->sector_size, SEEK_SET);
+   if (track->sector_size == 2448)
+   {
+      if (!track->interleaved_sub)
+         fread(buffer, 2448, 1, track->fp);
+      else
+      {
+         const u16 deint_offsets[] = {
+            0, 66, 125, 191, 100, 50, 150, 175, 8, 33, 58, 83, 
+            108, 133, 158, 183, 16, 41, 25, 91, 116, 141, 166, 75, 
+            24, 90, 149, 215, 124, 74, 174, 199, 32, 57, 82, 107, 
+            132, 157, 182, 207, 40, 65, 49, 115, 140, 165, 190, 99, 
+            48, 114, 173, 239, 148, 98, 198, 223, 56, 81, 106, 131, 
+            156, 181, 206, 231, 64, 89, 73, 139, 164, 189, 214, 123, 
+            72, 138, 197, 263, 172, 122, 222, 247, 80, 105, 130, 155, 
+            180, 205, 230, 255, 88, 113, 97, 163, 188, 213, 238, 147
+         };
+         u8 subcode_buffer[96 * 3];
+
+         fread(buffer, 2352, 1, track->fp);
+
+         fread(subcode_buffer, 96, 1, track->fp);
+         fseek(track->fp, 2352, SEEK_CUR);
+         fread(subcode_buffer+96, 96, 1, track->fp);
+         fseek(track->fp, 2352, SEEK_CUR);
+         fread(subcode_buffer+192, 96, 1, track->fp);
+         for (i = 0; i < 96; i++)
+            ((u8 *)buffer)[2352+i] = subcode_buffer[deint_offsets[i]];
+      }
+   }
+   else if (track->sector_size == 2352)
+   {
+      // Generate subcodes here
+      fread(buffer, 2352, 1, track->fp);
+   }
+   else if (track->sector_size == 2048)
+   {
+      memcpy(buffer, syncHdr, 12);
+      fread((char *)buffer + 0x10, 2048, 1, track->fp);
+   }
 	return 1;
 }
 

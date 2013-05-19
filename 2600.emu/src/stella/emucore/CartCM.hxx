@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCM.hxx 2422 2012-03-16 20:31:31Z stephena $
+// $Id: CartCM.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECM_HXX
@@ -101,7 +101,7 @@ class System;
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: CartCM.hxx 2422 2012-03-16 20:31:31Z stephena $
+  @version $Id: CartCM.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeCM : public Cartridge
 {

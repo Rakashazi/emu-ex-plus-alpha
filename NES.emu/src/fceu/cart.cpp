@@ -21,10 +21,6 @@
 /// \file
 /// \brief This file contains all code for coordinating the mapping in of the address space external to the NES.
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
 #include "types.h"
 #include "fceu.h"
 #include "ppu.h"
@@ -37,6 +33,11 @@
 #include "utils/memory.h"
 
 
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <climits>
+
 uint8 *Page[32], *VPage[8];
 uint8 **VPageR = VPage;
 uint8 *VPageG[8];
@@ -46,8 +47,8 @@ uint8 *MMC5BGVPage[8];
 static uint8 PRGIsRAM[32];  /* This page is/is not PRG RAM. */
 
 /* 16 are (sort of) reserved for UNIF/iNES and 16 to map other stuff. */
-static int CHRram[32];
-static int PRGram[32];
+uint8 CHRram[32];
+uint8 PRGram[32];
 
 uint8 *PRGptr[32];
 uint8 *CHRptr[32];

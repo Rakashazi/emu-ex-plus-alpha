@@ -28,6 +28,6 @@ void Vdp2DebugStatsNBG1(char *outstring, int *isenabled);
 void Vdp2DebugStatsNBG2(char *outstring, int *isenabled);
 void Vdp2DebugStatsNBG3(char *outstring, int *isenabled);
 void Vdp2DebugStatsGeneral(char *outstring, int *isenabled);
-u32 *Vdp2DebugTexture(u32 screen, int * w, int * h);
+pixel_t *Vdp2DebugTexture(u32 screen, int * w, int * h);
 
 #endif

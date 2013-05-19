@@ -3369,6 +3369,10 @@ void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio)
               // If no (m) code is enabled, apply the cheats at each LCDline
               /*if((cheatsEnabled) && (mastercode==0))
                 remainingTicks += cheatsCheckKeys(cpu, P1^0x3FF, ext);*/
+              if(cheatsNumber)
+              {
+              	remainingTicks += cheatsCheckKeys(cpu, P1^0x3FF, 0);
+              }
 
               ioMem.DISPSTAT |= 1;
               ioMem.DISPSTAT &= 0xFFFD;

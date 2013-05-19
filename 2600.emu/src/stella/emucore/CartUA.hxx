@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartUA.hxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartUA.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEUA_HXX
@@ -31,7 +31,7 @@ class System;
   are two 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartUA.hxx 2325 2012-01-02 20:31:42Z stephena $
+  @version $Id: CartUA.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeUA : public Cartridge
 {

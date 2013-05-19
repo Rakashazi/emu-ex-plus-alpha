@@ -5,18 +5,43 @@ static void setupSNESInput();
 
 class SystemOptionView : public OptionView
 {
-private:
+public:
 
-	static void multitapHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem multitap
 	{
-		item.toggle();
-		optionMultitap = item.on;
-		setupSNESInput();
-	}
+		"5-Player Adapter",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionMultitap = item.on;
+			setupSNESInput();
+		}
+	};
 
-	BoolMenuItem multitap {"5-Player Adapter", BoolMenuItem::SelectDelegate::create<&multitapHandler>()};
-
-	MultiChoiceSelectMenuItem inputPorts {"Input Ports", MultiChoiceSelectMenuItem::ValueDelegate::create<&inputPortsSet>()};
+	MultiChoiceSelectMenuItem inputPorts
+	{
+		"Input Ports",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			if(val == SNES_JOYPAD_MENU_IDX)
+			{
+				snesInputPort = SNES_JOYPAD;
+			}
+			else if(val == SNES_SUPERSCOPE_MENU_IDX)
+			{
+				snesInputPort = SNES_SUPERSCOPE;
+			}
+			else if(val == SNES_MOUSE_MENU_IDX)
+			{
+				snesInputPort = SNES_MOUSE_SWAPPED;
+			}
+			#ifndef SNES9X_VERSION_1_4
+			else
+				snesInputPort = SNES_AUTO_INPUT;
+			#endif
+			setupSNESInput();
+		}
+	};
 
 	#ifndef SNES9X_VERSION_1_4
 	static constexpr int SNES_JOYPAD_MENU_IDX = 1;
@@ -47,39 +72,21 @@ private:
 		inputPorts.init(str, setting, sizeofArray(str));
 	}
 
-	static void inputPortsSet(MultiChoiceMenuItem &, int val)
-	{
-		if(val == SNES_JOYPAD_MENU_IDX)
-		{
-			snesInputPort = SNES_JOYPAD;
-		}
-		else if(val == SNES_SUPERSCOPE_MENU_IDX)
-		{
-			snesInputPort = SNES_SUPERSCOPE;
-		}
-		else if(val == SNES_MOUSE_MENU_IDX)
-		{
-			snesInputPort = SNES_MOUSE_SWAPPED;
-		}
-		#ifndef SNES9X_VERSION_1_4
-		else
-			snesInputPort = SNES_AUTO_INPUT;
-		#endif
-		setupSNESInput();
-	}
-
 	#ifndef SNES9X_VERSION_1_4
-	BoolMenuItem blockInvalidVRAMAccess {"Block Invalid VRAM Access", BoolMenuItem::SelectDelegate::create<&blockInvalidVRAMAccessHandler>()};
-	static void blockInvalidVRAMAccessHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem blockInvalidVRAMAccess
 	{
-		item.toggle();
-		optionBlockInvalidVRAMAccess = item.on;
-		Settings.BlockInvalidVRAMAccessMaster = item.on;
-	}
+		"Block Invalid VRAM Access",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionBlockInvalidVRAMAccess = item.on;
+			Settings.BlockInvalidVRAMAccessMaster = item.on;
+		}
+	};
 	#endif
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -102,19 +109,21 @@ public:
 
 class SystemMenuView : public MenuView
 {
-	TextMenuItem cheats {"Cheats", TextMenuItem::SelectDelegate::create<&cheatsHandler>()};
-
-	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
+	TextMenuItem cheats
 	{
-		if(EmuSystem::gameIsRunning())
+		"Cheats",
+		[](TextMenuItem &item, const Input::Event &e)
 		{
-			cheatsMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&cheatsMenu);
+			if(EmuSystem::gameIsRunning())
+			{
+				cheatsMenu.init(!e.isPointer());
+				viewStack.pushAndShow(&cheatsMenu);
+			}
 		}
-	}
+	};
 
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 
 	void onShow()
 	{

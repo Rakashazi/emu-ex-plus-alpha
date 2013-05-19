@@ -16,15 +16,16 @@
 #define thisModuleName "btstack"
 #include "BtstackBluetoothAdapter.hh"
 #include <util/collection/DLList.hh>
+#include <util/branch2.h>
 
 static BtstackBluetoothAdapter defaultBtstackAdapter;
-uint scanSecs = 4;
 static int writeAuthEnable = -1;
 static bool inL2capSocketOpenHandler = 0;
 
 struct BtstackCmd
 {
-	enum { NOOP, CREATE_L2CAP, CREATE_RFCOMM, INQUIRY, REMOTE_NAME_REQ, WRITE_AUTH_ENABLE };
+	enum { NOOP, CREATE_L2CAP, CREATE_RFCOMM, INQUIRY, REMOTE_NAME_REQ, WRITE_AUTH_ENABLE,
+		L2CAP_REGISTER_SERVICE, L2CAP_ACCEPT_CONNECTION };
 	uint cmd;
 	union
 	{
@@ -47,6 +48,15 @@ struct BtstackCmd
 		{
 			uint on;
 		} writeAuthEnableData;
+		struct
+		{
+			uint16_t psm;
+			uint16_t mtu;
+		} l2capRegisterServiceData;
+		struct
+		{
+			uint16_t localCh;
+		} l2capAcceptConnectionData;
 	};
 
 	bool exec()
@@ -84,6 +94,16 @@ struct BtstackCmd
 				logMsg("hci_write_authentication_enable");
 				bt_send_cmd(&hci_write_authentication_enable, writeAuthEnableData.on);
 				writeAuthEnable = writeAuthEnableData.on;
+			}
+			bcase L2CAP_REGISTER_SERVICE:
+			{
+				logMsg("l2cap_register_service");
+				bt_send_cmd(&l2cap_register_service, l2capRegisterServiceData.psm, l2capRegisterServiceData.mtu);
+			}
+			bcase L2CAP_ACCEPT_CONNECTION:
+			{
+				logMsg("l2cap_accept_connection");
+				bt_send_cmd(&l2cap_accept_connection, l2capAcceptConnectionData.localCh);
 			}
 			bcase NOOP:
 				break;
@@ -127,6 +147,21 @@ struct BtstackCmd
 	{
 		BtstackCmd cmd = { WRITE_AUTH_ENABLE };
 		cmd.writeAuthEnableData.on = on;
+		return cmd;
+	}
+
+	static BtstackCmd l2capRegisterService(uint16_t psm, uint16_t mtu)
+	{
+		BtstackCmd cmd = { L2CAP_REGISTER_SERVICE };
+		cmd.l2capRegisterServiceData.psm = psm;
+		cmd.l2capRegisterServiceData.mtu = mtu;
+		return cmd;
+	}
+
+	static BtstackCmd l2capAcceptConnection(uint16_t localCh)
+	{
+		BtstackCmd cmd = { L2CAP_ACCEPT_CONNECTION };
+		cmd.l2capAcceptConnectionData.localCh = localCh;
 		return cmd;
 	}
 };
@@ -181,6 +216,7 @@ static void sprintBTAddr(char *addrStr, bd_addr_t &addr)
 }
 
 static StaticDLList<BTDevice, 10> scanDevList;
+static StaticDLList<BTDevice, 2> incomingDevList;
 static StaticDLList<BtstackBluetoothSocket*, 16> socketList;
 
 static void btHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
@@ -205,7 +241,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				bug_exit("can't find socket");
 				return;
 			}
-			sock->onDataDelegate().invoke(packet, size);
+			sock->onData()(packet, size);
 			//debugPrintL2CAPPacket(channel, packet, size);
 		}
 
@@ -215,19 +251,23 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 			{
 				bcase BTSTACK_EVENT_STATE:
 				{
-					state = (HCI_STATE)packet[2];
-					logMsg("got BTSTACK_EVENT_STATE: %d", state);
-
-					if(state == HCI_STATE_WORKING)
+					state_ = (HCI_STATE)packet[2];
+					logMsg("got BTSTACK_EVENT_STATE: %d", state_);
+					if(state_ == HCI_STATE_WORKING)
 					{
+						if(onStateChangeD)
+						{
+							onStateChangeD(*this, STATE_ON);
+							onStateChangeD = {};
+						}
 						//printAddrs();
-						BtstackBluetoothAdapter::processCommands();
+						//BtstackBluetoothAdapter::processCommands();
 					}
-					else if(state == HCI_STATE_OFF)
+					else if(state_ == HCI_STATE_OFF)
 					{
 						if(inDetect)
 						{
-							onStatus.invoke(SCAN_FAILED, 0);
+							onScanStatusD(*this, SCAN_FAILED, 0);
 							inDetect = 0;
 							cmdActive = 0;
 						}
@@ -242,9 +282,14 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						inDetect = 0;
 						cmdActive = 0;
 					}
-					state = HCI_STATE_OFF;
+					state_ = HCI_STATE_OFF;
 					//logMsg("Bluetooth not accessible, Make sure you have turned off Bluetooth in the System Settings.");
-					onStatus.invoke(INIT_FAILED, 0);
+					//onScanStatusD(INIT_FAILED, 0);
+					if(onStateChangeD)
+					{
+						onStateChangeD(*this, STATE_ERROR);
+						onStateChangeD = {};
+					}
 				}
 
 				bcase BTSTACK_EVENT_NR_CONNECTIONS_CHANGED:
@@ -298,8 +343,9 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 							break;
 						logMsg("disconnection while l2cap open in progress");
 						cmdActive = 0;
-						sock->onStatusDelegate().invoke(*sock, BluetoothSocket::STATUS_ERROR);
-						BtstackBluetoothAdapter::defaultAdapter()->statusDelegate().invoke(BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+						sock->onStatus()(*sock, BluetoothSocket::STATUS_ERROR);
+						if(defaultBtstackAdapter.onScanStatus())
+							defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
 					}
 				}
 
@@ -360,7 +406,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						bt_flip_addr(addr, &packet[3+i*6]);
 
 						uchar *devClass = &packet[3 + responses*(6+1+1+1) + i*3];
-						if(!onScanDeviceClass.invoke(devClass))
+						if(!onScanDeviceClassD(*this, devClass))
 						{
 							logMsg("skipping device #%d due to class %X:%X:%X", i, devClass[0], devClass[1], devClass[2]);
 							continue;
@@ -393,19 +439,19 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						{
 							e.requestName();
 						}
-						onStatus.invoke(SCAN_PROCESSING, scanDevList.size);
+						onScanStatusD(*this, SCAN_PROCESSING, scanDevList.size);
 					}
 					else
 					{
 						inDetect = 0;
 						if(!scanResponses)
 						{
-							onStatus.invoke(SCAN_NO_DEVS, 0);
+							onScanStatusD(*this, SCAN_NO_DEVS, 0);
 						}
 						else
 						{
 							logMsg("no name requests needed, scan complete");
-							onStatus.invoke(SCAN_COMPLETE, 0);
+							onScanStatusD(*this, SCAN_COMPLETE, 0);
 						}
 					}
 					BtstackBluetoothAdapter::processCommands();
@@ -427,27 +473,27 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					bd_addr_t addr;
 					bt_flip_addr(addr, &packet[3]);
 
-					if (packet[2] == 0)
+					if(packet[2] == 0)
 					{
 						// assert max length
 						packet[9+255] = 0;
-
 						char* name = (char*)&packet[9];
 						logMsg("Name: '%s', Addr: %s, cached: %d", name, bd_addr_to_str(addr), cached);
-						BluetoothAddr a;
-						memcpy(a.b, addr, 6);
-						onScanDeviceName.invoke(name, a);
+						onScanDeviceNameD(*this, name, addr);
 					}
 					else
 					{
-						onStatus.invoke(SCAN_NAME_FAILED, 0);
+						onScanDeviceNameD(*this, nullptr, addr);
 						logMsg("Failed to get name: page timeout");
 					}
 
+					// TODO: decouple from Bluetooth inquiry operations
 					if(!inDetect)
 					{
+						cmdActive = 0;
 						scanDevList.removeAll();
-						onStatus.invoke(SCAN_CANCELLED, 0);
+						if(onScanStatusD)
+							onScanStatusD(*this, SCAN_CANCELLED, 0);
 						BtstackBluetoothAdapter::processCommands();
 						break;
 					}
@@ -468,7 +514,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					{
 						logMsg("finished name requests, scan complete");
 						inDetect = 0;
-						onStatus.invoke(SCAN_COMPLETE, 0);
+						onScanStatusD(*this, SCAN_COMPLETE, 0);
 					}
 					BtstackBluetoothAdapter::processCommands();
 				}
@@ -503,11 +549,11 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 
 				bcase HCI_EVENT_COMMAND_COMPLETE:
 				{
-					if (COMMAND_COMPLETE_EVENT(packet, hci_inquiry_cancel))
+					if(COMMAND_COMPLETE_EVENT(packet, hci_inquiry_cancel))
 					{
 						logMsg("inquiry canceled");
 					}
-					else if (COMMAND_COMPLETE_EVENT(packet, hci_remote_name_request_cancel))
+					else if(COMMAND_COMPLETE_EVENT(packet, hci_remote_name_request_cancel))
 					{
 						logMsg("remote name request canceled");
 					}
@@ -549,7 +595,35 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logMsg("socket already removed from list");
 						return;
 					}
-					sock->onStatusDelegate().invoke(*sock, BluetoothSocket::STATUS_ERROR);
+					sock->onStatus()(*sock, BluetoothSocket::STATUS_ERROR);
+				}
+
+				bcase L2CAP_EVENT_SERVICE_REGISTERED:
+				{
+					cmdActive = 0;
+					uint8 status = packet[2];
+					uint psm = READ_BT_16(packet, 3);
+					auto onResult = setL2capServiceOnResult;
+					setL2capServiceOnResult = {};
+					if(status && status != L2CAP_SERVICE_ALREADY_REGISTERED)
+					{
+						logErr("error %d registering psm %d", status, psm);
+						onResult(*this, 0, 0);
+						break;
+					}
+					logMsg("registered l2cap service for psm 0x%X", psm);
+					onResult(*this, 1, 0);
+					BtstackBluetoothAdapter::processCommands();
+				}
+
+				bcase L2CAP_EVENT_INCOMING_CONNECTION:
+				{
+					uint16_t psm = READ_BT_16(packet, 10);
+					uint16_t sourceCid = READ_BT_16(packet, 12);
+					bd_addr_t addr;
+					bt_flip_addr(addr, &packet[2]);
+					BluetoothPendingSocket pending {0, addr, psm, sourceCid};
+					onIncomingL2capConnectionD(*this, pending);
 				}
 
 				bdefault:
@@ -568,22 +642,114 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 	//logMsg("end packet");
 }
 
-bool BtstackBluetoothAdapter::startScan()
+void BtstackBluetoothAdapter::setL2capService(uint psm, bool on, OnStatusDelegate onResult)
+{
+	if(on)
+	{
+		logMsg("registering l2cap service for psm 0x%X", psm);
+		assert(!setL2capServiceOnResult); // only handle one request at a time
+		setL2capServiceOnResult = onResult;
+		pendingCmdList.addToEnd(BtstackCmd::l2capRegisterService(psm, 672));
+		if(isInactive())
+		{
+			setActiveState(true,
+				[this](BluetoothAdapter &, State newState)
+				{
+					if(newState != STATE_ON)
+					{
+						auto onResult = setL2capServiceOnResult;
+						setL2capServiceOnResult = {};
+						onResult(*this, 0, 0);
+						return;
+					}
+					BtstackBluetoothAdapter::processCommands();
+				}
+			);
+		}
+		else
+			BtstackBluetoothAdapter::processCommands();
+	}
+	else
+	{
+		bt_send_cmd(&l2cap_unregister_service, psm);
+		logMsg("unregistered l2cap service for psm 0x%X", psm);
+	}
+}
+
+BluetoothAdapter::State BtstackBluetoothAdapter::state()
+{
+	switch(state_)
+	{
+		case HCI_STATE_OFF:
+		case HCI_STATE_SLEEPING:
+			return STATE_OFF;
+		case HCI_STATE_INITIALIZING:
+			return STATE_TURNING_ON;
+		case HCI_STATE_WORKING:
+			return STATE_ON;
+		case HCI_STATE_HALTING:
+		case HCI_STATE_FALLING_ASLEEP:
+			return STATE_TURNING_OFF;
+	}
+	logWarn("unknown bluetooth state: %d", state_);
+	return STATE_OFF;
+}
+
+void BtstackBluetoothAdapter::setActiveState(bool on, OnStateChangeDelegate onStateChange)
+{
+	if(onStateChangeD)
+	{
+		bug_exit("state change already in progress");
+		return;
+	}
+	if(on)
+	{
+		if(isInactive())
+		{
+			logMsg("powering on Bluetooth");
+			onStateChangeD = onStateChange;
+			bt_send_cmd(&btstack_set_power_mode, HCI_POWER_ON);
+		}
+		else if(onStateChange) // already on
+		{
+			logMsg("Bluetooth is already on");
+			onStateChange(*this, STATE_ON);
+		}
+	}
+	else
+	{
+		// TODO
+		bug_exit("TODO");
+		onStateChange(*this, STATE_ERROR);
+	}
+}
+
+bool BtstackBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName)
 {
 	if(!inDetect)
 	{
 		inDetect = 1;
+		onScanStatusD = onResult;
+		onScanDeviceClassD = onDeviceClass;
+		onScanDeviceNameD = onDeviceName;
 		pendingCmdList.addToEnd(BtstackCmd::inquiry(scanSecs));
+		logMsg("starting inquiry");
 		if(isInactive())
 		{
-			logMsg("BTStack power on, starting inquiry");
-			bt_send_cmd(&btstack_set_power_mode, HCI_POWER_ON);
+			setActiveState(true,
+				[this](BluetoothAdapter &, State newState)
+				{
+					if(newState != STATE_ON)
+					{
+						onScanStatusD(*this, INIT_FAILED, 0);
+						return;
+					}
+					BtstackBluetoothAdapter::processCommands();
+				}
+			);
 		}
-		else if(!cmdActive)
-		{
-			logMsg("BTStack is on, starting inquiry");
+		else
 			BtstackBluetoothAdapter::processCommands();
-		}
 		return 1;
 	}
 	else
@@ -595,7 +761,7 @@ bool BtstackBluetoothAdapter::startScan()
 
 bool BtstackBluetoothAdapter::isInactive()
 {
-	return state != HCI_STATE_INITIALIZING && state != HCI_STATE_WORKING;
+	return state_ != HCI_STATE_INITIALIZING && state_ != HCI_STATE_WORKING;
 }
 
 CallResult BtstackBluetoothAdapter::openDefault()
@@ -639,7 +805,7 @@ void BtstackBluetoothAdapter::cancelScan()
 				wasQueued = 1;
 				logMsg("cancelling scan from queue");
 				inDetect = 0;
-				onStatus.invoke(SCAN_CANCELLED, 0);
+				onScanStatusD(*this, SCAN_CANCELLED, 0);
 				break;
 			}
 		}
@@ -663,7 +829,7 @@ void BtstackBluetoothAdapter::close()
 		cancelScan();
 		bt_close();
 		isOpen = 0;
-		state = HCI_STATE_OFF;
+		state_ = HCI_STATE_OFF;
 	}
 }
 
@@ -675,9 +841,25 @@ BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
 		return nullptr;
 }
 
-void BtstackBluetoothAdapter::constructSocket(void *mem)
+void BtstackBluetoothAdapter::requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName)
 {
-	new(mem) BtstackBluetoothSocket();
+	onScanDeviceNameD = onDeviceName;
+	pendingCmdList.addToEnd(BtstackCmd::remoteNameRequest(pending.addr.b, 0, 0));
+	BtstackBluetoothAdapter::processCommands();
+}
+
+void BluetoothPendingSocket::requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName)
+{
+	assert(ch);
+	defaultBtstackAdapter.requestName(*this, onDeviceName);
+}
+
+void BluetoothPendingSocket::close()
+{
+	assert(ch);
+	logMsg("declining L2CAP connection %d", localCh);
+	bt_send_cmd(&l2cap_decline_connection, localCh, 0);
+	ch = 0;
 }
 
 CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint channel)
@@ -717,6 +899,24 @@ CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint psm)
 	}
 	var_selfs(addr);
 	ch = psm;
+	BtstackBluetoothAdapter::processCommands();
+	return OK;
+}
+
+CallResult BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
+{
+	assert(pending);
+	addr = pending.addr;
+	type = pending.type;
+	ch = pending.ch;
+	localCh = pending.localCh;
+	if(!socketList.add(this))
+	{
+		logMsg("no space left in socket list");
+		return NO_FREE_ENTRIES;
+	}
+	pendingCmdList.addToEnd(BtstackCmd::l2capAcceptConnection(localCh));
+	pending = {};
 	BtstackBluetoothAdapter::processCommands();
 	return OK;
 }
@@ -793,7 +993,7 @@ void BtstackBluetoothSocket::handleRfcommChannelOpened(uint8_t packet_type, uint
 		logMsg("rfcomm ch %d, handle %d", rfcommCh, handle);
 		sock->localCh = rfcommCh;
 		sock->handle = handle;
-		if(sock->onStatus.invoke(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+		if(sock->onStatus()(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
 		{
 
 		}
@@ -801,8 +1001,9 @@ void BtstackBluetoothSocket::handleRfcommChannelOpened(uint8_t packet_type, uint
 	else
 	{
 		logMsg("failed. status code %u\n", packet[2]);
-		sock->onStatus.invoke(*sock, STATUS_ERROR);
-		BtstackBluetoothAdapter::defaultAdapter()->statusDelegate().invoke(BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+		sock->onStatus()(*sock, STATUS_ERROR);
+		if(defaultBtstackAdapter.onScanStatus())
+			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
 	}
 }
 
@@ -826,7 +1027,7 @@ void BtstackBluetoothSocket::handleL2capChannelOpened(uint8_t packet_type, uint1
 		sock->localCh = sourceCid;
 		sock->handle = handle;
 		inL2capSocketOpenHandler = 1;
-		if(sock->onStatus.invoke(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+		if(sock->onStatus()(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
 		{
 
 		}
@@ -835,8 +1036,9 @@ void BtstackBluetoothSocket::handleL2capChannelOpened(uint8_t packet_type, uint1
 	else
 	{
 		logMsg("failed. status code %u\n", packet[2]);
-		sock->onStatus.invoke(*sock, STATUS_ERROR);
-		BtstackBluetoothAdapter::defaultAdapter()->statusDelegate().invoke(BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+		sock->onStatus()(*sock, STATUS_ERROR);
+		if(defaultBtstackAdapter.onScanStatus())
+			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
 	}
 }
 

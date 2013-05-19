@@ -45,6 +45,7 @@ typedef struct
    int clocksync;  // 1 = sync internal clock to emulation, 0 = realtime clock
    u32 basetime;   // Initial time in clocksync mode (0 = start w/ system time)
    int usethreads;
+   int osdcoretype;
 } yabauseinit_struct;
 
 #define CLKTYPE_26MHZ           0

@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,9 +13,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <gfx/GfxText.hh>
 #include <gfx/GeomRect.hh>
@@ -21,7 +21,7 @@
 class MsgPopup
 {
 public:
-	constexpr MsgPopup() { }
+	constexpr MsgPopup() {}
 	Gfx::Text text;
 	Base::CallbackRef *callbackRef = nullptr;
 	bool error = 0;

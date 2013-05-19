@@ -19,10 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "types.h"
 #include "x6502.h"
 #include "fceu.h"
@@ -41,6 +37,10 @@
 #include "cheat.h"
 #include "vsuni.h"
 #include "driver.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 extern SFORMAT FCEUVSUNI_STATEINFO[];
 
@@ -440,7 +440,7 @@ typedef struct {
 //size
 static int not_power2[] =
 {
-	198, 228
+	53, 198, 228
 };
 typedef struct {
 	const char *name;
@@ -477,7 +477,7 @@ static BMAPPINGLocal bmap[] = {
 	{"Konami VRC2/VRC4 D",	 25, Mapper25_Init},
 	{"Konami VRC6 Rev. B",	 26, Mapper26_Init},
 //	{"",					 27, Mapper27_Init},	// Deprecated, dupe for VRC2/VRC4 mapper
-//	{"",					 28, Mapper28_Init},
+	{"",					 28, Mapper28_Init},
 //	{"",					 29, Mapper29_Init},
 //	{"",					 30, Mapper30_Init},
 //	{"",					 31, Mapper31_Init},
@@ -502,7 +502,7 @@ static BMAPPINGLocal bmap[] = {
 	{"SMB2j FDS Rev. A",	 50, Mapper50_Init},
 	{"11-in-1 BALL SERIES",	 51, Mapper51_Init},	// 1993 year version
 	{"MMC3 BMC PIRATE D",	 52, Mapper52_Init},
-//	{"",					 53, Mapper53_Init},	// iNES version of complex UNIF board, can't emulate properly as iNES
+	{"SUPERVISION 16-in-1",	 53, Supervision16_Init},
 //	{"",					 54, Mapper54_Init},
 //	{"",					 55, Mapper55_Init},
 //	{"",					 56, Mapper56_Init},
@@ -542,7 +542,7 @@ static BMAPPINGLocal bmap[] = {
 	{"HUMMER/JY BOARD",		 90, Mapper90_Init},
 	{"EARLY HUMMER/JY BOARD",91, Mapper91_Init},
 	{"JALECO JF-19",		 92, Mapper92_Init},
-	{"SUNSOFT-3R",			 93, SUNSOFT_UNROM_Init},	// SUNSOFT-2 mapper with VRAM, different wiring
+	{"SUNSOFT-3R",			 93, SUNSOFT_UNROM_Init},// SUNSOFT-2 mapper with VRAM, different wiring
 	{"HVC-UN1ROM",			 94, Mapper94_Init},
 	{"NAMCOT 108 Rev. B",	 95, Mapper95_Init},
 	{"BANDAI OEKAKIDS",		 96, Mapper96_Init},
@@ -625,7 +625,7 @@ static BMAPPINGLocal bmap[] = {
 	{"",					173, Mapper173_Init},
 //	{"",					174, Mapper174_Init},
 	{"",					175, Mapper175_Init},
-	{"BMCFK23C",			176, BMCFK23C_Init},	//zero 26-may-2012 - well, i have some WXN junk games that use 176 for instance ????. i dont know what game uses this BMCFK23C as mapper 176. we'll have to make a note when we find it.
+	{"BMCFK23C",			176, BMCFK23C_Init},	// zero 26-may-2012 - well, i have some WXN junk games that use 176 for instance ????. i dont know what game uses this BMCFK23C as mapper 176. we'll have to make a note when we find it.
 	{"",					177, Mapper177_Init},
 	{"",					178, Mapper178_Init},
 //	{"",					179, Mapper179_Init},
@@ -928,6 +928,7 @@ int iNesSaveAs(char* name)
 	fp = fopen(name, "wb");
 	if (!fp)
 		return 0;
+
 	if (fwrite(&head, 1, 16, fp) != 16)
 	{
 		fclose(fp);

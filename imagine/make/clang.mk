@@ -1,6 +1,6 @@
-include $(currPath)/common.mk
-include $(currPath)/gcc-link.mk
-include $(currPath)/gcc-common.mk
+include $(buildSysPath)/common.mk
+include $(buildSysPath)/gcc-link.mk
+include $(buildSysPath)/gcc-common.mk
 
 WARNINGS_CFLAGS += -Wno-attributes
 

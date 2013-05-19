@@ -1282,7 +1282,7 @@ static void ScspThread(void)
 
 static void ScspDoExec(u32 cycles)
 {
-#ifdef WIN32
+#if 0
    s16 stereodata16[(44100 / 60) * 16]; //11760
 #endif
    u32 cycles_left;
@@ -1361,7 +1361,7 @@ static void ScspDoExec(u32 cycles)
          SNDCore->UpdateAudio((u32 *)&scsp_buffer_L[out_start],
                               (u32 *)&scsp_buffer_R[out_start], audio_free);
          scsp_sound_left -= audio_free;
-#ifdef WIN32
+#if 0
          ScspConvert32uto16s(&scsp_buffer_L[out_start], &scsp_buffer_R[out_start], (s16 *)stereodata16, audio_free);
          DRV_AviSoundUpdate(stereodata16, audio_free);
 #endif
@@ -1376,7 +1376,7 @@ static void ScspDoExec(u32 cycles)
          ScspGenerateAudio(scsp_buffer_L, scsp_buffer_R, audio_free);
          SNDCore->UpdateAudio((u32 *)scsp_buffer_L,
                               (u32 *)scsp_buffer_R, audio_free);
-#ifdef WIN32
+#if 0
          ScspConvert32uto16s((s32 *)scsp_buffer_L, (s32 *)scsp_buffer_R, (s16 *)stereodata16, audio_free);
          DRV_AviSoundUpdate(stereodata16, audio_free);
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Sound.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: Sound.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef SOUND_HXX
@@ -30,7 +30,7 @@ class OSystem;
   It has no functionality whatsoever.
 
   @author Stephen Anthony
-  @version $Id: Sound.hxx 2318 2011-12-31 21:56:36Z stephena $
+  @version $Id: Sound.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class Sound : public Serializable
 {

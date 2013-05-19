@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <assert.h>
 #include <util/ansiTypes.h>
 #include <util/cLang.h>
@@ -26,8 +26,8 @@
 #include <util/operators.hh>
 #include <util/Rational.hh>
 #include <config/imagineTypes.h>
-#include <math.h>
-#include <boost/type_traits/is_integral.hpp>
+#include <cmath>
+#include <type_traits>
 
 namespace IG
 {
@@ -43,24 +43,19 @@ static constexpr T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
 static void testFloatSupport() { if(!supportsFloat) bug_exit("float used without support"); }
 static void testDoubleSupport() { if(!supportsDouble) bug_exit("double used without support"); }
 
-// abs
-static double abs(double x) { testDoubleSupport(); return ::fabs(x); }
-static float abs(float x) { testFloatSupport(); return ::fabs(x); }
-template <class T>
-static T abs(T x)
-{
-	return x < (T)0 ? -x : x;
-}
-
-// pow
-static double pow(double base, double exp) { testDoubleSupport(); return ::pow(base, exp); }
-static float pow(float base, float exp)  { testFloatSupport(); return ::pow(base, exp); }
 template <class T, class T2>
 static T pow(T base, T2 exp)
 {
-	T result = 1;
-	iterateTimes(exp, i)
-		result *= base;
+	int result = 1;
+	while(exp)
+	{
+		if(exp & 1) // exp % 2 == 1
+		{
+			result *= base;
+		}
+		exp >>= 1; // exp /= 2
+		base *= base;
+	}
 	return result;
 }
 
@@ -77,7 +72,7 @@ static uint32 nextHighestPowerOf2(uint32 n)
 }
 
 // sqrt
-static double sqrt(double x) { testDoubleSupport(); return ::sqrt(x); }
+static double sqrt(double x) { testDoubleSupport(); return std::sqrt(x); }
 
 // Method using Log Base 2 Approximation With One Extra Babylonian Steps
 // http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
@@ -136,11 +131,10 @@ static bool isOdd(T num)
 }
 
 // divide integer rounding-upwards
-#define divUpConst(x, y) (((x) + (y) - 1) / (y))
 template<class T>
-static T divUp(T x, T y)
+constexpr static T divUp(T x, T y)
 {
-	return divUpConst(x, y);
+	return (x + y - 1) / y;
 }
 
 template <class T>
@@ -378,10 +372,17 @@ static void adjust2DSizeToFit(T &xBound, T &yBound, T aR)
 }
 
 template <class T>
-static bool isPowerOf2(T x)
+static constexpr bool isPowerOf2(T x)
 {
 	return x && !( (x-1) & x );
 	// return ((x != 0) && ((x & (~x + 1)) == x)); // alternate method
+}
+
+template <class T>
+static T alignRoundedUp(T addr, uint align)
+{
+	assert(isPowerOf2(align));
+	return (addr+(align-1)) & ~(align-1);
 }
 
 template <class T, class T2>
@@ -391,7 +392,7 @@ static void setSizesWithRatioY(T &xSize, T &ySize, T2 aspectRatio, T y)
 	if(aspectRatio) // treat 0 AR as a no-op, xSize doesn't get modified
 	{
 		T2 res = (T2)y * aspectRatio;
-		xSize = boost::is_integral<T>::value ? roundf(res) : res;
+		xSize = std::is_integral<T>::value ? roundf(res) : res;
 	}
 }
 
@@ -402,7 +403,7 @@ static void setSizesWithRatioX(T &xSize, T &ySize, T2 aspectRatio, T x)
 	if(aspectRatio) // treat 0 AR as a no-op, ySize doesn't get modified
 	{
 		T2 res = (T2)x / aspectRatio;
-		ySize = boost::is_integral<T>::value ? roundf(res) : res;
+		ySize = std::is_integral<T>::value ? roundf(res) : res;
 	}
 }
 
@@ -551,29 +552,29 @@ static bool valIsWithinStretch(T val, T val2, T stretch)
 }
 
 template <class T>
-static T sin(T x)
+constexpr static T sin(T x)
 {
-	return ::sin(x);
+	return std::sin(x);
 }
 
 template <class T>
-static T sinD(T x) { return sin(toRadians(x)); }
+constexpr static T sinD(T x) { return std::sin(toRadians(x)); }
 
 template <class T>
-static T cos(T x)
+constexpr static T cos(T x)
 {
-	return ::cos(x);
+	return std::cos(x);
 }
 
 template <class T>
-static T cosD(T x) { return cos(toRadians(x)); }
+constexpr static T cosD(T x) { return std::cos(toRadians(x)); }
 
 template <class T>
 static void rotateAboutPoint(T rads, T *x, T *y, T ox, T oy)
 {
 	T oldX = *x, oldY = *y;
-	*x = cos(rads) * (oldX-ox) - sin(rads) * (oldY-oy) + ox;
-	*y = sin(rads) * (oldX-ox) + cos(rads) * (oldY-oy) + oy;
+	*x = std::cos(rads) * (oldX-ox) - std::sin(rads) * (oldY-oy) + ox;
+	*y = std::sin(rads) * (oldX-ox) + std::cos(rads) * (oldY-oy) + oy;
 }
 
 // to rotate about z axis, pass x,y

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 2554 2012-09-27 22:17:27Z stephena $
+// $Id: M6532.cxx 2614 2013-02-17 22:33:53Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -180,7 +180,12 @@ uInt8 M6532::peek(uInt16 addr)
 
       // Get number of clocks since timer was set
       Int32 timer = timerClocks();  
-      if(timer >= 0)
+
+      // Note that this constant comes from z26, and corresponds to
+      // 256 intervals of T1024T (ie, the maximum that the timer should hold)
+      // I'm not sure why this is required, but quite a few ROMs fail
+      // if we just check >= 0.
+      if(!(timer & 0x40000))
       {
         // Return at 'divide by TIMxT' interval rate
         return (timer >> myIntervalShift) & 0xff;
@@ -394,6 +399,34 @@ bool M6532::load(Serializer& in)
   }
 
   return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 M6532::intim() const
+{
+  // This method is documented in ::peek(0x284), and exists so that the
+  // debugger can read INTIM without changing the state of the system
+
+  // Get number of clocks since timer was set
+  Int32 timer = timerClocks();  
+  if(!(timer & 0x40000))
+    return (timer >> myIntervalShift) & 0xff;
+  else
+    return timer & 0xff;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 M6532::timint() const
+{
+  // This method is documented in ::peek(0x285), and exists so that the
+  // debugger can read TIMINT without changing the state of the system
+
+  // Update timer flag if it is invalid and timer has expired
+  uInt8 interrupt = myInterruptFlag;
+  if(timerClocks() < 0)
+    interrupt |= TimerBit;
+
+  return interrupt;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

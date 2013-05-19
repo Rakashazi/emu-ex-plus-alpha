@@ -1,4 +1,4 @@
-File under src/snes9x* sub-directories are covered by the following license:
+Source files under src/snes9x* sub-directories are covered by the following license:
 
 ------------------------------------------------------------------------
 Permission to use, copy, modify and distribute Snes9x in both binary and
@@ -22,6 +22,4 @@ Super NES and Super Nintendo Entertainment System are trademarks of
 Nintendo Co., Limited and its subsidiary companies.
 ------------------------------------------------------------------------
 
-All other files are covered by the GPLv3 (see COPYING.GPL).
-
-You must obtain a GPL-exemption from the copyright holders of any GPL code combined with Snes9x for public distributon. Otherwise, only individual use is permitted.
+All other source files are covered by the GPLv3 (see COPYING.GPL), but are under a GPL exception to combine with Snes9x code. This exception only applies to each unmodified official source release, and is automatically revoked upon modifying any of the source files. It may also be revoked at any time by the copyright holder(s) of the GPL code, including retroactively to previous releases. This is to avoid 3rd unofficial integration of the EmuFramework and Imagine components with other non-GPL components.

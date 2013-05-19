@@ -18,9 +18,7 @@
 #include <base/Base.hh>
 #include <fs/sys.hh>
 #include <logger/interface.h>
-
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdio>
 
 #ifdef CONFIG_BASE_ANDROID
 	#include <android/log.h>

@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <gfx/GfxSprite.hh>
 #include <gfx/GfxBufferImage.hh>
 #include <VideoImageOverlay.hh>
@@ -20,6 +35,12 @@ public:
 	Rect2<int> gameRect;
 	Rect2<GC> gameRectG;
 
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+	Gfx::Sprite menuIcon;
+	Rect2<int> menuB, fastForwardB;
+	#endif
+	bool ffGuiKeyPush = 0, ffGuiTouch = 0;
+
 	void deinit() { }
 	Rect2<int> rect;
 	Rect2<int> &viewRect() { return rect; }
@@ -31,6 +52,7 @@ public:
 	void runFrame(Gfx::FrameTimeBase frameTime);
 	void draw(Gfx::FrameTimeBase frameTime);
 	void inputEvent(const Input::Event &e);
+	void takeGameScreenshot();
 
 	void placeOverlay()
 	{
@@ -66,8 +88,9 @@ public:
 		Pixmap basePix(vidPix.format);
 		basePix.init(pixBuff, totalX, totalY, extraPitch);
 		vidPix.initSubPixmap(basePix, xO, yO, x, y);
-		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView", xO, yO, x, y, totalX, totalY);
 		vidImg.init(vidPix, 0, optionImgFilter);
+		vidPixAlign = vidImg.bestAlignment(vidPix);
+		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
 		disp.setImg(&vidImg);
 		if((uint)optionImageZoom > 100)
 			placeEmu();
@@ -75,7 +98,7 @@ public:
 
 	void initImage(bool force, uint x, uint y, uint extraPitch = 0)
 	{
-		if(force || !disp.img || vidPix.x != x || vidPix.y != y)
+		if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
 		{
 			resizeImage(x, y, extraPitch);
 		}
@@ -83,7 +106,7 @@ public:
 
 	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint extraPitch = 0)
 	{
-		if(force || !disp.img || vidPix.x != x || vidPix.y != y)
+		if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
 		{
 			resizeImage(xO, yO, x, y, totalX, totalY, extraPitch);
 		}

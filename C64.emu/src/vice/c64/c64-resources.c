@@ -239,7 +239,7 @@ static const resource_string_t resources_string[] = {
 };
 
 static const resource_int_t resources_int[] = {
-    { "MachineVideoStandard", MACHINE_SYNC_NTSC, RES_EVENT_SAME, NULL,
+    { "MachineVideoStandard", MACHINE_SYNC_DEFAULT, RES_EVENT_SAME, NULL,
       &sync_factor, set_sync_factor, NULL },
     { "BoardType", 0, RES_EVENT_SAME, NULL,
       &board_type, set_board_type, NULL },

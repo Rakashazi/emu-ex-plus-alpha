@@ -49,10 +49,61 @@ namespace Keycode
 	CAPS = XK_Caps_Lock,
 	LMETA = XK_Meta_L,
 	RMETA = XK_Meta_R,
-	PAUSE = XK_Pause
+	LSUPER = XK_Super_L,
+	RSUPER = XK_Super_R,
+	PAUSE = XK_Pause,
+	UNDO = XK_Undo,
+	PRINT_SCREEN = XK_Print,
+
+	// Numpad
+	NUM_LOCK = XK_Num_Lock,
+	NUMPAD_0 = XK_KP_0,
+	NUMPAD_1 = XK_KP_1,
+	NUMPAD_2 = XK_KP_2,
+	NUMPAD_3 = XK_KP_3,
+	NUMPAD_4 = XK_KP_4,
+	NUMPAD_5 = XK_KP_5,
+	NUMPAD_6 = XK_KP_6,
+	NUMPAD_7 = XK_KP_7,
+	NUMPAD_8 = XK_KP_8,
+	NUMPAD_9 = XK_KP_9,
+	NUMPAD_DIV = XK_KP_Divide,
+	NUMPAD_MULT = XK_KP_Multiply,
+	NUMPAD_SUB = XK_KP_Subtract,
+	NUMPAD_ADD = XK_KP_Add,
+	NUMPAD_DOT = XK_KP_Decimal,
+	NUMPAD_COMMA = XK_KP_Separator,
+	NUMPAD_ENTER = XK_KP_Enter,
+	NUMPAD_EQUALS = XK_KP_Equal,
+	NUMPAD_INSERT = XK_KP_Insert,
+	NUMPAD_DELETE = XK_KP_Delete,
+	NUMPAD_BEGIN = XK_KP_Begin,
+	NUMPAD_HOME = XK_KP_Home,
+	NUMPAD_END = XK_KP_End,
+	NUMPAD_PGUP = XK_KP_Page_Up,
+	NUMPAD_PGDOWN = XK_KP_Page_Down,
+	NUMPAD_UP = XK_KP_Up,
+	NUMPAD_RIGHT = XK_KP_Right,
+	NUMPAD_DOWN = XK_KP_Down,
+	NUMPAD_LEFT = XK_KP_Left
 	;
 
 	static const uint COUNT = 0xffff + 1;
+
+	namespace Pandora
+	{
+		static const uint L = RSHIFT,
+			R = RCTRL,
+			A = HOME,
+			B = END,
+			Y = PGUP,
+			X = PGDOWN,
+			SELECT = LCTRL,
+			START = LALT,
+			LOGO = UNDO,
+			UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT
+			;
+	}
 };
 
 typedef uint16 Key;

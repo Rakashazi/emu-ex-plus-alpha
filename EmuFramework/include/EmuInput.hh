@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,12 +13,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#pragma once
 #include <input/Input.hh>
 #ifdef CONFIG_BLUETOOTH
-	#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include <TurboInput.hh>
 #include <EmuSystem.hh>
@@ -36,8 +37,8 @@ struct KeyCategory
 	bool isMultiplayer; // category appears when one input device is assigned multiple players
 };
 
-#ifdef INPUT_SUPPORTS_POINTER
-	extern uint pointerInputPlayer;
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+extern uint pointerInputPlayer;
 #endif
 
 static const int guiKeyIdxLoadGame = 0;
@@ -161,10 +162,10 @@ struct InputDeviceConfig
 
 	void reset();
 	void deleteConf();
-#ifdef CONFIG_INPUT_ICADE
+	#ifdef CONFIG_INPUT_ICADE
 	bool setICadeMode(bool on);
 	bool iCadeMode();
-#endif
+	#endif
 	bool mapJoystickAxis1ToDpad();
 	void setMapJoystickAxis1ToDpad(bool on);
 	const KeyConfig &keyConf();
@@ -215,6 +216,12 @@ extern const KeyConfig defaultICadeProfile[];
 extern const uint defaultICadeProfiles;
 extern const KeyConfig defaultZeemoteProfile[];
 extern const uint defaultZeemoteProfiles;
+extern const KeyConfig defaultEvdevProfile[];
+extern const uint defaultEvdevProfiles;
+#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER
+extern const KeyConfig defaultPS3Profile[];
+extern const uint defaultPS3Profiles;
+#endif
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player);
 
@@ -238,4 +245,15 @@ static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 	}
 };
 #endif
+
+void setupVolKeysInGame();
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+void setupVControllerVars();
+#endif
+void setOnScreenControls(bool on);
+void updateAutoOnScreenControlVisible();
+void setupVControllerPosition();
+void resolveOnScreenCollisions(_2DOrigin *movedObj = nullptr);
+void updateVControlImg();
+
 }

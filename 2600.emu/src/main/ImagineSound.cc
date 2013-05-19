@@ -8,13 +8,12 @@ void ImagineSound::open()
 
 	// Now initialize the TIASound object which will actually generate sound
 	myTIASound.outputFrequency(EmuSystem::pcmFormat.rate);
-	//myTIASound.tiaFrequency(tiafreq);
 	myTIASound.channels(soundChannels, 0);
 
 	myLastRegisterSetCycle = 0;
 }
 
-void ImagineSound::processAudio(TIASound::Sample* stream, uint length)
+void ImagineSound::processAudio(Int16* stream, uint length)
 {
 	const uint channels = soundChannels;
 	// If there are excessive items on the queue then we'll remove some
@@ -42,7 +41,6 @@ void ImagineSound::processAudio(TIASound::Sample* stream, uint length)
 		{
 			// There are no more pending TIA sound register updates so we'll
 			// use the current settings to finish filling the sound fragment
-			//    myTIASound.process(stream + (uInt32)position, length - (uInt32)position);
 			myTIASound.process(stream + ((uInt32)position * channels),
 					length - (uInt32)position);
 
@@ -72,9 +70,6 @@ void ImagineSound::processAudio(TIASound::Sample* stream, uint length)
 					// Process the fragment upto the next TIA register write.  We
 					// round the count passed to process up if needed.
 					SysDDec samples = (EmuSystem::pcmFormat.rate * info.delta);
-					//        myTIASound.process(stream + (uInt32)position, (uInt32)samples +
-					//            (uInt32)(position + samples) -
-					//            ((uInt32)position + (uInt32)samples));
 					myTIASound.process(stream + ((uInt32)position * channels),
 							(uInt32)samples + (uInt32)(position + samples) -
 							((uInt32)position + (uInt32)samples));
@@ -90,7 +85,6 @@ void ImagineSound::processAudio(TIASound::Sample* stream, uint length)
 				// The next register update occurs in the next fragment so finish
 				// this fragment with the current TIA settings and reduce the register
 				// update delay by the corresponding amount of time
-				//      myTIASound.process(stream + (uInt32)position, length - (uInt32)position);
 				myTIASound.process(stream + ((uInt32)position * channels),
 						length - (uInt32)position);
 				info.delta -= duration;

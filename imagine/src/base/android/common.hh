@@ -161,7 +161,7 @@ void setSDK(uint sdk)
 
 uint androidSDK()
 {
-	return IG::max(aMinSDK, aSDK);
+	return std::max(aMinSDK, aSDK);
 }
 
 static void resizeEvent(const Window &win, bool force = 0)

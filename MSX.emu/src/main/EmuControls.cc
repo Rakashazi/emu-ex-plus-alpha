@@ -12,139 +12,139 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player)
 
 static const char *gamepadName[joystickKeys] =
 {
-		"Up",
-		"Right",
-		"Down",
-		"Left",
-		"Left+Up",
-		"Right+Up",
-		"Right+Down",
-		"Left+Down",
-		"A",
-		"B",
-		"Turbo A",
-		"Turbo B",
+	"Up",
+	"Right",
+	"Down",
+	"Left",
+	"Left+Up",
+	"Right+Up",
+	"Right+Down",
+	"Left+Down",
+	"A",
+	"B",
+	"Turbo A",
+	"Turbo B",
 };
 
 static const char *colecoName[colecoNumericKeys] =
 {
-		"0",
-		"1",
-		"2",
-		"3",
-		"4",
-		"5",
-		"6",
-		"7",
-		"8",
-		"9",
-		"*",
-		"#",
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
+	"*",
+	"#",
 };
 
 static const char *keyboardName[kbKeys] =
 {
-		"Toggle Keyboard",
+	"Toggle Keyboard",
 
-		"F1",
-		"F2",
-		"F3",
-		"F4",
-		"F5",
-		"Stop",
-		"Cls",
-		"Select",
-		"Ins",
-		"Del",
+	"F1",
+	"F2",
+	"F3",
+	"F4",
+	"F5",
+	"Stop",
+	"Cls",
+	"Select",
+	"Ins",
+	"Del",
 
-		"Esc",
-		"1  !",
-		"2  \"",
-		"3  #",
-		"4  $",
-		"5  %",
-		"6  &",
-		"7  '",
-		"8  (",
-		"9  )",
-		"0",
-		"-  =",
-		"^  ~",
-		"\\  |",
-		"Backspace",
+	"Esc",
+	"1  !",
+	"2  \"",
+	"3  #",
+	"4  $",
+	"5  %",
+	"6  &",
+	"7  '",
+	"8  (",
+	"9  )",
+	"0",
+	"-  =",
+	"^  ~",
+	"\\  |",
+	"Backspace",
 
-		"Tab",
-		"Q",
-		"W",
-		"E",
-		"R",
-		"T",
-		"Y",
-		"U",
-		"I",
-		"O",
-		"P",
-		"@  `",
-		"[  {",
-		"Return",
+	"Tab",
+	"Q",
+	"W",
+	"E",
+	"R",
+	"T",
+	"Y",
+	"U",
+	"I",
+	"O",
+	"P",
+	"@  `",
+	"[  {",
+	"Return",
 
-		"Ctrl",
-		"A",
-		"S",
-		"D",
-		"F",
-		"G",
-		"H",
-		"J",
-		"K",
-		"L",
-		";  +",
-		":  *",
-		"]  }",
+	"Ctrl",
+	"A",
+	"S",
+	"D",
+	"F",
+	"G",
+	"H",
+	"J",
+	"K",
+	"L",
+	";  +",
+	":  *",
+	"]  }",
 
-		"Left Shift",
-		"Z",
-		"X",
-		"C",
-		"V",
-		"B",
-		"N",
-		"M",
-		",  <",
-		".  >",
-		"/  ?",
-		"_",
-		"Right Shift",
+	"Left Shift",
+	"Z",
+	"X",
+	"C",
+	"V",
+	"B",
+	"N",
+	"M",
+	",  <",
+	".  >",
+	"/  ?",
+	"_",
+	"Right Shift",
 
-		"Caps",
-		"Graph",
-		"Cancel",
-		"Space",
-		"Execute",
-		"Code",
-		"Pause",
+	"Caps",
+	"Graph",
+	"Cancel",
+	"Space",
+	"Execute",
+	"Code",
+	"Pause",
 
-		"Left Arrow",
-		"Up Arrow",
-		"Down Arrow",
-		"Right Arrow",
+	"Left Arrow",
+	"Up Arrow",
+	"Down Arrow",
+	"Right Arrow",
 
-		"Num 7",
-		"Num 8",
-		"Num 9",
-		"Num Div",
-		"Num 4",
-		"Num 5",
-		"Num 6",
-		"Num Mult",
-		"Num 1",
-		"Num 2",
-		"Num 3",
-		"Num Sub",
-		"Num 0",
-		"Num Comma",
-		"Num Period",
-		"Num Add",
+	"Num 7",
+	"Num 8",
+	"Num 9",
+	"Num Div",
+	"Num 4",
+	"Num 5",
+	"Num 6",
+	"Num Mult",
+	"Num 1",
+	"Num 2",
+	"Num 3",
+	"Num Sub",
+	"Num 0",
+	"Num Comma",
+	"Num Period",
+	"Num Add",
 };
 
 static const uint msxJoystickKeyOffset = gameActionKeys;
@@ -155,45 +155,45 @@ static const uint keyboardKeyOffset = colecoJoystick2KeyOffset + colecoNumericKe
 
 const KeyCategory category[categories]
 {
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Joystick", gamepadName, msxJoystickKeyOffset),
-		KeyCategory("Joystick 2", gamepadName, msxJoystick2KeyOffset, 1),
-		KeyCategory("Coleco Numeric Pad", colecoName, colecoJoystickKeyOffset),
-		KeyCategory("Coleco Numeric Pad 2", colecoName, colecoJoystick2KeyOffset, 1),
-		KeyCategory("Keyboard", keyboardName, keyboardKeyOffset),
+	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+	KeyCategory("Set Joystick Keys", gamepadName, msxJoystickKeyOffset),
+	KeyCategory("Set Joystick 2 Keys", gamepadName, msxJoystick2KeyOffset, 1),
+	KeyCategory("Set Coleco Numpad Keys", colecoName, colecoJoystickKeyOffset),
+	KeyCategory("Set Coleco Numpad 2 Keys", colecoName, colecoJoystick2KeyOffset, 1),
+	KeyCategory("Set Keyboard Keys", keyboardName, keyboardKeyOffset),
 };
 
 #ifdef INPUT_SUPPORTS_KEYBOARD
 
 const KeyConfig defaultKeyProfile[] =
 {
-#ifdef CONFIG_ENV_WEBOS
+	#ifdef CONFIG_ENV_WEBOS
 	{
-			Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_KEYBOARD,
+		0,
+		"WebOS Keyboard (Joystick use)",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
+
+			// JS 1
+			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
+			asciiKey(','),
+			asciiKey('m'),
 			0,
-			"WebOS Keyboard (Joystick use)",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
+			0,
 
-					// JS 1
-					EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-					asciiKey(','),
-					asciiKey('m'),
-					0,
-					0,
+			// JS 2
+			PP_ZERO_LIST(12)
 
-					// JS 2
-					PP_ZERO_LIST(12)
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
 
-					// Coleco 1 & 2
-					PP_ZERO_LIST(24)
-
-					// Keyboard
-					asciiKey(' '),
-			}
+			// Keyboard
+			asciiKey(' '),
+		}
 	},
-#endif
-#ifdef CONFIG_BASE_ANDROID
+	#endif
+	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
 		Input::Event::MAP_KEYBOARD,
@@ -203,16 +203,13 @@ const KeyConfig defaultKeyProfile[] =
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
-			Input::Keycode::GAME_X,
-			Input::Keycode::GAME_Y,
+			Input::Keycode::PS3::UP,
+			Input::Keycode::PS3::RIGHT,
+			Input::Keycode::PS3::DOWN,
+			Input::Keycode::PS3::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::PS3::CROSS,
+			Input::Keycode::PS3::CIRCLE,
 			0,
 			0,
 
@@ -221,19 +218,19 @@ const KeyConfig defaultKeyProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(10)
-			Input::Keycode::GAME_A,
-			Input::Keycode::GAME_B,
+			Input::Keycode::PS3::TRIANGLE,
+			Input::Keycode::PS3::SQUARE,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::Keycode::GAME_START,
-			Input::Keycode::GAME_B, // F1 ... F5
-			Input::Keycode::GAME_L1,
-			Input::Keycode::GAME_R1,
-			Input::Keycode::GAME_A,
-			Input::Keycode::GAME_SELECT,
+			Input::Keycode::PS3::START,
+			Input::Keycode::PS3::TRIANGLE, // F1 ... F5
+			Input::Keycode::PS3::L1,
+			Input::Keycode::PS3::R1,
+			Input::Keycode::PS3::SQUARE,
+			Input::Keycode::PS3::SELECT,
 		}
 	},
 	{
@@ -244,16 +241,13 @@ const KeyConfig defaultKeyProfile[] =
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
-			Input::Ouya::O,
-			Input::Ouya::A,
+			Input::Keycode::Ouya::UP,
+			Input::Keycode::Ouya::RIGHT,
+			Input::Keycode::Ouya::DOWN,
+			Input::Keycode::Ouya::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::Ouya::O,
+			Input::Keycode::Ouya::A,
 			0,
 			0,
 
@@ -262,22 +256,22 @@ const KeyConfig defaultKeyProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(10)
-			Input::Ouya::U,
-			Input::Ouya::Y,
+			Input::Keycode::Ouya::U,
+			Input::Keycode::Ouya::Y,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::Keycode::GAME_RIGHT_THUMB,
-			Input::Ouya::Y, // F1 ... F5
-			Input::Keycode::GAME_L1,
-			Input::Keycode::GAME_R1,
-			Input::Ouya::U,
-			Input::Keycode::GAME_LEFT_THUMB,
+			Input::Keycode::Ouya::R3,
+			Input::Keycode::Ouya::Y, // F1 ... F5
+			Input::Keycode::Ouya::L1,
+			Input::Keycode::Ouya::R1,
+			Input::Keycode::Ouya::U,
+			Input::Keycode::Ouya::L3,
 		}
 	},
-	#ifdef CONFIG_MACHINE_GENERIC_ARMV7
+		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
 			Input::Event::MAP_KEYBOARD,
 			Input::Device::SUBTYPE_XPERIA_PLAY,
@@ -286,16 +280,13 @@ const KeyConfig defaultKeyProfile[] =
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
 				// JS 1
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
-				0,
-				0,
-				0,
-				0,
-				Input::Keycode::CENTER,
-				Input::Keycode::GAME_B,
+				Input::Keycode::XperiaPlay::UP,
+				Input::Keycode::XperiaPlay::RIGHT,
+				Input::Keycode::XperiaPlay::DOWN,
+				Input::Keycode::XperiaPlay::LEFT,
+				0, 0, 0, 0,
+				Input::Keycode::XperiaPlay::CROSS,
+				Input::Keycode::XperiaPlay::CIRCLE,
 				0,
 				0,
 
@@ -304,19 +295,19 @@ const KeyConfig defaultKeyProfile[] =
 
 				// Coleco 1
 				PP_ZERO_LIST(10)
-				Input::Keycode::GAME_Y,
-				Input::Keycode::GAME_X,
+				Input::Keycode::XperiaPlay::TRIANGLE,
+				Input::Keycode::XperiaPlay::SQUARE,
 
 				// Coleco 2
 				PP_ZERO_LIST(12)
 
 				// Keyboard
-				Input::Keycode::GAME_START,
-				Input::Keycode::GAME_Y, // F1 ... F5
-				Input::Keycode::GAME_L1,
-				Input::Keycode::GAME_R1,
-				Input::Keycode::GAME_X,
-				Input::Keycode::GAME_SELECT,
+				Input::Keycode::XperiaPlay::START,
+				Input::Keycode::XperiaPlay::TRIANGLE, // F1 ... F5
+				Input::Keycode::XperiaPlay::L1,
+				Input::Keycode::XperiaPlay::R1,
+				Input::Keycode::XperiaPlay::SQUARE,
+				Input::Keycode::XperiaPlay::SELECT,
 				PP_ZERO_LIST(87) // 26 - 92
 			}
 		},
@@ -332,10 +323,7 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::RIGHT,
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
-				0,
-				0,
-				0,
-				0,
+				0, 0, 0, 0,
 				asciiKey('c'),
 				asciiKey('x'),
 				0,
@@ -399,8 +387,8 @@ const KeyConfig defaultKeyProfile[] =
 				PP_ZERO_LIST(23) // 70 - 92
 			}
 		},
+		#endif
 	#endif
-#endif
 	{
 		Input::Event::MAP_KEYBOARD,
 		0,
@@ -413,10 +401,7 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::RIGHT,
 			Input::Keycode::DOWN,
 			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
+			0, 0, 0, 0,
 			asciiKey('c'),
 			asciiKey('x'),
 			0,
@@ -588,44 +573,68 @@ const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);
 
 #endif
 
+#ifdef CONFIG_INPUT_EVDEV
+
+const KeyConfig defaultEvdevProfile[] =
+{
+	{
+		Input::Event::MAP_EVDEV,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+
+			// JS 1
+			Input::Evdev::UP,
+			Input::Evdev::RIGHT,
+			Input::Evdev::DOWN,
+			Input::Evdev::LEFT,
+			0, 0, 0, 0,
+			Input::Evdev::GAME_A,
+			Input::Evdev::GAME_B,
+		}
+	},
+};
+
+const uint defaultEvdevProfiles = sizeofArray(defaultEvdevProfile);
+
+#endif
+
 // Wiimote
 
 const KeyConfig defaultWiimoteProfile[] =
 {
 	{
-			Input::Event::MAP_WIIMOTE,
+		Input::Event::MAP_WIIMOTE,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
+
+			// JS 1
+			Input::Wiimote::UP,
+			Input::Wiimote::RIGHT,
+			Input::Wiimote::DOWN,
+			Input::Wiimote::LEFT,
+			0, 0, 0, 0,
+			Input::Wiimote::_2,
+			Input::Wiimote::_1,
 			0,
-			"Default",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
+			0,
 
-					// JS 1
-					Input::Wiimote::UP,
-					Input::Wiimote::RIGHT,
-					Input::Wiimote::DOWN,
-					Input::Wiimote::LEFT,
-					0,
-					0,
-					0,
-					0,
-					Input::Wiimote::_2,
-					Input::Wiimote::_1,
-					0,
-					0,
+			// JS 2
+			PP_ZERO_LIST(12)
 
-					// JS 2
-					PP_ZERO_LIST(12)
+			// Coleco 1
+			PP_ZERO_LIST(11)
+			Input::Wiimote::MINUS,
 
-					// Coleco 1
-					PP_ZERO_LIST(11)
-					Input::Wiimote::MINUS,
+			// Coleco 2
+			PP_ZERO_LIST(12)
 
-					// Coleco 2
-					PP_ZERO_LIST(12)
-
-					// Keyboard
-					Input::Wiimote::PLUS,
-			}
+			// Keyboard
+			Input::Wiimote::PLUS,
+		}
 	},
 };
 
@@ -645,10 +654,7 @@ const KeyConfig defaultWiiCCProfile[] =
 			Input::WiiCC::RIGHT,
 			Input::WiiCC::DOWN,
 			Input::WiiCC::LEFT,
-			0,
-			0,
-			0,
-			0,
+			0, 0, 0, 0,
 			Input::WiiCC::B,
 			Input::WiiCC::Y,
 			0,
@@ -682,41 +688,38 @@ const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
 const KeyConfig defaultIControlPadProfile[] =
 {
 	{
-			Input::Event::MAP_ICONTROLPAD,
+		Input::Event::MAP_ICONTROLPAD,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
+
+			// JS 1
+			Input::iControlPad::UP,
+			Input::iControlPad::RIGHT,
+			Input::iControlPad::DOWN,
+			Input::iControlPad::LEFT,
+			0, 0, 0, 0,
+			Input::iControlPad::X,
+			Input::iControlPad::A,
 			0,
-			"Default",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
+			0,
 
-					// JS 1
-					Input::iControlPad::UP,
-					Input::iControlPad::RIGHT,
-					Input::iControlPad::DOWN,
-					Input::iControlPad::LEFT,
-					0,
-					0,
-					0,
-					0,
-					Input::iControlPad::X,
-					Input::iControlPad::A,
-					0,
-					0,
+			// JS 2
+			PP_ZERO_LIST(12)
 
-					// JS 2
-					PP_ZERO_LIST(12)
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
 
-					// Coleco 1 & 2
-					PP_ZERO_LIST(24)
-
-					// Keyboard
-					Input::iControlPad::START,
-					Input::iControlPad::Y, // F1 - F5
-					Input::iControlPad::L,
-					Input::iControlPad::R,
-					Input::iControlPad::B,
-					Input::iControlPad::SELECT,
-					PP_ZERO_LIST(87) // 6 - 92
-			}
+			// Keyboard
+			Input::iControlPad::START,
+			Input::iControlPad::Y, // F1 - F5
+			Input::iControlPad::L,
+			Input::iControlPad::R,
+			Input::iControlPad::B,
+			Input::iControlPad::SELECT,
+			PP_ZERO_LIST(87) // 6 - 92
+		}
 	},
 };
 
@@ -727,41 +730,38 @@ const uint defaultIControlPadProfiles = sizeofArray(defaultIControlPadProfile);
 const KeyConfig defaultICadeProfile[] =
 {
 	{
-			Input::Event::MAP_ICADE,
+		Input::Event::MAP_ICADE,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+
+			// JS 1
+			Input::ICade::UP,
+			Input::ICade::RIGHT,
+			Input::ICade::DOWN,
+			Input::ICade::LEFT,
+			0, 0, 0, 0,
+			Input::ICade::H,
+			Input::ICade::F,
 			0,
-			"Default",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+			0,
 
-					// JS 1
-					Input::ICade::UP,
-					Input::ICade::RIGHT,
-					Input::ICade::DOWN,
-					Input::ICade::LEFT,
-					0,
-					0,
-					0,
-					0,
-					Input::ICade::H,
-					Input::ICade::F,
-					0,
-					0,
+			// JS 2
+			PP_ZERO_LIST(12)
 
-					// JS 2
-					PP_ZERO_LIST(12)
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
 
-					// Coleco 1 & 2
-					PP_ZERO_LIST(24)
-
-					// Keyboard
-					Input::ICade::C,
-					Input::ICade::E, // F1 - F5
-					Input::ICade::B,
-					Input::ICade::D,
-					Input::ICade::G,
-					Input::ICade::A,
-					PP_ZERO_LIST(87) // 6 - 92
-			}
+			// Keyboard
+			Input::ICade::C,
+			Input::ICade::E, // F1 - F5
+			Input::ICade::B,
+			Input::ICade::D,
+			Input::ICade::G,
+			Input::ICade::A,
+			PP_ZERO_LIST(87) // 6 - 92
+		}
 	},
 };
 
@@ -772,38 +772,84 @@ const uint defaultICadeProfiles = sizeofArray(defaultICadeProfile);
 const KeyConfig defaultZeemoteProfile[] =
 {
 	{
-			Input::Event::MAP_ZEEMOTE,
+		Input::Event::MAP_ZEEMOTE,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+
+			// JS 1
+			Input::Zeemote::UP,
+			Input::Zeemote::RIGHT,
+			Input::Zeemote::DOWN,
+			Input::Zeemote::LEFT,
 			0,
-			"Default",
-			{
-					EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+			0,
+			0,
+			0,
+			Input::Zeemote::B,
+			Input::Zeemote::A,
+			0,
+			0,
 
-					// JS 1
-					Input::Zeemote::UP,
-					Input::Zeemote::RIGHT,
-					Input::Zeemote::DOWN,
-					Input::Zeemote::LEFT,
-					0,
-					0,
-					0,
-					0,
-					Input::Zeemote::B,
-					Input::Zeemote::A,
-					0,
-					0,
+			// JS 2
+			PP_ZERO_LIST(12)
 
-					// JS 2
-					PP_ZERO_LIST(12)
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
 
-					// Coleco 1 & 2
-					PP_ZERO_LIST(24)
-
-					// Keyboard
-					Input::Zeemote::C,
-			}
+			// Keyboard
+			Input::Zeemote::C,
+		}
 	},
 };
 
 const uint defaultZeemoteProfiles = sizeofArray(defaultZeemoteProfile);
+
+// PS3
+
+const KeyConfig defaultPS3Profile[] =
+{
+	{
+		Input::Event::MAP_PS3PAD,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT,
+
+			// JS 1
+			Input::PS3::UP,
+			Input::PS3::RIGHT,
+			Input::PS3::DOWN,
+			Input::PS3::LEFT,
+			0, 0, 0, 0,
+			Input::PS3::CROSS,
+			Input::PS3::CIRCLE,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1
+			PP_ZERO_LIST(10)
+			Input::PS3::TRIANGLE,
+			Input::PS3::SQUARE,
+
+			// Coleco 2
+			PP_ZERO_LIST(12)
+
+			// Keyboard
+			Input::PS3::START,
+			Input::PS3::TRIANGLE, // F1 ... F5
+			Input::PS3::L1,
+			Input::PS3::R1,
+			Input::PS3::SQUARE,
+			Input::PS3::SELECT,
+		}
+	},
+};
+
+const uint defaultPS3Profiles = sizeofArray(defaultPS3Profile);
 
 };

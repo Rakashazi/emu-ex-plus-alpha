@@ -4,7 +4,7 @@
 #include <logger/interface.h>
 #include <util/number.h>
 #include <util/thread/pthread.hh>
-#include <util/RingBuffer.hh>
+#include <util/MachRingBuffer.hh>
 
 #define Fixed MacTypes_Fixed
 #define Rect MacTypes_Rect
@@ -25,17 +25,21 @@ static AudioComponentInstance outputUnit = nullptr;
 static AudioStreamBasicDescription streamFormat;
 static bool isPlaying = 0, isOpen_ = 0;
 static AudioTimeStamp lastTimestamp;
-static MutexPThread buffersQueuedLock;
-static RingBuffer<int> rBuff;
-static int startPlaybackBytes = 0;
-static uchar *localBuff = nullptr;
+static MachRingBuffer<> rBuff;
+static uint startPlaybackBytes = 0;
+static BufferContext audioBuffLockCtx;
+static bool sessionInit = false;
+static bool soloMix_ = true;
 
 void setHintPcmFramesPerWrite(uint frames)
 {
-	logMsg("setting queue buffer frames to %d", frames);
-	assert(frames < 2000);
-	bufferFrames = frames;
-	assert(!isOpen());
+	if(frames != bufferFrames)
+	{
+		closePcm();
+		logMsg("setting queue buffer frames to %d", frames);
+		assert(frames < 2000);
+		bufferFrames = frames;
+	}
 }
 
 void setHintPcmMaxBuffers(uint maxBuffers)
@@ -61,9 +65,7 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 		return 0;
 	}
 
-	buffersQueuedLock.lock();
 	uint read = rBuff.read(buf, bytes);
-	buffersQueuedLock.unlock();
 	if(unlikely(read != bytes))
 	{
 		//logMsg("underrun, read %d out of %d bytes", read, bytes);
@@ -78,29 +80,28 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 static CallResult openUnit(AudioStreamBasicDescription &fmt)
 {
 	logMsg("creating unit %dHz %d channels", (int)fmt.mSampleRate, (int)fmt.mChannelsPerFrame);
+
+	uint bufferSize = bufferFrames * streamFormat.mBytesPerFrame * buffers;
+	startPlaybackBytes = bufferFrames * streamFormat.mBytesPerFrame * (buffers-1);
+	if(!rBuff.init(bufferSize))
+	{
+		return OUT_OF_MEMORY;
+	}
+
 	auto err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
 			0, &fmt, sizeof(AudioStreamBasicDescription));
 	if(err)
 	{
 		logErr("error %d setting stream format", (int)err);
+		rBuff.deinit();
 		return INVALID_PARAMETER;
 	}
 	AudioUnitInitialize(outputUnit);
-
-	uint bufferSize = bufferFrames * streamFormat.mBytesPerFrame * buffers;
-	startPlaybackBytes = bufferFrames * streamFormat.mBytesPerFrame * buffers-1;
-	localBuff = (uchar*)mem_alloc(bufferSize);
-	if(!localBuff)
-	{
-		// TODO clean-up
-		logMsg("error allocation audio buffer");
-		return OUT_OF_MEMORY;
-	}
 	logMsg("allocated %d for audio buffer", bufferSize);
-	rBuff.init(localBuff, bufferSize);
 
 	isPlaying = 0;
 	isOpen_ = 1;
+
 	return OK;
 }
 
@@ -133,9 +134,7 @@ void closePcm()
 	}
 	AudioOutputUnitStop(outputUnit);
 	AudioUnitUninitialize(outputUnit);
-	rBuff.reset();
-	mem_free(localBuff);
-	localBuff = nullptr;
+	rBuff.deinit();
 	isPlaying = 0;
 	isOpen_ = 0;
 	logMsg("closed audio unit");
@@ -161,21 +160,63 @@ static void startPlaybackIfNeeded()
 	}
 }
 
+void pausePcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	AudioOutputUnitStop(outputUnit);
+	isPlaying = 0;
+}
+
+void resumePcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	startPlaybackIfNeeded();
+}
+
+void clearPcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("clearing queued samples");
+	pausePcm();
+	rBuff.reset();
+}
+
 void writePcm(uchar *samples, uint framesToWrite)
 {
 	if(unlikely(!isOpen()))
 		return;
 
-	//checkXRun(buffersQueued);
-	int bytes = framesToWrite * streamFormat.mBytesPerFrame;
-	buffersQueuedLock.lock();
+	uint bytes = framesToWrite * streamFormat.mBytesPerFrame;
 	auto written = rBuff.write(samples, bytes);
-	buffersQueuedLock.unlock();
 	if(written != bytes)
 	{
 		//logMsg("overrun, wrote %d out of %d bytes", written, bytes);
 	}
+	startPlaybackIfNeeded();
+}
 
+BufferContext *getPlayBuffer(uint wantedFrames)
+{
+	if(unlikely(!isOpen()))
+		return nullptr;
+	if((uint)framesFree() < bufferFrames)
+	{
+		logDMsg("can't get buffer with only %d frames free", framesFree());
+		return nullptr;
+	}
+	audioBuffLockCtx.data = rBuff.writePos();
+	audioBuffLockCtx.frames = std::min(wantedFrames, (uint)framesFree());
+	return &audioBuffLockCtx;
+}
+
+void commitPlayBuffer(BufferContext *buffer, uint frames)
+{
+	assert(frames <= buffer->frames);
+	auto bytes = frames * streamFormat.mBytesPerFrame;
+	rBuff.advanceWritePos(bytes);
 	startPlaybackIfNeeded();
 }
 
@@ -184,7 +225,24 @@ int frameDelay() { return 0; }
 
 int framesFree()
 {
-	return rBuff.freeSpace() * streamFormat.mBytesPerFrame;
+	return rBuff.freeSpace() / streamFormat.mBytesPerFrame;
+}
+
+void setSoloMix(bool newSoloMix)
+{
+	if(soloMix_ != newSoloMix)
+	{
+		logMsg("setting solo mix: %d", newSoloMix);
+		UInt32 sessionCategory = newSoloMix ? kAudioSessionCategory_SoloAmbientSound
+			: kAudioSessionCategory_AmbientSound;
+		AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(sessionCategory), &sessionCategory);
+		soloMix_ = newSoloMix;
+	}
+}
+
+bool soloMix()
+{
+	return soloMix_;
 }
 
 static void interruptionListenerCallback(void *inUserData, UInt32  interruptionState)
@@ -196,9 +254,15 @@ static void interruptionListenerCallback(void *inUserData, UInt32  interruptionS
 	}
 }
 
-CallResult init()
+void initSession()
 {
 	AudioSessionInitialize(nullptr, nullptr, interruptionListenerCallback, nullptr);
+	sessionInit = true;
+}
+
+CallResult init()
+{
+	assert(sessionInit);
 	logMsg("setting up playback audio unit");
 	AudioComponentDescription defaultOutputDescription =
 	{
@@ -229,8 +293,6 @@ CallResult init()
 	{
 		logWarn("error in AudioSessionSetActive()");
 	}
-
-	buffersQueuedLock.create();
 	return OK;
 }
 

@@ -6,7 +6,10 @@ inc_makeConfig := 1
 parentDir = $(patsubst %/,%,$(dir $1))
 currPath = $(call parentDir,$(lastword $(MAKEFILE_LIST)))
 # path of original makefile
-basePath = $(call parentDir,$(firstword $(MAKEFILE_LIST)))
+basePath = $(CURDIR)
+#$(call parentDir,$(firstword $(MAKEFILE_LIST)))
 baseMakefileName = $(shell basename $(firstword $(MAKEFILE_LIST)))
+
+buildSysPath := $(currPath)
 
 endif

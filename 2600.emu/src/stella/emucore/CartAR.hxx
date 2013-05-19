@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.hxx 2453 2012-04-29 19:43:28Z stephena $
+// $Id: CartAR.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEAR_HXX
@@ -36,7 +36,7 @@ class System;
   and one bank of ROM.  All 6K of the RAM can be read and written.
 
   @author  Bradford W. Mott
-  @version $Id: CartAR.hxx 2453 2012-04-29 19:43:28Z stephena $
+  @version $Id: CartAR.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeAR : public Cartridge
 {

@@ -21,10 +21,6 @@
 #include <base/Base.hh>
 #include <util/number.h>
 
-#if defined(CONFIG_RESOURCE_IMAGE)
-#include <resource2/image/ResourceImage.h>
-#endif
-
 uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
 
 #ifdef CONFIG_GFX_OPENGL_GLEW_STATIC

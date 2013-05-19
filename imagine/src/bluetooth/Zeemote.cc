@@ -18,6 +18,7 @@
 #include <base/Base.hh>
 #include <util/bits.h>
 #include <util/collection/DLList.hh>
+#include <algorithm>
 
 extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
@@ -43,12 +44,17 @@ uint Zeemote::findFreeDevId()
 CallResult Zeemote::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to Zeemote");
-#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-	adapter.constructSocket(sock.obj);
-#endif
-	sock.onDataDelegate().bind<Zeemote, &Zeemote::dataHandler>(this);
-	sock.onStatusDelegate().bind<Zeemote, &Zeemote::statusHandler>(this);
-	#ifdef CONFIG_BTSTACK
+	sock.onData() =
+		[this](const uchar *packet, size_t size)
+		{
+			return dataHandler(packet, size);
+		};
+	sock.onStatus() =
+		[this](BluetoothSocket &sock, uint status)
+		{
+			return statusHandler(sock, status);
+		};
+	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	sock.setPin("0000", 4);
 	#endif
 	if(sock.openRfcomm(addr, 1) != OK)
@@ -109,7 +115,7 @@ bool Zeemote::dataHandler(const uchar *packet, size_t size)
 	uint bytesLeft = size;
 	do
 	{
-		uint processBytes = IG::min(bytesLeft, packetSize - inputBufferPos);
+		uint processBytes = std::min(bytesLeft, packetSize - inputBufferPos);
 		memcpy(&inputBuffer[inputBufferPos], &packet[size-bytesLeft], processBytes);
 		if(inputBufferPos == 0) // get data size
 		{

@@ -61,13 +61,13 @@ ResourceFont *ResourceFontAndroid::loadSystem()
 		logErr("out of memory");
 		return nullptr;
 	}
-
-	inst->renderer = eEnv()->NewObject(jFontRendererCls, jFontRenderer.m);
-	jthrowable exc = eEnv()->ExceptionOccurred();
+	auto jEnv = eEnv();
+	inst->renderer = jEnv->NewObject(jFontRendererCls, jFontRenderer.m);
+	jthrowable exc = jEnv->ExceptionOccurred();
 	if(exc)
 	{
 		logErr("exception");
-		eEnv()->ExceptionClear();
+		jEnv->ExceptionClear();
 		inst->free();
 		return nullptr;
 	}
@@ -98,17 +98,18 @@ static const char *androidBitmapResultToStr(int result)
 void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 {
 	assert(!lockedBitmap);
-	lockedBitmap = jCharBitmap(eEnv(), renderer);
+	auto jEnv = eEnv();
+	lockedBitmap = jCharBitmap(jEnv, renderer);
 	lockedBitmap = Base::eNewGlobalRef(lockedBitmap);
 	AndroidBitmapInfo info;
 	{
-		auto res = AndroidBitmap_getInfo(eEnv(), lockedBitmap, &info);
+		auto res = AndroidBitmap_getInfo(jEnv, lockedBitmap, &info);
 		//logMsg("AndroidBitmap_getInfo returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 		//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
 	}
 	{
-		auto res = AndroidBitmap_lockPixels(eEnv(), lockedBitmap, &data);
+		auto res = AndroidBitmap_lockPixels(jEnv, lockedBitmap, &data);
 		//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	}
@@ -119,8 +120,9 @@ void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 
 void ResourceFontAndroid::unlockCharBitmap(void *data)
 {
-	AndroidBitmap_unlockPixels(eEnv(), lockedBitmap);
-	jUnlockCharBitmap(eEnv(), renderer, lockedBitmap);
+	auto jEnv = eEnv();
+	AndroidBitmap_unlockPixels(jEnv, lockedBitmap);
+	jUnlockCharBitmap(jEnv, renderer, lockedBitmap);
 	Base::eDeleteGlobalRef(lockedBitmap);
 	lockedBitmap = nullptr;
 }
@@ -128,13 +130,14 @@ void ResourceFontAndroid::unlockCharBitmap(void *data)
 CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 {
 	//logMsg("active char: %c", idx);
-	if(jActiveChar(eEnv(), renderer, idx))
+	auto jEnv = eEnv();
+	if(jActiveChar(jEnv, renderer, idx))
 	{
-		metrics.xSize = jCurrentCharXSize(eEnv(), renderer);
-		metrics.ySize = jCurrentCharYSize(eEnv(), renderer);
-		metrics.xOffset = jCurrentCharXOffset(eEnv(), renderer);
-		metrics.yOffset = jCurrentCharYOffset(eEnv(), renderer);
-		metrics.xAdvance = jCurrentCharXAdvance(eEnv(), renderer);
+		metrics.xSize = jCurrentCharXSize(jEnv, renderer);
+		metrics.ySize = jCurrentCharYSize(jEnv, renderer);
+		metrics.xOffset = jCurrentCharXOffset(jEnv, renderer);
+		metrics.yOffset = jCurrentCharYOffset(jEnv, renderer);
+		metrics.xAdvance = jCurrentCharXAdvance(jEnv, renderer);
 		//logMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
 		//		metrics.xOffset, metrics.yOffset, metrics.xAdvance);
 		return OK;
@@ -151,9 +154,9 @@ CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 int ResourceFontAndroid::currentFaceAscender () const
 { return jCurrentFaceAscender(eEnv(), renderer); }*/
 
-CallResult ResourceFontAndroid::newSize (FontSettings* settings, FontSizeRef &sizeRef)
+CallResult ResourceFontAndroid::newSize (const FontSettings &settings, FontSizeRef &sizeRef)
 {
-	auto size = jNewSize(eEnv(), renderer, settings->pixelHeight);
+	auto size = jNewSize(eEnv(), renderer, settings.pixelHeight);
 	sizeRef.ptr = Base::eNewGlobalRef(size);
 	return OK;
 }

@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <ButtonConfigView.hh>
 #include <inGameActionKeys.hh>
@@ -19,8 +19,7 @@
 #include <InputManagerView.hh>
 #include <MsgPopup.hh>
 extern ViewStack viewStack;
-extern InputManagerView imMenu;
-extern InputManagerDeviceView imdMenu;
+extern InputManagerView *imMenu;
 extern MsgPopup popup;
 
 #ifdef INPUT_SUPPORTS_POINTER
@@ -41,7 +40,7 @@ void ButtonConfigSetView::initPointerUI()
 }
 #endif
 
-void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool withPointerInput)
+void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet)
 {
 	if(withPointerInput)
 		string_printf(str, "Push key to set:\n%s", actionName);
@@ -57,6 +56,7 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool 
 	this->dev = &dev;
 	savedDev = nullptr;
 	Input::setHandleVolumeKeys(1);
+	onSetD = onSet;
 }
 
 void ButtonConfigSetView::deinit()
@@ -111,7 +111,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 		if(unbindB.overlaps(e.x, e.y))
 		{
 			logMsg("unbinding key");
-			onSet().invoke(Input::Event());
+			onSetD(Input::Event());
 			removeModalView();
 		}
 		else if(cancelB.overlaps(e.x, e.y))
@@ -130,20 +130,21 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			{
 				popup.clear();
 				removeModalView();
-				viewStack.popTo(&imMenu);
+				viewStack.popTo(imMenu);
+				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>();
 				imdMenu.init(1, inputDevConf[d->idx]);
-				imdMenu.name_ = imMenu.inputDevNameStr[d->idx];
-				viewStack.pushAndShow(&imdMenu);
+				imdMenu.name_ = imMenu->inputDevNameStr[d->idx];
+				viewStack.pushAndShow(&imdMenu, &menuAllocator);
 			}
 			else
 			{
 				savedDev = d;
-				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", imMenu.inputDevNameStr[d->idx]);
+				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", imMenu->inputDevNameStr[d->idx]);
 				Base::displayNeedsUpdate();
 			}
 			return;
 		}
-		onSet().invoke(e);
+		onSetD(e);
 		removeModalView();
 	}
 }
@@ -236,7 +237,7 @@ static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
 	return conf;
 }
 
-void ButtonConfigView::onSet(const Input::Event &e)
+void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 {
 	auto conf = mutableConfForDeviceConf(*devConf);
 	if(!conf)
@@ -250,25 +251,12 @@ void ButtonConfigView::onSet(const Input::Event &e)
 	keyMapping.buildAll();
 }
 
-void ButtonConfigView::onSelectElement(const GuiTable1D *, const Input::Event &e, uint i)
-{
-	if(i == 0)
-		item[i]->select(this, e);
-	else
-	{
-		keyToSet = i - 1;
-		btnSetView2.init(*devConf->dev, btn[keyToSet].t.str, e.isPointer());
-		btnSetView2.placeRect(Gfx::viewportRect());
-		View::modalView = &btnSetView2;
-	}
-}
-
 void ButtonConfigView::inputEvent(const Input::Event &e)
 {
 	if(e.pushed() && e.isDefaultLeftButton() && tbl.selected > 0)
 	{
-		keyToSet = tbl.selected-1;
-		onSet(Input::Event());
+		// unset key
+		onSet(Input::Event(), tbl.selected-1);
 		Base::displayNeedsUpdate();
 	}
 	else
@@ -292,12 +280,24 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	iterateTimes(cat->keys, i2)
 	{
 		btn[i2].init(cat->keyName[i2], devConf.dev->keyName(keyConfig.key(*cat)[i2]));
+		btn[i2].onSelect() =
+			[this, i2](DualTextMenuItem &item, const Input::Event &e)
+			{
+				auto keyToSet = i2;
+				auto &btnSetView = *allocModalView<ButtonConfigSetView>();
+				btnSetView.init(*this->devConf->dev, btn[keyToSet].t.str, e.isPointer(),
+					[this, keyToSet](const Input::Event &e)
+					{
+						onSet(e, keyToSet);
+					}
+				);
+				View::addModalView(btnSetView);
+			};
 		text[i++] = &btn[i2];
 	}
 
 	assert(i <= tblEntries);
 	BaseMenuView::init(text, i, highlightFirst);
-	btnSetView2.onSet().bind<ButtonConfigView, &ButtonConfigView::onSet>(this);
 }
 
 void ButtonConfigView::deinit()
@@ -308,24 +308,29 @@ void ButtonConfigView::deinit()
 	delete[] text;
 }
 
-void ButtonConfigView::confirmUnbindKeysAlert(const Input::Event &e)
-{
-	auto conf = mutableConfForDeviceConf(*devConf);
-	if(!conf)
-		return;
-	conf->unbindCategory(*cat);
-	iterateTimes(cat->keys, i)
+ButtonConfigView::ButtonConfigView():
+	reset
 	{
-		btn[i].t2.setString(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-		btn[i].t2.compile();
+		"Unbind All",
+		[this](TextMenuItem &t, const Input::Event &e)
+		{
+			auto &ynAlertView = *allocModalView<YesNoAlertView>();
+			ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
+			ynAlertView.onYes() =
+				[this](const Input::Event &e)
+				{
+					auto conf = mutableConfForDeviceConf(*devConf);
+					if(!conf)
+						return;
+					conf->unbindCategory(*cat);
+					iterateTimes(cat->keys, i)
+					{
+						btn[i].t2.setString(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
+						btn[i].t2.compile();
+					}
+					keyMapping.buildAll();
+				};
+			View::addModalView(ynAlertView);
+		}
 	}
-	keyMapping.buildAll();
-}
-
-void ButtonConfigView::resetHandler(TextMenuItem &, const Input::Event &e)
-{
-	ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
-	ynAlertView.onYes().bind<ButtonConfigView, &ButtonConfigView::confirmUnbindKeysAlert>(this);
-	ynAlertView.placeRect(Gfx::viewportRect());
-	modalView = &ynAlertView;
-}
+{}

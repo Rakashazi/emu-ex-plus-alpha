@@ -12,13 +12,13 @@ ifeq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := clang
  endif
- include $(currPath)/clang.mk
+ include $(buildSysPath)/clang.mk
 else
- include $(currPath)/gcc.mk
+ include $(buildSysPath)/gcc.mk
 endif
 
 CPPFLAGS += -D_GNU_SOURCE
-HIGH_OPTIMIZE_CFLAGS_MISC += -ffunction-sections -fdata-sections
+COMPILE_FLAGS += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif

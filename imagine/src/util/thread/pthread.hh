@@ -1,7 +1,7 @@
 #pragma once
 #include <engine-globals.h>
 #include <logger/interface.h>
-#include <util/Delegate.hh>
+#include <util/DelegateFunc.hh>
 #include <assert.h>
 #include <pthread.h>
 #ifndef CONFIG_BASE_PS3
@@ -19,7 +19,7 @@ public:
 
 	constexpr ThreadPThread() { }
 
-	typedef Delegate<ptrsize (ThreadPThread &thread)> EntryDelegate;
+	typedef DelegateFunc<ptrsize (ThreadPThread &thread)> EntryDelegate;
 
 	bool create(uint type, EntryDelegate entry)
 	{
@@ -112,8 +112,7 @@ private:
 			return 0;
 		}
 		#endif
-		assert(run.entry.hasCallback());
-		auto res = run.entry.invoke(run);
+		auto res = run.entry(run);
 		#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
 		if(run.jEnv)
 			Base::jVM->DetachCurrentThread();

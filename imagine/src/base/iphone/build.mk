@@ -5,8 +5,6 @@ configDefs += CONFIG_BASE_IOS CONFIG_INPUT
 
 ifdef config_ios_jb
  configDefs += CONFIG_BASE_IOS_JB
- # TODO should be handled by app itself
- configDefs += CONFIG_BASE_IOS_SETUID
 else
  iOSNoCodesign := 1
 endif
@@ -19,6 +17,6 @@ ifdef iOSMsgUI
 	LDLIBS += -framework MessageUI
 endif
 
-SRC += base/iphone/iphone.mm util/string/apple.mm util/string/generic.cc
+SRC += base/iphone/iphone.mm util/string/apple.mm
 
 endif

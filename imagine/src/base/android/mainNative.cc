@@ -1,5 +1,20 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #define thisModuleName "base:android"
-#include <stdlib.h>
+#include <cstdlib>
 #include <errno.h>
 
 #include <logger/interface.h>
@@ -80,18 +95,21 @@ static void cancelDrawWindow();
 static int processInputCallback(int fd, int events, void* data);
 static void onResume(ANativeActivity* activity);
 static void onPause(ANativeActivity* activity);
+static jboolean JNICALL drawWindowJNI(JNIEnv* env, jobject thiz, jlong frameTimeNanos);
+static jboolean JNICALL drawWindowIdleJNI(JNIEnv* env, jobject thiz);
+static int drawWinEventFdHandler(int fd, int events, void* data);
 
 static JNIEnv* eJEnv = nullptr;
 bool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
-static jobject jDpy;
+static jobject jDpy = nullptr;
+static jobject choreographerHelper = nullptr;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
 extern pid_t activityTid;
 static bool sigMatchesAPK = 1;
-static jfieldID jSurfaceIs32BitId;
 static bool resumeAppOnWindowInit = 0;
-static bool hasChoreographer = 0, processedInputInDrawFrame = 0;
+static bool hasChoreographer = 0;
 static AInputQueue *inputQueue = nullptr;
 static ALooper *aLooper = nullptr;
 static ANativeWindow *nWin = nullptr;
@@ -102,6 +120,7 @@ static AConfiguration *aConfig = nullptr;
 static int writeMsgPipe = -1, drawWinEventFd = -1;
 static JavaInstMethod<void> jSetKeepScreenOn, jSetUIVisibility, jSetFullscreen,
 	jPostWinDraw, jCancelWinDraw, jPostDrawWindow, jCancelDrawWindow;
+static JavaInstMethod<jfloat> jGetRefreshRate;
 static bool winDrawPosted = 0;
 static uint drawWinEventIdle = 0;
 static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHasEvents;
@@ -109,6 +128,7 @@ static bool statusBarIsHidden = 1; // assume app starts fullscreen
 static CallbackRef *inputRescanCallbackRef = nullptr;
 static void (*didDrawWindowCallback)() = nullptr;
 static const char *buildDevice = nullptr;
+static uint refreshRate_ = 0;
 
 const char *androidBuildDevice()
 {
@@ -127,14 +147,30 @@ bool windowPixelBestColorHintDefault()
 	return Base::androidSDK() >= 11 && !eglWin.has32BppColorBugs;
 }
 
+uint refreshRate()
+{
+	if(!refreshRate_)
+	{
+		assert(jDpy);
+		refreshRate_ = jGetRefreshRate(eEnv(), jDpy);
+		logMsg("refresh rate: %d", refreshRate_);
+	}
+	return refreshRate_;
+}
+
 static int pollEventCallback(int fd, int events, void* data)
 {
-	auto source = (PollEventDelegate*)data;
-	assert(source);
-	source->invoke(events);
+	auto source = *((PollEventDelegate*)data);
+	source(events);
 	if(gfxUpdate)
 		postDrawWindow();
 	return 1;
+}
+
+ALooper *activityLooper()
+{
+	assert(aLooper);
+	return aLooper;
 }
 
 static void addPollEvent(ALooper *looper, int fd, PollEventDelegate &handler, uint events)
@@ -215,11 +251,11 @@ static void appFocus(bool hasFocus, ANativeWindow* window)
 		onFocusChange(hasFocus);
 }
 
-static void configChange(AConfiguration* config, ANativeWindow* window)
+static void configChange(JNIEnv* jEnv, AConfiguration* config, ANativeWindow* window)
 {
 	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
 	auto navState = AConfiguration_getNavHidden(config);
-	auto orientation = jGetRotation(eEnv(), jDpy);
+	auto orientation = jGetRotation(jEnv, jDpy);
 	auto keyboard = AConfiguration_getKeyboard(config);
 	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
 	setHardKeyboardState(Input::hasXperiaPlayGamepad() ? navState : hardKeyboardState);
@@ -235,11 +271,17 @@ static void appPaused()
 	logMsg("app paused");
 	appState = APP_PAUSED;
 	onExit(1);
+	#ifdef CONFIG_AUDIO
+	Audio::updateFocusOnPause();
+	#endif
 }
 
 static void appResumed()
 {
 	appState = APP_RUNNING;
+	#ifdef CONFIG_AUDIO
+	Audio::updateFocusOnResume();
+	#endif
 	if(eglWin.isDrawable())
 	{
 		logMsg("app resumed");
@@ -270,23 +312,23 @@ static void updateWinSize(Window &win, ANativeWindow* nWin)
 	}
 }
 
-static void inputRescanCallback()
-{
-	Input::rescanDevices();
-	inputRescanCallbackRef = nullptr;
-	postDrawWindowIfNeeded();
-}
-
 static int inputDevNotifyFdHandler(int fd, int events, void* data)
 {
 	logMsg("got inotify event");
 	if(events == Base::POLLEV_IN)
 	{
-		char buffer[16384];
+		char buffer[2048];
 		auto size = read(fd, buffer, sizeof(buffer));
 		if(inputRescanCallbackRef)
 			cancelCallback(inputRescanCallbackRef);
-		inputRescanCallbackRef = callbackAfterDelay(CallbackDelegate::create<inputRescanCallback>(), 250);
+		inputRescanCallbackRef = callbackAfterDelay(
+			[]()
+			{
+				Input::rescanDevices();
+				inputRescanCallbackRef = nullptr;
+				postDrawWindowIfNeeded();
+			},
+			250);
 	}
 	return 1;
 }
@@ -385,7 +427,7 @@ static void contentRectChanged(const ARect &rect, ANativeWindow *win)
 		rect.left, rect.top, rect.right, rect.bottom, mainWin.w, mainWin.h, eglWin.isDrawable() ? "" : ", no valid surface");
 }
 
-void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
+static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 {
 	auto jEnv = activity->env;
 	auto inst = activity->clazz;
@@ -503,8 +545,6 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 			jSigHash.setup(jEnv, jBaseActivityCls, "sigHash", "()I");
 			sigMatchesAPK = jSigHash(jEnv, inst) == ANDROID_APK_SIGNATURE_HASH;
 		#endif
-
-		jSurfaceIs32BitId = jEnv->GetFieldID(jBaseActivityCls, "surfaceIs32Bit", "Z");
 	}
 
 	#ifdef CONFIG_RESOURCE_FONT_ANDROID
@@ -516,7 +556,6 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 	// Display members
 	jclass jDisplayCls = jEnv->FindClass("android/view/Display");
 	jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
-	JavaInstMethod<jfloat> jGetRefreshRate;
 	jGetRefreshRate.setup(jEnv, jDisplayCls, "getRefreshRate", "()F");
 	//JavaInstMethod<void> jGetMetrics;
 	//jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
@@ -524,8 +563,6 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 	JavaInstMethod<jobject> jDefaultDpy;
 	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
 	jDpy = jEnv->NewGlobalRef(jDefaultDpy(jEnv, inst));
-	refreshRate_ = jGetRefreshRate(jEnv, jDpy);
-	logMsg("refresh rate: %d", refreshRate_);
 	auto orientation = jGetRotation(jEnv, jDpy);
 	logMsg("starting orientation %d", orientation);
 	osOrientation = orientation;
@@ -562,6 +599,11 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 	aDensityDPI = 160.*jEnv->GetFloatField(dpyMetrics, jScaledDensity);
 	assert(aDensityDPI);
 	logMsg("set screen DPI size %f,%f, scaled density DPI %f", (double)metricsXDPI, (double)metricsYDPI, (double)aDensityDPI);
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 16 && (strstr(buildDevice, "spyder") || strstr(buildDevice, "targa")))
+	{
+		logMsg("using scaled DPI as physical DPI due to Droid RAZR/Bionic Android 4.1 bug");
+		metricsXDPI = metricsYDPI = aDensityDPI;
+	}
 	// DPI values are un-rotated from DisplayMetrics
 	androidXDPI = xDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
 	androidYDPI = yDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
@@ -583,8 +625,55 @@ void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
 	}
 
 	doOrExit(onInit(0, nullptr));
-	if(Base::androidSDK() < 11)
-		jEnv->SetBooleanField(inst, jSurfaceIs32BitId, eglWin.useMaxColorBits);
+
+	jSetKeepScreenOn.setup(jEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
+	jSetFullscreen.setup(jEnv, jBaseActivityCls, "setFullscreen", "(Z)V");
+	jSetUIVisibility.setup(jEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
+	if(Base::androidSDK() >= 16)
+	{
+		//logMsg("using Choreographer for display updates");
+		hasChoreographer = 1;
+		jstring ChoreographerHelperStr = jEnv->NewStringUTF("com/imagine/ChoreographerHelper");
+		auto jChoreographerHelperCls = (jclass)jLoadClass(jEnv, jClsLoader, ChoreographerHelperStr);
+		jEnv->DeleteLocalRef(ChoreographerHelperStr);
+		JavaInstMethod<void> jChoreographerHelperCtor;
+		jChoreographerHelperCtor.setup(jEnv, jChoreographerHelperCls, "<init>", "()V");
+		jPostDrawWindow.setup(jEnv, jChoreographerHelperCls, "postDrawWindow", "()V");
+		jCancelDrawWindow.setup(jEnv, jChoreographerHelperCls, "cancelDrawWindow", "()V");
+		{
+			JNINativeMethod activityMethods[] =
+			{
+					{"drawWindow", "(J)Z", (void*)&Base::drawWindowJNI},
+			};
+			jEnv->RegisterNatives(jChoreographerHelperCls, activityMethods, sizeofArray(activityMethods));
+		}
+		choreographerHelper = jEnv->NewObject(jChoreographerHelperCls, jChoreographerHelperCtor.m);
+		assert(choreographerHelper);
+		choreographerHelper = jEnv->NewGlobalRef(choreographerHelper);
+	}
+	else
+	{
+		drawWinEventFd = eventfd(0, 0);
+		if(unlikely(drawWinEventFd == -1))
+		{
+			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
+			{
+				JNINativeMethod activityMethods[] =
+				{
+						{"drawWindowIdle", "()Z", (void*)&Base::drawWindowIdleJNI},
+				};
+				jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+			}
+			jPostDrawWindow.setup(jEnv, jBaseActivityCls, "postDrawWindowIdle", "()V");
+			jCancelDrawWindow.setup(jEnv, jBaseActivityCls, "cancelDrawWindowIdle", "()V");
+			choreographerHelper = inst;
+		}
+		else
+		{
+			int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawWinEventFdHandler, nullptr);
+			assert(ret == 1);
+		}
+	}
 }
 
 static void dlLoadFuncs()
@@ -650,15 +739,6 @@ static void processInputWithGetEvent(AInputQueue *inputQueue)
 
 static void processInputWithHasEvents(AInputQueue *inputQueue)
 {
-	if(processedInputInDrawFrame)
-	{
-		// since we process input in drawWindow, we could get a callback without any input present
-		// and cause alogcat warnings upon calling AInputQueue_hasEvents
-		//logMsg("input was handled in frame update");
-		processedInputInDrawFrame = 0;
-		return;
-	}
-
 	int events = 0;
 	int32_t hasEventsRet;
 	// Note: never call AInputQueue_hasEvents on first iteration since it may return 0 even if
@@ -728,7 +808,7 @@ void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int 
 	sendMessageToMain(type, shortArg, intArg, intArg2);
 }
 
-#ifdef CONFIG_ANDROIDBT
+#ifdef CONFIG_BLUETOOTH_ANDROID
 static const ushort MSG_BT_DATA = 150;
 
 void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
@@ -814,7 +894,7 @@ static void postDrawWindow()
 	{
 		//logMsg("posted draw");
 		if(jPostDrawWindow.m != 0)
-			jPostDrawWindow(eEnv(), jBaseActivity);
+			jPostDrawWindow(eEnv(), choreographerHelper);
 		else
 		{
 			uint64_t post = 1;
@@ -837,7 +917,7 @@ static void cancelDrawWindow()
 	{
 		logMsg("canceled draw");
 		if(jCancelDrawWindow.m != 0)
-			jCancelDrawWindow(eEnv(), jBaseActivity);
+			jCancelDrawWindow(eEnv(), choreographerHelper);
 		else
 		{
 			uint64_t post;
@@ -866,12 +946,9 @@ static int drawWinEventFdHandler(int fd, int events, void* data)
 	}
 	else
 	{
-		// "idle" every other call if input fds are in use
+		// "idle" every other call so other fds are processed
 		// to avoid a frame of input lag
-		#ifdef CONFIG_BLUETOOTH
-		if(Bluetooth::devsConnected())
-			drawWinEventIdle = 1;
-		#endif
+		drawWinEventIdle = 1;
 	}
 
 	if(likely(inputQueue != nullptr) && AInputQueue_hasEvents(inputQueue) == 1)
@@ -879,10 +956,7 @@ static int drawWinEventFdHandler(int fd, int events, void* data)
 		// some devices may delay reporting input events (stock rom on R800i for example),
 		// check for any before rendering frame to avoid extra latency
 		processInput(inputQueue);
-		processedInputInDrawFrame = 1;
 	}
-	else
-		processedInputInDrawFrame = 0;
 
 	if(!drawWindow(0))
 	{
@@ -908,7 +982,7 @@ static int msgPipeFdHandler(int fd, int events, void* data)
 		logMsg("got thread message %d", cmdType);
 		switch(cmdType)
 		{
-			#ifdef CONFIG_ANDROIDBT
+			#ifdef CONFIG_BLUETOOTH_ANDROID
 			bcase MSG_BT_DATA:
 			{
 				BluetoothSocket *s;
@@ -917,7 +991,7 @@ static int msgPipeFdHandler(int fd, int events, void* data)
 				read(fd, &size, sizeof(size));
 				uchar buff[48];
 				read(fd, buff, size);
-				s->onDataDelegate().invoke(buff, size);
+				s->onData()(buff, size);
 			}
 			bcase MSG_BT_SOCKET_STATUS_DELEGATE:
 			{
@@ -929,7 +1003,7 @@ static int msgPipeFdHandler(int fd, int events, void* data)
 			}
 			#endif
 			bdefault:
-			if(cmdType >= MSG_START)
+			if(cmdType >= MSG_IMAGINE_START)
 			{
 				uint32 arg[2];
 				read(fd, arg, sizeof(arg));
@@ -991,7 +1065,7 @@ static void onStop(ANativeActivity* activity)
 static void onConfigurationChanged(ANativeActivity* activity)
 {
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-	configChange(aConfig, nWin);
+	configChange(activity->env, aConfig, nWin);
 	postDrawWindowIfNeeded();
 }
 
@@ -1019,6 +1093,14 @@ static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* wi
 	nWin = nullptr;
 	gfxUpdate = 0;
 	cancelDrawWindow();
+	if(Base::androidSDK() < 11)
+	{
+		// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
+		// resuming the app and ANativeWindow_setBuffersGeometry() has no effect.
+		// Explicitly setting the format here seems to fix the problem. Android bug?
+		logMsg("explicitly setting destroyed window format to %d", eglWin.currentWindowFormat());
+		ANativeActivity_setWindowFormat(activity, eglWin.currentWindowFormat());
+	}
 }
 
 static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
@@ -1067,72 +1149,32 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	setSDK(activity->sdkVersion);
 	if(Base::androidSDK() >= 16)
 		processInput = Base::processInputWithGetEvent;
-	activityInit(activity);
-
+	aLooper = ALooper_forThread();
+	assert(aLooper);
 	jVM = activity->vm;
 	jBaseActivity = activity->clazz;
 	eJEnv = activity->env;
-	jSetKeepScreenOn.setup(eJEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
-	jSetFullscreen.setup(eJEnv, jBaseActivityCls, "setFullscreen", "(Z)V");
-	jSetUIVisibility.setup(eJEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
-	aLooper = ALooper_forThread();
-	assert(aLooper);
-	if(Base::androidSDK() >= 16)
-	{
-		//logMsg("using Choreographer for display updates");
-		hasChoreographer = 1;
-		{
-			JNINativeMethod activityMethods[] =
-			{
-					{"drawWindow", "(J)Z", (void*)&Base::drawWindowJNI},
-			};
-			eJEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
-		}
-		jPostDrawWindow.setup(eJEnv, jBaseActivityCls, "postDrawWindow", "()V");
-		jCancelDrawWindow.setup(eJEnv, jBaseActivityCls, "cancelDrawWindow", "()V");
-	}
-	else
-	{
-		drawWinEventFd = eventfd(0, 0);
-		if(unlikely(drawWinEventFd == -1))
-		{
-			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
-			{
-				JNINativeMethod activityMethods[] =
-				{
-						{"drawWindowIdle", "()Z", (void*)&Base::drawWindowIdleJNI},
-				};
-				eJEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
-			}
-			jPostDrawWindow.setup(eJEnv, jBaseActivityCls, "postDrawWindowIdle", "()V");
-			jCancelDrawWindow.setup(eJEnv, jBaseActivityCls, "cancelDrawWindowIdle", "()V");
-		}
-		else
-		{
-			int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawWinEventFdHandler, nullptr);
-			assert(ret == 1);
-		}
-	}
+	activityInit(activity);
 	Base::dlLoadFuncs();
 
 	#ifdef CONFIG_INPUT
-		if(Base::androidSDK() >= 12)
+	if(Base::androidSDK() >= 12)
+	{
+		logMsg("setting up inotify");
+		int inputDevNotifyFd = inotify_init();
+		if(inputDevNotifyFd >= 0)
 		{
-			logMsg("setting up inotify");
-			int inputDevNotifyFd = inotify_init();
-			if(inputDevNotifyFd >= 0)
-			{
-				auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
-				int ret = ALooper_addFd(aLooper, inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, inputDevNotifyFdHandler, nullptr);
-				assert(ret == 1);
-			}
-			else
-			{
-				logErr("couldn't create inotify instance");
-			}
+			auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
+			int ret = ALooper_addFd(aLooper, inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, inputDevNotifyFdHandler, nullptr);
+			assert(ret == 1);
 		}
+		else
+		{
+			logErr("couldn't create inotify instance");
+		}
+	}
 
-		doOrExit(Input::init());
+	doOrExit(Input::init());
 	#endif
 
 	aConfig = AConfiguration_new();

@@ -26,15 +26,46 @@
 #include "md_cart.h"
 #include "genesis.h"
 extern MsgPopup popup;
-extern CollectTextInputView textInputView;
 extern ViewStack viewStack;
 StaticDLList<MdCheat, EmuCheats::MAX> cheatList;
 StaticDLList<MdCheat*, EmuCheats::MAX> romCheatList;
 StaticDLList<MdCheat*, EmuCheats::MAX> ramCheatList;
 bool cheatsModified = 0;
+static const char *INPUT_CODE_8BIT_STR = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
+static const char *INPUT_CODE_16BIT_STR = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
+
+static bool strIs16BitGGCode(const char *str)
+{
+	return strlen(str) == 9 && str[4] == '-';
+}
+
+static bool strIs8BitGGCode(const char *str)
+{
+	return strlen(str) == 11 && str[3] == '-' && str[7] == '-';
+}
+
+static bool strIs16BitARCode(const char *str)
+{
+	return strlen(str) == 11 && str[6] == ':';
+}
+
+static bool strIs8BitARCode(const char *str)
+{
+	return strlen(str) == 9 && str[6] == ':';
+}
+
+static bool strIs8BitCode(const char *str)
+{
+	return strIs8BitGGCode(str) || strIs8BitARCode(str);
+}
+
+static bool strIs16BitCode(const char *str)
+{
+	return strIs16BitGGCode(str) || strIs16BitARCode(str);
+}
 
 // Decode cheat string into address/data components (derived from Genesis Plus GX function)
-static uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData)
+uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData)
 {
 	static const char arvalidchars[] = "0123456789ABCDEF";
 
@@ -487,39 +518,6 @@ void ROMCheatUpdate()
 	}
 }
 
-uint SystemEditCheatView::handleGgCodeFromTextInput(const char *str)
-{
-	if(str)
-	{
-		string_copy(cheat->code, str);
-		string_toUpper(cheat->code);
-		if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
-		{
-			cheat->code[0]= 0;
-			popup.postError("Invalid code");
-			Base::displayNeedsUpdate();
-			return 1;
-		}
-
-		cheatsModified = 1;
-		updateCheats();
-		ggCode.compile();
-		Base::displayNeedsUpdate();
-	}
-	removeModalView();
-	return 0;
-}
-
-void SystemEditCheatView::ggCodeHandler(DualTextMenuItem &item, const Input::Event &e)
-{
-	static const char *inputCode8BitStr = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
-	static const char *inputCode16BitStr = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
-	textInputView.init(emuSystemIs16Bit() ? inputCode16BitStr : inputCode8BitStr, cheat->code);
-	textInputView.onTextDelegate().bind<template_mfunc(SystemEditCheatView, handleGgCodeFromTextInput)>(this);
-	textInputView.placeRect(Gfx::viewportRect());
-	modalView = &textInputView;
-}
-
 void SystemEditCheatView::renamed(const char *str)
 {
 	string_copy(cheat->name, str);
@@ -540,87 +538,154 @@ void SystemEditCheatView::init(bool highlightFirst, MdCheat &cheat)
 
 	uint i = 0;
 	loadNameItem(cheat.name, item, i);
-	ggCode.init(cheat.code); item[i++] = &ggCode;
+	code.init(cheat.code); item[i++] = &code;
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-uint EditCheatListView::handleNameFromTextInput(const char *str)
-{
-	if(str)
+SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
+	code
 	{
-		MdCheat c;
-		string_copy(c.name, str);
-		if(!cheatList.addToEnd(c))
+		"Code",
+		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			logErr("error adding new cheat");
-			removeModalView();
-			return 0;
+			auto &textInputView = *allocModalView<CollectTextInputView>();
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code);
+			textInputView.onText() =
+				[this](const char *str)
+				{
+					if(str)
+					{
+						string_copy(cheat->code, str);
+						string_toUpper(cheat->code);
+						if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
+						{
+							cheat->code[0]= 0;
+							popup.postError("Invalid code");
+							Base::displayNeedsUpdate();
+							return 1;
+						}
+
+						cheatsModified = 1;
+						updateCheats();
+						code.compile();
+						Base::displayNeedsUpdate();
+					}
+					removeModalView();
+					return 0;
+				};
+			View::addModalView(textInputView);
 		}
-		logMsg("added new cheat, %d total", cheatList.size);
-		cheatsModified = 1;
-		removeModalView();
-		refreshCheatViews();
-		editCheatView.init(0, *cheatList.last());
-		viewStack.pushAndShow(&editCheatView);
 	}
-	else
-	{
-		removeModalView();
-	}
-	return 0;
-}
-
-void EditCheatListView::addGGGSHandler(TextMenuItem &item, const Input::Event &e)
-{
-	textInputView.init("Input description");
-	textInputView.onTextDelegate().bind<EditCheatListView, &EditCheatListView::handleNameFromTextInput>(this);
-	textInputView.placeRect(Gfx::viewportRect());
-	modalView = &textInputView;
-}
-
-
-void EditCheatListView::cheatSelected(uint idx, const Input::Event &e)
-{
-	editCheatView.init(!e.isPointer(), *cheatList.index(idx));
-	viewStack.pushAndShow(&editCheatView);
-}
+{}
 
 void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
 {
-	addGGGS.init(); item[items++] = &addGGGS;
+	addCode.init(); item[items++] = &addCode;
 }
 
 void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 {
-	int cheats = IG::min(cheatList.size, (int)sizeofArray(cheat));
+	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
 	auto it = cheatList.iterator();
 	iterateTimes(cheats, c)
 	{
 		auto &thisCheat = it.obj();
 		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
+		cheat[c].onSelect() =
+			[this, c](TextMenuItem &, const Input::Event &e)
+			{
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+				editCheatView.init(!e.isPointer(), *cheatList.index(c));
+				viewStack.pushAndShow(&editCheatView, &menuAllocator);
+			};
 		it.advance();
 	}
 }
 
-void CheatsView::cheatSelected(uint idx, const Input::Event &e)
-{
-	cheat[idx].toggle();
-	auto c = cheatList.index(idx);
-	c->toggleOn();
-	cheatsModified = 1;
-	updateCheats();
-}
+EditCheatListView::EditCheatListView():
+	addCode
+	{
+		"Add Game Genie / Action Replay Code",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto &textInputView = *allocModalView<CollectTextInputView>();
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR);
+			textInputView.onText() =
+				[this](const char *str)
+				{
+					if(str)
+					{
+						MdCheat c;
+						string_copy(c.code, str);
+						string_toUpper(c.code);
+						if(!decodeCheat(c.code, c.address, c.data, c.origData))
+						{
+							popup.postError("Invalid code");
+							Base::displayNeedsUpdate();
+							return 1;
+						}
+						string_copy(c.name, "Unnamed Cheat");
+						if(!cheatList.addToEnd(c))
+						{
+							popup.postError("Error adding cheat");
+							removeModalView();
+							return 0;
+						}
+						logMsg("added new cheat, %d total", cheatList.size);
+						cheatsModified = 1;
+						updateCheats();
+						removeModalView();
+						refreshCheatViews();
+
+						auto &textInputView = *allocModalView<CollectTextInputView>();
+						textInputView.init("Input description");
+						textInputView.onText() =
+							[this](const char *str)
+							{
+								if(str)
+								{
+									string_copy(cheatList.last()->name, str);
+									removeModalView();
+									refreshCheatViews();
+								}
+								else
+								{
+									removeModalView();
+								}
+								return 0;
+							};
+						View::addModalView(textInputView);
+					}
+					else
+					{
+						removeModalView();
+					}
+					return 0;
+				};
+			View::addModalView(textInputView);
+		}
+	}
+{}
 
 void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 {
-	int cheats = IG::min(cheatList.size, (int)sizeofArray(cheat));
+	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
 	auto it = cheatList.iterator();
-	iterateTimes(cheats, c)
+	iterateTimes(cheats, cIdx)
 	{
 		auto &thisCheat = it.obj();
-		cheat[c].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[c];
+		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
+		cheat[cIdx].onSelect() =
+			[this, cIdx](BoolMenuItem &item, const Input::Event &e)
+			{
+				item.toggle();
+				auto c = cheatList.index(cIdx);
+				c->toggleOn();
+				cheatsModified = 1;
+				updateCheats();
+			};
 		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
 		it.advance();
 	}

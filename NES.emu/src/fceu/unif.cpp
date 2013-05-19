@@ -22,11 +22,6 @@
 /* **INCOMPLETE**             */
 /* Override stuff: CHR RAM instead of CHR ROM,   mirroring. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-
 #include "types.h"
 #include "fceu.h"
 #include "cart.h"
@@ -39,6 +34,10 @@
 #include "file.h"
 #include "input.h"
 #include "driver.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 typedef struct {
 	char ID[4];
@@ -74,7 +73,7 @@ static uint8 *malloced[32];
 static uint32 mallocedsizes[32];
 
 static int FixRomSize(uint32 size, uint32 minimum) {
-	uint32 x = 1; //mbg merge 7/17/06 made uint
+	uint32 x = 1;
 
 	if (size < minimum)
 		return minimum;
@@ -122,8 +121,9 @@ static void MooMirroring(void) {
 }
 
 static int DoMirroring(FCEUFILE *fp) {
-	uint8 t, i;
-	if(uchead.info == 1) {
+	int t;
+	uint32 i;
+	if (uchead.info == 1) {
 		if ((t = FCEU_fgetc(fp)) == EOF)
 			return(0);
 	mirrortodo = t;
@@ -134,7 +134,7 @@ static int DoMirroring(FCEUFILE *fp) {
 	}
 	} else {
 		FCEU_printf(" Incorrect Mirroring Chunk Size (%d). Data is:", uchead.info);
-		for(i = 0; i < uchead.info; i++) {
+		for (i = 0; i < uchead.info; i++) {
 			if ((t = FCEU_fgetc(fp)) == EOF)
 				return(0);
 			FCEU_printf(" %02x", t);
@@ -199,8 +199,9 @@ static int DINF(FCEUFILE *fp) {
 }
 
 static int CTRL(FCEUFILE *fp) {
-	int t, i;
-	if(uchead.info == 1) {
+	int t;
+	uint32 i;
+	if (uchead.info == 1) {
 		if ((t = FCEU_fgetc(fp)) == EOF)
 		return(0);
 	/* The information stored in this byte isn't very helpful, but it's
@@ -215,7 +216,7 @@ static int CTRL(FCEUFILE *fp) {
 		GameInfo->input[1] = SI_ZAPPER;
 	} else {
 		FCEU_printf(" Incorrect Control Chunk Size (%d). Data is:", uchead.info);
-		for(i = 0; i < uchead.info; i++) {
+		for (i = 0; i < uchead.info; i++) {
 			t = FCEU_fgetc(fp);
 			FCEU_printf(" %02x", t);
 		}
@@ -348,7 +349,6 @@ static BMAPPING bmap[] = {
 	{ "DANCE", UNLOneBus_Init, 0 }, // redundant
 	{ "DANCE2000", UNLD2000_Init, 0 },
 	{ "DREAMTECH01", DreamTech01_Init, 0 },
-	{ "DSOUNDV1", UNLDSOUNDV1_Init, 0 },
 	{ "EDU2000", UNLEDU2000_Init, 0 },
 	{ "EKROM", EKROM_Init, 0 },
 	{ "ELROM", ELROM_Init, 0 },

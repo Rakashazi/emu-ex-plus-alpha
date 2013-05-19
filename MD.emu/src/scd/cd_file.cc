@@ -93,7 +93,7 @@ int readCDDA(void *dest, uint size)
 			//logMsg("reading %d frames of left-over CDDA", cddaDataLeftover);
 			int32 cddaSector[588];
 			cdImage->Read_Sector((uint8*)cddaSector, sCD.cddaLBA, 2352);
-			uint copySize = IG::min((uint)sCD.cddaDataLeftover, sizeToWrite);
+			uint copySize = std::min((uint)sCD.cddaDataLeftover, sizeToWrite);
 			memcpy(cddaBuffPos, cddaSector + (588-sCD.cddaDataLeftover), copySize*4);
 			sCD.cddaDataLeftover -= copySize;
 			if(!sCD.cddaDataLeftover)

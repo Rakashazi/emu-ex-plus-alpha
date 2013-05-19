@@ -64,7 +64,8 @@ static void renderTextIntoBuffer(NSString *str, void *buff, uint xSize, uint ySi
 	CGContextTranslateCTM(context, 0.0f, ySize);
 	CGContextScaleCTM(context, 1.0f, -1.0f);
 	UIGraphicsPushContext(context);
-	[str drawInRect:CGRectMake(0, 0, xSize, ySize) withFont:font];
+	//[str drawInRect:CGRectMake(0, 0, xSize, ySize) withFont:font];
+	[str drawAtPoint:CGPointMake(0, 0) withFont:font];
 	UIGraphicsPopContext();
 	CGContextRelease(context);
 }
@@ -114,8 +115,11 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		
 		// render char into buffer
 		uint bufferSize = cXFullSize * cYFullSize;
-		pixBuffer = (uchar*)mem_realloc(pixBuffer, bufferSize);
-		mem_zero(pixBuffer, bufferSize);
+		if(pixBuffer)
+			mem_free(pixBuffer);
+		pixBuffer = (uchar*)mem_calloc(bufferSize);
+		//pixBuffer = (uchar*)mem_realloc(pixBuffer, bufferSize);
+		//mem_zero(pixBuffer, bufferSize);
 		renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 				colorSpace, textColor, activeFont);
 		[str release];
@@ -149,14 +153,9 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 	return OK;
 }
 
-/*int ResourceFontUIKit::currentFaceDescender () const
-{ return jCurrentFaceDescender(eEnv(), renderer); }
-int ResourceFontUIKit::currentFaceAscender () const
-{ return jCurrentFaceAscender(eEnv(), renderer); }*/
-
-CallResult ResourceFontUIKit::newSize (FontSettings* settings, FontSizeRef &sizeRef)
+CallResult ResourceFontUIKit::newSize (const FontSettings &settings, FontSizeRef &sizeRef)
 {
-	auto fontInst = [UIFont systemFontOfSize:(CGFloat)settings->pixelHeight];
+	auto fontInst = [UIFont systemFontOfSize:(CGFloat)settings.pixelHeight];
 	[fontInst retain];
 	sizeRef.ptr = fontInst;
 	return OK;

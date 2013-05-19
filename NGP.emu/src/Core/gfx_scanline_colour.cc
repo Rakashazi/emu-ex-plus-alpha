@@ -68,6 +68,7 @@ and compatiblity reasons.
 #include "gfx.h"
 #include <util/cLang.h>
 #include <util/bits.h>
+#include <algorithm>
 
 //=============================================================================
 
@@ -159,10 +160,10 @@ static void drawPattern(uint8 screenx, uint16 tile, uint8 tiley, uint16 mirror,
 		index = mirrored[(index & 0xff00)>>8] | (mirrored[(index & 0xff)] << 8);
 
 	palette_ptr += pal << 2;
-	left = max(max(x, (int)winx), 0);
+	left = std::max(std::max(x, (int)winx), 0);
 	right = x+7;
 
-	highmark = min(winw+winx, SCREEN_WIDTH)-1;
+	highmark = std::min(winw+winx, SCREEN_WIDTH)-1;
 
 	if (right > highmark) {
 		index >>= (right - highmark)*2;
@@ -254,10 +255,10 @@ void gfx_draw_scanline_colour(void)
 		//Middle
 		if (scanline < winy + winh)
 		{
-			for (x = 0; x < min((int)winx, SCREEN_WIDTH); x++)
+			for (x = 0; x < std::min((int)winx, SCREEN_WIDTH); x++)
 				cfb_scanline[x] = data16;
 			
-			for (x = min(winx + winw, SCREEN_WIDTH); x < SCREEN_WIDTH; x++)
+			for (x = std::min(winx + winw, SCREEN_WIDTH); x < SCREEN_WIDTH; x++)
 				cfb_scanline[x] = data16;
 		}
 		else	//Bottom
@@ -280,7 +281,7 @@ void gfx_draw_scanline_colour(void)
 		if (negative) data16 = ~data16;
 		
 		//Draw background!
-		for (x = winx; x < min(winx + winw, SCREEN_WIDTH); x++)	
+		for (x = winx; x < std::min(winx + winw, SCREEN_WIDTH); x++)
 			cfb_scanline[x] = data16;
 
 		//Swap Front/Back scroll planes?

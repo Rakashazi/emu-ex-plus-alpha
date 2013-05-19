@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 2556 2012-10-17 13:49:33Z stephena $
+// $Id: Settings.cxx 2613 2013-02-17 00:19:14Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -86,9 +86,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("sound", "true");
   setInternal("fragsize", "512");
   setInternal("freq", "31400");
-  setInternal("tiafreq", "31400");
   setInternal("volume", "100");
-  setInternal("clipvol", "true");
 
   // Input event options
   setInternal("keymap", "");
@@ -105,7 +103,8 @@ Settings::Settings(OSystem* osystem)
   setInternal("ctrlcombo", "true");
 
   // Snapshot options
-  setInternal("snapdir", "");
+  setInternal("snapsavedir", "");
+  setInternal("snaploaddir", "");
   setInternal("sssingle", "false");
   setInternal("ss1x", "false");
   setInternal("ssinterval", "2");
@@ -116,7 +115,7 @@ Settings::Settings(OSystem* osystem)
   setInternal("cheatfile", "");
   setInternal("palettefile", "");
   setInternal("propsfile", "");
-  setInternal("eepromdir", "");
+  setInternal("nvramdir", "");
   setInternal("cfgdir", "");
 
   // ROM browser options
@@ -175,7 +174,7 @@ void Settings::loadConfig()
   ifstream in(myOSystem->configFile().c_str());
   if(!in || !in.is_open())
   {
-    myOSystem->logMessage("ERROR: Couldn't load settings file\n", 0);
+    myOSystem->logMessage("ERROR: Couldn't load settings file", 0);
     return;
   }
 
@@ -301,9 +300,8 @@ void Settings::validate()
   i = getInt("volume");
   if(i < 0 || i > 100)    setInternal("volume", "100");
   i = getInt("freq");
-  if(i < 0 || i > 48000)  setInternal("freq", "31400");
-  i = getInt("tiafreq");
-  if(i < 0 || i > 48000)  setInternal("tiafreq", "31400");
+  if(!(i == 11025 || i == 22050 || i == 31400 || i == 44100 || i == 48000))
+  setInternal("freq", "31400");
 #endif
 
   i = getInt("joydeadzone");
@@ -398,8 +396,7 @@ void Settings::usage()
   #ifdef SOUND_SUPPORT
     << "  -sound        <1|0>          Enable sound generation\n"
     << "  -fragsize     <number>       The size of sound fragments (must be a power of two)\n"
-    << "  -freq         <number>       Set sound sample output frequency (0 - 48000)\n"
-    << "  -tiafreq      <number>       Set sound sample generation frequency (0 - 48000)\n"
+    << "  -freq         <number>       Set sound sample output frequency (11025|22050|31400|44100|48000)\n"
     << "  -volume       <number>       Set the volume (0 - 100)\n"
     << "  -clipvol      <1|0>          Enable volume clipping (eliminates popping)\n"
     << endl
@@ -417,7 +414,8 @@ void Settings::usage()
     << "  -autoslot     <1|0>          Automatically switch to next save slot when state saving\n"
     << "  -stats        <1|0>          Overlay console info during emulation\n"
     << "  -fastscbios   <1|0>          Disable Supercharger BIOS progress loading bars\n"
-    << "  -snapdir      <path>         The directory to save snapshot files to\n"
+    << "  -snapsavedir  <path>         The directory to save snapshot files to\n"
+    << "  -snaploaddir  <path>         The directory to load snapshot files from\n"
     << "  -sssingle     <1|0>          Generate single snapshot instead of many\n"
     << "  -ss1x         <1|0>          Generate TIA snapshot in 1x mode (ignore scaling/effects)\n"
     << "  -ssinterval   <number        Number of seconds between snapshots in continuous snapshot mode\n"
@@ -435,11 +433,11 @@ void Settings::usage()
     << "  -uipalette    <1|2>          Used the specified palette for UI elements\n"
     << "  -listdelay    <delay>        Time to wait between keypresses in list widgets (300-1000)\n"
     << "  -mwheel       <lines>        Number of lines the mouse wheel will scroll in UI\n"
-    << "  -statedir     <dir>          Directory in which to save state files\n"
+    << "  -statedir     <dir>          Directory in which to save/load state files\n"
     << "  -cheatfile    <file>         Full pathname of cheatfile database\n"
     << "  -palettefile  <file>         Full pathname of user-defined palette file\n"
     << "  -propsfile    <file>         Full pathname of ROM properties file\n"
-    << "  -eepromdir    <dir>          Directory in which to save EEPROM files\n"
+    << "  -nvramdir     <dir>          Directory in which to save/load flash/EEPROM files\n"
     << "  -cfgdir       <dir>          Directory in which to save Distella config files\n"
     << "  -avoxport     <name>         The name of the serial port where an AtariVox is connected\n"
     << "  -maxres       <WxH>          Used by developers to force the maximum size of the application window\n"
@@ -506,7 +504,7 @@ void Settings::saveConfig()
   ofstream out(myOSystem->configFile().c_str());
   if(!out || !out.is_open())
   {
-    myOSystem->logMessage("ERROR: Couldn't save settings file\n", 0);
+    myOSystem->logMessage("ERROR: Couldn't save settings file", 0);
     return;
   }
 

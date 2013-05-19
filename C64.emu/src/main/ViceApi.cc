@@ -400,11 +400,6 @@ CLINK int archdep_stat(const char *file_name, unsigned int *len, unsigned int *i
 	return 0;
 }
 
-CLINK void alarm_log_too_many_alarms()
-{
-	bug_exit("alarm_set(): Too many alarms set!");
-}
-
 CLINK void archdep_shutdown(void) { }
 CLINK void uimon_set_interface(monitor_interface_t **monitor_interface_init, int count) { }
 CLINK void uimon_window_suspend(void) { }
@@ -431,7 +426,6 @@ CLINK void kbd_initialize_numpad_joykeys(int* joykeys) { }
 CLINK int kbd_cmdline_options_init(void) { return 0; }
 CLINK int kbd_resources_init(void) { return 0; }
 CLINK int joystick_arch_init_resources(void) { return 0; }
-CLINK void joystick_close(void) { }
 CLINK void joy_arch_init_default_mapping(int joynum) { }
 CLINK int joystick_init_resources(void) { return 0; }
 CLINK int console_close_all(void) { return 0; }

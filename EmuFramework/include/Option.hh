@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,9 +13,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <io/Io.hh>
 #include <bluetooth/sys.hh>
@@ -229,6 +229,7 @@ bool optionIsValidWithMinMax(T val)
 
 typedef Option<OptionMethodVar<sint8>, sint8> SByte1Option;
 typedef Option<OptionMethodVar<uint8>, uint8> Byte1Option;
+typedef Option<OptionMethodVar<uint16>, uint16> Byte2Option;
 typedef Option<OptionMethodVar<uint32>, uint16> Byte4s2Option;
 typedef Option<OptionMethodVar<uint32>, uint32> Byte4Option;
 typedef Option<OptionMethodVar<uint32>, uint8> Byte4s1Option;
@@ -243,13 +244,13 @@ using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPc
 #ifdef CONFIG_AUDIO_OPENSL_ES
 using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>;
 #endif
-#ifdef CONFIG_BLUETOOTH
+#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>;
 #endif
 
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_AUTO_SAVE_STATE = 2, CFGKEY_LAST_DIR = 3, CFGKEY_TOUCH_CONTROL_VIRBRATE = 4,
-	CFGKEY_FRAME_SKIP = 5, CFGKEY_FONT_Y_PIXELS = 6, CFGKEY_GAME_ORIENTATION = 7,
+	CFGKEY_FRAME_SKIP = 5, CFGKEY_FONT_Y_SIZE = 6, CFGKEY_GAME_ORIENTATION = 7,
 	CFGKEY_GAME_ASPECT_RATIO = 8,
 	CFGKEY_TOUCH_CONTROL_ALPHA = 9, CFGKEY_TOUCH_CONTROL_SIZE = 10,
 	CFGKEY_TOUCH_CONTROL_DPAD_POS = 11, CFGKEY_TOUCH_CONTROL_FACE_BTN_POS = 12,
@@ -277,8 +278,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_SAVE_PATH = 57, CFGKEY_BEST_COLOR_MODE_HINT = 58,
 	CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES = 59,
 	CFGKEY_INPUT_KEY_CONFIGS = 60, CFGKEY_INPUT_DEVICE_CONFIGS = 61,
-	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63
-
+	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63,
+	CFGKEY_AUDIO_SOLO_MIX = 64, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH = 65
 	// 256+ is reserved
 };
 
@@ -406,8 +407,8 @@ struct OptionRecentGames : public OptionBase
 			io->read(info.path, len);
 			info.path[len] = 0;
 			readSize -= len;
-			char *baseName = baseNamePos(info.path);
-			string_copyUpToLastCharInstance(info.name, baseName, '.');
+			FsSys::cPath basenameTemp;
+			string_copyUpToLastCharInstance(info.name, string_basename(info.path, basenameTemp), '.');
 			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 			recentGameList.addToEnd(info);
 		}

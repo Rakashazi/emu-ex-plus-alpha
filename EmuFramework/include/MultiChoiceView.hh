@@ -1,6 +1,6 @@
 #pragma once
 
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -13,11 +13,12 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/gui/BaseMenuView.hh>
 #include <EmuSystem.hh>
+#include <algorithm>
 
 void startGameFromMenu();
 bool isMenuDismissKey(const Input::Event &e);
@@ -58,7 +59,7 @@ public:
 		iterateTimes(items, i)
 		{
 			item[i]->compile();
-			maxWidth = IG::max(maxWidth, item[i]->xSize());
+			maxWidth = std::max(maxWidth, item[i]->xSize());
 		}
 
 		tbl.setYCellSize(item[0]->ySize()*2);
@@ -84,13 +85,13 @@ class MultiChoiceView : public BaseMultiChoiceView
 public:
 	constexpr MultiChoiceView() { }
 
-	typedef Delegate<bool (int i, const Input::Event &e)> OnInputDelegate;
-	OnInputDelegate onSelect;
+	typedef DelegateFunc<bool (int i, const Input::Event &e)> OnInputDelegate;
+	OnInputDelegate onSelectD;
 	TextMenuItem choiceEntry[18];
 	MenuItem *choiceEntryItem[18] = {nullptr};
 
 	// Required delegates
-	OnInputDelegate &onSelectDelegate() { return onSelect; }
+	OnInputDelegate &onSelect() { return onSelectD; }
 
 	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = C2DO)
 	{
@@ -115,31 +116,33 @@ public:
 		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
 	}
 
-	void init(MultiChoiceMenuItem *src, bool highlightCurrent, _2DOrigin align = C2DO)
+	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = C2DO)
 	{
-		assert((uint)src->choices <= sizeofArray(choiceEntry));
-		iterateTimes(src->choices, i)
+		assert((uint)src.choices <= sizeofArray(choiceEntry));
+		iterateTimes(src.choices, i)
 		{
-			choiceEntry[i].init(src->choiceStr[i], src->t2.face);
+			choiceEntry[i].init(src.choiceStr[i], src.t2.face);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		BaseMenuView::init(choiceEntryItem, src->choices, 0, align);
+		BaseMenuView::init(choiceEntryItem, src.choices, 0, align);
 		if(highlightCurrent)
 		{
-			tbl.selected = src->choice;
+			tbl.selected = src.choice;
 		}
-		onSelect.bind<MultiChoiceMenuItem, &MultiChoiceMenuItem::set>(src);
+		onSelectD =
+			[&](int i, const Input::Event &e)
+			{
+				return src.set(i, e);
+			};
 	}
 
 	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 	{
 		logMsg("set choice %d", i);
-		if(onSelect.invoke((int)i, e)) // TODO: Delegate should handle removeModalView()
+		if(onSelectD((int)i, e)) // TODO: Delegate should handle removeModalView()
 			removeModalView();
 	}
 };
-
-extern MultiChoiceView multiChoiceView;
 
 struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 {
@@ -149,20 +152,20 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) { }
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
 	{
-		selectDel.bind<MultiChoiceSelectMenuItem, &MultiChoiceSelectMenuItem::handleChoices>(this);
+		onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
 		MultiChoiceMenuItem::init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 	}
 
 	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
 	{
-		selectDel.bind<MultiChoiceSelectMenuItem, &MultiChoiceSelectMenuItem::handleChoices>(this);
+		onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
 		MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 	}
 
 	void handleChoices(DualTextMenuItem &, const Input::Event &e)
 	{
-		multiChoiceView.init(this, !e.isPointer());
-		multiChoiceView.placeRect(Gfx::viewportRect());
-		View::modalView = &multiChoiceView;
+		auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+		multiChoiceView.init(*this, !e.isPointer());
+		View::addModalView(multiChoiceView);
 	}
 };

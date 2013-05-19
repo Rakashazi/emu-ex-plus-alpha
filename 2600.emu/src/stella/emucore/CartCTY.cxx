@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCTY.cxx 2499 2012-05-25 12:41:19Z stephena $
+// $Id: CartCTY.cxx 2613 2013-02-17 00:19:14Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -360,7 +360,7 @@ bool CartridgeCTY::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCTY::setRomName(const string& name)
 {
-  myEEPROMFile = myOSystem.eepromDir() + name + "_eeprom.dat";
+  myEEPROMFile = myOSystem.nvramDir() + name + "_eeprom.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

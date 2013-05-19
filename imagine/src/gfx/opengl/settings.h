@@ -199,7 +199,7 @@ static void checkForAnisotropicFiltering(const char *extensions)
 	if(!forceNoAnisotropicFiltering && strstr(extensions, "GL_EXT_texture_filter_anisotropic"))
 	{
 		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
-		logMsg("anisotropic filtering supported, max value: %f", maximumAnisotropy);
+		logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
 		useAnisotropicFiltering = 1;
 
 		if(forceAnisotropy) // force a specific anisotropy value

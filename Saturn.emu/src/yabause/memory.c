@@ -1109,6 +1109,8 @@ int YabSaveState(const char *filename)
 
    fclose(fp);
 
+   OSDPushMessage(OSDMSG_STATUS, 150, "STATE SAVED");
+
    return 0;
 }
 
@@ -1342,6 +1344,9 @@ int YabLoadState(const char *filename)
    fclose(fp);
 
    ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
+
+   OSDPushMessage(OSDMSG_STATUS, 150, "STATE LOADED");
+
    return 0;
 }
 

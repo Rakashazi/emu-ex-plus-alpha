@@ -18,6 +18,7 @@
 #include <base/Base.hh>
 #include <util/bits.h>
 #include <util/collection/DLList.hh>
+#include <algorithm>
 
 extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
@@ -89,11 +90,16 @@ uint IControlPad::findFreeDevId()
 CallResult IControlPad::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to iCP");
-#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-	adapter.constructSocket(sock.obj);
-#endif
-	sock.onDataDelegate().bind<IControlPad, &IControlPad::dataHandler>(this);
-	sock.onStatusDelegate().bind<IControlPad, &IControlPad::statusHandler>(this);
+	sock.onData() =
+		[this](const uchar *packet, size_t size)
+		{
+			return dataHandler(packet, size);
+		};
+	sock.onStatus() =
+		[this](BluetoothSocket &sock, uint status)
+		{
+			return statusHandler(sock, status);
+		};
 	if(sock.openRfcomm(addr, 1) != OK)
 	{
 		logErr("error opening socket");
@@ -176,7 +182,7 @@ bool IControlPad::dataHandler(const uchar *packet, size_t size)
 		}
 		else // handle GP_REPORT
 		{
-			uint processBytes = IG::min(bytesLeft, uint(sizeof inputBuffer - inputBufferPos));
+			uint processBytes = std::min(bytesLeft, uint(sizeof inputBuffer - inputBufferPos));
 			memcpy(&inputBuffer[inputBufferPos], &packet[size-bytesLeft], processBytes);
 			//logDMsg("read %d bytes from iCP", len);
 			inputBufferPos += processBytes;

@@ -100,6 +100,11 @@ public:
 			y <= other.y && y2 >= other.y2;
 	}
 
+	bool contains(const IG::Point2D<T> point) const
+	{
+		return contains({point.x, point.y, point.x, point.y});
+	}
+
 	T xCenter() const
 	{
 		return IG::midpoint(x, x2);
@@ -271,16 +276,16 @@ public:
 		IG::setLinked(y, newY, y2);
 	}
 
-	void setPos(T newX, T newY)
+	void setPos(IG::Point2D<T> newPos)
 	{
-		setXPos(newX);
-		setYPos(newY);
+		setXPos(newPos.x);
+		setYPos(newPos.y);
 	}
 
-	void setPos(T newX, T newY, _2DOrigin origin)
+	void setPos(IG::Point2D<T> newPos, _2DOrigin origin)
 	{
-		setXPos(newX, origin);
-		setYPos(newY, origin);
+		setXPos(newPos.x, origin);
+		setYPos(newPos.y, origin);
 	}
 
 	static Rect2 createRel(T newX, T newY, T xSize, T ySize)

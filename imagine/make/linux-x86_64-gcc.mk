@@ -1,5 +1,5 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
-include $(currPath)/linux-gcc.mk
+include $(buildSysPath)/linux-gcc.mk
 
 ARCH := x86_64
 ifeq ($(config_compiler),clang)
@@ -10,6 +10,10 @@ else
  ASMFLAGS += -m64
 endif
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/linux-x86_64
-CPPFLAGS += -I$(system_externalSysroot)/include
-LDLIBS += -L$(system_externalSysroot)/lib
+ifdef extraSysroot
+ PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
+ PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+ PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
+ CPPFLAGS += -I$(extraSysroot)/include
+ LDLIBS += -L$(extraSysroot)/lib
+endif

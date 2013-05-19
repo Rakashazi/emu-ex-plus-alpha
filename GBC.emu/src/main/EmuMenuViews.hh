@@ -3,7 +3,15 @@
 
 class SystemOptionView : public OptionView
 {
-	MultiChoiceSelectMenuItem gbPalette {"GB Palette", MultiChoiceMenuItem::ValueDelegate::create<&gbPaletteSet>()};
+	MultiChoiceSelectMenuItem gbPalette
+	{
+		"GB Palette",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionGBPal.val = val;
+			applyGBPalette(val);
+		}
+	};
 
 	void gbPaletteInit()
 	{
@@ -14,19 +22,22 @@ class SystemOptionView : public OptionView
 		gbPalette.init(str, int(optionGBPal), sizeofArray(str));
 	}
 
-	static void gbPaletteSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem resampler
 	{
-		optionGBPal.val = val;
-		applyGBPalette(val);
-	}
+		"Resampler",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionAudioResampler = val;
+			EmuSystem::configAudioPlayback();
+		}
+	};
 
-	MultiChoiceSelectMenuItem resampler {"Resampler", MultiChoiceMenuItem::ValueDelegate::create<&resamplerSet>()};
 	const char *resamplerName[4] {nullptr};
 
 	void resamplerInit()
 	{
 		logMsg("%d resamplers", (int)ResamplerInfo::num());
-		auto resamplers = IG::min(ResamplerInfo::num(), sizeofArray(resamplerName));
+		auto resamplers = std::min(ResamplerInfo::num(), sizeofArray(resamplerName));
 		iterateTimes(resamplers, i)
 		{
 			ResamplerInfo r = ResamplerInfo::get(i);
@@ -36,34 +47,34 @@ class SystemOptionView : public OptionView
 		resampler.init(resamplerName, int(optionAudioResampler), resamplers);
 	}
 
-	static void resamplerSet(MultiChoiceMenuItem &, int val)
+
+
+	BoolMenuItem reportAsGba
 	{
-		optionAudioResampler = val;
-		EmuSystem::configAudioRate();
-	}
-
-	BoolMenuItem reportAsGba {"Report Hardware as GBA", BoolMenuItem::SelectDelegate::create<&reportAsGbaHandler>()};
-
-	static void reportAsGbaHandler(BoolMenuItem &item, const Input::Event &e)
-	{
-		item.toggle();
-		optionReportAsGba = item.on;
-	}
-
-	BoolMenuItem fullSaturation {"Saturated GBC Colors", BoolMenuItem::SelectDelegate::create<&fullSaturationHandler>()};
-
-	static void fullSaturationHandler(BoolMenuItem &item, const Input::Event &e)
-	{
-		item.toggle();
-		optionFullGbcSaturation = item.on;
-		if(EmuSystem::gameIsRunning())
+		"Report Hardware as GBA",
+		[](BoolMenuItem &item, const Input::Event &e)
 		{
-			gbEmu.refreshPalettes();
+			item.toggle();
+			optionReportAsGba = item.on;
 		}
-	}
+	};
+
+	BoolMenuItem fullSaturation
+	{
+		"Saturated GBC Colors",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionFullGbcSaturation = item.on;
+			if(EmuSystem::gameIsRunning())
+			{
+				gbEmu.refreshPalettes();
+			}
+		}
+	};
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadAudioItems(MenuItem *item[], uint &items)
 	{
@@ -90,19 +101,21 @@ public:
 
 class SystemMenuView : public MenuView
 {
-	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
+	TextMenuItem cheats
 	{
-		if(EmuSystem::gameIsRunning())
+		"Cheats",
+		[](TextMenuItem &item, const Input::Event &e)
 		{
-			cheatsMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&cheatsMenu);
+			if(EmuSystem::gameIsRunning())
+			{
+				cheatsMenu.init(!e.isPointer());
+				viewStack.pushAndShow(&cheatsMenu);
+			}
 		}
-	}
-
-	TextMenuItem cheats {"Cheats", TextMenuItem::SelectDelegate::create<&cheatsHandler>()};
+	};
 
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 
 	void onShow()
 	{

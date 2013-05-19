@@ -66,6 +66,7 @@
 #include "mem.h"
 #include "gfx.h"
 #include <util/cLang.h>
+#include <algorithm>
 
 static uint16 monoConvMap[8] = { 0 };
 
@@ -233,9 +234,9 @@ void gfx_draw_scanline_mono(void)
 		//Middle
 		if (scanline < winy + winh)
 		{
-			for (x = 0; x < min((int)winx, SCREEN_WIDTH); x++)
+			for (x = 0; x < std::min((int)winx, SCREEN_WIDTH); x++)
 				cfb_scanline[x] = data16;
-			for (x = min(winx + winw, SCREEN_WIDTH); x < SCREEN_WIDTH; x++)
+			for (x = std::min(winx + winw, SCREEN_WIDTH); x < SCREEN_WIDTH; x++)
 				cfb_scanline[x] = data16;
 		}
 		else	//Bottom
@@ -261,7 +262,7 @@ void gfx_draw_scanline_mono(void)
 		if (negative) data16 = ~data16;
 		
 		//Draw background!
-		for (x = winx; x < min(winx + winw, SCREEN_WIDTH); x++)
+		for (x = winx; x < std::min(winx + winw, SCREEN_WIDTH); x++)
 			cfb_scanline[x] = data16;
 
 		//Swap Front/Back scroll planes?

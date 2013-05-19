@@ -49,14 +49,16 @@ uint Wiimote::findFreeDevId()
 CallResult Wiimote::open(BluetoothAdapter &adapter)
 {
 	logMsg("opening Wiimote");
-#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-	adapter.constructSocket(ctlSock.obj);
-	adapter.constructSocket(intSock.obj);
-#endif
-	ctlSock.onDataDelegate().bind<Wiimote, &Wiimote::dataHandler>(this);
-	ctlSock.onStatusDelegate().bind<Wiimote, &Wiimote::statusHandler>(this);
-	intSock.onDataDelegate().bind<Wiimote, &Wiimote::dataHandler>(this);
-	intSock.onStatusDelegate().bind<Wiimote, &Wiimote::statusHandler>(this);
+	ctlSock.onData() = intSock.onData() =
+		[this](const uchar *packet, size_t size)
+		{
+			return dataHandler(packet, size);
+		};
+	ctlSock.onStatus() = intSock.onStatus() =
+		[this](BluetoothSocket &sock, uint status)
+		{
+			return statusHandler(sock, status);
+		};
 	if(ctlSock.openL2cap(addr, 17) != OK)
 	{
 		logErr("error opening control socket");

@@ -530,9 +530,7 @@ $(libfsdevice_a_SOURCES) $(base_sources) $(libprinterdrv_a_SOURCES) $(librs232dr
 $(libdiskimage_a_SOURCES) $(libfileio_a_SOURCES) $(EXTRA_libsid_a_SOURCES) $(libsounddrv_a_SOURCES) $(libresidfp_a_SOURCES) \
 maincpu.c
 
-ifndef target
- target := c64emu
-endif
+include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

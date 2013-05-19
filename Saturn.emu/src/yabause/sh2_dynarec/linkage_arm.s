@@ -18,7 +18,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	/*.cpu arm9tdmi*/
-	.fpu softvfp
+       /* .fpu softvfp
 	.eabi_attribute 20, 1
 	.eabi_attribute 21, 1
 	.eabi_attribute 23, 3
@@ -26,7 +26,7 @@
 	.eabi_attribute 25, 1
 	.eabi_attribute 26, 2
 	.eabi_attribute 30, 6
-	.eabi_attribute 18, 4
+       .eabi_attribute 18, 4*/
 	.file	"linkage_arm.s"
 	.global	sh2_dynarec_target
 	.global	dynarec_local

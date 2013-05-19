@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.hxx 2447 2012-04-19 20:11:16Z stephena $
+// $Id: CompuMate.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef COMPUMATE_HXX
@@ -37,7 +37,7 @@
   CMControl's, taking care of their creation and communication between them.
 
   @author  Stephen Anthony
-  @version $Id: CompuMate.hxx 2447 2012-04-19 20:11:16Z stephena $
+  @version $Id: CompuMate.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CompuMate
 {

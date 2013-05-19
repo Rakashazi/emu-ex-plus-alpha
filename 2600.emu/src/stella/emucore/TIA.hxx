@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 2547 2012-07-14 18:56:57Z stephena $
+// $Id: TIA.hxx 2626 2013-02-24 01:46:14Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -41,7 +41,7 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 2547 2012-07-14 18:56:57Z stephena $
+  @version $Id: TIA.hxx 2626 2013-02-24 01:46:14Z stephena $
 */
 class TIA : public Device
 {
@@ -360,6 +360,9 @@ class TIA : public Device
 
     // Waste cycles until the current scanline is finished
     void waitHorizontalSync();
+
+    // Reset horizontal sync counter
+    void waitHorizontalRSync();
 
     // Clear both internal TIA buffers to black (palette color 0)
     void clearBuffers();

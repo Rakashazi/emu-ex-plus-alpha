@@ -1,5 +1,4 @@
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -305,6 +304,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
@@ -345,7 +346,7 @@ void EmuSystem::configAudioRate()
 	#endif
 	audioFramesPerUpdateScaler = outputRate/2097152.;
 	if(optionAudioResampler >= ResamplerInfo::num())
-		optionAudioResampler = IG::min((int)ResamplerInfo::num(), 1);
+		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
 	{
 		logMsg("setting up resampler %d for output rate %ldHz", (int)optionAudioResampler, outputRate);
@@ -399,7 +400,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		//else logMsg("emulated frame at %d with %d samples", frameSample, samples);
 		if(unlikely(samples < 34000))
 		{
-			uint repeatPos = IG::max((int)samples-1, 0);
+			uint repeatPos = std::max((int)samples-1, 0);
 			uint32 *sndFrame = (uint32*)snd;
 			logMsg("only %d, repeat %d", samples, (int)sndFrame[repeatPos]);
 			for(uint i = samples; i < 35112; i++)

@@ -1,9 +1,26 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <util/rectangle2.h>
 #include <input/Input.hh>
 #include <gfx/Gfx.hh>
 #include <config/env.hh>
 #include <config/machine.hh>
+#include <gui/ScrollView1D/ScrollView1D.hh>
 
 class GuiTable1D;
 
@@ -18,7 +35,7 @@ public:
 class GuiTable1D
 {
 public:
-	constexpr GuiTable1D() { }
+	constexpr GuiTable1D() {}
 	int yCellSize = 0;
 	int cells = 0, selected = -1, selectedIsActivated = 0;
 	GuiTableSource *src = nullptr;
@@ -28,7 +45,7 @@ public:
 	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO);
 	void setXCellSize(int s);
 	void setYCellSize(int s);
-	int inputEvent(const Input::Event &event);
+	bool inputEvent(const Input::Event &event);
 	void draw();
 	Rect2<int> focusRect();
 	static GC globalXIndent;
@@ -52,89 +69,18 @@ private:
 	int offscreenCells() const;
 };
 
-#include <gui/ScrollView1D/ScrollView1D.hh>
-
 class ScrollableGuiTable1D : public GuiTable1D, public ScrollView1D
 {
 public:
-	constexpr ScrollableGuiTable1D() { }
+	constexpr ScrollableGuiTable1D() {}
 	bool onlyScrollIfNeeded = 0;
 
-	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO)
-	{
-		onlyScrollIfNeeded = 0;
-		GuiTable1D::init(src, cells, align);
-		ScrollView1D::init(&viewRect);
-	}
-
-	void deinit()
-	{
-
-	}
-
-	void draw()
-	{
-		using namespace Gfx;
-		ScrollView1D::updateGfx();
-		setClipRectBounds(ScrollView1D::viewFrame);
-		setClipRect(1);
-		ScrollView1D::draw();
-		GuiTable1D::draw();
-		setClipRect(0);
-	}
-
-	void place(Rect2<int> *frame)
-	{
-		assert(frame);
-		setXCellSize(frame->xSize());
-		ScrollView1D::place(frame);
-		updateView();
-	}
-
-	void setScrollableIfNeeded(bool yes)
-	{
-		onlyScrollIfNeeded = 1;
-	}
-
-	void scrollToFocusRect()
-	{
-		Rect2<int> focus = focusRect();
-		//logMsg("focus box %d,%d %d,%d, scroll %d", focus.x, focus.y, focus.x2, focus.y2, gfx_toIYSize(scroll.offset));
-		if(focus.ySize() > 1 && !viewFrame.contains(focus))
-		{
-			int diff;
-			if(focus.y < viewFrame.y)
-				diff = focus.y - viewFrame.y;
-			else
-				diff = focus.y2 - viewFrame.y2;
-			diff--;
-			logMsg("focus not in view by %d", diff);
-
-			scroll.setOffset(scroll.offset + /*gfx_iYSize*/(diff));
-			ScrollView1D::updateView();
-		}
-	}
-
-	void updateView() // move content frame in position along view frame
-	{
-		ScrollView1D::updateView();
-		scrollToFocusRect();
-	}
-
-	void inputEvent(const Input::Event &e)
-	{
-		bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
-		if(handleScroll && ScrollView1D::inputEvent(e))
-		{
-			selected = -1;
-			return;
-		}
-		if(e.isPointer() && !ScrollView1D::viewFrame.overlaps(e.x, e.y))
-			return;
-		GuiTable1D::inputEvent(e);
-		if(handleScroll && !e.isPointer())
-		{
-			scrollToFocusRect();
-		}
-	}
+	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO);
+	void deinit();
+	void draw();
+	void place(Rect2<int> *frame);
+	void setScrollableIfNeeded(bool yes);
+	void scrollToFocusRect();
+	void updateView(); // move content frame in position along view frame
+	void inputEvent(const Input::Event &e);
 };

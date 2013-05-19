@@ -8,18 +8,19 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MD5.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: MD5.hxx 2608 2013-02-13 23:09:31Z stephena $
 //============================================================================
 
 #ifndef MD5_HXX
 #define MD5_HXX
 
+#include "FSNode.hxx"
 #include "bspf.hxx"
 
 /**
@@ -31,5 +32,14 @@
   @return The message-digest
 */
 string MD5(const uInt8* buffer, uInt32 length);
+
+/**
+  Get the MD5 Message-Digest of the file contained in 'node'.
+  The digest consists of 32 hexadecimal digits.
+
+  @param node The file node to compute the digest of
+  @return The message-digest
+*/
+string MD5(const FilesystemNode& node);
 
 #endif

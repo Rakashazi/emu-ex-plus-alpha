@@ -79,7 +79,7 @@
 /* #undef HAS_HIDMGR */
 
 /* Enable joystick emulation. */
-#define HAS_JOYSTICK /**/
+//#define HAS_JOYSTICK /**/
 
 /* Support 64bit integer for Win32 performance counter */
 /* #undef HAS_LONGLONG_INTEGER */
@@ -910,3 +910,6 @@
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
+
+#define MACHINE_SYNC_DEFAULT MACHINE_SYNC_NTSC
+#define SID_ENGINE_DEFAULT SID_ENGINE_FASTSID

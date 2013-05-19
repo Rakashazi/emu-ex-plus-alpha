@@ -1,9 +1,24 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <util/number.h>
 #include <util/rectangle2.h>
-#include <util/Delegate.hh>
+#include <util/DelegateFunc.hh>
 #include <util/collection/DLList.hh>
 
 #ifdef CONFIG_BASE_X11
@@ -18,6 +33,14 @@
 	#include <base/osx/inputDefs.hh>
 #elif defined(CONFIG_BASE_PS3)
 	#include <input/ps3/inputDefs.hh>
+#endif
+
+#ifdef CONFIG_INPUT_EVDEV
+	#include <input/evdev/inputDefs.hh>
+#endif
+
+#ifdef CONFIG_BLUETOOTH
+	#include <input/common/ps3Controller.hh>
 #endif
 
 namespace Input
@@ -61,18 +84,18 @@ static const uchar maxCursors =
 ;
 
 // OS text input support
-typedef Delegate<void (const char *str)> InputTextDelegate;
+typedef DelegateFunc<void (const char *str)> InputTextDelegate;
 #if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
 	#define CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	static const bool SYSTEM_CAN_COLLECT_TEXT = 1;
-	uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText);
+	uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels);
 	void cancelSysTextInput();
 	void finishSysTextInput();
 	void placeSysTextInput(const Rect2<int> &rect);
 	const Rect2<int> &sysTextInputRect();
 #else
 	static const bool SYSTEM_CAN_COLLECT_TEXT = 0;
-	static uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText) { return 0; }
+	static uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels) { return 0; }
 #endif
 
 // relative pointer/trackball support
@@ -383,7 +406,9 @@ public:
 			SUBTYPE_XPERIA_PLAY = 1,
 			SUBTYPE_PS3_CONTROLLER = 2,
 			SUBTYPE_MOTO_DROID_KEYBOARD = 3,
-			SUBTYPE_OUYA_CONTROLLER = 4
+			SUBTYPE_OUYA_CONTROLLER = 4,
+			SUBTYPE_PANDORA_HANDHELD = 5,
+			SUBTYPE_XBOX_360_CONTROLLER = 6
 			;
 
 	static constexpr uint
@@ -497,7 +522,8 @@ public:
 		MAP_ICONTROLPAD = 20,
 		MAP_ZEEMOTE = 21,
 		MAP_ICADE = 22,
-		MAP_PS3PAD = 23
+		MAP_PS3PAD = 23,
+		MAP_EVDEV = 30
 		;
 
 	static const char *mapName(uint map)
@@ -514,7 +540,7 @@ public:
 			case MAP_ICONTROLPAD: return "iControlPad";
 			case MAP_ZEEMOTE: return "Zeemote JS1";
 			#endif
-			#ifdef CONFIG_BASE_PS3
+			#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 			case MAP_PS3PAD: return "PS3 Gamepad";
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
@@ -543,11 +569,14 @@ public:
 			case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
 			case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
 			#endif
-			#ifdef CONFIG_BASE_PS3
+			#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 			case MAP_PS3PAD: return Input::PS3::COUNT;
 			#endif
 			#ifdef CONFIG_INPUT_ICADE
 			case MAP_ICADE: return Input::ICade::COUNT;
+			#endif
+			#ifdef CONFIG_INPUT_EVDEV
+			case MAP_EVDEV: return Input::Evdev::COUNT;
 			#endif
 			default: bug_branch("%d", map); return 0;
 		}
@@ -676,8 +705,10 @@ const char *eventActionToStr(int action);
 
 #ifdef CONFIG_BASE_X11
 	void setTranslateKeyboardEventsByModifiers(bool on);
+	bool translateKeyboardEventsByModifiers();
 #else
 	static void setTranslateKeyboardEventsByModifiers(bool on) { }
+	static bool translateKeyboardEventsByModifiers() { return false; }
 #endif
 
 // App Callbacks

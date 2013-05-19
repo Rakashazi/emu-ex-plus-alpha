@@ -14,6 +14,6 @@ ifndef targetDir
  endif
 endif
 
-include $(currPath)/android-armv7-gcc.mk
+include $(buildSysPath)/android-armv7-gcc.mk
 
 android_cpuFlags += -mcpu=cortex-a9

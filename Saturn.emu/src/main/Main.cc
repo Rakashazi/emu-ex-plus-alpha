@@ -1,5 +1,4 @@
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -84,7 +83,7 @@ static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer,
 static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames)
 {
 	//logMsg("got %d audio frames to write", frames);
-	frames = IG::min(800U, frames);
+	frames = std::min(800U, frames);
 	s16 sample[800*2];
 	iterateTimes(frames, i)
 	{
@@ -403,6 +402,16 @@ CLINK void YuiErrorMsg(const char *string)
 	logMsg("%s", string);
 }
 
+CLINK int OSDUseBuffer()
+{
+	return 0;
+}
+
+CLINK int OSDChangeCore(int coreid)
+{
+	return 0;
+}
+
 void EmuSystem::resetGame()
 {
 	logMsg("resetting system");
@@ -489,6 +498,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
@@ -512,7 +523,6 @@ int EmuSystem::loadGame(const char *path)
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
 
-	//EmuSystem::configAudioRate();
 	logMsg("finished loading game");
 	return 1;
 }

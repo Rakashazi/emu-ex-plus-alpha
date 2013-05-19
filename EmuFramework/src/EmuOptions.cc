@@ -1,7 +1,22 @@
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include "VController.hh"
-#ifdef INPUT_SUPPORTS_POINTER
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
 
@@ -26,11 +41,21 @@ OptionAudioHintPcmMaxBuffers optionSoundBuffers(CFGKEY_SOUND_BUFFERS, Config::en
 OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck(CFGKEY_SOUND_UNDERRUN_CHECK, 1);
 #endif
 
-Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
-	(Config::envIsPS3 || Config::envIsLinux) ? 48000 : 44100, Config::envIsPS3, optionIsValidWithMax<48000>);
+#ifdef CONFIG_AUDIO_SOLO_MIX
+OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
+#endif
 
-Byte1Option optionLargeFonts(CFGKEY_FONT_Y_PIXELS, Config::envIsWebOS3,
-	(Config::envIsWebOS && !Config::envIsWebOS3));
+Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
+	(Config::envIsPS3 || (Config::envIsLinux && !Config::MACHINE_IS_PANDORA)) ? 48000 : 44100, Config::envIsPS3, optionIsValidWithMax<48000>);
+
+// Store in micro-meters
+Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
+	Config::MACHINE_IS_PANDORA ? 6500 :
+	(Config::envIsIOS || Config::MACHINE_IS_OUYA) ? 3500 :
+	Config::envIsWebOS3 ? 5000 :
+	(Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
+	8000,
+	0, optionIsValidWithMinMax<2000, 10500, uint16>);
 
 Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
@@ -57,7 +82,9 @@ Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Inp
 
 #ifdef CONFIG_BLUETOOTH
 Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
-OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
+	#endif
 #endif
 
 OptionAspectRatio optionAspectRatio(0);
@@ -141,6 +168,7 @@ Option2DOrigin optionTouchCtrlMenuPos(CFGKEY_TOUCH_CONTROL_MENU_POS,
 Option2DOrigin optionTouchCtrlFFPos(CFGKEY_TOUCH_CONTROL_FF_POS, Config::envIsIOS || Config::envIsAndroid ? LT2DO : NULL2DO, 0, isValidOption2DO);
 
 Byte1Option optionTouchCtrlBoundingBoxes(CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES, 0);
+Byte1Option optionTouchCtrlShowOnTouch(CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH, 1);
 
 bool optionFrameSkipIsValid(uint8 val)
 {
@@ -152,14 +180,14 @@ Byte1Option optionFrameSkip
 		(CFGKEY_FRAME_SKIP,
 		#if defined(CONFIG_BASE_IOS)
 			#ifdef __ARM_ARCH_6K__
-				EmuSystem::optionFrameSkipAuto,
+			EmuSystem::optionFrameSkipAuto,
 			#else
-				0,
+			0,
 			#endif
 		#elif defined(CONFIG_BASE_PS3)
-			0,
+		0,
 		#else
-			EmuSystem::optionFrameSkipAuto,
+		EmuSystem::optionFrameSkipAuto,
 		#endif
 		Config::envIsPS3, optionFrameSkipIsValid);
 
@@ -171,40 +199,42 @@ Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
 
 OptionDPI optionDPI(0,
-#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
+	#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
 	0
-#else
+	#else
 	1
-#endif
+	#endif
 );
 
 OptionRecentGames optionRecentGames;
 
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
 Byte4s2Option optionTouchCtrlImgRes
 (CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128,
 		Config::envIsLinux || Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9,
 		optionIsValidWithMax<128>);
+#endif
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		// Default & current setting isn't known until OpenGL init
-		Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
+	// Default & current setting isn't known until OpenGL init
+	Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
-		SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
+	Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
+	SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 	#endif
-	Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
+Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
 #endif
 
 #if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
+Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 
 #ifdef USE_BEST_COLOR_MODE_OPTION
-	Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
+Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 #endif
 
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, sizeof(EmuSystem::savePath_), "");
@@ -212,63 +242,63 @@ PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, sizeof(EmuSyst
 void initOptions()
 {
 	#ifdef CONFIG_BASE_IOS
-		if(Base::deviceIsIPad())
-			optionLargeFonts.initDefault(1);
+	if(Base::deviceIsIPad())
+		optionFontSize.initDefault(5000);
 	#endif
 
 	#ifdef CONFIG_BASE_ANDROID
-		optionGLSyncHack.initDefault(glSyncHackBlacklisted);
-		if(Base::hasHardwareNavButtons())
-		{
-			optionLowProfileOSNav.isConst = 1;
-			optionHideOSNav.isConst = 1;
-			optionShowMenuIcon.initDefault(0);
-			optionTouchCtrlFFPos.initDefault(NULL2DO);
-		}
-		else
-			optionBackNavigation.initDefault(1);
+	optionGLSyncHack.initDefault(glSyncHackBlacklisted);
+	if(Base::hasHardwareNavButtons())
+	{
+		optionLowProfileOSNav.isConst = 1;
+		optionHideOSNav.isConst = 1;
+		optionShowMenuIcon.initDefault(0);
+		optionTouchCtrlFFPos.initDefault(NULL2DO);
+	}
+	else
+		optionBackNavigation.initDefault(1);
 
-		if(Base::androidSDK() >= 11)
+	if(Base::androidSDK() >= 11)
+	{
+		optionNotificationIcon.initDefault(0);
+		optionGLSyncHack.isConst = 1;
+		// don't change dither setting on Android 3.0+
+		optionDitherImage.isConst = 1;
+		if(Base::refreshRate() == 60)
 		{
-			optionNotificationIcon.initDefault(0);
-			optionGLSyncHack.isConst = 1;
-			// don't change dither setting on Android 3.0+
-			optionDitherImage.isConst = 1;
-			if(Base::refreshRate() == 60)
-			{
-				// TODO: more testing needed with audio sync
-				/*logMsg("using default frame-skip 0");
-				optionFrameSkip.initDefault(0);*/
-			}
+			// TODO: more testing needed with audio sync
+			/*logMsg("using default frame-skip 0");
+			optionFrameSkip.initDefault(0);*/
 		}
-		else
-		{
-			optionDitherImage.initDefault(0);
-		}
+	}
+	else
+	{
+		optionDitherImage.initDefault(0);
+	}
 
 		#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-			if(Base::androidSDK() < 12)
-			{
-				optionNotifyInputDeviceChange.initDefault(0);
-				optionNotifyInputDeviceChange.isConst = 1;
-			}
+		if(Base::androidSDK() < 12)
+		{
+			optionNotifyInputDeviceChange.initDefault(0);
+			optionNotifyInputDeviceChange.isConst = 1;
+		}
 		#endif
 
-		if(!Base::hasVibrator())
-		{
-			optionVibrateOnPush.isConst = 1;
-		}
+	if(!Base::hasVibrator())
+	{
+		optionVibrateOnPush.isConst = 1;
+	}
 	#endif
 
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 		#ifdef CONFIG_BASE_IOS
-			if(Base::deviceIsIPad())
-				optionTouchCtrlSize.initDefault(1400);
+		if(Base::deviceIsIPad())
+			optionTouchCtrlSize.initDefault(1400);
 		#endif
-		optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
+	optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
 	#endif
 
 	#ifdef USE_BEST_COLOR_MODE_OPTION
-		optionBestColorModeHint.initDefault(Base::windowPixelBestColorHintDefault());
+	optionBestColorModeHint.initDefault(Base::windowPixelBestColorHintDefault());
 	#endif
 }

@@ -26,14 +26,11 @@ final class ChoreographerHelper implements Choreographer.FrameCallback
 {
 	private static String logTag = "ChoreographerHelper";
 	private Choreographer choreographer;
-	private BaseActivity activity;
+	private native boolean drawWindow(long frameTimeNanos);
 	
-	public static void checkAvailable() {}
-	
-	public ChoreographerHelper(BaseActivity act)
+	public ChoreographerHelper()
 	{
 		choreographer = Choreographer.getInstance();
-		activity = act;
 	}
 
 	void postDrawWindow()
@@ -49,7 +46,7 @@ final class ChoreographerHelper implements Choreographer.FrameCallback
 	@Override public void doFrame(long frameTimeNanos)
 	{
 		choreographer.postFrameCallback(this);
-		if(!activity.drawWindow(frameTimeNanos))
+		if(!drawWindow(frameTimeNanos))
 		{
 			choreographer.removeFrameCallback(this);
 		}

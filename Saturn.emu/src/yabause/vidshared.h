@@ -225,6 +225,8 @@ typedef struct
    int screenover;
    int msb;
    int linescreen;
+
+   void FASTCALL (* PlaneAddr)(void *, int);
 } vdp2rotationparameterfp_struct;
 
 typedef struct
@@ -575,6 +577,9 @@ static INLINE void ReadWindowCoordinates(int num, clipping_struct * clip)
 
 static INLINE void ReadWindowData(int wctl, clipping_struct *clip)
 {
+   clip[0].xstart = clip[0].ystart = clip[0].xend = clip[0].yend = 0;
+   clip[1].xstart = clip[1].ystart = clip[1].xend = clip[1].yend = 0;
+
    if (wctl & 0x2)
    {
       ReadWindowCoordinates(0, clip);
@@ -611,67 +616,58 @@ static INLINE void ReadLineWindowData(int *islinewindow, int wctl, u32 *linewnd0
 
 //////////////////////////////////////////////////////////////////////////////
 
+static INLINE void ReadOneLineWindowClip(clipping_struct *clip, u32 *linewndaddr)
+{
+   clip->xstart = T1ReadWord(Vdp2Ram, *linewndaddr);
+   *linewndaddr += 2;
+   clip->xend = T1ReadWord(Vdp2Ram, *linewndaddr);
+   *linewndaddr += 2;
+
+   /* Ok... that looks insane... but there's at least two games (3D Baseball and
+   Panzer Dragoon Saga) that set the line window end to 0xFFFF and expect the line
+   window to be invalid for those lines... */
+   if (clip->xend == 0xFFFF)
+   {
+      clip->xstart = 0;
+      clip->xend = 0;
+      return;
+   }
+
+   clip->xstart &= 0x3FF;
+   clip->xend &= 0x3FF;
+
+   switch ((Vdp2Regs->TVMD >> 1) & 0x3)
+   {
+      case 0: // Normal
+         clip->xstart = (clip->xstart >> 1) & 0x1FF;
+         clip->xend = (clip->xend >> 1) & 0x1FF;
+         break;
+      case 1: // Hi-Res
+         clip->xstart = clip->xstart & 0x3FF;
+         clip->xend = clip->xend & 0x3FF;
+         break;
+      case 2: // Exclusive Normal
+         clip->xstart = clip->xstart & 0x1FF;
+         clip->xend = clip->xend & 0x1FF;
+         break;
+      case 3: // Exclusive Hi-Res
+         clip->xstart = (clip->xstart & 0x3FF) >> 1;
+         clip->xend = (clip->xend & 0x3FF) >> 1;
+         break;
+   }
+}
+
 static INLINE void ReadLineWindowClip(int islinewindow, clipping_struct *clip, u32 *linewnd0addr, u32 *linewnd1addr)
 {
    if (islinewindow)
    {
       // Fetch new xstart and xend values from table
       if (islinewindow & 0x1)
-      {
          // Window 0
-         clip[0].xstart = (T1ReadWord(Vdp2Ram, linewnd0addr[0]) & 0x3FF);
-         linewnd0addr[0]+=2;
-         clip[0].xend = (T1ReadWord(Vdp2Ram, linewnd0addr[0]) & 0x3FF);
-         linewnd0addr[0]+=2;
-
-         switch ((Vdp2Regs->TVMD >> 1) & 0x3)
-         {
-            case 0: // Normal
-               clip[0].xstart = (clip[0].xstart >> 1) & 0x1FF;
-               clip[0].xend = (clip[0].xend >> 1) & 0x1FF;
-               break;
-            case 1: // Hi-Res
-               clip[0].xstart = clip[0].xstart & 0x3FF;
-               clip[0].xend = clip[0].xend & 0x3FF;
-               break;
-            case 2: // Exclusive Normal
-               clip[0].xstart = clip[0].xstart & 0x1FF;
-               clip[0].xend = clip[0].xend & 0x1FF;
-               break;
-            case 3: // Exclusive Hi-Res
-               clip[0].xstart = (clip[0].xstart & 0x3FF) >> 1;
-               clip[0].xend = (clip[0].xend & 0x3FF) >> 1;
-               break;
-         }
-      }
+         ReadOneLineWindowClip(clip, linewnd0addr);
       if (islinewindow & 0x2)
-      {
          // Window 1
-         clip[1].xstart = (T1ReadWord(Vdp2Ram, linewnd1addr[0]) & 0x3FF);
-         linewnd1addr[0]+=2;
-         clip[1].xend = (T1ReadWord(Vdp2Ram, linewnd1addr[0]) & 0x3FF);
-         linewnd1addr[0]+=2;
-
-         switch ((Vdp2Regs->TVMD >> 1) & 0x3)
-         {
-            case 0: // Normal
-               clip[1].xstart = (clip[1].xstart >> 1) & 0x1FF;
-               clip[1].xend = (clip[1].xend >> 1) & 0x1FF;
-               break;
-            case 1: // Hi-Res
-               clip[1].xstart = clip[1].xstart & 0x3FF;
-               clip[1].xend = clip[1].xend & 0x3FF;
-               break;
-            case 2: // Exclusive Normal
-               clip[1].xstart = clip[1].xstart & 0x1FF;
-               clip[1].xend = clip[1].xend & 0x1FF;
-               break;
-            case 3: // Exclusive Hi-Res
-               clip[1].xstart = (clip[1].xstart & 0x3FF) >> 1;
-               clip[1].xend = (clip[1].xend & 0x3FF) >> 1;
-               break;
-         }
-      }
+         ReadOneLineWindowClip(clip + 1, linewnd1addr);
    }
 }
 
@@ -783,136 +779,173 @@ static INLINE void Vdp2ReadCoefficientFP(vdp2rotationparameterfp_struct *paramet
 
 //////////////////////////////////////////////////////////////////////////////
 
-static INLINE void Vdp1ProcessSpritePixel(int type, u16 *pixel, int *shadow, int *priority, int *colorcalc)
+typedef struct {
+    int normalshadow;
+    int msbshadow;
+    int priority;
+    int colorcalc;
+} spritepixelinfo_struct;
+
+static INLINE void Vdp1GetSpritePixelInfo(int type, u16 * pixel, spritepixelinfo_struct * spi)
 {
+   memset(spi, 0, sizeof(spritepixelinfo_struct));
+
    switch(type)
    {
       case 0x0:
       {
          // Type 0(2-bit priority, 3-bit color calculation, 11-bit color data)
-         *priority = *pixel >> 14;
-         *colorcalc = (*pixel >> 11) & 0x7;
+         spi->priority = *pixel >> 14;
+         spi->colorcalc = (*pixel >> 11) & 0x7;
          *pixel = *pixel & 0x7FF;
+         spi->normalshadow = (*pixel == 0x7FE);
          break;
       }
       case 0x1:
       {
          // Type 1(3-bit priority, 2-bit color calculation, 11-bit color data)
-         *priority = *pixel >> 13;
-         *colorcalc = (*pixel >> 11) & 0x3;
+         spi->priority = *pixel >> 13;
+         spi->colorcalc = (*pixel >> 11) & 0x3;
          *pixel &= 0x7FF;
+         spi->normalshadow = (*pixel == 0x7FE);
          break;
       }
       case 0x2:
       {
          // Type 2(1-bit shadow, 1-bit priority, 3-bit color calculation, 11-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 14) & 0x1;
-         *colorcalc = (*pixel >> 11) & 0x7;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 14) & 0x1;
+         spi->colorcalc = (*pixel >> 11) & 0x7;
          *pixel &= 0x7FF;
+         spi->normalshadow = (*pixel == 0x7FE);
          break;
       }
       case 0x3:
       {
          // Type 3(1-bit shadow, 2-bit priority, 2-bit color calculation, 11-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 13) & 0x3;
-         *colorcalc = (*pixel >> 11) & 0x3;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 13) & 0x3;
+         spi->colorcalc = (*pixel >> 11) & 0x3;
          *pixel &= 0x7FF;
+         spi->normalshadow = (*pixel == 0x7FE);
          break;
       }
       case 0x4:
       {
          // Type 4(1-bit shadow, 2-bit priority, 3-bit color calculation, 10-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 13) & 0x3;
-         *colorcalc = (*pixel >> 10) & 0x7;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 13) & 0x3;
+         spi->colorcalc = (*pixel >> 10) & 0x7;
          *pixel &= 0x3FF;
+         spi->normalshadow = (*pixel == 0x3FE);
          break;
       }
       case 0x5:
       {
          // Type 5(1-bit shadow, 3-bit priority, 1-bit color calculation, 11-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 12) & 0x7;
-         *colorcalc = (*pixel >> 11) & 0x1;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 12) & 0x7;
+         spi->colorcalc = (*pixel >> 11) & 0x1;
          *pixel &= 0x7FF;
+         spi->normalshadow = (*pixel == 0x7FE);
          break;
       }
       case 0x6:
       {
          // Type 6(1-bit shadow, 3-bit priority, 2-bit color calculation, 10-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 12) & 0x7;
-         *colorcalc = (*pixel >> 10) & 0x3;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 12) & 0x7;
+         spi->colorcalc = (*pixel >> 10) & 0x3;
          *pixel &= 0x3FF;
+         spi->normalshadow = (*pixel == 0x3FE);
          break;
       }
       case 0x7:
       {
          // Type 7(1-bit shadow, 3-bit priority, 3-bit color calculation, 9-bit color data)
-         *shadow = *pixel >> 15;
-         *priority = (*pixel >> 12) & 0x7;
-         *colorcalc = (*pixel >> 9) & 0x7;
+         spi->msbshadow = *pixel >> 15;
+         spi->priority = (*pixel >> 12) & 0x7;
+         spi->colorcalc = (*pixel >> 9) & 0x7;
          *pixel &= 0x1FF;
+         spi->normalshadow = (*pixel == 0x1FE);
          break;
       }
       case 0x8:
       {
          // Type 8(1-bit priority, 7-bit color data)
-         *priority = (*pixel >> 7) & 0x1;
+         spi->priority = (*pixel >> 7) & 0x1;
          *pixel &= 0x7F;
+         spi->normalshadow = (*pixel == 0x7E);
          break;
       }
       case 0x9:
       {
          // Type 9(1-bit priority, 1-bit color calculation, 6-bit color data)
-         *priority = (*pixel >> 7) & 0x1;
-         *colorcalc = (*pixel >> 6) & 0x1;
+         spi->priority = (*pixel >> 7) & 0x1;
+         spi->colorcalc = (*pixel >> 6) & 0x1;
          *pixel &= 0x3F;
+         spi->normalshadow = (*pixel == 0x3E);
          break;
       }
       case 0xA:
       {
          // Type A(2-bit priority, 6-bit color data)
-         *priority = (*pixel >> 6) & 0x3;
+         spi->priority = (*pixel >> 6) & 0x3;
          *pixel &= 0x3F;
+         spi->normalshadow = (*pixel == 0x3E);
          break;
       }
       case 0xB:
       {
          // Type B(2-bit color calculation, 6-bit color data)
-         *colorcalc = (*pixel >> 6) & 0x3;
+         spi->colorcalc = (*pixel >> 6) & 0x3;
          *pixel &= 0x3F;
+         spi->normalshadow = (*pixel == 0x3E);
          break;
       }
       case 0xC:
       {
          // Type C(1-bit special priority, 8-bit color data - bit 7 is shared)
-         *priority = (*pixel >> 7) & 0x1;
+         spi->priority = (*pixel >> 7) & 0x1;
+         spi->normalshadow = (*pixel == 0xFE);
          break;
       }
       case 0xD:
       {
          // Type D(1-bit special priority, 1-bit special color calculation, 8-bit color data - bits 6 and 7 are shared)
-         *priority = (*pixel >> 7) & 0x1;
-         *colorcalc = (*pixel >> 6) & 0x1;
+         spi->priority = (*pixel >> 7) & 0x1;
+         spi->colorcalc = (*pixel >> 6) & 0x1;
+         spi->normalshadow = (*pixel == 0xFE);
          break;
       }
       case 0xE:
       {
          // Type E(2-bit special priority, 8-bit color data - bits 6 and 7 are shared)
-         *priority = (*pixel >> 6) & 0x3;
+         spi->priority = (*pixel >> 6) & 0x3;
+         spi->normalshadow = (*pixel == 0xFE);
          break;
       }
       case 0xF:
       {
          // Type F(2-bit special color calculation, 8-bit color data - bits 6 and 7 are shared)
-         *colorcalc = (*pixel >> 6) & 0x3;
+         spi->colorcalc = (*pixel >> 6) & 0x3;
+         spi->normalshadow = (*pixel == 0xFE);
          break;
       }
       default: break;
    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static INLINE void Vdp1ProcessSpritePixel(int type, u16 *pixel, int *shadow, int *priority, int *colorcalc)
+{
+   spritepixelinfo_struct spi;
+
+   Vdp1GetSpritePixelInfo(type, pixel, &spi);
+   *shadow = spi.msbshadow;
+   *priority = spi.priority;
+   *colorcalc = spi.colorcalc;
 }
 
 #define VDPLINE_SZ(a) ((a)&0x04)

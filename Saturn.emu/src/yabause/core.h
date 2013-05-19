@@ -292,4 +292,10 @@ static INLINE int StateCheckRetrieveHeader(FILE *fp, const char *name, int *vers
 
 #endif
 
+#ifdef USE_16BPP
+typedef u16 pixel_t;
+#else
+typedef u32 pixel_t;
+#endif
+
 #endif

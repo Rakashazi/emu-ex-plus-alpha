@@ -4,7 +4,7 @@ ifeq ($(config_compiler),gcc)
  ifeq ($(origin CC), default)
   CC := llvm-gcc
  endif
- include $(currPath)/gcc.mk
+ include $(buildSysPath)/gcc.mk
  WARNINGS_CFLAGS += -Wno-attributes # for attributes not understood by llvm-gcc
 else
  # default to clang
@@ -12,7 +12,7 @@ else
  ifeq ($(origin CC), default)
   CC := clang
  endif
- include $(currPath)/clang.mk
+ include $(buildSysPath)/clang.mk
 endif
 
 ifdef RELEASE
@@ -27,6 +27,8 @@ LDFLAGS += $(OSX_FLAGS)
 LDFLAGS += -dead_strip -Wl,-S,-x
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
-system_externalSysroot := /opt/local
-CPPFLAGS += -I$(system_externalSysroot)/include
-#LDLIBS += -L$(system_externalSysroot)/lib
+extraSysroot := /opt/local
+PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+CPPFLAGS += -I$(extraSysroot)/include
+pkgConfigOpts := --define-variable=prefix=$(extraSysroot)

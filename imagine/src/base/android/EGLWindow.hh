@@ -10,7 +10,7 @@ struct EGLWindow
 	EGLDisplay display = EGL_NO_DISPLAY;
 	EGLSurface surface = EGL_NO_SURFACE;
 	EGLContext context = EGL_NO_CONTEXT;
-	EGLConfig config = 0;
+	EGLConfig config = nullptr;
 	bool useMaxColorBits = 0;
 	bool has32BppColorBugs = 0;
 
@@ -105,6 +105,12 @@ struct EGLWindow
 			logWarn("config didn't provide a native format id, guessing %d", nId);
 		}
 		return nId;
+	}
+
+	int currentWindowFormat()
+	{
+		assert(display != EGL_NO_DISPLAY);
+		return winFormatFromConfig(display, config);
 	}
 
 	void initSurface(ANativeWindow *win)

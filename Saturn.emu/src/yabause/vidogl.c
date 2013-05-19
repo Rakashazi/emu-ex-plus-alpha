@@ -263,14 +263,14 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
 
                // Pixel 1
                if (((dot >> 4) == 0) && !SPD) *texture->textdata++ = 0x00;
-               else if( (dot >> 4) == 0x0F &!END ) *texture->textdata++ = 0x00;
+               else if( ((dot >> 4) == 0x0F) && !END ) *texture->textdata++ = 0x00;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = Vdp2ColorRamGetColor(((dot >> 4) | colorBank) + colorOffset, alpha);
                j += 1;
 
                // Pixel 2
                if (((dot & 0xF) == 0) && !SPD) *texture->textdata++  = 0x00;
-               else if( (dot & 0xF) == 0x0F &!END ) *texture->textdata++ = 0x00;
+               else if( ((dot & 0xF) == 0x0F) && !END ) *texture->textdata++ = 0x00;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = Vdp2ColorRamGetColor(((dot & 0xF) | colorBank) + colorOffset, alpha);
                j += 1;
@@ -285,7 +285,6 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
       {
          // 4 bpp LUT mode
          u16 temp;
-         u16 temp2;
          u32 colorLut = cmd->CMDCOLR * 8;
          u16 i;
          u32 colorOffset = (Vdp2Regs->CRAOFB & 0x70) << 4;
@@ -453,7 +452,7 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
                charAddr++;
 
                if ((dot == 0) && !SPD) *texture->textdata++ = 0x00;
-               else if( dot==0xFF&!END ) *texture->textdata++ = 0x00;
+               else if( (dot == 0xFF) && !END ) *texture->textdata++ = 0x00;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = Vdp2ColorRamGetColor((dot | colorBank) + colorOffset, alpha);
             }
@@ -476,7 +475,7 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
                charAddr++;
 
                if ((dot == 0) && !SPD) *texture->textdata++ = 0x00;
-               else if( dot == 0xFF & !END ) *texture->textdata++ = 0x00;
+               else if( (dot == 0xFF) && !END ) *texture->textdata++ = 0x00;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = Vdp2ColorRamGetColor((dot | colorBank) + colorOffset, alpha);
             }
@@ -499,7 +498,7 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
                charAddr++;
 
                if ((dot == 0) && !SPD) *texture->textdata++ = 0x00;
-               else if( dot == 0xFF & !END ) *texture->textdata++ = 0x0;
+               else if( (dot == 0xFF) && !END ) *texture->textdata++ = 0x0;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = Vdp2ColorRamGetColor((dot | colorBank) + colorOffset, alpha);
             }
@@ -520,7 +519,7 @@ static void FASTCALL Vdp1ReadTexture(vdp1cmd_struct *cmd, YglSprite *sprite, Ygl
 
                //if (!(dot & 0x8000) && (Vdp2Regs->SPCTL & 0x20)) printf("mixed mode\n");
                if (!(dot & 0x8000) && !SPD) *texture->textdata++ = 0x00;
-               else if( dot == 0x7FFF & !END ) *texture->textdata++ = 0x0;
+               else if( (dot == 0x7FFF) && !END ) *texture->textdata++ = 0x0;
                else if( MSB ) *texture->textdata++ = (alpha<<24);
                else *texture->textdata++ = SAT2YAB1(alpha, dot);
             }
@@ -1318,7 +1317,7 @@ static int FASTCALL Vdp2CheckWindowRange(vdp2draw_struct *info, int x, int y, in
 void Vdp2GenLineinfo( vdp2draw_struct *info )
 {
    int bound = 0;
-   int v,i;
+   int i;
    u16 val1,val2;
    int index = 0;
    if( info->lineinc == 0 || info->islinescroll == 0 ) return;
@@ -1913,9 +1912,7 @@ static void FASTCALL Vdp2DrawRotation(vdp2draw_struct *info, vdp2rotationparamet
    int pagesize;
    int patternshift;
    u32 LineColorRamAdress;   
-   u32 celladdr;
-   u32 cellc[16*16];
-   
+
    vdp2rotationparameter_struct *parameter;
    if( vdp2height >= 448 ) vres = (vdp2height>>1); else vres = vdp2height;
    if( vdp2width >= 640 ) hres = (vdp2width>>1); else hres = vdp2width;
@@ -2069,7 +2066,6 @@ static void FASTCALL Vdp2DrawRotation(vdp2draw_struct *info, vdp2rotationparamet
 
             if ((x>>patternshift) != oldcellx || (y>>patternshift) != oldcelly)
             {
-               int cv,ch;
                oldcellx = x>>patternshift;
                oldcelly = y>>patternshift;
 
@@ -2086,19 +2082,6 @@ static void FASTCALL Vdp2DrawRotation(vdp2draw_struct *info, vdp2rotationparamet
                                 ((x&511)>>patternshift)) << info->patterndatasize;
 
                     Vdp2PatternAddr(info); // Heh, this could be optimized
-#if 0
-                    if( celladdr != info->charaddr )
-                    {
-                       celladdr = info->charaddr;
-                        for( cv = 0; cv < info->cellh; cv++ )
-                        {
-                           for( ch = 0; ch < info->cellw; ch++ )
-                           {
-                              cellc[cv*16+ch] = Vdp2RotationFetchPixel(info,ch,cv,info->cellw);
-                           }
-                        }
-                    }
-#endif                    
                }
                
                // Figure out which pixel in the tile we want
@@ -2222,11 +2205,6 @@ void VIDOGLResize(unsigned int w, unsigned int h, int on)
 
    _VIDOGLIsFullscreen = on;
 
-   if (on)
-      YuiSetVideoMode(w, h, 32, 1);
-   else
-      YuiSetVideoMode(w, h, 32, 0);
-
    GlHeight=h;
    GlWidth=w;
    
@@ -2329,7 +2307,6 @@ void VIDOGLVdp1NormalSpriteDraw(void)
    s16 x, y;
    u16 CMDPMOD;
    u16 color2;
-   float mesh;
    float col[4*4];
    int i;
    
@@ -2433,7 +2410,6 @@ void VIDOGLVdp1ScaledSpriteDraw(void)
    s16 x, y;
    u16 CMDPMOD;
    u16 color2;
-   float mesh;
    float col[4*4];
    int i;
 
@@ -2610,7 +2586,6 @@ void VIDOGLVdp1DistortedSpriteDraw(void)
    u32 tmp;
    u16 CMDPMOD;
    u16 color2;
-   float mesh;
    int i;
    float col[4*4];
    
@@ -2716,7 +2691,6 @@ void VIDOGLVdp1PolygonDraw(void)
    YglSprite polygon;
    YglTexture texture;
    u16 color2;
-   float mesh;
    int i;
    float col[4*4];
    int gouraud=0;
@@ -3063,6 +3037,9 @@ void VIDOGLVdp2DrawStart(void)
 void VIDOGLVdp2DrawEnd(void)
 {
    YglRender();
+   /* It would be better to reset manualchange in a Vdp1SwapFrameBuffer
+   function that would be called here and during a manual change */
+   Vdp1External.manualchange = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3146,8 +3123,6 @@ static void Vdp2DrawNBG0(void)
    vdp2draw_struct info;
    YglTexture texture;
    YglCache tmpc;
-   int i, i2;
-   u32 linescrolladdr; 
    vdp2rotationparameter_struct parameter;
    info.dst=0;
    info.uclipmode=0;
@@ -3364,7 +3339,6 @@ static void Vdp2DrawNBG1(void)
 {
    vdp2draw_struct info;
    YglTexture texture;
-   float *tmp;
    YglCache tmpc;
    info.dst=0;
    info.uclipmode=0;
@@ -3781,13 +3755,13 @@ static void Vdp2DrawRBG0(void)
       if( paraA.coefenab == 0 && paraB.coefenab == 0 )
       {
          info.GetRParam = (Vdp2GetRParam_func) vdp2RGetParamMode03NoK;
-      }else if( paraA.coefenab == 1 && paraB.coefenab == 0 )
+      }else if( paraA.coefenab && paraB.coefenab == 0 )
       {
          info.GetRParam = (Vdp2GetRParam_func) vdp2RGetParamMode03WithKA;
-      }else if( paraA.coefenab == 0 && paraB.coefenab == 1  )
+      }else if( paraA.coefenab == 0 && paraB.coefenab )
       {
          info.GetRParam = (Vdp2GetRParam_func) vdp2RGetParamMode03WithKB;
-      }else if( paraA.coefenab == 1 && paraB.coefenab == 1  )
+      }else if( paraA.coefenab && paraB.coefenab )
       {
          info.GetRParam = (Vdp2GetRParam_func) vdp2RGetParamMode03WithK;
       }

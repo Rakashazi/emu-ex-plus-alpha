@@ -151,7 +151,7 @@ public:
 
 	std::string name() const { return string(""); }
 
-	void processAudio(TIASound::Sample* stream, uint length);
+	void processAudio(Int16* stream, uint length);
 };
 
 static const uint soundChannels = 1;

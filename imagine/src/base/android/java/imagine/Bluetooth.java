@@ -39,36 +39,24 @@ final class Bluetooth
 			//Log.i(logTag, "no bluetooth adapter found");
 			return null;
 		}
-		if(!adapter.isEnabled())
-		{
-			act.startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
-			return null;
-		}
 		Context context = act.getApplicationContext();
 		context.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
 		context.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
 		return adapter;
 	}
 	
-	static int startScan(Activity act, BluetoothAdapter adapter)
+	static boolean startScan(BluetoothAdapter adapter)
 	{
-		if(!adapter.isEnabled())
-		{
-			act.startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
-			return 0;
-		}
-	
 		if(devs == null)
 			devs = new ArrayList<BluetoothDevice>();
 		devs.clear();
 		
 		if(adapter.isDiscovering())
 			adapter.cancelDiscovery();
-        adapter.startDiscovery();
-        return 1;
+        return adapter.startDiscovery();
 	}
 	
-	static void cancelScan(Activity act, BluetoothAdapter adapter)
+	static void cancelScan(BluetoothAdapter adapter)
 	{
 		adapter.cancelDiscovery();
 		devs.clear();

@@ -81,7 +81,7 @@
    declares uintmax_t. */
 #define HAVE_INTTYPES_H_WITH_UINTMAX 1
 
-#if defined(CONFIG_BASE_PS3) || defined(CONFIG_BASE_PS3)
+#if defined(CONFIG_BASE_PS3)
 	#define CONFIG_SUPPORT_32BPP
 #endif
 

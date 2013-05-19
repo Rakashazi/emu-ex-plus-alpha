@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,9 +13,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "Option.hh"
 #include <config/env.hh>
@@ -29,8 +29,12 @@ extern OptionAudioHintPcmMaxBuffers optionSoundBuffers;
 #ifdef CONFIG_AUDIO_OPENSL_ES
 extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
 #endif
+#ifdef CONFIG_AUDIO_SOLO_MIX
+using OptionAudioSoloMix = Option<OptionMethodFunc<bool, Audio::soloMix, Audio::setSoloMix>, uint8>;
+extern OptionAudioSoloMix optionAudioSoloMix;
+#endif
 extern Byte4Option optionSoundRate;
-extern Byte1Option optionLargeFonts;
+extern Byte2Option optionFontSize;
 extern Byte1Option optionVibrateOnPush;
 extern Byte1Option optionPauseUnfocused;
 extern Byte1Option optionNotificationIcon;
@@ -50,12 +54,13 @@ extern Byte1Option optionNotifyInputDeviceChange;
 
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;
+#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 extern OptionBlueToothScanCache optionBlueToothScanCache;
+#endif
 #endif
 
 extern Byte4s1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
-
 
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
@@ -80,6 +85,7 @@ extern Byte4s2Option optionTouchCtrlExtraXBtnSize;
 extern Byte4s2Option optionTouchCtrlExtraYBtnSize;
 extern Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow;
 extern Byte1Option optionTouchCtrlBoundingBoxes;
+extern Byte1Option optionTouchCtrlShowOnTouch;
 
 extern Option2DOrigin optionTouchCtrlDpadPos;
 extern Option2DOrigin optionTouchCtrlFaceBtnPos;
@@ -96,29 +102,32 @@ extern OptionDPI optionDPI;
 
 extern OptionRecentGames optionRecentGames;
 
+#if (defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS < 3) || (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK < 9)
+#define CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
 extern Byte4s2Option optionTouchCtrlImgRes;
+#endif
 
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
-		extern Byte1Option optionDirectTexture;
+	static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
+	extern Byte1Option optionDirectTexture;
 	#endif
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
-		static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
-		extern Byte1Option optionSurfaceTexture;
-		extern SByte1Option optionProcessPriority;
+	static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
+	extern Byte1Option optionSurfaceTexture;
+	extern SByte1Option optionProcessPriority;
 	#endif
 	#if defined CONFIG_INPUT_ANDROID
-		extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
+	extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
 	#endif
-	extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
+extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
 
 extern Byte1Option optionDitherImage;
 
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
-	#define USE_BEST_COLOR_MODE_OPTION
-	extern Byte1Option optionBestColorModeHint;
+#define USE_BEST_COLOR_MODE_OPTION
+extern Byte1Option optionBestColorModeHint;
 #endif
 
 extern PathOption optionSavePath;

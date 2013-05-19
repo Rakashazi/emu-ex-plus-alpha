@@ -240,7 +240,7 @@ CallResult IoZip::seekS(long offset, uint mode)
 	uchar dummy[4096];
 	while(bytesToSkip)
 	{
-		size_t bytesRead = readUpTo(dummy, IG::min(sizeof(dummy), (size_t)bytesToSkip));
+		size_t bytesRead = readUpTo(dummy, std::min(sizeof(dummy), (size_t)bytesToSkip));
 		//logDMsg("skipped %d bytes", (int)bytesRead);
 		if(!bytesRead)
 			break;

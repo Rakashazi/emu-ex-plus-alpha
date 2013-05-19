@@ -7,44 +7,72 @@ static void setupNESFourScore();
 
 class SystemOptionView : public OptionView
 {
-private:
+public:
 
 	BiosSelectMenu biosSelectMenu {&::fdsBiosPath, biosFsFilter};
 	char fdsBiosPathStr[256] {0};
-	TextMenuItem fdsBiosPath {"", TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, fdsBiosPathHandler)>(this)};
+	TextMenuItem fdsBiosPath
+	{
+		"",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			biosSelectMenu.init(!e.isPointer());
+			biosSelectMenu.placeRect(Gfx::viewportRect());
+			biosSelectMenu.onBiosChange() =
+				[this]()
+				{
+					logMsg("set fds bios %s", ::fdsBiosPath);
+					printBiosMenuEntryStr(fdsBiosPathStr);
+					fdsBiosPath.compile();
+				};
+			modalView = &biosSelectMenu;
+			Base::displayNeedsUpdate();
+		}
+	};
 
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? string_basename(::fdsBiosPath) : "None set");
+		FsSys::cPath basenameTemp;
+		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? string_basename(::fdsBiosPath, basenameTemp) : "None set");
 	}
 
-	void biosPathUpdated()
+	BoolMenuItem fourScore
 	{
-		logMsg("set fds bios %s", ::fdsBiosPath);
-		printBiosMenuEntryStr(fdsBiosPathStr);
-		fdsBiosPath.compile();
-	}
+		"4-Player Adapter",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionFourScore = item.on;
+			setupNESFourScore();
+		}
+	};
 
-	void fdsBiosPathHandler(TextMenuItem &, const Input::Event &e)
+	MultiChoiceSelectMenuItem inputPorts
 	{
-		biosSelectMenu.init(!e.isPointer());
-		biosSelectMenu.placeRect(Gfx::viewportRect());
-		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::biosPathUpdated>(this);
-		modalView = &biosSelectMenu;
-		Base::displayNeedsUpdate();
-	}
+		"Input Ports",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			if(val == 0)
+			{
+				nesInputPortDev[0] = nesInputPortDev[1] = SI_UNSET;
+			}
+			else if(val == 1)
+			{
+				nesInputPortDev[0] = nesInputPortDev[1] = SI_GAMEPAD;
+			}
+			else if(val == 2)
+			{
+				nesInputPortDev[0] = SI_GAMEPAD; nesInputPortDev[1] = SI_ZAPPER;
+			}
+			else if(val == 3)
+			{
+				nesInputPortDev[0] = SI_ZAPPER; nesInputPortDev[1] = SI_GAMEPAD;
+			}
 
-	BoolMenuItem fourScore {"4-Player Adapter", BoolMenuItem::SelectDelegate::create<&fourScoreHandler>()};
-
-	static void fourScoreHandler(BoolMenuItem &item, const Input::Event &e)
-	{
-		item.toggle();
-		optionFourScore = item.on;
-		setupNESFourScore();
-	}
-
-	MultiChoiceSelectMenuItem inputPorts {"Input Ports", MultiChoiceMenuItem::ValueDelegate::create<&inputPortsSet>()};
+			setupNESInputPorts();
+		}
+	};
 
 	void inputPortsInit()
 	{
@@ -63,29 +91,27 @@ private:
 		inputPorts.init(str, setting, sizeofArray(str));
 	}
 
-	static void inputPortsSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem videoSystem
 	{
-		if(val == 0)
+		"Video System",
+		[](MultiChoiceMenuItem &, int val)
 		{
-			nesInputPortDev[0] = nesInputPortDev[1] = SI_UNSET;
+			optionVideoSystem = val;
+			switch(val)
+			{
+				bcase 0:
+					logMsg("using %s", autoDetectedVidSysPAL ? "PAL" : "NTSC");
+					FCEUI_SetVidSystem(autoDetectedVidSysPAL);
+				bcase 1:
+					logMsg("forcing NTSC");
+					FCEUI_SetVidSystem(0);
+				bcase 2:
+					logMsg("forcing PAL");
+					FCEUI_SetVidSystem(1);
+			}
+			EmuSystem::configAudioPlayback();
 		}
-		else if(val == 1)
-		{
-			nesInputPortDev[0] = nesInputPortDev[1] = SI_GAMEPAD;
-		}
-		else if(val == 2)
-		{
-			nesInputPortDev[0] = SI_GAMEPAD; nesInputPortDev[1] = SI_ZAPPER;
-		}
-		else if(val == 3)
-		{
-			nesInputPortDev[0] = SI_ZAPPER; nesInputPortDev[1] = SI_GAMEPAD;
-		}
-
-		setupNESInputPorts();
-	}
-
-	MultiChoiceSelectMenuItem videoSystem {"Video System", MultiChoiceMenuItem::ValueDelegate::create<&videoSystemSet>()};
+	};
 
 	void videoSystemInit()
 	{
@@ -93,29 +119,13 @@ private:
 		{
 			"Auto", "NTSC", "PAL"
 		};
-		videoSystem.init(str, IG::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
+		videoSystem.init(str, std::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
 	}
 
-	static void videoSystemSet(MultiChoiceMenuItem &, int val)
-	{
-		optionVideoSystem = val;
-		switch(val)
-		{
-			bcase 0:
-				logMsg("using %s", autoDetectedVidSysPAL ? "PAL" : "NTSC");
-				FCEUI_SetVidSystem(autoDetectedVidSysPAL);
-			bcase 1:
-				logMsg("forcing NTSC");
-				FCEUI_SetVidSystem(0);
-			bcase 2:
-				logMsg("forcing PAL");
-				FCEUI_SetVidSystem(1);
-		}
-		EmuSystem::configAudioRate();
-	}
+
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{
@@ -164,20 +174,24 @@ private:
 		}
 	} setSide[4];
 
-	TextMenuItem insertEject {"Eject", TextMenuItem::SelectDelegate::create<&insertEjectHandler>()};
-
-	static void insertEjectHandler(TextMenuItem &, const Input::Event &e)
+	TextMenuItem insertEject
 	{
-		if(FCEU_FDSInserted())
+		"Eject",
+		[](TextMenuItem &, const Input::Event &e)
 		{
-			FCEU_FDSInsert();
-			viewStack.popAndShow();
+			if(FCEU_FDSInserted())
+			{
+				FCEU_FDSInsert();
+				viewStack.popAndShow();
+			}
 		}
-	}
+	};
+
+
 
 	MenuItem *item[5] = {nullptr}; //sizeofArrayConst(setSide) + 2 not accepted by older GCC
 public:
-	constexpr FDSControlView(): BaseMenuView("FDS Control") { }
+	FDSControlView(): BaseMenuView("FDS Control") { }
 
 	void init(bool highlightFirst)
 	{
@@ -231,19 +245,21 @@ private:
 		}
 	} fdsControl;
 
-	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
+	TextMenuItem cheats
 	{
-		if(EmuSystem::gameIsRunning())
+		"Cheats",
+		[](TextMenuItem &item, const Input::Event &e)
 		{
-			cheatsMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&cheatsMenu);
+			if(EmuSystem::gameIsRunning())
+			{
+				cheatsMenu.init(!e.isPointer());
+				viewStack.pushAndShow(&cheatsMenu);
+			}
 		}
-	}
-
-	TextMenuItem cheats {"Cheats"};
+	};
 
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 
 	void onShow()
 	{
@@ -259,7 +275,6 @@ public:
 		loadFileBrowserItems(item, items);
 		fdsControl.init(); item[items++] = &fdsControl;
 		cheats.init(); item[items++] = &cheats;
-		cheats.selectDelegate().bind<&cheatsHandler>();
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
 		BaseMenuView::init(item, items, highlightFirst);

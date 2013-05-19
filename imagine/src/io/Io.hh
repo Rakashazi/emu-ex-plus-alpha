@@ -1,3 +1,5 @@
+#pragma once
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -13,10 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#pragma once
-
 #include <engine-globals.h>
 #include <limits.h>
+#include <algorithm>
 
 // allow writes, creates a new file if not present
 #define IO_OPEN_WRITE BIT(0)
@@ -141,7 +142,7 @@ public:
 		uchar buff[4096];
 		while(bytesToWrite)
 		{
-			size_t bytes = IG::min((ulong)sizeof(buff), bytesToWrite);
+			size_t bytes = std::min((ulong)sizeof(buff), bytesToWrite);
 			CallResult ret = read(buff, bytes);
 			if(ret != OK)
 			{

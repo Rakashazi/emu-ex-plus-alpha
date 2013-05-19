@@ -46,6 +46,8 @@ endif
 
 configInc += <gngeo-config.h>
 
+include $(IMAGINE_PATH)/make/package/zlib.mk
+
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

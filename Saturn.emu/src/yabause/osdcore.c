@@ -19,6 +19,8 @@
 
 #include "osdcore.h"
 #include "vdp1.h"
+#include "font.h"
+#include "titan/titan.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -40,6 +42,7 @@ OSD_struct *OSDCoreList[] = {
 #ifdef HAVE_LIBGLUT
 &OSDGlut,
 #endif
+&OSDSoft,
 NULL
 };
 #else
@@ -70,6 +73,7 @@ int OSDInit(int coreid)
 
    memset(osdmessages, 0, sizeof(osdmessages));
    osdmessages[OSDMSG_FPS].hidden = 1;
+   osdmessages[OSDMSG_DEBUG].hidden = 1;
 
    return 0;
 }
@@ -82,14 +86,30 @@ void OSDDeInit() {
 
 int OSDChangeCore(int coreid)
 {
+   int preservefps, fpshidden, dbghidden;
+
+   preservefps = (OSD != NULL);
+   fpshidden = osdmessages[OSDMSG_FPS].hidden;
+   dbghidden = osdmessages[OSDMSG_DEBUG].hidden;
+
    OSDDeInit();
    OSDInit(coreid);
+
+   if (preservefps)
+   {
+      osdmessages[OSDMSG_FPS].hidden = fpshidden;
+      osdmessages[OSDMSG_DEBUG].hidden = dbghidden;
+   }
+
+   return 0;
 }
 
 void OSDPushMessage(int msgtype, int ttl, const char * format, ...)
 {
    va_list arglist;
    char message[1024];
+
+   if (ttl == 0) return;
 
    va_start(arglist, format);
    vsprintf(message, format, arglist);
@@ -101,19 +121,26 @@ void OSDPushMessage(int msgtype, int ttl, const char * format, ...)
    osdmessages[msgtype].timeleft = ttl;
 }
 
-void OSDDisplayMessages(void)
+int OSDDisplayMessages(pixel_t * buffer, int w, int h)
 {
    int i = 0;
+   int somethingnew = 0;
 
-   if (OSD == NULL) return;
+   if (OSD == NULL) return somethingnew;
 
    for(i = 0;i < OSDMSG_COUNT;i++)
-      if ((osdmessages[i].hidden == 0) && (osdmessages[i].timeleft > 0))
+      if (osdmessages[i].timeleft > 0)
       {
-         OSD->DisplayMessage(osdmessages + i);
+         if (osdmessages[i].hidden == 0)
+         {
+            somethingnew = 1;
+            OSD->DisplayMessage(osdmessages + i, buffer, w, h);
+         }
          osdmessages[i].timeleft--;
          if (osdmessages[i].timeleft == 0) free(osdmessages[i].message);
       }
+
+   return somethingnew;
 }
 
 void OSDToggle(int what)
@@ -136,6 +163,13 @@ void OSDSetVisible(int what, int visible)
 
    visible = visible == 0 ? 0 : 1;
    osdmessages[what].hidden = 1 - visible;
+}
+
+int OSDUseBuffer(void)
+{
+   if (OSD == NULL) return 0;
+
+   return OSD->UseBuffer();
 }
 
 void ToggleFPS()
@@ -161,7 +195,8 @@ void DisplayMessage(const char* str)
 static int OSDDummyInit(void);
 static void OSDDummyDeInit(void);
 static void OSDDummyReset(void);
-static void OSDDummyDisplayMessage(OSDMessage_struct * message);
+static void OSDDummyDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h);
+static int OSDDummyUseBuffer(void);
 
 OSD_struct OSDDummy = {
     OSDCORE_DUMMY,
@@ -169,7 +204,8 @@ OSD_struct OSDDummy = {
     OSDDummyInit,
     OSDDummyDeInit,
     OSDDummyReset,
-    OSDDummyDisplayMessage
+    OSDDummyDisplayMessage,
+    OSDDummyUseBuffer,
 };
 
 int OSDDummyInit(void)
@@ -185,8 +221,13 @@ void OSDDummyReset(void)
 {
 }
 
-void OSDDummyDisplayMessage(OSDMessage_struct * message)
+void OSDDummyDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h)
 {
+}
+
+int OSDDummyUseBuffer(void)
+{
+   return 0;
 }
 
 #ifdef HAVE_LIBGLUT
@@ -199,7 +240,8 @@ void OSDDummyDisplayMessage(OSDMessage_struct * message)
 static int OSDGlutInit(void);
 static void OSDGlutDeInit(void);
 static void OSDGlutReset(void);
-static void OSDGlutDisplayMessage(OSDMessage_struct * message);
+static void OSDGlutDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h);
+static int OSDGlutUseBuffer(void);
 
 OSD_struct OSDGlut = {
     OSDCORE_GLUT,
@@ -207,12 +249,12 @@ OSD_struct OSDGlut = {
     OSDGlutInit,
     OSDGlutDeInit,
     OSDGlutReset,
-    OSDGlutDisplayMessage
+    OSDGlutDisplayMessage,
+    OSDGlutUseBuffer
 };
 
 int OSDGlutInit(void)
 {
-#ifndef WIN32
    int fake_argc = 1;
    char * fake_argv[] = { "yabause" };
    static int glutinited = 0;
@@ -223,7 +265,7 @@ int OSDGlutInit(void)
       glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_STENCIL);
       glutinited = 1;
    }
-#endif
+
    return 0;
 }
 
@@ -235,7 +277,7 @@ void OSDGlutReset(void)
 {
 }
 
-void OSDGlutDisplayMessage(OSDMessage_struct * message)
+void OSDGlutDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h)
 {
    int LeftX=9;
    int Width=500;
@@ -270,4 +312,82 @@ void OSDGlutDisplayMessage(OSDMessage_struct * message)
    }
    glColor3f(1, 1, 1);
 }
+
+int OSDGlutUseBuffer(void)
+{
+   return 0;
+}
 #endif
+
+static int OSDSoftInit(void);
+static void OSDSoftDeInit(void);
+static void OSDSoftReset(void);
+static void OSDSoftDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h);
+static int OSDSoftUseBuffer(void);
+
+OSD_struct OSDSoft = {
+    OSDCORE_SOFT,
+    "Software OSD Interface",
+    OSDSoftInit,
+    OSDSoftDeInit,
+    OSDSoftReset,
+    OSDSoftDisplayMessage,
+    OSDSoftUseBuffer
+};
+
+int OSDSoftInit(void)
+{
+   return 0;
+}
+
+void OSDSoftDeInit(void)
+{
+}
+
+void OSDSoftReset(void)
+{
+}
+
+void OSDSoftDisplayMessage(OSDMessage_struct * message, pixel_t * buffer, int w, int h)
+{
+   int i;
+   char * c;
+   int loffset = 0;
+
+   if (buffer == NULL) return;
+
+   switch (message->type)
+   {
+      case OSDMSG_STATUS:
+         loffset = h - 48;
+         break;
+   }
+
+   c = message->message;
+   i = 0;
+   while(*c)
+   {
+      if (*c >= 47)
+      {
+         int first_line, l, p;
+         first_line = *c * 10;
+         for(l = 0;l < 10;l++)
+         {
+            for(p = 0;p < 9;p++)
+            {
+               if (font[first_line + l][p] == '.')
+                  TitanWriteColor(buffer, w, (i * 8) + 20 + p, loffset + l + 20, 0xFF000000);
+               else if (font[first_line + l][p] == '#')
+                  TitanWriteColor(buffer, w, (i * 8) + 20 + p, loffset + l + 20, 0xFFFFFFFF);
+            }
+         }
+      }
+      c++;
+      i++;
+   }
+}
+
+int OSDSoftUseBuffer(void)
+{
+   return 1;
+}

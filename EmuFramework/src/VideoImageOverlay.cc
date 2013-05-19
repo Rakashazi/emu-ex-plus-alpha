@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <VideoImageOverlay.hh>
 #include <EmuSystem.hh>
@@ -72,8 +72,8 @@ void VideoImageOverlay::setEffect(uint effect)
 			new(&pix) Pixmap(PixelFormatRGBA8888);
 			pix.init((uchar*)crtRgbPixmapBuff, 16, 2);//8, 2);
 		bdefault: // turn off effect
-			if(spr.img)
-				spr.deinitAndFreeImg();
+			spr.deinit();
+			img.deinit();
 			return;
 	}
 
@@ -85,7 +85,7 @@ void VideoImageOverlay::setEffect(uint effect)
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 {
-	if(spr.img)
+	if(spr.image())
 	{
 		spr.setPos(disp);
 		float width = lines*(EmuSystem::aspectRatioX/(float)EmuSystem::aspectRatioY);
@@ -109,7 +109,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 void VideoImageOverlay::draw()
 {
 	using namespace Gfx;
-	if(spr.img)
+	if(spr.image())
 	{
 		setColor(1., 1., 1., intensity);
 		setImgMode(IMG_MODE_MODULATE);

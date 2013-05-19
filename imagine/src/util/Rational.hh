@@ -18,7 +18,7 @@ public:
   }
   static constexpr int gcd(uint a, uint b)
   {
-    return gcd_inner(IG::max(a, b), IG::min(a, b));
+    return gcd_inner(IG::maxConst(a, b), IG::minConst(a, b));
   }
 
   constexpr operator bool() const

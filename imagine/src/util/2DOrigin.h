@@ -15,7 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/number.h>
+#include <cmath>
+#include <cstdlib>
 #include <util/memory.h>
 #include <util/branch.h>
 
@@ -203,9 +204,9 @@ public:
 	static T adjust(T pos, T halfSize, T fullSize, int inputScale, int outputScale)
 	{
 		int scaleDiff = inputScale - outputScale;
-		if(IG::abs(scaleDiff) == 1)
+		if(std::abs(scaleDiff) == 1)
 			return pos - IG::multBySignOf(halfSize, (T)scaleDiff);
-		else if(IG::abs(scaleDiff) == 2)
+		else if(std::abs(scaleDiff) == 2)
 			return pos - IG::multBySignOf(fullSize, (T)scaleDiff);
 		else
 			return pos;

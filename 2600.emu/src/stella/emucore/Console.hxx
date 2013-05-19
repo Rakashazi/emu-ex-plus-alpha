@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.hxx 2527 2012-06-05 16:32:35Z stephena $
+// $Id: Console.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -54,7 +54,7 @@ struct ConsoleInfo
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 2527 2012-06-05 16:32:35Z stephena $
+  @version $Id: Console.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class Console : public Serializable
 {

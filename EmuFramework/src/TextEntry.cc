@@ -1,7 +1,22 @@
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <TextEntry.hh>
 #include <gui/GuiTable1D/GuiTable1D.hh>
 
-ResourceImage *getXAsset();
+Gfx::BufferImage *getXAsset();
 
 void TextEntry::setAcceptingInput(bool on)
 {
@@ -113,47 +128,43 @@ void TextEntry::deinit()
 	t.deinit();
 }
 
-void CollectTextInputView::init(const char *msgText, const char *initialContent)
+void CollectTextInputView::init(const char *msgText, const char *initialContent, ResourceFace *face)
 {
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl)
 	{
 		auto res = getXAsset();
-		res->ref();
 		cancelSpr.init(-.5, -.5, .5, .5, res);
 	}
 	#endif
-	message.init(msgText, View::defaultFace);
+	message.init(msgText, face);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-	textEntry.init(initialContent, View::defaultFace);
+	textEntry.init(initialContent, face);
 	textEntry.setAcceptingInput(1);
 	#else
-	Input::startSysTextInput(Input::InputTextDelegate::create<template_mfunc(CollectTextInputView, gotText)>(this), initialContent, msgText);
+	Input::startSysTextInput(
+		[this](const char *str)
+		{
+			if(!str)
+			{
+				logMsg("text collection canceled by external source");
+				removeModalView();
+				return;
+			}
+			if(onTextD(str))
+			{
+				logMsg("text collection canceled by text delegate");
+				removeModalView();
+			}
+		},
+		initialContent, msgText, face->settings.pixelHeight);
 	#endif
 }
-
-#ifdef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-void CollectTextInputView::gotText(const char *str)
-{
-	if(!str)
-	{
-		logMsg("text collection canceled by external source");
-		removeModalView();
-		return;
-	}
-	if(onTextDel.invoke(str))
-	{
-		logMsg("text collection canceled by text delegate");
-		removeModalView();
-	}
-}
-#endif
 
 void CollectTextInputView::deinit()
 {
 	#ifndef CONFIG_BASE_ANDROID
-	if(cancelSpr.img)
-		cancelSpr.deinitAndFreeImg();
+	cancelSpr.deinit();
 	#endif
 	message.deinit();
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
@@ -167,7 +178,7 @@ void CollectTextInputView::place()
 {
 	using namespace Gfx;
 	#ifndef CONFIG_BASE_ANDROID
-	if(cancelSpr.img)
+	if(cancelSpr.image())
 	{
 		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace->nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(-Gfx::gXSize(cancelBtn)/3., -Gfx::gYSize(cancelBtn)/3., Gfx::gXSize(cancelBtn)/3., Gfx::gYSize(cancelBtn)/3.);
@@ -177,7 +188,7 @@ void CollectTextInputView::place()
 	message.compile();
 	Rect2<int> textRect;
 	int xSize = rect.xSize() * 0.95;
-	int ySize = View::defaultFace->nominalHeight()*1.5;
+	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	textRect.setPosRel(rect.xPos(C2DO), rect.yPos(C2DO), xSize, ySize, C2DO);
 	textEntry.place(textRect);
@@ -204,7 +215,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	if(!textEntry.acceptingInput && acceptingInput)
 	{
 		logMsg("calling on-text delegate");
-		if(onTextDel.invoke(textEntry.str))
+		if(onTextD(textEntry.str))
 		{
 			textEntry.setAcceptingInput(1);
 		}
@@ -216,7 +227,7 @@ void CollectTextInputView::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	#ifndef CONFIG_BASE_ANDROID
-	if(cancelSpr.img)
+	if(cancelSpr.image())
 	{
 		setColor(COLOR_WHITE);
 		setBlendMode(BLEND_MODE_INTENSITY);

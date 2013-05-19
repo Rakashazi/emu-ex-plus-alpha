@@ -414,6 +414,8 @@ int Ygl_uniformVDP2DrawFramebuffer( float from, float to , float * offsetcol )
    glUniform1f(idfrom,from);
    glUniform1f(idto,to);
    glUniform4f(idcoloroffset,offsetcol[0],offsetcol[1],offsetcol[2],offsetcol[3]);
+
+   return 0;
 }
  
 
@@ -485,8 +487,6 @@ int YglInitShader( int id, const GLchar * vertex[], const GLchar * frag[] )
 
 int YglProgramInit()
 {
-
-   GLint compiled,linked;
    
    // 
    _prgid[PG_NORMAL] = 0;
@@ -582,7 +582,6 @@ int YglProgramChange( YglLevel * level, int prgid )
    }
    else if( prgid == PG_VFP1_HALFTRANS )
    {
-      GLuint id;
       level->prg[level->prgcurrent].setupUniform = Ygl_uniformHalfTrans;
       level->prg[level->prgcurrent].cleanupUniform = Ygl_cleanupHalfTrans;
 
@@ -590,7 +589,6 @@ int YglProgramChange( YglLevel * level, int prgid )
    }   
    else if( prgid == PG_VFP1_GOURAUDSAHDING_HALFTRANS )
    {
-      GLuint id;
       level->prg[level->prgcurrent].setupUniform = Ygl_uniformGlowShadingHalfTrans;
       level->prg[level->prgcurrent].cleanupUniform = Ygl_cleanupGlowShadingHalfTrans;
       level->prg[level->prgcurrent].vaid = glGetAttribLocation(_prgid[PG_VFP1_GOURAUDSAHDING],(const GLchar *)"grcolor");

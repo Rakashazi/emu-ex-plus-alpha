@@ -304,7 +304,7 @@ static const resource_int_t resid_resources_int[] = {
 #endif
 
 static const resource_int_t common_resources_int[] = {
-    { "SidEngine", SID_ENGINE_FASTSID,
+    { "SidEngine", SID_ENGINE_DEFAULT,
       RES_EVENT_STRICT, (resource_value_t)SID_ENGINE_RESID,
       &sid_engine, set_sid_engine, NULL },
     { "SidFilters", 1, RES_EVENT_SAME, NULL,

@@ -6,16 +6,16 @@
 namespace Bluetooth
 {
 
-bool startBT();
-CallResult initBT();
-void closeDevs();
-void closeBT();
+bool scanForDevices(BluetoothAdapter *bta, BluetoothAdapter::OnStatusDelegate onScanStatus);
+bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus);
+//CallResult initBT();
+void closeDevices(BluetoothAdapter *bta);
+void closeBT(BluetoothAdapter *&bta);
 uint devsConnected();
 uint pendingDevs();
-void connectPendingDevs();
+void connectPendingDevs(BluetoothAdapter *bta);
 
 static const uint maxGamepadsPerTypeStorage = 5;
 extern uint maxGamepadsPerType;
-extern uint scanSecs;
 
 }

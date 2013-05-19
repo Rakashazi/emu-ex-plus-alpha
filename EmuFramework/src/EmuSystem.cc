@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,11 +11,12 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
 #include <audio/Audio.hh>
+#include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FsSys::cPath EmuSystem::gamePath = "";
@@ -31,16 +32,18 @@ Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::CallbackRef *EmuSystem::autoSaveStateCallbackRef = nullptr;
+extern EmuNavView viewNav;
 void fixFilePermissions(const char *path);
 
 void saveAutoStateFromTimer();
-static const auto autoSaveStateCallback = Base::CallbackDelegate::create<&saveAutoStateFromTimer>();
-
-void saveAutoStateFromTimer()
+static Base::CallbackDelegate autoSaveStateCallback()
 {
-	logMsg("auto-save state timer fired");
-	EmuSystem::saveAutoState();
-	EmuSystem::autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback, 60*optionAutoSaveState);
+	return []()
+		{
+			logMsg("auto-save state timer fired");
+			EmuSystem::saveAutoState();
+			EmuSystem::autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback(), 60*optionAutoSaveState);
+		};
 }
 
 void EmuSystem::cancelAutoSaveStateTimer()
@@ -57,7 +60,7 @@ void EmuSystem::startAutoSaveStateTimer()
 	if(optionAutoSaveState > 1)
 	{
 		assert(!autoSaveStateCallbackRef);
-		autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback, 60*optionAutoSaveState); // minutes to seconds
+		autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback(), 60*optionAutoSaveState); // minutes to seconds
 	}
 }
 
@@ -65,7 +68,10 @@ void EmuSystem::startSound()
 {
 	if(optionSound)
 	{
-		Audio::openPcm(pcmFormat);
+		if(!Audio::isOpen())
+			Audio::openPcm(pcmFormat);
+		else
+			Audio::resumePcm();
 	}
 }
 
@@ -74,7 +80,7 @@ void EmuSystem::stopSound()
 	if(optionSound)
 	{
 		//logMsg("stopping sound");
-		Audio::closePcm();
+		Audio::pausePcm();
 	}
 }
 
@@ -152,7 +158,7 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 	}
 	else
 	{
-		uint skip = IG::min((emuFrame - emuFrameNow) - 1, (int)maxFrameSkip);
+		uint skip = std::min((emuFrame - emuFrameNow) - 1, (int)maxFrameSkip);
 		emuFrameNow = emuFrame;
 		if(skip)
 		{
@@ -188,8 +194,9 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 void EmuSystem::setupGamePaths(const char *filePath)
 {
 	{
-		// find the realpath the dirname portion separately in case the file is a symlink
-		strcpy(gamePath, string_dirname(filePath));
+		// find the realpath of the dirname portion separately in case the file is a symlink
+		FsSys::cPath dirnameTemp;
+		strcpy(gamePath, string_dirname(filePath, dirnameTemp));
 		char realPath[PATH_MAX];
 		if(!realpath(gamePath, realPath))
 		{
@@ -205,7 +212,8 @@ void EmuSystem::setupGamePaths(const char *filePath)
 	}
 
 	{
-		string_copy(gameName, string_basename(filePath));
+		FsSys::cPath basenameTemp;
+		string_copy(gameName, string_basename(filePath, basenameTemp));
 
 		string_printf(fullGamePath, "%s/%s", gamePath, gameName);
 		logMsg("set full game path: %s", fullGamePath);
@@ -215,5 +223,22 @@ void EmuSystem::setupGamePaths(const char *filePath)
 		if(dotPos)
 			*dotPos = 0;
 		logMsg("set game name: %s", gameName);
+	}
+}
+
+void EmuSystem::closeGame(bool allowAutosaveState)
+{
+	if(gameIsRunning())
+	{
+		if(Audio::isOpen())
+			Audio::clearPcm();
+		if(allowAutosaveState)
+			saveAutoState();
+		logMsg("closing game %s", gameName);
+		closeSystem();
+		clearGamePaths();
+		cancelAutoSaveStateTimer();
+		viewNav.setRightBtnActive(0);
+		state = State::OFF;
 	}
 }

@@ -18,12 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <string>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <time.h>
 #include "types.h"
 #include "x6502.h"
 #include "fceu.h"
@@ -49,7 +43,6 @@
 #include "file.h"
 #include "vsuni.h"
 #include "ines.h"
-
 #ifdef WIN32
 #include "drivers/win/pref.h"
 
@@ -57,18 +50,13 @@ extern void CDLoggerROMClosed();
 extern void CDLoggerROMChanged();
 extern void ResetDebugStatisticsCounters();
 extern void SetMainWindowText();
-extern void CDLoggerPPUChanged();
-
-extern bool TaseditorIsRecording();
+extern bool isTaseditorRecording();
 
 extern int32 fps_scale;
 extern int32 fps_scale_unpaused;
 extern int32 fps_scale_frameadvance;
 extern void RefreshThrottleFPS();
 #endif
-
-//#include <fstream>
-//#include <sstream>
 
 #ifdef _S9XLUA_H
 #include "fceulua.h"
@@ -88,6 +76,16 @@ extern void RefreshThrottleFPS();
 #include "driver.h"
 #endif
 
+//#include <fstream>
+//#include <sstream>
+#include <string>
+
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
+#include <ctime>
+
 #include <logger/interface.h>
 
 using namespace std;
@@ -99,17 +97,23 @@ bool AutoSS = false;		//Flagged true when the first auto-savestate is made while
 bool movieSubtitles = true; //Toggle for displaying movie subtitles
 bool DebuggerWasUpdated = false; //To prevent the debugger from updating things without being updated.
 bool AutoResumePlay = false;
-char rom_name_when_closing_emulator[129] = {0};
+char romNameWhenClosingEmulator[2048] = {0};
 
 FCEUGI::FCEUGI()
-	: filename(0)
-	, archiveFilename(0) {
+	: filename(0),
+	  archiveFilename(0) {
 	//printf("%08x",opsize); // WTF?!
 }
 
 FCEUGI::~FCEUGI() {
-	if (filename) delete filename;
-	if (archiveFilename) delete archiveFilename;
+	if (filename) {
+	     free(filename);
+	     filename = NULL;
+	 }
+	if (archiveFilename) {
+	     delete archiveFilename;
+	     archiveFilename = NULL;
+	 }
 }
 
 /*bool CheckFileExists(const char* filename)
@@ -139,7 +143,6 @@ void FCEU_TogglePPU(void) {
 	}
 #ifdef WIN32
 	SetMainWindowText();
-	CDLoggerPPUChanged();
 #endif
 }
 
@@ -149,6 +152,11 @@ static void FCEU_CloseGame(void)
 {
 	if (GameInfo)
 	{
+		if (AutoResumePlay)
+		{
+			// save "-resume" savestate
+			FCEUSS_Save(FCEU_MakeFName(FCEUMKF_RESUMESTATE, 0, 0).c_str(), false);
+		}
 
 #ifdef WIN32
 	extern char LoadedRomFName[2048];
@@ -165,7 +173,7 @@ static void FCEU_CloseGame(void)
 
 		if (GameInfo->name) {
 			free(GameInfo->name);
-			GameInfo->name = 0;
+			GameInfo->name = NULL;
 		}
 
 		if (GameInfo->type != GIT_NSF) {
@@ -266,8 +274,8 @@ void FlushGenieRW(void) {
 		}
 		free(AReadG);
 		free(BWriteG);
-		AReadG = 0;
-		BWriteG = 0;
+		AReadG = NULL;
+		BWriteG = NULL;
 		RWWrap = 0;
 	}
 }
@@ -278,8 +286,10 @@ readfunc GetReadHandler(int32 a) {
 	else
 		return ARead[a];
 }
+
 void SetReadHandler(int32 start, int32 end, readfunc func) {
 	int32 x;
+
 	if (!func)
 		func = ANull;
 
@@ -366,14 +376,14 @@ void ResetGameLoaded(void) {
 	if (GameInfo) FCEU_CloseGame();
 	EmulationPaused = 0; //mbg 5/8/08 - loading games while paused was bad news. maybe this fixes it
 	GameStateRestore = 0;
-	PPU_hook = 0;
-	GameHBIRQHook = 0;
-	FFCEUX_PPURead = 0;
-	FFCEUX_PPUWrite = 0;
+	PPU_hook = NULL;
+	GameHBIRQHook = NULL;
+	FFCEUX_PPURead = NULL;
+	FFCEUX_PPUWrite = NULL;
 	if (GameExpSound.Kill)
 		GameExpSound.Kill();
 	memset(&GameExpSound, 0, sizeof(GameExpSound));
-	MapIRQHook = 0;
+	MapIRQHook = NULL;
 	MMC5Hack = 0;
 	PAL &= 1;
 	pale = 0;
@@ -490,6 +500,15 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 
 	if (GameInfo->type != GIT_NSF)
 		FCEU_LoadGameCheats(0);
+
+	if (AutoResumePlay)
+	{
+		// load "-resume" savestate
+		if (FCEUSS_Load(FCEU_MakeFName(FCEUMKF_RESUMESTATE, 0, 0).c_str(), false))
+			FCEU_DispMessage("Old play session resumed.", 0);
+	}
+
+	ResetScreenshotsCounter();
 
 #if defined (WIN32) || defined (WIN64)
 	DoDebuggerDataReload(); // Reloads data without reopening window
@@ -812,6 +831,7 @@ void FCEU_ResetVidSys(void) {
 		w = FSettings.PAL;
 
 	PAL = w ? 1 : 0;
+
 	FCEUPPU_SetVideoSystem(w);
 	SetSoundVariables();
 }
@@ -940,14 +960,15 @@ void UpdateAutosave(void) {
 		AutosaveCounter = 0;
 		AutosaveIndex = (AutosaveIndex + 1) % AutosaveQty;
 		f = strdup(FCEU_MakeFName(FCEUMKF_AUTOSTATE, AutosaveIndex, 0).c_str());
-		FCEUSS_Save(f);
+		FCEUSS_Save(f, false);
 		AutoSS = true;	//Flag that an auto-savestate was made
 		free(f);
+		f = NULL;
 		AutosaveStatus[AutosaveIndex] = 1;
 	}
 }
 
-void FCEUI_Autosave(void) {
+void FCEUI_RewindToLastAutosave(void) {
 	if (!EnableAutosave || !AutoSS)
 		return;
 
@@ -956,6 +977,7 @@ void FCEUI_Autosave(void) {
 		f = strdup(FCEU_MakeFName(FCEUMKF_AUTOSTATE, AutosaveIndex, 0).c_str());
 		FCEUSS_Load(f);
 		free(f);
+		f = NULL;
 
 		//Set pointer to previous available slot
 		if (AutosaveStatus[(AutosaveIndex + AutosaveQty - 1) % AutosaveQty] == 1) {
@@ -1013,7 +1035,7 @@ bool FCEU_IsValidUI(EFCEUI ui) {
 		if (!GameInfo) return false;
 		if (FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
 #ifdef WIN32
-		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && TaseditorIsRecording()) return true;
+		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && isTaseditorRecording()) return true;
 #endif
 		if (!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
 		break;

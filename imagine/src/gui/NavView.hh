@@ -18,22 +18,17 @@
 #include <gfx/GfxText.hh>
 #include <gfx/GeomRect.hh>
 #include <gfx/GfxLGradient.hh>
+#include <gfx/GfxBufferImage.hh>
 #include <util/rectangle2.h>
 #include <input/Input.hh>
-#include <util/Delegate.hh>
 
 class NavView
 {
 public:
-	typedef Delegate<void (const Input::Event &e)> OnInputDelegate;
-
 	constexpr NavView() { }
-	constexpr NavView(OnInputDelegate onLeftNavBtn, OnInputDelegate onRightNavBtn):
-			onLeftNavBtn(onLeftNavBtn), onRightNavBtn(onRightNavBtn) { }
 
-	OnInputDelegate onLeftNavBtn, onRightNavBtn;
-	OnInputDelegate &leftNavBtnDelegate() { return onLeftNavBtn; }
-	OnInputDelegate &rightNavBtnDelegate() { return onRightNavBtn; }
+	virtual void onLeftNavBtn(const Input::Event &e) {};
+	virtual void onRightNavBtn(const Input::Event &e) {};
 
 	Rect2<int> leftBtn, rightBtn, textRect;
 	Gfx::Text text;
@@ -56,12 +51,11 @@ class BasicNavView : public NavView
 {
 public:
 	constexpr BasicNavView() { }
-	constexpr BasicNavView(OnInputDelegate left, OnInputDelegate right): NavView(left, right) { }
 	Gfx::Sprite leftSpr, rightSpr;
 	Gfx::LGradient bg;
-	void init(ResourceFace *face, ResourceImage *leftRes, ResourceImage *rightRes,
+	void init(ResourceFace *face, Gfx::BufferImage *leftRes, Gfx::BufferImage *rightRes,
 			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
-	void setBackImage(ResourceImage *img);
+	void setBackImage(Gfx::BufferImage *img);
 	void draw() override;
 	void place() override;
 	void deinit() override;

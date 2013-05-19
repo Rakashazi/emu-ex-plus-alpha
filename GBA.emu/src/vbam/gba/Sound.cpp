@@ -12,6 +12,7 @@
 
 #include "../common/SoundDriver.h"
 #include <util/number.h>
+#include <algorithm>
 
 #define NR10 0x60
 #define NR11 0x62
@@ -368,7 +369,7 @@ static void end_frame( blip_time_t time )
 	stereo_buffer.end_frame( time );
 }
 
-#if !defined(CONFIG_AUDIO_ALSA) && !defined(CONFIG_AUDIO_SDL) && !defined(CONFIG_AUDIO_PS3) && !defined(CONFIG_AUDIO_COREAUDIO)
+#if !defined(CONFIG_AUDIO_ALSA) && !defined(CONFIG_AUDIO_SDL) && !defined(CONFIG_AUDIO_PS3)
 	// use WIP direct buffer write API
 	#define USE_DIRECT_AUDIO_COMMIT
 #endif
@@ -400,12 +401,12 @@ void flush_samples(Multi_Buffer * buffer, bool renderAudio)
 				dummySound(buffer, samples);
 				return;
 			}
-			samples = IG::min(samples, buffSamples);
+			samples = std::min(samples, buffSamples);
 			buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
 			systemCommitSoundBuffer(samples, buffContext);
 #else
 			u16 soundFinalWave[1600];
-			samples = IG::min(samples, uint(sizeof soundFinalWave / 2));
+			samples = std::min(samples, uint(sizeof soundFinalWave / 2));
 			buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
 			systemOnWriteDataToSoundBuffer(soundFinalWave, samples*2);
 #endif

@@ -1,4 +1,7 @@
-include $(currPath)/imagineCommonTarget.mk
+include $(buildSysPath)/imagineCommonTarget.mk
+include $(buildSysPath)/package/stdc++-headers.mk
+include $(buildSysPath)/evalPkgConfigCFlags.mk
+include $(buildSysPath)/evalPkgConfigLibs.mk
 
 ifeq ($(ENV), android)
  target := lib$(android_soName).so
@@ -10,6 +13,9 @@ targetFile := $(target)$(targetSuffix)$(targetExtension)
 $(targetDir)/$(targetFile) : $(OBJ) $(imagineStaticLib)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
+ifeq ($(ENV), ios)
+	@rm -f $@
+endif
 	$(PRINT_CMD) $(LD) -o $@ $^ $(LDFLAGS)
 ifeq ($(ENV), ios)
 ifndef iOSNoCodesign

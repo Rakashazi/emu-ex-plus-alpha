@@ -1,1 +1,0 @@
-../imagine/make/shortcut/common-builds/ios-armv7s.mk

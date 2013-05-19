@@ -18,7 +18,7 @@
 #include <gfx/GfxText.hh>
 #include <gui/View.hh>
 #include <gui/GuiTable1D/GuiTable1D.hh>
-#include <util/Delegate.hh>
+#include <util/DelegateFunc.hh>
 
 class MenuItem
 {
@@ -55,14 +55,14 @@ public:
 class TextMenuItem : public BaseTextMenuItem
 {
 public:
-	typedef Delegate<void (TextMenuItem &item, const Input::Event &e)> SelectDelegate;
-	SelectDelegate selectDel;
-	SelectDelegate &selectDelegate() { return selectDel; }
+	typedef DelegateFunc<void (TextMenuItem &item, const Input::Event &e)> SelectDelegate;
+	SelectDelegate selectD;
+	SelectDelegate &onSelect() { return selectD; }
 
 	constexpr TextMenuItem() { }
 	constexpr TextMenuItem(const char *str): BaseTextMenuItem(str) { }
-	constexpr TextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
-	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectDel(selectDel) { }
+	constexpr TextMenuItem(SelectDelegate selectDel): selectD(selectDel) { }
+	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectD(selectDel) { }
 
 	void select(View *parent, const Input::Event &e) override;
 };
@@ -85,14 +85,14 @@ public:
 class DualTextMenuItem : public BaseDualTextMenuItem
 {
 public:
-	typedef Delegate<void (DualTextMenuItem &item, const Input::Event &e)> SelectDelegate;
-	SelectDelegate selectDel;
-	SelectDelegate &selectDelegate() { return selectDel; }
+	typedef DelegateFunc<void (DualTextMenuItem &item, const Input::Event &e)> SelectDelegate;
+	SelectDelegate selectD;
+	SelectDelegate &onSelect() { return selectD; }
 
 	constexpr DualTextMenuItem() { }
 	constexpr DualTextMenuItem(const char *str): BaseDualTextMenuItem(str) { }
-	constexpr DualTextMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
-	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectDel(selectDel) { }
+	constexpr DualTextMenuItem(SelectDelegate selectDel): selectD(selectDel) { }
+	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectD(selectDel) { }
 
 	void select(View *parent, const Input::Event &e) override;
 };
@@ -101,11 +101,11 @@ public:
 class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
-	typedef Delegate<void (BoolMenuItem &item, const Input::Event &e)> SelectDelegate;
+	typedef DelegateFunc<void (BoolMenuItem &item, const Input::Event &e)> SelectDelegate;
 	constexpr BoolMenuItem() { }
 	constexpr BoolMenuItem(const char *str): BaseDualTextMenuItem(str) { }
-	constexpr BoolMenuItem(SelectDelegate selectDel): selectDel(selectDel) { }
-	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectDel(selectDel) { }
+	constexpr BoolMenuItem(SelectDelegate selectDel): selectD(selectDel) { }
+	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectD(selectDel) { }
 	bool on = 0;
 	const char *offStr = nullptr, *onStr = nullptr;
 	void init(const char *str, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
@@ -117,14 +117,14 @@ public:
 	void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 
 	void select(View *parent, const Input::Event &e) override;
-	SelectDelegate selectDel;
-	SelectDelegate &selectDelegate() { return selectDel; }
+	SelectDelegate selectD;
+	SelectDelegate &onSelect() { return selectD; }
 };
 
 class MultiChoiceMenuItem : public DualTextMenuItem
 {
 public:
-	typedef Delegate<void (MultiChoiceMenuItem &item, int val)> ValueDelegate;
+	typedef DelegateFunc<void (MultiChoiceMenuItem &item, int val)> ValueDelegate;
 
 	constexpr MultiChoiceMenuItem() { }
 	constexpr MultiChoiceMenuItem(const char *str): DualTextMenuItem(str) { }
@@ -139,7 +139,7 @@ public:
 	bool updateVal(int val);
 	void setVal(int val);
 	bool set(int val, const Input::Event &e);
-	virtual void doSet(int val) { valueD.invoke(*this, val); }
+	virtual void doSet(int val) { valueD(*this, val); }
 	void cycle(int direction);
 
 	ValueDelegate valueD;

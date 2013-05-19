@@ -14,7 +14,6 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -255,6 +254,7 @@ enum
 	c64KeyIdxLeftDown,
 	c64KeyIdxBtn,
 	c64KeyIdxBtnTurbo,
+	c64KeyIdxSwapPorts,
 
 	c64KeyIdxUp2,
 	c64KeyIdxRight2,
@@ -266,6 +266,7 @@ enum
 	c64KeyIdxLeftDown2,
 	c64KeyIdxBtn2,
 	c64KeyIdxBtnTurbo2,
+	c64KeyIdxSwapPorts2,
 
 	c64KeyToggleKB,
 
@@ -443,6 +444,7 @@ KBS_F6 = KB_F5 | SHIFT_BIT,
 KBS_F8 = KB_F7 | SHIFT_BIT,
 
 // special function codes
+KBEX_SWAP_JS_PORTS = 0xFFFC,
 KBEX_CTRL_LOCK = 0xFFFD,
 KBEX_SHIFT_LOCK = 0xFFFE,
 KBEX_TOGGLE_VKEYBOARD = 0xFFFF
@@ -521,7 +523,8 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case c64KeyIdxRightDown: return JOYPAD_SE << JS_SHIFT;
 		case c64KeyIdxLeftDown: return JOYPAD_SW << JS_SHIFT;
 		case c64KeyIdxBtn: return JOYPAD_FIRE << JS_SHIFT;
-		case c64KeyIdxBtnTurbo: turbo = 1 ;return JOYPAD_FIRE << JS_SHIFT;
+		case c64KeyIdxBtnTurbo: turbo = 1; return JOYPAD_FIRE << JS_SHIFT;
+		case c64KeyIdxSwapPorts: return KBEX_SWAP_JS_PORTS;
 
 		case c64KeyIdxUp2: return (JOYPAD_N | p2Bit) << JS_SHIFT;
 		case c64KeyIdxRight2: return (JOYPAD_E | p2Bit) << JS_SHIFT;
@@ -533,6 +536,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case c64KeyIdxLeftDown2: return (JOYPAD_SW | p2Bit) << JS_SHIFT;
 		case c64KeyIdxBtn2: return (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
 		case c64KeyIdxBtnTurbo2: turbo = 1; return JOYPAD_FIRE << JS_SHIFT;
+		case c64KeyIdxSwapPorts2: return KBEX_SWAP_JS_PORTS;
 
 		case c64KeyToggleKB : return KBEX_TOGGLE_VKEYBOARD;
 
@@ -666,29 +670,44 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	else // Keyboard
 	{
 		// Special Keys
-		if(unlikely(emuKey == KBEX_TOGGLE_VKEYBOARD))
+		switch(emuKey)
 		{
-			if(state == Input::PUSHED)
-				vController.toggleKeyboard();
-			return;
-		}
-		if(unlikely(emuKey == KBEX_SHIFT_LOCK))
-		{
-			if(state == Input::PUSHED)
+			case KBEX_SWAP_JS_PORTS:
 			{
-				toggle(shiftLock);
-				vController.updateKeyboardMapping();
+				if(state == Input::PUSHED)
+				{
+					if(optionSwapJoystickPorts)
+						optionSwapJoystickPorts = 0;
+					else
+						optionSwapJoystickPorts = 1;
+					popup.post("Swapped Joystick Ports", 1);
+				}
+				return;
 			}
-			return;
-		}
-		if(unlikely(emuKey == KBEX_CTRL_LOCK))
-		{
-			if(state == Input::PUSHED)
+			case KBEX_TOGGLE_VKEYBOARD:
 			{
-				toggle(ctrlLock);
-				setC64KBKey(KB_CTRL, ctrlLock);
+				if(state == Input::PUSHED)
+					vController.toggleKeyboard();
+				return;
 			}
-			return;
+			case KBEX_SHIFT_LOCK:
+			{
+				if(state == Input::PUSHED)
+				{
+					toggle(shiftLock);
+					vController.updateKeyboardMapping();
+				}
+				return;
+			}
+			case KBEX_CTRL_LOCK:
+			{
+				if(state == Input::PUSHED)
+				{
+					toggle(ctrlLock);
+					setC64KBKey(KB_CTRL, ctrlLock);
+				}
+				return;
+			}
 		}
 		if(unlikely((emuKey & 0xFF) == KB_NONE))
 		{
@@ -744,7 +763,8 @@ static bool isC64Extension(const char *name)
 {
 	return isC64DiskExtension(name) ||
 			isC64TapeExtension(name) ||
-			isC64CartExtension(name);
+			isC64CartExtension(name) ||
+			string_hasDotExtension(name, "prg");
 }
 
 static int c64FsFilter(const char *name, int type)
@@ -756,8 +776,6 @@ FsDirFilterFunc EmuFilePicker::defaultFsFilter = c64FsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = c64FsFilter;
 
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-
-#include <CommonViewControl.hh>
 
 void EmuSystem::resetGame()
 {
@@ -857,6 +875,8 @@ void EmuSystem::saveBackupMem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return isPal; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 void EmuSystem::clearInputBuffers()
 {
@@ -877,18 +897,6 @@ void EmuSystem::closeSystem()
 	file_system_detach_disk(8);
 	cartridge_detach_image(-1);
 	machine_trigger_reset(MACHINE_RESET_MODE_HARD);
-}
-
-static ptrsize c64Exec(ThreadPThread &thread)
-{
-	#ifdef __APPLE__
-		semaphore_wait(execSem);
-	#else
-		sem_wait(&execSem);
-	#endif
-	logMsg("running C64");
-	maincpu_mainloop();
-	return 0;
 }
 
 static void popupC64FirmwareError()
@@ -938,7 +946,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else
 	{
-		logMsg("loading disk/tape %s", path);
+		logMsg("loading disk/tape/prg %s", path);
 		if(autostart_autodetect(path, nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
 			popup.postError("Error loading disk/tape");
@@ -990,14 +998,14 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			int xBorderSize = 32, yBorderSize = 23;
 			int height = 200;
 			int startX = yBorderSize, startY = yBorderSize;
-			emuView.vidPixAlign = 2; // relax assumed alignment
+			//emuView.vidPixAlign = 2; // relax assumed alignment
 			if(c64VidY == 272) // PAL
 			{
 				// Crop all horizontal borders on PAL, leaving leftover top/bottom borders
 				yBorderSize = 32;
 				height = 206;
 				startX = xBorderSize; startY = xBorderSize;
-				emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
+				//emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 			}
 			int width = 320+(xBorderSize*2 - startX*2);
 			int widthPadding = startX*2;
@@ -1006,7 +1014,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		else
 		{
 			emuView.resizeImage(c64VidX, c64VidY);
-			emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
+			//emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 		}
 	}
 	if(renderGfx)
@@ -1068,7 +1076,19 @@ CallResult onInit(int argc, char** argv)
 		sem_init(&execSem, 0, 0);
 		sem_init(&execDoneSem, 0, 0);
 	#endif
-	c64Thread.create(1, ThreadPThread::EntryDelegate::create<&c64Exec>());
+	c64Thread.create(1,
+		[](ThreadPThread &thread)
+		{
+			#ifdef __APPLE__
+				semaphore_wait(execSem);
+			#else
+				sem_wait(&execSem);
+			#endif
+			logMsg("running C64");
+			maincpu_mainloop();
+			return 0;
+		}
+	);
 
 	#if !(defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB))
 		#if defined CONFIG_BASE_X11

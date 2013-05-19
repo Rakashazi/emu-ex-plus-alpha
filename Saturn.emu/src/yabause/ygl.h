@@ -22,7 +22,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <GL/gl.h>
-#include "windows/glext.h"
+#include "glext.h"
 #endif
 
 #ifdef HAVE_LIBSDL
@@ -146,8 +146,14 @@ typedef struct {
    int drawframe;
    GLuint rboid;
    GLuint vdp1fbo;
-   GLuint vdp1FrameBuff[2];  
-   
+   GLuint vdp1FrameBuff[2];
+
+   // Message Layer
+   int msgwidth;
+   int msgheight;
+   GLuint msgtexture;
+   u32 * messagebuf;
+
    int bUpdateWindow;
    int win0v[512*4];
    int win0_vertexcnt;
@@ -161,7 +167,6 @@ extern Ygl * _Ygl;
 
 
 int YglGLInit(int, int);
-int YglScreenInit(int r, int g, int b, int d);
 int YglInit(int, int, unsigned int);
 void YglDeInit(void);
 float * YglQuad(YglSprite *, YglTexture *,YglCache * c);
@@ -187,6 +192,9 @@ int YglSetLevelBlendmode( int pri, int mode );
 int Ygl_uniformVDP2DrawFramebuffer( float from, float to , float * offsetcol );
 
 void YglNeedToUpdateWindow();
+
+int YglProgramInit();
+int YglProgramChange( YglLevel * level, int prgid );
 
 #if 1  // Does anything need this?  It breaks a bunch of prototypes if
        // GLchar is typedef'd instead of #define'd  --AC

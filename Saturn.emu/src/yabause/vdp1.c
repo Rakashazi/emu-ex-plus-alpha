@@ -274,11 +274,14 @@ void FASTCALL Vdp1WriteWord(u32 addr, u16 val) {
       case 0x2:
          Vdp1Regs->FBCR = val;
          if ((Vdp1Regs->FBCR & 3) == 3)
+         {
             Vdp1External.manualchange = 1;
+         }
          else if ((Vdp1Regs->FBCR & 3) == 2)
             Vdp1External.manualerase = 1;
          break;
       case 0x4:
+         Vdp1Regs->COPR = 0;
          Vdp1Regs->PTMR = val;
          break;
       case 0x6:
@@ -331,6 +334,8 @@ void Vdp1Draw(void) {
    // BEF <- CEF
    // CEF <- 0
    Vdp1Regs->EDSR >>= 1;
+   /* this should be done after a frame change or a plot trigger */
+   Vdp1Regs->COPR = 0;
 
    command = T1ReadWord(Vdp1Ram, Vdp1Regs->addr);
 
@@ -345,18 +350,22 @@ void Vdp1Draw(void) {
                VIDCore->Vdp1ScaledSpriteDraw();
                break;
             case 2: // distorted sprite draw
+            case 3: /* this one should be invalid, but some games
+                    (Hardcore 4x4 for instance) use it instead of 2 */
                VIDCore->Vdp1DistortedSpriteDraw();
                break;
             case 4: // polygon draw
                VIDCore->Vdp1PolygonDraw();
                break;
             case 5: // polyline draw
+            case 7: // undocumented mirror
                VIDCore->Vdp1PolylineDraw();
                break;
             case 6: // line draw
                VIDCore->Vdp1LineDraw();
                break;
             case 8: // user clipping coordinates
+            case 11: // undocumented mirror
                VIDCore->Vdp1UserClipping();
                break;
             case 9: // system clipping coordinates
@@ -429,6 +438,8 @@ void Vdp1NoDraw(void) {
    // BEF <- CEF
    // CEF <- 0
    Vdp1Regs->EDSR >>= 1;
+   /* this should be done after a frame change or a plot trigger */
+   Vdp1Regs->COPR = 0;
 
    command = T1ReadWord(Vdp1Ram, Vdp1Regs->addr);
 
@@ -439,11 +450,15 @@ void Vdp1NoDraw(void) {
             case 0: // normal sprite draw
             case 1: // scaled sprite draw
             case 2: // distorted sprite draw
+            case 3: /* this one should be invalid, but some games
+                    (Hardcore 4x4 for instance) use it instead of 2 */
             case 4: // polygon draw
             case 5: // polyline draw
             case 6: // line draw
+            case 7: // undocumented polyline draw mirror
                break;
             case 8: // user clipping coordinates
+            case 11: // undocumented mirror
                VIDCore->Vdp1UserClipping();
                break;
             case 9: // system clipping coordinates
@@ -626,18 +641,24 @@ char *Vdp1DebugGetCommandNumberName(u32 number)
             return "Scaled Sprite";
          case 2:
             return "Distorted Sprite";
+         case 3:
+            return "Distorted Sprite *";
          case 4:
             return "Polygon";
          case 5:
             return "Polyline";
          case 6:
             return "Line";
+         case 7:
+            return "Polyline *";
          case 8:
             return "User Clipping Coordinates";
          case 9:
             return "System Clipping Coordinates";
          case 10:
             return "Local Coordinates";
+         case 11:
+            return "User Clipping Coordinates *";
          default:
              return "Bad command";
       }
@@ -735,6 +756,11 @@ void Vdp1DebugCommand(u32 number, char *outstring)
          AddString(outstring, "x1 = %d, y1 = %d, x2 = %d, y2 = %d\r\n", cmd.CMDXA, cmd.CMDYA, cmd.CMDXB, cmd.CMDYB);
          AddString(outstring, "x3 = %d, y3 = %d, x4 = %d, y4 = %d\r\n", cmd.CMDXC, cmd.CMDYC, cmd.CMDXD, cmd.CMDYD);
          break;
+      case 3:
+         AddString(outstring, "Distorted Sprite *\r\n");
+         AddString(outstring, "x1 = %d, y1 = %d, x2 = %d, y2 = %d\r\n", cmd.CMDXA, cmd.CMDYA, cmd.CMDXB, cmd.CMDYB);
+         AddString(outstring, "x3 = %d, y3 = %d, x4 = %d, y4 = %d\r\n", cmd.CMDXC, cmd.CMDYC, cmd.CMDXD, cmd.CMDYD);
+         break;
       case 4:
          AddString(outstring, "Polygon\r\n");
          AddString(outstring, "x1 = %d, y1 = %d, x2 = %d, y2 = %d\r\n", cmd.CMDXA, cmd.CMDYA, cmd.CMDXB, cmd.CMDYB);
@@ -748,6 +774,11 @@ void Vdp1DebugCommand(u32 number, char *outstring)
       case 6:
          AddString(outstring, "Line\r\n");
          AddString(outstring, "x1 = %d, y1 = %d, x2 = %d, y2 = %d\r\n", cmd.CMDXA, cmd.CMDYA, cmd.CMDXB, cmd.CMDYB);
+         break;
+      case 7:
+         AddString(outstring, "Polyline *\r\n");
+         AddString(outstring, "x1 = %d, y1 = %d, x2 = %d, y2 = %d\r\n", cmd.CMDXA, cmd.CMDYA, cmd.CMDXB, cmd.CMDYB);
+         AddString(outstring, "x3 = %d, y3 = %d, x4 = %d, y4 = %d\r\n", cmd.CMDXC, cmd.CMDYC, cmd.CMDXD, cmd.CMDYD);
          break;
       case 8:
          AddString(outstring, "User Clipping\r\n");
@@ -1012,6 +1043,7 @@ u32 *Vdp1DebugTexture(u32 number, int *w, int *h)
       case 0: // Normal Sprite
       case 1: // Scaled Sprite
       case 2: // Distorted Sprite
+      case 3: // Distorted Sprite *
          w[0] = (cmd.CMDSIZE & 0x3F00) >> 5;
          h[0] = cmd.CMDSIZE & 0xFF;
 
@@ -1029,6 +1061,7 @@ u32 *Vdp1DebugTexture(u32 number, int *w, int *h)
       case 4: // Polygon
       case 5: // Polyline
       case 6: // Line
+      case 7: // Polyline *
          // Do 1x1 pixel
          w[0] = 1;
          h[0] = 1;
@@ -1044,6 +1077,7 @@ u32 *Vdp1DebugTexture(u32 number, int *w, int *h)
       case 8: // User Clipping
       case 9: // System Clipping
       case 10: // Local Coordinates
+      case 11: // User Clipping *
          return NULL;
       default: // Invalid command
          return NULL;
@@ -1299,6 +1333,7 @@ void FASTCALL VIDDummyVdp2SetPriorityNBG2(int priority);
 void FASTCALL VIDDummyVdp2SetPriorityNBG3(int priority);
 void FASTCALL VIDDummyVdp2SetPriorityRBG0(int priority);
 void VIDDummyOnScreenDebugMessage(char * string, ...);
+void VIDDummyGetGlSize(int *width, int *height);
 
 
 VideoInterface_struct VIDDummy = {
@@ -1330,7 +1365,8 @@ VIDDummyVdp2SetPriorityNBG1,
 VIDDummyVdp2SetPriorityNBG2,
 VIDDummyVdp2SetPriorityNBG3,
 VIDDummyVdp2SetPriorityRBG0,
-VIDDummyOnScreenDebugMessage
+VIDDummyOnScreenDebugMessage,
+VIDDummyGetGlSize
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1497,4 +1533,12 @@ void FASTCALL VIDDummyVdp2SetPriorityRBG0(UNUSED int priority)
 
 void VIDDummyOnScreenDebugMessage(UNUSED char * string, ...)
 {
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void VIDDummyGetGlSize(int *width, int *height)
+{
+   *width = 0;
+   *height = 0;
 }

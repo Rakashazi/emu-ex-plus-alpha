@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.hxx 2523 2012-06-03 18:05:14Z stephena $
+// $Id: Thumbulator.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 //============================================================================
@@ -91,7 +91,9 @@ class Thumbulator
 
       @param enable  Enable (the default) or disable exceptions on fatal errors
     */
+		#ifdef THUMB_DEBUG_SUPPORT
     static void trapFatalErrors(bool enable) { trapOnFatal = enable; }
+		#endif
 
   private:
     uInt32 read_register ( uInt32 reg );
@@ -143,17 +145,13 @@ class Thumbulator
     uInt64 reads;
     uInt64 writes;
 
-		#ifdef THUMB_DEBUG_SUPPORT
-    Int32 DBUG; // dump detailed execution trace
-    Int32 DISS; // dump Thumb instruction trace
-		#else
-    static const Int32 DBUG = 0; // dump detailed execution trace
-    static const Int32 DISS = 0; // dump Thumb instruction trace
-		#endif
-
     ostringstream statusMsg;
 
+		#ifdef THUMB_DEBUG_SUPPORT
+    static constexpr bool trapOnFatal = 0;
+		#else
     static bool trapOnFatal;
+		#endif
 };
 
 #endif

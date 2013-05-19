@@ -21,7 +21,7 @@ endif
 
 webos_libm := $(WEBOS_PDK_PATH)/device/lib/libm.so.6
 
-include $(currPath)/gcc.mk
+include $(buildSysPath)/gcc.mk
 
 ifeq ($(webos_osVersion), 3)
  CPPFLAGS += -DCONFIG_ENV_WEBOS_OS=3
@@ -30,7 +30,7 @@ else
 endif
 
 COMPILE_FLAGS += $(webos_cpuFlags) -fsingle-precision-constant
-HIGH_OPTIMIZE_CFLAGS_MISC += -ffunction-sections -fdata-sections
+COMPILE_FLAGS += -ffunction-sections -fdata-sections
 # using _GNU_SOURCE avoids 2.7 sscanf symbol
 CPPFLAGS += -D_GNU_SOURCE -I$(WEBOS_PDK_PATH)/include -I$(WEBOS_PDK_PATH)/include/SDL -include $(WEBOS_PDK_PATH)/include/glibc24symbols.c
 WARNINGS_CFLAGS += -Wdouble-promotion -Wno-psabi

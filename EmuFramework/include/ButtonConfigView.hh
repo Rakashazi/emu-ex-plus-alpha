@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,77 +13,65 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <util/gui/BaseMenuView.hh>
 #include <gui/AlertView.hh>
 #include <EmuInput.hh>
 
-extern YesNoAlertView ynAlertView;
-
-static class ButtonConfigSetView : public View
+class ButtonConfigSetView : public View
 {
-	Rect2<int> viewFrame
-	#ifdef INPUT_SUPPORTS_POINTER
-	, unbindB, cancelB
-	#endif
-	;
-	char str[128] {0};
-	Gfx::Text text
-	#ifdef INPUT_SUPPORTS_POINTER
-	, unbind, cancel
-	#endif
-	;
+private:
+	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
 
-	typedef Delegate<void (const Input::Event &e)> SetDelegate;
+	Rect2<int> viewFrame;
+	#ifdef INPUT_SUPPORTS_POINTER
+	Rect2<int> unbindB, cancelB;
+	#endif
+	char str[128] {0};
+	Gfx::Text text;
+	#ifdef INPUT_SUPPORTS_POINTER
+	Gfx::Text unbind, cancel;
+	#endif
 	SetDelegate onSetD;
 	const Input::Device *dev = nullptr;
 	const Input::Device *savedDev = nullptr;
 
 	void initPointerUI();
 	bool pointerUIIsInit();
+
 public:
-	constexpr ButtonConfigSetView() { }
+	constexpr ButtonConfigSetView() {}
 
 	Rect2<int> &viewRect() { return viewFrame; }
-	void init(Input::Device &dev, const char *actionName, bool withPointerInput);
-	void deinit();
-	void place();
-	void inputEvent(const Input::Event &e);
-	void draw(Gfx::FrameTimeBase frameTime);
-	SetDelegate &onSet() { return onSetD; }
-} btnSetView2;
-
-
+	void init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet);
+	void deinit() override;
+	void place() override;
+	void inputEvent(const Input::Event &e) override;
+	void draw(Gfx::FrameTimeBase frameTime) override;
+};
 
 class ButtonConfigView : public BaseMenuView
 {
-	TextMenuItem reset {"Unbind All", TextMenuItem::SelectDelegate::create<template_mfunc(ButtonConfigView, resetHandler)>(this)};
-
-	void inputEvent(const Input::Event &e);
-
-	MenuItem **text = nullptr;
-
+private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
-		void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const;
+		void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 	};
 
+	TextMenuItem reset;
+	MenuItem **text = nullptr;
 	BtnConfigMenuItem *btn = nullptr;
 	const KeyCategory *cat = nullptr;
 	InputDeviceConfig *devConf = nullptr;
-	int keyToSet = 0;
+
+	void onSet(const Input::Event &e, int keyToSet);
 
 public:
-	constexpr ButtonConfigView() { }
+	ButtonConfigView();
 
 	void init(const KeyCategory *cat,
 		InputDeviceConfig &devConf, bool highlightFirst);
-	void deinit();
-	void confirmUnbindKeysAlert(const Input::Event &e);
-	void resetHandler(TextMenuItem &, const Input::Event &e);
-	void onSet(const Input::Event &e);
-	void onSelectElement(const GuiTable1D *, const Input::Event &e, uint i);
+	void inputEvent(const Input::Event &e) override;
+	void deinit() override;
 };

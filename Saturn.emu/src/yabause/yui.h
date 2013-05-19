@@ -29,24 +29,8 @@
 #include "vdp1.h"
 #include "yabause.h"
 
-#define RED_SIZE        1
-#define GREEN_SIZE      2
-#define BLUE_SIZE       3
-#define DEPTH_SIZE      4
-#define DOUBLEBUFFER	5
-
 /* If Yabause encounters any fatal errors, it sends the error text to this function */
 void YuiErrorMsg(const char *string);
-
-/* Sets attribute for the Video display. The values passed to this function
-   depends on what Video core is being used at the time. This may end up
-   being moved to the Video Core. */
-void YuiSetVideoAttribute(int type, int val);
-
-/* Tells the yui it wants to setup the display to display the specified video
-   format. It's up to the yui to setup the actual display. This may end
-   up being moved to the Video Core. */
-int YuiSetVideoMode(int width, int height, int bpp, int fullscreen);
 
 /* Tells the yui to exchange front and back video buffers. This may end
    up being moved to the Video Core. */

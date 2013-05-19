@@ -19,4 +19,4 @@ ifneq ($(config_compiler),clang)
 endif
 noDoubleFloat=1
 
-include $(currPath)/android-gcc.mk
+include $(buildSysPath)/android-gcc.mk

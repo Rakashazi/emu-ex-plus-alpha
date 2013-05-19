@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF8.cxx 2499 2012-05-25 12:41:19Z stephena $
+// $Id: CartF8.cxx 2581 2013-01-05 01:12:25Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -38,6 +38,7 @@ CartridgeF8::CartridgeF8(const uInt8* image, uInt32 size, const string& md5,
     (md5 == "bc24440b59092559a1ec26055fd1270e" ||  // Private Eye [a]
      md5 == "75ea60884c05ba496473c23a58edf12f" ||  // 8-in-1 Yars Revenge
      md5 == "75ee371ccfc4f43e7d9b8f24e1266b55" ||  // Snow White
+     md5 == "74c8a6f20f8adaa7e05183f796eda796" ||  // Tricade Demo
      md5 == "9905f9f4706223dadee84f6867ede8e3")    // Challenge
     ? 0 : 1;
 }

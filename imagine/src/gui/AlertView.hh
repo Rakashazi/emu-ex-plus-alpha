@@ -19,7 +19,7 @@
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/gui/BaseMenuView.hh>
 #include <util/rectangle2.h>
-#include <util/Delegate.hh>
+#include <util/DelegateFunc.hh>
 
 class AlertView : public View
 {
@@ -42,22 +42,8 @@ public:
 class YesNoAlertView : public AlertView
 {
 public:
-	constexpr YesNoAlertView() { }
-	typedef Delegate<void (const Input::Event &e)> InputDelegate;
-
-	void selectYes(TextMenuItem &, const Input::Event &e)
-	{
-		auto callback = onYesD;
-		removeModalView();
-		callback.invokeSafe(e);
-	}
-
-	void selectNo(TextMenuItem &, const Input::Event &e)
-	{
-		auto callback = onNoD;
-		removeModalView();
-		callback.invokeSafe(e);
-	}
+	YesNoAlertView() { }
+	typedef DelegateFunc<void (const Input::Event &e)> InputDelegate;
 
 	MenuItem *menuItem[2] = {nullptr};
 
@@ -69,8 +55,8 @@ public:
 	{
 		yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
 		no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
-		assert(!onYesD.hasCallback());
-		assert(!onNoD.hasCallback());
+		assert(!onYesD);
+		assert(!onNoD);
 		AlertView::init(label, menuItem, highlightFirst);
 	}
 
@@ -78,13 +64,29 @@ public:
 	{
 		logMsg("deinit alert");
 		AlertView::deinit();
-		onYesD.clear();
-		onNoD.clear();
+		onYesD = {};
+		onNoD = {};
 	}
 
-private:
-	TextMenuItem yes {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectYes>(this)},
-		no {TextMenuItem::SelectDelegate::create<YesNoAlertView, &YesNoAlertView::selectNo>(this)};
 	InputDelegate onYesD;
 	InputDelegate onNoD;
+private:
+	TextMenuItem yes
+	{
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto callback = onYesD;
+			removeModalView();
+			if(callback) callback(e);
+		}
+	};
+	TextMenuItem no
+	{
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto callback = onNoD;
+			removeModalView();
+			if(callback) callback(e);
+		}
+	};
 };

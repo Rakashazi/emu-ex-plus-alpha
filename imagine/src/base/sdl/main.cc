@@ -40,6 +40,9 @@ uint appState = APP_RUNNING;
 
 static SDL_Surface* drawContext;
 
+static const ushort MSG_WEBOS_TIMER = MSG_PLATFORM_START;
+static const ushort MSG_WEBOS_ORIENTATION_CHANGE = MSG_PLATFORM_START+1;
+
 CallResult openGLInit()
 {
 	// Pre3 on WebOS 2.x is capped at 30fps if using SDL_GL_DOUBLEBUFFER
@@ -174,7 +177,7 @@ const char *storagePath() { return "/media/internal"; }
 				//logMsg("new orientation type %d, after %d events", ev.orientation.orientation, events);
 				uint o = pdlOrientationToGfx(ev.orientation.orientation);
 				if(o != 255 && o != Gfx::rotateView)
-					sendMessageToMain(thread, MSG_ORIENTATION_CHANGE, o, 0, 0);
+					sendMessageToMain(thread, MSG_WEBOS_ORIENTATION_CHANGE, o, 0, 0);
 			}
 			sleepMs(1500); // OS BUG: WebOS 3 offers no blocking function for sensor events so we must
 										 // poll and block for an arbitrary interval, needlessly waking up the CPU
@@ -227,7 +230,7 @@ static Uint32 sdlTimerCallback(Uint32 interval, void* param)
 {
 	//logMsg("sending SDL_USEREVENT for timer");
 	SDL_Event ev = { SDL_USEREVENT };
-	ev.user.code = 0;
+	ev.user.code = MSG_WEBOS_TIMER;
 	ev.user.data1 = (void*)param;
 	ev.user.data2 = 0;
 	SDL_PushEvent(&ev);
@@ -318,19 +321,32 @@ static void eventHandler(SDL_Event &event)
 		{
 			uint id = event.user.code >> 16;
 			logMsg("got SDL_USEREVENT %d", id);
-			if(id == 0)
+			switch(id)
 			{
-				auto callback = (Callback*)event.user.data1;
-				assert(timerList.contains(*callback));
-				logMsg("running callback");
-				callback->del.invoke();
-				timerList.remove(*callback);
-				if(appState != APP_RUNNING)
-					gfxUpdate = 0; // cancel gfx update if app not active
-			}
-			else
-			{
-				processAppMsg(id, event.user.code & 0xFFFF, (int)event.user.data1, (int)event.user.data1);
+				bcase MSG_WEBOS_TIMER:
+				{
+					auto callback = (Callback*)event.user.data1;
+					assert(timerList.contains(*callback));
+					logMsg("running callback");
+					callback->del.invoke();
+					timerList.remove(*callback);
+					if(appState != APP_RUNNING)
+						gfxUpdate = 0; // cancel gfx update if app not active
+				}
+				#if CONFIG_ENV_WEBOS_OS >= 3
+				bcase MSG_WEBOS_ORIENTATION_CHANGE:
+				{
+					logMsg("got orientation change message");
+					uint o = shortArg;
+					logMsg("new orientation %s", Gfx::orientationName(o));
+					Gfx::preferedOrientation = o;
+					Gfx::setOrientation(Gfx::preferedOrientation);
+				}
+				#endif
+				bdefault:
+				{
+					processAppMsg(id, event.user.code & 0xFFFF, (int)event.user.data1, (int)event.user.data1);
+				}
 			}
 		}
 

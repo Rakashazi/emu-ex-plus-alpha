@@ -66,6 +66,18 @@ void STDCALL * (*yglGetProcAddress)(const char *szProcName) = (void STDCALL *(*)
 
 #ifdef __APPLE__
 
+#ifndef HAVE_FBO
+#define glBindFramebuffer glBindFramebufferEXT
+#define glBindRenderbuffer glBindRenderbufferEXT
+#define glCheckFramebufferStatus glCheckFramebufferStatusEXT
+#define glDeleteRenderbuffers glDeleteRenderbuffersEXT
+#define glFramebufferRenderbuffer glFramebufferRenderbufferEXT
+#define glFramebufferTexture2D glFramebufferTexture2DEXT
+#define glGenFramebuffers glGenFramebuffersEXT
+#define glGenRenderbuffers glGenRenderbuffersEXT
+#define glRenderbufferStorage glRenderbufferStorageEXT
+#endif
+
 #else
 
 // extention function pointers
@@ -140,7 +152,7 @@ GLchar s_msg_no_opengl2[]="Your GPU driver does not support OpenGL 2.0.\nOpenGL 
 void STDCALL glGetShaderivdmy(GLuint shader,GLenum pname,GLint *    params)
 {
    if( pname == GL_COMPILE_STATUS ) *params = GL_FALSE;
-   if( pname == GL_INFO_LOG_LENGTH ) *params = strlen(s_msg_no_opengl2)+1;
+   if( pname == GL_INFO_LOG_LENGTH ) *params = strlen((const char *) s_msg_no_opengl2)+1;
    return;
 }
 void STDCALL glGetShaderInfoLogdmy(GLuint a,GLsizei b,GLsizei *c,GLchar *d)
@@ -161,7 +173,7 @@ GLAPI GLboolean APIENTRY glIsFramebufferdmy (GLuint framebuffer){return GL_FALSE
 GLAPI void APIENTRY glBindFramebufferdmy (GLenum target, GLuint framebuffer){}
 GLAPI void APIENTRY glDeleteFramebuffersdmy (GLsizei n, const GLuint *framebuffers){}
 GLAPI void APIENTRY glGenFramebuffersdmy (GLsizei n, GLuint *framebuffers){}
-GLAPI GLenum APIENTRY glCheckFramebufferStatusdmy (GLenum target){}
+GLAPI GLenum APIENTRY glCheckFramebufferStatusdmy (GLenum target){return 0;}
 GLAPI void APIENTRY glFramebufferTexture1Ddmy (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level){}
 GLAPI void APIENTRY glFramebufferTexture2Ddmy (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level){}
 GLAPI void APIENTRY glFramebufferTexture3Ddmy (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset){}
@@ -229,9 +241,7 @@ int YglCalcTextureQ(
 {
    float p1[2],p2[2],p3[2],p4[2],o[2];
    float   q1, q3, q4, qw;
-   float   x, y;
    float   dx, w;
-   float   b;
    float   ww;
    
    // fast calculation for triangle
@@ -517,28 +527,41 @@ int YglGLInit(int width, int height) {
    
    glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->vdp1fbo);
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Ygl->vdp1FrameBuff[0], 0);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
+   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
    if( status != GL_FRAMEBUFFER_COMPLETE )
    {
       printf("YglGLInit:Framebuffer status = %08X\n", status );
    }  
 
+   // Message Layer
+   _Ygl->msgwidth =800;
+   _Ygl->msgheight=480;
+   if( _Ygl->messagebuf == NULL )
+   {
+      _Ygl->messagebuf = malloc(sizeof(u32)*_Ygl->msgwidth*_Ygl->msgheight);
+      if( NULL == _Ygl->messagebuf )
+      {
+         printf("YglGLInit:Fail to malloc _Ygl->messagebuf\n");
+      }
+   }
+   memset( _Ygl->messagebuf,0,sizeof(u32)*_Ygl->msgwidth*_Ygl->msgheight);
+
+   if( _Ygl->msgtexture == 0 )
+   {
+      glGenTextures(1, &_Ygl->msgtexture);
+   }
+   glBindTexture(GL_TEXTURE_2D, _Ygl->msgtexture);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->msgwidth,_Ygl->msgheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
    glBindFramebuffer(GL_FRAMEBUFFER, 0 );
    glBindTexture(GL_TEXTURE_2D,_Ygl->texture);
    
    return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-int YglScreenInit(int r, int g, int b, int d) {
-   YuiSetVideoAttribute(RED_SIZE, r);
-   YuiSetVideoAttribute(GREEN_SIZE, g);
-   YuiSetVideoAttribute(BLUE_SIZE, b);
-   YuiSetVideoAttribute(DEPTH_SIZE, d);
-   return (YuiSetVideoMode(320, 224, 32, 0) == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -587,20 +610,6 @@ int YglInit(int width, int height, unsigned int depth) {
      }
    }
 
-   YuiSetVideoAttribute(DOUBLEBUFFER, 1);
-
-   if (!YglScreenInit(8, 8, 8, 24))
-   {
-      if (!YglScreenInit(4, 4, 4, 24))
-      {
-         if (!YglScreenInit(5, 6, 5, 16))
-         {
-       YuiErrorMsg("Couldn't set GL mode\n");
-            return -1;
-         }
-      }
-   }
-
    YglGLInit(width, height);
 
    // Set up Extention
@@ -611,7 +620,7 @@ int YglInit(int width, int height, unsigned int depth) {
    glCreateProgram = (GLuint (STDCALL *)(void)) yglGetProcAddress("glCreateProgram");
    if( glCreateProgram == NULL )
    {
-      YuiErrorMsg(s_msg_no_opengl2);
+      YuiErrorMsg((const char *) s_msg_no_opengl2);
       glCreateProgram = glCreateProgramdmy;
    }
    glCreateShader = (GLuint (STDCALL *)(GLenum))yglGetProcAddress("glCreateShader");
@@ -727,8 +736,7 @@ int YglInit(int width, int height, unsigned int depth) {
    glGenFramebuffers(1,&_Ygl->vdp1fbo);
    glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->vdp1fbo);
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Ygl->vdp1FrameBuff[0], 0);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
+   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
    if( status != GL_FRAMEBUFFER_COMPLETE )
    {
@@ -775,6 +783,8 @@ void YglDeInit(void) {
          }
          free(_Ygl->levels);
       }
+
+      free(_Ygl->messagebuf);
 
       free(_Ygl);
    }
@@ -877,7 +887,6 @@ YglProgram * YglGetProgram( YglSprite * input, int prg )
 
 float * YglQuad(YglSprite * input, YglTexture * output, YglCache * c) {
    unsigned int x, y;
-   YglLevel   *level;
    YglProgram *program;
    texturecoordinate_struct *tmp;
    float q[4];
@@ -1003,7 +1012,6 @@ float * YglQuad(YglSprite * input, YglTexture * output, YglCache * c) {
 
 int YglQuadGrowShading(YglSprite * input, YglTexture * output, float * colors,YglCache * c) {
    unsigned int x, y;
-   YglLevel   *level;
    YglProgram *program;
    texturecoordinate_struct *tmp;
    float * vtxa;
@@ -1155,7 +1163,6 @@ int YglQuadGrowShading(YglSprite * input, YglTexture * output, float * colors,Yg
 //////////////////////////////////////////////////////////////////////////////
 
 void YglCachedQuad(YglSprite * input, YglCache * cache) {
-   YglLevel   * level;
    YglProgram * program;
    unsigned int x,y;
    texturecoordinate_struct *tmp;
@@ -1251,13 +1258,11 @@ void YglCachedQuad(YglSprite * input, YglCache * cache) {
 //////////////////////////////////////////////////////////////////////////////
 
 void YglCacheQuadGrowShading(YglSprite * input, float * colors,YglCache * cache) {
-   YglLevel   * level;
    YglProgram * program;
    unsigned int x,y;
    texturecoordinate_struct *tmp;
    float q[4];
    int prg = PG_VFP1_GOURAUDSAHDING;
-   int currentpg = 0;
    float * vtxa;
    int *pos;
    
@@ -1396,8 +1401,7 @@ void YglRenderVDP1(void) {
    
    glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->vdp1fbo);
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Ygl->vdp1FrameBuff[_Ygl->drawframe], 0);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
+   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _Ygl->rboid);
    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
    if( status != GL_FRAMEBUFFER_COMPLETE )
    {
@@ -1516,7 +1520,6 @@ void YglRenderFrameBuffer( int from , int to ) {
    GLint   vertices[12];
    GLfloat texcord[12];
    float offsetcol[4];
-   int i;
    int bwin0,bwin1,logwin0,logwin1,winmode;
    
    // Out of range, do nothing
@@ -1706,12 +1709,40 @@ void YglRender(void) {
       YglRenderFrameBuffer(from,8);
    }
 
+   if (OSDUseBuffer())
+   {
+      int vertices [] = { 0, 0, 320, 0, 320, 224, 0, 224 };
+      int text [] = { 0, 0, 320, 0, 320, 224, 0, 224 };
 
+      // render
+      text[2] = _Ygl->msgwidth;
+      text[4] = _Ygl->msgwidth;
+      text[5] = _Ygl->msgheight;
+      text[7] = _Ygl->msgheight;
 
-   glDisable(GL_TEXTURE_2D);
-   glUseProgram(0);
+      glUseProgram(0);
 
-   OSDDisplayMessages();
+      memset( _Ygl->messagebuf,0, sizeof(u32)*_Ygl->msgwidth * _Ygl->msgheight );
+      if (OSDDisplayMessages(_Ygl->messagebuf, _Ygl->msgwidth,_Ygl->msgheight))
+      {
+         glBindTexture(GL_TEXTURE_2D, _Ygl->msgtexture);
+         glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, _Ygl->msgwidth,_Ygl->msgheight, GL_RGBA, GL_UNSIGNED_BYTE, _Ygl->messagebuf );
+         glMatrixMode(GL_MODELVIEW);
+         glLoadIdentity();
+         glVertexPointer(2, GL_INT, 0, vertices);
+         glTexCoordPointer(2, GL_INT, 0, text);
+         glDrawArrays(GL_QUADS, 0, 4);
+      }
+
+      glDisable(GL_TEXTURE_2D);
+   }
+   else
+   {
+      glDisable(GL_TEXTURE_2D);
+      glUseProgram(0);
+
+      OSDDisplayMessages(NULL, -1, -1);
+   }
 
    YuiSwapBuffers();
 

@@ -2,30 +2,13 @@
 
 #include <config.h>
 
-#if defined CONFIG_BLUEZ && defined CONFIG_ANDROIDBT
-	#include "BluezBluetoothAdapter.hh"
+#if defined CONFIG_BLUETOOTH_ANDROID
 	#include "AndroidBluetoothAdapter.hh"
-	#include "util/number.h"
-	class BluetoothSocketSys
-	{
-	public:
-		constexpr BluetoothSocketSys() { }
-		uchar ATTRS(aligned (4)) obj[IG::max(sizeof(BluezBluetoothSocket), sizeof(AndroidBluetoothSocket))] {0};
-		BluetoothSocket *sock = (BluetoothSocket*)obj;
-		CallResult openL2cap(BluetoothAddr addr, uint psm) { return sock->openL2cap(addr, psm); }
-		CallResult openRfcomm(BluetoothAddr addr, uint channel) { return sock->openRfcomm(addr, channel); }
-		void close() { sock->close(); }
-		CallResult write(const void *data, size_t size) { return sock->write(data, size); }
-		BluetoothSocket::OnDataDelegate &onDataDelegate() { return sock->onDataDelegate(); }
-		BluetoothSocket::OnStatusDelegate &onStatusDelegate() { return sock->onStatusDelegate(); }
-	};
-#elif defined CONFIG_BTSTACK
+	using BluetoothSocketSys = AndroidBluetoothSocket;
+#elif defined CONFIG_BLUETOOTH_BTSTACK
 	#include "BtstackBluetoothAdapter.hh"
-	#define BluetoothSocketSys BtstackBluetoothSocket
-#elif defined CONFIG_BLUEZ
+	using BluetoothSocketSys = BtstackBluetoothSocket;
+#elif defined CONFIG_BLUETOOTH_BLUEZ
 	#include "BluezBluetoothAdapter.hh"
-	#define BluetoothSocketSys BluezBluetoothSocket
-#elif defined CONFIG_ANDROIDBT
-	#include "AndroidBluetoothAdapter.hh"
-	#define BluetoothSocketSys AndroidBluetoothSocket
+	using BluetoothSocketSys = BluezBluetoothSocket;
 #endif

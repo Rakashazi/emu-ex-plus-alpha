@@ -1,3 +1,18 @@
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <Cheats.hh>
 #include <MsgPopup.hh>
 #include <TextEntry.hh>
@@ -5,17 +20,9 @@
 #include <main/EmuCheatViews.hh>
 
 extern MsgPopup popup;
-extern CollectTextInputView textInputView;
 extern ViewStack viewStack;
-SystemEditCheatView editCheatView;
 EditCheatListView editCheatListView;
 CheatsView cheatsMenu;
-
-void BaseCheatsView::editHandler(TextMenuItem &item, const Input::Event &e)
-{
-	editCheatListView.init(!e.isPointer());
-	viewStack.pushAndShow(&editCheatListView);
-}
 
 void BaseCheatsView::init(bool highlightFirst)
 {
@@ -26,32 +33,17 @@ void BaseCheatsView::init(bool highlightFirst)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-uint EditCheatView::handleNameFromTextInput(const char *str)
-{
-	if(str)
+BaseCheatsView::BaseCheatsView(): BaseMenuView("Cheats"),
+	edit
 	{
-		logMsg("setting cheat name %s", str);
-		renamed(str);
-		name.compile();
-		Base::displayNeedsUpdate();
+		"Add/Edit",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			editCheatListView.init(!e.isPointer());
+			viewStack.pushAndShow(&editCheatListView);
+		}
 	}
-	removeModalView();
-	return 0;
-}
-
-void EditCheatView::nameHandler(TextMenuItem &item, const Input::Event &e)
-{
-	textInputView.init("Input description", name.t.str);
-	textInputView.onTextDelegate().bind<template_mfunc(EditCheatView, handleNameFromTextInput)>(this);
-	textInputView.placeRect(Gfx::viewportRect());
-	modalView = &textInputView;
-}
-
-void EditCheatView::removeHandler(TextMenuItem &item, const Input::Event &e)
-{
-	removed();
-	viewStack.popAndShow();
-}
+{}
 
 void EditCheatView::loadNameItem(const char *nameStr, MenuItem *item[], uint &items)
 {
@@ -61,6 +53,50 @@ void EditCheatView::loadNameItem(const char *nameStr, MenuItem *item[], uint &it
 void EditCheatView::loadRemoveItem(MenuItem *item[], uint &items)
 {
 	remove.init(); item[items++] = &remove;
+}
+
+EditCheatView::EditCheatView(const char *viewName): BaseMenuView(viewName),
+	name
+	{
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto &textInputView = *allocModalView<CollectTextInputView>();
+			textInputView.init("Input description", name.t.str);
+			textInputView.onText() =
+			[this](const char *str)
+			{
+				if(str)
+				{
+					logMsg("setting cheat name %s", str);
+					renamed(str);
+					name.compile();
+					Base::displayNeedsUpdate();
+				}
+				removeModalView();
+				return 0;
+			};
+			View::addModalView(textInputView);
+		}
+	},
+	remove
+	{
+		"Delete Cheat",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			removed();
+			viewStack.popAndShow();
+		}
+	}
+{}
+
+void BaseEditCheatListView::init(bool highlightFirst)
+{
+	uint i = 0;
+	loadAddCheatItems(item, i);
+	assert(i == EmuCheats::MAX_CODE_TYPES);
+	loadCheatItems(item, i);
+	assert(i <= sizeofArray(item));
+	BaseMenuView::init(item, i, highlightFirst);
 }
 
 void refreshCheatViews()

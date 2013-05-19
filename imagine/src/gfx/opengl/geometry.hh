@@ -89,12 +89,12 @@ static void mapImg(Vtx v[4], GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTe
 }
 
 template<class Vtx>
-static void mapImg(Vtx v[4], const Gfx::TextureDesc *img)
+static void mapImg(Vtx v[4], const Gfx::TextureDesc &img)
 {
-	TextureCoordinate leftTexU = img ? img->xStart : 0;
-	TextureCoordinate topTexV = img ? img->yStart : 0;
-	TextureCoordinate rightTexU = img ? img->xEnd : 0;
-	TextureCoordinate bottomTexV = img ? img->yEnd : 0;
+	TextureCoordinate leftTexU = img.xStart;
+	TextureCoordinate topTexV = img.yStart;
+	TextureCoordinate rightTexU = img.xEnd;
+	TextureCoordinate bottomTexV = img.yEnd;
 	mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 

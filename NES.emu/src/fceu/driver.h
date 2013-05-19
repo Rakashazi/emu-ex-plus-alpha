@@ -1,14 +1,14 @@
 #ifndef __DRIVER_H_
 #define __DRIVER_H_
 
-#include <stdio.h>
-#include <string>
-//#include <iosfwd>
-
 #include "types.h"
 #include "git.h"
 #include "file.h"
 #include "sound.h"
+
+#include <cstdio>
+#include <cstring>
+//#include <iosfwd>
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
 inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FCEUD_UTF8fopen(n.c_str(),mode); }
@@ -162,8 +162,8 @@ int FCEUI_SelectState(int, int);
 extern void FCEUI_SelectStateNext(int);
 
 //"fname" overrides the default save state filename code if non-NULL.
-int FCEUI_SaveState(const char *fname);
-int FCEUI_LoadState(const char *fname);
+int FCEUI_SaveState(const char *fname, bool display_message=true);
+int FCEUI_LoadState(const char *fname, bool display_message=true);
 
 void FCEUD_SaveStateAs(void);
 void FCEUD_LoadStateFrom(void);

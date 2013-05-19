@@ -3,35 +3,45 @@
 
 class SystemOptionView : public OptionView
 {
-private:
+public:
 
 	BiosSelectMenu biosSelectMenu {&::biosPath, ssBiosFsFilter};
 	char biosPathStr[256] {0};
-	TextMenuItem biosPath {""};
+	TextMenuItem biosPath
+	{
+		"",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			biosSelectMenu.init(!e.isPointer());
+			biosSelectMenu.placeRect(Gfx::viewportRect());
+			biosSelectMenu.onBiosChange() =
+				[this]()
+				{
+					logMsg("set bios %s", ::biosPath);
+					printBiosMenuEntryStr(biosPathStr);
+					biosPath.compile();
+				};
+			modalView = &biosSelectMenu;
+			Base::displayNeedsUpdate();
+		}
+	};
 
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		string_printf(str, "BIOS: %s", strlen(::biosPath) ? string_basename(::biosPath) : "None set");
+		FsSys::cPath basenameTemp;
+		string_printf(str, "BIOS: %s", strlen(::biosPath) ? string_basename(::biosPath, basenameTemp) : "None set");
 	}
 
-	void biosPathUpdated()
+	MultiChoiceSelectMenuItem sh2Core
 	{
-		logMsg("set bios %s", ::biosPath);
-		printBiosMenuEntryStr(biosPathStr);
-		biosPath.compile();
-	}
-
-	void biosPathHandler(TextMenuItem &, const Input::Event &e)
-	{
-		biosSelectMenu.init(!e.isPointer());
-		biosSelectMenu.placeRect(Gfx::viewportRect());
-		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::biosPathUpdated>(this);
-		modalView = &biosSelectMenu;
-		Base::displayNeedsUpdate();
-	}
-
-	MultiChoiceSelectMenuItem sh2Core {"SH2"};
+		"SH2",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			assert(val < (int)sizeofArray(SH2CoreList)-1);
+			yinit.sh2coretype = SH2CoreList[val]->id;
+		}
+	};
 
 	void sh2CoreInit()
 	{
@@ -49,17 +59,10 @@ private:
 		}
 
 		sh2Core.init(str, setting, cores);
-		sh2Core.onValue().bind<&sh2CoreSet>();
-	}
-
-	static void sh2CoreSet(MultiChoiceMenuItem &, int val)
-	{
-		assert(val < (int)sizeofArray(SH2CoreList)-1);
-		yinit.sh2coretype = SH2CoreList[val]->id;
 	}
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -70,7 +73,6 @@ public:
 		}
 		printBiosMenuEntryStr(biosPathStr);
 		biosPath.init(biosPathStr); item[items++] = &biosPath;
-		biosPath.selectDelegate().bind<SystemOptionView, &SystemOptionView::biosPathHandler>(this);
 	}
 };
 
@@ -79,5 +81,5 @@ public:
 class SystemMenuView : public MenuView
 {
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 };

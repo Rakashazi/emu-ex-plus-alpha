@@ -14,15 +14,11 @@
 	#include <gfx/Gfx.hh>
 #endif
 
-#ifdef CONFIG_RESOURCE
-	#include <resource2/Resource.h>
-#endif
-
 #ifdef CONFIG_AUDIO
 	#include <audio/Audio.hh>
 #endif
 
-#if defined CONFIG_BLUEZ || defined CONFIG_ANDROIDBT
+#if defined CONFIG_BLUETOOTH
 	#include <bluetooth/sys.hh>
 #endif
 
@@ -34,13 +30,6 @@
 
 namespace Base
 {
-
-#if defined(CONFIG_BASE_PS3)
-	uint refreshRate() { return 60; } // hard-code for now
-#else
-	static uint refreshRate_ = 0;
-	uint refreshRate() { return refreshRate_; }
-#endif
 
 static bool triggerGfxResize = 0;
 static Window mainWin, currWin;
@@ -154,38 +143,12 @@ static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
 {
 	switch(type)
 	{
-		#if defined CONFIG_BLUEZ || defined CONFIG_ANDROIDBT
-		/*case MSG_INPUT:
-		{
-			Input::onInputEvent(InputEvent(shortArg, intArg & 0xFFFF, intArg2, intArg >> 16));
-		}
-		break;
-		case MSG_INPUTDEV_CHANGE:
-		{
-			logMsg("got input dev change message");
-			onInputDevChange((InputDevChange){ (uint)intArg2, (uint)intArg, (uint)shortArg });
-		}
-		break;*/
-		/*case MSG_BT:
-		{
-			logMsg("got bluetooth connect message");
-			//Bluetooth::connectFunc(intArg);
-		}
-		break;*/
+		#if defined CONFIG_BLUETOOTH_BLUEZ || defined CONFIG_BLUETOOTH_ANDROID
 		bcase MSG_BT_SCAN_STATUS_DELEGATE:
 		{
 			logMsg("got bluetooth adapter status delegate message");
-			BluetoothAdapter::defaultAdapter()->statusDelegate().invoke(intArg, intArg2);
-		}
-		#endif
-		#if CONFIG_ENV_WEBOS_OS >= 3
-		bcase MSG_ORIENTATION_CHANGE:
-		{
-			logMsg("got orientation change message");
-			uint o = shortArg;
-			logMsg("new orientation %s", Gfx::orientationName(o));
-			Gfx::preferedOrientation = o;
-			Gfx::setOrientation(Gfx::preferedOrientation);
+			auto bta = BluetoothAdapter::defaultAdapter();
+			bta->onScanStatus()(*bta, intArg, intArg2);
 		}
 		#endif
 		bdefault:

@@ -7,7 +7,7 @@ include $(IMAGINE_PATH)/make/package/btstack.mk
 
 include $(imagineSrcDir)/bluetooth/bluetooth.mk
 
-configDefs += CONFIG_BTSTACK
+configDefs += CONFIG_BLUETOOTH_BTSTACK
 
 SRC += bluetooth/BtstackBluetoothAdapter.cc
 

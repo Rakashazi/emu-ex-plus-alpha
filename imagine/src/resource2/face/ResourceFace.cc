@@ -15,8 +15,8 @@
 
 #define thisModuleName "res:face"
 
-#include <resource2/image/glyph/ResourceImageGlyph.h>
 #include <util/strings.h>
+#include <gfx/GfxBufferImage.hh>
 #include "ResourceFace.hh"
 
 #ifdef CONFIG_RESOURCE_FONT_FREETYPE
@@ -46,7 +46,7 @@ void ResourceFace::initGlyphTable()
 	//logMsg("initGlyphTable");
 	iterateTimes(glyphTableEntries, i)
 	{
-		mem_zero(glyphTable[i]);
+		glyphTable[i] = {};
 	}
 }
 
@@ -74,76 +74,6 @@ ResourceFace *ResourceFace::load(Io* io, FontSettings *set)
 	return create(font, set);
 }
 
-#ifdef CONFIG_PACKAGE_FONTCONFIG
-static CallResult getFontFilenameWithPattern(FcPattern *pat, char *&filename, FcPattern *&matchPatOut)
-{
-	FcDefaultSubstitute(pat);
-	if(!FcConfigSubstitute(nullptr, pat, FcMatchPattern))
-	{
-		logErr("error applying font substitutions");
-		FcPatternDestroy(pat);
-		return INVALID_PARAMETER;
-	}
-	FcResult result = FcResultMatch;
-	auto matchPat = FcFontMatch(nullptr, pat, &result);
-	FcPatternDestroy(pat);
-	if(!matchPat || result == FcResultNoMatch)
-	{
-		logErr("fontconfig couldn't find a valid font");
-		if(matchPat)
-			FcPatternDestroy(matchPat);
-		return INVALID_PARAMETER;
-	}
-	if(!FcPatternGetString(matchPat, FC_FILE, 0, (FcChar8**)&filename) == FcResultMatch)
-	{
-		logErr("fontconfig font missing file path");
-		FcPatternDestroy(matchPat);
-		return INVALID_PARAMETER;
-	}
-	matchPatOut = matchPat;
-	return OK;
-}
-
-static ResourceFontFreetype *loadSystemSans()
-{
-	auto pat = FcPatternCreate();
-	if(!pat)
-	{
-		logErr("error allocating fontconfig pattern");
-		return nullptr;
-	}
-	FcPatternAddString(pat, FC_FAMILY, (const FcChar8*)"sans");
-	char *filename;
-	FcPattern *matchPat;
-	if(getFontFilenameWithPattern(pat, filename, matchPat) != OK)
-	{
-		return nullptr;
-	}
-	auto font = ResourceFontFreetype::load(filename);
-	FcPatternDestroy(matchPat);
-	return font;
-}
-
-static void addonSystemJa(ResourceFontFreetype *font)
-{
-	auto pat = FcPatternCreate();
-	if(!pat)
-	{
-		logErr("error allocating fontconfig pattern");
-		return;
-	}
-	FcPatternAddString(pat, FC_LANG, (const FcChar8*)"ja");
-	char *filename;
-	FcPattern *matchPat;
-	if(getFontFilenameWithPattern(pat, filename, matchPat) != OK)
-	{
-		return;
-	}
-	font->loadIntoSlot((char*)filename, 1);
-	FcPatternDestroy(matchPat);
-}
-#endif
-
 ResourceFace *ResourceFace::loadSystem(FontSettings *set)
 {
 	#ifdef CONFIG_RESOURCE_FONT_ANDROID
@@ -161,15 +91,14 @@ ResourceFace *ResourceFace::loadSystem(FontSettings *set)
 	#else
 		#ifdef CONFIG_PACKAGE_FONTCONFIG
 			logMsg("locating system fonts with fontconfig");
+			// TODO: should move to one-time init function
 			if(!FcInitLoadConfigAndFonts())
 			{
 				logErr("error initializing fontconfig");
 				return nullptr;
 			}
-			auto font = loadSystemSans();
-			if(!font)
-				return nullptr;
-			addonSystemJa(font);
+			// Let fontconfig handle loading specific fonts on-demand
+			auto font = ResourceFontFreetype::load();
 			return create(font, set);
 		#else
 			return loadAsset("Vera.ttf", set);
@@ -207,7 +136,7 @@ ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 	{
 		inst->settings = *set;
 		inst->settings.process();
-		font->newSize(&inst->settings, inst->faceSize);
+		font->newSize(inst->settings, inst->faceSize);
 	}
 	else
 	{
@@ -223,7 +152,7 @@ void ResourceFace::free ()
 	font->freeSize(faceSize);
 	iterateTimes(glyphTableEntries, i)
 	{
-		glyphTable[i].glyph->freeSafe();
+		glyphTable[i].glyph.deinit();
 	}
 	mem_free(glyphTable);
 	delete this;
@@ -261,12 +190,12 @@ CallResult ResourceFace::applySettings (FontSettings set)
 			font->freeSize(faceSize);
 			iterateTimes(glyphTableEntries, i)
 			{
-				glyphTable[i].glyph->freeSafe();
+				glyphTable[i].glyph.deinit();
 			}
 		}
 
 		settings = set;
-		font->newSize(&settings, faceSize);
+		font->newSize(settings, faceSize);
 		initGlyphTable();
 		calcNominalHeight();
 		return OK;
@@ -319,7 +248,8 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	}
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = metrics;
-	glyphTable[tableIdx].glyph = font->createRenderable(c, this, &glyphTable[tableIdx]);
+	auto img = GfxGlyphImage(this, &glyphTable[tableIdx]);
+	glyphTable[tableIdx].glyph.init(img, Gfx::BufferImage::linear, Gfx::BufferImage::HINT_NO_MINIFY);
 	return OK;
 }
 

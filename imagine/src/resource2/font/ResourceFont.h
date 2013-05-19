@@ -43,7 +43,6 @@ public:
 };
 
 class ResourceFace;
-#include <resource2/image/glyph/ResourceImageGlyph.h>
 
 class ResourceFont
 {
@@ -51,7 +50,7 @@ public:
 	virtual ~ResourceFont() { }
 
 	CallResult initWithName(const char * name);
-	ResourceImageGlyph *createRenderable(int c, ResourceFace *face, GlyphEntry *entry);
+	//ResourceImageGlyph *createRenderable(int c, ResourceFace *face, GlyphEntry *entry);
 	int minUsablePixels() const;
 
 	virtual void free() = 0;
@@ -60,7 +59,7 @@ public:
 	virtual CallResult activeChar(int idx, GlyphMetrics &metrics) = 0;
 	//virtual int currentFaceDescender() const = 0;
 	//virtual int currentFaceAscender() const = 0;
-	virtual CallResult newSize(FontSettings* settings, FontSizeRef &sizeRef) = 0;
+	virtual CallResult newSize(const FontSettings &settings, FontSizeRef &sizeRef) = 0;
 	virtual CallResult applySize(FontSizeRef &sizeData) = 0;
 	virtual void freeSize(FontSizeRef &sizeData) = 0;
 };

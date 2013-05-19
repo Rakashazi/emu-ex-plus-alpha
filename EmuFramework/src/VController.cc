@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,10 +11,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "vController"
 #include <VController.hh>
+#include <algorithm>
 
 template<>
 void VController<systemFaceBtns, systemCenterBtns, systemHasTriggerBtns, systemHasRevBtnLayout>::updateMapping(uint player)
@@ -36,7 +37,7 @@ void VControllerDPad::init()
 	visualizeBounds = 0;
 }
 
-void VControllerDPad::setImg(ResourceImage *dpadR, GC texHeight)
+void VControllerDPad::setImg(Gfx::BufferImage *dpadR, GC texHeight)
 {
 	spr.init(-.5, -.5, .5, .5, dpadR);
 	spr.setImg(dpadR, 0., 0., 1., 64./texHeight);
@@ -85,10 +86,11 @@ void VControllerDPad::setBoundingAreaVisible(bool on)
 	visualizeBounds = on;
 	if(!on)
 	{
-		if(mapSpr.img)
+		if(mapSpr.image())
 		{
 			logMsg("deallocating bounding box display resources");
-			mapSpr.deinitAndFreeImg();
+			mapSpr.deinit();
+			mapImg.deinit();
 			mapPix.deinitManaged();
 		}
 	}
@@ -115,20 +117,20 @@ int VControllerDPad::getInput(int cx, int cy)
 	{
 		int x = cx - padArea.xCenter(), y = cy - padArea.yCenter();
 		int xDeadzone = deadzone, yDeadzone = deadzone;
-		if(IG::abs(x) > deadzone)
-			yDeadzone += (IG::abs(x) - deadzone)/diagonalSensitivity;
-		if(IG::abs(y) > deadzone)
-			xDeadzone += (IG::abs(y) - deadzone)/diagonalSensitivity;
+		if(std::abs(x) > deadzone)
+			yDeadzone += (std::abs(x) - deadzone)/diagonalSensitivity;
+		if(std::abs(y) > deadzone)
+			xDeadzone += (std::abs(y) - deadzone)/diagonalSensitivity;
 		//logMsg("dpad offset %d,%d, deadzone %d,%d", x, y, xDeadzone, yDeadzone);
 		int pad = 4; // init to center
-		if(IG::abs(x) > xDeadzone)
+		if(std::abs(x) > xDeadzone)
 		{
 			if(x > 0)
 				pad = 5; // right
 			else
 				pad = 3; // left
 		}
-		if(IG::abs(y) > yDeadzone)
+		if(std::abs(y) > yDeadzone)
 		{
 			if(y > 0)
 				pad += 3; // shift to top row
@@ -148,12 +150,12 @@ void VControllerKeyboard::init()
 void VControllerKeyboard::updateImg()
 {
 	if(mode)
-		spr.setImg(spr.img, 0., .5, spr.img->textureDesc().xEnd/*384./512.*/, 1.);
+		spr.setImg(spr.image(), 0., .5, spr.image()->textureDesc().xEnd/*384./512.*/, 1.);
 	else
-		spr.setImg(spr.img, 0., 0., spr.img->textureDesc().xEnd/*384./512.*/, .5);
+		spr.setImg(spr.image(), 0., 0., spr.image()->textureDesc().xEnd/*384./512.*/, .5);
 }
 
-void VControllerKeyboard::setImg(ResourceImage *img)
+void VControllerKeyboard::setImg(Gfx::BufferImage *img)
 {
 	spr.init(-.5, -.5, .5, .5, img);
 	updateImg();
@@ -162,7 +164,7 @@ void VControllerKeyboard::setImg(ResourceImage *img)
 void VControllerKeyboard::place(GC btnSize, GC yOffset)
 {
 	area.init(3, 2);
-	area.setXSize(IG::min(btnSize*10, Gfx::proj.w));
+	area.setXSize(std::min(btnSize*10, Gfx::proj.w));
 	GC vArea = Gfx::proj.h - yOffset*2;
 	if(area.ySize > vArea)
 		area.setYSize(vArea);

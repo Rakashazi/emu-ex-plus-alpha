@@ -728,6 +728,7 @@ namespace UtfConverter
         return result;
     }
 
+
 #if 0
     std::wstring FromUtf8(std::string& input) // string -> wstring
     {

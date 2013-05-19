@@ -70,18 +70,26 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return swapped ? isDefaultCancelButton(0) : (button == Input::ICade::A || button == Input::ICade::B);
 		#endif
-		#ifdef CONFIG_BASE_PS3
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::PS3::CROSS);
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::GAME_A || button == Input::Evdev::GAME_1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			#ifdef CONFIG_BASE_ANDROID
 			switch(device->subtype)
 			{
+				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
 					return swapped ? isDefaultCancelButton(0) : button == Input::Keycode::GAME_X;
+				#endif
+				#ifdef CONFIG_MACHINE_PANDORA
+				case Device::SUBTYPE_PANDORA_HANDHELD:
+					return button == Input::Keycode::ENTER ||
+						(swapped ? isDefaultCancelButton(0) : button == Keycode::Pandora::X);
+				#endif
 			}
-			#endif
 			return button == Input::Keycode::ENTER
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::CENTER || (swapped ? isDefaultCancelButton(0) : (button == Input::Keycode::GAME_A || button == Input::Keycode::GAME_1))
@@ -106,21 +114,28 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return swapped ? isDefaultConfirmButton(0) : (button == Input::ICade::C || button == Input::ICade::D);
 		#endif
-		#ifdef CONFIG_BASE_PS3
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::PS3::CIRCLE);
 		#endif
 		#ifdef INPUT_SUPPORTS_MOUSE
 		case MAP_POINTER: return button == Input::Pointer::DOWN_BUTTON;
 		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::GAME_B || button == Input::Evdev::GAME_2;
+		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			#ifdef CONFIG_BASE_ANDROID
 			switch(device->subtype)
 			{
+				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
 					return swapped ? isDefaultConfirmButton(0) : button == Input::Keycode::GAME_Y;
+				#endif
+				#ifdef CONFIG_MACHINE_PANDORA
+				case Device::SUBTYPE_PANDORA_HANDHELD:
+					return swapped ? isDefaultConfirmButton(0) : button == Keycode::Pandora::B;
+				#endif
 			}
-			#endif
 			return button == Input::Keycode::ESCAPE
 				#ifdef CONFIG_INPUT_ANDROID
 				|| (swapped ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2))
@@ -146,8 +161,11 @@ bool Event::isDefaultLeftButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::LEFT;
 		#endif
-		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::PS3::LEFT;
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return button == Input::PS3::LEFT || button == PS3::LSTICK_LEFT;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -179,8 +197,11 @@ bool Event::isDefaultRightButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::RIGHT;
 		#endif
-		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::PS3::RIGHT;
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return button == Input::PS3::RIGHT || button == PS3::LSTICK_RIGHT;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -212,8 +233,11 @@ bool Event::isDefaultUpButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::UP;
 		#endif
-		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::PS3::UP;
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return button == Input::PS3::UP || button == PS3::LSTICK_UP;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -245,8 +269,11 @@ bool Event::isDefaultDownButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::DOWN;
 		#endif
-		#ifdef CONFIG_BASE_PS3
-		case MAP_PS3PAD: return button == Input::PS3::DOWN;
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return button == Input::PS3::DOWN || button == PS3::LSTICK_DOWN;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
@@ -276,11 +303,21 @@ bool Event::isDefaultPageUpButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::E;
 		#endif
-		#ifdef CONFIG_BASE_PS3
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::L1;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::GAME_L1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
+			switch(device->subtype)
+			{
+				#ifdef CONFIG_MACHINE_PANDORA
+				case Device::SUBTYPE_PANDORA_HANDHELD:
+					return button == Keycode::Pandora::L;
+				#endif
+			}
 			return button == Input::Keycode::PGUP
 		#ifdef CONFIG_BASE_ANDROID
 				|| button == Input::Keycode::GAME_L1
@@ -304,11 +341,21 @@ bool Event::isDefaultPageDownButton() const
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return button == Input::ICade::F;
 		#endif
-		#ifdef CONFIG_BASE_PS3
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::R1;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return button == Input::Evdev::GAME_R1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
+			switch(device->subtype)
+			{
+				#ifdef CONFIG_MACHINE_PANDORA
+				case Device::SUBTYPE_PANDORA_HANDHELD:
+					return button == Keycode::Pandora::R;
+				#endif
+			}
 			return button == Input::Keycode::PGDOWN
 		#ifdef CONFIG_BASE_ANDROID
 				|| button == Input::Keycode::GAME_R1
@@ -504,6 +551,45 @@ static const char *keyButtonName(Key b)
 		case Keycode::PAUSE: return "Pause";
 		case Keycode::LMETA: return "Left Meta";
 		case Keycode::RMETA: return "Right Meta";
+		#ifdef CONFIG_BASE_X11
+		case Keycode::LSUPER: return "Left Start/Option";
+		case Keycode::RSUPER: return "Right Start/Option";
+		#endif
+		case Keycode::PGUP: return "Page Up";
+		case Keycode::PGDOWN: return "Page Down";
+		case Keycode::PRINT_SCREEN: return "Print Screen";
+		case Keycode::NUM_LOCK: return "Num Lock";
+		case Keycode::NUMPAD_0: return "Numpad 0";
+		case Keycode::NUMPAD_1: return "Numpad 1";
+		case Keycode::NUMPAD_2: return "Numpad 2";
+		case Keycode::NUMPAD_3: return "Numpad 3";
+		case Keycode::NUMPAD_4: return "Numpad 4";
+		case Keycode::NUMPAD_5: return "Numpad 5";
+		case Keycode::NUMPAD_6: return "Numpad 6";
+		case Keycode::NUMPAD_7: return "Numpad 7";
+		case Keycode::NUMPAD_8: return "Numpad 8";
+		case Keycode::NUMPAD_9: return "Numpad 9";
+		case Keycode::NUMPAD_DIV: return "Numpad /";
+		case Keycode::NUMPAD_MULT: return "Numpad *";
+		case Keycode::NUMPAD_SUB: return "Numpad -";
+		case Keycode::NUMPAD_ADD: return "Numpad +";
+		case Keycode::NUMPAD_DOT: return "Numpad .";
+		case Keycode::NUMPAD_COMMA: return "Numpad ,";
+		case Keycode::NUMPAD_ENTER: return "Numpad Enter";
+		case Keycode::NUMPAD_EQUALS: return "Numpad =";
+		#ifdef CONFIG_BASE_X11
+		case Keycode::NUMPAD_INSERT: return "Numpad Insert";
+		case Keycode::NUMPAD_DELETE: return "Numpad Delete";
+		case Keycode::NUMPAD_BEGIN: return "Numpad Begin";
+		case Keycode::NUMPAD_HOME: return "Numpad Home";
+		case Keycode::NUMPAD_END: return "Numpad End";
+		case Keycode::NUMPAD_PGUP: return "Numpad Page Up";
+		case Keycode::NUMPAD_PGDOWN: return "Numpad Page Down";
+		case Keycode::NUMPAD_UP: return "Numpad Up";
+		case Keycode::NUMPAD_RIGHT: return "Numpad Right";
+		case Keycode::NUMPAD_DOWN: return "Numpad Down";
+		case Keycode::NUMPAD_LEFT: return "Numpad Left";
+		#endif
 		case Keycode::F1: return "F1";
 		case Keycode::F2: return "F2";
 		case Keycode::F3: return "F3";
@@ -582,6 +668,8 @@ static const char *keyButtonName(Key b)
 		case Keycode::JS3_YAXIS_NEG: return "Y Axis- 3";
 		case Keycode::JS_LTRIGGER_AXIS: return "L Trigger";
 		case Keycode::JS_RTRIGGER_AXIS: return "R Trigger";
+		case Keycode::JS_GAS_AXIS: return "Gas";
+		case Keycode::JS_BRAKE_AXIS: return "Brake";
 		#endif
 	}
 	return "Unknown";
@@ -725,38 +813,16 @@ static const char *iCadeButtonName(Key b)
 	return nullptr;
 }
 
-static const char *ps3ButtonName(Key b)
+static const char *ps3SysButtonName(Key b)
 {
-	#ifdef CONFIG_BASE_PS3
+	#if defined CONFIG_BASE_ANDROID
 		switch(b)
 		{
-			case 0: return "None";
-			case PS3::CROSS: return "Cross";
-			case PS3::CIRCLE: return "Circle";
-			case PS3::SQUARE: return "Square";
-			case PS3::TRIANGLE: return "Triangle";
-			case PS3::L1: return "L1";
-			case PS3::L2: return "L2";
-			case PS3::L3: return "L3";
-			case PS3::R1: return "R1";
-			case PS3::R2: return "R2";
-			case PS3::R3: return "R3";
-			case PS3::SELECT: return "Select";
-			case PS3::START: return "Start";
-			case PS3::UP: return "Up";
-			case PS3::RIGHT: return "Right";
-			case PS3::DOWN: return "Down";
-			case PS3::LEFT: return "Left";
-		}
-		return "Unknown";
-	#elif defined CONFIG_BASE_ANDROID
-		switch(b)
-		{
-			case PS3::CROSS: return "Cross";
-			case PS3::CIRCLE: return "Circle";
-			case PS3::SQUARE: return "Square";
-			case PS3::TRIANGLE: return "Triangle";
-			case PS3::PS: return "PS";
+			case Keycode::PS3::CROSS: return "Cross";
+			case Keycode::PS3::CIRCLE: return "Circle";
+			case Keycode::PS3::SQUARE: return "Square";
+			case Keycode::PS3::TRIANGLE: return "Triangle";
+			case Keycode::PS3::PS: return "PS";
 			case Keycode::GAME_LEFT_THUMB: return "L3";
 			case Keycode::GAME_RIGHT_THUMB: return "R3";
 		}
@@ -766,15 +832,51 @@ static const char *ps3ButtonName(Key b)
 	#endif
 }
 
+#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+static const char *ps3ButtonName(Key b)
+{
+	switch(b)
+	{
+		case 0: return "None";
+		case PS3::CROSS: return "Cross";
+		case PS3::CIRCLE: return "Circle";
+		case PS3::SQUARE: return "Square";
+		case PS3::TRIANGLE: return "Triangle";
+		case PS3::L1: return "L1";
+		case PS3::L2: return "L2";
+		case PS3::L3: return "L3";
+		case PS3::R1: return "R1";
+		case PS3::R2: return "R2";
+		case PS3::R3: return "R3";
+		case PS3::SELECT: return "Select";
+		case PS3::START: return "Start";
+		case PS3::UP: return "Up";
+		case PS3::RIGHT: return "Right";
+		case PS3::DOWN: return "Down";
+		case PS3::LEFT: return "Left";
+		case PS3::PS: return "PS";
+		case PS3::LSTICK_UP: return "L:Up";
+		case PS3::LSTICK_RIGHT: return "L:Right";
+		case PS3::LSTICK_DOWN: return "L:Down";
+		case PS3::LSTICK_LEFT: return "L:Left";
+		case PS3::RSTICK_UP: return "R:Up";
+		case PS3::RSTICK_RIGHT: return "R:Right";
+		case PS3::RSTICK_DOWN: return "R:Down";
+		case PS3::RSTICK_LEFT: return "R:Left";
+	}
+	return "Unknown";
+}
+#endif
+
 #ifdef CONFIG_BASE_ANDROID
 static const char *xperiaPlayButtonName(Key b)
 {
 	switch(b)
 	{
-		case XperiaPlay::CROSS: return "Cross";
-		case XperiaPlay::CIRCLE: return "Circle";
-		case XperiaPlay::SQUARE: return "Square";
-		case XperiaPlay::TRIANGLE: return "Triangle";
+		case Keycode::XperiaPlay::CROSS: return "Cross";
+		case Keycode::XperiaPlay::CIRCLE: return "Circle";
+		case Keycode::XperiaPlay::SQUARE: return "Square";
+		case Keycode::XperiaPlay::TRIANGLE: return "Triangle";
 	}
 	return nullptr;
 }
@@ -783,13 +885,32 @@ static const char *ouyaButtonName(Key b)
 {
 	switch(b)
 	{
-		case Ouya::O: return "O";
-		case Ouya::U: return "U";
-		case Ouya::Y: return "Y";
-		case Ouya::A: return "A";
-		case Keycode::GAME_LEFT_THUMB: return "L3";
-		case Keycode::GAME_RIGHT_THUMB: return "R3";
+		case Keycode::Ouya::O: return "O";
+		case Keycode::Ouya::U: return "U";
+		case Keycode::Ouya::Y: return "Y";
+		case Keycode::Ouya::A: return "A";
+		case Keycode::Ouya::L3: return "L3";
+		case Keycode::Ouya::R3: return "R3";
 		case Keycode::MENU: return "System";
+	}
+	return nullptr;
+}
+#endif
+
+#ifdef CONFIG_MACHINE_PANDORA
+static const char *openPandoraButtonName(Key b)
+{
+	switch(b)
+	{
+		case Keycode::Pandora::L: return "L";
+		case Keycode::Pandora::R: return "R";
+		case Keycode::Pandora::A: return "A";
+		case Keycode::Pandora::B: return "B";
+		case Keycode::Pandora::Y: return "Y";
+		case Keycode::Pandora::X: return "X";
+		case Keycode::Pandora::SELECT: return "Select";
+		case Keycode::Pandora::START: return "Start";
+		case Keycode::Pandora::LOGO: return "Logo";
 	}
 	return nullptr;
 }
@@ -808,7 +929,10 @@ const char *Device::keyName(Key b) const
 				#ifdef CONFIG_BASE_ANDROID
 				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(b);
 				bcase Device::SUBTYPE_OUYA_CONTROLLER: name = ouyaButtonName(b);
-				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3ButtonName(b);
+				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3SysButtonName(b);
+				#endif
+				#ifdef CONFIG_MACHINE_PANDORA
+				bcase Device::SUBTYPE_PANDORA_HANDHELD: name = openPandoraButtonName(b);
 				#endif
 			}
 			if(!name)
@@ -824,6 +948,7 @@ const char *Device::keyName(Key b) const
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
+		{
 			auto name = iCadeButtonName(b);
 			if(!name)
 			{
@@ -834,9 +959,13 @@ const char *Device::keyName(Key b) const
 				#endif
 			}
 			return name;
+		}
 		#endif
-		#ifdef CONFIG_BASE_PS3
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case Input::Event::MAP_PS3PAD: return ps3ButtonName(b);
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case Input::Event::MAP_EVDEV: return evdevButtonName(b);
 		#endif
 	}
 	return "Unknown";

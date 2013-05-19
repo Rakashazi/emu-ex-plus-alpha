@@ -4,7 +4,7 @@
 
 OSystem::OSystem()
 {
-	myEEPROMDir = ".";
+	myNVRamDir = ".";
 	mySettings = 0;
 	myFrameBuffer = new FrameBuffer();
 	vcsSound = new ImagineSound(this);

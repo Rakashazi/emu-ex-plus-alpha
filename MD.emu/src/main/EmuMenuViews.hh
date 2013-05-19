@@ -6,52 +6,67 @@ static void setupMDInput();
 
 class SystemOptionView : public OptionView
 {
-private:
+public:
 
-	BoolMenuItem sixButtonPad {BoolMenuItem::SelectDelegate::create<&sixButtonPadHandler>()},
-		multitap {BoolMenuItem::SelectDelegate::create<&multitapHandler>()},
-		smsFM {BoolMenuItem::SelectDelegate::create<&smsFMHandler>()},
-		bigEndianSram {BoolMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, bigEndianSramHandler)>(this)};
-
-	static void sixButtonPadHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem sixButtonPad
 	{
-		item.toggle();
-		option6BtnPad = item.on;
-		setupMDInput();
-		vController.place();
-	}
-
-	static void multitapHandler(BoolMenuItem &item, const Input::Event &e)
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			option6BtnPad = item.on;
+			setupMDInput();
+			vController.place();
+		}
+	},
+	multitap
 	{
-		item.toggle();
-		usingMultiTap = item.on;
-		setupMDInput();
-	}
-
-	static void smsFMHandler(BoolMenuItem &item, const Input::Event &e)
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			usingMultiTap = item.on;
+			setupMDInput();
+		}
+	},
+	smsFM
 	{
-		item.toggle();
-		optionSmsFM = item.on;
-		config_ym2413_enabled = optionSmsFM;
-	}
-
-	void confirmBigEndianSramAlert(const Input::Event &e)
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionSmsFM = item.on;
+			config_ym2413_enabled = optionSmsFM;
+		}
+	},
+	bigEndianSram
 	{
-		bigEndianSram.toggle();
-		optionBigEndianSram = bigEndianSram.on;
-	}
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			auto &ynAlertView = *allocModalView<YesNoAlertView>();
+			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
+					"Turn on to make them compatible with other emulators like Gens. "
+					"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
+			ynAlertView.onYes() =
+				[this](const Input::Event &e)
+				{
+					bigEndianSram.toggle();
+					optionBigEndianSram = bigEndianSram.on;
+				};
+			View::addModalView(ynAlertView);
+		}
+	};
 
-	void bigEndianSramHandler(BoolMenuItem &item, const Input::Event &e)
+
+
+
+
+	MultiChoiceSelectMenuItem region
 	{
-		ynAlertView.init("Warning, this changes the format of SRAM saves files. "
-				"Turn on to make them compatible with other emulators like Gens. "
-				"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
-		ynAlertView.onYes().bind<SystemOptionView, &SystemOptionView::confirmBigEndianSramAlert>(this);
-		ynAlertView.placeRect(Gfx::viewportRect());
-		modalView = &ynAlertView;
-	}
-
-	MultiChoiceSelectMenuItem region {"Game Region", MultiChoiceMenuItem::ValueDelegate::create<&regionSet>()};
+		"Game Region",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionRegion = val;
+			config.region_detect = val;
+		}
+	};
 
 	void regionInit()
 	{
@@ -68,11 +83,7 @@ private:
 		region.init(str, setting, sizeofArray(str));
 	}
 
-	static void regionSet(MultiChoiceMenuItem &, int val)
-	{
-		optionRegion = val;
-		config.region_detect = val;
-	}
+
 
 	#ifndef NO_SCD
 	static int regionCodeToIdx(int region)
@@ -99,9 +110,9 @@ private:
 	char cdBiosPathStr[3][256] { {0} };
 	TextMenuItem cdBiosPath[3]
 	{
-		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_USA>)>(this) },
-		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_JAPAN_NTSC>)>(this) },
-		{ TextMenuItem::SelectDelegate::create<template_mfunc(SystemOptionView, cdBiosPathHandler<REGION_EUROPE>)>(this) }
+		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_USA); } },
+		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); } },
+		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_EUROPE); } }
 	};
 
 	template <size_t S>
@@ -121,24 +132,22 @@ private:
 			bcase REGION_JAPAN_NTSC: regionStr = "Japan";
 			bcase REGION_EUROPE: regionStr = "Europe";
 		}
-		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? string_basename(path) : "None set");
+		FsSys::cPath basenameTemp;
+		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? string_basename(path, basenameTemp) : "None set");
 	}
 
-	template <int region>
-	void cdBiosPathUpdated()
-	{
-		auto idx = regionCodeToIdx(region);
-		logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region));
-		printBiosMenuEntryStr(cdBiosPathStr[idx], region);
-		cdBiosPath[idx].compile();
-	}
-
-	template <int region>
-	void cdBiosPathHandler(TextMenuItem &item, const Input::Event &e)
+	void cdBiosPathHandler(const Input::Event &e, int region)
 	{
 		biosSelectMenu.init(&regionCodeToStrBuffer(region), mdROMFsFilter, !e.isPointer());
 		biosSelectMenu.placeRect(Gfx::viewportRect());
-		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::cdBiosPathUpdated<region>>(this);
+		biosSelectMenu.onBiosChange() =
+			[this, region]()
+			{
+				auto idx = regionCodeToIdx(region);
+				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region));
+				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
+				cdBiosPath[idx].compile();
+			};
 		modalView = &biosSelectMenu;
 		Base::displayNeedsUpdate();
 	}
@@ -154,7 +163,31 @@ private:
 	}
 	#endif
 
-	MultiChoiceSelectMenuItem inputPorts {"Input Ports", MultiChoiceMenuItem::ValueDelegate::create<&inputPortsSet>()};
+	MultiChoiceSelectMenuItem inputPorts
+	{
+		"Input Ports",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			if(val == 0)
+			{
+				mdInputPortDev[0] = mdInputPortDev[1] = -1;
+			}
+			else if(val == 1)
+			{
+				mdInputPortDev[0] = mdInputPortDev[1] = SYSTEM_MD_GAMEPAD;
+			}
+			else if(val == 2)
+			{
+				mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_MENACER;
+			}
+			else if(val == 3)
+			{
+				mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_JUSTIFIER;
+			}
+
+			setupMDInput();
+		}
+	};
 
 	void inputPortsInit()
 	{
@@ -173,29 +206,14 @@ private:
 		inputPorts.init(str, setting, sizeofArray(str));
 	}
 
-	static void inputPortsSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem videoSystem
 	{
-		if(val == 0)
+		"Video System",
+		[](MultiChoiceMenuItem &, int val)
 		{
-			mdInputPortDev[0] = mdInputPortDev[1] = -1;
+			optionVideoSystem = val;
 		}
-		else if(val == 1)
-		{
-			mdInputPortDev[0] = mdInputPortDev[1] = SYSTEM_MD_GAMEPAD;
-		}
-		else if(val == 2)
-		{
-			mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_MENACER;
-		}
-		else if(val == 3)
-		{
-			mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_JUSTIFIER;
-		}
-
-		setupMDInput();
-	}
-
-	MultiChoiceSelectMenuItem videoSystem {"Video System", MultiChoiceMenuItem::ValueDelegate::create<&videoSystemSet>()};
+	};
 
 	void videoSystemInit()
 	{
@@ -203,16 +221,11 @@ private:
 		{
 			"Auto", "NTSC", "PAL"
 		};
-		videoSystem.init(str, IG::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
-	}
-
-	static void videoSystemSet(MultiChoiceMenuItem &, int val)
-	{
-		optionVideoSystem = val;
+		videoSystem.init(str, std::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
 	}
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{
@@ -265,19 +278,21 @@ public:
 
 class SystemMenuView : public MenuView
 {
-	static void cheatsHandler(TextMenuItem &item, const Input::Event &e)
+	TextMenuItem cheats
 	{
-		if(EmuSystem::gameIsRunning())
+		"Cheats",
+		[](TextMenuItem &item, const Input::Event &e)
 		{
-			cheatsMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&cheatsMenu);
+			if(EmuSystem::gameIsRunning())
+			{
+				cheatsMenu.init(!e.isPointer());
+				viewStack.pushAndShow(&cheatsMenu);
+			}
 		}
-	}
-
-	TextMenuItem cheats {"Cheats", TextMenuItem::SelectDelegate::create<&cheatsHandler>()};
+	};
 
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 
 	void onShow()
 	{

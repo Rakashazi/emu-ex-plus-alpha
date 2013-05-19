@@ -19,7 +19,7 @@
 #include <util/thread/pthread.hh>
 #include <util/bits.h>
 #include <util/rectangle2.h>
-#include <util/Delegate.hh>
+#include <util/DelegateFunc.hh>
 
 #if defined (CONFIG_BASE_X11) || (defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9)
 	#include <sys/epoll.h>
@@ -72,8 +72,11 @@ void abort() ATTRS(noreturn);
 
 // Worker thread -> Main thread messages
 
-static const ushort MSG_START = 127, MSG_BT_SCAN_STATUS_DELEGATE = 130, MSG_ORIENTATION_CHANGE = 131,
-		MSG_USER = 255;
+static const ushort
+	MSG_PLATFORM_START = 0, // platform-specific Base module message codes
+	MSG_IMAGINE_START = 127, // shared message codes
+	MSG_BT_SCAN_STATUS_DELEGATE = MSG_IMAGINE_START,
+	MSG_USER = 255; // client app message codes
 void sendMessageToMain(ThreadPThread &thread, int type, int shortArg, int intArg, int intArg2);
 // version used when thread context isn't needed
 void sendMessageToMain(int type, int shortArg, int intArg, int intArg2);
@@ -82,6 +85,14 @@ static void sendBTScanStatusDelegate(ThreadPThread &thread, uint status, int arg
 {
 	sendMessageToMain(thread, MSG_BT_SCAN_STATUS_DELEGATE, 0, status, arg);
 }
+
+// Inter-process messages
+
+#if defined (CONFIG_BASE_X11)
+	void registerInstance(const char *name, int argc, char** argv);
+#else
+	static void registerInstance(const char *name, int argc, char** argv) {}
+#endif
 
 // Graphics update notification
 
@@ -111,9 +122,9 @@ void sleepUs(int us);
 
 // window management
 #if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_WIN32)
-	void setWindowTitle(char *name);
+	void setWindowTitle(const char *name);
 #else
-	static void setWindowTitle(char *name) { }
+	static void setWindowTitle(const char *name) { }
 #endif
 
 // DPI override
@@ -125,7 +136,17 @@ void sleepUs(int us);
 #endif
 
 // display refresh rate
-uint refreshRate();
+#ifdef CONFIG_BASE_ANDROID
+	uint refreshRate();
+#else
+	static uint refreshRate() { return 0; }
+#endif
+static const uint REFRESH_RATE_DEFAULT = 0;
+#ifdef CONFIG_BASE_X11
+	void setRefreshRate(uint rate);
+#else
+	static void setRefreshRate(uint rate) {}
+#endif
 
 // external services
 #if defined (CONFIG_BASE_IOS)
@@ -136,7 +157,7 @@ uint refreshRate();
 
 // poll()-like event system support
 
-typedef Delegate<int (int event)> PollEventDelegate;
+typedef DelegateFunc<int (int event)> PollEventDelegate;
 
 #if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
@@ -156,7 +177,7 @@ typedef Delegate<int (int event)> PollEventDelegate;
 #endif
 
 // timer event support
-using CallbackDelegate = Delegate<void ()>;
+using CallbackDelegate = DelegateFunc<void ()>;
 struct CallbackRef;
 void cancelCallback(CallbackRef *ref);
 CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms);
@@ -221,17 +242,6 @@ static const uint OS_NAV_STYLE_DIM = BIT(0), OS_NAV_STYLE_HIDDEN = BIT(1);
 #else
 	static bool hasVibrator() { return 0; }
 	static void vibrate(uint ms) { }
-#endif
-
-// UID functions
-#ifdef CONFIG_BASE_IOS_SETUID
-	extern uid_t realUID, effectiveUID;
-	void setUIDReal();
-	bool setUIDEffective();
-#else
-	static int realUID = 0, effectiveUID = 0;
-	static void setUIDReal() { }
-	static bool setUIDEffective() { return 0; }
 #endif
 
 // Notification icon

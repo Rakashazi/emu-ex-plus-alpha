@@ -17,16 +17,67 @@
 
 #include <gui/View.hh>
 #include <gui/NavView.hh>
+#include <utility>
+
+struct StackAllocator
+{
+	constexpr StackAllocator() {}
+	uint itemEndOffset[5] {0};
+	uint items = 0;
+	uint8 storage[1024*15] __attribute__((aligned)) {0};
+
+	void *alloc(uint size)
+	{
+		if(items >= sizeofArray(itemEndOffset))
+		{
+			bug_exit("too many items");
+		}
+
+		auto itemStart = items ? itemEndOffset[items-1] : 0;
+		auto itemEnd = itemStart + size;
+		auto itemEndAligned = IG::alignRoundedUp(itemEnd, 16);
+		itemEndOffset[items] = itemEndAligned;
+		items++;
+		logMsg("allocated %u bytes @ offset 0x%X (%d)", size, itemStart, itemStart);
+		if(itemEnd != itemEndAligned)
+		{
+			logMsg("end offset 0x%X (%u) aligned to 0x%X (%u)", itemEnd, itemEnd, itemEndAligned, itemEndAligned);
+		}
+
+		if(itemEndOffset[items-1] > sizeof(storage))
+		{
+			bug_exit("out of space");
+		}
+
+		return &storage[itemStart];
+	}
+
+	template<typename T, typename... ARGS>
+	T *allocNew(ARGS&&... args)
+	{
+		auto allocated = alloc(sizeof(T));
+		auto obj = new(allocated) T(std::forward<ARGS>(args)...);
+		return obj;
+	}
+
+	void pop()
+	{
+		assert(items);
+		items--;
+	}
+};
 
 class ViewStack
 {
-	View *view[5] = {nullptr};
+	View *view[5] {nullptr};
+	StackAllocator *viewAllocator[5] {nullptr};
 	NavView *nav = nullptr;
 	Rect2<int> viewRect, customViewRect;
 public:
 	uint size = 0;
 	bool useNavView = 0;
 	constexpr ViewStack() { }
+	constexpr ViewStack(View &root): view{&root}, size{1} { }
 
 	void init()
 	{
@@ -84,10 +135,11 @@ public:
 		if(useNavView && nav) nav->draw();
 	}
 
-	void push(View *v)
+	void push(View *v, StackAllocator *allocator)
 	{
 		assert(size != sizeofArray(view));
 		view[size] = v;
+		viewAllocator[size] = allocator;
 		size++;
 		logMsg("push view, %d in stack", size);
 
@@ -97,17 +149,31 @@ public:
 		}
 	}
 
-	void pushAndShow(View *v)
+	void push(View *v)
 	{
-		push(v);
+		push(v, nullptr);
+	}
+
+	void pushAndShow(View *v, StackAllocator *allocator)
+	{
+		push(v, allocator);
 		place();
 		v->show();
 		Base::displayNeedsUpdate();
 	}
 
+	void pushAndShow(View *v)
+	{
+		pushAndShow(v, nullptr);
+	}
+
 	void pop()
 	{
 		top()->deinit();
+		if(viewAllocator[size-1])
+		{
+			viewAllocator[size-1]->pop();
+		}
 		size--;
 		logMsg("pop view, %d in stack", size);
 		assert(size != 0);

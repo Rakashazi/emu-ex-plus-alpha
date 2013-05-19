@@ -1399,7 +1399,7 @@ void cheatsDelete(ARM7TDMI &cpu, int number, bool restore)
       }
     }
     if((x+1) <  cheatsNumber) {
-      memcpy(&cheatsList[x], &cheatsList[x+1], sizeof(CheatsData)*
+      memmove(&cheatsList[x], &cheatsList[x+1], sizeof(CheatsData)*
              (cheatsNumber-x-1));
     }
     cheatsNumber--;
@@ -1577,13 +1577,13 @@ void cheatsDecryptGSACode(u32& address, u32& value, bool v3)
   }
 }
 
-void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3)
+bool cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3)
 {
   if(strlen(code) != 16) {
     // wrong cheat
     systemMessage(MSG_INVALID_GSA_CODE,
                   N_("Invalid GSA code. Format is XXXXXXXXYYYYYYYY"));
-    return;
+    return false;
   }
 
   int i;
@@ -1592,7 +1592,7 @@ void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3
       // wrong cheat
       systemMessage(MSG_INVALID_GSA_CODE,
                     N_("Invalid GSA code. Format is XXXXXXXXYYYYYYYY"));
-      return;
+      return false;
     }
   }
 
@@ -1622,11 +1622,11 @@ void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3
     }
     cheatsAdd(cpu, code, desc, address, address & 0x0FFFFFFF, value, v3 ? 257 : 256,
               UNKNOWN_CODE);
-    return;
+    return true;
   }
   if(isMultilineWithData(cheatsNumber-1)) {
     cheatsAdd(cpu, code, desc, address, address, value, v3 ? 257 : 256, UNKNOWN_CODE);
-    return;
+    return true;
   }
   if(v3) {
     int type = ((address >> 25) & 127) | ((address >> 17) & 0x80);
@@ -2061,6 +2061,7 @@ void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3
       break;
     }
   }
+  return true;
 }
 
 bool cheatsImportGSACodeFile(ARM7TDMI &cpu, const char *name, int game, bool v3)
@@ -2432,13 +2433,13 @@ bool cheatsCBAShouldDecrypt()
   return false;
 }
 
-void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
+bool cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
 {
   if(strlen(code) != 13) {
     // wrong cheat
     systemMessage(MSG_INVALID_CBA_CODE,
                   N_("Invalid CBA code. Format is XXXXXXXX YYYY."));
-    return;
+    return false;
   }
 
   int i;
@@ -2447,14 +2448,14 @@ void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
       // wrong cheat
       systemMessage(MSG_INVALID_CBA_CODE,
                     N_("Invalid CBA code. Format is XXXXXXXX YYYY."));
-      return;
+      return false;
     }
   }
 
   if(code[8] != ' ') {
     systemMessage(MSG_INVALID_CBA_CODE,
                   N_("Invalid CBA code. Format is XXXXXXXX YYYY."));
-    return;
+    return false;
   }
 
   for(i = 9; i < 13; i++) {
@@ -2462,7 +2463,7 @@ void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
       // wrong cheat
       systemMessage(MSG_INVALID_CBA_CODE,
                     N_("Invalid CBA code. Format is XXXXXXXX YYYY."));
-      return;
+      return false;
     }
   }
 
@@ -2506,7 +2507,7 @@ void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
       cheatsAdd(cpu, code, desc, address, address, value, 512, UNKNOWN_CODE);
 	  if (super>0)
 		  super-= 1;
-      return;
+      return true;
     }
 
     switch(type) {
@@ -2588,6 +2589,7 @@ void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
       break;
     }
   }
+  return true;
 }
 
 void cheatsSaveGame(gzFile file)

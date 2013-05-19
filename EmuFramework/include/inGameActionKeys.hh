@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,9 +13,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 namespace EmuControls
 {
@@ -38,7 +38,7 @@ static const char *gameActionName[gameActionKeys] =
 }
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT \
-KeyCategory("In-Game Actions", gameActionName, 0)
+KeyCategory("Set In-Game Actions", gameActionName, 0)
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT \
 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -164,36 +164,75 @@ Input::asciiKey('`'), \
 Input::Keycode::ESCAPE
 
 #ifdef CONFIG_BASE_ANDROID
-	#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
-	0, \
-	Input::Keycode::MENU, \
-	0, \
-	0, \
-	0, \
-	0, \
-	Input::Keycode::SEARCH, \
-	0, \
-	0
+#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::MENU, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::SEARCH, \
+0, \
+0
 #else
-	#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
-	0, \
-	Input::Keycode::MENU, \
-	0, \
-	0, \
-	0, \
-	0, \
-	Input::Keycode::F11, \
-	0, \
-	0
+#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::MENU, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::F11, \
+0, \
+0
+#endif
+
+#ifdef CONFIG_BASE_PS3
+#define PS3PAD_OPEN_MENU_KEY Input::PS3::L2
+#else
+#define PS3PAD_OPEN_MENU_KEY Input::PS3::PS
 #endif
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT \
-	Input::Ps3::L1, \
-	Input::Ps3::L2, \
-	Input::Ps3::L3, \
-	Input::Ps3::R3, \
+	0, \
+	PS3PAD_OPEN_MENU_KEY, \
 	0, \
 	0, \
-	Input::Ps3::R2, \
+	0, \
+	0, \
+	Input::PS3::R2, \
+	0, \
+	0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_ALT_MINIMAL_PROFILE_INIT \
+	0, \
+	Input::PS3::SELECT, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_PROFILE_INIT \
+	Input::asciiKey('l'), \
+	Input::asciiKey(' '), \
+	Input::asciiKey('3'), \
+	Input::asciiKey('4'), \
+	Input::asciiKey('5'), \
+	Input::asciiKey('6'), \
+	Input::Keycode::Pandora::R, \
+	0, \
+	Input::Keycode::BACK_SPACE
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_MINIMAL_PROFILE_INIT \
+	0, \
+	Input::Keycode::Pandora::START, \
+	0, \
+	0, \
+	0, \
+	0, \
+	Input::Keycode::Pandora::R, \
 	0, \
 	0

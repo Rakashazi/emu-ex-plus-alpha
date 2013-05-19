@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,19 +13,16 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
-
-#pragma once
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <io/Io.hh>
 #include <fs/sys.hh>
+#include <audio/Audio.hh>
 #include <util/time/sys.hh>
 #include <util/audio/PcmFormat.hh>
 #include <config/env.hh>
 #include <gui/FSPicker/FSPicker.hh>
 #include <util/gui/ViewStack.hh>
-
-extern BasicNavView viewNav;
 
 class EmuSystem
 {
@@ -68,12 +67,24 @@ class EmuSystem
 	static void writeConfig(Io *io);
 	static bool readConfig(Io *io, uint key, uint readSize);
 	static int loadGame(const char *path);
-	typedef Delegate<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
+	typedef DelegateFunc<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
-	static LoadGameCompleteDelegate &loadGameCompleteDelegate() { return loadGameCompleteDel; }
+	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
 	static void runFrame(bool renderGfx, bool processGfx, bool renderAudio) ATTRS(hot);
 	static bool vidSysIsPAL();
+	static uint multiresVideoBaseX();
+	static uint multiresVideoBaseY();
 	static void configAudioRate();
+	static void configAudioPlayback()
+	{
+		auto prevFormat = pcmFormat;
+		configAudioRate();
+		if(prevFormat != pcmFormat && Audio::isOpen())
+		{
+			logMsg("PCM format has changed, closing existing playback");
+			Audio::closePcm();
+		}
+	}
 	static void clearInputBuffers();
 	static void handleInputAction(uint state, uint emuKey);
 	static uint translateInputAction(uint input, bool &turbo);
@@ -131,20 +142,7 @@ class EmuSystem
 	}
 
 	static void closeSystem();
-	static void closeGame(bool allowAutosaveState = 1)
-	{
-		if(gameIsRunning())
-		{
-			if(allowAutosaveState)
-				saveAutoState();
-			logMsg("closing game %s", gameName);
-			closeSystem();
-			clearGamePaths();
-			cancelAutoSaveStateTimer();
-			viewNav.setRightBtnActive(0);
-			state = State::OFF;
-		}
-	}
+	static void closeGame(bool allowAutosaveState = 1);
 };
 
 enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
@@ -170,6 +168,30 @@ static const char *stateNameStr(int slot)
 	static const char *str[] = { "Auto", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 	return str[slot+1];
 }
+
+class EmuNavView : public BasicNavView
+{
+public:
+	constexpr EmuNavView() { }
+	void onLeftNavBtn(const Input::Event &e) override;
+	void onRightNavBtn(const Input::Event &e) override;
+};
+
+extern StackAllocator menuAllocator;
+extern uint8 modalViewStorage[2][4096] __attribute__((aligned));
+extern uint modalViewStorageIdx;
+template<typename T, typename... ARGS>
+static T *allocModalView(ARGS&&... args)
+{
+	static_assert(sizeof(T) <= sizeof(modalViewStorage[0]), "out of modal view storage");
+	auto obj = new(modalViewStorage[modalViewStorageIdx]) T(std::forward<ARGS>(args)...);
+	modalViewStorageIdx = (modalViewStorageIdx + 1) % 2;
+	return obj;
+}
+
+#if defined INPUT_SUPPORTS_POINTER
+#define CONFIG_EMUFRAMEWORK_VCONTROLS
+#endif
 
 #include <CreditsView.hh>
 #include <inGameActionKeys.hh>

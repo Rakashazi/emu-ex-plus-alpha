@@ -19,6 +19,8 @@
 #include <input/DragPointer.hh>
 #include <gfx/GeomRect.hh>
 #include <base/Base.hh>
+#include <algorithm>
+#include <cmath>
 
 void ContentDrag::init(uint axis)
 {
@@ -42,8 +44,8 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const Input::Ev
 		return PUSHED;
 	}
 	else if(pushed && !active && dragState->draggedFromRect(bt) &&
-			((testingXAxis() && IG::abs(dragState->pushX - e.x) > dragStartX) ||
-			(testingYAxis() && IG::abs(dragState->pushY - e.y) > dragStartY)))
+			((testingXAxis() && std::abs(dragState->pushX - e.x) > dragStartX) ||
+			(testingYAxis() && std::abs(dragState->pushY - e.y) > dragStartY)))
 	{
 		//logMsg("in scroll");
 		active = 1;
@@ -90,7 +92,7 @@ void KScroll::place()
 {
 	assert(contentFrame);
 	assert(viewFrame);
-	dragStartY = IG::max(1, Config::envIsAndroid ? Gfx::ySMMSizeToPixel(1.5) : Gfx::ySMMSizeToPixel(1.));
+	dragStartY = std::max(1, Config::envIsAndroid ? Gfx::ySMMSizeToPixel(1.5) : Gfx::ySMMSizeToPixel(1.));
 	maxClip = contentFrame->ySize() - viewFrame->ySize();
 	if(viewFrame->ySize() > 0)
 		allowScrollWholeArea = contentFrame->ySize() / viewFrame->ySize() > 3;
@@ -110,7 +112,7 @@ bool KScroll::clipOverEdge(int minC, int maxC)
 		if(offset < minC || offset > maxC)
 		{
 			//logMsg("clip over edge");
-			offset += sign * IG::max(1, (int)IG::abs((clip - offset) * GC(.2)));
+			offset += sign * std::max(1, (int)std::abs((clip - offset) * GC(.2)));
 			if((sign == 1 && offset > minC)
 				|| (sign == -1 && offset < maxC))
 			{
@@ -150,7 +152,7 @@ void KScroll::decel2()
 	{
 		vel *= 0.9f;
 		offset += vel;
-		if(IG::abs(vel) <= stoppingVel)
+		if(std::abs(vel) <= stoppingVel)
 			vel = 0;
 		Base::displayNeedsUpdate();
 		//logMsg("did decel scroll");
@@ -284,7 +286,7 @@ void ScrollView1D::init(Rect2<int> *contentFrame)
 
 void ScrollView1D::updateView() // move content frame in position along view frame
 {
-	contentFrame->setPos(viewFrame.xPos(LT2DO), viewFrame.yPos(LT2DO) - scroll.offset, LT2DO);
+	contentFrame->setPos({viewFrame.xPos(LT2DO), viewFrame.yPos(LT2DO) - scroll.offset}, LT2DO);
 }
 
 void ScrollView1D::place(Rect2<int> *frame)

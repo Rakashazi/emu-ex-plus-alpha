@@ -70,13 +70,14 @@ class TextEntry
 	
 	private static TextEntryPopupWindow popup = null;
 
-	static void startSysTextInput(Activity act, String initialText, String promptText, int x, int y, int width, int height)
+	static void startSysTextInput(Activity act, String initialText, String promptText, int x, int y, int width, int height, int fontSize)
 	{
 		if(popup == null)
 		{
 			popup = new TextEntryPopupWindow(new EditText(act.getApplicationContext()), width, height, true);
 		}
 		popup.editBox.setId(0); // reset indicator of canceled text entry
+		popup.editBox.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize);
 		popup.editBox.setText(initialText);
 		popup.editBox.setImeActionLabel(promptText, 0);
 		popup.editBox.setSingleLine();

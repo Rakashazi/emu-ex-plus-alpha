@@ -1,8 +1,8 @@
 #define thisModuleName "freetype2"
 
 #include "FreetypeFontData.hh"
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <assert.h>
 #include <logger/interface.h>
 #include <base/Base.hh>

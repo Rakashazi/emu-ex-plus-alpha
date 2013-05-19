@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "fsPosix"
-#include <stdlib.h>
+#include <cstdlib>
 #include <logger/interface.h>
 #include <base/Base.hh>
 #include <util/strings.h>
@@ -413,13 +413,12 @@ CallResult FsPosix::rename(const char *oldname, const char *newname)
 
 CallResult FsPosix::changeToAppDir(const char *launchCmd)
 {
-	cPath path;
 	logMsg("app called with cmd %s", launchCmd);
-	string_copy(path, launchCmd);
-	dirNameInPlace(path);
-	if(chdir(path) != 0)
+	cPath dirnameTemp;
+	auto dir = string_dirname(launchCmd, dirnameTemp);
+	if(chdir(dir) != 0)
 	{
-		logErr("error changing working directory to %s", path);
+		logErr("error changing working directory to %s", dir);
 		return INVALID_PARAMETER;
 	}
 	//logMsg("changed working directory to %s", path);

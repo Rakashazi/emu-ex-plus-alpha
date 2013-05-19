@@ -56,6 +56,9 @@ void CheatDeInit(void)
 
 int CheatAddCode(int type, u32 addr, u32 val)
 {
+   if (cheatlist == NULL)
+      return -1;
+
    cheatlist[numcheats].type = type;
    cheatlist[numcheats].addr = addr;
    cheatlist[numcheats].val = val;

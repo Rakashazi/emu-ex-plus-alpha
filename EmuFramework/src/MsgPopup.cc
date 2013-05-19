@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "msgPopup"
 #include <MsgPopup.hh>
@@ -45,6 +45,7 @@ void MsgPopup::place()
 
 void MsgPopup::unpost()
 {
+	logMsg("unposting");
 	callbackRef = nullptr;
 	text.str = 0;
 	Base::displayNeedsUpdate();
@@ -56,9 +57,8 @@ void MsgPopup::post(const char *msg, int secs, bool error)
 	text.setString(msg);
 	text.compile();
 	this->error = error;
-	auto callback = CallbackDelegate::create<MsgPopup,&MsgPopup::unpost>(this);
 	cancelCallback(callbackRef);
-	callbackRef = callbackAfterDelaySec(callback, secs);
+	callbackRef = callbackAfterDelaySec([this](){unpost();}, secs);
 }
 
 void MsgPopup::postError(const char *msg, int secs)

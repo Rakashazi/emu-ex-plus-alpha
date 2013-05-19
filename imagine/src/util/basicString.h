@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include <mem/interface.h>
 #include <util/cLang.h>
-#include <util/basicMath.hh>
 
 static void string_toUpper(char *s)
 {
@@ -66,6 +65,10 @@ static char *string_dup(const char *s)
 	return dup;
 }
 
+#ifdef __cplusplus
+
+#include <algorithm>
+
 // copies at most destSize-1 chars from src until null byte or dest size is reached
 // dest is always null terminated
 static char *string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
@@ -84,14 +87,12 @@ static char *string_copy(char *dest, const char *src, size_t destSize)
 			break;
 	}*/
 
-	uint charsToCopy = IG::min(destSize-1, strlen(src));
+	uint charsToCopy = std::min(destSize-1, strlen(src));
 	memcpy(dest, src, charsToCopy);
 	dest[charsToCopy] = '\0';
 
 	return dest;
 }
-
-#ifdef __cplusplus
 
 template <size_t S>
 static char *string_copy(char (&dest)[S], const char *src)

@@ -18,18 +18,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 #include <sys/types.h>
 #include <sys/stat.h>
 //#include <fstream>
-
-#ifndef WIN32
-#include <zlib.h>
-#endif
 
 #include "types.h"
 #include "file.h"
@@ -44,6 +40,10 @@
 #include "movie.h"
 #include "driver.h"
 #include "utils/xstring.h"
+
+#ifndef WIN32
+#include <zlib.h>
+#endif
 
 using namespace std;
 
@@ -634,8 +634,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 					if(odirs[FCEUIOD_STATES])
 					{
 						sprintf(ret,"%s" PSS "%s%s.fc%d",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-					}
-					else
+					} else
 					{
 						sprintf(ret,"%s" PSS "fcs" PSS "%s%s.fc%d",BaseDirectory.c_str(),FileBase,mfn,id1);
 					}
@@ -694,8 +693,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 			if(odirs[FCEUIOD_STATES])
 			{
 				sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-			}
-			else
+			} else
 			{
 				sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
 			}
@@ -704,8 +702,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 				if(odirs[FCEUIOD_STATES])
 				{
 					sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-				}
-				else
+				} else
 				{
 					sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
 				}

@@ -195,13 +195,13 @@ static INLINE char *AddWindowInfoString(char *outstring, int wctl, int issprite)
          AddString(outstring, "Vertical end = %d\r\n", vend);
       }
 
-      AddString(outstring, "Display %s of Window\r\n", (wctl & 0x4) ? "outside" : "inside");
+      AddString(outstring, "Display %s of Window\r\n", (wctl & 0x4) ? "inside" : "outside");
    }
 
    if (wctl & 0x20)
    {
       AddString(outstring, "Sprite Window Enabled:\r\n");
-      AddString(outstring, "Display %s of Window\r\n", (wctl & 0x10) ? "outside" : "inside");
+      AddString(outstring, "Display %s of Window\r\n", (wctl & 0x10) ? "inside" : "outside");
    }
 
    if (wctl & 0x2A)
@@ -512,7 +512,7 @@ void Vdp2DebugStatsRBG0(char *outstring, int *isenabled)
          else
          {
             AddString(outstring, "Pattern Name data size = 1 word\r\n");
-            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 16));
+            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 14) & 0x1);
             AddString(outstring, "Special Priority bit = %d\r\n", (supplementdata >> 9) & 0x1);
             AddString(outstring, "Special Color Calculation bit = %d\r\n", (supplementdata >> 8) & 0x1);
             AddString(outstring, "Supplementary Palette number = %d\r\n", (supplementdata >> 5) & 0x7);
@@ -715,7 +715,7 @@ void Vdp2DebugStatsNBG0(char *outstring, int *isenabled)
          else
          {
             AddString(outstring, "Pattern Name data size = 1 word\r\n");
-            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 16));
+            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 14) & 0x1);
             AddString(outstring, "Special Priority bit = %d\r\n", (supplementdata >> 9) & 0x1);
             AddString(outstring, "Special Color Calculation bit = %d\r\n", (supplementdata >> 8) & 0x1);
             AddString(outstring, "Supplementary Palette number = %d\r\n", (supplementdata >> 5) & 0x7);
@@ -978,7 +978,7 @@ void Vdp2DebugStatsNBG1(char *outstring, int *isenabled)
          else
          {
             AddString(outstring, "Pattern Name data size = 1 word\r\n");
-            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 16));
+            AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 14) & 0x1);
             AddString(outstring, "Special Priority bit = %d\r\n", (supplementdata >> 9) & 0x1);
             AddString(outstring, "Special Color Calculation bit = %d\r\n", (supplementdata >> 8) & 0x1);
             AddString(outstring, "Supplementary Palette number = %d\r\n", (supplementdata >> 5) & 0x7);
@@ -1178,7 +1178,7 @@ void Vdp2DebugStatsNBG2(char *outstring, int *isenabled)
       else
       {
          AddString(outstring, "Pattern Name data size = 1 word\r\n");
-         AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 16));
+         AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 14) & 0x1);
          AddString(outstring, "Special Priority bit = %d\r\n", (supplementdata >> 9) & 0x1);
          AddString(outstring, "Special Color Calculation bit = %d\r\n", (supplementdata >> 8) & 0x1);
          AddString(outstring, "Supplementary Palette number = %d\r\n", (supplementdata >> 5) & 0x7);
@@ -1316,7 +1316,7 @@ void Vdp2DebugStatsNBG3(char *outstring, int *isenabled)
       else
       {
          AddString(outstring, "Pattern Name data size = 1 word\r\n");
-         AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 16));
+         AddString(outstring, "Character Number Supplement bit = %d\r\n", (supplementdata >> 14) & 0x1);
          AddString(outstring, "Special Priority bit = %d\r\n", (supplementdata >> 9) & 0x1);
          AddString(outstring, "Special Color Calculation bit = %d\r\n", (supplementdata >> 8) & 0x1);
          AddString(outstring, "Supplementary Palette number = %d\r\n", (supplementdata >> 5) & 0x7);
@@ -1652,19 +1652,19 @@ static void ClearTextureToColor(u32 *texture, u32 color, int w, int h)
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 *Vdp2DebugTexture(u32 screen, int * w, int * h)
+pixel_t *Vdp2DebugTexture(u32 screen, int * w, int * h)
 {
-   u32 * bitmap;
+   pixel_t * bitmap;
 
    TitanInit();
    VIDSoftVdp2DrawScreen(screen);
 
-   if ((bitmap = (u32 *)calloc(sizeof(u32), 704 * 512)) == NULL)
+   if ((bitmap = (pixel_t *)calloc(sizeof(pixel_t), 704 * 512)) == NULL)
       return NULL;
 
-   VIDCore->GetGlSize(w, h);
+   TitanGetResolution(w, h);
 
-   TitanRender(bitmap, Vdp2Regs->CCCTL & 0x200 ? TITAN_BLEND_BOTTOM : TITAN_BLEND_TOP);
+   TitanRender(bitmap);
 
    return bitmap;
 }

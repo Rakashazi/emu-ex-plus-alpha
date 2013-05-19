@@ -30,7 +30,7 @@ public:
 
 	T const magnitude()
 	{
-		return sqrt(squareMagnitude());
+		return std::sqrt(squareMagnitude());
 	}
 
 	void normalize()

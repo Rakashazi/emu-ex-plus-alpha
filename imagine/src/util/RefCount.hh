@@ -3,7 +3,7 @@
 template <class C>
 class RefCount
 {
-	uint count = 0;
+	uint count = 1;
 
 public:
 	constexpr RefCount() { }

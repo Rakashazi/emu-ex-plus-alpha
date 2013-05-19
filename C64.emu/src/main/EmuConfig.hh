@@ -17,7 +17,7 @@ namespace EmuControls
 
 using namespace Input;
 static const uint categories = 4;
-static const uint gamepadKeys = 10;
+static const uint gamepadKeys = 11;
 static const uint kbKeys = 74;
 static const uint systemTotalKeys = gameActionKeys + gamepadKeys*2 + kbKeys;
 

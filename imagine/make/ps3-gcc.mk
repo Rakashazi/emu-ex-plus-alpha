@@ -17,7 +17,7 @@ ifeq ($(origin CC), default)
 endif
 
 compiler_noSanitizeAddress := 1
-include $(currPath)/gcc.mk
+include $(buildSysPath)/gcc.mk
 
 LD := wine $(SONY_SDK)/host-win32/ppu/bin/ppu-lv2-gcc.exe
 

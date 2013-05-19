@@ -15,3 +15,5 @@ endif
 ifndef NO_LOGGER
  include $(imagineSrcDir)/logger/system.mk
 endif
+
+include $(IMAGINE_PATH)/make/package/stdc++-headers.mk

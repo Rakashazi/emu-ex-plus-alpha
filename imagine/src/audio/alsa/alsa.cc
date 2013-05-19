@@ -1,7 +1,22 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #define thisModuleName "audio:alsa"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sched.h>
 #include <errno.h>
 #include <getopt.h>
@@ -20,7 +35,7 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { 48000, &SampleFormats::s16, 2 };
+PcmFormat preferredPcmFormat { ::Config::MACHINE_IS_PANDORA ? 44100 : 48000, &SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
 static snd_output_t *debugOutput = nullptr;
 static snd_pcm_t *pcmHnd = 0;
@@ -31,10 +46,13 @@ static uint buffers = 8;
 
 void setHintPcmFramesPerWrite(uint frames)
 {
-	logMsg("setting queue buffer frames to %d", frames);
-	assert(frames < 2000);
-	bufferFrames = frames;
-	assert(!isOpen());
+	if(frames != bufferFrames)
+	{
+		closePcm();
+		logMsg("setting queue buffer frames to %d", frames);
+		assert(frames < 2000);
+		bufferFrames = frames;
+	}
 }
 
 void setHintPcmMaxBuffers(uint maxBuffers)
@@ -93,12 +111,39 @@ static void startPlaybackIfNeeded()
 		logMsg("recovering from xrun");
 		snd_pcm_recover(pcmHnd, -EPIPE, 0);
 	}
-	else if(state == SND_PCM_STATE_PREPARED && framesFree() < (int)bufferFrames)
+	else if((state == SND_PCM_STATE_PREPARED || state == SND_PCM_STATE_PAUSED) && framesFree() < (int)bufferFrames)
 	{
 		// start playback when one "buffer" of audio is left to write
 		logMsg("starting prepared pcm with %d frames free", framesFree());
-		snd_pcm_start(pcmHnd);
+		if(state == SND_PCM_STATE_PAUSED)
+			snd_pcm_pause(pcmHnd, 0);
+		else
+			snd_pcm_start(pcmHnd);
 	}
+}
+
+void pausePcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("pausing playback");
+	snd_pcm_pause(pcmHnd, 1);
+}
+
+void resumePcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	startPlaybackIfNeeded();
+}
+
+void clearPcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("clearing queued samples");
+	snd_pcm_drop(pcmHnd);
+	snd_pcm_prepare(pcmHnd);
 }
 
 class AlsaMmapContext : public BufferContext
@@ -269,6 +314,7 @@ static CallResult openAlsaPcm(const PcmFormat &format)
 	}
 
 	//snd_pcm_dump(alsaHnd, output);
+	//logMsg("pcm state: %s", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
 
 	return OK;
 

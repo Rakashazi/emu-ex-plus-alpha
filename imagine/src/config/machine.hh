@@ -6,8 +6,8 @@
 namespace Config
 {
 
-enum { GENERIC, GENERIC_X86, GENERIC_ARM, GENERIC_ARMV7, OPEN_PANDORA, OUYA };
-static const uint MACHINE =
+enum { GENERIC, GENERIC_X86, GENERIC_ARM, GENERIC_ARMV7, PANDORA, OUYA };
+static constexpr uint MACHINE =
 #if defined(CONFIG_MACHINE_GENERIC_X86)
 	GENERIC_X86
 #elif defined(CONFIG_MACHINE_GENERIC_ARM)
@@ -16,17 +16,17 @@ static const uint MACHINE =
 	GENERIC_ARMV7
 #elif defined(CONFIG_MACHINE_OUYA)
 	OUYA
-#elif defined(CONFIG_MACHINE_OPEN_PANDORA)
-	OPEN_PANDORA
+#elif defined(CONFIG_MACHINE_PANDORA)
+	PANDORA
 #else
 	GENERIC
 #endif
 ;
 
-static const bool MACHINE_IS_GENERIC_X86 = MACHINE == GENERIC_X86;
-static const bool MACHINE_IS_GENERIC_ARM = MACHINE == GENERIC_ARM;
-static const bool MACHINE_IS_GENERIC_ARMV7 = MACHINE == GENERIC_ARMV7;
-static const bool MACHINE_IS_OUYA = MACHINE == OUYA;
-static const bool MACHINE_IS_OPEN_PANDORA = MACHINE == OPEN_PANDORA;
+static constexpr bool MACHINE_IS_GENERIC_X86 = MACHINE == GENERIC_X86;
+static constexpr bool MACHINE_IS_GENERIC_ARM = MACHINE == GENERIC_ARM;
+static constexpr bool MACHINE_IS_GENERIC_ARMV7 = MACHINE == GENERIC_ARMV7;
+static constexpr bool MACHINE_IS_OUYA = MACHINE == OUYA;
+static constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 
 }

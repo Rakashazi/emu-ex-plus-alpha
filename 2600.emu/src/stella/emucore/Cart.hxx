@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.hxx 2453 2012-04-29 19:43:28Z stephena $
+// $Id: Cart.hxx 2616 2013-02-20 18:16:34Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_HXX
@@ -45,7 +45,7 @@ typedef Common::Array<RamArea> RamAreaList;
   0x1000-0x2000 area (or its mirrors).
  
   @author  Bradford W. Mott
-  @version $Id: Cart.hxx 2453 2012-04-29 19:43:28Z stephena $
+  @version $Id: Cart.hxx 2616 2013-02-20 18:16:34Z stephena $
 */
 class Cartridge : public Device
 {
@@ -272,6 +272,11 @@ class Cartridge : public Device
     static bool isProbablySC(const uInt8* image, uInt32 size);
 
     /**
+      Returns true if the image probably contains ARM code in the first 1K
+    */
+    static bool isProbablyARM(const uInt8* image, uInt32 size);
+
+    /**
       Returns true if the image is probably a 0840 bankswitching cartridge
     */
     static bool isProbably0840(const uInt8* image, uInt32 size);
@@ -325,6 +330,11 @@ class Cartridge : public Device
       Returns true if the image is probably an F6 bankswitching cartridge
     */
     static bool isProbablyF6(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably an FA2 bankswitching cartridge
+    */
+    static bool isProbablyFA2(const uInt8* image, uInt32 size);
 
     /**
       Returns true if the image is probably an FE bankswitching cartridge

@@ -2,13 +2,12 @@
 
 #if defined(CONFIG_RESOURCE_FACE)
 	#include <resource2/face/ResourceFace.hh>
-	#include <resource2/image/ResourceImage.h>
 #endif
 
-#include <ctype.h>
+#include <cctype>
 #include <gfx/GfxText.hh>
-#include <util/Delegate.hh>
 #include <util/strings.h>
+#include <algorithm>
 
 namespace Gfx
 {
@@ -114,7 +113,7 @@ void Text::compile()
 				//logMsg("new line %d without text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
 				lineInfo[lines-1].size = xLineSize;
 				lineInfo[lines-1].chars = charsInLine;
-				maxXLineSize = IG::max(xLineSize, maxXLineSize);
+				maxXLineSize = std::max(xLineSize, maxXLineSize);
 				xLineSize = 0;
 				charsInLine = 0;
 			}
@@ -129,7 +128,7 @@ void Text::compile()
 				uint charsInNextLine = (charIdx - textBlockIdx) + 1;
 				lineInfo[lines-1].size = xLineSize;
 				lineInfo[lines-1].chars = charsInLine - charsInNextLine;
-				maxXLineSize = IG::max(xLineSize, maxXLineSize);
+				maxXLineSize = std::max(xLineSize, maxXLineSize);
 				xLineSize = textBlockSize;
 				charsInLine = charsInNextLine;
 				//logMsg("break @ char %d with line starting @ %d, %d chars moved to next line, leaving %d", textBlockIdx, currLineIdx, charsInNextLine, lineInfo[lines-1].chars);
@@ -152,7 +151,7 @@ void Text::compile()
 		lineInfo[lines-1].size = xLineSize;
 		lineInfo[lines-1].chars = charsInLine;
 	}
-	maxXLineSize = IG::max(xLineSize, maxXLineSize);
+	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
 	ySize = Gfx::alignYToPixel(nominalHeight * (GC)lines);
 }
@@ -195,6 +194,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 			if(res != OK)
 			{
 				logWarn("failed char conversion while drawing line %d, char %d, result %d", l, i, res);
+				spr.setImg(nullptr);
 				return;
 			}
 
@@ -217,7 +217,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 			}
 			GC xSize = iXSize(gly->metrics.xSize);
 
-			spr.setImg(gly->glyph);
+			spr.setImg(&gly->glyph);
 			auto x = xPos + iXSize(gly->metrics.xOffset);
 			auto y = yPos - iYSize(gly->metrics.ySize - gly->metrics.yOffset);
 			spr.setPos(x, y, x + xSize, y + iYSize(gly->metrics.ySize));
@@ -229,6 +229,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 		totalCharsDrawn += charsToDraw;
 	}
 	assert(totalCharsDrawn <= chars);
+	spr.setImg(nullptr);
 }
 
 }

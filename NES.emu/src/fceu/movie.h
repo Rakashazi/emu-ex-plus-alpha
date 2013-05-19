@@ -1,15 +1,15 @@
 #ifndef __MOVIE_H_
 #define __MOVIE_H_
 
+#include "input/zapper.h"
+#include "utils/guid.h"
+#include "utils/md5.h"
+
 #include <vector>
 #include <map>
 #include <string>
 //#include <ostream>
-#include <stdlib.h>
-
-#include "input/zapper.h"
-#include "utils/guid.h"
-#include "utils/md5.h"
+#include <cstdlib>
 
 struct FCEUFILE;
 
@@ -88,6 +88,7 @@ int FCEUMOV_WriteState(EMUFILE* os);
 bool FCEUMOV_ReadState(EMUFILE* is, uint32 size);
 void FCEUMOV_PreLoad();
 bool FCEUMOV_PostLoad();
+void FCEUMOV_IncrementRerecordCount();
 
 bool FCEUMOV_FromPoweron();
 
@@ -279,5 +280,6 @@ void ProcessSubtitles(void);
 void FCEU_DisplaySubtitles(const char *format, ...);
 
 void poweron(bool shouldDisableBatteryLoading);
+
 
 #endif //__MOVIE_H_

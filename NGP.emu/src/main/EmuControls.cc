@@ -11,34 +11,34 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player)
 
 static const char *gamepadName[gamepadKeys] =
 {
-		"Up",
-		"Right",
-		"Down",
-		"Left",
-		"Left+Up",
-		"Right+Up",
-		"Right+Down",
-		"Left+Down",
-		"Option",
-		"A",
-		"B",
-		"Turbo A",
-		"Turbo B",
+	"Up",
+	"Right",
+	"Down",
+	"Left",
+	"Left+Up",
+	"Right+Up",
+	"Right+Down",
+	"Left+Down",
+	"Option",
+	"A",
+	"B",
+	"Turbo A",
+	"Turbo B",
 };
 
 static const uint gamepadKeyOffset = gameActionKeys;
 
 const KeyCategory category[categories]
 {
-		EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-		KeyCategory("Gamepad", gamepadName, gamepadKeyOffset)
+	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
+	KeyCategory("Set Gamepad Keys", gamepadName, gamepadKeyOffset)
 };
 
 #ifdef INPUT_SUPPORTS_KEYBOARD
 
 const KeyConfig defaultKeyProfile[] =
 {
-#ifdef CONFIG_ENV_WEBOS
+	#ifdef CONFIG_ENV_WEBOS
 	{
 		Input::Event::MAP_KEYBOARD,
 		0,
@@ -54,8 +54,8 @@ const KeyConfig defaultKeyProfile[] =
 			asciiKey('o'),
 		}
 	},
-#endif
-#ifdef CONFIG_BASE_ANDROID
+	#endif
+	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
 		Input::Event::MAP_KEYBOARD,
@@ -64,19 +64,16 @@ const KeyConfig defaultKeyProfile[] =
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
 
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
-			Input::Keycode::GAME_START,
-			Input::Keycode::GAME_X,
-			Input::Keycode::GAME_Y,
-			Input::Keycode::GAME_A,
-			Input::Keycode::GAME_B,
+			Input::Keycode::PS3::UP,
+			Input::Keycode::PS3::RIGHT,
+			Input::Keycode::PS3::DOWN,
+			Input::Keycode::PS3::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::PS3::START,
+			Input::Keycode::PS3::CROSS,
+			Input::Keycode::PS3::CIRCLE,
+			Input::Keycode::PS3::SQUARE,
+			Input::Keycode::PS3::TRIANGLE,
 		}
 	},
 	{
@@ -86,22 +83,19 @@ const KeyConfig defaultKeyProfile[] =
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
-			Input::Keycode::GAME_RIGHT_THUMB,
-			Input::Ouya::O,
-			Input::Ouya::A,
-			Input::Ouya::U,
-			Input::Ouya::Y,
+			Input::Keycode::Ouya::UP,
+			Input::Keycode::Ouya::RIGHT,
+			Input::Keycode::Ouya::DOWN,
+			Input::Keycode::Ouya::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::Ouya::R3,
+			Input::Keycode::Ouya::O,
+			Input::Keycode::Ouya::A,
+			Input::Keycode::Ouya::U,
+			Input::Keycode::Ouya::Y,
 		}
 	},
-	#ifdef CONFIG_MACHINE_GENERIC_ARMV7
+		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
 			Input::Event::MAP_KEYBOARD,
 			Input::Device::SUBTYPE_XPERIA_PLAY,
@@ -109,19 +103,16 @@ const KeyConfig defaultKeyProfile[] =
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
-				0,
-				0,
-				0,
-				0,
-				Input::Keycode::GAME_START,
-				Input::Keycode::CENTER,
-				Input::Keycode::GAME_B,
-				Input::Keycode::GAME_X,
-				Input::Keycode::GAME_Y,
+				Input::Keycode::XperiaPlay::UP,
+				Input::Keycode::XperiaPlay::RIGHT,
+				Input::Keycode::XperiaPlay::DOWN,
+				Input::Keycode::XperiaPlay::LEFT,
+				0, 0, 0, 0,
+				Input::Keycode::XperiaPlay::START,
+				Input::Keycode::XperiaPlay::CROSS,
+				Input::Keycode::XperiaPlay::CIRCLE,
+				Input::Keycode::XperiaPlay::SQUARE,
+				Input::Keycode::XperiaPlay::TRIANGLE,
 			}
 		},
 		{
@@ -135,10 +126,7 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::RIGHT,
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
-				0,
-				0,
-				0,
-				0,
+				0, 0, 0, 0,
 				Input::Keycode::ENTER,
 				asciiKey('x'),
 				asciiKey('c'),
@@ -146,8 +134,8 @@ const KeyConfig defaultKeyProfile[] =
 				asciiKey('f')
 			}
 		},
+		#endif
 	#endif
-#endif
 	{
 		Input::Event::MAP_KEYBOARD,
 		0,
@@ -159,10 +147,7 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::RIGHT,
 			Input::Keycode::DOWN,
 			Input::Keycode::LEFT,
-			0,
-			0,
-			0,
-			0,
+			0, 0, 0, 0,
 			Input::Keycode::ENTER,
 			asciiKey('x'),
 			asciiKey('c'),
@@ -170,9 +155,58 @@ const KeyConfig defaultKeyProfile[] =
 			asciiKey('f')
 		}
 	},
+	#ifdef CONFIG_MACHINE_PANDORA
+	{
+		Input::Event::MAP_KEYBOARD,
+		Input::Device::SUBTYPE_PANDORA_HANDHELD,
+		"Default Pandora",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_OPEN_PANDORA_PROFILE_INIT,
+
+			Input::Keycode::Pandora::UP,
+			Input::Keycode::Pandora::RIGHT,
+			Input::Keycode::Pandora::DOWN,
+			Input::Keycode::Pandora::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::Pandora::START,
+			Input::Keycode::Pandora::X,
+			Input::Keycode::Pandora::B,
+			Input::Keycode::Pandora::A,
+			Input::Keycode::Pandora::Y,
+		}
+	},
+	#endif
 };
 
 const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);
+
+#endif
+
+#ifdef CONFIG_INPUT_EVDEV
+
+const KeyConfig defaultEvdevProfile[] =
+{
+	{
+		Input::Event::MAP_EVDEV,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
+			Input::Evdev::UP,
+			Input::Evdev::RIGHT,
+			Input::Evdev::DOWN,
+			Input::Evdev::LEFT,
+			0, 0, 0, 0,
+			Input::Evdev::GAME_START,
+			Input::Evdev::GAME_A,
+			Input::Evdev::GAME_B,
+			Input::Evdev::GAME_X,
+			Input::Evdev::GAME_Y,
+		}
+	},
+};
+
+const uint defaultEvdevProfiles = sizeofArray(defaultEvdevProfile);
 
 #endif
 
@@ -323,5 +357,32 @@ const KeyConfig defaultZeemoteProfile[] =
 };
 
 const uint defaultZeemoteProfiles = sizeofArray(defaultZeemoteProfile);
+
+// PS3
+
+const KeyConfig defaultPS3Profile[] =
+{
+	{
+		Input::Event::MAP_PS3PAD,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT,
+
+			Input::PS3::UP,
+			Input::PS3::RIGHT,
+			Input::PS3::DOWN,
+			Input::PS3::LEFT,
+			0, 0, 0, 0,
+			Input::PS3::START,
+			Input::PS3::CROSS,
+			Input::PS3::CIRCLE,
+			Input::PS3::SQUARE,
+			Input::PS3::TRIANGLE,
+		}
+	},
+};
+
+const uint defaultPS3Profiles = sizeofArray(defaultPS3Profile);
 
 };

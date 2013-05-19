@@ -5,71 +5,75 @@ static int pceHuFsFilter(const char *name, int type);
 
 class SystemOptionView : public OptionView
 {
-private:
+public:
 
 	BiosSelectMenu biosSelectMenu {&::sysCardPath, pceHuFsFilter};
 	char sysCardPathStr[256] {0};
-	TextMenuItem sysCardPath {""};
+	TextMenuItem sysCardPath
+	{
+		"",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			biosSelectMenu.init(!e.isPointer());
+			biosSelectMenu.placeRect(Gfx::viewportRect());
+			biosSelectMenu.onBiosChange() =
+				[this]()
+				{
+					logMsg("set bios %s", ::sysCardPath);
+					printBiosMenuEntryStr(sysCardPathStr);
+					sysCardPath.compile();
+				};
+			modalView = &biosSelectMenu;
+			Base::displayNeedsUpdate();
+		}
+	};
 
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		string_printf(str, "System Card: %s", strlen(::sysCardPath) ? string_basename(::sysCardPath) : "None set");
+		FsSys::cPath basenameTemp;
+		string_printf(str, "System Card: %s", strlen(::sysCardPath) ? string_basename(::sysCardPath, basenameTemp) : "None set");
 	}
 
-	void biosPathUpdated()
+	BoolMenuItem arcadeCard
 	{
-		logMsg("set bios %s", ::sysCardPath);
-		printBiosMenuEntryStr(sysCardPathStr);
-		sysCardPath.compile();
-	}
-
-	void sysCardPathHandler(TextMenuItem &, const Input::Event &e)
+		"Arcade Card",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionArcadeCard = item.on;
+		}
+	},
+	sixButtonPad
 	{
-		biosSelectMenu.init(!e.isPointer());
-		biosSelectMenu.placeRect(Gfx::viewportRect());
-		biosSelectMenu.biosChangeDel.bind<SystemOptionView, &SystemOptionView::biosPathUpdated>(this);
-		modalView = &biosSelectMenu;
-		Base::displayNeedsUpdate();
-	}
-
-	BoolMenuItem arcadeCard {"Arcade Card"}, sixButtonPad {"6-button support"};
-
-	static void arcadeCardHandler(BoolMenuItem &item, const Input::Event &e)
-	{
-		item.toggle();
-		optionArcadeCard = item.on;
-	}
-
-	static void sixButtonPadHandler(BoolMenuItem &item, const Input::Event &e)
-	{
-		item.toggle();
-		PCE_Fast::AVPad6Enabled[0] = item.on;
-		PCE_Fast::AVPad6Enabled[1] = item.on;
-		#ifdef INPUT_SUPPORTS_POINTER
-		vController.gp.activeFaceBtns = item.on ? 6 : 2;
-		vController.place();
-		#endif
-	}
+		"6-button support",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			PCE_Fast::AVPad6Enabled[0] = item.on;
+			PCE_Fast::AVPad6Enabled[1] = item.on;
+			#ifdef INPUT_SUPPORTS_POINTER
+			vController.gp.activeFaceBtns = item.on ? 6 : 2;
+			vController.place();
+			#endif
+		}
+	};
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadInputItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadInputItems(item, items);
 		sixButtonPad.init(PCE_Fast::AVPad6Enabled[0]); item[items++] = &sixButtonPad;
-		sixButtonPad.selectDelegate().bind<&sixButtonPadHandler>();
 	}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
 		arcadeCard.init(optionArcadeCard); item[items++] = &arcadeCard;
-		arcadeCard.selectDelegate().bind<&arcadeCardHandler>();
 		printBiosMenuEntryStr(sysCardPathStr);
 		sysCardPath.init(sysCardPathStr); item[items++] = &sysCardPath;
-		sysCardPath.selectDelegate().bind<SystemOptionView, &SystemOptionView::sysCardPathHandler>(this);
 	}
 };
 
@@ -78,5 +82,5 @@ public:
 class SystemMenuView : public MenuView
 {
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 };

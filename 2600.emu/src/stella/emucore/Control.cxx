@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.cxx 2370 2012-01-28 15:19:41Z stephena $
+// $Id: Control.cxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -94,7 +94,7 @@ Controller::~Controller()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Controller::read()
 {
-	uInt8 ioport = 0x00;
+  uInt8 ioport = 0x00;
   if(read(One))   ioport |= 0x01;
   if(read(Two))   ioport |= 0x02;
   if(read(Three)) ioport |= 0x04;
@@ -111,7 +111,7 @@ bool Controller::read(DigitalPin pin)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Int32 Controller::read(AnalogPin pin)
 {
-	return myAnalogPinValue[pin];
+  return myAnalogPinValue[pin];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

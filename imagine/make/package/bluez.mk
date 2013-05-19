@@ -2,7 +2,7 @@ ifndef inc_pkg_bluez
 inc_pkg_bluez := 1
 
 ifneq ($(ENV), android)
-LDLIBS += -lbluetooth
+ pkgConfigDeps += bluez
 else
 # use dlopen wrapper
 SRC += bluetooth/bluezDl.cc

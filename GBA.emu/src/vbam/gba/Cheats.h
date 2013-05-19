@@ -1,6 +1,8 @@
 #ifndef CHEATS_H
 #define CHEATS_H
 
+#include <gba/GBA.h>
+
 struct CheatsData {
   int code;
   int size;
@@ -16,13 +18,13 @@ struct CheatsData {
 
 void cheatsAdd(ARM7TDMI &cpu, const char *codeStr, const char *desc, u32 rawaddress, u32 address, u32 value, int code, int size);
 void cheatsAddCheatCode(const char *code, const char *desc);
-void cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3);
-void cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc);
+bool cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3);
+bool cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc);
 bool cheatsImportGSACodeFile(ARM7TDMI &cpu, const char *name, int game, bool v3);
 void cheatsDelete(ARM7TDMI &cpu, int number, bool restore);
 void cheatsDeleteAll(ARM7TDMI &cpu, bool restore);
 void cheatsEnable(int number);
-void cheatsDisable(int number);
+void cheatsDisable(ARM7TDMI &cpu, int number);
 void cheatsSaveGame(gzFile file);
 void cheatsReadGame(gzFile file, int version);
 void cheatsReadGameSkip(gzFile file, int version);

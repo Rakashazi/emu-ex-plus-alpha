@@ -38,9 +38,9 @@ ifeq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := clang
  endif
- include $(currPath)/clang.mk
+ include $(buildSysPath)/clang.mk
 else
- include $(currPath)/gcc.mk
+ include $(buildSysPath)/gcc.mk
 endif
 
 ifndef android_stdcxx
@@ -61,8 +61,6 @@ endif
 ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
-
-include $(IMAGINE_PATH)/make/package/stdc++-headers.mk
 
 #BASE_CXXFLAGS += -fno-use-cxa-atexit
 # -fstack-protector

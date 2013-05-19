@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartX07.hxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartX07.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEX07_HXX
@@ -40,7 +40,7 @@ class System;
   Note that the latter will hit on almost any TIA access.
 
   @author  Eckhard Stolberg
-  @version $Id: CartX07.hxx 2325 2012-01-02 20:31:42Z stephena $
+  @version $Id: CartX07.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeX07 : public Cartridge
 {

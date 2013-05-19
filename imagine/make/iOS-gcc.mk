@@ -19,7 +19,7 @@ config_compiler := clang
 ifeq ($(origin CC), default)
  CC := clang
 endif
-include $(currPath)/clang.mk
+include $(buildSysPath)/clang.mk
 
 ifdef ios_linkerPath
  # define an alternate PATH when linking
@@ -31,7 +31,7 @@ ifdef RELEASE
 endif
 
  # base engine code needs at least iOS 3.1
-minIOSVer := 3.1
+minIOSVer = 3.1
 IOS_SDK ?= 6.1
 ifeq ($(ARCH),x86)
  IOS_SYSROOT ?= $(shell xcode-select --print-path)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk

@@ -1,4 +1,6 @@
-/*  This file is part of Imagine.
+#pragma once
+
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,9 +13,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#pragma once
 #include <gfx/GfxText.hh>
 #include <gui/View.hh>
 #include <util/gui/ViewAnimation.hh>
@@ -21,24 +22,26 @@
 #include <meta.h>
 
 #ifdef ENV_NOTE
-	#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
+#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
 #else
-	#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
+#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
 class CreditsView : public View
 {
-public:
-	constexpr CreditsView(const char *str): View(CONFIG_APP_NAME " " IMAGINE_VERSION), str(str) { }
+private:
 	Gfx::Text text;
 	FadeViewAnimation<10> fade;
 	const char *str;
 	Rect2<int> rect;
-	Rect2<int> &viewRect() { return rect; }
-	void draw(Gfx::FrameTimeBase frameTime);
-	void place();
-	void inputEvent(const Input::Event &e);
+
+public:
+	constexpr CreditsView(const char *str): View(CONFIG_APP_NAME " " IMAGINE_VERSION), str(str) {}
+	Rect2<int> &viewRect() override { return rect; }
+	void draw(Gfx::FrameTimeBase frameTime) override;
+	void place() override;
+	void inputEvent(const Input::Event &e) override;
 	void init();
-	void deinit();
+	void deinit() override;
 };

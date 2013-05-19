@@ -16,7 +16,7 @@ static void syncSubCpu(uint cycles, uint target)
 	doingSync = 1;
 	comWriteTarget = target;
 	logMsg("syncing S cpu to cycle %d for target 0x%X @ cycle %d, M @ %d", cycles, target, sCD.cpu.cycleCount, mm68k.cycleCount);
-	scd_runSubCpu(IG::min(cycles, mm68k.endCycles));
+	scd_runSubCpu(std::min(cycles, mm68k.endCycles));
 	logMsg("back from S CPU sync @ cycle %d", sCD.cpu.cycleCount);
 	doingSync = 0;
 }

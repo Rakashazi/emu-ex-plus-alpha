@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.cxx 2499 2012-05-25 12:41:19Z stephena $
+// $Id: CartFA2.cxx 2616 2013-02-20 18:16:34Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -32,6 +32,13 @@ CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osyst
     myRamAccessTimeout(0),
     mySize(size)
 {
+  // 29/32K version of FA2 has valid data @ 1K - 29K
+  if(size >= 29 * 1024)
+  {
+    image += 1024;
+    mySize = 28 * 1024; 
+  }
+
   // Allocate array for the ROM image
   myImage = new uInt8[mySize];
 
@@ -345,7 +352,7 @@ bool CartridgeFA2::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeFA2::setRomName(const string& name)
 {
-  myFlashFile = myOSystem.eepromDir() + name + "_flash.dat";
+  myFlashFile = myOSystem.nvramDir() + name + "_flash.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

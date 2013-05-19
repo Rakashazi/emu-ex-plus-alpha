@@ -40,7 +40,6 @@ static int autoframeskipenab=0;
 static int throttlespeed=0;
 u64 lastticks=0;
 static int fps;
-static int fpstoggle=0;
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -249,6 +248,11 @@ void Vdp2Reset(void) {
 //////////////////////////////////////////////////////////////////////////////
 
 void Vdp2VBlankIN(void) {
+   /* I'm not 100% sure about this, but it seems that when using manual change
+   we should swap framebuffers in the "next field" and thus, clear the CEF...
+   now we're lying a little here as we're not swapping the framebuffers. */
+   if (Vdp1External.manualchange) Vdp1Regs->EDSR >>= 1;
+
    Vdp2Regs->TVSTAT |= 0x0008;
    ScuSendVBlankIN();
 
@@ -288,7 +292,8 @@ static void FPSDisplay(void)
    static int fpsframecount = 0;
    static u64 fpsticks;
 
-   OSDPushMessage(OSDMSG_FPS, 1, "%02d/%02d FPS %d %d %s %s", fps, yabsys.IsPal ? 50 : 60, framecounter, lagframecounter, MovieStatus, InputDisplayString);
+   OSDPushMessage(OSDMSG_FPS, 1, "%02d/%02d FPS", fps, yabsys.IsPal ? 50 : 60);
+   OSDPushMessage(OSDMSG_DEBUG, 1, "%d %d %s %s", framecounter, lagframecounter, MovieStatus, InputDisplayString);
    fpsframecount++;
    if(YabauseGetTicks() >= fpsticks + yabsys.tickfreq)
    {
@@ -346,8 +351,8 @@ void Vdp2VBlankOUT(void) {
 
    FPSDisplay();
    VIDCore->Vdp2DrawEnd();
-   /* this should be done after a frame change or a plot trigger */
-   Vdp1Regs->COPR = 0;
+   if ((Vdp1Regs->FBCR & 2) && (Vdp1Regs->TVMR & 8))
+      Vdp1External.manualerase = 1;
 
    if (!skipnextframe)
    {

@@ -18,11 +18,6 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h> 
-#include <string.h>
-
 
 #include "types.h"
 #include "file.h"
@@ -41,6 +36,11 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <cstring>
 
 static int ntsccol=0;
 static int ntsctint=46+10;
@@ -98,9 +98,34 @@ void FCEUI_SetNTSCTH(int n, int tint, int hue)
 static uint8 lastd=0;
 void SetNESDeemph(uint8 d, int force)
 {
-	static uint16 rtmul[7]={(uint16)(32768*1.239),(uint16)(32768*.794),(uint16)(32768*1.019),(uint16)(32768*.905),(uint16)(32768*1.023),(uint16)(32768*.741),(uint16)(32768*.75)};
-	static uint16 gtmul[7]={(uint16)(32768*.915),(uint16)(32768*1.086),(uint16)(32768*.98),(uint16)(32768*1.026),(uint16)(32768*.908),(uint16)(32768*.987),(uint16)(32768*.75)};
-	static uint16 btmul[7]={(uint16)(32768*.743),(uint16)(32768*.882),(uint16)(32768*.653),(uint16)(32768*1.277),(uint16)(32768*.979),(uint16)(32768*.101),(uint16)(32768*.75)};
+	static const uint16 rtmul[]={
+	     static_cast<uint16>(32768*1.239),
+	     static_cast<uint16>(32768*.794),
+	     static_cast<uint16>(32768*1.019),
+	     static_cast<uint16>(32768*.905),
+	     static_cast<uint16>(32768*1.023),
+	     static_cast<uint16>(32768*.741),
+	     static_cast<uint16>(32768*.75)
+	 };
+	static const uint16 gtmul[]={
+	     static_cast<uint16>(32768*.915),
+	     static_cast<uint16>(32768*1.086),
+	     static_cast<uint16>(32768*.98),
+	     static_cast<uint16>(32768*1.026),
+	     static_cast<uint16>(32768*.908),
+	     static_cast<uint16>(32768*.987),
+	     static_cast<uint16>(32768*.75)
+	 };
+	static const uint16 btmul[]={
+	     static_cast<uint16>(32768*.743),
+	     static_cast<uint16>(32768*.882),
+	     static_cast<uint16>(32768*.653),
+	     static_cast<uint16>(32768*1.277),
+	     static_cast<uint16>(32768*.979),
+	     static_cast<uint16>(32768*.101),
+	     static_cast<uint16>(32768*.75)
+	 };
+
 	uint32 r,g,b;
 	int x;
 

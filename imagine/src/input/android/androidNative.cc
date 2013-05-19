@@ -1,9 +1,26 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #define thisModuleName "input:android"
 #include <base/android/sdk.hh>
 #include <input/common/common.h>
+#include <input/AxisKeyEmu.hh>
 #include <base/android/private.hh>
 #include <config/machine.hh>
 #include <util/jni.hh>
+#include <util/collection/ArrayList.hh>
 #include <android/input.h>
 #include <android/configuration.h>
 #include <dlfcn.h>
@@ -20,6 +37,9 @@ static bool allowKeyRepeats = 1;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 static const uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
 static const uint maxSysInputDevs = MAX_DEVS;
+static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
+static const uint MAX_AXES = 6;
+static_assert(MAX_STICK_AXES <= MAX_AXES, "MAX_AXES must be large enough to hold MAX_STICK_AXES");
 static uint sysInputDevs = 0;
 struct SysInputDevice
 {
@@ -27,7 +47,14 @@ struct SysInputDevice
 	int osId = 0;
 	Device *dev = nullptr;
 	char name[48] {0};
-	bool axisBtnState[maxJoystickAxisPairs][4] { { 0 } };
+	struct Axis
+	{
+		constexpr Axis() {}
+		constexpr Axis(uint8 id, AxisKeyEmu<float> keyEmu): id(id), keyEmu(keyEmu) {}
+		uint8 id = 0;
+		AxisKeyEmu<float> keyEmu;
+	};
+	StaticArrayList<Axis, MAX_AXES> axis;
 
 	bool operator ==(SysInputDevice const& rhs) const
 	{
@@ -36,6 +63,30 @@ struct SysInputDevice
 };
 static SysInputDevice sysInputDev[maxSysInputDevs];
 static Device *virtualDev = nullptr;
+static const int AXIS_X = 0, AXIS_Y = 1, AXIS_Z = 11,
+	AXIS_RX = 12, AXIS_RY = 13, AXIS_RZ = 14,
+	AXIS_HAT_X = 15, AXIS_HAT_Y = 16,
+	AXIS_LTRIGGER = 17, AXIS_RTRIGGER = 18,
+	AXIS_RUDDER = 20, AXIS_WHEEL = 21,
+	AXIS_GAS = 22, AXIS_BRAKE = 23;
+
+static Key axisToKeycode(int axis)
+{
+	switch(axis)
+	{
+		case AXIS_X: return Keycode::JS1_XAXIS_POS;
+		case AXIS_Y: return Keycode::JS1_YAXIS_POS;
+		case AXIS_Z: return Keycode::JS2_XAXIS_POS;
+		case AXIS_RZ: return Keycode::JS2_YAXIS_POS;
+		case AXIS_HAT_X: return Keycode::JS3_XAXIS_POS;
+		case AXIS_HAT_Y: return Keycode::JS3_YAXIS_POS;
+		case AXIS_LTRIGGER: return Keycode::JS_LTRIGGER_AXIS;
+		case AXIS_RTRIGGER: return Keycode::JS_RTRIGGER_AXIS;
+		case AXIS_GAS : return Keycode::JS_GAS_AXIS;
+		case AXIS_BRAKE : return Keycode::JS_BRAKE_AXIS;
+	}
+	return Keycode::JS3_YAXIS_POS;
+}
 
 // JNI classes/methods
 
@@ -53,10 +104,40 @@ public:
 	}
 };
 
+class AInputDeviceMotionRangeJ : public JObject
+{
+public:
+	constexpr AInputDeviceMotionRangeJ(jobject motionRange): JObject(motionRange) {};
+
+	/*static jclass cls;
+	static JavaInstMethod<jfloat> getMax_, getMin_;
+
+	jfloat getMin(JNIEnv *j)
+	{
+		return getMin_(j, o);
+	}
+
+	jfloat getMax(JNIEnv *j)
+	{
+		return getMax_(j, o);
+	}
+
+	static void jniInit()
+	{
+		using namespace Base;
+		cls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/view/InputDevice$MotionRange"));
+		getMax_.setup(eEnv(), cls, "getMax", "()F");
+		getMin_.setup(eEnv(), cls, "getMin", "()F");
+	}*/
+};
+
+//jclass AInputDeviceMotionRangeJ::cls = nullptr;
+//JavaInstMethod<jfloat> AInputDeviceMotionRangeJ::getMin_, AInputDeviceMotionRangeJ::getMax_;
+
 class AInputDeviceJ : public JObject
 {
 public:
-	constexpr AInputDeviceJ(jobject inputDevice): JObject(inputDevice) { };
+	constexpr AInputDeviceJ(jobject inputDevice): JObject(inputDevice) {};
 
 	static AInputDeviceJ getDevice(JNIEnv *j, jint id)
 	{
@@ -83,9 +164,14 @@ public:
 		return getKeyboardType_(j, o);
 	}
 
+	AInputDeviceMotionRangeJ getMotionRange(JNIEnv *j, jint axis)
+	{
+		return AInputDeviceMotionRangeJ {getMotionRange_(j, o, axis)};
+	}
+
 	static jclass cls;
 	static JavaClassMethod<jobject> getDeviceIds_, getDevice_;
-	static JavaInstMethod<jobject> getName_, getKeyCharacterMap_;
+	static JavaInstMethod<jobject> getName_, getKeyCharacterMap_, getMotionRange_;
 	static JavaInstMethod<jint> getSources_, getKeyboardType_;
 	static constexpr jint SOURCE_CLASS_BUTTON = 0x00000001, SOURCE_CLASS_POINTER = 0x00000002, SOURCE_CLASS_TRACKBALL = 0x00000004,
 			SOURCE_CLASS_POSITION = 0x00000008, SOURCE_CLASS_JOYSTICK = 0x00000010;
@@ -95,22 +181,34 @@ public:
 
 	static constexpr jint KEYBOARD_TYPE_NONE = 0,  KEYBOARD_TYPE_NON_ALPHABETIC = 1, KEYBOARD_TYPE_ALPHABETIC = 2;
 
-	static void jniInit()
+	static void jniInit(JNIEnv* jEnv)
 	{
 		using namespace Base;
-		cls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/view/InputDevice"));
-		getDeviceIds_.setup(eEnv(), cls, "getDeviceIds", "()[I");
-		getDevice_.setup(eEnv(), cls, "getDevice", "(I)Landroid/view/InputDevice;");
-		getName_.setup(eEnv(), cls, "getName", "()Ljava/lang/String;");
-		getSources_.setup(eEnv(), cls, "getSources", "()I");
-		getKeyboardType_.setup(eEnv(), cls, "getKeyboardType", "()I");
+		cls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/InputDevice"));
+		getDeviceIds_.setup(jEnv, cls, "getDeviceIds", "()[I");
+		getDevice_.setup(jEnv, cls, "getDevice", "(I)Landroid/view/InputDevice;");
+		getName_.setup(jEnv, cls, "getName", "()Ljava/lang/String;");
+		getSources_.setup(jEnv, cls, "getSources", "()I");
+		getKeyboardType_.setup(jEnv, cls, "getKeyboardType", "()I");
+		getMotionRange_.setup(jEnv, cls, "getMotionRange", "(I)Landroid/view/InputDevice$MotionRange;");
 	}
 };
 
 jclass AInputDeviceJ::cls = nullptr;
 JavaClassMethod<jobject> AInputDeviceJ::getDeviceIds_, AInputDeviceJ::getDevice_;
-JavaInstMethod<jobject> AInputDeviceJ::getName_, AInputDeviceJ::getKeyCharacterMap_;
+JavaInstMethod<jobject> AInputDeviceJ::getName_, AInputDeviceJ::getKeyCharacterMap_, AInputDeviceJ::getMotionRange_;
 JavaInstMethod<jint> AInputDeviceJ::getSources_, AInputDeviceJ::getKeyboardType_;
+
+static const char *inputDeviceKeyboardTypeToStr(int type)
+{
+	switch(type)
+	{
+		case AInputDeviceJ::KEYBOARD_TYPE_NONE: return "None";
+		case AInputDeviceJ::KEYBOARD_TYPE_NON_ALPHABETIC: return "Non-Alphabetic";
+		case AInputDeviceJ::KEYBOARD_TYPE_ALPHABETIC: return "Alphabetic";
+	}
+	return "Unknown";
+}
 
 void setKeyRepeat(bool on)
 {
@@ -158,7 +256,7 @@ static const char* aInputSourceToStr(uint source)
 	}
 }
 
-static void handleKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState)
+static void handleKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState, AInputEvent *event)
 {
 	switch(dev.subtype)
 	{
@@ -167,6 +265,20 @@ static void handleKeycodesForSpecialDevices(const Input::Device &dev, int32_t &k
 			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::ESCAPE && (metaState & AMETA_ALT_ON)))
 			{
 				keyCode = Keycode::GAME_B;
+			}
+		}
+		bcase Device::SUBTYPE_XBOX_360_CONTROLLER:
+		{
+			if(keyCode)
+				break;
+			// map d-pad on wireless controller adapter
+			auto scanCode = AKeyEvent_getScanCode(event);
+			switch(scanCode)
+			{
+				bcase 704: keyCode = Keycode::LEFT;
+				bcase 705: keyCode = Keycode::RIGHT;
+				bcase 706: keyCode = Keycode::UP;
+				bcase 707: keyCode = Keycode::DOWN;
 			}
 		}
 		bdefault: break;
@@ -259,83 +371,24 @@ int32_t onInputEvent(AInputEvent* event)
 					}
 					auto eventDevID = dev->devId;
 					//logMsg("Joystick input from %s,%d", dev->name(), dev->devId);
-
-					static const uint altBtnEvent[maxJoystickAxisPairs][4] =
-					{
-							{ Input::Keycode::LEFT, Input::Keycode::RIGHT, Input::Keycode::DOWN, Input::Keycode::UP },
-							{ Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS, Keycode::JS2_YAXIS_POS, Keycode::JS2_YAXIS_NEG },
-							{ Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS, Keycode::JS3_YAXIS_POS, Keycode::JS3_YAXIS_NEG },
-							{ 0, Keycode::JS_LTRIGGER_AXIS, Keycode::JS_RTRIGGER_AXIS, 0 }
-					};
-					static const uint btnEvent[maxJoystickAxisPairs][4] =
-					{
-							{ Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG },
-							{ Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS, Keycode::JS2_YAXIS_POS, Keycode::JS2_YAXIS_NEG },
-							{ Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS, Keycode::JS3_YAXIS_POS, Keycode::JS3_YAXIS_NEG },
-							{ 0, Keycode::JS_LTRIGGER_AXIS, Keycode::JS_RTRIGGER_AXIS, 0 }
-					};
-
-					auto &axisToBtnMap = dev->mapJoystickAxis1ToDpad ? altBtnEvent : btnEvent;
 					auto &sysDev = sysInputDev[dev->idx];
 
-//					if(AMotionEvent_getAxisValue)
-//					{
-//					logMsg("axis [%f %f] [%f %f] [%f %f] [%f %f]",
-//							(double)AMotionEvent_getAxisValue(event, 0, 0), (double)AMotionEvent_getAxisValue(event, 1, 0),
-//							(double)AMotionEvent_getAxisValue(event, 11, 0), (double)AMotionEvent_getAxisValue(event, 14, 0),
-//							(double)AMotionEvent_getAxisValue(event, 15, 0), (double)AMotionEvent_getAxisValue(event, 16, 0),
-//							(double)AMotionEvent_getAxisValue(event, 17, 0), (double)AMotionEvent_getAxisValue(event, 18, 0));
-//					}
-
-					iterateTimes(AMotionEvent_getAxisValue ? maxJoystickAxisPairs : 1, i)
+					if(likely(AMotionEvent_getAxisValue))
 					{
-						static const int32_t AXIS_X = 0, AXIS_Y = 1, AXIS_Z = 11, AXIS_RZ = 14, AXIS_HAT_X = 15, AXIS_HAT_Y = 16,
-								AXIS_LTRIGGER = 17, AXIS_RTRIGGER = 18;
-						float pos[2];
-						if(AMotionEvent_getAxisValue)
+						forEachInContainer(sysDev.axis, e)
 						{
-							switch(i)
-							{
-								bcase 0:
-									pos[0] = AMotionEvent_getAxisValue(event, AXIS_X, 0);
-									pos[1] = AMotionEvent_getAxisValue(event, AXIS_Y, 0);
-								bcase 1:
-									pos[0] = AMotionEvent_getAxisValue(event, AXIS_Z, 0);
-									pos[1] = AMotionEvent_getAxisValue(event, AXIS_RZ, 0);
-								bcase 2:
-									pos[0] = AMotionEvent_getAxisValue(event, AXIS_HAT_X, 0);
-									pos[1] = AMotionEvent_getAxisValue(event, AXIS_HAT_Y, 0);
-								bcase 3:
-									pos[0] = AMotionEvent_getAxisValue(event, AXIS_LTRIGGER, 0);
-									pos[1] = AMotionEvent_getAxisValue(event, AXIS_RTRIGGER, 0);
-								bdefault: bug_branch("%d", i);
-							}
+							auto &axis = *e;
+							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
+							axis.keyEmu.dispatch(pos, eventDevID, Event::MAP_KEYBOARD, *dev);
 						}
-						else
+					}
+					else
+					{
+						// no getAxisValue, can only use 2 axis values (X and Y)
+						iterateTimes(std::min(sysDev.axis.size(), (uint)2), i)
 						{
-							pos[0] = AMotionEvent_getX(event, 0);
-							pos[1] = AMotionEvent_getY(event, 0);
-						}
-						//logMsg("from Joystick, %f, %f", (double)pos[0], (double)pos[1]);
-						forEachInArray(sysDev.axisBtnState[i], e)
-						{
-							if(i == 3 && (e_i == 0 || e_i == 3))
-								continue; // skip negative test for trigger axis
-							bool newState;
-							switch(e_i)
-							{
-								case 0: newState = pos[0] < -0.5; break;
-								case 1: newState = pos[0] > 0.5; break;
-								case 2: newState = pos[1] > 0.5; break;
-								case 3: newState = pos[1] < -0.5; break;
-								default: bug_branch("%d", (int)e_i); break;
-							}
-							if(*e != newState)
-							{
-								onInputEvent(Event(eventDevID, Event::MAP_KEYBOARD, axisToBtnMap[i][e_i],
-										newState ? PUSHED : RELEASED, 0, dev));
-							}
-							*e = newState;
+							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
+							sysDev.axis[i].keyEmu.dispatch(pos, eventDevID, Event::MAP_KEYBOARD, *dev);
 						}
 					}
 					return 1;
@@ -351,8 +404,6 @@ int32_t onInputEvent(AInputEvent* event)
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
 			//logMsg("key event, code: %d id: %d source: 0x%X repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
-			if(unlikely(!keyCode)) // ignore "unknown" key codes
-				return 0;
 			if(!handleVolumeKeys &&
 				(keyCode == (int)Keycode::VOL_UP || keyCode == (int)Keycode::VOL_DOWN))
 			{
@@ -370,7 +421,11 @@ int32_t onInputEvent(AInputEvent* event)
 					dev = virtualDev;
 				}
 				auto metaState = AKeyEvent_getMetaState(event);
-				handleKeycodesForSpecialDevices(*dev, keyCode, metaState);
+				handleKeycodesForSpecialDevices(*dev, keyCode, metaState, event);
+				if(unlikely(!keyCode)) // ignore "unknown" key codes
+				{
+					return 0;
+				}
 				handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, dev->devId, metaState & AMETA_SHIFT_ON, *dev);
 			}
 			return 1;
@@ -383,20 +438,20 @@ int32_t onInputEvent(AInputEvent* event)
 static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 {
 	auto delegate = vKeyboardTextDelegate;
-	vKeyboardTextDelegate.clear();
-	if(delegate.hasCallback())
+	vKeyboardTextDelegate = {};
+	if(delegate)
 	{
 		if(jStr)
 		{
 			const char *str = env->GetStringUTFChars(jStr, 0);
 			logMsg("running text entry callback with text: %s", str);
-			delegate.invoke(str);
+			delegate(str);
 			env->ReleaseStringUTFChars(jStr, str);
 		}
 		else
 		{
 			logMsg("canceled text entry callback");
-			delegate.invoke(nullptr);
+			delegate(nullptr);
 		}
 	}
 	else
@@ -422,7 +477,17 @@ bool dlLoadAndroidFuncs(void *libandroid)
 	return 1;
 }
 
-void rescanDevices(bool firstRun)
+static bool isUsefulDevice(const char *name)
+{
+	// skip various devices that don't have useful functions
+	if(strstr(name, "pwrkey") || strstr(name, "pwrbutton")) // various power keys
+	{
+		return false;
+	}
+	return true;
+}
+
+static void rescanDevices(JNIEnv* jEnv, bool firstRun)
 {
 	forEachInDLList(&Input::devList, e)
 	{
@@ -432,29 +497,29 @@ void rescanDevices(bool firstRun)
 	indexDevices();
 	virtualDev = nullptr;
 	builtinKeyboardDev = nullptr;
-
 	sysInputDevs = 0;
 	using namespace Base;
-	auto jID = AInputDeviceJ::getDeviceIds(eEnv());
-	auto id = eEnv()->GetIntArrayElements(jID, 0);
+	auto jID = AInputDeviceJ::getDeviceIds(jEnv);
+	auto id = jEnv->GetIntArrayElements(jID, 0);
 	bool foundVirtual = 0;
 	logMsg("checking input devices");
-	iterateTimes(eEnv()->GetArrayLength(jID), i)
+	iterateTimes(jEnv->GetArrayLength(jID), i)
 	{
-		auto dev = AInputDeviceJ::getDevice(eEnv(), id[i]);
-		jint src = dev.getSources(eEnv());
-		jstring jName = dev.getName(eEnv());
+		auto dev = AInputDeviceJ::getDevice(jEnv, id[i]);
+		jint src = dev.getSources(jEnv);
+		jstring jName = dev.getName(jEnv);
 		if(!jName)
 		{
 			logWarn("no name from device %d, id %d", i, id[i]);
 			continue;
 		}
-		const char *name = eEnv()->GetStringUTFChars(jName, 0);
+		const char *name = jEnv->GetStringUTFChars(jName, 0);
 		bool hasKeys = src & AInputDeviceJ::SOURCE_CLASS_BUTTON;
 		logMsg("#%d: %s, id %d, source %X", i, name, id[i], src);
-		if(hasKeys && !devList.isFull() && sysInputDevs != MAX_DEVS)
+		if(hasKeys && !devList.isFull() && sysInputDevs != MAX_DEVS && isUsefulDevice(name))
 		{
 			auto &sysInput = sysInputDev[sysInputDevs];
+			sysInput = {};
 			uint devId = 0;
 			// find the next available ID number for devices with this name, starting from 0
 			forEachInDLList(&devList, e)
@@ -469,7 +534,6 @@ void rescanDevices(bool firstRun)
 			Input::addDevice((Device){devId, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEY_MISC, sysInput.name});
 			auto newDev = devList.last();
 			sysInput.dev = newDev;
-			mem_zero(sysInput.axisBtnState);
 			if(id[i] == 0) // built-in keyboard is always id 0 according to Android docs
 			{
 				builtinKeyboardDev = newDev;
@@ -507,6 +571,11 @@ void rescanDevices(bool firstRun)
 					logMsg("detected OUYA gamepad");
 					newDev->subtype = Device::SUBTYPE_OUYA_CONTROLLER;
 				}
+				else if(string_equal(name, "Xbox 360 Wireless Receiver"))
+				{
+					logMsg("detected wireless 360 gamepad");
+					newDev->subtype = Device::SUBTYPE_XBOX_360_CONTROLLER;
+				}
 				else
 				{
 					logMsg("detected a gamepad");
@@ -514,25 +583,86 @@ void rescanDevices(bool firstRun)
 				if(isGamepad)
 					newDev->setTypeBits(Device::TYPE_BIT_GAMEPAD);
 			}
-			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD)
-					&& dev.getKeyboardType(eEnv()) == AInputDeviceJ::KEYBOARD_TYPE_ALPHABETIC)
+			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD))
 			{
-				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_KEYBOARD);
-				logMsg("detected an alpha-numeric keyboard");
+				auto kbType = dev.getKeyboardType(jEnv);
+				// Classify full alphabetic keyboards, and also devices with other keyboard
+				// types, as long as they are exclusively SOURCE_KEYBOARD
+				// (needed for the iCade 8-bitty since it reports a non-alphabetic keyboard type)
+				if(kbType == AInputDeviceJ::KEYBOARD_TYPE_ALPHABETIC
+					|| src == AInputDeviceJ::SOURCE_KEYBOARD)
+				{
+					newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_KEYBOARD);
+					logMsg("has keyboard type: %s", inputDeviceKeyboardTypeToStr(kbType));
+				}
 			}
 			if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_JOYSTICK))
 			{
 				newDev->setTypeBits(newDev->typeBits() | Device::TYPE_BIT_JOYSTICK);
 				logMsg("detected a joystick");
+
+				// check joystick axes
+				{
+					Key currKeycode = Keycode::JS1_XAXIS_POS;
+					const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
+							AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL };
+					for(auto axisId : stickAxes)
+					{
+						auto range = dev.getMotionRange(jEnv, axisId);
+						if(!range)
+							continue;
+						jEnv->DeleteLocalRef(range);
+						logMsg("joystick axis: %d", axisId);
+						auto size = 2.0f;
+						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f, currKeycode});
+						currKeycode += 2; // move to the next +/- axis keycode pair
+						if(sysInput.axis.size() == MAX_STICK_AXES)
+						{
+							logMsg("reached maximum joystick axes");
+							break;
+						}
+					}
+				}
+				// check trigger axes
+				if(!sysInput.axis.isFull())
+				{
+					const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE };
+					for(auto axisId : triggerAxes)
+					{
+						auto range = dev.getMotionRange(jEnv, axisId);
+						if(!range)
+							continue;
+						jEnv->DeleteLocalRef(range);
+						logMsg("trigger axis: %d", axisId);
+						auto size = 1.0f;
+						// use unreachable lowLimit value so only highLimit is used
+						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 1.f - size/4.f, axisToKeycode(axisId)});
+						if(sysInput.axis.isFull())
+						{
+							logMsg("reached maximum total axes");
+							break;
+						}
+					}
+				}
+				/*iterateTimes(48, i)
+				{
+					auto range = dev.getMotionRange(eEnv(), i);
+					if(!range)
+					{
+						continue;
+					}
+					eEnv()->DeleteLocalRef(range);
+					logMsg("has axis: %d", i);
+				}*/
 			}
 
 			logMsg("added to list with device id %d", newDev->devId);
 			sysInputDevs++;
 		}
-		eEnv()->ReleaseStringUTFChars(jName, name);
-		eEnv()->DeleteLocalRef(dev);
+		jEnv->ReleaseStringUTFChars(jName, name);
+		jEnv->DeleteLocalRef(dev);
 	}
-	eEnv()->ReleaseIntArrayElements(jID, id, 0);
+	jEnv->ReleaseIntArrayElements(jID, id, 0);
 
 	if(!foundVirtual)
 	{
@@ -560,13 +690,20 @@ void rescanDevices(bool firstRun)
 	}
 }
 
+void rescanDevices(bool firstRun)
+{
+	rescanDevices(Base::eEnv(), firstRun);
+}
+
 
 CallResult init()
 {
 	if(Base::androidSDK() >= 12)
 	{
-		AInputDeviceJ::jniInit();
-		rescanDevices(1);
+		auto jEnv = Base::eEnv();
+		AInputDeviceJ::jniInit(jEnv);
+		//AInputDeviceMotionRangeJ::jniInit();
+		rescanDevices(jEnv, 1);
 	}
 	else
 	{

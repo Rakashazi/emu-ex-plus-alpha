@@ -14,7 +14,6 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -27,6 +26,7 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <main/Main.hh>
+#include <main/Cheats.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/Sound.h>
 #include <vbam/gba/RTC.h>
@@ -214,8 +214,6 @@ int systemGreenShift = 11;
 int systemBlueShift = 3;
 #endif
 
-#include <CommonViewControl.hh>
-
 void EmuSystem::initOptions()
 {
 	#ifndef CONFIG_BASE_ANDROID
@@ -291,10 +289,13 @@ void EmuSystem::saveBackupMem()
 			fixFilePermissions(saveStr);
 		#endif
 		CPUWriteBatteryFile(gGba, saveStr);
+		writeCheatFile();
 	}
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 void EmuSystem::clearInputBuffers() { P1 = 0x03FF; }
 
@@ -305,6 +306,7 @@ void EmuSystem::closeSystem()
 	saveBackupMem();
 	CPUCleanUp();
 	detectedRtcGame = 0;
+	cheatsNumber = 0; // reset cheat list
 }
 
 static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
@@ -369,6 +371,7 @@ int EmuSystem::loadGame(const char *path)
 	FsSys::cPath saveStr;
 	snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
 	CPUReadBatteryFile(gGba, saveStr);
+	readCheatFile();
 	logMsg("started emu");
 	return 1;
 }

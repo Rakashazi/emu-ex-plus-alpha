@@ -42,14 +42,14 @@ template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-void TexQuad::mapImg(const BufferImage &img) { ::mapImg(v, &img.textureDesc()); };
+void TexQuad::mapImg(const BufferImage &img) { ::mapImg(v, img.textureDesc()); };
 void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { ::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 
 void ColQuad::setColor(GColor r, GColor g, GColor b, GColor a, uint edges) { ::setColor(v, r, g, b, a, edges); }
 void ColQuad::setColorRGB(GColor r, GColor g, GColor b, uint edges) { ::setColorRGB(v, r, g, b, edges); }
 void ColQuad::setColorAlpha(GColor a, uint edges) { ::setColorAlpha(v, a, edges); }
 
-void ColTexQuad::mapImg(const BufferImage &img) { ::mapImg(v, &img.textureDesc()); };
+void ColTexQuad::mapImg(const BufferImage &img) { ::mapImg(v, img.textureDesc()); };
 void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { ::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 void ColTexQuad::setColor(GColor r, GColor g, GColor b, GColor a, uint edges) { ::setColor(v, r, g, b, a, edges); }
 void ColTexQuad::setColorRGB(GColor r, GColor g, GColor b, uint edges) { ::setColorRGB(v, r, g, b, edges); }

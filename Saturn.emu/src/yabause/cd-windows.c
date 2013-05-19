@@ -20,7 +20,13 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include "windows/cd.h"
+#ifdef HAVE_NTDDCDRM
+#include <ntddcdrm.h>
+#include <ntddscsi.h>
+#else
+#include "fakeddk.h"
+#endif
+#include "cdbase.h"
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -31,8 +37,15 @@ static HANDLE thread_handle=INVALID_HANDLE_VALUE;
 static int drivestatus=0;
 static DWORD thread_id;
 
+static int SPTICDInit(const char *);
+static void SPTICDDeInit(void);
+static s32 SPTICDReadTOC(u32 *);
+static int SPTICDGetStatus(void);
+static int SPTICDReadSectorFAD(u32, void *);
+static void SPTICDReadAheadFAD(u32);
+
 CDInterface ArchCD = {
-CDCORE_SPTI,
+CDCORE_ARCH,
 "Windows SPTI Driver",
 SPTICDInit,
 SPTICDDeInit,

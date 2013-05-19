@@ -14,7 +14,6 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -323,6 +322,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 }
 
 bool EmuSystem::vidSysIsPAL() { return vdp_pal; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 void EmuSystem::resetGame()

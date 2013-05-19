@@ -39,6 +39,14 @@ static uint buffers = 10;
 static uchar **qBuffer = nullptr;
 static bool isPlaying = 0, reachedEndOfPlayback = 0, strictUnderrunCheck = 1;
 static BufferContext audioBuffLockCtx;
+static jobject audioManager = nullptr;
+static JavaInstMethod<jint> jRequestAudioFocus, jAbandonAudioFocus;
+static bool soloMix_ = true;
+
+static bool isInit()
+{
+	return outMix;
+}
 
 // runs on internal OpenSL ES thread
 /*static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
@@ -52,6 +60,35 @@ static void playCallback(SLPlayItf caller, void *, SLuint32 event)
 	assert(event == SL_PLAYEVENT_HEADSTALLED || event == SL_PLAYEVENT_HEADATEND);
 	logMsg("got playback end event");
 	reachedEndOfPlayback = 1;
+}
+
+static void setupAudioManagerJNI(JNIEnv* jEnv)
+{
+	if(!audioManager)
+	{
+		JavaInstMethod<jobject> jAudioManager;
+		jAudioManager.setup(jEnv, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;");
+		audioManager = jAudioManager(jEnv, jBaseActivity);
+		assert(audioManager);
+		audioManager = jEnv->NewGlobalRef(audioManager);
+		jclass jAudioManagerCls = jEnv->FindClass("android/media/AudioManager");
+		assert(jAudioManagerCls);
+		jRequestAudioFocus.setup(jEnv, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
+		jAbandonAudioFocus.setup(jEnv, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
+	}
+}
+
+static void requestAudioFocus(JNIEnv* jEnv)
+{
+	setupAudioManagerJNI(jEnv);
+	auto res = jRequestAudioFocus(jEnv, audioManager, jBaseActivity, 3, 1);
+	//logMsg("%d from requestAudioFocus()", (int)res);
+}
+
+static void abandonAudioFocus(JNIEnv* jEnv)
+{
+	setupAudioManagerJNI(jEnv);
+	jAbandonAudioFocus(jEnv, audioManager, jBaseActivity);
 }
 
 CallResult openPcm(const PcmFormat &format)
@@ -175,8 +212,7 @@ static void checkXRun(uint queued)
 	if(unlikely(isPlaying && reachedEndOfPlayback))
 	{
 		logMsg("xrun");
-		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
-		isPlaying = 0;
+		pausePcm();
 	}
 }
 
@@ -196,6 +232,32 @@ static void startPlaybackIfNeeded(uint queued)
 	}
 }
 
+void pausePcm()
+{
+	if(unlikely(!player) || !isPlaying)
+		return;
+	logMsg("pausing playback");
+	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
+	isPlaying = 0;
+}
+
+void resumePcm()
+{
+	if(unlikely(!player))
+		return;
+	startPlaybackIfNeeded(buffersQueued());
+}
+
+void clearPcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("clearing queued samples");
+	pausePcm();
+	SLresult result = (*slBuffQI)->Clear(slBuffQI);
+	assert(result == SL_RESULT_SUCCESS);
+}
+
 BufferContext *getPlayBuffer(uint wantedFrames)
 {
 	if(unlikely(!player))
@@ -209,7 +271,7 @@ BufferContext *getPlayBuffer(uint wantedFrames)
 	}
 	auto b = qBuffer[currQBuf];
 	audioBuffLockCtx.data = b;
-	audioBuffLockCtx.frames = IG::min(wantedFrames, bufferFrames);
+	audioBuffLockCtx.frames = std::min(wantedFrames, bufferFrames);
 	return &audioBuffLockCtx;
 }
 
@@ -242,7 +304,7 @@ void writePcm(uchar *samples, uint framesToWrite)
 			break;
 		}
 
-		uint framesToWriteInBuffer = IG::min(framesToWrite, bufferFrames);
+		uint framesToWriteInBuffer = std::min(framesToWrite, bufferFrames);
 		uint bytesToWriteInBuffer = pcmFormat.framesToBytes(framesToWriteInBuffer);
 		auto b = qBuffer[currQBuf];
 		memcpy(b, samples, bytesToWriteInBuffer);
@@ -266,10 +328,13 @@ int framesFree()
 
 void setHintPcmFramesPerWrite(uint frames)
 {
-	logMsg("setting queue buffer frames to %d", frames);
-	assert(frames < 2000);
-	bufferFrames = frames;
-	assert(!isOpen());
+	if(frames != bufferFrames)
+	{
+		closePcm();
+		logMsg("setting queue buffer frames to %d", frames);
+		assert(frames < 2000);
+		bufferFrames = frames;
+	}
 }
 
 void setHintPcmMaxBuffers(uint maxBuffers)
@@ -292,12 +357,57 @@ bool hintStrictUnderrunCheck()
 	return strictUnderrunCheck;
 }
 
+void setSoloMix(bool newSoloMix)
+{
+	if(soloMix_ != newSoloMix)
+	{
+		logMsg("setting solo mix: %d", newSoloMix);
+		soloMix_ = newSoloMix;
+		if(!isInit())
+			return; // audio init() will take care of initial focus setting
+		if(soloMix_)
+		{
+			requestAudioFocus(eEnv());
+		}
+		else
+		{
+			abandonAudioFocus(eEnv());
+		}
+	}
+}
+
+bool soloMix()
+{
+	return soloMix_;
+}
+
+void updateFocusOnResume()
+{
+	if(soloMix())
+	{
+		requestAudioFocus(eEnv());
+	}
+}
+
+void updateFocusOnPause()
+{
+	if(soloMix())
+	{
+		abandonAudioFocus(eEnv());
+	}
+}
+
 CallResult init()
 {
 	logMsg("doing init");
-	JavaInstMethod<void> jSetVolumeControlStream;
-	jSetVolumeControlStream.setup(eEnv(), jBaseActivityCls, "setVolumeControlStream", "(I)V");
-	jSetVolumeControlStream(eEnv(), jBaseActivity, 3);
+	{
+		auto jEnv = eEnv();
+		JavaInstMethod<void> jSetVolumeControlStream;
+		jSetVolumeControlStream.setup(jEnv, jBaseActivityCls, "setVolumeControlStream", "(I)V");
+		jSetVolumeControlStream(jEnv, jBaseActivity, 3);
+	}
+
+	updateFocusOnResume();
 
 	// engine object
 	SLObjectItf slE;

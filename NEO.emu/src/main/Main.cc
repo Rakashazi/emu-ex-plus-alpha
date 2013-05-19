@@ -1,5 +1,4 @@
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
@@ -412,6 +411,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 CLINK char romerror[1024];
@@ -461,36 +462,6 @@ static const bool backgroundRomLoading = 1;
 static ThreadPThread backgroundThread;
 
 enum { MSG_LOAD_FAILED = Base::MSG_USER, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
-
-ptrsize loadGameThread(ThreadPThread &thread)
-{
-	using namespace Base;
-
-	char gnoFilename[8+4+1];
-	snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
-
-	if(!init_game(activeDrv->name))
-	{
-		sendMessageToMain(thread, MSG_LOAD_FAILED, 0, 0, 0);
-		EmuSystem::clearGamePaths();
-		free(activeDrv); activeDrv = 0;
-		return 0;
-	}
-
-	if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
-	{
-		logMsg("%s doesn't exist, creating", gnoFilename);
-		#ifdef USE_GENERATOR68K
-		bool swappedBIOS = swapCPUMemForDump();
-		#endif
-		dr_save_gno(&memory.rom, gnoFilename);
-		#ifdef USE_GENERATOR68K
-		reverseSwapCPUMemForDump(swappedBIOS);
-		#endif
-	}
-	sendMessageToMain(thread, MSG_LOAD_OK, 0, 0, 0);
-	return 0;
-}
 
 void gn_init_pbar(uint action,int size)
 {
@@ -611,7 +582,37 @@ int EmuSystem::loadGame(const char *path)
 			loadGameInBackgroundView.place(Gfx::viewportRect());
 			View::modalView = &loadGameInBackgroundView;
 			Base::displayNeedsUpdate();
-			backgroundThread.create(1, ThreadPThread::EntryDelegate::create<&loadGameThread>());
+			backgroundThread.create(1,
+				[](ThreadPThread &thread)
+				{
+					using namespace Base;
+
+					char gnoFilename[8+4+1];
+					snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
+
+					if(!init_game(activeDrv->name))
+					{
+						sendMessageToMain(thread, MSG_LOAD_FAILED, 0, 0, 0);
+						EmuSystem::clearGamePaths();
+						free(activeDrv); activeDrv = 0;
+						return 0;
+					}
+
+					if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
+					{
+						logMsg("%s doesn't exist, creating", gnoFilename);
+						#ifdef USE_GENERATOR68K
+						bool swappedBIOS = swapCPUMemForDump();
+						#endif
+						dr_save_gno(&memory.rom, gnoFilename);
+						#ifdef USE_GENERATOR68K
+						reverseSwapCPUMemForDump(swappedBIOS);
+						#endif
+					}
+					sendMessageToMain(thread, MSG_LOAD_OK, 0, 0, 0);
+					return 0;
+				}
+			);
 			return -1;
 		}
 		else
@@ -724,7 +725,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 		{
 			View::removeModalView();
 			loadGamePhase2();
-			EmuSystem::loadGameCompleteDelegate().invoke(1, Input::Event{});
+			EmuSystem::onLoadGameComplete()(1, Input::Event{});
 		}
 		bcase MSG_START_PROGRESS:
 		{

@@ -46,6 +46,30 @@ static T swapBits(T val, uint range1, uint range2, uint rangeSize)
 	return val ^ ((x << range1) | (x << range2));
 }
 
+namespace Bits
+{
+
+template <class T>
+struct InType
+{
+	static constexpr uint bits = sizeof(T) * 8;
+};
+
+// num elements of integer array needed to hold bits
+template <class T>
+static constexpr uint elemsToHold(uint bits)
+{
+	return (bits + InType<T>::bits - 1) / InType<T>::bits;
+}
+
+template <class T, size_t S>
+static bool isSetInArray(const T (&arr)[S], uint bit)
+{
+    return !!(arr[bit / InType<T>::bits] & ((T)1 << (bit % InType<T>::bits)));
+}
+
+}
+
 #endif
 
 static uint bit_isMaskSet(uint value, uint bitMask)

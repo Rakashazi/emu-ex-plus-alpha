@@ -28,10 +28,10 @@ CallResult ResourceFont::initWithName(const char *name)
 	return OK;
 }
 
-ResourceImageGlyph *ResourceFont::createRenderable(int c, ResourceFace *face, GlyphEntry *entry)
-{
-	return ResourceImageGlyph::createWithFace(face, entry);
-}
+//ResourceImageGlyph *ResourceFont::createRenderable(int c, ResourceFace *face, GlyphEntry *entry)
+//{
+//	return ResourceImageGlyph::createWithFace(face, entry);
+//}
 
 int ResourceFont::minUsablePixels() const
 {

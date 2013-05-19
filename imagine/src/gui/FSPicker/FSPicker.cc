@@ -28,7 +28,7 @@ static const Gfx::LGradientStopDesc fsNavViewGrad[] =
 
 // FSNavView
 
-void FSNavView::init(ResourceFace *face, ResourceImage *backRes, ResourceImage *closeRes, bool singleDir)
+void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir)
 {
 	if(singleDir)
 		backRes = 0;
@@ -36,7 +36,7 @@ void FSNavView::init(ResourceFace *face, ResourceImage *backRes, ResourceImage *
 	//logMsg("has back:%p close:%p", leftSpr.img, rightSpr.img);
 }
 
-void FSNavView::draw()
+void FSPicker::FSNavView::draw()
 {
 	using namespace Gfx;
 	resetTransforms();
@@ -54,7 +54,7 @@ void FSNavView::draw()
 	{
 		text.draw(gXPos(textRect, LC2DO) + GuiTable1D::globalXIndent, gYPos(viewRect, LC2DO), LC2DO);
 	}
-	if(leftSpr.img)
+	if(leftSpr.image())
 	{
 		if(leftBtnActive)
 		{
@@ -65,7 +65,7 @@ void FSNavView::draw()
 			leftSpr.draw();
 		}
 	}
-	if(rightSpr.img)
+	if(rightSpr.image())
 	{
 		if(rightBtnActive)
 		{
@@ -77,7 +77,7 @@ void FSNavView::draw()
 	}
 }
 
-void FSNavView::place()
+void FSPicker::FSNavView::place()
 {
 	NavView::place();
 	if(hasBackBtn)
@@ -93,7 +93,7 @@ void FSNavView::place()
 
 // FSPicker
 
-void FSPicker::init(const char *path, ResourceImage *backRes, ResourceImage *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
+void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	#if defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB)
 	singleDir = 1; // stay in Documents dir when not in jailbreak environment
@@ -150,15 +150,14 @@ void FSPicker::onLeftNavBtn(const Input::Event &e)
 
 void FSPicker::onRightNavBtn(const Input::Event &e)
 {
-	//onClose();
-	onClose.invoke(e);
+	onCloseD(e);
 }
 
 void FSPicker::inputEvent(const Input::Event &e)
 {
 	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
-		onClose.invoke(e);
+		onCloseD(e);
 		return;
 	}
 
@@ -207,8 +206,7 @@ void FSPicker::onSelectElement(const GuiTable1D *table, const Input::Event &e, u
 	}
 	else
 	{
-		//onSelectFile(dir.entryFilename(i));
-		onSelectFile.invokeSafe(dir.entryFilename(i), e);
+		onSelectFileD(dir.entryFilename(i), e);
 	}
 }
 

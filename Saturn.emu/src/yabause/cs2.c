@@ -1,5 +1,5 @@
 /*  Copyright 2003 Guillaume Duhamel
-    Copyright 2004-2006 Theo Berkau
+    Copyright 2004-2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -62,6 +62,8 @@
 
 #define CDB_PLAYTYPE_SECTOR     0x01
 #define CDB_PLAYTYPE_FILE       0x02
+
+#define ToBCD(val) ((val % 10 ) + ((val / 10 ) << 4))
 
 Cs2 * Cs2Area = NULL;
 ip_struct *cdip = NULL;
@@ -244,6 +246,34 @@ u16 FASTCALL Cs2ReadWord(u32 addr) {
                                 Cs2Area->infotranstype = -1;
                              }
 
+                             break;
+                     case 3:
+                             // Get Subcode Q
+                             val = (Cs2Area->transscodeq[Cs2Area->transfercount] << 8) |
+                                    Cs2Area->transscodeq[Cs2Area->transfercount + 1];
+
+                             Cs2Area->transfercount += 2;
+                             Cs2Area->cdwnum += 2;
+
+                             if (Cs2Area->transfercount > (5 * 2))
+                             {
+                                Cs2Area->transfercount = 0;
+                                Cs2Area->infotranstype = -1;
+                             }
+                             break;
+                     case 4:
+                             // Get Subcode RW
+                             val = (Cs2Area->transscoderw[Cs2Area->transfercount] << 8) |
+                                    Cs2Area->transscoderw[Cs2Area->transfercount + 1];
+
+                             Cs2Area->transfercount += 2;
+                             Cs2Area->cdwnum += 2;
+
+                             if (Cs2Area->transfercount > (12 * 2))
+                             {
+                                Cs2Area->transfercount = 0;
+                                Cs2Area->infotranstype = -1;
+                             }
                              break;
                      default: break;
                   }
@@ -783,10 +813,10 @@ void Cs2Reset(void) {
   // MPEG specific stuff
   Cs2Area->mpegcon[0].audcon = Cs2Area->mpegcon[0].vidcon = 0x00;
   Cs2Area->mpegcon[0].audlay = Cs2Area->mpegcon[0].vidlay = 0x00;
-  Cs2Area->mpegcon[0].audbufdivnum = Cs2Area->mpegcon[0].vidbufdivnum = 0xFF;
+  Cs2Area->mpegcon[0].audbufnum = Cs2Area->mpegcon[0].vidbufnum = 0xFF;
   Cs2Area->mpegcon[1].audcon = Cs2Area->mpegcon[1].vidcon = 0x00;
   Cs2Area->mpegcon[1].audlay = Cs2Area->mpegcon[1].vidlay = 0x00;
-  Cs2Area->mpegcon[1].audbufdivnum = Cs2Area->mpegcon[1].vidbufdivnum = 0xFF;
+  Cs2Area->mpegcon[1].audbufnum = Cs2Area->mpegcon[1].vidbufnum = 0xFF;
 
   // should verify the following
   Cs2Area->mpegstm[0].audstm = Cs2Area->mpegstm[0].vidstm = 0x00; 
@@ -1062,11 +1092,11 @@ void Cs2Execute(void) {
       CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x40:
-      CDLOG("cs2\t: Command: setFilterRange\n");
+      CDLOG("cs2\t: Command: setFilterRange %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2SetFilterRange();
       break;
     case 0x42:
-      CDLOG("cs2\t: Command: setFilterSubheaderConditions\n");
+      CDLOG("cs2\t: Command: setFilterSubheaderConditions %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2SetFilterSubheaderConditions();
       break;
     case 0x43:
@@ -1075,7 +1105,7 @@ void Cs2Execute(void) {
       CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x44:
-      CDLOG("cs2\t: Command: setFilterMode\n");
+      CDLOG("cs2\t: Command: setFilterMode %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2SetFilterMode();
       break;
     case 0x45:
@@ -1084,7 +1114,7 @@ void Cs2Execute(void) {
       CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x46:
-      CDLOG("cs2\t: Command: setFilterConnection\n");
+      CDLOG("cs2\t: Command: setFilterConnection %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2SetFilterConnection();
       break;
     case 0x48:
@@ -1175,6 +1205,7 @@ void Cs2Execute(void) {
     case 0x90:
       CDLOG("cs2\t: Command: mpegGetStatus\n");
       Cs2MpegGetStatus();
+      CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x91:
       CDLOG("cs2\t: Command: mpegGetInterrupt\n");
@@ -1182,76 +1213,79 @@ void Cs2Execute(void) {
       CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x92:
-      CDLOG("cs2\t: Command: mpegSetInterruptMask\n");
+      CDLOG("cs2\t: Command: mpegSetInterruptMask %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2);
       Cs2MpegSetInterruptMask();
       break;
     case 0x93: 
-      CDLOG("cs2\t: Command: mpegInit\n");
+      CDLOG("cs2\t: Command: mpegInit %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2);
       Cs2MpegInit();
       break;
     case 0x94:
-      CDLOG("cs2\t: Command: mpegSetMode\n");
+      CDLOG("cs2\t: Command: mpegSetMode %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3);
       Cs2MpegSetMode();
       break;
     case 0x95:
-      CDLOG("cs2\t: Command: mpegPlay\n");
+      CDLOG("cs2\t: Command: mpegPlay %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR4);
       Cs2MpegPlay();
       break;
     case 0x96:
-      CDLOG("cs2\t: Command: mpegSetDecodingMethod\n");
+      CDLOG("cs2\t: Command: mpegSetDecodingMethod %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR4);
       Cs2MpegSetDecodingMethod();
       break;
     case 0x9A:      
-      CDLOG("cs2\t: Command: mpegSetConnection\n");
+      CDLOG("cs2\t: Command: mpegSetConnection %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2MpegSetConnection();
       break;
     case 0x9B:
       CDLOG("cs2\t: Command: mpegGetConnection\n");
       Cs2MpegGetConnection();
+      CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0x9D:
-      CDLOG("cs2\t: Command: mpegSetStream\n");
+      CDLOG("cs2\t: Command: mpegSetStream %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2MpegSetStream();
       break;
     case 0x9E:
       CDLOG("cs2\t: Command: mpegGetStream\n");
       Cs2MpegGetStream();
+      CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0xA0:
-      CDLOG("cs2\t: Command: mpegDisplay\n");
+      CDLOG("cs2\t: Command: mpegDisplay %04x %04x %04x \n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2);
       Cs2MpegDisplay();
       break;
     case 0xA1:
-      CDLOG("cs2\t: Command: mpegSetWindow\n");
+      CDLOG("cs2\t: Command: mpegSetWindow %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2MpegSetWindow();
       break;
     case 0xA2:
-      CDLOG("cs2\t: Command: mpegSetBorderColor\n");
+      CDLOG("cs2\t: Command: mpegSetBorderColor %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2);
       Cs2MpegSetBorderColor();
       break;
     case 0xA3:
-      CDLOG("cs2\t: Command: mpegSetFade\n");
+      CDLOG("cs2\t: Command: mpegSetFade %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2);
       Cs2MpegSetFade();
       break;
     case 0xA4:
-      CDLOG("cs2\t: Command: mpegSetVideoEffects\n");
+      CDLOG("cs2\t: Command: mpegSetVideoEffects %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2MpegSetVideoEffects();
       break;
     case 0xAF:
-      CDLOG("cs2\t: Command: mpegSetLSI\n");
+      CDLOG("cs2\t: Command: mpegSetLSI %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2MpegSetLSI();
       break;
     case 0xE0:
-      CDLOG("cs2\t: Command: cmdE0 %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
-      Cs2CmdE0();
+      CDLOG("cs2\t: Command: authenticateDevice %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
+      Cs2AuthenticateDevice();
       break;
     case 0xE1:
-      CDLOG("cs2\t: Command: cmdE1 %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
-      Cs2CmdE1();
+      CDLOG("cs2\t: Command: isDeviceAuthenticated %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
+      Cs2IsDeviceAuthenticated();
+      CDLOG("cs2\t: ret: %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       break;
     case 0xE2:
-      CDLOG("cs2\t: Command: cmdE2 %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
-      Cs2CmdE2();
+      CDLOG("cs2\t: Command: getMPEGRom %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
+      Cs2GetMPEGRom();
       break;
     default:
       CDLOG("cs2\t: Command %02x not implemented\n", instruction);
@@ -1587,6 +1621,9 @@ void Cs2SeekDisc(void) {
 //////////////////////////////////////////////////////////////////////////////
 
 void Cs2GetSubcodeQRW(void) {
+   u32 rel_fad;
+   u8 rel_m, rel_s, rel_f, m, s, f;
+
   // According to Tyranid's doc, the subcode type is stored in the low byte
   // of CR2. However, Sega's CDC library writes the type to the low byte
   // of CR1. Somehow I'd sooner believe Sega is right.
@@ -1598,17 +1635,50 @@ void Cs2GetSubcodeQRW(void) {
              Cs2Area->reg.CR3 = 0;
              Cs2Area->reg.CR4 = 0;
 
-             // setup transfer here(fix me)
+             rel_fad = Cs2Area->FAD-(Cs2Area->TOC[Cs2Area->track-1] & 0xFFFFFF);
+             Cs2FADToMSF(rel_fad, &rel_m, &rel_s, &rel_f);
+             Cs2FADToMSF(Cs2Area->FAD, &m, &s, &f);
+             
+             Cs2Area->transscodeq[0] = Cs2Area->ctrladdr; // ctl/adr
+             Cs2Area->transscodeq[1] = ToBCD(Cs2Area->track); // track number
+             Cs2Area->transscodeq[2] = ToBCD(Cs2Area->index); // index
+             Cs2Area->transscodeq[3] = ToBCD(rel_m); // relative M
+             Cs2Area->transscodeq[4] = ToBCD(rel_s); // relative S
+             Cs2Area->transscodeq[5] = ToBCD(rel_f); // relative F
+             Cs2Area->transscodeq[6] = 0; 
+             Cs2Area->transscodeq[7] = ToBCD(m); // M
+             Cs2Area->transscodeq[8] = ToBCD(s); // S
+             Cs2Area->transscodeq[9] = ToBCD(f); // F
+
+             Cs2Area->transfercount = 0;
+             Cs2Area->infotranstype = 3;
              break;
      case 1:
+     {
              // Get RW Channel
+             static int lastfad=0;
+             static u16 group=0;
+             int i;
+
              Cs2Area->reg.CR1 = (Cs2Area->status << 8) | 0;
              Cs2Area->reg.CR2 = 12;
              Cs2Area->reg.CR3 = 0;
-             Cs2Area->reg.CR4 = 0;
+             if (Cs2Area->FAD != lastfad)
+             {
+                lastfad = Cs2Area->FAD;
+                group = 0;
+             }
+             else
+                group++;
+             Cs2Area->reg.CR4 = group; // Subcode flag
 
-             // setup transfer here(fix me)
+             for (i = 0; i < 24; i++)
+                Cs2Area->transscoderw[i] = Cs2Area->workblock.data[2352+i+(24*group)] & 0x3F;
+
+             Cs2Area->transfercount = 0;
+             Cs2Area->infotranstype = 4;
              break;
+     }
      default: break;
   }
 
@@ -2378,7 +2448,22 @@ void Cs2MpegInit(void) {
 //////////////////////////////////////////////////////////////////////////////
 
 void Cs2MpegSetMode(void) {
-   // fix me
+   u8 vidplaymode=Cs2Area->reg.CR1 & 0xFF;
+   u8 dectimingmode=Cs2Area->reg.CR2 >> 8;
+   u8 outmode=Cs2Area->reg.CR2 & 0xFF;
+   u8 slmode=Cs2Area->reg.CR3 >> 8;
+
+   if (vidplaymode != 0xFF)
+      Cs2Area->mpegmode.vidplaymode = vidplaymode;
+
+   if (dectimingmode != 0xFF)
+      Cs2Area->mpegmode.dectimingmode = dectimingmode;
+
+   if (outmode != 0xFF)
+      Cs2Area->mpegmode.outmode = outmode;
+
+   if (slmode != 0xFF)
+      Cs2Area->mpegmode.slmode = slmode;
 
    doMPEGReport(Cs2Area->status);
    Cs2Area->reg.HIRQ |= CDB_HIRQ_CMOK | CDB_HIRQ_MPCM;
@@ -2412,20 +2497,20 @@ void Cs2MpegSetConnection(void) {
       // Current
       Cs2Area->mpegcon[0].audcon = Cs2Area->reg.CR1 & 0xFF;
       Cs2Area->mpegcon[0].audlay = Cs2Area->reg.CR2 >> 8;
-      Cs2Area->mpegcon[0].audbufdivnum = Cs2Area->reg.CR2 & 0xFF;
+      Cs2Area->mpegcon[0].audbufnum = Cs2Area->reg.CR2 & 0xFF;
       Cs2Area->mpegcon[0].vidcon = Cs2Area->reg.CR3 & 0xFF;
       Cs2Area->mpegcon[0].vidlay = Cs2Area->reg.CR4 >> 8;
-      Cs2Area->mpegcon[0].vidbufdivnum = Cs2Area->reg.CR4 & 0xFF;
+      Cs2Area->mpegcon[0].vidbufnum = Cs2Area->reg.CR4 & 0xFF;
    }
    else
    {
       // Next
       Cs2Area->mpegcon[1].audcon = Cs2Area->reg.CR1 & 0xFF;
       Cs2Area->mpegcon[1].audlay = Cs2Area->reg.CR2 >> 8;
-      Cs2Area->mpegcon[1].audbufdivnum = Cs2Area->reg.CR2 & 0xFF;
+      Cs2Area->mpegcon[1].audbufnum = Cs2Area->reg.CR2 & 0xFF;
       Cs2Area->mpegcon[1].vidcon = Cs2Area->reg.CR3 & 0xFF;
       Cs2Area->mpegcon[1].vidlay = Cs2Area->reg.CR4 >> 8;
-      Cs2Area->mpegcon[1].vidbufdivnum = Cs2Area->reg.CR4 & 0xFF;
+      Cs2Area->mpegcon[1].vidbufnum = Cs2Area->reg.CR4 & 0xFF;
    }
 
    doMPEGReport(Cs2Area->status);
@@ -2441,17 +2526,17 @@ void Cs2MpegGetConnection(void) {
    {
       // Current
       Cs2Area->reg.CR1 = (Cs2Area->status << 8) | Cs2Area->mpegcon[0].audcon;
-      Cs2Area->reg.CR2 = (Cs2Area->mpegcon[0].audlay << 8) | Cs2Area->mpegcon[0].audbufdivnum;
+      Cs2Area->reg.CR2 = (Cs2Area->mpegcon[0].audlay << 8) | Cs2Area->mpegcon[0].audbufnum;
       Cs2Area->reg.CR3 = Cs2Area->mpegcon[0].vidcon;
-      Cs2Area->reg.CR4 = (Cs2Area->mpegcon[0].vidlay << 8) | Cs2Area->mpegcon[0].vidbufdivnum;
+      Cs2Area->reg.CR4 = (Cs2Area->mpegcon[0].vidlay << 8) | Cs2Area->mpegcon[0].vidbufnum;
    }
    else
    {
       // Next
       Cs2Area->reg.CR1 = (Cs2Area->status << 8) | Cs2Area->mpegcon[1].audcon;
-      Cs2Area->reg.CR2 = (Cs2Area->mpegcon[1].audlay << 8) | Cs2Area->mpegcon[1].audbufdivnum;
+      Cs2Area->reg.CR2 = (Cs2Area->mpegcon[1].audlay << 8) | Cs2Area->mpegcon[1].audbufnum;
       Cs2Area->reg.CR3 = Cs2Area->mpegcon[1].vidcon;
-      Cs2Area->reg.CR4 = (Cs2Area->mpegcon[1].vidlay << 8) | Cs2Area->mpegcon[1].vidbufdivnum;
+      Cs2Area->reg.CR4 = (Cs2Area->mpegcon[1].vidlay << 8) | Cs2Area->mpegcon[1].vidbufnum;
    }
 
    Cs2Area->reg.HIRQ |= CDB_HIRQ_CMOK | CDB_HIRQ_MPCM;
@@ -2567,7 +2652,7 @@ void Cs2MpegSetLSI(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void Cs2CmdE0(void) {
+void Cs2AuthenticateDevice(void) {
   int mpegauth;
 
   mpegauth = Cs2Area->reg.CR2 & 0xFF;
@@ -2618,7 +2703,7 @@ void Cs2CmdE0(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void Cs2CmdE1(void) {
+void Cs2IsDeviceAuthenticated(void) {
   Cs2Area->reg.CR1 = (Cs2Area->status << 8);
   if (Cs2Area->reg.CR2)
      Cs2Area->reg.CR2 = Cs2Area->mpgauth;
@@ -2631,7 +2716,7 @@ void Cs2CmdE1(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void Cs2CmdE2(void) {
+void Cs2GetMPEGRom(void) {
   u16 i;
   FILE * mpgfp;
   partition_struct * mpgpartition;
@@ -2712,6 +2797,17 @@ u32 Cs2TrackToFAD(u16 trackandindex) {
 
   // assume it's leadin
   return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void Cs2FADToMSF(u32 val, u8 *m, u8 *s, u8 *f)
+{
+   u32 temp;
+   m[0] = val / 4500;
+   temp = val % 4500;
+   s[0] = temp / 75;
+   f[0] = temp % 75;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2811,7 +2907,7 @@ partition_struct * Cs2FilterData(filter_struct * curfilter, int isaudio)
      if (Cs2Area->workblock.data[0xF] == 0x02 && !isaudio)
      {
         // Mode 2
-        // go through various subheader filter conditions here(fix me)
+        // go through various subheader filter conditions
    
         if (curfilter->mode & 0x01)
         {

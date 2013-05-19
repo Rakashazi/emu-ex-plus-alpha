@@ -12,8 +12,10 @@
 	#define EGL_EGLEXT_PROTOTYPES
 	#include <EGL/eglext.h>
 #endif
+#include <android/looper.h>
 
 struct ANativeActivity;
+class BluetoothSocket;
 
 namespace Base
 {
@@ -41,6 +43,11 @@ EGLDisplay getAndroidEGLDisplay();
 bool hasHardKeyboard();
 int hardKeyboardState();
 int keyboardType();
+
+// Activity thread ALooper
+ALooper *activityLooper();
+
+void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data);
 
 }
 
@@ -119,4 +126,10 @@ static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)
 	}
 }
 
+}
+
+namespace Audio
+{
+	void updateFocusOnPause();
+	void updateFocusOnResume();
 }

@@ -1,5 +1,5 @@
 /*  Copyright 2003-2005 Guillaume Duhamel
-    Copyright 2004-2006 Theo Berkau
+    Copyright 2004-2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -315,6 +315,13 @@ typedef struct
    int inbreakpoint;
 } breakpoint_struct;
 
+typedef struct
+{
+   u32 addr[256];
+   int numbacktrace;
+} backtrace_struct;
+
+
 #define BREAK_BYTEREAD  0x1
 #define BREAK_WORDREAD  0x2
 #define BREAK_LONGREAD  0x4
@@ -353,7 +360,8 @@ typedef struct
    u16 instruction;
    u8 breakpointEnabled;
    breakpoint_struct bp;
-
+   u8 backtraceEnabled;
+   backtrace_struct bt;
 } SH2_struct;
 
 typedef struct
@@ -435,6 +443,8 @@ int SH2AddMemoryBreakpoint(SH2_struct *context, u32 addr, u32 flags);
 int SH2DelMemoryBreakpoint(SH2_struct *context, u32 addr);
 memorybreakpoint_struct *SH2GetMemoryBreakpointList(SH2_struct *context);
 void SH2ClearMemoryBreakpoints(SH2_struct *context);
+void SH2HandleBackTrace(SH2_struct *context);
+u32 *SH2GetBacktraceList(SH2_struct *context, int *size);
 
 void DMAExec(void);
 void DMATransfer(u32 *CHCR, u32 *SAR, u32 *DAR, u32 *TCR, u32 *VCRDMA);

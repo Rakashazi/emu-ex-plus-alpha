@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.hxx 2318 2011-12-31 21:56:36Z stephena $
+// $Id: TIASnd.hxx 2585 2013-01-27 15:08:04Z stephena $
 //============================================================================
 
 #ifndef TIASOUND_HXX
@@ -24,10 +24,13 @@
 
 /**
   This class implements a fairly accurate emulation of the TIA sound
-  hardware.
+  hardware.  This class uses code/ideas from z26 and MESS.
 
-  @author  Bradford W. Mott
-  @version $Id: TIASnd.hxx 2318 2011-12-31 21:56:36Z stephena $
+  Currently, the sound generation routines work at 31400Hz only.
+  Resampling can be done by passing in a different output frequency.
+
+  @author  Bradford W. Mott, Stephen Anthony, z26 and MESS teams
+  @version $Id: TIASnd.hxx 2585 2013-01-27 15:08:04Z stephena $
 */
 class TIASound
 {
@@ -35,7 +38,7 @@ class TIASound
     /**
       Create a new TIA Sound object using the specified output frequency
     */
-	  TIASound(Int32 outputFrequency = 31400, Int32 tiaFrequency = 31400);
+    TIASound(Int32 outputFrequency = 31400);
 
     /**
       Destructor
@@ -52,11 +55,6 @@ class TIASound
       Set the frequency output samples should be generated at
     */
     void outputFrequency(Int32 freq);
-
-    /**
-      Set the frequency the of the TIA device
-    */
-    void tiaFrequency(Int32 freq);
 
     /**
       Selects the number of audio channels per sample.  There are two factors
@@ -94,8 +92,7 @@ class TIASound
       @param buffer The location to store generated samples
       @param samples The number of samples to generate
     */
-    typedef Int16 Sample;
-    void process(Sample* buffer, uInt32 samples);
+    void process(Int16* buffer, uInt32 samples);
 
     /**
       Set the volume of the samples created (0-100)
@@ -103,58 +100,85 @@ class TIASound
     void volume(uInt32 percent);
 
   private:
-    /**
-      Frequency divider class which outputs 1 after "divide-by" clocks. This
-      is used to divide the main frequency by the values 1 to 32.
-    */
-    class FreqDiv
+    void polyInit(uInt8* poly, int size, int f0, int f1);
+
+  private:
+    // Definitions for AUDCx (15, 16)
+    enum AUDCxRegister
     {
-      public:
-        FreqDiv()
-        {
-          myDivideByValue = myCounter = 0;
-        }
+      SET_TO_1    = 0x00,  // 0000
+      POLY4       = 0x01,  // 0001
+      DIV31_POLY4 = 0x02,  // 0010
+      POLY5_POLY4 = 0x03,  // 0011
+      PURE        = 0x04,  // 0100
+      PURE2       = 0x05,  // 0101
+      DIV31_PURE  = 0x06,  // 0110
+      POLY5_2     = 0x07,  // 0111
+      POLY9       = 0x08,  // 1000
+      POLY5       = 0x09,  // 1001
+      DIV31_POLY5 = 0x0a,  // 1010
+      POLY5_POLY5 = 0x0b,  // 1011
+      DIV3_PURE   = 0x0c,  // 1100
+      DIV3_PURE2  = 0x0d,  // 1101
+      DIV93_PURE  = 0x0e,  // 1110
+      POLY5_DIV3  = 0x0f   // 1111
+    };
 
-        void set(uInt32 divideBy)
-        {
-          myDivideByValue = divideBy;
-        }
-
-        bool clock()
-        {
-          if(++myCounter > myDivideByValue)
-          {
-            myCounter = 0;
-            return true;
-          }
-          return false;
-        }
-
-      private:
-        uInt32 myDivideByValue;
-        uInt32 myCounter;
+    enum {
+      POLY4_SIZE = 0x000f,
+      POLY5_SIZE = 0x001f,
+      POLY9_SIZE = 0x01ff,
+      DIV3_MASK  = 0x0c,
+      AUDV_SHIFT = 10     // shift 2 positions for AUDV,
+                          // then another 8 for 16-bit sound
     };
 
     enum ChannelMode {
-         Hardware1,
-         Hardware2Mono,
-         Hardware2Stereo
+      Hardware2Mono,    // mono sampling with 2 hardware channels
+      Hardware2Stereo,  // stereo sampling with 2 hardware channels
+      Hardware1         // mono/stereo sampling with only 1 hardware channel
     };
 
   private:
-    uInt8 myAUDC[2];
-    uInt8 myAUDF[2];
-    uInt8 myAUDV[2];
+    // Structures to hold the 6 tia sound control bytes
+    uInt8 myAUDC[2];    // AUDCx (15, 16)
+    uInt8 myAUDF[2];    // AUDFx (17, 18)
+    Int16 myAUDV[2];    // AUDVx (19, 1A)
 
-    FreqDiv myFreqDiv[2];    // Frequency dividers
-    uInt8 myP4[2];           // 4-bit register LFSR (lower 4 bits used)
-    uInt8 myP5[2];           // 5-bit register LFSR (lower 5 bits used)
+    Int16 myVolume[2];  // Last output volume for each channel
+
+    uInt8 myP4[2];      // Position pointer for the 4-bit POLY array
+    uInt8 myP5[2];      // Position pointer for the 5-bit POLY array
+    uInt16 myP9[2];     // Position pointer for the 9-bit POLY array
+
+    uInt8 myDivNCnt[2]; // Divide by n counter. one for each channel
+    uInt8 myDivNMax[2]; // Divide by n maximum, one for each channel
+    uInt8 myDiv3Cnt[2]; // Div 3 counter, used for POLY5_DIV3 mode
 
     ChannelMode myChannelMode;
     Int32  myOutputFrequency;
-    Int32  myTIAFrequency;
     Int32  myOutputCounter;
     uInt32 myVolumePercentage;
+
+    /*
+      Initialize the bit patterns for the polynomials (at runtime).
+
+      The 4bit and 5bit patterns are the identical ones used in the tia chip.
+      Though the patterns could be packed with 8 bits per byte, using only a
+      single bit per byte keeps the math simple, which is important for
+      efficient processing.
+    */
+    uInt8 Bit4[POLY4_SIZE];
+    uInt8 Bit5[POLY5_SIZE];
+    uInt8 Bit9[POLY9_SIZE];
+
+    /*
+      The 'Div by 31' counter is treated as another polynomial because of
+      the way it operates.  It does not have a 50% duty cycle, but instead
+      has a 13:18 ratio (of course, 13+18 = 31).  This could also be
+      implemented by using counters.
+    */
+    static const uInt8 Div31[POLY5_SIZE];
 };
 
 #endif

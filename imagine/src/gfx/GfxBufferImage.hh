@@ -2,10 +2,8 @@
 
 #include <gfx/defs.hh>
 #include <pixmap/Pixmap.hh>
-
-#if defined(CONFIG_RESOURCE_IMAGE)
-class ResourceImage;
-#endif
+#include <data-type/image/GfxImageSource.hh>
+#include <util/RefCount.hh>
 
 namespace Gfx
 {
@@ -24,22 +22,17 @@ public:
 	TextureCoordinate yStart = 0, yEnd = 0;
 };
 
-class UsableImage
-{
-public:
-	constexpr UsableImage() { }
-	virtual void deinit() = 0;
-};
-
 struct BufferImageInterface : public TextureDesc
 {
 	virtual ~BufferImageInterface() { }
+protected:
 	virtual void write(Pixmap &p, uint hints) = 0;
 	virtual void write(Pixmap &p, uint hints, uint alignment) = 0;
 	virtual void replace(Pixmap &p, uint hints) = 0;
 	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) = 0;
 	virtual void unlock(Pixmap *pix, uint hints) = 0;
 	virtual void deinit() = 0;
+	friend struct TextureBufferVImpl;
 };
 
 struct TextureBufferImage:
@@ -50,6 +43,7 @@ struct TextureBufferImage:
 #endif
 {
 	constexpr TextureBufferImage() { }
+protected:
 	void write(Pixmap &p, uint hints);
 	void write(Pixmap &p, uint hints, uint alignment);
 	void replace(Pixmap &p, uint hints);
@@ -58,12 +52,13 @@ struct TextureBufferImage:
 	void deinit();
 	const TextureDesc &textureDesc() const { return *this; };
 	TextureDesc &textureDesc() { return *this; };
-	bool isInit() { return tid != 0; }
+	bool isInit() const { return tid != 0; }
 };
 
 struct TextureBufferVImpl
 {
 	constexpr TextureBufferVImpl() { }
+protected:
 	BufferImageInterface *impl = nullptr;
 	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
 	void write(Pixmap &p, uint hints, uint alignment) { impl->write(p, hints, alignment); };
@@ -73,7 +68,7 @@ struct TextureBufferVImpl
 	void deinit() { impl->deinit(); delete impl; impl = 0; }
 	const TextureDesc &textureDesc() const { assert(impl); return *impl; };
 	TextureDesc &textureDesc() { assert(impl); return *impl; };
-	bool isInit() { return impl != nullptr; }
+	bool isInit() const { return impl != nullptr; }
 };
 
 #ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
@@ -82,12 +77,11 @@ struct TextureBufferVImpl
 	typedef TextureBufferImage BufferImageImpl;
 #endif
 
-class BufferImage: public BufferImageImpl
+class BufferImage: public BufferImageImpl, public RefCount<BufferImage>
 {
 private:
 	uint hints = 0;
 	bool hasMipmaps_ = 0;
-	UsableImage *backingImg = nullptr;
 	void testMipmapSupport(uint x, uint y);
 	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 			uint usedX, uint usedY, uint hints, uint filter);
@@ -105,13 +99,9 @@ public:
 	{
 		return init(pix, upload, filter, hints, 0);
 	}
-	#if defined(CONFIG_RESOURCE_IMAGE)
-	CallResult init(ResourceImage &img, uint filter = linear, uint hints = 0, bool textured = 0);
-	//CallResult subInit(ResourceImage &img, int x, int y, int xSize, int ySize);
-	#endif
+	CallResult init(GfxImageSource &img, uint filter = linear, uint hints = 0, bool textured = 0);
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
-
-	void removeBacker() { backingImg = 0; }
+	static uint bestAlignment(const Pixmap &p);
 	void setFilter(uint filter);
 	void setRepeatMode(uint xMode, uint yMode);
 	void deinit();
@@ -119,6 +109,19 @@ public:
 	void write(Pixmap &p, uint assumeAlign);
 	void replace(Pixmap &p);
 	void unlock(Pixmap *p);
+	void free()
+	{
+		logMsg("BufferImage %p has no more references", this);
+		deinit();
+	};
+
+	const TextureDesc &textureDesc() const { return BufferImageImpl::textureDesc(); };
+	TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
+
+	operator bool() const
+	{
+		return isInit();
+	}
 };
 
 }

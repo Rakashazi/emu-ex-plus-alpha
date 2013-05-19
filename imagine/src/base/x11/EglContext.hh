@@ -48,7 +48,7 @@ public:
 			return 0;
 		}
 
-		display  =  eglGetDisplay(Config::MACHINE_IS_OPEN_PANDORA ? (EGLNativeDisplayType)nullptr : (EGLNativeDisplayType)dpy);
+		display  =  eglGetDisplay(Config::MACHINE_IS_PANDORA ? (EGLNativeDisplayType)nullptr : (EGLNativeDisplayType)dpy);
 
 		if(display == EGL_NO_DISPLAY)
 		{
@@ -68,20 +68,34 @@ public:
 
 		//printEGLConfs(display);
 
-		const EGLint *attribs = useMaxColorBits ? eglAttrWinMaxRGB : eglAttrWinLowColor;
+		const EGLint *attribs = useMaxColorBits ? eglAttrWinRGB888 : eglAttrWinLowColor;
 		EGLConfig config;
-		EGLint configs;
-		if(!eglChooseConfig(display, attribs, &config, 1, &configs))
+		EGLint configs = 0;
+		eglChooseConfig(display, attribs, &config, 1, &configs);
+		if(!configs)
 		{
-			logErr("error choosing config: 0x%X", (int)eglGetError());
-			return 0;
+			if(useMaxColorBits)
+			{
+				logMsg("falling back to lowest color config");
+				eglChooseConfig(display, eglAttrWinLowColor, &config, 1, &configs);
+				if(!configs)
+				{
+					logErr("no valid EGL configs found");
+					return 0;
+				}
+			}
+			else
+			{
+				logErr("no valid EGL configs found");
+				return 0;
+			}
 		}
 		#ifndef NDEBUG
 			printEGLConf(display, config);
 		#endif
 
 		surface = eglCreateWindowSurface(display, config,
-			Config::MACHINE_IS_OPEN_PANDORA ? (EGLNativeWindowType)EGL_DEFAULT_DISPLAY : (EGLNativeWindowType)win, nullptr);
+			Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)EGL_DEFAULT_DISPLAY : (EGLNativeWindowType)win, nullptr);
 		if(surface == EGL_NO_SURFACE)
 		{
 			logErr("error creating window surface: 0x%X", (int)eglGetError());
@@ -108,6 +122,8 @@ public:
 
 	void setSwapInterval(uint interval)
 	{
+		if(Config::MACHINE_IS_PANDORA)
+			return; // no effect
 		assert(interval > 0);
 		logMsg("set swap interval %d", interval);
 		eglSwapInterval(display, interval);

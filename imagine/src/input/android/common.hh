@@ -160,15 +160,15 @@ jboolean
 #endif
 JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr);
 
-static void setupTextInputJni()
+static void setupTextInputJni(JNIEnv* jEnv)
 {
 	using namespace Base;
 	if(!jStartSysTextInput.m)
 	{
 		logMsg("setting up text input JNI");
-		jStartSysTextInput.setup(eEnv(), jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIII)V");
-		jFinishSysTextInput.setup(eEnv(), jBaseActivityCls, "finishSysTextInput", "(Z)V");
-		jPlaceSysTextInput.setup(eEnv(), jBaseActivityCls, "placeSysTextInput", "(IIII)V");
+		jStartSysTextInput.setup(jEnv, jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIII)V");
+		jFinishSysTextInput.setup(jEnv, jBaseActivityCls, "finishSysTextInput", "(Z)V");
+		jPlaceSysTextInput.setup(jEnv, jBaseActivityCls, "placeSysTextInput", "(IIII)V");
 
 		static JNINativeMethod activityMethods[] =
 		{
@@ -178,42 +178,46 @@ static void setupTextInputJni()
 				{"sysTextInputEnded", "(Ljava/lang/String;)Z", (void *)&textInputEnded}
 			#endif
 		};
-		eEnv()->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+		jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 	}
 }
 
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText)
+uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
 {
 	using namespace Base;
-	setupTextInputJni();
+	auto jEnv = eEnv();
+	setupTextInputJni(jEnv);
 	logMsg("starting system text input");
 	vKeyboardTextDelegate = callback;
-	jStartSysTextInput(eEnv(), jBaseActivity, eEnv()->NewStringUTF(initialText), eEnv()->NewStringUTF(promptText),
-		textRect.x, textRect.y, textRect.xSize(), textRect.ySize());
+	jStartSysTextInput(jEnv, jBaseActivity, jEnv->NewStringUTF(initialText), jEnv->NewStringUTF(promptText),
+		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels);
 	return 0;
 }
 
 void cancelSysTextInput()
 {
 	using namespace Base;
-	setupTextInputJni();
-	vKeyboardTextDelegate.clear();
-	jFinishSysTextInput(eEnv(), jBaseActivity, 1);
+	auto jEnv = eEnv();
+	setupTextInputJni(jEnv);
+	vKeyboardTextDelegate = {};
+	jFinishSysTextInput(jEnv, jBaseActivity, 1);
 }
 
 void finishSysTextInput()
 {
 	using namespace Base;
-	setupTextInputJni();
-	jFinishSysTextInput(eEnv(), jBaseActivity, 0);
+	auto jEnv = eEnv();
+	setupTextInputJni(jEnv);
+	jFinishSysTextInput(jEnv, jBaseActivity, 0);
 }
 
 void placeSysTextInput(const Rect2<int> &rect)
 {
 	using namespace Base;
-	setupTextInputJni();
+	auto jEnv = eEnv();
+	setupTextInputJni(jEnv);
 	textRect = rect;
-	jPlaceSysTextInput(eEnv(), jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
+	jPlaceSysTextInput(jEnv, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
 const Rect2<int> &sysTextInputRect()

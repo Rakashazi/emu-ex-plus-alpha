@@ -23,11 +23,8 @@ CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, BufferImage *img
 {
 	BaseRect::init(x, y, x2, y2);
 
-	if(img)
-	{
-		//logMsg("set sprite img %p", img);
-		setImg(img);
-	}
+	//logMsg("set sprite img %p", img);
+	setImg(img);
 
 	return OK;
 }
@@ -49,10 +46,30 @@ static void setupCropRect(BufferImage *img)
 #endif
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(BufferImage *img)
+void SpriteBase<BaseRect>::setRefImg(BufferImage *newImg)
 {
-	var_selfs(img);
-	::mapImg(BaseRect::v, img ? &img->textureDesc() : 0);
+	if(!newImg)
+	{
+		if(img)
+			img->freeRef();
+		img = nullptr;
+		return;
+	}
+
+	newImg->ref();
+	if(img)
+		img->freeRef();
+	img = newImg;
+}
+
+template<class BaseRect>
+void SpriteBase<BaseRect>::setImg(BufferImage *newImg)
+{
+	setRefImg(newImg);
+	if(!newImg)
+		return;
+
+	::mapImg(BaseRect::v, newImg->textureDesc());
 	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex)
 		setupCropRect(img);
@@ -60,15 +77,17 @@ void SpriteBase<BaseRect>::setImg(BufferImage *img)
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(BufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
+void SpriteBase<BaseRect>::setImg(BufferImage *newImg, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 {
-	var_selfs(img);
+	setRefImg(newImg);
+
 	::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 
 template<class BaseRect>
 void SpriteBase<BaseRect>::deinit()
 {
+	setRefImg(nullptr);
 	BaseRect::deinit();
 }
 

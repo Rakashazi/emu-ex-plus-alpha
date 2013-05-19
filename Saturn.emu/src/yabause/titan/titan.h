@@ -24,11 +24,15 @@
 
 #define TITAN_BLEND_TOP     0
 #define TITAN_BLEND_BOTTOM  1
+#define TITAN_BLEND_ADD     2
 
 int TitanInit();
 int TitanDeInit();
 
 void TitanSetResolution(int width, int height);
+void TitanGetResolution(int * width, int * height);
+
+void TitanSetBlendingMode(int blend_mode);
 
 void TitanPutBackHLine(s32 y, u32 color);
 
@@ -37,6 +41,10 @@ void TitanPutLineHLine(int linescreen, s32 y, u32 color);
 void TitanPutPixel(int priority, s32 x, s32 y, u32 color, int linescreen);
 void TitanPutHLine(int priority, s32 x, s32 y, s32 width, u32 color);
 
-void TitanRender(u32 * dispbuffer, int blend_mode);
+void TitanPutShadow(int priority, s32 x, s32 y);
+
+void TitanRender(pixel_t * dispbuffer);
+
+void TitanWriteColor(pixel_t * dispbuffer, s32 bufwidth, s32 x, s32 y, u32 color);
 
 #endif

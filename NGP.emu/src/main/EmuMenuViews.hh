@@ -3,22 +3,23 @@
 
 class SystemOptionView : public OptionView
 {
-	BoolMenuItem ngpLanguage;
-
-	static void ngpLanguageHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem ngpLanguage
 	{
-		item.toggle();
-		language_english = item.on;
-	}
+		"NGP Language",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			language_english = item.on;
+		}
+	};
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		ngpLanguage.init("NGP Language", "Japanese", "English", language_english); item[items++] = &ngpLanguage;
-		ngpLanguage.selectDelegate().bind<&ngpLanguageHandler>();
+		ngpLanguage.init("Japanese", "English", language_english); item[items++] = &ngpLanguage;
 	}
 };
 
@@ -27,5 +28,5 @@ public:
 class SystemMenuView : public MenuView
 {
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 };

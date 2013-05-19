@@ -16,8 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <util/cLang.h>
+#include <atomic>
 
-template <class SIZE = uint>
+template <class COUNT = std::atomic_uint, class SIZE = uint>
 class RingBuffer
 {
 public:
@@ -58,12 +59,12 @@ public:
 		{
 			//logMsg("addr %p", writePos);
 			*writePos = buff[i];
-			written++;
 			writePos = advancePtr(writePos);
 		}
+		written += size;
 		end = writePos;
 
-		assert(written <= buffSize);
+		assert((SIZE)written <= buffSize);
 
 		//logMsg("wrote %d bytes", (int)size);
 		return size;
@@ -71,7 +72,7 @@ public:
 
 	SIZE read(uchar *buff, SIZE size)
 	{
-		if(size > written)
+		if(size > (SIZE)written)
 			size = written;
 
 		uchar *readPos = start;
@@ -79,9 +80,9 @@ public:
 		{
 			//logMsg("addr %p", readPos);
 			buff[i] = *readPos;
-			written--;
 			readPos = advancePtr(readPos);
 		}
+		written -= size;
 		start = readPos;
 
 		//logMsg("read %d bytes", (int)size);
@@ -119,7 +120,7 @@ public:
 		return readSize;
 	}
 
-	SIZE written;
+	COUNT written;
 	SIZE buffSize;
 private:
 	uchar *buff;

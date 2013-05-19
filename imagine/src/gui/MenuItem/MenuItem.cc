@@ -1,3 +1,18 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <gui/MenuItem/MenuItem.hh>
 
 void BaseTextMenuItem::init(const char *str, bool active, ResourceFace *face)
@@ -50,13 +65,15 @@ GC BaseTextMenuItem::xSize() { return t.xSize; }
 void TextMenuItem::select(View *parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
-	selectDel.invokeSafe(*this, e);
+	if(selectD)
+		selectD(*this, e);
 }
 
 void DualTextMenuItem::select(View *parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
-	selectDel.invokeSafe(*this, e);
+	if(selectD)
+		selectD(*this, e);
 }
 
 void BaseDualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
@@ -157,7 +174,7 @@ void BoolMenuItem::toggle()
 		set(1);
 }
 
-void BoolMenuItem::select(View *parent, const Input::Event &e) { selectDel.invokeSafe(*this, e); }
+void BoolMenuItem::select(View *parent, const Input::Event &e) { if(selectD) selectD(*this, e); }
 
 void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 {
@@ -176,7 +193,10 @@ void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val,
 {
 	val -= baseVal;
 	if(!initialDisplayStr) assert(val >= 0);
-	BaseDualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
+	if(str)
+		BaseDualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
+	else
+		BaseDualTextMenuItem::init(initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
 	assert(val < max);
 	choice = val;
 	choices = max;
@@ -186,14 +206,7 @@ void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val,
 
 void MultiChoiceMenuItem::init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
 {
-	val -= baseVal;
-	if(!initialDisplayStr) assert(val >= 0);
-	BaseDualTextMenuItem::init(initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
-	assert(val < max);
-	choice = val;
-	choices = max;
-	this->baseVal = baseVal;
-	this->choiceStr = choiceStr;
+	init(nullptr, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
 void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
@@ -206,7 +219,10 @@ void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSiz
 
 bool MultiChoiceMenuItem::updateVal(int val)
 {
-	assert(val >= 0 && val < choices);
+	if(val < 0 || val >= choices)
+	{
+		bug_exit("value %d out of range for %d choices", val, choices);
+	}
 	if(val != choice)
 	{
 		choice = val;

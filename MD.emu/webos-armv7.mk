@@ -1,1 +1,0 @@
-../imagine/make/shortcut/common-builds/webos-armv7.mk

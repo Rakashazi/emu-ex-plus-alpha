@@ -19,10 +19,6 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <string>
-//#include <ostream>
-#include <string.h>
-
 #include "types.h"
 #include "x6502.h"
 
@@ -52,7 +48,12 @@
 #include "drivers/win/window.h"
 #include "drivers/win/ntview.h"
 #include "drivers/win/taseditor.h"
-extern bool Taseditor_rewind_now;
+
+#include <string>
+#include <ostream>
+#include <cstring>
+
+extern bool mustRewindNow;
 #endif // WIN32
 
 //it is easier to declare these input drivers extern here than include a bunch of files
@@ -169,9 +170,9 @@ static DECLFW(B4016)
 }
 
 //a main joystick port driver representing the case where nothing is plugged in
-static INPUTC DummyJPort={0,0,0,0,0,0};
+static INPUTC DummyJPort={0};
 //and an expansion port driver for the same ting
-static INPUTCFC DummyPortFC={0,0,0,0,0,0};
+static INPUTCFC DummyPortFC={0};
 
 
 //--------4 player driver for expansion port--------
@@ -299,7 +300,7 @@ static void StrobeGP(int w)
 	joy_readbit[w]=0;
 }
 
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^6
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 static INPUTC GPC={ReadGP,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
@@ -319,8 +320,9 @@ void FCEU_UpdateInput(void)
 	//tell all drivers to poll input and set up their logical states
 	if(!FCEUMOV_Mode(MOVIEMODE_PLAY))
 	{
-		for(int port=0;port<2;port++)
+		for(int port=0;port<2;port++){
 			joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
+		}
 		portFC.driver->Update(portFC.ptr,portFC.attrib);
 	} 
 
@@ -333,8 +335,9 @@ void FCEU_UpdateInput(void)
 	FCEUMOV_AddInputState();
 	
 	//TODO - should this apply to the movie data? should this be displayed in the input hud?
-	if(GameInfo->type==GIT_VSUNI)
+	if(GameInfo->type==GIT_VSUNI){
 		FCEU_VSUniSwap(&joy[0],&joy[1]);
+	}
 }
 
 static DECLFR(VSUNIRead0)
@@ -377,10 +380,11 @@ static void SetInputStuff(int port)
 	switch(joyports[port].type)
 	{
 	case SI_GAMEPAD:
-		if(GameInfo->type==GIT_VSUNI)
+		if(GameInfo->type==GIT_VSUNI){
 			joyports[port].driver = &GPCVS;
-		else
+		} else {
 			joyports[port].driver= &GPC;
+		}
 		break;
 	case SI_ARKANOID:
 		joyports[port].driver=FCEU_InitArkanoid(port);
@@ -754,7 +758,7 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_VSUNI_TOGGLE_DIP_7,			EMUCMDTYPE_VSUNI,	CommandToggleDip, 0, 0, "Toggle Dipswitch 7", 0 },
 	{ EMUCMD_VSUNI_TOGGLE_DIP_8,			EMUCMDTYPE_VSUNI,	CommandToggleDip, 0, 0, "Toggle Dipswitch 8", 0 },
 	{ EMUCMD_VSUNI_TOGGLE_DIP_9,			EMUCMDTYPE_VSUNI,	CommandToggleDip, 0, 0, "Toggle Dipswitch 9", 0 },
-	{ EMUCMD_MISC_AUTOSAVE,					EMUCMDTYPE_MISC,	FCEUI_Autosave,   0, 0, "Load Last Auto-save", 0},
+	{ EMUCMD_MISC_AUTOSAVE,					EMUCMDTYPE_MISC,	FCEUI_RewindToLastAutosave,   0, 0, "Load Last Auto-save", 0},
 	{ EMUCMD_MISC_SHOWSTATES,				EMUCMDTYPE_MISC,	ViewSlots,        0, 0, "View save slots",    0 },
 	{ EMUCMD_MISC_USE_INPUT_PRESET_1,		EMUCMDTYPE_MISC,	CommandUsePreset, 0, 0, "Use Input Preset 1", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_MISC_USE_INPUT_PRESET_2,		EMUCMDTYPE_MISC,	CommandUsePreset, 0, 0, "Use Input Preset 2", EMUCMDFLAG_TASEDITOR },
@@ -853,7 +857,7 @@ static void CommandSelectSaveSlot(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -871,7 +875,7 @@ static void CommandStateSave(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -892,7 +896,7 @@ static void CommandStateLoad(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -955,8 +959,8 @@ void LagCounterToggle(void)
 static void LaunchTasEditor(void)
 {
 #ifdef WIN32
-	extern bool EnterTasEditor();
-	EnterTasEditor();
+	extern bool enterTASEditor();
+	enterTASEditor();
 #endif
 }
 
@@ -1131,7 +1135,7 @@ static void ReloadRom(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 		// load most recent project
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 	} else
 	{
 		// load most recent ROM
@@ -1150,6 +1154,9 @@ static void MovieSubtitleToggle(void)
 
 static void UndoRedoSavestate(void)
 {
+	// FIXME this will always evaluate to true, should this be
+	// if (*lastSavestateMade...) to check if it holds a string or just
+	// a '\0'?
 	if (lastSavestateMade && (undoSS || redoSS))
 		SwapSaveState();
 }
@@ -1180,13 +1187,13 @@ void ToggleFullscreen()
 static void TaseditorRewindOn(void)
 {
 #ifdef WIN32
-	Taseditor_rewind_now = true;
+	mustRewindNow = true;
 #endif
 }
 static void TaseditorRewindOff(void)
 {
 #ifdef WIN32
-	Taseditor_rewind_now = false;
+	mustRewindNow = false;
 #endif
 }
 
@@ -1194,6 +1201,6 @@ static void TaseditorCommand(void)
 {
 #ifdef WIN32
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 }

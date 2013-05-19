@@ -20,15 +20,6 @@
 
 //  TODO: Add (better) file io error checking
 
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-//#include <unistd.h> //mbg merge 7/17/06 removed
-
-#include <vector>
-//#include <fstream>
-
 #include "version.h"
 #include "types.h"
 #include "x6502.h"
@@ -57,6 +48,15 @@
 #include "drivers/win/ram_search.h"
 #include "drivers/win/ramwatch.h"
 #endif
+
+#include <string>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+//#include <unistd.h> //mbg merge 7/17/06 removed
+
+#include <vector>
+//#include <fstream>
 
 using namespace std;
 
@@ -442,14 +442,15 @@ bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
 }
 
 
-int FCEUSS_Save(const char *fname)
+int FCEUSS_Save(const char *fname, bool display_message)
 {
 	EMUFILE* st = 0;
 	char fn[2048];
 
-	if(geniestage==1)
+	if (geniestage==1)
 	{
-		FCEU_DispMessage("Cannot save FCS in GG screen.",0);
+		if (display_message)
+			FCEU_DispMessage("Cannot save FCS in GG screen.",0);
 		return 0;
 	}
 
@@ -476,9 +477,10 @@ int FCEUSS_Save(const char *fname)
 		st = FCEUD_UTF8_fstream(fn,"wb");
 	}
 
-	if(st == NULL || st->get_fp() == NULL)
+	if (st == NULL || st->get_fp() == NULL)
 	{
-		FCEU_DispMessage("State %d save error.",0,CurrentState);
+		if (display_message)
+			FCEU_DispMessage("State %d save error.", 0, CurrentState);
 		return 0;
 	}
 
@@ -517,8 +519,9 @@ int FCEUSS_Save(const char *fname)
 
 	if(!fname)
 	{
-		SaveStateStatus[CurrentState]=1;
-		FCEU_DispMessage("State %d saved.",0,CurrentState);
+		SaveStateStatus[CurrentState] = 1;
+		if (display_message)
+			FCEU_DispMessage("State %d saved.", 0, CurrentState);
 	}
 		redoSS = false;					//we have a new savestate so redo is not possible
 	return 1;
@@ -693,7 +696,7 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 }
 
 
-bool FCEUSS_Load(const char *fname)
+bool FCEUSS_Load(const char *fname, bool display_message)
 {
 	EMUFILE* st;
 	char fn[2048];
@@ -705,48 +708,56 @@ bool FCEUSS_Load(const char *fname)
 	//	MovieFlushHeader();
 	//}
 
-	if(geniestage==1)
+	if (geniestage == 1)
 	{
-		FCEU_DispMessage("Cannot load FCS in GG screen.",0);
+		if (display_message)
+			FCEU_DispMessage("Cannot load FCS in GG screen.",0);
 		return false;
 	}
-	if(fname)
+	if (fname)
 	{
-		st=FCEUD_UTF8_fstream(fname, "rb");
+		st = FCEUD_UTF8_fstream(fname, "rb");
 		strcpy(fn, fname);
-	}
-	else
+	} else
 	{
 		strcpy(fn, FCEU_MakeFName(FCEUMKF_STATE,CurrentState,fname).c_str());
 		st=FCEUD_UTF8_fstream(fn,"rb");
 		strcpy(lastLoadstateMade,fn);
 	}
 
-	if(st == NULL || (st->get_fp() == NULL))
+	if (st == NULL || (st->get_fp() == NULL))
 	{
-		FCEU_DispMessage("State %d load error.",0,CurrentState);
-		//FCEU_DispMessage("State %d load error. Filename: %s",0,CurrentState, fn);
-		SaveStateStatus[CurrentState]=0;
+		if (display_message)
+		{
+			FCEU_DispMessage("State %d load error.", 0, CurrentState);
+			//FCEU_DispMessage("State %d load error. Filename: %s", 0, CurrentState, fn);
+		}
+		SaveStateStatus[CurrentState] = 0;
 		return false;
 	}
 
 	//If in bot mode, don't do a backup when loading.
 	//Otherwise you eat at the hard disk, since so many
 	//states are being loaded.
-	if(FCEUSS_LoadFP(st, backupSavestates ? SSLOADPARAM_BACKUP : SSLOADPARAM_NOBACKUP))
+	if (FCEUSS_LoadFP(st, backupSavestates ? SSLOADPARAM_BACKUP : SSLOADPARAM_NOBACKUP))
 	{
-		if(fname)
+		if (fname)
 		{
 			char szFilename[260]={0};
 			splitpath(fname, 0, 0, szFilename, 0);
-			FCEU_DispMessage("State %s loaded.",0,szFilename);
-			//FCEU_DispMessage("State %s loaded. Filename: %s",0,szFilename, fn);
-		}
-		else
+      if (display_message)
+			{
+        FCEU_DispMessage("State %s loaded.", 0, szFilename);
+				//FCEU_DispMessage("State %s loaded. Filename: %s", 0, szFilename, fn);
+      }
+		} else
 		{
-			FCEU_DispMessage("State %d loaded.",0,CurrentState);
-			//FCEU_DispMessage("State %d loaded. Filename: %s",0,CurrentState, fn);
-			SaveStateStatus[CurrentState]=1;
+      if (display_message)
+			{
+        FCEU_DispMessage("State %d loaded.", 0, CurrentState);
+				//FCEU_DispMessage("State %d loaded. Filename: %s", 0, CurrentState, fn);
+      }
+			SaveStateStatus[CurrentState] = 1;
 		}
 		delete st;
 
@@ -781,15 +792,16 @@ bool FCEUSS_Load(const char *fname)
 		cur_input_display = FCEU_GetJoyJoy(); //Input display should show the last buttons pressed (stored in the savestate)
 		
 		return true;
-	}
-	else
+	} else
 	{
 		if(!fname)
+			SaveStateStatus[CurrentState] = 1;
+
+		if (display_message)
 		{
-			SaveStateStatus[CurrentState]=1;
+			FCEU_DispMessage("Error(s) reading state %d!", 0, CurrentState);
+			//FCEU_DispMessage("Error(s) reading state %d! Filename: %s", 0, CurrentState, fn);
 		}
-		FCEU_DispMessage("Error(s) reading state %d!",0,CurrentState);
-		//FCEU_DispMessage("Error(s) reading state %d! Filename: %s",0,CurrentState, fn);
 		delete st;
 		return 0;
 	}
@@ -885,39 +897,38 @@ int FCEUI_SelectState(int w, int show)
 	return oldstate;
 }
 
-int FCEUI_SaveState(const char *fname)
+int FCEUI_SaveState(const char *fname, bool display_message)
 {
 	if(!FCEU_IsValidUI(FCEUI_SAVESTATE)) return 0;
 
-	StateShow=0;
+	StateShow = 0;
 	
-	return FCEUSS_Save(fname);
+	return FCEUSS_Save(fname, display_message);
 }
 
-//int loadStateFailed = 0; // hack, this function should return a value instead
-
-int FCEUI_LoadState(const char *fname)
+int FCEUI_LoadState(const char *fname, bool display_message)
 {
 	if(!FCEU_IsValidUI(FCEUI_LOADSTATE)) return 0;
 
 	StateShow = 0;
-	//loadStateFailed = 0;
 
 	/* For network play, be load the state locally, and then save the state to a temporary file,
 	and send that.  This insures that if an older state is loaded that is missing some
 	information expected in newer save states, desynchronization won't occur(at least not
 	from this ;)).
 	*/
-	if (backupSavestates) BackupLoadState();	//If allowed, backup the current state before loading a new one
+	if (backupSavestates)
+		BackupLoadState();	// If allowed, backup the current state before loading a new one
 	
 	if (!movie_readonly && autoMovieBackup && freshMovie) //If auto-backup is on, movie has not been altered this session and the movie is in read+write mode
 	{
 		FCEUI_MakeBackupMovie(false);	//Backup the movie before the contents get altered, but do not display messages						  
 	}
-	if(FCEUSS_Load(fname))
+	if (FCEUSS_Load(fname, display_message))
 	{
 		//mbg todo netplay
-		/*if(FCEUnetplay)
+#if 0
+		if(FCEUnetplay)
 		{
 			char *fn = strdup(FCEU_MakeFName(FCEUMKF_NPTEMP, 0, 0).c_str());
 			FILE *fp;
@@ -938,11 +949,11 @@ int FCEUI_LoadState(const char *fname)
 			}
 
 			free(fn);
-		}*/
+		}
+#endif
 		freshMovie = false;		//The movie has been altered so it is no longer fresh
 		return 1;
-	}
-	else
+	} else
 	{
 		return 0;
 	}

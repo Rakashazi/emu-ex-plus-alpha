@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <assert.h>
 #include <util/number.h>
 
@@ -73,6 +74,15 @@ static int fd_bytesReadable(int fd)
 	return bytes;
 }
 
+static int fd_isValid(int fd)
+{
+	return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
+}
+
+#ifdef __cplusplus
+
+#include <algorithm>
+
 static void fd_skipAvailableData(int fd)
 {
 	int bytesToSkip = fd_bytesReadable(fd);
@@ -80,7 +90,7 @@ static void fd_skipAvailableData(int fd)
 	char dummy[8];
 	while(bytesToSkip)
 	{
-		int ret = read(fd, dummy, IG::min((size_t)bytesToSkip, sizeof dummy));
+		int ret = read(fd, dummy, std::min((size_t)bytesToSkip, sizeof dummy));
 		if(ret < 0)
 		{
 			logMsg("error in read()");
@@ -89,4 +99,6 @@ static void fd_skipAvailableData(int fd)
 		bytesToSkip -= ret;
 	}
 }
+#endif
+
 #endif

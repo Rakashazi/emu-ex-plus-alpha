@@ -1,19 +1,17 @@
 ifndef inc_pkg_opengl
 inc_pkg_opengl := 1
 
-ifeq ($(ENV), linux)
- # TODO: use pkg-config
+ifeq ($(SUBENV), pandora)
+ LDLIBS += -lGLES_CM -lEGL -lm
+ configDefs += CONFIG_GFX_OPENGL_ES
+else ifeq ($(ENV), linux)
  ifdef config_gfx_openGLES
-  ifeq ($(ARCH), arm)
-   LDLIBS += -lGLES_CM
-  else
-   # Mesa
-   LDLIBS += -lGLESv1_CM
-  endif
-  LDLIBS += -lEGL -lm
+  pkgConfigDeps += glesv1_cm
+  LDLIBS += -lm
   configDefs += CONFIG_GFX_OPENGL_ES
  else
-  LDLIBS += -lGL -lm
+  pkgConfigDeps += gl
+  LDLIBS += -lm
  endif
 else ifeq ($(ENV), android)
  LDLIBS += -lGLESv1_CM

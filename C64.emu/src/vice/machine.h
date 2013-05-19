@@ -55,6 +55,10 @@ extern const char machine_name[];
 #define MACHINE_SYNC_NTSCOLD -3
 #define MACHINE_SYNC_PALN    -4
 
+#ifndef MACHINE_SYNC_DEFAULT
+#define MACHINE_SYNC_DEFAULT MACHINE_SYNC_PAL
+#endif
+
 struct machine_timing_s {
     unsigned int cycles_per_line;
     long cycles_per_rfsh;

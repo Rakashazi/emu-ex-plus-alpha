@@ -1,1 +1,0 @@
-../imagine/make/shortcut/common-builds/android-5-armv6.mk

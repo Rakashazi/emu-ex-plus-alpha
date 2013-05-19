@@ -6,20 +6,21 @@
 #define RESOURCE_FACE_SETTINGS_UNCHANGED 128
 #include <io/sys.hh>
 #include <pixmap/Pixmap.hh>
+#include <data-type/image/GfxImageSource.hh>
 
 class ResourceFace
 {
 public:
 	constexpr ResourceFace() { }
-	static ResourceFace * create(ResourceFont *font, FontSettings *set = 0);
-	static ResourceFace * create(ResourceFace *face, FontSettings *set = 0);
-	static ResourceFace * load(const char* path, FontSettings * set = 0);
-	static ResourceFace * load(Io* io, FontSettings * set = 0);
-	static ResourceFace * loadAsset(const char * name, FontSettings * set = 0)
+	static ResourceFace * create(ResourceFont *font, FontSettings *set = nullptr);
+	static ResourceFace * create(ResourceFace *face, FontSettings *set = nullptr);
+	static ResourceFace * load(const char* path, FontSettings * set = nullptr);
+	static ResourceFace * load(Io* io, FontSettings * set = nullptr);
+	static ResourceFace * loadAsset(const char * name, FontSettings * set = nullptr)
 	{
 		return load(openAppAssetIo(name), set);
 	}
-	static ResourceFace * loadSystem(FontSettings * set = 0);
+	static ResourceFace * loadSystem(FontSettings * set = nullptr);
 	void free();
 	CallResult applySettings(FontSettings set);
 	//int maxDescender();
@@ -44,4 +45,18 @@ private:
 	void calcNominalHeight();
 	void initGlyphTable ();
 	CallResult cacheChar (int c, int tableIdx);
+};
+
+class GfxGlyphImage : public GfxImageSource
+{
+public:
+	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) { }
+
+	CallResult getImage(Pixmap* dest) override { return face->writeCurrentChar(dest); }
+	uint width() override { return entry->metrics.xSize; }
+	uint height() override { return entry->metrics.ySize; }
+	const PixelFormatDesc *pixelFormat() override { return &PixelFormatI8; }
+
+	ResourceFace *face;
+	GlyphEntry *entry;
 };

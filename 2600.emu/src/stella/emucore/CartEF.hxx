@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartEF.hxx 2325 2012-01-02 20:31:42Z stephena $
+// $Id: CartEF.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEEF_HXX
@@ -34,7 +34,7 @@ class System;
   as this scheme doesn't seem to be documented anywhere.
 
   @author  Stephen Anthony
-  @version $Id: CartEF.hxx 2325 2012-01-02 20:31:42Z stephena $
+  @version $Id: CartEF.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeEF : public Cartridge
 {

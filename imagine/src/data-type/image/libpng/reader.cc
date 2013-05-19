@@ -21,6 +21,7 @@
 #include <base/Base.hh>
 #include <mem/interface.h>
 #include <util/pixel.h>
+#include <util/strings.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
@@ -69,12 +70,12 @@ static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 	}
 }
 
-int Png::getWidth ()
+uint Png::width ()
 {
 	return png_get_image_width(png, info);
 }
 
-int Png::getHeight ()
+uint Png::height ()
 {
 	return png_get_image_height(png, info);
 }
@@ -178,11 +179,14 @@ CallResult Png::readHeader (Io * stream)
 
 void Png::freeImageData()
 {
-	logMsg("deallocating libpng data");
-	png_structpp pngStructpAddr = &png;
-	png_infopp pngInfopAddr = &info;
-	//void * pngEndInfopAddr = &data->end;
-	png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL/*pngEndInfopAddr*/);
+	if(png)
+	{
+		logMsg("deallocating libpng data");
+		png_structpp pngStructpAddr = &png;
+		png_infopp pngInfopAddr = &info;
+		//void * pngEndInfopAddr = &data->end;
+		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL/*pngEndInfopAddr*/);
+	}
 }
 
 bool Png::hasAlphaChannel()
@@ -283,8 +287,8 @@ CallResult Png::readImage (Io * stream, void* buffer, uint pitch, const PixelFor
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
 	
-	int height = getHeight();
-	int width = getWidth();
+	int height = this->height();
+	int width = this->width();
 	//int rowbytes = png_get_rowbytes(png, info);
 	//log_mPrintf(LOG_MSG,"width = %d, height = %d, rowbytes = %d", width, height, rowbytes);
 
@@ -345,4 +349,50 @@ CallResult Png::readImage (Io * stream, void* buffer, uint pitch, const PixelFor
 	png_infopp pngInfopAddr = &transInfo;
 	png_destroy_info_struct(png, pngInfopAddr);
 	return OK;
+}
+
+CallResult PngFile::getImage(Pixmap* dest)
+{
+	return(png.readImage(io, dest->data, dest->pitch, dest->format));
+}
+
+CallResult PngFile::load(Io* io)
+{
+	deinit();
+	if(!io)
+		return INVALID_PARAMETER;
+	var_selfs(io);
+
+	if(png.readHeader(io) != OK)
+	{
+		logErr("error reading header");
+		return IO_ERROR;
+	}
+
+	return OK;
+}
+
+CallResult PngFile::load(const char *name)
+{
+	deinit();
+	if(!string_hasDotExtension(name, "png"))
+	{
+		logErr("suffix doesn't match PNG image");
+		return INVALID_PARAMETER;
+	}
+
+	Io *io = IoSys::open(name);
+	if(!io)
+	{
+		return IO_ERROR;
+	}
+
+	return load(io);
+}
+
+void PngFile::deinit()
+{
+	png.freeImageData();
+	if(io)
+		io->close();
 }

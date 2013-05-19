@@ -15,15 +15,12 @@ include $(imagineSrcDir)/gfx/system.mk
 include $(imagineSrcDir)/fs/system.mk
 include $(imagineSrcDir)/io/system.mk
 include $(imagineSrcDir)/bluetooth/system.mk
-ifeq ($(ENV), android)
- include $(imagineSrcDir)/io/zip/build.mk
-endif
 include $(imagineSrcDir)/gui/GuiTable1D/build.mk
 include $(imagineSrcDir)/gui/MenuItem/build.mk
 include $(imagineSrcDir)/gui/FSPicker/build.mk
 include $(imagineSrcDir)/gui/AlertView.mk
 include $(imagineSrcDir)/resource2/font/system.mk
-include $(imagineSrcDir)/resource2/image/png/build.mk
+include $(imagineSrcDir)/data-type/image/libpng/build.mk
 
 ifeq ($(ENV), android)
  configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE
@@ -41,6 +38,12 @@ ifeq ($(ENV), android)
  endif
 else ifeq ($(ENV), ios)
  imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine-ios.pc
+else ifeq ($(ENV), linux)
+ ifeq ($(SUBENV), pandora)
+  imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine-linux-pandora.pc
+ else
+  imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine-linux.pc
+ endif
 endif
 
 include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk

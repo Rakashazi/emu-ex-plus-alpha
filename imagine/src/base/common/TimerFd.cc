@@ -1,7 +1,9 @@
 #include <base/Base.hh>
 #include <util/collection/DLList.hh>
+#include <unistd.h>
 
 #if defined CONFIG_BASE_ANDROID
+	#include <base/android/private.hh>
 	// No sys/timerfd.h on Android, need to use syscall
 	#include <time.h>
 	#include <sys/syscall.h>
@@ -30,7 +32,7 @@ static void onTimerComplete(TimerFdHandler *timer);
 class TimerFdHandler
 {
 public:
-	constexpr TimerFdHandler() { }
+	TimerFdHandler() { }
 
 	void setCallback(CallbackDelegate callback)
 	{
@@ -47,27 +49,26 @@ public:
 				logErr("error creating timerfd");
 				return 0;
 			}
+			//logMsg("created timerfd: %d", fd);
+			#if defined CONFIG_BASE_ANDROID
+			auto ret = ALooper_addFd(Base::activityLooper(), fd, ALOOPER_POLL_CALLBACK, Base::POLLEV_IN,
+				timerFiredALooperCallback, this);
+			assert(ret == 1);
+			#else
 			addPollEvent(fd, pollEvDel, Base::POLLEV_IN);
+			#endif
 		}
 
 		int seconds = ms / 1000;
 		int leftoverMs = ms % 1000;
 		long leftoverNs = leftoverMs * 1000000;
-		logMsg("setting timerfd to run in %d second(s) and %ld ns", seconds, leftoverNs);
+		logMsg("setting timerfd %d to run in %d second(s) and %ld ns", fd, seconds, leftoverNs);
 		struct itimerspec newTime { { 0 }, { seconds, leftoverNs } }, oldTime;
 		if(timerfd_settime(fd, 0, &newTime, &oldTime) != 0)
 		{
-			logErr("error in timerfd_settime");
+			logErr("error in timerfd_settime: %s", strerror(errno));
 			return 0;
 		}
-		return 1;
-	}
-
-	int runCallback(int events)
-	{
-		logMsg("running callback, fd %d", fd);
-		callback.invoke();
-		onTimerComplete(this);
 		return 1;
 	}
 
@@ -82,9 +83,14 @@ public:
 
 	void deinit()
 	{
+		logMsg("closing timerfd %d", fd);
 		if(fd >= 0)
 		{
+			#if defined CONFIG_BASE_ANDROID
+			ALooper_removeFd(Base::activityLooper(), fd);
+			#else
 			removePollEvent(fd);
+			#endif
 			close(fd);
 			fd = -1;
 		}
@@ -92,11 +98,34 @@ public:
 
 	bool operator ==(TimerFdHandler const& rhs) const
 	{
-		return callback == rhs.callback;
+		return fd == rhs.fd;
 	}
 
-private:
-	Base::PollEventDelegate pollEvDel {Base::PollEventDelegate::create<TimerFdHandler, &TimerFdHandler::runCallback>(this)};
+	void timerFired()
+	{
+		logMsg("running callback, fd %d", fd);
+		callback();
+		onTimerComplete(this);
+	}
+
+	#if defined CONFIG_BASE_ANDROID
+	static int timerFiredALooperCallback(int fd, int events, void* data)
+	{
+		auto &inst = *((TimerFdHandler*)data);
+		inst.timerFired();
+		Base::postDrawWindowIfNeeded();
+		return 1;
+	}
+	#else
+	Base::PollEventDelegate pollEvDel
+	{
+		[this](int events)
+		{
+			timerFired();
+			return 1;
+		}
+	};
+	#endif
 	CallbackDelegate callback;
 	int fd = -1;
 };

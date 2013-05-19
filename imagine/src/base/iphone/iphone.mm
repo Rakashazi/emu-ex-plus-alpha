@@ -6,6 +6,7 @@
 #import <unistd.h>
 
 #include <base/Base.hh>
+#include <base/iphone/private.hh>
 #include <fs/sys.hh>
 #include <config/machine.hh>
 #include <util/time/sys.hh>
@@ -500,15 +501,15 @@ uint appState = APP_RUNNING;
 	logMsg("editing ended");
 	//inVKeyboard = 0;
 	auto delegate = vKeyboardTextDelegate;
-	vKeyboardTextDelegate.clear();
+	vKeyboardTextDelegate = {};
 	char text[256];
 	string_copy(text, [textField.text UTF8String]);
 	[textField removeFromSuperview];
 	vkbdField = nil;
-	if(delegate.hasCallback())
+	if(delegate)
 	{
 		logMsg("running text entry callback");
-		delegate.invoke(text);
+		delegate(text);
 	}
 }
 
@@ -739,7 +740,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	NSData *callbackData = (NSData*)callback;
 	CallbackDelegate del;
 	[callbackData getBytes:&del length:sizeof(del)];
-	del.invoke();
+	del();
 }
 
 - (void)handleThreadMessage:(NSValue *)arg
@@ -836,11 +837,11 @@ static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orient
 void setSystemOrientation(uint o)
 {
 	using namespace Input;
-	if(vKeyboardTextDelegate.hasCallback()) // TODO: allow orientation change without aborting text input
+	if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
 	{
 		logMsg("aborting active text input");
-		vKeyboardTextDelegate.invoke(nullptr);
-		vKeyboardTextDelegate.clear();
+		vKeyboardTextDelegate(nullptr);
+		vKeyboardTextDelegate = {};
 	}
 	auto sharedApp = [UIApplication sharedApplication];
 	assert(sharedApp);
@@ -1018,11 +1019,11 @@ int main(int argc, char *argv[])
 		logMsg("manually loading Backgrounder.dylib");
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
 	}
-	if(access("/Library/MobileSubstrate/DynamicLibraries/Blutrol.dylib", F_OK) == 0)
+	/*if(access("/Library/MobileSubstrate/DynamicLibraries/Blutrol.dylib", F_OK) == 0)
 	{
 		logMsg("manually loading Blutrol.dylib");
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Blutrol.dylib", RTLD_LAZY | RTLD_GLOBAL);
-	}
+	}*/
 	#endif
 
 	#ifdef CONFIG_FS
@@ -1039,6 +1040,10 @@ int main(int argc, char *argv[])
 	
 	#ifdef CONFIG_INPUT
 	doOrExit(Input::init());
+	#endif
+	
+	#ifdef CONFIG_AUDIO
+	Audio::initSession();
 	#endif
 	
 	doOrExit(onInit(argc, argv));

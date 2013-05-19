@@ -76,7 +76,7 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	logMsg("init vkeyboard");
 }
 
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText)
+uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
 {
 	logMsg("starting system text input");
 	vKeyboardTextDelegate = callback;
@@ -113,7 +113,7 @@ void cancelSysTextInput()
 	if(!vkbdField)
 		return;
 	logMsg("canceled system text input");
-	vKeyboardTextDelegate.clear();
+	vKeyboardTextDelegate = {};
 	[vkbdField resignFirstResponder];
 }
 

@@ -29,11 +29,11 @@ void NavView::inputEvent(const Input::Event &e)
 	{
 		if(hasCloseBtn && rightBtnActive && rightBtn.overlaps(e.x, e.y))
 		{
-			onRightNavBtn.invokeSafe(e);
+			onRightNavBtn(e);
 		}
 		else if(hasBackBtn && leftBtnActive && leftBtn.overlaps(e.x, e.y))
 		{
-			onLeftNavBtn.invokeSafe(e);
+			onLeftNavBtn(e);
 		}
 	}
 }
@@ -58,14 +58,12 @@ void NavView::place()
 
 // BasicNavView
 
-void BasicNavView::init(ResourceFace *face, ResourceImage *backRes, ResourceImage *closeRes,
+void BasicNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes,
 		const Gfx::LGradientStopDesc *gradStop, uint gradStops)
 {
 	NavView::init(face);
 	leftSpr.init(-.5, -.5, .5, .5, backRes);
-	if(backRes) backRes->ref();
 	rightSpr.init(-.5, -.5, .5, .5, closeRes);
-	if(closeRes) closeRes->ref();
 	if(backRes)
 		hasBackBtn = 1;
 	if(closeRes)
@@ -76,18 +74,15 @@ void BasicNavView::init(ResourceFace *face, ResourceImage *backRes, ResourceImag
 void BasicNavView::deinit()
 {
 	NavView::deinitText();
-	rightSpr.deinitAndFreeImg();
-	leftSpr.deinitAndFreeImg();
+	rightSpr.deinit();//AndFreeImg();
+	leftSpr.deinit();//AndFreeImg();
 	bg.deinit();
 }
 
-void BasicNavView::setBackImage(ResourceImage *img)
+void BasicNavView::setBackImage(Gfx::BufferImage *img)
 {
-	if(leftSpr.img)
-		leftSpr.img->deinit();
 	leftSpr.setImg(img);
-	if(img) img->ref();
-	hasBackBtn = leftSpr.img != nullptr;
+	hasBackBtn = leftSpr.image();
 }
 
 void BasicNavView::draw()
@@ -98,7 +93,7 @@ void BasicNavView::draw()
 	bg.draw();
 	setColor(COLOR_WHITE);
 	text.draw(gXPos(viewRect, C2DO), gYPos(viewRect, C2DO), C2DO);
-	if(leftSpr.img)
+	if(leftSpr.image())
 	{
 		/*setBlendMode(BLEND_MODE_OFF);
 		resetTransforms();
@@ -113,7 +108,7 @@ void BasicNavView::draw()
 			leftSpr.draw();
 		}
 	}
-	if(rightSpr.img)
+	if(rightSpr.image())
 	{
 		/*setBlendMode(BLEND_MODE_OFF);
 		resetTransforms();

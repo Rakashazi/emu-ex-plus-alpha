@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.hxx 2558 2012-10-24 10:10:32Z stephena $
+// $Id: Control.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -58,7 +58,7 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 2558 2012-10-24 10:10:32Z stephena $
+  @version $Id: Control.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class Controller : public Serializable
 {

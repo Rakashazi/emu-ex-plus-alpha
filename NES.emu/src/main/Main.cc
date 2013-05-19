@@ -14,7 +14,6 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -138,6 +137,7 @@ static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
 
 const char *fceuReturnedError = 0;
 
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	uint playerMask = player << 8;
@@ -156,6 +156,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+7] = BIT(5) | playerMask;
 	map[SysVController::D_ELEM+8] = BIT(5) | BIT(7) | playerMask;
 }
+#endif
 
 static uint32 padData = 0, zapperData[3];
 
@@ -240,10 +241,10 @@ void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char
 int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
+	sprintStateFilename(saveStr, saveStateSlot);
 	#ifdef CONFIG_BASE_IOS_SETUID
 		fixFilePermissions(saveStr);
 	#endif
-	sprintStateFilename(saveStr, saveStateSlot);
 	if(!FCEUI_SaveState(saveStr))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -377,6 +378,8 @@ static void setupNESFourScore()
 }
 
 bool EmuSystem::vidSysIsPAL() { return PAL; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 static void setupNESInputPorts()
@@ -411,14 +414,13 @@ int EmuSystem::loadGame(const char *path)
 	FCEUI_SetVidSystem(0); // default to NTSC
 	if(!FCEUI_LoadGame(fullGamePath, 1))
 	{
-		if(fceuReturnedError)
+		/*if(fceuReturnedError)
 		{
 			logMsg("%s", fceuReturnedError);
 			popup.post(fceuReturnedError, 1);
 		}
-		else
+		else*/
 		{
-			logMsg("failed to load game");
 			popup.post("Error loading game", 1);
 		}
 		return 0;
@@ -440,7 +442,7 @@ int EmuSystem::loadGame(const char *path)
 		logMsg("%d total cheats", fceuCheats);
 
 	setupNESInputPorts();
-	EmuSystem::configAudioRate();
+	EmuSystem::configAudioPlayback();
 
 	logMsg("started emu");
 	return 1;
@@ -593,8 +595,7 @@ CallResult onInit(int argc, char** argv)
 	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
 	if(!FCEUI_Initialize())
 	{
-		logErr("error in FCEUI_Initialize");
-		Base::abort();
+		bug_exit("error in FCEUI_Initialize");
 	}
 	//FCEUI_SetSoundQuality(2);
 	return OK;

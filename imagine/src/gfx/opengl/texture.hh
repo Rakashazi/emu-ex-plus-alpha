@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <gfx/GfxBufferImage.hh>
 #if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 	#include "android/SurfaceTextureBufferImage.hh"
@@ -25,7 +26,7 @@ void freeTexRef(GfxTextureHandle texRef)
 static uint unpackAlignForPitch(uint pitch)
 {
 	uint alignment = 1;
-	if(!Config::envIsPS3 && pitch % 8 == 0) alignment = 8;
+	if(!Config::envIsPS3 && (pitch % 8 == 0)) alignment = 8;
 	else if(pitch % 4 == 0) alignment = 4;
 	else if(pitch % 2 == 0) alignment = 2;
 	return alignment;
@@ -50,8 +51,13 @@ static uint unpackAlignForAddrAndPitch(void *srcAddr, uint pitch)
 		logMsg("using lowest alignment of address %p (%d) and pitch %d (%d)",
 				srcAddr, alignmentForAddr, pitch, alignmentForPitch);
 	}
-	uint alignment = IG::min(alignmentForPitch, alignmentForAddr);
+	uint alignment = std::min(alignmentForPitch, alignmentForAddr);
 	return alignment;
+}
+
+uint BufferImage::bestAlignment(const Pixmap &p)
+{
+	return unpackAlignForAddrAndPitch(p.data, p.pitch);
 }
 
 #ifdef CONFIG_GFX_OPENGL_ES
@@ -544,7 +550,7 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 	return OK;
 }*/
 
-CallResult BufferImage::init(ResourceImage &img, uint filter, uint hints, bool textured)
+/*CallResult BufferImage::init(ResourceImage &img, uint filter, uint hints, bool textured)
 {
 	using namespace Gfx;
 	var_selfs(hints);
@@ -589,8 +595,55 @@ CallResult BufferImage::init(ResourceImage &img, uint filter, uint hints, bool t
 	backingImg = &img;
 	//logMsg("set backing resource %p", backingImg);
 	return OK;
-}
+}*/
 #endif
+
+CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool textured)
+{
+	deinit();
+
+	var_selfs(hints);
+	testMipmapSupport(img.width(), img.height());
+	//logMsg("BufferImage::init");
+	int wrapMode = bestClampMode(textured);
+
+	uint texX, texY;
+	textureSizeSupport.findBufferXYPixels(texX, texY, img.width(), img.height());
+
+	auto pixFmt = swapRGBToPreferedOrder(img.pixelFormat());
+	Pixmap texPix(*pixFmt);
+	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
+	#if defined(CONFIG_BASE_PS3)
+	//logMsg("alloc in heap"); // PS3 has 1MB stack limit
+	uchar *uploadPixStore = (uchar*)mem_alloc(uploadPixStoreSize);
+	if(!uploadPixStore)
+		return OUT_OF_MEMORY;
+	#else
+	uchar uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
+	#endif
+	mem_zero(uploadPixStore, uploadPixStoreSize);
+	texPix.init(uploadPixStore, texX, texY, 0);
+	img.getImage(&texPix);
+	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(texPix.format), wrapMode,
+			wrapMode, img.width(), img.height(), hints, filter))
+	{
+		#if defined(CONFIG_BASE_PS3)
+		mem_free(uploadPixStore);
+		#endif
+		return INVALID_PARAMETER;
+	}
+
+	textureDesc().xStart = pixelToTexC((uint)0, texPix.x);
+	textureDesc().yStart = pixelToTexC((uint)0, texPix.y);
+	textureDesc().xEnd = pixelToTexC(img.width(), texPix.x);
+	textureDesc().yEnd = pixelToTexC(img.height(), texPix.y);
+
+	#if defined(CONFIG_BASE_PS3)
+	mem_free(uploadPixStore);
+	#endif
+
+	return OK;
+}
 
 void BufferImage::testMipmapSupport(uint x, uint y)
 {
@@ -601,9 +654,7 @@ void BufferImage::testMipmapSupport(uint x, uint y)
 
 CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, bool textured)
 {
-	using namespace Gfx;
-	if(isInit())
-		deinit();
+	deinit();
 
 	var_selfs(hints);
 	testMipmapSupport(pix.x, pix.y);
@@ -652,14 +703,7 @@ void BufferImage::deinit()
 {
 	if(!isInit())
 		return;
-
-	if(backingImg)
-	{
-		logMsg("deinit via backing texture resource");
-		backingImg->deinit(); // backingImg set to 0 before real deinit
-	}
-	else
-		BufferImageImpl::deinit();
+	BufferImageImpl::deinit();
 }
 
 }

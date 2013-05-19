@@ -1,5 +1,5 @@
 /*  Copyright 2003-2005 Guillaume Duhamel
-    Copyright 2004-2005 Theo Berkau
+    Copyright 2004-2005, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -25,6 +25,10 @@
 #include "memory.h"
 #include "yabause.h"
 
+#if defined(SH2_DYNAREC)
+#include "sh2_dynarec/sh2_dynarec.h"
+#endif
+
 SH2_struct *MSH2=NULL;
 SH2_struct *SSH2=NULL;
 SH2_struct *CurrentSH2;
@@ -36,7 +40,6 @@ void FRTExec(u32 cycles);
 void WDTExec(u32 cycles);
 u8 SCIReceiveByte(void);
 void SCITransmitByte(u8);
-void invalidate_all_pages();
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -139,6 +142,9 @@ void SH2Reset(SH2_struct *context)
 
    // Reset Onchip modules
    OnchipReset(context);
+
+   // Reset backtrace
+   context->bt.numbacktrace = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -185,15 +191,18 @@ void SH2NMI(SH2_struct *context)
 
 void SH2Step(SH2_struct *context)
 {
-   u32 tmp = SH2Core->GetPC(context);
+   if (SH2Core)
+   {
+      u32 tmp = SH2Core->GetPC(context);
 
-   // Execute 1 instruction
-   SH2Exec(context, context->cycles+1);
-
-   // Sometimes it doesn't always execute one instruction,
-   // let's make sure it did
-   if (tmp == SH2Core->GetPC(context))
+      // Execute 1 instruction
       SH2Exec(context, context->cycles+1);
+
+      // Sometimes it doesn't always execute one instruction,
+      // let's make sure it did
+      if (tmp == SH2Core->GetPC(context))
+         SH2Exec(context, context->cycles+1);
+   }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -769,6 +778,36 @@ void SH2ClearMemoryBreakpoints(SH2_struct *context) {
       context->bp.memorybreakpoint[i].oldwritelong = NULL;
    }
    context->bp.nummemorybreakpoints = 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2HandleBackTrace(SH2_struct *context)
+{
+   u16 inst = context->instruction;
+   if ((inst & 0xF000) == 0xB000 || // BSR 
+      (inst & 0xF0FF) == 0x0003 || // BSRF
+      (inst & 0xF0FF) == 0x400B)   // JSRF
+   {
+      if (context->bt.numbacktrace < sizeof(context->bt.addr)/sizeof(u32))
+      {
+         context->bt.addr[context->bt.numbacktrace] = context->regs.PC;
+         context->bt.numbacktrace++;
+      }
+   }
+   else if (inst == 0x000B)
+   {
+      if (context->bt.numbacktrace > 0)
+         context->bt.numbacktrace--;
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+u32 *SH2GetBacktraceList(SH2_struct *context, int *size)
+{
+   *size = context->bt.numbacktrace;
+   return context->bt.addr;
 }
 
 //////////////////////////////////////////////////////////////////////////////

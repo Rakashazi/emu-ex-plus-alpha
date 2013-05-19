@@ -17,15 +17,19 @@ endif
 android_cpuFlags += -march=i686 -mtune=atom -mstackrealign -msse3 -mfpmath=sse -m32 #-fPIC
 COMPILE_FLAGS += -fno-short-enums
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/android/x86
-CPPFLAGS += -I$(system_externalSysroot)/include
-LDLIBS += -L$(system_externalSysroot)/lib
+extraSysroot := $(IMAGINE_PATH)/bundle/android/x86
+PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
+pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
+CPPFLAGS += -I$(extraSysroot)/include
+LDLIBS += -L$(extraSysroot)/lib
 
 # TODO: shared object creation not working correctly in custom GCC 4.7 toolchain,
 # maybe a patch is missing? Send the parameters directly to linker for now
 LDLIBS += -Wl,-shared,-dynamic-linker,/system/bin/linker,-X
 
-include $(currPath)/android-gcc.mk
+include $(buildSysPath)/android-gcc.mk
 
 ifeq ($(config_compiler),clang)
  android_cpuFlags += -target i686-none-linux-android

@@ -8,20 +8,23 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2540 2012-06-14 21:26:38Z stephena $
+// $Id: FSNode.cxx 2608 2013-02-13 23:09:31Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
 //============================================================================
 
+#include <zlib.h>
+
 #include "bspf.hxx"
 #include "SharedPtr.hxx"
+#include "FSNodeFactory.hxx"
 #include "FSNode.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -30,7 +33,7 @@ FilesystemNode::FilesystemNode()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FilesystemNode::FilesystemNode(AbstractFilesystemNode *realNode) 
+FilesystemNode::FilesystemNode(AbstractFSNode *realNode) 
   : _realNode(realNode)
 {
 }
@@ -38,26 +41,21 @@ FilesystemNode::FilesystemNode(AbstractFilesystemNode *realNode)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FilesystemNode::FilesystemNode(const string& p)
 {
-  AbstractFilesystemNode* tmp = AbstractFilesystemNode::makeFileNodePath(p);
-  _realNode = Common::SharedPtr<AbstractFilesystemNode>(tmp);
-}
+  AbstractFSNode* tmp = 0;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool FilesystemNode::operator<(const FilesystemNode& node) const
-{
-  if (isDirectory() != node.isDirectory())
-    return isDirectory();
+  // Is this potentially a ZIP archive?
+  if(BSPF_containsIgnoreCase(p, ".zip"))
+    tmp = FilesystemNodeFactory::create(p, FilesystemNodeFactory::ZIP);
+  else
+    tmp = FilesystemNodeFactory::create(p, FilesystemNodeFactory::SYSTEM);
 
-  return BSPF_strcasecmp(getDisplayName().c_str(), node.getDisplayName().c_str()) < 0;
+  _realNode = Common::SharedPtr<AbstractFSNode>(tmp);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::exists() const
 {
-  if (_realNode == 0)
-    return false;
-
-  return _realNode->exists();
+  return _realNode ? _realNode->exists() : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -79,13 +77,6 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const string& FilesystemNode::getDisplayName() const
-{
-  assert(_realNode);
-  return _realNode->getDisplayName();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const string& FilesystemNode::getName() const
 {
   assert(_realNode);
@@ -95,10 +86,7 @@ const string& FilesystemNode::getName() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::hasParent() const
 {
-  if (_realNode == 0)
-    return false;
-  
-  return _realNode->getParent() != 0;
+  return _realNode ? (_realNode->getParent() != 0) : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -107,7 +95,7 @@ FilesystemNode FilesystemNode::getParent() const
   if (_realNode == 0)
     return *this;
 
-  AbstractFilesystemNode* node = _realNode->getParent();
+  AbstractFSNode* node = _realNode->getParent();
   if (node == 0)
     return *this;
   else
@@ -117,49 +105,100 @@ FilesystemNode FilesystemNode::getParent() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const string& FilesystemNode::getPath() const
 {
-  assert(_realNode);
   return _realNode->getPath();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::getRelativePath() const
+string FilesystemNode::getShortPath() const
 {
-  assert(_realNode);
-  return _realNode->getRelativePath();
+  return _realNode->getShortPath();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::isDirectory() const
 {
-  if (_realNode == 0)
-    return false;
-
-  return _realNode->isDirectory();
+  return _realNode ? _realNode->isDirectory() : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::isFile() const
 {
-  if (_realNode == 0)
-    return false;
-
-  return _realNode->isFile();
+  return _realNode ? _realNode->isFile() : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::isReadable() const
 {
-  if (_realNode == 0)
-    return false;
-
-  return _realNode->isReadable();
+  return _realNode ? _realNode->isReadable() : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::isWritable() const
 {
-  if (_realNode == 0)
-    return false;
+  return _realNode ? _realNode->isWritable() : false;
+}
 
-  return _realNode->isWritable();
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FilesystemNode::isAbsolute() const
+{
+  return _realNode ? _realNode->isAbsolute() : false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FilesystemNode::makeDir()
+{
+  return (_realNode && !_realNode->exists()) ? _realNode->makeDir() : false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FilesystemNode::rename(const string& newfile)
+{
+  return (_realNode && _realNode->exists()) ? _realNode->rename(newfile) : false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FilesystemNode::read(uInt8*& image, uInt32& size) const
+{
+  // First let the private subclass attempt to open the file
+  if(_realNode->read(image, size))
+    return true;
+
+  // Otherwise, assume the file is either gzip'ed or not compressed at all
+  gzFile f = gzopen(getPath().c_str(), "rb");
+  if(f)
+  {
+    image = new uInt8[512 * 1024];
+    size = gzread(f, image, 512 * 1024);
+    gzclose(f);
+
+    return true;
+  }
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::createAbsolutePath(
+    const string& p, const string& startpath, const string& ext)
+{
+  FilesystemNode node(p);
+  string path = node.getShortPath();
+
+  // Is path already absolute, or does it start with the given startpath?
+  // If not, we prepend the given startpath
+  if(!BSPF_startsWithIgnoreCase(p, startpath+BSPF_PATH_SEPARATOR) &&
+     !node.isAbsolute())
+    path = startpath + BSPF_PATH_SEPARATOR + p;
+
+  // Does the path have a valid extension?
+  // If not, we append the given extension
+  string::size_type idx = path.find_last_of('.');
+  if(idx != string::npos)
+  {
+    if(!BSPF_equalsIgnoreCase(path.c_str() + idx + 1, ext))
+      path = path.replace(idx+1, ext.length(), ext);
+  }
+  else
+    path += "." + ext;
+
+  return path;
 }

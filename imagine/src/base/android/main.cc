@@ -62,7 +62,7 @@ static ThreadPThread epollThread;
 static sem_t ePollWaitSem;
 uint appState = APP_RUNNING; //TODO: should start as APP_PAUSED, but BaseActivitiy needs some changes
 
-#ifdef CONFIG_BLUEZ
+#ifdef CONFIG_BLUETOOTH_BLUEZ
 
 JavaClassMethod<jobject> jObtain;
 JavaInstMethod<void> jSendToTarget;
@@ -203,7 +203,7 @@ static void JNICALL nativeInit(JNIEnv*  env, jobject thiz, jint w, jint h)
 	logMsg("native code init");
 	assert(jVM);
 	assert(jBaseActivity);
-	#ifdef CONFIG_BLUEZ
+	#ifdef CONFIG_BLUETOOTH_BLUEZ
 	msgHandler = env->NewGlobalRef(env->GetStaticObjectField(jBaseActivityCls, msgHandlerId));
 	//logMsg("msgHandler %p", msgHandler);
 	#endif
@@ -448,7 +448,7 @@ CLINK JNIEXPORT jint JNICALL LVISIBLE JNI_OnLoad(JavaVM *vm, void*)
 	jSetKeepScreenOn.setup(jEnv, jGLViewCls, "setKeepScreenOn", "(Z)V");
 	//jFinish.setup(env, jBaseActivityCls, "finish", "()V");
 
-	#ifdef CONFIG_BLUEZ
+	#ifdef CONFIG_BLUETOOTH_BLUEZ
 	jMessageCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/os/Message"));
 	jObtain.setup(jEnv, jMessageCls, "obtain", "(Landroid/os/Handler;III)Landroid/os/Message;");
 	jSendToTarget.setup(jEnv, jMessageCls, "sendToTarget", "()V");

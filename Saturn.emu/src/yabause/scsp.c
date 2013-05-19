@@ -94,6 +94,9 @@
 #include "yabause.h"
 #include "scsp.h"
 
+#if 0
+#include "windows/aviout.h"
+#endif
 
 #ifdef PSP
 # include "psp/common.h"
@@ -3465,7 +3468,7 @@ ScspReceiveCDDA (const u8 *sector)
 void
 ScspExec ()
 {
-#ifdef WIN32
+#if 0
   s16 stereodata16[(44100 / 60) * 16]; //11760
 #endif
   u32 audiosize;
@@ -3526,7 +3529,7 @@ ScspExec ()
                                 &scspchannel[1].data32[outstart], audiosize);
           scspsoundoutleft -= audiosize;
 
-#ifdef WIN32
+#if 0
           ScspConvert32uto16s (&scspchannel[0].data32[outstart],
                                &scspchannel[1].data32[outstart],
                                (s16 *)stereodata16, audiosize);
@@ -3548,7 +3551,7 @@ ScspExec ()
           SNDCore->UpdateAudio (scspchannel[0].data32,
                                 (u32 *)scspchannel[1].data32, audiosize);
 
-#ifdef WIN32
+#if 0
           ScspConvert32uto16s ((s32 *)scspchannel[0].data32,
                                (s32 *)scspchannel[1].data32,
                                (s16 *)stereodata16, audiosize);

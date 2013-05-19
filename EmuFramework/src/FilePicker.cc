@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "filePicker"
 #include <FilePicker.hh>
@@ -19,25 +19,23 @@
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
 #include <Recent.hh>
-#include <resource2/image/png/ResourceImagePng.h>
 #include <util/gui/ViewStack.hh>
 #include <gui/FSPicker/FSPicker.hh>
 #include <gui/AlertView.hh>
 
 extern ViewStack viewStack;
-extern YesNoAlertView ynAlertView;
 void startGameFromMenu();
 bool isMenuDismissKey(const Input::Event &e);
 extern MsgPopup popup;
-ResourceImage *getArrowAsset();
-ResourceImage *getXAsset();
+Gfx::BufferImage *getArrowAsset();
+Gfx::BufferImage *getXAsset();
 
 void EmuFilePicker::init(bool highlightFirst, FsDirFilterFunc filter, bool singleDir)
 {
 	FSPicker::init(".", needsUpDirControl ? getArrowAsset() : 0,
 			View::needsBackControl ? getXAsset() : 0, filter, singleDir);
-	onSelectFileDelegate().bind<&GameFilePicker::onSelectFile>();
-	onCloseDelegate().bind<&GameFilePicker::onClose>();
+	onSelectFile() = [this](const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
+	onClose() = [this](const Input::Event &e){GameFilePicker::onClose(e);};
 	if(highlightFirst && tbl.cells)
 	{
 		tbl.selected = 0;
@@ -47,8 +45,8 @@ void EmuFilePicker::init(bool highlightFirst, FsDirFilterFunc filter, bool singl
 void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 {
 	EmuFilePicker::init(highlightFirst, defaultBenchmarkFsFilter, singleDir);
-	onSelectFileDelegate().bind<&BenchmarkFilePicker::onSelectFile>();
-	onCloseDelegate().bind<&BenchmarkFilePicker::onClose>();
+	onSelectFile() = [this](const char* name, const Input::Event &e){BenchmarkFilePicker::onSelectFile(name, e);};
+	onClose() = [this](const Input::Event &e){BenchmarkFilePicker::onClose(e);};
 }
 
 void loadGameComplete(bool tryAutoState, bool addToRecent)
@@ -58,12 +56,6 @@ void loadGameComplete(bool tryAutoState, bool addToRecent)
 	if(addToRecent)
 		recent_addGame();
 	startGameFromMenu();
-}
-
-template <bool tryAutoState>
-void loadGameCompleteConfirmAutoLoadState(const Input::Event &e)
-{
-	loadGameComplete(tryAutoState, 1);
 }
 
 bool showAutoStateConfirm(const Input::Event &e)
@@ -80,12 +72,19 @@ bool showAutoStateConfirm(const Input::Event &e)
 		FsSys::mTimeAsStr(saveStr, date);
 		static char msg[96] = "";
 		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", date);
+		auto &ynAlertView = *allocModalView<YesNoAlertView>();
 		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
-		ynAlertView.onYes().bind<&loadGameCompleteConfirmAutoLoadState<1>>();
-		ynAlertView.onNo().bind<&loadGameCompleteConfirmAutoLoadState<0>>();
-		ynAlertView.placeRect(Gfx::viewportRect());
-		View::modalView = &ynAlertView;
-		Base::displayNeedsUpdate();
+		ynAlertView.onYes() =
+			[](const Input::Event &e)
+			{
+				loadGameComplete(true, true);
+			};
+		ynAlertView.onNo() =
+			[](const Input::Event &e)
+			{
+				loadGameComplete(false, true);
+			};
+		View::addModalView(ynAlertView);
 		return 1;
 	}
 	return 0;
@@ -104,7 +103,11 @@ void loadGameCompleteFromFilePicker(uint result, const Input::Event &e)
 
 void GameFilePicker::onSelectFile(const char* name, const Input::Event &e)
 {
-	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
+	EmuSystem::onLoadGameComplete() =
+		[](uint result, const Input::Event &e)
+		{
+			loadGameCompleteFromFilePicker(result, e);
+		};
 	auto res = EmuSystem::loadGame(name);
 	if(res == 1)
 	{
@@ -135,7 +138,11 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 
 void BenchmarkFilePicker::onSelectFile(const char* name, const Input::Event &e)
 {
-	EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromBenchmarkFilePicker>();
+	EmuSystem::onLoadGameComplete() =
+		[](uint result, const Input::Event &e)
+		{
+			loadGameCompleteFromBenchmarkFilePicker(result, e);
+		};
 	auto res = EmuSystem::loadGame(name);
 	if(res == 1)
 	{

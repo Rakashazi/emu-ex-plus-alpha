@@ -5,13 +5,17 @@ class SystemOptionView : public OptionView
 {
 private:
 
-	MultiChoiceSelectMenuItem timer {"Emulate Timer"};
-
-	static void timerSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem timer
 	{
-		optionTimerInt = val;
-		setTimerIntOption();
-	}
+		"Emulate Timer",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionTimerInt = val;
+			setTimerIntOption();
+		}
+	};
+
+
 
 	void timerInit()
 	{
@@ -19,17 +23,18 @@ private:
 		{
 				"Off", "On", "Auto"
 		};
-		timer.init(str, IG::min(2, (int)optionTimerInt), sizeofArray(str));
-		timer.onValue().bind<&timerSet>();
+		timer.init(str, std::min(2, (int)optionTimerInt), sizeofArray(str));
 	}
 
-	MultiChoiceSelectMenuItem region {"MVS Region"};
-
-	static void regionSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem region
 	{
-		conf.country = (COUNTRY)val;
-		optionMVSCountry = conf.country;
-	}
+		"MVS Region",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			conf.country = (COUNTRY)val;
+			optionMVSCountry = conf.country;
+		}
+	};
 
 	void regionInit()
 	{
@@ -43,16 +48,17 @@ private:
 			setting = conf.country;
 		}
 		region.init(str, setting, sizeofArray(str));
-		region.onValue().bind<&regionSet>();
 	}
 
-	MultiChoiceSelectMenuItem bios {"BIOS Type"};
-
-	static void biosSet(MultiChoiceMenuItem &, int val)
+	MultiChoiceSelectMenuItem bios
 	{
-		conf.system = val == 0 ? SYS_UNIBIOS : SYS_ARCADE;
-		optionBIOSType = conf.system;
-	}
+		"BIOS Type",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			conf.system = val == 0 ? SYS_UNIBIOS : SYS_ARCADE;
+			optionBIOSType = conf.system;
+		}
+	};
 
 	void biosInit()
 	{
@@ -66,35 +72,40 @@ private:
 			setting = 1;
 		}
 		bios.init(str, setting, sizeofArray(str));
-		bios.onValue().bind<&biosSet>();
 	}
 
-	BoolMenuItem listAll;
-
-	static void listAllHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem listAll
 	{
-		item.toggle();
-		optionListAllGames = item.on;
-	}
+		"List All Games",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionListAllGames = item.on;
+		}
+	};
 
-	BoolMenuItem createAndUseCache;
-
-	static void createAndUseCacheHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem createAndUseCache
 	{
-		item.toggle();
-		optionCreateAndUseCache = item.on;
-	}
+		"Make/Use Cache Files",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionCreateAndUseCache = item.on;
+		}
+	};
 
-	BoolMenuItem strictROMChecking;
-
-	static void strictROMCheckingHandler(BoolMenuItem &item, const Input::Event &e)
+	BoolMenuItem strictROMChecking
 	{
-		item.toggle();
-		optionStrictROMChecking = item.on;
-	}
+		"Strict ROM Checking",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			optionStrictROMChecking = item.on;
+		}
+	};
 
 public:
-	constexpr SystemOptionView() { }
+	SystemOptionView() { }
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -102,17 +113,14 @@ public:
 		biosInit(); item[items++] = &bios;
 		regionInit(); item[items++] = &region;
 		timerInit(); item[items++] = &timer;
-		createAndUseCache.init("Make/Use Cache Files", optionCreateAndUseCache); item[items++] = &createAndUseCache;
-		createAndUseCache.selectDelegate().bind<&createAndUseCacheHandler>();
-		strictROMChecking.init("Strict ROM Checking", optionStrictROMChecking); item[items++] = &strictROMChecking;
-		strictROMChecking.selectDelegate().bind<&strictROMCheckingHandler>();
+		createAndUseCache.init(optionCreateAndUseCache); item[items++] = &createAndUseCache;
+		strictROMChecking.init(optionStrictROMChecking); item[items++] = &strictROMChecking;
 	}
 
 	void loadGUIItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadGUIItems(item, items);
-		listAll.init("List All Games", optionListAllGames); item[items++] = &listAll;
-		listAll.selectDelegate().bind<&listAllHandler>();
+		listAll.init(optionListAllGames); item[items++] = &listAll;
 	}
 };
 
@@ -417,7 +425,11 @@ private:
 
 		void loadGame()
 		{
-			EmuSystem::loadGameCompleteDelegate().bind<&loadGameCompleteFromFilePicker>();
+			EmuSystem::onLoadGameComplete() =
+				[](uint result, const Input::Event &e)
+				{
+					loadGameCompleteFromFilePicker(result, e);
+				};
 			auto res = EmuSystem::loadGame(entry->filename);
 			if(res == 1)
 			{
@@ -429,21 +441,20 @@ private:
 			}
 		}
 
-		void confirmAlert(const Input::Event &e)
-		{
-			loadGame();
-		}
-
 		void select(View *view, const Input::Event &e)
 		{
 			if(active)
 			{
 				if(entry->bugs)
 				{
+					auto &ynAlertView = *allocModalView<YesNoAlertView>();
 					ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
-					ynAlertView.onYes().bind<GameMenuItem, &GameMenuItem::confirmAlert>(this);
-					ynAlertView.placeRect(Gfx::viewportRect());
-					modalView = &ynAlertView;
+					ynAlertView.onYes() =
+						[this](const Input::Event &e)
+						{
+							loadGame();
+						};
+					View::addModalView(ynAlertView);
 				}
 				else
 				{
@@ -492,17 +503,28 @@ public:
 class UnibiosSwitchesView : public BaseMenuView
 {
 	MenuItem *item[2] {nullptr};
-	MultiChoiceSelectMenuItem region {"Region"};
-	BoolMenuItem system;
-public:
-	constexpr UnibiosSwitchesView(): BaseMenuView("Unibios Switches") { }
-
-	static void systemHandler(BoolMenuItem &item, const Input::Event &e)
+	MultiChoiceSelectMenuItem region
 	{
-		item.toggle();
-		updateBits(memory.memcard[2], item.on ? BIT(7) : 0, 0x80);
-		updateBits(memory.sram[2], item.on ? BIT(7) : 0, 0x80);
-	}
+		"Region",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			updateBits(memory.memcard[3], val, 0x3);
+			updateBits(memory.sram[3], val, 0x3);
+		}
+	};
+
+	BoolMenuItem system
+	{
+		"Mode",
+		[](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle();
+			updateBits(memory.memcard[2], item.on ? BIT(7) : 0, 0x80);
+			updateBits(memory.sram[2], item.on ? BIT(7) : 0, 0x80);
+		}
+	};
+public:
+	UnibiosSwitchesView(): BaseMenuView("Unibios Switches") { }
 
 	void regionInit()
 	{
@@ -513,21 +535,13 @@ public:
 		int setting = 0;
 		setting = memory.memcard[3] & 0x3;
 		region.init(str, setting, sizeofArray(str));
-		region.onValue().bind<&regionSet>();
-	}
-
-	static void regionSet(MultiChoiceMenuItem &, int val)
-	{
-		updateBits(memory.memcard[3], val, 0x3);
-		updateBits(memory.sram[3], val, 0x3);
 	}
 
 	void init(bool highlightFirst)
 	{
 		uint i = 0;
 		regionInit(); item[i++] = &region;
-		system.init("Mode", "Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
-		system.selectDelegate().bind<&systemHandler>();
+		system.init("Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
 		assert(i <= sizeofArray(item));
 		BaseMenuView::init(item, i, highlightFirst);
 	}
@@ -548,38 +562,42 @@ class SystemMenuView : public MenuView
 {
 private:
 
-	static void gameListHandler(TextMenuItem &, const Input::Event &e)
+	TextMenuItem gameList
 	{
-		if(!gameListMenu.init(!e.isPointer()))
+		"Load Game From List",
+		[](TextMenuItem &, const Input::Event &e)
 		{
-			popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
-			return;
+			if(!gameListMenu.init(!e.isPointer()))
+			{
+				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
+				return;
+			}
+			viewStack.pushAndShow(&gameListMenu);
 		}
-		viewStack.pushAndShow(&gameListMenu);
-	}
+	};
 
-	TextMenuItem gameList;
-
-	static void unibiosSwitchesHandler(TextMenuItem &item, const Input::Event &e)
+	TextMenuItem unibiosSwitches
 	{
-		if(EmuSystem::gameIsRunning())
+		"Unibios Switches",
+		[](TextMenuItem &item, const Input::Event &e)
 		{
-			if(item.active)
+			if(EmuSystem::gameIsRunning())
 			{
-				unibiosSwitchesMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&unibiosSwitchesMenu);
-			}
-			else
-			{
-				popup.post("Only used with Unibios");
+				if(item.active)
+				{
+					unibiosSwitchesMenu.init(!e.isPointer());
+					viewStack.pushAndShow(&unibiosSwitchesMenu);
+				}
+				else
+				{
+					popup.post("Only used with Unibios");
+				}
 			}
 		}
-	}
-
-	TextMenuItem unibiosSwitches { "Unibios Switches" };
+	};
 
 public:
-	constexpr SystemMenuView() { }
+	SystemMenuView() { }
 
 	void onShow()
 	{
@@ -591,10 +609,8 @@ public:
 	{
 		uint items = 0;
 		loadFileBrowserItems(item, items);
-		gameList.init("Load Game From List"); item[items++] = &gameList;
-		gameList.selectDelegate().bind<&gameListHandler>();
+		gameList.init(); item[items++] = &gameList;
 		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
-		unibiosSwitches.selectDelegate().bind<&unibiosSwitchesHandler>();
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
 		BaseMenuView::init(item, items, highlightFirst);

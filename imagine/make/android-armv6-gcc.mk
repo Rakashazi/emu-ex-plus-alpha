@@ -13,11 +13,15 @@ else
  noFpu = 1
 endif
 
-system_externalSysroot := $(IMAGINE_PATH)/bundle/android/armv6
-CPPFLAGS += -I$(system_externalSysroot)/include
-LDLIBS += -L$(system_externalSysroot)/lib
+extraSysroot := $(IMAGINE_PATH)/bundle/android/armv6
+PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
+pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
+CPPFLAGS += -I$(extraSysroot)/include
+LDLIBS += -L$(extraSysroot)/lib
 
-include $(currPath)/android-arm.mk
+include $(buildSysPath)/android-arm.mk
 
 ifeq ($(android_hasSDK9), 1)
  # No Android 2.3+ armv5te devices exist to my knowledge

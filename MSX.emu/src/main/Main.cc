@@ -14,7 +14,6 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -866,6 +865,8 @@ void EmuSystem::saveAutoState()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 void EmuSystem::closeSystem()
@@ -1229,10 +1230,14 @@ CallResult onWindowInit()
 
 	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
 	{
-		ynAlertView.init(InstallMSXSystem::installMessage(), Input::keyInputIsPresent());
-		ynAlertView.onYes().bind<&InstallMSXSystem::confirmAlert>();
-		ynAlertView.placeRect(Gfx::viewportRect());
-		View::modalView = &ynAlertView;
+		auto &ynAlertView = *allocModalView<YesNoAlertView>();
+		ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
+		ynAlertView.onYes() =
+			[](const Input::Event &e)
+			{
+				installFirmwareFiles();
+			};
+		View::addModalView(ynAlertView);
 	}
 	return OK;
 }

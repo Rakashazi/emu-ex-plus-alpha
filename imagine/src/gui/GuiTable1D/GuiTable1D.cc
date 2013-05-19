@@ -19,6 +19,7 @@
 #include <gfx/GeomRect.hh>
 #include <input/Input.hh>
 #include <base/Base.hh>
+#include <algorithm>
 
 GC GuiTable1D::globalXIndent = 0;
 
@@ -44,20 +45,20 @@ void GuiTable1D::setYCellSize(int s)
 	viewRect.y2 = viewRect.y + ((cells * s)-1);
 }
 
-int GuiTable1D::inputEvent(const Input::Event &e)
+bool GuiTable1D::inputEvent(const Input::Event &e)
 {
 	using namespace IG;
 	if(cells == 0)
-		return -1;
+		return false;
 
-	int returnVal = -1;
+	bool usedInput = false;
 
 	if(e.isPointer())
 	{
 		if(!viewRect.overlaps(e.x, e.y) || e.button != Input::Pointer::LBUTTON)
 		{
 			//logMsg("cursor not in table");
-			return -1;
+			return false;
 		}
 
 		if(e.state == Input::PUSHED)
@@ -68,10 +69,10 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 			{
 				selected = i;
 				Base::displayNeedsUpdate();
+				usedInput = true;
 			}
 		}
-
-		if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
+		else if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
 		{
 			int i = (e.y - viewRect.y) / yCellSize;
 			//logMsg("input released on cell %d", i);
@@ -79,8 +80,10 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 			{
 				logDMsg("entry %d pushed", i);
 				selectedIsActivated = 1;
-				returnVal = i;
 				Base::displayNeedsUpdate();
+				usedInput = true;
+				src->onSelectElement(this, e, i);
+				selected = -1;
 			}
 		}
 	}
@@ -102,7 +105,7 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 			}
 			logMsg("up, selected %d", selected);
 			Base::displayNeedsUpdate();
-			//selectChanged = 1;
+			usedInput = true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
 			|| (e.isRelativePointer() && e.y > 0))
@@ -113,7 +116,7 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 				selected = wrapToBound(selected+1, 0, cells);
 			logMsg("down, selected %d", selected);
 			Base::displayNeedsUpdate();
-			//selectChanged = 1;
+			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultConfirmButton())
 		{
@@ -121,8 +124,9 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 			{
 				logDMsg("entry %d pushed", selected);
 				selectedIsActivated = 1;
-				returnVal = selected;
+				src->onSelectElement(this, e, selected);
 				Base::displayNeedsUpdate();
+				usedInput = true;
 			}
 		}
 		else if(e.pushed() && e.isDefaultPageUpButton())
@@ -133,6 +137,7 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 				selected = clipToBounds(selected-visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
 			Base::displayNeedsUpdate();
+			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultPageDownButton())
 		{
@@ -142,18 +147,11 @@ int GuiTable1D::inputEvent(const Input::Event &e)
 				selected = clipToBounds(selected+visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
 			Base::displayNeedsUpdate();
+			usedInput = true;
 		}
 	}
 
-	if(returnVal != -1)
-	{
-		//logMsg("doing onSelectElement() with %d", returnVal);
-		src->onSelectElement(this, e, returnVal);
-		if(e.isPointer())
-			selected = -1;
-	}
-
-	return returnVal;
+	return usedInput;
 }
 
 int GuiTable1D::visibleCells() const
@@ -194,7 +192,7 @@ void GuiTable1D::draw()
 	GC separatorYSize = iYSize(1);
 
 	int yStart = y;
-	int endYCell = IG::min(startYCell+visYCells, cells);
+	int endYCell = std::min(startYCell+visYCells, cells);
 	// draw separators
 	resetTransforms();
 	for(int i = startYCell; i < endYCell; i++)

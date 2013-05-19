@@ -2,7 +2,6 @@
 #include <neopop.h>
 #include <flash.h>
 
-#include <resource2/image/png/ResourceImagePng.h>
 #include <logger/interface.h>
 #include <util/area2.h>
 #include <gfx/GfxSprite.hh>
@@ -191,7 +190,6 @@ int EmuSystem::loadState(int saveStateSlot)
 			return STATE_RESULT_IO_ERROR;
 		else
 		{
-			//EmuSystem::configAudioRate();
 			return STATE_RESULT_OK;
 		}
 	}
@@ -257,6 +255,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
 #define HAVE_LIBZ
@@ -379,7 +379,7 @@ void EmuSystem::configAudioRate()
 
 void system_sound_chipreset(void)
 {
-	EmuSystem::configAudioRate();
+	EmuSystem::configAudioPlayback();
 }
 
 static void writeAudio()

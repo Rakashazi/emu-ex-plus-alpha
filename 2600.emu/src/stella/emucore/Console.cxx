@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.cxx 2547 2012-07-14 18:56:57Z stephena $
+// $Id: Console.cxx 2613 2013-02-17 00:19:14Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -596,19 +596,14 @@ void Console::setTIAProperties()
 
   // Make sure these values fit within the bounds of the desktop
   // If not, attempt to center vertically
-  if(height <= myOSystem->desktopHeight())
-  {
-    myTIA->setYStart(ystart);
-    myTIA->setHeight(height);
-  }
-  else
+  if(height > myOSystem->desktopHeight())
   {
     ystart += height - myOSystem->desktopHeight();
     ystart = BSPF_min(ystart, 64u);
     height = myOSystem->desktopHeight();
-    myTIA->setYStart(ystart);
-    myTIA->setHeight(height);
   }
+	myTIA->setYStart(ystart);
+	myTIA->setHeight(height);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -743,16 +738,16 @@ void Console::setControllers(const string& rommd5)
   }
   else if(right == "ATARIVOX")
   {
-    const string& eepromfile = myOSystem->eepromDir() + "atarivox_eeprom.dat";
+  	const string& nvramfile = myOSystem->nvramDir() + "atarivox_eeprom.dat";
     myControllers[rightPort] = new AtariVox(Controller::Right, myEvent,
                    *mySystem, myOSystem->serialPort(),
-                   myOSystem->settings().getString("avoxport"), eepromfile);
+                   myOSystem->settings().getString("avoxport"), nvramfile);
   }
   else if(right == "SAVEKEY")
   {
-    const string& eepromfile = myOSystem->eepromDir() + "savekey_eeprom.dat";
+  	const string& nvramfile = myOSystem->nvramDir() + "savekey_eeprom.dat";
     myControllers[rightPort] = new SaveKey(Controller::Right, myEvent, *mySystem,
-                                           eepromfile);
+    																				nvramfile);
   }
   else if(right == "GENESIS")
   {

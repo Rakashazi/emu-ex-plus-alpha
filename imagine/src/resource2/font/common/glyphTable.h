@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gfx/GfxBufferImage.hh>
+
 struct GlyphMetrics
 {
 	constexpr GlyphMetrics() { }
@@ -10,10 +12,16 @@ struct GlyphMetrics
 	int xAdvance = 0;
 };
 
-class ResourceImageGlyph;
+namespace Gfx
+{
+
+class BufferImage;
+
+}
+
 struct GlyphEntry
 {
 	constexpr GlyphEntry() { }
-	ResourceImageGlyph *glyph = nullptr;
+	Gfx::BufferImage glyph;
 	GlyphMetrics metrics;
 };

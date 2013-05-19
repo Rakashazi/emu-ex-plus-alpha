@@ -15,12 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <util/operators.hh>
 #include "SampleFormat.hh"
 
 namespace Audio
 {
 
-class PcmFormat
+class PcmFormat : public NotEquals<PcmFormat>
 {
 public:
 	constexpr PcmFormat() { }

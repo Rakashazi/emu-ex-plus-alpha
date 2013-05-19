@@ -1,6 +1,8 @@
 #pragma once
 
 #include <util/number.h>
+#include <config/machine.hh>
+#include <algorithm>
 
 class TextureSizeSupport
 {
@@ -33,8 +35,13 @@ public:
 		}
 		else
 		{
-			x = nextHighestPowerOf2(IG::max(imageX,imageY));
-			y = nextHighestPowerOf2(IG::max(imageX,imageY));
+			x = y = nextHighestPowerOf2(std::max(imageX,imageY));
+		}
+
+		if(Config::MACHINE_IS_PANDORA && (x <= 16 || y <= 16))
+		{
+			// force small textures as square due to PowerVR driver bug
+			x = y = std::max(x, y);
 		}
 
 		if(minXSize && x < minXSize) x = minXSize;

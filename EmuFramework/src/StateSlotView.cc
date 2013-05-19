@@ -1,4 +1,4 @@
-/*  This file is part of Imagine.
+/*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,18 +11,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <StateSlotView.hh>
 
 extern ViewStack viewStack;
-
-void StateSlotView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
-{
-	EmuSystem::saveStateSlot = i-1;
-	logMsg("set state slot %d", EmuSystem::saveStateSlot);
-	viewStack.popAndShow();
-}
 
 void StateSlotView::init(bool highlightFirst)
 {
@@ -52,6 +45,14 @@ void StateSlotView::init(bool highlightFirst)
 			string_printf(stateStr[idx], "%s", stateNameStr(slot));
 			stateSlot[idx].init(stateStr[idx], false); item[i] = &stateSlot[idx]; i++;
 		}
+
+		stateSlot[idx].onSelect() =
+			[this, slot](TextMenuItem &item, const Input::Event &e)
+			{
+				EmuSystem::saveStateSlot = slot;
+				logMsg("set state slot %d", EmuSystem::saveStateSlot);
+				viewStack.popAndShow();
+			};
 	}
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);

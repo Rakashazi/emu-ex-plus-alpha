@@ -128,6 +128,7 @@ void FCEU_ResetMessages() { }
 void FCEU_PutImageDummy(void) { }
 void FCEU_PutImage(void) { }
 void FCEUI_SaveSnapshot(void) { }
+void ResetScreenshotsCounter() { }
 int ClipSidesOffset = 0;
 GUIMESSAGE subtitleMessage;
 

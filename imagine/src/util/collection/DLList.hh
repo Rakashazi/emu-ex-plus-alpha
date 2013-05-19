@@ -2,7 +2,9 @@
 
 #include <util/cLang.h>
 #include <util/memory.h>
+#include <util/branch.h>
 #include <assert.h>
+#include <utility>
 #include <logger/interface.h>
 #include <util/preprocessor/repeat.h>
 
@@ -287,6 +289,21 @@ public:
 		return 1;
 	}
 
+	void push_back(const T &d)
+	{
+		addToEnd(d);
+	}
+
+	template <class... ARGS>
+	void emplace_back(ARGS&&... args)
+	{
+		if(!addToEnd())
+		{
+			bug_exit("out of space in list");
+		}
+		new(last()) T(std::forward<ARGS>(args)...);
+	}
+
 	int contains(const T &d)
 	{
 		for(Node *n = list; n; n = n->next)
@@ -362,6 +379,8 @@ public:
 
 	T *first() { return list ? &list->d : nullptr;	}
 	T *last() { return listEnd ? &listEnd->d : nullptr;	}
+
+	T &back() { return listEnd->d;	}
 
 	T *index(uint idx)
 	{

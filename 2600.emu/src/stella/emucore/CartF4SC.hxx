@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF4SC.hxx 2453 2012-04-29 19:43:28Z stephena $
+// $Id: CartF4SC.hxx 2579 2013-01-04 19:49:01Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF4SC_HXX
@@ -30,7 +30,7 @@ class System;
   128 bytes of RAM.  There are eight 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF4SC.hxx 2453 2012-04-29 19:43:28Z stephena $
+  @version $Id: CartF4SC.hxx 2579 2013-01-04 19:49:01Z stephena $
 */
 class CartridgeF4SC : public Cartridge
 {

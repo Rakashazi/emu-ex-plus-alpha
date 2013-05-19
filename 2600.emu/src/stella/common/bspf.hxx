@@ -8,13 +8,13 @@
 //  BB  BB  SS  SS  PP      FF
 //  BBBBB    SSSS   PP      FF
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: bspf.hxx 2528 2012-06-07 13:29:56Z stephena $
+// $Id: bspf.hxx 2610 2013-02-15 19:04:52Z stephena $
 //============================================================================
 
 #ifndef BSPF_HXX
@@ -25,7 +25,7 @@
   that need to be defined for different operating systems.
 
   @author Bradford W. Mott
-  @version $Id: bspf.hxx 2528 2012-06-07 13:29:56Z stephena $
+  @version $Id: bspf.hxx 2610 2013-02-15 19:04:52Z stephena $
 */
 
 #ifdef HAVE_INTTYPES
@@ -85,13 +85,13 @@ using namespace std;
 
 // I wish Windows had a complete POSIX layer
 #if defined BSPF_WIN32 && !defined __GNUG__
-  #define BSPF_strcasecmp stricmp
-  #define BSPF_strncasecmp strnicmp
+  #define BSPF_strcasecmp _stricmp
+  #define BSPF_strncasecmp _strnicmp
   #define BSPF_isblank(c) ((c == ' ') || (c == '\t'))
   #define BSPF_snprintf _snprintf
   #define BSPF_vsnprintf _vsnprintf
 #else
-  //#define HAVE_UNISTD_H   // needed for building zlib
+  #define HAVE_UNISTD_H   // needed for building zlib
   #include <strings.h>
   #define BSPF_strcasecmp strcasecmp
   #define BSPF_strncasecmp strncasecmp
@@ -169,9 +169,18 @@ inline bool BSPF_startsWithIgnoreCase(const char* s1, const char* s2)
 // Test whether the first string ends with the second one (case insensitive)
 inline bool BSPF_endsWithIgnoreCase(const string& s1, const string& s2)
 {
-  return (s1.length() >= s2.length()) ?
-      (BSPF_findIgnoreCase(s1, s2, s1.length() - s2.length()) != string::npos) :
-      false;
+  if(s1.length() >= s2.length())
+  {
+    const char* end = s1.c_str() + s1.length() - s2.length();
+    return BSPF_equalsIgnoreCase(end, s2.c_str());
+  }
+  return false;
+}
+
+// Test whether the first string contains the second one (case insensitive)
+inline bool BSPF_containsIgnoreCase(const string& s1, const string& s2)
+{
+  return BSPF_findIgnoreCase(s1, s2) != string::npos;
 }
 
 static const string EmptyString("");
