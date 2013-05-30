@@ -242,9 +242,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	if(!FCEUI_SaveState(saveStr))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -286,9 +285,8 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		FCEUI_SaveState(saveStr);
 	}
 }
@@ -547,11 +545,11 @@ void onInputEvent(const Input::Event &e)
 			if(e.state == Input::PUSHED)
 			{
 				zapperData[2] = 0;
-				if(emuView.gameRect.overlaps(e.x, e.y))
+				if(emuView.gameRect().overlaps(e.x, e.y))
 				{
-					int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
-					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)256.);
-					int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)224.) + 8;
+					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
+					int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.) + 8;
 					logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
 					zapperData[0] = xNes;
 					zapperData[1] = yNes;

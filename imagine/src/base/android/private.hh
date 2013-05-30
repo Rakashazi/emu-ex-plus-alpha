@@ -22,8 +22,8 @@ namespace Base
 
 extern JavaVM* jVM;
 JNIEnv* eEnv(); // JNIEnv of main event thread
-jobject eNewGlobalRef(jobject obj);
-void eDeleteGlobalRef(jobject obj);
+jobject jniThreadNewGlobalRef(JNIEnv* jEnv, jobject obj);
+void jniThreadDeleteGlobalRef(JNIEnv* jEnv, jobject obj);
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
@@ -48,6 +48,10 @@ int keyboardType();
 ALooper *activityLooper();
 
 void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data);
+
+jobject newFontRenderer(JNIEnv *jEnv);
+
+void restoreOpenGLContext();
 
 }
 

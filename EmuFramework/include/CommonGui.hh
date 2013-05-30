@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <data-type/image/libpng/reader.h>
+#include <data-type/image/png/sys.hh>
 #include <gui/View.hh>
 #include <gui/AlertView.hh>
 #include "EmuSystem.hh"
@@ -214,8 +214,8 @@ void onExit(bool backgrounded)
 	#endif
 
 	#ifdef CONFIG_BASE_IOS
-//		if(backgrounded)
-//			unlink("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
+	if(backgrounded)
+		FsSys::remove("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
 	#endif
 }
 
@@ -613,7 +613,7 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 		//logMsg("title bar on");
 		viewStack.setNavView(&viewNav);
 	}
-
+	mMenu.init(Input::keyInputIsPresent());
 	//logMsg("setting menu orientation");
 	// set orientation last since it can trigger onViewChange()
 	Gfx::setValidOrientations(optionMenuOrientation, 1);
@@ -633,7 +633,6 @@ static void mainInitWindowCommon(const Gfx::LGradientStopDesc (&navViewGrad)[NAV
 	}
 	#endif
 
-	mMenu.init(Input::keyInputIsPresent());
 	Gfx::onViewChange();
 	mMenu.show();
 

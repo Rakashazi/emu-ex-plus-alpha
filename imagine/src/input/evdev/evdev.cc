@@ -201,7 +201,16 @@ struct EvdevInputDevice
 
 		// check joystick axes
 		{
-			Key currKeycode = Evdev::JS1_XAXIS_POS;
+			uint keycodeIdx = 0;
+			Key axisKeycode[] =
+			{
+				Evdev::JS1_XAXIS_NEG, Evdev::JS1_XAXIS_POS,
+				Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS,
+				Evdev::JS2_XAXIS_NEG, Evdev::JS2_XAXIS_POS,
+				Evdev::JS2_YAXIS_NEG, Evdev::JS2_YAXIS_POS,
+				Evdev::JS3_XAXIS_NEG, Evdev::JS3_XAXIS_POS,
+				Evdev::JS3_YAXIS_NEG, Evdev::JS3_YAXIS_POS,
+			};
 			const uint8 stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
 				ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_HAT2X, ABS_HAT2Y, ABS_HAT3X, ABS_HAT3Y,
 				ABS_RUDDER, ABS_WHEEL };
@@ -219,11 +228,11 @@ struct EvdevInputDevice
 				}
 				logMsg("min: %d max: %d fuzz: %d flat: %d", info.minimum, info.maximum, info.fuzz, info.flat);
 				int size = (info.maximum - info.minimum) + 1;
-				axis[axisId].keyEmu = {(int)(info.minimum + size/4.), (int)(info.maximum - size/4.), currKeycode};
+				axis[axisId].keyEmu = {(int)(info.minimum + size/4.), (int)(info.maximum - size/4.), axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
 				axis[axisId].active = 1;
 				axes++;
-				currKeycode += 2; // move to the next +/- axis keycode pair
-				if(axes == MAX_STICK_AXES)
+				keycodeIdx += 2; // move to the next +/- axis keycode pair
+				if(axes == sizeofArray(axisKeycode)/2)
 				{
 					logMsg("reached maximum joystick axes");
 					break;
@@ -341,7 +350,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 			devId++;
 	}
 
-	uint type = Device::TYPE_BIT_GAMEPAD | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
+	uint type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
 	addDevice(Device{devId, Event::MAP_EVDEV, type, evDev.name});
 	evDev.dev = devList.last();
 	if(notify)

@@ -22,33 +22,32 @@ import android.os.*;
 import android.view.*;
 import android.util.*;
 
-final class ChoreographerHelper implements Choreographer.FrameCallback
+final class ChoreographerHelper
 {
-	private static String logTag = "ChoreographerHelper";
-	private Choreographer choreographer;
-	private native boolean drawWindow(long frameTimeNanos);
-	
-	public ChoreographerHelper()
+	private final class Callback implements Choreographer.FrameCallback
 	{
-		choreographer = Choreographer.getInstance();
+		@Override public void doFrame(long frameTimeNanos)
+		{
+			choreographer.postFrameCallback(this);
+			if(!drawWindow(frameTimeNanos))
+			{
+				choreographer.removeFrameCallback(this);
+			}
+		}
 	}
+
+	private static final String logTag = "ChoreographerHelper";
+	private native boolean drawWindow(long frameTimeNanos);
+	private final Choreographer choreographer = Choreographer.getInstance();
+	private final Callback callback = new Callback();
 
 	void postDrawWindow()
 	{
-		choreographer.postFrameCallback(this);
+		choreographer.postFrameCallback(callback);
 	}
 	
 	void cancelDrawWindow()
 	{
-		choreographer.removeFrameCallback(this);
-	}
-
-	@Override public void doFrame(long frameTimeNanos)
-	{
-		choreographer.postFrameCallback(this);
-		if(!drawWindow(frameTimeNanos))
-		{
-			choreographer.removeFrameCallback(this);
-		}
+		choreographer.removeFrameCallback(callback);
 	}
 }

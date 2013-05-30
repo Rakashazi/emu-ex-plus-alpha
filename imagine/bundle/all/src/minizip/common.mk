@@ -4,7 +4,10 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-zlibVer := 1.2.7
+# provide GNU version of tar to support --strip-components
+TAR ?= tar
+
+zlibVer := 1.2.8
 zlibSrcArchive := zlib-$(zlibVer).tar.gz
 
 configureFile := $(buildDir)/configure
@@ -28,7 +31,7 @@ install : $(outputLibFile)
 $(buildDir)/configure.ac : $(zlibSrcArchive)
 	@echo "Extracting minizip..."
 	@mkdir -p $(buildDir)
-	tar -mxzf $^ -C $(buildDir) zlib-$(zlibVer)/contrib/minizip --strip-components=3
+	$(TAR) -mxzf $^ -C $(buildDir) zlib-$(zlibVer)/contrib/minizip --strip-components=3
 
 $(outputLibFile) : $(pcFile)
 	@echo "Building minizip..."
@@ -41,5 +44,5 @@ $(configureFile) : $(buildDir)/configure.ac
 $(pcFile) : $(configureFile)
 	@echo "Configuring minizip..."
 	@mkdir -p $(@D)
-	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) -DOF\(args\)=args $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --prefix=$(installDir) --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

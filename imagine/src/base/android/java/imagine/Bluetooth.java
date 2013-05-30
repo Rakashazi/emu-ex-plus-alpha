@@ -25,11 +25,11 @@ import java.lang.reflect.*;
 
 final class Bluetooth
 {
-	private static String logTag = "ImagineBluetooth";
+	private static final String logTag = "ImagineBluetooth";
 	private static final int TYPE_L2CAP = 3;
 	private static ArrayList<BluetoothDevice> devs = null;
-	private static Constructor<?> l2capInsecureSocketConstructor = Util.getConstructor(BluetoothSocket.class, new Class[] {int.class, int.class, boolean.class, boolean.class, BluetoothDevice.class, int.class, ParcelUuid.class});
-	private static Method createInsecureRfcommSocket = Util.getMethod(BluetoothDevice.class, "createInsecureRfcommSocket", new Class[] { int.class });
+	private static final Constructor<?> l2capInsecureSocketConstructor = Util.getConstructor(BluetoothSocket.class, new Class[] {int.class, int.class, boolean.class, boolean.class, BluetoothDevice.class, int.class, ParcelUuid.class});
+	private static final Method createInsecureRfcommSocket = Util.getMethod(BluetoothDevice.class, "createInsecureRfcommSocket", new Class[] { int.class });
 	
 	static BluetoothAdapter defaultAdapter(Activity act)
 	{
@@ -75,7 +75,7 @@ final class Bluetooth
 				//Log.i(logTag, "creating l2cap");
 				if(l2capInsecureSocketConstructor == null)
 				{
-					Log.i(logTag, "missing l2cap methods");
+					//Log.i(logTag, "missing l2cap methods");
 					return null;
 				}
 				socket = (BluetoothSocket)l2capInsecureSocketConstructor.newInstance(TYPE_L2CAP, -1, false, false, dev, ch, null);
@@ -85,7 +85,7 @@ final class Bluetooth
 				//Log.i(logTag, "creating rfcomm");
 				if(createInsecureRfcommSocket == null)
 				{
-					Log.i(logTag, "missing rfcomm methods");
+					//Log.i(logTag, "missing rfcomm methods");
 					return null;
 				}
 				socket = (BluetoothSocket)createInsecureRfcommSocket.invoke(dev, ch);
@@ -97,19 +97,19 @@ final class Bluetooth
 		}
 		catch(java.lang.IllegalAccessException e)
 		{
-			Log.i(logTag, "IllegalAccessException creating socket");
+			//Log.i(logTag, "IllegalAccessException creating socket");
 		}
 		catch(java.lang.reflect.InvocationTargetException e)
 		{
-			Log.i(logTag, "InvocationTargetException creating socket");
+			//Log.i(logTag, "InvocationTargetException creating socket");
 		}
 		catch(java.lang.InstantiationException e)
 		{
-			Log.i(logTag, "InstantiationException creating socket");
+			//Log.i(logTag, "InstantiationException creating socket");
 		}
 		catch(java.io.IOException e)
 		{
-			Log.i(logTag, "IOException creating socket");
+			//Log.i(logTag, "IOException creating socket");
 			if(socket != null)
 			{
 				try { socket.close(); }

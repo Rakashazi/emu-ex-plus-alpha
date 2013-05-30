@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <engine-globals.h>
+#include <config/machine.hh>
 #include <util/number.h>
 #include <util/rectangle2.h>
 #include <util/DelegateFunc.hh>
@@ -394,10 +395,10 @@ private:
 		bool iCadeMode_ = 0;
 	#endif
 	uint type_ = 0;
+	bool joystickAxis1AsDpad_ = false;
 public:
 	uint devId = 0, subtype = 0, idx = 0;
 	const char *name_ = nullptr;
-	bool mapJoystickAxis1ToDpad = 0;
 
 	constexpr Device() { }
 	constexpr Device(uint devId, uint map, uint type, const char *name_): map_(map), type_(type), devId(devId), name_(name_) { }
@@ -459,8 +460,16 @@ public:
 	}
 
 	#ifdef CONFIG_INPUT_ICADE
-		void setICadeMode(bool on);
-		bool iCadeMode() const { return iCadeMode_; }
+	void setICadeMode(bool on);
+	bool iCadeMode() const { return iCadeMode_; }
+	#endif
+
+	#ifdef CONFIG_BASE_ANDROID
+	void setJoystickAxis1AsDpad(bool on);
+	bool joystickAxis1AsDpad();
+	#else
+	void setJoystickAxis1AsDpad(bool on) {}
+	bool joystickAxis1AsDpad() { return false; }
 	#endif
 
 	const char *keyName(Key b) const;
@@ -510,6 +519,7 @@ struct PackedInputAccess
 };
 
 extern bool swappedGamepadConfirm;
+static constexpr bool SWAPPED_GAMEPAD_CONFIRM_DEFAULT = Config::MACHINE_IS_PANDORA ? true : false;
 
 class Event
 {

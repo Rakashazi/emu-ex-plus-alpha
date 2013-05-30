@@ -24,34 +24,33 @@
 class EmuView : public View
 {
 public:
-	constexpr EmuView() { }
-	Gfx::Sprite disp;
-	uchar *pixBuff = nullptr;
-	Pixmap vidPix {PixelFormatRGB565};
-	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
-	Gfx::BufferImage vidImg;
-	VideoImageOverlay vidImgOverlay;
-
-	Rect2<int> gameRect;
-	Rect2<GC> gameRectG;
-
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	Gfx::Sprite menuIcon;
 	Rect2<int> menuB, fastForwardB;
 	#endif
 	bool ffGuiKeyPush = 0, ffGuiTouch = 0;
-
-	void deinit() { }
+	VideoImageOverlay vidImgOverlay;
+	Gfx::Sprite disp;
+	Gfx::BufferImage vidImg;
+	Pixmap vidPix {PixelFormatRGB565};
+private:
+	uchar *pixBuff = nullptr;
+	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
+	Rect2<int> gameRect_;
+	Rect2<GC> gameRectG;
 	Rect2<int> rect;
-	Rect2<int> &viewRect() { return rect; }
 
-	void place();
+public:
+	constexpr EmuView() {}
+	void deinit() override {}
+	Rect2<int> &viewRect() override { return rect; }
+	void place() override;
 	void placeEmu(); // game content only
 	template <bool active>
 	void drawContent();
 	void runFrame(Gfx::FrameTimeBase frameTime);
-	void draw(Gfx::FrameTimeBase frameTime);
-	void inputEvent(const Input::Event &e);
+	void draw(Gfx::FrameTimeBase frameTime) override;
+	void inputEvent(const Input::Event &e) override;
 	void takeGameScreenshot();
 
 	void placeOverlay()
@@ -110,5 +109,10 @@ public:
 		{
 			resizeImage(xO, yO, x, y, totalX, totalY, extraPitch);
 		}
+	}
+
+	const Rect2<int> &gameRect() const
+	{
+		return gameRect_;
 	}
 };

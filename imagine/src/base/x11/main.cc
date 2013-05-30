@@ -197,14 +197,23 @@ static CallResult setupGLWindow(uint xres, uint yres, bool multisample)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	Input::initPerWindowData(win);
-	auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
-	XSetWMProtocols(dpy, win, &wmDelete, 1);
-	//XSetStandardProperties(dpy, win, CONFIG_APP_NAME, CONFIG_APP_NAME, None, nullptr, 0, nullptr);
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
 		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 		XChangeProperty(dpy, win, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
+	}
+	else
+	{
+		auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+		XSetWMProtocols(dpy, win, &wmDelete, 1);
+		XSizeHints hints
+		{
+			PMinSize,
+			0, 0, 0, 0,
+			320, 240 // min size
+		};
+		XSetWMNormalHints(dpy, win, &hints);
 	}
 	logMsg("using depth %d", xDrawableDepth(dpy, win));
 
@@ -319,6 +328,14 @@ void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
 	// TODO
 	logMsg("openURL called with %s", url);
 }*/
+
+const char *storagePath()
+{
+	if(Config::MACHINE_IS_PANDORA)
+		return "/media";
+	else
+		return appPath;
+}
 
 static void updateViewSize()
 {

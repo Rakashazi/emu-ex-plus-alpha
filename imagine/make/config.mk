@@ -12,4 +12,8 @@ baseMakefileName = $(shell basename $(firstword $(MAKEFILE_LIST)))
 
 buildSysPath := $(currPath)
 
+ifndef V
+ PRINT_CMD := @
+endif
+
 endif

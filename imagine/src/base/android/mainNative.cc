@@ -39,10 +39,6 @@
 #include "common.hh"
 #include "EGLWindow.hh"
 
-#ifdef CONFIG_RESOURCE_FONT_ANDROID
-	void setupResourceFontAndroidJni(JNIEnv *jEnv, jobject jClsLoader, const JavaInstMethod<jobject> &jLoadClass);
-#endif
-
 namespace Gfx
 {
 
@@ -103,7 +99,7 @@ static JNIEnv* eJEnv = nullptr;
 bool engineIsInit = 0;
 static JavaInstMethod<jint> jGetRotation;
 static jobject jDpy = nullptr;
-static jobject choreographerHelper = nullptr;
+static jobject drawWindowHelper = nullptr;
 static bool aHasFocus = 1;
 JavaVM* jVM = 0;
 extern pid_t activityTid;
@@ -129,6 +125,7 @@ static CallbackRef *inputRescanCallbackRef = nullptr;
 static void (*didDrawWindowCallback)() = nullptr;
 static const char *buildDevice = nullptr;
 static uint refreshRate_ = 0;
+static JavaInstMethod<jobject> jNewFontRenderer;
 
 const char *androidBuildDevice()
 {
@@ -212,6 +209,11 @@ EGLDisplay getAndroidEGLDisplay()
 {
 	assert(eglWin.display != EGL_NO_DISPLAY);
 	return eglWin.display;
+}
+
+jobject newFontRenderer(JNIEnv *jEnv)
+{
+	return jNewFontRenderer(jEnv, jBaseActivity);
 }
 
 static void initConfig(AConfiguration* config)
@@ -434,28 +436,16 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 	using namespace Base;
 	logMsg("doing app creation");
 
-	// get class loader instance from Activity
-	jclass jNativeActivityCls = jEnv->FindClass("android/app/NativeActivity");
-	assert(jNativeActivityCls);
-	JavaInstMethod<jobject> jGetClassLoader;
-	jGetClassLoader.setup(jEnv, jNativeActivityCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
-	jobject jClsLoader = jGetClassLoader(jEnv, inst);
-	assert(jClsLoader);
-
-	jclass jClsLoaderCls = jEnv->FindClass("java/lang/ClassLoader");
-	assert(jClsLoaderCls);
-	JavaInstMethod<jobject> jLoadClass;
-	jLoadClass.setup(jEnv, jClsLoaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-
 	// BaseActivity members
 	{
-		jstring baseActivityStr = jEnv->NewStringUTF("com/imagine/BaseActivity");
-		jBaseActivityCls = (jclass)jEnv->NewGlobalRef(jLoadClass(jEnv, jClsLoader, baseActivityStr));
-		jEnv->DeleteLocalRef(baseActivityStr);
+		jBaseActivityCls = (jclass)jEnv->NewGlobalRef(jEnv->GetObjectClass(inst));
 		jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
 		jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 		jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
-		//postUIThread.setup(jEnv, jBaseActivityCls, "postUIThread", "(II)V");
+		#ifdef CONFIG_RESOURCE_FONT_ANDROID
+		jNewFontRenderer.setup(jEnv, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
+		#endif
+
 
 		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 		{
@@ -547,41 +537,37 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 		#endif
 	}
 
-	#ifdef CONFIG_RESOURCE_FONT_ANDROID
-		setupResourceFontAndroidJni(jEnv, jClsLoader, jLoadClass);
-	#endif
-
 	Gfx::surfaceTextureConf.init(jEnv);
 
-	// Display members
-	jclass jDisplayCls = jEnv->FindClass("android/view/Display");
+	// Display
+	JavaInstMethod<jobject> jDefaultDpy;
+	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
+	jDpy = jEnv->NewGlobalRef(jDefaultDpy(jEnv, inst));
+
+	jclass jDisplayCls = jEnv->GetObjectClass(jDpy);
 	jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
 	jGetRefreshRate.setup(jEnv, jDisplayCls, "getRefreshRate", "()F");
 	//JavaInstMethod<void> jGetMetrics;
 	//jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
 
-	JavaInstMethod<jobject> jDefaultDpy;
-	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
-	jDpy = jEnv->NewGlobalRef(jDefaultDpy(jEnv, inst));
 	auto orientation = jGetRotation(jEnv, jDpy);
 	logMsg("starting orientation %d", orientation);
 	osOrientation = orientation;
 	bool isStraightOrientation = !Surface::isSidewaysOrientation(orientation);
 
-	// DisplayMetrics members
-	jclass jDisplayMetricsCls = jEnv->FindClass("android/util/DisplayMetrics");
-	//JavaInstMethod<void> jDisplayMetrics;
-	//jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
-	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
-	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
-	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
+	// DisplayMetrics
 	JavaInstMethod<jobject> jDisplayMetrics;
 	jDisplayMetrics.setup(jEnv, jBaseActivityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
 	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
 	auto dpyMetrics = jDisplayMetrics(jEnv, inst);
 	assert(dpyMetrics);
-	//auto dpyMetrics = jEnv->NewObject(jDisplayMetricsCls, jDisplayMetrics.m);
-	//jGetMetrics(jEnv, jDpy, dpyMetrics);
+
+	jclass jDisplayMetricsCls = jEnv->GetObjectClass(dpyMetrics);
+	//JavaInstMethod<void> jDisplayMetrics;
+	//jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
+	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
+	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
+	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
 	#ifndef NDEBUG
 	{
 		auto jDensity = jEnv->GetFieldID(jDisplayMetricsCls, "density", "F");
@@ -633,23 +619,21 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 	{
 		//logMsg("using Choreographer for display updates");
 		hasChoreographer = 1;
-		jstring ChoreographerHelperStr = jEnv->NewStringUTF("com/imagine/ChoreographerHelper");
-		auto jChoreographerHelperCls = (jclass)jLoadClass(jEnv, jClsLoader, ChoreographerHelperStr);
-		jEnv->DeleteLocalRef(ChoreographerHelperStr);
-		JavaInstMethod<void> jChoreographerHelperCtor;
-		jChoreographerHelperCtor.setup(jEnv, jChoreographerHelperCls, "<init>", "()V");
-		jPostDrawWindow.setup(jEnv, jChoreographerHelperCls, "postDrawWindow", "()V");
-		jCancelDrawWindow.setup(jEnv, jChoreographerHelperCls, "cancelDrawWindow", "()V");
+		JavaInstMethod<jobject> jNewChoreographerHelper;
+		jNewChoreographerHelper.setup(jEnv, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
+		drawWindowHelper = jNewChoreographerHelper(jEnv, inst);
+		assert(drawWindowHelper);
+		drawWindowHelper = jEnv->NewGlobalRef(drawWindowHelper);
+		auto choreographerHelperCls = jEnv->GetObjectClass(drawWindowHelper);
+		jPostDrawWindow.setup(jEnv, choreographerHelperCls, "postDrawWindow", "()V");
+		jCancelDrawWindow.setup(jEnv, choreographerHelperCls, "cancelDrawWindow", "()V");
 		{
-			JNINativeMethod activityMethods[] =
+			JNINativeMethod method[] =
 			{
 					{"drawWindow", "(J)Z", (void*)&Base::drawWindowJNI},
 			};
-			jEnv->RegisterNatives(jChoreographerHelperCls, activityMethods, sizeofArray(activityMethods));
+			jEnv->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
 		}
-		choreographerHelper = jEnv->NewObject(jChoreographerHelperCls, jChoreographerHelperCtor.m);
-		assert(choreographerHelper);
-		choreographerHelper = jEnv->NewGlobalRef(choreographerHelper);
 	}
 	else
 	{
@@ -657,16 +641,21 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 		if(unlikely(drawWinEventFd == -1))
 		{
 			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
+			JavaInstMethod<jobject> jNewIdleHelper;
+			jNewIdleHelper.setup(jEnv, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
+			drawWindowHelper = jNewIdleHelper(jEnv, inst);
+			assert(drawWindowHelper);
+			drawWindowHelper = jEnv->NewGlobalRef(drawWindowHelper);
+			auto idleHelperCls = jEnv->GetObjectClass(drawWindowHelper);
+			jPostDrawWindow.setup(jEnv, idleHelperCls, "postDrawWindow", "()V");
+			jCancelDrawWindow.setup(jEnv, idleHelperCls, "cancelDrawWindow", "()V");
 			{
-				JNINativeMethod activityMethods[] =
+				JNINativeMethod method[] =
 				{
-						{"drawWindowIdle", "()Z", (void*)&Base::drawWindowIdleJNI},
+						{"drawWindow", "()Z", (void*)&Base::drawWindowIdleJNI},
 				};
-				jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+				jEnv->RegisterNatives(idleHelperCls, method, sizeofArray(method));
 			}
-			jPostDrawWindow.setup(jEnv, jBaseActivityCls, "postDrawWindowIdle", "()V");
-			jCancelDrawWindow.setup(jEnv, jBaseActivityCls, "cancelDrawWindowIdle", "()V");
-			choreographerHelper = inst;
 		}
 		else
 		{
@@ -766,14 +755,14 @@ static void processInputWithHasEvents(AInputQueue *inputQueue)
 
 JNIEnv* eEnv() { assert(eJEnv); return eJEnv; }
 
-jobject eNewGlobalRef(jobject obj)
+jobject jniThreadNewGlobalRef(JNIEnv* jEnv, jobject obj)
 {
-	return eEnv()->NewGlobalRef(obj);
+	return jEnv->NewGlobalRef(obj);
 }
 
-void eDeleteGlobalRef(jobject obj)
+void jniThreadDeleteGlobalRef(JNIEnv* jEnv, jobject obj)
 {
-	eEnv()->DeleteGlobalRef(obj);
+	jEnv->DeleteGlobalRef(obj);
 }
 
 void addPollEvent(int fd, PollEventDelegate &handler, uint events)
@@ -893,8 +882,8 @@ static void postDrawWindow()
 	if(!winDrawPosted && nWin)
 	{
 		//logMsg("posted draw");
-		if(jPostDrawWindow.m != 0)
-			jPostDrawWindow(eEnv(), choreographerHelper);
+		if(jPostDrawWindow.m)
+			jPostDrawWindow(eEnv(), drawWindowHelper);
 		else
 		{
 			uint64_t post = 1;
@@ -916,8 +905,8 @@ static void cancelDrawWindow()
 	if(winDrawPosted)
 	{
 		logMsg("canceled draw");
-		if(jCancelDrawWindow.m != 0)
-			jCancelDrawWindow(eEnv(), choreographerHelper);
+		if(jCancelDrawWindow.m)
+			jCancelDrawWindow(eEnv(), drawWindowHelper);
 		else
 		{
 			uint64_t post;
@@ -926,6 +915,11 @@ static void cancelDrawWindow()
 		}
 		winDrawPosted = 0;
 	}
+}
+
+void restoreOpenGLContext()
+{
+	eglWin.restoreContext();
 }
 
 static int processInputCallback(int fd, int events, void* data)

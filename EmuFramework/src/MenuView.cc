@@ -339,7 +339,7 @@ MenuView::MenuView():
 			{
 				if(Bluetooth::scanForDevices(bta, onScanStatus))
 				{
-					popup.post("Starting Scan...\nSee website for device-specific help", 4);
+					popup.post("Starting Scan...\n(see website for device-specific help)", 4);
 				}
 				else
 				{
@@ -396,7 +396,7 @@ MenuView::MenuView():
 							}
 							bcase BluetoothAdapter::SCAN_COMPLETE:
 							{
-								popup.post("Push the PS button on your controller", 4);
+								popup.post("Push the PS button on your controller\n(see website for pairing help)", 4);
 								Base::displayNeedsUpdate();
 							}
 							bdefault: onScanStatus(bta, status, arg);

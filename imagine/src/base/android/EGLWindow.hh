@@ -190,6 +190,19 @@ struct EGLWindow
 		return eglGetCurrentContext() != EGL_NO_CONTEXT;
 	}
 
+	void restoreContext()
+	{
+		assert(context);
+		if(!verifyContext())
+		{
+			//logMsg("context not current, setting now");
+			if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
+			{
+				logErr("error in eglMakeCurrent");
+			}
+		}
+	}
+
 	bool isDrawable()
 	{
 		return surface != EGL_NO_SURFACE;

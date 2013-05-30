@@ -148,8 +148,8 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
     	return 0;
 
     //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = IG::scalePointRange((float)snesPointerX, (float)emuView.gameRect.xSize(), (float)256.);
-    y = IG::scalePointRange((float)snesPointerY, (float)emuView.gameRect.ySize(), (float)224.);
+    x = IG::scalePointRange((float)snesPointerX, (float)emuView.gameRect().xSize(), (float)256.);
+    y = IG::scalePointRange((float)snesPointerY, (float)emuView.gameRect().ySize(), (float)224.);
     buttons = snesPointerBtns;
 
     if(snesMouseClick)
@@ -359,9 +359,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	if(!S9xFreezeGame(saveStr))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -393,9 +392,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
 		sprintSRAMFilename(saveStr);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		Memory.SaveSRAM(saveStr);
 	}
 }
@@ -406,9 +404,8 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		if(!S9xFreezeGame(saveStr))
 			logMsg("error saving state %s", saveStr);
 	}
@@ -731,11 +728,11 @@ void onInputEvent(const Input::Event &e)
 					*S9xGetSuperscopeBits() = 0;
 					#endif
 				}
-				if(emuView.gameRect.overlaps(e.x, e.y))
+				if(emuView.gameRect().overlaps(e.x, e.y))
 				{
-					int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
-					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)256.);
-					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)224.);
+					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
+					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.);
 					//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
 					if(e.state == PUSHED)
 					{

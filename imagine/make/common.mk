@@ -1,7 +1,3 @@
-ifndef V
- PRINT_CMD := @
-endif
-
 ifndef buildName
  buildName := $(baseMakefileName:.mk=)
 endif

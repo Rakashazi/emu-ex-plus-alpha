@@ -7,3 +7,4 @@ metadata_vendor = Robert Broglia
 android_metadata_project = SaturnEmu
 iOS_metadata_bundleName = SaturnEmu
 metadata_noIcon = 1
+pnd_metadata_description = Sega Saturn emulator using components from Yabause

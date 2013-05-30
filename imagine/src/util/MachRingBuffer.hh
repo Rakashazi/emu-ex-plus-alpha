@@ -37,6 +37,16 @@ public:
 			return false;
 		}
 		{
+			#ifdef __ARM_ARCH_6K__
+			// VM_FLAGS_OVERWRITE isn't supported on iOS <= 4.2.1 (the max deployment target for ARMv6)
+			// so deallocate the 2nd half of the buffer first. This introduces a race condition but the
+			// chance of it causing a problem is very low.
+			if(vm_deallocate(mach_task_self(), addr+allocBuffSize, allocBuffSize) != KERN_SUCCESS)
+			{
+				logWarn("error in vm_deallocate for 2nd half, buffer may not stay in sync");
+			}
+			#endif
+
 			vm_prot_t currProtect, maxProtect;
 			vm_address_t mirrorAddr = addr + allocBuffSize;
 			if(vm_remap(mach_task_self(), &mirrorAddr, allocBuffSize, 0,

@@ -29,10 +29,10 @@ $(libXiSrcDir)/configure : $(libXiSrcArchive)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libXi..."
-	$(MAKE) -j4 -C $(<D)
+	$(MAKE) -j4 -C $(<D) SUBDIRS=src
 
 $(makeFile) : $(libXiSrcDir)/configure
 	@echo "Configuring libXi..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXiSrcDir)/configure --disable-shared --disable-specs --disable-docs --host=$(CHOST) PKG_CONFIG_PATH=$(IMAGINE_PATH)/bundle/linux-armv7-pandora/lib/pkgconfig:$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXiSrcDir)/configure --disable-shared --disable-specs --disable-docs --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

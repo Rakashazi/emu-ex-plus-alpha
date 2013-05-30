@@ -26,10 +26,10 @@ bool isMenuDismissKey(const Input::Event &e);
 class BaseMultiChoiceView : public BaseMenuView
 {
 public:
-	constexpr BaseMultiChoiceView() { }
+	constexpr BaseMultiChoiceView() {}
 	Rect2<int> viewFrame;
 
-	void inputEvent(const Input::Event &e)
+	void inputEvent(const Input::Event &e) override
 	{
 		if(e.state == Input::PUSHED)
 		{
@@ -53,7 +53,7 @@ public:
 		BaseMenuView::inputEvent(e);
 	}
 
-	void place()
+	void place() override
 	{
 		GC maxWidth = 0;
 		iterateTimes(items, i)
@@ -69,7 +69,7 @@ public:
 		tbl.place(&viewFrame);
 	}
 
-	void draw(Gfx::FrameTimeBase frameTime)
+	void draw(Gfx::FrameTimeBase frameTime) override
 	{
 		using namespace Gfx;
 		resetTransforms();
@@ -83,12 +83,12 @@ public:
 class MultiChoiceView : public BaseMultiChoiceView
 {
 public:
-	constexpr MultiChoiceView() { }
+	constexpr MultiChoiceView() {}
 
 	typedef DelegateFunc<bool (int i, const Input::Event &e)> OnInputDelegate;
 	OnInputDelegate onSelectD;
 	TextMenuItem choiceEntry[18];
-	MenuItem *choiceEntryItem[18] = {nullptr};
+	MenuItem *choiceEntryItem[18] {nullptr};
 
 	// Required delegates
 	OnInputDelegate &onSelect() { return onSelectD; }
@@ -136,7 +136,7 @@ public:
 			};
 	}
 
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override
 	{
 		logMsg("set choice %d", i);
 		if(onSelectD((int)i, e)) // TODO: Delegate should handle removeModalView()
@@ -146,10 +146,10 @@ public:
 
 struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 {
-	constexpr MultiChoiceSelectMenuItem() { }
-	constexpr MultiChoiceSelectMenuItem(const char *str): MultiChoiceMenuItem(str) { }
-	constexpr MultiChoiceSelectMenuItem(ValueDelegate valueDel): MultiChoiceMenuItem(valueDel) { }
-	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) { }
+	constexpr MultiChoiceSelectMenuItem() {}
+	constexpr MultiChoiceSelectMenuItem(const char *str): MultiChoiceMenuItem(str) {}
+	constexpr MultiChoiceSelectMenuItem(ValueDelegate valueDel): MultiChoiceMenuItem(valueDel) {}
+	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) {}
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
 	{
 		onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };

@@ -1,5 +1,9 @@
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../config.mk
 include $(IMAGINE_PATH)/make/iOS-metadata.mk
+
+.PHONY: all
+all : ios-build
+
 ios_buildName ?= $(baseMakefileName:.mk=)
 ios_targetPath ?= target/$(ios_buildName)
 ios_targetBinPath := $(ios_targetPath)/bin
@@ -14,7 +18,7 @@ ios_imagineLibPathARMv6 ?= $(IMAGINE_PATH)/lib/ios-armv6
 ios_imagineIncludePathARMv6 ?= $(IMAGINE_PATH)/build/ios-armv6/gen
 ios_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/ios-armv7
 ios_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/ios-armv7/gen
-ios_linkerPathARMv6 ?= ~/llvm/Release+Asserts/bin
+ios_icons := $(wildcard $ios_iconPath/*)
 
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone5
@@ -38,11 +42,12 @@ ifndef ios_noARMv6
 ios_armv6Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-armv6.mk
 ios_armv6ExecName := $(iOS_metadata_exec)-armv6
 ios_armv6Exec := $(ios_targetBinPath)/$(ios_armv6ExecName)
+ios_execs += $(ios_armv6Exec)
 .PHONY: ios-armv6
 ios-armv6 :
-	$(MAKE) -f $(ios_armv6Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
-	buildName=$(ios_buildName)-armv6 imagineLibPath=$(ios_imagineLibPathARMv6) imagineIncludePath=$(ios_imagineIncludePathARMv6) \
-	ios_linkerPath=$(ios_linkerPathARMv6)
+	@echo "Building ARMv6 Executable"
+	$(PRINT_CMD)$(MAKE) -f $(ios_armv6Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
+	buildName=$(ios_buildName)-armv6 imagineLibPath=$(ios_imagineLibPathARMv6) imagineIncludePath=$(ios_imagineIncludePathARMv6)
 $(ios_armv6Exec) : ios-armv6
 
 .PHONY: ios-armv6-install
@@ -61,9 +66,11 @@ ifndef ios_noARMv7
 ios_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-armv7.mk
 ios_armv7ExecName := $(iOS_metadata_exec)-armv7
 ios_armv7Exec := $(ios_targetBinPath)/$(ios_armv7ExecName)
+ios_execs += $(ios_armv7Exec)
 .PHONY: ios-armv7
 ios-armv7 :
-	$(MAKE) -f $(ios_armv7Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
+	@echo "Building ARMv7 Executable"
+	$(PRINT_CMD)$(MAKE) -f $(ios_armv7Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
 	buildName=$(ios_buildName)-armv7 imagineLibPath=$(ios_imagineLibPathARMv7) imagineIncludePath=$(ios_imagineIncludePathARMv7)
 $(ios_armv7Exec) : ios-armv7
 
@@ -79,7 +86,7 @@ endif
 endif
 
 ios_fatExec := $(ios_targetBinPath)/$(iOS_metadata_exec)
-$(ios_fatExec) : $(ios_armv6Exec) $(ios_armv7Exec) $(iOS_armv7sExec)
+$(ios_fatExec) : $(ios_execs)
 	@mkdir -p $(@D)
 	lipo -create $^ -output $@
 
@@ -104,7 +111,7 @@ ios_setuidPermissionHelperDir := $(IMAGINE_PATH)/tools/ios
 ios_setuidPermissionHelper := $(ios_setuidPermissionHelperDir)/fixMobilePermission
 
 $(ios_setuidPermissionHelper) :
-	$(MAKE) -C $(@D) -f ios-armv6.mk ios_linkerPath=$(ios_linkerPathARMv6)
+	$(MAKE) -C $(@D) -f ios-armv6.mk
 
 endif
 
@@ -112,7 +119,7 @@ endif
 ios-resources-install : $(ios_plist) $(ios_setuidLauncher) $(ios_setuidPermissionHelper)
 	ssh root@$(ios_installHost) mkdir -p $(ios_deviceAppBundlePath)
 	scp $(ios_resourcePath)/* root@$(ios_installHost):$(ios_deviceAppBundlePath)/
-	scp $(ios_iconPath)/* root@$(ios_installHost):$(ios_deviceAppBundlePath)/
+	scp $(ios_icons) root@$(ios_installHost):$(ios_deviceAppBundlePath)/
 	ssh root@$(ios_installHost) chmod -R a+r $(ios_deviceAppBundlePath)
 ifdef ios_metadata_setuidPermissionHelper
 	ssh root@$(ios_installHost) rm -f $(ios_deviceAppBundlePath)/fixMobilePermission
@@ -164,10 +171,14 @@ ifdef ios_metadata_setuidPermissionHelper
 	chmod a+x $(ios_setuidPermissionHelper)
 	chmod gu+s $(ios_setuidPermissionHelper)
 endif
-	tar -chzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_iconPath)/* $(ios_setuidPermissionHelper) \
-	--transform='s,^$(ios_targetBinPath)/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,;s,^$(ios_setuidPermissionHelperDir)/,$(ios_bundleDirectory)/,'
+	tar -cPhzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_icons)  $(ios_plist) $(ios_setuidPermissionHelper) \
+	--transform='s,^$(ios_targetBinPath)/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,;s,^$(ios_setuidPermissionHelperDir)/,$(ios_bundleDirectory)/,;s,^$(ios_targetPath)/,$(ios_bundleDirectory)/,'
 .PHONY: ios-tar
 ios-tar : $(ios_tar)
+
+.PHONY: ios-clean-tar
+ios-clean-tar:
+	rm -f $(ios_tar)
 
 .PHONY: ios-ready
 ios-ready : $(ios_tar)

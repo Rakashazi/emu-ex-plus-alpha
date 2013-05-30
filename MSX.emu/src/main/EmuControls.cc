@@ -566,7 +566,122 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::RIGHT,
 			PP_ZERO_LIST(15) // 77 - 92
 		}
-	}
+	},
+	#ifdef CONFIG_MACHINE_PANDORA
+	{
+		Input::Event::MAP_KEYBOARD,
+		Input::Device::SUBTYPE_PANDORA_HANDHELD,
+		"Default Pandora",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_MINIMAL_PROFILE_INIT,
+
+			// JS 1
+			Input::Keycode::Pandora::UP,
+			Input::Keycode::Pandora::RIGHT,
+			Input::Keycode::Pandora::DOWN,
+			Input::Keycode::Pandora::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::Pandora::X,
+			Input::Keycode::Pandora::B,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
+
+			// Keyboard
+			0,
+			Input::Keycode::F1, // F1 ... F5
+			Input::Keycode::F2,
+			Input::Keycode::F3,
+			Input::Keycode::F4,
+			Input::Keycode::F5,
+
+			Input::Keycode::SCROLL_LOCK, // STOP - DEL
+			Input::Keycode::END,
+			Input::Keycode::HOME,
+			Input::Keycode::INSERT,
+			Input::Keycode::DELETE,
+
+			Input::Keycode::ESCAPE,
+
+			asciiKey('1'), // 1 ... 0
+			asciiKey('2'),
+			asciiKey('3'),
+			asciiKey('4'),
+			asciiKey('5'),
+			asciiKey('6'),
+			asciiKey('7'),
+			asciiKey('8'),
+			asciiKey('9'),
+			asciiKey('0'),
+			asciiKey('-'),
+			asciiKey('='),
+			asciiKey('\\'),
+			Input::Keycode::BACK_SPACE,
+
+			Input::Keycode::TAB,
+			asciiKey('q'),
+			asciiKey('w'),
+			asciiKey('e'),
+			asciiKey('r'),
+			asciiKey('t'),
+			asciiKey('y'),
+			asciiKey('u'),
+			asciiKey('i'),
+			asciiKey('o'),
+			asciiKey('p'),
+			asciiKey('`'), // @
+			asciiKey('['),
+			Input::Keycode::ENTER,
+
+			Input::Keycode::LCTRL, // CTRL
+			asciiKey('a'),
+			asciiKey('s'),
+			asciiKey('d'),
+			asciiKey('f'),
+			asciiKey('g'),
+			asciiKey('h'),
+			asciiKey('j'),
+			asciiKey('k'),
+			asciiKey('l'),
+			asciiKey(';'),
+			asciiKey('\''),
+			asciiKey(']'),
+
+			Input::Keycode::LSHIFT, // Left Shift
+			asciiKey('z'),
+			asciiKey('x'),
+			asciiKey('c'),
+			asciiKey('v'),
+			asciiKey('b'),
+			asciiKey('n'),
+			asciiKey('m'),
+			asciiKey(','),
+			asciiKey('.'),
+			asciiKey('/'),
+			Input::Keycode::RCTRL,
+			Input::Keycode::RSHIFT, // Right Shift
+
+			Input::Keycode::CAPS,
+			Input::Keycode::LMETA,
+			Input::Keycode::LALT,
+			asciiKey(' '),
+			Input::Keycode::RMETA,
+			Input::Keycode::RALT,
+			Input::Keycode::PAUSE,
+
+			Input::Keycode::LEFT,
+			Input::Keycode::UP,
+			Input::Keycode::DOWN,
+			Input::Keycode::RIGHT,
+			PP_ZERO_LIST(15) // 77 - 92
+		}
+	},
+	#endif
 };
 
 const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);

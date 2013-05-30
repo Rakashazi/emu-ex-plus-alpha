@@ -432,7 +432,9 @@ static OptionBase *cfgFileOption[] =
 	&optionImgFilter,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
+	#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 	&optionRelPointerDecel,
+	#endif
 	&optionFontSize,
 	&optionPauseUnfocused,
 	&optionGameOrientation,
@@ -472,23 +474,23 @@ static OptionBase *cfgFileOption[] =
 	&optionTitleBar,
 	&optionIdleDisplayPowerSave,
 	&optionHideStatusBar,
-#if defined(CONFIG_INPUT_ANDROID)
+	#if defined(CONFIG_INPUT_ANDROID)
 	&optionBackNavigation,
-#endif
+	#endif
 	&optionRememberLastMenu,
-#ifdef CONFIG_BASE_ANDROID
+	#ifdef CONFIG_BASE_ANDROID
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
 	&optionDitherImage,
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		&optionDirectTexture,
-	#endif
-	#if CONFIG_ENV_ANDROID_MINSDK >= 9
+		#endif
+		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		&optionSurfaceTexture,
 		&optionProcessPriority,
-	#endif
+		#endif
 	&optionGLSyncHack,
-#endif
+	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,
 		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE

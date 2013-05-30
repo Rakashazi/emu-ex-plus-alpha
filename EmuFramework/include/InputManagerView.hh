@@ -25,13 +25,11 @@ class IdentInputDeviceView : public View
 	Gfx::Text text;
 
 public:
-	constexpr IdentInputDeviceView() { }
-
 	typedef DelegateFunc<void (const Input::Event &e)> OnIdentInputDelegate;
 	OnIdentInputDelegate onIdentInput;
 
+	constexpr IdentInputDeviceView() {}
 	Rect2<int> &viewRect() override { return viewFrame; }
-
 	void init();
 	void deinit() override;
 	void place() override;
@@ -52,7 +50,6 @@ private:
 	void deleteProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem deleteProfile {"Delete Saved Key Profile"};
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-	void notifyDeviceChangeHandler(BoolMenuItem &, const Input::Event &e);
 	BoolMenuItem notifyDeviceChange {"Notify If Devices Change"};
 	#endif
 	#ifdef CONFIG_BASE_ANDROID

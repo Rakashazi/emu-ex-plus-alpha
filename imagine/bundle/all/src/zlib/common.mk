@@ -4,7 +4,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-zlibVer := 1.2.7
+zlibVer := 1.2.8
 zlibSrcArchive := zlib-$(zlibVer).tar.gz
 
 configureFile := $(buildDir)/configure

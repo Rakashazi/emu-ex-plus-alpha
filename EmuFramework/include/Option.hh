@@ -133,7 +133,10 @@ public:
 	{
 		if(isConst || readSize != sizeof(SERIALIZED_T))
 		{
-			logMsg("skipping %d byte option value, expected %d", readSize, (int)sizeof(SERIALIZED_T));
+			if(isConst)
+				logMsg("skipping const option value");
+			else
+				logMsg("skipping %d byte option value, expected %d", readSize, (int)sizeof(SERIALIZED_T));
 			io->seekRel(readSize);
 			return 0;
 		}

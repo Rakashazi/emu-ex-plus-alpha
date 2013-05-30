@@ -21,6 +21,58 @@
 extern MsgPopup popup;
 extern EmuNavView viewNav;
 
+void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
+{
+	logMsg("size %d", (int)sizeof(*biosPathStr));
+	snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
+	if(onBiosChangeD) onBiosChangeD();
+	View::removeModalView();
+	workDirStack.pop();
+}
+
+void BiosSelectMenu::init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
+{
+	var_selfs(biosPathStr);
+	var_selfs(fsFilter);
+	init(highlightFirst);
+}
+
+void BiosSelectMenu::init(bool highlightFirst)
+{
+	assert(biosPathStr);
+	choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
+	choiceEntry[0].onSelect() =
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			removeModalView();
+			workDirStack.push();
+			chdirFromFilePath(*biosPathStr);
+			auto &fPicker = *allocModalView<EmuFilePicker>();
+			fPicker.init(!e.isPointer(), fsFilter);
+			fPicker.onSelectFile() =
+				[this](const char* name, const Input::Event &e)
+				{
+					onSelectFile(name, e);
+				};
+			fPicker.onClose() =
+				[](const Input::Event &e)
+				{
+					View::removeModalView();
+					workDirStack.pop();
+				};
+			View::addModalView(fPicker);
+		};
+	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
+	choiceEntry[1].onSelect() =
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			removeModalView();
+			strcpy(*biosPathStr, "");
+			if(onBiosChangeD) onBiosChangeD();
+		};
+	BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
+}
+
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	#ifdef CONFIG_ENV_WEBOS
 	void OptionView::touchCtrlInit()
@@ -301,6 +353,7 @@ void OptionView::fontSizeInit()
 	fontSize.init(str, init, sizeofArray(str));
 }
 
+#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 void OptionView::relativePointerDecelInit()
 {
 	static const char *str[] = { "Low", "Med.", "High" };
@@ -313,6 +366,7 @@ void OptionView::relativePointerDecelInit()
 		init = 2;
 	relativePointerDecel.init(str, init, sizeofArray(str));
 }
+#endif
 
 #if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
 void OptionView::processPriorityInit()
@@ -469,7 +523,9 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	useOSInputMethod.init(!Input::eventsUseOSInputMethod()); item[items++] = &useOSInputMethod;
 	#endif
-	if(!optionRelPointerDecel.isConst) { relativePointerDecelInit(); item[items++] = &relativePointerDecel; }
+	#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+	relativePointerDecelInit(); item[items++] = &relativePointerDecel;
+	#endif
 }
 
 void OptionView::loadSystemItems(MenuItem *item[], uint &items)

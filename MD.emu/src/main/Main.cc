@@ -428,9 +428,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	logMsg("saving state %s", saveStr);
 	return saveMDState(saveStr);
 }
@@ -475,9 +474,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		FsSys::cPath saveStr;
 		sprintSaveFilename(saveStr);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 
 		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
 
@@ -504,9 +502,8 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		saveMDState(saveStr);
 	}
 }
@@ -853,11 +850,11 @@ void onInputEvent(const Input::Event &e)
 		int gunDevIdx = 4;
 		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
 		{
-			if(emuView.gameRect.overlaps(e.x, e.y))
+			if(emuView.gameRect().overlaps(e.x, e.y))
 			{
-				int xRel = e.x - emuView.gameRect.x, yRel = e.y - emuView.gameRect.y;
-				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect.xSize(), (float)bitmap.viewport.w);
-				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect.ySize(), (float)bitmap.viewport.h);
+				int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)bitmap.viewport.w);
+				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)bitmap.viewport.h);
 			}
 			if(e.state == Input::PUSHED)
 			{

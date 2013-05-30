@@ -65,13 +65,13 @@ ifdef pnd_metadata_license
 endif
 
 ifdef pnd_metadata_licenseURL
- pnd_gen_metadata_args += --license-url=$(pnd_metadata_licenseURL)
+ pnd_gen_metadata_args += --license-url="$(pnd_metadata_licenseURL)"
 endif
 
 ifdef pnd_metadata_sourceCodeURL
- pnd_gen_metadata_args += --source-code-url=$(pnd_metadata_sourceCodeURL)
+ pnd_gen_metadata_args += --source-code-url="$(pnd_metadata_sourceCodeURL)"
 endif
 
 ifdef pnd_metadata_subcategory
- pnd_gen_metadata_args += --subcategory=$(pnd_metadata_subcategory)
+ pnd_gen_metadata_args += --subcategory="$(pnd_metadata_subcategory)"
 endif

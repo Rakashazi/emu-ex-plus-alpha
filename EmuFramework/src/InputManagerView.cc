@@ -180,29 +180,6 @@ void InputManagerView::deleteProfileHandler(TextMenuItem &, const Input::Event &
 	View::addModalView(multiChoiceView);
 }
 
-#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-void InputManagerView::notifyDeviceChangeHandler(BoolMenuItem &item, const Input::Event &e)
-{
-	item.toggle();
-	optionNotifyInputDeviceChange = item.on;
-}
-#endif
-
-#ifdef CONFIG_BASE_ANDROID
-void InputManagerView::rescanOSDevicesHandler(TextMenuItem &, const Input::Event &e)
-{
-	using namespace Input;
-	Input::rescanDevices(0);
-	uint devices = 0;
-	forEachInDLList(&Input::devList, e)
-	{
-		if(e.map() == Event::MAP_KEYBOARD || e.map() == Event::MAP_ICADE)
-			devices++;
-	}
-	popup.printf(2, 0, "%d OS devices present", devices);
-}
-#endif
-
 void InputManagerView::onShow()
 {
 	BaseMenuView::onShow();
@@ -236,14 +213,31 @@ void InputManagerView::init(bool highlightFirst)
 	if(!optionNotifyInputDeviceChange.isConst)
 	{
 		notifyDeviceChange.init(optionNotifyInputDeviceChange); item[i++] = &notifyDeviceChange;
-		notifyDeviceChange.onSelect() = [this](BoolMenuItem &item, const Input::Event &e){notifyDeviceChangeHandler(item,e);};
+		notifyDeviceChange.onSelect() =
+			[this](BoolMenuItem &item, const Input::Event &e)
+			{
+				item.toggle();
+				optionNotifyInputDeviceChange = item.on;
+			};
 	}
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	if(Base::androidSDK() >= 12)
 	{
 		rescanOSDevices.init(); item[i++] = &rescanOSDevices;
-		rescanOSDevices.onSelect() = [this](TextMenuItem &item, const Input::Event &e){rescanOSDevicesHandler(item,e);};
+		rescanOSDevices.onSelect() =
+			[this](TextMenuItem &item, const Input::Event &e)
+			{
+				using namespace Input;
+				Input::rescanDevices(0);
+				uint devices = 0;
+				forEachInDLList(&Input::devList, e)
+				{
+					if(e.map() == Event::MAP_KEYBOARD || e.map() == Event::MAP_ICADE)
+						devices++;
+				}
+				popup.printf(2, 0, "%d OS devices present", devices);
+			};
 	}
 	#endif
 	int devs = 0;

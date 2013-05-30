@@ -1,6 +1,6 @@
 #pragma once
 
-#define IMAGINE_VERSION_BASE "1.5.11"
+#define IMAGINE_VERSION_BASE "1.5.12"
 
 #ifdef NDEBUG
 	#define IMAGINE_VERSION IMAGINE_VERSION_BASE

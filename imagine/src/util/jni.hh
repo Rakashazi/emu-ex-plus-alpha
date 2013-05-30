@@ -8,16 +8,16 @@ class JavaClassMethod
 {
 public:
 	constexpr JavaClassMethod() { }
-	jclass c = 0;
-	jmethodID m = 0;
+	jclass c = nullptr;
+	jmethodID m = nullptr;
 
 	void setup(JNIEnv* j, jclass cls, const char *fName, const char *sig)
 	{
 		//logMsg("find method %s in %s", fName, cName);
 		c = cls;
-		assert(c != 0);
+		assert(c);
 		m = j->GetStaticMethodID(c, fName, sig);
-		assert(m != 0);
+		assert(m);
 	}
 
 	T operator()(JNIEnv* j, ...);
@@ -117,14 +117,14 @@ class JavaInstMethod
 {
 public:
 	constexpr JavaInstMethod() { }
-	jmethodID m = 0;
+	jmethodID m = nullptr;
 
 	void setup(JNIEnv* j, jclass cls, const char *fName, const char *sig)
 	{
 		//logMsg("find method %s with sig %s", fName, sig);
 		assert(cls != 0);
 		m = j->GetMethodID(cls, fName, sig);
-		assert(m != 0);
+		assert(m);
 	}
 
 	T operator()(JNIEnv* j, jobject obj, ...) const;

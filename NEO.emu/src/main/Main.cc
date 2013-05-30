@@ -358,9 +358,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	if(!save_stateWithName(saveStr))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -397,9 +396,8 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		if(!save_stateWithName(saveStr))
 			logMsg("error saving state %s", saveStr);
 	}

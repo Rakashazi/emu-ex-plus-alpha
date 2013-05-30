@@ -613,34 +613,33 @@ CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool 
 	auto pixFmt = swapRGBToPreferedOrder(img.pixelFormat());
 	Pixmap texPix(*pixFmt);
 	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
-	#if defined(CONFIG_BASE_PS3)
-	//logMsg("alloc in heap"); // PS3 has 1MB stack limit
-	uchar *uploadPixStore = (uchar*)mem_alloc(uploadPixStoreSize);
+	#if __APPLE__
+	//logMsg("alloc in heap"); // for low stack limits
+	uchar *uploadPixStore = (uchar*)mem_calloc(uploadPixStoreSize);
 	if(!uploadPixStore)
 		return OUT_OF_MEMORY;
 	#else
 	uchar uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
-	#endif
 	mem_zero(uploadPixStore, uploadPixStoreSize);
+	#endif
 	texPix.init(uploadPixStore, texX, texY, 0);
-	img.getImage(&texPix);
+	img.getImage(texPix);
 	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(texPix.format), wrapMode,
 			wrapMode, img.width(), img.height(), hints, filter))
 	{
-		#if defined(CONFIG_BASE_PS3)
+		#if __APPLE__
 		mem_free(uploadPixStore);
 		#endif
 		return INVALID_PARAMETER;
 	}
+	#if __APPLE__
+	mem_free(uploadPixStore);
+	#endif
 
 	textureDesc().xStart = pixelToTexC((uint)0, texPix.x);
 	textureDesc().yStart = pixelToTexC((uint)0, texPix.y);
 	textureDesc().xEnd = pixelToTexC(img.width(), texPix.x);
 	textureDesc().yEnd = pixelToTexC(img.height(), texPix.y);
-
-	#if defined(CONFIG_BASE_PS3)
-	mem_free(uploadPixStore);
-	#endif
 
 	return OK;
 }

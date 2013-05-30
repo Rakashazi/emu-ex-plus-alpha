@@ -20,7 +20,7 @@ include $(imagineSrcDir)/gui/MenuItem/build.mk
 include $(imagineSrcDir)/gui/FSPicker/build.mk
 include $(imagineSrcDir)/gui/AlertView.mk
 include $(imagineSrcDir)/resource2/font/system.mk
-include $(imagineSrcDir)/data-type/image/libpng/build.mk
+include $(imagineSrcDir)/data-type/image/png/system.mk
 
 ifeq ($(ENV), android)
  configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE

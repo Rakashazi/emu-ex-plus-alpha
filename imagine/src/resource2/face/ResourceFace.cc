@@ -207,7 +207,7 @@ CallResult ResourceFace::applySettings (FontSettings set)
 //int ResourceFace::maxDescender () { font->applySize(faceSize); return font->currentFaceDescender(); }
 //int ResourceFace::maxAscender () { font->applySize(faceSize); return font->currentFaceAscender(); }
 
-CallResult ResourceFace::writeCurrentChar(Pixmap *out)
+CallResult ResourceFace::writeCurrentChar(Pixmap &out)
 {
 	void *bitmap = nullptr;
 	int bX = 0, bY = 0, bPitch;
@@ -218,14 +218,14 @@ CallResult ResourceFace::writeCurrentChar(Pixmap *out)
 	if(!bPitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
 	{
 		logWarn("invalid pitch returned for char bitmap");
-		bX = out->x;
-		bY = out->y;
-		bPitch = out->pitch;
+		bX = out.x;
+		bY = out.y;
+		bPitch = out.pitch;
 	}
 	#endif
 	Pixmap src(PixelFormatI8);
 	src.init((uchar*)bitmap, bX, bY, bPitch - bX);
-	src.copy(0, 0, 0, 0, out, 0, 0);
+	src.copy(0, 0, 0, 0, &out, 0, 0);
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
 	font->unlockCharBitmap(bitmap);
 	return OK;

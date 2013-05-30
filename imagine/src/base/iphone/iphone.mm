@@ -84,6 +84,7 @@ static const bool usingiOS4 = 1; // always on iOS 4.3+ when compiled for ARMv7
 #ifdef CONFIG_INPUT_ICADE
 static ICadeHelper iCade = { nil };
 #endif
+CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 
 // used on iOS 4.0+
 static UIViewController *viewCtrl;
@@ -621,7 +622,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		/*rotateView = preferedOrientation = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
 		logMsg("started in %s orientation", Gfx::orientationName(rotateView));
 		#ifdef CONFIG_INPUT
-			Gfx::configureInputForOrientation();
+		Gfx::configureInputForOrientation();
 		#endif*/
 	}
 	#endif
@@ -629,8 +630,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	CGRect rect = [[UIScreen mainScreen] bounds];
 	mainWin.w = mainWin.rect.x2 = rect.size.width;
 	mainWin.h = mainWin.rect.y2 = rect.size.height;
-	Gfx::viewMMWidth_ = roundf((mainWin.w / (float)unscaledDPI) * 25.4);
-	Gfx::viewMMHeight_ = roundf((mainWin.h / (float)unscaledDPI) * 25.4);
+	Gfx::viewMMWidth_ = std::round((mainWin.w / (float)unscaledDPI) * 25.4);
+	Gfx::viewMMHeight_ = std::round((mainWin.h / (float)unscaledDPI) * 25.4);
 	logMsg("set screen MM size %dx%d", Gfx::viewMMWidth_, Gfx::viewMMHeight_);
 	currWin = mainWin;
 	// Create a full-screen window
@@ -648,7 +649,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// Create the OpenGL ES view and add it to the Window
 	glView = [[EAGLView alloc] initWithFrame:rect];
 	#ifdef CONFIG_INPUT_ICADE
-		iCade.init(glView);
+	iCade.init(glView);
 	#endif
 	Base::engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -704,7 +705,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		Base::startAnimation();
 	Base::onResume(1);
 	#ifdef CONFIG_INPUT_ICADE
-		iCade.didBecomeActive();
+	iCade.didBecomeActive();
 	#endif
 }
 
@@ -726,7 +727,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::stopAnimation();
 	Base::onExit(1);
 	#ifdef CONFIG_INPUT_ICADE
-		iCade.didEnterBackground();
+	iCade.didEnterBackground();
 	#endif
 	glFinish();
 	[glView destroyFramebuffer];
@@ -1045,7 +1046,10 @@ int main(int argc, char *argv[])
 	#ifdef CONFIG_AUDIO
 	Audio::initSession();
 	#endif
-	
+
+	Base::grayColorSpace = CGColorSpaceCreateDeviceGray();
+	Base::rgbColorSpace = CGColorSpaceCreateDeviceRGB();
+
 	doOrExit(onInit(argc, argv));
 
 	NSAutoreleasePool *pool = [NSAutoreleasePool new];

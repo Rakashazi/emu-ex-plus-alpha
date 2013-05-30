@@ -81,11 +81,11 @@ void EmuView::placeEmu()
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
-			gameRect.x = 0;
-			gameRect.y = 0;
-			gameRect.x2 = gameX * scaleFactor;
-			gameRect.y2 = gameY * scaleFactor;
-			gameRect.setPos({(int)Gfx::viewPixelWidth()/2 - gameRect.x2/2, (int)Gfx::viewPixelHeight()/2 - gameRect.y2/2});
+			gameRect_.x = 0;
+			gameRect_.y = 0;
+			gameRect_.x2 = gameX * scaleFactor;
+			gameRect_.y2 = gameY * scaleFactor;
+			gameRect_.setPos({(int)Gfx::viewPixelWidth()/2 - gameRect_.x2/2, (int)Gfx::viewPixelHeight()/2 - gameRect_.y2/2});
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
@@ -100,7 +100,7 @@ void EmuView::placeEmu()
 			if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				GC width = Gfx::iYSize(gameRect.ySize()) * (GC)aR;
+				GC width = Gfx::iYSize(gameRect_.ySize()) * (GC)aR;
 				if(!aR)
 				{
 					width = Gfx::proj.w;
@@ -148,7 +148,7 @@ void EmuView::placeEmu()
 					yOffsetPixels = -vController.gp.centerBtnBound[0].ySize();
 				}
 				gameRectG.setYPos(Gfx::proj.rect.y, CT2DO);
-				gameRect.setYPos(0, CT2DO);
+				gameRect_.setYPos(0, CT2DO);
 			}
 			else if(vController.gp.dp.origin.onTop() && vController.gp.btnO.onTop())
 			{
@@ -159,7 +159,7 @@ void EmuView::placeEmu()
 					yOffsetPixels = vController.gp.centerBtnBound[0].ySize();
 				}
 				gameRectG.setYPos(Gfx::proj.rect.y2, CB2DO);
-				gameRect.setYPos(Gfx::viewPixelHeight(), CB2DO);
+				gameRect_.setYPos(Gfx::viewPixelHeight(), CB2DO);
 			}
 		}
 		#endif
@@ -176,11 +176,11 @@ void EmuView::placeEmu()
 
 		// apply y offset after zoom
 		gameRectG += IG::Point2D<GC>{0, yOffset};
-		gameRect += IG::Point2D<int>{0, yOffsetPixels};
+		gameRect_ += IG::Point2D<int>{0, yOffsetPixels};
 
 		// assign final coordinates
 		auto fromWorldSpaceRect = Gfx::projectRect2(gameRectG);
-		auto fromPixelRect = Gfx::unProjectRect2(gameRect);
+		auto fromPixelRect = Gfx::unProjectRect2(gameRect_);
 		if(getXCoordinateFromPixels)
 		{
 			gameRectG.x = fromPixelRect.x;
@@ -188,8 +188,8 @@ void EmuView::placeEmu()
 		}
 		else
 		{
-			gameRect.x = fromWorldSpaceRect.x;
-			gameRect.x2 = fromWorldSpaceRect.x2;
+			gameRect_.x = fromWorldSpaceRect.x;
+			gameRect_.x2 = fromWorldSpaceRect.x2;
 		}
 		if(getYCoordinateFromPixels)
 		{
@@ -198,8 +198,8 @@ void EmuView::placeEmu()
 		}
 		else
 		{
-			gameRect.y = fromWorldSpaceRect.y;
-			gameRect.y2 = fromWorldSpaceRect.y2;
+			gameRect_.y = fromWorldSpaceRect.y;
+			gameRect_.y2 = fromWorldSpaceRect.y2;
 		}
 
 		disp.setPos(gameRectG.x, gameRectG.y2, gameRectG.x2, gameRectG.y);
@@ -210,7 +210,7 @@ void EmuView::placeEmu()
 		disp.screenY2 = gameView.iYSize;
 		#endif
 		logMsg("placed game rect at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
-				gameRect.x, gameRect.y, gameRect.x2, gameRect.y2,
+				gameRect_.x, gameRect_.y, gameRect_.x2, gameRect_.y2,
 				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
 	}
 	placeOverlay();

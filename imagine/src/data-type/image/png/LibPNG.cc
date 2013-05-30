@@ -15,7 +15,7 @@
 
 #define thisModuleName "libpng"
 
-#include "reader.h"
+#include "LibPNG.hh"
 #include <assert.h>
 #include <logger/interface.h>
 #include <base/Base.hh>
@@ -30,14 +30,16 @@ bool Png::supportUncommonConv = 0;
 
 #ifndef PNG_ERROR_TEXT_SUPPORTED
 
-CLINK void PNGAPI EVISIBLE png_error(png_structp png_ptr, png_const_charp error_message)
+CLINK void PNGAPI EVISIBLE png_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
+CLINK void PNGAPI EVISIBLE png_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
 	// TODO: print out more verbose error
-	logMsg("fatal libpng error");
+	logErr("fatal libpng error");
 	Base::abort();
 }
 
-CLINK void PNGAPI EVISIBLE png_chunk_error(png_structp png_ptr, png_const_charp error_message)
+CLINK void PNGAPI EVISIBLE png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
+CLINK void PNGAPI EVISIBLE png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
 	png_error(png_ptr, error_message);
 }
@@ -46,13 +48,13 @@ CLINK void PNGAPI EVISIBLE png_chunk_error(png_structp png_ptr, png_const_charp 
 
 #ifndef PNG_WARNINGS_SUPPORTED
 
-CLINK void PNGAPI EVISIBLE png_warning(png_structp png_ptr, png_const_charp warning_message)
+CLINK void PNGAPI EVISIBLE png_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
 	// TODO: print out more verbose warning
-	logMsg("libpng warning");
+	logWarn("libpng warning");
 }
 
-CLINK void PNGAPI EVISIBLE png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
+CLINK void PNGAPI EVISIBLE png_chunk_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
 	png_warning(png_ptr, warning_message);
 }
@@ -61,8 +63,7 @@ CLINK void PNGAPI EVISIBLE png_chunk_warning(png_structp png_ptr, png_const_char
 
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
-	Io *stream = (Io*)png_get_io_ptr(pngPtr);
-	
+	auto stream = (Io*)png_get_io_ptr(pngPtr);
 	if(stream->read(data, length) != OK)
 	{
 		logErr("error reading png file");
@@ -70,12 +71,12 @@ static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 	}
 }
 
-uint Png::width ()
+uint Png::width()
 {
 	return png_get_image_width(png, info);
 }
 
-uint Png::height ()
+uint Png::height()
 {
 	return png_get_image_height(png, info);
 }
@@ -106,7 +107,7 @@ static void png_memFree(png_structp png_ptr, png_voidp ptr)
 	mem_free(ptr);
 }
 
-CallResult Png::readHeader (Io * stream)
+CallResult Png::readHeader(Io *stream)
 {
 	//logMsg("reading header from file handle @ %p",stream);
 	
@@ -114,7 +115,7 @@ CallResult Png::readHeader (Io * stream)
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	uchar header[INITIAL_HEADER_READ_BYTES];
-	doOrReturnVal( stream->read(&header, INITIAL_HEADER_READ_BYTES), IO_ERROR);
+	doOrReturnVal(stream->read(&header, INITIAL_HEADER_READ_BYTES), IO_ERROR);
 	
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
@@ -282,7 +283,7 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-CallResult Png::readImage (Io * stream, void* buffer, uint pitch, const PixelFormatDesc &outFormat)
+CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelFormatDesc &outFormat)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
@@ -351,9 +352,9 @@ CallResult Png::readImage (Io * stream, void* buffer, uint pitch, const PixelFor
 	return OK;
 }
 
-CallResult PngFile::getImage(Pixmap* dest)
+CallResult PngFile::getImage(Pixmap &dest)
 {
-	return(png.readImage(io, dest->data, dest->pitch, dest->format));
+	return(png.readImage(io, dest.data, dest.pitch, dest.format));
 }
 
 CallResult PngFile::load(Io* io)

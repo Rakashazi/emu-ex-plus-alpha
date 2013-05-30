@@ -7,20 +7,21 @@ import android.util.Log;
 
 final class FontRenderer
 {
-	private static String logTag = "FontRenderer";
-	Canvas canvas = new Canvas();
-	Paint paint;
-	Bitmap bitmap;
-	char activeChar;
-	int cXSize, cYSize, top, left, bottom, advance /*, ascender, descender*/;
+	private static final String logTag = "FontRenderer";
+	private final Canvas canvas = new Canvas();
+	private Paint paint;
+	private Bitmap bitmap;
+	private char activeChar;
+	private int cXSize, cYSize, top, left, bottom, advance /*, ascender, descender*/;
 	
 	public int currentCharYOffset() { return top; }
 	public int currentCharXOffset() { return left; }
 	public int currentCharXAdvance() { return advance; }
 	
-	public Bitmap charBitmap()
+	Bitmap charBitmap()
 	{
 		bitmap = Bitmap.createBitmap(cXSize, cYSize, Bitmap.Config.ALPHA_8);
+		Log.i(logTag, "created bitmap " + bitmap.toString());
 		bitmap.eraseColor(Color.TRANSPARENT);
 		canvas.setBitmap(bitmap);
 		char[] cStr = new char[2];
@@ -29,13 +30,13 @@ final class FontRenderer
 		return bitmap;
 	}
 	
-	public void unlockCharBitmap(Bitmap bitmap)
+	void unlockCharBitmap(Bitmap bitmap)
 	{
 		bitmap.recycle();
 		bitmap = null;
 	}
 	
-	public boolean activeChar(int idx)
+	boolean activeChar(int idx)
 	{
 		if(activeChar != idx)
 		{
@@ -62,12 +63,12 @@ final class FontRenderer
 		return true;
 	}
 	
-	public int currentCharXSize()
+	int currentCharXSize()
 	{
 		return cXSize;
 	}
 
-	public int currentCharYSize()
+	int currentCharYSize()
 	{
 		return cYSize;
 	}
@@ -82,7 +83,7 @@ final class FontRenderer
 		return ascender;
 	}*/
 
-	public Paint newSize(int size)
+	Paint newSize(int size)
 	{
 		Paint p = new Paint();
 		p.setAntiAlias(true);
@@ -91,7 +92,7 @@ final class FontRenderer
 		return p;
 	}
 	
-	public void applySize(Paint p)
+	void applySize(Paint p)
 	{
 		if(paint != p)
 		{
@@ -104,13 +105,13 @@ final class FontRenderer
 		}
 	}
 	
-	public void freeSize(Paint p)
+	void freeSize(Paint p)
 	{
 		if(paint == p)
 			paint = null;
 	}
 	
-	protected void finalize() throws Throwable
+	public void finalize() throws Throwable
 	{
 		if(bitmap != null)
 			bitmap.recycle();

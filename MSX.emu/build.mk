@@ -121,10 +121,6 @@ endif
 # Others 
 SRC +=  $(BMSX)/Bios/Patch.c $(BMSX)/Language/LanguageMinimal.c
 
-ifeq ($(ENV), iOS)
-include $(IMAGINE_PATH)/make/package/stdc++.mk
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

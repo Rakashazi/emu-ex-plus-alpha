@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <config/machine.hh>
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include "VController.hh"
@@ -74,7 +75,7 @@ Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
 Byte1Option optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
 Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAndroid && !Config::envIsIOS);
-OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, 0);
+OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, Input::SWAPPED_GAMEPAD_CONFIRM_DEFAULT);
 Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
 #ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Input::hasSystemDeviceHotswap, !Input::hasSystemDeviceHotswap);
@@ -94,8 +95,10 @@ Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::linear, 
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
+#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
+#endif
 
 Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Gfx::VIEW_ROTATE_90 : Gfx::VIEW_ROTATE_0,
@@ -106,8 +109,8 @@ Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
 		Config::envIsPS3, optionOrientationIsValid);
 
 Byte1Option optionTouchCtrl(CFGKEY_TOUCH_CONTROL_DISPLAY,
-		(Config::envIsLinux || Config::envIsPS3) ? 0 : 2,
-		Config::envIsPS3, optionIsValidWithMax<2>);
+		(Config::envIsLinux || Config::envIsPS3 || Config::MACHINE_IS_OUYA) ? 0 : 2,
+		Config::envIsPS3 || Config::MACHINE_IS_OUYA, optionIsValidWithMax<2>);
 
 Byte1Option optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
 		255 * .5,
@@ -160,9 +163,9 @@ Option2DOrigin optionTouchCtrlFaceBtnPos(CFGKEY_TOUCH_CONTROL_FACE_BTN_POS, RB2D
 Option2DOrigin optionTouchCtrlCenterBtnPos(CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS, CB2DO, 0, isValidOption2DOCenterBtn);
 Option2DOrigin optionTouchCtrlMenuPos(CFGKEY_TOUCH_CONTROL_MENU_POS,
 	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-		NULL2DO
+	NULL2DO
 	#else
-		RT2DO
+	RT2DO
 	#endif
 	, 0, isValidOption2DO);
 Option2DOrigin optionTouchCtrlFFPos(CFGKEY_TOUCH_CONTROL_FF_POS, Config::envIsIOS || Config::envIsAndroid ? LT2DO : NULL2DO, 0, isValidOption2DO);

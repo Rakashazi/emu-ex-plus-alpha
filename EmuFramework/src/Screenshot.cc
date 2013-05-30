@@ -14,9 +14,39 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <Screenshot.hh>
-#include <data-type/image/libpng/reader.h>
+#include <data-type/image/png/sys.hh>
 #include <io/sys.hh>
 #include <fs/sys.hh>
+
+#ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
+
+bool writeScreenshot(const Pixmap &vidPix, const char *fname)
+{
+	uint8 *screen = vidPix.data;
+	uint8 *tempImgBuff = (uint8*)mem_alloc(vidPix.x * vidPix.y * 3);
+	Pixmap tempPix(PixelFormatRGB888);
+	tempPix.init(tempImgBuff, vidPix.x, vidPix.y);
+	for(uint y = 0; y < vidPix.y; y++, screen += vidPix.pitch, tempImgBuff += tempPix.pitch)
+	{
+		uint8 *rowpix = tempImgBuff;
+		for(uint x = 0; x < vidPix.x; x++)
+		{
+			// assumes RGB565
+			uint16 pixVal = *(uint16 *)(screen+2*x);
+			uint32 r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
+			r *= 8; g *= 4; b *= 8;
+			*(rowpix++) = r;
+			*(rowpix++) = g;
+			*(rowpix++) = b;
+		}
+	}
+	Quartz2dImage::writeImage(tempPix, fname);
+	mem_free(tempPix.data);
+	logMsg("%s saved.", fname);
+	return 1;
+}
+
+#else
 
 static void png_ioWriter(png_structp pngPtr, png_bytep data, png_size_t length)
 {
@@ -114,3 +144,5 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	logMsg("%s saved.", fname);
 	return 1;
 }
+
+#endif

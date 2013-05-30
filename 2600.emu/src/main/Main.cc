@@ -159,9 +159,8 @@ void EmuSystem::saveAutoState()
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
 		logMsg("saving autosave-state %s", saveStr);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		Serializer state(string(saveStr), 0);
 		if(!stateManager.saveState(state))
 		{
@@ -493,9 +492,8 @@ int EmuSystem::saveState()
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
 	logMsg("saving state %s", saveStr);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	Serializer state(string(saveStr), 0);
 	if(!stateManager.saveState(state))
 	{
@@ -509,9 +507,8 @@ int EmuSystem::loadState(int saveStateSlot)
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
 	logMsg("loading state %s", saveStr);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	Serializer state(string(saveStr), 1);
 	if(!stateManager.loadState(state))
 	{

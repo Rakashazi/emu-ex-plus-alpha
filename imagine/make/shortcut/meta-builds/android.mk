@@ -60,6 +60,7 @@ ifdef android_ouyaBuild
  android_buildPrefix := android-ouya
  android_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/android-ouya-16-armv7
  android_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/android-ouya-16-armv7/gen
+ android_releaseReadySubdir := ouya
 else
  android_buildPrefix := android
  android_imagineLibPathARM ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-armv6
@@ -68,6 +69,7 @@ else
  android_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/android-$(android_minSDK)-armv7/gen
  android_imagineLibPathX86 ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-x86
  android_imagineIncludePathX86 ?= $(IMAGINE_PATH)/build/android-$(android_minSDK)-x86/gen
+ android_releaseReadySubdir := android
 endif
 
 # append the minimum SDK level
@@ -201,7 +203,8 @@ android_armSODir := $(android_targetPath)/libs/armeabi
 android_armSO := $(android_armSODir)/lib$(android_soName).so
 .PHONY: android-arm
 android-arm :
-	$(MAKE) -f $(android_armMakefile) $(android_makefileOpts) targetDir=$(android_armSODir) buildName=$(android_buildName)-armv6 \
+	@echo "Building ARM Shared Object"
+	$(PRINT_CMD)$(MAKE) -f $(android_armMakefile) $(android_makefileOpts) targetDir=$(android_armSODir) buildName=$(android_buildName)-armv6 \
 	imagineLibPath=$(android_imagineLibPathARM) imagineIncludePath=$(android_imagineIncludePathARM)
 $(android_armSO) : android-arm
 
@@ -214,7 +217,8 @@ android_armv7SODir := $(android_targetPath)/libs/armeabi-v7a
 android_armv7SO := $(android_armv7SODir)/lib$(android_soName).so
 .PHONY: android-armv7
 android-armv7 :
-	$(MAKE) -f $(android_armv7Makefile) $(android_makefileOpts) targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
+	@echo "Building ARMv7 Shared Object"
+	$(PRINT_CMD)$(MAKE) -f $(android_armv7Makefile) $(android_makefileOpts) targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
 	imagineLibPath=$(android_imagineLibPathARMv7) imagineIncludePath=$(android_imagineIncludePathARMv7)
 $(android_armv7SO) : android-armv7
 
@@ -227,7 +231,8 @@ android_x86SODir := $(android_targetPath)/libs/x86
 android_x86SO := $(android_x86SODir)/lib$(android_soName).so
 .PHONY: android-x86
 android-x86 :
-	$(MAKE) -f $(android_x86Makefile) $(android_makefileOpts) targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
+	@echo "Building X86 Shared Object"
+	$(PRINT_CMD)$(MAKE) -f $(android_x86Makefile) $(android_makefileOpts) targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
 	imagineLibPath=$(android_imagineLibPathX86) imagineIncludePath=$(android_imagineIncludePathX86)
 $(android_x86SO) : android-x86
 
@@ -264,7 +269,7 @@ android-install-only :
 
 .PHONY: android-ready
 android-ready : 
-	cp $(android_apkPath) $(IMAGINE_PATH)/../releases-bin/android/$(android_metadata_project)-$(android_minSDK)-$(android_metadata_version).apk
+	cp $(android_apkPath) $(IMAGINE_PATH)/../releases-bin/$(android_releaseReadySubdir)/$(android_metadata_project)-$(android_minSDK)-$(android_metadata_version).apk
 
 .PHONY: android-check
 android-check :

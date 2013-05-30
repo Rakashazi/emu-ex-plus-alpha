@@ -246,9 +246,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	if(CPUWriteState(gGba, saveStr))
 		return STATE_RESULT_OK;
 	else
@@ -271,9 +270,8 @@ void EmuSystem::saveAutoState()
 	{
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		CPUWriteState(gGba, saveStr);
 	}
 }
@@ -285,9 +283,8 @@ void EmuSystem::saveBackupMem()
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
 		snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		CPUWriteBatteryFile(gGba, saveStr);
 		writeCheatFile();
 	}

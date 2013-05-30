@@ -62,10 +62,3 @@ public:
 	static void onSelectFile(const char* name, const Input::Event &e);
 	static void onClose(const Input::Event &e);
 };
-
-class BenchmarkFilePicker
-{
-public:
-	static void onSelectFile(const char* name, const Input::Event &e);
-	static void onClose(const Input::Event &e);
-};

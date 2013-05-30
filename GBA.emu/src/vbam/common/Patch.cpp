@@ -5,29 +5,6 @@
 
 #include "Patch.h"
 
-#if 0
-#ifdef __GNUC__
-#if defined(__APPLE__) || defined (BSD) || defined (__NetBSD__)
-typedef off_t __off64_t; /* off_t is 64 bits on BSD. */
-#define	fseeko64 fseeko
-#define	ftello64 ftello
-#else
-typedef off64_t __off64_t;
-#endif /* __APPLE__ || BSD */
-#endif /* __GNUC__ */
-
-#ifndef _MSC_VER
-#define _stricmp strcasecmp
-#endif // ! _MSC_VER
-
-#ifdef _MSC_VER
-#define fseeko64 _fseeki64
-#define ftello64 _ftelli64
-typedef	__int64 __off64_t;
-#endif
-#endif
-
-typedef off_t __off64_t;
 #define	fseeko64 fseek
 #define	ftello64 ftell
 
@@ -199,7 +176,7 @@ bool patchApplyUPS(const char *patchname, u8 **rom, int *size)
     return false;
 
   fseeko64(f, 0, SEEK_END);
-  __off64_t patchSize = ftello64(f);
+  off_t patchSize = ftello64(f);
   if (patchSize < 20) {
     fclose(f);
     return false;
@@ -410,7 +387,7 @@ static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
   fseek(f, 56+4+(blockcheck ? 1024 : 0), SEEK_SET);
 
   while (count > 0) {
-    __off64_t offset = readInt8(f);
+    off_t offset = readInt8(f);
     if (offset == -1)
       break;
     int len = fgetc(f);

@@ -180,9 +180,8 @@ void EmuSystem::saveAutoState()
 	{
 		std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, "ncq");
 		logMsg("saving autosave-state %s", statePath.c_str());
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(statePath.c_str());
-		#endif
 		MDFNI_SaveState(statePath.c_str(), 0, 0, 0, 0);
 	}
 }
@@ -532,9 +531,8 @@ int EmuSystem::saveState()
 	ext[2] = saveSlotChar(saveStateSlot);
 	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
 	logMsg("saving state %s", statePath.c_str());
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(statePath.c_str());
-	#endif
 	if(!MDFNI_SaveState(statePath.c_str(), 0, 0, 0, 0))
 		return STATE_RESULT_IO_ERROR;
 	else

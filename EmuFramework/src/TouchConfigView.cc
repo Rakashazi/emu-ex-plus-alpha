@@ -318,6 +318,7 @@ void TouchConfigView::init(bool highlightFirst)
 	{
 		vibrate.init(optionVibrateOnPush); text[i++] = &vibrate;
 	}
+	showOnTouch.init(optionTouchCtrlShowOnTouch); text[i++] = &showOnTouch;
 	if(!optionDPI.isConst) { dpiInit(); text[i++] = &dpi; }
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
 	if(!optionTouchCtrlImgRes.isConst)
@@ -726,7 +727,7 @@ TouchConfigView::TouchConfigView(const char *faceBtnName, const char *centerBtnN
 	},
 	showOnTouch
 	{
-		"Show Controls When Screen Touched",
+		"Show Controls If Screen Touched",
 		[](BoolMenuItem &item, const Input::Event &e)
 		{
 			item.toggle();

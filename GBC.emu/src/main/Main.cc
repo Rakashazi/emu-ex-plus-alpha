@@ -244,9 +244,8 @@ int EmuSystem::saveState()
 {
 	FsSys::cPath saveStr;
 	sprintStateFilename(saveStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	#endif
 	logMsg("saving state %s", saveStr);
 	if(!gbEmu.saveState(/*screenBuff*/0, 160, saveStr))
 		return STATE_RESULT_IO_ERROR;
@@ -289,9 +288,8 @@ void EmuSystem::saveAutoState()
 		logMsg("saving auto-state");
 		FsSys::cPath saveStr;
 		sprintStateFilename(saveStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		#endif
 		gbEmu.saveState(/*screenBuff*/0, 160, saveStr);
 	}
 }

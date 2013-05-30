@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <data-type/image/libpng/reader.h>
+#include <data-type/image/png/sys.hh>
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
@@ -113,7 +113,7 @@ void commonUpdateInput()
 	turboClock++;
 	if(turboClock == turboFrames) turboClock = 0;
 
-#ifdef INPUT_SUPPORTS_POINTER
+#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 	if(relPtr.x)
 	{
 		relPtr.x = clipToZeroSigned(relPtr.x, (int)optionRelPointerDecel * -signOf(relPtr.x));
@@ -345,12 +345,12 @@ bool InputDeviceConfig::iCadeMode()
 
 bool InputDeviceConfig::mapJoystickAxis1ToDpad()
 {
-	return dev->mapJoystickAxis1ToDpad;
+	return dev->joystickAxis1AsDpad();
 }
 
 void InputDeviceConfig::setMapJoystickAxis1ToDpad(bool on)
 {
-	dev->mapJoystickAxis1ToDpad = on;
+	dev->setJoystickAxis1AsDpad(on);
 }
 
 const KeyConfig &InputDeviceConfig::keyConf()
@@ -433,7 +433,7 @@ void InputDeviceConfig::save()
 	savedConf->player = player;
 	savedConf->enabled = enabled;
 	savedConf->devId = dev->devId;
-	savedConf->mapJoystickAxis1ToDpad = dev->mapJoystickAxis1ToDpad;
+	savedConf->mapJoystickAxis1ToDpad = dev->joystickAxis1AsDpad();
 	#ifdef CONFIG_INPUT_ICADE
 	savedConf->iCadeMode = dev->iCadeMode();
 	#endif
@@ -447,7 +447,7 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
 	{
 		player = savedConf->player;
 		enabled = savedConf->enabled;
-		dev->mapJoystickAxis1ToDpad = savedConf->mapJoystickAxis1ToDpad;
+		dev->setJoystickAxis1AsDpad(savedConf->mapJoystickAxis1ToDpad);
 		#ifdef CONFIG_INPUT_ICADE
 		dev->setICadeMode(savedConf->iCadeMode);
 		#endif

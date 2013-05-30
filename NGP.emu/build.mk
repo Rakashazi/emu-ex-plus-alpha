@@ -34,10 +34,6 @@ SRC += $(NEOPOP_SRC)
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 
-ifeq ($(ENV), iOS)
- include $(IMAGINE_PATH)/make/package/stdc++.mk
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

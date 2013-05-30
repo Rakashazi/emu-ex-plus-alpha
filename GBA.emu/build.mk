@@ -10,6 +10,10 @@ ifeq ($(ARCH), arm)
  endif
 endif
 
+ifeq ($(config_compiler), clang)
+ HIGH_OPTIMIZE_CFLAGS = -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
+endif
+
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 CPPFLAGS += -DHAVE_ZLIB_H -DFINAL_VERSION -DC_CORE -DNO_PNG -DNO_LINK -DNO_DEBUGGER -DBLIP_BUFFER_FAST=1 \

@@ -82,7 +82,7 @@ class MenuView : public BaseMenuView
 {
 public:
 	MenuView();
-	void onShow();
+	void onShow() override;
 	void loadFileBrowserItems(MenuItem *item[], uint &items);
 	void loadStandardItems(MenuItem *item[], uint &items);
 

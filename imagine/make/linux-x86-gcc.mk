@@ -3,7 +3,7 @@ include $(buildSysPath)/linux-gcc.mk
 
 CHOST := $(shell $(CC) -dumpmachine)
 ARCH := x86
-COMPILE_FLAGS += -m32
+COMPILE_FLAGS += -m32 -march=pentium4 -mtune=generic
 LDFLAGS += -m32
 ASMFLAGS += -m32
 
@@ -19,4 +19,4 @@ ifneq ($(filter x86_64-%,$(CHOST)),)
  x86PkgConfigPath ?= /usr/lib32/pkgconfig
 endif
 
-PKG_CONFIG_PATH += $(x86PkgConfigPath)
+PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(x86PkgConfigPath)

@@ -34,5 +34,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libXfixesSrcDir)/configure
 	@echo "Configuring libXfixes..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXfixesSrcDir)/configure --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(IMAGINE_PATH)/bundle/linux-armv7-pandora/lib/pkgconfig:$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXfixesSrcDir)/configure --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

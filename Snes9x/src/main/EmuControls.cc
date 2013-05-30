@@ -221,7 +221,7 @@ const KeyConfig defaultKeyProfile[] =
 		Input::Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_OPEN_PANDORA_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_PROFILE_INIT,
 
 			Input::Keycode::Pandora::UP,
 			Input::Keycode::Pandora::RIGHT,
@@ -234,8 +234,8 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::Pandora::X,
 			Input::Keycode::Pandora::Y,
 			Input::Keycode::Pandora::A,
-			Input::Keycode::Pandora::L1,
-			Input::Keycode::Pandora::R1,
+			Input::Keycode::Pandora::L,
+			Input::Keycode::Pandora::R,
 		}
 	},
 	#endif

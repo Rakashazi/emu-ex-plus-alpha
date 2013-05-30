@@ -37,13 +37,13 @@ static FILE *logExternalFile = nullptr;
 static void printExternalLogPath(FsSys::cPath &path)
 {
 	#ifdef CONFIG_BASE_IOS
-		const char *prefix = "/var/mobile";
+	const char *prefix = "/var/mobile";
 	#elif defined(CONFIG_BASE_ANDROID)
-		const char *prefix = Base::storagePath();
+	const char *prefix = Base::storagePath();
 	#elif defined(CONFIG_ENV_WEBOS)
-		const char *prefix = "/media/internal";
+	const char *prefix = "/media/internal";
 	#else
-		const char *prefix = ".";
+	const char *prefix = ".";
 	#endif
 	string_printf(path, "%s/imagine.log", prefix);
 }
@@ -94,25 +94,25 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	}
 
 	#ifdef CONFIG_BASE_ANDROID
-		if(strlen(logLineBuffer))
-		{
-			printToLogLineBuffer(msg, args);
-			__android_log_write(ANDROID_LOG_INFO, "imagine", logLineBuffer);
-			logLineBuffer[0] = 0;
-		}
-		else
-			__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
+	if(strlen(logLineBuffer))
+	{
+		printToLogLineBuffer(msg, args);
+		__android_log_write(ANDROID_LOG_INFO, "imagine", logLineBuffer);
+		logLineBuffer[0] = 0;
+	}
+	else
+		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
 	#elif defined(CONFIG_BASE_IOS)
-		if(strlen(logLineBuffer))
-		{
-			printToLogLineBuffer(msg, args);
-			Base::nsLog(logLineBuffer);
-			logLineBuffer[0] = 0;
-		}
-		else
-			Base::nsLogv(msg, args);
+	if(strlen(logLineBuffer))
+	{
+		printToLogLineBuffer(msg, args);
+		Base::nsLog(logLineBuffer);
+		logLineBuffer[0] = 0;
+	}
+	else
+		Base::nsLogv(msg, args);
 	#else
-		vfprintf(stderr, msg, args);
+	vfprintf(stderr, msg, args);
 	#endif
 }
 

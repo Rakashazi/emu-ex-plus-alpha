@@ -1208,9 +1208,8 @@ CallResult onInit(int argc, char** argv)
 			}
 	#endif
 	logMsg("machine base path %s", machineBasePath);
-	#ifdef CONFIG_BASE_IOS_SETUID
-	fixFilePermissions(machineBasePath);
-	#endif
+	if(Config::envIsIOSJB)
+		fixFilePermissions(machineBasePath);
 
 	return OK;
 }

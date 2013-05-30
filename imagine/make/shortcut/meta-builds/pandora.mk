@@ -9,7 +9,7 @@ pandora_targetPath ?= target/$(pandora_buildName)
 pandora_targetPNDPath := $(pandora_targetPath)/$(pnd_metadata_pndName)
 pandora_exec := $(pandora_targetPNDPath)/$(pnd_metadata_exec)
 pandora_resourcePath := res/pandora
-pandora_icon := res/icons/icon-96.png
+pandora_icon := res/icons/iOS/icon-114.png
 pandora_pxml := $(pandora_targetPNDPath)/PXML.xml
 pandora_pnd := $(pandora_targetPath)/$(pnd_metadata_pndName).pnd
 pandora_installUser := robert
@@ -24,7 +24,8 @@ pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
 
 .PHONY: pandora-build
 pandora-build :
-	$(MAKE) -f $(pandora_makefile) $(pandora_makefileOpts) targetDir=$(pandora_targetPNDPath) targetFile=$(pnd_metadata_exec) \
+	@echo "Building Executable"
+	$(PRINT_CMD)$(MAKE) -f $(pandora_makefile) $(pandora_makefileOpts) targetDir=$(pandora_targetPNDPath) targetFile=$(pnd_metadata_exec) \
 	buildName=$(pandora_buildName) imagineLibPath=$(pandora_imagineLibPath) imagineIncludePath=$(pandora_imagineIncludePath)
 $(pandora_execPath) : pandora-build
 
@@ -61,7 +62,7 @@ pandora-resources-install : $(pandora_pxml)
 	scp $(pandora_icon) $(pandora_installUser)@$(pandora_installHost):$(pandora_deviceExecInstallPath)/icon.png
 	scp $(pandora_pxml) $(pandora_installUser)@$(pandora_installHost):$(pandora_deviceExecInstallPath)/PXML.xml
 
-$(pandora_pnd) : $(pandora_exec) $(pandora_iconPNDPath) $(pandora_pxml)
+$(pandora_pnd) : $(pandora_exec) pandora-resources
 	pnd_make.sh -c -d $(<D) -i $(<D)/icon.png -x $(<D)/PXML.xml -p $@
 .PHONY: pandora-pnd
 pandora-pnd : $(pandora_pnd)
@@ -70,3 +71,12 @@ pandora-pnd : $(pandora_pnd)
 pandora-pnd-install : $(pandora_pnd)
 	ssh $(pandora_installUser)@$(pandora_installHost) mkdir -p $(pandora_devicePNDInstallPath)
 	scp $^ $(pandora_installUser)@$(pandora_installHost):$(pandora_devicePNDInstallPath)/
+
+.PHONY: pandora-pnd-install-only
+pandora-pnd-install-only :
+	ssh $(pandora_installUser)@$(pandora_installHost) mkdir -p $(pandora_devicePNDInstallPath)
+	scp $(pandora_pnd) $(pandora_installUser)@$(pandora_installHost):$(pandora_devicePNDInstallPath)/
+
+.PHONY: pandora-ready
+pandora-ready : 
+	cp $(pandora_pnd) $(IMAGINE_PATH)/../releases-bin/pandora/$(pnd_metadata_pndName)-$(metadata_version).pnd

@@ -65,8 +65,10 @@ extern OptionAspectRatio optionAspectRatio;
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
+#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
 extern Byte4Option optionRelPointerDecel;
+#endif
 
 extern Byte4s1Option optionGameOrientation;
 extern Byte4s1Option optionMenuOrientation;

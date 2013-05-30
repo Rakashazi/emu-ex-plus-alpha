@@ -22,12 +22,15 @@ template <class COUNT = std::atomic_uint, class SIZE = uint>
 class RingBuffer
 {
 public:
-	void init(uchar *buff, SIZE size)
+	bool init(uchar *buff, SIZE size)
 	{
 		this->buff = buff;
 		buffSize = size;
 		reset();
+		return true;
 	}
+
+	void deinit() {}
 
 	void reset()
 	{

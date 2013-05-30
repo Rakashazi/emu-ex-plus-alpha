@@ -41,10 +41,10 @@ private:
 	uchar prevData[3] {0};
 	Input::AxisKeyEmu<int> axisKey[4]
 	{
-		{64, 192, Input::PS3::LSTICK_RIGHT}, // Left X Axis
-		{64, 192, Input::PS3::LSTICK_DOWN},  // Left Y Axis
-		{64, 192, Input::PS3::RSTICK_RIGHT}, // Right X Axis
-		{64, 192, Input::PS3::RSTICK_DOWN}   // Right Y Axis
+		{64, 192, Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT}, // Left X Axis
+		{64, 192, Input::PS3::LSTICK_UP, Input::PS3::LSTICK_DOWN},  // Left Y Axis
+		{64, 192, Input::PS3::RSTICK_LEFT, Input::PS3::RSTICK_RIGHT}, // Right X Axis
+		{64, 192, Input::PS3::RSTICK_UP, Input::PS3::RSTICK_DOWN}   // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
 	Input::Device *device = nullptr;

@@ -315,6 +315,10 @@ static bool setOrientationOS(int o)
 			//Gfx::setupScreenSize();
 		}*/
 
+		// Close any OS dialog windows since they may have taken
+		// the OpenGL context and prevent proper surface resizing
+		Input::finishSysTextInput();
+
 		if(!osAnimatesRotation)
 		{
 			GC rotAngle = orientationDiffTable[osOrientation][o];

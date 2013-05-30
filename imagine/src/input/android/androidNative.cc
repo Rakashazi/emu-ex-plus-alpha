@@ -437,6 +437,8 @@ int32_t onInputEvent(AInputEvent* event)
 
 static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr)
 {
+	// On Android 4.x, the dialog may steal the app's OpenGL context, so set it back
+	Base::restoreOpenGLContext();
 	auto delegate = vKeyboardTextDelegate;
 	vKeyboardTextDelegate = {};
 	if(delegate)
@@ -485,6 +487,46 @@ static bool isUsefulDevice(const char *name)
 		return false;
 	}
 	return true;
+}
+
+void Device::setJoystickAxis1AsDpad(bool on)
+{
+	if(Base::androidSDK() >= 12 && joystickAxis1AsDpad_ != on)
+	{
+		Key jsKey[4] = { Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG };
+		Key dpadKey[4] = { Input::Keycode::LEFT, Input::Keycode::RIGHT, Input::Keycode::DOWN, Input::Keycode::UP };
+		joystickAxis1AsDpad_ = on;
+		Key (&matchKey)[4] = on ? jsKey : dpadKey;
+		Key (&setKey)[4] = on ? dpadKey : jsKey;
+		iterateTimes(sysInputDevs, i)
+		{
+			if(sysInputDev[i].dev == this)
+			{
+				forEachInContainer(sysInputDev[i].axis, e)
+				{
+					forEachDInArray(matchKey, match)
+					{
+						if(e->keyEmu.lowKey == match)
+						{
+							e->keyEmu.lowKey = setKey[match_i];
+							logMsg("remapped device %d axis %d low key from %s to %s", i, e->id, keyName(match), keyName(e->keyEmu.lowKey));
+						}
+						if(e->keyEmu.highKey == match)
+						{
+							e->keyEmu.highKey = setKey[match_i];
+							logMsg("remapped device %d axis %d high key from %s to %s", i, e->id, keyName(match), keyName(e->keyEmu.highKey));
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
+bool Device::joystickAxis1AsDpad()
+{
+	return joystickAxis1AsDpad_;
 }
 
 static void rescanDevices(JNIEnv* jEnv, bool firstRun)
@@ -553,7 +595,8 @@ static void rescanDevices(JNIEnv* jEnv, bool firstRun)
 					logMsg("detected Xperia Play gamepad");
 					newDev->subtype = Device::SUBTYPE_XPERIA_PLAY;
 				}
-				else if(Config::MACHINE_IS_GENERIC_ARMV7 && (string_equal(name, "sii9234_rcp") || string_equal(name, "MHLRCP")))
+				else if(Config::MACHINE_IS_GENERIC_ARMV7 &&
+					(string_equal(name, "sii9234_rcp") || string_equal(name, "MHLRCP" ) || strstr(name, "Button Jack")))
 				{
 					// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 					// but has only special function keys
@@ -603,7 +646,16 @@ static void rescanDevices(JNIEnv* jEnv, bool firstRun)
 
 				// check joystick axes
 				{
-					Key currKeycode = Keycode::JS1_XAXIS_POS;
+					uint keycodeIdx = 0;
+					Key axisKeycode[] =
+					{
+						Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS,
+						Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS,
+						Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS,
+						Keycode::JS2_YAXIS_NEG, Keycode::JS2_YAXIS_POS,
+						Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS,
+						Keycode::JS3_YAXIS_NEG, Keycode::JS3_YAXIS_POS,
+					};
 					const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
 							AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL };
 					for(auto axisId : stickAxes)
@@ -614,9 +666,9 @@ static void rescanDevices(JNIEnv* jEnv, bool firstRun)
 						jEnv->DeleteLocalRef(range);
 						logMsg("joystick axis: %d", axisId);
 						auto size = 2.0f;
-						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f, currKeycode});
-						currKeycode += 2; // move to the next +/- axis keycode pair
-						if(sysInput.axis.size() == MAX_STICK_AXES)
+						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f, axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]});
+						keycodeIdx += 2; // move to the next +/- axis keycode pair
+						if(sysInput.axis.size() == sizeofArray(axisKeycode)/2)
 						{
 							logMsg("reached maximum joystick axes");
 							break;
@@ -636,7 +688,7 @@ static void rescanDevices(JNIEnv* jEnv, bool firstRun)
 						logMsg("trigger axis: %d", axisId);
 						auto size = 1.0f;
 						// use unreachable lowLimit value so only highLimit is used
-						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 1.f - size/4.f, axisToKeycode(axisId)});
+						sysInput.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 1.f - size/4.f, 0, axisToKeycode(axisId)});
 						if(sysInput.axis.isFull())
 						{
 							logMsg("reached maximum total axes");

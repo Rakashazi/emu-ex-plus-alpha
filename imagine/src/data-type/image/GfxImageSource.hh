@@ -5,7 +5,7 @@ class GfxImageSource
 public:
 	constexpr GfxImageSource() { }
 	virtual ~GfxImageSource() { }
-	virtual CallResult getImage(Pixmap* dest) = 0;
+	virtual CallResult getImage(Pixmap &dest) = 0;
 	virtual uint width() = 0;
 	virtual uint height() = 0;
 	virtual const PixelFormatDesc *pixelFormat() = 0;

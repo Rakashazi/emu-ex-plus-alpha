@@ -195,11 +195,7 @@ extern const char *appPath;
 	static const char *documentsPath() { return appPath; }
 #endif
 
-#if defined (CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || defined(CONFIG_ENV_WEBOS)
-	const char *storagePath();
-#else
-	static const char *storagePath() { return appPath; }
-#endif
+const char *storagePath();
 
 #if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
 	#define CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR

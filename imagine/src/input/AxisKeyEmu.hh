@@ -24,10 +24,10 @@ template <class Range>
 struct AxisKeyEmu
 {
 	constexpr AxisKeyEmu() {}
-	constexpr AxisKeyEmu(Range lowLimit, Range highLimit, Key baseKey):
-		lowLimit(lowLimit), highLimit(highLimit), baseKey(baseKey) {}
+	constexpr AxisKeyEmu(Range lowLimit, Range highLimit, Key lowKey, Key highKey):
+		lowLimit(lowLimit), highLimit(highLimit), lowKey(lowKey), highKey(highKey) {}
 	Range lowLimit = 0, highLimit = 0;
-	Key baseKey = 0;
+	Key lowKey = 0, highKey = 0;
 	int8 state = 0;
 
 	bool update(Range pos, Key &released, Key &pushed)
@@ -37,8 +37,8 @@ struct AxisKeyEmu
 			0;
 		if(newState != state)
 		{
-			released = (state > 0) ? baseKey : (state < 0) ? baseKey+1 : 0;
-			pushed = (newState > 0) ? baseKey : (newState < 0) ? baseKey+1 : 0;
+			released = (state > 0) ? highKey : (state < 0) ? lowKey : 0;
+			pushed = (newState > 0) ? highKey : (newState < 0) ? lowKey : 0;
 			state = newState;
 			return true;
 		}

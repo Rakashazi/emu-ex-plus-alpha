@@ -17,12 +17,12 @@
 #include <engine-globals.h>
 #include <gfx/Gfx.hh>
 #include <util/strings.h>
-
+#include <base/iphone/private.hh>
 #include "ResourceFontUIKit.hh"
+#import <CoreGraphics/CGBitmapContext.h>
 #import <CoreGraphics/CGContext.h>
 #import <UIKit/UIKit.h>
 
-static CGColorSpaceRef colorSpace = nullptr;
 static CGColorRef textColor = nullptr;
 
 ResourceFont *ResourceFontUIKit::loadSystem()
@@ -34,13 +34,10 @@ ResourceFont *ResourceFontUIKit::loadSystem()
 		return nullptr;
 	}
 	
-	if(!colorSpace)
+	if(!textColor)
 	{
-		logMsg("allocating color-space");
-		colorSpace = CGColorSpaceCreateDeviceGray();
-		assert(colorSpace);
 		const CGFloat component[] = { 1., 1. };
-		textColor = CGColorCreate(colorSpace, component);
+		textColor = CGColorCreate(Base::grayColorSpace, component);
 	}
 
 	return inst;
@@ -78,7 +75,7 @@ void ResourceFontUIKit::charBitmap(void *&data, int &x, int &y, int &pitch)
 		pixBuffer = (uchar*)mem_calloc(cXFullSize * cYFullSize);
 		auto str = [[NSString alloc] initWithCharacters:&currChar length:1];
 		renderTextIntoBuffer(str, pixBuffer, cXFullSize, cYFullSize,
-			colorSpace, textColor, activeFont);
+			Base::grayColorSpace, textColor, activeFont);
 		[str release];
 	}
 	data = startOfCharInPixBuffer;
@@ -121,7 +118,7 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		//pixBuffer = (uchar*)mem_realloc(pixBuffer, bufferSize);
 		//mem_zero(pixBuffer, bufferSize);
 		renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
-				colorSpace, textColor, activeFont);
+			Base::grayColorSpace, textColor, activeFont);
 		[str release];
 		
 		// measure real bounds

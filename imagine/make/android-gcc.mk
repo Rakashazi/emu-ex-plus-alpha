@@ -58,6 +58,8 @@ else
  android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
 endif
 
+pkg_stdcxxStaticLib := $(android_stdcxxLib)
+
 ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
@@ -73,5 +75,5 @@ LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now,-soname,lib$(androi
 LDLIBS += -L$(android_ndkSysroot)/usr/lib -lm
 
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-LDFLAGS += -s -Wl,-O1,--gc-sections
+LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all
 OPTIMIZE_LDFLAGS +=

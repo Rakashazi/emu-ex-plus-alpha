@@ -14,24 +14,47 @@ import java.lang.reflect.*;
 
 class TextEntry
 {
-	private static String logTag = "TextEntry";
-
-	static final class TextEntryPopupWindow extends PopupWindow
-	implements View.OnTouchListener, PopupWindow.OnDismissListener, TextView.OnEditorActionListener
+	private static final String logTag = "TextEntry";
+	
+	static final class TextEntryPopupWindow extends Dialog
+	implements DialogInterface.OnDismissListener, TextView.OnEditorActionListener
 	{
 		EditText editBox;
 		
-		public TextEntryPopupWindow(EditText textView, int width, int height, boolean focusable)
+		public TextEntryPopupWindow(Activity act, String initialText, String promptText, int x, int y, int width, int height, int fontSize)
 		{
-			super(textView, width, height, focusable);
-			setBackgroundDrawable(new BitmapDrawable());
-			setTouchInterceptor(this);
-			setOnDismissListener(this);
-			editBox = textView;
+			super(act);
+			editBox = new EditText(act);
+			editBox.setId(0); // reset indicator of canceled text entry
+			editBox.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize);
+			editBox.setText(initialText);
+			editBox.setImeActionLabel(promptText, 0);
+			editBox.setSingleLine();
 			editBox.setOnEditorActionListener(this);
+			getWindow().setBackgroundDrawable(new BitmapDrawable());
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+			getWindow().getAttributes().gravity = Gravity.LEFT | Gravity.TOP;
+			requestWindowFeature(Window.FEATURE_NO_TITLE);
+			setContentView(editBox);
+			updateRect(x, y, width, height);
+			setOnDismissListener(this);
+			setCanceledOnTouchOutside(false);
+			Log.i(logTag, "4");
 		}
 		
-		@Override public void onDismiss()
+		void updateRect(int x, int y, int width, int height)
+		{
+			//Log.i(logTag, "setting popup size " + x + " " + y + " " + width + " " + height);
+			WindowManager.LayoutParams p = getWindow().getAttributes();
+			p.x = x;
+			p.y = y;
+			ViewGroup.LayoutParams vp = editBox.getLayoutParams();
+			vp.width = width;
+			vp.height = height;
+			getWindow().setAttributes(p);
+		}
+		
+		@Override public void onDismiss(DialogInterface dialog)
 		{
 			//Log.i(logTag, "popup dismissed");
 			editBox.setText(null);
@@ -41,13 +64,13 @@ class TextEntry
 				//Log.i(logTag, "text input canceled");
 				BaseActivity.endSysTextInput(null);
 			}
+			dismissedDialog();
 		}
 		
-		@Override public boolean onTouch(View v, MotionEvent event)
+		/*@Override public boolean onTouchEvent(MotionEvent event)
 		{
 			final int x = (int) event.getX();
 			final int y = (int) event.getY();
-
 			if (//(event.getAction() == MotionEvent.ACTION_DOWN) &&
 				((x < 0) || (x >= getWidth()) || (y < 0) || (y >= getHeight())))
 			{
@@ -55,7 +78,7 @@ class TextEntry
 				return true;
 			}
 			return false;
-		}
+		}*/
 
 		@Override public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
 		{
@@ -72,16 +95,17 @@ class TextEntry
 
 	static void startSysTextInput(Activity act, String initialText, String promptText, int x, int y, int width, int height, int fontSize)
 	{
-		if(popup == null)
+		if(popup != null)
 		{
-			popup = new TextEntryPopupWindow(new EditText(act.getApplicationContext()), width, height, true);
+			finishSysTextInput(true);
 		}
-		popup.editBox.setId(0); // reset indicator of canceled text entry
-		popup.editBox.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize);
-		popup.editBox.setText(initialText);
-		popup.editBox.setImeActionLabel(promptText, 0);
-		popup.editBox.setSingleLine();
-		popup.showAtLocation(act.findViewById(android.R.id.content), Gravity.LEFT | Gravity.TOP, x, y);
+		popup = new TextEntryPopupWindow(act, initialText, promptText, x, y, width, height, fontSize);
+		popup.show();
+	}
+	
+	static void dismissedDialog()
+	{
+		popup = null;
 	}
 	
 	static void finishSysTextInput(boolean canceled)
@@ -93,7 +117,7 @@ class TextEntry
 	static void placeSysTextInput(int x, int y, int width, int height)
 	{
 		if(popup == null) return;
-		popup.update(x, y, width, height);
+		popup.updateRect(x, y, width, height);
 	}
 	
 }

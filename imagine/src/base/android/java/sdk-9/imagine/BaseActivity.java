@@ -36,42 +36,46 @@ import java.lang.reflect.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
-public final class BaseActivity extends NativeActivity implements MessageQueue.IdleHandler, AudioManager.OnAudioFocusChangeListener
+public final class BaseActivity extends NativeActivity implements AudioManager.OnAudioFocusChangeListener
 {
-	private static String logTag = "BaseActivity";
+	private static final String logTag = "BaseActivity";
 	//private native void layoutChange(int bottom);
-	native boolean drawWindowIdle();
-	private static Method setSystemUiVisibility =
+	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
-	private MessageQueue msgQueue;
-	private Handler handler;
-	
-	void postDrawWindowIdle()
-	{
-		msgQueue.addIdleHandler(this);
-		handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to run in case of no pending msgs
-		//Log.i(logTag, "start idle handler");
-	}
-	
-	void cancelDrawWindowIdle()
-	{
-		//Log.i(logTag, "stop idle handler");
-		msgQueue.removeIdleHandler(this);
-	}
 
-	@Override public boolean queueIdle()
+	private final class IdleHelper implements MessageQueue.IdleHandler
 	{
-		//Log.i(logTag, "in idle handler");
-		if(drawWindowIdle())
+		private final MessageQueue msgQueue = Looper.myQueue();
+		private final Handler handler = new Handler();
+		private native boolean drawWindow();
+
+		void postDrawWindow()
 		{
-			//Log.i(logTag, "will re-run");
-			handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to re-run in case of no pending msgs
-			return true;
+			msgQueue.addIdleHandler(this);
+			handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to run in case of no pending msgs
+			//Log.i(logTag, "start idle handler");
 		}
-		else
+		
+		void cancelDrawWindow()
 		{
-			//Log.i(logTag, "won't re-run");
-			return false;
+			//Log.i(logTag, "stop idle handler");
+			msgQueue.removeIdleHandler(this);
+		}
+
+		@Override public boolean queueIdle()
+		{
+			//Log.i(logTag, "in idle handler");
+			if(drawWindow())
+			{
+				//Log.i(logTag, "will re-run");
+				handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to re-run in case of no pending msgs
+				return true;
+			}
+			else
+			{
+				//Log.i(logTag, "won't re-run");
+				return false;
+			}
 		}
 	}
 	
@@ -228,12 +232,12 @@ public final class BaseActivity extends NativeActivity implements MessageQueue.I
 			win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 	}
 	
-	public void addNotification(String onShow, String title, String message)
+	void addNotification(String onShow, String title, String message)
 	{
 		NotificationHelper.addNotification(getApplicationContext(), onShow, title, message);
 	}
 	
-	public void removeNotification()
+	void removeNotification()
 	{
 		NotificationHelper.removeNotification();
 	}
@@ -243,37 +247,37 @@ public final class BaseActivity extends NativeActivity implements MessageQueue.I
 	static native void onScanDeviceName(String name, String addr);
 	static native void onBTOn(boolean success);
 	
-	public BluetoothAdapter btDefaultAdapter()
+	BluetoothAdapter btDefaultAdapter()
 	{
 		//Log.i(logTag, "btDefaultAdapter()");
 		return Bluetooth.defaultAdapter(this);
 	}
 	
-	public int btStartScan(BluetoothAdapter adapter)
+	int btStartScan(BluetoothAdapter adapter)
 	{
 		//Log.i(logTag, "btStartScan()");
 		return Bluetooth.startScan(adapter) ? 1 : 0;
 	}
 	
-	public void btCancelScan(BluetoothAdapter adapter)
+	void btCancelScan(BluetoothAdapter adapter)
 	{
 		Bluetooth.cancelScan(adapter);
 	}
 	
-	public BluetoothSocket btOpenSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
+	BluetoothSocket btOpenSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
 	{
 		//Log.i(logTag, "btOpenSocket()");
 		return Bluetooth.openSocket(adapter, address, ch, l2cap);
 	}
 	
-	public int btState(BluetoothAdapter adapter)
+	int btState(BluetoothAdapter adapter)
 	{
 		return adapter.getState();
 	}
 	
 	private static final int REQUEST_BT_ON = 1;
 	
-	public void btTurnOn()
+	void btTurnOn()
 	{
 		Intent btOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 		startActivityForResult(btOn, REQUEST_BT_ON);
@@ -301,11 +305,6 @@ public final class BaseActivity extends NativeActivity implements MessageQueue.I
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
-		if(android.os.Build.VERSION.SDK_INT < 16)
-		{
-			msgQueue = Looper.myQueue();
-			handler = new Handler();
-		}
 		super.onCreate(savedInstanceState);
 		getWindow().setBackgroundDrawable(null);
 	}
@@ -325,24 +324,39 @@ public final class BaseActivity extends NativeActivity implements MessageQueue.I
 	
 	static native void sysTextInputEnded(String text);
 	
-	public static void endSysTextInput(String text)
+	static void endSysTextInput(String text)
 	{
 		sysTextInputEnded(text);
 	}
 	
-	public void startSysTextInput(final String initialText, final String promptText,
+	void startSysTextInput(final String initialText, final String promptText,
 		int x, int y, int width, int height, int fontSize)
 	{
 		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height, fontSize);
 	}
 	
-	public void finishSysTextInput(final boolean canceled)
+	void finishSysTextInput(final boolean canceled)
 	{
 		TextEntry.finishSysTextInput(canceled);
 	}
 	
-	public void placeSysTextInput(final int x, final int y, final int width, final int height)
+	void placeSysTextInput(final int x, final int y, final int width, final int height)
 	{
 		TextEntry.placeSysTextInput(x, y, width, height);
+	}
+	
+	FontRenderer newFontRenderer()
+	{
+		return new FontRenderer();
+	}
+	
+	ChoreographerHelper newChoreographerHelper()
+	{
+		return new ChoreographerHelper();
+	}
+	
+	IdleHelper newIdleHelper()
+	{
+		return new IdleHelper();
 	}
 }

@@ -133,7 +133,9 @@ bool Event::isDefaultCancelButton(uint swapped) const
 				#endif
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
-					return swapped ? isDefaultConfirmButton(0) : button == Keycode::Pandora::B;
+					// TODO: can't call isDefaultConfirmButton(0) since it doesn't check whether the source was
+					// a gamepad or keyboard
+					return swapped ? (button == Keycode::Pandora::X) : (button == Keycode::Pandora::B);
 				#endif
 			}
 			return button == Input::Keycode::ESCAPE
@@ -366,7 +368,7 @@ bool Event::isDefaultPageDownButton() const
 	return 0;
 }
 
-bool swappedGamepadConfirm = 0;
+bool swappedGamepadConfirm = SWAPPED_GAMEPAD_CONFIRM_DEFAULT;
 
 struct PointerState
 {

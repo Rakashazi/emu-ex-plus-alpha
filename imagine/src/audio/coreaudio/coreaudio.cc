@@ -24,7 +24,6 @@ static uint buffers = 8;
 static AudioComponentInstance outputUnit = nullptr;
 static AudioStreamBasicDescription streamFormat;
 static bool isPlaying = 0, isOpen_ = 0;
-static AudioTimeStamp lastTimestamp;
 static MachRingBuffer<> rBuff;
 static uint startPlaybackBytes = 0;
 static BufferContext audioBuffLockCtx;
@@ -97,7 +96,6 @@ static CallResult openUnit(AudioStreamBasicDescription &fmt)
 		return INVALID_PARAMETER;
 	}
 	AudioUnitInitialize(outputUnit);
-	logMsg("allocated %d for audio buffer", bufferSize);
 
 	isPlaying = 0;
 	isOpen_ = 1;
@@ -149,7 +147,7 @@ static void startPlaybackIfNeeded()
 {
 	if(unlikely(!isPlaying && rBuff.written >= startPlaybackBytes))
 	{
-		logMsg("playback starting with %u frames", (uint)(rBuff.written * streamFormat.mBytesPerFrame));
+		logMsg("playback starting with %u frames", (uint)(rBuff.written / streamFormat.mBytesPerFrame));
 		auto err = AudioOutputUnitStart(outputUnit);
 		if(err)
 		{

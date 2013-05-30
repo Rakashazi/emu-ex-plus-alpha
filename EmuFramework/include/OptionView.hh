@@ -130,17 +130,17 @@ protected:
 	void statusBarInit();
 
 	// GUI
-	BoolMenuItem pauseUnfocused {Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused"};
-	MultiChoiceSelectMenuItem fontSize {"Large Fonts"};
+	BoolMenuItem pauseUnfocused;
+	MultiChoiceSelectMenuItem fontSize;
 	void fontSizeInit();
-	BoolMenuItem notificationIcon {"Suspended App Icon"};
-	BoolMenuItem lowProfileOSNav {"Dim OS Navigation"};
-	BoolMenuItem hideOSNav {"Hide OS Navigation"};
-	BoolMenuItem idleDisplayPowerSave {"Dim Screen If Idle"};
-	BoolMenuItem navView {"Title Bar"};
-	BoolMenuItem backNav {"Title Back Navigation"};
-	BoolMenuItem rememberLastMenu {"Remember Last Menu"};
-	MultiChoiceSelectMenuItem menuOrientation {"Orientation"};
+	BoolMenuItem notificationIcon;
+	BoolMenuItem lowProfileOSNav;
+	BoolMenuItem hideOSNav;
+	BoolMenuItem idleDisplayPowerSave;
+	BoolMenuItem navView;
+	BoolMenuItem backNav;
+	BoolMenuItem rememberLastMenu;
+	MultiChoiceSelectMenuItem menuOrientation;
 	void menuOrientationInit();
 
 	virtual void loadVideoItems(MenuItem *item[], uint &items);
@@ -150,75 +150,27 @@ protected:
 	virtual void loadGUIItems(MenuItem *item[], uint &items);
 
 	MenuItem *item[24] {nullptr};
-public:
-	OptionView();//: BaseMenuView("Options") { }
 
+public:
+	OptionView();
 	void init(uint idx, bool highlightFirst);
 };
 
 class BiosSelectMenu : public BaseMultiChoiceView
 {
 public:
-	constexpr BiosSelectMenu() { }
-	constexpr BiosSelectMenu(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type))
-		:biosPathStr(biosPathStr), fsFilter(fsFilter) { }
 	TextMenuItem choiceEntry[2];
 	MenuItem *choiceEntryItem[2] {nullptr};
 	typedef DelegateFunc<void ()> BiosChangeDelegate;
 	BiosChangeDelegate onBiosChangeD;
-	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
 	FsSys::cPath *biosPathStr = nullptr;
 	int (*fsFilter)(const char *name, int type) = nullptr;
 
-	void onSelectFile(const char* name, const Input::Event &e)
-	{
-		logMsg("size %d", (int)sizeof(*biosPathStr));
-		snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
-		if(onBiosChangeD) onBiosChangeD();
-		View::removeModalView();
-		workDirStack.pop();
-	}
-
-	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
-	{
-		var_selfs(biosPathStr);
-		var_selfs(fsFilter);
-		init(highlightFirst);
-	}
-
-	void init(bool highlightFirst)
-	{
-		assert(biosPathStr);
-		choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
-		choiceEntry[0].onSelect() =
-			[this](TextMenuItem &, const Input::Event &e)
-			{
-				removeModalView();
-				workDirStack.push();
-				chdirFromFilePath(*biosPathStr);
-				auto &fPicker = *allocModalView<EmuFilePicker>();
-				fPicker.init(!e.isPointer(), fsFilter);
-				fPicker.onSelectFile() =
-					[this](const char* name, const Input::Event &e)
-					{
-						onSelectFile(name, e);
-					};
-				fPicker.onClose() =
-					[](const Input::Event &e)
-					{
-						View::removeModalView();
-						workDirStack.pop();
-					};
-				View::addModalView(fPicker);
-			};
-		choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
-		choiceEntry[1].onSelect() =
-			[this](TextMenuItem &, const Input::Event &e)
-			{
-				removeModalView();
-				strcpy(*biosPathStr, "");
-				if(onBiosChangeD) onBiosChangeD();
-			};
-		BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst, C2DO);
-	}
+	constexpr BiosSelectMenu() {}
+	constexpr BiosSelectMenu(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type)):
+		biosPathStr(biosPathStr), fsFilter(fsFilter) {}
+	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
+	void onSelectFile(const char* name, const Input::Event &e);
+	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst);
+	void init(bool highlightFirst);
 };

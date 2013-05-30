@@ -99,39 +99,39 @@ fi
 
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <PXML xmlns=\"http://openpandora.org/namespaces/PXML\">
-  <package id=\"${id}\">
-    <version major=\"${versionMajor}\" minor=\"${versionMinor}\" release=\"${versionRelease}\" build=\"0\"/>
-    <author name=\"${vendor}\" website=\"${website}\"/>
-    <titles>
-      <title lang=\"en_US\">${name}</title>
-    </titles>
-    <descriptions>
-      <description lang=\"en_US\">${description}</description>
-    </descriptions>
-    <icon src=\"icon.png\"/>
-  </package>
-  
-  <application id=\"${id}\">
-    <exec command=\"${exec}\" x11=\"req\"/>
-    <version major=\"${versionMajor}\" minor=\"${versionMinor}\" release=\"${versionRelease}\" build=\"0\"/>
-    <author name=\"${vendor}\" website=\"${website}\"/>
-    <titles>
-      <title lang=\"en_US\">${name}</title>
-    </titles>
-    <descriptions>
-      <description lang=\"en_US\">${description}</description>
-    </descriptions>
-    <icon src=\"icon.png\"/>
-    <licenses>
-      <license name=\"${license}\" url=\"${licenseURL}\" sourcecodeurl=\"${sourceCodeURL}\"/>
-    </licenses>
-    <previewpics>
-      <pic src=\"preview.png\"/>
-    </previewpics>
-    <categories>
-      <category name=\"Game\">
-        <subcategory name=\"${subcategory}\"/>
-      </category>
-    </categories>
-  </application>
+	<package id=\"${id}\">
+		<version major=\"${versionMajor}\" minor=\"${versionMinor}\" release=\"${versionRelease}\" build=\"0\"/>
+		<author name=\"${vendor}\" website=\"${website}\"/>
+		<titles>
+			<title lang=\"en_US\">${name}</title>
+		</titles>
+		<descriptions>
+			<description lang=\"en_US\">${description}</description>
+		</descriptions>
+		<icon src=\"icon.png\"/>
+	</package>
+
+	<application id=\"${id}\">
+		<exec command=\"${exec}\" x11=\"req\"/>
+		<version major=\"${versionMajor}\" minor=\"${versionMinor}\" release=\"${versionRelease}\" build=\"0\"/>
+		<author name=\"${vendor}\" website=\"${website}\"/>
+		<titles>
+			<title lang=\"en_US\">${name}</title>
+		</titles>
+		<descriptions>
+			<description lang=\"en_US\">${description}</description>
+		</descriptions>
+		<icon src=\"icon.png\"/>
+		<licenses>
+			<license name=\"${license}\" url=\"${licenseURL}\" sourcecodeurl=\"${sourceCodeURL}\"/>
+		</licenses>
+		<previewpics>
+			<pic src=\"preview.png\"/>
+		</previewpics>
+		<categories>
+			<category name=\"Game\">
+				<subcategory name=\"${subcategory}\"/>
+			</category>
+		</categories>
+	</application>
 </PXML>" > $outPath

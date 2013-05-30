@@ -34,5 +34,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libX11SrcDir)/configure
 	@echo "Configuring libX11..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libX11SrcDir)/configure --disable-xthreads --disable-shared --disable-ipv6  --disable-loadable-i18n --disable-lint-library --disable-xf86bigfont --disable-specs --disable-tcp-transport --disable-secure-rpc --disable-composecache --disable-loadable-xcursor --disable-xcms --host=$(CHOST) PKG_CONFIG_PATH=$(system_externalSysroot)/lib/pkgconfig PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libX11SrcDir)/configure --disable-xthreads --disable-shared --disable-ipv6  --disable-loadable-i18n --disable-lint-library --disable-xf86bigfont --disable-specs --disable-tcp-transport --disable-secure-rpc --disable-composecache --disable-loadable-xcursor --disable-xcms --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

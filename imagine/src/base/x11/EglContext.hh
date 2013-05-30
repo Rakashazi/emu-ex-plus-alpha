@@ -63,7 +63,7 @@ public:
 		}
 
 		#ifndef CONFIG_GFX_OPENGL_ES
-			eglBindAPI(EGL_OPENGL_API);
+		eglBindAPI(EGL_OPENGL_API);
 		#endif
 
 		//printEGLConfs(display);
@@ -91,7 +91,7 @@ public:
 			}
 		}
 		#ifndef NDEBUG
-			printEGLConf(display, config);
+		printEGLConf(display, config);
 		#endif
 
 		surface = eglCreateWindowSurface(display, config,
@@ -103,13 +103,14 @@ public:
 		}
 
 		#ifdef CONFIG_GFX_OPENGL_ES
-			EGLint ctxAttr[] = {
+		EGLint ctxAttr[] =
+		{
 			EGL_CONTEXT_CLIENT_VERSION, 1,
 			EGL_NONE
-			};
-			context = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
+		};
+		context = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
 		#else
-			context = eglCreateContext(display, config, EGL_NO_CONTEXT, nullptr);
+		context = eglCreateContext(display, config, EGL_NO_CONTEXT, nullptr);
 		#endif
 		if(context == EGL_NO_CONTEXT)
 		{

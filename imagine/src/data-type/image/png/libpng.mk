@@ -5,6 +5,6 @@ include $(IMAGINE_PATH)/make/package/libpng.mk
 
 configDefs += CONFIG_DATA_TYPE_IMAGE_LIBPNG
 
-SRC += data-type/image/libpng/reader.cc
+SRC += data-type/image/png/LibPNG.cc
 
 endif

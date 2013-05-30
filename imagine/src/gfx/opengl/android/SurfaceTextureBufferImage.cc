@@ -33,12 +33,12 @@ void SurfaceTextureBufferImage::init(int tid, Pixmap &pixmap)
 	auto jEnv = eEnv();
 	surfaceTex = jEnv->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tid);
 	assert(surfaceTex);
-	surfaceTex = Base::eNewGlobalRef(surfaceTex);
+	surfaceTex = Base::jniThreadNewGlobalRef(jEnv, surfaceTex);
 	//jEnv->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
 
 	surface = jEnv->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
 	assert(surface);
-	surface = Base::eNewGlobalRef(surface);
+	surface = Base::jniThreadNewGlobalRef(jEnv, surface);
 
 	// ANativeWindow_fromSurfaceTexture was removed from Android 4.1
 	//nativeWin = surfaceTextureConf.ANativeWindow_fromSurfaceTexture(eEnv(), surfaceTex);
@@ -103,9 +103,9 @@ void SurfaceTextureBufferImage::deinit()
 	ANativeWindow_release(nativeWin);
 	auto jEnv = eEnv();
 	surfaceTextureConf.jSurfaceRelease(jEnv, surface);
-	Base::eDeleteGlobalRef(surface);
+	Base::jniThreadDeleteGlobalRef(jEnv, surface);
 	surfaceTextureConf.jSurfaceTextureRelease(jEnv, surfaceTex);
-	Base::eDeleteGlobalRef(surfaceTex);
+	Base::jniThreadDeleteGlobalRef(jEnv, surfaceTex);
 	freeTexRef(tid);
 	tid = 0;
 

@@ -829,9 +829,8 @@ int EmuSystem::saveState()
 {
 	SnapshotTrapData data;
 	sprintStateFilename(data.pathStr, saveStateSlot);
-	#ifdef CONFIG_BASE_IOS_SETUID
+	if(Config::envIsIOSJB)
 		fixFilePermissions(data.pathStr);
-	#endif
 	interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap
 	return data.result;
@@ -854,9 +853,8 @@ void EmuSystem::saveAutoState()
 	{
 		SnapshotTrapData data;
 		sprintStateFilename(data.pathStr, -1);
-		#ifdef CONFIG_BASE_IOS_SETUID
+		if(Config::envIsIOSJB)
 			fixFilePermissions(data.pathStr);
-		#endif
 		interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 		runFrame(0, 0, 0); // execute cpu trap
 		if(data.result != STATE_RESULT_OK)
@@ -998,14 +996,12 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			int xBorderSize = 32, yBorderSize = 23;
 			int height = 200;
 			int startX = yBorderSize, startY = yBorderSize;
-			//emuView.vidPixAlign = 2; // relax assumed alignment
 			if(c64VidY == 272) // PAL
 			{
 				// Crop all horizontal borders on PAL, leaving leftover top/bottom borders
 				yBorderSize = 32;
 				height = 206;
 				startX = xBorderSize; startY = xBorderSize;
-				//emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 			}
 			int width = 320+(xBorderSize*2 - startX*2);
 			int widthPadding = startX*2;
@@ -1014,7 +1010,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		else
 		{
 			emuView.resizeImage(c64VidX, c64VidY);
-			//emuView.vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 		}
 	}
 	if(renderGfx)

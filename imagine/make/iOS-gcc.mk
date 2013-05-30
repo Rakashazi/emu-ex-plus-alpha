@@ -21,11 +21,6 @@ ifeq ($(origin CC), default)
 endif
 include $(buildSysPath)/clang.mk
 
-ifdef ios_linkerPath
- # define an alternate PATH when linking
- LD = PATH=$(ios_linkerPath):$(PATH) $(CC)
-endif
-
 ifdef RELEASE
  COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif

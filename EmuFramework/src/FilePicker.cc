@@ -42,13 +42,6 @@ void EmuFilePicker::init(bool highlightFirst, FsDirFilterFunc filter, bool singl
 	}
 }
 
-void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
-{
-	EmuFilePicker::init(highlightFirst, defaultBenchmarkFsFilter, singleDir);
-	onSelectFile() = [this](const char* name, const Input::Event &e){BenchmarkFilePicker::onSelectFile(name, e);};
-	onClose() = [this](const Input::Event &e){BenchmarkFilePicker::onClose(e);};
-}
-
 void loadGameComplete(bool tryAutoState, bool addToRecent)
 {
 	if(tryAutoState)
@@ -136,25 +129,30 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 	}
 }
 
-void BenchmarkFilePicker::onSelectFile(const char* name, const Input::Event &e)
+void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 {
-	EmuSystem::onLoadGameComplete() =
-		[](uint result, const Input::Event &e)
+	EmuFilePicker::init(highlightFirst, defaultBenchmarkFsFilter, singleDir);
+	onSelectFile() =
+		[this](const char* name, const Input::Event &e)
 		{
-			loadGameCompleteFromBenchmarkFilePicker(result, e);
+			EmuSystem::onLoadGameComplete() =
+				[](uint result, const Input::Event &e)
+				{
+					loadGameCompleteFromBenchmarkFilePicker(result, e);
+				};
+			auto res = EmuSystem::loadGame(name);
+			if(res == 1)
+			{
+				loadGameCompleteFromBenchmarkFilePicker(1, e);
+			}
+			else if(res == 0)
+			{
+				EmuSystem::clearGamePaths();
+			}
 		};
-	auto res = EmuSystem::loadGame(name);
-	if(res == 1)
-	{
-		loadGameCompleteFromBenchmarkFilePicker(1, e);
-	}
-	else if(res == 0)
-	{
-		EmuSystem::clearGamePaths();
-	}
-}
-
-void BenchmarkFilePicker::onClose(const Input::Event &e)
-{
-	View::removeModalView();
+	onClose() =
+		[this](const Input::Event &e)
+		{
+			View::removeModalView();
+		};
 }
