@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF4SC.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartF4SC.hxx 2684 2013-04-06 14:09:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF4SC_HXX
@@ -24,16 +24,21 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartF4SCWidget.hxx"
+#endif
 
 /**
   Cartridge class used for Atari's 32K bankswitched games with
   128 bytes of RAM.  There are eight 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF4SC.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartF4SC.hxx 2684 2013-04-06 14:09:16Z stephena $
 */
 class CartridgeF4SC : public Cartridge
 {
+  friend class CartridgeF4SCWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -119,6 +124,18 @@ class CartridgeF4SC : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeF4SC"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeF4SCWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

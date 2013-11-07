@@ -43,6 +43,150 @@ KeyMapping keyMapping;
 StaticDLList<KeyConfig, MAX_CUSTOM_KEY_CONFIGS> customKeyConfig;
 bool physicalControlsPresent = 0;
 bool touchControlsAreOn = 0;
+VControllerLayoutPosition vControllerLayoutPos[2][7];
+bool vControllerLayoutPosChanged = false;
+
+#ifdef CONFIG_VCONTROLS_GAMEPAD
+static GC vControllerGCSize()
+{
+	return vController.xMMSize(int(optionTouchCtrlSize) / 100.);
+}
+
+static int vControllerPixelSize()
+{
+	return IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchCtrlSize) / 100.));
+}
+#endif
+
+void initVControls()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
+	vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
+	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75);
+	#else
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
+	#endif
+
+	if(!vControllerLayoutPosChanged) // setup default positions if not provided in config file
+		resetVControllerPositions();
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	if((int)optionTouchCtrl == 2)
+		EmuControls::updateAutoOnScreenControlVisible();
+	else
+		EmuControls::setOnScreenControls(optionTouchCtrl);
+	#endif
+	vController.updateMapping(0);
+}
+
+void resetVControllerPositions()
+{
+	logMsg("resetting on-screen controls to default positions & states");
+	auto &win = Base::mainWindow();
+	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()) || Config::envIsWebOS3)
+		? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
+	uint initMenuState = ((Config::envIsWebOS && !Config::envIsWebOS3) || (Config::envIsAndroid && Base::hasHardwareNavButtons()))
+		? VControllerLayoutPosition::HIDDEN : VControllerLayoutPosition::SHOWN;
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	uint initGamepadState = (Config::envIsWebOS || Config::envIsAndroid || Config::envIsIOS || (int)optionTouchCtrl == 1) ? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
+	#else
+	uint initGamepadState = VControllerLayoutPosition::OFF;
+	#endif
+	bool isLandscape = true;
+	for(auto &e : vControllerLayoutPos)
+	{
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
+		int xOffset = isLandscape ? vController.xMMSizeToPixel(win, 2.) : vController.xMMSizeToPixel(win, .5);
+		e[VCTRL_LAYOUT_DPAD_IDX] = {LB2DO, {xOffset + vController.bounds(0).xSize()/2, (int)(-vControllerPixelSize()) - vController.bounds(0).ySize()/2}, initGamepadState};
+		e[VCTRL_LAYOUT_CENTER_BTN_IDX] = {CB2DO, {0, 0}, initGamepadState};
+		e[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX] = {RB2DO, {-xOffset - vController.bounds(2).xSize()/2, (int)(-vControllerPixelSize()) - vController.bounds(2).ySize()/2}, initGamepadState};
+		#endif
+		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {0, 0}, initMenuState};
+		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {0, 0}, initFastForwardState};
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
+		if(systemHasTriggerBtns)
+		{
+			int y = std::min(e[0].pos.y - vController.bounds(0).ySize()/2, e[2].pos.y - vController.bounds(2).ySize()/2);
+			y -= vController.bounds(5).ySize()/2 + vController.yMMSizeToPixel(win, 1.);
+			e[VCTRL_LAYOUT_L_IDX] = {LB2DO, {xOffset + vController.bounds(5).xSize()/2, y}, initGamepadState};
+			e[VCTRL_LAYOUT_R_IDX] = {RB2DO, {-xOffset - vController.bounds(5).xSize()/2, y}, initGamepadState};
+		}
+		#endif
+		isLandscape = false;
+	};
+	vControllerLayoutPosChanged = false;
+}
+
+void resetVControllerOptions()
+{
+	resetVControllerPositions();
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	optionTouchCtrlBtnSpace.reset();
+	optionTouchCtrlBtnStagger.reset();
+	#endif
+}
+
+void resetAllVControllerOptions()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	optionTouchCtrl.reset();
+	pointerInputPlayer = 0;
+	optionTouchCtrlSize.reset();
+	optionTouchDpadDeadzone.reset();
+	optionTouchDpadDiagonalSensitivity.reset();
+	optionTouchCtrlExtraXBtnSize.reset();
+	optionTouchCtrlExtraYBtnSize.reset();
+	optionTouchCtrlExtraYBtnSizeMultiRow.reset();
+	optionTouchCtrlTriggerBtnPos.reset();
+	optionTouchCtrlBoundingBoxes.reset();
+	optionVibrateOnPush.reset();
+		#ifdef CONFIG_BASE_ANDROID
+		optionTouchCtrlScaledCoordinates.reset();
+		#endif
+	optionTouchCtrlShowOnTouch.reset();
+	#endif
+	resetVControllerOptions();
+	optionTouchCtrlAlpha.reset();
+	EmuControls::updateAutoOnScreenControlVisible();
+	vController.updateMapping(pointerInputPlayer);
+}
+
+VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size)
+{
+	auto &win = Base::mainWindow();
+	IG::Rect2<int> bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
+
+	bool ltQuadrant = bound.overlaps({0, 0, (int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()/2});
+	bool rtQuadrant = bound.overlaps({(int)win.viewPixelWidth()/2, 0, (int)win.viewPixelWidth(), (int)win.viewPixelHeight()/2});
+	bool lbQuadrant = bound.overlaps({0, (int)win.viewPixelHeight()/2, (int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()});
+	bool rbQuadrant = bound.overlaps({(int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()/2, (int)win.viewPixelWidth(), (int)win.viewPixelHeight()});
+
+	_2DOrigin origin = C2DO;
+	if(ltQuadrant && rtQuadrant && lbQuadrant && rbQuadrant) origin = C2DO;
+	else if(ltQuadrant && rtQuadrant) origin = CT2DO;
+	else if(ltQuadrant && lbQuadrant) origin = LC2DO;
+	else if(rtQuadrant && rbQuadrant) origin = RC2DO;
+	else if(lbQuadrant && rbQuadrant) origin = CB2DO;
+	else if(ltQuadrant) origin = LT2DO;
+	else if(rtQuadrant) origin = RT2DO;
+	else if(lbQuadrant) origin = LB2DO;
+	else if(rbQuadrant) origin = RB2DO;
+
+	int x = (origin.xScaler() == 0) ? pos.x - win.viewPixelWidth()/2 :
+		(origin.xScaler() == 1) ? pos.x - win.viewPixelWidth() : pos.x;
+	int y = LT2DO.adjustY(pos.y, (int)win.viewPixelHeight(), origin);
+	return {origin, {x, y}};
+}
+
+IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
+{
+	auto &win = Base::mainWindow();
+	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + win.viewPixelWidth()/2 :
+		(lPos.origin.xScaler() == 1) ? lPos.pos.x + win.viewPixelWidth() : lPos.pos.x;
+	int y = lPos.origin.adjustY(lPos.pos.y, (int)win.viewPixelHeight(), LT2DO);
+	return {x, y};
+}
 
 #ifdef INPUT_SUPPORTS_POINTER
 void processRelPtr(const Input::Event &e)
@@ -155,7 +299,7 @@ bool isMenuDismissKey(const Input::Event &e)
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case Event::MAP_KEYBOARD:
-			switch(e.device->subtype)
+			switch(e.device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
@@ -178,14 +322,14 @@ void updateInputDevices()
 {
 	using namespace Input;
 	int i = 0;
-	forEachInDLList(&devList, e)
+	for(auto &e : devList)
 	{
-		logMsg("input device %d: name: %s, id: %d, map: %d", i, e.name(), e.devId, e.map());
-		inputDevConf[i].dev = &e;
+		logMsg("input device %d: name: %s, id: %d, map: %d", i, e->name(), e->enumId(), e->map());
+		inputDevConf[i].dev = e;
 		inputDevConf[i].reset();
-		forEachInDLList(&savedInputDevList, saved)
+		for(auto &saved : savedInputDevList)
 		{
-			if(saved.matchesDevice(e))
+			if(saved.matchesDevice(*e))
 			{
 				logMsg("has saved config");
 				inputDevConf[i].setSavedConf(&saved);
@@ -205,11 +349,12 @@ void updateInputDevices()
 	{
 		if(View::modalView)
 			View::removeModalView();
-		viewStack.popToRoot();
-		auto &menu = *menuAllocator.allocNew<InputManagerView>();
-		imMenu = &menu;
-		menu.init(0);
-		viewStack.pushAndShow(&menu, &menuAllocator);
+		auto menu = imMenu;
+		viewStack.popTo(menu);
+		menu->deinit();
+		menu->init(false);
+		menu->place();
+		menu->show();
 	}
 
 	keyMapping.buildAll();
@@ -229,7 +374,7 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 			iterateTimes(confs, i)
 			{
 				// Look for the first config to match the device subtype
-				if(dev.subtype == conf[i].devSubtype)
+				if(dev.subtype() == conf[i].devSubtype)
 				{
 					return conf[i];
 				}
@@ -306,7 +451,7 @@ void InputDeviceConfig::reset()
 {
 	assert(dev);
 	savedConf = nullptr;
-	player = dev->devId < EmuSystem::maxPlayers ? dev->devId : 0;
+	player = dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0;
 	enabled = 1;
 }
 
@@ -387,7 +532,7 @@ KeyConfig *InputDeviceConfig::mutableKeyConf()
 {
 	auto currConf = &keyConf();
 	//logMsg("curr key config %p", currConf);
-	forEachInDLList(&customKeyConfig, e)
+	for(auto &e : customKeyConfig)
 	{
 		//logMsg("checking key config %p", &e);
 		if(&e == currConf)
@@ -405,16 +550,16 @@ KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(const char *name)
 		bug_exit("should no be called with full key config list");
 		return nullptr;
 	}
-	auto newConf = customKeyConfig.last();
-	*newConf = keyConf();
-	string_copy(newConf->name, name);
-	if(!setKeyConf(*newConf))
+	auto &newConf = customKeyConfig.back();
+	newConf = keyConf();
+	string_copy(newConf.name, name);
+	if(!setKeyConf(newConf))
 	{
 		// No space left for new device settings
-		customKeyConfig.removeLast();
+		customKeyConfig.pop_back();
 		return nullptr;
 	}
-	return newConf;
+	return &newConf;
 }
 
 void InputDeviceConfig::save()
@@ -426,13 +571,13 @@ void InputDeviceConfig::save()
 			logWarn("no more space for device configs");
 			return;
 		}
-		logMsg("allocated new device config, %d total", savedInputDevList.size);
-		savedConf = savedInputDevList.last();
+		logMsg("allocated new device config, %d total", savedInputDevList.size());
+		savedConf = &savedInputDevList.back();
 		*savedConf = InputDeviceSavedConfig();
 	}
 	savedConf->player = player;
 	savedConf->enabled = enabled;
-	savedConf->devId = dev->devId;
+	savedConf->enumId = dev->enumId();
 	savedConf->mapJoystickAxis1ToDpad = dev->joystickAxis1AsDpad();
 	#ifdef CONFIG_INPUT_ICADE
 	savedConf->iCadeMode = dev->iCadeMode();
@@ -458,13 +603,13 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
 
 void KeyMapping::buildAll()
 {
-	assert((int)inputDevConfs == Input::devList.size);
+	assert(inputDevConfs == Input::devList.size());
 	// calculate & allocate complete map including all devices
 	{
 		uint totalKeys = 0;
-		forEachInDLList(&Input::devList, e)
+		for(auto &e : Input::devList)
 		{
-			totalKeys += Input::Event::mapNumKeys(e.map());
+			totalKeys += Input::Event::mapNumKeys(e->map());
 		}
 		if(unlikely(!totalKeys))
 		{
@@ -482,7 +627,7 @@ void KeyMapping::buildAll()
 	}
 	uint totalKeys = 0;
 	int i = 0;
-	forEachInDLList(&Input::devList, e)
+	for(auto &e : Input::devList)
 	{
 		if(i)
 		{
@@ -490,7 +635,7 @@ void KeyMapping::buildAll()
 			// point to an offset within it
 			inputDevActionTablePtr[i] = &inputDevActionTablePtr[0][totalKeys];
 		}
-		auto mapKeys = Input::Event::mapNumKeys(e.map());
+		auto mapKeys = Input::Event::mapNumKeys(e->map());
 		totalKeys += mapKeys;
 		auto actionGroup = inputDevActionTablePtr[i];
 		if(!inputDevConf[i].enabled)
@@ -508,7 +653,7 @@ void KeyMapping::buildAll()
 		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
 		{
 			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
-			assert(key[k] < Input::Event::mapNumKeys(e.map()));
+			assert(key[k] < Input::Event::mapNumKeys(e->map()));
 			auto slot = IG::mem_findFirstZeroValue(actionGroup[key[k]]);
 			if(slot)
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
@@ -582,28 +727,53 @@ void setupVolKeysInGame()
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void setupVControllerVars()
 {
-	vController.gp.btnSize = Gfx::xMMSize(int(optionTouchCtrlSize) / 100.);
-	logMsg("set on-screen button size: %f, %d pixels", (double)vController.gp.btnSize, Gfx::toIXSize(vController.gp.btnSize));
-	vController.gp.dp.deadzone = Gfx::xMMSizeToPixel(int(optionTouchDpadDeadzone) / 100.);
-	vController.gp.dp.diagonalSensitivity = optionTouchDpadDiagonalSensitivity / 1000.;
-	vController.gp.btnSpace = Gfx::xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	GC btnSize = vControllerGCSize();
+	int btnSizePixels = vControllerPixelSize();
+	logMsg("set on-screen button size: %f, %d pixels", (double)btnSize, btnSizePixels);
+	vController.gp.btnSpace = vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
+	vController.gp.btnSpacePixels = IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchCtrlBtnSpace) / 100.));
 	vController.gp.btnRowShift = 0;
+	vController.gp.btnRowShiftPixels = 0;
 	vController.gp.btnExtraXSize = optionTouchCtrlExtraXBtnSize / 1000.;
 	vController.gp.btnExtraYSize = optionTouchCtrlExtraYBtnSize / 1000.;
 	vController.gp.btnExtraYSizeMultiRow = optionTouchCtrlExtraYBtnSizeMultiRow / 1000.;
+	vController.gp.triggersInline = optionTouchCtrlTriggerBtnPos;
 	switch((int)optionTouchCtrlBtnStagger)
 	{
-		case 0: vController.gp.btnStagger = vController.gp.btnSize * -.75; break;
-		case 1: vController.gp.btnStagger = vController.gp.btnSize * -.5; break;
-		case 2: vController.gp.btnStagger = 0; break;
-		case 3: vController.gp.btnStagger = vController.gp.btnSize * .5; break;
-		case 4: vController.gp.btnStagger = vController.gp.btnSize * .75; break;
-		default:
-			vController.gp.btnStagger = vController.gp.btnSize + vController.gp.btnSpace;
-			vController.gp.btnRowShift = -(vController.gp.btnSize + vController.gp.btnSpace);
-		break;
+		bcase 0:
+			vController.gp.btnStagger = btnSize * -.75;
+			vController.gp.btnStaggerPixels = btnSizePixels * -.75;
+		bcase 1:
+			vController.gp.btnStagger = btnSize * -.5;
+			vController.gp.btnStaggerPixels = btnSizePixels * -.5;
+		bcase 2:
+			vController.gp.btnStagger = 0;
+			vController.gp.btnStaggerPixels = 0;
+		bcase 3:
+			vController.gp.btnStagger = btnSize * .5;
+			vController.gp.btnStaggerPixels = btnSizePixels * .5;
+		bcase 4:
+			vController.gp.btnStagger = btnSize * .75;
+			vController.gp.btnStaggerPixels = btnSizePixels * .75;
+		bdefault:
+			vController.gp.btnStagger = btnSize + vController.gp.btnSpace;
+			vController.gp.btnStaggerPixels = btnSizePixels + vController.gp.btnSpacePixels;
+			vController.gp.btnRowShift = -(btnSize + vController.gp.btnSpace);
+			vController.gp.btnRowShiftPixels = -(btnSizePixels + vController.gp.btnSpacePixels);
 	}
+	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
+	#else
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
+	#endif
+
+	auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+	iterateTimes(vController.numElements(), i)
+	{
+		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i]));
+		vController.setState(i, layoutPos[i].state);
+	}
 }
 #endif
 
@@ -615,6 +785,7 @@ void setOnScreenControls(bool on)
 
 void updateAutoOnScreenControlVisible()
 {
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if((uint)optionTouchCtrl == 2)
 	{
 		if(touchControlsAreOn && physicalControlsPresent)
@@ -628,18 +799,10 @@ void updateAutoOnScreenControlVisible()
 			setOnScreenControls(1);
 		}
 	}
+	#endif
 }
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void setupVControllerPosition()
-{
-	vController.gp.dp.origin = optionTouchCtrlDpadPos;
-	vController.gp.btnO = optionTouchCtrlFaceBtnPos;
-	vController.gp.cenBtnO = optionTouchCtrlCenterBtnPos;
-	vController.gp.triggerPos = optionTouchCtrlTriggerBtnPos;
-}
-
-static const _2DOrigin allCornersO[] = { RT2DO, RC2DO, RB2DO, CB2DO, LB2DO, LC2DO, LT2DO, CT2DO };
+/*static const _2DOrigin allCornersO[] = { RT2DO, RC2DO, RB2DO, CB2DO, LB2DO, LC2DO, LT2DO, CT2DO };
 static const _2DOrigin onlyTopBottomO[] = { RT2DO, RB2DO, CB2DO, LB2DO, LT2DO, CT2DO };
 template <size_t S, size_t S2>
 static _2DOrigin getFreeOnScreenSpace(const _2DOrigin(&occupiedCorner)[S], const _2DOrigin(&wantedCorner)[S2])
@@ -700,10 +863,11 @@ void resolveOnScreenCollisions(_2DOrigin *movedObj)
 			}
 		}
 	}
-}
+}*/
 
 void updateVControlImg()
 {
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
 		static Gfx::BufferImage overlayImg;
 		PngFile png;
@@ -720,6 +884,7 @@ void updateVControlImg()
 		overlayImg.init(png);
 		vController.setImg(&overlayImg);
 	}
+	#endif
 	#ifdef CONFIG_VCONTROLLER_KEYBOARD
 	{
 		static Gfx::BufferImage kbOverlayImg;
@@ -733,5 +898,5 @@ void updateVControlImg()
 	}
 	#endif
 }
-#endif
+
 }

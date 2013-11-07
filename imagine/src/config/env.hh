@@ -7,7 +7,7 @@ namespace Config
 {
 
 // TODO: have to use ANDROID_ for now since ANDROID is needed as a macro in some system headers not yet using __ANDROID__
-enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, PS3 };
+enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, WIN32_, PS3 };
 static const uint ENV =
 	#if defined(CONFIG_BASE_ANDROID)
 	ANDROID_;
@@ -19,6 +19,8 @@ static const uint ENV =
 	WEBOS;
 	#elif defined(CONFIG_ENV_LINUX)
 	LINUX;
+	#elif defined(CONFIG_BASE_WIN32)
+	WIN32_;
 	#elif defined(CONFIG_BASE_PS3)
 	PS3;
 	#else

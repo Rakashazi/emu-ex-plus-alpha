@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Thumbulator.hxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 //============================================================================
@@ -127,16 +127,16 @@ class Thumbulator
   private:
     const uInt16* rom;
     uInt16* ram;
-    Int32 copydata;
+    //Int32 copydata;
 
     uInt32 halfadd;
     uInt32 cpsr;
-    uInt32 reg_usr[16]; //User mode
+    //uInt32 reg_usr[16]; //User mode
     uInt32 reg_sys[16]; //System mode
     uInt32 reg_svc[16]; //Supervisor mode
     //uInt32 reg_abt[16]; //Abort mode
     //uInt32 reg_und[16]; //Undefined mode
-    uInt32 reg_irq[16]; //Interrupt mode
+    //uInt32 reg_irq[16]; //Interrupt mode
     //uInt32 reg_fiq[16]; //Fast Interrupt mode
     uInt32 mamcr;
 

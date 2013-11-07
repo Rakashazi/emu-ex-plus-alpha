@@ -62,7 +62,7 @@ protected:
 
   // Cutoff frequencies.
   int w0lp_1_s7;
-  int w0hp_1_s20;
+  int w0hp_1_s17;
 
 friend class SID;
 };
@@ -96,7 +96,7 @@ void ExternalFilter::clock(short Vi)
   // Vo  = Vlp - Vhp;
 
   int dVlp = w0lp_1_s7*((Vi << 11) - Vlp) >> 7;
-  int dVhp = w0hp_1_s20*(Vlp - Vhp) >> 20;
+  int dVhp = w0hp_1_s17*(Vlp - Vhp) >> 17;
   Vlp += dVlp;
   Vhp += dVhp;
 }
@@ -130,7 +130,7 @@ void ExternalFilter::clock(cycle_count delta_t, short Vi)
     // Vo  = Vlp - Vhp;
 
     int dVlp = (w0lp_1_s7*delta_t_flt >> 3)*((Vi << 11) - Vlp) >> 4;
-    int dVhp = (w0hp_1_s20*delta_t_flt >> 3)*(Vlp - Vhp) >> 17;
+    int dVhp = (w0hp_1_s17*delta_t_flt >> 3)*(Vlp - Vhp) >> 14;
     Vlp += dVlp;
     Vhp += dVhp;
 

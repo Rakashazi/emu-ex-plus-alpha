@@ -443,17 +443,11 @@
 /* Define to 1 if you have the <regex.h> header file. */
 #define HAVE_REGEX_H 1
 
-// TODO: remove __APPLE__ when clang is fixed
-#ifndef __APPLE__
 /* This version provides ReSID support. */
 #define HAVE_RESID /**/
-#endif
 
 /* This version provides ReSID-DTV support. */
 //#define HAVE_RESID_DTV /**/
-
-/* This version provides ReSID_FP support. */
-//#define HAVE_RESID_FP /**/
 
 /* Define to 1 if you have the `rewinddir' function. */
 #define HAVE_REWINDDIR 1
@@ -910,6 +904,3 @@
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
-
-#define MACHINE_SYNC_DEFAULT MACHINE_SYNC_NTSC
-#define SID_ENGINE_DEFAULT SID_ENGINE_FASTSID

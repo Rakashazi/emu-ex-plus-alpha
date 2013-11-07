@@ -16,4 +16,5 @@ endif
 
 include $(buildSysPath)/android-armv7-gcc.mk
 
-android_cpuFlags += -mcpu=cortex-a9
+# using cortex-a9 for -mcpu or -mtune can cause crashes from bad alignment (SIGBUS & BUS_ADRALN)
+android_cpuFlags += -mcpu=cortex-a8

@@ -1178,7 +1178,7 @@ void magicvoice_setup_context(machine_context_t *machine_context)
 {
     DBG(("MV: setup_context\n"));
 
-    tpi_context = lib_malloc(sizeof(tpi_context_t));
+    tpi_context = lib_calloc(1, sizeof(tpi_context_t));
 
     tpi_context->prv = NULL;
 
@@ -1209,7 +1209,7 @@ void magicvoice_setup_context(machine_context_t *machine_context)
     tpi_context->restore_int = restore_int;
 
     /* init t6721 chip */
-    t6721 = lib_malloc(sizeof(t6721_state));
+    t6721 = lib_calloc(1, sizeof(t6721_state));
     t6721->read_data = read_data;
     t6721->set_apd = set_apd;
     t6721->set_eos = set_eos;

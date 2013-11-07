@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: StateManager.hxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 #ifndef STATE_MANAGER_HXX
@@ -30,7 +30,7 @@ class OSystem;
   played back.
 
   @author  Stephen Anthony
-  @version $Id: StateManager.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: StateManager.hxx 2725 2013-05-07 18:53:21Z stephena $
 */
 class StateManager
 {
@@ -131,9 +131,6 @@ class StateManager
 
     // Whether the manager is in record or playback mode
     Mode myActiveMode;
-
-    // Current frame count (write full state every 60 frames)
-    int myFrameCounter;
 
     // MD5 of the currently active ROM (either in movie or rewind mode)
     string myMD5;

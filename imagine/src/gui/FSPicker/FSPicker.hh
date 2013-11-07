@@ -32,7 +32,7 @@
 class FSPicker : public View, public GuiTableSource
 {
 public:
-	constexpr FSPicker() { }
+	constexpr FSPicker(Base::Window &win): View(win) {}
 	FsDirFilterFunc filter = nullptr;
 
 	static const bool needsUpDirControl = !Config::envIsPS3;
@@ -64,7 +64,7 @@ public:
 
 	void onLeftNavBtn(const Input::Event &e);
 	void onRightNavBtn(const Input::Event &e);
-	Rect2<int> &viewRect() { return viewFrame; }
+	IG::Rect2<int> &viewRect() { return viewFrame; }
 	void clearSelection()
 	{
 		tbl.clearSelection();
@@ -86,13 +86,13 @@ private:
 			inst.onRightNavBtn(e);
 		};
 		void init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir);
-		void draw() override;
+		void draw(const Base::Window &win) override;
 		void place() override;
 	};
 
 	TextMenuItem *text = nullptr;
 	FsSys dir;
-	Rect2<int> viewFrame;
+	IG::Rect2<int> viewFrame;
 	ResourceFace *faceRes = nullptr;
 	FSNavView navV {*this};
 	bool singleDir = 0;

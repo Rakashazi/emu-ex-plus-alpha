@@ -3,7 +3,6 @@
 #include <flash.h>
 
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -44,13 +43,17 @@ enum {
 static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
 
 const uint EmuSystem::maxPlayers = 1;
-uint EmuSystem::aspectRatioX = 20, EmuSystem::aspectRatioY = 19;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"20:19 (Original)", 20, 19},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
-void EmuSystem::initOptions()
-{
+void EmuSystem::initOptions() {}
 
-}
+void EmuSystem::onOptionsLoaded() {}
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -360,8 +363,6 @@ void EmuSystem::clearInputBuffers()
 	ram[0x6F82] = 0;
 }
 
-static uint audioFramesPerUpdate;
-
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
@@ -372,28 +373,11 @@ void EmuSystem::configAudioRate()
 		rate *= 42660./44100.; // better sync with Pre's refresh rate
 	#endif
 	sound_init(rate);
-	audioFramesPerUpdate = rate/60.;
 }
 
 void system_sound_chipreset(void)
 {
 	EmuSystem::configAudioPlayback();
-}
-
-static void writeAudio()
-{
-#ifdef USE_NEW_AUDIO
-	Audio::BufferContext *aBuff = Audio::getPlayBuffer(Audio::maxRate/60);
-	if(!aBuff) return;
-	assert(aBuff->frames >= Audio::maxRate/60);
-	sound_update((uint16*)aBuff->data, audioFramesPerUpdate*2);
-	Audio::commitPlayBuffer(aBuff, audioFramesPerUpdate);
-#else
-	uint16 destBuff[(Audio::maxRate/60)];
-	uint destFrames = audioFramesPerUpdate;
-	sound_update(destBuff, audioFramesPerUpdate*2);
-	Audio::writePcm((uchar*)destBuff, destFrames);
-#endif
 }
 
 void system_VBL(void)
@@ -419,14 +403,18 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	// video rendered in emulate()
 
 	if(renderAudio)
-		writeAudio();
+	{
+		uint16 destBuff[audioFramesPerVideoFrame];
+		sound_update(destBuff, audioFramesPerVideoFrame*2);
+		writeSound(destBuff, audioFramesPerVideoFrame);
+	}
 }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -505,17 +493,17 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)cfb, pixFmt, ngpResX, ngpResY);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;
 	bios_install();
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -526,7 +514,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

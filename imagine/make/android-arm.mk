@@ -11,7 +11,7 @@ ifneq ($(config_compiler),clang)
  endif
 endif
 
-android_cpuFlags += -mthumb-interwork
+android_cpuFlags += -mthumb-interwork -fpic
 COMPILE_FLAGS += -fno-short-enums
 ifneq ($(config_compiler),clang)
  COMPILE_FLAGS += -fsingle-precision-constant

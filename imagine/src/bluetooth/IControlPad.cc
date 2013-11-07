@@ -17,27 +17,28 @@
 #include "IControlPad.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
-#include <util/collection/DLList.hh>
 #include <algorithm>
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
+using namespace IG;
+
+extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
+StaticArrayList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
 
 static const Input::PackedInputAccess iCPDataAccess[] =
 {
-	{ 0, BIT(2), Input::iControlPad::LEFT },
-	{ 0, BIT(1), Input::iControlPad::RIGHT },
-	{ 0, BIT(3), Input::iControlPad::DOWN },
-	{ 0, BIT(0), Input::iControlPad::UP },
-	{ 0, BIT(4), Input::iControlPad::L },
+	{ 0, bit(2), Input::iControlPad::LEFT },
+	{ 0, bit(1), Input::iControlPad::RIGHT },
+	{ 0, bit(3), Input::iControlPad::DOWN },
+	{ 0, bit(0), Input::iControlPad::UP },
+	{ 0, bit(4), Input::iControlPad::L },
 
-	{ 1, BIT(3), Input::iControlPad::A },
-	{ 1, BIT(4), Input::iControlPad::X },
-	{ 1, BIT(5), Input::iControlPad::B },
-	{ 1, BIT(6), Input::iControlPad::R },
-	{ 1, BIT(0), Input::iControlPad::SELECT },
-	{ 1, BIT(2), Input::iControlPad::Y },
-	{ 1, BIT(1), Input::iControlPad::START },
+	{ 1, bit(3), Input::iControlPad::A },
+	{ 1, bit(4), Input::iControlPad::X },
+	{ 1, bit(5), Input::iControlPad::B },
+	{ 1, bit(6), Input::iControlPad::R },
+	{ 1, bit(0), Input::iControlPad::SELECT },
+	{ 1, bit(2), Input::iControlPad::Y },
+	{ 1, bit(1), Input::iControlPad::START },
 };
 
 static const uchar CMD_SPP_GP_REPORTS = 0xAD;
@@ -65,7 +66,7 @@ static const uchar CMD_POWER_OFF = 0x94;
 static const uchar PWR_OFF_CHK_BYTE1 = 0x27;
 static const uchar PWR_OFF_CHK_BYTE2 = 0x6A;
 static const uchar PWR_OFF_CHK_BYTE3 = 0xFE;
-//static const uchar shutdown[] = { CMD_POWER_OFF, PWR_OFF_CHK_BYTE1, PWR_OFF_CHK_BYTE2, PWR_OFF_CHK_BYTE3 };
+//static const char shutdown[] = { CMD_POWER_OFF, PWR_OFF_CHK_BYTE1, PWR_OFF_CHK_BYTE2, PWR_OFF_CHK_BYTE3 };
 
 static const uchar RESP_OKAY = 0x80;
 
@@ -74,7 +75,7 @@ const uchar IControlPad::btClass[3] = { 0x00, 0x1F, 0x00 };
 uint IControlPad::findFreeDevId()
 {
 	uint id[5] = { 0 };
-	forEachInDLList(&devList, e)
+	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}
@@ -91,7 +92,7 @@ CallResult IControlPad::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to iCP");
 	sock.onData() =
-		[this](const uchar *packet, size_t size)
+		[this](const char *packet, size_t size)
 		{
 			return dataHandler(packet, size);
 		};
@@ -120,8 +121,9 @@ void IControlPad::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Input::removeDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ICONTROLPAD, Input::DeviceChange::REMOVED });
+		removeDevice(*this);
+		//Input::removeDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
+		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -131,19 +133,21 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("iCP opened successfully");
 		player = findFreeDevId();
-		if(!devList.add(this) || !btInputDevList.add(this))
+		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
 		{
 			logErr("No space left in BT input device list");
 			removeFromSystem();
 			delete this;
 			return 0;
 		}
+		devList.push_back(this);
+		btInputDevList.push_back(this);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
-		Input::addDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
-		device = Input::devList.last();
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ICONTROLPAD, Input::DeviceChange::ADDED });
-		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
+		devId = player;
+		Input::addDevice(*this);
+		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
 	{
@@ -154,8 +158,9 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 	return 0;
 }
 
-bool IControlPad::dataHandler(const uchar *packet, size_t size)
+bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 {
+	auto packet = (const uchar*)packetPtr;
 	uint bytesLeft = size;
 	//logMsg("%d bytes ready", bytesToRead);
 	do
@@ -203,7 +208,7 @@ bool IControlPad::dataHandler(const uchar *packet, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const uchar *btnData, uint player)
+void IControlPad::processBtnReport(const char *btnData, uint player)
 {
 	using namespace Input;
 	forEachInArray(iCPDataAccess, e)
@@ -213,7 +218,8 @@ void IControlPad::processBtnReport(const uchar *btnData, uint player)
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
-			onInputEvent(Event(player, Event::MAP_ICONTROLPAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, device));
+			Base::endIdleByUserActivity();
+			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ICONTROLPAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, this));
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -241,7 +247,8 @@ void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint pl
 				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
 				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
 			};
-			onInputEvent(Event(player, Event::MAP_ICONTROLPAD, nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
+			Base::endIdleByUserActivity();
+			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ICONTROLPAD, nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, this));
 		}
 		*e = newState;
 	}

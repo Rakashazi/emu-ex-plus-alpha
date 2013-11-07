@@ -18,7 +18,6 @@
 #include <logger/interface.h>
 namespace Base
 {
-	void exitVal(int returnVal) ATTRS(noreturn);
 	void abort() ATTRS(noreturn);
 }
 #define BRANCH_H_PRINTF(str, ...) logErr(str, ## __VA_ARGS__)
@@ -28,4 +27,4 @@ namespace Base
 #define doOrElse(Do, Else) { if(Do != OK) Else; }
 #define doOrReturnVal(Do, Val) doOrElse(Do, return(Val))
 #define doOrReturn(Do) { CallResult _r = Do; if(_r != OK) return(_r); }
-#define doOrExit(Do) doOrElse(Do, Base::exitVal(0))
+#define doOrAbort(Do) doOrElse(Do, Base::abort())

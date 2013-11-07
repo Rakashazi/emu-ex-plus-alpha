@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -30,23 +30,22 @@ public:
 		virtual ~VolOnOffEvent() {}
 		virtual void operator()(unsigned long /*cc*/) {}
 	};
-	
-private:
-	static VolOnOffEvent nullEvent;
-	VolOnOffEvent &volOnOffEvent;
-	unsigned char nr2;
-	unsigned char volume;
-	
-public:
-	explicit EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent);
+
+	explicit EnvelopeUnit(VolOnOffEvent &volOnOffEvent = nullEvent_);
 	void event();
-	bool dacIsOn() const { return nr2 & 0xF8; }
-	unsigned getVolume() const { return volume; }
+	bool dacIsOn() const { return nr2_ & 0xF8; }
+	unsigned getVolume() const { return volume_; }
 	bool nr2Change(unsigned newNr2);
 	bool nr4Init(unsigned long cycleCounter);
 	void reset();
 	void saveState(SaveState::SPU::Env &estate) const;
-	void loadState(const SaveState::SPU::Env &estate, unsigned nr2, unsigned long cc);
+	void loadState(SaveState::SPU::Env const &estate, unsigned nr2, unsigned long cc);
+
+private:
+	static VolOnOffEvent nullEvent_;
+	VolOnOffEvent &volOnOffEvent_;
+	unsigned char nr2_;
+	unsigned char volume_;
 };
 
 }

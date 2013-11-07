@@ -27,8 +27,6 @@ class VideoImageOverlay
 public:
 	GC intensity = 0.25;
 
-	constexpr	VideoImageOverlay() { }
-
 	enum
 	{
 		NO_EFFECT = 0,
@@ -39,6 +37,7 @@ public:
 		MAX_EFFECT_VAL = CRT_RGB_2
 	};
 
+	constexpr	VideoImageOverlay() {}
 	void setEffect(uint effect);
 	void place(const Gfx::Sprite &disp, uint lines);
 	void draw();

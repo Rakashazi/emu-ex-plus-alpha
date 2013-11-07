@@ -33,50 +33,64 @@ public:
 class View
 {
 public:
-	constexpr View() { }
-	constexpr View(const char *name) : name_(name) { }
+	Base::Window *win = nullptr;
+	static View *modalView;
+	typedef DelegateFunc<void ()> RemoveModalViewDelegate;
+	static RemoveModalViewDelegate removeModalViewDel;
+	static ResourceFace *defaultFace;
+	enum { SHOW, ACTIVE, HIDE };
+	ViewAnimation *animation = nullptr;
+	uint displayState = 0;
+	const char *name_ = "";
+
+	constexpr View() {}
+	constexpr View(Base::Window &win): win(&win) {}
+	constexpr View(const char *name, Base::Window &win) : win(&win), name_(name) {}
 
 	virtual void deinit() = 0;
-	virtual Rect2<int> &viewRect() = 0;
+	virtual IG::Rect2<int> &viewRect() = 0;
 	virtual void place() = 0;
 	virtual void draw(Gfx::FrameTimeBase frameTime) = 0;
 	virtual void inputEvent(const Input::Event &event) = 0;
-	virtual void clearSelection() { } // de-select any items from previous input
-	virtual void onShow() { }
+	virtual void clearSelection() {} // de-select any items from previous input
+	virtual void onShow() {}
 
-	void placeRect(Rect2<int> rect)
+	void placeRect(IG::Rect2<int> rect)
 	{
 		this->viewRect() = rect;
 		place();
 	}
 
-	static View *modalView;
-	typedef DelegateFunc<void ()> RemoveModalViewDelegate;
-	static RemoveModalViewDelegate removeModalViewDel;
+	void displayNeedsUpdate()
+	{
+		assert(win);
+		win->displayNeedsUpdate();
+	}
+
+	Base::Window &window()
+	{
+		assert(win);
+		return *win;
+	}
+
 	static RemoveModalViewDelegate &onRemoveModalView() { return removeModalViewDel; }
+
 	static void addModalView(View &view)
 	{
 		assert(!modalView);
-		view.placeRect(Gfx::viewportRect());
+		view.placeRect(view.window().viewBounds());
 		modalView = &view;
-		Base::displayNeedsUpdate();
+		view.displayNeedsUpdate();
 	}
 	static void removeModalView()
 	{
 		assert(modalView);
+		modalView->displayNeedsUpdate();
 		modalView->deinit();
 		modalView = nullptr;
 		if(removeModalViewDel) removeModalViewDel();
-		Base::displayNeedsUpdate();
 	}
 
-	static ResourceFace *defaultFace;
-
-	enum { SHOW, ACTIVE, HIDE };
-	ViewAnimation *animation = nullptr;
-	uint displayState = 0;
-
-	const char *name_ = "";
 	const char *name() { return name_; }
 
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?
@@ -109,7 +123,7 @@ public:
 		else
 		{
 			animation->initDismiss();
-			Base::displayNeedsUpdate();
+			displayNeedsUpdate();
 		}
 		displayState = HIDE;
 	}
@@ -129,7 +143,7 @@ public:
 		}
 		onShow();
 		//logMsg("showed view");
-		Base::displayNeedsUpdate();
+		displayNeedsUpdate();
 	}
 
 	void init(ViewAnimation *animation = 0, bool animated = 0)
@@ -143,7 +157,7 @@ public:
 		if(animation && animation->update())
 		{
 			// still animating
-			Base::displayNeedsUpdate();
+			displayNeedsUpdate();
 			return 1;
 		}
 

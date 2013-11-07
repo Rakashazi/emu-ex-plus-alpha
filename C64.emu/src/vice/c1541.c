@@ -51,6 +51,7 @@
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
+
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -88,8 +89,6 @@
 #include "p64.h"
 
 /* #define DEBUG_DRIVE */
-
-#define GEOS    /* DiSc */
 
 #define MAXARG          256
 #define MAXDRIVE        1
@@ -137,7 +136,6 @@ static int zcreate_cmd(int nargs, char **args);
 
 static int open_image(int dev, char *name, int create, int disktype);
 
-#ifdef GEOS
 int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii);
 static int read_geos_cmd(int nargs, char **args);
 static int fix_ts(int unit, unsigned int trk, unsigned int sec,
@@ -145,7 +143,6 @@ static int fix_ts(int unit, unsigned int trk, unsigned int sec,
                   unsigned int blk_offset);
 static int internal_write_geos_file(int unit, FILE* f);
 static int write_geos_cmd(int nargs, char **args);
-#endif
 
 int rom1541_loaded = 0;
 int rom1541ii_loaded = 0;
@@ -262,7 +259,6 @@ const command_t command_list[] = {
       "the current unit, if any.",
       1, 4,
       format_cmd },
-#ifdef GEOS
     { "geosread",
       "geosread <source> [<destination>]",
       "Read GEOS <source> from the disk image and copy it as a Convert file into \n"
@@ -273,7 +269,6 @@ const command_t command_list[] = {
       "geoswrite <source>",
       "Write GOES Convert file <source> from the file system on a disk image.",
       1, 1, write_geos_cmd },
-#endif
     { "help",
       "help [<command>]",
       "Explain specified command.  If no command is specified, list available\n"      "ones.",
@@ -1653,8 +1648,6 @@ static int read_cmd(int nargs, char **args)
     return FD_OK;
 }
 
-#ifdef GEOS
-
 #define SLOT_GEOS_FILE_STRUC  23  /* Offset to geos file structure byte */
 #define SLOT_GEOS_FILE_TYPE   24  /* Offset to geos file type
           */
@@ -2342,9 +2335,6 @@ static int write_geos_cmd(int nargs, char **args)
 
     return erg;
 }
-
-
-#endif
 
 static int rename_cmd(int nargs, char **args)
 {
@@ -3337,40 +3327,6 @@ unsigned int machine_bus_device_type_get(unsigned int unit)
 void machine_drive_flush(void)
 {
 }
-
-#ifdef WIN32
-/* Kludge! Will be removed someday.  */
-size_t system_wcstombs(char *mbs, const char *wcs, size_t len)
-{
-    strncpy(mbs, wcs, len);
-    return strlen(mbs);
-}
-
-size_t system_mbstowcs(char *wcs, const char *mbs, size_t len)
-{
-    strncpy(wcs, mbs, len);
-    return strlen(wcs);
-}
-
-char *system_mbstowcs_alloc(const char *mbs)
-{
-    char *wcs;
-
-    if (mbs == NULL) {
-        return NULL;
-    }
-
-    wcs = lib_malloc((strlen(mbs) + 1) * sizeof(char));
-    system_mbstowcs(wcs, mbs, strlen(mbs) + 1);
-
-    return wcs;
-}
-
-void system_mbstowcs_free(char *wcs)
-{
-    lib_free(wcs);
-}
-#endif
 
 const char *machine_get_name(void)
 {

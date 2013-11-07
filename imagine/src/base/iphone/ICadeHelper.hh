@@ -1,6 +1,7 @@
 #pragma once
 
 #include <input/Input.hh>
+#include <base/Base.hh>
 #include <input/common/iCade.hh>
 
 struct ICadeHelper
@@ -61,7 +62,7 @@ struct ICadeHelper
 		//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
 		char c = [text characterAtIndex:0];
 
-		Input::processICadeKey(c, PUSHED, *devList.first()); // iCade device is always added first on app init
+		Input::processICadeKey(c, PUSHED, *devList.front(), Base::mainWindow()); // iCade device is always added first on app init
 
 		if (++cycleResponder > 20)
 		{

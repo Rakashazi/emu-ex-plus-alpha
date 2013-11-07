@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,50 +20,49 @@
 #include <algorithm>
 
 namespace {
-enum { WIDTH  = VfilterInfo::IN_WIDTH };
-enum { HEIGHT = VfilterInfo::IN_HEIGHT };
-enum { PITCH  = WIDTH + 3 };
+
+enum { in_width  = VfilterInfo::in_width };
+enum { in_height = VfilterInfo::in_height };
+enum { in_pitch  = in_width + 3 };
 
 struct Colorsum {
 	gambatte::uint_least32_t r, g, b;
 };
 
-static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) {
-	unsigned w = WIDTH;
-	
-	while (w--) {
+static void mergeColumns(gambatte::uint_least32_t *dest, Colorsum const *sums) {
+	for (unsigned w = in_width; w--;) {
 		{
 			gambatte::uint_least32_t rsum = sums[1].r;
 			gambatte::uint_least32_t gsum = sums[1].g;
 			gambatte::uint_least32_t bsum = sums[1].b;
 
-			if (rsum & 0x80000000)
+			if (rsum >= 0x80000000) {
 				rsum = 0;
-			else if (rsum > 6869)
+			} else if (rsum > 6869) {
 				rsum = 0xFF0000;
-			else {
+			} else {
 				rsum *= 607;
 				rsum <<= 2;
 				rsum += 0x008000;
 				rsum &= 0xFF0000;
 			}
 
-			if (gsum & 0x80000000)
+			if (gsum >= 0x80000000) {
 				gsum = 0;
-			else if (gsum > 1758567)
+			} else if (gsum > 1758567) {
 				gsum = 0xFF00;
-			else {
+			} else {
 				gsum *= 607;
 				gsum >>= 14;
 				gsum += 0x000080;
 				gsum &= 0x00FF00;
 			}
 
-			if (bsum & 0x80000000)
+			if (bsum >= 0x80000000) {
 				bsum = 0;
-			else if (bsum > 6869)
+			} else if (bsum > 6869) {
 				bsum = 0xFF;
-			else {
+			} else {
 				bsum *= 607;
 				bsum += 8192;
 				bsum >>= 14;
@@ -102,22 +101,22 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			gsum -= sums[3].g;
 			bsum -= sums[3].b;
 
-			if (rsum & 0x80000000)
+			if (rsum >= 0x80000000) {
 				rsum = 0;
-			else if (rsum > 185578)
+			} else if (rsum > 185578) {
 				rsum = 0xFF0000;
-			else {
+			} else {
 				rsum *= 719;
 				rsum >>= 3;
 				rsum += 0x008000;
 				rsum &= 0xFF0000;
 			}
 
-			if (gsum & 0x80000000)
+			if (gsum >= 0x80000000) {
 				gsum = 0;
-			else if (gsum > 47508223)
+			} else if (gsum > 47508223) {
 				gsum = 0x00FF00;
-			else {
+			} else {
 				gsum >>= 8;
 				gsum *= 719;
 				gsum >>= 11;
@@ -125,11 +124,11 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 				gsum &= 0x00FF00;
 			}
 
-			if (bsum & 0x80000000)
+			if (bsum >= 0x80000000) {
 				bsum = 0;
-			else if (bsum > 185578)
+			} else if (bsum > 185578) {
 				bsum = 0x0000FF;
-			else {
+			} else {
 				bsum *= 719;
 				bsum += 0x040000;
 				bsum >>= 19;
@@ -168,22 +167,22 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 			gsum -= sums[3].g << 1;
 			bsum -= sums[3].b << 1;
 
-			if (rsum & 0x80000000)
+			if (rsum >= 0x80000000) {
 				rsum = 0;
-			else if (rsum > 185578)
+			} else if (rsum > 185578) {
 				rsum = 0xFF0000;
-			else {
+			} else {
 				rsum *= 719;
 				rsum >>= 3;
 				rsum += 0x008000;
 				rsum &= 0xFF0000;
 			}
 
-			if (gsum & 0x80000000)
+			if (gsum >= 0x80000000) {
 				gsum = 0;
-			else if (gsum > 47508223)
+			} else if (gsum > 47508223) {
 				gsum = 0xFF00;
-			else {
+			} else {
 				gsum >>= 8;
 				gsum *= 719;
 				gsum >>= 11;
@@ -191,11 +190,11 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 				gsum &= 0x00FF00;
 			}
 
-			if (bsum & 0x80000000)
+			if (bsum >= 0x80000000) {
 				bsum = 0;
-			else if (bsum > 185578)
+			} else if (bsum > 185578) {
 				bsum = 0x0000FF;
-			else {
+			} else {
 				bsum *= 719;
 				bsum += 0x040000;
 				bsum >>= 19;
@@ -217,21 +216,23 @@ static void merge_columns(gambatte::uint_least32_t *dest, const Colorsum *sums) 
 
 			*dest++ = rsum/*&0xFF0000*/ | gsum/*&0x00FF00*/ | bsum;
 		}
+
 		++sums;
 	}
 }
 
-static void filter(gambatte::uint_least32_t *dline, const int pitch, const gambatte::uint_least32_t *sline) {
-	Colorsum sums[PITCH];
-
-	for (unsigned h = HEIGHT; h--;) {
+static void filter(gambatte::uint_least32_t *dline,
+                   std::ptrdiff_t const pitch,
+                   gambatte::uint_least32_t const *sline)
+{
+	Colorsum sums[in_pitch];
+	for (unsigned h = in_height; h--;) {
 		{
-			const gambatte::uint_least32_t *s = sline;
+			gambatte::uint_least32_t const *s = sline;
 			Colorsum *sum = sums;
-			unsigned n = PITCH;
-			
+			unsigned n = in_pitch;
 			while (n--) {
-				const unsigned long pixel = *s;
+				unsigned long const pixel = *s;
 				sum->r = (pixel >> 16) * 27;
 				sum->g = (pixel & 0x00FF00) * 27;
 				sum->b = (pixel & 0x0000FF) * 27;
@@ -240,33 +241,32 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
-		merge_columns(dline, sums);
+
+		mergeColumns(dline, sums);
 		dline += pitch;
 
 		{
-			const gambatte::uint_least32_t *s = sline;
+			gambatte::uint_least32_t const *s = sline;
 			Colorsum *sum = sums;
-			unsigned n = PITCH;
-			
+			unsigned n = in_pitch;
 			while (n--) {
 				unsigned long pixel = *s;
 				unsigned long rsum = (pixel >> 16) * 21;
 				unsigned long gsum = (pixel & 0x00FF00) * 21;
 				unsigned long bsum = (pixel & 0x0000FF) * 21;
 
-				pixel = s[-1 * PITCH];
+				pixel = s[-1 * in_pitch];
 				rsum -= (pixel >> 16) << 1;
 				pixel <<= 1;
 				gsum -= pixel & 0x01FE00;
 				bsum -= pixel & 0x0001FE;
 
-				pixel = s[1 * PITCH];
+				pixel = s[1 * in_pitch];
 				rsum += (pixel >> 16) * 9;
 				gsum += (pixel & 0x00FF00) * 9;
 				bsum += (pixel & 0x0000FF) * 9;
 
-				pixel = s[2 * PITCH];
+				pixel = s[2 * in_pitch];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
@@ -279,32 +279,31 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
-		merge_columns(dline, sums);
+
+		mergeColumns(dline, sums);
 		dline += pitch;
 
 		{
-			const gambatte::uint_least32_t *s = sline;
+			gambatte::uint_least32_t const *s = sline;
 			Colorsum *sum = sums;
-			unsigned n = PITCH;
-			
+			unsigned n = in_pitch;
 			while (n--) {
 				unsigned long pixel = *s;
 				unsigned long rsum = (pixel >> 16) * 9;
 				unsigned long gsum = (pixel & 0x00FF00) * 9;
 				unsigned long bsum = (pixel & 0x0000FF) * 9;
 
-				pixel = s[-1 * PITCH];
+				pixel = s[-1 * in_pitch];
 				rsum -= pixel >> 16;
 				gsum -= pixel & 0x00FF00;
 				bsum -= pixel & 0x0000FF;
 
-				pixel = s[1 * PITCH];
+				pixel = s[1 * in_pitch];
 				rsum += (pixel >> 16) * 21;
 				gsum += (pixel & 0x00FF00) * 21;
 				bsum += (pixel & 0x0000FF) * 21;
 
-				pixel = s[2 * PITCH];
+				pixel = s[2 * in_pitch];
 				rsum -= (pixel >> 16) << 1;
 				pixel <<= 1;
 				gsum -= pixel & 0x01FE00;
@@ -318,28 +317,29 @@ static void filter(gambatte::uint_least32_t *dline, const int pitch, const gamba
 				++sum;
 			}
 		}
-		
-		merge_columns(dline, sums);
+
+		mergeColumns(dline, sums);
 		dline += pitch;
-		sline += PITCH;
+		sline += in_pitch;
 	}
 }
-}
+
+} // anon namespace
 
 Catrom3x::Catrom3x()
-: buffer_((HEIGHT + 3UL) * PITCH)
+: buffer_((in_height + 3UL) * in_pitch)
 {
 	std::fill_n(buffer_.get(), buffer_.size(), 0);
 }
 
-void* Catrom3x::inBuf() const {
-	return buffer_ + PITCH + 1;
+void * Catrom3x::inBuf() const {
+	return buffer_ + in_pitch + 1;
 }
 
-int Catrom3x::inPitch() const {
-	return PITCH;
+std::ptrdiff_t Catrom3x::inPitch() const {
+	return in_pitch;
 }
 
-void Catrom3x::draw(void *const dbuffer, const int pitch) {
-	::filter(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + PITCH);
+void Catrom3x::draw(void *dbuffer, std::ptrdiff_t pitch) {
+	::filter(static_cast<gambatte::uint_least32_t *>(dbuffer), pitch, buffer_ + in_pitch);
 }

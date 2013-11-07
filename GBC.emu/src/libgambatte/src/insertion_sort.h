@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -16,7 +16,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef INSERTION_SORT_H
 #define INSERTION_SORT_H
 
@@ -26,25 +25,24 @@ template<typename T, class Less>
 void insertionSort(T *const start, T *const end, Less less) {
 	if (start >= end)
 		return;
-	
+
 	T *a = start;
-	
+
 	while (++a < end) {
-		const T e = *a;
-		
+		T const e = *a;
 		T *b = a;
-		
+
 		while (b != start && less(e, *(b - 1))) {
 			*b = *(b - 1);
 			b = b - 1;
 		}
-		
+
 		*b = e;
 	}
 }
 
 template<typename T>
-inline void insertionSort(T *const start, T *const end) {
+inline void insertionSort(T *start, T *end) {
 	insertionSort(start, end, std::less<T>());
 }
 

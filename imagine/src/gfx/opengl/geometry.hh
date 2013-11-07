@@ -34,7 +34,7 @@ static void setupVertexArrayPointers(const Vtx *v, int numV)
 	if(Vtx::hasTexture)
 	{
 		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(typename Vtx::POD), (uchar*)v + Vtx::textureOffset);
+		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(typename Vtx::POD), (char*)v + Vtx::textureOffset);
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
 	}
@@ -44,13 +44,13 @@ static void setupVertexArrayPointers(const Vtx *v, int numV)
 	if(Vtx::hasColor)
 	{
 		glcEnableClientState(GL_COLOR_ARRAY);
-		glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(typename Vtx::POD), (uchar*)v + Vtx::colorOffset);
+		glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(typename Vtx::POD), (char*)v + Vtx::colorOffset);
 		glState.colorState[0] = -1; //invalidate glColor state cache
 	}
 	else
 		glcDisableClientState(GL_COLOR_ARRAY);
 
-	glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(typename Vtx::POD), (uchar*)v + Vtx::posOffset);
+	glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(typename Vtx::POD), (char*)v + Vtx::posOffset);
 }
 
 }

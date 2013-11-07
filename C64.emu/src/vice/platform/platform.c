@@ -24,6 +24,126 @@
  *
  */
 
+/* Operating systems fully supported and tested:
+ *
+ * platform         | compile present | compile version | runtime version
+ * ----------------------------------------------------------------------
+ * amigaos3         |       yes       |       n/a       |       yes
+ * aros             |       yes       |       n/a       |       yes
+ * beos             |       yes       |       n/a       |       yes
+ * cygwin           |       yes       |       n/a       |       yes
+ * linux            |       yes       |       yes       |       yes
+ * macosx           |       yes       |       yes       |       yes
+ * msdos            |       yes       |       n/a       |       yes
+ * os/2             |       yes       |       n/a       |       yes
+ * solaris          |       yes       |       n/a       |       yes
+ * syllable         |       yes       |       n/a       |       yes
+ * win32            |       yes       |       n/a       |       yes
+ * win64            |       yes       |       n/a       |       yes
+ */
+
+/* Operating systems fully supported and partially tested:
+ *
+ * platform         | compile present | compile version | runtime version
+ * ----------------------------------------------------------------------
+ * amigaos4         |       yes       |       n/a       | yes (untested)
+ * morphos          |       yes       |       n/a       |     not yet
+ */
+
+/* Operating systems compile time supported but untested:
+ *
+ * platform         | compile present | compile version | runtime version
+ * ----------------------------------------------------------------------
+ * aix              | yes (untested)  | yes (untested)  |     not yet
+ * android          | yes (untested)  |     not yet     |     not yet
+ * bsdi             | yes (untested)  |     not yet     |     not yet
+ * dragonflybsd     | yes (untested)  |     not yet     |     not yet
+ * dynix/ptx        | yes (untested)  |     not yet     |     not yet
+ * freebsd          | yes (untested)  | yes (untested)  |     not yet
+ * hpux             | yes (untested)  |     not yet     |     not yet
+ * hurd             | yes (untested)  |     not yet     |     not yet
+ * interix          |       yes       |     not yet     |     not yet
+ * irix             | yes (untested)  |     not yet     |     not yet
+ * lynxos           | yes (untested)  |     not yet     |     not yet
+ * minix 3.x        | yes (untested)  |     not yet     |     not yet
+ * netbsd           | yes (untested)  | yes (untested)  |     not yet
+ * openbsd          | yes (untested)  | yes (untested)  |     not yet
+ * openserver       | yes (untested)  |     not yet     |     not yet
+ * openvms          | yes (untested)  |     not yet     |     not yet
+ * qnx              | yes (untested)  | yes (untested)  |     not yet
+ * sinux            | yes (untested)  |     not yet     |     not yet
+ * sunos            | yes (untested)  |     not yet     |     not yet
+ * symbian os       | yes (untested)  |     not yet     |     not yet
+ * tru64            | yes (untested)  |     not yet     |     not yet
+ * ultrix           | yes (untested)  |     not yet     |     not yet
+ * unixware         | yes (untested)  |     not yet     |     not yet
+ * uwin             | yes (untested)  |     not yet     |     not yet
+ * vxworks          | yes (untested)  |     not yet     |     not yet
+ * xbox             | yes (untested)  |       n/a       |     not yet
+ * xbox-360         | yes (untested)  |       n/a       |     not yet
+ */
+
+/* Operating systems not yet supported:
+ *
+ * platform         | compile present | compile version | runtime version
+ * ----------------------------------------------------------------------
+ * 386bsd           |     not yet     |     not yet     |     not yet
+ * 4.3bsd           |     not yet     |     not yet     |     not yet
+ * amix             |     not yet     |     not yet     |     not yet
+ * amoeba           |     not yet     |     not yet     |     not yet
+ * at&t unix        |     not yet     |     not yet     |     not yet
+ * atari-mint       |     not yet     |     not yet     |     not yet
+ * blackberry       |     not yet     |     not yet     |     not yet
+ * caanoo           |     not yet     |     not yet     |     not yet
+ * convex-os        |     not yet     |     not yet     |     not yet
+ * darwin           |     not yet     |     not yet     |     not yet
+ * dell unix        |     not yet     |     not yet     |     not yet
+ * desqview-x       |     not yet     |     not yet     |     not yet
+ * dgux             |     not yet     |     not yet     |     not yet
+ * dingoo           |     not yet     |     not yet     |     not yet
+ * dreamcast        |     not yet     |     not yet     |     not yet
+ * ews-ux           |     not yet     |     not yet     |     not yet
+ * gamecube         |     not yet     |     not yet     |     not yet
+ * gp2x             |     not yet     |     not yet     |     not yet
+ * interactive unix |     not yet     |     not yet     |     not yet
+ * ios              |     not yet     |     not yet     |     not yet
+ * mach 2.5/3.0     |     not yet     |     not yet     |     not yet
+ * macos (classic)  |     not yet     |     not yet     |     not yet
+ * meego            |     not yet     |     not yet     |     not yet
+ * menuetos         |     not yet     |     not yet     |     not yet
+ * minix386         |     not yet     |     not yet     |     not yet
+ * ncr unix         |     not yet     |     not yet     |     not yet
+ * nds              |     not yet     |     not yet     |     not yet
+ * netware          |     not yet     |     not yet     |     not yet
+ * news-os          |     not yet     |     not yet     |     not yet
+ * nextstep         |     not yet     |     not yet     |     not yet
+ * odt              |     not yet     |     not yet     |     not yet
+ * openstep         |     not yet     |     not yet     |     not yet
+ * osf1             |     not yet     |     not yet     |     not yet
+ * palmos           |     not yet     |     not yet     |     not yet
+ * pandora          |     not yet     |     not yet     |     not yet
+ * plan9            |     not yet     |     not yet     |     not yet
+ * ps2              |     not yet     |     not yet     |     not yet
+ * ps3              |     not yet     |     not yet     |     not yet
+ * psp              |     not yet     |     not yet     |     not yet
+ * rhapsody         |     not yet     |     not yet     |     not yet
+ * riscos           |     not yet     |     not yet     |     not yet
+ * sailfish         |     not yet     |     not yet     |     not yet
+ * sco unix         |     not yet     |     not yet     |     not yet
+ * tizen            |     not yet     |     not yet     |     not yet
+ * unicos           |     not yet     |     not yet     |     not yet
+ * unix svr3        |     not yet     |     not yet     |     not yet
+ * unix svr4        |     not yet     |     not yet     |     not yet
+ * utek             |     not yet     |     not yet     |     not yet
+ * web-os           |     not yet     |     not yet     |     not yet
+ * wii              |     not yet     |     not yet     |     not yet
+ * wince            |     not yet     |     not yet     |     not yet
+ * winphone         |     not yet     |     not yet     |     not yet
+ * wiz              |     not yet     |     not yet     |     not yet
+ * xenix            |     not yet     |     not yet     |     not yet
+ * zodiac           |     not yet     |     not yet     |     not yet
+ */
+
 #include "vice.h"
 
 #include "archapi.h"

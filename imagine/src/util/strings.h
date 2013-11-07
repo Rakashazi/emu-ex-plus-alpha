@@ -21,16 +21,16 @@
 #include <mem/interface.h>
 #include <util/string/generic.h>
 #include <limits.h>
-#ifndef CONFIG_BASE_PS3
-	#include <libgen.h>
+#ifndef __PPU__
+#include <libgen.h>
 #endif
 
-#if !defined __APPLE__ && !defined __ANDROID__ && !defined CONFIG_BASE_PS3 && defined _GNU_SOURCE
-	#define CONFIG_USE_GNU_BASENAME
+#if !defined __APPLE__ && !defined __ANDROID__ && !defined __PPU__ && defined _GNU_SOURCE
+#define CONFIG_USE_GNU_BASENAME
 #endif
 
 #ifdef CONFIG_USE_GNU_BASENAME
-	#include <util/string/glibc.h>
+#include <util/string/glibc.h>
 #endif
 
 static int hexToInt(char c)
@@ -150,18 +150,24 @@ template <size_t S>
 static char *string_basename(const char *filename, char (&storage)[S])
 {
 	#ifdef CONFIG_USE_GNU_BASENAME
-		return gnu_basename(filename);
+	return gnu_basename(filename);
 	#elif defined __ANDROID__
-		return basename(filename);
-	#elif defined CONFIG_BASE_PS3
-		char str[1024] {0};
-		baseName(filename, str);
-		return str;
+	return basename(filename);
+	#elif defined CONFIG_BASE_WIN32
+	char name[_MAX_FNAME], ext[_MAX_EXT];
+	//_splitpath_s(filename, nullptr, 0, nullptr, 0, name, _MAX_FNAME, ext, _MAX_EXT);
+	_splitpath(filename, nullptr, nullptr, name, ext);
+	string_printf(storage, "%s%s", name, ext);
+	return storage;
+	#elif defined __PPU__
+	char str[1024] {0};
+	baseName(filename, str);
+	return str;
 	#else
-		// standard version can modify input, and returns a pointer within it
-		// BSD version can modify input, but always returns its own allocated storage
-		string_copy(storage, filename);
-		return basename(storage);
+	// standard version can modify input, and returns a pointer within it
+	// BSD version can modify input, but always returns its own allocated storage
+	string_copy(storage, filename);
+	return basename(storage);
 	#endif
 }
 
@@ -169,16 +175,22 @@ template <size_t S>
 static char *string_dirname(const char *filename, char (&storage)[S])
 {
 	#if defined __ANDROID__
-		return dirname(filename);
-	#elif defined CONFIG_BASE_PS3
-		char str[1024] {0};
-		dirName(filename, str);
-		return str;
+	return dirname(filename);
+	#elif defined CONFIG_BASE_WIN32
+	char drive[_MAX_DRIVE], dir[_MAX_DIR];
+	//_splitpath_s(filename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+	_splitpath(filename, drive, dir, nullptr, nullptr);
+	string_printf(storage, "%s%s", drive, dir);
+	return storage;
+	#elif defined __PPU__
+	char str[1024] {0};
+	dirName(filename, str);
+	return str;
 	#else
-		// standard version can modify input, and returns a pointer within it
-		// BSD version can modify input, but always returns its own allocated storage
-		string_copy(storage, filename);
-		return dirname(storage);
+	// standard version can modify input, and returns a pointer within it
+	// BSD version can modify input, but always returns its own allocated storage
+	string_copy(storage, filename);
+	return dirname(storage);
 	#endif
 }
 

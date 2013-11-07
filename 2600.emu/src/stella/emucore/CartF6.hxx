@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF6.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartF6.hxx 2683 2013-04-06 00:25:08Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF6_HXX
@@ -24,16 +24,21 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartF6Widget.hxx"
+#endif
 
 /**
   Cartridge class used for Atari's 16K bankswitched games.  There
   are four 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF6.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartF6.hxx 2683 2013-04-06 00:25:08Z stephena $
 */
 class CartridgeF6 : public Cartridge
 {
+  friend class CartridgeF6Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -119,6 +124,18 @@ class CartridgeF6 : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeF6"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeF6Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

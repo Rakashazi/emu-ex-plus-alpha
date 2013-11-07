@@ -629,7 +629,7 @@ void mon_exit(void)
    So I decided to skip this (I think it's unnecessary for OS/2 */
 void mon_quit(void)
 {
-#ifdef OS2
+#ifdef __OS2__
     /* same as "quit" */
     exit_mon = 1;
 #else
@@ -2205,6 +2205,9 @@ void monitor_check_icount_interrupt(void)
     }
 }
 
+/* called by macro DO_INTERRUPT() in 6510(dtv)core.c 
+ * returns non-zero if breakpoint hit and monitor should be invoked
+ */
 int monitor_check_breakpoints(MEMSPACE mem, WORD addr)
 {
     return mon_breakpoint_check_checkpoint(mem, addr, 0, e_exec); /* FIXME */
@@ -2366,9 +2369,12 @@ static void monitor_open(void)
         int mem = monitor_diskspace_mem(dnr);
         dot_addr[mem] = new_addr(mem, ((WORD)((monitor_cpu_for_memspace[mem]->mon_register_get_val)(mem, e_PC))));
     }
-
+    /* disassemble at monitor entry, for single stepping */
     if (disassemble_on_entry) {
+        int monbank = mon_interfaces[default_memspace]->current_bank;
+        mon_interfaces[default_memspace]->current_bank = 0; /* always disassemble using CPU bank */
         mon_disassemble_with_regdump(default_memspace, dot_addr[default_memspace]);
+        mon_interfaces[default_memspace]->current_bank = monbank; /* restore value used in monitor */
         disassemble_on_entry = 0;
     }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <io/api/stdio.hh>
 
 namespace VorbisIOAPI
 {

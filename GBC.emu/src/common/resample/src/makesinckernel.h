@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -19,10 +19,7 @@
 #ifndef MAKE_SINC_KERNEL_H
 #define MAKE_SINC_KERNEL_H
 
-#include <cmath>
-#include <cstdlib>
-
-void makeSincKernel(short *kernel, unsigned phases, unsigned phaseLen,
-		SysDDec fc, SysDDec (*win)(long m, long M), SysDDec gain);
+void makeSincKernel(short *kernel, int phases, int phaseLen,
+                    SysDDec fc, SysDDec (*win)(long m, long M), SysDDec gain);
 
 #endif

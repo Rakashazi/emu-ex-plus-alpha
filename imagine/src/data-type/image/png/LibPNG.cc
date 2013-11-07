@@ -83,7 +83,7 @@ uint Png::height()
 
 bool Png::isGrayscale()
 {
-	return png_get_color_type(png, info) & PNG_COLOR_MASK_COLOR ? 0 : 1;
+	return !(png_get_color_type(png, info) & PNG_COLOR_MASK_COLOR);
 }
 
 const PixelFormatDesc *Png::pixelFormat()
@@ -206,32 +206,28 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 {
 	int addingAlphaChannel = 0;
 	
-	// covert palette images to direct color
-	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE)
+	if(png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE)
 	{
-		//log_mPrintf(LOG_MSG,"converting paletted image to direct color");
+		//logMsg("converting paletted image to direct color");
 		png_set_palette_to_rgb(png);
 	}
 
-	// convert gray-scale with less than 8-bits to 8-bits
-	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8)
+	if(png_get_valid(png, info, PNG_INFO_tRNS))
 	{
-		logMsg("expanding gray-scale to 8-bits");
-		// TODO: change to png_set_expand_gray_1_2_4_to_8(png) since the other function is deprecated
-		png_set_expand_gray_1_2_4_to_8(png);
-	}
-
-	// convert pallete transparency to full alpha channel
-	if (png_get_valid(png, info, PNG_INFO_tRNS))
-	{
-		//log_mPrintf(LOG_MSG,"coverting pallete transparency to alpha channel");
+		//logMsg("coverting pallete transparency to alpha channel");
 		png_set_tRNS_to_alpha(png);
 		addingAlphaChannel = 1;
+	}
+
+	if(png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8)
+	{
+		logMsg("expanding gray-scale to 8-bits");
+		png_set_expand_gray_1_2_4_to_8(png);
 	}
 	
 	// convert 16-bits per channel to 8-bits per channel
 	#ifndef PNG_NO_READ_16_TO_8
-	if (png_get_bit_depth(png, info) == 16)
+	if(png_get_bit_depth(png, info) == 16)
 	{
 		logMsg("converting 16-bits per channel to 8-bits per channel");
 		png_set_strip_16(png);

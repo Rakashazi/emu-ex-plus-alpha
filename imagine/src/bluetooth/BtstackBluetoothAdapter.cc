@@ -173,10 +173,10 @@ bool BtstackBluetoothAdapter::cmdActive = 0;
 
 void BtstackBluetoothAdapter::processCommands()
 {
-	while(pendingCmdList.size && !cmdActive)
+	while(pendingCmdList.size() && !cmdActive)
 	{
-		BtstackCmd cmd = *pendingCmdList.first();
-		pendingCmdList.removeFirst();
+		BtstackCmd cmd = pendingCmdList.front();
+		pendingCmdList.erase(pendingCmdList.begin());
 		if(cmd.exec())
 		{
 			cmdActive = 1;
@@ -241,7 +241,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				bug_exit("can't find socket");
 				return;
 			}
-			sock->onData()(packet, size);
+			sock->onData()((char*)packet, size);
 			//debugPrintL2CAPPacket(channel, packet, size);
 		}
 
@@ -405,7 +405,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						bd_addr_t addr;
 						bt_flip_addr(addr, &packet[3+i*6]);
 
-						uchar *devClass = &packet[3 + responses*(6+1+1+1) + i*3];
+						auto devClass = &packet[3 + responses*(6+1+1+1) + i*3];
 						if(!onScanDeviceClassD(*this, devClass))
 						{
 							logMsg("skipping device #%d due to class %X:%X:%X", i, devClass[0], devClass[1], devClass[2]);
@@ -419,11 +419,12 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						dev.clockOffset = READ_BT_16(packet, 3 + responses*(6+1+1+1+3) + i*2) & 0x7fff;
 						//dev.rssi = 0;
 						logMsg("pageScan %u, clock offset 0x%04x", dev.pageScanRepetitionMode,  dev.clockOffset);
-						if(!scanDevList.add(dev))
+						if(scanDevList.isFull())
 						{
 							logMsg("max devices reached");
 							break;
 						}
+						scanDevList.push_back(dev);
 					}
 				}
 
@@ -431,15 +432,15 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				{
 					cmdActive = 0;
 					logMsg("got HCI_EVENT_INQUIRY_COMPLETE");
-					if(scanDevList.size)
+					if(scanDevList.size())
 					{
 						// scan will complete after name requests
 						logMsg("starting name requests");
-						forEachInDLList(&scanDevList, e)
+						for(auto &e : scanDevList)
 						{
 							e.requestName();
 						}
-						onScanStatusD(*this, SCAN_PROCESSING, scanDevList.size);
+						onScanStatusD(*this, SCAN_PROCESSING, scanDevList.size());
 					}
 					else
 					{
@@ -491,7 +492,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					if(!inDetect)
 					{
 						cmdActive = 0;
-						scanDevList.removeAll();
+						scanDevList.clear();
 						if(onScanStatusD)
 							onScanStatusD(*this, SCAN_CANCELLED, 0);
 						BtstackBluetoothAdapter::processCommands();
@@ -499,18 +500,19 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					}
 
 					bool removedFromScanList = 0;
-					forEachInDLList(&scanDevList, e)
+					forEachInContainer(scanDevList, e)
 					{
-						if(BD_ADDR_CMP(e.address, addr) == 0)
+						if(BD_ADDR_CMP(e->address, addr) == 0)
 						{
-							e_it.removeElem();
+							//e_it.removeElem();
+							scanDevList.erase(e);
 							removedFromScanList = 1;
 							break;
 						}
 					}
 					assert(removedFromScanList);
 
-					if(!cached && !scanDevList.size)
+					if(!cached && !scanDevList.size())
 					{
 						logMsg("finished name requests, scan complete");
 						inDetect = 0;
@@ -603,8 +605,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					cmdActive = 0;
 					uint8 status = packet[2];
 					uint psm = READ_BT_16(packet, 3);
-					auto onResult = setL2capServiceOnResult;
-					setL2capServiceOnResult = {};
+					auto onResult = moveAndClear(setL2capServiceOnResult);
 					if(status && status != L2CAP_SERVICE_ALREADY_REGISTERED)
 					{
 						logErr("error %d registering psm %d", status, psm);
@@ -657,8 +658,7 @@ void BtstackBluetoothAdapter::setL2capService(uint psm, bool on, OnStatusDelegat
 				{
 					if(newState != STATE_ON)
 					{
-						auto onResult = setL2capServiceOnResult;
-						setL2capServiceOnResult = {};
+						auto onResult = moveAndClear(setL2capServiceOnResult);
 						onResult(*this, 0, 0);
 						return;
 					}
@@ -797,11 +797,12 @@ void BtstackBluetoothAdapter::cancelScan()
 	{
 		// check if scan is queued
 		bool wasQueued = 0;
-		forEachInDLList(&pendingCmdList, e)
+		forEachInContainer(pendingCmdList, e)
 		{
-			if(e.cmd == BtstackCmd::INQUIRY)
+			if(e->cmd == BtstackCmd::INQUIRY)
 			{
-				e_it.removeElem();
+				//e_it.removeElem();
+				pendingCmdList.erase(e);
 				wasQueued = 1;
 				logMsg("cancelling scan from queue");
 				inDetect = 0;
@@ -928,7 +929,7 @@ static bool btAddrIsEqual(const BluetoothAddr addr1, const bd_addr_t addr2)
 
 BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(uint16_t localCh)
 {
-	forEachInDLList(&socketList, e)
+	for(auto e : socketList)
 	{
 		if(e->localCh == localCh)
 		{
@@ -940,7 +941,7 @@ BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(uint16_t localCh)
 
 BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(const bd_addr_t addr, uint16_t ch)
 {
-	forEachInDLList(&socketList, e)
+	for(auto e : socketList)
 	{
 		if(e->ch == ch && btAddrIsEqual(e->addr, addr))
 		{
@@ -952,7 +953,7 @@ BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(const bd_addr_t addr,
 
 BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(const bd_addr_t addr)
 {
-	forEachInDLList(&socketList, e)
+	for(auto e : socketList)
 	{
 		if(btAddrIsEqual(e->addr, addr))
 		{
@@ -993,7 +994,7 @@ void BtstackBluetoothSocket::handleRfcommChannelOpened(uint8_t packet_type, uint
 		logMsg("rfcomm ch %d, handle %d", rfcommCh, handle);
 		sock->localCh = rfcommCh;
 		sock->handle = handle;
-		if(sock->onStatus()(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+		if(sock->onStatus()(*sock, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 		{
 
 		}
@@ -1027,7 +1028,7 @@ void BtstackBluetoothSocket::handleL2capChannelOpened(uint8_t packet_type, uint1
 		sock->localCh = sourceCid;
 		sock->handle = handle;
 		inL2capSocketOpenHandler = 1;
-		if(sock->onStatus()(*sock, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+		if(sock->onStatus()(*sock, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 		{
 
 		}

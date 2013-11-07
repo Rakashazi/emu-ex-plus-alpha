@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cmath>
 #include <util/operators.hh>
 #include "SampleFormat.hh"
 
@@ -24,18 +25,19 @@ namespace Audio
 class PcmFormat : public NotEquals<PcmFormat>
 {
 public:
-	constexpr PcmFormat() { }
-	constexpr PcmFormat(int rate, const SampleFormat *sample, int channels) :
-		rate(rate), sample(sample), channels(channels) { }
 	int rate = 0;
-	const SampleFormat *sample = nullptr;
+	SampleFormat sample;
 	int channels = 0;
 
-	bool canSupport(PcmFormat *p2) const
+	constexpr PcmFormat() {}
+	constexpr PcmFormat(int rate, const SampleFormat &sample, int channels) :
+		rate(rate), sample(sample), channels(channels) {}
+
+	bool canSupport(const PcmFormat &p2) const
 	{
-		return rate >= p2->rate &&
-			sample->toBits() >= p2->sample->toBits() &&
-			channels >= p2->channels;
+		return rate >= p2.rate &&
+			sample.toBits() >= p2.sample.toBits() &&
+			channels >= p2.channels;
 	}
 
 	bool operator ==(PcmFormat const& rhs) const
@@ -45,7 +47,7 @@ public:
 
 	uint framesToBytes(uint frames) const
 	{
-		return frames * sample->toBytes() * channels;
+		return frames * sample.toBytes() * channels;
 	}
 
 	float framesToMSecs(uint frames) const
@@ -60,17 +62,27 @@ public:
 
 	uint mSecsToFrames(float mSecs) const
 	{
-		return (mSecs / 1000.) * rate;
+		return std::ceil((mSecs / 1000.f) * rate);
+	}
+
+	uint uSecsToFrames(float uSecs) const
+	{
+		return std::ceil((uSecs / 1000000.f) * rate);
+	}
+
+	uint uSecsToBytes(float uSecs) const
+	{
+		return framesToBytes(uSecsToFrames(uSecs));
 	}
 
 	uint bytesToFrames(uint bytes) const
 	{
-		return bytes / sample->toBytes() / channels;
+		return bytes / sample.toBytes() / channels;
 	}
 
 	uint secsToBytes(uint secs) const
 	{
-		return (rate * sample->toBytes() * channels) * secs;
+		return (rate * sample.toBytes() * channels) * secs;
 	}
 };
 

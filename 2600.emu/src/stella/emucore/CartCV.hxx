@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartCV.hxx 2685 2013-04-06 21:04:11Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECV_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartCVWidget.hxx"
+#endif
 
 /**
   Cartridge class used for Commavid's extra-RAM games.
@@ -33,10 +36,12 @@ class System;
   $F800-$FFFF ROM
 
   @author  Eckhard Stolberg
-  @version $Id: CartCV.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartCV.hxx 2685 2013-04-06 21:04:11Z stephena $
 */
 class CartridgeCV : public Cartridge
 {
+  friend class CartridgeCVWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -122,6 +127,18 @@ class CartridgeCV : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeCV"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeCVWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

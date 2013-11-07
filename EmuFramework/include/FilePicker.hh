@@ -24,11 +24,11 @@ void startGameFromMenu();
 class EmuFilePicker : public FSPicker
 {
 public:
-	constexpr EmuFilePicker() { }
 	static FsDirFilterFunc defaultFsFilter;
 	static FsDirFilterFunc defaultBenchmarkFsFilter;
 
-	void init(bool highlightFirst, FsDirFilterFunc filter = defaultFsFilter, bool singleDir = 0);
+	constexpr EmuFilePicker(Base::Window &win): FSPicker(win) {}
+	void init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter = defaultFsFilter, bool singleDir = 0);
 	void initForBenchmark(bool highlightFirst, bool singleDir = 0);
 
 	void inputEvent(const Input::Event &e)

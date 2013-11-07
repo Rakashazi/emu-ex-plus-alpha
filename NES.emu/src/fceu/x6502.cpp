@@ -483,6 +483,8 @@ static int test = 0; test++;
 	//will probably cause a major speed decrease on low-end systems
 	DEBUG( DebugCycle() );
 
+	//IncrementInstructionsCounters();
+
    _PI=X.P;
    b1=RdMem(_PC);
 

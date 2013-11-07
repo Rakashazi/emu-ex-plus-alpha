@@ -45,7 +45,7 @@ void BaseTextMenuItem::deinit()
 void BaseTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
-	setColor(COLOR_WHITE);
+	//setColor(COLOR_WHITE);
 	if(!active)
 	{
 		uint col = color();
@@ -123,8 +123,7 @@ void BaseDualTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSi
 
 void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
 {
-	offStr = onStr = nullptr;
-	BaseDualTextMenuItem::init(str, on ? "On" : "Off", active, face);
+	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
 	var_selfs(on);
 }
 
@@ -132,14 +131,14 @@ void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, 
 {
 	var_selfs(offStr);
 	var_selfs(onStr);
+	onOffStyle = false;
 	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
 	var_selfs(on);
 }
 
 void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
 {
-	offStr = onStr = nullptr;
-	BaseDualTextMenuItem::init(on ? "On" : "Off", active, face);
+	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
 	var_selfs(on);
 }
 
@@ -147,31 +146,29 @@ void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool act
 {
 	var_selfs(offStr);
 	var_selfs(onStr);
+	onOffStyle = false;
 	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
 	var_selfs(on);
 }
 
-void BoolMenuItem::set(bool val)
+void BoolMenuItem::set(bool val, View &view)
 {
 	if(val != on)
 	{
 		//logMsg("setting bool: %d", val);
 		on = val;
-		if(onStr)
-			t2.setString(val ? onStr : offStr);
-		else
-			t2.setString(val ? "On" : "Off");
+		t2.setString(val ? onStr : offStr);
 		t2.compile();
-		Base::displayNeedsUpdate();
+		view.displayNeedsUpdate();
 	}
 }
 
-void BoolMenuItem::toggle()
+void BoolMenuItem::toggle(View &view)
 {
 	if(on)
-		set(0);
+		set(0, view);
 	else
-		set(1);
+		set(1, view);
 }
 
 void BoolMenuItem::select(View *parent, const Input::Event &e) { if(selectD) selectD(*this, e); }
@@ -180,24 +177,30 @@ void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coor
 {
 	using namespace Gfx;
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-	if(onStr) // custom strings
-		setColor(0., 1., 1.); // aqua
+	if(!onOffStyle) // custom strings
+		setColor(0., .8, 1.);
 	else if(on)
-		setColor(0., 1., 0., 1.);
+		setColor(.27, 1., .27);
 	else
-		setColor(1., 0., 0., 1.);
+		setColor(1., .27, .27);
 	draw2ndText(xPos, yPos, xSize, ySize, align);
 }
 
 void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
 {
 	val -= baseVal;
-	if(!initialDisplayStr) assert(val >= 0);
+	if(!initialDisplayStr)
+	{
+		assert(val >= 0);
+	}
 	if(str)
 		BaseDualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
 	else
 		BaseDualTextMenuItem::init(initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
-	assert(val < max);
+	if(val >= max)
+	{
+		bug_exit("%d exceeds max %d", val, max);
+	}
 	choice = val;
 	choices = max;
 	this->baseVal = baseVal;
@@ -213,11 +216,12 @@ void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSiz
 {
 	using namespace Gfx;
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
-	setColor(0., 1., 1.); // aqua
+	//setColor(0., 1., 1.); // aqua
+	setColor(0., .8, 1.);
 	BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
 }
 
-bool MultiChoiceMenuItem::updateVal(int val)
+bool MultiChoiceMenuItem::updateVal(int val, View &view)
 {
 	if(val < 0 || val >= choices)
 	{
@@ -228,30 +232,30 @@ bool MultiChoiceMenuItem::updateVal(int val)
 		choice = val;
 		t2.setString(choiceStr[val]);
 		t2.compile();
-		Base::displayNeedsUpdate();
+		view.displayNeedsUpdate();
 		return 1;
 	}
 	return 0;
 }
 
-void MultiChoiceMenuItem::setVal(int val)
+void MultiChoiceMenuItem::setVal(int val, View &view)
 {
-	if(updateVal(val))
+	if(updateVal(val, view))
 	{
 		doSet(val + baseVal);
 	}
 }
 
-bool MultiChoiceMenuItem::set(int val, const Input::Event &e)
+bool MultiChoiceMenuItem::set(int val, const Input::Event &e, View &view)
 {
-	setVal(val);
+	setVal(val, view);
 	return 1;
 }
 
-void MultiChoiceMenuItem::cycle(int direction)
+void MultiChoiceMenuItem::cycle(int direction, View &view)
 {
 	if(direction > 0)
-		setVal(IG::incWrapped(choice, choices));
+		setVal(IG::incWrapped(choice, choices), view);
 	else if(direction < 0)
-		setVal(IG::decWrapped(choice, choices));
+		setVal(IG::decWrapped(choice, choices), view);
 }

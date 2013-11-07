@@ -79,8 +79,8 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
             if ((operand_mode == ASM_ADDR_MODE_ZERO_PAGE
                 || operand_mode == ASM_ADDR_MODE_ABSOLUTE)
                 && opinfo->addr_mode == ASM_ADDR_MODE_RELATIVE) {
-                branch_offset = operand_value - loc - 2;
-                if (branch_offset <= 127 && branch_offset >= -128) {
+                branch_offset = (operand_value - loc - 2) & 0xffff;
+                if (branch_offset <= 0x7f || branch_offset >= 0xff80) {
                     operand_value = (branch_offset & 0xff);
                     operand_mode = ASM_ADDR_MODE_RELATIVE;
                     opcode = i;
@@ -95,7 +95,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
                 || operand_mode == ASM_ADDR_MODE_ABSOLUTE)
                 && opinfo->addr_mode == ASM_ADDR_MODE_RELATIVE_LONG) {
                 branch_offset = operand_value - loc - 3;
-                operand_value = branch_offset;
+                operand_value = branch_offset & 0xffff;
                 operand_mode = ASM_ADDR_MODE_RELATIVE_LONG;
                 opcode = i;
                 found = TRUE;

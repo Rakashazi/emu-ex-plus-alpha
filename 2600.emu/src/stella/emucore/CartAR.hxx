@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartAR.hxx 2707 2013-04-24 16:50:24Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEAR_HXX
@@ -25,6 +25,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartARWidget.hxx"
+#endif
 
 /**
   This is the cartridge class for Arcadia (aka Starpath) Supercharger 
@@ -36,10 +39,12 @@ class System;
   and one bank of ROM.  All 6K of the RAM can be read and written.
 
   @author  Bradford W. Mott
-  @version $Id: CartAR.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartAR.hxx 2707 2013-04-24 16:50:24Z stephena $
 */
 class CartridgeAR : public Cartridge
 {
+  friend class CartridgeARWidget;
+
   public:
     /**
       Create a new cartridge using the specified image and size
@@ -133,6 +138,18 @@ class CartridgeAR : public Cartridge
     */
     string name() const { return "CartridgeAR"; }
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeARWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
+
   public:
     /**
       Get the byte at the specified address
@@ -176,7 +193,7 @@ class CartridgeAR : public Cartridge
     // Pointer to the 6502 processor in the system
     M6502* my6502;
 
-    // Indicates the offest within the image for the corresponding bank
+    // Indicates the offset within the image for the corresponding bank
     uInt32 myImageOffset[2];
 
     // The 6K of RAM and 2K of ROM contained in the Supercharger

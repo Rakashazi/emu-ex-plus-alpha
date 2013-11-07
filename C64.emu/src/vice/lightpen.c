@@ -86,7 +86,9 @@ static const lp_type_t lp_type[LIGHTPEN_TYPE_NUM] = {
     /* Magnum Light Phaser */
     { GUN, 0x20, 0x00, 20, -10 },
     /* Stack Light Rifle */
-    { GUN, 0x04, 0x00, 20, 0 }
+    { GUN, 0x04, 0x00, 20, 0 },
+    /* Inkwell Lightpen */
+    { GUN, 0x04, 0x20, 20, 0 }
 };
 
 static inline void lightpen_check_button_mask(BYTE mask, int pressed)

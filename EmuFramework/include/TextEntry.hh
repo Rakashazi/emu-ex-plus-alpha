@@ -21,28 +21,27 @@
 class TextEntry
 {
 public:
-	constexpr TextEntry() { }
-	Rect2<int> b;
+	IG::Rect2<int> b;
 	Gfx::Text t;
-	char str[128] = {0};
+	char str[128] {0};
 	bool acceptingInput = 0;
 	bool multiLine = 0;
 
+	constexpr TextEntry() {}
 	CallResult init(const char *initText, ResourceFace *face);
 	void deinit();
 	void setAcceptingInput(bool on);
 	void inputEvent(const Input::Event &e);
 	void draw();
 	void place();
-	void place(Rect2<int> rect);
+	void place(IG::Rect2<int> rect);
 };
 
 class CollectTextInputView : public View
 {
 public:
-	constexpr CollectTextInputView(): View("Text Entry") { }
-
-	Rect2<int> cancelBtn;
+	IG::Rect2<int> rect;
+	IG::Rect2<int> cancelBtn;
 	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	Gfx::Sprite cancelSpr;
 	#endif
@@ -56,11 +55,10 @@ public:
 	OnTextDelegate onTextD;
 	OnTextDelegate &onText() { return onTextD; }
 
-	Rect2<int> rect;
-	Rect2<int> &viewRect() override { return rect; }
-
+	constexpr CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
 	void init(const char *msgText, const char *initialContent = "",  ResourceFace *face = View::defaultFace);
 	void deinit() override;
+	IG::Rect2<int> &viewRect() override { return rect; }
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void draw(Gfx::FrameTimeBase frameTime) override;

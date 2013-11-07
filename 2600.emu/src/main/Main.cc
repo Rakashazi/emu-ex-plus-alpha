@@ -28,7 +28,6 @@
 #include "ImagineSound.hh"
 
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -43,10 +42,11 @@
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static ImagineSound *vcsSound = 0;
-static uint16 tiaColorMap[256];
+static uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
 static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-static uint tiaSoundRate = 0, tiaSamplesPerFrame = 0;
+static uint tiaSoundRate = 0;
 static Console *console = 0;
+static Properties currGameProps;
 #include "MiscStella.hh"
 #define MAX_ROM_SIZE  512 * 1024
 
@@ -54,15 +54,21 @@ static Cartridge *cartridge = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
 static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 const uint EmuSystem::maxPlayers = 2;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
-#include "CommonGui.hh"
-
-void EmuSystem::initOptions()
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 
-}
+void EmuSystem::initOptions() {}
+
+void EmuSystem::onOptionsLoaded() {}
 
 enum
 {
@@ -97,24 +103,30 @@ enum
 	vcsKeyIdxKeyboard2Base = vcsKeyIdxKeyboard1Base + 12,
 };
 
-enum {
-//	CFGKEY_* = 256 // no config keys defined yet
+enum
+{
+	CFGKEY_2600_TV_PHOSPHOR = 270
 };
+
+static constexpr uint TV_PHOSPHOR_AUTO = 2;
+static Byte1Option optionTVPhosphor(CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO);
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
-		// no config keys defined yet
+		bcase CFGKEY_2600_TV_PHOSPHOR: optionTVPhosphor.readFromIO(io, readSize);
 	}
 	return 1;
 }
 
 void EmuSystem::writeConfig(Io *io)
 {
-
+	optionTVPhosphor.writeWithKeyIfNotDefault(io);
 }
+
+#include "CommonGui.hh"
 
 static const uint vidBufferX = 160, vidBufferY = 320;
 static uint16 pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
@@ -273,17 +285,19 @@ int EmuSystem::loadGame(const char *path)
 		return 0;
 	}
 	md5 = MD5(buff, size);
-	Properties props;
-	osystem.propSet().getMD5(md5, props);
-
-	string romType = props.get(Cartridge_Type);
+	osystem.propSet().getMD5(md5, currGameProps);
+	string romType = currGameProps.get(Cartridge_Type);
 	string cartId;
-	Settings &settings = osystem.settings();
-	settings.setInt("romloadcount", 0);
+	auto &settings = osystem.settings();
+	settings.setValue("romloadcount", 0);
 	cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
+	Properties props = currGameProps;
+	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
+	{
+		props.set(Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
+	}
 	console = new Console(&osystem, cartridge, props);
 	osystem.myConsole = console;
-
 	emuView.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
@@ -312,7 +326,6 @@ void EmuSystem::configAudioRate()
 	if(optionFrameSkip != optionFrameSkipAuto)
 		tiaSoundRate = (float)optionSoundRate * (42660./44100.); // better sync with Pre's refresh rate
 	#endif
-	tiaSamplesPerFrame = tiaSoundRate/60.;
 	if(gameIsRunning())
 	{
 		vcsSound->tiaSound().outputFrequency(tiaSoundRate);
@@ -442,9 +455,9 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -453,30 +466,43 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	console->controller(Controller::Left).update();
 	console->controller(Controller::Right).update();
 	console->switches().update();
-	TIA& tia = console->tia();
+	auto &tia = console->tia();
 	tia.update();
 	if(renderGfx)
 	{
 		assert(tia.height() <= 320);
 		uint h = tia.height();
-		uint8* currentFrame = tia.currentFrameBuffer() /*+ (tia.ystart() * 160)*/;
-		iterateTimes(160 * h, i)
+		if(osystem.frameBuffer().myUsePhosphor)
 		{
-			pixBuff[i] = tiaColorMap[currentFrame[i]];
+			uint8* currentFrame = tia.currentFrameBuffer();
+			uint8* prevFrame = tia.previousFrameBuffer();
+			iterateTimes(160 * h, i)
+			{
+				pixBuff[i] = tiaPhosphorColorMap[currentFrame[i]][prevFrame[i]];
+			}
+		}
+		else
+		{
+			uint8* currentFrame = tia.currentFrameBuffer() /*+ (tia.ystart() * 160)*/;
+			iterateTimes(160 * h, i)
+			{
+				pixBuff[i] = tiaColorMap[currentFrame[i]];
+			}
 		}
 		emuView.updateAndDrawContent();
 	}
 	if(renderAudio)
 	{
 		#ifdef USE_NEW_AUDIO
-		Audio::BufferContext *aBuff = Audio::getPlayBuffer(tiaSamplesPerFrame);
+		auto aBuff = Audio::getPlayBuffer(audioFramesPerVideoFrame);
 		if(!aBuff) return;
-		vcsSound->processAudio((Int16*)aBuff->data, aBuff->frames);
-		Audio::commitPlayBuffer(aBuff, aBuff->frames);
+		vcsSound->processAudio((Int16*)aBuff.data, aBuff.frames);
+		commitSound(aBuff, aBuff.frames);
 		#else
-		Int16 buff[tiaSamplesPerFrame*soundChannels];
-		vcsSound->processAudio(buff, tiaSamplesPerFrame);
-		Audio::writePcm((uchar*)buff, tiaSamplesPerFrame);
+		auto frames = audioFramesPerVideoFrame;
+		Int16 buff[frames*soundChannels];
+		vcsSound->processAudio(buff, frames);
+		writeSound(buff, frames);
 		#endif
 	}
 }
@@ -530,16 +556,14 @@ CallResult onInit(int argc, char** argv)
 	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	mainInitCommon();
 	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-
 	Settings *settings = new Settings(&osystem);
-	settings->setInt("framerate", 60);
-
+	settings->setValue("framerate", 60);
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -550,7 +574,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

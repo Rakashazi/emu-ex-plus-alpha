@@ -40,6 +40,15 @@ ifndef android_metadata_noIcon
  endif
 endif
 
+# optional generics
+ifdef metadata_supportedMIMETypes
+ android_gen_metadata_args += --intent-mimetypes="$(metadata_supportedMIMETypes)"
+endif
+
+ifdef metadata_supportedFileExtensions
+ android_gen_metadata_args += --intent-file-extensions="$(metadata_supportedFileExtensions)"
+endif
+
 # needed android-specific 
 ifndef android_metadata_project
  ifndef metadata_pkgName

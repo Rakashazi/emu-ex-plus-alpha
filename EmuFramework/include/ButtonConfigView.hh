@@ -24,9 +24,9 @@ class ButtonConfigSetView : public View
 private:
 	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
 
-	Rect2<int> viewFrame;
+	IG::Rect2<int> viewFrame;
 	#ifdef INPUT_SUPPORTS_POINTER
-	Rect2<int> unbindB, cancelB;
+	IG::Rect2<int> unbindB, cancelB;
 	#endif
 	char str[128] {0};
 	Gfx::Text text;
@@ -41,9 +41,9 @@ private:
 	bool pointerUIIsInit();
 
 public:
-	constexpr ButtonConfigSetView() {}
+	constexpr ButtonConfigSetView(Base::Window &win): View(win) {}
 
-	Rect2<int> &viewRect() { return viewFrame; }
+	IG::Rect2<int> &viewRect() { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet);
 	void deinit() override;
 	void place() override;
@@ -68,7 +68,7 @@ private:
 	void onSet(const Input::Event &e, int keyToSet);
 
 public:
-	ButtonConfigView();
+	ButtonConfigView(Base::Window &win);
 
 	void init(const KeyCategory *cat,
 		InputDeviceConfig &devConf, bool highlightFirst);

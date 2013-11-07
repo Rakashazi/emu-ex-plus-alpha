@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008-2009 by Sindre Aamås                               *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,13 +20,13 @@
 #include "i0.h"
 #include <cmath>
 
-SysDDec kaiser70SincWin(const long n, const long M) {
-	const SysDDec beta = 6.9;
-	static const SysDDec i0beta_rec = 1.0 / i0(beta);
-	
+SysDDec kaiser70SincWin(long const n, long const M) {
+	SysDDec const beta = 6.9;
+	static SysDDec const i0beta_rec = 1.0 / i0(beta);
+
 	SysDDec x = static_cast<SysDDec>(n * 2) / M - 1.0;
 	x = x * x;
 	x = beta * std::sqrt(1.0 - x);
-	
+
 	return i0(x) * i0beta_rec;
 }

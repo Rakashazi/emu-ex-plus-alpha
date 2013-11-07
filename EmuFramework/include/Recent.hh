@@ -17,16 +17,18 @@
 
 #include <fs/sys.hh>
 #include <util/basicString.h>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 #include <input/Input.hh>
 #include <gui/MenuItem/MenuItem.hh>
 #include "EmuSystem.hh"
 
 struct RecentGameInfo
 {
-	constexpr RecentGameInfo() { }
 	FsSys::cPath path {0};
 	char name[256] {0};
+	static constexpr uint MAX_RECENT = 10;
+
+	constexpr RecentGameInfo() {}
 
 	bool operator ==(RecentGameInfo const& rhs) const
 	{
@@ -34,11 +36,9 @@ struct RecentGameInfo
 	}
 
 	void handleMenuSelection(TextMenuItem &, const Input::Event &e);
-
-	static constexpr uint MAX_RECENT = 10;
 };
 
-extern StaticDLList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
+extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 
 void recent_addGame(const char *fullPath, const char *name);
 

@@ -1,26 +1,19 @@
 ENV := macosx
 
-ifeq ($(config_compiler),gcc)
- ifeq ($(origin CC), default)
-  CC := llvm-gcc
- endif
- include $(buildSysPath)/gcc.mk
- WARNINGS_CFLAGS += -Wno-attributes # for attributes not understood by llvm-gcc
-else
- # default to clang
- config_compiler := clang
- ifeq ($(origin CC), default)
-  CC := clang
- endif
- include $(buildSysPath)/clang.mk
+compiler_noSanitizeAddress := 1
+config_compiler := clang
+ifeq ($(origin CC), default)
+ CC := clang
 endif
+include $(buildSysPath)/clang.mk
 
 ifdef RELEASE
  COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
-OSX_SYSROOT := /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk
-OSX_FLAGS = -isysroot $(OSX_SYSROOT) -mmacosx-version-min=10.4
+XCODE_PATH := $(shell xcode-select --print-path)
+OSX_SYSROOT ?= $(XCODE_PATH)/Platforms//MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
+OSX_FLAGS = -isysroot $(OSX_SYSROOT) -mmacosx-version-min=10.7
 CPPFLAGS += $(OSX_FLAGS)
 LDFLAGS += $(OSX_FLAGS)
 

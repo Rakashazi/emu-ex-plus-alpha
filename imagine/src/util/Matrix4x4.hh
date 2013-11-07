@@ -29,10 +29,10 @@ public:
 		T v[16] {0};
 		struct
 		{
-			T  _11, _12, _13, _14;
-			T  _21, _22, _23, _24;
-			T  _31, _32, _33, _34;
-			T  _41, _42, _43, _44;
+			T  v11, v12, v13, v14;
+			T  v21, v22, v23, v24;
+			T  v31, v32, v33, v34;
+			T  v41, v42, v43, v44;
 		};
 	};
 
@@ -40,71 +40,71 @@ public:
 
 	void ident()
 	{
-		_11 = 1;
-		_12 = 0;
-		_13 = 0;
-		_14 = 0;
+		v11 = 1;
+		v12 = 0;
+		v13 = 0;
+		v14 = 0;
 
-		_21 = 0;
-		_22 = 1;
-		_23 = 0;
-		_24 = 0;
+		v21 = 0;
+		v22 = 1;
+		v23 = 0;
+		v24 = 0;
 
-		_31 = 0;
-		_32 = 0;
-		_33 = 1;
-		_34 = 0;
+		v31 = 0;
+		v32 = 0;
+		v33 = 1;
+		v34 = 0;
 
-		_41 = 0;
-		_42 = 0;
-		_43 = 0;
-		_44 = 1;
+		v41 = 0;
+		v42 = 0;
+		v43 = 0;
+		v44 = 1;
 	}
 	
 	void orthographicProjection(T xmax, T xmin, T ymax, T ymin, T zmax, T zmin)
 	{
-		_11 = (T)2 / (xmax - xmin);
-		_12 = 0;
-		_13 = 0;
-		_14 = -((xmax + xmin) / (xmax - xmin));
+		v11 = (T)2 / (xmax - xmin);
+		v12 = 0;
+		v13 = 0;
+		v14 = -((xmax + xmin) / (xmax - xmin));
 
-		_21 = 0;
-		_22 = (T)2 / (ymax - ymin);
-		_23 = 0;
-		_24 = -((ymax + ymin) / (ymax - ymin));
+		v21 = 0;
+		v22 = (T)2 / (ymax - ymin);
+		v23 = 0;
+		v24 = -((ymax + ymin) / (ymax - ymin));
 
-		_31 = 0;
-		_32 = 0;
-		_33 = (T)2 / (zmax - zmin);
-		_34 = -((zmax + zmin) / (zmax - zmin));
+		v31 = 0;
+		v32 = 0;
+		v33 = (T)2 / (zmax - zmin);
+		v34 = -((zmax + zmin) / (zmax - zmin));
 
-		_41 = 0;
-		_42 = 0;
-		_43 = 0;
-		_44 = 1;
+		v41 = 0;
+		v42 = 0;
+		v43 = 0;
+		v44 = 1;
 	}
 	
 	void orthogonalLH(T width, T height, T zmax, T zmin)
 	{
-		_11 = (T)2 / width;
-		_12 = 0;
-		_13 = 0;
-		_14 = 0;
+		v11 = (T)2 / width;
+		v12 = 0;
+		v13 = 0;
+		v14 = 0;
 
-		_21 = 0;
-		_22 = (T)2 / height;
-		_23 = 0;
-		_24 = 0;
+		v21 = 0;
+		v22 = (T)2 / height;
+		v23 = 0;
+		v24 = 0;
 	
-		_31 = 0;
-		_32 = 0;
-		_33 = (T)1 / (zmax - zmin);
-		_34 = 0;
+		v31 = 0;
+		v32 = 0;
+		v33 = (T)1 / (zmax - zmin);
+		v34 = 0;
 
-		_41 = 0;
-		_42 = 0;
-		_43 = zmin / (zmin - zmax);
-		_44 = 1;
+		v41 = 0;
+		v42 = 0;
+		v43 = zmin / (zmin - zmax);
+		v44 = 1;
 	}
 	
 	void mult(const Vector4d<T> &in, Vector4d<T> &out) const
@@ -121,25 +121,25 @@ public:
 
 	static void mult(Matrix4x4* result, const Matrix4x4* mat1, const Matrix4x4* mat2)
 	{
-		result->_11 = (mat1->_11 * mat2->_11) + (mat1->_12 * mat2->_21) + (mat1->_13 * mat2->_31) + (mat1->_14 * mat2->_41);
-		result->_12 = (mat1->_11 * mat2->_12) + (mat1->_12 * mat2->_22) + (mat1->_13 * mat2->_32) + (mat1->_14 * mat2->_42);
-		result->_13 = (mat1->_11 * mat2->_13) + (mat1->_12 * mat2->_23) + (mat1->_13 * mat2->_33) + (mat1->_14 * mat2->_43);
-		result->_14 = (mat1->_11 * mat2->_14) + (mat1->_12 * mat2->_24) + (mat1->_13 * mat2->_34) + (mat1->_14 * mat2->_44);
+		result->v11 = (mat1->v11 * mat2->v11) + (mat1->v12 * mat2->v21) + (mat1->v13 * mat2->v31) + (mat1->v14 * mat2->v41);
+		result->v12 = (mat1->v11 * mat2->v12) + (mat1->v12 * mat2->v22) + (mat1->v13 * mat2->v32) + (mat1->v14 * mat2->v42);
+		result->v13 = (mat1->v11 * mat2->v13) + (mat1->v12 * mat2->v23) + (mat1->v13 * mat2->v33) + (mat1->v14 * mat2->v43);
+		result->v14 = (mat1->v11 * mat2->v14) + (mat1->v12 * mat2->v24) + (mat1->v13 * mat2->v34) + (mat1->v14 * mat2->v44);
 
-		result->_21 = (mat1->_21 * mat2->_11) + (mat1->_22 * mat2->_21) + (mat1->_23 * mat2->_31) + (mat1->_24 * mat2->_41);
-		result->_22 = (mat1->_21 * mat2->_12) + (mat1->_22 * mat2->_22) + (mat1->_23 * mat2->_32) + (mat1->_24 * mat2->_42);
-		result->_23 = (mat1->_21 * mat2->_13) + (mat1->_22 * mat2->_23) + (mat1->_23 * mat2->_33) + (mat1->_24 * mat2->_43);
-		result->_24 = (mat1->_21 * mat2->_14) + (mat1->_22 * mat2->_24) + (mat1->_23 * mat2->_34) + (mat1->_24 * mat2->_44);
+		result->v21 = (mat1->v21 * mat2->v11) + (mat1->v22 * mat2->v21) + (mat1->v23 * mat2->v31) + (mat1->v24 * mat2->v41);
+		result->v22 = (mat1->v21 * mat2->v12) + (mat1->v22 * mat2->v22) + (mat1->v23 * mat2->v32) + (mat1->v24 * mat2->v42);
+		result->v23 = (mat1->v21 * mat2->v13) + (mat1->v22 * mat2->v23) + (mat1->v23 * mat2->v33) + (mat1->v24 * mat2->v43);
+		result->v24 = (mat1->v21 * mat2->v14) + (mat1->v22 * mat2->v24) + (mat1->v23 * mat2->v34) + (mat1->v24 * mat2->v44);
 
-		result->_31 = (mat1->_31 * mat2->_11) + (mat1->_32 * mat2->_21) + (mat1->_33 * mat2->_31) + (mat1->_34 * mat2->_41);
-		result->_32 = (mat1->_31 * mat2->_12) + (mat1->_32 * mat2->_22) + (mat1->_33 * mat2->_32) + (mat1->_34 * mat2->_42);
-		result->_33 = (mat1->_31 * mat2->_13) + (mat1->_32 * mat2->_23) + (mat1->_33 * mat2->_33) + (mat1->_34 * mat2->_43);
-		result->_34 = (mat1->_31 * mat2->_14) + (mat1->_32 * mat2->_24) + (mat1->_33 * mat2->_34) + (mat1->_34 * mat2->_44);
+		result->v31 = (mat1->v31 * mat2->v11) + (mat1->v32 * mat2->v21) + (mat1->v33 * mat2->v31) + (mat1->v34 * mat2->v41);
+		result->v32 = (mat1->v31 * mat2->v12) + (mat1->v32 * mat2->v22) + (mat1->v33 * mat2->v32) + (mat1->v34 * mat2->v42);
+		result->v33 = (mat1->v31 * mat2->v13) + (mat1->v32 * mat2->v23) + (mat1->v33 * mat2->v33) + (mat1->v34 * mat2->v43);
+		result->v34 = (mat1->v31 * mat2->v14) + (mat1->v32 * mat2->v24) + (mat1->v33 * mat2->v34) + (mat1->v34 * mat2->v44);
 
-		result->_41 = (mat1->_41 * mat2->_11) + (mat1->_42 * mat2->_21) + (mat1->_43 * mat2->_31) + (mat1->_44 * mat2->_41);
-		result->_42 = (mat1->_41 * mat2->_12) + (mat1->_42 * mat2->_22) + (mat1->_43 * mat2->_32) + (mat1->_44 * mat2->_42);
-		result->_43 = (mat1->_41 * mat2->_13) + (mat1->_42 * mat2->_23) + (mat1->_43 * mat2->_33) + (mat1->_44 * mat2->_43);
-		result->_44 = (mat1->_41 * mat2->_14) + (mat1->_42 * mat2->_24) + (mat1->_43 * mat2->_34) + (mat1->_44 * mat2->_44);
+		result->v41 = (mat1->v41 * mat2->v11) + (mat1->v42 * mat2->v21) + (mat1->v43 * mat2->v31) + (mat1->v44 * mat2->v41);
+		result->v42 = (mat1->v41 * mat2->v12) + (mat1->v42 * mat2->v22) + (mat1->v43 * mat2->v32) + (mat1->v44 * mat2->v42);
+		result->v43 = (mat1->v41 * mat2->v13) + (mat1->v42 * mat2->v23) + (mat1->v43 * mat2->v33) + (mat1->v44 * mat2->v43);
+		result->v44 = (mat1->v41 * mat2->v14) + (mat1->v42 * mat2->v24) + (mat1->v43 * mat2->v34) + (mat1->v44 * mat2->v44);
 	}
 	
 	void multWith(const Matrix4x4* mat)
@@ -157,28 +157,28 @@ public:
 
 	void perspectiveFovSetZeros()
 	{
-		_12 = 0;
-		_13 = 0;
-		_14 = 0;
+		v12 = 0;
+		v13 = 0;
+		v14 = 0;
 
-		_21 = 0;
-		_23 = 0;
-		_24 = 0;
+		v21 = 0;
+		v23 = 0;
+		v24 = 0;
 
-		_31 = 0;
-		_32 = 0;
+		v31 = 0;
+		v32 = 0;
 	
-		_41 = 0;
-		_42 = 0;
-		_44 = 0;
+		v41 = 0;
+		v42 = 0;
+		v44 = 0;
 	}
 	
 	void perspectiveFovSetHW(T fovy, T aspect)
 	{
 		// TODO: fix when not using float value
 		T h = IG::perspectiveFovViewSpaceHeight(fovy);
-		_11 = IG::perspectiveFovViewSpaceWidth(h, aspect);
-		_22 = h;
+		v11 = IG::perspectiveFovViewSpaceWidth(h, aspect);
+		v22 = h;
 	}
 	
 	void perspectiveFovLH(T fovy, T aspect, T znear, T zfar)
@@ -186,10 +186,10 @@ public:
 		perspectiveFovSetZeros();
 		perspectiveFovSetHW(fovy, aspect);
 	
-		_33 = zfar / (zfar - znear);
-		_34 = 1;
+		v33 = zfar / (zfar - znear);
+		v34 = 1;
 
-		_43 = (-znear * zfar) / (zfar - znear);
+		v43 = (-znear * zfar) / (zfar - znear);
 	}
 	
 	void perspectiveFovRH(T fovy, T aspect, T znear, T zfar)
@@ -197,25 +197,25 @@ public:
 		perspectiveFovSetZeros();
 		perspectiveFovSetHW(fovy, aspect);
 
-		_33 = zfar / (znear - zfar);
-		_34 = -1;
+		v33 = zfar / (znear - zfar);
+		v34 = -1;
 
-		_43 = (znear * zfar) / (znear - zfar);
+		v43 = (znear * zfar) / (znear - zfar);
 	}
 	
 	void perspectiveFrustum(T left, T right, T bottom, T top, T near, T far)
 	{
 		perspectiveFovSetZeros();
 
-		_11 = (2 * near)/(right - left);
-		_22 = (2 * near)/(top - bottom);
+		v11 = (2 * near)/(right - left);
+		v22 = (2 * near)/(top - bottom);
 
-		_31 = (right + left)/(right - left);
-		_32 = (top + bottom)/(top - bottom);
-		_33 = -((far + near)/(far - near));
-		_34 = -1;
+		v31 = (right + left)/(right - left);
+		v32 = (top + bottom)/(top - bottom);
+		v33 = -((far + near)/(far - near));
+		v34 = -1;
 
-		_43 = -((2*far*near)/(far - near));
+		v43 = -((2*far*near)/(far - near));
 	}
 
 	void perspectiveFrustumWithView(T x, T y, T near, T far, T focal)
@@ -236,25 +236,25 @@ public:
 		Vector3d<T> yaxis;
 		Vector3d<T>::crossProduct(&yaxis, zaxis, &xaxis);
 
-		_11 = xaxis.x;
-		_12 = yaxis.x;
-		_13 = zaxis->x;
-		_14 = 0;
+		v11 = xaxis.x;
+		v12 = yaxis.x;
+		v13 = zaxis->x;
+		v14 = 0;
 
-		_21 = xaxis.y;
-		_22 = yaxis.y;
-		_23 = zaxis->y;
-		_24 = 0;
+		v21 = xaxis.y;
+		v22 = yaxis.y;
+		v23 = zaxis->y;
+		v24 = 0;
 
-		_31 = xaxis.z;
-		_32 = yaxis.z;
-		_33 = zaxis->z;
-		_34 = 0;
+		v31 = xaxis.z;
+		v32 = yaxis.z;
+		v33 = zaxis->z;
+		v34 = 0;
 
-		_41 = - xaxis.dotProduct(eye);
-		_42 = - yaxis.dotProduct(eye);
-		_43 = - zaxis->dotProduct(eye);
-		_44 = 1;
+		v41 = - xaxis.dotProduct(eye);
+		v42 = - yaxis.dotProduct(eye);
+		v43 = - zaxis->dotProduct(eye);
+		v44 = 1;
 	}
 	
 	void lookAtLH(Vector3d<T> *eye, Vector3d<T> *at, Vector3d<T> *up )
@@ -278,27 +278,27 @@ public:
 	void zRotationLH(T radians)
 	{
 		ident();
-		_11 = IG::cos(radians);
-		_12 = -IG::sin(radians);
-		_21 = IG::sin(radians);
-		_22 = IG::cos(radians);
+		v11 = IG::cos(radians);
+		v12 = -IG::sin(radians);
+		v21 = IG::sin(radians);
+		v22 = IG::cos(radians);
 	}
 
 	void zRotationRH(T radians)
 	{
 		ident();
-		_11 = IG::cos(radians);
-		_12 = IG::sin(radians);
-		_21 = -IG::sin(radians);
-		_22 = IG::cos(radians);
+		v11 = IG::cos(radians);
+		v12 = IG::sin(radians);
+		v21 = -IG::sin(radians);
+		v22 = IG::cos(radians);
 	}
 
 	void translate(T x, T y, T z)
 	{
 		ident();
-		_41 = x;
-		_42 = y;
-		_43 = z;
+		v41 = x;
+		v42 = y;
+		v43 = z;
 	}
 
 	bool invert(Matrix4x4<T> &invOut)

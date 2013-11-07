@@ -4,12 +4,12 @@
 #include <util/DelegateFunc.hh>
 #include <assert.h>
 #include <pthread.h>
-#ifndef CONFIG_BASE_PS3
-	#include <signal.h>
+#ifndef __PPU__
+#include <signal.h>
 #endif
 
-#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
-	#include <base/android/private.hh>
+#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
+#include <base/android/private.hh>
 #endif
 
 class ThreadPThread
@@ -69,11 +69,11 @@ public:
 
 	void kill(int sig)
 	{
-		#ifndef CONFIG_BASE_PS3
-			logMsg("sending signal %d to pthread %p", sig, (void*)id);
-			pthread_kill(id, sig);
+		#ifndef __PPU__
+		logMsg("sending signal %d to pthread %p", sig, (void*)id);
+		pthread_kill(id, sig);
 		#else
-			bug_exit("signals not supported");
+		bug_exit("signals not supported");
 		#endif
 	}
 
@@ -95,7 +95,7 @@ public:
 private:
 	pthread_t id = 0;
 
-#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
+#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
 public:
 	JNIEnv* jEnv = nullptr;
 #endif
@@ -105,7 +105,7 @@ private:
 	{
 		auto &run = *((ThreadPThread*)runData);
 		//logMsg("running thread func %p", run->entry);
-		#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
+		#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
 		if(Base::jVM->AttachCurrentThread(&run.jEnv, 0) != 0)
 		{
 			logErr("error attaching jEnv to thread");
@@ -113,7 +113,7 @@ private:
 		}
 		#endif
 		auto res = run.entry(run);
-		#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9
+		#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
 		if(run.jEnv)
 			Base::jVM->DetachCurrentThread();
 		#endif

@@ -598,7 +598,7 @@ int vdrive_bam_get_disk_id(unsigned int unit, BYTE *id)
 
     vdrive = file_system_get_vdrive(unit);
 
-    if (vdrive == NULL || id == NULL) {
+    if (vdrive == NULL || id == NULL || vdrive->bam == NULL) {
         return -1;
     }
 
@@ -613,7 +613,7 @@ int vdrive_bam_set_disk_id(unsigned int unit, BYTE *id)
 
     vdrive = file_system_get_vdrive(unit);
 
-    if (vdrive == NULL || id == NULL) {
+    if (vdrive == NULL || id == NULL || vdrive->bam == NULL) {
         return -1;
     }
 

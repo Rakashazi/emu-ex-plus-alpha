@@ -136,15 +136,6 @@ static char *translate_and_build_sid_cmdline_option(int en_resource)
     old = new;
 #endif
 
-#ifdef HAVE_RESID_FP
-    /* add resid-fp options if available */
-    if (en_resource != IDCLS_SPECIFY_SIDCART_ENGINE_MODEL) {
-        new = util_concat(old, ", ", translate_text(IDCLS_RESIDFP_ENGINE_MODEL), NULL);
-        lib_free(old);
-        old = new;
-    }
-#endif
-
     /* add ending bracket */
     new = util_concat(old, ")", NULL);
     lib_free(old);

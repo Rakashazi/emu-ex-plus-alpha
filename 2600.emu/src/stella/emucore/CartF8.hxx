@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF8.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartF8.hxx 2683 2013-04-06 00:25:08Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF8_HXX
@@ -24,16 +24,21 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartF8Widget.hxx"
+#endif
 
 /**
   Cartridge class used for Atari's 8K bankswitched games.  There
   are two 4K banks.
 
   @author  Bradford W. Mott
-  @version $Id: CartF8.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartF8.hxx 2683 2013-04-06 00:25:08Z stephena $
 */
 class CartridgeF8 : public Cartridge
 {
+  friend class CartridgeF8Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -121,6 +126,18 @@ class CartridgeF8 : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeF8"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeF8Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -24,15 +24,15 @@
 class VideoLink;
 
 struct VfilterInfo {
-	enum { IN_WIDTH = 160 };
-	enum { IN_HEIGHT = 144 };
-	
-	const char *handle;
+	enum { in_width  = 160 };
+	enum { in_height = 144 };
+
+	char const *handle;
 	unsigned outWidth;
 	unsigned outHeight;
-	VideoLink* (*create)();
-	
-	static const VfilterInfo& get(std::size_t n);
+	VideoLink * (*create)();
+
+	static VfilterInfo const & get(std::size_t n);
 	static std::size_t numVfilters();
 };
 

@@ -25,16 +25,12 @@
 #include <MultiChoiceView.hh>
 #include <EmuView.hh>
 #include <FilePicker.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <TouchConfigView.hh>
-extern TouchConfigView tcMenu;
-#endif
 extern ViewStack viewStack;
 extern EmuView emuView;
 void setupStatusBarInMenu();
 void setupFont();
 void applyOSNavStyle();
-Gfx::BufferImage *getArrowAsset();
+Gfx::BufferImage &getAsset(uint assetID);
 extern WorkDirStack<1> workDirStack;
 void onCloseModalPopWorkDir(const Input::Event &e);
 void chdirFromFilePath(const char *path);
@@ -54,10 +50,13 @@ protected:
 	#endif
 	MultiChoiceSelectMenuItem frameSkip;
 	void frameSkipInit();
+	const char *aspectRatioStr[4];
 	MultiChoiceSelectMenuItem aspectRatio;
 	void aspectRatioInit();
 	MultiChoiceSelectMenuItem zoom;
 	void zoomInit();
+	MultiChoiceSelectMenuItem viewportZoom;
+	void viewportZoomInit();
 	MultiChoiceSelectMenuItem imgFilter;
 	void imgFilterInit();
 	MultiChoiceSelectMenuItem overlayEffect;
@@ -68,13 +67,16 @@ protected:
 	BoolMenuItem bestColorModeHint;
 	void bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e);
 	#endif
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	BoolMenuItem secondDisplay;
+	#endif
 	BoolMenuItem dither;
 	MultiChoiceSelectMenuItem gameOrientation;
 	void gameOrientationInit();
 
 	// Audio
 	BoolMenuItem snd;
-	#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	MultiChoiceSelectMenuItem soundBuffers;
 	void soundBuffersInit();
 	#endif
@@ -91,15 +93,6 @@ protected:
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	BoolMenuItem useOSInputMethod;
 	#endif
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		#ifdef CONFIG_ENV_WEBOS
-		BoolMenuItem touchCtrl;
-		#else
-		MultiChoiceSelectMenuItem touchCtrl;
-		#endif
-	void touchCtrlInit();
-	TextMenuItem touchCtrlConfig;
-	#endif
 	BoolMenuItem altGamepadConfirm;
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	MultiChoiceSelectMenuItem btScanSecs;
@@ -111,8 +104,10 @@ protected:
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	BoolMenuItem btScanCache;
 	#endif
+	#ifdef CONFIG_BASE_ANDROID
 	MultiChoiceSelectMenuItem relativePointerDecel;
 	void relativePointerDecelInit();
+	#endif
 
 	// System
 	MultiChoiceSelectMenuItem autoSaveState;
@@ -152,7 +147,7 @@ protected:
 	MenuItem *item[24] {nullptr};
 
 public:
-	OptionView();
+	OptionView(Base::Window &win);
 	void init(uint idx, bool highlightFirst);
 };
 
@@ -166,11 +161,23 @@ public:
 	FsSys::cPath *biosPathStr = nullptr;
 	int (*fsFilter)(const char *name, int type) = nullptr;
 
-	constexpr BiosSelectMenu() {}
-	constexpr BiosSelectMenu(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type)):
-		biosPathStr(biosPathStr), fsFilter(fsFilter) {}
+	constexpr BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
+	constexpr BiosSelectMenu(const char *name, FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
+		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
 	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
 	void onSelectFile(const char* name, const Input::Event &e);
 	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst);
 	void init(bool highlightFirst);
+};
+
+using PathChangeDelegate = DelegateFunc<void (const char *newPath)>;
+
+class FirmwarePathSelector
+{
+public:
+	PathChangeDelegate onPathChange;
+
+	constexpr FirmwarePathSelector() {}
+	void onClose(const Input::Event &e);
+	void init(const char *name, bool highlightFirst);
 };

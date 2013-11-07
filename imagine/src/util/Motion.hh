@@ -126,7 +126,7 @@ public:
 	void reverse()
 	{
 		vel = -vel;
-		IG::swap(start, end);
+		std::swap(start, end);
 		clock = duration - clock;
 		//logMsg("reverse motion from %f to %f in %d ticks", start, end, duration);
 	}

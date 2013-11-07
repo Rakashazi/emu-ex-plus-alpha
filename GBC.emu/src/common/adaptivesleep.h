@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -22,13 +22,14 @@
 #include "usec.h"
 
 class AdaptiveSleep {
-	usec_t oversleep;
-	usec_t oversleepVar;
-	unsigned noSleep;
-	
 public:
-	AdaptiveSleep() : oversleep(0), oversleepVar(0), noSleep(60) {}
+	AdaptiveSleep() : oversleep_(0), oversleepVar_(0), noSleep_(60) {}
 	usec_t sleepUntil(usec_t base, usec_t inc);
+
+private:
+	usec_t oversleep_;
+	usec_t oversleepVar_;
+	unsigned noSleep_;
 };
 
 #endif

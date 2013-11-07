@@ -27,30 +27,61 @@
 #ifndef VICE_PLATFORM_LINUX_LIBC_VERSION_H
 #define VICE_PLATFORM_LINUX_LIBC_VERSION_H
 
+#include <stdio.h>
+#include <ctype.h>
+
 #define QUOTE(x) XQUOTE(x)
 #define XQUOTE(x) #x
 
-/* Linux old libc / glibc version discovery */
-#if !defined(PLATFORM_OS) && defined(__GNU_LIBRARY__)
-#  if (__GNU_LIBRARY__ < 6)
-#    define PLATFORM_OS "Linux libc " QUOTE(__GNU_LIBRARY__) "." QUOTE(__GNU_LIBRARY_MINOR__)
-#  else
-#    define PLATORM_OS "Linux glibc " QUOTE(__GLIBC__) "." QUOTE(__GLIBC__MINOR__)
-#  endif
+/* Linux newlib version discovery */
+#if !defined(PLATFORM_OS) && defined(_NEWLIB_VERSION)
+#  define PLATFORM_OS "Linux newlib " _NEWLIB_VERSION
 #endif
 
 /* Linux uClibc version discovery */
 #if !defined(PLATFORM_OS) && defined(__UCLIBC__)
-#define PLATFORM_OS "Linux uClibc " QUOTE(__UCLIBC_MAJOR__) "." QUOTE(__UCLIBC_MINOR__) "." QUOTE(__UCLIBC_SUBLEVEL__)
+#  define PLATFORM_OS "Linux uClibc " QUOTE(__UCLIBC_MAJOR__) "." QUOTE(__UCLIBC_MINOR__) "." QUOTE(__UCLIBC_SUBLEVEL__)
 #endif
 
 /* Linux dietlibc discovery */
 #if !defined(PLATFORM_OS) && defined(__dietlibc__)
-#define PLATFORM_OS "Linux dietlibc"
+#  define PLATFORM_OS "Linux dietlibc"
+#endif
+
+#if defined(__GNU_LIBRARY__)
+#  define VICE_LINUX_CLIB_VERSION_MAJOR __GNU_LIBRARY__
+#endif
+
+#if defined(_LINUX_C_LIB_VERSION) && defined(_LINUX_C_LIB_VERSION_MAJOR)
+#  undef VICE_LINUX_CLIB_VERSION_MAJOR
+#  define VICE_LINUX_CLIB_VERSION_MAJOR _LINUX_C_LIB_VERSION_MAJOR
+#endif
+
+/* Linux glibc2 version discovery */
+#if !defined(PLATFORM_OS) && defined(__GLIBC__)
+#  define PLATFORM_OS "Linux glibc " QUOTE(__GLIBC__) "." QUOTE(__GLIBC_MINOR__)
+#endif
+
+/* Linux old libc version discovery */
+#if !defined(PLATFORM_OS) && defined(_LINUX_C_LIB_VERSION)
+#  define PLATFORM_OS "Linux libc " _LINUX_C_LIB_VERSION
+#endif
+
+/* Linux glibc1 check */
+#if !defined(PLATFORM_OS) && (VICE_LINUX_CLIB_VERSION_MAJOR==1)
+#  define PLATFORM_OS "Linux glibc 1.x"
+#endif
+
+/* Linux musl check */
+#ifndef PLATFORM_OS
+#  include <sys/ucontext.h>
+#  ifdef _UCONTEXT_H
+#    define PLATFORM_OS "Linux musl"
+#  endif
 #endif
 
 #ifndef PLATFORM_OS
-#define PLATFORM_OS "Linux"
+#  define PLATFORM_OS "Linux"
 #endif
 
 #endif

@@ -25,38 +25,36 @@
 class NavView
 {
 public:
-	constexpr NavView() { }
-
-	virtual void onLeftNavBtn(const Input::Event &e) {};
-	virtual void onRightNavBtn(const Input::Event &e) {};
-
-	Rect2<int> leftBtn, rightBtn, textRect;
+	IG::Rect2<int> leftBtn, rightBtn, textRect;
 	Gfx::Text text;
-	Rect2<int> viewRect;
+	IG::Rect2<int> viewRect;
 	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
 
+	constexpr NavView() {}
+	virtual void onLeftNavBtn(const Input::Event &e) {};
+	virtual void onRightNavBtn(const Input::Event &e) {};
 	void setLeftBtnActive(bool on) { leftBtnActive = on; }
 	void setRightBtnActive(bool on) { rightBtnActive = on; }
 	void setTitle(const char *title) { text.setString(title); }
-
 	void init(ResourceFace *face);
 	virtual void deinit() = 0;
 	void deinitText();
 	virtual void place();
 	void inputEvent(const Input::Event &e);
-	virtual void draw() = 0;
+	virtual void draw(const Base::Window &win) = 0;
 };
 
 class BasicNavView : public NavView
 {
 public:
-	constexpr BasicNavView() { }
 	Gfx::Sprite leftSpr, rightSpr;
 	Gfx::LGradient bg;
+
+	constexpr BasicNavView() {}
 	void init(ResourceFace *face, Gfx::BufferImage *leftRes, Gfx::BufferImage *rightRes,
 			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 	void setBackImage(Gfx::BufferImage *img);
-	void draw() override;
+	void draw(const Base::Window &win) override;
 	void place() override;
 	void deinit() override;
 };

@@ -18,3 +18,14 @@ static const char *alsaPcmStateToString(snd_pcm_state_t state)
 		default: bug_branch("%d", state); return 0;
 	}
 }
+
+static const char *alsaPcmWriteErrorToString(int error)
+{
+	switch(error)
+	{
+		case -EBADFD: return "Wrong State";
+		case -EPIPE: return "Underrun";
+		case -ESTRPIPE: return "Suspended";
+		default: return "Unknown";
+	}
+}

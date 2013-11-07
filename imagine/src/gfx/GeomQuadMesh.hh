@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gfx/Gfx.hh>
-#include <util/Array2D.hh>
+#include <util/Mem2D.hh>
 
 namespace Gfx
 {
@@ -35,7 +35,7 @@ public:
 	void setPos(GC x, GC y, GC x2, GC y2);
 
 	uint verts = 0;
-	Array2D<ColVertex> v;
+	Mem2D<ColVertex> v;
 	uint idxs = 0;
 	VertexIndex *i = nullptr;
 } ;

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartX07.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartX07.hxx 2691 2013-04-12 13:12:39Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEX07_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartX07Widget.hxx"
+#endif
 
 /**
   Bankswitching method as defined/created by John Payson (aka Supercat)
@@ -40,10 +43,12 @@ class System;
   Note that the latter will hit on almost any TIA access.
 
   @author  Eckhard Stolberg
-  @version $Id: CartX07.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartX07.hxx 2691 2013-04-12 13:12:39Z stephena $
 */
 class CartridgeX07 : public Cartridge
 {
+  friend class CartridgeX07Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -129,6 +134,18 @@ class CartridgeX07 : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeX07"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeX07Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

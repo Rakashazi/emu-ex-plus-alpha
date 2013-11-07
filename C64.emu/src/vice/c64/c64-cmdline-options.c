@@ -237,6 +237,11 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_BURST_MOD,
       NULL, NULL },
+    { "-iecreset", SET_RESOURCE, 1,
+      NULL, NULL, "IECReset", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_VALUE, IDCLS_SET_IEC_RESET,
+      NULL, NULL },
     { NULL }
 };
 

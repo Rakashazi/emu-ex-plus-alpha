@@ -21,14 +21,14 @@
 
 #include "IoMmap.hh"
 
-void IoMmap::init(const uchar *buffer, size_t size)
+void IoMmap::init(const char *buffer, size_t size)
 {
 	logMsg("opening memory as file @ %p of size %zd", buffer, size);
 	data = currPos = buffer;
 	iSize = size;
 }
 
-const uchar *IoMmap::endofBuffer()
+const char *IoMmap::endofBuffer()
 {
 	return data + iSize;
 }
@@ -40,7 +40,7 @@ size_t IoMmap::readUpTo(void* buffer, size_t numBytes)
 		return 0;
 	
 	size_t bytesToRead;
-	const uchar *posToReadTo = currPos + numBytes;
+	const char *posToReadTo = currPos + numBytes;
 	if(posToReadTo > endofBuffer())
 	{
 		bytesToRead = endofBuffer() - currPos;
@@ -54,66 +54,20 @@ size_t IoMmap::readUpTo(void* buffer, size_t numBytes)
 	return bytesToRead;
 }
 
-int IoMmap::fgetc()
-{
-	assert(currPos >= data);
-	if(currPos >= endofBuffer())
-		return EOF;
-	
-	int val = *currPos;
-	currPos++;
-	return val;
-}
-
 // TODO
 size_t IoMmap::fwrite(const void* ptr, size_t size, size_t nmemb) { return 0; }
 
-CallResult IoMmap::tell(ulong *offset)
+CallResult IoMmap::tell(ulong &offset)
 {
 	assert(currPos >= data);
-	*offset = currPos - data;
+	offset = currPos - data;
 	//logMsg("offset @ %lu", *offset);
 	return(OK);
 }
 
-CallResult IoMmap::seekU(ulong offset, uint mode)
+CallResult IoMmap::seek(long offset, uint mode)
 {
-	const uchar *newPos = currPos;
-	if(mode == IO_SEEK_ABS)
-	{
-		newPos = data + offset;
-	}
-	else if(mode == IO_SEEK_ABS_END)
-	{
-		newPos = (data + iSize) + offset;
-	}
-	else if(mode == IO_SEEK_ADD)
-	{
-		newPos += offset;
-	}
-	else if(mode == IO_SEEK_SUB)
-	{
-		newPos -= offset;
-	}
-	else
-	{
-		logErr("invalid seek mode");
-		return INVALID_PARAMETER;
-	}
-
-	if(newPos < data || newPos > (data + iSize))
-	{
-		logErr("illegal seek position");
-		return INVALID_PARAMETER;
-	}
-
-	currPos = newPos;
-	return OK;
-}
-
-CallResult IoMmap::seekS(long offset, uint mode)
-{
-	const uchar *newPos = currPos;
+	const char *newPos = currPos;
 	if(mode == IO_SEEK_ABS)
 	{
 		newPos = data + offset;

@@ -81,7 +81,7 @@ Pixmap *SurfaceTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pi
 	//ARect rect = { x, y, xlen, ylen };
 	ANativeWindow_lock(nativeWin, &buffer, 0/*&rect*/);
 	pix.pitch = buffer.stride * pix.format.bytesPerPixel;
-	pix.data = (uchar*)buffer.bits;
+	pix.data = (char*)buffer.bits;
 	//logMsg("locked buffer %p with pitch %d", buffer.bits, buffer.stride);
 	return &pix;
 }

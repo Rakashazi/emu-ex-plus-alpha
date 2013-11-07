@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartEFSC.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartEFSC.cxx 2685 2013-04-06 21:04:11Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -35,7 +35,7 @@ CartridgeEFSC::CartridgeEFSC(const uInt8* image, uInt32 size, const Settings& se
   registerRamArea(0x1000, 128, 0x80, 0x00);
 
   // Remember startup bank
-  myStartBank = 1;
+  myStartBank = 15;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

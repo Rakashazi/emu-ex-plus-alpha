@@ -93,12 +93,12 @@ public:
 	#endif
 	virtual void close() = 0;
 	virtual CallResult write(const void *data, size_t size) = 0;
-	typedef DelegateFunc<bool (const uchar *data, size_t size)> OnDataDelegate;
+	typedef DelegateFunc<bool (const char *data, size_t size)> OnDataDelegate;
 	OnDataDelegate &onData() { return onDataD; }
 	typedef DelegateFunc<uint (BluetoothSocket &sock, uint status)> OnStatusDelegate;
 	OnStatusDelegate &onStatus() { return onStatusD; }
 	enum { STATUS_CONNECTING, STATUS_OPENED, STATUS_ERROR, STATUS_CLOSED };
-	enum { REPLY_OPENED_NONE = 0, REPLY_OPENED_USE_READ_EVENTS };
+	enum { OPEN_USAGE_NONE = 0, OPEN_USAGE_READ_EVENTS };
 protected:
 	OnDataDelegate onDataD;
 	OnStatusDelegate onStatusD;

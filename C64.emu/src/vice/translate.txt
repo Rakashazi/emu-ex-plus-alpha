@@ -1,0 +1,2523 @@
+/* GLOBAL STRING ID DEFINITIONS */
+
+/* autostart.c */
+IDGS_CANNOT_LOAD_SNAPSHOT_FILE
+
+/* debug.c */
+IDGS_PLAYBACK_ERROR_DIFFERENT
+
+/* event.c */
+IDGS_CANNOT_CREATE_IMAGE
+
+/* event.c */
+IDGS_CANNOT_WRITE_IMAGE_FILE_S
+
+/* event.c */
+IDGS_CANNOT_FIND_MAPPED_NAME_S
+
+/* event.c */
+IDGS_CANT_CREATE_START_SNAP_S
+
+/* event.c */
+IDGS_ERROR_READING_END_SNAP_S
+
+/* event.c */
+IDGS_CANT_CREATE_END_SNAP_S
+
+/* event.c */
+IDGS_CANT_OPEN_END_SNAP_S
+
+/* event.c */
+IDGS_CANT_FIND_SECTION_END_SNAP
+
+/* event.c */
+IDGS_ERROR_READING_START_SNAP_TRIED
+
+/* event.c */
+IDGS_ERROR_READING_START_SNAP
+
+/* screenshot.c */
+IDGS_SORRY_NO_MULTI_RECORDING
+
+/* sound.c */
+IDGS_RECORD_DEVICE_S_NOT_EXIST
+
+/* sound.c */
+IDGS_RECORD_DIFFERENT_PLAYBACK
+
+/* sound.c */
+IDGS_WARNING_RECORDING_REALTIME
+
+/* sound.c */
+IDGS_INIT_FAILED_FOR_DEVICE_S
+
+/* sound.c */
+IDGS_RECORD_NOT_SUPPORT_SOUND_PAR
+
+/* sound.c */
+IDGS_WRITE_TO_SOUND_DEVICE_FAILED
+
+/* sound.c */
+IDGS_CANNOT_OPEN_SID_ENGINE
+
+/* sound.c */
+IDGS_CANNOT_INIT_SID_ENGINE
+
+/* sound.c */
+IDGS_DEVICE_S_NOT_FOUND_SUPPORT
+
+/* sound.c */
+IDGS_SOUND_BUFFER_OVERFLOW_CYCLE
+
+/* sound.c */
+IDGS_SOUND_BUFFER_OVERFLOW
+
+/* sound.c */
+IDGS_CANNOT_FLUSH
+
+/* sound.c */
+IDGS_FRAGMENT_PROBLEMS
+
+/* sound.c */
+IDGS_RUNNING_TOO_SLOW
+
+/* sound.c */
+IDGS_STORE_SOUNDDEVICE_FAILED
+
+/* c64/c64export.c */
+IDGS_RESOURCE_S_BLOCKED_BY_S
+
+#ifdef HAVE_NETWORK
+/* network.c */
+IDGS_TESTING_BEST_FRAME_DELAY
+
+/* network.c */
+IDGS_USING_D_FRAMES_DELAY
+
+/* network.c */
+IDGS_CANNOT_LOAD_SNAPSHOT_TRANSFER
+
+/* network.c */
+IDGS_SENDING_SNAPSHOT_TO_CLIENT
+
+/* network.c */
+IDGS_CANNOT_SEND_SNAPSHOT_TO_CLIENT
+
+/* network.c */
+IDGS_CANNOT_CREATE_SNAPSHOT_FILE_S
+
+/* network.c */
+IDGS_CANNOT_OPEN_SNAPSHOT_FILE_S
+
+/* network.c */
+IDGS_SERVER_IS_WAITING_FOR_CLIENT
+
+/* network.c */
+IDGS_CANNOT_RESOLVE_S
+
+/* network.c */
+IDGS_CANNOT_CONNECT_TO_S
+
+/* network.c */
+IDGS_RECEIVING_SNAPSHOT_SERVER
+
+/* network.c */
+IDGS_NETWORK_OUT_OF_SYNC
+
+/* network.c */
+IDGS_REMOTE_HOST_DISCONNECTED
+
+/* network.c */
+IDGS_REMOTE_HOST_SUSPENDING
+
+/* network.c */
+IDGS_CANNOT_CREATE_SNAPSHOT_S_SELECT
+#endif   /* HAVE_NETWORK */
+
+/* gfxoutputdrv/ffmpegdrv.c */
+IDGS_FFMPEG_CANNOT_OPEN_VSTREAM
+
+/* gfxoutputdrv/ffmpegdrv.c */
+IDGS_FFMPEG_CANNOT_OPEN_ASTREAM
+
+/* gfxoutputdrv/ffmpegdrv.c */
+IDGS_FFMPEG_CANNOT_OPEN_S
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDGS_IO_READ_COLL_AT_X_FROM
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDGS_AND
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDGS_ALL_DEVICES_DETACHED
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDGS_ALL_DEVICES_EXCEPT
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDGS_WILL_BE_DETACHED
+
+/* c64dtv/c64dtvflash.c */
+IDGS_NO_FILENAME
+
+/* c64dtv/c64dtvflash.c */
+IDGS_ILLEGAL_FILENAME
+
+/* c64dtv/c64dtvflash.c */
+IDGS_ERROR_CREATING_FILE_S
+
+/* c64dtv/c64dtvflash.c */
+IDGS_ERROR_WRITING_TO_FILE_S
+
+/* c64dtv/c64dtvflash.c */
+IDCLS_ENABLE_DTV_FLASH_LOG
+
+/* c64dtv/c64dtvflash.c */
+IDCLS_DISABLE_DTV_FLASH_LOG
+
+/* c64dtv/c64dtvflash.c */
+IDGS_DTV_ROM_CREATED
+
+
+/* COMMAND-LINE STRING ID DEFINITIONS */
+/* MACHINE.c */
+IDCLS_SET_MACHINE_JAM_ACTION
+
+/* autostart.c */
+IDCLS_AUTOSTART_LOAD_TO_BASIC_START
+
+/* autostart.c */
+IDCLS_AUTOSTART_LOAD_WITH_1
+
+/* autostart.c */
+IDCLS_ENABLE_AUTOSTARTWITHCOLON
+
+/* autostart.c */
+IDCLS_DISABLE_AUTOSTARTWITHCOLON
+
+/* autostart.c */
+IDCLS_ENABLE_AUTOSTART_HANDLE_TDE
+
+/* autostart.c */
+IDCLS_DISABLE_AUTOSTART_HANDLE_TDE
+
+/* autostart.c */
+IDCLS_ENABLE_WARP_MODE_AUTOSTART
+
+/* autostart.c */
+IDCLS_DISABLE_WARP_MODE_AUTOSTART
+
+/* autostart.c */
+IDCLS_SET_AUTOSTART_MODE_FOR_PRG
+
+/* autostart.c */
+IDCLS_SET_DISK_IMAGE_FOR_AUTOSTART_PRG
+
+/* autostart.c */
+IDCLS_SET_AUTOSTART_DELAY
+
+/* autostart.c */
+IDCLS_ENABLE_AUTOSTART_RANDOM_DELAY
+
+/* autostart.c */
+IDCLS_DISABLE_AUTOSTART_RANDOM_DELAY
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   c64/psid.c, plus4/plus4-cmdline-options.c,
+   vic20/vic20-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_USE_PAL_SYNC_FACTOR
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   c64/psid.c, plus4/plus4-cmdline-options.c,
+   vic20/vic20-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_USE_NTSC_SYNC_FACTOR
+
+/* c128/c128-cmdline-options.c, c128/functionrom.c,
+   c64/c64-cmdline-options.c, c64/cart/georam.c,
+   c64/cart/ramcart.c, c64/cart/reu.c, c64/cart/c64cart.c,
+   c64/cart/ide64.c, cbm2/cbm2-cmdline-options.c,
+   drive/iec/iec-cmdline-options.c, drive/iec128dcr/iec128dcr-cmdline-options.c,
+   drive/ieee/ieee-cmdline-options.c, drive/tcbm/tcbm-cmdline-options.c,
+   fsdevice/fsdevice-cmdline-options.c, pet/pet-cmdline-options.c,
+   plus4/plus4-cmdline-options.c, printerdrv/driver-select.c,
+   printerdrv/output-select.c, printerdrv/output-text.c,
+   rs232drv/rs232drv.c, vic20/vic20-cmdline-options.c,
+   vic20/vic20cartridge.c, video/video-cmdline-options.c,
+   fliplist.c, initcmdline.c, log.c, sound.c, c64/plus60k.c,
+   c64/c64_256k.c, pet/petreu.c, c64/plus256k.c,
+   c64/cart/mmc64.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_P_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_INT_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_DE_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_FI_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_FR_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_IT_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_NO_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_SV_KERNEL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_BASIC_ROM_NAME_LOW
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_BASIC_ROM_NAME_HIGH
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_INT_CHARGEN_ROM_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_DE_CHARGEN_ROM_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_FR_CHARGEN_ROM_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_SV_CHARGEN_ROM_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_C64_MODE_KERNAL_NAME
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SPECIFY_C64_MODE_BASIC_NAME
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_ENABLE_OEM_JOY
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_DISABLE_OEM_JOY
+
+/* c128/c128-cmdline-options.c */
+IDCLS_ENABLE_IEE488
+
+/* c128/c128-cmdline-options.c */
+IDCLS_DISABLE_IEE488
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c */
+IDCLS_P_REVISION
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c */
+IDCLS_PATCH_KERNAL_TO_REVISION
+
+#ifdef HAVE_RS232
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_ENABLE_DEXX_ACIA_RS232_EMU
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_DISABLE_DEXX_ACIA_RS232_EMU
+#endif   /* HAVE_RS232 */
+
+/* plus4/plus4acia.c */
+IDCLS_ENABLE_ACIA_EMU
+
+/* plus4/plus4acia.c */
+IDCLS_DISABLE_ACIA_EMU
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   c64/psid.c, cbm2/cbm2-cmdline-options.c,
+   pet/pet-cmdline-options.c, plus4/plus4-cmdline-options.c,
+   vdc/vdc-cmdline-options.c, vic20/vic20-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_P_NUMBER
+
+#ifdef COMMON_KBD
+/* c128/c128-cmdline-options.c, plus4/plus4-cmdline-options.c,
+   vic20/vic20-cmdline-options.c */
+IDCLS_SPECIFY_KEYMAP_FILE_INDEX
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   plus4/plus4-cmdline-options.c, vic20/vic20-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_SPECIFY_SYM_KEYMAP_FILE_NAME
+
+/* c128/c128-cmdline-options.c, c64/c64-cmdline-options.c,
+   plus4/plus4-cmdline-options.c, vic20/vic20-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_SPECIFY_POS_KEYMAP_FILE_NAME
+#endif  /* COMMON_KBD */
+
+/* c128/c128mmu.c */
+IDCLS_ACTIVATE_40_COL_MODE
+
+/* c128/c128mmu.c */
+IDCLS_ACTIVATE_80_COL_MODE
+
+/* c128/c128mmu.c */
+IDCLS_GO64_MODE
+
+/* c128/c128mmu.c */
+IDCLS_GO128_MODE
+
+/* c128/functionrom.c */
+IDCLS_SPECIFY_INT_FUNC_ROM_NAME
+
+/* c128/functionrom.c */
+IDCLS_SPECIFY_EXT_FUNC_ROM_NAME
+
+/* c128/functionrom.c */
+IDCLS_ENABLE_INT_FUNC_ROM
+
+/* c128/functionrom.c */
+IDCLS_ENABLE_EXT_FUNC_ROM
+
+/* c64/c64-cmdline-options.c, c64/psid.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_USE_OLD_NTSC_SYNC_FACTOR
+
+/* c64/c64-cmdline-options.c, viciisc/vicii-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_P_MODEL
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_BOTH_CIA_MODELS
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_CIA1_MODEL
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_CIA2_MODEL
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_C64_MODEL
+
+/* c128/c128-cmdline-options.c */
+IDCLS_SET_C128_MODEL
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SET_PLUS4_MODEL
+
+/* vic29/vic29-cmdline-options.c */
+IDCLS_SET_VIC20_MODEL
+
+/* c64dtv/c64dtv-cmdline-options.c */
+IDCLS_SET_DTV_MODEL
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_USE_PALN_SYNC_FACTOR
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_BURST_MOD
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_IEC_RESET
+
+/* c64/c64-cmdline-options.c, cbm2/cbm2-cmdline-options.c,
+   pet/pet-cmdline-options.c, plus4/plus4-cmdline-options.c,
+   vic20/vic20-cmdline-options.c */
+IDCLS_SPECIFY_KERNAL_ROM_NAME
+
+/* c64/c64-cmdline-options.c, cbm2/cbm2-cmdline-options.c,
+   pet/pet-cmdline-options.c, plus4/plus4-cmdline-options.c,
+   vic20/vic20-cmdline-options.c */
+IDCLS_SPECIFY_BASIC_ROM_NAME
+
+/* c64/c64-cmdline-options.c, cbm2/cbm2-cmdline-options.c,
+   pet/pet-cmdline-options.c, vic20/vic20-cmdline-options.c,
+   scpu64/scpu64-cmdline-options.c */
+IDCLS_SPECIFY_CHARGEN_ROM_NAME
+
+#ifdef COMMON_KBD
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SPECIFY_INDEX_KEYMAP_FILE_0_2
+
+/* c64/c64-cmdline-options.c, scpu64/scpu64-cmdline-options.c */
+IDCLS_SPECIFY_NAME_SYM_DE_KEYMAP
+#endif   /* COMMON_KBD */
+
+/* c64/c64gluelogic.c */
+IDCLS_SET_GLUE_LOGIC_TYPE
+
+/* c64dtv/c64dtv-cmdline-options.c */
+IDCLS_ENABLE_HUMMER_ADC
+
+/* c64dtv/c64dtv-cmdline-options.c */
+IDCLS_DISABLE_HUMMER_ADC
+
+/* c64/c64io.c, vic20/vic20io.c */
+IDCLS_SELECT_CONFLICT_HANDLING
+
+/* c64/cart/c64tpi.c */
+IDCLS_ENABLE_IEEE488_INTERFACE
+
+/* c64/cart/c64tpi.c */
+IDCLS_DISABLE_IEEE488_INTERFACE
+
+/* c64/cart/c64tpi.c */
+IDCLS_SPECIFY_IEEE488_INTERFACE_NAME
+
+/* c64/cart/georam.c */
+IDCLS_ENABLE_GEORAM
+
+/* c64/cart/georam.c */
+IDCLS_DISABLE_GEORAM
+
+/* c64/cart/georam.c */
+IDCLS_SPECIFY_GEORAM_NAME
+
+/* c64/cart/georam.c */
+IDCLS_ALLOW_WRITING_TO_GEORAM_IMAGE
+
+/* c64/cart/georam.c */
+IDCLS_DO_NOT_WRITE_TO_GEORAM_IMAGE
+
+/* c64/cart/georam.c */
+IDCLS_P_SIZE_IN_KB
+
+/* c64/cart/georam.c */
+IDCLS_GEORAM_SIZE
+
+/* c64/cart/georam.c */
+IDCLS_SWAP_CART_IO
+
+/* c64/cart/georam.c */
+IDCLS_DONT_SWAP_CART_IO
+
+/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c,
+   c64/cart/tfe.c */
+IDCLS_MAP_CART_IO_2
+
+/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c,
+   c64/cart/tfe.c */
+IDCLS_MAP_CART_IO_3
+
+/* c64/psid.c */
+IDCLS_OVERWRITE_PSID_SETTINGS
+
+/* c64/psid.c */
+IDCLS_SPECIFY_PSID_TUNE_NUMBER
+
+/* c64/cart/ramcart.c */
+IDCLS_ENABLE_RAMCART
+
+/* c64/cart/ramcart.c */
+IDCLS_DISABLE_RAMCART
+
+/* c64/cart/ramcart.c */
+IDCLS_SPECIFY_RAMCART_NAME
+
+/* c64/cart/ramcart.c */
+IDCLS_ALLOW_WRITING_TO_RAMCART_IMAGE
+
+/* c64/cart/ramcart.c */
+IDCLS_DO_NOT_WRITE_TO_RAMCART_IMAGE
+
+/* c64/cart/ramcart.c */
+IDCLS_RAMCART_SIZE
+
+/* c64/cart/dqbb.c */
+IDCLS_ENABLE_DQBB
+
+/* c64/cart/dqbb.c */
+IDCLS_DISABLE_DQBB
+
+/* c64/cart/dqbb.c */
+IDCLS_SPECIFY_DQBB_NAME
+
+/* c64/cart/dqbb.c */
+IDCLS_ALLOW_WRITING_TO_DQBB_IMAGE
+
+/* c64/cart/dqbb.c */
+IDCLS_DO_NOT_WRITE_TO_DQBB_IMAGE
+
+/* c64/cart/isepic.c */
+IDCLS_ENABLE_ISEPIC
+
+/* c64/cart/isepic.c */
+IDCLS_DISABLE_ISEPIC
+
+/* c64/cart/isepic.c */
+IDCLS_SET_ISEPIC_FILENAME
+
+/* c64/cart/isepic.c */
+IDCLS_ALLOW_WRITING_TO_ISEPIC_IMAGE
+
+/* c64/cart/isepic.c */
+IDCLS_DO_NOT_WRITE_TO_ISEPIC_IMAGE
+
+/* c64/cart/mmc64.c */
+IDCLS_ENABLE_MMC64
+
+/* c64/cart/mmc64.c */
+IDCLS_DISABLE_MMC64
+
+/* c64/cart/mmc64.c */
+IDCLS_SPECIFY_MMC64_BIOS_NAME
+
+/* c64/cart/mmc64.c */
+IDCLS_SPECIFY_MMC64_IMAGE_NAME
+
+/* c64/cart/mmc64.c */
+IDCLS_MMC64_READONLY
+
+/* c64/cart/mmc64.c */
+IDCLS_MMC64_READWRITE
+
+/* c64/cart/mmc64.c */
+IDCLS_MMC64_BIOS_WRITE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_SELECT_MMC_REPLAY_CARD_IMAGE_FILENAME
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_CARD_WRITE_ENABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_CARD_WRITE_DISABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_SELECT_MMC_REPLAY_EEPROM_IMAGE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_EEPROM_WRITE_ENABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_EEPROM_WRITE_DISABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_RESCUE_MODE_ENABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_MMC_REPLAY_RESCUE_MODE_DISABLE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_ALLOW_WRITING_TO_MMC_REPLAY_IMAGE
+
+/* c64/cart/mmcreplay.c */
+IDCLS_DO_NOT_WRITE_TO_MMC_REPLAY_IMAGE
+
+/* c64/cart/retroplay.c */
+IDCLS_ENABLE_SAVE_RR_ROM_AT_EXIT
+
+/* c64/cart/retroplay.c */
+IDCLS_DISABLE_SAVE_RR_ROM_AT_EXIT
+
+/* c64/cart/retroplay.c */
+IDCLS_SET_RR_BANK_JUMPER
+
+/* c64/cart/retroplay.c */
+IDCLS_UNSET_RR_BANK_JUMPER
+
+/* c64/cart/retroplay.c */
+IDCLS_SET_RR_FLASH_JUMPER
+
+/* c64/cart/retroplay.c */
+IDCLS_UNSET_RR_FLASH_JUMPER
+
+/* c64/cart/reu.c */
+IDCLS_ENABLE_REU
+
+/* c64/cart/reu.c */
+IDCLS_DISABLE_REU
+
+/* c64/cart/reu.c */
+IDCLS_SPECIFY_REU_NAME
+
+/* c64/cart/reu.c */
+IDCLS_ALLOW_WRITING_TO_REU_IMAGE
+
+/* c64/cart/reu.c */
+IDCLS_DO_NOT_WRITE_TO_REU_IMAGE
+
+/* c64/cart/reu.c */
+IDCLS_REU_SIZE
+
+#ifdef HAVE_TFE
+/* c64/cart/tfe.c */
+IDCLS_ENABLE_TFE
+
+/* c64/cart/tfe.c */
+IDCLS_DISABLE_TFE
+
+/* c64/cart/tfe.c */
+IDCLS_TFE_INTERFACE
+
+/* c64/cart/tfe.c */
+IDCLS_ENABLE_TFE_AS_RRNET
+
+/* c64/cart/tfe.c */
+IDCLS_DISABLE_TFE_AS_RRNET
+#endif   /* HAVE_TFE */
+
+/* c64/cart/c64cart.c */
+IDCLS_CART_ATTACH_DETACH_RESET
+
+/* c64/cart/c64cart.c */
+IDCLS_CART_ATTACH_DETACH_NO_RESET
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_CRT_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_GENERIC_8KB_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_GENERIC_16KB_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_GENERIC_16KB_ULTIMAX_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_STARDOS_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ACTION_REPLAY2_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ACTION_REPLAY3_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ACTION_REPLAY4_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ACTION_REPLAY_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_CAPTURE_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_COMAL80_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DELA_EP256_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DELA_EP64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DELA_EP7X8_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DINAMIC_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DIASHOW_MAKER_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_DQBB_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_EASY_FLASH_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_RETRO_REPLAY_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_REX_UTILITY_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SS64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_IDE64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ATOMIC_POWER_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_EPYX_FASTLOAD_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_EXOS_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_EXPERT_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_F64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FC1_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FC3_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FCPLUS_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FREEZE_FRAME_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FREEZE_MACHINE_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_FP_PP_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SS4_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SS5_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_CBM_IEEE488_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ISEPIC_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_KCS_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_KINGSOFT_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MACH5_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MAGIC_DESK_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MAGIC_FORMEL_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MIKRO_ASSEMBLER_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MMC64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MMC_REPLAY_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_MAGIC_VOICE_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_OCEAN_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_WESTERMANN_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_WARPSPEED_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ZAXXON_CART
+
+/* c64/cart/c64cart.c, c64/cart/expert.c */
+IDCLS_ENABLE_EXPERT_CART
+
+/* c64/cart/expert.c */
+IDCLS_DISABLE_EXPERT_CART
+
+/* c64/cart/expert.c */
+IDCLS_SET_EXPERT_FILENAME
+
+/* c64/cart/expert.c */
+IDCLS_ALLOW_WRITING_TO_EXPERT_IMAGE
+
+/* c64/cart/expert.c */
+IDCLS_DO_NOT_WRITE_TO_EXPERT_IMAGE
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_PAGEFOX_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_P64_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_RAMCART_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_REU_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_REX_EP256_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_ROSS_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_GAME_KILLER_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_GEORAM_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_GAME_SYSTEM_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_DISABLE_CART
+
+/* plus4/plus4cart.c */
+IDCLS_SMART_ATTACH_CART
+
+/* c64/cart/ide64.c */
+IDCLS_SPECIFY_IDE64_NAME
+
+/* c64/cart/ide64.c, gfxoutputdrv/ffmpegdrv.c, datasette.c,
+   debug.c, mouse.c, ram.c, sound.c, vsync.c */
+IDCLS_P_VALUE
+
+/* c64/cart/ide64.c */
+IDCLS_SET_AMOUNT_CYLINDERS_IDE64
+
+/* c64/cart/ide64.c */
+IDCLS_SET_AMOUNT_HEADS_IDE64
+
+/* c64/cart/ide64.c */
+IDCLS_SET_AMOUNT_SECTORS_IDE64
+
+/* c64/cart/ide64.c */
+IDCLS_AUTODETECT_IDE64_GEOMETRY
+
+/* c64/cart/ide64.c */
+IDCLS_NO_AUTODETECT_IDE64_GEOMETRY
+
+/* c64/cart/ide64.c */
+IDCLS_IDE64_V4
+
+/* c64/cart/ide64.c */
+IDCLS_IDE64_PRE_V4
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_P_MODELNUMBER
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CBM2_MODEL
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_TO_USE_VIC_II
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_TO_USE_CRTC
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_P_LINENUMBER
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CBM2_MODEL_HARDWARE
+
+/* cbm2/cbm2-cmdline-options.c, plus4/plus4-cmdline-options.c */
+IDCLS_P_RAMSIZE
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_SIZE_OF_RAM
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CART_ROM_1000_NAME
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CART_ROM_2000_NAME
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CART_ROM_4000_NAME
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_SPECIFY_CART_ROM_6000_NAME
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_0800
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_0800
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_1000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_1000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_2000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_2000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_4000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_4000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_6000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_6000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_ENABLE_RAM_MAPPING_IN_C000
+
+/* cbm2/cbm2-cmdline-options.c */
+IDCLS_DISABLE_RAM_MAPPING_IN_C000
+
+#ifdef COMMON_KBD
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_KEYMAP_INDEX
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_GFX_SYM_KEYMAP_NAME
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_GFX_POS_KEYMAP_NAME
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_BUK_SYM_KEYMAP_NAME
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_BUK_POS_KEYMAP_NAME
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_BDE_SYM_KEYMAP_NAME
+
+/* cbm2/cbm2-cmdline-options.c, pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_BDE_POS_KEYMAP_NAME
+#endif   /* COMMON_KBD */
+
+/* drive/drive-cmdline-options.c */
+IDCLS_ENABLE_TRUE_DRIVE
+
+/* drive/drive-cmdline-options.c */
+IDCLS_DISABLE_TRUE_DRIVE
+
+/* drive/drive-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_SOUND
+
+/* drive/drive-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_SOUND
+
+/* drive/drive-cmdline-options.c */
+IDCLS_SET_DRIVE_SOUND_VOLUME
+
+/* drive/drive-cmdline-options.c */
+IDCLS_P_VOLUME
+
+/* drive/drive-cmdline-options.c, drive/iec/plus4exp/plus4exp-cmdline-options.c,
+   drive/iec/c64exp/c64exp-cmdline-options.c, printerdrv/interface-serial.c,
+   attach.c, lightpen.c, c128/functionrom.c, userport/userport_joystick.c,
+   c64/c64gluelogic.c, c64/cart/sfx_soundexpander.c */
+IDCLS_P_TYPE
+
+/* monitor/mon_command.c */
+IDGS_TYPE
+
+/* drive/drive-cmdline-options.c */
+IDCLS_SET_DRIVE_TYPE
+
+/* drive/drive-cmdline-options.c, gfxoutputdrv/doodledrv.c */
+IDCLS_P_METHOD
+
+/* gfxoutputdrv/doodledrv.c */
+IDCLS_P_COLOR
+
+/* gfxoutputdrv/doodledrv.c, gfxoutputdrv/koaladrv.c */
+IDCLS_OVERSIZED_HANDLING
+
+/* gfxoutputdrv/doodledrv.c, gfxoutputdrv/koaladrv.c */
+IDCLS_UNDERSIZED_HANDLING
+
+/* gfxoutputdrv/doodledrv.c */
+IDCLS_MULTICOLOR_HANDLING
+
+/* gfxoutputdrv/doodledrv.c, gfxoutputdrv/koaladrv.c */
+IDCLS_TED_LUM_HANDLING
+
+/* gfxoutputdrv/doodledrv.c, gfxoutputdrv/koaladrv.c */
+IDCLS_CRTC_TEXT_COLOR
+
+/* drive/drive-cmdline-options.c */
+IDCLS_SET_DRIVE_EXTENSION_POLICY
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_1541_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_1541_II_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_1570_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_1571_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_1581_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_2000_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SPECIFY_4000_DOS_ROM_NAME
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_SET_IDLE_METHOD
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_RAM_2000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_RAM_2000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_RAM_4000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_RAM_4000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_RAM_6000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_RAM_6000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_RAM_8000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_RAM_8000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_ENABLE_DRIVE_RAM_A000
+
+/* drive/iec/iec-cmdline-options.c */
+IDCLS_DISABLE_DRIVE_RAM_A000
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_PAR_CABLE_C64EXP_TYPE
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_ENABLE_PROFDOS
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_DISABLE_PROFDOS
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_SPECIFY_PROFDOS_1571_ROM_NAME
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_ENABLE_SUPERCARD
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_DISABLE_SUPERCARD
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_SPECIFY_SUPERCARD_ROM_NAME
+
+/* drive/iec/plus4exp/plus4exp-cmdline-options.c */
+IDCLS_PAR_CABLE_PLUS4EXP_TYPE
+
+/* drive/iec128dcr/iec128dcr-cmdline-options.c */
+IDCLS_SPECIFY_1571CR_DOS_ROM_NAME
+
+/* drive/ieee/ieee-cmdline-options.c */
+IDCLS_SPECIFY_2031_DOS_ROM_NAME
+
+/* drive/ieee/ieee-cmdline-options.c */
+IDCLS_SPECIFY_2040_DOS_ROM_NAME
+
+/* drive/ieee/ieee-cmdline-options.c */
+IDCLS_SPECIFY_3040_DOS_ROM_NAME
+
+/* drive/ieee/ieee-cmdline-options.c */
+IDCLS_SPECIFY_4040_DOS_ROM_NAME
+
+/* drive/ieee/ieee-cmdline-options.c */
+IDCLS_SPECIFY_1001_DOS_ROM_NAME
+
+/* drive/tcbm/tcbm-cmdline-options.c */
+IDCLS_SPECIFY_1551_DOS_ROM_NAME
+
+/* fsdevice/fsdevice-cmdline-options.c */
+IDCLS_USE_AS_DIRECTORY_FSDEVICE_8
+
+/* fsdevice/fsdevice-cmdline-options.c */
+IDCLS_USE_AS_DIRECTORY_FSDEVICE_9
+
+/* fsdevice/fsdevice-cmdline-options.c */
+IDCLS_USE_AS_DIRECTORY_FSDEVICE_10
+
+/* fsdevice/fsdevice-cmdline-options.c */
+IDCLS_USE_AS_DIRECTORY_FSDEVICE_11
+
+#ifdef HAVE_FFMPEG
+/* gfxoutputdrv/ffmpegdrv.c */
+IDCLS_SET_AUDIO_STREAM_BITRATE
+
+/* gfxoutputdrv/ffmpegdrv.c */
+IDCLS_SET_VIDEO_STREAM_BITRATE
+#endif   /* HAVE_FFMPEG */
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_PET_MODEL
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_EDITOR_ROM_NAME
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_4K_ROM_9XXX_NAME
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_4K_ROM_AXXX_NAME
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_4K_ROM_BXXX_NAME
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET8296_ENABLE_4K_RAM_AT_9000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET8296_DISABLE_4K_RAM_AT_9000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET8296_ENABLE_4K_RAM_AT_A000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET8296_DISABLE_4K_RAM_AT_A000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_ENABLE_SUPERPET_IO
+
+/* pet/pet-cmdline-options.c */
+IDCLS_DISABLE_SUPERPET_IO
+
+/* pet/pet-cmdline-options.c */
+IDCLS_ENABLE_ROM_1_KERNAL_PATCHES
+
+/* pet/pet-cmdline-options.c */
+IDCLS_DISABLE_ROM_1_KERNAL_PATCHES
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SWITCH_UPPER_LOWER_CHARSET
+
+/* pet/pet-cmdline-options.c */
+IDCLS_NO_SWITCH_UPPER_LOWER_CHARSET
+
+/* pet/pet-cmdline-options.c */
+IDCLS_EOI_BLANKS_SCREEN
+
+/* pet/pet-cmdline-options.c */
+IDCLS_EOI_DOES_NOT_BLANK_SCREEN
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SET_CPU_SWITCH_TO_6502
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SET_CPU_SWITCH_TO_6809
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SET_CPU_SWITCH_TO_PROG
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_A000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_B000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_C000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_D000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_E000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_SPECIFY_6809_ROM_AT_F000
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET4032_COLOUR_RGBI
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET4032_COLOUR_ANALOG
+
+/* pet/pet-cmdline-options.c */
+IDCLS_P_COLOUR_0_255
+
+/* pet/pet-cmdline-options.c */
+IDCLS_PET4032_COLOUR_BACKGROUND
+
+/* pet/petpia1.c */
+IDCLS_ENABLE_USERPORT_DIAG_PIN
+
+/* pet/petpia1.c */
+IDCLS_DISABLE_USERPORT_DIAG_PIN
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_FUNCTION_LOW_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_FUNCTION_HIGH_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_CART_1_LOW_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_CART_1_HIGH_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_CART_2_LOW_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_CART_2_HIGH_ROM_NAME
+
+/* plus4/plus4-cmdline-options.c */
+IDCLS_SPECIFY_RAM_INSTALLED
+
+/* plus4/ted-cmdline-options.c, vicii/vicii-cmdline-options.c */
+IDCLS_SET_SATURATION
+
+/* plus4/ted-cmdline-options.c, vicii/vicii-cmdline-options.c */
+IDCLS_SET_CONTRAST
+
+/* plus4/ted-cmdline-options.c, vicii/vicii-cmdline-options.c */
+IDCLS_SET_BRIGHTNESS
+
+/* plus4/ted-cmdline-options.c, vicii/vicii-cmdline-options.c */
+IDCLS_SET_GAMMA
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_TINT
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_ODDLINES_PHASE
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_ODDLINES_OFFSET
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_BLUR
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_SCANLINE_SHADE
+
+/* viciisc/vicii-cmdline-options.c */
+IDCLS_SET_VICII_MODEL
+
+/* printerdrv/driver-select.c */
+IDCLS_SPECIFY_PRT_DRIVER_4_NAME
+
+/* printerdrv/driver-select.c */
+IDCLS_SPECIFY_PRT_DRIVER_5_NAME
+
+/* printerdrv/driver-select.c */
+IDCLS_SPECIFY_PRT_DRIVER_USR_NAME
+
+/* printerdrv/interface-serial.c */
+IDCLS_SET_DEVICE_TYPE_4
+
+/* printerdrv/interface-serial.c */
+IDCLS_SET_DEVICE_TYPE_5
+
+/* printerdrv/interface-userport.c */
+IDCLS_ENABLE_USERPORT_PRINTER
+
+/* printerdrv/interface-userport.c */
+IDCLS_DISABLE_USERPORT_PRINTER
+
+/* printerdrv/output-select.c */
+IDCLS_SPECIFY_OUTPUT_DEVICE_4_NAME
+
+/* printerdrv/output-select.c */
+IDCLS_SPECIFY_OUTPUT_DEVICE_5_NAME
+
+/* printerdrv/output-select.c */
+IDCLS_SPECIFY_OUTPUT_DEVICE_USR_NAME
+
+/* printerdrv/output-text.c */
+IDCLS_SPECIFY_TEXT_DEVICE_DUMP_NAME
+
+/* printerdrv/output-text.c */
+IDCLS_SPECIFY_TEXT_DEVICE_4
+
+/* printerdrv/output-text.c */
+IDCLS_SPECIFY_TEXT_DEVICE_5
+
+/* printerdrv/output-text.c */
+IDCLS_SPECIFY_TEXT_USERPORT
+
+/* raster/raster-cmdline-options.c */
+IDCLS_ENABLE_VIDEO_CACHE
+
+/* raster/raster-cmdline-options.c */
+IDCLS_DISABLE_VIDEO_CACHE
+
+#ifdef HAVE_RS232
+/* rs232drv/rs232drv.c */
+IDCLS_SPECIFY_RS232_1_NAME
+
+/* rs232drv/rs232drv.c */
+IDCLS_SPECIFY_RS232_2_NAME
+
+/* rs232drv/rs232drv.c */
+IDCLS_SPECIFY_RS232_3_NAME
+
+/* rs232drv/rs232drv.c */
+IDCLS_SPECIFY_RS232_4_NAME
+#endif   /* HAVE_RS232 */
+
+/* rs232drv/rsuser.c */
+IDCLS_ENABLE_RS232_USERPORT
+
+/* rs232drv/rsuser.c */
+IDCLS_DISABLE_RS232_USERPORT
+
+/* rs232drv/rsuser.c */
+IDCLS_P_BAUD
+
+/* rs232drv/rsuser.c */
+IDCLS_SET_BAUD_RS232_USERPORT
+
+/* rs232drv/rsuser.c */
+IDCLS_SPECIFY_RS232_DEVICE_USERPORT
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_4
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_4
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_5
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_5
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_8
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_8
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_9
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_9
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_10
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_10
+
+/* serial/serial-iec-device.c */
+IDCLS_ENABLE_IEC_11
+
+/* serial/serial-iec-device.c */
+IDCLS_DISABLE_IEC_11
+
+/* sid/sid-cmdline-options.c */
+IDCLS_P_ENGINE_MODEL
+
+/* sid/sid-cmdline-options.c */
+IDCLS_P_AMOUNT
+
+/* sid/sid-cmdline-options.c */
+IDCLS_AMOUNT_EXTRA_SIDS
+
+/* sid/sid-cmdline-options.c */
+IDCLS_FASTSID_ENGINE_MODEL
+
+#ifdef HAVE_RESID
+/* sid/sid-cmdline-options.c */
+IDCLS_RESID_ENGINE_MODEL
+
+/* sid/sid-cmdline-options.c */
+IDCLS_RESIDDTV_ENGINE_MODEL
+#endif
+
+#ifdef HAVE_CATWEASELMKIII
+/* sid/sid-cmdline-options.c */
+IDCLS_CATWEASELMKIII_ENGINE_MODEL
+#endif
+
+#ifdef HAVE_HARDSID
+/* sid/sid-cmdline-options.c */
+IDCLS_HARDSID_ENGINE_MODEL
+#endif
+
+#ifdef HAVE_PARSID
+/* sid/sid-cmdline-options.c */
+IDCLS_PARSID_ENGINE_MODEL
+#endif
+
+/* sid/sid-cmdline-options.c */
+IDCLS_ENABLE_SIDCART
+
+/* sid/sid-cmdline-options.c */
+IDCLS_DISABLE_SIDCART
+
+/* sid/sid-cmdline-options.c, c64/plus60k.c, c64/c64_256k.c c64/cart/digimax.c */
+IDCLS_P_BASE_ADDRESS
+
+/* sid/sid-cmdline-options.c */
+IDCLS_SPECIFY_SID_2_ADDRESS
+
+/* sid/sid-cmdline-options.c */
+IDCLS_SPECIFY_SID_3_ADDRESS
+
+/* sid/sid-cmdline-options.c */
+IDCLS_ENABLE_SID_FILTERS
+
+/* sid/sid-cmdline-options.c */
+IDCLS_DISABLE_SID_FILTERS
+
+#ifdef HAVE_RESID
+/* sid/sid-cmdline-options.c */
+IDCLS_RESID_SAMPLING_METHOD
+#endif   /* HAVE_RESID */
+
+/* sid/sid-cmdline-options.c, vsync.c */
+IDCLS_P_PERCENT
+
+#ifdef HAVE_RESID
+/* sid/sid-cmdline-options.c */
+IDCLS_PASSBAND_PERCENTAGE
+IDCLS_RESID_FILTER_BIAS
+#endif   /* HAVE_RESID */
+
+/* vdc/vdc-cmdline-options.c, crtc/crtc-cmdline-options.c */
+IDCLS_ENABLE_STRETCH_VERTICAL
+
+/* vdc/vdc-cmdline-options.c, crtc/crtc-cmdline-options.c */
+IDCLS_DISABLE_STRETCH_VERTICAL
+
+/* vdc/vdc-cmdline-options.c */
+IDCLS_SET_VDC_MEMORY_16KB
+
+/* vdc/vdc-cmdline-options.c */
+IDCLS_SET_VDC_MEMORY_64KB
+
+/* vdc/vdc-cmdline-options.c */
+IDCLS_SET_VDC_REVISION
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_P_SPEC
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_SPECIFY_MEMORY_CONFIG
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_ENABLE_VIC1112_IEEE488
+
+/* vic20/vic20-cmdline-options.c */
+IDCLS_DISABLE_VIC1112_IEEE488
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_EXT_ROM_2000_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_EXT_ROM_4000_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_EXT_ROM_6000_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_EXT_ROM_A000_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_EXT_ROM_B000_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_GENERIC_ROM_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_MEGA_CART_ROM_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_FINAL_EXPANSION_ROM_NAME
+
+/* vic20/cart/vic20cart.c */
+IDCLS_SPECIFY_VIC_FP_ROM_NAME
+
+/* vic20/cart/finalexpansion.c */
+IDCLS_ENABLE_FINALEXPANSION_WRITEBACK
+
+/* vic20/cart/finalexpansion.c */
+IDCLS_DISABLE_FINALEXPANSION_WRITEBACK
+
+/* vic20/cart/megacart.c */
+IDCLS_SET_MEGACART_NVRAM_NAME
+
+/* vic20/cart/megacart.c */
+IDCLS_ENABLE_MEGACART_NVRAM_WRITE
+
+/* vic20/cart/megacart.c */
+IDCLS_DISABLE_MEGACART_NVRAM_WRITE
+
+/* vic20/cart/vic-fp.c */
+IDCLS_ENABLE_VICFP_ROM_WRITE
+
+/* vic20/cart/vic-fp.c */
+IDCLS_DISABLE_VICFP_ROM_WRITE
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_SET_BORDER_MODE
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_ENABLE_SPRITE_BACKGROUND
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_DISABLE_SPRITE_BACKGROUND
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_ENABLE_SPRITE_SPRITE
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_DISABLE_SPRITE_SPRITE
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_USE_NEW_LUMINANCES
+
+/* vicii/vicii-cmdline-options.c */
+IDCLS_USE_OLD_LUMINANCES
+
+/* video/video-cmdline-options.c */
+IDCLS_ENABLE_DOUBLE_SIZE
+
+/* video/video-cmdline-options.c */
+IDCLS_DISABLE_DOUBLE_SIZE
+
+/* video/video-cmdline-options.c */
+IDCLS_ENABLE_DOUBLE_SCAN
+
+/* video/video-cmdline-options.c */
+IDCLS_DISABLE_DOUBLE_SCAN
+
+/* video/video-cmdline-options.c */
+IDCLS_ENABLE_AUDIO_LEAK
+
+/* video/video-cmdline-options.c */
+IDCLS_DISABLE_AUDIO_LEAK
+
+/* video/video-cmdline-options.c */
+IDCLS_ENABLE_HARDWARE_SCALING
+
+/* video/video-cmdline-options.c */
+IDCLS_DISABLE_HARDWARE_SCALING
+
+/* video/video-cmdline-options.c */
+IDCLS_SET_VIDEO_FILTER
+
+/* video/video-cmdline-options.c */
+IDCLS_USE_INTERNAL_CALC_PALETTE
+
+/* video/video-cmdline-options.c */
+IDCLS_USE_EXTERNAL_FILE_PALETTE
+
+/* video/video-cmdline-options.c */
+IDCLS_SPECIFY_EXTERNAL_PALETTE_NAME
+
+/* video/video-cmdline-options.c */
+IDCLS_P_DEVICE
+
+/* video/video-cmdline-options.c */
+IDCLS_SELECT_FULLSCREEN_DEVICE
+
+/* video/video-cmdline-options.c */
+IDCLS_P_MODE
+
+/* video/video-cmdline-options.c */
+IDCLS_SELECT_FULLSCREEN_MODE
+
+/* aciacore.c */
+IDCLS_SPECIFY_ACIA_RS232_DEVICE
+
+/* attach.c */
+IDCLS_SET_DEVICE_TYPE_8
+
+/* attach.c */
+IDCLS_SET_DEVICE_TYPE_9
+
+/* attach.c */
+IDCLS_SET_DEVICE_TYPE_10
+
+/* attach.c */
+IDCLS_SET_DEVICE_TYPE_11
+
+/* attach.c */
+IDCLS_ATTACH_READ_ONLY_8
+
+/* attach.c */
+IDCLS_ATTACH_READ_WRITE_8
+
+/* attach.c */
+IDCLS_ATTACH_READ_ONLY_9
+
+/* attach.c */
+IDCLS_ATTACH_READ_WRITE_9
+
+/* attach.c */
+IDCLS_ATTACH_READ_ONLY_10
+
+/* attach.c */
+IDCLS_ATTACH_READ_WRITE_10
+
+/* attach.c */
+IDCLS_ATTACH_READ_ONLY_11
+
+/* attach.c */
+IDCLS_ATTACH_READ_WRITE_11
+
+/* datasette.c */
+IDCLS_ENABLE_AUTO_DATASETTE_RESET
+
+/* datasette.c */
+IDCLS_DISABLE_AUTO_DATASETTE_RESET
+
+/* datasette.c */
+IDCLS_SET_ZERO_TAP_DELAY
+
+/* datasette.c */
+IDCLS_SET_CYCLES_ADDED_GAP_TAP
+
+#ifdef DEBUG
+/* debug.c */
+IDCLS_TRACE_MAIN_CPU
+
+/* debug.c */
+IDCLS_DONT_TRACE_MAIN_CPU
+
+/* debug.c */
+IDCLS_TRACE_DRIVE0_CPU
+
+/* debug.c */
+IDCLS_DONT_TRACE_DRIVE0_CPU
+
+/* debug.c */
+IDCLS_TRACE_DRIVE1_CPU
+
+/* debug.c */
+IDCLS_DONT_TRACE_DRIVE1_CPU
+
+/* debug.c */
+IDCLS_TRACE_DRIVE2_CPU
+
+/* debug.c */
+IDCLS_DONT_TRACE_DRIVE2_CPU
+
+/* debug.c */
+IDCLS_TRACE_DRIVE3_CPU
+
+/* debug.c */
+IDCLS_DONT_TRACE_DRIVE3_CPU
+
+/* debug.c */
+IDCLS_TRACE_MODE
+#endif   /* DEBUG */
+
+/* event.c */
+IDCLS_PLAYBACK_RECORDED_EVENTS
+
+/* monitor.c */
+IDCLS_EXECUTE_MONITOR_FROM_FILE
+
+/* monitor.c */
+IDCLS_WRITE_MONITOR_LOG_TO_FILE
+
+/* monitor.c */
+IDCLS_SET_INITIAL_BREAKPOINT
+
+/* monitor_network.c */
+IDCLS_ENABLE_REMOTE_MONITOR
+
+/* monitor_network.c */
+IDCLS_DISABLE_REMOTE_MONITOR
+
+/* monitor_network.c */
+IDCLS_REMOTE_MONITOR_ADDRESS
+
+/* fliplist.c */
+IDCLS_SPECIFY_FLIP_LIST_NAME
+
+/* initcmdline.c */
+IDCLS_SHOW_COMMAND_LINE_OPTIONS
+
+#if (!defined  __OS2__ && !defined __BEOS__)
+/* initcmdline.c */
+IDCLS_CONSOLE_MODE
+
+/* initcmdline.c */
+IDCLS_ALLOW_CORE_DUMPS
+
+/* initcmdline.c */
+IDCLS_DONT_ALLOW_CORE_DUMPS
+#else
+/* initcmdline.c */
+IDCLS_DONT_CALL_EXCEPTION_HANDLER
+
+/* initcmdline.c */
+IDCLS_CALL_EXCEPTION_HANDLER
+#endif  /* __OS2__ __BEOS__ */
+
+/* initcmdline.c */
+IDCLS_RESTORE_DEFAULT_SETTINGS
+
+/* initcmdline.c, c64/cart/mmcreplay.c */
+IDCLS_P_FILE
+
+/* initcmdline.c */
+IDCLS_SPECIFY_CONFIG_FILE
+
+/* initcmdline.c */
+IDCLS_ATTACH_AND_AUTOSTART
+
+/* initcmdline.c */
+IDCLS_ATTACH_AND_AUTOLOAD
+
+/* initcmdline.c */
+IDCLS_ATTACH_AS_TAPE
+
+/* initcmdline.c */
+IDCLS_ATTACH_AS_DISK_8
+
+/* initcmdline.c */
+IDCLS_ATTACH_AS_DISK_9
+
+/* initcmdline.c */
+IDCLS_ATTACH_AS_DISK_10
+
+/* initcmdline.c */
+IDCLS_ATTACH_AS_DISK_11
+
+/* kbdbuf.c */
+IDCLS_P_STRING
+
+/* kbdbuf.c */
+IDCLS_PUT_STRING_INTO_KEYBUF
+
+/* log.c */
+IDCLS_SPECIFY_LOG_FILE_NAME
+
+/* log.c */
+IDCLS_ENABLE_VERBOSE_LOG_OUTPUT
+
+/* mouse.c */
+IDCLS_ENABLE_MOUSE_GRAB
+
+/* mouse.c */
+IDCLS_DISABLE_MOUSE_GRAB
+
+/* mouse.c */
+IDCLS_SELECT_MOUSE_JOY_PORT
+
+/* ps2mouse.c */
+IDCLS_ENABLE_PS2MOUSE
+
+/* ps2mouse.c */
+IDCLS_DISABLE_PS2MOUSE
+
+/* ram.c */
+IDCLS_SET_FIRST_RAM_ADDRESS_VALUE
+
+/* mouse.c */
+IDCLS_SELECT_MOUSE_TYPE
+
+/* ram.c */
+IDCLS_P_NUM_OF_BYTES
+
+/* ram.c */
+IDCLS_LENGTH_BLOCK_SAME_VALUE
+
+/* ram.c */
+IDCLS_LENGTH_BLOCK_SAME_PATTERN
+
+/* romset.c */
+IDCLS_PB_FILE
+
+/* romset.c */
+IDCLS_LOAD_ROMSET_FILE
+
+/* romset.c */
+IDCLS_LOAD_ROMSET_ARCHIVE
+
+/* romset.c */
+IDCLS_P_ITEM_NUMBER
+
+/* romset.c */
+IDCLS_SELECT_ITEM_FROM_ROMSET_ARCHIVE
+
+/* sound.c */
+IDCLS_ENABLE_SOUND_PLAYBACK
+
+/* sound.c */
+IDCLS_DISABLE_SOUND_PLAYBACK
+
+/* sound.c */
+IDCLS_SET_SAMPLE_RATE_VALUE_HZ
+
+/* sound.c */
+IDCLS_SET_SOUND_BUFFER_SIZE_MSEC
+
+/* sound.c */
+IDCLS_SET_SOUND_FRAGMENT_SIZE
+
+/* sound.c */
+IDCLS_SPECIFY_SOUND_DRIVER
+
+/* sound.c */
+IDCLS_P_ARGS
+
+/* sound.c */
+IDCLS_SPECIFY_SOUND_DRIVER_PARAM
+
+/* sound.c */
+IDCLS_SPECIFY_RECORDING_SOUND_DRIVER
+
+/* sound.c */
+IDCLS_SPECIFY_REC_SOUND_DRIVER_PARAM
+
+/* sound.c */
+IDCLS_P_SYNC
+
+/* sound.c */
+IDCLS_SET_SOUND_SPEED_ADJUST
+
+/* sound.c */
+IDCLS_P_OUTPUT_MODE
+
+/* sound.c */
+IDCLS_SOUND_OUTPUT_MODE
+
+/* sysfile.c */
+IDCLS_P_PATH
+
+/* sysfile.c */
+IDCLS_DEFINE_SYSTEM_FILES_PATH
+
+/* traps.c */
+IDCLS_ENABLE_TRAPS_FAST_EMULATION
+
+/* traps.c */
+IDCLS_DISABLE_TRAPS_FAST_EMULATION
+
+/* vsync.c */
+IDCLS_LIMIT_SPEED_TO_VALUE
+
+/* vsync.c */
+IDCLS_UPDATE_EVERY_VALUE_FRAMES
+
+/* vsync.c */
+IDCLS_ENABLE_WARP_MODE
+
+/* vsync.c */
+IDCLS_DISABLE_WARP_MODE
+
+/* translate.c */
+IDCLS_P_ISO_LANGUAGE_CODE
+
+/* translate.c */
+IDCLS_SPECIFY_ISO_LANG_CODE
+
+/* c64/plus60k.c */
+IDCLS_ENABLE_PLUS60K_EXPANSION
+
+/* c64/plus60k.c */
+IDCLS_DISABLE_PLUS60K_EXPANSION
+
+/* c64/plus60k.c */
+IDCLS_SPECIFY_PLUS60K_NAME
+
+/* sid/sid-cmdline-options.c */
+#ifdef HAVE_RESID
+IDCLS_RESID_GAIN_PERCENTAGE
+#endif   /* HAVE_RESID */
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_STB_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SE5_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SUPER_GAMES_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SIMONS_BASIC_CART
+
+/* c64/cart/c64cart.c */
+IDCLS_ATTACH_RAW_SILVERROCK_128_CART
+
+/* c64/plus60k.c */
+IDCLS_PLUS60K_BASE
+
+/* c64/c64_256k.c */
+IDCLS_ENABLE_C64_256K_EXPANSION
+
+/* c64/c64_256k.c */
+IDCLS_DISABLE_C64_256K_EXPANSION
+
+/* c64/c64_256k.c */
+IDCLS_SPECIFY_C64_256K_NAME
+
+/* c64/c64_256k.c */
+IDCLS_C64_256K_BASE
+
+/* pet/petreu.c */
+IDCLS_ENABLE_PETREU
+
+/* pet/petreu.c */
+IDCLS_DISABLE_PETREU
+
+/* pet/petreu.c */
+IDCLS_SPECIFY_PETREU_NAME
+
+/* pet/petreu.c */
+IDCLS_PETREU_SIZE
+
+/* pet/petdww.c */
+IDCLS_ENABLE_PETDWW
+
+/* pet/petdww.c */
+IDCLS_DISABLE_PETDWW
+
+/* pet/petdww.c */
+IDCLS_SPECIFY_PETDWW_NAME
+
+/* userport/userport_dac.c */
+IDCLS_ENABLE_USERPORT_DAC
+
+/* userport/userport_dac.c */
+IDCLS_DISABLE_USERPORT_DAC
+
+/* userport/userport_joystick.c */
+IDCLS_ENABLE_USERPORT_JOY
+
+/* userport/userport_joystick.c */
+IDCLS_DISABLE_USERPORT_JOY
+
+/* userport/userport_joystick.c */
+IDCLS_SET_USERPORT_JOY_TYPE
+
+/* userport/userport_rtc.c */
+IDCLS_ENABLE_USERPORT_RTC
+
+/* userport/userport_rtc.c */
+IDCLS_DISABLE_USERPORT_RTC
+
+/* c64/plus256k.c */
+IDCLS_ENABLE_PLUS256K_EXPANSION
+
+/* c64/plus256k.c */
+IDCLS_DISABLE_PLUS256K_EXPANSION
+
+/* c64/plus256k.c */
+IDCLS_SPECIFY_PLUS256K_NAME
+
+/* plus4/plus4memcsory256k.c */
+IDCLS_ENABLE_CS256K_EXPANSION
+
+/* plus4/plus4memhannes256k.c */
+IDCLS_ENABLE_H256K_EXPANSION
+
+/* plus4/plus4memhannes256k.c */
+IDCLS_ENABLE_H1024K_EXPANSION
+
+/* plus4/plus4memhannes256k.c */
+IDCLS_ENABLE_H4096K_EXPANSION
+
+/* plus4/digiblaster.c */
+IDCLS_ENABLE_DIGIBLASTER
+
+/* plus4/digiblaster.c */
+IDCLS_DISABLE_DIGIBLASTER
+
+/* plus4/sidcartjoy.c */
+IDCLS_ENABLE_SIDCARTJOY
+
+/* plus4/sidcartjoy.c */
+IDCLS_DISABLE_SIDCARTJOY
+
+/* plus4/plus4speech.c */
+IDCLS_ENABLE_PLUS4SPEECH
+
+/* plus4/plus4speech.c */
+IDCLS_DISABLE_PLUS4SPEECH
+
+/* plus4/plus4speech.c */
+IDCLS_ATTACH_SPEECH_ROM_IMAGE
+
+/* c64/cart/digimax.c */
+IDCLS_ENABLE_DIGIMAX
+
+/* c64/cart/digimax.c */
+IDCLS_DISABLE_DIGIMAX
+
+/* c64/cart/digimax.c */
+IDCLS_DIGIMAX_BASE
+
+/* c64/cart/ds12c887rtc.c */
+IDCLS_ENABLE_DS12C887RTC
+
+/* c64/cart/ds12c887rtc.c */
+IDCLS_DISABLE_DS12C887RTC
+
+/* c64/cart/ds12c887rtc.c */
+IDCLS_DS12C887RTC_BASE
+
+/* c64/cart/sfx_soundexpander.c */
+IDCLS_ENABLE_SFX_SE
+
+/* c64/cart/sfx_soundexpander.c */
+IDCLS_DISABLE_SFX_SE
+
+/* c64/cart/sfx_soundexpander.c */
+IDCLS_SET_YM_CHIP_TYPE
+
+/* c64/cart/sfx_soundsampler.c */
+IDCLS_ENABLE_SFX_SS
+
+/* c64/cart/sfx_soundsampler.c */
+IDCLS_DISABLE_SFX_SS
+
+/* c64dtv/c64dtvblitter.c */
+IDCLS_SPECIFY_DTV_REVISION
+
+/* c64dtv/c64dtvblitter.c */
+IDCLS_ENABLE_DTV_BLITTER_LOG
+
+/* c64dtv/c64dtvblitter.c */
+IDCLS_DISABLE_DTV_BLITTER_LOG
+
+/* c64dtv/c64dtvdma.c */
+IDCLS_ENABLE_DTV_DMA_LOG
+
+/* c64dtv/c64dtvdma.c */
+IDCLS_DISABLE_DTV_DMA_LOG
+
+/* c64dtv/c64dtvflash.c */
+IDCLS_SPECIFY_C64DTVROM_NAME
+
+/* c64dtv/c64dtvflash.c */
+IDCLS_ENABLE_C64DTVROM_RW
+
+/* c64dtv/c64dtvflash.c */
+IDCLS_DISABLE_C64DTVROM_RW
+
+/* c64dtv/flash-trap.c */
+IDCLS_USE_AS_DIRECTORY_FLASH_FS
+
+/* c64dtv/flash-trap.c */
+IDCLS_ENABLE_TRUE_FLASH_FS
+
+/* c64dtv/flash-trap.c */
+IDCLS_DISABLE_TRUE_FLASH_FS
+
+/* midi.c */
+IDCLS_ENABLE_MIDI_EMU
+
+/* midi.c */
+IDCLS_DISABLE_MIDI_EMU
+
+/* c64/cart/c64-midi.c */
+IDCLS_SPECIFY_C64_MIDI_TYPE
+
+/* monitor/mon_command.c */
+IDGS_COMMAND_S_UNKNOWN
+
+/* monitor/mon_command.c */
+IDGS_NO_HELP_AVAILABLE_FOR_S
+
+/* monitor/mon_command.c */
+IDGS_SYNTAX_S_S
+
+/* monitor/mon_command.c */
+IDGS_ABBREVIATION_S
+
+/* monitor/mon_command.c */
+IDGS_AVAILABLE_COMMANDS_ARE
+
+/* monitor/mon_command.c */
+IDGS_MACHINE_STATE_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_MEMSPACE
+
+/* monitor/mon_command.c */
+IDGS_BANKNAME
+
+/* monitor/mon_command.c */
+IDGS_MON_BANK_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_BACKTRACE_DESCRIPTION
+
+IDGS_MON_CPU_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_COUNT
+
+/* monitor/mon_command.c */
+IDGS_MON_CPUHISTORY_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_FILENAME
+
+/* monitor/mon_command.c */
+IDGS_MON_DUMP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_ADDRESS
+
+/* monitor/mon_command.c */
+IDGS_MON_GOTO_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_IO_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_EXPORT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_NEXT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_REG_NAME
+
+/* monitor/mon_command.c */
+IDGS_NUMBER
+
+/* monitor/mon_command.c */
+IDGS_MON_REGISTERS_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_RESET_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_RETURN_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SCREEN_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_STEP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_STOPWATCH_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_UNDUMP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_SYMBOL_TABLE_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_LABEL
+
+/* monitor/mon_command.c */
+IDGS_MON_ADD_LABEL_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_DELETE_LABEL_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_LOAD_LABELS_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SAVE_LABELS_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SHOW_LABELS_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_ASSEMBLER_AND_MEMORY_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_DATA_LIST
+
+/* monitor/mon_command.c */
+IDGS_MON_WRITE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_INSTRUCTION
+
+/* monitor/mon_command.c */
+IDGS_MON_ASSEMBLE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_ADDRESS_RANGE
+
+/* monitor/mon_command.c */
+IDGS_MON_COMPARE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_CHECKNUM
+
+/* monitor/mon_command.c */
+IDGS_MON_DELETE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_DISASS_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_FILL_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_HUNT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_ADDRESS_OPT_RANGE
+
+/* monitor/mon_command.c */
+IDGS_MON_I_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_II_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_DATA_TYPE
+
+/* monitor/mon_command.c */
+IDGS_MON_MEM_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_MEMCHAR_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_FORMAT
+
+/* monitor/mon_command.c */
+IDGS_MON_MEMMAPSAVE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MASK
+
+/* monitor/mon_command.c */
+IDGS_MON_MEMMAPSHOW_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_MEMMAPZAP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_MEMSPRITE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_MOVE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_CHECKPOINT_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_COND_EXPR
+
+/* monitor/mon_command.c */
+IDGS_MON_BREAK_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_COMMAND
+
+/* monitor/mon_command.c */
+IDGS_MON_COMMAND_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_CONDITION_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_DISABLE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_ENABLE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_IGNORE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_UNTIL_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_WATCH_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_TRACE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MONITOR_STATE_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_MON_DEVICE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_EXIT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_QUIT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_RADIX_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SIDEFX_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_DISK_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_DISK_COMMAND
+
+/* monitor/mon_command.c */
+IDGS_MON_AT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_DEVICE
+
+/* monitor/mon_command.c */
+IDGS_FILE_INDEX
+
+/* monitor/mon_command.c */
+IDGS_MON_AUTOSTART_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_AUTOLOAD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_ATTACH_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_BLOAD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_TRACK
+
+/* monitor/mon_command.c */
+IDGS_SECTOR
+
+/* monitor/mon_command.c */
+IDGS_MON_BLOCK_READ_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_BSAVE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_BLOCK_WRITE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_DIRECTORY
+
+/* monitor/mon_command.c */
+IDGS_P_DIRECTORY
+
+/* monitor/mon_command.c */
+IDGS_MON_CD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_DETACH_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_DIR_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_LIST_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_LOAD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_PWD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SAVE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_OTHER_COMMANDS
+
+/* monitor/mon_command.c */
+IDGS_MON_DISPLAY_NUMBER_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_CARTFREEZE_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_HELP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_STRING
+
+/* monitor/mon_command.c */
+IDGS_MON_KEYBUF_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_PLAYBACK_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_EXPRESSION
+
+/* monitor/mon_command.c */
+IDGS_MON_PRINT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_RECORD_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_RESOURCE
+
+/* monitor/mon_command.c */
+IDGS_MON_RESOURCEGET_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_VALUE
+
+/* monitor/mon_command.c */
+IDGS_MON_RESOURCESET_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_LOAD_RESOURCES_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SAVE_RESOURCES_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_STOP_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_SCREENSHOT_DESCRIPTION
+
+/* monitor/mon_command.c */
+IDGS_MON_TAPECTRL_DESCRIPTION
+
+/* lightpen.c */
+IDCLS_ENABLE_LIGHTPEN_EMULATION
+
+/* lightpen.c */
+IDCLS_DISABLE_LIGHTPEN_EMULATION
+
+/* lightpen.c */
+IDCLS_SET_LIGHTPEN_TYPE
+
+/* c64/cart/easyflash.c */
+IDCLS_ENABLE_EASYFLASH_JUMPER
+
+/* c64/cart/easyflash.c */
+IDCLS_DISABLE_EASYFLASH_JUMPER
+
+/* c64/cart/easyflash.c */
+IDCLS_ENABLE_EASYFLASH_CRT_WRITING
+
+/* c64/cart/lash.c */
+IDCLS_DISABLE_EASYFLASH_CRT_WRITING
+
+/* scpu64/scpu64-cmdline-options.c */
+IDCLS_SET_SIMM_SIZE
+
+/* scpu64/scpu64-cmdline-options.c */
+IDCLS_ENABLE_JIFFY_SWITCH
+
+/* scpu64/scpu64-cmdline-options.c */
+IDCLS_DISABLE_JIFFY_SWITCH
+
+/* scpu64/scpu64-cmdline-options.c */
+IDCLS_ENABLE_SPEED_SWITCH
+
+/* scpu64/scpu64-cmdline-options.c */
+IDCLS_DISABLE_SPEED_SWITCH
+
+/* pet/pethre.c */
+IDCLS_ENABLE_HIRES_EMULATION_BOARD
+
+/* pet/pethre.c */
+IDCLS_DISABLE_HIRES_EMULATION_BOARD

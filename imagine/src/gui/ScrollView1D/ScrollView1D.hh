@@ -18,6 +18,7 @@
 #include <gfx/Gfx.hh>
 #include <input/Input.hh>
 #include <util/rectangle2.h>
+#include <gui/View.hh>
 
 class ContentDrag
 {
@@ -38,7 +39,7 @@ public:
 
 	enum State { INACTIVE, PUSHED, ENTERED_ACTIVE, ACTIVE, LEFT_ACTIVE, RELEASED, NO_CHANGE };
 
-	State inputEvent(const Rect2<int> &bt, const Input::Event &e);
+	State inputEvent(const IG::Rect2<int> &bt, const Input::Event &e);
 };
 
 class KScroll : public ContentDrag
@@ -51,19 +52,19 @@ public:
 	bool scrollWholeArea = 0, allowScrollWholeArea = 0;
 	int maxClip = 0;
 
-	void init(const Rect2<int> *viewFrame, const Rect2<int> *contentFrame);
-	void place();
-	bool clipOverEdge(int minC, int maxC);
+	void init(const IG::Rect2<int> *viewFrame, const IG::Rect2<int> *contentFrame);
+	void place(View &view);
+	bool clipOverEdge(int minC, int maxC, View &view);
 	void clipDragOverEdge(int minC, int maxC);
-	void decel2();
-	bool inputEvent(const Input::Event &e);
-	bool inputEvent(int minClip, int maxClip, const Input::Event &e);
+	void decel2(View &view);
+	bool inputEvent(const Input::Event &e, View &view);
+	bool inputEvent(int minClip, int maxClip, const Input::Event &e, View &view);
 	void setOffset(int o);
-	void animate(int minClip, int maxClip);
+	void animate(int minClip, int maxClip, View &view);
 
 private:
-	const Rect2<int> *viewFrame = nullptr;
-	const Rect2<int> *contentFrame = nullptr;
+	const IG::Rect2<int> *viewFrame = nullptr;
+	const IG::Rect2<int> *contentFrame = nullptr;
 };
 
 class ScrollView1D
@@ -71,17 +72,17 @@ class ScrollView1D
 public:
 	constexpr ScrollView1D() { }
 	KScroll scroll;
-	Rect2<int> viewFrame;
-	Rect2<int> scrollBarRect;
+	IG::Rect2<int> viewFrame;
+	IG::Rect2<int> scrollBarRect;
 	bool contentIsBiggerThanView = 0;
 
-	void init(Rect2<int> *contentFrame);
+	void init(IG::Rect2<int> *contentFrame);
 	void updateView(); // move content frame in position along view frame
-	void place(Rect2<int> *frame);
-	void updateGfx();
+	void place(IG::Rect2<int> *frame, View &view);
+	void updateGfx(View &view);
 	void draw();
-	int inputEvent(const Input::Event &e);
+	int inputEvent(const Input::Event &e, View &view);
 
 private:
-	Rect2<int> *contentFrame = nullptr;
+	IG::Rect2<int> *contentFrame = nullptr;
 };

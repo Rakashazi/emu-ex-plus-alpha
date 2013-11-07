@@ -22,6 +22,7 @@
 #include <TurboInput.hh>
 #include <EmuSystem.hh>
 #include <inGameActionKeys.hh>
+#include <util/collection/DLList.hh>
 
 struct KeyCategory
 {
@@ -112,7 +113,7 @@ extern StaticDLList<KeyConfig, MAX_CUSTOM_KEY_CONFIGS> customKeyConfig;
 
 static bool customKeyConfigsContainName(const char *name)
 {
-	forEachInDLList(&customKeyConfig, e)
+	for(auto &e : customKeyConfig)
 	{
 		if(string_equal(e.name, name))
 			return 1;
@@ -125,26 +126,27 @@ static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
 
 struct InputDeviceSavedConfig
 {
-	constexpr InputDeviceSavedConfig() { }
 	const KeyConfig *keyConf = nullptr;
-	uint devId = 0;
+	uint enumId = 0;
 	uint8 player = 0;
 	bool enabled = 1;
 	bool mapJoystickAxis1ToDpad = 0;
 	#ifdef CONFIG_INPUT_ICADE
-		bool iCadeMode = 0;
+	bool iCadeMode = 0;
 	#endif
 	char name[MAX_INPUT_DEVICE_NAME_SIZE] {0};
 
+	constexpr InputDeviceSavedConfig() {}
+
 	bool operator ==(InputDeviceSavedConfig const& rhs) const
 	{
-		return devId == rhs.devId && string_equal(name, rhs.name);
+		return enumId == rhs.enumId && string_equal(name, rhs.name);
 	}
 
 	bool matchesDevice(const Input::Device &dev)
 	{
 		//logMsg("checking against device %s,%d", name, devId);
-		return dev.devId == devId &&
+		return dev.enumId() == enumId &&
 			string_equal(dev.name(), name);
 	}
 };
@@ -153,13 +155,13 @@ extern StaticDLList<InputDeviceSavedConfig, MAX_SAVED_INPUT_DEVICES> savedInputD
 
 struct InputDeviceConfig
 {
-	constexpr InputDeviceConfig() { }
 	static constexpr uint PLAYER_MULTI = 0xFF;
 	uint8 player = 0;
 	bool enabled = 1;
 	Input::Device *dev = nullptr;
 	InputDeviceSavedConfig *savedConf = nullptr;
 
+	constexpr InputDeviceConfig() {}
 	void reset();
 	void deleteConf();
 	#ifdef CONFIG_INPUT_ICADE
@@ -182,11 +184,12 @@ extern InputDeviceConfig inputDevConf[Input::MAX_DEVS];
 
 struct KeyMapping
 {
-	constexpr KeyMapping() { }
 	static constexpr uint maxKeyActions = 4;
 	typedef uint8 Action;
 	typedef Action ActionGroup[maxKeyActions];
 	ActionGroup *inputDevActionTablePtr[Input::MAX_DEVS] {nullptr};
+
+	constexpr KeyMapping() {}
 	void buildAll();
 };
 
@@ -195,6 +198,34 @@ extern KeyMapping keyMapping;
 void updateInputDevices();
 extern bool physicalControlsPresent;
 
+struct VControllerLayoutPosition
+{
+	enum { OFF = 0, SHOWN = 1, HIDDEN = 2 };
+	_2DOrigin origin {LT2DO};
+	uint state = OFF;
+	IG::Point2D<int> pos {0, 0};
+
+	constexpr VControllerLayoutPosition() {}
+	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos): origin(origin), pos(pos) {}
+	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos, uint state): origin(origin), state(state), pos(pos) {}
+};
+
+static const uint VCTRL_LAYOUT_DPAD_IDX = 0,
+	VCTRL_LAYOUT_CENTER_BTN_IDX = 1,
+	VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX = 2,
+	VCTRL_LAYOUT_MENU_IDX = 3,
+	VCTRL_LAYOUT_FF_IDX = 4,
+	VCTRL_LAYOUT_L_IDX = 5,
+	VCTRL_LAYOUT_R_IDX = 6;
+extern VControllerLayoutPosition vControllerLayoutPos[2][7];
+VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size);
+IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos);
+extern bool vControllerLayoutPosChanged;
+void resetVControllerPositions();
+void resetVControllerOptions();
+void resetAllVControllerOptions();
+void initVControls();
+
 namespace EmuControls
 {
 
@@ -202,8 +233,8 @@ namespace EmuControls
 extern const KeyCategory category[categories];
 
 #ifdef INPUT_SUPPORTS_KEYBOARD
-	extern const KeyConfig defaultKeyProfile[];
-	extern const uint defaultKeyProfiles;
+extern const KeyConfig defaultKeyProfile[];
+extern const uint defaultKeyProfiles;
 #endif
 
 extern const KeyConfig defaultWiimoteProfile[];
@@ -252,8 +283,6 @@ void setupVControllerVars();
 #endif
 void setOnScreenControls(bool on);
 void updateAutoOnScreenControlVisible();
-void setupVControllerPosition();
-void resolveOnScreenCollisions(_2DOrigin *movedObj = nullptr);
 void updateVControlImg();
 
 }

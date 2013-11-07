@@ -11,10 +11,7 @@
 // consisting of left, center, and right buffers.
 class Multi_Buffer {
 public:
-#ifndef __clang_major__
-	constexpr
-#endif
-	Multi_Buffer( int samples_per_frame ) : samples_per_frame_(samples_per_frame) { }
+	constexpr	Multi_Buffer( int samples_per_frame ) : samples_per_frame_(samples_per_frame) { }
 	virtual ~Multi_Buffer() { }
 
 	// Sets the number of channels available and optionally their types
@@ -100,7 +97,7 @@ public:
 
 	class Tracked_Blip_Buffer : public Blip_Buffer {
 	public:
-	#ifndef __clang_major__
+	#ifndef __clang__
 		constexpr Tracked_Blip_Buffer() { }
 	#endif
 
@@ -148,7 +145,7 @@ public:
 	Blip_Buffer* right()    { return &bufs [1]; }
 
 public:
-#ifndef __clang_major__
+#ifndef __clang__
 	constexpr
 #endif
 	Stereo_Buffer(): Multi_Buffer( 2 ) { }

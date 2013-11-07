@@ -40,7 +40,8 @@ extern int lightpen_type;
 #define LIGHTPEN_TYPE_PEN_DATEL   2
 #define LIGHTPEN_TYPE_GUN_Y       3
 #define LIGHTPEN_TYPE_GUN_L       4
-#define LIGHTPEN_TYPE_NUM         5
+#define LIGHTPEN_TYPE_INKWELL     5
+#define LIGHTPEN_TYPE_NUM         6
 
 typedef CLOCK lightpen_timing_callback_t(int x, int y);
 typedef lightpen_timing_callback_t *lightpen_timing_callback_ptr_t;

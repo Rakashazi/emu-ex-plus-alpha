@@ -64,6 +64,7 @@ typedef struct {
     int cia1_model;
     int cia2_model;
     int board; /* 0: normal, 1: ultimax */
+    int iecreset; /* 1: reset goes to IEC bus (old) 0: only reset IEC on hard reset (new) */
     const char *kernal;
     const char *chargen;
 } c64model_details_t;

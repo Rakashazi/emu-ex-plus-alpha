@@ -68,6 +68,20 @@ static void drive_store_free(drive_context_t *drv, WORD address, BYTE value)
 /* ------------------------------------------------------------------------- */
 /* Watchpoint memory access.  */
 
+static BYTE drive_zero_read_watch(drive_context_t *drv, WORD addr)
+{
+    addr &= 0xff;
+    monitor_watch_push_load_addr(addr, drv->cpu->monspace);
+    return drv->cpud->read_func_nowatch[0](drv, addr);
+}
+
+static void drive_zero_store_watch(drive_context_t *drv, WORD addr, BYTE value)
+{
+    addr &= 0xff;
+    monitor_watch_push_store_addr(addr, drv->cpu->monspace);
+    drv->cpud->store_func_nowatch[0](drv, addr, value);
+}
+
 static BYTE drive_read_watch(drive_context_t *drv, WORD address)
 {
     monitor_watch_push_load_addr(address, drv->cpu->monspace);
@@ -109,9 +123,15 @@ void drivemem_init(drive_context_t *drv, unsigned int type)
 {
     int i;
 
-    for (i = 0; i < 0x101; i++) {
+    /* setup watchpoint tables */
+    drv->cpud->read_func_watch[0] = drive_zero_read_watch;
+    drv->cpud->store_func_watch[0] = drive_zero_store_watch;
+    for (i = 1; i < 0x101; i++) {
         drv->cpud->read_func_watch[i] = drive_read_watch;
         drv->cpud->store_func_watch[i] = drive_store_watch;
+    }
+
+    for (i = 0; i < 0x101; i++) {
         drv->cpud->read_func_nowatch[i] = drive_read_free;
         drv->cpud->store_func_nowatch[i] = drive_store_free;
     }

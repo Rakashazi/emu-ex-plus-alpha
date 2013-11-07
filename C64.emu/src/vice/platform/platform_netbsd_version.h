@@ -156,8 +156,16 @@
 #define PLATFORM_OS "NetBSD 3.0.2"
 #endif
 
+#if (__NetBSD_Version__==300030000)
+#define PLATFORM_OS "NetBSD 3.0.3"
+#endif
+
 #if (__NetBSD_Version__==301000000)
 #define PLATFORM_OS "NetBSD 3.1"
+#endif
+
+#if (__NetBSD_Version__==301010000)
+#define PLATFORM_OS "NetBSD 3.1.1"
 #endif
 
 #if (__NetBSD_Version__==400000000)
@@ -180,10 +188,35 @@
 #define PLATFORM_OS "NetBSD 5.0.2"
 #endif
 
+#if (__NetBSD_Version__==501000000)
+#define PLATFORM_OS "NetBSD 5.1"
+#endif
+
+#if (__NetBSD_Version__==501010000)
+#define PLATFORM_OS "NetBSD 5.1.1"
+#endif
+
+#if (__NetBSD_Version__==501020000)
+#define PLATFORM_OS "NetBSD 5.1.2"
+#endif
+
+#if (__NetBSD_Version__==502000000)
+#define PLATFORM_OS "NetBSD 5.2"
+#endif
+
+#if (__NetBSD_Version__==600000000)
+#define PLATFORM_OS "NetBSD 6.0"
+#endif
+
+#if (__NetBSD_Version__==60010000)
+#define PLATFORM_OS "NetBSD 6.0.1"
+#endif
+
 #endif /* !PLATFORM_OS */
 
 #ifndef PLATFORM_OS
 #define PLATFORM_OS "NetBSD"
 #endif
+
 
 #endif // VICE_PLATFORM_NETBSD_VERSION_H

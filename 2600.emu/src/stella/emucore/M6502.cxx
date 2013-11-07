@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: M6502.cxx 2745 2013-05-30 16:07:19Z stephena $
 //============================================================================
 
 //#define DEBUG_OUTPUT
@@ -27,7 +27,6 @@
   #include "PackedBitArray.hxx"
 
   // Flags for disassembly types
-  #define DISASM_SKIP  CartDebug::SKIP
   #define DISASM_CODE  CartDebug::CODE
   #define DISASM_GFX   CartDebug::GFX
   #define DISASM_PGFX  CartDebug::PGFX
@@ -36,7 +35,6 @@
   #define DISASM_NONE  0
 #else
   // Flags for disassembly types
-  #define DISASM_SKIP  0
   #define DISASM_CODE  0
   #define DISASM_GFX   0
   #define DISASM_PGFX  0
@@ -129,66 +127,16 @@ void M6502::reset()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::irq()
-{
-  myExecutionStatus |= MaskableInterruptBit;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::nmi()
-{
-  myExecutionStatus |= NonmaskableInterruptBit;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::stop()
-{
-  myExecutionStatus |= StopExecutionBit;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 M6502::PS() const
-{
-  uInt8 ps = 0x20;
-
-  if(N) 
-    ps |= 0x80;
-  if(V) 
-    ps |= 0x40;
-  if(B) 
-    ps |= 0x10;
-  if(D) 
-    ps |= 0x08;
-  if(I) 
-    ps |= 0x04;
-  if(!notZ) 
-    ps |= 0x02;
-  if(C) 
-    ps |= 0x01;
-
-  return ps;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::PS(uInt8 ps)
-{
-  N = ps & 0x80;
-  V = ps & 0x40;
-  B = true;        // B = ps & 0x10;  The 6507's B flag always true
-  D = ps & 0x08;
-  I = ps & 0x04;
-  notZ = !(ps & 0x02);
-  C = ps & 0x01;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline uInt8 M6502::peek(uInt16 address, uInt8 flags)
 {
+  ////////////////////////////////////////////////
+  // TODO - move this logic directly into CartAR
   if(address != myLastAddress)
   {
     myNumberOfDistinctAccesses++;
     myLastAddress = address;
   }
+  ////////////////////////////////////////////////
   mySystem->incrementCycles(mySystemCyclesPerProcessorCycle);
 
 #ifdef DEBUGGER_SUPPORT
@@ -210,11 +158,14 @@ inline uInt8 M6502::peek(uInt16 address, uInt8 flags)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline void M6502::poke(uInt16 address, uInt8 value)
 {
+  ////////////////////////////////////////////////
+  // TODO - move this logic directly into CartAR
   if(address != myLastAddress)
   {
     myNumberOfDistinctAccesses++;
     myLastAddress = address;
   }
+  ////////////////////////////////////////////////
   mySystem->incrementCycles(mySystemCyclesPerProcessorCycle);
 
 #ifdef DEBUGGER_SUPPORT

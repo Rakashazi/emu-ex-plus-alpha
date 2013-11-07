@@ -24,13 +24,13 @@
 class AlertView : public View
 {
 public:
-	constexpr AlertView() { }
-	Rect2<GC> labelFrame;
+	constexpr AlertView(Base::Window &win): View{win}, menu{win} {}
+	IG::Rect2<GC> labelFrame;
 	Gfx::Text text;
 	BaseMenuView menu;
-	Rect2<int> rect;
+	IG::Rect2<int> rect;
 
-	Rect2<int> &viewRect() { return rect; }
+	IG::Rect2<int> &viewRect() { return rect; }
 
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
@@ -42,51 +42,19 @@ public:
 class YesNoAlertView : public AlertView
 {
 public:
-	YesNoAlertView() { }
+
 	typedef DelegateFunc<void (const Input::Event &e)> InputDelegate;
+	InputDelegate onYesD;
+	InputDelegate onNoD;
+	MenuItem *menuItem[2] {nullptr};
 
-	MenuItem *menuItem[2] = {nullptr};
-
+	YesNoAlertView(Base::Window &win);
+	void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr);
+	void deinit() override;
 	// Optional delegates
 	InputDelegate &onYes() { return onYesD; }
 	InputDelegate &onNo() { return onNoD; }
 
-	void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr)
-	{
-		yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
-		no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
-		assert(!onYesD);
-		assert(!onNoD);
-		AlertView::init(label, menuItem, highlightFirst);
-	}
-
-	void deinit() override
-	{
-		logMsg("deinit alert");
-		AlertView::deinit();
-		onYesD = {};
-		onNoD = {};
-	}
-
-	InputDelegate onYesD;
-	InputDelegate onNoD;
 private:
-	TextMenuItem yes
-	{
-		[this](TextMenuItem &, const Input::Event &e)
-		{
-			auto callback = onYesD;
-			removeModalView();
-			if(callback) callback(e);
-		}
-	};
-	TextMenuItem no
-	{
-		[this](TextMenuItem &, const Input::Event &e)
-		{
-			auto callback = onNoD;
-			removeModalView();
-			if(callback) callback(e);
-		}
-	};
+	TextMenuItem yes, no;
 };

@@ -6,11 +6,11 @@ namespace Gfx
 {
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	bool supportsAndroidDirectTexture();
-	bool supportsAndroidDirectTextureWhitelisted();
-	const char* androidDirectTextureError();
-	bool useAndroidDirectTexture();
-	void setUseAndroidDirectTexture(bool on);
+bool supportsAndroidDirectTexture();
+bool supportsAndroidDirectTextureWhitelisted();
+const char* androidDirectTextureError();
+bool useAndroidDirectTexture();
+void setUseAndroidDirectTexture(bool on);
 #endif
 
 bool supportsAndroidSurfaceTexture();
@@ -27,6 +27,14 @@ void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();
 const char *androidBuildDevice();
+bool hasTrackball();
+
+}
+
+namespace Audio
+{
+
+bool hasLowLatency();
 
 }
 

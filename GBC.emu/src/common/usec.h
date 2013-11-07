@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,10 +20,6 @@
 #define USEC_H
 
 typedef unsigned long usec_t;
-
-static inline usec_t negate(usec_t t) {
-	return usec_t(0) - t;
-}
 
 usec_t getusecs();
 void usecsleep(usec_t usecs);

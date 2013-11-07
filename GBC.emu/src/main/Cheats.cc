@@ -8,7 +8,7 @@
 extern MsgPopup popup;
 extern ViewStack viewStack;
 extern gambatte::GB gbEmu;
-StaticDLList<GbcCheat, EmuCheats::MAX> cheatList;
+StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
 bool cheatsModified = 0;
 
 static bool strIsGGCode(const char *str)
@@ -29,7 +29,7 @@ void applyCheats()
 	if(EmuSystem::gameIsRunning())
 	{
 		std::string ggCodeStr, gsCodeStr;
-		forEachInDLList(&cheatList, e)
+		for(auto &e : cheatList)
 		{
 			if(!e.isOn())
 				continue;
@@ -55,7 +55,7 @@ void writeCheatFile()
 	FsSys::cPath filename;
 	sprintf(filename, "%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName);
 
-	if(!cheatList.size)
+	if(!cheatList.size())
 	{
 		logMsg("deleting cheats file %s", filename);
 		FsSys::remove(filename);
@@ -73,8 +73,8 @@ void writeCheatFile()
 
 	int version = 0;
 	file->writeVar((uint8)version);
-	file->writeVar((uint16)cheatList.size);
-	forEachInDLList(&cheatList, e)
+	file->writeVar((uint16)cheatList.size());
+	for(auto &e : cheatList)
 	{
 		file->writeVar((uint8)e.flags);
 		file->writeVar((uint16)strlen(e.name));
@@ -109,6 +109,11 @@ void readCheatFile()
 	file->readVar(size);
 	iterateTimes(size, i)
 	{
+		if(cheatList.isFull())
+		{
+			logMsg("cheat list full while reading from file");
+			break;
+		}
 		GbcCheat cheat;
 		uint8 flags = 0;
 		file->readVar(flags);
@@ -119,11 +124,7 @@ void readCheatFile()
 		uint8 codeLen = 0;
 		file->readVar(codeLen);
 		file->read(cheat.code, std::min(uint8(sizeof(cheat.code)-1), codeLen));
-		if(!cheatList.addToEnd(cheat))
-		{
-			logMsg("cheat list full while reading from file");
-			break;
-		}
+		cheatList.push_back(cheat);
 	}
 	file->close();
 }
@@ -154,13 +155,14 @@ void SystemEditCheatView::init(bool highlightFirst, GbcCheat &cheat)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
+SystemEditCheatView::SystemEditCheatView(Base::Window &win):
+	EditCheatView("Edit Code", win),
 	ggCode
 	{
 		"Code",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code);
 			textInputView.onText() =
 				[this](const char *str)
@@ -170,7 +172,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
 						if(!strIsGGCode(str) && !strIsGSCode(str))
 						{
 							popup.postError("Invalid format");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(cheat->code, str);
@@ -178,7 +180,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
 						cheatsModified = 1;
 						applyCheats();
 						ggCode.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -195,66 +197,68 @@ void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
 
 void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 {
-	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
-	auto it = cheatList.iterator();
+	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	auto it = cheatList.begin();
 	iterateTimes(cheats, c)
 	{
-		auto &thisCheat = it.obj();
+		auto &thisCheat = *it;
 		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
-				editCheatView.init(!e.isPointer(), *cheatList.index(c));
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				editCheatView.init(!e.isPointer(), cheatList[c]);
 				viewStack.pushAndShow(&editCheatView, &menuAllocator);
 			};
-		it.advance();
+		++it;
 	}
 }
 
-EditCheatListView::EditCheatListView():
+EditCheatListView::EditCheatListView(Base::Window &win):
+	BaseEditCheatListView(win),
 	addGGGS
 	{
 		"Add Game Genie / GameShark Code",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code");
 			textInputView.onText() =
 				[this](const char *str)
 				{
 				if(str)
 				{
+					if(cheatList.isFull())
+					{
+						popup.postError("Cheat list is full");
+						removeModalView();
+						return 0;
+					}
 					if(!strIsGGCode(str) && !strIsGSCode(str))
 					{
 						popup.postError("Invalid format");
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 						return 1;
 					}
 					GbcCheat c;
 					string_copy(c.code, str);
 					string_toUpper(c.code);
 					string_copy(c.name, "Unnamed Cheat");
-					if(!cheatList.addToEnd(c))
-					{
-						popup.postError("Error adding cheat");
-						removeModalView();
-						return 0;
-					}
-					logMsg("added new cheat, %d total", cheatList.size);
+					cheatList.push_back(c);
+					logMsg("added new cheat, %d total", cheatList.size());
 					cheatsModified = 1;
 					applyCheats();
 					removeModalView();
 					refreshCheatViews();
 
-					auto &textInputView = *allocModalView<CollectTextInputView>();
+					auto &textInputView = *allocModalView<CollectTextInputView>(window());
 					textInputView.init("Input description");
 					textInputView.onText() =
 						[this](const char *str)
 						{
 							if(str)
 							{
-								string_copy(cheatList.last()->name, str);
+								string_copy(cheatList.back().name, str);
 								removeModalView();
 								refreshCheatViews();
 							}
@@ -279,22 +283,22 @@ EditCheatListView::EditCheatListView():
 
 void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 {
-	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
-	auto it = cheatList.iterator();
+	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
-		auto &thisCheat = it.obj();
+		auto &thisCheat = *it;
 		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
 		cheat[cIdx].onSelect() =
 			[this, cIdx](BoolMenuItem &item, const Input::Event &e)
 			{
-				item.toggle();
-				auto c = cheatList.index(cIdx);
-				c->toggleOn();
+				item.toggle(*this);
+				auto &c = cheatList[cIdx];
+				c.toggleOn();
 				cheatsModified = 1;
 				applyCheats();
 			};
 		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
-		it.advance();
+		++it;
 	}
 }

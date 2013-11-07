@@ -17,12 +17,16 @@
 
 #include <bluetooth/sys.hh>
 #include <input/Input.hh>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 
-struct IControlPad : public BluetoothInputDevice
+struct IControlPad : public BluetoothInputDevice, public Input::Device
 {
 public:
-	IControlPad(BluetoothAddr addr): addr(addr) { }
+	IControlPad(BluetoothAddr addr):
+		Device {0, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
+		addr(addr)
+	{}
+
 	enum
 	{
 		FUNC_NONE,
@@ -35,7 +39,7 @@ public:
 	void removeFromSystem() override;
 
 	uint statusHandler(BluetoothSocket &sock, uint status);
-	bool dataHandler(const uchar *packet, size_t size);
+	bool dataHandler(const char *packet, size_t size);
 
 	static const uchar btClass[3];
 
@@ -44,20 +48,19 @@ public:
 		return mem_equal(devClass, btClass, 3);
 	}
 
-	static StaticDLList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+	static StaticArrayList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
-	Input::Device *device = nullptr;
-	uchar inputBuffer[6] = {0};
+	char inputBuffer[6] = {0};
 	uint inputBufferPos = 0;
 	uint player = 0;
 	int function = 0;
-	uchar prevBtnData[2] = {0};
+	char prevBtnData[2] = {0};
 	bool nubBtn[8] = {0};
 	static const int nubDeadzone = 64;
 	BluetoothAddr addr;
 
 	static uint findFreeDevId();
-	void processBtnReport(const uchar *btnData, uint player);
+	void processBtnReport(const char *btnData, uint player);
 	void processNubDataForButtonEmulation(const schar *nubData, uint player);
 };

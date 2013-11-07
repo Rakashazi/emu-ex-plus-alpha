@@ -77,6 +77,9 @@ extern "C"
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
 static ROM_DEF *activeDrv = 0;
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 // controls
 
@@ -136,8 +139,15 @@ static void setTimerIntOption()
 }
 
 const uint EmuSystem::maxPlayers = 2;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
+
+using namespace IG;
 
 CLINK int gn_strictROMChecking()
 {
@@ -147,15 +157,31 @@ CLINK int gn_strictROMChecking()
 void EmuSystem::initOptions()
 {
 	optionAutoSaveState.initDefault(0);
-	#ifdef CONFIG_BASE_IOS
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+		#ifdef CONFIG_BASE_IOS
 		if(Base::deviceIsIPad())
-	#endif
-	{
-			if(!Config::envIsWebOS3)
-				optionTouchCtrlSize.initDefault(700);
-	}
+		#endif
+		{
+				if(!Config::envIsWebOS3)
+					optionTouchCtrlSize.initDefault(700);
+		}
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(5);
+	#endif
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	// TODO: remove now that long names are correctly used
+	for(auto &e : recentGameList)
+	{
+		ROM_DEF *drv = dr_check_zip(e.path);
+		if(!drv)
+			continue;
+		logMsg("updating recent game name %s to %s", e.name, drv->longname);
+		string_copy(e.name, drv->longname, sizeof(e.name));
+		free(drv);
+	}
 }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -202,17 +228,17 @@ static GN_Surface sdlSurf;
 
 namespace NGKey
 {
-	static const uint COIN1 = BIT(0), COIN2 = BIT(1), SERVICE = BIT(2),
+	static const uint COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
 
-	START1 = BIT(0), SELECT1 = BIT(1),
-	START2 = BIT(2), SELECT2 = BIT(3),
+	START1 = bit(0), SELECT1 = bit(1),
+	START2 = bit(2), SELECT2 = bit(3),
 
-	UP = BIT(0), DOWN = BIT(1), LEFT = BIT(2), RIGHT = BIT(3),
-	A = BIT(4), B = BIT(5), C = BIT(6), D = BIT(7),
+	UP = bit(0), DOWN = bit(1), LEFT = bit(2), RIGHT = bit(3),
+	A = bit(4), B = bit(5), C = bit(6), D = bit(7),
 
-	START_EMU_INPUT = BIT(8),
-	SELECT_COIN_EMU_INPUT = BIT(9),
-	SERVICE_EMU_INPUT = BIT(10);
+	START_EMU_INPUT = bit(8),
+	SELECT_COIN_EMU_INPUT = bit(9),
+	SERVICE_EMU_INPUT = bit(10);
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
@@ -484,10 +510,13 @@ class LoadGameInBackgroundView : public View
 {
 public:
 	Gfx::Text text;
-	Rect2<int> rect;
-	Rect2<int> &viewRect() { return rect; }
+	IG::Rect2<int> rect;
+	IG::Rect2<int> &viewRect() { return rect; }
 
-	uint pos, max;
+	uint pos = 0, max = 0;
+
+	constexpr LoadGameInBackgroundView(Base::Window &win): View(win) {}
+
 	void setMax(uint val)
 	{
 		max = val;
@@ -509,7 +538,7 @@ public:
 		text.deinit();
 	}
 
-	void place(Rect2<int> rect)
+	void place(IG::Rect2<int> rect)
 	{
 		View::placeRect(rect);
 	}
@@ -539,7 +568,7 @@ public:
 	}
 };
 
-static LoadGameInBackgroundView loadGameInBackgroundView;
+static LoadGameInBackgroundView *loadGameInBackgroundView = nullptr;
 
 int EmuSystem::loadGame(const char *path)
 {
@@ -575,11 +604,10 @@ int EmuSystem::loadGame(const char *path)
 	{
 		if(backgroundRomLoading)
 		{
-			if(View::modalView) View::modalView->deinit();
-			loadGameInBackgroundView.init();
-			loadGameInBackgroundView.place(Gfx::viewportRect());
-			View::modalView = &loadGameInBackgroundView;
-			Base::displayNeedsUpdate();
+			if(View::modalView) View::removeModalView();
+			loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin);
+			loadGameInBackgroundView->init();
+			View::addModalView(*loadGameInBackgroundView);
 			backgroundThread.create(1,
 				[](ThreadPThread &thread)
 				{
@@ -648,8 +676,6 @@ void EmuSystem::clearInputBuffers()
 	memory.intern_p2 = 0xFF;
 }
 
-static uint audioFramesPerUpdate;
-
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
@@ -663,7 +689,6 @@ void EmuSystem::configAudioRate()
 		logMsg("setting YM2610 rate to %d", conf.sample_rate);
 		YM2610ChangeSamplerate(conf.sample_rate);
 	}
-	audioFramesPerUpdate = conf.sample_rate/60.;
 }
 
 CLINK void screen_update()
@@ -688,10 +713,10 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	if(processGfx)
 		mem_setElem(screenBuff, (uint16)current_pc_pal[4095]);
 	main_frame();
-	YM2610Update_stream(audioFramesPerUpdate);
+	YM2610Update_stream(audioFramesPerVideoFrame);
 	if(renderAudio)
 	{
-		Audio::writePcm((uchar*)play_buffer, audioFramesPerUpdate);
+		writeSound(play_buffer, audioFramesPerVideoFrame);
 	}
 }
 
@@ -700,9 +725,9 @@ void EmuSystem::savePathChanged() { }
 namespace Input
 {
 
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 
 }
@@ -712,16 +737,21 @@ namespace Base
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 {
+	if(!loadGameInBackgroundView)
+		return;
+
 	switch(type)
 	{
 		bcase MSG_LOAD_FAILED:
 		{
 			View::removeModalView();
+			loadGameInBackgroundView = nullptr;
 			popup.printf(4, 1, "%s", romerror);
 		}
 		bcase MSG_LOAD_OK:
 		{
 			View::removeModalView();
+			loadGameInBackgroundView = nullptr;
 			loadGamePhase2();
 			EmuSystem::onLoadGameComplete()(1, Input::Event{});
 		}
@@ -735,29 +765,28 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2)
 				}
 				bcase PBAR_ACTION_DECRYPT:
 				{
-					loadGameInBackgroundView.text.setString("Decrypting...");
+					loadGameInBackgroundView->text.setString("Decrypting...");
 				}
 				bcase PBAR_ACTION_SAVEGNO:
 				{
-					loadGameInBackgroundView.text.setString("Building Cache...\n(may take a while)");
+					loadGameInBackgroundView->text.setString("Building Cache...\n(may take a while)");
 				}
 			}
-			loadGameInBackgroundView.setPos(0);
-			loadGameInBackgroundView.setMax(intArg);
-			loadGameInBackgroundView.place();
-			Base::displayNeedsUpdate();
+			loadGameInBackgroundView->setPos(0);
+			loadGameInBackgroundView->setMax(intArg);
+			loadGameInBackgroundView->place();
+			mainWin.displayNeedsUpdate();
 		}
 		bcase MSG_UPDATE_PROGRESS:
 		{
-			loadGameInBackgroundView.setPos(intArg);
-			Base::displayNeedsUpdate();
+			loadGameInBackgroundView->setPos(intArg);
+			mainWin.displayNeedsUpdate();
 		}
 	}
 }
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 	emuView.initPixmap((uchar*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, (FBResX-304)*2);
 	visible_area.x = 0;//16;
@@ -773,20 +802,11 @@ CallResult onInit(int argc, char** argv)
 	conf.country = (COUNTRY)optionMVSCountry.val;
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	sprintf(datafileConfItem.data.dt_str.str, Config::envIsAndroid ? "%s" : "%s/gngeo_data.zip", Base::appPath);
-	// TODO: remove now that long names are correctly used
-	forEachInDLList(&recentGameList, e)
-	{
-		ROM_DEF *drv = dr_check_zip(e.path);
-		if(!drv)
-			continue;
-		logMsg("updating recent game name %s to %s", e.name, drv->longname);
-		string_copy(e.name, drv->longname, sizeof(e.name));
-		free(drv);
-	}
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -797,7 +817,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

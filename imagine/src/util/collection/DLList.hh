@@ -3,26 +3,29 @@
 #include <util/cLang.h>
 #include <util/memory.h>
 #include <util/branch.h>
+#include <util/operators.hh>
 #include <assert.h>
 #include <utility>
 #include <logger/interface.h>
 #include <util/preprocessor/repeat.h>
+#include <util/collection/containerUtils.hh>
+#include <iterator>
 
 /*#define forEachInDLList(listAddr, e) \
 for(typeof ((listAddr)->list) e ## _node = (listAddr)->list; e ## _node != 0; e ## _node = e ## _node->next) \
 for(typeof (e ## _node->d) &e = e ## _node->d, forLoopExecOnceDummy)*/
 
-#define forEachInDLList(listAddr, e) \
-for(typeof ((listAddr)->iterator()) e ## _it = (listAddr)->iterator(); e ## _it.curr != 0; e ## _it.advance()) \
-for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
+//#define forEachInDLList(listAddr, e) \
+//for(typeof ((listAddr)->startIterator()) e ## _it = (listAddr)->startIterator(); e ## _it.curr != 0; e ## _it.advance()) \
+//for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
 
-#define forEachInDLListReverse(listAddr, e) \
-for(typeof ((listAddr)->endIterator()) e ## _it = (listAddr)->endIterator(); e ## _it.curr != 0; e ## _it.reverse()) \
-for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
+//#define forEachInDLListReverse(listAddr, e) \
+//for(typeof ((listAddr)->endIterator()) e ## _it = (listAddr)->endIterator(); e ## _it.curr != 0; e ## _it.reverse()) \
+//for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
 
-#define forEachDInDLList(listAddr, e) \
-for(typeof ((listAddr)->iterator()) e ## _it = (listAddr)->iterator(); e ## _it.curr != 0; e ## _it.advance()) \
-for(typeof (*e ## _it.curr->d) &e = *e ## _it.curr->d, forLoopExecOnceDummy)
+//#define forEachDInDLList(listAddr, e) \
+//for(typeof ((listAddr)->startIterator()) e ## _it = (listAddr)->startIterator(); e ## _it.curr != 0; e ## _it.advance()) \
+//for(typeof (*e ## _it.curr->d) &e = *e ## _it.curr->d, forLoopExecOnceDummy)
 
 #define DLListNodeInit(z, n, arr) \
 { n == 0 ? nullptr : &arr[n-1], \
@@ -149,68 +152,68 @@ public:
 	};
 
 	Node *list = nullptr, *listEnd = nullptr;
-	int size = 0;
 private:
+	int size_ = 0;
 	DLFreeList<Node> free;
 
 public:
-	constexpr DLList() { }
+	constexpr DLList() {}
 	template <size_t S>
-	constexpr DLList(Node (&n)[S]): free(n) { }
+	constexpr DLList(Node (&n)[S]): free(n) {}
 
-	class Iterator
-	{
-	public:
-		DLList &dlList;
-		Node *curr, *next, *prev;
-
-		constexpr Iterator(DLList &dlList) : dlList(dlList), curr(dlList.list), next(curr ? curr->next : nullptr), prev(nullptr) { }
-		constexpr Iterator(DLList &dlList, Node *curr) :
-			dlList(dlList), curr(curr), next(curr ? curr->next : nullptr), prev(curr ? curr->prev : nullptr) { }
-
-		void advance()
-		{
-			curr = next;
-			prev = next ? next->prev : nullptr;
-			next = next ? next->next : nullptr;
-		}
-
-		void reverse()
-		{
-			curr = prev;
-			prev = prev ? prev->prev : nullptr;
-			next = prev ? prev->next : nullptr;
-		}
-
-		void removeElem()
-		{
-			assert(curr);
-			dlList.removeNode(curr);
-			curr = nullptr;
-		}
-
-		T &obj()
-		{
-			return curr->d;
-		}
-	};
-
-	Iterator iterator()
-	{
-		return Iterator(*this);
-	}
-
-	Iterator endIterator()
-	{
-		return Iterator(*this, listEnd);
-	}
+//	class Iterator
+//	{
+//	public:
+//		DLList &dlList;
+//		Node *curr, *next, *prev;
+//
+//		constexpr Iterator(DLList &dlList) : dlList(dlList), curr(dlList.list), next(curr ? curr->next : nullptr), prev(nullptr) { }
+//		constexpr Iterator(DLList &dlList, Node *curr) :
+//			dlList(dlList), curr(curr), next(curr ? curr->next : nullptr), prev(curr ? curr->prev : nullptr) { }
+//
+//		void advance()
+//		{
+//			curr = next;
+//			prev = next ? next->prev : nullptr;
+//			next = next ? next->next : nullptr;
+//		}
+//
+//		void reverse()
+//		{
+//			curr = prev;
+//			prev = prev ? prev->prev : nullptr;
+//			next = prev ? prev->next : nullptr;
+//		}
+//
+//		void removeElem()
+//		{
+//			assert(curr);
+//			dlList.removeNode(curr);
+//			curr = nullptr;
+//		}
+//
+//		T &obj()
+//		{
+//			return curr->d;
+//		}
+//	};
+//
+//	Iterator startIterator()
+//	{
+//		return Iterator(*this);
+//	}
+//
+//	Iterator endIterator()
+//	{
+//		return Iterator(*this, listEnd);
+//	}
 
 	template <size_t S>
 	void init(Node (&n)[S])
 	{
 		free.init(n);
 		list = listEnd = nullptr;
-		size = 0;
+		size_ = 0;
 		//logMsg("init list of size %d", S);
 	}
 
@@ -237,7 +240,7 @@ public:
 
 		list = newN; // set head of list to new node
 
-		size++;
+		size_++;
 		return 1;
 	}
 
@@ -247,8 +250,8 @@ public:
 		{
 			return 0;
 		}
-		*first() = d; // copy the data
-		//logMsg("added %p to list, size %d", &d, size);
+		front() = d; // copy the data
+		//logMsg("added %p to list, size %d", &d, size_);
 		return 1;
 	}
 
@@ -275,7 +278,7 @@ public:
 
 		listEnd = newN; // set end of list to new node
 
-		size++;
+		size_++;
 		return 1;
 	}
 
@@ -285,34 +288,19 @@ public:
 		{
 			return 0;
 		}
-		*last() = d; // copy the data
+		back() = d; // copy the data
 		return 1;
 	}
 
-	void push_back(const T &d)
-	{
-		addToEnd(d);
-	}
-
-	template <class... ARGS>
-	void emplace_back(ARGS&&... args)
-	{
-		if(!addToEnd())
-		{
-			bug_exit("out of space in list");
-		}
-		new(last()) T(std::forward<ARGS>(args)...);
-	}
-
-	int contains(const T &d)
-	{
-		for(Node *n = list; n; n = n->next)
-		{
-			if(n->d == d)
-				return 1;
-		}
-		return 0;
-	}
+//	int contains(const T &d)
+//	{
+//		for(Node *n = list; n; n = n->next)
+//		{
+//			if(n->d == d)
+//				return 1;
+//		}
+//		return 0;
+//	}
 
 	void removeNode(Node *n)
 	{
@@ -327,9 +315,9 @@ public:
 			n->next->prev = n->prev; // link next node to prev of this one
 
 		free.add(n);
-		size--;
+		size_--;
 		//logMsg("removed node %p, size %d", n, size);
-		assert(size >= 0);
+		assert(size_ >= 0);
 	}
 
 	int remove(const T &d)
@@ -346,51 +334,15 @@ public:
 		return 0;
 	}
 
-	int removeLast()
-	{
-		if(listEnd)
-		{
-			removeNode(listEnd);
-			return 1;
-		}
-		return 0;
-	}
-
-	int removeFirst()
-	{
-		if(list)
-		{
-			removeNode(list);
-			return 1;
-		}
-		return 0;
-	}
-
-	void removeAll()
-	{
-		logMsg("removing all list items (%d)", size);
-		uint counts = size;
-		iterateTimes(counts, i)
-		{
-			removeNode(list);
-		}
-		assert(size == 0);
-	}
-
-	T *first() { return list ? &list->d : nullptr;	}
-	T *last() { return listEnd ? &listEnd->d : nullptr;	}
-
-	T &back() { return listEnd->d;	}
-
 	T *index(uint idx)
 	{
-		assert(idx < (uint)size);
-		auto it = iterator();
+		assert(idx < (uint)size_);
+		auto it = begin();
 		iterateTimes(idx, i)
 		{
-			it.advance();
+			++it;
 		}
-		return &it.obj();
+		return &(*it);
 	}
 
 	bool isFull()
@@ -401,6 +353,115 @@ public:
 	int freeSpace()
 	{
 		return free.size;
+	}
+
+	// Iterators (STL API)
+	template <bool REVERSE = false>
+	class ConstIterator : public std::iterator<std::bidirectional_iterator_tag, T>,
+		public NotEquals<ConstIterator<REVERSE>>
+	{
+	public:
+		Node *n;
+
+		constexpr ConstIterator(Node *n): n(n) {}
+		const T& operator*() const { return n->d; }
+		const T* operator->() const { return &n->d; }
+		void operator++() { n = REVERSE ? n->prev : n->next; }
+		void operator--() { n = REVERSE ? n->next : n->prev; }
+		bool operator==(ConstIterator const& rhs) const { return n == rhs.n; }
+	};
+
+	template <bool REVERSE = false>
+	class Iterator : public ConstIterator<REVERSE>
+	{
+	public:
+		using ConstIterator<REVERSE>::ConstIterator;
+		using ConstIterator<REVERSE>::n;
+		T& operator*() const { return n->d; }
+		T* operator->() const { return &n->d; }
+	};
+
+	using iterator = Iterator<>;
+	using const_iterator = ConstIterator<>;
+	using reverse_iterator = Iterator<true>;
+	using const_reverse_iterator = ConstIterator<true>;
+	iterator begin() { return iterator(list); }
+	iterator end() { return iterator(nullptr); }
+	const_iterator cbegin() const { return const_iterator(list); }
+	const_iterator cend() const { return const_iterator(nullptr); }
+	reverse_iterator rbegin() { return reverse_iterator(listEnd); }
+	reverse_iterator rend() { return reverse_iterator(nullptr); }
+	const_reverse_iterator crbegin() const { return const_reverse_iterator(listEnd); }
+	const_reverse_iterator crend() const { return const_reverse_iterator(nullptr); }
+
+	// Capacity (STL API)
+	uint size() const { return size_; }
+	bool empty() const { return !size(); };
+	uint max_size() const { return size() + free.size; }
+
+	// Element Access (STL API)
+	T &front() { assert(list); return list->d;	}
+	T &back() { assert(listEnd); return listEnd->d; }
+
+	// Modifiers (STL API)
+	void push_front(const T &d)
+	{
+		add(d);
+	}
+
+	void push_back(const T &d)
+	{
+		addToEnd(d);
+	}
+
+	template <class... ARGS>
+	void emplace_front(ARGS&&... args)
+	{
+		if(!add())
+		{
+			bug_exit("out of space in list");
+		}
+		new(&front()) T(std::forward<ARGS>(args)...);
+	}
+
+	template <class... ARGS>
+	void emplace_back(ARGS&&... args)
+	{
+		if(!addToEnd())
+		{
+			bug_exit("out of space in list");
+		}
+		new(&back()) T(std::forward<ARGS>(args)...);
+	}
+
+	void pop_front()
+	{
+		assert(list);
+		removeNode(list);
+	}
+
+	void pop_back()
+	{
+		assert(listEnd);
+		removeNode(listEnd);
+	}
+
+	iterator erase(const_iterator position)
+	{
+		auto nextIt = iterator(position.n->next);
+		removeNode(position.n);
+		return nextIt;
+	}
+
+	void clear()
+	{
+		logMsg("removing all list items (%d)", size_);
+		uint counts = size_;
+		iterateTimes(counts, i)
+		{
+			removeNode(list);
+		}
+		assert(size_ == 0);
 	}
 };
 

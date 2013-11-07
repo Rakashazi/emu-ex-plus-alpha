@@ -112,7 +112,7 @@
 /* #define PIXEL_FORMAT RGB565 */
 //#define GFX_MULTI_FORMAT
 
-#if defined(TARGET_OS_MAC) && TARGET_OS_MAC
+#if 0 //defined(TARGET_OS_MAC) && TARGET_OS_MAC
 
 #include "zlib.h"
 #define ZLIB

@@ -23,12 +23,6 @@
 
 uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
 
-#ifdef CONFIG_GFX_OPENGL_GLEW_STATIC
-	#define Pixmap _X11Pixmap
-	#include <util/glew/glew.c>
-	#undef Pixmap
-#endif
-
 #if defined(__APPLE__) && ! defined (CONFIG_BASE_IOS)
 	#include <OpenGL/OpenGL.h>
 #endif
@@ -88,12 +82,10 @@ void setZTest(bool on)
 	if(on)
 	{
 		glcEnable(GL_DEPTH_TEST);
-		clearZBufferBit = GL_DEPTH_BUFFER_BIT;
 	}
 	else
 	{
 		glcDisable(GL_DEPTH_TEST);
-		clearZBufferBit = 0;
 	}
 }
 
@@ -146,9 +138,9 @@ void setZBlend(uchar on)
 	if(on)
 	{
 		#ifndef CONFIG_GFX_OPENGL_ES
-			glFogi(GL_FOG_MODE, GL_LINEAR);
+		glFogi(GL_FOG_MODE, GL_LINEAR);
 		#else
-			glFogf(GL_FOG_MODE, GL_LINEAR);
+		glFogf(GL_FOG_MODE, GL_LINEAR);
 		#endif
 		glFogf(GL_FOG_DENSITY, 0.1f);
 		glHint(GL_FOG_HINT, GL_DONT_CARE);
@@ -198,8 +190,6 @@ void setVisibleGeomFace(uint faces)
 
 }
 
-void pointerPos(int x, int y, int *xOut, int *yOut);
-
 namespace Gfx
 {
 
@@ -211,37 +201,36 @@ void setClipRect(bool on)
 		glcDisable(GL_SCISSOR_TEST);
 }
 
-void setClipRectBounds(int x, int y, int w, int h)
+void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 {
+	// translate from view to window coordinates
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	switch(rotateView)
+	using namespace Base;
+	switch(win.rotateView)
 	{
 		bcase VIEW_ROTATE_0:
-			y = (Base::window().rect.ySize() - y) - h;
+			x += win.viewRect.x;
+			y = win.h - (y + h + win.viewRect.y);
 		bcase VIEW_ROTATE_90:
-			y = (Base::window().rect.xSize() - y) - h;
-			IG::swap(x, y);
-			IG::swap(w, h);
+			x += win.viewRect.y;
+			y = win.w - (y + h + (win.w - win.viewRect.x2));
+			std::swap(x, y);
+			std::swap(w, h);
 		bcase VIEW_ROTATE_270:
-			y += Base::window().rect.x;
-			IG::swap(x, y);
-			IG::swap(w, h);
+			x += win.viewRect.y;
+			y += win.viewRect.x;
+			std::swap(x, y);
+			std::swap(w, h);
 		bcase VIEW_ROTATE_180:
-			y += Base::window().rect.x;
+			x += win.viewRect.x;
+			y += win.h - win.viewRect.y2;
 	}
 	#else
-	y = (Base::window().rect.ySize() - y) - h;
+	x += win.viewRect.x;
+	y = win.h - (y + h + win.viewRect.y);
 	#endif
 	//logMsg("setting Scissor %d,%d size %d,%d", x, y, w, h);
 	glScissor(x, y, w, h);
-}
-
-void setClear(bool on)
-{
-	// always clear screen on android since not doing so seems to have a performance hit
-	#if !defined(CONFIG_GFX_OPENGL_ES)
-		clearColorBufferBit = on ? GL_COLOR_BUFFER_BIT : 0;
-	#endif
 }
 
 void setClearColor(GColor r, GColor g, GColor b, GColor a)

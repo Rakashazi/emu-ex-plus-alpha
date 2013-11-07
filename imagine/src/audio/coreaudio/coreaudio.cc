@@ -6,58 +6,44 @@
 #include <util/thread/pthread.hh>
 #include <util/MachRingBuffer.hh>
 
-#define Fixed MacTypes_Fixed
-#define Rect MacTypes_Rect
 #include <AudioUnit/AudioUnit.h>
 #include <AudioToolbox/AudioToolbox.h>
-#undef Fixed
-#undef Rect
 
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { 44100, &SampleFormats::s16, 2 };
+PcmFormat preferredPcmFormat { 44100, SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
-
-static uint bufferFrames = 800;
-static uint buffers = 8;
+static uint wantedLatency = 100000;
 static AudioComponentInstance outputUnit = nullptr;
 static AudioStreamBasicDescription streamFormat;
-static bool isPlaying = 0, isOpen_ = 0;
+static bool isPlaying_ = false, isOpen_ = false, hadUnderrun = false;
 static MachRingBuffer<> rBuff;
-static uint startPlaybackBytes = 0;
-static BufferContext audioBuffLockCtx;
 static bool sessionInit = false;
 static bool soloMix_ = true;
 
-void setHintPcmFramesPerWrite(uint frames)
+static bool isInit()
 {
-	if(frames != bufferFrames)
-	{
-		closePcm();
-		logMsg("setting queue buffer frames to %d", frames);
-		assert(frames < 2000);
-		bufferFrames = frames;
-	}
+	return outputUnit;
 }
 
-void setHintPcmMaxBuffers(uint maxBuffers)
+void setHintOutputLatency(uint us)
 {
-	logMsg("setting max buffers to %d", maxBuffers);
-	assert(maxBuffers < 100);
-	buffers = maxBuffers;
-	assert(!isOpen());
+	wantedLatency = us;
 }
 
-uint hintPcmMaxBuffers() { return buffers; }
+uint hintOutputLatency()
+{
+	return wantedLatency;
+}
 
 static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
 		const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData)
 {
-	auto *buf = (uchar*)ioData->mBuffers[0].mData;
+	auto *buf = (char*)ioData->mBuffers[0].mData;
 	uint bytes = inNumberFrames * streamFormat.mBytesPerFrame;
 
-	if(unlikely(!isPlaying))
+	if(unlikely(hadUnderrun))
 	{
 		*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
 		mem_zero(buf, bytes);
@@ -68,7 +54,7 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 	if(unlikely(read != bytes))
 	{
 		//logMsg("underrun, read %d out of %d bytes", read, bytes);
-		isPlaying = 0;
+		hadUnderrun = true;
 		uint padBytes = bytes - read;
 		//logMsg("padding %d bytes", padBytes);
 		mem_zero(&buf[read], padBytes);
@@ -76,12 +62,10 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 	return 0;
 }
 
-static CallResult openUnit(AudioStreamBasicDescription &fmt)
+static CallResult openUnit(AudioStreamBasicDescription &fmt, uint bufferSize)
 {
 	logMsg("creating unit %dHz %d channels", (int)fmt.mSampleRate, (int)fmt.mChannelsPerFrame);
 
-	uint bufferSize = bufferFrames * streamFormat.mBytesPerFrame * buffers;
-	startPlaybackBytes = bufferFrames * streamFormat.mBytesPerFrame * (buffers-1);
 	if(!rBuff.init(bufferSize))
 	{
 		return OUT_OF_MEMORY;
@@ -96,15 +80,14 @@ static CallResult openUnit(AudioStreamBasicDescription &fmt)
 		return INVALID_PARAMETER;
 	}
 	AudioUnitInitialize(outputUnit);
-
-	isPlaying = 0;
-	isOpen_ = 1;
+	isOpen_ = true;
 
 	return OK;
 }
 
 CallResult openPcm(const PcmFormat &format)
 {
+	assert(isInit());
 	if(isOpen())
 	{
 		logWarn("audio unit already open");
@@ -117,10 +100,10 @@ CallResult openPcm(const PcmFormat &format)
 	streamFormat.mFramesPerPacket = 1;
 	streamFormat.mBytesPerFrame = format.framesToBytes(1);
 	streamFormat.mChannelsPerFrame = format.channels;
-	streamFormat.mBitsPerChannel = format.sample->bits == 16 ? 16 : 8;
-
+	streamFormat.mBitsPerChannel = format.sample.bits == 16 ? 16 : 8;
 	pcmFormat = format;
-	return openUnit(streamFormat);
+	uint bufferSize = format.uSecsToBytes(wantedLatency);
+	return openUnit(streamFormat, bufferSize);
 }
 
 void closePcm()
@@ -133,8 +116,9 @@ void closePcm()
 	AudioOutputUnitStop(outputUnit);
 	AudioUnitUninitialize(outputUnit);
 	rBuff.deinit();
-	isPlaying = 0;
-	isOpen_ = 0;
+	isPlaying_ = false;
+	isOpen_ = false;
+	hadUnderrun = false;
 	logMsg("closed audio unit");
 }
 
@@ -143,19 +127,9 @@ bool isOpen()
 	return isOpen_;
 }
 
-static void startPlaybackIfNeeded()
+bool isPlaying()
 {
-	if(unlikely(!isPlaying && rBuff.written >= startPlaybackBytes))
-	{
-		logMsg("playback starting with %u frames", (uint)(rBuff.written / streamFormat.mBytesPerFrame));
-		auto err = AudioOutputUnitStart(outputUnit);
-		if(err)
-		{
-			logErr("error %d in AudioOutputUnitStart", (int)err);
-		}
-		else
-			isPlaying = 1;
-	}
+	return isPlaying_ && !hadUnderrun;
 }
 
 void pausePcm()
@@ -163,14 +137,29 @@ void pausePcm()
 	if(unlikely(!isOpen()))
 		return;
 	AudioOutputUnitStop(outputUnit);
-	isPlaying = 0;
+	isPlaying_ = false;
+	hadUnderrun = false;
 }
 
 void resumePcm()
 {
 	if(unlikely(!isOpen()))
 		return;
-	startPlaybackIfNeeded();
+	if(!isPlaying_ || hadUnderrun)
+	{
+		logMsg("playback starting with %u frames", (uint)(rBuff.written / streamFormat.mBytesPerFrame));
+		hadUnderrun = false;
+		if(!isPlaying_)
+		{
+			auto err = AudioOutputUnitStart(outputUnit);
+			if(err)
+			{
+				logErr("error %d in AudioOutputUnitStart", (int)err);
+			}
+			else
+				isPlaying_ = true;
+		}
+	}
 }
 
 void clearPcm()
@@ -182,7 +171,7 @@ void clearPcm()
 	rBuff.reset();
 }
 
-void writePcm(uchar *samples, uint framesToWrite)
+void writePcm(const void *samples, uint framesToWrite)
 {
 	if(unlikely(!isOpen()))
 		return;
@@ -193,29 +182,24 @@ void writePcm(uchar *samples, uint framesToWrite)
 	{
 		//logMsg("overrun, wrote %d out of %d bytes", written, bytes);
 	}
-	startPlaybackIfNeeded();
 }
 
-BufferContext *getPlayBuffer(uint wantedFrames)
+BufferContext getPlayBuffer(uint wantedFrames)
 {
-	if(unlikely(!isOpen()))
-		return nullptr;
-	if((uint)framesFree() < bufferFrames)
+	if(unlikely(!isOpen()) || !framesFree())
+		return {};
+	if((uint)framesFree() < wantedFrames)
 	{
-		logDMsg("can't get buffer with only %d frames free", framesFree());
-		return nullptr;
+		logDMsg("buffer has only %d/%d frames free", framesFree(), wantedFrames);
 	}
-	audioBuffLockCtx.data = rBuff.writePos();
-	audioBuffLockCtx.frames = std::min(wantedFrames, (uint)framesFree());
-	return &audioBuffLockCtx;
+	return {rBuff.writePos(), std::min(wantedFrames, (uint)framesFree())};
 }
 
-void commitPlayBuffer(BufferContext *buffer, uint frames)
+void commitPlayBuffer(BufferContext buffer, uint frames)
 {
-	assert(frames <= buffer->frames);
+	assert(frames <= buffer.frames);
 	auto bytes = frames * streamFormat.mBytesPerFrame;
 	rBuff.advanceWritePos(bytes);
-	startPlaybackIfNeeded();
 }
 
 // TODO

@@ -63,9 +63,7 @@ TIA::TIA(Console& console, Sound& sound, Settings& settings)
 {
   // Allocate buffers for two frame buffers
   myCurrentFrameBuffer = new uInt8[160 * 320];
-  #ifndef NO_DUAL_FRAME_BUFFER
   myPreviousFrameBuffer = new uInt8[160 * 320];
-  #endif
 
   // Make sure all TIA bits are enabled
   enableBits(true);
@@ -84,9 +82,7 @@ TIA::TIA(Console& console, Sound& sound, Settings& settings)
 TIA::~TIA()
 {
   delete[] myCurrentFrameBuffer;
-  #ifndef NO_DUAL_FRAME_BUFFER
   delete[] myPreviousFrameBuffer;
-  #endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -511,9 +507,7 @@ bool TIA::loadDisplay(Serializer& in)
     clearBuffers();
     myFramePointer = myCurrentFrameBuffer;
     in.getByteArray(myCurrentFrameBuffer, 160*320);
-    #ifndef NO_DUAL_FRAME_BUFFER
     memcpy(myPreviousFrameBuffer, myCurrentFrameBuffer, 160*320);
-    #endif
 
     // If we're in partial frame mode, make sure to re-create the screen
     // as it existed when the state was saved
@@ -553,11 +547,9 @@ void TIA::update()
 inline void TIA::startFrame()
 {
   // This stuff should only happen at the beginning of a new frame.
-  #ifndef NO_DUAL_FRAME_BUFFER
   uInt8* tmp = myCurrentFrameBuffer;
   myCurrentFrameBuffer = myPreviousFrameBuffer;
   myPreviousFrameBuffer = tmp;
-  #endif
 
   // Remember the number of clocks which have passed on the current scanline
   // so that we can adjust the frame's starting clock by this amount.  This
@@ -645,9 +637,7 @@ inline void TIA::endFrame()
   	if(previousCount < myMaximumNumberOfScanlines)
   	{
 			memset(myCurrentFrameBuffer, 0, 160 * 320);
-			#ifndef NO_DUAL_FRAME_BUFFER
 			memset(myPreviousFrameBuffer, 1, 160 * 320);
-			#endif
   	}
   }
   // Did the number of scanlines decrease?
@@ -658,9 +648,7 @@ inline void TIA::endFrame()
     uInt32 offset = myScanlineCountForLastFrame * 160,
            stride = (previousCount - myScanlineCountForLastFrame) * 160;
     memset(myCurrentFrameBuffer + offset, 0, stride);
-    #ifndef NO_DUAL_FRAME_BUFFER
     memset(myPreviousFrameBuffer + offset, 1, stride);
-    #endif
   }
 
   // Stats counters
@@ -1243,9 +1231,7 @@ inline void TIA::waitHorizontalRSync()
 void TIA::clearBuffers()
 {
   memset(myCurrentFrameBuffer, 0, 160 * 320);
-  #ifndef NO_DUAL_FRAME_BUFFER
   memset(myPreviousFrameBuffer, 0, 160 * 320);
-  #endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -22,29 +22,29 @@
 class BaseMenuView : public View, public GuiTableSource
 {
 public:
-	constexpr BaseMenuView() { }
-	constexpr BaseMenuView(const char *name) : View(name) { }
+	constexpr BaseMenuView(Base::Window &win): View(win) {}
+	constexpr BaseMenuView(const char *name, Base::Window &win) : View(name, win) {}
 
 	MenuItem **item = nullptr;
 	uint items = 0;
-	Rect2<int> viewFrame;
+	IG::Rect2<int> viewFrame;
 	ScrollableGuiTable1D tbl;
 	//FadeViewAnimation<10> fade;
 
-	Rect2<int> &viewRect() { return viewFrame; }
+	IG::Rect2<int> &viewRect() { return viewFrame; }
 
 	void init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin align = LC2DO)
 	{
 		//logMsg("init menu with %d items", items);
 		var_selfs(item);
 		var_selfs(items);
-		tbl.init(this, items, align);
+		tbl.init(this, items, *this, align);
 		if(highlightFirst && items)
 			tbl.selected = 0;
 		//View::init(&fade);
 	}
 
-	void deinit()
+	void deinit() override
 	{
 		//logMsg("deinit BaseMenuView");
 		tbl.deinit();
@@ -54,21 +54,23 @@ public:
 		}
 	}
 
-	void place()
+	void place() override
 	{
 		iterateTimes(items, i)
 		{
 			//logMsg("compile item %d", i);
 			item[i]->compile();
 		}
-
-		tbl.setYCellSize(item[0]->ySize()*2);
-		tbl.place(&viewFrame);
+		if(items)
+		{
+			tbl.setYCellSize(IG::makeEvenRoundedUp(item[0]->ySize()*2));
+		}
+		tbl.place(&viewFrame, *this);
 	}
 
-	void inputEvent(const Input::Event &e)
+	void inputEvent(const Input::Event &e) override
 	{
-		tbl.inputEvent(e);
+		tbl.inputEvent(e, *this);
 	}
 
 	void clearSelection()
@@ -76,23 +78,23 @@ public:
 		tbl.clearSelection();
 	}
 
-	void draw(Gfx::FrameTimeBase frameTime)
+	void draw(Gfx::FrameTimeBase frameTime) override
 	{
 		using namespace Gfx;
 		//if(!updateAnimation())
 		//	return;
-		tbl.draw();
+		tbl.draw(*this);
 	}
 
-	void drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+	void drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override
 	{
 		using namespace Gfx;
 		//gfx_setColor(1., 1., 1., fade.m.now);
-		setColor(1., 1., 1., 1.);
+		setColor(COLOR_WHITE);
 		item[i]->draw(xPos, yPos, xSize, ySize, align);
 	}
 
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override
 	{
 		item[i]->select(this, e);
 	}

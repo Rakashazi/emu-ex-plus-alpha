@@ -658,7 +658,7 @@ void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                     if ((rptr->uf4_counter & 3) == 2) {
                         /****************************************************************************************************************************************/
                         {
-                            // Decoder logic
+                            /* Decoder logic */
 
                             rptr->last_read_data = ((rptr->last_read_data << 1) & 0x3fe) | (((rptr->uf4_counter + 0x1c) >> 4) & 1);
 
@@ -721,7 +721,7 @@ void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                         (P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position == rptr->PulseHeadPosition)) {
                         DWORD Strength = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Strength;
 
-                        // Forward pulse high hit to the decoder logic
+                        /* Forward pulse high hit to the decoder logic */
                         if ((Strength == 0xffffffffUL) ||                                   /* Strong pulse */
                             (((DWORD)(RANDOM_nextInt(rptr) ^ 0x80000000UL)) < Strength)) {  /* Weak pulse */
                             rptr->filter_state ^= 1;

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -24,31 +24,32 @@ namespace gambatte {
 struct SaveState;
 
 class LyCounter {
-	unsigned long time_;
-	unsigned short lineTime_;
-	unsigned char ly_;
-	bool ds;
-	
 public:
 	LyCounter();
 	void doEvent();
-	bool isDoubleSpeed() const { return ds; }
-	
-	unsigned long frameCycles(const unsigned long cc) const {
+	bool isDoubleSpeed() const { return ds_; }
+
+	unsigned long frameCycles(unsigned long cc) const {
 		return ly_ * 456ul + lineCycles(cc);
 	}
-	
-	unsigned lineCycles(const unsigned long cc) const {
+
+	unsigned lineCycles(unsigned long cc) const {
 		return 456u - ((time_ - cc) >> isDoubleSpeed());
 	}
-	
+
 	unsigned lineTime() const { return lineTime_; }
 	unsigned ly() const { return ly_; }
 	unsigned long nextLineCycle(unsigned lineCycle, unsigned long cycleCounter) const;
 	unsigned long nextFrameCycle(unsigned long frameCycle, unsigned long cycleCounter) const;
 	void reset(unsigned long videoCycles, unsigned long lastUpdate);
-	void setDoubleSpeed(bool ds_in);
+	void setDoubleSpeed(bool ds);
 	unsigned long time() const { return time_; }
+
+private:
+	unsigned long time_;
+	unsigned short lineTime_;
+	unsigned char ly_;
+	bool ds_;
 };
 
 }

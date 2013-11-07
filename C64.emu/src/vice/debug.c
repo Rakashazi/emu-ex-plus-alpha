@@ -97,14 +97,10 @@ static const resource_int_t resources_int[] = {
       &debug.drivecpu_traceflg[0], set_drive_traceflg, (void *)0 },
     { "Drive1CPU_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.drivecpu_traceflg[1], set_drive_traceflg, (void *)1 },
-#if DRIVE_NUM > 2
     { "Drive2CPU_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.drivecpu_traceflg[2], set_drive_traceflg, (void *)2 },
-#endif
-#if DRIVE_NUM > 3
     { "Drive3CPU_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.drivecpu_traceflg[3], set_drive_traceflg, (void *)3 },
-#endif
     { "TraceMode", 0, RES_EVENT_NO, NULL,
       &debug.trace_mode, set_trace_mode, NULL },
     { "AutoPlaybackFrames", 200, RES_EVENT_NO, NULL,
@@ -150,7 +146,6 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DONT_TRACE_DRIVE1_CPU,
       NULL, NULL },
-#if DRIVE_NUM > 2
     { "-trace_drive2", SET_RESOURCE, 0,
       NULL, NULL, "Drive2CPU_TRACE", (resource_value_t)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -161,8 +156,6 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DONT_TRACE_DRIVE2_CPU,
       NULL, NULL },
-#endif
-#if DRIVE_NUM > 3
     { "-trace_drive3", SET_RESOURCE, 0,
       NULL, NULL, "Drive3CPU_TRACE", (resource_value_t)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -173,7 +166,6 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DONT_TRACE_DRIVE3_CPU,
       NULL, NULL },
-#endif
     { "-trace_mode", SET_RESOURCE, 1,
       NULL, NULL, "TraceMode", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,

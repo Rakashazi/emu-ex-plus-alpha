@@ -25,11 +25,12 @@
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
 #include <InputManagerView.hh>
+#include <TouchConfigView.hh>
 #include <EmuView.hh>
 #include <util/strings.h>
 #ifdef CONFIG_BLUETOOTH
-	#include <bluetooth/sys.hh>
-	#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <bluetooth/sys.hh>
+#include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
 extern MsgPopup popup;
 extern ViewStack viewStack;
@@ -39,15 +40,6 @@ extern EmuView emuView;
 #ifdef CONFIG_BLUETOOTH
 extern BluetoothAdapter *bta;
 #endif
-
-static void doSaveState()
-{
-	int ret = EmuSystem::saveState();
-	if(ret != STATE_RESULT_OK)
-		popup.postError(stateResultToStr(ret));
-	else
-		startGameFromMenu();
-}
 
 char saveSlotChar(int slot)
 {
@@ -83,28 +75,28 @@ static auto onScanStatus =
 				if(Config::envIsIOS)
 				{
 					popup.postError("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
-					Base::displayNeedsUpdate();
+					Base::mainWindow().displayNeedsUpdate();
 				}
 			}
 			bcase BluetoothAdapter::SCAN_FAILED:
 			{
 				popup.postError("Scan failed");
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 			bcase BluetoothAdapter::SCAN_NO_DEVS:
 			{
 				popup.post("No devices found");
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
 				popup.printf(2, 0, "Checking %d device(s)...", arg);
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
 				popup.postError("Failed reading a device name");
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 			bcase BluetoothAdapter::SCAN_COMPLETE:
 			{
@@ -118,12 +110,12 @@ static auto onScanStatus =
 				{
 					popup.post("Scan complete, no recognized devices");
 				}
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 			bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
 				popup.postError("Failed opening a Bluetooth connection");
-				Base::displayNeedsUpdate();
+				Base::mainWindow().displayNeedsUpdate();
 			}
 		}
 	};
@@ -134,7 +126,7 @@ static void handledFailedBTAdapterInit(const Input::Event &e)
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	if(!FsSys::fileExists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>();
+		auto &ynAlertView = *allocModalView<YesNoAlertView>(Base::mainWindow());
 		ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
 		ynAlertView.onYes() =
 			[](const Input::Event &e)
@@ -152,7 +144,7 @@ static void handledFailedBTAdapterInit(const Input::Event &e)
 void MenuView::onShow()
 {
 	logMsg("refreshing main menu state");
-	recentGames.active = recentGameList.size;
+	recentGames.active = recentGameList.size();
 	reset.active = EmuSystem::gameIsRunning();
 	saveState.active = EmuSystem::gameIsRunning();
 	loadState.active = EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot);
@@ -177,8 +169,12 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 	saveState.init(); item[items++] = &saveState;
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
 	stateSlot.init(stateSlotText); item[items++] = &stateSlot;
-	options.init(); item[items++] = &options;
+	if(!Config::MACHINE_IS_OUYA)
+	{
+		onScreenInputManager.init(); item[items++] = &onScreenInputManager;
+	}
 	inputManager.init(); item[items++] = &inputManager;
+	options.init(); item[items++] = &options;
 	#ifdef CONFIG_BLUETOOTH
 	scanWiimotes.init(); item[items++] = &scanWiimotes;
 		#ifdef CONFIG_BLUETOOTH_SERVER
@@ -192,15 +188,15 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 	exitApp.init(); item[items++] = &exitApp;
 }
 
-MenuView::MenuView():
-	BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION),
+MenuView::MenuView(Base::Window &win):
+	BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION, win),
 	loadGame
 	{
 		"Load Game",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>();
-			fPicker.init(!e.isPointer());
+			auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(window());
+			fPicker.init(!e.isPointer(), false);
 			viewStack.useNavView = 0;
 			viewStack.pushAndShow(&fPicker, &menuAllocator);
 		}
@@ -208,11 +204,11 @@ MenuView::MenuView():
 	reset
 	{
 		"Reset",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>();
+				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 				ynAlertView.init("Really Reset Game?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -227,11 +223,11 @@ MenuView::MenuView():
 	loadState
 	{
 		"Load State",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(item.active && EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>();
+				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 				ynAlertView.init("Really Load State?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -252,11 +248,11 @@ MenuView::MenuView():
 	recentGames
 	{
 		"Recent Games",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			if(recentGameList.size)
+			if(recentGameList.size())
 			{
-				auto &rMenu = *menuAllocator.allocNew<RecentGameView>();
+				auto &rMenu = *menuAllocator.allocNew<RecentGameView>(window());
 				rMenu.init(!e.isPointer());
 				viewStack.pushAndShow(&rMenu, &menuAllocator);
 			}
@@ -265,17 +261,27 @@ MenuView::MenuView():
 	saveState
 	{
 		"Save State",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				if(!optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot))
+				static auto doSaveState =
+					[]()
+					{
+						int ret = EmuSystem::saveState();
+						if(ret != STATE_RESULT_OK)
+							popup.postError(stateResultToStr(ret));
+						else
+							startGameFromMenu();
+					};
+
+				if(EmuSystem::shouldOverwriteExistingState())
 				{
 					doSaveState();
 				}
 				else
 				{
-					auto &ynAlertView = *allocModalView<YesNoAlertView>();
+					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 					ynAlertView.init("Really Overwrite State?", !e.isPointer());
 					ynAlertView.onYes() =
 						[](const Input::Event &e)
@@ -289,9 +295,9 @@ MenuView::MenuView():
 	},
 	stateSlot
 	{
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &ssMenu = *menuAllocator.allocNew<StateSlotView>();
+			auto &ssMenu = *menuAllocator.allocNew<StateSlotView>(window());
 			ssMenu.init(!e.isPointer());
 			viewStack.pushAndShow(&ssMenu, &menuAllocator);
 		}
@@ -301,20 +307,29 @@ MenuView::MenuView():
 	options
 	{
 		"Options",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &oMenu = *menuAllocator.allocNew<OptionCategoryView>();
+			auto &oMenu = *menuAllocator.allocNew<OptionCategoryView>(window());
 			oMenu.init(!e.isPointer());
 			viewStack.pushAndShow(&oMenu, &menuAllocator);
 		}
 	},
+	onScreenInputManager
+	{
+		"On-screen Input Setup",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto &tcMenu = *menuAllocator.allocNew<TouchConfigView>(window(), touchConfigFaceBtnName, touchConfigCenterBtnName);
+			tcMenu.init(!e.isPointer());
+			viewStack.pushAndShow(&tcMenu, &menuAllocator);
+		}
+	},
 	inputManager
 	{
-		"Input Device Setup",
-		[](TextMenuItem &, const Input::Event &e)
+		"Key/Gamepad Input Setup",
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &menu = *menuAllocator.allocNew<InputManagerView>();
-			imMenu = &menu;
+			auto &menu = *menuAllocator.allocNew<InputManagerView>(window());
 			menu.init(!e.isPointer());
 			viewStack.pushAndShow(&menu, &menuAllocator);
 		}
@@ -322,9 +337,9 @@ MenuView::MenuView():
 	benchmark
 	{
 		"Benchmark Game",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &fPicker = *allocModalView<EmuFilePicker>();
+			auto &fPicker = *allocModalView<EmuFilePicker>(window());
 			fPicker.initForBenchmark(!e.isPointer());
 			View::addModalView(fPicker);
 		}
@@ -350,19 +365,19 @@ MenuView::MenuView():
 			{
 				handledFailedBTAdapterInit(e);
 			}
-			Base::displayNeedsUpdate();
+			displayNeedsUpdate();
 		}
 	},
 	bluetoothDisconnect
 	{
 		"Disconnect Bluetooth",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(Bluetooth::devsConnected())
 			{
 				static char str[64];
 				snprintf(str, sizeof(str), "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto &ynAlertView = *allocModalView<YesNoAlertView>();
+				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 				ynAlertView.init(str, !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -384,7 +399,7 @@ MenuView::MenuView():
 			{
 				popup.post("Prepare to push the PS button", 4);
 				auto startedScan = Bluetooth::listenForDevices(bta,
-					[](BluetoothAdapter &bta, uint status, int arg)
+					[this](BluetoothAdapter &bta, uint status, int arg)
 					{
 						switch(status)
 						{
@@ -392,12 +407,12 @@ MenuView::MenuView():
 							{
 								popup.postError(Config::envIsLinux ? "Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
 									"Bluetooth setup failed", Config::envIsLinux ? 8 : 2);
-								Base::displayNeedsUpdate();
+								displayNeedsUpdate();
 							}
 							bcase BluetoothAdapter::SCAN_COMPLETE:
 							{
 								popup.post("Push the PS button on your controller\n(see website for pairing help)", 4);
-								Base::displayNeedsUpdate();
+								displayNeedsUpdate();
 							}
 							bdefault: onScanStatus(bta, status, arg);
 						}
@@ -411,16 +426,16 @@ MenuView::MenuView():
 			{
 				handledFailedBTAdapterInit(e);
 			}
-			Base::displayNeedsUpdate();
+			displayNeedsUpdate();
 		}
 	},
 	#endif
 	about
 	{
 		"About",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &credits = *menuAllocator.allocNew<CreditsView>(creditsViewStr);
+			auto &credits = *menuAllocator.allocNew<CreditsView>(creditsViewStr, window());
 			credits.init();
 			viewStack.pushAndShow(&credits, &menuAllocator);
 		}
@@ -493,25 +508,25 @@ void RecentGameView::init(bool highlightFirst)
 {
 	uint i = 0;
 	int rIdx = 0;
-	forEachInDLList(&recentGameList, e)
+	for(auto &e : recentGameList)
 	{
 		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path)); item[i++] = &recentGame[rIdx];
 		recentGame[rIdx].onSelect() = [&](TextMenuItem &t, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}
-	clear.init(recentGameList.size); item[i++] = &clear;
+	clear.init(recentGameList.size()); item[i++] = &clear;
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-RecentGameView::RecentGameView():
-	BaseMenuView("Recent Games"),
+RecentGameView::RecentGameView(Base::Window &win):
+	BaseMenuView("Recent Games", win),
 	clear
 	{
 		"Clear List",
 		[this](TextMenuItem &t, const Input::Event &e)
 		{
-			recentGameList.removeAll();
+			recentGameList.clear();
 			viewStack.popAndShow();
 		}
 	}

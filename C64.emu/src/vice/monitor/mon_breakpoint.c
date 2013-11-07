@@ -390,6 +390,7 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
     char is_loadstore = 0;
     const char *op_str;
     const char *action_str;
+    int monbank = mon_interfaces[mem]->current_bank;
 
     monitor_cpu = monitor_cpu_for_memspace[mem];
     instpc = new_addr(mem, (monitor_cpu->mon_register_get_val)(mem, e_PC));
@@ -458,13 +459,14 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
             } else {
                 mon_out("\n");
             }
-
+            mon_interfaces[mem]->current_bank = 0; /* always disassemble using CPU bank */
             if (is_loadstore) {
                 mon_disassemble_with_regdump(mem, loadstorepc);
             }
             if (!is_loadstore || cp->stop) {
                 mon_disassemble_with_regdump(mem, instpc);
             }
+            mon_interfaces[mem]->current_bank = monbank; /* restore value used in monitor */
 
             if (cp->command) {
                 mon_out("Executing: %s\n", cp->command);

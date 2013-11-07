@@ -16,7 +16,7 @@ private:
 	void removed() override;
 
 public:
-	SystemEditCheatView();
+	SystemEditCheatView(Base::Window &win);
 	void init(bool highlightFirst, int cheatIdx);
 };
 
@@ -32,7 +32,7 @@ private:
 	void loadCheatItems(MenuItem *item[], uint &items) override;
 
 public:
-	EditCheatListView();
+	EditCheatListView(Base::Window &win);
 };
 
 class CheatsView : public BaseCheatsView
@@ -43,7 +43,5 @@ private:
 	void loadCheatItems(MenuItem *item[], uint &i) override;
 
 public:
-	CheatsView() {}
+	CheatsView(Base::Window &win): BaseCheatsView(win) {}
 };
-
-extern CheatsView cheatsMenu;

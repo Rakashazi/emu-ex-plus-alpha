@@ -1,6 +1,3 @@
 #pragma once
 
-namespace Base
-{
-	void openGLUpdateScreen();
-}
+// no functions here currently

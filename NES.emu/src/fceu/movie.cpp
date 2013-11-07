@@ -12,6 +12,7 @@
 #include "video.h"
 #include "movie.h"
 #include "fds.h"
+#include "vsuni.h"
 #ifdef _S9XLUA_H
 #include "fceulua.h"
 #endif
@@ -102,7 +103,6 @@ SFORMAT FCEUMOV_STATEINFO[]={
 char curMovieFilename[512] = {0};
 MovieData currMovieData;
 MovieData defaultMovieData;
-int currRerecordCount;
 
 char lagcounterbuf[32] = {0};
 
@@ -345,10 +345,10 @@ void MovieRecord::dumpBinary(MovieData* md, EMUFILE* os, int index)
 
 void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
 {
-	//dump the misc commands
+	// dump the misc commands
 	//*os << '|' << setw(1) << (int)commands;
 	os->fputc('|');
-	putdec<uint8,1,true>(os,commands);
+	putdec<uint8,3,false>(os, commands);	// "variable length decimal integer"
 
 	//a special case: if fourscore is enabled, dump four gamepads
 	if(md->fourscore)
@@ -902,7 +902,6 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, int _pauseframe)
 	pauseframe = _pauseframe;
 	movie_readonly = _read_only;
 	movieMode = MOVIEMODE_PLAY;
-	currRerecordCount = currMovieData.rerecordCount;
 
 	if(movie_readonly)
 		FCEU_DispMessage("Replay started Read-Only.",0);
@@ -973,7 +972,6 @@ void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 
 	movieMode = MOVIEMODE_RECORD;
 	movie_readonly = false;
-	currRerecordCount = 0;
 
 	FCEU_DispMessage("Movie recording started.",0);
 }
@@ -1003,29 +1001,30 @@ void FCEUMOV_AddInputState()
 		joyports[0].load(mr);
 		joyports[1].load(mr);
 		// replay commands
-		if(mr->command_power())
+		if (mr->command_power())
 			PowerNES();
-		if(mr->command_reset())
+		if (mr->command_reset())
 			ResetNES();
-		if(mr->command_fds_insert())
+		if (mr->command_fds_insert())
 			FCEU_FDSInsert();
-		if(mr->command_fds_select())
+		if (mr->command_fds_select())
 			FCEU_FDSSelect();
+		if (mr->command_vs_insertcoin())
+			FCEU_VSUniCoin();
 		_currCommand = 0;
 	} else
 #endif
-	if(movieMode == MOVIEMODE_PLAY)
+	if (movieMode == MOVIEMODE_PLAY)
 	{
 		//stop when we run out of frames
-		if(currFrameCounter >= (int)currMovieData.records.size())
+		if (currFrameCounter >= (int)currMovieData.records.size())
 		{
 			FinishPlayback();
 			//tell all drivers to poll input and set up their logical states
 			for(int port=0;port<2;port++)
 				joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
 			portFC.driver->Update(portFC.ptr,portFC.attrib);
-		}
-		else
+		} else
 		{
 			MovieRecord* mr = &currMovieData.records[currFrameCounter];
 
@@ -1038,13 +1037,15 @@ void FCEUMOV_AddInputState()
 				FCEU_FDSInsert();
 			if(mr->command_fds_select())
 				FCEU_FDSSelect();
+			if (mr->command_vs_insertcoin())
+				FCEU_VSUniCoin();
 
 			joyports[0].load(mr);
 			joyports[1].load(mr);
 		}
 
 		//if we are on the last frame, then pause the emulator if the player requested it
-		if(currFrameCounter == currMovieData.records.size()-1)
+		if (currFrameCounter == currMovieData.records.size()-1)
 		{
 			if(FCEUD_PauseAfterPlayback())
 			{
@@ -1053,14 +1054,13 @@ void FCEUMOV_AddInputState()
 		}
 
 		//pause the movie at a specified frame
-		if(FCEUMOV_ShouldPause() && FCEUI_EmulationPaused()==0)
+		if (FCEUMOV_ShouldPause() && FCEUI_EmulationPaused()==0)
 		{
 			FCEUI_ToggleEmulationPause();
 			FCEU_DispMessage("Paused at specified movie frame",0);
 		}
 
-	}
-	else if(movieMode == MOVIEMODE_RECORD)
+	} else if(movieMode == MOVIEMODE_RECORD)
 	{
 		MovieRecord mr;
 
@@ -1093,12 +1093,16 @@ void FCEUMOV_AddCommand(int cmd)
 	if(movieMode != MOVIEMODE_RECORD && movieMode != MOVIEMODE_TASEDITOR)
 		return;
 
-	//NOTE: EMOVIECMD matches FCEUNPCMD_RESET and FCEUNPCMD_POWER
-	//we are lucky (well, I planned it that way)
-
-	switch(cmd) {
+	// translate "FCEU NetPlay" command to "FCEU Movie" command
+	switch (cmd)
+	{
+		case FCEUNPCMD_RESET: cmd = MOVIECMD_RESET; break;
+		case FCEUNPCMD_POWER: cmd = MOVIECMD_POWER; break;
 		case FCEUNPCMD_FDSINSERT: cmd = MOVIECMD_FDS_INSERT; break;
 		case FCEUNPCMD_FDSSELECT: cmd = MOVIECMD_FDS_SELECT; break;
+		case FCEUNPCMD_VSUNICOIN: cmd = MOVIECMD_VS_INSERTCOIN; break;
+		// all other netplay commands (e.g. FCEUNPCMD_VSUNIDIP0) are not supported by movie recorder for now
+		default: return;
 	}
 
 	_currCommand |= cmd;
@@ -1402,11 +1406,10 @@ void FCEUMOV_IncrementRerecordCount()
 {
 #ifdef _S9XLUA_H
 	if(!FCEU_LuaRerecordCountSkip())
-		currRerecordCount++;
+		currMovieData.rerecordCount++;
 #else
-	currRerecordCount++;
+	currMovieData.rerecordCount++;
 #endif
-	currMovieData.rerecordCount = currRerecordCount;
 }
 
 void FCEUI_MovieToggleFrameDisplay(void)
@@ -1483,11 +1486,9 @@ void FCEUI_MovieToggleReadOnly()
 	if(movie_readonly)
 		strcpy(message, "Movie is now Read+Write");
 	else
-	{
 		strcpy(message, "Movie is now Read-Only");
-	}
 
-	if(movieMode == MOVIEMODE_INACTIVE)
+	if (movieMode == MOVIEMODE_INACTIVE)
 		strcat(message, " (no movie)");
 	else if (movieMode == MOVIEMODE_FINISHED)
 		strcat(message, " (finished)");
@@ -1507,10 +1508,10 @@ void FCEUI_MoviePlayFromBeginning(void)
 	{
 		if (currMovieData.savestate.empty())
 		{
-			movie_readonly=true;
+			movie_readonly = true;
 			movieMode = MOVIEMODE_PLAY;
 			poweron(true);
-			currFrameCounter=0;
+			currFrameCounter = 0;
 			FCEU_DispMessage("Movie is now Read-Only. Playing from beginning.",0);
 		}
 		else

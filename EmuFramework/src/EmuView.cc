@@ -72,12 +72,12 @@ void EmuView::placeEmu()
 
 			if(gameAR > Gfx::proj.aspectRatio)
 			{
-				scaleFactor = std::max(1U, Gfx::viewPixelWidth() / gameX);
+				scaleFactor = std::max(1U, Base::mainWindow().viewPixelWidth() / gameX);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1U, Gfx::viewPixelHeight() / gameY);
+				scaleFactor = std::max(1U, Base::mainWindow().viewPixelHeight() / gameY);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
@@ -85,23 +85,19 @@ void EmuView::placeEmu()
 			gameRect_.y = 0;
 			gameRect_.x2 = gameX * scaleFactor;
 			gameRect_.y2 = gameY * scaleFactor;
-			gameRect_.setPos({(int)Gfx::viewPixelWidth()/2 - gameRect_.x2/2, (int)Gfx::viewPixelHeight()/2 - gameRect_.y2/2});
+			gameRect_.setPos({(int)Base::mainWindow().viewPixelWidth()/2 - gameRect_.x2/2, (int)Base::mainWindow().viewPixelHeight()/2 - gameRect_.y2/2});
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
 		if((uint)optionImageZoom <= 100 || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
-			Rational aR(EmuSystem::aspectRatioX, EmuSystem::aspectRatioY);
-			if(optionAspectRatio == 1U)
-				aR = {1, 1};
-			else if(optionAspectRatio == 2U)
-				aR = {0, 1};
+			auto aR = optionAspectRatio.val;
 
 			if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				GC width = Gfx::iYSize(gameRect_.ySize()) * (GC)aR;
-				if(!aR)
+				GC width = Gfx::iYSize(gameRect_.ySize()) * aR.ratio<GC>();
+				if(!aR.x)
 				{
 					width = Gfx::proj.w;
 				}
@@ -111,9 +107,9 @@ void EmuView::placeEmu()
 			else
 			{
 				IG::Point2D<GC> size { Gfx::proj.w, Gfx::proj.h };
-				if(aR)
+				if(aR.x)
 				{
-					size = IG::sizesWithRatioBestFit((GC)aR, size.x, size.y);
+					size = IG::sizesWithRatioBestFit(aR.ratio<GC>(), size.x, size.y);
 				}
 				gameRectG.x = -size.x/2.;
 				gameRectG.x2 = size.x/2.;
@@ -139,27 +135,18 @@ void EmuView::placeEmu()
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 		if(Gfx::proj.aspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
 		{
-			if(vController.gp.dp.origin.onBottom() && vController.gp.btnO.onBottom())
+			auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom())
 			{
 				logMsg("moving game rect to top");
-				if(vController.gp.cenBtnO.onTop())
-				{
-					yOffset = Gfx::iXSize(-vController.gp.centerBtnBound[0].ySize());
-					yOffsetPixels = -vController.gp.centerBtnBound[0].ySize();
-				}
 				gameRectG.setYPos(Gfx::proj.rect.y, CT2DO);
 				gameRect_.setYPos(0, CT2DO);
 			}
-			else if(vController.gp.dp.origin.onTop() && vController.gp.btnO.onTop())
+			else if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				logMsg("moving game rect to bottom");
-				if(vController.gp.cenBtnO.onBottom())
-				{
-					yOffset = Gfx::iXSize(vController.gp.centerBtnBound[0].ySize());
-					yOffsetPixels = vController.gp.centerBtnBound[0].ySize();
-				}
 				gameRectG.setYPos(Gfx::proj.rect.y2, CB2DO);
-				gameRect_.setYPos(Gfx::viewPixelHeight(), CB2DO);
+				gameRect_.setYPos(Base::mainWindow().viewPixelHeight(), CB2DO);
 			}
 		}
 		#endif
@@ -223,18 +210,14 @@ void EmuView::drawContent()
 	disp.draw();
 	vidImgOverlay.draw();
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	if(active && ((touchControlsAreOn && touchControlsApplicable())
+	/*if(active && ((touchControlsAreOn && touchControlsApplicable())
 		#ifdef CONFIG_VCONTROLLER_KEYBOARD
 		|| vController.kbMode
 		#endif
-	))
+	))*/
+	if(active)
 	{
-		vController.draw();
-		if(optionShowMenuIcon)
-		{
-			setBlendMode(BLEND_MODE_INTENSITY);
-			menuIcon.draw();
-		}
+		vController.draw(touchControlsAreOn && touchControlsApplicable(), ffGuiKeyPush || ffGuiTouch);
 	}
 	#endif
 	popup.draw();
@@ -256,15 +239,19 @@ void EmuView::draw(Gfx::FrameTimeBase frameTime)
 		#ifdef CONFIG_BASE_PS3
 		setColor(1., 1., 1., 1.); // hack to work-around non-working GFX_IMG_MODE_REPLACE
 		#endif
-		Base::displayNeedsUpdate();
-
+		displayNeedsUpdate();
+		#ifdef CONFIG_BASE_MULTI_WINDOW
+		extern Base::Window secondWin;
+		if(secondWin)
+			secondWin.displayNeedsUpdate();
+		#endif
 		runFrame(frameTime);
 	}
 	else if(EmuSystem::isStarted())
 	{
 		setBlendMode(0);
 		setImgMode(IMG_MODE_MODULATE);
-		setColor(.33, .33, .33, 1.);
+		setColor(.25, .25, .25);
 		resetTransforms();
 		drawContent<0>();
 	}
@@ -305,27 +292,10 @@ void EmuView::runFrame(Gfx::FrameTimeBase frameTime)
 void EmuView::place()
 {
 	placeEmu();
-	//if(emuActive)
-	{
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-			//if(touchControlsAreOn())
-			{
-				EmuControls::setupVControllerVars();
-				vController.place();
-			}
-			if(optionTouchCtrlMenuPos != NULL2DO)
-			{
-				menuB = Gfx::relRectFromViewport(0, 0, Gfx::xSMMSizeToPixel(9), optionTouchCtrlMenuPos, optionTouchCtrlMenuPos);
-			}
-			if(optionTouchCtrlFFPos != NULL2DO)
-			{
-				fastForwardB = Gfx::relRectFromViewport(0, 0, Gfx::xSMMSizeToPixel(9), optionTouchCtrlFFPos, optionTouchCtrlFFPos);
-			}
-			using namespace Gfx;
-			menuIcon.setPos(gXPos(menuB, LB2DO) + gXSize(menuB) / 4.0, gYPos(menuB, LB2DO) + gYSize(menuB) / 3.0,
-					gXPos(menuB, RT2DO) - gXSize(menuB) / 4.0, gYPos(menuB, RT2DO) - gYSize(menuB) / 3.0);
-		#endif
-	}
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+	EmuControls::setupVControllerVars();
+	vController.place();
+	#endif
 }
 
 void EmuView::takeGameScreenshot()
@@ -354,13 +324,14 @@ void EmuView::inputEvent(const Input::Event &e)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
 	{
-		if(e.state == Input::PUSHED && optionTouchCtrlMenuPos != NULL2DO && menuB.overlaps(e.x, e.y))
+		auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+		if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps({e.x, e.y}))
 		{
 			viewStack.top()->clearSelection();
 			restoreMenuFromGame();
 			return;
 		}
-		else if(e.state == Input::PUSHED && optionTouchCtrlFFPos != NULL2DO && fastForwardB.overlaps(e.x, e.y))
+		else if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps({e.x, e.y}))
 		{
 			toggle(ffGuiTouch);
 		}
@@ -372,6 +343,7 @@ void EmuView::inputEvent(const Input::Event &e)
 		{
 			vController.applyInput(e);
 		}
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
 			#ifdef CONFIG_VCONTROLLER_KEYBOARD
 			&& !vController.kbMode
@@ -383,6 +355,7 @@ void EmuView::inputEvent(const Input::Event &e)
 			touchControlsAreOn = 1;
 			placeEmu();
 		}
+		#endif
 	}
 	else
 	#elif defined INPUT_SUPPORTS_POINTER
@@ -437,8 +410,8 @@ void EmuView::inputEvent(const Input::Event &e)
 						logMsg("open load game menu from key event");
 						restoreMenuFromGame();
 						viewStack.popToRoot();
-						auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>();
-						fPicker.init(Input::keyInputIsPresent());
+						auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(window());
+						fPicker.init(Input::keyInputIsPresent(), false);
 						viewStack.useNavView = 0;
 						viewStack.pushAndShow(&fPicker, &menuAllocator);
 						return;
@@ -455,13 +428,38 @@ void EmuView::inputEvent(const Input::Event &e)
 					bcase guiKeyIdxSaveState:
 					if(e.state == Input::PUSHED)
 					{
-						int ret = EmuSystem::saveState();
-						if(ret != STATE_RESULT_OK)
+						static auto doSaveState =
+							[]()
+							{
+								int ret = EmuSystem::saveState();
+								if(ret != STATE_RESULT_OK)
+									popup.postError(stateResultToStr(ret));
+								else
+									popup.post("State Saved");
+							};
+
+						if(EmuSystem::shouldOverwriteExistingState())
 						{
-							popup.postError(stateResultToStr(ret));
+							doSaveState();
 						}
 						else
-							popup.post("State Saved");
+						{
+							auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+							ynAlertView.init("Really Overwrite State?", !e.isPointer());
+							ynAlertView.onYes() =
+								[](const Input::Event &e)
+								{
+									doSaveState();
+									startGameFromMenu();
+								};
+							ynAlertView.onNo() =
+								[](const Input::Event &e)
+								{
+									startGameFromMenu();
+								};
+							View::addModalView(ynAlertView);
+							restoreMenuFromGame();
+						}
 						return;
 					}
 
@@ -506,7 +504,7 @@ void EmuView::inputEvent(const Input::Event &e)
 					if(e.state == Input::PUSHED)
 					{
 						logMsg("request exit from key event");
-						auto &ynAlertView = *allocModalView<YesNoAlertView>();
+						auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 						ynAlertView.init("Really Exit?", Input::keyInputIsPresent());
 						ynAlertView.onYes() =
 							[](const Input::Event &e)

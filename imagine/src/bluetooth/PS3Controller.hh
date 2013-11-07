@@ -18,25 +18,28 @@
 #include <bluetooth/sys.hh>
 #include <input/Input.hh>
 #include <input/AxisKeyEmu.hh>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 
-class PS3Controller : public BluetoothInputDevice
+class PS3Controller : public BluetoothInputDevice, public Input::Device
 {
 public:
-	PS3Controller(BluetoothAddr addr): addr(addr) { }
+	PS3Controller(BluetoothAddr addr):
+		Device {0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
+		addr(addr)
+	{}
 	CallResult open(BluetoothAdapter &adapter) override;
 	CallResult open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	CallResult open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
 	void removeFromSystem() override;
-	bool dataHandler(const uchar *data, size_t size);
+	bool dataHandler(const char *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void setLEDs(uint player);
 
-	static StaticDLList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+	static StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	static uint findFreeDevId();
-	static uchar playerLEDs(int player);
+	static uchar playerLEDs(uint player);
 	void sendFeatureReport();
 	uchar prevData[3] {0};
 	Input::AxisKeyEmu<int> axisKey[4]
@@ -47,7 +50,6 @@ private:
 		{64, 192, Input::PS3::RSTICK_UP, Input::PS3::RSTICK_DOWN}   // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
-	Input::Device *device = nullptr;
 	uint player = 0;
 	BluetoothAddr addr;
 	bool didSetLEDs = false;

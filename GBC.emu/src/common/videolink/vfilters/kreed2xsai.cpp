@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   Copyright (C) 1999 Derek Liauw Kie Fa (Kreed)                         *
  *                                                                         *
@@ -23,212 +23,211 @@
 
 namespace {
 
-static inline int getResult1(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
+static int getResult1(unsigned long const a,
+                      unsigned long const b,
+                      unsigned long const c,
+                      unsigned long const d)
+{
 	int x = 0;
 	int y = 0;
 	int r = 0;
-	
+
 	if (a == c) ++x;
 	else if (b == c) ++y;
-	
+
 	if (a == d) ++x;
 	else if (b == d) ++y;
-	
+
 	if (x <= 1) ++r;
-	
 	if (y <= 1) --r;
-	
+
 	return r;
 }
 
-static inline int getResult2(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
+static int getResult2(unsigned long const a,
+                      unsigned long const b,
+                      unsigned long const c,
+                      unsigned long const d)
+{
 	int x = 0;
 	int y = 0;
 	int r = 0;
-	
+
 	if (a == c) ++x;
 	else if (b == c) ++y;
-	
+
 	if (a == d) ++x;
 	else if (b == d) ++y;
-	
+
 	if (x <= 1) --r;
-	
 	if (y <= 1) ++r;
-	
+
 	return r;
 }
 
-static inline unsigned long interpolate(const unsigned long a, const unsigned long b) {
+static unsigned long interpolate(unsigned long a, unsigned long b) {
 	return (a + b - ((a ^ b) & 0x010101)) >> 1;
 }
 
-static inline unsigned long qInterpolate(const unsigned long a, const unsigned long b, const unsigned long c, const unsigned long d) {
-	const unsigned long lowBits = ((a & 0x030303) + (b & 0x030303) + (c & 0x030303) + (d & 0x030303)) & 0x030303;
-	
+static unsigned long qInterpolate(unsigned long const a,
+                                  unsigned long const b,
+                                  unsigned long const c,
+                                  unsigned long const d)
+{
+	unsigned long lowBits = ((a & 0x030303)
+	                         + (b & 0x030303)
+	                         + (c & 0x030303)
+	                         + (d & 0x030303)) & 0x030303;
 	return (a + b + c + d - lowBits) >> 2;
 }
 
-template<unsigned srcPitch, unsigned width, unsigned height>
-static void filter(gambatte::uint_least32_t *dstPtr, const int dstPitch, const gambatte::uint_least32_t *srcPtr)
+template<std::ptrdiff_t srcPitch, unsigned width, unsigned height>
+static void filter(gambatte::uint_least32_t *dstPtr,
+                   std::ptrdiff_t const dstPitch,
+                   gambatte::uint_least32_t const *srcPtr)
 {
-	unsigned h = height;
-	
-	while (h--) {
-		const gambatte::uint_least32_t *bP = srcPtr;
+	for (unsigned h = height; h--;) {
+		gambatte::uint_least32_t const *bP = srcPtr;
 		gambatte::uint_least32_t *dP = dstPtr;
-		
-		for (unsigned finish = width; finish--;) {
-			register unsigned long colorA, colorB;
-			unsigned long colorC, colorD,
-				colorE, colorF, colorG, colorH,
-				colorI, colorJ, colorK, colorL,
-				
-				colorM, colorN, colorO, colorP;
-			unsigned long product, product1, product2;
-			
-      //---------------------------------------
-      // Map of the pixels:                    I|E F|J
-      //                                       G|A B|K
-      //                                       H|C D|L
-      //                                       M|N O|P
+		for (unsigned w = width; w--;) {
+			unsigned long colorA, colorB, colorC, colorD,
+			              colorE, colorF, colorG, colorH,
+			              colorI, colorJ, colorK, colorL,
+			              colorM, colorN, colorO/*, colorP*/;
+
+			//---------------------------------------
+			// Map of the pixels:                    I|E F|J
+			//                                       G|A B|K
+			//                                       H|C D|L
+			//                                       M|N O|P
+
 			colorI = *(bP - srcPitch - 1);
-			colorE = *(bP - srcPitch);
+			colorE = *(bP - srcPitch    );
 			colorF = *(bP - srcPitch + 1);
 			colorJ = *(bP - srcPitch + 2);
-			
+
 			colorG = *(bP - 1);
-			colorA = *(bP);
+			colorA = *(bP    );
 			colorB = *(bP + 1);
 			colorK = *(bP + 2);
-			
+
 			colorH = *(bP + srcPitch - 1);
-			colorC = *(bP + srcPitch);
+			colorC = *(bP + srcPitch    );
 			colorD = *(bP + srcPitch + 1);
 			colorL = *(bP + srcPitch + 2);
-			
+
 			colorM = *(bP + srcPitch * 2 - 1);
-			colorN = *(bP + srcPitch * 2);
+			colorN = *(bP + srcPitch * 2    );
 			colorO = *(bP + srcPitch * 2 + 1);
-			colorP = *(bP + srcPitch * 2 + 2);
-			
+			// colorP = *(bP + srcPitch * 2 + 2);
+
+			unsigned long product0, product1, product2;
 			if (colorA == colorD && colorB != colorC) {
-				if ((colorA == colorE && colorB == colorL) ||
-				    (colorA == colorC && colorA == colorF
-				     && colorB != colorE && colorB == colorJ)) {
-					     product = colorA;
-				     } else {
-					     product = interpolate(colorA, colorB);
-				     }
-				
-				if ((colorA == colorG && colorC == colorO) ||
-				    (colorA == colorB && colorA == colorH
-				     && colorG != colorC && colorC == colorM)) {
-					     product1 = colorA;
-				     } else {
-					     product1 = interpolate(colorA, colorC);
-				     }
+				product0 =    (colorA == colorE && colorB == colorL)
+				           || (colorA == colorC && colorA == colorF
+				               && colorB != colorE && colorB == colorJ)
+				         ? colorA
+				         : interpolate(colorA, colorB);
+				product1 =    (colorA == colorG && colorC == colorO)
+				           || (colorA == colorB && colorA == colorH
+				               && colorG != colorC && colorC == colorM)
+				         ? colorA
+				         : interpolate(colorA, colorC);
 				product2 = colorA;
 			} else if (colorB == colorC && colorA != colorD) {
-				if ((colorB == colorF && colorA == colorH) ||
-				    (colorB == colorE && colorB == colorD
-				     && colorA != colorF && colorA == colorI)) {
-					     product = colorB;
-				     } else {
-					     product = interpolate(colorA, colorB);
-				     }
-				
-				if ((colorC == colorH && colorA == colorF) ||
-				    (colorC == colorG && colorC == colorD
-				     && colorA != colorH && colorA == colorI)) {
-					     product1 = colorC;
-				     } else {
-					     product1 = interpolate(colorA, colorC);
-				     }
+				product0 =    (colorB == colorF && colorA == colorH)
+				           || (colorB == colorE && colorB == colorD
+				               && colorA != colorF && colorA == colorI)
+				         ? colorB
+				         : interpolate(colorA, colorB);
+				product1 =    (colorC == colorH && colorA == colorF)
+				           || (colorC == colorG && colorC == colorD
+				               && colorA != colorH && colorA == colorI)
+				         ? colorC
+				         : interpolate(colorA, colorC);
 				product2 = colorB;
 			} else if (colorA == colorD && colorB == colorC) {
 				if (colorA == colorB) {
-					product = colorA;
+					product0 = colorA;
 					product1 = colorA;
 					product2 = colorA;
 				} else {
-					register int r = 0;
-					
+					product0 = interpolate(colorA, colorB);
 					product1 = interpolate(colorA, colorC);
-					product = interpolate(colorA, colorB);
-					
+
+					int r = 0;
 					r += getResult1(colorA, colorB, colorG, colorE);
 					r += getResult2(colorB, colorA, colorK, colorF);
 					r += getResult2(colorB, colorA, colorH, colorN);
 					r += getResult1(colorA, colorB, colorL, colorO);
-					
-					if (r > 0)
+					if (r > 0) {
 						product2 = colorA;
-					else if (r < 0)
+					} else if (r < 0) {
 						product2 = colorB;
-					else {
+					} else {
 						product2 = qInterpolate(colorA, colorB, colorC, colorD);
 					}
 				}
 			} else {
 				product2 = qInterpolate(colorA, colorB, colorC, colorD);
-				
+
 				if (colorA == colorC && colorA == colorF
-				    && colorB != colorE && colorB == colorJ) {
-					    product = colorA;
-				    } else if (colorB == colorE && colorB == colorD
-				               && colorA != colorF && colorA == colorI) {
-					               product = colorB;
-				               } else {
-					               product = interpolate(colorA, colorB);
-				               }
-				
+						&& colorB != colorE && colorB == colorJ) {
+					product0 = colorA;
+				} else if (colorB == colorE && colorB == colorD
+						&& colorA != colorF && colorA == colorI) {
+					product0 = colorB;
+				} else {
+					product0 = interpolate(colorA, colorB);
+				}
+
 				if (colorA == colorB && colorA == colorH
-				    && colorG != colorC && colorC == colorM) {
-					    product1 = colorA;
-				    } else if (colorC == colorG && colorC == colorD
-				               && colorA != colorH && colorA == colorI) {
-					               product1 = colorC;
-				               } else {
-					               product1 = interpolate(colorA, colorC);
-				               }
+						&& colorG != colorC && colorC == colorM) {
+					product1 = colorA;
+				} else if (colorC == colorG && colorC == colorD
+						&& colorA != colorH && colorA == colorI) {
+					product1 = colorC;
+				} else {
+					product1 = interpolate(colorA, colorC);
+				}
 			}
-			*dP = colorA;
-			*(dP + 1) = product;
-			*(dP + dstPitch) = product1;
+
+			*(dP               ) = colorA;
+			*(dP            + 1) = product0;
+			*(dP + dstPitch    ) = product1;
 			*(dP + dstPitch + 1) = product2;
-			
-			++bP;
 			dP += 2;
+			++bP;
 		}
-		
+
 		srcPtr += srcPitch;
 		dstPtr += dstPitch * 2;
 	}
 }
 
-enum { WIDTH  = VfilterInfo::IN_WIDTH };
-enum { HEIGHT = VfilterInfo::IN_HEIGHT };
-enum { PITCH  = WIDTH + 3 };
-enum { BUF_SIZE = (HEIGHT + 3) * PITCH };
-enum { BUF_OFFSET = PITCH + 1 };
+enum { in_width  = VfilterInfo::in_width };
+enum { in_height = VfilterInfo::in_height };
+enum { in_pitch  = in_width + 3 };
+enum { buf_size = (in_height + 3ul) * in_pitch };
+enum { buf_offset = in_pitch + 1 };
 
-}
+} // anon namespace
 
 Kreed2xSaI::Kreed2xSaI()
-: buffer_(BUF_SIZE)
+: buffer_(buf_size)
 {
 	std::fill_n(buffer_.get(), buffer_.size(), 0);
 }
 
-void* Kreed2xSaI::inBuf() const {
-	return buffer_ + BUF_OFFSET;
+void * Kreed2xSaI::inBuf() const {
+	return buffer_ + buf_offset;
 }
 
-int Kreed2xSaI::inPitch() const {
-	return PITCH;
+std::ptrdiff_t Kreed2xSaI::inPitch() const {
+	return in_pitch;
 }
 
-void Kreed2xSaI::draw(void *const dbuffer, const int pitch) {
-	::filter<PITCH, WIDTH, HEIGHT>(static_cast<gambatte::uint_least32_t*>(dbuffer), pitch, buffer_ + BUF_OFFSET);
+void Kreed2xSaI::draw(void *dbuffer, std::ptrdiff_t dpitch) {
+	::filter<in_pitch, in_width, in_height>(static_cast<gambatte::uint_least32_t *>(dbuffer),
+	                                        dpitch, buffer_ + buf_offset);
 }

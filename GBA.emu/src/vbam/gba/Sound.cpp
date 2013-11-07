@@ -83,7 +83,7 @@ const int   SOUND_CLOCK_TICKS  = SOUND_CLOCK_TICKS_;
 class GbaSound
 {
 public:
-#ifndef __clang_major__
+#ifndef __clang__
 	constexpr GbaSound() { }
 #endif
 
@@ -369,55 +369,17 @@ static void end_frame( blip_time_t time )
 	stereo_buffer.end_frame( time );
 }
 
-#if !defined(CONFIG_AUDIO_ALSA) && !defined(CONFIG_AUDIO_SDL) && !defined(CONFIG_AUDIO_PS3)
-	// use WIP direct buffer write API
-	#define USE_DIRECT_AUDIO_COMMIT
-#endif
-
-#ifdef USE_DIRECT_AUDIO_COMMIT
-u16 *systemObtainSoundBuffer(uint samples, uint &buffSamples, void *&ctx);
-void systemCommitSoundBuffer(uint writtenSamples, void *&ctx);
-#endif
-
-void dummySound(Multi_Buffer *buffer, uint samples)
-{
-	u16 dummy[samples];
-	buffer->read_samples( (blip_sample_t*) dummy, samples );
-}
-
 void flush_samples(Multi_Buffer * buffer, bool renderAudio)
 {
 	// Write one video frame worth of audio
-	{
-		uint samples = buffer->samples_avail();
-		if(likely(renderAudio))
-		{
-#ifdef USE_DIRECT_AUDIO_COMMIT
-			uint buffSamples;
-			void *buffContext;
-			u16 *soundFinalWave = systemObtainSoundBuffer(samples, buffSamples, buffContext);
-			if(unlikely(!soundFinalWave))
-			{
-				dummySound(buffer, samples);
-				return;
-			}
-			samples = std::min(samples, buffSamples);
-			buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
-			systemCommitSoundBuffer(samples, buffContext);
-#else
-			u16 soundFinalWave[1600];
-			samples = std::min(samples, uint(sizeof soundFinalWave / 2));
-			buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
-			systemOnWriteDataToSoundBuffer(soundFinalWave, samples*2);
-#endif
-		}
-		else
-		{
-			dummySound(buffer, samples);
-		}
-		//if(soundPaused)
-		//	soundResume();
-	}
+	uint samples = buffer->samples_avail();
+	u16 soundFinalWave[1616];
+	samples = std::min(samples, uint(sizeof soundFinalWave / 2));
+	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
+	if(likely(renderAudio))
+		systemOnWriteDataToSoundBuffer(soundFinalWave, samples*2);
+	//if(soundPaused)
+	//	soundResume();
 }
 
 static void apply_filtering()

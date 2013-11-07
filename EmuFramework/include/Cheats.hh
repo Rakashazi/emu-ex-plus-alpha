@@ -18,15 +18,19 @@
 #include <util/gui/BaseMenuView.hh>
 #include <EmuSystem.hh>
 
+using RefreshCheatsDelegate = DelegateFunc<void ()>;
+
 class BaseCheatsView : public BaseMenuView
 {
 protected:
 	TextMenuItem edit;
 	MenuItem *item[EmuCheats::MAX + 1] = {nullptr};
+	RefreshCheatsDelegate onRefreshCheats;
 
 public:
-	BaseCheatsView();
+	BaseCheatsView(Base::Window &win);
 	void init(bool highlightFirst);
+	void deinit() override;
 	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
 };
 
@@ -36,7 +40,7 @@ protected:
 	TextMenuItem name, remove;
 
 public:
-	EditCheatView(const char *name);
+	EditCheatView(const char *name, Base::Window &win);
 	void loadNameItem(const char *name, MenuItem *item[], uint &items);
 	void loadRemoveItem(MenuItem *item[], uint &items);
 	virtual void renamed(const char *str) = 0;
@@ -47,10 +51,12 @@ class BaseEditCheatListView : public BaseMenuView
 {
 protected:
 	MenuItem *item[EmuCheats::MAX + EmuCheats::MAX_CODE_TYPES] = {nullptr};
+	RefreshCheatsDelegate onRefreshCheats;
 
 public:
-	constexpr BaseEditCheatListView(): BaseMenuView("Edit Cheats") {}
+	BaseEditCheatListView(Base::Window &win);
 	void init(bool highlightFirst);
+	void deinit() override;
 	virtual void loadAddCheatItems(MenuItem *item[], uint &items) = 0;
 	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
 };

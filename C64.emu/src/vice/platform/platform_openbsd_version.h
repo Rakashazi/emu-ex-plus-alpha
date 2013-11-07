@@ -29,6 +29,10 @@
 
 #include <sys/param.h>
 
+#ifdef OpenBSD2_0
+#define PLATFORM_OS "OpenBSD 2.0"
+#endif
+
 #ifdef OpenBSD2_1
 #define PLATFORM_OS "OpenBSD 2.1"
 #endif
@@ -139,6 +143,22 @@
 
 #ifdef OpenBSD4_8
 #define PLATFORM_OS "OpenBSD 4.8"
+#endif
+
+#ifdef OpenBSD4_9
+#define PLATFORM_OS "OpenBSD 4.9"
+#endif
+
+#ifdef OpenBSD5_0
+#define PLATFORM_OS "OpenBSD 5.0"
+#endif
+
+#ifdef OpenBSD5_1
+#define PLATFORM_OS "OpenBSD 5.1"
+#endif
+
+#ifdef OpenBSD5_2
+#define PLATFORM_OS "OpenBSD 5.2"
 #endif
 
 #ifndef PLATFORM_OS

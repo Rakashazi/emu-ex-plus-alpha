@@ -19,7 +19,7 @@ public:
 
 	void setUSecs(long int usecs)
 	{
-		t = (struct timespec){ 0, (typeof(t.tv_nsec))(usecs*NSEC_PER_USEC) };
+		t = (struct timespec){ 0, (decltype(t.tv_nsec))(usecs*NSEC_PER_USEC) };
 	}
 
 	void setTimeNow()
@@ -39,6 +39,12 @@ public:
 		auto ms1 = t.tv_sec * MSEC_PER_SEC;
 		auto ms2 = t.tv_nsec / 1000000;
 		return ms1 + ms2;
+	}
+
+	int64 toNs()
+	{
+		int64 ns1 = (int64)t.tv_sec * NSEC_PER_SEC;
+		return ns1 + (int64)t.tv_nsec;
 	}
 
 	void addUSec(long int us)

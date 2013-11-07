@@ -226,15 +226,19 @@ static int ioutil_compare_names(const void* a, const void* b)
     return strcmp(arg1->name, arg2->name);
 }
 
+/*
+    NOTE: even when _DIRENT_HAVE_D_TYPE is defined, d_type may still be returned
+          as DT_UNKNOWN - in that case we must fall back to using stat instead.
+ */
 static int ioutil_count_dir_items(const char *path)
 {
     DIR *dirp;
     struct dirent *dp;
-#ifndef _DIRENT_HAVE_D_TYPE
+/* #ifndef _DIRENT_HAVE_D_TYPE */
     unsigned int len, isdir;
     char *filename;
     int retval;
-#endif
+/* #endif */
 
     dirs_amount = 0;
     files_amount = 0;
@@ -249,28 +253,31 @@ static int ioutil_count_dir_items(const char *path)
 
     while (dp != NULL) {
 #ifdef _DIRENT_HAVE_D_TYPE
-        if (dp->d_type == DT_DIR) {
-            dirs_amount++;
-        } else {
-            files_amount++;
-        }
-        dp = readdir(dirp);
-#else
-        filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
-        retval = ioutil_stat(filename, &len, &isdir);
-        if (retval == 0) {
-            if (isdir) {
+        if (dp->d_type != DT_UNKNOWN) {
+            if (dp->d_type == DT_DIR) {
                 dirs_amount++;
             } else {
                 files_amount++;
             }
+            dp = readdir(dirp);
+        } else {
+#endif
+            filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
+            retval = ioutil_stat(filename, &len, &isdir);
+            if (retval == 0) {
+                if (isdir) {
+                    dirs_amount++;
+                } else {
+                    files_amount++;
+                }
+            }
+            dp = readdir(dirp);
+            lib_free(filename);
+#ifdef _DIRENT_HAVE_D_TYPE
         }
-        dp = readdir(dirp);
-        lib_free(filename);
 #endif
     }
     closedir(dirp);
-
     return 0;
 }
 
@@ -280,11 +287,11 @@ static void ioutil_filldir(const char *path, ioutil_name_table_t *dirs, ioutil_n
     struct dirent *dp = NULL;
     int dir_count = 0;
     int file_count = 0;
-#ifndef _DIRENT_HAVE_D_TYPE
+/* #ifndef _DIRENT_HAVE_D_TYPE */
     unsigned int len, isdir;
     char *filename;
     int retval;
-#endif
+/* #endif */
 
     dirp = opendir(path);
 
@@ -292,28 +299,32 @@ static void ioutil_filldir(const char *path, ioutil_name_table_t *dirs, ioutil_n
 
     while (dp != NULL) {
 #ifdef _DIRENT_HAVE_D_TYPE
-        if (dp->d_type == DT_DIR) {
-            dirs[dir_count].name = lib_stralloc(dp->d_name);
-            dir_count++;
-        } else {
-            files[file_count].name = lib_stralloc(dp->d_name);
-            file_count++;
-        }
-        dp = readdir(dirp);
-#else
-        filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
-        retval = ioutil_stat(filename, &len, &isdir);
-        if (retval == 0) {
-            if (isdir) {
+        if (dp->d_type != DT_UNKNOWN) {
+            if (dp->d_type == DT_DIR) {
                 dirs[dir_count].name = lib_stralloc(dp->d_name);
                 dir_count++;
             } else {
                 files[file_count].name = lib_stralloc(dp->d_name);
                 file_count++;
             }
+            dp = readdir(dirp);
+        } else {
+#endif
+            filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
+            retval = ioutil_stat(filename, &len, &isdir);
+            if (retval == 0) {
+                if (isdir) {
+                    dirs[dir_count].name = lib_stralloc(dp->d_name);
+                    dir_count++;
+                } else {
+                    files[file_count].name = lib_stralloc(dp->d_name);
+                    file_count++;
+                }
+            }
+            dp = readdir(dirp);
+            lib_free(filename);
+#ifdef _DIRENT_HAVE_D_TYPE
         }
-        dp = readdir(dirp);
-        lib_free(filename);
 #endif
     }
     closedir(dirp);

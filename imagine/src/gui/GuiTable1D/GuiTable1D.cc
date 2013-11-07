@@ -45,7 +45,7 @@ void GuiTable1D::setYCellSize(int s)
 	viewRect.y2 = viewRect.y + ((cells * s)-1);
 }
 
-bool GuiTable1D::inputEvent(const Input::Event &e)
+bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 {
 	using namespace IG;
 	if(cells == 0)
@@ -55,7 +55,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 
 	if(e.isPointer())
 	{
-		if(!viewRect.overlaps(e.x, e.y) || e.button != Input::Pointer::LBUTTON)
+		if(!viewRect.overlaps({e.x, e.y}) || e.button != Input::Pointer::LBUTTON)
 		{
 			//logMsg("cursor not in table");
 			return false;
@@ -68,7 +68,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 			if(i >= 0 && i < cells)
 			{
 				selected = i;
-				Base::displayNeedsUpdate();
+				view.displayNeedsUpdate();
 				usedInput = true;
 			}
 		}
@@ -80,7 +80,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 			{
 				logDMsg("entry %d pushed", i);
 				selectedIsActivated = 1;
-				Base::displayNeedsUpdate();
+				view.displayNeedsUpdate();
 				usedInput = true;
 				src->onSelectElement(this, e, i);
 				selected = -1;
@@ -104,7 +104,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 				selected = wrapToBound(selected-1, 0, cells);
 			}
 			logMsg("up, selected %d", selected);
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 			usedInput = true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
@@ -115,7 +115,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 			else
 				selected = wrapToBound(selected+1, 0, cells);
 			logMsg("down, selected %d", selected);
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultConfirmButton())
@@ -125,7 +125,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 				logDMsg("entry %d pushed", selected);
 				selectedIsActivated = 1;
 				src->onSelectElement(this, e, selected);
-				Base::displayNeedsUpdate();
+				view.displayNeedsUpdate();
 				usedInput = true;
 			}
 		}
@@ -136,7 +136,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 			else
 				selected = clipToBounds(selected-visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultPageDownButton())
@@ -146,7 +146,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e)
 			else
 				selected = clipToBounds(selected+visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 			usedInput = true;
 		}
 	}
@@ -206,9 +206,9 @@ void GuiTable1D::draw()
 			/*if(selectedIsActivated)
 				gfx_setColor(0, 0, 1., .8);
 			else*/
-				setColor(0, 0, 1., .5);
+				setColor(.2, .71, .9, 1./3.);
 
-			Rect2<GC> d(iXPos(x), iYPos(y) - iYSize(yCellSize),
+			IG::Rect2<GC> d(iXPos(x), iYPos(y) - iYSize(yCellSize),
 				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y));
 			GeomRect::draw(d);
 		}
@@ -216,8 +216,8 @@ void GuiTable1D::draw()
 		{
 			//resetTransforms();
 			setBlendMode(0);
-			setColor(.5, .5, .5);
-			Rect2<GC> d(iXPos(x), iYPos(y),
+			setColor(.2, .2, .2);
+			IG::Rect2<GC> d(iXPos(x), iYPos(y),
 				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y) + separatorYSize);
 			GeomRect::draw(d);
 		}
@@ -236,10 +236,10 @@ void GuiTable1D::draw()
 	}
 }
 
-Rect2<int> GuiTable1D::focusRect()
+IG::Rect2<int> GuiTable1D::focusRect()
 {
 	if(selected >= 0)
-		return Rect2<int>::createRel(viewRect.xPos(LT2DO), viewRect.yPos(LT2DO) + (yCellSize*selected), viewRect.xSize(), yCellSize);
+		return IG::makeRectRel<int>(viewRect.xPos(LT2DO), viewRect.yPos(LT2DO) + (yCellSize*selected), viewRect.xSize(), yCellSize);
 	else
-		return Rect2<int>();
+		return {};
 }

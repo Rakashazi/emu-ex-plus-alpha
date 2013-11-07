@@ -177,7 +177,6 @@ class TIA : public Device
     uInt8* currentFrameBuffer() const
       { return myCurrentFrameBuffer + myFramePointerOffset; }
 
-	#ifndef NO_DUAL_FRAME_BUFFER
     /**
       Answers the previous frame buffer
 
@@ -185,7 +184,6 @@ class TIA : public Device
     */
     uInt8* previousFrameBuffer() const
       { return myPreviousFrameBuffer + myFramePointerOffset; }
-	#endif
 
     /**
       Answers the width and height of the frame buffer
@@ -402,10 +400,8 @@ class TIA : public Device
     // Pointer to the current frame buffer
     uInt8* myCurrentFrameBuffer;
 
-	#ifndef NO_DUAL_FRAME_BUFFER
     // Pointer to the previous frame buffer
     uInt8* myPreviousFrameBuffer;
-	#endif
 
     // Pointer to the next pixel that will be drawn in the current frame buffer
     uInt8* myFramePointer;

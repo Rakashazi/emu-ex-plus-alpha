@@ -479,9 +479,9 @@ int main(int argc, char** argv)
 	#endif
 
 	#ifdef CONFIG_INPUT
-	doOrExit(Input::init());
+	doOrAbort(Input::init());
 	#endif
-	doOrExit(onInit(argc, argv));
+	doOrAbort(onInit(argc, argv));
 	engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_BASE_SDL_PDL

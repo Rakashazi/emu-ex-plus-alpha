@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart2K.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart2K.hxx 2682 2013-04-05 20:45:42Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE2K_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Cart2KWidget.hxx"
+#endif
 
 /**
   This is the standard Atari 2K cartridge.  These cartridges 
@@ -31,10 +34,12 @@ class System;
   2600's 4K cartridge addressing space.
 
   @author  Bradford W. Mott
-  @version $Id: Cart2K.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Cart2K.hxx 2682 2013-04-05 20:45:42Z stephena $
 */
 class Cartridge2K : public Cartridge
 {
+  friend class Cartridge2KWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -120,6 +125,18 @@ class Cartridge2K : public Cartridge
       @return The name of the object
     */
     string name() const { return "Cartridge2K"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new Cartridge2KWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

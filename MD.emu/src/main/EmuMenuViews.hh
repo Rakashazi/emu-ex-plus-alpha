@@ -10,9 +10,9 @@ public:
 
 	BoolMenuItem sixButtonPad
 	{
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			option6BtnPad = item.on;
 			setupMDInput();
 			vController.place();
@@ -20,18 +20,18 @@ public:
 	},
 	multitap
 	{
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			usingMultiTap = item.on;
 			setupMDInput();
 		}
 	},
 	smsFM
 	{
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionSmsFM = item.on;
 			config_ym2413_enabled = optionSmsFM;
 		}
@@ -40,23 +40,19 @@ public:
 	{
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>();
+			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
 					"Turn on to make them compatible with other emulators like Gens. "
 					"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
 			ynAlertView.onYes() =
-				[this](const Input::Event &e)
+				[this, &item](const Input::Event &e)
 				{
-					bigEndianSram.toggle();
-					optionBigEndianSram = bigEndianSram.on;
+					item.toggle(*this);
+					optionBigEndianSram = item.on;
 				};
 			View::addModalView(ynAlertView);
 		}
 	};
-
-
-
-
 
 	MultiChoiceSelectMenuItem region
 	{
@@ -83,9 +79,9 @@ public:
 		region.init(str, setting, sizeofArray(str));
 	}
 
-
-
 	#ifndef NO_SCD
+	static constexpr const char *biosHeadingStr[3] = { "USA CD BIOS", "Japan CD BIOS", "Europe CD BIOS" };
+
 	static int regionCodeToIdx(int region)
 	{
 		switch(region)
@@ -106,7 +102,6 @@ public:
 		}
 	}
 
-	BiosSelectMenu biosSelectMenu;
 	char cdBiosPathStr[3][256] { {0} };
 	TextMenuItem cdBiosPath[3]
 	{
@@ -125,21 +120,15 @@ public:
 			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath;
 			bcase REGION_EUROPE: path = cdBiosEurPath;
 		}
-		const char *regionStr = "";
-		switch(region)
-		{
-			bdefault: regionStr = "USA";
-			bcase REGION_JAPAN_NTSC: regionStr = "Japan";
-			bcase REGION_EUROPE: regionStr = "Europe";
-		}
+		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
 		FsSys::cPath basenameTemp;
-		string_printf(str, "%s CD BIOS: %s", regionStr, strlen(path) ? string_basename(path, basenameTemp) : "None set");
+		string_printf(str, "%s: %s", regionStr, strlen(path) ? string_basename(path, basenameTemp) : "None set");
 	}
 
 	void cdBiosPathHandler(const Input::Event &e, int region)
 	{
-		biosSelectMenu.init(&regionCodeToStrBuffer(region), mdROMFsFilter, !e.isPointer());
-		biosSelectMenu.placeRect(Gfx::viewportRect());
+		auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>(biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), mdROMFsFilter, window());
+		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.onBiosChange() =
 			[this, region]()
 			{
@@ -148,8 +137,7 @@ public:
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile();
 			};
-		modalView = &biosSelectMenu;
-		Base::displayNeedsUpdate();
+		viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
 	}
 
 	void cdBiosPathInit(MenuItem *item[], uint &items)
@@ -225,7 +213,9 @@ public:
 	}
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win):
+		OptionView(win)
+	{}
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{
@@ -273,6 +263,10 @@ public:
 	}
 };
 
+#ifndef NO_SCD
+constexpr const char *SystemOptionView::biosHeadingStr[3];
+#endif
+
 #include "EmuCheatViews.hh"
 #include "MenuView.hh"
 
@@ -281,18 +275,19 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu);
+				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
 			}
 		}
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

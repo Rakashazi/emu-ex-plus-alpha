@@ -36,7 +36,7 @@ void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gf
 	//logMsg("has back:%p close:%p", leftSpr.img, rightSpr.img);
 }
 
-void FSPicker::FSNavView::draw()
+void FSPicker::FSNavView::draw(const Base::Window &win)
 {
 	using namespace Gfx;
 	resetTransforms();
@@ -45,7 +45,7 @@ void FSPicker::FSNavView::draw()
 	setColor(COLOR_WHITE);
 	if(text.xSize > gXSize(textRect) - GuiTable1D::globalXIndent*2)
 	{
-		setClipRectBounds(textRect);
+		setClipRectBounds(win, textRect);
 		setClipRect(1);
 		text.draw(gXPos(textRect, RC2DO) - GuiTable1D::globalXIndent, gYPos(viewRect, RC2DO), RC2DO);
 		setClipRect(0);
@@ -59,7 +59,7 @@ void FSPicker::FSNavView::draw()
 		if(leftBtnActive)
 		{
 			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_INTENSITY);
+			setBlendMode(BLEND_MODE_ALPHA);
 			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
 			//applyRollRotate(angle_fromDegree(90));
 			leftSpr.draw();
@@ -70,7 +70,7 @@ void FSPicker::FSNavView::draw()
 		if(rightBtnActive)
 		{
 			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_INTENSITY);
+			setBlendMode(BLEND_MODE_ALPHA);
 			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
 			rightSpr.draw();
 		}
@@ -82,7 +82,7 @@ void FSPicker::FSNavView::place()
 	NavView::place();
 	if(hasBackBtn)
 	{
-		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/6., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/5.);
+		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/3., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/3.);
 	}
 	if(hasCloseBtn)
 	{
@@ -124,11 +124,11 @@ void FSPicker::place()
 	tbl.setYCellSize(faceRes->nominalHeight()*2);
 
 	//logMsg("setting viewRect");
-	navV.viewRect.setPosRel(viewFrame.x, viewFrame.y, viewFrame.xSize(), faceRes->nominalHeight() * 1.75, LT2DO);
-	Rect2<int> tableFrame = viewFrame;
+	navV.viewRect.setPosRel({viewFrame.x, viewFrame.y}, viewFrame.xSize(), faceRes->nominalHeight() * 1.75, LT2DO);
+	IG::Rect2<int> tableFrame = viewFrame;
 	tableFrame.setYPos(navV.viewRect.yPos(LB2DO));
 	tableFrame.y2 -= navV.viewRect.ySize();
-	tbl.place(&tableFrame);
+	tbl.place(&tableFrame, *this);
 	//logMsg("nav %d, table %d, content %d", gfx_toIYSize(navV.view.ySize), tbl.viewFrame.ySize(), tbl.contentFrame->ySize());
 
 	navV.place();
@@ -140,7 +140,7 @@ void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
 	if(!e.isPointer() && tbl.cells)
 		tbl.selected = 0;
 	place();
-	Base::displayNeedsUpdate();
+	displayNeedsUpdate();
 }
 
 void FSPicker::onLeftNavBtn(const Input::Event &e)
@@ -167,14 +167,14 @@ void FSPicker::inputEvent(const Input::Event &e)
 		logMsg("going up a dir");
 		changeDirByInput("..", e);
 	}
-	else if(e.isPointer() && navV.viewRect.overlaps(e.x, e.y) && !tbl.scroll.active)
+	else if(e.isPointer() && navV.viewRect.overlaps({e.x, e.y}) && !tbl.scroll.active)
 	{
 		navV.inputEvent(e);
 		return;
 	}
 	else
 	{
-		tbl.inputEvent(e);
+		tbl.inputEvent(e, *this);
 	}
 }
 
@@ -182,16 +182,14 @@ void FSPicker::draw(Gfx::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
-	tbl.draw();
-	/*gfx_resetTransforms();
-	gfx_setBlendMode(GFX_BLEND_MODE_ALPHA);
-	gfx_setColor(1., 0, 0, .25);
-	GeomRect::draw(&tableFrame, 1.);*/
-	navV.draw();
+	tbl.draw(*this);
+	navV.draw(window());
 }
 
 void FSPicker::drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
 {
+	using namespace Gfx;
+	setColor(COLOR_WHITE);
 	text[i].draw(xPos, yPos, xSize, ySize, align);
 }
 
@@ -223,14 +221,14 @@ void FSPicker::loadDir(const char *path)
 		if(!text)
 		{
 			logMsg("out of memory loading directory");
-			Base::exit(); // TODO: handle without exiting
+			Base::abort(); // TODO: handle without exiting
 		}
 		iterateTimes(dir.numEntries(), i)
 		{
 			text[i].init(dir.entryFilename(i), 1, faceRes);
 		}
 	}
-	tbl.init(this, dir.numEntries());
+	tbl.init(this, dir.numEntries(), *this);
 	#if defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB)
 	navV.setTitle("Documents");
 	#else

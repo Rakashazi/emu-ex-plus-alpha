@@ -27,27 +27,48 @@ static int xPointerMapping[Input::maxCursors];
 static XkbDescPtr coreKeyboardDesc = nullptr;
 static Device *vkbDevice = nullptr;
 
-struct XInputDevice
+struct XInputDevice : public Device
 {
+	int id = -1;
+	char nameStr[80] {0};
+	bool iCadeMode_ = false;
+
 	constexpr XInputDevice() {}
-	XInputDevice(const XIDeviceInfo &info): id(info.deviceid)
+
+	constexpr XInputDevice(uint typeBits, const char *name):
+		Device(0, Event::MAP_KEYBOARD, typeBits, name)
+	{}
+
+	XInputDevice(const XIDeviceInfo &info, int enumId):
+		Device(enumId, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, nameStr),
+		id(info.deviceid)
 	{
-		string_copy(name, info.name);
+		string_copy(nameStr, info.name);
 	}
-	Device *dev = nullptr;
-	int id = 0;
-	char name[80] {0};
+
+	#ifdef CONFIG_INPUT_ICADE
+	void setICadeMode(bool on) override
+	{
+		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+		iCadeMode_ = on;
+	}
+
+	bool iCadeMode() const override
+	{
+		return iCadeMode_;
+	}
+	#endif
 };
 
-static StaticArrayList<XInputDevice, 16> xDevice;
+static StaticArrayList<XInputDevice*, 16> xDevice;
 
 static const Device *deviceForInputId(int osId)
 {
 	iterateTimes(xDevice.size(), i)
 	{
-		if(xDevice.at(i).id == osId)
+		if(xDevice[i]->id == osId)
 		{
-			return xDevice.at(i).dev;
+			return xDevice[i];
 		}
 	}
 	if(!vkbDevice)
@@ -66,7 +87,7 @@ void setKeyRepeat(bool on)
 	allowKeyRepeats = on;
 }
 
-static void initPerWindowData(X11Window win)
+void initPerWindowData(::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -74,21 +95,24 @@ static void initPerWindowData(X11Window win)
 	}
 	else
 	{
-		// make a blank cursor
-		char data[1] = {0};
-		auto blank = XCreateBitmapFromData(dpy, win, data, 1, 1);
-		if(blank == None)
+		if(!blankCursor)
 		{
-			logErr("unable to create blank cursor");
+			// make a blank cursor
+			char data[1] = {0};
+			auto blank = XCreateBitmapFromData(dpy, win, data, 1, 1);
+			if(blank == None)
+			{
+				logErr("unable to create blank cursor");
+			}
+			XColor dummy;
+			blankCursor = XCreatePixmapCursor(dpy, blank, blank, &dummy, &dummy, 0, 0);
+			XFreePixmap(dpy, blank);
+			normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
 		}
-		XColor dummy;
-		blankCursor = XCreatePixmapCursor(dpy, blank, blank, &dummy, &dummy, 0, 0);
-		XFreePixmap(dpy, blank);
-		normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
 	}
 }
 
-void hideCursor()
+void hideCursor(::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 		XFixesHideCursor(dpy, win);
@@ -96,7 +120,7 @@ void hideCursor()
 		XDefineCursor(dpy, win, Input::blankCursor);
 }
 
-void showCursor()
+void showCursor(::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 		XFixesShowCursor(dpy, win);
@@ -106,6 +130,7 @@ void showCursor()
 
 bool Device::anyTypeBitsPresent(uint typeBits)
 {
+	// TODO
 	if(typeBits & TYPE_BIT_KEYBOARD)
 	{
 		return 1;
@@ -168,7 +193,7 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 		logMsg("skipping X key input device %d (%s)", xDevInfo.deviceid, xDevInfo.name);
 		return;
 	}
-	forEachInContainer(xDevice, e)
+	for(auto &e : xDevice)
 	{
 		if(xDevInfo.deviceid == e->id)
 		{
@@ -178,34 +203,37 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 	}
 	logMsg("adding X key input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
 	uint devId = 0;
-	forEachInDLList(&devList, e)
+	for(auto &e : devList)
 	{
-		if(e.map() != Event::MAP_KEYBOARD)
+		if(e->map() != Event::MAP_KEYBOARD)
 			continue;
-		if(string_equal(e.name(), xDevInfo.name) && e.devId == devId)
+		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
 	}
-	xDevice.emplace_back(xDevInfo);
-	addDevice(Device{devId, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, xDevice.back().name});
-	xDevice.back().dev = devList.last();
+	auto dev = new XInputDevice(xDevInfo, devId);
+	xDevice.push_back(dev);
+	addDevice(*dev);
 	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
 		|| string_equal(xDevInfo.name, "keypad")))
 	{
-		xDevice.back().dev->subtype = Device::SUBTYPE_PANDORA_HANDHELD;
+		dev->subtype_ = Device::SUBTYPE_PANDORA_HANDHELD;
 	}
 	if(notify)
-		onInputDevChange((DeviceChange){ 0, Event::MAP_KEYBOARD, DeviceChange::ADDED });
+		onInputDevChange(*dev, { Device::Change::ADDED });
 }
 
 static void removeXInputDevice(int xDeviceId)
 {
 	forEachInContainer(xDevice, e)
 	{
-		if(e->id == xDeviceId)
+		auto dev = *e;
+		if(dev->id == xDeviceId)
 		{
-			removeDevice(*e->dev);
+			auto removedDev = *dev;
+			removeDevice(*dev);
+			delete dev;
 			xDevice.erase(e);
-			onInputDevChange((DeviceChange){ 0, Event::MAP_KEYBOARD, DeviceChange::REMOVED });
+			onInputDevChange(removedDev, { Device::Change::REMOVED });
 			return;
 		}
 	}
@@ -244,9 +272,9 @@ CallResult init()
 	}
 
 	// setup device list
-	addDevice(Device{0, Event::MAP_KEYBOARD,
-		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual"});
-	vkbDevice = devList.last();
+	static XInputDevice virt{Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual"};
+	addDevice(virt);
+	vkbDevice = &virt;
 	int devices;
 	XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
 	iterateTimes(devices, i)
@@ -278,40 +306,40 @@ CallResult init()
 
 }
 
-static void updatePointer(uint event, int p, uint action, int x, int y)
+static void updatePointer(Base::Window &win, uint event, int p, uint action, int x, int y)
 {
 	using namespace Input;
 	auto &state = dragStateArr[p];
-	auto pos = pointerPos(x, y);
+	auto pos = pointerPos(win, x - win.viewRect.x, y - win.viewRect.y);
 	state.pointerEvent(event, action, pos);
-	onInputEvent(Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, nullptr));
+	onInputEvent(win, Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, nullptr));
 }
 
-static void handlePointerButton(uint button, int p, uint action, int x, int y)
+static void handlePointerButton(Base::Window &win, uint button, int p, uint action, int x, int y)
 {
-	updatePointer(button, p, action, x, y);
+	updatePointer(win, button, p, action, x, y);
 }
 
-static void handlePointerMove(int x, int y, int p)
-{
-	Input::m[p].inWin = 1;
-	updatePointer(0, p, Input::MOVED, x, y);
-}
-
-static void handlePointerEnter(int p, int x, int y)
+static void handlePointerMove(Base::Window &win, int x, int y, int p)
 {
 	Input::m[p].inWin = 1;
-	updatePointer(0, p, Input::ENTER_VIEW, x, y);
+	updatePointer(win, 0, p, Input::MOVED, x, y);
 }
 
-static void handlePointerLeave(int p, int x, int y)
+static void handlePointerEnter(Base::Window &win, int p, int x, int y)
+{
+	Input::m[p].inWin = 1;
+	updatePointer(win, 0, p, Input::ENTER_VIEW, x, y);
+}
+
+static void handlePointerLeave(Base::Window &win, int p, int x, int y)
 {
 	Input::m[p].inWin = 0;
-	updatePointer(0, p, Input::EXIT_VIEW, x, y);
+	updatePointer(win, 0, p, Input::EXIT_VIEW, x, y);
 }
 
-static void handleKeyEv(KeySym k, uint action, bool isShiftPushed, const Input::Device *dev)
+static void handleKeyEv(Base::Window &win, KeySym k, uint action, bool isShiftPushed, const Input::Device *dev)
 {
 	//logMsg("got keysym %d", (int)k);
-	Input::onInputEvent(Input::Event(dev->devId, Input::Event::MAP_KEYBOARD, k & 0xFFFF, action, isShiftPushed, dev));
+	Input::onInputEvent(win, Input::Event(dev->enumId(), Input::Event::MAP_KEYBOARD, k & 0xFFFF, action, isShiftPushed, dev));
 }

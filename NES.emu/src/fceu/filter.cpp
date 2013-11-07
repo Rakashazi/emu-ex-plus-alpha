@@ -96,7 +96,7 @@ template void SexyFilter(FCEU_SoundSample *in, FCEU_SoundSample *out, int32 coun
    code to be higher, or you *might* overflow the FIR code.
 */
 
-int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen, int32 *leftover)
+int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen, int32 *leftover, FCEU_SoundSample* WaveFinal)
 {
 	uint32 x;
 	uint32 max;

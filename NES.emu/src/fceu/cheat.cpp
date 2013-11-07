@@ -281,16 +281,16 @@ void FCEU_LoadGameCheats(FILE *override)
 		fclose(fp);
 }
 
-void FCEU_FlushGameCheats(FILE *override, int nosave)
+void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
 {
-	if(CheatComp)
+	if(freeCheats && CheatComp)
 	{
 		free(CheatComp);
 		CheatComp=0;
 	}
 	if((!savecheats || nosave) && !override)	/* Always save cheats if we're being overridden. */
 	{
-		if(cheats)
+		if(freeCheats && cheats)
 		{
 			struct CHEATF *next=cheats;
 			for(;;)
@@ -339,10 +339,12 @@ void FCEU_FlushGameCheats(FILE *override, int nosave)
 					else
 						fprintf(fp,"%04x:%02x:%s\n",next->addr,next->val,next->name);
 
-					free(next->name);
+					if(freeCheats)
+						free(next->name);
 					t=next;
 					next=next->next;
-					free(t);
+					if(freeCheats)
+						free(t);
 					if(!next) break;
 				}
 				if(!override)
@@ -350,15 +352,18 @@ void FCEU_FlushGameCheats(FILE *override, int nosave)
 			}
 			else
 				FCEUD_PrintError("Error saving cheats.");
-			cheats=cheatsl=0;
+			if(freeCheats)
+				cheats=cheatsl=0;
 		}
 		else if(!override)
 			remove(fn);
 		if(!override)
 			free(fn);
+		savecheats = 0;
 	}
 
-	RebuildSubCheats();  /* Remove memory handlers. */
+	if(freeCheats)
+		RebuildSubCheats();  /* Remove memory handlers. */
 
 }
 

@@ -4,7 +4,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-libXfixesVer := 5.0
+libXfixesVer := 5.0.1
 libXfixesSrcDir := libXfixes-$(libXfixesVer)
 libXfixesSrcArchive := libXfixes-$(libXfixesVer).tar.bz2
 
@@ -26,6 +26,7 @@ install : $(outputLibFile)
 $(libXfixesSrcDir)/configure : $(libXfixesSrcArchive)
 	@echo "Extracting libXfixes..."
 	tar -mxjf $^
+	cd $(libXfixesSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libXfixes..."
@@ -34,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libXfixesSrcDir)/configure
 	@echo "Configuring libXfixes..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXfixesSrcDir)/configure --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXfixesSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

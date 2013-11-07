@@ -30,8 +30,11 @@
    - Windows 95B (x86)
    - Windows 95C (x86)
    - Windows 98 (x86)
+   - Windows 98 Security (x86)
    - Windows 98 Second Edition (x86)
+   - Windows 98 Second Edition Security (x86)
    - Windows Millenium Edition (x86)
+   - Windows Millenium Edition Security (x86)
    - Windows NT 3.50 Workstation (x86)
    - Windows NT 3.50 Server (x86)
    - Windows NT 3.51 Workstation (x86)
@@ -78,6 +81,7 @@
    - Windows 2008 Enterprise Server (x86/x64)
    - Windows 2008 Datacenter Server (x86/x64)
    - Windows 2008 HPC Server (x64)
+   - Windows Thin PC (x86)
    - Windows 7 Starter (x86)
    - Windows 7 Home Basic (x86/x64)
    - Windows 7 Home Premium (x86/x64)
@@ -421,6 +425,10 @@ static winver_t windows_versions[] = {
       6, 0, 10, VER_NT_SERVER, 0, PRODUCT_SERVER_FOR_SMALLBUSINESS, -1 },
     { "Windows 2008 Foundation Server", VER_PLATFORM_WIN32_NT,
       6, 0, 10, VER_NT_SERVER, 0, PRODUCT_SERVER_FOUNDATION, -1 },
+    { "Windows Thin PC", VER_PLATFORM_WIN32_NT,
+      6, 1, 10, VER_NT_WORKSTATION, VER_SUITE_EMBEDDEDNT, 1, -1 },
+    { "Windows 7 Embedded", VER_PLATFORM_WIN32_NT,
+      6, 1, 10, VER_NT_WORKSTATION, VER_SUITE_EMBEDDEDNT, -1, -1 },
     { "Windows 7 Starter", VER_PLATFORM_WIN32_NT,
       6, 1, 10, VER_NT_WORKSTATION, 0, PRODUCT_STARTER, -1 },
     { "Windows 7 Home Basic", VER_PLATFORM_WIN32_NT,
@@ -597,6 +605,9 @@ static char *get_win95_version(void)
 
 static char *get_win98_version(void)
 {
+    if (!strncmp(os_version_info.szCSDVersion, "A", 1)) {
+        return " (Security)";
+    }
     if (!strncmp(os_version_info.szCSDVersion, " A", 2)) {
         return "SE";
     }
@@ -749,6 +760,19 @@ static int is_cluster(void)
     return 0;
 }
 
+static int is_thin_pc(void)
+{
+    HKEY hKey;
+    LONG ret;
+
+    ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\ThinPC", 0, KEY_QUERY_VALUE, &hKey);
+    if (ret == ERROR_SUCCESS) {
+        RegCloseKey(hKey);
+        return 1;
+    }
+    return 0;
+}
+
 char *platform_get_windows_runtime_os(void)
 {
     int found = 0;
@@ -812,9 +836,13 @@ char *platform_get_windows_runtime_os(void)
             }
         }
         if (windows_versions[0].majorver >= 6) {
-            ViceGetProductInfo = (VGPI)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
-            ViceGetProductInfo(os_version_ex_info.dwMajorVersion, os_version_ex_info.dwMinorVersion, 0, 0, &PT);
-            windows_versions[0].pt6 = PT;
+            if (windows_versions[0].suite | VER_SUITE_EMBEDDEDNT == VER_SUITE_EMBEDDEDNT) {
+                windows_versions[0].pt6 = is_thin_pc();
+            } else {
+                ViceGetProductInfo = (VGPI)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
+                ViceGetProductInfo(os_version_ex_info.dwMajorVersion, os_version_ex_info.dwMinorVersion, 0, 0, &PT);
+                windows_versions[0].pt6 = PT;
+            }
         } else {
             windows_versions[0].pt6 = -1;
         }
@@ -887,7 +915,7 @@ char *platform_get_windows_runtime_os(void)
             if (windows_versions[0].minorver == 0) {
                 sprintf(windows_version, "%s%s", windows_version, get_win95_version());
             }
-            if (windows_versions[0].minorver == 10) {
+            if (windows_versions[0].minorver == 10 || windows_versions[0].minorver == 90) {
                 sprintf(windows_version, "%s%s", windows_version, get_win98_version());
             }
         } else {

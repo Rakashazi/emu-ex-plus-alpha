@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartMC.hxx 2695 2013-04-17 17:25:13Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEMC_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartMCWidget.hxx"
+#endif
 
 /**
   This is the cartridge class for Chris Wilkson's Megacart.  It does not 
@@ -134,10 +137,12 @@ class System;
 
 
   @author  Bradford W. Mott
-  @version $Id: CartMC.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartMC.hxx 2695 2013-04-17 17:25:13Z stephena $
 */
 class CartridgeMC : public Cartridge
 {
+  friend class CartridgeMCWidget;
+
   public:
     /**
       Create a new cartridge using the specified image and size.  If the
@@ -225,6 +230,18 @@ class CartridgeMC : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeMC"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeMCWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Console.hxx 2705 2013-04-23 15:57:33Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -35,6 +35,7 @@ class CompuMate;
 #include "TIATables.hxx"
 #include "FrameBuffer.hxx"
 #include "Serializable.hxx"
+//#include "NTSCFilter.hxx"
 
 /**
   Contains detailed info about a console.
@@ -54,7 +55,7 @@ struct ConsoleInfo
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Console.hxx 2705 2013-04-23 15:57:33Z stephena $
 */
 class Console : public Serializable
 {
@@ -89,7 +90,7 @@ class Console : public Serializable
     */
     Controller& controller(Controller::Jack jack) const
     {
-    	return *myControllers[jack];
+      return *myControllers[jack];
     }
 
     /**
@@ -135,6 +136,14 @@ class Console : public Serializable
     M6532& riot() const { return *myRiot; }
 
     /**
+      Get the CompuMate handler used by the console
+      (only valid for CompuMate ROMs)
+
+      @return The CompuMate handler for this console (if it exists), otherwise 0
+    */
+    CompuMate* compumate() const { return myCMHandler; }
+
+    /**
       Saves the current state of this console class to the given Serializer.
 
       @param out The serializer device to save to.
@@ -168,6 +177,16 @@ class Console : public Serializable
       Query detailed information about this console.
     */
     const ConsoleInfo& about() const { return myConsoleInfo; }
+
+    /**
+      Set up the console to use the debugger.
+    */
+    void addDebugger();
+
+    /**
+      Informs the Console of a change in EventHandler state.
+    */
+    void stateChanged(EventHandler::State state);
 
   public:
     /**

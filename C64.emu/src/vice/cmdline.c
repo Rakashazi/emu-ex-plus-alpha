@@ -176,6 +176,7 @@ static cmdline_option_ram_t *lookup(const char *name, int *is_ambiguous)
 int cmdline_parse(int *argc, char **argv)
 {
     int i = 1;
+    int j;
 
     DBG(("cmdline_parse (argc:%d)\n", *argc));
     while ((i < *argc) && (argv[i] != NULL)) {
@@ -195,8 +196,10 @@ int cmdline_parse(int *argc, char **argv)
                     i++;
                     break;
                 }
-                archdep_startup_log_error("Invalid option '%s'.\n", argv[i]);
-                return -1;
+                /* This is a kludge to allow --long options */
+                for (j = 0; j < (int)strlen(argv[i]); j++) {
+                    argv[i][j] = argv[i][j + 1];
+                }
             }
 
             p = lookup(argv[i], &is_ambiguous);

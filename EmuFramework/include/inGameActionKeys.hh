@@ -119,6 +119,50 @@ Input::Keycode::SEARCH, \
 0, \
 Input::Keycode::ESCAPE
 
+#define EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT \
+0, \
+Input::Keycode::MENU, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::Ouya::R2, \
+0, \
+0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::MENU, \
+0, \
+0, \
+0, \
+0, \
+0, \
+0, \
+0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT \
+0, \
+0, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::JS_RTRIGGER_AXIS, \
+0, \
+Input::Keycode::ESCAPE
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_MINIMAL_PROFILE_INIT \
+0, \
+0, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::JS_RTRIGGER_AXIS, \
+0, \
+Input::Keycode::ESCAPE
+
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT \
 0, \
 Input::Keycode::GAME_1, \

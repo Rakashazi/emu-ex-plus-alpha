@@ -24,6 +24,15 @@
 #include <gui/FSPicker/FSPicker.hh>
 #include <util/gui/ViewStack.hh>
 
+struct AspectRatioInfo
+{
+	constexpr AspectRatioInfo(const char *name, int n, int d): name(name), aspect{Rational::make<uint>(n, d)} {}
+	const char *name;
+	IG::Point2D<uint> aspect;
+};
+
+#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", 1, 1}, {"Full Screen", 0, 1}
+
 class EmuSystem
 {
 	public:
@@ -40,15 +49,19 @@ class EmuSystem
 	static Gfx::FrameTimeBase startFrameTime;
 	static int emuFrameNow;
 	static Audio::PcmFormat pcmFormat;
+	static uint audioFramesPerVideoFrame;
 	static const uint optionFrameSkipAuto;
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
+	static const AspectRatioInfo aspectRatioInfo[];
+	static const uint aspectRatioInfos;
 
 	static void cancelAutoSaveStateTimer();
 	static void startAutoSaveStateTimer();
 	static int loadState(int slot = saveStateSlot);
 	static int saveState();
 	static bool stateExists(int slot);
+	static bool shouldOverwriteExistingState();
 	static const char *savePath() { return strlen(savePath_) ? savePath_ : gamePath; }
 	static void sprintStateFilename(char *str, size_t size, int slot,
 		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName);
@@ -64,6 +77,7 @@ class EmuSystem
 	static void savePathChanged();
 	static void resetGame();
 	static void initOptions();
+	static void onOptionsLoaded();
 	static void writeConfig(Io *io);
 	static bool readConfig(Io *io, uint key, uint readSize);
 	static int loadGame(const char *path);
@@ -79,6 +93,7 @@ class EmuSystem
 	{
 		auto prevFormat = pcmFormat;
 		configAudioRate();
+		audioFramesPerVideoFrame = pcmFormat.rate / (vidSysIsPAL() ? 50 : 60);
 		if(prevFormat != pcmFormat && Audio::isOpen())
 		{
 			logMsg("PCM format has changed, closing existing playback");
@@ -95,6 +110,8 @@ class EmuSystem
 	}
 	static void stopSound();
 	static void startSound();
+	static void writeSound(const void *samples, uint framesToWrite);
+	static void commitSound(Audio::BufferContext buffer, uint frames);
 	static int setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime);
 	static void setupGamePaths(const char *filePath);
 
@@ -160,14 +177,15 @@ static const char *stateResultToStr(int res)
 	}
 }
 
-enum TriggerPosType { TRIGGERS_INLINE = 0, TRIGGERS_RIGHT = 1, TRIGGERS_LEFT = 2, TRIGGERS_SPLIT = 3 };
-
 static const char *stateNameStr(int slot)
 {
 	assert(slot >= -1 && slot < 10);
 	static const char *str[] = { "Auto", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 	return str[slot+1];
 }
+
+enum { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
+Gfx::BufferImage &getAsset(uint assetID);
 
 class EmuNavView : public BasicNavView
 {
@@ -178,7 +196,7 @@ public:
 };
 
 extern StackAllocator menuAllocator;
-extern uint8 modalViewStorage[2][4096] __attribute__((aligned));
+extern uint8 modalViewStorage[2][1024] __attribute__((aligned));
 extern uint modalViewStorageIdx;
 template<typename T, typename... ARGS>
 static T *allocModalView(ARGS&&... args)

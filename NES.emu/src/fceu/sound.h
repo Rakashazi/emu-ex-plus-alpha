@@ -46,11 +46,11 @@ extern int32 nesincsize;
 
 void SetSoundVariables(void);
 
-int GetSoundBuffer(FCEU_SoundSample **W);
-int FlushEmulateSound(void);
+//int GetSoundBuffer(FCEU_SoundSample **W);
+int FlushEmulateSound(FCEU_SoundSample *WaveFinal);
 extern FCEU_SoundSample Wave[2048+512];
 //extern FCEU_SoundSample WaveFinal[2048+512];
-extern FCEU_SoundSample *WaveFinal;
+//extern FCEU_SoundSample *WaveFinal;
 extern FCEU_SoundSample2 WaveHi[40000];
 extern uint32 soundtsinc;
 

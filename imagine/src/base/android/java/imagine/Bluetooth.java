@@ -31,7 +31,7 @@ final class Bluetooth
 	private static final Constructor<?> l2capInsecureSocketConstructor = Util.getConstructor(BluetoothSocket.class, new Class[] {int.class, int.class, boolean.class, boolean.class, BluetoothDevice.class, int.class, ParcelUuid.class});
 	private static final Method createInsecureRfcommSocket = Util.getMethod(BluetoothDevice.class, "createInsecureRfcommSocket", new Class[] { int.class });
 	
-	static BluetoothAdapter defaultAdapter(Activity act)
+	static BluetoothAdapter defaultAdapter()
 	{
 		BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 		if(adapter == null)
@@ -39,25 +39,27 @@ final class Bluetooth
 			//Log.i(logTag, "no bluetooth adapter found");
 			return null;
 		}
-		Context context = act.getApplicationContext();
-		context.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-		context.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
 		return adapter;
 	}
 	
-	static boolean startScan(BluetoothAdapter adapter)
+	static boolean startScan(Activity act, BluetoothAdapter adapter)
 	{
 		if(devs == null)
 			devs = new ArrayList<BluetoothDevice>();
 		devs.clear();
-		
 		if(adapter.isDiscovering())
 			adapter.cancelDiscovery();
+		Context context = act.getApplicationContext();
+		context.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+		context.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         return adapter.startDiscovery();
 	}
 	
-	static void cancelScan(BluetoothAdapter adapter)
+	static void cancelScan(Activity act, BluetoothAdapter adapter)
 	{
+		Context context = act.getApplicationContext();
+		context.unregisterReceiver(onDiscoveryFinished);
+		context.unregisterReceiver(onDeviceFound);
 		adapter.cancelDiscovery();
 		devs.clear();
 	}
@@ -94,6 +96,7 @@ final class Bluetooth
 			}
 			//Log.i(logTag, "connecting to socket");
 			socket.connect();
+			//Log.i(logTag, "complete");
 		}
 		catch(java.lang.IllegalAccessException e)
 		{
@@ -125,9 +128,9 @@ final class Bluetooth
 		@Override public void onReceive(Context context, Intent intent)
 		{
 			//Log.i(logTag, "discovery finished with " + devs.size() + " devs");
-			
+			context.unregisterReceiver(onDiscoveryFinished);
+			context.unregisterReceiver(onDeviceFound);
 			devs.clear();
-			
 			BaseActivity.onBTScanStatus(1);
 		}
 	};
@@ -139,14 +142,11 @@ final class Bluetooth
 			if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction()))
 			{
 				BluetoothDevice found = (BluetoothDevice)intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-				
 				//Log.i(logTag, "found device " + found.getBluetoothClass().getDeviceClass() + " " + found.getName());
-				
 				if(found.getName() == null)
 				{
 					return;
 				}
-				
 				for(BluetoothDevice d : devs)
 				{
 					if (d.getAddress().equals(found.getAddress()))
@@ -155,9 +155,7 @@ final class Bluetooth
 						return;
 					}
 				}
-				
 				devs.add(found);
-				
 				if(BaseActivity.onScanDeviceClass(found.getBluetoothClass().getDeviceClass()))
 				{
 					BaseActivity.onScanDeviceName(found.getName(), found.getAddress());

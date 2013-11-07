@@ -25,6 +25,7 @@
 #define iterateTimesRev(limit, i) for(int i = (limit)-1; i >= 0; i--)
 
 #ifdef __cplusplus
+#include <utility>
 
 #ifndef __clang_major__
 	#define static_assertIsPod(type) static_assert(__is_pod(type), #type " isn't POD")
@@ -115,5 +116,13 @@ static bool countToValueLooped(T &counter, T val)
 // Use when supplying a member function address to a Delegate to avoid
 // repeating the class name and produce the parameter pair
 #define template_mfunc(cls, mFunc) cls, &cls::mFunc
+
+template <class T>
+static T moveAndClear(T& v)
+{
+	auto temp = std::move(v);
+	v = {};
+	return std::move(temp);
+}
 
 #endif

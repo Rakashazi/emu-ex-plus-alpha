@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPC.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartDPC.hxx 2702 2013-04-20 22:23:42Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_DPC_HXX
@@ -24,17 +24,26 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartDPCWidget.hxx"
+#endif
 
 /**
   Cartridge class used for Pitfall II.  There are two 4K program banks, a 
-  2K display bank, and the DPC chip.  For complete details on the DPC chip 
-  see David P. Crane's United States Patent Number 4,644,495.
+  2K display bank, and the DPC chip.  The bankswitching itself is the same
+  as F8 scheme (hotspots at $1FF8 and $1FF9).  DPC chip access is mapped to
+  $1000 - $1080 ($1000 - $103F is read port, $1040 - $107F is write port).
+
+  For complete details on the DPC chip see David P. Crane's United States
+  Patent Number 4,644,495.
 
   @author  Bradford W. Mott
-  @version $Id: CartDPC.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartDPC.hxx 2702 2013-04-20 22:23:42Z stephena $
 */
 class CartridgeDPC : public Cartridge
 {
+  friend class CartridgeDPCWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -128,6 +137,18 @@ class CartridgeDPC : public Cartridge
     */
     string name() const { return "CartridgeDPC"; }
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeDPCWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
+
   public:
     /**
       Get the byte at the specified address.
@@ -159,7 +180,10 @@ class CartridgeDPC : public Cartridge
 
   private:
     // The ROM image
-    uInt8 myImage[8192 + 2048 + 255];
+    uInt8 myImage[8192 + 2048 + 256];
+
+    // (Actual) Size of the ROM image
+    uInt32 mySize;
 
     // Pointer to the 8K program ROM image of the cartridge
     uInt8* myProgramImage;

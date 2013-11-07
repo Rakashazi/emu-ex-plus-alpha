@@ -16,7 +16,6 @@
 #define thisModuleName "main"
 #include "MDFNWrapper.hh"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -30,7 +29,12 @@
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
+using namespace IG;
+
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 namespace PCE_Fast
 {
@@ -61,18 +65,27 @@ static int pceHuFsFilter(const char *name, int type)
 	return type == Fs::TYPE_DIR || isHuCardExtension(name);
 }
 
+static uint audioFramesPerUpdate = 0;
 Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::cPath sysCardPath = "";
 static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, sizeof(sysCardPath), "");
 
 const uint EmuSystem::maxPlayers = 5;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		{"8:7", 8, 7},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions() {}
+
+void EmuSystem::onOptionsLoaded()
 {
-	#ifndef CONFIG_BASE_ANDROID
-	optionFrameSkip.initDefault(optionFrameSkipAuto);
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.gp.activeFaceBtns = 2;
 	#endif
 }
 
@@ -356,18 +369,17 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
-	espec.SoundRate = (float)optionSoundRate * (vce.lc263 ? 0.99702 : 1.001);
+	espec.SoundRate = std::round((SysDDec)optionSoundRate * (vce.lc263 ? 0.99709 : 1.00086));
 	#ifdef CONFIG_ENV_WEBOS
-		if(optionFrameSkip != optionFrameSkipAuto)
-			espec.SoundRate *= 42660./44100.; // better sync with Pre's refresh rate
+	if(optionFrameSkip != optionFrameSkipAuto)
+		espec.SoundRate *= 42660./44100.; // better sync with Pre's refresh rate
 	#elif defined(CONFIG_BASE_PS3)
-		espec.SoundRate *= 1.0011;
+	espec.SoundRate *= 1.0011;
 	#endif
 	logMsg("emu sound rate %d, 262 lines %d, fskip %d", (int)espec.SoundRate, !vce.lc263, (int)optionFrameSkip);
 	PCE_Fast::applySoundFormat(&espec);
+	audioFramesPerUpdate = optionSoundRate/60.;
 }
-
-static const uint audioMaxFramesPerUpdate = (Audio::maxRate/59)*2;
 
 static bool renderToScreen = 0;
 void MDFND_commitVideoFrame()
@@ -390,72 +402,29 @@ void MDFND_commitVideoFrame()
 	}
 }
 
-#ifdef USE_NEW_AUDIO
-static Audio::BufferContext *aBuff = 0;
-#else
-static int16 audioBuff[(Audio::maxRate/59)*2];
-#endif
-
-
-static void setupEmuAudio(bool render)
-{
-	#ifdef USE_NEW_AUDIO
-	if(render && (aBuff = Audio::getPlayBuffer(audioMaxFramesPerUpdate)))
-	{
-		espec.SoundBuf = (int16*)aBuff->data;
-		espec.SoundBufMaxSize = aBuff->frames-1;
-	}
-	else
-	{
-		espec.SoundBuf = 0;
-	}
-	#else
-	espec.SoundBuf = render ? audioBuff : 0;
-	espec.SoundBufMaxSize = EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff));
-	#endif
-}
-
-static void commitEmuAudio(bool render)
-{
-	//logMsg("writing %d frames", espec.SoundBufSize);
-	if(render)
-	{
-	#ifdef USE_NEW_AUDIO
-		if(aBuff)
-		{
-			assert((uint)espec.SoundBufSize <= aBuff->frames);
-			Audio::commitPlayBuffer(aBuff, espec.SoundBufSize);
-		}
-	#else
-		assert((uint)espec.SoundBufSize <= EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff)));
-		Audio::writePcm((uchar*)audioBuff, espec.SoundBufSize);
-	#endif
-	}
-}
-
 #ifdef INPUT_SUPPORTS_POINTER
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	uint playerMask = player << 12;
-	map[SysVController::F_ELEM] = BIT(0) | playerMask;
-	map[SysVController::F_ELEM+1] = BIT(1) | playerMask;
-	map[SysVController::F_ELEM+2] = BIT(8) | playerMask;
-	map[SysVController::F_ELEM+3] = BIT(9) | playerMask;
-	map[SysVController::F_ELEM+4] = BIT(10) | playerMask;
-	map[SysVController::F_ELEM+5] = BIT(11) | playerMask;
+	map[SysVController::F_ELEM] = bit(0) | playerMask;
+	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
+	map[SysVController::F_ELEM+2] = bit(8) | playerMask;
+	map[SysVController::F_ELEM+3] = bit(9) | playerMask;
+	map[SysVController::F_ELEM+4] = bit(10) | playerMask;
+	map[SysVController::F_ELEM+5] = bit(11) | playerMask;
 
-	map[SysVController::C_ELEM] = BIT(2) | playerMask;
-	map[SysVController::C_ELEM+1] = BIT(3) | playerMask;
+	map[SysVController::C_ELEM] = bit(2) | playerMask;
+	map[SysVController::C_ELEM+1] = bit(3) | playerMask;
 
-	map[SysVController::D_ELEM] = BIT(4) | BIT(7) | playerMask;
-	map[SysVController::D_ELEM+1] = BIT(4) | playerMask;
-	map[SysVController::D_ELEM+2] = BIT(4) | BIT(5) | playerMask;
-	map[SysVController::D_ELEM+3] = BIT(7) | playerMask;
-	map[SysVController::D_ELEM+5] = BIT(5) | playerMask;
-	map[SysVController::D_ELEM+6] = BIT(6) | BIT(7) | playerMask;
-	map[SysVController::D_ELEM+7] = BIT(6) | playerMask;
-	map[SysVController::D_ELEM+8] = BIT(6) | BIT(5) | playerMask;
+	map[SysVController::D_ELEM] = bit(4) | bit(7) | playerMask;
+	map[SysVController::D_ELEM+1] = bit(4) | playerMask;
+	map[SysVController::D_ELEM+2] = bit(4) | bit(5) | playerMask;
+	map[SysVController::D_ELEM+3] = bit(7) | playerMask;
+	map[SysVController::D_ELEM+5] = bit(5) | playerMask;
+	map[SysVController::D_ELEM+6] = bit(6) | bit(7) | playerMask;
+	map[SysVController::D_ELEM+7] = bit(6) | playerMask;
+	map[SysVController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
 }
 
 #endif
@@ -469,24 +438,24 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
-		case pceKeyIdxUp: return BIT(4) | playerMask;
-		case pceKeyIdxRight: return BIT(5) | playerMask;
-		case pceKeyIdxDown: return BIT(6) | playerMask;
-		case pceKeyIdxLeft: return BIT(7) | playerMask;
-		case pceKeyIdxLeftUp: return BIT(7) | BIT(4) | playerMask;
-		case pceKeyIdxRightUp: return BIT(5) | BIT(4) | playerMask;
-		case pceKeyIdxRightDown: return BIT(5) | BIT(6) | playerMask;
-		case pceKeyIdxLeftDown: return BIT(7) | BIT(6) | playerMask;
-		case pceKeyIdxSelect: return BIT(2) | playerMask;
-		case pceKeyIdxRun: return BIT(3) | playerMask;
+		case pceKeyIdxUp: return bit(4) | playerMask;
+		case pceKeyIdxRight: return bit(5) | playerMask;
+		case pceKeyIdxDown: return bit(6) | playerMask;
+		case pceKeyIdxLeft: return bit(7) | playerMask;
+		case pceKeyIdxLeftUp: return bit(7) | bit(4) | playerMask;
+		case pceKeyIdxRightUp: return bit(5) | bit(4) | playerMask;
+		case pceKeyIdxRightDown: return bit(5) | bit(6) | playerMask;
+		case pceKeyIdxLeftDown: return bit(7) | bit(6) | playerMask;
+		case pceKeyIdxSelect: return bit(2) | playerMask;
+		case pceKeyIdxRun: return bit(3) | playerMask;
 		case pceKeyIdxITurbo: turbo = 1;
-		case pceKeyIdxI: return BIT(0) | playerMask;
+		case pceKeyIdxI: return bit(0) | playerMask;
 		case pceKeyIdxIITurbo: turbo = 1;
-		case pceKeyIdxII: return BIT(1) | playerMask;
-		case pceKeyIdxIII: return BIT(8) | playerMask;
-		case pceKeyIdxIV: return BIT(9) | playerMask;
-		case pceKeyIdxV: return BIT(10) | playerMask;
-		case pceKeyIdxVI: return BIT(11) | playerMask;
+		case pceKeyIdxII: return bit(1) | playerMask;
+		case pceKeyIdxIII: return bit(8) | playerMask;
+		case pceKeyIdxIV: return bit(9) | playerMask;
+		case pceKeyIdxV: return bit(10) | playerMask;
+		case pceKeyIdxVI: return bit(11) | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
@@ -504,19 +473,21 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	setupEmuAudio(renderAudio);
+	uint maxFrames = Audio::maxRate/59;
+	int16 audioBuff[maxFrames*2];
+	espec.SoundBuf = renderAudio ? audioBuff : nullptr;
+	espec.SoundBufMaxSize = maxFrames;
+
 	if(renderGfx)
 		renderToScreen = 1;
 	espec.skip = processGfx ? 0 : 1;
-	//logMsg("render audio %d, %p", renderAudio, espec.SoundBuf );
 	emuSys->Emulate(&espec);
-	static bool first = 1;
-	if(first)
+
+	if(renderAudio)
 	{
-		logMsg("got %d audio size", espec.SoundBufSize);
-		first = 0;
+		assert((uint)espec.SoundBufSize <= EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff)));
+		writeSound((uchar*)audioBuff, espec.SoundBufSize);
 	}
-	commitEmuAudio(renderAudio);
 }
 
 void EmuSystem::resetGame()
@@ -559,9 +530,9 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -574,21 +545,17 @@ CallResult onInit(int argc, char** argv)
 {
 	mem_zero(espec);
 	// espec.SoundRate is set in mainInitCommon()
-	mainInitCommon();
-	#ifndef CONFIG_BASE_PS3
-	vController.gp.activeFaceBtns = 2;
-	#endif
 	initVideoFormat();
 	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-
 	emuSys->soundchan = 0;
 	emuSys->soundrate = 0;
 	emuSys->name = (uint8*)EmuSystem::gameName;
 	emuSys->rotated = 0;
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -599,7 +566,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

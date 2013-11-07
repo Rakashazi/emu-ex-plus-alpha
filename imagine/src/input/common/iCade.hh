@@ -3,7 +3,7 @@
 namespace Input
 {
 
-static bool processICadeKey(uchar c, uint action, const Device &dev)
+static bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
 {
 	static const char *ON_STATES  = "wdxayhujikol";
 	static const char *OFF_STATES = "eczqtrfnmpgv";
@@ -27,9 +27,9 @@ static bool processICadeKey(uchar c, uint action, const Device &dev)
 		int index = p-ON_STATES;
 		if(action == PUSHED)
 			#ifdef CONFIG_BASE_IOS
-				onInputEvent(Input::Event(0, Event::MAP_ICADE, index+1, PUSHED, 0, &dev));
+				onInputEvent(win, Input::Event(0, Event::MAP_ICADE, index+1, PUSHED, 0, &dev));
 			#else
-				onInputEvent(Input::Event(0, Event::MAP_ICADE, keycodeMap[index], PUSHED, 0, &dev));
+				onInputEvent(win, Input::Event(0, Event::MAP_ICADE, keycodeMap[index], PUSHED, 0, &dev));
 			#endif
 		return 1;
 	}
@@ -42,9 +42,9 @@ static bool processICadeKey(uchar c, uint action, const Device &dev)
 			int index = p-OFF_STATES;
 			if(action == PUSHED)
 				#ifdef CONFIG_BASE_IOS
-					onInputEvent(Input::Event(0, Event::MAP_ICADE, index+1, RELEASED, 0, &dev));
+					onInputEvent(win, Input::Event(0, Event::MAP_ICADE, index+1, RELEASED, 0, &dev));
 				#else
-					onInputEvent(Input::Event(0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, &dev));
+					onInputEvent(win, Input::Event(0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, &dev));
 				#endif
 			return 1;
 		}

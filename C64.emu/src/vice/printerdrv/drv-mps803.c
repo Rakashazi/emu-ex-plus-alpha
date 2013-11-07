@@ -188,7 +188,7 @@ static void clear_buffer(mps_t *mps)
 
 static void bitmode_off(mps_t *mps)
 {
-    unsigned int i, x, y;
+    int i, x, y;
     unsigned int err = 0;
 
     for (i = 0; i < (unsigned int)mps->repeatn; i++) {

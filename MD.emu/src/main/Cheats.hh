@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 #include <util/bits.h>
 #include <EmuSystem.hh>
 
@@ -18,7 +18,7 @@ struct MdCheat
 	uint16 origData = 0;
 	uint8 *prev = nullptr;
 
-	static const uint ON = BIT(0), APPLIED = BIT(1);
+	static const uint ON = IG::bit(0), APPLIED = IG::bit(1);
 
 	bool isOn()
 	{
@@ -58,7 +58,7 @@ void readCheatFile();
 void RAMCheatUpdate();
 void ROMCheatUpdate();
 
-extern StaticDLList<MdCheat, EmuCheats::MAX> cheatList;
-extern StaticDLList<MdCheat*, EmuCheats::MAX> romCheatList;
-extern StaticDLList<MdCheat*, EmuCheats::MAX> ramCheatList;
+extern StaticArrayList<MdCheat, EmuCheats::MAX> cheatList;
+extern StaticArrayList<MdCheat*, EmuCheats::MAX> romCheatList;
+extern StaticArrayList<MdCheat*, EmuCheats::MAX> ramCheatList;
 extern bool cheatsModified;

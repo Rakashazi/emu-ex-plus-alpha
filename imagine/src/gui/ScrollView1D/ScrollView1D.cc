@@ -29,14 +29,14 @@ void ContentDrag::init(uint axis)
 	this->axis = axis;
 }
 
-ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const Input::Event &e)
+ContentDrag::State ContentDrag::inputEvent(const IG::Rect2<int> &bt, const Input::Event &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pushed && e.devId != devId)
 		return NO_CHANGE;
 
 	auto dragState = Input::dragState(e.devId);
-	if(e.pushed(Input::Pointer::LBUTTON) && bt.overlaps(e.x, e.y))
+	if(e.pushed(Input::Pointer::LBUTTON) && bt.overlaps({e.x, e.y}))
 	{
 		pushed = 1;
 		devId = e.devId;
@@ -75,7 +75,7 @@ ContentDrag::State ContentDrag::inputEvent(const Rect2<int> &bt, const Input::Ev
 	#endif
 }
 
-void KScroll::init(const Rect2<int> *viewFrame, const Rect2<int> *contentFrame)
+void KScroll::init(const IG::Rect2<int> *viewFrame, const IG::Rect2<int> *contentFrame)
 {
 	ContentDrag::init();
 	offset = start = 0;
@@ -88,11 +88,11 @@ void KScroll::init(const Rect2<int> *viewFrame, const Rect2<int> *contentFrame)
 	scrollWholeArea = allowScrollWholeArea = 0;
 }
 
-void KScroll::place()
+void KScroll::place(View &view)
 {
 	assert(contentFrame);
 	assert(viewFrame);
-	dragStartY = std::max(1, Config::envIsAndroid ? Gfx::ySMMSizeToPixel(1.5) : Gfx::ySMMSizeToPixel(1.));
+	dragStartY = std::max(1, Config::envIsAndroid ? view.window().ySMMSizeToPixel(1.5) : view.window().ySMMSizeToPixel(1.));
 	maxClip = contentFrame->ySize() - viewFrame->ySize();
 	if(viewFrame->ySize() > 0)
 		allowScrollWholeArea = contentFrame->ySize() / viewFrame->ySize() > 3;
@@ -100,7 +100,7 @@ void KScroll::place()
 		allowScrollWholeArea = 0;
 }
 
-bool KScroll::clipOverEdge(int minC, int maxC)
+bool KScroll::clipOverEdge(int minC, int maxC, View &view)
 {
 	using namespace IG;
 	if(!active)
@@ -120,7 +120,7 @@ bool KScroll::clipOverEdge(int minC, int maxC)
 				offset = clip;
 			}
 			vel = 0;
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 			return 1;
 		}
 	}
@@ -145,7 +145,7 @@ void KScroll::clipDragOverEdge(int minC, int maxC)
 	}
 }
 
-void KScroll::decel2()
+void KScroll::decel2(View &view)
 {
 	GC stoppingVel = 1;
 	if(!active && vel != (GC)0)
@@ -154,12 +154,12 @@ void KScroll::decel2()
 		offset += vel;
 		if(std::abs(vel) <= stoppingVel)
 			vel = 0;
-		Base::displayNeedsUpdate();
+		view.displayNeedsUpdate();
 		//logMsg("did decel scroll");
 	}
 }
 
-bool KScroll::inputEvent(const Input::Event &e)
+bool KScroll::inputEvent(const Input::Event &e, View &view)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	auto dragState = Input::dragState(e.devId);
@@ -174,7 +174,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 		case ContentDrag::ENTERED_ACTIVE:
 		{
 			//logMsg("in scroll");
-			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - Gfx::xSMMSizeToPixel(7.5)))
+			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - view.window().xSMMSizeToPixel(7.5)))
 			{
 				logMsg("scrolling all content");
 				scrollWholeArea = 1;
@@ -190,7 +190,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 		{
 			//logMsg("out of scroll, with yVel %f", (double)vel);
 			//if(vel != (GC)0) // TODO: situations where a redraw is needed even with vel == 0
-				Base::displayNeedsUpdate();
+				view.displayNeedsUpdate();
 		}
 		return 1;
 
@@ -209,7 +209,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 				vel = (offset - prevOffset);
 				//logMsg("dragging with vel %f", vel);
 			}
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 		}
 		return 1;
 
@@ -220,7 +220,7 @@ bool KScroll::inputEvent(const Input::Event &e)
 	#endif
 }
 
-bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
+bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &view)
 {
 	prevOffset = offset;
 	bool ret = 0;
@@ -234,7 +234,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 			{
 				clip = 0; // if exactly at edge don't clip for snap-back
 			}
-			auto vel = Gfx::ySMMSizeToPixel(10.0);
+			auto vel = view.window().ySMMSizeToPixel(10.0);
 			offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
 			if(clip)
 			{
@@ -243,14 +243,14 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 				else if(offset > maxClip)
 					offset = maxClip;
 			}
-			Base::displayNeedsUpdate();
+			view.displayNeedsUpdate();
 		}
 		ret = 1;
 	}
 	else
 	#endif
 	{
-		ret = e.isPointer() ? inputEvent(e) : 0;
+		ret = e.isPointer() ? inputEvent(e, view) : 0;
 	}
 	clipDragOverEdge(minClip, maxClip);
 	if(maxClip < minClip)
@@ -258,7 +258,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e)
 	if(offset < minClip || offset > maxClip)
 	{
 		//logMsg("offset needs to be clipped");
-		Base::displayNeedsUpdate();
+		view.displayNeedsUpdate();
 	}
 	return ret;
 }
@@ -271,13 +271,13 @@ void KScroll::setOffset(int o)
 	pushed = 0;
 }
 
-void KScroll::animate(int minClip, int maxClip)
+void KScroll::animate(int minClip, int maxClip, View &view)
 {
-	if(!clipOverEdge(minClip, maxClip))
-		decel2();
+	if(!clipOverEdge(minClip, maxClip, view))
+		decel2(view);
 }
 
-void ScrollView1D::init(Rect2<int> *contentFrame)
+void ScrollView1D::init(IG::Rect2<int> *contentFrame)
 {
 	assert(contentFrame);
 	this->contentFrame = contentFrame;
@@ -289,12 +289,12 @@ void ScrollView1D::updateView() // move content frame in position along view fra
 	contentFrame->setPos({viewFrame.xPos(LT2DO), viewFrame.yPos(LT2DO) - scroll.offset}, LT2DO);
 }
 
-void ScrollView1D::place(Rect2<int> *frame)
+void ScrollView1D::place(IG::Rect2<int> *frame, View &view)
 {
 	assert(frame);
 	assert(contentFrame);
 	viewFrame.setPosRel(frame->pos(LT2DO), frame->size(), LT2DO);
-	scroll.place();
+	scroll.place(view);
 	contentIsBiggerThanView = contentFrame->ySize() > viewFrame.ySize();
 	scrollBarRect.x = viewFrame.x2 - 5;
 	scrollBarRect.x2 = scrollBarRect.x + 3;
@@ -306,9 +306,9 @@ void ScrollView1D::place(Rect2<int> *frame)
 		scrollBarRect.y2 = 10;
 }
 
-void ScrollView1D::updateGfx()
+void ScrollView1D::updateGfx(View &view)
 {
-	scroll.animate(0, contentFrame->ySize() - viewFrame.ySize());
+	scroll.animate(0, contentFrame->ySize() - viewFrame.ySize(), view);
 	updateView();
 }
 
@@ -335,11 +335,11 @@ void ScrollView1D::draw()
 	}
 }
 
-int ScrollView1D::inputEvent(const Input::Event &e)
+int ScrollView1D::inputEvent(const Input::Event &e, View &view)
 {
 	int scrollHasControl = 0;
 	auto oldOffset = scroll.offset;
-	if(scroll.inputEvent(0, contentFrame->ySize() - viewFrame.ySize(), e))
+	if(scroll.inputEvent(0, contentFrame->ySize() - viewFrame.ySize(), e, view))
 	{
 		scrollHasControl = 1;
 	}

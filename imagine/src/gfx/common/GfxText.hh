@@ -74,7 +74,8 @@ void Text::compile()
 	
 	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = Gfx::iXSize(spaceSizeI);
-	nominalHeight = Gfx::alignYToPixel(Gfx::iYSize(mGly->metrics.ySize) + Gfx::iYSize(gGly->metrics.ySize/2));
+	uint nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
+	nominalHeight = Gfx::alignYToPixel(Gfx::iYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
 	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
 	
@@ -153,7 +154,7 @@ void Text::compile()
 	}
 	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
-	ySize = Gfx::alignYToPixel(nominalHeight * (GC)lines);
+	ySize = nominalHeight * (GC)lines;
 }
 
 void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
@@ -162,13 +163,15 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, _2DOrigin align) const
 	assert(face != NULL && str != NULL);
 
 	resetTransforms();
-	setBlendMode(BLEND_MODE_INTENSITY);
+	setBlendMode(BLEND_MODE_ALPHA);
 	Sprite spr;
 	spr.init(0, 0, 1, 1);
 
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
-	yPos = Gfx::alignYToPixel(o.adjustY(yPos, ySize, LT2DO));
+	yPos = o.adjustY(yPos, Gfx::alignYToPixel(ySize/2.), ySize, LT2DO);
+	if(IG::isOdd(Base::mainWindow().viewPixelHeight()))
+		yPos = Gfx::alignYToPixel(yPos);
 	yPos -= nominalHeight - yLineStart;
 	GC xOrig = xPos;
 	

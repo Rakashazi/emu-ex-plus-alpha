@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3F.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart3F.hxx 2687 2013-04-07 20:09:28Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3F_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Cart3FWidget.hxx"
+#endif
 
 /**
   This is the cartridge class for Tigervision's bankswitched 
@@ -36,10 +39,12 @@ class System;
   only used 8K this bankswitching scheme supports up to 512K.
    
   @author  Bradford W. Mott
-  @version $Id: Cart3F.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Cart3F.hxx 2687 2013-04-07 20:09:28Z stephena $
 */
 class Cartridge3F : public Cartridge
 {
+  friend class Cartridge3FWidget;
+
   public:
     /**
       Create a new cartridge using the specified image and size
@@ -125,6 +130,18 @@ class Cartridge3F : public Cartridge
       @return The name of the object
     */
     string name() const { return "Cartridge3F"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new Cartridge3FWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

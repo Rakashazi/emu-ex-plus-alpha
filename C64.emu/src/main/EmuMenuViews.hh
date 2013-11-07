@@ -15,9 +15,9 @@ class SystemOptionView : public OptionView
 	BoolMenuItem trueDriveEmu
 	{
 		"True Drive Emulation (TDE)",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			setTrueDriveEmu(item.on);
 		}
 	};
@@ -25,9 +25,9 @@ class SystemOptionView : public OptionView
 	BoolMenuItem autostartWarp
 	{
 		"Autostart Fast-forward",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			resources_set_int("AutostartWarp", item.on);
 		}
 	};
@@ -35,9 +35,9 @@ class SystemOptionView : public OptionView
 	BoolMenuItem autostartTDE
 	{
 		"Autostart Handles TDE",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			resources_set_int("AutostartHandleTrueDriveEmulation", item.on);
 		}
 	};
@@ -45,9 +45,9 @@ class SystemOptionView : public OptionView
 	BoolMenuItem cropNormalBorders
 	{
 		"Crop Normal Borders",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionCropNormalBorders = item.on;
 			c64VidActiveX = 0; // force pixmap to update on next frame
 		}
@@ -108,8 +108,6 @@ class SystemOptionView : public OptionView
 		borderMode.init(str, mode, sizeofArray(str));
 	}
 
-
-
 	MultiChoiceSelectMenuItem sidEngine
 	{
 		"SID Engine",
@@ -121,15 +119,45 @@ class SystemOptionView : public OptionView
 		}
 	};
 
+	template <size_t S>
+	static void printSysPathMenuEntryStr(char (&str)[S])
+	{
+		FsSys::cPath basenameTemp;
+		string_printf(str, "System File Path: %s", strlen(firmwareBasePath) ? string_basename(firmwareBasePath, basenameTemp) : "Default");
+	}
+
+	FirmwarePathSelector systemFileSelector;
+	char systemFilePathStr[256] {0};
+	TextMenuItem systemFilePath
+	{
+		"",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			systemFileSelector.init("System File Path", !e.isPointer());
+			systemFileSelector.onPathChange =
+				[this](const char *newPath)
+				{
+					printSysPathMenuEntryStr(systemFilePathStr);
+					systemFilePath.compile();
+					setupSysFilePaths(sysFilePath[0], firmwareBasePath);
+					if(!strlen(newPath))
+					{
+						if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
+							popup.printf(5, false, "Using default paths:\n%s\n%s\n%s", Base::appPath, "~/.local/share/C64.emu", "/usr/share/games/vice");
+						else
+							popup.printf(4, false, "Using default path:\n%s/C64.emu", Base::storagePath());
+					}
+				};
+			displayNeedsUpdate();
+		}
+	};
+
 public:
 	static constexpr int sidEngineChoiceMap[]
 	{
 		SID_ENGINE_FASTSID,
 		#if defined(HAVE_RESID)
 		SID_ENGINE_RESID,
-		#endif
-		#if defined(HAVE_RESID_FP)
-		SID_ENGINE_RESID_FP,
 		#endif
 	};
 
@@ -142,11 +170,9 @@ private:
 			#if defined(HAVE_RESID)
 			"ReSID",
 			#endif
-			#if defined(HAVE_RESID_FP)
-			"ReSID-FP"
-			#endif
 		};
 		auto engine = intResource("SidEngine");
+		logMsg("current SID engine: %d", engine);
 		uint idx = 0;
 		forEachInArray(sidEngineChoiceMap, e)
 		{
@@ -160,7 +186,7 @@ private:
 	}
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{
@@ -184,6 +210,8 @@ public:
 		trueDriveEmu.init(optionDriveTrueEmulation); item[items++] = &trueDriveEmu;
 		autostartTDE.init(intResource("AutostartHandleTrueDriveEmulation")); item[items++] = &autostartTDE;
 		autostartWarp.init(intResource("AutostartWarp")); item[items++] = &autostartWarp;
+		printSysPathMenuEntryStr(systemFilePathStr);
+		systemFilePath.init(systemFilePathStr, true); item[items++] = &systemFilePath;
 	}
 };
 
@@ -217,8 +245,8 @@ public:
 
 	void addTapeFilePickerView(const Input::Event &e)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), c64TapeExtensionFsFilter, 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, c64TapeExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this](const char* name, const Input::Event &e)
 			{
@@ -240,32 +268,32 @@ private:
 			if(!item.active) return;
 			if(tape_get_file_name() && strlen(tape_get_file_name()))
 			{
-				auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+				auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Tape Drive", window());
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 				multiChoiceView.onSelect() =
 					[this](int action, const Input::Event &e)
 					{
 						if(action == 0)
 						{
-							removeModalView();
+							viewStack.popAndShow();
 							addTapeFilePickerView(e);
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 						}
 						else
 						{
 							tape_image_detach(1);
 							onTapeMediaChange("");
-							removeModalView();
+							viewStack.popAndShow();
 						}
 						return 0;
 					};
-				View::addModalView(multiChoiceView);
+				viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 			}
 			else
 			{
 				addTapeFilePickerView(e);
 			}
-			Base::displayNeedsUpdate();
+			window().displayNeedsUpdate();
 		}
 	};
 
@@ -287,8 +315,8 @@ public:
 
 	void addCartFilePickerView(const Input::Event &e)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), c64CartExtensionFsFilter, 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, c64CartExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this](const char* name, const Input::Event &e)
 			{
@@ -309,32 +337,32 @@ private:
 		{
 			if(cartridge_get_file_name(mem_cartridge_type) && strlen(cartridge_get_file_name(mem_cartridge_type)))
 			{
-				auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+				auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Cartridge Slot", window());
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 				multiChoiceView.onSelect() =
 					[this](int action, const Input::Event &e)
 					{
 						if(action == 0)
 						{
-							removeModalView();
+							viewStack.popAndShow();
 							addCartFilePickerView(e);
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 						}
 						else if(action == 1)
 						{
 							cartridge_detach_image(-1);
 							onROMMediaChange("");
-							removeModalView();
+							viewStack.popAndShow();
 						}
 						return 0;
 					};
-				View::addModalView(multiChoiceView);
+				viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 			}
 			else
 			{
 				addCartFilePickerView(e);
 			}
-			Base::displayNeedsUpdate();
+			window().displayNeedsUpdate();
 		}
 	};
 
@@ -356,8 +384,8 @@ private:
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), c64DiskExtensionFsFilter, 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, c64DiskExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this, slot](const char* name, const Input::Event &e)
 			{
@@ -377,32 +405,32 @@ public:
 	{
 		if(file_system_get_disk_name(slot+8) && strlen(file_system_get_disk_name(slot+8)))
 		{
-			auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Disk Drive", window());
 			multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
 				{
 					if(action == 0)
 					{
-						removeModalView();
+						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					else
 					{
 						file_system_detach_disk(slot+8);
 						onDiskMediaChange("", slot);
-						removeModalView();
+						viewStack.popAndShow();
 					}
 					return 0;
 				};
-			View::addModalView(multiChoiceView);
+			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addDiskFilePickerView(e, slot);
 		}
-		Base::displayNeedsUpdate();
+		window().displayNeedsUpdate();
 	}
 
 private:
@@ -414,7 +442,7 @@ private:
 
 	MenuItem *item[9] {nullptr};
 public:
-	C64IOControlView(): BaseMenuView("IO Control") { }
+	C64IOControlView(Base::Window &win): BaseMenuView("IO Control", win) { }
 
 	void init(bool highlightFirst)
 	{
@@ -435,8 +463,6 @@ public:
 	}
 };
 
-static C64IOControlView c64IoMenu;
-
 constexpr const char *C64IOControlView::diskSlotPrefix[2];
 
 class SystemMenuView : public MenuView
@@ -444,9 +470,9 @@ class SystemMenuView : public MenuView
 	BoolMenuItem swapJoystickPorts
 	{
 		"Swap Joystick Ports",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionSwapJoystickPorts = item.on;
 		}
 	};
@@ -454,13 +480,14 @@ class SystemMenuView : public MenuView
 	TextMenuItem c64IOControl
 	{
 		"ROM/Disk/Tape Control",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(item.active)
 			{
 				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
+				auto &c64IoMenu = *menuAllocator.allocNew<C64IOControlView>(window());
 				c64IoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&c64IoMenu);
+				viewStack.pushAndShow(&c64IoMenu, &menuAllocator);
 			}
 		}
 	};
@@ -468,41 +495,37 @@ class SystemMenuView : public MenuView
 	TextMenuItem quickSettings
 	{
 		"Apply Quick C64 Settings",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			static const char *str[] =
 			{
-				"Cancel",
 				"1. NTSC & True Drive Emu",
 				"2. NTSC",
 				"3. PAL & True Drive Emu",
 				"4. PAL",
 			};
-			auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
 			multiChoiceView.init(str, sizeofArray(str), !e.isPointer(), LC2DO);
 			multiChoiceView.onSelect() =
 				[](int action, const Input::Event &e)
 				{
-					removeModalView();
-					bool restartGame = true;
+					viewStack.popAndShow();
 					switch(action)
 					{
 						bcase 0:
-						restartGame = false;
-						bcase 1:
 							setTrueDriveEmu(1);
 							setC64Model(C64MODEL_C64_NTSC);
-						bcase 2:
+						bcase 1:
 							setTrueDriveEmu(0);
 							setC64Model(C64MODEL_C64_NTSC);
-						bcase 3:
+						bcase 2:
 							setTrueDriveEmu(1);
 							setC64Model(C64MODEL_C64_PAL);
-						bcase 4:
+						bcase 3:
 							setTrueDriveEmu(0);
 							setC64Model(C64MODEL_C64_PAL);
 					}
-					if(restartGame && EmuSystem::gameIsRunning())
+					if(EmuSystem::gameIsRunning())
 					{
 						FsSys::cPath gamePath;
 						string_copy(gamePath, EmuSystem::fullGamePath);
@@ -511,12 +534,12 @@ class SystemMenuView : public MenuView
 					}
 					return 0;
 				};
-			View::addModalView(multiChoiceView);
+			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 		}
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) { }
 
 	void onShow()
 	{

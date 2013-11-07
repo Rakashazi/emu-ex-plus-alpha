@@ -20,7 +20,6 @@
 #include <util/rectangle2.h>
 #include <util/time/sys.hh>
 #include <gfx/defs.hh>
-#include <gfx/viewport.hh>
 #include <gfx/Projector.hh>
 #include <util/pixel.h>
 #include <base/Base.hh>
@@ -30,38 +29,12 @@ namespace Gfx
 
 // init & control
 CallResult init() ATTRS(cold);
-CallResult setOutputVideoMode(const Base::Window &win) ATTRS(cold);
-void resizeDisplay(const Base::Window &win);
+void setViewport(Base::Window &win);
+void setProjector(Base::Window &win);
 
 // commit/sync
-#if defined (CONFIG_BASE_IOS)
-	typedef double FrameTimeBase;
-
-	constexpr static double decimalFrameTimeBaseFromSec(double sec)
-	{
-		return sec;
-	}
-
-	constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-	{
-		return sec;
-	}
-#else
-	typedef int64 FrameTimeBase;
-
-	constexpr static double decimalFrameTimeBaseFromSec(double sec)
-	{
-		return sec * (double)1000000000.;
-	}
-
-	constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-	{
-		return decimalFrameTimeBaseFromSec(sec);
-	}
-#endif
-void renderFrame(FrameTimeBase frameTime);
+void renderFrame(Base::Window &win, FrameTimeBase frameTime);
 void waitVideoSync();
-void setVideoInterval(uint interval);
 void updateFrameTime();
 extern uint frameTime, frameTimeRel;
 
@@ -93,17 +66,16 @@ enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
 void setVisibleGeomFace(uint sides);
 
 void setClipRect(bool on);
-void setClipRectBounds(int x, int y, int w, int h);
-static void setClipRectBounds(Rect2<int> r)
+void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h);
+static void setClipRectBounds(const Base::Window &win, IG::Rect2<int> r)
 {
-	setClipRectBounds(r.x, r.y, r.xSize(), r.ySize());
+	setClipRectBounds(win, r.x, r.y, r.xSize(), r.ySize());
 }
 
 void setZBlend(bool on);
 void setZBlendColor(GColor r, GColor g, GColor b);
 
 void clear();
-void setClear(bool on);
 void setClearColor(GColor r, GColor g, GColor b, GColor a = 1.);
 
 void setColor(GColor r, GColor g, GColor b, GColor a = 1.);
@@ -161,7 +133,7 @@ static void resetTransforms()
 }
 void loadIdentTransform();
 
-static void loadTransforms(const Rect2<int> &r, _2DOrigin o)
+static void loadTransforms(const IG::Rect2<int> &r, _2DOrigin o)
 {
 	loadTranslate(gXPos(r, o), gYPos(r, o));
 	applyScale(gXSize(r), gYSize(r));
@@ -177,26 +149,6 @@ static GC adjustZScalesInv(GC pos, GC origPosZ, GC newPosZ)
 	return pos / (newPosZ / origPosZ);
 }*/
 
-extern GC mmToPixelXScaler, mmToPixelYScaler;
-
-static int xMMSizeToPixel(GC mm) { return int(mm * mmToPixelXScaler); }
-static int yMMSizeToPixel(GC mm) { return int(mm * mmToPixelYScaler); }
-
-#ifdef CONFIG_BASE_ANDROID
-extern GC smmToPixelXScaler, smmToPixelYScaler;
-
-static int xSMMSizeToPixel(GC mm) { return int(mm * smmToPixelXScaler); }
-static int ySMMSizeToPixel(GC mm) { return int(mm * smmToPixelYScaler); }
-#else
-static int xSMMSizeToPixel(GC mm) { return xMMSizeToPixel(mm); }
-static int ySMMSizeToPixel(GC mm) { return yMMSizeToPixel(mm); }
-#endif
-
-static Rect2<int> viewportRect()
-{
-	return Rect2<int>(0, 0, (int)viewPixelWidth(), (int)viewPixelHeight());
-}
-
 struct GfxViewState
 {
 	Coordinate width, height, aspectRatio;
@@ -205,7 +157,7 @@ struct GfxViewState
 
 // callbacks
 
-void onDraw(FrameTimeBase frameTime);
-void onViewChange(GfxViewState *oldState);
+void onDraw(Base::Window &win, FrameTimeBase frameTime);
+void onViewChange(Base::Window &win, GfxViewState *oldState);
 
 }

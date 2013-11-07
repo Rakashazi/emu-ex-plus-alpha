@@ -24,6 +24,8 @@ template <class COUNT = std::atomic_uint, class SIZE = uint>
 class MachRingBuffer
 {
 public:
+	constexpr MachRingBuffer() {}
+
 	bool init(SIZE size)
 	{
 		deinit();
@@ -61,7 +63,7 @@ public:
 				return false;
 			}
 		}
-		buff = (uchar*)addr;
+		buff = (char*)addr;
 		reset();
 		return true;
 	}
@@ -91,14 +93,14 @@ public:
 		return buffSize - written;
 	}
 
-	uchar *wrapPtr(uchar *ptr)
+	char *wrapPtr(char *ptr)
 	{
 		if(ptr >= &buff[allocBuffSize])
 			ptr -= allocBuffSize;
 		return ptr;
 	}
 
-	SIZE write(uchar *buff, SIZE size)
+	SIZE write(const void *buff, SIZE size)
 	{
 		if(size > freeSpace())
 			size = freeSpace();
@@ -109,7 +111,7 @@ public:
 		return size;
 	}
 
-	uchar *writePos()
+	char *writePos()
 	{
 		return end;
 	}
@@ -121,7 +123,7 @@ public:
 		written += size;
 	}
 
-	SIZE read(uchar *buff, SIZE size)
+	SIZE read(void *buff, SIZE size)
 	{
 		if(size > (SIZE)written)
 			size = written;
@@ -132,10 +134,27 @@ public:
 		return size;
 	}
 
+	char *readPos()
+	{
+		return start;
+	}
+
+	void advanceReadPos(SIZE size)
+	{
+		assert(size <= (SIZE)written);
+		start = wrapPtr(start + size);
+		written -= size;
+	}
+
+	char *data() const
+	{
+		return buff;
+	}
+
 	COUNT written {0};
 	SIZE buffSize = 0;
 	uint allocBuffSize = 0;
 private:
-	uchar *buff = nullptr;
-	uchar *start = nullptr, *end = nullptr;
+	char *buff = nullptr;
+	char *start = nullptr, *end = nullptr;
 };

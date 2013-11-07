@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartFA.hxx 2686 2013-04-06 22:13:26Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEFA_HXX
@@ -24,16 +24,21 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartFAWidget.hxx"
+#endif
 
 /**
   Cartridge class used for CBS' RAM Plus cartridges.  There are
   three 4K banks and 256 bytes of RAM.
 
   @author  Bradford W. Mott
-  @version $Id: CartFA.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartFA.hxx 2686 2013-04-06 22:13:26Z stephena $
 */
 class CartridgeFA : public Cartridge
 {
+  friend class CartridgeFAWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -119,6 +124,18 @@ class CartridgeFA : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeFA"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeFAWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

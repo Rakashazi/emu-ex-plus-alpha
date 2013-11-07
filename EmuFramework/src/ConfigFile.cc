@@ -17,6 +17,7 @@
 #include <ConfigFile.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
+#include <base/Base.hh>
 
 static bool readKeyConfig(Io *io, uint16 &size)
 {
@@ -132,9 +133,7 @@ static bool readConfig2(Io *io)
 	{
 		uint16 size;
 		io->readVar(size);
-		#ifndef NDEBUG
-		auto newFilePos = io->ftell() + size;
-		#endif
+		auto nextBlockPos = io->ftell() + size;
 
 		if(!size)
 		{
@@ -172,26 +171,17 @@ static bool readConfig2(Io *io)
 				if(!EmuSystem::readConfig(io, key, size))
 				{
 					logMsg("skipping unknown key %u", (uint)key);
-					if(io->seekRel(size) != OK)
-					{
-						logErr("unable to seek to next block, skipping rest of config");
-						goto CLEANUP;
-					}
 				}
 			}
 			bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
 			bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_DISPLAY: optionTouchCtrl.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_ALPHA: optionTouchCtrlAlpha.readFromIO(io, size);
+			#ifdef CONFIG_VCONTROLS_GAMEPAD
+			bcase CFGKEY_TOUCH_CONTROL_DISPLAY: optionTouchCtrl.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_SIZE: optionTouchCtrlSize.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_DPAD_POS: optionTouchCtrlDpadPos.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_POS: optionTouchCtrlFaceBtnPos.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_MENU_POS: optionTouchCtrlMenuPos.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_FF_POS: optionTouchCtrlFFPos.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE: optionTouchCtrlBtnSpace.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER: optionTouchCtrlBtnStagger.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE: optionTouchDpadDeadzone.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS: optionTouchCtrlCenterBtnPos.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS: optionTouchCtrlTriggerBtnPos.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY: optionTouchDpadDiagonalSensitivity.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE: optionTouchCtrlExtraXBtnSize.readFromIO(io, size);
@@ -199,6 +189,11 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
+				#if defined(CONFIG_INPUT_ANDROID)
+				bcase CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES: optionTouchCtrlScaledCoordinates.readFromIO(io, size);
+				#endif
+			#endif
+			bcase CFGKEY_VCONTROLLER_LAYOUT_POS: optionVControllerLayoutPos.readFromIO(io, size);
 			bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
 			bcase CFGKEY_FRAME_SKIP: optionFrameSkip.readFromIO(io, size);
@@ -223,7 +218,10 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
 			bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
 			bcase CFGKEY_IMAGE_ZOOM: optionImageZoom.readFromIO(io, size);
+			bcase CFGKEY_VIEWPORT_ZOOM: optionViewportZoom.readFromIO(io, size);
+			#ifdef CONFIG_BASE_ANDROID
 			bcase CFGKEY_DPI: optionDPI.readFromIO(io, size);
+			#endif
 			bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
@@ -235,7 +233,6 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_BACK_NAVIGATION: optionBackNavigation.readFromIO(io, size);
 			bcase CFGKEY_REMEMBER_LAST_MENU: optionRememberLastMenu.readFromIO(io, size);
 			bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
-			bcase CFGKEY_SHOW_MENU_ICON: optionShowMenuIcon.readFromIO(io, size);
 			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
 			#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
@@ -260,7 +257,7 @@ static bool readConfig2(Io *io)
 				bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
 				#endif
 			#endif
-			#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+			#ifdef CONFIG_AUDIO_LATENCY_HINT
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_AUDIO_OPENSL_ES
@@ -283,7 +280,6 @@ static bool readConfig2(Io *io)
 				{
 					// skip leftover bytes
 					logWarn("%d bytes leftover reading key configs due to invalid data", size);
-					io->seekRel(size);
 				}
 			}
 			bcase CFGKEY_INPUT_DEVICE_CONFIGS:
@@ -298,13 +294,13 @@ static bool readConfig2(Io *io)
 				{
 					InputDeviceSavedConfig devConf;
 
-					io->readVarAsType<uint8>(devConf.devId);
+					io->readVarAsType<uint8>(devConf.enumId);
 					size--;
 					if(!size)
 						break;
-					if(devConf.devId > 32)
+					if(devConf.enumId > 32)
 					{
-						logWarn("unusually large device id %d, skipping rest of configs", devConf.devId);
+						logWarn("unusually large device id %d, skipping rest of configs", devConf.enumId);
 						break;
 					}
 
@@ -369,7 +365,7 @@ static bool readConfig2(Io *io)
 						io->read(keyConfName, keyConfNameLen);
 						size -= keyConfNameLen;
 
-						forEachInDLList(&customKeyConfig, e)
+						for(auto &e : customKeyConfig)
 						{
 							if(e.map == keyConfMap && string_equal(e.name, keyConfName))
 							{
@@ -395,7 +391,7 @@ static bool readConfig2(Io *io)
 						}
 					}
 
-					logMsg("read input device config %s, id %d", devConf.name, devConf.devId);
+					logMsg("read input device config %s, id %d", devConf.name, devConf.enumId);
 					if(!savedInputDevList.addToEnd(devConf))
 						break;
 				}
@@ -403,17 +399,15 @@ static bool readConfig2(Io *io)
 				{
 					// skip leftover bytes
 					logWarn("%d bytes leftover reading input device configs due to invalid data", size);
-					io->seekRel(size);
 				}
 			}
 		}
 
-		#ifndef NDEBUG
-		if(newFilePos != io->ftell())
+		if(io->seekAbs(nextBlockPos) != OK)
 		{
-			bug_exit("expected to be at file pos %d instead of %d", (int)newFilePos, (int)io->ftell());
+			logErr("unable to seek to next block, skipping rest of config");
+			goto CLEANUP;
 		}
-		#endif
 	}
 
 	CLEANUP:
@@ -429,6 +423,7 @@ static OptionBase *cfgFileOption[] =
 	&optionSoundRate,
 	&optionAspectRatio,
 	&optionImageZoom,
+	&optionViewportZoom,
 	&optionImgFilter,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
@@ -439,25 +434,25 @@ static OptionBase *cfgFileOption[] =
 	&optionPauseUnfocused,
 	&optionGameOrientation,
 	&optionMenuOrientation,
-	&optionTouchCtrl,
 	&optionTouchCtrlAlpha,
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	&optionTouchCtrl,
 	&optionTouchCtrlSize,
 	&optionTouchDpadDeadzone,
 	&optionTouchCtrlBtnSpace,
 	&optionTouchCtrlBtnStagger,
-	&optionTouchCtrlDpadPos,
-	&optionTouchCtrlFaceBtnPos,
-	&optionTouchCtrlCenterBtnPos,
 	&optionTouchCtrlTriggerBtnPos,
-	&optionTouchCtrlMenuPos,
-	&optionTouchCtrlFFPos,
 	&optionTouchCtrlExtraXBtnSize,
 	&optionTouchCtrlExtraYBtnSize,
 	&optionTouchCtrlExtraYBtnSizeMultiRow,
 	&optionTouchDpadDiagonalSensitivity,
 	&optionTouchCtrlBoundingBoxes,
 	&optionTouchCtrlShowOnTouch,
-	&optionShowMenuIcon,
+		#if defined(CONFIG_INPUT_ANDROID)
+		&optionTouchCtrlScaledCoordinates,
+		#endif
+	#endif
+	&optionVControllerLayoutPos,
 	&optionSwappedGamepadConfirm,
 	&optionConfirmOverwriteState,
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
@@ -467,7 +462,9 @@ static OptionBase *cfgFileOption[] =
 	&optionUseOSInputMethod,
 	#endif
 	&optionFrameSkip,
+	#ifdef CONFIG_BASE_ANDROID
 	&optionDPI,
+	#endif
 	&optionVibrateOnPush,
 	&optionRecentGames,
 	&optionNotificationIcon,
@@ -497,7 +494,7 @@ static OptionBase *cfgFileOption[] =
 		&optionBlueToothScanCache,
 		#endif
 	#endif
-	#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	&optionSoundBuffers,
 	#endif
 	#ifdef CONFIG_AUDIO_OPENSL_ES
@@ -531,7 +528,7 @@ static void writeConfig2(Io *io)
 		}
 	}
 
-	if(customKeyConfig.size)
+	if(customKeyConfig.size())
 	{
 		bool writeCategory[MAX_CUSTOM_KEY_CONFIGS][EmuControls::categories];
 		uint8 writeCategories[MAX_CUSTOM_KEY_CONFIGS] {0};
@@ -540,7 +537,7 @@ static void writeConfig2(Io *io)
 		uint bytes = 2; // config key size
 		uint8 configs = 0;
 		bytes += 1; // number of configs
-		forEachInDLList(&customKeyConfig, e)
+		for(auto &e : customKeyConfig)
 		{
 			bytes += 1; // input map type
 			bytes += 1; // name string length
@@ -576,12 +573,12 @@ static void writeConfig2(Io *io)
 			bug_exit("excessive key config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d key configs, %d bytes", customKeyConfig.size, bytes);
+		logMsg("saving %d key configs, %d bytes", customKeyConfig.size(), bytes);
 		io->writeVar(uint16(bytes));
 		io->writeVar((uint16)CFGKEY_INPUT_KEY_CONFIGS);
-		io->writeVar((uint8)customKeyConfig.size);
+		io->writeVar((uint8)customKeyConfig.size());
 		configs = 0;
-		forEachInDLList(&customKeyConfig, e)
+		for(auto &e : customKeyConfig)
 		{
 			logMsg("writing config %s", e.name);
 			io->writeVar(uint8(e.map));
@@ -602,7 +599,7 @@ static void writeConfig2(Io *io)
 		}
 	}
 
-	if(savedInputDevList.size)
+	if(savedInputDevList.size())
 	{
 		// input device configs must be saved after key configs since
 		// they reference the key configs when read back from the config file
@@ -611,7 +608,7 @@ static void writeConfig2(Io *io)
 		static_assert(sizeof(InputDeviceSavedConfig::name) <= 255, "input device config name array is too large");
 		uint bytes = 2; // config key size
 		bytes += 1; // number of configs
-		forEachInDLList(&savedInputDevList, e)
+		for(auto &e : savedInputDevList)
 		{
 			bytes += 1; // device id
 			bytes += 1; // enabled
@@ -634,19 +631,19 @@ static void writeConfig2(Io *io)
 			bug_exit("excessive input device config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d input device configs, %d bytes", savedInputDevList.size, bytes);
+		logMsg("saving %d input device configs, %d bytes", savedInputDevList.size(), bytes);
 		io->writeVar((uint16)bytes);
 		io->writeVar((uint16)CFGKEY_INPUT_DEVICE_CONFIGS);
-		io->writeVar((uint8)savedInputDevList.size);
-		forEachInDLList(&savedInputDevList, e)
+		io->writeVar((uint8)savedInputDevList.size());
+		for(auto &e : savedInputDevList)
 		{
-			logMsg("writing config %s, id %d", e.name, e.devId);
-			io->writeVar((uint8)e.devId);
+			logMsg("writing config %s, id %d", e.name, e.enumId);
+			io->writeVar((uint8)e.enumId);
 			io->writeVar((uint8)e.enabled);
 			io->writeVar((uint8)e.player);
 			io->writeVar((uint8)e.mapJoystickAxis1ToDpad);
 			#ifdef CONFIG_INPUT_ICADE
-				io->writeVar((uint8)e.iCadeMode);
+			io->writeVar((uint8)e.iCadeMode);
 			#endif
 			uint8 nameLen = strlen(e.name);
 			io->writeVar(nameLen);

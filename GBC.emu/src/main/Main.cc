@@ -1,6 +1,5 @@
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -11,14 +10,19 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <gambatte.h>
+#include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
 #include <main/Cheats.hh>
+#include <main/Palette.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
-static float audioFramesPerUpdateScaler;
 static Resampler *resampler = nullptr;
 static uint8 activeResampler = 1;
+static const GBPalette *gameBuiltinPalette = nullptr;
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 // controls
 
@@ -42,12 +46,8 @@ enum
 
 enum {
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
-	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273
-};
-
-struct GBPalette
-{
-	uint bg[4], sp1[4], sp2[4];
+	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273,
+	CFGKEY_USE_BUILTIN_GB_PAL = 274
 };
 
 static GBPalette gbPal[] =
@@ -67,10 +67,22 @@ static GBPalette gbPal[] =
 	{ { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc } }, // Reverse
 };
 
-static void applyGBPalette(uint idx)
+static Byte1Option optionGBPal
+		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<sizeofArray(gbPal)-1>);
+static Byte1Option optionUseBuiltinGBPalette(CFGKEY_USE_BUILTIN_GB_PAL, 1);
+static Byte1Option optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
+static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
+
+static void applyGBPalette()
 {
+	uint idx = optionGBPal;
 	assert(idx < sizeofArray(gbPal));
-	GBPalette &pal = gbPal[idx];
+	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
+	if(useBuiltin)
+		logMsg("using built-in game palette");
+	else
+		logMsg("using palette index %d", idx);
+	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPal[idx];
 	iterateTimes(4, i)
 		gbEmu.setDmgPaletteColor(0, i, pal.bg[i]);
 	iterateTimes(4, i)
@@ -79,10 +91,15 @@ static void applyGBPalette(uint idx)
 		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
 }
 
-static Byte1Option optionGBPal
-		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<sizeofArray(gbPal)-1>);
-static Byte1Option optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
-static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
+static class GbcInput : public gambatte::InputGetter
+{
+public:
+#ifndef __clang__
+	constexpr GbcInput() {}
+#endif
+	unsigned bits = 0;
+	unsigned operator()() override { return bits; }
+} gbcInput;
 
 namespace gambatte
 {
@@ -92,7 +109,12 @@ extern bool useFullColorSaturation;
 static Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation(CFGKEY_FULL_GBC_SATURATION, 0);
 
 const uint EmuSystem::maxPlayers = 1;
-uint EmuSystem::aspectRatioX = 10, EmuSystem::aspectRatioY = 9;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"10:9 (Original)", 10, 9},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -104,6 +126,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_REPORT_AS_GBA: optionReportAsGba.readFromIO(io, readSize);
 		bcase CFGKEY_FULL_GBC_SATURATION: optionFullGbcSaturation.readFromIO(io, readSize);
 		bcase CFGKEY_AUDIO_RESAMPLER: optionAudioResampler.readFromIO(io, readSize);
+		bcase CFGKEY_USE_BUILTIN_GB_PAL: optionUseBuiltinGBPalette.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -114,11 +137,15 @@ void EmuSystem::writeConfig(Io *io)
 	optionReportAsGba.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	optionAudioResampler.writeWithKeyIfNotDefault(io);
+	optionUseBuiltinGBPalette.writeWithKeyIfNotDefault(io);
 }
 
-void EmuSystem::initOptions()
-{
+void EmuSystem::initOptions() {}
 
+void EmuSystem::onOptionsLoaded()
+{
+	gbEmu.setInputGetter(&gbcInput);
+	gbEmu.setSaveDir(EmuSystem::savePath());
 }
 
 static bool isROMExtension(const char *name)
@@ -156,16 +183,6 @@ static const uint PADDING_HACK_SIZE =
 #endif
 
 static gambatte::PixelType screenBuff[(gbResX*gbResY)+PADDING_HACK_SIZE] __attribute__ ((aligned (8))) {0};
-
-static class GbcInput : public gambatte::InputGetter
-{
-public:
-#ifndef __clang_major__
-	constexpr GbcInput() {}
-#endif
-	unsigned bits = 0;
-	unsigned operator()() { return bits; }
-} gbcInput;
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
@@ -297,8 +314,9 @@ void EmuSystem::saveAutoState()
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
-	cheatList.removeAll();
+	cheatList.clear();
 	cheatsModified = 0;
+	gameBuiltinPalette = nullptr;
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
@@ -317,6 +335,13 @@ int EmuSystem::loadGame(const char *path)
 		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
 		return 0;
 	}
+	if(!gbEmu.isCgb())
+	{
+		gameBuiltinPalette = findGbcTitlePal(gbEmu.romTitle().c_str());
+		if(gameBuiltinPalette)
+			logMsg("game %s has built-in palette", gbEmu.romTitle().c_str());
+		applyGBPalette();
+	}
 
 	readCheatFile();
 	applyCheats();
@@ -333,47 +358,17 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
-	#ifdef CONFIG_BASE_IOS
-	long outputRate = (float)optionSoundRate*.99555;
-	#elif defined(CONFIG_BASE_ANDROID)
-	long outputRate = (uint)optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.99555 : (float)optionSoundRate*.9954;
-	#elif defined(CONFIG_ENV_WEBOS)
-	long outputRate = (uint)optionFrameSkip == optionFrameSkipAuto ? (float)optionSoundRate*.99555 : (float)optionSoundRate*.963;
-	#else
-	long outputRate = float(optionSoundRate)*.99555;
-	#endif
-	audioFramesPerUpdateScaler = outputRate/2097152.;
+	long outputRate = optionSoundRate;
+	long inputRate = std::round(2097152. * 1.004605);
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
 	{
-		logMsg("setting up resampler %d for output rate %ldHz", (int)optionAudioResampler, outputRate);
+		logMsg("setting up resampler %d for input rate %ldHz", (int)optionAudioResampler, inputRate);
 		delete resampler;
-		resampler = ResamplerInfo::get(optionAudioResampler).create(2097152, outputRate, 35112 + 2064);
+		resampler = ResamplerInfo::get(optionAudioResampler).create(inputRate, outputRate, 35112 + 2064);
 		activeResampler = optionAudioResampler;
 	}
-}
-
-static void writeAudio(const int16 *srcBuff, unsigned srcFrames)
-{
-	#ifdef USE_NEW_AUDIO
-	Audio::BufferContext *aBuff = Audio::getPlayBuffer(Audio::maxRate/58);
-	if(!aBuff)
-		return;
-	short *destBuff = (short*)aBuff->data;
-	assert(Audio::maxRate/58 >= aBuff->frames);
-	#else
-	short destBuff[(Audio::maxRate/58)*2];
-	#endif
-	uint destFrames = resampler->resample(destBuff, (const short*)srcBuff, srcFrames);
-	//logMsg("%d audio frames from %d, %d", destFrames, srcFrames, (int)destBuff[0]);
-	#ifdef USE_NEW_AUDIO
-	Audio::commitPlayBuffer(aBuff, destFrames);
-	#else
-	assert(Audio::maxFormat.framesToBytes(destFrames) <= sizeof(destBuff));
-	//mem_zero(destBuff);
-	Audio::writePcm((uchar*)destBuff, destFrames);
-	#endif
 }
 
 static void commitVideoFrame()
@@ -384,23 +379,21 @@ static void commitVideoFrame()
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	uint8 snd[(35112+2064)*4] ATTRS(aligned(4));
-	unsigned samples;
-
-	samples = 35112;
+	size_t samples = 35112;
 	int frameSample = gbEmu.runFor(processGfx ? screenBuff : nullptr, 160, (uint_least32_t*)snd, samples,
 		renderGfx ? commitVideoFrame : nullptr);
 	if(renderAudio)
 	{
 		if(frameSample == -1)
 		{
-			logMsg("no emulated frame with %d samples", samples);
+			logMsg("no emulated frame with %d samples", (int)samples);
 		}
 		//else logMsg("emulated frame at %d with %d samples", frameSample, samples);
 		if(unlikely(samples < 34000))
 		{
 			uint repeatPos = std::max((int)samples-1, 0);
 			uint32 *sndFrame = (uint32*)snd;
-			logMsg("only %d, repeat %d", samples, (int)sndFrame[repeatPos]);
+			logMsg("only %d, repeat %d", (int)samples, (int)sndFrame[repeatPos]);
 			for(uint i = samples; i < 35112; i++)
 			{
 				sndFrame[i] = sndFrame[repeatPos];
@@ -408,15 +401,18 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			samples = 35112;
 		}
 		// video rendered in runFor()
-		writeAudio((const int16*)snd, samples);
+		short destBuff[(Audio::maxRate/59)*2];
+		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
+		assert(Audio::maxFormat.framesToBytes(destFrames) <= sizeof(destBuff));
+		EmuSystem::writeSound(destBuff, destFrames);
 	}
 }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -427,15 +423,12 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);
-	applyGBPalette(optionGBPal);
-	gbEmu.setInputGetter(&gbcInput);
-	gbEmu.setSaveDir(EmuSystem::savePath());
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -446,7 +439,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

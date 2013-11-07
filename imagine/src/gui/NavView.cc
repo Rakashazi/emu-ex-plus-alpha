@@ -27,11 +27,11 @@ void NavView::inputEvent(const Input::Event &e)
 	assert(e.isPointer());
 	if(e.state == Input::PUSHED)
 	{
-		if(hasCloseBtn && rightBtnActive && rightBtn.overlaps(e.x, e.y))
+		if(hasCloseBtn && rightBtnActive && rightBtn.overlaps({e.x, e.y}))
 		{
 			onRightNavBtn(e);
 		}
-		else if(hasBackBtn && leftBtnActive && leftBtn.overlaps(e.x, e.y))
+		else if(hasBackBtn && leftBtnActive && leftBtn.overlaps({e.x, e.y}))
 		{
 			onLeftNavBtn(e);
 		}
@@ -74,8 +74,8 @@ void BasicNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::Buff
 void BasicNavView::deinit()
 {
 	NavView::deinitText();
-	rightSpr.deinit();//AndFreeImg();
-	leftSpr.deinit();//AndFreeImg();
+	rightSpr.deinit();
+	leftSpr.deinit();
 	bg.deinit();
 }
 
@@ -85,7 +85,7 @@ void BasicNavView::setBackImage(Gfx::BufferImage *img)
 	hasBackBtn = leftSpr.image();
 }
 
-void BasicNavView::draw()
+void BasicNavView::draw(const Base::Window &win)
 {
 	using namespace Gfx;
 	resetTransforms();
@@ -102,7 +102,7 @@ void BasicNavView::draw()
 		if(leftBtnActive)
 		{
 			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_INTENSITY);
+			setBlendMode(BLEND_MODE_ALPHA);
 			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
 			applyRollRotate(angleFromDegree(90));
 			leftSpr.draw();
@@ -117,9 +117,9 @@ void BasicNavView::draw()
 		if(rightBtnActive)
 		{
 			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_INTENSITY);
+			setBlendMode(BLEND_MODE_ALPHA);
 			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
-			applyRollRotate(angleFromDegree(180));
+			//applyRollRotate(angleFromDegree(180));
 			rightSpr.draw();
 		}
 	}
@@ -136,14 +136,14 @@ void BasicNavView::place()
 	{
 		//logMsg("setting leftBtn");
 		//leftBtn.setPosRel(viewRect.pos(LT2DO), viewRect.ySize(), LT2DO);
-		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/4., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/3.);
+		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/3., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/3.);
 		//textRect.x += leftBtn.xSize();
 	}
 	if(hasCloseBtn)
 	{
 		//logMsg("setting rightBtn");
 		//rightBtn.setPosRel(viewRect.pos(RT2DO), viewRect.ySize(), RT2DO);
-		rightSpr.setPos(-Gfx::gXSize(rightBtn)/3., -Gfx::gYSize(rightBtn)/6., Gfx::gXSize(rightBtn)/3., Gfx::gYSize(rightBtn)/5.);
+		rightSpr.setPos(-Gfx::gXSize(rightBtn)/3., -Gfx::gYSize(rightBtn)/3., Gfx::gXSize(rightBtn)/3., Gfx::gYSize(rightBtn)/3.);
 		//textRect.x2 -= rightBtn.xSize();
 	}
 

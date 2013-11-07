@@ -24,26 +24,23 @@
 class EmuView : public View
 {
 public:
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	Gfx::Sprite menuIcon;
-	Rect2<int> menuB, fastForwardB;
-	#endif
 	bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 	VideoImageOverlay vidImgOverlay;
 	Gfx::Sprite disp;
 	Gfx::BufferImage vidImg;
 	Pixmap vidPix {PixelFormatRGB565};
+
 private:
 	uchar *pixBuff = nullptr;
 	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
-	Rect2<int> gameRect_;
-	Rect2<GC> gameRectG;
-	Rect2<int> rect;
+	IG::Rect2<int> gameRect_;
+	IG::Rect2<GC> gameRectG;
+	IG::Rect2<int> rect;
 
 public:
-	constexpr EmuView() {}
+	constexpr EmuView(Base::Window &win): View(win) {}
 	void deinit() override {}
-	Rect2<int> &viewRect() override { return rect; }
+	IG::Rect2<int> &viewRect() override { return rect; }
 	void place() override;
 	void placeEmu(); // game content only
 	template <bool active>
@@ -111,7 +108,7 @@ public:
 		}
 	}
 
-	const Rect2<int> &gameRect() const
+	const IG::Rect2<int> &gameRect() const
 	{
 		return gameRect_;
 	}

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartE0.hxx 2690 2013-04-12 12:36:57Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEE0_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartE0Widget.hxx"
+#endif
 
 /**
   This is the cartridge class for Parker Brothers' 8K games.  In 
@@ -31,7 +34,7 @@ class System;
   is broken into four 1K segments.  The desired 1K slice of the
   ROM is selected by accessing 1FE0 to 1FE7 for the first 1K.
   1FE8 to 1FEF selects the slice for the second 1K, and 1FF0 to 
-  1FF8 selects the slice for the third 1K.   The last 1K segment 
+  1FF7 selects the slice for the third 1K.  The last 1K segment 
   always points to the last 1K of the ROM image.
   
   Because of the complexity of this scheme, the cart reports having
@@ -39,10 +42,12 @@ class System;
   many different ways.
 
   @author  Bradford W. Mott
-  @version $Id: CartE0.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartE0.hxx 2690 2013-04-12 12:36:57Z stephena $
 */
 class CartridgeE0 : public Cartridge
 {
+  friend class CartridgeE0Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -128,6 +133,18 @@ class CartridgeE0 : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeE0"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeE0Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

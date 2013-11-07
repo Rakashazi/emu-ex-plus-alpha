@@ -180,7 +180,7 @@ const KeyConfig defaultKeyProfile[] =
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
 
 			// JS 1
 			Input::Keycode::Ouya::UP,
@@ -188,8 +188,8 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::Ouya::DOWN,
 			Input::Keycode::Ouya::LEFT,
 			0, 0, 0, 0,
-			Input::Keycode::Ouya::A,
 			Input::Keycode::Ouya::O,
+			Input::Keycode::Ouya::U,
 			Input::Keycode::Ouya::Y,
 
 			// JS 2
@@ -403,6 +403,37 @@ const KeyConfig defaultKeyProfile[] =
 				asciiKey(' '),
 			}
 		},
+		{
+			Input::Event::MAP_KEYBOARD,
+			Input::Device::SUBTYPE_NVIDIA_SHIELD,
+			"NVidia Shield",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+				// JS 1
+				Input::Keycode::JS3_YAXIS_NEG,
+				Input::Keycode::JS3_XAXIS_POS,
+				Input::Keycode::JS3_YAXIS_POS,
+				Input::Keycode::JS3_XAXIS_NEG,
+				0, 0, 0, 0,
+				Input::Keycode::GAME_A,
+				Input::Keycode::GAME_B,
+				Input::Keycode::GAME_Y,
+
+				// JS 2
+				PP_ZERO_LIST(11)
+
+				// Keyboard
+				Input::Keycode::GAME_START,
+				Input::Keycode::GAME_LEFT_THUMB, // F1 ... F8
+				0,
+				Input::Keycode::GAME_L1,
+				0,
+				Input::Keycode::GAME_R1,
+				0,
+				Input::Keycode::GAME_X,
+			}
+		},
 		#endif
 	#endif
 	{
@@ -426,7 +457,7 @@ const KeyConfig defaultKeyProfile[] =
 			PP_ZERO_LIST(11)
 
 			// KB
-			Input::Keycode::RMETA,
+			Input::Keycode::RSUPER,
 
 			Input::Keycode::F1,
 			Input::Keycode::F2,
@@ -486,7 +517,7 @@ const KeyConfig defaultKeyProfile[] =
 			0,
 			Input::Keycode::ENTER,
 
-			Input::Keycode::LMETA,
+			Input::Keycode::LSUPER,
 			Input::Keycode::LSHIFT,
 			0, // z
 			0, // x
@@ -521,7 +552,7 @@ const KeyConfig defaultKeyProfile[] =
 			PP_ZERO_LIST(11)
 
 			// KB
-			Input::Keycode::RMETA,
+			Input::Keycode::RSUPER,
 
 			Input::Keycode::F1,
 			Input::Keycode::F2,
@@ -581,7 +612,7 @@ const KeyConfig defaultKeyProfile[] =
 			0,
 			Input::Keycode::ENTER,
 
-			Input::Keycode::LMETA,
+			Input::Keycode::LSUPER,
 			Input::Keycode::LSHIFT,
 			asciiKey('z'),
 			asciiKey('x'),

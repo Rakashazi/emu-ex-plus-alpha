@@ -25,7 +25,7 @@
 #include <errno.h>
 #include <util/collection/DLList.hh>
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 // Bluez dlsym functions
 CLINK CallResult bluez_dl();
 #endif
@@ -37,7 +37,7 @@ bool BluezBluetoothAdapter::openDefault()
 	if(socket > 0)
 		return 1;
 	logMsg("opening default BT adapter");
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if(bluez_dl() != OK)
 		return 0;
 	#endif
@@ -211,12 +211,13 @@ void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDeleg
 	if(!active)
 	{
 		logMsg("unregistering psm: 0x%X", psm);
-		forEachInDLList(&serverList, e)
+		forEachInContainer(serverList, e)
 		{
-			if(e.psm == psm)
+			if(e->psm == psm)
 			{
-				::close(e.fd);
-				e_it.removeElem();
+				::close(e->fd);
+				serverList.erase(e);
+				//e_it.removeElem();
 				return;
 			}
 		}
@@ -326,7 +327,7 @@ CallResult BluezBluetoothSocket::open(BluetoothPendingSocket &pending)
 	logMsg("accepting connection from fd %d", pending.fd);
 	fd = pending.fd;
 	pending = {};
-	if(onStatusD(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+	if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 		Base::addPollEvent(fd, pollEvDel, Base::POLLEV_IN);
 	return OK;
 }
@@ -355,7 +356,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 	}
 	else if(events & Base::POLLEV_IN)
 	{
-		uchar buff[50];
+		char buff[50];
 		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(fd), fd);
 		while(fd_bytesReadable(fd))
 		{
@@ -375,7 +376,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 	else if(events & Base::POLLEV_OUT)
 	{
 		logMsg("finished opening socket %d", fd);
-		if(onStatusD(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+		if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 			Base::modPollEvent(fd, pollEvDel, Base::POLLEV_IN);
 		else
 			Base::removePollEvent(fd);
@@ -453,8 +454,7 @@ void BluezBluetoothSocket::close()
 	{
 		/*if(shutdown(fd, SHUT_RDWR) != 0)
 			logWarn("error shutting down socket");*/
-		if(Base::hasFDEvents)
-			Base::removePollEvent(fd);
+		Base::removePollEvent(fd);
 		if(::close(fd) != 0)
 			logWarn("error closing socket");
 		fd = -1;

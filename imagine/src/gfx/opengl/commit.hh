@@ -5,8 +5,6 @@
 namespace Gfx
 {
 
-static uint clearColorBufferBit = 0, clearZBufferBit = GL_DEPTH_BUFFER_BIT;
-
 void waitVideoSync()
 {
 	logDMsg("called wait video sync");
@@ -20,11 +18,6 @@ void waitVideoSync()
 		//	logDMsg("%d since last sync, after wait", gfx_frameTime - oldFrameTime);
 	}
 	#endif*/
-}
-
-void setVideoInterval(uint interval)
-{
-	Base::setVideoInterval(interval);
 }
 
 /*void gfx_initFrameClockTime()
@@ -58,39 +51,29 @@ void updateFrameTime()
 
 void clear()
 {
-	#if defined(CONFIG_GFX_OPENGL_ES)
-		// always clear screen to trigger a discarded buffer optimization
-		// TODO: test other systems to determine the what's best
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		//glClear(GL_COLOR_BUFFER_BIT);
-	#else
-		if(clearColorBufferBit || clearZBufferBit)
-		{
-			//logMsg("clear color: %d, clear z: %d", clearColorBufferBit, clearZBufferBit);
-			glClear(clearColorBufferBit | clearZBufferBit);
-		}
-	#endif
+	// always clear screen to trigger a discarded buffer optimization
+	// TODO: test other systems to determine the what's best
+	setClipRect(false);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void renderFrame(Gfx::FrameTimeBase frameTime)
+void renderFrame(Base::Window &win, Gfx::FrameTimeBase frameTime)
 {
 	if(unlikely(animateOrientationChange && !projAngleM.isComplete()))
 	{
 		//logMsg("animating rotation");
 		projAngleM.update();
-		resizeGLScene(Base::window());
-		Base::displayNeedsUpdate();
+		setProjector(win);
+		win.displayNeedsUpdate();
 	}
 
-	Gfx::onDraw(frameTime);
+	Gfx::onDraw(win, frameTime);
 
 	//glFlush();
 	//glFinish();
 	#ifdef CONFIG_BASE_ANDROID
-		if(unlikely(glSyncHackEnabled)) glFinish();
+	if(unlikely(glSyncHackEnabled)) glFinish();
 	#endif
-
-	Base::openGLUpdateScreen();
 
 	/*#if defined(CONFIG_GFX_OPENGL_ES) && defined(CONFIG_BASE_IOS)
 	if(useDiscardFramebufferEXT)
@@ -99,8 +82,6 @@ void renderFrame(Gfx::FrameTimeBase frameTime)
 		glDiscardFramebufferEXT(GL_FRAMEBUFFER_OES, 3, discardAttachments);
 	}
 	#endif*/
-
-	clear();
 
 	/*#ifdef CONFIG_BASE_X11
 	if(useSGIVidSync)

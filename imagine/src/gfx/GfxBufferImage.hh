@@ -79,29 +79,21 @@ protected:
 
 class BufferImage: public BufferImageImpl, public RefCount<BufferImage>
 {
-private:
-	uint hints = 0;
-	bool hasMipmaps_ = 0;
-	void testMipmapSupport(uint x, uint y);
-	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
-			uint usedX, uint usedY, uint hints, uint filter);
 public:
-	constexpr BufferImage() { }
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-	uint xSize = 0, ySize = 0; // the actual x,y size of the image content
-	#endif
-	static const uint nearest = 0, linear = 1;
-	static bool isFilterValid(uint v) { return v <= 1; }
-	bool hasMipmaps();
-	static const uint HINT_STREAM = BIT(0), HINT_NO_MINIFY = BIT(1);
+	static constexpr uint NEAREST = 0, LINEAR = 1;
+	static constexpr uint HINT_STREAM = IG::bit(0), HINT_NO_MINIFY = IG::bit(1);
+	static constexpr uint MAX_ASSUME_ALIGN = 8;
+
+	constexpr BufferImage() {}
 	CallResult init(Pixmap &pix, bool upload, uint filter, uint hints, bool textured);
-	CallResult init(Pixmap &pix, bool upload, uint filter = linear, uint hints = HINT_STREAM)
+	CallResult init(Pixmap &pix, bool upload, uint filter = LINEAR, uint hints = HINT_STREAM)
 	{
 		return init(pix, upload, filter, hints, 0);
 	}
-	CallResult init(GfxImageSource &img, uint filter = linear, uint hints = 0, bool textured = 0);
-	static constexpr uint MAX_ASSUME_ALIGN = 8;
+	CallResult init(GfxImageSource &img, uint filter = LINEAR, uint hints = 0, bool textured = 0);
 	static uint bestAlignment(const Pixmap &p);
+	bool hasMipmaps();
+	static bool isFilterValid(uint v) { return v <= 1; }
 	void setFilter(uint filter);
 	void setRepeatMode(uint xMode, uint yMode);
 	void deinit();
@@ -109,19 +101,30 @@ public:
 	void write(Pixmap &p, uint assumeAlign);
 	void replace(Pixmap &p);
 	void unlock(Pixmap *p);
+	const TextureDesc &textureDesc() const { return BufferImageImpl::textureDesc(); };
+		TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
+
 	void free()
 	{
 		logMsg("BufferImage %p has no more references", this);
 		deinit();
 	};
 
-	const TextureDesc &textureDesc() const { return BufferImageImpl::textureDesc(); };
-	TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
-
 	operator bool() const
 	{
 		return isInit();
 	}
+
+private:
+	uint hints = 0;
+	bool hasMipmaps_ = 0;
+	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+	uint xSize = 0, ySize = 0; // the actual x,y size of the image content
+	#endif
+
+	void testMipmapSupport(uint x, uint y);
+	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
+			uint usedX, uint usedY, uint hints, uint filter);
 };
 
 }

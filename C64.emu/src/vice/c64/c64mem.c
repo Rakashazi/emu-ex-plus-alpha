@@ -120,6 +120,20 @@ static int watchpoints_active;
 
 /* ------------------------------------------------------------------------- */
 
+static BYTE zero_read_watch(WORD addr)
+{
+    addr &= 0xff;
+    monitor_watch_push_load_addr(addr, e_comp_space);
+    return mem_read_tab[mem_config][0](addr);
+}
+
+static void zero_store_watch(WORD addr, BYTE value)
+{
+    addr &= 0xff;
+    monitor_watch_push_store_addr(addr, e_comp_space);
+    mem_write_tab[vbank][mem_config][0](addr, value);
+}
+
 static BYTE read_watch(WORD addr)
 {
     monitor_watch_push_load_addr(addr, e_comp_space);
@@ -625,14 +639,17 @@ void mem_initialize_memory(void)
 
     mem_limit_init(mem_read_limit_tab);
 
-    /* Default is RAM.  */
-    for (i = 0; i <= 0x100; i++) {
+    /* setup watchpoint tables */
+    mem_read_tab_watch[0] = zero_read_watch;
+    mem_write_tab_watch[0] = zero_store_watch;
+    for (i = 1; i <= 0x100; i++) {
         mem_read_tab_watch[i] = read_watch;
         mem_write_tab_watch[i] = store_watch;
     }
 
     resources_get_int("BoardType", &board);
 
+    /* Default is RAM.  */
     for (i = 0; i < NUM_CONFIGS; i++) {
         mem_set_write_hook(i, 0, zero_store);
         mem_read_tab[i][0] = zero_read;
@@ -678,7 +695,6 @@ void mem_initialize_memory(void)
         mem_read_tab[9][i] = chargen_read;
         mem_read_tab[10][i] = chargen_read;
         mem_read_tab[11][i] = chargen_read;
-        mem_read_tab[25][i] = chargen_read;
         mem_read_tab[26][i] = chargen_read;
         mem_read_tab[27][i] = chargen_read;
         mem_read_base_tab[1][i] = mem_chargen_rom - 0xd000;
@@ -687,7 +703,6 @@ void mem_initialize_memory(void)
         mem_read_base_tab[9][i] = mem_chargen_rom - 0xd000;
         mem_read_base_tab[10][i] = mem_chargen_rom - 0xd000;
         mem_read_base_tab[11][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[25][i] = mem_chargen_rom - 0xd000;
         mem_read_base_tab[26][i] = mem_chargen_rom - 0xd000;
         mem_read_base_tab[27][i] = mem_chargen_rom - 0xd000;
     }

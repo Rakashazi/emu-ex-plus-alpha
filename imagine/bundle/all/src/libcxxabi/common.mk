@@ -1,5 +1,8 @@
-libcxxabiSrcArchive := libcxxabi-182079.tar.xz
+libcxxabiSrcArchive := libcxxabi-193840.tar.xz
 libcxxabiSrcDir := libcxxabi
+
+libcxxSrcDir := ../libcxx/libcxx
+libcxxSrcArchive := ../libcxx/libcxx-193814.tar.xz
 
 outputLibFile := $(buildDir)/libcxxabi.a
 installIncludeDir := $(installDir)/include
@@ -16,7 +19,7 @@ OBJ := $(CPP_OBJ)
 
 cxxRTTI := 1
 cxxExceptions := 1
-CPPFLAGS += -I$(libcxxabiSrcDir)/include -I/usr/lib/c++/v1
+CPPFLAGS += -I$(libcxxabiSrcDir)/include -I../libcxx/libcxx/include
 
 all : $(outputLibFile)
 
@@ -33,8 +36,12 @@ $(outputLibFile) : $(OBJ)
 	@mkdir -p `dirname $@`
 	ar cr $@ $(OBJ)
 
-$(CPP_SRC) : $(libcxxabiSrcDir)
+$(CPP_SRC) : $(libcxxabiSrcDir) $(libcxxSrcDir)
 
 $(libcxxabiSrcDir) : $(libcxxabiSrcArchive)
 	@echo "Extracting libcxxabi..."
 	tar -mxJf $^
+
+$(libcxxSrcDir) : $(libcxxSrcArchive)
+	@echo "Extracting libcxx..."
+	tar -C ../libcxx -mxJf $^

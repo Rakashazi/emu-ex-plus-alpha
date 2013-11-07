@@ -43,7 +43,7 @@ int vsync_frame_counter;
 #include "vice.h"
 
 /* Port me... */
-#if !defined(MSDOS) || defined(USE_SDLUI)
+#if !defined(__MSDOS__) || defined(USE_SDLUI)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,6 +119,7 @@ static int set_warp_mode(int val, void *param)
     return 0;
 }
 
+/* FIXME: Why the hell is this here and not in archdep ? */
 #ifdef DINGOO_NATIVE
 static int set_overclock_mode(int val, void *param)
 {

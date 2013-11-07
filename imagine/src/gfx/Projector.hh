@@ -1,27 +1,27 @@
 #pragma once
 
 #include "defs.hh"
-#include "viewport.hh"
 #include <util/Matrix4x4.hh>
 #include <util/rectangle2.h>
+#include <base/Window.hh>
 
 namespace Gfx
 {
 struct Projector
 {
-	Rect2<GC> rect;
+	IG::Rect2<GC> rect;
 	GC w = 0, h = 0,
 		focal = 0,
 		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
 		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
 		mmToXScale = 0, mmToYScale = 0,   // MM of screen -> projection space at focal z
-#ifdef CONFIG_BASE_ANDROID
+		#ifdef CONFIG_BASE_ANDROID
 		smmToXScale = 0, smmToYScale = 0,
-#endif
+		#endif
 		aspectRatio = 0;
 	Matrix4x4<GC> mat, matInv;
 
-	constexpr Projector() { }
+	constexpr Projector() {}
 
 	GC wHalf() const
 	{
@@ -33,27 +33,27 @@ struct Projector
 		return rect.y;
 	}
 
-	void updateMMSize()
+	void updateMMSize(const Base::Window &win)
 	{
-		mmToXScale = w/(GC)viewMMWidth();
-		mmToYScale = h/(GC)viewMMHeight();
+		mmToXScale = w/(GC)win.viewMMWidth();
+		mmToYScale = h/(GC)win.viewMMHeight();
 #ifdef CONFIG_BASE_ANDROID
-		smmToXScale = w/(GC)viewSMMWidth();
-		smmToYScale = h/(GC)viewSMMHeight();
+		smmToXScale = w/(GC)win.viewSMMWidth();
+		smmToYScale = h/(GC)win.viewSMMHeight();
 #endif
 		//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
 	}
 
-	void setMatrix(Matrix4x4<GC> &mat, bool isSideways)
+	void setMatrix(const Base::Window &win, Matrix4x4<GC> &mat, bool isSideways)
 	{
 		var_selfs(mat);
 		mat.invert(matInv);
 
 		GC x = 0,y = 0,z = .5;
-		unProject(x,y,z);
+		unProject(win, x,y,z);
 		//logMsg("Lower-left projection point %f %f %f",x,y,z);
-		GC x2 = viewPixelWidth(),y2 = viewPixelHeight(),z2 = .5;
-		unProject(x2,y2,z2);
+		GC x2 = win.viewPixelWidth(),y2 = win.viewPixelHeight(),z2 = .5;
+		unProject(win, x2,y2,z2);
 		//logMsg("Upper-right projection point %f %f %f",x2,y2,z2);
 		w = x2 - x, h = y2 - y;
 		/*if(isSideways)
@@ -62,15 +62,15 @@ struct Projector
 		rect.y = h/2.;
 		rect.x2 = w/2.;
 		rect.y2 = -h/2.;
-		pixToXScale = w / (GC)viewPixelWidth();
-		pixToYScale = h / (GC)viewPixelHeight();
-		xToPixScale = (GC)viewPixelWidth() / w;
-		yToPixScale = (GC)viewPixelHeight() / h;
-		logMsg("projector size %fx%f, to pix %fx%f, to view %fx%f",
-			(double)w, (double)h, (double)xToPixScale, (double)yToPixScale, (double)pixToXScale, (double)pixToYScale);
+		pixToXScale = w / (GC)win.viewPixelWidth();
+		pixToYScale = h / (GC)win.viewPixelHeight();
+		xToPixScale = (GC)win.viewPixelWidth() / w;
+		yToPixScale = (GC)win.viewPixelHeight() / h;
+		/*logMsg("projector size %fx%f, to pix %fx%f, to view %fx%f",
+			(double)w, (double)h, (double)xToPixScale, (double)yToPixScale, (double)pixToXScale, (double)pixToYScale);*/
 	}
 
-	bool project(GC objx, GC objy, GC objz, GC &winx, GC &winy, GC &winz)
+	bool project(const Base::Window &win, GC objx, GC objy, GC objz, GC &winx, GC &winy, GC &winz)
 	{
 		const Vector4d<GC> in = { { { objx, objy, objz, 1.0 } } };
 		Vector4d<GC> out;
@@ -92,8 +92,8 @@ struct Projector
 		//logMsg("mapped to range 0-1, %f, %f, %f, %f", out.x, out.y, out.z, out.w);
 
 
-		out[0] = out[0] * viewPixelWidth() + 0; // X viewport
-		out[1] = out[1] * viewPixelHeight() + 0; // Y viewport
+		out[0] = out[0] * win.viewPixelWidth() + 0; // X viewport
+		out[1] = out[1] * win.viewPixelHeight() + 0; // Y viewport
 		//logMsg("mapped to viewport, %f, %f, %f, %f", out.x, out.y, out.z, out.w);
 
 		winx=out[0];
@@ -102,19 +102,19 @@ struct Projector
 		return 1;
 	}
 
-	bool project(GC &objx, GC &objy, GC &objz)
+	bool project(const Base::Window &win, GC &objx, GC &objy, GC &objz)
 	{
-		return project(objx, objy, objz, objx, objy, objz);
+		return project(win, objx, objy, objz, objx, objy, objz);
 	}
 
-	bool unProject(GC winx, GC winy, GC winz, GC &objx, GC &objy, GC &objz)
+	bool unProject(const Base::Window &win, GC winx, GC winy, GC winz, GC &objx, GC &objy, GC &objz)
 	{
 		Vector4d<GC> in = { { { winx, winy, winz, 1.0 } } };
 		Vector4d<GC> out;
 
 		// Map x and y from window coordinates
-		in[0] = (in[0] - 0) / viewPixelWidth(); // X viewport
-		in[1] = (in[1] - 0) / viewPixelHeight(); // Y viewport
+		in[0] = (in[0] - 0) / win.viewPixelWidth(); // X viewport
+		in[1] = (in[1] - 0) / win.viewPixelHeight(); // Y viewport
 
 		// Map to range -1 to 1
 		in[0] = in[0] * 2 - 1;
@@ -132,18 +132,18 @@ struct Projector
 		return 1;
 	}
 
-	bool unProject(GC &objx, GC &objy, GC &objz)
+	bool unProject(const Base::Window &win, GC &objx, GC &objy, GC &objz)
 	{
-		return unProject(objx, objy, objz, objx, objy, objz);
+		return unProject(win, objx, objy, objz, objx, objy, objz);
 	}
 
-	Rect2<GC> relRect(GC newX, GC newY, GC xSize, GC ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
+	IG::Rect2<GC> relRect(GC newX, GC newY, GC xSize, GC ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
 	{
 		// adjust to the requested origin on the screen
 		newX = C2DO.adjustX(newX, w, screenOrigin);
 		newY = C2DO.adjustY(newY, h, screenOrigin);
-		Rect2<GC> rect;
-		rect.setPosRel(newX, newY, xSize, ySize, posOrigin);
+		IG::Rect2<GC> rect;
+		rect.setPosRel({newX, newY}, xSize, ySize, posOrigin);
 		return rect;
 	}
 };
@@ -180,14 +180,14 @@ static GC iYPos(int y)
 // convert projection-space to screen/input-space
 static int toIXSize(GC x)
 {
-	int r = int(roundf(x * proj.xToPixScale));
+	int r = int(std::floor(x * proj.xToPixScale));
 	//if(r) logMsg("unproject x %f, to %d", x, r);
 	return r;
 }
 
 static int toIYSize(GC y)
 {
-	int r = int(roundf(y * proj.yToPixScale));
+	int r = int(std::floor(y * proj.yToPixScale));
 	//if(r) logMsg("unproject y %f, to %d", y, r);
 	return r;
 }
@@ -207,9 +207,9 @@ static int toIYPos(GC y)
 }
 
 // TODO: remove
-static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
+static IG::Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
 {
-	Rect2<GC> r;
+	IG::Rect2<GC> r;
 	r.x = Gfx::iXPos(x);
 	r.y = Gfx::iYPos(y2); // flip y-axis
 	r.x2 = Gfx::iXPos(x2);
@@ -218,14 +218,24 @@ static Rect2<GC> unProjectRect(int x, int y, int x2, int y2)
 }
 
 // TODO: remove
-static Rect2<GC> unProjectRect(const Rect2<int> &src)
+static IG::Rect2<GC> unProjectRect(const IG::Rect2<int> &src)
 {
 	return unProjectRect(src.x, src.y, src.x2, src.y2);
 }
 
-static Rect2<int> projectRect2(const Rect2<GC> &src)
+static IG::Rect2<int> projectRect(const IG::Rect2<GC> &src)
 {
-	Rect2<int> r;
+	IG::Rect2<int> r;
+	r.x = Gfx::toIXPos(src.x);
+	r.y = Gfx::toIYPos(src.y2);
+	r.x2 = Gfx::toIXPos(src.x2);
+	r.y2 = Gfx::toIYPos(src.y);
+	return r;
+}
+
+static IG::Rect2<int> projectRect2(const IG::Rect2<GC> &src)
+{
+	IG::Rect2<int> r;
 	r.x = Gfx::toIXPos(src.x);
 	r.y = Gfx::toIYPos(src.y);
 	r.x2 = Gfx::toIXPos(src.x2);
@@ -233,9 +243,9 @@ static Rect2<int> projectRect2(const Rect2<GC> &src)
 	return r;
 }
 
-static Rect2<GC> unProjectRect2(const Rect2<int> &src)
+static IG::Rect2<GC> unProjectRect2(const IG::Rect2<int> &src)
 {
-	Rect2<GC> r;
+	IG::Rect2<GC> r;
 	r.x = Gfx::iXPos(src.x);
 	r.y = Gfx::iYPos(src.y);
 	r.x2 = Gfx::iXPos(src.x2);
@@ -264,23 +274,23 @@ static GC xSMMSize(GC mm) { return xMMSize(mm); }
 static GC ySMMSize(GC mm) { return yMMSize(mm); }
 #endif
 
-static Coordinate gXSize(const Rect2<int> &r) { return iXSize(r.xSize()); }
-static Coordinate gYSize(const Rect2<int> &r) { return iYSize(r.ySize()); }
-static Coordinate gXPos(const Rect2<int> &r, _2DOrigin o)
+static Coordinate gXSize(const IG::Rect2<int> &r) { return iXSize(r.xSize()); }
+static Coordinate gYSize(const IG::Rect2<int> &r) { return iYSize(r.ySize()); }
+static Coordinate gXPos(const IG::Rect2<int> &r, _2DOrigin o)
 {
 	int pos = r.xPos(o);
 	if(o.xScaler() == 1)
 		pos++;
 	return iXPos(pos);
 }
-static Coordinate gYPos(const Rect2<int> &r, _2DOrigin o)
+static Coordinate gYPos(const IG::Rect2<int> &r, _2DOrigin o)
 {
 	int pos = r.yPos(o);
 	if(o.invertYIfCartesian().yScaler() == 1)
 		pos++;
 	return iYPos(pos);
 }
-static Coordinate gXPos(const Rect2<int> &r, Coordinate scale, _2DOrigin o) { return gXPos(r, o) + (gXSize(r) * (scale)); }
-static Coordinate gYPos(const Rect2<int> &r, Coordinate scale, _2DOrigin o) { return gYPos(r, o) + (gYSize(r) * (scale)); }
+static Coordinate gXPos(const IG::Rect2<int> &r, Coordinate scale, _2DOrigin o) { return gXPos(r, o) + (gXSize(r) * (scale)); }
+static Coordinate gYPos(const IG::Rect2<int> &r, Coordinate scale, _2DOrigin o) { return gYPos(r, o) + (gYSize(r) * (scale)); }
 
 }

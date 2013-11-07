@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -19,138 +19,68 @@
 #ifndef CIC2_H
 #define CIC2_H
 
-#include "subresampler.h"
 #include "rshift16_round.h"
+#include "subresampler.h"
 
-template<unsigned channels> 
+template<unsigned channels>
 class Cic2Core {
-// 	enum { BUFLEN = 64 };
-// 	unsigned long buf[BUFLEN];
-	unsigned long sum1;
-	unsigned long sum2;
-	unsigned long prev1;
-// 	unsigned long prev2;
+public:
+	explicit Cic2Core(unsigned div = 2) { reset(div); }
+	unsigned div() const { return div_; }
+	std::size_t filter(short *out, short const *in, std::size_t inlen);
+	void reset(unsigned div);
+
+	static SysDDec gain(unsigned div) {
+		return rshift16_round(-32768l * (div * div) * mulForDiv(div)) / -32768.0;
+	}
+
+private:
+	unsigned long sum1_;
+	unsigned long sum2_;
+	unsigned long prev1_;
 	unsigned div_;
-	unsigned nextdivn;
-// 	unsigned bufpos;
-	
+	unsigned nextdivn_;
+
 	// trouble if div is too large, may be better to only support power of 2 div
 	static long mulForDiv(unsigned div) { return 0x10000 / (div * div); }
-	
-public:
-	explicit Cic2Core(const unsigned div = 2) { reset(div); }
-	unsigned div() const { return div_; }
-	std::size_t filter(short *out, const short *in, std::size_t inlen);
-	void reset(unsigned div);
-	static SysDDec gain(unsigned div) { return rshift16_round(-32768l * (div * div) * mulForDiv(div)) / -32768.0; }
 };
 
-template<unsigned channels> 
-void Cic2Core<channels>::reset(const unsigned div) {
-	sum2 = sum1 = 0;
-	/*prev2 = */prev1 = 0;
-	this->div_ = div;
-	nextdivn = div;
-// 	bufpos = div - 1;
+template<unsigned channels>
+void Cic2Core<channels>::reset(unsigned div) {
+	sum2_ = sum1_ = 0;
+	prev1_ = 0;
+	div_ = div;
+	nextdivn_ = div;
 }
 
 template<unsigned channels>
-std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::size_t inlen) {
-// 	const std::size_t produced = (inlen + div_ - (bufpos + 1)) / div_;
-	const std::size_t produced = (inlen + div_ - nextdivn) / div_;
-	const long mul = mulForDiv(div_);
-	const short *s = in;
-	
-	/*unsigned long sm1 = sum1;
-	unsigned long sm2 = sum2;
-	
-	while (inlen >> 2) {
-		unsigned n = (inlen < BUFLEN ? inlen >> 2 : BUFLEN >> 2);
-		const unsigned end = n * 4;
-		unsigned i = 0;
-		
-		do {
-			unsigned long s1 = sm1 += static_cast<long>(*s);
-			s += channels;
-			sm1 += static_cast<long>(*s);
-			s += channels;
-			buf[i++] = sm2 += s1;
-			buf[i++] = sm2 += sm1;
-			s1 = sm1 += static_cast<long>(*s);
-			s += channels;
-			sm1 += static_cast<long>(*s);
-			s += channels;
-			buf[i++] = sm2 += s1;
-			buf[i++] = sm2 += sm1;
-		} while (--n);
-		
-		while (bufpos < end) {
-			const unsigned long out2 = buf[bufpos] - prev2;
-			prev2 = buf[bufpos];
-			bufpos += div_;
-			
-			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
-			prev1 = out2;
-			out += channels;
-		}
-		
-		bufpos -= end;
-		inlen -= end;
-	}
-	
-	if (inlen) {
-		unsigned n = inlen;
-		unsigned i = 0;
-		
-		do {
-			sm1 += static_cast<long>(*s);
-			s += channels;
-			buf[i++] = sm2 += sm1;
-		} while (--n);
-		
-		while (bufpos < inlen) {
-			const unsigned long out2 = buf[bufpos] - prev2;
-			prev2 = buf[bufpos];
-			bufpos += div_;
-			
-			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
-			prev1 = out2;
-			out += channels;
-		}
-		
-		bufpos -= inlen;
-	}
-	
-	sum1 = sm1;
-	sum2 = sm2;*/
-	
-	unsigned long sm1 = sum1;
-	unsigned long sm2 = sum2;
-	
-	if (inlen >= nextdivn) {
+std::size_t Cic2Core<channels>::filter(short *out, short const *const in, std::size_t inlen) {
+	std::size_t const produced = (inlen + div_ - nextdivn_) / div_;
+	long const mul = mulForDiv(div_);
+	short const *s = in;
+	unsigned long sm1 = sum1_;
+	unsigned long sm2 = sum2_;
+
+	if (inlen >= nextdivn_) {
 		{
-			unsigned divn = nextdivn;
-			
+			unsigned divn = nextdivn_;
 			do {
 				sm1 += static_cast<long>(*s);
 				s += channels;
 				sm2 += sm1;
 			} while (--divn);
-			
-			const unsigned long out2 = sm2;
+
+			unsigned long const out2 = sm2;
 			sm2 = 0;
-			
-			*out = rshift16_round(static_cast<long>(out2 - prev1) * mul);
-			prev1 = out2;
+
+			*out = rshift16_round(static_cast<long>(out2 - prev1_) * mul);
+			prev1_ = out2;
 			out += channels;
 		}
-		
+
 		if (div_ & 1) {
-			std::size_t n = produced;
-			
-			while (--n) {
+			for (std::size_t n = produced; --n;) {
 				unsigned divn = div_ >> 1;
-				
 				do {
 					sm1 += static_cast<long>(*s);
 					s += channels;
@@ -159,22 +89,19 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 					s += channels;
 					sm2 += sm1;
 				} while (--divn);
-				
+
 				sm1 += static_cast<long>(*s);
 				s += channels;
 				sm2 += sm1;
-				
-				*out = rshift16_round(static_cast<long>(sm2 - prev1) * mul);
+
+				*out = rshift16_round(static_cast<long>(sm2 - prev1_) * mul);
 				out += channels;
-				prev1 = sm2;
+				prev1_ = sm2;
 				sm2 = 0;
 			}
 		} else {
-			std::size_t n = produced;
-			
-			while (--n) {
+			for (std::size_t n = produced; --n;) {
 				unsigned divn = div_ >> 1;
-				
 				do {
 					sm1 += static_cast<long>(*s);
 					s += channels;
@@ -183,61 +110,60 @@ std::size_t Cic2Core<channels>::filter(short *out, const short *const in, std::s
 					s += channels;
 					sm2 += sm1;
 				} while (--divn);
-				
-				*out = rshift16_round(static_cast<long>(sm2 - prev1) * mul);
+
+				*out = rshift16_round(static_cast<long>(sm2 - prev1_) * mul);
 				out += channels;
-				prev1 = sm2;
+				prev1_ = sm2;
 				sm2 = 0;
 			}
 		}
-		
-		nextdivn = div_;
+
+		nextdivn_ = div_;
 	}
-	
+
 	{
 		unsigned divn = (in + inlen * channels - s) / channels;
-		nextdivn -= divn;
-		
+		nextdivn_ -= divn;
+
 		while (divn--) {
 			sm1 += static_cast<long>(*s);
 			s += channels;
 			sm2 += sm1;
 		}
 	}
-	
-	sum1 = sm1;
-	sum2 = sm2;
-	
+
+	sum1_ = sm1;
+	sum2_ = sm2;
+
 	return produced;
 }
 
 template<unsigned channels>
 class Cic2 : public SubResampler {
-	Cic2Core<channels> cics[channels];
-	
 public:
 	enum { MAX_DIV = 64 };
 	explicit Cic2(unsigned div);
-	std::size_t resample(short *out, const short *in, std::size_t inlen);
-	unsigned mul() const { return 1; }
-	unsigned div() const { return cics[0].div(); }
+	virtual std::size_t resample(short *out, short const *in, std::size_t inlen);
+	virtual unsigned mul() const { return 1; }
+	virtual unsigned div() const { return cics_[0].div(); }
 	static SysDDec gain(unsigned div) { return Cic2Core<channels>::gain(div); }
+
+private:
+	Cic2Core<channels> cics_[channels];
 };
 
 template<unsigned channels>
-Cic2<channels>::Cic2(const unsigned div) {
+Cic2<channels>::Cic2(unsigned div) {
 	for (unsigned i = 0; i < channels; ++i)
-		cics[i].reset(div);
+		cics_[i].reset(div);
 }
 
 template<unsigned channels>
-std::size_t Cic2<channels>::resample(short *const out, const short *const in, const std::size_t inlen) {
+std::size_t Cic2<channels>::resample(short *out, short const *in, std::size_t inlen) {
 	std::size_t samplesOut;
-	
-	for (unsigned i = 0; i < channels; ++i) {
-		samplesOut = cics[i].filter(out + i, in + i, inlen);
-	}
-	
+	for (unsigned i = 0; i < channels; ++i)
+		samplesOut = cics_[i].filter(out + i, in + i, inlen);
+
 	return samplesOut;
 }
 

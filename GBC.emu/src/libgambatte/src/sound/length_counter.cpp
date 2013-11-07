@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -22,70 +22,66 @@
 
 namespace gambatte {
 
-LengthCounter::LengthCounter(MasterDisabler &disabler, const unsigned mask) :
-	disableMaster(disabler),
-	lengthMask(mask)
+LengthCounter::LengthCounter(MasterDisabler &disabler, unsigned const mask)
+: disableMaster_(disabler)
+, lengthCounter_(0)
+, lengthMask_(mask)
+, cgb_(false)
 {
-	init(false);
 	nr1Change(0, 0, 0);
 }
 
 void LengthCounter::event() {
-	counter = COUNTER_DISABLED;
-	lengthCounter = 0;
-	disableMaster();
+	counter_ = counter_disabled;
+	lengthCounter_ = 0;
+	disableMaster_();
 }
 
-void LengthCounter::nr1Change(const unsigned newNr1, const unsigned nr4, const unsigned long cycleCounter) {
-	lengthCounter = (~newNr1 & lengthMask) + 1;
-	counter = (nr4 & 0x40) ?( (cycleCounter >> 13) + lengthCounter) << 13 : static_cast<unsigned long>(COUNTER_DISABLED);
+void LengthCounter::nr1Change(unsigned const newNr1, unsigned const nr4, unsigned long const cc) {
+	lengthCounter_ = (~newNr1 & lengthMask_) + 1;
+	counter_ = nr4 & 0x40
+	         ? ((cc >> 13) + lengthCounter_) << 13
+	         : static_cast<unsigned long>(counter_disabled);
 }
 
-void LengthCounter::nr4Change(const unsigned oldNr4, const unsigned newNr4, const unsigned long cycleCounter) {
-	if (counter != COUNTER_DISABLED)
-		lengthCounter = (counter >> 13) - (cycleCounter >> 13);
-	
+void LengthCounter::nr4Change(unsigned const oldNr4, unsigned const newNr4, unsigned long const cc) {
+	if (counter_ != counter_disabled)
+		lengthCounter_ = (counter_ >> 13) - (cc >> 13);
+
 	{
 		unsigned dec = 0;
-		
+
 		if (newNr4 & 0x40) {
-			dec = ~cycleCounter >> 12 & 1;
-			
-			if (!(oldNr4 & 0x40) && lengthCounter) {
-				if (!(lengthCounter -= dec))
-					disableMaster();
+			dec = ~cc >> 12 & 1;
+
+			if (!(oldNr4 & 0x40) && lengthCounter_) {
+				if (!(lengthCounter_ -= dec))
+					disableMaster_();
 			}
 		}
-		
-		if ((newNr4 & 0x80) && !lengthCounter)
-			lengthCounter = lengthMask + 1 - dec;
+
+		if ((newNr4 & 0x80) && !lengthCounter_)
+			lengthCounter_ = lengthMask_ + 1 - dec;
 	}
-	
-	if ((newNr4 & 0x40) && lengthCounter)
-		counter = ((cycleCounter >> 13) + lengthCounter) << 13;
+
+	if ((newNr4 & 0x40) && lengthCounter_)
+		counter_ = ((cc >> 13) + lengthCounter_) << 13;
 	else
-		counter = COUNTER_DISABLED;
+		counter_ = counter_disabled;
 }
 
-/*void LengthCounter::reset() {
-	counter = COUNTER_DISABLED;
-	
-	if (cgb)
-		lengthCounter = lengthMask + 1;
-}*/
-
-void LengthCounter::init(const bool cgb) {
-	this->cgb = cgb;
+void LengthCounter::init(bool cgb) {
+	cgb_ = cgb;
 }
 
 void LengthCounter::saveState(SaveState::SPU::LCounter &lstate) const {
-	lstate.counter = counter;
-	lstate.lengthCounter = lengthCounter;
+	lstate.counter = counter_;
+	lstate.lengthCounter = lengthCounter_;
 }
 
-void LengthCounter::loadState(const SaveState::SPU::LCounter &lstate, const unsigned long cc) {
-	counter = std::max(lstate.counter, cc);
-	lengthCounter = lstate.lengthCounter;
+void LengthCounter::loadState(SaveState::SPU::LCounter const &lstate, unsigned long const cc) {
+	counter_ = std::max(lstate.counter, cc);
+	lengthCounter_ = lstate.lengthCounter;
 }
 
 }

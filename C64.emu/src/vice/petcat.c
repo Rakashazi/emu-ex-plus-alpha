@@ -965,7 +965,7 @@ int main(int argc, char **argv)
                 "   -w<version>\ttokenize using keywords on specified Basic version.\n"
                 "   -k<version>\tlist all keywords for the specified Basic version\n"
                 "   -k\t\tlist all Basic versions available.\n"
-                "   -l\t\tSpecify load address for program (in hex, no loading chars!).\n"
+                "   -l\t\tSpecify load address for program (in hex, no leading chars!).\n"
                 "   -o <name>\tSpecify the output file name\n"
                 "   -f\t\tForce overwritten the output file\n"
                 "   \t\tThe default depends on the BASIC version.\n");
@@ -1010,14 +1010,19 @@ int main(int argc, char **argv)
 
         fprintf(stdout, "\tUsage examples:\n"
                 "\tpetcat -2 -o outputfile.txt -- inputfile.prg\n"
-                "\t\tConvert inputfile.prg to a text file in outputfile.txt,\n"
-                "\t\tusing BASIC V2 only\n"
+                "\t\tDe-tokenize, convert inputfile.prg to a text file\n"
+                "\t\tin outputfile.txt, using BASIC V2 only\n"
                 "\tpetcat -wsimon -o outputfile.prg -- inputfile.txt\n"
-                "\t\tConvert inputfile.txt to a PRG file in outputfile.prg,\n"
-                "\t\tusing Simon's BASIC\n");
+                "\t\tTokenize, convert inputfile.txt to a PRG file\n"
+                "\t\tin outputfile.prg, using Simon's BASIC\n"
+                "\tpetcat -text -o outputfile.txt -- inputfile.seq\n"
+                "\t\tConvert inputfile.seq to a Ascii text file\n"
+                "\t\tin outputfile.txt.\n"
+                "\tpetcat -text -w2 -o outputfile.seq -- inputfile.txt\n"
+                "\t\tConvert inputfile.txt to a Petscii text SEQ file\n"
+                "\t\tin outputfile.seq.\n");
         exit(1);
     }
-
 
 /*
  * Check parameters
@@ -2913,40 +2918,6 @@ void disable_text(void)
 void ui_error_string(const char *text)
 {
 }
-
-#ifdef WIN32
-/* Kludge! Will be removed someday.  */
-size_t system_wcstombs(char *mbs, const char *wcs, size_t len)
-{
-    strncpy(mbs, wcs, len);
-    return strlen(mbs);
-}
-
-size_t system_mbstowcs(char *wcs, const char *mbs, size_t len)
-{
-    strncpy(wcs, mbs, len);
-    return strlen(wcs);
-}
-
-char *system_mbstowcs_alloc(const char *mbs)
-{
-    char *wcs;
-
-    if (mbs == NULL) {
-        return NULL;
-    }
-
-    wcs = lib_malloc((strlen(mbs) + 1) * sizeof(char));
-    system_mbstowcs(wcs, mbs, strlen(mbs) + 1);
-
-    return wcs;
-}
-
-void system_mbstowcs_free(char *wcs)
-{
-    lib_free(wcs);
-}
-#endif
 
 void archdep_ui_init(int argc, char *argv[])
 {

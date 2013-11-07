@@ -34,6 +34,32 @@
 #include "types.h"
 
 
+/* OSS: check if needed defines are present */
+#ifdef USE_OSS
+
+#if defined(HAVE_LINUX_SOUNDCARD_H)
+#include <linux/soundcard.h>
+#endif
+
+#if defined(HAVE_MACHINE_SOUNDCARD_H)
+#include <machine/soundcard.h>
+#endif
+
+#if defined(HAVE_SYS_SOUNDCARD_H)
+#include <sys/soundcard.h>
+#endif
+
+#if defined(HAVE_SOUNDCARD_H)
+#include <soundcard.h>
+#endif
+
+#if !defined(AFMT_U8) || !defined(AFMT_S16_LE)
+#undef USE_OSS
+#endif
+
+#endif
+
+
 /* Sound defaults.  */
 #ifdef ANDROID_COMPILE
 #define SOUND_SAMPLE_RATE 22050
@@ -116,9 +142,11 @@ static inline SWORD sound_audio_mix(int ch1, int ch2)
 #define SOUND_ADJUST_EXACT      2
 
 /* Fragment sizes */
-#define SOUND_FRAGMENT_SMALL    0
-#define SOUND_FRAGMENT_MEDIUM   1
-#define SOUND_FRAGMENT_LARGE    2
+#define SOUND_FRAGMENT_VERY_SMALL    0
+#define SOUND_FRAGMENT_SMALL         1
+#define SOUND_FRAGMENT_MEDIUM        2
+#define SOUND_FRAGMENT_LARGE         3
+#define SOUND_FRAGMENT_VERY_LARGE    4
 
 /* Sound output modes */
 #define SOUND_OUTPUT_SYSTEM   0
@@ -170,6 +198,7 @@ extern int sound_init_mmos2_device(void);
 extern int sound_init_dart_device(void);
 extern int sound_init_dart2_device(void);
 extern int sound_init_beos_device(void);
+extern int sound_init_bsp_device(void);
 extern int sound_init_arts_device(void);
 extern int sound_init_wmm_device(void);
 extern int sound_init_movie_device(void);

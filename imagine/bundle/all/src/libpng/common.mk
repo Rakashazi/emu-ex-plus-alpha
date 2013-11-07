@@ -4,11 +4,11 @@ endif
 
 ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
-else
-buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-libpngVer := 1.6.2
+CBUILD := $(shell cc -dumpmachine)
+
+libpngVer := 1.6.6
 libpngSrcDir := libpng-$(libpngVer)
 libpngSrcArchive := libpng-$(libpngVer).tar.xz
 
@@ -35,12 +35,12 @@ $(libpngSrcDir)/configure : $(libpngSrcArchive)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libpng..."
-	$(MAKE) -C $(<D)
+	$(MAKE) -C $(<D) libpng16.la
 
 $(makeFile) : $(libpngSrcDir)/configure
 	@echo "Configuring libpng..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && $$dir/$(libpngSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) $(buildArg) "CC=$(CC)" "CFLAGS=$(CPPFLAGS) $(CFLAGS)" "LD=$(LD)" "LDFLAGS=$(LDLIBS)"
+	dir=`pwd` && cd $(@D) && $$dir/$(libpngSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) --build=$(CBUILD) $(buildArg) "CC=$(CC)" "CFLAGS=$(CPPFLAGS) $(CFLAGS)" "LDFLAGS=$(LDLIBS)" PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config
 	touch $(buildDir)/pnglibconf.dfn
 	touch $(buildDir)/pnglibconf.out
 	dir=`pwd` && cp $$dir/$(pnglibconfFile) $(buildDir)/pnglibconf.h

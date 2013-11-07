@@ -80,7 +80,7 @@ char *findpath(const char *cmd, const char *syspath, int mode)
         ps = cmd;
         pd = buf + l; /* buf + 1 + l - 1 */
 
-#if !defined (__MSDOS__) && !defined (WIN32) && !defined (__OS2__)
+#if (FSDEV_DIR_SEP_CHR == '/')
         if (*pd++ != '/') {
             *pd++ = '/';
         }
@@ -171,14 +171,18 @@ char *findpath(const char *cmd, const char *syspath, int mode)
             memcpy(p, cmd, cl);
 
             for (c = buf + 1; *c != '\0'; c++) {
-#if defined (__MSDOS__) || defined (WIN32) || defined (__OS2__)
+#if (FSDEV_DIR_SEP_CHR == '\\')
                 if (*c == '/') {
                     *c = '\\';
                 }
 #else
+#if (FSDEV_DIR_SEP_CHR == '/')
                 if (*c == '\\') {
                     *c = '/';
                 }
+#else
+#error directory seperator for this platform not handled correctly, FIX NEEDED!
+#endif
 #endif
             }
             if (ioutil_access(buf + 1, mode) == 0) {

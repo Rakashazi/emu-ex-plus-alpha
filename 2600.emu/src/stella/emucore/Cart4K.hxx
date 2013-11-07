@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4K.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart4K.hxx 2681 2013-04-05 13:29:54Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4K_HXX
@@ -24,16 +24,21 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Cart4KWidget.hxx"
+#endif
 
 /**
   This is the standard Atari 4K cartridge.  These cartridges are 
   not bankswitched.
 
   @author  Bradford W. Mott
-  @version $Id: Cart4K.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Cart4K.hxx 2681 2013-04-05 13:29:54Z stephena $
 */
 class Cartridge4K : public Cartridge
 {
+  friend class Cartridge4KWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -119,6 +124,18 @@ class Cartridge4K : public Cartridge
       @return The name of the object
     */
     string name() const { return "Cartridge4K"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new Cartridge4KWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

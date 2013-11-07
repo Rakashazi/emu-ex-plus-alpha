@@ -9,17 +9,18 @@
 namespace Input
 {
 
-StaticDLList<Device, MAX_DEVS> devList;
+StaticArrayList<Device*, MAX_DEVS> devList;
 
-void addDevice(Device d)
+void addDevice(Device &d)
 {
-	d.idx = devList.size;
-	devList.addToEnd(d);
+	d.idx = devList.size();
+	devList.push_back(&d);
 }
 
-void removeDevice(Device d)
+void removeDevice(Device &d)
 {
-	devList.remove(d);
+	logMsg("removing device: %s,%d", d.name(), d.enumId());
+	devList.remove(&d);
 	indexDevices();
 }
 
@@ -27,9 +28,9 @@ void indexDevices()
 {
 	// re-number device indices
 	uint i = 0;
-	forEachInDLList(&Input::devList, e)
+	for(auto &e : Input::devList)
 	{
-		e.idx = i;
+		e->idx = i;
 		i++;
 	}
 }
@@ -38,23 +39,10 @@ uint Device::map() const
 {
 	return
 		#ifdef CONFIG_INPUT_ICADE
-			iCadeMode_ ? (uint)Input::Event::MAP_ICADE :
+		iCadeMode() ? (uint)Input::Event::MAP_ICADE :
 		#endif
-			map_;
+		map_;
 }
-
-#if defined CONFIG_INPUT_ICADE && !defined CONFIG_BASE_IOS
-void Device::setICadeMode(bool on)
-{
-	if(map_ == Input::Event::MAP_KEYBOARD)
-	{
-		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
-		iCadeMode_ = on;
-	}
-	else if(on)
-		logWarn("tried to set iCade mode on device with map %d", map_);
-}
-#endif
 
 bool Event::isDefaultConfirmButton(uint swapped) const
 {
@@ -78,7 +66,7 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			switch(device->subtype)
+			switch(device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
@@ -125,7 +113,7 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			switch(device->subtype)
+			switch(device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
 				case Device::SUBTYPE_PS3_CONTROLLER:
@@ -174,6 +162,7 @@ bool Event::isDefaultLeftButton() const
 			return button == Input::Keycode::LEFT
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_NEG
+			|| button == Input::Keycode::JS3_XAXIS_NEG
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('d')
@@ -210,6 +199,7 @@ bool Event::isDefaultRightButton() const
 			return button == Input::Keycode::RIGHT
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_POS
+			|| button == Input::Keycode::JS3_XAXIS_POS
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('g')
@@ -246,6 +236,7 @@ bool Event::isDefaultUpButton() const
 			return button == Input::Keycode::UP
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_NEG
+			|| button == Input::Keycode::JS3_YAXIS_NEG
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('r')
@@ -282,6 +273,7 @@ bool Event::isDefaultDownButton() const
 			return button == Input::Keycode::DOWN
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_POS
+			|| button == Input::Keycode::JS3_YAXIS_POS
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('c')
@@ -313,7 +305,7 @@ bool Event::isDefaultPageUpButton() const
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			switch(device->subtype)
+			switch(device->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -351,7 +343,7 @@ bool Event::isDefaultPageDownButton() const
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_KEYBOARD:
-			switch(device->subtype)
+			switch(device->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -394,7 +386,7 @@ void pointerAxis(uint mode)
 	pointerAxis_ = mode;
 }
 
-IG::Point2D<int> pointerPos(int x, int y)
+IG::Point2D<int> pointerPos(const Base::Window &win, int x, int y)
 {
 	IG::Point2D<int> pos;
 	// x,y axis is swapped first
@@ -403,10 +395,20 @@ IG::Point2D<int> pointerPos(int x, int y)
 	
 	// then coordinates are inverted
 	if(xPointerTransform_ == POINTER_INVERT)
-		pos.x = Gfx::viewPixelWidth() - pos.x;
+		pos.x = win.viewPixelWidth() - pos.x;
 	if(yPointerTransform_ == POINTER_INVERT)
-		pos.y = Gfx::viewPixelHeight() - pos.y;
+		pos.y = win.viewPixelHeight() - pos.y;
 	return pos;
+}
+
+// For soft-orientation
+void configureInputForOrientation(const Base::Window &win)
+{
+	using namespace Input;
+	using namespace Base;
+	xPointerTransform(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_90 ? POINTER_NORMAL : POINTER_INVERT);
+	yPointerTransform(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_270 ? POINTER_NORMAL : POINTER_INVERT);
+	pointerAxis(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_180 ? POINTER_NORMAL : POINTER_INVERT);
 }
 
 #ifdef INPUT_SUPPORTS_KEYBOARD
@@ -417,7 +419,7 @@ static const char *keyButtonName(Key b)
 		case 0: return "None";
 
 		case asciiKey(' '): return "Space";
-		#ifndef CONFIG_BASE_ANDROID
+		#if !defined CONFIG_BASE_ANDROID && !defined CONFIG_BASE_WIN32
 		// no unique codes for these on Android
 		case asciiKey('{'): return "{";
 		case asciiKey('|'): return "|";
@@ -516,26 +518,26 @@ static const char *keyButtonName(Key b)
 		case asciiKey('z'): return "z";
 		case Keycode::ESCAPE:
 		#ifdef CONFIG_BASE_ANDROID
-			return "Back";
+		return "Back";
 		#else
-			return "Escape";
+		return "Escape";
 		#endif
 		case Keycode::ENTER: return "Enter";
 		case Keycode::LALT: return "Left Alt";
 		case Keycode::RALT:
 		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-			return "Mod";
+		return "Mod";
 		#else
-			return "Right Alt";
+		return "Right Alt";
 		#endif
 		case Keycode::LSHIFT: return "Left Shift";
 		case Keycode::RSHIFT: return "Right Shift";
 		case Keycode::LCTRL: return "Left Ctrl";
 		case Keycode::RCTRL:
 		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-			return "Sym";
+		return "Sym";
 		#else
-			return "Right Ctrl";
+		return "Right Ctrl";
 		#endif
 		case Keycode::UP: return "Up";
 		case Keycode::RIGHT: return "Right";
@@ -551,12 +553,12 @@ static const char *keyButtonName(Key b)
 		case Keycode::SCROLL_LOCK: return "Scroll Lock";
 		case Keycode::CAPS: return "Caps Lock";
 		case Keycode::PAUSE: return "Pause";
+		#ifdef CONFIG_BASE_X11
 		case Keycode::LMETA: return "Left Meta";
 		case Keycode::RMETA: return "Right Meta";
-		#ifdef CONFIG_BASE_X11
+		#endif
 		case Keycode::LSUPER: return "Left Start/Option";
 		case Keycode::RSUPER: return "Right Start/Option";
-		#endif
 		case Keycode::PGUP: return "Page Up";
 		case Keycode::PGDOWN: return "Page Down";
 		case Keycode::PRINT_SCREEN: return "Print Screen";
@@ -577,8 +579,10 @@ static const char *keyButtonName(Key b)
 		case Keycode::NUMPAD_ADD: return "Numpad +";
 		case Keycode::NUMPAD_DOT: return "Numpad .";
 		case Keycode::NUMPAD_COMMA: return "Numpad ,";
+		#ifndef CONFIG_BASE_WIN32
 		case Keycode::NUMPAD_ENTER: return "Numpad Enter";
 		case Keycode::NUMPAD_EQUALS: return "Numpad =";
+		#endif
 		#ifdef CONFIG_BASE_X11
 		case Keycode::NUMPAD_INSERT: return "Numpad Insert";
 		case Keycode::NUMPAD_DELETE: return "Numpad Delete";
@@ -678,6 +682,8 @@ static const char *keyButtonName(Key b)
 }
 #endif
 
+#ifdef CONFIG_BLUETOOTH
+
 static const char *wiimoteButtonName(Key b)
 {
 	switch(b)
@@ -720,6 +726,8 @@ static const char *wiiCCButtonName(Key b)
 		case WiiCC::ZR: return "ZR";
 		case WiiCC::X: return "X";
 		case WiiCC::Y: return "Y";
+		case WiiCC::LH: return "LH";
+		case WiiCC::RH: return "RH";
 		case WiiCC::LSTICK_LEFT: return "L:Left";
 		case WiiCC::LSTICK_RIGHT: return "L:Right";
 		case WiiCC::LSTICK_UP: return "L:Up";
@@ -782,6 +790,10 @@ static const char *zeemoteButtonName(Key b)
 	return "Unknown";
 }
 
+#endif
+
+#ifdef CONFIG_INPUT_ICADE
+
 static const char *iCadeButtonName(Key b)
 {
 	switch(b)
@@ -815,22 +827,24 @@ static const char *iCadeButtonName(Key b)
 	return nullptr;
 }
 
+#endif
+
 static const char *ps3SysButtonName(Key b)
 {
 	#if defined CONFIG_BASE_ANDROID
-		switch(b)
-		{
-			case Keycode::PS3::CROSS: return "Cross";
-			case Keycode::PS3::CIRCLE: return "Circle";
-			case Keycode::PS3::SQUARE: return "Square";
-			case Keycode::PS3::TRIANGLE: return "Triangle";
-			case Keycode::PS3::PS: return "PS";
-			case Keycode::GAME_LEFT_THUMB: return "L3";
-			case Keycode::GAME_RIGHT_THUMB: return "R3";
-		}
-		return nullptr;
+	switch(b)
+	{
+		case Keycode::PS3::CROSS: return "Cross";
+		case Keycode::PS3::CIRCLE: return "Circle";
+		case Keycode::PS3::SQUARE: return "Square";
+		case Keycode::PS3::TRIANGLE: return "Triangle";
+		case Keycode::PS3::PS: return "PS";
+		case Keycode::GAME_LEFT_THUMB: return "L3";
+		case Keycode::GAME_RIGHT_THUMB: return "R3";
+	}
+	return nullptr;
 	#else
-		return nullptr;
+	return nullptr;
 	#endif
 }
 
@@ -926,7 +940,7 @@ const char *Device::keyName(Key b) const
 		case Input::Event::MAP_KEYBOARD:
 		{
 			const char *name = nullptr;
-			switch(subtype)
+			switch(subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
 				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(b);

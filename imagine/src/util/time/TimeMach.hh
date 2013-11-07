@@ -44,6 +44,11 @@ public:
 		return t * timebaseMSec;
 	}
 
+	int64 toNs()
+	{
+		return t * timebaseNSec;
+	}
+
 	void addUSec(long int us)
 	{
 		t += us / timebaseUSec;

@@ -22,13 +22,13 @@
 
 bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 {
-	uint8 *screen = vidPix.data;
-	uint8 *tempImgBuff = (uint8*)mem_alloc(vidPix.x * vidPix.y * 3);
+	auto screen = vidPix.data;
+	auto tempImgBuff = (char*)mem_alloc(vidPix.x * vidPix.y * 3);
 	Pixmap tempPix(PixelFormatRGB888);
 	tempPix.init(tempImgBuff, vidPix.x, vidPix.y);
 	for(uint y = 0; y < vidPix.y; y++, screen += vidPix.pitch, tempImgBuff += tempPix.pitch)
 	{
-		uint8 *rowpix = tempImgBuff;
+		auto rowpix = tempImgBuff;
 		for(uint x = 0; x < vidPix.x; x++)
 		{
 			// assumes RGB565
@@ -110,7 +110,7 @@ bool writeScreenshot(const Pixmap &vidPix, const char *fname)
 	//png_set_packing(pngPtr);
 
 	png_byte *rowPtr= (png_byte*)mem_alloc(png_get_rowbytes(pngPtr, infoPtr));
-	uint8 *screen = vidPix.data;
+	auto screen = vidPix.data;
 	for(uint y=0; y < vidPix.y; y++, screen+=vidPix.pitch)
 	{
 		png_byte *rowpix = rowPtr;

@@ -26,6 +26,7 @@ $(buildDir)/Tremor/configure.in : $(libvorbisSrcDir)
 	@mkdir -p $(buildDir)
 	cp -r $(libvorbisSrcDir) $(buildDir)
 	patch -d $(buildDir)/Tremor -p1 < tremor-autoconf-1.13-fix.patch
+	patch -d $(buildDir)/Tremor -p1 < tremor-remove-old-ogg-test.patch # causes issues on MacOS X
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building tremor..."
@@ -38,5 +39,5 @@ $(buildDir)/Tremor/configure : $(buildDir)/Tremor/configure.in
 $(makeFile) : $(buildDir)/Tremor/configure
 	@echo "Configuring tremor..."
 	@mkdir -p $(@D)
-	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./Tremor/configure --disable-oggtest --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./Tremor/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

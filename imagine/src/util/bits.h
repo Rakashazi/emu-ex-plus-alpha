@@ -3,14 +3,25 @@
 #include <util/ansiTypes.h>
 #include <util/builtins.h>
 #include <assert.h>
+#include <stddef.h>
 
-// bit mask macro for use in the functions below, passing 0 results in the first bit and so on
-// OR them together for operations on multiple bits
-#ifdef BIT
+#ifdef __cplusplus
+namespace IG
+{
+template <class T>
+constexpr static T bit(T bitIdx)
+{
+	return 1 << bitIdx;
+}
+}
+#else
+	#ifdef BIT
 	#warning "Overriding existing BIT(x) macro"
 	#undef BIT
-#endif
+	#endif
+// macro-based for use in C
 #define BIT(x) ( 1 << (x) )
+#endif
 
 #ifdef __cplusplus
 

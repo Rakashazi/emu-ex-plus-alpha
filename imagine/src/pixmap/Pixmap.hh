@@ -36,17 +36,17 @@ class Pixmap : public PixmapDesc
 {
 private:
 	//uchar byteOrder;
-	uchar *nextPixelOnLine(uchar *pixel) const;
+	char *nextPixelOnLine(char *pixel) const;
 
 public:
 	constexpr Pixmap(const PixelFormatDesc &format): PixmapDesc(format) { }
-	uchar *data = nullptr;
+	char *data = nullptr;
 
-	uchar *getPixel(uint x, uint y) const;
+	char *getPixel(uint x, uint y) const;
 
-	void init(uchar *data, uint x, uint y, uint extraPitch = 0)
+	void init(void *data, uint x, uint y, uint extraPitch = 0)
 	{
-		this->data = data;
+		this->data = (char*)data;
 		this->x = x;
 		this->y = y;
 		this->pitch = (x * format.bytesPerPixel) + extraPitch;
@@ -59,7 +59,7 @@ public:
 		// TODO: realloc
 		if(data)
 			mem_free(data);
-		uchar *data = (uchar*)mem_alloc(x * y * format.bytesPerPixel + extraPitch * y);
+		auto data = (char*)mem_alloc(x * y * format.bytesPerPixel + extraPitch * y);
 		init(data, x, y, extraPitch);
 	}
 

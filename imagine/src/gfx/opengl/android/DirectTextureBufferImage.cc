@@ -222,7 +222,7 @@ Pixmap *DirectTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pix
 		logMsg("error locking");
 		return 0;
 	}
-	eglPixmap.data = (uchar*)data;
+	eglPixmap.data = (char*)data;
 	return &eglPixmap;
 }
 

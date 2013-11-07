@@ -7,7 +7,7 @@
 #define _NET_WM_STATE_ADD           1    /* add/set property */
 #define _NET_WM_STATE_TOGGLE        2    /* toggle property  */
 
-static void ewmhFullscreen(Display *dpy, X11Window win, int action)
+static void ewmhFullscreen(Display *dpy, ::Window win, int action)
 {
 	assert(action == _NET_WM_STATE_REMOVE || action == _NET_WM_STATE_ADD || action == _NET_WM_STATE_TOGGLE);
 
@@ -67,11 +67,11 @@ static const char *xIEventTypeToStr(int type)
 }
 
 // same as XGetGeometry but can pass null args for unwanted values
-static Status safeXGetGeometry(Display *display, Drawable d, X11Window *root_return, int *x_return, int *y_return,
+static Status safeXGetGeometry(Display *display, Drawable d, ::Window *root_return, int *x_return, int *y_return,
 		unsigned int *width_return, unsigned int *height_return, unsigned int *border_width_return, unsigned int *depth_return)
 {
 	uint borderDummy;
-	X11Window rootDummy;
+	::Window rootDummy;
 	int xDummy, yDummy;
 	uint widthDummy, heightDummy;
 	uint depthDummy;

@@ -35,6 +35,7 @@
 #include "c64meminit.h"
 #include "c64memrom.h"
 #include "cartio.h"
+#include "machine.h"
 #include "resources.h"
 #include "sid.h"
 #include "vicii-mem.h"
@@ -79,7 +80,7 @@
 23 0x17  roml      -         io        romh     ultimax
 
 24 0x18
-25 0x19                      chr
+25 0x19
 26 0x1a            romh      chr       ker
 27 0x1b  roml      romh      chr       ker      16k game
 28 0x1c
@@ -130,9 +131,11 @@ static const unsigned int c64meminit_romh_mapping[32] = {
 void c64meminit(unsigned int base)
 {
     unsigned int i, j;
-    int board;
+    int board = 0;
 
-    resources_get_int("BoardType", &board);
+    if (machine_class != VICE_MACHINE_C128) {
+        resources_get_int("BoardType", &board);
+    }
 
     if (board != 1) {
         /* Setup BASIC ROM at $A000-$BFFF (memory configs 3, 7, 11, 15).  */

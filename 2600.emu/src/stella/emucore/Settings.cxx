@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 2613 2013-02-17 00:19:14Z stephena $
+// $Id: Settings.cxx 2756 2013-06-26 16:03:08Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -105,6 +105,7 @@ Settings::Settings(OSystem* osystem)
   // Snapshot options
   setInternal("snapsavedir", "");
   setInternal("snaploaddir", "");
+  setInternal("snapname", "int");
   setInternal("sssingle", "false");
   setInternal("ss1x", "false");
   setInternal("ssinterval", "2");
@@ -148,6 +149,7 @@ Settings::Settings(OSystem* osystem)
 #ifndef STELLA_MINIMAL_SETTINGS
   // Debugger disassembly options
   setInternal("dis.resolvedata", "auto");
+  setInternal("dis.resolve", "true");
   setInternal("dis.gfxformat", "2");
   setInternal("dis.showaddr", "true");
   setInternal("dis.relocate", "false");
@@ -398,7 +400,6 @@ void Settings::usage()
     << "  -fragsize     <number>       The size of sound fragments (must be a power of two)\n"
     << "  -freq         <number>       Set sound sample output frequency (11025|22050|31400|44100|48000)\n"
     << "  -volume       <number>       Set the volume (0 - 100)\n"
-    << "  -clipvol      <1|0>          Enable volume clipping (eliminates popping)\n"
     << endl
   #endif
     << "  -cheat        <code>         Use the specified cheatcode (see manual for description)\n"
@@ -416,6 +417,7 @@ void Settings::usage()
     << "  -fastscbios   <1|0>          Disable Supercharger BIOS progress loading bars\n"
     << "  -snapsavedir  <path>         The directory to save snapshot files to\n"
     << "  -snaploaddir  <path>         The directory to load snapshot files from\n"
+    << "  -snapname     <int|rom>      Name snapshots according to internal database or ROM\n"
     << "  -sssingle     <1|0>          Generate single snapshot instead of many\n"
     << "  -ss1x         <1|0>          Generate TIA snapshot in 1x mode (ignore scaling/effects)\n"
     << "  -ssinterval   <number        Number of seconds between snapshots in continuous snapshot mode\n"
@@ -452,9 +454,7 @@ void Settings::usage()
     << " The following options are meant for developers\n"
     << " Arguments are more fully explained in the manual\n"
     << endl
-    << "   -dis.resolvedata <never|    Set automatic code vs. data determination in disassembler\n"
-    << "                     always|\n"
-    << "                     auto>\n"
+    << "   -dis.resolve   <1|0>        Attempt to resolve code sections in disassembler\n"
     << "   -dis.gfxformat   <2|16>     Set base to use for displaying GFX sections in disassembler\n"
     << "   -dis.showaddr    <1|0>      Show opcode addresses in disassembler\n"
     << "   -dis.relocate    <1|0>      Relocate calls out of address range in disassembler\n"
@@ -482,7 +482,31 @@ void Settings::usage()
   #endif
     << endl << flush;
 }
+#endif
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const Variant& Settings::value(const string& key) const
+{
+  // Try to find the named setting and answer its value
+  int idx = -1;
+  if((idx = getInternalPos(key)) != -1)
+    return myInternalSettings[idx].value;
+  else if((idx = getExternalPos(key)) != -1)
+    return myExternalSettings[idx].value;
+  else
+    return EmptyVariant;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Settings::setValue(const string& key, const Variant& value)
+{
+  if(int idx = getInternalPos(key) != -1)
+    setInternal(key, value, idx);
+  else
+    setExternal(key, value);
+}
+
+#ifndef STELLA_MINIMAL_SETTINGS
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::saveConfig()
 {
@@ -535,139 +559,6 @@ void Settings::saveConfig()
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::setInt(const string& key, const int value)
-{
-  ostringstream stream;
-  stream << value;
-
-  if(int idx = getInternalPos(key) != -1)
-    setInternal(key, stream.str(), idx);
-  else
-    setExternal(key, stream.str());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::setFloat(const string& key, const float value)
-{
-  ostringstream stream;
-  stream << value;
-
-  if(int idx = getInternalPos(key) != -1)
-    setInternal(key, stream.str(), idx);
-  else
-    setExternal(key, stream.str());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::setBool(const string& key, const bool value)
-{
-  ostringstream stream;
-  stream << value;
-
-  if(int idx = getInternalPos(key) != -1)
-    setInternal(key, stream.str(), idx);
-  else
-    setExternal(key, stream.str());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::setString(const string& key, const string& value)
-{
-  if(int idx = getInternalPos(key) != -1)
-    setInternal(key, value, idx);
-  else
-    setExternal(key, value);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::getSize(const string& key, int& x, int& y) const
-{
-  char c = '\0';
-  x = y = -1;
-  string size = getString(key);
-  istringstream buf(size);
-  buf >> x >> c >> y;
-  if(c != 'x')
-    x = y = -1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int Settings::getInt(const string& key) const
-{
-  // Try to find the named setting and answer its value
-  int idx = -1;
-  if((idx = getInternalPos(key)) != -1)
-    return (int) atoi(myInternalSettings[idx].value.c_str());
-  else if((idx = getExternalPos(key)) != -1)
-    return (int) atoi(myExternalSettings[idx].value.c_str());
-  else
-    return -1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-float Settings::getFloat(const string& key) const
-{
-  // Try to find the named setting and answer its value
-  int idx = -1;
-  if((idx = getInternalPos(key)) != -1)
-    return (float) atof(myInternalSettings[idx].value.c_str());
-  else if((idx = getExternalPos(key)) != -1)
-    return (float) atof(myExternalSettings[idx].value.c_str());
-  else
-    return -1.0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Settings::getBool(const string& key) const
-{
-  // Try to find the named setting and answer its value
-  int idx = -1;
-  if((idx = getInternalPos(key)) != -1)
-  {
-    const string& value = myInternalSettings[idx].value;
-    if(value == "1" || value == "true")
-      return true;
-    else if(value == "0" || value == "false")
-      return false;
-    else
-      return false;
-  }
-  else if((idx = getExternalPos(key)) != -1)
-  {
-    const string& value = myExternalSettings[idx].value;
-    if(value == "1" || value == "true")
-      return true;
-    else if(value == "0" || value == "false")
-      return false;
-    else
-      return false;
-  }
-  else
-    return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const string& Settings::getString(const string& key) const
-{
-  // Try to find the named setting and answer its value
-  int idx = -1;
-  if((idx = getInternalPos(key)) != -1)
-    return myInternalSettings[idx].value;
-  else if((idx = getExternalPos(key)) != -1)
-    return myExternalSettings[idx].value;
-  else
-    return EmptyString;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Settings::setSize(const string& key, const int value1, const int value2)
-{
-  ostringstream buf;
-  buf << value1 << "x" << value2;
-  setString(key, buf.str());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int Settings::getInternalPos(const string& key) const
 {
   for(unsigned int i = 0; i < myInternalSettings.size(); ++i)
@@ -688,7 +579,7 @@ int Settings::getExternalPos(const string& key) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int Settings::setInternal(const string& key, const string& value,
+int Settings::setInternal(const string& key, const Variant& value,
                           int pos, bool useAsInitial)
 {
   int idx = -1;
@@ -743,7 +634,7 @@ int Settings::setInternal(const string& key, const string& value,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int Settings::setExternal(const string& key, const string& value,
+int Settings::setExternal(const string& key, const Variant& value,
                           int pos, bool useAsInitial)
 {
   int idx = -1;

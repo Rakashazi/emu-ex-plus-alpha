@@ -21,12 +21,12 @@
 class MsgPopup
 {
 public:
-	constexpr MsgPopup() {}
 	Gfx::Text text;
 	Base::CallbackRef *callbackRef = nullptr;
 	bool error = 0;
 	char str[1024] {0};
 
+	constexpr MsgPopup() {}
 	void init();
 	void clear();
 	void place();

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CompuMate.cxx 2705 2013-04-23 15:57:33Z stephena $
 //============================================================================
 
 #include "Control.hxx"
@@ -39,8 +39,20 @@ CompuMate::CompuMate(CartridgeCM& cart, const Event& event,
   myLeftController->myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
   myRightController->myAnalogPinValue[Controller::Nine] = Controller::minimumResistance;
   myRightController->myAnalogPinValue[Controller::Five] = Controller::maximumResistance;
+}
 
-  myKeyTable = event.getKeys();
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void CompuMate::enableKeyHandling(bool enable)
+{
+  if(enable)
+    myKeyTable = myEvent.getKeys();
+  else
+  {
+    for(uInt32 i = 0; i < KBDK_LAST; ++i)
+      myInternalKeyTable[i] = false;
+
+    myKeyTable = myInternalKeyTable;
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

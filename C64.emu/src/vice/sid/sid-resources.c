@@ -55,7 +55,7 @@
 
 static int sid_filters_enabled;       /* app_resources.sidFilters */
 static int sid_model;                 /* app_resources.sidModel */
-#if defined(HAVE_RESID) || defined(HAVE_RESID_FP)
+#if defined(HAVE_RESID)
 static int sid_resid_sampling;
 static int sid_resid_passband;
 static int sid_resid_gain;
@@ -95,9 +95,6 @@ static int set_sid_engine(int set_engine, void *param)
     if (engine != SID_ENGINE_FASTSID
 #ifdef HAVE_RESID
         && engine != SID_ENGINE_RESID
-#endif
-#ifdef HAVE_RESID_FP
-        && engine != SID_ENGINE_RESID_FP
 #endif
 #ifdef HAVE_CATWEASELMKIII
         && engine != SID_ENGINE_CATWEASELMKIII
@@ -222,7 +219,7 @@ static int set_sid_model(int val, void *param)
     return 0;
 }
 
-#if defined(HAVE_RESID) || defined(HAVE_RESID_FP) || defined(HAVE_RESID_DTV)
+#if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static int set_sid_resid_sampling(int val, void *param)
 {
     sid_resid_sampling = val;
@@ -289,7 +286,7 @@ static int set_sid_hardsid_right(int val, void *param)
 }
 #endif
 
-#if defined(HAVE_RESID) || defined(HAVE_RESID_FP) || defined(HAVE_RESID_DTV)
+#if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static const resource_int_t resid_resources_int[] = {
     { "SidResidSampling", 0, RES_EVENT_NO, NULL,
       &sid_resid_sampling, set_sid_resid_sampling, NULL },
@@ -333,7 +330,7 @@ int sid_common_resources_init(void)
 
 int sid_resources_init(void)
 {
-#if defined(HAVE_RESID) || defined(HAVE_RESID_FP) || defined(HAVE_RESID_DTV)
+#if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
     if (resources_register_int(resid_resources_int) < 0) {
         return -1;
     }
@@ -397,22 +394,6 @@ static sid_engine_model_t sid_engine_models_parsid[] = {
 };
 #endif
 
-#ifdef HAVE_RESID_FP
-static sid_engine_model_t sid_engine_models_resid_fp[] = {
-    { "6581R3 4885 (ReSID-fp)", SID_RESIDFP_6581R3_4885 },
-    { "6581R3 0486S (ReSID-fp)", SID_RESIDFP_6581R3_0486S },
-    { "6581R3 3984 (ReSID-fp)", SID_RESIDFP_6581R3_3984 },
-    { "6581R4AR 3789 (ReSID-fp)", SID_RESIDFP_6581R4AR_3789 },
-    { "6581R3 4485 (ReSID-fp)", SID_RESIDFP_6581R3_4485 },
-    { "6581R4 1986S (ReSID-fp)", SID_RESIDFP_6581R4_1986S },
-    { "8580R5 3691 (ReSID-fp)", SID_RESIDFP_8580R5_3691 },
-    { "8580R5 3691 + digi boost (ReSID-fp)", SID_RESIDFP_8580R5_3691D },
-    { "8580R5 1489 (ReSID-fp)", SID_RESIDFP_8580R5_1489 },
-    { "8580R5 1489 + digi boost (ReSID-fp)", SID_RESIDFP_8580R5_1489D, },
-    { NULL, -1 }
-};
-#endif
-
 static void add_sid_engine_models(sid_engine_model_t *sid_engine_models)
 {
     int i = 0;
@@ -455,10 +436,6 @@ sid_engine_model_t **sid_get_engine_model_list(void)
     add_sid_engine_models(sid_engine_models_parsid);
 #endif
 
-#ifdef HAVE_RESID_FP
-    add_sid_engine_models(sid_engine_models_resid_fp);
-#endif
-
     sid_engine_model_list[num_sid_engine_models] = NULL;
 
     return sid_engine_model_list;
@@ -485,18 +462,6 @@ static int sid_check_engine_model(int engine, int model)
         case SID_RESID_6581:
         case SID_RESID_8580:
         case SID_RESID_8580D:
-#endif
-#ifdef HAVE_RESID_FP
-        case SID_RESIDFP_6581R3_4885:
-        case SID_RESIDFP_6581R3_0486S:
-        case SID_RESIDFP_6581R3_3984:
-        case SID_RESIDFP_6581R4AR_3789:
-        case SID_RESIDFP_6581R3_4485:
-        case SID_RESIDFP_6581R4_1986S:
-        case SID_RESIDFP_8580R5_3691:
-        case SID_RESIDFP_8580R5_3691D:
-        case SID_RESIDFP_8580R5_1489:
-        case SID_RESIDFP_8580R5_1489D:
 #endif
             return 0;
 #ifdef HAVE_RESID_DTV

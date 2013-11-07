@@ -46,21 +46,21 @@ extern int catweaselmkiii_available(void);
 #define CW_MK4_SUBDEVICE1   0x0002
 #define CW_MK4_SUBDEVICE2   0x0003
 
-// generic registers
+/* generic registers */
 #define CW_DATA_DIRECTION   0x02
 #define CW_SELECT_BANK      0x03
 #define CW_PORT_OUT_DIR     CW_SELECT_BANK
 #define CW_PORT_AUX         0x05
 #define CW_PORT_IN_DIR      0x07
 
-// values for CW_SELECT_BANK
+/* values for CW_SELECT_BANK */
 #define CW_BANK_RESETFPGA   0x00
 #define CW_BANK_FIFO        0x01
 #define CW_BANK_FLOPPY      0x41
 #define CW_BANK_IO          0x81
 #define CW_BANK_IRQ         0xC1
 
-// registers in FLOPPY bank
+/* registers in FLOPPY bank */
 #define CW_FLOPPY_JOYDAT        0xC0
 #define CW_FLOPPY_JOYBUT        0xC8
 #define CW_FLOPPY_JOYBUT_DIR    0xCC
@@ -76,20 +76,20 @@ extern int catweaselmkiii_available(void);
 #define CW_FLOPPY_START_B       0xF4
 #define CW_FLOPPY_IRQ           0xFC
 
-// registers in IO bank
+/* registers in IO bank */
 #define CW_IO_MOUSEY1    0xC0
 #define CW_IO_MOUSEX1    0xC4
 #define CW_IO_MOUSEY2    0xC8
 #define CW_IO_MOUSEX2    0xCC
 #define CW_IO_BUTTON     0xD0
 
-// registers in CW_BANK_IRQ
+/* registers in CW_BANK_IRQ */
 #define CW_IRQ_R0    0xC0
 #define CW_IRQ_R1    0xC4
 #define CW_IRQ_M0    0xC8
 #define CW_IRQ_M1    0xCC
 
-// bits in registers in CW_BANK_IRQ
+/* bits in registers in CW_BANK_IRQ */
 #define CW_IRQ_MK3FLOPPY              0x01
 #define CW_IRQ_INDEX                  0x02
 #define CW_IRQ_FLOPPY_START           0x04

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -24,79 +24,67 @@
 namespace gambatte {
 
 class CPU {
-	Memory memory;
-	
-	unsigned long cycleCounter_;
-
-	unsigned short PC_;
-	unsigned short SP;
-	
-	unsigned HF1, HF2, ZF, CF;
-
-	unsigned char A_, B, C, D, E, /*F,*/ H, L;
-
-	bool skip;
-	
-	void process(unsigned long cycles) __attribute__ ((hot));
-	
 public:
-	
 	CPU();
-// 	void halt();
-
-// 	unsigned interrupt(unsigned address, unsigned cycleCounter);
-	
-	long runFor(unsigned long cycles) __attribute__ ((hot));
+	long runFor(unsigned long cycles) __attribute__ ((hot));;
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state);
-	void loadState(const SaveState &state);
-	
-	void loadSavedata() { memory.loadSavedata(); }
-	void saveSavedata() { memory.saveSavedata(); }
-	
-	void setVideoBuffer(PixelType *const videoBuf, const int pitch) {
-		memory.setVideoBuffer(videoBuf, pitch);
+	void loadState(SaveState const &state);
+	void loadSavedata() { mem_.loadSavedata(); }
+	void saveSavedata() { mem_.saveSavedata(); }
+
+	void setVideoBuffer(PixelType *videoBuf, std::ptrdiff_t pitch) {
+		mem_.setVideoBuffer(videoBuf, pitch);
 	}
-	
+
 	void setInputGetter(InputGetter *getInput) {
-		memory.setInputGetter(getInput);
+		mem_.setInputGetter(getInput);
 	}
-	
-	void setSaveDir(const std::string &sdir) {
-		memory.setSaveDir(sdir);
+
+	void setSaveDir(std::string const &sdir) {
+		mem_.setSaveDir(sdir);
 	}
-	
-	const std::string saveBasePath() const {
-		return memory.saveBasePath();
+
+	std::string const saveBasePath() const {
+		return mem_.saveBasePath();
 	}
-	
+
 #ifndef GAMBATTE_NO_OSD
-	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
-		memory.setOsdElement(osdElement);
+	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
+		mem_.setOsdElement(osdElement);
 	}
 #endif
-	
-	LoadRes load(std::string const &romfile, bool forceDmg, bool multicartCompat) {
-		return memory.loadROM(romfile, forceDmg, multicartCompat);
-	}
-	
-	bool loaded() const { return memory.loaded(); }
-	char const * romTitle() const { return memory.romTitle(); }
-	PakInfo const pakInfo(bool multicartCompat) const { return memory.pakInfo(multicartCompat); }
-	
-	void setSoundBuffer(uint_least32_t *const buf) { memory.setSoundBuffer(buf); }
-	unsigned fillSoundBuffer() { return memory.fillSoundBuffer(cycleCounter_); }
-	
-	bool isCgb() const { return memory.isCgb(); }
-	
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned rgb32) {
-		memory.setDmgPaletteColor(palNum, colorNum, rgb32);
-	}
-	
-	void refreshPalettes() { memory.refreshPalettes(); }
 
-	void setGameGenie(const std::string &codes) { memory.setGameGenie(codes); }
-	void setGameShark(const std::string &codes) { memory.setGameShark(codes); }
+	LoadRes load(std::string const &romfile, bool forceDmg, bool multicartCompat) {
+		return mem_.loadROM(romfile, forceDmg, multicartCompat);
+	}
+
+	bool loaded() const { return mem_.loaded(); }
+	char const * romTitle() const { return mem_.romTitle(); }
+	PakInfo const pakInfo(bool multicartCompat) const { return mem_.pakInfo(multicartCompat); }
+	void setSoundBuffer(uint_least32_t *buf) { mem_.setSoundBuffer(buf); }
+	std::size_t fillSoundBuffer() { return mem_.fillSoundBuffer(cycleCounter_); }
+	bool isCgb() const { return mem_.isCgb(); }
+
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
+		mem_.setDmgPaletteColor(palNum, colorNum, rgb32);
+	}
+
+	void refreshPalettes() { mem_.refreshPalettes(); }
+
+	void setGameGenie(std::string const &codes) { mem_.setGameGenie(codes); }
+	void setGameShark(std::string const &codes) { mem_.setGameShark(codes); }
+
+private:
+	Memory mem_;
+	unsigned long cycleCounter_;
+	unsigned short pc_;
+	unsigned short sp;
+	unsigned hf1, hf2, zf, cf;
+	unsigned char a_, b, c, d, e, /*f,*/ h, l;
+	bool skip_;
+
+	void process(unsigned long cycles) __attribute__ ((hot));;
 };
 
 }

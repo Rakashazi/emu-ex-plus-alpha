@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartAR.cxx 2707 2013-04-24 16:50:24Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -59,10 +59,12 @@ CartridgeAR::~CartridgeAR()
 void CartridgeAR::reset()
 {
   // Initialize RAM
+#if 0  // TODO - figure out actual behaviour of the real cart
   if(mySettings.getBool("ramrandom"))
     for(uInt32 i = 0; i < 6 * 1024; ++i)
       myImage[i] = mySystem->randGenerator().next();
   else
+#endif
     memset(myImage, 0, 6 * 1024);
 
   // Initialize SC BIOS ROM

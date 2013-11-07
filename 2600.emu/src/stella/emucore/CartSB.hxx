@@ -23,15 +23,22 @@
 #include "bspf.hxx"
 #include "Cart.hxx"
 #include "System.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartSBWidget.hxx"
+#endif
 
 /**
   Cartridge class used for SB "SUPERbanking" 128k-256k bankswitched games.
-  There are either 32 or 64 4K banks.
+  There are either 32 or 64 4K banks, accessible at hotspots $800 - $81F
+  (32 banks) and $800 - $83F (64 banks).  All mirrors up to $FFF are
+  also used ($900, $A00, ...).
 
   @author  Fred X. Quimby
 */
 class CartridgeSB : public Cartridge
 {
+  friend class CartridgeSBWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -117,6 +124,18 @@ class CartridgeSB : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeSB"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeSBWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

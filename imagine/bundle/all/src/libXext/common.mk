@@ -4,7 +4,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-libXextVer := 1.3.1
+libXextVer := 1.3.2
 libXextSrcDir := libXext-$(libXextVer)
 libXextSrcArchive := libXext-$(libXextVer).tar.bz2
 
@@ -26,6 +26,7 @@ install : $(outputLibFile)
 $(libXextSrcDir)/configure : $(libXextSrcArchive)
 	@echo "Extracting libXext..."
 	tar -mxjf $^
+	cd $(libXextSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libXext..."
@@ -34,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libXextSrcDir)/configure
 	@echo "Configuring libXext..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXextSrcDir)/configure --disable-shared --disable-specs --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libXextSrcDir)/configure --prefix=$(installDir) --disable-shared --disable-specs --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

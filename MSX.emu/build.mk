@@ -9,7 +9,6 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
 
 include ../EmuFramework/common.mk
-include $(IMAGINE_PATH)/src/io/zip/build.mk
 
 BMSX := blueMSX
 

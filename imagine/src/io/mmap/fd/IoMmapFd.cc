@@ -37,7 +37,7 @@ Io * IoMmapFd::open(int fd)
 		return 0;
 	}
 
-	inst->init((const uchar*)data, size);
+	inst->init((const char*)data, size);
 	return inst;
 }
 

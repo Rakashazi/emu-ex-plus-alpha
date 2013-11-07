@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.hxx 2608 2013-02-13 23:09:31Z stephena $
+// $Id: PropsSet.hxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 #ifndef PROPERTIES_SET_HXX
@@ -97,8 +97,8 @@ class PropertiesSet
       @param defaults    Use the built-in defaults, ignoring any properties
                          from an external file
     */
-    void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
-                          Properties& properties);
+    /*void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
+                          Properties& properties);*/
 
     /**
       Insert the properties into the set.  If a duplicate is inserted
@@ -134,9 +134,6 @@ class PropertiesSet
     // The properties temporarily inserted by the program, which should
     // be discarded when the program ends
     PropsList myTempProps;
-
-    // The size of the properties bst (i.e. the number of properties in it)
-    uInt32 mySize;
 };
 
 #endif

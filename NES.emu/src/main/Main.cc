@@ -15,7 +15,6 @@
 
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -28,6 +27,9 @@
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 uint fceuCheats = 0;
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 #include <fceu/driver.h>
 #include <fceu/state.h>
@@ -35,6 +37,7 @@ uint fceuCheats = 0;
 #include <fceu/ppu.h>
 #include <fceu/fds.h>
 #include <fceu/input.h>
+#include <fceu/cheat.h>
 
 static bool isFDSBIOSExtension(const char *name)
 {
@@ -101,10 +104,24 @@ static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
 
 const uint EmuSystem::maxPlayers = 4;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		{"8:7", 8, 7},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
-void EmuSystem::initOptions() { }
+using namespace IG;
+
+void EmuSystem::initOptions() {}
+
+void EmuSystem::onOptionsLoaded()
+{
+	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
+	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+}
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -141,20 +158,20 @@ const char *fceuReturnedError = 0;
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	uint playerMask = player << 8;
-	map[SysVController::F_ELEM] = BIT(0) | playerMask;
-	map[SysVController::F_ELEM+1] = BIT(1) | playerMask;
+	map[SysVController::F_ELEM] = bit(0) | playerMask;
+	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
 
-	map[SysVController::C_ELEM] = BIT(2) | playerMask;
-	map[SysVController::C_ELEM+1] = BIT(3) | playerMask;
+	map[SysVController::C_ELEM] = bit(2) | playerMask;
+	map[SysVController::C_ELEM+1] = bit(3) | playerMask;
 
-	map[SysVController::D_ELEM] = BIT(4) | BIT(6) | playerMask;
-	map[SysVController::D_ELEM+1] = BIT(4) | playerMask;
-	map[SysVController::D_ELEM+2] = BIT(4) | BIT(7) | playerMask;
-	map[SysVController::D_ELEM+3] = BIT(6) | playerMask;
-	map[SysVController::D_ELEM+5] = BIT(7) | playerMask;
-	map[SysVController::D_ELEM+6] = BIT(5) | BIT(6) | playerMask;
-	map[SysVController::D_ELEM+7] = BIT(5) | playerMask;
-	map[SysVController::D_ELEM+8] = BIT(5) | BIT(7) | playerMask;
+	map[SysVController::D_ELEM] = bit(4) | bit(6) | playerMask;
+	map[SysVController::D_ELEM+1] = bit(4) | playerMask;
+	map[SysVController::D_ELEM+2] = bit(4) | bit(7) | playerMask;
+	map[SysVController::D_ELEM+3] = bit(6) | playerMask;
+	map[SysVController::D_ELEM+5] = bit(7) | playerMask;
+	map[SysVController::D_ELEM+6] = bit(5) | bit(6) | playerMask;
+	map[SysVController::D_ELEM+7] = bit(5) | playerMask;
+	map[SysVController::D_ELEM+8] = bit(5) | bit(7) | playerMask;
 }
 #endif
 
@@ -180,21 +197,21 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
-		case nesKeyIdxUp: return BIT(4) | playerMask;
-		case nesKeyIdxRight: return BIT(7) | playerMask;
-		case nesKeyIdxDown: return BIT(5) | playerMask;
-		case nesKeyIdxLeft: return BIT(6) | playerMask;
-		case nesKeyIdxLeftUp: return BIT(6) | BIT(4) | playerMask;
-		case nesKeyIdxRightUp: return BIT(7) | BIT(4) | playerMask;
-		case nesKeyIdxRightDown: return BIT(7) | BIT(5) | playerMask;
-		case nesKeyIdxLeftDown: return BIT(6) | BIT(5) | playerMask;
-		case nesKeyIdxSelect: return BIT(2) | playerMask;
-		case nesKeyIdxStart: return BIT(3) | playerMask;
+		case nesKeyIdxUp: return bit(4) | playerMask;
+		case nesKeyIdxRight: return bit(7) | playerMask;
+		case nesKeyIdxDown: return bit(5) | playerMask;
+		case nesKeyIdxLeft: return bit(6) | playerMask;
+		case nesKeyIdxLeftUp: return bit(6) | bit(4) | playerMask;
+		case nesKeyIdxRightUp: return bit(7) | bit(4) | playerMask;
+		case nesKeyIdxRightDown: return bit(7) | bit(5) | playerMask;
+		case nesKeyIdxLeftDown: return bit(6) | bit(5) | playerMask;
+		case nesKeyIdxSelect: return bit(2) | playerMask;
+		case nesKeyIdxStart: return bit(3) | playerMask;
 		case nesKeyIdxATurbo: turbo = 1;
-		case nesKeyIdxA: return BIT(0) | playerMask;
+		case nesKeyIdxA: return bit(0) | playerMask;
 		case nesKeyIdxBTurbo: turbo = 1;
-		case nesKeyIdxB: return BIT(1) | playerMask;
-		case nesKeyIdxAB: return BIT(0) | BIT(1) | playerMask;
+		case nesKeyIdxB: return bit(1) | playerMask;
+		case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
 		default: bug_branch("%d", input);
 	}
 	return 0;
@@ -206,7 +223,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	auto key = emuKey & 0xFF;
 	if(unlikely(GameInfo->type==GIT_VSUNI)) // TODO: make coin insert separate key
 	{
-		if(state == Input::PUSHED && key == BIT(3))
+		if(state == Input::PUSHED && key == bit(3))
 			FCEUI_VSUniCoin();
 	}
 	if(state == Input::PUSHED)
@@ -214,8 +231,6 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	else
 		unsetBits(padData, key << playerInputShift(player));
 }
-
-static const uint audioMaxFramesPerUpdate = (Audio::maxRate/49)*2;
 
 void EmuSystem::resetGame()
 {
@@ -276,6 +291,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			FCEU_FDSWriteModifiedDisk();
 		else
 			GameInterface(GI_WRITESAVE);
+		FCEU_FlushGameCheats(0, 0, false);
 	}
 }
 
@@ -454,10 +470,9 @@ void EmuSystem::clearInputBuffers()
 
 void EmuSystem::configAudioRate()
 {
-	Audio::setHintPcmFramesPerWrite(PAL ? 950 : 800);
 	pcmFormat.rate = optionSoundRate;
 	bool usingTimer = (uint)optionFrameSkip == optionFrameSkipAuto || PAL;
-	float rate = (float)optionSoundRate * (PAL ? 1. : 1.0016);
+	float rate = std::round((float)optionSoundRate * (PAL ? 1. : 601./600.));
 	#if defined(CONFIG_ENV_WEBOS)
 	if(optionFrameSkip != optionFrameSkipAuto)
 		rate *= 42660./44100.; // better sync with Pre's refresh rate
@@ -482,61 +497,30 @@ void FCEUD_RenderPPULine(uint8 *line, uint y)
 }
 #endif
 
-static bool renderToScreen = 0;
-void FCEUD_commitVideoFrame()
+void FCEUD_commitVideo()
 {
-	if(likely(renderToScreen))
-	{
-		emuView.updateAndDrawContent();
-		renderToScreen = 0; // render at most once per call of FCEUI_Emulate() with renderToScreen true beforehand
-	}
-	else
-	{
-		//logMsg("skipping render");
-	}
+	emuView.updateAndDrawContent();
+}
+
+void FCEUD_emulateSound()
+{
+	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+2;
+	int16 sound[maxAudioFrames];
+	uint frames = FlushEmulateSound(sound);
+	assert(frames <= maxAudioFrames);
+	//logMsg("%d frames", frames);
+	EmuSystem::writeSound(sound, frames);
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	uint8 *gfx; int32 ssize;
-
-	#ifdef USE_NEW_AUDIO
-	Audio::BufferContext *aBuff = 0;
-	int16 *sound = 0;
-	if(renderAudio && (aBuff = Audio::getPlayBuffer(audioMaxFramesPerUpdate)))
-		sound = (int16*)aBuff->data;
-	#else
-	int16 sound[audioMaxFramesPerUpdate/2];
-	#endif
-
-	if(renderGfx)
-		renderToScreen = 1;
-	FCEUI_Emulate(&gfx, sound, &ssize, processGfx ? 0 : 1);
-	// gfx rendered in FCEUD_commitVideoFrame called by FCEUI_Emulate
-	static bool first = 1;
-	if(first)
-	{
-		logMsg("got %d audio size", ssize);
-		first = 0;
-	}
-	#ifdef USE_NEW_AUDIO
-	if(renderAudio && aBuff)
-	{
-		assert(ssize <= (int)aBuff->frames);
-		Audio::commitPlayBuffer(aBuff, ssize);
-	}
-	#else
-	if(renderAudio && ssize)
-	{
-		assert(ssize <= (int)audioMaxFramesPerUpdate);
-		Audio::writePcm((uchar*)sound, ssize);
-	}
-	#endif
+	FCEUI_Emulate(renderGfx, processGfx ? 0 : 1, renderAudio);
+	// FCEUI_Emulate calls FCEUD_commitVideo & FCEUD_emulateSound depending on parameters
 }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
 	if(EmuSystem::isActive())
 	{
@@ -545,7 +529,7 @@ void onInputEvent(const Input::Event &e)
 			if(e.state == Input::PUSHED)
 			{
 				zapperData[2] = 0;
-				if(emuView.gameRect().overlaps(e.x, e.y))
+				if(emuView.gameRect().overlaps({e.x, e.y}))
 				{
 					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
 					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
@@ -568,7 +552,7 @@ void onInputEvent(const Input::Event &e)
 			}
 		}
 	}
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -581,25 +565,23 @@ void EmuSystem::savePathChanged()
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
+void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	EmuSystem::pcmFormat.channels = 1;
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
 	backupSavestates = 0;
-	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
 	if(!FCEUI_Initialize())
 	{
 		bug_exit("error in FCEUI_Initialize");
 	}
 	//FCEUI_SetSoundQuality(2);
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -610,7 +592,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

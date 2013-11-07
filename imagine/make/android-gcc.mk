@@ -1,12 +1,16 @@
 ENV := android
 CROSS_COMPILE := 1
 configDefs += CONFIG_MACHINE_$(MACHINE)
+binStatic := 1
 
 android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
 android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
 android_hasSDK14 := $(shell expr $(android_minSDK) \>= 14)
+android_hasSDK16 := $(shell expr $(android_minSDK) \>= 16)
 
-ifeq ($(android_hasSDK14), 1)
+ifeq ($(android_hasSDK16), 1)
+ android_ndkSDK := 16
+else ifeq ($(android_hasSDK14), 1)
  android_ndkSDK := 14
 else ifeq ($(android_hasSDK9), 1)
  android_ndkSDK := 9
@@ -67,13 +71,13 @@ endif
 #BASE_CXXFLAGS += -fno-use-cxa-atexit
 # -fstack-protector
 COMPILE_FLAGS += -ffunction-sections -fdata-sections \
--Wa,--noexecstack $(android_cpuFlags)
+-Wa,--noexecstack $(android_cpuFlags) -no-canonical-prefixes
 ASMFLAGS += -Wa,--noexecstack $(android_cpuFlags)
-LDFLAGS += $(android_cpuFlags)
+LDFLAGS += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-prefixes
 WARNINGS_CFLAGS += -Wno-psabi
 LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now,-soname,lib$(android_soName).so -shared
-LDLIBS += -L$(android_ndkSysroot)/usr/lib -lm
-
+LDLIBS += -lgcc -lc -lm
+#-L$(android_ndkSysroot)/usr/lib
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all
+LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
 OPTIMIZE_LDFLAGS +=

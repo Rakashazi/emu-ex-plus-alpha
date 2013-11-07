@@ -9,7 +9,7 @@ class SystemOptionView : public OptionView
 		[](MultiChoiceMenuItem &, int val)
 		{
 			optionGBPal.val = val;
-			applyGBPalette(val);
+			applyGBPalette();
 		}
 	};
 
@@ -21,6 +21,17 @@ class SystemOptionView : public OptionView
 		};
 		gbPalette.init(str, int(optionGBPal), sizeofArray(str));
 	}
+
+	BoolMenuItem useBuiltinGBPalette
+	{
+		"Use Built-in GB Palettes",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionUseBuiltinGBPalette = item.on;
+			applyGBPalette();
+		}
+	};
 
 	MultiChoiceSelectMenuItem resampler
 	{
@@ -47,14 +58,12 @@ class SystemOptionView : public OptionView
 		resampler.init(resamplerName, int(optionAudioResampler), resamplers);
 	}
 
-
-
 	BoolMenuItem reportAsGba
 	{
 		"Report Hardware as GBA",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionReportAsGba = item.on;
 		}
 	};
@@ -62,9 +71,9 @@ class SystemOptionView : public OptionView
 	BoolMenuItem fullSaturation
 	{
 		"Saturated GBC Colors",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionFullGbcSaturation = item.on;
 			if(EmuSystem::gameIsRunning())
 			{
@@ -74,7 +83,7 @@ class SystemOptionView : public OptionView
 	};
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadAudioItems(MenuItem *item[], uint &items)
 	{
@@ -86,6 +95,7 @@ public:
 	{
 		OptionView::loadVideoItems(item, items);
 		gbPaletteInit(); item[items++] = &gbPalette;
+		useBuiltinGBPalette.init(optionUseBuiltinGBPalette); item[items++] = &useBuiltinGBPalette;
 		fullSaturation.init(optionFullGbcSaturation); item[items++] = &fullSaturation;
 	}
 
@@ -104,18 +114,19 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu);
+				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
 			}
 		}
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

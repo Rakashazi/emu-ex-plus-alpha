@@ -22,15 +22,23 @@ template <class COUNT = std::atomic_uint, class SIZE = uint>
 class RingBuffer
 {
 public:
-	bool init(uchar *buff, SIZE size)
+	bool init(SIZE size)
 	{
-		this->buff = buff;
+		deinit();
+		buff = (char*)malloc(size);
 		buffSize = size;
 		reset();
 		return true;
 	}
 
-	void deinit() {}
+	void deinit()
+	{
+		if(buff)
+		{
+			free(buff);
+			buff = nullptr;
+		}
+	}
 
 	void reset()
 	{
@@ -43,29 +51,20 @@ public:
 		return buffSize - written;
 	}
 
-	uchar *advancePtr(uchar *ptr)
-	{
-		assert(ptr >= buff && ptr < buff+buffSize);
-		ptr++;
-		if(ptr == buff+buffSize)
-			ptr = buff;
-		return ptr;
-	}
-
-	SIZE write(uchar *buff, SIZE size)
+	SIZE write(const void *buff, SIZE size)
 	{
 		if(size > freeSpace())
 			size = freeSpace();
 
-		uchar *writePos = end;
+		char *writePos = end;
 		iterateTimes(size, i)
 		{
 			//logMsg("addr %p", writePos);
-			*writePos = buff[i];
-			writePos = advancePtr(writePos);
+			*writePos = ((char*)buff)[i];
+			writePos = advancePos(writePos, 1);
 		}
-		written += size;
 		end = writePos;
+		written += size;
 
 		assert((SIZE)written <= buffSize);
 
@@ -73,59 +72,66 @@ public:
 		return size;
 	}
 
-	SIZE read(uchar *buff, SIZE size)
+	char *writePos()
+	{
+		return end;
+	}
+
+	void advanceWritePos(SIZE size)
+	{
+		assert(size <= freeSpace());
+		end = advancePos(end, size);
+		written += size;
+	}
+
+	SIZE read(void *buff, SIZE size)
 	{
 		if(size > (SIZE)written)
 			size = written;
 
-		uchar *readPos = start;
+		char *readPos = start;
 		iterateTimes(size, i)
 		{
 			//logMsg("addr %p", readPos);
-			buff[i] = *readPos;
-			readPos = advancePtr(readPos);
+			((char*)buff)[i] = *readPos;
+			readPos = advancePos(readPos, 1);
 		}
-		written -= size;
 		start = readPos;
+		written -= size;
 
 		//logMsg("read %d bytes", (int)size);
 		return size;
 	}
 
-	SIZE readPadded(uchar *buff, SIZE size)
+	char *readPos()
 	{
-		SIZE readSize = read(buff, size);
-		if(readSize < size)
-		{
-			uint padBytes = size - readSize;
-			logMsg("padding %d bytes", padBytes);
-			uchar padVal = readSize ? buff[readSize-1] : 0;
-			memset(&buff[readSize], padVal, padBytes);
-		}
-		return readSize;
+		return start;
 	}
 
-	SIZE readPadded32(uchar *buff, SIZE size)
+	void advanceReadPos(SIZE size)
 	{
-		assert(size % 4 == 0);
-		SIZE readSize = read(buff, size);
-		assert(readSize % 4 == 0);
-		if(readSize < size)
-		{
-			uint padElements = (size - readSize) / 4;
-			logMsg("padding %dx4 bytes", padElements);
-			uint padVal = 0;
-			if(readSize)
-				memcpy(&padVal, &buff[readSize-4], 4);
-			iterateTimes(padElements, i)
-				memcpy(&buff[readSize + (i*4)], &padVal, 4);
-		}
-		return readSize;
+		assert(size <= (SIZE)written);
+		start = advancePos(start, size);
+		written -= size;
+	}
+
+	char *data() const
+	{
+		return buff;
+	}
+
+	char *advancePos(char *ptr, int size)
+	{
+		assert(ptr >= buff && ptr < buff+buffSize*2);
+		ptr += size;
+		if(ptr >= buff+buffSize)
+			ptr -= buffSize;
+		return ptr;
 	}
 
 	COUNT written;
 	SIZE buffSize;
 private:
-	uchar *buff;
-	uchar *start, *end;
+	char *buff;
+	char *start, *end;
 };

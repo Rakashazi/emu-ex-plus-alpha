@@ -13,12 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <main/Cheats.hh>
 #include <io/sys.hh>
+#include <util/gui/ViewStack.hh>
+#include <logger/interface.h>
+#include <main/Cheats.hh>
 #include <EmuSystem.hh>
 #include <MsgPopup.hh>
 #include <TextEntry.hh>
-#include <util/gui/ViewStack.hh>
 #include "EmuCheatViews.hh"
 #include "system.h"
 #include "z80.h"
@@ -27,9 +28,9 @@
 #include "genesis.h"
 extern MsgPopup popup;
 extern ViewStack viewStack;
-StaticDLList<MdCheat, EmuCheats::MAX> cheatList;
-StaticDLList<MdCheat*, EmuCheats::MAX> romCheatList;
-StaticDLList<MdCheat*, EmuCheats::MAX> ramCheatList;
+StaticArrayList<MdCheat, EmuCheats::MAX> cheatList;
+StaticArrayList<MdCheat*, EmuCheats::MAX> romCheatList;
+StaticArrayList<MdCheat*, EmuCheats::MAX> ramCheatList;
 bool cheatsModified = 0;
 static const char *INPUT_CODE_8BIT_STR = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
 static const char *INPUT_CODE_16BIT_STR = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
@@ -278,7 +279,7 @@ uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &orig
 
 void applyCheats()
 {
-  forEachInDLList(&cheatList, e)
+	for(auto &e : cheatList)
   {
   	assert(!e.isApplied()); // make sure cheats have been cleared beforehand
     if(e.isOn() && strlen(e.code))
@@ -295,7 +296,7 @@ void applyCheats()
         else
         {
           // add ROM patch
-        	romCheatList.addToEnd(&e);
+        	romCheatList.push_back(&e);
 
           // get current banked ROM address
           auto ptr = &z80_readmap[(e.address) >> 10][e.address & 0x03FF];
@@ -319,24 +320,26 @@ void applyCheats()
       else if(e.address >= 0xFF0000)
       {
         // add RAM patch
-      	ramCheatList.addToEnd(&e);
+      	ramCheatList.push_back(&e);
       }
       e.setApplied(1);
     }
   }
-  if(romCheatList.size || ramCheatList.size)
+  if(romCheatList.size() || ramCheatList.size())
   {
-  	logMsg("%d RAM cheats, %d ROM cheats active", ramCheatList.size, romCheatList.size);
+  	logMsg("%d RAM cheats, %d ROM cheats active", ramCheatList.size(), romCheatList.size());
   }
 }
 
 void clearCheats()
 {
-	romCheatList.removeAll();
-	ramCheatList.removeAll();
+	//logMsg("clearing cheats");
+	romCheatList.clear();
+	ramCheatList.clear();
 
+	//logMsg("reversing applied cheats");
   // disable cheats in reversed order in case the same address is used by multiple patches
-  forEachInDLListReverse(&cheatList, e)
+  for(auto &e : makeReverseRange(cheatList))
   {
     if(e.isApplied())
     {
@@ -350,13 +353,13 @@ void clearCheats()
         }
         else
         {
-          /* check if previous banked ROM address has been patched */
+          // check if previous banked ROM address has been patched
           if(e.prev)
           {
-            /* restore original data */
+            // restore original data
             *e.prev = e.origData;
 
-            /* no more patched ROM address */
+            // no more patched ROM address
             e.prev = nullptr;
           }
         }
@@ -364,13 +367,14 @@ void clearCheats()
       e.setApplied(0);
     }
   }
+  logMsg("done");
 }
 
 void clearCheatList()
 {
-	romCheatList.removeAll();
-	ramCheatList.removeAll();
-	cheatList.removeAll();
+	romCheatList.clear();
+	ramCheatList.clear();
+	cheatList.clear();
 }
 
 void updateCheats()
@@ -387,7 +391,7 @@ void writeCheatFile()
 	FsSys::cPath filename;
 	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName);
 
-	if(!cheatList.size)
+	if(!cheatList.size())
 	{
 		logMsg("deleting cheats file %s", filename);
 		FsSys::remove(filename);
@@ -403,7 +407,7 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename);
 
-	forEachInDLList(&cheatList, e)
+	for(auto &e : cheatList)
 	{
 		if(!strlen(e.code))
 		{
@@ -442,6 +446,11 @@ void readCheatFile()
 
 		if(items == 2) // code & name
 		{
+			if(cheatList.isFull())
+			{
+				logErr("cheat list full while reading from file");
+				break;
+			}
 			string_toUpper(cheat.code);
 			if(!decodeCheat(cheat.code, cheat.address, cheat.data, cheat.origData))
 			{
@@ -449,22 +458,15 @@ void readCheatFile()
 				continue;
 			}
 			logMsg("read cheat %s : %s", cheat.name, cheat.code);
-			if(!cheatList.addToEnd(cheat))
-			{
-				logErr("cheat list full while reading from file");
-				break;
-			}
+			cheatList.push_back(cheat);
 		}
 		else if(items == 1) // ON/OFF string
 		{
-			if(string_equal(cheat.code, "ON"))
+			if(string_equal(cheat.code, "ON") && !cheatList.empty())
 			{
-				auto lastCheat = cheatList.last();
-				if(lastCheat)
-				{
-					lastCheat->toggleOn();
-					logMsg("turned on cheat %s from file", lastCheat->name);
-				}
+				auto &lastCheat = cheatList.back();
+				lastCheat.toggleOn();
+				logMsg("turned on cheat %s from file", lastCheat.name);
 			}
 		}
 	}
@@ -473,47 +475,47 @@ void readCheatFile()
 
 void RAMCheatUpdate()
 {
-	forEachDInDLList(&ramCheatList, e)
+	for(auto &e : ramCheatList)
 	{
 		// apply RAM patch
-		if(e.data & 0xFF00)
+		if(e->data & 0xFF00)
 		{
 			// word patch
-			*(uint16*)(work_ram + (e.address & 0xFFFE)) = e.data;
+			*(uint16*)(work_ram + (e->address & 0xFFFE)) = e->data;
 		}
 		else
 		{
 			// byte patch
-			work_ram[e.address & 0xFFFF] = e.data;
+			work_ram[e->address & 0xFFFF] = e->data;
 		}
 	}
 }
 
 void ROMCheatUpdate()
 {
-	forEachDInDLList(&romCheatList, e)
+	for(auto &e : romCheatList)
 	{
 		// check if previous banked ROM address was patched
-		if (e.prev)
+		if (e->prev)
 		{
 			// restore original data
-			*e.prev = e.origData;
+			*e->prev = e->origData;
 
 			// no more patched ROM address
-			e.prev = nullptr;
+			e->prev = nullptr;
 		}
 
 		// get current banked ROM address
-		auto ptr = &z80_readmap[(e.address) >> 10][e.address & 0x03FF];
+		auto ptr = &z80_readmap[(e->address) >> 10][e->address & 0x03FF];
 
 		// check if reference matches original ROM data
-		if (((uint8)e.origData) == *ptr)
+		if (((uint8)e->origData) == *ptr)
 		{
 			// patch data
-			*ptr = e.data;
+			*ptr = e->data;
 
 			// save patched ROM address
-			e.prev = ptr;
+			e->prev = ptr;
 		}
 	}
 }
@@ -544,13 +546,14 @@ void SystemEditCheatView::init(bool highlightFirst, MdCheat &cheat)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
+SystemEditCheatView::SystemEditCheatView(Base::Window &win):
+	EditCheatView("Edit Code", win),
 	code
 	{
 		"Code",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code);
 			textInputView.onText() =
 				[this](const char *str)
@@ -563,14 +566,14 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView("Edit Code"),
 						{
 							cheat->code[0]= 0;
 							popup.postError("Invalid code");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 
 						cheatsModified = 1;
 						updateCheats();
 						code.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -587,66 +590,68 @@ void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
 
 void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 {
-	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
-	auto it = cheatList.iterator();
+	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	auto it = cheatList.begin();
 	iterateTimes(cheats, c)
 	{
-		auto &thisCheat = it.obj();
+		auto &thisCheat = *it;
 		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
-				editCheatView.init(!e.isPointer(), *cheatList.index(c));
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				editCheatView.init(!e.isPointer(), cheatList[c]);
 				viewStack.pushAndShow(&editCheatView, &menuAllocator);
 			};
-		it.advance();
+		++it;
 	}
 }
 
-EditCheatListView::EditCheatListView():
+EditCheatListView::EditCheatListView(Base::Window &win):
+	BaseEditCheatListView(win),
 	addCode
 	{
 		"Add Game Genie / Action Replay Code",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR);
 			textInputView.onText() =
 				[this](const char *str)
 				{
 					if(str)
 					{
+						if(cheatList.isFull())
+						{
+							popup.postError("Cheat list is full");
+							removeModalView();
+							return 0;
+						}
 						MdCheat c;
 						string_copy(c.code, str);
 						string_toUpper(c.code);
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
 							popup.postError("Invalid code");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(c.name, "Unnamed Cheat");
-						if(!cheatList.addToEnd(c))
-						{
-							popup.postError("Error adding cheat");
-							removeModalView();
-							return 0;
-						}
-						logMsg("added new cheat, %d total", cheatList.size);
+						cheatList.push_back(c);
+						logMsg("added new cheat, %d total", cheatList.size());
 						cheatsModified = 1;
 						updateCheats();
 						removeModalView();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>();
+						auto &textInputView = *allocModalView<CollectTextInputView>(window());
 						textInputView.init("Input description");
 						textInputView.onText() =
 							[this](const char *str)
 							{
 								if(str)
 								{
-									string_copy(cheatList.last()->name, str);
+									string_copy(cheatList.back().name, str);
 									removeModalView();
 									refreshCheatViews();
 								}
@@ -671,22 +676,22 @@ EditCheatListView::EditCheatListView():
 
 void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 {
-	int cheats = std::min(cheatList.size, (int)sizeofArray(cheat));
-	auto it = cheatList.iterator();
+	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
-		auto &thisCheat = it.obj();
+		auto &thisCheat = *it;
 		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
 		cheat[cIdx].onSelect() =
 			[this, cIdx](BoolMenuItem &item, const Input::Event &e)
 			{
-				item.toggle();
-				auto c = cheatList.index(cIdx);
-				c->toggleOn();
+				item.toggle(*this);
+				auto &c = cheatList[cIdx];
+				c.toggleOn();
 				cheatsModified = 1;
 				updateCheats();
 			};
 		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
-		it.advance();
+		++it;
 	}
 }

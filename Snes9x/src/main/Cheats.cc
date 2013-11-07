@@ -46,13 +46,13 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
+SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	addr
 	{
 		"Address",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 6-digit hex", addrStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -64,7 +64,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						{
 							logMsg("addr 0x%X too large", a);
 							popup.postError("Invalid input");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
@@ -79,7 +79,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 							S9xEnableCheat(idx);
 						}
 						addr.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -92,7 +92,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 		"Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 2-digit hex", valueStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -103,7 +103,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						if(a > 0xFF)
 						{
 							popup.postError("value must be <= FF");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
@@ -118,7 +118,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 							S9xEnableCheat(idx);
 						}
 						value.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -131,7 +131,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 		"Saved Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 2-digit hex or blank", savedStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -145,7 +145,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 							if(a > 0xFF)
 							{
 								popup.postError("value must be <= FF");
-								Base::displayNeedsUpdate();
+								window().displayNeedsUpdate();
 								return 1;
 							}
 							string_copy(savedStr, str, sizeof(savedStr));
@@ -174,7 +174,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 							S9xEnableCheat(idx);
 						}
 						saved.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -198,14 +198,15 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), c);
 				viewStack.pushAndShow(&editCheatView, &menuAllocator);
 			};
 	}
 }
 
-EditCheatListView::EditCheatListView():
+EditCheatListView::EditCheatListView(Base::Window &win):
+	BaseEditCheatListView(win),
 	addCode
 	{
 		"Add Game Genie/Action Replay/Gold Finger Code",
@@ -214,10 +215,10 @@ EditCheatListView::EditCheatListView():
 			if(Cheat.num_cheats == EmuCheats::MAX)
 			{
 				popup.postError("Too many cheats, delete some first");
-				Base::displayNeedsUpdate();
+				window().displayNeedsUpdate();
 				return;
 			}
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code");
 			textInputView.onText() =
 				[this](const char *str)
@@ -242,7 +243,7 @@ EditCheatListView::EditCheatListView():
 						else
 						{
 							popup.postError("Invalid format");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(Cheat.c[Cheat.num_cheats - 1].name, "Unnamed Cheat");
@@ -250,7 +251,7 @@ EditCheatListView::EditCheatListView():
 						removeModalView();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>();
+						auto &textInputView = *allocModalView<CollectTextInputView>(window());
 						textInputView.init("Input description");
 						textInputView.onText() =
 							[this](const char *str)
@@ -289,7 +290,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		cheat[c].onSelect() =
 			[this, c](BoolMenuItem &item, const Input::Event &e)
 			{
-				item.toggle();
+				item.toggle(*this);
 				if(item.on)
 					S9xEnableCheat(c);
 				else

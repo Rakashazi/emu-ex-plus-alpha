@@ -54,33 +54,28 @@
 
 /* Generic alpha cpu discovery */
 #if !defined(FIND_ALPHA_CPU) && (defined(__alpha__) || defined(__alpha_ev6__) || defined(__alpha_ev5__) || defined(__alpha_ev4__))
-#define FIND_ALPHA_CPU
+#  define FIND_ALPHA_CPU
 #endif
 
 #ifdef FIND_ALPHA_CPU
-
-#ifdef __alpha_ev6__
-#define PLATFORM_CPU "Alpha EV6"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__alpha_ev5__)
-#define PLATFORM_CPU "Alpha EV5"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__alpha_ev4__)
-#define PLATFORM_CPU "Alpha EV4"
-#endif
-
-#ifndef PLATFORM_CPU
-#define PLATFORM_CPU "Alpha"
-#endif
-
+#  ifdef __alpha_ev6__
+#    define PLATFORM_CPU "Alpha EV6"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__alpha_ev5__)
+#    define PLATFORM_CPU "Alpha EV5"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__alpha_ev4__)
+#    define PLATFORM_CPU "Alpha EV4"
+#  endif
+#  ifndef PLATFORM_CPU
+#    define PLATFORM_CPU "Alpha"
+#  endif
 #endif
 
 
 /* Generic amd64/x86_64 cpu discovery */
 #if !defined(PLATFORM_CPU) && (defined(__amd64__) || defined(__x86_64__))
-#define PLATFORM_CPU "AMD64/x86_64"
+#  define PLATFORM_CPU "AMD64/x86_64"
 #endif
 
 
@@ -96,7 +91,6 @@
 
 /* Generic arm cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__arm__)
-
 #  ifdef WORDS_BIGENDIAN
 #    define PLATFORM_ENDIAN " (big endian)"
 #  else
@@ -276,131 +270,122 @@
 
 /* Generic avr32 cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__avr32__)
-#define PLATFORM_CPU "AVR32"
+#  define PLATFORM_CPU "AVR32"
 #endif
 
 
 /* Generic bfin cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(BFIN)
-#if defined(__ADSPBF512__)
-#define PLATFORM_CPU "BFIN512"
-#elif defined(__ADSPBF514__)
-#define PLATFORM_CPU "BFIN514"
-#elif defined(__ADSPBF516__)
-#define PLATFORM_CPU "BFIN516"
-#elif defined(__ADSPBF518__)
-#define PLATFORM_CPU "BFIN518"
-#elif defined(__ADSPBF522__)
-#define PLATFORM_CPU "BFIN522"
-#elif defined(__ADSPBF523__)
-#define PLATFORM_CPU "BFIN523"
-#elif defined(__ADSPBF524__)
-#define PLATFORM_CPU "BFIN524"
-#elif defined(__ADSPBF525__)
-#define PLATFORM_CPU "BFIN525"
-#elif defined(__ADSPBF526__)
-#define PLATFORM_CPU "BFIN526"
-#elif defined(__ADSPBF527__)
-#define PLATFORM_CPU "BFIN527"
-#elif defined(__ADSPBF531__)
-#define PLATFORM_CPU "BFIN531"
-#elif defined(__ADSPBF532__)
-#define PLATFORM_CPU "BFIN532"
-#elif defined(__ADSPBF533__)
-#define PLATFORM_CPU "BFIN533"
-#elif defined(__ADSPBF534__)
-#define PLATFORM_CPU "BFIN534"
-#elif defined(__ADSPBF536__)
-#define PLATFORM_CPU "BFIN536"
-#elif defined(__ADSPBF537__)
-#define PLATFORM_CPU "BFIN537"
-#elif defined(__ADSPBF538__)
-#define PLATFORM_CPU "BFIN538"
-#elif defined(__ADSPBF539__)
-#define PLATFORM_CPU "BFIN539"
-#elif defined(__ADSPBF542M__)
-#define PLATFORM_CPU "BFIN542M"
-#elif defined(__ADSPBF542__)
-#define PLATFORM_CPU "BFIN542"
-#elif defined(__ADSPBF544M__)
-#define PLATFORM_CPU "BFIN544M"
-#elif defined(__ADSPBF544__)
-#define PLATFORM_CPU "BFIN544"
-#elif defined(__ADSPBF547M__)
-#define PLATFORM_CPU "BFIN547M"
-#elif defined(__ADSPBF547__)
-#define PLATFORM_CPU "BFIN547"
-#elif defined(__ADSPBF548M__)
-#define PLATFORM_CPU "BFIN548M"
-#elif defined(__ADSPBF548__)
-#define PLATFORM_CPU "BFIN548"
-#elif defined(__ADSPBF549M__)
-#define PLATFORM_CPU "BFIN549M"
-#elif defined(__ADSPBF549__)
-#define PLATFORM_CPU "BFIN549"
-#elif defined(__ADSPBF561__)
-#define PLATFORM_CPU "BFIN561"
-#else
-#define PLATFORM_CPU "BFIN"
-#endif
+#  if defined(__ADSPBF512__)
+#    define PLATFORM_CPU "BFIN512"
+#  elif defined(__ADSPBF514__)
+#    define PLATFORM_CPU "BFIN514"
+#  elif defined(__ADSPBF516__)
+#    define PLATFORM_CPU "BFIN516"
+#  elif defined(__ADSPBF518__)
+#    define PLATFORM_CPU "BFIN518"
+#  elif defined(__ADSPBF522__)
+#    define PLATFORM_CPU "BFIN522"
+#  elif defined(__ADSPBF523__)
+#    define PLATFORM_CPU "BFIN523"
+#  elif defined(__ADSPBF524__)
+#    define PLATFORM_CPU "BFIN524"
+#  elif defined(__ADSPBF525__)
+#    define PLATFORM_CPU "BFIN525"
+#  elif defined(__ADSPBF526__)
+#    define PLATFORM_CPU "BFIN526"
+#  elif defined(__ADSPBF527__)
+#    define PLATFORM_CPU "BFIN527"
+#  elif defined(__ADSPBF531__)
+#    define PLATFORM_CPU "BFIN531"
+#  elif defined(__ADSPBF532__)
+#    define PLATFORM_CPU "BFIN532"
+#  elif defined(__ADSPBF533__)
+#    define PLATFORM_CPU "BFIN533"
+#  elif defined(__ADSPBF534__)
+#    define PLATFORM_CPU "BFIN534"
+#  elif defined(__ADSPBF536__)
+#    define PLATFORM_CPU "BFIN536"
+#  elif defined(__ADSPBF537__)
+#    define PLATFORM_CPU "BFIN537"
+#  elif defined(__ADSPBF538__)
+#    define PLATFORM_CPU "BFIN538"
+#  elif defined(__ADSPBF539__)
+#    define PLATFORM_CPU "BFIN539"
+#  elif defined(__ADSPBF542M__)
+#    define PLATFORM_CPU "BFIN542M"
+#  elif defined(__ADSPBF542__)
+#    define PLATFORM_CPU "BFIN542"
+#  elif defined(__ADSPBF544M__)
+#    define PLATFORM_CPU "BFIN544M"
+#  elif defined(__ADSPBF544__)
+#    define PLATFORM_CPU "BFIN544"
+#  elif defined(__ADSPBF547M__)
+#    define PLATFORM_CPU "BFIN547M"
+#  elif defined(__ADSPBF547__)
+#    define PLATFORM_CPU "BFIN547"
+#  elif defined(__ADSPBF548M__)
+#    define PLATFORM_CPU "BFIN548M"
+#  elif defined(__ADSPBF548__)
+#    define PLATFORM_CPU "BFIN548"
+#  elif defined(__ADSPBF549M__)
+#    define PLATFORM_CPU "BFIN549M"
+#  elif defined(__ADSPBF549__)
+#    define PLATFORM_CPU "BFIN549"
+#  elif defined(__ADSPBF561__)
+#    define PLATFORM_CPU "BFIN561"
+#  else
+#    define PLATFORM_CPU "BFIN"
+#  endif
 #endif
 
 
 /* Generic cris cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(CRIS)
-
 #endif
 
 /* Generic hppa cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__hppa__)
-#defined PLATFORM_CPU "HPPA"
+#  defined PLATFORM_CPU "HPPA"
 #endif
 
 /* Generic ia64 cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__ia64__)
-#define PLATFORM_CPU "IA64"
+#  define PLATFORM_CPU "IA64"
 #endif
 
 
 /* Generic m68k cpu discovery */
 #if (defined(__mc68060__) || defined(__mc68040__) || defined(__mc68030__) || defined(__mc68020__) || defined(__mc68010__) || defined(__mc68000__)) && !defined(__m68k__)
-#define __m68k__
+#  define __m68k__
 #endif
 
 #if !defined(PLATFORM_CPU) && !defined(FIND_M68K_CPU) && defined(__m68k__)
-#define FIND_M68K_CPU
+#  define FIND_M68K_CPU
 #endif
 
 #if !defined(PLATFORM_CPU) && defined(FIND_M68K_CPU)
-
-#ifdef __mc68060__
-#define PLATFORM_CPU "68060"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__mc68040__)
-#define PLATFORM_CPU "68040"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__mc68030__)
-#define PLATFORM_CPU "68030"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__mc68020__)
-#define PLATFORM_CPU "68020"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__mc68010__)
-#define PLATFORM_CPU "68010"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__mc68000__)
-#define PLATFORM_CPU "68000"
-#endif
-
-#ifndef PLATFORM_CPU
-#define PLATFORM_CPU "M68K"
-#endif
-
+#  ifdef __mc68060__
+#    define PLATFORM_CPU "68060"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__mc68040__)
+#    define PLATFORM_CPU "68040"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__mc68030__)
+#    define PLATFORM_CPU "68030"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__mc68020__)
+#    define PLATFORM_CPU "68020"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__mc68010__)
+#    define PLATFORM_CPU "68010"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__mc68000__)
+#    define PLATFORM_CPU "68000"
+#  endif
+#  ifndef PLATFORM_CPU
+#    define PLATFORM_CPU "M68K"
+#  endif
 #endif
 
 
@@ -426,29 +411,29 @@
 
 /* Generic ns32k cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__ns32000__)
-#define PLATFORM_CPU_"NS32K"
+#  define PLATFORM_CPU_"NS32K"
 #endif
 
 
 /* Generic powerpc cpu discovery */
 #if !defined(PLATFORM_CPU) && (defined(__powerpc__) || defined(__ppc__)) && !defined(__powerpc64__)
-#define PLATFORM_CPU "PPC"
+#  define PLATFORM_CPU "PPC"
 #endif
 
 
 /* Generic powerpc64 cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__powerpc64__)
-#define PLATFORM_CPU "PPC64"
+#  define PLATFORM_CPU "PPC64"
 #endif
 
 
 /* Generic s390 cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__s390__) && !defined(__s390x__)
-#define PLATFORM_CPU "S390"
+#  define PLATFORM_CPU "S390"
 #endif
 
 #if !defined(PLATFORM_CPU) && defined(__s390x__)
-#define PLATFORM_CPU "S390x"
+#  define PLATFORM_CPU "S390x"
 #endif
 
 
@@ -462,54 +447,64 @@
 #endif
 
 #if !defined(PLATFORM_CPU) && defined(__SH4__)
-#define PLATFORM_CPU "SH4"
+#  define PLATFORM_CPU "SH4"
 #endif
 
 
 /* Generic sparc64 cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__sparc64__)
-#define PLATFORM_CPU "SPARC64"
+#  define PLATFORM_CPU "SPARC64"
 #endif
 
 
 /* Generic sparc cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__sparc__)
-#define PLATFORM_CPU "SPARC"
+#  define PLATFORM_CPU "SPARC"
 #endif
 
 
 /* Generic vax cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__vax__)
-#define PLATFORM_CPU "VAX"
+#  define PLATFORM_CPU "VAX"
 #endif
 
 /* Generic x86 cpu discovery */
 #if !defined(PLATFORM_CPU) && !defined(FIND_X86_CPU) && (defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)) && !defined(__amd64__) && !defined(__x86_64__)
-#define FIND_X86_CPU
+#  define FIND_X86_CPU
+#endif
+
+/* MSVC cpu discovery */
+#if !defined(PLATFORM_CPU) && defined(FIND_X86_CPU) && defined(_M_IX86)
+#  if (_M_IX86 == 600)
+#    define __i686__
+#  endif
+#  if (_M_IX86 == 500)
+#    define __i586__
+#  endif
+#  if (_M_IX86 == 400)
+#    define __i486__
+#  endif
+#  if (_M_IX86 == 300)
+#    define __i386__
+#  endif
 #endif
 
 #if !defined(PLATFORM_CPU) && defined(FIND_X86_CPU)
-
-#ifdef __i686__
-#define PLATFORM_CPU "Pentium Pro"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__i586__)
-#define PLATFORM_CPU "Pentium"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__i486__)
-#define PLATFORM_CPU "80486"
-#endif
-
-#if !defined(PLATFORM_CPU) && defined(__i386__)
-#define PLATFORM_CPU "80386"
-#endif
-
-#ifndef PLATFORM_CPU
-#define PLATFORM_CPU "Unknown intel x86 compatible"
-#endif
-
+#  ifdef __i686__
+#    define PLATFORM_CPU "Pentium Pro"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__i586__)
+#    define PLATFORM_CPU "Pentium"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__i486__)
+#    define PLATFORM_CPU "80486"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__i386__)
+#    define PLATFORM_CPU "80386"
+#  endif
+#  ifndef PLATFORM_CPU
+#    define PLATFORM_CPU "Unknown intel x86 compatible"
+#  endif
 #endif
 
 #endif // VICE_PLATFORM_CPU_TYPE_H

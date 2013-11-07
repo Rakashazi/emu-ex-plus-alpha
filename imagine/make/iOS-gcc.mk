@@ -1,6 +1,7 @@
 ENV := ios
 CROSS_COMPILE := 1
 configDefs += CONFIG_MACHINE_$(MACHINE)
+binStatic := 1
 
 ifndef target
  target = $(metadata_exec)
@@ -27,12 +28,13 @@ endif
 
  # base engine code needs at least iOS 3.1
 minIOSVer = 3.1
-IOS_SDK ?= 6.1
+IOS_SDK ?= 7.0
+XCODE_PATH := $(shell xcode-select --print-path)
 ifeq ($(ARCH),x86)
- IOS_SYSROOT ?= $(shell xcode-select --print-path)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk
+ IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer) -fobjc-abi-version=2 -fobjc-legacy-dispatch
 else
- IOS_SYSROOT ?= $(shell xcode-select --print-path)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$(IOS_SDK).sdk
+ IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$(IOS_SDK).sdk
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
 endif
 CPPFLAGS += $(IOS_FLAGS)
@@ -45,6 +47,8 @@ ifneq ($(SUBARCH),armv6)
 endif
 ifdef RELEASE
  LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs
+else
+ LDFLAGS += -Wl,-x,-dead_strip_dylibs
 endif
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 

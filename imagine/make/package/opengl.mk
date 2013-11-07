@@ -22,6 +22,8 @@ else ifeq ($(ENV), ios)
  LDLIBS += -framework OpenGLES
 else ifeq ($(ENV), macosx)
  LDLIBS += -framework OpenGL -framework CoreVideo
+else ifeq ($(ENV), win32)
+ LDLIBS += -lglew32 -lopengl32
 else ifeq ($(ENV), webos)
  LDLIBS += -lGLES_CM $(webos_libm)
 else ifeq ($(ENV), ps3)

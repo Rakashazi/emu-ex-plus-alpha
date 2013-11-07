@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartDPCPlus.cxx 2703 2013-04-21 20:02:55Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -56,10 +56,7 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
   // If the image is larger than 29K, we assume any excess at the
   // beginning is ARM code, and skip over it
   if(size > 29 * 1024)
-  {
-    int offset = size - 29 * 1024;
-    myProgramImage   += offset;
-  }
+  	myProgramImage += (size - 29 * 1024);
 
 #ifdef THUMB_SUPPORT
   // Create Thumbulator ARM emulator
@@ -106,7 +103,7 @@ void CartridgeDPCPlus::setInitialState()
   memcpy(myDisplayImage, myProgramImage + 0x6000, 0x1400);
 
   // Initialize the DPC data fetcher registers
-  for(uInt16 i = 0; i < 8; ++i)
+  for(int i = 0; i < 8; ++i)
     myTops[i] = myBottoms[i] = myCounters[i] = myFractionalIncrements[i] = 
     myFractionalCounters[i] = 0;
 
@@ -212,10 +209,11 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
     case 254:
     case 255:
       // Call user written ARM code (most likely be C compiled for ARM)
-      /* try */ {
+			#ifdef THUMB_DEBUG_SUPPORT
+      try {
         myThumbEmulator->run();
       }
-      /*catch(const string& error) {
+      catch(const string& error) {
         if(!mySystem->autodetectMode())
         {
       #ifdef DEBUGGER_SUPPORT
@@ -224,7 +222,10 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
           cout << error << endl;
       #endif
         }
-      }*/
+      }
+			#else
+      myThumbEmulator->run();
+			#endif
       break;
   #endif
     // reserved

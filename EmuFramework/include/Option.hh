@@ -24,13 +24,14 @@
 #include <Recent.hh>
 #include <audio/Audio.hh>
 #include <util/strings.h>
+#include <util/Rational.hh>
 
 struct OptionBase
 {
 	bool isConst = 0;
-	constexpr OptionBase() { }
-	constexpr OptionBase(bool isConst): isConst(isConst) { }
 
+	constexpr OptionBase() {}
+	constexpr OptionBase(bool isConst): isConst(isConst) {}
 	virtual bool isDefault() const = 0;
 	virtual uint ioSize() = 0;
 	virtual bool writeToIO(Io *io) = 0;
@@ -45,7 +46,7 @@ bool OptionMethodIsAlwaysValid(T)
 template <class T>
 struct OptionMethodBase
 {
-	constexpr OptionMethodBase(bool (&validator)(T v)): validator(validator) { }
+	constexpr OptionMethodBase(bool (&validator)(T v)): validator(validator) {}
 	bool (&validator)(T v);
 	bool isValidVal(T v)
 	{
@@ -56,8 +57,8 @@ struct OptionMethodBase
 template <class T, T (&GET)(), void (&SET)(T)>
 struct OptionMethodFunc : public OptionMethodBase<T>
 {
-	constexpr OptionMethodFunc(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
-	constexpr OptionMethodFunc(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
+	constexpr OptionMethodFunc(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
+	constexpr OptionMethodFunc(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
 	T get() const { return GET(); }
 	void set(T v) { SET(v); }
 };
@@ -65,8 +66,8 @@ struct OptionMethodFunc : public OptionMethodBase<T>
 template <class T, T &val>
 struct OptionMethodRef : public OptionMethodBase<T>
 {
-	constexpr OptionMethodRef(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
-	constexpr OptionMethodRef(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
+	constexpr OptionMethodRef(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
+	constexpr OptionMethodRef(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
 	T get() const { return val; }
 	void set(T v) { val = v; }
 };
@@ -74,8 +75,8 @@ struct OptionMethodRef : public OptionMethodBase<T>
 template <class T>
 struct OptionMethodVar : public OptionMethodBase<T>
 {
-	constexpr OptionMethodVar(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) { }
-	constexpr OptionMethodVar(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator), val(init) { }
+	constexpr OptionMethodVar(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
+	constexpr OptionMethodVar(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator), val(init) {}
 	T val;
 	T get() const { return val; }
 	void set(T v) { val = v; }
@@ -91,7 +92,8 @@ public:
 	T defaultVal;
 
 	constexpr Option(uint16 key, T defaultVal = 0, bool isConst = 0, bool (&validator)(T v) = OptionMethodIsAlwaysValid):
-		OptionBase(isConst), V(defaultVal, validator), KEY(key), defaultVal(defaultVal) { }
+		OptionBase(isConst), V(defaultVal, validator), KEY(key), defaultVal(defaultVal)
+	{}
 
 	Option & operator = (T other)
 	{
@@ -105,6 +107,7 @@ public:
 
 	bool isDefault() const { return V::get() == defaultVal; }
 	void initDefault(T val) { defaultVal = val; V::set(val); }
+	void reset() { V::set(defaultVal); }
 
 	operator T() const
 	{
@@ -137,7 +140,7 @@ public:
 				logMsg("skipping const option value");
 			else
 				logMsg("skipping %d byte option value, expected %d", readSize, (int)sizeof(SERIALIZED_T));
-			io->seekRel(readSize);
+			//io->seekRel(readSize);
 			return 0;
 		}
 
@@ -167,9 +170,9 @@ struct PathOption : public OptionBase
 	const char *defaultVal;
 	const uint16 KEY;
 
-	constexpr PathOption(uint16 key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) { }
+	constexpr PathOption(uint16 key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
 	template <size_t S>
-	constexpr PathOption(uint16 key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) { }
+	constexpr PathOption(uint16 key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
 
 	bool isDefault() const { return string_equal(val, defaultVal); }
 
@@ -202,7 +205,6 @@ struct PathOption : public OptionBase
 		if(readSize > strSize-1)
 		{
 			logMsg("skipping %d byte string option value, max is %d", readSize, strSize-1);
-			io->seekRel(readSize);
 			return 0;
 		}
 
@@ -230,20 +232,20 @@ bool optionIsValidWithMinMax(T val)
 	return val >= MIN && val <= MAX;
 }
 
-typedef Option<OptionMethodVar<sint8>, sint8> SByte1Option;
-typedef Option<OptionMethodVar<uint8>, uint8> Byte1Option;
-typedef Option<OptionMethodVar<uint16>, uint16> Byte2Option;
-typedef Option<OptionMethodVar<uint32>, uint16> Byte4s2Option;
-typedef Option<OptionMethodVar<uint32>, uint32> Byte4Option;
-typedef Option<OptionMethodVar<uint32>, uint8> Byte4s1Option;
+using SByte1Option = Option<OptionMethodVar<sint8>, sint8>;
+using Byte1Option = Option<OptionMethodVar<uint8>, uint8>;
+using Byte2Option = Option<OptionMethodVar<uint16>, uint16>;
+using Byte4s2Option = Option<OptionMethodVar<uint32>, uint16>;
+using Byte4Option = Option<OptionMethodVar<uint32>, uint32>;
+using Byte4s1Option = Option<OptionMethodVar<uint32>, uint8>;
 
-using Option2DOrigin = Option<OptionMethodVar<_2DOrigin >, uint8>;
 using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, Input::swappedGamepadConfirm>, uint8>;
 
-#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-using OptionAudioHintPcmMaxBuffers = Option<OptionMethodFunc<uint, Audio::hintPcmMaxBuffers, Audio::setHintPcmMaxBuffers >, uint8>;
-#endif
+bool vControllerUseScaledCoordinates();
+void setVControllerUseScaledCoordinates(bool on);
+using OptionTouchCtrlScaledCoordinates = Option<OptionMethodFunc<bool, vControllerUseScaledCoordinates, setVControllerUseScaledCoordinates>, uint8>;
+
 #ifdef CONFIG_AUDIO_OPENSL_ES
 using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>;
 #endif
@@ -282,13 +284,15 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES = 59,
 	CFGKEY_INPUT_KEY_CONFIGS = 60, CFGKEY_INPUT_DEVICE_CONFIGS = 61,
 	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63,
-	CFGKEY_AUDIO_SOLO_MIX = 64, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH = 65
+	CFGKEY_AUDIO_SOLO_MIX = 64, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH = 65,
+	CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES = 66, CFGKEY_VIEWPORT_ZOOM = 67,
+	CFGKEY_VCONTROLLER_LAYOUT_POS = 68
 	// 256+ is reserved
 };
 
-struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
+struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 {
-	constexpr OptionAspectRatio(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32>, uint8>(CFGKEY_GAME_ASPECT_RATIO, defaultVal, isConst) { }
+	constexpr OptionAspectRatio(T defaultVal, bool isConst = 0): Option<OptionMethodVar<IG::Point2D<uint> > >(CFGKEY_GAME_ASPECT_RATIO, defaultVal, isConst) {}
 
 	uint ioSize()
 	{
@@ -298,18 +302,9 @@ struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
 	bool writeToIO(Io *io)
 	{
 		io->writeVar((uint16)CFGKEY_GAME_ASPECT_RATIO);
-		uint x = EmuSystem::aspectRatioX, y = EmuSystem::aspectRatioY;
-		if(val == 1)
-		{
-			x = 1; y = 1;
-		}
-		else if(val == 2)
-		{
-			x = 0; y = 0;
-		}
-		logMsg("writing aspect ratio config %u:%u", x, y);
-		io->writeVar((uint8)x);
-		io->writeVar((uint8)y);
+		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
+		io->writeVar((uint8)val.x);
+		io->writeVar((uint8)val.y);
 		return 1;
 	}
 
@@ -318,7 +313,6 @@ struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
 		if(isConst || readSize != 2)
 		{
 			logMsg("skipping %d byte option value, expected %d", readSize, 2);
-			io->seekRel(readSize);
 			return 0;
 		}
 
@@ -326,24 +320,16 @@ struct OptionAspectRatio : public Option<OptionMethodVar<uint32>, uint8>
 		io->readVar(x);
 		io->readVar(y);
 		logMsg("read aspect ratio config %u,%u", x, y);
-		val = 0;
-		if(x == 1 && y == 1)
-		{
-			val = 1;
-		}
-		else if(x == 0 && y == 0)
-		{
-			val = 2;
-		}
+		if(y == 0)
+			y = 1;
+		val = Rational::make<uint>(x, y);
 		return 1;
 	}
 };
 
-
-
 struct OptionDPI : public Option<OptionMethodVar<uint32> >
 {
-	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) { }
+	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) {}
 
 	bool writeToIO(Io *io)
 	{
@@ -369,14 +355,14 @@ struct OptionDPI : public Option<OptionMethodVar<uint32> >
 
 struct OptionRecentGames : public OptionBase
 {
-	bool isDefault() const { return recentGameList.size == 0; }
+	bool isDefault() const { return recentGameList.size() == 0; }
 	const uint16 key = CFGKEY_RECENT_GAMES;
 
 	bool writeToIO(Io *io)
 	{
 		logMsg("writing recent list");
 		io->writeVar(key);
-		forEachInDLList(&recentGameList, e)
+		for(auto &e : recentGameList)
 		{
 			uint len = strlen(e.path);
 			io->writeVar((uint16)len);
@@ -388,7 +374,7 @@ struct OptionRecentGames : public OptionBase
 	bool readFromIO(Io *io, uint readSize_)
 	{
 		int readSize = readSize_;
-		while(readSize && recentGameList.size < 10)
+		while(readSize && !recentGameList.isFull())
 		{
 			if(readSize < 2)
 			{
@@ -413,13 +399,12 @@ struct OptionRecentGames : public OptionBase
 			FsSys::cPath basenameTemp;
 			string_copyUpToLastCharInstance(info.name, string_basename(info.path, basenameTemp), '.');
 			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
-			recentGameList.addToEnd(info);
+			recentGameList.push_back(info);
 		}
 
 		if(readSize)
 		{
 			logMsg("skipping excess %d bytes", readSize);
-			io->seekRel(readSize);
 		}
 
 		return 1;
@@ -428,11 +413,21 @@ struct OptionRecentGames : public OptionBase
 	uint ioSize()
 	{
 		uint strSizes = 0;
-		forEachInDLList(&recentGameList, e)
+		for(auto &e : recentGameList)
 		{
 			strSizes += 2;
 			strSizes += strlen(e.path);
 		}
 		return sizeof(key) + strSizes;
 	}
+};
+
+struct OptionVControllerLayoutPosition : public OptionBase
+{
+	const uint16 key = CFGKEY_VCONTROLLER_LAYOUT_POS;
+
+	bool isDefault() const override;
+	bool writeToIO(Io *io) override;
+	bool readFromIO(Io *io, uint readSize_);
+	uint ioSize() override;
 };

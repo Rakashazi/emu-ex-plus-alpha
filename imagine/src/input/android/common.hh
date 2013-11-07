@@ -18,7 +18,7 @@ static bool isXperiaPlayDeviceStr(const char *str)
 
 bool hasXperiaPlayGamepad()
 {
-	return builtinKeyboardDev && builtinKeyboardDev->subtype == Device::SUBTYPE_XPERIA_PLAY;
+	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Device::SUBTYPE_XPERIA_PLAY;
 }
 
 static struct TouchState
@@ -53,13 +53,13 @@ static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> 
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	p.dragState.pointerEvent(Pointer::LBUTTON, action, pos);
-	onInputEvent(Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, nullptr));
+	onInputEvent(Base::mainWindow(), Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, nullptr));
 }
 
 static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 {
 	//logMsg("action: %s", androidEventEnumToStr(action));
-	auto pos = pointerPos(x, y);
+	auto pos = pointerPos(Base::mainWindow(), x, y);
 	switch(action)
 	{
 		case AMOTION_EVENT_ACTION_DOWN:
@@ -130,13 +130,13 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 static void handleTrackballEvent(int action, float x, float y)
 {
 	int iX = x * 1000., iY = y * 1000.;
-	auto pos = pointerPos(iX, iY);
+	auto pos = pointerPos(Base::mainWindow(), iX, iY);
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
-		onInputEvent(Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, nullptr));
+		onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, nullptr));
 	else
-		onInputEvent(Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, nullptr));
+		onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, nullptr));
 }
 
 static void handleKeyEvent(int key, int down, uint devId, uint metaState, const Device &dev)
@@ -144,13 +144,13 @@ static void handleKeyEvent(int key, int down, uint devId, uint metaState, const 
 	assert((uint)key < Keycode::COUNT);
 	uint action = down ? PUSHED : RELEASED;
 	#ifdef CONFIG_INPUT_ICADE
-		if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(decodeAscii(key, 0), action, dev)))
+		if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(decodeAscii(key, 0), action, dev, Base::mainWindow())))
 	#endif
-			onInputEvent(Event(devId, Event::MAP_KEYBOARD, key & 0xff, action, metaState, &dev));
+			onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_KEYBOARD, key & 0xff, action, metaState, &dev));
 }
 
 static InputTextDelegate vKeyboardTextDelegate;
-static Rect2<int> textRect(8, 200, 8+304, 200+48);
+static IG::Rect2<int> textRect(8, 200, 8+304, 200+48);
 static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTextInput;
 static
 #if CONFIG_ENV_ANDROID_MINSDK >= 9
@@ -173,9 +173,9 @@ static void setupTextInputJni(JNIEnv* jEnv)
 		static JNINativeMethod activityMethods[] =
 		{
 			#if CONFIG_ENV_ANDROID_MINSDK >= 9
-				{"sysTextInputEnded", "(Ljava/lang/String;)V", (void *)&textInputEnded}
+			{"sysTextInputEnded", "(Ljava/lang/String;)V", (void *)&textInputEnded}
 			#else
-				{"sysTextInputEnded", "(Ljava/lang/String;)Z", (void *)&textInputEnded}
+			{"sysTextInputEnded", "(Ljava/lang/String;)Z", (void *)&textInputEnded}
 			#endif
 		};
 		jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
@@ -211,7 +211,7 @@ void finishSysTextInput()
 	jFinishSysTextInput(jEnv, jBaseActivity, 0);
 }
 
-void placeSysTextInput(const Rect2<int> &rect)
+void placeSysTextInput(const IG::Rect2<int> &rect)
 {
 	using namespace Base;
 	auto jEnv = eEnv();
@@ -220,7 +220,7 @@ void placeSysTextInput(const Rect2<int> &rect)
 	jPlaceSysTextInput(jEnv, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-const Rect2<int> &sysTextInputRect()
+const IG::Rect2<int> &sysTextInputRect()
 {
 	return textRect;
 }
@@ -253,8 +253,9 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	}
 	#endif
 
-	forEachInDLList(&Input::devList, e)
+	for(auto &devPtr : Input::devList)
 	{
+		auto &e = *devPtr;
 		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
 				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
 		{

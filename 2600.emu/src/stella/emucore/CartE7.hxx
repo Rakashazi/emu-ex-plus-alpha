@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE7.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartE7.hxx 2690 2013-04-12 12:36:57Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEE7_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartE7Widget.hxx"
+#endif
 
 /**
   This is the cartridge class for M-Network bankswitched games.  
@@ -56,10 +59,12 @@ class System;
   2K area.
 
   @author  Bradford W. Mott
-  @version $Id: CartE7.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartE7.hxx 2690 2013-04-12 12:36:57Z stephena $
 */
 class CartridgeE7 : public Cartridge
 {
+  friend class CartridgeE7Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -145,6 +150,18 @@ class CartridgeE7 : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeE7"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeE7Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

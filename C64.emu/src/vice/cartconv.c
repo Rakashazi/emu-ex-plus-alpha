@@ -194,7 +194,7 @@ char *strdup(const char *string)
 }
 #endif
 
-#if !defined(HAVE_STRNCASECMP) && !defined(GP2X_SDL)
+#if !defined(HAVE_STRNCASECMP)
 static const unsigned char charmap[] = {
     '\000', '\001', '\002', '\003', '\004', '\005', '\006', '\007',
     '\010', '\011', '\012', '\013', '\014', '\015', '\016', '\017',
@@ -377,7 +377,7 @@ static void printbanks(char *name)
             bank = (b[10] * 0x100) + b[11];
             start = (b[12] * 0x100) + b[13];
             size = (b[14] * 0x100) + b[15];
-            if ((type < 0) || (type > 2)) {
+            if (type > 2) {
                 type = 3; /* invalid */
             }
             printf("$%06lx %-1c%-1c%-1c%-1c %-5s #%03d $%04x $%04x $%04lx\n", pos, b[0], b[1], b[2], b[3], typestr[type], bank, start, size, len);

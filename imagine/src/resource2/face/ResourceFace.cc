@@ -223,8 +223,8 @@ CallResult ResourceFace::writeCurrentChar(Pixmap &out)
 		bPitch = out.pitch;
 	}
 	#endif
-	Pixmap src(PixelFormatI8);
-	src.init((uchar*)bitmap, bX, bY, bPitch - bX);
+	Pixmap src(PixelFormatA8);
+	src.init((char*)bitmap, bX, bY, bPitch - bX);
 	src.copy(0, 0, 0, 0, &out, 0, 0);
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
 	font->unlockCharBitmap(bitmap);
@@ -249,7 +249,7 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = metrics;
 	auto img = GfxGlyphImage(this, &glyphTable[tableIdx]);
-	glyphTable[tableIdx].glyph.init(img, Gfx::BufferImage::linear, Gfx::BufferImage::HINT_NO_MINIFY);
+	glyphTable[tableIdx].glyph.init(img, Gfx::BufferImage::LINEAR, Gfx::BufferImage::HINT_NO_MINIFY);
 	return OK;
 }
 

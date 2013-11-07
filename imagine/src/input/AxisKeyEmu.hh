@@ -45,21 +45,22 @@ struct AxisKeyEmu
 		return false;
 	}
 
-	void dispatch(Range pos, uint id, uint map, const Device &dev)
+	bool dispatch(Range pos, uint id, uint map, const Device &dev, Base::Window &win)
 	{
 		Key releasedKey, pushedKey;
 		if(!update(pos, releasedKey, pushedKey))
 		{
-			return; // no change
+			return false; // no change
 		}
 		if(releasedKey)
 		{
-			Input::onInputEvent(Event(id, map, releasedKey, RELEASED, 0, &dev));
+			Input::onInputEvent(win, Event(id, map, releasedKey, RELEASED, 0, &dev));
 		}
 		if(pushedKey)
 		{
-			Input::onInputEvent(Event(id, map, pushedKey, PUSHED, 0, &dev));
+			Input::onInputEvent(win, Event(id, map, pushedKey, PUSHED, 0, &dev));
 		}
+		return true;
 	}
 };
 

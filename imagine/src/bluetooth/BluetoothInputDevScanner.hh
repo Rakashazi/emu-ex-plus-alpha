@@ -15,7 +15,4 @@ uint devsConnected();
 uint pendingDevs();
 void connectPendingDevs(BluetoothAdapter *bta);
 
-static const uint maxGamepadsPerTypeStorage = 5;
-extern uint maxGamepadsPerType;
-
 }

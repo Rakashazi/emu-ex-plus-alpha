@@ -81,8 +81,8 @@ namespace Keycode
 	RCTRL = 114,
 	CAPS = 115,
 	SCROLL_LOCK = 116,
-	LMETA = 117,
-	RMETA = 118,
+	LSUPER = 117,
+	RSUPER = 118,
 	FUNCTION = 119,
 	PRINT_SCREEN = 120,
 	PAUSE = 121,
@@ -191,6 +191,69 @@ namespace Pointer
 {
 	static const uint LBUTTON = 1;
 	static const uint RBUTTON = 2; // TODO: add real mouse support
+}
+
+// Android key-codes don't directly map to ASCII
+static constexpr uint asciiKey(uint c)
+{
+	return (c >= 'a' && c <= 'z') ? c-68 :
+		(c >= '0' && c <= '9') ? c-41 :
+		(c == ' ') ? 62 :
+		(c == '*') ? 17 :
+		(c == '#') ? 18 :
+		(c == ',') ? 55 :
+		(c == '.') ? 56 :
+		(c == '`') ? 68 :
+		(c == '-') ? 69 :
+		(c == '=') ? 70 :
+		(c == '[') ? 71 :
+		(c == ']') ? 72 :
+		(c == '\\') ? 73 :
+		(c == ';') ? 74 :
+		(c == '\'') ? 75 :
+		(c == '/') ? 76 :
+		(c == '@') ? 77 :
+		(c == '+') ? 81 :
+		0;
+}
+
+static uint decodeAscii(Key k, bool isShiftPushed)
+{
+	switch(k)
+	{
+		case 7 ... 16: // 0 - 9
+			return k + 41;
+		case 29 ... 54: // a - z
+		{
+			uint ascii = k + 68;
+			if(isShiftPushed)
+				ascii -= 32;
+			return ascii;
+		}
+		case 17: return '*';
+		case 18: return '#';
+		case 55: return ',';
+		case 56: return '.';
+		case 62: return ' ';
+		case 66: return '\n';
+		case 68: return '`';
+		case 69: return '-';
+		case 70: return '=';
+		case 71: return '[';
+		case 72: return ']';
+		case 73: return '\\';
+		case 74: return ';';
+		case 75: return '\'';
+		case 76: return '/';
+		case 77: return '@';
+		case 81: return '+';
+	}
+	return 0;
+}
+
+static bool isAsciiKey(Key k)
+{
+	return decodeAscii(k, 0) != 0;
 }
 
 }

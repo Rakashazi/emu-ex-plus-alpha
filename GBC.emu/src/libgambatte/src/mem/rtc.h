@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -26,64 +26,57 @@ namespace gambatte {
 struct SaveState;
 
 class Rtc {
-private:
-	unsigned char *activeData;
-	void (Rtc::*activeSet)(unsigned);
-	std::time_t baseTime;
-	std::time_t haltTime;
-	unsigned char index;
-	unsigned char dataDh;
-	unsigned char dataDl;
-	unsigned char dataH;
-	unsigned char dataM;
-	unsigned char dataS;
-	bool enabled;
-	bool lastLatchData;
-	
-	void doLatch();
-	void doSwapActive();
-	void setDh(unsigned new_dh);
-	void setDl(unsigned new_lowdays);
-	void setH(unsigned new_hours);
-	void setM(unsigned new_minutes);
-	void setS(unsigned new_seconds);
-	
 public:
 	Rtc();
-	
-	const unsigned char* getActive() const { return activeData; }
-	std::time_t getBaseTime() const { return baseTime; }
-	
-	void setBaseTime(const std::time_t baseTime) {
-		this->baseTime = baseTime;
-// 		doLatch();
-	}
-	
-	void latch(const unsigned data) {
-		if (!lastLatchData && data == 1)
+	unsigned char const * activeData() const { return activeData_; }
+	std::time_t baseTime() const { return baseTime_; }
+	void setBaseTime(std::time_t baseTime) { baseTime_ = baseTime; }
+
+	void latch(unsigned data) {
+		if (!lastLatchData_ && data == 1)
 			doLatch();
-		
-		lastLatchData = data;
+
+		lastLatchData_ = data;
 	}
-	
+
 	void saveState(SaveState &state) const;
-	void loadState(const SaveState &state);
-	
-	void set(const bool enabled, unsigned bank) {
+	void loadState(SaveState const &state);
+
+	void set(bool enabled, unsigned bank) {
 		bank &= 0xF;
 		bank -= 8;
-		
-		this->enabled = enabled;
-		this->index = bank;
-		
+
+		enabled_ = enabled;
+		index_ = bank;
 		doSwapActive();
 	}
-	
-	void write(const unsigned data) {
-// 		if (activeSet)
-		(this->*activeSet)(data);
-		*activeData = data;
+
+	void write(unsigned data) {
+		(this->*activeSet_)(data);
+		*activeData_ = data;
 	}
+
+private:
+	unsigned char *activeData_;
+	void (Rtc::*activeSet_)(unsigned);
+	std::time_t baseTime_;
+	std::time_t haltTime_;
+	unsigned char index_;
+	unsigned char dataDh_;
+	unsigned char dataDl_;
+	unsigned char dataH_;
+	unsigned char dataM_;
+	unsigned char dataS_;
+	bool enabled_;
+	bool lastLatchData_;
+
+	void doLatch();
+	void doSwapActive();
+	void setDh(unsigned newDh);
+	void setDl(unsigned newLowdays);
+	void setH(unsigned newHours);
+	void setM(unsigned newMinutes);
+	void setS(unsigned newSeconds);
 };
 
 }

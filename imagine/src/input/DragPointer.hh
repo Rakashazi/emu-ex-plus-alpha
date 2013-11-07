@@ -50,9 +50,9 @@ public:
 		return dragged() && r.overlaps(pushX, pushY);
 	}*/
 
-	bool draggedFromRect(const Rect2<int> &r) const
+	bool draggedFromRect(const IG::Rect2<int> &r) const
 	{
-		return dragged() && r.overlaps(pushX, pushY);
+		return dragged() && r.overlaps({pushX, pushY});
 	}
 
 	int dragX() const
@@ -69,6 +69,16 @@ public:
 			return y - pushY;
 		else
 			return 0;
+	}
+
+	IG::Point2D<int> dragOffset() const
+	{
+		return {dragX(), dragY()};
+	}
+
+	IG::Point2D<int> pushPos() const
+	{
+		return {pushX, pushY};
 	}
 
 	/*uint timeSincePush()

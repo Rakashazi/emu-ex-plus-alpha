@@ -35,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(freetypeSrcDir)/configure
 	@echo "Configuring freetype..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(freetypeSrcDir)/configure --disable-shared --without-old-mac-fonts --without-bzip2 --host=$(CHOST) --build=$(CBUILD)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" $$dir/$(freetypeSrcDir)/configure --prefix=$(installDir) --disable-shared --without-old-mac-fonts --without-bzip2 --host=$(CHOST) --build=$(CBUILD)
 

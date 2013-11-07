@@ -24,7 +24,7 @@ struct StackAllocator
 	constexpr StackAllocator() {}
 	uint itemEndOffset[5] {0};
 	uint items = 0;
-	uint8 storage[1024*15] __attribute__((aligned)) {0};
+	uint8 storage[1024*74] __attribute__((aligned)) {0};
 
 	void *alloc(uint size)
 	{
@@ -72,16 +72,16 @@ class ViewStack
 	View *view[5] {nullptr};
 	StackAllocator *viewAllocator[5] {nullptr};
 	NavView *nav = nullptr;
-	Rect2<int> viewRect, customViewRect;
+	IG::Rect2<int> viewRect, customViewRect;
 public:
 	uint size = 0;
 	bool useNavView = 0;
 	constexpr ViewStack() { }
 	constexpr ViewStack(View &root): view{&root}, size{1} { }
 
-	void init()
+	void init(const Base::Window &win)
 	{
-		viewRect = Gfx::viewportRect();
+		viewRect = win.viewBounds();
 	}
 
 	void setNavView(NavView *nav)
@@ -99,7 +99,7 @@ public:
 		return nav;
 	}
 
-	void place(const Rect2<int> &rect)
+	void place(const IG::Rect2<int> &rect)
 	{
 		viewRect = rect;
 		place();
@@ -113,7 +113,7 @@ public:
 		if(useNavView && nav)
 		{
 			nav->setTitle(top()->name());
-			nav->viewRect.setPosRel(viewRect.x, viewRect.y, viewRect.xSize(), nav->text.face->nominalHeight()*1.75, LT2DO);
+			nav->viewRect.setPosRel({viewRect.x, viewRect.y}, viewRect.xSize(), nav->text.face->nominalHeight()*1.75, LT2DO);
 			nav->place();
 			customViewRect.y += nav->viewRect.ySize();
 		}
@@ -122,7 +122,7 @@ public:
 
 	void inputEvent(const Input::Event &e)
 	{
-		if(useNavView && nav && e.isPointer() && nav->viewRect.overlaps(e.x, e.y))
+		if(useNavView && nav && e.isPointer() && nav->viewRect.overlaps({e.x, e.y}))
 		{
 			nav->inputEvent(e);
 		}
@@ -132,7 +132,7 @@ public:
 	void draw(Gfx::FrameTimeBase frameTime)
 	{
 		top()->draw(frameTime);
-		if(useNavView && nav) nav->draw();
+		if(useNavView && nav) nav->draw(top()->window());
 	}
 
 	void push(View *v, StackAllocator *allocator)
@@ -159,7 +159,7 @@ public:
 		push(v, allocator);
 		place();
 		v->show();
-		Base::displayNeedsUpdate();
+		v->displayNeedsUpdate();
 	}
 
 	void pushAndShow(View *v)
@@ -191,7 +191,7 @@ public:
 		pop();
 		place();
 		top()->show();
-		Base::displayNeedsUpdate();
+		top()->displayNeedsUpdate();
 	}
 
 	void popToRoot()
@@ -200,7 +200,7 @@ public:
 			pop();
 		place();
 		top()->show();
-		Base::displayNeedsUpdate();
+		top()->displayNeedsUpdate();
 	}
 
 	void popTo(View *v)
@@ -209,7 +209,7 @@ public:
 			pop();
 		place();
 		top()->show();
-		Base::displayNeedsUpdate();
+		top()->displayNeedsUpdate();
 	}
 
 	void show()

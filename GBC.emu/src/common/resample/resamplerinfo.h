@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -19,34 +19,41 @@
 #ifndef RESAMPLER_INFO_H
 #define RESAMPLER_INFO_H
 
-#include "resampler.h"
+#include <cstddef>
 
-/** Used for creating instances of resamplers, and getting information on available resamplers.
-  * Currently creates resamplers that expect stereo samples. All 'numbers of samples' are in
-  * number of stereo samples. (This can be changed by adjusting the 'channels' enum in src/chainresampler.h
-  * to the number of desired channels.).
+class Resampler;
+
+/**
+  * Used for creating instances of resamplers, and getting information on
+  * available resamplers.
   */
 struct ResamplerInfo {
+	/** Number of interleaved channels per audio sample (frame) */
+	enum { channels = 2 };
+
 	/** Short character string description of the resampler. */
-	const char *desc;
-	
-	/** Points to a function that can be used to create an instance of the resampler.
-	  * @param inRate The input sampling rate.
+	char const *desc;
+
+	/**
+	  * Points to a function that can be used to create an instance of the resampler.
+	  *
+	  * @param inRate  The input sampling rate.
 	  * @param outRate The desired output sampling rate.
-	  * @param periodSz The maximum number of input samples to resample at a time. That is the maximal inlen passed to Resampler::resample.
-	  * @return Pointer to the created instance (on the heap). Caller must free this with the delete operator.
+	  * @param periodSize The maximum number of input samples to resample at a time/The
+	  *                   maximal inlen passed to Resampler::resample.
+	  * @return Pointer to the created instance on the free store.
 	  */
-	Resampler* (*create)(long inRate, long outRate, std::size_t periodSz);
-	
+	Resampler * (*create)(long inRate, long outRate, std::size_t periodSize);
+
 	/** Returns the number of ResamplerInfos that can be gotten with get(). */
 	static std::size_t num() { return num_; }
-	
+
 	/** Returns ResamplerInfo number n. Where n is less than num(). */
-	static const ResamplerInfo& get(std::size_t n) { return resamplers[n]; }
-	
+	static ResamplerInfo const & get(std::size_t n) { return resamplers_[n]; }
+
 private:
-	static const ResamplerInfo resamplers[];
-	static const std::size_t num_;
+	static ResamplerInfo const resamplers_[];
+	static std::size_t const num_;
 };
 
 #endif

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -18,39 +18,35 @@
  ***************************************************************************/
 #include "adaptivesleep.h"
 
+static usec_t absdiff(usec_t a, usec_t b) { return a < b ? b - a : a - b; }
+
 usec_t AdaptiveSleep::sleepUntil(usec_t base, usec_t inc) {
 	usec_t now = getusecs();
 	usec_t diff = now - base;
-	
 	if (diff >= inc)
 		return diff - inc;
-	
+
 	diff = inc - diff;
-	
-	if (diff > oversleep + oversleepVar) {
-		diff -= oversleep + oversleepVar;
+	if (diff > oversleep_ + oversleepVar_) {
+		diff -= oversleep_ + oversleepVar_;
 		usecsleep(diff);
-		const usec_t ideal = now + diff;
+		usec_t const sleepTarget = now + diff;
 		now = getusecs();
-		
-		{
-			usec_t curOversleep = now - ideal;
-				
-			if (negate(curOversleep) < curOversleep)
-				curOversleep = 0;
-			
-			oversleepVar = (oversleepVar * 15 + (curOversleep < oversleep ? oversleep - curOversleep : curOversleep - oversleep) + 8) >> 4;
-			oversleep = (oversleep * 15 + curOversleep + 8) >> 4;
-		}
-		
-		noSleep = 60;
-	} else if (--noSleep == 0) {
-		noSleep = 60;
-		oversleep = oversleepVar = 0;
+
+		usec_t curOversleep = now - sleepTarget;
+		if (curOversleep > usec_t(-1) / 2)
+			curOversleep = 0;
+
+		oversleepVar_ = (oversleepVar_ * 15 + absdiff(curOversleep, oversleep_) + 8) >> 4;
+		oversleep_ = (oversleep_ * 15 + curOversleep + 8) >> 4;
+		noSleep_ = 60;
+	} else if (--noSleep_ == 0) {
+		noSleep_ = 60;
+		oversleep_ = oversleepVar_ = 0;
 	}
-	
+
 	while (now - base < inc)
 		now = getusecs();
-	
+
 	return 0;
 }

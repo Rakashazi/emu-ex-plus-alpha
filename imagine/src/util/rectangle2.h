@@ -19,23 +19,30 @@
 #include <util/number.h>
 #include <util/2DOrigin.h>
 #include <util/operators.hh>
+#include <util/Point2D.hh>
 
 //TODO: remove old code
+
+namespace IG
+{
 
 template<class T>
 class Rect2 : NotEquals< Rect2<T> >, Subtracts< Rect2<T> >, Adds< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
-	#ifdef __clang__
-		// hack for clang due to missing symbol issue
-		#define o LTIC2DO
-	#else
-		static constexpr _2DOrigin o = LTIC2DO;
-	#endif
+	static constexpr _2DOrigin o = LTIC2DO;
 
-	constexpr Rect2() { }
-	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) { }
+	constexpr Rect2() {}
+	constexpr Rect2(T x, T y, T x2, T y2): x(x), y(y), x2(x2), y2(y2) {}
+
+	static Rect2 makeRel(T newX, T newY, T xSize, T ySize)
+	{
+		Rect2 r;
+		//logMsg("creating new rel rect %d,%d %d,%d", newX, newY, xSize, ySize);
+		r.setRel(newX, newY, xSize, ySize);
+		return r;
+	}
 
 	bool operator ==(Rect2 const& rhs) const
 	{
@@ -78,6 +85,15 @@ public:
 		return *this;
 	}
 
+	Rect2 & operator /=(T const& rhs)
+	{
+		x /= rhs;
+		y /= rhs;
+		x2 /= rhs;
+		y2 /= rhs;
+		return *this;
+	}
+
 	bool overlaps(const Rect2 &other) const
 	{
 		//logMsg("testing rect %d,%d %d,%d with %d,%d %d,%d", a1.x, a1.x2, a1.y, a1.y2, a2.x, a2.x2, a2.y, a2.y2);
@@ -87,10 +103,10 @@ public:
 				x > other.x2 ? 0 : 1;
 	}
 
-	bool overlaps(T px, T py) const
+	bool overlaps(const IG::Point2D<T> point) const
 	{
 		//logMsg("testing %d,%d in rect %d,%d %d,%d", px, py, a.x, a.y, a.x2, a.y2);
-		return IG::isInRange(px, x, x2+1) && IG::isInRange(py, y, y2+1);
+		return IG::isInRange(point.x, x, x2+1) && IG::isInRange(point.y, y, y2+1);
 	}
 
 	bool contains(const Rect2 &other) const
@@ -198,29 +214,19 @@ public:
 		//logMsg("set rect pos to %d,%d %d,%d", x, y, x2, y2);
 	}
 
-	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin origin)
-	{
-		setPosRel(newX, newY, xSize, ySize, origin, o);
-	}
-
-	void setPosRel(T newX, T newY, T size, _2DOrigin origin) // square shortcut
-	{
-		setPosRel(newX, newY, size, size, origin);
-	}
-
 	void setPosRel(IG::Point2D<T> pos, IG::Point2D<T> size, _2DOrigin origin)
 	{
-		setPosRel(pos.x, pos.y, size.x, size.y, origin);
+		setPosRel(pos.x, pos.y, size.x, size.y, origin, o);
 	}
 
 	void setPosRel(IG::Point2D<T> pos, T size, _2DOrigin origin) // square shortcut
 	{
-		setPosRel(pos.x, pos.y, size, size, origin);
+		setPosRel(pos.x, pos.y, size, size, origin, o);
 	}
 
 	void setPosRel(IG::Point2D<T> pos, T xSize, T ySize, _2DOrigin origin)
 	{
-		setPosRel(pos.x, pos.y, xSize, ySize, origin);
+		setPosRel(pos.x, pos.y, xSize, ySize, origin, o);
 	}
 
 	/*#ifdef CONFIG_GFX
@@ -288,21 +294,13 @@ public:
 		setYPos(newPos.y, origin);
 	}
 
-	static Rect2 createRel(T newX, T newY, T xSize, T ySize)
-	{
-		Rect2 r;
-		logMsg("creating new rel rect %d,%d %d,%d", newX, newY, xSize, ySize);
-		r.setRel(newX, newY, xSize, ySize);
-		return r;
-	}
-
 	T xSize() const { return (x2 - x); }
 
 	T ySize() const { return (y2 - y); }
 
 	IG::Point2D<T> size() const
 	{
-		return IG::Point2D<T>(xSize(), ySize());
+		return {xSize(), ySize()};
 	}
 
 	// fit x,x2 inside r's x,x2 at the nearest edge
@@ -356,6 +354,18 @@ public:
 		return boundedX || boundedY;
 	}
 
+	void fitPoint(IG::Point2D<T> &p)
+	{
+		if(p.x < x)
+			p.x = x;
+		else if(p.x > x2)
+			p.x = x2;
+		if(p.y < y)
+			p.y = y;
+		else if(p.y > y2)
+			p.y = y2;
+	}
+
 	/*#ifdef CONFIG_GFX
 	Coordinate gXSize() const { return gfx_iXSize(xSize()); }
 	Coordinate gYSize() const { return gfx_iYSize(ySize()); }
@@ -394,9 +404,15 @@ public:
 		gfx_applyScale(gXSize(), gYSize());
 	}
 	#endif*/
-
-	#ifdef __clang__
-		#undef o
-	#endif
 };
 
+template<class T>
+constexpr _2DOrigin Rect2<T>::o;
+
+template<class T>
+static Rect2<T> makeRectRel(T x, T y, T xSize, T ySize)
+{
+	return Rect2<T>::makeRel(x, y, xSize, ySize);
+}
+
+}

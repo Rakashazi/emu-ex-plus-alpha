@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Event.hxx 2447 2012-04-19 20:11:16Z stephena $
+// $Id: Event.hxx 2745 2013-05-30 16:07:19Z stephena $
 //============================================================================
 
 #ifndef EVENT_HXX
@@ -23,11 +23,9 @@
 #include "bspf.hxx"
 #include "StellaKeys.hxx"
 
-class Event;
-
 /**
   @author  Bradford W. Mott
-  @version $Id: Event.hxx 2447 2012-04-19 20:11:16Z stephena $
+  @version $Id: Event.hxx 2745 2013-05-30 16:07:19Z stephena $
 */
 class Event
 {

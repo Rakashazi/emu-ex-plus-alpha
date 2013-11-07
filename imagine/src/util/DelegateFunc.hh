@@ -1,8 +1,8 @@
 #pragma once
 #include <assert.h>
-#include <util/ansiTypes.h>
 #include <new>
 #include <type_traits>
+#include <cstdint>
 
 template <typename T> class DelegateFunc {};
 
@@ -13,7 +13,7 @@ public:
 
 	// construct from lambda
 	template<class T>
-	DelegateFunc(T const &lambda, typename std::enable_if<!std::is_function<T>::value>::type* = 0) :
+	DelegateFunc(T const &lambda /*, typename std::enable_if<!std::is_function<T>::value>::type* = 0*/) :
 		exec
 		{
 			[](const Storage &lambda, ARGS... arguments) -> R
@@ -50,7 +50,7 @@ public:
 		return exec(lambdaMem, in...);
 	}
 
-	static constexpr int STORAGE_SIZE = sizeof(ptrsize)*2;
+	static constexpr int STORAGE_SIZE = sizeof(uintptr_t)*2;
 
 private:
 
@@ -62,7 +62,7 @@ private:
 		//union
 		//{
 			//R (*func)(ARGS...);
-			uint8 mem[STORAGE_SIZE] {0};
+			char mem[STORAGE_SIZE] {0};
 		//};
 	};
 

@@ -57,10 +57,6 @@
 #include "resid.h"
 #endif
 
-#ifdef HAVE_RESID_FP
-#include "resid-fp.h"
-#endif
-
 /* SID engine hooks. */
 static sid_engine_t sid_engine;
 
@@ -295,13 +291,36 @@ sound_t *sid_sound_machine_open(int chipno)
     }
 #endif
 
-#ifdef HAVE_RESID_FP
-    if (sidengine == SID_ENGINE_RESID_FP) {
-        sid_engine = residfp_hooks;
-    }
-#endif
-
     return sid_engine.open(siddata[chipno]);
+}
+
+/* manage temporary buffers. if the requested size is smaller or equal to the
+ * size of the already allocated buffer, reuse it.  */
+static SWORD *buf1 = NULL;
+static SWORD *buf2 = NULL;
+static int blen1 = 0;
+static int blen2 = 0;
+static SWORD *getbuf1(int len)
+{
+    if ((buf1 == NULL) || (blen1 < len)) {
+        if (buf1) {
+            lib_free(buf1);
+        }
+        blen1 = len;
+        buf1 = lib_malloc(len);
+    }
+    return buf1;
+}
+static SWORD *getbuf2(int len)
+{
+    if ((buf2 == NULL) || (blen2 < len)) {
+        if (buf2) {
+            lib_free(buf2);
+        }
+        blen2 = len;
+        buf2 = lib_malloc(len);
+    }
+    return buf2;
 }
 
 int sid_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
@@ -312,6 +331,15 @@ int sid_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 void sid_sound_machine_close(sound_t *psid)
 {
     sid_engine.close(psid);
+    /* free the temp. buffers */
+    if (buf1) {
+        lib_free(buf1);
+        buf1 = NULL;
+    }
+    if (buf2) {
+        lib_free(buf2);
+        buf2 = NULL;
+    }
 }
 
 BYTE sid_sound_machine_read(sound_t *psid, WORD addr)
@@ -341,18 +369,17 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
         return sid_engine.calculate_samples(psid[0], pbuf, nr, 1, delta_t);
     }
     if (soc == 1 && scc == 2) {
-        tmp_buf1 = lib_malloc(2 * nr);
+        tmp_buf1 = getbuf1(2 * nr);
         tmp_nr = sid_engine.calculate_samples(psid[0], tmp_buf1, nr, 1, &tmp_delta_t);
         tmp_nr = sid_engine.calculate_samples(psid[1], pbuf, nr, 1, delta_t);
         for (i = 0; i < tmp_nr; i++) {
             pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf1[i]);
         }
-        lib_free(tmp_buf1);
         return tmp_nr;
     }
     if (soc == 1 && scc == 3) {
-        tmp_buf1 = lib_malloc(2 * nr);
-        tmp_buf2 = lib_malloc(2 * nr);
+        tmp_buf1 = getbuf1(2 * nr);
+        tmp_buf2 = getbuf2(2 * nr);
         tmp_nr = sid_engine.calculate_samples(psid[0], tmp_buf1, nr, 1, &tmp_delta_t);
         tmp_delta_t = *delta_t;
         tmp_nr = sid_engine.calculate_samples(psid[2], tmp_buf2, nr, 1, &tmp_delta_t);
@@ -361,8 +388,6 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
             pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf1[i]);
             pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf2[i]);
         }
-        lib_free(tmp_buf1);
-        lib_free(tmp_buf2);
         return tmp_nr;
     }
     if (soc == 2 && scc == 1) {
@@ -378,7 +403,7 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
         return tmp_nr;
     }
     if (soc == 2 && scc == 3) {
-        tmp_buf1 = lib_malloc(2 * nr);
+        tmp_buf1 = getbuf1(2 * nr);
         tmp_nr = sid_engine.calculate_samples(psid[2], tmp_buf1, nr, 1, &tmp_delta_t);
         tmp_delta_t = *delta_t;
         tmp_nr = sid_engine.calculate_samples(psid[0], pbuf, nr, 2, &tmp_delta_t);
@@ -387,7 +412,6 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
             pbuf[i * 2] = sound_audio_mix(pbuf[i * 2], tmp_buf1[i]);
             pbuf[(i * 2) + 1] = sound_audio_mix(pbuf[(i * 2) + 1], tmp_buf1[i]);
         }
-        lib_free(tmp_buf1);
     }
     return tmp_nr;
 }
@@ -409,10 +433,6 @@ int sid_sound_machine_cycle_based(void)
             return 0;
 #ifdef HAVE_RESID
         case SID_ENGINE_RESID:
-            return 1;
-#endif
-#ifdef HAVE_RESID_FP
-        case SID_ENGINE_RESID_FP:
             return 1;
 #endif
 #ifdef HAVE_CATWEASELMKIII
@@ -452,12 +472,6 @@ static void set_sound_func(void)
         }
 #ifdef HAVE_RESID
         if (sid_engine_type == SID_ENGINE_RESID) {
-            sid_read_func = sound_read;
-            sid_store_func = sound_store;
-        }
-#endif
-#ifdef HAVE_RESID_FP
-        if (sid_engine_type == SID_ENGINE_RESID_FP) {
             sid_read_func = sound_read;
             sid_store_func = sound_store;
         }

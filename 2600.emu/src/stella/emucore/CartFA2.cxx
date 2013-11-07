@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.cxx 2616 2013-02-20 18:16:34Z stephena $
+// $Id: CartFA2.cxx 2697 2013-04-17 22:32:49Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -430,5 +430,49 @@ uInt8 CartridgeFA2::ramReadWrite()
     else
       // Bit 6 is 1, busy
       return myImage[(myCurrentBank << 12) + 0xFF4] | 0x40;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void CartridgeFA2::flash(uInt8 operation)
+{
+  Serializer serializer(myFlashFile);
+  if(serializer.isValid())
+  {
+    if(operation == 0)       // erase
+    {
+      try
+      {
+        uInt8 buf[256];
+        memset(buf, 0, 256);
+        serializer.putByteArray(buf, 256);
+      }
+      catch(...)
+      {
+      }
+    }
+    else if(operation == 1)  // read
+    {
+      try
+      {
+        serializer.getByteArray(myRAM, 256);
+      }
+      catch(...)
+      {
+        memset(myRAM, 0, 256);
+      }
+    }
+    else if(operation == 2)  // write
+    {
+      try
+      {
+        serializer.putByteArray(myRAM, 256);
+      }
+      catch(...)
+      {
+        // Maybe add logging here that save failed?
+        cerr << name() << ": ERROR saving score table" << endl;
+      }
+    }
   }
 }

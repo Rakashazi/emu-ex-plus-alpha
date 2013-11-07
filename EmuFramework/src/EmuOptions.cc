@@ -16,6 +16,7 @@
 #include <config/machine.hh>
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
+#include <EmuInput.hh>
 #include "VController.hh"
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
@@ -23,19 +24,21 @@ extern SysVController vController;
 
 bool optionOrientationIsValid(uint32 val)
 {
-	return val == Gfx::VIEW_ROTATE_AUTO ||
-			val == Gfx::VIEW_ROTATE_0 ||
-			val == Gfx::VIEW_ROTATE_90 ||
-			val == Gfx::VIEW_ROTATE_180 ||
-			val == Gfx::VIEW_ROTATE_270;
+	return val == Base::VIEW_ROTATE_AUTO ||
+			val == Base::VIEW_ROTATE_0 ||
+			val == Base::VIEW_ROTATE_90 ||
+			val == Base::VIEW_ROTATE_180 ||
+			val == Base::VIEW_ROTATE_270;
 }
 
 Byte1Option optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 Byte1Option optionSound(CFGKEY_SOUND, 1);
 
-#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-OptionAudioHintPcmMaxBuffers optionSoundBuffers(CFGKEY_SOUND_BUFFERS, Config::envIsAndroid ? 10 : 8, 0, optionIsValidWithMinMax<3, 12, uint>);
+#ifdef CONFIG_AUDIO_LATENCY_HINT
+Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
+	Config::envIsLinux ? 5 : Config::envIsIOS ? 5 : 8,
+	0, optionIsValidWithMinMax<3, 12, uint8>);
 #endif
 
 #ifdef CONFIG_AUDIO_OPENSL_ES
@@ -52,18 +55,18 @@ Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
 // Store in micro-meters
 Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
 	Config::MACHINE_IS_PANDORA ? 6500 :
-	(Config::envIsIOS || Config::MACHINE_IS_OUYA) ? 3500 :
+	Config::MACHINE_IS_OUYA ? 3000 :
 	Config::envIsWebOS3 ? 5000 :
-	(Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
+	(Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
 	8000,
 	0, optionIsValidWithMinMax<2000, 10500, uint16>);
 
 Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
 Byte1Option optionPauseUnfocused(CFGKEY_PAUSE_UNFOCUSED, 1,
-	!(Config::envIsPS3 || Config::envIsLinux || Config::envIsAndroid));
+	!(Config::envIsPS3 || Config::envIsLinux || (Config::envIsAndroid && !Config::MACHINE_IS_OUYA)));
 
-Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid);
+Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid || Config::MACHINE_IS_OUYA);
 Byte1Option optionTitleBar(CFGKEY_TITLE_BAR, 1, Config::envIsIOS || Config::envIsWebOS3);
 
 OptionBackNavigation
@@ -73,8 +76,7 @@ Byte1Option optionRememberLastMenu(CFGKEY_REMEMBER_LAST_MENU, 1, 0);
 Byte1Option optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid);
 Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
-Byte1Option optionShowMenuIcon(CFGKEY_SHOW_MENU_ICON, Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS3, Config::envIsPS3);
-Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, !Config::envIsAndroid && !Config::envIsIOS);
+Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, (!Config::envIsAndroid || Config::MACHINE_IS_OUYA) && !Config::envIsIOS);
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, Input::SWAPPED_GAMEPAD_CONFIRM_DEFAULT);
 Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
 #ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
@@ -88,9 +90,9 @@ Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::
 	#endif
 #endif
 
-OptionAspectRatio optionAspectRatio(0);
+OptionAspectRatio optionAspectRatio(EmuSystem::aspectRatioInfo[0].aspect);
 
-Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::linear, 0, Gfx::BufferImage::isFilterValid);
+Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::LINEAR, 0, Gfx::BufferImage::isFilterValid);
 
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
@@ -101,11 +103,11 @@ Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDece
 #endif
 
 Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Gfx::VIEW_ROTATE_90 : Gfx::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Base::VIEW_ROTATE_90 : Base::VIEW_ROTATE_0,
 		Config::envIsPS3, optionOrientationIsValid);
 
 Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Gfx::VIEW_ROTATE_AUTO : Gfx::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
 		Config::envIsPS3, optionOrientationIsValid);
 
 Byte1Option optionTouchCtrl(CFGKEY_TOUCH_CONTROL_DISPLAY,
@@ -119,7 +121,7 @@ Byte1Option optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
 Byte4s2Option optionTouchCtrlSize
 		(CFGKEY_TOUCH_CONTROL_SIZE,
 		(Config::envIsWebOS && !Config::envIsWebOS3) ? 800 : Config::envIsWebOS3 ? 1400 : 850,
-		Config::envIsPS3, optionIsValidWithMax<1400>);
+		Config::envIsPS3, optionIsValidWithMax<1600>);
 Byte4s2Option optionTouchDpadDeadzone
 		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
 		135,
@@ -136,9 +138,9 @@ Byte4s2Option optionTouchCtrlBtnStagger
 		(CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER,
 		1,
 		Config::envIsPS3, optionIsValidWithMax<5>);
-Byte4s2Option optionTouchCtrlTriggerBtnPos
+Byte1Option optionTouchCtrlTriggerBtnPos
 		(CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS,
-		TRIGGERS_SPLIT, Config::envIsPS3, optionIsValidWithMax<3>);
+		0, Config::envIsPS3);
 Byte4s2Option optionTouchCtrlExtraXBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE,
 		200, Config::envIsPS3, optionIsValidWithMax<1000>);
@@ -158,20 +160,11 @@ bool isValidOption2DOCenterBtn(_2DOrigin val)
 	return val.isValid() && !val.onYCenter();
 }
 
-Option2DOrigin optionTouchCtrlDpadPos(CFGKEY_TOUCH_CONTROL_DPAD_POS, LB2DO, 0, isValidOption2DO);
-Option2DOrigin optionTouchCtrlFaceBtnPos(CFGKEY_TOUCH_CONTROL_FACE_BTN_POS, RB2DO, 0, isValidOption2DO);
-Option2DOrigin optionTouchCtrlCenterBtnPos(CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS, CB2DO, 0, isValidOption2DOCenterBtn);
-Option2DOrigin optionTouchCtrlMenuPos(CFGKEY_TOUCH_CONTROL_MENU_POS,
-	#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-	NULL2DO
-	#else
-	RT2DO
-	#endif
-	, 0, isValidOption2DO);
-Option2DOrigin optionTouchCtrlFFPos(CFGKEY_TOUCH_CONTROL_FF_POS, Config::envIsIOS || Config::envIsAndroid ? LT2DO : NULL2DO, 0, isValidOption2DO);
-
 Byte1Option optionTouchCtrlBoundingBoxes(CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES, 0);
 Byte1Option optionTouchCtrlShowOnTouch(CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH, 1);
+OptionTouchCtrlScaledCoordinates optionTouchCtrlScaledCoordinates(CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES, 1, !Config::envIsAndroid);
+
+OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
 bool optionFrameSkipIsValid(uint8 val)
 {
@@ -180,26 +173,17 @@ bool optionFrameSkipIsValid(uint8 val)
 }
 
 Byte1Option optionFrameSkip
-		(CFGKEY_FRAME_SKIP,
-		#if defined(CONFIG_BASE_IOS)
-			#ifdef __ARM_ARCH_6K__
-			EmuSystem::optionFrameSkipAuto,
-			#else
-			0,
-			#endif
-		#elif defined(CONFIG_BASE_PS3)
-		0,
-		#else
-		EmuSystem::optionFrameSkipAuto,
-		#endif
-		Config::envIsPS3, optionFrameSkipIsValid);
+	(CFGKEY_FRAME_SKIP,	EmuSystem::optionFrameSkipAuto,
+	Config::envIsPS3, optionFrameSkipIsValid);
 
 bool optionImageZoomIsValid(uint8 val)
 {
-	return val == optionImageZoomIntegerOnly || optionImageZoomIntegerOnlyY || val <= 100;
+	return val == optionImageZoomIntegerOnly || optionImageZoomIntegerOnlyY
+		|| (val >= 10 && val <= 100);
 }
 Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
+Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<10, 100>);
 
 OptionDPI optionDPI(0,
 	#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
@@ -255,8 +239,6 @@ void initOptions()
 	{
 		optionLowProfileOSNav.isConst = 1;
 		optionHideOSNav.isConst = 1;
-		optionShowMenuIcon.initDefault(0);
-		optionTouchCtrlFFPos.initDefault(NULL2DO);
 	}
 	else
 		optionBackNavigation.initDefault(1);
@@ -273,6 +255,14 @@ void initOptions()
 			/*logMsg("using default frame-skip 0");
 			optionFrameSkip.initDefault(0);*/
 		}
+
+		// hack for overly-aggressive power management on some Android 4.x Qualcomm devices
+		// whenever no touch input is registered
+		// enable for any Adreno devices, which are the only ones defaulting to 16BPP color
+		if(!Base::Window::pixelBestColorHintDefault())
+		{
+			optionProcessPriority.initDefault(-14);
+		}
 	}
 	else
 	{
@@ -282,7 +272,6 @@ void initOptions()
 		#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 		if(Base::androidSDK() < 12)
 		{
-			optionNotifyInputDeviceChange.initDefault(0);
 			optionNotifyInputDeviceChange.isConst = 1;
 		}
 		#endif
@@ -291,6 +280,18 @@ void initOptions()
 	{
 		optionVibrateOnPush.isConst = 1;
 	}
+
+	if(Audio::hasLowLatency()) // setup for low-latency
+	{
+		optionSoundRate.initDefault(Audio::pPCM.rate);
+		optionSoundUnderrunCheck.initDefault(0);
+		optionSoundBuffers.initDefault(6);
+	}
+	else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "roth")) // NVidia Shield
+	{
+		optionSoundUnderrunCheck.initDefault(0);
+		optionSoundBuffers.initDefault(4);
+	}
 	#endif
 
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -298,10 +299,87 @@ void initOptions()
 		if(Base::deviceIsIPad())
 			optionTouchCtrlSize.initDefault(1400);
 		#endif
-	optionTouchCtrlTriggerBtnPos.isConst = vController.hasTriggers() ? 0 : 1;
 	#endif
 
 	#ifdef USE_BEST_COLOR_MODE_OPTION
-	optionBestColorModeHint.initDefault(Base::windowPixelBestColorHintDefault());
+	optionBestColorModeHint.initDefault(Base::Window::pixelBestColorHintDefault());
 	#endif
+}
+
+bool OptionVControllerLayoutPosition::isDefault() const
+{
+	return !vControllerLayoutPosChanged;
+}
+
+bool OptionVControllerLayoutPosition::writeToIO(Io *io)
+{
+	logMsg("writing vcontroller positions");
+	io->writeVar(key);
+	for(auto &posArr : vControllerLayoutPos)
+	{
+		for(auto &e : posArr)
+		{
+			io->writeVar((uint8)e.origin);
+			io->writeVar((uint8)e.state);
+			io->writeVar((int32)e.pos.x);
+			io->writeVar((int32)e.pos.y);
+		}
+	}
+	return 1;
+}
+
+static uint sizeofVControllerLayoutPositionEntry()
+{
+	return 1 + 1 + 4 + 4;
+}
+
+bool OptionVControllerLayoutPosition::readFromIO(Io *io, uint readSize_)
+{
+	int readSize = readSize_;
+
+	for(auto &posArr : vControllerLayoutPos)
+	{
+		for(auto &e : posArr)
+		{
+			if(readSize < (int)sizeofVControllerLayoutPositionEntry())
+			{
+				logMsg("expected position data but only %d bytes left", readSize);
+				break;
+			}
+
+			_2DOrigin origin;
+			io->readVarAsType<int8>(origin);
+			if(!origin.isValid())
+			{
+				logWarn("invalid v-controller origin from config file");
+			}
+			else
+				e.origin = origin;
+			uint state = 1;
+			io->readVarAsType<int8>(state);
+			if(state > 2)
+			{
+				logWarn("invalid v-controller state from config file");
+			}
+			else
+				e.state = state;
+			io->readVarAsType<int32>(e.pos.x);
+			io->readVarAsType<int32>(e.pos.y);
+			vControllerLayoutPosChanged = true;
+			readSize -= sizeofVControllerLayoutPositionEntry();
+		}
+	}
+
+	if(readSize)
+	{
+		logMsg("skipping excess %d bytes", readSize);
+	}
+
+	return 1;
+}
+
+uint OptionVControllerLayoutPosition::ioSize()
+{
+	uint positions = sizeofArray(vControllerLayoutPos[0]) * sizeofArray(vControllerLayoutPos);
+	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
 }

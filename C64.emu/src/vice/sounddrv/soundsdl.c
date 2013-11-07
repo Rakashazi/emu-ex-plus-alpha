@@ -112,6 +112,17 @@ static int sdl_init(const char *param, int *speed,
     spec.samples = *fragsize;
     spec.callback = sdl_callback;
 
+    /* NOTE: on some backends the first (input/desired) spec passed to SDL_OpenAudio
+     *       may also get modified! because of this we can not use the spec struct
+     *       later to retrieve the original desired values.
+     * 
+     *       also apparently when the backend is pulseaudio, the number of samples
+     *       will ALWAYS get divided by two for some reason - using larger buffers
+     *       in the config may or may not be needed in that case.
+     * 
+     *       see eg http://forums.libsdl.org/viewtopic.php?t=9248&sid=92130a5b4cfd7fd713e076e122d7e2a1
+     *       to get an idea of the whole mess
+     */
     if (SDL_OpenAudio(&spec, &sdl_spec)) {
         return 1;
     }
@@ -124,7 +135,7 @@ static int sdl_init(const char *param, int *speed,
     /* recalculate the number of fragments since the frag size might
      * have changed and we want to keep approximately the same
      * buffersize */
-    nr = (*fragnr) * (*fragsize) / spec.samples;
+    nr = ((*fragnr) * (*fragsize)) / sdl_spec.samples;
 
     sdl_len = sdl_spec.samples * nr;
     sdl_inptr = sdl_outptr = sdl_full = 0;
@@ -136,7 +147,7 @@ static int sdl_init(const char *param, int *speed,
     }
 
     *speed = sdl_spec.freq;
-    *fragsize = spec.samples;
+    *fragsize = sdl_spec.samples;
     *fragnr = nr;
     SDL_PauseAudio(0);
     return 0;

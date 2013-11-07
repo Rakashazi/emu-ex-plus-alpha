@@ -91,7 +91,7 @@ const KeyConfig defaultKeyProfile[] =
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
 
 			Input::Keycode::Ouya::UP,
 			Input::Keycode::Ouya::RIGHT,
@@ -100,10 +100,10 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Input::Keycode::Ouya::L3,
 			Input::Keycode::Ouya::R3,
-			Input::Keycode::Ouya::A,
 			Input::Keycode::Ouya::O,
-			Input::Keycode::Ouya::Y,
 			Input::Keycode::Ouya::U,
+			Input::Keycode::Ouya::A,
+			Input::Keycode::Ouya::Y,
 		}
 	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
@@ -145,6 +145,26 @@ const KeyConfig defaultKeyProfile[] =
 				asciiKey('x'),
 				asciiKey('f'),
 				asciiKey('d'),
+			}
+		},
+		{
+			Input::Event::MAP_KEYBOARD,
+			Input::Device::SUBTYPE_NVIDIA_SHIELD,
+			"NVidia Shield",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+				Input::Keycode::JS3_YAXIS_NEG,
+				Input::Keycode::JS3_XAXIS_POS,
+				Input::Keycode::JS3_YAXIS_POS,
+				Input::Keycode::JS3_XAXIS_NEG,
+				0, 0, 0, 0,
+				Input::Keycode::GAME_LEFT_THUMB,
+				Input::Keycode::GAME_START,
+				Input::Keycode::GAME_B,
+				Input::Keycode::GAME_A,
+				Input::Keycode::GAME_Y,
+				Input::Keycode::GAME_X,
 			}
 		},
 		#endif

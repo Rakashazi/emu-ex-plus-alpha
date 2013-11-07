@@ -3,13 +3,63 @@
 
 class SystemOptionView : public OptionView
 {
+	MultiChoiceSelectMenuItem tvPhosphor
+	{
+		"Simulate TV Phosphor",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionTVPhosphor.val = val;
+			if(!EmuSystem::gameIsRunning())
+			{
+				return;
+			}
+
+			// change runtime phosphor value
+			bool usePhosphor = false;
+			if((int)optionTVPhosphor == TV_PHOSPHOR_AUTO)
+			{
+				usePhosphor = currGameProps.get(Display_Phosphor) == "YES";
+			}
+			else
+			{
+				usePhosphor = optionTVPhosphor;
+			}
+			//console->props.set(Display_Phosphor, usePhosphor ? "YES" : "NO");
+			//osystem->frameBuffer().enablePhosphor(usePhosphor, atoi(myProperties.get(Display_PPBlend).c_str()));
+			bool phospherInUse = console->properties().get(Display_Phosphor) == "YES";
+			logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
+			if(usePhosphor != phospherInUse)
+			{
+				logMsg("toggling phoshpor on console");
+				console->togglePhosphor();
+			}
+		}
+	};
+
+	void tvPhosphorInit()
+	{
+		static const char *str[] =
+		{
+			"Off", "On", "Auto"
+		};
+		if(optionTVPhosphor > 2)
+			optionTVPhosphor = 2;
+		tvPhosphor.init(str, int(optionTVPhosphor), sizeofArray(str));
+	}
+
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
+
+	void loadVideoItems(MenuItem *item[], uint &items)
+	{
+		OptionView::loadVideoItems(item, items);
+		tvPhosphorInit(); item[items++] = &tvPhosphor;
+	}
 };
 
 #include "MenuView.hh"
 
-static class VCSSwitchesView : public BaseMenuView
+class VCSSwitchesView : public BaseMenuView
 {
 	MenuItem *item[4] {nullptr};
 
@@ -20,7 +70,7 @@ static class VCSSwitchesView : public BaseMenuView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>();
+				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 				ynAlertView.init("Really Soft Reset Game?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -44,7 +94,7 @@ static class VCSSwitchesView : public BaseMenuView
 		"Left (P1) Difficulty",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			p1DiffB = item.on;
 		}
 	};
@@ -54,7 +104,7 @@ static class VCSSwitchesView : public BaseMenuView
 		"Right (P2) Difficulty",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			p2DiffB = item.on;
 		}
 	};
@@ -64,13 +114,13 @@ static class VCSSwitchesView : public BaseMenuView
 		"Color",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			vcsColor = item.on;
 		}
 	};
 
 public:
-	VCSSwitchesView(): BaseMenuView("Switches")	{ }
+	VCSSwitchesView(Base::Window &win): BaseMenuView("Switches", win) {}
 
 	void init(bool highlightFirst)
 	{
@@ -85,12 +135,12 @@ public:
 
 	void onShow()
 	{
-		diff1.set(p1DiffB);
-		diff2.set(p2DiffB);
-		color.set(vcsColor);
+		diff1.set(p1DiffB, *this);
+		diff2.set(p2DiffB, *this);
+		color.set(vcsColor, *this);
 	}
 
-} vcsSwitchesView;
+};
 
 class SystemMenuView : public MenuView
 {
@@ -98,18 +148,19 @@ private:
 	TextMenuItem switches
 	{
 		"Console Switches",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				auto &vcsSwitchesView = *menuAllocator.allocNew<VCSSwitchesView>(window());
 				vcsSwitchesView.init(!e.isPointer());
-				viewStack.pushAndShow(&vcsSwitchesView);
+				viewStack.pushAndShow(&vcsSwitchesView, &menuAllocator);
 			}
 		}
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

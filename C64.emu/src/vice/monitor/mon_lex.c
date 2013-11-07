@@ -1589,7 +1589,6 @@ void yyset_lineno (int line_number  );
  * section 1.
  */
 
-#define YY_SKIP_YYWRAP
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
 extern "C" int yywrap (void );

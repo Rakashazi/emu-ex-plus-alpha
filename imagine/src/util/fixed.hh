@@ -73,13 +73,13 @@ public:
 	constexpr Fixed(short num): FixedPOD<T>(convertInt(num)) { }
 	constexpr Fixed(char num): FixedPOD<T>(convertInt(num)) { }
 
-	Fixed(Rational num)
+	/*Fixed(Rational num)
 	{
 		Fixed<T,F,BIGGER> n = Fixed<T,F,BIGGER>(num.numer);
 		Fixed<T,F,BIGGER> d = Fixed<T,F,BIGGER>(num.denom);
 		Fixed<T,F,BIGGER> result = n/d;
 		val = result.val;
-	}
+	}*/
 
 	constexpr Fixed(FixedPOD<T> num): FixedPOD<T>(num.val) { }
 

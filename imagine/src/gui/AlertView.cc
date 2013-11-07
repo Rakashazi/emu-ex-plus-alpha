@@ -39,14 +39,14 @@ void AlertView::place()
 
 	uint menuYSize = menu.items * menu.item[0]->ySize()*2;
 	uint labelYSize = Gfx::toIYSize(text.ySize + (text.nominalHeight * .5));
-	Rect2<int> viewFrame;
-	viewFrame.setPosRel(rect.xSize()/2, rect.ySize()/2,
+	IG::Rect2<int> viewFrame;
+	viewFrame.setPosRel({rect.xSize()/2, rect.ySize()/2},
 			xSize, labelYSize + menuYSize, C2DO);
 
 	labelFrame = Gfx::unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);
 
-	Rect2<int> menuViewFrame;
-	menuViewFrame.setPosRel(viewFrame.x, viewFrame.y + labelYSize,
+	IG::Rect2<int> menuViewFrame;
+	menuViewFrame.setPosRel({viewFrame.x, viewFrame.y + (int)labelYSize},
 			viewFrame.xSize(), menuYSize, LT2DO);
 	menu.placeRect(menuViewFrame);
 }
@@ -75,9 +75,49 @@ void AlertView::draw(Gfx::FrameTimeBase frameTime)
 	GeomRect::draw(menu.viewRect());
 
 	setColor(COLOR_WHITE);
-	text.draw(labelFrame.xPos(C2DO), labelFrame.yPos(C2DO), C2DO, C2DO);
+	text.draw(labelFrame.xPos(C2DO), Gfx::alignYToPixel(labelFrame.yPos(C2DO)), C2DO, C2DO);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw(frameTime);
 	//setClipRect(0);
+}
+
+
+YesNoAlertView::YesNoAlertView(Base::Window &win):
+	AlertView(win),
+	yes
+	{
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto callback = onYesD;
+			removeModalView();
+			if(callback) callback(e);
+		}
+	},
+	no
+	{
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto callback = onNoD;
+			removeModalView();
+			if(callback) callback(e);
+		}
+	}
+{}
+
+void YesNoAlertView::init(const char *label, bool highlightFirst, const char *choice1, const char *choice2)
+{
+	yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
+	no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
+	assert(!onYesD);
+	assert(!onNoD);
+	AlertView::init(label, menuItem, highlightFirst);
+}
+
+void YesNoAlertView::deinit()
+{
+	logMsg("deinit alert");
+	AlertView::deinit();
+	onYesD = {};
+	onNoD = {};
 }

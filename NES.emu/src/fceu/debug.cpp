@@ -313,7 +313,8 @@ int evaluate(Condition* c)
 	switch(c->type1)
 	{
 		case TYPE_ADDR: value1 = GetMem(value1); break;
-		case TYPE_BANK: value1 = getBank(_PC); break;
+		case TYPE_PC_BANK: value1 = getBank(_PC); break;
+		case TYPE_DATA_BANK: value1 = getBank(addressOfTheLastAccessedData); break;
 	}
 
 	f = value1;
@@ -337,7 +338,8 @@ int evaluate(Condition* c)
 	switch(c->type2)
 	{
 		case TYPE_ADDR: value2 = GetMem(value2); break;
-		case TYPE_BANK: value2 = getBank(_PC); break;
+		case TYPE_PC_BANK: value2 = getBank(_PC); break;
+		case TYPE_DATA_BANK: value2 = getBank(addressOfTheLastAccessedData); break;
 	}
 
 		switch (c->op)
@@ -440,6 +442,7 @@ int u; //deleteme
 int skipdebug; //deleteme
 int numWPs;
 
+bool break_asap = false;
 // for CPU cycles and Instructions counters
 uint64 total_cycles_base = 0;
 uint64 delta_cycles_base = 0;
@@ -456,7 +459,15 @@ DebuggerState &FCEUI_Debugger() { return dbgstate; }
 
 void ResetDebugStatisticsCounters()
 {
+	ResetCyclesCounter();
+	ResetInstructionsCounter();
+}
+void ResetCyclesCounter()
+{
 	total_cycles_base = delta_cycles_base = timestampbase + (uint64)timestamp;
+}
+void ResetInstructionsCounter()
+{
 	total_instructions = delta_instructions = 0;
 }
 void ResetDebugStatisticsDeltaCounters()
@@ -470,12 +481,13 @@ void IncrementInstructionsCounters()
 	delta_instructions++;
 }
 
-void BreakHit(int bp_num, bool force = false)
+void BreakHit(int bp_num, bool force)
 {
-	if(!force) {
-
+	if(!force)
+	{
 		//check to see whether we fall in any forbid zone
-		for (int i = 0; i < numWPs; i++) {
+		for (int i = 0; i < numWPs; i++)
+		{
 			watchpointinfo& wp = watchpoint[i];
 			if(!(wp.flags & WP_F) || !(wp.flags & WP_E))
 				continue;
@@ -509,6 +521,12 @@ static void breakpoint(uint8 *opcode, uint16 A, int size) {
 	uint8 brk_type;
 	uint8 stackop=0;
 	uint8 stackopstartaddr,stackopendaddr;
+
+	if (break_asap)
+	{
+		break_asap = false;
+		BreakHit(BREAK_TYPE_LUA, true);
+	}
 
 	if (break_on_cycles && ((timestampbase + (uint64)timestamp - total_cycles_base) > break_cycles_limit))
 		BreakHit(BREAK_TYPE_CYCLES_EXCEED, true);
@@ -716,18 +734,11 @@ static void breakpoint(uint8 *opcode, uint16 A, int size) {
 }
 //bbit edited: this is the end of the inserted code
 
-int debug_tracing;
-
 void DebugCycle()
 {
 	uint8 opcode[3] = {0};
 	uint16 A = 0;
 	int size;
-
-#ifdef WIN32
-	// since this function is called once for every instruction, we can use it for keeping statistics
-	IncrementInstructionsCounters();
-#endif
 
 	if (scanline == 240)
 	{
@@ -772,8 +783,9 @@ void DebugCycle()
 		case 7: A = (opcode[1] | (opcode[2] << 8)) + _X; break;
 		case 8: A = opcode[1] + _Y; break;
 	}
+	addressOfTheLastAccessedData = A;
 
-	if (numWPs || dbgstate.step || dbgstate.runline || dbgstate.stepout || watchpoint[64].flags || dbgstate.badopbreak || break_on_cycles || break_on_instructions)
+	if (numWPs || dbgstate.step || dbgstate.runline || dbgstate.stepout || watchpoint[64].flags || dbgstate.badopbreak || break_on_cycles || break_on_instructions || break_asap)
 		breakpoint(opcode, A, size);
 
 	if(debug_loggingCD)

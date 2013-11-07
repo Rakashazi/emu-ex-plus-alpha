@@ -8,12 +8,36 @@ namespace Input
 
 static struct TouchState
 {
-	constexpr TouchState() { }
+	constexpr TouchState() {}
 	UITouch *touch = nil;
 	PointerState s;
 	DragPointer dragState;
 } m[maxCursors];
 uint numCursors = maxCursors;
+
+#ifdef CONFIG_INPUT_ICADE
+struct ICadeDevice : public Device
+{
+	bool iCadeMode_ = false;
+
+	ICadeDevice(): Device(0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller")
+	{}
+
+	void setICadeMode(bool on) override
+	{
+		logMsg("set iCade mode %s", on ? "on" : "off");
+		iCadeMode_ = on;
+		Base::iCade.setActive(on);
+	}
+
+	bool iCadeMode() const override
+	{
+		return iCadeMode_;
+	}
+};
+#endif
+
+static ICadeDevice icadeDev;
 
 DragPointer *dragState(int p)
 {
@@ -22,24 +46,24 @@ DragPointer *dragState(int p)
 
 #if defined(IPHONE_VKEYBOARD)
 
-static CGRect toCGRect(const Rect2<int> &rect)
+static CGRect toCGRect(const Base::Window &win, const IG::Rect2<int> &rect)
 {
 	using namespace Base;
 	int x = rect.x, y = rect.y;
-	if(Gfx::rotateView == Gfx::VIEW_ROTATE_90 || Gfx::rotateView == Gfx::VIEW_ROTATE_270)
+	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
 	{
-		IG::swap(x, y);
+		std::swap(x, y);
 	}
-	if(Gfx::rotateView == Gfx::VIEW_ROTATE_90)
+	if(win.rotateView == VIEW_ROTATE_90)
 	{
-		x = (Gfx::viewPixelHeight() - x) - rect.ySize();
+		x = (win.viewPixelHeight() - x) - rect.ySize();
 	}
 	int x2 = rect.xSize(), y2 = rect.ySize();
-	if(Gfx::rotateView == Gfx::VIEW_ROTATE_90 || Gfx::rotateView == Gfx::VIEW_ROTATE_270)
-		IG::swap(x2, y2);
-	logMsg("made CGRect %d,%d size %d,%d", x / pointScale, y / pointScale,
-			x2 / pointScale, y2 / pointScale);
-	return CGRectMake(x / pointScale, y / pointScale, x2 / pointScale, y2 / pointScale);
+	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
+		std::swap(x2, y2);
+	logMsg("made CGRect %d,%d size %d,%d", x / win.pointScale, y / win.pointScale,
+			x2 / win.pointScale, y2 / win.pointScale);
+	return CGRectMake(x / win.pointScale, y / win.pointScale, x2 / win.pointScale, y2 / win.pointScale);
 }
 
 static void setupTextView(UITextField *vkbdField, NSString *text)
@@ -72,7 +96,7 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.text = text;
 	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
-	vkbdField.transform = makeTransformForOrientation(Gfx::rotateView);
+	vkbdField.transform = makeTransformForOrientation(Base::mainWindow().rotateView);
 	logMsg("init vkeyboard");
 }
 
@@ -82,14 +106,14 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	vKeyboardTextDelegate = callback;
 	if(!vkbdField)
 	{
-		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(textRect) ];
+		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(Base::mainWindow(), textRect) ];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[ Base::devWindow addSubview: vkbdField ];
+		[ Base::mainWindow().uiWin addSubview: vkbdField ];
 		[ vkbdField release ];
 	}
 	else
 	{
-		vkbdField.frame = toCGRect(textRect);
+		vkbdField.frame = toCGRect(Base::mainWindow(), textRect);
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
 	}
 
@@ -97,16 +121,16 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	return 0;
 }
 
-void placeSysTextInput(const Rect2<int> &rect)
+void placeSysTextInput(const IG::Rect2<int> &rect)
 {
 	textRect = rect;
 	if(vkbdField)
 	{
-		vkbdField.frame = toCGRect(textRect);
+		vkbdField.frame = toCGRect(Base::mainWindow(), textRect);
 	}
 }
 
-const Rect2<int> &sysTextInputRect() { return textRect; }
+const IG::Rect2<int> &sysTextInputRect() { return textRect; }
 
 void cancelSysTextInput()
 {
@@ -129,16 +153,18 @@ void finishSysTextInput()
 
 bool Device::anyTypeBitsPresent(uint typeBits)
 {
-	#ifdef CONFIG_INPUT_ICADE
 	if(typeBits & TYPE_BIT_GAMEPAD)
 	{
+		#ifdef CONFIG_INPUT_ICADE
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers
-		return devList.first()->iCadeMode_ || devList.size != 1;
+		return devList.front()->iCadeMode() || devList.size() != 1;
+		#else
+		return devList.size();
+		#endif
 	}
-	#endif
 	// no other device types supported
-	return 0;
+	return false;
 }
 
 void setKeyRepeat(bool on)
@@ -149,7 +175,7 @@ void setKeyRepeat(bool on)
 CallResult init()
 {
 	#if defined CONFIG_INPUT_ICADE
-	addDevice(Device{0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller"});
+	addDevice(icadeDev);
 	#endif
 	return OK;
 }

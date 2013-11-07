@@ -258,13 +258,6 @@ static const mon_cmds_t mon_cmd_array[] = {
       IDGS_MON_COMPARE_DESCRIPTION,
       NULL, NULL },
 
-    { "delete", "del",
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      "<%s>", 1,
-      { IDGS_CHECKNUM, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },
-      IDGS_MON_DELETE_DESCRIPTION,
-      NULL, NULL },
-
     { "disass", "d",
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       "[<%s> [<%s>]]", 2,
@@ -377,6 +370,13 @@ static const mon_cmds_t mon_cmd_array[] = {
       IDGS_MON_CONDITION_DESCRIPTION,
       NULL, NULL },
 
+    { "delete", "del",
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      "<%s>", 1,
+      { IDGS_CHECKNUM, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },
+      IDGS_MON_DELETE_DESCRIPTION,
+      NULL, NULL },
+
     { "disable", "",
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       "<%s>", 1,
@@ -444,7 +444,7 @@ static const mon_cmds_t mon_cmd_array[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       NULL, 0,
       { IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },
-#ifdef OS2
+#ifdef __OS2__
       IDGS_MON_EXIT_DESCRIPTION,
 #else
       IDGS_MON_QUIT_DESCRIPTION,

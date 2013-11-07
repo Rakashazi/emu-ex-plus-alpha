@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 2608 2013-02-13 23:09:31Z stephena $
+// $Id: FSNode.hxx 2753 2013-06-21 12:15:32Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -214,13 +214,6 @@ class FilesystemNode
     virtual bool isWritable() const;
 
     /**
-     * Indicates whether the path is a fully-qualified, absolute pathname.
-     *
-     * @return bool true if the object contains an absolute path, false otherwise.
-     */
-    virtual bool isAbsolute() const;
-
-    /**
      * Create a directory from the current node path.
      *
      * @return bool true if the directory was created, false otherwise.
@@ -240,19 +233,21 @@ class FilesystemNode
      * @param buffer  The buffer to containing the data
      *                This will be allocated by the method, and must be
      *                freed by the caller.
-     * @param size    Holds the size of the created buffer.
-     * @return  True if the read succeeded, else false for any reason
+     * @return  The number of bytes read (0 in the case of failure)
+     *          This method can throw exceptions, and should be used inside
+     *          a try-catch block.
      */
-    virtual bool read(uInt8*& buffer, uInt32& size) const;
+    virtual uInt32 read(uInt8*& buffer) const;
 
-    // TODO - this function is deprecated, and will be removed soon ...
     /**
-      Create an absolute pathname from the given path (if it isn't already
-      absolute), pre-pending 'startpath' when necessary.  If the path doesn't
-      have an extension matching 'ext', append it to the path.
+     * The following methods are almost exactly the same as the various
+     * getXXXX() methods above.  Internally, they call the respective methods
+     * and replace the extension (if present) with the given one.  If no
+     * extension is present, the given one is appended instead.
      */
-    static string createAbsolutePath(const string& p, const string& startpath,
-                                     const string& ext);
+    string getNameWithExt(const string& ext) const;
+    string getPathWithExt(const string& ext) const;
+    string getShortPathWithExt(const string& ext) const;
 
   private:
     Common::SharedPtr<AbstractFSNode> _realNode;
@@ -363,13 +358,6 @@ class AbstractFSNode
     virtual bool isWritable() const = 0;
 
     /**
-     * Indicates whether the path is a fully-qualified, absolute pathname.
-     *
-     * @return bool true if the object contains an absolute path, false otherwise.
-     */
-    virtual bool isAbsolute() const = 0;
-
-    /**
      * Create a directory from the current node path.
      *
      * @return bool true if the directory was created, false otherwise.
@@ -389,10 +377,11 @@ class AbstractFSNode
      * @param buffer  The buffer to containing the data
      *                This will be allocated by the method, and must be
      *                freed by the caller.
-     * @param size    Holds the size of the created buffer.
-     * @return  True if the read succeeded, else false for any reason
+     * @return  The number of bytes read (0 in the case of failure)
+     *          This method can throw exceptions, and should be used inside
+     *          a try-catch block.
      */
-    virtual bool read(uInt8*& buffer, uInt32& size) const { return false; }
+    virtual uInt32 read(uInt8*& buffer) const { return 0; }
 
     /**
      * The parent node of this directory.

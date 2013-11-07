@@ -375,6 +375,7 @@ static vice_network_socket_address_t * vice_network_alloc_new_socket_address(voi
 */
 vice_network_socket_t * vice_network_server(const vice_network_socket_address_t * server_address)
 {
+    int socket_reuse_address = 1;
     int sockfd = INVALID_SOCKET;
     int error = 1;
 
@@ -390,6 +391,20 @@ vice_network_socket_t * vice_network_server(const vice_network_socket_address_t 
         if (SOCKET_IS_INVALID(sockfd)) {
             sockfd = INVALID_SOCKET;
             break;
+        }
+
+        /*
+            Fix the "Address In Use" error upon reconnecting to tcp socket monitor port
+            by setting SO_REUSEPORT/ADDR options on socket before bind()
+
+            Ignore setsockopt() failures - just continue - the socket is still valid.
+        */
+        if ((server_address->domain == PF_INET) || (server_address->domain == PF_INET6)) {
+#if defined(SO_REUSEPORT)
+          setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &socket_reuse_address, sizeof(socket_reuse_address));
+#elif defined(SO_REUSEADDR)
+          setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &socket_reuse_address, sizeof(socket_reuse_address));
+#endif
         }
 
         if (bind(sockfd, &server_address->address.generic, server_address->len) < 0) {

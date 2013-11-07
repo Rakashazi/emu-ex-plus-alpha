@@ -1593,7 +1593,6 @@ void drive_sound_stop(void)
         motor[i] = nosound;
         step[i] = nosound;
         stepvol[i] = 0;
-        motorvol[i] = 0;
     }
     drive_sound.chip_enabled = 0;
 }

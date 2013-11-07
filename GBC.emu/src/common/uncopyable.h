@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,10 +20,11 @@
 #define UNCOPYABLE_H
 
 class Uncopyable {
-	Uncopyable(const Uncopyable&);
-	Uncopyable& operator=(const Uncopyable&);
-public:
+protected:
 	Uncopyable() {}
+private:
+	Uncopyable(Uncopyable const &);
+	Uncopyable& operator=(Uncopyable const &);
 };
 
 #endif

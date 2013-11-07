@@ -35,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libvorbisSrcDir)/configure
 	@echo "Configuring libvorbis..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libvorbisSrcDir)/configure --disable-docs --disable-examples --disable-oggtest --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libvorbisSrcDir)/configure --prefix=$(installDir) --disable-docs --disable-examples --disable-oggtest --disable-shared --host=$(CHOST) $(buildArg)
 

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart4A50.cxx 2699 2013-04-18 15:30:19Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -28,7 +28,8 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cartridge4A50::Cartridge4A50(const uInt8* image, uInt32 size,
                              const Settings& settings)
-  : Cartridge(settings)
+  : Cartridge(settings),
+    mySize(size)
 {
   // Copy the ROM image into my buffer
   // Supported file sizes are 32/64/128K, which are duplicated if necessary
@@ -275,41 +276,17 @@ void Cartridge4A50::checkBankSwitch(uInt16 address, uInt8 value)
      ((myLastAddress >= 0x1000) || (myLastAddress < 0x200)))
   {
     if((address & 0x0f00) == 0x0c00)       // Enable 256B of ROM at 0x1e00 - 0x1eff
-    {
-      myIsRomHigh = true;
-      mySliceHigh = (address & 0xff) << 8;
-      myBankChanged = true;
-    }
+      bankROMHigh(address & 0xff);
     else if((address & 0x0f00) == 0x0d00)  // Enable 256B of RAM at 0x1e00 - 0x1eff
-    {
-      myIsRomHigh = false;
-      mySliceHigh = (address & 0x7f) << 8;
-      myBankChanged = true;
-    }
+      bankRAMHigh(address & 0x7f);
     else if((address & 0x0f40) == 0x0e00)  // Enable 2K of ROM at 0x1000 - 0x17ff
-    {
-      myIsRomLow = true;
-      mySliceLow = (address & 0x1f) << 11;
-      myBankChanged = true;
-    }
+      bankROMLower(address & 0x1f);
     else if((address & 0x0f40) == 0x0e40)  // Enable 2K of RAM at 0x1000 - 0x17ff
-    {
-      myIsRomLow = false;
-      mySliceLow = (address & 0xf) << 11;
-      myBankChanged = true;
-    }
+      bankRAMLower(address & 0xf);
     else if((address & 0x0f40) == 0x0f00)  // Enable 1.5K of ROM at 0x1800 - 0x1dff
-    {
-      myIsRomMiddle = true;
-      mySliceMiddle = (address & 0x1f) << 11;
-      myBankChanged = true;
-    }
+      bankROMMiddle(address & 0x1f);
     else if((address & 0x0f50) == 0x0f40)  // Enable 1.5K of RAM at 0x1800 - 0x1dff
-    {
-      myIsRomMiddle = false;
-      mySliceMiddle = (address & 0xf) << 11;
-      myBankChanged = true;
-    }
+      bankRAMMiddle(address & 0xf);
 
     // Stella helper functions
     else if((address & 0x0f00) == 0x0400)   // Toggle bit A11 of lower block address
@@ -339,17 +316,9 @@ void Cartridge4A50::checkBankSwitch(uInt16 address, uInt8 value)
   //   0xf5, 0xf7, 0xfd, 0xff for RAM
   //   0x74 - 0x7f (0x80 bytes lower)
   if((address & 0xf75) == 0x74)         // Enable 256B of ROM at 0x1e00 - 0x1eff
-  {
-    myIsRomHigh = true;
-    mySliceHigh = value << 8;
-    myBankChanged = true;
-  }
+    bankROMHigh(value);
   else if((address & 0xf75) == 0x75)    // Enable 256B of RAM at 0x1e00 - 0x1eff
-  {
-    myIsRomHigh = false;
-    mySliceHigh = (value & 0x7f) << 8;
-    myBankChanged = true;
-  }
+    bankRAMHigh(value & 0x7f);
 
   // Zero-page hotspots for lower and middle blocks
   //   0xf8, 0xf9, 0xfa, 0xfb
@@ -357,29 +326,13 @@ void Cartridge4A50::checkBankSwitch(uInt16 address, uInt8 value)
   else if((address & 0xf7c) == 0x78)
   {
     if((value & 0xf0) == 0)           // Enable 2K of ROM at 0x1000 - 0x17ff
-    {
-      myIsRomLow = true;
-      mySliceLow = (value & 0xf) << 11;
-      myBankChanged = true;
-    }
+      bankROMLower(value & 0xf);
     else if((value & 0xf0) == 0x40)   // Enable 2K of RAM at 0x1000 - 0x17ff
-    {
-      myIsRomLow = false;
-      mySliceLow = (value & 0xf) << 11;
-      myBankChanged = true;
-    }
+      bankRAMLower(value & 0xf);
     else if((value & 0xf0) == 0x90)   // Enable 1.5K of ROM at 0x1800 - 0x1dff
-    {
-      myIsRomMiddle = true;
-      mySliceMiddle = ((value & 0xf) | 0x10) << 11;
-      myBankChanged = true;
-    }
+      bankROMMiddle((value & 0xf) | 0x10);
     else if((value & 0xf0) == 0xc0)   // Enable 1.5K of RAM at 0x1800 - 0x1dff
-    {
-      myIsRomMiddle = false;
-      mySliceMiddle = (value & 0xf) << 11;
-      myBankChanged = true;
-    }
+      bankRAMMiddle(value & 0xf);
   }
 }
 
@@ -440,7 +393,7 @@ bool Cartridge4A50::patch(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge4A50::getImage(int& size) const
 {
-  size = 131072;
+  size = mySize;
   return myImage;
 }
 

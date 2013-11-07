@@ -1,5 +1,5 @@
 libcxxSrcDir := libcxx
-libcxxSrcArchive := libcxx-182079.tar.xz
+libcxxSrcArchive := libcxx-193814.tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/lib/libc++.a
@@ -26,5 +26,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libcxxSrcDir)/CMakeLists.txt
 	@echo "Configuring libcxx..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CXX=clang CFLAGS="$(IOS_FLAGS)" cmake -DLIBCXX_ENABLE_SHARED=OFF -DLIBCXX_ENABLE_RTTI=OFF -DCMAKE_BUILD_TYPE=Release -DLIBCXX_CXX_FEATURE_FLAGS="$(IOS_FLAGS)" -DLIBCXX_LIBCXXABI_INCLUDE_PATHS=$$dir/../libcxxabi/libcxxabi/include -DLIBCXX_CXX_ABI=libcxxabi $(buildArg) $$dir/$(libcxxSrcDir)/
+	dir=`pwd` && cd $(@D) && CC=clang CXX=clang cmake -DLIBCXX_ENABLE_SHARED=OFF -DLIBCXX_ENABLE_RTTI=OFF -DCMAKE_BUILD_TYPE=Release -DLIBCXX_CXX_FEATURE_FLAGS="$(IOS_FLAGS) -fvisibility=hidden" -DLIBCXX_LIBCXXABI_INCLUDE_PATHS=$$dir/../libcxxabi/libcxxabi/include -DLIBCXX_CXX_ABI=libcxxabi $(buildArg) $$dir/$(libcxxSrcDir)/
 

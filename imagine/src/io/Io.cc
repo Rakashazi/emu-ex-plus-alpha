@@ -15,10 +15,52 @@
 
 #include "Io.hh"
 
+int Io::fgetc()
+{
+	char byte;
+	if(read(&byte, 1) == OK)
+	{
+		return byte;
+	}
+	else
+		return EOF;
+}
+
+CallResult Io::read(void* buffer, size_t numBytes)
+{
+	if(readUpTo(buffer, numBytes) != numBytes)
+		return IO_ERROR;
+	else
+		return OK;
+}
+
+size_t Io::fread(void* ptr, size_t size, size_t nmemb)
+{
+	return readUpTo(ptr, (size * nmemb)) / size;
+}
+
+long Io::ftell()
+{
+	ulong pos = 0;
+	return (tell(pos) == OK) ? (long)pos : -1;
+}
+
+int Io::fseek(long offset, int whence)
+{
+	// TODO: are we returning the correct error codes to simulate fseek?
+	switch(whence)
+	{
+		case SEEK_SET: return seekAbs(offset) == OK ? 0 : -1;
+		case SEEK_CUR: return seekRel(offset) == OK ? 0 : -1;
+		case SEEK_END: return seekAbsE(offset) == OK ? 0 : -1;
+	}
+	return -1;
+}
+
 CallResult Io::readLine(void* buffer, uint maxBytes)
 {
 	uint maxPrintableCharBytes = maxBytes - 1;
-	uchar *charBuffer = (uchar*)buffer;
+	auto charBuffer = (char*)buffer;
 	for(uint i = 0; i < maxPrintableCharBytes; i++)
 	{
 		if(read(charBuffer, 1) != OK)

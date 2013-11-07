@@ -371,7 +371,7 @@ uint16 loadW(uint32 address)
 	/*if (ptr == NULL)
 		return 0;
 	else*/
-	if(ALIGN_ACCESS && ((ptrsize)ptr & BIT(0)))
+	if(ALIGN_ACCESS && ((ptrsize)ptr & IG::bit(0)))
 	{
 		uint16 v;
 		memcpy(&v, ptr, 2); // LE
@@ -392,7 +392,7 @@ uint32 loadL(uint32 address)
 		return 0;
 	else*/
 
-	if(ALIGN_ACCESS && ((ptrsize)ptr & (BIT(0) | BIT(1))))
+	if(ALIGN_ACCESS && ((ptrsize)ptr & (IG::bit(0) | IG::bit(1))))
 	{
 		uint32 v;
 		memcpy(&v, ptr, 4); // LE
@@ -427,7 +427,7 @@ void storeW(uint32 address, uint16 data)
 	//Write
 	//if (ptr)
 
-	if(ALIGN_ACCESS && ((ptrsize)ptr & BIT(0)))
+	if(ALIGN_ACCESS && ((ptrsize)ptr & IG::bit(0)))
 		memcpy(ptr, &data, 2); // LE
 	else
 		*ptr = htole16(data);
@@ -447,7 +447,7 @@ void storeL(uint32 address, uint32 data)
 
 	//Write
 	//if (ptr)
-	if(ALIGN_ACCESS && ((ptrsize)ptr & (BIT(0) | BIT(1))))
+	if(ALIGN_ACCESS && ((ptrsize)ptr & (IG::bit(0) | IG::bit(1))))
 		memcpy(ptr, &data, 4); // LE
 	else
 		*ptr = htole32(data);

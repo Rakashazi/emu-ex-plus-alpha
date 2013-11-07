@@ -54,11 +54,6 @@ static DWORD scale2x(const DWORD *colortab, const BYTE **srcx1,
         (*srce)++;
     }
 
-    if ((colx1 == coly1 && colx2 != coly1 && colx1 != coly2 ? colx1 : cole)
-        != cole) {
-        cole = cole;
-    }
-
     return (colx1 == coly1 && colx2 != coly1 && colx1 != coly2 ? colx1 : cole);
 }
 

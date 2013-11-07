@@ -55,10 +55,6 @@ extern const char machine_name[];
 #define MACHINE_SYNC_NTSCOLD -3
 #define MACHINE_SYNC_PALN    -4
 
-#ifndef MACHINE_SYNC_DEFAULT
-#define MACHINE_SYNC_DEFAULT MACHINE_SYNC_PAL
-#endif
-
 struct machine_timing_s {
     unsigned int cycles_per_line;
     long cycles_per_rfsh;
@@ -76,11 +72,20 @@ const
 int console_mode;
 extern int video_disabled_mode;
 
+#define MACHINE_JAM_ACTION_DIALOG       0
+#define MACHINE_JAM_ACTION_CONTINUE     1
+#define MACHINE_JAM_ACTION_MONITOR      2
+#define MACHINE_JAM_ACTION_RESET        3
+#define MACHINE_JAM_ACTION_HARD_RESET   4
+#define MACHINE_NUM_JAM_ACTIONS         5
+
 /* Initialize the machine's resources.  */
+extern int machine_common_resources_init(void);
 extern int machine_resources_init(void);
 extern void machine_resources_shutdown(void);
 
 /* Initialize the machine's command-line options.  */
+extern int machine_common_cmdline_options_init(void);
 extern int machine_cmdline_options_init(void);
 
 /* Initialize the machine.  */

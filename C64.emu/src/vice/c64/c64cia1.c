@@ -249,6 +249,7 @@ inline static BYTE matrix_get_active_rows_by_column(int column)
     matrix_activate_column(column, &activerows, &activecolumns);
     return activerows;
 }
+
 /* get all connected rows for one active row */
 inline static BYTE matrix_get_active_rows_by_row(int row)
 {
@@ -257,6 +258,7 @@ inline static BYTE matrix_get_active_rows_by_row(int row)
     matrix_activate_row(row, &activerows, &activecolumns);
     return activerows;
 }
+
 /* get all connected columns for one active row */
 inline static BYTE matrix_get_active_columns_by_column(int column)
 {
@@ -265,6 +267,7 @@ inline static BYTE matrix_get_active_columns_by_column(int column)
     matrix_activate_column(column, &activerows, &activecolumns);
     return activecolumns;
 }
+
 /* get all connected columns for one active row */
 inline static BYTE matrix_get_active_columns_by_row(int row)
 {
@@ -273,6 +276,7 @@ inline static BYTE matrix_get_active_columns_by_row(int row)
     matrix_activate_row(row, &activerows, &activecolumns);
     return activecolumns;
 }
+
 /*
    TODO:
     - do more testing (see testprogs/CIA/ciaports) and handle more strange side
@@ -281,6 +285,7 @@ inline static BYTE matrix_get_active_columns_by_row(int row)
       read_ciapa and read_ciapb.
     - add improvements also to C128
 */
+
 static BYTE read_ciapa(cia_context_t *cia_context)
 {
     BYTE byte;

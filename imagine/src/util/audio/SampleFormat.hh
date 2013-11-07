@@ -22,9 +22,11 @@ namespace Audio
 
 struct SampleFormat
 {
-	uint bits;
-	bool isSigned;
+	uint bits = 0;
+	bool isSigned = false;
 
+	constexpr SampleFormat() {}
+	constexpr SampleFormat(uint bits, bool isSigned): bits(bits), isSigned(isSigned) {}
 	uint toBits() const { return bits; }
 	uint toBytes() const { return bits / 8; }
 
@@ -36,17 +38,18 @@ struct SampleFormat
 
 namespace SampleFormats
 {
-	static const SampleFormat s8 = { 8, true };
-	static const SampleFormat u8 = { 8, false };
-	static const SampleFormat s16 = { 16, true };
+	static constexpr SampleFormat s8 {8, true};
+	static constexpr SampleFormat u8 {8, false};
+	static constexpr SampleFormat s16 {16, true};
+	static constexpr SampleFormat none {};
 
-	static const SampleFormat *getFromBits(uint bits)
+	static const SampleFormat &getFromBits(uint bits)
 	{
 		assert(bits == 8 || bits == 16);
 		switch(bits)
 		{
-			case 8: return &s8;
-			default: return &s16;
+			case 8: return s8;
+			default: return s16;
 		}
 	}
 }

@@ -48,11 +48,9 @@ inline static void refresh_canvas(raster_t *raster)
     update_area = raster->update_area;
     viewport = raster->canvas->viewport;
 
-#if (!defined(GP2X) || defined(GP2X_SDL)) && (!defined(WIZ) || defined(WIZ_SDL))
     if (update_area->is_null) {
         return;
     }
-#endif
 
     x = update_area->xs;
     y = update_area->ys;

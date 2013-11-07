@@ -15,7 +15,7 @@ static ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 	size_t written = 0;
 	while(size != written)
 	{
-		ssize_t ret = write(filedes, ((uchar*)buffer)+written, size-written);
+		ssize_t ret = write(filedes, ((char*)buffer)+written, size-written);
 		if(ret == -1)
 			return -1;
 		written += ret;

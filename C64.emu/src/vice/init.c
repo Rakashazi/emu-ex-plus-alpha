@@ -122,6 +122,10 @@ int init_resources(void)
         init_resource_fail("debug");
         return -1;
     }
+    if (machine_common_resources_init() < 0) {
+        init_resource_fail("machine common");
+        return -1;
+    }
     if (machine_resources_init() < 0) {
         init_resource_fail("machine");
         return -1;
@@ -148,7 +152,7 @@ int init_resources(void)
     }
 #ifdef HAVE_NETWORK
     if (monitor_network_resources_init() < 0) {
-        init_resource_fail("monitor");
+        init_resource_fail("MONITOR_NETWORK");
         return -1;
     }
 #endif
@@ -219,6 +223,10 @@ int init_cmdline_options(void)
         return -1;
     }
 #endif
+    if (machine_common_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("machine common");
+        return -1;
+    }
     if (machine_cmdline_options_init() < 0) {
         init_cmdline_options_fail("machine");
         return -1;

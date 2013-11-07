@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Settings.hxx 2726 2013-05-08 23:34:42Z stephena $
 //============================================================================
 
 #ifndef SETTINGS_HXX
@@ -23,13 +23,14 @@
 class OSystem;
 
 #include "Array.hxx"
+#include "Variant.hxx"
 #include "bspf.hxx"
 
 /**
   This class provides an interface for accessing frontend specific settings.
 
   @author  Stephen Anthony
-  @version $Id: Settings.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Settings.hxx 2726 2013-05-08 23:34:42Z stephena $
 */
 class Settings
 {
@@ -68,89 +69,32 @@ class Settings
 #endif
 
     /**
-      Get the value assigned to the specified key.  If the key does
-      not exist then -1 is returned.
+      Get the value assigned to the specified key.
 
       @param key The key of the setting to lookup
-      @return The integer value of the setting
+      @return The (variant) value of the setting
     */
-    int getInt(const string& key) const;
+    const Variant& value(const string& key) const;
 
     /**
-      Get the value assigned to the specified key.  If the key does
-      not exist then -1.0 is returned.
+       Set the value associated with the specified key.
 
-      @param key The key of the setting to lookup
-      @return The floating point value of the setting
+       @param key   The key of the setting
+       @param value The (variant) value to assign to the setting
     */
-    float getFloat(const string& key) const;
+    void setValue(const string& key, const Variant& value);
 
     /**
-      Get the value assigned to the specified key.  If the key does
-      not exist then false is returned.
+       Convenience methods to return specific types.
 
-      @param key The key of the setting to lookup
-      @return The boolean value of the setting
+       @param key The key of the setting to lookup
+       @return The specific type value of the setting
     */
-    bool getBool(const string& key) const;
-
-    /**
-      Get the value assigned to the specified key.  If the key does
-      not exist then the empty string is returned.
-
-      @param key The key of the setting to lookup
-      @return The string value of the setting
-    */
-    const string& getString(const string& key) const;
-
-    /**
-      Get the x*y size assigned to the specified key.  If the key does
-      not exist (or is invalid) then results are -1 for each item.
-
-      @param key The key of the setting to lookup
-      @return The x and y values encoded in the key
-    */
-    void getSize(const string& key, int& x, int& y) const;
-
-    /**
-      Set the value associated with key to the given value.
-
-      @param key   The key of the setting
-      @param value The value to assign to the setting
-    */
-    void setInt(const string& key, const int value);
-
-    /**
-      Set the value associated with key to the given value.
-
-      @param key   The key of the setting
-      @param value The value to assign to the setting
-    */
-    void setFloat(const string& key, const float value);
-
-    /**
-      Set the value associated with key to the given value.
-
-      @param key   The key of the setting
-      @param value The value to assign to the setting
-    */
-    void setBool(const string& key, const bool value);
-
-    /**
-      Set the value associated with key to the given value.
-
-      @param key   The key of the setting
-      @param value The value to assign to the setting
-    */
-    void setString(const string& key, const string& value);
-
-    /**
-      Set the value associated with key to the given value.
-
-      @param key   The key of the setting
-      @param value The value to assign to the setting
-    */
-    void setSize(const string& key, const int value1, const int value2);
+    int getInt(const string& key) const     { return value(key).toInt();   }
+    float getFloat(const string& key) const { return value(key).toFloat(); }
+    bool getBool(const string& key) const   { return value(key).toBool();  }
+    const string& getString(const string& key) const { return value(key).toString(); }
+    const GUI::Size getSize(const string& key) const { return value(key).toSize();   }
 
 #ifndef STELLA_MINIMAL_SETTINGS
   protected:
@@ -188,8 +132,8 @@ class Settings
     struct Setting
     {
       string key;
-      string value;
-      string initialValue;
+      Variant value;
+      Variant initialValue;
     };
     typedef Common::Array<Setting> SettingsArray;
 
@@ -203,9 +147,9 @@ class Settings
     int getExternalPos(const string& key) const;
 
     /** Add key,value pair to specified array at specified position */
-    int setInternal(const string& key, const string& value,
+    int setInternal(const string& key, const Variant& value,
                     int pos = -1, bool useAsInitial = false);
-    int setExternal(const string& key, const string& value,
+    int setExternal(const string& key, const Variant& value,
                     int pos = -1, bool useAsInitial = false);
 
   private:

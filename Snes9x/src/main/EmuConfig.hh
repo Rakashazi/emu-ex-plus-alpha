@@ -16,7 +16,6 @@
 static const char *touchConfigFaceBtnName = "A/B/X/Y", *touchConfigCenterBtnName = "Select/Start";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
-#define systemAspectRatioString "4:3"
 
 namespace EmuCheats
 {

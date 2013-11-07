@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFE.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartFE.hxx 2693 2013-04-15 17:21:30Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEFE_HXX
@@ -24,9 +24,12 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartFEWidget.hxx"
+#endif
 
 /**
-  Bankswitching method used by Activison's Robot Tank and Decathlon.
+  Bankswitching method used by Activision's Robot Tank and Decathlon.
 
   Kevin Horton describes FE as follows:
 
@@ -45,10 +48,12 @@ class System;
   determined on a real system.
 
   @author  Bradford W. Mott
-  @version $Id: CartFE.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartFE.hxx 2693 2013-04-15 17:21:30Z stephena $
 */
 class CartridgeFE : public Cartridge
 {
+  friend class CartridgeFEWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -142,6 +147,18 @@ class CartridgeFE : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeFE"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeFEWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

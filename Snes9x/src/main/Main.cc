@@ -1,6 +1,5 @@
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -24,6 +23,9 @@
 #include <cheats.h>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 #ifndef SNES9X_VERSION_1_4
 
@@ -77,23 +79,35 @@ static Byte1Option optionBlockInvalidVRAMAccess(CFGKEY_BLOCK_INVALID_VRAM_ACCESS
 #endif
 
 const uint EmuSystem::maxPlayers = 5;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		{"8:7", 8, 7},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
 
 void EmuSystem::initOptions()
 {
-	#ifndef CONFIG_BASE_ANDROID
-	optionFrameSkip.initDefault(optionFrameSkipAuto); // auto-frameskip default due to highly variable CPU usage
-	#endif
-	#ifdef CONFIG_BASE_IOS
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+		#ifdef CONFIG_BASE_IOS
 		if(Base::deviceIsIPad())
+		#endif
+		{
+				if(!Config::envIsWebOS3)
+					optionTouchCtrlSize.initDefault(700);
+		}
+		optionTouchCtrlBtnSpace.initDefault(100);
+		optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
 	#endif
-	{
-			if(!Config::envIsWebOS3)
-				optionTouchCtrlSize.initDefault(700);
-	}
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	#ifndef SNES9X_VERSION_1_4
+	Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
+	#endif
 }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -387,7 +401,7 @@ int EmuSystem::loadState(int saveStateSlot)
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
 {
-	if(gameIsRunning() && CPU.SRAMModified)
+	if(gameIsRunning() && Memory.SRAMSize)
 	{
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
@@ -602,8 +616,8 @@ void EmuSystem::clearInputBuffers()
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	mouseScroll.init(ContentDrag::XY_AXIS);
-	mouseScroll.dragStartY = std::max(1, Gfx::yMMSizeToPixel(1.));
-	mouseScroll.dragStartX = std::max(1, Gfx::xMMSizeToPixel(1.));
+	mouseScroll.dragStartY = std::max(1, mainWin.yMMSizeToPixel(1.));
+	mouseScroll.dragStartX = std::max(1, mainWin.xMMSizeToPixel(1.));
 }
 
 void EmuSystem::configAudioRate()
@@ -620,56 +634,6 @@ void EmuSystem::configAudioRate()
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
 	#endif
 	logMsg("emu sound rate %d", Settings.SoundPlaybackRate);
-}
-
-static void doS9xAudio(bool renderAudio)
-{
-	#ifndef SNES9X_VERSION_1_4
-		const uint samples = S9xGetSampleCount();
-	#else
-		const uint samples = Settings.SoundPlaybackRate*2 / 60;
-	#endif
-	uint frames = samples/2;
-
-	int16 audioMemBuff[samples];
-	int16 *audioBuff = nullptr;
-	#ifdef USE_NEW_AUDIO
-		Audio::BufferContext *aBuff = nullptr;
-		if(renderAudio)
-		{
-			if(!(aBuff = Audio::getPlayBuffer(frames)))
-			{
-				return;
-			}
-			audioBuff = (int16*)aBuff->data;
-			assert(aBuff->frames >= frames);
-		}
-		else
-		{
-			audioBuff = audioMemBuff;
-		}
-	#else
-		audioBuff = audioMemBuff;
-	#endif
-
-
-	#ifndef SNES9X_VERSION_1_4
-		if(!S9xMixSamples((uint8_t*)audioBuff, samples))
-		{
-			logMsg("not enough samples ready from SNES");
-		}
-		else
-	#else
-		S9xMixSamples((uint8_t*)audioBuff, samples);
-	#endif
-
-	#ifdef USE_NEW_AUDIO
-		if(renderAudio)
-			Audio::commitPlayBuffer(aBuff, frames);
-	#else
-		if(renderAudio)
-			Audio::writePcm((uchar*)audioBuff, frames);
-	#endif
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -706,14 +670,29 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		renderToScreen = 1;
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
-	doS9xAudio(renderAudio);
+	#ifndef SNES9X_VERSION_1_4
+	int samples = S9xGetSampleCount();
+	#else
+	const int samples = Settings.SoundPlaybackRate*2 / 60;
+	#endif
+	if(likely(samples > 0))
+	{
+		uint frames = samples/2;
+		int16 audioBuff[samples];
+		S9xMixSamples((uint8_t*)audioBuff, samples);
+		if(renderAudio)
+		{
+			//logMsg("%d frames", frames);
+			writeSound(audioBuff, frames);
+		}
+	}
 }
 
 void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
 	if(unlikely(EmuSystem::isActive() && e.isPointer()))
 	{
@@ -728,7 +707,7 @@ void onInputEvent(const Input::Event &e)
 					*S9xGetSuperscopeBits() = 0;
 					#endif
 				}
-				if(emuView.gameRect().overlaps(e.x, e.y))
+				if(emuView.gameRect().overlaps({e.x, e.y}))
 				{
 					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
 					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
@@ -760,7 +739,7 @@ void onInputEvent(const Input::Event &e)
 			{
 				auto dragState = Input::dragState(e.devId);
 				static bool dragWithButton = 0; // true to start next mouse drag with a button held
-				switch(mouseScroll.inputEvent(Gfx::viewportRect(), e))
+				switch(mouseScroll.inputEvent(win.viewBounds(), e))
 				{
 					bcase ContentDrag::PUSHED:
 					{
@@ -832,23 +811,22 @@ void onInputEvent(const Input::Event &e)
 			}
 		}
 	}
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
+void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
 
 CallResult onInit(int argc, char** argv)
 {
-	Audio::setHintPcmFramesPerWrite(950); // for PAL when supported
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4
-		GFX.Screen = screenBuff;
+	GFX.Screen = screenBuff;
 	#else
-		GFX.Screen = (uint8*)screenBuff;
+	GFX.Screen = (uint8*)screenBuff;
 	#endif
 
 	Memory.Init();
@@ -856,24 +834,21 @@ CallResult onInit(int argc, char** argv)
 	S9xInitAPU();
 	assert(Settings.Stereo == TRUE);
 	#ifndef SNES9X_VERSION_1_4
-		S9xInitSound(20, 0);
-		S9xUnmapAllControls();
+	S9xInitSound(20, 0);
+	S9xUnmapAllControls();
 	#else
-		S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
-		assert(Settings.FrameTime == Settings.FrameTimeNTSC);
-		assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
-		assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
+	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
+	assert(Settings.FrameTime == Settings.FrameTimeNTSC);
+	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
+	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
 
-	mainInitCommon();
-	#ifndef SNES9X_VERSION_1_4
-		Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
-	#endif
 	emuView.initPixmap((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -884,7 +859,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

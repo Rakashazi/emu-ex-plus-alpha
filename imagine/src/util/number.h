@@ -24,29 +24,47 @@
 #include <util/bits.h>
 #include <util/basicMath.hh>
 #include <util/operators.hh>
-#include <util/Rational.hh>
 #include <config/imagineTypes.h>
 #include <cmath>
 #include <type_traits>
 
-namespace IG
+#ifdef __ANDROID__
+// missing C99 math functions in Bionic prevent TR1 function definitions in cmath,
+// copy needed ones from libstdc++
+namespace std
 {
 
-static const bool supportsFloat = !CONFIG_TYPES_NO_FLOAT;
-static const bool supportsDouble = !CONFIG_TYPES_NO_DOUBLE;
+constexpr float
+round(float x)
+{ return __builtin_roundf(x); }
+
+constexpr long double
+round(long double x)
+{ return __builtin_roundl(x); }
+
+constexpr double
+round(double x)
+{ return __builtin_round(x); }
+
+template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+constexpr T round(T x)
+{ return __builtin_round(x); }
+
+}
+#endif
+
+namespace IG
+{
 
 template<class T>
 static constexpr T toRadians(T degrees) { return degrees * (T)(M_PI / 180.0); }
 template<class T>
 static constexpr T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
 
-static void testFloatSupport() { if(!supportsFloat) bug_exit("float used without support"); }
-static void testDoubleSupport() { if(!supportsDouble) bug_exit("double used without support"); }
-
-template <class T, class T2>
-static T pow(T base, T2 exp)
+template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+static T pow(T base, T exp)
 {
-	int result = 1;
+	T result = 1;
 	while(exp)
 	{
 		if(exp & 1) // exp % 2 == 1
@@ -57,6 +75,12 @@ static T pow(T base, T2 exp)
 		base *= base;
 	}
 	return result;
+}
+
+template <class T>
+static constexpr T square(T base)
+{
+	return base * base;
 }
 
 static uint32 nextHighestPowerOf2(uint32 n)
@@ -72,13 +96,14 @@ static uint32 nextHighestPowerOf2(uint32 n)
 }
 
 // sqrt
-static double sqrt(double x) { testDoubleSupport(); return std::sqrt(x); }
+template <class T>
+static constexpr T sqrt(T x) { return std::sqrt(x); }
 
+#ifdef CONFIG_TYPES_SOFT_FLOAT
 // Method using Log Base 2 Approximation With One Extra Babylonian Steps
 // http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
 static float sqrt(float x)
 {
-	testFloatSupport();
 	union
 	{
 		int i;
@@ -93,7 +118,7 @@ static float sqrt(float x)
 	return u.x;
 }
 
-template <typename T>
+template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
 static T sqrt(T remainder)
 {
 	if(remainder < 0) // if type is unsigned this will be ignored = no runtime
@@ -116,92 +141,60 @@ static T sqrt(T remainder)
 	}
 	return root;
 }
+#endif
 
-//#ifndef _STLP_PLATFORM // stlport already has float sqrt
-
-template<class T>
-static bool isEven(T num)
+template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+constexpr static bool isEven(T num)
 {
 	return num % 2 == 0 ? 1 : 0;
 }
-template<class T>
-static bool isOdd(T num)
+
+template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+constexpr static bool isOdd(T num)
 {
 	return !isEven(num);
 }
 
+template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+constexpr static T makeEvenRoundedUp(T num)
+{
+	return isEven(num) ? num : num+1;
+}
+
 // divide integer rounding-upwards
-template<class T>
+template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
 constexpr static T divUp(T x, T y)
 {
 	return (x + y - 1) / y;
 }
 
-template <class T>
-struct Point2D : public Arithmetics< Point2D<T> >
-{
-	T x = 0, y = 0;
-
-	constexpr Point2D() { }
-	constexpr Point2D(T x, T y) : x(x), y(y) { }
-
-	Point2D<T> & operator +=(Point2D<T> const& summand)
-	{
-		x += summand.x;
-		y += summand.y;
-		return *this;
-	}
-
-	Point2D<T> & operator -=(Point2D<T> const& diminuend)
-	{
-		x -= diminuend.x;
-		y -= diminuend.y;
-		return *this;
-	}
-
-	Point2D<T> & operator *=(Point2D<T> const& factor)
-	{
-		x *= factor.x;
-		y *= factor.y;
-		return *this;
-	}
-
-	Point2D<T> & operator /=(Point2D<T> const& divisor)
-	{
-		x /= divisor.x;
-		y /= divisor.y;
-		return *this;
-	}
-};
-
-
 // ceil/floor/round "n" to the nearest multiple "mult"
 template<class T>
-static T ceilMult(T n, T mult) { return ceil(n / mult) * mult; }
+static T ceilMult(T n, T mult) { return std::ceil(n / mult) * mult; }
 template<class T>
-static T floorMult(T n, T mult) { return floor(n / mult) * mult; }
+static T floorMult(T n, T mult) { return std::floor(n / mult) * mult; }
 template<class T>
-static T roundMult(T n, T mult) { return round(n / mult) * mult; }
+static T roundMult(T n, T mult) { return std::round(n / mult) * mult; }
 
 template<class T>
 static T midpoint(T a, T b) { return (a+b) / (T)2; }
 
 template<class T>
-static T distance1D(T x, T y)
+static constexpr T distance1D(T x, T y)
 {
-	return absv(x - y);
+	return std::abs(x - y);
 }
 
 template<class T>
 static T distance2D(T x1, T y1, T x2, T y2)
 {
-	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+	return sqrt(square(x1 - x2) + square(y1 - y2));
 }
 
 template<class T>
 static T distance3D(T x1, T y1, T z1, T x2, T y2, T z2)
 {
-	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+	return sqrt(square(x1 - x2) + square(y1 - y2) + square(z1 - z2));
 }
 
 /*static uint maxValOfBits(uint bits)
@@ -392,7 +385,7 @@ static void setSizesWithRatioY(T &xSize, T &ySize, T2 aspectRatio, T y)
 	if(aspectRatio) // treat 0 AR as a no-op, xSize doesn't get modified
 	{
 		T2 res = (T2)y * aspectRatio;
-		xSize = std::is_integral<T>::value ? roundf(res) : res;
+		xSize = std::is_integral<T>::value ? std::round(res) : res;
 	}
 }
 
@@ -403,51 +396,8 @@ static void setSizesWithRatioX(T &xSize, T &ySize, T2 aspectRatio, T x)
 	if(aspectRatio) // treat 0 AR as a no-op, ySize doesn't get modified
 	{
 		T2 res = (T2)x / aspectRatio;
-		ySize = std::is_integral<T>::value ? roundf(res) : res;
+		ySize = std::is_integral<T>::value ? std::round(res) : res;
 	}
-}
-
-template <class T, class T2>
-static void setSizesWithRatioBestFit(T &xSize, T &ySize, T2 destAspectRatio, T x, T y)
-{
-	Rational sourceRat {x,y};
-	auto sourceAspectRatio = (T2)sourceRat;
-	logMsg("ar %f %f, %d %d", sourceAspectRatio, destAspectRatio, x, y);
-	if(destAspectRatio == sourceAspectRatio)
-	{
-		xSize = x;
-		ySize = y;
-	}
-	else if(destAspectRatio > sourceAspectRatio)
-	{
-		IG::setSizesWithRatioX(xSize, ySize, destAspectRatio, x);
-	}
-	else
-	{
-		IG::setSizesWithRatioY(xSize, ySize, destAspectRatio, y);
-	}
-}
-
-template <class T, class T2>
-static IG::Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
-{
-	//Rational sourceRat {x,y};
-	auto sourceAspectRatio = (T2)x/(T2)y;
-	T xSize = 0, ySize = 0;
-	if(destAspectRatio == sourceAspectRatio)
-	{
-		xSize = x;
-		ySize = y;
-	}
-	else if(destAspectRatio > sourceAspectRatio)
-	{
-		IG::setSizesWithRatioX(xSize, ySize, destAspectRatio, x);
-	}
-	else
-	{
-		IG::setSizesWithRatioY(xSize, ySize, destAspectRatio, y);
-	}
-	return {xSize, ySize};
 }
 
 template <class T>
@@ -570,18 +520,18 @@ template <class T>
 constexpr static T cosD(T x) { return std::cos(toRadians(x)); }
 
 template <class T>
-static void rotateAboutPoint(T rads, T *x, T *y, T ox, T oy)
+static void rotateAboutPoint(T rads, T &x, T &y, T ox, T oy)
 {
-	T oldX = *x, oldY = *y;
-	*x = std::cos(rads) * (oldX-ox) - std::sin(rads) * (oldY-oy) + ox;
-	*y = std::sin(rads) * (oldX-ox) + std::cos(rads) * (oldY-oy) + oy;
+	T oldX = x, oldY = y;
+	x = std::cos(rads) * (oldX-ox) - std::sin(rads) * (oldY-oy) + ox;
+	y = std::sin(rads) * (oldX-ox) + std::cos(rads) * (oldY-oy) + oy;
 }
 
 // to rotate about z axis, pass x,y
 // to rotate about x axis, pass y,z
 // to rotate about y axis, pass z,x
 template <class T>
-static void rotateAboutAxis(T rads, T *x, T *y)
+static void rotateAboutAxis(T rads, T &x, T &y)
 {
 	rotateAboutPoint(rads, x, y, (T)0, (T)0);
 }
@@ -589,13 +539,13 @@ static void rotateAboutAxis(T rads, T *x, T *y)
 template <class T>
 static T perspectiveFovViewSpaceHeight(T fovy)
 {
-	return (T)1/tan(fovy/(T)2);
+	return (T)1/std::tan(fovy/(T)2);
 }
 
-static float perspectiveFovViewSpaceHeight(float fovy)
-{
-	return 1.f/tanf(fovy/2.f);
-}
+//static float perspectiveFovViewSpaceHeight(float fovy)
+//{
+//	return 1.f/std::tan(fovy/2.f);
+//}
 
 template <class T>
 static T perspectiveFovViewSpaceWidth(T h, T aspect)

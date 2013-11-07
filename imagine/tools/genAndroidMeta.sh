@@ -26,6 +26,12 @@ do
 		--activity-name=*)
 			activityName=$optarg
 		;;
+		--intent-mimetypes=*)
+			intentMimeTypes="$optarg"
+		;;
+		--intent-file-extensions=*)
+			intentFileExtensions="$optarg"
+		;;
 		--permission-write-ext)
 			writeExtStore=1
 		;;
@@ -163,7 +169,7 @@ if [ $minSDK -ge 9 ]
 then
 	echo '	<supports-screens android:xlargeScreens="true" />' >> $outPath
 	echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-	targetSDKOutput='android:targetSdkVersion="17"'
+	targetSDKOutput='android:targetSdkVersion="19"'
 fi
 
 if [ $noIcon ]
@@ -182,17 +188,56 @@ then
 				<category android:name=\"tv.ouya.intent.category.GAME\" />"
 fi
 
+fileIntentFilters=
+
+if [ "$intentMimeTypes" ]
+then
+	fileIntentFilters="$fileIntentFilters"'
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+'
+	for type in $intentMimeTypes
+	do
+		fileIntentFilters="$fileIntentFilters				<data android:mimeType=\"$type\"/>
+"
+	done
+	fileIntentFilters="$fileIntentFilters"'			</intent-filter>
+'
+fi
+
+if [ "$intentFileExtensions" ]
+then
+	fileIntentFilters="$fileIntentFilters"'
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="file" />
+				<data android:mimeType="*/*" />
+				<data android:host="*" />
+'
+	for extension in $intentFileExtensions
+	do
+		fileIntentFilters="$fileIntentFilters				<data android:pathPattern=\".*\\\\.$extension\" />
+"
+	done
+	fileIntentFilters="$fileIntentFilters"'			</intent-filter>
+'
+fi
+
 echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
 	<application android:label=\"@string/app_name\" $iconOutput>
 		<activity android:name=\"$activityName\"
 				android:label=\"@string/app_name\"
-				android:theme=\"@android:style/Theme.NoTitleBar.Fullscreen\"
-				android:screenOrientation=\"unspecified\"
+				android:theme=\"@android:style/Theme.NoTitleBar\"
 				android:configChanges=\"$uiChanges\"
 				android:launchMode=\"singleInstance\">
 			<intent-filter>
 				$intentFilters
 			</intent-filter>
+$fileIntentFilters
 		</activity>" >> $outPath
 
 if [ $xperiaPlayOpt ]

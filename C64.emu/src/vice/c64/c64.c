@@ -618,8 +618,13 @@ int machine_specific_init(void)
 }
 
 /* C64-specific reset sequence.  */
+static int reset_poweron = 1;
+
 void machine_specific_reset(void)
 {
+    int iecreset = 1;
+    resources_get_int("IECReset", &iecreset);
+
     serial_traps_reset();
 
     ciacore_reset(machine_context.cia1);
@@ -638,16 +643,21 @@ void machine_specific_reset(void)
     vicii_reset();
 
     cartridge_reset();
-    drive_reset();
+    if (reset_poweron || iecreset) {
+        drive_reset();
+    }
     datasette_reset();
     plus60k_reset();
     plus256k_reset();
     c64_256k_reset();
+
+    reset_poweron = 0;
 }
 
 void machine_specific_powerup(void)
 {
     vicii_reset_registers();
+    reset_poweron = 1;
 }
 
 void machine_specific_shutdown(void)

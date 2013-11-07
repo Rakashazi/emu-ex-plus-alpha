@@ -21,15 +21,15 @@
 
 class IdentInputDeviceView : public View
 {
-	Rect2<int> viewFrame;
+	IG::Rect2<int> viewFrame;
 	Gfx::Text text;
 
 public:
 	typedef DelegateFunc<void (const Input::Event &e)> OnIdentInputDelegate;
 	OnIdentInputDelegate onIdentInput;
 
-	constexpr IdentInputDeviceView() {}
-	Rect2<int> &viewRect() override { return viewFrame; }
+	constexpr IdentInputDeviceView(Base::Window &win): View(win) {}
+	IG::Rect2<int> &viewRect() override { return viewFrame; }
 	void init();
 	void deinit() override;
 	void place() override;
@@ -40,30 +40,24 @@ public:
 class InputManagerView : public BaseMenuView
 {
 private:
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	InputPlayerMapMenuItem pointerInput;
-	#endif
-	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE] { {0} };
-	void deleteDeviceConfigHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem deleteDeviceConfig {"Delete Saved Device Settings"};
+	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE] {{0}};
+	TextMenuItem deleteDeviceConfig;
 	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS] {nullptr};
-	void deleteProfileHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem deleteProfile {"Delete Saved Key Profile"};
+	TextMenuItem deleteProfile;
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-	BoolMenuItem notifyDeviceChange {"Notify If Devices Change"};
+	BoolMenuItem notifyDeviceChange;
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
-	void rescanOSDevicesHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem rescanOSDevices {"Re-scan OS Input Devices"};
+	TextMenuItem rescanOSDevices;
 	#endif
-	void identDeviceHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem identDevice {"Auto-detect Device To Setup"};
+	TextMenuItem identDevice;
 	TextMenuItem inputDevName[Input::MAX_DEVS];
 	MenuItem *item[sizeofArrayConst(inputDevName) + 6] = {nullptr};
-public:
-	constexpr InputManagerView(): BaseMenuView("Input Device Setup") { }
 
-	char inputDevNameStr[Input::MAX_DEVS][80] { {0} };
+public:
+	char inputDevNameStr[Input::MAX_DEVS][80] {{0}};
+
+	InputManagerView(Base::Window &win);
 	void init(bool highlightFirst);
 	void deinit() override;
 	void onShow() override;
@@ -72,44 +66,25 @@ public:
 class InputManagerDeviceView : public BaseMenuView
 {
 private:
-	void playerHandler(MultiChoiceMenuItem &item, int val);
 	MultiChoiceSelectMenuItem player;
-
-	//TextMenuItem deleteDeviceConfig {"Delete Device Settings"};
-
 	char profileStr[128] {0};
-	void profileChanged(const KeyConfig &profile);
-	void loadProfileHandler(TextMenuItem &, const Input::Event &e);
 	TextMenuItem loadProfile;
-
-	void renameProfileHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem renameProfile {"Rename Profile"};
-
-	void newProfileHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem newProfile {"New Profile"};
-
-	void deleteProfileHandler(TextMenuItem &, const Input::Event &e);
-	TextMenuItem deleteProfile {"Delete Profile"};
-
-	//void enabledHandler(BoolMenuItem &, const Input::Event &e);
-	//BoolMenuItem enabled {"Enabled"};
-
-	void confirmICadeMode(const Input::Event &e);
-	void iCadeModeHandler(BoolMenuItem &, const Input::Event &e);
+	TextMenuItem renameProfile;
+	TextMenuItem newProfile;
+	TextMenuItem deleteProfile;
 	#if defined CONFIG_INPUT_ICADE
-		BoolMenuItem iCadeMode {"iCade Mode"};
+	BoolMenuItem iCadeMode;
 	#endif
-
-	void joystickAxis1DPadHandler(BoolMenuItem &, const Input::Event &e);
-	BoolMenuItem joystickAxis1DPad {"Joystick Axis 1 as D-Pad"};
-
+	BoolMenuItem joystickAxis1DPad;
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-
 	TextMenuItem inputCategory[EmuControls::categories];
 	MenuItem *item[EmuControls::categories + 9] = {nullptr};
 	InputDeviceConfig *devConf = nullptr;
+
+	void confirmICadeMode(const Input::Event &e);
+
 public:
-	constexpr InputManagerDeviceView() { }
+	InputManagerDeviceView(Base::Window &win);
 
 	void init(bool highlightFirst, InputDeviceConfig &devConf);
 	void onShow() override;

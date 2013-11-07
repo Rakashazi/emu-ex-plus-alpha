@@ -117,6 +117,12 @@ else ifneq ($(wildcard res/android/assets),)
  android_assetsSrcPath := res/android/assets
 endif
 
+ifdef android_ouyaBuild
+ ifneq ($(wildcard res/android/assets-ouya),)
+  android_assetsSrcPath := res/android/assets-ouya
+ endif
+endif
+
 ifdef android_assetsSrcPath
 android_assetsPath := $(android_targetPath)/assets
 $(android_assetsPath) :

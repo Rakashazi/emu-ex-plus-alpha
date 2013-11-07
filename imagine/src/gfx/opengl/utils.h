@@ -51,6 +51,7 @@ static const char *glImageFormatToString(int format)
 		case GL_BGR: return "BGR";
 		case GL_LUMINANCE8: return "LUMINANCE8";
 		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
+		case GL_ALPHA8: return "ALPHA8";
 		#endif
 		#if !defined(CONFIG_GFX_OPENGL_ES)
 		case GL_COMPRESSED_RGBA: return "COMPRESSED_RGBA";
@@ -63,15 +64,15 @@ static const char *glImageFormatToString(int format)
 		case GL_RGB: return "RGB";
 		case GL_LUMINANCE: return "LUMINANCE";
 		case GL_LUMINANCE_ALPHA: return "LUMINANCE_ALPHA";
+		case GL_ALPHA: return "ALPHA";
 		default: bug_branch("%d", format); return NULL;
 	}
 }
 
-// linker errors on some error check code due to GCC <= 4.7.2 lambda bug
-#if defined NDEBUG || (!defined __clang__ && GCC_VERSION < 40703)
-	static const bool checkGLErrors = 0;
+#if defined NDEBUG
+static const bool checkGLErrors = 0;
 #else
-	static const bool checkGLErrors = 1;
+static const bool checkGLErrors = 1;
 #endif
 
 static const bool checkGLErrorsVerbose = 1;

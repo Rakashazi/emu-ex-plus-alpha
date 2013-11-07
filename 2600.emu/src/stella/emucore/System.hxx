@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: System.hxx 2745 2013-05-30 16:07:19Z stephena $
 //============================================================================
 
 #ifndef SYSTEM_HXX
@@ -43,7 +43,7 @@ class NullDevice;
   6507 based system and 65536 (2^16) bytes for a 6502 based system.
 
   @author  Bradford W. Mott
-  @version $Id: System.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: System.hxx 2745 2013-05-30 16:07:19Z stephena $
 */
 class System : public Serializable
 {
@@ -115,10 +115,7 @@ class System : public Serializable
 
       @return The attached 6502 microprocessor
     */
-    M6502& m6502()
-    {
-      return *myM6502;
-    }
+    M6502& m6502() { return *myM6502; }
 
     /**
       Answer the 6532 processor attached to the system.  If a
@@ -126,30 +123,21 @@ class System : public Serializable
 
       @return The attached 6532 microprocessor
     */
-    M6532& m6532()
-    {
-      return *myM6532;
-    }
+    M6532& m6532() { return *myM6532; }
 
     /**
       Answer the TIA device attached to the system.
 
       @return The attached TIA device
     */
-    TIA& tia()
-    {
-      return *myTIA;
-    }
+    TIA& tia() { return *myTIA; }
 
     /**
       Answer the random generator attached to the system.
 
       @return The random generator
     */
-    Random& randGenerator()
-    {
-      return *myRandom;
-    }
+    Random& randGenerator() { return *myRandom; }
 
     /**
       Get the null device associated with the system.  Every system 
@@ -158,10 +146,7 @@ class System : public Serializable
 
       @return The null device associated with the system
     */
-    NullDevice& nullDevice()
-    {
-      return myNullDevice;
-    }
+    NullDevice& nullDevice() { return myNullDevice; }
 
     /**
       Get the total number of pages available in the system.
@@ -198,10 +183,7 @@ class System : public Serializable
 
       @param amount The amount to add to the system cycles counter
     */
-    void incrementCycles(uInt32 amount) 
-    { 
-      myCycles += amount; 
-    }
+    void incrementCycles(uInt32 amount) { myCycles += amount; }
 
     /**
       Reset the system cycle count to zero.  The first thing that
@@ -290,7 +272,7 @@ class System : public Serializable
     /**
       Access and modify the disassembly type flags for the given
       address.  Note that while any flag can be used, the disassembly
-      only really acts on SKIP/CODE/GFX/PGFX/DATA/ROW.
+      only really acts on CODE/GFX/PGFX/DATA/ROW.
     */
     uInt8 getAccessFlags(uInt16 address);
     void setAccessFlags(uInt16 address, uInt8 flags);

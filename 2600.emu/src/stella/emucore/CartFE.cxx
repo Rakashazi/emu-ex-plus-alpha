@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFE.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartFE.cxx 2686 2013-04-06 22:13:26Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -129,15 +129,12 @@ bool CartridgeFE::bankChanged()
   if(myLastAddressChanged)
   {
     // A bankswitch occurs when the addresses transition from state to another
-    bool a1 = ((myLastAddress1 & 0x2000) == 0),
-         a2 = ((myLastAddress2 & 0x2000) == 0);
-    myBankChanged = (a1 && !a2) || (a2 && !a1);
+    myBankChanged = ((myLastAddress1 & 0x2000) == 0) !=
+                    ((myLastAddress2 & 0x2000) == 0);
     myLastAddressChanged = false;
   }
   else
-  {
     myBankChanged = false;
-  }
 
   // In any event, let the base class know about it
   return Cartridge::bankChanged();

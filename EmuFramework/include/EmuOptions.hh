@@ -20,11 +20,17 @@
 #include <bluetooth/BluetoothAdapter.hh>
 #include <audio/Audio.hh>
 
+#if (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || \
+	defined CONFIG_BASE_IOS || \
+	(defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA)
+#define CONFIG_VCONTROLS_GAMEPAD
+#endif
+
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
-#ifdef CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
-extern OptionAudioHintPcmMaxBuffers optionSoundBuffers;
+#ifdef CONFIG_AUDIO_LATENCY_HINT
+extern Byte1Option optionSoundBuffers;
 #endif
 #ifdef CONFIG_AUDIO_OPENSL_ES
 extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
@@ -44,7 +50,6 @@ extern Byte1Option optionRememberLastMenu;
 extern Byte1Option optionLowProfileOSNav;
 extern Byte1Option optionHideOSNav;
 extern Byte1Option optionIdleDisplayPowerSave;
-extern Byte1Option optionShowMenuIcon;
 extern Byte1Option optionHideStatusBar;
 extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
 extern Byte1Option optionConfirmOverwriteState;
@@ -54,14 +59,13 @@ extern Byte1Option optionNotifyInputDeviceChange;
 
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;
-#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-extern OptionBlueToothScanCache optionBlueToothScanCache;
-#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	extern OptionBlueToothScanCache optionBlueToothScanCache;
+	#endif
 #endif
 
 extern Byte4s1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
-
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
@@ -73,34 +77,35 @@ extern Byte4Option optionRelPointerDecel;
 extern Byte4s1Option optionGameOrientation;
 extern Byte4s1Option optionMenuOrientation;
 
+#ifdef CONFIG_VCONTROLS_GAMEPAD
 extern Byte1Option optionTouchCtrl;
-
-extern Byte1Option optionTouchCtrlAlpha;
-
 extern Byte4s2Option optionTouchCtrlSize;
 extern Byte4s2Option optionTouchDpadDeadzone;
 extern Byte4s2Option optionTouchDpadDiagonalSensitivity;
 extern Byte4s2Option optionTouchCtrlBtnSpace;
 extern Byte4s2Option optionTouchCtrlBtnStagger;
-extern Byte4s2Option optionTouchCtrlTriggerBtnPos;
+extern Byte1Option optionTouchCtrlTriggerBtnPos;
 extern Byte4s2Option optionTouchCtrlExtraXBtnSize;
 extern Byte4s2Option optionTouchCtrlExtraYBtnSize;
 extern Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow;
 extern Byte1Option optionTouchCtrlBoundingBoxes;
 extern Byte1Option optionTouchCtrlShowOnTouch;
-
-extern Option2DOrigin optionTouchCtrlDpadPos;
-extern Option2DOrigin optionTouchCtrlFaceBtnPos;
-extern Option2DOrigin optionTouchCtrlCenterBtnPos;
-extern Option2DOrigin optionTouchCtrlMenuPos;
-extern Option2DOrigin optionTouchCtrlFFPos;
+	#if defined(CONFIG_BASE_ANDROID)
+	extern OptionTouchCtrlScaledCoordinates optionTouchCtrlScaledCoordinates;
+	#endif
+#endif
+extern Byte1Option optionTouchCtrlAlpha;
+extern OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
 extern Byte1Option optionFrameSkip;
 
 static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 extern Byte1Option optionImageZoom;
+extern Byte1Option optionViewportZoom;
 
+#ifdef CONFIG_BASE_ANDROID
 extern OptionDPI optionDPI;
+#endif
 
 extern OptionRecentGames optionRecentGames;
 
@@ -127,11 +132,14 @@ extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionG
 
 extern Byte1Option optionDitherImage;
 
-#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
+#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_IS_OUYA) || defined CONFIG_BASE_IOS
 #define USE_BEST_COLOR_MODE_OPTION
 extern Byte1Option optionBestColorModeHint;
 #endif
 
 extern PathOption optionSavePath;
+
+// Common options handled per-emulator backend
+extern PathOption optionFirmwarePath;
 
 void initOptions();

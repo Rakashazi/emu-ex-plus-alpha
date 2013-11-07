@@ -2,6 +2,8 @@ include ../EmuFramework/metadata/conf.mk
 metadata_name = PCE.emu
 metadata_exec = pceemu
 metadata_pkgName = PceEmu
+metadata_supportedMIMETypes = application/zip
+metadata_supportedFileExtensions = pce cue
 webOS_metadata_id = com.explusalpha.pceemu
 android_metadata_id = com.PceEmu
 metadata_id = com.explusalpha.PceEmu

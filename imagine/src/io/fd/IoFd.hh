@@ -27,18 +27,15 @@ public:
 	static Io* create(const char * location, uint mode = 0, CallResult *errorOut = 0);
 	~IoFd() { close(); }
 
-	size_t readUpTo(void* buffer, size_t numBytes);
-	size_t fwrite(const void* ptr, size_t size, size_t nmemb);
-	CallResult tell(ulong* offset);
-	long ftell();
-	CallResult seekU(ulong offset, uint mode);
-	CallResult seekS(long offset, uint mode);
-	int fseek(long offset, int whence);
-	void truncate(ulong offset);
-	void close();
-	ulong size();
-	void sync();
-	int eof();
+	size_t readUpTo(void *buffer, size_t numBytes) override;
+	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
+	CallResult tell(ulong &offset) override;
+	CallResult seek(long offset, uint mode) override;
+	void truncate(ulong offset) override;
+	void close() override;
+	ulong size() override;
+	void sync() override;
+	int eof() override;
 
 	static CallResult writeToNewFile(const char *path, void *data, size_t size)
 	{

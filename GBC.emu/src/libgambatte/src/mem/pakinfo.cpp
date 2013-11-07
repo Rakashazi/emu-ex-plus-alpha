@@ -3,11 +3,10 @@
 
 namespace gambatte {
 
-enum { FLAG_MULTIPAK = 1, FLAG_HEADER_CHECKSUM_OK = 2 };
+enum { flag_multipak = 1, flag_header_checksum_ok = 2, };
 
 static bool isHeaderChecksumOk(unsigned const char header[]) {
 	unsigned csum = 0;
-
 	for (int i = 0x134; i < 0x14D; ++i)
 		csum -= header[i] + 1;
 
@@ -33,14 +32,14 @@ PakInfo::PakInfo()
 }
 
 PakInfo::PakInfo(bool multipak, unsigned rombanks, unsigned char const romheader[])
-: flags_(  multipak * FLAG_MULTIPAK
-         + isHeaderChecksumOk(romheader) * FLAG_HEADER_CHECKSUM_OK),
+: flags_(  multipak * flag_multipak
+         + isHeaderChecksumOk(romheader) * flag_header_checksum_ok),
   rombanks_(rombanks)
 {
 	std::memcpy(h144x_, romheader + 0x144, sizeof h144x_);
 }
 
-bool PakInfo::headerChecksumOk() const { return flags_ & FLAG_HEADER_CHECKSUM_OK; }
+bool PakInfo::headerChecksumOk() const { return flags_ & flag_header_checksum_ok; }
 
 static char const * h147ToCstr(unsigned char const h147) {
 	switch (h147) {
@@ -81,7 +80,7 @@ static char const * h147ToCstr(unsigned char const h147) {
 std::string const PakInfo::mbc() const {
 	std::string h147str = h147ToCstr(h144x_[3]);
 
-	if (flags_ & FLAG_MULTIPAK)
+	if (flags_ & flag_multipak)
 		h147str += " (Custom MultiPak)";
 
 	return h147str;

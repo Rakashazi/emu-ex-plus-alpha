@@ -17,6 +17,9 @@ all : $(outputLibFile)
 install : $(outputLibFile)
 	@echo "Installing zlib to: $(installDir)"
 	@mkdir -p $(installIncludeDir) $(installDir)/lib/pkgconfig
+ifeq ($(ENV), win32)
+	$(RANLIB) $(outputLibFile)
+endif
 	cp $(outputLibFile) $(installDir)/lib/
 	cp $(buildDir)/zconf.h $(buildDir)/zlib.h $(installIncludeDir)/
 	cp $(pcFile) $(installDir)/lib/pkgconfig/

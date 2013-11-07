@@ -102,3 +102,9 @@ static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
 		printEGLConf(display, conf[i]);
 	}
 }
+
+static EGLBoolean eglSurfeaceIsValid(EGLDisplay display, EGLSurface surface)
+{
+	EGLint dummy;
+	return eglQuerySurface(display, surface, EGL_CONFIG_ID, &dummy);
+}

@@ -39,24 +39,25 @@ public:
 	int yCellSize = 0;
 	int cells = 0, selected = -1, selectedIsActivated = 0;
 	GuiTableSource *src = nullptr;
-	Rect2<int> viewRect;
+	IG::Rect2<int> viewRect;
 	_2DOrigin align;
 
 	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO);
 	void setXCellSize(int s);
 	void setYCellSize(int s);
-	bool inputEvent(const Input::Event &event);
+	bool inputEvent(const Input::Event &event, View &view);
 	void draw();
-	Rect2<int> focusRect();
+	IG::Rect2<int> focusRect();
 	static GC globalXIndent;
 
 	static void setDefaultXIndent()
 	{
 		GuiTable1D::globalXIndent =
 			(Config::MACHINE_IS_OUYA) ? Gfx::xSMMSize(4) :
+			(Config::MACHINE_IS_PANDORA) ? Gfx::xSMMSize(2) :
 			(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(Gfx::xSMMSize(1)) :
 			(Config::envIsPS3) ? /*floor*/(Gfx::xSMMSize(16)) :
-			/*floor*/(Gfx::xSMMSize(2));
+			/*floor*/(Gfx::xSMMSize(4));
 	}
 
 	void clearSelection()
@@ -75,12 +76,12 @@ public:
 	constexpr ScrollableGuiTable1D() {}
 	bool onlyScrollIfNeeded = 0;
 
-	void init(GuiTableSource *src, int cells, _2DOrigin align = LC2DO);
+	void init(GuiTableSource *src, int cells, View &view, _2DOrigin align = LC2DO);
 	void deinit();
-	void draw();
-	void place(Rect2<int> *frame);
+	void draw(View &view);
+	void place(IG::Rect2<int> *frame, View &view);
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
 	void updateView(); // move content frame in position along view frame
-	void inputEvent(const Input::Event &e);
+	void inputEvent(const Input::Event &e, View &view);
 };

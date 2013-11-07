@@ -463,9 +463,9 @@ static BMAPPINGLocal bmap[] = {
 	{"Color Dreams",		 11, Mapper11_Init},
 	{"REX DBZ 5",			 12, Mapper12_Init},
 	{"CPROM",				 13, CPROM_Init},
-//	{"",					 14, Mapper14_Init},
+	{"REX SL-1632",			 14, UNLSL1632_Init},
 	{"100-in-1",			 15, Mapper15_Init},
-	{"Bandai",				 16, Mapper16_Init},
+	{"BANDAI 24C02",		 16, Mapper16_Init},
 	{"FFE Rev. B",			 17, Mapper17_Init},
 	{"JALECO SS880006",		 18, Mapper18_Init},	// JF-NNX (EB89018-30007) boards
 	{"Namcot 106",			 19, Mapper19_Init},
@@ -476,7 +476,7 @@ static BMAPPINGLocal bmap[] = {
 	{"Konami VRC6 Rev. A",	 24, Mapper24_Init},
 	{"Konami VRC2/VRC4 D",	 25, Mapper25_Init},
 	{"Konami VRC6 Rev. B",	 26, Mapper26_Init},
-//	{"",					 27, Mapper27_Init},	// Deprecated, dupe for VRC2/VRC4 mapper
+	{"CC-21 MI HUN CHE",	 27, UNLCC21_Init},		// Former dupe for VRC2/VRC4 mapper, redefined with crc to mihunche boards
 	{"",					 28, Mapper28_Init},
 //	{"",					 29, Mapper29_Init},
 //	{"",					 30, Mapper30_Init},
@@ -602,13 +602,13 @@ static BMAPPINGLocal bmap[] = {
 	{"S74LS374N",			150, S74LS374N_Init},
 	{"",					151, Mapper151_Init},
 	{"",					152, Mapper152_Init},
-	{"",					153, Mapper153_Init},
+	{"BANDAI SRAM",			153, Mapper153_Init},	// Bandai board 16 with SRAM instead of EEPROM
 	{"",					154, Mapper154_Init},
 	{"",					155, Mapper155_Init},
 	{"",					156, Mapper156_Init},
-	{"",					157, Mapper157_Init},
+	{"BANDAI BARCODE",		157, Mapper157_Init},
 //	{"",					158, Mapper158_Init},
-//	{"",					159, Mapper159_Init},
+	{"BANDAI 24C01",		159, Mapper159_Init},	// Different type of EEPROM on the  bandai board
 	{"SA009",				160, SA009_Init},
 //	{"",					161, Mapper161_Init},
 	{"",					162, UNLFS304_Init},
@@ -954,8 +954,10 @@ int iNesSaveAs(char* name)
 char *iNesShortFName() {
 	char *ret;
 
-	if (!(ret = strrchr(LoadedRomFName, '\\'))) {
-		if (!(ret = strrchr(LoadedRomFName, '/'))) return 0;
+	if (!(ret = strrchr(LoadedRomFName, '\\')))
+	{
+		if (!(ret = strrchr(LoadedRomFName, '/')))
+			return 0;
 	}
 	return ret + 1;
 }

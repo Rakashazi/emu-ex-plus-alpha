@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -19,6 +19,6 @@
 #ifndef U48DIV_H
 #define U48DIV_H
 
-unsigned long u48div(unsigned long num1, unsigned num2, unsigned long den);
+unsigned long u48div(unsigned long numeratorLow, unsigned numeratorHigh, unsigned long denominator);
 
 #endif

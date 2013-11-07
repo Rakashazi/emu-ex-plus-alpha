@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,8 +20,10 @@
 #define BITMAP_FONT_H
 
 #include "gbint.h"
+#include <cstddef>
 
 namespace bitmapfont {
+
 enum Char {
 	NUL,
 	N0, N1, N2, N3, N4, N5, N6, N7, N8, N9,
@@ -36,52 +38,50 @@ enum { HEIGHT = 10 };
 enum { MAX_WIDTH = 9 };
 enum { NUMBER_WIDTH = 6 };
 
-unsigned getWidth(const char *chars);
+std::size_t getWidth(char const *chars);
 
-// struct Fill { void operator()(RandomAccessIterator dest, unsigned pitch) { fill pixels at dest } }
+// struct Fill { void operator()(RandomAccessIterator dest, std::ptrdiff_t pitch) { fill pixels at dest } }
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, unsigned pitch, Fill fill, const char *chars);
+void print(RandomAccessIterator dest, std::ptrdiff_t pitch, Fill fill, char const *chars);
 
-void print(gambatte::uint_least32_t *dest, unsigned pitch, unsigned long color, const char *chars);
+void print(gambatte::uint_least32_t *dest, std::ptrdiff_t pitch, unsigned long color, char const *chars);
 void utoa(unsigned u, char *a);
 
 // --- INTERFACE END ---
 
 
-
-extern const unsigned char *const font[];
+extern unsigned char const *const font[];
 
 template<class RandomAccessIterator, class Fill>
-void print(RandomAccessIterator dest, const unsigned pitch, Fill fill, const char *chars) {
-	while (const int character = *chars++) {
+void print(RandomAccessIterator dest, std::ptrdiff_t const pitch, Fill fill, char const *chars) {
+	while (int const character = *chars++) {
 		RandomAccessIterator dst = dest;
-		const unsigned char *s = font[character];
-		
-		const unsigned width = *s >> 4;
+		unsigned char const *s = font[character];
+		unsigned const width = *s >> 4;
 		unsigned h = *s++ & 0xF;
-		
+
 		while (h--) {
 			RandomAccessIterator d = dst;
-			
 			unsigned line = *s++;
-			
+
 			if (width > 8)
 				line |= *s++ << 8;
-			
+
 			while (line) {
 				if (line & 1)
 					fill(d, pitch);
-				
+
 				line >>= 1;
 				++d;
 			}
-			
+
 			dst += pitch;
 		}
-		
+
 		dest += width;
 	}
 }
+
 }
 
 #endif

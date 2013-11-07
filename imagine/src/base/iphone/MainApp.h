@@ -1,8 +1,4 @@
-#define Fixed MacTypes_Fixed
-#define Rect MacTypes_Rect
 #import <UIKit/UIKit.h>
-#undef Fixed
-#undef Rect
 
 #include <config.h>
 

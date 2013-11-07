@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -22,15 +22,14 @@ SysDDec i0(SysDDec x) {
 	SysDDec sum = 1.0;
 	SysDDec xpm_dmfac = 1.0;
 	SysDDec m = 1.0;
-	unsigned n = 16;
-	
+
 	x = 0.25 * x * x;
-	
-	do {
-		xpm_dmfac *= x / (m*m);
+
+	for (int n = 16; n--;) {
+		xpm_dmfac *= x / (m * m);
 		sum += xpm_dmfac;
 		m += 1.0;
-	} while (--n);
-	
+	}
+
 	return sum;
 }

@@ -15,7 +15,6 @@
 
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -37,7 +36,7 @@
 #undef Rect
 #endif
 
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_ENV_WEBOS) || (defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB))
+#if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || (defined CONFIG_BASE_IOS && defined CONFIG_BASE_IOS_JB) || defined CONFIG_MACHINE_IS_PANDORA
 static const bool checkForMachineFolderOnStart = 1;
 #else
 static const bool checkForMachineFolderOnStart = 0;
@@ -67,11 +66,26 @@ Machine *machine = 0;
 Mixer *mixer = 0;
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-#if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
-	const char *machineBasePath = "/User/Media/MSX.emu";
-#else
-	FsSys::cPath machineBasePath = "";
-#endif
+static FsSys::cPath machineCustomPath = "";
+static FsSys::cPath machineBasePath = "";
+
+template <size_t S>
+static void setMachineBasePath(char (&outPath)[S], FsSys::cPath customPath)
+{
+	if(!strlen(customPath))
+	{
+		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
+		string_printf(outPath, "%s/MSX.emu", Base::appPath);
+		#else
+		string_printf(outPath, "%s/MSX.emu", Base::storagePath());
+		#endif
+	}
+	else
+	{
+		string_printf(outPath, "%s", customPath);
+	}
+	logMsg("set machine file path: %s", outPath);
+}
 
 const char *machineBasePathStr()
 {
@@ -192,15 +206,25 @@ enum
 static const uint msxKeyConfigBase = 384;
 static const uint msxJSKeys = 13;
 
-enum { CFGKEY_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257 };
+enum
+{
+	CFGKEY_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
+	CFGKEY_MACHINE_FILE_PATH = 258
+};
 
 #define optionMachineNameDefault "MSX2"
 static char optionMachineNameStr[128] = optionMachineNameDefault;
 static PathOption optionMachineName(CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault);
 Byte1Option optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
+PathOption optionFirmwarePath(CFGKEY_MACHINE_FILE_PATH, machineCustomPath, sizeof(machineCustomPath), "");
 static uint activeBoardType = BOARD_MSX;
 const uint EmuSystem::maxPlayers = 2;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -210,6 +234,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		default: return 0;
 		bcase CFGKEY_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
 		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
+		bcase CFGKEY_MACHINE_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -221,12 +246,20 @@ void EmuSystem::writeConfig(Io *io)
 		optionMachineName.writeToIO(io);
 	}
 	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
+	optionFirmwarePath.writeToIO(io);
 }
 
 void EmuSystem::initOptions()
 {
 	optionSoundRate.initDefault(44100);
 	optionSoundRate.isConst = 1;
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	setMachineBasePath(machineBasePath, machineCustomPath);
+	if(Config::envIsIOSJB)
+		fixFilePermissions(machineBasePath);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = msxFsFilter;
@@ -1028,7 +1061,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = 44100; // TODO: not all sound chips handle non-44100Hz sample rate
-	float rate = (float)pcmFormat.rate * .999;
+	uint rate = std::round(pcmFormat.rate * .998715);
 	#if defined(CONFIG_ENV_WEBOS)
 	if(optionFrameSkip != optionFrameSkipAuto)
 		rate *= 42660./44100.; // better sync with Pre's refresh rate
@@ -1086,7 +1119,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			uchar *audio = (uchar*)mixerGetBuffer(mixer, &samples);
 			if(useFrame)
 			{
-				Audio::writePcm(audio, samples/2);
+				writeSound(audio, samples/2);
 				return; // done with frame for this update
 			}
 		}
@@ -1103,7 +1136,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	//logMsg("%d samples", samples/2);
 	if(renderAudio && samples)
 	{
-		Audio::writePcm(audio, samples/2);
+		writeSound(audio, samples/2);
 	}
 }
 
@@ -1111,21 +1144,19 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
+void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
 
 CallResult onInit(int argc, char** argv)
 {
-	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
-
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
 	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
@@ -1134,7 +1165,6 @@ CallResult onInit(int argc, char** argv)
 	mixer = mixerCreate();
 	assert(mixer);
 
-	mainInitCommon();
 	emuView.initPixmap((uchar*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
 
 	// Init general emu
@@ -1192,29 +1222,11 @@ CallResult onInit(int argc, char** argv)
 	mixerSetBoardFrequencyFixed(frequency);
 	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
-	#if !(defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB))
-		#if defined CONFIG_BASE_X11
-			// check for machine path in app dir
-			FsSys::cPath appDirMachineBasePath = "";
-			string_printf(appDirMachineBasePath, "%s/Machines", Base::appPath);
-			if(FsSys::fileExists(appDirMachineBasePath))
-			{
-				strcpy(machineBasePath, Base::appPath);
-			}
-			else
-		#endif
-			{
-				string_printf(machineBasePath, "%s/MSX.emu", Base::storagePath());
-			}
-	#endif
-	logMsg("machine base path %s", machineBasePath);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(machineBasePath);
-
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -1225,11 +1237,12 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 
-	if(checkForMachineFolderOnStart && !FsSys::fileExists(machineBasePath))
+	if(checkForMachineFolderOnStart &&
+		!strlen(machineCustomPath) && !FsSys::fileExists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>();
+		auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
 		ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
 		ynAlertView.onYes() =
 			[](const Input::Event &e)

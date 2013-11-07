@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartFA2.hxx 2697 2013-04-17 22:32:49Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEFA2_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartFA2Widget.hxx"
+#endif
 
 /**
   This is an extended version of the CBS RAM Plus bankswitching scheme
@@ -33,11 +36,17 @@ class System;
   of RAM can be loaded/saved to Harmony cart flash, which is emulated by
   storing in a file.
 
+  For 29K versions of the scheme, the first 1K is ARM code
+  (implements actual bankswitching on the Harmony cart), which is
+  completely ignored by the emulator.
+
   @author  Chris D. Walton
-  @version $Id: CartFA2.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartFA2.hxx 2697 2013-04-17 22:32:49Z stephena $
 */
 class CartridgeFA2 : public Cartridge
 {
+  friend class CartridgeFA2Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -132,6 +141,18 @@ class CartridgeFA2 : public Cartridge
     */
     void setRomName(const string& name);
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeFA2Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
+
   public:
     /**
       Get the byte at the specified address.
@@ -158,6 +179,15 @@ class CartridgeFA2 : public Cartridge
                whether the RAM access was busy or successful)
     */
     uInt8 ramReadWrite();
+
+    /**
+      Modify Harmony flash directly (represented by a file in emulation),
+      ignoring any timing emulation.  This is for use strictly in the
+      debugger, so you can have low-level access to the Flash media.
+
+      @param operation  0 for erase, 1 for read, 2 for write
+    */
+    void flash(uInt8 operation);
 
   private:
     // OSsytem currently in use

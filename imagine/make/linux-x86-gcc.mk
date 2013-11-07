@@ -9,10 +9,10 @@ ASMFLAGS += -m32
 
 ifdef extraSysroot
  PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
- PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
- PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
- CPPFLAGS += -I$(extraSysroot)/include
- LDLIBS += -L$(extraSysroot)/lib
+# PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
+# PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
+# CPPFLAGS += -I$(extraSysroot)/include
+# LDLIBS += -L$(extraSysroot)/lib
 endif
 
 ifneq ($(filter x86_64-%,$(CHOST)),)

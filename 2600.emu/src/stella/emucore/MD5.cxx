@@ -17,7 +17,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MD5.cxx 2608 2013-02-13 23:09:31Z stephena $
+// $Id: MD5.cxx 2723 2013-05-07 14:44:50Z stephena $
 //============================================================================
 
 #include "MD5.hxx"
@@ -351,8 +351,14 @@ string MD5(const FilesystemNode& node)
 {
   uInt8* image = 0;
   uInt32 size = 0;
-  if(!node.read(image, size))
+  try
+  {
+    size = node.read(image);
+  }
+  catch(...)
+  {
     return EmptyString;
+  }
 
   const string& md5 = MD5(image, size);
   delete[] image;

@@ -2,6 +2,7 @@
 #define __MDFN_CDACCESS_IMAGE_H
 
 #include <io/sys.hh>
+#include <io/api/stdio.hh>
 
 class AudioReader;
 

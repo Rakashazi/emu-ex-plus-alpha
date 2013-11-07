@@ -3,7 +3,7 @@ Copyright (C) 2007 by Nach
 http://nsrt.edgeemu.com
 
 Copyright (C) 2007-2011 by Sindre Aamås
-aamas@stud.ntnu.no
+sinamas@users.sourceforge.net
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -21,6 +21,6 @@ Free Software Foundation, Inc.,
 ***************************************************************************/
 #include "stdfile.h"
 
-std::auto_ptr<gambatte::File> gambatte::newFileInstance(const std::string &filepath) {
-	return std::auto_ptr<File>(new StdFile(filepath.c_str()));
+transfer_ptr<gambatte::File> gambatte::newFileInstance(std::string const &filepath) {
+	return transfer_ptr<File>(new StdFile(filepath.c_str()));
 }

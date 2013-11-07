@@ -42,7 +42,7 @@ private:
 	BufferImage *img = nullptr;
 	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	uint flags = 0;
-	static constexpr uint HINT_NO_MATRIX_TRANSFORM = BIT(0);
+	static constexpr uint HINT_NO_MATRIX_TRANSFORM = bit(0);
 	int screenX = 0, screenY = 0, screenX2 = 0, screenY2 = 0;
 	#endif
 	void setRefImg(BufferImage *img);

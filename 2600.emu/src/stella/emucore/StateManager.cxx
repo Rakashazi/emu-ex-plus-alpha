@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: StateManager.cxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 #include <sstream>
@@ -37,8 +37,7 @@
 StateManager::StateManager(OSystem* osystem)
   : myOSystem(osystem),
     myCurrentSlot(0),
-    myActiveMode(kOffMode),
-    myFrameCounter(0)
+    myActiveMode(kOffMode)
 {
   reset();
 }

@@ -14,6 +14,7 @@ include $(imagineSrcDir)/input/system.mk
 include $(imagineSrcDir)/gfx/system.mk
 include $(imagineSrcDir)/fs/system.mk
 include $(imagineSrcDir)/io/system.mk
+include $(imagineSrcDir)/io/zip/build.mk
 include $(imagineSrcDir)/bluetooth/system.mk
 include $(imagineSrcDir)/gui/GuiTable1D/build.mk
 include $(imagineSrcDir)/gui/MenuItem/build.mk

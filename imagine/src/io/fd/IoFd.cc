@@ -34,10 +34,12 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+using namespace IG;
+
 static const bool preferMmapIO = 1;
 static const mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-static int openFile (const char *location, int flags, mode_t mode)
+static int openFile(const char *location, int flags, mode_t mode)
 {
 	int fd = open(location, flags, mode);
 
@@ -50,10 +52,10 @@ static int openFile (const char *location, int flags, mode_t mode)
 	return fd;
 }
 
-Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
+Io* IoFd::open(const char *location, uint mode, CallResult *errorOut)
 {
 	// try to verify that mode isn't a corrupt value
-	assert(mode < BIT(IO_OPEN_USED_BITS+1));
+	assert(mode < bit(IO_OPEN_USED_BITS+1));
 	
 	int flags = 0;
 	
@@ -98,7 +100,7 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 			Io *mmapFile = IoMmapFd::open(fd);
 			if(mmapFile)
 			{
-				logMsg("switched to mmap mode");
+				//logMsg("switched to mmap mode");
 				::close(fd);
 				return mmapFile;
 			}
@@ -128,10 +130,10 @@ Io* IoFd::open (const char *location, uint mode, CallResult *errorOut)
 	return inst;
 }
 
-Io* IoFd::create (const char *location, uint mode, CallResult *errorOut)
+Io* IoFd::create(const char *location, uint mode, CallResult *errorOut)
 {
 	// try to verify that mode isn't a corrupt value
-	assert(mode < BIT(IO_CREATE_USED_BITS+1));
+	assert(mode < bit(IO_CREATE_USED_BITS+1));
 	
 	#ifdef CONFIG_FS_PS3
 	char aPath[1024];
@@ -208,7 +210,7 @@ void IoFd::sync()
 
 //TODO - add more error checks
 
-size_t IoFd::readUpTo (void* buffer, size_t numBytes)
+size_t IoFd::readUpTo(void* buffer, size_t numBytes)
 {
 	size_t bytesRead = ::read(fd, buffer, numBytes);
 	//logMsg("read %d bytes out of %d requested from file @ %p", (int)bytesRead, (int)numBytes, this);
@@ -216,10 +218,10 @@ size_t IoFd::readUpTo (void* buffer, size_t numBytes)
 	return(bytesRead);
 }
 
-size_t IoFd::fwrite (const void* ptr, size_t size, size_t nmemb)
+size_t IoFd::fwrite(const void* ptr, size_t size, size_t nmemb)
 {
 	size_t elemWritten = 0;
-	const uchar *cPtr = (const uchar*)ptr;
+	auto cPtr = (const char*)ptr;
 	iterateTimes(nmemb, i)
 	{
 		size_t toWrite = size;
@@ -242,25 +244,16 @@ size_t IoFd::fwrite (const void* ptr, size_t size, size_t nmemb)
 	return elemWritten;
 }
 
-CallResult IoFd::tell (ulong *offset)
+CallResult IoFd::tell(ulong &offset)
 {
 	off_t pos = lseek(fd, 0, SEEK_CUR);
 	if(pos >= 0)
 	{
-		*offset = pos;
+		offset = pos;
 		return OK;
 	}
 	else
 		return IO_ERROR;
-}
-
-long IoFd::ftell ()
-{
-	off_t offset = lseek(fd, 0, SEEK_CUR);
-	if(offset >= 0)
-		return offset;
-	else
-		return -1L;
 }
 
 static const int invalidSeek = SEEK_SET + SEEK_END + SEEK_CUR + 1;
@@ -285,12 +278,7 @@ static int setupSeek(int mode)
 	}
 }
 
-CallResult IoFd::seekU (ulong offset, uint mode)
-{
-	return IoFd::seekS(offset, mode);
-}
-
-CallResult IoFd::seekS (long offset, uint mode)
+CallResult IoFd::seek(long offset, uint mode)
 {
 	int seekType = setupSeek(mode);
 	if(seekType == invalidSeek)
@@ -305,18 +293,6 @@ CallResult IoFd::seekS (long offset, uint mode)
 	}
 	else
 		return IO_ERROR;
-}
-
-int IoFd::fseek (long offset, int whence)
-{
-	//logMsg("in fseek");
-	if(lseek(fd, offset, whence) >= 0)
-		return 0;
-	else
-	{
-		logMsg("fseek failed");
-		return -1;
-	}
 }
 
 ulong IoFd::size()

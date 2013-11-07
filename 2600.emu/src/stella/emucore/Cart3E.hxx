@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart3E.hxx 2689 2013-04-11 14:58:18Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3E_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Cart3EWidget.hxx"
+#endif
 
 /**
   This is the cartridge class for Tigervision's bankswitched
@@ -47,7 +50,7 @@ class System;
   instead, store the RAM bank number into $3E.
 
   This implementation of 3E bankswitching numbers the ROM banks 0 to
-  256, and the RAM banks 256 to 287. This is done because the public
+  255, and the RAM banks 256 to 287. This is done because the public
   bankswitching interface requires us to use one bank number, not one
   bank number plus the knowledge of whether it's RAM or ROM.
 
@@ -58,11 +61,13 @@ class System;
   any problems. (Famous last words...)
 
   @author  B. Watson
-  @version $Id: Cart3E.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Cart3E.hxx 2689 2013-04-11 14:58:18Z stephena $
 */
 
 class Cartridge3E : public Cartridge
 {
+  friend class Cartridge3EWidget;
+
   public:
     /**
       Create a new cartridge using the specified image and size
@@ -148,6 +153,18 @@ class Cartridge3E : public Cartridge
       @return The name of the object
     */
     string name() const { return "Cartridge3E"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new Cartridge3EWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

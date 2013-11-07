@@ -26,7 +26,7 @@
 #include <input/Input.hh>
 #include <input/AxisKeyEmu.hh>
 #include <input/evdev/evdev.hh>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 
 #define DEV_NODE_PATH "/dev/input"
 static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
@@ -111,10 +111,12 @@ const char *evdevButtonName(Key b)
 
 static void removeFromSystem(int fd);
 
-struct EvdevInputDevice
+struct EvdevInputDevice : public Device
 {
 	constexpr EvdevInputDevice() {}
-	EvdevInputDevice(int id, int fd): id{id}, fd{fd},
+	EvdevInputDevice(int id, int fd, uint type):
+		Device{0, Event::MAP_EVDEV, type, name},
+		id{id}, fd{fd},
 		pollEvDel
 		{
 			[this](int pollEvents)
@@ -146,7 +148,6 @@ struct EvdevInputDevice
 			}
 		}
 	{}
-	Device *dev = nullptr;
 	int id = 0;
 	int fd = -1;
 	struct Axis
@@ -156,6 +157,8 @@ struct EvdevInputDevice
 	} axis[ABS_HAT3Y];
 	Base::PollEventDelegate pollEvDel;
 	char name[80] {0};
+
+	void setEnumId(int id) { devId = id; }
 
 	void processInputEvents(input_event *event, uint events)
 	{
@@ -168,7 +171,7 @@ struct EvdevInputDevice
 				bcase EV_KEY:
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
-					Input::onInputEvent(Event(dev->devId, Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, dev));
+					Input::onInputEvent(Base::mainWindow(), Event(enumId(), Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, this));
 				}
 				bcase EV_ABS:
 				{
@@ -177,7 +180,7 @@ struct EvdevInputDevice
 						continue; // out of range or inactive
 					}
 					//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-					axis[ev.code].keyEmu.dispatch(ev.value, dev->devId, Event::MAP_EVDEV, *dev);
+					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_EVDEV, *this, Base::mainWindow());
 				}
 			}
 		}
@@ -253,21 +256,40 @@ struct EvdevInputDevice
 	{
 		Base::removePollEvent(fd);
 		::close(fd);
-		removeDevice(*dev);
-		onInputDevChange((DeviceChange){ 0, Event::MAP_KEYBOARD, DeviceChange::REMOVED });
+		removeDevice(*this);
+		onInputDevChange(*this, { Device::Change::REMOVED });
+	}
+
+	void setJoystickAxis1AsDpad(bool on) override
+	{
+		Key jsKey[4] = { Evdev::JS1_XAXIS_NEG, Evdev::JS1_XAXIS_POS, Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS };
+		Key dpadKey[4] = { Evdev::LEFT, Evdev::RIGHT, Evdev::UP, Evdev::DOWN };
+		Key (&setKey)[4] = on ? dpadKey : jsKey;
+		axis[ABS_X].keyEmu.lowKey = setKey[0];
+		axis[ABS_X].keyEmu.highKey = setKey[1];
+		axis[ABS_Y].keyEmu.lowKey = setKey[2];
+		axis[ABS_Y].keyEmu.highKey = setKey[3];
+	}
+
+	bool joystickAxis1AsDpad() override
+	{
+		return axis[ABS_X].keyEmu.lowKey == Evdev::LEFT;
 	}
 };
 
-static StaticDLList<EvdevInputDevice, 16> evDevice;
+static StaticArrayList<EvdevInputDevice*, 16> evDevice;
 
 static void removeFromSystem(int fd)
 {
-	forEachInDLList(&evDevice, e)
+	forEachInContainer(evDevice, e)
 	{
-		if(e.fd == fd)
+		auto dev = *e;
+		if(dev->fd == fd)
 		{
-			e.close();
-			e_it.removeElem();
+			dev->close();
+			delete dev;
+			evDevice.erase(e);
+			//e_it.removeElem();
 			return;
 		}
 	}
@@ -305,9 +327,9 @@ static bool processDevNode(const char *path, int id, bool notify)
 		return false;
 	}
 
-	forEachInDLList(&evDevice, e)
+	for(const auto &e : evDevice)
 	{
-		if(e.id == id)
+		if(e->id == id)
 		{
 			logMsg("id %d is already present", id);
 			return false;
@@ -328,33 +350,31 @@ static bool processDevNode(const char *path, int id, bool notify)
 		close(fd);
 		return false;
 	}
-
-	evDevice.emplace_back(id, fd);
-	auto &evDev = evDevice.back();
-	if(ioctl(fd, EVIOCGNAME(sizeof(evDev.name)), evDev.name) < 0)
+	auto evDev = new EvdevInputDevice(id, fd, Device::TYPE_BIT_GAMEPAD);
+	evDevice.push_back(evDev);
+	if(ioctl(fd, EVIOCGNAME(sizeof(evDev->name)), evDev->name) < 0)
 	{
 		logWarn("unable to get device name");
-		string_copy(evDev.name, "Unknown");
+		string_copy(evDev->name, "Unknown");
 	}
-	bool isJoystick = evDev.setupJoystickBits();
+	bool isJoystick = evDev->setupJoystickBits();
 
 	fd_setNonblock(fd, 1);
-	evDev.addPollEvent();
+	evDev->addPollEvent();
 
 	uint devId = 0;
-	forEachInDLList(&devList, e)
+	for(auto &e : devList)
 	{
-		if(e.map() != Event::MAP_EVDEV)
+		if(e->map() != Event::MAP_EVDEV)
 			continue;
-		if(string_equal(e.name(), evDev.name) && e.devId == devId)
+		if(string_equal(e->name(), evDev->name) && e->enumId() == devId)
 			devId++;
 	}
-
+	evDev->setEnumId(devId);
 	uint type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
-	addDevice(Device{devId, Event::MAP_EVDEV, type, evDev.name});
-	evDev.dev = devList.last();
+	addDevice(*evDev);
 	if(notify)
-		onInputDevChange((DeviceChange){ 0, Event::MAP_KEYBOARD, DeviceChange::ADDED });
+		onInputDevChange(*evDev, { Device::Change::ADDED });
 
 	return true;
 }
@@ -375,7 +395,7 @@ static int inputDevNotifyFd = -1;
 static Base::PollEventDelegate evdevPoll =
 	[](int)
 	{
-		uchar event[sizeof(struct inotify_event) + 2048];
+		char event[sizeof(struct inotify_event) + 2048];
 		int len;
 		while((len = read(inputDevNotifyFd, event, sizeof event)) > 0)
 		{
@@ -397,7 +417,7 @@ static Base::PollEventDelegate evdevPoll =
 				len -= inotifyEvSize;
 				if(len)
 				{
-					inotifyEv = (struct inotify_event*)(((uchar*)inotifyEv) + inotifyEvSize);
+					inotifyEv = (struct inotify_event*)(((char*)inotifyEv) + inotifyEvSize);
 					inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
 					logMsg("next inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
 				}

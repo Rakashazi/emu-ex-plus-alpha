@@ -41,17 +41,6 @@ static void mem_setElem(T (&arr)[S], T val)
 		*e = val;
 }
 
-namespace IG
-{
-
-template <class T>
-static void swap(T& a, T& b)
-{
-	T temp = a; a = b;  b = temp;
-}
-
-}
-
 template <class T>
 static void toggle(T& x)
 {
@@ -96,4 +85,4 @@ static void printMem(const void *mem, int count)
 // Using it in a loop or a function called multiple times still
 // returns the address of the same array.
 // TODO: align the array for speed/compatibility with platforms that need aligned access
-#define mem_static(size) ({ static uchar* store[size]; (void*)store; })
+#define mem_static(size) ({ static char* store[size]; (void*)store; })

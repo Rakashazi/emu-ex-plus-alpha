@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.cxx 2616 2013-02-20 18:16:34Z stephena $
+// $Id: Cart.cxx 2726 2013-05-08 23:34:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -262,7 +262,7 @@ string Cartridge::createFromMultiCart(const uInt8*& image, uInt32& size,
   id = buf.str();
 
   // Move to the next game the next time this ROM is loaded
-  settings.setInt("romloadcount", (i+1)%numroms);
+  settings.setValue("romloadcount", (i+1)%numroms);
 
   if(size <= 2048)       return "2K";
   else if(size == 4096)  return "4K";
@@ -430,12 +430,10 @@ string Cartridge::autodetectType(const uInt8* image, uInt32 size)
   }
   else if(size == 29*1024)  // 29K
   {
-    if(isProbablyDPCplus(image, size))
-      type = "DPC+";
-    else if(isProbablyARM(image, size))
+    if(isProbablyARM(image, size))
       type = "FA2";
-    else
-      type = "4K";  // probably a bad ROM
+    else /*if(isProbablyDPCplus(image, size))*/
+      type = "DPC+";
   }
   else if(size == 32*1024)  // 32K
   {

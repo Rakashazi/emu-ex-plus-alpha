@@ -96,13 +96,13 @@ static bool isValidGGCodeLen(const char *str)
 	return strlen(str) == 6 || strlen(str) == 8;
 }
 
-SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
+SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	addr
 	{
 		"Address",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 4-digit hex", addrStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -114,13 +114,13 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						{
 							logMsg("addr 0x%X too large", a);
 							popup.postError("Invalid input");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
 						syncCheat();
 						addr.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -133,7 +133,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 		"Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 2-digit hex", valueStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -145,13 +145,13 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						{
 							logMsg("val 0x%X too large", a);
 							popup.postError("Invalid input");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
 						syncCheat();
 						value.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -164,7 +164,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 		"Compare",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input 2-digit hex or blank", compStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -178,7 +178,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 							{
 								logMsg("val 0x%X too large", a);
 								popup.postError("Invalid input");
-								Base::displayNeedsUpdate();
+								window().displayNeedsUpdate();
 								return 1;
 							}
 							string_copy(compStr, str, sizeof(compStr));
@@ -189,7 +189,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						}
 						syncCheat();
 						comp.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -202,7 +202,7 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 		"GG Code",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input Game Genie code", ggCodeStr);
 			textInputView.onText() =
 				[this](const char *str)
@@ -212,13 +212,13 @@ SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
 						if(!isValidGGCodeLen(str))
 						{
 							popup.postError("Invalid, must be 6 or 8 digits");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						string_copy(ggCodeStr, str, sizeof(ggCodeStr));
 						syncCheat();
 						ggCode.compile();
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					removeModalView();
 					return 0;
@@ -243,7 +243,7 @@ uint EditCheatListView::handleNameFromTextInput(const char *str)
 		logMsg("added new cheat, %d total", fceuCheats);
 		removeModalView();
 		refreshCheatViews();
-		auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+		auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 		editCheatView.init(0, fceuCheats-1);
 		viewStack.pushAndShow(&editCheatView, &menuAllocator);
 	}
@@ -273,20 +273,20 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), c);
 				viewStack.pushAndShow(&editCheatView, &menuAllocator);
 			};
 	}
 }
 
-EditCheatListView::EditCheatListView():
+EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(win),
 	addGG
 	{
 		"Add Game Genie Code",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input Game Genie code");
 			textInputView.onText() =
 				[this](const char *str)
@@ -296,7 +296,7 @@ EditCheatListView::EditCheatListView():
 						if(!isValidGGCodeLen(str))
 						{
 							popup.postError("Invalid, must be 6 or 8 digits");
-							Base::displayNeedsUpdate();
+							window().displayNeedsUpdate();
 							return 1;
 						}
 						{
@@ -319,7 +319,7 @@ EditCheatListView::EditCheatListView():
 						removeModalView();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>();
+						auto &textInputView = *allocModalView<CollectTextInputView>(window());
 						textInputView.init("Input description");
 						textInputView.onText() =
 							[this](const char *str)
@@ -352,7 +352,7 @@ EditCheatListView::EditCheatListView():
 		"Add RAM Patch",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>();
+			auto &textInputView = *allocModalView<CollectTextInputView>(window());
 			textInputView.init("Input description");
 			textInputView.onText() =
 			[this](const char *str)
@@ -370,7 +370,7 @@ EditCheatListView::EditCheatListView():
 					logMsg("added new cheat, %d total", fceuCheats);
 					removeModalView();
 					refreshCheatViews();
-					auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+					auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 					editCheatView.init(0, fceuCheats-1);
 					// go to directly to cheat's menu to finish entering values
 					viewStack.pushAndShow(&editCheatView, &menuAllocator);
@@ -410,7 +410,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 					popup.postError("Game Genie code isn't set", 2);
 					return;
 				}
-				item.toggle();
+				item.toggle(*this);
 				FCEUI_ToggleCheat(c);
 			};
 	}

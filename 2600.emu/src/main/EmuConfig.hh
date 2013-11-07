@@ -9,7 +9,6 @@
 static const char *touchConfigFaceBtnName = "JS Buttons", *touchConfigCenterBtnName = "Select/Reset";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;
 static const bool systemHasTriggerBtns = 0, systemHasRevBtnLayout = 0;
-static const char *systemAspectRatioString = "4:3";
 
 namespace EmuControls
 {

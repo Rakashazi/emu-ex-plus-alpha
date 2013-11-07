@@ -29,13 +29,13 @@ static GLenum textureTargetToGet(GLenum target)
 class GLStateCache
 {
 public:
-	constexpr GLStateCache() { }
+	constexpr GLStateCache() {}
 	
-#ifdef NDEBUG
+	#ifdef NDEBUG
 	static constexpr bool verifyState = 0;
-#else
+	#else
 	bool verifyState = 0;
-#endif
+	#endif
 
 	GLenum matrixModeState = GL_MODELVIEW;
 	void matrixMode(GLenum mode)
@@ -272,9 +272,9 @@ public:
 			// unmanaged cap
 			logMsg("glIsEnabled unmanaged %d", (int)cap);
 			#if !defined(CONFIG_BASE_PS3)
-				return glIsEnabled(cap);
+			return glIsEnabled(cap);
 			#else
-				bug_exit("glIsEnabled unsupported");
+			bug_exit("glIsEnabled unsupported");
 			#endif
 		}
 

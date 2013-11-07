@@ -21,7 +21,7 @@
 #include <base/Base.hh>
 #include <algorithm>
 
-void ScrollableGuiTable1D::init(GuiTableSource *src, int cells, _2DOrigin align)
+void ScrollableGuiTable1D::init(GuiTableSource *src, int cells, View &view, _2DOrigin align)
 {
 	onlyScrollIfNeeded = 0;
 	GuiTable1D::init(src, cells, align);
@@ -30,22 +30,22 @@ void ScrollableGuiTable1D::init(GuiTableSource *src, int cells, _2DOrigin align)
 
 void ScrollableGuiTable1D::deinit() {}
 
-void ScrollableGuiTable1D::draw()
+void ScrollableGuiTable1D::draw(View &view)
 {
 	using namespace Gfx;
-	ScrollView1D::updateGfx();
-	setClipRectBounds(ScrollView1D::viewFrame);
+	ScrollView1D::updateGfx(view);
+	setClipRectBounds(view.window(), ScrollView1D::viewFrame);
 	setClipRect(1);
 	ScrollView1D::draw();
 	GuiTable1D::draw();
 	setClipRect(0);
 }
 
-void ScrollableGuiTable1D::place(Rect2<int> *frame)
+void ScrollableGuiTable1D::place(IG::Rect2<int> *frame, View &view)
 {
 	assert(frame);
 	setXCellSize(frame->xSize());
-	ScrollView1D::place(frame);
+	ScrollView1D::place(frame, view);
 	updateView();
 }
 
@@ -56,7 +56,7 @@ void ScrollableGuiTable1D::setScrollableIfNeeded(bool yes)
 
 void ScrollableGuiTable1D::scrollToFocusRect()
 {
-	Rect2<int> focus = focusRect();
+	IG::Rect2<int> focus = focusRect();
 	//logMsg("focus box %d,%d %d,%d, scroll %d", focus.x, focus.y, focus.x2, focus.y2, gfx_toIYSize(scroll.offset));
 	if(focus.ySize() > 1 && !viewFrame.contains(focus))
 	{
@@ -79,17 +79,17 @@ void ScrollableGuiTable1D::updateView()
 	scrollToFocusRect();
 }
 
-void ScrollableGuiTable1D::inputEvent(const Input::Event &e)
+void ScrollableGuiTable1D::inputEvent(const Input::Event &e, View &view)
 {
 	bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
-	if(handleScroll && ScrollView1D::inputEvent(e))
+	if(handleScroll && ScrollView1D::inputEvent(e, view))
 	{
 		selected = -1;
 		return;
 	}
-	if(e.isPointer() && !ScrollView1D::viewFrame.overlaps(e.x, e.y))
+	if(e.isPointer() && !ScrollView1D::viewFrame.overlaps({e.x, e.y}))
 		return;
-	if(GuiTable1D::inputEvent(e) && handleScroll && !e.isPointer())
+	if(GuiTable1D::inputEvent(e, view) && handleScroll && !e.isPointer())
 	{
 		scrollToFocusRect();
 	}

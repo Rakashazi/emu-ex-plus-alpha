@@ -5,7 +5,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 include ../EmuFramework/common.mk
 
-CPPFLAGS += -DHAVE_INTTYPES -DBSPF_UNIX -DNO_DUAL_FRAME_BUFFER -DTHUMB_SUPPORT \
+CPPFLAGS += -DHAVE_INTTYPES -DBSPF_UNIX -DTHUMB_SUPPORT \
 -DSTELLA_MINIMAL_SETTINGS -DSysDDec=float -Isrc/stella/common
 
 stellaSrc := Console.cxx Cart.cxx Props.cxx MD5.cxx Settings.cxx \

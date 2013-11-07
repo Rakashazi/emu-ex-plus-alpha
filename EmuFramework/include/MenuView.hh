@@ -39,10 +39,10 @@ class OptionCategoryView : public BaseMenuView
 		"System",
 		"GUI"
 	};
+	MenuItem *item[5] {nullptr};
 
-	MenuItem *item[5] = {nullptr};
 public:
-	constexpr OptionCategoryView(): BaseMenuView("Options") { }
+	constexpr OptionCategoryView(Base::Window &win): BaseMenuView("Options", win) {}
 	void init(bool highlightFirst);
 };
 
@@ -51,37 +51,17 @@ class RecentGameView : public BaseMenuView
 private:
 	TextMenuItem recentGame[10];
 	TextMenuItem clear;
+	MenuItem *item[1 + 10 + 1] {nullptr};
 
-	MenuItem *item[1 + 10 + 1] = {nullptr};
 public:
-	RecentGameView();
+	RecentGameView(Base::Window &win);
 	void init(bool highlightFirst);
 };
-
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-struct InputPlayerMapMenuItem : public MultiChoiceSelectMenuItem
-{
-	constexpr InputPlayerMapMenuItem() { }
-	uint *player = nullptr;
-	void init(const char *name, uint *player)
-	{
-		this->player = player;
-		static const char *str[] = { "1", "2", "3", "4", "5" };
-		MultiChoiceSelectMenuItem::init(name, str, *player, EmuSystem::maxPlayers);
-	}
-
-	void doSet(int val)
-	{
-		*player = val;
-		vController.updateMapping(*player);
-	}
-};
-#endif
 
 class MenuView : public BaseMenuView
 {
 public:
-	MenuView();
+	MenuView(Base::Window &win);
 	void onShow() override;
 	void loadFileBrowserItems(MenuItem *item[], uint &items);
 	void loadStandardItems(MenuItem *item[], uint &items);
@@ -95,7 +75,7 @@ public:
 		BaseMenuView::init(item, items, highlightFirst);
 	}
 
-	static const uint STANDARD_ITEMS = 16;
+	static const uint STANDARD_ITEMS = 17;
 	static const uint MAX_SYSTEM_ITEMS = 3;
 
 protected:
@@ -107,6 +87,7 @@ protected:
 	TextMenuItem stateSlot;
 	char stateSlotText[sizeof("State Slot (0)")];
 	TextMenuItem options;
+	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;
 	TextMenuItem benchmark;
 	#ifdef CONFIG_BLUETOOTH
@@ -119,6 +100,5 @@ protected:
 	TextMenuItem about;
 	TextMenuItem exitApp;
 	TextMenuItem screenshot;
-
 	MenuItem *item[STANDARD_ITEMS + MAX_SYSTEM_ITEMS] {nullptr};
 };

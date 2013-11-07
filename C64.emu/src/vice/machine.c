@@ -62,6 +62,7 @@
 #include "sysfile.h"
 #include "tape.h"
 #include "traps.h"
+#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "video.h"
@@ -74,9 +75,9 @@
 
 static int machine_init_was_called = 0;
 static int mem_initialized = 0;
-static int ignore_jam;
+static int ignore_jam = 0;
+static int jam_action = MACHINE_JAM_ACTION_DIALOG;
 int machine_keymap_index;
-
 
 unsigned int machine_jam(const char *format, ...)
 {
@@ -92,12 +93,27 @@ unsigned int machine_jam(const char *format, ...)
     str = lib_mvsprintf(format, ap);
     va_end(ap);
 
-    if (monitor_is_remote()) {
-        ret = monitor_network_ui_jam_dialog(str);
+    log_message(LOG_DEFAULT, "*** %s", str);
+
+    if (jam_action == MACHINE_JAM_ACTION_DIALOG) {
+        if (monitor_is_remote()) {
+            ret = monitor_network_ui_jam_dialog(str);
+        } else {
+            ret = ui_jam_dialog(str);
+        }
     } else {
-        ret = ui_jam_dialog(str);
+        int actions[4] = {
+            -1, UI_JAM_MONITOR, UI_JAM_RESET, UI_JAM_HARD_RESET
+        };
+        ret = actions[jam_action - 1];
     }
     lib_free(str);
+
+    /* always ignore subsequent JAMs. reset would clear the flag again, not
+     * setting it when going to the monitor would just repeatedly pop up the
+     * jam dialog (until reset)
+     */
+    ignore_jam = 1;
 
     switch (ret) {
         case UI_JAM_RESET:
@@ -109,8 +125,6 @@ unsigned int machine_jam(const char *format, ...)
         default:
             break;
     }
-
-    ignore_jam = 1;
     return JAM_NONE;
 }
 
@@ -179,7 +193,7 @@ static void machine_maincpu_clk_overflow_callback(CLOCK sub, void *data)
 void machine_maincpu_init(void)
 {
     maincpu_init();
-    maincpu_monitor_interface = lib_malloc(sizeof(monitor_interface_t));
+    maincpu_monitor_interface = lib_calloc(1, sizeof(monitor_interface_t));
 }
 
 void machine_early_init(void)
@@ -293,3 +307,39 @@ void machine_shutdown(void)
 
     lib_debug_check();
 }
+
+/* --------------------------------------------------------- */
+/* Resources & cmdline */
+
+static int set_jam_action(int val, void *param)
+{
+    if (!((val >= 0) && (val < MACHINE_NUM_JAM_ACTIONS))) {
+        return -1;
+    }
+
+    jam_action = val;
+    return 0;
+}
+
+static const resource_int_t resources_int[] = {
+    { "JAMAction", 0, RES_EVENT_SAME, NULL, &jam_action, set_jam_action, NULL },
+    { NULL }
+};
+
+int machine_common_resources_init(void)
+{
+    return resources_register_int(resources_int);
+}
+
+static const cmdline_option_t cmdline_options[] = {
+    { "-jamaction", SET_RESOURCE, 1, NULL, NULL, "JAMAction", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_TYPE, IDCLS_SET_MACHINE_JAM_ACTION,
+      NULL, NULL },
+    { NULL }
+};
+
+int machine_common_cmdline_options_init(void)
+{
+    return cmdline_register_options(cmdline_options);
+}
+

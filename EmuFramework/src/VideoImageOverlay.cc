@@ -78,7 +78,7 @@ void VideoImageOverlay::setEffect(uint effect)
 	}
 
 	bool mipmapFilter = 1;
-	img.init(pix, 0, Gfx::BufferImage::linear, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
+	img.init(pix, 0, Gfx::BufferImage::LINEAR, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
 	spr.init(&img);
 	img.write(pix);
 }
@@ -88,7 +88,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	if(spr.image())
 	{
 		spr.setPos(disp);
-		float width = lines*(EmuSystem::aspectRatioX/(float)EmuSystem::aspectRatioY);
+		float width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
 		//logMsg("width %f", (double)width);
 		switch(effect)
 		{

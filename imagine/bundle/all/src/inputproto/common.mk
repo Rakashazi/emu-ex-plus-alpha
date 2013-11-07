@@ -33,5 +33,5 @@ $(outputPCFile) : $(makeFile)
 $(makeFile) : $(inputprotoSrcDir)/configure
 	@echo "Configuring inputproto..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(inputprotoSrcDir)/configure --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(inputprotoSrcDir)/configure --prefix=$(installDir) --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

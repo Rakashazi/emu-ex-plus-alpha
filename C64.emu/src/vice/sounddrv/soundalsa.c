@@ -138,6 +138,7 @@ static int xrun_recovery(snd_pcm_t *handle, int err)
         return 0;
     } else if (err == -ESTRPIPE) {
         while ((err = snd_pcm_resume(handle)) == -EAGAIN) {
+            log_message(LOG_DEFAULT, "xrun_recovery: %s", snd_strerror(err));
             sleep(1);       /* wait until the suspend flag is released */
         }
         if (err < 0) {
@@ -159,6 +160,7 @@ static int alsa_write(SWORD *pbuf, size_t nr)
     while (nr > 0) {
         err = snd_pcm_writei(handle, pbuf, nr);
         if (err == -EAGAIN) {
+            log_message(LOG_DEFAULT, "Write error: %s", snd_strerror(err));
             continue;
         } else if (err < 0 && (err = xrun_recovery(handle, err)) < 0) {
             log_message(LOG_DEFAULT, "Write error: %s", snd_strerror(err));

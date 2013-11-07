@@ -37,7 +37,7 @@ CartridgeSB::CartridgeSB(const uInt8* image, uInt32 size,
   createCodeAccessBase(mySize);
 
   // Remember startup bank
-  myStartBank = (mySize >> 12) - 1;
+  myStartBank = bankCount() - 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -87,7 +87,7 @@ void CartridgeSB::install(System& system)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeSB::peek(uInt16 address)
 {
-  address = address & (0x17FF + (mySize >> 12));
+  address &= (0x17FF + (mySize >> 12));
 
   // Switch banks if necessary
   if ((address & 0x1800) == 0x0800)
@@ -107,7 +107,7 @@ uInt8 CartridgeSB::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeSB::poke(uInt16 address, uInt8 value)
 {
-  address = address & (0x17FF + (mySize >> 12));
+  address &= (0x17FF + (mySize >> 12));
 
   // Switch banks if necessary
   if((address & 0x1800) == 0x0800)

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -28,131 +28,122 @@
 #include "video.h"
 
 namespace gambatte {
+
 class InputGetter;
 class FilterInfo;
 
 class Memory {
-	Cartridge cart;
-	unsigned char ioamhram[0x200];
-	
-	InputGetter *getInput;
-	unsigned long divLastUpdate;
-	unsigned long lastOamDmaUpdate;
-	
-	InterruptRequester intreq;
-	Tima tima;
-	LCD display;
-	PSG sound;
-	Interrupter interrupter;
-	
-	unsigned short dmaSource;
-	unsigned short dmaDestination;
-	unsigned char oamDmaPos;
-	unsigned char serialCnt;
-	bool blanklcd;
-
-	void updateInput();
-	void decEventCycles(MemEventId eventId, unsigned long dec);
-
-	void oamDmaInitSetup();
-	void updateOamDma(unsigned long cycleCounter);
-	void startOamDma(unsigned long cycleCounter);
-	void endOamDma(unsigned long cycleCounter);
-	const unsigned char * oamDmaSrcPtr() const;
-	
-	unsigned nontrivial_ff_read(unsigned P, unsigned long cycleCounter);
-	unsigned nontrivial_read(unsigned P, unsigned long cycleCounter);
-	void nontrivial_ff_write(unsigned P, unsigned data, unsigned long cycleCounter);
-	void nontrivial_write(unsigned P, unsigned data, unsigned long cycleCounter);
-	
-	void updateSerial(unsigned long cc);
-	void updateTimaIrq(unsigned long cc);
-	void updateIrqs(unsigned long cc);
-	
-	bool isDoubleSpeed() const { return display.isDoubleSpeed(); }
-
 public:
-	explicit Memory(const Interrupter &interrupter);
-	
-	bool loaded() const { return cart.loaded(); }
-	char const * romTitle() const { return cart.romTitle(); }
-	PakInfo const pakInfo(bool multicartCompat) const { return cart.pakInfo(multicartCompat); }
-
+	explicit Memory(Interrupter const &interrupter);
+	bool loaded() const { return cart_.loaded(); }
+	char const * romTitle() const { return cart_.romTitle(); }
+	PakInfo const pakInfo(bool multicartCompat) const { return cart_.pakInfo(multicartCompat); }
 	void setStatePtrs(SaveState &state);
 	unsigned long saveState(SaveState &state, unsigned long cc);
-	void loadState(const SaveState &state/*, unsigned long oldCc*/);
-	void loadSavedata() { cart.loadSavedata(); }
-	void saveSavedata() { cart.saveSavedata(); }
-	const std::string saveBasePath() const { return cart.saveBasePath(); }
-	
+	void loadState(SaveState const &state);
+	void loadSavedata() { cart_.loadSavedata(); }
+	void saveSavedata() { cart_.saveSavedata(); }
+	std::string const saveBasePath() const { return cart_.saveBasePath(); }
+
 #ifndef GAMBATTE_NO_OSD
-	void setOsdElement(std::auto_ptr<OsdElement> osdElement) {
-		display.setOsdElement(osdElement);
+	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
+		lcd_.setOsdElement(osdElement);
 	}
 #endif
 
 	unsigned long stop(unsigned long cycleCounter);
-	bool isCgb() const { return display.isCgb(); }
-	bool ime() const { return intreq.ime(); }
-	bool halted() const { return intreq.halted(); }
-	unsigned long nextEventTime() const { return intreq.minEventTime(); }
-	
-	bool isActive() const { return intreq.eventTime(END) != DISABLED_TIME; }
-	
-	long cyclesSinceBlit(const unsigned long cc) const {
-		return cc < intreq.eventTime(BLIT) ? -1 : static_cast<long>((cc - intreq.eventTime(BLIT)) >> isDoubleSpeed());
+	bool isCgb() const { return lcd_.isCgb(); }
+	bool ime() const { return intreq_.ime(); }
+	bool halted() const { return intreq_.halted(); }
+	unsigned long nextEventTime() const { return intreq_.minEventTime(); }
+	bool isActive() const { return intreq_.eventTime(intevent_end) != disabled_time; }
+
+	long cyclesSinceBlit(unsigned long cc) const {
+		if (cc < intreq_.eventTime(intevent_blit))
+			return -1;
+
+		return (cc - intreq_.eventTime(intevent_blit)) >> isDoubleSpeed();
 	}
 
-	void halt() { intreq.halt(); }
-	void ei(unsigned long cycleCounter) { if (!ime()) { intreq.ei(cycleCounter); } }
+	void halt() { intreq_.halt(); }
+	void ei(unsigned long cycleCounter) { if (!ime()) { intreq_.ei(cycleCounter); } }
+	void di() { intreq_.di(); }
 
-	void di() { intreq.di(); }
-
-	unsigned ff_read(const unsigned P, const unsigned long cycleCounter) {
-		return P < 0xFF80 ? nontrivial_ff_read(P, cycleCounter) : ioamhram[P - 0xFE00];
+	unsigned ff_read(unsigned p, unsigned long cc) {
+		return p < 0x80 ? nontrivial_ff_read(p, cc) : ioamhram_[p + 0x100];
 	}
 
-	unsigned read(const unsigned P, const unsigned long cycleCounter) __attribute__ ((hot)) {
-		return cart.rmem(P >> 12) ? cart.rmem(P >> 12)[P] : nontrivial_read(P, cycleCounter);
+	unsigned read(unsigned p, unsigned long cc) __attribute__ ((hot)) {
+		return cart_.rmem(p >> 12) ? cart_.rmem(p >> 12)[p] : nontrivial_read(p, cc);
 	}
 
-	void write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
-		if (cart.wmem(P >> 12)) {
-			cart.wmem(P >> 12)[P] = data;
+	void write(unsigned p, unsigned data, unsigned long cc) {
+		if (cart_.wmem(p >> 12)) {
+			cart_.wmem(p >> 12)[p] = data;
 		} else
-			nontrivial_write(P, data, cycleCounter);
+			nontrivial_write(p, data, cc);
 	}
-	
-	void ff_write(const unsigned P, const unsigned data, const unsigned long cycleCounter) {
-		if (P - 0xFF80u < 0x7Fu) {
-			ioamhram[P - 0xFE00] = data;
+
+	void ff_write(unsigned p, unsigned data, unsigned long cc) {
+		if (p - 0x80u < 0x7Fu) {
+			ioamhram_[p + 0x100] = data;
 		} else
-			nontrivial_ff_write(P, data, cycleCounter);
+			nontrivial_ff_write(p, data, cc);
 	}
 
 	unsigned long event(unsigned long cycleCounter) __attribute__ ((hot));
 	unsigned long resetCounters(unsigned long cycleCounter);
-
-	LoadRes loadROM(const std::string &romfile, bool forceDmg, bool multicartCompat);
-	void setSaveDir(const std::string &dir) { cart.setSaveDir(dir); }
-
-	void setInputGetter(InputGetter *getInput) {
-		this->getInput = getInput;
-	}
-
+	LoadRes loadROM(std::string const &romfile, bool forceDmg, bool multicartCompat);
+	void setSaveDir(std::string const &dir) { cart_.setSaveDir(dir); }
+	void setInputGetter(InputGetter *getInput) { getInput_ = getInput; }
 	void setEndtime(unsigned long cc, unsigned long inc);
-	
-	void setSoundBuffer(uint_least32_t *const buf) { sound.setBuffer(buf); }
-	unsigned fillSoundBuffer(unsigned long cc);
-	
-	void setVideoBuffer(PixelType *const videoBuf, const int pitch) {
-		display.setVideoBuffer(videoBuf, pitch);
+	void setSoundBuffer(uint_least32_t *buf) { psg_.setBuffer(buf); }
+	std::size_t fillSoundBuffer(unsigned long cc);
+
+	void setVideoBuffer(PixelType *videoBuf, std::ptrdiff_t pitch) {
+		lcd_.setVideoBuffer(videoBuf, pitch);
 	}
-	
-	void refreshPalettes() { display.refreshPalettes(); }
-	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
-	void setGameGenie(const std::string &codes) { cart.setGameGenie(codes); }
-	void setGameShark(const std::string &codes) { interrupter.setGameShark(codes); }
+
+	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
+		lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
+	}
+
+	void refreshPalettes() { lcd_.refreshPalettes(); }
+	void setGameGenie(std::string const &codes) { cart_.setGameGenie(codes); }
+	void setGameShark(std::string const &codes) { interrupter_.setGameShark(codes); }
+
+private:
+	Cartridge cart_;
+	unsigned char ioamhram_[0x200];
+	InputGetter *getInput_;
+	unsigned long divLastUpdate_;
+	unsigned long lastOamDmaUpdate_;
+	InterruptRequester intreq_;
+	Tima tima_;
+	LCD lcd_;
+	PSG psg_;
+	Interrupter interrupter_;
+	unsigned short dmaSource_;
+	unsigned short dmaDestination_;
+	unsigned char oamDmaPos_;
+	unsigned char serialCnt_;
+	bool blanklcd_;
+
+	void updateInput();
+	void decEventCycles(IntEventId eventId, unsigned long dec);
+	void oamDmaInitSetup();
+	void updateOamDma(unsigned long cycleCounter);
+	void startOamDma(unsigned long cycleCounter);
+	void endOamDma(unsigned long cycleCounter);
+	unsigned char const * oamDmaSrcPtr() const;
+	unsigned nontrivial_ff_read(unsigned p, unsigned long cycleCounter);
+	unsigned nontrivial_read(unsigned p, unsigned long cycleCounter);
+	void nontrivial_ff_write(unsigned p, unsigned data, unsigned long cycleCounter);
+	void nontrivial_write(unsigned p, unsigned data, unsigned long cycleCounter);
+	void updateSerial(unsigned long cc);
+	void updateTimaIrq(unsigned long cc);
+	void updateIrqs(unsigned long cc);
+	bool isDoubleSpeed() const { return lcd_.isDoubleSpeed(); }
 };
 
 }

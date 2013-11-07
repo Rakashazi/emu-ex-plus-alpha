@@ -7,9 +7,10 @@ template <class T>
 class JavaClassMethod
 {
 public:
-	constexpr JavaClassMethod() { }
 	jclass c = nullptr;
 	jmethodID m = nullptr;
+
+	constexpr JavaClassMethod() {}
 
 	void setup(JNIEnv* j, jclass cls, const char *fName, const char *sig)
 	{
@@ -18,6 +19,11 @@ public:
 		assert(c);
 		m = j->GetStaticMethodID(c, fName, sig);
 		assert(m);
+	}
+
+	operator bool() const
+	{
+		return m;
 	}
 
 	T operator()(JNIEnv* j, ...);
@@ -116,8 +122,9 @@ template <class T>
 class JavaInstMethod
 {
 public:
-	constexpr JavaInstMethod() { }
 	jmethodID m = nullptr;
+
+	constexpr JavaInstMethod() {}
 
 	void setup(JNIEnv* j, jclass cls, const char *fName, const char *sig)
 	{
@@ -125,6 +132,11 @@ public:
 		assert(cls != 0);
 		m = j->GetMethodID(cls, fName, sig);
 		assert(m);
+	}
+
+	operator bool() const
+	{
+		return m;
 	}
 
 	T operator()(JNIEnv* j, jobject obj, ...) const;
@@ -221,7 +233,7 @@ template<> inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject
 
 static void javaStringDup(JNIEnv* env, const char *&dest, jstring jstr)
 {
-	const char *str = env->GetStringUTFChars(jstr, 0);
+	const char *str = env->GetStringUTFChars(jstr, nullptr);
 	if(!str)
 	{
 		dest = nullptr;
@@ -230,3 +242,18 @@ static void javaStringDup(JNIEnv* env, const char *&dest, jstring jstr)
 	dest = string_dup(str);
 	env->ReleaseStringUTFChars(jstr, str);
 }
+
+class JObject
+{
+protected:
+	jobject o = nullptr;
+
+	constexpr JObject() {};
+	constexpr JObject(jobject o): o(o) {};
+
+public:
+	operator jobject() const
+	{
+		return o;
+	}
+};

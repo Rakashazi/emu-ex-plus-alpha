@@ -22,12 +22,12 @@ class StateSlotView : public BaseMenuView
 {
 private:
 	static constexpr uint stateSlots = 11;
-	char stateStr[stateSlots][40] { { 0 } };
+	char stateStr[stateSlots][40] {{0}};
 	TextMenuItem stateSlot[stateSlots];
-
 	MenuItem *item[stateSlots] = {nullptr};
+
 public:
-	constexpr StateSlotView(): BaseMenuView("State Slot") { }
+	constexpr StateSlotView(Base::Window &win): BaseMenuView("State Slot", win) {}
 
 	void init(bool highlightFirst);
 };

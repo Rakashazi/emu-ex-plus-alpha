@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gfx/Gfx.hh>
-#include <util/area2.h>
 #include <util/rectangle2.h>
 #include <gfx/GfxBufferImage.hh>
 #include <util/edge.h>
@@ -25,7 +24,7 @@ public:
 		return init(x, y,  x, y2,  x2, y2,  x2, y);
 	}
 
-	CallResult init(const Rect2<GC> &d)
+	CallResult init(const IG::Rect2<GC> &d)
 	{
 		return init(d.x, d.y, d.x2, d.y2);
 	}
@@ -40,16 +39,16 @@ public:
 		memcpy(v, quad.v, sizeof(v));
 	}
 
-	void setPos(const Area &area)
-	{
-		setPos(area.xPos(LB2DO), area.yPos(LB2DO), area.xPos(RT2DO), area.yPos(RT2DO));
-	}
-
-	void setPos(const Rect2<int> &b)
+	void setPos(const IG::Rect2<int> &b)
 	{
 		using namespace Gfx;
 		setPos(gXPos(b, LB2DO), gYPos(b, LB2DO),
 				gXPos(b, RT2DO), gYPos(b, RT2DO));
+	}
+
+	void setPos(const IG::Rect2<GC> &r)
+	{
+		setPos(r.x, r.y, r.x2, r.y2);
 	}
 
 	void setPosRel(GC x, GC y, GC xSize, GC ySize)
@@ -57,15 +56,15 @@ public:
 		setPos(x, y, x+xSize, y+ySize);
 	}
 
-	static void draw(const Rect2<int> &b)
+	static void draw(const IG::Rect2<int> &b)
 	{
 		using namespace Gfx;
-		Rect2<GC> d(gXPos(b, LB2DO), gYPos(b, LB2DO),
+		IG::Rect2<GC> d(gXPos(b, LB2DO), gYPos(b, LB2DO),
 				gXPos(b, RT2DO), gYPos(b, RT2DO));
 		draw(d);
 	}
 
-	static void draw(const Rect2<GC> &d)
+	static void draw(const IG::Rect2<GC> &d)
 	{
 		QuadGeneric<Vtx> rect;
 		rect.init(d);

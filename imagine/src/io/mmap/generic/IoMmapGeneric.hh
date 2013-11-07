@@ -7,9 +7,9 @@
 class IoMmapGeneric : public IoMmap
 {
 public:
-	static Io* open(const uchar * buffer, size_t size);
+	static Io* open(const char * buffer, size_t size);
 	~IoMmapGeneric() { close(); }
-	void close();
+	void close() override;
 
 	// optional function to call on close, <ptr> is the buffer passed during open()
 	typedef void (*FreeFunc)(void *ptr);

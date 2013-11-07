@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CompuMate.hxx 2756 2013-06-26 16:03:08Z stephena $
 //============================================================================
 
 #ifndef COMPUMATE_HXX
@@ -35,9 +35,10 @@
 
   This class acts as a 'parent' for cartridge and both the left and right
   CMControl's, taking care of their creation and communication between them.
+  It also allows to enable/disable the users actual keyboard when required.
 
   @author  Stephen Anthony
-  @version $Id: CompuMate.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CompuMate.hxx 2756 2013-06-26 16:03:08Z stephena $
 */
 class CompuMate
 {
@@ -62,8 +63,24 @@ class CompuMate
     /**
       Return the left and right CompuMate controllers
     */
-    Controller* leftController() { return (Controller*) myLeftController; }
-    Controller* rightController() { return (Controller*) myRightController; }
+    Controller* leftController() { return myLeftController; }
+    Controller* rightController() { return myRightController; }
+
+    /**
+      In normal key-handling mode, the update handler receives key events
+      from the keyboard.  This is meant to be used during emulation.
+
+      Otherwise, the update handler ignores keys from the keyboard and uses
+      its own internal buffer, which essentially can only be set directly
+      within the class itself (by the debugger).
+
+      This is necessary since Stella is otherwise event-based, whereas
+      reading from the keyboard (in the current code) bypasses the event
+      system.  This leads to issues where typing commands in the debugger
+      would then be processed by the update handler as if they were
+      entered on the CompuMate keyboard.
+    */
+    void enableKeyHandling(bool enable);
 
   private:
     /**
@@ -125,6 +142,10 @@ class CompuMate
 
     // The keyboard state array (tells us the current state of the keyboard)
     const bool* myKeyTable;
+
+    // Array of keyboard key states when in the debugger (the normal keyboard
+    // keys are ignored in such a case)
+    bool myInternalKeyTable[KBDK_LAST];
 
     // System cycle at which the update() method is called
     // Multiple calls at the same cycle should be ignored

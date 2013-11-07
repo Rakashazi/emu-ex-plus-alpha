@@ -14,7 +14,7 @@ static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameT
 namespace Gfx
 {
 
-CallResult setOutputVideoMode(const Base::Window &win)
+CallResult init()
 {
 	logMsg("running init");
 
@@ -27,9 +27,6 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	{
 		projAngleM.init(0);
 	}
-
-	//logMsg("resizing viewport to %dx%d", x, y);
-	resizeGLScene(win);
 	
 	auto extensions = (const char*)glGetString(GL_EXTENSIONS);
 	assert(extensions);
@@ -39,15 +36,6 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	logMsg("version: %s (%s)\nextensions: %s", version, rendererName, extensions);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
-		#if !defined CONFIG_BASE_X11 && !defined CONFIG_BASE_MACOSX
-		GLenum err = glewInit();
-		if (err != GLEW_OK)
-		{
-			logErr("could not init Glew, error: %s", glewGetErrorString(err));
-			return(INVALID_PARAMETER);
-		}
-		#endif
-	
 	glClearDepth(1.0f);
 	glDepthFunc(GL_LEQUAL);
 	auto dotPos = strchr(version, '.');
@@ -64,22 +52,11 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	#endif
 	
 	setClearColor(0., 0., 0.);
-	if(Config::envIsAndroid || Config::envIsWebOS)
-	{
-		//glDisable(GL_MULTISAMPLE);
-		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	}
-	//glcEnable(GL_TEXTURE_2D);
 	//glShadeModel(GL_SMOOTH);
 	//glcEnable(GL_DEPTH_TEST);
 	//glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	setVisibleGeomFace(FRONT_FACES);
 	//setVisibleGeomFace(BOTH_FACES);
-
-	#ifndef CONFIG_GFX_OPENGL_ES
-	//glcAlphaFunc(GL_GREATER,0.0f);
-	//glcEnable(GL_ALPHA_TEST);
-	#endif
 
 	GLint texSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
@@ -107,8 +84,8 @@ CallResult setOutputVideoMode(const Base::Window &win)
 	#endif*/
 
 	#if defined CONFIG_BASE_ANDROID
-		//checkForDrawTexture(extensions, rendererName);
-		setupAndroidOGLExtensions(extensions, rendererName);
+	//checkForDrawTexture(extensions, rendererName);
+	setupAndroidOGLExtensions(extensions, rendererName);
 	#endif
 
 	/*#ifdef CONFIG_GFX_OPENGL_GLX
@@ -136,32 +113,37 @@ CallResult setOutputVideoMode(const Base::Window &win)
 static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
 {
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		if(Base::androidSDK() < 14)
-			directTextureConf.checkForEGLImageKHR(extensions, rendererName);
+	if(Base::androidSDK() < 14)
+		directTextureConf.checkForEGLImageKHR(extensions, rendererName);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
-		if(surfaceTextureConf.isSupported())
+	if(surfaceTextureConf.isSupported())
+	{
+		if(!strstr(extensions, "GL_OES_EGL_image_external"))
 		{
-			if(!strstr(extensions, "GL_OES_EGL_image_external"))
-			{
-				logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
-				surfaceTextureConf.deinit();
-			}
-			else if(strstr(rendererName, "Adreno"))
-			{
-				if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
-				{
-					logWarn("buggy SurfaceTexture implementation, disabling by default");
-					surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
-				}
-
-				// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
-				// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
-				// This hack will fix-up the GL state cache manually when that happens.
-				logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-				surfaceTextureConf.texture2dBindingHack = 1;
-			}
+			logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
+			surfaceTextureConf.deinit();
 		}
+		else if(strstr(rendererName, "GC1000")) // Texture binding issues on Samsung Galaxy Tab 3 7.0 on Android 4.1
+		{
+			logWarn("buggy SurfaceTexture implementation on Vivante GC1000, disabling by default");
+			surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
+		}
+		else if(strstr(rendererName, "Adreno"))
+		{
+			if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
+			{
+				logWarn("buggy SurfaceTexture implementation on Adreno 200, disabling by default");
+				surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
+			}
+
+			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
+			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
+			// This hack will fix-up the GL state cache manually when that happens.
+			logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+			surfaceTextureConf.texture2dBindingHack = 1;
+		}
+	}
 	#endif
 }
 #endif

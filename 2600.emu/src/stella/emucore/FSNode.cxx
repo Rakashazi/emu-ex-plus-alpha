@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2608 2013-02-13 23:09:31Z stephena $
+// $Id: FSNode.cxx 2753 2013-06-21 12:15:32Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -79,8 +79,48 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const string& FilesystemNode::getName() const
 {
-  assert(_realNode);
   return _realNode->getName();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const string& FilesystemNode::getPath() const
+{
+  return _realNode->getPath();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::getShortPath() const
+{
+  return _realNode->getShortPath();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::getNameWithExt(const string& ext) const
+{
+  size_t pos = _realNode->getName().find_last_of("/\\");
+  string s = pos == string::npos ? _realNode->getName() :
+        _realNode->getName().substr(pos+1);
+
+  pos = s.find_last_of(".");
+  return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::getPathWithExt(const string& ext) const
+{
+  string s = _realNode->getPath();
+
+  size_t pos = s.find_last_of(".");
+  return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string FilesystemNode::getShortPathWithExt(const string& ext) const
+{
+  string s = _realNode->getShortPath();
+
+  size_t pos = s.find_last_of(".");
+  return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -96,22 +136,7 @@ FilesystemNode FilesystemNode::getParent() const
     return *this;
 
   AbstractFSNode* node = _realNode->getParent();
-  if (node == 0)
-    return *this;
-  else
-    return FilesystemNode(node);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const string& FilesystemNode::getPath() const
-{
-  return _realNode->getPath();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::getShortPath() const
-{
-  return _realNode->getShortPath();
+  return (node == 0) ? *this : FilesystemNode(node);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -139,12 +164,6 @@ bool FilesystemNode::isWritable() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool FilesystemNode::isAbsolute() const
-{
-  return _realNode ? _realNode->isAbsolute() : false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::makeDir()
 {
   return (_realNode && !_realNode->exists()) ? _realNode->makeDir() : false;
@@ -157,11 +176,17 @@ bool FilesystemNode::rename(const string& newfile)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool FilesystemNode::read(uInt8*& image, uInt32& size) const
+uInt32 FilesystemNode::read(uInt8*& image) const
 {
+  uInt32 size = 0;
+
   // First let the private subclass attempt to open the file
-  if(_realNode->read(image, size))
-    return true;
+  if((size = _realNode->read(image)) > 0)
+    return size;
+
+  // File must actually exist
+  if(!(exists() && isReadable()))
+    throw "File not found/readable";
 
   // Otherwise, assume the file is either gzip'ed or not compressed at all
   gzFile f = gzopen(getPath().c_str(), "rb");
@@ -171,34 +196,13 @@ bool FilesystemNode::read(uInt8*& image, uInt32& size) const
     size = gzread(f, image, 512 * 1024);
     gzclose(f);
 
-    return true;
-  }
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string FilesystemNode::createAbsolutePath(
-    const string& p, const string& startpath, const string& ext)
-{
-  FilesystemNode node(p);
-  string path = node.getShortPath();
-
-  // Is path already absolute, or does it start with the given startpath?
-  // If not, we prepend the given startpath
-  if(!BSPF_startsWithIgnoreCase(p, startpath+BSPF_PATH_SEPARATOR) &&
-     !node.isAbsolute())
-    path = startpath + BSPF_PATH_SEPARATOR + p;
-
-  // Does the path have a valid extension?
-  // If not, we append the given extension
-  string::size_type idx = path.find_last_of('.');
-  if(idx != string::npos)
-  {
-    if(!BSPF_equalsIgnoreCase(path.c_str() + idx + 1, ext))
-      path = path.replace(idx+1, ext.length(), ext);
+    if(size == 0)
+    {
+      delete[] image;  image = 0;
+      throw "Zero-byte file";
+    }
+    return size;
   }
   else
-    path += "." + ext;
-
-  return path;
+    throw "ZLIB open/read error";
 }

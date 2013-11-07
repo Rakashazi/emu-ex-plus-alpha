@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.cxx 2608 2013-02-13 23:09:31Z stephena $
+// $Id: PropsSet.cxx 2753 2013-06-21 12:15:32Z stephena $
 //============================================================================
 
 #include <fstream>
@@ -32,8 +32,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PropertiesSet::PropertiesSet(OSystem* osystem)
-  : myOSystem(osystem),
-    mySize(0)
+  : myOSystem(osystem)
 {
   //load(myOSystem->propertiesFile());
 }
@@ -149,21 +148,18 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
+/*void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
                                      const string& md5, Properties& properties)
 {
   if(!getMD5(md5, properties))
   {
-    // Create a name suitable for using in properties
-    size_t pos = rom.getName().find_last_of("/\\");
-    const string& name = pos == string::npos ? rom.getName() :
-                         rom.getName().substr(pos+1);
-
     properties.set(Cartridge_MD5, md5);
-    properties.set(Cartridge_Name, name);
+    // Create a name suitable for using in properties
+    properties.set(Cartridge_Name, rom.getNameWithExt(""));
+
     insert(properties, false);
   }
-}
+}*/
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::insert(const Properties& properties, bool save)

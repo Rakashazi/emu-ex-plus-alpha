@@ -238,7 +238,7 @@ const KeyConfig defaultKeyProfile[] =
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
 
 			// JS 1
 			Input::Keycode::Ouya::UP,
@@ -247,7 +247,7 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::Ouya::LEFT,
 			0, 0, 0, 0,
 			Input::Keycode::Ouya::O,
-			Input::Keycode::Ouya::A,
+			Input::Keycode::Ouya::U,
 			0,
 			0,
 
@@ -256,7 +256,7 @@ const KeyConfig defaultKeyProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(10)
-			Input::Keycode::Ouya::U,
+			Input::Keycode::Ouya::A,
 			Input::Keycode::Ouya::Y,
 
 			// Coleco 2
@@ -385,6 +385,45 @@ const KeyConfig defaultKeyProfile[] =
 				PP_ZERO_LIST(3) // 66 - 68
 				asciiKey(' '),
 				PP_ZERO_LIST(23) // 70 - 92
+			}
+		},
+		{
+			Input::Event::MAP_KEYBOARD,
+			Input::Device::SUBTYPE_NVIDIA_SHIELD,
+			"NVidia Shield",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+				// JS 1
+				Input::Keycode::JS3_YAXIS_NEG,
+				Input::Keycode::JS3_XAXIS_POS,
+				Input::Keycode::JS3_YAXIS_POS,
+				Input::Keycode::JS3_XAXIS_NEG,
+				0, 0, 0, 0,
+				Input::Keycode::GAME_A,
+				Input::Keycode::GAME_B,
+				0,
+				0,
+
+				// JS 2
+				PP_ZERO_LIST(12)
+
+				// Coleco 1
+				PP_ZERO_LIST(10)
+				Input::Keycode::GAME_Y,
+				Input::Keycode::GAME_X,
+
+				// Coleco 2
+				PP_ZERO_LIST(12)
+
+				// Keyboard
+				Input::Keycode::GAME_START,
+				Input::Keycode::GAME_Y, // F1 ... F5
+				Input::Keycode::GAME_L1,
+				Input::Keycode::GAME_R1,
+				Input::Keycode::GAME_X,
+				Input::Keycode::GAME_LEFT_THUMB,
+				PP_ZERO_LIST(87) // 26 - 92
 			}
 		},
 		#endif
@@ -553,10 +592,10 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::RSHIFT, // Right Shift
 
 			Input::Keycode::CAPS,
-			Input::Keycode::LMETA,
+			Input::Keycode::LSUPER,
 			Input::Keycode::LALT,
 			asciiKey(' '),
-			Input::Keycode::RMETA,
+			Input::Keycode::RSUPER,
 			Input::Keycode::RALT,
 			Input::Keycode::PAUSE,
 
@@ -667,10 +706,10 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::RSHIFT, // Right Shift
 
 			Input::Keycode::CAPS,
-			Input::Keycode::LMETA,
+			Input::Keycode::LSUPER,
 			Input::Keycode::LALT,
 			asciiKey(' '),
-			Input::Keycode::RMETA,
+			Input::Keycode::RSUPER,
 			Input::Keycode::RALT,
 			Input::Keycode::PAUSE,
 

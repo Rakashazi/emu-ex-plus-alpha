@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Driving.hxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 #ifndef DRIVING_HXX
@@ -28,7 +28,7 @@
   The standard Atari 2600 Indy 500 driving controller.
 
   @author  Bradford W. Mott
-  @version $Id: Driving.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Driving.hxx 2725 2013-05-07 18:53:21Z stephena $
 */
 class Driving : public Controller
 {
@@ -88,7 +88,7 @@ class Driving : public Controller
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
     Event::Type myCWEvent, myCCWEvent, myFireEvent,
-                myXAxisValue, myYAxisValue, myAxisMouseMotion;
+                myXAxisValue, myYAxisValue;
 
     // Controller to emulate in normal mouse axis mode
     int myControlID;

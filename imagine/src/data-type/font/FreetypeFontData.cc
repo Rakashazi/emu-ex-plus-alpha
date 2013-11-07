@@ -45,7 +45,7 @@ CallResult FreetypeFontData::open(Io *file)
 	//streamRec.base = nullptr;
 	streamRec.size = file->size();
 	ulong fileOffset;
-	file->tell(&fileOffset);
+	file->tell(fileOffset);
 	streamRec.pos = fileOffset;
 	streamRec.descriptor.pointer = file;
 	streamRec.read = &freetypeIoFunc;

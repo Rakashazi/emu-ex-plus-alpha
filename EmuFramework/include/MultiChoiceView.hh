@@ -17,130 +17,54 @@
 
 #include <gui/MenuItem/MenuItem.hh>
 #include <util/gui/BaseMenuView.hh>
+#include <util/gui/ViewStack.hh>
 #include <EmuSystem.hh>
-#include <algorithm>
 
-void startGameFromMenu();
-bool isMenuDismissKey(const Input::Event &e);
+extern ViewStack viewStack;
+extern StackAllocator menuAllocator;
 
 class BaseMultiChoiceView : public BaseMenuView
 {
 public:
-	constexpr BaseMultiChoiceView() {}
-	Rect2<int> viewFrame;
+	int activeItem = -1;
 
-	void inputEvent(const Input::Event &e) override
-	{
-		if(e.state == Input::PUSHED)
-		{
-			if(e.isDefaultCancelButton())
-			{
-				removeModalView();
-				return;
-			}
-
-			if(isMenuDismissKey(e))
-			{
-				if(EmuSystem::gameIsRunning())
-				{
-					removeModalView();
-					startGameFromMenu();
-					return;
-				}
-			}
-		}
-
-		BaseMenuView::inputEvent(e);
-	}
-
-	void place() override
-	{
-		GC maxWidth = 0;
-		iterateTimes(items, i)
-		{
-			item[i]->compile();
-			maxWidth = std::max(maxWidth, item[i]->xSize());
-		}
-
-		tbl.setYCellSize(item[0]->ySize()*2);
-
-		viewFrame.setPosRel(Gfx::viewPixelWidth()/2, Gfx::viewPixelHeight()/2,
-				Gfx::viewPixelWidth(), Gfx::viewPixelHeight(), C2DO);
-		tbl.place(&viewFrame);
-	}
-
-	void draw(Gfx::FrameTimeBase frameTime) override
-	{
-		using namespace Gfx;
-		resetTransforms();
-		setBlendMode(0);
-		setColor(.2, .2, .2, 1.);
-		GeomRect::draw(viewFrame);
-		BaseMenuView::draw(frameTime);
-	}
+	constexpr BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
+	constexpr BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
+	void draw(Gfx::FrameTimeBase frameTime) override;
+	void drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
 };
 
 class MultiChoiceView : public BaseMultiChoiceView
 {
 public:
-	constexpr MultiChoiceView() {}
-
 	typedef DelegateFunc<bool (int i, const Input::Event &e)> OnInputDelegate;
 	OnInputDelegate onSelectD;
-	TextMenuItem choiceEntry[18];
-	MenuItem *choiceEntryItem[18] {nullptr};
+	TextMenuItem *choiceEntry = nullptr;
+	MenuItem **choiceEntryItem = nullptr;
 
 	// Required delegates
 	OnInputDelegate &onSelect() { return onSelectD; }
 
-	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = C2DO)
-	{
-		assert(choices <= sizeofArray(choiceEntry));
-		iterateTimes(choices, i)
-		{
-			choiceEntry[i].init(choice[i]);
-			choiceEntryItem[i] = &choiceEntry[i];
-		}
-		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
-	}
+	constexpr MultiChoiceView(Base::Window &win): BaseMultiChoiceView(win) {}
+	constexpr MultiChoiceView(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
+	void freeItems();
+	void allocItems(int items);
+	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
+	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = LC2DO);
+	void deinit() override;
+	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
 
 	template <size_t S, size_t S2>
-	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = C2DO)
+	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = LC2DO)
 	{
-		assert(choices <= sizeofArray(choiceEntry));
+		//assert(choices <= sizeofArray(choiceEntry));
+		allocItems(choices);
 		iterateTimes(choices, i)
 		{
 			choiceEntry[i].init(choice[i]);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
 		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
-	}
-
-	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = C2DO)
-	{
-		assert((uint)src.choices <= sizeofArray(choiceEntry));
-		iterateTimes(src.choices, i)
-		{
-			choiceEntry[i].init(src.choiceStr[i], src.t2.face);
-			choiceEntryItem[i] = &choiceEntry[i];
-		}
-		BaseMenuView::init(choiceEntryItem, src.choices, 0, align);
-		if(highlightCurrent)
-		{
-			tbl.selected = src.choice;
-		}
-		onSelectD =
-			[&](int i, const Input::Event &e)
-			{
-				return src.set(i, e);
-			};
-	}
-
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override
-	{
-		logMsg("set choice %d", i);
-		if(onSelectD((int)i, e)) // TODO: Delegate should handle removeModalView()
-			removeModalView();
 	}
 };
 
@@ -150,22 +74,33 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	constexpr MultiChoiceSelectMenuItem(const char *str): MultiChoiceMenuItem(str) {}
 	constexpr MultiChoiceSelectMenuItem(ValueDelegate valueDel): MultiChoiceMenuItem(valueDel) {}
 	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) {}
-	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
+	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
+	void init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
+	void handleChoices(DualTextMenuItem &, const Input::Event &e);
+
+	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr)
 	{
-		onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
-		MultiChoiceMenuItem::init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
+		init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, View::defaultFace);
 	}
 
-	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace)
+	void init(const char *str, const char **choiceStr, int val, int max)
 	{
-		onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
-		MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
+		init(str, choiceStr, val, max, 0, true, nullptr, View::defaultFace);
 	}
 
-	void handleChoices(DualTextMenuItem &, const Input::Event &e)
+	void init(const char **choiceStr, int val, int max)
 	{
-		auto &multiChoiceView = *allocModalView<MultiChoiceView>();
-		multiChoiceView.init(*this, !e.isPointer());
-		View::addModalView(multiChoiceView);
+		init(choiceStr, val, max, 0, true, nullptr, View::defaultFace);
+	}
+
+	void init(const char **choiceStr, int val, int max, int baseVal)
+	{
+		init(choiceStr, val, max, baseVal, true, nullptr, View::defaultFace);
+	}
+
+	template <size_t S>
+	void init(const char *(&choiceStrArr)[S], int val)
+	{
+		init(choiceStrArr, val, S, 0, true, nullptr, View::defaultFace);
 	}
 };

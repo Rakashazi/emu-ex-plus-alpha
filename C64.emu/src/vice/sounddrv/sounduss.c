@@ -53,18 +53,7 @@
 #include "log.h"
 #include "sound.h"
 
-#if defined(HAVE_LINUX_SOUNDCARD_H)
-#include <linux/soundcard.h>
-#endif
-#if defined(HAVE_MACHINE_SOUNDCARD_H)
-#include <machine/soundcard.h>
-#endif
-#if defined(HAVE_SYS_SOUNDCARD_H)
-#include <sys/soundcard.h>
-#endif
-#if defined(HAVE_SOUNDCARD_H)
-#include <soundcard.h>
-#endif
+#ifdef USE_OSS
 
 static int uss_fd = -1;
 static int uss_8bit = 0;
@@ -289,5 +278,6 @@ int sound_init_uss_device(void)
 {
     return sound_register_device(&uss_device);
 }
+#endif
 
 #endif

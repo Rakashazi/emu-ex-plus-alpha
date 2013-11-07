@@ -27,13 +27,11 @@ extern ViewStack viewStack;
 void startGameFromMenu();
 bool isMenuDismissKey(const Input::Event &e);
 extern MsgPopup popup;
-Gfx::BufferImage *getArrowAsset();
-Gfx::BufferImage *getXAsset();
 
-void EmuFilePicker::init(bool highlightFirst, FsDirFilterFunc filter, bool singleDir)
+void EmuFilePicker::init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter, bool singleDir)
 {
-	FSPicker::init(".", needsUpDirControl ? getArrowAsset() : 0,
-			View::needsBackControl ? getXAsset() : 0, filter, singleDir);
+	FSPicker::init(".", needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
+		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr, filter, singleDir);
 	onSelectFile() = [this](const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
 	onClose() = [this](const Input::Event &e){GameFilePicker::onClose(e);};
 	if(highlightFirst && tbl.cells)
@@ -65,7 +63,7 @@ bool showAutoStateConfirm(const Input::Event &e)
 		FsSys::mTimeAsStr(saveStr, date);
 		static char msg[96] = "";
 		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", date);
-		auto &ynAlertView = *allocModalView<YesNoAlertView>();
+		auto &ynAlertView = *allocModalView<YesNoAlertView>(Base::mainWindow());
 		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
 		ynAlertView.onYes() =
 			[](const Input::Event &e)
@@ -131,7 +129,7 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 
 void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 {
-	EmuFilePicker::init(highlightFirst, defaultBenchmarkFsFilter, singleDir);
+	EmuFilePicker::init(highlightFirst, false, defaultBenchmarkFsFilter, singleDir);
 	onSelectFile() =
 		[this](const char* name, const Input::Event &e)
 		{

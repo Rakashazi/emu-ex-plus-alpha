@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StringList.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: StringList.hxx 2733 2013-05-09 14:24:00Z stephena $
 //============================================================================
 
 #ifndef STRING_LIST_HXX
@@ -22,7 +22,6 @@
 
 #include "Array.hxx"
 #include "bspf.hxx"
-
 
 class StringList : public Common::Array<string>
 {
@@ -57,16 +56,6 @@ class StringList : public Common::Array<string>
         if(!match) tmp += str[i];
       }
       return tmp;
-    }
-};
-
-class StringMap : public Common::Array< pair<string,string> >
-{
-  public:
-    void push_back(const string& name, const string& tag)
-    {
-      ensureCapacity(_size + 1);
-      _data[_size++] = make_pair(name, tag);
     }
 };
 

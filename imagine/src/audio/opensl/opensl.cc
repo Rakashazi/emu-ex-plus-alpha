@@ -18,48 +18,82 @@
 #include <audio/Audio.hh>
 #include <logger/interface.h>
 #include <util/number.h>
-#include <util/thread/pthread.hh>
 #include <base/android/private.hh>
+#include <base/android/sdk.hh>
+#include <config/machine.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
+#if defined __i386__ || __ARM_ARCH >= 7
+#include <util/LinuxRingBuffer.hh>
+using RingBufferType = LinuxRingBuffer<>;
+#else
+// some ARMv6 kernels lack mremap mirroring features, so use a plain ring buffer
+#include <util/RingBuffer.hh>
+using RingBufferType = RingBuffer<>;
+#endif
 
 namespace Audio
 {
 using namespace Base;
 
-PcmFormat preferredPcmFormat { 44100, &SampleFormats::s16, 2 };
+PcmFormat preferredPcmFormat { 44100, SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
-
 static SLEngineItf slI = nullptr;
 static SLObjectItf outMix = nullptr, player = nullptr;
 static SLPlayItf playerI = nullptr;
 static SLAndroidSimpleBufferQueueItf slBuffQI = nullptr;
-static uint bufferFrames = 800, currQBuf = 0;
-static uint buffers = 10;
-static uchar **qBuffer = nullptr;
-static bool isPlaying = 0, reachedEndOfPlayback = 0, strictUnderrunCheck = 1;
-static BufferContext audioBuffLockCtx;
+static uint wantedLatency = 100000;
+static uint preferredOutputBufferFrames = 0;
+static uint outputBufferBytes = 0; // size in bytes per buffer to enqueue
+static bool isPlaying_ = 0, strictUnderrunCheck = 1;
 static jobject audioManager = nullptr;
 static JavaInstMethod<jint> jRequestAudioFocus, jAbandonAudioFocus;
 static bool soloMix_ = true;
+static bool reachedEndOfPlayback = false;
+static RingBufferType rBuff;
+static uint unqueuedBytes = 0; // number of bytes in ring buffer that haven't been enqueued to SL yet
+static char *ringBuffNextQueuePos = nullptr;
 
 static bool isInit()
 {
 	return outMix;
 }
 
-// runs on internal OpenSL ES thread
-/*static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
+void setHintOutputLatency(uint us)
 {
-}*/
+	wantedLatency = us;
+}
+
+uint hintOutputLatency()
+{
+	return wantedLatency;
+}
+
+static bool commitSLBuffer(void *b, uint bytes)
+{
+	SLresult result = (*slBuffQI)->Enqueue(slBuffQI, b, bytes);
+	if(result != SL_RESULT_SUCCESS)
+	{
+		logWarn("Enqueue returned 0x%X", (uint)result);
+		return false;
+	}
+	return true;
+}
+
+// runs on internal OpenSL ES thread
+static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
+{
+	rBuff.advanceReadPos(outputBufferBytes);
+}
 
 // runs on internal OpenSL ES thread
 static void playCallback(SLPlayItf caller, void *, SLuint32 event)
 {
 	//logMsg("play event %X", (int)event);
 	assert(event == SL_PLAYEVENT_HEADSTALLED || event == SL_PLAYEVENT_HEADATEND);
-	logMsg("got playback end event");
-	reachedEndOfPlayback = 1;
+	reachedEndOfPlayback = true;
+	if(!::Config::MACHINE_IS_OUYA) // prevent log spam
+		logMsg("got playback end event");
 }
 
 static void setupAudioManagerJNI(JNIEnv* jEnv)
@@ -90,17 +124,40 @@ static void abandonAudioFocus(JNIEnv* jEnv)
 	jAbandonAudioFocus(jEnv, audioManager, jBaseActivity);
 }
 
+static uint bufferFramesForSampleRate(int rate)
+{
+	if(rate == preferredPcmFormat.rate && preferredOutputBufferFrames)
+		return preferredOutputBufferFrames;
+	else if(rate <= 22050)
+		return 256;
+	else if(rate <= 44100)
+		return 512;
+	else
+		return 1024;
+}
+
 CallResult openPcm(const PcmFormat &format)
 {
+	assert(isInit());
 	if(player)
 	{
 		logWarn("called openPcm when pcm already on");
 		return OK;
 	}
 	pcmFormat = format;
-	logMsg("creating playback %dHz, %d channels, %d buffers", format.rate, format.channels, buffers);
-	assert(format.sample->bits == 16);
-	SLDataLocator_AndroidSimpleBufferQueue buffQLoc = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, buffers };
+
+	// setup ring buffer and related
+	uint outputBufferFrames = bufferFramesForSampleRate(format.rate);
+	outputBufferBytes = pcmFormat.framesToBytes(outputBufferFrames);
+	uint ringBufferSize = std::max(2u, IG::divUp(pcmFormat.uSecsToBytes(wantedLatency), outputBufferBytes)) * outputBufferBytes;
+	uint outputBuffers = ringBufferSize / outputBufferBytes;
+	rBuff.init(ringBufferSize);
+	ringBuffNextQueuePos = rBuff.data();
+
+	logMsg("creating playback %dHz, %d channels", format.rate, format.channels);
+	logMsg("using %d buffers with %d frames", outputBuffers, outputBufferFrames);
+	assert(format.sample.bits == 16);
+	SLDataLocator_AndroidSimpleBufferQueue buffQLoc = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers };
 	SLDataFormat_PCM slFormat =
 	{
 		SL_DATAFORMAT_PCM, (SLuint32)format.channels, (SLuint32)format.rate * 1000, // as milliHz
@@ -128,8 +185,8 @@ CallResult openPcm(const PcmFormat &format)
 	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
 
-	/*result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
-	assert(result == SL_RESULT_SUCCESS);*/
+	result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
+	assert(result == SL_RESULT_SUCCESS);
 	result = (*playerI)->RegisterCallback(playerI, playCallback, nullptr);
 	assert(result == SL_RESULT_SUCCESS);
 
@@ -139,21 +196,7 @@ CallResult openPcm(const PcmFormat &format)
 	(*playerI)->SetCallbackEventsMask(playerI, playStateEvMask);
 	(*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
 
-	auto bufferBytes = pcmFormat.framesToBytes(bufferFrames);
-	logMsg("allocating %d bytes per buffer", bufferBytes);
-	uint bufferPointerTableSize = sizeof(uchar*) * buffers;
-	// combined allocation of pointer table and actual buffer data
-	void *bufferStorage = mem_alloc(bufferPointerTableSize + (bufferBytes * buffers));
-	assert(bufferStorage);
-	uchar **bufferBlock = (uchar**)bufferStorage;
-	uchar *startOfBufferData = (uchar*)bufferStorage + bufferPointerTableSize;
-	bufferBlock[0] = startOfBufferData;
-	iterateTimes(buffers-1, i)
-	{
-		bufferBlock[i+1] = bufferBlock[i] + bufferBytes;
-	}
-	qBuffer = bufferBlock;
-
+	logMsg("PCM opened");
 	return OK;
 }
 
@@ -162,12 +205,13 @@ void closePcm()
 	if(player)
 	{
 		logMsg("closing pcm");
-		currQBuf = 0;
-		isPlaying = 0;
+		isPlaying_ = 0;
+		slBuffQI = nullptr;
 		(*player)->Destroy(player);
-		mem_free(qBuffer);
 		player = nullptr;
-		reachedEndOfPlayback = 0;
+		rBuff.deinit();
+		reachedEndOfPlayback = false;
+		unqueuedBytes = 0;
 	}
 	else
 		logMsg("called closePcm when pcm already off");
@@ -178,73 +222,40 @@ bool isOpen()
 	return player;
 }
 
-static void commitSLBuffer(void *b, uint bytes)
+bool isPlaying()
 {
-	SLresult result = (*slBuffQI)->Enqueue(slBuffQI, b, bytes);
-	if(result != SL_RESULT_SUCCESS)
-	{
-		logWarn("Enqueue returned 0x%X", (uint)result);
-		return;
-	}
-	//logMsg("queued buffer %d with %d bytes, %d on queue, %lld %lld", currQBuf, (int)b->mAudioDataByteSize, buffersQueued+1, lastTimestamp.mHostTime, lastTimestamp.mWordClockTime);
-	IG::incWrappedSelf(currQBuf, buffers);
+	return isPlaying_;
 }
 
 static uint buffersQueued()
 {
 	SLAndroidSimpleBufferQueueState state;
 	(*slBuffQI)->GetState(slBuffQI, &state);
-	/*static int debugCount = 0;
-	if(countToValueLooped(debugCount, 30))
-	{
-		//logMsg("queue state: %u count, %u index", (uint)state.count, (uint)state.index);
-	}*/
 	return state.count;
-}
-
-static void checkXRun(uint queued)
-{
-	/*SLmillisecond pos;
-	(*playerI)->GetPosition(playerI, &pos);
-	logMsg("pos: %u/, %d", pcmFormat.mSecsToFrames(pos));*/
-
-	if(unlikely(isPlaying && reachedEndOfPlayback))
-	{
-		logMsg("xrun");
-		pausePcm();
-	}
-}
-
-static void startPlaybackIfNeeded(uint queued)
-{
-	if(unlikely(!isPlaying && queued >= buffers-1))
-	{
-		reachedEndOfPlayback = 0;
-		SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
-		if(result == SL_RESULT_SUCCESS)
-		{
-			logMsg("started playback with %d buffers", buffers);
-			isPlaying = 1;
-		}
-		else
-			logErr("SetPlayState returned 0x%X", (uint)result);
-	}
 }
 
 void pausePcm()
 {
-	if(unlikely(!player) || !isPlaying)
+	if(unlikely(!player) || !isPlaying_)
 		return;
 	logMsg("pausing playback");
 	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
-	isPlaying = 0;
+	isPlaying_ = 0;
 }
 
 void resumePcm()
 {
 	if(unlikely(!player))
 		return;
-	startPlaybackIfNeeded(buffersQueued());
+	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
+	if(result == SL_RESULT_SUCCESS)
+	{
+		logMsg("started playback with %d buffers queued", (int)rBuff.written / outputBufferBytes);
+		isPlaying_ = 1;
+		reachedEndOfPlayback = false;
+	}
+	else
+		logErr("SetPlayState returned 0x%X", (uint)result);
 }
 
 void clearPcm()
@@ -255,64 +266,74 @@ void clearPcm()
 	pausePcm();
 	SLresult result = (*slBuffQI)->Clear(slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
+	rBuff.reset();
+	ringBuffNextQueuePos = rBuff.data();
+	unqueuedBytes = 0;
 }
 
-BufferContext *getPlayBuffer(uint wantedFrames)
+static bool checkXRun()
 {
-	if(unlikely(!player))
-		return nullptr;
-
-	auto queued = buffersQueued();
-	if(queued == buffers)
+	if(unlikely(reachedEndOfPlayback && isPlaying_))
 	{
-		//logDMsg("can't write data with full buffers");
-		return nullptr;
+		if(!::Config::MACHINE_IS_OUYA) // prevent log spam
+			logMsg("xrun");
+		pausePcm();
+		return true;
 	}
-	auto b = qBuffer[currQBuf];
-	audioBuffLockCtx.data = b;
-	audioBuffLockCtx.frames = std::min(wantedFrames, bufferFrames);
-	return &audioBuffLockCtx;
+	return false;
 }
 
-void commitPlayBuffer(BufferContext *buffer, uint frames)
+static void updateQueue(uint written)
 {
-	assert(frames <= buffer->frames);
-	auto queued = buffersQueued();
-	checkXRun(queued);
-	commitSLBuffer(qBuffer[currQBuf], pcmFormat.framesToBytes(frames));
-	startPlaybackIfNeeded(queued+1);
-}
-
-void writePcm(uchar *samples, uint framesToWrite)
-{
-	if(unlikely(!player))
-		return;
-
-	auto queued = buffersQueued();
-
-	checkXRun(queued);
-	if(framesToWrite > bufferFrames)
+	unqueuedBytes += written;
+	uint toEnqueue = unqueuedBytes / outputBufferBytes;
+	//logMsg("wrote %d, to queue %d bytes (%d),", written, unqueuedBytes, toEnqueue);
+	if(toEnqueue)
 	{
-		logMsg("need more than one buffer to write %d frames", framesToWrite);
-	}
-	while(framesToWrite)
-	{
-		if(queued == buffers)
+		iterateTimes(toEnqueue, i)
 		{
-			logMsg("can't write data with full buffers");
-			break;
+			if(checkXRun())
+				break;
+			if(!commitSLBuffer(ringBuffNextQueuePos, outputBufferBytes))
+			{
+				bug_exit("error in enqueue even though queue should have space");
+			}
+			ringBuffNextQueuePos = rBuff.advancePos(ringBuffNextQueuePos, outputBufferBytes);
+			unqueuedBytes -= outputBufferBytes;
 		}
-
-		uint framesToWriteInBuffer = std::min(framesToWrite, bufferFrames);
-		uint bytesToWriteInBuffer = pcmFormat.framesToBytes(framesToWriteInBuffer);
-		auto b = qBuffer[currQBuf];
-		memcpy(b, samples, bytesToWriteInBuffer);
-		commitSLBuffer(b, bytesToWriteInBuffer);
-		samples += bytesToWriteInBuffer;
-		framesToWrite -= framesToWriteInBuffer;
-		queued++;
 	}
-	startPlaybackIfNeeded(queued);
+}
+
+BufferContext getPlayBuffer(uint wantedFrames)
+{
+	if(unlikely(!isOpen() || !framesFree()))
+		return {};
+	if((uint)framesFree() < wantedFrames)
+	{
+		logDMsg("buffer has only %d/%d frames free", framesFree(), wantedFrames);
+	}
+	return {rBuff.writePos(), std::min(wantedFrames, (uint)framesFree())};
+}
+
+void commitPlayBuffer(BufferContext buffer, uint frames)
+{
+	assert(frames <= buffer.frames);
+	auto written = pcmFormat.framesToBytes(frames);
+	rBuff.advanceWritePos(written);
+	updateQueue(written);
+}
+
+void writePcm(const void *samples, uint framesToWrite)
+{
+	if(unlikely(!isOpen()))
+		return;
+	uint bytes = pcmFormat.framesToBytes(framesToWrite);
+	auto written = rBuff.write(samples, bytes);
+	if(written != bytes)
+	{
+		logMsg("overrun, wrote %d out of %d bytes", written, bytes);
+	}
+	updateQueue(written);
 }
 
 int frameDelay()
@@ -322,29 +343,8 @@ int frameDelay()
 
 int framesFree()
 {
-	return 0; // TODO
+	return pcmFormat.bytesToFrames(rBuff.freeSpace());
 }
-
-void setHintPcmFramesPerWrite(uint frames)
-{
-	if(frames != bufferFrames)
-	{
-		closePcm();
-		logMsg("setting queue buffer frames to %d", frames);
-		assert(frames < 2000);
-		bufferFrames = frames;
-	}
-}
-
-void setHintPcmMaxBuffers(uint maxBuffers)
-{
-	logMsg("setting max buffers to %d", maxBuffers);
-	assert(maxBuffers < 100);
-	buffers = maxBuffers;
-	assert(!isOpen());
-}
-
-uint hintPcmMaxBuffers() { return buffers; }
 
 void setHintStrictUnderrunCheck(bool on)
 {
@@ -396,14 +396,70 @@ void updateFocusOnPause()
 	}
 }
 
+bool hasLowLatency()
+{
+	// preferredOutputBufferFrames is only set if device reports low-latency audio
+	return preferredOutputBufferFrames;
+}
+
+static int audioManagerIntProperty(JNIEnv* jEnv, JavaInstMethod<jobject> &jGetProperty, const char *propStr)
+{
+	auto propJStr = jEnv->NewStringUTF(propStr);
+	auto valJStr = (jstring)jGetProperty(jEnv, audioManager, propJStr);
+	jEnv->DeleteLocalRef(propJStr);
+	if(!valJStr)
+	{
+		logWarn("%s is null", propStr);
+		return 0;
+	}
+	auto valStr = jEnv->GetStringUTFChars(valJStr, nullptr);
+	int val = atoi(valStr);
+	jEnv->ReleaseStringUTFChars(valJStr, valStr);
+	jEnv->DeleteLocalRef(valJStr);
+	return val;
+}
+
 CallResult init()
 {
-	logMsg("doing init");
+	logMsg("running init");
 	{
 		auto jEnv = eEnv();
 		JavaInstMethod<void> jSetVolumeControlStream;
 		jSetVolumeControlStream.setup(jEnv, jBaseActivityCls, "setVolumeControlStream", "(I)V");
 		jSetVolumeControlStream(jEnv, jBaseActivity, 3);
+
+		// check preferred settings for low latency
+		if(Base::androidSDK() >= 17)
+		{
+			setupAudioManagerJNI(jEnv);
+			JavaInstMethod<jobject> jGetProperty;
+			jclass jAudioManagerCls = jEnv->GetObjectClass(audioManager);
+			jGetProperty.setup(jEnv, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+			preferredPcmFormat.rate = audioManagerIntProperty(jEnv, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
+			if(preferredPcmFormat.rate != 44100 && preferredPcmFormat.rate != 48000)
+			{
+				// only support 44KHz and 48KHz for now
+				logMsg("ignoring preferred sample rate: %d", preferredPcmFormat.rate);
+				preferredPcmFormat.rate = 44100;
+			}
+			else
+			{
+				logMsg("set preferred sample rate: %d", preferredPcmFormat.rate);
+				// find the preferred buffer size for this rate if device has low-latency support
+				JavaInstMethod<jboolean> jHasLowLatencyAudio;
+				jHasLowLatencyAudio.setup(jEnv, jBaseActivityCls, "hasLowLatencyAudio", "()Z");
+				if(jHasLowLatencyAudio(jEnv, jBaseActivity))
+				{
+					preferredOutputBufferFrames = audioManagerIntProperty(jEnv, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
+					if(!preferredOutputBufferFrames)
+						logMsg("preferred buffer frames value not present");
+					else
+						logMsg("set preferred buffer frames: %d", preferredOutputBufferFrames);
+				}
+				else
+					logMsg("no low-latency support");
+			}
+		}
 	}
 
 	updateFocusOnResume();

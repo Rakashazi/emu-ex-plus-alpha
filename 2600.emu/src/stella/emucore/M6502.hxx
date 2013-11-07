@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: M6502.hxx 2745 2013-05-30 16:07:19Z stephena $
 //============================================================================
 
 #ifndef M6502_HXX
@@ -45,7 +45,7 @@ typedef Common::Array<Expression*> ExpressionList;
   effects and for games which are very time sensitive.
 
   @author  Bradford W. Mott
-  @version $Id: M6502.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: M6502.hxx 2745 2013-05-30 16:07:19Z stephena $
 */
 class M6502 : public Serializable
 {
@@ -87,12 +87,12 @@ class M6502 : public Serializable
     /**
       Request a maskable interrupt
     */
-    void irq();
+    void irq() { myExecutionStatus |= MaskableInterruptBit; }
 
     /**
       Request a non-maskable interrupt
     */
-    void nmi();
+    void nmi() { myExecutionStatus |= NonmaskableInterruptBit; }
 
     /**
       Execute instructions until the specified number of instructions
@@ -109,7 +109,7 @@ class M6502 : public Serializable
       method while the processor is executing instructions will stop 
       execution as soon as possible.
     */
-    void stop();
+    void stop() { myExecutionStatus |= StopExecutionBit; }
 
     /**
       Answer true iff a fatal error has occured from which the processor
@@ -253,14 +253,34 @@ class M6502 : public Serializable
 
       @return The processor status register
     */
-    uInt8 PS() const;
+    uInt8 PS() const {
+      uInt8 ps = 0x20;
+
+      if(N)     ps |= 0x80;
+      if(V)     ps |= 0x40;
+      if(B)     ps |= 0x10;
+      if(D)     ps |= 0x08;
+      if(I)     ps |= 0x04;
+      if(!notZ) ps |= 0x02;
+      if(C)     ps |= 0x01;
+
+      return ps;
+    }
 
     /**
       Change the Processor Status register to correspond to the given value.
 
       @param ps The value to set the processor status register to
     */
-    void PS(uInt8 ps);
+    void PS(uInt8 ps) {
+      N = ps & 0x80;
+      V = ps & 0x40;
+      B = true;        // B = ps & 0x10;  The 6507's B flag always true
+      D = ps & 0x08;
+      I = ps & 0x04;
+      notZ = !(ps & 0x02);
+      C = ps & 0x01;
+    }
 
     /**
       Called after an interrupt has be requested using irq() or nmi()

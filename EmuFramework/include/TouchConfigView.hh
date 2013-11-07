@@ -24,57 +24,52 @@
 class TouchConfigView : public BaseMenuView
 {
 public:
-	MultiChoiceSelectMenuItem alpha;
-	void alphaInit();
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+		#ifdef CONFIG_ENV_WEBOS
+		BoolMenuItem touchCtrl;
+		#else
+		MultiChoiceSelectMenuItem touchCtrl;
+		#endif
+	MultiChoiceSelectMenuItem pointerInput;
 	MultiChoiceSelectMenuItem size;
-	void sizeInit();
 	MultiChoiceSelectMenuItem deadzone;
-	void deadzoneInit();
 	MultiChoiceSelectMenuItem diagonalSensitivity;
-	void diagonalSensitivityInit();
 	MultiChoiceSelectMenuItem btnSpace;
-	void btnSpaceInit();
 	MultiChoiceSelectMenuItem btnExtraXSize;
-	void btnExtraXSizeInit();
 	MultiChoiceSelectMenuItem btnExtraYSizeMultiRow;
-	void btnExtraYSizeMultiRowInit();
 	MultiChoiceSelectMenuItem btnExtraYSize;
-	void btnExtraYSizeInit();
-	MultiChoiceSelectMenuItem triggerPos;
-	void triggerPosInit();
+	BoolMenuItem triggerPos;
 	MultiChoiceSelectMenuItem btnStagger;
-	void btnStaggerInit();
-	MultiChoiceSelectMenuItem dPadPos;
-	void dPadPosInit();
-	MultiChoiceSelectMenuItem faceBtnPos;
-	void faceBtnPosInit();
-	MultiChoiceSelectMenuItem centerBtnPos;
-	void centerBtnPosInit();
-	MultiChoiceSelectMenuItem menuPos;
-	void menuPosInit();
-	MultiChoiceSelectMenuItem ffPos;
-	void ffPosInit();
+	MultiChoiceSelectMenuItem dPadState;
+	MultiChoiceSelectMenuItem faceBtnState;
+	MultiChoiceSelectMenuItem centerBtnState;
+	MultiChoiceSelectMenuItem lTriggerState;
+	MultiChoiceSelectMenuItem rTriggerState;
 	MultiChoiceSelectMenuItem dpi;
-	void dpiInit();
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-	BoolMenuItem imageResolution;
-	#endif
+		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
+		BoolMenuItem imageResolution;
+		#endif
 	BoolMenuItem boundingBoxes;
 	BoolMenuItem vibrate;
-	BoolMenuItem showMenuIcon;
+		#ifdef CONFIG_BASE_ANDROID
+		BoolMenuItem useScaledCoordinates;
+		#endif
 	BoolMenuItem showOnTouch;
+	#endif
+	MultiChoiceSelectMenuItem alpha;
+	TextMenuItem btnPlace;
+	MultiChoiceSelectMenuItem menuState;
+	MultiChoiceSelectMenuItem ffState;
+	TextMenuItem resetControls;
+	TextMenuItem resetAllControls;
 
-	MenuItem *text[20] = {nullptr};
+	MenuItem *text[27] = {nullptr};
 
-	void updatePositionVals();
-	void refreshTouchConfigMenu()
-	{
-		updatePositionVals();
-	}
+	void refreshTouchConfigMenu();
 
 public:
-	TouchConfigView(const char *faceBtnName, const char *centerBtnName);
-
+	TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName);
 	void init(bool highlightFirst);
+	void place() override;
 	void draw(Gfx::FrameTimeBase frameTime) override;
 };

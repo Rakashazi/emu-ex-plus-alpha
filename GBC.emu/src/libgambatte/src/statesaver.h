@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,6 +20,7 @@
 #define STATESAVER_H
 
 #include "gbint.h"
+#include <cstddef>
 #include <string>
 
 namespace gambatte {
@@ -27,17 +28,19 @@ namespace gambatte {
 struct SaveState;
 
 class StateSaver {
-	StateSaver();
-	
 public:
-	enum { SS_SHIFT = 2 };
-	enum { SS_DIV = 1 << 2 };
-	enum { SS_WIDTH = 160 >> SS_SHIFT };
-	enum { SS_HEIGHT = 144 >> SS_SHIFT };
-	
-	static bool saveState(const SaveState &state,
-			const PixelType *videoBuf, int pitch, const std::string &filename);
-	static bool loadState(SaveState &state, const std::string &filename);
+	enum { ss_shift = 2 };
+	enum { ss_div = 1 << 2 };
+	enum { ss_width = 160 >> ss_shift };
+	enum { ss_height = 144 >> ss_shift };
+
+	static bool saveState(SaveState const &state,
+			PixelType const *videoBuf, std::ptrdiff_t pitch,
+			std::string const &filename);
+	static bool loadState(SaveState &state, std::string const &filename);
+
+private:
+	StateSaver();
 };
 
 }

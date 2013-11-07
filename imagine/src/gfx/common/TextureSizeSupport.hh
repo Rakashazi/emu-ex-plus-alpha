@@ -14,7 +14,7 @@ public:
 	uint minXSize, minYSize;
 	uint maxXSize, maxYSize;
 
-	static const uint streamHint = BIT(0);
+	static const uint streamHint = IG::bit(0);
 
 	void findBufferXYPixels(uint &x, uint &y, uint imageX, uint imageY, uint hints = 0)
 	{

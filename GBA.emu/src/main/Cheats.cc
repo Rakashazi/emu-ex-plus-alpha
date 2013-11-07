@@ -40,7 +40,7 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 	BaseMenuView::init(item, i, highlightFirst);
 }
 
-SystemEditCheatView::SystemEditCheatView(): EditCheatView(""),
+SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	code
 	{
 		"Code",
@@ -66,7 +66,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>();
+				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), c);
 				viewStack.pushAndShow(&editCheatView, &menuAllocator);
 			};
@@ -78,10 +78,10 @@ void EditCheatListView::addNewCheat(int isGSv3)
 	if(cheatsNumber == EmuCheats::MAX)
 	{
 		popup.postError("Too many cheats, delete some first");
-		Base::displayNeedsUpdate();
+		window().displayNeedsUpdate();
 		return;
 	}
-	auto &textInputView = *allocModalView<CollectTextInputView>();
+	auto &textInputView = *allocModalView<CollectTextInputView>(window());
 	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)");
 	textInputView.onText() =
 		[this, isGSv3](const char *str)
@@ -106,7 +106,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 				else
 				{
 					popup.postError("Invalid format");
-					Base::displayNeedsUpdate();
+					window().displayNeedsUpdate();
 					return 1;
 				}
 				cheatsModified = true;
@@ -114,7 +114,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 				removeModalView();
 				refreshCheatViews();
 
-				auto &textInputView = *allocModalView<CollectTextInputView>();
+				auto &textInputView = *allocModalView<CollectTextInputView>(window());
 				textInputView.init("Input description");
 				textInputView.onText() =
 					[this](const char *str)
@@ -142,7 +142,8 @@ void EditCheatListView::addNewCheat(int isGSv3)
 	View::addModalView(textInputView);
 }
 
-EditCheatListView::EditCheatListView():
+EditCheatListView::EditCheatListView(Base::Window &win):
+	BaseEditCheatListView(win),
 	addGS12CBCode
 	{
 		"Add Game Shark v1-2/Code Breaker Code",
@@ -172,7 +173,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 			[this, c](BoolMenuItem &item, const Input::Event &e)
 			{
 				cheatsModified = true;
-				item.toggle();
+				item.toggle(*this);
 				if(item.on)
 					cheatsEnable(c);
 				else

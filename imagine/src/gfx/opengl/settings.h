@@ -49,27 +49,26 @@ TextureSizeSupport textureSizeSupport =
 
 static float zRange = 1000.0;
 
-static void resizeGLScene(const Base::Window &win)
+void setViewport(Base::Window &win)
 {
-	auto width = win.rect.xSize();
-	auto height = win.rect.ySize();
-	logMsg("glViewport %d:%d:%d:%d from window %d:%d:%d:%d (%d,%d)", win.rect.x, win.h - win.rect.y2, width, height,
-			win.rect.x, win.rect.y, win.rect.x2, win.rect.y2, win.w, win.h);
-	glViewport(win.rect.x,
-		win.h - win.rect.y2,
-		width, height);
+	int viewportY = win.h - win.viewRect.y2;
+	logMsg("viewport %d:%d:%d:%d from window %d:%d:%d:%d (%d,%d)", win.viewRect.x, viewportY, win.viewPixelWidth_, win.viewPixelHeight_,
+			win.viewRect.x, win.viewRect.y, win.viewRect.x2, win.viewRect.y2, win.w, win.h);
+	assert(win.viewPixelWidth_ && win.viewPixelHeight_);
+	glViewport(win.viewRect.x, viewportY, win.viewPixelWidth_, win.viewPixelHeight_);
+}
 
-	if(width == 0 || height == 0)
-	{
-		bug_exit("view is invisible");
-		return; // view is invisible, do nothing
-	}
+void setProjector(Base::Window &win)
+{
+	using namespace Base;
+	auto width = win.viewPixelWidth_;
+	auto height = win.viewPixelHeight_;
 
 	glcMatrixMode(GL_PROJECTION);
 
 	GC fovy = M_PI/4.0;
 
-	bool isSideways = rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
+	bool isSideways = win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270;
 	Gfx::proj.aspectRatio = isSideways ? (GC)height / (GC)width : (GC)width / (GC)height;
 	//glLoadIdentity();
 	//gluPerspective(45.0f, viewAspectRatio, 0.1f, 1000.0f);
@@ -79,24 +78,18 @@ static void resizeGLScene(const Base::Window &win)
 	/*Gfx::proj.focal = -100;
 	mat.perspectiveFrustumWithView(isSideways ? height : width, isSideways ? width : height,
 			1, 200, -Gfx::proj.focal);*/
-	viewPixelWidth_ = width;
-	viewPixelHeight_ = height;
-	/*if(isSideways)
-	{
-		IG::swap(viewPixelWidth, viewPixelHeight);
-	}*/
-	Gfx::proj.setMatrix(mat, isSideways);
-	setupScreenSize();
+	Gfx::proj.setMatrix(win, mat, isSideways);
+	win.setupScreenSize();
 	if(animateOrientationChange && !projAngleM.isComplete())
 	{
 		logMsg("animated rotation %f", (double)IG::toDegrees(projAngleM.now));
 		rMat.zRotationLH(projAngleM.now);
 		mat = Matrix4x4<GC>::mult(mat, rMat);
 	}
-	else if(rotateView != VIEW_ROTATE_0)
+	else if(win.rotateView != VIEW_ROTATE_0)
 	{
-		logMsg("fixed rotation %f", (double)orientationToGC(rotateView));
-		rMat.zRotationLH(IG::toRadians(orientationToGC(rotateView)));
+		logMsg("fixed rotation %f", (double)orientationToGC(win.rotateView));
+		rMat.zRotationLH(IG::toRadians(orientationToGC(win.rotateView)));
 		mat = Matrix4x4<GC>::mult(mat, rMat);
 	}
 	else
@@ -120,30 +113,14 @@ static void resizeGLScene(const Base::Window &win)
 	glcMatrixMode(GL_MODELVIEW);
 }
 
-void resizeDisplay(const Base::Window &win)
-{
-	Gfx::GfxViewState oldState =
-	{
-		proj.w, proj.h, proj.aspectRatio,
-		viewPixelWidth_, viewPixelHeight_
-	};
-	resizeGLScene(win);
-	Gfx::onViewChange(&oldState);
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 
-#ifdef CONFIG_INPUT
-void configureInputForOrientation()
+namespace Base
 {
-	using namespace Input;
-	xPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_90 ? POINTER_NORMAL : POINTER_INVERT);
-	yPointerTransform(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_270 ? POINTER_NORMAL : POINTER_INVERT);
-	pointerAxis(rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_180 ? POINTER_NORMAL : POINTER_INVERT);
-}
-#endif
 
-uint setOrientation(uint o)
+uint Window::setOrientation(uint o)
 {
 	assert(o == VIEW_ROTATE_0 || o == VIEW_ROTATE_90 || o == VIEW_ROTATE_180 || o == VIEW_ROTATE_270);
 
@@ -154,38 +131,39 @@ uint setOrientation(uint o)
 		if(animateOrientationChange)
 		{
 			projAngleM.initLinear(projAngleM.now, IG::toRadians(orientationToGC(rotateView)), 10);
-			Base::displayNeedsUpdate();
+			displayNeedsUpdate();
 		}
 		Base::setSystemOrientation(o);
-		resizeDisplay(Base::window());
+		resizePosted = 1;
+		displayNeedsUpdate();
 		#ifdef CONFIG_INPUT
-			configureInputForOrientation();
+		Input::configureInputForOrientation(*this);
 		#endif
 		return 1;
 	}
 	else
 		return 0;
 }
-#endif
 
 }
+#endif
 
 static void vsyncEnable()
 {
 	#ifdef CONFIG_BASE_WIN32
-		#define WGL_VSYNC_ON_INTERVAL 1
-		if (wglewIsSupported("WGL_EXT_swap_control"))
-		{
-			wglSwapIntervalEXT(WGL_VSYNC_ON_INTERVAL);
-			logMsg("vsync enabled via WGL_EXT_swap_control");
-		}
-		else
-		{
-			logWarn("WGL_EXT_swap_control is not supported");
-		}
+	#define WGL_VSYNC_ON_INTERVAL 1
+	if(wglewIsSupported("WGL_EXT_swap_control"))
+	{
+		wglSwapIntervalEXT(WGL_VSYNC_ON_INTERVAL);
+		logMsg("vsync enabled via WGL_EXT_swap_control");
+	}
+	else
+	{
+		logWarn("WGL_EXT_swap_control is not supported");
+	}
 	#elif defined(__APPLE__) && !defined(CONFIG_BASE_IOS)
-		GLint sync = 1;
-		CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
+	GLint sync = 1;
+	CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
 	#endif
 }
 
@@ -219,12 +197,27 @@ static void checkForAutoMipmapGeneration(const char *extensions, const char *ver
 	#ifndef CONFIG_GFX_OPENGL_ES
 	use = !forceNoAutoMipmapGeneration && strstr(extensions, "GL_SGIS_generate_mipmap");
 	#elif defined CONFIG_BASE_ANDROID
-	// Older Android devices may only support OpenGL ES 1.0
-	use = !forceNoAutoMipmapGeneration && (Base::androidSDK() >= 10  || strstr(version, "1.1"));
-	if(strstr(rendererName, "GC800 Graphics"))
+	use = !forceNoAutoMipmapGeneration;
+	if(Config::MACHINE_IS_GENERIC_ARM)
 	{
-		logMsg("automatic mipmap generation bugged on Vivante, disabling");
-		use = 0;
+		// Older Android devices may only support OpenGL ES 1.0
+		if(!strstr(version, "1.1"))
+		{
+			use = 0;
+		}
+	}
+	if(Config::MACHINE_IS_GENERIC_ARMV7)
+	{
+		if(strstr(rendererName, "GC800 Graphics"))
+		{
+			logMsg("automatic mipmap generation bugged on Vivante, disabling");
+			use = 0;
+		}
+		else if(strstr(rendererName, "Adreno (TM) 220"))
+		{
+			logMsg("automatic mipmap generation bugged some Adreno 220 drivers, disabling");
+			use = 0;
+		}
 	}
 	#else
 	use = !forceNoAutoMipmapGeneration;
@@ -306,19 +299,25 @@ static uchar forceNoBGRPixels = 0;
 namespace Gfx
 {
 bool preferBGRA = 0, preferBGR = 0;
+static auto bgrInternalFormat = GL_BGRA;
 
 static void checkForBGRPixelSupport(const char *extensions)
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
-		#ifdef CONFIG_BASE_IOS
-			if(strstr(extensions, "GL_APPLE_texture_format_BGRA8888") != NULL)
-		#elif defined(CONFIG_BASE_PS3)
-			if(0)
-		#else
-			if(strstr(extensions, "GL_EXT_texture_format_BGRA8888") != NULL)
-		#endif
+	bool supportsBGR = false;
+	if(strstr(extensions, "GL_APPLE_texture_format_BGRA8888"))
+	{
+		supportsBGR = true;
+		bgrInternalFormat = GL_RGBA;
+	}
+	else if(strstr(extensions, "GL_EXT_texture_format_BGRA8888"))
+	{
+		supportsBGR = true;
+	}
+
+	if(supportsBGR)
 	#else
-		if(!forceNoBGRPixels)
+	if(!forceNoBGRPixels)
 	#endif
 	{
 		supportBGRPixels = 1;
@@ -329,7 +328,9 @@ static void checkForBGRPixelSupport(const char *extensions)
 		#endif
 		preferBGRA = 1;
 
-		logMsg("BGR pixel types are supported");
+		#ifdef CONFIG_GFX_OPENGL_ES
+		logMsg("BGR pixel types are supported%s", bgrInternalFormat == GL_RGBA ? " (Apple version)" : "");
+		#endif
 	}
 }
 
@@ -422,7 +423,7 @@ namespace Gfx
 
 void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, const char *rendererName)
 {
-	if(strstr(rendererName, "NVIDIA") // disable on Tegra, unneeded and causes lock-ups currently
+	if((Config::MACHINE_IS_GENERIC_ARMV7 &&  strstr(rendererName, "NVIDIA")) // disable on Tegra, unneeded and causes lock-ups currently
 		|| string_equal(rendererName, "VideoCore IV HW")) // seems to crash Samsung Galaxy Y on eglCreateImageKHR, maybe other devices
 	{
 		logMsg("force-disabling EGLImageKHR due to GPU");
@@ -435,7 +436,7 @@ void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, con
 			logWarn("can't use EGLImageKHR: %s", errorStr);
 			return;
 		}
-		if(strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && strstr(rendererName, "SGX 530")) // enable on PowerVR SGX 530, though it should work on other models
 		{
 			logMsg("enabling by default on white-listed hardware");
 			useEGLImageKHR = whitelistedEGLImageKHR = 1;

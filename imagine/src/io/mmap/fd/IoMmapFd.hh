@@ -25,5 +25,5 @@ class IoMmapFd : public IoMmap
 public:
 	static Io* open(int fd);
 	~IoMmapFd() { close(); }
-	void close();
+	void close() override;
 };

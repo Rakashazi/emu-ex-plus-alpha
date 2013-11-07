@@ -45,6 +45,8 @@ static log_t c64rom_log = LOG_ERR;
 /* Flag: nonzero if the Kernal and BASIC ROMs have been loaded.  */
 static int rom_loaded = 0;
 
+/* FIXME: this function should perhaps not patch the kernal, but return -1 on
+          unknown kernals, like the respective vic-20 functions */
 int c64rom_get_kernal_checksum(void)
 {
     int i;
@@ -64,7 +66,7 @@ int c64rom_get_kernal_checksum(void)
         || (id == 3 && sum != C64_KERNAL_CHECKSUM_R03 && sum != C64_KERNAL_CHECKSUM_R03swe)
         || (id == 0x43 && sum != C64_KERNAL_CHECKSUM_R43)
         || (id == 0x64 && sum != C64_KERNAL_CHECKSUM_R64)) {
-        log_warning(c64rom_log, "Warning: Unknown Kernal image.  Sum: %d ($%04X).", sum, sum);
+        log_warning(c64rom_log, "Unknown Kernal image.  ID: %d ($%02X) Sum: %d ($%04X).", id, id, sum, sum);
     } else if (kernal_revision != NULL) {
         if (patch_rom(kernal_revision) < 0) {
             return -1;
@@ -108,7 +110,7 @@ int c64rom_load_kernal(const char *rom_name, BYTE *cartkernal)
         memcpy(c64memrom_kernal64_rom, cartkernal, 0x2000);
         c64rom_cartkernal_active = 1;
     }
-    c64rom_get_kernal_checksum();
+    c64rom_get_kernal_checksum(); /* also patch kernal */
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
 
     resources_set_int("VirtualDevices", trapfl);
@@ -128,7 +130,7 @@ int c64rom_get_basic_checksum(void)
     }
 
     if (sum != C64_BASIC_CHECKSUM) {
-        log_warning(c64rom_log, "Warning: Unknown Basic image.  Sum: %d ($%04X).", sum, sum);
+        log_warning(c64rom_log, "Unknown Basic image.  Sum: %d ($%04X).", sum, sum);
     }
 
     return 0;

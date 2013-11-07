@@ -139,8 +139,8 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
                 /* Special case: RELATIVE mode looks like EXTENDED mode.  */
                 if (operand_mode == ASM_ADDR_MODE_EXTENDED
                     && opinfo->addr_mode == ASM_ADDR_MODE_REL_BYTE) {
-                    branch_offset = operand_value - (loc + prefixlen + 2);
-                    if (branch_offset > 127 || branch_offset < -128) {
+                    branch_offset = (operand_value - (loc + prefixlen + 2)) & 0xffff;
+                    if (branch_offset > 0x7f && branch_offset < 0xff80) {
                         mon_out("Branch offset too large.\n");
                         return -1;
                     }

@@ -19,9 +19,9 @@
 #include <util/audio/PcmFormat.hh>
 
 #if defined(CONFIG_AUDIO_ALSA)
-	#include <audio/alsa/config.hh>
+#include <audio/alsa/config.hh>
 #else
-	#include <audio/config.hh>
+#include <audio/config.hh>
 #endif
 
 namespace Audio
@@ -31,43 +31,29 @@ namespace Audio
 	{
 	#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO || \
 		defined CONFIG_AUDIO_SDL || defined CONFIG_AUDIO_ALSA
-		#define CONFIG_AUDIO_CAN_USE_MAX_BUFFERS_HINT
+	#define CONFIG_AUDIO_LATENCY_HINT
 	#endif
 
 	#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO
-		#define CONFIG_AUDIO_SOLO_MIX
+	#define CONFIG_AUDIO_SOLO_MIX
 	#endif
 	}
 
 struct BufferContext
 {
-	constexpr BufferContext() { }
 	void *data = nullptr;
 	uframes frames = 0;
+
+	constexpr BufferContext() {}
+	constexpr BufferContext(void *data, uframes frames): data{data}, frames{frames} {}
+
+	operator bool() const
+	{
+		return data;
+	}
 };
 
-static const PcmFormat maxFormat { maxRate, &SampleFormats::s16, 2 };
-
-#if !defined(CONFIG_AUDIO)
-
-static PcmFormat preferredPcmFormat = maxFormat;
-static PcmFormat pcmFormat = maxFormat;
-
-static CallResult init() { return OK; }
-static CallResult openPcm(const PcmFormat &format) { return UNSUPPORTED_OPERATION; }
-static void closePcm() {}
-static bool isOpen(){ return 0; }
-static void writePcm(uchar *samples, uint framesToWrite) {}
-static BufferContext *getPlayBuffer(uint wantedFrames) { return 0; }
-static void commitPlayBuffer(BufferContext *buffer, uint frames) {}
-static int frameDelay() { return 0; }
-static int framesFree() { return 0; }
-static void setHintPcmFramesPerWrite(uint frames) { }
-static void setHintPcmMaxBuffers(uint buffers) { }
-static uint hintPcmMaxBuffers() { return 0; }
-
-#else
-
+static const PcmFormat maxFormat { maxRate, SampleFormats::s16, 2 };
 extern PcmFormat preferredPcmFormat;
 extern PcmFormat pcmFormat; // the currently playing format
 
@@ -78,14 +64,14 @@ void pausePcm();
 void resumePcm();
 void clearPcm();
 bool isOpen();
-void writePcm(uchar *samples, uint framesToWrite);
-BufferContext *getPlayBuffer(uint wantedFrames);
-void commitPlayBuffer(BufferContext *buffer, uint frames);
+bool isPlaying();
+void writePcm(const void *samples, uint framesToWrite);
+BufferContext getPlayBuffer(uint wantedFrames);
+void commitPlayBuffer(BufferContext buffer, uint frames);
 int frameDelay();
 int framesFree();
-void setHintPcmFramesPerWrite(uint frames);
-void setHintPcmMaxBuffers(uint buffers);
-uint hintPcmMaxBuffers();
+void setHintOutputLatency(uint us);
+uint hintOutputLatency();
 void setHintStrictUnderrunCheck(bool on);
 bool hintStrictUnderrunCheck();
 
@@ -93,10 +79,8 @@ bool hintStrictUnderrunCheck();
 void setSoloMix(bool newSoloMix);
 bool soloMix();
 #else
-static void setSoloMix(bool newSoloMix) { }
+static void setSoloMix(bool newSoloMix) {}
 static bool soloMix() { return 0; }
-#endif
-
 #endif
 
 // shortcuts

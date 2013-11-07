@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartEFSC.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartEFSC.hxx 2685 2013-04-06 21:04:11Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEEFSC_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartEFSCWidget.hxx"
+#endif
 
 /**
   Cartridge class used for Homestar Runner by Paul Slocum.
@@ -34,10 +37,12 @@ class System;
   as this scheme doesn't seem to be documented anywhere.
 
   @author  Stephen Anthony
-  @version $Id: CartEFSC.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartEFSC.hxx 2685 2013-04-06 21:04:11Z stephena $
 */
 class CartridgeEFSC : public Cartridge
 {
+  friend class CartridgeEFSCWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -123,6 +128,18 @@ class CartridgeEFSC : public Cartridge
       @return The name of the object
     */
     string name() const { return "CartridgeEFSC"; }
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeEFSCWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
 
   public:
     /**

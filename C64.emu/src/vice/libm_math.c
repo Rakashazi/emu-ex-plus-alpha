@@ -26,7 +26,7 @@
 
 #include "vice.h"
 
-#if !defined(HAVE_LIBM) && !defined(__BEOS__) && !defined(_UWIN)
+#if !defined(HAVE_LIBM) && !defined(BEOS_COMPILE) && !defined(_UWIN)
 #include <errno.h>
 
 #ifdef HAVE_MATH_H

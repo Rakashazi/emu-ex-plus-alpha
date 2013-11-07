@@ -4,7 +4,7 @@ libdir=${exec_prefix}/lib
 
 Name: imagine
 Description: Game/Multimedia Engine
-Version: 1.5.12
-Requires: minizip libpng fontconfig freetype2 dbus-1 bluez alsa x11 xi gl
+Version: 1.5.15
+Requires: minizip libpng fontconfig freetype2 dbus-1 bluez alsa x11 xi xrandr gl
 Libs.private: -lpthread -lm
 Libs: -limagine

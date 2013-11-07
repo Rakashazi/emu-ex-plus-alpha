@@ -18,7 +18,10 @@ ios_imagineLibPathARMv6 ?= $(IMAGINE_PATH)/lib/ios-armv6
 ios_imagineIncludePathARMv6 ?= $(IMAGINE_PATH)/build/ios-armv6/gen
 ios_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/ios-armv7
 ios_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/ios-armv7/gen
-ios_icons := $(wildcard $ios_iconPath/*)
+ios_icons := $(wildcard $(ios_iconPath)/*)
+ifdef HIGH_OPTIMIZE_CFLAGS
+ios_HIGH_OPTIMIZE_CFLAGS_param = "HIGH_OPTIMIZE_CFLAGS=$(HIGH_OPTIMIZE_CFLAGS)"
+endif
 
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone5
@@ -47,7 +50,8 @@ ios_execs += $(ios_armv6Exec)
 ios-armv6 :
 	@echo "Building ARMv6 Executable"
 	$(PRINT_CMD)$(MAKE) -f $(ios_armv6Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
-	buildName=$(ios_buildName)-armv6 imagineLibPath=$(ios_imagineLibPathARMv6) imagineIncludePath=$(ios_imagineIncludePathARMv6)
+	buildName=$(ios_buildName)-armv6 imagineLibPath=$(ios_imagineLibPathARMv6) imagineIncludePath=$(ios_imagineIncludePathARMv6) \
+	$(ios_HIGH_OPTIMIZE_CFLAGS_param)
 $(ios_armv6Exec) : ios-armv6
 
 .PHONY: ios-armv6-install
@@ -71,7 +75,8 @@ ios_execs += $(ios_armv7Exec)
 ios-armv7 :
 	@echo "Building ARMv7 Executable"
 	$(PRINT_CMD)$(MAKE) -f $(ios_armv7Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
-	buildName=$(ios_buildName)-armv7 imagineLibPath=$(ios_imagineLibPathARMv7) imagineIncludePath=$(ios_imagineIncludePathARMv7)
+	buildName=$(ios_buildName)-armv7 imagineLibPath=$(ios_imagineLibPathARMv7) imagineIncludePath=$(ios_imagineIncludePathARMv7) \
+	$(ios_HIGH_OPTIMIZE_CFLAGS_param)
 $(ios_armv7Exec) : ios-armv7
 
 .PHONY: ios-armv7-install

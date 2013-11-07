@@ -38,7 +38,7 @@ public:
 
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -55,18 +55,19 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu);
+				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
 			}
 		}
 	};
 
 public:
-	SystemMenuView() {}
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

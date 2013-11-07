@@ -19,10 +19,10 @@
 #include "Zeemote.hh"
 #include "IControlPad.hh"
 #include <base/Base.hh>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 
-StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> btInputDevPendingList;
+StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
+StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> btInputDevPendingList;
 
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include "PS3Controller.hh"
@@ -34,8 +34,6 @@ static bool hidServiceActive = false;
 
 namespace Bluetooth
 {
-	uint maxGamepadsPerType = 5;
-
 	static bool testSupportedBTDevClasses(const uchar devClass[3])
 	{
 		return Wiimote::isSupportedClass(devClass) ||
@@ -45,13 +43,13 @@ namespace Bluetooth
 
 	static void removePendingDevs()
 	{
-		if(btInputDevPendingList.size)
-			logMsg("removing %d devices in pending list", btInputDevPendingList.size);
-		forEachInDLList(&btInputDevPendingList, e)
+		if(btInputDevPendingList.size())
+			logMsg("removing %d devices in pending list", btInputDevPendingList.size());
+		for(auto e : btInputDevPendingList)
 		{
 			delete e;
-			e_it.removeElem();
 		}
+		btInputDevPendingList.clear();
 	}
 
 #ifdef CONFIG_BLUETOOTH_SERVER
@@ -178,6 +176,11 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 						onScanStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
 						return;
 					}
+					if(btInputDevPendingList.isFull())
+					{
+						logWarn("reached max devices for scan");
+						return;
+					}
 					if(strstr(name, "Nintendo RVL-CNT-01"))
 					{
 						auto *dev = new Wiimote(addr);
@@ -186,7 +189,7 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 							logErr("out of memory");
 							return;
 						}
-						btInputDevPendingList.add(dev);
+						btInputDevPendingList.push_back(dev);
 					}
 					else if(strstr(name, "iControlPad-"))
 					{
@@ -196,7 +199,7 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 							logErr("out of memory");
 							return;
 						}
-						btInputDevPendingList.add(dev);
+						btInputDevPendingList.push_back(dev);
 					}
 					else if(strstr(name, "Zeemote JS1"))
 					{
@@ -206,7 +209,7 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 							logErr("out of memory");
 							return;
 						}
-						btInputDevPendingList.add(dev);
+						btInputDevPendingList.push_back(dev);
 					}
 				}
 			);
@@ -219,29 +222,29 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 		if(!bta)
 			return; // Bluetooth was never used
 		logMsg("closing all BT input devs");
-		while(btInputDevList.size)
+		while(btInputDevList.size())
 		{
-			(*btInputDevList.first())->removeFromSystem();
+			btInputDevList.front()->removeFromSystem();
 		}
 	}
 
 	uint pendingDevs()
 	{
-		return btInputDevPendingList.size;
+		return btInputDevPendingList.size();
 	}
 
 	void connectPendingDevs(BluetoothAdapter *bta)
 	{
-		logMsg("connecting to %d devices", btInputDevPendingList.size);
-		forEachInDLList(&btInputDevPendingList, e)
+		logMsg("connecting to %d devices", btInputDevPendingList.size());
+		for(auto e : btInputDevPendingList)
 		{
 			if(e->open(*bta) != OK)
 			{
 				delete e;
 			}
 			// e is added to btInputDevList
-			e_it.removeElem();
 		}
+		btInputDevPendingList.clear();
 	}
 
 	void closeBT(BluetoothAdapter *&bta)
@@ -261,6 +264,6 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 
 	uint devsConnected()
 	{
-		return btInputDevList.size;
+		return btInputDevList.size();
 	}
 }

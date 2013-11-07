@@ -31,7 +31,12 @@ final class ChoreographerHelper
 			choreographer.postFrameCallback(this);
 			if(!drawWindow(frameTimeNanos))
 			{
+				//Log.i(logTag, "stopping frame updates");
 				choreographer.removeFrameCallback(this);
+			}
+			else
+			{
+				//Log.i(logTag, "continuing frame updates");
 			}
 		}
 	}

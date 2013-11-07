@@ -18,10 +18,11 @@
 #include <base/Base.hh>
 #include <util/bits.h>
 #include <util/cLang.h>
-#include <util/collection/DLList.hh>
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticDLList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> PS3Controller::devList;
+using namespace IG;
+
+extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
+StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> PS3Controller::devList;
 
 static const uint CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2 = 1;
 
@@ -79,7 +80,7 @@ CallResult PS3Controller::open(BluetoothAdapter &adapter)
 CallResult PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
 {
 	ctlSock.onData() = intSock.onData() =
-		[this](const uchar *packet, size_t size)
+		[this](const char *packet, size_t size)
 		{
 			return dataHandler(packet, size);
 		};
@@ -119,18 +120,20 @@ uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("PS3 controller opened successfully");
 		player = findFreeDevId();
-		if(!devList.add(this) || !btInputDevList.add(this) || Input::devList.isFull())
+		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
 		{
 			logErr("No space left in BT input device list");
 			removeFromSystem();
 			delete this;
 			return 1;
 		}
+		devList.push_back(this);
+		btInputDevList.push_back(this);
 		sendFeatureReport();
-		Input::addDevice((Input::Device){player, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"});
-		device = Input::devList.last();
-		Input::onInputDevChange({player, Input::Event::MAP_PS3PAD, Input::DeviceChange::ADDED});
-		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
+		devId = player;
+		Input::addDevice(*this);
+		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
 	{
@@ -153,13 +156,14 @@ void PS3Controller::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Input::removeDevice((Input::Device){player, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, device->name()});
-		Input::onInputDevChange((Input::DeviceChange){player, Input::Event::MAP_PS3PAD, Input::DeviceChange::REMOVED});
+		removeDevice(*this);
+		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
-bool PS3Controller::dataHandler(const uchar *packet, size_t size)
+bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 {
+	auto packet = (const uchar*)packetPtr;
 	/*logMsg("data with size %d", (int)size);
 	iterateTimes(size, i)
 	{
@@ -185,7 +189,8 @@ bool PS3Controller::dataHandler(const uchar *packet, size_t size)
 				if(newState != -1)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e->keyEvent), newState ? "pushed" : "released", player);
-					onInputEvent(Event(player, Event::MAP_PS3PAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, device));
+					Base::endIdleByUserActivity();
+					onInputEvent(Base::mainWindow(), Event(player, Event::MAP_PS3PAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, this));
 				}
 			}
 			memcpy(prevData, digitalBtnData, sizeof(prevData));
@@ -194,7 +199,8 @@ bool PS3Controller::dataHandler(const uchar *packet, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				axisKey[i].dispatch(stickData[i], player, Event::MAP_PS3PAD, *device);
+				if(axisKey[i].dispatch(stickData[i], player, Event::MAP_PS3PAD, *this, Base::mainWindow()))
+					Base::endIdleByUserActivity();
 			}
 		}
 	}
@@ -236,23 +242,23 @@ void PS3Controller::setLEDs(uint player)
 	ctlSock.write(setLEDs, sizeof(setLEDs));
 }
 
-uchar PS3Controller::playerLEDs(int player)
+uchar PS3Controller::playerLEDs(uint player)
 {
 	switch(player)
 	{
 		default:
-		case 0: return BIT(1);
-		case 1: return BIT(2);
-		case 2: return BIT(3);
-		case 3: return BIT(4);
-		case 4: return BIT(4) | BIT(1);
+		case 0: return bit(1);
+		case 1: return bit(2);
+		case 2: return bit(3);
+		case 3: return bit(4);
+		case 4: return bit(4) | bit(1);
 	}
 }
 
 uint PS3Controller::findFreeDevId()
 {
 	uint id[5] {0};
-	forEachInDLList(&PS3Controller::devList, e)
+	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}

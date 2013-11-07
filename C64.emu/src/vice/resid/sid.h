@@ -151,6 +151,9 @@ public:
   short sample_prev, sample_now;
   int fir_N;
   int fir_RES;
+  double fir_beta;
+  double fir_f_cycles_per_sample;
+  double fir_filter_scale;
 
   // Ring buffer with overflow for contiguous storage of RINGSIZE samples.
   short* sample;

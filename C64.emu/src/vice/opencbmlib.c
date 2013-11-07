@@ -31,19 +31,10 @@
 
 #include <stdio.h>
 
+#include "archdep.h"
 #include "log.h"
 #include "opencbmlib.h"
 #include "dynlib.h"
-
-#ifdef WIN32
-#define OPENCBM_SO_NAME  "opencbm.dll"
-#else
-#ifdef MACOSX_SUPPORT
-#define OPENCBM_SO_NAME  "/opt/opencbm/lib/libopencbm.dylib"
-#else
-#define OPENCBM_SO_NAME  "libopencbm.so"
-#endif
-#endif
 
 static void *opencbm_so = NULL;
 
@@ -58,7 +49,7 @@ static void opencbmlib_free_library(void)
 {
     if (opencbm_so != NULL) {
         if (vice_dynlib_close(opencbm_so) != 0) {
-            log_debug("closing dynamic library " OPENCBM_SO_NAME " failed!");
+            log_debug("closing dynamic library " ARCHDEP_OPENCBM_SO_NAME " failed!");
         }
     }
 
@@ -68,10 +59,10 @@ static void opencbmlib_free_library(void)
 static int opencbmlib_load_library(opencbmlib_t *opencbmlib)
 {
     if (opencbm_so == NULL) {
-        opencbm_so = vice_dynlib_open(OPENCBM_SO_NAME);
+        opencbm_so = vice_dynlib_open(ARCHDEP_OPENCBM_SO_NAME);
 
         if (opencbm_so == NULL) {
-            log_verbose("opening dynamic library " OPENCBM_SO_NAME " failed!");
+            log_verbose("opening dynamic library " ARCHDEP_OPENCBM_SO_NAME " failed!");
             return -1;
         }
 
@@ -89,7 +80,7 @@ static int opencbmlib_load_library(opencbmlib_t *opencbmlib)
         GET_SYMBOL_AND_TEST(cbm_get_eoi);
         GET_SYMBOL_AND_TEST(cbm_reset);
 
-        log_verbose("sucessfully loaded " OPENCBM_SO_NAME);
+        log_verbose("sucessfully loaded " ARCHDEP_OPENCBM_SO_NAME);
     }
 
     return 0;

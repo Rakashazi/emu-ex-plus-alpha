@@ -64,7 +64,7 @@ typedef struct gfxoutputdrv_s {
 /* Functions called by external emulator code.  */
 extern int gfxoutput_resources_init(void);
 extern int gfxoutput_cmdline_options_init(void);
-extern int gfxoutput_early_init(void);
+extern int gfxoutput_early_init(int drivers);
 extern int gfxoutput_init(void);
 extern void gfxoutput_shutdown(void);
 extern int gfxoutput_num_drivers(void);

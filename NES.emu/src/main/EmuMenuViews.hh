@@ -9,15 +9,14 @@ class SystemOptionView : public OptionView
 {
 public:
 
-	BiosSelectMenu biosSelectMenu {&::fdsBiosPath, biosFsFilter};
 	char fdsBiosPathStr[256] {0};
 	TextMenuItem fdsBiosPath
 	{
 		"",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
+			auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath, biosFsFilter, window());
 			biosSelectMenu.init(!e.isPointer());
-			biosSelectMenu.placeRect(Gfx::viewportRect());
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
@@ -25,8 +24,7 @@ public:
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile();
 				};
-			modalView = &biosSelectMenu;
-			Base::displayNeedsUpdate();
+			viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
 		}
 	};
 
@@ -40,9 +38,9 @@ public:
 	BoolMenuItem fourScore
 	{
 		"4-Player Adapter",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionFourScore = item.on;
 			setupNESFourScore();
 		}
@@ -125,7 +123,7 @@ public:
 
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadVideoItems(MenuItem *item[], uint &items)
 	{
@@ -191,7 +189,7 @@ private:
 
 	MenuItem *item[5] = {nullptr}; //sizeofArrayConst(setSide) + 2 not accepted by older GCC
 public:
-	FDSControlView(): BaseMenuView("FDS Control") { }
+	FDSControlView(Base::Window &win): BaseMenuView("FDS Control", win) {}
 
 	void init(bool highlightFirst)
 	{
@@ -206,14 +204,12 @@ public:
 	}
 };
 
-static FDSControlView fdsMenu;
-
 class SystemMenuView : public MenuView
 {
 private:
 	struct FDSControlMenuItem : public TextMenuItem
 	{
-		constexpr FDSControlMenuItem() { }
+		constexpr FDSControlMenuItem() {}
 		char label[sizeof("FDS Control (Disk 1:A)")] {0};
 		void init()
 		{
@@ -237,8 +233,9 @@ private:
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
+				auto &fdsMenu = *menuAllocator.allocNew<FDSControlView>(view->window());
 				fdsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&fdsMenu);
+				viewStack.pushAndShow(&fdsMenu, &menuAllocator);
 			}
 			else
 				popup.post("Disk System not in use", 2);
@@ -248,18 +245,19 @@ private:
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu);
+				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
 			}
 		}
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

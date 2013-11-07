@@ -3,14 +3,22 @@
 
 static const char *installFirmwareFilesMessage =
 	#if defined(CONFIG_BASE_ANDROID)
-		"Install the C-BIOS BlueMSX machine files to your storage device?";
+	"Install the C-BIOS BlueMSX machine files to your storage device?";
 	#elif defined(CONFIG_ENV_WEBOS)
-		"Install the C-BIOS BlueMSX machine files to internal storage? If using WebOS 1.4.5, make sure you have a version without the write permission bug.";
+	"Install the C-BIOS BlueMSX machine files to internal storage? If using WebOS 1.4.5, make sure you have a version without the write permission bug.";
 	#elif defined(CONFIG_BASE_IOS_JB)
-		"Install the C-BIOS BlueMSX machine files to /User/Media/MSX.emu?";
+	"Install the C-BIOS BlueMSX machine files to /User/Media/MSX.emu?";
 	#else
-		"Install the C-BIOS BlueMSX machine files to Machines directory?";
+	"Install the C-BIOS BlueMSX machine files to Machines directory?";
 	#endif
+static char installFirmwareFilesStr[512] = "";
+
+template <size_t S>
+static void printInstallFirmwareFilesStr(char (&str)[S])
+{
+	FsSys::cPath basenameTemp;
+	string_printf(str, "Install the C-BIOS BlueMSX machine files to: %s", machineBasePath);
+}
 
 static void installFirmwareFiles()
 {
@@ -78,44 +86,13 @@ static void installFirmwareFiles()
 	popup.post("Installation OK");
 }
 
-class MsxMachineChoiceView : public BaseMultiChoiceView
-{
-public:
-	constexpr MsxMachineChoiceView() { }
-	MultiChoiceMenuItem *srcEntry = nullptr;
-	TextMenuItem choiceEntry[256];
-	MenuItem *choiceEntryItem[256] {nullptr};
-
-	void init(MultiChoiceMenuItem *src, bool highlightFirst)
-	{
-		assert((uint)src->choices <= sizeofArray(choiceEntry));
-		iterateTimes(src->choices, i)
-		{
-			choiceEntry[i].init(src->choiceStr[i], src->t2.face);
-			choiceEntryItem[i] = &choiceEntry[i];
-		}
-		BaseMenuView::init(choiceEntryItem, src->choices, highlightFirst, C2DO);
-		srcEntry = src;
-	}
-
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
-	{
-		assert((int)i < srcEntry->choices);
-		logMsg("set choice %d", i);
-		srcEntry->setVal(i);
-		removeModalView();
-	}
-};
-
-static MsxMachineChoiceView msxMachineChoiceView;
-
 class SystemOptionView : public OptionView
 {
 private:
 
 	struct MsxMachineItem : public MultiChoiceSelectMenuItem
 	{
-		constexpr MsxMachineItem() { }
+		constexpr MsxMachineItem() {}
 
 		static int dirFsFilter(const char *name, int type)
 		{
@@ -127,6 +104,8 @@ private:
 
 		void init()
 		{
+			if(machines)
+				deinit();
 			FsSys f;
 			static const char *title = "Machine Type";
 			static const char *noneStr[] = { "None" };
@@ -167,7 +146,7 @@ private:
 			}
 
 			MultiChoiceSelectMenuItem::init(title, (const char **)machineName,
-					currentMachineIdx, machines, 0, 1, currentMachineIdx == -1 ? "None" : 0);
+				currentMachineIdx, machines, 0, true, currentMachineIdx == -1 ? "None" : nullptr);
 		}
 
 		void select(View *view, const Input::Event &e)
@@ -177,9 +156,16 @@ private:
 				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath);
 				return;
 			}
-			msxMachineChoiceView.init(this, !e.isPointer());
-			msxMachineChoiceView.placeRect(Gfx::viewportRect());
-			modalView = &msxMachineChoiceView;
+			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Machine Type", view->window());
+			multiChoiceView.init(*this, !e.isPointer());
+			multiChoiceView.onSelect() =
+				[this, view](int idx, const Input::Event &e)
+				{
+					setVal(idx, *view);
+					viewStack.popAndShow();
+					return 0;
+				};
+			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 		}
 
 		void deinit()
@@ -190,6 +176,7 @@ private:
 			{
 				mem_free(machineName[i]);
 			}
+			machines = 0;
 		}
 
 		void doSet(int val)
@@ -204,10 +191,11 @@ private:
 	TextMenuItem installCBIOS
 	{
 		"Install MSX C-BIOS",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>();
-			ynAlertView.init(installFirmwareFilesMessage, !e.isPointer());
+			printInstallFirmwareFilesStr(installFirmwareFilesStr);
+			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			ynAlertView.init(installFirmwareFilesStr, !e.isPointer());
 			ynAlertView.onYes() =
 				[](const Input::Event &e)
 				{
@@ -220,22 +208,56 @@ private:
 
 	BoolMenuItem skipFdcAccess
 	{
-		"Fast-forward disk IO",
-		[](BoolMenuItem &item, const Input::Event &e)
+		"Fast-forward Disk IO",
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionSkipFdcAccess = item.on;
 		}
 	};
 
+	template <size_t S>
+	static void printMachinePathMenuEntryStr(char (&str)[S])
+	{
+		FsSys::cPath basenameTemp;
+		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath) ? string_basename(machineCustomPath, basenameTemp) : "Default");
+	}
+
+	FirmwarePathSelector machineFileSelector;
+	char machineFilePathStr[256] {0};
+	TextMenuItem machineFilePath
+	{
+		"",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			machineFileSelector.init("System/BIOS Path", !e.isPointer());
+			machineFileSelector.onPathChange =
+				[this](const char *newPath)
+				{
+					printMachinePathMenuEntryStr(machineFilePathStr);
+					machineFilePath.compile();
+					setMachineBasePath(machineBasePath, machineCustomPath);
+					msxMachine.init();
+					msxMachine.compile();
+					if(!strlen(newPath))
+					{
+						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::appPath : Base::storagePath());
+					}
+				};
+			displayNeedsUpdate();
+		}
+	};
+
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
 		msxMachine.init(); item[items++] = &msxMachine;
 		skipFdcAccess.init(optionSkipFdcAccess); item[items++] = &skipFdcAccess;
+		printMachinePathMenuEntryStr(machineFilePathStr);
+		machineFilePath.init(machineFilePathStr, true); item[items++] = &machineFilePath;
 		#if !defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_IOS_JB)
 		installCBIOS.init(); item[items++] = &installCBIOS;
 		#endif
@@ -310,8 +332,8 @@ public:
 
 	void addHDFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
 			[this, slot](const char* name, const Input::Event &e)
 			{
@@ -332,31 +354,31 @@ public:
 		if(!item.active) return;
 		if(strlen(hdName[slot]))
 		{
-			auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Hard Drive", window());
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
 				{
 					if(action == 0)
 					{
-						removeModalView();
+						viewStack.popAndShow();
 						addHDFilePickerView(e, slot);
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					else
 					{
 						diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
 						onHDMediaChange("", slot);
-						removeModalView();
+						viewStack.popAndShow();
 					}
 					return 0;
 				};
-			View::addModalView(multiChoiceView);
+			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addHDFilePickerView(e, slot);
-			Base::displayNeedsUpdate();
+			window().displayNeedsUpdate();
 		}
 	}
 
@@ -388,8 +410,8 @@ public:
 
 	void addROMFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
 		fPicker.onSelectFile() =
 			[this, slot](const char* name, const Input::Event &e)
 			{
@@ -405,34 +427,34 @@ public:
 
 	void onSelectROM(const Input::Event &e, uint8 slot)
 	{
-		auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+		auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("ROM Cartridge Slot", window());
 		multiChoiceView.init(insertEjectRomMenuStr, sizeofArray(insertEjectRomMenuStr), !e.isPointer());
 		multiChoiceView.onSelect() =
 			[this, slot](int action, const Input::Event &e)
 			{
 				if(action == 0)
 				{
-					removeModalView();
+					viewStack.popAndShow();
 					addROMFilePickerView(e, slot);
-					Base::displayNeedsUpdate();
+					window().displayNeedsUpdate();
 				}
 				else if(action == 1)
 				{
 					boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
 					onROMMediaChange("", slot);
-					removeModalView();
+					viewStack.popAndShow();
 				}
 				else if(action == 2)
 				{
 					boardChangeCartridge(slot, ROM_SCC, "", 0);
 					onROMMediaChange("SCC", slot);
-					removeModalView();
+					viewStack.popAndShow();
 				}
 				else if(action == 3)
 				{
 					boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
 					onROMMediaChange("SCC+", slot);
-					removeModalView();
+					viewStack.popAndShow();
 				}
 				else if(action == 4)
 				{
@@ -442,11 +464,11 @@ public:
 					}
 					else
 						onROMMediaChange("Sunrise IDE", slot);
-					removeModalView();
+					viewStack.popAndShow();
 				}
 				return 0;
 			};
-		View::addModalView(multiChoiceView);
+		viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 	}
 
 	TextMenuItem romSlot[2]
@@ -474,8 +496,8 @@ public:
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>();
-		fPicker.init(!e.isPointer(), MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
+		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
 			[this, slot](const char* name, const Input::Event &e)
 			{
@@ -494,32 +516,32 @@ public:
 	{
 		if(strlen(diskName[slot]))
 		{
-			auto &multiChoiceView = *allocModalView<MultiChoiceView>();
+			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Disk Drive", window());
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
 				{
 					if(action == 0)
 					{
-						removeModalView();
+						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
-						Base::displayNeedsUpdate();
+						window().displayNeedsUpdate();
 					}
 					else
 					{
 						diskChange(slot, 0, 0);
 						onDiskMediaChange("", slot);
-						removeModalView();
+						viewStack.popAndShow();
 					}
 					return 0;
 				};
-			View::addModalView(multiChoiceView);
+			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addDiskFilePickerView(e, slot);
 		}
-		Base::displayNeedsUpdate();
+		window().displayNeedsUpdate();
 	}
 
 	TextMenuItem diskSlot[2]
@@ -530,7 +552,7 @@ public:
 
 	MenuItem *item[9] {nullptr};
 public:
-	MsxIOControlView(): BaseMenuView("IO Control") { }
+	MsxIOControlView(Base::Window &win): BaseMenuView("IO Control", win) {}
 
 	void init(bool highlightFirst)
 	{
@@ -555,8 +577,6 @@ public:
 	}
 };
 
-static MsxIOControlView msxIoMenu;
-
 const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
@@ -567,13 +587,14 @@ private:
 	TextMenuItem msxIOControl
 	{
 		"ROM/Disk Control",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(item.active)
 			{
 				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
+				auto &msxIoMenu = *menuAllocator.allocNew<MsxIOControlView>(window());
 				msxIoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&msxIoMenu);
+				viewStack.pushAndShow(&msxIoMenu, &menuAllocator);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{
@@ -583,7 +604,7 @@ private:
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void gameStopped()
 	{

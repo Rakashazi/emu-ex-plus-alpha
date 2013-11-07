@@ -21,7 +21,7 @@ final class FontRenderer
 	Bitmap charBitmap()
 	{
 		bitmap = Bitmap.createBitmap(cXSize, cYSize, Bitmap.Config.ALPHA_8);
-		Log.i(logTag, "created bitmap " + bitmap.toString());
+		//Log.i(logTag, "created bitmap " + bitmap.toString());
 		bitmap.eraseColor(Color.TRANSPARENT);
 		canvas.setBitmap(bitmap);
 		char[] cStr = new char[2];

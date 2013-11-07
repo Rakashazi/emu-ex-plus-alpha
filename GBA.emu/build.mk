@@ -1,29 +1,14 @@
 ifndef inc_main
 inc_main := 1
 
-ifeq ($(ARCH), arm)
- ifneq ($(config_compiler), clang)
-  ifeq (4.7, $(findstring 4.7,$(gccVersion)))
-   # -fexpensive-optimizations seems to cause miscompile on ARM GCC 4.7.x (Golden Sun), fixed in GCC 4.8
-   HIGH_OPTIMIZE_CFLAGS := -O3 -fno-expensive-optimizations $(HIGH_OPTIMIZE_CFLAGS_MISC)
-  endif
- endif
-endif
-
-ifeq ($(config_compiler), clang)
- HIGH_OPTIMIZE_CFLAGS = -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
-endif
+#ifeq ($(config_compiler), clang)
+# HIGH_OPTIMIZE_CFLAGS = -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
+#endif
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 CPPFLAGS += -DHAVE_ZLIB_H -DFINAL_VERSION -DC_CORE -DNO_PNG -DNO_LINK -DNO_DEBUGGER -DBLIP_BUFFER_FAST=1 \
 -DSysDecimal=float -Isrc/vbam
-
-ifneq ($(config_compiler),clang)
- ifeq (4.7, $(findstring 4.7,$(gccVersion)))
-  OPTIMIZE_CFLAGS += --param inline-unit-growth=2000
- endif
-endif
 
 emuFramework_cheats := 1
 include ../EmuFramework/common.mk

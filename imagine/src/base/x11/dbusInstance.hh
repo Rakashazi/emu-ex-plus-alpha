@@ -3,10 +3,7 @@
 #include <dbus/dbus.h>
 
 static DBusConnection *bus = nullptr;
-//static const char *instanceName = CONFIG_APP_ID "-instance";
-
 #define DBUS_APP_OBJECT_PATH "/com/explusalpha/imagine"
-//#define DBUS_APP_INTERFACE CONFIG_APP_ID
 static const char *dbusAppInterface = nullptr;
 
 static bool initDBus()
@@ -60,7 +57,6 @@ static DBusHandlerResult dbusSignalHandler(DBusConnection *connection, DBusMessa
 
 struct DBusWatchHandler
 {
-	DBusWatchHandler(DBusConnection *conn, DBusWatch *watch): conn(conn), watch(watch) { }
 	Base::PollEventDelegate pollEvDel
 	{
 		[this](int event)
@@ -94,6 +90,8 @@ struct DBusWatchHandler
 	};
 	DBusConnection *conn;
 	DBusWatch *watch;
+
+	DBusWatchHandler(DBusConnection *conn, DBusWatch *watch): conn(conn), watch(watch) {}
 };
 
 static dbus_bool_t addDbusWatch(DBusWatch *watch, void *conn)

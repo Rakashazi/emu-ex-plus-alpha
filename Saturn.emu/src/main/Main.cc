@@ -1,6 +1,5 @@
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -89,7 +88,7 @@ static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32
 	{
 		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
 	}
-	Audio::writePcm((uchar*)sample, frames);
+	EmuSystem::writeSound(sample, frames);
 }
 
 static u32 SNDImagineGetAudioSpace()
@@ -237,7 +236,12 @@ static yabauseinit_struct yinit =
 
 
 const uint EmuSystem::maxPlayers = 2;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
 
 void EmuSystem::initOptions()
@@ -256,6 +260,8 @@ void EmuSystem::initOptions()
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(3);
 }
+
+void EmuSystem::onOptionsLoaded() {}
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -549,9 +555,9 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -563,11 +569,11 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 CallResult onInit(int argc, char** argv)
 {
 	ScspSetFrameAccurate(1);
-	mainInitCommon();
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -578,7 +584,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

@@ -512,7 +512,7 @@ static int attach_disk_image(disk_image_t **imgptr, vdrive_t *floppy,
     }
 
     new_image.gcr = NULL;
-    new_image.p64 = lib_malloc(sizeof(TP64Image));
+    new_image.p64 = lib_calloc(1, sizeof(TP64Image));
     new_image.read_only = (unsigned int)attach_device_readonly_enabled[unit - 8];
 
     switch (devicetype) {

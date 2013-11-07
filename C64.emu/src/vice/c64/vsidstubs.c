@@ -499,7 +499,7 @@ void digimax_userport_store(WORD addr, BYTE value)
     gfxoutput drivers
 *******************************************************************************/
 
-int gfxoutput_early_init(void)
+int gfxoutput_early_init(int drivers)
 {
     return 0;
 }

@@ -2,6 +2,7 @@ include ../EmuFramework/metadata/conf.mk
 metadata_name = NEO.emu
 metadata_exec = neoemu
 metadata_pkgName = NeoEmu
+metadata_supportedMIMETypes = application/zip
 webOS_metadata_id = com.explusalpha.neoemu
 metadata_id = com.explusalpha.NeoEmu
 metadata_vendor = Robert Broglia

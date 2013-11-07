@@ -48,7 +48,7 @@ void MsgPopup::unpost()
 	logMsg("unposting");
 	callbackRef = nullptr;
 	text.str = 0;
-	Base::displayNeedsUpdate();
+	Base::mainWindow().displayNeedsUpdate();
 }
 
 void MsgPopup::post(const char *msg, int secs, bool error)
@@ -77,7 +77,7 @@ void MsgPopup::draw()
 			setColor(1., 0, 0, .7);
 		else
 			setColor(0, 0, 1., .7);
-		Rect2<GC> rect(-Gfx::proj.wHalf(), -Gfx::proj.hHalf(),
+		IG::Rect2<GC> rect(-Gfx::proj.wHalf(), -Gfx::proj.hHalf(),
 				Gfx::proj.wHalf(), -Gfx::proj.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		if(Input::softInputIsActive())
@@ -89,7 +89,7 @@ void MsgPopup::draw()
 		#endif
 		GeomRect::draw(rect);
 		setColor(1., 1., 1., 1.);
-		text.draw(0, rect.y + (text.ySize * 1.5)/2., C2DO, C2DO);
+		text.draw(0, Gfx::alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, C2DO);
 	}
 }
 

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,47 +20,43 @@
 #define RATEEST_H
 
 #include "usec.h"
+#include <cstddef>
 #include <deque>
 #include <utility>
 
 class RateEst {
+public:
+	RateEst() { *this = RateEst(0, 0); }
+	RateEst(long nominalSampleRate, std::size_t maxValidFeedPeriodSamples);
+	void resetLastFeedTimeStamp() { last_ = 0; }
+	void feed(std::ptrdiff_t samples, usec_t usecsNow = getusecs());
+	long result() const { return (srate_ + est_scale / 2) >> est_lshift; }
+
+private:
 	class SumQueue {
-		typedef std::pair<long, usec_t> pair_t;
-		typedef std::deque<pair_t> q_t;
-
-		q_t q;
-		long samples_;
-		usec_t usecs_;
-
 	public:
-		constexpr SumQueue() : samples_(0), usecs_(0) {}
-		void reset();
-		long samples() const { return samples_; }
+		SumQueue() : samples_(0), usecs_(0) {}
+		std::ptrdiff_t samples() const { return samples_; }
 		usec_t usecs() const { return usecs_; }
-		void push(long samples, usec_t usecs);
+		void push(std::ptrdiff_t samples, usec_t usecs);
 		void pop();
+
+	private:
+		std::deque< std::pair<std::ptrdiff_t, usec_t> > q_;
+		std::ptrdiff_t samples_;
+		usec_t usecs_;
 	};
 
-	enum { UPSHIFT = 5 };
-	enum { UP = 1 << UPSHIFT };
+	enum { est_lshift = 5 };
+	enum { est_scale = 1 << est_lshift };
 
-	long srate;
-	SumQueue sumq;
-	usec_t last;
-	usec_t usecs;
-	usec_t maxPeriod;
-	long reference;
-	long samples;
-
-public:
-	explicit RateEst(long srate = 0) { init(srate); }
-	RateEst(long srate, long reference) { init(srate, reference); }
-	void init(long srate) { init(srate, srate); }
-	void init(long srate, long reference) { init(srate, reference, reference); }
-	void init(long srate, long reference, long maxSamplePeriod);
-	void reset() { last = 0; }
-	void feed(long samples, usec_t usecs = getusecs());
-	long result() const { return (srate + UP / 2) >> UPSHIFT; }
+	SumQueue sumq_;
+	long srate_;
+	long reference_;
+	usec_t maxPeriod_;
+	usec_t last_;
+	usec_t usecs_;
+	std::ptrdiff_t samples_;
 };
 
 #endif

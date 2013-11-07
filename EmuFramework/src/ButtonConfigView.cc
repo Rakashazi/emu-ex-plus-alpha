@@ -85,7 +85,7 @@ void ButtonConfigSetView::place()
 		unbind.compile();
 		cancel.compile();
 
-		Rect2<int> btnFrame;
+		IG::Rect2<int> btnFrame;
 		btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
 		unbindB = btnFrame;
 		unbindB.x = (viewFrame.xSize()/2)*0;
@@ -104,17 +104,17 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 	{
 		initPointerUI();
 		place();
-		Base::displayNeedsUpdate();
+		displayNeedsUpdate();
 	}
 	else if(pointerUIIsInit() && e.isPointer() && e.state == Input::RELEASED)
 	{
-		if(unbindB.overlaps(e.x, e.y))
+		if(unbindB.overlaps({e.x, e.y}))
 		{
 			logMsg("unbinding key");
 			onSetD(Input::Event());
 			removeModalView();
 		}
-		else if(cancelB.overlaps(e.x, e.y))
+		else if(cancelB.overlaps({e.x, e.y}))
 		{
 			removeModalView();
 		}
@@ -131,7 +131,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 				popup.clear();
 				removeModalView();
 				viewStack.popTo(imMenu);
-				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>();
+				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
 				imdMenu.init(1, inputDevConf[d->idx]);
 				imdMenu.name_ = imMenu->inputDevNameStr[d->idx];
 				viewStack.pushAndShow(&imdMenu, &menuAllocator);
@@ -140,7 +140,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			{
 				savedDev = d;
 				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", imMenu->inputDevNameStr[d->idx]);
-				Base::displayNeedsUpdate();
+				displayNeedsUpdate();
 			}
 			return;
 		}
@@ -198,7 +198,7 @@ void uniqueCustomConfigName(char (&name)[S])
 		// Check if this name is free
 		logMsg("checking %s", name);
 		bool exists = 0;
-		forEachInDLList(&customKeyConfig, e)
+		for(auto &e : customKeyConfig)
 		{
 			logMsg("against %s", e.name);
 			if(string_equal(e.name, name))
@@ -257,7 +257,7 @@ void ButtonConfigView::inputEvent(const Input::Event &e)
 	{
 		// unset key
 		onSet(Input::Event(), tbl.selected-1);
-		Base::displayNeedsUpdate();
+		displayNeedsUpdate();
 	}
 	else
 		BaseMenuView::inputEvent(e);
@@ -284,7 +284,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 			[this, i2](DualTextMenuItem &item, const Input::Event &e)
 			{
 				auto keyToSet = i2;
-				auto &btnSetView = *allocModalView<ButtonConfigSetView>();
+				auto &btnSetView = *allocModalView<ButtonConfigSetView>(window());
 				btnSetView.init(*this->devConf->dev, btn[keyToSet].t.str, e.isPointer(),
 					[this, keyToSet](const Input::Event &e)
 					{
@@ -308,13 +308,14 @@ void ButtonConfigView::deinit()
 	delete[] text;
 }
 
-ButtonConfigView::ButtonConfigView():
+ButtonConfigView::ButtonConfigView(Base::Window &win):
+	BaseMenuView(win),
 	reset
 	{
 		"Unbind All",
 		[this](TextMenuItem &t, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>();
+			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 			ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)

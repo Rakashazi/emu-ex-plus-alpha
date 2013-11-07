@@ -5,15 +5,14 @@
 namespace Gfx
 {
 
-GC mmToPixelXScaler = 0, mmToPixelYScaler = 0;
-#ifdef CONFIG_BASE_ANDROID
-GC smmToPixelXScaler = 0, smmToPixelYScaler = 0;
-#endif
-uint viewPixelWidth_ = 0, viewPixelHeight_ = 0, viewMMWidth_ = 0, viewMMHeight_ = 0,
-	viewSMMWidth_ = 0, viewSMMHeight_ = 0;
 Projector proj;
 
-void setupScreenSize()
+}
+
+namespace Base
+{
+
+void Window::setupScreenSize()
 {
 	assert(viewMMWidth_ != 0 && viewMMHeight_ != 0);
 	mmToPixelXScaler = (GC)viewPixelWidth() / (GC)viewMMWidth();
@@ -22,7 +21,7 @@ void setupScreenSize()
 	smmToPixelXScaler = (GC)viewPixelWidth() / (GC)viewSMMWidth();
 	smmToPixelYScaler = (GC)viewPixelHeight() / (GC)viewSMMHeight();
 #endif
-	proj.updateMMSize();
+	Gfx::proj.updateMMSize(*this);
 }
 
 static GC orientationToGC(uint o)
@@ -38,11 +37,9 @@ static GC orientationToGC(uint o)
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
-uint rotateView = VIEW_ROTATE_0;
-static uint validOrientations = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
-uint preferedOrientation = VIEW_ROTATE_0;
+static uint validOrientations = Base::VIEW_ROTATE_0 | Base::VIEW_ROTATE_90 | Base::VIEW_ROTATE_180 | Base::VIEW_ROTATE_270;
 
-uint setValidOrientations(uint oMask, bool manageAutoOrientation)
+uint Window::setValidOrientations(uint oMask, bool manageAutoOrientation)
 {
 	if(oMask == VIEW_ROTATE_AUTO)
 	{
@@ -50,7 +47,7 @@ uint setValidOrientations(uint oMask, bool manageAutoOrientation)
 	}
 	else
 	{
-		assert(oMask >= BIT(0) && oMask < BIT(4));
+		assert(oMask >= bit(0) && oMask < bit(4));
 	}
 
 	if(manageAutoOrientation)

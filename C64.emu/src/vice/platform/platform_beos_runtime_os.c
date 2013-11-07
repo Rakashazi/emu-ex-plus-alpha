@@ -32,7 +32,7 @@
 
 #include "vice.h"
 
-#ifdef __BEOS__
+#ifdef BEOS_COMPILE
 
 #include <sys/utsname.h>
 #include <string.h>

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Thumbulator.cxx 2725 2013-05-07 18:53:21Z stephena $
 //============================================================================
 
 //============================================================================
@@ -48,8 +48,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal)
   : rom(rom_ptr),
-    ram(ram_ptr),
-    copydata(0)
+    ram(ram_ptr)
 {
 	#ifdef THUMB_DEBUG_SUPPORT
   trapFatalErrors(traponfatal);

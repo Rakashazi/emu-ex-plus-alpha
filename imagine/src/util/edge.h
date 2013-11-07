@@ -1,7 +1,7 @@
 #pragma once
 
-enum EdgeBits { EDGE_TOP = BIT(0), EDGE_RIGHT = BIT(1), EDGE_BOTTOM = BIT(2), EDGE_LEFT = BIT(3),
-	 EDGE_TOPRIGHT = BIT(4), EDGE_BOTTOMRIGHT = BIT(5), EDGE_BOTTOMLEFT = BIT(6), EDGE_TOPLEFT = BIT(7) };
+enum EdgeBits { EDGE_TOP = IG::bit(0), EDGE_RIGHT = IG::bit(1), EDGE_BOTTOM = IG::bit(2), EDGE_LEFT = IG::bit(3),
+	 EDGE_TOPRIGHT = IG::bit(4), EDGE_BOTTOMRIGHT = IG::bit(5), EDGE_BOTTOMLEFT = IG::bit(6), EDGE_TOPLEFT = IG::bit(7) };
 
 #define EDGE_T EDGE_TOP
 #define EDGE_R EDGE_RIGHT

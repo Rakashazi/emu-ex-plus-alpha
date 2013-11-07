@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCM.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartCM.cxx 2704 2013-04-22 16:41:05Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -38,8 +38,8 @@ CartridgeCM::CartridgeCM(const uInt8* image, uInt32 size, const Settings& settin
 
   // On powerup, portA is all 1's, so the last bank of ROM is enabled and
   // RAM is disabled
-  myStartBank = 3;
-  myRamState = 0x10;
+  mySWCHA = 0xff;
+  myStartBank = mySWCHA & 0x3;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -97,8 +97,8 @@ bool CartridgeCM::poke(uInt16 address, uInt8 value)
     // RIOT mirroring, check bankswitch
     if(address == 0x280)
     {
-      myRamState = value;
-      bank(myRamState & 0x3);
+      mySWCHA = value;
+      bank(mySWCHA & 0x3);
       if(value & 0x20) myColumn = 0;
       if(value & 0x40) myColumn = (myColumn + 1) % 10;
     }
@@ -140,7 +140,7 @@ bool CartridgeCM::bank(uInt16 bank)
   {
     access.type = System::PA_READWRITE;
 
-    if(myRamState & 0x10)
+    if(mySWCHA & 0x10)
     {
       access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
       access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
@@ -151,7 +151,7 @@ bool CartridgeCM::bank(uInt16 bank)
       access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x07FF)];
     }
 
-    if((myRamState & 0x30) == 0x20)
+    if((mySWCHA & 0x30) == 0x20)
       access.directPokeBase = &myRAM[address & 0x7FF];
     else
       access.directPokeBase = 0;
@@ -181,7 +181,7 @@ uInt16 CartridgeCM::bankCount() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCM::patch(uInt16 address, uInt8 value)
 {
-  if((myRamState & 0x30) == 0x20)
+  if((mySWCHA & 0x30) == 0x20)
     myRAM[address & 0x7FF] = value;
   else
     myImage[(myCurrentBank << 12) + address] = value;
@@ -203,7 +203,7 @@ bool CartridgeCM::save(Serializer& out) const
   {
     out.putString(name());
     out.putShort(myCurrentBank);
-    out.putByte(myRamState);
+    out.putByte(mySWCHA);
     out.putByte(myColumn);
     out.putByteArray(myRAM, 2048);
   }
@@ -225,7 +225,7 @@ bool CartridgeCM::load(Serializer& in)
       return false;
 
     myCurrentBank = in.getShort();
-    myRamState = in.getByte();
+    mySWCHA = in.getByte();
     myColumn = in.getByte();
     in.getByteArray(myRAM, 2048);
   }

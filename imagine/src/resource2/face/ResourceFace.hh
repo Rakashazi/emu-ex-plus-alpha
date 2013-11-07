@@ -55,7 +55,7 @@ public:
 	CallResult getImage(Pixmap &dest) override { return face->writeCurrentChar(dest); }
 	uint width() override { return entry->metrics.xSize; }
 	uint height() override { return entry->metrics.ySize; }
-	const PixelFormatDesc *pixelFormat() override { return &PixelFormatI8; }
+	const PixelFormatDesc *pixelFormat() override { return &PixelFormatA8; }
 
 	ResourceFace *face;
 	GlyphEntry *entry;

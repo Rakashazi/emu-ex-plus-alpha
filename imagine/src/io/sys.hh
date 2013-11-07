@@ -4,13 +4,16 @@
 #include <fs/sys.hh> // for FsSys::cPath
 #include <base/Base.hh>
 
-#ifdef CONFIG_IO_FD
-	#include <io/fd/IoFd.hh>
-	#define IoSys IoFd
+#if defined CONFIG_IO_FD
+#include <io/fd/IoFd.hh>
+#define IoSys IoFd
+#elif defined CONFIG_IO_WIN32
+#include <io/win32/IoWin32.hh>
+#define IoSys IoWin32
 #endif
 
 #ifdef CONFIG_BASE_ANDROID
-	#include <io/zip/IoZip.hh>
+#include <io/zip/IoZip.hh>
 #endif
 
 static CallResult copyIoToPath(Io *io, const char *outPath)

@@ -37,7 +37,7 @@ public:
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
 //private:
 	bool openDefault();
-	bool handleScanClass(int classInt);
+	bool handleScanClass(uint classInt);
 	void handleScanName(JNIEnv* env, jstring name, jstring addr);
 	void handleScanStatus(int status);
 	void handleTurnOnResult(bool success);

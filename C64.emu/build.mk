@@ -335,15 +335,9 @@ libsid_a_SOURCES = \
 	sid.c
 libsid_a_SOURCES := $(addprefix sid/,$(libsid_a_SOURCES))
 
-ifneq ($(ENV),ios)
- EXTRA_libsid_a_SOURCES += resid.cc
- libresid_a_SOURCES = sid.cc voice.cc wave.cc envelope.cc filter.cc dac.cc extfilt.cc pot.cc #version.cc
- libresid_a_SOURCES := $(addprefix resid/,$(libresid_a_SOURCES))
-endif
-
-#EXTRA_libsid_a_SOURCES += resid-fp.cc
-#libresidfp_a_SOURCES = sid.cc voice.cc wave.cc envelope.cc filter.cc extfilt.cc pot.cc convolve.cc convolve-sse.cc #version.cc
-#libresidfp_a_SOURCES := $(addprefix resid-fp/,$(libresidfp_a_SOURCES))
+EXTRA_libsid_a_SOURCES += resid.cc
+libresid_a_SOURCES = sid.cc voice.cc wave.cc envelope.cc filter.cc dac.cc extfilt.cc pot.cc #version.cc
+libresid_a_SOURCES := $(addprefix resid/,$(libresid_a_SOURCES))
 
 EXTRA_libsid_a_SOURCES := $(addprefix sid/,$(EXTRA_libsid_a_SOURCES))
 
@@ -527,7 +521,7 @@ $(libp64_a_SOURCES) $(libimagecontents_a_SOURCES) $(libmonitor_a_SOURCES) $(libi
 $(libparallel_a_SOURCES) $(libvdrive_a_SOURCES) $(libsid_a_SOURCES) $(librtc_a_SOURCES) $(libtape_a_SOURCES) \
 $(libuserport_a_SOURCES) $(libvicii_a_SOURCES) $(libraster_a_SOURCES) $(libvideo_a_SOURCES) $(libserial_a_SOURCES) \
 $(libfsdevice_a_SOURCES) $(base_sources) $(libprinterdrv_a_SOURCES) $(librs232drv_a_SOURCES) $(libresid_a_SOURCES) \
-$(libdiskimage_a_SOURCES) $(libfileio_a_SOURCES) $(EXTRA_libsid_a_SOURCES) $(libsounddrv_a_SOURCES) $(libresidfp_a_SOURCES) \
+$(libdiskimage_a_SOURCES) $(libfileio_a_SOURCES) $(EXTRA_libsid_a_SOURCES) $(libsounddrv_a_SOURCES) \
 maincpu.c
 
 include $(IMAGINE_PATH)/make/package/zlib.mk

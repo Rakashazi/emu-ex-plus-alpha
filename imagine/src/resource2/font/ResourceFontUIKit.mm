@@ -72,7 +72,7 @@ void ResourceFontUIKit::charBitmap(void *&data, int &x, int &y, int &pitch)
 	if(!pixBuffer)
 	{
 		logMsg("re-rendering char %c", currChar);
-		pixBuffer = (uchar*)mem_calloc(cXFullSize * cYFullSize);
+		pixBuffer = (char*)mem_calloc(cXFullSize * cYFullSize);
 		auto str = [[NSString alloc] initWithCharacters:&currChar length:1];
 		renderTextIntoBuffer(str, pixBuffer, cXFullSize, cYFullSize,
 			Base::grayColorSpace, textColor, activeFont);
@@ -114,8 +114,8 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		uint bufferSize = cXFullSize * cYFullSize;
 		if(pixBuffer)
 			mem_free(pixBuffer);
-		pixBuffer = (uchar*)mem_calloc(bufferSize);
-		//pixBuffer = (uchar*)mem_realloc(pixBuffer, bufferSize);
+		pixBuffer = (char*)mem_calloc(bufferSize);
+		//pixBuffer = (char*)mem_realloc(pixBuffer, bufferSize);
 		//mem_zero(pixBuffer, bufferSize);
 		renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 			Base::grayColorSpace, textColor, activeFont);

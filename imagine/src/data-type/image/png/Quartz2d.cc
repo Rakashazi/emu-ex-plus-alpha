@@ -55,7 +55,7 @@ CallResult Quartz2dImage::load(const char *name)
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename(name);
 	if(!dataProvider)
 	{
-		logErr("error creating opening file: %s", name);
+		logErr("error opening file: %s", name);
 		return INVALID_PARAMETER;
 	}
 	img = CGImageCreateWithPNGDataProvider(dataProvider, nullptr, 0, kCGRenderingIntentDefault);

@@ -229,6 +229,11 @@ void serial_trap_init(WORD tmpin)
     tmp_in = tmpin;
 }
 
+/* FIXME: bad name, this function is basically the main/top entry point for
+          doing a IEC reset that distributes to all drives. It does however NOT
+          reset the true-drive emulated drive CPUs (that is done in drive_reset)
+*/
+/* called by machine_specific_reset() */
 void serial_traps_reset(void)
 {
     serial_iec_bus_reset();

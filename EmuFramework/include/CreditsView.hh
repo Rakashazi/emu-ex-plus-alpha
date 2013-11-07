@@ -34,11 +34,11 @@ private:
 	Gfx::Text text;
 	FadeViewAnimation<10> fade;
 	const char *str;
-	Rect2<int> rect;
+	IG::Rect2<int> rect;
 
 public:
-	constexpr CreditsView(const char *str): View(CONFIG_APP_NAME " " IMAGINE_VERSION), str(str) {}
-	Rect2<int> &viewRect() override { return rect; }
+	constexpr CreditsView(const char *str, Base::Window &win): View(CONFIG_APP_NAME " " IMAGINE_VERSION, win), str(str) {}
+	IG::Rect2<int> &viewRect() override { return rect; }
 	void draw(Gfx::FrameTimeBase frameTime) override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;

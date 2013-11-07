@@ -15,7 +15,6 @@
 
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -33,6 +32,7 @@
 #include <vbam/common/SoundDriver.h>
 #include <vbam/common/Patch.h>
 #include <vbam/Util.h>
+
 void setGameSpecificSettings(GBASys &gba);
 void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio);
 void CPUCleanUp();
@@ -43,8 +43,18 @@ bool CPUWriteState(GBASys &gba, const char *);
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 const uint EmuSystem::maxPlayers = 1;
-uint EmuSystem::aspectRatioX = 3, EmuSystem::aspectRatioY = 2;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"3:2 (Original)", 3, 2},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 #include "CommonGui.hh"
+
+using namespace IG;
 
 // controls
 
@@ -72,10 +82,10 @@ enum
 
 namespace GbaKeyStatus
 {
-	static const uint A = BIT(0), B = BIT(1),
-			SELECT = BIT(2), START = BIT(3),
-			RIGHT = BIT(4), LEFT = BIT(5), UP = BIT(6), DOWN = BIT(7),
-			R = BIT(8), L = BIT(9);
+	static const uint A = bit(0), B = bit(1),
+			SELECT = bit(2), START = bit(3),
+			RIGHT = bit(4), LEFT = bit(5), UP = bit(6), DOWN = bit(7),
+			R = bit(8), L = bit(9);
 }
 
 static uint ptrInputToSysButton(int input)
@@ -220,6 +230,8 @@ void EmuSystem::initOptions()
 	optionFrameSkip.initDefault(optionFrameSkipAuto); // auto-frameskip default due to highly variable CPU usage
 	#endif
 }
+
+void EmuSystem::onOptionsLoaded() {}
 
 void EmuSystem::resetGame()
 {
@@ -383,31 +395,11 @@ void systemDrawScreen()
 	commitVideoFrame();
 }
 
-#ifdef USE_NEW_AUDIO
-u16 *systemObtainSoundBuffer(uint samples, uint &buffSamples, void *&ctx)
-{
-	auto aBuff = Audio::getPlayBuffer(samples/2);
-	if(unlikely(!aBuff))
-	{
-		return nullptr;
-	}
-	buffSamples = aBuff->frames*2;
-	ctx = aBuff;
-	return (u16*)aBuff->data;
-}
-
-void systemCommitSoundBuffer(uint writtenSamples, void *&ctx)
-{
-	//logMsg("%d audio frames", writtenSamples/2);
-	Audio::commitPlayBuffer((Audio::BufferContext*)ctx, writtenSamples/2);
-}
-#else
 void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
 {
 	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
-	Audio::writePcm((uchar*)finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
+	EmuSystem::writeSound(finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
 }
-#endif
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
@@ -417,9 +409,9 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 namespace Input
 {
 
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 
 }
@@ -428,7 +420,7 @@ void EmuSystem::configAudioRate()
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	soundSetSampleRate(gGba, optionSoundRate *.9954);
+	soundSetSampleRate(gGba, optionSoundRate *.99534);
 }
 
 void EmuSystem::savePathChanged() { }
@@ -440,13 +432,13 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -457,7 +449,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

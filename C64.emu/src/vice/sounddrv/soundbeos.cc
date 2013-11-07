@@ -26,6 +26,10 @@
 
 #include "vice.h"
 
+#ifdef __HAIKU__
+/* Workaround an issue in the Haiku headers. */
+#include <List.h>
+#endif
 #include <PushGameSound.h>
 #include <SoundPlayer.h>
 #include <stdio.h>

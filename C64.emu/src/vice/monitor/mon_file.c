@@ -35,6 +35,7 @@
 #include "attach.h"
 #include "autostart.h"
 #include "cartridge.h"
+#include "charset.h"
 #include "machine.h"
 #include "mem.h"
 #include "montypes.h"
@@ -58,6 +59,10 @@ static int mon_file_read_eof[4][16];
 static int mon_file_open(const char *filename, unsigned int secondary,
                          int device)
 {
+    char pname[17];
+    const char *s;
+    int i;
+
     switch (device) {
         case 0:
             if (secondary == 0) {
@@ -77,9 +82,16 @@ static int mon_file_open(const char *filename, unsigned int secondary,
             if (vdrive == NULL) {
                 return -1;
             }
+            /* convert filename to petscii */
+            s = filename;
+            for (i = 0; (i < 16) && (*s); ++i) {
+                pname[i] = charset_p_topetcii(*s);
+                ++s;
+            }
+            pname[i] = 0;
 
-            if (vdrive_iec_open(vdrive, (const BYTE *)filename,
-                                (int)strlen(filename), secondary, NULL) != SERIAL_OK) {
+            if (vdrive_iec_open(vdrive, (const BYTE *)pname,
+                                (int)strlen(pname), secondary, NULL) != SERIAL_OK) {
                 return -1;
             }
 

@@ -28,6 +28,7 @@ import android.graphics.*;
 import android.util.*;
 import android.hardware.*;
 import android.media.*;
+import android.net.*;
 import android.content.res.Configuration;
 import android.view.inputmethod.InputMethodManager;
 import android.bluetooth.*;
@@ -193,15 +194,20 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return (AudioManager)getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
 	}
 	
+	boolean hasLowLatencyAudio()
+	{
+		return getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY);
+	}
+	
 	@Override public void onAudioFocusChange(int focusChange)
 	{
 		//Log.i(logTag, "audio focus change: " focusChange);
 	}
 	
-	void setKeepScreenOn(boolean on)
+	/*void setKeepScreenOn(boolean on)
 	{
 		getWindow().getDecorView().setKeepScreenOn(on);
-	}
+	}*/
 	
 	void setUIVisibility(int mode)
 	{
@@ -223,14 +229,37 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 	}
 	
-	void setFullscreen(boolean fullscreen)
+	void setWinFlags(int flags, int mask)
 	{
-		Window win = getWindow();
-		if(fullscreen)
-			win.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		else
-			win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		getWindow().setFlags(flags, mask);
 	}
+	
+	void setWinFormat(int format)
+	{
+		getWindow().setFormat(format);
+	}
+	
+	int winFlags()
+	{
+		return getWindow().getAttributes().flags;
+	}
+	
+	int winFormat()
+	{
+		return getWindow().getAttributes().format;
+	}
+	
+	/*void contentRect(int[] relRect)
+	{
+		// return a relative rectangle of the content view in the window
+		View view = findViewById(android.R.id.content);
+		int inWindow[2] = new int[2];
+		view.getLocationInWindow(inWindow);
+		relRect[0] = inWindow[0]; // X
+		relRect[1] = inWindow[1]; // Y
+		relRect[2] = view.getWidth();
+		relRect[3] = view.getHeight();
+	}*/
 	
 	void addNotification(String onShow, String title, String message)
 	{
@@ -250,18 +279,18 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	BluetoothAdapter btDefaultAdapter()
 	{
 		//Log.i(logTag, "btDefaultAdapter()");
-		return Bluetooth.defaultAdapter(this);
+		return Bluetooth.defaultAdapter();
 	}
 	
 	int btStartScan(BluetoothAdapter adapter)
 	{
 		//Log.i(logTag, "btStartScan()");
-		return Bluetooth.startScan(adapter) ? 1 : 0;
+		return Bluetooth.startScan(this, adapter) ? 1 : 0;
 	}
 	
 	void btCancelScan(BluetoothAdapter adapter)
 	{
-		Bluetooth.cancelScan(adapter);
+		Bluetooth.cancelScan(this, adapter);
 	}
 	
 	BluetoothSocket btOpenSocket(BluetoothAdapter adapter, String address, int ch, boolean l2cap)
@@ -302,6 +331,25 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		//layoutChange(visibleY);
 		layoutChange(r.bottom);
      }*/
+	
+	String intentDataPath()
+	{
+		//Log.i(logTag, "intent action: " + getIntent().getAction());
+		String path = null;
+		Uri uri = getIntent().getData();
+		if(uri != null)
+		{
+			path = uri.getPath();
+			//Log.i(logTag, "path: " + path);
+			getIntent().setData(null); // data is one-time use
+		}
+		return path;
+	}
+	
+	@Override protected void onNewIntent(Intent intent)
+	{
+		setIntent(intent);
+	}
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
@@ -358,5 +406,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	IdleHelper newIdleHelper()
 	{
 		return new IdleHelper();
+	}
+	
+	InputDeviceListenerHelper inputDeviceListenerHelper()
+	{
+		return new InputDeviceListenerHelper(this);
 	}
 }

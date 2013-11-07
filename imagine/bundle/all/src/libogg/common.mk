@@ -4,7 +4,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-liboggVer := 1.3.0
+liboggVer := 1.3.1
 liboggSrcDir := libogg-$(liboggVer)
 liboggSrcArchive := libogg-$(liboggVer).tar.xz
 
@@ -36,5 +36,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(liboggSrcDir)/configure
 	@echo "Configuring libogg..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(liboggSrcDir)/configure --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(liboggSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) $(buildArg)
 

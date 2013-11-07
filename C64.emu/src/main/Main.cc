@@ -15,11 +15,11 @@
 
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
 #include <io/sys.hh>
+#include <io/api/stdio.hh>
 #include <gui/View.hh>
 #include <util/strings.h>
 #include <util/time/sys.hh>
@@ -75,24 +75,22 @@ extern "C"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 #ifdef __APPLE__
-	static semaphore_t execSem, execDoneSem;
+static semaphore_t execSem, execDoneSem;
 #else
-	static sem_t execSem, execDoneSem;
+static sem_t execSem, execDoneSem;
 #endif
 static ThreadPThread c64Thread;
 static uint16 pix[520*312]  __attribute__ ((aligned (8))) {0};
-static bool c64IsInit = 0, isPal = 0,
-		runningFrame = 0, doAudio = 0,
-		shiftLock = 0, ctrlLock = 0;
+static bool c64IsInit = false, c64FailedInit = false, isPal = false,
+		runningFrame = false, doAudio = false,
+		shiftLock = false, ctrlLock = false;
 static uint c64VidX = 320, c64VidY = 200,
 		c64VidActiveX = 0, c64VidActiveY = 0;
 
-#if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
-	const char *firmwareBasePath = "/User/Media/C64.emu";
-#else
-	FsSys::cPath firmwareBasePath = "";
-#endif
-static FsSys::cPath sysFilePath[3] { "" };
+static FsSys::cPath firmwareBasePath = "";
+static FsSys::cPath sysFilePath[Config::envIsLinux ? 4 : 2][3] {{""}};
+
+void setupSysFilePaths(FsSys::cPath outPath[3], const char *firmwareBasePath);
 
 enum
 {
@@ -100,6 +98,7 @@ enum
 	CFGKEY_AUTOSTART_TDE = 258, CFGKEY_C64_MODEL = 259,
 	CFGKEY_BORDER_MODE = 260, CFGKEY_SWAP_JOYSTICK_PORTS = 261,
 	CFGKEY_SID_ENGINE = 262, CFGKEY_CROP_NORMAL_BORDERS = 263,
+	CFGKEY_SYSTEM_FILE_PATH = 264
 };
 
 static int intResource(const char *name)
@@ -176,7 +175,7 @@ static int borderMode()
 
 static void setSidEngine(int engine)
 {
-	if(engine < SID_ENGINE_FASTSID || engine > SID_ENGINE_RESID_FP)
+	if(engine < SID_ENGINE_FASTSID || engine > SID_ENGINE_RESID)
 	{
 		logWarn("tried to set sid engine %d out of range", engine);
 		return;
@@ -200,12 +199,19 @@ static Option<OptionMethodFunc<int, c64Model, setC64Model>, uint8>
 static Option<OptionMethodFunc<int, borderMode, setBorderMode>, uint8>
 	optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
 static Option<OptionMethodFunc<int, sidEngine, setSidEngine>, uint8>
-	optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_FASTSID);
+	optionSidEngine(CFGKEY_SID_ENGINE,
+		#ifdef HAVE_RESID
+		SID_ENGINE_RESID
+		#else
+		SID_ENGINE_FASTSID
+		#endif
+	);
 static Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
+PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, sizeof(firmwareBasePath), "");
 
-void EmuSystem::initOptions()
-{
-}
+void EmuSystem::initOptions() {}
+
+void EmuSystem::onOptionsLoaded() {}
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 {
@@ -220,6 +226,7 @@ bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
 		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
+		bcase CFGKEY_SYSTEM_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -234,11 +241,19 @@ void EmuSystem::writeConfig(Io *io)
 	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 	optionSidEngine.writeWithKeyIfNotDefault(io);
 	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
+	optionFirmwarePath.writeToIO(io);
 }
 
 const uint EmuSystem::maxPlayers = 2;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
+
+using namespace IG;
 
 // controls
 
@@ -362,7 +377,7 @@ static const uint JOYPAD_FIRE = 0x10,
 
 static const uint JS_SHIFT = 16;
 
-static const uint SHIFT_BIT = BIT(8);
+static const uint SHIFT_BIT = bit(8);
 
 static constexpr uint mkKeyCode(int row, int col, int shift = 0)
 {
@@ -490,7 +505,7 @@ void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	const uint p2Bit = player ? BIT(5) : 0;
+	const uint p2Bit = player ? bit(5) : 0;
 	map[SysVController::F_ELEM] = (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
 	map[SysVController::F_ELEM+1] = ((JOYPAD_FIRE | p2Bit) << JS_SHIFT) | SysVController::TURBO_BIT;
 
@@ -510,7 +525,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
-	const uint p2Bit = BIT(5);
+	const uint p2Bit = bit(5);
 	const uint shiftBit = shiftLock ? SHIFT_BIT : 0;
 	switch(input)
 	{
@@ -656,7 +671,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	{
 
 		uint key = emuKey >> 16;
-		uint player = (key & BIT(5)) ? 2 : 1;
+		uint player = (key & bit(5)) ? 2 : 1;
 		if(optionSwapJoystickPorts)
 		{
 			player = (player == 1) ? 2 : 1;
@@ -899,27 +914,33 @@ void EmuSystem::closeSystem()
 
 static void popupC64FirmwareError()
 {
-	popup.printf(6, 1, "Can't start C64 with firmware path %s,"
-			" make sure it contains the C64, DRIVES, PRINTER directories from Vice", firmwareBasePath);
+	popup.printf(6, 1, "System files missing, place C64, DRIVES, & PRINTER directories from VICE"
+		" in a path below, or set a custom path in options:\n"
+		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
+		"%s\n%s\n%s", Base::appPath, "~/.local/share/C64.emu", "/usr/share/games/vice");
+		#else
+		"%s/C64.emu", Base::storagePath());
+		#endif
 }
 
 static bool initC64()
 {
 	if(c64IsInit)
-		return 1;
+		return true;
 
 	logMsg("initializing C64");
   if(init_main() < 0)
   {
   	logErr("error in init_main()");
-  	return 0;
+  	c64FailedInit = true;
+  	return false;
 	}
 
   resources_set_int("Drive8Type", DRIVE_TYPE_1541II);
   if(!optionDriveTrueEmulation) // on by default
   	resources_set_int("DriveTrueEmulation", 0);
-  c64IsInit = 1;
-  return 1;
+  c64IsInit = true;
+  return true;
 }
 
 int EmuSystem::loadGame(const char *path)
@@ -927,6 +948,18 @@ int EmuSystem::loadGame(const char *path)
 	if(!initC64())
 	{
 		popupC64FirmwareError();
+		return 0;
+	}
+	if(c64FailedInit)
+	{
+		auto &ynAlertView = *allocModalView<YesNoAlertView>(mainWin);
+		ynAlertView.init("A previous system file load failed, you must restart the app to run any C64 software", Input::keyInputIsPresent(), "Exit Now", "Cancel");
+		ynAlertView.onYes() =
+			[](const Input::Event &e)
+			{
+				Base::exit();
+			};
+		View::addModalView(ynAlertView);
 		return 0;
 	}
 
@@ -959,11 +992,11 @@ static void execC64Frame()
 {
 	// signal C64 thread to execute one frame and wait for it to finish
 	#ifdef __APPLE__
-		semaphore_signal(execSem);
-		semaphore_wait(execDoneSem);
+	semaphore_signal(execSem);
+	semaphore_wait(execDoneSem);
 	#else
-		sem_post(&execSem);
-		sem_wait(&execDoneSem);
+	sem_post(&execSem);
+	sem_wait(&execDoneSem);
 	#endif
 }
 
@@ -1022,19 +1055,18 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 namespace Input
 {
 
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 
 }
 
 void EmuSystem::configAudioRate()
 {
-	Audio::setHintPcmFramesPerWrite(isPal ? 950 : 800);
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	int mixRate = optionSoundRate * (/*isPal ? 1. :*/ .99715);
+	int mixRate = optionSoundRate * (/*isPal ? 1. :*/ .9971225);
 	int currRate;
 	resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)
@@ -1045,11 +1077,17 @@ void EmuSystem::configAudioRate()
 
 void EmuSystem::savePathChanged() { }
 
-void setupSysFilePaths(const char *firmwareBasePath)
+void setupSysFilePaths(FsSys::cPath outPath[3], const char *firmwareBasePath)
 {
-	string_printf(sysFilePath[0], "%s/C64", firmwareBasePath); // emu_id
-	string_printf(sysFilePath[1], "%s/DRIVES", firmwareBasePath);
-	string_printf(sysFilePath[2], "%s/PRINTER", firmwareBasePath);
+	if(!strlen(firmwareBasePath))
+	{
+		mem_zero(outPath);
+		return;
+	}
+	logMsg("setup system file path: %s", firmwareBasePath);
+	string_printf(outPath[0], "%s/C64", firmwareBasePath); // emu_id
+	string_printf(outPath[1], "%s/DRIVES", firmwareBasePath);
+	string_printf(outPath[2], "%s/PRINTER", firmwareBasePath);
 }
 
 namespace Base
@@ -1059,49 +1097,43 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-  emuView.initPixmap((uchar*)pix, pixFmt, 320, 200);
+	emuView.initPixmap((uchar*)pix, pixFmt, 320, 200);
 	#ifdef __APPLE__
-  {
-  	auto ret = semaphore_create(mach_task_self(), &execSem, SYNC_POLICY_FIFO, 0);
-  	assert(ret == KERN_SUCCESS);
-  	ret = semaphore_create(mach_task_self(), &execDoneSem, SYNC_POLICY_FIFO, 0);
-  	assert(ret == KERN_SUCCESS);
-  }
+	{
+		auto ret = semaphore_create(mach_task_self(), &execSem, SYNC_POLICY_FIFO, 0);
+		assert(ret == KERN_SUCCESS);
+		ret = semaphore_create(mach_task_self(), &execDoneSem, SYNC_POLICY_FIFO, 0);
+		assert(ret == KERN_SUCCESS);
+	}
 	#else
-		sem_init(&execSem, 0, 0);
-		sem_init(&execDoneSem, 0, 0);
+	sem_init(&execSem, 0, 0);
+	sem_init(&execDoneSem, 0, 0);
 	#endif
 	c64Thread.create(1,
 		[](ThreadPThread &thread)
 		{
-			#ifdef __APPLE__
-				semaphore_wait(execSem);
-			#else
-				sem_wait(&execSem);
-			#endif
-			logMsg("running C64");
-			maincpu_mainloop();
-			return 0;
+		#ifdef __APPLE__
+		semaphore_wait(execSem);
+		#else
+		sem_wait(&execSem);
+		#endif
+		logMsg("running C64");
+		maincpu_mainloop();
+		return 0;
 		}
 	);
 
-	#if !(defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB))
-		#if defined CONFIG_BASE_X11
-			// check for firmware path in app dir
-			FsSys::cPath appDirPath = "";
-			string_printf(appDirPath, "%s/C64", Base::appPath);
-			if(FsSys::fileExists(appDirPath))
-			{
-				strcpy(firmwareBasePath, Base::appPath);
-			}
-			else
-		#endif
-			{
-				string_printf(firmwareBasePath, "%s/C64.emu", Base::storagePath());
-			}
+	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
+	setupSysFilePaths(sysFilePath[1], Base::appPath);
+	setupSysFilePaths(sysFilePath[2], "~/.local/share/C64.emu");
+	setupSysFilePaths(sysFilePath[3], "/usr/share/games/vice");
+	#else
+	{
+		FsSys::cPath path;
+		string_printf(path, "%s/C64.emu", Base::storagePath());
+		setupSysFilePaths(sysFilePath[1], path);
+	}
 	#endif
-	logMsg("firmware base path: %s", firmwareBasePath);
-	setupSysFilePaths(firmwareBasePath);
 
 	maincpu_early_init();
 	machine_setup_context();
@@ -1114,27 +1146,29 @@ CallResult onInit(int argc, char** argv)
 	if(init_resources() < 0)
 	{
 		bug_exit("init_resources()");
-  }
+	}
 
-  // Set factory defaults
+	// Set factory defaults
 	if(resources_set_defaults() < 0)
 	{
 		bug_exit("resources_set_defaults()");
-  }
+	}
 
-  /*if(log_init() < 0)
-  {
-  	bug_exit("log_init()");
-  }*/
+	/*if(log_init() < 0)
+	{
+		bug_exit("log_init()");
+	}*/
 
-  mainInitCommon();
-  EmuSystem::pcmFormat.channels = 1;
-  vController.updateKeyboardMapping();
+	EmuSystem::pcmFormat.channels = 1;
+	c64model_set(optionC64Model.defaultVal); // set the default model
+	mainInitCommon(argc, argv);
+	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
+	vController.updateKeyboardMapping();
 
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -1145,8 +1179,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
-  logMsg("done init");
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 
@@ -1154,24 +1187,29 @@ CallResult onWindowInit()
 
 CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const char *open_mode)
 {
-	forEachInArray(sysFilePath, p)
+	for(const auto &pathGroup : sysFilePath)
 	{
-		FsSys::cPath fullPath;
-		string_printf(fullPath, "%s/%s", *p, name);
-		auto file = fopen(fullPath, open_mode);
-		if(file)
+		for(const auto &p : pathGroup)
 		{
-			if(complete_path_return)
+			if(!strlen(p))
+				continue;
+			FsSys::cPath fullPath;
+			string_printf(fullPath, "%s/%s", p, name);
+			auto file = fopen(fullPath, open_mode);
+			if(file)
 			{
-				*complete_path_return = strdup(fullPath);
-				if(!*complete_path_return)
+				if(complete_path_return)
 				{
-					logErr("out of memory trying to allocate string in sysfile_open");
-					fclose(file);
-					return nullptr;
+					*complete_path_return = strdup(fullPath);
+					if(!*complete_path_return)
+					{
+						logErr("out of memory trying to allocate string in sysfile_open");
+						fclose(file);
+						return nullptr;
+					}
 				}
+				return file;
 			}
-			return file;
 		}
 	}
 	logErr("can't open %s in system paths", name);
@@ -1180,22 +1218,27 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 
 CLINK int sysfile_locate(const char *name, char **complete_path_return)
 {
-	forEachInArray(sysFilePath, p)
+	for(const auto &pathGroup : sysFilePath)
 	{
-		FsSys::cPath fullPath;
-		string_printf(fullPath, "%s/%s", *p, name);
-		if(FsSys::fileExists(fullPath))
+		for(const auto &p : pathGroup)
 		{
-			if(complete_path_return)
+			if(!strlen(p))
+				continue;
+			FsSys::cPath fullPath;
+			string_printf(fullPath, "%s/%s", p, name);
+			if(FsSys::fileExists(fullPath))
 			{
-				*complete_path_return = strdup(fullPath);
-				if(!*complete_path_return)
+				if(complete_path_return)
 				{
-					logErr("out of memory trying to allocate string in sysfile_locate");
-					return -1;
+					*complete_path_return = strdup(fullPath);
+					if(!*complete_path_return)
+					{
+						logErr("out of memory trying to allocate string in sysfile_locate");
+						return -1;
+					}
 				}
+				return 0;
 			}
-			return 0;
 		}
 	}
 	logErr("%s not found in system paths", name);
@@ -1204,58 +1247,63 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 
 CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 {
-	forEachInArray(sysFilePath, p)
+	for(const auto &pathGroup : sysFilePath)
 	{
-		FsSys::cPath complete_path;
-		string_printf(complete_path, "%s/%s", *p, name);
-		auto file = IoSys::open(complete_path);
-		if(file)
+		for(const auto &p : pathGroup)
 		{
-			//logMsg("loading system file: %s", complete_path);
-			size_t rsize = file->size();
-			bool load_at_end;
-			if(minsize < 0)
+			if(!strlen(p))
+				continue;
+			FsSys::cPath complete_path;
+			string_printf(complete_path, "%s/%s", p, name);
+			auto file = IoSys::open(complete_path);
+			if(file)
 			{
-				minsize = -minsize;
-				load_at_end = 0;
-			}
-			else
-			{
-				load_at_end = 1;
-			}
-			if(rsize < ((size_t)minsize))
-			{
-				logErr("ROM %s: short file", complete_path);
-				goto fail;
-			}
-			if(rsize == ((size_t)maxsize + 2))
-			{
-				logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path);
-				if(fread((char*)dest, 1, 2, file) < 2)
+				//logMsg("loading system file: %s", complete_path);
+				size_t rsize = file->size();
+				bool load_at_end;
+				if(minsize < 0)
 				{
+					minsize = -minsize;
+					load_at_end = 0;
+				}
+				else
+				{
+					load_at_end = 1;
+				}
+				if(rsize < ((size_t)minsize))
+				{
+					logErr("ROM %s: short file", complete_path);
 					goto fail;
 				}
-				rsize -= 2;
-			}
-			if(load_at_end && rsize < ((size_t)maxsize))
-			{
-				dest += maxsize - rsize;
-			}
-			else if(rsize > ((size_t)maxsize))
-			{
-				logWarn("ROM `%s': long file, discarding end.", complete_path);
-				rsize = maxsize;
-			}
-			if((rsize = fread((char *)dest, 1, rsize, file)) < ((size_t)minsize))
-				goto fail;
+				if(rsize == ((size_t)maxsize + 2))
+				{
+					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path);
+					if(fread((char*)dest, 1, 2, file) < 2)
+					{
+						goto fail;
+					}
+					rsize -= 2;
+				}
+				if(load_at_end && rsize < ((size_t)maxsize))
+				{
+					dest += maxsize - rsize;
+				}
+				else if(rsize > ((size_t)maxsize))
+				{
+					logWarn("ROM `%s': long file, discarding end.", complete_path);
+					rsize = maxsize;
+				}
+				if((rsize = fread((char *)dest, 1, rsize, file)) < ((size_t)minsize))
+					goto fail;
 
-			file->close();
-			return (int)rsize;
-
-			fail:
-				logErr("failed loading system file: %s", name);
 				file->close();
-				return -1;
+				return (int)rsize;
+
+				fail:
+					logErr("failed loading system file: %s", name);
+					file->close();
+					return -1;
+			}
 		}
 	}
 	logErr("can't load %s in system paths", name);
@@ -1300,12 +1348,13 @@ CLINK int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 	assert(EmuSystem::gameIsRunning());
 	if(likely(runningFrame))
 	{
+		//logMsg("vsync_do_vsync signaling main thread");
 		#ifdef __APPLE__
-			semaphore_signal(execDoneSem);
-			semaphore_wait(execSem);
+		semaphore_signal(execDoneSem);
+		semaphore_wait(execSem);
 		#else
-			sem_post(&execDoneSem);
-			sem_wait(&execSem);
+		sem_post(&execDoneSem);
+		sem_wait(&execSem);
 		#endif
 	}
 	else
@@ -1348,10 +1397,6 @@ CLINK int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 CLINK void video_canvas_refresh(struct video_canvas_s *canvas, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
 {
-	if(!EmuSystem::gameIsRunning())
-	{
-		logMsg("refreshing canvas while game isn't running");
-	}
 	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuView.vidPix.pitch, pixFmt->bitsPerPixel);
 }
 
@@ -1381,7 +1426,7 @@ static int soundWrite(SWORD *pbuf, size_t nr)
 {
 	//logMsg("sound write %zd", nr);
 	if(likely(doAudio))
-		Audio::writePcm((uchar*)pbuf, nr);
+		EmuSystem::writeSound(pbuf, nr);
 	return 0;
 }
 

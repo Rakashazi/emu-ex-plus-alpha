@@ -297,8 +297,10 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
 {
     io_source_list_t *current = list->next;
     int io_source_counter = 0;
+    int io_source_valid = 0;
     BYTE realval = 0;
     BYTE retval = 0;
+    BYTE firstval = 0;
     unsigned int lowest_order = 0xffffffff;
 
     vicii_handle_pending_alarms_external(0);
@@ -308,20 +310,35 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
             if ((addr >= current->device->start_address) && (addr <= current->device->end_address)) {
                 retval = current->device->read((WORD)(addr & current->device->address_mask));
                 if (current->device->io_source_valid) {
+                    /* high prio always overrides others, return immediatly */
                     if (current->device->io_source_prio == IO_PRIO_HIGH) {
                         return retval;
                     }
-                    if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_LAST) {
-                        if (current->device->order < lowest_order) {
-                            lowest_order = current->device->order;
-                            realval = retval;
+                    if (io_source_valid == 0) {
+                        /* on first valid read, initialize intermediate values */
+                        firstval = realval = retval;
+                        lowest_order = current->device->order;
+                        /* do not count low prio, as it will always be overridden by others */
+                        if (current->device->io_source_prio != IO_PRIO_LOW) {
+                            io_source_counter++;
                         }
-                    }
-                    if (io_source_collision_handling == IO_COLLISION_METHOD_AND_WIRES) {
-                        realval &= retval;
-                    }
-                    if (current->device->io_source_prio != IO_PRIO_LOW) {
-                        io_source_counter++;
+                        io_source_valid = 1;
+                    } else {
+                        if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_LAST) {
+                            if (current->device->order < lowest_order) {
+                                lowest_order = current->device->order;
+                                realval = retval;
+                            }
+                        } else if (io_source_collision_handling == IO_COLLISION_METHOD_AND_WIRES) {
+                            realval &= retval;
+                        }
+                        /* do not count low prio, as it will always be overridden by others */
+                        if (current->device->io_source_prio != IO_PRIO_LOW) {
+                            /* if the nth read returns the same as the first read don't see it as a conflict */
+                            if (retval != firstval) {
+                                io_source_counter++;
+                            }
+                        }
                     }
                 }
             }
@@ -329,25 +346,22 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
         current = current->next;
     }
 
-    if (io_source_counter == 0) {
+    /* no valid i/o source was read, return phi1 */
+    if (io_source_valid == 0) {
         return vicii_read_phi1();
     }
-
-    if (io_source_counter == 1) {
+    /* no more than one valid i/o source was read, return value */
+    if (!(io_source_counter > 1)) {
         return retval;
     }
-
+    /* more than one i/o source was read, handle collision */
     if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_ALL) {
         io_source_msg_detach_all(addr, io_source_counter, list);
         return vicii_read_phi1();
-    }
-
-    if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_LAST) {
+    } else if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_LAST) {
         io_source_msg_detach_last(addr, io_source_counter, list, lowest_order);
         return realval;
-    }
-
-    if (io_source_collision_handling == IO_COLLISION_METHOD_AND_WIRES) {
+    } else if (io_source_collision_handling == IO_COLLISION_METHOD_AND_WIRES) {
         io_source_log_collisions(addr, io_source_counter, list);
         return realval;
     }

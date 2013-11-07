@@ -12,9 +12,11 @@ else ifeq ($(ENV), ios)
  ifeq ($(SUBARCH), armv6)
   CPPFLAGS += -I$(extraSysroot)/include/c++/v1
  else
-  # default darwin libc++ path
-  CPPFLAGS += -I/usr/lib/c++/v1
+  # default Xcode libc++ path
+  CPPFLAGS += -I$(XCODE_PATH)/Toolchains/XcodeDefault.xctoolchain/usr/lib/c++/v1
  endif
+else ifeq ($(ENV), macosx)
+ BASE_CXXFLAGS += -stdlib=libc++
 endif
 
 endif

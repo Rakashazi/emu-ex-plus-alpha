@@ -35,46 +35,34 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { ::Config::MACHINE_IS_PANDORA ? 44100 : 48000, &SampleFormats::s16, 2 };
+PcmFormat preferredPcmFormat { ::Config::MACHINE_IS_PANDORA ? 44100 : 48000, SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
 static snd_output_t *debugOutput = nullptr;
 static snd_pcm_t *pcmHnd = 0;
 static snd_pcm_uframes_t bufferSize, periodSize;
 static bool useMmap;
-static uint bufferFrames = 800;
-static uint buffers = 8;
+static uint wantedLatency = 100000;
 
-void setHintPcmFramesPerWrite(uint frames)
+void setHintOutputLatency(uint us)
 {
-	if(frames != bufferFrames)
-	{
-		closePcm();
-		logMsg("setting queue buffer frames to %d", frames);
-		assert(frames < 2000);
-		bufferFrames = frames;
-	}
+	wantedLatency = us;
 }
 
-void setHintPcmMaxBuffers(uint maxBuffers)
+uint hintOutputLatency()
 {
-	logMsg("setting max buffers to %d", maxBuffers);
-	assert(maxBuffers < 100);
-	buffers = maxBuffers;
-	assert(!isOpen());
+	return wantedLatency;
 }
 
-uint hintPcmMaxBuffers() { return buffers; }
-
-static const SampleFormat *alsaFormatToPcm(snd_pcm_format_t format)
+static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 {
 	switch(format)
 	{
-		case SND_PCM_FORMAT_S16: return &SampleFormats::s16;
-		case SND_PCM_FORMAT_S8: return &SampleFormats::s8;
-		case SND_PCM_FORMAT_U8: return &SampleFormats::u8;
+		case SND_PCM_FORMAT_S16: return SampleFormats::s16;
+		case SND_PCM_FORMAT_S8: return SampleFormats::s8;
+		case SND_PCM_FORMAT_U8: return SampleFormats::u8;
 		default:
 			bug_branch("%d", format);
-			return 0;
+			return SampleFormats::none;
 	}
 }
 
@@ -92,6 +80,8 @@ static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 
 int frameDelay()
 {
+	if(unlikely(!isOpen()))
+		return 0;
 	snd_pcm_sframes_t delay;
 	snd_pcm_delay(pcmHnd, &delay);
 	return delay;
@@ -99,27 +89,15 @@ int frameDelay()
 
 int framesFree()
 {
-	return snd_pcm_avail_update(pcmHnd);
-}
-
-static void startPlaybackIfNeeded()
-{
-	auto state = snd_pcm_state(pcmHnd);
-	//logMsg("pcm state: %s", alsaPcmStateToString(state));
-	if(state == SND_PCM_STATE_XRUN)
+	if(unlikely(!isOpen()))
+		return 0;
+	auto frames = snd_pcm_avail_update(pcmHnd);
+	if(frames < 0)
 	{
-		logMsg("recovering from xrun");
-		snd_pcm_recover(pcmHnd, -EPIPE, 0);
+		logWarn("error %d getting frames free", (int)frames);
+		frames = 0;
 	}
-	else if((state == SND_PCM_STATE_PREPARED || state == SND_PCM_STATE_PAUSED) && framesFree() < (int)bufferFrames)
-	{
-		// start playback when one "buffer" of audio is left to write
-		logMsg("starting prepared pcm with %d frames free", framesFree());
-		if(state == SND_PCM_STATE_PAUSED)
-			snd_pcm_pause(pcmHnd, 0);
-		else
-			snd_pcm_start(pcmHnd);
-	}
+	return frames;
 }
 
 void pausePcm()
@@ -134,7 +112,20 @@ void resumePcm()
 {
 	if(unlikely(!isOpen()))
 		return;
-	startPlaybackIfNeeded();
+	int state = snd_pcm_state(pcmHnd);
+	//logMsg("pcm state: %s", alsaPcmStateToString(state));
+	switch(state)
+	{
+		bcase SND_PCM_STATE_PREPARED:
+			logMsg("starting PCM");
+			snd_pcm_start(pcmHnd);
+		bcase SND_PCM_STATE_PAUSED:
+			logMsg("unpausing PCM");
+			snd_pcm_pause(pcmHnd, 0);
+		bcase SND_PCM_STATE_SUSPENDED:
+			logMsg("resuming PCM");
+			snd_pcm_resume(pcmHnd);
+	}
 }
 
 void clearPcm()
@@ -149,10 +140,11 @@ void clearPcm()
 class AlsaMmapContext : public BufferContext
 {
 public:
-	constexpr AlsaMmapContext() { }
 	const snd_pcm_channel_area_t *areas = nullptr;
 	snd_pcm_uframes_t offset = 0;
 	snd_pcm_t *pcmHnd = nullptr;
+
+	constexpr AlsaMmapContext() {}
 
 	CallResult begin(snd_pcm_t *pcmHnd, snd_pcm_uframes_t *frames)
 	{
@@ -174,7 +166,7 @@ public:
 		{
 			//logMsg("got %d frames out of %d from mmap", (int)*frames, (int)wantedFrames);
 		}
-		data = (uchar*)areas->addr + offset * (areas->step / 8);
+		data = (char*)areas->addr + offset * (areas->step / 8);
 		this->frames = *frames;
 
 		return OK;
@@ -197,20 +189,54 @@ public:
 	}
 };
 
-void writePcm(uchar *samples, uint framesToWrite)
+void writePcm(const void *samples, uint framesToWrite)
 {
-	if(unlikely(!pcmHnd))
+	if(unlikely(!isOpen()))
 		return;
+
 	auto framesFreeOnHW = framesFree();
-	if((uint)framesFreeOnHW < framesToWrite)
+
+	// verify PCM state
+	switch((int)snd_pcm_state(pcmHnd))
+	{
+		bcase SND_PCM_STATE_XRUN:
+			snd_pcm_recover(pcmHnd, -EPIPE, 0);
+			framesFreeOnHW = framesFree();
+			logMsg("recovered from xrun, %d frames free", framesFreeOnHW);
+		bcase SND_PCM_STATE_PAUSED:
+			logMsg("unpausing PCM");
+			snd_pcm_pause(pcmHnd, 0);
+		bcase SND_PCM_STATE_SUSPENDED:
+			logMsg("resuming PCM");
+			snd_pcm_resume(pcmHnd);
+	}
+
+	//logMsg("writing %d frames, %d free", framesToWrite, framesFreeOnHW);
+
+	{
+		static uint framesToWriteAvg = 0, writeCount = 0;
+		framesToWriteAvg += framesToWrite;
+		writeCount++;
+		if(writeCount == 120)
+		{
+			logMsg("avg frames: %f, %d free", framesToWriteAvg / (double)120., framesFree());
+			framesToWriteAvg = 0;
+			writeCount = 0;
+		}
+	}
+
+	if(framesFreeOnHW < (int)framesToWrite)
 	{
 		logWarn("sending %d frames but only %d free", framesToWrite, framesFreeOnHW);
 		framesToWrite = framesFreeOnHW;
 	}
+	snd_pcm_sframes_t written;
 	if(useMmap)
 	{
-		AlsaMmapContext ctx;
+		written = snd_pcm_mmap_writei(pcmHnd, samples, framesToWrite);
+		/*AlsaMmapContext ctx;
 		//logMsg("starting mmap loop");
+		auto samplePtr = (char*)samples;
 		for(snd_pcm_uframes_t frames; framesToWrite; framesToWrite -= frames)
 		{
 			frames = framesToWrite;
@@ -219,35 +245,33 @@ void writePcm(uchar *samples, uint framesToWrite)
 			assert(frames <= framesToWrite);
 
 			memcpy(ctx.data, samples, pcmFormat.framesToBytes(frames));
-			samples += pcmFormat.framesToBytes(frames);
+			samplePtr += pcmFormat.framesToBytes(frames);
 
 			if(ctx.commit(frames) != OK)
 				return;
-		}
+		}*/
 	}
 	else
 	{
-		auto written = snd_pcm_writei(pcmHnd, samples, framesToWrite);
-		if(written != (snd_pcm_sframes_t)framesToWrite)
-		{
-			if(written < 0)
-				logWarn("error writing %d frames", framesToWrite);
-			else
-				logWarn("only %ld of %d frames written", written, framesToWrite);
-		}
+		written = snd_pcm_writei(pcmHnd, samples, framesToWrite);
 	}
-	startPlaybackIfNeeded();
+	if(written != (snd_pcm_sframes_t)framesToWrite)
+	{
+		if(written < 0)
+		{
+			logWarn("error writing %d frames: %s", framesToWrite, alsaPcmWriteErrorToString(written));
+		}
+		else
+			logWarn("only %ld of %d frames written", written, framesToWrite);
+	}
 }
 
 static int setupPcm(const PcmFormat &format, snd_pcm_access_t access)
 {
 	int alsalibResample = 1;
-	uint wantedBufferFrames = bufferFrames*buffers;
-	auto wantedLatency = format.framesToUSecs(wantedBufferFrames);
-	logMsg("requesting pcm latency %fus from %d frames", (double)wantedLatency, wantedBufferFrames);
 	int err;
 	if ((err = snd_pcm_set_params(pcmHnd,
-		pcmFormatToAlsa(*format.sample),
+		pcmFormatToAlsa(format.sample),
 		access,
 		format.channels,
 		format.rate,
@@ -289,7 +313,7 @@ static CallResult openAlsaPcm(const PcmFormat &format)
 		return INVALID_PARAMETER;
 	}
 
-	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(*format.sample)), format.channels);
+	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 
 	bool allowMmap = 1;
 	bool setupPcmSuccess = 0;
@@ -331,17 +355,17 @@ static CallResult openAlsaPcm(const PcmFormat &format)
 
 static void closeAlsaPcm()
 {
-	if(pcmHnd)
+	if(isOpen())
 	{
 		logDMsg("closing pcm");
 		snd_pcm_close(pcmHnd);
-		pcmHnd = 0;
+		pcmHnd = nullptr;
 	}
 }
 
 CallResult openPcm(const PcmFormat &format)
 {
-	if(pcmHnd)
+	if(isOpen())
 	{
 		logMsg("audio already open");
 		return OK;
@@ -352,7 +376,7 @@ CallResult openPcm(const PcmFormat &format)
 
 void closePcm()
 {
-	if(!pcmHnd)
+	if(!isOpen())
 	{
 		logMsg("audio already closed");
 		return;
@@ -363,6 +387,11 @@ void closePcm()
 bool isOpen()
 {
 	return pcmHnd;
+}
+
+bool isPlaying()
+{
+	return isOpen() && snd_pcm_state(pcmHnd) == SND_PCM_STATE_RUNNING;
 }
 
 CallResult init()

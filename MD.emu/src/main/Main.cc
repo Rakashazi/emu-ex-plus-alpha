@@ -15,7 +15,6 @@
 
 #define thisModuleName "main"
 #include <logger/interface.h>
-#include <util/area2.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -45,7 +44,10 @@
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
-static int8 mdInputPortDev[2] = { -1, -1 };
+static int8 mdInputPortDev[2] {-1, -1};
+#ifdef __clang__
+PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
+#endif
 
 uint isROMExtension(const char *name)
 {
@@ -131,16 +133,28 @@ static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
 
 const uint EmuSystem::maxPlayers = 4;
-uint EmuSystem::aspectRatioX = 4, EmuSystem::aspectRatioY = 3;
+const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
 void EmuSystem::initOptions()
 {
-	#ifndef CONFIG_BASE_ANDROID
-	optionFrameSkip.initDefault(optionFrameSkipAuto);
-	#endif
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	optionTouchCtrlSize.initDefault(750);
 	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(3);
+	#endif
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
+	#endif
+	config_ym2413_enabled = optionSmsFM;
 }
 
 bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
@@ -285,38 +299,12 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	RAMCheatUpdate();
 	system_frame(!processGfx, renderGfx);
 
-	int16 audioMemBuff[snd.buffer_size * 2];
-	int16 *audioBuff = nullptr;
-	#ifdef USE_NEW_AUDIO
-	Audio::BufferContext *aBuff = nullptr;
-	if(renderAudio)
-	{
-		if(!(aBuff = Audio::getPlayBuffer(snd.buffer_size)))
-		{
-			return;
-		}
-		audioBuff = (int16*)aBuff->data;
-		assert(aBuff->frames >= (uint)snd.buffer_size);
-	}
-	else
-	{
-		audioBuff = audioMemBuff;
-	}
-	#else
-	audioBuff = audioMemBuff;
-	#endif
-
+	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);
 	if(renderAudio)
 	{
 		//logMsg("%d frames", frames);
-		#ifdef USE_NEW_AUDIO
-		if(renderAudio)
-			Audio::commitPlayBuffer(aBuff, frames);
-		#else
-		if(renderAudio)
-			Audio::writePcm((uchar*)audioBuff, frames);
-		#endif
+		writeSound(audioBuff, frames);
 	}
 	//logMsg("frame end");
 }
@@ -405,7 +393,7 @@ static int loadMDState(const char *path)
 		}
 	}
 
-	const uchar *stateData = f->mmapConst();
+	auto stateData = (const uchar *)f->mmapConst();
 	if(!stateData)
 	{
 		delete f;
@@ -462,7 +450,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
 			for(uint i = 0; i < 0x10000; i += 2)
 			{
-				IG::swap(sramTemp[i], sramTemp[i+1]);
+				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
 			bramFile->fwrite(sramTemp, 0x10000, 1);
 			delete bramFile;
@@ -486,7 +474,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
 			for(uint i = 0; i < 0x10000; i += 2)
 			{
-				IG::swap(sramTemp[i], sramTemp[i+1]);
+				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
 			sramPtr = sramTemp;
 		}
@@ -563,7 +551,9 @@ static void setupMDInput()
 	{
 		setupSMSInput();
 		io_init();
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		vController.gp.activeFaceBtns = 3;
+		#endif
 		return;
 	}
 
@@ -603,12 +593,13 @@ static void setupMDInput()
 	}
 
 	io_init();
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
+	#endif
 }
 
 static void doAudioInit()
 {
-	Audio::setHintPcmFramesPerWrite(vdp_pal ? 950 : 800);
 	uint fps = vdp_pal ? 50 : 60;
 	#if defined(CONFIG_ENV_WEBOS)
 	if(optionFrameSkip != EmuSystem::optionFrameSkipAuto)
@@ -766,7 +757,7 @@ int EmuSystem::loadGame(const char *path)
 			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
 			for(uint i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
 			{
-				IG::swap(sramFormatStart[i], sramFormatStart[i+1]);
+				std::swap(sramFormatStart[i], sramFormatStart[i+1]);
 			}
 		}
 		else
@@ -775,7 +766,7 @@ int EmuSystem::loadGame(const char *path)
 			bramFile->read(sram.sram, 0x10000);
 			for(uint i = 0; i < 0x10000; i += 2) // byte-swap
 			{
-				IG::swap(sram.sram[i], sram.sram[i+1]);
+				std::swap(sram.sram[i], sram.sram[i+1]);
 			}
 			logMsg("loaded BRAM from disk");
 			delete bramFile;
@@ -797,7 +788,7 @@ int EmuSystem::loadGame(const char *path)
 		{
 			for(uint i = 0; i < 0x10000; i += 2)
 			{
-				IG::swap(sram.sram[i], sram.sram[i+1]);
+				std::swap(sram.sram[i], sram.sram[i+1]);
 			}
 		}
 	}
@@ -843,14 +834,14 @@ void EmuSystem::savePathChanged() { }
 
 namespace Input
 {
-void onInputEvent(const Input::Event &e)
+void onInputEvent(Base::Window &win, const Input::Event &e)
 {
 	if(EmuSystem::isActive())
 	{
 		int gunDevIdx = 4;
 		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
 		{
-			if(emuView.gameRect().overlaps(e.x, e.y))
+			if(emuView.gameRect().overlaps({e.x, e.y}))
 			{
 				int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
 				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)bitmap.viewport.w);
@@ -867,7 +858,7 @@ void onInputEvent(const Input::Event &e)
 			}
 		}
 	}
-	handleInputEvent(e);
+	handleInputEvent(win, e);
 }
 }
 
@@ -878,14 +869,12 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	mainInitCommon();
 	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
-	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
-	config_ym2413_enabled = optionSmsFM;
+	mainInitCommon(argc, argv);
 	return OK;
 }
 
-CallResult onWindowInit()
+CallResult onWindowInit(Base::Window &win)
 {
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -896,7 +885,7 @@ CallResult onWindowInit()
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(navViewGrad);
+	mainInitWindowCommon(win, navViewGrad);
 	return OK;
 }
 

@@ -268,13 +268,13 @@ char *FsPosix::workDir()
 		}*/
 		if(!getcwd(wDir, sizeof(wDir)))
 		{
-			logWarn("unable to get working dir from getcwd");
+			logWarn("unable to get working dir from getcwd: %s", strerror(errno));
 			return wDir;
 		}
 		#ifdef __APPLE__
-			// Precompose all strings for text renderer
-			// TODO: make optional when renderer supports decomposed unicode
-			precomposeUnicodeString(wDir, wDir, sizeof(wDir));
+		// Precompose all strings for text renderer
+		// TODO: make optional when renderer supports decomposed unicode
+		precomposeUnicodeString(wDir, wDir, sizeof(wDir));
 		#endif
 		workDirChanged = 0;
 	}
@@ -332,6 +332,7 @@ uint FsPosix::fileSize(const char *path)
 
 int FsPosix::chdir(const char *dir)
 {
+	logMsg("changing dir to: %s", dir);
 	workDirChanged = 1;
 	return ::chdir(dir);
 }

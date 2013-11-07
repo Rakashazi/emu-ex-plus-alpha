@@ -49,6 +49,7 @@ static log_t vlog = LOG_ERR;
 
 typedef struct psid_s {
     /* PSID data */
+    BYTE is_rsid;
     WORD version;
     WORD data_offset;
     WORD load_addr;
@@ -209,6 +210,7 @@ int psid_load_file(const char* filename)
     if (fread(ptr, 1, 6, f) != 6 || (memcmp(ptr, "PSID", 4) != 0 && memcmp(ptr, "RSID", 4) != 0)) {
         goto fail;
     }
+    psid->is_rsid = ptr[0] == 'R';
 
     ptr += 4;
     psid->version = psid_extract_word(&ptr);
@@ -357,6 +359,12 @@ fail:
     return -1;
 }
 
+void psid_shutdown(void)
+{
+    lib_free(psid);
+    psid = NULL;
+}
+
 /* Use CBM80 vector to start PSID driver. This is a simple method to
    transfer control to the PSID driver while running in a pure C64
    environment. */
@@ -376,7 +384,7 @@ static int psid_set_cbm80(WORD vec, WORD addr)
     return i;
 }
 
-void psid_init_tune(void)
+void psid_init_tune(int install_driver_hook)
 {
     int start_song = psid_tune;
     int sync, sid_model;
@@ -413,7 +421,7 @@ void psid_init_tune(void)
     }
 
     /* Check for PlaySID specific file. */
-    if (psid->flags & 0x02) {
+    if (psid->flags & 0x02 && !psid->is_rsid) {
         log_warning(vlog, "Image is PlaySID specific - trying anyway.");
     }
 
@@ -461,17 +469,28 @@ void psid_init_tune(void)
     }
 
     /* Store parameters for PSID player. */
+    if (install_driver_hook) {
+        /* Skip JMP. */
+        addr = reloc_addr + 3;
 
-    /* Skip JMP. */
-    addr = reloc_addr + 3;
+        /* CBM80 reset vector. */
+        addr += psid_set_cbm80(reloc_addr, addr);
 
-    /* CBM80 reset vector. */
-    addr += psid_set_cbm80(reloc_addr, addr);
-
-    ram_store(addr, (BYTE)(start_song));
+        ram_store(addr, (BYTE)(start_song));
+    }
 
     /* force flag in c64 memory, many sids reads it and must be set AFTER the sid flag is read */
     ram_store((WORD)(0x02a6), (BYTE)(sync == MACHINE_SYNC_NTSC ? 0 : 1));
+}
+
+int psid_basic_rsid_to_autostart(WORD *address, BYTE **data, WORD *length) {
+    if (psid && psid->is_rsid && psid->flags & 0x02) {
+        *address = psid->load_addr;
+        *data = psid->data;
+        *length = psid->data_size;
+        return 1;
+    }
+    return 0;
 }
 
 void psid_set_tune(int tune)

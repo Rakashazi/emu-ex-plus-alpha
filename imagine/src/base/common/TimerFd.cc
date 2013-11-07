@@ -2,25 +2,25 @@
 #include <util/collection/DLList.hh>
 #include <unistd.h>
 
-#if defined CONFIG_BASE_ANDROID
-	#include <base/android/private.hh>
-	// No sys/timerfd.h on Android, need to use syscall
-	#include <time.h>
-	#include <sys/syscall.h>
+#if defined __ANDROID__
+#include <base/android/private.hh>
+// No sys/timerfd.h on Android, need to use syscall
+#include <time.h>
+#include <sys/syscall.h>
 
-	static int timerfd_create(clockid_t __clock_id, int __flags)
-	{
-		return syscall(__NR_timerfd_create, __clock_id, __flags);
-	}
+static int timerfd_create(clockid_t __clock_id, int __flags)
+{
+	return syscall(__NR_timerfd_create, __clock_id, __flags);
+}
 
-	static int timerfd_settime(int __ufd, int __flags,
-						const struct itimerspec *__utmr,
-						struct itimerspec *__otmr)
-	{
-		return syscall(__NR_timerfd_settime, __ufd, __flags, __utmr, __otmr);
-	}
+static int timerfd_settime(int __ufd, int __flags,
+					const struct itimerspec *__utmr,
+					struct itimerspec *__otmr)
+{
+	return syscall(__NR_timerfd_settime, __ufd, __flags, __utmr, __otmr);
+}
 #else
-	#include <sys/timerfd.h>
+#include <sys/timerfd.h>
 #endif
 
 namespace Base
@@ -50,7 +50,7 @@ public:
 				return 0;
 			}
 			//logMsg("created timerfd: %d", fd);
-			#if defined CONFIG_BASE_ANDROID
+			#if defined __ANDROID__
 			auto ret = ALooper_addFd(Base::activityLooper(), fd, ALOOPER_POLL_CALLBACK, Base::POLLEV_IN,
 				timerFiredALooperCallback, this);
 			assert(ret == 1);
@@ -86,7 +86,7 @@ public:
 		logMsg("closing timerfd %d", fd);
 		if(fd >= 0)
 		{
-			#if defined CONFIG_BASE_ANDROID
+			#if defined __ANDROID__
 			ALooper_removeFd(Base::activityLooper(), fd);
 			#else
 			removePollEvent(fd);
@@ -108,12 +108,11 @@ public:
 		onTimerComplete(this);
 	}
 
-	#if defined CONFIG_BASE_ANDROID
+	#if defined __ANDROID__
 	static int timerFiredALooperCallback(int fd, int events, void* data)
 	{
 		auto &inst = *((TimerFdHandler*)data);
 		inst.timerFired();
-		Base::postDrawWindowIfNeeded();
 		return 1;
 	}
 	#else
@@ -130,7 +129,7 @@ public:
 	int fd = -1;
 };
 
-StaticDLList<TimerFdHandler, 5> timerList;
+StaticDLList<TimerFdHandler, 6> timerList;
 
 void onTimerComplete(TimerFdHandler *timer)
 {
@@ -157,13 +156,13 @@ CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
 		return nullptr;
 	}
 	timerList.add();
-	auto timer = timerList.first();
-	timer->setCallback(callback);
-	if(!timer->armMs(ms))
+	auto &timer = timerList.front();
+	timer.setCallback(callback);
+	if(!timer.armMs(ms))
 	{
 		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");
 	}
-	return (CallbackRef*)timer;
+	return (CallbackRef*)&timer;
 }
 
 }

@@ -14,9 +14,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <TextEntry.hh>
+#include <EmuSystem.hh>
 #include <gui/GuiTable1D/GuiTable1D.hh>
-
-Gfx::BufferImage *getXAsset();
 
 void TextEntry::setAcceptingInput(bool on)
 {
@@ -37,7 +36,7 @@ void TextEntry::setAcceptingInput(bool on)
 
 void TextEntry::inputEvent(const Input::Event &e)
 {
-	if(e.isPointer() && e.pushed() && b.overlaps(e.x, e.y))
+	if(e.isPointer() && e.pushed() && b.overlaps({e.x, e.y}))
 	{
 		{
 			setAcceptingInput(1);
@@ -90,7 +89,7 @@ void TextEntry::inputEvent(const Input::Event &e)
 		{
 			t.setString(str);
 			t.compile();
-			Base::displayNeedsUpdate();
+			Base::mainWindow().displayNeedsUpdate();
 		}
 	}
 }
@@ -106,7 +105,7 @@ void TextEntry::place()
 	t.compile();
 }
 
-void TextEntry::place(Rect2<int> rect)
+void TextEntry::place(IG::Rect2<int> rect)
 {
 	b = rect;
 	place();
@@ -133,8 +132,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl)
 	{
-		auto res = getXAsset();
-		cancelSpr.init(-.5, -.5, .5, .5, res);
+		cancelSpr.init(-.5, -.5, .5, .5, &getAsset(ASSET_CLOSE));
 	}
 	#endif
 	message.init(msgText, face);
@@ -186,15 +184,15 @@ void CollectTextInputView::place()
 	#endif
 	message.maxLineSize = Gfx::proj.w * 0.95;
 	message.compile();
-	Rect2<int> textRect;
+	IG::Rect2<int> textRect;
 	int xSize = rect.xSize() * 0.95;
 	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-	textRect.setPosRel(rect.xPos(C2DO), rect.yPos(C2DO), xSize, ySize, C2DO);
+	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, xSize, ySize, C2DO);
 	textEntry.place(textRect);
 	#else
 	//a.setPos(gXPos(rect, C2DO), gYPos(rect, C2DO) + proj.h/4., C2DO, C2DO);
-	textRect.setPosRel(rect.xPos(C2DO), rect.yPos(C2DO) - Gfx::viewPixelHeight()/4, xSize, ySize, C2DO);
+	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO) - (int)window().viewPixelHeight()/4}, xSize, ySize, C2DO);
 	Input::placeSysTextInput(textRect);
 	#endif
 }
@@ -203,7 +201,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 {
 	if(e.state == Input::PUSHED)
 	{
-		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps(e.x, e.y)))
+		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps({e.x, e.y})))
 		{
 			removeModalView();
 			return;
@@ -230,7 +228,7 @@ void CollectTextInputView::draw(Gfx::FrameTimeBase frameTime)
 	if(cancelSpr.image())
 	{
 		setColor(COLOR_WHITE);
-		setBlendMode(BLEND_MODE_INTENSITY);
+		setBlendMode(BLEND_MODE_ALPHA);
 		loadTranslate(gXPos(cancelBtn, C2DO), gYPos(cancelBtn, C2DO));
 		cancelSpr.draw();
 	}

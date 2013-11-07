@@ -121,6 +121,20 @@ static int watchpoints_active;
 
 /* ------------------------------------------------------------------------- */
 
+static BYTE zero_read_watch(WORD addr)
+{
+    addr &= 0xff;
+    monitor_watch_push_load_addr(addr, e_comp_space);
+    return mem_read_tab[mem_config][0](addr);
+}
+
+static void zero_store_watch(WORD addr, BYTE value)
+{
+    addr &= 0xff;
+    monitor_watch_push_store_addr(addr, e_comp_space);
+    mem_write_tab[mem_config][0](addr, value);
+}
+
 static BYTE read_watch(WORD addr)
 {
     monitor_watch_push_load_addr(addr, e_comp_space);
@@ -577,12 +591,15 @@ void mem_initialize_memory(void)
 
     mem_limit_init(mem_read_limit_tab);
 
-    /* Default is RAM.  */
-    for (i = 0; i <= 0x100; i++) {
+    /* setup watchpoint tables */
+    mem_read_tab_watch[0] = zero_read_watch;
+    mem_write_tab_watch[0] = zero_store_watch;
+    for (i = 1; i <= 0x100; i++) {
         mem_read_tab_watch[i] = read_watch;
         mem_write_tab_watch[i] = store_watch;
     }
 
+    /* Default is RAM.  */
     for (i = 0; i < NUM_CONFIGS; i++) {
         mem_set_write_hook(i, 0, zero_store);
         mem_read_tab[i][0] = zero_read;

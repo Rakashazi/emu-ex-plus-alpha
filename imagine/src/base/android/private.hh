@@ -2,17 +2,17 @@
 
 #include <engine-globals.h>
 #include <util/jni.hh>
-
 #include <base/android/privateApi/gralloc.h>
 #include <util/pixel.h>
-#if CONFIG_ENV_ANDROID_MINSDK < 9
-	#include <base/android/privateApi/EGL.h>
-#else
-	#include <EGL/egl.h>
-	#define EGL_EGLEXT_PROTOTYPES
-	#include <EGL/eglext.h>
-#endif
 #include <android/looper.h>
+
+#if CONFIG_ENV_ANDROID_MINSDK < 9
+#include <base/android/privateApi/EGL.h>
+#else
+#include <EGL/egl.h>
+#define EGL_EGLEXT_PROTOTYPES
+#include <EGL/eglext.h>
+#endif
 
 struct ANativeActivity;
 class BluetoothSocket;
@@ -30,8 +30,6 @@ extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
 
 #if CONFIG_ENV_ANDROID_MINSDK >= 9
-
-void postDrawWindowIfNeeded();
 
 // Android Bluetooth
 static const ushort MSG_BT_SOCKET_STATUS_DELEGATE = 151;
@@ -52,6 +50,11 @@ void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data);
 jobject newFontRenderer(JNIEnv *jEnv);
 
 void restoreOpenGLContext();
+
+void doOnResume(ANativeActivity* activity);
+void handleIntent(ANativeActivity* activity);
+
+bool hasLowLatencyAudio();
 
 }
 

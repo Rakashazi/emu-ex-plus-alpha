@@ -17,18 +17,17 @@
 #include "Zeemote.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
-#include <util/collection/DLList.hh>
 #include <algorithm>
 
-extern StaticDLList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticDLList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
+extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
+StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
 
 const uchar Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
 uint Zeemote::findFreeDevId()
 {
 	uint id[5] = { 0 };
-	forEachInDLList(&devList, e)
+	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}
@@ -45,7 +44,7 @@ CallResult Zeemote::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to Zeemote");
 	sock.onData() =
-		[this](const uchar *packet, size_t size)
+		[this](const char *packet, size_t size)
 		{
 			return dataHandler(packet, size);
 		};
@@ -77,8 +76,8 @@ void Zeemote::removeFromSystem()
 	devList.remove(this);
 	if(btInputDevList.remove(this))
 	{
-		Input::removeDevice((Input::Device){player, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"});
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ZEEMOTE, Input::DeviceChange::REMOVED });
+		Input::removeDevice(*this);
+		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -88,17 +87,19 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("Zeemote opened successfully");
 		player = findFreeDevId();
-		if(!devList.add(this) || !btInputDevList.add(this))
+		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
 		{
 			logErr("No space left in BT input device list");
 			removeFromSystem();
 			delete this;
 			return 0;
 		}
-		Input::addDevice((Input::Device){player, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"});
-		device = Input::devList.last();
-		Input::onInputDevChange((Input::DeviceChange){ player, Input::Event::MAP_ZEEMOTE, Input::DeviceChange::ADDED });
-		return BluetoothSocket::REPLY_OPENED_USE_READ_EVENTS;
+		devList.push_back(this);
+		btInputDevList.push_back(this);
+		devId = player;
+		Input::addDevice(*this);
+		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_ERROR)
 	{
@@ -109,7 +110,7 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 	return 0;
 }
 
-bool Zeemote::dataHandler(const uchar *packet, size_t size)
+bool Zeemote::dataHandler(const char *packet, size_t size)
 {
 	//logMsg("%d bytes ready", size);
 	uint bytesLeft = size;
@@ -177,7 +178,7 @@ const char *Zeemote::reportIDToStr(uint id)
 void Zeemote::processBtnReport(const uchar *btnData, uint player)
 {
 	using namespace Input;
-	uchar btnPush[4] = { 0 };
+	uchar btnPush[4] {0};
 	iterateTimes(4, i)
 	{
 		if(btnData[i] >= 4)
@@ -191,7 +192,8 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			bool newState = btnPush[i];
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
-			onInputEvent(Event(player, Event::MAP_ZEEMOTE, code, newState ? PUSHED : RELEASED, 0, device));
+			Base::endIdleByUserActivity();
+			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ZEEMOTE, code, newState ? PUSHED : RELEASED, 0, this));
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
@@ -219,7 +221,8 @@ void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
 			{
 				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
 			};
-			onInputEvent(Event(player, Event::MAP_ZEEMOTE, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, device));
+			Base::endIdleByUserActivity();
+			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ZEEMOTE, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, this));
 		}
 		*e = newState;
 	}

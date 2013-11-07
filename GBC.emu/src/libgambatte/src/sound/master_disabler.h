@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -20,14 +20,17 @@
 #define MASTER_DISABLER_H
 
 namespace gambatte {
+
 class MasterDisabler {
-	bool &master;
-	
 public:
-	MasterDisabler(bool &m) : master(m) {}
+	explicit MasterDisabler(bool &master) : master_(master) {}
 	virtual ~MasterDisabler() {}
-	virtual void operator()() { master = false; }
+	virtual void operator()() { master_ = false; }
+
+private:
+	bool &master_;
 };
+
 }
 
 #endif

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -23,26 +23,26 @@
 #include "vfilters/maxsthq2x.h"
 #include "vfilters/maxsthq3x.h"
 
-static VideoLink* createNone() { return 0; }
+static VideoLink * createNone() { return 0; }
 
 template<class T>
-static VideoLink* createT() { return new T; }
+static VideoLink * createT() { return new T; }
 
-#define VFINFO(handle, Type) { handle, Type::OUT_WIDTH, Type::OUT_HEIGHT, createT<Type> }
+#define VFINFO(handle, Type) { handle, Type::out_width, Type::out_height, createT<Type> }
 
-static const VfilterInfo vfinfos[] = {
-	{ "None", VfilterInfo::IN_WIDTH, VfilterInfo::IN_HEIGHT, createNone },
+static VfilterInfo const vfinfos[] = {
+	{ "None", VfilterInfo::in_width, VfilterInfo::in_height, createNone },
 	VFINFO("Bicubic Catmull-Rom spline 2x", Catrom2x),
 	VFINFO("Bicubic Catmull-Rom spline 3x", Catrom3x),
 	VFINFO("Kreed's 2xSaI", Kreed2xSaI),
 	VFINFO("MaxSt's hq2x", MaxStHq2x),
-	VFINFO("MaxSt's hq3x", MaxStHq3x)
+	VFINFO("MaxSt's hq3x", MaxStHq3x),
 };
 
 std::size_t VfilterInfo::numVfilters() {
-	return sizeof(vfinfos) / sizeof(vfinfos[0]);
+	return sizeof vfinfos / sizeof vfinfos[0];
 }
 
-const VfilterInfo& VfilterInfo::get(std::size_t n) {
+VfilterInfo const & VfilterInfo::get(std::size_t n) {
 	return vfinfos[n];
 }

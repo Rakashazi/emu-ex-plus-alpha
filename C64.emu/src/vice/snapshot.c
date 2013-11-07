@@ -556,6 +556,8 @@ snapshot_module_t *snapshot_module_create(snapshot_t *s,
 {
     snapshot_module_t *m;
 
+    /* printf("snapshot_module_create: %s\n", name); */
+
     m = lib_malloc(sizeof(snapshot_module_t));
     m->file = s->file;
     m->offset = ftell(s->file);

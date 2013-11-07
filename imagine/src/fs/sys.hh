@@ -2,24 +2,25 @@
 
 #include <fs/Fs.hh>
 
-#ifdef CONFIG_FS_POSIX
-	#include <fs/posix/FsPosix.hh>
-	#define FsSys FsPosix
-#endif
-
-#ifdef CONFIG_FS_PS3
-	#include <fs/ps3/FsPs3.hh>
-	#define FsSys FsPs3
+#if defined CONFIG_FS_POSIX
+#include <fs/posix/FsPosix.hh>
+#define FsSys FsPosix
+#elif defined CONFIG_FS_WIN32
+#include <fs/win32/FsWin32.hh>
+#define FsSys FsWin32
+#elif defined CONFIG_FS_PS3
+#include <fs/ps3/FsPs3.hh>
+#define FsSys FsPs3
 #endif
 
 #ifdef CONFIG_FS
 template <uint SIZE>
 class WorkDirStack
 {
-	FsSys::cPath dir[SIZE] { {0} };
+	FsSys::cPath dir[SIZE] {{0}};
 public:
 	uint size = 0;
-	constexpr WorkDirStack() { }
+	constexpr WorkDirStack() {}
 
 	void push()
 	{

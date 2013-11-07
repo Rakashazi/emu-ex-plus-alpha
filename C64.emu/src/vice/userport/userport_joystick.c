@@ -183,7 +183,7 @@ BYTE userport_joystick_read_pbx(BYTE orig)
                 retval |= ((jv3 & 4) << 3);
                 retval |= ((jv3 & 8) << 1);
                 retval |= ((jv3 & 16) >> 1);
-                retval = (BYTE)~!retval;
+                retval = (BYTE)~retval;
                 break;
             case USERPORT_JOYSTICK_KINGSOFT:
                 retval = ((jv4 >> 3) & 1) << 0;

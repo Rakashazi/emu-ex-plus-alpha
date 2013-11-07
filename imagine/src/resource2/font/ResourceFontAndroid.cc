@@ -35,7 +35,7 @@ static void setupResourceFontAndroidJni(JNIEnv *jEnv, jobject renderer)//jClsLoa
 {
 	if(jCharBitmap.m)
 		return; // already setup
-	logMsg("setting up JNI methods");
+	//logMsg("setting up JNI methods");
 	/*jstring classStr = jEnv->NewStringUTF("com/imagine/FontRenderer");
 	jFontRendererCls = (jclass)jEnv->NewGlobalRef(jLoadClass(jEnv, jClsLoader, classStr));
 	jEnv->DeleteLocalRef(classStr);
@@ -105,18 +105,18 @@ void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 	auto jEnv = eEnv();
 	lockedBitmap = jCharBitmap(jEnv, renderer);
 	assert(lockedBitmap);
-	logMsg("got bitmap @ %p", lockedBitmap);
+	//logMsg("got bitmap @ %p", lockedBitmap);
 	//lockedBitmap = Base::jniThreadNewGlobalRef(jEnv, lockedBitmap);
 	AndroidBitmapInfo info;
 	{
 		auto res = AndroidBitmap_getInfo(jEnv, lockedBitmap, &info);
-		logMsg("AndroidBitmap_getInfo returned %s", androidBitmapResultToStr(res));
+		//logMsg("AndroidBitmap_getInfo returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 		//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
 	}
 	{
 		auto res = AndroidBitmap_lockPixels(jEnv, lockedBitmap, &data);
-		logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
+		//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	}
 	x = info.width;
@@ -136,7 +136,7 @@ void ResourceFontAndroid::unlockCharBitmap(void *data)
 
 CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 {
-	logMsg("active char: %c", idx);
+	//logMsg("active char: %c", idx);
 	auto jEnv = eEnv();
 	if(jActiveChar(jEnv, renderer, idx))
 	{
@@ -145,8 +145,8 @@ CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 		metrics.xOffset = jCurrentCharXOffset(jEnv, renderer);
 		metrics.yOffset = jCurrentCharYOffset(jEnv, renderer);
 		metrics.xAdvance = jCurrentCharXAdvance(jEnv, renderer);
-		logMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
-				metrics.xOffset, metrics.yOffset, metrics.xAdvance);
+		//logMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
+		//		metrics.xOffset, metrics.yOffset, metrics.xAdvance);
 		return OK;
 	}
 	else

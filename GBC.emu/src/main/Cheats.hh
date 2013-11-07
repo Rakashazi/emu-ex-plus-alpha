@@ -1,6 +1,6 @@
 #pragma once
 #include <util/bits.h>
-#include <util/collection/DLList.hh>
+#include <util/collection/ArrayList.hh>
 #include <EmuSystem.hh>
 
 struct GbcCheat
@@ -10,7 +10,7 @@ struct GbcCheat
 	char name[64] {0};
 	char code[12] {0};
 
-	static const uint ON = BIT(0);
+	static const uint ON = IG::bit(0);
 
 	bool isOn()
 	{
@@ -30,7 +30,7 @@ struct GbcCheat
 };
 
 extern bool cheatsModified;
-extern StaticDLList<GbcCheat, EmuCheats::MAX> cheatList;
+extern StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
 void applyCheats();
 void readCheatFile();
 void writeCheatFile();

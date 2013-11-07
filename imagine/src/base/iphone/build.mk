@@ -13,10 +13,10 @@ LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framewor
 #-multiply_defined suppress
 
 ifdef iOSMsgUI
-	configDefs += IPHONE_MSG_COMPOSE
-	LDLIBS += -framework MessageUI
+ configDefs += IPHONE_MSG_COMPOSE
+ LDLIBS += -framework MessageUI
 endif
 
-SRC += base/iphone/iphone.mm util/string/apple.mm
+SRC += base/iphone/iphone.mm base/iphone/IOSWindow.mm util/string/apple.mm
 
 endif

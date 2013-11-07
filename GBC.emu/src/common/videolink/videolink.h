@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -19,12 +19,14 @@
 #ifndef VIDEOLINK_H
 #define VIDEOLINK_H
 
+#include <cstddef>
+
 class VideoLink {
 public:
 	virtual ~VideoLink() {}
-	virtual void* inBuf() const = 0;
-	virtual int inPitch() const = 0;
-	virtual void draw(void *dst, int dstpitch) = 0;
+	virtual void * inBuf() const = 0;
+	virtual std::ptrdiff_t inPitch() const = 0;
+	virtual void draw(void *dst, std::ptrdiff_t dstpitch) = 0;
 };
 
 #endif

@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart4A50.hxx 2699 2013-04-18 15:30:19Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4A50_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Cart4A50Widget.hxx"
+#endif
 
 /**
   Bankswitching method as defined/created by John Payson (aka Supercat),
@@ -44,10 +47,12 @@ class System;
   have changed on every poke operation (for any RAM) or an actual bankswitch.
 
   @author  Eckhard Stolberg & Stephen Anthony
-  @version $Id: Cart4A50.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Cart4A50.hxx 2699 2013-04-18 15:30:19Z stephena $
 */
 class Cartridge4A50 : public Cartridge
 {
+  friend class Cartridge4A50Widget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -134,6 +139,18 @@ class Cartridge4A50 : public Cartridge
     */
     string name() const { return "Cartridge4A50"; }
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new Cartridge4A50Widget(boss, font, x, y, w, h, *this);
+    }
+  #endif
+
   public:
     /**
       Get the byte at the specified address.
@@ -166,12 +183,60 @@ class Cartridge4A50 : public Cartridge
     */
     void checkBankSwitch(uInt16 address, uInt8 value);
 
+    /**
+      Methods to perform all the ways that banks can be switched
+    */
+    inline void bankROMLower(uInt16 value)
+    {
+      myIsRomLow = true;
+      mySliceLow = value << 11;
+      myBankChanged = true;
+    }
+
+    inline void bankRAMLower(uInt16 value)
+    {
+      myIsRomLow = false;
+      mySliceLow = value << 11;
+      myBankChanged = true;
+    }
+
+    inline void bankROMMiddle(uInt16 value)
+    {
+      myIsRomMiddle = true;
+      mySliceMiddle = value << 11;
+      myBankChanged = true;
+    }
+
+    inline void bankRAMMiddle(uInt16 value)
+    {
+      myIsRomMiddle = false;
+      mySliceMiddle = value << 11;
+      myBankChanged = true;
+    }
+
+    inline void bankROMHigh(uInt16 value)
+    {
+      myIsRomHigh = true;
+      mySliceHigh = value << 8;
+      myBankChanged = true;
+    }
+
+    inline void bankRAMHigh(uInt16 value)
+    {
+      myIsRomHigh = false;
+      mySliceHigh = value << 8;
+      myBankChanged = true;
+    }
+
   private:
     // The 128K ROM image of the cartridge
     uInt8 myImage[131072];
 
     // The 32K of RAM on the cartridge
     uInt8 myRAM[32768];
+
+    // (Actual) Size of the ROM image
+    uInt32 mySize;
 
     // Indicates the slice mapped into each of the three segments
     uInt16 mySliceLow;     /* index pointer for $1000-$17ff slice */

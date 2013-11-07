@@ -93,6 +93,7 @@ static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)
 		case PIXEL_BGR888:
 		case PIXEL_I8:
 		case PIXEL_IA88:
+		case PIXEL_A8:
 			return GL_UNSIGNED_BYTE;
 		case PIXEL_RGB565:
 			return GL_UNSIGNED_SHORT_5_6_5;
@@ -118,9 +119,14 @@ static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 	#endif
 	if(format.isGrayscale())
 	{
-		if(format.aBits)
-			return GL_LUMINANCE_ALPHA;
-		else return GL_LUMINANCE;
+		if(format.hasColorComponent())
+		{
+			if(format.aBits)
+				return GL_LUMINANCE_ALPHA;
+			else return GL_LUMINANCE;
+		}
+		else
+			return GL_ALPHA;
 	}
 	#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
 	else if(format.isBGROrder())
@@ -149,13 +155,10 @@ static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 {
 	#if defined(CONFIG_GFX_OPENGL_ES) && !defined(CONFIG_BASE_PS3)
-		#ifdef CONFIG_BASE_IOS
-			if(format.id == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
-				return GL_RGBA;
-		#endif
-		return pixelFormatToOGLFormat(format); // OpenGL ES manual states internalformat always equals format
+	if(format.id == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
+		return bgrInternalFormat;
+	else return pixelFormatToOGLFormat(format); // OpenGL ES manual states internalformat always equals format
 	#else
-
 	#if !defined(CONFIG_BASE_PS3)
 	if(useCompressedTextures)
 	{
@@ -175,6 +178,8 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 				return GL_COMPRESSED_LUMINANCE;
 			case PIXEL_IA88:
 				return GL_COMPRESSED_LUMINANCE_ALPHA;
+			case PIXEL_A8:
+				return GL_COMPRESSED_ALPHA;
 			default: bug_branch("%d", format.id); return 0;
 		}
 	}
@@ -209,17 +214,18 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 				return GL_LUMINANCE8;
 			case PIXEL_IA88:
 				return GL_LUMINANCE8_ALPHA8;
+			case PIXEL_A8:
+				return GL_ALPHA8;
 			default: bug_branch("%d", format.id); return 0;
 		}
 	}
-
 	#endif
 }
 
 enum { MIPMAP_NONE, MIPMAP_LINEAR, MIPMAP_NEAREST };
 static GLint minFilterType(uint imgFilter, uchar mipmapType)
 {
-	if(imgFilter == BufferImage::nearest)
+	if(imgFilter == BufferImage::NEAREST)
 	{
 		return mipmapType == MIPMAP_NEAREST ? GL_NEAREST_MIPMAP_NEAREST :
 			mipmapType == MIPMAP_LINEAR ? GL_NEAREST_MIPMAP_LINEAR :
@@ -235,7 +241,7 @@ static GLint minFilterType(uint imgFilter, uchar mipmapType)
 
 static GLint magFilterType(uint imgFilter)
 {
-	return imgFilter == BufferImage::nearest ? GL_NEAREST : GL_LINEAR;
+	return imgFilter == BufferImage::NEAREST ? GL_NEAREST : GL_LINEAR;
 }
 
 static void setDefaultImageTextureParams(uint imgFilter, uchar mipmapType, int xWrapType, int yWrapType, uint usedX, uint usedY, GLenum target)
@@ -293,7 +299,7 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target, uint
 		else
 		{
 			logWarn("OGL ES slow glTexSubImage2D case");
-			uchar *row = pix.data;
+			char *row = pix.data;
 			for(int y = 0; y < (int)pix.y; y++)
 			{
 				glTexSubImage2D(target, 0, 0, y,
@@ -359,7 +365,7 @@ bool BufferImage::hasMipmaps()
 
 void BufferImage::setFilter(uint filter)
 {
-	logMsg("setting texture filter %s", filter == BufferImage::nearest ? "nearest" : "linear");
+	logMsg("setting texture filter %s", filter == BufferImage::NEAREST ? "nearest" : "linear");
 	#if !defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 	GLenum target = GL_TEXTURE_2D;
 	#else
@@ -504,11 +510,11 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 	{
 		logMsg("auto-generating mipmaps");
 		#ifndef CONFIG_GFX_OPENGL_ES
-			glTexParameteri(texTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+		glTexParameteri(texTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
 		#elif !defined(CONFIG_BASE_PS3)
-			glTexParameteri(texTarget, GL_GENERATE_MIPMAP, GL_TRUE);
+		glTexParameteri(texTarget, GL_GENERATE_MIPMAP, GL_TRUE);
 		#else
-			// TODO: find PS3 version
+		// TODO: find PS3 version
 		#endif
 	}
 	{
@@ -530,73 +536,11 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 	#endif
 
 	#ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-		impl = new TextureBufferImage;
+	impl = new TextureBufferImage;
 	#endif
 	textureDesc().tid = texRef;
 	return 1;
 }
-
-#if defined(CONFIG_RESOURCE_IMAGE)
-/*CallResult BufferImage::subInit(ResourceImage &img, int x, int y, int xSize, int ySize)
-{
-	using namespace Gfx;
-	uint texX, texY;
-	textureSizeSupport.findBufferXYPixels(texX, texY, img.width(), img.height());
-	tid = img.gfxD.tid;
-	xStart = pixelToTexC((uint)x, texX);
-	yStart = pixelToTexC((uint)y, texY);
-	xEnd = pixelToTexC((uint)x+xSize, texX);
-	yEnd = pixelToTexC((uint)y+ySize, texY);
-	return OK;
-}*/
-
-/*CallResult BufferImage::init(ResourceImage &img, uint filter, uint hints, bool textured)
-{
-	using namespace Gfx;
-	var_selfs(hints);
-	testMipmapSupport(img.width(), img.height());
-	//logMsg("BufferImage::init");
-	int wrapMode = bestClampMode(textured);
-
-	uint texX, texY;
-	textureSizeSupport.findBufferXYPixels(texX, texY, img.width(), img.height());
-
-	auto pixFmt = swapRGBToPreferedOrder(img.pixelFormat());
-	Pixmap texPix(*pixFmt);
-	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
-	#if defined(CONFIG_BASE_PS3)
-	//logMsg("alloc in heap"); // PS3 has 1MB stack limit
-	uchar *uploadPixStore = (uchar*)mem_alloc(uploadPixStoreSize);
-	if(!uploadPixStore)
-		return OUT_OF_MEMORY;
-	#else
-	uchar uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
-	#endif
-	mem_zero(uploadPixStore, uploadPixStoreSize);
-	texPix.init(uploadPixStore, texX, texY, 0);
-	img.getImage(&texPix);
-	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(texPix.format), wrapMode,
-			wrapMode, img.width(), img.height(), hints, filter))
-	{
-		#if defined(CONFIG_BASE_PS3)
-		mem_free(uploadPixStore);
-		#endif
-		return INVALID_PARAMETER;
-	}
-
-	textureDesc().xStart = pixelToTexC((uint)0, texPix.x);
-	textureDesc().yStart = pixelToTexC((uint)0, texPix.y);
-	textureDesc().xEnd = pixelToTexC(img.width(), texPix.x);
-	textureDesc().yEnd = pixelToTexC(img.height(), texPix.y);
-
-	#if defined(CONFIG_BASE_PS3)
-	mem_free(uploadPixStore);
-	#endif
-	backingImg = &img;
-	//logMsg("set backing resource %p", backingImg);
-	return OK;
-}*/
-#endif
 
 CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool textured)
 {
@@ -615,11 +559,11 @@ CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool 
 	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
 	#if __APPLE__
 	//logMsg("alloc in heap"); // for low stack limits
-	uchar *uploadPixStore = (uchar*)mem_calloc(uploadPixStoreSize);
+	auto uploadPixStore = (char*)mem_calloc(uploadPixStoreSize);
 	if(!uploadPixStore)
 		return OUT_OF_MEMORY;
 	#else
-	uchar uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
+	char uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
 	mem_zero(uploadPixStore, uploadPixStoreSize);
 	#endif
 	texPix.init(uploadPixStore, texX, texY, 0);

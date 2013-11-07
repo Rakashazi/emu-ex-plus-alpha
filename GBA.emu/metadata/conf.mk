@@ -2,6 +2,8 @@ include ../EmuFramework/metadata/conf.mk
 metadata_name = GBA.emu
 metadata_exec = gbaemu
 metadata_pkgName = GbaEmu
+metadata_supportedMIMETypes = application/zip
+metadata_supportedFileExtensions = gba
 webOS_metadata_id = com.explusalpha.gbaemu
 metadata_id = com.explusalpha.GbaEmu
 metadata_vendor = Robert Broglia

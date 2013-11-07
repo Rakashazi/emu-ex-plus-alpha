@@ -5,15 +5,14 @@ class SystemOptionView : public OptionView
 {
 public:
 
-	BiosSelectMenu biosSelectMenu {&::biosPath, ssBiosFsFilter};
 	char biosPathStr[256] {0};
 	TextMenuItem biosPath
 	{
 		"",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
+			auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>("BIOS", &::biosPath, ssBiosFsFilter, window());
 			biosSelectMenu.init(!e.isPointer());
-			biosSelectMenu.placeRect(Gfx::viewportRect());
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
@@ -21,8 +20,7 @@ public:
 					printBiosMenuEntryStr(biosPathStr);
 					biosPath.compile();
 				};
-			modalView = &biosSelectMenu;
-			Base::displayNeedsUpdate();
+			viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
 		}
 	};
 
@@ -62,7 +60,9 @@ public:
 	}
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win):
+		OptionView(win)
+	{}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -81,5 +81,5 @@ public:
 class SystemMenuView : public MenuView
 {
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 };

@@ -39,7 +39,7 @@ static T* mem_findFirstZeroValue(T (&a)[S])
 
 static const void* mem_locate(const void *voidData, const void *endAddr, const void *voidSeq, uint seqLen)
 {
-	const uchar *data = (const uchar*)voidData, *seq = (const uchar*)voidSeq;
+	const char *data = (const char*)voidData, *seq = (const char*)voidSeq;
 	assert(data < endAddr);
 	for(uint count = 0, seqByte = 0; &data[count] != endAddr; count++)
 	{
@@ -61,12 +61,12 @@ static const void* mem_locate(const void *voidData, const void *endAddr, const v
 #ifdef __cplusplus
 static const void* mem_locate(const void *data, size_t size, const char *seqStr)
 {
-	return mem_locate(data, (uchar*)data + size, seqStr, strlen(seqStr));
+	return mem_locate(data, (char*)data + size, seqStr, strlen(seqStr));
 }
 
 static const void* mem_locate(const void *data, size_t size, const void *voidSeq, uint seqLen)
 {
-	return mem_locate(data, (uchar*)data + size, voidSeq, seqLen);
+	return mem_locate(data, (char*)data + size, voidSeq, seqLen);
 }
 
 static ptrsize mem_locateRelPos(const void *data, size_t size, const char *seqStr)
@@ -79,7 +79,7 @@ static ptrsize mem_locateRelPos(const void *data, size_t size, const char *seqSt
 
 static ptrsize mem_locateRelPos(const void *data, size_t size, const void *voidSeq, uint seqLen)
 {
-	const void *offset = mem_locate(data, (uchar*)data + size, voidSeq, seqLen);
+	const void *offset = mem_locate(data, (char*)data + size, voidSeq, seqLen);
 	if(!offset)
 		return 0;
 	return (ptrsize)offset - (ptrsize)data;
@@ -90,7 +90,7 @@ static ptrsize mem_locateRelPos(const void *data, size_t size, const void *voidS
 // Find the offset of first different byte in 2 buffers
 static size_t mem_locateDiff(const void *vdata1, const void *vdata2, size_t size)
 {
-	const uchar *data1 = (const uchar*)vdata1, *data2 = (const uchar*)vdata2;
+	const char *data1 = (const char*)vdata1, *data2 = (const char*)vdata2;
 	iterateTimes(size, i)
 	{
 		if(data1[i] != data2[i])

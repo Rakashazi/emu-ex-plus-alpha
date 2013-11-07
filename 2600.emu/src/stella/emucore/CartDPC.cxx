@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPC.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartDPC.cxx 2702 2013-04-20 22:23:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -27,11 +27,12 @@
 CartridgeDPC::CartridgeDPC(const uInt8* image, uInt32 size,
                            const Settings& settings)
   : Cartridge(settings),
+    mySize(size),
     mySystemCycles(0),
     myFractionalClocks(0.0)
 {
   // Make a copy of the entire image
-  memcpy(myImage, image, BSPF_min(size, 8192u + 2048u + 255u));
+  memcpy(myImage, image, BSPF_min(size, 8192u + 2048u + 256u));
   createCodeAccessBase(8192);
 
   // Pointer to the program ROM (8K @ 0 byte offset)
@@ -41,7 +42,7 @@ CartridgeDPC::CartridgeDPC(const uInt8* image, uInt32 size,
   myDisplayImage = myProgramImage + 8192;
 
   // Initialize the DPC data fetcher registers
-  for(uInt16 i = 0; i < 8; ++i)
+  for(int i = 0; i < 8; ++i)
     myTops[i] = myBottoms[i] = myCounters[i] = myFlags[i] = 0;
 
   // None of the data fetchers are in music mode
@@ -90,10 +91,9 @@ void CartridgeDPC::install(System& system)
   // Make sure the system we're being installed in has a page size that'll work
   assert(((0x1080 & mask) == 0) && ((0x1100 & mask) == 0));
 
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(0, 0, 0, this, System::PA_READWRITE);
 
   // Set the page accessing method for the DPC reading & writing pages
-  access.type = System::PA_READWRITE;
   for(uInt32 j = 0x1000; j < 0x1080; j += (1 << shift))
     mySystem->setPageAccess(j >> shift, access);
 
@@ -468,7 +468,7 @@ bool CartridgeDPC::patch(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeDPC::getImage(int& size) const
 {
-  size = 8192 + 2048 + 255;
+  size = mySize;
   return myImage;
 }
 

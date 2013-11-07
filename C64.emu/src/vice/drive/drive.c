@@ -483,6 +483,7 @@ void drive_disable(drive_context_t *drv)
     drive_enable_update_ui(drv);
 }
 
+/* called by machine_specific_reset() */
 void drive_reset(void)
 {
     unsigned int dnr;

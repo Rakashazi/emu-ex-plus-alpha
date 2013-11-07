@@ -4,7 +4,7 @@ else
 buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-libX11Ver := 1.5.0
+libX11Ver := 1.6.2
 libX11SrcDir := libX11-$(libX11Ver)
 libX11SrcArchive := libX11-$(libX11Ver).tar.bz2
 
@@ -26,6 +26,7 @@ install : $(outputLibFile)
 $(libX11SrcDir)/configure : $(libX11SrcArchive)
 	@echo "Extracting libX11..."
 	tar -mxjf $^
+	cd $(libX11SrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libX11..."
@@ -34,5 +35,5 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libX11SrcDir)/configure
 	@echo "Configuring libX11..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libX11SrcDir)/configure --disable-xthreads --disable-shared --disable-ipv6  --disable-loadable-i18n --disable-lint-library --disable-xf86bigfont --disable-specs --disable-tcp-transport --disable-secure-rpc --disable-composecache --disable-loadable-xcursor --disable-xcms --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(libX11SrcDir)/configure --prefix=$(installDir) --disable-xthreads --disable-shared --disable-ipv6  --disable-loadable-i18n --disable-lint-library --disable-xf86bigfont --disable-specs --disable-tcp-transport --disable-secure-rpc --disable-composecache --disable-loadable-xcursor --disable-xcms --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

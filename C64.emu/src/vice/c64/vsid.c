@@ -50,6 +50,7 @@
 #include "drive.h"
 #include "drivecpu.h"
 #include "imagecontents.h"
+#include "kbdbuf.h"
 #include "log.h"
 #include "machine-drive.h"
 #include "machine-video.h"
@@ -240,6 +241,11 @@ static io_source_list_t *sid_d500_list_item = NULL;
 static io_source_list_t *sid_d600_list_item = NULL;
 static io_source_list_t *sid_d700_list_item = NULL;
 
+static int vsid_autostart_delay = 0;
+static WORD vsid_autostart_load_addr = 0;
+static BYTE *vsid_autostart_data = NULL;
+static WORD vsid_autostart_length = 0;
+
 void c64io_vicii_init(void)
 {
     vicii_d000_list_item = io_source_register(&vicii_d000_device);
@@ -310,6 +316,7 @@ void machine_resources_shutdown(void)
     video_resources_shutdown();
     c64_resources_shutdown();
     sound_resources_shutdown();
+    cartio_shutdown();
 }
 
 /* C64-specific command-line option initialization.  */
@@ -390,6 +397,9 @@ int machine_specific_init(void)
        device yet.  */
     sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
 
+    /* Initialize keyboard buffer.  */
+    kbdbuf_init(631, 198, 10, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
+
     /* Initialize the C64-specific I/O */
     c64io_init();
 
@@ -428,8 +438,13 @@ void machine_specific_reset(void)
     /* The VIC-II must be the *last* to be reset.  */
     vicii_reset();
 
-    psid_init_driver();
-    psid_init_tune();
+    if (psid_basic_rsid_to_autostart(&vsid_autostart_load_addr, &vsid_autostart_data, &vsid_autostart_length)) {
+        vsid_autostart_delay = machine_timing.rfsh_per_sec * 23/10;
+    } else {
+        vsid_autostart_delay = 0; /* disables it */
+        psid_init_driver();
+        psid_init_tune(1);
+    }
 }
 
 void machine_specific_powerup(void)
@@ -448,6 +463,7 @@ void machine_specific_shutdown(void)
     if (!console_mode) {
         vsid_ui_close();
     }
+    psid_shutdown();
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -460,8 +476,21 @@ void machine_handle_pending_alarms(int num_write_cycles)
 /* This hook is called at the end of every frame.  */
 static void machine_vsync_hook(void)
 {
+    int i;
     unsigned int playtime;
     static unsigned int time = 0;
+
+    if (vsid_autostart_delay > 0) {
+        if (-- vsid_autostart_delay == 0) {
+            log_message(c64_log, "Triggering VSID autoload");
+            psid_init_tune(0);
+            for (i = 0; i < vsid_autostart_length; i += 1) {
+                mem_inject((WORD)(vsid_autostart_load_addr + i), vsid_autostart_data[i]);
+            }
+            mem_set_basic_text(vsid_autostart_load_addr, vsid_autostart_load_addr + vsid_autostart_length);
+            kbdbuf_feed("RUN\r");
+        }
+    }
 
     playtime = (psid_increment_frames() * machine_timing.cycles_per_rfsh) / machine_timing.cycles_per_sec;
     if (playtime != time) {

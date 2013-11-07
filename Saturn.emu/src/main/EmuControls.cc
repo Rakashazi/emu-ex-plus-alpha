@@ -104,7 +104,7 @@ const KeyConfig defaultKeyProfile[] =
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_MINIMAL_PROFILE_INIT,
 
 			Input::Keycode::Ouya::UP,
 			Input::Keycode::Ouya::RIGHT,
@@ -170,6 +170,29 @@ const KeyConfig defaultKeyProfile[] =
 				asciiKey('c'),
 				asciiKey('f'),
 				asciiKey('d'),
+			}
+		},
+		{
+			Input::Event::MAP_KEYBOARD,
+			Input::Device::SUBTYPE_NVIDIA_SHIELD,
+			"NVidia Shield",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_MINIMAL_PROFILE_INIT,
+
+				Input::Keycode::JS3_YAXIS_NEG,
+				Input::Keycode::JS3_XAXIS_POS,
+				Input::Keycode::JS3_YAXIS_POS,
+				Input::Keycode::JS3_XAXIS_NEG,
+				0, 0, 0, 0,
+				Input::Keycode::GAME_START,
+				Input::Keycode::GAME_A,
+				Input::Keycode::GAME_B,
+				Input::Keycode::GAME_R1,
+				Input::Keycode::GAME_X,
+				Input::Keycode::GAME_Y,
+				Input::Keycode::GAME_L1,
+				Input::Keycode::GAME_LEFT_TRIGGER,
+				Input::Keycode::GAME_RIGHT_TRIGGER,
 			}
 		},
 		#endif

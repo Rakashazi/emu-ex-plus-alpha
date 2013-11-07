@@ -4,7 +4,6 @@
 class SystemOptionView : public OptionView
 {
 private:
-
 	MultiChoiceSelectMenuItem timer
 	{
 		"Emulate Timer",
@@ -14,8 +13,6 @@ private:
 			setTimerIntOption();
 		}
 	};
-
-
 
 	void timerInit()
 	{
@@ -77,9 +74,9 @@ private:
 	BoolMenuItem listAll
 	{
 		"List All Games",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionListAllGames = item.on;
 		}
 	};
@@ -87,9 +84,9 @@ private:
 	BoolMenuItem createAndUseCache
 	{
 		"Make/Use Cache Files",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle((*this));
 			optionCreateAndUseCache = item.on;
 		}
 	};
@@ -97,15 +94,15 @@ private:
 	BoolMenuItem strictROMChecking
 	{
 		"Strict ROM Checking",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
+			item.toggle(*this);
 			optionStrictROMChecking = item.on;
 		}
 	};
 
 public:
-	SystemOptionView() { }
+	SystemOptionView(Base::Window &win): OptionView(win) {}
 
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
@@ -447,7 +444,7 @@ private:
 			{
 				if(entry->bugs)
 				{
-					auto &ynAlertView = *allocModalView<YesNoAlertView>();
+					auto &ynAlertView = *allocModalView<YesNoAlertView>(view->window());
 					ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
 					ynAlertView.onYes() =
 						[this](const Input::Event &e)
@@ -470,7 +467,7 @@ private:
 
 	MenuItem *item[sizeofArrayConst(romlist)] = {nullptr};
 public:
-	constexpr GameListView(): BaseMenuView("Game List") { }
+	constexpr GameListView(Base::Window &win): BaseMenuView("Game List", win) { }
 
 	bool init(bool highlightFirst)
 	{
@@ -516,15 +513,15 @@ class UnibiosSwitchesView : public BaseMenuView
 	BoolMenuItem system
 	{
 		"Mode",
-		[](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			item.toggle();
-			updateBits(memory.memcard[2], item.on ? BIT(7) : 0, 0x80);
-			updateBits(memory.sram[2], item.on ? BIT(7) : 0, 0x80);
+			item.toggle(*this);
+			updateBits(memory.memcard[2], item.on ? IG::bit(7) : 0, 0x80);
+			updateBits(memory.sram[2], item.on ? IG::bit(7) : 0, 0x80);
 		}
 	};
 public:
-	UnibiosSwitchesView(): BaseMenuView("Unibios Switches") { }
+	UnibiosSwitchesView(Base::Window &win): BaseMenuView("Unibios Switches", win) {}
 
 	void regionInit()
 	{
@@ -555,8 +552,9 @@ public:
 
 };
 
-static GameListView gameListMenu;
-static UnibiosSwitchesView unibiosSwitchesMenu;
+// TODO: allocate
+static GameListView gameListMenu(mainWin);
+static UnibiosSwitchesView unibiosSwitchesMenu(mainWin);
 
 class SystemMenuView : public MenuView
 {
@@ -597,7 +595,7 @@ private:
 	};
 
 public:
-	SystemMenuView() { }
+	SystemMenuView(Base::Window &win): MenuView(win) {}
 
 	void onShow()
 	{

@@ -33,7 +33,7 @@
 #include "types.h"
 #include "sound.h"
 
-#if (defined(WIN32) || defined(MACOSX_COCOA) || defined(WATCOM_COMPILE) || defined(__BEOS__)) && !defined(USE_SDLUI)
+#if (defined(WIN32) || defined(MACOSX_COCOA) || defined(WATCOM_COMPILE) || defined(USE_BEOS_UI)) && !defined(USE_SDLUI)
 #define SID_SETTINGS_DIALOG
 #endif
 
@@ -47,26 +47,13 @@ struct sid_snapshot_state_s;
 #define SID_ENGINE_PARSID_PORT1   4
 #define SID_ENGINE_PARSID_PORT2   5
 #define SID_ENGINE_PARSID_PORT3   6
-#define SID_ENGINE_RESID_FP       7
-#ifndef SID_ENGINE_DEFAULT
 #define SID_ENGINE_DEFAULT       99
-#endif
 
 #define SID_MODEL_6581           0
 #define SID_MODEL_8580           1
 #define SID_MODEL_8580D          2
 #define SID_MODEL_6581R4         3
 #define SID_MODEL_DTVSID         4
-#define SID_MODEL_6581R3_4885    8
-#define SID_MODEL_6581R3_0486S   9
-#define SID_MODEL_6581R3_3984   10
-#define SID_MODEL_6581R4AR_3789 11
-#define SID_MODEL_6581R3_4485   12
-#define SID_MODEL_6581R4_1986S  13
-#define SID_MODEL_8580R5_3691   16
-#define SID_MODEL_8580R5_3691D  17
-#define SID_MODEL_8580R5_1489   18
-#define SID_MODEL_8580R5_1489D  19
 #define SID_MODEL_DEFAULT       99
 
 /* these definitions are the only valid combinations of
@@ -83,16 +70,6 @@ struct sid_snapshot_state_s;
 #define SID_PARSID_PORT1          (SID_ENGINE_PARSID_PORT1 << 8)
 #define SID_PARSID_PORT2          (SID_ENGINE_PARSID_PORT2 << 8)
 #define SID_PARSID_PORT3          (SID_ENGINE_PARSID_PORT3 << 8)
-#define SID_RESIDFP_6581R3_4885   ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R3_4885)
-#define SID_RESIDFP_6581R3_0486S  ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R3_0486S)
-#define SID_RESIDFP_6581R3_3984   ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R3_3984)
-#define SID_RESIDFP_6581R4AR_3789 ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R4AR_3789)
-#define SID_RESIDFP_6581R3_4485   ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R3_4485)
-#define SID_RESIDFP_6581R4_1986S  ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_6581R4_1986S)
-#define SID_RESIDFP_8580R5_3691   ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_8580R5_3691)
-#define SID_RESIDFP_8580R5_3691D  ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_8580R5_3691D)
-#define SID_RESIDFP_8580R5_1489   ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_8580R5_1489)
-#define SID_RESIDFP_8580R5_1489D  ((SID_ENGINE_RESID_FP << 8) | SID_MODEL_8580R5_1489D)
 
 extern void machine_sid2_enable(int val);
 

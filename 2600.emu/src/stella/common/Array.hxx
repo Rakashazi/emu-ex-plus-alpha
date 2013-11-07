@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Array.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Array.hxx 2678 2013-03-31 00:10:05Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -33,8 +33,8 @@ template <class T>
 class Array
 {
   protected:
-    int _capacity = 0;
-    int _size = 0;
+    uInt32 _capacity = 0;
+    uInt32 _size = 0;
     T *_data = nullptr;
 
   public:
@@ -48,7 +48,7 @@ class Array
       _size = array._size;
       _capacity = _size + 128;
       _data = new T[_capacity];
-      for(int i = 0; i < _size; i++)
+      for(uInt32 i = 0; i < _size; i++)
         _data[i] = array._data[i];
     }
 
@@ -58,7 +58,7 @@ class Array
         delete [] _data;
     }
 
-    void reserve(int capacity)
+    void reserve(uInt32 capacity)
     {
       if(capacity <= _capacity)
         return;
@@ -74,11 +74,11 @@ class Array
     void push_back(const Array<T>& array)
     {
       ensureCapacity(_size + array._size);
-      for(int i = 0; i < array._size; i++)
+      for(uInt32 i = 0; i < array._size; i++)
         _data[_size++] = array._data[i];
     }
 
-    void insert_at(int idx, const T& element)
+    void insert_at(uInt32 idx, const T& element)
     {
       assert(idx >= 0 && idx <= _size);
       ensureCapacity(_size + 1);
@@ -87,30 +87,30 @@ class Array
       // usually isn't correct (specifically, for any class which has a non-default
       // copy behaviour. E.g. the String class uses a refCounter which has to be
       // updated whenever a String is copied.
-      for(int i = _size; i > idx; i--)
+      for(uInt32 i = _size; i > idx; i--)
         _data[i] = _data[i-1];
 
       _data[idx] = element;
       _size++;
     }
 
-    T remove_at(int idx)
+    T remove_at(uInt32 idx)
     {
       assert(idx >= 0 && idx < _size);
       T tmp = _data[idx];
-      for(int i = idx; i < _size - 1; i++)
+      for(uInt32 i = idx; i < _size - 1; i++)
         _data[i] = _data[i+1];
       _size--;
       return tmp;
     }
 
-    T& operator [](int idx)
+    T& operator [](uInt32 idx)
     {
       assert(idx >= 0 && idx < _size);
       return _data[idx];
     }
 
-    const T& operator [](int idx) const
+    const T& operator [](uInt32 idx) const
     {
       assert(idx >= 0 && idx < _size);
       return _data[idx];
@@ -123,24 +123,27 @@ class Array
       _size = array._size;
       _capacity = _size + 128;
       _data = new T[_capacity];
-      for(int i = 0; i < _size; i++)
+      for(uInt32 i = 0; i < _size; i++)
         _data[i] = array._data[i];
 
       return *this;
     }
 
-    unsigned int size() const { return _size; }
-    unsigned int capacity() const { return _capacity; }
+    uInt32 size() const { return _size; }
+    uInt32 capacity() const { return _capacity; }
 
-    void clear()
+    void clear(bool fullerase = true)
     {
-      if(_data)
-      {
-        delete [] _data;
-        _data = 0;
+    	if(fullerase)
+    	{
+        if(_data)
+        {
+          delete [] _data;
+          _data = 0;
+        }
+        _size = 0;
+        _capacity = 0;
       }
-      _size = 0;
-      _capacity = 0;
     }
 	
     bool isEmpty() const
@@ -169,7 +172,7 @@ class Array
     }
 
   protected:
-    void ensureCapacity(int new_len)
+    void ensureCapacity(uInt32 new_len)
     {
       if (new_len <= _capacity)
         return;
@@ -181,7 +184,7 @@ class Array
       if (old_data)
       {
         // Copy old data
-        for (int i = 0; i < _size; i++)
+        for (uInt32 i = 0; i < _size; i++)
           _data[i] = old_data[i];
         delete [] old_data;
       }

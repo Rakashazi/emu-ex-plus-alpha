@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.cxx 2613 2013-02-17 00:19:14Z stephena $
+// $Id: Console.cxx 2726 2013-05-08 23:34:42Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -75,9 +75,9 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     mySystem(0),
     myCart(cart),
     myCMHandler(0),
-    myDisplayFormat("NTSC"),
-    myFramerate(60.0),
-    myCurrentFormat(0),
+    myDisplayFormat(""),  // Unknown TV format @ start
+    myFramerate(0.0),     // Unknown framerate @ start
+    myCurrentFormat(0),   // Unknown format @ start
     myUserPaletteDefined(false)
 {
   // Load user-defined palette for this ROM
@@ -119,7 +119,7 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     // will take over 250 frames!
     // The 'fastscbios' option must be changed before the system is reset
     bool fastscbios = myOSystem->settings().getBool("fastscbios");
-    myOSystem->settings().setBool("fastscbios", true);
+    myOSystem->settings().setValue("fastscbios", true);
     mySystem->reset(true);  // autodetect in reset enabled
     for(int i = 0; i < 60; ++i)
       myTIA->update();
@@ -131,7 +131,7 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
     }
 
     // Don't forget to reset the SC progress bars again
-    myOSystem->settings().setBool("fastscbios", fastscbios);
+    myOSystem->settings().setValue("fastscbios", fastscbios);
   }
   myConsoleInfo.DisplayFormat = myDisplayFormat + autodetected;
 
@@ -162,11 +162,6 @@ Console::Console(OSystem* osystem, Cartridge* cart, const Properties& props)
 
   // Reset the system to its power-on state
   mySystem->reset();
-
-#ifdef DEBUGGER_SUPPORT
-  myOSystem->createDebugger(*this);
-  m6502->attach(myOSystem->debugger());
-#endif
 
   // Finally, add remaining info about the console
   myConsoleInfo.CartName   = myProperties.get(Cartridge_Name);
@@ -291,7 +286,7 @@ void Console::toggleFormat(int direction)
 void Console::toggleColorLoss()
 {
   bool colorloss = !myOSystem->settings().getBool("colorloss");
-  myOSystem->settings().setBool("colorloss", colorloss);
+  myOSystem->settings().setValue("colorloss", colorloss);
   myTIA->enableColorLoss(colorloss);
 
   string message = string("PAL color-loss ") +
@@ -342,7 +337,7 @@ void Console::togglePalette()
     message = "Standard Stella palette";
   }
 
-  myOSystem->settings().setString("palette", palette);
+  myOSystem->settings().setValue("palette", palette);
   myOSystem->frameBuffer().showMessage(message);
 
   setPalette(palette);
@@ -602,8 +597,8 @@ void Console::setTIAProperties()
     ystart = BSPF_min(ystart, 64u);
     height = myOSystem->desktopHeight();
   }
-	myTIA->setYStart(ystart);
-	myTIA->setHeight(height);
+  myTIA->setYStart(ystart);
+  myTIA->setHeight(height);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -738,16 +733,16 @@ void Console::setControllers(const string& rommd5)
   }
   else if(right == "ATARIVOX")
   {
-  	const string& nvramfile = myOSystem->nvramDir() + "atarivox_eeprom.dat";
+    const string& nvramfile = myOSystem->nvramDir() + "atarivox_eeprom.dat";
     myControllers[rightPort] = new AtariVox(Controller::Right, myEvent,
                    *mySystem, myOSystem->serialPort(),
                    myOSystem->settings().getString("avoxport"), nvramfile);
   }
   else if(right == "SAVEKEY")
   {
-  	const string& nvramfile = myOSystem->nvramDir() + "savekey_eeprom.dat";
+    const string& nvramfile = myOSystem->nvramDir() + "savekey_eeprom.dat";
     myControllers[rightPort] = new SaveKey(Controller::Right, myEvent, *mySystem,
-    																				nvramfile);
+                                           nvramfile);
   }
   else if(right == "GENESIS")
   {
@@ -918,6 +913,23 @@ void Console::toggleFixedColors() const
     myOSystem->frameBuffer().showMessage("Fixed debug colors enabled");
   else
     myOSystem->frameBuffer().showMessage("Fixed debug colors disabled");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::addDebugger()
+{
+#ifdef DEBUGGER_SUPPORT
+  myOSystem->createDebugger(*this);
+  mySystem->m6502().attach(myOSystem->debugger());
+#endif
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::stateChanged(EventHandler::State state)
+{
+  // For now, only the CompuMate cares about state changes
+  if(myCMHandler)
+    myCMHandler->enableKeyHandling(state == EventHandler::S_EMULATE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

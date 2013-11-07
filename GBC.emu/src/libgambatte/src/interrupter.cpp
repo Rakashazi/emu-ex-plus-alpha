@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   aamas@stud.ntnu.no                                                    *
+ *   sinamas@users.sourceforge.net                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2 as     *
@@ -21,51 +21,56 @@
 
 namespace gambatte {
 
-Interrupter::Interrupter(unsigned short &SP_in, unsigned short &PC_in) :
-	SP(SP_in),
-	PC(PC_in)
-{}
-
-unsigned long Interrupter::interrupt(const unsigned address, unsigned long cycleCounter, Memory &memory) {
-	cycleCounter += 8;
-	SP = (SP - 1) & 0xFFFF;
-	memory.write(SP, PC >> 8, cycleCounter);
-	cycleCounter += 4;
-	SP = (SP - 1) & 0xFFFF;
-	memory.write(SP, PC & 0xFF, cycleCounter);
-	PC = address;
-	cycleCounter += 8;
-	
-	if (address == 0x40 && !gsCodes.empty())
-		applyVblankCheats(cycleCounter, memory);
-	
-	return cycleCounter;
+Interrupter::Interrupter(unsigned short &sp, unsigned short &pc)
+: sp_(sp)
+, pc_(pc)
+{
 }
 
-static int asHex(const char c) {
+unsigned long Interrupter::interrupt(unsigned const address, unsigned long cc, Memory &memory) {
+	cc += 8;
+	sp_ = (sp_ - 1) & 0xFFFF;
+	memory.write(sp_, pc_ >> 8, cc);
+	cc += 4;
+	sp_ = (sp_ - 1) & 0xFFFF;
+	memory.write(sp_, pc_ & 0xFF, cc);
+	pc_ = address;
+	cc += 8;
+
+	if (address == 0x40 && !gsCodes_.empty())
+		applyVblankCheats(cc, memory);
+
+	return cc;
+}
+
+static int asHex(char c) {
 	return c >= 'A' ? c - 'A' + 0xA : c - '0';
 }
 
-void Interrupter::setGameShark(const std::string &codes) {
+void Interrupter::setGameShark(std::string const &codes) {
 	std::string code;
-	gsCodes.clear();
-	
-	for (std::size_t pos = 0; pos < codes.length() && (code = codes.substr(pos, codes.find(';', pos) - pos), true); pos += code.length() + 1) {
+	gsCodes_.clear();
+
+	for (std::size_t pos = 0; pos < codes.length(); pos += code.length() + 1) {
+		code = codes.substr(pos, codes.find(';', pos) - pos);
 		if (code.length() >= 8) {
 			GsCode gs;
-			gs.type  = asHex(code[0]) << 4 | asHex(code[1]);
+			gs.type  =  asHex(code[0]) << 4 | asHex(code[1]);
 			gs.value = (asHex(code[2]) << 4 | asHex(code[3])) & 0xFF;
-			gs.address = (asHex(code[4]) << 4 | asHex(code[5]) | asHex(code[6]) << 12 | asHex(code[7]) << 8) & 0xFFFF;
-			gsCodes.push_back(gs);
+			gs.address = (  asHex(code[4]) << 4
+			              | asHex(code[5])
+			              | asHex(code[6]) << 12
+			              | asHex(code[7]) <<  8) & 0xFFFF;
+			gsCodes_.push_back(gs);
 		}
 	}
 }
 
-void Interrupter::applyVblankCheats(const unsigned long cycleCounter, Memory &memory) {
-	for (std::size_t i = 0, size = gsCodes.size(); i < size; ++i) {
-		if (gsCodes[i].type == 0x01)
-			memory.write(gsCodes[i].address, gsCodes[i].value, cycleCounter);
-		}
+void Interrupter::applyVblankCheats(unsigned long const cc, Memory &memory) {
+	for (std::size_t i = 0, size = gsCodes_.size(); i < size; ++i) {
+		if (gsCodes_[i].type == 0x01)
+			memory.write(gsCodes_[i].address, gsCodes_[i].value, cc);
+	}
 }
 
 }

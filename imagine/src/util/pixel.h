@@ -68,6 +68,11 @@ public:
 		return (rBits == gBits && gBits == bBits) && (rShift == gShift && gShift == bShift);
 	}
 
+	bool hasColorComponent() const
+	{
+		return rBits || gBits || bBits;
+	}
+
 	bool isBGROrder() const
 	{
 		return bgrOrder;
@@ -76,7 +81,7 @@ public:
 
 // Unique format IDs
 enum { PIXEL_UNKNOWN, PIXEL_RGB888, PIXEL_RGBA8888, PIXEL_BGR888, PIXEL_BGRA8888,
-	PIXEL_RGB565, PIXEL_ARGB1555, PIXEL_ABGR1555, PIXEL_XBGR1555, PIXEL_I8,
+	PIXEL_RGB565, PIXEL_ARGB1555, PIXEL_ABGR1555, PIXEL_XBGR1555, PIXEL_I8, PIXEL_A8,
 	PIXEL_ARGB8888, PIXEL_ABGR8888, PIXEL_IA53, PIXEL_AI35, PIXEL_IA88,
 	PIXEL_ARGB4444, PIXEL_BGRA4444, PIXEL_END } ;
 
@@ -163,6 +168,12 @@ static constexpr PixelFormatDesc PixelFormatI8 =
 	0, 0, 0, 0, // shifts
 	8, 8, 8, 0, // bits
 	8, 1, 0, "I8", PIXEL_I8
+};
+static constexpr PixelFormatDesc PixelFormatA8 =
+{
+	0, 0, 0, 0, // shifts
+	0, 0, 0, 8, // bits
+	8, 1, 0, "A8", PIXEL_A8
 };
 /*static constexpr PixelFormatDesc PixelFormat5I3A = { 5, 5, 5, 0,
 	5, 5, 5, 3,

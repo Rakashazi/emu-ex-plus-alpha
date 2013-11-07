@@ -13,7 +13,7 @@ CallResult GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y
 	int quads = (xVals - 1) * (yVals - 1);
 	idxs = quads*6;
 	//logMsg("mesh with %d verts, %d idxs, %d quads", verts, idxs, quads);
-	uchar *mem = (uchar*)mem_alloc((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
+	auto mem = (char*)mem_alloc((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
 	v = {(ColVertex*)mem, xVals};
 	i = (VertexIndex*)(mem + (sizeof(ColVertex) * verts));
 

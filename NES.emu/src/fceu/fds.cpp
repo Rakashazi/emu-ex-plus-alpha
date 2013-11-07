@@ -143,20 +143,26 @@ static void FDSInit(void) {
 	SelectDisk = 0;
 }
 
-void FCEU_FDSInsert(void) {
-	if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
+void FCEU_FDSInsert(void)
+{
+	if (TotalSides == 0)
+	{
+		FCEU_DispMessage("Not FDS; can't eject disk.", 0);
+		return;
+	}
+
+	if (FCEUI_EmulationPaused())
+		EmulationPaused |= EMULATIONPAUSED_FA;
 
 	if (FCEUMOV_Mode(MOVIEMODE_RECORD))
 		FCEUMOV_AddCommand(FCEUNPCMD_FDSINSERT);
 
-	if (TotalSides == 0) {
-		FCEU_DispMessage("Not FDS; can't eject disk.", 0);
-		return;
-	}
-	if (InDisk == 255) {
+	if (InDisk == 255)
+	{
 		FCEU_DispMessage("Disk %d Side %s Inserted", 0, SelectDisk >> 1, (SelectDisk & 1) ? "B" : "A");
 		InDisk = SelectDisk;
-	} else {
+	} else
+	{
 		FCEU_DispMessage("Disk %d Side %s Ejected", 0, SelectDisk >> 1, (SelectDisk & 1) ? "B" : "A");
 		InDisk = 255;
 	}
@@ -167,20 +173,25 @@ void FCEU_FDSEject(void)
 InDisk=255;
 }
 */
-void FCEU_FDSSelect(void) {
-	if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
+void FCEU_FDSSelect(void)
+{
+	if (TotalSides == 0)
+	{
+		FCEU_DispMessage("Not FDS; can't select disk.", 0);
+		return;
+	}
+	if (InDisk != 255)
+	{
+		FCEU_DispMessage("Eject disk before selecting.", 0);
+		return;
+	}
+
+	if (FCEUI_EmulationPaused())
+		EmulationPaused |= EMULATIONPAUSED_FA;
 
 	if (FCEUMOV_Mode(MOVIEMODE_RECORD))
 		FCEUMOV_AddCommand(FCEUNPCMD_FDSSELECT);
 
-	if (TotalSides == 0) {
-		FCEU_DispMessage("Not FDS; can't select disk.", 0);
-		return;
-	}
-	if (InDisk != 255) {
-		FCEU_DispMessage("Eject disk before selecting.", 0);
-		return;
-	}
 	SelectDisk = ((SelectDisk + 1) % TotalSides) & 3;
 	FCEU_DispMessage("Disk %d Side %c Selected", 0, SelectDisk >> 1, (SelectDisk & 1) ? 'B' : 'A');
 }
@@ -193,9 +204,9 @@ void FCEU_FDSSetDisk(uint8 side)
 	if(FCEU_FDSInserted())
 	{
 		FCEU_FDSInsert();
-		uint8 *gfx; int32 ssize;
+		uint8 *gfx;
 		for(int i = 0; i < 60; i++)
-			FCEUI_Emulate(&gfx, 0, &ssize, 2); // wait 1 second in emu time for disk eject
+			FCEUI_Emulate(&gfx, /*0, &ssize,*/ 2, false); // wait 1 second in emu time for disk eject
 	}
 
 	while(SelectDisk != side)

@@ -9,7 +9,6 @@
 static const char *touchConfigFaceBtnName = "A-Z", *touchConfigCenterBtnName = "Start";
 static const uint systemFaceBtns = 8, systemCenterBtns = 1;
 static const bool systemHasTriggerBtns = 1, systemHasRevBtnLayout = 0;
-#define systemAspectRatioString "4:3"
 
 namespace EmuControls
 {

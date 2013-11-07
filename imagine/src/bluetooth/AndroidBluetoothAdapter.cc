@@ -18,7 +18,6 @@
 #include <util/fd-utils.h>
 #include <errno.h>
 #include <cctype>
-#include <util/collection/DLList.hh>
 #include <base/android/private.hh>
 #include "utils.hh"
 
@@ -43,13 +42,13 @@ static void JNICALL btScanStatus(JNIEnv* env, jobject thiz, jint res)
 
 void AndroidBluetoothAdapter::handleScanStatus(int result)
 {
+	assert(inDetect);
 	logMsg("scan complete");
 	if(scanCancelled)
 		onScanStatusD(*this, BluetoothAdapter::SCAN_CANCELLED, 0);
 	else
 		onScanStatusD(*this, BluetoothAdapter::SCAN_COMPLETE, 0);
 	inDetect = 0;
-	postDrawWindowIfNeeded();
 }
 
 static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jint classInt)
@@ -57,7 +56,7 @@ static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jint classInt
 	return defaultAndroidAdapter.handleScanClass(classInt);
 }
 
-bool AndroidBluetoothAdapter::handleScanClass(int classInt)
+bool AndroidBluetoothAdapter::handleScanClass(uint classInt)
 {
 	if(scanCancelled)
 	{
@@ -72,10 +71,8 @@ bool AndroidBluetoothAdapter::handleScanClass(int classInt)
 	if(!onScanDeviceClassD(*this, classByte))
 	{
 		logMsg("skipping device due to class %X:%X:%X", classByte[0], classByte[1], classByte[2]);
-		postDrawWindowIfNeeded();
 		return 0;
 	}
-	postDrawWindowIfNeeded();
 	return 1;
 }
 
@@ -91,16 +88,16 @@ void AndroidBluetoothAdapter::handleScanName(JNIEnv* env, jstring name, jstring 
 		logMsg("scan canceled while handling device name");
 		return;
 	}
-	const char *nameStr = env->GetStringUTFChars(name, 0);
+	const char *nameStr = env->GetStringUTFChars(name, nullptr);
 	BluetoothAddr addrByte;
 	{
-		const char *addrStr = env->GetStringUTFChars(addr, 0);
+		const char *addrStr = env->GetStringUTFChars(addr, nullptr);
 		str2ba(addrStr, &addrByte);
 		env->ReleaseStringUTFChars(addr, addrStr);
 	}
+	logMsg("got name %s", nameStr);
 	onScanDeviceNameD(*this, nameStr, addrByte);
 	env->ReleaseStringUTFChars(name, nameStr);
-	postDrawWindowIfNeeded();
 }
 
 static void JNICALL turnOnResult(JNIEnv* env, jobject thiz, jboolean success)
@@ -313,7 +310,7 @@ int AndroidBluetoothSocket::readPendingData(int events)
 	}
 	else if(events & Base::POLLEV_IN)
 	{
-		uchar buff[50];
+		char buff[50];
 		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(nativeFd), nativeFd);
 		while(fd_bytesReadable(nativeFd))
 		{
@@ -335,7 +332,7 @@ int AndroidBluetoothSocket::readPendingData(int events)
 void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 {
 	assert(status == STATUS_OPENED);
-	if(onStatusD(*this, STATUS_OPENED) == REPLY_OPENED_USE_READ_EVENTS)
+	if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 	{
 		if(nativeFd != -1)
 		{

@@ -2,6 +2,7 @@
 
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
+#define CONFIG_INPUT_GENERIC_ASCII_DECODE
 
 namespace Input
 {

@@ -170,6 +170,8 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
 
     via2p = (drivevia2_context_t *)(via_context->prv);
 
+    DBG(("VIA2: store_prb (%02x to %02x)", poldpb, byte));
+
     rotation_rotate_disk(via2p->drive);
 
     if (via2p->drive->led_status) {
@@ -210,8 +212,13 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
             step_count = -1;
         }
 
+        /* FIXME: mechanical delays are not emulated, which has some unwanted
+                  side effects, for example the drive will do one step at
+                  power-up and/or reset (bug #3606259) */
+
         /* presumably only single steps work */
         if (step_count == 1 || step_count == -1) {
+            DBG(("VIA2: store_prb drive_move_head(%d) (%02x to %02x)", step_count, poldpb, byte));
             drive_move_head(step_count, via2p->drive);
         }
     }
@@ -338,10 +345,12 @@ static BYTE read_prb(via_context_t *via_context)
 
     rotation_rotate_disk(via2p->drive);
     byte = ((rotation_sync_found(via2p->drive)
-           | drive_writeprotect_sense(via2p->drive))
+           | drive_writeprotect_sense(via2p->drive)
+           | 0x6f) /* output bits read 1 if used as input */
            & ~(via_context->via[VIA_DDRB]))
            | (via_context->via[VIA_PRB] & via_context->via[VIA_DDRB]);
 
+    DBG(("read_prb %02x pb:%02x ddr:%02x\n",byte,via_context->via[VIA_PRB],via_context->via[VIA_DDRB]));
 
     via2p->drive->byte_ready_level = 0;
 

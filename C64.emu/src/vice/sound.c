@@ -226,9 +226,12 @@ static int output_option;
 
 /* divisors for fragment size calculation */
 static int fragment_divisor[] = {
-    4, /* 5ms */
-    2, /* 10 ms */
-    1  /* 20 ms */
+    32, /* 100ms / 32 = 0.625ms */
+    16, /* 100ms / 16 = 1.25ms */
+     8, /* 100ms / 8 = 2.5ms */
+     4, /* 100ms / 4 = 5ms */
+     2, /* 100ms / 2 = 10 ms */
+     1  /* 100ms / 1 = 20 ms, actually unused (since it is not practical) */
 };
 
 /* I need this to serialize close_sound and enablesound/sound_open in
@@ -245,8 +248,9 @@ static int cycle_based = 0;
 
 static int set_output_option(int val, void *param)
 {
-    if (val >= 0 && val < 3) {
+    if (val >= 0 && val < 3 && output_option != val) {
         output_option = val;
+        sound_state_changed = TRUE;
     }
     return 0;
 }
@@ -315,6 +319,11 @@ static int set_buffer_size(int val, void *param)
 
 static int set_fragment_size(int val, void *param)
 {
+    if (val < 0) {
+        val = 0;
+    } else if (val > SOUND_FRAGMENT_VERY_LARGE) {
+        val = SOUND_FRAGMENT_VERY_LARGE;
+    }
     fragment_size = val;
     sound_state_changed = TRUE;
     return 0;
@@ -766,6 +775,7 @@ int sound_open(void)
     int speed;
     int fragsize;
     int fragnr;
+    char frag_str[8];
     double bufsize;
 
     if (suspend_time > 0 && disabletime) {
@@ -831,6 +841,9 @@ int sound_open(void)
      * audio is generated. It also improves the estimate of optimal frame
      * length for vsync, which is closely tied to audio and uses the fragment
      * information to calculate it. */
+    /* note: in practise it is actually better to use fragments that are as
+     *       small as possible, as that will allow the whole system to catch up
+     *       faster and compensate errors better. */
     fragsize = 1;/*speed / ((rfsh_per_sec < 1.0) ? 1 : ((int)rfsh_per_sec))
                / fragment_divisor[fragment_size];*/
     if (pdev) {
@@ -876,10 +889,11 @@ int sound_open(void)
         snddata.fragnr = fragnr;
         snddata.bufsize = fragsize * fragnr;
         snddata.bufptr = 0;
+        /* log_message isn't guarenteed to handle "%f" */
+        sprintf(frag_str, "%.1f", (1000.0 * fragsize / speed));
         log_message(sound_log,
-                    "Opened device `%s', speed %dHz, fragment size %dms, buffer size %dms%s",
-                    pdev->name, speed,
-                    (int)(1000.0 * fragsize / speed),
+                    "Opened device `%s', speed %dHz, fragment size %sms, buffer size %dms%s",
+                    pdev->name, speed, frag_str,
                     (int)(1000.0 * snddata.bufsize / speed),
                     snddata.sound_output_channels > 1 ? ", stereo" : "");
         sample_rate = speed;
@@ -1453,8 +1467,9 @@ void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame)
     // sound_init_dart2_device();
 #endif
 
-#ifdef __BEOS__
+#ifdef BEOS_COMPILE
     sound_init_beos_device();
+    sound_init_bsp_device();
 #endif
 
 #if defined(AMIGA_SUPPORT) && defined(HAVE_DEVICES_AHI_H)
@@ -1483,10 +1498,10 @@ void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame)
     lib_free(devlist);
 
     if (!device_name || device_name[0] == '\0') {
-#if defined(__BEOS__) && !defined(USE_SDL_AUDIO)
+#if defined(BEOS_COMPILE) && !defined(USE_SDL_AUDIO)
         /* Don't use beos sound device as default for Haiku */
         if (CheckForHaiku()) {
-            util_string_set(&device_name, "dummy");
+            util_string_set(&device_name, "bsp");
         } else
 #endif
         {

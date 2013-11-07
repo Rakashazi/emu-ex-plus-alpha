@@ -38,7 +38,7 @@ static uint32 wlookup2[203];
 FCEU_SoundSample Wave[2048+512];
 FCEU_SoundSample2 WaveHi[40000];
 //FCEU_SoundSample WaveFinal[2048+512];
-FCEU_SoundSample *WaveFinal;
+//FCEU_SoundSample *WaveFinal;
 
 EXPSOUND GameExpSound={0,0,0};
 
@@ -1034,8 +1034,8 @@ void SetNESSoundMap(void)
   SetReadHandler(0x4015,0x4015,StatusRead);
 }
 
-static int32 inbuf=0;
-int FlushEmulateSound(void)
+//static int32 inbuf=0;
+int FlushEmulateSound(FCEU_SoundSample *WaveFinal)
 {
 	assert(WaveFinal);
   int x;
@@ -1071,7 +1071,7 @@ int FlushEmulateSound(void)
 
    static FCEU_SoundSample2 WaveHi2[2048+512];
    //end=NeoFilterSound(WaveHi,WaveFinal,SOUNDTS,&left);
-   end=NeoFilterSound(WaveHi,WaveHi,SOUNDTS,&left);
+   end=NeoFilterSound(WaveHi,WaveHi,SOUNDTS,&left,WaveFinal);
 
    memmove(WaveHi,WaveHi+SOUNDTS-left,left*sizeof(FCEU_SoundSample2));
    memset(WaveHi+left,0,sizeof(WaveHi)-left*sizeof(FCEU_SoundSample2));
@@ -1107,18 +1107,18 @@ int FlushEmulateSound(void)
    soundtsoffs = (soundtsinc*(end&0xF))>>16;
    end>>=4;
   }
-  inbuf=end;
+  //inbuf=end;
 
   /*FCEU_WriteWaveData(WaveFinal, end); /* This function will just return
 				    if sound recording is off. */
   return(end);
 }
 
-int GetSoundBuffer(FCEU_SoundSample **W)
+/*int GetSoundBuffer(FCEU_SoundSample **W)
 {
  *W=WaveFinal;
  return(inbuf);
-}
+}*/
 
 /* FIXME:  Find out what sound registers get reset on reset.  I know $4001/$4005 don't,
 due to that whole MegaMan 2 Game Genie thing.

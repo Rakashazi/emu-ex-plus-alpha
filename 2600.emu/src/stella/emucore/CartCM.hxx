@@ -14,7 +14,7 @@
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCM.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartCM.hxx 2704 2013-04-22 16:41:05Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECM_HXX
@@ -24,6 +24,9 @@ class System;
 
 #include "bspf.hxx"
 #include "Cart.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartCMWidget.hxx"
+#endif
 
 /**
   Cartridge class used for SpectraVideo CompuMate bankswitched games.
@@ -101,10 +104,12 @@ class System;
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: CartCM.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: CartCM.hxx 2704 2013-04-22 16:41:05Z stephena $
 */
 class CartridgeCM : public Cartridge
 {
+  friend class CartridgeCMWidget;
+
   public:
     /**
       Create a new cartridge using the specified image
@@ -191,6 +196,18 @@ class CartridgeCM : public Cartridge
     */
     string name() const { return "CartridgeCM"; }
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get debugger widget responsible for accessing the inner workings
+      of the cart.
+    */
+    CartDebugWidget* debugWidget(GuiObject* boss,
+        const GUI::Font& font, int x, int y, int w, int h)
+    {
+      return new CartridgeCMWidget(boss, font, x, y, w, h, *this);
+    }
+  #endif
+
   public:
     /**
       Get the byte at the specified address.
@@ -225,8 +242,8 @@ class CartridgeCM : public Cartridge
     // The 2K of RAM
     uInt8 myRAM[2048];
 
-    // RAM read/write state
-    uInt8 myRamState;
+    // Current copy of SWCHA (controls ROM/RAM accesses)
+    uInt8 mySWCHA;
 
     // Column currently active
     uInt8 myColumn;

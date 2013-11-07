@@ -18,7 +18,7 @@
 
 #include "IoMmapGeneric.hh"
 
-Io* IoMmapGeneric::open(const uchar *buffer, size_t size)
+Io* IoMmapGeneric::open(const char *buffer, size_t size)
 {
 	IoMmapGeneric *inst = new IoMmapGeneric;
 	if(inst == NULL)

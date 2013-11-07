@@ -188,21 +188,16 @@ size_t IoZip::fwrite(const void* ptr, size_t size, size_t nmemb)
 	return 0;
 }
 
-CallResult IoZip::tell(ulong *offset)
+CallResult IoZip::tell(ulong &offset)
 {
 	long pos = unztell(zip);
 	if(pos >= 0)
 	{
-		*offset = pos;
+		offset = pos;
 		return OK;
 	}
 	else
 		return IO_ERROR;
-}
-
-CallResult IoZip::seekU(ulong offset, uint mode)
-{
-	return seekS(offset, mode);
 }
 
 // TODO: merge this will similar code in IoMmap
@@ -218,10 +213,10 @@ static ulong seekOffsetToAbs(uint mode, long offset, ulong size, ulong current)
 	}
 }
 
-CallResult IoZip::seekS(long offset, uint mode)
+CallResult IoZip::seek(long offset, uint mode)
 {
 	ulong pos;
-	if(tell(&pos) != OK)
+	if(tell(pos) != OK)
 		return IO_ERROR;
 
 	ulong absOffset = seekOffsetToAbs(mode, offset, size(), pos);
@@ -237,7 +232,7 @@ CallResult IoZip::seekS(long offset, uint mode)
 		bytesToSkip = absOffset - pos;
 	}
 
-	uchar dummy[4096];
+	char dummy[4096];
 	while(bytesToSkip)
 	{
 		size_t bytesRead = readUpTo(dummy, std::min(sizeof(dummy), (size_t)bytesToSkip));

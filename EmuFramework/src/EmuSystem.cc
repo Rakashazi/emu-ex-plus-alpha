@@ -29,6 +29,7 @@ Gfx::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
+uint EmuSystem::audioFramesPerVideoFrame = 0;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::CallbackRef *EmuSystem::autoSaveStateCallbackRef = nullptr;
@@ -66,11 +67,19 @@ void EmuSystem::startAutoSaveStateTimer()
 
 void EmuSystem::startSound()
 {
+	assert(audioFramesPerVideoFrame);
 	if(optionSound)
 	{
 		if(!Audio::isOpen())
+		{
+			#ifdef CONFIG_AUDIO_LATENCY_HINT
+			uint wantedLatency = std::round((float)optionSoundBuffers * (vidSysIsPAL() ? 20000.f : 1000000.f/60.f));
+			logMsg("requesting audio latency %dus", wantedLatency);
+			Audio::setHintOutputLatency(wantedLatency);
+			#endif
 			Audio::openPcm(pcmFormat);
-		else
+		}
+		else if(Audio::framesFree() <= (int)audioFramesPerVideoFrame)
 			Audio::resumePcm();
 	}
 }
@@ -81,6 +90,26 @@ void EmuSystem::stopSound()
 	{
 		//logMsg("stopping sound");
 		Audio::pausePcm();
+	}
+}
+
+void EmuSystem::writeSound(const void *samples, uint framesToWrite)
+{
+	Audio::writePcm(samples, framesToWrite);
+	if(!Audio::isPlaying() && Audio::framesFree() <= (int)audioFramesPerVideoFrame)
+	{
+		logMsg("starting audio playback with %d frames free in buffer", Audio::framesFree());
+		Audio::resumePcm();
+	}
+}
+
+void EmuSystem::commitSound(Audio::BufferContext buffer, uint frames)
+{
+	Audio::commitPlayBuffer(buffer, frames);
+	if(!Audio::isPlaying() && Audio::framesFree() <= (int)audioFramesPerVideoFrame)
+	{
+		logMsg("starting audio playback with %d frames free in buffer", Audio::framesFree());
+		Audio::resumePcm();
 	}
 }
 
@@ -104,13 +133,18 @@ bool EmuSystem::loadAutoState()
 	return 0;
 }
 
+bool EmuSystem::shouldOverwriteExistingState()
+{
+	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
+}
+
 //static int autoFrameSkipLevel = 0;
 //static int lowBufferFrames = (audio_maxRate/60)*3, highBufferFrames = (audio_maxRate/60)*5;
 
 int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
-	static const uint ntscNSecs = 16666666, palNSecs = 20000000;
+	static const double ntscNSecs = 1000000000./60., palNSecs = 1000000000./50.;
 	static const auto ntscFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./60.),
 			palFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
@@ -130,7 +164,7 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 		else
 		{
 			auto timeTotal = frameTime - startFrameTime;
-			auto frame = round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
+			auto frame = std::round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
 			emuFrame = frame;
 			//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
 		}
@@ -146,7 +180,8 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 		else
 		{
 			auto timeTotal = TimeSys::timeNow() - startTime;
-			emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
+			emuFrame = std::round((double)timeTotal.toNs() / (vidSysIsPAL() ? palNSecs : ntscNSecs));
+			//emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
 			//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
 		}
 	}
@@ -207,7 +242,7 @@ void EmuSystem::setupGamePaths(const char *filePath)
 		strcpy(gamePath, realPath); // destination is always large enough
 		logMsg("set game directory: %s", gamePath);
 		#ifdef CONFIG_BASE_IOS_SETUID
-			fixFilePermissions(gamePath);
+		fixFilePermissions(gamePath);
 		#endif
 	}
 

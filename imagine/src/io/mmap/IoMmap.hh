@@ -22,23 +22,21 @@
 class IoMmap : public Io
 {
 public:
-	void init(const uchar * buffer, size_t size);
+	void init(const char * buffer, size_t size);
 
-	size_t readUpTo(void* buffer, size_t numBytes);
-	const uchar *mmapConst() { return data; };
-	size_t fwrite(const void* ptr, size_t size, size_t nmemb);
-	int fgetc();
-	CallResult tell(ulong* offset);
-	CallResult seekU(ulong offset, uint mode);
-	CallResult seekS(long offset, uint mode);
-	void truncate(ulong offset) { logErr("truncate not supported"); }
-	ulong size() ATTRS(pure);
-	void sync() { }
-	int eof() ATTRS(pure);
+	size_t readUpTo(void *buffer, size_t numBytes) override;
+	const char *mmapConst() override { return data; };
+	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
+	CallResult tell(ulong &offset) override;
+	CallResult seek(long offset, uint mode) override;
+	void truncate(ulong offset) override { logErr("truncate not supported"); }
+	ulong size() override;
+	void sync() override {}
+	int eof() override;
 protected:
-	const uchar *data = nullptr;
-	const uchar *currPos = nullptr;
+	const char *data = nullptr;
+	const char *currPos = nullptr;
 	size_t iSize = 0;
 
-	const uchar *endofBuffer();
+	const char *endofBuffer();
 };

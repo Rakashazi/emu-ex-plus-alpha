@@ -3,7 +3,7 @@ Copyright (C) 2007 by Nach
 http://nsrt.edgeemu.com
 
 Copyright (C) 2007-2011 by Sindre Aamås
-aamas@stud.ntnu.no
+sinamas@users.sourceforge.net
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -28,24 +28,26 @@ Free Software Foundation, Inc.,
 namespace gambatte {
 
 class StdFile : public File {
-	std::ifstream stream;
-	std::size_t fsize;
-
 public:
-	explicit StdFile(const char *filename)
-	: stream(filename, std::ios::in | std::ios::binary), fsize(0)
+	explicit StdFile(char const *filename)
+	: stream_(filename, std::ios::in | std::ios::binary)
+	, fsize_(0)
 	{
-		if (stream) {
-			stream.seekg(0, std::ios::end);
-			fsize = stream.tellg();
-			stream.seekg(0, std::ios::beg);
+		if (stream_) {
+			stream_.seekg(0, std::ios::end);
+			fsize_ = stream_.tellg();
+			stream_.seekg(0, std::ios::beg);
 		}
 	}
-	
-	virtual void rewind() { stream.seekg(0, std::ios::beg); }
-	virtual std::size_t size() const { return fsize; };
-	virtual void read(char *buffer, std::size_t amount) { stream.read(buffer, amount); }
-	virtual bool fail() const { return stream.fail(); }
+
+	virtual void rewind() { stream_.seekg(0, std::ios::beg); }
+	virtual std::size_t size() const { return fsize_; };
+	virtual void read(char *buffer, std::size_t amount) { stream_.read(buffer, amount); }
+	virtual bool fail() const { return stream_.fail(); }
+
+private:
+	std::ifstream stream_;
+	std::size_t fsize_;
 };
 
 }

@@ -4,6 +4,6 @@ libdir=${exec_prefix}/lib
 
 Name: imagine
 Description: Game/Multimedia Engine
-Version: 1.5.12
+Version: 1.5.14
 Requires: minizip
 Libs: -L${libdir} -limagine -lBTstack -framework AudioToolbox -framework CoreAudio -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -framework OpenGLES -lobjc
