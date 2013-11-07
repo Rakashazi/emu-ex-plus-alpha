@@ -270,6 +270,17 @@ Input::Keycode::F11, \
 	0, \
 	Input::Keycode::BACK_SPACE
 
+#define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_PROFILE_INIT \
+	Input::asciiKey('l'), \
+	Input::asciiKey(' '), \
+	Input::asciiKey('3'), \
+	Input::asciiKey('4'), \
+	Input::asciiKey('5'), \
+	Input::asciiKey('6'), \
+	Input::asciiKey('0'), \
+	0, \
+	Input::Keycode::BACK_SPACE
+
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_MINIMAL_PROFILE_INIT \
 	0, \
 	Input::Keycode::Pandora::START, \
