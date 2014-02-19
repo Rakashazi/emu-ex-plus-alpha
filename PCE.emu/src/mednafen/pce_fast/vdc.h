@@ -12,7 +12,7 @@ namespace PCE_Fast
 #define VDC_UNDEFINED(x) { }
 //{ printf("%s: %d\n", x, vdc->display_counter); }
 
-static const unsigned int vram_inc_tab[4] = { 1, 32, 64, 128 };
+static const uint8 vram_inc_tab[4] = { 1, 32, 64, 128 };
 
 typedef struct
 {
@@ -112,8 +112,9 @@ extern vdc_t *vdc_chips[2];
 extern int VDC_TotalChips;
 
 
-void VDC_SetPixelFormat(const MDFN_PixelFormat &format);
-void VDC_RunFrame(const MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_Rect *LineWidths, int skip);
+void VDC_SetPixelFormat(const MDFN_PixelFormat &format) MDFN_COLD;
+template <class Pixel>
+void VDC_RunFrame(MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_SubSurface *LineWidths, int skip, int &displayRects);
 void VDC_SetLayerEnableMask(uint64 mask);
 
 DECLFW(VDC_Write);
@@ -200,10 +201,10 @@ static INLINE uint8 VDC_Read(unsigned int A, bool SGX)
 
 DECLFW(VCE_Write);
 
-void VDC_Init(int sgx);
-void VDC_Close(void);
-void VDC_Reset(void);
-void VDC_Power(void);
+void VDC_Init(int sgx) MDFN_COLD;
+void VDC_Close(void) MDFN_COLD;
+void VDC_Reset(void) MDFN_COLD;
+void VDC_Power(void) MDFN_COLD;
 
 int VDC_StateAction(StateMem *sm, int load, int data_only);
 

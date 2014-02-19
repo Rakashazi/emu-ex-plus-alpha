@@ -148,7 +148,7 @@ class SystemOptionView : public OptionView
 							popup.printf(4, false, "Using default path:\n%s/C64.emu", Base::storagePath());
 					}
 				};
-			displayNeedsUpdate();
+			postDraw();
 		}
 	};
 
@@ -248,16 +248,15 @@ public:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, c64TapeExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
-			[this](const char* name, const Input::Event &e)
+			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(tape_image_attach(1, name) == 0)
 				{
 					onTapeMediaChange(name);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 private:
@@ -277,7 +276,7 @@ private:
 						{
 							viewStack.popAndShow();
 							addTapeFilePickerView(e);
-							window().displayNeedsUpdate();
+							window().postDraw();
 						}
 						else
 						{
@@ -287,13 +286,13 @@ private:
 						}
 						return 0;
 					};
-				viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+				viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 			}
 			else
 			{
 				addTapeFilePickerView(e);
 			}
-			window().displayNeedsUpdate();
+			window().postDraw();
 		}
 	};
 
@@ -318,16 +317,15 @@ public:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, c64CartExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
-			[this](const char* name, const Input::Event &e)
+			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(cartridge_attach_image(CARTRIDGE_CRT, name) == 0)
 				{
 					onROMMediaChange(name);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 private:
@@ -346,7 +344,7 @@ private:
 						{
 							viewStack.popAndShow();
 							addCartFilePickerView(e);
-							window().displayNeedsUpdate();
+							window().postDraw();
 						}
 						else if(action == 1)
 						{
@@ -356,13 +354,13 @@ private:
 						}
 						return 0;
 					};
-				viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+				viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 			}
 			else
 			{
 				addCartFilePickerView(e);
 			}
-			window().displayNeedsUpdate();
+			window().postDraw();
 		}
 	};
 
@@ -387,17 +385,16 @@ private:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, c64DiskExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
-			[this, slot](const char* name, const Input::Event &e)
+			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				logMsg("inserting disk in unit %d", slot+8);
 				if(file_system_attach_disk(slot+8, name) == 0)
 				{
 					onDiskMediaChange(name, slot);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 public:
@@ -414,7 +411,7 @@ public:
 					{
 						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
 					else
 					{
@@ -424,13 +421,13 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addDiskFilePickerView(e, slot);
 		}
-		window().displayNeedsUpdate();
+		window().postDraw();
 	}
 
 private:
@@ -487,7 +484,7 @@ class SystemMenuView : public MenuView
 				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
 				auto &c64IoMenu = *menuAllocator.allocNew<C64IOControlView>(window());
 				c64IoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&c64IoMenu, &menuAllocator);
+				viewStack.pushAndShow(c64IoMenu, &menuAllocator);
 			}
 		}
 	};
@@ -534,7 +531,7 @@ class SystemMenuView : public MenuView
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 		}
 	};
 

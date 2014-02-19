@@ -57,10 +57,20 @@ void GeomQuadMesh::deinit()
 
 void GeomQuadMesh::draw()
 {
-	v.arr->draw(v.arr, i, Gfx::TRIANGLE, idxs);
+	if(useVBOFuncs)
+	{
+		glcBindBuffer(GL_ARRAY_BUFFER, globalStreamVBO[globalStreamVBOIdx]);
+		globalStreamVBOIdx = (globalStreamVBOIdx+1) % sizeofArray(globalStreamVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(ColVertex) * verts, v, GL_STREAM_DRAW);
+		v.arr->draw((ColVertex*)nullptr, i, Gfx::TRIANGLE, idxs);
+	}
+	else
+	{
+		v.arr->draw(v.arr, i, Gfx::TRIANGLE, idxs);
+	}
 }
 
-void GeomQuadMesh::setColorRGB(GColor r, GColor g, GColor b)
+void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
 	iterateTimes(verts, i)
 	{
@@ -68,7 +78,7 @@ void GeomQuadMesh::setColorRGB(GColor r, GColor g, GColor b)
 	}
 }
 
-void GeomQuadMesh::setColorTranslucent(GColor a)
+void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
 	iterateTimes(verts, i)
 	{
@@ -76,12 +86,12 @@ void GeomQuadMesh::setColorTranslucent(GColor a)
 	}
 }
 
-void GeomQuadMesh::setColorRGBV(GColor r, GColor g, GColor b, uint i)
+void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i)
 {
 	v[i].color = VertexColorPixelFormat.build(r, g, b, VertexColorPixelFormat.a(v[i].color));
 }
 
-void GeomQuadMesh::setColorTranslucentV(GColor a, uint i)
+void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint i)
 {
 	// swap for tri strip
 	v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), a);

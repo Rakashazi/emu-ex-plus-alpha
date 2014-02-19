@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "ScrollView1D"
+#define LOGTAG "ScrollView1D"
 
 #include "ScrollView1D.hh"
 #include <input/DragPointer.hh>
@@ -29,7 +29,7 @@ void ContentDrag::init(uint axis)
 	this->axis = axis;
 }
 
-ContentDrag::State ContentDrag::inputEvent(const IG::Rect2<int> &bt, const Input::Event &e)
+ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, const Input::Event &e)
 {
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pushed && e.devId != devId)
@@ -75,7 +75,7 @@ ContentDrag::State ContentDrag::inputEvent(const IG::Rect2<int> &bt, const Input
 	#endif
 }
 
-void KScroll::init(const IG::Rect2<int> *viewFrame, const IG::Rect2<int> *contentFrame)
+void KScroll::init(const IG::WindowRect *viewFrame, const IG::WindowRect *contentFrame)
 {
 	ContentDrag::init();
 	offset = start = 0;
@@ -92,7 +92,7 @@ void KScroll::place(View &view)
 {
 	assert(contentFrame);
 	assert(viewFrame);
-	dragStartY = std::max(1, Config::envIsAndroid ? view.window().ySMMSizeToPixel(1.5) : view.window().ySMMSizeToPixel(1.));
+	dragStartY = std::max(1, Config::envIsAndroid ? view.window().heightSMMInPixels(1.5) : view.window().heightSMMInPixels(1.));
 	maxClip = contentFrame->ySize() - viewFrame->ySize();
 	if(viewFrame->ySize() > 0)
 		allowScrollWholeArea = contentFrame->ySize() / viewFrame->ySize() > 3;
@@ -112,7 +112,7 @@ bool KScroll::clipOverEdge(int minC, int maxC, View &view)
 		if(offset < minC || offset > maxC)
 		{
 			//logMsg("clip over edge");
-			offset += sign * std::max(1, (int)std::abs((clip - offset) * GC(.2)));
+			offset += sign * std::max(1, (int)std::abs((clip - offset) * Gfx::GC(.2)));
 			if((sign == 1 && offset > minC)
 				|| (sign == -1 && offset < maxC))
 			{
@@ -120,7 +120,7 @@ bool KScroll::clipOverEdge(int minC, int maxC, View &view)
 				offset = clip;
 			}
 			vel = 0;
-			view.displayNeedsUpdate();
+			view.postDraw();
 			return 1;
 		}
 	}
@@ -147,14 +147,14 @@ void KScroll::clipDragOverEdge(int minC, int maxC)
 
 void KScroll::decel2(View &view)
 {
-	GC stoppingVel = 1;
-	if(!active && vel != (GC)0)
+	Gfx::GC stoppingVel = 1;
+	if(!active && vel != (Gfx::GC)0)
 	{
 		vel *= 0.9f;
 		offset += vel;
 		if(std::abs(vel) <= stoppingVel)
 			vel = 0;
-		view.displayNeedsUpdate();
+		view.postDraw();
 		//logMsg("did decel scroll");
 	}
 }
@@ -174,7 +174,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 		case ContentDrag::ENTERED_ACTIVE:
 		{
 			//logMsg("in scroll");
-			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - view.window().xSMMSizeToPixel(7.5)))
+			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - view.window().widthSMMInPixels(7.5)))
 			{
 				logMsg("scrolling all content");
 				scrollWholeArea = 1;
@@ -190,7 +190,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 		{
 			//logMsg("out of scroll, with yVel %f", (double)vel);
 			//if(vel != (GC)0) // TODO: situations where a redraw is needed even with vel == 0
-				view.displayNeedsUpdate();
+				view.postDraw();
 		}
 		return 1;
 
@@ -199,7 +199,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 			if(scrollWholeArea)
 			{
 				//logMsg("%d from %d-%d to %d-%d", e.y, 0, gfx_viewPixelHeight(), 0, maxClip);
-				offset = IG::scalePointRange((GC)e.y, (GC)viewFrame->y, (GC)viewFrame->y + (GC)viewFrame->ySize(), (GC)0, (GC)maxClip);
+				offset = IG::scalePointRange((Gfx::GC)e.y, (Gfx::GC)viewFrame->y, (Gfx::GC)viewFrame->y + (Gfx::GC)viewFrame->ySize(), (Gfx::GC)0, (Gfx::GC)maxClip);
 				//logMsg("offset %d", offset);
 				offset = IG::clipToBounds(offset, 0, maxClip);
 			}
@@ -209,7 +209,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 				vel = (offset - prevOffset);
 				//logMsg("dragging with vel %f", vel);
 			}
-			view.displayNeedsUpdate();
+			view.postDraw();
 		}
 		return 1;
 
@@ -234,7 +234,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &
 			{
 				clip = 0; // if exactly at edge don't clip for snap-back
 			}
-			auto vel = view.window().ySMMSizeToPixel(10.0);
+			auto vel = view.window().heightSMMInPixels(10.0);
 			offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
 			if(clip)
 			{
@@ -243,7 +243,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &
 				else if(offset > maxClip)
 					offset = maxClip;
 			}
-			view.displayNeedsUpdate();
+			view.postDraw();
 		}
 		ret = 1;
 	}
@@ -258,7 +258,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &
 	if(offset < minClip || offset > maxClip)
 	{
 		//logMsg("offset needs to be clipped");
-		view.displayNeedsUpdate();
+		view.postDraw();
 	}
 	return ret;
 }
@@ -277,7 +277,7 @@ void KScroll::animate(int minClip, int maxClip, View &view)
 		decel2(view);
 }
 
-void ScrollView1D::init(IG::Rect2<int> *contentFrame)
+void ScrollView1D::init(IG::WindowRect *contentFrame)
 {
 	assert(contentFrame);
 	this->contentFrame = contentFrame;
@@ -289,7 +289,7 @@ void ScrollView1D::updateView() // move content frame in position along view fra
 	contentFrame->setPos({viewFrame.xPos(LT2DO), viewFrame.yPos(LT2DO) - scroll.offset}, LT2DO);
 }
 
-void ScrollView1D::place(IG::Rect2<int> *frame, View &view)
+void ScrollView1D::place(IG::WindowRect *frame, View &view)
 {
 	assert(frame);
 	assert(contentFrame);
@@ -301,7 +301,7 @@ void ScrollView1D::place(IG::Rect2<int> *frame, View &view)
 	scrollBarRect.y = 0;
 	/*if(contentFrame->ySize() == 0)
 		scrollBarRect.y2 = 0;*/
-	scrollBarRect.y2 = viewFrame.ySize() * (viewFrame.ySize() / (GC)contentFrame->ySize());
+	scrollBarRect.y2 = viewFrame.ySize() * (viewFrame.ySize() / (Gfx::GC)contentFrame->ySize());
 	if(scrollBarRect.y2 < 10)
 		scrollBarRect.y2 = 10;
 }
@@ -317,7 +317,7 @@ void ScrollView1D::draw()
 	using namespace Gfx;
 	if(contentIsBiggerThanView && (scroll.allowScrollWholeArea || scroll.active))
 	{
-		setImgMode(IMG_MODE_MODULATE);
+		noTexProgram.use(View::projP.makeTranslate());
 		setBlendMode(0);
 		if(scroll.scrollWholeArea)
 		{
@@ -328,10 +328,9 @@ void ScrollView1D::draw()
 		}
 		else
 			setColor(.5, .5, .5);
-		resetTransforms();
-		scrollBarRect.setYPos(IG::scalePointRange((GC)scroll.offset, (GC)0, GC(scroll.maxClip), (GC)viewFrame.y, GC(viewFrame.y2 - scrollBarRect.ySize())));
-		GeomRect::draw(scrollBarRect);
-		setColor(COLOR_WHITE);
+		scrollBarRect.setYPos(IG::scalePointRange((Gfx::GC)scroll.offset, (Gfx::GC)0, Gfx::GC(scroll.maxClip), (Gfx::GC)viewFrame.y, Gfx::GC(viewFrame.y2 - scrollBarRect.ySize())));
+		GeomRect::draw(scrollBarRect, View::projP);
+		//setColor(COLOR_WHITE);
 	}
 }
 

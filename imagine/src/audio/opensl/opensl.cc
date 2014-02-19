@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "audio:opensl"
+#define LOGTAG "OpenSL"
 #include <engine-globals.h>
 #include <audio/Audio.hh>
 #include <logger/interface.h>
@@ -23,13 +23,13 @@
 #include <config/machine.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
-#if defined __i386__ || __ARM_ARCH >= 7
-#include <util/LinuxRingBuffer.hh>
-using RingBufferType = LinuxRingBuffer<>;
-#else
+#if defined __ANDROID__ && defined __arm__ && __ARM_ARCH < 7
 // some ARMv6 kernels lack mremap mirroring features, so use a plain ring buffer
-#include <util/RingBuffer.hh>
-using RingBufferType = RingBuffer<>;
+#include <util/ringbuffer/RingBuffer.hh>
+using RingBufferType = StaticRingBuffer<>;
+#else
+#include <util/ringbuffer/LinuxRingBuffer.hh>
+using RingBufferType = StaticLinuxRingBuffer<>;
 #endif
 
 namespace Audio
@@ -45,7 +45,7 @@ static SLAndroidSimpleBufferQueueItf slBuffQI = nullptr;
 static uint wantedLatency = 100000;
 static uint preferredOutputBufferFrames = 0;
 static uint outputBufferBytes = 0; // size in bytes per buffer to enqueue
-static bool isPlaying_ = 0, strictUnderrunCheck = 1;
+static bool isPlaying_ = false, strictUnderrunCheck = true;
 static jobject audioManager = nullptr;
 static JavaInstMethod<jint> jRequestAudioFocus, jAbandonAudioFocus;
 static bool soloMix_ = true;
@@ -53,6 +53,11 @@ static bool reachedEndOfPlayback = false;
 static RingBufferType rBuff;
 static uint unqueuedBytes = 0; // number of bytes in ring buffer that haven't been enqueued to SL yet
 static char *ringBuffNextQueuePos = nullptr;
+
+int maxRate()
+{
+	return 48000;
+}
 
 static bool isInit()
 {
@@ -83,7 +88,7 @@ static bool commitSLBuffer(void *b, uint bytes)
 // runs on internal OpenSL ES thread
 static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
 {
-	rBuff.advanceReadPos(outputBufferBytes);
+	rBuff.commitRead(outputBufferBytes);
 }
 
 // runs on internal OpenSL ES thread
@@ -152,7 +157,7 @@ CallResult openPcm(const PcmFormat &format)
 	uint ringBufferSize = std::max(2u, IG::divUp(pcmFormat.uSecsToBytes(wantedLatency), outputBufferBytes)) * outputBufferBytes;
 	uint outputBuffers = ringBufferSize / outputBufferBytes;
 	rBuff.init(ringBufferSize);
-	ringBuffNextQueuePos = rBuff.data();
+	ringBuffNextQueuePos = rBuff.writeAddr();
 
 	logMsg("creating playback %dHz, %d channels", format.rate, format.channels);
 	logMsg("using %d buffers with %d frames", outputBuffers, outputBufferFrames);
@@ -250,7 +255,7 @@ void resumePcm()
 	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
 	if(result == SL_RESULT_SUCCESS)
 	{
-		logMsg("started playback with %d buffers queued", (int)rBuff.written / outputBufferBytes);
+		logMsg("started playback with %d buffers queued", (int)rBuff.writtenSize() / outputBufferBytes);
 		isPlaying_ = 1;
 		reachedEndOfPlayback = false;
 	}
@@ -267,7 +272,7 @@ void clearPcm()
 	SLresult result = (*slBuffQI)->Clear(slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
 	rBuff.reset();
-	ringBuffNextQueuePos = rBuff.data();
+	ringBuffNextQueuePos = rBuff.writeAddr();
 	unqueuedBytes = 0;
 }
 
@@ -298,28 +303,34 @@ static void updateQueue(uint written)
 			{
 				bug_exit("error in enqueue even though queue should have space");
 			}
-			ringBuffNextQueuePos = rBuff.advancePos(ringBuffNextQueuePos, outputBufferBytes);
+			ringBuffNextQueuePos = rBuff.advanceAddr(ringBuffNextQueuePos, outputBufferBytes);
 			unqueuedBytes -= outputBufferBytes;
 		}
 	}
 }
 
+int contiguousFramesFree()
+{
+	return pcmFormat.bytesToFrames(rBuff.freeContiguousSpace());
+}
+
 BufferContext getPlayBuffer(uint wantedFrames)
 {
-	if(unlikely(!isOpen() || !framesFree()))
+	// use contiguousFramesFree() since we may have a plain ring buffer without mirroring
+	if(unlikely(!isOpen() || !contiguousFramesFree()))
 		return {};
-	if((uint)framesFree() < wantedFrames)
+	if((uint)contiguousFramesFree() < wantedFrames)
 	{
-		logDMsg("buffer has only %d/%d frames free", framesFree(), wantedFrames);
+		logDMsg("buffer has only %d/%d frames free", contiguousFramesFree(), wantedFrames);
 	}
-	return {rBuff.writePos(), std::min(wantedFrames, (uint)framesFree())};
+	return {rBuff.writeAddr(), std::min(wantedFrames, (uint)contiguousFramesFree())};
 }
 
 void commitPlayBuffer(BufferContext buffer, uint frames)
 {
 	assert(frames <= buffer.frames);
 	auto written = pcmFormat.framesToBytes(frames);
-	rBuff.advanceWritePos(written);
+	rBuff.commitWrite(written);
 	updateQueue(written);
 }
 
@@ -364,7 +375,7 @@ void setSoloMix(bool newSoloMix)
 		soloMix_ = newSoloMix;
 		if(!isInit())
 			return; // audio init() will take care of initial focus setting
-		if(soloMix_)
+		if(newSoloMix)
 		{
 			requestAudioFocus(eEnv());
 		}

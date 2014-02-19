@@ -39,7 +39,7 @@ extern "C" {
 
 #include <string.h>
 #include <util/builtins.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/branch.h>
 #include <logger/interface.h>
 // throw_exception.hpp, Boost 1.50

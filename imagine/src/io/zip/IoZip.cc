@@ -13,9 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "io:zip"
+#define LOGTAG "IOZip"
 #include "IoZip.hh"
 #include <io/sys.hh>
+#include <io/utils.hh>
 #include <logger/interface.h>
 
 
@@ -175,7 +176,7 @@ void IoZip::close()
 void IoZip::truncate(ulong offset) { }
 void IoZip::sync() { }
 
-size_t IoZip::readUpTo(void* buffer, size_t numBytes)
+ssize_t IoZip::readUpTo(void* buffer, size_t numBytes)
 {
 	int bytesRead = unzReadCurrentFile(zip, buffer, numBytes);
 	if(bytesRead < 0)
@@ -200,26 +201,18 @@ CallResult IoZip::tell(ulong &offset)
 		return IO_ERROR;
 }
 
-// TODO: merge this will similar code in IoMmap
-static ulong seekOffsetToAbs(uint mode, long offset, ulong size, ulong current)
-{
-	switch(mode)
-	{
-		case IO_SEEK_ABS: return offset;
-		case IO_SEEK_ABS_END: return size-offset;
-		case IO_SEEK_ADD: return current + offset;
-		case IO_SEEK_SUB: return current - offset;
-		default: bug_branch("%d", mode); return 0;
-	}
-}
-
 CallResult IoZip::seek(long offset, uint mode)
 {
 	ulong pos;
 	if(tell(pos) != OK)
 		return IO_ERROR;
 
-	ulong absOffset = seekOffsetToAbs(mode, offset, size(), pos);
+	if(!transformOffsetToAbsolute(mode, offset, 0, size(), pos))
+	{
+		logErr("invalid seek parameter");
+		return INVALID_PARAMETER;
+	}
+	ulong absOffset = offset;
 	ulong bytesToSkip = 0;
 	if(pos > absOffset) // seeking backwards, need to return to start of zip
 	{

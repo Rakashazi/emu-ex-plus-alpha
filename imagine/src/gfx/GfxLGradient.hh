@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <gfx/GeomQuadMesh.hh>
 
 namespace Gfx
@@ -51,23 +66,23 @@ public:
 		g.draw();
 	}
 
-	void setColor(GColor r, GColor g, GColor b)
+	void setColor(ColorComp r, ColorComp g, ColorComp b)
 	{
 		this->g.setColorRGB(r, g, b);
 	}
 
-	void setTranslucent(GColor a)
+	void setTranslucent(ColorComp a)
 	{
 		g.setColorTranslucent(a);
 	}
 
-	void setColorStop(GColor r, GColor g, GColor b, uint i)
+	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint i)
 	{
 		this->g.setColorRGBV(r, g, b, i*2);
 		this->g.setColorRGBV(r, g, b, (i*2)+1);
 	}
 
-	void setTranslucentStop(GColor a, uint i)
+	void setTranslucentStop(ColorComp a, uint i)
 	{
 		g.setColorTranslucentV(a, i*2);
 		g.setColorTranslucentV(a, (i*2)+1);
@@ -85,10 +100,15 @@ public:
 		//g.setPos(x, y, x2, y2);
 	}
 
+	void setPos(const GCRect &d)
+	{
+		 setPos(d.x, d.y2, d.x2, d.y);
+	}
+
 private:
 	GeomQuadMesh g;
 	uint stops = 0;
-	const LGradientStopDesc *stop = 0;
+	const LGradientStopDesc *stop = nullptr;
 };
 
 }

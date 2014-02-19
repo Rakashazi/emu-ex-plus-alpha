@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "msgPopup"
+#define LOGTAG "MsgPopup"
 #include <MsgPopup.hh>
 #include <gui/View.hh>
 
@@ -30,15 +30,14 @@ void MsgPopup::clear()
 {
 	if(text.str)
 	{
-		cancelCallback(callbackRef);
-		callbackRef = nullptr;
+		unpostTimer.deinit();
 	}
 	text.str = 0;
 }
 
 void MsgPopup::place()
 {
-	text.maxLineSize = Gfx::proj.w;
+	text.maxLineSize = View::projP.w;
 	if(text.str)
 		text.compile();
 }
@@ -46,9 +45,8 @@ void MsgPopup::place()
 void MsgPopup::unpost()
 {
 	logMsg("unposting");
-	callbackRef = nullptr;
 	text.str = 0;
-	Base::mainWindow().displayNeedsUpdate();
+	Base::mainWindow().postDraw();
 }
 
 void MsgPopup::post(const char *msg, int secs, bool error)
@@ -57,8 +55,7 @@ void MsgPopup::post(const char *msg, int secs, bool error)
 	text.setString(msg);
 	text.compile();
 	this->error = error;
-	cancelCallback(callbackRef);
-	callbackRef = callbackAfterDelaySec([this](){unpost();}, secs);
+	unpostTimer.callbackAfterSec([this](){unpost();}, secs);
 }
 
 void MsgPopup::postError(const char *msg, int secs)
@@ -71,25 +68,26 @@ void MsgPopup::draw()
 	using namespace Gfx;
 	if(text.str)
 	{
-		resetTransforms();
+		noTexProgram.use(View::projP.makeTranslate());
 		setBlendMode(BLEND_MODE_ALPHA);
 		if(error)
 			setColor(1., 0, 0, .7);
 		else
 			setColor(0, 0, 1., .7);
-		IG::Rect2<GC> rect(-Gfx::proj.wHalf(), -Gfx::proj.hHalf(),
-				Gfx::proj.wHalf(), -Gfx::proj.hHalf() + (text.ySize * 1.5));
+		Gfx::GCRect rect(-View::projP.wHalf(), -View::projP.hHalf(),
+				View::projP.wHalf(), -View::projP.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		if(Input::softInputIsActive())
 		{
 			// Show messages on top on WebOS 3.x since there's no way to know how large the on-screen keyboard is
-			rect.y = Gfx::proj.hHalf - (text.ySize * 1.5);
-			rect.y2 = Gfx::proj.hHalf;
+			rect.y = View::projP.hHalf - (text.ySize * 1.5);
+			rect.y2 = View::projP.hHalf;
 		}
 		#endif
 		GeomRect::draw(rect);
 		setColor(1., 1., 1., 1.);
-		text.draw(0, Gfx::alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, C2DO);
+		texAlphaProgram.use();
+		text.draw(0, View::projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO);
 	}
 }
 

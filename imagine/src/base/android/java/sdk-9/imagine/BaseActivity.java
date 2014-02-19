@@ -29,35 +29,102 @@ import android.util.*;
 import android.hardware.*;
 import android.media.*;
 import android.net.*;
-import android.content.res.Configuration;
+import android.content.res.*;
 import android.view.inputmethod.InputMethodManager;
 import android.bluetooth.*;
 import android.content.pm.*;
 import java.lang.reflect.*;
+import java.io.*;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
 public final class BaseActivity extends NativeActivity implements AudioManager.OnAudioFocusChangeListener
 {
 	private static final String logTag = "BaseActivity";
-	//private native void layoutChange(int bottom);
+	private native void onContentRectChanged(int left, int top, int right, int bottom);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
+	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+	private View contentView;
+	private Rect contentRect = new Rect();
 
+	// For API level < 16, FLAG_LAYOUT_INSET_DECOR will adjust the view rectangle to not overlap the system windows
+	final class BaseContentLegacyView extends View
+	{
+		public BaseContentLegacyView(Context context)
+		{
+			super(context);
+		}
+		
+		@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
+		{
+			//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
+			if(contentRect.left != left || contentRect.top != top
+				|| contentRect.right != right || contentRect.bottom != bottom)
+			{
+				//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
+				//		+ " -> " + left + "," + top + " " + right + "," + bottom);
+				onContentRectChanged(left, top, right, bottom);
+				contentRect.left = left;
+				contentRect.top = top;
+				contentRect.right = right;
+				contentRect.bottom = bottom;
+			}
+		}
+	}
+
+	// For API level >= 16, SYSTEM_UI_FLAG_LAYOUT_* always gives us a full screen view rectangle,
+	// so use fitSystemWindows to get the area not overlapping the system windows
+	final class BaseContentView extends View
+	{
+		public BaseContentView(Context context)
+		{
+			super(context);
+		}
+		
+		@Override protected boolean fitSystemWindows(Rect insets)
+		{
+			//Log.i(logTag, "system window insets: " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
+			if(getWidth() > 0 && getHeight() > 0)
+			{
+				// adjust insets to become content rect
+				insets.right = getWidth() - insets.right;
+				insets.bottom = getHeight() - insets.bottom;
+				if(!contentRect.equals(insets))
+				{
+					//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
+					//		+ " -> " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
+					onContentRectChanged(insets.left, insets.top, insets.right, insets.bottom);
+					contentRect.left = insets.left;
+					contentRect.top = insets.top;
+					contentRect.right = insets.right;
+					contentRect.bottom = insets.bottom;
+				}
+			}
+			return true;
+		}
+		
+		@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
+		{
+			//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
+			requestFitSystemWindows();
+		}
+	}
+	
 	private final class IdleHelper implements MessageQueue.IdleHandler
 	{
 		private final MessageQueue msgQueue = Looper.myQueue();
 		private final Handler handler = new Handler();
-		private native boolean drawWindow();
+		private native boolean onFrame();
 
-		void postDrawWindow()
+		void postFrame()
 		{
 			msgQueue.addIdleHandler(this);
 			handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to run in case of no pending msgs
 			//Log.i(logTag, "start idle handler");
 		}
 		
-		void cancelDrawWindow()
+		void unpostFrame()
 		{
 			//Log.i(logTag, "stop idle handler");
 			msgQueue.removeIdleHandler(this);
@@ -66,7 +133,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		@Override public boolean queueIdle()
 		{
 			//Log.i(logTag, "in idle handler");
-			if(drawWindow())
+			if(onFrame())
 			{
 				//Log.i(logTag, "will re-run");
 				handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to re-run in case of no pending msgs
@@ -120,6 +187,20 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			return 0;
 		}
+	}
+	
+	boolean packageIsInstalled(String name)
+	{
+		boolean found = false;
+		try
+		{
+			getPackageManager().getPackageInfo(name, 0);
+			found = true;
+		}
+		catch(PackageManager.NameNotFoundException e)
+		{
+		}
+		return found;
 	}
 	
 	static boolean gbAnimatesRotation()
@@ -204,11 +285,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		//Log.i(logTag, "audio focus change: " focusChange);
 	}
 	
-	/*void setKeepScreenOn(boolean on)
-	{
-		getWindow().getDecorView().setKeepScreenOn(on);
-	}*/
-	
 	void setUIVisibility(int mode)
 	{
 		if(setSystemUiVisibility == null)
@@ -217,7 +293,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 		try
 		{
-			setSystemUiVisibility.invoke(findViewById(android.R.id.content), mode);
+			setSystemUiVisibility.invoke(getWindow().getDecorView()/*findViewById(android.R.id.content)*/, mode | commonUILayoutFlags);
 		}
 		catch (IllegalAccessException ie)
 		{
@@ -248,18 +324,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		return getWindow().getAttributes().format;
 	}
-	
-	/*void contentRect(int[] relRect)
-	{
-		// return a relative rectangle of the content view in the window
-		View view = findViewById(android.R.id.content);
-		int inWindow[2] = new int[2];
-		view.getLocationInWindow(inWindow);
-		relRect[0] = inWindow[0]; // X
-		relRect[1] = inWindow[1]; // Y
-		relRect[2] = view.getWidth();
-		relRect[3] = view.getHeight();
-	}*/
 	
 	void addNotification(String onShow, String title, String message)
 	{
@@ -320,17 +384,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 	}
 	
-	/*@Override public void onGlobalLayout()
+	@Override public void onGlobalLayout()
 	{
-		super.onGlobalLayout();
-		Rect r = new Rect();
-		View view = getWindow().getDecorView();//findViewById(android.R.id.activityRoot);
-		view.getWindowVisibleDisplayFrame(r);
-		//int visibleY = r.bottom - r.top;
-		//Log.i(logTag, "height " + view.getRootView().getHeight() + ", visible " + visibleY);
-		//layoutChange(visibleY);
-		layoutChange(r.bottom);
-     }*/
+		// override to make sure NativeActivity's implementation is never called
+		// since our content is laid out with BaseContentView 
+	}
 	
 	String intentDataPath()
 	{
@@ -346,6 +404,22 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return path;
 	}
 	
+	void addViewShortcut(String name, String path)
+	{
+		Intent viewIntent = new Intent(getApplicationContext(), BaseActivity.class);
+		viewIntent.setAction(Intent.ACTION_VIEW);
+		viewIntent.setData(Uri.parse("file://" + path));
+		Intent launcherIntent = new Intent();
+		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, viewIntent);
+		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, name);
+		final String EXTRA_SHORTCUT_DUPLICATE = "duplicate";
+		launcherIntent.putExtra(EXTRA_SHORTCUT_DUPLICATE, false);
+		int icon = 0x7f020000; // TODO: don't hard-code
+		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), icon));
+		launcherIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+		getApplicationContext().sendBroadcast(launcherIntent);
+	}
+	
 	@Override protected void onNewIntent(Intent intent)
 	{
 		setIntent(intent);
@@ -353,8 +427,33 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
+		if(android.os.Build.VERSION.SDK_INT >= 11)
+		{
+			setTheme(android.R.style.Theme_Holo_NoActionBar);
+		}
+		Window win = getWindow();
+		win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
+		setUIVisibility(0); // apply SYSTEM_UI_FLAG_LAYOUT_*
 		super.onCreate(savedInstanceState);
-		getWindow().setBackgroundDrawable(null);
+		win.setBackgroundDrawable(null);
+		win.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+		if(android.os.Build.VERSION.SDK_INT >= 11)
+		{
+			// NativeActivity explicitly sets the window format to RGB_565, this is fine in Android 2.3 since we default to that
+			// and call setFormat ourselves, but in >= 3.0 we only use ANativeWindow_setBuffersGeometry so set the format back to
+			// the default value to avoid a spurious surface destroy & create the next time the window flags are set since it may
+			// cause the screen to flash
+			win.setFormat(PixelFormat.UNKNOWN);
+		}
+		// get rid of NativeActivity's view and layout listener, then add our custom view
+		View nativeActivityView = findViewById(android.R.id.content);
+		nativeActivityView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+		if(android.os.Build.VERSION.SDK_INT >= 16)
+			contentView = new BaseContentView(this);
+		else
+			contentView = new BaseContentLegacyView(this);
+		setContentView(contentView);
+		contentView.requestFocus();
 	}
 	
 	@Override protected void onResume()
@@ -370,11 +469,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		super.onDestroy();
 	}
 	
-	static native void sysTextInputEnded(String text);
+	static native void sysTextInputEnded(String text, boolean processText, boolean isDoingDismiss);
 	
-	static void endSysTextInput(String text)
+	static void endSysTextInput(String text, boolean processText, boolean isDoingDismiss)
 	{
-		sysTextInputEnded(text);
+		sysTextInputEnded(text, processText, isDoingDismiss);
 	}
 	
 	void startSysTextInput(final String initialText, final String promptText,
@@ -411,5 +510,54 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	InputDeviceListenerHelper inputDeviceListenerHelper()
 	{
 		return new InputDeviceListenerHelper(this);
+	}
+	
+	MOGAHelper mogaHelper()
+	{
+		return new MOGAHelper(this);
+	}
+	
+	SystemUiVisibilityChangeHelper uiVisibilityChangeHelper()
+	{
+		return new SystemUiVisibilityChangeHelper(getWindow().getDecorView()/*findViewById(android.R.id.content)*/);
+	}
+	
+	Bitmap makeBitmap(int width, int height, int format)
+	{
+		Bitmap.Config config = Bitmap.Config.ARGB_8888;
+		if(format == 4)
+			config = Bitmap.Config.RGB_565;
+		return Bitmap.createBitmap(width, height, config);
+	}
+	
+	boolean writePNG(Bitmap bitmap, String path)
+	{
+		boolean success;
+		try
+		{
+			FileOutputStream output = new FileOutputStream(path);
+			success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
+			output.close();
+		} catch(Exception e)
+		{
+			success = false;
+		}
+		bitmap.recycle();
+		return success;
+	}
+	
+	Bitmap bitmapDecodeAsset(String name)
+	{
+		AssetManager assets = getAssets();
+		InputStream in;
+		try
+		{
+			in = assets.open(name);
+		} catch(Exception e)
+		{
+			return null;
+		}
+		Bitmap bitmap = BitmapFactory.decodeStream(in);
+		return bitmap;
 	}
 }

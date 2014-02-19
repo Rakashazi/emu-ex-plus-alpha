@@ -2,35 +2,34 @@
 #define _PCE_PSG_H
 
 #include <blip/Blip_Buffer.h>
-#include <blip/Stereo_Buffer.h>
 
 class PCE_PSG;
 
 struct psg_channel
 {
-        int32 counter;
-        uint16 frequency;       /* Channel frequency */
-	uint32 freq_cache;
-        uint8 control;          /* Channel enable, DDA, volume */
-        uint8 balance;          /* Channel balance */
         uint8 waveform[32];     /* Waveform data */
         uint8 waveform_index;   /* Waveform data index */
         uint8 dda;
+        uint8 control;          /* Channel enable, DDA, volume */
         uint8 noisectrl;        /* Noise enable/ctrl (channels 4,5 only) */
-	uint32 noise_freq_cache;	// Channel 4,5 only
-        int32 noisecount;
-        uint32 lfsr;
-
-	//int32 sample_cache[2];
 
         int32 vl[2];	//vll, vlr;
 
-        int samp_accum;		// The result of adding up all the samples in the waveform buffer(part of an optimization for high-frequency playback).
+        int32 counter;
 
-	int32 blip_prev_samp[2];
-	int32 lastts;
+        void (PCE_PSG::*UpdateOutput)(const int32 timestamp, psg_channel *ch);
 
-	void (PCE_PSG::*UpdateOutput)(const int32 timestamp, psg_channel *ch);
+        uint32 freq_cache;
+	      uint32 noise_freq_cache;	// Channel 4,5 only
+        int32 noisecount;
+        uint32 lfsr;
+
+        int32 samp_accum;		// The result of adding up all the samples in the waveform buffer(part of an optimization for high-frequency playback).
+	      int32 blip_prev_samp[2];
+	      int32 lastts;
+
+	uint16 frequency;       /* Channel frequency */
+	uint8 balance;          /* Channel balance */
 };
 
 // Only CH4 and CH5 have NCTRL and LFSR, but it's here for the other channels for "consistency".

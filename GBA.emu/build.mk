@@ -1,17 +1,13 @@
 ifndef inc_main
 inc_main := 1
 
-#ifeq ($(config_compiler), clang)
-# HIGH_OPTIMIZE_CFLAGS = -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
-#endif
-
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
+
+emuFramework_cheats := 1
+include $(EMUFRAMEWORK_PATH)/common.mk
 
 CPPFLAGS += -DHAVE_ZLIB_H -DFINAL_VERSION -DC_CORE -DNO_PNG -DNO_LINK -DNO_DEBUGGER -DBLIP_BUFFER_FAST=1 \
 -DSysDecimal=float -Isrc/vbam
-
-emuFramework_cheats := 1
-include ../EmuFramework/common.mk
 
 vbamSrc := gba/GBA-thumb.cpp gba/bios.cpp gba/Globals.cpp \
 gba/Cheats.cpp gba/Mode0.cpp gba/CheatSearch.cpp gba/Mode1.cpp \

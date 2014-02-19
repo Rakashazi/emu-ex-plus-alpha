@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 
 SUBENV := pandora
 CROSS_COMPILE := 1
@@ -6,8 +6,8 @@ ARCH := arm
 SUBARCH := armv7
 ifeq ($(origin CC), default)
  CC := arm-none-linux-gnueabi-gcc
+ CHOST := arm-none-linux-gnueabi
 endif
-config_gfx_openGLES := 1
 noDoubleFloat := 1
 configDefs += CONFIG_MACHINE_PANDORA
 
@@ -45,6 +45,7 @@ CPPFLAGS += -I$(extraSysroot)/include -I$(pandoraSDKSysroot)/include \
 # don't use FORTIFY_SOURCE to avoid linking in newer glibc symbols 
 LDLIBS += -L$(extraSysroot)/lib \
  -L$(pandoraSDKSysroot)/lib -Wl,-rpath-link=$(pandoraSDKSysroot)/lib
+x11GLWinSystem := egl
 
 ifdef O_LTO
  # -flto-partition=none seems to help .symver issues

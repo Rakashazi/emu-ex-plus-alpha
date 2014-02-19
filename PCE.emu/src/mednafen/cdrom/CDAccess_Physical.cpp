@@ -27,6 +27,7 @@
 
 #include <cdio/cdio.h>
 #include <cdio/mmc.h>
+//#include <cdio/logging.h>
 
 #if LIBCDIO_VERSION_NUM >= 83
 #include <cdio/mmc_cmds.h>
@@ -200,8 +201,6 @@ void CDAccess_Physical::Read_TOC(TOC *toc)
  *toc = PhysTOC;
 }
 
-bool CDAccess_Physical::Read_Sector(uint8 *buf, int32 lba, uint32 size) { return false; } // TODO
-
 bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
 {
  mmc_cdb_t cdb = {{0, }};
@@ -246,6 +245,13 @@ bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
  return true;
 }
 
+bool CDAccess_Physical::Read_Sector(uint8 *buf, int32 lba, uint32 size) { return false; } // TODO
+
+//static void nlh(cdio_log_level_t level, const char message[])
+//{
+// printf("%s\n", message);
+//}
+
 CDAccess_Physical::CDAccess_Physical(const char *path)
 {
  char **devices = NULL;
@@ -254,7 +260,7 @@ CDAccess_Physical::CDAccess_Physical(const char *path)
  p_cdio = NULL;
 
  cdio_init();
-
+ //cdio_log_set_handler(nlh);
 //
 //
 //
@@ -285,7 +291,7 @@ CDAccess_Physical::CDAccess_Physical(const char *path)
    devices = NULL;
   }
 
-  p_cdio = cdio_open_cd(path); //, DRIVER_UNKNOWN); //NULL, DRIVER_UNKNOWN);
+  p_cdio = cdio_open_cd(path);
   if(!p_cdio) 
   {
    throw(MDFN_Error(0, _("Unknown error opening physical CD")));
@@ -318,7 +324,7 @@ CDAccess_Physical::~CDAccess_Physical()
  cdio_destroy((CdIo *)p_cdio);
 }
 
-bool CDAccess_Physical::Is_Physical(void)
+bool CDAccess_Physical::Is_Physical(void) throw()
 {
  return(true);
 }

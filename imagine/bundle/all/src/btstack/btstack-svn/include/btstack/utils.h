@@ -37,7 +37,8 @@
  *  Created by Matthias Ringwald on 7/23/09.
  */
 
-#pragma once
+#ifndef __UTILS_H
+#define __UTILS_H
 
 
 #if defined __cplusplus
@@ -58,10 +59,27 @@ typedef uint16_t hci_con_handle_t;
 typedef uint8_t bd_addr_t[BD_ADDR_LEN];
 
 /**
- * @brief The link key type
+ * @brief link key and its type
  */
 #define LINK_KEY_LEN 16
 typedef uint8_t link_key_t[LINK_KEY_LEN]; 
+
+typedef enum {
+	COMBINATION_KEY = 0,	// standard pairing
+	LOCAL_UNIT_KEY,			// ?
+	REMOTE_UNIT_KEY,		// ?
+	DEBUG_COMBINATION_KEY,	// SSP with debug
+	UNAUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P192, // SSP Simple Pairing
+	AUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P192,	 // SSP Passkey, Number confirm, OOB
+	CHANGED_COMBINATION_KEY,							 // Link key changed using Change Connection Lnk Key
+	UNAUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P256, // SSP Simpe Pairing
+	AUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P256,   // SSP Passkey, Number confirm, OOB
+} link_key_type_t;
+
+/**
+ * @brief 128 bit key used with AES128 in Security Manager
+ */
+typedef uint8_t sm_key_t[16];
 
 /**
  * @brief The device name type
@@ -108,6 +126,7 @@ void net_store_32(uint8_t *buffer, uint16_t pos, uint32_t value);
 
 void hexdump(void *data, int size);
 void printUUID(uint8_t *uuid);
+void print_key(const char * name, sm_key_t key);
 
 // @deprecated please use more convenient bd_addr_to_str
 void print_bd_addr( bd_addr_t addr);
@@ -121,7 +140,10 @@ uint8_t crc8_calc(uint8_t *data, uint16_t len);
 #define BD_ADDR_CMP(a,b) memcmp(a,b, BD_ADDR_LEN)
 #define BD_ADDR_COPY(dest,src) memcpy(dest,src,BD_ADDR_LEN)
 
+int is_authenticated_link_key(link_key_type_t link_key_type);
+
 #if defined __cplusplus
 }
 #endif
 		
+#endif // __UTILS_H

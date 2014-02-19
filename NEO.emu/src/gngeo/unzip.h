@@ -10,7 +10,7 @@
 #define UNZIP_H_
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <gngeo-config.h>
 #endif
 
 #if defined(HAVE_LIBZ) && defined (HAVE_MMAP)

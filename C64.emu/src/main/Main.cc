@@ -213,7 +213,7 @@ void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -959,7 +959,7 @@ int EmuSystem::loadGame(const char *path)
 			{
 				Base::exit();
 			};
-		View::addModalView(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView);
 		return 0;
 	}
 
@@ -1052,7 +1052,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	runningFrame = 0;
 }
 
-namespace Input
+namespace Base
 {
 
 void onInputEvent(Base::Window &win, const Input::Event &e)
@@ -1097,7 +1097,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((uchar*)pix, pixFmt, 320, 200);
+	emuView.initPixmap((char*)pix, pixFmt, 320, 200);
 	#ifdef __APPLE__
 	{
 		auto ret = semaphore_create(mach_task_self(), &execSem, SYNC_POLICY_FIFO, 0);

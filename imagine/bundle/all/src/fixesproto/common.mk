@@ -22,9 +22,9 @@ install : $(outputPCFile)
 
 .PHONY : all install
 
-$(fixesprotoSrcDir)/configure : $(fixesprotoSrcArchive)
+$(fixesprotoSrcDir)/configure : | $(fixesprotoSrcArchive)
 	@echo "Extracting fixesproto..."
-	tar -mxjf $^
+	tar -mxjf $|
 
 $(outputPCFile) : $(makeFile)
 	@echo "Building fixesproto..."

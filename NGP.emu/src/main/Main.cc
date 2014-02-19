@@ -13,6 +13,7 @@
 #include <unzip.h>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
+#include <CommonGui.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
@@ -49,13 +50,12 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
 
 void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -410,7 +410,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	}
 }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -494,7 +494,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((uchar*)cfb, pixFmt, ngpResX, ngpResY);
+	emuView.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

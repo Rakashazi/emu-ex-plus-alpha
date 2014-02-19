@@ -13,24 +13,24 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "GuiTable1D"
+#define LOGTAG "GuiTable1D"
 
 #include "GuiTable1D.hh"
 #include <gfx/GeomRect.hh>
 #include <input/Input.hh>
 #include <base/Base.hh>
 #include <algorithm>
+#include <util/number.h>
 
-GC GuiTable1D::globalXIndent = 0;
+Gfx::GC GuiTable1D::globalXIndent = 0;
 
-void GuiTable1D::init(GuiTableSource *src, int cells, _2DOrigin align)
+void GuiTable1D::init(GuiTableSource *src, int cells)
 {
-	this->src = src;
-	this->cells = cells;
+	var_selfs(src);
+	var_selfs(cells);
 	selected = -1;
 	if(!Input::SUPPORTS_POINTER && cells)
 		selected = 0;
-	this->align = align;
 	selectedIsActivated = 0;
 }
 
@@ -68,7 +68,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			if(i >= 0 && i < cells)
 			{
 				selected = i;
-				view.displayNeedsUpdate();
+				view.postDraw();
 				usedInput = true;
 			}
 		}
@@ -80,7 +80,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			{
 				logDMsg("entry %d pushed", i);
 				selectedIsActivated = 1;
-				view.displayNeedsUpdate();
+				view.postDraw();
 				usedInput = true;
 				src->onSelectElement(this, e, i);
 				selected = -1;
@@ -104,7 +104,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				selected = wrapToBound(selected-1, 0, cells);
 			}
 			logMsg("up, selected %d", selected);
-			view.displayNeedsUpdate();
+			view.postDraw();
 			usedInput = true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
@@ -115,7 +115,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			else
 				selected = wrapToBound(selected+1, 0, cells);
 			logMsg("down, selected %d", selected);
-			view.displayNeedsUpdate();
+			view.postDraw();
 			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultConfirmButton())
@@ -125,7 +125,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				logDMsg("entry %d pushed", selected);
 				selectedIsActivated = 1;
 				src->onSelectElement(this, e, selected);
-				view.displayNeedsUpdate();
+				view.postDraw();
 				usedInput = true;
 			}
 		}
@@ -136,7 +136,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			else
 				selected = clipToBounds(selected-visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
-			view.displayNeedsUpdate();
+			view.postDraw();
 			usedInput = true;
 		}
 		else if(e.pushed() && e.isDefaultPageDownButton())
@@ -146,7 +146,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			else
 				selected = clipToBounds(selected+visibleCells(), 0, cells-1);
 			logMsg("selected %d", selected);
-			view.displayNeedsUpdate();
+			view.postDraw();
 			usedInput = true;
 		}
 	}
@@ -156,7 +156,8 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 
 int GuiTable1D::visibleCells() const
 {
-	int visYCells = ceil(Gfx::proj.h/Gfx::iYSize(yCellSize)) + 1;
+	//int visYCells = ceil(View::projP.h/Gfx::unprojectYSize(yCellSize)) + 1;
+	int visYCells = IG::divUp(Gfx::viewport().height(), yCellSize) + 1;
 	if(offscreenCells() < 0)
 		visYCells += offscreenCells();
 	visYCells = IG::clipToBounds(visYCells, 0, cells);
@@ -166,7 +167,7 @@ int GuiTable1D::visibleCells() const
 int GuiTable1D::offscreenCells() const
 {
 	auto y = viewRect.yPos(LT2DO);
-	return (Gfx::iYPos(y) - Gfx::proj.hHalf())/Gfx::iYSize(yCellSize);
+	return (View::projP.unprojectY(y) - View::projP.hHalf())/View::projP.unprojectYSize(yCellSize);
 }
 
 void GuiTable1D::draw()
@@ -189,57 +190,60 @@ void GuiTable1D::draw()
 	if(yOffScreen > 0)
 		startYCell += yOffScreen;
 	y += yCellSize*startYCell;
-	GC separatorYSize = iYSize(1);
-
-	int yStart = y;
+	//Gfx::GC separatorYSize = unprojectYSize(1);
 	int endYCell = std::min(startYCell+visYCells, cells);
+
 	// draw separators
-	resetTransforms();
+	int yStart = y;
+	noTexProgram.use(View::projP.makeTranslate());
+	int selectedCellY = INT_MAX;
+	setBlendMode(0);
+	setColor(.2, .2, .2);
 	for(int i = startYCell; i < endYCell; i++)
 	{
 		/*if(i >= cells)
 			break;*/
 		if(i == selected)
 		{
-			//resetTransforms();
-			setBlendMode(BLEND_MODE_ALPHA);
-			/*if(selectedIsActivated)
-				gfx_setColor(0, 0, 1., .8);
-			else*/
-				setColor(.2, .71, .9, 1./3.);
-
-			IG::Rect2<GC> d(iXPos(x), iYPos(y) - iYSize(yCellSize),
-				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y));
-			GeomRect::draw(d);
+			selectedCellY = y;
 		}
 		if(i != 0)
 		{
-			//resetTransforms();
-			setBlendMode(0);
-			setColor(.2, .2, .2);
-			IG::Rect2<GC> d(iXPos(x), iYPos(y),
-				iXPos(x) + iXSize(viewRect.xSize()), iYPos(y) + separatorYSize);
-			GeomRect::draw(d);
+			auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect.xSize(), 1});
+			GeomRect::draw(rect, View::projP);
 		}
 		y += yCellSize;
 	}
 
+	// draw selected rectangle
+	if(selectedCellY != INT_MAX)
+	{
+		setBlendMode(BLEND_MODE_ALPHA);
+		/*if(selectedIsActivated)
+			gfx_setColor(0, 0, 1., .8);
+		else*/
+			setColor(.2, .71, .9, 1./3.);
+		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect.xSize(), yCellSize-1});
+		GeomRect::draw(rect, View::projP);
+	}
+
+	// draw elements
 	y = yStart;
 	for(int i = startYCell; i < endYCell; i++)
 	{
 		/*logMsg("drawing entry %d %d %f %f, size %f %f", x, y,
 				(float)gfx_iXPos(x), (float)gfx_iYPos(y) - gfx_iYSize(yCellSize/2),
 				gfx_iXSize(viewRect.xSize()), gfx_iYSize(yCellSize));*/
-		src->drawElement(this, i, iXPos(x), iYPos(y) - iYSize(yCellSize/2), iXSize(viewRect.xSize()), iYSize(yCellSize), align);
-
+		auto rect = IG::makeWindowRectRel({x, y}, {viewRect.xSize(), yCellSize});
+		src->drawElement(*this, i, View::projP.unProjectRect(rect));
 		y += yCellSize;
 	}
 }
 
-IG::Rect2<int> GuiTable1D::focusRect()
+IG::WindowRect GuiTable1D::focusRect()
 {
 	if(selected >= 0)
-		return IG::makeRectRel<int>(viewRect.xPos(LT2DO), viewRect.yPos(LT2DO) + (yCellSize*selected), viewRect.xSize(), yCellSize);
+		return IG::makeWindowRectRel(viewRect.pos(LT2DO) + IG::Point2D<int>{0, yCellSize*selected}, {viewRect.xSize(), yCellSize});
 	else
 		return {};
 }

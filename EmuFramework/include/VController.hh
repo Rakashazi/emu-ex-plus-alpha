@@ -29,24 +29,24 @@ extern TurboInput turboActions;
 class VControllerDPad
 {
 public:
-	IG::Rect2<GC> padBase;
-	IG::Rect2<int> padBaseArea, padArea;
+	Gfx::GCRect padBase;
+	IG::WindowRect padBaseArea, padArea;
 	int deadzone = 0;
 	float diagonalSensitivity = 1.;
 	Gfx::Sprite spr;
 	uint state = 1;
 	Gfx::BufferImage mapImg;
-	Pixmap mapPix {PixelFormatRGB565};
+	IG::ManagedPixmap mapPix {PixelFormatRGB565};
 	Gfx::Sprite mapSpr;
 	bool visualizeBounds = 0;
 
 	constexpr VControllerDPad() {}
 	void init();
-	void setImg(Gfx::BufferImage *dpadR, GC texHeight);
+	void setImg(Gfx::BufferImage &dpadR, Gfx::GC texHeight);
 	void draw();
 	void setBoundingAreaVisible(bool on);
 	int getInput(int cx, int cy);
-	IG::Rect2<int> bounds() const;
+	IG::WindowRect bounds() const;
 	void setPos(IG::Point2D<int> pos);
 	void setSize(uint sizeInPixels);
 	void setDeadzone(int newDeadzone);
@@ -62,7 +62,7 @@ class VControllerKeyboard
 {
 public:
 	Gfx::Sprite spr;
-	IG::Rect2<int> bound;
+	IG::WindowRect bound;
 	uint keyXSize = 0, keyYSize = 0;
 	static const uint cols = 10;
 	uint mode = 0;
@@ -71,7 +71,7 @@ public:
 	void init();
 	void updateImg();
 	void setImg(Gfx::BufferImage *img);
-	void place(GC btnSize, GC yOffset);
+	void place(Gfx::GC btnSize, Gfx::GC yOffset);
 	void draw();
 	int getInput(int cx, int cy);
 };
@@ -80,16 +80,16 @@ class VControllerGamepad
 {
 public:
 	// center buttons
-	IG::Rect2<int> centerBtnBound[systemCenterBtns];
-	IG::Rect2<int> centerBtnsBound;
+	IG::WindowRect centerBtnBound[systemCenterBtns];
+	IG::WindowRect centerBtnsBound;
 	Gfx::Sprite centerBtnSpr[systemCenterBtns];
 	uint centerBtnsState = 1;
 
 	uint lTriggerState = 1;
 	uint rTriggerState = 1;
 
-	IG::Rect2<int> faceBtnBound[systemFaceBtns];
-	IG::Rect2<int> faceBtnsBound, lTriggerBound, rTriggerBound;
+	IG::WindowRect faceBtnBound[systemFaceBtns];
+	IG::WindowRect faceBtnsBound, lTriggerBound, rTriggerBound;
 	uint faceBtnsState = 1;
 	Gfx::Sprite circleBtnSpr[systemFaceBtns];
 	VControllerDPad dp;
@@ -97,32 +97,32 @@ public:
 	bool triggersInline = false;
 	uint activeFaceBtns = systemFaceBtns;
 	int btnSpacePixels = 0, btnStaggerPixels = 0, btnRowShiftPixels = 0;
-	GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
-	GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
+	Gfx::GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
+	Gfx::GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
 	bool showBoundingArea = false;
 
 	constexpr VControllerGamepad() {}
 	void init(float alpha);
 	void setBoundingAreaVisible(bool on);
 	bool boundingAreaVisible();
-	void setImg(Gfx::BufferImage *pics);
+	void setImg(Gfx::BufferImage &pics);
 	uint rowsForButtons(uint activeButtons);
 	void setBaseBtnSize(uint sizeInPixels);
-	IG::Rect2<int> centerBtnBounds() const;
+	IG::WindowRect centerBtnBounds() const;
 	void setCenterBtnPos(IG::Point2D<int> pos);
-	IG::Rect2<int> lTriggerBounds() const;
+	IG::WindowRect lTriggerBounds() const;
 	void setLTriggerPos(IG::Point2D<int> pos);
-	IG::Rect2<int> rTriggerBounds() const;
+	IG::WindowRect rTriggerBounds() const;
 	void setRTriggerPos(IG::Point2D<int> pos);
 	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos);
-	IG::Rect2<int> faceBtnBounds() const;
+	IG::WindowRect faceBtnBounds() const;
 	void setFaceBtnPos(IG::Point2D<int> pos);
 	void getCenterBtnInput(int x, int y, int btnOut[2]);
 	void getBtnInput(int x, int y, int btnOut[2]);
 	void draw(bool showHidden);
 
 private:
-	GC btnSize = 0;
+	Gfx::GC btnSize = 0;
 	int btnSizePixels = 0;
 };
 
@@ -138,12 +138,12 @@ public:
 
 	// menu button
 	Gfx::Sprite menuBtnSpr;
-	IG::Rect2<int> menuBound;
+	IG::WindowRect menuBound;
 	uint menuBtnState = 1;
 
 	// fast-forward button
 	Gfx::Sprite ffBtnSpr;
-	IG::Rect2<int> ffBound;
+	IG::WindowRect ffBound;
 	uint ffBtnState = 1;
 
 	float alpha = 0;
@@ -164,16 +164,16 @@ public:
 	#endif
 
 	constexpr VController() {}
-	GC xMMSize(GC mm);
-	GC yMMSize(GC mm);
-	int xMMSizeToPixel(const Base::Window &win, GC mm);
-	int yMMSizeToPixel(const Base::Window &win, GC mm);
+	Gfx::GC xMMSize(Gfx::GC mm);
+	Gfx::GC yMMSize(Gfx::GC mm);
+	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm);
+	int yMMSizeToPixel(const Base::Window &win, Gfx::GC mm);
 	void updateMapping(uint player);
 	#ifdef CONFIG_VCONTROLLER_KEYBOARD
 	void updateKeyboardMapping();
 	#endif
 	bool hasTriggers() const;
-	void setImg(Gfx::BufferImage *pics);
+	void setImg(Gfx::BufferImage &pics);
 	void setBoundingAreaVisible(bool on);
 	bool boundingAreaVisible();
 	void setMenuBtnPos(IG::Point2D<int> pos);
@@ -190,7 +190,7 @@ public:
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;
-	IG::Rect2<int> bounds(int elemIdx) const;
+	IG::WindowRect bounds(int elemIdx) const;
 	void setPos(int elemIdx, IG::Point2D<int> pos);
 	void setState(int elemIdx, uint state);
 	uint state(int elemIdx);

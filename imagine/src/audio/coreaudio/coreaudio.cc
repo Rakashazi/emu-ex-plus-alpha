@@ -1,10 +1,25 @@
-#define thisModuleName "audio:coreaudio"
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define LOGTAG "CoreAudio"
 #include <engine-globals.h>
 #include <audio/Audio.hh>
 #include <logger/interface.h>
 #include <util/number.h>
 #include <util/thread/pthread.hh>
-#include <util/MachRingBuffer.hh>
+#include <util/ringbuffer/MachRingBuffer.hh>
 
 #include <AudioUnit/AudioUnit.h>
 #include <AudioToolbox/AudioToolbox.h>
@@ -18,9 +33,14 @@ static uint wantedLatency = 100000;
 static AudioComponentInstance outputUnit = nullptr;
 static AudioStreamBasicDescription streamFormat;
 static bool isPlaying_ = false, isOpen_ = false, hadUnderrun = false;
-static MachRingBuffer<> rBuff;
+static StaticMachRingBuffer<> rBuff;
 static bool sessionInit = false;
 static bool soloMix_ = true;
+
+int maxRate()
+{
+	return 48000;
+}
 
 static bool isInit()
 {
@@ -147,7 +167,7 @@ void resumePcm()
 		return;
 	if(!isPlaying_ || hadUnderrun)
 	{
-		logMsg("playback starting with %u frames", (uint)(rBuff.written / streamFormat.mBytesPerFrame));
+		logMsg("playback starting with %u frames", (uint)(rBuff.writtenSize() / streamFormat.mBytesPerFrame));
 		hadUnderrun = false;
 		if(!isPlaying_)
 		{
@@ -192,14 +212,15 @@ BufferContext getPlayBuffer(uint wantedFrames)
 	{
 		logDMsg("buffer has only %d/%d frames free", framesFree(), wantedFrames);
 	}
-	return {rBuff.writePos(), std::min(wantedFrames, (uint)framesFree())};
+	// will always have a contiguous block from mirrored pages
+	return {rBuff.writeAddr(), std::min(wantedFrames, (uint)framesFree())};
 }
 
 void commitPlayBuffer(BufferContext buffer, uint frames)
 {
 	assert(frames <= buffer.frames);
 	auto bytes = frames * streamFormat.mBytesPerFrame;
-	rBuff.advanceWritePos(bytes);
+	rBuff.commitWrite(bytes);
 }
 
 // TODO
@@ -210,15 +231,20 @@ int framesFree()
 	return rBuff.freeSpace() / streamFormat.mBytesPerFrame;
 }
 
+static void setAudioCategory(UInt32 category)
+{
+	AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(category), &category);
+}
+
 void setSoloMix(bool newSoloMix)
 {
 	if(soloMix_ != newSoloMix)
 	{
 		logMsg("setting solo mix: %d", newSoloMix);
-		UInt32 sessionCategory = newSoloMix ? kAudioSessionCategory_SoloAmbientSound
-			: kAudioSessionCategory_AmbientSound;
-		AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(sessionCategory), &sessionCategory);
 		soloMix_ = newSoloMix;
+		if(!isInit())
+			return; // audio init() will take care of initial focus setting
+		setAudioCategory(newSoloMix ? kAudioSessionCategory_SoloAmbientSound : kAudioSessionCategory_AmbientSound);
 	}
 }
 
@@ -227,24 +253,25 @@ bool soloMix()
 	return soloMix_;
 }
 
-static void interruptionListenerCallback(void *inUserData, UInt32  interruptionState)
-{
-	if(interruptionState == kAudioSessionEndInterruption)
-	{
-		logMsg("re-activating audio session");
-		AudioSessionSetActive(true);
-	}
-}
-
 void initSession()
 {
-	AudioSessionInitialize(nullptr, nullptr, interruptionListenerCallback, nullptr);
+	AudioSessionInitialize(nullptr, nullptr,
+		[](void *inUserData, UInt32 interruptionState)
+		{
+			if(interruptionState == kAudioSessionEndInterruption)
+			{
+				logMsg("re-activating audio session");
+				AudioSessionSetActive(true);
+			}
+		}, nullptr);
 	sessionInit = true;
 }
 
 CallResult init()
 {
 	assert(sessionInit);
+	if(!soloMix_)
+		setAudioCategory(kAudioSessionCategory_AmbientSound); // kAudioSessionCategory_SoloAmbientSound is default
 	logMsg("setting up playback audio unit");
 	AudioComponentDescription defaultOutputDescription =
 	{

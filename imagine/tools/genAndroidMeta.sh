@@ -41,6 +41,9 @@ do
 		--permission-vibrate)
 			vibrate=1
 		;;
+		--permission-install-shortcut)
+			installShortcut=1
+		;;
 		--xperia-play-optimized)
 			xperiaPlayOpt=1
 		;;
@@ -163,6 +166,12 @@ fi
 if [ $vibrate ]
 then
 	echo '	<uses-permission android:name="android.permission.VIBRATE" />' >> $outPath
+fi
+
+if [ $installShortcut ]
+then
+	echo '	<uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />' >> $outPath
+	#echo '	<uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />' >> $outPath
 fi
 
 if [ $minSDK -ge 9 ]

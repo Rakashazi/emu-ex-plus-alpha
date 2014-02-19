@@ -78,6 +78,8 @@ static Byte1Option optionMultitap(CFGKEY_MULTITAP, 0);
 static Byte1Option optionBlockInvalidVRAMAccess(CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1);
 #endif
 
+#include <CommonGui.hh>
+
 const uint EmuSystem::maxPlayers = 5;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -86,7 +88,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include <CommonGui.hh>
 
 void EmuSystem::initOptions()
 {
@@ -110,7 +111,7 @@ void EmuSystem::onOptionsLoaded()
 	#endif
 }
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -401,14 +402,24 @@ int EmuSystem::loadState(int saveStateSlot)
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
 {
-	if(gameIsRunning() && Memory.SRAMSize)
+	if(gameIsRunning())
 	{
-		logMsg("saving backup memory");
-		FsSys::cPath saveStr;
-		sprintSRAMFilename(saveStr);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
-		Memory.SaveSRAM(saveStr);
+		if(Memory.SRAMSize)
+		{
+			logMsg("saving backup memory");
+			FsSys::cPath saveStr;
+			sprintSRAMFilename(saveStr);
+			if(Config::envIsIOSJB)
+				fixFilePermissions(saveStr);
+			Memory.SaveSRAM(saveStr);
+		}
+		FsSys::cPath cheatsStr;
+		sprintCheatsFilename(cheatsStr);
+		if(!Cheat.num_cheats)
+			logMsg("no cheats present, removing .cht file if present");
+		else
+			logMsg("saving %d cheat(s)", Cheat.num_cheats);
+		S9xSaveCheatFile(cheatsStr);
 	}
 }
 
@@ -433,13 +444,6 @@ void S9xAutoSaveSRAM (void)
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
-	FsSys::cPath cheatsStr;
-	sprintCheatsFilename(cheatsStr);
-	if(!Cheat.num_cheats)
-		logMsg("no cheats present, removing .cht file if present");
-	else
-		logMsg("saving %d cheat(s)", Cheat.num_cheats);
-	S9xSaveCheatFile(cheatsStr);
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
@@ -616,8 +620,8 @@ void EmuSystem::clearInputBuffers()
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	mouseScroll.init(ContentDrag::XY_AXIS);
-	mouseScroll.dragStartY = std::max(1, mainWin.yMMSizeToPixel(1.));
-	mouseScroll.dragStartX = std::max(1, mainWin.xMMSizeToPixel(1.));
+	mouseScroll.dragStartY = std::max(1, mainWin.heightMMInPixels(1.));
+	mouseScroll.dragStartX = std::max(1, mainWin.widthMMInPixels(1.));
 }
 
 void EmuSystem::configAudioRate()
@@ -634,6 +638,21 @@ void EmuSystem::configAudioRate()
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
 	#endif
 	logMsg("emu sound rate %d", Settings.SoundPlaybackRate);
+}
+
+static void mixSamples(int samples, bool renderAudio)
+{
+	if(likely(samples > 0))
+	{
+		uint frames = samples/2;
+		int16 audioBuff[samples];
+		S9xMixSamples((uint8_t*)audioBuff, samples);
+		if(renderAudio)
+		{
+			//logMsg("%d frames", frames);
+			EmuSystem::writeSound(audioBuff, frames);
+		}
+	}
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -668,32 +687,44 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	IPPU.RenderThisFrame = processGfx ? TRUE : FALSE;
 	if(renderGfx)
 		renderToScreen = 1;
+	#ifndef SNES9X_VERSION_1_4
+	S9xSetSamplesAvailableCallback([](void *renderAudio)
+		{
+			S9xFinalizeSamples();
+			int samples = S9xGetSampleCount();
+			mixSamples(samples, renderAudio);
+		}, (void*)renderAudio);
+	#endif
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
-	#ifndef SNES9X_VERSION_1_4
-	int samples = S9xGetSampleCount();
-	#else
+	//#ifndef SNES9X_VERSION_1_4
+	//int samples = S9xGetSampleCount();
+	//#else
+	#ifdef SNES9X_VERSION_1_4
 	const int samples = Settings.SoundPlaybackRate*2 / 60;
-	#endif
-	if(likely(samples > 0))
+	mixSamples(samples, renderAudio);
+	//#endif
+	/*if(likely(samples > 0))
 	{
 		uint frames = samples/2;
-		int16 audioBuff[samples];
-		S9xMixSamples((uint8_t*)audioBuff, samples);
+		//int16 audioBuff[samples];
+		//S9xMixSamples((uint8_t*)audioBuff, samples);
 		if(renderAudio)
 		{
 			//logMsg("%d frames", frames);
-			writeSound(audioBuff, frames);
+			mixSamples(audioBuff, frames);
 		}
-	}
+	}*/
+	#endif
 }
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
+	using namespace Input;
 	if(unlikely(EmuSystem::isActive() && e.isPointer()))
 	{
 		switch(snesActiveInputPort)
@@ -739,7 +770,7 @@ void onInputEvent(Base::Window &win, const Input::Event &e)
 			{
 				auto dragState = Input::dragState(e.devId);
 				static bool dragWithButton = 0; // true to start next mouse drag with a button held
-				switch(mouseScroll.inputEvent(win.viewBounds(), e))
+				switch(mouseScroll.inputEvent(win.contentBounds(), e))
 				{
 					bcase ContentDrag::PUSHED:
 					{
@@ -843,7 +874,7 @@ CallResult onInit(int argc, char** argv)
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
 
-	emuView.initPixmap((uchar*)GFX.Screen, pixFmt, snesResX, snesResY);
+	emuView.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
 	mainInitCommon(argc, argv);
 	return OK;
 }

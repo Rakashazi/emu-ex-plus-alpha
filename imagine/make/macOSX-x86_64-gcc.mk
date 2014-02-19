@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 include $(buildSysPath)/macOSX-gcc.mk
 
 ARCH := x86_64

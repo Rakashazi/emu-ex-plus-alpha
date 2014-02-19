@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <base/android/private.hh>
 #include <input/DragPointer.hh>
 #ifdef CONFIG_INPUT_ICADE
@@ -25,8 +40,8 @@ static struct TouchState
 {
 	constexpr TouchState() { }
 	int id = -1;
-	PointerState s;
 	DragPointer dragState;
+	bool isTouching = false;
 } m[maxCursors];
 uint numCursors = maxCursors;
 
@@ -49,14 +64,14 @@ static const char *androidEventEnumToStr(uint e)
 	return "Unknown";
 }
 
-static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, bool isTouch)
+static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isTouch)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	p.dragState.pointerEvent(Pointer::LBUTTON, action, pos);
-	onInputEvent(Base::mainWindow(), Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, nullptr));
+	Base::onInputEvent(Base::mainWindow(), Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, time, nullptr));
 }
 
-static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
+static bool handleTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)
 {
 	//logMsg("action: %s", androidEventEnumToStr(action));
 	auto pos = pointerPos(Base::mainWindow(), x, y);
@@ -71,8 +86,8 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 				{
 					auto &p = m[i];
 					p.id = pid;
-					p.s.inWin = 1;
-					processTouch(i, PUSHED, p, pos, isTouch);
+					p.isTouching = true;
+					processTouch(i, PUSHED, p, pos, time, isTouch);
 					break;
 				}
 			}
@@ -80,14 +95,14 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 		//case AMOTION_EVENT_ACTION_CANCEL: // calling code always uses AMOTION_EVENT_ACTION_UP
 			forEachInArray(m, p)
 			{
-				if(p->s.inWin)
+				if(p->isTouching)
 				{
 					//logMsg("touch up for %d from gesture end", p_i);
 					int x = p->dragState.x;
 					int y = p->dragState.y;
 					p->id = -1;
-					p->s.inWin = 0;
-					processTouch(p_i, RELEASED, *p, {x, y}, isTouch);
+					p->isTouching = false;
+					processTouch(p_i, RELEASED, *p, {x, y}, time, isTouch);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
@@ -98,8 +113,8 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 				{
 					auto &p = m[i];
 					p.id = -1;
-					p.s.inWin = 0;
-					processTouch(i, RELEASED, p, pos, isTouch);
+					p.isTouching = false;
+					processTouch(i, RELEASED, p, pos, time, isTouch);
 					break;
 				}
 			}
@@ -111,7 +126,7 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 				if(m[i].id == pid)
 				{
 					auto &p = m[i];
-					processTouch(i, MOVED, p, pos, isTouch);
+					processTouch(i, MOVED, p, pos, time, isTouch);
 					break;
 				}
 			}
@@ -127,38 +142,33 @@ static bool handleTouchEvent(int action, int x, int y, int pid, bool isTouch)
 	return 1;
 }
 
-static void handleTrackballEvent(int action, float x, float y)
+static void handleTrackballEvent(int action, float x, float y, Time time)
 {
 	int iX = x * 1000., iY = y * 1000.;
 	auto pos = pointerPos(Base::mainWindow(), iX, iY);
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
-		onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, nullptr));
+		Base::onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr));
 	else
-		onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, nullptr));
+		Base::onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr));
 }
 
-static void handleKeyEvent(int key, int down, uint devId, uint metaState, const Device &dev)
+void handleKeyEvent(int key, int down, uint devId, uint metaState, Time time, const Device &dev)
 {
 	assert((uint)key < Keycode::COUNT);
 	uint action = down ? PUSHED : RELEASED;
 	#ifdef CONFIG_INPUT_ICADE
-		if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(decodeAscii(key, 0), action, dev, Base::mainWindow())))
+	if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(Keycode::decodeAscii(key, 0), action, dev, Base::mainWindow())))
 	#endif
-			onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_KEYBOARD, key & 0xff, action, metaState, &dev));
+		Base::onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_SYSTEM, key & 0xff, action, metaState, time, &dev));
 }
 
 static InputTextDelegate vKeyboardTextDelegate;
-static IG::Rect2<int> textRect(8, 200, 8+304, 200+48);
+static IG::WindowRect textRect(8, 200, 8+304, 200+48);
 static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTextInput;
 static
-#if CONFIG_ENV_ANDROID_MINSDK >= 9
-void
-#else
-jboolean
-#endif
-JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr);
+void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss);
 
 static void setupTextInputJni(JNIEnv* jEnv)
 {
@@ -172,11 +182,7 @@ static void setupTextInputJni(JNIEnv* jEnv)
 
 		static JNINativeMethod activityMethods[] =
 		{
-			#if CONFIG_ENV_ANDROID_MINSDK >= 9
-			{"sysTextInputEnded", "(Ljava/lang/String;)V", (void *)&textInputEnded}
-			#else
-			{"sysTextInputEnded", "(Ljava/lang/String;)Z", (void *)&textInputEnded}
-			#endif
+			{"sysTextInputEnded", "(Ljava/lang/String;ZZ)V", (void *)&textInputEnded}
 		};
 		jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 	}
@@ -186,8 +192,10 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 {
 	using namespace Base;
 	auto jEnv = eEnv();
+	refUIGL();
 	setupTextInputJni(jEnv);
 	logMsg("starting system text input");
+	setEventsUseOSInputMethod(true);
 	vKeyboardTextDelegate = callback;
 	jStartSysTextInput(jEnv, jBaseActivity, jEnv->NewStringUTF(initialText), jEnv->NewStringUTF(promptText),
 		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels);
@@ -211,16 +219,17 @@ void finishSysTextInput()
 	jFinishSysTextInput(jEnv, jBaseActivity, 0);
 }
 
-void placeSysTextInput(const IG::Rect2<int> &rect)
+void placeSysTextInput(const IG::WindowRect &rect)
 {
 	using namespace Base;
 	auto jEnv = eEnv();
 	setupTextInputJni(jEnv);
 	textRect = rect;
+	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());
 	jPlaceSysTextInput(jEnv, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-const IG::Rect2<int> &sysTextInputRect()
+const IG::WindowRect &sysTextInputRect()
 {
 	return textRect;
 }

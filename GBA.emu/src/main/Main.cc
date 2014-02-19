@@ -179,7 +179,7 @@ enum
 Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 bool detectedRtcGame = 0;
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -406,7 +406,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	CPULoop(gGba, renderGfx, processGfx, renderAudio);
 }
 
-namespace Input
+namespace Base
 {
 
 void onInputEvent(Base::Window &win, const Input::Event &e)
@@ -432,7 +432,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((uchar*)gGba.lcd.pix, pixFmt, 240, 160);
+	emuView.initPixmap((char*)gGba.lcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
 	mainInitCommon(argc, argv);
 	return OK;

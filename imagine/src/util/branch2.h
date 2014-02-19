@@ -26,17 +26,11 @@
 #endif
 
 #ifndef NDEBUG
-	#define bug_exit(msg, ...) { BRANCH_H_PRINTF(msg " in %s", ## __VA_ARGS__, __PRETTY_FUNCTION__); BRANCH_H_EXIT(); }
+#define bug_exit(msg, ...) { BRANCH_H_PRINTF(msg " in %s", ## __VA_ARGS__, __PRETTY_FUNCTION__); BRANCH_H_EXIT(); }
 #else
-	#define bug_exit(msg, ...) {  }
+#define bug_exit(msg, ...) { }
 #endif
 
 #define bug_branch(fmtStr, val) bug_exit("Bad branch value " fmtStr, val)
 
-#define bcase break; case
-#define bdefault break; default
 
-// call a function pointer if non-null
-#define callSafe(funcPtr, ...) { if(likely(funcPtr != 0)) funcPtr(__VA_ARGS__); }
-// call a member function if object pointer non-null
-#define callMSafe(objPtr, memberFunc, ...) { if(likely(objPtr != 0)) objPtr->memberFunc(__VA_ARGS__); }

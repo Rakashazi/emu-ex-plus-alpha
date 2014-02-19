@@ -1,7 +1,7 @@
 ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+#buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
 liboggVer := 1.3.1
@@ -24,9 +24,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(liboggSrcDir)/configure : $(liboggSrcArchive)
+$(liboggSrcDir)/configure : | $(liboggSrcArchive)
 	@echo "Extracting libogg..."
-	tar -mxJf $^
+	tar -mxJf $|
 	cp ../gnuconfig/config.* $(liboggSrcDir)
 
 $(outputLibFile) : $(makeFile)
@@ -36,5 +36,6 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(liboggSrcDir)/configure
 	@echo "Configuring libogg..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" $$dir/$(liboggSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	$$dir/$(liboggSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) $(buildArg)
 

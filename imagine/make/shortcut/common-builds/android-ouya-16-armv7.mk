@@ -1,4 +1,5 @@
+include $(IMAGINE_PATH)/make/config.mk
 android_minSDK := 16
--include config.mk
+-include $(projectPath)/config.mk
 include $(IMAGINE_PATH)/make/android-ouya-armv7.mk
-include build.mk
+include $(projectPath)/build.mk

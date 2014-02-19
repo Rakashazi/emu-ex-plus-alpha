@@ -1,11 +1,7 @@
 ifndef inc_pkg_zlib
 inc_pkg_zlib := 1
 
-ifeq ($(ENV), android)
- LDLIBS += -lz
-else ifeq ($(ENV), ios)
- LDLIBS += -lz
-else ifeq ($(ENV), webos)
+ifneq ($(filter android ios webos,$(ENV)),)
  LDLIBS += -lz
 else
  pkgConfigDeps += zlib

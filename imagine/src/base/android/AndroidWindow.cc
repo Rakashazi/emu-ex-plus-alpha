@@ -1,5 +1,21 @@
-#define thisModuleName "base:androidWindow"
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define LOGTAG "AndroidWindow"
 #include <base/common/windowPrivate.hh>
+#include <base/Timer.hh>
 #include <base/android/sdk.hh>
 #include <base/android/private.hh>
 #include <base/android/ASurface.hh>
@@ -14,58 +30,56 @@ namespace Base
 
 extern float androidXDPI, androidYDPI;
 extern float aDensityDPI;
-extern JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
+extern JavaInstMethod<void> jSetWinFormat;
 extern JavaInstMethod<int> jWinFormat;
 extern JavaInstMethod<void> jSetRequestedOrientation;
-extern JavaInstMethod<void> jPostDrawWindow, jCancelDrawWindow;
+extern JavaInstMethod<void> jPostFrame, jUnpostFrame;
 extern EGLContextHelper eglCtx;
 extern EGLDisplay display;
-extern AInputQueue *inputQueue;
-extern ALooper *aLooper;
 extern int osOrientation;
 extern bool resumeAppOnWindowInit;
-static void (*didDrawWindowCallback)() = nullptr;
-extern uint drawWinEventIdle;
-extern int drawWinEventFd;
-extern jobject drawWindowHelper;
-extern bool inputQueueAttached;
+extern uint onFrameEventIdle;
+extern int onFrameEventFd;
+extern jobject frameHelper;
 extern bool aHasFocus;
-static uint extraRedraws_ = 0;
-static CallbackRef *resizeCallback = nullptr;
+static uint windowSizeChecks = 0;
+extern uint appState;
+extern TimeSys orientationEventTime;
 
-int processInputCallback(int fd, int events, void* data);
 void onResume(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
+void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *nWin);
 
-static void initialScreenSizeSetup(Window &win, uint w, uint h)
+void setupEGLConfig()
 {
-	win.xDPI = androidXDPI;
-	win.yDPI = androidYDPI;
-	// assume content rectangle equals window size
-	win.contentRect.x2 = w;
-	win.contentRect.y2 = h;
-	win.updateSize(w, h);
-	if(androidSDK() < 9 && unlikely(win.viewMMWidth_ > 9000)) // hack for Archos Tablets
+	assert(!eglCtx.isInit()); // should only call before initial window is created
+	eglCtx.chooseConfig(display);
+	#ifndef NDEBUG
+	printEGLConf(display, eglCtx.config);
+	logMsg("config value: %p", eglCtx.config);
+	#endif
+	auto env = eEnv();
+	if(Base::androidSDK() < 11)
 	{
-		logMsg("screen size over 9000! setting to something sane");
-		androidXDPI = win.xDPI = 220;
-		androidYDPI = win.yDPI = 220;
-		win.updateSize(w, h);
+		// In testing with CM7 on a Droid, not setting window format to match
+		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
+		logMsg("setting window format to %d (current %d)", eglCtx.currentWindowFormat(display), jWinFormat(env, jBaseActivity));
+		jSetWinFormat(env, jBaseActivity, eglCtx.currentWindowFormat(display));
 	}
 }
 
-static bool setEGLWindowFormat(JNIEnv *env, jobject activity, int currFormat)
+IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	int configFormat = eglCtx.currentWindowFormat(display);
-	if(currFormat != configFormat)
-	{
-		logMsg("changing window format from %d to %d", currFormat, configFormat);
-		jSetWinFormat(env, activity, configFormat);
-		return true;
-	}
-	else
-		logMsg("keeping window format: %d", currFormat);
-	return false;
+	assert(xDPI && yDPI);
+	float xdpi = ASurface::isStraightOrientation(osOrientation) ? xDPI : yDPI;
+	float ydpi = ASurface::isStraightOrientation(osOrientation) ? yDPI : xDPI;
+	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / aDensityDPI) * 25.4f};
+}
+
+IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
+{
+	assert(aDensityDPI);
+	return {((float)size.x / aDensityDPI) * 25.4f, ((float)size.y / aDensityDPI) * 25.4f};
 }
 
 void Window::setDPI(float dpi)
@@ -81,51 +95,38 @@ void Window::setDPI(float dpi)
 		xDPI = yDPI = dpi;
 		logMsg("set DPI override %f", (double)dpi);
 	}
-	calcPhysicalSize();
-	setupScreenSize();
+	if(updatePhysicalSizeWithCurrentSize())
+		postResize();
 }
 
-uint Window::setOrientation(uint o)
+uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 {
 	using namespace Base;
-	logMsg("requested orientation change to %s", Base::orientationToStr(o));
+	logMsg("requested orientation change to %s", Base::orientationToStr(oMask));
 	int toSet = -1;
-	switch(o)
+	switch(oMask)
 	{
-		bdefault: bug_branch("%d", o);
-		bcase VIEW_ROTATE_AUTO: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
+		bdefault: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
 		bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
 		bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
-		bcase VIEW_ROTATE_180: toSet = androidSDK() > 8 ? 9 : 1; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
-		bcase VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = androidSDK() > 8 ? 6 : 1; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+		bcase VIEW_ROTATE_180: toSet = (androidSDK() > 8) ? 9 : 1; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
+		bcase VIEW_ROTATE_270: toSet = (androidSDK() > 8) ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = (androidSDK() > 8) ? 6 : 0; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = (androidSDK() > 8) ? 7 : 1; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 	}
 	jSetRequestedOrientation(eEnv(), jBaseActivity, toSet);
 	return 1;
-}
-
-uint Window::setValidOrientations(uint oMask, bool manageAutoOrientation)
-{
-	return setOrientation(oMask);
 }
 
 void Window::setPixelBestColorHint(bool best)
 {
 	assert(!eglCtx.isInit()); // should only call before initial window is created
 	eglCtx.useMaxColorBits = best;
-	eglCtx.chooseConfig(display);
-	#ifndef NDEBUG
-	printEGLConf(display, eglCtx.config);
-	logMsg("config value: %p", eglCtx.config);
-	#endif
-	auto env = eEnv();
-	if(Base::androidSDK() < 11)
-		setEGLWindowFormat(env, jBaseActivity, jWinFormat(env, jBaseActivity));
 }
 
 bool Window::pixelBestColorHintDefault()
 {
-	return Base::androidSDK() >= 11 && !eglCtx.has32BppColorBugs;
+	return Base::androidSDK() >= 11 /*&& !eglCtx.has32BppColorBugs*/;
 }
 
 void Window::swapBuffers()
@@ -142,75 +143,42 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	{
 		bug_exit("created multiple windows");
 	}
+	assert(androidXDPI);
+	xDPI = androidXDPI;
+	yDPI = androidYDPI;
 	mainWin = this;
 	return OK;
 }
 
 void Window::show()
 {
-	displayNeedsUpdate();
-}
-
-static void initGfxContext(ANativeWindow* win)
-{
-	Gfx::init();
-	initialScreenSizeSetup(mainWindow(), ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
-	Gfx::setViewport(mainWindow());
-	Gfx::setProjector(mainWindow());
+	postDraw();
 }
 
 static void runPendingInit(ANativeActivity* activity, ANativeWindow* nWin)
 {
-	if(mainWindow().isFirstInit())
+	Window &win = mainWindow();
+	if(!win.ranInit)
 	{
+		win.ranInit = true;
 		appState = APP_RUNNING;
-		initGfxContext(nWin);
-		onWindowInit(mainWindow());
-		if(inputQueue && !inputQueueAttached)
-		{
-			logMsg("attaching input queue");
-			AInputQueue_attachLooper(inputQueue, aLooper, ALOOPER_POLL_CALLBACK, processInputCallback, inputQueue);
-		}
+		Gfx::init();
+		onWindowInit(win);
 		// the following handlers should only ever be called after the initial window init
 		activity->callbacks->onResume = onResume;
 		activity->callbacks->onPause = onPause;
 		handleIntent(activity);
+		orientationEventTime = TimeSys::now(); // init with the window creation time
 	}
 	else if(resumeAppOnWindowInit)
 	{
 		logMsg("running delayed onResume handler");
-		mainWindow().updateSize(ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin));
-		mainWindow().postResize();
 		doOnResume(activity);
 		resumeAppOnWindowInit = false;
 	}
 }
 
-void Window::calcPhysicalSize()
-{
-	assert(osOrientation != -1);
-	assert(xDPI && yDPI);
-	float xdpi = ASurface::isStraightOrientation(osOrientation) ? xDPI : yDPI;
-	float ydpi = ASurface::isStraightOrientation(osOrientation) ? yDPI : xDPI;
-	viewMMWidth_ = ((float)w / xdpi) * 25.4;
-	viewMMHeight_ = ((float)h / ydpi) * 25.4;
-	viewSMMWidth_ = (w / aDensityDPI) * 25.4;
-	viewSMMHeight_ = (h / aDensityDPI) * 25.4;
-	logMsg("calc display size %fx%f MM, scaled %fx%f MM", (double)viewMMWidth_, (double)viewMMHeight_, (double)viewSMMWidth_, (double)viewSMMHeight_);
-	assert(viewMMWidth_ && viewMMHeight_);
-}
-
-void Window::updateSize(int width, int height)
-{
-	w = width;
-	h = height;
-	viewRect = contentRect;
-	viewPixelWidth_ = viewRect.xSize();
-	viewPixelHeight_ = viewRect.ySize();
-	calcPhysicalSize();
-}
-
-IG::Rect2<int> Window::untransformedViewBounds() const
+IG::WindowRect Window::contentBounds() const
 {
 	return contentRect;
 }
@@ -220,7 +188,7 @@ void AndroidWindow::initSurface(EGLDisplay display, EGLConfig config, ANativeWin
 	assert(display != EGL_NO_DISPLAY);
 	assert(eglCtx.context != EGL_NO_CONTEXT);
 	assert(surface == EGL_NO_SURFACE);
-	logMsg("creating surface with format %d for window with format: %d", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(win));
+	logMsg("creating surface with native visual ID: %d for window with format: %d", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(win));
 	ANativeWindow_setBuffersGeometry(win, 0, 0, eglCtx.currentWindowFormat(display));
 	surface = eglCreateWindowSurface(display, config, win, 0);
 
@@ -238,188 +206,182 @@ void AndroidWindow::initSurface(EGLDisplay display, EGLConfig config, ANativeWin
 	}*/
 }
 
-void finishWindowInit(ANativeActivity* activity, ANativeWindow *win, bool hasFocus)
+void finishWindowInit(ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus)
 {
-	mainWindow().unpostDraw(); // wait for onNativeWindowRedrawNeeded()
-	//if(!mainWindow().inResize) logMsg("stopping window updates for resize operation");
-	mainWindow().inResize = true;
 	if(Base::androidSDK() < 11)
-		setEGLWindowFormat(activity->env, activity->clazz, ANativeWindow_getFormat(win));
-	mainWindow().nWin = win;
-	mainWindow().initSurface(display, eglCtx.config, win);
-	if(mainWindow().isFirstInit())
 	{
+		// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
+		// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
+		// Explicitly setting the format here seems to fix the problem (Android driver bug?).
+		// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
+		logMsg("setting window format to %d (current %d) after surface creation", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
+		jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
+	}
+	Window &win = mainWindow();
+	win.nWin = nWin;
+	win.initSurface(display, eglCtx.config, nWin);
+	win.updateSize({ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin)});
+	if(!win.contentRect.x2) // check if contentRect hasn't been set yet
+	{
+		// assume it equals window size
+		win.contentRect.x2 = win.width();
+		win.contentRect.y2 = win.height();
 		logMsg("window created");
 	}
 	else
 	{
-		logMsg("window re-created, size %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+		logMsg("window re-created");
 	}
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	win.setNeedsDraw(true);
 }
 
-void postDrawWindowCallback()
+static Base::Screen::OnFrameDelegate windowSizeCheck
 {
-	mainWindow().updateSize(ANativeWindow_getWidth(mainWindow().nWin), ANativeWindow_getHeight(mainWindow().nWin));
-	mainWindow().postResize();
-	logMsg("posted extra window redraw (%d left), size %d,%d", extraRedraws_, mainWindow().w, mainWindow().h);
-	extraRedraws_--;
-	if(!extraRedraws_)
-		didDrawWindowCallback = nullptr;
-}
+	[](Screen &screen, FrameTimeBase)
+	{
+		if(mainWindow().updateSize({ANativeWindow_getWidth(mainWindow().nWin), ANativeWindow_getHeight(mainWindow().nWin)}))
+			mainWindow().postResize();
+		if(windowSizeChecks)
+		{
+			windowSizeChecks--;
+			logMsg("doing window size check & draw next frame (%d left), current size %d,%d", windowSizeChecks, mainWindow().width(), mainWindow().height());
+			screen.addOnFrameDelegate(windowSizeCheck);
+			mainWindow().postDraw();
+		}
+		else
+		{
+			logMsg("done with window size checks, current size %d,%d", mainWindow().width(), mainWindow().height());
+		}
+	}
+};
 
-void setWindowRedrawResizeCallback(uint extraRedraws)
+// Post extra draws and re-check the window size to avoid incorrect display
+// if the window size is out of sync with the view (happens mostly on pre-3.0 OS versions).
+// For example, on a stock 2.3 Xperia Play,
+// putting the device to sleep in portrait, then sliding the gamepad open
+// may cause a view bounds change with swapped window width/height.
+// Previously this was also used to avoid issues on some devices
+// (ex. Archos Gamepad) if the window size changes from
+// an OS UI element (navigation or status bar), but shouldn't
+// be an issue since the window now uses a full screen layout
+void addOnFrameWindowSizeChecks(uint extraChecks)
 {
-	assert(extraRedraws);
-	extraRedraws_ = extraRedraws;
-	didDrawWindowCallback = postDrawWindowCallback;
+	windowSizeChecks += extraChecks;
+	auto &screen = mainScreen();
+	if(!screen.containsOnFrameDelegate(windowSizeCheck))
+	{
+		screen.addOnFrameDelegate(windowSizeCheck);
+	}
 }
 
 void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *nWin)
 {
-	cancelCallback(resizeCallback);
-	resizeCallback = nullptr;
-	logMsg("window needs redraw, size %d,%d", ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin));
+	logMsg("window needs redraw");
 	assert(mainWindow().isDrawable());
 	Window &win = mainWindow();
-	win.inResize = false;
-	//win.drawPosted = false; // reset from previous displayNeedsUpdate() calls while inResize == true
-	win.displayNeedsUpdate();
-	// post an extra draw to avoid incorrect display if the window draws too early
-	// in an OS orientation change
-	setWindowRedrawResizeCallback(1);
+	win.postDraw();
+	addOnFrameWindowSizeChecks(1);
 	runPendingInit(activity, nWin);
 }
 
-void windowResized(ANativeActivity* activity, ANativeWindow *win)
+void windowResized(ANativeActivity* activity, ANativeWindow *nWin)
 {
-	logMsg("window resized, size %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+	logMsg("window resized, current size %d,%d", ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin));
 	assert(mainWindow().isDrawable());
-	mainWindow().unpostDraw(); // wait for onNativeWindowRedrawNeeded()
-	//if(!mainWindow().inResize) logMsg("stopping window updates for resize operation");
-	mainWindow().inResize = true;
-	if(!mainWindow().isFirstInit())
-	{
-		cancelCallback(resizeCallback);
-		resizeCallback = callbackAfterDelay(
-			[activity, win]()
-			{
-				logMsg("forcing window redraw after resize");
-				resizeCallback = nullptr;
-				windowNeedsRedraw(activity, win);
-			}, 10);
-	}
+	Window &win = mainWindow();
+	win.postDraw();
+	addOnFrameWindowSizeChecks(1);
+	runPendingInit(activity, nWin);
 }
 
-void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *win)
+void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *nWin)
 {
-	if(!mainWindow().nWin)
+	Window &win = mainWindow();
+	win.contentRect.x = rect.left; win.contentRect.y = rect.top;
+	win.contentRect.x2 = rect.right; win.contentRect.y2 = rect.bottom;
+	logMsg("content rect changed to %d:%d:%d:%d, last window size %d,%d",
+		rect.left, rect.top, rect.right, rect.bottom, win.width(), win.height());
+	if(!nWin)
 	{
-		logMsg("ignoring content rect request of uninitialized window");
+		logMsg("not posting resize due to uninitialized window");
 		return;
 	}
-	mainWindow().displayNeedsUpdate();
-	setWindowRedrawResizeCallback(1);
-	mainWindow().contentRect.x = rect.left; mainWindow().contentRect.y = rect.top;
-	mainWindow().contentRect.x2 = rect.right; mainWindow().contentRect.y2 = rect.bottom;
-
-	// Post an extra draw and delay applying the viewport to avoid incorrect display
-	// if the window draws too early in an OS UI animation (navigation bar slide, etc.)
-	// or the content rect is out of sync (happens mostly on pre-3.0 OS versions).
-	// For example, on a stock 2.3 Xperia Play,
-	// putting the device to sleep in portrait, then sliding the gamepad open
-	// may cause a content rect change with swapped window width/height.
-	// Another example, on the Archos Gamepad,
-	// removing the navigation bar can make the viewport off center
-	// if it's updated directly on the next frame.
-	//didDrawWindowCallback = postDrawWindowCallback;
-	logMsg("content rect changed to %d:%d:%d:%d, window size %d,%d",
-		rect.left, rect.top, rect.right, rect.bottom, mainWindow().w, mainWindow().h);
-	runPendingInit(activity, win);
+	win.postResize();
+	addOnFrameWindowSizeChecks(1);
 }
 
-bool drawWindow(int64 frameTimeNanos)
+bool onFrame(int64 frameTimeNanos, bool forceDraw)
 {
-	if(!mainWindow().drawPosted)
-	{
-		logMsg("ignoring spurious graphics update");
-		return false;
-	}
-	if(mainWindow().inResize)
-	{
-		bug_exit("window should be in unposted state during resize operation");
-	}
-	//logMsg("called drawWindow");
-
-	// bypass regular post/un-post behavior in draw callback
-	// and let return value of this function handle it
-	mainWindow().inDraw = true;
-	drawWindows(frameTimeNanos);
-	if(unlikely(didDrawWindowCallback))
-		didDrawWindowCallback();
-	mainWindow().inDraw = false;
-	if(mainWindow().drawPosted)
-	{
-		//logMsg("drawing next frame");
-		return true;
-	}
-	else
-	{
-		//logMsg("stopping with this frame");
-		return false;
-	}
+	frameUpdate(frameTimeNanos, forceDraw);
+	return mainScreen().frameIsPosted();
 }
 
-void Window::displayNeedsUpdate()
+void Window::postDraw()
 {
 	if(unlikely(!nWin))
 	{
-		logMsg("cannot post redraw to uninitialized window");
+		logWarn("cannot post redraw to uninitialized window");
 		return;
 	}
-	if(unlikely(inResize))
-	{
-		logMsg("cannot post redraw due to resize operation");
-		return;
-	}
-	else if(!drawPosted && inDraw)
-	{
-		//logMsg("posting window draw while in draw operation");
-		drawPosted = true;
-	}
-	else if(!drawPosted)
-	{
-		//logMsg("posting window draw");
-		drawPosted = true;
-		if(jPostDrawWindow.m)
-			jPostDrawWindow(eEnv(), drawWindowHelper);
-		else
-		{
-			uint64_t post = 1;
-			auto ret = write(drawWinEventFd, &post, sizeof(post));
-			assert(ret == sizeof(post));
-		}
-	}
+	setNeedsDraw(true);
+	mainScreen().postFrame();
 }
 
 void Window::unpostDraw()
 {
-	if(drawPosted && inDraw)
+	setNeedsDraw(false);
+}
+
+void Screen::postFrame()
+{
+	if(!appIsRunning())
 	{
-		logMsg("un-posting window draw while in draw operation");
-		drawPosted = false;
+		//logMsg("can't post frame when app isn't running");
+		return;
 	}
-	else if(drawPosted)
+	else if(!framePosted)
 	{
-		logMsg("un-posting window draw");
-		drawPosted = false;
-		if(jCancelDrawWindow.m)
-			jCancelDrawWindow(eEnv(), drawWindowHelper);
+		framePosted = true;
+		if(inFrameHandler)
+		{
+			//logMsg("posting frame while in frame handler");
+		}
 		else
 		{
-			uint64_t post;
-			read(drawWinEventFd, &post, sizeof(post));
-			drawWinEventIdle = 1; // force handler to idle since it could already be signaled by epoll
+			//logMsg("posting frame");
+			if(jPostFrame.m)
+				jPostFrame(eEnv(), frameHelper);
+			else
+			{
+				uint64_t post = 1;
+				auto ret = write(onFrameEventFd, &post, sizeof(post));
+				assert(ret == sizeof(post));
+			}
+		}
+	}
+}
+
+void Screen::unpostFrame()
+{
+	if(framePosted)
+	{
+		framePosted = false;
+		if(inFrameHandler)
+		{
+			//logMsg("un-posting frame while in frame handler");
+		}
+		else
+		{
+			//logMsg("un-posting frame");
+			if(jUnpostFrame.m)
+				jUnpostFrame(eEnv(), frameHelper);
+			else
+			{
+				uint64_t post;
+				read(onFrameEventFd, &post, sizeof(post));
+				onFrameEventIdle = 1; // force handler to idle since it could already be signaled by epoll
+			}
 		}
 	}
 }
@@ -431,6 +393,8 @@ void restoreOpenGLContext()
 
 void windowDestroyed(ANativeActivity* activity, Window &win)
 {
+	mainScreen().removeOnFrameDelegate(windowSizeCheck);
+	win.unpostDraw();
 	if(win.isDrawable())
 	{
 		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -438,18 +402,7 @@ void windowDestroyed(ANativeActivity* activity, Window &win)
 		eglDestroySurface(display, win.surface);
 		win.surface = EGL_NO_SURFACE;
 	}
-	cancelCallback(resizeCallback);
-	resizeCallback = nullptr;
 	win.nWin = nullptr;
-	win.unpostDraw();
-	/*if(Base::androidSDK() < 11)
-	{
-		// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
-		// resuming the app and ANativeWindow_setBuffersGeometry() has no effect.
-		// Explicitly setting the format here seems to fix the problem. Android bug?
-		logMsg("explicitly setting destroyed window format to %d", eglCtx.currentWindowFormat(display));
-		jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
-	}*/
 }
 
 }

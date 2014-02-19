@@ -26,6 +26,7 @@ COMPILE_FLAGS += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
+LDLIBS += -lm
 LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu,--compress-debug-sections=zlib,--icf=all
 
 configDefs += CONFIG_ENV_LINUX

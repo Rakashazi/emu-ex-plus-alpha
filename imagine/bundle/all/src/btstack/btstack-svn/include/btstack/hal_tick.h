@@ -36,10 +36,20 @@
  *
  */
 
-#pragma once
+#ifndef __HAL_TICK_H
+#define __HAL_TICK_H
 
 #include <stdint.h>
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 void hal_tick_init(void);
 void hal_tick_set_handler(void (*tick_handler)(void));
 int  hal_tick_get_tick_period_in_ms(void);
+
+#if defined __cplusplus
+}
+#endif
+#endif // __HAL_TICK_H

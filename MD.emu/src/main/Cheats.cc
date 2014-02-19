@@ -14,7 +14,7 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <io/sys.hh>
-#include <util/gui/ViewStack.hh>
+#include <EmuApp.hh>
 #include <logger/interface.h>
 #include <main/Cheats.hh>
 #include <EmuSystem.hh>
@@ -26,8 +26,6 @@
 #include "loadrom.h"
 #include "md_cart.h"
 #include "genesis.h"
-extern MsgPopup popup;
-extern ViewStack viewStack;
 StaticArrayList<MdCheat, EmuCheats::MAX> cheatList;
 StaticArrayList<MdCheat*, EmuCheats::MAX> romCheatList;
 StaticArrayList<MdCheat*, EmuCheats::MAX> ramCheatList;
@@ -554,9 +552,9 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code);
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -566,19 +564,19 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 						{
 							cheat->code[0]= 0;
 							popup.postError("Invalid code");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 
 						cheatsModified = 1;
 						updateCheats();
 						code.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}
@@ -601,7 +599,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 			{
 				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), cheatList[c]);
-				viewStack.pushAndShow(&editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView, &menuAllocator);
 			};
 		++it;
 	}
@@ -615,16 +613,16 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR);
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(cheatList.isFull())
 						{
 							popup.postError("Cheat list is full");
-							removeModalView();
+							view.dismiss();
 							return 0;
 						}
 						MdCheat c;
@@ -633,7 +631,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
 							popup.postError("Invalid code");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						string_copy(c.name, "Unnamed Cheat");
@@ -641,35 +639,35 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						logMsg("added new cheat, %d total", cheatList.size());
 						cheatsModified = 1;
 						updateCheats();
-						removeModalView();
+						view.dismiss();
 						refreshCheatViews();
 
 						auto &textInputView = *allocModalView<CollectTextInputView>(window());
-						textInputView.init("Input description");
+						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](const char *str)
+							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									string_copy(cheatList.back().name, str);
-									removeModalView();
+									view.dismiss();
 									refreshCheatViews();
 								}
 								else
 								{
-									removeModalView();
+									view.dismiss();
 								}
 								return 0;
 							};
-						View::addModalView(textInputView);
+						modalViewController.pushAndShow(textInputView);
 					}
 					else
 					{
-						removeModalView();
+						view.dismiss();
 					}
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}

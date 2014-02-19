@@ -8,11 +8,11 @@ ARCH := arm
 ifneq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := arm-linux-androideabi-gcc
+  CHOST := arm-linux-androideabi
  endif
 endif
 
-android_cpuFlags += -mthumb-interwork -fpic
-COMPILE_FLAGS += -fno-short-enums
+COMPILE_FLAGS += -fpic
 ifneq ($(config_compiler),clang)
  COMPILE_FLAGS += -fsingle-precision-constant
  WARNINGS_CFLAGS += -Wdouble-promotion

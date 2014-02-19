@@ -1,8 +1,7 @@
 #pragma once
 #include <gfx/GfxSprite.hh>
 
-/*
-void TexVertexQuad::draw() const
+/*void TexVertexQuad::draw() const
 {
 	if(useVBOFuncs)
 	{
@@ -12,8 +11,7 @@ void TexVertexQuad::draw() const
 	}
 	else
 		TexVertex::draw(v, TRIANGLE_STRIP, 4);
-}
-*/
+}*/
 
 namespace Gfx
 {
@@ -29,7 +27,7 @@ CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, BufferImage *img
 	return OK;
 }
 
-#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 static void setupCropRect(BufferImage *img)
 {
 	assert(useDrawTex);
@@ -69,8 +67,8 @@ void SpriteBase<BaseRect>::setImg(BufferImage *newImg)
 	if(!newImg)
 		return;
 
-	::mapImg(BaseRect::v, newImg->textureDesc());
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+	Gfx::mapImg(BaseRect::v, newImg->textureDesc());
+	#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex)
 		setupCropRect(img);
 	#endif
@@ -80,8 +78,14 @@ template<class BaseRect>
 void SpriteBase<BaseRect>::setImg(BufferImage *newImg, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 {
 	setRefImg(newImg);
+	mapImg(leftTexU, topTexV, rightTexU, bottomTexV);
+}
 
-	::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
+template<class BaseRect>
+void SpriteBase<BaseRect>::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
+{
+	//logMsg("setting UV map %f:%f:%f:%f", (double)leftTexU, (double)topTexV, (double)rightTexU, (double)bottomTexV);
+	Gfx::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 
 template<class BaseRect>
@@ -95,7 +99,6 @@ template<class BaseRect>
 void SpriteBase<BaseRect>::draw() const
 {
 	Gfx::setActiveTexture(img->textureDesc().tid, img->textureDesc().target);
-
 	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex && projAngleM.isComplete())
 	{
@@ -104,6 +107,10 @@ void SpriteBase<BaseRect>::draw() const
 	else
 	#endif
 	{
+//		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+//		if(!useFixedFunctionPipeline)
+//			setProgram(img->defaultProgram());
+//		#endif
 		BaseRect::draw();
 	}
 }

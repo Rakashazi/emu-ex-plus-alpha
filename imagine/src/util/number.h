@@ -18,7 +18,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <util/ansiTypes.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/builtins.h>
 #include <util/branch.h>
 #include <util/bits.h>
@@ -56,9 +56,9 @@ constexpr T round(T x)
 namespace IG
 {
 
-template<class T>
+template<class T, class = typename std::enable_if<std::is_floating_point<T>::value>::type>
 static constexpr T toRadians(T degrees) { return degrees * (T)(M_PI / 180.0); }
-template<class T>
+template<class T, class = typename std::enable_if<std::is_floating_point<T>::value>::type>
 static constexpr T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
 
 template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
@@ -159,6 +159,12 @@ template<class T, class = typename std::enable_if<std::is_integral<T>::value>::t
 constexpr static T makeEvenRoundedUp(T num)
 {
 	return isEven(num) ? num : num+1;
+}
+
+template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+constexpr static T makeEvenRoundedDown(T num)
+{
+	return isEven(num) ? num : num-1;
 }
 
 // divide integer rounding-upwards
@@ -406,86 +412,6 @@ static void setLinked(T &var, T newVal, T &linkedVar)
 	linkedVar += newVal - var;
 	var = newVal;
 }
-/*template <class T>
-static void centerRange(T &valLow, T &valHigh, T low, T high)
-{
-	T origRangeSize = valHigh - valLow + 1;
-	T newRangeSize = high - low + 1;
-	T rangeOffset = (low - valLow) + (newRangeSize/2) - (origRangeSize/2);
-	valLow += rangeOffset;
-	valHigh += rangeOffset;
-}
-
-template <class T>
-static int fitRangeMinToBoundAndConfirm(T &valLow, T &valHigh, T low)
-{
-	if(valLow < low)
-	{
-		valHigh += valLow - low;
-		valLow = low;
-		return 1;
-	}
-	return 0;
-}
-
-template <class T>
-static int fitRangeMaxToBoundAndConfirm(T &valLow, T &valHigh, T high)
-{
-	if(valHigh > high)
-	{
-		valLow -= valHigh - high;
-		valHigh = high;
-		return 1;
-	}
-	return 0;
-}
-
-template <class T>
-static int fitRangeMaxExclusiveToBoundAndConfirm(T &valLow, T &valHigh, T high)
-{
-	if(valHigh >= high)
-	{
-		valLow -= (valHigh - high) + 1;
-		valHigh = high - 1;
-		return 1;
-	}
-	return 0;
-}
-
-enum { BOUNDED_LOW = 1, BOUNDED_HIGH };
-template <class T>
-static int fitRangeToBoundsAndConfirm(T &valLow, T &valHigh, T low, T high)
-{
-	char lowConfirm = 0, highConfirm = 0;
-	lowConfirm = fitRangeMinToBoundAndConfirm(valLow, valHigh, low);
-	if(lowConfirm)
-		return BOUNDED_LOW;
-	else
-	{
-		highConfirm = fitRangeMaxToBoundAndConfirm(valLow, valHigh, high);
-		if(highConfirm)
-			return BOUNDED_HIGH;
-		else
-			return 0;
-	}
-}
-
-template <class T>
-static int fitRangeExclusiveToBoundsAndConfirm(T &valLow, T &valHigh, T low, T high)
-{
-	char _lowConfirm = 0, _highConfirm = 0;
-	_lowConfirm = fitRangeMinToBoundAndConfirm(valLow, valHigh, low);
-	if(_lowConfirm)
-		return BOUNDED_LOW;
-	else
-	{
-		_highConfirm = fitRangeMaxExclusiveToBoundAndConfirm(valLow, valHigh, high);
-		if(_highConfirm)
-			return BOUNDED_HIGH;
-		else
-			return 0;
-	}
-}*/
 
 template <class T>
 static T wrapToBound(T val, T low, T high)
@@ -534,23 +460,6 @@ template <class T>
 static void rotateAboutAxis(T rads, T &x, T &y)
 {
 	rotateAboutPoint(rads, x, y, (T)0, (T)0);
-}
-
-template <class T>
-static T perspectiveFovViewSpaceHeight(T fovy)
-{
-	return (T)1/std::tan(fovy/(T)2);
-}
-
-//static float perspectiveFovViewSpaceHeight(float fovy)
-//{
-//	return 1.f/std::tan(fovy/2.f);
-//}
-
-template <class T>
-static T perspectiveFovViewSpaceWidth(T h, T aspect)
-{
-	return h / aspect;
 }
 
 }

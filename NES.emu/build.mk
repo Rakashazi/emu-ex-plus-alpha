@@ -3,12 +3,12 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+emuFramework_cheats := 1
+include $(EMUFRAMEWORK_PATH)/common.mk
+
 SRC += main/Main.cc main/EmuControls.cc main/FceuApi.cc main/Cheats.cc
 
-emuFramework_cheats := 1
-include ../EmuFramework/common.mk
-
-CPPFLAGS += -DHAVE_ASPRINTF -DPSS_STYLE=1 -DLSB_FIRST -DFRAMESKIP -DFCEU_NO_HQ_SOUND -DSysDDec=float -DSysLDDec=float -DUSE_PIX_RGB565 -Isrc/fceu
+CPPFLAGS += -DHAVE_ASPRINTF -DPSS_STYLE=1 -DLSB_FIRST -DFRAMESKIP -DFCEU_NO_HQ_SOUND -DSysDDec=float -DSysLDDec=float -DUSE_PIX_RGB565 -I$(projectPath)/src/fceu
 # fceux sources
 FCEUX_SRC := fceu/cart.cpp fceu/cheat.cpp fceu/emufile.cpp fceu/fceu.cpp fceu/file.cpp fceu/filter.cpp \
 fceu/ines.cpp fceu/input.cpp fceu/palette.cpp fceu/ppu.cpp fceu/sound.cpp fceu/state.cpp fceu/unif.cpp fceu/vsuni.cpp \
@@ -19,7 +19,7 @@ fceu/input/mouse.cpp fceu/input/oekakids.cpp fceu/input/powerpad.cpp fceu/input/
 fceu/input/shadow.cpp fceu/input/suborkb.cpp fceu/input/toprider.cpp fceu/input/zapper.cpp \
 fceu/input/bworld.cpp fceu/input/arkanoid.cpp fceu/input/mahjong.cpp fceu/input/fkb.cpp \
 fceu/input/ftrainer.cpp fceu/input/hypershot.cpp fceu/input/cursor.cpp \
-$(patsubst src/%,%,$(wildcard src/fceu/boards/*.cpp))
+$(patsubst $(projectPath)/src/%,%,$(wildcard $(projectPath)/src/fceu/boards/*.cpp))
 FCEUX_OBJ := $(addprefix $(objDir)/,$(FCEUX_SRC:.cpp=.o))
 SRC += $(FCEUX_SRC)
 #SRC += fceu/drivers/common/vidblit.cpp fceu/drivers/common/nes_ntsc.cpp fceu/drivers/common/hq2x.cpp fceu/drivers/common/hq3x.cpp fceu/drivers/common/scale2x.cpp fceu/drivers/common/scale3x.cpp fceu/drivers/common/scalebit.cpp
@@ -36,6 +36,7 @@ SRC += $(FCEUX_SRC)
 # src/drivers/sdl/sdl-throttle.o src/drivers/sdl/sdl-video.o src/drivers/sdl/unix-netplay.o src/drivers/sdl/sdl-opengl.o
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
+include $(IMAGINE_PATH)/make/package/zlib.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

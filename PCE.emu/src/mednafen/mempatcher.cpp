@@ -518,7 +518,6 @@ static bool TestConditions(const char *string)
  unsigned int bytelen;
  bool passed = 1;
 
- //printf("TR: %s\n", string);
  while(trio_sscanf(string, "%u %c %.63s %.63s %.63s", &bytelen, &endian, address, operation, value) == 5 && passed)
  {
   uint32 v_address;
@@ -544,7 +543,16 @@ static bool TestConditions(const char *string)
     shiftie = (bytelen - 1 - x) * 8;
    else
     shiftie = x * 8;
-   value_at_address |= MDFNGameInfo->MemRead(v_address + x) << shiftie;
+
+   if(MDFNGameInfo->MemRead != NULL)
+    value_at_address |= MDFNGameInfo->MemRead(v_address + x) << shiftie;
+   else
+   {
+    uint32 page = ((v_address + x) / PageSize) % NumPages;
+
+    if(RAMPtrs[page])
+     value_at_address |= RAMPtrs[page][(v_address + x) % PageSize] << shiftie;
+   }
   }
 
   //printf("A: %08x, V: %08llx, VA: %08llx, OP: %s\n", v_address, v_value, value_at_address, operation);

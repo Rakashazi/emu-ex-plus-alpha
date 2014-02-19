@@ -38,14 +38,14 @@ void waitVideoSync()
 
 void updateFrameTime()
 {
-	#ifdef CONFIG_GFX_OPENGL_GLX
-	if(useSGIVidSync)
-	{
-		uint prevFrameTime = gfx_frameTime;
-		glXGetVideoSyncSGI(&gfx_frameTime);
-		gfx_frameTimeRel = gfx_frameTime - prevFrameTime;
-	}
-	#endif
+//	#ifdef CONFIG_GFX_OPENGL_GLX
+//	if(useSGIVidSync)
+//	{
+//		uint prevFrameTime = gfx_frameTime;
+//		glXGetVideoSyncSGI(&gfx_frameTime);
+//		gfx_frameTimeRel = gfx_frameTime - prevFrameTime;
+//	}
+//	#endif
 	//logMsg("current frame %d, diff %d", gfx_frameTime, gfx_frameTimeRel);
 }
 
@@ -53,25 +53,16 @@ void clear()
 {
 	// always clear screen to trigger a discarded buffer optimization
 	// TODO: test other systems to determine the what's best
-	setClipRect(false);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void renderFrame(Base::Window &win, Gfx::FrameTimeBase frameTime)
+void renderFrame(Base::Window &win, Base::FrameTimeBase frameTime)
 {
-	if(unlikely(animateOrientationChange && !projAngleM.isComplete()))
-	{
-		//logMsg("animating rotation");
-		projAngleM.update();
-		setProjector(win);
-		win.displayNeedsUpdate();
-	}
-
-	Gfx::onDraw(win, frameTime);
+	Base::onDraw(win, frameTime);
 
 	//glFlush();
 	//glFinish();
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if(unlikely(glSyncHackEnabled)) glFinish();
 	#endif
 

@@ -1,5 +1,6 @@
 #define thisModuleName "main"
 #include <logger/interface.h>
+#include <base/Pipe.hh>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
 #include <fs/sys.hh>
@@ -23,32 +24,32 @@ extern "C"
 	#include <gngeo/screen.h>
 	#include <gngeo/menu.h>
 
-	CONFIG conf = { 0 };
+	CONFIG conf {0};
 	GN_Rect visible_area;
 
 	extern int skip_this_frame;
-	Uint16 play_buffer[16384] = { 0 };
+	Uint16 play_buffer[16384] {0};
 	GN_Surface *buffer = 0;
-	static CONF_ITEM datafileConfItem = { 0 };
-	static CONF_ITEM rompathConfItem = { 0 };
+	static CONF_ITEM datafileConfItem {0};
+	static CONF_ITEM rompathConfItem {0};
 
 	CONF_ITEM* cf_get_item_by_name(const char *name)
 	{
 		//logMsg("getting conf item %s", name);
-		static CONF_ITEM conf = { 0 };
+		static CONF_ITEM conf {0};
 		if(string_equal(name, "datafile"))
 		{
-			static CONF_ITEM datafile = { 0 };
+			static CONF_ITEM datafile {0};
 			return &datafileConfItem;
 		}
 		else if(string_equal(name, "rompath"))
 		{
-			static CONF_ITEM rompath = { 0 };
+			static CONF_ITEM rompath {0};
 			return &rompathConfItem;
 		}
 		else if(string_equal(name, "dump"))
 		{
-			static CONF_ITEM dump = { 0 };
+			static CONF_ITEM dump {0};
 			return &dump;
 		}
 		else if(string_equal(name, "effect"))
@@ -76,10 +77,12 @@ extern "C"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
-static ROM_DEF *activeDrv = 0;
+static ROM_DEF *activeDrv = nullptr;
 #ifdef __clang__
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
 #endif
+
+Base::Pipe guiPipe;
 
 // controls
 
@@ -184,7 +187,7 @@ void EmuSystem::onOptionsLoaded()
 	}
 }
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -485,7 +488,16 @@ static void loadGamePhase2()
 static const bool backgroundRomLoading = 1;
 static ThreadPThread backgroundThread;
 
-enum { MSG_LOAD_FAILED = Base::MSG_USER, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
+enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
+
+struct GUIMessage
+{
+	constexpr GUIMessage() {}
+	constexpr GUIMessage(uint8 type, uint8 shortArg, int intArg): intArg(intArg), shortArg(shortArg), type(type) {}
+	int intArg = 0;
+	uint8 shortArg = 0;
+	uint8 type = 0;
+};
 
 void gn_init_pbar(uint action,int size)
 {
@@ -493,7 +505,8 @@ void gn_init_pbar(uint action,int size)
 	logMsg("init pbar %d, %d", action, size);
 	if(backgroundThread.running)
 	{
-		sendMessageToMain(backgroundThread, MSG_START_PROGRESS, action, size, 0);
+		GUIMessage msg {MSG_START_PROGRESS, (uint8)action, size};
+		guiPipe.write(&msg, sizeof(msg));
 	}
 }
 void gn_update_pbar(int pos)
@@ -502,7 +515,8 @@ void gn_update_pbar(int pos)
 	logMsg("update pbar %d", pos);
 	if(backgroundThread.running)
 	{
-		sendMessageToMain(backgroundThread, MSG_UPDATE_PROGRESS, 0, pos, 0);
+		GUIMessage msg {MSG_UPDATE_PROGRESS, 0, pos};
+		guiPipe.write(&msg, sizeof(msg));
 	}
 }
 
@@ -510,8 +524,8 @@ class LoadGameInBackgroundView : public View
 {
 public:
 	Gfx::Text text;
-	IG::Rect2<int> rect;
-	IG::Rect2<int> &viewRect() { return rect; }
+	IG::WindowRect rect;
+	IG::WindowRect &viewRect() override { return rect; }
 
 	uint pos = 0, max = 0;
 
@@ -533,47 +547,103 @@ public:
 		pos = max = 0;
 	}
 
-	void deinit()
+	void deinit() override
 	{
 		text.deinit();
 	}
 
-	void place(IG::Rect2<int> rect)
+	void place(IG::WindowRect rect)
 	{
 		View::placeRect(rect);
 	}
 
-	void place()
+	void place() override
 	{
 		text.compile();
 	}
 
-	void inputEvent(const Input::Event &e) { }
+	void inputEvent(const Input::Event &e) override { }
 
-	void draw(Gfx::FrameTimeBase frameTime)
+	void draw(Base::FrameTimeBase frameTime) override
 	{
 		using namespace Gfx;
+		projP.resetTransforms();
+		setBlendMode(0);
 		if(max)
 		{
-			resetTransforms();
-			setBlendMode(0);
+			logMsg("drawing");
+			noTexProgram.use();
 			setColor(.0, .0, .75);
-			auto bar = proj.relRect(0, 0,
-					IG::scalePointRange((GC)pos, (GC)0, (GC)max, (GC)0, proj.w), text.ySize*1.5,
-					LC2DO, LC2DO);
+			Gfx::GC barHeight = text.ySize*1.5;
+			auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
+				{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.w), barHeight});
 			GeomRect::draw(bar);
 		}
+		texAlphaProgram.use();
 		setColor(COLOR_WHITE);
-		text.draw(0, 0, C2DO, C2DO);
+		text.draw(0, 0, C2DO);
 	}
 };
 
-static LoadGameInBackgroundView *loadGameInBackgroundView = nullptr;
+static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadGameInBackgroundView)
+{
+	while(pipe.hasData())
+	{
+		GUIMessage msg;
+		pipe.read(&msg, sizeof(msg));
+		switch(msg.type)
+		{
+			bcase MSG_LOAD_FAILED:
+			{
+				modalViewController.pop();
+				popup.printf(4, 1, "%s", romerror);
+				pipe.deinit();
+				return 0;
+			}
+			bcase MSG_LOAD_OK:
+			{
+				modalViewController.pop();
+				loadGamePhase2();
+				EmuSystem::onLoadGameComplete()(1, Input::Event{});
+				pipe.deinit();
+				return 0;
+			}
+			bcase MSG_START_PROGRESS:
+			{
+				switch(msg.shortArg)
+				{
+					bcase PBAR_ACTION_LOADROM:
+					{
+						// starts with "Loading..."
+					}
+					bcase PBAR_ACTION_DECRYPT:
+					{
+						loadGameInBackgroundView.text.setString("Decrypting...");
+					}
+					bcase PBAR_ACTION_SAVEGNO:
+					{
+						loadGameInBackgroundView.text.setString("Building Cache...\n(may take a while)");
+					}
+				}
+				loadGameInBackgroundView.setPos(0);
+				loadGameInBackgroundView.setMax(msg.intArg);
+				loadGameInBackgroundView.place();
+				mainWin.postDraw();
+			}
+			bcase MSG_UPDATE_PROGRESS:
+			{
+				loadGameInBackgroundView.setPos(msg.intArg);
+				mainWin.postDraw();
+			}
+		}
+	}
+	return 1;
+};
 
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-	emuView.initImage(0, 304, 224, (FBResX-304)*2);
+	emuView.initImage(0, 304, 224, FBResX*2);
 	setupGamePaths(path);
 
 	{
@@ -604,10 +674,16 @@ int EmuSystem::loadGame(const char *path)
 	{
 		if(backgroundRomLoading)
 		{
-			if(View::modalView) View::removeModalView();
-			loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin);
+			if(modalViewController.hasView())
+				modalViewController.pop();
+			auto loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin);
 			loadGameInBackgroundView->init();
-			View::addModalView(*loadGameInBackgroundView);
+			modalViewController.pushAndShow(*loadGameInBackgroundView);
+			guiPipe.init(
+				[loadGameInBackgroundView](Base::Pipe &pipe)
+				{
+					return onGUIMessageHandler(pipe, *loadGameInBackgroundView);
+				});
 			backgroundThread.create(1,
 				[](ThreadPThread &thread)
 				{
@@ -618,7 +694,8 @@ int EmuSystem::loadGame(const char *path)
 
 					if(!init_game(activeDrv->name))
 					{
-						sendMessageToMain(thread, MSG_LOAD_FAILED, 0, 0, 0);
+						GUIMessage msg {MSG_LOAD_FAILED, 0, 0};
+						guiPipe.write(&msg, sizeof(msg));
 						EmuSystem::clearGamePaths();
 						free(activeDrv); activeDrv = 0;
 						return 0;
@@ -635,7 +712,8 @@ int EmuSystem::loadGame(const char *path)
 						reverseSwapCPUMemForDump(swappedBIOS);
 						#endif
 					}
-					sendMessageToMain(thread, MSG_LOAD_OK, 0, 0, 0);
+					GUIMessage msg {MSG_LOAD_OK, 0, 0};
+					guiPipe.write(&msg, sizeof(msg));
 					return 0;
 				}
 			);
@@ -722,7 +800,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
 
 void onInputEvent(Base::Window &win, const Input::Event &e)
@@ -735,60 +813,10 @@ void onInputEvent(Base::Window &win, const Input::Event &e)
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2)
-{
-	if(!loadGameInBackgroundView)
-		return;
-
-	switch(type)
-	{
-		bcase MSG_LOAD_FAILED:
-		{
-			View::removeModalView();
-			loadGameInBackgroundView = nullptr;
-			popup.printf(4, 1, "%s", romerror);
-		}
-		bcase MSG_LOAD_OK:
-		{
-			View::removeModalView();
-			loadGameInBackgroundView = nullptr;
-			loadGamePhase2();
-			EmuSystem::onLoadGameComplete()(1, Input::Event{});
-		}
-		bcase MSG_START_PROGRESS:
-		{
-			switch(shortArg)
-			{
-				bcase PBAR_ACTION_LOADROM:
-				{
-					// starts with "Loading..."
-				}
-				bcase PBAR_ACTION_DECRYPT:
-				{
-					loadGameInBackgroundView->text.setString("Decrypting...");
-				}
-				bcase PBAR_ACTION_SAVEGNO:
-				{
-					loadGameInBackgroundView->text.setString("Building Cache...\n(may take a while)");
-				}
-			}
-			loadGameInBackgroundView->setPos(0);
-			loadGameInBackgroundView->setMax(intArg);
-			loadGameInBackgroundView->place();
-			mainWin.displayNeedsUpdate();
-		}
-		bcase MSG_UPDATE_PROGRESS:
-		{
-			loadGameInBackgroundView->setPos(intArg);
-			mainWin.displayNeedsUpdate();
-		}
-	}
-}
-
 CallResult onInit(int argc, char** argv)
 {
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-	emuView.initPixmap((uchar*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, (FBResX-304)*2);
+	emuView.initPixmap((char*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, FBResX*2);
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
 	visible_area.w = 304;//320;

@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <util/operators.hh>
 #include <EGL/egl.h>
@@ -15,9 +30,9 @@ class AndroidWindow : public NotEquals<AndroidWindow>
 public:
 	ANativeWindow *nWin = nullptr;
 	EGLSurface surface = EGL_NO_SURFACE;
-	IG::Rect2<int> contentRect; // active window content
+	IG::WindowRect contentRect; // active window content
 	float xDPI = 0, yDPI = 0; // Active DPI
-	bool inDraw = false, inResize = false;
+	bool ranInit = false;
 
 	constexpr AndroidWindow() {}
 
@@ -54,11 +69,6 @@ public:
 		EGLint h;
 		eglQuerySurface(display, surface, EGL_HEIGHT, &h);
 		return h;
-	}
-
-	bool isFirstInit()
-	{
-		return xDPI == 0;
 	}
 };
 

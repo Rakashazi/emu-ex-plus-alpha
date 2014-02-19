@@ -26,10 +26,10 @@ endif
 
 .PHONY : all install
 
-$(configureFile) : $(zlibSrcArchive)
+$(configureFile) : | $(zlibSrcArchive)
 	@echo "Extracting zlib to: $(buildDir)"
 	@mkdir -p $(buildDir)
-	tar -mxzf $^ -C $(buildDir) --strip-components=1
+	tar -mxzf $| -C $(buildDir) --strip-components=1
 
 $(outputLibFile) : $(pcFile)
 	@echo "Building zlib..."

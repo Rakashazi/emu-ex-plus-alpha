@@ -64,7 +64,7 @@ static void installFirmwareFiles()
 
 	forEachDInArray(srcPath, e)
 	{
-		Io *src = openAppAssetIo(e);
+		auto src = IOFile(openAppAssetIo(e));
 		if(!src)
 		{
 			popup.printf(4, 1, "Can't open source file:\n %s", e);
@@ -73,8 +73,7 @@ static void installFirmwareFiles()
 		FsSys::cPath pathTemp;
 		snprintf(pathTemp, sizeof(pathTemp), "%s/Machines/%s/%s",
 				machineBasePath, destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		CallResult ret = copyIoToPath(src, pathTemp);
-		delete src;
+		CallResult ret = copyIoToPath(*src.io(), pathTemp);
 		if(ret != OK)
 		{
 			popup.printf(4, 1, "Can't write file:\n%s", e);
@@ -165,7 +164,7 @@ private:
 					viewStack.popAndShow();
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 		}
 
 		void deinit()
@@ -201,7 +200,7 @@ private:
 				{
 					installFirmwareFiles();
 				};
-			View::addModalView(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView);
 		}
 	};
 	#endif
@@ -244,7 +243,7 @@ private:
 						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::appPath : Base::storagePath());
 					}
 				};
-			displayNeedsUpdate();
+			postDraw();
 		}
 	};
 
@@ -335,7 +334,7 @@ public:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
-			[this, slot](const char* name, const Input::Event &e)
+			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
@@ -343,10 +342,9 @@ public:
 				{
 					onHDMediaChange(name, slot);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 	void onSelectHD(TextMenuItem &item, const Input::Event &e, uint8 slot)
@@ -363,7 +361,7 @@ public:
 					{
 						viewStack.popAndShow();
 						addHDFilePickerView(e, slot);
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
 					else
 					{
@@ -373,12 +371,12 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addHDFilePickerView(e, slot);
-			window().displayNeedsUpdate();
+			window().postDraw();
 		}
 	}
 
@@ -413,16 +411,15 @@ public:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
 		fPicker.onSelectFile() =
-			[this, slot](const char* name, const Input::Event &e)
+			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(insertROM(name, slot))
 				{
 					onROMMediaChange(name, slot);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 	void onSelectROM(const Input::Event &e, uint8 slot)
@@ -436,7 +433,7 @@ public:
 				{
 					viewStack.popAndShow();
 					addROMFilePickerView(e, slot);
-					window().displayNeedsUpdate();
+					window().postDraw();
 				}
 				else if(action == 1)
 				{
@@ -468,7 +465,7 @@ public:
 				}
 				return 0;
 			};
-		viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+		viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 	}
 
 	TextMenuItem romSlot[2]
@@ -499,17 +496,16 @@ public:
 		auto &fPicker = *allocModalView<EmuFilePicker>(window());
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
-			[this, slot](const char* name, const Input::Event &e)
+			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				logMsg("inserting disk in slot %d", slot);
 				if(insertDisk(name, slot))
 				{
 					onDiskMediaChange(name, slot);
 				}
-				View::removeModalView();
+				picker.dismiss();
 			};
-		fPicker.onClose() = FSPicker::onCloseModalDefault();
-		View::addModalView(fPicker);
+		modalViewController.pushAndShow(fPicker);
 	}
 
 	void onSelectDisk(const Input::Event &e, uint8 slot)
@@ -525,7 +521,7 @@ public:
 					{
 						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
 					else
 					{
@@ -535,13 +531,13 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 		}
 		else
 		{
 			addDiskFilePickerView(e, slot);
 		}
-		window().displayNeedsUpdate();
+		window().postDraw();
 	}
 
 	TextMenuItem diskSlot[2]
@@ -594,7 +590,7 @@ private:
 				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
 				auto &msxIoMenu = *menuAllocator.allocNew<MsxIOControlView>(window());
 				msxIoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&msxIoMenu, &menuAllocator);
+				viewStack.pushAndShow(msxIoMenu, &menuAllocator);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{

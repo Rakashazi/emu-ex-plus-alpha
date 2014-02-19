@@ -32,51 +32,46 @@
 class FSPicker : public View, public GuiTableSource
 {
 public:
-	constexpr FSPicker(Base::Window &win): View(win) {}
 	FsDirFilterFunc filter = nullptr;
-
+	ScrollableGuiTable1D tbl;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
+	OnSelectFileDelegate onSelectFileD;
+	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, const Input::Event &e)>;
+	OnCloseDelegate onCloseD
+	{
+		[](FSPicker &picker, const Input::Event &e)
+		{
+			picker.dismiss();
+		}
+	};
 	static const bool needsUpDirControl = !Config::envIsPS3;
 
+	FSPicker(Base::Window &win): View(win) {}
 	void init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes,
 			FsDirFilterFunc filter = 0, bool singleDir = 0, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
-	void drawElement(const GuiTable1D *table, uint element, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
+	void draw(Base::FrameTimeBase frameTime) override;
+	void drawElement(const GuiTable1D &table, uint element, Gfx::GCRect rect) const override;
 	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
-
-	typedef DelegateFunc<void (const char* name, const Input::Event &e)> OnSelectFileDelegate;
-	OnSelectFileDelegate onSelectFileD;
-	typedef DelegateFunc<void (const Input::Event &e)> OnCloseDelegate;
-	OnCloseDelegate onCloseD;
 	OnSelectFileDelegate &onSelectFile() { return onSelectFileD; }
 	OnCloseDelegate &onClose() { return onCloseD; }
-
-	// convenience onClose handler
-	static OnCloseDelegate onCloseModalDefault()
-	{
-		return [](const Input::Event &e)
-			{
-				View::removeModalView();
-			};
-	}
-
 	void onLeftNavBtn(const Input::Event &e);
 	void onRightNavBtn(const Input::Event &e);
-	IG::Rect2<int> &viewRect() { return viewFrame; }
+	IG::WindowRect &viewRect() { return viewFrame; }
 	void clearSelection()
 	{
 		tbl.clearSelection();
 	}
 
-	ScrollableGuiTable1D tbl;
 private:
 	class FSNavView : public BasicNavView
 	{
 	public:
-		constexpr FSNavView(FSPicker &inst): inst(inst) { }
 		FSPicker &inst;
+
+		constexpr FSNavView(FSPicker &inst): inst(inst) {}
 		void onLeftNavBtn(const Input::Event &e) override
 		{
 			inst.onLeftNavBtn(e);
@@ -87,15 +82,14 @@ private:
 		};
 		void init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir);
 		void draw(const Base::Window &win) override;
-		void place() override;
 	};
 
 	TextMenuItem *text = nullptr;
 	FsSys dir;
-	IG::Rect2<int> viewFrame;
+	IG::WindowRect viewFrame;
 	ResourceFace *faceRes = nullptr;
 	FSNavView navV {*this};
-	bool singleDir = 0;
+	bool singleDir = false;
 
 	void loadDir(const char *path);
 	void changeDirByInput(const char *path, const Input::Event &e);

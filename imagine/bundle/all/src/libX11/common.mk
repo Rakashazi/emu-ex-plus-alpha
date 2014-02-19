@@ -23,9 +23,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libX11SrcDir)/configure : $(libX11SrcArchive)
+$(libX11SrcDir)/configure : | $(libX11SrcArchive)
 	@echo "Extracting libX11..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(libX11SrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

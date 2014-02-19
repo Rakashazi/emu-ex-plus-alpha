@@ -22,9 +22,9 @@ install : $(outputPCFile)
 
 .PHONY : all install
 
-$(xprotoSrcDir)/configure : $(xprotoSrcArchive)
+$(xprotoSrcDir)/configure : | $(xprotoSrcArchive)
 	@echo "Extracting xproto..."
-	tar -mxjf $^
+	tar -mxjf $|
 
 $(outputPCFile) : $(makeFile)
 	@echo "Building xproto..."

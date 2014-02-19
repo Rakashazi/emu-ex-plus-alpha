@@ -40,12 +40,17 @@
  *  Created by Matthias Ringwald on 7/23/09.
  */
 
-#pragma once
+#ifndef __L2CAP_SIGNALING_H
+#define __L2CAP_SIGNALING_H
 
 #include <stdint.h>
 #include <stdarg.h>
 #include <btstack/utils.h>
 #include <btstack/hci_cmds.h>
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     COMMAND_REJECT = 1,
@@ -58,10 +63,18 @@ typedef enum {
     ECHO_REQUEST,
     ECHO_RESPONSE,
     INFORMATION_REQUEST,
-    INFORMATION_RESPONSE
+    INFORMATION_RESPONSE,
+    CONNECTION_PARAMETER_UPDATE_REQUEST = 0x12,
+    CONNECTION_PARAMETER_UPDATE_RESPONSE
 } L2CAP_SIGNALING_COMMANDS;
 
 uint16_t l2cap_create_signaling_internal(uint8_t * acl_buffer,hci_con_handle_t handle, L2CAP_SIGNALING_COMMANDS cmd, uint8_t identifier, va_list argptr);
+uint16_t l2cap_le_create_connection_parameter_update_request(uint8_t * acl_buffer, uint16_t handle, uint16_t interval_min, uint16_t interval_max, uint16_t slave_latency, uint16_t timeout_multiplier);
 uint8_t  l2cap_next_sig_id(void);
 uint16_t l2cap_next_local_cid(void);
 
+#if defined __cplusplus
+}
+#endif
+
+#endif // __L2CAP_SIGNALING_H

@@ -22,16 +22,6 @@
 
 bool MDFN_GetSettingB(const char *name) { return 0; }
 
-void MDFN_printf(const char *format, ...) throw()
-{
-	#ifdef USE_LOGGER
-	va_list args;
-	va_start( args, format );
-	logger_vprintf(LOG_M, format, args);
-	va_end( args );
-	#endif
-}
-
 static CDAccess *cdImage = nullptr;
 
 int Load_ISO(CDAccess *cd)

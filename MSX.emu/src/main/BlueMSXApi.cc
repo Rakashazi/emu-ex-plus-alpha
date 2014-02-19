@@ -52,15 +52,13 @@ void archMouseSetForceLock(int lock) { }
 
 UInt32 archGetSystemUpTime(UInt32 frequency)
 {
-	TimeSys time;
-	time.setTimeNow();
+	auto time = TimeSys::now();
 	return (uint32)(time.divByUSecs(1000));
 }
 
 UInt32 archGetHiresTimer()
 {
-	TimeSys time;
-	time.setTimeNow();
+	auto time = TimeSys::now();
 	return (float)time*1000000;
 }
 

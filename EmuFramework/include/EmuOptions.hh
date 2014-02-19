@@ -30,6 +30,12 @@ extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
 #ifdef CONFIG_AUDIO_LATENCY_HINT
+	#if defined CONFIG_AUDIO_ALSA || defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_PULSEAUDIO
+	// these backends may have additional buffering in the OS/driver
+	static constexpr uint OPTION_SOUND_BUFFERS_MIN = 2;
+	#else
+	static constexpr uint OPTION_SOUND_BUFFERS_MIN = 3;
+	#endif
 extern Byte1Option optionSoundBuffers;
 #endif
 #ifdef CONFIG_AUDIO_OPENSL_ES
@@ -53,8 +59,12 @@ extern Byte1Option optionIdleDisplayPowerSave;
 extern Byte1Option optionHideStatusBar;
 extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
 extern Byte1Option optionConfirmOverwriteState;
+extern Byte1Option optionFastForwardSpeed;
 #ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 extern Byte1Option optionNotifyInputDeviceChange;
+#endif
+#ifdef CONFIG_INPUT_ANDROID_MOGA
+extern Byte1Option optionMOGAInputSystem;
 #endif
 
 #ifdef CONFIG_BLUETOOTH
@@ -124,9 +134,6 @@ extern Byte4s2Option optionTouchCtrlImgRes;
 	extern Byte1Option optionSurfaceTexture;
 	extern SByte1Option optionProcessPriority;
 	#endif
-	#if defined CONFIG_INPUT_ANDROID
-	extern Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod;
-	#endif
 extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
 
@@ -143,3 +150,4 @@ extern PathOption optionSavePath;
 extern PathOption optionFirmwarePath;
 
 void initOptions();
+void setupFont();

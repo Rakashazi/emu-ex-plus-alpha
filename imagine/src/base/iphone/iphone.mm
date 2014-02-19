@@ -1,12 +1,27 @@
-#define thisModuleName "base:iphone"
+/*  This file is part of Imagine.
 
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define LOGTAG "Base"
 #import "MainApp.h"
-#import "EAGLView.hh"
+#import "EAGLView.h"
 #import <dlfcn.h>
 #import <unistd.h>
 
 #include <base/Base.hh>
 #include <base/iphone/private.hh>
+#include <gfx/Gfx.hh>
 #include <fs/sys.hh>
 #include <config/machine.hh>
 #include <util/time/sys.hh>
@@ -15,24 +30,14 @@
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
-#import <OpenGLES/EAGLDrawable.h>
 #import <Foundation/NSPathUtilities.h>
 
 namespace Base
 {
-	static MainApp *mainApp = nullptr;
-}
-
-static CGAffineTransform makeTransformForOrientation(uint orientation)
-{
-	using namespace Base;
-	switch(orientation)
-	{
-		default: return CGAffineTransformIdentity;
-		case VIEW_ROTATE_270: return CGAffineTransformMakeRotation(3*M_PI / 2.0);
-		case VIEW_ROTATE_90: return CGAffineTransformMakeRotation(M_PI / 2.0);
-		case VIEW_ROTATE_180: return CGAffineTransformMakeRotation(M_PI);
-	}
+	MainApp *mainApp = nullptr;
+	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
+	uint screenPointScale = 1;
+	#endif
 }
 
 
@@ -40,10 +45,10 @@ static CGAffineTransform makeTransformForOrientation(uint orientation)
 namespace Input
 {
 	//static UITextView *vkbdField = nil;
-	static UITextField *vkbdField = nil;
+	UITextField *vkbdField = nil;
 	//static bool inVKeyboard = 0;
-	static InputTextDelegate vKeyboardTextDelegate;
-	static IG::Rect2<int> textRect(8, 200, 8+304, 200+48);
+	InputTextDelegate vKeyboardTextDelegate;
+	IG::WindowRect textRect(8, 200, 8+304, 200+48);
 }
 #endif
 
@@ -55,34 +60,22 @@ namespace Base
 }
 #endif
 
-#ifdef CONFIG_INPUT
-#include "input.h"
-#endif
-
 namespace Base
 {
-
-struct ThreadMsg
-{
-	int16 type;
-	int16 shortArg;
-	int intArg;
-	int intArg2;
-};
 
 const char *appPath = 0;
 EAGLContext *mainContext = nullptr;
 CADisplayLink *displayLink = nullptr;
 BOOL displayLinkActive = NO;
 bool isIPad = 0;
-bool useMaxColorBits = Config::MACHINE_IS_GENERIC_ARMV7;
 #ifdef __ARM_ARCH_6K__
-bool usingiOS4 = 0;
+bool usingIOS4 = false;
 #else
-static const bool usingiOS4 = 1; // always on iOS 4.3+ when compiled for ARMv7
+static const bool usingIOS4 = true; // always on iOS 5.0+ when compiled for ARMv7
+//bool usingIOS7 = false;
 #endif
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
-static UIApplication *sharedApp = nullptr;
+UIApplication *sharedApp = nullptr;
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -102,307 +95,11 @@ static MFMailComposeViewController *composeController;
 #include "gameKit.h"
 #endif
 
-#ifdef GREYSTRIPE
-#include "greystripe.h"
-#endif
-
-static const int USE_DEPTH_BUFFER = 0;
-static int openglViewIsInit = 0;
-
-void cancelCallback(CallbackRef *ref)
-{
-	if(ref)
-	{
-		logMsg("canceling callback with ref %p", ref);
-		[NSObject cancelPreviousPerformRequestsWithTarget:mainApp selector:@selector(timerCallback:) object:(id)ref];
-	}
-}
-
-CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms)
-{
-	logMsg("setting callback to run in %d ms", ms);
-	CallbackDelegate del(callback);
-	NSData *callbackArg = [[NSData alloc] initWithBytes:&del length:sizeof(del)];
-	assert(callbackArg);
-	[mainApp performSelector:@selector(timerCallback:) withObject:(id)callbackArg afterDelay:(float)ms/1000.];
-	[callbackArg release];
-	return (CallbackRef*)callbackArg;
-}
-
-void startAnimation()
-{
-	if(!Base::displayLinkActive)
-	{
-		displayLink.paused = NO; 
-		Base::displayLinkActive = YES;
-	}
-}
-
-void stopAnimation()
-{
-	if(Base::displayLinkActive)
-	{
-		displayLink.paused = YES;
-		Base::displayLinkActive = NO;
-	}
-}
-
 uint appState = APP_RUNNING;
 
+uint appActivityState() { return appState; }
+
 }
-
-@implementation EAGLView
-
-//@synthesize context;
-
-// Implement this to override the default layer class (which is [CALayer class]).
-// We do this so that our view will be backed by a layer that is capable of OpenGL ES rendering.
-+ (Class)layerClass
-{
-	return [CAEAGLLayer class];
-}
-
-#ifdef CONFIG_BASE_IPHONE_NIB
-// Init from NIB
-- (id)initWithCoder:(NSCoder*)coder
-{
-	if ((self = [super initWithCoder:coder]))
-	{
-		self = [self initGLES];
-	}
-	return self;
-}
-#endif
-
-// Init from code
--(id)initWithFrame:(CGRect)frame
-	#if !defined(__ARM_ARCH_6K__)
-	isRetina:(BOOL)isRetina
-	#endif
-{
-	logMsg("entered initWithFrame");
-	if((self = [super initWithFrame:frame]))
-	{
-		CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
-		#if !defined(__ARM_ARCH_6K__)
-		if(isRetina)
-			eaglLayer.contentsScale = 2.0;
-		#endif
-		self.multipleTouchEnabled = YES;
-		eaglLayer.opaque = YES;
-		if(!Base::useMaxColorBits)
-		{
-			logMsg("using RGB565 surface");
-			eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
-				kEAGLColorFormatRGB565, kEAGLDrawablePropertyColorFormat, nil];
-			//[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking
-		}
-		Base::displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView)];
-		//displayLink.paused = YES;
-		Base::displayLinkActive = YES;
-		[Base::displayLink setFrameInterval:1];
-		[Base::displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-	}
-	else
-	{
-		logErr("error calling super initWithFrame");
-	}
-	logMsg("exiting initWithFrame");
-	return self;
-}
-
-- (void)drawView
-{
-	/*TimeSys now;
-	now.setTimeNow();
-	logMsg("frame time stamp %f, duration %f, now %f", displayLink.timestamp, displayLink.duration, (float)now);*/
-	//[EAGLContext setCurrentContext:context];
-	//glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-	if(unlikely(!Base::displayLinkActive))
-		return;
-
-	//logMsg("screen update");
-	Base::drawWindows(Base::displayLink.timestamp);
-	if(!Base::mainWindow().drawPosted)
-	{
-		Base::stopAnimation();
-	}
-}
-
-
-- (void)layoutSubviews
-{
-	logMsg("in layoutSubviews");
-	[self drawView];
-	//logMsg("exiting layoutSubviews");
-}
-
-
-- (BOOL)createFramebuffer
-{
-	logMsg("creating OpenGL framebuffers");
-    glGenFramebuffersOES(1, &viewFramebuffer);
-	glGenRenderbuffersOES(1, &viewRenderbuffer);
-
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-	glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-	[Base::mainContext renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
-	glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
-
-	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-	if(Base::USE_DEPTH_BUFFER)
-	{
-		glGenRenderbuffersOES(1, &depthRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, depthRenderbuffer);
-		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, depthRenderbuffer);
-	}
-
-	if(glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES)
-	{
-		logMsg("failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
-		return NO;
-	}
-	
-	Base::openglViewIsInit = 1;
-	return YES;
-}
-
-
-- (void)destroyFramebuffer
-{
-	logMsg("deleting OpenGL framebuffers");
-	glDeleteFramebuffersOES(1, &viewFramebuffer);
-	viewFramebuffer = 0;
-	glDeleteRenderbuffersOES(1, &viewRenderbuffer);
-	viewRenderbuffer = 0;
-
-	if(depthRenderbuffer)
-	{
-		glDeleteRenderbuffersOES(1, &depthRenderbuffer);
-		depthRenderbuffer = 0;
-	}
-	
-	Base::openglViewIsInit = 0;
-}
-
-/*- (void)dealloc
-{
-	if ([EAGLContext currentContext] == context)
-	{
-		[EAGLContext setCurrentContext:nil];
-	}
-
-	[context release];
-	[super dealloc];
-}*/
-
-#ifdef CONFIG_INPUT
-
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
-{
-	using namespace Base;
-	using namespace Input;
-	auto &win = Base::mainWindow();
-	for(UITouch* touch in touches)
-	{
-		iterateTimes((uint)Input::maxCursors, i) // find a free touch element
-		{
-			if(Input::m[i].touch == nil)
-			{
-				auto &p = Input::m[i];
-				p.touch = touch;
-				CGPoint startTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, startTouchPosition.x * win.pointScale, startTouchPosition.y * win.pointScale);
-				p.s.inWin = 1;
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, pos);
-				Input::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, pos.x - win.viewRect.x, pos.y - win.viewRect.y, true, nullptr));
-				break;
-			}
-		}
-	}
-}
-
-- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
-{
-	using namespace Base;
-	using namespace Input;
-	auto &win = Base::mainWindow();
-	for(UITouch* touch in touches)
-	{
-		iterateTimes((uint)Input::maxCursors, i) // find the touch element
-		{
-			if(Input::m[i].touch == touch)
-			{
-				auto &p = Input::m[i];
-				CGPoint currentTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, currentTouchPosition.x * win.pointScale, currentTouchPosition.y * win.pointScale);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, pos);
-				Input::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, pos.x - win.viewRect.x, pos.y - win.viewRect.y, true, nullptr));
-				break;
-			}
-		}
-	}
-}
-
-- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
-{
-	using namespace Base;
-	using namespace Input;
-	auto &win = Base::mainWindow();
-	for(UITouch* touch in touches)
-	{
-		iterateTimes((uint)Input::maxCursors, i) // find the touch element
-		{
-			if(Input::m[i].touch == touch)
-			{
-				auto &p = Input::m[i];
-				p.touch = nil;
-				p.s.inWin = 0;
-				CGPoint currentTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, currentTouchPosition.x * win.pointScale, currentTouchPosition.y * win.pointScale);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, pos);
-				Input::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, pos.x - win.viewRect.x, pos.y - win.viewRect.y, true, nullptr));
-				break;
-			}
-		}
-	}
-}
-
-- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
-{
-	[self touchesEnded:touches withEvent:event];
-}
-
-#if defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
-- (BOOL)canBecomeFirstResponder { return YES; }
-
-- (BOOL)hasText { return NO; }
-
-- (void)insertText:(NSString *)text
-{
-	#ifdef CONFIG_INPUT_ICADE
-	if(Base::iCade.isActive())
-		Base::iCade.insertText(text);
-	#endif
-	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
-}
-
-- (void)deleteBackward { }
-
-#ifdef CONFIG_INPUT_ICADE
-- (UIView*)inputView
-{
-	return Base::iCade.dummyInputView;
-}
-#endif
-#endif // defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
-
-#endif
-
-@end
 
 @implementation MainApp
 
@@ -465,7 +162,7 @@ uint appState = APP_RUNNING;
 		Gfx::viewMMHeight_ = 75. * visibleFraction;*/
 	//generic_resizeEvent(mainWin.rect.x2, visibleY);
 	#endif
-	mainWin.displayNeedsUpdate();
+	mainWin.postDraw();
 }
 
 - (void) keyboardWillHide:(NSNotification *)notification
@@ -473,7 +170,7 @@ uint appState = APP_RUNNING;
 	return;
 	using namespace Base;
 	logMsg("keyboard hidden");
-	mainWin.displayNeedsUpdate();
+	mainWin.postDraw();
 }
 #endif
 
@@ -516,25 +213,43 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 }
 
+- (void)displayLinkCallback
+{
+	//logMsg("screen update");
+	/*TimeSys now;
+	now.setTimeNow();
+	logMsg("frame time stamp %f, duration %f, now %f", displayLink.timestamp, displayLink.duration, (float)now);*/
+	Base::frameUpdate(Base::displayLink.timestamp);
+	if(!Base::mainScreen().frameIsPosted())
+	{
+		//logMsg("stopping screen updates");
+		Base::mainScreen().unpostFrame();
+	}
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 	using namespace Base;
-	#ifndef NDEBUG
 	NSString *currSysVer = [[UIDevice currentDevice] systemVersion];
+	#if !defined NDEBUG
 	//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
 	logMsg("iOS version %s", [currSysVer cStringUsingEncoding: NSASCIIStringEncoding]);
 	#endif
 	mainApp = self;
 	sharedApp = [UIApplication sharedApplication];
-	
-	// unused for now since ARMv7 build now requires 4.3
-	/*NSString *reqSysVer = @"4.0";
-	if ([currSysVer compare:reqSysVer options:NSNumericSearch] != NSOrderedAscending)
+
+	bool usingIOS7 = false;
+	#ifndef __ARM_ARCH_6K__
+	if([currSysVer compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending)
 	{
-		//logMsg("enabling iOS 4 features");
-		usingiOS4 = 1;
-	}*/
-	
+		usingIOS7 = true;
+	}
+	#else
+	if([currSysVer compare:@"4.0" options:NSNumericSearch] != NSOrderedAscending)
+	{
+		usingIOS4 = true;
+	}
+	#endif
 	/*if ([currSysVer compare:@"3.2" options:NSNumericSearch] != NSOrderedAscending)
 	{
 		logMsg("enabling iOS 3.2 external display features");
@@ -543,23 +258,39 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		[center addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
 		[center addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];
 	}*/
-	
-	#ifdef GREYSTRIPE
-	initGS(self);
+	#ifndef __ARM_ARCH_6K__
+	if(usingIOS7)
+		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
 	#endif
 	
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
 	[nCenter addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	//[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
-	
+	#endif
+	Base::displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayLinkCallback)];
+	Base::displayLinkActive = YES;
+	[Base::displayLink setFrameInterval:1];
+	[Base::displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
+	if([UIScreen mainScreen].scale == 2.0)
+	{
+		logMsg("running on Retina Display");
+		screenPointScale = 2;
+	}
+	else
+		logMsg("not running on Retina Display");
+	#endif
 	// TODO: use NSProcessInfo
 	doOrAbort(onInit(0, nullptr));
-
+	if(!mainWindow())
+		bug_exit("no main window created");
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
 }
 
+#ifdef CONFIG_GFX_SOFT_ORIENTATION
 - (void)orientationChanged:(NSNotification *)notification
 {
 	uint o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
@@ -569,25 +300,27 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		return; // ignore upside-down orientation unless using iPad
 	logMsg("new orientation %s", Base::orientationToStr(o));
 	Base::mainWindow().preferedOrientation = o;
-	Base::mainWindow().setOrientation(Base::mainWindow().preferedOrientation);
+	Base::mainWindow().setOrientation(Base::mainWindow().preferedOrientation, true);
 }
+#endif
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
 	logMsg("resign active");
-	Base::stopAnimation();
+	Base::mainScreen().unpostFrame();
 	glFinish();
+	Input::deinitKeyRepeatTimer();
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
 	using namespace Base;
 	logMsg("became active");
-	if(!Base::openglViewIsInit)
-		[Base::mainWindow().glView createFramebuffer];
+	[Base::mainWindow().glView() bindDrawable];
+	onSetAsDrawTarget(Base::mainWindow()); // update viewport after window is shown
 	Base::appState = APP_RUNNING;
-	if(Base::displayLink)
-		Base::startAnimation();
+	//if(Base::displayLink)
+	//	mainScreen().postFrame();
 	Base::onResume(1);
 	#ifdef CONFIG_INPUT_ICADE
 	iCade.didBecomeActive();
@@ -598,9 +331,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("app exiting");
-	//Base::stopAnimation();
 	Base::appState = APP_EXITING;
-	Base::onExit(0);
+	Base::onExit(false);
 	logMsg("app exited");
 }
 
@@ -609,45 +341,26 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("entering background");
 	appState = APP_PAUSED;
-	Base::stopAnimation();
-	Base::onExit(1);
+	Base::onExit(true);
+	mainScreen().unpostFrame();
 	#ifdef CONFIG_INPUT_ICADE
 	iCade.didEnterBackground();
 	#endif
 	glFinish();
-	[Base::mainWindow().glView destroyFramebuffer];
+	[Base::mainWindow().glView() deleteDrawable];
+	Input::deinitKeyRepeatTimer();
 	logMsg("entered background");
-}
-
-- (void)timerCallback:(id)callback
-{
-	using namespace Base;
-	logMsg("running callback");
-	NSData *callbackData = (NSData*)callback;
-	CallbackDelegate del;
-	[callbackData getBytes:&del length:sizeof(del)];
-	del();
-}
-
-- (void)handleThreadMessage:(NSValue *)arg
-{
-	using namespace Base;
-	ThreadMsg msg;
-	[arg getValue:&msg];
-	processAppMsg(msg.type, msg.shortArg, msg.intArg, msg.intArg2);
-}
-
-- (void)dealloc
-{
-	[Base::mainWindow().uiWin release];
-	//[glView release]; // retained in devWindow
-	[super dealloc];
 }
 
 @end
 
 namespace Base
 {
+
+bool hasIOS4()
+{
+	return usingIOS4;
+}
 
 void nsLog(const char* str)
 {
@@ -658,58 +371,39 @@ void nsLogv(const char* format, va_list arg)
 {
 	auto formatStr = [[NSString alloc] initWithBytesNoCopy:(void*)format length:strlen(format) encoding:NSUTF8StringEncoding freeWhenDone:false];
 	NSLogv(formatStr, arg);
-	[formatStr release];
 }
 
-uint refreshRate()
+uint Screen::refreshRate()
 {
 	return 60;
 }
 
-void updateSizeForStatusbar(Window &win, int width, int height, UIApplication *sharedApp)
+void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplication *sharedApp)
 {
-	using namespace Gfx;
-	win.contentRect.x = win.contentRect.y = 0;
-	win.contentRect.x2 = width;
-	win.contentRect.y2 = height;
-	//logMsg("status bar hidden %d", sharedApp.statusBarHidden);
-	if(!sharedApp.statusBarHidden)
-	{
-		bool isSideways = win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270;
-		auto statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * win.pointScale;
-		if(isSideways)
-		{
-			if(win.rotateView == VIEW_ROTATE_270)
-				win.contentRect.x = statusBarHeight;
-			else
-				win.contentRect.x2 -= statusBarHeight;
-		}
-		else
-		{
-			if(win.rotateView == VIEW_ROTATE_180)
-				win.contentRect.y2 -= statusBarHeight;
-			else
-				win.contentRect.y = statusBarHeight;
-		}
-		logMsg("status bar height %d", (int)statusBarHeight);
-		logMsg("adjusted window to %d:%d:%d:%d", win.contentRect.x, win.contentRect.y, win.contentRect.x2, win.contentRect.y2);
-	}
-	win.updateSize(width, height);
+	win.updateSize({width, height});
+	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
 }
 
-void setStatusBarHidden(bool hidden)
+static void setStatusBarHidden(bool hidden)
 {
 	assert(sharedApp);
+	logMsg("setting status bar hidden: %d", (int)hidden);
 	#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 30200
-	[sharedApp setStatusBarHidden: hidden ? YES : NO withAnimation: UIStatusBarAnimationFade];
+	[sharedApp setStatusBarHidden: (hidden ? YES : NO) withAnimation: UIStatusBarAnimationFade];
 	#else
-	[sharedApp setStatusBarHidden: hidden ? YES : NO animated:YES];
+	[sharedApp setStatusBarHidden: (hidden ? YES : NO) animated:YES];
 	#endif
-	updateSizeForStatusbar(mainWindow(), mainWindow().w, mainWindow().h, sharedApp);
-	mainWindow().postResize();
+	auto &win = mainWindow();
+	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
+	win.postResize();
 }
 
-static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
+void setSysUIStyle(uint flags)
+{
+	setStatusBarHidden(flags & SYS_UI_STYLE_HIDE_STATUS);
+}
+
+UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
 {
 	using namespace Base;
 	switch(orientation)
@@ -721,7 +415,8 @@ static UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orient
 	}
 }
 
-void setSystemOrientation(uint o)
+#ifdef CONFIG_GFX_SOFT_ORIENTATION
+void Window::setSystemOrientation(uint o)
 {
 	using namespace Input;
 	if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
@@ -732,13 +427,16 @@ void setSystemOrientation(uint o)
 	}
 	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
-	updateSizeForStatusbar(mainWindow(),  mainWindow().w, mainWindow().h, sharedApp);
-	mainWindow().postResize();
+	updateContentRect(width(), height(), rotateView, sharedApp);
+	//auto &win = mainWindow();
+	
+	//updateWindowSizeAndContentRect(win, win.realWidth(), win.realHeight(), sharedApp);
+	//mainWindow().postResize();
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching
 
-void setAutoOrientation(bool on)
+void Window::setAutoOrientation(bool on)
 {
 	if(autoOrientationState == on)
 		return;
@@ -752,8 +450,9 @@ void setAutoOrientation(bool on)
 		[[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
 	}
 }
+#endif
 
-void exitVal(int returnVal)
+void exit(int returnVal)
 {
 	appState = APP_EXITING;
 	onExit(0);
@@ -783,16 +482,6 @@ void endIdleByUserActivity()
 	}
 }
 
-void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
-{
-	ThreadMsg msg = { (int16)type, (int16)shortArg, intArg, intArg2 };
-	NSValue *arg = [[NSValue alloc] initWithBytes:&msg objCType:@encode(Base::ThreadMsg)];
-	[mainApp performSelectorOnMainThread:@selector(handleThreadMessage:)
-		withObject:arg
-		waitUntilDone:NO];
-	[arg release];
-}
-
 static const char *docPath = 0;
 
 const char *documentsPath()
@@ -800,11 +489,11 @@ const char *documentsPath()
 	if(!docPath)
 	{
 		#ifdef CONFIG_BASE_IOS_JB
-			return "/User/Library/Preferences";
+		return "/User/Library/Preferences";
 		#else
-			NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-			NSString *documentsDirectory = [paths objectAtIndex:0];
-			docPath = strdup([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+		NSString *documentsDirectory = [paths objectAtIndex:0];
+		docPath = strdup([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
 		#endif
 	}
 	return docPath;
@@ -813,9 +502,9 @@ const char *documentsPath()
 const char *storagePath()
 {
 	#ifdef CONFIG_BASE_IOS_JB
-		return "/User/Media";
+	return "/User/Media";
 	#else
-		return documentsPath();
+	return documentsPath();
 	#endif
 }
 
@@ -846,7 +535,7 @@ bool setUIDEffective()
 
 #endif
 
-bool supportsFrameTime()
+bool Screen::supportsFrameTime()
 {
 	return true;
 }

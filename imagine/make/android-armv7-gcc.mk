@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 SUBARCH := armv7
 android_abi := armeabi-v7a
 ifndef MACHINE
@@ -15,14 +15,21 @@ endif
 android_armState := $(android_armv7State)
 
 android_cpuFlags := $(android_armv7State) -march=armv7-a -mfloat-abi=softfp -mfpu=$(arm_fpu)
-
 extraSysroot := $(IMAGINE_PATH)/bundle/android/armv7
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
-PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
-pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
 CPPFLAGS += -I$(extraSysroot)/include
-LDLIBS += -L$(extraSysroot)/lib
+LDFLAGS += -Wl,--fix-cortex-a8
+
+android_hardFP ?= 1
+
+ifeq ($(android_hardFP),1)
+ android_cpuFlags += -mhard-float
+ # NOTE: do not also link in -lm or strange runtime behavior can result, especially with LTO
+ android_libm := -lm_hard
+ CPPFLAGS += -D_NDK_MATH_NO_SOFTFP=1
+ LDFLAGS += -Wl,--no-warn-mismatch
+ android_hardFPExt := _hard
+endif
 
 include $(buildSysPath)/android-arm.mk
 

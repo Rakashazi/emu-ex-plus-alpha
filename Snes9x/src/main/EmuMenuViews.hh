@@ -118,7 +118,7 @@ class SystemMenuView : public MenuView
 			{
 				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
+				pushAndShow(cheatsMenu, &menuAllocator);
 			}
 		}
 	};

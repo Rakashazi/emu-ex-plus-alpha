@@ -2,7 +2,7 @@ ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-CBUILD := $(shell cc -dumpmachine)
+#CBUILD := $(shell cc -dumpmachine)
 
 freetypeVer := 2.4.11
 freetypeSrcDir := freetype-$(freetypeVer)
@@ -14,9 +14,9 @@ installIncludeDir := $(installDir)/include
 
 all : $(outputLibFile)
 
-$(freetypeSrcDir)/configure : $(freetypeSrcArchive)
+$(freetypeSrcDir)/configure : | $(freetypeSrcArchive)
 	@echo "Extracting freetype..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(freetypeSrcDir) && patch -p1 < ../freetype.patch
 
 install : $(outputLibFile)
@@ -30,10 +30,13 @@ install : $(outputLibFile)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building freetype..."
-	$(MAKE) -C $(<D) CC_BUILD=cc
+	$(MAKE) -C $(<D) #CC_BUILD=cc
 
 $(makeFile) : $(freetypeSrcDir)/configure
 	@echo "Configuring freetype..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" $$dir/$(freetypeSrcDir)/configure --prefix=$(installDir) --disable-shared --without-old-mac-fonts --without-bzip2 --host=$(CHOST) --build=$(CBUILD)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	$$dir/$(freetypeSrcDir)/configure --prefix=$(installDir) --disable-shared --without-old-mac-fonts \
+	--without-bzip2 --host=$(CHOST)
+#--build=$(CBUILD)
 

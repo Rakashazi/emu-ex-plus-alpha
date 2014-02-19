@@ -16,25 +16,20 @@
 #include <EmuView.hh>
 #include <EmuInput.hh>
 #include <VController.hh>
-#include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <gui/AlertView.hh>
 #include <FilePicker.hh>
 #include <Screenshot.hh>
 #include <algorithm>
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern SysVController vController;
-#endif
 extern bool touchControlsAreOn;
 bool touchControlsApplicable();
-extern MsgPopup popup;
-extern ViewStack viewStack;
-void restoreMenuFromGame();
 
 void EmuView::placeEmu()
 {
 	if(EmuSystem::gameIsRunning())
 	{
+		const auto &viewportRect = Gfx::viewport().bounds();
 		// compute the video rectangle in pixel coordinates
 		if((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
@@ -54,30 +49,30 @@ void EmuView::placeEmu()
 				gameY /= 2;
 			}
 
-			GC gameAR = GC(gameX) / GC(gameY);
+			auto gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 
 			// avoid overly wide images (SNES, etc.) or tall images (2600, etc.)
 			if(gameAR >= 2)
 			{
 				logMsg("unscaled image too wide, doubling height to compensate");
 				gameY *= 2;
-				gameAR = GC(gameX) / GC(gameY);
+				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 			}
 			else if(gameAR < 0.8)
 			{
 				logMsg("unscaled image too tall, doubling width to compensate");
 				gameX *= 2;
-				gameAR = GC(gameX) / GC(gameY);
+				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 			}
 
-			if(gameAR > Gfx::proj.aspectRatio)
+			if(gameAR > Gfx::viewport().aspectRatio())//Gfx::proj.aspectRatio)
 			{
-				scaleFactor = std::max(1U, Base::mainWindow().viewPixelWidth() / gameX);
+				scaleFactor = std::max(1U, Gfx::viewport().width() / gameX);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1U, Base::mainWindow().viewPixelHeight() / gameY);
+				scaleFactor = std::max(1U, Gfx::viewport().height() / gameY);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
@@ -85,7 +80,7 @@ void EmuView::placeEmu()
 			gameRect_.y = 0;
 			gameRect_.x2 = gameX * scaleFactor;
 			gameRect_.y2 = gameY * scaleFactor;
-			gameRect_.setPos({(int)Base::mainWindow().viewPixelWidth()/2 - gameRect_.x2/2, (int)Base::mainWindow().viewPixelHeight()/2 - gameRect_.y2/2});
+			gameRect_.setPos({(int)viewportRect.xCenter() - gameRect_.x2/2, (int)viewportRect.yCenter() - gameRect_.y2/2});
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
@@ -96,25 +91,25 @@ void EmuView::placeEmu()
 			if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				GC width = Gfx::iYSize(gameRect_.ySize()) * aR.ratio<GC>();
+				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * aR.ratio<Gfx::GC>();
 				if(!aR.x)
 				{
-					width = Gfx::proj.w;
+					width = projP.w;
 				}
 				gameRectG.x = -width/2.;
 				gameRectG.x2 = width/2.;
 			}
 			else
 			{
-				IG::Point2D<GC> size { Gfx::proj.w, Gfx::proj.h };
+				Gfx::GP size { projP.w, projP.h };
 				if(aR.x)
 				{
-					size = IG::sizesWithRatioBestFit(aR.ratio<GC>(), size.x, size.y);
+					size = IG::sizesWithRatioBestFit(aR.ratio<Gfx::GC>(), size.x, size.y);
 				}
 				gameRectG.x = -size.x/2.;
 				gameRectG.x2 = size.x/2.;
-				gameRectG.y = size.y/2.;
-				gameRectG.y2 = -size.y/2.;
+				gameRectG.y = -size.y/2.;
+				gameRectG.y2 = size.y/2.;
 			}
 		}
 
@@ -130,23 +125,23 @@ void EmuView::placeEmu()
 		}
 
 		// adjust position
-		GC yOffset = 0;
+		Gfx::GC yOffset = 0;
 		int yOffsetPixels = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(Gfx::proj.aspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
+		if(/*Gfx::proj.aspectRatio*/Gfx::viewport().aspectRatio() < 1. && touchControlsAreOn && touchControlsApplicable())
 		{
-			auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+			auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom())
 			{
 				logMsg("moving game rect to top");
-				gameRectG.setYPos(Gfx::proj.rect.y, CT2DO);
-				gameRect_.setYPos(0, CT2DO);
+				gameRectG.setYPos(projP.bounds().y2, CT2DO);
+				gameRect_.setYPos(viewportRect.y, CT2DO);
 			}
 			else if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				logMsg("moving game rect to bottom");
-				gameRectG.setYPos(Gfx::proj.rect.y2, CB2DO);
-				gameRect_.setYPos(Base::mainWindow().viewPixelHeight(), CB2DO);
+				gameRectG.setYPos(projP.bounds().y, CB2DO);
+				gameRect_.setYPos(viewportRect.y2, CB2DO);
 			}
 		}
 		#endif
@@ -154,7 +149,7 @@ void EmuView::placeEmu()
 		// apply sub-pixel zoom
 		if(optionImageZoom.val < 100)
 		{
-			auto scaler = (GC(optionImageZoom.val) / 100.);
+			auto scaler = (Gfx::GC(optionImageZoom.val) / 100.);
 			gameRectG.x *= scaler;
 			gameRectG.y *= scaler;
 			gameRectG.x2 *= scaler;
@@ -162,12 +157,12 @@ void EmuView::placeEmu()
 		}
 
 		// apply y offset after zoom
-		gameRectG += IG::Point2D<GC>{0, yOffset};
+		gameRectG += IG::Point2D<Gfx::GC>{0, yOffset};
 		gameRect_ += IG::Point2D<int>{0, yOffsetPixels};
 
 		// assign final coordinates
-		auto fromWorldSpaceRect = Gfx::projectRect2(gameRectG);
-		auto fromPixelRect = Gfx::unProjectRect2(gameRect_);
+		auto fromWorldSpaceRect = projP.projectRect(gameRectG);
+		auto fromPixelRect = projP.unProjectRect(gameRect_);
 		if(getXCoordinateFromPixels)
 		{
 			gameRectG.x = fromPixelRect.x;
@@ -189,7 +184,7 @@ void EmuView::placeEmu()
 			gameRect_.y2 = fromWorldSpaceRect.y2;
 		}
 
-		disp.setPos(gameRectG.x, gameRectG.y2, gameRectG.x2, gameRectG.y);
+		disp.setPos(gameRectG);
 		#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 		disp.screenX = gameView.xIPos(LB2DO);
 		disp.screenY = Gfx::viewPixelHeight() - gameView.yIPos(LB2DO);
@@ -207,6 +202,13 @@ template <bool active>
 void EmuView::drawContent()
 {
 	using namespace Gfx;
+	setBlendMode(0);
+//	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+//	if(dispProg)
+//		setProgram(dispProg, projP.makeTranslate());
+//	else
+//	#endif
+		disp.useDefaultProgram(active ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 	disp.draw();
 	vidImgOverlay.draw();
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -226,45 +228,34 @@ void EmuView::drawContent()
 template void EmuView::drawContent<0>();
 template void EmuView::drawContent<1>();
 
-void EmuView::draw(Gfx::FrameTimeBase frameTime)
+void EmuView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	if(likely(EmuSystem::isActive()))
 	{
-		resetTransforms();
-		setBlendMode(0);
-		setImgMode(IMG_MODE_REPLACE);
-		/*setImgMode(IMG_MODE_MODULATE);
-		setColor(COLOR_WHITE);*/
-		#ifdef CONFIG_BASE_PS3
-		setColor(1., 1., 1., 1.); // hack to work-around non-working GFX_IMG_MODE_REPLACE
-		#endif
-		displayNeedsUpdate();
+		postDraw();
 		#ifdef CONFIG_BASE_MULTI_WINDOW
 		extern Base::Window secondWin;
 		if(secondWin)
-			secondWin.displayNeedsUpdate();
+			secondWin.postDraw();
 		#endif
 		runFrame(frameTime);
 	}
 	else if(EmuSystem::isStarted())
 	{
-		setBlendMode(0);
-		setImgMode(IMG_MODE_MODULATE);
 		setColor(.25, .25, .25);
-		resetTransforms();
 		drawContent<0>();
 	}
 }
 
-void EmuView::runFrame(Gfx::FrameTimeBase frameTime)
+void EmuView::runFrame(Base::FrameTimeBase frameTime)
 {
 	commonUpdateInput();
 	bool renderAudio = optionSound;
 
 	if(unlikely(ffGuiKeyPush || ffGuiTouch))
 	{
-		iterateTimes(4, i)
+		iterateTimes((uint)optionFastForwardSpeed, i)
 		{
 			EmuSystem::runFrame(0, 0, 0);
 		}
@@ -324,10 +315,10 @@ void EmuView::inputEvent(const Input::Event &e)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
 	{
-		auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+		auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
 		if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps({e.x, e.y}))
 		{
-			viewStack.top()->clearSelection();
+			viewStack.top().clearSelection();
 			restoreMenuFromGame();
 			return;
 		}
@@ -413,7 +404,7 @@ void EmuView::inputEvent(const Input::Event &e)
 						auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(window());
 						fPicker.init(Input::keyInputIsPresent(), false);
 						viewStack.useNavView = 0;
-						viewStack.pushAndShow(&fPicker, &menuAllocator);
+						viewStack.pushAndShow(fPicker, &menuAllocator);
 						return;
 					}
 
@@ -457,7 +448,7 @@ void EmuView::inputEvent(const Input::Event &e)
 								{
 									startGameFromMenu();
 								};
-							View::addModalView(ynAlertView);
+							modalViewController.pushAndShow(ynAlertView);
 							restoreMenuFromGame();
 						}
 						return;
@@ -511,7 +502,7 @@ void EmuView::inputEvent(const Input::Event &e)
 							{
 								Base::exit();
 							};
-						View::addModalView(ynAlertView);
+						modalViewController.pushAndShow(ynAlertView);
 						restoreMenuFromGame();
 						return;
 					}

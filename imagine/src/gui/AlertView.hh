@@ -17,7 +17,7 @@
 
 #include <gui/View.hh>
 #include <gui/MenuItem/MenuItem.hh>
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include <util/rectangle2.h>
 #include <util/DelegateFunc.hh>
 
@@ -25,25 +25,24 @@ class AlertView : public View
 {
 public:
 	constexpr AlertView(Base::Window &win): View{win}, menu{win} {}
-	IG::Rect2<GC> labelFrame;
+	Gfx::GCRect labelFrame;
 	Gfx::Text text;
 	BaseMenuView menu;
-	IG::Rect2<int> rect;
+	IG::WindowRect rect;
 
-	IG::Rect2<int> &viewRect() { return rect; }
+	IG::WindowRect &viewRect() { return rect; }
 
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime) override;
 };
 
 class YesNoAlertView : public AlertView
 {
 public:
-
-	typedef DelegateFunc<void (const Input::Event &e)> InputDelegate;
+	using InputDelegate = DelegateFunc<void (const Input::Event &e)>;
 	InputDelegate onYesD;
 	InputDelegate onNoD;
 	MenuItem *menuItem[2] {nullptr};

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <input/Input.hh>
+#include <base/Window.hh>
 
 namespace Input
 {
@@ -23,12 +24,13 @@ namespace Input
 template <class Range>
 struct AxisKeyEmu
 {
-	constexpr AxisKeyEmu() {}
-	constexpr AxisKeyEmu(Range lowLimit, Range highLimit, Key lowKey, Key highKey):
-		lowLimit(lowLimit), highLimit(highLimit), lowKey(lowKey), highKey(highKey) {}
 	Range lowLimit = 0, highLimit = 0;
 	Key lowKey = 0, highKey = 0;
 	int8 state = 0;
+
+	constexpr AxisKeyEmu() {}
+	constexpr AxisKeyEmu(Range lowLimit, Range highLimit, Key lowKey, Key highKey):
+		lowLimit(lowLimit), highLimit(highLimit), lowKey(lowKey), highKey(highKey) {}
 
 	bool update(Range pos, Key &released, Key &pushed)
 	{
@@ -54,11 +56,14 @@ struct AxisKeyEmu
 		}
 		if(releasedKey)
 		{
-			Input::onInputEvent(win, Event(id, map, releasedKey, RELEASED, 0, &dev));
+			cancelKeyRepeatTimer();
+			Base::onInputEvent(win, Event(id, map, releasedKey, RELEASED, 0, 0, &dev));
 		}
 		if(pushedKey)
 		{
-			Input::onInputEvent(win, Event(id, map, pushedKey, PUSHED, 0, &dev));
+			Event event{id, map, pushedKey, PUSHED, 0, 0, &dev};
+			startKeyRepeatTimer(event);
+			Base::onInputEvent(win, event);
 		}
 		return true;
 	}

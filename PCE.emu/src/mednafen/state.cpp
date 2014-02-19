@@ -738,6 +738,7 @@ int MDFNSS_LoadSM(StateMem *st, int haspreview, int data_only)
 	else
 	{
          smem_read(st, header, 32);
+
          if(memcmp(header, "MEDNAFENSVESTATE", 16) && memcmp(header, "MDFNSVST", 8))
           return(0);
 

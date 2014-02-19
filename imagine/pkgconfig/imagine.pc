@@ -1,0 +1,12 @@
+prefix=PREFIX
+build=BUILD
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib/${build}
+includedir=${prefix}/src
+
+Name: NAME
+Description: DESCRIPTION
+Version: VERSION
+Requires: REQUIRES
+Libs: -L${libdir} LIBS
+Cflags: -I${includedir} -I${prefix}/build/${build}/gen

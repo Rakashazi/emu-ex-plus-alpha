@@ -32,12 +32,7 @@ MDFN_Error::MDFN_Error(int errno_code_new, const char *format, ...) throw()
 
  va_list ap;
  va_start(ap, format);
-#ifdef CONFIG_BASE_PS3
- error_message = (char*)malloc(128);
- vsnprintf(error_message, 128, format, ap);
-#else
  vasprintf(&error_message, format, ap);
-#endif
  va_end(ap);
 }
 
@@ -46,12 +41,7 @@ MDFN_Error::MDFN_Error(const ErrnoHolder &enh)
 {
  errno_code = enh.Errno();
 
-#ifdef CONFIG_BASE_PS3
- error_message = (char*)malloc(128);
- snprintf(error_message, 128, "%s", enh.StrError());
-#else
  asprintf(&error_message, "%s", enh.StrError());
-#endif
 }
 
 

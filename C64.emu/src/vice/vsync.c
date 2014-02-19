@@ -310,9 +310,10 @@ void vsync_sync_reset(void)
     sync_reset = 1;
 }
 
+#ifndef EMUFRAMEWORK_BUILD
 /* This is called at the end of each screen frame. It flushes the
    audio buffer and keeps control of the emulation speed. */
-int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
+int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 {
     static unsigned long next_frame_start = 0;
     unsigned long network_hook_time = 0;
@@ -560,6 +561,7 @@ int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 #endif
     return skip_next_frame;
 }
+#endif
 
 #if defined (HAVE_OPENGL_SYNC) && !defined(USE_SDLUI)
 

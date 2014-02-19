@@ -128,7 +128,7 @@ private:
 };
 
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+	#include <mednafen-config.h>
 #endif
 
 // Number of bits in resample ratio fraction. Higher values give a more accurate ratio

@@ -58,7 +58,7 @@ void commonUpdateInput();
 extern TurboInput turboActions;
 
 static constexpr uint MAX_KEY_CONFIG_KEYS = EmuControls::systemTotalKeys;
-static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 8;
+static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
 static constexpr uint MAX_CUSTOM_KEY_CONFIGS = 10;
 static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
 
@@ -129,8 +129,8 @@ struct InputDeviceSavedConfig
 	const KeyConfig *keyConf = nullptr;
 	uint enumId = 0;
 	uint8 player = 0;
-	bool enabled = 1;
-	bool mapJoystickAxis1ToDpad = 0;
+	bool enabled = true;
+	uint8 joystickAxisAsDpadBits = 0;
 	#ifdef CONFIG_INPUT_ICADE
 	bool iCadeMode = 0;
 	#endif
@@ -168,8 +168,8 @@ struct InputDeviceConfig
 	bool setICadeMode(bool on);
 	bool iCadeMode();
 	#endif
-	bool mapJoystickAxis1ToDpad();
-	void setMapJoystickAxis1ToDpad(bool on);
+	uint8 joystickAxisAsDpadBits();
+	void setJoystickAxisAsDpadBits(uint8 axisMask);
 	const KeyConfig &keyConf();
 	bool setKeyConf(const KeyConfig &kConf);
 	void setDefaultKeyConf();
@@ -263,7 +263,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 #ifdef CONFIG_BASE_ANDROID
 static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 {
-	Input::Event::MAP_KEYBOARD,
+	Input::Event::MAP_SYSTEM,
 	0,
 	"Android Navigation Keys",
 	{

@@ -42,15 +42,23 @@ void BaseTextMenuItem::deinit()
 	t.deinit();
 }
 
-void BaseTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
-	//setColor(COLOR_WHITE);
 	if(!active)
 	{
+		// half-bright color
 		uint col = color();
 		setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
 	}
+
+	if(ColorFormat.a(color()) == 0xFF)
+	{
+		//logMsg("using replace program for non-alpha modulated text");
+		texAlphaReplaceProgram.use();
+	}
+	else
+		texAlphaProgram.use();
 
 	if(align.isXCentered())
 		xPos += xSize/2;
@@ -61,7 +69,7 @@ void BaseTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, 
 
 void BaseTextMenuItem::compile() { t.compile(); }
 int BaseTextMenuItem::ySize() { return t.face->nominalHeight(); }
-GC BaseTextMenuItem::xSize() { return t.xSize; }
+Gfx::GC BaseTextMenuItem::xSize() { return t.xSize; }
 void TextMenuItem::select(View *parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
@@ -109,12 +117,13 @@ void BaseDualTextMenuItem::compile()
 	}
 }
 
-void BaseDualTextMenuItem::draw2ndText(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
-	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO, LT2DO);
+	Gfx::texAlphaProgram.use();
+	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO);
 }
 
-void BaseDualTextMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
 	if(t2.str)
@@ -159,7 +168,7 @@ void BoolMenuItem::set(bool val, View &view)
 		on = val;
 		t2.setString(val ? onStr : offStr);
 		t2.compile();
-		view.displayNeedsUpdate();
+		view.postDraw();
 	}
 }
 
@@ -171,9 +180,13 @@ void BoolMenuItem::toggle(View &view)
 		set(1, view);
 }
 
-void BoolMenuItem::select(View *parent, const Input::Event &e) { if(selectD) selectD(*this, e); }
+void BoolMenuItem::select(View *parent, const Input::Event &e)
+{
+	if(selectD)
+		selectD(*this, e);
+}
 
-void BoolMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
@@ -212,7 +225,7 @@ void MultiChoiceMenuItem::init(const char **choiceStr, int val, int max, int bas
 	init(nullptr, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
-void MultiChoiceMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
@@ -232,7 +245,7 @@ bool MultiChoiceMenuItem::updateVal(int val, View &view)
 		choice = val;
 		t2.setString(choiceStr[val]);
 		t2.compile();
-		view.displayNeedsUpdate();
+		view.postDraw();
 		return 1;
 	}
 	return 0;

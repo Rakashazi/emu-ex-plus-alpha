@@ -1249,9 +1249,13 @@ void vicii_raster_draw_alarm_handler(CLOCK offset, void *data)
     if (vicii.raster.current_line == 0) {
         /* no vsync here for NTSC  */
         if ((unsigned int)vicii.last_displayed_line < vicii.screen_height) {
+#ifdef EMUFRAMEWORK_BUILD
+        	  vsync_do_vsync(vicii.raster.canvas, vicii.raster.skip_frame);
+#else
             raster_skip_frame(&vicii.raster,
                               vsync_do_vsync(vicii.raster.canvas,
                                              vicii.raster.skip_frame));
+#endif
         }
         vicii.memptr = 0;
         vicii.mem_counter = 0;
@@ -1304,10 +1308,13 @@ void vicii_raster_draw_alarm_handler(CLOCK offset, void *data)
     /* vsync for NTSC */
     if ((unsigned int)vicii.last_displayed_line >= vicii.screen_height
         && vicii.raster.current_line == vicii.last_displayed_line - vicii.screen_height + 1) {
+#ifdef EMUFRAMEWORK_BUILD
         vsync_do_vsync(vicii.raster.canvas, vicii.raster.skip_frame);
-        /*raster_skip_frame(&vicii.raster,
+#else
+        raster_skip_frame(&vicii.raster,
                           vsync_do_vsync(vicii.raster.canvas,
-                                         vicii.raster.skip_frame));*/
+                                         vicii.raster.skip_frame));
+#endif
 #ifdef __MSDOS__
         if (vicii.raster.canvas->draw_buffer->canvas_width
             <= VICII_SCREEN_XPIX

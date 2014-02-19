@@ -3,9 +3,9 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/EmuControls.cc main/ViceApi.cc
+include $(EMUFRAMEWORK_PATH)/common.mk
 
-include ../EmuFramework/common.mk
+SRC += main/Main.cc main/EmuControls.cc main/ViceApi.cc
 
 CPPFLAGS += -DSysDecimal=float -Isrc -Isrc/config -Isrc/vice -Isrc/vice/c64 -Isrc/vice/c64/cart \
 -Isrc/vice/drive -Isrc/vice/lib/p64 -Isrc/vice/sid -Isrc/vice/vicii -Isrc/vice/tape -Isrc/vice/userport \

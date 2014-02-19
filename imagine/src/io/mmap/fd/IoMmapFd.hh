@@ -26,4 +26,5 @@ public:
 	static Io* open(int fd);
 	~IoMmapFd() { close(); }
 	void close() override;
+	void advise(long offset, size_t len, Advice advice) override;
 };

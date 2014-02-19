@@ -87,7 +87,7 @@
 #include "interrupt.h"
 #include "TLCS900h_interpret.h"
 #include <logger/interface.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 
 //=============================================================================
 

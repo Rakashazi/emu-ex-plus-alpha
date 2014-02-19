@@ -19,7 +19,7 @@
 #include <pixmap/Pixmap.hh>
 #include <EmuSystem.hh>
 
-bool writeScreenshot(const Pixmap &vidPix, const char *fname);
+bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);
 
 template <size_t S>
 static int sprintScreenshotFilename(char (&str)[S])

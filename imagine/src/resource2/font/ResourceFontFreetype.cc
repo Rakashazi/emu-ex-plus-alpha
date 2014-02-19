@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "res:font:freetype"
+#define LOGTAG "ResFontFreetype"
 #include <engine-globals.h>
 #include <gfx/Gfx.hh>
 #include <util/strings.h>
@@ -203,9 +203,9 @@ void ResourceFontFreetype::setMetrics(const FreetypeFontData &fontData, GlyphMet
 	metrics.xAdvance = fontData.getCurrentCharBitmapXAdvance();
 }
 
-void ResourceFontFreetype::charBitmap(void *&bitmap, int &x, int &y, int &pitch)
+IG::Pixmap ResourceFontFreetype::charBitmap()
 {
-	f[currCharSlot].accessCharBitmap(bitmap, x, y, pitch);
+	return f[currCharSlot].accessCharBitmap();
 }
 
 CallResult ResourceFontFreetype::activeChar(int idx, GlyphMetrics &metrics)
@@ -223,6 +223,7 @@ CallResult ResourceFontFreetype::activeChar(int idx, GlyphMetrics &metrics)
 			continue;
 		}
 		setMetrics(font, metrics);
+		//logMsg("set metrics for index %d: %dx%d, %d %d %d", idx, metrics.xSize, metrics.ySize, metrics.xOffset, metrics.yOffset, metrics.xAdvance);
 		currCharSlot = i;
 		return OK;
 	}
@@ -231,6 +232,7 @@ CallResult ResourceFontFreetype::activeChar(int idx, GlyphMetrics &metrics)
 	// try to find a font with the missing char and load into next free slot
 	if(usedCharSlots != MAX_FREETYPE_SLOTS && addonSystemFontContainingChar(*this, idx))
 	{
+		assert(activeFontSizeData);
 		uint newSlot = usedCharSlots-1;
 		auto &font = f[newSlot];
 		if(font.newSize(activeFontSizeData->settings.pixelWidth, activeFontSizeData->settings.pixelHeight,
@@ -246,6 +248,7 @@ CallResult ResourceFontFreetype::activeChar(int idx, GlyphMetrics &metrics)
 			return NOT_FOUND;
 		}
 		setMetrics(font, metrics);
+		//logMsg("set metrics for index %d: %dx%d, %d %d %d", idx, metrics.xSize, metrics.ySize, metrics.xOffset, metrics.yOffset, metrics.xAdvance);
 		currCharSlot = newSlot;
 		return OK;
 	}
@@ -261,6 +264,7 @@ int ResourceFontFreetype::currentFaceAscender () const //+
 
 CallResult ResourceFontFreetype::newSize(const FontSettings &settings, FontSizeRef &sizeRef)
 {
+	freeSize(sizeRef);
 	auto sizeData = new FontSizeData(settings);
 	if(!sizeData)
 	{
@@ -305,6 +309,8 @@ CallResult ResourceFontFreetype::applySize(FontSizeRef &sizeRef)
 
 void ResourceFontFreetype::freeSize(FontSizeRef &sizeRef)
 {
+	if(!sizeRef.ptr)
+		return;
 	auto &sizeData = *((FontSizeData*)sizeRef.ptr);
 	iterateTimes(usedCharSlots, i)
 	{
@@ -314,4 +320,5 @@ void ResourceFontFreetype::freeSize(FontSizeRef &sizeRef)
 	if(&sizeData == activeFontSizeData)
 		activeFontSizeData = nullptr;
 	delete ((FontSizeData*)sizeRef.ptr);
+	sizeRef.ptr = nullptr;
 }

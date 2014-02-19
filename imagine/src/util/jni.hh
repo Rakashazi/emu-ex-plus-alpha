@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <jni.h>
 #include <util/basicString.h>
 
@@ -129,9 +144,15 @@ public:
 	void setup(JNIEnv* j, jclass cls, const char *fName, const char *sig)
 	{
 		//logMsg("find method %s with sig %s", fName, sig);
-		assert(cls != 0);
+		if(!cls)
+		{
+			bug_exit("class missing for java method: %s (%s)", fName, sig);
+		}
 		m = j->GetMethodID(cls, fName, sig);
-		assert(m);
+		if(!m)
+		{
+			bug_exit("java method not found: %s (%s)", fName, sig);
+		}
 	}
 
 	operator bool() const

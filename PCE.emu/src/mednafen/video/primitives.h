@@ -1,8 +1,11 @@
 #ifndef __MDFN_VIDEO_PRIMITIVES_H
 #define __MDFN_VIDEO_PRIMITIVES_H
 
-void MDFN_DrawRectangle(uint32 *XBuf, int pitch, int xpos, int ypos, uint32 color, uint32 width, uint32 height);
-void MDFN_DrawRectangleAlpha(uint32 *XBuf, int pitch, int xpos, int ypos, uint32 color, uint32 alpha_color, uint32 width, uint32 height);
-void MDFN_DrawRectangleFill(uint32 *XBuf, int pitch, int xpos, int ypos, uint32 color, uint32 fillcolor, uint8 width, uint8 height);
+// Note: For simplicity, these functions do NOT perform surface dimension clipping.
+
+void MDFN_DrawRect(MDFN_Surface *surface, uint32 x, uint32 y, uint32 w, uint32 h, uint32 border_color);
+void MDFN_DrawFillRect(MDFN_Surface *surface, uint32 x, uint32 y, uint32 w, uint32 h, uint32 border_color, uint32 fill_color);
+void MDFN_DrawFillRect(MDFN_Surface *surface, uint32 x, uint32 y, uint32 w, uint32 h, uint32 fill_color);
+void MDFN_DrawLine(MDFN_Surface *surface, int x0, int y0, int x1, int y1, uint32 color);
 
 #endif

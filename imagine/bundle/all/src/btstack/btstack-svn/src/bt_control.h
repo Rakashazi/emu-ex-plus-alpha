@@ -43,9 +43,14 @@
  *
  */
 
-#pragma once
+#ifndef __BT_CONTROL_H
+#define __BT_CONTROL_H
 
 #include <stdint.h>
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     POWER_WILL_SLEEP = 1,
@@ -74,3 +79,9 @@ typedef struct {
 
     void         (*hw_error)(void); 
 } bt_control_t;
+
+#if defined __cplusplus
+}
+#endif
+
+#endif // __BT_CONTROL_H

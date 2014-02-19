@@ -2,6 +2,7 @@
 
 #include <jni.h>
 #include <android/input.h>
+#include <base/Window.hh>
 
 namespace Input
 {
@@ -26,5 +27,8 @@ void setBuiltInKeyboardState(bool shown);
 
 int32_t onInputEvent(AInputEvent* event, Base::Window &win);
 extern bool sendInputToIME;
+
+void onPauseMOGA(JNIEnv *jEnv);
+void onResumeMOGA(JNIEnv *jEnv, bool notify);
 
 }

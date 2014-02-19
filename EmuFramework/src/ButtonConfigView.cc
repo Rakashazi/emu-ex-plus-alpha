@@ -17,10 +17,7 @@
 #include <inGameActionKeys.hh>
 #include <main/EmuConfig.hh>
 #include <InputManagerView.hh>
-#include <MsgPopup.hh>
-extern ViewStack viewStack;
-extern InputManagerView *imMenu;
-extern MsgPopup popup;
+#include <EmuApp.hh>
 
 #ifdef INPUT_SUPPORTS_POINTER
 bool ButtonConfigSetView::pointerUIIsInit()
@@ -85,8 +82,8 @@ void ButtonConfigSetView::place()
 		unbind.compile();
 		cancel.compile();
 
-		IG::Rect2<int> btnFrame;
-		btnFrame.setPosRel(viewFrame.pos(LB2DO), Gfx::toIYSize(unbind.nominalHeight*2), LB2DO);
+		IG::WindowRect btnFrame;
+		btnFrame.setPosRel(viewFrame.pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight*2)), LB2DO);
 		unbindB = btnFrame;
 		unbindB.x = (viewFrame.xSize()/2)*0;
 		unbindB.x2 = (viewFrame.xSize()/2)*1;
@@ -104,7 +101,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 	{
 		initPointerUI();
 		place();
-		displayNeedsUpdate();
+		postDraw();
 	}
 	else if(pointerUIIsInit() && e.isPointer() && e.state == Input::RELEASED)
 	{
@@ -112,11 +109,11 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 		{
 			logMsg("unbinding key");
 			onSetD(Input::Event());
-			removeModalView();
+			dismiss();
 		}
 		else if(cancelB.overlaps({e.x, e.y}))
 		{
-			removeModalView();
+			dismiss();
 		}
 	}
 	else
@@ -129,54 +126,55 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			if(d == savedDev)
 			{
 				popup.clear();
-				removeModalView();
-				viewStack.popTo(imMenu);
+				dismiss();
+				viewStack.popTo(*imMenu);
 				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
 				imdMenu.init(1, inputDevConf[d->idx]);
 				imdMenu.name_ = imMenu->inputDevNameStr[d->idx];
-				viewStack.pushAndShow(&imdMenu, &menuAllocator);
+				pushAndShow(imdMenu, &menuAllocator);
 			}
 			else
 			{
 				savedDev = d;
 				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", imMenu->inputDevNameStr[d->idx]);
-				displayNeedsUpdate();
+				postDraw();
 			}
 			return;
 		}
 		onSetD(e);
-		removeModalView();
+		dismiss();
 	}
 }
 
-void ButtonConfigSetView::draw(Gfx::FrameTimeBase frameTime)
+void ButtonConfigSetView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(0);
-	resetTransforms();
+	noTexProgram.use(projP.makeTranslate());
 	setColor(.4, .4, .4, 1.);
-	GeomRect::draw(viewFrame);
+	GeomRect::draw(viewFrame, projP);
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pointerUIIsInit())
 	{
 		setColor(.2, .2, .2, 1.);
-		GeomRect::draw(unbindB);
-		GeomRect::draw(cancelB);
+		GeomRect::draw(unbindB, projP);
+		GeomRect::draw(cancelB, projP);
 	}
 	#endif
 
 	setColor(COLOR_WHITE);
+	texAlphaProgram.use();
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pointerUIIsInit())
 	{
-		unbind.draw(gXPos(unbindB, C2DO), gYPos(unbindB, C2DO), C2DO);
-		cancel.draw(gXPos(cancelB, C2DO), gYPos(cancelB, C2DO), C2DO);
+		unbind.draw(projP.unProjectRect(unbindB).pos(C2DO), C2DO);
+		cancel.draw(projP.unProjectRect(cancelB).pos(C2DO), C2DO);
 	}
 	#endif
-	text.draw(0, 0, C2DO, C2DO);
+	text.draw(0, 0, C2DO);
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
 {
 	using namespace Gfx;
 	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
@@ -239,6 +237,9 @@ static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
 
 void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 {
+	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
+	lastKeySetTime = e.time;
+	#endif
 	auto conf = mutableConfForDeviceConf(*devConf);
 	if(!conf)
 		return;
@@ -253,11 +254,23 @@ void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 
 void ButtonConfigView::inputEvent(const Input::Event &e)
 {
+	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
+	if(e.pushed() && e.time && lastKeySetTime)
+	{
+		auto durationSinceLastKeySet = e.time - lastKeySetTime;
+		if(durationSinceLastKeySet < Input::msToTime(100))
+		{
+			lastKeySetTime = 0;
+			logMsg("possible spurious input event after key set, ignoring");
+			return;
+		}
+	}
+	#endif
 	if(e.pushed() && e.isDefaultLeftButton() && tbl.selected > 0)
 	{
 		// unset key
 		onSet(Input::Event(), tbl.selected-1);
-		displayNeedsUpdate();
+		postDraw();
 	}
 	else
 		BaseMenuView::inputEvent(e);
@@ -291,7 +304,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 						onSet(e, keyToSet);
 					}
 				);
-				View::addModalView(btnSetView);
+				modalViewController.pushAndShow(btnSetView);
 			};
 		text[i++] = &btn[i2];
 	}
@@ -331,7 +344,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win):
 					}
 					keyMapping.buildAll();
 				};
-			View::addModalView(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView);
 		}
 	}
 {}

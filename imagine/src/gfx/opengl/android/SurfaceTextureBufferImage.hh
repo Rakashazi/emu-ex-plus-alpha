@@ -23,18 +23,21 @@ namespace Gfx
 
 struct SurfaceTextureBufferImage: public BufferImageInterface
 {
-	constexpr SurfaceTextureBufferImage() { }
 	jobject surfaceTex = nullptr, surface = nullptr;
 	ANativeWindow* nativeWin = nullptr;
-	Pixmap pix {PixelFormatRGB565}, *backingPix = nullptr;
+	IG::Pixmap pix {PixelFormatRGB565};
+	TextureDesc desc;
 
-	void init(int tid, Pixmap &pixmap);
-	void write(Pixmap &p, uint hints) override;
-	void write(Pixmap &p, uint hints, uint alignment) override;
-	void replace(Pixmap &pixmap, uint hints) override;
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
-	void unlock(Pixmap *pix = nullptr, uint hints = 0) override;
+	constexpr SurfaceTextureBufferImage() {}
+	void init(int tid, IG::Pixmap &pixmap);
+	void write(IG::Pixmap &p, uint hints) override;
+	void write(IG::Pixmap &p, uint hints, uint alignment) override;
+	void replace(IG::Pixmap &pixmap, uint hints) override;
+	IG::Pixmap *lock(uint x, uint y, uint xlen, uint ylen, IG::Pixmap *fallback = nullptr) override;
+	void unlock(IG::Pixmap *pix = nullptr, uint hints = 0) override;
 	void deinit() override;
+	const TextureDesc &textureDesc() const override { return desc; };
+	TextureDesc &textureDesc() override { return desc; };
 };
 
 }

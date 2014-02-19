@@ -4,7 +4,7 @@
 
 #include <assert.h>
 #include <util/memory.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/branch.h>
 #include <util/basicMath.hh>
 #include <util/basicString.h>

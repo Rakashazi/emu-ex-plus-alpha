@@ -3058,7 +3058,7 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   SFVARN(cd.command_size_left, "command_size_left"),
 
   // Don't save the FIFO's write position, it will be reconstructed from read_pos and in_count
-  SFARRAYN(&din->data[0], (uint32)din->data.size(), "din_fifo"),
+  SFARRAYN(&din->data[0], din->data.size(), "din_fifo"),
   SFVARN(din->read_pos, "din_read_pos"),
   SFVARN(din->in_count, "din_in_count"),
   SFVARN(cd.data_transfer_done, "data_transfer_done"),

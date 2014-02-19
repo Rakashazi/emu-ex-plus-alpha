@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../config.mk
+include $(IMAGINE_PATH)/make/config.mk
 ios_makefileOpts ?= O_RELEASE=1 O_LTO=1
 ios_imagineLibPathARMv6 ?= $(IMAGINE_PATH)/lib/ios-armv6-release
 ios_imagineIncludePathARMv6 ?= $(IMAGINE_PATH)/build/ios-armv6-release/gen

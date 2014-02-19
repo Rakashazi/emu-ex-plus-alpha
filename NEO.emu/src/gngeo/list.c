@@ -1,5 +1,5 @@
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <gngeo-config.h>
 #endif
 
 #include <stdlib.h>

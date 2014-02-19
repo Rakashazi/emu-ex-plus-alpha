@@ -1,3 +1,5 @@
+#pragma once
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -13,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#pragma once
-
 #include <engine-globals.h>
 
 #include <mem/interface.h>
@@ -26,8 +26,7 @@ class IoZip : public Io
 public:
 	static Io *open(const char *path, const char *pathInZip);
 	~IoZip() { close(); }
-
-	size_t readUpTo(void *buffer, size_t numBytes) override;
+	ssize_t readUpTo(void *buffer, size_t numBytes) override;
 	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
 	CallResult tell(ulong &offset) override;
 	CallResult seek(long offset, uint mode) override;
@@ -41,6 +40,7 @@ private:
 	unzFile zip = nullptr;
 	Io *zipIo = nullptr;
 	ulong uncompSize = 0;
+
 	bool openZipFile(const char *path);
 	bool openFileInZip();
 	void resetFileInZip();

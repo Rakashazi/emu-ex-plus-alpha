@@ -29,7 +29,7 @@ final class ChoreographerHelper
 		@Override public void doFrame(long frameTimeNanos)
 		{
 			choreographer.postFrameCallback(this);
-			if(!drawWindow(frameTimeNanos))
+			if(!onFrame(frameTimeNanos))
 			{
 				//Log.i(logTag, "stopping frame updates");
 				choreographer.removeFrameCallback(this);
@@ -42,16 +42,16 @@ final class ChoreographerHelper
 	}
 
 	private static final String logTag = "ChoreographerHelper";
-	private native boolean drawWindow(long frameTimeNanos);
+	private native boolean onFrame(long frameTimeNanos);
 	private final Choreographer choreographer = Choreographer.getInstance();
 	private final Callback callback = new Callback();
 
-	void postDrawWindow()
+	void postFrame()
 	{
 		choreographer.postFrameCallback(callback);
 	}
 	
-	void cancelDrawWindow()
+	void unpostFrame()
 	{
 		choreographer.removeFrameCallback(callback);
 	}

@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 SUBARCH := armv6
 android_abi := armeabi
 ifndef MACHINE
@@ -15,11 +15,7 @@ endif
 
 extraSysroot := $(IMAGINE_PATH)/bundle/android/armv6
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
-PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
-pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
 CPPFLAGS += -I$(extraSysroot)/include
-LDLIBS += -L$(extraSysroot)/lib
 
 include $(buildSysPath)/android-arm.mk
 

@@ -14,13 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <Cheats.hh>
-#include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <TextEntry.hh>
-#include <util/gui/ViewStack.hh>
 #include <main/EmuCheatViews.hh>
 
-extern MsgPopup popup;
-extern ViewStack viewStack;
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
 BaseCheatsView::BaseCheatsView(Base::Window &win):
@@ -32,7 +29,7 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 		{
 			auto &editCheatListView = *menuAllocator.allocNew<EditCheatListView>(window());
 			editCheatListView.init(!e.isPointer());
-			viewStack.pushAndShow(&editCheatListView, &menuAllocator);
+			pushAndShow(editCheatListView, &menuAllocator);
 		}
 	},
 	onRefreshCheats
@@ -78,21 +75,21 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input description", name.t.str);
+			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset());
 			textInputView.onText() =
-			[this](const char *str)
+			[this](CollectTextInputView &view, const char *str)
 			{
 				if(str)
 				{
 					logMsg("setting cheat name %s", str);
 					renamed(str);
 					name.compile();
-					window().displayNeedsUpdate();
+					window().postDraw();
 				}
-				removeModalView();
+				view.dismiss();
 				return 0;
 			};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	remove
@@ -101,7 +98,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			removed();
-			viewStack.popAndShow();
+			dismiss();
 		}
 	}
 {}

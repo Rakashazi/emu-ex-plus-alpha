@@ -48,7 +48,7 @@
 #include "run_loop_private.h"
 
 #include "debug.h"
-#include "config.h"
+#include "btstack-config.h"
 
 static run_loop_t * the_run_loop = NULL;
 
@@ -96,6 +96,11 @@ void run_loop_add_data_source(data_source_t *ds){
 int run_loop_remove_data_source(data_source_t *ds){
     run_loop_assert();
     return the_run_loop->remove_data_source(ds);
+}
+
+void run_loop_set_timer(timer_source_t *a, uint32_t timeout_in_ms){
+    run_loop_assert();
+    the_run_loop->set_timer(a, timeout_in_ms);
 }
 
 /**

@@ -23,36 +23,31 @@
 class ContentDrag
 {
 public:
-	constexpr ContentDrag() { }
+	enum State { INACTIVE, PUSHED, ENTERED_ACTIVE, ACTIVE, LEFT_ACTIVE, RELEASED, NO_CHANGE };
 	uint devId = 0;
-	bool active = 0, pushed = 0;
-
+	bool active = false, pushed = false;
 	int dragStartX = 0, dragStartY = 0;
-
 	enum { X_AXIS, Y_AXIS, XY_AXIS };
 	uint axis = 0;
 
+	constexpr ContentDrag() {}
 	void init(uint axis = Y_AXIS);
-
 	bool testingXAxis() { return axis == X_AXIS || axis == XY_AXIS; }
 	bool testingYAxis() { return axis == Y_AXIS || axis == XY_AXIS; }
-
-	enum State { INACTIVE, PUSHED, ENTERED_ACTIVE, ACTIVE, LEFT_ACTIVE, RELEASED, NO_CHANGE };
-
-	State inputEvent(const IG::Rect2<int> &bt, const Input::Event &e);
+	State inputEvent(const IG::WindowRect &bt, const Input::Event &e);
 };
 
 class KScroll : public ContentDrag
 {
 public:
-	constexpr KScroll() { }
 	int start = 0, offset = 0;
 	int prevOffset = 0;
-	GC vel = 0;
+	Gfx::GC vel = 0;
 	bool scrollWholeArea = 0, allowScrollWholeArea = 0;
 	int maxClip = 0;
 
-	void init(const IG::Rect2<int> *viewFrame, const IG::Rect2<int> *contentFrame);
+	constexpr KScroll() {}
+	void init(const IG::WindowRect *viewFrame, const IG::WindowRect *contentFrame);
 	void place(View &view);
 	bool clipOverEdge(int minC, int maxC, View &view);
 	void clipDragOverEdge(int minC, int maxC);
@@ -63,26 +58,26 @@ public:
 	void animate(int minClip, int maxClip, View &view);
 
 private:
-	const IG::Rect2<int> *viewFrame = nullptr;
-	const IG::Rect2<int> *contentFrame = nullptr;
+	const IG::WindowRect *viewFrame = nullptr;
+	const IG::WindowRect *contentFrame = nullptr;
 };
 
 class ScrollView1D
 {
 public:
-	constexpr ScrollView1D() { }
+	constexpr ScrollView1D() {}
 	KScroll scroll;
-	IG::Rect2<int> viewFrame;
-	IG::Rect2<int> scrollBarRect;
-	bool contentIsBiggerThanView = 0;
+	IG::WindowRect viewFrame;
+	IG::WindowRect scrollBarRect;
+	bool contentIsBiggerThanView = false;
 
-	void init(IG::Rect2<int> *contentFrame);
+	void init(IG::WindowRect *contentFrame);
 	void updateView(); // move content frame in position along view frame
-	void place(IG::Rect2<int> *frame, View &view);
+	void place(IG::WindowRect *frame, View &view);
 	void updateGfx(View &view);
 	void draw();
 	int inputEvent(const Input::Event &e, View &view);
 
 private:
-	IG::Rect2<int> *contentFrame = nullptr;
+	IG::WindowRect *contentFrame = nullptr;
 };

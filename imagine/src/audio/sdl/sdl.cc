@@ -13,132 +13,128 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "audio:sdl"
+#define LOGTAG "AudioSDL"
 #include <engine-globals.h>
 #include <audio/Audio.hh>
 #include <logger/interface.h>
 #include <SDL.h>
-#include <util/RingBuffer.hh>
+#include <util/ringbuffer/RingBuffer.hh>
 
 namespace Audio
 {
 
 PcmFormat preferredPcmFormat = { 44100, SampleFormats::s16, 2 };
-static PcmFormat pcmFmt;
-static uint bufferFrames = 800;
-static uint buffers = 8;
-static int startPlaybackBytes = 0;
-static uchar *localBuff = nullptr;
-static RingBuffer<int> rBuff;
-static bool isPlaying = 0;
+PcmFormat pcmFormat;
+static bool isInit_ = false;
+static uint wantedLatency = 100000;
+static StaticRingBuffer<int> rBuff;
+
+bool isPlaying()
+{
+	return SDL_GetAudioStatus() == SDL_AUDIO_PLAYING;
+}
+
+static bool isInit()
+{
+	return isInit_;
+}
+
+int maxRate()
+{
+	return 48000;
+}
+
+void setHintOutputLatency(uint us)
+{
+	wantedLatency = us;
+}
+
+uint hintOutputLatency()
+{
+	return wantedLatency;
+}
 
 static void audioCallback(void *userdata, Uint8 *buf, int bytes)
 {
 	int read;
 	if((read = rBuff.read(buf, bytes)) != bytes)
 	{
-		//logMsg("underrun, read %d out of %d bytes", read, bytes);
+		logMsg("underrun, read %d out of %d bytes", read, bytes);
+		uint padBytes = bytes - read;
+		//logMsg("padding %d bytes", padBytes);
+		mem_zero(&buf[read], padBytes);
+		pausePcm();
 	}
 
-	static int debugCount = 0;
-	if(countToValueLooped(debugCount, 120))
-	{
-		//logMsg("%d bytes in buffer", rBuff.written);
-	}
+//	static int debugCount = 0;
+//	if(countToValueLooped(debugCount, 120))
+//	{
+//		//logMsg("%d bytes in buffer", rBuff.written);
+//	}
 }
 
-void setHintPcmFramesPerWrite(uint frames)
-{
-	logMsg("setting buffer frames to %d", frames);
-	assert(frames < 2000);
-	bufferFrames = frames;
-	assert(!isOpen());
-}
-
-void setHintPcmMaxBuffers(uint maxBuffers)
-{
-	logMsg("setting max buffers to %d", maxBuffers);
-	assert(maxBuffers < 100);
-	buffers = maxBuffers;
-	assert(!isOpen());
-}
-
-uint hintPcmMaxBuffers() { return buffers; }
-
-static void startPcm()
+void resumePcm()
 {
 	SDL_PauseAudio(0);
-	isPlaying = 1;
 }
 
-/*void pausePcm()
+void pausePcm()
 {
 	SDL_PauseAudio(1);
-	isPlaying = 0;
-}*/
+}
 
 CallResult openPcm(const PcmFormat &format)
 {
-	SDL_AudioSpec spec;
-	mem_zero(spec);
+	SDL_AudioSpec spec{0};
 	spec.freq = format.rate;
-	spec.format = (format.sample->bits == 16) ? AUDIO_S16SYS : AUDIO_U8;
+	spec.format = (format.sample.bits == 16) ? AUDIO_S16SYS : AUDIO_U8;
 	spec.channels = format.channels;
 	spec.samples = 1024;
 	spec.callback = audioCallback;
 	//spec.userdata = 0;
-	uint bufferSize = format.framesToBytes(bufferFrames) * buffers;
-	startPlaybackBytes = format.framesToBytes(bufferFrames) * buffers-1;
-	localBuff = (uchar*)mem_alloc(bufferSize);
-	if(!localBuff)
-	{
-		logMsg("error allocation audio buffer");
-		return OUT_OF_MEMORY;
-	}
-	logMsg("allocated %d for audio buffer", bufferSize);
-	rBuff.init(localBuff, bufferSize);
+	rBuff.init(format.uSecsToBytes(wantedLatency));
+	logMsg("allocated %d bytes for audio buffer", rBuff.freeSpace());
 	if(SDL_OpenAudio(&spec, 0) < 0)
 	{
 		logErr("error in SDL_OpenAudio");
 		return INVALID_PARAMETER;
 	}
-	pcmFmt = format;
+	pcmFormat = format;
 	logMsg("opened audio %dHz with buffer %d samples %d size", spec.freq, spec.samples, spec.size);
 	return OK;
 }
 
-void writePcm(uchar *buffer, uint framesToWrite)
+void clearPcm()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("clearing queued samples");
+	pausePcm();
+	rBuff.reset();
+}
+
+void writePcm(const void *buffer, uint framesToWrite)
 {
 	assert(isOpen());
-	int bytes = pcmFmt.framesToBytes(framesToWrite), written;
-	SDL_LockAudio();
+	int bytes = pcmFormat.framesToBytes(framesToWrite), written;
 	if((written = rBuff.write(buffer, bytes)) != bytes)
 	{
 		//logMsg("overrun, wrote %d out of %d bytes", written, bytes);
-	}
-	SDL_UnlockAudio();
-	if(!isPlaying && rBuff.written >= startPlaybackBytes)
-	{
-		startPcm();
 	}
 }
 
 void closePcm()
 {
-	if(isOpen()/*SDL_GetAudioStatus() != SDL_AUDIO_STOPPED*/)
-	{
-		isPlaying = 0;
-		SDL_CloseAudio();
-		rBuff.reset();
-		mem_free(localBuff);
-		localBuff = nullptr;
-		mem_zero(pcmFmt);
-	}
+	if(!isOpen())
+		return;
+	SDL_CloseAudio();
+	rBuff.deinit();
+	pcmFormat = {};
 }
 
 bool isOpen()
 {
-	return pcmFmt.rate != 0;//SDL_GetAudioStatus() == SDL_AUDIO_PLAYING;
+	return pcmFormat.rate;
 }
 
 int frameDelay()
@@ -148,15 +144,16 @@ int frameDelay()
 
 int framesFree()
 {
-	return pcmFmt.bytesToFrames(rBuff.freeSpace());
+	return pcmFormat.bytesToFrames(rBuff.freeSpace());
 }
 
 CallResult init()
 {
 	#ifndef CONFIG_BASE_SDL
-		// Init SDL here if not using base SDL module
-		SDL_Init(SDL_INIT_NOPARACHUTE | SDL_INIT_AUDIO);
+	// Init SDL here if not using base SDL module
+	SDL_Init(SDL_INIT_NOPARACHUTE | SDL_INIT_AUDIO);
 	#endif
+	isInit_ = true;
 	return OK;
 }
 

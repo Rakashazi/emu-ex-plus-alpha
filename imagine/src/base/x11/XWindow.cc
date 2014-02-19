@@ -1,3 +1,18 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <base/common/windowPrivate.hh>
 #include <base/x11/x11.hh>
 #include <base/x11/xlibutils.h>
@@ -62,14 +77,27 @@ void Window::setTitle(const char *name)
 	}
 }
 
-void Window::displayNeedsUpdate()
+void Window::postDraw()
 {
-	drawPosted = true;
+	//logMsg("posting window");
+	setNeedsDraw(true);
+	mainScreen().postFrame();
 }
 
 void Window::unpostDraw()
 {
-	drawPosted = false;
+	setNeedsDraw(false);
+}
+
+void Screen::postFrame()
+{
+	//logMsg("posting frame");
+	framePosted = true;
+}
+
+void Screen::unpostFrame()
+{
+	framePosted = false;
 }
 
 void Window::setAsDrawTarget()
@@ -77,8 +105,7 @@ void Window::setAsDrawTarget()
 	if(drawTargetWindow != this)
 	{
 		glCtx.makeCurrent(dpy, *this);
-		Gfx::setViewport(*this);
-		Gfx::setProjector(*this);
+		onSetAsDrawTarget(*this);
 		drawTargetWindow = this;
 	}
 }
@@ -91,7 +118,7 @@ static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool in
 	#if defined CONFIG_MACHINE_PANDORA
 	win.xWin = XCreateWindow(dpy, rootWindow, 0, 0, xres, yres, 0,
 		CopyFromParent, InputOutput, CopyFromParent,
-		CWColormap | CWEventMask, &attr);
+		CWEventMask, &attr);
 	#else
 	attr.colormap = XCreateColormap(dpy, rootWindow, glCtx.vi->visual, AllocNone);
 	win.xWin = XCreateWindow(dpy, rootWindow, 0, 0, xres, yres, 0,
@@ -101,19 +128,16 @@ static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool in
 	if(!win.xWin)
 		return INVALID_PARAMETER;
 	glCtx.initWindowSurface(win);
-	logMsg("created window with XID %d", (int)win.xWin);
+	logMsg("created window with XID %d, drawable depth %d", (int)win.xWin, xDrawableDepth(dpy, win.xWin));
 	glCtx.makeCurrent(dpy, win);
 	if(init)
 	{
-		// viewport defaults to window size the first time context is bound
 		Gfx::init();
 	}
 	else
 	{
 		Window::setVideoInterval(0); // set interval to 0 so multiple swaps can occur at the same time
-		Gfx::setViewport(win);
 	}
-	Gfx::setProjector(win);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	drawTargetWindow = &win;
 	//auto sres = glXJoinSwapGroupNV(dpy, win.xWin, 1);
@@ -138,7 +162,6 @@ static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool in
 		};
 		XSetWMNormalHints(dpy, win.xWin, &hints);
 	}
-	logMsg("using depth %d", xDrawableDepth(dpy, win.xWin));
 
 	// setup xinput2
 	XIEventMask eventmask;
@@ -177,26 +200,15 @@ void Window::setVideoInterval(uint interval)
 	glCtx.setSwapInterval(interval);
 }
 
-void Window::updateSize(int width, int height)
+IG::WindowRect Window::contentBounds() const
 {
-	viewRect.x2 = w = width;
-	viewRect.y2 = h = height;
-	viewPixelWidth_ = viewRect.xSize();
-	viewPixelHeight_ = viewRect.ySize();
-	calcPhysicalSize();
+	return bounds();
 }
 
-IG::Rect2<int> Window::untransformedViewBounds() const
-{
-	return {0, 0, w, h};
-}
-
-void Window::calcPhysicalSize()
+IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	assert(dispXMM);
-	viewMMWidth_ = dispXMM * ((float)w/(float)dispX);
-	viewMMHeight_ = dispYMM * ((float)h/(float)dispY);
-	logMsg("view size in MM %fx%f", (double)viewMMWidth_, (double)viewMMHeight_);
+	return {dispXMM * ((float)size.x/(float)dispX), dispYMM * ((float)size.y/(float)dispY)};
 }
 
 Window *windowForXWindow(::Window xWin)
@@ -226,9 +238,9 @@ void Window::setDPI(float dpi)
 		dispXMM = ((float)dispX / dpi) * 25.4;
 		dispYMM = ((float)dispY / dpi) * 25.4;
 	}
-
-	calcPhysicalSize();
-	setupScreenSize();
+	if(updatePhysicalSizeWithCurrentSize())
+		postResize();
+	//setupScreenSize();
 }
 
 CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
@@ -274,11 +286,11 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	}
 	#endif
 
-	updateSize(x, y);
+	updateSize({x, y});
 	bool init = false;
 	if(!glCtx)
 	{
-		doOrAbort(glCtx.init(dpy, screen, false));
+		doOrAbort(glCtx.init(dpy, screen, false, Gfx::maxOpenGLMajorVersionSupport()));
 		init = true;
 	}
 	if(setupGLWindow(*this, w, h, init) != OK)
@@ -331,8 +343,11 @@ void shutdownWindowSystem()
 void Window::show()
 {
 	assert(xWin != None);
-	displayNeedsUpdate();
+	postDraw();
 	XMapRaised(dpy, xWin);
 }
+
+void Window::setAutoOrientation(bool on) {}
+void Window::setSystemOrientation(uint o) {}
 
 }

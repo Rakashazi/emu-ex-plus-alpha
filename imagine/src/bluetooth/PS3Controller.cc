@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "ps3ctrl"
+#define LOGTAG "PS3Ctrl"
 #include "PS3Controller.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 
 using namespace IG;
 
@@ -131,11 +131,19 @@ uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
 		btInputDevList.push_back(this);
 		sendFeatureReport();
 		devId = player;
+		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
 		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
-	else if(status == BluetoothSocket::STATUS_ERROR)
+	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	{
+		logErr("PS3 controller connection error");
+		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		close();
+		delete this;
+	}
+	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("PS3 controller read error, disconnecting");
 		removeFromSystem();
@@ -190,7 +198,9 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e->keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					onInputEvent(Base::mainWindow(), Event(player, Event::MAP_PS3PAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, this));
+					Event event{player, Event::MAP_PS3PAD, (Key)e->keyEvent, newState ? PUSHED : RELEASED, 0, 0, this};
+					startKeyRepeatTimer(event);
+					Base::onInputEvent(Base::mainWindow(), event);
 				}
 			}
 			memcpy(prevData, digitalBtnData, sizeof(prevData));
@@ -269,4 +279,44 @@ uint PS3Controller::findFreeDevId()
 	}
 	logMsg("too many devices");
 	return 0;
+}
+
+uint PS3Controller::joystickAxisBits()
+{
+	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
+}
+
+uint PS3Controller::joystickAxisAsDpadBitsDefault()
+{
+	return Device::AXIS_BITS_STICK_1;
+}
+
+void PS3Controller::setJoystickAxisAsDpadBits(uint axisMask)
+{
+	using namespace Input;
+	if(joystickAxisAsDpadBits_ == axisMask)
+		return;
+
+	joystickAxisAsDpadBits_ = axisMask;
+	logMsg("mapping joystick axes for player: %d", player);
+	{
+		bool on = axisMask & Device::AXIS_BIT_X;
+		axisKey[0].lowKey = on ? Input::PS3::LEFT : Input::PS3::LSTICK_LEFT;
+		axisKey[0].highKey = on ? Input::PS3::RIGHT : Input::PS3::LSTICK_RIGHT;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_Y;
+		axisKey[1].lowKey = on ? Input::PS3::UP : Input::PS3::LSTICK_UP;
+		axisKey[1].highKey = on ? Input::PS3::DOWN : Input::PS3::LSTICK_DOWN;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_Z;
+		axisKey[2].lowKey = on ? Input::PS3::LEFT : Input::PS3::RSTICK_LEFT;
+		axisKey[2].highKey = on ? Input::PS3::RIGHT : Input::PS3::RSTICK_RIGHT;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_RZ;
+		axisKey[3].lowKey = on ? Input::PS3::UP : Input::PS3::RSTICK_UP;
+		axisKey[3].highKey = on ? Input::PS3::DOWN : Input::PS3::RSTICK_DOWN;
+	}
 }

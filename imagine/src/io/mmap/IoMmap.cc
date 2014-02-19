@@ -13,13 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "io:mmap"
+#define LOGTAG "IOMMap"
 #include <logger/interface.h>
 #include <mem/interface.h>
 #include <string.h>
 #include <assert.h>
-
-#include "IoMmap.hh"
+#include <io/utils.hh>
+#include <io/mmap/IoMmap.hh>
 
 void IoMmap::init(const char *buffer, size_t size)
 {
@@ -33,7 +33,7 @@ const char *IoMmap::endofBuffer()
 	return data + iSize;
 }
 
-size_t IoMmap::readUpTo(void* buffer, size_t numBytes)
+ssize_t IoMmap::readUpTo(void* buffer, size_t numBytes)
 {
 	assert(currPos >= data);
 	if(currPos >= endofBuffer())
@@ -67,29 +67,12 @@ CallResult IoMmap::tell(ulong &offset)
 
 CallResult IoMmap::seek(long offset, uint mode)
 {
-	const char *newPos = currPos;
-	if(mode == IO_SEEK_ABS)
+	if(!transformOffsetToAbsolute(mode, offset, (long)data, (long)(data + iSize), (long)currPos))
 	{
-		newPos = data + offset;
-	}
-	else if(mode == IO_SEEK_ABS_END)
-	{
-		newPos = (data + iSize) + offset;
-	}
-	else if(mode == IO_SEEK_ADD)
-	{
-		newPos += offset;
-	}
-	else if(mode == IO_SEEK_SUB)
-	{
-		newPos -= offset;
-	}
-	else
-	{
-		logErr("invalid seek mode");
+		logErr("invalid seek parameter");
 		return INVALID_PARAMETER;
 	}
-
+	auto newPos = (const char*)offset;
 	if(newPos < data || newPos > (data + iSize))
 	{
 		logErr("illegal seek position");

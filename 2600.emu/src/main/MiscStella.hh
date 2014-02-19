@@ -78,7 +78,7 @@ void FrameBuffer::setTIAPalette(const uInt32* palette)
 		uint8 b = palette[i] & 0xff;
 
 		// RGB 565
-		tiaColorMap[i] = pixFmt->build(r >> 3, g >> 2, b >> 3, 0);
+		tiaColorMap[i] = emuView.vidPix.format.build(r >> 3, g >> 2, b >> 3, 0);
 	}
 
 	iterateTimes(256, i)
@@ -97,7 +97,7 @@ void FrameBuffer::setTIAPalette(const uInt32* palette)
 			uint8 b = getPhosphor(bi, bj);
 
 			// RGB 565
-			tiaPhosphorColorMap[i][j] = pixFmt->build(r >> 3, g >> 2, b >> 3, 0);
+			tiaPhosphorColorMap[i][j] = emuView.vidPix.format.build(r >> 3, g >> 2, b >> 3, 0);
 		}
 	}
 }

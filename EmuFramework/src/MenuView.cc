@@ -16,9 +16,8 @@
 #include <MenuView.hh>
 #include <Recent.hh>
 #include <gui/AlertView.hh>
-#include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <EmuSystem.hh>
-#include <util/gui/ViewStack.hh>
 #include <CreditsView.hh>
 #include <FilePicker.hh>
 #include <StateSlotView.hh>
@@ -26,17 +25,13 @@
 #include <EmuOptions.hh>
 #include <InputManagerView.hh>
 #include <TouchConfigView.hh>
-#include <EmuView.hh>
+#include <TextEntry.hh>
 #include <util/strings.h>
 #ifdef CONFIG_BLUETOOTH
 #include <bluetooth/sys.hh>
 #include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
-extern MsgPopup popup;
-extern ViewStack viewStack;
 extern const char *creditsViewStr;
-extern InputManagerView *imMenu;
-extern EmuView emuView;
 #ifdef CONFIG_BLUETOOTH
 extern BluetoothAdapter *bta;
 #endif
@@ -75,28 +70,28 @@ static auto onScanStatus =
 				if(Config::envIsIOS)
 				{
 					popup.postError("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
-					Base::mainWindow().displayNeedsUpdate();
+					Base::mainWindow().postDraw();
 				}
 			}
 			bcase BluetoothAdapter::SCAN_FAILED:
 			{
 				popup.postError("Scan failed");
-				Base::mainWindow().displayNeedsUpdate();
+				Base::mainWindow().postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NO_DEVS:
 			{
 				popup.post("No devices found");
-				Base::mainWindow().displayNeedsUpdate();
+				Base::mainWindow().postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
 				popup.printf(2, 0, "Checking %d device(s)...", arg);
-				Base::mainWindow().displayNeedsUpdate();
+				Base::mainWindow().postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
 				popup.postError("Failed reading a device name");
-				Base::mainWindow().displayNeedsUpdate();
+				Base::mainWindow().postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_COMPLETE:
 			{
@@ -110,13 +105,13 @@ static auto onScanStatus =
 				{
 					popup.post("Scan complete, no recognized devices");
 				}
-				Base::mainWindow().displayNeedsUpdate();
+				Base::mainWindow().postDraw();
 			}
-			bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
+			/*bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
 				popup.postError("Failed opening a Bluetooth connection");
-				Base::mainWindow().displayNeedsUpdate();
-			}
+				Base::mainWindow().postDraw();
+			}*/
 		}
 	};
 
@@ -134,7 +129,7 @@ static void handledFailedBTAdapterInit(const Input::Event &e)
 				logMsg("launching Cydia");
 				Base::openURL("cydia://package/ch.ringwald.btstack");
 			};
-		View::addModalView(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView);
 	}
 	#endif
 }
@@ -151,6 +146,9 @@ void MenuView::onShow()
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
 	stateSlot.compile();
 	screenshot.active = EmuSystem::gameIsRunning();
+	#ifdef CONFIG_BASE_ANDROID
+	addLauncherIcon.active = EmuSystem::gameIsRunning();
+	#endif
 	#ifdef CONFIG_BLUETOOTH
 	bluetoothDisconnect.active = Bluetooth::devsConnected();
 	#endif
@@ -182,6 +180,9 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 		#endif
 	bluetoothDisconnect.init(); item[items++] = &bluetoothDisconnect;
 	#endif
+	#ifdef CONFIG_BASE_ANDROID
+	addLauncherIcon.init(); item[items++] = &addLauncherIcon;
+	#endif
 	benchmark.init(); item[items++] = &benchmark;
 	screenshot.init(); item[items++] = &screenshot;
 	about.init(); item[items++] = &about;
@@ -197,8 +198,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(window());
 			fPicker.init(!e.isPointer(), false);
-			viewStack.useNavView = 0;
-			viewStack.pushAndShow(&fPicker, &menuAllocator);
+			pushAndShow(fPicker, &menuAllocator, false);
 		}
 	},
 	reset
@@ -216,7 +216,7 @@ MenuView::MenuView(Base::Window &win):
 						EmuSystem::resetGame();
 						startGameFromMenu();
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 		}
 	},
@@ -241,7 +241,7 @@ MenuView::MenuView(Base::Window &win):
 						else
 							startGameFromMenu();
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 		}
 	},
@@ -254,7 +254,7 @@ MenuView::MenuView(Base::Window &win):
 			{
 				auto &rMenu = *menuAllocator.allocNew<RecentGameView>(window());
 				rMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&rMenu, &menuAllocator);
+				pushAndShow(rMenu, &menuAllocator);
 			}
 		}
 	},
@@ -288,7 +288,7 @@ MenuView::MenuView(Base::Window &win):
 						{
 							doSaveState();
 						};
-					View::addModalView(ynAlertView);
+					modalViewController.pushAndShow(ynAlertView);
 				}
 			}
 		}
@@ -299,7 +299,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &ssMenu = *menuAllocator.allocNew<StateSlotView>(window());
 			ssMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&ssMenu, &menuAllocator);
+			pushAndShow(ssMenu, &menuAllocator);
 		}
 	},
 	stateSlotText // Can't init with string literal due to GCC bug #43453
@@ -311,7 +311,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &oMenu = *menuAllocator.allocNew<OptionCategoryView>(window());
 			oMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&oMenu, &menuAllocator);
+			pushAndShow(oMenu, &menuAllocator);
 		}
 	},
 	onScreenInputManager
@@ -321,7 +321,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &tcMenu = *menuAllocator.allocNew<TouchConfigView>(window(), touchConfigFaceBtnName, touchConfigCenterBtnName);
 			tcMenu.init(!e.isPointer());
-			viewStack.pushAndShow(&tcMenu, &menuAllocator);
+			pushAndShow(tcMenu, &menuAllocator);
 		}
 	},
 	inputManager
@@ -331,7 +331,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &menu = *menuAllocator.allocNew<InputManagerView>(window());
 			menu.init(!e.isPointer());
-			viewStack.pushAndShow(&menu, &menuAllocator);
+			pushAndShow(menu, &menuAllocator);
 		}
 	},
 	benchmark
@@ -341,9 +341,41 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &fPicker = *allocModalView<EmuFilePicker>(window());
 			fPicker.initForBenchmark(!e.isPointer());
-			View::addModalView(fPicker);
+			modalViewController.pushAndShow(fPicker);
 		}
 	},
+	#ifdef CONFIG_BASE_ANDROID
+	addLauncherIcon
+	{
+		"Add Game Shortcut to Launcher",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &textInputView = *allocModalView<CollectTextInputView>(window());
+				textInputView.init("Shortcut Name", strlen(EmuSystem::fullGameName) ? EmuSystem::fullGameName : EmuSystem::gameName,
+						getCollectTextCloseAsset());
+				textInputView.onText() =
+					[this](CollectTextInputView &view, const char *str)
+					{
+						if(str && strlen(str))
+						{
+							Base::addLauncherIcon(str, EmuSystem::fullGamePath);
+							popup.printf(2, false, "Added shortcut:\n%s", str);
+							postDraw();
+						}
+						view.dismiss();
+						return 0;
+					};
+				modalViewController.pushAndShow(textInputView);
+			}
+			else
+			{
+				popup.post("Load a game first");
+			}
+		}
+	},
+	#endif
 	#ifdef CONFIG_BLUETOOTH
 	scanWiimotes
 	{
@@ -352,7 +384,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(initBTAdapter())
 			{
-				if(Bluetooth::scanForDevices(bta, onScanStatus))
+				if(Bluetooth::scanForDevices(*bta, onScanStatus))
 				{
 					popup.post("Starting Scan...\n(see website for device-specific help)", 4);
 				}
@@ -365,7 +397,7 @@ MenuView::MenuView(Base::Window &win):
 			{
 				handledFailedBTAdapterInit(e);
 			}
-			displayNeedsUpdate();
+			postDraw();
 		}
 	},
 	bluetoothDisconnect
@@ -384,7 +416,7 @@ MenuView::MenuView(Base::Window &win):
 					{
 						Bluetooth::closeBT(bta);
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 		}
 	},
@@ -398,7 +430,7 @@ MenuView::MenuView(Base::Window &win):
 			if(initBTAdapter())
 			{
 				popup.post("Prepare to push the PS button", 4);
-				auto startedScan = Bluetooth::listenForDevices(bta,
+				auto startedScan = Bluetooth::listenForDevices(*bta,
 					[this](BluetoothAdapter &bta, uint status, int arg)
 					{
 						switch(status)
@@ -407,12 +439,12 @@ MenuView::MenuView(Base::Window &win):
 							{
 								popup.postError(Config::envIsLinux ? "Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
 									"Bluetooth setup failed", Config::envIsLinux ? 8 : 2);
-								displayNeedsUpdate();
+								postDraw();
 							}
 							bcase BluetoothAdapter::SCAN_COMPLETE:
 							{
 								popup.post("Push the PS button on your controller\n(see website for pairing help)", 4);
-								displayNeedsUpdate();
+								postDraw();
 							}
 							bdefault: onScanStatus(bta, status, arg);
 						}
@@ -426,7 +458,7 @@ MenuView::MenuView(Base::Window &win):
 			{
 				handledFailedBTAdapterInit(e);
 			}
-			displayNeedsUpdate();
+			postDraw();
 		}
 	},
 	#endif
@@ -437,7 +469,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			auto &credits = *menuAllocator.allocNew<CreditsView>(creditsViewStr, window());
 			credits.init();
-			viewStack.pushAndShow(&credits, &menuAllocator);
+			pushAndShow(credits, &menuAllocator);
 		}
 	},
 	exitApp
@@ -458,6 +490,24 @@ MenuView::MenuView(Base::Window &win):
 		}
 	}
 {}
+
+void OptionCategoryView::init(bool highlightFirst)
+{
+	//logMsg("running option category init");
+	uint i = 0;
+	forEachInArray(subConfig, e)
+	{
+		e->init(); item[i++] = e;
+		e->onSelect() =
+		[this, e_i](TextMenuItem &, const Input::Event &e)
+		{
+			auto &oCategoryMenu = allocAndGetOptionCategoryMenu(window(), e, menuAllocator, e_i);
+			viewStack.pushAndShow(oCategoryMenu, &menuAllocator);
+		};
+	}
+	assert(i <= sizeofArray(item));
+	BaseMenuView::init(item, i, highlightFirst);
+}
 
 extern void loadGameComplete(bool tryAutoState, bool addToRecent);
 
@@ -527,7 +577,7 @@ RecentGameView::RecentGameView(Base::Window &win):
 		[this](TextMenuItem &t, const Input::Event &e)
 		{
 			recentGameList.clear();
-			viewStack.popAndShow();
+			dismiss();
 		}
 	}
 {}

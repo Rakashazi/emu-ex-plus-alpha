@@ -1,5 +1,7 @@
 #pragma once
 
+#define EMUFRAMEWORK_BUILD
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 

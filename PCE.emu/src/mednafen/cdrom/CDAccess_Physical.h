@@ -16,9 +16,11 @@ class CDAccess_Physical : public CDAccess
 
  void Read_TOC(CDUtility::TOC *toc) override;
 
- bool Is_Physical(void) override;
+ bool Is_Physical(void) throw() override;
 
  void Eject(bool eject_status) override;
+
+ void HintReadSector(int32 lba, int32 count) override { } // TODO
  private:
 
  void *p_cdio;

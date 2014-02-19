@@ -2,7 +2,6 @@
 
 #include <logger/interface.h>
 #include <assert.h>
-#include <util/cLang.h>
 #include <string.h>
 #include <Option.hh>
 #include <fs/sys.hh>

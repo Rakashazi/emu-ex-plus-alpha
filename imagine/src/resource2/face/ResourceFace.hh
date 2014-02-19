@@ -1,6 +1,21 @@
 #pragma once
-#include <engine-globals.h>
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <engine-globals.h>
 #include <resource2/font/ResourceFont.h>
 #include <resource2/font/common/glyphTable.h>
 #define RESOURCE_FACE_SETTINGS_UNCHANGED 128
@@ -11,6 +26,9 @@
 class ResourceFace
 {
 public:
+	FontSettings settings;
+	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
+
 	constexpr ResourceFace() {}
 	static ResourceFace *create(ResourceFont *font, FontSettings *set = nullptr);
 	static ResourceFace *create(ResourceFace *face, FontSettings *set = nullptr);
@@ -25,7 +43,7 @@ public:
 	CallResult applySettings(FontSettings set);
 	//int maxDescender();
 	//int maxAscender();
-	CallResult writeCurrentChar(Pixmap &out);
+	CallResult writeCurrentChar(IG::Pixmap &out);
 	CallResult precache(const char *string);
 	CallResult precacheAlphaNum()
 	{
@@ -34,8 +52,6 @@ public:
 	GlyphEntry *glyphEntry(int c);
 	uint nominalHeight() const;
 
-	FontSettings settings;
-	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 private:
 	ResourceFont *font = nullptr;
 	GlyphEntry *glyphTable = nullptr;
@@ -50,13 +66,12 @@ private:
 class GfxGlyphImage : public GfxImageSource
 {
 public:
-	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
+	ResourceFace *face;
+	GlyphEntry *entry;
 
-	CallResult getImage(Pixmap &dest) override { return face->writeCurrentChar(dest); }
+	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
+	CallResult getImage(IG::Pixmap &dest) override { return face->writeCurrentChar(dest); }
 	uint width() override { return entry->metrics.xSize; }
 	uint height() override { return entry->metrics.ySize; }
 	const PixelFormatDesc *pixelFormat() override { return &PixelFormatA8; }
-
-	ResourceFace *face;
-	GlyphEntry *entry;
 };

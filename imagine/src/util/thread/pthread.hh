@@ -1,4 +1,20 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <logger/interface.h>
 #include <util/DelegateFunc.hh>
@@ -14,12 +30,20 @@
 
 class ThreadPThread
 {
+private:
+	pthread_t id = 0;
+
+	#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
 public:
+	JNIEnv* jEnv = nullptr;
+	#endif
+
+public:
+	using EntryDelegate = DelegateFunc<ptrsize (ThreadPThread &thread)>;
+	EntryDelegate entry;
 	bool running = 0;
 
-	constexpr ThreadPThread() { }
-
-	typedef DelegateFunc<ptrsize (ThreadPThread &thread)> EntryDelegate;
+	constexpr ThreadPThread() {}
 
 	bool create(uint type, EntryDelegate entry)
 	{
@@ -35,11 +59,11 @@ public:
 		if(pthread_create(&id, &attr, wrapper, this) != 0)
 		{
 			logErr("error in pthread create");
-			return 0;
+			return false;
 		}
 		logMsg("created wrapped pthread %p", (void*)id);
-		running = 1;
-		return 1;
+		running = true;
+		return true;
 	}
 
 	bool create(uint type, void* (*entry)(void *), void *arg)
@@ -77,29 +101,6 @@ public:
 		#endif
 	}
 
-	/*void cancel()
-	{
-		#ifndef CONFIG_BASE_PS3
-		if(running)
-		{
-			logMsg("canceling pthread %d", (int)id);
-			pthread_cancel(id);
-			running = 0;
-		}
-		#else
-			bug_exit("canceling thread not supported");
-		#endif
-	}*/
-
-	EntryDelegate entry;
-private:
-	pthread_t id = 0;
-
-#if defined __ANDROID__ && CONFIG_ENV_ANDROID_MINSDK < 9
-public:
-	JNIEnv* jEnv = nullptr;
-#endif
-
 private:
 	static void *wrapper(void *runData)
 	{
@@ -124,10 +125,14 @@ private:
 
 class MutexPThread
 {
-	bool init = 0, locked = 0;
+private:
+	bool init = false, locked = false;
+
 public:
 	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // TODO use accessor
-	constexpr MutexPThread() { }
+
+	constexpr MutexPThread() {}
+
 	bool create()
 	{
 		pthread_mutexattr_t attr;
@@ -184,20 +189,23 @@ public:
 
 class CondVarPThread
 {
+private:
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 	pthread_mutex_t *mutex = nullptr;
-	bool init = 0;
+	bool init = false;
+
 public:
-	constexpr CondVarPThread() { }
-	bool create(MutexPThread *mutex = 0)
+	constexpr CondVarPThread() {}
+
+	bool create(MutexPThread &mutex)
 	{
 		pthread_cond_init(&cond, 0);
-		this->mutex = &mutex->mutex;
-		init = 1;
-		return 1;
+		this->mutex = &mutex.mutex;
+		init = true;
+		return true;
 	}
 
-	void wait(MutexPThread *mutex = 0)
+	void wait(MutexPThread *mutex = nullptr)
 	{
 		assert(mutex || this->mutex);
 		pthread_mutex_t *waitMutex = mutex ? &mutex->mutex : this->mutex;

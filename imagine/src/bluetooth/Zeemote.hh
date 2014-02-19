@@ -17,38 +17,41 @@
 
 #include <bluetooth/sys.hh>
 #include <input/Input.hh>
+#include <input/AxisKeyEmu.hh>
 #include <util/collection/ArrayList.hh>
 
 struct Zeemote : public BluetoothInputDevice, public Input::Device
 {
 public:
+	static const uchar btClass[3];
+	static StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+
 	Zeemote(BluetoothAddr addr):
 		Device {0, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
 		addr(addr)
 	{}
 	CallResult open(BluetoothAdapter &adapter) override;
-
 	void close();
-
 	void removeFromSystem() override;
-
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const char *packet, size_t size);
-
-	static const uchar btClass[3];
 
 	static bool isSupportedClass(const uchar devClass[3])
 	{
 		return mem_equal(devClass, btClass, 3);
 	}
 
-	static StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys sock;
 	uchar inputBuffer[46] {0};
+	bool prevBtnPush[4] {0};
 	uint inputBufferPos = 0;
 	uint packetSize = 0;
-	bool prevBtnPush[4] {0}, stickBtn[4] {0};
+	Input::AxisKeyEmu<int> axisKey[2]
+	{
+		{-63, 63, Input::Zeemote::LEFT, Input::Zeemote::RIGHT}, // X Axis
+		{-63, 63, Input::Zeemote::UP, Input::Zeemote::DOWN},  // Y Axis
+	};
 	uint player;
 	BluetoothAddr addr;
 
@@ -58,5 +61,4 @@ private:
 	static uint findFreeDevId();
 	static const char *reportIDToStr(uint id);
 	void processBtnReport(const uchar *btnData, uint player);
-	void processStickDataForButtonEmulation(const schar *pos, int player);
 };

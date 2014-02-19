@@ -24,24 +24,24 @@ class BluetoothPendingSocket;
 
 struct BluetoothAddr : public NotEquals<BluetoothAddr>
 {
+	uint8 b[6] {0};
+
 	constexpr BluetoothAddr() {}
 	constexpr BluetoothAddr(uint8 b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
-	uint8 b[6] = {0};
 
 	bool operator ==(BluetoothAddr const& rhs) const
 	{
 		return memcmp(b, rhs.b, sizeof(b)) == 0;
 	}
-
 } __attribute__((packed));
 
 class BluetoothAdapter
 {
 public:
 	enum { INIT_FAILED, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
-		SCAN_COMPLETE, SCAN_CANCELLED, SOCKET_OPEN_FAILED };
+		SCAN_COMPLETE, SCAN_CANCELLED/*, SOCKET_OPEN_FAILED*/ };
 	enum State { STATE_OFF, STATE_ON, STATE_TURNING_OFF, STATE_TURNING_ON, STATE_ERROR };
-	bool inDetect = 0;
+	bool inDetect = false;
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	static bool useScanCache;
 	#endif
@@ -97,8 +97,9 @@ public:
 	OnDataDelegate &onData() { return onDataD; }
 	typedef DelegateFunc<uint (BluetoothSocket &sock, uint status)> OnStatusDelegate;
 	OnStatusDelegate &onStatus() { return onStatusD; }
-	enum { STATUS_CONNECTING, STATUS_OPENED, STATUS_ERROR, STATUS_CLOSED };
+	enum { STATUS_CONNECTING, STATUS_CONNECT_ERROR, STATUS_OPENED, STATUS_READ_ERROR, STATUS_CLOSED };
 	enum { OPEN_USAGE_NONE = 0, OPEN_USAGE_READ_EVENTS };
+
 protected:
 	OnDataDelegate onDataD;
 	OnStatusDelegate onStatusD;
@@ -107,7 +108,7 @@ protected:
 class BluetoothInputDevice
 {
 public:
+	virtual ~BluetoothInputDevice() {}
 	virtual CallResult open(BluetoothAdapter &adapter) = 0;
-	virtual ~BluetoothInputDevice() { }
 	virtual void removeFromSystem() = 0;
 };

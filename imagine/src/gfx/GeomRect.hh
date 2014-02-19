@@ -6,7 +6,7 @@
 namespace Gfx
 {
 
-typedef TexQuad TexRect;
-typedef Quad GeomRect;
+using TexRect = TexQuad;
+using GeomRect = Quad;
 
 }

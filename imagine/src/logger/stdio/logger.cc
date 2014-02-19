@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "logger:stdio"
+#define LOGTAG "LoggerStdio"
 #include <engine-globals.h>
 #include <base/Base.hh>
 #include <fs/sys.hh>
@@ -21,16 +21,16 @@
 #include <cstdio>
 
 #ifdef CONFIG_BASE_ANDROID
-	#include <android/log.h>
+#include <android/log.h>
 #elif defined(CONFIG_BASE_IOS)
-	#include <base/iphone/private.hh>
+#include <base/iphone/private.hh>
 #endif
 
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
 
-static const bool useExternalLogFile = 0;
+static const bool useExternalLogFile = false;
 static FILE *logExternalFile = nullptr;
 
 #ifdef CONFIG_FS

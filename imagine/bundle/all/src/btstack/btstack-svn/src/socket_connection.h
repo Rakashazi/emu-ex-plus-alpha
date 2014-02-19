@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2009-2012 by Matthias Ringwald
  *
@@ -40,12 +41,16 @@
  *  Created by Matthias Ringwald on 6/6/09.
  */
 
-#pragma once
+#ifndef __SOCKET_CONNECTION_H
+#define __SOCKET_CONNECTION_H
 
 #include <btstack/run_loop.h>
 
 #include <stdint.h>
 
+#if defined __cplusplus
+extern "C" {
+#endif
 
 /** opaque connection type */
 typedef struct connection connection_t;
@@ -118,3 +123,8 @@ void socket_connection_retry_parked(void);
  */
 int  socket_connection_has_parked_connections(void);
 
+#if defined __cplusplus
+}
+#endif
+
+#endif // __SOCKET_CONNECTION_H

@@ -1,5 +1,14 @@
 #pragma once
 #include <OptionView.hh>
+#include <stella/emucore/Console.hxx>
+#include "OSystem.hxx"
+
+static constexpr uint TV_PHOSPHOR_AUTO = 2;
+extern Byte1Option optionTVPhosphor, optionVideoSystem;
+extern Console *console;
+extern Properties currGameProps;
+extern OSystem osystem;
+extern bool p1DiffB, p2DiffB, vcsColor;
 
 class SystemOptionView : public OptionView
 {
@@ -24,8 +33,6 @@ class SystemOptionView : public OptionView
 			{
 				usePhosphor = optionTVPhosphor;
 			}
-			//console->props.set(Display_Phosphor, usePhosphor ? "YES" : "NO");
-			//osystem->frameBuffer().enablePhosphor(usePhosphor, atoi(myProperties.get(Display_PPBlend).c_str()));
 			bool phospherInUse = console->properties().get(Display_Phosphor) == "YES";
 			logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
 			if(usePhosphor != phospherInUse)
@@ -47,6 +54,25 @@ class SystemOptionView : public OptionView
 		tvPhosphor.init(str, int(optionTVPhosphor), sizeofArray(str));
 	}
 
+	MultiChoiceSelectMenuItem videoSystem
+	{
+		"Video System",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionVideoSystem = val;
+		}
+	};
+
+	void videoSystemInit()
+	{
+		static const char *str[] =
+		{
+			"Auto", "NTSC", "PAL", "SECAM", "NTSC 50", "PAL 60", "SECAM 60"
+		};
+		assert(optionVideoSystem < (int)sizeofArray(str));
+		videoSystem.init(str, optionVideoSystem, sizeofArray(str));
+	}
+
 public:
 	SystemOptionView(Base::Window &win): OptionView(win) {}
 
@@ -54,6 +80,7 @@ public:
 	{
 		OptionView::loadVideoItems(item, items);
 		tvPhosphorInit(); item[items++] = &tvPhosphor;
+		videoSystemInit(); item[items++] = &videoSystem;
 	}
 };
 
@@ -84,7 +111,7 @@ class VCSSwitchesView : public BaseMenuView
 						ev.set(Event::ConsoleReset, 0);
 						startGameFromMenu();
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 		}
 	};
@@ -154,7 +181,7 @@ private:
 			{
 				auto &vcsSwitchesView = *menuAllocator.allocNew<VCSSwitchesView>(window());
 				vcsSwitchesView.init(!e.isPointer());
-				viewStack.pushAndShow(&vcsSwitchesView, &menuAllocator);
+				viewStack.pushAndShow(vcsSwitchesView, &menuAllocator);
 			}
 		}
 	};

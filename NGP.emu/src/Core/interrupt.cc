@@ -89,7 +89,7 @@
 #include "TLCS900h_interpret.h"
 #include "Z80_interface.h"
 #include "dma.h"
-#include <util/builtins.h>
+#include <util/utility.h>
 #include <logger/interface.h>
 #include <assert.h>
 

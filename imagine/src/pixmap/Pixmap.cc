@@ -1,79 +1,76 @@
-#define thisModuleName "pixmap"
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define LOGTAG "Pixmap"
 #include <pixmap/Pixmap.hh>
 #include <util/pixel.h>
 #include <util/fixed.hh>
 #include <string.h>
+
+namespace IG
+{
 
 char *Pixmap::getPixel(uint x, uint y) const
 {
 	return(data + format.offsetBytes(x, y, pitch));
 }
 
-char *Pixmap::nextPixelOnLine(char *pixel) const
-{
-	return(pixel + format.bytesPerPixel);
-}
-
-void Pixmap::subPixmapOffsets(Pixmap *sub, uint *x, uint *y) const
-{
-	ptrsize dataOffset = sub->data - data;
-	assert(dataOffset < Pixmap::sizeOfImage());
-	*x = ((uint)dataOffset % pitch) / format.bytesPerPixel;
-	*y = (uint)dataOffset / pitch;
-}
-
-void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap *dest, int destX, int destY) const
+void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap &dest, int destX, int destY) const
 {
 	//logDMsg("copying pixmap format src: %s dest: %s", pixelformat_toString(src->format), pixelformat_toString(dest->format));
 	// copy all width/height if 0
-	if(width == 0) width = x;
-	if(height == 0) height = y;
-	//logDMsg("from %dx%d img src: x %d-%d y %d-%d to dest: %dx%d", x, y, srcX, width, srcY, height, destX, destY);
-	assert(width <= (int)dest->x + destX);
-	assert(height <= (int)dest->y + destY);
-	if(data == dest->data)
+	if(!width) width = x;
+	if(!height) height = y;
+	//logDMsg("from %dx%d img to dest %dx%d img src: x %d-%d y %d-%d to dest: %dx%d", x, y, dest.x, dest.y, srcX, width, srcY, height, destX, destY);
+	assert(width <= (int)dest.x + destX);
+	assert(height <= (int)dest.y + destY);
+	if(data == dest.data)
 	{
-		assert(dest->format.bytesPerPixel <= format.bytesPerPixel);
+		assert(dest.format.bytesPerPixel <= format.bytesPerPixel);
 	}
 	//logMsg("copying %s to %s", dest->format->name, format->name);
-	assert(format.id == dest->format.id);
-	//if(format->id == dest->format->id)
+	assert(format.id == dest.format.id);
+	char *srcData = getPixel(srcX, srcY);
+	char *destData = dest.getPixel(destX, destY);
+	if(dest.x == x && dest.pitch == pitch && dest.x == (uint)width)
 	{
-		char *srcData = getPixel(srcX, srcY);
-		char *destData = dest->getPixel(destX, destY);
-		if(dest->x == x && pitch == dest->pitch && dest->x == (uint)width)
+		// whole block
+		//logDMsg("copying whole block");
+		memcpy(destData, srcData, sizeOfPixels(width * height));
+	}
+	else
+	{
+		// line at a time
+		for(int y = srcY; y < height; y++)
 		{
-			// whole block
-			//logDMsg("copying whole block");
-			memcpy(destData, srcData, format.bytesPerPixel * width * height);
-		}
-		else
-		{
-			// line at a time
-			for(int y = srcY; y < height; y++)
-			{
-				//memcpy(dest->getPixel(destX, destY+y), getPixel(srcX, y), format->bytesPerPixel * width);
-				memcpy(destData, srcData, format.bytesPerPixel * width);
-				srcData += pitch;
-				destData += dest->pitch;
-			}
+			memcpy(destData, srcData, sizeOfPixels(width));
+			srcData += pitch;
+			destData += dest.pitch;
 		}
 	}
-	/*else
-	{
-
-	}*/
 }
 
 void Pixmap::initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint ylen)
 {
-	this->data = orig.getPixel(x, y);
+	data = orig.getPixel(x, y);
 	this->x = xlen;
 	this->y = ylen;
-	this->pitch = orig.pitch;
+	pitch = orig.pitch;
 }
 
-void Pixmap::copyHLineToRectFromSelf(uint xStart, uint yStart, uint xlen, uint xDest, uint yDest, uint yDestLen)
+/*void Pixmap::copyHLineToRectFromSelf(uint xStart, uint yStart, uint xlen, uint xDest, uint yDest, uint yDestLen)
 {
 	char *srcLine = Pixmap::getPixel(xStart, yStart);
 	uint runLen = xlen * format.bytesPerPixel;
@@ -112,11 +109,24 @@ void Pixmap::copyPixelToRectFromSelf(uint xStart, uint yStart, uint xDest, uint 
 	}
 }
 
+void Pixmap::subPixmapOffsets(Pixmap *sub, uint *x, uint *y) const
+{
+	ptrsize dataOffset = sub->data - data;
+	assert(dataOffset < Pixmap::sizeOfImage());
+	*x = ((uint)dataOffset % pitch) / format.bytesPerPixel;
+	*y = (uint)dataOffset / pitch;
+}
+*/
+
 void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
 {
-	for(uint y = 0; y < ylen; y++)
+	char *destPixel = Pixmap::getPixel(xStart, yStart+y);
+	uint clearBytes = format.bytesPerPixel * xlen;
+	iterateTimes(ylen, i)
 	{
-		char *destPixel = Pixmap::getPixel(xStart, yStart+y);
-		memset(destPixel, 0, format.bytesPerPixel * xlen);
+		memset(destPixel, 0, clearBytes);
+		destPixel += pitch;
 	}
+}
+
 }

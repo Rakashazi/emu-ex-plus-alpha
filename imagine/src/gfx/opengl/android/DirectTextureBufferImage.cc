@@ -18,7 +18,8 @@
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 
 #include "DirectTextureBufferImage.hh"
-#include "../glStateCache.h"
+#include "../GLStateCache.hh"
+#include "../private.hh"
 #include "../utils.h"
 
 /*#include <unistd.h>
@@ -69,7 +70,7 @@ bool DirectTextureBufferImage::testSupport(const char **errorStr)
 	glGenTextures(1, &ref);
 	glcBindTexture(GL_TEXTURE_2D, ref);
 
-	Pixmap pix(PixelFormatRGB565);
+	IG::Pixmap pix(PixelFormatRGB565);
 	pix.init(nullptr, 256, 256);
 	DirectTextureBufferImage directTex;
 	if(directTex.init(pix, ref, 256, 256, errorStr))
@@ -85,7 +86,7 @@ bool DirectTextureBufferImage::testSupport(const char **errorStr)
 	}
 }
 
-bool DirectTextureBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr)
+bool DirectTextureBufferImage::initTexture(IG::Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr)
 {
 	int androidFormat = pixelFormatToDirectAndroidFormat(pix.format);
 	if(androidFormat == GGL_PIXEL_FORMAT_NONE)
@@ -152,8 +153,8 @@ bool DirectTextureBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, 
 		goto CLEANUP;
 	}
 
-	new(&eglPixmap) Pixmap(pix.format);
-	eglPixmap.init(0, usedX, usedY, 0);
+	new(&eglPixmap) IG::Pixmap(pix.format);
+	eglPixmap.init(nullptr, usedX, usedY);
 	eglPixmap.pitch = eglBuf.stride * eglPixmap.format.bytesPerPixel;
 
 	return 1;
@@ -172,12 +173,12 @@ bool DirectTextureBufferImage::initTexture(Pixmap &pix, uint usedX, uint usedY, 
 	return 0;
 }
 
-bool DirectTextureBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr)
+bool DirectTextureBufferImage::init(IG::Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr)
 {
 	return initTexture(pix, usedX, usedY, !directTextureConf.whitelistedEGLImageKHR, errorStr);
 }
 
-/*void DirectTextureBufferImage::replace(Pixmap &p, uint hints)
+/*void DirectTextureBufferImage::replace(IG::Pixmap &p, uint hints)
 {
 	glcBindTexture(GL_TEXTURE_2D, tid);
 	if(eglBuf.handle)
@@ -194,27 +195,27 @@ bool DirectTextureBufferImage::init(Pixmap &pix, uint texRef, uint usedX, uint u
 	}
 }*/
 
-void DirectTextureBufferImage::write(Pixmap &p, uint hints)
+void DirectTextureBufferImage::write(IG::Pixmap &p, uint hints)
 {
-	glcBindTexture(GL_TEXTURE_2D, tid);
+	glcBindTexture(GL_TEXTURE_2D, desc.tid);
 
 	//logMsg("updating EGL image");
 	void *data;
-	Pixmap *texturePix = lock(0, 0, p.x, p.y);
+	IG::Pixmap *texturePix = lock(0, 0, p.x, p.y);
 	if(!texturePix)
 	{
 		return;
 	}
-	p.copy(0, 0, 0, 0, texturePix, 0, 0);
+	p.copy(0, 0, 0, 0, *texturePix, 0, 0);
 	unlock();
 }
 
-void DirectTextureBufferImage::write(Pixmap &p, uint hints, uint alignment)
+void DirectTextureBufferImage::write(IG::Pixmap &p, uint hints, uint alignment)
 {
 	write(p, hints);
 }
 
-Pixmap *DirectTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback)
+IG::Pixmap *DirectTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, IG::Pixmap *fallback)
 {
 	void *data;
 	if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, x, y, xlen, ylen, data) != 0)
@@ -226,7 +227,7 @@ Pixmap *DirectTextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pix
 	return &eglPixmap;
 }
 
-void DirectTextureBufferImage::unlock(Pixmap *pix, uint hints)
+void DirectTextureBufferImage::unlock(IG::Pixmap *pix, uint hints)
 {
 	directTextureConf.unlockBuffer(eglBuf);
 }
@@ -243,8 +244,8 @@ void DirectTextureBufferImage::deinit()
 		}
 	}
 	TextureBufferImage::deinit();
-	freeTexRef(tid);
-	tid = 0;
+	freeTexRef(desc.tid);
+	desc.tid = 0;
 }
 
 }

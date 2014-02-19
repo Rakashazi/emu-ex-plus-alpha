@@ -3,6 +3,7 @@
 #include <gfx/Gfx.hh>
 #include <util/rectangle2.h>
 #include <gfx/GfxBufferImage.hh>
+#include <gfx/ProjectionPlane.hh>
 #include <util/edge.h>
 
 namespace Gfx
@@ -12,7 +13,7 @@ template<class Vtx>
 class QuadGeneric
 {
 public:
-	constexpr QuadGeneric() { }
+	constexpr QuadGeneric() {}
 	CallResult init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
 	void deinit();
 	void setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
@@ -24,7 +25,7 @@ public:
 		return init(x, y,  x, y2,  x2, y2,  x2, y);
 	}
 
-	CallResult init(const IG::Rect2<GC> &d)
+	CallResult init(const GCRect &d)
 	{
 		return init(d.x, d.y, d.x2, d.y2);
 	}
@@ -39,14 +40,13 @@ public:
 		memcpy(v, quad.v, sizeof(v));
 	}
 
-	void setPos(const IG::Rect2<int> &b)
+	void setPos(const IG::WindowRect &b, const ProjectionPlane &proj)
 	{
-		using namespace Gfx;
-		setPos(gXPos(b, LB2DO), gYPos(b, LB2DO),
-				gXPos(b, RT2DO), gYPos(b, RT2DO));
+		auto pos = proj.unProjectRect(b);
+		setPos(pos.x, pos.y, pos.x2, pos.y2);
 	}
 
-	void setPos(const IG::Rect2<GC> &r)
+	void setPos(const GCRect &r)
 	{
 		setPos(r.x, r.y, r.x2, r.y2);
 	}
@@ -56,15 +56,12 @@ public:
 		setPos(x, y, x+xSize, y+ySize);
 	}
 
-	static void draw(const IG::Rect2<int> &b)
+	static void draw(const IG::WindowRect &b, const ProjectionPlane &proj)
 	{
-		using namespace Gfx;
-		IG::Rect2<GC> d(gXPos(b, LB2DO), gYPos(b, LB2DO),
-				gXPos(b, RT2DO), gYPos(b, RT2DO));
-		draw(d);
+		draw(proj.unProjectRect(b));
 	}
 
-	static void draw(const IG::Rect2<GC> &d)
+	static void draw(const GCRect &d)
 	{
 		QuadGeneric<Vtx> rect;
 		rect.init(d);
@@ -75,7 +72,7 @@ protected:
 	Vtx v[4];
 };
 
-typedef QuadGeneric<Vertex> Quad;
+using Quad = QuadGeneric<Vertex>;
 
 class TexQuad : public QuadGeneric<TexVertex>
 {
@@ -89,9 +86,9 @@ class ColQuad : public QuadGeneric<ColVertex>
 {
 public:
 	constexpr ColQuad() { }
-	void setColor(GColor r, GColor g, GColor b, GColor a, uint edges = EDGE_AI);
-	void setColorRGB(GColor r, GColor g, GColor b, uint edges = EDGE_AI);
-	void setColorAlpha(GColor a, uint edges = EDGE_AI);
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges = EDGE_AI);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);
+	void setColorAlpha(ColorComp a, uint edges = EDGE_AI);
 };
 
 class ColTexQuad : public QuadGeneric<ColTexVertex>
@@ -100,9 +97,9 @@ public:
 	constexpr ColTexQuad() { }
 	void mapImg(const BufferImage &img);
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
-	void setColor(GColor r, GColor g, GColor b, GColor a, uint edges = EDGE_AI);
-	void setColorRGB(GColor r, GColor g, GColor b, uint edges = EDGE_AI);
-	void setColorAlpha(GColor a, uint edges = EDGE_AI);
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges = EDGE_AI);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);
+	void setColorAlpha(ColorComp a, uint edges = EDGE_AI);
 };
 
 }

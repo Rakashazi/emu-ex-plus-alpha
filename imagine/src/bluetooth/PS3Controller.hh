@@ -23,6 +23,8 @@
 class PS3Controller : public BluetoothInputDevice, public Input::Device
 {
 public:
+	static StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+
 	PS3Controller(BluetoothAddr addr):
 		Device {0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
 		addr(addr)
@@ -35,13 +37,14 @@ public:
 	bool dataHandler(const char *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void setLEDs(uint player);
+	uint joystickAxisBits() override;
+	uint joystickAxisAsDpadBitsDefault() override;
+	void setJoystickAxisAsDpadBits(uint axisMask) override;
+	uint joystickAxisAsDpadBits() override { return joystickAxisAsDpadBits_; }
 
-	static StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
-	static uint findFreeDevId();
-	static uchar playerLEDs(uint player);
-	void sendFeatureReport();
 	uchar prevData[3] {0};
+	bool didSetLEDs = false;
 	Input::AxisKeyEmu<int> axisKey[4]
 	{
 		{64, 192, Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT}, // Left X Axis
@@ -51,6 +54,10 @@ private:
 	};
 	BluetoothSocketSys ctlSock, intSock;
 	uint player = 0;
+	uint joystickAxisAsDpadBits_;
 	BluetoothAddr addr;
-	bool didSetLEDs = false;
+
+	static uint findFreeDevId();
+	static uchar playerLEDs(uint player);
+	void sendFeatureReport();
 };

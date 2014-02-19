@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "log.h"
 #include "snapshot.h"
@@ -71,8 +72,8 @@
 #define CARD_TYPE_SD           2
 #define CARD_TYPE_SDHC         3
 
-typedef uint64 LWORD;
-typedef int64 SLWORD;
+typedef uint64_t LWORD;
+typedef int64_t SLWORD;
 #define HAVE_64BIT_TYPES
 
 #ifdef HAVE_64BIT_TYPES

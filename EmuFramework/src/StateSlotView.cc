@@ -14,8 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <StateSlotView.hh>
-
-extern ViewStack viewStack;
+#include <EmuApp.hh>
 
 void StateSlotView::init(bool highlightFirst)
 {
@@ -51,7 +50,7 @@ void StateSlotView::init(bool highlightFirst)
 			{
 				EmuSystem::saveStateSlot = slot;
 				logMsg("set state slot %d", EmuSystem::saveStateSlot);
-				viewStack.popAndShow();
+				dismiss();
 			};
 	}
 	assert(i <= sizeofArray(item));

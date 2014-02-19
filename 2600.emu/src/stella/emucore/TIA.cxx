@@ -659,6 +659,7 @@ inline void TIA::endFrame()
 	// Recalculate framerate. attempting to auto-correct for scanline 'jumps'
 	if(myAutoFrameEnabled)
 	{
+		assert(0); // don't use for now
 		myFramerate = (myScanlineCountForLastFrame > 285 ? 15600.0 : 15720.0) /
 									 myScanlineCountForLastFrame;
 		myConsole.setFramerate(myFramerate);

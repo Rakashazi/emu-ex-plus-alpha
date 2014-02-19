@@ -2,10 +2,7 @@
 #define __MDFN_ENDIAN_H
 
 #include "types.h"
-
-#ifndef CONFIG_BASE_PS3
-	#include <endian.h>
-#endif
+#include <endian.h>
 
 #ifdef MSB_FIRST
  #ifdef LSB_FIRST

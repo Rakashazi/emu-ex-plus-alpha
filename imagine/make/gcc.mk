@@ -4,7 +4,17 @@ include $(buildSysPath)/gcc-common.mk
 
 ifdef O_LTO
  COMPILE_FLAGS += -flto
- LDFLAGS += $(COMPILE_FLAGS) $(WHOLE_PROGRAM_CFLAGS)
+ ifndef O_LTO_FAT
+  COMPILE_FLAGS += -fno-fat-lto-objects
+ endif
+ ifeq ($(origin AR), default)
+  # must use gcc's ar wrapper or thin-LTO won't work if building a static archive
+  AR := $(CHOST_PREFIX)gcc-ar
+ endif
+else
+ ifeq ($(origin AR), default)
+  AR := $(CHOST_PREFIX)ar
+ endif
 endif
 
 gccVersion := $(shell $(CC) -dumpversion)

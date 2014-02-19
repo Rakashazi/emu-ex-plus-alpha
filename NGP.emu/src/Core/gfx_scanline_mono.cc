@@ -65,7 +65,7 @@
 #include "neopop.h"
 #include "mem.h"
 #include "gfx.h"
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <algorithm>
 
 static uint16 monoConvMap[8] = { 0 };

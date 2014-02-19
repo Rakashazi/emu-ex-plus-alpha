@@ -14,9 +14,9 @@ ifneq ($(config_compiler),clang)
  HIGH_OPTIMIZE_CFLAGS = -O3 -fno-tree-vectorize $(HIGH_OPTIMIZE_CFLAGS_MISC)
 endif
 
-SRC += main/Main.cc main/EmuControls.cc
+include $(EMUFRAMEWORK_PATH)/common.mk
 
-include ../EmuFramework/common.mk
+SRC += main/Main.cc main/EmuControls.cc
 
 CPPFLAGS += -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 -DSysDDec=float \
 -DVERSION=\"0.9.10\"

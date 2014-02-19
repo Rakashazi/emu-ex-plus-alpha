@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "io:mmap:fd"
+#define LOGTAG "IOMMapFD"
 #include <logger/interface.h>
 #include <util/fd-utils.h>
 #include <sys/mman.h>
-
+#include <util/system/pagesize.h>
 #include "IoMmapFd.hh"
 
 Io * IoMmapFd::open(int fd)
@@ -48,5 +48,27 @@ void IoMmapFd::close()
 		logMsg("unmapping %p", data);
 		munmap((void*)data, iSize);
 		data = nullptr;
+	}
+}
+
+void IoMmapFd::advise(long offset, size_t len, Advice advice)
+{
+	void *srcAddr = (void*)((ptrsize)data + offset);
+	void *pageSrcAddr = (void*)roundDownToPageSize((ptrsize)srcAddr);
+	len += (ptrsize)srcAddr - (ptrsize)pageSrcAddr; // add extra length from rounding down to page size
+	if(advice == ADVICE_SEQUENTIAL)
+	{
+		if(madvise(pageSrcAddr, len, MADV_SEQUENTIAL) != 0)
+		{
+			logMsg("advise sequential for offset 0x%X with size %u failed", (uint)offset, (uint)len);
+		}
+	}
+	else if(advice == ADVICE_WILLNEED)
+	{
+		//logMsg("advising will need offset 0x%X @ page %p with size %u", (uint)offset, pageSrcAddr, (uint)len);
+		if(madvise(pageSrcAddr, len, MADV_WILLNEED) != 0)
+		{
+			logMsg("advise will need for offset 0x%X with size %u failed", (uint)offset, (uint)len);
+		}
 	}
 }

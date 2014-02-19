@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "res:font:uikit"
+#define LOGTAG "ResFontUIKit"
 #include <engine-globals.h>
 #include <gfx/Gfx.hh>
 #include <util/strings.h>
@@ -67,7 +67,7 @@ static void renderTextIntoBuffer(NSString *str, void *buff, uint xSize, uint ySi
 	CGContextRelease(context);
 }
 
-void ResourceFontUIKit::charBitmap(void *&data, int &x, int &y, int &pitch)
+IG::Pixmap ResourceFontUIKit::charBitmap()
 {
 	if(!pixBuffer)
 	{
@@ -75,16 +75,15 @@ void ResourceFontUIKit::charBitmap(void *&data, int &x, int &y, int &pitch)
 		pixBuffer = (char*)mem_calloc(cXFullSize * cYFullSize);
 		auto str = [[NSString alloc] initWithCharacters:&currChar length:1];
 		renderTextIntoBuffer(str, pixBuffer, cXFullSize, cYFullSize,
-			Base::grayColorSpace, textColor, activeFont);
-		[str release];
+			Base::grayColorSpace, textColor, activeFont());
+		//[str release];
 	}
-	data = startOfCharInPixBuffer;
-	x = cXSize;
-	y = cYSize;
-	pitch = cXFullSize;
+	IG::Pixmap pix{PixelFormatA8};
+	pix.init2(startOfCharInPixBuffer, cXSize, cYSize, cXFullSize);
+	return pix;
 }
 
-void ResourceFontUIKit::unlockCharBitmap(void *data)
+void ResourceFontUIKit::unlockCharBitmap(IG::Pixmap &pix)
 {
 	mem_freeSafe(pixBuffer);
 	pixBuffer = nullptr;
@@ -99,11 +98,10 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		auto str = [[NSString alloc] initWithCharacters:&currChar length:1];
 		
 		// measure max bounds
-		CGSize size = [str sizeWithFont:activeFont];
+		CGSize size = [str sizeWithFont:activeFont()];
 		if(!size.width || !size.height)
 		{
 			logMsg("invalid char 0x%X size %f:%f", idx, size.width, size.height);
-			[str release];
 			return INVALID_PARAMETER;
 		}
 		//logMsg("char %c size %f:%f", idx, size.width, size.height);
@@ -118,8 +116,7 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 		//pixBuffer = (char*)mem_realloc(pixBuffer, bufferSize);
 		//mem_zero(pixBuffer, bufferSize);
 		renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
-			Base::grayColorSpace, textColor, activeFont);
-		[str release];
+			Base::grayColorSpace, textColor, activeFont());
 		
 		// measure real bounds
 		uint minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
@@ -150,21 +147,26 @@ CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
 	return OK;
 }
 
-CallResult ResourceFontUIKit::newSize (const FontSettings &settings, FontSizeRef &sizeRef)
+CallResult ResourceFontUIKit::newSize(const FontSettings &settings, FontSizeRef &sizeRef)
 {
-	auto fontInst = [UIFont systemFontOfSize:(CGFloat)settings.pixelHeight];
-	[fontInst retain];
-	sizeRef.ptr = fontInst;
+	freeSize(sizeRef);
+	sizeRef.ptr = (void*)CFBridgingRetain([UIFont systemFontOfSize:(CGFloat)settings.pixelHeight]);
 	return OK;
 }
 
-CallResult ResourceFontUIKit::applySize (FontSizeRef &sizeRef)
+CallResult ResourceFontUIKit::applySize(FontSizeRef &sizeRef)
 {
-	activeFont = (UIFont*)sizeRef.ptr;
+	assert(sizeRef.ptr);
+	activeFont_ = sizeRef.ptr;
 	return OK;
 }
 
-void ResourceFontUIKit::freeSize (FontSizeRef &sizeRef)
+void ResourceFontUIKit::freeSize(FontSizeRef &sizeRef)
 {
-	[((UIFont*)sizeRef.ptr) release];
+	if(!sizeRef.ptr)
+		return;
+	if(activeFont_ == sizeRef.ptr)
+		activeFont_ = nullptr;
+	CFRelease(sizeRef.ptr);
+	sizeRef.ptr = nullptr;
 }

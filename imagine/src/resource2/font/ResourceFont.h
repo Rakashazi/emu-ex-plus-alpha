@@ -1,45 +1,54 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <resource2/font/common/glyphTable.h>
 #include <data-type/font/FontData.hh>
+#include <util/operators.hh>
 #include <assert.h>
 
-class FontSettings
+class FontSettings : public NotEquals<FontSettings>
 {
 public:
-	constexpr FontSettings() { }
-	constexpr FontSettings(int pixelWidth, int pixelHeight) : pixelWidth(pixelWidth), pixelHeight(pixelHeight) { }
-	constexpr FontSettings(int pixelHeight) : FontSettings(0, pixelHeight) { }
+	int pixelWidth = 0, pixelHeight = 0;
 
-	int areValid()
+	constexpr FontSettings() {}
+	constexpr FontSettings(int pixelWidth, int pixelHeight) : pixelWidth(pixelWidth), pixelHeight(pixelHeight) {}
+	constexpr FontSettings(int pixelHeight) : FontSettings(0, pixelHeight) {}
+
+	bool areValid() const
 	{
-		return pixelHeight != 0 || pixelWidth != 0;
+		return pixelHeight || pixelWidth;
 	}
 
 	void process()
 	{
 		assert(areValid());
-		if(pixelHeight == 0)
+		if(!pixelHeight)
 			pixelHeight = pixelWidth;
-		if(pixelWidth == 0)
+		if(!pixelWidth)
 			pixelWidth = pixelHeight;
 	}
 
 	bool operator==(const FontSettings& other) const
 	{
-		if(pixelHeight == other.pixelHeight
-			&& pixelWidth == other.pixelWidth)
-			return 1;
-		else
-			return 0;
+		return pixelHeight == other.pixelHeight
+			&& pixelWidth == other.pixelWidth;
 	}
-
-	bool operator!=(const FontSettings& other) const
-	{
-		return !(*this == other);
-	}
-
-	int pixelWidth = 0, pixelHeight = 0;
 };
 
 class ResourceFace;
@@ -47,15 +56,13 @@ class ResourceFace;
 class ResourceFont
 {
 public:
-	virtual ~ResourceFont() { }
-
+	constexpr ResourceFont() {}
+	virtual ~ResourceFont() {}
 	CallResult initWithName(const char * name);
-	//ResourceImageGlyph *createRenderable(int c, ResourceFace *face, GlyphEntry *entry);
 	int minUsablePixels() const;
-
 	virtual void free() = 0;
-	virtual void charBitmap(void* &bitmap, int &x, int &y, int &pitch) = 0;
-	virtual void unlockCharBitmap(void *data) { }
+	virtual IG::Pixmap charBitmap() = 0;
+	virtual void unlockCharBitmap(IG::Pixmap &pix) {}
 	virtual CallResult activeChar(int idx, GlyphMetrics &metrics) = 0;
 	//virtual int currentFaceDescender() const = 0;
 	//virtual int currentFaceAscender() const = 0;

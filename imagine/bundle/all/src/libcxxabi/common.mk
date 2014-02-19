@@ -1,8 +1,8 @@
-libcxxabiSrcArchive := libcxxabi-193840.tar.xz
+libcxxabiSrcArchive := libcxxabi-200981.tar.xz
 libcxxabiSrcDir := libcxxabi
 
-libcxxSrcDir := ../libcxx/libcxx
-libcxxSrcArchive := ../libcxx/libcxx-193814.tar.xz
+libcxxSrcDir := ../libcxx/libcxx-3.4
+libcxxSrcArchive := ../libcxx/libcxx-3.4.src.tar.gz
 
 outputLibFile := $(buildDir)/libcxxabi.a
 installIncludeDir := $(installDir)/include
@@ -19,7 +19,7 @@ OBJ := $(CPP_OBJ)
 
 cxxRTTI := 1
 cxxExceptions := 1
-CPPFLAGS += -I$(libcxxabiSrcDir)/include -I../libcxx/libcxx/include
+CPPFLAGS += -I$(libcxxabiSrcDir)/include -I$(libcxxSrcDir)/include
 
 all : $(outputLibFile)
 
@@ -27,7 +27,7 @@ install : $(outputLibFile)
 	@echo "Installing libcxxabi to $(installDir)..."
 	@mkdir -p $(installIncludeDir) $(installDir)/lib
 	cp $(outputLibFile) $(installDir)/lib/
-	cp $(libcxxabiSrcDir)/include/* $(installIncludeDir)/
+	cp $(libcxxabiSrcDir)/include/*.h $(installIncludeDir)/
 
 .PHONY : all install
 
@@ -38,10 +38,10 @@ $(outputLibFile) : $(OBJ)
 
 $(CPP_SRC) : $(libcxxabiSrcDir) $(libcxxSrcDir)
 
-$(libcxxabiSrcDir) : $(libcxxabiSrcArchive)
+$(libcxxabiSrcDir) : | $(libcxxabiSrcArchive)
 	@echo "Extracting libcxxabi..."
-	tar -mxJf $^
+	tar -mxJf $|
 
-$(libcxxSrcDir) : $(libcxxSrcArchive)
+$(libcxxSrcDir) : | $(libcxxSrcArchive)
 	@echo "Extracting libcxx..."
-	tar -C ../libcxx -mxJf $^
+	tar -C ../libcxx -mxJf $|

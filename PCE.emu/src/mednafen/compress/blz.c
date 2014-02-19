@@ -23,7 +23,7 @@ use plain restrict. */
 /* blz 0.9.1. http://www.slack.net/~ant/ */
 
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+	#include <mednafen-config.h>
 #endif
 
 #include <util/ansiTypes.h>

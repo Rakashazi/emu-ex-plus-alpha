@@ -2,14 +2,20 @@
 
 #include <algorithm>
 #include <gfx/GfxBufferImage.hh>
-#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	#include "android/SurfaceTextureBufferImage.hh"
+#ifdef __ANDROID__
+#include <base/android/private.hh>
+#include "android/DirectTextureBufferImage.hh"
+#include "android/SurfaceTextureBufferImage.hh"
+#endif
+
+#ifdef CONFIG_GFX_OPENGL_ES
+#define GL_MIRRORED_REPEAT 0x8370
 #endif
 
 namespace Gfx
 {
 
-GfxTextureHandle newTexRef()
+TextureHandle newTexRef()
 {
 	GLuint ref;
 	glGenTextures(1, &ref);
@@ -17,7 +23,7 @@ GfxTextureHandle newTexRef()
 	return ref;
 }
 
-void freeTexRef(GfxTextureHandle texRef)
+void freeTexRef(TextureHandle texRef)
 {
 	//logMsg("deleting texture %u", texRef);
 	glcDeleteTextures(1, &texRef);
@@ -26,7 +32,7 @@ void freeTexRef(GfxTextureHandle texRef)
 static uint unpackAlignForPitch(uint pitch)
 {
 	uint alignment = 1;
-	if(!Config::envIsPS3 && (pitch % 8 == 0)) alignment = 8;
+	if(pitch % 8 == 0) alignment = 8;
 	else if(pitch % 4 == 0) alignment = 4;
 	else if(pitch % 2 == 0) alignment = 2;
 	return alignment;
@@ -55,14 +61,10 @@ static uint unpackAlignForAddrAndPitch(void *srcAddr, uint pitch)
 	return alignment;
 }
 
-uint BufferImage::bestAlignment(const Pixmap &p)
+uint BufferImage::bestAlignment(const IG::Pixmap &p)
 {
 	return unpackAlignForAddrAndPitch(p.data, p.pitch);
 }
-
-#ifdef CONFIG_GFX_OPENGL_ES
-#define GL_MIRRORED_REPEAT 0x8370
-#endif
 
 static int bestClampMode(bool textured)
 {
@@ -81,12 +83,12 @@ static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)
 	{
 		case PIXEL_RGBA8888:
 		case PIXEL_BGRA8888:
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+		#if !defined CONFIG_GFX_OPENGL_ES
 			return GL_UNSIGNED_INT_8_8_8_8_REV;
 		#endif
 		case PIXEL_ARGB8888:
 		case PIXEL_ABGR8888:
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+		#if !defined CONFIG_GFX_OPENGL_ES
 			return GL_UNSIGNED_INT_8_8_8_8;
 		#endif
 		case PIXEL_RGB888:
@@ -101,7 +103,7 @@ static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)
 			return GL_UNSIGNED_SHORT_5_5_5_1;
 		case PIXEL_ARGB4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4;
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+		#if !defined CONFIG_GFX_OPENGL_ES
 		case PIXEL_BGRA4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4_REV;
 		case PIXEL_ABGR1555:
@@ -113,22 +115,34 @@ static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)
 
 static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 {
-	#if defined(CONFIG_BASE_PS3)
-		if(format.id == PIXEL_ARGB8888)
-			return GL_BGRA;
-	#endif
+//	#if defined(CONFIG_BASE_PS3)
+//		if(format.id == PIXEL_ARGB8888)
+//			return GL_BGRA;
+//	#endif
 	if(format.isGrayscale())
 	{
 		if(format.hasColorComponent())
 		{
 			if(format.aBits)
+			{
+				#if !defined CONFIG_GFX_OPENGL_ES
+				if(!useFixedFunctionPipeline)
+					return GL_RG;
+				#endif
 				return GL_LUMINANCE_ALPHA;
+			}
 			else return GL_LUMINANCE;
 		}
 		else
+		{
+			#if !defined CONFIG_GFX_OPENGL_ES
+			if(!useFixedFunctionPipeline)
+				return GL_RED;
+			#endif
 			return GL_ALPHA;
+		}
 	}
-	#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+	#if !defined CONFIG_GFX_OPENGL_ES
 	else if(format.isBGROrder())
 	{
 		assert(supportBGRPixels);
@@ -154,12 +168,11 @@ static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 
 static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 {
-	#if defined(CONFIG_GFX_OPENGL_ES) && !defined(CONFIG_BASE_PS3)
+	#if defined CONFIG_GFX_OPENGL_ES
 	if(format.id == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
 		return bgrInternalFormat;
 	else return pixelFormatToOGLFormat(format); // OpenGL ES manual states internalformat always equals format
 	#else
-	#if !defined(CONFIG_BASE_PS3)
 	if(useCompressedTextures)
 	{
 		switch(format.id)
@@ -184,19 +197,18 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 		}
 	}
 	else
-	#endif
 	{
 		switch(format.id)
 		{
 			case PIXEL_BGRA8888:
-			#if defined(CONFIG_BASE_PS3)
-				return GL_BGRA;
-			#endif
+//			#if defined(CONFIG_BASE_PS3)
+//				return GL_BGRA;
+//			#endif
 			case PIXEL_ARGB8888:
 			case PIXEL_ABGR8888:
-			#if defined(CONFIG_BASE_PS3)
-				return GL_ARGB_SCE;
-			#endif
+//			#if defined(CONFIG_BASE_PS3)
+//				return GL_ARGB_SCE;
+//			#endif
 			case PIXEL_RGBA8888:
 				return GL_RGBA8;
 			case PIXEL_RGB888:
@@ -213,9 +225,17 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 			case PIXEL_I8:
 				return GL_LUMINANCE8;
 			case PIXEL_IA88:
+			{
+				if(!useFixedFunctionPipeline)
+					return GL_RG8;
 				return GL_LUMINANCE8_ALPHA8;
+			}
 			case PIXEL_A8:
+			{
+				if(!useFixedFunctionPipeline)
+					return GL_R8;
 				return GL_ALPHA8;
+			}
 			default: bug_branch("%d", format.id); return 0;
 		}
 	}
@@ -257,12 +277,11 @@ static void setDefaultImageTextureParams(uint imgFilter, uchar mipmapType, int x
 	if(useAnisotropicFiltering)
 		glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
 	#endif
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	//float col[] = {1, 0.5, 0.5, 1};
 	//glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, col);
 }
 
-static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target, uint srcAlign)
+static uint writeGLTexture(IG::Pixmap &pix, bool includePadding, GLenum target, uint srcAlign)
 {
 	//logMsg("writeGLTexture");
 	//logMsg("setting source pixel row alignment: %d", srcAlign);
@@ -275,49 +294,49 @@ static uint writeGLTexture(Pixmap &pix, bool includePadding, GLenum target, uint
 	GLenum dataType = pixelFormatToOGLDataType(pix.format);
 	uint xSize = includePadding ? pix.pitchPixels() : pix.x;
 	#ifndef CONFIG_GFX_OPENGL_ES
-		glcPixelStorei(GL_UNPACK_ROW_LENGTH, (!includePadding && pix.isPadded()) ? pix.pitchPixels() : 0);
-		//logMsg("writing %s %dx%d to %dx%d, xline %d", glImageFormatToString(format), 0, 0, pix->x, pix->y, pix->pitch / pix->format->bytesPerPixel);
-		handleGLErrors();
+	glcPixelStorei(GL_UNPACK_ROW_LENGTH, (!includePadding && pix.isPadded()) ? pix.pitchPixels() : 0);
+	//logMsg("writing %s %dx%d to %dx%d, xline %d", glImageFormatToString(format), 0, 0, pix->x, pix->y, pix->pitch / pix->format->bytesPerPixel);
+	handleGLErrors();
+	glTexSubImage2D(target, 0, 0, 0,
+			xSize, pix.y, format, dataType, pix.data);
+	if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
+	{
+		return 0;
+	}
+	#else
+	handleGLErrors();
+	if(includePadding || pix.pitch == pix.x * pix.format.bytesPerPixel)
+	{
+		//logMsg("pitch equals x size optimized case");
 		glTexSubImage2D(target, 0, 0, 0,
 				xSize, pix.y, format, dataType, pix.data);
 		if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 		{
 			return 0;
 		}
-	#else
-		handleGLErrors();
-		if(includePadding || pix.pitch == pix.x * pix.format.bytesPerPixel)
+	}
+	else
+	{
+		logWarn("OGL ES slow glTexSubImage2D case");
+		char *row = pix.data;
+		for(int y = 0; y < (int)pix.y; y++)
 		{
-			//logMsg("pitch equals x size optimized case");
-			glTexSubImage2D(target, 0, 0, 0,
-					xSize, pix.y, format, dataType, pix.data);
+			glTexSubImage2D(target, 0, 0, y,
+					pix.x, 1, format, dataType, row);
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 			{
+				logErr("error in line %d", y);
 				return 0;
 			}
+			row += pix.pitch;
 		}
-		else
-		{
-			logWarn("OGL ES slow glTexSubImage2D case");
-			char *row = pix.data;
-			for(int y = 0; y < (int)pix.y; y++)
-			{
-				glTexSubImage2D(target, 0, 0, y,
-						pix.x, 1, format, dataType, row);
-				if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
-				{
-					logErr("error in line %d", y);
-					return 0;
-				}
-				row += pix.pitch;
-			}
-		}
+	}
 	#endif
 
 	return 1;
 }
 
-static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target, uint srcAlign)
+static uint replaceGLTexture(IG::Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target, uint srcAlign)
 {
 	glcPixelStorei(GL_UNPACK_ALIGNMENT, srcAlign);
 	if((ptrsize)pix.data % (ptrsize)srcAlign != 0)
@@ -325,7 +344,7 @@ static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool
 		bug_exit("expected data from address %p to be aligned to %u bytes", pix.data, srcAlign);
 	}
 	#ifndef CONFIG_GFX_OPENGL_ES
-		glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	#endif
 	GLenum format = pixelFormatToOGLFormat(pix.format);
 	GLenum dataType = pixelFormatToOGLDataType(pix.format);
@@ -342,7 +361,7 @@ static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool
 	return 1;
 }
 
-static uint replaceGLTexture(Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target)
+static uint replaceGLTexture(IG::Pixmap &pix, bool upload, uint internalFormat, bool includePadding, GLenum target)
 {
 	uint alignment = unpackAlignForAddrAndPitch(pix.data, pix.pitch);
 	return replaceGLTexture(pix, upload, internalFormat, includePadding, target, alignment);
@@ -400,43 +419,135 @@ void BufferImage::setRepeatMode(uint xMode, uint yMode)
 		logWarn("error with wrap t %d", wrapT);
 }
 
-void TextureBufferImage::write(Pixmap &p, uint hints, uint alignment)
+void TextureBufferImage::write(IG::Pixmap &p, uint hints, uint alignment)
 {
-	glcBindTexture(GL_TEXTURE_2D, tid);
+	glcBindTexture(GL_TEXTURE_2D, desc.tid);
 	writeGLTexture(p, hints, GL_TEXTURE_2D, alignment);
 
-	#ifdef CONFIG_BASE_ANDROID
-		if(unlikely(glSyncHackEnabled)) glFinish();
+	#ifdef __ANDROID__
+	if(unlikely(glSyncHackEnabled)) glFinish();
 	#endif
 }
 
-void TextureBufferImage::write(Pixmap &p, uint hints)
+void TextureBufferImage::write(IG::Pixmap &p, uint hints)
 {
 	uint alignment = unpackAlignForAddrAndPitch(p.data, p.pitch);
 	write(p, hints, alignment);
 }
 
-void TextureBufferImage::replace(Pixmap &p, uint hints)
+void TextureBufferImage::replace(IG::Pixmap &p, uint hints)
 {
-	glcBindTexture(GL_TEXTURE_2D, tid);
+	glcBindTexture(GL_TEXTURE_2D, desc.tid);
 	replaceGLTexture(p, 1, pixelToOGLInternalFormat(p.format), hints, GL_TEXTURE_2D);
+	setSwizzleForFormat(p.format);
 }
 
-Pixmap *TextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return fallback; }
+void TextureBufferImage::setSwizzleForFormat(const PixelFormatDesc &format)
+{
+	#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(useFixedFunctionPipeline)
+		return;
+	if(useTextureSwizzle)
+	{
+		const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+		const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
+		const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format.id == PIXEL_IA88) ? swizzleMaskIA88
+				: (format.id == PIXEL_A8) ? swizzleMaskA8
+				: swizzleMaskRGBA);
+	}
+	#endif
+}
 
-void TextureBufferImage::unlock(Pixmap *pix, uint hints) { write(*pix, hints); }
+static uint typeForPixelFormat(const PixelFormatDesc &format)
+{
+	return (format.id == PIXEL_A8) ? TEX_2D_1 :
+		(format.id == PIXEL_IA88) ? TEX_2D_2 :
+		TEX_2D_4;
+}
+
+bool BufferImage::compileDefaultProgram(uint mode)
+{
+	switch(mode)
+	{
+		bcase IMG_MODE_REPLACE:
+			switch(type_)
+			{
+				case TEX_2D_1 : return texAlphaReplaceProgram.compile();
+				case TEX_2D_2 : return texIntensityAlphaReplaceProgram.compile();
+				case TEX_2D_4 : return texReplaceProgram.compile();
+				case TEX_2D_EXTERNAL : return texExternalReplaceProgram.compile();
+				default: bug_branch("%d", type_); return false;
+			}
+		case IMG_MODE_MODULATE:
+			switch(type_)
+			{
+				case TEX_2D_1 : return texAlphaProgram.compile();
+				case TEX_2D_2 : return texIntensityAlphaProgram.compile();
+				case TEX_2D_4 : return texProgram.compile();
+				case TEX_2D_EXTERNAL : return texExternalProgram.compile();
+				default: bug_branch("%d", type_); return false;
+			}
+		default: bug_branch("%d", type_); return false;
+	}
+}
+
+void BufferImage::useDefaultProgram(uint mode, const Mat4 *modelMat)
+{
+	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	const uint type_ = TEX_2D_4;
+	#endif
+	switch(mode)
+	{
+		bcase IMG_MODE_REPLACE:
+			switch(type_)
+			{
+				bcase TEX_2D_1 : texAlphaReplaceProgram.use(modelMat);
+				bcase TEX_2D_2 : texIntensityAlphaReplaceProgram.use(modelMat);
+				bcase TEX_2D_4 : texReplaceProgram.use(modelMat);
+				bcase TEX_2D_EXTERNAL : texExternalReplaceProgram.use(modelMat);
+			}
+		bcase IMG_MODE_MODULATE:
+			switch(type_)
+			{
+				bcase TEX_2D_1 : texAlphaProgram.use(modelMat);
+				bcase TEX_2D_2 : texIntensityAlphaProgram.use(modelMat);
+				bcase TEX_2D_4 : texProgram.use(modelMat);
+				bcase TEX_2D_EXTERNAL : texExternalProgram.use(modelMat);
+			}
+	}
+}
+
+IG::Pixmap *TextureBufferImage::lock(uint x, uint y, uint xlen, uint ylen, IG::Pixmap *fallback) { return fallback; }
+
+void TextureBufferImage::unlock(IG::Pixmap *pix, uint hints) { write(*pix, hints); }
 
 void TextureBufferImage::deinit()
 {
-	logMsg("freeing texture 0x%X", tid);
-	freeTexRef(tid);
-	tid = 0;
+	logMsg("freeing texture 0x%X", desc.tid);
+	freeTexRef(desc.tid);
+	desc.tid = 0;
 }
 
-bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
+void BufferImage::generateMipmaps()
+{
+	assert(hasMipmaps());
+	#ifndef CONFIG_GFX_OPENGL_ES
+	if(useFBOFuncs)
+	{
+		logMsg("generating mipmaps via glGenerateMipmapEXT");
+		glGenerateMipmapEXT(GL_TEXTURE_2D);
+	}
+	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION != 1
+	logMsg("generating mipmaps");
+	glGenerateMipmap(GL_TEXTURE_2D);
+	#endif
+}
+
+bool BufferImage::setupTexture(IG::Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 	uint usedX, uint usedY, uint hints, uint filter)
 {
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+	#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	xSize = usedX;
 	ySize = usedY;
 	#endif
@@ -463,10 +574,10 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 	bool includePadding = 0; //include extra bytes when x != pitch ?
 	if(hints & BufferImage::HINT_STREAM)
 	{
-		#if defined(CONFIG_BASE_PS3)
-		logMsg("optimizing texture for frequent updates");
-		glTexParameteri(texTarget, GL_TEXTURE_ALLOCATION_HINT_SCE, GL_TEXTURE_LINEAR_SYSTEM_SCE);
-		#endif
+//		#if defined(CONFIG_BASE_PS3)
+//		logMsg("optimizing texture for frequent updates");
+//		glTexParameteri(texTarget, GL_TEXTURE_ALLOCATION_HINT_SCE, GL_TEXTURE_LINEAR_SYSTEM_SCE);
+//		#endif
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 		if(surfaceTextureConf.use)
 		{
@@ -478,6 +589,9 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 			impl = surfaceTex;
 			textureDesc().target = GL_TEXTURE_EXTERNAL_OES;
 			textureDesc().tid = texRef;
+			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+			type_ = TEX_2D_EXTERNAL;
+			#endif
 			return 1;
 		}
 		#endif
@@ -492,6 +606,9 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 				pix.y = usedY;
 				impl = directTex;
 				textureDesc().tid = texRef;
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				type_ = TEX_2D_4;
+				#endif
 				return 1;
 			}
 			else
@@ -508,13 +625,15 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 
 	if(hasMipmaps())
 	{
-		logMsg("auto-generating mipmaps");
 		#ifndef CONFIG_GFX_OPENGL_ES
-		glTexParameteri(texTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-		#elif !defined(CONFIG_BASE_PS3)
+		if(!useFBOFuncs)
+		{
+			logMsg("auto-generating mipmaps via GENERATE_MIPMAP_SGIS");
+			glTexParameteri(texTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+		}
+		#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+		logMsg("auto-generating mipmaps");
 		glTexParameteri(texTarget, GL_GENERATE_MIPMAP, GL_TRUE);
-		#else
-		// TODO: find PS3 version
 		#endif
 	}
 	{
@@ -527,16 +646,20 @@ bool BufferImage::setupTexture(Pixmap &pix, bool upload, uint internalFormat, in
 		//logMsg("success");
 	}
 
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(upload && useFBOFuncs)
+	if(hasMipmaps() && upload)
 	{
-		logMsg("generating mipmaps");
-		glGenerateMipmapEXT(texTarget);
+		generateMipmaps();
 	}
-	#endif
 
 	#ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-	impl = new TextureBufferImage;
+	auto texBuffImg = new TextureBufferImage();
+	impl = texBuffImg;
+	#else
+	auto texBuffImg = this;
+	#endif
+	texBuffImg->setSwizzleForFormat(pix.format);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	type_ = typeForPixelFormat(pix.format);
 	#endif
 	textureDesc().tid = texRef;
 	return 1;
@@ -554,8 +677,8 @@ CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool 
 	uint texX, texY;
 	textureSizeSupport.findBufferXYPixels(texX, texY, img.width(), img.height());
 
-	auto pixFmt = swapRGBToPreferedOrder(img.pixelFormat());
-	Pixmap texPix(*pixFmt);
+	auto pixFmt = img.pixelFormat();//swapRGBToPreferedOrder(img.pixelFormat());
+	IG::Pixmap texPix(*pixFmt);
 	uint uploadPixStoreSize = texX * texY * pixFmt->bytesPerPixel;
 	#if __APPLE__
 	//logMsg("alloc in heap"); // for low stack limits
@@ -566,7 +689,7 @@ CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool 
 	char uploadPixStore[uploadPixStoreSize] __attribute__ ((aligned (8)));
 	mem_zero(uploadPixStore, uploadPixStoreSize);
 	#endif
-	texPix.init(uploadPixStore, texX, texY, 0);
+	texPix.init(uploadPixStore, texX, texY);
 	img.getImage(texPix);
 	if(!setupTexture(texPix, 1, pixelToOGLInternalFormat(texPix.format), wrapMode,
 			wrapMode, img.width(), img.height(), hints, filter))
@@ -590,12 +713,12 @@ CallResult BufferImage::init(GfxImageSource &img, uint filter, uint hints, bool 
 
 void BufferImage::testMipmapSupport(uint x, uint y)
 {
-	hasMipmaps_ = usingMipmaping() &&
+	hasMipmaps_ = usingAutoMipmaping() &&
 			!(hints & HINT_STREAM) && !(hints & HINT_NO_MINIFY)
 			&& Gfx::textureSizeSupport.supportsMipmaps(x, y);
 }
 
-CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, bool textured)
+CallResult BufferImage::init(IG::Pixmap &pix, bool upload, uint filter, uint hints, bool textured)
 {
 	deinit();
 
@@ -609,8 +732,8 @@ CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, 
 	textureSizeSupport.findBufferXYPixels(texX, texY, xSize, pix.y,
 		(hints & HINT_STREAM) ? TextureSizeSupport::streamHint : 0);
 
-	Pixmap texPix(pix.format);
-	texPix.init(0, texX, texY, 0);
+	IG::Pixmap texPix(pix.format);
+	texPix.init(nullptr, texX, texY);
 
 	/*uchar uploadPixStore[texX * texY * pix.format->bytesPerPixel];
 
@@ -619,8 +742,7 @@ CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, 
 		mem_zero(uploadPixStore);
 		pix.copy(0, 0, 0, 0, &uploadPix, 0, 0);
 	}*/
-	assert(upload == 0);
-	if(!setupTexture(texPix, upload, pixelToOGLInternalFormat(pix.format),
+	if(!setupTexture(texPix, false, pixelToOGLInternalFormat(pix.format),
 			wrapMode, wrapMode, pix.x, pix.y, hints, filter))
 	{
 		return INVALID_PARAMETER;
@@ -631,16 +753,25 @@ CallResult BufferImage::init(Pixmap &pix, bool upload, uint filter, uint hints, 
 	textureDesc().xEnd = pixelToTexC(pix.x, texPix.x);
 	textureDesc().yEnd = pixelToTexC(pix.y, texPix.y);
 
+	if(upload)
+	{
+		write(pix);
+		if(hasMipmaps())
+		{
+			generateMipmaps();
+		}
+	}
+
 	return OK;
 }
 
-void BufferImage::write(Pixmap &p) { BufferImageImpl::write(p, hints); }
-void BufferImage::write(Pixmap &p, uint assumeAlign) { BufferImageImpl::write(p, hints, assumeAlign); }
-void BufferImage::replace(Pixmap &p)
+void BufferImage::write(IG::Pixmap &p) { BufferImageImpl::write(p, hints); }
+void BufferImage::write(IG::Pixmap &p, uint assumeAlign) { BufferImageImpl::write(p, hints, assumeAlign); }
+void BufferImage::replace(IG::Pixmap &p)
 {
 	BufferImageImpl::replace(p, hints);
 }
-void BufferImage::unlock(Pixmap *p) { BufferImageImpl::unlock(p, hints); }
+void BufferImage::unlock(IG::Pixmap *p) { BufferImageImpl::unlock(p, hints); }
 
 void BufferImage::deinit()
 {

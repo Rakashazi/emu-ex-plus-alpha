@@ -7,7 +7,7 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 emuFramework_cheats := 1
-include ../EmuFramework/common.mk
+include $(EMUFRAMEWORK_PATH)/common.mk
 
 gplusPath := genplus-gx
 
@@ -20,7 +20,7 @@ CPPFLAGS += -Isrc/$(gplusPath) -Isrc/$(gplusPath)/m68k -Isrc/$(gplusPath)/z80 -I
 -Isrc/$(gplusPath)/sound -Isrc/$(gplusPath)/cart_hw -Isrc/$(gplusPath)/cart_hw/svp
 
 # Genesis Plus sources
-gplusSrc +=system.cc genesis.cc io_ctrl.cc loadrom.cc \
+gplusSrc += system.cc genesis.cc io_ctrl.cc loadrom.cc \
 mem68k.cc membnk.cc memz80.cc state.cc vdp_ctrl.cc vdp_render.cc
 
 ifeq ($(ENV), android)
@@ -53,13 +53,13 @@ ifdef hasSCD
  SRC += scd/scd.cc scd/LC89510.cc scd/cd_sys.cc scd/gfx_cd.cc scd/pcm.cc scd/cd_file.cc \
  scd/memMain.cc scd/memSub.cc
 
- CPPFLAGS += -I../PCE.emu/src/include -I../PCE.emu/src
- VPATH += ../PCE.emu/src/mednafen
- CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DHAVE_LIBSNDFILE
- SRC += error.cpp endian.cpp FileWrapper.cpp general.cpp \
- cdrom/audioreader.cpp cdrom/lec.cpp \
- cdrom/recover-raw.cpp cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp \
- cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp cdrom/CDUtility.cpp
+ CPPFLAGS += -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src/include -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src
+ VPATH += $(EMUFRAMEWORK_PATH)/../PCE.emu/src/mednafen $(EMUFRAMEWORK_PATH)/../PCE.emu/src/common
+ CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DHAVE_LIBSNDFILE -DPSS_STYLE=1
+ SRC += MDFNApi.cc error.cpp endian.cpp general.cpp \
+  cdrom/audioreader.cpp cdrom/lec.cpp cdrom/recover-raw.cpp \
+  cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp cdrom/CDUtility.cpp \
+  cdrom/CDAccess_Image.cpp cdrom/CDAccess_CCD.cpp cdrom/CDAccess.cpp
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk
@@ -72,6 +72,7 @@ endif
 SRC += main/Main.cc main/EmuControls.cc main/Cheats.cc fileio/fileio.cc $(addprefix $(gplusPath)/,$(gplusSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
+include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

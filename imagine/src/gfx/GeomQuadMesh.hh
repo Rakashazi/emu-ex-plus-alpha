@@ -9,7 +9,12 @@ namespace Gfx
 class GeomQuadMesh
 {
 public:
-	constexpr GeomQuadMesh() { }
+	uint verts = 0;
+	Mem2D<ColVertex> v;
+	uint idxs = 0;
+	VertexIndex *i = nullptr;
+
+	constexpr GeomQuadMesh() {}
 	CallResult init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color = 0);
 	template <size_t S1, size_t S2>
 	CallResult init(const VertexPos (&x)[S1], const VertexPos (&y)[S2], VertexColor color = 0)
@@ -28,16 +33,11 @@ public:
 	}
 	void deinit();
 	void draw();
-	void setColorRGB(GColor r, GColor g, GColor b);
-	void setColorTranslucent(GColor a);
-	void setColorRGBV(GColor r, GColor g, GColor b, uint i);
-	void setColorTranslucentV(GColor a, uint i);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b);
+	void setColorTranslucent(ColorComp a);
+	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i);
+	void setColorTranslucentV(ColorComp a, uint i);
 	void setPos(GC x, GC y, GC x2, GC y2);
-
-	uint verts = 0;
-	Mem2D<ColVertex> v;
-	uint idxs = 0;
-	VertexIndex *i = nullptr;
 } ;
 
 }

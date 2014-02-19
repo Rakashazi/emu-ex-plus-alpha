@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "libpng"
+#define LOGTAG "LibPNG"
 
 #include "LibPNG.hh"
 #include <assert.h>
@@ -279,7 +279,7 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelFormatDesc &outFormat)
+CallResult Png::readImage(Io *stream, IG::Pixmap &dest)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
@@ -298,11 +298,11 @@ CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelForm
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
 		return (OUT_OF_MEMORY);
 	}
-	setTransforms(outFormat, transInfo);
+	setTransforms(dest.format, transInfo);
 	
 	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint)png_get_rowbytes(data->png, data->info));
 
-	assert( (uint)width*outFormat.bytesPerPixel == png_get_rowbytes(png, info) );
+	assert( (uint)width*dest.format.bytesPerPixel == png_get_rowbytes(png, info) );
 	
 	if(png_get_interlace_type(png, info) == PNG_INTERLACE_NONE)
 	{
@@ -315,8 +315,8 @@ CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelForm
 
 		for (int i = 0; i < height; i++)
 		{
-			size_t offset = outFormat.offsetBytes(0, i, pitch);
-			png_read_row(png, (uchar*)buffer + offset, NULL);
+			size_t offset = dest.format.offsetBytes(0, i, dest.pitch);
+			png_read_row(png, (uchar*)dest.data + offset, nullptr);
 		}
 	}
 	else // read the whole image in 1 call with interlace handling, but needs array of row pointers allocated
@@ -325,9 +325,9 @@ CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelForm
 		png_bytep rowPtr[height];
 		for (int i = 0; i < height; i++)
 		{
-			size_t offset = outFormat.offsetBytes(0, i, pitch);
+			size_t offset = dest.format.offsetBytes(0, i, dest.pitch);
 			//logr_mPrintf(LOG_MSG,row relative offset = %d", offset);
-			rowPtr[i] = (uchar*)buffer + offset;
+			rowPtr[i] = (uchar*)dest.data + offset;
 			//log_mPrintf(LOG_MSG, "set row pointer %d to %p", i, row_pointers[i]);
 		}
 
@@ -341,16 +341,16 @@ CallResult Png::readImage (Io *stream, void *buffer, uint pitch, const PixelForm
 	}
 	
 	//log_mPrintf(LOG_MSG,"reading complete");
-	png_read_end(png, NULL);
+	png_read_end(png, nullptr);
 
 	png_infopp pngInfopAddr = &transInfo;
 	png_destroy_info_struct(png, pngInfopAddr);
 	return OK;
 }
 
-CallResult PngFile::getImage(Pixmap &dest)
+CallResult PngFile::getImage(IG::Pixmap &dest)
 {
-	return(png.readImage(io, dest.data, dest.pitch, dest.format));
+	return(png.readImage(io, dest));
 }
 
 CallResult PngFile::load(Io* io)

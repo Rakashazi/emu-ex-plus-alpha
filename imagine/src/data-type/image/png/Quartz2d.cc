@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "quartzpng"
+#define LOGTAG "QuartzPNG"
 
 #include "Quartz2d.hh"
 #include <assert.h>
@@ -75,13 +75,14 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-CallResult Quartz2dImage::readImage(void* buffer, uint pitch, const PixelFormatDesc &outFormat)
+CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
 {
+	assert(dest.format.id == pixelFormat()->id);
 	int height = this->height();
 	int width = this->width();
 	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
 	auto bitmapInfo = hasAlphaChannel() ? kCGImageAlphaPremultipliedLast : kCGImageAlphaNone;
-	auto context = CGBitmapContextCreate(buffer, width, height, 8, pitch, colorSpace, bitmapInfo);
+	auto context = CGBitmapContextCreate(dest.data, width, height, 8, dest.pitch, colorSpace, bitmapInfo);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
 	CGContextRelease(context);
 	return OK;
@@ -96,9 +97,9 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-CallResult PngFile::getImage(Pixmap &dest)
+CallResult PngFile::getImage(IG::Pixmap &dest)
 {
-	return(png.readImage(dest.data, dest.pitch, dest.format));
+	return(png.readImage(dest));
 }
 
 CallResult PngFile::load(const char *name)

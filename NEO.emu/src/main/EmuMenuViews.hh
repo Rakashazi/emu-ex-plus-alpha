@@ -451,7 +451,7 @@ private:
 						{
 							loadGame();
 						};
-					View::addModalView(ynAlertView);
+					modalViewController.pushAndShow(ynAlertView);
 				}
 				else
 				{
@@ -552,10 +552,6 @@ public:
 
 };
 
-// TODO: allocate
-static GameListView gameListMenu(mainWin);
-static UnibiosSwitchesView unibiosSwitchesMenu(mainWin);
-
 class SystemMenuView : public MenuView
 {
 private:
@@ -563,28 +559,30 @@ private:
 	TextMenuItem gameList
 	{
 		"Load Game From List",
-		[](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, const Input::Event &e)
 		{
+			auto &gameListMenu = *menuAllocator.allocNew<GameListView>(window());
 			if(!gameListMenu.init(!e.isPointer()))
 			{
 				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
 				return;
 			}
-			viewStack.pushAndShow(&gameListMenu);
+			viewStack.pushAndShow(gameListMenu, &menuAllocator);
 		}
 	};
 
 	TextMenuItem unibiosSwitches
 	{
 		"Unibios Switches",
-		[](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				if(item.active)
 				{
+					auto &unibiosSwitchesMenu = *menuAllocator.allocNew<UnibiosSwitchesView>(window());
 					unibiosSwitchesMenu.init(!e.isPointer());
-					viewStack.pushAndShow(&unibiosSwitchesMenu);
+					viewStack.pushAndShow(unibiosSwitchesMenu, &menuAllocator);
 				}
 				else
 				{

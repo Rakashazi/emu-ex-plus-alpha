@@ -17,9 +17,9 @@ typedef uintptr_t ptrsize;
 
 // Shortcuts for (un)signed types
 #ifndef __ANDROID__
-	typedef unsigned int uint;
+typedef unsigned int uint;
 #else // uint provided in system header
-	#include <sys/types.h>
+#include <sys/types.h>
 #endif
 typedef signed int sint;
 typedef unsigned short ushort;
@@ -28,10 +28,6 @@ typedef unsigned long ulong;
 typedef signed long slong;
 typedef unsigned char uchar;
 typedef signed char schar;
-
-#ifndef __cplusplus
-	#include <stdbool.h>
-#endif
 
 // Types without strict aliasing
 typedef uint8 __attribute__((__may_alias__)) uint8a;

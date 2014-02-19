@@ -41,11 +41,12 @@
  */
 
 #include "l2cap_signaling.h"
+#include "btstack-config.h"
 
 #include <string.h>
 
-static char *l2cap_signaling_commands_format[] = {
-"D",    // 0x01 command reject: reason {cmd not understood (0), sig MTU exceeded (2:max sig MTU), invalid CID (4:req CID)}, data len, data
+static const char *l2cap_signaling_commands_format[] = {
+"2D",    // 0x01 command reject: reason {cmd not understood (0), sig MTU exceeded (2:max sig MTU), invalid CID (4:req CID)}, data len, data
 "22",   // 0x02 connection request: PSM, Source CID
 "2222", // 0x03 connection response: Dest CID, Source CID, Result, Status
 "22D",  // 0x04 config request: Dest CID, Flags, Configuration options
@@ -56,6 +57,11 @@ static char *l2cap_signaling_commands_format[] = {
 "D",    // 0x09 echo response: Data
 "2",    // 0x0a information request: InfoType {1=Connectionless MTU, 2=Extended features supported}
 "22D",  // 0x0b information response: InfoType, Result, Data
+#ifdef HAVE_BLE
+// skip 6 not supported signaling pdus, see below
+"2222", // 0x12 connection parameter update request: interval min, interval max, slave latency, timeout multipler
+"2",    // 0x13 connection parameter update response: result
+#endif
 };
 
 uint8_t   sig_seq_nr  = 0xff;
@@ -87,6 +93,10 @@ uint16_t l2cap_create_signaling_internal(uint8_t * acl_buffer, hci_con_handle_t 
     
     // 12 - L2CAP signaling parameters
     uint16_t pos = 12;
+    // skip AMP commands
+    if (cmd >= CONNECTION_PARAMETER_UPDATE_REQUEST){
+        cmd -= 6;
+    }
     const char *format = l2cap_signaling_commands_format[cmd-1];
     uint16_t word;
     uint8_t * ptr;
@@ -126,3 +136,32 @@ uint16_t l2cap_create_signaling_internal(uint8_t * acl_buffer, hci_con_handle_t 
     
     return pos;
 }
+
+#ifdef HAVE_BLE
+uint16_t l2cap_le_create_connection_parameter_update_request(uint8_t * acl_buffer, uint16_t handle, uint16_t interval_min, uint16_t interval_max, uint16_t slave_latency, uint16_t timeout_multiplier){
+      // 0 - Connection handle : PB=10 : BC=00 
+    bt_store_16(acl_buffer, 0, handle | (2 << 12) | (0 << 14));
+    // 6 - L2CAP LE Signaling channel = 5
+    bt_store_16(acl_buffer, 6, 5);
+    // 8 - Code
+    acl_buffer[8] = CONNECTION_PARAMETER_UPDATE_REQUEST;
+    // 9 - id (!= 0 sequentially)
+    acl_buffer[9] = 1;
+    uint16_t pos = 12;
+    bt_store_16(acl_buffer, pos, interval_min);
+    pos += 2;
+    bt_store_16(acl_buffer, pos, interval_max);
+    pos += 2;
+    bt_store_16(acl_buffer, pos, slave_latency);
+    pos += 2;
+    bt_store_16(acl_buffer, pos, timeout_multiplier);
+    pos += 2;
+    // 2 - ACL length
+    bt_store_16(acl_buffer, 2,  pos - 4);
+    // 4 - L2CAP packet length
+    bt_store_16(acl_buffer, 4,  pos - 6 - 2);
+    // 10 - L2CAP signaling parameter length
+    bt_store_16(acl_buffer, 10, pos - 12);
+    return pos;
+} 
+#endif

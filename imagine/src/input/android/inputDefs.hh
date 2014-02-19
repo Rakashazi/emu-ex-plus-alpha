@@ -1,9 +1,33 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 namespace Input
 {
 
-namespace Keycode
+using Time = int64_t; // java.lang.System.nanoTime() time base
+
+static Time msToTime(int ms)
+{
+	return ms * 1000000.;
+}
+
+using Key = uint8;
+
+namespace Android
 {
 	static const uint
 	//SYS_HOME = 3, // Never sent to apps
@@ -120,6 +144,10 @@ namespace Keycode
 	GAME_13 = 200, GAME_14 = 201, GAME_15 = 202, GAME_16 = 203,
 
 	// Our own key-codes for analog -> digital joystick axis emulation
+	JS_RUDDER_AXIS_POS = 232, JS_RUDDER_AXIS_NEG = 233,
+	JS_WHEEL_AXIS_POS = 234, JS_WHEEL_AXIS_NEG = 235,
+	JS_POV_XAXIS_POS = 236, JS_POV_XAXIS_NEG = 237,
+	JS_POV_YAXIS_POS = 238, JS_POV_YAXIS_NEG = 239,
 	JS1_XAXIS_POS = 240, JS1_XAXIS_NEG = 241,
 	JS1_YAXIS_POS = 242, JS1_YAXIS_NEG = 243,
 
@@ -144,7 +172,7 @@ namespace Keycode
 		R1 = GAME_R1,
 		SELECT = GAME_SELECT,
 		START = GAME_START,
-		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT
+		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT
 		;
 	}
 
@@ -160,7 +188,7 @@ namespace Keycode
 		R1 = GAME_R1,
 		R2 = GAME_R2,
 		R3 = GAME_RIGHT_THUMB,
-		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT,
 		SYSTEM = MENU
 		;
 	}
@@ -179,81 +207,82 @@ namespace Keycode
 		R3 = GAME_RIGHT_THUMB,
 		SELECT = GAME_SELECT,
 		START = GAME_START,
-		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT,
 		PS = GAME_1
 		;
 	}
+
+	// Android key-codes don't directly map to ASCII
+	static constexpr uint asciiKey(uint c)
+	{
+		return (c >= 'a' && c <= 'z') ? c-68 :
+			(c >= '0' && c <= '9') ? c-41 :
+			(c == ' ') ? 62 :
+			(c == '*') ? 17 :
+			(c == '#') ? 18 :
+			(c == ',') ? 55 :
+			(c == '.') ? 56 :
+			(c == '`') ? 68 :
+			(c == '-') ? 69 :
+			(c == '=') ? 70 :
+			(c == '[') ? 71 :
+			(c == ']') ? 72 :
+			(c == '\\') ? 73 :
+			(c == ';') ? 74 :
+			(c == '\'') ? 75 :
+			(c == '/') ? 76 :
+			(c == '@') ? 77 :
+			(c == '+') ? 81 :
+			0;
+	}
+
+	static uint decodeAscii(Key k, bool isShiftPushed)
+	{
+		switch(k)
+		{
+			case 7 ... 16: // 0 - 9
+				return k + 41;
+			case 29 ... 54: // a - z
+			{
+				uint ascii = k + 68;
+				if(isShiftPushed)
+					ascii -= 32;
+				return ascii;
+			}
+			case 17: return '*';
+			case 18: return '#';
+			case 55: return ',';
+			case 56: return '.';
+			case 62: return ' ';
+			case 66: return '\n';
+			case 68: return '`';
+			case 69: return '-';
+			case 70: return '=';
+			case 71: return '[';
+			case 72: return ']';
+			case 73: return '\\';
+			case 74: return ';';
+			case 75: return '\'';
+			case 76: return '/';
+			case 77: return '@';
+			case 81: return '+';
+		}
+		return 0;
+	}
+
+	static bool isAsciiKey(Key k)
+	{
+		return decodeAscii(k, 0) != 0;
+	}
 }
 
-typedef uint8 Key;
+namespace Keycode = Android;
+#define CONFIG_INPUT_KEYCODE_NAMESPACE Android
 
 namespace Pointer
 {
 	static const uint LBUTTON = 1;
 	static const uint RBUTTON = 2; // TODO: add real mouse support
-}
-
-// Android key-codes don't directly map to ASCII
-static constexpr uint asciiKey(uint c)
-{
-	return (c >= 'a' && c <= 'z') ? c-68 :
-		(c >= '0' && c <= '9') ? c-41 :
-		(c == ' ') ? 62 :
-		(c == '*') ? 17 :
-		(c == '#') ? 18 :
-		(c == ',') ? 55 :
-		(c == '.') ? 56 :
-		(c == '`') ? 68 :
-		(c == '-') ? 69 :
-		(c == '=') ? 70 :
-		(c == '[') ? 71 :
-		(c == ']') ? 72 :
-		(c == '\\') ? 73 :
-		(c == ';') ? 74 :
-		(c == '\'') ? 75 :
-		(c == '/') ? 76 :
-		(c == '@') ? 77 :
-		(c == '+') ? 81 :
-		0;
-}
-
-static uint decodeAscii(Key k, bool isShiftPushed)
-{
-	switch(k)
-	{
-		case 7 ... 16: // 0 - 9
-			return k + 41;
-		case 29 ... 54: // a - z
-		{
-			uint ascii = k + 68;
-			if(isShiftPushed)
-				ascii -= 32;
-			return ascii;
-		}
-		case 17: return '*';
-		case 18: return '#';
-		case 55: return ',';
-		case 56: return '.';
-		case 62: return ' ';
-		case 66: return '\n';
-		case 68: return '`';
-		case 69: return '-';
-		case 70: return '=';
-		case 71: return '[';
-		case 72: return ']';
-		case 73: return '\\';
-		case 74: return ';';
-		case 75: return '\'';
-		case 76: return '/';
-		case 77: return '@';
-		case 81: return '+';
-	}
-	return 0;
-}
-
-static bool isAsciiKey(Key k)
-{
-	return decodeAscii(k, 0) != 0;
 }
 
 }

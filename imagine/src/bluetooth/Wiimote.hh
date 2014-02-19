@@ -17,11 +17,15 @@
 
 #include <bluetooth/sys.hh>
 #include <input/Input.hh>
+#include <input/AxisKeyEmu.hh>
 #include <util/collection/ArrayList.hh>
 
 class Wiimote : public BluetoothInputDevice, public Input::Device
 {
 public:
+	static const uchar btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
+	static StaticArrayList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+
 	Wiimote(BluetoothAddr addr):
 		Device {0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
 		addr(addr)
@@ -29,6 +33,10 @@ public:
 	CallResult open(BluetoothAdapter &adapter) override;
 	void close();
 	void removeFromSystem() override;
+	uint joystickAxisBits() override;
+	uint joystickAxisAsDpadBitsDefault() override;
+	void setJoystickAxisAsDpadBits(uint axisMask) override;
+	uint joystickAxisAsDpadBits() override { return joystickAxisAsDpadBits_; }
 	bool dataHandler(const char *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void requestStatus();
@@ -37,8 +45,6 @@ public:
 	void writeReg(uchar offset, uchar val);
 	void readReg(uint offset, uchar size);
 
-	static const uchar btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
-
 	static bool isSupportedClass(const uchar devClass[3])
 	{
 		return mem_equal(devClass, btClass, 3)
@@ -46,17 +52,17 @@ public:
 			|| mem_equal(devClass, btClassRemotePlus, 3);
 	}
 
-	static StaticArrayList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 private:
 	BluetoothSocketSys ctlSock, intSock;
 	int extension = EXT_NONE;
 	uint player = 0;
 	uint function = FUNC_NONE;
-	bool stickBtn[8] {0};
+	uint joystickAxisAsDpadBits_;
+	Input::AxisKeyEmu<int> axisKey[4];
 	uchar prevBtnData[2] {0};
 	uchar prevExtData[11] {0};
 	BluetoothAddr addr;
-	bool identifiedType = 0;
+	bool identifiedType = false;
 
 	struct ExtDevice : public Device
 	{
@@ -84,11 +90,11 @@ private:
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
 	static void decodeProSticks(const uchar *proSticks, int &lX, int &lY, int &rX, int &rY);
-	void processStickDataForButtonEmulation(int player, const uchar *data);
-	void processProStickDataForButtonEmulation(int player, const uchar *data);
+	//void processStickDataForButtonEmulation(int player, const uchar *data);
+	//void processProStickDataForButtonEmulation(int player, const uchar *data);
 	void processCoreButtons(const uchar *packet, uint player);
 	void processClassicButtons(const uchar *packet, uint player);
 	void processProButtons(const uchar *packet, uint player);
-	void processNunchukStickDataForButtonEmulation(int player, const uchar *data);
+	//void processNunchukStickDataForButtonEmulation(int player, const uchar *data);
 	void processNunchukButtons(const uchar *packet, uint player);
 };

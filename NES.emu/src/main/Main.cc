@@ -115,15 +115,21 @@ const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo)
 
 using namespace IG;
 
+static void setDirOverrides()
+{
+	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
+	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+	FCEUI_SetDirOverride(FCEUIOD_PALETTE, EmuSystem::savePath());
+}
+
 void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded()
 {
-	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+	setDirOverrides();
 }
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -320,7 +326,7 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 	#else
 		nativeCol[index] = pixFmt->build(r, g, b, 0);
 	#endif
-	//logMsg("set palette %d %X", index, palData[index]);
+	//logMsg("set palette %d %X", index, nativeCol[index]);
 }
 
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
@@ -518,7 +524,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	// FCEUI_Emulate calls FCEUD_commitVideo & FCEUD_emulateSound depending on parameters
 }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -558,8 +564,7 @@ void onInputEvent(Base::Window &win, const Input::Event &e)
 
 void EmuSystem::savePathChanged()
 {
-	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+	setDirOverrides();
 }
 
 namespace Base
@@ -570,7 +575,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
 CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
+	emuView.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{

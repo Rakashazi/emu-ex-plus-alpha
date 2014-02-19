@@ -20,7 +20,7 @@ public:
 					printBiosMenuEntryStr(biosPathStr);
 					biosPath.compile();
 				};
-			viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}
 	};
 

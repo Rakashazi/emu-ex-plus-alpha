@@ -10,8 +10,11 @@ static const char *glErrorToString(GLenum err)
 		case GL_INVALID_ENUM: return "Invalid Enum";
 		case GL_INVALID_VALUE: return "Invalid Value";
 		case GL_INVALID_OPERATION: return "Invalid Operation";
+		#ifndef CONFIG_GFX_OPENGL_ES
+		// TODO: check if valid in OpenGL ES
 		case GL_STACK_OVERFLOW: return "Stack Overflow";
 		case GL_STACK_UNDERFLOW: return "Stack Underflow";
+		#endif
 		case GL_OUT_OF_MEMORY: return "Out of Memory";
 		default: return "Unknown Error";
 	}
@@ -22,7 +25,7 @@ static const char *glDataTypeToString(int format)
 	switch(format)
 	{
 		case GL_UNSIGNED_BYTE: return "B";
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+		#if !defined CONFIG_GFX_OPENGL_ES
 		case GL_UNSIGNED_INT_8_8_8_8: return "I8888";
 		case GL_UNSIGNED_INT_8_8_8_8_REV: return "I8888R";
 		case GL_UNSIGNED_SHORT_1_5_5_5_REV: return "S1555";
@@ -39,10 +42,10 @@ static const char *glImageFormatToString(int format)
 {
 	switch(format)
 	{
-		#if defined(CONFIG_BASE_PS3)
-		case GL_ARGB_SCE: return "ARGB_SCE";
-		#endif
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
+//		#if defined CONFIG_BASE_PS3
+//		case GL_ARGB_SCE: return "ARGB_SCE";
+//		#endif
+		#if !defined CONFIG_GFX_OPENGL_ES
 		case GL_RGBA8: return "RGBA8";
 		case GL_RGB8: return "RGB8";
 		case GL_RGB5_A1: return "RGB5_A1";
@@ -52,6 +55,10 @@ static const char *glImageFormatToString(int format)
 		case GL_LUMINANCE8: return "LUMINANCE8";
 		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
 		case GL_ALPHA8: return "ALPHA8";
+		case GL_RED: return "RED";
+		case GL_R8: return "R8";
+		case GL_RG: return "RG";
+		case GL_RG8: return "RG8";
 		#endif
 		#if !defined(CONFIG_GFX_OPENGL_ES)
 		case GL_COMPRESSED_RGBA: return "COMPRESSED_RGBA";
@@ -71,11 +78,11 @@ static const char *glImageFormatToString(int format)
 
 #if defined NDEBUG
 static const bool checkGLErrors = 0;
+static const bool checkGLErrorsVerbose = 0;
 #else
 static const bool checkGLErrors = 1;
+static const bool checkGLErrorsVerbose = 0;
 #endif
-
-static const bool checkGLErrorsVerbose = 1;
 
 static bool handleGLErrors(void (*callback)(GLenum error, const char *str) = nullptr)
 {

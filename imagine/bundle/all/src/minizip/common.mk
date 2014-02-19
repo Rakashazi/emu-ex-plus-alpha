@@ -1,7 +1,7 @@
 ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+#buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
 # provide GNU version of tar to support --strip-components
@@ -31,10 +31,10 @@ endif
 
 .PHONY : all install
 
-$(buildDir)/configure.ac : $(zlibSrcArchive)
+$(buildDir)/configure.ac : | $(zlibSrcArchive)
 	@echo "Extracting minizip..."
 	@mkdir -p $(buildDir)
-	$(TAR) -mxzf $^ -C $(buildDir) zlib-$(zlibVer)/contrib/minizip --strip-components=3
+	$(TAR) -mxzf $| -C $(buildDir) zlib-$(zlibVer)/contrib/minizip --strip-components=3
 
 $(outputLibFile) : $(pcFile)
 	@echo "Building minizip..."
@@ -47,5 +47,7 @@ $(configureFile) : $(buildDir)/configure.ac
 $(pcFile) : $(configureFile)
 	@echo "Configuring minizip..."
 	@mkdir -p $(@D)
-	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) -DOF\(args\)=args $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDLIBS)" PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --prefix=$(installDir) --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) -DOF\(args\)=args $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --prefix=$(installDir) --disable-shared \
+	--host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

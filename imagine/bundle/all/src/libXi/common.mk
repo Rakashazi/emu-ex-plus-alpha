@@ -23,9 +23,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libXiSrcDir)/configure : $(libXiSrcArchive)
+$(libXiSrcDir)/configure : | $(libXiSrcArchive)
 	@echo "Extracting libXi..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(libXiSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

@@ -21,13 +21,11 @@
 #include <util/operators.hh>
 #include <util/Point2D.hh>
 
-//TODO: remove old code
-
 namespace IG
 {
 
 template<class T>
-class Rect2 : NotEquals< Rect2<T> >, Subtracts< Rect2<T> >, Adds< Rect2<T> >
+class Rect2 : public NotEquals< Rect2<T> >, public Arithmetics< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
@@ -85,12 +83,39 @@ public:
 		return *this;
 	}
 
-	Rect2 & operator /=(T const& rhs)
+	Rect2 & operator *=(Rect2 const& rhs)
 	{
-		x /= rhs;
-		y /= rhs;
-		x2 /= rhs;
-		y2 /= rhs;
+		x *= rhs.x;
+		y *= rhs.y;
+		x2 *= rhs.x2;
+		y2 *= rhs.y2;
+		return *this;
+	}
+
+	Rect2 & operator /=(Rect2 const& rhs)
+	{
+		x /= rhs.x;
+		y /= rhs.y;
+		x2 /= rhs.x2;
+		y2 /= rhs.y2;
+		return *this;
+	}
+
+	Rect2 & operator *=(IG::Point2D<T> const& rhs)
+	{
+		x *= rhs.x;
+		y *= rhs.y;
+		x2 *= rhs.x;
+		y2 *= rhs.y;
+		return *this;
+	}
+
+	Rect2 & operator /=(IG::Point2D<T> const& rhs)
+	{
+		x /= rhs.x;
+		y /= rhs.y;
+		x2 /= rhs.x;
+		y2 /= rhs.y;
 		return *this;
 	}
 
@@ -126,7 +151,7 @@ public:
 		return IG::midpoint(x, x2);
 	}
 
-	T xPos(_2DOrigin origin) const
+	/*T xPos(_2DOrigin origin) const
 	{
 		switch(origin.xScaler())
 		{
@@ -134,33 +159,26 @@ public:
 			case 1: return x2;
 		}
 		return xCenter();
-	}
+	}*/
 
 	T yCenter() const
 	{
 		return IG::midpoint(y, y2);
 	}
 
-	T yPos(_2DOrigin origin) const
+	IG::Point2D<T> center() const
 	{
-		return yPos(origin, o);
+		return {xCenter(), yCenter()};
 	}
 
-	T yPos(_2DOrigin origin, _2DOrigin rectOrigin) const
+	IG::Point2D<T> xAxis() const
 	{
-		if(!rectOrigin.isYCartesian())
-			origin = origin.invertYIfCartesian();
-		switch(origin.yScaler())
-		{
-			case -1: return y;
-			case 1: return y2;
-		}
-		return yCenter();
+		return {x, x2};
 	}
 
-	IG::Point2D<T> pos(_2DOrigin origin) const
+	IG::Point2D<T> yAxis() const
 	{
-		return IG::Point2D<T>(xPos(origin), yPos(origin));
+		return {y, y2};
 	}
 
 	// set x2,y2 coordinates relative to x,y
@@ -186,76 +204,6 @@ public:
 		//logMsg("set rect to %d,%d %d,%d", x, y, x2, y2);
 	}
 
-	// same as above, but transform x,y to the specified corner
-
-	void setXPosRel(T newX, T size, _2DOrigin origin)
-	{
-		newX = origin.adjustX(newX, size, o);
-		setRelX(newX, size);
-	}
-
-	void setYPosRel(T newY, T size, _2DOrigin origin, _2DOrigin rectOrigin)
-	{
-		if(!rectOrigin.isYCartesian())
-			origin = origin.invertYIfCartesian();
-		newY = origin.adjustY(newY, size, o);
-		setRelY(newY, size);
-	}
-
-	void setYPosRel(T newY, T size, _2DOrigin origin)
-	{
-		setYPosRel(newY, size, origin, o);
-	}
-
-	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin origin, _2DOrigin rectOrigin)
-	{
-		setXPosRel(newX, xSize, origin);
-		setYPosRel(newY, ySize, origin, rectOrigin);
-		//logMsg("set rect pos to %d,%d %d,%d", x, y, x2, y2);
-	}
-
-	void setPosRel(IG::Point2D<T> pos, IG::Point2D<T> size, _2DOrigin origin)
-	{
-		setPosRel(pos.x, pos.y, size.x, size.y, origin, o);
-	}
-
-	void setPosRel(IG::Point2D<T> pos, T size, _2DOrigin origin) // square shortcut
-	{
-		setPosRel(pos.x, pos.y, size, size, origin, o);
-	}
-
-	void setPosRel(IG::Point2D<T> pos, T xSize, T ySize, _2DOrigin origin)
-	{
-		setPosRel(pos.x, pos.y, xSize, ySize, origin, o);
-	}
-
-	/*#ifdef CONFIG_GFX
-	void setPosRel(T newX, T newY, T xSize, T ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin)
-	{
-		// adjust to the requested origin on the screen
-		newX = LTIC2DO.adjustX(newX, (int)Gfx::viewPixelWidth(), screenOrigin.invertYIfCartesian());
-		newY = LTIC2DO.adjustY(newY, (int)Gfx::viewPixelHeight(), screenOrigin.invertYIfCartesian());
-		setPosRel(newX, newY, xSize, ySize, posOrigin);
-	}
-
-	void setPosRel(T newX, T newY, T size, _2DOrigin posOrigin, _2DOrigin screenOrigin)
-	{
-		setPosRel(newX, newY, size, size, posOrigin, screenOrigin);
-	}
-	#endif*/
-
-	/*void setRelCentered(T newX, T newY, T xSize, T ySize)
-	{
-		x = x2 = newX;
-		y = y2 = newY;
-		T halfSizeX = xSize / (T)2;
-		T halfSizeY = ySize / (T)2;
-		x -= halfSizeX;
-		y -= halfSizeY;
-		x2 += halfSizeX;
-		y2 += halfSizeY;
-	}*/
-
 	// set x,y, automatically setting x2,y2 to keep the same size
 
 	void setXPos(T newX)
@@ -263,22 +211,8 @@ public:
 		IG::setLinked(x, newX, x2);
 	}
 
-	void setXPos(T newX, _2DOrigin origin)
-	{
-		newX = origin.adjustX(newX, xSize(), o);
-		setXPos(newX);
-	}
-
 	void setYPos(T newY)
 	{
-		IG::setLinked(y, newY, y2);
-	}
-
-	void setYPos(T newY, _2DOrigin origin)
-	{
-		if(!o.isYCartesian())
-			origin = origin.invertYIfCartesian();
-		newY = origin.adjustY(newY, ySize(), o);
 		IG::setLinked(y, newY, y2);
 	}
 
@@ -286,12 +220,6 @@ public:
 	{
 		setXPos(newPos.x);
 		setYPos(newPos.y);
-	}
-
-	void setPos(IG::Point2D<T> newPos, _2DOrigin origin)
-	{
-		setXPos(newPos.x, origin);
-		setYPos(newPos.y, origin);
 	}
 
 	T xSize() const { return (x2 - x); }
@@ -303,12 +231,34 @@ public:
 		return {xSize(), ySize()};
 	}
 
+	void setXSize(T size, T anchor)
+	{
+		T offset = (T)0;
+		if(x != anchor)
+			offset = anchor - x;
+		setRelX(x + offset, size);
+	}
+
+	void setYSize(T size, T anchor)
+	{
+		T offset = (T)0;
+		if(y != anchor)
+			offset = anchor - y;
+		setRelY(y + offset, size);
+	}
+
+	void setSize(IG::Point2D<T> size, IG::Point2D<T> anchor)
+	{
+		setXSize(size.x, anchor.x);
+		setYSize(size.y, anchor.y);
+	}
+
 	// fit x,x2 inside r's x,x2 at the nearest edge
 	int fitInX(const Rect2 &r)
 	{
 		if(xSize() > r.xSize())
 		{
-			setXPos(r.x, CT2DO);
+			setXPos(r.x - xSize()/2);
 			return 1;
 		}
 		else if(x < r.x)
@@ -329,7 +279,7 @@ public:
 	{
 		if(ySize() > r.ySize())
 		{
-			setYPos(r.x, CIC2DO);
+			setYPos(r.y - ySize()/2);
 			return 1;
 		}
 		else if(y < r.y)
@@ -365,45 +315,6 @@ public:
 		else if(p.y > y2)
 			p.y = y2;
 	}
-
-	/*#ifdef CONFIG_GFX
-	Coordinate gXSize() const { return gfx_iXSize(xSize()); }
-	Coordinate gYSize() const { return gfx_iYSize(ySize()); }
-	Coordinate gXPos(_2DOrigin o) const
-	{
-		T pos = xPos(o);
-		if(o.xScaler() == 1)
-			pos++;
-		return gfx_iXPos(pos);
-	}
-	Coordinate gYPos(_2DOrigin o) const
-	{
-		T pos = yPos(o);
-		if(o.invertYIfCartesian().yScaler() == 1)
-			pos++;
-		return gfx_iYPos(pos);
-	}
-	Coordinate gXPos(Coordinate scale, _2DOrigin o) const { return gXPos(o) + (gXSize() * (scale)); }
-	Coordinate gYPos(Coordinate scale, _2DOrigin o) const { return gYPos(o) + (gYSize() * (scale)); }
-
-	void setClipRectBounds()
-	{
-		gfx_setClipRectBounds(x, y, xSize(), ySize());
-	}
-
-	void setFullView()
-	{
-		x = y = 0;
-		x2 = gfx_viewPixelWidth();
-		y2 = gfx_viewPixelHeight();
-	}
-
-	void loadGfxTransforms(_2DOrigin o) const
-	{
-		gfx_loadTranslate(gXPos(o), gYPos(o));
-		gfx_applyScale(gXSize(), gYSize());
-	}
-	#endif*/
 };
 
 template<class T>
@@ -413,6 +324,103 @@ template<class T>
 static Rect2<T> makeRectRel(T x, T y, T xSize, T ySize)
 {
 	return Rect2<T>::makeRel(x, y, xSize, ySize);
+}
+
+template<class T, bool xIsCartesian, bool yIsCartesian>
+class CoordinateRect : public Rect2<T>
+{
+public:
+	using Point2DType = IG::Point2D<T>;
+	using Rect2<T>::setXPos;
+	using Rect2<T>::setYPos;
+	using Rect2<T>::setPos;
+	using Rect2<T>::setRel;
+	using Rect2<T>::x;
+	using Rect2<T>::y;
+	using Rect2<T>::x2;
+	using Rect2<T>::y2;
+	static constexpr int xOriginVal = xIsCartesian ? -1 : 1;
+	static constexpr int x2OriginVal = xIsCartesian ? 1 : -1;
+	static constexpr int yOriginVal = yIsCartesian ? -1 : 1;
+	static constexpr int y2OriginVal = yIsCartesian ? 1 : -1;
+
+	constexpr CoordinateRect() {}
+	constexpr CoordinateRect(T x, T y, T x2, T y2): Rect2<T>{x, y, x2, y2} {}
+
+	static CoordinateRect makeRel(T newX, T newY, T xSize, T ySize)
+	{
+		CoordinateRect r;
+		//logMsg("creating new rel rect %d,%d %d,%d", newX, newY, xSize, ySize);
+		r.setRel(newX, newY, xSize, ySize);
+		return r;
+	}
+
+	T xPos(_2DOrigin origin) const
+	{
+		switch(origin.xScaler())
+		{
+			case xOriginVal: return x;
+			case x2OriginVal: return x2;
+			default: return IG::midpoint(x, x2);
+		}
+	}
+
+	T yPos(_2DOrigin origin) const
+	{
+		switch(origin.yScaler())
+		{
+			case yOriginVal: return y;
+			case y2OriginVal: return y2;
+			default: return IG::midpoint(y, y2);
+		}
+	}
+
+	Point2DType pos(_2DOrigin origin) const
+	{
+		return Point2DType{xPos(origin), yPos(origin)};
+	}
+
+	void setXPos(T p, _2DOrigin origin)
+	{
+		setXPos(p);
+		auto offset = x - pos(origin).x;
+		setXPos(x + offset);
+	}
+
+	void setYPos(T p, _2DOrigin origin)
+	{
+		setYPos(p);
+		auto offset = y - pos(origin).y;
+		setYPos(y + offset);
+	}
+
+	void setPos(Point2DType p, _2DOrigin origin)
+	{
+		setPos(p);
+		auto offset = Point2DType{x, y} - pos(origin);
+		setPos({x + offset.x, y + offset.y});
+	}
+
+	void setPosRel(Point2DType p, Point2DType size, _2DOrigin origin)
+	{
+		setRel(p.x, p.y, size.x, size.y);
+		auto offset = Point2DType{x, y} - pos(origin);
+		setRel(x + offset.x, y + offset.y, size.x, size.y);
+	}
+
+	void setPosRel(Point2DType p, T size, _2DOrigin origin)
+	{
+		setPosRel(p, {size, size}, origin);
+	}
+};
+
+using WindowRect = CoordinateRect<int, true, false>;
+
+using WP = WindowRect::Point2DType;
+
+static WindowRect makeWindowRectRel(WP pos, WP size)
+{
+	return WindowRect::makeRel(pos.x, pos.y, size.x, size.y);
 }
 
 }

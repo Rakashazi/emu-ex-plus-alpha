@@ -22,9 +22,9 @@ install : $(outputPCFile)
 
 .PHONY : all install
 
-$(inputprotoSrcDir)/configure : $(inputprotoSrcArchive)
+$(inputprotoSrcDir)/configure : | $(inputprotoSrcArchive)
 	@echo "Extracting inputproto..."
-	tar -mxjf $^
+	tar -mxjf $|
 
 $(outputPCFile) : $(makeFile)
 	@echo "Building inputproto..."

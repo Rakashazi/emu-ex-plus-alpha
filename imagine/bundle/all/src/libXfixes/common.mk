@@ -23,9 +23,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libXfixesSrcDir)/configure : $(libXfixesSrcArchive)
+$(libXfixesSrcDir)/configure : | $(libXfixesSrcArchive)
 	@echo "Extracting libXfixes..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(libXfixesSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

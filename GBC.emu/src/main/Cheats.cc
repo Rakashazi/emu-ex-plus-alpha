@@ -1,12 +1,10 @@
 #include <Cheats.hh>
 #include <MsgPopup.hh>
 #include <TextEntry.hh>
-#include <util/gui/ViewStack.hh>
+#include <EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <main/Cheats.hh>
 #include <gambatte.h>
-extern MsgPopup popup;
-extern ViewStack viewStack;
 extern gambatte::GB gbEmu;
 StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
 bool cheatsModified = 0;
@@ -163,16 +161,16 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code);
+			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!strIsGGCode(str) && !strIsGSCode(str))
 						{
 							popup.postError("Invalid format");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						string_copy(cheat->code, str);
@@ -180,12 +178,12 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 						cheatsModified = 1;
 						applyCheats();
 						ggCode.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}
@@ -208,7 +206,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 			{
 				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), cheatList[c]);
-				viewStack.pushAndShow(&editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView, &menuAllocator);
 			};
 		++it;
 	}
@@ -222,61 +220,61 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code");
+			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
-				if(str)
-				{
-					if(cheatList.isFull())
+					if(str)
 					{
-						popup.postError("Cheat list is full");
-						removeModalView();
-						return 0;
-					}
-					if(!strIsGGCode(str) && !strIsGSCode(str))
-					{
-						popup.postError("Invalid format");
-						window().displayNeedsUpdate();
-						return 1;
-					}
-					GbcCheat c;
-					string_copy(c.code, str);
-					string_toUpper(c.code);
-					string_copy(c.name, "Unnamed Cheat");
-					cheatList.push_back(c);
-					logMsg("added new cheat, %d total", cheatList.size());
-					cheatsModified = 1;
-					applyCheats();
-					removeModalView();
-					refreshCheatViews();
-
-					auto &textInputView = *allocModalView<CollectTextInputView>(window());
-					textInputView.init("Input description");
-					textInputView.onText() =
-						[this](const char *str)
+						if(cheatList.isFull())
 						{
-							if(str)
-							{
-								string_copy(cheatList.back().name, str);
-								removeModalView();
-								refreshCheatViews();
-							}
-							else
-							{
-								removeModalView();
-							}
+							popup.postError("Cheat list is full");
+							view.dismiss();
 							return 0;
-						};
-					View::addModalView(textInputView);
-				}
-				else
-				{
-					removeModalView();
-				}
-				return 0;
-			};
-			View::addModalView(textInputView);
+						}
+						if(!strIsGGCode(str) && !strIsGSCode(str))
+						{
+							popup.postError("Invalid format");
+							window().postDraw();
+							return 1;
+						}
+						GbcCheat c;
+						string_copy(c.code, str);
+						string_toUpper(c.code);
+						string_copy(c.name, "Unnamed Cheat");
+						cheatList.push_back(c);
+						logMsg("added new cheat, %d total", cheatList.size());
+						cheatsModified = 1;
+						applyCheats();
+						view.dismiss();
+						refreshCheatViews();
+
+						auto &textInputView = *allocModalView<CollectTextInputView>(window());
+						textInputView.init("Input description", getCollectTextCloseAsset());
+						textInputView.onText() =
+							[this](CollectTextInputView &view, const char *str)
+							{
+								if(str)
+								{
+									string_copy(cheatList.back().name, str);
+									view.dismiss();
+									refreshCheatViews();
+								}
+								else
+								{
+									view.dismiss();
+								}
+								return 0;
+							};
+						modalViewController.pushAndShow(textInputView);
+					}
+					else
+					{
+						view.dismiss();
+					}
+					return 0;
+				};
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}

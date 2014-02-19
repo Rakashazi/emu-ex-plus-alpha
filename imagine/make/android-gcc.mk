@@ -2,6 +2,7 @@ ENV := android
 CROSS_COMPILE := 1
 configDefs += CONFIG_MACHINE_$(MACHINE)
 binStatic := 1
+android_libm ?= -lm
 
 android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
 android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
@@ -20,7 +21,12 @@ else
  android_ndkSDK := 4
 endif
 
-android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+# TODO: android_minSDK should only apply to APK metadata
+ifdef android_minLibSDK
+ android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_minLibSDK)/arch-$(android_ndkArch)
+else
+ android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+endif
 
 ifndef targetDir
  ifdef O_RELEASE
@@ -52,14 +58,14 @@ ifndef android_stdcxx
 endif
 
 ifeq ($(android_stdcxx), gnu)
- android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/libgnustl_static.a
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/libgnustl_static$(android_hardFPExt).a
  ifeq ($(ARCH), arm)
   ifeq ($(android_armState),-mthumb)
-   android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/thumb/libgnustl_static.a
+   android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/thumb/libgnustl_static$(android_hardFPExt).a
   endif	
  endif
 else
- android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/libs/$(android_abi)/libstlport_static.a -lstdc++
+ # TODO: libc++
 endif
 
 pkg_stdcxxStaticLib := $(android_stdcxxLib)
@@ -68,16 +74,12 @@ ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
 
-#BASE_CXXFLAGS += -fno-use-cxa-atexit
-# -fstack-protector
 COMPILE_FLAGS += -ffunction-sections -fdata-sections \
 -Wa,--noexecstack $(android_cpuFlags) -no-canonical-prefixes
 ASMFLAGS += -Wa,--noexecstack $(android_cpuFlags)
-LDFLAGS += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-prefixes
-WARNINGS_CFLAGS += -Wno-psabi
-LDFLAGS += -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now,-soname,lib$(android_soName).so -shared
-LDLIBS += -lgcc -lc -lm
-#-L$(android_ndkSysroot)/usr/lib
+LDFLAGS += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-prefixes \
+-Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
+LDFLAGS_SO := -Wl,-soname,lib$(android_soName).so -shared
+LDLIBS += -lgcc -lc $(android_libm)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
 LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
-OPTIMIZE_LDFLAGS +=

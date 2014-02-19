@@ -1,5 +1,21 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <X11/X.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
 #define CONFIG_INPUT_GENERIC_ASCII_DECODE
@@ -7,7 +23,16 @@
 namespace Input
 {
 
-namespace Keycode
+using Time = ::Time; // X time base
+
+static Time msToTime(int ms)
+{
+	return ms;
+}
+
+using Key = uint16;
+
+namespace X
 {
 	static const uint ESCAPE = XK_Escape,
 	F1 = XK_F1,
@@ -102,12 +127,13 @@ namespace Keycode
 			SELECT = LCTRL,
 			START = LALT,
 			LOGO = UNDO,
-			UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT
+			UP = X::UP, RIGHT = X::RIGHT, DOWN = X::DOWN, LEFT = X::LEFT
 			;
 	}
 };
 
-typedef uint16 Key;
+namespace Keycode = X;
+#define CONFIG_INPUT_KEYCODE_NAMESPACE X
 
 namespace Pointer
 {

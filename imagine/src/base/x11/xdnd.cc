@@ -1,5 +1,20 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <util/bits.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/preprocessor/enum.h>
 #include <base/x11/xdnd.hh>
 #include <logger/interface.h>
@@ -125,7 +140,7 @@ void sendDNDFinished(Display *dpy, ::Window win, ::Window srcWin, Atom action)
 	}
 }
 
-void receiveDrop(Display *dpy, ::Window win, X11Time_ time)
+void receiveDrop(Display *dpy, ::Window win, Time time)
 {
 	XConvertSelection(dpy, xdndAtom[XdndSelection], XA_STRING, xdndAtom[iSelectionProperty], win, time);
 }

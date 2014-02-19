@@ -1,7 +1,23 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <io/Io.hh>
+#include <pixmap/Pixmap.hh>
 #include <data-type/font/FontData.hh>
 
 #include <ft2build.h>
@@ -10,10 +26,10 @@
 class FreetypeFontData
 {
 public:
-	constexpr FreetypeFontData() { }
+	constexpr FreetypeFontData() {}
 	CallResult open(Io *file);
 	void close(bool closeIo);
-	void accessCharBitmap(void *&bitmap, int &x, int &y, int &pitch) const;
+	IG::Pixmap accessCharBitmap() const;
 	int getCurrentCharBitmapXAdvance() const;
 	int getCurrentCharBitmapTop() const;
 	int getCurrentCharBitmapLeft() const;
@@ -26,6 +42,7 @@ public:
 	CallResult applySize(FT_Size sizeRef);
 	void freeSize(FT_Size sizeRef);
 	bool isOpen();
+
 private:
 	static FT_Library library;
 	FT_Face face = nullptr;

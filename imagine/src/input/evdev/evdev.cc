@@ -13,16 +13,17 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "input:evdev"
+#define LOGTAG "InputEvdev"
 #include <linux/input.h>
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/bits.h>
 #include <util/fd-utils.h>
 #include <fs/sys.hh>
 #include <base/Base.hh>
+#include <base/EventLoopFileSource.hh>
 #include <input/Input.hh>
 #include <input/AxisKeyEmu.hh>
 #include <input/evdev/evdev.hh>
@@ -116,37 +117,7 @@ struct EvdevInputDevice : public Device
 	constexpr EvdevInputDevice() {}
 	EvdevInputDevice(int id, int fd, uint type):
 		Device{0, Event::MAP_EVDEV, type, name},
-		id{id}, fd{fd},
-		pollEvDel
-		{
-			[this](int pollEvents)
-			{
-				if(unlikely(pollEvents & Base::POLLEV_ERR))
-				{
-					logMsg("error %d in input fd %d (%s)", errno, this->fd, name);
-					removeFromSystem(this->fd);
-					return 0;
-				}
-				else
-				{
-					struct input_event event[64];
-					int len;
-					while((len = read(this->fd, event, sizeof event)) > 0)
-					{
-						uint events = len / sizeof(struct input_event);
-						//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
-						processInputEvents(event, events);
-					}
-					if(len == -1 && errno != EAGAIN)
-					{
-						logMsg("error %d reading from input fd %d (%s)", errno, this->fd, name);
-						removeFromSystem(this->fd);
-						return 0;
-					}
-				}
-				return 1;
-			}
-		}
+		id{id}, fd{fd}
 	{}
 	int id = 0;
 	int fd = -1;
@@ -155,7 +126,7 @@ struct EvdevInputDevice : public Device
 		AxisKeyEmu<int> keyEmu;
 		bool active = 0;
 	} axis[ABS_HAT3Y];
-	Base::PollEventDelegate pollEvDel;
+	Base::EventLoopFileSource fdSrc;
 	char name[80] {0};
 
 	void setEnumId(int id) { devId = id; }
@@ -171,7 +142,9 @@ struct EvdevInputDevice : public Device
 				bcase EV_KEY:
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
-					Input::onInputEvent(Base::mainWindow(), Event(enumId(), Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, this));
+					Event event{enumId(), Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, 0, this};
+					startKeyRepeatTimer(event);
+					Base::onInputEvent(Base::mainWindow(), event);
 				}
 				bcase EV_ABS:
 				{
@@ -249,29 +222,56 @@ struct EvdevInputDevice : public Device
 	void addPollEvent()
 	{
 		assert(fd >= 0);
-		Base::addPollEvent(fd, pollEvDel, Base::POLLEV_IN);
+		fdSrc.init(fd,
+			[this](int fd, int pollEvents)
+			{
+				if(unlikely(pollEvents & Base::POLLEV_ERR))
+				{
+					logMsg("error %d in input fd %d (%s)", errno, fd, name);
+					removeFromSystem(fd);
+					return 0;
+				}
+				else
+				{
+					struct input_event event[64];
+					int len;
+					while((len = read(fd, event, sizeof event)) > 0)
+					{
+						uint events = len / sizeof(struct input_event);
+						//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
+						processInputEvents(event, events);
+					}
+					if(len == -1 && errno != EAGAIN)
+					{
+						logMsg("error %d reading from input fd %d (%s)", errno, fd, name);
+						removeFromSystem(fd);
+						return 0;
+					}
+				}
+				return 1;
+			});
 	}
 
 	void close()
 	{
-		Base::removePollEvent(fd);
+		fdSrc.deinit();
 		::close(fd);
 		removeDevice(*this);
 		onInputDevChange(*this, { Device::Change::REMOVED });
 	}
 
-	void setJoystickAxis1AsDpad(bool on) override
+	void setJoystickAxisAsDpadBits(uint axisMask) override
 	{
 		Key jsKey[4] = { Evdev::JS1_XAXIS_NEG, Evdev::JS1_XAXIS_POS, Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS };
 		Key dpadKey[4] = { Evdev::LEFT, Evdev::RIGHT, Evdev::UP, Evdev::DOWN };
-		Key (&setKey)[4] = on ? dpadKey : jsKey;
+		Key (&setKey)[4] = (axisMask & IG::bit(0)) ? dpadKey : jsKey;
 		axis[ABS_X].keyEmu.lowKey = setKey[0];
 		axis[ABS_X].keyEmu.highKey = setKey[1];
 		axis[ABS_Y].keyEmu.lowKey = setKey[2];
 		axis[ABS_Y].keyEmu.highKey = setKey[3];
 	}
 
-	bool joystickAxis1AsDpad() override
+	uint joystickAxisAsDpadBits() override
 	{
 		return axis[ABS_X].keyEmu.lowKey == Evdev::LEFT;
 	}
@@ -391,51 +391,49 @@ static bool processDevNodeName(const char *name, FsSys::cPath &path, uint &id)
 	return true;
 }
 
-static int inputDevNotifyFd = -1;
-static Base::PollEventDelegate evdevPoll =
-	[](int)
-	{
-		char event[sizeof(struct inotify_event) + 2048];
-		int len;
-		while((len = read(inputDevNotifyFd, event, sizeof event)) > 0)
-		{
-			//logMsg("read %d bytes from inotify fd %d", len, inputDevNotifyFd);
-			auto inotifyEv = (struct inotify_event*)&event[0];
-			uint inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
-			logMsg("inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
-			do
-			{
-				if(inotifyEv->len > 1)
-				{
-					uint id;
-					FsSys::cPath path;
-					if(processDevNodeName(inotifyEv->name, path, id))
-					{
-						processDevNode(path, id, true);
-					}
-				}
-				len -= inotifyEvSize;
-				if(len)
-				{
-					inotifyEv = (struct inotify_event*)(((char*)inotifyEv) + inotifyEvSize);
-					inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
-					logMsg("next inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
-				}
-			} while(len);
-		}
-		return 1;
-	};
-
 void initEvdev()
 {
 	logMsg("setting up inotify for hotplug");
 	{
-		inputDevNotifyFd = inotify_init();
+		int inputDevNotifyFd = inotify_init();
 		if(inputDevNotifyFd >= 0)
 		{
 			auto watch = inotify_add_watch(inputDevNotifyFd, DEV_NODE_PATH, IN_CREATE | IN_ATTRIB);
 			fd_setNonblock(inputDevNotifyFd, 1);
-			Base::addPollEvent(inputDevNotifyFd, evdevPoll);
+			static Base::EventLoopFileSource evdevSrc;
+			evdevSrc.init(inputDevNotifyFd,
+				[](int fd, int)
+				{
+					char event[sizeof(struct inotify_event) + 2048];
+					int len;
+					while((len = read(fd, event, sizeof event)) > 0)
+					{
+						//logMsg("read %d bytes from inotify fd %d", len, inputDevNotifyFd);
+						auto inotifyEv = (struct inotify_event*)&event[0];
+						uint inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
+						logMsg("inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
+						do
+						{
+							if(inotifyEv->len > 1)
+							{
+								uint id;
+								FsSys::cPath path;
+								if(processDevNodeName(inotifyEv->name, path, id))
+								{
+									processDevNode(path, id, true);
+								}
+							}
+							len -= inotifyEvSize;
+							if(len)
+							{
+								inotifyEv = (struct inotify_event*)(((char*)inotifyEv) + inotifyEvSize);
+								inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
+								logMsg("next inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
+							}
+						} while(len);
+					}
+					return 1;
+				});
 		}
 		else
 		{

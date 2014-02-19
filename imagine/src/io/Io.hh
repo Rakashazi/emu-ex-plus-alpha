@@ -28,22 +28,24 @@
 #define IO_CREATE_USED_BITS 1
 
 #ifndef SEEK_SET
-	#define SEEK_SET 0
-	#define SEEK_CUR 1
-	#define SEEK_END 2
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 #endif
 
-enum { IO_SEEK_ABS, IO_SEEK_ABS_END, IO_SEEK_ADD, IO_SEEK_SUB };
+enum { IO_SEEK_ABS, IO_SEEK_ABS_END, IO_SEEK_REL };
 
 class Io
 {
 public:
+	enum Advice { ADVICE_SEQUENTIAL, ADVICE_WILLNEED };
+
 	constexpr Io() {}
 	virtual ~Io() {}
 
 	// reading
-	virtual size_t readUpTo(void* buffer, size_t numBytes) = 0;
-	virtual const char *mmapConst() { return 0; };
+	virtual ssize_t readUpTo(void* buffer, size_t numBytes) = 0;
+	virtual const char *mmapConst() { return nullptr; };
 	CallResult readLine(void* buffer, uint maxBytes);
 	int fgetc();
 	CallResult read(void* buffer, size_t numBytes);
@@ -55,27 +57,24 @@ public:
 
 	// file position
 	virtual CallResult tell(ulong &offset) = 0;
-
 	long ftell();
 
 	// seeking
 	virtual CallResult seek(long offset, uint mode) = 0;
-
-	CallResult seekAbs(long offset) { return seek(offset, IO_SEEK_ABS); }
-	CallResult seekAbsE(long offset) { return seek(offset, IO_SEEK_ABS_END); }
-	CallResult seekF(long offset) { return seek(offset, IO_SEEK_ADD); }
-	CallResult seekB(long offset) { return seek(offset, IO_SEEK_SUB); }
-	CallResult seekRel(long offset) { return seek(offset, IO_SEEK_ADD); }
-	CallResult seekA(long offset) { return seekAbs(offset); }
-	CallResult seekR(long offset) { return seekRel(offset); }
-
 	int fseek(long offset, int whence);
+
+	// seeking shortcuts
+	CallResult seekA(long offset) { return seek(offset, IO_SEEK_ABS); }
+	CallResult seekAE(long offset) { return seek(offset, IO_SEEK_ABS_END); }
+	CallResult seekR(long offset) { return seek(offset, IO_SEEK_REL); }
+	CallResult seekB(long offset) { return seek(-offset, IO_SEEK_REL); }
 
 	// other functions
 	virtual void close() = 0;
 	virtual void sync() = 0;
 	virtual ulong size() = 0;
 	virtual int eof() = 0;
+	virtual void advise(long offset, size_t len, Advice advice) {}
 
 	template <class T>
 	CallResult readVar(T &var)
@@ -100,26 +99,51 @@ public:
 		return fwrite(&var, sizeof(T), 1);
 	}
 
-	CallResult writeToIO(Io *io)
+	CallResult writeToIO(Io &io);
+};
+
+class IOFile
+{
+public:
+	constexpr IOFile(Io *io): io_(io) {}
+	~IOFile()
 	{
-		auto bytesToWrite = size();
-		char buff[4096];
-		while(bytesToWrite)
-		{
-			size_t bytes = std::min((ulong)sizeof(buff), bytesToWrite);
-			CallResult ret = read(buff, bytes);
-			if(ret != OK)
-			{
-				logErr("error reading from IO source with %d bytes to write", (int)bytesToWrite);
-				return ret;
-			}
-			if(io->fwrite(buff, bytes, 1) != 1)
-			{
-				logErr("error writing to IO destination with %d bytes to write", (int)bytesToWrite);
-				return IO_ERROR;
-			}
-			bytesToWrite -= bytes;
-		}
-		return OK;
+		delete io_;
+		io_ = nullptr;
 	}
+
+	operator bool() const
+	{
+		return io_;
+	}
+
+	Io *io()
+	{
+		return io_;
+	}
+
+	ssize_t readUpTo(void *buffer, size_t numBytes) { return io_->readUpTo(buffer, numBytes); }
+	const char *mmapConst() { return io_->mmapConst(); }
+	CallResult readLine(void* buffer, uint maxBytes) { return io_->readLine(buffer, maxBytes); }
+	int fgetc() { return io_->fgetc(); }
+	CallResult read(void *buffer, size_t numBytes) { return io_->read(buffer, numBytes); }
+	size_t fread(void *ptr, size_t size, size_t nmemb) { return io_->fread(ptr, size, nmemb); }
+	size_t fwrite(const void* ptr, size_t size, size_t nmemb) { return io_->fwrite(ptr, size, nmemb); }
+	void truncate(ulong offset) { io_->truncate(offset); }
+	CallResult tell(ulong &offset) { return io_->tell(offset); }
+	long ftell() { return io_->ftell(); }
+	CallResult seek(long offset, uint mode) { return io_->seek(offset, mode); }
+	CallResult seekA(long offset) { return io_->seekA(offset); }
+	CallResult seekAE(long offset) { return io_->seekAE(offset); }
+	CallResult seekR(long offset) { return io_->seekR(offset); }
+	CallResult seekB(long offset) { return io_->seekB(offset); }
+	int fseek(long offset, int whence) { return io_->fseek(offset, whence); }
+	void close() { io_->close(); }
+	void sync() { io_->sync(); }
+	ulong size() { return io_->size(); }
+	int eof() { return io_->eof(); }
+	void advise(long offset, size_t len, Io::Advice advice) { return io_->advise(offset, len, advice); }
+
+private:
+	Io *io_;
 };

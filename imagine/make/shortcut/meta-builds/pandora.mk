@@ -1,10 +1,10 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../config.mk
+include $(IMAGINE_PATH)/make/config.mk
 include $(IMAGINE_PATH)/make/pnd-metadata.mk
 
 .PHONY: all
 all : pandora-pnd
 
-pandora_buildName ?= $(baseMakefileName:.mk=)
+pandora_buildName ?= $(firstMakefileName:.mk=)
 pandora_targetPath ?= target/$(pandora_buildName)
 pandora_targetPNDPath := $(pandora_targetPath)/$(pnd_metadata_pndName)
 pandora_exec := $(pandora_targetPNDPath)/$(pnd_metadata_exec)
@@ -26,7 +26,7 @@ pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
 pandora-build :
 	@echo "Building Executable"
 	$(PRINT_CMD)$(MAKE) -f $(pandora_makefile) $(pandora_makefileOpts) targetDir=$(pandora_targetPNDPath) targetFile=$(pnd_metadata_exec) \
-	buildName=$(pandora_buildName) imagineLibPath=$(pandora_imagineLibPath) imagineIncludePath=$(pandora_imagineIncludePath)
+	buildName=$(pandora_buildName) imagineLibPath=$(pandora_imagineLibPath) imagineIncludePath=$(pandora_imagineIncludePath) projectPath=$(projectPath)
 $(pandora_execPath) : pandora-build
 
 .PHONY: pandora-exec-install
@@ -34,7 +34,7 @@ pandora-exec-install : $(pandora_exec)
 	ssh $(pandora_installUser)@$(pandora_installHost) mkdir -p $(pandora_deviceExecInstallPath)
 	scp $^ $(pandora_installUser)@$(pandora_installHost):$(pandora_deviceExecPath)
 
-$(pandora_pxml) : metadata/conf.mk $(metadata_confDeps)
+$(pandora_pxml) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 	bash $(IMAGINE_PATH)/tools/genPNDMeta.sh $(pnd_gen_metadata_args) $@
 .PHONY: pandora-metadata
 pandora-metadata : $(pandora_pxml)

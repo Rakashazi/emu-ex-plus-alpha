@@ -13,20 +13,23 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "creditsView"
+#define LOGTAG "CreditsView"
 #include <CreditsView.hh>
-#include <util/gui/ViewStack.hh>
-extern ViewStack viewStack;
 
-void CreditsView::draw(Gfx::FrameTimeBase frameTime)
+void CreditsView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
-	if(!updateAnimation())
-		return;
-	setColor(1., 1., 1., fade.m.now);
-	//gfx_setColor(GCOLOR_WHITE);
-	text.draw(/*(1.-fade.m.now)/8. * (displayState == DISMISS ? -1 : 1)*/
-			gXPos(rect, C2DO), gYPos(rect, C2DO), C2DO, C2DO);
+	float fadeVal;
+	if(fade.update(1, fadeVal))
+	{
+		postDraw();
+	}
+	setColor(1., 1., 1., fadeVal);
+	texAlphaProgram.use(projP.makeTranslate());
+	auto textRect = rect;
+	if(IG::isOdd(textRect.ySize()))
+		textRect.y2--;
+	text.draw(projP.unProjectRect(textRect).pos(C2DO), C2DO);
 }
 
 void CreditsView::place()
@@ -39,15 +42,16 @@ void CreditsView::inputEvent(const Input::Event &e)
 	if((e.isPointer() && rect.overlaps({e.x, e.y}) && e.state == Input::RELEASED)
 			|| (!e.isPointer() && e.state == Input::PUSHED))
 	{
-		viewStack.popAndShow();
+		dismiss();
 	}
 }
 
 void CreditsView::init()
 {
 	text.init(str, View::defaultFace);
+	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	place();
-	View::init(&fade, 1);
+	View::init();
 }
 
 void CreditsView::deinit()

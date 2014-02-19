@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 
 ARCH := arm
 SUBARCH := armv6
@@ -12,12 +12,9 @@ endif
 IOS_SYSROOT = /Applications/Xcode44.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.1.sdk
 IOS_FLAGS += -arch armv6
 ASMFLAGS += -arch armv6
+COMPILE_FLAGS += -mdynamic-no-pic
 CHOST := $(shell $(CC) -arch armv6 -dumpmachine)
 
 extraSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/armv6
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
-PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
-pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
 CPPFLAGS += -I$(extraSysroot)/include
-LDLIBS += -L$(extraSysroot)/lib

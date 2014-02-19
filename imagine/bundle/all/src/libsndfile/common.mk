@@ -1,7 +1,7 @@
 ifndef CHOST
 CHOST := $(shell $(CC) -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+#buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
 libsndfileVer := 1.0.25
@@ -23,9 +23,10 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libsndfileSrcDir)/configure : $(libsndfileSrcArchive)
+$(libsndfileSrcDir)/configure : | $(libsndfileSrcArchive)
 	@echo "Extracting libsndfile..."
-	tar -mxzf $^
+	tar -mxzf $|
+	patch -d $(libsndfileSrcDir) -p1 < libsndfile-1.0.25-libm-pkgconf.patch
 	cp ../gnuconfig/config.* $(libsndfileSrcDir)/Cfg/
 
 $(outputLibFile) : $(makeFile)
@@ -37,5 +38,7 @@ $(makeFile) : $(libsndfileSrcDir)/configure
 	@mkdir -p $(@D)/src/ $(@D)/tests/
 	cp $(libsndfileSrcDir)/src/*.def $(libsndfileSrcDir)/src/*.tpl $(@D)/src/
 	cp $(libsndfileSrcDir)/tests/*.def $(libsndfileSrcDir)/tests/*.tpl $(@D)/tests/
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDLIBS)" $$dir/$(libsndfileSrcDir)/configure --prefix=$(installDir) --disable-sqlite --disable-alsa --disable-external-libs --disable-octave --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
+	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	$$dir/$(libsndfileSrcDir)/configure --prefix=$(installDir) --disable-sqlite --disable-alsa --disable-external-libs \
+	--disable-octave --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

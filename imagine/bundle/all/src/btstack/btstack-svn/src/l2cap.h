@@ -42,7 +42,8 @@
  *  Created by Matthias Ringwald on 5/16/09.
  */
 
-#pragma once
+#ifndef __L2CAP_H
+#define __L2CAP_H
 
 #include "hci.h"
 #include "l2cap_signaling.h"
@@ -82,17 +83,27 @@ extern "C" {
 // L2CAP Reject Result Codes
 #define L2CAP_REJ_CMD_UNKNOWN               0x0000
     
-    // private structs
+// Response Timeout eXpired
+#define L2CAP_RTX_TIMEOUT_MS 2000
+
+// Extended Response Timeout eXpired
+#define L2CAP_ERTX_TIMEOUT_MS 120000
+
+// private structs
 typedef enum {
     L2CAP_STATE_CLOSED = 1,           // no baseband
     L2CAP_STATE_WILL_SEND_CREATE_CONNECTION,
     L2CAP_STATE_WAIT_CONNECTION_COMPLETE,
+    L2CAP_STATE_WAIT_REMOTE_SUPPORTED_FEATURES,
+    L2CAP_STATE_WAIT_INCOMING_SECURITY_LEVEL_UPDATE,
+    L2CAP_STATE_WAIT_OUTGOING_SECURITY_LEVEL_UPDATE,
     L2CAP_STATE_WAIT_CLIENT_ACCEPT_OR_REJECT,
     L2CAP_STATE_WAIT_CONNECT_RSP, // from peer
     L2CAP_STATE_CONFIG,
     L2CAP_STATE_OPEN,
     L2CAP_STATE_WAIT_DISCONNECT,  // from application
     L2CAP_STATE_WILL_SEND_CONNECTION_REQUEST,
+    L2CAP_STATE_WILL_SEND_CONNECTION_RESPONSE_INSUFFICIENT_SECURITY,
     L2CAP_STATE_WILL_SEND_CONNECTION_RESPONSE_DECLINE,
     L2CAP_STATE_WILL_SEND_CONNECTION_RESPONSE_ACCEPT,   
     L2CAP_STATE_WILL_SEND_DISCONNECT_REQUEST,
@@ -107,10 +118,11 @@ typedef enum {
     L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP         = 1 << 3,
     L2CAP_CHANNEL_STATE_VAR_SENT_CONF_REQ         = 1 << 4,
     L2CAP_CHANNEL_STATE_VAR_SENT_CONF_RSP         = 1 << 5,
-    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_MTU     = 1 << 6,  // in CONF RSP, add MTU field
-    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_CONT    = 1 << 7,  // in CONF RSP, set CONTINUE flag
-    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_INVALID = 1 << 8,  // in CONF RSP, send UNKNOWN OPTIONS
-    L2CAP_CHANNEL_STATE_VAR_SEND_CMD_REJ_UNKNOWN  = 1 << 9,  // send CMD_REJ with reason unknown
+    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_MTU     = 1 << 6,   // in CONF RSP, add MTU field
+    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_CONT    = 1 << 7,   // in CONF RSP, set CONTINUE flag
+    L2CAP_CHANNEL_STATE_VAR_SEND_CONF_RSP_INVALID = 1 << 8,   // in CONF RSP, send UNKNOWN OPTIONS
+    L2CAP_CHANNEL_STATE_VAR_SEND_CMD_REJ_UNKNOWN  = 1 << 9,   // send CMD_REJ with reason unknown
+    L2CAP_CHANNEL_STATE_VAR_SEND_CONN_RESP_PEND   = 1 << 10,  // send Connection Respond with pending
 } L2CAP_CHANNEL_STATE_VAR;
 
 // info regarding an actual coneection
@@ -133,12 +145,18 @@ typedef struct {
     uint16_t  local_mtu;
     uint16_t  remote_mtu;
     
+    uint16_t  flush_timeout;    // default 0xffff
+
     uint16_t  psm;
     
+    gap_security_level_t required_security_level;
+
     uint8_t   packets_granted;    // number of L2CAP/ACL packets client is allowed to send
     
     uint8_t   reason; // used in decline internal
     
+    timer_source_t rtx; // also used for ertx
+
     // client connection
     void * connection;
     
@@ -163,7 +181,9 @@ typedef struct {
     
     // internal connection
     btstack_packet_handler_t packet_handler;
-    
+
+    // required security level
+    gap_security_level_t required_security_level;    
 } l2cap_service_t;
 
 
@@ -194,6 +214,9 @@ int  l2cap_send_connectionless(uint16_t handle, uint16_t cid, uint8_t *data, uin
 
 void l2cap_close_connection(void *connection);
 
+int l2cap_send_echo_request(uint16_t handle, uint8_t *data, uint16_t len);
+
+void l2cap_require_security_level_2_for_outgoing_sdp();  // testing
 
 /** Embedded API **/
 
@@ -216,7 +239,7 @@ uint16_t l2cap_get_remote_mtu_for_local_cid(uint16_t local_cid);
 int l2cap_send_internal(uint16_t local_cid, uint8_t *data, uint16_t len);
 
 // Registers L2CAP service with given PSM and MTU, and assigns a packet handler. On embedded systems, use NULL for connection parameter.
-void l2cap_register_service_internal(void *connection, btstack_packet_handler_t packet_handler, uint16_t psm, uint16_t mtu);
+void l2cap_register_service_internal(void *connection, btstack_packet_handler_t packet_handler, uint16_t psm, uint16_t mtu, gap_security_level_t security_level);
 
 // Unregisters L2CAP service with given PSM.  On embedded systems, use NULL for connection parameter.
 void l2cap_unregister_service_internal(void *connection, uint16_t psm);
@@ -226,6 +249,11 @@ void l2cap_accept_connection_internal(uint16_t local_cid);
 void l2cap_decline_connection_internal(uint16_t local_cid, uint8_t reason);
 
 
+// Request LE connection parameter update
+int l2cap_le_request_connection_parameter_update(uint16_t handle, uint16_t interval_min, uint16_t interval_max, uint16_t slave_latency, uint16_t timeout_multiplier);
+
 #if defined __cplusplus
 }
 #endif
+
+#endif // __L2CAP_H

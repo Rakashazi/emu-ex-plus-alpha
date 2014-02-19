@@ -14,11 +14,11 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <util/number.h>
-#include <EmuSystem.hh>
+#include <EmuApp.hh>
 #include <MultiChoiceView.hh>
 #include <algorithm>
 
-void BaseMultiChoiceView::draw(Gfx::FrameTimeBase frameTime)
+void BaseMultiChoiceView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	/*resetTransforms();
@@ -28,14 +28,14 @@ void BaseMultiChoiceView::draw(Gfx::FrameTimeBase frameTime)
 	BaseMenuView::draw(frameTime);
 }
 
-void BaseMultiChoiceView::drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void BaseMultiChoiceView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	if((int)i == activeItem)
 		setColor(0., .8, 1.);
 	else
 		setColor(COLOR_WHITE);
-	item[i]->draw(xPos, yPos, xSize, ySize, align);
+	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), BaseMenuView::align);
 }
 
 void MultiChoiceView::freeItems()
@@ -108,25 +108,23 @@ void MultiChoiceView::onSelectElement(const GuiTable1D *table, const Input::Even
 	logMsg("set choice %d", i);
 	if(onSelectD((int)i, e))
 	{
-		viewStack.popAndShow();
+		dismiss();
 	}
 }
 
 void MultiChoiceSelectMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
 {
-	onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
 	MultiChoiceMenuItem::init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
 void MultiChoiceSelectMenuItem::init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
 {
-	onSelect() = [this](DualTextMenuItem &t, const Input::Event &e) { handleChoices(t, e); };
 	MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
-void MultiChoiceSelectMenuItem::handleChoices(DualTextMenuItem &, const Input::Event &e)
+void MultiChoiceSelectMenuItem::select(View *parent, const Input::Event &e)
 {
 	auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(t.str, Base::mainWindow());
 	multiChoiceView.init(*this, !e.isPointer());
-	viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+	parent->pushAndShow(multiChoiceView, &menuAllocator);
 }

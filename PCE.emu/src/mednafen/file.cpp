@@ -276,6 +276,7 @@ bool MDFNFILE::MakeMemWrapAndClose(void *tz, int type)
   	MDFN_PrintError(_("Error reading file: %s"), ene.StrError());
 
     free(f_data);
+    f_data = NULL;
     goto doret;
    }
   #ifdef HAVE_MMAP

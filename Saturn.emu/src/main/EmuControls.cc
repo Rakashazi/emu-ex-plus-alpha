@@ -52,21 +52,21 @@ const KeyConfig defaultKeyProfile[] =
 {
 	#ifdef CONFIG_ENV_WEBOS
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"WebOS Keyboard",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 			Input::Keycode::ENTER,
-			asciiKey(','),
-			asciiKey('m'),
-			asciiKey('l'),
-			asciiKey('k'),
-			asciiKey('i'),
-			asciiKey('o'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey('l'),
+			Keycode::asciiKey('k'),
+			Keycode::asciiKey('i'),
+			Keycode::asciiKey('o'),
 			0,
 			0,
 			0,
@@ -77,7 +77,30 @@ const KeyConfig defaultKeyProfile[] =
 	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
+		Input::Device::SUBTYPE_GENERIC_GAMEPAD,
+		"Generic Gamepad",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
+
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::GAME_START,
+			Input::Keycode::GAME_A,
+			Input::Keycode::GAME_B,
+			Input::Keycode::GAME_R1,
+			Input::Keycode::GAME_X,
+			Input::Keycode::GAME_Y,
+			Input::Keycode::GAME_L1,
+			Input::Keycode::GAME_LEFT_TRIGGER,
+			Input::Keycode::GAME_RIGHT_TRIGGER,
+		}
+	},
+	{
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PS3_CONTROLLER,
 		"PS3 Controller",
 		{
@@ -100,7 +123,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
@@ -124,7 +147,7 @@ const KeyConfig defaultKeyProfile[] =
 	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
@@ -147,7 +170,7 @@ const KeyConfig defaultKeyProfile[] =
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard",
 			{
@@ -158,31 +181,31 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
 				0, 0, 0, 0,
-				asciiKey(' '),
+				Keycode::asciiKey(' '),
 				Input::Keycode::ENTER,
-				asciiKey('x'),
-				asciiKey('z'),
-				asciiKey('s'),
-				asciiKey('a'),
-				asciiKey('q'),
-				asciiKey('w'),
-				asciiKey('v'),
-				asciiKey('c'),
-				asciiKey('f'),
-				asciiKey('d'),
+				Keycode::asciiKey('x'),
+				Keycode::asciiKey('z'),
+				Keycode::asciiKey('s'),
+				Keycode::asciiKey('a'),
+				Keycode::asciiKey('q'),
+				Keycode::asciiKey('w'),
+				Keycode::asciiKey('v'),
+				Keycode::asciiKey('c'),
+				Keycode::asciiKey('f'),
+				Keycode::asciiKey('d'),
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_NVIDIA_SHIELD,
 			"NVidia Shield",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_MINIMAL_PROFILE_INIT,
 
-				Input::Keycode::JS3_YAXIS_NEG,
-				Input::Keycode::JS3_XAXIS_POS,
-				Input::Keycode::JS3_YAXIS_POS,
-				Input::Keycode::JS3_XAXIS_NEG,
+				Input::Keycode::UP,
+				Input::Keycode::RIGHT,
+				Input::Keycode::DOWN,
+				Input::Keycode::LEFT,
 				0, 0, 0, 0,
 				Input::Keycode::GAME_START,
 				Input::Keycode::GAME_A,
@@ -198,7 +221,7 @@ const KeyConfig defaultKeyProfile[] =
 		#endif
 	#endif
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard",
 		{
@@ -210,19 +233,19 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::LEFT,
 			0, 0, 0, 0,
 			Input::Keycode::ENTER,
-			asciiKey('z'),
-			asciiKey('x'),
-			asciiKey('c'),
-			asciiKey('a'),
-			asciiKey('s'),
-			asciiKey('d'),
-			asciiKey('q'),
-			asciiKey('w'),
+			Keycode::asciiKey('z'),
+			Keycode::asciiKey('x'),
+			Keycode::asciiKey('c'),
+			Keycode::asciiKey('a'),
+			Keycode::asciiKey('s'),
+			Keycode::asciiKey('d'),
+			Keycode::asciiKey('q'),
+			Keycode::asciiKey('w'),
 		}
 	},
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{
@@ -236,10 +259,10 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::Pandora::START,
 			Input::Keycode::Pandora::X,
 			Input::Keycode::Pandora::B,
-			asciiKey('p'),
+			Keycode::asciiKey('p'),
 			Input::Keycode::Pandora::A,
 			Input::Keycode::Pandora::Y,
-			asciiKey('o'),
+			Keycode::asciiKey('o'),
 			Input::Keycode::Pandora::L1,
 			Input::Keycode::Pandora::R1,
 		}

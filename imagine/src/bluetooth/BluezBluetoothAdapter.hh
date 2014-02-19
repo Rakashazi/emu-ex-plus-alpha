@@ -21,11 +21,16 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/l2cap.h>
 #include <base/Base.hh>
+#include <base/EventLoopFileSource.hh>
+#include <base/Pipe.hh>
 #include <util/collection/DLList.hh>
 
 class BluetoothPendingSocket
 {
 public:
+	int fd = -1;
+	sockaddr_l2 addr {};
+
 	constexpr BluetoothPendingSocket() {}
 	void close();
 	uint channel() { return addr.l2_psm; }
@@ -35,9 +40,6 @@ public:
 	{
 		return fd != -1;
 	}
-
-	int fd = -1;
-	sockaddr_l2 addr {};
 };
 
 class BluezBluetoothAdapter : public BluetoothAdapter
@@ -54,30 +56,33 @@ public:
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
 	State state() override;
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
+
 private:
 	int devId = -1, socket = -1;
-private:
 	ThreadPThread runThread;
-	bool scanCancelled = 0;
+	Base::Pipe statusPipe;
+	bool scanCancelled = false;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	struct L2CapServer
 	{
 		constexpr L2CapServer() {}
-		constexpr L2CapServer(uint psm, int fd, Base::PollEventDelegate onConnect): psm(psm), fd(fd), onConnect(onConnect) {}
+		constexpr L2CapServer(uint psm, int fd): psm(psm), fd(fd) {}
 		uint psm = 0;
 		int fd = -1;
-		Base::PollEventDelegate onConnect;
+		Base::EventLoopFileSource connectSrc;
 	};
 	StaticDLList<L2CapServer, 2> serverList;
 	#endif
+
 	bool openDefault();
 	CallResult doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName);
+	void sendBTScanStatusDelegate(uint8 type, uint8 arg);
 };
 
 class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
-	BluezBluetoothSocket() { }
+	BluezBluetoothSocket() {}
 	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
 	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
 	#ifdef CONFIG_BLUETOOTH_SERVER
@@ -86,13 +91,9 @@ public:
 	void close() override;
 	CallResult write(const void *data, size_t size) override;
 	int readPendingData(int events);
+
 private:
-	Base::PollEventDelegate pollEvDel
-	{
-		[this](int events)
-		{
-			return readPendingData(events);
-		}
-	};
+	Base::EventLoopFileSource fdSrc;
 	int fd = -1;
+	void setupFDEvents(int events);
 };

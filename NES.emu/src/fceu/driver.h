@@ -216,7 +216,8 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 #define FCEUIOD_INPUT   10	//input presets
 #define FCEUIOD_LUA     11	//lua scripts
 #define FCEUIOD_AVI		12	//default file for avi output
-#define FCEUIOD__COUNT  13	//base directory override?
+#define FCEUIOD_PALETTE 13
+#define FCEUIOD__COUNT  14	//base directory override?
 
 void FCEUI_SetDirOverride(int which, const char *n);
 

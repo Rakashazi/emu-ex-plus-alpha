@@ -38,7 +38,7 @@ Byte1Option optionSound(CFGKEY_SOUND, 1);
 #ifdef CONFIG_AUDIO_LATENCY_HINT
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 	Config::envIsLinux ? 5 : Config::envIsIOS ? 5 : 8,
-	0, optionIsValidWithMinMax<3, 12, uint8>);
+	0, optionIsValidWithMinMax<OPTION_SOUND_BUFFERS_MIN, 12, uint8>);
 #endif
 
 #ifdef CONFIG_AUDIO_OPENSL_ES
@@ -76,11 +76,15 @@ Byte1Option optionRememberLastMenu(CFGKEY_REMEMBER_LAST_MENU, 1, 0);
 Byte1Option optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid);
 Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
-Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 2, (!Config::envIsAndroid || Config::MACHINE_IS_OUYA) && !Config::envIsIOS);
+Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, (!Config::envIsAndroid || Config::MACHINE_IS_OUYA) && !Config::envIsIOS);
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, Input::SWAPPED_GAMEPAD_CONFIRM_DEFAULT);
 Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
+Byte1Option optionFastForwardSpeed(CFGKEY_FAST_FORWARD_SPEED, 4, 0, optionIsValidWithMinMax<2, 7>);
 #ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Input::hasSystemDeviceHotswap, !Input::hasSystemDeviceHotswap);
+#endif
+#ifdef CONFIG_INPUT_ANDROID_MOGA
+Byte1Option optionMOGAInputSystem(CFGKEY_MOGA_INPUT_SYSTEM, 0, 0);
 #endif
 
 #ifdef CONFIG_BLUETOOTH
@@ -214,10 +218,6 @@ Byte4s2Option optionTouchCtrlImgRes
 Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
 #endif
 
-#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-Option<OptionMethodFunc<bool, Input::eventsUseOSInputMethod, Input::setEventsUseOSInputMethod>, uint8> optionUseOSInputMethod(CFGKEY_USE_OS_INPUT_METHOD, 1);
-#endif
-
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 
 #ifdef USE_BEST_COLOR_MODE_OPTION
@@ -233,6 +233,14 @@ void initOptions()
 		optionFontSize.initDefault(5000);
 	#endif
 
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	if(Base::packageIsInstalled("com.bda.pivot.mogapgp"))
+	{
+		logMsg("MOGA Pivot app is present");
+		optionMOGAInputSystem.initDefault(1);
+	}
+	#endif
+
 	#ifdef CONFIG_BASE_ANDROID
 	optionGLSyncHack.initDefault(glSyncHackBlacklisted);
 	if(Base::hasHardwareNavButtons())
@@ -241,7 +249,11 @@ void initOptions()
 		optionHideOSNav.isConst = 1;
 	}
 	else
+	{
 		optionBackNavigation.initDefault(1);
+		if(Base::androidSDK() >= 19)
+			optionHideOSNav.initDefault(1);
+	}
 
 	if(Base::androidSDK() >= 11)
 	{
@@ -249,7 +261,7 @@ void initOptions()
 		optionGLSyncHack.isConst = 1;
 		// don't change dither setting on Android 3.0+
 		optionDitherImage.isConst = 1;
-		if(Base::refreshRate() == 60)
+		if(Base::mainScreen().refreshRate() == 60)
 		{
 			// TODO: more testing needed with audio sync
 			/*logMsg("using default frame-skip 0");
@@ -257,11 +269,23 @@ void initOptions()
 		}
 
 		// hack for overly-aggressive power management on some Android 4.x Qualcomm devices
-		// whenever no touch input is registered
-		// enable for any Adreno devices, which are the only ones defaulting to 16BPP color
-		if(!Base::Window::pixelBestColorHintDefault())
+		// whenever no touch input is registered.
+		// enable if cpu governor is "ondemand" ("interactive" doesn't have this problem)
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
 		{
-			optionProcessPriority.initDefault(-14);
+			auto file = IOFile(IoSys::open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"));
+			if(file)
+			{
+				char ondemandText[strlen("ondemand")] {0};
+				if(file.read(ondemandText, sizeof(ondemandText)) == OK)
+				{
+					if(memcmp(ondemandText, "ondemand", sizeof(ondemandText)) == 0)
+					{
+						logMsg("cpu using ondemand governor, defaulting to very high process priority");
+						optionProcessPriority.initDefault(-14);
+					}
+				}
+			}
 		}
 	}
 	else
@@ -333,7 +357,7 @@ static uint sizeofVControllerLayoutPositionEntry()
 	return 1 + 1 + 4 + 4;
 }
 
-bool OptionVControllerLayoutPosition::readFromIO(Io *io, uint readSize_)
+bool OptionVControllerLayoutPosition::readFromIO(Io &io, uint readSize_)
 {
 	int readSize = readSize_;
 
@@ -348,7 +372,7 @@ bool OptionVControllerLayoutPosition::readFromIO(Io *io, uint readSize_)
 			}
 
 			_2DOrigin origin;
-			io->readVarAsType<int8>(origin);
+			io.readVarAsType<int8>(origin);
 			if(!origin.isValid())
 			{
 				logWarn("invalid v-controller origin from config file");
@@ -356,15 +380,15 @@ bool OptionVControllerLayoutPosition::readFromIO(Io *io, uint readSize_)
 			else
 				e.origin = origin;
 			uint state = 1;
-			io->readVarAsType<int8>(state);
+			io.readVarAsType<int8>(state);
 			if(state > 2)
 			{
 				logWarn("invalid v-controller state from config file");
 			}
 			else
 				e.state = state;
-			io->readVarAsType<int32>(e.pos.x);
-			io->readVarAsType<int32>(e.pos.y);
+			io.readVarAsType<int32>(e.pos.x);
+			io.readVarAsType<int32>(e.pos.y);
 			vControllerLayoutPosChanged = true;
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}
@@ -382,4 +406,27 @@ uint OptionVControllerLayoutPosition::ioSize()
 {
 	uint positions = sizeofArray(vControllerLayoutPos[0]) * sizeofArray(vControllerLayoutPos);
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
+}
+
+bool vControllerUseScaledCoordinates()
+{
+	#ifdef CONFIG_BASE_ANDROID
+	return vController.useScaledCoordinates;
+	#else
+	return false;
+	#endif
+}
+
+void setVControllerUseScaledCoordinates(bool on)
+{
+	#ifdef CONFIG_BASE_ANDROID
+	vController.useScaledCoordinates = on;
+	#endif
+}
+
+void setupFont()
+{
+	float size = optionFontSize / 1000.;
+	logMsg("setting up font size %f", (double)size);
+	View::defaultFace->applySettings(FontSettings(Base::mainWindow().heightSMMInPixels(size)));
 }

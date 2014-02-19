@@ -16,11 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <base/Base.hh>
+#include <base/Window.hh>
 #include <input/Input.hh>
 #include <input/DragPointer.hh>
 #include <resource2/face/ResourceFace.hh>
+#include <gfx/ProjectionPlane.hh>
 
-class ViewAnimation
+/*class ViewAnimation
 {
 public:
 	constexpr ViewAnimation() { }
@@ -28,19 +30,29 @@ public:
 	virtual void initActive() = 0;
 	virtual void initDismiss() = 0;
 	virtual bool update() = 0;
+};*/
+
+class View;
+class StackAllocator;
+
+class ViewController
+{
+public:
+	constexpr ViewController() {}
+	virtual void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView) = 0;
+	virtual void dismissView(View &v) = 0;
 };
 
 class View
 {
 public:
 	Base::Window *win = nullptr;
-	static View *modalView;
-	typedef DelegateFunc<void ()> RemoveModalViewDelegate;
-	static RemoveModalViewDelegate removeModalViewDel;
+	ViewController *controller = nullptr;
 	static ResourceFace *defaultFace;
-	enum { SHOW, ACTIVE, HIDE };
-	ViewAnimation *animation = nullptr;
-	uint displayState = 0;
+	static Gfx::ProjectionPlane projP;
+	//enum { SHOW, ACTIVE, HIDE };
+	//ViewAnimation *animation = nullptr;
+	//uint displayState = 0;
 	const char *name_ = "";
 
 	constexpr View() {}
@@ -48,47 +60,29 @@ public:
 	constexpr View(const char *name, Base::Window &win) : win(&win), name_(name) {}
 
 	virtual void deinit() = 0;
-	virtual IG::Rect2<int> &viewRect() = 0;
+	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
-	virtual void draw(Gfx::FrameTimeBase frameTime) = 0;
+	virtual void draw(Base::FrameTimeBase frameTime) = 0;
 	virtual void inputEvent(const Input::Event &event) = 0;
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
 
-	void placeRect(IG::Rect2<int> rect)
+	void placeRect(IG::WindowRect rect)
 	{
 		this->viewRect() = rect;
 		place();
 	}
 
-	void displayNeedsUpdate()
+	void postDraw()
 	{
 		assert(win);
-		win->displayNeedsUpdate();
+		win->postDraw();
 	}
 
 	Base::Window &window()
 	{
 		assert(win);
 		return *win;
-	}
-
-	static RemoveModalViewDelegate &onRemoveModalView() { return removeModalViewDel; }
-
-	static void addModalView(View &view)
-	{
-		assert(!modalView);
-		view.placeRect(view.window().viewBounds());
-		modalView = &view;
-		view.displayNeedsUpdate();
-	}
-	static void removeModalView()
-	{
-		assert(modalView);
-		modalView->displayNeedsUpdate();
-		modalView->deinit();
-		modalView = nullptr;
-		if(removeModalViewDel) removeModalViewDel();
 	}
 
 	const char *name() { return name_; }
@@ -105,59 +99,29 @@ public:
 			needsBackControl = on;
 		}
 	}
+	static bool compileGfxPrograms();
 
-	void doDismiss()
-	{
-		//logMsg("dimiss view with hanlder %p", dismissHandler);
-		deinit();
-		/*if(dismissHandler)
-			dismissHandler();*/
-	}
-
-	void dismiss()
-	{
-		if(!animation)
-		{
-			doDismiss();
-		}
-		else
-		{
-			animation->initDismiss();
-			displayNeedsUpdate();
-		}
-		displayState = HIDE;
-	}
+	void dismiss();
+	void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView = true);
 
 	void show(bool animated = 1)
 	{
-		if(animated && animation)
-		{
-			animation->initShow();
-			displayState = SHOW;
-		}
-		else
-		{
-			if(animation)
-				animation->initActive();
-			displayState = ACTIVE;
-		}
 		onShow();
 		//logMsg("showed view");
-		displayNeedsUpdate();
+		postDraw();
 	}
 
-	void init(ViewAnimation *animation = 0, bool animated = 0)
+	void init()
 	{
-		this->animation = animation;
-		//show(animated);
+
 	}
 
-	bool updateAnimation()
+	/*bool updateAnimation()
 	{
 		if(animation && animation->update())
 		{
 			// still animating
-			displayNeedsUpdate();
+			postDraw();
 			return 1;
 		}
 
@@ -176,5 +140,5 @@ public:
 
 		// not animating, view is active
 		return 1;
-	}
+	}*/
 };

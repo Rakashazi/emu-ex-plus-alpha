@@ -1,17 +1,18 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../config.mk
+include $(IMAGINE_PATH)/make/config.mk
+-include $(projectPath)/config.mk
 include $(IMAGINE_PATH)/make/iOS-metadata.mk
 
 .PHONY: all
 all : ios-build
 
-ios_buildName ?= $(baseMakefileName:.mk=)
+ios_buildName ?= $(firstMakefileName:.mk=)
 ios_targetPath ?= target/$(ios_buildName)
 ios_targetBinPath := $(ios_targetPath)/bin
 ios_bundleDirectory = $(iOS_metadata_bundleName).app
 ios_deviceAppBundlePath := /Applications/$(ios_bundleDirectory)
 ios_deviceExecPath := $(ios_deviceAppBundlePath)/$(iOS_metadata_exec)
-ios_resourcePath := res/ios
-ios_iconPath := res/icons/iOS
+ios_resourcePath := $(projectPath)/res/ios
+ios_iconPath := $(projectPath)/res/icons/iOS
 ios_plistTxt := $(ios_targetPath)/Info.txt
 ios_plist := $(ios_targetPath)/Info.plist
 ios_imagineLibPathARMv6 ?= $(IMAGINE_PATH)/lib/ios-armv6
@@ -51,7 +52,7 @@ ios-armv6 :
 	@echo "Building ARMv6 Executable"
 	$(PRINT_CMD)$(MAKE) -f $(ios_armv6Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
 	buildName=$(ios_buildName)-armv6 imagineLibPath=$(ios_imagineLibPathARMv6) imagineIncludePath=$(ios_imagineIncludePathARMv6) \
-	$(ios_HIGH_OPTIMIZE_CFLAGS_param)
+	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
 $(ios_armv6Exec) : ios-armv6
 
 .PHONY: ios-armv6-install
@@ -76,7 +77,7 @@ ios-armv7 :
 	@echo "Building ARMv7 Executable"
 	$(PRINT_CMD)$(MAKE) -f $(ios_armv7Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
 	buildName=$(ios_buildName)-armv7 imagineLibPath=$(ios_imagineLibPathARMv7) imagineIncludePath=$(ios_imagineIncludePathARMv7) \
-	$(ios_HIGH_OPTIMIZE_CFLAGS_param)
+	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
 $(ios_armv7Exec) : ios-armv7
 
 .PHONY: ios-armv7-install
@@ -154,7 +155,7 @@ endif
 
 # metadata
 
-$(ios_plistTxt) : metadata/conf.mk $(metadata_confDeps)
+$(ios_plistTxt) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 	@mkdir -p $(@D)
 	bash $(IMAGINE_PATH)/tools/genIOSMeta.sh $(iOS_gen_metadata_args) $@
 $(ios_plist) : $(ios_plistTxt)

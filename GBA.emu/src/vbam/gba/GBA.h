@@ -6,7 +6,6 @@
 #include "../NLS.h"
 #include "Flash.h"
 #include <util/preprocessor/repeat.h>
-#include <util/cLang.h>
 #include <util/builtins.h>
 #include <util/ansiTypes.h>
 #include <logger/interface.h>

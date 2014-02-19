@@ -23,9 +23,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libXextSrcDir)/configure : $(libXextSrcArchive)
+$(libXextSrcDir)/configure : | $(libXextSrcArchive)
 	@echo "Extracting libXext..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(libXextSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

@@ -322,7 +322,7 @@ int ArcadeCard::StateAction(StateMem *sm, int load, int data_only)
   SFVARN(AC.shift_bits, "ACShiftBits"),
   SFVARN(AC.shift_latch, "ACShift"),
   SFVARN(AC.rotate_bits, "ACRotateBits"),
-  SFARRAY(ACRAM, ACRAMUsed ? 0x200000u : 0x0),
+  SFARRAY(ACRAM, ACRAMUsed ? 0x200000 : 0x0),
   SFEND
  };
  int ret = MDFNSS_StateAction(sm, load, data_only, ACStateRegs, "ArcadeCard");

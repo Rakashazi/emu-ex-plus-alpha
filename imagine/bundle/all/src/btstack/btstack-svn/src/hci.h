@@ -41,9 +41,10 @@
  *
  */
 
-#pragma once
+#ifndef __HCI_H
+#define __HCI_H
 
-#include "config.h"
+#include "btstack-config.h"
 
 #include <btstack/hci_cmds.h>
 #include <btstack/utils.h>
@@ -90,12 +91,19 @@ extern "C" {
     
 // size of hci buffers, big enough for command, event, or acl packet without H4 packet type
 // @note cmd buffer is bigger than event buffer
-#ifndef HCI_PACKET_BUFFER_SIZE
-#if HCI_ACL_BUFFER_SIZE > HCI_CMD_BUFFER_SIZE
-#define HCI_PACKET_BUFFER_SIZE HCI_ACL_BUFFER_SIZE
+#ifdef HCI_PACKET_BUFFER_SIZE
+    #if HCI_PACKET_BUFFER_SIZE < HCI_ACL_BUFFER_SIZE
+        #error HCI_PACKET_BUFFER_SIZE must be equal or larger than HCI_ACL_BUFFER_SIZE
+    #endif
+    #if HCI_PACKET_BUFFER_SIZE < HCI_CMD_BUFFER_SIZE
+        #error HCI_PACKET_BUFFER_SIZE must be equal or larger than HCI_CMD_BUFFER_SIZE
+    #endif
 #else
-#define HCI_PACKET_BUFFER_SIZE HCI_CMD_BUFFER_SIZE
-#endif
+    #if HCI_ACL_BUFFER_SIZE > HCI_CMD_BUFFER_SIZE
+        #define HCI_PACKET_BUFFER_SIZE HCI_ACL_BUFFER_SIZE
+    #else
+        #define HCI_PACKET_BUFFER_SIZE HCI_CMD_BUFFER_SIZE
+    #endif
 #endif
     
 // OGFs
@@ -159,6 +167,12 @@ extern "C" {
 // unregister SDP Service Record
 #define SDP_UNREGISTER_SERVICE_RECORD                      0x31
 
+// Get remote RFCOMM services
+#define SDP_CLIENT_QUERY_RFCOMM_SERVICES                   0x32
+
+// Get remote SDP services
+#define SDP_CLIENT_QUERY_SERVICES                          0x33
+
 // RFCOMM "HCI" Commands
 #define RFCOMM_CREATE_CHANNEL       0x40
 #define RFCOMM_DISCONNECT			0x41
@@ -193,25 +207,46 @@ extern "C" {
  * Connection State 
  */
 typedef enum {
-    AUTH_FLAGS_NONE                = 0x00,
-    RECV_LINK_KEY_REQUEST          = 0x01,
-    HANDLE_LINK_KEY_REQUEST        = 0x02,
-    SENT_LINK_KEY_REPLY            = 0x04,
-    SENT_LINK_KEY_NEGATIVE_REQUEST = 0x08,
-    RECV_LINK_KEY_NOTIFICATION     = 0x10,
-    RECV_PIN_CODE_REQUEST          = 0x20,
-    SENT_PIN_CODE_REPLY            = 0x40, 
-    SENT_PIN_CODE_NEGATIVE_REPLY   = 0x80 
+    AUTH_FLAGS_NONE                = 0x0000,
+    RECV_LINK_KEY_REQUEST          = 0x0001,
+    HANDLE_LINK_KEY_REQUEST        = 0x0002,
+    SENT_LINK_KEY_REPLY            = 0x0004,
+    SENT_LINK_KEY_NEGATIVE_REQUEST = 0x0008,
+    RECV_LINK_KEY_NOTIFICATION     = 0x0010,
+    DENY_PIN_CODE_REQUEST          = 0x0040,
+    RECV_IO_CAPABILITIES_REQUEST   = 0x0080,
+    SEND_IO_CAPABILITIES_REPLY     = 0x0100,
+    SEND_USER_CONFIRM_REPLY        = 0x0200,
+    SEND_USER_PASSKEY_REPLY        = 0x0400,
+
+    // pairing status
+    LEGACY_PAIRING_ACTIVE          = 0x2000,
+    SSP_PAIRING_ACTIVE             = 0x4000,
+
+    // connection status
+    CONNECTION_ENCRYPTED           = 0x8000,
 } hci_authentication_flags_t;
 
 typedef enum {
-    SENT_CREATE_CONNECTION = 1,
+    SEND_CREATE_CONNECTION = 0,
+    SENT_CREATE_CONNECTION,
     RECEIVED_CONNECTION_REQUEST,
     ACCEPTED_CONNECTION_REQUEST,
     REJECTED_CONNECTION_REQUEST,
     OPEN,
     SENT_DISCONNECT
 } CONNECTION_STATE;
+
+typedef enum {
+    BONDING_REQUEST_REMOTE_FEATURES   = 0x01,
+    BONDING_RECEIVED_REMOTE_FEATURES  = 0x02,
+    BONDING_REMOTE_SUPPORTS_SSP       = 0x04,
+    BONDING_DISCONNECT_SECURITY_BLOCK = 0x08,
+    BONDING_DISCONNECT_DEDICATED_DONE = 0x10,
+    BONDING_SEND_AUTHENTICATE_REQUEST = 0x20,
+    BONDING_SEND_ENCRYPTION_REQUEST   = 0x40,
+    BONDING_DEDICATED                 = 0x80,
+} bonding_flags_t;
 
 typedef enum {
     BLUETOOTH_OFF = 1,
@@ -229,9 +264,18 @@ typedef struct {
     // module handle
     hci_con_handle_t con_handle;
 
-    // state
+    // connection state
     CONNECTION_STATE state;
     
+    // bonding
+    bonding_flags_t bonding_flags;
+
+    // requested security level
+    gap_security_level_t requested_security_level;
+
+    // 
+    link_key_type_t link_key_type;
+
     // errands
     hci_authentication_flags_t authentication_flags;
 
@@ -263,6 +307,15 @@ typedef struct {
     hci_transport_t  * hci_transport;
     void             * config;
     
+    // bsic configuration
+    const char         * local_name;
+    uint32_t           class_of_device;
+    bd_addr_t          local_bd_addr;
+    uint8_t            ssp_enable;
+    uint8_t            ssp_io_capability;
+    uint8_t            ssp_authentication_requirement;
+    uint8_t            ssp_auto_accept;
+
     // hardware power controller
     bt_control_t     * control;
     
@@ -277,6 +330,8 @@ typedef struct {
     // uint8_t  total_num_cmd_packets;
     uint8_t  total_num_acl_packets;
     uint16_t acl_data_packet_length;
+    uint8_t  total_num_le_packets;
+    uint16_t le_data_packet_length;
 
     /* local supported features */
     uint8_t local_supported_features[8];
@@ -297,14 +352,18 @@ typedef struct {
     
     uint8_t   discoverable;
     uint8_t   connectable;
-    
+    uint8_t   bondable;
+
     /* buffer for scan enable cmd - 0xff no change */
     uint8_t   new_scan_enable_value;
     
     // buffer for single connection decline
     uint8_t   decline_reason;
     bd_addr_t decline_addr;
-    
+
+    uint8_t   adv_addr_type;
+    bd_addr_t adv_address;
+
 } hci_stack_t;
 
 // create and send hci command packets based on a template and a list of parameters
@@ -328,7 +387,9 @@ int hci_send_acl_packet(uint8_t *packet, int size);
 // non-blocking UART driver needs
 int hci_can_send_packet_now(uint8_t packet_type);
     
-hci_connection_t * connection_for_handle(hci_con_handle_t con_handle);
+bd_addr_t * hci_local_bd_addr(void);
+hci_connection_t * hci_connection_for_handle(hci_con_handle_t con_handle);
+hci_connection_t * hci_connection_for_bd_addr(bd_addr_t *addr);
 uint8_t  hci_number_outgoing_packets(hci_con_handle_t handle);
 uint8_t  hci_number_free_acl_slots(void);
 int      hci_authentication_active_for_handle(hci_con_handle_t handle);
@@ -347,12 +408,32 @@ void hci_emit_btstack_version(void);
 void hci_emit_system_bluetooth_enabled(uint8_t enabled);
 void hci_emit_remote_name_cached(bd_addr_t *addr, device_name_t *name);
 void hci_emit_discoverable_enabled(uint8_t enabled);
+void hci_emit_security_level(hci_con_handle_t con_handle, gap_security_level_t level);
+void hci_emit_dedicated_bonding_result(hci_connection_t * connection, uint8_t status);
 
+// query if remote side supports SSP
+// query if the local side supports SSP
+int hci_local_ssp_activated();
+
+// query if the remote side supports SSP
+int hci_remote_ssp_supported(hci_con_handle_t con_handle);
+
+// query if both sides support SSP
+int hci_ssp_supported_on_both_sides(hci_con_handle_t handle);
+
+// disable automatic l2cap disconnect for testing
+void hci_disable_l2cap_timeout_check();
+
+// disconnect because of security block
+void hci_disconnect_security_block(hci_con_handle_t con_handle);
 
 /** Embedded API **/
 
-// Set up HCI.
+// Set up HCI. Needs to be called before any other function
 void hci_init(hci_transport_t *transport, void *config, bt_control_t *control, remote_device_db_t const* remote_device_db);
+
+// Set class of device that will be set during Bluetooth init
+void hci_set_class_of_device(uint32_t class_of_device);
 
 // Registers a packet handler. Used if L2CAP is not used (rarely). 
 void hci_register_packet_handler(void (*handler)(uint8_t packet_type, uint8_t *packet, uint16_t size));
@@ -363,7 +444,7 @@ int  hci_power_control(HCI_POWER_MODE mode);
 // Allows to control if device is discoverable. OFF by default.
 void hci_discoverable_control(uint8_t enable);
 
-// Creates and sends hci command packets based on a template and 
+// Creates and sends HCI command packets based on a template and 
 // a list of parameters. Will return error if outgoing data buffer 
 // is occupied. 
 int hci_send_cmd(const hci_cmd_t *cmd, ...);
@@ -371,7 +452,24 @@ int hci_send_cmd(const hci_cmd_t *cmd, ...);
 // Deletes link key for remote device with baseband address.
 void hci_drop_link_key_for_bd_addr(bd_addr_t *addr);
 
+// Configure Secure Simple Pairing
+
+// enable will enable SSP during init
+void hci_ssp_set_enable(int enable);
+
+// if set, BTstack will respond to io capability request using authentication requirement
+void hci_ssp_set_io_capability(int ssp_io_capability);
+void hci_ssp_set_authentication_requirement(int authentication_requirement);
+
+// if set, BTstack will confirm a numberic comparion and enter '000000' if requested
+void hci_ssp_set_auto_accept(int auto_accept);
+
+// get addr type and address used in advertisement packets
+void hci_le_advertisement_address(uint8_t * addr_type, bd_addr_t * addr);
+
 
 #if defined __cplusplus
 }
 #endif
+
+#endif // __HCI_H

@@ -16,8 +16,14 @@ endif
 
 ifdef O_LTO
  COMPILE_FLAGS += -flto
- #OPTIMIZE_CFLAGS = -O4 $(NORMAL_OPTIMIZE_CFLAGS_MISC)
- LDFLAGS += $(COMPILE_FLAGS) $(WHOLE_PROGRAM_CFLAGS)
+ # TODO: does clang have fat LTO options?
+ #ifndef O_LTO_FAT
+ # COMPILE_FLAGS += -fno-fat-lto-objects
+ #endif
+endif
+
+ifeq ($(origin AR), default)
+ AR := llvm-ar
 endif
 
 ifeq ($(ENV),linux)

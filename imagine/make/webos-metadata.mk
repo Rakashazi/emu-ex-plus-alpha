@@ -1,4 +1,4 @@
-include metadata/conf.mk
+include $(projectPath)/metadata/conf.mk
 
 # needed generics
 ifndef webOS_metadata_name

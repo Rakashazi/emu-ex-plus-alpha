@@ -6,9 +6,9 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/EmuControls.cc
+include $(EMUFRAMEWORK_PATH)/common.mk
 
-include ../EmuFramework/common.mk
+SRC += main/Main.cc main/EmuControls.cc
 
 CPPFLAGS += -DSysDDec=float -DHAVE_CONFIG_H
 

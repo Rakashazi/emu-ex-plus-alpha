@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include <EmuSystem.hh>
 
 using RefreshCheatsDelegate = DelegateFunc<void ()>;

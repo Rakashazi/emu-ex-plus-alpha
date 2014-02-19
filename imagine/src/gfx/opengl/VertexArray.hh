@@ -2,32 +2,27 @@
 
 #include <gfx/VertexArray.hh>
 
-void VertexArray::init(const void *data, size_t size)
+namespace Gfx
 {
-	if(useVBOFuncs)
-	{
-		glGenBuffers(1, &ref);
-		logMsg("new VBO id %d", ref);
-		if(data)
-			write(data, size);
-	}
+
+void VertexArray::init(const void *data, uint size)
+{
+	glGenBuffers(1, &ref);
+	logMsg("new VBO id %d", ref);
+	glcBindBuffer(GL_ARRAY_BUFFER, ref);
+	glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
-void VertexArray::write(const void *data, size_t size)
+void VertexArray::write(const void *data, uint offset, uint size)
 {
-	if(useVBOFuncs)
-	{
-		glState_bindBuffer(GL_ARRAY_BUFFER, ref);
-		//glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
-		glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
-	}
+	glcBindBuffer(GL_ARRAY_BUFFER, ref);
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 }
 
 void VertexArray::deinit()
 {
-	if(useVBOFuncs)
-	{
-		logMsg("deleting VBO id %d", ref);
-		glDeleteBuffers(1, &ref);
-	}
+	logMsg("deleting VBO id %d", ref);
+	glDeleteBuffers(1, &ref);
+}
+
 }

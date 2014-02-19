@@ -132,7 +132,7 @@ public:
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize)
+	bool readFromIO(Io &io, uint readSize)
 	{
 		if(isConst || readSize != sizeof(SERIALIZED_T))
 		{
@@ -140,12 +140,11 @@ public:
 				logMsg("skipping const option value");
 			else
 				logMsg("skipping %d byte option value, expected %d", readSize, (int)sizeof(SERIALIZED_T));
-			//io->seekRel(readSize);
 			return 0;
 		}
 
 		SERIALIZED_T x;
-		if(io->readVar(x) != OK)
+		if(io.readVar(x) != OK)
 		{
 			logErr("error reading option from io");
 			return 0;
@@ -200,7 +199,7 @@ struct PathOption : public OptionBase
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize)
+	bool readFromIO(Io &io, uint readSize)
 	{
 		if(readSize > strSize-1)
 		{
@@ -208,7 +207,7 @@ struct PathOption : public OptionBase
 			return 0;
 		}
 
-		io->read(val, readSize);
+		io.read(val, readSize);
 		val[readSize] = 0;
 		logMsg("read path option %s", val);
 		return 1;
@@ -253,6 +252,7 @@ using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::
 using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>;
 #endif
 
+// TODO: recycle obsolete enums
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_AUTO_SAVE_STATE = 2, CFGKEY_LAST_DIR = 3, CFGKEY_TOUCH_CONTROL_VIRBRATE = 4,
 	CFGKEY_FRAME_SKIP = 5, CFGKEY_FONT_Y_SIZE = 6, CFGKEY_GAME_ORIENTATION = 7,
@@ -286,7 +286,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63,
 	CFGKEY_AUDIO_SOLO_MIX = 64, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH = 65,
 	CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES = 66, CFGKEY_VIEWPORT_ZOOM = 67,
-	CFGKEY_VCONTROLLER_LAYOUT_POS = 68
+	CFGKEY_VCONTROLLER_LAYOUT_POS = 68, CFGKEY_MOGA_INPUT_SYSTEM = 69,
+	CFGKEY_FAST_FORWARD_SPEED = 70
 	// 256+ is reserved
 };
 
@@ -308,7 +309,7 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize)
+	bool readFromIO(Io &io, uint readSize)
 	{
 		if(isConst || readSize != 2)
 		{
@@ -317,8 +318,8 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 		}
 
 		uint8 x, y;
-		io->readVar(x);
-		io->readVar(y);
+		io.readVar(x);
+		io.readVar(y);
 		logMsg("read aspect ratio config %u,%u", x, y);
 		if(y == 0)
 			y = 1;
@@ -339,7 +340,7 @@ struct OptionDPI : public Option<OptionMethodVar<uint32> >
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize)
+	bool readFromIO(Io &io, uint readSize)
 	{
 		bool ret = Option<OptionMethodVar<uint32> >::readFromIO(io, readSize);
 		if(ret)
@@ -371,7 +372,7 @@ struct OptionRecentGames : public OptionBase
 		return 1;
 	}
 
-	bool readFromIO(Io *io, uint readSize_)
+	bool readFromIO(Io &io, uint readSize_)
 	{
 		int readSize = readSize_;
 		while(readSize && !recentGameList.isFull())
@@ -383,7 +384,7 @@ struct OptionRecentGames : public OptionBase
 			}
 
 			uint16 len;
-			io->readVar(len);
+			io.readVar(len);
 			readSize -= 2;
 
 			if(len > readSize)
@@ -393,7 +394,7 @@ struct OptionRecentGames : public OptionBase
 			}
 
 			RecentGameInfo info;
-			io->read(info.path, len);
+			io.read(info.path, len);
 			info.path[len] = 0;
 			readSize -= len;
 			FsSys::cPath basenameTemp;
@@ -428,6 +429,6 @@ struct OptionVControllerLayoutPosition : public OptionBase
 
 	bool isDefault() const override;
 	bool writeToIO(Io *io) override;
-	bool readFromIO(Io *io, uint readSize_);
+	bool readFromIO(Io &io, uint readSize_);
 	uint ioSize() override;
 };

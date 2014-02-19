@@ -6,17 +6,10 @@ ifeq ($(ENV), android)
   CPPFLAGS += -I$(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/include \
    -I$(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/include
  else
-  CPPFLAGS += -I$(ANDROID_NDK_PATH)/sources/cxx-stl/stlport/stlport
+  # TODO: libc++
  endif
-else ifeq ($(ENV), ios)
- ifeq ($(SUBARCH), armv6)
-  CPPFLAGS += -I$(extraSysroot)/include/c++/v1
- else
-  # default Xcode libc++ path
-  CPPFLAGS += -I$(XCODE_PATH)/Toolchains/XcodeDefault.xctoolchain/usr/lib/c++/v1
- endif
-else ifeq ($(ENV), macosx)
- BASE_CXXFLAGS += -stdlib=libc++
+else ifneq ($(filter macosx ios ,$(ENV)),)
+ include $(buildSysPath)/package/stdc++.mk
 endif
 
 endif

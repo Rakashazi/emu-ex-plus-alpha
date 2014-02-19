@@ -15,6 +15,7 @@
 
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
+#include <EmuApp.hh>
 #include <audio/Audio.hh>
 #include <algorithm>
 
@@ -25,43 +26,34 @@ FsSys::cPath EmuSystem::savePath_ = "";
 char EmuSystem::gameName[256] = "";
 char EmuSystem::fullGameName[256] = "";
 TimeSys EmuSystem::startTime;
-Gfx::FrameTimeBase EmuSystem::startFrameTime = 0;
+Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 uint EmuSystem::audioFramesPerVideoFrame = 0;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
-Base::CallbackRef *EmuSystem::autoSaveStateCallbackRef = nullptr;
-extern EmuNavView viewNav;
+Base::Timer EmuSystem::autoSaveStateTimer;
 void fixFilePermissions(const char *path);
 
 void saveAutoStateFromTimer();
-static Base::CallbackDelegate autoSaveStateCallback()
-{
-	return []()
-		{
-			logMsg("auto-save state timer fired");
-			EmuSystem::saveAutoState();
-			EmuSystem::autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback(), 60*optionAutoSaveState);
-		};
-}
 
 void EmuSystem::cancelAutoSaveStateTimer()
 {
-	if(autoSaveStateCallbackRef)
-	{
-		Base::cancelCallback(autoSaveStateCallbackRef);
-		autoSaveStateCallbackRef = nullptr;
-	}
+	autoSaveStateTimer.deinit();
 }
 
 void EmuSystem::startAutoSaveStateTimer()
 {
 	if(optionAutoSaveState > 1)
 	{
-		assert(!autoSaveStateCallbackRef);
-		autoSaveStateCallbackRef = Base::callbackAfterDelaySec(autoSaveStateCallback(), 60*optionAutoSaveState); // minutes to seconds
+		auto secs = 60*optionAutoSaveState; // minutes to seconds
+		autoSaveStateTimer.callbackAfterSec(
+			[]()
+			{
+				logMsg("auto-save state timer fired");
+				EmuSystem::saveAutoState();
+			}, secs, secs);
 	}
 }
 
@@ -141,19 +133,19 @@ bool EmuSystem::shouldOverwriteExistingState()
 //static int autoFrameSkipLevel = 0;
 //static int lowBufferFrames = (audio_maxRate/60)*3, highBufferFrames = (audio_maxRate/60)*5;
 
-int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
+int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
 	static const double ntscNSecs = 1000000000./60., palNSecs = 1000000000./50.;
-	static const auto ntscFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./60.),
-			palFrameTime = Gfx::decimalFrameTimeBaseFromSec(1./50.);
+	static const auto ntscFrameTime = Base::decimalFrameTimeBaseFromSec(1./60.),
+			palFrameTime = Base::decimalFrameTimeBaseFromSec(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source
 	}
 
 	int emuFrame;
-	if(Base::supportsFrameTime())
+	if(Base::mainScreen().supportsFrameTime())
 	{
 		if(!startFrameTime)
 		{
@@ -173,13 +165,13 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 	{
 		if(!startTime)
 		{
-			startTime.setTimeNow();
+			startTime = TimeSys::now();
 			emuFrame = 0;
 			//logMsg("first frame time %f", (double)startTime);
 		}
 		else
 		{
-			auto timeTotal = TimeSys::timeNow() - startTime;
+			auto timeTotal = TimeSys::now() - startTime;
 			emuFrame = std::round((double)timeTotal.toNs() / (vidSysIsPAL() ? palNSecs : ntscNSecs));
 			//emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
 			//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
@@ -201,29 +193,6 @@ int EmuSystem::setupFrameSkip(uint optionVal, Gfx::FrameTimeBase frameTime)
 		}
 		return skip;
 	}
-
-	/*uint skip = 0;
-	gfx_updateFrameTime();
-	//logMsg("%d real frames passed", gfx_frameTimeRel);
-	if(gfx_frameTimeRel > 1)
-	{
-		skip = min(gfx_frameTimeRel - 1, maxFrameSkip);
-		if(skip && Audio::framesFree() < Audio::maxRate/12)
-		{
-			logMsg("not skipping %d frames from full audio buffer", skip);
-			skip = 0;
-		}
-		else
-		{
-			logMsg("skipping %u frames", skip);
-		}
-	}
-	if(gfx_frameTimeRel == 0)
-	{
-		logMsg("no frames passed");
-		return -1;
-	}
-	return skip;*/
 }
 
 void EmuSystem::setupGamePaths(const char *filePath)

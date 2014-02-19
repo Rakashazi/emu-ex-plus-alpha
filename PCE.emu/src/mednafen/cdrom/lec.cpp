@@ -18,7 +18,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <mednafen-config.h>
 #endif
 
 #include <assert.h>

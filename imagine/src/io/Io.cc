@@ -28,7 +28,7 @@ int Io::fgetc()
 
 CallResult Io::read(void* buffer, size_t numBytes)
 {
-	if(readUpTo(buffer, numBytes) != numBytes)
+	if(readUpTo(buffer, numBytes) != (ssize_t)numBytes)
 		return IO_ERROR;
 	else
 		return OK;
@@ -50,9 +50,9 @@ int Io::fseek(long offset, int whence)
 	// TODO: are we returning the correct error codes to simulate fseek?
 	switch(whence)
 	{
-		case SEEK_SET: return seekAbs(offset) == OK ? 0 : -1;
-		case SEEK_CUR: return seekRel(offset) == OK ? 0 : -1;
-		case SEEK_END: return seekAbsE(offset) == OK ? 0 : -1;
+		case SEEK_SET: return (seekA(offset) == OK) ? 0 : -1;
+		case SEEK_CUR: return (seekR(offset) == OK) ? 0 : -1;
+		case SEEK_END: return (seekAE(offset) == OK) ? 0 : -1;
 	}
 	return -1;
 }
@@ -72,7 +72,7 @@ CallResult Io::readLine(void* buffer, uint maxBytes)
 		{
 			*charBuffer = 0;
 			charBuffer++;
-			seekF(1); // skip \n
+			seekR(1); // skip \n
 			break;
 		}
 		else if(*charBuffer == '\n')
@@ -92,4 +92,27 @@ CallResult Io::readLine(void* buffer, uint maxBytes)
 	*(charBuffer) = 0;
 
 	return (OK);
+}
+
+CallResult Io::writeToIO(Io &io)
+{
+	auto bytesToWrite = size();
+	char buff[4096];
+	while(bytesToWrite)
+	{
+		size_t bytes = std::min((ulong)sizeof(buff), bytesToWrite);
+		CallResult ret = read(buff, bytes);
+		if(ret != OK)
+		{
+			logErr("error reading from IO source with %d bytes to write", (int)bytesToWrite);
+			return ret;
+		}
+		if(io.fwrite(buff, bytes, 1) != 1)
+		{
+			logErr("error writing to IO destination with %d bytes to write", (int)bytesToWrite);
+			return IO_ERROR;
+		}
+		bytesToWrite -= bytes;
+	}
+	return OK;
 }

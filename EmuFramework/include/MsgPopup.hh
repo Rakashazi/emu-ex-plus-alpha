@@ -17,16 +17,17 @@
 
 #include <gfx/GfxText.hh>
 #include <gfx/GeomRect.hh>
+#include <base/Timer.hh>
 
 class MsgPopup
 {
 public:
 	Gfx::Text text;
-	Base::CallbackRef *callbackRef = nullptr;
+	Base::Timer unpostTimer;
 	bool error = 0;
 	char str[1024] {0};
 
-	constexpr MsgPopup() {}
+	MsgPopup() {}
 	void init();
 	void clear();
 	void place();

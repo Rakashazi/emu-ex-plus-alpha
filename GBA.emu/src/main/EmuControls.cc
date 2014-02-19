@@ -42,19 +42,19 @@ const KeyConfig defaultKeyProfile[] =
 {
 	#ifdef CONFIG_ENV_WEBOS
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"WebOS Keyboard",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 			Input::Keycode::ENTER,
-			asciiKey(','),
-			asciiKey('m'),
-			asciiKey('l'),
-			asciiKey('k'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey('l'),
+			Keycode::asciiKey('k'),
 			0,
 			0,
 		}
@@ -63,7 +63,27 @@ const KeyConfig defaultKeyProfile[] =
 	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
+		Input::Device::SUBTYPE_GENERIC_GAMEPAD,
+		"Generic Gamepad",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
+
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::GAME_SELECT,
+			Input::Keycode::GAME_START,
+			Input::Keycode::GAME_B,
+			Input::Keycode::GAME_A,
+			Input::Keycode::GAME_L1,
+			Input::Keycode::GAME_R1,
+		}
+	},
+	{
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PS3_CONTROLLER,
 		"PS3 Controller",
 		{
@@ -83,7 +103,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
@@ -104,7 +124,7 @@ const KeyConfig defaultKeyProfile[] =
 	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
@@ -124,7 +144,7 @@ const KeyConfig defaultKeyProfile[] =
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard",
 			{
@@ -135,27 +155,27 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
 				0, 0, 0, 0,
-				asciiKey(' '),
+				Keycode::asciiKey(' '),
 				Input::Keycode::ENTER,
-				asciiKey('c'),
-				asciiKey('x'),
-				asciiKey('d'),
-				asciiKey('s'),
-				asciiKey('b'),
-				asciiKey('v'),
+				Keycode::asciiKey('c'),
+				Keycode::asciiKey('x'),
+				Keycode::asciiKey('d'),
+				Keycode::asciiKey('s'),
+				Keycode::asciiKey('b'),
+				Keycode::asciiKey('v'),
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_NVIDIA_SHIELD,
 			"NVidia Shield",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
 
-				Input::Keycode::JS3_YAXIS_NEG,
-				Input::Keycode::JS3_XAXIS_POS,
-				Input::Keycode::JS3_YAXIS_POS,
-				Input::Keycode::JS3_XAXIS_NEG,
+				Input::Keycode::UP,
+				Input::Keycode::RIGHT,
+				Input::Keycode::DOWN,
+				Input::Keycode::LEFT,
 				0, 0, 0, 0,
 				Input::Keycode::GAME_LEFT_THUMB,
 				Input::Keycode::GAME_START,
@@ -168,7 +188,7 @@ const KeyConfig defaultKeyProfile[] =
 		#endif
 	#endif
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard",
 		{
@@ -179,19 +199,19 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::DOWN,
 			Input::Keycode::LEFT,
 			0, 0, 0, 0,
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 			Input::Keycode::ENTER,
-			asciiKey('x'),
-			asciiKey('z'),
-			asciiKey('s'),
-			asciiKey('a'),
-			asciiKey('v'),
-			asciiKey('c'),
+			Keycode::asciiKey('x'),
+			Keycode::asciiKey('z'),
+			Keycode::asciiKey('s'),
+			Keycode::asciiKey('a'),
+			Keycode::asciiKey('v'),
+			Keycode::asciiKey('c'),
 		}
 	},
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{

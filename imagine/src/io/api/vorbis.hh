@@ -28,3 +28,8 @@ static ov_callbacks imagineVorbisIO =
 {
 	VorbisIOAPI::read, VorbisIOAPI::seek, VorbisIOAPI::close, VorbisIOAPI::tell
 };
+
+static ov_callbacks imagineVorbisIONoClose =
+{
+	VorbisIOAPI::read, VorbisIOAPI::seek, nullptr, VorbisIOAPI::tell
+};

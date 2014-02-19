@@ -545,6 +545,7 @@ void HuC6280_Reset(void)
  HuCPU.IRQMask = HuCPU.IRQMaskDelay = 7;
 
  HuC6280_SetMPR(0, 0xFF);
+ HuC6280_SetMPR(8, 0xFF);
  HuC6280_SetMPR(1, 0xF8);
 
  for(int i = 2; i < 8; i++)

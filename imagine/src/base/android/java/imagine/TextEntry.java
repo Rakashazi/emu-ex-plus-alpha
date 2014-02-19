@@ -1,3 +1,18 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 package com.imagine;
 
 import android.widget.*;
@@ -19,29 +34,32 @@ class TextEntry
 	static final class TextEntryPopupWindow extends Dialog
 	implements DialogInterface.OnDismissListener, TextView.OnEditorActionListener
 	{
-		EditText editBox;
+		private static final int PROCESS_TEXT_ON_DISMISS = 0;
+		private static final int SKIP_TEXT_ON_DISMISS = 1;
+		private EditText editBox;
 		
 		public TextEntryPopupWindow(Activity act, String initialText, String promptText, int x, int y, int width, int height, int fontSize)
 		{
-			super(act);
+			super(act/*, 0x7f030000*/);
 			editBox = new EditText(act);
-			editBox.setId(0); // reset indicator of canceled text entry
+			editBox.setId(PROCESS_TEXT_ON_DISMISS);
 			editBox.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize);
 			editBox.setText(initialText);
 			editBox.setImeActionLabel(promptText, 0);
 			editBox.setSingleLine();
 			editBox.setOnEditorActionListener(this);
-			getWindow().setBackgroundDrawable(new BitmapDrawable());
-			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-			getWindow().getAttributes().gravity = Gravity.LEFT | Gravity.TOP;
-			requestWindowFeature(Window.FEATURE_NO_TITLE);
+			Window win = getWindow();
+			win.setBackgroundDrawableResource(android.R.color.transparent);
+			win.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+				WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+			win.getAttributes().gravity = Gravity.LEFT | Gravity.TOP;
+			win.requestFeature(Window.FEATURE_NO_TITLE);
 			setContentView(editBox);
 			updateRect(x, y, width, height);
 			setOnDismissListener(this);
 			setCanceledOnTouchOutside(false);
-			Log.i(logTag, "4");
 		}
-		
+
 		void updateRect(int x, int y, int width, int height)
 		{
 			//Log.i(logTag, "setting popup size " + x + " " + y + " " + width + " " + height);
@@ -53,20 +71,22 @@ class TextEntry
 			vp.height = height;
 			getWindow().setAttributes(p);
 		}
-		
+
+		void requestLayout()
+		{
+			editBox.requestLayout();
+		}
+
 		@Override public void onDismiss(DialogInterface dialog)
 		{
 			//Log.i(logTag, "popup dismissed");
-			editBox.setText(null);
-			editBox.setImeActionLabel(null, 0);
-			if(editBox.getId() == 0)
-			{
-				//Log.i(logTag, "text input canceled");
-				BaseActivity.endSysTextInput(null);
-			}
+			//editBox.setText(null);
+			//editBox.setImeActionLabel(null, 0);
 			dismissedDialog();
+			boolean processText = editBox.getId() == PROCESS_TEXT_ON_DISMISS; // check if text already processed in onEditorAction
+			BaseActivity.endSysTextInput(null, processText, true);
 		}
-		
+
 		/*@Override public boolean onTouchEvent(MotionEvent event)
 		{
 			final int x = (int) event.getX();
@@ -84,9 +104,9 @@ class TextEntry
 		{
 			//Log.i(logTag, "got editor action " + actionId);
 			String content = editBox.getText().toString();
-			editBox.setId(1); // indicate text entry was not canceled
+			editBox.setId(SKIP_TEXT_ON_DISMISS);
+			BaseActivity.endSysTextInput(content, true, false);
 			dismiss();
-			BaseActivity.endSysTextInput(content);
 			return false;
 		}
 	}
@@ -118,6 +138,7 @@ class TextEntry
 	{
 		if(popup == null) return;
 		popup.updateRect(x, y, width, height);
+		popup.requestLayout();
 	}
 	
 }

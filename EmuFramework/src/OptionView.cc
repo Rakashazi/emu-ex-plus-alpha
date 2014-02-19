@@ -14,19 +14,15 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <OptionView.hh>
-#include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <FilePicker.hh>
 #include <algorithm>
-
-extern MsgPopup popup;
-extern EmuNavView viewNav;
 
 void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
 {
 	logMsg("size %d", (int)sizeof(*biosPathStr));
 	snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
 	if(onBiosChangeD) onBiosChangeD();
-	View::removeModalView();
 	workDirStack.pop();
 	viewStack.popAndShow();
 }
@@ -50,17 +46,18 @@ void BiosSelectMenu::init(bool highlightFirst)
 			auto &fPicker = *allocModalView<EmuFilePicker>(window());
 			fPicker.init(!e.isPointer(), false, fsFilter);
 			fPicker.onSelectFile() =
-				[this](const char* name, const Input::Event &e)
+				[this](FSPicker &picker, const char* name, const Input::Event &e)
 				{
 					onSelectFile(name, e);
+					picker.dismiss();
 				};
 			fPicker.onClose() =
-				[](const Input::Event &e)
+				[](FSPicker &picker, const Input::Event &e)
 				{
-					View::removeModalView();
+					picker.dismiss();
 					workDirStack.pop();
 				};
-			View::addModalView(fPicker);
+			modalViewController.pushAndShow(fPicker);
 		};
 	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
 	choiceEntry[1].onSelect() =
@@ -90,16 +87,32 @@ void OptionView::autoSaveStateInit()
 	autoSaveState.init(str, val, sizeofArray(str));
 }
 
-void OptionView::statusBarInit()
+void OptionView::fastForwardSpeedinit()
+{
+	static const char *str[] =
+	{
+		"3x", "4x", "5x",
+		"6x", "7x", "8x"
+	};
+	int val = 0;
+	if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
+	{
+		val = optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;
+	}
+	fastForwardSpeed.init(str, val, sizeofArray(str));
+}
+
+
+static void uiVisibiltyInit(const Byte1Option &option, MultiChoiceSelectMenuItem &menuItem)
 {
 	static const char *str[] =
 	{
 		"Off", "In Game", "On",
 	};
 	int val = 2;
-	if(optionHideStatusBar < 2)
-		val = optionHideStatusBar;
-	statusBar.init(str, val, sizeofArray(str));
+	if(option < 2)
+		val = option;
+	menuItem.init(str, val, sizeofArray(str));
 }
 
 void OptionView::frameSkipInit()
@@ -239,8 +252,10 @@ void OptionView::aspectRatioInit()
 #ifdef CONFIG_AUDIO_LATENCY_HINT
 void OptionView::soundBuffersInit()
 {
-	static const char *str[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-	soundBuffers.init(str, std::max((int)optionSoundBuffers - 3, 0), sizeofArray(str));
+	static const char *str2[] = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
+	static const char *str3[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
+	static_assert(sizeofArray(str2) == 12 - (OPTION_SOUND_BUFFERS_MIN-1) || sizeofArray(str3) == 12 - (OPTION_SOUND_BUFFERS_MIN-1), "incorrect sound buffers string array");
+	soundBuffers.init((OPTION_SOUND_BUFFERS_MIN == 2) ? str2 : str3, std::max((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, 0), (OPTION_SOUND_BUFFERS_MIN == 2) ? sizeofArray(str2) : sizeofArray(str3));
 }
 #endif
 
@@ -404,7 +419,6 @@ public:
 		snprintf(optionSavePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
 		logMsg("set save path %s", (char*)optionSavePath);
 		if(onPathChange) onPathChange(optionSavePath);
-		View::removeModalView();
 		workDirStack.pop();
 	}
 
@@ -423,8 +437,12 @@ public:
 					FsSys::chdir(optionSavePath);
 					auto &fPicker = *allocModalView<EmuFilePicker>(Base::mainWindow());
 					fPicker.init(!e.isPointer(), true, dirFsFilter);
-					fPicker.onClose() = [this](const Input::Event &e){onClose(e);};
-					View::addModalView(fPicker);
+					fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
+						{
+							onClose(e);
+							picker.dismiss();
+						};
+					modalViewController.pushAndShow(fPicker);
 				}
 				else
 				{
@@ -433,7 +451,7 @@ public:
 				}
 				return 0;
 			};
-		viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+		viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 	}
 } pathSelectMenu;
 
@@ -442,7 +460,6 @@ void FirmwarePathSelector::onClose(const Input::Event &e)
 	snprintf(optionFirmwarePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
 	if(onPathChange) onPathChange(optionFirmwarePath);
-	View::removeModalView();
 	workDirStack.pop();
 }
 
@@ -461,8 +478,12 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 				FsSys::chdir(optionFirmwarePath);
 				auto &fPicker = *allocModalView<EmuFilePicker>(Base::mainWindow());
 				fPicker.init(!e.isPointer(), true, dirFsFilter);
-				fPicker.onClose() = [this](const Input::Event &e){onClose(e);};
-				View::addModalView(fPicker);
+				fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
+					{
+						onClose(e);
+						picker.dismiss();
+					};
+				modalViewController.pushAndShow(fPicker);
 			}
 			else
 			{
@@ -471,7 +492,7 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 			}
 			return 0;
 		};
-	viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+	viewStack.pushAndShow(multiChoiceView, &menuAllocator);
 }
 
 void OptionView::loadVideoItems(MenuItem *item[], uint &items)
@@ -512,7 +533,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 		dither.init(optionDitherImage); item[items++] = &dither;
 	}
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	secondDisplay.init(false); item[items++] = &secondDisplay;
+	//secondDisplay.init(false); item[items++] = &secondDisplay;
 	#endif
 }
 
@@ -547,9 +568,6 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	btScanCache.init(optionBlueToothScanCache); item[items++] = &btScanCache;
 	#endif
-	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	useOSInputMethod.init(!Input::eventsUseOSInputMethod()); item[items++] = &useOSInputMethod;
-	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	if(Base::hasTrackball())
 	{
@@ -566,6 +584,7 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	confirmOverwriteState.init(optionConfirmOverwriteState); item[items++] = &confirmOverwriteState;
 	printPathMenuEntryStr(savePathStr);
 	savePath.init(savePathStr, true); item[items++] = &savePath;
+	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	processPriorityInit(); item[items++] = &processPriority;
 	#endif
@@ -605,15 +624,17 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	}
 	if(!optionLowProfileOSNav.isConst)
 	{
-		lowProfileOSNav.init(optionLowProfileOSNav); item[items++] = &lowProfileOSNav;
+		uiVisibiltyInit(optionLowProfileOSNav, lowProfileOSNav);
+		item[items++] = &lowProfileOSNav;
 	}
 	if(!optionHideOSNav.isConst)
 	{
-		hideOSNav.init(optionHideOSNav); item[items++] = &hideOSNav;
+		uiVisibiltyInit(optionHideOSNav, hideOSNav);
+		item[items++] = &hideOSNav;
 	}
 	if(!optionHideStatusBar.isConst)
 	{
-		statusBarInit(); item[items++] = &statusBar;
+		uiVisibiltyInit(optionHideStatusBar, statusBar); item[items++] = &statusBar;
 	}
 }
 
@@ -738,11 +759,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 3: optionViewportZoom.val = 85;
 			}
 			logMsg("set viewport zoom: %d", int(optionViewportZoom));
-			if((int)optionViewportZoom == 100) // restore original content viewport
-			{
-				window().adjustViewport(window().untransformedViewBounds());
-			}
-			Gfx::onViewChange(window(), nullptr);
+			window().dispatchResize();
 		}
 	},
 	imgFilter
@@ -815,7 +832,7 @@ OptionView::OptionView(Base::Window &win):
 						item.toggle(*this);
 						optionBestColorModeHint = item.on;
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 			else
 			{
@@ -879,7 +896,7 @@ OptionView::OptionView(Base::Window &win):
 		{
 			if(Audio::isOpen())
 				Audio::closePcm();
-			optionSoundBuffers = val+3;
+			optionSoundBuffers = val+OPTION_SOUND_BUFFERS_MIN;
 		}
 	},
 	#endif
@@ -927,17 +944,6 @@ OptionView::OptionView(Base::Window &win):
 	},
 	#endif
 	// Input
-	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	useOSInputMethod
-	{
-		"Skip OS Input Method",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			Input::setEventsUseOSInputMethod(!item.on);
-		}
-	},
-	#endif
 	altGamepadConfirm
 	{
 		"Alt Gamepad Confirm",
@@ -1051,7 +1057,15 @@ OptionView::OptionView(Base::Window &win):
 					savePath.compile();
 					EmuSystem::savePathChanged();
 				};
-			displayNeedsUpdate();
+			postDraw();
+		}
+	},
+	fastForwardSpeed
+	{
+		"Fast Forward Speed",
+		[this](MultiChoiceMenuItem &, int val)
+		{
+			optionFastForwardSpeed = val + MIN_FAST_FORWARD_SPEED;
 		}
 	},
 	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
@@ -1070,15 +1084,6 @@ OptionView::OptionView(Base::Window &win):
 		}
 	},
 	#endif
-	statusBar
-	{
-		"Hide Status Bar",
-		[](MultiChoiceMenuItem &, int val)
-		{
-			optionHideStatusBar = val;
-			setupStatusBarInMenu();
-		}
-	},
 	// GUI
 	pauseUnfocused
 	{
@@ -1118,7 +1123,7 @@ OptionView::OptionView(Base::Window &win):
 			}
 			setupFont();
 			EmuControls::setupVControllerVars();
-			Gfx::onViewChange(window(), nullptr);
+			window().dispatchResize();
 		}
 	},
 	notificationIcon
@@ -1130,24 +1135,31 @@ OptionView::OptionView(Base::Window &win):
 			optionNotificationIcon = item.on;
 		}
 	},
+	statusBar
+	{
+		"Hide Status Bar",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionHideStatusBar = val;
+			applyOSNavStyle(false);
+		}
+	},
 	lowProfileOSNav
 	{
 		"Dim OS Navigation",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[](MultiChoiceMenuItem &, int val)
 		{
-			item.toggle(*this);
-			optionLowProfileOSNav = item.on;
-			applyOSNavStyle();
+			optionLowProfileOSNav = val;
+			applyOSNavStyle(false);
 		}
 	},
 	hideOSNav
 	{
 		"Hide OS Navigation",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[](MultiChoiceMenuItem &, int val)
 		{
-			item.toggle(*this);
-			optionHideOSNav = item.on;
-			applyOSNavStyle();
+			optionHideOSNav = val;
+			applyOSNavStyle(false);
 		}
 	},
 	idleDisplayPowerSave
@@ -1168,7 +1180,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			optionTitleBar = item.on;
 			viewStack.setNavView(item.on ? &viewNav : 0);
-			Gfx::onViewChange(window(), nullptr);
+			window().dispatchResize();
 		}
 	},
 	backNav
@@ -1179,7 +1191,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
 			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
-			Gfx::onViewChange(window(), nullptr);
+			window().dispatchResize();
 		}
 	},
 	rememberLastMenu
@@ -1197,8 +1209,8 @@ OptionView::OptionView(Base::Window &win):
 		[this](MultiChoiceMenuItem &, int val)
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
-			if(!Base::mainWindow().setValidOrientations(optionMenuOrientation, 1))
-				Gfx::onViewChange(window(), nullptr);
+			Base::mainWindow().setValidOrientations(optionMenuOrientation);
+			window().dispatchResize();
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 		}
 	}

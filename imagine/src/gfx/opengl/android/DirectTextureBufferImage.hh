@@ -23,21 +23,21 @@ namespace Gfx
 
 struct DirectTextureBufferImage: public TextureBufferImage
 {
-	constexpr DirectTextureBufferImage() { }
-	Pixmap eglPixmap {PixelFormatRGB565};
+	IG::Pixmap eglPixmap {PixelFormatRGB565};
 	android_native_buffer_t eglBuf;
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
 
+	constexpr DirectTextureBufferImage() {}
 	static bool testSupport(const char **errorStr);
-	bool init(Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
-	void write(Pixmap &p, uint hints) override;
-	void write(Pixmap &p, uint hints, uint alignment) override;
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback = nullptr) override;
-	void unlock(Pixmap *p = nullptr, uint hints = 0) override;
+	bool init(IG::Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
+	void write(IG::Pixmap &p, uint hints) override;
+	void write(IG::Pixmap &p, uint hints, uint alignment) override;
+	IG::Pixmap *lock(uint x, uint y, uint xlen, uint ylen, IG::Pixmap *fallback = nullptr) override;
+	void unlock(IG::Pixmap *p = nullptr, uint hints = 0) override;
 	void deinit() override;
 
 private:
-	bool initTexture(Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr = nullptr);
+	bool initTexture(IG::Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr = nullptr);
 };
 
 }

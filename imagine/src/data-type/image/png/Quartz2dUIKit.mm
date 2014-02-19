@@ -13,15 +13,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "quartzpng"
+#define LOGTAG "QuartzPNG"
 
 #include "Quartz2d.hh"
 #include <base/iphone/private.hh>
 #import <UIKit/UIImage.h>
 
-CallResult Quartz2dImage::writeImage(const Pixmap &pix, const char *name)
+CallResult Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
 {
-	auto provider = CGDataProviderCreateWithData(nullptr, pix.data, pix.sizeOfImage(), nullptr);
+	auto provider = CGDataProviderCreateWithData(nullptr, pix.data, pix.size(), nullptr);
 	int bitsPerComponent = 8;
 	CGBitmapInfo bitmapInfo = kCGImageAlphaNone;
 	auto imageRef = CGImageCreate(pix.x, pix.y, bitsPerComponent, pix.format.bitsPerPixel, pix.pitch, Base::grayColorSpace, bitmapInfo,
@@ -33,7 +33,6 @@ CallResult Quartz2dImage::writeImage(const Pixmap &pix, const char *name)
 		CGImageRelease(imageRef);
 		auto pathStr = [[NSString alloc] initWithBytesNoCopy:(void*)name length:strlen(name) encoding:NSUTF8StringEncoding freeWhenDone:false];
 		[UIImagePNGRepresentation(uiImage) writeToFile:pathStr atomically:YES];
-		[pathStr release];
 	}
 	return OK;
 }

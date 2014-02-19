@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "AlertView"
+#define LOGTAG "AlertView"
 
 #include <gui/AlertView.hh>
 
@@ -33,21 +33,21 @@ void AlertView::deinit()
 
 void AlertView::place()
 {
-	uint xSize = rect.xSize() * .8;
-	text.maxLineSize = Gfx::iXSize(xSize) * 0.95;
+	int xSize = rect.xSize() * .8;
+	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95;
 	text.compile();
 
-	uint menuYSize = menu.items * menu.item[0]->ySize()*2;
-	uint labelYSize = Gfx::toIYSize(text.ySize + (text.nominalHeight * .5));
-	IG::Rect2<int> viewFrame;
+	int menuYSize = menu.items * menu.item[0]->ySize()*2;
+	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5)));
+	IG::WindowRect viewFrame;
 	viewFrame.setPosRel({rect.xSize()/2, rect.ySize()/2},
-			xSize, labelYSize + menuYSize, C2DO);
+			{xSize, labelYSize + menuYSize}, C2DO);
 
-	labelFrame = Gfx::unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);
+	labelFrame = projP.unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);
 
-	IG::Rect2<int> menuViewFrame;
+	IG::WindowRect menuViewFrame;
 	menuViewFrame.setPosRel({viewFrame.x, viewFrame.y + (int)labelYSize},
-			viewFrame.xSize(), menuYSize, LT2DO);
+			{viewFrame.xSize(), menuYSize}, LT2DO);
 	menu.placeRect(menuViewFrame);
 }
 
@@ -57,25 +57,25 @@ void AlertView::inputEvent(const Input::Event &e)
 	{
 		if(e.isDefaultCancelButton())
 		{
-			removeModalView();
+			dismiss();
 			return;
 		}
 	}
 	menu.inputEvent(e);
 }
 
-void AlertView::draw(Gfx::FrameTimeBase frameTime)
+void AlertView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(BLEND_MODE_ALPHA);
-	resetTransforms();
+	noTexProgram.use(View::projP.makeTranslate());
 	setColor(.4, .4, .4, .8);
 	GeomRect::draw(labelFrame);
 	setColor(.1, .1, .1, .6);
-	GeomRect::draw(menu.viewRect());
-
+	GeomRect::draw(menu.viewRect(), projP);
 	setColor(COLOR_WHITE);
-	text.draw(labelFrame.xPos(C2DO), Gfx::alignYToPixel(labelFrame.yPos(C2DO)), C2DO, C2DO);
+	texAlphaReplaceProgram.use();
+	text.draw(labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw(frameTime);
@@ -90,7 +90,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 		[this](TextMenuItem &, const Input::Event &e)
 		{
 			auto callback = onYesD;
-			removeModalView();
+			dismiss();
 			if(callback) callback(e);
 		}
 	},
@@ -99,7 +99,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 		[this](TextMenuItem &, const Input::Event &e)
 		{
 			auto callback = onNoD;
-			removeModalView();
+			dismiss();
 			if(callback) callback(e);
 		}
 	}

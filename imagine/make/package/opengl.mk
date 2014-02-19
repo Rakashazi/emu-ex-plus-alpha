@@ -2,29 +2,35 @@ ifndef inc_pkg_opengl
 inc_pkg_opengl := 1
 
 ifeq ($(SUBENV), pandora)
- LDLIBS += -lGLES_CM -lEGL -lm
  configDefs += CONFIG_GFX_OPENGL_ES
+ LDLIBS += -lGLES2 -lm
 else ifeq ($(ENV), linux)
- ifdef config_gfx_openGLES
-  pkgConfigDeps += glesv1_cm
-  LDLIBS += -lm
+ ifeq ($(openGLAPI), gles)
   configDefs += CONFIG_GFX_OPENGL_ES
+  ifeq ($(openGLESVersion), 1)
+   pkgConfigDeps += glesv1_cm
+  else
+   pkgConfigDeps += glesv2
+  endif
  else
   pkgConfigDeps += gl
-  LDLIBS += -lm
  endif
 else ifeq ($(ENV), android)
- LDLIBS += -lGLESv1_CM
- ifneq ($(ARCH), x86)
-  LDLIBS += -ldl
+ configDefs += CONFIG_GFX_OPENGL_ES
+ ifeq ($(openGLESVersion), 1)
+  LDLIBS += -lGLESv1_CM
+ else
+  LDLIBS += -lGLESv2
  endif
 else ifeq ($(ENV), ios)
+ configDefs += CONFIG_GFX_OPENGL_ES
  LDLIBS += -framework OpenGLES
 else ifeq ($(ENV), macosx)
  LDLIBS += -framework OpenGL -framework CoreVideo
 else ifeq ($(ENV), win32)
  LDLIBS += -lglew32 -lopengl32
 else ifeq ($(ENV), webos)
+ configDefs += CONFIG_GFX_OPENGL_ES
  LDLIBS += -lGLES_CM $(webos_libm)
 else ifeq ($(ENV), ps3)
  CPPFLAGS += -DPSGL

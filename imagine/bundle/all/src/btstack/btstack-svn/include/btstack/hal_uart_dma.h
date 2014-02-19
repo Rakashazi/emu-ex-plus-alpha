@@ -38,9 +38,14 @@
  *
  */
 
-#pragma once
+#ifndef __HAL_UART_DMA_H
+#define __HAL_UART_DMA_H
 
 #include <stdint.h>
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 void hal_uart_dma_init(void);
 void hal_uart_dma_set_block_received( void (*block_handler)(void));
@@ -50,3 +55,8 @@ int  hal_uart_dma_set_baud(uint32_t baud);
 void hal_uart_dma_send_block(const uint8_t *buffer, uint16_t length);
 void hal_uart_dma_receive_block(uint8_t *buffer, uint16_t len);
 void hal_uart_dma_set_sleep(uint8_t sleep);
+
+#if defined __cplusplus
+}
+#endif
+#endif // __HAL_UART_DMA_H

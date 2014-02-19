@@ -20,12 +20,15 @@
 #include <util/thread/pthread.hh>
 #include <util/jni.hh>
 #include <base/Base.hh>
+#include <base/EventLoopFileSource.hh>
 #include <base/android/private.hh>
+
+struct SocketStatusMessage;
 
 class AndroidBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr AndroidBluetoothAdapter() { }
+	constexpr AndroidBluetoothAdapter() {}
 	static AndroidBluetoothAdapter *defaultAdapter();
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
 	void cancelScan() override;
@@ -35,21 +38,26 @@ public:
 	#endif
 	State state() override;
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
-//private:
-	bool openDefault();
 	bool handleScanClass(uint classInt);
 	void handleScanName(JNIEnv* env, jstring name, jstring addr);
 	void handleScanStatus(int status);
 	void handleTurnOnResult(bool success);
-	bool scanCancelled = 0;
+	void sendSocketStatusMessage(const SocketStatusMessage &msg);
+	jobject openSocket(JNIEnv *jEnv, const char *addrStr, int channel, bool isL2cap);
+
+private:
 	jobject adapter = nullptr;
 	OnStateChangeDelegate turnOnD;
+	int statusPipe[2] {-1, -1};
+	bool scanCancelled = false;
+
+	bool openDefault();
 };
 
 class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
-	AndroidBluetoothSocket() { }
+	AndroidBluetoothSocket() {}
 	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
 	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
 	#ifdef CONFIG_BLUETOOTH_SERVER
@@ -59,22 +67,15 @@ public:
 	CallResult write(const void *data, size_t size) override;
 	void onStatusDelegateMessage(int arg);
 
+private:
 	jobject socket = nullptr, outStream = nullptr;
-	ptrsize readThreadFunc(ThreadPThread &thread);
 	ThreadPThread readThread;
-	ptrsize connectThreadFunc(ThreadPThread &thread);
 	ThreadPThread connectThread;
-	Base::PollEventDelegate pollEvDel
-	{
-		[this](int events)
-		{
-			return readPendingData(events);
-		}
-	};
+	Base::EventLoopFileSource fdSrc;
 	int nativeFd = -1;
 	uint channel = 0;
-	bool isClosing = 0;
-	bool isL2cap = 0;
+	bool isClosing = false;
+	bool isL2cap = false;
 	char addrStr[18] {0};
 
 	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);

@@ -117,7 +117,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -401,14 +401,14 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			samples = 35112;
 		}
 		// video rendered in runFor()
-		short destBuff[(Audio::maxRate/59)*2];
+		short destBuff[(Audio::maxRate()/59)*2];
 		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
-		assert(Audio::maxFormat.framesToBytes(destFrames) <= sizeof(destBuff));
+		assert(Audio::pcmFormat.framesToBytes(destFrames) <= sizeof(destBuff));
 		EmuSystem::writeSound(destBuff, destFrames);
 	}
 }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -423,7 +423,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((uchar*)screenBuff, pixFmt, gbResX, gbResY);
+	emuView.initPixmap((char*)screenBuff, pixFmt, gbResX, gbResY);
 	mainInitCommon(argc, argv);
 	return OK;
 }

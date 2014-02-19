@@ -64,13 +64,14 @@ static bool IsAbsolutePath(const char *path)
   return(TRUE);
  }
 
- // FIXME if we add DOS support(HAHAHAHA).
- #if defined(WIN32)
+ #if defined(WIN32) || defined(DOS)
  if((path[0] >= 'a' && path[0] <= 'z') || (path[0] >= 'A' && path[0] <= 'Z'))
+ {
   if(path[1] == ':')
   {
    return(TRUE);
   }
+ }
  #endif
 
  return(FALSE);
@@ -101,6 +102,11 @@ bool MDFN_IsFIROPSafe(const std::string &path)
 
  if(path.find('/') != string::npos)
   return(false);
+
+#if defined(DOS) || defined(WIN32)
+  // TODO: Reserved device names.
+
+#endif
 
  return(true);
 }
@@ -166,6 +172,7 @@ void MDFN_GetFilePathComponents(const std::string &file_path, std::string *dir_p
 
 std::string MDFN_EvalFIP(const std::string &dir_path, const std::string &rel_path, bool skip_safety_check)
 {
+	skip_safety_check = true;
  if(!skip_safety_check && !MDFN_IsFIROPSafe(rel_path))
   throw MDFN_Error(0, _("Referenced path \"%s\" is potentially unsafe.  See \"filesys.untrusted_fip_check\" setting.\n"), rel_path.c_str());
 
@@ -584,6 +591,65 @@ void MDFN_rtrim(char *string)
 }
 
 void MDFN_trim(char *string)
+{
+ MDFN_rtrim(string);
+ MDFN_ltrim(string);
+}
+
+
+// Remove whitespace from beginning of string
+void MDFN_ltrim(std::string &string)
+{
+ size_t len = string.length();
+ size_t di, si;
+ bool InWhitespace = TRUE;
+
+ di = si = 0;
+
+ while(si < len)
+ {
+  if(InWhitespace && (string[si] == ' ' || string[si] == '\r' || string[si] == '\n' || string[si] == '\t' || string[si] == 0x0b))
+  {
+
+  }
+  else
+  {
+   InWhitespace = FALSE;
+   string[di] = string[si];
+   di++;
+  }
+  si++;
+ }
+
+ string.resize(di);
+}
+
+// Remove whitespace from end of string
+void MDFN_rtrim(std::string &string)
+{
+ size_t len = string.length();
+
+ if(len)
+ {
+  size_t x = len;
+  size_t new_len = len;
+
+  do
+  {
+   x--;
+
+   if(!(string[x] == ' ' || string[x] == '\r' || string[x] == '\n' || string[x] == '\t' || string[x] == 0x0b))
+    break;
+
+   new_len--;
+  } while(x);
+
+  string.resize(new_len);
+ }
+}
+
+
+void MDFN_trim(std::string &string)
 {
  MDFN_rtrim(string);
  MDFN_ltrim(string);

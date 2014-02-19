@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <config/env.hh>
 
 namespace Input
@@ -98,42 +113,45 @@ namespace Zeemote
 namespace ICade
 {
 #if defined INPUT_SUPPORTS_KEYBOARD
-	// mapping overlaps system/keyboard so the same "device" can send iCade
-	// events as well as other key events that don't conflict with its mapping.
-	// Here we just use all the On-States since they won't be sent as regular
-	// key events.
-	static const uint UP = asciiKey('w'),
-		RIGHT = asciiKey('d'),
-		DOWN = asciiKey('x'),
-		LEFT = asciiKey('a'),
-		A = asciiKey('y'),
-		B = asciiKey('h'),
-		C = asciiKey('u'),
-		D = asciiKey('j'),
-		E = asciiKey('i'),
-		F = asciiKey('k'),
-		G = asciiKey('o'),
-		H = asciiKey('l')
-		;
 
-	static const uint COUNT = Keycode::COUNT;
+// mapping overlaps system/keyboard so the same "device" can send iCade
+// events as well as other key events that don't conflict with its mapping.
+// Here we just use all the On-States since they won't be sent as regular
+// key events.
+static const uint UP = Keycode::asciiKey('w'),
+	RIGHT = Keycode::asciiKey('d'),
+	DOWN = Keycode::asciiKey('x'),
+	LEFT = Keycode::asciiKey('a'),
+	A = Keycode::asciiKey('y'),
+	B = Keycode::asciiKey('h'),
+	C = Keycode::asciiKey('u'),
+	D = Keycode::asciiKey('j'),
+	E = Keycode::asciiKey('i'),
+	F = Keycode::asciiKey('k'),
+	G = Keycode::asciiKey('o'),
+	H = Keycode::asciiKey('l');
+
+static const uint COUNT = Keycode::COUNT;
+
 #else
-	// dedicated mapping
-	static const uint UP = 1,
-	RIGHT = 2,
-	DOWN = 3,
-	LEFT = 4,
-	A = 5,
-	B = 6,
-	C = 7,
-	D = 8,
-	E = 9,
-	F = 10,
-	G = 11,
-	H = 12
-	;
 
-	static const uint COUNT = 13;
+// dedicated mapping
+static const uint UP = 1,
+RIGHT = 2,
+DOWN = 3,
+LEFT = 4,
+A = 5,
+B = 6,
+C = 7,
+D = 8,
+E = 9,
+F = 10,
+G = 11,
+H = 12
+;
+
+static const uint COUNT = 13;
+
 #endif
 }
 

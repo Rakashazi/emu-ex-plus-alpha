@@ -2,7 +2,14 @@
 
 #include <EGL/egl.h>
 #include <logger/interface.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
+
+#ifndef EGL_CONTEXT_FLAGS_KHR
+#define EGL_CONTEXT_FLAGS_KHR 0x30FC
+#endif
+#ifndef EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR 0x00000001
+#endif
 
 static const EGLint eglAttrWinLowColor[] =
 {
@@ -25,6 +32,46 @@ static const EGLint eglAttrWinMaxRGBA[] =
 	EGL_GREEN_SIZE, 1,
 	EGL_RED_SIZE, 1,
 	EGL_ALPHA_SIZE, 1,
+	EGL_NONE
+};
+
+static const EGLint eglAttrWinLowColorES2[] =
+{
+	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+	EGL_NONE
+};
+
+static const EGLint eglAttrWinRGB888ES2[] =
+{
+	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+	EGL_CONFIG_CAVEAT, EGL_NONE,
+	EGL_BLUE_SIZE, 8,
+	EGL_GREEN_SIZE, 8,
+	EGL_RED_SIZE, 8,
+	EGL_NONE
+};
+
+static const EGLint eglAttrWinMaxRGBAES2[] =
+{
+	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+	EGL_CONFIG_CAVEAT, EGL_NONE,
+	EGL_BLUE_SIZE, 1,
+	EGL_GREEN_SIZE, 1,
+	EGL_RED_SIZE, 1,
+	EGL_ALPHA_SIZE, 1,
+	EGL_NONE
+};
+
+static const EGLint eglAttrES2Ctx[] =
+{
+	EGL_CONTEXT_CLIENT_VERSION, 2,
+	EGL_NONE
+};
+
+static const EGLint eglAttrES2DebugCtx[] =
+{
+	EGL_CONTEXT_CLIENT_VERSION, 2,
+	EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
 	EGL_NONE
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <string.h>
 #include <util/ansiTypes.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 
 namespace IG
 {

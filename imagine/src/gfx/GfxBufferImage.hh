@@ -1,83 +1,33 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <gfx/defs.hh>
 #include <pixmap/Pixmap.hh>
 #include <data-type/image/GfxImageSource.hh>
 #include <util/RefCount.hh>
 
+#ifdef CONFIG_GFX_OPENGL
+#include <gfx/opengl/BufferImage.hh>
+#endif
+
 namespace Gfx
 {
 
-class TextureDesc
-{
-public:
-	constexpr TextureDesc() { }
-	GfxTextureHandle tid = 0;
-	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	GLenum target = GL_TEXTURE_2D;
-	#else
-	static const GLenum target = GL_TEXTURE_2D;
-	#endif
-	TextureCoordinate xStart = 0, xEnd = 0;
-	TextureCoordinate yStart = 0, yEnd = 0;
-};
-
-struct BufferImageInterface : public TextureDesc
-{
-	virtual ~BufferImageInterface() { }
-protected:
-	virtual void write(Pixmap &p, uint hints) = 0;
-	virtual void write(Pixmap &p, uint hints, uint alignment) = 0;
-	virtual void replace(Pixmap &p, uint hints) = 0;
-	virtual Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) = 0;
-	virtual void unlock(Pixmap *pix, uint hints) = 0;
-	virtual void deinit() = 0;
-	friend struct TextureBufferVImpl;
-};
-
-struct TextureBufferImage:
-#ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-	public BufferImageInterface
-#else
-	public TextureDesc
-#endif
-{
-	constexpr TextureBufferImage() { }
-protected:
-	void write(Pixmap &p, uint hints);
-	void write(Pixmap &p, uint hints, uint alignment);
-	void replace(Pixmap &p, uint hints);
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback);
-	void unlock(Pixmap *pix, uint hints);
-	void deinit();
-	const TextureDesc &textureDesc() const { return *this; };
-	TextureDesc &textureDesc() { return *this; };
-	bool isInit() const { return tid != 0; }
-};
-
-struct TextureBufferVImpl
-{
-	constexpr TextureBufferVImpl() { }
-protected:
-	BufferImageInterface *impl = nullptr;
-	void write(Pixmap &p, uint hints) { impl->write(p, hints); };
-	void write(Pixmap &p, uint hints, uint alignment) { impl->write(p, hints, alignment); };
-	void replace(Pixmap &p, uint hints) { impl->replace(p, hints); };
-	Pixmap *lock(uint x, uint y, uint xlen, uint ylen, Pixmap *fallback) { return impl->lock(x, y, xlen, ylen, fallback); }
-	void unlock(Pixmap *pix, uint hints) { impl->unlock(pix, hints); }
-	void deinit() { impl->deinit(); delete impl; impl = 0; }
-	const TextureDesc &textureDesc() const { assert(impl); return *impl; };
-	TextureDesc &textureDesc() { assert(impl); return *impl; };
-	bool isInit() const { return impl != nullptr; }
-};
-
-#ifdef CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL
-	typedef TextureBufferVImpl BufferImageImpl;
-#else
-	typedef TextureBufferImage BufferImageImpl;
-#endif
-
-class BufferImage: public BufferImageImpl, public RefCount<BufferImage>
+class BufferImage: private BufferImageImpl, public RefCount<BufferImage>
 {
 public:
 	static constexpr uint NEAREST = 0, LINEAR = 1;
@@ -85,24 +35,29 @@ public:
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
 
 	constexpr BufferImage() {}
-	CallResult init(Pixmap &pix, bool upload, uint filter, uint hints, bool textured);
-	CallResult init(Pixmap &pix, bool upload, uint filter = LINEAR, uint hints = HINT_STREAM)
+	CallResult init(IG::Pixmap &pix, bool upload, uint filter, uint hints, bool textured);
+	CallResult init(IG::Pixmap &pix, bool upload, uint filter = LINEAR, uint hints = HINT_STREAM)
 	{
 		return init(pix, upload, filter, hints, 0);
 	}
 	CallResult init(GfxImageSource &img, uint filter = LINEAR, uint hints = 0, bool textured = 0);
-	static uint bestAlignment(const Pixmap &p);
+	static uint bestAlignment(const IG::Pixmap &p);
 	bool hasMipmaps();
 	static bool isFilterValid(uint v) { return v <= 1; }
 	void setFilter(uint filter);
 	void setRepeatMode(uint xMode, uint yMode);
 	void deinit();
-	void write(Pixmap &p);
-	void write(Pixmap &p, uint assumeAlign);
-	void replace(Pixmap &p);
-	void unlock(Pixmap *p);
+	void write(IG::Pixmap &p);
+	void write(IG::Pixmap &p, uint assumeAlign);
+	void replace(IG::Pixmap &p);
+	void unlock(IG::Pixmap *p);
 	const TextureDesc &textureDesc() const { return BufferImageImpl::textureDesc(); };
-		TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
+	TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
+	uint type() { return type_; }
+	bool compileDefaultProgram(uint mode);
+	void useDefaultProgram(uint mode, const Mat4 *modelMat);
+	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }
+	void useDefaultProgram(uint mode, Mat4 modelMat) { useDefaultProgram(mode, &modelMat); }
 
 	void free()
 	{
@@ -117,13 +72,19 @@ public:
 
 private:
 	uint hints = 0;
-	bool hasMipmaps_ = 0;
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	uint type_ = TEX_UNSET;
+	#else
+	static constexpr uint type_ = TEX_2D_4;
+	#endif
+	bool hasMipmaps_ = false;
+	#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	uint xSize = 0, ySize = 0; // the actual x,y size of the image content
 	#endif
 
 	void testMipmapSupport(uint x, uint y);
-	bool setupTexture(Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
+	void generateMipmaps();
+	bool setupTexture(IG::Pixmap &pix, bool upload, uint internalFormat, int xWrapType, int yWrapType,
 			uint usedX, uint usedY, uint hints, uint filter);
 };
 

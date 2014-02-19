@@ -13,7 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "base:sdl"
+// TODO: this module needs to be updated to the current API
+#define LOGTAG "Base"
 #include <engine-globals.h>
 
 #include <unistd.h>
@@ -42,6 +43,8 @@ static SDL_Surface* drawContext;
 
 static const ushort MSG_WEBOS_TIMER = MSG_PLATFORM_START;
 static const ushort MSG_WEBOS_ORIENTATION_CHANGE = MSG_PLATFORM_START+1;
+
+uint appActivityState() { return appState; }
 
 CallResult openGLInit()
 {
@@ -93,7 +96,7 @@ void openGLUpdateScreen()
 	SDL_GL_SwapBuffers();
 }
 
-void exitVal(int returnVal)
+void exit(int returnVal)
 {
 	appState = APP_EXITING;
 	onExit(0);
@@ -105,7 +108,7 @@ void exitVal(int returnVal)
 }
 void abort() { ::abort(); }
 
-void displayNeedsUpdate() { generic_displayNeedsUpdate(); }
+void postDraw() { generic_displayNeedsUpdate(); }
 
 #ifdef CONFIG_ENV_WEBOS
 void setSystemOrientation(uint o)
@@ -125,12 +128,14 @@ void setSystemOrientation(uint o)
 
 static void setupScreenSizeFromDevice(PDL_ScreenMetrics &m)
 {
-	Gfx::viewMMWidth_ = ((float)m.horizontalPixels / (float)m.horizontalDPI) * 25.4;
-	Gfx::viewMMHeight_ = ((float)m.verticalPixels / (float)m.verticalDPI) * 25.4;
+	wMM = ((float)m.horizontalPixels / (float)m.horizontalDPI) * 25.4;
+	hMM = ((float)m.verticalPixels / (float)m.verticalDPI) * 25.4;
+	mmToPixelXScaler = w / wMM;
+	mmToPixelYScaler = h / hMM;
 	if(m.aspectRatio > (double)1.0) // Pre's pixels aren't square, we don't directly support this yet so scale the DPI
 	{
 		logMsg("screen has non-square pixels");
-		Gfx::viewMMWidth_ *= m.aspectRatio;
+		wMM *= m.aspectRatio;
 	}
 }
 
@@ -330,7 +335,7 @@ static void eventHandler(SDL_Event &event)
 					logMsg("running callback");
 					callback->del.invoke();
 					timerList.remove(*callback);
-					if(appState != APP_RUNNING)
+					if(!appIsRunning())
 						gfxUpdate = 0; // cancel gfx update if app not active
 				}
 				#if CONFIG_ENV_WEBOS_OS >= 3
@@ -358,13 +363,13 @@ static void eventHandler(SDL_Event &event)
 				appState = event.active.gain ? APP_RUNNING : APP_PAUSED;
 				onFocusChange(event.active.gain);
 				#if defined(CONFIG_ENV_WEBOS) // redraw after being un-carded
-					if(appState == APP_RUNNING)
+					if(appIsRunning())
 						gfxUpdate = 1;
 
 				#if CONFIG_ENV_WEBOS_OS >= 3
 					if(autoOrientationState)
 					{
-						if(appState == APP_RUNNING) // restore sensor thread if stopped
+						if(appIsRunning()) // restore sensor thread if stopped
 						{
 							startSensorPoll();
 						}
@@ -433,7 +438,7 @@ static void eventHandler(SDL_Event &event)
 
 		bcase SDL_QUIT:
 		{
-			exitVal(0);
+			exit(0);
 		}
 	}
 }
@@ -494,7 +499,7 @@ int main(int argc, char** argv)
 	{
 		SDL_Event event;
 		#ifdef CONFIG_ENV_WEBOS // halt screen updates when app is carded until event requests update
-		if(appState != APP_RUNNING)
+		if(!appIsRunning())
 			gfxUpdate = 0;
 		#endif
 		while((gfxUpdate && SDL_PollEvent(&event) == 1) || !gfxUpdate)

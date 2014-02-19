@@ -6,9 +6,9 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
+include $(EMUFRAMEWORK_PATH)/common.mk
 
-include ../EmuFramework/common.mk
+SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
 
 BMSX := blueMSX
 
@@ -103,6 +103,7 @@ SRC += $(BMSX)/Z80/R800.c $(BMSX)/Z80/R800SaveState.c
 
 useXMLDB := 0
 
+include $(IMAGINE_PATH)/make/package/zlib.mk
 ifeq ($(useXMLDB), 1)
 # TinyXML
 SRC += $(BMSX)/TinyXML/tinystr.cpp $(BMSX)/TinyXML/tinyxml.cpp $(BMSX)/TinyXML/tinyxmlerror.cpp \

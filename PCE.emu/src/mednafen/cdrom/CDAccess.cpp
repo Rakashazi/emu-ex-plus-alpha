@@ -24,6 +24,7 @@
 
 #include "CDAccess.h"
 #include "CDAccess_Image.h"
+#include "CDAccess_CCD.h"
 
 #ifdef HAVE_LIBCDIO
 #include "CDAccess_Physical.h"
@@ -41,18 +42,23 @@ CDAccess::~CDAccess()
 
 }
 
-CDAccess *cdaccess_open(const char *path)
+CDAccess *cdaccess_open_image(const char *path, bool image_memcache)
 {
- CDAccess *ret;
- struct stat stat_buf;
+ CDAccess *ret = NULL;
 
- #ifdef HAVE_LIBCDIO
- if(path == NULL || (!stat(path, &stat_buf) && !S_ISREG(stat_buf.st_mode)))
-  ret = new CDAccess_Physical(path);
+ if(strlen(path) >= 4 && !strcasecmp(path + strlen(path) - 4, ".ccd"))
+  ret = new CDAccess_CCD(path, image_memcache);
  else
- #endif
-  ret = new CDAccess_Image(path);
+  ret = new CDAccess_Image(path, image_memcache);
 
  return ret;
 }
 
+CDAccess *cdaccess_open_phys(const char *devicename)
+{
+ #ifdef HAVE_LIBCDIO
+ return new CDAccess_Physical(devicename);
+ #else
+ throw MDFN_Error(0, _("Physical CD access support not compiled in."));
+ #endif
+}

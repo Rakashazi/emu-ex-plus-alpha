@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "FSPicker"
+#define LOGTAG "FSPicker"
 
 #include "FSPicker.hh"
 
@@ -31,7 +31,7 @@ static const Gfx::LGradientStopDesc fsNavViewGrad[] =
 void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir)
 {
 	if(singleDir)
-		backRes = 0;
+		backRes = nullptr;
 	BasicNavView::init(face, backRes, closeRes, fsNavViewGrad, sizeofArray(fsNavViewGrad));
 	//logMsg("has back:%p close:%p", leftSpr.img, rightSpr.img);
 }
@@ -39,20 +39,21 @@ void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gf
 void FSPicker::FSNavView::draw(const Base::Window &win)
 {
 	using namespace Gfx;
-	resetTransforms();
-	shadeMod();//shadeModAlpha();
+	setBlendMode(0);
+	noTexProgram.use(View::projP.makeTranslate());
 	bg.draw();
 	setColor(COLOR_WHITE);
-	if(text.xSize > gXSize(textRect) - GuiTable1D::globalXIndent*2)
+	texAlphaReplaceProgram.use();
+	if(text.xSize > projP.unprojectXSize(textRect) - GuiTable1D::globalXIndent*2)
 	{
 		setClipRectBounds(win, textRect);
 		setClipRect(1);
-		text.draw(gXPos(textRect, RC2DO) - GuiTable1D::globalXIndent, gYPos(viewRect, RC2DO), RC2DO);
+		text.draw(projP.unProjectRect(textRect).pos(RC2DO) - GP{GuiTable1D::globalXIndent, 0}, RC2DO);
 		setClipRect(0);
 	}
 	else
 	{
-		text.draw(gXPos(textRect, LC2DO) + GuiTable1D::globalXIndent, gYPos(viewRect, LC2DO), LC2DO);
+		text.draw(projP.unProjectRect(textRect).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO);
 	}
 	if(leftSpr.image())
 	{
@@ -60,8 +61,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
-			//applyRollRotate(angle_fromDegree(90));
+			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
 	}
@@ -71,24 +71,10 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
+			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
 	}
-}
-
-void FSPicker::FSNavView::place()
-{
-	NavView::place();
-	if(hasBackBtn)
-	{
-		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/3., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/3.);
-	}
-	if(hasCloseBtn)
-	{
-		rightSpr.setPos(-Gfx::gXSize(rightBtn)/3., -Gfx::gYSize(rightBtn)/3., Gfx::gXSize(rightBtn)/3., Gfx::gYSize(rightBtn)/3.);
-	}
-	bg.setPos(Gfx::gXPos(viewRect, LT2DO), Gfx::gYPos(viewRect, LT2DO), Gfx::gXPos(viewRect, RB2DO), Gfx::gYPos(viewRect, RB2DO));
 }
 
 // FSPicker
@@ -124,8 +110,8 @@ void FSPicker::place()
 	tbl.setYCellSize(faceRes->nominalHeight()*2);
 
 	//logMsg("setting viewRect");
-	navV.viewRect.setPosRel({viewFrame.x, viewFrame.y}, viewFrame.xSize(), faceRes->nominalHeight() * 1.75, LT2DO);
-	IG::Rect2<int> tableFrame = viewFrame;
+	navV.viewRect.setPosRel({viewFrame.x, viewFrame.y}, {viewFrame.xSize(), int(faceRes->nominalHeight() * 1.75)}, LT2DO);
+	IG::WindowRect tableFrame = viewFrame;
 	tableFrame.setYPos(navV.viewRect.yPos(LB2DO));
 	tableFrame.y2 -= navV.viewRect.ySize();
 	tbl.place(&tableFrame, *this);
@@ -140,7 +126,7 @@ void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
 	if(!e.isPointer() && tbl.cells)
 		tbl.selected = 0;
 	place();
-	displayNeedsUpdate();
+	postDraw();
 }
 
 void FSPicker::onLeftNavBtn(const Input::Event &e)
@@ -150,14 +136,14 @@ void FSPicker::onLeftNavBtn(const Input::Event &e)
 
 void FSPicker::onRightNavBtn(const Input::Event &e)
 {
-	onCloseD(e);
+	onCloseD(*this, e);
 }
 
 void FSPicker::inputEvent(const Input::Event &e)
 {
 	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
-		onCloseD(e);
+		onCloseD(*this, e);
 		return;
 	}
 
@@ -178,7 +164,7 @@ void FSPicker::inputEvent(const Input::Event &e)
 	}
 }
 
-void FSPicker::draw(Gfx::FrameTimeBase frameTime)
+void FSPicker::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
@@ -186,26 +172,17 @@ void FSPicker::draw(Gfx::FrameTimeBase frameTime)
 	navV.draw(window());
 }
 
-void FSPicker::drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const
+void FSPicker::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
-	text[i].draw(xPos, yPos, xSize, ySize, align);
+	text[i].draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO);
 }
 
 void FSPicker::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
 {
 	assert(i < dir.numEntries());
-	if(FsSys::fileType(dir.entryFilename(i)) == Fs::TYPE_DIR)
-	{
-		assert(!singleDir);
-		logMsg("going to dir %s", dir.entryFilename(i));
-		changeDirByInput(dir.entryFilename(i), e);
-	}
-	else
-	{
-		onSelectFileD(dir.entryFilename(i), e);
-	}
+	text[i].select(this, e);
 }
 
 void FSPicker::loadDir(const char *path)
@@ -226,6 +203,22 @@ void FSPicker::loadDir(const char *path)
 		iterateTimes(dir.numEntries(), i)
 		{
 			text[i].init(dir.entryFilename(i), 1, faceRes);
+			if(FsSys::fileType(dir.entryFilename(i)) == Fs::TYPE_DIR)
+			{
+				text[i].onSelect() = [this, i](TextMenuItem &item, const Input::Event &e)
+					{
+						assert(!singleDir);
+						logMsg("going to dir %s", dir.entryFilename(i));
+						changeDirByInput(dir.entryFilename(i), e);
+					};
+			}
+			else
+			{
+				text[i].onSelect() = [this, i](TextMenuItem &item, const Input::Event &e)
+					{
+						onSelectFileD(*this, dir.entryFilename(i), e);
+					};
+			}
 		}
 	}
 	tbl.init(this, dir.numEntries(), *this);

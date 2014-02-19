@@ -45,5 +45,8 @@ static INLINE void MDFN_FastU32MemsetM8(uint32 *array, uint32 value_32, unsigned
  //printf("%08x %d\n", (int)(long long)array, u32len);
 }
 
+// memset() replacement that will work on uncachable memory.
+//void *MDFN_memset_safe(void *s, int c, size_t n);
+
 #define _MDFN_MEMORY_H
 #endif

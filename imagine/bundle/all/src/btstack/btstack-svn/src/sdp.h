@@ -33,14 +33,20 @@
  * Please inquire about commercial licensing options at btstack@ringwald.ch
  *
  */
-#pragma once
+#ifndef __SDP_H
+#define __SDP_H
 
 #include <stdint.h>
 #include <btstack/linked_list.h>
 
-#include "config.h"
+#include "btstack-config.h"
 
+#if defined __cplusplus
+extern "C" {
+#endif
+    
 typedef enum {
+    SDP_Invalid = 0,
 	SDP_ErrorResponse = 1,
 	SDP_ServiceSearchRequest,
 	SDP_ServiceSearchResponse,
@@ -61,7 +67,7 @@ typedef struct {
     
     // data is contained in same memory
     uint32_t        service_record_handle;
-    uint8_t         service_record[0];
+    uint8_t         service_record[1];  // waste 1 byte to allow compilation with older compilers
 } service_record_item_t;
 
 
@@ -101,3 +107,7 @@ uint32_t sdp_register_service_internal(void *connection, service_record_item_t *
 // Unregister service record internally.
 void sdp_unregister_service_internal(void *connection, uint32_t service_record_handle);
 
+#if defined __cplusplus
+}
+#endif
+#endif // __SDP_H

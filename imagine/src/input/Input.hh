@@ -23,7 +23,11 @@
 #include <util/collection/ArrayList.hh>
 #include <input/config.hh>
 #include <input/Device.hh>
-#include <base/Window.hh>
+
+namespace Base
+{
+class Window;
+}
 
 namespace Input
 {
@@ -36,14 +40,14 @@ static const bool SYSTEM_CAN_COLLECT_TEXT = 1;
 uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels);
 void cancelSysTextInput();
 void finishSysTextInput();
-void placeSysTextInput(const IG::Rect2<int> &rect);
-const IG::Rect2<int> &sysTextInputRect();
+void placeSysTextInput(const IG::WindowRect &rect);
+const IG::WindowRect &sysTextInputRect();
 #else
 static const bool SYSTEM_CAN_COLLECT_TEXT = 0;
 static uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels) { return 0; }
 #endif
 
-CallResult init() ATTRS(cold);
+[[gnu::cold]] CallResult init();
 
 void setKeyRepeat(bool on);
 
@@ -134,7 +138,12 @@ class Event
 {
 public:
 	static constexpr uint MAP_NULL = 0,
-		MAP_KEYBOARD = 1,
+		MAP_SYSTEM = 1,
+		MAP_X = 1,
+		MAP_ANDROID = 1,
+		MAP_WIN32 = 1,
+		MAP_MACOSX = 1,
+
 		MAP_POINTER = 2,
 		MAP_REL_POINTER = 3,
 		MAP_WIIMOTE = 10, MAP_WII_CC = 11,
@@ -150,7 +159,7 @@ public:
 		switch(map)
 		{
 			case MAP_NULL: return "Null";
-			case MAP_KEYBOARD: return "Key Input";
+			case MAP_SYSTEM: return "Key Input";
 			case MAP_POINTER: return "Pointer";
 			case MAP_REL_POINTER: return "Relative Pointer";
 			#ifdef CONFIG_BLUETOOTH
@@ -180,7 +189,7 @@ public:
 		{
 			case MAP_NULL: return 0;
 			#ifdef INPUT_SUPPORTS_KEYBOARD
-			case MAP_KEYBOARD: return Input::Keycode::COUNT;
+			case MAP_SYSTEM: return Input::Keycode::COUNT;
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			case MAP_WIIMOTE: return Input::Wiimote::COUNT;
@@ -203,19 +212,20 @@ public:
 
 	constexpr Event() {}
 
-	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, bool pointerIsTouch, const Device *device)
-		: devId(devId), map(map), button(button), state(state), x(x), y(y), device(device), pointerIsTouch(pointerIsTouch) {}
+	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, bool pointerIsTouch, Time time, const Device *device)
+		: devId(devId), map(map), button(button), state(state), x(x), y(y), time(time), device(device), pointerIsTouch(pointerIsTouch) {}
 
-	constexpr Event(uint devId, uint map, Key button, uint state, uint metaState, const Device *device)
-		: devId(devId), map(map), button(button), state(state), metaState(metaState), device(device) {}
+	constexpr Event(uint devId, uint map, Key button, uint state, uint metaState, Time time, const Device *device)
+		: devId(devId), map(map), button(button), state(state), metaState(metaState), time(time), device(device) {}
 
 	uint devId = 0, map = MAP_NULL;
 	Key button = 0;
 	uint state = 0;
 	int x = 0, y = 0;
 	uint metaState = 0;
+	Time time = (Time)0;
 	const Device *device = nullptr;
-	bool pointerIsTouch = 0;
+	bool pointerIsTouch = false;
 
 	bool stateIsPointer() const
 	{
@@ -261,7 +271,7 @@ public:
 
 	bool isKeyboard() const
 	{
-		return Input::supportsKeyboard && map == MAP_KEYBOARD;
+		return Input::supportsKeyboard && map == MAP_SYSTEM;
 	}
 
 	bool isDefaultConfirmButton(uint swapped = Input::swappedGamepadConfirm) const;
@@ -296,7 +306,7 @@ public:
 	#ifdef INPUT_SUPPORTS_KEYBOARD
 	uint decodeAscii() const
 	{
-		return Input::decodeAscii(button, 0);
+		return Input::Keycode::decodeAscii(button, 0);
 	}
 	#endif
 
@@ -320,12 +330,14 @@ static void setTranslateKeyboardEventsByModifiers(bool on) {}
 static bool translateKeyboardEventsByModifiers() { return false; }
 #endif
 
+void dispatchInputEvent(const Event &event);
+void startKeyRepeatTimer(const Event &event);
+void cancelKeyRepeatTimer();
+void deinitKeyRepeatTimer();
+
 // App Callbacks
 
 // Called when a known input device addition/removal/change occurs
 void onInputDevChange(const Device &dev, const Device::Change &change);
-
-// Called to process an event from an input device
-void onInputEvent(Base::Window &win, const Input::Event &event);
 
 }

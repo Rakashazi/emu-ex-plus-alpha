@@ -1,5 +1,21 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include "GLContextHelper.hh"
 #include <config/machine.hh>
+#include <EGL/eglext.h>
 
 namespace Base
 {
@@ -9,7 +25,68 @@ GLContextHelper::operator bool() const
 	return ctx;
 }
 
-CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample)
+#ifndef CONFIG_GFX_OPENGL_ES
+static EGLContext createContextForMajorVersion(uint version, Display *dpy, EGLConfig config)
+{
+	if(version >= 3)
+	{
+		{
+			// Try 3.2 Core
+			const EGLint attrCore3_2[]
+			{
+				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+				EGL_CONTEXT_MINOR_VERSION_KHR, 2,
+				EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+				None
+			};
+			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attrCore3_2);
+			if(ctx)
+				return ctx;
+			logErr("failed creating 3.2 core context");
+		}
+		{
+			// Try 3.1
+			const EGLint attr3_1[] =
+			{
+				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+				EGL_CONTEXT_MINOR_VERSION_KHR, 1,
+				None
+			};
+			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attr3_1);
+			if(ctx)
+				return ctx;
+			logErr("failed creating 3.1 context");
+		}
+		{
+			// Try 3.0
+			const EGLint attr3_0[] =
+			{
+				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+				EGL_CONTEXT_MINOR_VERSION_KHR, 0,
+				None
+			};
+			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attr3_0);
+			if(ctx)
+				return ctx;
+			logErr("failed creating 3.0 context");
+		}
+		// Fallback to 1.2
+	}
+	const EGLint attr[] =
+	{
+		EGL_CONTEXT_MAJOR_VERSION_KHR, 1,
+		EGL_CONTEXT_MINOR_VERSION_KHR, 2,
+		None
+	};
+	auto ctx = eglCreateContext(dpy, config, 0, attr);
+	if(ctx)
+		return ctx;
+	logErr("failed creating 1.2 context");
+	return EGL_NO_CONTEXT;
+}
+#endif
+
+CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uint version)
 {
 	// init display
 	display  = eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
@@ -78,14 +155,14 @@ CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample)
 
 	// create context
 	#ifdef CONFIG_GFX_OPENGL_ES
-	EGLint ctxAttr[] =
-	{
-		EGL_CONTEXT_CLIENT_VERSION, 1,
-		EGL_NONE
-	};
-	ctx = eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttr);
+		#ifdef NDEBUG
+		auto attributes = eglAttrES2Ctx;
+		#else
+		auto attributes = eglAttrES2DebugCtx;
+		#endif
+	ctx = eglCreateContext(display, config, EGL_NO_CONTEXT, attributes);
 	#else
-	ctx = eglCreateContext(display, config, EGL_NO_CONTEXT, nullptr);
+	ctx = createContextForMajorVersion(version, dpy, config);
 	#endif
 	if(ctx == EGL_NO_CONTEXT)
 	{
@@ -152,6 +229,11 @@ void GLContextHelper::deinit(Display *dpy)
 	eglTerminate(display);
 	display = EGL_NO_DISPLAY;
 	ctx = EGL_NO_CONTEXT;
+}
+
+void *glProcAddress(const char *funcName)
+{
+	return (void*)eglGetProcAddress(funcName);
 }
 
 }

@@ -21,26 +21,36 @@
  ****************************************************************************************/
 
 #include "shared.h"
-
+#include <logger/interface.h>
 //static unsigned char state[STATE_SIZE] __attribute__ ((aligned (4)));
 
 int state_load(const unsigned char *buffer)
 {
 	unsigned char *state = (unsigned char*)malloc(STATE_SIZE);
 	if(!state)
+	{
+		logErr("out of memory loading state");
 		return -1;
+	}
 
   /* buffer size */
   int bufferptr = 0;
 
   /* uncompress savestate */
   unsigned long inbytes, outbytes;
-  memcpy(&inbytes, buffer, 4);
+  uint32 inbytes32;
+  memcpy(&inbytes32, buffer, 4);
+  inbytes = inbytes32;
   outbytes = STATE_SIZE;
-  if(uncompress((Bytef *)state, &outbytes, (Bytef *)(buffer + 4), inbytes) != Z_OK)
+  logMsg("uncompressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
   {
-    free(state);
-    return -1;
+  	int result = uncompress((Bytef *)state, &outbytes, (Bytef *)(buffer + 4), inbytes);
+		if(result != Z_OK)
+		{
+			logErr("error %d in uncompress loading state", result);
+			free(state);
+			return -1;
+		}
   }
 
   /* signature check (GENPLUS-GX x.x.x) */
@@ -49,6 +59,7 @@ int state_load(const unsigned char *buffer)
   version[16] = 0;
   if (strncmp(version,STATE_VERSION,11))
   {
+  	logErr("bad signature loading state");
   	free(state);
     return -1;
   }
@@ -56,6 +67,7 @@ int state_load(const unsigned char *buffer)
   /* version check (1.5.0 and above) */
   if ((version[11] < 0x31) || ((version[11] == 0x31) && (version[13] < 0x35)))
   {
+  	logErr("version too old loading state");
   	free(state);
     return -1;
   }
@@ -285,10 +297,11 @@ int state_save(unsigned char *buffer)
   unsigned long outbytes  = STATE_SIZE;
   logMsg("compressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
   int ret = compress2 ((Bytef *)(buffer + 4), &outbytes, (Bytef *)state, inbytes, 9);
-  logMsg("compress2 returned %d", ret);
+  logMsg("compress2 returned %d, reduced to %d bytes", ret, (int)outbytes);
   free(state);
-  memcpy(buffer, &outbytes, 4);
+  uint32 outbytes32 = outbytes; // assumes no save states will ever be over 4GB
+  memcpy(buffer, &outbytes32, 4);
 
   /* return total size */
-  return (outbytes + 4);
+  return (outbytes32 + 4);
 }

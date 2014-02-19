@@ -1,7 +1,6 @@
 #pragma once
 #include <util/memory.h>
 #include <assert.h>
-#include <util/cLang.h>
 
 template <class T>
 class Mem2D

@@ -1,6 +1,5 @@
 #pragma once
 #include "OptionView.hh"
-#include <util/cLang.h>
 
 static void setupMDInput();
 
@@ -50,7 +49,7 @@ public:
 					item.toggle(*this);
 					optionBigEndianSram = item.on;
 				};
-			View::addModalView(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView);
 		}
 	};
 
@@ -137,7 +136,7 @@ public:
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile();
 			};
-		viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
+		viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 	}
 
 	void cdBiosPathInit(MenuItem *item[], uint &items)
@@ -281,7 +280,7 @@ class SystemMenuView : public MenuView
 			{
 				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
+				viewStack.pushAndShow(cheatsMenu, &menuAllocator);
 			}
 		}
 	};

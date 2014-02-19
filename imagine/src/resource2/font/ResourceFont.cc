@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "res:font"
+#define LOGTAG "ResFont"
 #include <engine-globals.h>
 #include <gfx/Gfx.hh>
 
@@ -27,11 +27,6 @@ CallResult ResourceFont::initWithName(const char *name)
 	}*/
 	return OK;
 }
-
-//ResourceImageGlyph *ResourceFont::createRenderable(int c, ResourceFace *face, GlyphEntry *entry)
-//{
-//	return ResourceImageGlyph::createWithFace(face, entry);
-//}
 
 int ResourceFont::minUsablePixels() const
 {

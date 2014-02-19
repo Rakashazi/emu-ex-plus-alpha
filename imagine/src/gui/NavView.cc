@@ -14,12 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <gui/NavView.hh>
+#include <gui/View.hh>
 
 void NavView::init(ResourceFace *face)
 {
 	text.setFace(face);
-	leftBtnActive = rightBtnActive = 1;
-	hasBackBtn = hasCloseBtn = 0;
+	leftBtnActive = rightBtnActive = true;
+	hasBackBtn = hasCloseBtn = false;
 }
 
 void NavView::inputEvent(const Input::Event &e)
@@ -64,10 +65,19 @@ void BasicNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::Buff
 	NavView::init(face);
 	leftSpr.init(-.5, -.5, .5, .5, backRes);
 	rightSpr.init(-.5, -.5, .5, .5, closeRes);
+	bool compiled = false;
 	if(backRes)
+	{
+		compiled |= backRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		hasBackBtn = 1;
+	}
 	if(closeRes)
+	{
+		compiled |= closeRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		hasCloseBtn = 1;
+	}
+	if(compiled)
+		Gfx::autoReleaseShaderCompiler();
 	bg.init(gradStops, gradStop, 0, 0);
 }
 
@@ -82,17 +92,21 @@ void BasicNavView::deinit()
 void BasicNavView::setBackImage(Gfx::BufferImage *img)
 {
 	leftSpr.setImg(img);
+	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+		Gfx::autoReleaseShaderCompiler();
 	hasBackBtn = leftSpr.image();
 }
 
 void BasicNavView::draw(const Base::Window &win)
 {
 	using namespace Gfx;
-	resetTransforms();
-	shadeMod();//shadeModAlpha();
+	setBlendMode(0);
+	noTexProgram.use(View::projP.makeTranslate());
 	bg.draw();
 	setColor(COLOR_WHITE);
-	text.draw(gXPos(viewRect, C2DO), gYPos(viewRect, C2DO), C2DO);
+	texAlphaReplaceProgram.use();
+	//text.draw(unproject(viewRect, C2DO), C2DO);
+	text.draw(View::projP.unProjectRect(viewRect).pos(C2DO), C2DO);
 	if(leftSpr.image())
 	{
 		/*setBlendMode(BLEND_MODE_OFF);
@@ -101,10 +115,8 @@ void BasicNavView::draw(const Base::Window &win)
 		GeomRect::draw(leftBtn);*/
 		if(leftBtnActive)
 		{
-			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			loadTranslate(gXPos(leftBtn, C2DO), gYPos(leftBtn, C2DO));
-			applyRollRotate(angleFromDegree(90));
+			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(View::projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
 	}
@@ -116,10 +128,8 @@ void BasicNavView::draw(const Base::Window &win)
 		GeomRect::draw(rightBtn);*/
 		if(rightBtnActive)
 		{
-			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			loadTranslate(gXPos(rightBtn, C2DO), gYPos(rightBtn, C2DO));
-			//applyRollRotate(angleFromDegree(180));
+			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(View::projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
 	}
@@ -127,25 +137,20 @@ void BasicNavView::draw(const Base::Window &win)
 
 void BasicNavView::place()
 {
+	using namespace Gfx;
 	NavView::place();
-	//logMsg("place nav view");
-	//text.compile();
-	//logMsg("setting textRect");
-	//textRect.setPosRel(viewRect.pos(LT2DO), viewRect.size(), LT2DO);
 	if(hasBackBtn)
 	{
-		//logMsg("setting leftBtn");
-		//leftBtn.setPosRel(viewRect.pos(LT2DO), viewRect.ySize(), LT2DO);
-		leftSpr.setPos(-Gfx::gXSize(leftBtn)/3., -Gfx::gYSize(leftBtn)/3., Gfx::gXSize(leftBtn)/3., Gfx::gYSize(leftBtn)/3.);
-		//textRect.x += leftBtn.xSize();
+		auto rect = View::projP.unProjectRect(leftBtn);
+		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
+		leftSpr.setPos(scaledRect);
 	}
 	if(hasCloseBtn)
 	{
-		//logMsg("setting rightBtn");
-		//rightBtn.setPosRel(viewRect.pos(RT2DO), viewRect.ySize(), RT2DO);
-		rightSpr.setPos(-Gfx::gXSize(rightBtn)/3., -Gfx::gYSize(rightBtn)/3., Gfx::gXSize(rightBtn)/3., Gfx::gYSize(rightBtn)/3.);
-		//textRect.x2 -= rightBtn.xSize();
+		auto rect = View::projP.unProjectRect(rightBtn);
+		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
+		rightSpr.setPos(scaledRect);
 	}
-
-	bg.setPos(Gfx::gXPos(viewRect, LT2DO), Gfx::gYPos(viewRect, LT2DO), Gfx::gXPos(viewRect, RB2DO), Gfx::gYPos(viewRect, RB2DO));
+	//bg.setPos(Gfx::gXPos(viewRect, LT2DO), Gfx::gYPos(viewRect, LT2DO), Gfx::gXPos(viewRect, RB2DO), Gfx::gYPos(viewRect, RB2DO));
+	bg.setPos(View::projP.unProjectRect(viewRect));
 }

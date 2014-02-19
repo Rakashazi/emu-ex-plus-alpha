@@ -5,7 +5,11 @@ ifdef noDoubleFloat
  include $(buildSysPath)/package/tremor.mk
 else
  configDefs += CONFIG_PACKAGE_LIBVORBIS
- pkgConfigDeps += vorbisfile
+ ifeq ($(ENV), linux)
+  pkgConfigDeps += vorbisfile
+ else
+  pkgConfigStaticDeps += vorbisfile
+ endif
 endif
 
 endif

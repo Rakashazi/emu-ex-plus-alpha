@@ -1,5 +1,5 @@
-libcxxSrcDir := libcxx
-libcxxSrcArchive := libcxx-193814.tar.xz
+libcxxSrcDir := libcxx-3.4
+libcxxSrcArchive := libcxx-3.4.src.tar.gz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/lib/libc++.a
@@ -15,9 +15,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libcxxSrcDir)/CMakeLists.txt : $(libcxxSrcArchive)
+$(libcxxSrcDir)/CMakeLists.txt : | $(libcxxSrcArchive)
 	@echo "Extracting libcxx..."
-	tar -mxJf $^
+	tar -mxJf $|
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libcxx..."

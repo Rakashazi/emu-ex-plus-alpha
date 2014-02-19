@@ -16,12 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <gui/MenuItem/MenuItem.hh>
-#include <util/gui/BaseMenuView.hh>
-#include <util/gui/ViewStack.hh>
-#include <EmuSystem.hh>
-
-extern ViewStack viewStack;
-extern StackAllocator menuAllocator;
+#include <gui/BaseMenuView.hh>
 
 class BaseMultiChoiceView : public BaseMenuView
 {
@@ -30,8 +25,8 @@ public:
 
 	constexpr BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
 	constexpr BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
-	void draw(Gfx::FrameTimeBase frameTime) override;
-	void drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
+	void draw(Base::FrameTimeBase frameTime) override;
+	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override;
 };
 
 class MultiChoiceView : public BaseMultiChoiceView
@@ -77,6 +72,7 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
 	void init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
 	void handleChoices(DualTextMenuItem &, const Input::Event &e);
+	void select(View *parent, const Input::Event &e) override;
 
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr)
 	{

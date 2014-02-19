@@ -40,7 +40,12 @@
  *  @Note minimal implementation, no error checking/handling
  */
 
-#pragma once
+#ifndef __MEMORY_POOL_H
+#define __MEMORY_POOL_H
+
+#if defined __cplusplus
+extern "C" {
+#endif
 
 typedef void * memory_pool_t;
 
@@ -52,3 +57,9 @@ void * memory_pool_get(memory_pool_t *pool);
 
 // return previously reserved block to memory pool
 void   memory_pool_free(memory_pool_t *pool, void * block);
+
+#if defined __cplusplus
+}
+#endif
+
+#endif // __MEMORY_POOL_H

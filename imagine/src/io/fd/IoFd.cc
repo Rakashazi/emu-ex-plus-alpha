@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "io:fd"
+#define LOGTAG "IOFD"
 #include <engine-globals.h>
 #include <logger/interface.h>
 #include <util/bits.h>
@@ -88,30 +88,30 @@ Io* IoFd::open(const char *location, uint mode, CallResult *errorOut)
 				bdefault: *errorOut = IO_ERROR;
 			}
 		}
-		return 0;
+		return nullptr;
 	}
 	
 	logMsg("opened file (%s) @ %s", mode & IO_OPEN_WRITE ? "rw" : "r", location);
 
 	// if the file is read-only try to use IoMmapFd instead
 	#ifdef CONFIG_IO_MMAP_FD
-		if(preferMmapIO && !(mode & IO_OPEN_WRITE))
+	if(preferMmapIO && !(mode & IO_OPEN_WRITE))
+	{
+		Io *mmapFile = IoMmapFd::open(fd);
+		if(mmapFile)
 		{
-			Io *mmapFile = IoMmapFd::open(fd);
-			if(mmapFile)
-			{
-				//logMsg("switched to mmap mode");
-				::close(fd);
-				return mmapFile;
-			}
+			//logMsg("switched to mmap mode");
+			::close(fd);
+			return mmapFile;
 		}
+	}
 	#endif
 
 	#ifdef CONFIG_BASE_IOS
-		fcntl(fd, F_RDAHEAD, 1);
+	fcntl(fd, F_RDAHEAD, 1);
 	#else
 		#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
-			posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+		posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 		#endif
 	#endif
 
@@ -122,7 +122,7 @@ Io* IoFd::open(const char *location, uint mode, CallResult *errorOut)
 		::close(fd);
 		if(errorOut)
 			*errorOut = OUT_OF_MEMORY;
-		return 0;
+		return nullptr;
 	}
 
 	inst->fd = fd;
@@ -148,7 +148,7 @@ Io* IoFd::create(const char *location, uint mode, CallResult *errorOut)
 		logErr("out of memory");
 		if(errorOut)
 			*errorOut = OUT_OF_MEMORY;
-		return 0;
+		return nullptr;
 	}
 
 	int fd;
@@ -186,11 +186,11 @@ Io* IoFd::create(const char *location, uint mode, CallResult *errorOut)
 
 void IoFd::close()
 {
-	if(fd > 0)
+	if(fd >= 0)
 	{
 		::close(fd);
 		logMsg("closed fd %d", fd);
-		fd = 0;
+		fd = -1;
 	}
 }
 
@@ -210,7 +210,7 @@ void IoFd::sync()
 
 //TODO - add more error checks
 
-size_t IoFd::readUpTo(void* buffer, size_t numBytes)
+ssize_t IoFd::readUpTo(void* buffer, size_t numBytes)
 {
 	size_t bytesRead = ::read(fd, buffer, numBytes);
 	//logMsg("read %d bytes out of %d requested from file @ %p", (int)bytesRead, (int)numBytes, this);
@@ -256,40 +256,33 @@ CallResult IoFd::tell(ulong &offset)
 		return IO_ERROR;
 }
 
-static const int invalidSeek = SEEK_SET + SEEK_END + SEEK_CUR + 1;
+static constexpr int invalidSeek = SEEK_SET + SEEK_END + SEEK_CUR + 1;
 
 static int setupSeek(int mode)
 {
-	if(mode == IO_SEEK_ABS)
+	switch(mode)
 	{
-		return SEEK_SET;
-	}
-	else if(mode == IO_SEEK_ABS_END)
-	{
-		return SEEK_END;
-	}
-	else if(mode == IO_SEEK_ADD || mode == IO_SEEK_SUB)
-	{
-		return SEEK_CUR;
-	}
-	else
-	{
-		return invalidSeek;
+		case IO_SEEK_ABS: return SEEK_SET;
+		case IO_SEEK_ABS_END: return SEEK_END;
+		case IO_SEEK_REL: return SEEK_CUR;
+		default:
+			bug_branch("%d", mode);
+			return invalidSeek;
 	}
 }
 
 CallResult IoFd::seek(long offset, uint mode)
 {
-	int seekType = setupSeek(mode);
+	auto seekType = setupSeek(mode);
 	if(seekType == invalidSeek)
 	{
-		logMsg("invalid seek parameter");
+		logErr("invalid seek parameter");
 		return INVALID_PARAMETER;
 	}
 
-	if(lseek(fd, mode == IO_SEEK_SUB ? -offset : offset, seekType) >= 0)
+	if(lseek(fd, offset, seekType) >= 0)
 	{
-		return (OK);
+		return OK;
 	}
 	else
 		return IO_ERROR;
@@ -304,4 +297,26 @@ int IoFd::eof()
 {
 	//logMsg("called eof");
 	return IoFd::size() == (uint)ftell() ? 1 : 0;
+}
+
+void IoFd::advise(long offset, size_t len, Advice advice)
+{
+	#ifdef CONFIG_BASE_IOS
+	if(advice == ADVICE_SEQUENTIAL)
+		fcntl(fd, F_RDAHEAD, 1);
+	#else
+		#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
+		if(advice == ADVICE_SEQUENTIAL)
+		{
+			posix_fadvise(fd, offset, len, POSIX_FADV_SEQUENTIAL);
+		}
+		else if(advice == ADVICE_WILLNEED)
+		{
+			if(posix_fadvise(fd, offset, len, POSIX_FADV_WILLNEED) != 0)
+			{
+				logMsg("advise will need offset 0x%X with size %u failed", (uint)offset, (uint)len);
+			}
+		}
+		#endif
+	#endif
 }

@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Gfx
+{
+
 class VertexArray
 {
 public:
@@ -9,3 +12,5 @@ public:
 //private:
 	VertexArrayRef ref;
 };
+
+}

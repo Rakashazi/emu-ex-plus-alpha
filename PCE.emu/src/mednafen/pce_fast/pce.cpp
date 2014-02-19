@@ -29,8 +29,6 @@
 #include "../mempatcher.h"
 #include "../cdrom/cdromif.h"
 
-void MDFND_commitVideoFrame();
-
 namespace PCE_Fast
 {
 
@@ -42,7 +40,7 @@ static Blip_Buffer sbuf[2];
 bool PCE_ACEnabled;
 
 static bool IsSGX;
-static bool IsHES;
+static const bool IsHES = false;
 int pce_overclocked;
 
 // Statically allocated for speed...or something.
@@ -53,6 +51,33 @@ uint8 BaseRAM[32768 + 8192]; // 8KB for PCE, 32KB for Super Grafx // + 8192 for 
 uint8 PCEIODataBuffer;
 readfunc PCERead[0x100];
 writefunc PCEWrite[0x100];
+
+#ifdef MDFN_PIXELFORMAT_SINGLE_BPP
+	#if MDFN_PIXELFORMAT_SINGLE_BPP == 16
+	auto &vdcRunFunc = VDC_RunFrame<uint16>;
+	#else
+	auto &vdcRunFunc = VDC_RunFrame<uint32>;
+	#endif
+#else
+void (*vdcRunFunc)(MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_SubSurface *LineWidths, int skip, int &displayRects) = nullptr;
+#endif
+
+//void updateVDCRunFunc()
+//{
+//	#ifndef MDFN_PIXELFORMAT_SINGLE_BPP
+//	int bpp = vdcBPP;
+//	#else
+//	int bpp = MDFN_PIXELFORMAT_SINGLE_BPP;
+//	#endif
+//	if(bpp == 16)
+//	{
+//		vdcRunFunc = IsSGX ? VDC_RunFrame<uint16, 2> : VDC_RunFrame<uint16, 1>;
+//	}
+//	else
+//	{
+//		vdcRunFunc = IsSGX ? VDC_RunFrame<uint32, 2> : VDC_RunFrame<uint32, 1>;
+//	}
+//}
 
 static DECLFR(PCEBusRead)
 {
@@ -201,7 +226,7 @@ static int Load(const char *name, MDFNFILE *fp)
  uint32 headerlen = 0;
  uint32 r_size;
 
- IsHES = 0;
+ //IsHES = 0;
  IsSGX = 0;
 
  /*if(!memcmp(fp->data, "HESM", 4))
@@ -442,7 +467,7 @@ static int LoadCD(std::vector<CDIF *> *CDInterfaces)
 {
  std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios").c_str() );
 
- IsHES = 0;
+ //IsHES = 0;
  IsSGX = 0;
 
  LoadCommonPre();
@@ -473,9 +498,19 @@ static void CloseGame(void)
  }
 }
 
-void applyVideoFormat(EmulateSpecStruct *espec)
+void applyVideoFormat(MDFN_Surface &surface)
 {
-	VDC_SetPixelFormat(espec->surface->format);
+	VDC_SetPixelFormat(surface.format);
+	#ifndef MDFN_PIXELFORMAT_SINGLE_BPP
+	if(bpp == 16)
+	{
+		vdcRunFunc = VDC_RunFrame<uint16>;
+	}
+	else
+	{
+		vdcRunFunc = VDC_RunFrame<uint32>;
+	}
+	#endif
 }
 
 void applySoundFormat(EmulateSpecStruct *espec)
@@ -506,8 +541,10 @@ static void Emulate(EmulateSpecStruct *espec)
    sbuf[y].bass_freq(20);
   }
  }*/
- VDC_RunFrame(espec->surface, &espec->DisplayRect, espec->LineWidths, IsHES ? 1 : espec->skip);
- if(!espec->skip) MDFND_commitVideoFrame();
+ int usedSubSurfaces = 0;
+ vdcRunFunc(espec->surface, &espec->DisplayRect, espec->subSurface, IsHES ? 1 : espec->skip, usedSubSurfaces);
+ if(!espec->skip && espec->commitVideo)
+	 MDFND_commitVideoFrame({espec->DisplayRect, espec->subSurface, usedSubSurfaces});
 
  if(PCE_IsCD)
  {
@@ -544,7 +581,7 @@ static int StateAction(StateMem *sm, int load, int data_only)
 {
  SFORMAT StateRegs[] =
  {
-  SFARRAY(BaseRAM, IsSGX? 32768u : 8192u),
+  SFARRAY(BaseRAM, IsSGX? 32768 : 8192),
   SFVAR(PCEIODataBuffer),
   SFEND
  };
@@ -626,7 +663,7 @@ static MDFNSetting PCESettings[] =
   { "pce_fast.nospritelimit", MDFNSF_NOFLAGS, gettext_noop("Remove 16-sprites-per-scanline hardware limit."), NULL, MDFNST_BOOL, "0" },
 
   { "pce_fast.cdbios", MDFNSF_EMU_STATE, gettext_noop("Path to the CD BIOS"), NULL, MDFNST_STRING, "syscard3.pce" },
-  { "pce_fast.adpcmlp", MDFNSF_NOFLAGS, gettext_noop("Enable lowpass filter dependent on playback-frequency."), NULL, MDFNST_BOOL, "0" },
+  { "pce_fast.adpcmlp", MDFNSF_NOFLAGS, gettext_noop("Enable dynamic ADPCM lowpass filter."), NULL, MDFNST_BOOL, "0" },
   { "pce_fast.cdpsgvolume", MDFNSF_NOFLAGS, gettext_noop("PSG volume when playing a CD game."), NULL, MDFNST_UINT, "100", "0", "200" },
   { "pce_fast.cddavolume", MDFNSF_NOFLAGS, gettext_noop("CD-DA volume."), NULL, MDFNST_UINT, "100", "0", "200" },
   { "pce_fast.adpcmvolume", MDFNSF_NOFLAGS, gettext_noop("ADPCM volume."), NULL, MDFNST_UINT, "100", "0", "200" },
@@ -674,7 +711,7 @@ MDFNGI EmulatedPCE_Fast =
  PCEINPUT_SetInput,
  DoSimpleCommand,
  PCESettings,
- int64(MDFN_MASTERCLOCK_FIXED(PCE_MASTER_CLOCK)),
+ MDFN_MASTERCLOCK_FIXED(PCE_MASTER_CLOCK),
  0,
 
  true,  // Multires possible?

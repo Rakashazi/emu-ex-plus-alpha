@@ -22,7 +22,7 @@ public:
 					printBiosMenuEntryStr(sysCardPathStr);
 					sysCardPath.compile();
 				};
-			viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}
 	};
 

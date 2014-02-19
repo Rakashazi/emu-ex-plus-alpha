@@ -24,7 +24,7 @@
 
 // Use standard config.h if present
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+	#include <mednafen-config.h>
 #endif
 
 #endif

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "io:mmap:generic"
+#define LOGTAG "IOMMAPGeneric"
 #include <logger/interface.h>
 
 #include "IoMmapGeneric.hh"

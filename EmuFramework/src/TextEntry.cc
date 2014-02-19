@@ -14,7 +14,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <TextEntry.hh>
-#include <EmuSystem.hh>
 #include <gui/GuiTable1D/GuiTable1D.hh>
 
 void TextEntry::setAcceptingInput(bool on)
@@ -63,7 +62,7 @@ void TextEntry::inputEvent(const Input::Event &e)
 				updateText = 1;
 			}
 		}
-		else if(Input::isAsciiKey(e.button))
+		else if(Input::Keycode::isAsciiKey(e.button))
 		{
 			if(strlen(str) < 127)
 			{
@@ -89,7 +88,7 @@ void TextEntry::inputEvent(const Input::Event &e)
 		{
 			t.setString(str);
 			t.compile();
-			Base::mainWindow().displayNeedsUpdate();
+			Base::mainWindow().postDraw();
 		}
 	}
 }
@@ -97,7 +96,8 @@ void TextEntry::inputEvent(const Input::Event &e)
 void TextEntry::draw()
 {
 	using namespace Gfx;
-	t.draw(gXPos(b, LC2DO) + GuiTable1D::globalXIndent, gYPos(b, LC2DO), LC2DO);
+	texAlphaProgram.use();
+	t.draw(View::projP.unProjectRect(b).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO);
 }
 
 void TextEntry::place()
@@ -105,7 +105,7 @@ void TextEntry::place()
 	t.compile();
 }
 
-void TextEntry::place(IG::Rect2<int> rect)
+void TextEntry::place(IG::WindowRect rect)
 {
 	b = rect;
 	place();
@@ -127,12 +127,14 @@ void TextEntry::deinit()
 	t.deinit();
 }
 
-void CollectTextInputView::init(const char *msgText, const char *initialContent, ResourceFace *face)
+void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::BufferImage *closeRes, ResourceFace *face)
 {
 	#ifndef CONFIG_BASE_ANDROID
-	if(View::needsBackControl)
+	if(View::needsBackControl && closeRes)
 	{
-		cancelSpr.init(-.5, -.5, .5, .5, &getAsset(ASSET_CLOSE));
+		cancelSpr.init(-.5, -.5, .5, .5, closeRes);
+		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+			Gfx::autoReleaseShaderCompiler();
 	}
 	#endif
 	message.init(msgText, face);
@@ -146,13 +148,13 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 			if(!str)
 			{
 				logMsg("text collection canceled by external source");
-				removeModalView();
+				dismiss();
 				return;
 			}
-			if(onTextD(str))
+			if(onTextD(*this, str))
 			{
 				logMsg("text collection canceled by text delegate");
-				removeModalView();
+				dismiss();
 			}
 		},
 		initialContent, msgText, face->settings.pixelHeight);
@@ -179,20 +181,19 @@ void CollectTextInputView::place()
 	if(cancelSpr.image())
 	{
 		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace->nominalHeight() * 1.75, RT2DO);
-		cancelSpr.setPos(-Gfx::gXSize(cancelBtn)/3., -Gfx::gYSize(cancelBtn)/3., Gfx::gXSize(cancelBtn)/3., Gfx::gYSize(cancelBtn)/3.);
+		cancelSpr.setPos(-projP.unprojectXSize(cancelBtn)/3., -projP.unprojectYSize(cancelBtn)/3., projP.unprojectXSize(cancelBtn)/3., projP.unprojectYSize(cancelBtn)/3.);
 	}
 	#endif
-	message.maxLineSize = Gfx::proj.w * 0.95;
+	message.maxLineSize = projP.w * 0.95;
 	message.compile();
-	IG::Rect2<int> textRect;
+	IG::WindowRect textRect;
 	int xSize = rect.xSize() * 0.95;
 	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, xSize, ySize, C2DO);
+	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
 	textEntry.place(textRect);
 	#else
-	//a.setPos(gXPos(rect, C2DO), gYPos(rect, C2DO) + proj.h/4., C2DO, C2DO);
-	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO) - (int)window().viewPixelHeight()/4}, xSize, ySize, C2DO);
+	textRect.setPosRel(rect.pos(C2DO) - IG::WP{0, (int)Gfx::viewport().height()/4}, {xSize, ySize}, C2DO);
 	Input::placeSysTextInput(textRect);
 	#endif
 }
@@ -203,7 +204,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	{
 		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps({e.x, e.y})))
 		{
-			removeModalView();
+			dismiss();
 			return;
 		}
 	}
@@ -213,7 +214,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	if(!textEntry.acceptingInput && acceptingInput)
 	{
 		logMsg("calling on-text delegate");
-		if(onTextD(textEntry.str))
+		if(onTextD(*this, textEntry.str))
 		{
 			textEntry.setAcceptingInput(1);
 		}
@@ -221,7 +222,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	#endif
 }
 
-void CollectTextInputView::draw(Gfx::FrameTimeBase frameTime)
+void CollectTextInputView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	#ifndef CONFIG_BASE_ANDROID
@@ -229,21 +230,21 @@ void CollectTextInputView::draw(Gfx::FrameTimeBase frameTime)
 	{
 		setColor(COLOR_WHITE);
 		setBlendMode(BLEND_MODE_ALPHA);
-		loadTranslate(gXPos(cancelBtn, C2DO), gYPos(cancelBtn, C2DO));
+		cancelSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(cancelBtn).pos(C2DO)));
 		cancelSpr.draw();
 	}
 	#endif
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	setColor(0.25);
-	shadeMod();
-	resetTransforms();
-	GeomRect::draw(textEntry.b);
+	noTexProgram.use(projP.makeTranslate());
+	GeomRect::draw(textEntry.b, projP);
 	setColor(COLOR_WHITE);
 	textEntry.draw();
-	message.draw(0, gYPos(textEntry.b, C2DO) + message.nominalHeight, CB2DO, C2DO);
+	texAlphaProgram.use();
+	message.draw(0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO);
 	#else
 	setColor(COLOR_WHITE);
-	resetTransforms();
-	message.draw(0, gYPos(Input::sysTextInputRect(), C2DO) + message.nominalHeight, CB2DO, C2DO);
+	texAlphaProgram.use(View::projP.makeTranslate());
+	message.draw(0, View::projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO);
 	#endif
 }

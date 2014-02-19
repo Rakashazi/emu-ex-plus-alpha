@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <android/window.h>
 #include <logger/interface.h>
 #include <engine-globals.h>
@@ -10,22 +25,32 @@ struct EGLContextHelper
 	EGLContext context = EGL_NO_CONTEXT;
 	EGLConfig config = nullptr;
 	bool useMaxColorBits = Config::MACHINE_IS_OUYA;
-	bool has32BppColorBugs = 0;
+	//bool has32BppColorBugs = false;
+	#ifndef NDEBUG
+	bool configIsSet = false;
+	#endif
 
 	constexpr EGLContextHelper() {}
 
 	void chooseConfig(EGLDisplay display)
 	{
+		#ifndef NDEBUG
+		assert(!configIsSet); // only call this function once
+		configIsSet = true;
+		#endif
 		EGLint configs = 0;
+		const EGLint *attrWinRGB888 = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinRGB888 : eglAttrWinRGB888ES2;
+		const EGLint *attrWinMaxRGBA = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinMaxRGBA : eglAttrWinMaxRGBAES2;
+		const EGLint *attrWinLowColor = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinLowColor : eglAttrWinLowColorES2;
 		if(useMaxColorBits)
 		{
 			// search for non-alpha RGB 888 config
 			EGLConfig configRGBX[8];
-			eglChooseConfig(display, eglAttrWinRGB888, configRGBX, sizeofArray(configRGBX), &configs);
+			eglChooseConfig(display, attrWinRGB888, configRGBX, sizeofArray(configRGBX), &configs);
 			if(!configs)
 			{
 				logMsg("No 24-bit color configs found, using lowest color config");
-				eglChooseConfig(display, eglAttrWinLowColor, &config, 1, &configs);
+				eglChooseConfig(display, attrWinLowColor, &config, 1, &configs);
 				assert(configs);
 				return;
 			}
@@ -44,22 +69,30 @@ struct EGLContextHelper
 			if(!gotRGBXConfig)
 			{
 				logMsg("no RGBX configs, using RGBA instead");
-				eglChooseConfig(display, eglAttrWinMaxRGBA, &config, 1, &configs);
+				eglChooseConfig(display, attrWinMaxRGBA, &config, 1, &configs);
 			}
 		}
 		else
 		{
 			logMsg("requesting lowest color config");
-			eglChooseConfig(display, eglAttrWinLowColor, &config, 1, &configs);
+			eglChooseConfig(display, attrWinLowColor, &config, 1, &configs);
 		}
 		assert(configs);
 	}
 
 	void init(EGLDisplay display)
 	{
-		assert(!isInit());
 		logMsg("creating GL context");
-		context = eglCreateContext(display, config, 0, 0);
+		assert(!isInit());
+		#ifndef NDEBUG
+		assert(configIsSet);
+		#endif
+		if(Config::MACHINE_IS_GENERIC_ARM)
+			context = eglCreateContext(display, config, 0, nullptr);
+		else
+		{
+			context = eglCreateContext(display, config, 0, eglAttrES2Ctx);
+		}
 	}
 
 	static int winFormatFromConfig(EGLDisplay display, EGLConfig config)
@@ -85,6 +118,9 @@ struct EGLContextHelper
 	int currentWindowFormat(EGLDisplay display)
 	{
 		assert(display != EGL_NO_DISPLAY);
+		#ifndef NDEBUG
+		assert(configIsSet);
+		#endif
 		return winFormatFromConfig(display, config);
 	}
 
@@ -105,7 +141,7 @@ struct EGLContextHelper
 
 	bool verify()
 	{
-		return eglGetCurrentContext() != EGL_NO_CONTEXT;
+		return eglGetCurrentContext() == context;
 	}
 
 	void restore(EGLDisplay display, EGLSurface surface)
@@ -113,7 +149,7 @@ struct EGLContextHelper
 		assert(isInit());
 		if(!verify())
 		{
-			//logMsg("context not current, setting now");
+			logMsg("context not current, setting now");
 			if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 			{
 				logErr("error in eglMakeCurrent");

@@ -22,6 +22,7 @@
 #include "dvdisaster.h"
 #include "lec.h"
 
+#include <assert.h>
 //  Kill_LEC_Correct();
 
 
@@ -63,13 +64,40 @@ static uint16 subq_crctab[256] =
 };
 
 
+static uint8 scramble_table[2352 - 12];
+
 static bool CDUtility_Inited = false;
+
+static void InitScrambleTable(void)
+{
+ unsigned cv = 1;
+
+ for(unsigned i = 12; i < 2352; i++)
+ {
+  unsigned char z = 0;
+
+  for(int b = 0; b < 8; b++)
+  {
+   z |= (cv & 1) << b;
+
+   int feedback = ((cv >> 1) & 1) ^ (cv & 1);
+   cv = (cv >> 1) | (feedback << 14);
+  }
+
+  scramble_table[i - 12] = z;
+ }
+
+ //for(int i = 0; i < 2352 - 12; i++)
+ // printf("0x%02x, ", scramble_table[i]);
+}
 
 void CDUtility_Init(void)
 {
  if(!CDUtility_Inited)
  {
   Init_LEC_Correct();
+
+  InitScrambleTable();
 
   CDUtility_Inited = true;
  }
@@ -117,7 +145,7 @@ bool edc_check(const uint8 *sector_data, bool xa)
  return(CheckEDC(sector_data, xa));
 }
 
-bool edc_lec_check_correct(uint8 *sector_data, bool xa)
+bool edc_lec_check_and_correct(uint8 *sector_data, bool xa)
 {
  CDUtility_Init();
 
@@ -163,6 +191,44 @@ void subq_deinterleave(const uint8 *SubPWBuf, uint8 *qbuf)
  }
 }
 
+
+// Deinterleaves 96 bytes of subchannel P-W data from 96 bytes of interleaved subchannel PW data.
+void subpw_deinterleave(const uint8 *in_buf, uint8 *out_buf)
+{
+ assert(in_buf != out_buf);
+
+ memset(out_buf, 0, 96);
+
+ for(unsigned ch = 0; ch < 8; ch++)
+ {
+  for(unsigned i = 0; i < 96; i++)
+  {
+   out_buf[(ch * 12) + (i >> 3)] |= ((in_buf[i] >> (7 - ch)) & 0x1) << (7 - (i & 0x7));
+  }
+ }
+
+}
+
+// Interleaves 96 bytes of subchannel P-W data from 96 bytes of uninterleaved subchannel PW data.
+void subpw_interleave(const uint8 *in_buf, uint8 *out_buf)
+{
+ assert(in_buf != out_buf);
+
+ for(unsigned d = 0; d < 12; d++)
+ {
+  for(unsigned bitpoodle = 0; bitpoodle < 8; bitpoodle++)
+  {
+   uint8 rawb = 0;
+
+   for(unsigned ch = 0; ch < 8; ch++)
+   {
+    rawb |= ((in_buf[ch * 12 + d] >> (7 - bitpoodle)) & 1) << (7 - ch);
+   }
+   out_buf[(d << 3) + bitpoodle] = rawb;
+  }
+ }
+}
+
 #if 0
 bool subq_extrapolate(const uint8 *subq_input, int32 position_delta, uint8 *subq_output)
 {
@@ -172,5 +238,11 @@ bool subq_extrapolate(const uint8 *subq_input, int32 position_delta, uint8 *subq
  subq_generate_checksum(subq_output);
 }
 #endif
+
+void scrambleize_data_sector(uint8 *sector_data)
+{
+ for(unsigned i = 12; i < 2352; i++)
+  sector_data[i] ^= scramble_table[i - 12];
+}
 
 }

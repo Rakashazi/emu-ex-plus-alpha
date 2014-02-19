@@ -17,6 +17,7 @@ endif
 
 compiler_noSanitizeAddress := 1
 config_compiler := clang
+AR := ar
 ifeq ($(origin CC), default)
  CC := clang
 endif
@@ -26,13 +27,16 @@ ifdef RELEASE
  COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
+OBJCFLAGS += -fobjc-arc
+
  # base engine code needs at least iOS 3.1
 minIOSVer = 3.1
-IOS_SDK ?= 7.0
+IOS_SDK ?= 7.1
 XCODE_PATH := $(shell xcode-select --print-path)
 ifeq ($(ARCH),x86)
  IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk
- IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer) -fobjc-abi-version=2 -fobjc-legacy-dispatch
+ IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer)
+ OBJCFLAGS += -fobjc-abi-version=2 -fobjc-legacy-dispatch
 else
  IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$(IOS_SDK).sdk
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
@@ -46,9 +50,9 @@ ifneq ($(SUBARCH),armv6)
  endif
 endif
 ifdef RELEASE
- LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs
+ LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs,-no_pie
 else
- LDFLAGS += -Wl,-x,-dead_strip_dylibs
+ LDFLAGS += -Wl,-x,-dead_strip_dylibs,-no_pie
 endif
 WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
@@ -58,3 +62,5 @@ noDoubleFloat=1
 # clang SVN doesn't seem to handle ASM properly so use as directly
 AS := as
 ASMFLAGS :=
+
+include $(buildSysPath)/package/stdc++.mk

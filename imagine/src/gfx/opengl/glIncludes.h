@@ -1,14 +1,27 @@
 #pragma once
 
 #include <engine-globals.h>
+#include <config/machine.hh>
 
 // Automatic CONFIG_GFX_* settings
 
-#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS
-#define CONFIG_GFX_OPENGL_ES 1
+#ifndef CONFIG_GFX_OPENGL_ES
+	#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_ENV_WEBOS || defined CONFIG_MACHINE_PANDORA
+	#define CONFIG_GFX_OPENGL_ES 1
+	#endif
 #endif
 
-#if defined CONFIG_BASE_ANDROID
+#ifdef CONFIG_GFX_OPENGL_ES
+	#ifndef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
+		#if __ARM_ARCH >= 7 || defined __i386__ || defined __x86_64__
+		#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 2
+		#else
+		#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 1
+		#endif
+	#endif
+#endif
+
+#if defined __ANDROID__
 	#if CONFIG_ENV_ANDROID_MINSDK >= 9
 	#define CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES 1
 	#endif
@@ -17,13 +30,24 @@
 	#endif
 #endif
 
+#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES
+#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+#endif
+#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
+#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
+#endif
 
 // Header Locations For Platform
 
 #if defined CONFIG_BASE_IOS
-#import <OpenGLES/ES1/gl.h>
-#import <OpenGLES/ES1/glext.h>
-#import <OpenGLES/ES2/gl.h>
+	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	#import <OpenGLES/ES1/gl.h>
+	#import <OpenGLES/ES1/glext.h>
+	using GLchar = char;
+	#else
+	#import <OpenGLES/ES2/gl.h>
+	#import <OpenGLES/ES2/glext.h>
+	#endif
 #elif defined CONFIG_BASE_MACOSX
 #import <OpenGL/gl.h>
 #import <OpenGL/glext.h>
@@ -31,9 +55,6 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLES/gl.h>
 #include <SDL/SDL_opengles_ext.h>
-#elif defined CONFIG_BASE_PS3
-#define CONFIG_GFX_OPENGL_ES 1
-#include <PSGL/psgl.h>
 #elif defined CONFIG_BASE_WIN32
 #include <util/windows/windows.h>
 #define GLEW_STATIC
@@ -41,55 +62,48 @@
 #include <GL/wglew.h>
 #elif defined CONFIG_GFX_OPENGL_ES // Generic OpenGL ES headers
 #define GL_GLEXT_PROTOTYPES
-#include <GLES/gl.h>
-#include <GLES/glext.h>
+	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	#include <GLES/gl.h>
+	#include <GLES/glext.h>
+	#else
+	#include <GLES2/gl2.h>
+	#include <GLES2/gl2ext.h>
+		#ifdef CONFIG_MACHINE_PANDORA
+		#include <GLES2/gl2extimg.h> // missing extensions
+		using GLchar = char;
+		#endif
+	#endif
 #else // Generic OpenGL headers
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
 	#if defined CONFIG_BASE_X11
 	#define CONFIG_GFX_OPENGL_GLX
-	// TODO: fix when namespace support is finished
-	#define Time X11Time_
-	#define Pixmap X11Pixmap_
-	#define GC X11GC_
-	#define BOOL X11BOOL
-	#define GLX_GLXEXT_PROTOTYPES
-	#include <GL/glx.h>
-	#include <GL/glxext.h>
-	#undef Time
-	#undef Pixmap
-	#undef GC
-	#undef BOOL
+	#include <base/x11/glxIncludes.h>
 	#endif
 #endif
 
 // Symbol Re-mapping
 
-#ifdef CONFIG_GFX_OPENGL_ES
-	#if !defined(CONFIG_BASE_PS3) && !defined(CONFIG_BASE_IOS)
-	#define glBlendEquation glBlendEquationOES
-	#define GL_FUNC_ADD GL_FUNC_ADD_OES
-	#define GL_FUNC_SUBTRACT GL_FUNC_SUBTRACT_OES
-	#define GL_FUNC_REVERSE_SUBTRACT GL_FUNC_REVERSE_SUBTRACT_OES
+#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+#define glBlendEquation glBlendEquationOES
+
+	#if defined __ANDROID__
+	// glTexEnvi isn't supported in ES 1.0 but can be directly re-mapped
+	#define glTexEnvi glTexEnvx
 	#endif
 
-	#ifdef GL_USE_OES_FIXED
-	#define glTranslatef glTranslatex
-	static void glTranslatex(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
-	{
-		glTranslatexOES(TransformCoordinatePOD(x), TransformCoordinatePOD(y), TransformCoordinatePOD(z));
-	}
-	#define glScalef glScalex
-	static void glScalex(TransformCoordinate sx, TransformCoordinate sy, TransformCoordinate sz)
-	{
-		glScalexOES(TransformCoordinatePOD(sx), TransformCoordinatePOD(sy), TransformCoordinatePOD(sz));
-	}
-	#define glRotatef glRotatex
-	static void glRotatex(Angle angle, Angle x, Angle y, Angle z)
-	{
-		glRotatexOES(AnglePOD(angle), AnglePOD(x), AnglePOD(y), AnglePOD(z));
-	}
+	#ifndef GL_FUNC_ADD
+	#define GL_FUNC_ADD GL_FUNC_ADD_OES
+	#endif
+	#ifndef GL_FUNC_SUBTRACT
+	#define GL_FUNC_SUBTRACT GL_FUNC_SUBTRACT_OES
+	#endif
+	#ifndef GL_FUNC_REVERSE_SUBTRACT
+	#define GL_FUNC_REVERSE_SUBTRACT GL_FUNC_REVERSE_SUBTRACT_OES
+	#endif
+	#ifndef GL_STREAM_DRAW
+	#define GL_STREAM_DRAW GL_DYNAMIC_DRAW
 	#endif
 #endif
 

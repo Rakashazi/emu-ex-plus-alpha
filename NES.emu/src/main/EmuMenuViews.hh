@@ -24,7 +24,7 @@ public:
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile();
 				};
-			viewStack.pushAndShow(&biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}
 	};
 
@@ -235,7 +235,7 @@ private:
 			{
 				auto &fdsMenu = *menuAllocator.allocNew<FDSControlView>(view->window());
 				fdsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&fdsMenu, &menuAllocator);
+				viewStack.pushAndShow(fdsMenu, &menuAllocator);
 			}
 			else
 				popup.post("Disk System not in use", 2);
@@ -251,7 +251,7 @@ private:
 			{
 				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(&cheatsMenu, &menuAllocator);
+				viewStack.pushAndShow(cheatsMenu, &menuAllocator);
 			}
 		}
 	};

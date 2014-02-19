@@ -844,8 +844,12 @@ int sound_open(void)
     /* note: in practise it is actually better to use fragments that are as
      *       small as possible, as that will allow the whole system to catch up
      *       faster and compensate errors better. */
-    fragsize = 1;/*speed / ((rfsh_per_sec < 1.0) ? 1 : ((int)rfsh_per_sec))
-               / fragment_divisor[fragment_size];*/
+#ifdef EMUFRAMEWORK_BUILD
+    fragsize = 1;
+#else
+    fragsize = speed / ((rfsh_per_sec < 1.0) ? 1 : ((int)rfsh_per_sec))
+               / fragment_divisor[fragment_size];
+#endif
     if (pdev) {
         if (channels <= pdev->max_channels) {
             fragsize *= channels;

@@ -29,7 +29,7 @@
 namespace PCE_Fast
 {
 
-static const uchar BRAM_Init_String[8] = { 'H', 'U', 'B', 'M', 0x00, 0x88, 0x10, 0x80 }; //"HUBM\x00\x88\x10\x80";
+static const uint8 BRAM_Init_String[8] = { 'H', 'U', 'B', 'M', 0x00, 0x88, 0x10, 0x80 }; //"HUBM\x00\x88\x10\x80";
 
 ArcadeCard *arcade_card = NULL;
 
@@ -372,10 +372,10 @@ int HuC_StateAction(StateMem *sm, int load, int data_only)
 {
  SFORMAT StateRegs[] = 
  {
-  SFARRAY(ROMSpace + 0x40 * 8192, IsPopulous ? 32768u : 0),
-  SFARRAY(TsushinRAM, IsTsushin ? 32768u : 0),
-  SFARRAY(SaveRAM, (IsPopulous || IsTsushin) ? 0 : 2048u),
-  SFARRAY(ROMSpace + 0x68 * 8192, PCE_IsCD ? 262144u : 0),
+  SFARRAY(ROMSpace + 0x40 * 8192, IsPopulous ? 32768 : 0),
+  SFARRAY(TsushinRAM, IsTsushin ? 32768 : 0),
+  SFARRAY(SaveRAM, (IsPopulous || IsTsushin) ? 0 : 2048),
+  SFARRAY(ROMSpace + 0x68 * 8192, PCE_IsCD ? 262144 : 0),
   SFVAR(HuCSF2Latch),
   SFEND
  };

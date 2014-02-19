@@ -15,14 +15,11 @@
 
 #include <InputManagerView.hh>
 #include <ButtonConfigView.hh>
-#include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <TextEntry.hh>
 #ifdef CONFIG_BASE_ANDROID
 #include <input/android/private.hh>
 #endif
-extern ViewStack viewStack;
-extern MsgPopup popup;
-extern InputManagerView *imMenu;
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 
@@ -40,7 +37,7 @@ void IdentInputDeviceView::deinit()
 
 void IdentInputDeviceView::place()
 {
-	text.maxLineSize = Gfx::proj.w * 0.95;
+	text.maxLineSize = projP.w * 0.95;
 	text.compile();
 }
 
@@ -48,24 +45,25 @@ void IdentInputDeviceView::inputEvent(const Input::Event &e)
 {
 	if(e.isPointer() && e.state == Input::RELEASED)
 	{
-		removeModalView();
+		dismiss();
 	}
 	else if(!e.isPointer() && e.state == Input::PUSHED)
 	{
-		removeModalView();
+		dismiss();
 		onIdentInput(e);
 	}
 }
 
-void IdentInputDeviceView::draw(Gfx::FrameTimeBase frameTime)
+void IdentInputDeviceView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(0);
-	resetTransforms();
+	noTexProgram.use(projP.makeTranslate());
 	setColor(.4, .4, .4, 1.);
-	GeomRect::draw(viewFrame);
+	GeomRect::draw(viewFrame, projP);
 	setColor(COLOR_WHITE);
-	text.draw(0, 0, C2DO, C2DO);
+	texAlphaProgram.use();
+	text.draw(0, 0, C2DO);
 }
 
 static void removeKeyConfFromAllDevices(const KeyConfig *conf)
@@ -110,9 +108,9 @@ InputManagerView::InputManagerView(Base::Window &win):
 			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
 			multiChoiceView.init(deviceConfigStr, devs, !e.isPointer());
 			multiChoiceView.onSelect() =
-				[this](int i, const Input::Event &e)
+				[this, &multiChoiceView](int i, const Input::Event &e)
 				{
-					viewStack.popAndShow();
+					multiChoiceView.dismiss();
 					int deleteDeviceConfigIdx = i;
 					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 					ynAlertView.init(confirmDeleteDeviceSettingsStr, !e.isPointer());
@@ -138,10 +136,10 @@ InputManagerView::InputManagerView(Base::Window &win):
 							keyMapping.buildAll();
 							onShow();
 						};
-					View::addModalView(ynAlertView);
+					modalViewController.pushAndShow(ynAlertView);
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			pushAndShow(multiChoiceView, &menuAllocator);
 		}
 	},
 	deleteProfile
@@ -162,9 +160,9 @@ InputManagerView::InputManagerView(Base::Window &win):
 			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
 			multiChoiceView.init(profileStr, profiles, !e.isPointer());
 			multiChoiceView.onSelect() =
-				[this](int i, const Input::Event &e)
+				[this, &multiChoiceView](int i, const Input::Event &e)
 				{
-					viewStack.popAndShow();
+					multiChoiceView.dismiss();
 					int deleteProfileIdx = i;
 					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
 					ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
@@ -182,12 +180,33 @@ InputManagerView::InputManagerView(Base::Window &win):
 							keyMapping.buildAll();
 							onShow();
 						};
-					View::addModalView(ynAlertView);
+					modalViewController.pushAndShow(ynAlertView);
 					return 0;
 				};
-			viewStack.pushAndShow(&multiChoiceView, &menuAllocator);
+			pushAndShow(multiChoiceView, &menuAllocator);
 		}
 	},
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	mogaInputSystem
+	{
+		"MOGA Controller Support",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
+			{
+				popup.post("Install the MOGA Pivot app from Google Play to use your MOGA Pocket or Pro in mode A. "
+					"If your controller supports mode B, you can pair it as a HID device in the Android settings app instead.", 8);
+				return;
+			}
+			item.toggle(*this);
+			optionMOGAInputSystem = item.on;
+			if(item.on)
+				Input::initMOGA(true);
+			else
+				Input::deinitMOGA();
+		}
+	},
+	#endif
 	notifyDeviceChange
 	{
 		"Notify If Devices Change",
@@ -208,7 +227,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 			uint devices = 0;
 			for(auto &e : Input::devList)
 			{
-				if(e->map() == Event::MAP_KEYBOARD || e->map() == Event::MAP_ICADE)
+				if(e->map() == Event::MAP_SYSTEM || e->map() == Event::MAP_ICADE)
 					devices++;
 			}
 			popup.printf(2, 0, "%d OS devices present", devices);
@@ -231,10 +250,10 @@ InputManagerView::InputManagerView(Base::Window &win):
 						auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
 						imdMenu.init(true, inputDevConf[dev->idx]);
 						imdMenu.name_ = inputDevNameStr[dev->idx];
-						viewStack.pushAndShow(&imdMenu, &menuAllocator);
+						pushAndShow(imdMenu, &menuAllocator);
 					}
 				};
-			View::addModalView(identView);
+			modalViewController.pushAndShow(identView);
 		}
 	}
 {}
@@ -260,6 +279,9 @@ void InputManagerView::init(bool highlightFirst)
 	deleteDeviceConfig.init((bool)savedInputDevList.size()); item[i++] = &deleteDeviceConfig;
 	deleteProfile.init((bool)customKeyConfig.size()); item[i++] = &deleteProfile;
 	identDevice.init(); item[i++] = &identDevice;
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	mogaInputSystem.init(optionMOGAInputSystem); item[i++] = &mogaInputSystem;
+	#endif
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 	if(!optionNotifyInputDeviceChange.isConst)
 	{
@@ -283,7 +305,7 @@ void InputManagerView::init(bool highlightFirst)
 				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
 				imdMenu.init(!e.isPointer(), inputDevConf[devs]);
 				imdMenu.name_ = inputDevNameStr[devs];
-				viewStack.pushAndShow(&imdMenu, &menuAllocator);
+				pushAndShow(imdMenu, &menuAllocator);
 			};
 		devs++;
 	}
@@ -315,7 +337,7 @@ public:
 				choiceEntry[i].onSelect() =
 					[this, &conf](TextMenuItem &, const Input::Event &e)
 					{
-						viewStack.popAndShow();
+						dismiss();
 						onProfileChange(conf);
 					};
 				i++;
@@ -335,7 +357,7 @@ public:
 			choiceEntry[i].onSelect() =
 				[this, &conf](TextMenuItem &, const Input::Event &e)
 				{
-					viewStack.popAndShow();
+					dismiss();
 					onProfileChange(conf);
 				};
 			i++;
@@ -347,14 +369,14 @@ public:
 		}
 	}
 
-	void drawElement(const GuiTable1D *table, uint i, Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override
+	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override
 	{
 		using namespace Gfx;
 		if((int)i == activeItem)
 			setColor(0., .8, 1.);
 		else
 			setColor(COLOR_WHITE);
-		item[i]->draw(xPos, yPos, xSize, ySize, align);
+		item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO);
 	}
 };
 
@@ -397,7 +419,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 					onShow();
 					keyMapping.buildAll();
 				};
-			viewStack.pushAndShow(&profileSelectMenu, &menuAllocator);
+			pushAndShow(profileSelectMenu, &menuAllocator);
 		}
 	},
 	renameProfile
@@ -408,31 +430,31 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 			if(!devConf->mutableKeyConf())
 			{
 				popup.post("Can't rename a built-in profile", 2, 0);
-				displayNeedsUpdate();
+				postDraw();
 				return;
 			}
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input name", devConf->keyConf().name);
+			textInputView.init("Input name", devConf->keyConf().name, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str && strlen(str))
 					{
 						if(customKeyConfigsContainName(str))
 						{
 							popup.postError("Another profile is already using this name");
-							displayNeedsUpdate();
+							postDraw();
 							return 1;
 						}
 						assert(devConf->mutableKeyConf());
 						string_copy(devConf->mutableKeyConf()->name, str);
 						onShow();
-						displayNeedsUpdate();
+						postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	newProfile
@@ -443,7 +465,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 			if(customKeyConfig.isFull())
 			{
 				popup.postError("No space left for new key profiles, please delete one");
-				displayNeedsUpdate();
+				postDraw();
 				return;
 			}
 			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
@@ -452,16 +474,16 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 				[this](const Input::Event &e)
 				{
 					auto &textInputView = *allocModalView<CollectTextInputView>(window());
-					textInputView.init("Input name", "");
+					textInputView.init("Input name", "", getCollectTextCloseAsset());
 					textInputView.onText() =
-						[this](const char *str)
+						[this](CollectTextInputView &view, const char *str)
 						{
 							if(str && strlen(str))
 							{
 								if(customKeyConfigsContainName(str))
 								{
 									popup.postError("Another profile is already using this name");
-									displayNeedsUpdate();
+									postDraw();
 									return 1;
 								}
 								if(devConf->setKeyConfCopiedFromExisting(str))
@@ -471,14 +493,14 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 								}
 								else
 									popup.postError("Too many saved device settings, please delete one");
-								displayNeedsUpdate();
+								postDraw();
 							}
-							removeModalView();
+							view.dismiss();
 							return 0;
 						};
-					View::addModalView(textInputView);
+					modalViewController.pushAndShow(textInputView);
 				};
-			View::addModalView(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView);
 		}
 	},
 	deleteProfile
@@ -508,7 +530,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 					onShow();
 					keyMapping.buildAll();
 				};
-			View::addModalView(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView);
 		}
 	},
 	#if defined CONFIG_INPUT_ICADE
@@ -529,7 +551,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 					{
 						confirmICadeMode(e);
 					};
-				View::addModalView(ynAlertView);
+				modalViewController.pushAndShow(ynAlertView);
 			}
 			else
 				confirmICadeMode(e);
@@ -539,11 +561,37 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 	#endif
 	joystickAxis1DPad
 	{
-		"Joystick Axis 1 as D-Pad",
+		"Joystick X/Y Axis 1 as D-Pad",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
 			item.toggle(*this);
-			devConf->setMapJoystickAxis1ToDpad(item.on);
+			auto bits = devConf->joystickAxisAsDpadBits();
+			updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_1 : 0, Input::Device::AXIS_BITS_STICK_1);
+			devConf->setJoystickAxisAsDpadBits(bits);
+			devConf->save();
+		}
+	},
+	joystickAxis2DPad
+	{
+		"Joystick X/Y Axis 2 as D-Pad",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			auto bits = devConf->joystickAxisAsDpadBits();
+			updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_2 : 0, Input::Device::AXIS_BITS_STICK_2);
+			devConf->setJoystickAxisAsDpadBits(bits);
+			devConf->save();
+		}
+	},
+	joystickAxisHatDPad
+	{
+		"Joystick POV Hat as D-Pad",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			auto bits = devConf->joystickAxisAsDpadBits();
+			updateBits(bits, item.on ? Input::Device::AXIS_BITS_HAT : 0, Input::Device::AXIS_BITS_HAT);
+			devConf->setJoystickAxisAsDpadBits(bits);
 			devConf->save();
 		}
 	}
@@ -607,22 +655,30 @@ void InputManagerDeviceView::init(bool highlightFirst, InputDeviceConfig &devCon
 			{
 				auto &bcMenu = *menuAllocator.allocNew<ButtonConfigView>(window());
 				bcMenu.init(&EmuControls::category[c_i], *this->devConf, !e.isPointer());
-				viewStack.pushAndShow(&bcMenu, &menuAllocator);
+				pushAndShow(bcMenu, &menuAllocator);
 			};
 	}
 	newProfile.init(); item[i++] = &newProfile;
 	renameProfile.init((bool)devConf.mutableKeyConf()); item[i++] = &renameProfile;
 	deleteProfile.init((bool)devConf.mutableKeyConf()); item[i++] = &deleteProfile;
 	#if defined CONFIG_INPUT_ICADE
-	if((devConf.dev->map() == Input::Event::MAP_KEYBOARD && devConf.dev->hasKeyboard())
+	if((devConf.dev->map() == Input::Event::MAP_SYSTEM && devConf.dev->hasKeyboard())
 			|| devConf.dev->map() == Input::Event::MAP_ICADE)
 	{
 		iCadeMode.init(devConf.iCadeMode()); item[i++] = &iCadeMode;
 	}
 	#endif
-	if(devConf.dev->hasJoystick())
+	if(devConf.dev->joystickAxisBits() & Input::Device::AXIS_BIT_X)
 	{
-		joystickAxis1DPad.init(devConf.mapJoystickAxis1ToDpad()); item[i++] = &joystickAxis1DPad;
+		joystickAxis1DPad.init(devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_X); item[i++] = &joystickAxis1DPad;
+	}
+	if(devConf.dev->joystickAxisBits() & Input::Device::AXIS_BIT_Z)
+	{
+		joystickAxis2DPad.init(devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_Z); item[i++] = &joystickAxis2DPad;
+	}
+	if(devConf.dev->joystickAxisBits() & Input::Device::AXIS_BIT_HAT_X)
+	{
+		joystickAxisHatDPad.init(devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_HAT_X); item[i++] = &joystickAxisHatDPad;
 	}
 	BaseMenuView::init(item, i, highlightFirst);
 }

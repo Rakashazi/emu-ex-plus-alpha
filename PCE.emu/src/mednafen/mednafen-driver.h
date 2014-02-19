@@ -50,7 +50,6 @@ struct MDFN_Semaphore;
 
 MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data);
 void MDFND_WaitThread(MDFN_Thread *thread, int *status);
-void MDFND_KillThread(MDFN_Thread *thread);
 
 MDFN_Mutex *MDFND_CreateMutex(void);
 void MDFND_DestroyMutex(MDFN_Mutex *mutex);
@@ -67,13 +66,15 @@ int MDFND_WaitSemaphore(MDFN_Semaphore *mutex);
 void MDFNI_Reset(void);
 void MDFNI_Power(void);
 
-/* Called from the physical CD disc reading code. */
-bool MDFND_ExitBlockingLoop(void);
-
 /* path = path of game/file to load.  returns NULL on failure. */
 MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path);
 
-MDFNGI *MDFNI_LoadCD(const char *sysname, const char *devicename);
+/* If is_device is false, "devicename" should be treated as a path in the filesystem.  If is_device is true, then it should
+   be treated as a device name(which on some OSes may be the same as a path in the filesystem).
+
+   Additionally, if is_device is true, then devicename may be NULL to specify that the default CD drive device should be used.
+*/
+MDFNGI *MDFNI_LoadCD(const char *sysname, const char *devicename, const bool is_device);
 
 // Call this function as early as possible, even before MDFNI_Initialize()
 bool MDFNI_InitializeModules(const std::vector<MDFNGI *> &ExternalSystems);
@@ -87,7 +88,7 @@ int MDFNI_Initialize(const char *basedir, const std::vector<MDFNSetting> &Driver
 void MDFNI_SetBaseDirectory(const char *dir);
 
 /* Call only when a game is loaded. */
-int MDFNI_NetplayStart(uint32 local_players, const std::string &nickname, const std::string &game_key, const std::string &connect_password);
+int MDFNI_NetplayStart(void);
 
 /* Emulates a frame. */
 void MDFNI_Emulate(EmulateSpecStruct *espec);
@@ -114,6 +115,9 @@ void MDFNI_DoRewind(void);
 
 void MDFNI_SetLayerEnableMask(uint64 mask);
 
+// Only call during startup or when the device on the specified port is changing/changed; do NOT call otherwise(such as on every frame),
+// as the call causes the destruction and recreation of the virtual device, which disrupts the game if it occurs in the middle of
+// the game's polling of the device.
 void MDFNI_SetInput(int port, const char *type, void *ptr, uint32 dsize);
 
 //int MDFNI_DiskInsert(int oride);

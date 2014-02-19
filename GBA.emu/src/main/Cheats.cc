@@ -1,11 +1,9 @@
 #include <Cheats.hh>
 #include <MsgPopup.hh>
 #include <TextEntry.hh>
-#include <util/gui/ViewStack.hh>
+#include <EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <gba/Cheats.h>
-extern MsgPopup popup;
-extern ViewStack viewStack;
 static bool cheatsModified = false;
 
 void SystemEditCheatView::renamed(const char *str)
@@ -68,7 +66,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 			{
 				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(&editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView, &menuAllocator);
 			};
 	}
 }
@@ -78,13 +76,13 @@ void EditCheatListView::addNewCheat(int isGSv3)
 	if(cheatsNumber == EmuCheats::MAX)
 	{
 		popup.postError("Too many cheats, delete some first");
-		window().displayNeedsUpdate();
+		window().postDraw();
 		return;
 	}
 	auto &textInputView = *allocModalView<CollectTextInputView>(window());
-	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)");
+	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", getCollectTextCloseAsset());
 	textInputView.onText() =
-		[this, isGSv3](const char *str)
+		[this, isGSv3](CollectTextInputView &view, const char *str)
 		{
 			if(str)
 			{
@@ -106,40 +104,40 @@ void EditCheatListView::addNewCheat(int isGSv3)
 				else
 				{
 					popup.postError("Invalid format");
-					window().displayNeedsUpdate();
+					window().postDraw();
 					return 1;
 				}
 				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsNumber-1);
-				removeModalView();
+				view.dismiss();
 				refreshCheatViews();
 
 				auto &textInputView = *allocModalView<CollectTextInputView>(window());
-				textInputView.init("Input description");
+				textInputView.init("Input description", getCollectTextCloseAsset());
 				textInputView.onText() =
-					[this](const char *str)
+					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str)
 						{
 							string_copy(cheatsList[cheatsNumber-1].desc, str);
-							removeModalView();
+							view.dismiss();
 							refreshCheatViews();
 						}
 						else
 						{
-							removeModalView();
+							view.dismiss();
 						}
 						return 0;
 					};
-				View::addModalView(textInputView);
+				modalViewController.pushAndShow(textInputView);
 			}
 			else
 			{
-				removeModalView();
+				view.dismiss();
 			}
 			return 0;
 		};
-	View::addModalView(textInputView);
+	modalViewController.pushAndShow(textInputView);
 }
 
 EditCheatListView::EditCheatListView(Base::Window &win):

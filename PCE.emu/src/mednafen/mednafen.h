@@ -51,6 +51,8 @@ void MDFN_QSimpleCommand(int cmd);
 
 void MDFN_MidSync(EmulateSpecStruct *espec);
 
+void MDFND_commitVideoFrame(const MDFN_FrameInfo &info);
+
 #include "state.h"
 int MDFN_RawInputStateAction(StateMem *sm, int load, int data_only);
 

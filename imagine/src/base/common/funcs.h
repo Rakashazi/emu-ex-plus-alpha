@@ -1,32 +1,40 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <mem/interface.h>
-
-#ifdef CONFIG_FS
-#include <fs/sys.hh>
-#endif
-
-#ifdef CONFIG_INPUT
-#include <input/Input.hh>
-#endif
-
-#if defined CONFIG_BLUETOOTH
-#include <bluetooth/sys.hh>
-#endif
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/resource.h>
 #endif
 
+#include <util/system/pagesize.h>
+
 namespace Base
 {
 
-const char copyright[] = "Imagine is Copyright 2010-2013 Robert Broglia";
+const char copyright[] = "Imagine is Copyright 2010-2014 Robert Broglia";
 
-static void engineInit() ATTRS(cold);
+[[gnu::cold]] static void engineInit();
 static void engineInit()
 {
+	#ifdef CONFIG_INITPAGESIZE
+	initPageSize();
+	#endif
 	#if defined __unix__ || defined CONFIG_BASE_MACOSX
 	struct rlimit stack;
 	getrlimit(RLIMIT_STACK, &stack);
@@ -59,44 +67,7 @@ void sleepMs(int ms)
 }
 #endif
 
-static void processAppMsg(int type, int shortArg, int intArg, int intArg2)
-{
-	switch(type)
-	{
-		#if defined CONFIG_BLUETOOTH_BLUEZ || defined CONFIG_BLUETOOTH_ANDROID
-		bcase MSG_BT_SCAN_STATUS_DELEGATE:
-		{
-			logMsg("got bluetooth adapter status delegate message");
-			auto bta = BluetoothAdapter::defaultAdapter();
-			bta->onScanStatus()(*bta, intArg, intArg2);
-		}
-		#endif
-		bdefault:
-		{
-			if(type >= MSG_USER)
-			{
-				logMsg("got app message %d", type);
-				Base::onAppMessage(type, shortArg, intArg, intArg2);
-			}
-		}
-	}
 }
-
-}
-
-#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_ANDROID
-static int getPollTimeout()
-{
-	// When waiting for events:
-	// 1. If rendering, don't block
-	// 2. Else block until next event
-	int pollTimeout = Base::windowsArePosted() ? 0 :
-		-1;
-	/*if(pollTimeout == -1)
-		logMsg("will poll for next event");*/
-	return pollTimeout;
-}
-#endif
 
 #if defined(__has_feature)
 	#if __has_feature(address_sanitizer)

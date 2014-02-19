@@ -263,7 +263,7 @@ void EmuSystem::initOptions()
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -520,7 +520,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
-	emuView.initPixmap((uchar*)dispbuffer, pixFmt, ssResX, ssResY);
+	emuView.initPixmap((char*)dispbuffer, pixFmt, ssResX, ssResY);
 	emuView.initImage(0, ssResX, ssResY);
 
 	PerPortReset();
@@ -553,7 +553,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {

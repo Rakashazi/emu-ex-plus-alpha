@@ -115,9 +115,6 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleBlackOpaque</string>
 
-	<key>UIStatusBarHidden</key>
-	<true/>
-	
 <!--
 	Common app keys
 -->
@@ -157,9 +154,16 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	
+	<key>UIStatusBarHidden</key>
+	<true/>
 
 	<key>CFBundleSignature</key>
 	<string>????</string>

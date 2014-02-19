@@ -1,6 +1,6 @@
 #pragma once
 #include <util/ansiTypes.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/operators.hh>
 #include <util/collection/containerUtils.hh>
 #include <assert.h>
@@ -39,17 +39,17 @@ public:
 	using STORAGE_BASE::storage;
 	constexpr ArrayListBase() {}
 
-	int remove(const T &val)
+	bool remove(const T &val)
 	{
 		iterateTimes(size(), i)
 		{
 			if(storage()[i] == val)
 			{
 				erase(&storage()[i]);
-				return 1;
+				return true;
 			}
 		}
-		return 0;
+		return false;
 	}
 
 	// Iterators (STL API)
@@ -105,7 +105,7 @@ public:
 	}
 
 	// Capacity
-	bool isFull()
+	bool isFull() const
 	{
 		return !freeSpace();
 	}

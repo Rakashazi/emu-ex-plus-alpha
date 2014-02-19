@@ -40,7 +40,10 @@
  *  allow to funnel debug & error messages 
  */
 
-#include "config.h"
+#ifndef __DEBUG_H
+#define __DEBUG_H
+
+#include "btstack-config.h"
 #include "hci_dump.h"
 
 #include <stdio.h>
@@ -74,3 +77,5 @@
 #else
 #define log_error(...)
 #endif
+
+#endif // __DEBUG_H

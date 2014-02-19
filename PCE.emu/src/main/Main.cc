@@ -14,7 +14,7 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define thisModuleName "main"
-#include "MDFNWrapper.hh"
+#include "MDFN.hh"
 #include <logger/interface.h>
 #include <gfx/GfxSprite.hh>
 #include <audio/Audio.hh>
@@ -25,7 +25,6 @@
 #include <util/time/sys.hh>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
-
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
@@ -39,7 +38,7 @@ PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker ha
 namespace PCE_Fast
 {
 	void HuCDumpSave(void);
-	void applyVideoFormat(EmulateSpecStruct *espec);
+	void applyVideoFormat(MDFN_Surface &espec);
 	void applySoundFormat(EmulateSpecStruct *espec);
 	extern bool AVPad6Enabled[5];
 	extern vce_t vce;
@@ -70,6 +69,8 @@ Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::cPath sysCardPath = "";
 static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, sizeof(sysCardPath), "");
 
+#include <CommonGui.hh>
+
 const uint EmuSystem::maxPlayers = 5;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -78,7 +79,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
 
 void EmuSystem::initOptions() {}
 
@@ -117,7 +117,7 @@ enum
 const char *ps3_productCode = "PCEE00000";
 #endif
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -138,55 +138,46 @@ void EmuSystem::writeConfig(Io *io)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = pceHuCDFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = pceHuFsFilter;
 
-static EmulateSpecStruct espec;
 static std::vector<CDIF *> CDInterfaces;
 
-#ifndef CONFIG_BASE_PS3
-	#define USE_PIX_RGB565
-#endif
-static const uint vidBufferX = 512, vidBufferY = 242;
-static
-#ifdef USE_PIX_RGB565
-	uint16
-#else
-	uint32
-#endif
-	pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
-static MDFN_Rect lineWidth[vidBufferY];
-static MDFN_Rect currRect;
-static const MDFN_PixelFormat mPixFmtRGB565 = { 16, MDFN_COLORSPACE_RGB, { 11 }, { 5 }, { 0 }, 16, 5, 6, 5, 8 };
-static const MDFN_PixelFormat mPixFmtRGBA8888 = { 32, MDFN_COLORSPACE_RGB, { 0 }, { 8 }, { 16 }, 24, 8, 8, 8, 8 };
-static const MDFN_PixelFormat mPixFmtBGRA8888 = { 32, MDFN_COLORSPACE_RGB, { 16 }, { 8 }, { 0 }, 24, 8, 8, 8, 8 };
-#ifdef USE_PIX_RGB565
-	//static const MDFN_PixelFormat mPixFmt(16, MDFN_COLORSPACE_RGB, 11, 5, 0, 16);
+static const MDFN_PixelFormat mPixFmtRGB565 { MDFN_COLORSPACE_RGB, 11, 5, 0, 16 };
+static const MDFN_PixelFormat mPixFmtRGBA8888 { MDFN_COLORSPACE_RGB, 0, 8, 16, 24 };
+static const MDFN_PixelFormat mPixFmtBGRA8888 { MDFN_COLORSPACE_RGB, 16, 8, 0, 24 };
+#ifdef MDFN_PIXELFORMAT_SINGLE_BPP
+	#if MDFN_PIXELFORMAT_SINGLE_BPP == 16
+	using Pixel = uint16;
 	static const MDFN_PixelFormat &mPixFmt = mPixFmtRGB565;
 	static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
-#else
-	#ifdef CONFIG_BASE_PS3
-		static const MDFN_PixelFormat &mPixFmt = mPixFmtBGRA8888;
-		static const PixelFormatDesc *pixFmt = &PixelFormatARGB8888;
 	#else
-		// Default to RGBA Ordering
-		static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
-		static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
+	using Pixel = uint32;
+	static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
+	static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
 	#endif
+#else
+using Pixel = uint32;
+static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
+static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
 #endif
-static MDFN_Surface mSurface;
+
+static const uint vidBufferX = 512, vidBufferY = 242;
+static const uint vidBufferXMax = 1024; // width when scaling multi-res content
+static Pixel pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
+static Pixel pixBuffScaled[vidBufferXMax*vidBufferY] __attribute__ ((aligned (8))) {0};
+static MDFN_Surface mSurface{pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFmt};
+static uint16 inputBuff[5] {0}; // 5 gamepad buffers
+static bool usingMultires = false;
 
 static void initVideoFormat()
 {
-	mSurface.Init(pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFmt);
+	/*mSurface.Init(pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFmt);
 	#if !defined(USE_PIX_RGB565) && !defined(CONFIG_BASE_PS3)
 	if(gfx_preferBGRA)
 	{
 		pixFmt = &PixelFormatBGRA8888;
 		mSurface.format = mPixFmtBGRA8888;
 	}
-	#endif
+	#endif*/
 }
-
-static uint16 inputBuff[5] = { 0 }; // 5 gamepad buffers
-
 void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
@@ -261,7 +252,7 @@ static void writeCDMD5()
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
-uint EmuSystem::multiresVideoBaseX() { return 0; }
+uint EmuSystem::multiresVideoBaseX() { return 512; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
@@ -273,11 +264,11 @@ int EmuSystem::loadGame(const char *path)
 	if(isHuCardExtension(path))
 	{
 		MDFNFILE fp;
-		static const FileExtensionSpecStruct ext[] =
+		const FileExtensionSpecStruct ext[]
 		{
-			{ ".pce", 0 },
-			{ ".sgx", 0 },
-			{ 0, 0 }
+			{".pce", 0},
+			{".sgx", 0},
+			{0, 0}
 		};
 		if(!fp.Open(fullGamePath, ext, 0))
 		{
@@ -297,9 +288,10 @@ int EmuSystem::loadGame(const char *path)
 			popup.printf(3, 1, "No System Card Set");
 			goto FAIL;
 		}
+		CDInterfaces.reserve(1);
 		try
 		{
-			CDInterfaces.push_back(new CDIF(fullGamePath));
+			CDInterfaces.push_back(CDIF_Open(fullGamePath, false, false));
 		}
 		catch(std::exception &e)
 		{
@@ -322,29 +314,22 @@ int EmuSystem::loadGame(const char *path)
 		emuSys->SetInput(i, "gamepad", &inputBuff[i]);
 	}
 
-	if(unlikely(!espec.surface))
+	if(unlikely(!emuView.disp.image()))
 	{
-		logMsg("doing initial audio/video setup for emulator");
-		espec.LineWidths = lineWidth;
-		espec.NeedRewind = 0;
-
-		espec.surface = &mSurface;
-
-		espec.SoundBuf = 0;
-		espec.SoundBufMaxSize = 0;
-		espec.skip = 0;
-
-		PCE_Fast::applyVideoFormat(&espec);
-
-		currRect = (MDFN_Rect){0, 4, 256, 232};//espec.DisplayRect;
-		emuView.initImage(0, currRect.x, currRect.y, currRect.w, currRect.h, currRect.w, vidBufferY);
+		logMsg("doing initial video setup for emulator");
+		PCE_Fast::applyVideoFormat(mSurface);
+		//currRect = (MDFN_Rect){0, 0, 256, 224};
+		emuView.initImage(0, 0, 0, 256, 224, 256, 224);
 	}
 
 	{
 		// run 1 frame so vce line count is computed
 		//logMsg("no previous state, running 1st frame");
+		EmulateSpecStruct espec;
 		espec.skip = 1;
-		espec.SoundBuf = 0;
+		espec.surface = &mSurface;
+		MDFN_SubSurface dummyLineWidth[vidBufferY];
+		espec.subSurface = dummyLineWidth;
 		emuSys->Emulate(&espec);
 	}
 
@@ -369,6 +354,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
+	EmulateSpecStruct espec;
 	espec.SoundRate = std::round((SysDDec)optionSoundRate * (vce.lc263 ? 0.99709 : 1.00086));
 	#ifdef CONFIG_ENV_WEBOS
 	if(optionFrameSkip != optionFrameSkipAuto)
@@ -376,30 +362,147 @@ void EmuSystem::configAudioRate()
 	#elif defined(CONFIG_BASE_PS3)
 	espec.SoundRate *= 1.0011;
 	#endif
-	logMsg("emu sound rate %d, 262 lines %d, fskip %d", (int)espec.SoundRate, !vce.lc263, (int)optionFrameSkip);
+	logMsg("emu sound rate %f, 262 lines %d, fskip %d", (double)espec.SoundRate, !vce.lc263, (int)optionFrameSkip);
 	PCE_Fast::applySoundFormat(&espec);
 	audioFramesPerUpdate = optionSoundRate/60.;
 }
 
-static bool renderToScreen = 0;
-void MDFND_commitVideoFrame()
+static bool updateEmuPixmap(uint width, uint height, char *pixBuff)
 {
-	if(likely(renderToScreen))
+	// only use DisplayRect for height
+	if(unlikely(/*info.displayRect.x != currRect.x || espec.DisplayRect.y != currRect.y ||*/
+			width != emuView.vidPix.x || height != emuView.vidPix.y || pixBuff != emuView.vidPix.data))
 	{
-		if(unlikely(espec.DisplayRect.x != currRect.x || espec.DisplayRect.y != currRect.y ||
-						espec.DisplayRect.w != currRect.w || espec.DisplayRect.h != currRect.h))
-		{
-			currRect = espec.DisplayRect;
-			emuView.resizeImage(currRect.x, currRect.y, currRect.w, currRect.h, currRect.w, vidBufferY);
-		}
+		//logMsg("display rect %d:%d:%d:%d", displayRect.x, displayRect.y, displayRect.w, displayRect.h);
+		//currRect = displayRect;
+		//currRect.w = width;
+		//usingMultires = isMultires;
+		emuView.initPixmap(pixBuff, pixFmt, width, height);
+		emuView.resizeImage(/*currRect.x, currRect.y*/0, 0, width, height, width, height);
+		return true;
+	}
+	return false;
+}
 
-		emuView.updateAndDrawContent();
-		renderToScreen = 0;
+void MDFND_commitVideoFrame(const MDFN_FrameInfo &info)
+{
+	bool isMultires = info.subSurfaces > 1;
+	int pixWidth = info.displayRect.w;
+
+	if(isMultires)
+	{
+		// get the final width
+		iterateTimes(info.subSurfaces, i)
+		{
+			auto &s = info.subSurface[i];
+			if(s.w == 341)
+				pixWidth = 1024;
+			else
+				pixWidth = std::max(pixWidth, s.w);
+		}
+		if(updateEmuPixmap(pixWidth, info.displayRect.h, (char*)pixBuffScaled))
+		{
+			iterateTimes(info.subSurfaces, i)
+			{
+				auto &s = info.subSurface[i];
+				logMsg("sub-surface %d: %d:%d", i, s.w, s.h);
+			}
+		}
+		// blit the pixels
+		auto srcPixAddr = &pixBuff[0];
+		auto destPixAddr = &pixBuffScaled[0];
+		int prevY = 0;
+		if(pixWidth == 1024)
+		{
+			// scale 256x4, 341x3 + 1x4, 512x2
+			iterateTimes(info.subSurfaces, i)
+			{
+				auto &s = info.subSurface[i];
+				switch(s.w)
+				{
+					bdefault:
+						bug_branch("%d", s.w);
+					bcase 256:
+					{
+						iterateTimes(s.h, h)
+						{
+							iterateTimes(256, w)
+							{
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr++;
+							}
+						}
+					}
+					bcase 341:
+					{
+						iterateTimes(s.h, h)
+						{
+							iterateTimes(340, w)
+							{
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr++;
+							}
+							*destPixAddr++ = *srcPixAddr;
+							*destPixAddr++ = *srcPixAddr;
+							*destPixAddr++ = *srcPixAddr;
+							*destPixAddr++ = *srcPixAddr++;
+						}
+					}
+					bcase 512:
+					{
+						iterateTimes(s.h, h)
+						{
+							iterateTimes(512, w)
+							{
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr++;
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			assert(pixWidth == 512);
+			iterateTimes(info.subSurfaces, i)
+			{
+				auto &s = info.subSurface[i];
+				switch(s.w)
+				{
+					bdefault:
+						bug_branch("%d", s.w);
+					bcase 256:
+					{
+						iterateTimes(s.h, h)
+						{
+							iterateTimes(256, w)
+							{
+								*destPixAddr++ = *srcPixAddr;
+								*destPixAddr++ = *srcPixAddr++;
+							}
+						}
+					}
+					bcase 512:
+					{
+						uint pixelsToCopy = s.h * 512;
+						memcpy(destPixAddr, srcPixAddr, pixelsToCopy * sizeof(Pixel));
+						destPixAddr += pixelsToCopy;
+						srcPixAddr += pixelsToCopy;
+					}
+				}
+			}
+		}
 	}
 	else
 	{
-		//logMsg("skipping render");
+		updateEmuPixmap(pixWidth, info.displayRect.h, (char*)pixBuff);
 	}
+
+	emuView.updateAndDrawContent();
 }
 
 #ifdef INPUT_SUPPORTS_POINTER
@@ -448,9 +551,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case pceKeyIdxLeftDown: return bit(7) | bit(6) | playerMask;
 		case pceKeyIdxSelect: return bit(2) | playerMask;
 		case pceKeyIdxRun: return bit(3) | playerMask;
-		case pceKeyIdxITurbo: turbo = 1;
+		case pceKeyIdxITurbo: turbo = 1; // fall through to pceKeyIdxI
 		case pceKeyIdxI: return bit(0) | playerMask;
-		case pceKeyIdxIITurbo: turbo = 1;
+		case pceKeyIdxIITurbo: turbo = 1; // fall through to pceKeyIdxII
 		case pceKeyIdxII: return bit(1) | playerMask;
 		case pceKeyIdxIII: return bit(8) | playerMask;
 		case pceKeyIdxIV: return bit(9) | playerMask;
@@ -473,16 +576,20 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	uint maxFrames = Audio::maxRate/59;
+	uint maxFrames = Audio::maxRate()/59;
 	int16 audioBuff[maxFrames*2];
-	espec.SoundBuf = renderAudio ? audioBuff : nullptr;
-	espec.SoundBufMaxSize = maxFrames;
-
-	if(renderGfx)
-		renderToScreen = 1;
-	espec.skip = processGfx ? 0 : 1;
+	EmulateSpecStruct espec;
+	if(renderAudio)
+	{
+		espec.SoundBuf = audioBuff;
+		espec.SoundBufMaxSize = maxFrames;
+	}
+	espec.commitVideo = renderGfx;
+	espec.skip = !processGfx;
+	espec.surface = &mSurface;
+	MDFN_SubSurface subSurface[vidBufferY];
+	espec.subSurface = subSurface;
 	emuSys->Emulate(&espec);
-
 	if(renderAudio)
 	{
 		assert((uint)espec.SoundBufSize <= EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff)));
@@ -528,29 +635,19 @@ int EmuSystem::loadState(int saveStateSlot)
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
+
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
 	handleInputEvent(win, e);
 }
-}
-
-namespace Base
-{
-
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	mem_zero(espec);
-	// espec.SoundRate is set in mainInitCommon()
 	initVideoFormat();
-	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-	emuSys->soundchan = 0;
-	emuSys->soundrate = 0;
+	emuView.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 	emuSys->name = (uint8*)EmuSystem::gameName;
-	emuSys->rotated = 0;
 	mainInitCommon(argc, argv);
 	return OK;
 }

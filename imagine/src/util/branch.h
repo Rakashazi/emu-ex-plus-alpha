@@ -26,5 +26,5 @@ namespace Base
 
 #define doOrElse(Do, Else) { if(Do != OK) Else; }
 #define doOrReturnVal(Do, Val) doOrElse(Do, return(Val))
-#define doOrReturn(Do) { CallResult _r = Do; if(_r != OK) return(_r); }
+#define doOrReturn(Do) { CallResult r_ = Do; if(r_ != OK) return r_; }
 #define doOrAbort(Do) doOrElse(Do, Base::abort())

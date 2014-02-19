@@ -1,0 +1,12 @@
+diff -burp libsndfile-1.0.25/sndfile.pc.in libsndfile-1.0.25-patched/sndfile.pc.in
+--- libsndfile-1.0.25/sndfile.pc.in	2014-02-07 02:24:29.629193617 -0500
++++ libsndfile-1.0.25-patched/sndfile.pc.in	2014-02-16 15:09:25.745073217 -0500
+@@ -7,6 +7,6 @@ Name: sndfile
+ Description: A library for reading and writing audio files
+ Requires: 
+ Version: @VERSION@
+-Libs: -L${libdir} -lsndfile
++Libs: -L${libdir} -lsndfile -lm
+ Libs.private: @EXTERNAL_LIBS@
+ Cflags: -I${includedir} 
+

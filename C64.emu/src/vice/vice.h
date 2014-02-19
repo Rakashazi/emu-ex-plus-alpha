@@ -120,8 +120,8 @@ typedef int ssize_t;
 
 /* ------------------------------------------------------------------------- */
 /* Which OS is using the common keyboard routines?  */
-#if !defined(__OS2__) || defined(USE_SDLUI)
-//#define COMMON_KBD
+#if (!defined(__OS2__) || defined(USE_SDLUI)) && !defined EMUFRAMEWORK_BUILD
+#define COMMON_KBD
 #endif
 
 /* Which OS is using those ugly scale source coordinates.  */

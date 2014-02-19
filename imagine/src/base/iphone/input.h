@@ -1,26 +1,38 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <input/Input.hh>
 #include <input/common/common.h>
 #include <input/DragPointer.hh>
 
+namespace Base
+{
+	extern MainApp *mainApp;
+}
+
 namespace Input
 {
-
-static struct TouchState
-{
-	constexpr TouchState() {}
-	UITouch *touch = nil;
-	PointerState s;
-	DragPointer dragState;
-} m[maxCursors];
-uint numCursors = maxCursors;
 
 #ifdef CONFIG_INPUT_ICADE
 struct ICadeDevice : public Device
 {
 	bool iCadeMode_ = false;
 
-	ICadeDevice(): Device(0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller")
+	ICadeDevice(): Device{0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller"}
 	{}
 
 	void setICadeMode(bool on) override
@@ -39,14 +51,24 @@ struct ICadeDevice : public Device
 
 static ICadeDevice icadeDev;
 
-DragPointer *dragState(int p)
+#if defined(IPHONE_VKEYBOARD)
+extern UITextField *vkbdField;
+extern InputTextDelegate vKeyboardTextDelegate;
+extern IG::WindowRect textRect;
+
+static CGAffineTransform makeTransformForOrientation(uint orientation)
 {
-	return &m[p].dragState;
+	using namespace Base;
+	switch(orientation)
+	{
+		default: return CGAffineTransformIdentity;
+		case VIEW_ROTATE_270: return CGAffineTransformMakeRotation(3*M_PI / 2.0);
+		case VIEW_ROTATE_90: return CGAffineTransformMakeRotation(M_PI / 2.0);
+		case VIEW_ROTATE_180: return CGAffineTransformMakeRotation(M_PI);
+	}
 }
 
-#if defined(IPHONE_VKEYBOARD)
-
-static CGRect toCGRect(const Base::Window &win, const IG::Rect2<int> &rect)
+static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 {
 	using namespace Base;
 	int x = rect.x, y = rect.y;
@@ -56,7 +78,7 @@ static CGRect toCGRect(const Base::Window &win, const IG::Rect2<int> &rect)
 	}
 	if(win.rotateView == VIEW_ROTATE_90)
 	{
-		x = (win.viewPixelHeight() - x) - rect.ySize();
+		x = (win.height() - x) - rect.ySize();
 	}
 	int x2 = rect.xSize(), y2 = rect.ySize();
 	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
@@ -108,8 +130,8 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	{
 		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(Base::mainWindow(), textRect) ];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[ Base::mainWindow().uiWin addSubview: vkbdField ];
-		[ vkbdField release ];
+		[Base::mainWindow().uiWin() addSubview: vkbdField];
+		//TODO[ vkbdField release ];
 	}
 	else
 	{
@@ -117,11 +139,11 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
 	}
 
-	[ vkbdField becomeFirstResponder ];
+	[vkbdField becomeFirstResponder];
 	return 0;
 }
 
-void placeSysTextInput(const IG::Rect2<int> &rect)
+void placeSysTextInput(const IG::WindowRect &rect)
 {
 	textRect = rect;
 	if(vkbdField)
@@ -130,7 +152,7 @@ void placeSysTextInput(const IG::Rect2<int> &rect)
 	}
 }
 
-const IG::Rect2<int> &sysTextInputRect() { return textRect; }
+const IG::WindowRect &sysTextInputRect() { return textRect; }
 
 void cancelSysTextInput()
 {
@@ -169,7 +191,11 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 
 void setKeyRepeat(bool on)
 {
-	// TODO
+	allowKeyRepeats = on;
+	if(!on)
+	{
+		deinitKeyRepeatTimer();
+	}
 }
 
 CallResult init()

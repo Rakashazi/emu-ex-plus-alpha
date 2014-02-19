@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../config.mk
+include $(IMAGINE_PATH)/make/config.mk
 android_makefileOpts ?= O_RELEASE=1 O_LTO=1 
 android_minSDK ?= 9
 android_imagineLibPathARM ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-armv6-release

@@ -5,7 +5,6 @@
 #include <util/number.h>
 #include <util/bits.h>
 #include <assert.h>
-#include <util/cLang.h>
 #include <util/branch.h>
 
 class PixelFormatDesc
@@ -20,16 +19,10 @@ public:
 
 	constexpr uint build(uint r, uint g, uint b, uint a) const
 	{
-		//uint pixel = 0;
 		return (rBits ? ((r & bit_fullMask<uint>(rBits)) << rShift) : 0) |
 			(gBits ? ((g & bit_fullMask<uint>(gBits)) << gShift) : 0) |
 			(bBits ? ((b & bit_fullMask<uint>(bBits)) << bShift) : 0) |
 			(aBits ? ((a & bit_fullMask<uint>(aBits)) << aShift) : 0);
-		/*if(rBits) pixel |= (r & bit_fullMask<uint>(rBits)) << rShift;
-		if(gBits) pixel |= (g & bit_fullMask<uint>(gBits)) << gShift;
-		if(bBits) pixel |= (b & bit_fullMask<uint>(bBits)) << bShift;
-		if(aBits) pixel |= (a & bit_fullMask<uint>(aBits)) << aShift;
-		return pixel;*/
 	}
 
 	constexpr uint build(int r, int g, int b, int a) const
@@ -83,7 +76,7 @@ public:
 enum { PIXEL_UNKNOWN, PIXEL_RGB888, PIXEL_RGBA8888, PIXEL_BGR888, PIXEL_BGRA8888,
 	PIXEL_RGB565, PIXEL_ARGB1555, PIXEL_ABGR1555, PIXEL_XBGR1555, PIXEL_I8, PIXEL_A8,
 	PIXEL_ARGB8888, PIXEL_ABGR8888, PIXEL_IA53, PIXEL_AI35, PIXEL_IA88,
-	PIXEL_ARGB4444, PIXEL_BGRA4444, PIXEL_END } ;
+	PIXEL_RGBA4444, PIXEL_ARGB4444, PIXEL_BGRA4444, PIXEL_END } ;
 
 static constexpr PixelFormatDesc PixelFormatRGB888 =
 {
@@ -138,6 +131,12 @@ static constexpr PixelFormatDesc PixelFormatABGR1555 =
 	10, 5, 0, 15, // shifts
 	5, 5, 5, 1, // bits
 	16, 2, 1, "ABGR1555", PIXEL_ABGR1555
+};
+static constexpr PixelFormatDesc PixelFormatRGBA4444 =
+{
+	12, 8, 4, 0, // shifts
+	4, 4, 4, 4, // bits
+	16, 2, 0, "RGBA4444", PIXEL_RGBA4444
 };
 static constexpr PixelFormatDesc PixelFormatARGB4444 =
 {

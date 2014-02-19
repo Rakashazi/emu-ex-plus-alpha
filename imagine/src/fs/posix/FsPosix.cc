@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "fsPosix"
+#define LOGTAG "FSPosix"
 #include <cstdlib>
 #include <logger/interface.h>
 #include <base/Base.hh>
@@ -24,36 +24,22 @@
 #include "FsPosix.hh"
 
 #ifdef __APPLE__
-	#include <util/string/apple.h>
+#include <util/string/apple.h>
 #endif
 
-#if defined CONFIG_BASE_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED <= 50100
-	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
-	#define SELECTOR_CONST
-#else
-	#define SELECTOR_CONST const
-#endif
-
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_MACOSX) || (defined(CONFIG_BASE_IOS) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000)
-	#define CMP_CAST (int (*)(const dirent**, const dirent**))
-#elif defined(CONFIG_BASE_IOS)
-	// Changed in iOS SDK 6.0, but needed to compile on 5.1 for ARMv6
-	#define CMP_CAST (int (*)(const void*, const void*))
-#else
-	#define CMP_CAST
-#endif
-
-// scandir selectors
-
-static int noDotRefs(SELECTOR_CONST struct dirent *entry)
+union FullDirent
 {
-	const char *name = entry->d_name;
+	struct dirent d;
+	char b[offsetof (struct dirent, d_name) + NAME_MAX + 1];
+};
+
+static int noDotRefs(const struct dirent &entry)
+{
+	const char *name = entry.d_name;
 	if(string_equal(name,".") || string_equal(name,".."))
 		return 0;
 	else return 1;
 }
-
-static FsDirFilterFunc currentFilter = nullptr;
 
 static const char* dTypeToString(unsigned char d_type)
 {
@@ -108,45 +94,39 @@ static int fileTypeFromSymlink(const char *path)
 	}
 }
 
-static int customSelector(SELECTOR_CONST struct dirent *entry)
+// NOTE: assumes the working directory is the same as the directory entry being inspected
+static int fileTypeFromDirent(const struct dirent &entry)
 {
-	assert(currentFilter);
-
-	if(!noDotRefs(entry))
-		return 0;
-
-	int type = entry->d_type == DT_DIR ? Fs::TYPE_DIR : Fs::TYPE_FILE;
-	//logMsg("%s : %s", entry->d_name, dTypeToString(entry->d_type));
-	if(entry->d_type == DT_UNKNOWN)
+	if(entry.d_type == DT_UNKNOWN)
 	{
 		//logMsg("type from dir entry unknown, using stat on %s", entry->d_name);
 		struct stat s;
-		if(stat(entry->d_name, &s) == 0)
+		if(stat(entry.d_name, &s) == 0)
 		{
 			if(S_ISLNK(s.st_mode))
 			{
-				type = fileTypeFromSymlink(entry->d_name);
+				return fileTypeFromSymlink(entry.d_name);
 			}
 			else
 			{
-				type = S_ISDIR(s.st_mode) ? Fs::TYPE_DIR : Fs::TYPE_FILE;
+				return S_ISDIR(s.st_mode) ? Fs::TYPE_DIR : Fs::TYPE_FILE;
 				//logMsg("stat type of %s is %s", entry->d_name, type == Fs::TYPE_DIR ? "Dir" : "File");
 			}
 		}
 		else
+		{
 			logMsg("error in stat");
+			return Fs::TYPE_FILE;
+		}
 	}
-	else if(entry->d_type == DT_LNK)
+	else if(entry.d_type == DT_LNK)
 	{
-		type = fileTypeFromSymlink(entry->d_name);
+		return fileTypeFromSymlink(entry.d_name);
 	}
-	return currentFilter(entry->d_name, type);
+	return entry.d_type == DT_DIR ? Fs::TYPE_DIR : Fs::TYPE_FILE;
 }
-// scandir selectors end
 
-static FsDirSortFunc currentSorter = 0;
-
-static int customSorter(const struct dirent **e1, const struct dirent **e2)
+/*static int customSorter(const struct dirent **e1, const struct dirent **e2)
 {
 	assert(currentSorter);
 	struct stat s1, s2;
@@ -154,18 +134,16 @@ static int customSorter(const struct dirent **e1, const struct dirent **e2)
 	stat((*e2)->d_name, &s2);
 	//logMsg("comparing %s,%ld to %s,%ld", (*e1)->d_name, (long int)s1.st_mtime, (*e2)->d_name, (long int)s2.st_mtime);
 	return currentSorter((*e1)->d_name, s1.st_mtime, (*e2)->d_name, s2.st_mtime);
-}
+}*/
 
 CallResult FsPosix::openDir(const char* path, uint flags, FsDirFilterFunc f, FsDirSortFunc s)
 {
-	currentFilter = f;
-	currentSorter = s;
-	if(entry)
-		closeDir();
-	logMsg("opening directory %s", path);	
+	closeDir();
+	logMsg("opening directory %s", path);
 
+	bool switchDirs = !string_equal(path, "."); // save working dir and switch into the new one
 	char prevWorkDir[strlen(workDir()) + 1];
-	if(!string_equal(path, ".")) // save working dir and switch into the new one
+	if(switchDirs)
 	{
 		strcpy(prevWorkDir, workDir());
 		if(chdir(path) != 0)
@@ -175,20 +153,59 @@ CallResult FsPosix::openDir(const char* path, uint flags, FsDirFilterFunc f, FsD
 		}
 	}
 
-	numEntries_ = scandir(".", &entry,
-		currentFilter ? customSelector : noDotRefs,
-		(flags & Fs::OPEN_UNSORT) ? 0 : (currentSorter ? CMP_CAST customSorter : CMP_CAST alphasort));
+	auto dir = opendir(".");
+	if(!dir)
+	{
+		logErr("unable to open directory");
+		return INVALID_PARAMETER;
+	}
 
-	#ifdef __APPLE__
-		// Precompose all strings for text renderer
-		// TODO: make optional when renderer supports decomposed unicode
-		iterateTimes(numEntries_, i)
+	{
+		FullDirent currEntry;
+		struct dirent *resultEntry;
+		while(readdir_r(dir, &currEntry.d, &resultEntry) == 0 && resultEntry)
 		{
-			precomposeUnicodeString(entry[i]->d_name, entry[i]->d_name, sizeof(entry[i]->d_name));
-		}
-	#endif
+			auto &d = currEntry.d;
+			logMsg("reading entry: %s", d.d_name);
+			if(!noDotRefs(d))
+				continue;
+			if(f)
+			{
+				auto type = fileTypeFromDirent(d);
+				if(!f(d.d_name, type))
+					continue;
+			}
 
-	if(!string_equal(path, ".")) // switch back to original working dir
+			uint nameLen = strlen(d.d_name);
+			entry = (char**)mem_realloc(entry, sizeof(char**) * (numEntries_+1));
+			auto &currEntry = entry[numEntries_];
+			currEntry = (char*)mem_alloc(nameLen + 1);
+			strcpy(currEntry, d.d_name);
+			#ifdef __APPLE__
+			// Precompose all strings for text renderer
+			// TODO: make optional when renderer supports decomposed unicode
+			precomposeUnicodeString(currEntry, currEntry, nameLen+1);
+			#endif
+			numEntries_++;
+		}
+	}
+
+	if(s)
+	{
+		//std::sort();
+	}
+	else if(!(flags & Fs::OPEN_UNSORT))
+	{
+		// sort by string value
+		std::sort(entry, &entry[numEntries_],
+			[](const char *s1, const char *s2)
+			{
+				return strcasecmp(s1, s2) < 0;
+			}
+		);
+	}
+
+	if(switchDirs) // switch back to original working dir
 	{
 		if(chdir(prevWorkDir) != 0)
 		{
@@ -197,56 +214,33 @@ CallResult FsPosix::openDir(const char* path, uint flags, FsDirFilterFunc f, FsD
 		}
 	}
 
-	if (numEntries_ == -1)
-	{
-		numEntries_ = 0;
-		logErr("unable to open directory");
-		return INVALID_PARAMETER;
-	}
-
+	closedir(dir);
 	return OK;
 }
 
 void FsPosix::closeDir()
 {
-	// TODO: test this and make sure it's correct
-	iterateTimes(numEntries_, i)
+	if(entry)
 	{
-		free(entry[i]);
+		iterateTimes(numEntries_, i)
+		{
+			mem_free(entry[i]);
+		}
+		mem_free(entry);
+		entry = nullptr;
+		numEntries_ = 0;
 	}
-	free(entry);
-	entry = 0;
 }
-
-/*
-CallResult fs_posix_nextEntryInDir(FsHnd hnd, DirEntryHnd* entryAddr, DirHnd dir)
-{
-	struct dirent *ep = readdir(dir);
-
-	if(!ep)
-	{
-		logMsg("no more entries left in directory");
-	}
-
-	*entryAddr = (DirEntryHnd)ep;
-	return OK;
-}*/
 
 const char *FsPosix::entryFilename(uint index) const
 {
-	//logDMsg("entry name is %s", thisEntry[index]->d_name);
-	return entry[index]->d_name;
+	return entry[index];
 }
 
 uint FsPosix::numEntries() const
 {
 	return numEntries_;
 }
-
-/*void fs_posix_closeDir(FsHnd hnd, DirHnd dir)
-{
-	closedir(dir);
-}*/
 
 int FsPosix::workDirChanged = 0;
 

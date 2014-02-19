@@ -20,77 +20,39 @@
 #include <util/bits.h>
 #include <util/rectangle2.h>
 #include <util/DelegateFunc.hh>
-#include <base/Window.hh>
 
-#if defined (CONFIG_BASE_X11) || (defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9)
-#include <sys/epoll.h>
-#elif defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-#include <android/looper.h>
-#endif
-
-#if defined(CONFIG_BASE_ANDROID)
+#if defined CONFIG_BASE_ANDROID
 #include <base/android/public.hh>
-#elif defined(CONFIG_BASE_IOS)
+#elif defined CONFIG_BASE_IOS
 #include <base/iphone/public.hh>
 #endif
 
 namespace Base
 {
-
-// Windows
-Window &mainWindow();
+using namespace IG;
 
 // App exit
-void exitVal(int returnVal);
-static void exit() { exitVal(0); }
-void abort() ATTRS(noreturn);
-
-// Worker thread -> Main thread messages
-static const ushort
-	MSG_PLATFORM_START = 0, // platform-specific Base module message codes
-	MSG_IMAGINE_START = 127, // shared message codes
-	MSG_BT_SCAN_STATUS_DELEGATE = MSG_IMAGINE_START,
-	MSG_USER = 255; // client app message codes
-void sendMessageToMain(ThreadSys &thread, int type, int shortArg, int intArg, int intArg2);
-// version used when thread context isn't needed
-void sendMessageToMain(int type, int shortArg, int intArg, int intArg2);
-
-static void sendBTScanStatusDelegate(ThreadSys &thread, uint status, int arg = 0)
-{
-	sendMessageToMain(thread, MSG_BT_SCAN_STATUS_DELEGATE, 0, status, arg);
-}
+void exit(int returnVal);
+static void exit() { exit(0); }
+[[noreturn]] void abort();
 
 // Inter-process messages
 #if defined (CONFIG_BASE_X11)
-void registerInstance(const char *name, int argc, char** argv);
+void registerInstance(const char *appID, int argc, char** argv);
+void setAcceptIPC(const char *appID, bool on);
 #else
-static void registerInstance(const char *name, int argc, char** argv) {}
-#endif
-
-// Graphics update notification
-#if defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
-bool supportsFrameTime();
-#else
-static bool supportsFrameTime() { return 0; }
+static void registerInstance(const char *appID, int argc, char** argv) {}
+static void setAcceptIPC(const char *appID, bool on) {}
 #endif
 
 // App run state
 static const uint APP_RUNNING = 0, APP_PAUSED = 1, APP_EXITING = 2;
-extern uint appState;
-static bool appIsRunning() { return appState == APP_RUNNING; }
+uint appActivityState();
+static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 
 // sleeping
 void sleepMs(int ms); //sleep for ms milliseconds
 void sleepUs(int us);
-
-// display refresh rate
-uint refreshRate();
-static const uint REFRESH_RATE_DEFAULT = 0;
-#ifdef CONFIG_BASE_X11
-void setRefreshRate(uint rate);
-#else
-static void setRefreshRate(uint rate) {}
-#endif
 
 // external services
 #if defined (CONFIG_BASE_IOS)
@@ -98,32 +60,6 @@ void openURL(const char *url);
 #else
 static void openURL(const char *url) {}
 #endif
-
-// poll()-like event system support
-using PollEventDelegate = DelegateFunc<int (int event)>;
-#if defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
-	POLLEV_ERR = ALOOPER_EVENT_ERROR, POLLEV_HUP = ALOOPER_EVENT_HANGUP;
-#elif defined (CONFIG_BASE_X11) || (defined(CONFIG_BASE_ANDROID) && CONFIG_ENV_ANDROID_MINSDK < 9)
-static const int POLLEV_IN = EPOLLIN, POLLEV_OUT = EPOLLOUT, POLLEV_ERR = EPOLLERR, POLLEV_HUP = EPOLLHUP;
-#endif
-
-#if defined (CONFIG_BASE_X11) || defined(CONFIG_BASE_ANDROID)
-void addPollEvent(int fd, PollEventDelegate &handler, uint events = POLLEV_IN); // caller is in charge of handler's memory
-void modPollEvent(int fd, PollEventDelegate &handler, uint events);
-void removePollEvent(int fd); // unregister the fd (must still be open)
-#endif
-
-// timer event support
-using CallbackDelegate = DelegateFunc<void ()>;
-struct CallbackRef;
-void cancelCallback(CallbackRef *ref);
-CallbackRef *callbackAfterDelay(CallbackDelegate callback, int ms);
-
-static CallbackRef *callbackAfterDelaySec(CallbackDelegate callback, int s)
-{
-	return callbackAfterDelay(callback, s * 1000);
-}
 
 // file system paths
 extern const char *appPath;
@@ -135,33 +71,20 @@ static const char *documentsPath() { return appPath; }
 
 const char *storagePath();
 
-// OS dialog & status bar management
+// OS UI management (status & navigation bar)
+
+static constexpr uint
+  SYS_UI_STYLE_NO_FLAGS = 0,
+  SYS_UI_STYLE_DIM_NAV = bit(0),
+  SYS_UI_STYLE_HIDE_NAV = bit(1),
+  SYS_UI_STYLE_HIDE_STATUS = bit(2);
+
 #if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
-void setStatusBarHidden(bool hidden);
-#else
-static void setStatusBarHidden(bool hidden) {}
-#endif
-
-#if defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
-void setSystemOrientation(uint o);
-#else
-static void setSystemOrientation(uint o) {}
-#endif
-
-static const uint OS_NAV_STYLE_DIM = bit(0), OS_NAV_STYLE_HIDDEN = bit(1);
-#if defined(CONFIG_BASE_ANDROID)
-void setOSNavigationStyle(uint flags);
+void setSysUIStyle(uint flags);
 bool hasHardwareNavButtons();
 #else
-static void setOSNavigationStyle(uint flags) {}
+static void setSysUIStyle(uint flags) {}
 static bool hasHardwareNavButtons() { return false; }
-#endif
-
-// orientation sensor support
-#if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS) || CONFIG_ENV_WEBOS_OS >= 3
-void setAutoOrientation(bool on);
-#else
-static void setAutoOrientation(bool on) {}
 #endif
 
 // vibration support
@@ -174,14 +97,16 @@ static bool hasVibrator() { return false; }
 static void vibrate(uint ms) {}
 #endif
 
-// Notification icon
-#if defined (CONFIG_BASE_ANDROID)
+// Notification/Launcher icons
+#if defined CONFIG_BASE_ANDROID
 void addNotification(const char *onShow, const char *title, const char *message);
+void addLauncherIcon(const char *name, const char *path);
 #else
 static void addNotification(const char *onShow, const char *title, const char *message) {}
+static void addLauncherIcon(const char *name, const char *path) {}
 #endif
 
-// Power Saving
+// Power Management
 #if defined(CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS)
 void setIdleDisplayPowerSave(bool on);
 void endIdleByUserActivity();
@@ -191,16 +116,6 @@ static void endIdleByUserActivity() {}
 #endif
 
 // App Callbacks
-
-// Called when main receives a worker thread message with type >= MSG_USER
-void onAppMessage(int type, int shortArg, int intArg, int intArg2);
-
-// Called when app window enters/exits focus
-void onFocusChange(Base::Window &win, uint in);
-
-// Called when a file is dropped into into the app's window
-// if app enables setAcceptDnd()
-void onDragDrop(Base::Window &win, const char *filename);
 
 // Called when another process sends the app a message
 void onInterProcessMessage(const char *filename);
@@ -213,21 +128,18 @@ void onResume(bool focused);
 void onExit(bool backgrounded);
 
 // Called on app startup, before the graphics context is initialized
-CallResult onInit(int argc, char** argv) ATTRS(cold);
-
-// Called on app window creation, after the graphics context is initialized
-CallResult onWindowInit(Base::Window &win) ATTRS(cold);
+[[gnu::cold]] CallResult onInit(int argc, char** argv);
 
 } // Base
 
 namespace Config
 {
-static constexpr bool BASE_SUPPORTS_VIBRATOR =
-	#ifdef CONFIG_BASE_SUPPORTS_VIBRATOR
-	true;
-	#else
-	false;
-	#endif
+
+#ifdef CONFIG_BASE_SUPPORTS_VIBRATOR
+static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
+#else
+static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
+#endif
 
 #if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
 #define CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR

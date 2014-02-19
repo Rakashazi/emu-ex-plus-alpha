@@ -214,7 +214,7 @@
 #endif
 
 /* Mednafen version definition. */
-#define MEDNAFEN_VERSION "0.9.16"
+#define MEDNAFEN_VERSION "0.9.32.1"
 
 /* Mednafen version numeric. */
 #define MEDNAFEN_VERSION_NUMERIC 0x000916
@@ -331,9 +331,6 @@
 #ifndef __EXTENSIONS__
 # define __EXTENSIONS__ 1
 #endif
-
-/* Version number of package */
-#define VERSION "0.9.16"
 
 /* Define if we are compiling with debugger. */
 /* #undef WANT_DEBUGGER */

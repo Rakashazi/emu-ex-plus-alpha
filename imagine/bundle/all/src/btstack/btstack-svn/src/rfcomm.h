@@ -38,6 +38,9 @@
  *  RFCOMM.h
  */
 
+#ifndef __RFCOMM_H
+#define __RFCOMM_H
+ 
 #include <btstack/btstack.h>
 #include <btstack/utils.h>
 
@@ -48,6 +51,84 @@ extern "C" {
 #endif
     
 #define UNLIMITED_INCOMING_CREDITS 0xff
+
+#define RFCOMM_TEST_DATA_MAX_LEN 4
+
+#define RFCOMM_RLS_STATUS_INVALID 0xff
+
+// Line Status
+#define LINE_STATUS_NO_ERROR       0x00
+#define LINE_STATUS_OVERRUN_ERROR  0x03
+#define LINE_STATUS_PARITY_ERORR   0x05
+#define LINE_STATUS_FRAMING_ERROR  0x09
+
+// Modem Status Flags
+#define MODEM_STATUS_FC   0x02
+#define MODEM_STATUS_RTC  0x04
+#define MODEM_STATUS_RTR  0x08
+#define MODEM_STATUS_IC   0x40
+#define MODEM_STATUS_DV   0x80
+
+typedef enum rpn_baud {
+    RPN_BAUD_2400 = 0,
+    RPN_BAUD_4800,
+    RPN_BAUD_7200,
+    RPN_BAUD_9600,
+    RPN_BAUD_19200,
+    RPN_BAUD_38400,
+    RPN_BAUD_57600,
+    RPN_BAUD_115200,
+    RPN_BAUD_230400
+} rpn_baud_t;
+
+typedef enum rpn_data_bits {
+    RPN_DATA_BITS_5 = 0,
+    RPN_DATA_BITS_6 = 0,
+    RPN_DATA_BITS_7 = 0,
+    RPN_DATA_BITS_8 = 0
+} rpn_data_bits_t;
+
+typedef enum rpn_stop_bits {
+    RPN_STOP_BITS_1_0 = 0,
+    RPN_STOP_BITS_1_5 
+} rpn_stop_bits_t;
+
+typedef enum rpn_parity {
+    RPN_PARITY_NONE  = 0,
+    RPN_PARITY_ODD   = 1,
+    RPN_PARITY_EVEN  = 3,
+    RPN_PARITY_MARK  = 5,
+    RPN_PARITY_SPACE = 7, 
+} rpn_parity_t;
+
+typedef enum rpn_flow_control {
+    RPN_FLOW_CONTROL_XONXOFF_ON_INPUT  = 1 << 0,
+    RPN_FLOW_CONTROL_XONXOFF_ON_OUTPUT = 1 << 1,
+    RPN_FLOW_CONTROL_RTR_ON_INPUT  = 1 << 2,
+    RPN_FLOW_CONTROL_RTR_ON_OUTPUT = 1 << 3,
+    RPN_FLOW_CONTROL_RTC_ON_INPUT  = 1 << 4,
+    RPN_FLOW_CONTROL_RTC_ON_OUTPUT = 1 << 5,
+} rpn_flow_control_t;
+
+#define RPN_PARAM_MASK_0_BAUD             0x01
+#define RPN_PARAM_MASK_0_DATA_BITS        0x02
+#define RPN_PARAM_MASK_0_STOP_BITS        0x04
+#define RPN_PARAM_MASK_0_PARITY           0x08       
+#define RPN_PARAM_MASK_0_PARITY_TYPE      0x10
+#define RPN_PARAM_MASK_0_XON_CHAR         0x20
+#define RPN_PARAM_MASK_0_XOFF_CHAR        0x40
+#define RPN_PARAM_MASK_0_RESERVED         0x80
+
+// @note: values are identical to rpn_flow_control_t
+#define RPN_PARAM_MASK_1_XONOFF_ON_INPUT  0x01
+#define RPN_PARAM_MASK_1_XONOFF_ON_OUTPUT 0x02
+#define RPN_PARAM_MASK_1_RTR_ON_INPUT     0x04
+#define RPN_PARAM_MASK_1_RTR_ON_OUTPUT    0x08       
+#define RPN_PARAM_MASK_1_RTC_ON_INPUT     0x10
+#define RPN_PARAM_MASK_1_RTC_ON_OUTPUT    0x20
+#define RPN_PARAM_MASK_1_RESERVED_0       0x40
+#define RPN_PARAM_MASK_1_RESERVED_1       0x80
+
 
 // private structs
 typedef enum {
@@ -78,6 +159,7 @@ typedef enum {
 	RFCOMM_CHANNEL_OPEN,
     RFCOMM_CHANNEL_SEND_UA_AFTER_DISC,
     RFCOMM_CHANNEL_SEND_DISC,
+    RFCOMM_CHANNEL_W4_UA_AFTER_UA,
     RFCOMM_CHANNEL_SEND_DM,
     
 } RFCOMM_CHANNEL_STATE;
@@ -114,6 +196,9 @@ typedef enum {
     CH_EVT_RCVD_DM,
     CH_EVT_RCVD_MSC_CMD,
     CH_EVT_RCVD_MSC_RSP,
+    CH_EVT_RCVD_NSC_RSP,
+    CH_EVT_RCVD_RLS_CMD,
+    CH_EVT_RCVD_RLS_RSP,
     CH_EVT_RCVD_RPN_CMD,
     CH_EVT_RCVD_RPN_REQ,
     CH_EVT_RCVD_CREDITS,
@@ -146,6 +231,16 @@ typedef struct rfcomm_channel_event_rpn {
     rfcomm_channel_event_t super;
     rfcomm_rpn_data_t data;
 } rfcomm_channel_event_rpn_t;
+
+typedef struct rfcomm_channel_event_rls {
+    rfcomm_channel_event_t super;
+    uint8_t line_status;
+} rfcomm_channel_event_rls_t;
+
+typedef struct rfcomm_channel_event_msc {
+    rfcomm_channel_event_t super;
+    uint8_t modem_status;
+} rfcomm_channel_event_msc_t;
 
 // info regarding potential connections
 typedef struct {
@@ -186,19 +281,28 @@ typedef struct {
     uint16_t  l2cap_cid;
     uint8_t   l2cap_credits;
     
+    uint8_t   fcon; // only send if fcon & 1, send rsp if fcon & 0x80
+
 	bd_addr_t remote_addr;
     hci_con_handle_t con_handle;
     
 	uint8_t   outgoing;
     
     // hack to deal with authentication failure only observed by remote side
-    uint8_t   at_least_one_connection;
+    uint8_t at_least_one_connection;
     
     uint16_t max_frame_size;
     
     // send DM for DLCI != 0
     uint8_t send_dm_for_dlci;
     
+    // non supportec command, 0 if not set
+    uint8_t nsc_command;
+
+    // test data - limited to RFCOMM_TEST_DATA_MAX_LEN
+    uint8_t test_data_len;
+    uint8_t test_data[RFCOMM_TEST_DATA_MAX_LEN];
+
 } rfcomm_multiplexer_t;
 
 // info regarding an actual coneection
@@ -238,9 +342,15 @@ typedef struct {
 	// negotiated frame size
     uint16_t max_frame_size;
 	
-    // rpn data
+    // local rpn data
     rfcomm_rpn_data_t rpn_data;
     
+    // rls line status. RFCOMM_RLS_STATUS_INVALID if not set
+    uint8_t rls_line_status;
+
+    // msc modem status.
+    uint8_t msc_modem_status;
+
 	// server channel (see rfcomm_service_t) - NULL => outgoing channel
 	rfcomm_service_t * service;
     
@@ -259,6 +369,9 @@ void rfcomm_close_connection(void *connection);
 
 // Set up RFCOMM.
 void rfcomm_init(void);
+
+// Set security level required for incoming connections, need to be called before registering services
+void rfcomm_set_required_security_level(gap_security_level_t security_level);
 
 // Register packet handler.
 void rfcomm_register_packet_handler(void (*handler)(void * connection, uint8_t packet_type,
@@ -296,6 +409,20 @@ void rfcomm_grant_credits(uint16_t rfcomm_cid, uint8_t credits);
 // Sends RFCOMM data packet to the RFCOMM channel with given identifier.
 int  rfcomm_send_internal(uint16_t rfcomm_cid, uint8_t *data, uint16_t len);
 
+// Sends Local Lnie Status, see LINE_STATUS_..
+int rfcomm_send_local_line_status(uint16_t rfcomm_cid, uint8_t line_status);
+
+// Sned local modem status. see MODEM_STAUS_..
+int rfcomm_send_modem_status(uint16_t rfcomm_cid, uint8_t modem_status);
+
+// Configure remote port 
+int rfcomm_send_port_configuration(uint16_t rfcomm_cid, rpn_baud_t baud_rate, rpn_data_bits_t data_bits, rpn_stop_bits_t stop_bits, rpn_parity_t parity, rpn_flow_control_t flow_control);
+
+// Query remote port 
+int rfcomm_query_port_configuration(uint16_t rfcomm_cid);
+
 #if defined __cplusplus
 }
 #endif
+
+#endif // __RFCOMM_H

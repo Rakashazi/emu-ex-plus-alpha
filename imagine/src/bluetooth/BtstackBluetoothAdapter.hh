@@ -33,12 +33,14 @@ public:
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
 	void packetHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 	static void processCommands();
+
 private:
 	uint state_ = HCI_STATE_OFF, scanResponses = 0;
-	bool isOpen = 0;
+	bool isOpen = false;
 	static bool cmdActive;
 	OnStatusDelegate setL2capServiceOnResult;
 	OnStateChangeDelegate onStateChangeD;
+
 	CallResult openDefault();
 	bool isInactive();
 };
@@ -46,6 +48,11 @@ private:
 class BluetoothPendingSocket
 {
 public:
+	uint type = 0;
+	BluetoothAddr addr;
+	uint16_t ch = 0;
+	uint16_t localCh = 0;
+
 	constexpr BluetoothPendingSocket() {}
 	constexpr BluetoothPendingSocket(uint type, BluetoothAddr addr, uint16_t ch, uint16_t localCh):
 		type(type), addr(addr), ch(ch), localCh(localCh) {}
@@ -57,11 +64,6 @@ public:
 	{
 		return ch != 0;
 	}
-
-	uint type = 0;
-	BluetoothAddr addr;
-	uint16_t ch = 0;
-	uint16_t localCh = 0;
 };
 
 class BtstackBluetoothSocket : public BluetoothSocket
@@ -75,7 +77,6 @@ public:
 	#endif
 	void close() override;
 	CallResult write(const void *data, size_t size) override;
-
 	const void *pin(uint &size);
 	void setPin(const void *pin, uint size);
 	static BtstackBluetoothSocket *findSocket(const bd_addr_t addr, uint16_t ch);

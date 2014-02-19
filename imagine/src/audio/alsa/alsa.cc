@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "audio:alsa"
+#define LOGTAG "ALSA"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -35,13 +35,18 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { ::Config::MACHINE_IS_PANDORA ? 44100 : 48000, SampleFormats::s16, 2 };
+PcmFormat preferredPcmFormat {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, SampleFormats::s16, 2};
 PcmFormat pcmFormat;
 static snd_output_t *debugOutput = nullptr;
-static snd_pcm_t *pcmHnd = 0;
+static snd_pcm_t *pcmHnd = nullptr;
 static snd_pcm_uframes_t bufferSize, periodSize;
 static bool useMmap;
 static uint wantedLatency = 100000;
+
+int maxRate()
+{
+	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
+}
 
 void setHintOutputLatency(uint us)
 {
@@ -213,7 +218,7 @@ void writePcm(const void *samples, uint framesToWrite)
 
 	//logMsg("writing %d frames, %d free", framesToWrite, framesFreeOnHW);
 
-	{
+	/*{
 		static uint framesToWriteAvg = 0, writeCount = 0;
 		framesToWriteAvg += framesToWrite;
 		writeCount++;
@@ -223,7 +228,7 @@ void writePcm(const void *samples, uint framesToWrite)
 			framesToWriteAvg = 0;
 			writeCount = 0;
 		}
-	}
+	}*/
 
 	if(framesFreeOnHW < (int)framesToWrite)
 	{
@@ -283,9 +288,9 @@ static int setupPcm(const PcmFormat &format, snd_pcm_access_t access)
 	}
 
 	if(access == SND_PCM_ACCESS_MMAP_INTERLEAVED)
-		useMmap = 1;
+		useMmap = true;
 	else
-		useMmap = 0;
+		useMmap = false;
 
 	if((err = snd_pcm_get_params(pcmHnd, &bufferSize, &periodSize) < 0))
 	{

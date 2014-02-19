@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <util/ansiTypes.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <assert.h>
 
 static void mem_zero(void *buff, size_t count)

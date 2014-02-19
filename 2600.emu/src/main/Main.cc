@@ -39,21 +39,21 @@
 #include <unzip.h>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
+#include "CommonGui.hh"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static ImagineSound *vcsSound = 0;
 static uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 static uint tiaSoundRate = 0;
-static Console *console = 0;
-static Properties currGameProps;
+Console *console = nullptr;
+Properties currGameProps;
 #include "MiscStella.hh"
-#define MAX_ROM_SIZE  512 * 1024
+static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 
-static Cartridge *cartridge = 0;
-static OSystem osystem;
+static Cartridge *cartridge = nullptr;
+OSystem osystem;
 static StateManager stateManager(&osystem);
-static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
+bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 #ifdef __clang__
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
 #endif
@@ -105,28 +105,42 @@ enum
 
 enum
 {
-	CFGKEY_2600_TV_PHOSPHOR = 270
+	CFGKEY_2600_TV_PHOSPHOR = 270, CFGKEY_VIDEO_SYSTEM = 271,
 };
 
-static constexpr uint TV_PHOSPHOR_AUTO = 2;
-static Byte1Option optionTVPhosphor(CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO);
+Byte1Option optionTVPhosphor(CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO);
+Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0, 0, optionIsValidWithMax<6>);
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
 		bcase CFGKEY_2600_TV_PHOSPHOR: optionTVPhosphor.readFromIO(io, readSize);
+		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 	}
 	return 1;
+}
+
+static const char *optionVideoSystemToStr()
+{
+	switch((int)optionVideoSystem)
+	{
+		case 1: return "NTSC";
+		case 2: return "PAL";
+		case 3: return "SECAM";
+		case 4: return "NTSC50";
+		case 5: return "PAL60";
+		case 6: return "SECAM60";
+		default: return "AUTO";
+	}
 }
 
 void EmuSystem::writeConfig(Io *io)
 {
 	optionTVPhosphor.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
 }
-
-#include "CommonGui.hh"
 
 static const uint vidBufferX = 160, vidBufferY = 320;
 static uint16 pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
@@ -186,6 +200,7 @@ void EmuSystem::saveBackupMem() { }
 void EmuSystem::closeSystem()
 {
 	delete console;
+	console = nullptr;
 }
 
 static void updateSwitchValues()
@@ -198,7 +213,10 @@ static void updateSwitchValues()
 	vcsColor = switches & 0x08;
 }
 
-bool EmuSystem::vidSysIsPAL() { return 0; }
+bool EmuSystem::vidSysIsPAL()
+{
+	return osystem.settings().value("framerate") == 50.0;
+}
 uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
@@ -296,11 +314,18 @@ int EmuSystem::loadGame(const char *path)
 	{
 		props.set(Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
 	}
+	if((int)optionVideoSystem) // not auto
+	{
+		logMsg("forcing video system to: %s", optionVideoSystemToStr());
+		props.set(Display_Format, optionVideoSystemToStr());
+	}
 	console = new Console(&osystem, cartridge, props);
+	settings.setValue("framerate", console->getFramerate());
 	osystem.myConsole = console;
 	emuView.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
+	logMsg("is PAL: %s", vidSysIsPAL() ? "yes" : "no");
 	configAudioPlayback();
 	return 1;
 }
@@ -332,8 +357,6 @@ void EmuSystem::configAudioRate()
 	}
 	logMsg("set sound rate %d", tiaSoundRate);
 }
-
-static const uint audioMaxFramesPerUpdate = (Audio::maxRate/59)*2;
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
@@ -453,7 +476,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -491,20 +514,26 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		}
 		emuView.updateAndDrawContent();
 	}
+
+	#ifdef USE_NEW_AUDIO
 	if(renderAudio)
 	{
-		#ifdef USE_NEW_AUDIO
 		auto aBuff = Audio::getPlayBuffer(audioFramesPerVideoFrame);
 		if(!aBuff) return;
 		vcsSound->processAudio((Int16*)aBuff.data, aBuff.frames);
 		commitSound(aBuff, aBuff.frames);
-		#else
-		auto frames = audioFramesPerVideoFrame;
-		Int16 buff[frames*soundChannels];
-		vcsSound->processAudio(buff, frames);
-		writeSound(buff, frames);
-		#endif
 	}
+	else
+	{
+		vcsSound->processAudio(nullptr, 0);
+	}
+	#else
+	auto frames = renderAudio ? audioFramesPerVideoFrame : 0;
+	Int16 buff[frames*soundChannels];
+	vcsSound->processAudio(buff, frames);
+	if(renderAudio)
+		writeSound(buff, frames);
+	#endif
 }
 
 void EmuSystem::resetGame()
@@ -553,12 +582,11 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	//Audio::setHintPcmFramesPerWrite(950); // TODO: for PAL when supported
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuView.initPixmap((uchar*)pixBuff, pixFmt, vidBufferX, vidBufferY);
+	emuView.initPixmap((char*)pixBuff, &PixelFormatRGB565, vidBufferX, vidBufferY);
 	Settings *settings = new Settings(&osystem);
-	settings->setValue("framerate", 60);
+	settings->setValue("framerate", 60); // set to avoid auto-frame calculation
 	mainInitCommon(argc, argv);
 	return OK;
 }

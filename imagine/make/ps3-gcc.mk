@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 ENV := ps3
 CROSS_COMPILE := 1
 CHOST := powerpc64

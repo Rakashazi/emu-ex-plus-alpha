@@ -47,7 +47,7 @@ webos-release : $(webOS_armv6ReleaseExec) $(webOS_armv7ReleaseExec) $(webOS_3arm
 # metadata
 
 webOS_appInfoJson := $(webOS_targetPath)/app/appinfo.json
-$(webOS_appInfoJson) : metadata/conf.mk $(metadata_confDeps)
+$(webOS_appInfoJson) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 	@mkdir -p $(@D)
 	bash $(IMAGINE_PATH)/tools/genWebOSMeta.sh $(webOS_gen_metadata_args) $@
 webos-metadata : $(webOS_appInfoJson)

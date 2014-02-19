@@ -1,5 +1,19 @@
-#define thisModuleName "freetype2"
+/*  This file is part of Imagine.
 
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#define LOGTAG "Freetype2"
 #include "FreetypeFontData.hh"
 #include <cstring>
 #include <cstdlib>
@@ -17,7 +31,7 @@ static unsigned long freetypeIoFunc(FT_Stream stream, unsigned long offset, unsi
 {
 	auto *io = (Io*)stream->descriptor.pointer;
 	//logMsg("using io addr %p", io);
-	io->seekAbs(offset);
+	io->seekA(offset);
 	stream->pos = offset;
 	//logMsg("offset %d", (int)offset);
 	
@@ -192,14 +206,13 @@ int FreetypeFontData::charBitmapHeight() const
 	return face->glyph->bitmap.rows;
 }
 
-void FreetypeFontData::accessCharBitmap(void *&bitmap, int &x, int &y, int &pitch) const
+IG::Pixmap FreetypeFontData::accessCharBitmap() const
 {
 	auto slot = face->glyph;
 	//logMsg("character is %dx%d pixels, left-top offsets %dx%d", slot->bitmap.width, slot->bitmap.rows, slot->bitmap_left, slot->bitmap_top);
-	bitmap = slot->bitmap.buffer;
-	x = slot->bitmap.width;
-	y = slot->bitmap.rows;
-	pitch = slot->bitmap.pitch;
+	IG::Pixmap pix{PixelFormatA8};
+	pix.init2(slot->bitmap.buffer, slot->bitmap.width, slot->bitmap.rows, slot->bitmap.pitch);
+	return pix;
 }
 
 int FreetypeFontData::getCurrentCharBitmapXAdvance() const

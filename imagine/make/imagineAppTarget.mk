@@ -5,6 +5,11 @@ include $(buildSysPath)/evalPkgConfigLibs.mk
 
 ifeq ($(ENV), android)
  target := lib$(android_soName).so
+ LDFLAGS += $(LDFLAGS_SO)
+endif
+
+ifdef O_LTO
+ LDFLAGS += $(COMPILE_FLAGS) $(WHOLE_PROGRAM_CFLAGS)
 endif
 
 targetFile := $(target)$(targetSuffix)$(targetExtension)

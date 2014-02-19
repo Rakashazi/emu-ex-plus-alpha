@@ -19,10 +19,10 @@
 #include <EmuOptions.hh>
 #include <base/Base.hh>
 
-static bool readKeyConfig(Io *io, uint16 &size)
+static bool readKeyConfig(Io &io, uint16 &size)
 {
 	uint8 confs; // TODO: unused currently, use to pre-allocate memory for configs
-	io->readVar(confs);
+	io.readVar(confs);
 	size--;
 	if(!size)
 		return 0;
@@ -31,26 +31,26 @@ static bool readKeyConfig(Io *io, uint16 &size)
 	{
 		KeyConfig keyConf {0};
 
-		io->readVarAsType<uint8>(keyConf.map);
+		io.readVarAsType<uint8>(keyConf.map);
 		size--;
 		if(!size)
 			return 0;
 
 		uint8 nameLen;
-		io->readVar(nameLen);
+		io.readVar(nameLen);
 		size--;
 		if(size < nameLen)
 			return 0;
 
 		if(nameLen > sizeof(keyConf.name)-1)
 			return 0;
-		io->read(keyConf.name, nameLen);
+		io.read(keyConf.name, nameLen);
 		size -= nameLen;
 		if(!size)
 			return 0;
 
 		uint8 categories;
-		io->readVar(categories);
+		io.readVar(categories);
 		size--;
 		if(categories > EmuControls::categories)
 		{
@@ -63,7 +63,7 @@ static bool readKeyConfig(Io *io, uint16 &size)
 				return 0;
 
 			uint8 categoryIdx;
-			io->readVar(categoryIdx);
+			io.readVar(categoryIdx);
 			size--;
 			if(categoryIdx >= EmuControls::categories)
 			{
@@ -75,7 +75,7 @@ static bool readKeyConfig(Io *io, uint16 &size)
 			}
 
 			uint16 catSize;
-			io->readVar(catSize);
+			io.readVar(catSize);
 			size -= 2;
 			if(size < catSize)
 				return 0;
@@ -83,7 +83,7 @@ static bool readKeyConfig(Io *io, uint16 &size)
 			if(catSize > EmuControls::category[categoryIdx].keys * sizeof(KeyConfig::Key))
 				return 0;
 			auto key = keyConf.key(EmuControls::category[categoryIdx]);
-			io->read(key, catSize);
+			io.read(key, catSize);
 			size -= catSize;
 
 			// verify keys
@@ -109,19 +109,13 @@ static bool readKeyConfig(Io *io, uint16 &size)
 	return 1;
 }
 
-static bool readConfig2(Io *io)
+static bool readConfig2(Io &io)
 {
-	if(!io)
-	{
-		logMsg("no config file");
-		return 0;
-	}
-
 	int dirChange = 0;
 
 	uint8 blockSize;
-	io->readVar(blockSize);
-	auto fileBytesLeft = io->size() - 1;
+	io.readVar(blockSize);
+	auto fileBytesLeft = io.size() - 1;
 
 	if(blockSize != 2)
 	{
@@ -129,11 +123,11 @@ static bool readConfig2(Io *io)
 		goto CLEANUP;
 	}
 
-	while(!io->eof() && fileBytesLeft >= 2)
+	while(!io.eof() && fileBytesLeft >= 2)
 	{
 		uint16 size;
-		io->readVar(size);
-		auto nextBlockPos = io->ftell() + size;
+		io.readVar(size);
+		auto nextBlockPos = io.ftell() + size;
 
 		if(!size)
 		{
@@ -151,7 +145,7 @@ static bool readConfig2(Io *io)
 		if(size < 3) // all blocks are at least a 2 byte key + 1 byte or more of data
 		{
 			logMsg("skipping %d byte block", size);
-			if(io->seekRel(size) != OK)
+			if(io.seekR(size) != OK)
 			{
 				logErr("unable to seek to next block, skipping rest of config");
 				goto CLEANUP;
@@ -160,7 +154,7 @@ static bool readConfig2(Io *io)
 		}
 
 		uint16 key;
-		io->readVar(key);
+		io.readVar(key);
 		size -= 2;
 
 		logMsg("got config key %u, size %u", key, size);
@@ -200,13 +194,10 @@ static bool readConfig2(Io *io)
 			#if defined(CONFIG_BASE_ANDROID)
 			bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
 			#endif
-			#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-			bcase CFGKEY_USE_OS_INPUT_METHOD: optionUseOSInputMethod.readFromIO(io, size);
-			#endif
 			bcase CFGKEY_LAST_DIR:
 			{
 				char lastDir[size+1];
-				io->read(lastDir, size);
+				io.read(lastDir, size);
 				lastDir[size] = 0;
 				logMsg("switching to last dir %s", lastDir);
 				if(FsSys::chdir(lastDir) == 0)
@@ -235,8 +226,12 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
 			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
+			bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
 			#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 			bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
+			#endif
+			#ifdef CONFIG_INPUT_ANDROID_MOGA
+			bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
 			#endif
 			#if defined(CONFIG_BASE_ANDROID)
 			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
@@ -285,7 +280,7 @@ static bool readConfig2(Io *io)
 			bcase CFGKEY_INPUT_DEVICE_CONFIGS:
 			{
 				uint8 confs; // TODO: unused currently, use to pre-allocate memory for configs
-				io->readVar(confs);
+				io.readVar(confs);
 				size--;
 				if(!size)
 					break;
@@ -294,7 +289,7 @@ static bool readConfig2(Io *io)
 				{
 					InputDeviceSavedConfig devConf;
 
-					io->readVarAsType<uint8>(devConf.enumId);
+					io.readVarAsType<uint8>(devConf.enumId);
 					size--;
 					if(!size)
 						break;
@@ -304,12 +299,12 @@ static bool readConfig2(Io *io)
 						break;
 					}
 
-					io->readVarAsType<uint8>(devConf.enabled);
+					io.readVarAsType<uint8>(devConf.enabled);
 					size--;
 					if(!size)
 						break;
 
-					io->readVarAsType<uint8>(devConf.player);
+					io.readVarAsType<uint8>(devConf.player);
 					if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
 					{
 						logWarn("player %d out of range", devConf.player);
@@ -319,33 +314,33 @@ static bool readConfig2(Io *io)
 					if(!size)
 						break;
 
-					io->readVarAsType<uint8>(devConf.mapJoystickAxis1ToDpad);
+					io.readVarAsType<uint8>(devConf.joystickAxisAsDpadBits);
 					size--;
 					if(!size)
 						break;
 
 					#ifdef CONFIG_INPUT_ICADE
-					io->readVarAsType<uint8>(devConf.iCadeMode);
+					io.readVarAsType<uint8>(devConf.iCadeMode);
 					size--;
 					if(!size)
 						break;
 					#endif
 
 					uint8 nameLen;
-					io->readVar(nameLen);
+					io.readVar(nameLen);
 					size--;
 					if(size < nameLen)
 						break;
 
 					if(nameLen > sizeof(devConf.name)-1)
 						break;
-					io->read(devConf.name, nameLen);
+					io.read(devConf.name, nameLen);
 					size -= nameLen;
 					if(!size)
 						break;
 
 					uint8 keyConfMap;
-					io->readVar(keyConfMap);
+					io.readVar(keyConfMap);
 					size--;
 
 					if(keyConfMap)
@@ -354,7 +349,7 @@ static bool readConfig2(Io *io)
 							break;
 
 						uint8 keyConfNameLen;
-						io->readVar(keyConfNameLen);
+						io.readVar(keyConfNameLen);
 						size--;
 						if(size < keyConfNameLen)
 							break;
@@ -362,7 +357,7 @@ static bool readConfig2(Io *io)
 						if(keyConfNameLen > sizeof(devConf.name)-1)
 							break;
 						char keyConfName[sizeof(devConf.name)] {0};
-						io->read(keyConfName, keyConfNameLen);
+						io.read(keyConfName, keyConfNameLen);
 						size -= keyConfNameLen;
 
 						for(auto &e : customKeyConfig)
@@ -403,7 +398,7 @@ static bool readConfig2(Io *io)
 			}
 		}
 
-		if(io->seekAbs(nextBlockPos) != OK)
+		if(io.seekA(nextBlockPos) != OK)
 		{
 			logErr("unable to seek to next block, skipping rest of config");
 			goto CLEANUP;
@@ -411,7 +406,6 @@ static bool readConfig2(Io *io)
 	}
 
 	CLEANUP:
-	delete io;
 	return dirChange;
 }
 
@@ -455,11 +449,12 @@ static OptionBase *cfgFileOption[] =
 	&optionVControllerLayoutPos,
 	&optionSwappedGamepadConfirm,
 	&optionConfirmOverwriteState,
+	&optionFastForwardSpeed,
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 	&optionNotifyInputDeviceChange,
 	#endif
-	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	&optionUseOSInputMethod,
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	&optionMOGAInputSystem,
 	#endif
 	&optionFrameSkip,
 	#ifdef CONFIG_BASE_ANDROID
@@ -641,7 +636,7 @@ static void writeConfig2(Io *io)
 			io->writeVar((uint8)e.enumId);
 			io->writeVar((uint8)e.enabled);
 			io->writeVar((uint8)e.player);
-			io->writeVar((uint8)e.mapJoystickAxis1ToDpad);
+			io->writeVar((uint8)e.joystickAxisAsDpadBits);
 			#ifdef CONFIG_INPUT_ICADE
 			io->writeVar((uint8)e.iCadeMode);
 			#endif
@@ -688,7 +683,12 @@ void loadConfigFile()
 	#else
 	snprintf(configFilePath, sizeof(configFilePath), "%s/" CONFIG_FILE_NAME, Base::documentsPath());
 	#endif
-	if(!readConfig2(IoSys::open(configFilePath)))
+	auto configFile = IOFile(IoSys::open(configFilePath));
+	if(!configFile)
+	{
+		logMsg("no config file");
+	}
+	if(!configFile || !readConfig2(*configFile.io()))
 	{
 		FsSys::chdir(Base::storagePath());
 	}

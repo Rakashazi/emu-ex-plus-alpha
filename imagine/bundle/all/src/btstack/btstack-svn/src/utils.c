@@ -42,7 +42,7 @@
  *  Created by Matthias Ringwald on 7/23/09.
  */
 
-#include "config.h"
+#include "btstack-config.h"
 #include <btstack/utils.h>
 #include <stdio.h>
 #include "debug.h"
@@ -83,9 +83,14 @@ void bt_flip_addr(bd_addr_t dest, bd_addr_t src){
 void hexdump(void *data, int size){
     int i;
     for (i=0; i<size;i++){
-        log_info("%02X ", ((uint8_t *)data)[i]);
+        printf("%02X ", ((uint8_t *)data)[i]);
     }
-    log_info("\n");
+    printf("\n");
+}
+
+void print_key(const char * name, sm_key_t key){
+    printf("%-6s ", name);
+    hexdump(key, 16);
 }
 
 void printUUID(uint8_t *uuid) {
@@ -94,9 +99,26 @@ void printUUID(uint8_t *uuid) {
            uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
 }
 
+char char_for_nibble(int nibble){
+    if (nibble < 10) return '0' + nibble;
+    nibble -= 10;
+    if (nibble < 6) return 'A' + nibble;
+    return '?';
+}
+
 static char bd_addr_to_str_buffer[6*3];  // 12:45:78:01:34:67\0
 char * bd_addr_to_str(bd_addr_t addr){
-    sprintf(bd_addr_to_str_buffer, "%02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+    // orig code
+    // sprintf(bd_addr_to_str_buffer, "%02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+    // sprintf-free code
+    char * p = bd_addr_to_str_buffer;
+    int i;
+    for (i = 0; i < 6 ; i++) {
+        *p++ = char_for_nibble((addr[i] >> 4) & 0x0F);
+        *p++ = char_for_nibble((addr[i] >> 0) & 0x0F);
+        *p++ = ':';
+    }
+    *--p = 0;
     return (char *) bd_addr_to_str_buffer;
 }
 
@@ -125,6 +147,19 @@ int sscan_bd_addr(uint8_t * addr_string, bd_addr_t addr){
 	return (result == 6);
 }
 #endif
+
+
+// treat standard pairing as Authenticated as it uses a PIN
+int is_authenticated_link_key(link_key_type_t link_key_type){
+    switch (link_key_type){
+        case COMBINATION_KEY:
+        case AUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P192:
+        case AUTHENTICATED_COMBINATION_KEY_GENERATED_FROM_P256:
+            return 1;
+        default:
+            return 0;
+    }
+}
 
 /*  
  * CRC (reversed crc) lookup table as calculated by the table generator in ETSI TS 101 369 V6.3.0.

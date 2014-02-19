@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 namespace Input
 {
 
@@ -26,11 +41,15 @@ static bool processICadeKey(char c, uint action, const Device &dev, Base::Window
 		//logMsg("handling iCade on-state key %c", *p);
 		int index = p-ON_STATES;
 		if(action == PUSHED)
+		{
 			#ifdef CONFIG_BASE_IOS
-				onInputEvent(win, Input::Event(0, Event::MAP_ICADE, index+1, PUSHED, 0, &dev));
+			Event event{0, Event::MAP_ICADE, (Key)(index+1), PUSHED, 0, 0, &dev};
 			#else
-				onInputEvent(win, Input::Event(0, Event::MAP_ICADE, keycodeMap[index], PUSHED, 0, &dev));
+			Event event{0, Event::MAP_ICADE, (Key)keycodeMap[index], PUSHED, 0, 0, &dev};
 			#endif
+			//startKeyRepeatTimer(event);
+			Base::onInputEvent(win, event);
+		}
 		return 1;
 	}
 	else
@@ -41,11 +60,14 @@ static bool processICadeKey(char c, uint action, const Device &dev, Base::Window
 			//logMsg("handling iCade off-state key %c", *p);
 			int index = p-OFF_STATES;
 			if(action == PUSHED)
+			{
 				#ifdef CONFIG_BASE_IOS
-					onInputEvent(win, Input::Event(0, Event::MAP_ICADE, index+1, RELEASED, 0, &dev));
+				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
 				#else
-					onInputEvent(win, Input::Event(0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, &dev));
+				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
 				#endif
+				//cancelKeyRepeatTimer();
+			}
 			return 1;
 		}
 	}

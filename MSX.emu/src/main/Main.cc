@@ -227,7 +227,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -1142,7 +1142,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -1165,7 +1165,7 @@ CallResult onInit(int argc, char** argv)
 	mixer = mixerCreate();
 	assert(mixer);
 
-	emuView.initPixmap((uchar*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
+	emuView.initPixmap((char*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
 
 	// Init general emu
 	langInit();
@@ -1249,7 +1249,7 @@ CallResult onWindowInit(Base::Window &win)
 			{
 				installFirmwareFiles();
 			};
-		View::addModalView(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView);
 	}
 	return OK;
 }

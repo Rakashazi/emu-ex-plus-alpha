@@ -1,5 +1,5 @@
-CPPFLAGS += -I$(genPath) -Isrc
-VPATH += src
+CPPFLAGS += -I$(genPath) -I$(projectPath)/src
+VPATH += $(projectPath)/src
 
 genConfigH = $(genPath)/config.h
 

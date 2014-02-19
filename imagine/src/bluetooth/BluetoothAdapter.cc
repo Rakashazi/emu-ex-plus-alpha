@@ -1,3 +1,18 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include "BluetoothAdapter.hh"
 #include <bluetooth/sys.hh>
 
@@ -11,13 +26,12 @@ uint BluetoothAdapter::scanSecs = 4;
 BluetoothAdapter *BluetoothAdapter::defaultAdapter()
 {
 	#if defined CONFIG_BLUETOOTH_ANDROID
-		return AndroidBluetoothAdapter::defaultAdapter();
+	return AndroidBluetoothAdapter::defaultAdapter();
 	#elif defined CONFIG_BLUETOOTH_BTSTACK
-		return BtstackBluetoothAdapter::defaultAdapter();
+	return BtstackBluetoothAdapter::defaultAdapter();
 	#elif defined CONFIG_BLUETOOTH_BLUEZ && !defined CONFIG_BASE_ANDROID
-		return BluezBluetoothAdapter::defaultAdapter();
+	return BluezBluetoothAdapter::defaultAdapter();
 	#else
-		static_assert(0, "no Bluetooth back-ends are selected");
-		return nullptr;
+	#error "no Bluetooth back-ends are selected"
 	#endif
 }

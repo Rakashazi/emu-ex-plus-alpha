@@ -18,8 +18,8 @@
 #include <meta.h>
 
 #define CONV_COL(x) 0, x
-static ATTRS(aligned (2)) uchar scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
-static ATTRS(aligned (8)) uchar diagonalPixmapBuff[] =
+alignas(2) static uint8 scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
+alignas(8) static uint8 diagonalPixmapBuff[] =
 {
 		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
 		CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00),
@@ -33,7 +33,7 @@ static ATTRS(aligned (8)) uchar diagonalPixmapBuff[] =
 #undef CONV_COL
 
 #define CONV_COL(x) 31, x
-static ATTRS(aligned (8)) uchar crtPixmapBuff[] =
+alignas(8) static uint8 crtPixmapBuff[] =
 {
 		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
 		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
@@ -48,7 +48,7 @@ static ATTRS(aligned (8)) uchar crtPixmapBuff[] =
 
 //#define CONV_COL(r,g,b) ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 #define CONV_COL(r,g,b) uint((r << 24) | (g << 16) | (b << 8) | 127)
-static ATTRS(aligned (8)) uint32 crtRgbPixmapBuff[] =
+alignas(8) static uint32 crtRgbPixmapBuff[] =
 {
 		CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33), CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33),
 		CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33), CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33),
@@ -63,24 +63,27 @@ void VideoImageOverlay::setEffect(uint effect)
 	switch(effect)
 	{
 		bcase SCANLINES ... SCANLINES_2:
-			new(&pix) Pixmap(PixelFormatIA88);
+			new(&pix) IG::Pixmap(PixelFormatIA88);
 			pix.init(scanlinePixmapBuff, 1, 2);
 		bcase CRT:
-			new(&pix) Pixmap(PixelFormatIA88);
+			new(&pix) IG::Pixmap(PixelFormatIA88);
 			pix.init(crtPixmapBuff, 8, 8);
 		bcase CRT_RGB ... CRT_RGB_2:
-			new(&pix) Pixmap(PixelFormatRGBA8888);
-			pix.init((uchar*)crtRgbPixmapBuff, 16, 2);//8, 2);
+			new(&pix) IG::Pixmap(PixelFormatRGBA8888);
+			pix.init(crtRgbPixmapBuff, 16, 2);//8, 2);
 		bdefault: // turn off effect
 			spr.deinit();
 			img.deinit();
 			return;
 	}
 
-	bool mipmapFilter = 1;
-	img.init(pix, 0, Gfx::BufferImage::LINEAR, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
+	bool mipmapFilter = true;
+	img.init(pix, true, Gfx::BufferImage::LINEAR, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
 	spr.init(&img);
-	img.write(pix);
+	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+	{
+		Gfx::autoReleaseShaderCompiler();
+	}
 }
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
@@ -112,8 +115,8 @@ void VideoImageOverlay::draw()
 	if(spr.image())
 	{
 		setColor(1., 1., 1., intensity);
-		setImgMode(IMG_MODE_MODULATE);
 		setBlendMode(BLEND_MODE_ALPHA);
+		spr.useDefaultProgram(IMG_MODE_MODULATE);
 		spr.draw();
 	}
 }

@@ -1,8 +1,12 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 ARCH := x86
 android_abi := x86
 ifndef android_minSDK
  android_minSDK := 9
+endif
+# TODO: android_minSDK should only apply to APK metadata
+ifndef android_minLibSDK
+ android_minLibSDK := 15
 endif
 android_ndkArch := x86
 ifndef MACHINE
@@ -11,6 +15,7 @@ endif
 
 ifeq ($(origin CC), default)
  CC := i686-linux-android-gcc
+ CHOST := i686-linux-android
 endif
 
 # CPU flags normally patched in as defaults on official Android GCC
@@ -19,15 +24,11 @@ COMPILE_FLAGS += -fno-short-enums
 
 extraSysroot := $(IMAGINE_PATH)/bundle/android/x86
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
-PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(extraSysroot)/lib
-pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
 CPPFLAGS += -I$(extraSysroot)/include
-LDLIBS += -L$(extraSysroot)/lib
 
 # TODO: shared object creation not working correctly in custom GCC 4.7 toolchain,
 # maybe a patch is missing? Send the parameters directly to linker for now
-LDLIBS += -Wl,-shared,-dynamic-linker,/system/bin/linker,-X
+#LDLIBS += -Wl,-shared,-dynamic-linker,/system/bin/linker,-X
 
 include $(buildSysPath)/android-gcc.mk
 

@@ -126,26 +126,57 @@ const KeyConfig defaultKeyProfile[] =
 {
 	#ifdef CONFIG_ENV_WEBOS
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"WebOS Keyboard",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
 
 			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 			Input::Keycode::ENTER,
-			asciiKey(','),
-			asciiKey('m'),
-			asciiKey('i'),
-			asciiKey('o'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey('i'),
+			Keycode::asciiKey('o'),
 		}
 	},
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
+		Input::Device::SUBTYPE_GENERIC_GAMEPAD,
+		"Generic Gamepad",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
+
+			// JS 1
+			Input::Keycode::UP,
+			Input::Keycode::RIGHT,
+			Input::Keycode::DOWN,
+			Input::Keycode::LEFT,
+			0, 0, 0, 0,
+			Input::Keycode::GAME_A,
+			Input::Keycode::GAME_B,
+			Input::Keycode::GAME_Y,
+
+			// JS 2
+			PP_ZERO_LIST(11)
+
+			// Keyboard
+			Input::Keycode::GAME_START,
+			Input::Keycode::GAME_SELECT, // F1 ... F8
+			0,
+			Input::Keycode::GAME_L1,
+			0,
+			Input::Keycode::GAME_R1,
+			0,
+			Input::Keycode::GAME_X,
+		}
+	},
+	{
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PS3_CONTROLLER,
 		"PS3 Controller",
 		{
@@ -176,7 +207,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
@@ -208,7 +239,7 @@ const KeyConfig defaultKeyProfile[] =
 	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
@@ -239,7 +270,7 @@ const KeyConfig defaultKeyProfile[] =
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard (w/ Joystick Keys)",
 			{
@@ -251,8 +282,8 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
 				0, 0, 0, 0,
-				asciiKey('x'),
-				asciiKey('c'),
+				Keycode::asciiKey('x'),
+				Keycode::asciiKey('c'),
 				0,
 
 				// JS 2
@@ -272,16 +303,16 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::BACK_SPACE,
 
 				0, // Ctrl
-				asciiKey('q'),
-				asciiKey('w'),
-				asciiKey('e'),
-				asciiKey('r'),
-				asciiKey('t'),
-				asciiKey('y'),
-				asciiKey('u'),
-				asciiKey('i'),
-				asciiKey('o'),
-				asciiKey('p'),
+				Keycode::asciiKey('q'),
+				Keycode::asciiKey('w'),
+				Keycode::asciiKey('e'),
+				Keycode::asciiKey('r'),
+				Keycode::asciiKey('t'),
+				Keycode::asciiKey('y'),
+				Keycode::asciiKey('u'),
+				Keycode::asciiKey('i'),
+				Keycode::asciiKey('o'),
+				Keycode::asciiKey('p'),
 				0, // @
 				0, // *
 				0, // Up Arrow
@@ -289,14 +320,14 @@ const KeyConfig defaultKeyProfile[] =
 
 				Input::Keycode::RALT, // Run/Stop
 				0, // Shift/Lock
-				asciiKey('a'),
-				asciiKey('s'),
-				asciiKey('d'),
-				asciiKey('f'),
-				asciiKey('g'),
-				asciiKey('h'),
-				asciiKey('j'),
-				asciiKey('k'),
+				Keycode::asciiKey('a'),
+				Keycode::asciiKey('s'),
+				Keycode::asciiKey('d'),
+				Keycode::asciiKey('f'),
+				Keycode::asciiKey('g'),
+				Keycode::asciiKey('h'),
+				Keycode::asciiKey('j'),
+				Keycode::asciiKey('k'),
 				0, // l
 				0, // :
 				0, // ;
@@ -305,27 +336,27 @@ const KeyConfig defaultKeyProfile[] =
 
 				0, // Commodore Logo
 				Input::Keycode::LSHIFT,
-				asciiKey('z'),
+				Keycode::asciiKey('z'),
 				0, // x
 				0, // c
-				asciiKey('v'),
-				asciiKey('b'),
-				asciiKey('n'),
-				asciiKey('m'),
-				asciiKey(','),
-				asciiKey('.'),
-				asciiKey('/'),
+				Keycode::asciiKey('v'),
+				Keycode::asciiKey('b'),
+				Keycode::asciiKey('n'),
+				Keycode::asciiKey('m'),
+				Keycode::asciiKey(','),
+				Keycode::asciiKey('.'),
+				Keycode::asciiKey('/'),
 				Input::Keycode::RSHIFT,
 				0, // up
 				0, // right
 				0, // down
 				0, // left
 
-				asciiKey(' '),
+				Keycode::asciiKey(' '),
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard",
 			{
@@ -351,16 +382,16 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::BACK_SPACE,
 
 				0, // Ctrl
-				asciiKey('q'),
-				asciiKey('w'),
-				asciiKey('e'),
-				asciiKey('r'),
-				asciiKey('t'),
-				asciiKey('y'),
-				asciiKey('u'),
-				asciiKey('i'),
-				asciiKey('o'),
-				asciiKey('p'),
+				Keycode::asciiKey('q'),
+				Keycode::asciiKey('w'),
+				Keycode::asciiKey('e'),
+				Keycode::asciiKey('r'),
+				Keycode::asciiKey('t'),
+				Keycode::asciiKey('y'),
+				Keycode::asciiKey('u'),
+				Keycode::asciiKey('i'),
+				Keycode::asciiKey('o'),
+				Keycode::asciiKey('p'),
 				0, // @
 				0, // *
 				0, // Up Arrow
@@ -368,14 +399,14 @@ const KeyConfig defaultKeyProfile[] =
 
 				Input::Keycode::RALT, // Run/Stop
 				0, // Shift/Lock
-				asciiKey('a'),
-				asciiKey('s'),
-				asciiKey('d'),
-				asciiKey('f'),
-				asciiKey('g'),
-				asciiKey('h'),
-				asciiKey('j'),
-				asciiKey('k'),
+				Keycode::asciiKey('a'),
+				Keycode::asciiKey('s'),
+				Keycode::asciiKey('d'),
+				Keycode::asciiKey('f'),
+				Keycode::asciiKey('g'),
+				Keycode::asciiKey('h'),
+				Keycode::asciiKey('j'),
+				Keycode::asciiKey('k'),
 				0, // l
 				0, // :
 				0, // ;
@@ -384,37 +415,37 @@ const KeyConfig defaultKeyProfile[] =
 
 				0, // Commodore Logo
 				Input::Keycode::LSHIFT,
-				asciiKey('z'),
-				asciiKey('x'),
-				asciiKey('c'),
-				asciiKey('v'),
-				asciiKey('b'),
-				asciiKey('n'),
-				asciiKey('m'),
-				asciiKey(','),
-				asciiKey('.'),
-				asciiKey('/'),
+				Keycode::asciiKey('z'),
+				Keycode::asciiKey('x'),
+				Keycode::asciiKey('c'),
+				Keycode::asciiKey('v'),
+				Keycode::asciiKey('b'),
+				Keycode::asciiKey('n'),
+				Keycode::asciiKey('m'),
+				Keycode::asciiKey(','),
+				Keycode::asciiKey('.'),
+				Keycode::asciiKey('/'),
 				Input::Keycode::RSHIFT,
 				Input::Keycode::UP,
 				Input::Keycode::RIGHT,
 				Input::Keycode::DOWN,
 				Input::Keycode::LEFT,
 
-				asciiKey(' '),
+				Keycode::asciiKey(' '),
 			}
 		},
 		{
-			Input::Event::MAP_KEYBOARD,
+			Input::Event::MAP_SYSTEM,
 			Input::Device::SUBTYPE_NVIDIA_SHIELD,
 			"NVidia Shield",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
 
 				// JS 1
-				Input::Keycode::JS3_YAXIS_NEG,
-				Input::Keycode::JS3_XAXIS_POS,
-				Input::Keycode::JS3_YAXIS_POS,
-				Input::Keycode::JS3_XAXIS_NEG,
+				Input::Keycode::UP,
+				Input::Keycode::RIGHT,
+				Input::Keycode::DOWN,
+				Input::Keycode::LEFT,
 				0, 0, 0, 0,
 				Input::Keycode::GAME_A,
 				Input::Keycode::GAME_B,
@@ -437,7 +468,7 @@ const KeyConfig defaultKeyProfile[] =
 		#endif
 	#endif
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard (w/ Joystick Keys)",
 		{
@@ -449,8 +480,8 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::DOWN,
 			Input::Keycode::LEFT,
 			0, 0, 0, 0,
-			asciiKey('z'),
-			asciiKey('x'),
+			Keycode::asciiKey('z'),
+			Keycode::asciiKey('x'),
 			Input::Keycode::F10,
 
 			// JS 2
@@ -469,51 +500,51 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::F8,
 
 			0, // Left Arrow
-			asciiKey('1'),
-			asciiKey('2'),
-			asciiKey('3'),
-			asciiKey('4'),
-			asciiKey('5'),
-			asciiKey('6'),
-			asciiKey('7'),
-			asciiKey('8'),
-			asciiKey('9'),
-			asciiKey('0'),
-			asciiKey('-'), // +
-			asciiKey('='),
+			Keycode::asciiKey('1'),
+			Keycode::asciiKey('2'),
+			Keycode::asciiKey('3'),
+			Keycode::asciiKey('4'),
+			Keycode::asciiKey('5'),
+			Keycode::asciiKey('6'),
+			Keycode::asciiKey('7'),
+			Keycode::asciiKey('8'),
+			Keycode::asciiKey('9'),
+			Keycode::asciiKey('0'),
+			Keycode::asciiKey('-'), // +
+			Keycode::asciiKey('='),
 			0, // Pound
 			Input::Keycode::HOME,
 			Input::Keycode::BACK_SPACE,
 
-			asciiKey('\t'),
-			asciiKey('q'),
-			asciiKey('w'),
-			asciiKey('e'),
-			asciiKey('r'),
-			asciiKey('t'),
-			asciiKey('y'),
-			asciiKey('u'),
-			asciiKey('i'),
-			asciiKey('o'),
-			asciiKey('p'),
+			Keycode::asciiKey('\t'),
+			Keycode::asciiKey('q'),
+			Keycode::asciiKey('w'),
+			Keycode::asciiKey('e'),
+			Keycode::asciiKey('r'),
+			Keycode::asciiKey('t'),
+			Keycode::asciiKey('y'),
+			Keycode::asciiKey('u'),
+			Keycode::asciiKey('i'),
+			Keycode::asciiKey('o'),
+			Keycode::asciiKey('p'),
 			0, // @
 			0, // *
-			asciiKey('\\'), // Up Arrow
+			Keycode::asciiKey('\\'), // Up Arrow
 			Input::Keycode::END, // Restore
 
 			Input::Keycode::PGUP, // Run/Stop
 			0, // Shift/Lock
-			asciiKey('a'),
-			asciiKey('s'),
-			asciiKey('d'),
-			asciiKey('f'),
-			asciiKey('g'),
-			asciiKey('h'),
-			asciiKey('j'),
-			asciiKey('k'),
+			Keycode::asciiKey('a'),
+			Keycode::asciiKey('s'),
+			Keycode::asciiKey('d'),
+			Keycode::asciiKey('f'),
+			Keycode::asciiKey('g'),
+			Keycode::asciiKey('h'),
+			Keycode::asciiKey('j'),
+			Keycode::asciiKey('k'),
 			0, // l
-			asciiKey(';'), // :
-			asciiKey('\''), // ;
+			Keycode::asciiKey(';'), // :
+			Keycode::asciiKey('\''), // ;
 			0,
 			Input::Keycode::ENTER,
 
@@ -521,25 +552,25 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::LSHIFT,
 			0, // z
 			0, // x
-			asciiKey('c'),
-			asciiKey('v'),
-			asciiKey('b'),
-			asciiKey('n'),
-			asciiKey('m'),
-			asciiKey(','),
-			asciiKey('.'),
-			asciiKey('/'),
+			Keycode::asciiKey('c'),
+			Keycode::asciiKey('v'),
+			Keycode::asciiKey('b'),
+			Keycode::asciiKey('n'),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('.'),
+			Keycode::asciiKey('/'),
 			Input::Keycode::RSHIFT,
 			0, // up
 			0, // right
 			0, // down
 			0, // left
 
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 		}
 	},
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard",
 		{
@@ -563,79 +594,79 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::F7,
 			Input::Keycode::F8,
 
-			asciiKey('`'), // Left Arrow
-			asciiKey('1'),
-			asciiKey('2'),
-			asciiKey('3'),
-			asciiKey('4'),
-			asciiKey('5'),
-			asciiKey('6'),
-			asciiKey('7'),
-			asciiKey('8'),
-			asciiKey('9'),
-			asciiKey('0'),
-			asciiKey('-'), // +
-			asciiKey('='), // -
+			Keycode::asciiKey('`'), // Left Arrow
+			Keycode::asciiKey('1'),
+			Keycode::asciiKey('2'),
+			Keycode::asciiKey('3'),
+			Keycode::asciiKey('4'),
+			Keycode::asciiKey('5'),
+			Keycode::asciiKey('6'),
+			Keycode::asciiKey('7'),
+			Keycode::asciiKey('8'),
+			Keycode::asciiKey('9'),
+			Keycode::asciiKey('0'),
+			Keycode::asciiKey('-'), // +
+			Keycode::asciiKey('='), // -
 			0, // Pound
 			Input::Keycode::HOME,
 			Input::Keycode::BACK_SPACE,
 
-			asciiKey('\t'),
-			asciiKey('q'),
-			asciiKey('w'),
-			asciiKey('e'),
-			asciiKey('r'),
-			asciiKey('t'),
-			asciiKey('y'),
-			asciiKey('u'),
-			asciiKey('i'),
-			asciiKey('o'),
-			asciiKey('p'),
-			asciiKey('['), // @
-			asciiKey(']'), // *
-			asciiKey('\\'), // Up Arrow
+			Keycode::asciiKey('\t'),
+			Keycode::asciiKey('q'),
+			Keycode::asciiKey('w'),
+			Keycode::asciiKey('e'),
+			Keycode::asciiKey('r'),
+			Keycode::asciiKey('t'),
+			Keycode::asciiKey('y'),
+			Keycode::asciiKey('u'),
+			Keycode::asciiKey('i'),
+			Keycode::asciiKey('o'),
+			Keycode::asciiKey('p'),
+			Keycode::asciiKey('['), // @
+			Keycode::asciiKey(']'), // *
+			Keycode::asciiKey('\\'), // Up Arrow
 			Input::Keycode::END, // Restore
 
 			Input::Keycode::PGUP, // Run/Stop
 			0, // Shift/Lock
-			asciiKey('a'),
-			asciiKey('s'),
-			asciiKey('d'),
-			asciiKey('f'),
-			asciiKey('g'),
-			asciiKey('h'),
-			asciiKey('j'),
-			asciiKey('k'),
-			asciiKey('l'),
-			asciiKey(';'), // :
-			asciiKey('\''), // ;
+			Keycode::asciiKey('a'),
+			Keycode::asciiKey('s'),
+			Keycode::asciiKey('d'),
+			Keycode::asciiKey('f'),
+			Keycode::asciiKey('g'),
+			Keycode::asciiKey('h'),
+			Keycode::asciiKey('j'),
+			Keycode::asciiKey('k'),
+			Keycode::asciiKey('l'),
+			Keycode::asciiKey(';'), // :
+			Keycode::asciiKey('\''), // ;
 			0,
 			Input::Keycode::ENTER,
 
 			Input::Keycode::LSUPER,
 			Input::Keycode::LSHIFT,
-			asciiKey('z'),
-			asciiKey('x'),
-			asciiKey('c'),
-			asciiKey('v'),
-			asciiKey('b'),
-			asciiKey('n'),
-			asciiKey('m'),
-			asciiKey(','),
-			asciiKey('.'),
-			asciiKey('/'),
+			Keycode::asciiKey('z'),
+			Keycode::asciiKey('x'),
+			Keycode::asciiKey('c'),
+			Keycode::asciiKey('v'),
+			Keycode::asciiKey('b'),
+			Keycode::asciiKey('n'),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('.'),
+			Keycode::asciiKey('/'),
 			Input::Keycode::RSHIFT,
 			Input::Keycode::UP, // up
 			Input::Keycode::RIGHT, // right
 			Input::Keycode::DOWN, // down
 			Input::Keycode::LEFT, // left
 
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 		}
 	},
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Input::Event::MAP_KEYBOARD,
+		Input::Event::MAP_SYSTEM,
 		Input::Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{
@@ -657,10 +688,10 @@ const KeyConfig defaultKeyProfile[] =
 			// KB
 			Input::Keycode::Pandora::SELECT,
 
-			asciiKey('1'),
-			asciiKey('2'),
-			asciiKey('3'),
-			asciiKey('4'),
+			Keycode::asciiKey('1'),
+			Keycode::asciiKey('2'),
+			Keycode::asciiKey('3'),
+			Keycode::asciiKey('4'),
 			0, // F5 - F8
 			0,
 			0,
@@ -671,12 +702,12 @@ const KeyConfig defaultKeyProfile[] =
 			0,
 			0,
 			0,
-			asciiKey('5'),
-			asciiKey('6'),
-			asciiKey('7'),
-			asciiKey('8'),
-			asciiKey('9'),
-			asciiKey('0'),
+			Keycode::asciiKey('5'),
+			Keycode::asciiKey('6'),
+			Keycode::asciiKey('7'),
+			Keycode::asciiKey('8'),
+			Keycode::asciiKey('9'),
+			Keycode::asciiKey('0'),
 			0, // +
 			0, // -
 			0, // Pound
@@ -684,16 +715,16 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::BACK_SPACE,
 
 			0, // CTRL
-			asciiKey('q'),
-			asciiKey('w'),
-			asciiKey('e'),
-			asciiKey('r'),
-			asciiKey('t'),
-			asciiKey('y'),
-			asciiKey('u'),
-			asciiKey('i'),
-			asciiKey('o'),
-			asciiKey('p'),
+			Keycode::asciiKey('q'),
+			Keycode::asciiKey('w'),
+			Keycode::asciiKey('e'),
+			Keycode::asciiKey('r'),
+			Keycode::asciiKey('t'),
+			Keycode::asciiKey('y'),
+			Keycode::asciiKey('u'),
+			Keycode::asciiKey('i'),
+			Keycode::asciiKey('o'),
+			Keycode::asciiKey('p'),
 			0, // @
 			0, // *
 			0, // Up Arrow
@@ -701,15 +732,15 @@ const KeyConfig defaultKeyProfile[] =
 
 			0, // Run/Stop
 			0, // Shift/Lock
-			asciiKey('a'),
-			asciiKey('s'),
-			asciiKey('d'),
-			asciiKey('f'),
-			asciiKey('g'),
-			asciiKey('h'),
-			asciiKey('j'),
-			asciiKey('k'),
-			asciiKey('l'),
+			Keycode::asciiKey('a'),
+			Keycode::asciiKey('s'),
+			Keycode::asciiKey('d'),
+			Keycode::asciiKey('f'),
+			Keycode::asciiKey('g'),
+			Keycode::asciiKey('h'),
+			Keycode::asciiKey('j'),
+			Keycode::asciiKey('k'),
+			Keycode::asciiKey('l'),
 			0, // :
 			0, // ;
 			0,
@@ -717,15 +748,15 @@ const KeyConfig defaultKeyProfile[] =
 
 			0, // Commodore
 			Input::Keycode::LSHIFT,
-			asciiKey('z'),
-			asciiKey('x'),
-			asciiKey('c'),
-			asciiKey('v'),
-			asciiKey('b'),
-			asciiKey('n'),
-			asciiKey('m'),
-			asciiKey(','),
-			asciiKey('.'),
+			Keycode::asciiKey('z'),
+			Keycode::asciiKey('x'),
+			Keycode::asciiKey('c'),
+			Keycode::asciiKey('v'),
+			Keycode::asciiKey('b'),
+			Keycode::asciiKey('n'),
+			Keycode::asciiKey('m'),
+			Keycode::asciiKey(','),
+			Keycode::asciiKey('.'),
 			0, // slash
 			0, // right shift
 			0, // up
@@ -733,7 +764,7 @@ const KeyConfig defaultKeyProfile[] =
 			0, // down
 			0, // left
 
-			asciiKey(' '),
+			Keycode::asciiKey(' '),
 		}
 	},
 	#endif

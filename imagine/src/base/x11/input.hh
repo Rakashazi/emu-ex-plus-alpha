@@ -1,4 +1,20 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <engine-globals.h>
 #include <input/Input.hh>
 #include <logger/interface.h>
@@ -16,7 +32,6 @@ using namespace Base;
 namespace Input
 {
 
-static PointerState m[Input::maxCursors];
 static DragPointer dragStateArr[Input::maxCursors];
 static Cursor blankCursor = (Cursor)0;
 static Cursor normalCursor = (Cursor)0;
@@ -36,11 +51,11 @@ struct XInputDevice : public Device
 	constexpr XInputDevice() {}
 
 	constexpr XInputDevice(uint typeBits, const char *name):
-		Device(0, Event::MAP_KEYBOARD, typeBits, name)
+		Device(0, Event::MAP_SYSTEM, typeBits, name)
 	{}
 
 	XInputDevice(const XIDeviceInfo &info, int enumId):
-		Device(enumId, Event::MAP_KEYBOARD, Device::TYPE_BIT_KEYBOARD, nameStr),
+		Device(enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEYBOARD, nameStr),
 		id(info.deviceid)
 	{
 		string_copy(nameStr, info.name);
@@ -81,10 +96,13 @@ DragPointer *dragState(int p)
 	return &dragStateArr[p];
 }
 
-static bool allowKeyRepeats = 1;
 void setKeyRepeat(bool on)
 {
 	allowKeyRepeats = on;
+	if(!on)
+	{
+		deinitKeyRepeatTimer();
+	}
 }
 
 void initPerWindowData(::Window win)
@@ -205,7 +223,7 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 	uint devId = 0;
 	for(auto &e : devList)
 	{
-		if(e->map() != Event::MAP_KEYBOARD)
+		if(e->map() != Event::MAP_SYSTEM)
 			continue;
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
@@ -306,40 +324,41 @@ CallResult init()
 
 }
 
-static void updatePointer(Base::Window &win, uint event, int p, uint action, int x, int y)
+static void updatePointer(Base::Window &win, uint event, int p, uint action, int x, int y, Input::Time time)
 {
 	using namespace Input;
 	auto &state = dragStateArr[p];
-	auto pos = pointerPos(win, x - win.viewRect.x, y - win.viewRect.y);
+	auto pos = pointerPos(win, x /*- win.viewRect.x*/, y /*- win.viewRect.y*/);
 	state.pointerEvent(event, action, pos);
-	onInputEvent(win, Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, nullptr));
+	Base::onInputEvent(win, Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, time, nullptr));
 }
 
-static void handlePointerButton(Base::Window &win, uint button, int p, uint action, int x, int y)
+static void handlePointerButton(Base::Window &win, uint button, int p, uint action, int x, int y, Input::Time time)
 {
-	updatePointer(win, button, p, action, x, y);
+	updatePointer(win, button, p, action, x, y, time);
 }
 
-static void handlePointerMove(Base::Window &win, int x, int y, int p)
+static void handlePointerMove(Base::Window &win, int x, int y, int p, Input::Time time)
 {
-	Input::m[p].inWin = 1;
-	updatePointer(win, 0, p, Input::MOVED, x, y);
+	//Input::m[p].inWin = 1;
+	updatePointer(win, 0, p, Input::MOVED, x, y, time);
 }
 
-static void handlePointerEnter(Base::Window &win, int p, int x, int y)
+static void handlePointerEnter(Base::Window &win, int p, int x, int y, Input::Time time)
 {
-	Input::m[p].inWin = 1;
-	updatePointer(win, 0, p, Input::ENTER_VIEW, x, y);
+	//Input::m[p].inWin = 1;
+	updatePointer(win, 0, p, Input::ENTER_VIEW, x, y, time);
 }
 
-static void handlePointerLeave(Base::Window &win, int p, int x, int y)
+static void handlePointerLeave(Base::Window &win, int p, int x, int y, Input::Time time)
 {
-	Input::m[p].inWin = 0;
-	updatePointer(win, 0, p, Input::EXIT_VIEW, x, y);
+	//Input::m[p].inWin = 0;
+	updatePointer(win, 0, p, Input::EXIT_VIEW, x, y, time);
 }
 
-static void handleKeyEv(Base::Window &win, KeySym k, uint action, bool isShiftPushed, const Input::Device *dev)
+static void handleKeyEv(Base::Window &win, KeySym k, uint action, bool isShiftPushed, Input::Time time, const Input::Device *dev)
 {
 	//logMsg("got keysym %d", (int)k);
-	Input::onInputEvent(win, Input::Event(dev->enumId(), Input::Event::MAP_KEYBOARD, k & 0xFFFF, action, isShiftPushed, dev));
+	Input::cancelKeyRepeatTimer();
+	Base::onInputEvent(win, Input::Event(dev->enumId(), Input::Event::MAP_SYSTEM, k & 0xFFFF, action, isShiftPushed, time, dev));
 }

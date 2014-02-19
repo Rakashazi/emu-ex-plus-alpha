@@ -22,11 +22,17 @@
 #include <sys/stat.h>
 
 #define OV_EXCLUDE_STATIC_CALLBACKS
-#ifdef CONFIG_PACKAGE_LIBVORBIS
-	#include <vorbis/vorbisfile.h>
-#else
-	#include <tremor/ivorbisfile.h>
+
+#ifdef ARCH_X86
+#define CONFIG_PACKAGE_LIBVORBIS
 #endif
+
+#ifdef CONFIG_PACKAGE_LIBVORBIS
+#include <vorbis/vorbisfile.h>
+#else
+#include <tremor/ivorbisfile.h>
+#endif
+
 #include <io/api/vorbis.hh>
 #ifdef HAVE_LIBSNDFILE
 #include <sndfile.h>
@@ -36,13 +42,11 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include <trio/trio.h>
-#include <fcntl.h>
 
 #include "../general.h"
 #include "../endian.h"
 
-AudioReader::AudioReader()
+AudioReader::AudioReader() : LastReadPos(0)
 {
 
 }
@@ -54,19 +58,19 @@ AudioReader::~AudioReader()
 
 int64 AudioReader::Read_(int16 *buffer, int64 frames)
 {
- //abort();
+ abort();
  return(false);
 }
 
 bool AudioReader::Seek_(int64 frame_offset)
 {
- //abort();
+ abort();
  return(false);
 }
 
 int64 AudioReader::FrameCount(void)
 {
- //abort();
+ abort();
  return(0);
 }
 
@@ -79,9 +83,9 @@ class OggVorbisReader : public AudioReader
 	 if(!o)
 		 return 0;
 	 o->init = 0;
-	 fp->seekAbs(0);
+	 fp->seekA(0);
 
-  if(ov_open_callbacks(fp, &o->ovfile, NULL, 0, imagineVorbisIO))
+  if(ov_open_callbacks(fp, &o->ovfile, NULL, 0, imagineVorbisIONoClose))
   {
 	  delete o;
 	return 0;
@@ -111,9 +115,9 @@ class OggVorbisReader : public AudioReader
 	#endif
    long didread =
 	#ifdef CONFIG_PACKAGE_LIBVORBIS
-		   ov_read(&ovfile, (char*)tw_buf, toread, endianPack, 2, 1, &cursection);
+	 ov_read(&ovfile, (char*)tw_buf, toread, endianPack, 2, 1, &cursection);
 	#else
-		   ov_read(&ovfile, (char*)tw_buf, toread, &cursection);
+	 ov_read(&ovfile, (char*)tw_buf, toread, &cursection);
 	#endif
 
    if(didread == 0)
@@ -157,14 +161,13 @@ class SFReader : public AudioReader
 		 return 0;
 	 o->init = 0;
   memset(&o->sfinfo, 0, sizeof(SF_INFO));
-  fp->seekAbs(0);
+  fp->seekA(0);
   o->sf = sf_open_virtual(&imagineSndFileIO, SFM_READ, &o->sfinfo, fp);
   if(!o->sf)
   {
 	  delete o;
 	  return 0;
   }
-  o->io = fp;
   o->init = 1;
   return o;
  }
@@ -174,7 +177,6 @@ class SFReader : public AudioReader
 	 if(init)
 	 {
 		 sf_close(sf);
-		 delete io;
 	 }
  }
 
@@ -199,7 +201,6 @@ class SFReader : public AudioReader
  private:
  SNDFILE *sf;
  SF_INFO sfinfo;
- Io *io;
  bool init;
 };
 #endif

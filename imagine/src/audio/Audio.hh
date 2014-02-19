@@ -18,7 +18,7 @@
 #include <engine-globals.h>
 #include <util/audio/PcmFormat.hh>
 
-#if defined(CONFIG_AUDIO_ALSA)
+#if defined CONFIG_AUDIO_ALSA
 #include <audio/alsa/config.hh>
 #else
 #include <audio/config.hh>
@@ -29,10 +29,7 @@ namespace Audio
 
 	namespace Config
 	{
-	#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO || \
-		defined CONFIG_AUDIO_SDL || defined CONFIG_AUDIO_ALSA
 	#define CONFIG_AUDIO_LATENCY_HINT
-	#endif
 
 	#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO
 	#define CONFIG_AUDIO_SOLO_MIX
@@ -53,11 +50,10 @@ struct BufferContext
 	}
 };
 
-static const PcmFormat maxFormat { maxRate, SampleFormats::s16, 2 };
 extern PcmFormat preferredPcmFormat;
 extern PcmFormat pcmFormat; // the currently playing format
 
-CallResult init() ATTRS(cold);
+[[gnu::cold]] CallResult init();
 CallResult openPcm(const PcmFormat &format);
 void closePcm();
 void pausePcm();
@@ -74,6 +70,7 @@ void setHintOutputLatency(uint us);
 uint hintOutputLatency();
 void setHintStrictUnderrunCheck(bool on);
 bool hintStrictUnderrunCheck();
+int maxRate();
 
 #ifdef CONFIG_AUDIO_SOLO_MIX
 void setSoloMix(bool newSoloMix);

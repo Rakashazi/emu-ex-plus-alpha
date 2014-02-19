@@ -71,9 +71,9 @@ extern uint8 *HuCPUFastMap[0x100];
 #define MDFN_IQTIMER	0x004
 #define MDFN_IQRESET    0x020
 
-void HuC6280_Init(void);
-void HuC6280_Reset(void);
-void HuC6280_Power(void);
+void HuC6280_Init(void) MDFN_COLD;
+void HuC6280_Reset(void) MDFN_COLD;
+void HuC6280_Power(void) MDFN_COLD;
 
 void HuC6280_IRQBegin(int w);
 void HuC6280_IRQEnd(int w);

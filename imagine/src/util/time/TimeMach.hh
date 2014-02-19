@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <mach/mach_time.h>
 #include <util/operators.hh>
 
@@ -9,8 +24,8 @@ private:
 	uint64_t t = 0;
 	static double timebaseNSec, timebaseUSec, timebaseMSec, timebaseSec;
 public:
-	constexpr TimeMach() { }
-	constexpr TimeMach(uint64_t t): t(t) { }
+	constexpr TimeMach() {}
+	constexpr TimeMach(uint64_t t): t(t) {}
 
 	static void setTimebase()
 	{
@@ -22,21 +37,29 @@ public:
 		timebaseSec = 1e-9 * (double)info.numer / (double)info.denom;
 	}
 
-	void setUSecs(long int usecs)
+	static TimeMach makeWithNSecs(long int nsecs)
 	{
-		t = usecs / timebaseUSec;
+		return {(uint64_t)(nsecs / timebaseNSec)};
 	}
 
-	void setTimeNow()
+	static TimeMach makeWithUSecs(long int usecs)
 	{
-		*this = timeNow();
+		return {(uint64_t)(usecs / timebaseUSec)};
 	}
 
-	static TimeMach timeNow()
+	static TimeMach makeWithMSecs(long int msecs)
 	{
-		TimeMach time;
-		time.t = mach_absolute_time();
-		return time;
+		return {(uint64_t)(msecs / timebaseMSec)};
+	}
+
+	static TimeMach makeWithSecs(long int secs)
+	{
+		return {(uint64_t)(secs / timebaseSec)};
+	}
+
+	static TimeMach now()
+	{
+		return {mach_absolute_time()};
 	}
 
 	long int toMs()

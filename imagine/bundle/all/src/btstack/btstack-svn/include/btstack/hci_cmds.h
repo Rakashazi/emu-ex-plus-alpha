@@ -35,7 +35,8 @@
  *  Created by Matthias Ringwald on 7/23/09.
  */
 
-#pragma once
+#ifndef __HCI_CMDS_H
+#define __HCI_CMDS_H
 
 #include <stdint.h>
 
@@ -65,7 +66,11 @@ extern "C" {
 
 // Security Manager protocol data
 #define SM_DATA_PACKET          0x09
-    
+
+// SDP query result
+// format: type (8), record_id (16), attribute_id (16), attribute_length (16), attribute_value (max 1k)
+#define SDP_CLIENT_PACKET       0x0a
+
 // debug log messages
 #define LOG_MESSAGE_PACKET      0xfc
 
@@ -107,6 +112,12 @@ extern "C" {
 #define HCI_EVENT_PACKET_TYPE_CHANGED                      0x1D
 #define HCI_EVENT_INQUIRY_RESULT_WITH_RSSI		      	   0x22
 #define HCI_EVENT_EXTENDED_INQUIRY_RESPONSE                0x2F
+#define HCI_EVENT_IO_CAPABILITY_REQUEST                    0x31
+#define HCI_EVENT_IO_CAPABILITY_RESPONSE                   0x32
+#define HCI_EVENT_USER_CONFIRMATION_REQUEST				   0x33
+#define HCI_EVENT_USER_PASSKEY_REQUEST             		   0x34
+#define HCI_EVENT_REMOTE_OOB_DATA_REQUEST				   0x35
+#define HCI_EVENT_SIMPLE_PAIRING_COMPLETE				   0x36
 #define HCI_EVENT_LE_META                                  0x3E
 #define HCI_EVENT_VENDOR_SPECIFIC				           0xFF
 
@@ -145,7 +156,7 @@ extern "C" {
 
 // L2CAP EVENTS
 	
-// data: event (8), len(8), status (8), address(48), handle (16), psm (16), local_cid(16), remote_cid (16), local_mtu(16), remote_mtu(16) 
+// data: event (8), len(8), status (8), address(48), handle (16), psm (16), local_cid(16), remote_cid (16), local_mtu(16), remote_mtu(16), flush_timeout(16)
 #define L2CAP_EVENT_CHANNEL_OPENED                         0x70
 
 // data: event (8), len(8), channel (16)
@@ -175,7 +186,7 @@ extern "C" {
 // data: event (8), len(8), address(48), channel (8), rfcomm_cid (16)
 #define RFCOMM_EVENT_INCOMING_CONNECTION                   0x82
 	
-// data: event (8), len(8), rfcommid (16), ...
+// data: event (8), len(8), rfcomm_cid (16), line status (8)
 #define RFCOMM_EVENT_REMOTE_LINE_STATUS                    0x83
 	
 // data: event(8), len(8), rfcomm_cid(16), credits(8)
@@ -187,13 +198,67 @@ extern "C" {
 // data: event(8), len(8), status (8), rfcomm server channel id (8) 
 #define RFCOMM_EVENT_PERSISTENT_CHANNEL                    0x86
     
+// data: event (8), len(8), rfcomm_cid (16), modem status (8)
+#define RFCOMM_EVENT_REMOTE_MODEM_STATUS                   0x87
+
+// data: event (8), len(8), rfcomm_cid (16), rpn_data_t (67)
+#define RFCOMM_EVENT_PORT_CONFIGURATION                    0x88
+
     
 // data: event(8), len(8), status(8), service_record_handle(32)
 #define SDP_SERVICE_REGISTERED                             0x90
 
-	
-// last error code in 2.1 is 0x38 - we start with 0x50 for BTstack errors
+// data: event(8), len(8), status(8)
+#define SDP_QUERY_COMPLETE                                 0x91 
 
+// data: event(8), len(8), rfcomm channel(8), name(var)
+#define SDP_QUERY_RFCOMM_SERVICE                           0x92
+
+// data: event(8), len(8), record nr(16), attribute id(16), attribute value(var)
+#define SDP_QUERY_ATTRIBUTE_VALUE                          0x93
+
+// not provided by daemon, only used for internal testing
+#define SDP_QUERY_SERVICE_RECORD_HANDLE                    0x94
+
+// data: event(8), gatt subevent(8), address_type(8), address(6x8), rssi(8), len(8), data(len*8)
+#define GATT_ADVERTISEMENT								   0xA0
+
+#define GATT_CONNECTION_COMPLETE	 					   0xA1
+#define GATT_SERVICE_QUERY_RESULT     					   0xA2
+#define GATT_SERVICE_QUERY_COMPLETE    					   0xA3
+#define GATT_CHARACTERISTIC_QUERY_RESULT				   0xA4
+#define GATT_CHARACTERISTIC_QUERY_COMPLETE    			   0xA5
+
+// data: event(8), len(8), status (8), hci_handle (16), attribute_handle (16)
+#define ATT_HANDLE_VALUE_INDICATION_COMPLETE        	   0xAF
+
+// data: event(8), address_type(8), address (48), [number(32)]
+#define SM_JUST_WORKS_REQUEST							   0xb0
+#define SM_JUST_WORKS_CANCEL							   0xb1 
+#define SM_PASSKEY_DISPLAY_NUMBER						   0xb2
+#define SM_PASSKEY_DISPLAY_CANCEL  						   0xb3
+#define SM_PASSKEY_INPUT_NUMBER							   0xb4
+#define SM_PASSKEY_INPUT_CANCEL      					   0xb5
+#define SM_IDENTITY_RESOLVING_STARTED	        		   0xb6
+#define SM_IDENTITY_RESOLVING_FAILED	        		   0xb7
+#define SM_IDENTITY_RESOLVING_SUCCEEDED  				   0xb8
+#define SM_AUTHORIZATION_REQUEST						   0xb9
+#define SM_AUTHORIZATION_RESULT							   0xba
+
+// GAP
+
+// data: event(8), len(8), hci_handle (16), security_level (8)
+#define GAP_SECURITY_LEVEL     						   	   0xc0
+
+// data: event(8), len(8), status (8), bd_addr(48)
+#define GAP_DEDICATED_BONDING_COMPLETED					   0xc1
+
+// Error Code
+#define ERROR_CODE_UNKNOWN_CONNECTION_IDENTIFIER 	       0x02
+#define ERROR_CODE_PAIRING_NOT_ALLOWED					   0x18
+#define ERROR_CODE_INSUFFICIENT_SECURITY 				   0x2F
+
+// last error code in 2.1 is 0x38 - we start with 0x50 for BTstack errors
 #define BTSTACK_CONNECTION_TO_BTDAEMON_FAILED              0x50
 #define BTSTACK_ACTIVATION_FAILED_SYSTEM_BLUETOOTH		   0x51
 #define BTSTACK_ACTIVATION_POWERON_FAILED       		   0x52
@@ -213,23 +278,61 @@ extern "C" {
 #define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_PSM       0x65
 #define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_SECURITY  0x66
 #define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_RESOURCES 0x65
+#define L2CAP_CONNECTION_RESPONSE_RESULT_RTX_TIMEOUT       0x66
 
-#define L2CAP_CONFIG_RESPONSE_RESULT_SUCCESSFUL            0x66
-#define L2CAP_CONFIG_RESPONSE_RESULT_UNACCEPTABLE_PARAMS   0x67
-#define L2CAP_CONFIG_RESPONSE_RESULT_REJECTED              0x68
-#define L2CAP_CONFIG_RESPONSE_RESULT_UNKNOWN_OPTIONS       0x69
-#define L2CAP_SERVICE_ALREADY_REGISTERED                   0x6a
+#define L2CAP_CONFIG_RESPONSE_RESULT_SUCCESSFUL            0x67
+#define L2CAP_CONFIG_RESPONSE_RESULT_UNACCEPTABLE_PARAMS   0x68
+#define L2CAP_CONFIG_RESPONSE_RESULT_REJECTED              0x69
+#define L2CAP_CONFIG_RESPONSE_RESULT_UNKNOWN_OPTIONS       0x6a
+#define L2CAP_SERVICE_ALREADY_REGISTERED                   0x6b
     
 #define RFCOMM_MULTIPLEXER_STOPPED                         0x70
 #define RFCOMM_CHANNEL_ALREADY_REGISTERED                  0x71
 #define RFCOMM_NO_OUTGOING_CREDITS                         0x72
+#define RFCOMM_AGGREGATE_FLOW_OFF						   0x73
 
 #define SDP_HANDLE_ALREADY_REGISTERED                      0x80
+#define SDP_QUERY_INCOMPLETE                               0x81
  
+#define ATT_HANDLE_VALUE_INDICATION_IN_PORGRESS 		   0x90 
+#define ATT_HANDLE_VALUE_INDICATION_TIMEOUT				   0x91
+
 /**
  * Default INQ Mode
  */
 #define HCI_INQUIRY_LAP 0x9E8B33L  // 0x9E8B33: General/Unlimited Inquiry Access Code (GIAC)
+
+/**
+ * SSP IO Capabilities - if capability is set, BTstack answers IO Capability Requests
+ */
+#define SSP_IO_CAPABILITY_DISPLAY_ONLY   0
+#define SSP_IO_CAPABILITY_DISPLAY_YES_NO 1
+#define SSP_IO_CAPABILITY_KEYBOARD_ONLY  2
+#define SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT 3
+#define SSP_IO_CAPABILITY_UNKNOWN 0xff
+
+/**
+ * SSP Authentication Requirements, see IO Capability Request Reply Commmand 
+ */
+
+// Numeric comparison with automatic accept allowed.
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_NOT_REQUIRED_NO_BONDING 0x00
+
+// Use IO Capabilities to deter- mine authentication procedure
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_REQUIRED_NO_BONDING 0x01
+
+// Numeric compar- ison with automatic accept allowed.
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_NOT_REQUIRED_DEDICATED_BONDING 0x02
+
+// Use IO Capabilities to determine authentication procedure
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_REQUIRED_DEDICATED_BONDING 0x03
+
+// Numeric Compari- son with automatic accept allowed.
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_NOT_REQUIRED_GENERAL_BONDING 0x04
+
+// . Use IO capabilities to determine authentication procedure.
+#define SSP_IO_AUTHREQ_MITM_PROTECTION_REQUIRED_GENERAL_BONDING 0x05
+
 /**
  *  Hardware state of Bluetooth controller 
  */
@@ -280,6 +383,8 @@ extern const hci_cmd_t hci_delete_stored_link_key;
 extern const hci_cmd_t hci_disconnect;
 extern const hci_cmd_t hci_host_buffer_size;
 extern const hci_cmd_t hci_inquiry;
+extern const hci_cmd_t hci_io_capability_request_reply;
+extern const hci_cmd_t hci_io_capability_request_negative_reply;
 extern const hci_cmd_t hci_inquiry_cancel;
 extern const hci_cmd_t hci_link_key_request_negative_reply;
 extern const hci_cmd_t hci_link_key_request_reply;
@@ -293,15 +398,21 @@ extern const hci_cmd_t hci_read_link_policy_settings;
 extern const hci_cmd_t hci_read_link_supervision_timeout;
 extern const hci_cmd_t hci_read_local_supported_features;
 extern const hci_cmd_t hci_read_num_broadcast_retransmissions;
+extern const hci_cmd_t hci_read_remote_supported_features_command;
 extern const hci_cmd_t hci_reject_connection_request;
 extern const hci_cmd_t hci_remote_name_request;
 extern const hci_cmd_t hci_remote_name_request_cancel;
+extern const hci_cmd_t hci_remote_oob_data_request_negative_reply;
 extern const hci_cmd_t hci_reset;
 extern const hci_cmd_t hci_role_discovery;
 extern const hci_cmd_t hci_set_event_mask;
 extern const hci_cmd_t hci_set_connection_encryption;
 extern const hci_cmd_t hci_sniff_mode;
 extern const hci_cmd_t hci_switch_role_command;
+extern const hci_cmd_t hci_user_confirmation_request_negative_reply;
+extern const hci_cmd_t hci_user_confirmation_request_reply;
+extern const hci_cmd_t hci_user_passkey_request_negative_reply;
+extern const hci_cmd_t hci_user_passkey_request_reply;
 extern const hci_cmd_t hci_write_authentication_enable;
 extern const hci_cmd_t hci_write_class_of_device;
 extern const hci_cmd_t hci_write_extended_inquiry_response;
@@ -356,6 +467,9 @@ extern const hci_cmd_t l2cap_unregister_service;
 
 extern const hci_cmd_t sdp_register_service_record;
 extern const hci_cmd_t sdp_unregister_service_record;
+extern const hci_cmd_t sdp_client_query_rfcomm_services;
+extern const hci_cmd_t sdp_client_query_services;
+
 
 // accept connection @param bd_addr(48), rfcomm_cid (16)
 extern const hci_cmd_t rfcomm_accept_connection;
@@ -379,3 +493,5 @@ extern const hci_cmd_t rfcomm_persistent_channel_for_service;
 #if defined __cplusplus
 }
 #endif
+
+#endif // __HCI_CMDS_H

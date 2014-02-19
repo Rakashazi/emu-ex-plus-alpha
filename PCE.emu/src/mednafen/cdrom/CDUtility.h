@@ -186,7 +186,7 @@ namespace CDUtility
  //  Returns "true" if errors weren't detected, or they were corrected succesfully.
  //  Returns "false" if errors couldn't be corrected.
  //  sector_data should contain 2352 bytes of raw sector data.
- bool edc_lec_check_correct(uint8 *sector_data, bool xa);
+ bool edc_lec_check_and_correct(uint8 *sector_data, bool xa);
 
  //
  // Subchannel(Q in particular) functions
@@ -202,11 +202,20 @@ namespace CDUtility
  // Deinterleaves 12 bytes of subchannel Q data from 96 bytes of interleaved subchannel PW data.
  void subq_deinterleave(const uint8 *subpw_buf, uint8 *subq_buf);
 
+ // Deinterleaves 96 bytes of subchannel P-W data from 96 bytes of interleaved subchannel PW data.
+ void subpw_deinterleave(const uint8 *in_buf, uint8 *out_buf);
+
+ // Interleaves 96 bytes of subchannel P-W data from 96 bytes of uninterleaved subchannel PW data.
+ void subpw_interleave(const uint8 *in_buf, uint8 *out_buf);
+
  // Extrapolates Q subchannel current position data from subq_input, with frame/sector delta position_delta, and writes to subq_output.
  // Only valid for ADR_CURPOS.
  // subq_input must pass subq_check_checksum().
  // TODO
  //void subq_extrapolate(const uint8 *subq_input, int32 position_delta, uint8 *subq_output);
+
+ // (De)Scrambles data sector.
+ void scrambleize_data_sector(uint8 *sector_data);
 }
 
 #endif

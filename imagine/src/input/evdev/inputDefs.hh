@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <linux/input.h>
 
 namespace Input
@@ -8,10 +23,49 @@ namespace Input
 namespace Evdev
 {
 	static const uint
+
+	F1 = KEY_F1,
+	F2 = KEY_F2,
+	F3 = KEY_F3,
+	F4 = KEY_F4,
+	F5 = KEY_F5,
+	F6 = KEY_F6,
+	F7 = KEY_F7,
+	F8 = KEY_F8,
+	F9 = KEY_F9,
+	F10 = KEY_F10,
+	F11 = KEY_F11,
+	F12 = KEY_F12,
+	ENTER = KEY_ENTER,
+	LALT = KEY_LEFTALT,
+	RALT = KEY_RIGHTALT,
+	LSHIFT = KEY_LEFTSHIFT,
+	RSHIFT = KEY_RIGHTSHIFT,
+	LCTRL = KEY_LEFTCTRL,
+	RCTRL = KEY_RIGHTCTRL,
+	PGUP = KEY_PAGEUP,
+	PGDOWN = KEY_PAGEDOWN,
 	UP = KEY_UP,
 	DOWN = KEY_DOWN,
 	LEFT = KEY_LEFT,
 	RIGHT = KEY_RIGHT,
+	BACK_SPACE = KEY_BACKSPACE,
+	MENU = KEY_MENU,
+	HOME = KEY_HOME,
+	DELETE = KEY_DELETE,
+	TAB = KEY_TAB,
+	SEARCH = KEY_FIND,
+	VOL_UP = KEY_VOLUMEUP,
+	VOL_DOWN = KEY_VOLUMEDOWN,
+	SCROLL_LOCK = KEY_SCROLLLOCK,
+	END = KEY_END,
+	INSERT = KEY_INSERT,
+	CAPS = KEY_CAPSLOCK,
+	LSUPER = KEY_LEFTMETA,
+	RSUPER = KEY_RIGHTMETA,
+	PAUSE = KEY_PAUSE,
+	UNDO = KEY_UNDO,
+	PRINT_SCREEN = KEY_SYSRQ,
 
 	GAME_A = BTN_A,
 	GAME_B = BTN_B,

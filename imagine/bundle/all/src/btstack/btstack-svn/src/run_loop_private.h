@@ -40,17 +40,17 @@
  *  Created by Matthias Ringwald on 6/6/09.
  */
 
-#pragma once
+#ifndef __RUN_LOOP_PRIVATE_H
+#define __RUN_LOOP_PRIVATE_H
 
 #include <btstack/run_loop.h>
 
 #ifdef HAVE_TIME
 #include <sys/time.h>
+#endif
 
-// compare timeval or timers - NULL is assumed to be before the Big Bang
-int run_loop_timeval_compare(struct timeval *a, struct timeval *b);
-int run_loop_timer_compare(timer_source_t *a, timer_source_t *b);
-
+#if defined __cplusplus
+extern "C" {
 #endif
 
 // 
@@ -61,8 +61,15 @@ typedef struct {
 	void (*init)(void);
 	void (*add_data_source)(data_source_t *dataSource);
 	int  (*remove_data_source)(data_source_t *dataSource);
+	void (*set_timer)(timer_source_t * timer, uint32_t timeout_in_ms);
 	void (*add_timer)(timer_source_t *timer);
 	int  (*remove_timer)(timer_source_t *timer); 
 	void (*execute)(void);
 	void (*dump_timer)(void);
 } run_loop_t;
+
+#if defined __cplusplus
+}
+#endif
+
+#endif // __RUN_LOOP_PRIVATE_H

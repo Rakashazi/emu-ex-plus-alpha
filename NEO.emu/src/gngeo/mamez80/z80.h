@@ -2,7 +2,7 @@
 #define Z80_H
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <gngeo-config.h>
 #endif
 
 #ifndef WORDS_BIGENDIAN

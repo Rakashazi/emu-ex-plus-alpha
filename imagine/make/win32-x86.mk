@@ -1,4 +1,4 @@
-include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))config.mk
+include $(IMAGINE_PATH)/make/config.mk
 include $(buildSysPath)/win32.mk
 
 ARCH := x86
@@ -15,4 +15,3 @@ RANLIB ?= i686-mingw32-ranlib
 extraSysroot := $(IMAGINE_PATH)/bundle/win32-x86
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
 CPPFLAGS += -I$(extraSysroot)/include
-LDLIBS += -L$(extraSysroot)/lib

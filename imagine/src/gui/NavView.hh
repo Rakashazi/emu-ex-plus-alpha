@@ -25,9 +25,9 @@
 class NavView
 {
 public:
-	IG::Rect2<int> leftBtn, rightBtn, textRect;
+	IG::WindowRect leftBtn, rightBtn, textRect;
 	Gfx::Text text;
-	IG::Rect2<int> viewRect;
+	IG::WindowRect viewRect;
 	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
 
 	constexpr NavView() {}

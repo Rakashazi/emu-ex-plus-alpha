@@ -1,4 +1,20 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <input/common/common.h>
 #include <input/DragPointer.hh>
 
@@ -34,14 +50,14 @@ static void mouseEvent(uint button, int p, uint action, int x, int y)
 	#endif
 	dragStateArr[p].pointerEvent(button, action, m[p].x, m[p].y);
 	//logMsg("p %d @ %d,%d %d", p, m[p].x, m[p].y, action);
-	Input::onInputEvent(Input::Event(p, Input::Event::MAP_POINTER, button, action, m[p].x, m[p].y));
+	Base::onInputEvent(Input::Event(p, Input::Event::MAP_POINTER, button, action, m[p].x, m[p].y));
 }
 
 static void keyEvent(SDL_keysym k, uint action)
 {
 	assert(k.sym < Keycode::COUNT);
 	uint modifiers = k.mod & KMOD_SHIFT;
-	//logMsg("key %d %s, action %d", k.sym, Input::buttonName(Input::Event::MAP_KEYBOARD, k.sym), action);
+	//logMsg("key %d %s, action %d", k.sym, Input::buttonName(Input::Event::MAP_SYSTEM, k.sym), action);
 	#if CONFIG_ENV_WEBOS_OS >= 3
 	if(unlikely(k.sym == 24)) // WebOS Dismiss Keyboard
 	{
@@ -55,15 +71,19 @@ static void keyEvent(SDL_keysym k, uint action)
 	#ifdef CONFIG_INPUT_ICADE
 	if(!iCadeActive() || (iCadeActive() && !processICadeKey(decodeAscii(k.sym, modifiers), action)))
 	#endif
-		Input::onInputEvent(Input::Event(0, InputEvent::MAP_KEYBOARD, k.sym & 0xFFF, action, modifiers));
+		Base::onInputEvent(Input::Event(0, InputEvent::MAP_SYSTEM, k.sym & 0xFFF, action, modifiers));
 }
 
 void setKeyRepeat(bool on)
 {
-	if(on)
-		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-	else
+	allowKeyRepeats = on;
+	if(!on)
+	{
 		SDL_EnableKeyRepeat(0, 0);
+		deinitKeyRepeatTimer();
+	}
+	else
+		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
 #if CONFIG_ENV_WEBOS_OS >= 3

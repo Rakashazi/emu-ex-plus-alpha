@@ -25,13 +25,8 @@ static void DoNEC_PCE_SAPSP(const uint8 *cdb)
 
     if(!track)
      track = 1;
-    else if(track == toc.last_track + 1)
+    else if(track >= toc.last_track + 1)
      track = 100;
-    else if(track > toc.last_track)
-    {
-     CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_END_OF_VOLUME);
-     return;
-    }
     new_read_sec_start = toc.tracks[track].lba;
    }
    break;
@@ -103,13 +98,8 @@ static void DoNEC_PCE_SAPEP(const uint8 *cdb)
 
     if(!track)
      track = 1;
-    else if(track == toc.last_track + 1)
+    else if(track >= toc.last_track + 1)
      track = 100;
-    else if(track > toc.last_track)
-    {
-     CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_END_OF_VOLUME);
-     return;
-    }
     new_read_sec_end = toc.tracks[track].lba;
    }
    break;

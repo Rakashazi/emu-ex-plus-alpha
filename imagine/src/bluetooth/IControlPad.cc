@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "icp"
+#define LOGTAG "ICP"
 #include "IControlPad.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
@@ -145,11 +145,19 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
 		devId = player;
+		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
 		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
-	else if(status == BluetoothSocket::STATUS_ERROR)
+	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	{
+		logErr("iCP connection error");
+		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		close();
+		delete this;
+	}
+	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("iCP read error, disconnecting");
 		removeFromSystem();
@@ -196,7 +204,12 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			// check if inputBuffer is complete
 			if(inputBufferPos == 6)
 			{
-				processNubDataForButtonEmulation((schar*)inputBuffer, player);
+				//processNubDataForButtonEmulation((schar*)inputBuffer, player);
+				iterateTimes(4, i)
+				{
+					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Event::MAP_ICONTROLPAD, *this, Base::mainWindow()))
+						Base::endIdleByUserActivity();
+				}
 				processBtnReport(&inputBuffer[4], player);
 				inputBufferPos = 0;
 			}
@@ -219,37 +232,81 @@ void IControlPad::processBtnReport(const char *btnData, uint player)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ICONTROLPAD, e->keyEvent, newState ? PUSHED : RELEASED, 0, this));
+			Event event{player, Event::MAP_ICONTROLPAD, (Key)e->keyEvent, newState ? PUSHED : RELEASED, 0, 0, this};
+			startKeyRepeatTimer(event);
+			dispatchInputEvent(event);
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint player)
+uint IControlPad::joystickAxisBits()
+{
+	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
+}
+
+uint IControlPad::joystickAxisAsDpadBitsDefault()
+{
+	return Device::AXIS_BITS_STICK_1;
+}
+
+void IControlPad::setJoystickAxisAsDpadBits(uint axisMask)
 {
 	using namespace Input;
-	//logMsg("iCP nubs %d %d %d %d", (int)nubData[0], (int)nubData[1], (int)nubData[2], (int)nubData[3]);
-	forEachInArray(nubBtn, e)
+	if(joystickAxisAsDpadBits_ == axisMask)
+		return;
+
+	joystickAxisAsDpadBits_ = axisMask;
+	logMsg("mapping joystick axes for player: %d", player);
 	{
-		bool newState;
-		if(e_i % 2)
-		{
-			newState = nubData[e_i/2] > nubDeadzone;
-		}
-		else
-		{
-			newState = nubData[e_i/2] < -nubDeadzone;
-		}
-		if(*e != newState)
-		{
-			static const uint nubBtnEvent[8] =
-			{
-				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
-				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
-			};
-			Base::endIdleByUserActivity();
-			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ICONTROLPAD, nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, this));
-		}
-		*e = newState;
+		bool on = axisMask & Device::AXIS_BIT_X;
+		axisKey[0].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::LNUB_LEFT;
+		axisKey[0].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::LNUB_RIGHT;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_Y;
+		axisKey[1].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::LNUB_UP;
+		axisKey[1].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::LNUB_DOWN;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_Z;
+		axisKey[2].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::RNUB_LEFT;
+		axisKey[2].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::RNUB_RIGHT;
+	}
+	{
+		bool on = axisMask & Device::AXIS_BIT_RZ;
+		axisKey[3].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::RNUB_UP;
+		axisKey[3].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::RNUB_DOWN;
 	}
 }
+
+//void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint player)
+//{
+//	using namespace Input;
+//	//logMsg("iCP nubs %d %d %d %d", (int)nubData[0], (int)nubData[1], (int)nubData[2], (int)nubData[3]);
+//	forEachInArray(nubBtn, e)
+//	{
+//		bool newState;
+//		if(e_i % 2)
+//		{
+//			newState = nubData[e_i/2] > nubDeadzone;
+//		}
+//		else
+//		{
+//			newState = nubData[e_i/2] < -nubDeadzone;
+//		}
+//		if(*e != newState)
+//		{
+//			static const uint nubBtnEvent[8] =
+//			{
+//				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
+//				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
+//			};
+//			Base::endIdleByUserActivity();
+//			Event event{player, Event::MAP_ICONTROLPAD, (Key)nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, 0, this};
+//			startKeyRepeatTimer(event);
+//			dispatchInputEvent(event);
+//		}
+//		*e = newState;
+//	}
+//}

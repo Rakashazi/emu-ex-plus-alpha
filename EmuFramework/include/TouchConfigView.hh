@@ -15,11 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include <MultiChoiceView.hh>
 #include <EmuOptions.hh>
-#include <EmuInput.hh>
-#include <VController.hh>
 
 class TouchConfigView : public BaseMenuView
 {
@@ -71,5 +69,5 @@ public:
 	TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName);
 	void init(bool highlightFirst);
 	void place() override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime) override;
 };

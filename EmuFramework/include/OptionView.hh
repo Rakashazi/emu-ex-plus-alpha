@@ -18,19 +18,13 @@
 #include <gui/View.hh>
 #include <gui/AlertView.hh>
 #include <gui/MenuItem/MenuItem.hh>
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include <audio/Audio.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
 #include <MultiChoiceView.hh>
-#include <EmuView.hh>
+#include <EmuApp.hh>
 #include <FilePicker.hh>
-extern ViewStack viewStack;
-extern EmuView emuView;
-void setupStatusBarInMenu();
-void setupFont();
-void applyOSNavStyle();
-Gfx::BufferImage &getAsset(uint assetID);
 extern WorkDirStack<1> workDirStack;
 void onCloseModalPopWorkDir(const Input::Event &e);
 void chdirFromFilePath(const char *path);
@@ -90,9 +84,6 @@ protected:
 	#endif
 
 	// Input
-	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-	BoolMenuItem useOSInputMethod;
-	#endif
 	BoolMenuItem altGamepadConfirm;
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	MultiChoiceSelectMenuItem btScanSecs;
@@ -117,20 +108,22 @@ protected:
 	void savePathUpdated(const char *newPath);
 	char savePathStr[256] {0};
 	TextMenuItem savePath;
-	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
+	void fastForwardSpeedinit();
+	MultiChoiceSelectMenuItem fastForwardSpeed;
+	#if defined CONFIG_BASE_ANDROID
 	void processPriorityInit();
 	MultiChoiceSelectMenuItem processPriority;
 	#endif
-	MultiChoiceSelectMenuItem statusBar;
-	void statusBarInit();
 
 	// GUI
 	BoolMenuItem pauseUnfocused;
 	MultiChoiceSelectMenuItem fontSize;
 	void fontSizeInit();
 	BoolMenuItem notificationIcon;
-	BoolMenuItem lowProfileOSNav;
-	BoolMenuItem hideOSNav;
+	MultiChoiceSelectMenuItem statusBar;
+	MultiChoiceSelectMenuItem lowProfileOSNav;
+	MultiChoiceSelectMenuItem hideOSNav;
 	BoolMenuItem idleDisplayPowerSave;
 	BoolMenuItem navView;
 	BoolMenuItem backNav;

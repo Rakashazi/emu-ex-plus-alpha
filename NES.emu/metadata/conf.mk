@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = NES.emu
 metadata_exec = nesemu
 metadata_pkgName = NesEmu

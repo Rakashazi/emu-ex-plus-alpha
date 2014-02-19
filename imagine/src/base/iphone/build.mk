@@ -11,12 +11,16 @@ endif
 
 LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -lobjc
 #-multiply_defined suppress
+ifeq ($(SUBARCH),armv7)
+LDLIBS += -framework GLKit
+endif
 
 ifdef iOSMsgUI
  configDefs += IPHONE_MSG_COMPOSE
  LDLIBS += -framework MessageUI
 endif
 
-SRC += base/iphone/iphone.mm base/iphone/IOSWindow.mm util/string/apple.mm
+SRC += base/iphone/iphone.mm base/iphone/IOSWindow.mm base/iphone/EAGLView.mm \
+ base/common/timer/CFTimer.cc base/common/PosixPipe.cc base/common/eventloop/CFEventLoop.cc util/string/apple.mm
 
 endif

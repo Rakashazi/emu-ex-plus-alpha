@@ -12,7 +12,11 @@ extern StaticArrayList<Window*, 4> window;
 extern Window *mainWin;
 #endif
 
-bool windowsArePosted();
-bool drawWindows(Gfx::FrameTimeBase frameTime);
+bool frameUpdate(FrameTimeBase frameTime, bool forceDraw);
+static bool frameUpdate(FrameTimeBase frameTime)
+{
+	return frameUpdate(frameTime, false);
+}
+void clearOnFrameDelegates();
 
 }

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "res:font:android"
+#define LOGTAG "ResFontAndroid"
 #include <engine-globals.h>
 #include <gfx/Gfx.hh>
 #include <util/strings.h>
@@ -99,7 +99,7 @@ static const char *androidBitmapResultToStr(int result)
 	}
 }
 
-void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
+IG::Pixmap ResourceFontAndroid::charBitmap()
 {
 	assert(!lockedBitmap);
 	auto jEnv = eEnv();
@@ -114,17 +114,17 @@ void ResourceFontAndroid::charBitmap(void *&data, int &x, int &y, int &pitch)
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 		//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
 	}
+	IG::Pixmap pix{PixelFormatA8};
+	pix.init2(nullptr, info.width, info.height, info.stride);
 	{
-		auto res = AndroidBitmap_lockPixels(jEnv, lockedBitmap, &data);
+		auto res = AndroidBitmap_lockPixels(jEnv, lockedBitmap, (void**)&pix.data);
 		//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	}
-	x = info.width;
-	y = info.height;
-	pitch = info.stride;
+	return pix;
 }
 
-void ResourceFontAndroid::unlockCharBitmap(void *data)
+void ResourceFontAndroid::unlockCharBitmap(IG::Pixmap &pix)
 {
 	auto jEnv = eEnv();
 	AndroidBitmap_unlockPixels(jEnv, lockedBitmap);
@@ -161,8 +161,9 @@ CallResult ResourceFontAndroid::activeChar(int idx, GlyphMetrics &metrics)
 int ResourceFontAndroid::currentFaceAscender () const
 { return jCurrentFaceAscender(eEnv(), renderer); }*/
 
-CallResult ResourceFontAndroid::newSize (const FontSettings &settings, FontSizeRef &sizeRef)
+CallResult ResourceFontAndroid::newSize(const FontSettings &settings, FontSizeRef &sizeRef)
 {
+	freeSize(sizeRef);
 	auto jEnv = eEnv();
 	auto size = jNewSize(jEnv, renderer, settings.pixelHeight);
 	assert(size);
@@ -170,14 +171,19 @@ CallResult ResourceFontAndroid::newSize (const FontSettings &settings, FontSizeR
 	sizeRef.ptr = Base::jniThreadNewGlobalRef(jEnv, size);
 	return OK;
 }
-CallResult ResourceFontAndroid::applySize (FontSizeRef &sizeRef)
+
+CallResult ResourceFontAndroid::applySize(FontSizeRef &sizeRef)
 {
 	jApplySize(eEnv(), renderer, sizeRef.ptr);
 	return OK;
 }
-void ResourceFontAndroid::freeSize (FontSizeRef &sizeRef)
+
+void ResourceFontAndroid::freeSize(FontSizeRef &sizeRef)
 {
+	if(!sizeRef.ptr)
+		return;
 	auto jEnv = eEnv();
 	jFreeSize(jEnv, renderer, sizeRef.ptr);
 	Base::jniThreadDeleteGlobalRef(jEnv, (jobject)sizeRef.ptr);
+	sizeRef.ptr = nullptr;
 }

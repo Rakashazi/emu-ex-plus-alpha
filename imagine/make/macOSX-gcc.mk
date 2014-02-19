@@ -2,6 +2,7 @@ ENV := macosx
 
 compiler_noSanitizeAddress := 1
 config_compiler := clang
+AR := ar
 ifeq ($(origin CC), default)
  CC := clang
 endif
@@ -22,6 +23,6 @@ WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
 extraSysroot := /opt/local
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(extraSysroot)/include
 CPPFLAGS += -I$(extraSysroot)/include
-pkgConfigOpts := --define-variable=prefix=$(extraSysroot)
+
+include $(buildSysPath)/package/stdc++.mk

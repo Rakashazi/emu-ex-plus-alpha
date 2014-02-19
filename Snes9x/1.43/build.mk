@@ -9,7 +9,7 @@ endif
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 emuFramework_cheats := 1
-include ../../EmuFramework/common.mk
+include $(EMUFRAMEWORK_PATH)/common.mk
 
 snes9xPath := snes9x-1.43
 CPPFLAGS += -Isrc/snes9x-1.43 -DHAVE_STRINGS_H -DVAR_CYCLES -DRIGHTSHIFT_IS_SAR -DZLIB -DUNZIP_SUPPORT \
@@ -37,6 +37,7 @@ jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
 SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc main/Cheats.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
+include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

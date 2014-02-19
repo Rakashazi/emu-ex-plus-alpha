@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "base:android"
+#define LOGTAG "Base"
 #include <cstdlib>
 #include <errno.h>
 
@@ -21,6 +21,7 @@
 #include <engine-globals.h>
 #include <base/android/sdk.hh>
 #include <base/Base.hh>
+#include <base/Timer.hh>
 #include <base/common/windowPrivate.hh>
 #include <base/common/funcs.h>
 #include <base/android/ASurface.hh>
@@ -34,14 +35,12 @@
 #include <sys/eventfd.h>
 #include <fs/sys.hh>
 #include <util/fd-utils.h>
-#include <util/Motion.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include "private.hh"
 #include "EGLContextHelper.hh"
 
-extern TimedMotion<GC> projAngleM;
 bool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
 bool glPointerStateHack = 0, glBrokenNpot = 0;
 
@@ -95,62 +94,63 @@ static JNIEnv* eJEnv = nullptr;
 static const char *buildDevice = nullptr;
 
 // input
-bool inputQueueAttached = false;
 AInputQueue *inputQueue = nullptr;
 static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static void processInputWithGetEvent(AInputQueue *inputQueue);
 static void processInputWithHasEvents(AInputQueue *inputQueue);
-int processInputCallback(int fd, int events, void* data);
 static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHasEvents;
 
 // activity
 jclass jBaseActivityCls = nullptr;
 jobject jBaseActivity = nullptr;
-ALooper *aLooper = nullptr;
+static ANativeActivity *baseActivity = nullptr;
 uint appState = APP_PAUSED;
-bool aHasFocus = 1;
-static bool sigMatchesAPK = 1;
-bool resumeAppOnWindowInit = 0;
+bool aHasFocus = true;
+bool resumeAppOnWindowInit = false;
 static AConfiguration *aConfig = nullptr;
-static int writeMsgPipe = -1;
 static JavaInstMethod<void> jSetUIVisibility;
 //static JavaInstMethod<void> jFinish;
 static JavaInstMethod<jobject> jIntentDataPath;
 static JavaInstMethod<jobject> jNewFontRenderer;
+static JavaInstMethod<void> jAddViewShortcut;
 JavaInstMethod<void> jSetRequestedOrientation;
 static JavaInstMethod<void> jAddNotification, jRemoveNotification;
 static jobject vibrator = nullptr;
 static JavaInstMethod<void> jVibrate;
+static JavaInstMethod<jboolean> jPackageIsInstalled;
 const char *appPath = nullptr;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static uint aSDK = aMinSDK;
-static bool osAnimatesRotation = 0;
+static bool osAnimatesRotation = false;
 int osOrientation = -1;
 static bool trackballNav = false;
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
-static CallbackRef *userActivityCallback = nullptr;
+static Timer userActivityCallback;
+static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 void onResume(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
+TimeSys orientationEventTime;
 
 // window
-jobject drawWindowHelper = nullptr;
+jobject frameHelper = nullptr;
 static bool hasChoreographer = 0;
 static int64 prevFrameTimeNanos = 0;
 EGLContextHelper eglCtx;
 EGLDisplay display = EGL_NO_DISPLAY;
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
-JavaInstMethod<void> jPostDrawWindow, jCancelDrawWindow;
-int drawWinEventFd = -1;
-uint drawWinEventIdle = 0;
-bool drawWindow(int64 frameTimeNanos);
+JavaInstMethod<void> jPostFrame, jUnpostFrame;
+int onFrameEventFd = -1;
+uint onFrameEventIdle = 0;
+bool onFrame(int64 frameTimeNanos, bool forceDraw);
 void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *win);
 void windowResized(ANativeActivity* activity, ANativeWindow *win);
 void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *win);
 void finishWindowInit(ANativeActivity* activity, ANativeWindow *win, bool hasFocus);
 void windowDestroyed(ANativeActivity* activity, Window &win);
-void setWindowRedrawResizeCallback(uint extraRedraws);
+void addOnFrameWindowSizeChecks(uint extraRedraws);
+void setupEGLConfig();
 
 // display
 static JavaInstMethod<jint> jGetRotation;
@@ -159,8 +159,50 @@ static jobject jDpy = nullptr;
 static uint refreshRate_ = 0;
 float androidXDPI = 0, androidYDPI = 0; // DPI reported by OS
 float aDensityDPI = 0;
+uint androidUIInUse = 0;
 
-void exitVal(int returnVal)
+static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
+{
+	[](Screen &screen, FrameTimeBase)
+	{
+		// an Android UI element like EditText may make its
+		// own context current so we must check and restore ours
+		restoreOpenGLContext();
+		if(androidUIInUse)
+		{
+			// do callback each frame until UI use stops
+			screen.addOnFrameDelegate(restoreGLContextFromAndroidUI);
+		}
+		else
+		{
+			logMsg("stopping per-frame context check");
+		}
+	}
+};
+
+void unrefUIGL()
+{
+	assert(androidUIInUse);
+	androidUIInUse--;
+	if(!androidUIInUse)
+	{
+		//logMsg("no more Android UI elements in use");
+	}
+}
+
+void refUIGL()
+{
+	androidUIInUse++;
+	auto &screen = mainScreen();
+	if(!screen.containsOnFrameDelegate(restoreGLContextFromAndroidUI))
+	{
+		screen.addOnFrameDelegate(restoreGLContextFromAndroidUI);
+	}
+}
+
+uint appActivityState() { return appState; }
+
+void exit(int returnVal)
 {
 	// TODO: return exit value as activity result
 	logMsg("exiting process");
@@ -219,6 +261,12 @@ void addNotification(const char *onShow, const char *title, const char *message)
 	jAddNotification(eEnv(), jBaseActivity, eEnv()->NewStringUTF(onShow), eEnv()->NewStringUTF(title), eEnv()->NewStringUTF(message));
 }
 
+void addLauncherIcon(const char *name, const char *path)
+{
+	logMsg("adding launcher icon: %s, for path: %s", name, path);
+	jAddViewShortcut(eEnv(), jBaseActivity, eEnv()->NewStringUTF(name), eEnv()->NewStringUTF(path));
+}
+
 void setSDK(uint sdk)
 {
 	aSDK = sdk;
@@ -231,27 +279,29 @@ uint androidSDK()
 
 static void setDeviceType(const char *dev)
 {
-	assert(Config::ENV_ANDROID_MINSDK >= 4);
 	if(Config::MACHINE_IS_GENERIC_ARMV7)
 	{
-		if(androidSDK() < 11 && (strstr(dev, "shooter") || string_equal(dev, "inc")))
+		// TODO: confirm this isn't needed on newest Evo 3D/Shooter firmware
+		if(androidSDK() < 11 && (/*strstr(dev, "shooter") ||*/ string_equal(dev, "inc")))
 		{
-			// Evo 3D/Shooter, & HTC Droid Incredible hack
+			// HTC Droid Incredible hack
 			logMsg("device needs glFinish() hack");
 			glSyncHackBlacklisted = 1;
 		}
-		else if(androidSDK() < 11 && (string_equal(dev, "vision") || string_equal(dev, "ace")))
+		// TODO: re-test for broken NPOT using OpenGL ES 2.0 renderer
+		/*else if(androidSDK() < 11 && (string_equal(dev, "vision") || string_equal(dev, "ace")))
 		{
 			// T-Mobile G2 (HTC Desire Z), HTC Desire HD
 			logMsg("device has broken npot support");
 			glBrokenNpot = 1;
-		}
-		else if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
-		{
-			logMsg("device needs gl*Pointer() hack");
-			glPointerStateHack = 1;
-		}
+		}*/
 	}
+	// TODO: is this still needed?
+	/*if(androidSDK() < 11 && string_equal(dev, "GT-B5510"))
+	{
+		logMsg("device needs gl*Pointer() hack");
+		glPointerStateHack = 1;
+	}*/
 }
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*
@@ -297,29 +347,33 @@ int keyboardType()
 	return aKeyboardType;
 }
 
+TimeSys lastOrientationEventTime()
+{
+	return orientationEventTime;
+}
+
 static bool setOrientationOS(int o)
 {
-	static const GC orientationDiffTable[4][4] =
+	using namespace Gfx;
+	static const Angle orientationDiffTable[4][4] =
 	{
-			{ 0, -90, 180, 90 },
-			{ 90, 0, -90, 180 },
-			{ 180, 90, 0, -90 },
-			{ -90, 180, 90, 0 },
+			{ 0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90) },
+			{ angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180) },
+			{ angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90) },
+			{ angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0 },
 	};
 
 	logMsg("OS orientation change");
+	orientationEventTime = orientationEventTime.now();
 	assert(osOrientation != -1);
 	if(osOrientation != o)
 	{
-		// Close any OS dialog windows since they may have taken
-		// the OpenGL context and prevent proper surface resizing
-		Input::finishSysTextInput();
-
 		if(!osAnimatesRotation)
 		{
-			GC rotAngle = orientationDiffTable[osOrientation][o];
-			logMsg("animating from %d degrees", (int)rotAngle);
-			projAngleM.initLinear(IG::toRadians(rotAngle), 0, 10);
+			auto rotAngle = orientationDiffTable[osOrientation][o];
+			logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
+			//projAngleM.set(IG::toRadians(rotAngle), 0., INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
+			Gfx::animateProjectionMatrixRotation(rotAngle, 0.);
 		}
 		//logMsg("new value %d", o);
 		osOrientation = o;
@@ -335,7 +389,7 @@ const char *androidBuildDevice()
 	return buildDevice;
 }
 
-uint refreshRate()
+uint Screen::refreshRate()
 {
 	if(!refreshRate_)
 	{
@@ -344,34 +398,6 @@ uint refreshRate()
 		logMsg("refresh rate: %d", refreshRate_);
 	}
 	return refreshRate_;
-}
-
-static int pollEventCallback(int fd, int events, void* data)
-{
-	auto &source = *((PollEventDelegate*)data);
-	source(events);
-	return 1;
-}
-
-ALooper *activityLooper()
-{
-	assert(aLooper);
-	return aLooper;
-}
-
-static void addPollEvent(ALooper *looper, int fd, PollEventDelegate &handler, uint events)
-{
-	logMsg("adding fd %d to looper", fd);
-	assert(looper);
-	int ret = ALooper_addFd(looper, fd, ALOOPER_POLL_CALLBACK, events, pollEventCallback, &handler);
-	assert(ret == 1);
-}
-
-static void removePollEvent(ALooper *looper, int fd)
-{
-	logMsg("removing fd %d from looper", fd);
-	int ret = ALooper_removeFd(looper, fd);
-	assert(ret != -1);
 }
 
 bool surfaceTextureSupported()
@@ -386,7 +412,22 @@ int processPriority()
 
 bool apkSignatureIsConsistent()
 {
+	bool sigMatchesAPK = true;
+	#ifdef ANDROID_APK_SIGNATURE_HASH
+	JavaInstMethod<jint> jSigHash;
+	auto jEnv = eEnv();
+	jSigHash.setup(jEnv, jBaseActivityCls, "sigHash", "()I");
+	sigMatchesAPK = jSigHash(jEnv, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
+	#endif
 	return sigMatchesAPK;
+}
+
+bool packageIsInstalled(const char *name)
+{
+	auto jEnv = eEnv();
+	if(!jPackageIsInstalled)
+		jPackageIsInstalled.setup(jEnv, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z");
+	return jPackageIsInstalled(jEnv, jBaseActivity, jEnv->NewStringUTF(name));
 }
 
 EGLDisplay getAndroidEGLDisplay()
@@ -424,8 +465,8 @@ static void appFocus(bool hasFocus, ANativeWindow* window)
 	if(hasFocus && window)
 	{
 		logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
-		mainWindow().displayNeedsUpdate();
-		setWindowRedrawResizeCallback(1);
+		mainWindow().postDraw();
+		addOnFrameWindowSizeChecks(0);
 	}
 	if(eglCtx.isInit())
 		onFocusChange(mainWindow(), hasFocus);
@@ -454,14 +495,18 @@ bool hasTrackball()
 
 static void appPaused()
 {
-	if(appState == APP_RUNNING)
+	if(appIsRunning())
 		appState = APP_PAUSED;
 	logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
 	onExit(appState == APP_PAUSED);
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnPause();
 	#endif
-	mainWindow().unpostDraw();
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	Input::onPauseMOGA(eEnv());
+	#endif
+	Input::deinitKeyRepeatTimer();
+	mainScreen().unpostFrame();
 }
 
 void handleIntent(ANativeActivity* activity)
@@ -481,6 +526,9 @@ void handleIntent(ANativeActivity* activity)
 
 void doOnResume(ANativeActivity* activity)
 {
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	Input::onResumeMOGA(eEnv(), true);
+	#endif
 	onResume(aHasFocus);
 	handleIntent(activity);
 }
@@ -494,8 +542,13 @@ static void appResumed(ANativeActivity* activity)
 	if(mainWindow())
 	{
 		logMsg("app resumed");
+		// check if a window needs to draw since the surface
+		// may have been created before onResume()
+		if(mainWindow().needsDraw())
+		{
+			mainScreen().postFrame();
+		}
 		doOnResume(activity);
-		//mainWindow().displayNeedsUpdate();
 	}
 	else
 	{
@@ -532,10 +585,26 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 		jAddNotification.setup(jEnv, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 		jRemoveNotification.setup(jEnv, jBaseActivityCls, "removeNotification", "()V");
 		jIntentDataPath.setup(jEnv, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;");
+		jAddViewShortcut.setup(jEnv, jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
 		//jFinish.setup(jEnv, jBaseActivityCls, "finish", "()V");
 		#ifdef CONFIG_RESOURCE_FONT_ANDROID
 		jNewFontRenderer.setup(jEnv, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
 		#endif
+
+		{
+			JNINativeMethod method[] =
+			{
+				{
+					"onContentRectChanged", "(IIII)V",
+					(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2))
+					([](JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2)
+					{
+						contentRectChanged(baseActivity, {x, y, x2, y2}, mainWindow().nWin);
+					})
+				}
+			};
+			jEnv->RegisterNatives(jBaseActivityCls, method, sizeofArray(method));
+		}
 
 		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 		{
@@ -620,12 +689,6 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 			else
 				Base::hasPermanentMenuKey = 1;
 		}
-
-		#ifdef ANDROID_APK_SIGNATURE_HASH
-		JavaInstMethod<jint> jSigHash;
-		jSigHash.setup(jEnv, jBaseActivityCls, "sigHash", "()I");
-		sigMatchesAPK = jSigHash(jEnv, inst) == ANDROID_APK_SIGNATURE_HASH;
-		#endif
 	}
 
 	Gfx::surfaceTextureConf.init(jEnv);
@@ -676,25 +739,26 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 	aDensityDPI = 160.*jEnv->GetFloatField(dpyMetrics, jScaledDensity);
 	assert(aDensityDPI);
 	logMsg("set screen DPI size %f,%f, scaled density DPI %f", (double)metricsXDPI, (double)metricsYDPI, (double)aDensityDPI);
-	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 16 && (strstr(buildDevice, "spyder") || strstr(buildDevice, "targa")))
-	{
-		logMsg("using scaled DPI as physical DPI due to Droid RAZR/Bionic Android 4.1 bug");
-		metricsXDPI = metricsYDPI = aDensityDPI;
-	}
+//	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 16 && (strstr(buildDevice, "spyder") || strstr(buildDevice, "targa")))
+//	{
+//		logMsg("using scaled DPI as physical DPI due to Droid RAZR/Bionic Android 4.1 bug");
+//		metricsXDPI = metricsYDPI = aDensityDPI;
+//	}
 	// DPI values are un-rotated from DisplayMetrics
 	androidXDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
 	androidYDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
 
 	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
 	{
-		if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
+		// TODO: need to re-test with OpenGL ES 2.0 backend
+		/*if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
 		{
 			// Hack for Adreno chips that have display artifacts when using 32-bit color.
 			logMsg("device may have broken 32-bit surfaces, defaulting to low color");
 			eglCtx.useMaxColorBits = 0;
 			eglCtx.has32BppColorBugs = 1;
 		}
-		else
+		else*/
 		{
 			logMsg("defaulting to highest color mode");
 			eglCtx.useMaxColorBits = 1;
@@ -703,85 +767,127 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 
 	//jSetKeepScreenOn.setup(jEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
 	jSetWinFlags.setup(jEnv, jBaseActivityCls, "setWinFlags", "(II)V");
-	jSetWinFormat.setup(jEnv, jBaseActivityCls, "setWinFormat", "(I)V");
 	jWinFlags.setup(jEnv, jBaseActivityCls, "winFlags", "()I");
-	jWinFormat.setup(jEnv, jBaseActivityCls, "winFormat", "()I");
+	if(Base::androidSDK() < 11)
+	{
+		jSetWinFormat.setup(jEnv, jBaseActivityCls, "setWinFormat", "(I)V");
+		jWinFormat.setup(jEnv, jBaseActivityCls, "winFormat", "()I");
+	}
 	jSetUIVisibility.setup(jEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
+
+	// ui visibility change notifications
+	if(Base::androidSDK() >= 11)
+	{
+		logMsg("setting up UI visibility change notifications");
+		JavaInstMethod<jobject> jUIVisibilityChangeHelper;
+		jUIVisibilityChangeHelper.setup(jEnv, Base::jBaseActivityCls, "uiVisibilityChangeHelper", "()Lcom/imagine/SystemUiVisibilityChangeHelper;");
+		auto uiVisibilityChangeHelper = jUIVisibilityChangeHelper(jEnv, Base::jBaseActivity);
+		assert(uiVisibilityChangeHelper);
+		auto uiVisibilityChangeHelperCls = jEnv->GetObjectClass(uiVisibilityChangeHelper);
+		JNINativeMethod method[] =
+		{
+			{
+				"visibilityChange", "(I)V",
+				(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jint visibility))
+				([](JNIEnv* env, jobject thiz, jint visibility)
+				{
+					int possibleChangeFlags = uiVisibilityFlags & 0x7;
+					if(possibleChangeFlags != visibility)
+					{
+						logMsg("system UI visibility changed from %d to %d, reapplying app's style", possibleChangeFlags, visibility);
+						jSetUIVisibility(env, jBaseActivity, uiVisibilityFlags);
+					}
+				})
+			}
+		};
+		jEnv->RegisterNatives(uiVisibilityChangeHelperCls, method, sizeofArray(method));
+	}
 
 	initEGL();
 	doOrAbort(onInit(0, nullptr));
+	if(!mainWin)
+	{
+		bug_exit("didn't create a window");
+	}
+	setupEGLConfig();
 	eglCtx.init(display);
 
 	// select display update method
 	if(Base::androidSDK() >= 16) // Choreographer
 	{
 		//logMsg("using Choreographer for display updates");
-		hasChoreographer = 1;
+		hasChoreographer = true;
 		JavaInstMethod<jobject> jNewChoreographerHelper;
 		jNewChoreographerHelper.setup(jEnv, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
-		drawWindowHelper = jNewChoreographerHelper(jEnv, inst);
-		assert(drawWindowHelper);
-		drawWindowHelper = jEnv->NewGlobalRef(drawWindowHelper);
-		auto choreographerHelperCls = jEnv->GetObjectClass(drawWindowHelper);
-		jPostDrawWindow.setup(jEnv, choreographerHelperCls, "postDrawWindow", "()V");
-		jCancelDrawWindow.setup(jEnv, choreographerHelperCls, "cancelDrawWindow", "()V");
-
-		using DrawHandlerFunc = jboolean(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos);
-		DrawHandlerFunc drawHandler = [](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
-			{
-				//logMsg("frame time %lld, diff %lld", (long long)frameTimeNanos, (long long)(frameTimeNanos - lastFrameTime));
-				prevFrameTimeNanos = frameTimeNanos;
-				return (jboolean)drawWindow(frameTimeNanos);
-			};
+		frameHelper = jNewChoreographerHelper(jEnv, inst);
+		assert(frameHelper);
+		frameHelper = jEnv->NewGlobalRef(frameHelper);
+		auto choreographerHelperCls = jEnv->GetObjectClass(frameHelper);
+		jPostFrame.setup(jEnv, choreographerHelperCls, "postFrame", "()V");
+		jUnpostFrame.setup(jEnv, choreographerHelperCls, "unpostFrame", "()V");
 		JNINativeMethod method[] =
 		{
-				{"drawWindow", "(J)Z", (void*)drawHandler}
+			{
+				"onFrame", "(J)Z",
+				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos))
+				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
+				{
+					//logMsg("frame time %lld, diff %lld", (long long)frameTimeNanos, (long long)(frameTimeNanos - lastFrameTime));
+					assert(mainScreen().frameIsPosted());
+					prevFrameTimeNanos = frameTimeNanos;
+					return (jboolean)onFrame(frameTimeNanos, false);
+				})
+			}
 		};
 		jEnv->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
 	}
 	else
 	{
-		drawWinEventFd = eventfd(0, 0);
-		if(unlikely(drawWinEventFd == -1)) // MessageQueue.IdleHandler
+		onFrameEventFd = eventfd(0, 0);
+		if(unlikely(onFrameEventFd == -1)) // MessageQueue.IdleHandler
 		{
 			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
 			JavaInstMethod<jobject> jNewIdleHelper;
 			jNewIdleHelper.setup(jEnv, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
-			drawWindowHelper = jNewIdleHelper(jEnv, inst);
-			assert(drawWindowHelper);
-			drawWindowHelper = jEnv->NewGlobalRef(drawWindowHelper);
-			auto idleHelperCls = jEnv->GetObjectClass(drawWindowHelper);
-			jPostDrawWindow.setup(jEnv, idleHelperCls, "postDrawWindow", "()V");
-			jCancelDrawWindow.setup(jEnv, idleHelperCls, "cancelDrawWindow", "()V");
-			using DrawHandlerFunc = jboolean(*)(JNIEnv* env, jobject thiz);
-			DrawHandlerFunc drawHandler = [](JNIEnv* env, jobject thiz)
-				{
-					return (jboolean)drawWindow(0);
-				};
-			JNINativeMethod method[] =
+			frameHelper = jNewIdleHelper(jEnv, inst);
+			assert(frameHelper);
+			frameHelper = jEnv->NewGlobalRef(frameHelper);
+			auto idleHelperCls = jEnv->GetObjectClass(frameHelper);
+			jPostFrame.setup(jEnv, idleHelperCls, "postFrame", "()V");
+			jUnpostFrame.setup(jEnv, idleHelperCls, "unpostFrame", "()V");
+			JNINativeMethod method[]
 			{
-					{"drawWindow", "()Z", (void*)drawHandler},
+				{
+					"onFrame", "()Z",
+					(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz))
+					([](JNIEnv* env, jobject thiz)
+					{
+						assert(mainScreen().frameIsPosted());
+						return (jboolean)onFrame(0, true); // force window draw so buffers swap to wait until next frame
+					})
+				}
 			};
 			jEnv->RegisterNatives(idleHelperCls, method, sizeofArray(method));
 		}
 		else // eventfd
 		{
-			ALooper_callbackFunc drawHandler = [](int fd, int events, void* data)
+			// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
+			int ret = ALooper_addFd(activityLooper(), onFrameEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+				[](int fd, int, void*)
 				{
-					// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
-					if(drawWinEventIdle)
+					if(onFrameEventIdle)
 					{
 						//logMsg("idled");
-						drawWinEventIdle--;
+						onFrameEventIdle--;
 						return 1;
 					}
 					else
 					{
 						// "idle" every other call so other fds are processed
 						// to avoid a frame of input lag
-						drawWinEventIdle = 1;
+						onFrameEventIdle = 1;
 					}
-
+					assert(mainScreen().frameIsPosted());
 					if(likely(inputQueue) && AInputQueue_hasEvents(inputQueue) == 1)
 					{
 						// some devices may delay reporting input events (stock rom on R800i for example),
@@ -789,15 +895,14 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 						processInput(inputQueue);
 					}
 
-					if(!drawWindow(0))
+					if(!onFrame(0, true)) // force window draw so buffers swap to wait until next frame
 					{
 						uint64_t post;
-						auto ret = read(drawWinEventFd, &post, sizeof(post));
+						auto ret = read(fd, &post, sizeof(post));
 						assert(ret == sizeof(post));
 					}
 					return 1;
-				};
-			int ret = ALooper_addFd(aLooper, drawWinEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, drawHandler, nullptr);
+				}, nullptr);
 			assert(ret == 1);
 		}
 	}
@@ -805,20 +910,24 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 
 static void dlLoadFuncs()
 {
-	void *libandroid = 0;
-
-	if(Base::androidSDK() < 12) // no functions from dlopen needed before Android 3.1 (SDK 12)
+	#if CONFIG_ENV_ANDROID_MINSDK >= 12
+	 // no functions from dlopen needed if targeting at least Android 3.1 (SDK 12)
+	return;
+	#endif
+	 // no functions from dlopen needed if running less than Android 3.1 (SDK 12)
+	if(Base::androidSDK() < 12)
 	{
 		return;
 	}
 
-	if((libandroid = dlopen("/system/lib/libandroid.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
+	void *libandroid = dlopen("/system/lib/libandroid.so", RTLD_LOCAL | RTLD_LAZY);
+	if(!libandroid)
 	{
 		logWarn("unable to dlopen libandroid.so");
 		return;
 	}
 
-	#ifdef CONFIG_INPUT_ANDROID
+	#ifdef CONFIG_INPUT
 	Input::dlLoadAndroidFuncs(libandroid);
 	#endif
 }
@@ -827,7 +936,13 @@ static bool handleInputEvent(AInputQueue *inputQueue, AInputEvent* event)
 {
 	#ifdef CONFIG_INPUT
 	//logMsg("input event start");
-	if(Input::sendInputToIME && AInputQueue_preDispatchEvent(inputQueue, event))
+	if(unlikely(!mainWindow().nWin))
+	{
+		logMsg("ignoring input with uninitialized window");
+		AInputQueue_finishEvent(inputQueue, event, 0);
+		return 1;
+	}
+	if(unlikely(Input::sendInputToIME && AInputQueue_preDispatchEvent(inputQueue, event)))
 	{
 		//logMsg("input event used by pre-dispatch");
 		return 1;
@@ -903,22 +1018,7 @@ void jniThreadDeleteGlobalRef(JNIEnv* jEnv, jobject obj)
 	jEnv->DeleteGlobalRef(obj);
 }
 
-void addPollEvent(int fd, PollEventDelegate &handler, uint events)
-{
-	addPollEvent(aLooper, fd, handler, events);
-}
-
-void modPollEvent(int fd, PollEventDelegate &handler, uint events)
-{
-	addPollEvent(aLooper, fd, handler, events);
-}
-
-void removePollEvent(int fd)
-{
-	removePollEvent(aLooper, fd);
-}
-
-void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
+/*void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 {
 	assert(writeMsgPipe != -1);
 	uint16 shortArg16 = shortArg;
@@ -933,9 +1033,9 @@ void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
 void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
 {
 	sendMessageToMain(type, shortArg, intArg, intArg2);
-}
+}*/
 
-#ifdef CONFIG_BLUETOOTH_ANDROID
+/*#ifdef CONFIG_BLUETOOTH_ANDROID
 static const ushort MSG_BT_DATA = 150;
 
 void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
@@ -950,7 +1050,7 @@ void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
 		logErr("unable to write bt data to pipe: %s", strerror(errno));
 	}
 }
-#endif
+#endif*/
 
 void setIdleDisplayPowerSave(bool on)
 {
@@ -975,11 +1075,9 @@ void endIdleByUserActivity()
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(env, jBaseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
-		cancelCallback(userActivityCallback);
-		userActivityCallback = callbackAfterDelay(
+		userActivityCallback.callbackAfterMSec(
 			[]()
 			{
-				userActivityCallback = nullptr;
 				if(!keepScreenOn)
 				{
 					jSetWinFlags(eEnv(), jBaseActivity, 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
@@ -988,18 +1086,48 @@ void endIdleByUserActivity()
 	}
 }
 
-void setOSNavigationStyle(uint flags)
+static void setStatusBarHidden(JNIEnv *env, bool hidden)
 {
-	// Flags mapped directly
-	// OS_NAV_STYLE_DIM -> SYSTEM_UI_FLAG_LOW_PROFILE (1)
-	// OS_NAV_STYLE_HIDDEN -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (2)
-	// 0 -> SYSTEM_UI_FLAG_VISIBLE
-	// Adds SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
-	constexpr uint SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
-	if(flags & OS_NAV_STYLE_HIDDEN)
-		flags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-	logMsg("setting UI visibility: 0x%X", flags);
-	jSetUIVisibility(eEnv(), jBaseActivity, flags);
+	auto statusBarIsHidden = (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_FULLSCREEN);
+	if(hidden != statusBarIsHidden)
+	{
+		logMsg("setting app window fullscreen: %u", hidden);
+		jSetWinFlags(env, jBaseActivity, hidden ? AWINDOW_FLAG_FULLSCREEN : 0, AWINDOW_FLAG_FULLSCREEN);
+	}
+}
+
+void setSysUIStyle(uint flags)
+{
+	// Flags mapped directly to SYSTEM_UI_FLAG_*
+	// SYS_UI_STYLE_DIM_NAV -> SYSTEM_UI_FLAG_LOW_PROFILE (0)
+	// SYS_UI_STYLE_HIDE_NAV -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (1)
+	// SYS_UI_STYLE_HIDE_STATUS -> SYSTEM_UI_FLAG_FULLSCREEN (2)
+	// SYS_UI_STYLE_NO_FLAGS -> SYSTEM_UI_FLAG_VISIBLE (no bits set)
+
+	if(Config::MACHINE_IS_OUYA)
+	{
+		return;
+	}
+	auto env = eEnv();
+	// Using SYSTEM_UI_FLAG_FULLSCREEN has an odd delay when
+	// combined with SYSTEM_UI_FLAG_HIDE_NAVIGATION, so we'll
+	// set the window flag even on Android 4.1+.
+	// TODO: Re-test on Android versions after 4.4 for any change
+	//if(androidSDK() < 16)
+	{
+		// handle status bar hiding via full-screen window flag
+		setStatusBarHidden(env, flags & SYS_UI_STYLE_HIDE_STATUS);
+	}
+	if(androidSDK() >= 11)
+	{
+		constexpr uint SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
+		// Add SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
+		if(flags & SYS_UI_STYLE_HIDE_NAV)
+			flags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+		logMsg("setting UI visibility: 0x%X", flags);
+		uiVisibilityFlags = flags;;
+		jSetUIVisibility(env, jBaseActivity, flags);
+	}
 }
 
 void setProcessPriority(int nice)
@@ -1009,26 +1137,9 @@ void setProcessPriority(int nice)
 	setpriority(PRIO_PROCESS, 0, nice);
 }
 
-void setStatusBarHidden(bool hidden)
-{
-	auto env = eEnv();
-	auto statusBarIsHidden = (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_FULLSCREEN);
-	if(hidden != statusBarIsHidden)
-	{
-		logMsg("setting app window fullscreen: %u", hidden);
-		jSetWinFlags(env, jBaseActivity, hidden ? AWINDOW_FLAG_FULLSCREEN : 0, AWINDOW_FLAG_FULLSCREEN);
-	}
-}
-
-bool supportsFrameTime()
+bool Screen::supportsFrameTime()
 {
 	return hasChoreographer;
-}
-
-int processInputCallback(int fd, int events, void* data)
-{
-	processInput((AInputQueue*)data);
-	return 1;
 }
 
 static void onDestroy(ANativeActivity* activity)
@@ -1081,16 +1192,13 @@ static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* wi
 static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
 {
 	inputQueue = queue;
-	if(!mainWindow().isFirstInit())
-	{
-		logMsg("input queue created & attached");
-		AInputQueue_attachLooper(queue, aLooper, ALOOPER_POLL_CALLBACK, processInputCallback, queue);
-		inputQueueAttached = true;
-	}
-	else
-	{
-		logMsg("input queue created");
-	}
+	logMsg("input queue created & attached");
+	AInputQueue_attachLooper(queue, activityLooper(), ALOOPER_POLL_CALLBACK,
+		[](int, int, void* data)
+		{
+			processInput((AInputQueue*)data);
+			return (int)1;
+		}, queue);
 }
 
 static void onInputQueueDestroyed(ANativeActivity* activity, AInputQueue* queue)
@@ -1098,7 +1206,6 @@ static void onInputQueueDestroyed(ANativeActivity* activity, AInputQueue* queue)
 	logMsg("input queue destroyed");
 	inputQueue = nullptr;
 	AInputQueue_detachLooper(queue);
-	inputQueueAttached = false;
 }
 
 static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
@@ -1133,7 +1240,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onNativeWindowRedrawNeeded = onNativeWindowRedrawNeeded;
 	activity->callbacks->onInputQueueCreated = onInputQueueCreated;
 	activity->callbacks->onInputQueueDestroyed = onInputQueueDestroyed;
-	activity->callbacks->onContentRectChanged = onContentRectChanged;
+	//activity->callbacks->onContentRectChanged = onContentRectChanged;
 }
 
 }
@@ -1156,9 +1263,9 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	setSDK(activity->sdkVersion);
 	if(Base::androidSDK() >= 16)
 		processInput = Base::processInputWithGetEvent;
-	aLooper = ALooper_forThread();
-	assert(aLooper);
+	setupActivityLooper();
 	jVM = activity->vm;
+	baseActivity = activity;
 	jBaseActivity = activity->clazz;
 	eJEnv = activity->env;
 	activityInit(activity);
@@ -1171,64 +1278,5 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	aConfig = AConfiguration_new();
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
 	initConfig(aConfig);
-
-	int msgPipe[2];
-	{
-		int ret = pipe(msgPipe);
-		assert(ret == 0);
-		ALooper_callbackFunc msgPipeHandler = [](int fd, int events, void* data)
-			{
-				while(fd_bytesReadable(fd))
-				{
-					uint32 cmd;
-					if(read(fd, &cmd, sizeof(cmd)) != sizeof(cmd))
-					{
-						logErr("error reading command in message pipe");
-						return 1;
-					}
-
-					uint cmdType = cmd & 0xFFFF;
-					logMsg("got thread message %d", cmdType);
-					switch(cmdType)
-					{
-						#ifdef CONFIG_BLUETOOTH_ANDROID
-						bcase MSG_BT_DATA:
-						{
-							BluetoothSocket *s;
-							read(fd, &s, sizeof(s));
-							int size;
-							read(fd, &size, sizeof(size));
-							char buff[48];
-							read(fd, buff, size);
-							s->onData()(buff, size);
-						}
-						bcase MSG_BT_SOCKET_STATUS_DELEGATE:
-						{
-							logMsg("got bluetooth socket status delegate message");
-							uint32 arg[2];
-							read(fd, arg, sizeof(arg));
-							auto &s = *((AndroidBluetoothSocket*)arg[1]);
-							s.onStatusDelegateMessage(arg[0]);
-						}
-						#endif
-						bdefault:
-						if(cmdType >= MSG_IMAGINE_START)
-						{
-							uint32 arg[2];
-							read(fd, arg, sizeof(arg));
-							logMsg("got msg type %d with args %d %d %d", cmdType, cmd >> 16, arg[0], arg[1]);
-							Base::processAppMsg(cmdType, cmd >> 16, arg[0], arg[1]);
-						}
-						else
-							logWarn("got unknown cmd %d", cmd);
-						break;
-					}
-				}
-				return 1;
-			};
-		ret = ALooper_addFd(aLooper, msgPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT, msgPipeHandler, nullptr);
-		assert(ret == 1);
-	}
-	writeMsgPipe = msgPipe[1];
 	setNativeActivityCallbacks(activity);
 }

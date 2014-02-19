@@ -17,7 +17,7 @@
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
-#include <EmuView.hh>
+#include <EmuApp.hh>
 #include <InputManagerView.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <VController.hh>
@@ -33,9 +33,6 @@ struct RelPtr  // for Android trackball
 static RelPtr relPtr = { 0 };
 
 TurboInput turboActions;
-extern ViewStack viewStack;
-extern InputManagerView *imMenu;
-extern EmuView emuView;
 uint inputDevConfs = 0;
 InputDeviceConfig inputDevConf[Input::MAX_DEVS];
 StaticDLList<InputDeviceSavedConfig, MAX_SAVED_INPUT_DEVICES> savedInputDevList;
@@ -47,7 +44,7 @@ VControllerLayoutPosition vControllerLayoutPos[2][7];
 bool vControllerLayoutPosChanged = false;
 
 #ifdef CONFIG_VCONTROLS_GAMEPAD
-static GC vControllerGCSize()
+static Gfx::GC vControllerGCSize()
 {
 	return vController.xMMSize(int(optionTouchCtrlSize) / 100.);
 }
@@ -155,13 +152,17 @@ void resetAllVControllerOptions()
 VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size)
 {
 	auto &win = Base::mainWindow();
-	IG::Rect2<int> bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
+	IG::WindowRect bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
 
-	bool ltQuadrant = bound.overlaps({0, 0, (int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()/2});
-	bool rtQuadrant = bound.overlaps({(int)win.viewPixelWidth()/2, 0, (int)win.viewPixelWidth(), (int)win.viewPixelHeight()/2});
-	bool lbQuadrant = bound.overlaps({0, (int)win.viewPixelHeight()/2, (int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()});
-	bool rbQuadrant = bound.overlaps({(int)win.viewPixelWidth()/2, (int)win.viewPixelHeight()/2, (int)win.viewPixelWidth(), (int)win.viewPixelHeight()});
-
+	const auto &rect = Gfx::viewport().bounds();
+	IG::WindowRect ltQuadrantRect{rect.x, rect.y, rect.xCenter(), rect.yCenter()};
+	IG::WindowRect rtQuadrantRect{rect.xCenter(), rect.y, rect.x2, rect.yCenter()};
+	IG::WindowRect lbQuadrantRect{rect.x, rect.yCenter(), rect.xCenter(), rect.y2};
+	IG::WindowRect rbQuadrantRect{rect.xCenter(), rect.yCenter(), rect.x2, rect.y2};
+	bool ltQuadrant = bound.overlaps(ltQuadrantRect);
+	bool rtQuadrant = bound.overlaps(rtQuadrantRect);
+	bool lbQuadrant = bound.overlaps(lbQuadrantRect);
+	bool rbQuadrant = bound.overlaps(rbQuadrantRect);
 	_2DOrigin origin = C2DO;
 	if(ltQuadrant && rtQuadrant && lbQuadrant && rbQuadrant) origin = C2DO;
 	else if(ltQuadrant && rtQuadrant) origin = CT2DO;
@@ -173,18 +174,18 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 	else if(lbQuadrant) origin = LB2DO;
 	else if(rbQuadrant) origin = RB2DO;
 
-	int x = (origin.xScaler() == 0) ? pos.x - win.viewPixelWidth()/2 :
-		(origin.xScaler() == 1) ? pos.x - win.viewPixelWidth() : pos.x;
-	int y = LT2DO.adjustY(pos.y, (int)win.viewPixelHeight(), origin);
+	int x = (origin.xScaler() == 0) ? pos.x - Gfx::viewport().width()/2 :
+		(origin.xScaler() == 1) ? pos.x - Gfx::viewport().width() : pos.x;
+	int y = LT2DO.adjustY(pos.y, (int)Gfx::viewport().height(), origin);
 	return {origin, {x, y}};
 }
 
 IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 {
 	auto &win = Base::mainWindow();
-	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + win.viewPixelWidth()/2 :
-		(lPos.origin.xScaler() == 1) ? lPos.pos.x + win.viewPixelWidth() : lPos.pos.x;
-	int y = lPos.origin.adjustY(lPos.pos.y, (int)win.viewPixelHeight(), LT2DO);
+	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + Gfx::viewport().width()/2 :
+		(lPos.origin.xScaler() == 1) ? lPos.pos.x + Gfx::viewport().width() : lPos.pos.x;
+	int y = lPos.origin.adjustY(lPos.pos.y, (int)Gfx::viewport().height(), LT2DO);
 	return {x, y};
 }
 
@@ -298,7 +299,7 @@ bool isMenuDismissKey(const Input::Event &e)
 			return e.button == PS3::PS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Event::MAP_KEYBOARD:
+		case Event::MAP_SYSTEM:
 			switch(e.device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
@@ -312,7 +313,11 @@ bool isMenuDismissKey(const Input::Event &e)
 				#endif
 				default: break;
 			}
-			return e.button == dismissKey;
+			return
+				#ifdef CONFIG_INPUT_ANDROID
+				e.button == Keycode::GAME_Y ||
+				#endif
+				e.button == dismissKey;
 		#endif
 	}
 	return 0;
@@ -347,10 +352,10 @@ void updateInputDevices()
 
 	if(imMenu)
 	{
-		if(View::modalView)
-			View::removeModalView();
+		if(modalViewController.hasView())
+			modalViewController.pop();
 		auto menu = imMenu;
-		viewStack.popTo(menu);
+		viewStack.popTo(*menu);
 		menu->deinit();
 		menu->init(false);
 		menu->place();
@@ -366,7 +371,7 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 {
 	switch(dev.map())
 	{
-		case Input::Event::MAP_KEYBOARD:
+		case Input::Event::MAP_SYSTEM:
 		{
 			#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_X11
 			uint confs = 0;
@@ -391,7 +396,7 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 	switch(map)
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Input::Event::MAP_KEYBOARD:
+		case Input::Event::MAP_SYSTEM:
 			size = EmuControls::defaultKeyProfiles;
 			return EmuControls::defaultKeyProfile;
 		#endif
@@ -488,14 +493,14 @@ bool InputDeviceConfig::iCadeMode()
 }
 #endif
 
-bool InputDeviceConfig::mapJoystickAxis1ToDpad()
+uint8 InputDeviceConfig::joystickAxisAsDpadBits()
 {
-	return dev->joystickAxis1AsDpad();
+	return dev->joystickAxisAsDpadBits();
 }
 
-void InputDeviceConfig::setMapJoystickAxis1ToDpad(bool on)
+void InputDeviceConfig::setJoystickAxisAsDpadBits(uint8 axisMask)
 {
-	dev->setJoystickAxis1AsDpad(on);
+	dev->setJoystickAxisAsDpadBits(axisMask);
 }
 
 const KeyConfig &InputDeviceConfig::keyConf()
@@ -578,7 +583,7 @@ void InputDeviceConfig::save()
 	savedConf->player = player;
 	savedConf->enabled = enabled;
 	savedConf->enumId = dev->enumId();
-	savedConf->mapJoystickAxis1ToDpad = dev->joystickAxis1AsDpad();
+	savedConf->joystickAxisAsDpadBits = dev->joystickAxisAsDpadBits();
 	#ifdef CONFIG_INPUT_ICADE
 	savedConf->iCadeMode = dev->iCadeMode();
 	#endif
@@ -592,7 +597,7 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
 	{
 		player = savedConf->player;
 		enabled = savedConf->enabled;
-		dev->setJoystickAxis1AsDpad(savedConf->mapJoystickAxis1ToDpad);
+		dev->setJoystickAxisAsDpadBits(savedConf->joystickAxisAsDpadBits);
 		#ifdef CONFIG_INPUT_ICADE
 		dev->setICadeMode(savedConf->iCadeMode);
 		#endif
@@ -705,7 +710,7 @@ void setupVolKeysInGame()
 	iterateTimes(inputDevConfs, i)
 	{
 		if(!inputDevConf[i].enabled ||
-			inputDevConf[i].dev->map() != Input::Event::MAP_KEYBOARD ||
+			inputDevConf[i].dev->map() != Input::Event::MAP_SYSTEM ||
 			!inputDevConf[i].savedConf) // no default configs use volume keys
 		{
 			continue;
@@ -728,7 +733,7 @@ void setupVolKeysInGame()
 void setupVControllerVars()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	GC btnSize = vControllerGCSize();
+	Gfx::GC btnSize = vControllerGCSize();
 	int btnSizePixels = vControllerPixelSize();
 	logMsg("set on-screen button size: %f, %d pixels", (double)btnSize, btnSizePixels);
 	vController.gp.btnSpace = vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
@@ -768,7 +773,7 @@ void setupVControllerVars()
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
 
-	auto &layoutPos = vControllerLayoutPos[Base::mainWindow().isPortrait() ? 1 : 0];
+	auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
 	iterateTimes(vController.numElements(), i)
 	{
 		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i]));
@@ -882,7 +887,7 @@ void updateVControlImg()
 			bug_exit("couldn't load overlay png");
 		}
 		overlayImg.init(png);
-		vController.setImg(&overlayImg);
+		vController.setImg(overlayImg);
 	}
 	#endif
 	#ifdef CONFIG_VCONTROLLER_KEYBOARD

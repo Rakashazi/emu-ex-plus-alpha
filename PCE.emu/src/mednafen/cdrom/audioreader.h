@@ -3,47 +3,14 @@
 
 #include <io/sys.hh>
 
-class MDFN_Object
-{
-	public:
-	MDFN_Object()
-	{
-
-	}
-
-	~MDFN_Object()
-	{
-
-	}
-
-        static void *operator new(size_t bcount)
-        {
-         void *ret = calloc(1, bcount);
-
-	 if(!ret)
-	 {
-	  //throw(MDFN_Error(0, _("Error allocating %llu bytes of memory."), (unsigned long long)bcount));
-	 }
-
-         return(ret);
-        }
-
-        static void operator delete(void *ptr)
-        {
-         free(ptr);
-        }
-};
-
-class AudioReader : public MDFN_Object
+class AudioReader
 {
  public:
  AudioReader();
  virtual ~AudioReader();
 
- virtual int64 Read_(int16 *buffer, int64 frames);
- virtual bool Seek_(int64 frame_offset);
  virtual int64 FrameCount(void);
- int64 Read(int64 frame_offset, int16 *buffer, int64 frames)
+ INLINE int64 Read(int64 frame_offset, int16 *buffer, int64 frames)
  {
   int64 ret;
 
@@ -63,10 +30,14 @@ class AudioReader : public MDFN_Object
  }
 
  private:
+  virtual int64 Read_(int16 *buffer, int64 frames);
+  virtual bool Seek_(int64 frame_offset);
+
   int64 LastReadPos;
 };
 
-
+// AR_Open(), and AudioReader, will NOT take "ownership" of the Stream object(IE it won't ever delete it).  Though it does assume it has exclusive access
+// to it for as long as the AudioReader object exists.
 AudioReader *AR_Open(Io *fp);
 
 #endif

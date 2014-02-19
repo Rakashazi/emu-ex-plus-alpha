@@ -1,4 +1,4 @@
-include metadata/conf.mk
+include $(projectPath)/metadata/conf.mk
 
 # needed generics
 ifndef android_metadata_name
@@ -76,6 +76,10 @@ ifdef android_ouyaBuild
 else
  ifdef android_metadata_vibrate
   android_gen_metadata_args += --permission-vibrate
+ endif
+ 
+ ifdef android_metadata_installShortcut
+  android_gen_metadata_args += --permission-install-shortcut
  endif
 
  ifndef metadata_noIcon

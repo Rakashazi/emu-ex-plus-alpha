@@ -4,7 +4,6 @@
 #include <string>
 
 #include "video.h"
-#include "sound.h"
 
 typedef struct
 {
@@ -56,22 +55,21 @@ typedef enum
 {
  IDIT_BUTTON,		// 1-bit
  IDIT_BUTTON_CAN_RAPID, // 1-bit
- IDIT_BUTTON_BYTE, // 8-bits, Button as a byte instead of a bit.
- IDIT_X_AXIS,	   // 32-bits
- IDIT_Y_AXIS,	   // 32-bits
- IDIT_X_AXIS_REL,  // 32-bits, signed
- IDIT_Y_AXIS_REL,  // 32-bits, signed
+ IDIT_X_AXIS,	   // (mouse) 32-bits, signed, fixed-point: 1.15.16 - in-screen/window range: [0.0, nominal_width)
+ IDIT_Y_AXIS,	   // (mouse) 32-bits, signed, fixed-point: 1.15.16 - in-screen/window range: [0.0, nominal_height)
+ IDIT_X_AXIS_REL,  // (mouse) 32-bits, signed
+ IDIT_Y_AXIS_REL,  // (mouse) 32-bits, signed
  IDIT_BYTE_SPECIAL,
  IDIT_BUTTON_ANALOG, // 32-bits, 0 - 32767
+ IDIT_RUMBLE,	// 32-bits, lower 8 bits are weak rumble(0-255), next 8 bits are strong rumble(0-255), 0=no rumble, 255=max rumble.  Somewhat subjective, too...
+  // May extend to 16-bit each in the future.
+ 	// It's also rather a special case of game module->driver code communication.
 } InputDeviceInputType;
-
-#include "git-virtb.h"
 
 typedef struct
 {
 	const char *SettingName;	// No spaces, shouldbe all a-z0-9 and _. Definitely no ~!
 	const char *Name;
-	/*const InputDeviceInputVB VirtButton;*/
         const int ConfigOrder;          // Configuration order during in-game config process, -1 for no config.
 	const InputDeviceInputType Type;
 	const char *ExcludeName;	// SettingName of a button that can't be pressed at the same time as this button
@@ -86,9 +84,10 @@ typedef struct
 {
  const char *ShortName;
  const char *FullName;
+ const char *Description;
 
  //struct InputPortInfoStruct *PortExpanderDeviceInfo;
- const void *PortExpanderDeviceInfo;
+ const void *PortExpanderDeviceInfo;	// DON'T USE, IT'S NOT IMPLEMENTED PROPERLY CURRENTLY.
  int NumInputs; // Usually just the number of buttons....OR if PortExpanderDeviceInfo is non-NULL, it's the number of input
 		// ports this port expander device provides.
  const InputDeviceInputInfoStruct *IDII;
@@ -96,7 +95,6 @@ typedef struct
 
 typedef struct
 {
- const int pid_offset;
  const char *ShortName;
  const char *FullName;
  int NumTypes; // Number of unique input devices available for this input port
@@ -167,12 +165,14 @@ enum
  MDFN_MSC__LAST = 0x3F	// WARNING: Increasing(or having the enum'd value of a command greater than this :b) this will necessitate a change to the netplay protocol.
 };
 
-typedef struct
+struct EmulateSpecStruct
 {
+	constexpr EmulateSpecStruct() {}
+
 	// Pitch(32-bit) must be equal to width and >= the pitch specified in the MDFNGI struct for the emulated system.
 	// Height must be >= to the fb_height specified in the MDFNGI struct for the emulated system.
 	// The framebuffer pointed to by surface->pixels is written to by the system emulation code.
-	MDFN_Surface *surface;
+	MDFN_Surface *surface = nullptr;
 
 	// Will be set to TRUE if the video pixel format has changed since the last call to Emulate(), FALSE otherwise.
 	// Will be set to TRUE on the first call to the Emulate() function/method
@@ -181,13 +181,13 @@ typedef struct
 	// Set by the system emulation code every frame, to denote the horizontal and vertical offsets of the image, and the size
 	// of the image.  If the emulated system sets the elements of LineWidths, then the horizontal offset(x) and width(w) of this structure
 	// are ignored while drawing the image.
-	MDFN_Rect DisplayRect;
+	MDFN_Rect DisplayRect{0};
 
 	// Pointer to an array of MDFN_Rect, number of elements = fb_height, set by the driver code.  Individual MDFN_Rect structs written
 	// to by system emulation code.  If the emulated system doesn't support multiple screen widths per frame, or if you handle
 	// such a situation by outputting at a constant width-per-frame that is the least-common-multiple of the screen widths, then
 	// you can ignore this.  If you do wish to use this, you must set all elements every frame.
-	MDFN_Rect *LineWidths;
+	MDFN_SubSurface *subSurface = nullptr;
 
 	// TODO
 	//bool *IsFMV;
@@ -199,7 +199,10 @@ typedef struct
 	//bool InterlaceField;
 
 	// Skip rendering this frame if true.  Set by the driver code.
-	int skip;
+	int skip = 0;
+
+	// Whether to call MDFND_commitVideoFrame upon drawing a frame. Set by the driver code.
+	bool commitVideo = false;
 
 	//
 	// If sound is disabled, the driver code must set SoundRate to false, SoundBuf to NULL, SoundBufMaxSize to 0.
@@ -209,26 +212,26 @@ typedef struct
 	//bool SoundFormatChanged;
 
 	// Sound rate.  Set by driver side.
-	SysDDec SoundRate;
+	SysDDec SoundRate = 0;
 
 	// Pointer to sound buffer, set by the driver code, that the emulation code should render sound to.
 	// Guaranteed to be at least 500ms in length, but emulation code really shouldn't exceed 40ms or so.  Additionally, if emulation code
 	// generates >= 100ms, 
 	// DEPRECATED: Emulation code may set this pointer to a sound buffer internal to the emulation module.
-	int16 *SoundBuf;
+	int16 *SoundBuf = nullptr;
 
 	// Maximum size of the sound buffer, in frames.  Set by the driver code.
-	int32 SoundBufMaxSize;
+	int32 SoundBufMaxSize = 0;
 
 	// Number of frames currently in internal sound buffer.  Set by the system emulation code, to be read by the driver code.
-	int32 SoundBufSize;
-	int32 SoundBufSizeALMS;	// SoundBufSize value at last MidSync(), 0
+	int32 SoundBufSize = 0;
+	int32 SoundBufSizeALMS = 0;	// SoundBufSize value at last MidSync(), 0
 				// if mid sync isn't implemented for the emulation module in use.
 
 	// Number of cycles that this frame consumed, using MDFNGI::MasterClock as a time base.
 	// Set by emulation code.
-	int64 MasterCycles;
-	int64 MasterCyclesALMS;	// MasterCycles value at last MidSync(), 0
+	int64 MasterCycles = 0;
+	int64 MasterCyclesALMS = 0;	// MasterCycles value at last MidSync(), 0
 				// if mid sync isn't implemented for the emulation module in use.
 
 	// Current sound volume(0.000...<=volume<=1.000...).  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally.
@@ -242,14 +245,14 @@ typedef struct
 	//SysDDec soundmultiplier;
 
 	// True if we want to rewind one frame.  Set by the driver code.
-	bool NeedRewind;
+	bool NeedRewind = 0;
 
 	// Sound reversal during state rewinding is normally done in mednafen.cpp, but
         // individual system emulation code can also do it if this is set, and clear it after it's done.
         // (Also, the driver code shouldn't touch this variable)
-	bool NeedSoundReverse;
+	bool NeedSoundReverse = 0;
 
-} EmulateSpecStruct;
+};
 
 typedef enum
 {
@@ -326,10 +329,15 @@ typedef struct
  const MDFNSetting *Settings;
 
  // Time base for EmulateSpecStruct::MasterCycles
- #define MDFN_MASTERCLOCK_FIXED(n)	((n) * (1LL << 32))
+ // MasterClock must be >= MDFN_MASTERCLOCK_FIXED(1.0)
+ // All or part of the fractional component may be ignored in some timekeeping operations in the emulator to prevent integer overflow,
+ // so it is unwise to have a fractional component when the integral component is very small(less than say, 10000).
+ #define MDFN_MASTERCLOCK_FIXED(n)	((int64)((double)(n) * (1LL << 32)))
  int64 MasterClock;
 
- uint32 fps; // frames per second * 65536 * 256, truncated
+  // Nominal frames per second * 65536 * 256, truncated.
+  // May be deprecated in the future due to many systems having slight frame rate programmability.
+  uint32 fps;
 
  // multires is a hint that, if set, indicates that the system has fairly programmable video modes(particularly, the ability
  // to display multiple horizontal resolutions, such as the PCE, PC-FX, or Genesis).  In practice, it will cause the driver
@@ -356,7 +364,7 @@ typedef struct
  int fb_width;		// Width of the framebuffer(not necessarily width of the image).  MDFN_Surface width should be >= this.
  int fb_height;		// Height of the framebuffer passed to the Emulate() function(not necessarily height of the image)
 
- int soundchan; 	// Number of output sound channels.
+ int soundchan; 	// Number of output sound channels.  Only values of 1 and 2 are currently supported.
 
 
  int rotated;

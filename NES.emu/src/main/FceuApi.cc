@@ -12,7 +12,10 @@ int closeFinishedMovie = 0;
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
 	logMsg("opening file %s mode %s", fn, mode);
-	return fopen(fn,mode);
+	auto file = fopen(fn,mode);
+//	if(!file)
+//		logErr("error opening %s", fn);
+	return file;
 }
 
 void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }

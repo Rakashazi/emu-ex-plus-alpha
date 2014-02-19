@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "btstack"
+#define LOGTAG "BTstack"
 #include "BtstackBluetoothAdapter.hh"
 #include <util/collection/DLList.hh>
 #include <util/branch2.h>
@@ -343,9 +343,9 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 							break;
 						logMsg("disconnection while l2cap open in progress");
 						cmdActive = 0;
-						sock->onStatus()(*sock, BluetoothSocket::STATUS_ERROR);
-						if(defaultBtstackAdapter.onScanStatus())
-							defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+						sock->onStatus()(*sock, BluetoothSocket::STATUS_CONNECT_ERROR);
+						/*if(defaultBtstackAdapter.onScanStatus())
+							defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);*/
 					}
 				}
 
@@ -597,7 +597,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logMsg("socket already removed from list");
 						return;
 					}
-					sock->onStatus()(*sock, BluetoothSocket::STATUS_ERROR);
+					sock->onStatus()(*sock, BluetoothSocket::STATUS_READ_ERROR);
 				}
 
 				bcase L2CAP_EVENT_SERVICE_REGISTERED:
@@ -1002,9 +1002,9 @@ void BtstackBluetoothSocket::handleRfcommChannelOpened(uint8_t packet_type, uint
 	else
 	{
 		logMsg("failed. status code %u\n", packet[2]);
-		sock->onStatus()(*sock, STATUS_ERROR);
-		if(defaultBtstackAdapter.onScanStatus())
-			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+		sock->onStatus()(*sock, STATUS_CONNECT_ERROR);
+		/*if(defaultBtstackAdapter.onScanStatus())
+			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);*/
 	}
 }
 
@@ -1037,9 +1037,9 @@ void BtstackBluetoothSocket::handleL2capChannelOpened(uint8_t packet_type, uint1
 	else
 	{
 		logMsg("failed. status code %u\n", packet[2]);
-		sock->onStatus()(*sock, STATUS_ERROR);
-		if(defaultBtstackAdapter.onScanStatus())
-			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+		sock->onStatus()(*sock, STATUS_CONNECT_ERROR);
+		/*if(defaultBtstackAdapter.onScanStatus())
+			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);*/
 	}
 }
 

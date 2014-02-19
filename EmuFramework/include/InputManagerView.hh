@@ -21,7 +21,7 @@
 
 class IdentInputDeviceView : public View
 {
-	IG::Rect2<int> viewFrame;
+	IG::WindowRect viewFrame;
 	Gfx::Text text;
 
 public:
@@ -29,12 +29,12 @@ public:
 	OnIdentInputDelegate onIdentInput;
 
 	constexpr IdentInputDeviceView(Base::Window &win): View(win) {}
-	IG::Rect2<int> &viewRect() override { return viewFrame; }
+	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init();
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime) override;
 };
 
 class InputManagerView : public BaseMenuView
@@ -44,6 +44,9 @@ private:
 	TextMenuItem deleteDeviceConfig;
 	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS] {nullptr};
 	TextMenuItem deleteProfile;
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	BoolMenuItem mogaInputSystem;
+	#endif
 	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 	BoolMenuItem notifyDeviceChange;
 	#endif
@@ -76,9 +79,11 @@ private:
 	BoolMenuItem iCadeMode;
 	#endif
 	BoolMenuItem joystickAxis1DPad;
+	BoolMenuItem joystickAxis2DPad;
+	BoolMenuItem joystickAxisHatDPad;
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	TextMenuItem inputCategory[EmuControls::categories];
-	MenuItem *item[EmuControls::categories + 9] = {nullptr};
+	MenuItem *item[EmuControls::categories + 11] = {nullptr};
 	InputDeviceConfig *devConf = nullptr;
 
 	void confirmICadeMode(const Input::Event &e);

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "res:face"
+#define LOGTAG "ResFace"
 
 #include <util/strings.h>
 #include <gfx/GfxBufferImage.hh>
@@ -147,7 +147,7 @@ ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 	return inst;
 }
 
-void ResourceFace::free ()
+void ResourceFace::free()
 {
 	font->freeSize(faceSize);
 	iterateTimes(glyphTableEntries, i)
@@ -207,27 +207,23 @@ CallResult ResourceFace::applySettings (FontSettings set)
 //int ResourceFace::maxDescender () { font->applySize(faceSize); return font->currentFaceDescender(); }
 //int ResourceFace::maxAscender () { font->applySize(faceSize); return font->currentFaceAscender(); }
 
-CallResult ResourceFace::writeCurrentChar(Pixmap &out)
+CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
 {
-	void *bitmap = nullptr;
-	int bX = 0, bY = 0, bPitch;
-	font->charBitmap(bitmap, bX, bY, bPitch);
-	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", bX, bY, bPitch, out->x, out->y, out->pitch);
-	assert(bX != 0 && bY != 0 && bitmap != nullptr);
+	auto src = font->charBitmap();
+	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.data, out.x, out.y, out.pitch);
+	assert(src.x != 0 && src.y != 0 && src.data != nullptr);
 	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
-	if(!bPitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
+	if(!src.pitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
 	{
 		logWarn("invalid pitch returned for char bitmap");
-		bX = out.x;
-		bY = out.y;
-		bPitch = out.pitch;
+		src.x = out.x;
+		src.y = out.y;
+		src.pitch = out.pitch;
 	}
 	#endif
-	Pixmap src(PixelFormatA8);
-	src.init((char*)bitmap, bX, bY, bPitch - bX);
-	src.copy(0, 0, 0, 0, &out, 0, 0);
+	src.copy(0, 0, 0, 0, out, 0, 0);
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
-	font->unlockCharBitmap(bitmap);
+	font->unlockCharBitmap(src);
 	return OK;
 }
 

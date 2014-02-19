@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = 2600.emu
 metadata_exec = 2600emu
 metadata_pkgName = 2600Emu

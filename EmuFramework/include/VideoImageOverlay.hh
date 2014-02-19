@@ -20,12 +20,12 @@
 class VideoImageOverlay
 {
 	Gfx::BufferImage img;
-	Pixmap pix {PixelFormatIA88};
+	IG::Pixmap pix {PixelFormatIA88};
 	Gfx::Sprite spr;
 	uint effect = NO_EFFECT;
 
 public:
-	GC intensity = 0.25;
+	Gfx::GC intensity = 0.25;
 
 	enum
 	{

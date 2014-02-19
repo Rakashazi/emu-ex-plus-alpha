@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <util/time/timespec.hh>
 #include <util/operators.hh>
 
@@ -8,8 +23,8 @@ class TimeTimespec : Arithmetics<TimeTimespec>, Compares<TimeTimespec>
 private:
 	struct timespec t {0,0};
 public:
-	constexpr TimeTimespec() { }
-	constexpr TimeTimespec(struct timespec t): t(t) { }
+	constexpr TimeTimespec() {}
+	constexpr TimeTimespec(struct timespec t): t(t) {}
 
 	static constexpr long MSEC_PER_SEC = 1000;
 	static constexpr long USEC_PER_SEC = 1000000;
@@ -17,17 +32,27 @@ public:
 	static constexpr long NSEC_PER_MSEC = 1000000;
 	static constexpr long NSEC_PER_SEC = 1000000000;
 
-	void setUSecs(long int usecs)
+	static TimeTimespec makeWithNSecs(long int nsecs)
 	{
-		t = (struct timespec){ 0, (decltype(t.tv_nsec))(usecs*NSEC_PER_USEC) };
+		return {(struct timespec){nsecs / NSEC_PER_SEC, nsecs}};
 	}
 
-	void setTimeNow()
+	static TimeTimespec makeWithUSecs(long int usecs)
 	{
-		*this = timeNow();
+		return {(struct timespec){usecs / USEC_PER_SEC, (usecs % USEC_PER_SEC) * NSEC_PER_USEC}};
 	}
 
-	static TimeTimespec timeNow()
+	static TimeTimespec makeWithMSecs(long int msecs)
+	{
+		return {(struct timespec){msecs / MSEC_PER_SEC, (msecs % MSEC_PER_SEC) * NSEC_PER_MSEC}};
+	}
+
+	static TimeTimespec makeWithSecs(long int secs)
+	{
+		return {(struct timespec){secs, 0}};
+	}
+
+	static TimeTimespec now()
 	{
 		TimeTimespec time;
 		clock_gettime(CLOCK_MONOTONIC, &time.t);

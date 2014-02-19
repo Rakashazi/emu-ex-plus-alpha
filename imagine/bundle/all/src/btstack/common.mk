@@ -19,7 +19,7 @@ install : $(outputLibFile)
 	@mkdir -p $(installIncludeDir) $(installDir)/lib
 	cp $(outputLibFile) $(installDir)/lib/
 	cp $(btstackSrcDir)/include/btstack/* $(installIncludeDir)/
-	cp config.h $(installIncludeDir)/
+	cp btstack-config.h $(installIncludeDir)/
 
 .PHONY : all install
 

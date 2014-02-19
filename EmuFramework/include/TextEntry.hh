@@ -21,7 +21,7 @@
 class TextEntry
 {
 public:
-	IG::Rect2<int> b;
+	IG::WindowRect b;
 	Gfx::Text t;
 	char str[128] {0};
 	bool acceptingInput = 0;
@@ -34,14 +34,14 @@ public:
 	void inputEvent(const Input::Event &e);
 	void draw();
 	void place();
-	void place(IG::Rect2<int> rect);
+	void place(IG::WindowRect rect);
 };
 
 class CollectTextInputView : public View
 {
 public:
-	IG::Rect2<int> rect;
-	IG::Rect2<int> cancelBtn;
+	IG::WindowRect rect;
+	IG::WindowRect cancelBtn;
 	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	Gfx::Sprite cancelSpr;
 	#endif
@@ -51,15 +51,19 @@ public:
 	#endif
 
 	// returning non-zero keeps text entry active on Android
-	typedef DelegateFunc<uint (const char *str)> OnTextDelegate;
+	typedef DelegateFunc<uint (CollectTextInputView &view, const char *str)> OnTextDelegate;
 	OnTextDelegate onTextD;
 	OnTextDelegate &onText() { return onTextD; }
 
 	constexpr CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
-	void init(const char *msgText, const char *initialContent = "",  ResourceFace *face = View::defaultFace);
+	void init(const char *msgText, const char *initialContent, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace);
+	void init(const char *msgText, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace)
+	{
+		init(msgText, "", closeRes, face);
+	}
 	void deinit() override;
-	IG::Rect2<int> &viewRect() override { return rect; }
+	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime) override;
 };

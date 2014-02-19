@@ -157,7 +157,7 @@ void EmuSystem::onOptionsLoaded()
 	config_ym2413_enabled = optionSmsFM;
 }
 
-bool EmuSystem::readConfig(Io *io, uint key, uint readSize)
+bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -288,6 +288,7 @@ void commitVideoFrame()
 		mdResX = bitmap.viewport.w;
 		mdResY = bitmap.viewport.h;
 		bitmap.pitch = mdResX * pixFmt->bytesPerPixel;
+		logMsg("mode change: %dx%d", mdResX, mdResY);
 		emuView.resizeImage(mdResX, mdResY);
 	}
 	emuView.updateAndDrawContent();
@@ -402,7 +403,6 @@ static int loadMDState(const char *path)
 	if(state_load(stateData) <= 0)
 	{
 		delete f;
-		logMsg("invalid state file");
 		return STATE_RESULT_INVALID_DATA;
 	}
 
@@ -653,7 +653,7 @@ int EmuSystem::loadGame(const char *path)
 	{
 		try
 		{
-			cd = cdaccess_open(fullGamePath);
+			cd = cdaccess_open_image(fullGamePath, false);
 		}
 		catch(std::exception &e)
 		{
@@ -832,7 +832,7 @@ void EmuSystem::configAudioRate()
 
 void EmuSystem::savePathChanged() { }
 
-namespace Input
+namespace Base
 {
 void onInputEvent(Base::Window &win, const Input::Event &e)
 {
@@ -869,7 +869,7 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((uchar*)nativePixBuff, pixFmt, mdResX, mdResY);
+	emuView.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
 	mainInitCommon(argc, argv);
 	return OK;
 }

@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include "EmuSystem.hh"
 #include <StateSlotView.hh>
 #include <meta.h>
@@ -26,8 +26,6 @@
 #include <config/version.h>
 #include <MultiChoiceView.hh>
 #include <VController.hh>
-
-void startGameFromMenu();
 
 class OptionCategoryView : public BaseMenuView
 {
@@ -75,7 +73,7 @@ public:
 		BaseMenuView::init(item, items, highlightFirst);
 	}
 
-	static const uint STANDARD_ITEMS = 17;
+	static const uint STANDARD_ITEMS = 18;
 	static const uint MAX_SYSTEM_ITEMS = 3;
 
 protected:
@@ -90,6 +88,9 @@ protected:
 	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;
 	TextMenuItem benchmark;
+	#ifdef CONFIG_BASE_ANDROID
+	TextMenuItem addLauncherIcon;
+	#endif
 	#ifdef CONFIG_BLUETOOTH
 	TextMenuItem scanWiimotes;
 	TextMenuItem bluetoothDisconnect;

@@ -1,21 +1,26 @@
-CPPFLAGS += -I$(genPath) -Isrc -I$(imagineSrcDir)
-VPATH += src $(imagineSrcDir)
+CPPFLAGS += -I$(genPath) -I$(projectPath)/src -I$(imagineSrcDir)
+VPATH += $(projectPath)/src $(imagineSrcDir)
 
-genConfigH = $(genPath)/config.h
+ifdef makeConfigH
+ genConfigH = $(genPath)/config.h
+endif
+
 genMetaH = $(genPath)/meta.h
 
 .SUFFIXES: 
 .PHONY: all main config metadata-header
 all : $(genConfigH) $(genMetaH) main
 
+ifdef makeConfigH
 # config.h is only built if not present, needs manual deletion to update
 $(genConfigH) :
 	@echo "Generating Config $@"
 	@mkdir -p $(@D)
 	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configDefs)" "$(configInc)" "$(configIncNext)"
 config : $(genConfigH)
+endif
 
-include metadata/conf.mk
+include $(projectPath)/metadata/conf.mk
 $(genMetaH) :
 	@echo "Generating Metadata Header $@"
 	@mkdir -p $(@D)

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <mem/interface.h>
-#include <util/cLang.h>
+#include <util/algorithm.h>
 
 static void string_toUpper(char *s)
 {
@@ -100,16 +100,18 @@ static char *string_copy(char (&dest)[S], const char *src)
 	return string_copy(dest, src, S);
 }
 
-static constexpr size_t string_len(const char *s) ATTRS(pure, nonnull);
+#ifdef __clang__
+// need to directly v=call builtin version to get constexpr
+#define string_len(s) __builtin_strlen(s)
+#else
+static constexpr size_t string_len(const char *s) ATTRS(nonnull);
 static constexpr size_t string_len(const char *s)
 {
-#ifdef __clang__
-	// TODO: remove when clang supports constexpr strlen
-	return *s ? 1 + string_len(s+1) : 0;
-#else
 	return strlen(s);
-#endif
+	// If compiler doesn't have constexpr the following recursive version also works:
+	// return *s ? 1 + string_len(s+1) : 0;
 }
+#endif
 
 #endif
 

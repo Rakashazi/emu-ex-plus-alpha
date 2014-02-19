@@ -1,6 +1,23 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <input/Input.hh>
 #include <gfx/Gfx.hh>
+#include <base/Timer.hh>
 
 #ifdef CONFIG_BLUETOOTH
 #include <bluetooth/BluetoothInputDevScanner.hh>
@@ -8,6 +25,40 @@
 
 namespace Input
 {
+
+static Base::Timer keyRepeatTimer;
+static Event keyRepeatEvent;
+static bool allowKeyRepeats = true;
+
+void startKeyRepeatTimer(const Event &event)
+{
+	if(!allowKeyRepeats)
+		return;
+	if(!event.pushed())
+	{
+		// only repeat PUSHED action, otherwise cancel the timer
+		cancelKeyRepeatTimer();
+		return;
+	}
+	logMsg("starting key repeat");
+	keyRepeatEvent = event;
+	keyRepeatTimer.callbackAfterMSec(
+		[]()
+		{
+			logMsg("repeating key event");
+			Base::onInputEvent(Base::mainWindow(), keyRepeatEvent);
+		}, 400, 50, Base::Timer::HINT_REUSE);
+}
+
+void cancelKeyRepeatTimer()
+{
+	keyRepeatTimer.cancel();
+}
+
+void deinitKeyRepeatTimer()
+{
+	keyRepeatTimer.deinit();
+}
 
 StaticArrayList<Device*, MAX_DEVS> devList;
 
@@ -20,6 +71,7 @@ void addDevice(Device &d)
 void removeDevice(Device &d)
 {
 	logMsg("removing device: %s,%d", d.name(), d.enumId());
+	cancelKeyRepeatTimer();
 	devList.remove(&d);
 	indexDevices();
 }
@@ -65,7 +117,7 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		case MAP_EVDEV: return button == Input::Evdev::GAME_A || button == Input::Evdev::GAME_1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
@@ -85,7 +137,7 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 			;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultCancelButton(uint swapped) const
@@ -112,7 +164,7 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		case MAP_EVDEV: return button == Input::Evdev::GAME_B || button == Input::Evdev::GAME_2;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
@@ -133,7 +185,7 @@ bool Event::isDefaultCancelButton(uint swapped) const
 				;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultLeftButton() const
@@ -158,11 +210,11 @@ bool Event::isDefaultLeftButton() const
 		case MAP_EVDEV: return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			return button == Input::Keycode::LEFT
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_NEG
-			|| button == Input::Keycode::JS3_XAXIS_NEG
+			|| button == Input::Keycode::JS_POV_XAXIS_NEG
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('d')
@@ -170,7 +222,7 @@ bool Event::isDefaultLeftButton() const
 			;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultRightButton() const
@@ -195,11 +247,11 @@ bool Event::isDefaultRightButton() const
 		case MAP_EVDEV: return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			return button == Input::Keycode::RIGHT
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_POS
-			|| button == Input::Keycode::JS3_XAXIS_POS
+			|| button == Input::Keycode::JS_POV_XAXIS_POS
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('g')
@@ -232,11 +284,11 @@ bool Event::isDefaultUpButton() const
 		case MAP_EVDEV: return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			return button == Input::Keycode::UP
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_NEG
-			|| button == Input::Keycode::JS3_YAXIS_NEG
+			|| button == Input::Keycode::JS_POV_YAXIS_NEG
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('r')
@@ -244,7 +296,7 @@ bool Event::isDefaultUpButton() const
 			;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultDownButton() const
@@ -269,11 +321,11 @@ bool Event::isDefaultDownButton() const
 		case MAP_EVDEV: return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			return button == Input::Keycode::DOWN
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_POS
-			|| button == Input::Keycode::JS3_YAXIS_POS
+			|| button == Input::Keycode::JS_POV_YAXIS_POS
 			#endif
 			#ifdef CONFIG_ENV_WEBOS
 			|| button == Input::asciiKey('c')
@@ -281,7 +333,7 @@ bool Event::isDefaultDownButton() const
 			;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultPageUpButton() const
@@ -304,7 +356,7 @@ bool Event::isDefaultPageUpButton() const
 		case MAP_EVDEV: return button == Input::Evdev::GAME_L1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
@@ -319,7 +371,7 @@ bool Event::isDefaultPageUpButton() const
 				;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool Event::isDefaultPageDownButton() const
@@ -342,7 +394,7 @@ bool Event::isDefaultPageDownButton() const
 		case MAP_EVDEV: return button == Input::Evdev::GAME_R1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case MAP_KEYBOARD:
+		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
@@ -357,16 +409,16 @@ bool Event::isDefaultPageDownButton() const
 				;
 		#endif
 	}
-	return 0;
+	return false;
 }
 
 bool swappedGamepadConfirm = SWAPPED_GAMEPAD_CONFIRM_DEFAULT;
 
-struct PointerState
-{
-	constexpr PointerState() { }
-	int inWin = 0;
-};
+//struct PointerState
+//{
+//	constexpr PointerState() { }
+//	int inWin = 0;
+//};
 
 static uint xPointerTransform_ = POINTER_NORMAL;
 void xPointerTransform(uint mode)
@@ -395,9 +447,9 @@ IG::Point2D<int> pointerPos(const Base::Window &win, int x, int y)
 	
 	// then coordinates are inverted
 	if(xPointerTransform_ == POINTER_INVERT)
-		pos.x = win.viewPixelWidth() - pos.x;
+		pos.x = win.width() - pos.x;
 	if(yPointerTransform_ == POINTER_INVERT)
-		pos.y = win.viewPixelHeight() - pos.y;
+		pos.y = win.height() - pos.y;
 	return pos;
 }
 
@@ -414,6 +466,7 @@ void configureInputForOrientation(const Base::Window &win)
 #ifdef INPUT_SUPPORTS_KEYBOARD
 static const char *keyButtonName(Key b)
 {
+	using namespace Keycode;
 	switch(b)
 	{
 		case 0: return "None";
@@ -672,6 +725,14 @@ static const char *keyButtonName(Key b)
 		case Keycode::JS3_XAXIS_NEG: return "X Axis- 3";
 		case Keycode::JS3_YAXIS_POS: return "Y Axis+ 3";
 		case Keycode::JS3_YAXIS_NEG: return "Y Axis- 3";
+		case Keycode::JS_POV_XAXIS_POS: return "POV Right";
+		case Keycode::JS_POV_XAXIS_NEG: return "POV Left";
+		case Keycode::JS_POV_YAXIS_POS: return "POV Down";
+		case Keycode::JS_POV_YAXIS_NEG: return "POV Up";
+		case Keycode::JS_RUDDER_AXIS_POS: return "Rudder Right";
+		case Keycode::JS_RUDDER_AXIS_NEG: return "Rudder Left";
+		case Keycode::JS_WHEEL_AXIS_POS: return "Wheel Right";
+		case Keycode::JS_WHEEL_AXIS_NEG: return "Wheel Left";
 		case Keycode::JS_LTRIGGER_AXIS: return "L Trigger";
 		case Keycode::JS_RTRIGGER_AXIS: return "R Trigger";
 		case Keycode::JS_GAS_AXIS: return "Gas";
@@ -937,7 +998,7 @@ const char *Device::keyName(Key b) const
 	switch(map())
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Input::Event::MAP_KEYBOARD:
+		case Input::Event::MAP_SYSTEM:
 		{
 			const char *name = nullptr;
 			switch(subtype())
@@ -1005,6 +1066,11 @@ const char *eventActionToStr(int action)
 		case EXIT_VIEW: return "Left View";
 		case ENTER_VIEW: return "Entered View";
 	}
+}
+
+void dispatchInputEvent(const Input::Event &event)
+{
+	onInputEvent(Base::mainWindow(), event);
 }
 
 }

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "ScrollableGuiTable1D"
+#define LOGTAG "ScrollGuiTable1D"
 
 #include "GuiTable1D.hh"
 #include <gfx/GeomRect.hh>
@@ -21,10 +21,10 @@
 #include <base/Base.hh>
 #include <algorithm>
 
-void ScrollableGuiTable1D::init(GuiTableSource *src, int cells, View &view, _2DOrigin align)
+void ScrollableGuiTable1D::init(GuiTableSource *src, int cells, View &view)
 {
 	onlyScrollIfNeeded = 0;
-	GuiTable1D::init(src, cells, align);
+	GuiTable1D::init(src, cells);
 	ScrollView1D::init(&viewRect);
 }
 
@@ -34,14 +34,15 @@ void ScrollableGuiTable1D::draw(View &view)
 {
 	using namespace Gfx;
 	ScrollView1D::updateGfx(view);
-	setClipRectBounds(view.window(), ScrollView1D::viewFrame);
-	setClipRect(1);
+	// TODO
+	//setClipRectBounds(view.window(), ScrollView1D::viewFrame);
+	//setClipRect(1);
 	ScrollView1D::draw();
 	GuiTable1D::draw();
-	setClipRect(0);
+	//setClipRect(0);
 }
 
-void ScrollableGuiTable1D::place(IG::Rect2<int> *frame, View &view)
+void ScrollableGuiTable1D::place(IG::WindowRect *frame, View &view)
 {
 	assert(frame);
 	setXCellSize(frame->xSize());
@@ -56,7 +57,7 @@ void ScrollableGuiTable1D::setScrollableIfNeeded(bool yes)
 
 void ScrollableGuiTable1D::scrollToFocusRect()
 {
-	IG::Rect2<int> focus = focusRect();
+	IG::WindowRect focus = focusRect();
 	//logMsg("focus box %d,%d %d,%d, scroll %d", focus.x, focus.y, focus.x2, focus.y2, gfx_toIYSize(scroll.offset));
 	if(focus.ySize() > 1 && !viewFrame.contains(focus))
 	{

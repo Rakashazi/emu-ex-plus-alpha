@@ -15,18 +15,22 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/gui/BaseMenuView.hh>
+#include <gui/BaseMenuView.hh>
 #include <gui/AlertView.hh>
 #include <EmuInput.hh>
+
+#ifdef CONFIG_BASE_ANDROID
+#define BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
+#endif
 
 class ButtonConfigSetView : public View
 {
 private:
 	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
 
-	IG::Rect2<int> viewFrame;
+	IG::WindowRect viewFrame;
 	#ifdef INPUT_SUPPORTS_POINTER
-	IG::Rect2<int> unbindB, cancelB;
+	IG::WindowRect unbindB, cancelB;
 	#endif
 	char str[128] {0};
 	Gfx::Text text;
@@ -43,12 +47,12 @@ private:
 public:
 	constexpr ButtonConfigSetView(Base::Window &win): View(win) {}
 
-	IG::Rect2<int> &viewRect() { return viewFrame; }
+	IG::WindowRect &viewRect() { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime) override;
 };
 
 class ButtonConfigView : public BaseMenuView
@@ -56,7 +60,7 @@ class ButtonConfigView : public BaseMenuView
 private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
-		void draw(Coordinate xPos, Coordinate yPos, Coordinate xSize, Coordinate ySize, _2DOrigin align) const override;
+		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
 	};
 
 	TextMenuItem reset;
@@ -64,6 +68,9 @@ private:
 	BtnConfigMenuItem *btn = nullptr;
 	const KeyCategory *cat = nullptr;
 	InputDeviceConfig *devConf = nullptr;
+	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
+	Input::Time lastKeySetTime = 0;
+	#endif
 
 	void onSet(const Input::Event &e, int keyToSet);
 

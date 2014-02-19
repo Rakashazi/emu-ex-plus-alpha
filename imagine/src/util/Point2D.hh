@@ -22,7 +22,7 @@ namespace IG
 {
 
 template <class T>
-struct Point2D : public Arithmetics< Point2D<T> >
+struct Point2D : public NotEquals< Point2D<T> >, public Arithmetics< Point2D<T> >
 {
 	T x = 0, y = 0;
 
@@ -63,7 +63,7 @@ struct Point2D : public Arithmetics< Point2D<T> >
 	}
 
 	template <class Ratio>
-	constexpr Ratio ratio()
+	constexpr Ratio ratio() const
 	{
 		return (Ratio)x/(Ratio)y;
 	}

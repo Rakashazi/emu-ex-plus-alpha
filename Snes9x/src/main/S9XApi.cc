@@ -1,7 +1,7 @@
 #define thisModuleName "main"
 #include <logger/interface.h>
 #include <fs/sys.hh>
-
+#include <EmuSystem.hh>
 #include <sys/stat.h>
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4
@@ -13,7 +13,6 @@
 #endif
 #include <display.h>
 #include <memmap.h>
-#include <EmuSystem.hh>
 
 void S9xMessage(int, int, const char *msg)
 {

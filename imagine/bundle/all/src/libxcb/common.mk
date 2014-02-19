@@ -23,9 +23,9 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
-$(libxcbSrcDir)/configure : $(libxcbSrcArchive)
+$(libxcbSrcDir)/configure : | $(libxcbSrcArchive)
 	@echo "Extracting libxcb..."
-	tar -mxjf $^
+	tar -mxjf $|
 	cd $(libxcbSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

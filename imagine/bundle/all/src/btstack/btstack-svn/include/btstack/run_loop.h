@@ -35,9 +35,10 @@
  *  Created by Matthias Ringwald on 6/6/09.
  */
 
-#pragma once
+#ifndef __RUN_LOOP_H
+#define __RUN_LOOP_H
 
-#include "config.h"
+#include "btstack-config.h"
 
 #include <btstack/linked_list.h>
 
@@ -107,15 +108,18 @@ void run_loop_execute(void);
 uint32_t embedded_ticks_for_ms(uint32_t time_in_ms);
 // Queries the current time in ticks.
 uint32_t embedded_get_ticks(void);
+// Allows to update BTstack system ticks based on another already existing clock
+void embedded_set_ticks(uint32_t ticks);
 #endif
 #ifdef EMBEDDED
 // Sets an internal flag that is checked in the critical section
 // just before entering sleep mode. Has to be called by the interupt
 // handler of a data source to signal the run loop that a new data 
 // is available.
-void     embedded_trigger(void);    
+void embedded_trigger(void);    
 #endif
 #if defined __cplusplus
 }
 #endif
 
+#endif // __RUN_LOOP_H

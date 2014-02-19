@@ -15,7 +15,7 @@ static const char *alsaPcmStateToString(snd_pcm_state_t state)
 		case SND_PCM_STATE_PAUSED: return "Paused";
 		case SND_PCM_STATE_SUSPENDED: return "Suspended";
 		case SND_PCM_STATE_DISCONNECTED: return "Disconnected";
-		default: bug_branch("%d", state); return 0;
+		default: bug_branch("%d", state); return nullptr;
 	}
 }
 

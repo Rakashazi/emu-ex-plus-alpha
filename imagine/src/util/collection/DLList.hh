@@ -1,31 +1,15 @@
 #pragma once
 
-#include <util/cLang.h>
+#include <util/algorithm.h>
 #include <util/memory.h>
 #include <util/branch.h>
 #include <util/operators.hh>
 #include <assert.h>
 #include <utility>
 #include <logger/interface.h>
-#include <util/preprocessor/repeat.h>
+//#include <util/preprocessor/repeat.h>
 #include <util/collection/containerUtils.hh>
 #include <iterator>
-
-/*#define forEachInDLList(listAddr, e) \
-for(typeof ((listAddr)->list) e ## _node = (listAddr)->list; e ## _node != 0; e ## _node = e ## _node->next) \
-for(typeof (e ## _node->d) &e = e ## _node->d, forLoopExecOnceDummy)*/
-
-//#define forEachInDLList(listAddr, e) \
-//for(typeof ((listAddr)->startIterator()) e ## _it = (listAddr)->startIterator(); e ## _it.curr != 0; e ## _it.advance()) \
-//for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
-
-//#define forEachInDLListReverse(listAddr, e) \
-//for(typeof ((listAddr)->endIterator()) e ## _it = (listAddr)->endIterator(); e ## _it.curr != 0; e ## _it.reverse()) \
-//for(typeof (e ## _it.curr->d) &e = e ## _it.curr->d, forLoopExecOnceDummy)
-
-//#define forEachDInDLList(listAddr, e) \
-//for(typeof ((listAddr)->startIterator()) e ## _it = (listAddr)->startIterator(); e ## _it.curr != 0; e ## _it.advance()) \
-//for(typeof (*e ## _it.curr->d) &e = *e ## _it.curr->d, forLoopExecOnceDummy)
 
 #define DLListNodeInit(z, n, arr) \
 { n == 0 ? nullptr : &arr[n-1], \
@@ -121,7 +105,7 @@ public:
 		size++;
 	}
 
-	bool hasFree()
+	bool hasFree() const
 	{
 		return free;
 	}
@@ -160,53 +144,6 @@ public:
 	constexpr DLList() {}
 	template <size_t S>
 	constexpr DLList(Node (&n)[S]): free(n) {}
-
-//	class Iterator
-//	{
-//	public:
-//		DLList &dlList;
-//		Node *curr, *next, *prev;
-//
-//		constexpr Iterator(DLList &dlList) : dlList(dlList), curr(dlList.list), next(curr ? curr->next : nullptr), prev(nullptr) { }
-//		constexpr Iterator(DLList &dlList, Node *curr) :
-//			dlList(dlList), curr(curr), next(curr ? curr->next : nullptr), prev(curr ? curr->prev : nullptr) { }
-//
-//		void advance()
-//		{
-//			curr = next;
-//			prev = next ? next->prev : nullptr;
-//			next = next ? next->next : nullptr;
-//		}
-//
-//		void reverse()
-//		{
-//			curr = prev;
-//			prev = prev ? prev->prev : nullptr;
-//			next = prev ? prev->next : nullptr;
-//		}
-//
-//		void removeElem()
-//		{
-//			assert(curr);
-//			dlList.removeNode(curr);
-//			curr = nullptr;
-//		}
-//
-//		T &obj()
-//		{
-//			return curr->d;
-//		}
-//	};
-//
-//	Iterator startIterator()
-//	{
-//		return Iterator(*this);
-//	}
-//
-//	Iterator endIterator()
-//	{
-//		return Iterator(*this, listEnd);
-//	}
 
 	template <size_t S>
 	void init(Node (&n)[S])
@@ -292,16 +229,6 @@ public:
 		return 1;
 	}
 
-//	int contains(const T &d)
-//	{
-//		for(Node *n = list; n; n = n->next)
-//		{
-//			if(n->d == d)
-//				return 1;
-//		}
-//		return 0;
-//	}
-
 	void removeNode(Node *n)
 	{
 		if(n == list) // if n is the head of the list, move the head to the next node
@@ -320,7 +247,7 @@ public:
 		assert(size_ >= 0);
 	}
 
-	int remove(const T &d)
+	bool remove(const T &d)
 	{
 		for(Node *n = list; n; n = n->next)
 		{
@@ -328,10 +255,10 @@ public:
 			{
 				removeNode(n);
 				//logMsg("removed %p from list", &d);
-				return 1;
+				return true;
 			}
 		}
-		return 0;
+		return false;
 	}
 
 	T *index(uint idx)
@@ -345,12 +272,12 @@ public:
 		return &(*it);
 	}
 
-	bool isFull()
+	bool isFull() const
 	{
 		return !free.hasFree();
 	}
 
-	int freeSpace()
+	int freeSpace() const
 	{
 		return free.size;
 	}

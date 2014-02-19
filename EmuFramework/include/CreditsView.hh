@@ -17,7 +17,7 @@
 
 #include <gfx/GfxText.hh>
 #include <gui/View.hh>
-#include <util/gui/ViewAnimation.hh>
+#include <util/Interpolator.hh>
 #include <config/version.h>
 #include <meta.h>
 
@@ -32,14 +32,14 @@ class CreditsView : public View
 {
 private:
 	Gfx::Text text;
-	FadeViewAnimation<10> fade;
+	TimedInterpolator<float> fade;
 	const char *str;
-	IG::Rect2<int> rect;
+	IG::WindowRect rect;
 
 public:
 	constexpr CreditsView(const char *str, Base::Window &win): View(CONFIG_APP_NAME " " IMAGINE_VERSION, win), str(str) {}
-	IG::Rect2<int> &viewRect() override { return rect; }
-	void draw(Gfx::FrameTimeBase frameTime) override;
+	IG::WindowRect &viewRect() override { return rect; }
+	void draw(Base::FrameTimeBase frameTime) override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void init();

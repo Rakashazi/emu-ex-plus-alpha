@@ -1,10 +1,12 @@
 #pragma once
 
+#include "private.hh"
+
 #ifdef CONFIG_INPUT
-	#include <input/Input.hh>
+#include <input/Input.hh>
 #endif
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 #include <base/android/private.hh>
 #include <base/android/public.hh>
 namespace Gfx
@@ -14,26 +16,24 @@ namespace Gfx
 #endif
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	#include "android/DirectTextureBufferImage.hh"
-	#include <dlfcn.h>
+#include "android/DirectTextureBufferImage.hh"
+#include <dlfcn.h>
 	#if CONFIG_ENV_ANDROID_MINSDK < 9
-		static EGLDisplay eglDisplay = 0;
-		static EGLImageKHR (*eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) = 0;
-		static EGLBoolean (*eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image) = 0;
-		static EGLDisplay (*eglGetDisplay)(EGLNativeDisplayType display_id);
-		namespace Base
-		{
-			EGLDisplay getAndroidEGLDisplay() { return eglDisplay; }
-		}
+	static EGLDisplay eglDisplay = 0;
+	static EGLImageKHR (*eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) = 0;
+	static EGLBoolean (*eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image) = 0;
+	static EGLDisplay (*eglGetDisplay)(EGLNativeDisplayType display_id);
+	namespace Base
+	{
+		EGLDisplay getAndroidEGLDisplay() { return eglDisplay; }
+	}
 	#endif
 #endif
-
-//static int usingFixedAspectRatio = 0;
-//static float aspectRatio = 4.0/3.0;
 
 namespace Gfx
 {
 
+static Viewport currViewport;
 static int discardFrameBuffer = 0;
 static bool useSGIVidSync = 0;
 
@@ -47,106 +47,64 @@ TextureSizeSupport textureSizeSupport =
 	0, 0 // maxXSize, maxYSize
 };
 
-static float zRange = 1000.0;
-
-void setViewport(Base::Window &win)
+uint maxOpenGLMajorVersionSupport()
 {
-	int viewportY = win.h - win.viewRect.y2;
-	logMsg("viewport %d:%d:%d:%d from window %d:%d:%d:%d (%d,%d)", win.viewRect.x, viewportY, win.viewPixelWidth_, win.viewPixelHeight_,
-			win.viewRect.x, win.viewRect.y, win.viewRect.x2, win.viewRect.y2, win.w, win.h);
-	assert(win.viewPixelWidth_ && win.viewPixelHeight_);
-	glViewport(win.viewRect.x, viewportY, win.viewPixelWidth_, win.viewPixelHeight_);
-}
-
-void setProjector(Base::Window &win)
-{
-	using namespace Base;
-	auto width = win.viewPixelWidth_;
-	auto height = win.viewPixelHeight_;
-
-	glcMatrixMode(GL_PROJECTION);
-
-	GC fovy = M_PI/4.0;
-
-	bool isSideways = win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270;
-	Gfx::proj.aspectRatio = isSideways ? (GC)height / (GC)width : (GC)width / (GC)height;
-	//glLoadIdentity();
-	//gluPerspective(45.0f, viewAspectRatio, 0.1f, 1000.0f);
-	Matrix4x4<GC> mat, rMat;
-	Gfx::proj.focal = 1.0;
-	mat.perspectiveFovLH(fovy, Gfx::proj.aspectRatio, 1.0, zRange);
-	/*Gfx::proj.focal = -100;
-	mat.perspectiveFrustumWithView(isSideways ? height : width, isSideways ? width : height,
-			1, 200, -Gfx::proj.focal);*/
-	Gfx::proj.setMatrix(win, mat, isSideways);
-	win.setupScreenSize();
-	if(animateOrientationChange && !projAngleM.isComplete())
-	{
-		logMsg("animated rotation %f", (double)IG::toDegrees(projAngleM.now));
-		rMat.zRotationLH(projAngleM.now);
-		mat = Matrix4x4<GC>::mult(mat, rMat);
-	}
-	else if(win.rotateView != VIEW_ROTATE_0)
-	{
-		logMsg("fixed rotation %f", (double)orientationToGC(win.rotateView));
-		rMat.zRotationLH(IG::toRadians(orientationToGC(win.rotateView)));
-		mat = Matrix4x4<GC>::mult(mat, rMat);
-	}
-	else
-	{
-		//logMsg("no rotation");
-	}
-	glLoadMatrixf((GLfloat *)&mat.v[0]);
-	//mat.print();
-	/*glGetFloatv (GL_PROJECTION_MATRIX, (GLfloat*)&proj);
-	logMsg("projection matrix set with fovy %f aspect ratio %f and z range %f - %f", (float)Gfx::proj.fovy, (float)Gfx::proj.aspectRatio, 1.0, (float)zRange);
-	logMsg("view space half %f x %f, inverse %f x %f", 1.0f/proj._11, 1.0f/proj._22, proj._11, proj._22);*/
-	//gfx_setupSpace(proj._11, proj._22, width, height);
-	/*{
-		GC x = 0,y = 0,z = Gfx::proj.focal;
-		Gfx::proj.project(x,y,z);
-		logMsg("projected to %f %f %f",x,y,z);
-		x = 0;y = 0;z = 0.5;
-		Gfx::proj.unProject(x,y,z);
-		logMsg("unprojected to %f %f %f",x,y,z);
-	}*/
-	glcMatrixMode(GL_MODELVIEW);
-}
-
-}
-
-#ifdef CONFIG_GFX_SOFT_ORIENTATION
-
-namespace Base
-{
-
-uint Window::setOrientation(uint o)
-{
-	assert(o == VIEW_ROTATE_0 || o == VIEW_ROTATE_90 || o == VIEW_ROTATE_180 || o == VIEW_ROTATE_270);
-
-	if((validOrientations & o) && rotateView != o)
-	{
-		logMsg("setting orientation %d", o);
-		rotateView = o;
-		if(animateOrientationChange)
-		{
-			projAngleM.initLinear(projAngleM.now, IG::toRadians(orientationToGC(rotateView)), 10);
-			displayNeedsUpdate();
-		}
-		Base::setSystemOrientation(o);
-		resizePosted = 1;
-		displayNeedsUpdate();
-		#ifdef CONFIG_INPUT
-		Input::configureInputForOrientation(*this);
-		#endif
+	#ifdef CONFIG_GFX_OPENGL_ES
+		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+		return 2;
+		#else
 		return 1;
-	}
-	else
-		return 0;
+		#endif
+	#else
+		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+		return 3;
+		#else
+		return 1;
+		#endif
+	#endif
 }
 
+void setViewport(const Base::Window &win, const Viewport &v)
+{
+	//logMsg("translated viewport y %d to %d", win.rect.y2, viewportY);
+	auto inGLFormat = v.inGLFormat();
+	logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
+	assert(inGLFormat.x2 && inGLFormat.y2);
+	glViewport(inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
+	currViewport = v;
 }
-#endif
+
+const Viewport &viewport()
+{
+	return currViewport;
+}
+
+Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect &rect)
+{
+	Viewport v;
+	v.rect = rect;
+	v.w = rect.xSize();
+	v.h = rect.ySize();
+	float wScaler = v.w / (float)win.width();
+	float hScaler = v.h / (float)win.height();
+	v.wMM = win.widthMM() * wScaler;
+	v.hMM = win.heightMM() * hScaler;
+	#ifdef __ANDROID__
+	v.wSMM = win.widthSMM() * wScaler;
+	v.hSMM = win.heightSMM() * hScaler;
+	#endif
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
+	v.rotateView = win.rotateView;
+	#endif
+	logMsg("made viewport %d:%d:%d:%d from window %d:%d",
+		v.rect.x, v.rect.y, v.rect.x2, v.rect.y2,
+		win.width(), win.height());
+
+	// glViewport() needs flipped Y and relative size
+	v.relYFlipViewport = {v.realBounds().x, win.realHeight() - v.realBounds().y2, v.realWidth(), v.realHeight()};
+	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
+	return v;
+}
 
 static void vsyncEnable()
 {
@@ -167,224 +125,7 @@ static void vsyncEnable()
 	#endif
 }
 
-static GLfloat maximumAnisotropy, anisotropy = 0, forceAnisotropy = 0;
-static bool useAnisotropicFiltering = 0;
-static bool forceNoAnisotropicFiltering = 1;
-
-static void checkForAnisotropicFiltering(const char *extensions)
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoAnisotropicFiltering && strstr(extensions, "GL_EXT_texture_filter_anisotropic"))
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
-		logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
-		useAnisotropicFiltering = 1;
-
-		if(forceAnisotropy) // force a specific anisotropy value
-			anisotropy = forceAnisotropy;
-		else anisotropy = maximumAnisotropy;
-		assert(anisotropy <= maximumAnisotropy);
-	}
-	#endif
-}
-
-static uchar useAutoMipmapGeneration = 0;
-static uchar forceNoAutoMipmapGeneration = 0;
-
-static void checkForAutoMipmapGeneration(const char *extensions, const char *version, const char *rendererName)
-{
-	bool use = 0;
-	#ifndef CONFIG_GFX_OPENGL_ES
-	use = !forceNoAutoMipmapGeneration && strstr(extensions, "GL_SGIS_generate_mipmap");
-	#elif defined CONFIG_BASE_ANDROID
-	use = !forceNoAutoMipmapGeneration;
-	if(Config::MACHINE_IS_GENERIC_ARM)
-	{
-		// Older Android devices may only support OpenGL ES 1.0
-		if(!strstr(version, "1.1"))
-		{
-			use = 0;
-		}
-	}
-	if(Config::MACHINE_IS_GENERIC_ARMV7)
-	{
-		if(strstr(rendererName, "GC800 Graphics"))
-		{
-			logMsg("automatic mipmap generation bugged on Vivante, disabling");
-			use = 0;
-		}
-		else if(strstr(rendererName, "Adreno (TM) 220"))
-		{
-			logMsg("automatic mipmap generation bugged some Adreno 220 drivers, disabling");
-			use = 0;
-		}
-	}
-	#else
-	use = !forceNoAutoMipmapGeneration;
-	#endif
-	if(use)
-	{
-		logMsg("automatic mipmap generation supported");
-		useAutoMipmapGeneration = 1;
-		//glHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
-	}
-}
-
-static uchar useMultisample = 0;
-static uchar forceNoMultisample = 1;
-static uchar forceNoMultisampleHint = 0;
-
-static void checkForMultisample(const char *extensions)
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoMultisample && strstr(extensions, "GL_ARB_multisample"))
-	{
-		logMsg("multisample antialiasing supported");
-		useMultisample = 1;
-		if(!forceNoMultisampleHint && strstr(extensions, "GL_NV_multisample_filter_hint"))
-		{
-			logMsg("multisample hints supported");
-			glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
-		}
-		glcEnable(GL_MULTISAMPLE_ARB);
-	}
-	#endif
-}
-
-static uchar forceNoNonPow2Textures = 0;
-
-static void checkForNonPow2Textures(const char *extensions, const char *rendererName)
-{
-	if(forceNoNonPow2Textures)
-		return;
-
-	#ifdef CONFIG_BASE_ANDROID
-	if(glBrokenNpot)
-		return;
-	#endif
-
-	#if defined(CONFIG_BASE_PS3)
-	if(1)
-	#elif defined(CONFIG_GFX_OPENGL_ES) && defined(CONFIG_BASE_IOS)
-	if(strstr(extensions, "GL_APPLE_texture_2D_limited_npot"))
-	#elif defined(CONFIG_GFX_OPENGL_ES)
-	if(strstr(extensions, "GL_IMG_texture_npot")
-			|| strstr(extensions, "GL_NV_texture_npot_2D_mipmap") // no repeat modes
-			|| strstr(extensions, "GL_APPLE_texture_2D_limited_npot") // no mipmaps or repeat modes
-			|| strstr(extensions, "GL_OES_texture_npot")
-			|| strstr(extensions, "GL_ARB_texture_non_power_of_two")
-			)
-	#else
-	if(strstr(extensions, "GL_ARB_texture_non_power_of_two"))
-	#endif
-	{
-		#ifdef CONFIG_BASE_ANDROID
-		if(string_equal(rendererName, "Adreno 200") ||
-				(Base::androidSDK() <= 8 && strstr(rendererName, "Adreno")))
-		{
-			logWarn("Non-Power-of-2 textures supported but disabled due to buggy driver");
-			return;
-		}
-		#endif
-
-		Gfx::textureSizeSupport.nonPow2 = 1;
-		logMsg("Non-Power-of-2 textures are supported");
-	}
-}
-
-static uchar supportBGRPixels = 0;
-static uchar useBGRPixels = 0;
-static uchar forceNoBGRPixels = 0;
-
-namespace Gfx
-{
-bool preferBGRA = 0, preferBGR = 0;
-static auto bgrInternalFormat = GL_BGRA;
-
-static void checkForBGRPixelSupport(const char *extensions)
-{
-	#ifdef CONFIG_GFX_OPENGL_ES
-	bool supportsBGR = false;
-	if(strstr(extensions, "GL_APPLE_texture_format_BGRA8888"))
-	{
-		supportsBGR = true;
-		bgrInternalFormat = GL_RGBA;
-	}
-	else if(strstr(extensions, "GL_EXT_texture_format_BGRA8888"))
-	{
-		supportsBGR = true;
-	}
-
-	if(supportsBGR)
-	#else
-	if(!forceNoBGRPixels)
-	#endif
-	{
-		supportBGRPixels = 1;
-		useBGRPixels = 1;
-
-		#if !defined(CONFIG_GFX_OPENGL_ES) || defined(CONFIG_BASE_PS3)
-		preferBGR = 1;
-		#endif
-		preferBGRA = 1;
-
-		#ifdef CONFIG_GFX_OPENGL_ES
-		logMsg("BGR pixel types are supported%s", bgrInternalFormat == GL_RGBA ? " (Apple version)" : "");
-		#endif
-	}
-}
-
-}
-
-static uchar supportCompressedTextures = 0;
-static uchar useCompressedTextures = 0;
-static uchar forceNoCompressedTextures = 1;
-
-static void checkForCompressedTexturesSupport(bool hasGL1_3)
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoCompressedTextures && hasGL1_3)
-	{
-		supportCompressedTextures = 1;
-		useCompressedTextures = 1;
-		logMsg("Compressed textures are supported");
-	}
-	#endif
-}
-
-static uchar useFBOFuncs = 0;
-static uchar forceNoFBOFuncs = 1;
-
-static void checkForFBOFuncs(const char *extensions)
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!forceNoFBOFuncs && strstr(extensions, "GL_EXT_framebuffer_object"))
-	{
-		useFBOFuncs = 1;
-		logMsg("FBO functions are supported");
-	}
-	#endif
-}
-
-static uchar useVBOFuncs = 0;
-static uchar forceNoVBOFuncs = 1;
-
-static void checkForVBO(const char *version, bool hasGL1_5)
-{
-	if(!forceNoVBOFuncs &&
-	#ifndef CONFIG_GFX_OPENGL_ES
-		hasGL1_5
-	#else
-		strstr(version, " 1.0") == NULL // make sure OpenGL-ES is not 1.0
-	#endif
-	)
-	{
-		useVBOFuncs = 1;
-		logMsg("VBOs are supported");
-	}
-}
-
-#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
+#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 
 static bool useDrawTex = 0;
 static bool forceNoDrawTex = 0;
@@ -417,9 +158,6 @@ static void checkForDrawTexture(const char *extensions, const char *rendererName
 #endif
 
 #ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-
-namespace Gfx
-{
 
 void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, const char *rendererName)
 {
@@ -601,39 +339,6 @@ void setUseAndroidDirectTexture(bool on)
 		directTextureConf.useEGLImageKHR = on;
 }
 
-}
-
 #endif
-
-
-static uchar usingMipmaping()
-{
-	if(useAutoMipmapGeneration
-		#ifndef CONFIG_GFX_OPENGL_ES
-		|| useFBOFuncs
-		#endif
-	  )
-		return 1;
-	else return 0;
-}
-
-namespace Gfx
-{
-
-void setDither(uint on)
-{
-	if(on)
-		glcEnable(GL_DITHER);
-	else
-	{
-		logMsg("disabling dithering");
-		glcDisable(GL_DITHER);
-	}
-}
-
-uint dither()
-{
-	return glcIsEnabled(GL_DITHER);
-}
 
 }

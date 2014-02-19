@@ -3,6 +3,9 @@
 namespace Input
 {
 
+namespace CONFIG_INPUT_KEYCODE_NAMESPACE
+{
+
 static constexpr uint asciiKey(uint c) { return c; }
 
 static uint decodeAscii(Key k, bool isShiftPushed)
@@ -12,8 +15,8 @@ static uint decodeAscii(Key k, bool isShiftPushed)
 	switch(k)
 	{
 		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Keycode::ENTER: return '\n';
-		case Keycode::BACK_SPACE: return '\b';
+		case ENTER: return '\n';
+		case BACK_SPACE: return '\b';
 		#endif
 		case ' ' ... '~': return k;
 	}
@@ -23,6 +26,8 @@ static uint decodeAscii(Key k, bool isShiftPushed)
 static bool isAsciiKey(Key k)
 {
 	return decodeAscii(k, 0) != 0;
+}
+
 }
 
 }

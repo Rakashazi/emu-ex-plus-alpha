@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "zeemote"
+#define LOGTAG "Zeemote"
 #include "Zeemote.hh"
 #include <base/Base.hh>
 #include <util/bits.h>
@@ -101,7 +101,14 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
-	else if(status == BluetoothSocket::STATUS_ERROR)
+	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	{
+		logErr("Zeemote connection error");
+		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		close();
+		delete this;
+	}
+	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("Zeemote read error, disconnecting");
 		removeFromSystem();
@@ -151,7 +158,12 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				}
 				bcase RID_8BA_2A_JS_REPORT:
 					logMsg("got analog report %d %d", (schar)inputBuffer[4], (schar)inputBuffer[5]);
-					processStickDataForButtonEmulation((schar*)&inputBuffer[4], player);
+					//processStickDataForButtonEmulation((schar*)&inputBuffer[4], player);
+					iterateTimes(2, i)
+					{
+						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Event::MAP_ZEEMOTE, *this, Base::mainWindow()))
+							Base::endIdleByUserActivity();
+					}
 			}
 			inputBufferPos = 0;
 		}
@@ -193,37 +205,41 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ZEEMOTE, code, newState ? PUSHED : RELEASED, 0, this));
+			Event event{player, Event::MAP_ZEEMOTE, (Key)code, newState ? PUSHED : RELEASED, 0, 0, this};
+			startKeyRepeatTimer(event);
+			dispatchInputEvent(event);
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
 }
 
 
-void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
-{
-	using namespace Input;
-	//logMsg("CC sticks left %dx%d right %dx%d", pos[0], pos[1], pos[2], pos[3]);
-	forEachInArray(stickBtn, e)
-	{
-		bool newState;
-		switch(e_i)
-		{
-			case 0: newState = pos[0] < -63; break;
-			case 1: newState = pos[0] > 63; break;
-			case 2: newState = pos[1] > 63; break;
-			case 3: newState = pos[1] < -63; break;
-			default: bug_branch("%d", (int)e_i); return;
-		}
-		if(*e != newState)
-		{
-			static const uint btnEvent[] =
-			{
-				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
-			};
-			Base::endIdleByUserActivity();
-			onInputEvent(Base::mainWindow(), Event(player, Event::MAP_ZEEMOTE, btnEvent[e_i], newState ? PUSHED : RELEASED, 0, this));
-		}
-		*e = newState;
-	}
-}
+//void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
+//{
+//	using namespace Input;
+//	//logMsg("CC sticks left %dx%d right %dx%d", pos[0], pos[1], pos[2], pos[3]);
+//	forEachInArray(stickBtn, e)
+//	{
+//		bool newState;
+//		switch(e_i)
+//		{
+//			case 0: newState = pos[0] < -63; break;
+//			case 1: newState = pos[0] > 63; break;
+//			case 2: newState = pos[1] > 63; break;
+//			case 3: newState = pos[1] < -63; break;
+//			default: bug_branch("%d", (int)e_i); return;
+//		}
+//		if(*e != newState)
+//		{
+//			static const uint btnEvent[] =
+//			{
+//				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
+//			};
+//			Base::endIdleByUserActivity();
+//			Event event{(uint)player, Event::MAP_ZEEMOTE, (Key)btnEvent[e_i], newState ? PUSHED : RELEASED, 0, 0, this};
+//			startKeyRepeatTimer(event);
+//			dispatchInputEvent(event);
+//		}
+//		*e = newState;
+//	}
+//}

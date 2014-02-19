@@ -2,6 +2,7 @@ metadata_version = 1.5.15
 android_metadata_writeExtStore = 1
 android_metadata_bluetooth = 1
 android_metadata_vibrate = 1
+android_metadata_installShortcut = 1
 android_metadata_xperiaPlayOptimized = 1
 ios_metadata_setuidPermissionHelper = 1
 pnd_metadata_subcategory = Emulator

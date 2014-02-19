@@ -1,9 +1,22 @@
 #pragma once
 #include <gfx/GfxBufferImage.hh>
 #include <util/edge.h>
+#include "private.hh"
 
 namespace Gfx
 {
+
+const uint ColVertex::colorOffset = offsetof(ColVertex, color);
+
+const uint TexVertex::textureOffset = offsetof(TexVertex, u);
+
+const uint ColTexVertex::colorOffset = offsetof(ColTexVertex, color);
+const uint ColTexVertex::textureOffset = offsetof(ColTexVertex, u);
+
+static_assertIsPod(Vertex);
+static_assertIsPod(ColVertex);
+static_assertIsPod(TexVertex);
+static_assertIsPod(ColTexVertex);
 
 static const GLenum GL_VERT_ARRAY_TYPE = GL_FLOAT;
 static const GLenum GL_TEX_ARRAY_TYPE = GL_FLOAT;
@@ -22,19 +35,20 @@ static int convGeomTypeToOGL(uint type)
 	return glType;
 }
 
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 template<class Vtx>
 static void setupVertexArrayPointers(const Vtx *v, int numV)
 {
 	if(useVBOFuncs && v != 0) // turn off VBO when rendering from memory
 	{
 		//logMsg("un-binding VBO");
-		glState_bindBuffer(GL_ARRAY_BUFFER, 0);
+		glcBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	if(Vtx::hasTexture)
 	{
 		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(typename Vtx::POD), (char*)v + Vtx::textureOffset);
+		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
 	}
@@ -44,16 +58,51 @@ static void setupVertexArrayPointers(const Vtx *v, int numV)
 	if(Vtx::hasColor)
 	{
 		glcEnableClientState(GL_COLOR_ARRAY);
-		glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(typename Vtx::POD), (char*)v + Vtx::colorOffset);
+		glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
 		glState.colorState[0] = -1; //invalidate glColor state cache
 	}
 	else
 		glcDisableClientState(GL_COLOR_ARRAY);
 
-	glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(typename Vtx::POD), (char*)v + Vtx::posOffset);
+	glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::posOffset);
 }
+#endif
 
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+static uint currentVtxArrayPointerID = 0;
+template<class Vtx>
+static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
+{
+	if(currentVtxArrayPointerID != Vtx::ID)
+	{
+		//logMsg("setting vertex array pointers for type: %d", Vtx::ID);
+		currentVtxArrayPointerID = Vtx::ID;
+		if(Vtx::hasTexture)
+			glEnableVertexAttribArray(VATTR_TEX_UV);
+		else
+			glDisableVertexAttribArray(VATTR_TEX_UV);
+		if(Vtx::hasColor)
+			glEnableVertexAttribArray(VATTR_COLOR);
+		else
+			glDisableVertexAttribArray(VATTR_COLOR);
+	}
+
+	if(Vtx::hasTexture)
+	{
+		glVertexAttribPointer(VATTR_TEX_UV, 2, GL_TEX_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
+		//glUniform1i(textureUniform, 0);
+		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
+		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
+	}
+
+	if(Vtx::hasColor)
+	{
+		glVertexAttribPointer(VATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
+	}
+
+	glVertexAttribPointer(VATTR_POS, numV, GL_VERT_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::posOffset);
 }
+#endif
 
 template<class Vtx>
 void VertexInfo::draw(const Vtx *v, uint type, uint count)
@@ -61,7 +110,14 @@ void VertexInfo::draw(const Vtx *v, uint type, uint count)
 	int numV = 2; // number of position elements
 	int glType = Gfx::convGeomTypeToOGL(type);
 
-	Gfx::setupVertexArrayPointers(v, numV);
+	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	if(useFixedFunctionPipeline)
+		Gfx::setupVertexArrayPointers(v, numV);
+	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(!useFixedFunctionPipeline)
+		Gfx::setupShaderVertexArrayPointers(v, numV);
+	#endif
 	glDrawArrays(glType, 0, count);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawArrays", err); });
 }
@@ -73,7 +129,14 @@ void VertexInfo::draw(const Vtx *v, const VertexIndex *idx, uint type, uint coun
 	int numV = 2; // number of position elements
 	int glType = Gfx::convGeomTypeToOGL(type);
 
-	Gfx::setupVertexArrayPointers(v, numV);
+	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	if(useFixedFunctionPipeline)
+		Gfx::setupVertexArrayPointers(v, numV);
+	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(!useFixedFunctionPipeline)
+		Gfx::setupShaderVertexArrayPointers(v, numV);
+	#endif
 	glDrawElements(glType, count, GL_UNSIGNED_SHORT, idx);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawElements", err); });
 }
@@ -85,21 +148,21 @@ static void mapImg(Vtx v[4], GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTe
 	v[1].u = leftTexU; v[1].v = topTexV; //TL
 	v[2].u = rightTexU; v[2].v = bottomTexV; //BR
 	v[3].u = rightTexU; v[3].v = topTexV; //TR
-	//vArr.write(v, sizeof(v));
 }
 
 template<class Vtx>
 static void mapImg(Vtx v[4], const Gfx::TextureDesc &img)
 {
-	TextureCoordinate leftTexU = img.xStart;
-	TextureCoordinate topTexV = img.yStart;
-	TextureCoordinate rightTexU = img.xEnd;
-	TextureCoordinate bottomTexV = img.yEnd;
+	auto leftTexU = img.xStart;
+	auto topTexV = img.yStart;
+	auto rightTexU = img.xEnd;
+	auto bottomTexV = img.yEnd;
+	//logMsg("setting UV map %f:%f:%f:%f from texture description", (double)leftTexU, (double)topTexV, (double)rightTexU, (double)bottomTexV);
 	mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 
 template<class Vtx>
-static void setColor(Vtx v[4], GColor r, GColor g, GColor b, GColor a, uint edges)
+static void setColor(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges)
 {
 	if(edges & EDGE_BL) v[0].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
 	if(edges & EDGE_TL) v[1].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
@@ -108,7 +171,7 @@ static void setColor(Vtx v[4], GColor r, GColor g, GColor b, GColor a, uint edge
 }
 
 template<class Vtx>
-static void setColorRGB(Vtx v[4], GColor r, GColor g, GColor b, uint edges)
+static void setColorRGB(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, uint edges)
 {
 	if(edges & EDGE_BL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[0].color), EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[1].color), EDGE_TL);
@@ -117,7 +180,7 @@ static void setColorRGB(Vtx v[4], GColor r, GColor g, GColor b, uint edges)
 }
 
 template<class Vtx>
-static void setColorAlpha(Vtx v[4], GColor a, uint edges)
+static void setColorAlpha(Vtx v[4], ColorComp a, uint edges)
 {
 	if(edges & EDGE_BL) setColor(v, VertexColorPixelFormat.r(v[0].color), VertexColorPixelFormat.g(v[0].color), VertexColorPixelFormat.b(v[0].color), a, EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, VertexColorPixelFormat.r(v[1].color), VertexColorPixelFormat.g(v[1].color), VertexColorPixelFormat.b(v[1].color), a, EDGE_TL);
@@ -125,11 +188,13 @@ static void setColorAlpha(Vtx v[4], GColor a, uint edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
+}
+
 #include "drawable/sprite.hh"
 #include "drawable/quad.hh"
 
 #if defined(CONFIG_RESOURCE_FACE)
-	#include <gfx/common/GfxText.hh>
+#include <gfx/common/GfxText.hh>
 #endif
 
 #include <gfx/common/GeomQuadMesh.hh>

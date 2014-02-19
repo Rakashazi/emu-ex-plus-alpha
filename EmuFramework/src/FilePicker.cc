@@ -13,27 +13,20 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "filePicker"
+#define LOGTAG "FilePicker"
 #include <FilePicker.hh>
-#include <MsgPopup.hh>
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
+#include <EmuApp.hh>
 #include <Recent.hh>
-#include <util/gui/ViewStack.hh>
 #include <gui/FSPicker/FSPicker.hh>
 #include <gui/AlertView.hh>
-
-extern ViewStack viewStack;
-void startGameFromMenu();
-bool isMenuDismissKey(const Input::Event &e);
-extern MsgPopup popup;
 
 void EmuFilePicker::init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter, bool singleDir)
 {
 	FSPicker::init(".", needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr, filter, singleDir);
-	onSelectFile() = [this](const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
-	onClose() = [this](const Input::Event &e){GameFilePicker::onClose(e);};
+	onSelectFile() = [this](FSPicker &picker, const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
 	if(highlightFirst && tbl.cells)
 	{
 		tbl.selected = 0;
@@ -75,7 +68,7 @@ bool showAutoStateConfirm(const Input::Event &e)
 			{
 				loadGameComplete(false, true);
 			};
-		View::addModalView(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView);
 		return 1;
 	}
 	return 0;
@@ -110,11 +103,6 @@ void GameFilePicker::onSelectFile(const char* name, const Input::Event &e)
 	}
 }
 
-void GameFilePicker::onClose(const Input::Event &e)
-{
-	viewStack.popAndShow();
-}
-
 void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 {
 	if(result)
@@ -131,7 +119,7 @@ void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 {
 	EmuFilePicker::init(highlightFirst, false, defaultBenchmarkFsFilter, singleDir);
 	onSelectFile() =
-		[this](const char* name, const Input::Event &e)
+		[this](FSPicker &picker, const char* name, const Input::Event &e)
 		{
 			EmuSystem::onLoadGameComplete() =
 				[](uint result, const Input::Event &e)
@@ -147,10 +135,5 @@ void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 			{
 				EmuSystem::clearGamePaths();
 			}
-		};
-	onClose() =
-		[this](const Input::Event &e)
-		{
-			View::removeModalView();
 		};
 }

@@ -27,7 +27,7 @@ public:
 	static Io* create(const char * location, uint mode = 0, CallResult *errorOut = 0);
 	~IoFd() { close(); }
 
-	size_t readUpTo(void *buffer, size_t numBytes) override;
+	ssize_t readUpTo(void *buffer, size_t numBytes) override;
 	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
 	CallResult tell(ulong &offset) override;
 	CallResult seek(long offset, uint mode) override;
@@ -36,6 +36,7 @@ public:
 	ulong size() override;
 	void sync() override;
 	int eof() override;
+	void advise(long offset, size_t len, Advice advice) override;
 
 	static CallResult writeToNewFile(const char *path, void *data, size_t size)
 	{
@@ -63,6 +64,7 @@ public:
 		delete f;
 		return readSize;
 	}
+
 private:
-	int fd = 0;
+	int fd = -1;
 };

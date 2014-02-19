@@ -1,5 +1,6 @@
 #pragma once
 #include <gfx/GeomQuad.hh>
+#include <gfx/VertexArray.hh>
 
 namespace Gfx
 {
@@ -33,8 +34,22 @@ template<class Vtx>
 void QuadGeneric<Vtx>::draw() const
 {
 	if(!Vtx::hasTexture)
+	{
 		Gfx::setActiveTexture(0);
-	Vtx::draw(v, Gfx::TRIANGLE_STRIP, 4);
+//		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+//		if(!useFixedFunctionPipeline)
+//			setProgram(noTexProgram);
+//		#endif
+	}
+	if(useVBOFuncs)
+	{
+		glcBindBuffer(GL_ARRAY_BUFFER, globalStreamVBO[globalStreamVBOIdx]);
+		globalStreamVBOIdx = (globalStreamVBOIdx+1) % sizeofArray(globalStreamVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STREAM_DRAW);
+		Vtx::draw((Vtx*)nullptr, Gfx::TRIANGLE_STRIP, 4);
+	}
+	else
+		Vtx::draw(v, Gfx::TRIANGLE_STRIP, 4);
 }
 
 template class QuadGeneric<Vertex>;
@@ -42,17 +57,17 @@ template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-void TexQuad::mapImg(const BufferImage &img) { ::mapImg(v, img.textureDesc()); };
-void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { ::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
+void TexQuad::mapImg(const BufferImage &img) { Gfx::mapImg(v, img.textureDesc()); };
+void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 
-void ColQuad::setColor(GColor r, GColor g, GColor b, GColor a, uint edges) { ::setColor(v, r, g, b, a, edges); }
-void ColQuad::setColorRGB(GColor r, GColor g, GColor b, uint edges) { ::setColorRGB(v, r, g, b, edges); }
-void ColQuad::setColorAlpha(GColor a, uint edges) { ::setColorAlpha(v, a, edges); }
+void ColQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
+void ColQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
+void ColQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
 
-void ColTexQuad::mapImg(const BufferImage &img) { ::mapImg(v, img.textureDesc()); };
-void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { ::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
-void ColTexQuad::setColor(GColor r, GColor g, GColor b, GColor a, uint edges) { ::setColor(v, r, g, b, a, edges); }
-void ColTexQuad::setColorRGB(GColor r, GColor g, GColor b, uint edges) { ::setColorRGB(v, r, g, b, edges); }
-void ColTexQuad::setColorAlpha(GColor a, uint edges) { ::setColorAlpha(v, a, edges); }
+void ColTexQuad::mapImg(const BufferImage &img) { Gfx::mapImg(v, img.textureDesc()); };
+void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
+void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
+void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
+void ColTexQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
 
 }

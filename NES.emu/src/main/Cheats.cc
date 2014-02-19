@@ -1,11 +1,9 @@
 #include <Cheats.hh>
 #include <MsgPopup.hh>
 #include <TextEntry.hh>
-#include <util/gui/ViewStack.hh>
+#include <EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
-extern MsgPopup popup;
-extern ViewStack viewStack;
 extern uint fceuCheats;
 void EncodeGG(char *str, int a, int v, int c);
 static const int UNCHANGED_VAL = -2;
@@ -103,9 +101,9 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input 4-digit hex", addrStr);
+			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -114,18 +112,18 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						{
 							logMsg("addr 0x%X too large", a);
 							popup.postError("Invalid input");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
 						syncCheat();
 						addr.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	value
@@ -134,9 +132,9 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input 2-digit hex", valueStr);
+			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -145,18 +143,18 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						{
 							logMsg("val 0x%X too large", a);
 							popup.postError("Invalid input");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
 						syncCheat();
 						value.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	comp
@@ -165,9 +163,9 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input 2-digit hex or blank", compStr);
+			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -178,7 +176,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							{
 								logMsg("val 0x%X too large", a);
 								popup.postError("Invalid input");
-								window().displayNeedsUpdate();
+								window().postDraw();
 								return 1;
 							}
 							string_copy(compStr, str, sizeof(compStr));
@@ -189,12 +187,12 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						}
 						syncCheat();
 						comp.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	ggCode
@@ -203,56 +201,56 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input Game Genie code", ggCodeStr);
+			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!isValidGGCodeLen(str))
 						{
 							popup.postError("Invalid, must be 6 or 8 digits");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						string_copy(ggCodeStr, str, sizeof(ggCodeStr));
 						syncCheat();
 						ggCode.compile();
-						window().displayNeedsUpdate();
+						window().postDraw();
 					}
-					removeModalView();
+					view.dismiss();
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}
 
-uint EditCheatListView::handleNameFromTextInput(const char *str)
-{
-	if(str)
-	{
-		if(!FCEUI_AddCheat(str, 0, 0, -1, addCheatType))
-		{
-			logErr("error adding new cheat");
-			removeModalView();
-			return 0;
-		}
-		fceuCheats++;
-		FCEUI_ToggleCheat(fceuCheats-1);
-		logMsg("added new cheat, %d total", fceuCheats);
-		removeModalView();
-		refreshCheatViews();
-		auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
-		editCheatView.init(0, fceuCheats-1);
-		viewStack.pushAndShow(&editCheatView, &menuAllocator);
-	}
-	else
-	{
-		removeModalView();
-	}
-	return 0;
-}
+//uint EditCheatListView::handleNameFromTextInput(const char *str)
+//{
+//	if(str)
+//	{
+//		if(!FCEUI_AddCheat(str, 0, 0, -1, addCheatType))
+//		{
+//			logErr("error adding new cheat");
+//			removeModalView();
+//			return 0;
+//		}
+//		fceuCheats++;
+//		FCEUI_ToggleCheat(fceuCheats-1);
+//		logMsg("added new cheat, %d total", fceuCheats);
+//		removeModalView();
+//		refreshCheatViews();
+//		auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+//		editCheatView.init(0, fceuCheats-1);
+//		viewStack.pushAndShow(editCheatView, &menuAllocator);
+//	}
+//	else
+//	{
+//		removeModalView();
+//	}
+//	return 0;
+//}
 
 void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
 {
@@ -275,7 +273,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 			{
 				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(&editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView, &menuAllocator);
 			};
 	}
 }
@@ -287,16 +285,16 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input Game Genie code");
+			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!isValidGGCodeLen(str))
 						{
 							popup.postError("Invalid, must be 6 or 8 digits");
-							window().displayNeedsUpdate();
+							window().postDraw();
 							return 1;
 						}
 						{
@@ -309,42 +307,42 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 							if(!FCEUI_AddCheat("Unnamed Cheat", a, v, c, 1))
 							{
 								popup.postError("Error adding cheat");
-								removeModalView();
+								view.dismiss();
 								return 0;
 							}
 						}
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
-						removeModalView();
+						view.dismiss();
 						refreshCheatViews();
 
 						auto &textInputView = *allocModalView<CollectTextInputView>(window());
-						textInputView.init("Input description");
+						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](const char *str)
+							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									FCEUI_SetCheat(fceuCheats-1, str, UNCHANGED_VAL, UNCHANGED_VAL, UNCHANGED_VAL, -1, 1);
-									removeModalView();
+									view.dismiss();
 									refreshCheatViews();
 								}
 								else
 								{
-									removeModalView();
+									view.dismiss();
 								}
 								return 0;
 							};
-						View::addModalView(textInputView);
+						modalViewController.pushAndShow(textInputView);
 					}
 					else
 					{
-						removeModalView();
+						view.dismiss();
 					}
 					return 0;
 				};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	},
 	addRAM
@@ -353,35 +351,35 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			auto &textInputView = *allocModalView<CollectTextInputView>(window());
-			textInputView.init("Input description");
+			textInputView.init("Input description", getCollectTextCloseAsset());
 			textInputView.onText() =
-			[this](const char *str)
+			[this](CollectTextInputView &view, const char *str)
 			{
 				if(str)
 				{
 					if(!FCEUI_AddCheat(str, 0, 0, -1, 0))
 					{
 						logErr("error adding new cheat");
-						removeModalView();
+						view.dismiss();
 						return 0;
 					}
 					fceuCheats++;
 					FCEUI_ToggleCheat(fceuCheats-1);
 					logMsg("added new cheat, %d total", fceuCheats);
-					removeModalView();
+					view.dismiss();
 					refreshCheatViews();
 					auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
 					editCheatView.init(0, fceuCheats-1);
 					// go to directly to cheat's menu to finish entering values
-					viewStack.pushAndShow(&editCheatView, &menuAllocator);
+					viewStack.pushAndShow(editCheatView, &menuAllocator);
 				}
 				else
 				{
-					removeModalView();
+					view.dismiss();
 				}
 				return 0;
 			};
-			View::addModalView(textInputView);
+			modalViewController.pushAndShow(textInputView);
 		}
 	}
 {}

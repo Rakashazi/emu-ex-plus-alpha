@@ -13,12 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "btInput"
+#define LOGTAG "BTInput"
 #include "BluetoothAdapter.hh"
 #include "Wiimote.hh"
 #include "Zeemote.hh"
 #include "IControlPad.hh"
 #include <base/Base.hh>
+#include <base/Timer.hh>
 #include <util/collection/ArrayList.hh>
 
 StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
@@ -29,44 +30,45 @@ StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> btInp
 static PS3Controller *pendingPS3Controller = nullptr;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;
+static Base::Timer unregisterHIDServiceCallback;
 #endif
 static bool hidServiceActive = false;
 
 namespace Bluetooth
 {
-	static bool testSupportedBTDevClasses(const uchar devClass[3])
-	{
-		return Wiimote::isSupportedClass(devClass) ||
-				IControlPad::isSupportedClass(devClass) ||
-				Zeemote::isSupportedClass(devClass);
-	}
+static bool testSupportedBTDevClasses(const uchar devClass[3])
+{
+	return Wiimote::isSupportedClass(devClass) ||
+			IControlPad::isSupportedClass(devClass) ||
+			Zeemote::isSupportedClass(devClass);
+}
 
-	static void removePendingDevs()
+static void removePendingDevs()
+{
+	if(btInputDevPendingList.size())
+		logMsg("removing %d devices in pending list", btInputDevPendingList.size());
+	for(auto e : btInputDevPendingList)
 	{
-		if(btInputDevPendingList.size())
-			logMsg("removing %d devices in pending list", btInputDevPendingList.size());
-		for(auto e : btInputDevPendingList)
-		{
-			delete e;
-		}
-		btInputDevPendingList.clear();
+		delete e;
 	}
+	btInputDevPendingList.clear();
+}
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
+bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
 {
-	assert(bta);
-	if(bta->inDetect || hidServiceActive)
+	if(bta.inDetect || hidServiceActive)
 	{
 		return false;
 	}
 	onServerStatus = onScanStatus;
-	bta->onIncomingL2capConnection() =
+	bta.onIncomingL2capConnection() =
 		[](BluetoothAdapter &bta, BluetoothPendingSocket &pending)
 		{
 			if(!pending)
 			{
-				onServerStatus(bta, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
+				// TODO: use different status type for this
+				//onServerStatus(bta, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
 			}
 			else if(pending.channel() == 0x13 && pendingPS3Controller)
 			{
@@ -115,7 +117,7 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 
 	logMsg("registering HID PSMs");
 	hidServiceActive = true;
-	bta->setL2capService(0x13, true,
+	bta.setL2capService(0x13, true,
 		[](BluetoothAdapter &bta, uint success, int arg)
 		{
 			if(!success)
@@ -139,7 +141,7 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 					logMsg("CTL PSM registered");
 					onServerStatus(bta, BluetoothAdapter::SCAN_COMPLETE, 0);
 					// both PSMs are registered
-					Base::callbackAfterDelaySec(
+					unregisterHIDServiceCallback.callbackAfterSec(
 						[&bta]()
 						{
 							logMsg("unregistering HID PSMs from timeout");
@@ -157,113 +159,112 @@ bool listenForDevices(BluetoothAdapter *bta, const BluetoothAdapter::OnStatusDel
 }
 #endif
 
-	bool scanForDevices(BluetoothAdapter *bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
+bool scanForDevices(BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
+{
+	if(!bta.inDetect && !hidServiceActive)
 	{
-		assert(bta);
-		if(!bta->inDetect && !hidServiceActive)
-		{
-			removePendingDevs();
-			return bta->startScan(onScanStatus,
-				[](BluetoothAdapter &, const uchar devClass[3]) // on device class
-				{
-					logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
-					return testSupportedBTDevClasses(devClass);
-				},
-				[&onScanStatus](BluetoothAdapter &bta, const char *name, BluetoothAddr addr) // on device name
-				{
-					if(!name)
-					{
-						onScanStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
-						return;
-					}
-					if(btInputDevPendingList.isFull())
-					{
-						logWarn("reached max devices for scan");
-						return;
-					}
-					if(strstr(name, "Nintendo RVL-CNT-01"))
-					{
-						auto *dev = new Wiimote(addr);
-						if(!dev)
-						{
-							logErr("out of memory");
-							return;
-						}
-						btInputDevPendingList.push_back(dev);
-					}
-					else if(strstr(name, "iControlPad-"))
-					{
-						auto *dev = new IControlPad(addr);
-						if(!dev)
-						{
-							logErr("out of memory");
-							return;
-						}
-						btInputDevPendingList.push_back(dev);
-					}
-					else if(strstr(name, "Zeemote JS1"))
-					{
-						auto *dev = new Zeemote(addr);
-						if(!dev)
-						{
-							logErr("out of memory");
-							return;
-						}
-						btInputDevPendingList.push_back(dev);
-					}
-				}
-			);
-		}
-		return 0;
-	}
-
-	void closeDevices(BluetoothAdapter *bta)
-	{
-		if(!bta)
-			return; // Bluetooth was never used
-		logMsg("closing all BT input devs");
-		while(btInputDevList.size())
-		{
-			btInputDevList.front()->removeFromSystem();
-		}
-	}
-
-	uint pendingDevs()
-	{
-		return btInputDevPendingList.size();
-	}
-
-	void connectPendingDevs(BluetoothAdapter *bta)
-	{
-		logMsg("connecting to %d devices", btInputDevPendingList.size());
-		for(auto e : btInputDevPendingList)
-		{
-			if(e->open(*bta) != OK)
-			{
-				delete e;
-			}
-			// e is added to btInputDevList
-		}
-		btInputDevPendingList.clear();
-	}
-
-	void closeBT(BluetoothAdapter *&bta)
-	{
-		if(!bta)
-			return; // Bluetooth was never used
-		if(bta->inDetect)
-		{
-			logMsg("keeping BT active due to scan");
-			return;
-		}
 		removePendingDevs();
-		closeDevices(bta);
-		bta->close();
-		bta = nullptr;
+		return bta.startScan(onScanStatus,
+			[](BluetoothAdapter &, const uchar devClass[3]) // on device class
+			{
+				logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
+				return testSupportedBTDevClasses(devClass);
+			},
+			[&onScanStatus](BluetoothAdapter &bta, const char *name, BluetoothAddr addr) // on device name
+			{
+				if(!name)
+				{
+					onScanStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
+					return;
+				}
+				if(btInputDevPendingList.isFull())
+				{
+					logWarn("reached max devices for scan");
+					return;
+				}
+				if(strstr(name, "Nintendo RVL-CNT-01"))
+				{
+					auto *dev = new Wiimote(addr);
+					if(!dev)
+					{
+						logErr("out of memory");
+						return;
+					}
+					btInputDevPendingList.push_back(dev);
+				}
+				else if(strstr(name, "iControlPad-"))
+				{
+					auto *dev = new IControlPad(addr);
+					if(!dev)
+					{
+						logErr("out of memory");
+						return;
+					}
+					btInputDevPendingList.push_back(dev);
+				}
+				else if(strstr(name, "Zeemote JS1"))
+				{
+					auto *dev = new Zeemote(addr);
+					if(!dev)
+					{
+						logErr("out of memory");
+						return;
+					}
+					btInputDevPendingList.push_back(dev);
+				}
+			}
+		);
 	}
+	return 0;
+}
 
-	uint devsConnected()
+void closeDevices(BluetoothAdapter *bta)
+{
+	if(!bta)
+		return; // Bluetooth was never used
+	logMsg("closing all BT input devs");
+	while(btInputDevList.size())
 	{
-		return btInputDevList.size();
+		btInputDevList.front()->removeFromSystem();
 	}
+}
+
+uint pendingDevs()
+{
+	return btInputDevPendingList.size();
+}
+
+void connectPendingDevs(BluetoothAdapter *bta)
+{
+	logMsg("connecting to %d devices", btInputDevPendingList.size());
+	for(auto e : btInputDevPendingList)
+	{
+		if(e->open(*bta) != OK)
+		{
+			delete e;
+		}
+		// e is added to btInputDevList
+	}
+	btInputDevPendingList.clear();
+}
+
+void closeBT(BluetoothAdapter *&bta)
+{
+	if(!bta)
+		return; // Bluetooth was never used
+	if(bta->inDetect)
+	{
+		logMsg("keeping BT active due to scan");
+		return;
+	}
+	removePendingDevs();
+	closeDevices(bta);
+	bta->close();
+	bta = nullptr;
+}
+
+uint devsConnected()
+{
+	return btInputDevList.size();
+}
 }
