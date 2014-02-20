@@ -21,10 +21,10 @@
 #include <io/utils.hh>
 #include <io/mmap/IoMmap.hh>
 
-void IoMmap::init(const char *buffer, size_t size)
+void IoMmap::init(const void *buffer, size_t size)
 {
 	logMsg("opening memory as file @ %p of size %zd", buffer, size);
-	data = currPos = buffer;
+	data = currPos = (char*)buffer;
 	iSize = size;
 }
 

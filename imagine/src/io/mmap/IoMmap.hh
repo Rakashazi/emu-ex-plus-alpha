@@ -22,7 +22,7 @@
 class IoMmap : public Io
 {
 public:
-	void init(const char * buffer, size_t size);
+	void init(const void* buffer, size_t size);
 	ssize_t readUpTo(void *buffer, size_t numBytes) override;
 	const char *mmapConst() override { return data; };
 	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;

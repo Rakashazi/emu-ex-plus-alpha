@@ -28,7 +28,7 @@ using IoSys = IoWin32;
 #endif
 
 #ifdef CONFIG_BASE_ANDROID
-#include <io/zip/IoZip.hh>
+#include <io/aasset/AAssetIO.hh>
 #endif
 
 static CallResult copyIoToPath(Io &io, const char *outPath)
@@ -42,12 +42,10 @@ static CallResult copyIoToPath(Io &io, const char *outPath)
 
 static Io *openAppAssetIo(const char *name)
 {
-	FsSys::cPath path;
 	#ifdef CONFIG_BASE_ANDROID
-	if(!string_printf(path, sizeof(path), "assets/%s", name))
-		return nullptr;
-	return IoZip::open(Base::appPath, path);
+	return AAssetIO::open(name);
 	#else
+	FsSys::cPath path;
 	if(!string_printf(path, sizeof(path), "%s/%s", Base::appPath, name))
 		return nullptr;
 	return IoSys::open(path);

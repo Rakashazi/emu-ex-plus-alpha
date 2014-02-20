@@ -4,6 +4,7 @@ ifeq ($(ENV), linux)
 else ifeq ($(ENV), android)
  include $(imagineSrcDir)/io/fd/build.mk
  include $(imagineSrcDir)/io/mmap/fd/build.mk
+ include $(imagineSrcDir)/io/aasset/build.mk
 else ifeq ($(ENV), ios)
  include $(imagineSrcDir)/io/fd/build.mk
  include $(imagineSrcDir)/io/mmap/fd/build.mk

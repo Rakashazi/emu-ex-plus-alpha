@@ -18,7 +18,7 @@
 #include <util/fd-utils.h>
 #include <sys/mman.h>
 #include <util/system/pagesize.h>
-#include "IoMmapFd.hh"
+#include <io/mmap/fd/IoMmapFd.hh>
 
 Io * IoMmapFd::open(int fd)
 {
@@ -27,7 +27,7 @@ Io * IoMmapFd::open(int fd)
 	if(data == MAP_FAILED)
 		return 0;
 
-	if(madvise(data, size, MADV_SEQUENTIAL) != 0)
+	if(size > 4096 && madvise(data, size, MADV_SEQUENTIAL) != 0)
 		logWarn("warning, madvise failed");
 
 	IoMmapFd *inst = new IoMmapFd;

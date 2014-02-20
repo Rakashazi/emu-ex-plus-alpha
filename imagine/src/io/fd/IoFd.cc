@@ -23,7 +23,8 @@
 #include <io/mmap/fd/IoMmapFd.hh>
 #endif
 
-#include "IoFd.hh"
+#include <io/fd/IoFd.hh>
+#include <io/utils.hh>
 
 #ifdef CONFIG_FS_PS3 // need FS module for working directory support
 #include <fs/ps3/FsPs3.hh>
@@ -256,9 +257,7 @@ CallResult IoFd::tell(ulong &offset)
 		return IO_ERROR;
 }
 
-static constexpr int invalidSeek = SEEK_SET + SEEK_END + SEEK_CUR + 1;
-
-static int setupSeek(int mode)
+static int fdSeekMode(int mode)
 {
 	switch(mode)
 	{
@@ -267,20 +266,18 @@ static int setupSeek(int mode)
 		case IO_SEEK_REL: return SEEK_CUR;
 		default:
 			bug_branch("%d", mode);
-			return invalidSeek;
+			return 0;
 	}
 }
 
 CallResult IoFd::seek(long offset, uint mode)
 {
-	auto seekType = setupSeek(mode);
-	if(seekType == invalidSeek)
+	if(!isSeekModeValid(mode))
 	{
-		logErr("invalid seek parameter");
+		bug_exit("invalid seek mode: %u", mode);
 		return INVALID_PARAMETER;
 	}
-
-	if(lseek(fd, offset, seekType) >= 0)
+	if(lseek(fd, offset, fdSeekMode(mode)) >= 0)
 	{
 		return OK;
 	}

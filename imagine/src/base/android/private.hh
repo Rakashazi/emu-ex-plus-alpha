@@ -20,6 +20,7 @@
 #include <base/android/privateApi/gralloc.h>
 #include <util/pixel.h>
 #include <android/looper.h>
+#include <android/asset_manager.h>
 #include <EGL/egl.h>
 #define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
@@ -55,6 +56,8 @@ int keyboardType();
 // Activity thread ALooper
 void setupActivityLooper();
 ALooper *activityLooper();
+
+AAssetManager *activityAAssetManager();
 
 jobject newFontRenderer(JNIEnv *jEnv);
 

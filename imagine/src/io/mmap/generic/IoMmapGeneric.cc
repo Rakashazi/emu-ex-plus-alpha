@@ -13,32 +13,25 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "IOMMAPGeneric"
+#define LOGTAG "IOMMapGeneric"
+#include <io/mmap/generic/IoMmapGeneric.hh>
 #include <logger/interface.h>
 
-#include "IoMmapGeneric.hh"
-
-Io* IoMmapGeneric::open(const char *buffer, size_t size)
+Io* IoMmapGeneric::open(const void *buffer, size_t size, OnFreeDelegate onFree)
 {
 	IoMmapGeneric *inst = new IoMmapGeneric;
-	if(inst == NULL)
+	if(!inst)
 	{
 		logErr("out of memory");
-		return NULL;
+		return nullptr;
 	}
-
 	inst->init(buffer, size);
-	inst->free = NULL;
+	inst->onFree = onFree;
 	return inst;
-}
-
-void IoMmapGeneric::memFreeFunc(FreeFunc free)
-{
-	this->free = free;
 }
 
 void IoMmapGeneric::close()
 {
-	if(free)
-		free((void*)data);
+	if(onFree)
+		onFree(*this);
 }

@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "IOZip"
-#include "IoZip.hh"
+#include <io/zip/IoZip.hh>
 #include <io/sys.hh>
 #include <io/utils.hh>
 #include <logger/interface.h>

@@ -16,24 +16,26 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <engine-globals.h>
-#include <io/mmap/IoMmap.hh>
-#include <mem/interface.h>
-#include <util/DelegateFunc.hh>
 
-class IoMmapGeneric : public IoMmap
+#include <mem/interface.h>
+#include <io/Io.hh>
+#include <android/asset_manager.h>
+
+class AAssetIO : public Io
 {
 public:
-	// optional function to call on close
-	using OnFreeDelegate = DelegateFunc<void (IoMmapGeneric &io)>;
-
-	static Io* open(const void *buffer, size_t size, OnFreeDelegate onFree);
-	static Io* open(const void *buffer, size_t size)
-	{
-		return open(buffer, size, {});
-	}
-	~IoMmapGeneric() { close(); }
+	static Io *open(const char *name);
+	~AAssetIO() { close(); }
+	ssize_t readUpTo(void *buffer, size_t numBytes) override;
+	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
+	CallResult tell(ulong &offset) override;
+	CallResult seek(long offset, uint mode) override;
+	void truncate(ulong offset) override;
 	void close() override;
+	ulong size() override;
+	void sync() override;
+	int eof() override;
 
 private:
-	OnFreeDelegate onFree;
+	AAsset *asset = nullptr;
 };

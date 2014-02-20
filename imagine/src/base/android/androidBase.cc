@@ -220,6 +220,13 @@ void abort() { ::abort(); }
 const char *documentsPath() { return filesDir; }
 const char *storagePath() { return eStoreDir; }
 
+AAssetManager *activityAAssetManager()
+{
+	assert(baseActivity);
+	assert(baseActivity->assetManager);
+	return baseActivity->assetManager;
+}
+
 bool hasHardwareNavButtons()
 {
 	return hasPermanentMenuKey;
