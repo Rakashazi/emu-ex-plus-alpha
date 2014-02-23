@@ -63,7 +63,8 @@ void restoreMenuFromGame();
 void applyOSNavStyle(bool inGame);
 void mainInitCommon(int argc, char** argv);
 void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize);
-View &initAndGetMainMenu(Base::Window &win);
+void initMainMenu(Base::Window &win);
+View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
 
 template <size_t NAV_GRAD_SIZE>

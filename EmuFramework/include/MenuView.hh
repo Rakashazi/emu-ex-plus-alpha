@@ -73,7 +73,7 @@ public:
 		BaseMenuView::init(item, items, highlightFirst);
 	}
 
-	static const uint STANDARD_ITEMS = 18;
+	static const uint STANDARD_ITEMS = 19;
 	static const uint MAX_SYSTEM_ITEMS = 3;
 
 protected:
@@ -81,6 +81,9 @@ protected:
 	TextMenuItem reset;
 	TextMenuItem loadState;
 	TextMenuItem recentGames;
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	TextMenuItem bundledGames;
+	#endif
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;
 	char stateSlotText[sizeof("State Slot (0)")];

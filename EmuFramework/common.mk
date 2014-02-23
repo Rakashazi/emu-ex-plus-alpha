@@ -13,7 +13,8 @@ SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \
 Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
 EmuOptions.cc OptionView.cc EmuView.cc MultiChoiceView.cc \
-ConfigFile.cc InputManagerView.cc FileUtils.cc EmuApp.cc 
+ConfigFile.cc InputManagerView.cc FileUtils.cc EmuApp.cc \
+BundledGamesView.cc
 
 ifeq ($(emuFramework_cheats), 1)
  SRC += Cheats.cc

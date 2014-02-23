@@ -587,7 +587,7 @@ private:
 		{
 			if(item.active)
 			{
-				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
+				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
 				auto &msxIoMenu = *menuAllocator.allocNew<MsxIOControlView>(window());
 				msxIoMenu.init(!e.isPointer());
 				viewStack.pushAndShow(msxIoMenu, &menuAllocator);

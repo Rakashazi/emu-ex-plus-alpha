@@ -1445,7 +1445,7 @@ void CPUCleanUp()
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 }
 
-int CPULoadRom(GBASys &gba, const char *szFile)
+static void preLoadRomSetup(GBASys &gba)
 {
   romSize = 0x2000000;
   /*if(rom != NULL) {
@@ -1455,6 +1455,34 @@ int CPULoadRom(GBASys &gba, const char *szFile)
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
   memset(gba.mem.workRAM, 0, sizeof(gba.mem.workRAM));
+}
+
+static void postLoadRomSetup(GBASys &gba)
+{
+  u16 *temp = (u16 *)(gba.mem.rom+((romSize+1)&~1));
+  int i;
+  for(i = (romSize+1)&~1; i < 0x2000000; i+=2) {
+    WRITE16LE(temp, (i >> 1) & 0xFFFF);
+    temp++;
+  }
+
+  memset(gba.mem.bios, 0, sizeof(gba.mem.bios));
+
+  memset(gba.mem.internalRAM, 0, sizeof(gba.mem.internalRAM));
+
+  memset(gba.mem.ioMem.b, 0, sizeof(gba.mem.ioMem));
+
+  gba.lcd.reset();
+
+  flashInit();
+  eepromInit();
+
+  CPUUpdateRenderBuffers(gba, true);
+}
+
+int CPULoadRom(GBASys &gba, const char *szFile)
+{
+	preLoadRomSetup(gba);
 
   u8 *whereToLoad = cpuIsMultiBoot ? gba.mem.workRAM : gba.mem.rom;
 
@@ -1483,26 +1511,17 @@ int CPULoadRom(GBASys &gba, const char *szFile)
 	  }
   }
 
-  u16 *temp = (u16 *)(gba.mem.rom+((romSize+1)&~1));
-  int i;
-  for(i = (romSize+1)&~1; i < 0x2000000; i+=2) {
-    WRITE16LE(temp, (i >> 1) & 0xFFFF);
-    temp++;
-  }
+  postLoadRomSetup(gba);
 
-  memset(gba.mem.bios, 0, sizeof(gba.mem.bios));
+  return romSize;
+}
 
-  memset(gba.mem.internalRAM, 0, sizeof(gba.mem.internalRAM));
-
-  memset(gba.mem.ioMem.b, 0, sizeof(gba.mem.ioMem));
-
-  gba.lcd.reset();
-
-  flashInit();
-  eepromInit();
-
-  CPUUpdateRenderBuffers(gba, true);
-
+int CPULoadRomWithIO(GBASys &gba, Io &io)
+{
+	preLoadRomSetup(gba);
+	u8 *whereToLoad = gba.mem.rom;
+	romSize = io.readUpTo(whereToLoad, romSize);
+  postLoadRomSetup(gba);
   return romSize;
 }
 

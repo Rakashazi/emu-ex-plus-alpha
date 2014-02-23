@@ -34,3 +34,7 @@ static const uint gamepadKeys = 20;
 static const uint systemTotalKeys = gameActionKeys + gamepadKeys*5;
 
 }
+
+#ifndef SNES9X_VERSION_1_4
+#define EMU_FRAMEWORK_BUNDLED_GAMES
+#endif

@@ -33,5 +33,8 @@ Io* IoMmapGeneric::open(const void *buffer, size_t size, OnFreeDelegate onFree)
 void IoMmapGeneric::close()
 {
 	if(onFree)
+	{
 		onFree(*this);
+		onFree = {};
+	}
 }

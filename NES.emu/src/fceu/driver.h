@@ -98,6 +98,7 @@ void FCEUI_GetRenderPlanes(bool& sprites, bool& bg);
 
 //name=path and file to load.  returns null if it failed
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent = false);
+FCEUGI *FCEUI_LoadGameWithFile(FCEUFILE *file, const char *name, int OverwriteVidMode, bool silent = false);
 
 //same as FCEUI_LoadGame, except that it can load from a tempfile. 
 //name is the logical path to open; archiveFilename is the archive which contains name

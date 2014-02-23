@@ -124,6 +124,7 @@ public:
 	void popTo(View &v);
 	void show();
 	View &top() const;
+	View &viewAtIdx(uint idx) const;
 	int viewIdx(View &v) const;
 	bool contains(View &v) const;
 	void dismissView(View &v) override;

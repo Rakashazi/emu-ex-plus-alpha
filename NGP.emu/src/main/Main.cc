@@ -51,6 +51,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 
+const char *EmuSystem::shortSystemName()
+{
+	return "NGP";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Neo Geo Pocket";
+}
+
 void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
@@ -206,7 +216,7 @@ bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLeng
 template <size_t S>
 static void sprintSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 bool system_io_flash_read(uchar* buffer, uint32 len)
@@ -252,7 +262,7 @@ void EmuSystem::saveAutoState()
 void EmuSystem::closeSystem()
 {
 	rom_unload();
-	logMsg("closing game %s", gameName);
+	logMsg("closing game %s", gameName());
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
@@ -342,7 +352,7 @@ int EmuSystem::loadGame(const char *path)
 	emuView.initImage(0, ngpResX, ngpResY);
 	setupGamePaths(path);
 
-	if(!romLoad(fullGamePath))
+	if(!romLoad(fullGamePath()))
 	{
 		logMsg("failed to load game");
 		popup.postError("Error loading game");

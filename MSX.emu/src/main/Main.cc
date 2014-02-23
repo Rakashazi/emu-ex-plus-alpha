@@ -227,6 +227,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
 
+const char *EmuSystem::shortSystemName()
+{
+	return "MSX";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "MSX";
+}
+
 bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
 	switch(key)
@@ -714,7 +724,7 @@ void EmuSystem::resetGame()
 	assert(gameIsRunning());
 	fdcActive = 0;
 	//boardInfo.softReset();
-	FsSys::chdir(EmuSystem::gamePath);
+	FsSys::chdir(EmuSystem::gamePath());
 	boardInfo.destroy();
 	if(!createBoard())
 	{

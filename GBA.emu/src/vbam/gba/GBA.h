@@ -9,6 +9,7 @@
 #include <util/builtins.h>
 #include <util/ansiTypes.h>
 #include <logger/interface.h>
+#include <io/Io.hh>
 
 #define SAVE_GAME_VERSION_1 1
 #define SAVE_GAME_VERSION_2 2
@@ -1027,6 +1028,7 @@ extern bool CPUReadState(GBASys &gba, const char *);
 extern bool CPUWriteMemState(GBASys &gba, char *, int);
 extern bool CPUWriteState(GBASys &gba, const char *);
 extern int CPULoadRom(GBASys &gba, const char *);
+extern int CPULoadRomWithIO(GBASys &gba, Io &);
 extern void doMirroring(GBASys &gba, bool);
 extern void CPUUpdateRegister(ARM7TDMI &cpu, u32, u16);
 extern void applyTimer(ARM7TDMI &cpu);

@@ -186,7 +186,7 @@ void writeCheatFile()
 		return;
 
 	FsSys::cPath filename;
-	string_printf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName);
+	string_printf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatsNumber)
 	{
@@ -202,7 +202,7 @@ void writeCheatFile()
 void readCheatFile()
 {
 	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName);
+	sprintf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
 	if(cheatsLoadCheatList(filename))
 	{
 		logMsg("loaded cheat file: %s", filename);

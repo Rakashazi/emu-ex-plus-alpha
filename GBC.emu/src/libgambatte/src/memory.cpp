@@ -1043,8 +1043,8 @@ void Memory::nontrivial_write(unsigned const p, unsigned const data, unsigned lo
 		ioamhram_[p - 0xFE00] = data;
 }
 
-LoadRes Memory::loadROM(std::string const &romfile, bool const forceDmg, bool const multicartCompat) {
-	if (LoadRes const fail = cart_.loadROM(romfile, forceDmg, multicartCompat))
+LoadRes Memory::loadROM(File &romfile, std::string const &romfilename, bool const forceDmg, bool const multicartCompat) {
+	if (LoadRes const fail = cart_.loadROM(romfile, romfilename, forceDmg, multicartCompat))
 		return fail;
 
 	psg_.init(cart_.isCgb());

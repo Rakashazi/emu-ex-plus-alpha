@@ -28,3 +28,4 @@ static const uint systemTotalKeys = gameActionKeys + gamepadKeys*4;
 
 }
 
+//#define EMU_FRAMEWORK_BUNDLED_GAMES

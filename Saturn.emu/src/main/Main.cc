@@ -226,7 +226,7 @@ static yabauseinit_struct yinit =
 	CART_NONE,
 	REGION_AUTODETECT,
 	biosPath,
-	EmuSystem::fullGamePath,
+	EmuSystem::fullGamePath(),
 	bupPath,
 	mpegPath,
 	cartPath,
@@ -243,6 +243,17 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
+
+const char *EmuSystem::shortSystemName()
+{
+	return "SS";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Sega Saturn";
+}
+
 
 void EmuSystem::initOptions()
 {

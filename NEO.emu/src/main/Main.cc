@@ -132,9 +132,9 @@ static void setTimerIntOption()
 		bcase 1: conf.raster = 1;
 		bcase 2:
 			bool needsTimer = 0;
-			if(EmuSystem::gameIsRunning() && (strstr(EmuSystem::fullGameName, "Sidekicks 2") || strstr(EmuSystem::fullGameName, "Sidekicks 3")
-					|| strstr(EmuSystem::fullGameName, "Ultimate 11") || strstr(EmuSystem::fullGameName, "Neo-Geo Cup")
-					|| strstr(EmuSystem::fullGameName, "Spin Master")))
+			if(EmuSystem::gameIsRunning() && (strstr(EmuSystem::fullGameName(), "Sidekicks 2") || strstr(EmuSystem::fullGameName(), "Sidekicks 3")
+					|| strstr(EmuSystem::fullGameName(), "Ultimate 11") || strstr(EmuSystem::fullGameName(), "Neo-Geo Cup")
+					|| strstr(EmuSystem::fullGameName(), "Spin Master")))
 				needsTimer = 1;
 			if(needsTimer) logMsg("auto enabled timer interrupt");
 			conf.raster = needsTimer;
@@ -149,6 +149,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include <CommonGui.hh>
+
+const char *EmuSystem::shortSystemName()
+{
+	return "NeoGeo";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Neo Geo";
+}
 
 using namespace IG;
 
@@ -475,8 +485,8 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 
 static void loadGamePhase2()
 {
-	string_copy(EmuSystem::fullGameName, activeDrv->longname, sizeof(EmuSystem::fullGameName));
-	logMsg("set long game name: %s", EmuSystem::fullGameName);
+	EmuSystem::setFullGameName(activeDrv->longname);
+	logMsg("set long game name: %s", EmuSystem::fullGameName());
 	free(activeDrv);
 	activeDrv = 0;
 

@@ -24,6 +24,7 @@
 #include "rtc.h"
 #include "savestate.h"
 #include "scoped_ptr.h"
+#include "file/file.h"
 #include <string>
 #include <vector>
 
@@ -65,7 +66,7 @@ public:
 	void saveSavedata();
 	std::string const saveBasePath() const;
 	void setSaveDir(std::string const &dir);
-	LoadRes loadROM(std::string const &romfile, bool forceDmg, bool multicartCompat);
+	LoadRes loadROM(File &romfile, std::string const &romfilename, bool forceDmg, bool multicartCompat);
 	char const * romTitle() const { return reinterpret_cast<char const *>(memptrs_.romdata() + 0x134); }
 	class PakInfo const pakInfo(bool multicartCompat) const;
 	void setGameGenie(std::string const &codes);

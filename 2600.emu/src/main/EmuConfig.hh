@@ -20,5 +20,6 @@ static const uint switchKeys = 5;
 static const uint keyboardKeys = 12;
 static const uint systemTotalKeys = gameActionKeys + joystickKeys*2 + switchKeys + keyboardKeys*2;
 
-
 }
+
+//#define EMU_FRAMEWORK_BUNDLED_GAMES

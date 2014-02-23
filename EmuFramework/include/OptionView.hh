@@ -128,6 +128,9 @@ protected:
 	BoolMenuItem navView;
 	BoolMenuItem backNav;
 	BoolMenuItem rememberLastMenu;
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	BoolMenuItem showBundledGames;
+	#endif
 	MultiChoiceSelectMenuItem menuOrientation;
 	void menuOrientationInit();
 

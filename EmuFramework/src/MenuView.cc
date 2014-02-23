@@ -25,6 +25,7 @@
 #include <EmuOptions.hh>
 #include <InputManagerView.hh>
 #include <TouchConfigView.hh>
+#include <BundledGamesView.hh>
 #include <TextEntry.hh>
 #include <util/strings.h>
 #ifdef CONFIG_BLUETOOTH
@@ -158,6 +159,12 @@ void MenuView::loadFileBrowserItems(MenuItem *item[], uint &items)
 {
 	loadGame.init(); item[items++] = &loadGame;
 	recentGames.init(); item[items++] = &recentGames;
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	if(optionShowBundledGames)
+	{
+		bundledGames.init(); item[items++] = &bundledGames;
+	}
+	#endif
 }
 
 void MenuView::loadStandardItems(MenuItem *item[], uint &items)
@@ -258,6 +265,18 @@ MenuView::MenuView(Base::Window &win):
 			}
 		}
 	},
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	bundledGames
+	{
+		"Bundled Games",
+		[this](TextMenuItem &, const Input::Event &e)
+		{
+			auto &bMenu = *menuAllocator.allocNew<BundledGamesView>(window());
+			bMenu.init(!e.isPointer());
+			pushAndShow(bMenu, &menuAllocator);
+		}
+	},
+	#endif
 	saveState
 	{
 		"Save State",
@@ -353,14 +372,14 @@ MenuView::MenuView(Base::Window &win):
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &textInputView = *allocModalView<CollectTextInputView>(window());
-				textInputView.init("Shortcut Name", strlen(EmuSystem::fullGameName) ? EmuSystem::fullGameName : EmuSystem::gameName,
+				textInputView.init("Shortcut Name", EmuSystem::fullGameName(),
 						getCollectTextCloseAsset());
 				textInputView.onText() =
 					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str && strlen(str))
 						{
-							Base::addLauncherIcon(str, EmuSystem::fullGamePath);
+							Base::addLauncherIcon(str, EmuSystem::fullGamePath());
 							popup.printf(2, false, "Added shortcut:\n%s", str);
 							postDraw();
 						}

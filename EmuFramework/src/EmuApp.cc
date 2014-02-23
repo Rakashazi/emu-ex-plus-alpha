@@ -355,7 +355,8 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	#endif
 
 	win.dispatchResize();
-	auto &mMenu = initAndGetMainMenu(win);
+	initMainMenu(win);
+	auto &mMenu = mainMenu();
 	viewStack.pushAndShow(mMenu);
 
 	win.show();
@@ -487,7 +488,7 @@ void onExit(bool backgrounded)
 		if(optionNotificationIcon)
 		{
 			auto title = CONFIG_APP_NAME " was suspended";
-			Base::addNotification(title, title, EmuSystem::gameName);
+			Base::addNotification(title, title, EmuSystem::fullGameName());
 		}
 	}
 	else

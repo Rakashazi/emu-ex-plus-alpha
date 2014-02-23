@@ -44,6 +44,5 @@ void recent_addGame(const char *fullPath, const char *name);
 
 static void recent_addGame()
 {
-	recent_addGame(EmuSystem::fullGamePath,
-		strlen(EmuSystem::fullGameName) ? EmuSystem::fullGameName : EmuSystem::gameName);
+	recent_addGame(EmuSystem::fullGamePath(), EmuSystem::fullGameName());
 }

@@ -398,15 +398,15 @@ int NSFLoad(const char *name, FCEUFILE *fp);
 //char lastLoadedGameName [2048] = {0,}; // hack for movie WRAM clearing on record from poweron
 
 //name should be UTF-8, hopefully, or else there may be trouble
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silent)
+FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int OverwriteVidMode, bool silent)
 {
 	//----------
 	//attempt to open the files
-	FCEUFILE *fp;
+	//FCEUFILE *fp;
 	char fullname[2048];	// this name contains both archive name and ROM file name
 
-	const char* romextensions[] = { "nes", "fds", 0 };
-	fp = FCEU_fopen(name, 0, "rb", 0, -1, romextensions);
+	//const char* romextensions[] = { "nes", "fds", 0 };
+	//fp = FCEU_fopen(name, 0, "rb", 0, -1, romextensions);
 
 	if (!fp)
 	{
@@ -541,9 +541,21 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 	return GameInfo;
 }
 
+FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silent)
+{
+	const char* romextensions[] = { "nes", "fds", 0 };
+	auto fp = FCEU_fopen(name, 0, "rb", 0, -1, romextensions);
+	return FCEUI_LoadGameWithFileVirtual(fp, name, OverwriteVidMode, silent);
+}
+
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent)
 {
 	return FCEUI_LoadGameVirtual(name, OverwriteVidMode, silent);
+}
+
+FCEUGI *FCEUI_LoadGameWithFile(FCEUFILE *file, const char *name, int OverwriteVidMode, bool silent)
+{
+	return FCEUI_LoadGameWithFileVirtual(file, name, OverwriteVidMode, silent);
 }
 
 

@@ -146,6 +146,10 @@ extern Byte1Option optionBestColorModeHint;
 
 extern PathOption optionSavePath;
 
+#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+extern Byte1Option optionShowBundledGames;
+#endif
+
 // Common options handled per-emulator backend
 extern PathOption optionFirmwarePath;
 

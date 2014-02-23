@@ -54,6 +54,32 @@ PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker ha
 #endif
 #include "CommonGui.hh"
 
+#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
+#define GAME_ASSET_EXT "gba"
+#else
+#define GAME_ASSET_EXT "zip"
+#endif
+
+const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "Motocross Challenge", "Motocross Challenge." GAME_ASSET_EXT }
+	};
+
+	return info[0];
+}
+
+const char *EmuSystem::shortSystemName()
+{
+	return "GBA";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Game Boy Advance";
+}
+
 using namespace IG;
 
 // controls
@@ -294,7 +320,7 @@ void EmuSystem::saveBackupMem()
 	{
 		logMsg("saving backup memory");
 		FsSys::cPath saveStr;
-		snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
+		snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName());
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
 		CPUWriteBatteryFile(gGba, saveStr);
@@ -311,7 +337,7 @@ void EmuSystem::clearInputBuffers() { P1 = 0x03FF; }
 void EmuSystem::closeSystem()
 {
 	assert(gameIsRunning());
-	logMsg("closing game %s", gameName);
+	logMsg("closing game %s", gameName());
 	saveBackupMem();
 	CPUCleanUp();
 	detectedRtcGame = 0;
@@ -357,32 +383,43 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 	return true; // no patch found
 }
 
-int EmuSystem::loadGame(const char *path)
+static int loadGameCommon(int size)
 {
-	closeGame();
-	emuView.initImage(0, 240, 160);
-	setupGamePaths(path);
-	systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-	soundInit();
-	int size = CPULoadRom(gGba, fullGamePath);
-	if(size == 0)
+	if(!size)
 	{
 		popup.postError("Error loading ROM");
 		return 0;
 	}
+	emuView.initImage(0, 240, 160);
 	setGameSpecificSettings(gGba);
-	if(!applyGamePatches(savePath(), gameName, gGba.mem.rom, size))
+	if(!applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName(), gGba.mem.rom, size))
 	{
 		return 0;
 	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	FsSys::cPath saveStr;
-	snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName);
+	snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
 	CPUReadBatteryFile(gGba, saveStr);
 	readCheatFile();
 	logMsg("started emu");
 	return 1;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	closeGame();
+	setupGamePaths(path);
+	int size = CPULoadRom(gGba, fullGamePath());
+	return loadGameCommon(size);
+}
+
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	closeGame();
+	setupGameName(origFilename);
+	int size = CPULoadRomWithIO(gGba, io);
+	return loadGameCommon(size);
 }
 
 static void commitVideoFrame()

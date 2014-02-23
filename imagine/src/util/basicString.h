@@ -115,6 +115,23 @@ static constexpr size_t string_len(const char *s)
 
 #endif
 
+static char *string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
+static char *string_cat(char *dest, const char *src, size_t destSize)
+{
+	string_copy(dest + strlen(dest), src, destSize - strlen(dest));
+	return dest;
+}
+
+#ifdef __cplusplus
+
+template <size_t S>
+static char *string_cat(char (&dest)[S], const char *src)
+{
+	return string_cat(dest, src, S);
+}
+
+#endif
+
 // prints format string to buffer and returns number of bytes written
 // returns zero if buffer is too small or on error
 static int string_printf(char *buffer, int buff_size, const char *format, ... ) __attribute__ ((format (printf, 3, 4)));

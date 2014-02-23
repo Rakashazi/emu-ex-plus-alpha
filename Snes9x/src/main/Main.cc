@@ -89,6 +89,32 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 
+#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
+#define GAME_ASSET_EXT "smc"
+#else
+#define GAME_ASSET_EXT "zip"
+#endif
+
+const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "Bio Worm", "Bio Worm." GAME_ASSET_EXT	}
+	};
+
+	return info[0];
+}
+
+const char *EmuSystem::shortSystemName()
+{
+	return "SFC-SNES";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Super Famicom (SNES)";
+}
+
 void EmuSystem::initOptions()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
@@ -361,13 +387,13 @@ void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char
 template <size_t S>
 static void sprintSRAMFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 template <size_t S>
 static void sprintCheatsFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 int EmuSystem::saveState()
@@ -587,18 +613,9 @@ static void setupSNESInput()
 	#endif
 }
 
-int EmuSystem::loadGame(const char *path)
+static int loadGameCommon()
 {
-	closeGame();
 	emuView.initImage(0, snesResX, snesResY);
-	setupGamePaths(path);
-
-	if(!Memory.LoadROM(fullGamePath))
-	{
-		logMsg("failed to load game");
-		popup.postError("Error loading game");
-		return 0;
-	}
 	setupSNESInput();
 
 	FsSys::cPath saveStr;
@@ -609,6 +626,59 @@ int EmuSystem::loadGame(const char *path)
 	EmuSystem::configAudioPlayback();
 	logMsg("finished loading game");
 	return 1;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	closeGame();
+	setupGamePaths(path);
+	if(!Memory.LoadROM(fullGamePath()))
+	{
+		logMsg("failed to load game");
+		popup.postError("Error loading game");
+		return 0;
+	}
+	return loadGameCommon();
+}
+
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	#ifndef SNES9X_VERSION_1_4
+	closeGame();
+	setupGameName(origFilename);
+	auto size = io.size();
+	if(size > CMemory::MAX_ROM_SIZE)
+	{
+		//popup.postError("ROM size is too big");
+    return 0;
+	}
+	bool success;
+	if(io.mmapConst())
+	{
+		success = Memory.LoadROMMem((const uint8*)io.mmapConst(), size);
+	}
+	else
+	{
+		auto dataPtr = (uint8*)mem_alloc(size);
+		if(!io.read(dataPtr, size))
+		{
+			mem_free(dataPtr);
+			//popup.postError("IO Error loading game");
+			return 0;
+		}
+		success = Memory.LoadROMMem(dataPtr, size);
+		mem_free(dataPtr);
+	}
+	if(!success)
+	{
+		logMsg("failed to load game");
+		popup.postError("Error loading game");
+		return 0;
+	}
+	return loadGameCommon();
+	#else
+	return 0;
+	#endif
 }
 
 void EmuSystem::clearInputBuffers()

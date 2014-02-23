@@ -387,7 +387,7 @@ void writeCheatFile()
 		return;
 
 	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName);
+	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatList.size())
 	{
@@ -427,7 +427,7 @@ void writeCheatFile()
 void readCheatFile()
 {
 	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName);
+	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
 	auto file = IoSys::open(filename);
 	if(!file)
 	{

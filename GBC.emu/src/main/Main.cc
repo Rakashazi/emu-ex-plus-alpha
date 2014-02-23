@@ -24,6 +24,37 @@ static const GBPalette *gameBuiltinPalette = nullptr;
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
 #endif
 
+class ImagineFile : public gambatte::File
+{
+public:
+	constexpr ImagineFile(Io &io): io(io)
+	{}
+
+	~ImagineFile() override {}
+
+	void rewind() override
+	{
+		io.seekA(0);
+	}
+
+	std::size_t size() const override
+	{
+		return io.size();
+	}
+
+	void read(char *buffer, std::size_t amount) override
+	{
+		if(io.read(buffer, amount) != OK)
+			failed = true;
+	}
+
+	bool fail() const override { return failed; }
+
+private:
+	Io &io;
+	bool failed = false;
+};
+
 // controls
 
 enum
@@ -116,6 +147,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
+
+const char *EmuSystem::shortSystemName()
+{
+	return "GB";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Game Boy";
+}
 
 bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
@@ -324,17 +365,14 @@ uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
-int EmuSystem::loadGame(const char *path)
+static int loadGameCommon(gambatte::LoadRes result)
 {
-	emuView.initImage(0, gbResX, gbResY);
-	closeGame();
-	setupGamePaths(path);
-	auto result = gbEmu.load(fullGamePath, optionReportAsGba ? gbEmu.GBA_CGB : 0);
 	if(result != gambatte::LOADRES_OK)
 	{
 		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
 		return 0;
 	}
+	emuView.initImage(0, gbResX, gbResY);
 	if(!gbEmu.isCgb())
 	{
 		gameBuiltinPalette = findGbcTitlePal(gbEmu.romTitle().c_str());
@@ -348,6 +386,23 @@ int EmuSystem::loadGame(const char *path)
 
 	logMsg("started emu");
 	return 1;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	closeGame();
+	setupGamePaths(path);
+	auto result = gbEmu.load(fullGamePath(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	return loadGameCommon(result);
+}
+
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	closeGame();
+	setupGameName(origFilename);
+	ImagineFile file(io);
+	auto result = gbEmu.load(file, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	return loadGameCommon(result);
 }
 
 void EmuSystem::clearInputBuffers()

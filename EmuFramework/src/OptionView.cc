@@ -636,6 +636,9 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	{
 		uiVisibiltyInit(optionHideStatusBar, statusBar); item[items++] = &statusBar;
 	}
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	showBundledGames.init(optionShowBundledGames); item[items++] = &showBundledGames;
+	#endif
 }
 
 void OptionView::init(uint idx, bool highlightFirst)
@@ -1203,6 +1206,19 @@ OptionView::OptionView(Base::Window &win):
 			optionRememberLastMenu = item.on;
 		}
 	},
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	showBundledGames
+	{
+		"Show Bundled Games",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionShowBundledGames = item.on;
+			mainMenu().deinit();
+			initMainMenu(window());
+		}
+	},
+	#endif
 	menuOrientation
 	{
 		"Orientation",

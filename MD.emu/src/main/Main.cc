@@ -141,6 +141,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
+const char *EmuSystem::shortSystemName()
+{
+	return "MD-Genesis";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Mega Drive (Sega Genesis)";
+}
+
 void EmuSystem::initOptions()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
@@ -344,13 +354,13 @@ void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char
 template <size_t S>
 static void sprintSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 template <size_t S>
 static void sprintBRAMSaveFilename(char (&str)[S])
 {
-	snprintf(str, S, "%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName);
+	snprintf(str, S, "%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
@@ -648,12 +658,12 @@ int EmuSystem::loadGame(const char *path)
 		setupGamePaths(path);
 	#ifndef NO_SCD
 	CDAccess *cd = nullptr;
-	if(isMDCDExtension(fullGamePath) ||
-		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath) > 1024*1024*10)) // CD
+	if(isMDCDExtension(fullGamePath()) ||
+		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath()) > 1024*1024*10)) // CD
 	{
 		try
 		{
-			cd = cdaccess_open_image(fullGamePath, false);
+			cd = cdaccess_open_image(fullGamePath(), false);
 		}
 		catch(std::exception &e)
 		{
@@ -704,11 +714,11 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else
 	#endif
-	if(isMDExtension(fullGamePath)) // ROM
+	if(isMDExtension(fullGamePath())) // ROM
 	{
-		logMsg("loading ROM %s", fullGamePath);
+		logMsg("loading ROM %s", fullGamePath());
 		FsSys::cPath loadFullGamePath;
-		strcpy(loadFullGamePath, fullGamePath);
+		strcpy(loadFullGamePath, fullGamePath());
 		if(!load_rom(loadFullGamePath)) // load_rom can modify the string
 		{
 			popup.post("Error loading game", 1);

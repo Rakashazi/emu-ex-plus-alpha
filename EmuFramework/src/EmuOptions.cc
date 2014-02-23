@@ -226,6 +226,10 @@ Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, sizeof(EmuSystem::savePath_), "");
 
+#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
+#endif
+
 void initOptions()
 {
 	#ifdef CONFIG_BASE_IOS

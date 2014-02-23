@@ -33,18 +33,28 @@ struct AspectRatioInfo
 
 #define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", 1, 1}, {"Full Screen", 0, 1}
 
+struct BundledGameInfo
+{
+	const char *displayName;
+	const char *assetName;
+};
+
 enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
 	STATE_RESULT_INVALID_DATA, STATE_RESULT_OTHER_ERROR };
 
 class EmuSystem
 {
-	public:
+public:
 	enum class State { OFF, STARTING, PAUSED, ACTIVE };
 	static State state;
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
-	static FsSys::cPath gamePath, fullGamePath;
-	static char gameName[256], fullGameName[256];
+private:
+	static FsSys::cPath gamePath_, fullGamePath_;
+	using GameNameArr = char[256];
+	static GameNameArr gameName_, fullGameName_;
+	static FsSys::cPath defaultSavePath_;
+public:
 	static FsSys::cPath savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
@@ -65,12 +75,22 @@ class EmuSystem
 	static int saveState();
 	static bool stateExists(int slot);
 	static bool shouldOverwriteExistingState();
-	static const char *savePath() { return strlen(savePath_) ? savePath_ : gamePath; }
+	static const char *systemName();
+	static const char *shortSystemName();
+	static const BundledGameInfo &bundledGameInfo(uint idx);
+	static const char *gamePath() { return gamePath_; }
+	static const char *fullGamePath() { return fullGamePath_; }
+	static const GameNameArr &gameName() { return gameName_; }
+	static const GameNameArr &fullGameName() { return strlen(fullGameName_) ? fullGameName_ : gameName_; }
+	static void setFullGameName(const char *name) { string_copy(fullGameName_, name); }
+	static void makeDefaultSavePath();
+	static const char *defaultSavePath();
+	static const char *savePath();
 	static void sprintStateFilename(char *str, size_t size, int slot,
-		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName);
+		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_);
 	template <size_t S>
 	static void sprintStateFilename(char (&str)[S], int slot,
-		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName)
+		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_)
 	{
 		sprintStateFilename(str, S, slot, statePath, gameName);
 	}
@@ -84,6 +104,7 @@ class EmuSystem
 	static void writeConfig(Io *io);
 	static bool readConfig(Io &io, uint key, uint readSize);
 	static int loadGame(const char *path);
+	static int loadGameFromIO(Io &io, const char *origFilename);
 	typedef DelegateFunc<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
@@ -117,14 +138,8 @@ class EmuSystem
 	static void commitSound(Audio::BufferContext buffer, uint frames);
 	static int setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime);
 	static void setupGamePaths(const char *filePath);
-
-	static void clearGamePaths()
-	{
-		strcpy(gameName, "");
-		strcpy(fullGameName, "");
-		strcpy(gamePath, "");
-		strcpy(fullGamePath, "");
-	}
+	static void setupGameName(const char *name);
+	static void clearGamePaths();
 
 	static TimeSys benchmark()
 	{
@@ -139,7 +154,7 @@ class EmuSystem
 
 	static bool gameIsRunning()
 	{
-		return !string_equal(gameName, "");
+		return !string_equal(gameName_, "");
 	}
 
 	static void pause()

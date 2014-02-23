@@ -240,6 +240,12 @@ View &ViewStack::top() const
 	return *view[size-1];
 }
 
+View &ViewStack::viewAtIdx(uint idx) const
+{
+	assert(idx < size);
+	return *view[idx];
+}
+
 int ViewStack::viewIdx(View &v) const
 {
 	iterateTimes(size, i)

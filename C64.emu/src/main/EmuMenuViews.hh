@@ -481,7 +481,7 @@ class SystemMenuView : public MenuView
 		{
 			if(item.active)
 			{
-				FsSys::chdir(EmuSystem::gamePath);// Stay in active media's directory
+				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
 				auto &c64IoMenu = *menuAllocator.allocNew<C64IOControlView>(window());
 				c64IoMenu.init(!e.isPointer());
 				viewStack.pushAndShow(c64IoMenu, &menuAllocator);
@@ -525,7 +525,7 @@ class SystemMenuView : public MenuView
 					if(EmuSystem::gameIsRunning())
 					{
 						FsSys::cPath gamePath;
-						string_copy(gamePath, EmuSystem::fullGamePath);
+						string_copy(gamePath, EmuSystem::fullGamePath());
 						EmuSystem::loadGame(gamePath);
 						startGameFromMenu();
 					}

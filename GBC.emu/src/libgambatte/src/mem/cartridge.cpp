@@ -531,11 +531,11 @@ static bool presumedMulti64Mbc1(unsigned char const header[], unsigned rombanks)
 	return header[0x147] == 1 && header[0x149] == 0 && rombanks == 64;
 }
 
-LoadRes Cartridge::loadROM(std::string const &romfile,
+LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
                            bool const forceDmg,
                            bool const multicartCompat)
 {
-	scoped_ptr<File> const rom(newFileInstance(romfile));
+	auto rom = &romfile;
 	if (rom->fail())
 		return LOADRES_IO_ERROR;
 
@@ -626,7 +626,7 @@ LoadRes Cartridge::loadROM(std::string const &romfile,
 	if (rom->fail())
 		return LOADRES_IO_ERROR;
 
-	defaultSaveBasePath_ = stripExtension(romfile);
+	defaultSaveBasePath_ = stripExtension(romfilename);
 
 	switch (type) {
 	case type_plain: mbc_.reset(new Mbc0(memptrs_)); break;

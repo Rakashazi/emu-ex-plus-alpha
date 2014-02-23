@@ -80,6 +80,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 
+const char *EmuSystem::shortSystemName()
+{
+	return "PCE-TG16";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "PC Engine (TurboGrafx-16)";
+}
+
 void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded()
@@ -270,7 +280,7 @@ int EmuSystem::loadGame(const char *path)
 			{".sgx", 0},
 			{0, 0}
 		};
-		if(!fp.Open(fullGamePath, ext, 0))
+		if(!fp.Open(fullGamePath(), ext, 0))
 		{
 			popup.printf(3, 1, "Error opening file");
 			goto FAIL;
@@ -291,7 +301,7 @@ int EmuSystem::loadGame(const char *path)
 		CDInterfaces.reserve(1);
 		try
 		{
-			CDInterfaces.push_back(CDIF_Open(fullGamePath, false, false));
+			CDInterfaces.push_back(CDIF_Open(fullGamePath(), false, false));
 		}
 		catch(std::exception &e)
 		{

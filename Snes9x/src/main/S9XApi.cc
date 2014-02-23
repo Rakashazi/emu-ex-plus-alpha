@@ -149,7 +149,7 @@ const char *S9xGetFilename (const char *ex)
 #endif
 {
 	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s%s", EmuSystem::savePath(), EmuSystem::gameName, ex);
+	snprintf(s, PATH_MAX + 1, "%s/%s%s", EmuSystem::savePath(), EmuSystem::gameName(), ex);
 	//logMsg("built s9x path: %s", s);
 	return s;
 }

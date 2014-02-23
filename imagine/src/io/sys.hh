@@ -46,7 +46,7 @@ static Io *openAppAssetIo(const char *name)
 	return AAssetIO::open(name);
 	#else
 	FsSys::cPath path;
-	if(!string_printf(path, sizeof(path), "%s/%s", Base::appPath, name))
+	if(!string_printf(path, "%s/%s", Base::appPath, name))
 		return nullptr;
 	return IoSys::open(path);
 	#endif

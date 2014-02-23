@@ -113,6 +113,32 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
+#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
+#define GAME_ASSET_EXT "nes"
+#else
+#define GAME_ASSET_EXT "zip"
+#endif
+
+const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "Test Game", "game." GAME_ASSET_EXT }
+	};
+
+	return info[0];
+}
+
+const char *EmuSystem::shortSystemName()
+{
+	return "FC-NES";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Famicom (Nintendo Entertainment System)";
+}
+
 using namespace IG;
 
 static void setDirOverrides()
@@ -425,26 +451,9 @@ static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int 
 	return 1;
 }
 
-int EmuSystem::loadGame(const char *path)
+static int loadGameCommon()
 {
-	closeGame();
 	emuView.initImage(0, nesPixX, nesVisiblePixY);
-	setupGamePaths(path);
-	fceuReturnedError = 0;
-	FCEUI_SetVidSystem(0); // default to NTSC
-	if(!FCEUI_LoadGame(fullGamePath, 1))
-	{
-		/*if(fceuReturnedError)
-		{
-			logMsg("%s", fceuReturnedError);
-			popup.post(fceuReturnedError, 1);
-		}
-		else*/
-		{
-			popup.post("Error loading game", 1);
-		}
-		return 0;
-	}
 	autoDetectedVidSysPAL = PAL;
 	if((int)optionVideoSystem == 1)
 	{
@@ -454,7 +463,7 @@ int EmuSystem::loadGame(const char *path)
 	{
 		FCEUI_SetVidSystem(1);
 	}
-	if(vidSysIsPAL())
+	if(EmuSystem::vidSysIsPAL())
 		logMsg("using PAL timing");
 
 	FCEUI_ListCheats(cheatCallback, 0);
@@ -466,6 +475,41 @@ int EmuSystem::loadGame(const char *path)
 
 	logMsg("started emu");
 	return 1;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	closeGame();
+//	emuView.initImage(0, nesPixX, nesVisiblePixY);
+	setupGamePaths(path);
+	FCEUI_SetVidSystem(0); // default to NTSC
+	if(!FCEUI_LoadGame(EmuSystem::fullGamePath(), 1))
+	{
+		popup.post("Error loading game", 1);
+		return 0;
+	}
+	return loadGameCommon();
+}
+
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	closeGame();
+	setupGameName(origFilename);
+	auto ioStream = new EMUFILE_IO(io);
+	auto file = new FCEUFILE();
+	file->filename = origFilename;
+	file->logicalPath = origFilename;
+	file->fullFilename = origFilename;
+	file->archiveIndex = -1;
+	file->stream = ioStream;
+	file->size = ioStream->size();
+	FCEUI_SetVidSystem(0); // default to NTSC
+	if(!FCEUI_LoadGameWithFile(file, origFilename, 1))
+	{
+		popup.post("Error loading game", 1);
+		return 0;
+	}
+	return loadGameCommon();
 }
 
 void EmuSystem::clearInputBuffers()

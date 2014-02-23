@@ -20,11 +20,12 @@
 #include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
-FsSys::cPath EmuSystem::gamePath = "";
-FsSys::cPath EmuSystem::fullGamePath = "";
+FsSys::cPath EmuSystem::gamePath_ = "";
+FsSys::cPath EmuSystem::fullGamePath_ = "";
 FsSys::cPath EmuSystem::savePath_ = "";
-char EmuSystem::gameName[256] = "";
-char EmuSystem::fullGameName[256] = "";
+FsSys::cPath EmuSystem::defaultSavePath_ = "";
+char EmuSystem::gameName_[256] = "";
+char EmuSystem::fullGameName_[256] = "";
 TimeSys EmuSystem::startTime;
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
@@ -200,34 +201,99 @@ void EmuSystem::setupGamePaths(const char *filePath)
 	{
 		// find the realpath of the dirname portion separately in case the file is a symlink
 		FsSys::cPath dirnameTemp;
-		strcpy(gamePath, string_dirname(filePath, dirnameTemp));
+		strcpy(gamePath_, string_dirname(filePath, dirnameTemp));
 		char realPath[PATH_MAX];
-		if(!realpath(gamePath, realPath))
+		if(!realpath(gamePath_, realPath))
 		{
-			gamePath[0] = 0;
+			gamePath_[0] = 0;
 			logErr("error in realpath()");
 			return;
 		}
-		strcpy(gamePath, realPath); // destination is always large enough
-		logMsg("set game directory: %s", gamePath);
+		strcpy(gamePath_, realPath); // destination is always large enough
+		logMsg("set game directory: %s", gamePath_);
 		#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath);
+		fixFilePermissions(gamePath_);
 		#endif
 	}
 
 	{
 		FsSys::cPath basenameTemp;
-		string_copy(gameName, string_basename(filePath, basenameTemp));
+		string_copy(gameName_, string_basename(filePath, basenameTemp));
 
-		string_printf(fullGamePath, "%s/%s", gamePath, gameName);
-		logMsg("set full game path: %s", fullGamePath);
+		string_printf(fullGamePath_, "%s/%s", gamePath_, gameName_);
+		logMsg("set full game path: %s", fullGamePath_);
 
 		// If gameName has an extension, truncate it
-		auto dotPos = strrchr(gameName, '.');
+		auto dotPos = strrchr(gameName_, '.');
 		if(dotPos)
 			*dotPos = 0;
-		logMsg("set game name: %s", gameName);
+		logMsg("set game name: %s", gameName_);
 	}
+
+	string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
+	logMsg("set default save path: %s", defaultSavePath_);
+}
+
+void EmuSystem::setupGameName(const char *name)
+{
+	{
+		FsSys::cPath basenameTemp;
+		string_copy(gameName_, string_basename(name, basenameTemp));
+
+		// If gameName has an extension, truncate it
+		auto dotPos = strrchr(gameName_, '.');
+		if(dotPos)
+			*dotPos = 0;
+		logMsg("set game name: %s", gameName_);
+	}
+
+	string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
+	logMsg("set default save path: %s", defaultSavePath_);
+}
+
+void EmuSystem::makeDefaultSavePath()
+{
+	FsSys::cPath pathTemp;
+	string_printf(pathTemp, "%s/Game Data", Base::storagePath());
+	FsSys::mkdir(pathTemp);
+	string_cat(pathTemp, "/");
+	string_cat(pathTemp, shortSystemName());
+	FsSys::mkdir(pathTemp);
+	string_cat(pathTemp, "/");
+	string_cat(pathTemp, gameName_);
+	FsSys::mkdir(pathTemp);
+}
+
+void EmuSystem::clearGamePaths()
+{
+	strcpy(gameName_, "");
+	strcpy(fullGameName_, "");
+	strcpy(gamePath_, "");
+	strcpy(fullGamePath_, "");
+	strcpy(defaultSavePath_, "");
+}
+
+const char *EmuSystem::savePath()
+{
+	if(strlen(savePath_))
+	{
+		return savePath_;
+	}
+	// check if the game's path is writable
+	if(strlen(gamePath_) && FsSys::hasWriteAccess(gamePath_))
+	{
+		return gamePath_;
+	}
+	// fallback to a default path
+	assert(strlen(defaultSavePath()));
+	if(!FsSys::fileExists(defaultSavePath()))
+		makeDefaultSavePath();
+	return defaultSavePath();
+}
+
+const char *EmuSystem::defaultSavePath()
+{
+	return defaultSavePath_;
 }
 
 void EmuSystem::closeGame(bool allowAutosaveState)
@@ -238,7 +304,7 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 			Audio::clearPcm();
 		if(allowAutosaveState)
 			saveAutoState();
-		logMsg("closing game %s", gameName);
+		logMsg("closing game %s", gameName_);
 		closeSystem();
 		clearGamePaths();
 		cancelAutoSaveStateTimer();

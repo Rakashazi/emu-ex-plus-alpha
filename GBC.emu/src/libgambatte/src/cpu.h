@@ -55,8 +55,8 @@ public:
 	}
 #endif
 
-	LoadRes load(std::string const &romfile, bool forceDmg, bool multicartCompat) {
-		return mem_.loadROM(romfile, forceDmg, multicartCompat);
+	LoadRes load(File &romfile, std::string const &romfilename, bool forceDmg, bool multicartCompat) {
+		return mem_.loadROM(romfile, romfilename, forceDmg, multicartCompat);
 	}
 
 	bool loaded() const { return mem_.loaded(); }

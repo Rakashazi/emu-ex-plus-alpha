@@ -15,27 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "EmuApp.hh"
-#include <FileUtils.hh>
-#include <meta.h>
-#include <main/EmuMenuViews.hh>
+#include <gui/BaseMenuView.hh>
 
-static SystemMenuView mMenu(mainWin);
-
-void initMainMenu(Base::Window &win)
+class BundledGamesView : public BaseMenuView
 {
-	mMenu.win = &win;
-	mMenu.init(Input::keyInputIsPresent());
-}
+private:
+	TextMenuItem game[1];
+	MenuItem *item[1] {nullptr};
 
-View &mainMenu()
-{
-	return mMenu;
-}
-
-View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx)
-{
-	auto oCategoryMenu = allocator.allocNew<SystemOptionView>(win);
-	oCategoryMenu->init(idx, !e.isPointer());
-	return *oCategoryMenu;
-}
+public:
+	BundledGamesView(Base::Window &win): BaseMenuView("Bundled Games", win) {}
+	void init(bool highlightFirst);
+};

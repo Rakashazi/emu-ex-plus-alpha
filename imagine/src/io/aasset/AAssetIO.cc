@@ -67,9 +67,9 @@ Io* AAssetIO::open(const char *name)
 
 void AAssetIO::close()
 {
-	logMsg("closing asset @ %p", asset);
 	if(asset)
 	{
+		logMsg("closing asset @ %p", asset);
 		AAsset_close(asset);
 		asset = nullptr;
 	}

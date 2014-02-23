@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <io/Io.hh>
 
 class EMUFILE {
 protected:
@@ -339,6 +340,70 @@ public:
 
 	virtual void fflush() {
 		::fflush(fp);
+	}
+
+};
+
+class EMUFILE_IO : public EMUFILE {
+protected:
+	Io &io;
+
+public:
+
+	EMUFILE_IO(Io &io): io(io) {}
+
+	~EMUFILE_IO() {
+		io.close();
+	}
+
+	FILE *get_fp() {
+		return nullptr;
+	}
+
+	EMUFILE* memwrap() { return nullptr; }
+
+	//bool is_open() { return io; }
+
+	void truncate(s32 length) { io.truncate(length); }
+
+	int fprintf(const char *format, ...) {
+		return 0;
+	};
+
+	int fgetc() {
+		return io.fgetc();
+	}
+	int fputc(int c) {
+		return 0;
+	}
+
+	size_t _fread(const void *ptr, size_t bytes){
+		size_t ret = io.fread((void*)ptr, 1, bytes);
+		if(ret < bytes)
+			failbit = true;
+		return ret;
+	}
+
+	//removing these return values for now so we can find any code that might be using them and make sure
+	//they handle the return values correctly
+
+	void fwrite(const void *ptr, size_t bytes){
+		failbit = true;
+	}
+
+	int fseek(int offset, int origin) {
+		return io.fseek(offset, origin);
+	}
+
+	int ftell() {
+		return (u32)io.ftell();
+	}
+
+	int size() {
+		return io.size();
+	}
+
+	void fflush() {
 	}
 
 };

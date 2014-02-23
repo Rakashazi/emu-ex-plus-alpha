@@ -262,6 +262,9 @@ static bool readConfig2(Io &io)
 			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
+			#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+			bcase CFGKEY_SHOW_BUNDLED_GAMES: optionShowBundledGames.readFromIO(io, size);
+			#endif
 			#ifdef USE_BEST_COLOR_MODE_OPTION
 			bcase CFGKEY_BEST_COLOR_MODE_HINT: optionBestColorModeHint.readFromIO(io, size);
 			#endif
@@ -500,6 +503,9 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	#ifdef USE_BEST_COLOR_MODE_OPTION
 	&optionBestColorModeHint,
+	#endif
+	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
+	&optionShowBundledGames,
 	#endif
 };
 

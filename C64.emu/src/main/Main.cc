@@ -253,6 +253,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
 
+const char *EmuSystem::shortSystemName()
+{
+	return "C64";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Commodore 64";
+}
+
 using namespace IG;
 
 // controls
@@ -903,7 +913,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::closeSystem()
 {
 	assert(gameIsRunning());
-	logMsg("closing game %s", gameName);
+	logMsg("closing game %s", gameName());
 	saveBackupMem();
 	resources_set_int("WarpMode", 0);
 	tape_image_detach(1);

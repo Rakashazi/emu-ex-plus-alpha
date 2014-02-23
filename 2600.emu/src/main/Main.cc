@@ -66,6 +66,26 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 
+const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "Test Game", "game.bin"	}
+	};
+
+	return info[0];
+}
+
+const char *EmuSystem::shortSystemName()
+{
+	return "2600";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "Atari 2600";
+}
+
 void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
@@ -290,19 +310,9 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 	}
 }
 
-int EmuSystem::loadGame(const char *path)
+static int loadGameCommon(const uint8 *buff, uint size)
 {
-	closeGame();
-	setupGamePaths(path);
-	uchar buff[MAX_ROM_SIZE];
-	string md5;
-	uint32 size;
-	if(!openROM(buff, path, size))
-	{
-		popup.post("Error loading game", 1);
-		return 0;
-	}
-	md5 = MD5(buff, size);
+	string md5 = MD5(buff, size);
 	osystem.propSet().getMD5(md5, currGameProps);
 	string romType = currGameProps.get(Cartridge_Type);
 	string cartId;
@@ -325,9 +335,32 @@ int EmuSystem::loadGame(const char *path)
 	emuView.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
-	logMsg("is PAL: %s", vidSysIsPAL() ? "yes" : "no");
-	configAudioPlayback();
+	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
+	EmuSystem::configAudioPlayback();
 	return 1;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	closeGame();
+	setupGamePaths(path);
+	uint8 buff[MAX_ROM_SIZE];
+	uint32 size;
+	if(!openROM(buff, path, size))
+	{
+		popup.post("Error loading game", 1);
+		return 0;
+	}
+	return loadGameCommon(buff, size);
+}
+
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	closeGame();
+	setupGameName(origFilename);
+	uint8 buff[MAX_ROM_SIZE];
+	uint32 size = io.readUpTo(buff, MAX_ROM_SIZE);
+	return loadGameCommon(buff, size);
 }
 
 void EmuSystem::clearInputBuffers()
