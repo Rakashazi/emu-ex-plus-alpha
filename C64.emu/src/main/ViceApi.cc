@@ -1,6 +1,6 @@
 #include <logger/interface.h>
 #include <util/builtins.h>
-#include <util/branch.h>
+#include <assert.h>
 #include <sys/stat.h>
 #include <ctype.h>
 

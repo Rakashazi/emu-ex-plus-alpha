@@ -1320,7 +1320,7 @@ bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
   if(size == 512 || size == 0x2000) {
-    if(file->readUpTo(eepromData, size) != (size_t)size) {
+    if(file->readUpTo(eepromData, size) != (ssize_t)size) {
       delete file;
       return false;
     }

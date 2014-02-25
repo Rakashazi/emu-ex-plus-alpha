@@ -115,3 +115,12 @@ EVISIBLE void __verbose_terminate_handler()
 
 }
 #endif
+
+CLINK void bug_doExit(const char *msg, ...)
+{
+	va_list args;
+	va_start(args, msg);
+	logger_vprintf(LOG_E, msg, args);
+	va_end(args);
+	Base::abort();
+}

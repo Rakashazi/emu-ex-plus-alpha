@@ -5,7 +5,6 @@
 #include <util/number.h>
 #include <util/bits.h>
 #include <assert.h>
-#include <util/branch.h>
 
 class PixelFormatDesc
 {

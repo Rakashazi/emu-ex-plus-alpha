@@ -47,7 +47,7 @@ int ff_get_cpu_flags_x86(void)
     int family=0, model=0;
     union { int i[3]; char c[12]; } vendor;
 
-#if ARCH_X86_32
+#if __i386__
     x86_reg a, c;
     __asm__ volatile (
         /* See if CPUID instruction is supported ... */

@@ -20,7 +20,7 @@
 #include <util/ansiTypes.h>
 #include <util/algorithm.h>
 #include <util/builtins.h>
-#include <util/branch.h>
+#include <assert.h>
 #include <util/bits.h>
 #include <util/basicMath.hh>
 #include <util/operators.hh>

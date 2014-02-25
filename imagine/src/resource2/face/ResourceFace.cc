@@ -210,8 +210,8 @@ CallResult ResourceFace::applySettings (FontSettings set)
 CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
 {
 	auto src = font->charBitmap();
-	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.data, out.x, out.y, out.pitch);
-	assert(src.x != 0 && src.y != 0 && src.data != nullptr);
+	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
+	assert(src.x != 0 && src.y != 0 && src.data);
 	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
 	if(!src.pitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
 	{

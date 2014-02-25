@@ -22,7 +22,8 @@
 #include <base/Base.hh>
 #include <mem/interface.h>
 #include <util/pixel.h>
-
+#include FT_FREETYPE_H
+#include FT_BITMAP_H
 #include FT_SIZES_H
 
 FT_Library FreetypeFontData::library = nullptr;
@@ -54,6 +55,11 @@ CallResult FreetypeFontData::open(Io *file)
 			logErr("error in FT_Init_FreeType");
 			return INVALID_PARAMETER;
 		}
+		#ifndef NDEBUG
+		/*FT_Int major, minor, patch;
+		FT_Library_Version(library, &major, &minor, &patch);
+		logMsg("init freetype version %d.%d.%d", (int)major, (int)minor, (int)patch);*/
+		#endif
 	}
 	
 	//streamRec.base = nullptr;
@@ -95,7 +101,7 @@ CallResult FreetypeFontData::open(Io *file)
 
 bool FreetypeFontData::isOpen()
 {
-	return face != nullptr;
+	return face;
 }
 
 CallResult FreetypeFontData::setSizes(int x, int y)
@@ -169,6 +175,11 @@ void FreetypeFontData::close(bool closeIo)
 	/*logMsg("freeing %p", library);
 	assert(library != NULL);
 	FT_Done_FreeType(library);*/
+	if(convBitmap.buffer)
+	{
+		FT_Bitmap_Done(library, &convBitmap);
+		convBitmap.buffer = nullptr;
+	}
 	if(face)
 	{
 		FT_Done_Face(face);
@@ -184,6 +195,11 @@ void FreetypeFontData::close(bool closeIo)
 CallResult FreetypeFontData::setActiveChar(int c)
 {
 	//logMsg("setting active char");
+	if(convBitmap.buffer) // if there was a previous converted bitmap, free it
+	{
+		FT_Bitmap_Done(library, &convBitmap);
+		convBitmap.buffer = nullptr;
+	}
 	auto idx = FT_Get_Char_Index(face, c);
 	if(!idx)
 		return NOT_FOUND;
@@ -192,6 +208,28 @@ CallResult FreetypeFontData::setActiveChar(int c)
 	{
 		logErr("error occurred loading/rendering character 0x%X", c);
 		return INVALID_PARAMETER;
+	}
+	if(face->glyph->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+	{
+		// rendered glyph is not in 8-bit gray-scale
+		logMsg("converting mode %d bitmap", face->glyph->bitmap.pixel_mode);
+		auto error = FT_Bitmap_Convert(library, &face->glyph->bitmap, &convBitmap, 1);
+		if(error)
+		{
+			logErr("error occurred converting character 0x%X", c);
+			return INVALID_PARAMETER;
+		}
+		assert(convBitmap.num_grays == 2); // only handle 2 gray levels for now
+		//logMsg("new bitmap has %d gray levels", convBitmap.num_grays);
+		// scale 1-bit values to 8-bit range
+		iterateTimes(convBitmap.rows, y)
+		{
+			iterateTimes(convBitmap.width, x)
+			{
+				if(convBitmap.buffer[(y * convBitmap.pitch) + x] != 0)
+					convBitmap.buffer[(y * convBitmap.pitch) + x] = 0xFF;
+			}
+		}
 	}
 	return OK;
 }
@@ -209,9 +247,10 @@ int FreetypeFontData::charBitmapHeight() const
 IG::Pixmap FreetypeFontData::accessCharBitmap() const
 {
 	auto slot = face->glyph;
-	//logMsg("character is %dx%d pixels, left-top offsets %dx%d", slot->bitmap.width, slot->bitmap.rows, slot->bitmap_left, slot->bitmap_top);
+	auto &bitmap = convBitmap.buffer ? convBitmap : slot->bitmap;
+	//logMsg("character is %dx%d pixels, left-top offsets %dx%d", bitmap.width, bitmap.rows, slot->bitmap_left, slot->bitmap_top);
 	IG::Pixmap pix{PixelFormatA8};
-	pix.init2(slot->bitmap.buffer, slot->bitmap.width, slot->bitmap.rows, slot->bitmap.pitch);
+	pix.init2(bitmap.buffer, bitmap.width, bitmap.rows, bitmap.pitch);
 	return pix;
 }
 

@@ -2,7 +2,6 @@
 
 #include <util/algorithm.h>
 #include <util/memory.h>
-#include <util/branch.h>
 #include <util/operators.hh>
 #include <assert.h>
 #include <utility>

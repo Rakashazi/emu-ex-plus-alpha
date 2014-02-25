@@ -371,6 +371,11 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
+				if(!strlen(EmuSystem::gamePath()))
+				{
+					// shortcuts to bundled games not yet supported
+					return;
+				}
 				auto &textInputView = *allocModalView<CollectTextInputView>(window());
 				textInputView.init("Shortcut Name", EmuSystem::fullGameName(),
 						getCollectTextCloseAsset());
@@ -540,14 +545,14 @@ static void loadGameCompleteConfirmNoAutoLoadState(const Input::Event &e)
 	loadGameComplete(0, 0);
 }
 
-bool showAutoStateConfirm(const Input::Event &e);
+bool showAutoStateConfirm(const Input::Event &e, bool addToRecent);
 
 void loadGameCompleteFromRecentItem(uint result, const Input::Event &e)
 {
 	if(!result)
 		return;
 
-	if(!showAutoStateConfirm(e))
+	if(!showAutoStateConfirm(e, false))
 	{
 		loadGameComplete(1, 0);
 	}

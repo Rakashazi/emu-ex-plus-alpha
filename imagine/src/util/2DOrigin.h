@@ -18,7 +18,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <util/memory.h>
-#include <util/branch.h>
+#include <assert.h>
 
 // Origins are based on Cartesian coordinates,
 // min:negative x = left

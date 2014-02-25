@@ -16,7 +16,6 @@
 #define LOGTAG "BTstack"
 #include "BtstackBluetoothAdapter.hh"
 #include <util/collection/DLList.hh>
-#include <util/branch2.h>
 
 static BtstackBluetoothAdapter defaultBtstackAdapter;
 static int writeAuthEnable = -1;

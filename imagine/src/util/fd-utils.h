@@ -5,10 +5,8 @@
 #include <errno.h>
 #include <assert.h>
 #include <util/number.h>
-
-#ifndef CONFIG_FS_PS3
+#include <logger/interface.h>
 #include <sys/ioctl.h>
-#endif
 
 static ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 {

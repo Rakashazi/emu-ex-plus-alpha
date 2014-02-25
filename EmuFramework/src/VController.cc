@@ -197,7 +197,7 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 		IG::setSizesWithRatioY(xSize, ySize, 3./2., vArea);
 	}
 	Gfx::GCRect boundGC {0., 0., xSize, ySize};
-	boundGC.setPos({0., View::projP.bounds().y + yOffset}, CT2DO);
+	boundGC.setPos({0., View::projP.bounds().y + yOffset}, CB2DO);
 	spr.setPos(boundGC);
 	bound = View::projP.projectRect(boundGC);
 	keyXSize = (bound.xSize() / cols) + (bound.xSize() * (1./256.));

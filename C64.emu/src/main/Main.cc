@@ -1415,6 +1415,10 @@ CLINK void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas
 	c64VidX = canvas->draw_buffer->canvas_width;
 	c64VidY = canvas->draw_buffer->canvas_height;
 	logMsg("resized canvas to %d,%d", c64VidX, c64VidY);
+	if(unlikely(!emuView.vidImg))
+	{
+		emuView.initImage(0, c64VidX, c64VidY);
+	}
 }
 
 CLINK video_canvas_t *video_canvas_create(video_canvas_t *canvas, unsigned int *width, unsigned int *height, int mapped)

@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#if ARCH_X86_64
+#if __x86_64__
 #    define OPSIZE "q"
 #    define REG_a "rax"
 #    define REG_b "rbx"
@@ -47,7 +47,7 @@ typedef int64_t x86_reg;
 #    define REGd    rdx
 #    define REGSP   rsp
 
-#elif ARCH_X86_32
+#elif __i386__
 
 #    define OPSIZE "l"
 #    define REG_a "eax"
@@ -71,10 +71,10 @@ typedef int32_t x86_reg;
 typedef int x86_reg;
 #endif
 
-#define HAVE_7REGS (ARCH_X86_64 || (HAVE_EBX_AVAILABLE && HAVE_EBP_AVAILABLE))
-#define HAVE_6REGS (ARCH_X86_64 || (HAVE_EBX_AVAILABLE || HAVE_EBP_AVAILABLE))
+#define HAVE_7REGS (__x86_64__ || (HAVE_EBX_AVAILABLE && HAVE_EBP_AVAILABLE))
+#define HAVE_6REGS (__x86_64__ || (HAVE_EBX_AVAILABLE || HAVE_EBP_AVAILABLE))
 
-#if ARCH_X86_64 && defined(PIC)
+#if __x86_64__ && defined(PIC)
 #    define BROKEN_RELOCATIONS 1
 #endif
 

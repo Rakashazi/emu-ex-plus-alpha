@@ -42,7 +42,7 @@ void loadGameComplete(bool tryAutoState, bool addToRecent)
 	startGameFromMenu();
 }
 
-bool showAutoStateConfirm(const Input::Event &e)
+bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
 {
 	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
 	{
@@ -59,14 +59,14 @@ bool showAutoStateConfirm(const Input::Event &e)
 		auto &ynAlertView = *allocModalView<YesNoAlertView>(Base::mainWindow());
 		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
 		ynAlertView.onYes() =
-			[](const Input::Event &e)
+			[addToRecent](const Input::Event &e)
 			{
-				loadGameComplete(true, true);
+				loadGameComplete(true, addToRecent);
 			};
 		ynAlertView.onNo() =
-			[](const Input::Event &e)
+			[addToRecent](const Input::Event &e)
 			{
-				loadGameComplete(false, true);
+				loadGameComplete(false, addToRecent);
 			};
 		modalViewController.pushAndShow(ynAlertView);
 		return 1;
@@ -79,7 +79,7 @@ void loadGameCompleteFromFilePicker(uint result, const Input::Event &e)
 	if(!result)
 		return;
 
-	if(!showAutoStateConfirm(e))
+	if(!showAutoStateConfirm(e, true))
 	{
 		loadGameComplete(1, 1);
 	}

@@ -15,15 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <logger/interface.h>
-namespace Base
-{
-	void abort() ATTRS(noreturn);
-}
-#define BRANCH_H_PRINTF(str, ...) logErr(str, ## __VA_ARGS__)
-#define BRANCH_H_EXIT() Base::abort()
-#include <util/branch2.h>
-
 #define doOrElse(Do, Else) { if(Do != OK) Else; }
 #define doOrReturnVal(Do, Val) doOrElse(Do, return(Val))
 #define doOrReturn(Do) { CallResult r_ = Do; if(r_ != OK) return r_; }

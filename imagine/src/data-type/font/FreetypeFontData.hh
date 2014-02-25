@@ -47,6 +47,7 @@ private:
 	static FT_Library library;
 	FT_Face face = nullptr;
 	FT_StreamRec streamRec {0};
+	FT_Bitmap convBitmap {0};
 
 	CallResult setSizes(int x, int y);
 };

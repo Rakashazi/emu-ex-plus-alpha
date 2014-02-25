@@ -23,7 +23,11 @@ mednafen/cdrom/CDAccess_Image.cpp mednafen/cdrom/CDAccess_CCD.cpp mednafen/cdrom
 mednafen/cdrom/l-ec.cpp mednafen/cdrom/scsicd.cpp mednafen/cdrom/cdromif.cpp mednafen/cdrom/lec.cpp \
 mednafen/cdrom/crc32.cpp mednafen/cdrom/pcecd.cpp mednafen/hw_misc/arcade_card/arcade_card.cpp \
 mednafen/hw_sound/pce_psg/pce_psg.cpp mednafen/sound/Blip_Buffer.cpp mednafen/video/resize.cpp \
-mednafen/video/surface.cpp mednafen/general.cpp mednafen/error.cpp
+mednafen/video/surface.cpp mednafen/general.cpp mednafen/error.cpp mednafen/cputest/cputest.c
+
+ifeq ($(ARCH),x86)
+ MDFN_SRC += mednafen/cputest/x86_cpu.c
+endif
 
 COMPRESS_SRC := mednafen/compress/blz.c mednafen/compress/minilzo.c mednafen/compress/quicklz.c
 SRC += $(MDFN_SRC) $(COMPRESS_SRC)

@@ -207,7 +207,8 @@ bool Event::isDefaultLeftButton() const
 		case MAP_PS3PAD: return button == Input::PS3::LEFT || button == PS3::LSTICK_LEFT;
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG;
+		case MAP_EVDEV:
+			return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG || button == Input::Evdev::JS_POV_XAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -244,7 +245,8 @@ bool Event::isDefaultRightButton() const
 		case MAP_PS3PAD: return button == Input::PS3::RIGHT || button == PS3::LSTICK_RIGHT;
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS;
+		case MAP_EVDEV:
+			return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS || button == Input::Evdev::JS_POV_XAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -281,7 +283,8 @@ bool Event::isDefaultUpButton() const
 		case MAP_PS3PAD: return button == Input::PS3::UP || button == PS3::LSTICK_UP;
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG;
+		case MAP_EVDEV:
+			return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG || button == Input::Evdev::JS_POV_YAXIS_NEG;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -318,7 +321,8 @@ bool Event::isDefaultDownButton() const
 		case MAP_PS3PAD: return button == Input::PS3::DOWN || button == PS3::LSTICK_DOWN;
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS;
+		case MAP_EVDEV:
+			return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS|| button == Input::Evdev::JS_POV_YAXIS_POS;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:

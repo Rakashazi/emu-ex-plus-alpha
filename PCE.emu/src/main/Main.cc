@@ -51,7 +51,7 @@ static bool isHuCardExtension(const char *name)
 
 static bool isCDExtension(const char *name)
 {
-	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue");
+	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
 }
 
 static int pceHuCDFsFilter(const char *name, int type)
@@ -328,7 +328,6 @@ int EmuSystem::loadGame(const char *path)
 	{
 		logMsg("doing initial video setup for emulator");
 		PCE_Fast::applyVideoFormat(mSurface);
-		//currRect = (MDFN_Rect){0, 0, 256, 224};
 		emuView.initImage(0, 0, 0, 256, 224, 256, 224);
 	}
 
@@ -379,16 +378,12 @@ void EmuSystem::configAudioRate()
 
 static bool updateEmuPixmap(uint width, uint height, char *pixBuff)
 {
-	// only use DisplayRect for height
-	if(unlikely(/*info.displayRect.x != currRect.x || espec.DisplayRect.y != currRect.y ||*/
-			width != emuView.vidPix.x || height != emuView.vidPix.y || pixBuff != emuView.vidPix.data))
+	if(unlikely(width != emuView.vidPix.x || height != emuView.vidPix.y
+		|| pixBuff != emuView.vidPix.data))
 	{
 		//logMsg("display rect %d:%d:%d:%d", displayRect.x, displayRect.y, displayRect.w, displayRect.h);
-		//currRect = displayRect;
-		//currRect.w = width;
-		//usingMultires = isMultires;
 		emuView.initPixmap(pixBuff, pixFmt, width, height);
-		emuView.resizeImage(/*currRect.x, currRect.y*/0, 0, width, height, width, height);
+		emuView.resizeImage(0, 0, width, height, width, height);
 		return true;
 	}
 	return false;

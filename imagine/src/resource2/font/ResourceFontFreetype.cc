@@ -129,10 +129,6 @@ ResourceFontFreetype *ResourceFontFreetype::load(Io* io)
 
 ResourceFontFreetype *ResourceFontFreetype::load(const char *name)
 {
-	/*ResourceFont *r = (ResourceFont*)Resource::findExisting(name);
-	if(r != NULL)
-		return r;*/
-
 	//if(string_hasDotExtension(name, "ttf"))
 	{
 		//logMsg("suffix matches TT Font");

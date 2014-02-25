@@ -44,6 +44,7 @@ const char *evdevButtonName(Key b)
 {
 	switch(b)
 	{
+		case 0: return "None";
 		case Evdev::UP: return "Up";
 		case Evdev::RIGHT: return "Right";
 		case Evdev::DOWN: return "Down";
@@ -94,6 +95,10 @@ const char *evdevButtonName(Key b)
 		case Evdev::JS3_YAXIS_NEG: return "Y Axis- 3";
 		case Evdev::JS_LTRIGGER_AXIS: return "L Trigger";
 		case Evdev::JS_RTRIGGER_AXIS: return "R Trigger";
+		case Evdev::JS_POV_XAXIS_POS: return "POV Right";
+		case Evdev::JS_POV_XAXIS_NEG: return "POV Left";
+		case Evdev::JS_POV_YAXIS_POS: return "POV Down";
+		case Evdev::JS_POV_YAXIS_NEG: return "POV Up";
 	}
 	return "Unknown";
 }
@@ -184,8 +189,8 @@ struct EvdevInputDevice : public Device
 				Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS,
 				Evdev::JS2_XAXIS_NEG, Evdev::JS2_XAXIS_POS,
 				Evdev::JS2_YAXIS_NEG, Evdev::JS2_YAXIS_POS,
-				Evdev::JS3_XAXIS_NEG, Evdev::JS3_XAXIS_POS,
-				Evdev::JS3_YAXIS_NEG, Evdev::JS3_YAXIS_POS,
+				Evdev::JS_POV_XAXIS_NEG, Evdev::JS_POV_XAXIS_POS,
+				Evdev::JS_POV_YAXIS_NEG, Evdev::JS_POV_YAXIS_POS,
 			};
 			const uint8 stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
 				ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_HAT2X, ABS_HAT2Y, ABS_HAT3X, ABS_HAT3Y,
@@ -204,8 +209,17 @@ struct EvdevInputDevice : public Device
 				}
 				logMsg("min: %d max: %d fuzz: %d flat: %d", info.minimum, info.maximum, info.fuzz, info.flat);
 				int size = (info.maximum - info.minimum) + 1;
-				axis[axisId].keyEmu = {(int)(info.minimum + size/4.), (int)(info.maximum - size/4.), axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
+				int keyEmuMin = std::round(info.minimum + size/4.);
+				int keyEmuMax = std::round(info.maximum - size/4.);
+				if(size < 8)
+				{
+					// low-res axis, just use the limits directly
+					keyEmuMin = info.minimum;
+					keyEmuMax = info.maximum;
+				}
+				axis[axisId].keyEmu = {keyEmuMin, keyEmuMax, axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
 				axis[axisId].active = 1;
+				logMsg("%d - %d", axis[axisId].keyEmu.lowLimit, axis[axisId].keyEmu.highLimit);
 				axes++;
 				keycodeIdx += 2; // move to the next +/- axis keycode pair
 				if(axes == sizeofArray(axisKeycode)/2)

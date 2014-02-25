@@ -186,7 +186,6 @@ void EmuSystem::initOptions() {}
 void EmuSystem::onOptionsLoaded()
 {
 	gbEmu.setInputGetter(&gbcInput);
-	gbEmu.setSaveDir(EmuSystem::savePath());
 }
 
 static bool isROMExtension(const char *name)
@@ -336,7 +335,8 @@ void EmuSystem::saveBackupMem()
 
 void EmuSystem::savePathChanged()
 {
-	gbEmu.setSaveDir(savePath());
+	if(gameIsRunning())
+		gbEmu.setSaveDir(savePath());
 }
 
 void EmuSystem::saveAutoState()
@@ -392,6 +392,7 @@ int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
 	setupGamePaths(path);
+	gbEmu.setSaveDir(EmuSystem::savePath());
 	auto result = gbEmu.load(fullGamePath(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
 	return loadGameCommon(result);
 }
@@ -400,6 +401,7 @@ int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);
+	gbEmu.setSaveDir(EmuSystem::savePath());
 	ImagineFile file(io);
 	auto result = gbEmu.load(file, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
 	return loadGameCommon(result);

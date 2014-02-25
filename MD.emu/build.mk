@@ -55,11 +55,12 @@ ifdef hasSCD
 
  CPPFLAGS += -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src/include -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src
  VPATH += $(EMUFRAMEWORK_PATH)/../PCE.emu/src/mednafen $(EMUFRAMEWORK_PATH)/../PCE.emu/src/common
- CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DHAVE_LIBSNDFILE -DPSS_STYLE=1
+ CPPFLAGS += -DHAVE_MKDIR -DHAVE_CONFIG_H -DMDFN_CD_SUPPORTS_BINARY_IMAGES -DMDFN_CD_NO_CCD \
+ -DHAVE_LIBSNDFILE -DPSS_STYLE=1
  SRC += MDFNApi.cc error.cpp endian.cpp general.cpp \
   cdrom/audioreader.cpp cdrom/lec.cpp cdrom/recover-raw.cpp \
   cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp cdrom/CDUtility.cpp \
-  cdrom/CDAccess_Image.cpp cdrom/CDAccess_CCD.cpp cdrom/CDAccess.cpp
+  cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk

@@ -17,6 +17,11 @@ else
  endif
 endif
 
+ifdef O_LTO_LINK_ONLY
+ # link thin LTO objects with non-LTO objects
+ LDFLAGS += -flto $(WHOLE_PROGRAM_CFLAGS) $(COMPILE_FLAGS)
+endif
+
 gccVersion := $(shell $(CC) -dumpversion)
 #gcc_isAtLeastVer4_9 := $(shell expr $(gccVersion) \>= 4.9)
 

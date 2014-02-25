@@ -368,8 +368,8 @@ int32_t onInputEvent(AInputEvent* event, Base::Window &win)
 					{
 						// touch gesture ended
 						handleTouchEvent(AMOTION_EVENT_ACTION_UP,
-								AMotionEvent_getX(event, 0) /*- win.viewRect.x*/,
-								AMotionEvent_getY(event, 0) /*- win.viewRect.y*/,
+								AMotionEvent_getX(event, 0),
+								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
 								AMotionEvent_getEventTime(event), isTouch);
 						return 1;
@@ -386,8 +386,8 @@ int32_t onInputEvent(AInputEvent* event, Base::Window &win)
 							pAction = AMOTION_EVENT_ACTION_MOVE;
 						}
 						handleTouchEvent(pAction,
-							AMotionEvent_getX(event, i) /*- win.viewRect.x*/,
-							AMotionEvent_getY(event, i) /*- win.viewRect.y*/,
+							AMotionEvent_getX(event, i),
+							AMotionEvent_getY(event, i),
 							AMotionEvent_getPointerId(event, i),
 							AMotionEvent_getEventTime(event), isTouch);
 					}
@@ -402,14 +402,14 @@ int32_t onInputEvent(AInputEvent* event, Base::Window &win)
 						return 0;
 					}
 					auto enumID = dev->enumId();
-					//logMsg("Joystick input from %s,%d", dev->name(), dev->devId);
+					//logMsg("Joystick input from %s", dev->name());
 
 					if(hasGetAxisValue())
 					{
 						for(auto &axis : dev->axis)
 						{
 							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
-							//logMsg("got axis value: %f", (double)pos);
+							//logMsg("axis %d with value: %f", axis.id, (double)pos);
 							axis.keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, *dev, win);
 						}
 					}
@@ -550,10 +550,6 @@ void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
 {
 	if(Base::androidSDK() >= 12 && joystickAxisAsDpadBits_ != axisMask)
 	{
-//		const Key js1Key[4] = { Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG };
-//		const Key js2Key[4] = { Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS, Keycode::JS2_YAXIS_POS, Keycode::JS2_YAXIS_NEG };
-//		const Key hatKey[4] = { Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS, Keycode::JS_POV_YAXIS_POS, Keycode::JS_POV_YAXIS_NEG };
-//		const Key dpadKey[4] = { Input::Keycode::LEFT, Input::Keycode::RIGHT, Input::Keycode::DOWN, Input::Keycode::UP };
 		joystickAxisAsDpadBits_ = axisMask;
 		logMsg("remapping joystick axes for device: %d", osId);
 		for(auto &e : axis)
@@ -603,25 +599,6 @@ void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
 					e.keyEmu.highKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
 				}
 			}
-
-//			if(e.id == AXIS_X || e.id == AXIS_Y)
-//			{
-//				bool on = axisMask & AXIS_BIT_X;
-//				if(remapAxisKeyEmu(*this, e.keyEmu, on ? js1Key : dpadKey, on ? dpadKey : js1Key))
-//					logMsg("remapped axis %d", e.id);
-//			}
-//			else if(e.id == AXIS_Z || e.id == AXIS_RZ)
-//			{
-//				bool on = axisMask & AXIS_BIT_Z;
-//				if(remapAxisKeyEmu(*this, e.keyEmu, on ? js2Key : dpadKey, on ? dpadKey : js2Key))
-//					logMsg("remapped axis %d", e.id);
-//			}
-//			else if(e.id == AXIS_HAT_X || e.id == AXIS_HAT_Y)
-//			{
-//				bool on = axisMask & AXIS_BIT_HAT_X;
-//				if(remapAxisKeyEmu(*this, e.keyEmu, on ? hatKey : dpadKey, on ? dpadKey : hatKey))
-//					logMsg("remapped axis %d", e.id);
-//			}
 		}
 	}
 }

@@ -150,10 +150,7 @@ static void setDirOverrides()
 
 void EmuSystem::initOptions() {}
 
-void EmuSystem::onOptionsLoaded()
-{
-	setDirOverrides();
-}
+void EmuSystem::onOptionsLoaded() {}
 
 bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
@@ -480,8 +477,8 @@ static int loadGameCommon()
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-//	emuView.initImage(0, nesPixX, nesVisiblePixY);
 	setupGamePaths(path);
+	setDirOverrides();
 	FCEUI_SetVidSystem(0); // default to NTSC
 	if(!FCEUI_LoadGame(EmuSystem::fullGamePath(), 1))
 	{
@@ -495,6 +492,7 @@ int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);
+	setDirOverrides();
 	auto ioStream = new EMUFILE_IO(io);
 	auto file = new FCEUFILE();
 	file->filename = origFilename;
@@ -608,7 +606,8 @@ void onInputEvent(Base::Window &win, const Input::Event &e)
 
 void EmuSystem::savePathChanged()
 {
-	setDirOverrides();
+	if(gameIsRunning())
+		setDirOverrides();
 }
 
 namespace Base

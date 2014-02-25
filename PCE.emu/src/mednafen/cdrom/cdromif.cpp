@@ -737,7 +737,7 @@ CDIF *CDIF_Open(const char *path, const bool is_device, bool image_memcache)
  else
  {
   CDAccess *cda = cdaccess_open_image(path, image_memcache);
-  return new CDIF_ST(cda);
+  return new CDIF_MT(cda);
   /*if(!image_memcache)
    return new CDIF_MT(cda);
   else
