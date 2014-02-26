@@ -37,7 +37,7 @@ namespace Input
 {
 
 #if CONFIG_ENV_ANDROID_MINSDK < 12
-using AMotionEvent_getAxisValueProto =  float (*)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
+using AMotionEvent_getAxisValueProto = float (__NDK_FPABI__ *)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
 static AMotionEvent_getAxisValueProto AMotionEvent_getAxisValue = nullptr;
 static bool hasGetAxisValue()
 {

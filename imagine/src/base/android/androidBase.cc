@@ -35,6 +35,7 @@
 #include <sys/eventfd.h>
 #include <fs/sys.hh>
 #include <util/fd-utils.h>
+#include <util/bits.h>
 #ifdef CONFIG_BLUETOOTH
 #include <bluetooth/BluetoothInputDevScanner.hh>
 #endif
@@ -802,7 +803,18 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 					if(possibleChangeFlags != visibility)
 					{
 						logMsg("system UI visibility changed from %d to %d, reapplying app's style", possibleChangeFlags, visibility);
-						jSetUIVisibility(env, jBaseActivity, uiVisibilityFlags);
+						int flags = uiVisibilityFlags;
+						if((Base::androidSDK() == 16 || Base::androidSDK() == 17)
+							&& (flags & SYS_UI_STYLE_HIDE_NAV) && !(visibility & SYS_UI_STYLE_HIDE_NAV))
+						{
+							// if we try to re-apply the hide navigation flag in Android 4.1 & 4.2
+							// and the cause of the UI visibility change is a screen touch,
+							// it won't have an effect and we won't set SYSTEM_UI_FLAG_LAYOUT_STABLE,
+							// causing wrong content insets
+							logMsg("ignoring hide navigation bit");
+							unsetBits(flags, SYS_UI_STYLE_HIDE_NAV);
+						}
+						jSetUIVisibility(env, jBaseActivity, flags);
 					}
 				})
 			}

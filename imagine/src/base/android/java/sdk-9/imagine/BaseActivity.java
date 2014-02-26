@@ -293,7 +293,15 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 		try
 		{
-			setSystemUiVisibility.invoke(getWindow().getDecorView()/*findViewById(android.R.id.content)*/, mode | commonUILayoutFlags);
+			int flags = mode | commonUILayoutFlags;
+			if((android.os.Build.VERSION.SDK_INT == 16 || android.os.Build.VERSION.SDK_INT == 17)
+				&& (mode & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0)
+			{
+				// if not hiding navigation, use a "stable" layout so Android 4.1 & 4.2 don't return all 0 view insets
+				//Log.i(logTag, "using stable layout");
+				flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+			}
+			setSystemUiVisibility.invoke(getWindow().getDecorView(), flags);
 		}
 		catch (IllegalAccessException ie)
 		{
@@ -387,7 +395,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	@Override public void onGlobalLayout()
 	{
 		// override to make sure NativeActivity's implementation is never called
-		// since our content is laid out with BaseContentView 
+		// since our content is laid out with BaseContentView
 	}
 	
 	String intentDataPath()
@@ -519,7 +527,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	SystemUiVisibilityChangeHelper uiVisibilityChangeHelper()
 	{
-		return new SystemUiVisibilityChangeHelper(getWindow().getDecorView()/*findViewById(android.R.id.content)*/);
+		return new SystemUiVisibilityChangeHelper(getWindow().getDecorView());
 	}
 	
 	Bitmap makeBitmap(int width, int height, int format)
