@@ -56,12 +56,17 @@ public:
 	bool init(Shader vShader, Shader fShader, bool hasColor, bool hasTex);
 	void deinit();
 	bool link();
+	int uniformLocation(const char *uniformName);
 };
 
+class BufferImage;
 Shader makeShader(const char *src, uint type);
+Shader makePluginShader(const char *src, uint type, uint imgMode, const BufferImage &img);
 Shader makeDefaultVShader();
+void deleteShader(Shader shader);
 void setProgram(Program &program);
 void setProgram(Program &program, Mat4 modelMat);
+void uniformF(int uniformLocation, float v1, float v2);
 void releaseShaderCompiler();
 void autoReleaseShaderCompiler();
 

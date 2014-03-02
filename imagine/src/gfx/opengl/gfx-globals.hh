@@ -141,6 +141,8 @@ uint maxOpenGLMajorVersionSupport();
 using Shader = GLuint;
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 enum { SHADER_VERTEX = GL_VERTEX_SHADER, SHADER_FRAGMENT = GL_FRAGMENT_SHADER };
+#else
+enum { SHADER_VERTEX = 1, SHADER_FRAGMENT = 2 }; // dummy values
 #endif
 
 class GLSLProgram

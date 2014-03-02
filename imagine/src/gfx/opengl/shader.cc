@@ -1,4 +1,5 @@
 #include <gfx/Gfx.hh>
+#include <gfx/GfxBufferImage.hh>
 #include "private.hh"
 
 namespace Gfx
@@ -10,12 +11,15 @@ GLSLProgram *currProgram = nullptr;
 static GLuint defaultVShader = 0;
 
 	#ifdef CONFIG_GFX_OPENGL_ES
-	#define LOWP "lowp"
+	#define GLSL_VERSION_DIRECTIVE
 	#else
-	#define LOWP
+	#define GLSL_VERSION_DIRECTIVE "#version 130\n"
 	#endif
 
+	#define LOWP " lowp "
+
 static const char *vShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "attribute vec4 pos; "
 "attribute vec4 color; "
 "attribute vec2 texUV; "
@@ -31,6 +35,7 @@ static const char *vShaderSrc =
 ;
 
 static const char *texFragShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "varying " LOWP " vec4 colorOut; "
 "varying " LOWP " vec2 texUVOut; "
 "uniform sampler2D tex; "
@@ -40,6 +45,7 @@ static const char *texFragShaderSrc =
 ;
 
 static const char *texReplaceFragShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "varying " LOWP " vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
@@ -48,6 +54,7 @@ static const char *texReplaceFragShaderSrc =
 ;
 
 static const char *texAlphaFragShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "varying " LOWP " vec4 colorOut; "
 "varying " LOWP " vec2 texUVOut; "
 "uniform sampler2D tex; "
@@ -65,6 +72,7 @@ static const char *texAlphaFragShaderSrc =
 ;
 
 static const char *texAlphaReplaceFragShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "varying " LOWP " vec4 colorOut; "
 "varying " LOWP " vec2 texUVOut; "
 "uniform sampler2D tex; "
@@ -82,6 +90,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 
 	#ifndef CONFIG_GFX_OPENGL_ES
 	static const char *texIntensityAlphaFragShaderSrc =
+	GLSL_VERSION_DIRECTIVE
 	"varying " LOWP " vec4 colorOut; "
 	"varying " LOWP " vec2 texUVOut; "
 	"uniform sampler2D tex; "
@@ -92,6 +101,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 	;
 
 	static const char *texIntensityAlphaReplaceFragShaderSrc =
+	GLSL_VERSION_DIRECTIVE
 	"varying " LOWP " vec2 texUVOut; "
 	"uniform sampler2D tex; "
 	"void main() { "
@@ -106,6 +116,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 
 	#if defined CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
 	static const char *texExternalFragShaderSrc =
+	GLSL_VERSION_DIRECTIVE
 	"#extension GL_OES_EGL_image_external:enable\n"
 	"varying " LOWP " vec4 colorOut; "
 	"varying " LOWP " vec2 texUVOut; "
@@ -116,6 +127,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 	;
 
 	static const char *texExternalReplaceFragShaderSrc =
+	GLSL_VERSION_DIRECTIVE
 	"#extension GL_OES_EGL_image_external:enable\n"
 	"varying " LOWP " vec2 texUVOut; "
 	"uniform samplerExternalOES tex; "
@@ -126,6 +138,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 	#endif
 
 static const char *noTexFragShaderSrc =
+GLSL_VERSION_DIRECTIVE
 "varying " LOWP " vec4 colorOut; "
 "void main() { "
 	"gl_FragColor = colorOut; "
@@ -147,10 +160,12 @@ bool linkProgram(GLuint program)
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
 	if(success == GL_FALSE)
 	{
-		GLchar messages[256];
+		#ifndef NDEBUG
+		GLchar messages[1024];
 		glGetShaderInfoLog(program, sizeof(messages), nullptr, messages);
 		logErr("shader info log: %s", messages);
 		bug_exit("link failed");
+		#endif
 		return false;
 	}
 	return true;
@@ -178,10 +193,14 @@ bool GLSLProgram::init(Shader vShader, Shader fShader, bool hasColor, bool hasTe
 
 void GLSLProgram::deinit()
 {
-	glDeleteProgram(program_);
-	projectionUniformAge = 0;
-	modelViewUniformAge = 0;
-	program_ = 0;
+	if(program_)
+	{
+		logMsg("deleting program %d", (int)program_);
+		glDeleteProgram(program_);
+		projectionUniformAge = 0;
+		modelViewUniformAge = 0;
+		program_ = 0;
+	}
 }
 
 bool GLSLProgram::link()
@@ -205,6 +224,14 @@ void Program::deinit()
 bool Program::link()
 {
 	return GLSLProgram::link();
+}
+
+int Program::uniformLocation(const char *uniformName)
+{
+	auto loc = glGetUniformLocation(program_, uniformName);
+	assert(loc != -1);
+	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation proj", err); });
+	return loc;
 }
 
 void GLSLProgram::initUniforms()
@@ -271,13 +298,49 @@ Shader makeShader(const char *src, uint type)
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 	if(success == GL_FALSE)
 	{
-		GLchar messages[256];
+		#ifndef NDEBUG
+		GLchar messages[1024];
 		glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
 		logErr("shader info log: %s", messages);
 		bug_exit("shader compile failed");
+		#endif
 		return 0;
 	}
 	return shader;
+}
+
+Shader makePluginShader(const char *src, uint type, uint imgMode, const BufferImage &img)
+{
+	assert(type == GL_FRAGMENT_SHADER);
+	const char *modulateMain =
+	"varying lowp vec4 colorOut; "
+	"varying lowp vec2 texUVOut; "
+	"lowp vec4 makeFrag(const in lowp vec2 uv); "
+	"uniform sampler2D tex; "
+	"void main() { "
+		"gl_FragColor = colorOut * makeFrag(texUVOut); "
+	"}\n";
+	const char *replaceMain =
+	"varying lowp vec2 texUVOut; "
+	"uniform sampler2D tex; "
+	"lowp vec4 makeFrag(const in lowp vec2 uv); "
+	"void main() { "
+		"gl_FragColor = makeFrag(texUVOut); "
+	"}\n";
+	char shaderStr[8192] {0};
+	//string_printf(shaderStr, "%s", src);
+	if(!string_printf(shaderStr,
+		GLSL_VERSION_DIRECTIVE
+		"%s%s%s",
+		(Config::envIsAndroid && img.type() == TEX_2D_EXTERNAL) ? "#extension GL_OES_EGL_image_external:enable\n#define sampler2D samplerExternalOES\n" : "",
+		imgMode == IMG_MODE_MODULATE ? modulateMain : replaceMain,
+		src))
+	{
+		logMsg("shader text too large");
+		return 0;
+	}
+	//logMsg("making plugin shader with source:\n%s", shaderStr);
+	return makeShader(shaderStr, type);
 }
 
 Shader makeDefaultVShader()
@@ -285,6 +348,18 @@ Shader makeDefaultVShader()
 	if(!defaultVShader)
 		defaultVShader = makeShader(vShaderSrc, GL_VERTEX_SHADER);
 	return defaultVShader;
+}
+
+void deleteShader(Shader shader)
+{
+	logMsg("deleting shader %d", (int)shader);
+	assert(shader != defaultVShader);
+	glDeleteShader(shader);
+}
+
+void uniformF(int uniformLocation, float v1, float v2)
+{
+	glUniform2f(uniformLocation, v1, v2);
 }
 
 void initShaders()
@@ -307,6 +382,27 @@ static void compileDefaultProgram(T &prog, const char *fragSrc)
 	//glDetachShader(prog.program(), fShader);
 	//glDeleteShader(fShader);
 }
+
+#else
+
+void uniformF(int uniformLocation, float v1, float v2)
+{
+	bug_exit("called uniformF() without shader support");
+}
+
+void setProgram(Program &program)
+{
+	bug_exit("called setProgram() without shader support");
+}
+
+void setProgram(Program &program, Mat4 modelMat)
+{
+	bug_exit("called setProgram() without shader support");
+}
+
+void Program::deinit() {}
+
+void deleteShader(Shader shader) {}
 
 #endif
 

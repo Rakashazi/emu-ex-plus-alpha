@@ -14,7 +14,7 @@ Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
 StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
 EmuOptions.cc OptionView.cc EmuView.cc MultiChoiceView.cc \
 ConfigFile.cc InputManagerView.cc FileUtils.cc EmuApp.cc \
-BundledGamesView.cc
+BundledGamesView.cc VideoImageEffect.cc
 
 ifeq ($(emuFramework_cheats), 1)
  SRC += Cheats.cc

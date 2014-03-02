@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "QuartzPNG"
-
 #include "Quartz2d.hh"
 #include <base/iphone/private.hh>
 #import <UIKit/UIImage.h>

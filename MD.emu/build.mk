@@ -16,8 +16,8 @@ CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \
 # -DNO_SVP -DNO_SYSTEM_PBC
 
 # Genesis Plus includes
-CPPFLAGS += -Isrc/$(gplusPath) -Isrc/$(gplusPath)/m68k -Isrc/$(gplusPath)/z80 -Isrc/$(gplusPath)/input_hw \
--Isrc/$(gplusPath)/sound -Isrc/$(gplusPath)/cart_hw -Isrc/$(gplusPath)/cart_hw/svp
+CPPFLAGS += -I$(projectPath)/src/$(gplusPath) -I$(projectPath)/src/$(gplusPath)/m68k -I$(projectPath)/src/$(gplusPath)/z80 -I$(projectPath)/src/$(gplusPath)/input_hw \
+-I$(projectPath)/src/$(gplusPath)/sound -I$(projectPath)/src/$(gplusPath)/cart_hw -I$(projectPath)/src/$(gplusPath)/cart_hw/svp
 
 # Genesis Plus sources
 gplusSrc += system.cc genesis.cc io_ctrl.cc loadrom.cc \

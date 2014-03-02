@@ -7,14 +7,14 @@ include $(EMUFRAMEWORK_PATH)/common.mk
 
 SRC += main/Main.cc main/EmuControls.cc main/ViceApi.cc
 
-CPPFLAGS += -DSysDecimal=float -Isrc -Isrc/config -Isrc/vice -Isrc/vice/c64 -Isrc/vice/c64/cart \
--Isrc/vice/drive -Isrc/vice/lib/p64 -Isrc/vice/sid -Isrc/vice/vicii -Isrc/vice/tape -Isrc/vice/userport \
--Isrc/vice/video -Isrc/vice/drive/iec/c64exp -Isrc/vice/core -Isrc/vice/rtc -Isrc/vice/vdrive \
--Isrc/vice/imagecontents -Isrc/vice/monitor -Isrc/vice/platform -Isrc/vice/raster -Isrc/vice/c64dtv \
+CPPFLAGS += -DSysDecimal=float -I$(projectPath)/src -I$(projectPath)/src/config -I$(projectPath)/src/vice -I$(projectPath)/src/vice/c64 -I$(projectPath)/src/vice/c64/cart \
+-I$(projectPath)/src/vice/drive -I$(projectPath)/src/vice/lib/p64 -I$(projectPath)/src/vice/sid -I$(projectPath)/src/vice/vicii -I$(projectPath)/src/vice/tape -I$(projectPath)/src/vice/userport \
+-I$(projectPath)/src/vice/video -I$(projectPath)/src/vice/drive/iec/c64exp -I$(projectPath)/src/vice/core -I$(projectPath)/src/vice/rtc -I$(projectPath)/src/vice/vdrive \
+-I$(projectPath)/src/vice/imagecontents -I$(projectPath)/src/vice/monitor -I$(projectPath)/src/vice/platform -I$(projectPath)/src/vice/raster -I$(projectPath)/src/vice/c64dtv \
 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 \
 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1
 
-VPATH += src/vice
+VPATH += $(projectPath)/src/vice
 base_sources = \
 	alarm.c \
 	attach.c \

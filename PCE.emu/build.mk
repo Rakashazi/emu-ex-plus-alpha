@@ -10,7 +10,7 @@ include $(EMUFRAMEWORK_PATH)/common.mk
 
 SRC += main/Main.cc main/EmuControls.cc common/MDFNApi.cc main/PCEFast.cc
 
-CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -Isrc/include -Isrc/mednafen/hw_misc -Isrc/mednafen/hw_sound
+CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -I$(projectPath)/src/include -I$(projectPath)/src/mednafen/hw_misc -I$(projectPath)/src/mednafen/hw_sound
 
 # mednafen sources
 SRC += mednafen/pce_fast/input.cpp mednafen/pce_fast/vdc.cpp \

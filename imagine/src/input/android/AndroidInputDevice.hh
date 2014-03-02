@@ -203,8 +203,8 @@ static Key axisToKeycode(int axis)
 		case AXIS_LTRIGGER: return Keycode::JS_LTRIGGER_AXIS;
 		case AXIS_RTRIGGER: return Keycode::JS_RTRIGGER_AXIS;
 		// map brake/gas to L/R triggers for now
+		case AXIS_BRAKE : return Keycode::JS_LTRIGGER_AXIS;//return Keycode::JS_BRAKE_AXIS;
 		case AXIS_GAS : return Keycode::JS_RTRIGGER_AXIS;//return Keycode::JS_GAS_AXIS;
-		case AXIS_BRAKE : return Keycode::JS_RTRIGGER_AXIS;//return Keycode::JS_BRAKE_AXIS;
 	}
 	return Keycode::JS3_YAXIS_POS;
 }

@@ -166,7 +166,7 @@ ios-metadata : $(ios_plist)
 
 # tar package
 
-# Note: a version of tar with proper --transform support is needed for this rule
+# Note: a version of tar with proper --transform support is needed for this rule (gnutar from MacPorts)
 ios_tar := $(ios_targetPath)/$(iOS_metadata_bundleName)-$(iOS_metadata_version)-iOS.tar.gz
 $(ios_tar) : # depends on $(ios_fatExec) $(ios_plist) $(ios_setuidLauncher) $(ios_setuidPermissionHelper)
 	chmod a+x $(ios_fatExec)
@@ -177,7 +177,7 @@ ifdef ios_metadata_setuidPermissionHelper
 	chmod a+x $(ios_setuidPermissionHelper)
 	chmod gu+s $(ios_setuidPermissionHelper)
 endif
-	tar -cPhzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_icons)  $(ios_plist) $(ios_setuidPermissionHelper) \
+	gnutar -cPhzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_icons)  $(ios_plist) $(ios_setuidPermissionHelper) \
 	--transform='s,^$(ios_targetBinPath)/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,;s,^$(ios_setuidPermissionHelperDir)/,$(ios_bundleDirectory)/,;s,^$(ios_targetPath)/,$(ios_bundleDirectory)/,'
 .PHONY: ios-tar
 ios-tar : $(ios_tar)

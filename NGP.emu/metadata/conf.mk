@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = NGP.emu
 metadata_exec = ngpemu
 metadata_pkgName = NgpEmu

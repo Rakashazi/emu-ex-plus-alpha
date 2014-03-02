@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = Saturn.emu
 metadata_exec = saturnemu
 metadata_supportedFileExtensions = iso cue

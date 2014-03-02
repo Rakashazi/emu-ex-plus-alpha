@@ -76,6 +76,9 @@ extern Byte1Option optionKeepBluetoothActive;
 
 extern Byte4s1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+extern Byte1Option optionImgEffect;
+#endif
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 

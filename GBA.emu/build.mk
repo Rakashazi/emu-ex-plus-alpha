@@ -7,7 +7,7 @@ emuFramework_cheats := 1
 include $(EMUFRAMEWORK_PATH)/common.mk
 
 CPPFLAGS += -DHAVE_ZLIB_H -DFINAL_VERSION -DC_CORE -DNO_PNG -DNO_LINK -DNO_DEBUGGER -DBLIP_BUFFER_FAST=1 \
--DSysDecimal=float -Isrc/vbam
+-DSysDecimal=float -I$(projectPath)/src/vbam
 
 vbamSrc := gba/GBA-thumb.cpp gba/bios.cpp gba/Globals.cpp \
 gba/Cheats.cpp gba/Mode0.cpp gba/CheatSearch.cpp gba/Mode1.cpp \

@@ -198,9 +198,8 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint en
 					continue;
 				jEnv->DeleteLocalRef(range);
 				logMsg("trigger axis: %d", axisId);
-				auto size = 1.0f;
 				// use unreachable lowLimit value so only highLimit is used
-				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 1.f - size/4.f, 0, axisToKeycode(axisId)});
+				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f, 0, axisToKeycode(axisId)});
 				if(axis.isFull())
 				{
 					logMsg("reached maximum joystick axes");

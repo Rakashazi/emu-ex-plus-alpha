@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "Base"
 #import "MainApp.h"
 #import "EAGLView.h"
@@ -68,12 +69,6 @@ EAGLContext *mainContext = nullptr;
 CADisplayLink *displayLink = nullptr;
 BOOL displayLinkActive = NO;
 bool isIPad = 0;
-#ifdef __ARM_ARCH_6K__
-bool usingIOS4 = false;
-#else
-static const bool usingIOS4 = true; // always on iOS 5.0+ when compiled for ARMv7
-//bool usingIOS7 = false;
-#endif
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
 
@@ -244,20 +239,12 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	{
 		usingIOS7 = true;
 	}
-	#else
-	if([currSysVer compare:@"4.0" options:NSNumericSearch] != NSOrderedAscending)
-	{
-		usingIOS4 = true;
-	}
 	#endif
-	/*if ([currSysVer compare:@"3.2" options:NSNumericSearch] != NSOrderedAscending)
-	{
-		logMsg("enabling iOS 3.2 external display features");
-		NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-		[center addObserver:self selector:@selector(screenDidConnect:) name:UIScreenDidConnectNotification object:nil];
-		[center addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
-		[center addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];
-	}*/
+	/*logMsg("enabling iOS 3.2 external display features");
+	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+	[center addObserver:self selector:@selector(screenDidConnect:) name:UIScreenDidConnectNotification object:nil];
+	[center addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
+	[center addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];*/
 	#ifndef __ARM_ARCH_6K__
 	if(usingIOS7)
 		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
@@ -356,11 +343,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 namespace Base
 {
-
-bool hasIOS4()
-{
-	return usingIOS4;
-}
 
 void nsLog(const char* str)
 {

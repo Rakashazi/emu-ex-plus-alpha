@@ -68,6 +68,11 @@ void setupEGLConfig()
 	}
 }
 
+bool Window::shouldAnimateContentBoundsChange() const
+{
+	return orientationEventTime && (TimeSys::now() - orientationEventTime > TimeSys::makeWithMSecs(500));
+}
+
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	assert(xDPI && yDPI);

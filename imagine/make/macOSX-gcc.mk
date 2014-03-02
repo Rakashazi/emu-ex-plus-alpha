@@ -19,10 +19,7 @@ CPPFLAGS += $(OSX_FLAGS)
 LDFLAGS += $(OSX_FLAGS)
 
 LDFLAGS += -dead_strip -Wl,-S,-x
-WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
 extraSysroot := /opt/local
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
 CPPFLAGS += -I$(extraSysroot)/include
-
-include $(buildSysPath)/package/stdc++.mk

@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = PCE.emu
 metadata_exec = pceemu
 metadata_pkgName = PceEmu

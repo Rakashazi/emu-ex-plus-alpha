@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = GBA.emu
 metadata_exec = gbaemu
 metadata_pkgName = GbaEmu

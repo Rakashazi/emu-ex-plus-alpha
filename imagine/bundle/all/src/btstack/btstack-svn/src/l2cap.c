@@ -310,11 +310,30 @@ int l2cap_send_signaling_packet(hci_con_handle_t handle, L2CAP_SIGNALING_COMMAND
     uint8_t *acl_buffer = hci_get_outgoing_acl_packet_buffer();
     va_list argptr;
     va_start(argptr, identifier);
-    uint16_t len = l2cap_create_signaling_internal(acl_buffer, handle, cmd, identifier, argptr);
+    uint16_t len = l2cap_create_signaling_classic(acl_buffer, handle, cmd, identifier, argptr);
     va_end(argptr);
     // log_info("l2cap_send_signaling_packet con %u!\n", handle);
     return hci_send_acl_packet(acl_buffer, len);
 }
+
+#ifdef HAVE_BLE
+int l2cap_send_le_signaling_packet(hci_con_handle_t handle, L2CAP_SIGNALING_COMMANDS cmd, uint8_t identifier, ...){
+
+    if (!hci_can_send_packet_now(HCI_ACL_DATA_PACKET)){
+        log_info("l2cap_send_signaling_packet, cannot send\n");
+        return BTSTACK_ACL_BUFFERS_FULL;
+    }
+    
+    // log_info("l2cap_send_signaling_packet type %u\n", cmd);
+    uint8_t *acl_buffer = hci_get_outgoing_acl_packet_buffer();
+    va_list argptr;
+    va_start(argptr, identifier);
+    uint16_t len = l2cap_create_signaling_le(acl_buffer, handle, cmd, identifier, argptr);
+    va_end(argptr);
+    // log_info("l2cap_send_signaling_packet con %u!\n", handle);
+    return hci_send_acl_packet(acl_buffer, len);
+}
+#endif
 
 uint8_t *l2cap_get_outgoing_buffer(void){
     return hci_get_outgoing_acl_packet_buffer() + COMPLETE_L2CAP_HEADER; // 8 bytes
@@ -440,7 +459,7 @@ void l2cap_run(void){
         if (!hci_can_send_packet_now(HCI_ACL_DATA_PACKET)) break;
         
         hci_con_handle_t handle = signaling_responses[0].handle;
-        uint8_t sig_id = signaling_responses[0].sig_id;
+        uint8_t  sig_id = signaling_responses[0].sig_id;
         uint16_t infoType = signaling_responses[0].data;    // INFORMATION_REQUEST
         uint16_t result   = signaling_responses[0].data;    // CONNECTION_REQUEST, COMMAND_REJECT
         
@@ -481,7 +500,11 @@ void l2cap_run(void){
                 break;
             case COMMAND_REJECT:
                 l2cap_send_signaling_packet(handle, COMMAND_REJECT, sig_id, result, 0, NULL);
+#ifdef HAVE_BLE
+            case COMMAND_REJECT_LE:
+                l2cap_send_le_signaling_packet(handle, COMMAND_REJECT, sig_id, result, 0, NULL);
                 break;
+#endif
             default:
                 // should not happen
                 break;
@@ -831,18 +854,18 @@ void l2cap_event_handler( uint8_t *packet, uint16_t size ){
 
         case GAP_SECURITY_LEVEL:
             handle = READ_BT_16(packet, 2);
-            log_info("GAP_SECURITY_LEVEL");
+            log_info("l2cap - security level update");
             for (it = (linked_item_t *) l2cap_channels; it ; it = it->next){
                 channel = (l2cap_channel_t *) it;
                 if (channel->handle != handle) continue;
 
+                log_info("l2cap - state %u", channel->state);
+
                 gap_security_level_t actual_level = packet[4];
                 gap_security_level_t required_level = channel->required_security_level;
-                log_info("gap outgoing - security level update %u, required %u", actual_level, required_level);
 
                 switch (channel->state){
                     case L2CAP_STATE_WAIT_INCOMING_SECURITY_LEVEL_UPDATE:
-                        log_info("gap incoming");
                         if (actual_level >= required_level){
                             channel->state = L2CAP_STATE_WAIT_CLIENT_ACCEPT_OR_REJECT;
                             l2cap_emit_connection_request(channel);                
@@ -873,6 +896,8 @@ void l2cap_event_handler( uint8_t *packet, uint16_t size ){
     
     // pass on
     (*packet_handler)(NULL, HCI_EVENT_PACKET, 0, packet, size);
+
+    l2cap_run();
 }
 
 static void l2cap_handle_disconnect_request(l2cap_channel_t *channel, uint16_t identifier){
@@ -1256,7 +1281,14 @@ void l2cap_acl_handler( uint8_t *packet, uint16_t size ){
                 (*security_protocol_packet_handler)(SM_DATA_PACKET, handle, &packet[COMPLETE_L2CAP_HEADER], size-COMPLETE_L2CAP_HEADER);
             }
             break;
-            
+        
+        case L2CAP_CID_SIGNALING_LE: {
+            // not implemented yet for LE Peripheral
+            uint8_t sig_id = packet[COMPLETE_L2CAP_HEADER + 1]; 
+            l2cap_register_signaling_response(handle, COMMAND_REJECT_LE, sig_id, L2CAP_REJ_CMD_UNKNOWN);
+            break;
+        }
+
         default: {
             // Find channel for this channel_id and connection handle
             l2cap_channel_t * channel = l2cap_get_channel_for_local_cid(channel_id);

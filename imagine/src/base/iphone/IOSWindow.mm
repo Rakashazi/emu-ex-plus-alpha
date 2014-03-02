@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "IOSWindow"
 #import "MainApp.h"
 #import "EAGLView.h"
@@ -47,7 +48,6 @@ extern bool isIPad;
 #ifdef CONFIG_INPUT_ICADE
 extern ICadeHelper iCade;
 #endif
-bool hasIOS4();
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
 static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
@@ -118,6 +118,11 @@ static void initGLContext()
 	int ret = [EAGLContext setCurrentContext:mainContext];
 	assert(ret);
 	Gfx::init();
+}
+
+bool Window::shouldAnimateContentBoundsChange() const
+{
+	return true;
 }
 
 void Window::postDraw()
@@ -281,20 +286,11 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	setAutoOrientation(1);
 	#endif
 
-	// view controller init
-	if(hasIOS4())
-	{
-		logMsg("setting root view controller");
-		auto rootViewCtrl = [[ImagineUIViewController alloc] init];
-		rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
-		rootViewCtrl.view = glView();
-		uiWin().rootViewController = rootViewCtrl;
-	}
-	else
-	{
-		logMsg("adding subview");
-		[uiWin() addSubview:glView()];
-	}
+	//logMsg("setting root view controller");
+	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
+	rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
+	rootViewCtrl.view = glView();
+	uiWin().rootViewController = rootViewCtrl;
 	onWindowInit(*this);
 	return OK;
 }

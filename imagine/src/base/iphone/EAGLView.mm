@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import "EAGLView.h"
 #import "MainApp.h"
 #import <OpenGLES/EAGLDrawable.h>

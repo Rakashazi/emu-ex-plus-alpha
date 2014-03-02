@@ -196,6 +196,7 @@ void EmuView::placeEmu()
 				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
 	}
 	placeOverlay();
+	placeEffect();
 }
 
 template <bool active>
@@ -203,12 +204,16 @@ void EmuView::drawContent()
 {
 	using namespace Gfx;
 	setBlendMode(0);
-//	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-//	if(dispProg)
-//		setProgram(dispProg, projP.makeTranslate());
-//	else
-//	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(vidImgEffect.hasProgram())
+	{
+		setProgram(vidImgEffect.program(active ? IMG_MODE_REPLACE : IMG_MODE_MODULATE), projP.makeTranslate());
+	}
+	else
+	#endif
+	{
 		disp.useDefaultProgram(active ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+	}
 	disp.draw();
 	vidImgOverlay.draw();
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -531,5 +536,98 @@ void EmuView::inputEvent(const Input::Event &e)
 			else
 				break;
 		}
+	}
+}
+
+void EmuView::placeOverlay()
+{
+	vidImgOverlay.place(disp, vidPix.y);
+}
+
+void EmuView::placeEffect()
+{
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	vidImgEffect.place(vidPix);
+	if(vidImg)
+	{
+		vidImg.setFilter(vidImgEffect.effect() ? Gfx::BufferImage::NEAREST : (uint)optionImgFilter);
+	}
+	#endif
+}
+
+void EmuView::updateAndDrawContent()
+{
+	vidImg.write(vidPix, vidPixAlign);
+	drawContent<1>();
+}
+
+void EmuView::initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch)
+{
+	new(&vidPix) IG::Pixmap(*format);
+	if(!pitch)
+		vidPix.init(pixBuff, x, y);
+	else
+		vidPix.init2(pixBuff, x, y, pitch);
+	var_selfs(pixBuff);
+}
+
+void EmuView::compileDefaultPrograms()
+{
+	auto compiled = disp.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
+	compiled |= disp.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(vidImgEffect.effect() && !vidImgEffect.hasProgram())
+	{
+		vidImgEffect.compile(*disp.image());
+		compiled = true;
+	}
+	#endif
+	if(compiled)
+		Gfx::autoReleaseShaderCompiler();
+}
+
+void EmuView::reinitImage()
+{
+	vidImg.init(vidPix, 0, optionImgFilter);
+	disp.setImg(&vidImg);
+	compileDefaultPrograms();
+}
+
+void EmuView::resizeImage(uint x, uint y, uint pitch)
+{
+	resizeImage(0, 0, x, y, x, y, pitch);
+}
+
+void EmuView::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch)
+{
+	IG::Pixmap basePix(vidPix.format);
+	if(pitch)
+		basePix.init2(pixBuff, totalX, totalY, pitch);
+	else
+		basePix.init(pixBuff, totalX, totalY);
+	vidPix.initSubPixmap(basePix, xO, yO, x, y);
+	vidImg.init(vidPix, 0, optionImgFilter);
+	vidPixAlign = vidImg.bestAlignment(vidPix);
+	logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
+	disp.setImg(&vidImg);
+	if((uint)optionImageZoom > 100)
+		placeEmu();
+}
+
+void EmuView::initImage(bool force, uint x, uint y, uint pitch)
+{
+	if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
+	{
+		resizeImage(x, y, pitch);
+		compileDefaultPrograms();
+	}
+}
+
+void EmuView::initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch)
+{
+	if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
+	{
+		resizeImage(xO, yO, x, y, totalX, totalY, pitch);
+		compileDefaultPrograms();
 	}
 }

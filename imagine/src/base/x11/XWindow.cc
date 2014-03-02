@@ -34,6 +34,11 @@ extern int fbdev;
 static GLContextHelper glCtx;
 static Window *drawTargetWindow = nullptr;
 
+bool Window::shouldAnimateContentBoundsChange() const
+{
+	return true;
+}
+
 void Window::setPixelBestColorHint(bool best)
 {
 	// should only call before initial window creation

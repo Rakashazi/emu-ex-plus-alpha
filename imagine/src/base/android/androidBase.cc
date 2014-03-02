@@ -355,11 +355,6 @@ int keyboardType()
 	return aKeyboardType;
 }
 
-TimeSys lastOrientationEventTime()
-{
-	return orientationEventTime;
-}
-
 static bool setOrientationOS(int o)
 {
 	using namespace Gfx;

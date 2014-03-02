@@ -542,6 +542,11 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	return 0; // TODO
+}
+
 void EmuSystem::clearInputBuffers()
 {
 	PerPortReset();

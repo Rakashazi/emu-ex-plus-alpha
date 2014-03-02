@@ -13,12 +13,12 @@ SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
 BMSX := blueMSX
 
 CPPFLAGS += -DNO_FRAMEBUFFER -DLSB_FIRST -DNO_ASM -DSINGLE_THREADED -DNO_FILE_HISTORY \
--DNO_EMBEDDED_SAMPLES -DSysLDDec=float -Isrc/$(BMSX)
+-DNO_EMBEDDED_SAMPLES -DSysLDDec=float -I$(projectPath)/src/$(BMSX)
 
-CPPFLAGS += -Isrc/$(BMSX)/SoundChips -Isrc/$(BMSX)/VideoChips -Isrc/$(BMSX)/Z80 -Isrc/$(BMSX)/Media \
--Isrc/$(BMSX)/Common -Isrc/$(BMSX)/TinyXML -Isrc/$(BMSX)/VideoRender -Isrc/$(BMSX)/Board \
--Isrc/$(BMSX)/Arch -Isrc/$(BMSX)/Memory -Isrc/$(BMSX)/Emulator -Isrc/$(BMSX)/Input -Isrc/$(BMSX)/Utils \
--Isrc/$(BMSX)/Unzip -Isrc/$(BMSX)/Language -Isrc/$(BMSX)/IoDevice -Isrc/$(BMSX)/Debugger
+CPPFLAGS += -I$(projectPath)/src/$(BMSX)/SoundChips -I$(projectPath)/src/$(BMSX)/VideoChips -I$(projectPath)/src/$(BMSX)/Z80 -I$(projectPath)/src/$(BMSX)/Media \
+-I$(projectPath)/src/$(BMSX)/Common -I$(projectPath)/src/$(BMSX)/TinyXML -I$(projectPath)/src/$(BMSX)/VideoRender -I$(projectPath)/src/$(BMSX)/Board \
+-I$(projectPath)/src/$(BMSX)/Arch -I$(projectPath)/src/$(BMSX)/Memory -I$(projectPath)/src/$(BMSX)/Emulator -I$(projectPath)/src/$(BMSX)/Input -I$(projectPath)/src/$(BMSX)/Utils \
+-I$(projectPath)/src/$(BMSX)/Unzip -I$(projectPath)/src/$(BMSX)/Language -I$(projectPath)/src/$(BMSX)/IoDevice -I$(projectPath)/src/$(BMSX)/Debugger
 
 # blueMSX sources
 

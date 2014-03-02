@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = MD.emu
 metadata_exec = mdemu
 metadata_pkgName = MdEmu

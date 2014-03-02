@@ -7,7 +7,7 @@ emuFramework_cheats := 1
 include $(EMUFRAMEWORK_PATH)/common.mk
 
 CPPFLAGS += -DHAVE_STDINT_H -DGAMBATTE_CONST_FB_PITCH=160 -DGAMBATTE_NO_OSD -DSysDDec=float \
--Isrc/libgambatte/include -Isrc/common -iquote src/libgambatte/src
+-I$(projectPath)/src/libgambatte/include -I$(projectPath)/src/common -iquote $(projectPath)/src/libgambatte/src
 
 libgambatteSrc :=  src/cpu.cpp src/gambatte.cpp src/initstate.cpp \
 src/interrupter.cpp src/tima.cpp src/memory.cpp src/mem/rtc.cpp \

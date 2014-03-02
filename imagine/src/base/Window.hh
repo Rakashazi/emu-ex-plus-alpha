@@ -232,8 +232,9 @@ public:
 		return {0, 0, width(), height()};
 	}
 
-	// client content isn't blocked by system overlays and receives pointer input here
+	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
+	bool shouldAnimateContentBoundsChange() const;
 
 	uint setValidOrientations(uint oMask, bool preferAnimated);
 	uint setValidOrientations(uint oMask)

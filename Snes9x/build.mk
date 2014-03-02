@@ -12,7 +12,7 @@ emuFramework_cheats := 1
 include $(EMUFRAMEWORK_PATH)/common.mk
 
 snes9xPath := snes9x
-CPPFLAGS += -Isrc/snes9x -Isrc/snes9x/apu/bapu -DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR \
+CPPFLAGS += -I$(projectPath)/src/snes9x -I$(projectPath)/src/snes9x/apu/bapu -DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR \
 -DZLIB -DUNZIP_SUPPORT -DSysDDec=float -DUSE_OPENGL -DPIXEL_FORMAT=RGB565
 #-DHAVE_MKSTEMP -DUSE_THREADS -DJMA_SUPPORT
 

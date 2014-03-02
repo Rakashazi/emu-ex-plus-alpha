@@ -1,4 +1,4 @@
-include ../../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = Snes9x EX
 metadata_exec = s9x
 metadata_pkgName = Snes9xEX

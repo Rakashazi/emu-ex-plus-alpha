@@ -1,6 +1,8 @@
 ifndef inc_base
 inc_base := 1
 
+include $(IMAGINE_PATH)/make/package/stdc++.mk
+
 configDefs += CONFIG_BASE_IOS CONFIG_INPUT
 
 ifdef config_ios_jb

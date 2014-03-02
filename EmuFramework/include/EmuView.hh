@@ -18,6 +18,7 @@
 #include <gfx/GfxSprite.hh>
 #include <gfx/GfxBufferImage.hh>
 #include <VideoImageOverlay.hh>
+#include <VideoImageEffect.hh>
 #include <gui/View.hh>
 #include <EmuOptions.hh>
 
@@ -27,7 +28,7 @@ public:
 	bool ffGuiKeyPush = 0, ffGuiTouch = 0;
 	VideoImageOverlay vidImgOverlay;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	//Gfx::Program dispProg;
+	VideoImageEffect vidImgEffect;
 	#endif
 	Gfx::Sprite disp;
 	Gfx::BufferImage vidImg;
@@ -52,81 +53,16 @@ public:
 	void draw(Base::FrameTimeBase frameTime) override;
 	void inputEvent(const Input::Event &e) override;
 	void takeGameScreenshot();
-
-	void placeOverlay()
-	{
-		vidImgOverlay.place(disp, vidPix.y);
-	}
-
-	void updateAndDrawContent()
-	{
-		vidImg.write(vidPix, vidPixAlign);
-		drawContent<1>();
-	}
-
-	void initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch = 0)
-	{
-		new(&vidPix) IG::Pixmap(*format);
-		if(!pitch)
-			vidPix.init(pixBuff, x, y);
-		else
-			vidPix.init2(pixBuff, x, y, pitch);
-		var_selfs(pixBuff);
-	}
-
-	void compileDefaultPrograms()
-	{
-		auto compiled = disp.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
-		compiled |= disp.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-		if(compiled)
-			Gfx::autoReleaseShaderCompiler();
-	}
-
-	void reinitImage()
-	{
-		vidImg.init(vidPix, 0, optionImgFilter);
-		disp.setImg(&vidImg);
-		compileDefaultPrograms();
-	}
-
-	void resizeImage(uint x, uint y, uint pitch = 0)
-	{
-		resizeImage(0, 0, x, y, x, y, pitch);
-	}
-
-	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0)
-	{
-		IG::Pixmap basePix(vidPix.format);
-		if(pitch)
-			basePix.init2(pixBuff, totalX, totalY, pitch);
-		else
-			basePix.init(pixBuff, totalX, totalY);
-		vidPix.initSubPixmap(basePix, xO, yO, x, y);
-		vidImg.init(vidPix, 0, optionImgFilter);
-		vidPixAlign = vidImg.bestAlignment(vidPix);
-		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
-		disp.setImg(&vidImg);
-		if((uint)optionImageZoom > 100)
-			placeEmu();
-	}
-
-	void initImage(bool force, uint x, uint y, uint pitch = 0)
-	{
-		if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
-		{
-			resizeImage(x, y, pitch);
-			compileDefaultPrograms();
-		}
-	}
-
-	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0)
-	{
-		if(force || !disp.image() || vidPix.x != x || vidPix.y != y)
-		{
-			resizeImage(xO, yO, x, y, totalX, totalY, pitch);
-			compileDefaultPrograms();
-		}
-	}
+	void placeOverlay();
+	void placeEffect();
+	void updateAndDrawContent();
+	void compileDefaultPrograms();
+	void initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch = 0);
+	void reinitImage();
+	void resizeImage(uint x, uint y, uint pitch = 0);
+	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void initImage(bool force, uint x, uint y, uint pitch = 0);
+	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
 
 	const IG::WindowRect &gameRect() const
 	{

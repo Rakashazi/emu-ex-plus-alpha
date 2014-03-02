@@ -9,7 +9,7 @@ ifeq ($(ENV), android)
 endif
 
 ifdef O_LTO
- LDFLAGS += $(COMPILE_FLAGS) $(WHOLE_PROGRAM_CFLAGS)
+ LDFLAGS += $(COMPILE_FLAGS)
 endif
 
 targetFile := $(target)$(targetSuffix)$(targetExtension)

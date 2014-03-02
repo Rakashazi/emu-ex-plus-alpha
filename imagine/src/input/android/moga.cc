@@ -148,9 +148,8 @@ static void initMOGAJNI(JNIEnv *jEnv)
 		for(auto axisId : triggerAxes)
 		{
 			//logMsg("trigger axis: %d", axisId);
-			auto size = 1.0f;
 			// use unreachable lowLimit value so only highLimit is used
-			mogaDev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 1.f - size/4.f, 0, axisToKeycode(axisId)});
+			mogaDev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f, 0, axisToKeycode(axisId)});
 		}
 	}
 	mogaDev.joystickAxisAsDpadBitsDefault_ = Device::AXIS_BITS_STICK_1;

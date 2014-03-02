@@ -213,6 +213,9 @@ static bool readConfig2(Io &io)
 			#ifdef CONFIG_BASE_ANDROID
 			bcase CFGKEY_DPI: optionDPI.readFromIO(io, size);
 			#endif
+			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+			bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
+			#endif
 			bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
@@ -422,6 +425,9 @@ static OptionBase *cfgFileOption[] =
 	&optionImageZoom,
 	&optionViewportZoom,
 	&optionImgFilter,
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	&optionImgEffect,
+	#endif
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
 	#ifdef INPUT_SUPPORTS_RELATIVE_POINTER

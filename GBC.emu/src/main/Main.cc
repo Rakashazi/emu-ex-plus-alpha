@@ -27,8 +27,7 @@ PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker ha
 class ImagineFile : public gambatte::File
 {
 public:
-	constexpr ImagineFile(Io &io): io(io)
-	{}
+	ImagineFile(Io &io): io(io) {}
 
 	~ImagineFile() override {}
 
@@ -147,6 +146,16 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 #include "CommonGui.hh"
+
+const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "Test Game", "game.gb"	}
+	};
+
+	return info[0];
+}
 
 const char *EmuSystem::shortSystemName()
 {

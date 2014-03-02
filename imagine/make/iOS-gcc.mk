@@ -28,9 +28,10 @@ ifdef RELEASE
 endif
 
 OBJCFLAGS += -fobjc-arc
+LDFLAGS += -fobjc-arc
 
- # base engine code needs at least iOS 3.1
-minIOSVer = 3.1
+ # base engine code needs at least iOS 4.0
+minIOSVer = 4.0
 IOS_SDK ?= 7.1
 XCODE_PATH := $(shell xcode-select --print-path)
 ifeq ($(ARCH),x86)
@@ -44,17 +45,19 @@ endif
 CPPFLAGS += $(IOS_FLAGS)
 LDFLAGS += $(IOS_FLAGS)
 
-ifneq ($(SUBARCH),armv6)
- ifndef ios_noDeadStrip
-  LDFLAGS += -dead_strip
+ifeq ($(SUBARCH),armv6)
+ ifdef iosNoDeadStripArmv6
+  ios_noDeadStrip := 1
  endif
+endif
+ifndef ios_noDeadStrip
+ LDFLAGS += -dead_strip
 endif
 ifdef RELEASE
  LDFLAGS += -Wl,-S,-x,-dead_strip_dylibs,-no_pie
 else
  LDFLAGS += -Wl,-x,-dead_strip_dylibs,-no_pie
 endif
-WHOLE_PROGRAM_CFLAGS := -fipa-pta -fwhole-program
 
 CPPFLAGS += -I$(IMAGINE_PATH)/bundle/darwin-iOS/include
 noDoubleFloat=1
@@ -62,5 +65,3 @@ noDoubleFloat=1
 # clang SVN doesn't seem to handle ASM properly so use as directly
 AS := as
 ASMFLAGS :=
-
-include $(buildSysPath)/package/stdc++.mk

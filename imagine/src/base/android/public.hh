@@ -45,7 +45,6 @@ bool apkSignatureIsConsistent();
 const char *androidBuildDevice();
 bool hasTrackball();
 bool packageIsInstalled(const char *name);
-TimeSys lastOrientationEventTime();
 
 }
 

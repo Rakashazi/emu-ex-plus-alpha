@@ -30,6 +30,11 @@ namespace glm{
 namespace detail
 {
 	template <typename T, precision P>
+	constexpr typename tmat4x4<T, P>::value_type tmat4x4<T, P>::Zero;
+	template <typename T, precision P>
+	constexpr typename tmat4x4<T, P>::value_type tmat4x4<T, P>::One;
+
+	template <typename T, precision P>
 	GLM_FUNC_QUALIFIER GLM_CONSTEXPR length_t tmat4x4<T, P>::length() const
 	{
 		return 4;

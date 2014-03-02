@@ -301,6 +301,9 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
 	emuView.disp.flags = Gfx::Sprite::HINT_NO_MATRIX_TRANSFORM;
 	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	emuView.vidImgEffect.setEffect(optionImgEffect);
+	#endif
 	emuView.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuView.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
 
@@ -666,11 +669,7 @@ void onViewChange(Base::Window &win)
 	auto oldViewport = viewport;
 	auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
 	auto newViewport = makeViewport(win);
-	if(newViewport != oldViewport && lastWindowSize == win.size()
-		#ifdef __ANDROID__
-		&& Base::lastOrientationEventTime() && (TimeSys::now() - Base::lastOrientationEventTime() > TimeSys::makeWithMSecs(500))
-		#endif
-	)
+	if(newViewport != oldViewport && lastWindowSize == win.size() && win.shouldAnimateContentBoundsChange())
 	{
 		logMsg("viewport changed with same window size");
 		auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;

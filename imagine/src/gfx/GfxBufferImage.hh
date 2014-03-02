@@ -53,7 +53,7 @@ public:
 	void unlock(IG::Pixmap *p);
 	const TextureDesc &textureDesc() const { return BufferImageImpl::textureDesc(); };
 	TextureDesc &textureDesc() { return BufferImageImpl::textureDesc(); };
-	uint type() { return type_; }
+	uint type() const { return type_; }
 	bool compileDefaultProgram(uint mode);
 	void useDefaultProgram(uint mode, const Mat4 *modelMat);
 	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }

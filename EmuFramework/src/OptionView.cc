@@ -289,11 +289,18 @@ void OptionView::viewportZoomInit()
 	viewportZoom.init(str, val, sizeofArray(str));
 }
 
-void OptionView::imgFilterInit()
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+void OptionView::imgEffectInit()
 {
-	static const char *str[] = { "None", "Linear" };
-	imgFilter.init(str, optionImgFilter, sizeofArray(str));
+	static const char *str[] {"Off", "hq2x"};
+	uint init = 0;
+	switch(optionImgEffect)
+	{
+		bcase VideoImageEffect::HQ2X: init = 1;
+	}
+	imgEffect.init(str, init, sizeofArray(str));
 }
+#endif
 
 void OptionView::overlayEffectInit()
 {
@@ -501,7 +508,10 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	if(!optionFrameSkip.isConst) { frameSkipInit(); item[items++] = &frameSkip; }
 	if(!optionGameOrientation.isConst) { gameOrientationInit(); item[items++] = &gameOrientation; }
 	aspectRatioInit(); item[items++] = &aspectRatio;
-	imgFilterInit(); item[items++] = &imgFilter;
+	imgFilter.init(optionImgFilter); item[items++] = &imgFilter;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	imgEffectInit(); item[items++] = &imgEffect;
+	#endif
 	overlayEffectInit(); item[items++] = &overlayEffect;
 	overlayEffectLevelInit(); item[items++] = &overlayEffectLevel;
 	zoomInit(); item[items++] = &zoom;
@@ -688,8 +698,17 @@ OptionView::OptionView(Base::Window &win):
 				item.toggle(*this);
 				optionSurfaceTexture = item.on;
 				Gfx::setUseAndroidSurfaceTexture(item.on);
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				// re-apply effect so any shaders are re-compiled
+				emuView.vidImgEffect.setEffect(optionImgEffect);
+				#endif
 				if(emuView.vidImg)
+				{
 					emuView.reinitImage();
+					#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+					emuView.placeEffect();
+					#endif
+				}
 			}
 		},
 		#endif
@@ -767,14 +786,40 @@ OptionView::OptionView(Base::Window &win):
 	},
 	imgFilter
 	{
-		"Image Filter",
-		[](MultiChoiceMenuItem &, int val)
+		"Image Interpolation", "None", "Linear",
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			optionImgFilter.val = val;
-			if(emuView.disp.image())
-				emuView.vidImg.setFilter(val);
+			item.toggle(*this);
+			optionImgFilter.val = item.on;
+			if(emuView.disp.image()
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				&& !emuView.vidImgEffect.effect()
+				#endif
+				)
+				emuView.vidImg.setFilter(item.on);
 		}
 	},
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	imgEffect
+	{
+		"Image Effect",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			uint setVal = 0;
+			switch(val)
+			{
+				bcase 1: setVal = VideoImageEffect::HQ2X;
+			}
+			optionImgEffect.val = setVal;
+			emuView.vidImgEffect.setEffect(setVal);
+			if(emuView.disp.image())
+			{
+				emuView.compileDefaultPrograms();
+				emuView.placeEffect();
+			}
+		}
+	},
+	#endif
 	overlayEffect
 	{
 		"Overlay Effect",

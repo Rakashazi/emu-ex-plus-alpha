@@ -1,0 +1,1 @@
+../../../../res/android/assets/hq2x-f.txt

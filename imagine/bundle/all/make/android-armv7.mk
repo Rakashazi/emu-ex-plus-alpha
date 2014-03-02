@@ -2,7 +2,7 @@
 
 # don't LTO with -marm since oupt will eventually be combined with THUMB code
 ifeq ($(android_armv7State),-marm)
-undefine O_LTO
+ undefine O_LTO
 endif
 
 buildDir = /tmp/imagine-bundle/$(pkgName)/build/android-armv7

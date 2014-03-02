@@ -5,4 +5,5 @@ metadata_confDeps = $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 cxxExceptions := 1
 
 # ld complains about ___floatdisf if using -dead_strip with LTO, cause unknown but could be linker bug
-ios_noDeadStrip := 1
+# seems fixed in Xcode 5.1
+#ios_noDeadStrip := 1

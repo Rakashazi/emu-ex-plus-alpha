@@ -1,4 +1,4 @@
-include ../EmuFramework/metadata/conf.mk
+include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = C64.emu
 metadata_exec = c64emu
 metadata_pkgName = C64Emu

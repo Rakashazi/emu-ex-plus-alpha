@@ -355,6 +355,11 @@ int EmuSystem::loadGame(const char *path)
 	return 0;
 }
 
+int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+{
+	return 0; // TODO
+}
+
 void EmuSystem::clearInputBuffers()
 {
 	mem_zero(inputBuff);

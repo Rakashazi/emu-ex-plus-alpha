@@ -46,18 +46,21 @@ void startKeyRepeatTimer(const Event &event)
 		[]()
 		{
 			logMsg("repeating key event");
-			Base::onInputEvent(Base::mainWindow(), keyRepeatEvent);
+			if(likely(keyRepeatEvent.pushed()))
+				Base::onInputEvent(Base::mainWindow(), keyRepeatEvent);
 		}, 400, 50, Base::Timer::HINT_REUSE);
 }
 
 void cancelKeyRepeatTimer()
 {
 	keyRepeatTimer.cancel();
+	keyRepeatEvent = {};
 }
 
 void deinitKeyRepeatTimer()
 {
 	keyRepeatTimer.deinit();
+	keyRepeatEvent = {};
 }
 
 StaticArrayList<Device*, MAX_DEVS> devList;

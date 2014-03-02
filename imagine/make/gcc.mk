@@ -4,6 +4,7 @@ include $(buildSysPath)/gcc-common.mk
 
 ifdef O_LTO
  COMPILE_FLAGS += -flto
+ #COMPILE_FLAGS += -fipa-pta
  ifndef O_LTO_FAT
   COMPILE_FLAGS += -fno-fat-lto-objects
  endif
@@ -19,7 +20,7 @@ endif
 
 ifdef O_LTO_LINK_ONLY
  # link thin LTO objects with non-LTO objects
- LDFLAGS += -flto $(WHOLE_PROGRAM_CFLAGS) $(COMPILE_FLAGS)
+ LDFLAGS += -flto $(COMPILE_FLAGS)
 endif
 
 gccVersion := $(shell $(CC) -dumpversion)
@@ -34,7 +35,6 @@ ifndef RELEASE
  endif
 endif
 
-#WHOLE_PROGRAM_CFLAGS += -fipa-pta
 NORMAL_WARNINGS_CFLAGS += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing) -fmax-errors=15
 #NORMAL_WARNINGS_CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn
 

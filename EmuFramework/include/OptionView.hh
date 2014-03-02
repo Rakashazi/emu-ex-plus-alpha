@@ -51,8 +51,11 @@ protected:
 	void zoomInit();
 	MultiChoiceSelectMenuItem viewportZoom;
 	void viewportZoomInit();
-	MultiChoiceSelectMenuItem imgFilter;
-	void imgFilterInit();
+	BoolMenuItem imgFilter;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	MultiChoiceSelectMenuItem imgEffect;
+	void imgEffectInit();
+	#endif
 	MultiChoiceSelectMenuItem overlayEffect;
 	void overlayEffectInit();
 	MultiChoiceSelectMenuItem overlayEffectLevel;
