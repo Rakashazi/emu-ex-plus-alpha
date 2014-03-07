@@ -19,7 +19,6 @@
 #include <gui/View.hh>
 #include <util/Interpolator.hh>
 #include <config/version.h>
-#include <meta.h>
 
 #ifdef ENV_NOTE
 #define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
@@ -37,7 +36,7 @@ private:
 	IG::WindowRect rect;
 
 public:
-	constexpr CreditsView(const char *str, Base::Window &win): View(CONFIG_APP_NAME " " IMAGINE_VERSION, win), str(str) {}
+	CreditsView(const char *str, Base::Window &win);
 	IG::WindowRect &viewRect() override { return rect; }
 	void draw(Base::FrameTimeBase frameTime) override;
 	void place() override;

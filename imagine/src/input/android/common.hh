@@ -73,7 +73,8 @@ static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> 
 
 static bool handleTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)
 {
-	//logMsg("action: %s", androidEventEnumToStr(action));
+	//logMsg("%s action: %s from id %d @ %d,%d @ time %f",
+	//	isTouch ? "touch" : "mouse", pid, x, y, androidEventEnumToStr(action), (double)time);
 	auto pos = pointerPos(Base::mainWindow(), x, y);
 	switch(action)
 	{
@@ -161,7 +162,10 @@ void handleKeyEvent(int key, int down, uint devId, uint metaState, Time time, co
 	#ifdef CONFIG_INPUT_ICADE
 	if(!dev.iCadeMode() || (dev.iCadeMode() && !processICadeKey(Keycode::decodeAscii(key, 0), action, dev, Base::mainWindow())))
 	#endif
+	{
+		cancelKeyRepeatTimer();
 		Base::onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_SYSTEM, key & 0xff, action, metaState, time, &dev));
+	}
 }
 
 static InputTextDelegate vKeyboardTextDelegate;

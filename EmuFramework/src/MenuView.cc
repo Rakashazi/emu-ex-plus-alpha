@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <meta.h>
 #include <MenuView.hh>
 #include <Recent.hh>
 #include <gui/AlertView.hh>
@@ -147,7 +148,7 @@ void MenuView::onShow()
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
 	stateSlot.compile();
 	screenshot.active = EmuSystem::gameIsRunning();
-	#ifdef CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon.active = EmuSystem::gameIsRunning();
 	#endif
 	#ifdef CONFIG_BLUETOOTH
@@ -187,7 +188,7 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 		#endif
 	bluetoothDisconnect.init(); item[items++] = &bluetoothDisconnect;
 	#endif
-	#ifdef CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon.init(); item[items++] = &addLauncherIcon;
 	#endif
 	benchmark.init(); item[items++] = &benchmark;
@@ -363,7 +364,7 @@ MenuView::MenuView(Base::Window &win):
 			modalViewController.pushAndShow(fPicker);
 		}
 	},
-	#ifdef CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher",

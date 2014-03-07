@@ -432,7 +432,6 @@ int32_t onInputEvent(AInputEvent* event, Base::Window &win)
 		}
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
-			cancelKeyRepeatTimer();
 			auto keyCode = AKeyEvent_getKeyCode(event);
 			//logMsg("key event, code: %d id: %d source: 0x%X repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
 			if(!handleVolumeKeys &&

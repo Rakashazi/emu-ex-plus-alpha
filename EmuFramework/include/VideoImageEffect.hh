@@ -23,6 +23,7 @@ class VideoImageEffect
 {
 private:
 	Gfx::Program prog[2];
+	Gfx::Shader vShader[2] {0};
 	Gfx::Shader fShader[2] {0};
 	int texDeltaU[2] {0};
 	uint effect_ = NO_EFFECT;
@@ -43,4 +44,5 @@ public:
 	void place(const IG::Pixmap &pix);
 	Gfx::Program &program(uint imgMode);
 	bool hasProgram() const;
+	void deinit();
 };

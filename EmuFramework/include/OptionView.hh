@@ -60,9 +60,8 @@ protected:
 	void overlayEffectInit();
 	MultiChoiceSelectMenuItem overlayEffectLevel;
 	void overlayEffectLevelInit();
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
+	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	BoolMenuItem bestColorModeHint;
-	void bestColorModeHintHandler(BoolMenuItem &item, const Input::Event &e);
 	#endif
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	BoolMenuItem secondDisplay;

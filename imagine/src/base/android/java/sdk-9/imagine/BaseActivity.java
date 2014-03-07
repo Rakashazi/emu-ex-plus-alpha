@@ -48,7 +48,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private View contentView;
 	private Rect contentRect = new Rect();
 
-	// For API level < 16, FLAG_LAYOUT_INSET_DECOR will adjust the view rectangle to not overlap the system windows
+	// For API level <= 9, FLAG_LAYOUT_INSET_DECOR will adjust the view rectangle to not overlap the system windows
+	// For API level >= 10 and <= 15, use getGlobalVisibleRect since fitSystemWindows isn't called
 	final class BaseContentLegacyView extends View
 	{
 		public BaseContentLegacyView(Context context)
@@ -59,6 +60,18 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
 		{
 			//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
+			if(android.os.Build.VERSION.SDK_INT >= 10)
+			{
+				Rect globalRect = new Rect();
+				if(getGlobalVisibleRect(globalRect))
+				{
+					//Log.i(logTag, "getGlobalVisibleRect: " + globalRect.left + ":" + globalRect.top + ":" + globalRect.right + ":" + globalRect.bottom);
+					left = globalRect.left;
+					top = globalRect.top;
+					right = globalRect.right;
+					bottom = globalRect.bottom;
+				}
+			}
 			if(contentRect.left != left || contentRect.top != top
 				|| contentRect.right != right || contentRect.bottom != bottom)
 			{
@@ -440,8 +453,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			setTheme(android.R.style.Theme_Holo_NoActionBar);
 		}
 		Window win = getWindow();
-		win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
-		setUIVisibility(0); // apply SYSTEM_UI_FLAG_LAYOUT_*
+		if(android.os.Build.VERSION.SDK_INT >= 16)
+			setUIVisibility(0); // apply SYSTEM_UI_FLAG_LAYOUT_*
+		else
+			win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
 		super.onCreate(savedInstanceState);
 		win.setBackgroundDrawable(null);
 		win.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);

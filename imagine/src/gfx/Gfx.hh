@@ -61,7 +61,8 @@ public:
 
 class BufferImage;
 Shader makeShader(const char *src, uint type);
-Shader makePluginShader(const char *src, uint type, uint imgMode, const BufferImage &img);
+Shader makePluginVertexShader(const char *src, uint imgMode);
+Shader makePluginFragmentShader(const char *src, uint imgMode, const BufferImage &img);
 Shader makeDefaultVShader();
 void deleteShader(Shader shader);
 void setProgram(Program &program);

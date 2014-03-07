@@ -358,7 +358,6 @@ static void handlePointerLeave(Base::Window &win, int p, int x, int y, Input::Ti
 
 static void handleKeyEv(Base::Window &win, KeySym k, uint action, bool isShiftPushed, Input::Time time, const Input::Device *dev)
 {
-	//logMsg("got keysym %d", (int)k);
 	Input::cancelKeyRepeatTimer();
 	Base::onInputEvent(win, Input::Event(dev->enumId(), Input::Event::MAP_SYSTEM, k & 0xFFFF, action, isShiftPushed, time, dev));
 }

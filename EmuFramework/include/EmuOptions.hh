@@ -38,7 +38,8 @@ extern Byte1Option optionSound;
 	#endif
 extern Byte1Option optionSoundBuffers;
 #endif
-#ifdef CONFIG_AUDIO_OPENSL_ES
+#if defined CONFIG_AUDIO_OPENSL_ES && !defined CONFIG_MACHINE_OUYA
+#define EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
 #endif
 #ifdef CONFIG_AUDIO_SOLO_MIX
@@ -142,8 +143,8 @@ extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionG
 
 extern Byte1Option optionDitherImage;
 
-#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_IS_OUYA) || defined CONFIG_BASE_IOS
-#define USE_BEST_COLOR_MODE_OPTION
+#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || defined CONFIG_BASE_IOS
+#define EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 extern Byte1Option optionBestColorModeHint;
 #endif
 

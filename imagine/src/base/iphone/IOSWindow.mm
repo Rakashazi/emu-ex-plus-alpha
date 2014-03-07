@@ -278,10 +278,10 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 		#endif
 	}
 	[glView() bindDrawable];
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_INPUT_ICADE
 	iCade.init(glView());
 	#endif
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	setAutoOrientation(1);
 	#endif

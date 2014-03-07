@@ -331,11 +331,14 @@ static int eventHandler(XEvent event)
 							using namespace Input;
 							if(!repeated || Input::allowKeyRepeats)
 							{
+								//logMsg("push KeySym %d, KeyCode %d", (int)k, ievent.detail);
 								#ifdef CONFIG_INPUT_ICADE
 								if(!dev->iCadeMode()
-										|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::PUSHED, *dev, win)))
+									|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::PUSHED, *dev, win)))
 								#endif
+								{
 									handleKeyEv(win, k, Input::PUSHED, ievent.mods.effective & ShiftMask, ievent.time, dev);
+								}
 							}
 						}
 					}
@@ -350,8 +353,15 @@ static int eventHandler(XEvent event)
 						}
 						else
 							k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+						using namespace Input;
 						//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
-						handleKeyEv(win, k, Input::RELEASED, 0, ievent.time, dev);
+						#ifdef CONFIG_INPUT_ICADE
+						if(!dev->iCadeMode()
+							|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::RELEASED, *dev, win)))
+						#endif
+						{
+							handleKeyEv(win, k, Input::RELEASED, 0, ievent.time, dev);
+						}
 					}
 					bcase XI_HierarchyChanged:
 					{

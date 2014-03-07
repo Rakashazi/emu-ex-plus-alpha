@@ -16,8 +16,6 @@ static GLuint defaultVShader = 0;
 	#define GLSL_VERSION_DIRECTIVE "#version 130\n"
 	#endif
 
-	#define LOWP " lowp "
-
 static const char *vShaderSrc =
 GLSL_VERSION_DIRECTIVE
 "attribute vec4 pos; "
@@ -36,8 +34,8 @@ GLSL_VERSION_DIRECTIVE
 
 static const char *texFragShaderSrc =
 GLSL_VERSION_DIRECTIVE
-"varying " LOWP " vec4 colorOut; "
-"varying " LOWP " vec2 texUVOut; "
+"varying lowp vec4 colorOut; "
+"varying lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
 	"gl_FragColor = colorOut * texture2D(tex, texUVOut); "
@@ -46,7 +44,7 @@ GLSL_VERSION_DIRECTIVE
 
 static const char *texReplaceFragShaderSrc =
 GLSL_VERSION_DIRECTIVE
-"varying " LOWP " vec2 texUVOut; "
+"varying lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
 	"gl_FragColor = texture2D(tex, texUVOut); "
@@ -55,12 +53,12 @@ GLSL_VERSION_DIRECTIVE
 
 static const char *texAlphaFragShaderSrc =
 GLSL_VERSION_DIRECTIVE
-"varying " LOWP " vec4 colorOut; "
-"varying " LOWP " vec2 texUVOut; "
+"varying lowp vec4 colorOut; "
+"varying lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
 	// adapted from: gl_FragColor = colorOut * vec4(1., 1., 1., texture2D(tex, texUVOut).[alpha]);
-	LOWP " vec4 tmp; "
+	"lowp vec4 tmp; "
 	"tmp.rgb = colorOut.rgb; "
 	#ifdef CONFIG_GFX_OPENGL_ES
 	"tmp.a = colorOut.a * texture2D(tex, texUVOut).a; "
@@ -73,11 +71,11 @@ GLSL_VERSION_DIRECTIVE
 
 static const char *texAlphaReplaceFragShaderSrc =
 GLSL_VERSION_DIRECTIVE
-"varying " LOWP " vec4 colorOut; "
-"varying " LOWP " vec2 texUVOut; "
+"varying lowp vec4 colorOut; "
+"varying lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
-	LOWP " vec4 tmp; "
+	"lowp vec4 tmp; "
 	"tmp.rgb = colorOut.rgb; "
 	#ifdef CONFIG_GFX_OPENGL_ES
 	"tmp.a = texture2D(tex, texUVOut).a; "
@@ -91,21 +89,21 @@ GLSL_VERSION_DIRECTIVE
 	#ifndef CONFIG_GFX_OPENGL_ES
 	static const char *texIntensityAlphaFragShaderSrc =
 	GLSL_VERSION_DIRECTIVE
-	"varying " LOWP " vec4 colorOut; "
-	"varying " LOWP " vec2 texUVOut; "
+	"varying lowp vec4 colorOut; "
+	"varying lowp vec2 texUVOut; "
 	"uniform sampler2D tex; "
 	"void main() { "
-		LOWP " float i = texture2D(tex, texUVOut).r; "
+		"lowp float i = texture2D(tex, texUVOut).r; "
 		"gl_FragColor = colorOut * vec4(i, i, i, texture2D(tex, texUVOut).g); "
 	"}"
 	;
 
 	static const char *texIntensityAlphaReplaceFragShaderSrc =
 	GLSL_VERSION_DIRECTIVE
-	"varying " LOWP " vec2 texUVOut; "
+	"varying lowp vec2 texUVOut; "
 	"uniform sampler2D tex; "
 	"void main() { "
-		LOWP " float i = texture2D(tex, texUVOut).r; "
+		"lowp float i = texture2D(tex, texUVOut).r; "
 		"gl_FragColor = vec4(i, i, i, texture2D(tex, texUVOut).g); "
 	"}"
 	;
@@ -118,8 +116,8 @@ GLSL_VERSION_DIRECTIVE
 	static const char *texExternalFragShaderSrc =
 	GLSL_VERSION_DIRECTIVE
 	"#extension GL_OES_EGL_image_external:enable\n"
-	"varying " LOWP " vec4 colorOut; "
-	"varying " LOWP " vec2 texUVOut; "
+	"varying lowp vec4 colorOut; "
+	"varying lowp vec2 texUVOut; "
 	"uniform samplerExternalOES tex; "
 	"void main() { "
 		"gl_FragColor = colorOut * texture2D(tex, texUVOut); "
@@ -129,7 +127,7 @@ GLSL_VERSION_DIRECTIVE
 	static const char *texExternalReplaceFragShaderSrc =
 	GLSL_VERSION_DIRECTIVE
 	"#extension GL_OES_EGL_image_external:enable\n"
-	"varying " LOWP " vec2 texUVOut; "
+	"varying lowp vec2 texUVOut; "
 	"uniform samplerExternalOES tex; "
 	"void main() { "
 		"gl_FragColor = texture2D(tex, texUVOut); "
@@ -139,7 +137,7 @@ GLSL_VERSION_DIRECTIVE
 
 static const char *noTexFragShaderSrc =
 GLSL_VERSION_DIRECTIVE
-"varying " LOWP " vec4 colorOut; "
+"varying lowp vec4 colorOut; "
 "void main() { "
 	"gl_FragColor = colorOut; "
 "}"
@@ -161,10 +159,9 @@ bool linkProgram(GLuint program)
 	if(success == GL_FALSE)
 	{
 		#ifndef NDEBUG
-		GLchar messages[1024];
-		glGetShaderInfoLog(program, sizeof(messages), nullptr, messages);
-		logErr("shader info log: %s", messages);
-		bug_exit("link failed");
+		GLchar messages[4096];
+		glGetProgramInfoLog(program, sizeof(messages), nullptr, messages);
+		logErr("linker info log: %s", messages);
 		#endif
 		return false;
 	}
@@ -299,48 +296,66 @@ Shader makeShader(const char *src, uint type)
 	if(success == GL_FALSE)
 	{
 		#ifndef NDEBUG
-		GLchar messages[1024];
+		GLchar messages[4096];
 		glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
 		logErr("shader info log: %s", messages);
-		bug_exit("shader compile failed");
 		#endif
 		return 0;
 	}
 	return shader;
 }
 
-Shader makePluginShader(const char *src, uint type, uint imgMode, const BufferImage &img)
+Shader makePluginVertexShader(const char *src, uint imgMode)
 {
-	assert(type == GL_FRAGMENT_SHADER);
-	const char *modulateMain =
-	"varying lowp vec4 colorOut; "
-	"varying lowp vec2 texUVOut; "
-	"lowp vec4 makeFrag(const in lowp vec2 uv); "
-	"uniform sampler2D tex; "
-	"void main() { "
-		"gl_FragColor = colorOut * makeFrag(texUVOut); "
-	"}\n";
-	const char *replaceMain =
-	"varying lowp vec2 texUVOut; "
-	"uniform sampler2D tex; "
-	"lowp vec4 makeFrag(const in lowp vec2 uv); "
-	"void main() { "
-		"gl_FragColor = makeFrag(texUVOut); "
-	"}\n";
+	const char *modulateDefs =
+	"#define OUT_POSITION colorOut = color; gl_Position = (proj * modelview) * pos\n"
+	"attribute vec4 pos; "
+	"uniform mat4 modelview; "
+	"uniform mat4 proj; "
+	"attribute vec4 color; "
+	"varying vec4 colorOut; ";
+	const char *replaceDefs =
+	"#define OUT_POSITION gl_Position = (proj * modelview) * pos\n"
+	"attribute vec4 pos; "
+	"uniform mat4 modelview; "
+	"uniform mat4 proj; ";
 	char shaderStr[8192] {0};
-	//string_printf(shaderStr, "%s", src);
 	if(!string_printf(shaderStr,
 		GLSL_VERSION_DIRECTIVE
-		"%s%s%s",
-		(Config::envIsAndroid && img.type() == TEX_2D_EXTERNAL) ? "#extension GL_OES_EGL_image_external:enable\n#define sampler2D samplerExternalOES\n" : "",
-		imgMode == IMG_MODE_MODULATE ? modulateMain : replaceMain,
+		"%s%s",
+		imgMode == IMG_MODE_MODULATE ? modulateDefs : replaceDefs,
 		src))
 	{
 		logMsg("shader text too large");
 		return 0;
 	}
-	//logMsg("making plugin shader with source:\n%s", shaderStr);
-	return makeShader(shaderStr, type);
+	//logMsg("making vertex shader with source:\n%s", shaderStr);
+	return makeShader(shaderStr, GL_VERTEX_SHADER);
+}
+
+Shader makePluginFragmentShader(const char *src, uint imgMode, const BufferImage &img)
+{
+	const char *modulateDefs =
+	"#define OUT_FRAGCOLOR(c) gl_FragColor = colorOut * c\n"
+	"varying lowp vec4 colorOut;\n";
+	const char *replaceDefs =
+	"#define OUT_FRAGCOLOR(c) gl_FragColor = c\n";
+	const char *externalTexDefs =
+	"#extension GL_OES_EGL_image_external:enable\n"
+	"#define sampler2D samplerExternalOES\n";
+	char shaderStr[8192] {0};
+	if(!string_printf(shaderStr,
+		GLSL_VERSION_DIRECTIVE
+		"%s%s%s",
+		(Config::envIsAndroid && img.type() == TEX_2D_EXTERNAL) ? externalTexDefs : "",
+		imgMode == IMG_MODE_MODULATE ? modulateDefs : replaceDefs,
+		src))
+	{
+		logMsg("shader text too large");
+		return 0;
+	}
+	//logMsg("making fragment shader with source:\n%s", shaderStr);
+	return makeShader(shaderStr, GL_FRAGMENT_SHADER);
 }
 
 Shader makeDefaultVShader()

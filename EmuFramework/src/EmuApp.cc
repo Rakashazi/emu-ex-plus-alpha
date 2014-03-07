@@ -1,3 +1,19 @@
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <meta.h>
 #include <data-type/image/png/sys.hh>
 #include "EmuApp.hh"
 #include "EmuSystem.hh"
@@ -202,7 +218,7 @@ void mainInitCommon(int argc, char** argv)
 	EmuSystem::initOptions();
 	parseCmdLineArgs(argc, argv);
 	loadConfigFile();
-	#ifdef USE_BEST_COLOR_MODE_OPTION
+	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	Base::Window::setPixelBestColorHint(optionBestColorModeHint);
 	#endif
 	EmuSystem::onOptionsLoaded();
@@ -602,8 +618,8 @@ static void animateViewportStep(const Base::Window &win)
 	{
 		d.update(1);
 	}
-	logMsg("animated viewport: %d:%d:%d:%d",
-		viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now());
+	//logMsg("animated viewport: %d:%d:%d:%d",
+	//	viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now());
 	auto v = Gfx::Viewport::makeFromWindow(win, {viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now()});
 	viewport = v;
 	Gfx::setViewport(win, v);

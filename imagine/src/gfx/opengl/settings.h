@@ -96,9 +96,9 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect 
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	v.rotateView = win.rotateView;
 	#endif
-	logMsg("made viewport %d:%d:%d:%d from window %d:%d",
-		v.rect.x, v.rect.y, v.rect.x2, v.rect.y2,
-		win.width(), win.height());
+	//logMsg("made viewport %d:%d:%d:%d from window %d:%d",
+	//	v.rect.x, v.rect.y, v.rect.x2, v.rect.y2,
+	//	win.width(), win.height());
 
 	// glViewport() needs flipped Y and relative size
 	v.relYFlipViewport = {v.realBounds().x, win.realHeight() - v.realBounds().y2, v.realWidth(), v.realHeight()};

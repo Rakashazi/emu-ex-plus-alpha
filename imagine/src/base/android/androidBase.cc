@@ -375,7 +375,6 @@ static bool setOrientationOS(int o)
 		{
 			auto rotAngle = orientationDiffTable[osOrientation][o];
 			logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-			//projAngleM.set(IG::toRadians(rotAngle), 0., INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
 			Gfx::animateProjectionMatrixRotation(rotAngle, 0.);
 		}
 		//logMsg("new value %d", o);
@@ -1211,7 +1210,7 @@ static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
 		[](int, int, void* data)
 		{
 			processInput((AInputQueue*)data);
-			return (int)1;
+			return 1;
 		}, queue);
 }
 

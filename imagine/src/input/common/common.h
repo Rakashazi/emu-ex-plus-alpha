@@ -37,10 +37,11 @@ void startKeyRepeatTimer(const Event &event)
 	if(!event.pushed())
 	{
 		// only repeat PUSHED action, otherwise cancel the timer
+		//logMsg("repeat event is not for pushed action");
 		cancelKeyRepeatTimer();
 		return;
 	}
-	logMsg("starting key repeat");
+	//logMsg("starting key repeat");
 	keyRepeatEvent = event;
 	keyRepeatTimer.callbackAfterMSec(
 		[]()
@@ -53,12 +54,14 @@ void startKeyRepeatTimer(const Event &event)
 
 void cancelKeyRepeatTimer()
 {
+	//logMsg("cancelled key repeat");
 	keyRepeatTimer.cancel();
 	keyRepeatEvent = {};
 }
 
 void deinitKeyRepeatTimer()
 {
+	//logMsg("deinit key repeat");
 	keyRepeatTimer.deinit();
 	keyRepeatEvent = {};
 }

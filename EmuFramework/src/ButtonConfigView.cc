@@ -52,7 +52,8 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool 
 	#endif
 	this->dev = &dev;
 	savedDev = nullptr;
-	Input::setHandleVolumeKeys(1);
+	Input::setHandleVolumeKeys(true);
+	Input::setKeyRepeat(false);
 	onSetD = onSet;
 }
 
@@ -69,7 +70,8 @@ void ButtonConfigSetView::deinit()
 		cancelB = {};
 	}
 	#endif
-	Input::setHandleVolumeKeys(0);
+	Input::setHandleVolumeKeys(false);
+	Input::setKeyRepeat(true);
 }
 
 void ButtonConfigSetView::place()

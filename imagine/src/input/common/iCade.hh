@@ -32,8 +32,8 @@ static bool processICadeKey(char c, uint action, const Device &dev, Base::Window
 	};
 	#endif
 
-	if(c == 0)
-		return 0; // ignore null character
+	if(!c)
+		return false; // ignore null character
 
 	const char *p = strchr(ON_STATES, c);
 	if(p)
@@ -47,10 +47,10 @@ static bool processICadeKey(char c, uint action, const Device &dev, Base::Window
 			#else
 			Event event{0, Event::MAP_ICADE, (Key)keycodeMap[index], PUSHED, 0, 0, &dev};
 			#endif
-			//startKeyRepeatTimer(event);
+			startKeyRepeatTimer(event);
 			Base::onInputEvent(win, event);
 		}
-		return 1;
+		return true;
 	}
 	else
 	{
@@ -61,17 +61,17 @@ static bool processICadeKey(char c, uint action, const Device &dev, Base::Window
 			int index = p-OFF_STATES;
 			if(action == PUSHED)
 			{
+				cancelKeyRepeatTimer();
 				#ifdef CONFIG_BASE_IOS
 				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
 				#else
 				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
 				#endif
-				//cancelKeyRepeatTimer();
 			}
-			return 1;
+			return true;
 		}
 	}
-	return 0; // not an iCade key
+	return false; // not an iCade key
 }
 
 }

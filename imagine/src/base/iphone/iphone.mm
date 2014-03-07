@@ -304,11 +304,11 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("became active");
 	[Base::mainWindow().glView() bindDrawable];
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	onSetAsDrawTarget(Base::mainWindow()); // update viewport after window is shown
 	Base::appState = APP_RUNNING;
-	//if(Base::displayLink)
-	//	mainScreen().postFrame();
 	Base::onResume(1);
+	mainWindow().postDraw();
 	#ifdef CONFIG_INPUT_ICADE
 	iCade.didBecomeActive();
 	#endif
@@ -410,10 +410,6 @@ void Window::setSystemOrientation(uint o)
 	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	updateContentRect(width(), height(), rotateView, sharedApp);
-	//auto &win = mainWindow();
-	
-	//updateWindowSizeAndContentRect(win, win.realWidth(), win.realHeight(), sharedApp);
-	//mainWindow().postResize();
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching

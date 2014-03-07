@@ -42,7 +42,7 @@ Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 	0, optionIsValidWithMinMax<OPTION_SOUND_BUFFERS_MIN, 12, uint8>);
 #endif
 
-#ifdef CONFIG_AUDIO_OPENSL_ES
+#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck(CFGKEY_SOUND_UNDERRUN_CHECK, 1);
 #endif
 
@@ -223,7 +223,7 @@ Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHa
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 
-#ifdef USE_BEST_COLOR_MODE_OPTION
+#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 #endif
 
@@ -315,12 +315,16 @@ void initOptions()
 	if(Audio::hasLowLatency()) // setup for low-latency
 	{
 		optionSoundRate.initDefault(Audio::pPCM.rate);
+		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 		optionSoundUnderrunCheck.initDefault(0);
+		#endif
 		optionSoundBuffers.initDefault(6);
 	}
 	else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "roth")) // NVidia Shield
 	{
+		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 		optionSoundUnderrunCheck.initDefault(0);
+		#endif
 		optionSoundBuffers.initDefault(4);
 	}
 	#endif
@@ -332,7 +336,7 @@ void initOptions()
 		#endif
 	#endif
 
-	#ifdef USE_BEST_COLOR_MODE_OPTION
+	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	optionBestColorModeHint.initDefault(Base::Window::pixelBestColorHintDefault());
 	#endif
 }

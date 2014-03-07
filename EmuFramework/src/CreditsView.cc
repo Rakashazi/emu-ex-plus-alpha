@@ -15,6 +15,10 @@
 
 #define LOGTAG "CreditsView"
 #include <CreditsView.hh>
+#include <meta.h>
+
+CreditsView::CreditsView(const char *str, Base::Window &win):
+	View(CONFIG_APP_NAME " " IMAGINE_VERSION, win), str(str) {}
 
 void CreditsView::draw(Base::FrameTimeBase frameTime)
 {

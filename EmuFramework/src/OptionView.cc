@@ -535,7 +535,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 		glSyncHack.init(optionGLSyncHack); item[items++] = &glSyncHack;
 	}
 	#endif
-	#ifdef USE_BEST_COLOR_MODE_OPTION
+	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
 	#endif
 	if(!optionDitherImage.isConst)
@@ -555,7 +555,7 @@ void OptionView::loadAudioItems(MenuItem *item[], uint &items)
 	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	soundBuffersInit(); item[items++] = &soundBuffers;
 	#endif
-	#ifdef CONFIG_AUDIO_OPENSL_ES
+#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 	sndUnderrunCheck.init(optionSoundUnderrunCheck); item[items++] = &sndUnderrunCheck;
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
@@ -858,7 +858,7 @@ OptionView::OptionView(Base::Window &win):
 			emuView.vidImgOverlay.intensity = setVal/100.;
 		}
 	},
-	#if defined (CONFIG_BASE_X11) || defined (CONFIG_BASE_ANDROID) || defined (CONFIG_BASE_IOS)
+	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	bestColorModeHint
 	{
 		"Use Highest Color Mode",
@@ -967,7 +967,7 @@ OptionView::OptionView(Base::Window &win):
 			}
 		}
 	},
-	#ifdef CONFIG_AUDIO_OPENSL_ES
+	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 	sndUnderrunCheck
 	{
 		"Strict Underrun Check",

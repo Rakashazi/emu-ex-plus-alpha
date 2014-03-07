@@ -14,14 +14,25 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <VideoImageEffect.hh>
+#include <EmuApp.hh>
 #include <io/sys.hh>
 
 void VideoImageEffect::setEffect(uint effect)
 {
 	effect_ = effect;
+	deinit();
+}
+
+void VideoImageEffect::deinit()
+{
 	iterateTimes(2, i)
 	{
 		prog[i].deinit();
+		if(vShader[i])
+		{
+			Gfx::deleteShader(vShader[i]);
+			vShader[i] = 0;
+		}
 		if(fShader[i])
 		{
 			Gfx::deleteShader(fShader[i]);
@@ -44,23 +55,70 @@ void VideoImageEffect::compile(const Gfx::BufferImage &img)
 		bcase HQ2X:
 		{
 			logMsg("compiling effect HQ2X");
-			auto vShader = Gfx::makeDefaultVShader();
 			{
-				auto file = IOFile(openAppAssetIo("hq2x-f.txt"));
-				assert(file);
+				auto file = IOFile(openAppAssetIo("hq2x-v.txt"));
+				if(!file)
+				{
+					deinit();
+					popup.postError("Can't open file: hq2x-v.txt");
+					return;
+				}
 				auto fileSize = file.size();
 				char text[fileSize + 1];
 				file.read(text, fileSize);
 				text[fileSize] = 0;
 				file.close();
 				//logMsg("read source:\n%s", text);
-				fShader[0] = Gfx::makePluginShader(text, Gfx::SHADER_FRAGMENT, Gfx::IMG_MODE_MODULATE, img);
-				fShader[1] = Gfx::makePluginShader(text, Gfx::SHADER_FRAGMENT, Gfx::IMG_MODE_REPLACE, img);
+				logMsg("making vertex shader");
+				vShader[0] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_MODULATE);
+				logMsg("making vertex shader (replace mode)");
+				vShader[1] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_REPLACE);
+				if(!vShader[0] || !vShader[1])
+				{
+					deinit();
+					popup.postError("GPU rejected shader (vertex compile error)");
+					Gfx::autoReleaseShaderCompiler();
+					return;
+				}
+			}
+			{
+				auto file = IOFile(openAppAssetIo("hq2x-f.txt"));
+				if(!file)
+				{
+					deinit();
+					popup.postError("Can't open file: hq2x-f.txt");
+					Gfx::autoReleaseShaderCompiler();
+					return;
+				}
+				auto fileSize = file.size();
+				char text[fileSize + 1];
+				file.read(text, fileSize);
+				text[fileSize] = 0;
+				file.close();
+				//logMsg("read source:\n%s", text);
+				logMsg("making fragment shader");
+				fShader[0] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_MODULATE, img);
+				logMsg("making fragment shader (replace mode)");
+				fShader[1] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_REPLACE, img);
+				if(!fShader[0] || !fShader[1])
+				{
+					deinit();
+					popup.postError("GPU rejected shader (fragment compile error)");
+					Gfx::autoReleaseShaderCompiler();
+					return;
+				}
 			}
 			iterateTimes(2, i)
 			{
-				prog[i].init(vShader, fShader[i], false, true);
-				prog[i].link();
+				logMsg("linking program: %d", i);
+				prog[i].init(vShader[i], fShader[i], i == 0, true);
+				if(!prog[i].link())
+				{
+					deinit();
+					popup.postError("GPU rejected shader (link error)");
+					Gfx::autoReleaseShaderCompiler();
+					return;
+				}
 				texDeltaU[i] = prog[i].uniformLocation("texDelta");
 			}
 			Gfx::autoReleaseShaderCompiler();

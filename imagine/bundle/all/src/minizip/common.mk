@@ -4,7 +4,8 @@ else
 #buildArg := --build=$(shell $(CC) -dumpmachine)
 endif
 
-# provide GNU version of tar to support --strip-components
+# needs GNU version of tar to support --strip-components
+# Note: if on MacOSX, user must override with gnutar from MacPorts
 TAR ?= tar
 
 zlibVer := 1.2.8

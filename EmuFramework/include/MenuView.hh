@@ -18,7 +18,6 @@
 #include <gui/BaseMenuView.hh>
 #include "EmuSystem.hh"
 #include <StateSlotView.hh>
-#include <meta.h>
 #ifdef CONFIG_BLUETOOTH
 #include <bluetooth/sys.hh>
 #include <bluetooth/BluetoothInputDevScanner.hh>
@@ -91,7 +90,7 @@ protected:
 	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;
 	TextMenuItem benchmark;
-	#ifdef CONFIG_BASE_ANDROID
+	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	TextMenuItem addLauncherIcon;
 	#endif
 	#ifdef CONFIG_BLUETOOTH

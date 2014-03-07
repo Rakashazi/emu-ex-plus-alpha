@@ -18,22 +18,41 @@ fceu/utils/endian.cpp fceu/utils/general.cpp fceu/utils/guid.cpp \
 fceu/input/mouse.cpp fceu/input/oekakids.cpp fceu/input/powerpad.cpp fceu/input/quiz.cpp \
 fceu/input/shadow.cpp fceu/input/suborkb.cpp fceu/input/toprider.cpp fceu/input/zapper.cpp \
 fceu/input/bworld.cpp fceu/input/arkanoid.cpp fceu/input/mahjong.cpp fceu/input/fkb.cpp \
-fceu/input/ftrainer.cpp fceu/input/hypershot.cpp fceu/input/cursor.cpp \
-$(patsubst $(projectPath)/src/%,%,$(wildcard $(projectPath)/src/fceu/boards/*.cpp))
+fceu/input/ftrainer.cpp fceu/input/hypershot.cpp fceu/input/cursor.cpp
+BOARDS_SRC := \
+01-222.cpp   208.cpp       67.cpp             dance2000.cpp          mmc2and4.cpp \
+09-034a.cpp  222.cpp       68.cpp             datalatch.cpp          mmc3.cpp \
+103.cpp      225.cpp       69.cpp             dream.cpp              mmc5.cpp \
+106.cpp      228.cpp       71.cpp             dsoundv1.cpp           n106.cpp \
+108.cpp      230.cpp       72.cpp             __dummy_mapper.cpp     n625092.cpp \
+112.cpp      232.cpp       77.cpp             edu2000.cpp            novel.cpp \
+116.cpp      234.cpp       79.cpp             emu2413.cpp            onebus.cpp \
+117.cpp      235.cpp       80.cpp             famicombox.cpp         pec-586.cpp \
+120.cpp      244.cpp       8157.cpp           ffe.cpp                sa-9602b.cpp \
+121.cpp      246.cpp       8237.cpp           fk23c.cpp              sachen.cpp \
+12in1.cpp    252.cpp       82.cpp             ghostbusters63in1.cpp  sc-127.cpp \
+151.cpp      253.cpp       830118C.cpp        gs-2004.cpp            sheroes.cpp \
+156.cpp      28.cpp        88.cpp             gs-2013.cpp            sl1632.cpp \
+15.cpp       32.cpp        90.cpp             h2288.cpp              subor.cpp \
+164.cpp      33.cpp        91.cpp             karaoke.cpp            super24.cpp \
+168.cpp      34.cpp        96.cpp             kof97.cpp              supervision.cpp \
+170.cpp      36.cpp        99.cpp             ks7012.cpp             t-227-1.cpp \
+175.cpp      3d-block.cpp  a9746.cpp          ks7013.cpp             t-262.cpp \
+176.cpp      40.cpp        ac-08.cpp          ks7017.cpp             tengen.cpp \
+177.cpp      411120-c.cpp  addrlatch.cpp      ks7030.cpp             tf-1201.cpp \
+178.cpp      41.cpp        ax5705.cpp         ks7031.cpp             transformer.cpp \
+183.cpp      42.cpp        bandai.cpp         ks7032.cpp             vrc1.cpp \
+185.cpp      43.cpp        bb.cpp             ks7037.cpp             vrc2and4.cpp \
+186.cpp      46.cpp        bmc13in1jy110.cpp  ks7057.cpp             vrc3.cpp \
+187.cpp      50.cpp        bmc42in1r.cpp      le05.cpp               vrc5.cpp \
+189.cpp      51.cpp        bmc64in1nr.cpp     lh32.cpp               vrc6.cpp \
+18.cpp       57.cpp        bmc70in1.cpp       lh53.cpp               vrc7.cpp \
+193.cpp      603-5052.cpp  bonza.cpp          malee.cpp              vrc7p.cpp \
+199.cpp      62.cpp        bs-5.cpp           mihunche.cpp           yoko.cpp \
+206.cpp      65.cpp        cityfighter.cpp    mmc1.cpp
+FCEUX_SRC += $(addprefix fceu/boards/,$(BOARDS_SRC))
 FCEUX_OBJ := $(addprefix $(objDir)/,$(FCEUX_SRC:.cpp=.o))
 SRC += $(FCEUX_SRC)
-#SRC += fceu/drivers/common/vidblit.cpp fceu/drivers/common/nes_ntsc.cpp fceu/drivers/common/hq2x.cpp fceu/drivers/common/hq3x.cpp fceu/drivers/common/scale2x.cpp fceu/drivers/common/scale3x.cpp fceu/drivers/common/scalebit.cpp
-# fceu/drivers/common/args.cpp fceu/boards/__dummy_mapper.cpp fceu/drawing.cpp fceu/nsf.cpp fceu/oldmovie.cpp
-# fceu/drivers/common/configSys.cpp fceu/conddebug.cpp fceu/debug.cpp fceu/asm.cpp
-# fceu/drivers/common/cheat.cpp fceu/drivers/common/config.cpp fceu/netplay.cpp
-# fceu/lua-engine.cpp fceu/config.cpp fceu/wave.cpp
-# src/lua/src/lapi.o src/lua/src/lauxlib.o src/lua/src/lbaselib.o src/lua/src/lcode.o
-# src/lua/src/ldblib.o src/lua/src/ldebug.o src/lua/src/ldo.o src/lua/src/ldump.o src/lua/src/lfunc.o src/lua/src/lgc.o src/lua/src/linit.o src/lua/src/liolib.o
-# src/lua/src/llex.o src/lua/src/lmathlib.o src/lua/src/lmem.o src/lua/src/loadlib.o src/lua/src/lobject.o src/lua/src/lopcodes.o src/lua/src/loslib.o
-# src/lua/src/lparser.o src/lua/src/lstate.o src/lua/src/lstring.o src/lua/src/lstrlib.o src/lua/src/ltable.o src/lua/src/ltablib.o src/lua/src/ltm.o
-# src/lua/src/lundump.o src/lua/src/lvm.o src/lua/src/lzio.o src/lua/src/print.o src/drivers/videolog/nesvideos-piece.o src/drivers/videolog/rgbtorgb.o
-# src/drivers/sdl/input.o src/drivers/sdl/config.o src/drivers/sdl/sdl.o src/drivers/sdl/sdl-joystick.o src/drivers/sdl/sdl-sound.o
-# src/drivers/sdl/sdl-throttle.o src/drivers/sdl/sdl-video.o src/drivers/sdl/unix-netplay.o src/drivers/sdl/sdl-opengl.o
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

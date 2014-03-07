@@ -258,7 +258,7 @@ static bool readConfig2(Io &io)
 			#ifdef CONFIG_AUDIO_LATENCY_HINT
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
 			#endif
-			#ifdef CONFIG_AUDIO_OPENSL_ES
+			#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_AUDIO_SOLO_MIX
@@ -268,7 +268,7 @@ static bool readConfig2(Io &io)
 			#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 			bcase CFGKEY_SHOW_BUNDLED_GAMES: optionShowBundledGames.readFromIO(io, size);
 			#endif
-			#ifdef USE_BEST_COLOR_MODE_OPTION
+			#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 			bcase CFGKEY_BEST_COLOR_MODE_HINT: optionBestColorModeHint.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_INPUT_KEY_CONFIGS:
@@ -501,13 +501,13 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	&optionSoundBuffers,
 	#endif
-	#ifdef CONFIG_AUDIO_OPENSL_ES
+	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 	&optionSoundUnderrunCheck,
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif
-	#ifdef USE_BEST_COLOR_MODE_OPTION
+	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	&optionBestColorModeHint,
 	#endif
 	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES

@@ -17,7 +17,6 @@
 
 #include "EmuApp.hh"
 #include <FileUtils.hh>
-#include <meta.h>
 #include <main/EmuMenuViews.hh>
 
 static SystemMenuView mMenu(mainWin);

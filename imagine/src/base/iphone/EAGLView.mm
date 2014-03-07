@@ -181,6 +181,7 @@ namespace Base
 	[super layoutSubviews];
 	using namespace Base;
 	[self bindDrawable]; // rebind to update internal height/width
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	updateWindowSizeAndContentRect(mainWindow(), [self drawableWidth], [self drawableHeight], sharedApp);
 	#else

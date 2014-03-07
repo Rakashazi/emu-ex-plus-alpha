@@ -109,16 +109,18 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.clearButtonMode = UITextFieldViewModeNever;
 
 	vkbdField.textColor = [UIColor blackColor];
-#ifdef __ARM_ARCH_6K__
+	#ifdef __ARM_ARCH_6K__
 	vkbdField.textAlignment = UITextAlignmentLeft; // deprecated on newer SDKs
-#else
+	#else
 	vkbdField.textAlignment = NSTextAlignmentLeft;
-#endif
+	#endif
 	vkbdField.font = [UIFont systemFontOfSize:24.0];
 	vkbdField.text = text;
 	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	vkbdField.transform = makeTransformForOrientation(Base::mainWindow().rotateView);
+	#endif
 	logMsg("init vkeyboard");
 }
 
@@ -130,8 +132,7 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	{
 		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(Base::mainWindow(), textRect) ];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[Base::mainWindow().uiWin() addSubview: vkbdField];
-		//TODO[ vkbdField release ];
+		[Base::mainWindow().glView() addSubview: vkbdField];
 	}
 	else
 	{
@@ -149,6 +150,9 @@ void placeSysTextInput(const IG::WindowRect &rect)
 	if(vkbdField)
 	{
 		vkbdField.frame = toCGRect(Base::mainWindow(), textRect);
+		/*#ifdef CONFIG_GFX_SOFT_ORIENTATION
+		vkbdField.transform = makeTransformForOrientation(Base::mainWindow().rotateView);
+		#endif*/
 	}
 }
 
