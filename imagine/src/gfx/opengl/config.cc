@@ -294,7 +294,7 @@ CallResult init()
 	glDebugMessageCallback(debugCallback, nullptr);
 	glEnable(GL_DEBUG_OUTPUT);
 	#endif
-	#if defined CONFIG_GFX_OPENGL_ES && defined CONFIG_BASE_X11 && !defined NDEBUG
+	#if defined CONFIG_GFX_OPENGL_ES && defined CONFIG_BASE_X11 & !defined CONFIG_MACHINE_PANDORA && !defined NDEBUG
 	auto glDebugMessageCallback = (void (*)(GLDEBUGPROCKHR callback, const void *userParam))Base::glProcAddress("glDebugMessageCallbackKHR");
 	if(glDebugMessageCallback)
 	{

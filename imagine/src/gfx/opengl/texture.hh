@@ -379,6 +379,10 @@ static const PixelFormatDesc *swapRGBToPreferedOrder(const PixelFormatDesc *fmt)
 
 bool BufferImage::hasMipmaps()
 {
+	#ifdef CONFIG_MACHINE_PANDORA
+	// mipmap auto-generation appears to be broken in the driver
+	return false;
+	#endif
 	return hasMipmaps_;
 }
 

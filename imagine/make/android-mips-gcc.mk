@@ -25,4 +25,6 @@ COMPILE_FLAGS += -fno-short-enums
 LDLIBS += -nostartfiles
 noDoubleFloat=1
 
+openGLESVersion ?= 2
+
 include $(buildSysPath)/android-gcc.mk

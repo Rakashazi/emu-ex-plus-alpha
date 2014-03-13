@@ -170,7 +170,7 @@ static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool in
 
 	// setup xinput2
 	XIEventMask eventmask;
-	uchar mask[2] {0};
+	uchar mask[XIMaskLen(XI_LASTEVENT)] {0};
 	eventmask.deviceid = XIAllMasterDevices;
 	eventmask.mask_len = sizeof(mask); // always in bytes
 	eventmask.mask = mask;

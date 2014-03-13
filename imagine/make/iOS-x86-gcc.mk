@@ -16,3 +16,5 @@ CHOST := $(shell $(CC) -arch i386 -dumpmachine)
 extraSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/x86
 PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
 CPPFLAGS += -I$(extraSysroot)/include
+
+openGLESVersion ?= 2

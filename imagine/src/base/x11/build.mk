@@ -6,6 +6,10 @@ include $(IMAGINE_PATH)/make/package/xinput.mk
 include $(IMAGINE_PATH)/make/package/xfixes.mk
 include $(IMAGINE_PATH)/make/package/xrandr.mk
 
+ifeq ($(SUBENV), pandora)
+ pkgConfigDeps += xext xcb xdmcp xau
+endif
+
 LDLIBS += -lpthread
 
 configDefs += CONFIG_BASE_X11 CONFIG_INPUT
@@ -25,6 +29,7 @@ else
 endif
 
 ifneq ($(SUBENV), pandora)
+ configDefs += CONFIG_BASE_DBUS
  SRC += base/x11/dbus.cc
  ifeq ($(linuxEventLoop), glib)
   include $(IMAGINE_PATH)/make/package/dbus-glib.mk

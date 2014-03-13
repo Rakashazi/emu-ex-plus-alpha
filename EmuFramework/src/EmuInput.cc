@@ -309,7 +309,7 @@ bool isMenuDismissKey(const Input::Event &e)
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
 					return !translateKeyboardEventsByModifiers() // make sure not performing text input
-						&& e.button == Input::asciiKey(' ');
+						&& e.button == Input::Keycode::asciiKey(' ');
 				#endif
 				default: break;
 			}

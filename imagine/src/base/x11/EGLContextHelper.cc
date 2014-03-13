@@ -111,7 +111,13 @@ CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uin
 
 
 	// select config
+	#if defined CONFIG_GFX_OPENGL_ES
+	const EGLint *attribs = useMaxColorBits ?
+		(version == 1 ? eglAttrWinRGB888 : eglAttrWinRGB888ES2) :
+		(version == 1 ? eglAttrWinLowColor : eglAttrWinLowColorES2);
+	#else
 	const EGLint *attribs = useMaxColorBits ? eglAttrWinRGB888 : eglAttrWinLowColor;
+	#endif
 	EGLint configs = 0;
 	eglChooseConfig(display, attribs, &config, 1, &configs);
 	if(!configs)
@@ -119,7 +125,11 @@ CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uin
 		if(useMaxColorBits)
 		{
 			logMsg("falling back to lowest color config");
+			#if defined CONFIG_GFX_OPENGL_ES
+			eglChooseConfig(display, version == 1 ? eglAttrWinLowColor : eglAttrWinLowColorES2, &config, 1, &configs);
+			#else
 			eglChooseConfig(display, eglAttrWinLowColor, &config, 1, &configs);
+			#endif
 			if(!configs)
 			{
 				logErr("no valid EGL configs found");
@@ -155,11 +165,12 @@ CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uin
 
 	// create context
 	#ifdef CONFIG_GFX_OPENGL_ES
-		#ifdef NDEBUG
-		auto attributes = eglAttrES2Ctx;
+		#if defined NDEBUG || defined CONFIG_MACHINE_PANDORA
+		auto attributes = version == 1 ? nullptr : eglAttrES2Ctx;
 		#else
-		auto attributes = eglAttrES2DebugCtx;
+		auto attributes = version == 1 ? nullptr : eglAttrES2DebugCtx;
 		#endif
+	logMsg("making ES %d context", version);
 	ctx = eglCreateContext(display, config, EGL_NO_CONTEXT, attributes);
 	#else
 	ctx = createContextForMajorVersion(version, dpy, config);

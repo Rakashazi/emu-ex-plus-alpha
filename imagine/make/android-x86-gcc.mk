@@ -35,3 +35,5 @@ include $(buildSysPath)/android-gcc.mk
 ifeq ($(config_compiler),clang)
  android_cpuFlags += -target i686-none-linux-android
 endif
+
+openGLESVersion ?= 2

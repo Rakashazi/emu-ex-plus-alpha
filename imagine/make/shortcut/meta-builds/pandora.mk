@@ -1,4 +1,5 @@
 include $(IMAGINE_PATH)/make/config.mk
+-include $(projectPath)/config.mk
 include $(IMAGINE_PATH)/make/pnd-metadata.mk
 
 .PHONY: all
@@ -52,7 +53,7 @@ pandora-resources : $(pandora_resourcePath) $(pandora_iconPNDPath) $(pandora_pxm
 	@echo linking resource files
 	@for f in $(pandora_resourcePath)/* ; do \
 		filename=`basename $$f` ; \
-		ln -Lf $$f $(pandora_targetPNDPath)/ ; \
+		ln -Lf "$$f" $(pandora_targetPNDPath)/ ; \
 	done
 
 .PHONY: pandora-resources-install

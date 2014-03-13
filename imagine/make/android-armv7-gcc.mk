@@ -36,3 +36,5 @@ include $(buildSysPath)/android-arm.mk
 ifeq ($(config_compiler),clang)
  android_cpuFlags += -target armv7-none-linux-androideabi
 endif
+
+openGLESVersion ?= 2

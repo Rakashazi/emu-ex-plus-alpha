@@ -13,11 +13,7 @@
 
 #ifdef CONFIG_GFX_OPENGL_ES
 	#ifndef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-		#if __ARM_ARCH >= 7 || defined __i386__ || defined __x86_64__
-		#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 2
-		#else
-		#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 1
-		#endif
+		#error "CONFIG_GFX_OPENGL_ES_MAJOR_VERSION isn't defined"
 	#endif
 #endif
 
@@ -65,6 +61,9 @@
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	#include <GLES/gl.h>
 	#include <GLES/glext.h>
+		#ifdef CONFIG_MACHINE_PANDORA
+		using GLchar = char;
+		#endif
 	#else
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>

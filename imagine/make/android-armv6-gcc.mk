@@ -29,3 +29,5 @@ endif
 ifeq ($(config_compiler),clang)
  android_cpuFlags += -target armv5te-none-linux-androideabi
 endif
+
+openGLESVersion := 1

@@ -37,7 +37,7 @@ static void exit() { exit(0); }
 [[noreturn]] void abort();
 
 // Inter-process messages
-#if defined (CONFIG_BASE_X11)
+#if defined CONFIG_BASE_DBUS
 void registerInstance(const char *appID, int argc, char** argv);
 void setAcceptIPC(const char *appID, bool on);
 #else

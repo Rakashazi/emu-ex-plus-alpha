@@ -40,7 +40,7 @@ pkgPrefix := $(IMAGINE_PATH)
 pkgBuild := $(buildName)
 pkgName := imagine
 pkgDescription := Game/Multimedia Engine
-pkgVersion := 1.5.16-beta2
+pkgVersion := 1.5.19
 LDLIBS := -limagine $(LDLIBS)
 
 include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk

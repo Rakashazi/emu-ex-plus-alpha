@@ -2,11 +2,14 @@ ifndef inc_pkg_opengl
 inc_pkg_opengl := 1
 
 ifeq ($(SUBENV), pandora)
- configDefs += CONFIG_GFX_OPENGL_ES
- LDLIBS += -lGLES2 -lm
+ openGLAPI := gles
+ ifeq ($(openGLESVersion), 1)
+  LDLIBS += -lGLES_CM -lm
+ else
+  LDLIBS += -lGLESv2 -lm
+ endif
 else ifeq ($(ENV), linux)
  ifeq ($(openGLAPI), gles)
-  configDefs += CONFIG_GFX_OPENGL_ES
   ifeq ($(openGLESVersion), 1)
    pkgConfigDeps += glesv1_cm
   else
@@ -16,21 +19,21 @@ else ifeq ($(ENV), linux)
   pkgConfigDeps += gl
  endif
 else ifeq ($(ENV), android)
- configDefs += CONFIG_GFX_OPENGL_ES
+ openGLAPI := gles
  ifeq ($(openGLESVersion), 1)
   LDLIBS += -lGLESv1_CM
  else
   LDLIBS += -lGLESv2
  endif
 else ifeq ($(ENV), ios)
- configDefs += CONFIG_GFX_OPENGL_ES
+ openGLAPI := gles
  LDLIBS += -framework OpenGLES
 else ifeq ($(ENV), macosx)
  LDLIBS += -framework OpenGL -framework CoreVideo
 else ifeq ($(ENV), win32)
  LDLIBS += -lglew32 -lopengl32
 else ifeq ($(ENV), webos)
- configDefs += CONFIG_GFX_OPENGL_ES
+ openGLAPI := gles
  LDLIBS += -lGLES_CM $(webos_libm)
 else ifeq ($(ENV), ps3)
  CPPFLAGS += -DPSGL
@@ -39,6 +42,14 @@ else ifeq ($(ENV), ps3)
  $(ps3CellPPULibPath)/libcgc.a $(ps3CellPPULibPath)/libsnc.a \
  $(ps3CellPPULibPath)/liblv2_stub.a
  # -lPSGLFX -lperf
+endif
+
+ifeq ($(openGLAPI), gles)
+ configDefs += CONFIG_GFX_OPENGL_ES
+ ifndef openGLESVersion
+  $(error openGLESVersion isn't defined)
+ endif
+ configDefs += CONFIG_GFX_OPENGL_ES_MAJOR_VERSION=$(openGLESVersion)
 endif
 
 endif

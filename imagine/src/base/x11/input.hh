@@ -281,7 +281,7 @@ CallResult init()
 	// request input device changes events
 	{
 		XIEventMask eventMask;
-		uchar mask[2] = { 0 };
+		uchar mask[XIMaskLen(XI_LASTEVENT)] {0};
 		XISetMask(mask, XI_HierarchyChanged);
 		eventMask.deviceid = XIAllDevices;
 		eventMask.mask_len = sizeof(mask);

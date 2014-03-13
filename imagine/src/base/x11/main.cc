@@ -63,7 +63,9 @@ uint appActivityState() { return APP_RUNNING; }
 
 static void cleanup()
 {
+	#ifdef CONFIG_BASE_DBUS
 	deinitDBus();
+	#endif
 	shutdownWindowSystem();
 	XCloseDisplay(dpy);
 }
@@ -284,10 +286,39 @@ static int eventHandler(XEvent event)
 			{
 				XGenericEventCookie *cookie = &event.xcookie;
 				auto &ievent = *((XIDeviceEvent*)cookie->data);
-				auto destWin = windowForXWindow(ievent.event);
-				if(!destWin)
+				// XI_HierarchyChanged isn't window-specific
+				if(unlikely(ievent.evtype == XI_HierarchyChanged))
 				{
-					// ignore events for other windows
+					//logMsg("input device hierarchy changed");
+					auto &ev = *((XIHierarchyEvent*)cookie->data);
+					iterateTimes(ev.num_info, i)
+					{
+						if(ev.info[i].flags & XISlaveAdded)
+						{
+							int devices;
+							XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
+							if(devices)
+							{
+								if(device->use == XISlaveKeyboard)
+								{
+									Input::addXInputDevice(*device, true);
+								}
+								XIFreeDeviceInfo(device);
+							}
+						}
+						else if(ev.info[i].flags & XISlaveRemoved)
+						{
+							Input::removeXInputDevice(ev.info[i].deviceid);
+						}
+					}
+					XFreeEventData(dpy, &event.xcookie);
+					break;
+				}
+				// others events are for specific windows
+				auto destWin = windowForXWindow(ievent.event);
+				if(unlikely(!destWin))
+				{
+					//logWarn("ignored event for unknown window");
 					XFreeEventData(dpy, &event.xcookie);
 					break;
 				}
@@ -361,31 +392,6 @@ static int eventHandler(XEvent event)
 						#endif
 						{
 							handleKeyEv(win, k, Input::RELEASED, 0, ievent.time, dev);
-						}
-					}
-					bcase XI_HierarchyChanged:
-					{
-						//logMsg("input device hierarchy changed");
-						auto &ev = *((XIHierarchyEvent*)cookie->data);
-						iterateTimes(ev.num_info, i)
-						{
-							if(ev.info[i].flags & XISlaveAdded)
-							{
-								int devices;
-								XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
-								if(devices)
-								{
-									if(device->use == XISlaveKeyboard)
-									{
-										Input::addXInputDevice(*device, true);
-									}
-									XIFreeDeviceInfo(device);
-								}
-							}
-							else if(ev.info[i].flags & XISlaveRemoved)
-							{
-								Input::removeXInputDevice(ev.info[i].deviceid);
-							}
 						}
 					}
 				}
