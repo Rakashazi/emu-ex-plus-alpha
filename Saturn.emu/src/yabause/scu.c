@@ -361,15 +361,18 @@ static void DoDMA(u32 ReadAddress, unsigned int ReadAdd,
             ReadAddress += 2;
             counter += 2;
          }
-         while (counter < TransferSize-2) {
-            u32 tmp = MappedMemoryReadLong(ReadAddress);
-            MappedMemoryWriteWord(WriteAddress, (u16)(tmp >> 16));
-            WriteAddress += WriteAdd;
-            MappedMemoryWriteWord(WriteAddress, (u16)tmp);
-            WriteAddress += WriteAdd;
-            ReadAddress += 4;
-            counter += 4;
-         }
+			if (TransferSize >= 3)
+			{
+				while (counter < TransferSize-2) {
+					u32 tmp = MappedMemoryReadLong(ReadAddress);
+					MappedMemoryWriteWord(WriteAddress, (u16)(tmp >> 16));
+					WriteAddress += WriteAdd;
+					MappedMemoryWriteWord(WriteAddress, (u16)tmp);
+					WriteAddress += WriteAdd;
+					ReadAddress += 4;
+					counter += 4;
+				}
+			}
          if (counter < TransferSize) {
             u16 tmp = MappedMemoryReadWord(ReadAddress);
             MappedMemoryWriteWord(WriteAddress, tmp);

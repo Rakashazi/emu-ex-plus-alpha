@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "error.h"
 #include "yui.h"
 
@@ -113,3 +114,23 @@ void YabSetError(int type, const void *extra)
 
 //////////////////////////////////////////////////////////////////////////////
 
+void YabErrorMsg(const char * format, ...) {
+    va_list l;
+    int n;
+    char * buffer;
+
+    va_start(l, format);
+    n = vsnprintf(NULL, 0, format, l);
+    va_end(l);
+
+    buffer = malloc(n + 1);
+
+    va_start(l, format);
+    vsprintf(buffer, format, l);
+    va_end(l);
+
+    YuiErrorMsg(buffer);
+    free(buffer);
+}
+
+//////////////////////////////////////////////////////////////////////////////

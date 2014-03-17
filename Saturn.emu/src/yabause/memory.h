@@ -39,7 +39,7 @@ static INLINE u16 T1ReadWord(u8 * mem, u32 addr)
 #ifdef WORDS_BIGENDIAN
    return *((u16 *) (mem + addr));
 #else
-   return BSWAP16(*((u16 *) (mem + addr)));
+   return BSWAP16L(*((u16 *) (mem + addr)));
 #endif
 }
 
@@ -62,7 +62,7 @@ static INLINE void T1WriteWord(u8 * mem, u32 addr, u16 val)
 #ifdef WORDS_BIGENDIAN
    *((u16 *) (mem + addr)) = val;
 #else
-   *((u16 *) (mem + addr)) = BSWAP16(val);
+   *((u16 *) (mem + addr)) = BSWAP16L(val);
 #endif
 }
 
@@ -211,7 +211,7 @@ static INLINE int T123Load(void * mem, u32 size, int type, const char *filename)
 
    if (filesize > size)
    {
-  	  fclose(fp);
+  	 fclose(fp);
       return -1;
    }
 

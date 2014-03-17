@@ -35,7 +35,7 @@ static pthread_t thread_handle[YAB_NUM_THREADS];
 
 static void dummy_sighandler(int signum_unused) {}  // For thread sleep/wake
 
-int YabThreadStart(unsigned int id, void (*func)(void))
+int YabThreadStart(unsigned int id, void (*func)(void *), void *arg)
 {
    // Set up a dummy signal handler for SIGUSR1 so we can return from pause()
    // in YabThreadSleep()
@@ -52,7 +52,7 @@ int YabThreadStart(unsigned int id, void (*func)(void))
       return -1;
    }
 
-   if ((errno = pthread_create(&thread_handle[id], NULL, (void *)func, NULL)) != 0)
+   if ((errno = pthread_create(&thread_handle[id], NULL, (void *)func, arg)) != 0)
    {
       perror("pthread_create");
       return -1;
@@ -85,6 +85,12 @@ void YabThreadYield(void)
 void YabThreadSleep(void)
 {
    pause();
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void YabThreadRemoteSleep(unsigned int id)
+{
 }
 
 //////////////////////////////////////////////////////////////////////////////

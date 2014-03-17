@@ -51,11 +51,17 @@ int SH2Init(int coreid)
    if ((MSH2 = (SH2_struct *)calloc(1, sizeof(SH2_struct))) == NULL)
       return -1;
 
+   if (SH2TrackInfLoopInit(MSH2) != 0)
+      return -1;
+
    MSH2->onchip.BCR1 = 0x0000;
    MSH2->isslave = 0;
 
    // SSH2
    if ((SSH2 = (SH2_struct *)calloc(1, sizeof(SH2_struct))) == NULL)
+      return -1;
+
+   if (SH2TrackInfLoopInit(SSH2) != 0)
       return -1;
 
    SSH2->onchip.BCR1 = 0x8000;
@@ -95,11 +101,17 @@ void SH2DeInit()
    SH2Core = NULL;
 
    if (MSH2)
+   {
+      SH2TrackInfLoopDeInit(MSH2);
       free(MSH2);
+   }
    MSH2 = NULL;
 
    if (SSH2)
+   {
+      SH2TrackInfLoopDeInit(SSH2);
       free(SSH2);
+   }
    SSH2 = NULL;
 }
 
@@ -207,6 +219,95 @@ void SH2Step(SH2_struct *context)
 
 //////////////////////////////////////////////////////////////////////////////
 
+int SH2StepOver(SH2_struct *context, void (*func)(void *, u32, void *))
+{
+   if (SH2Core)
+   {
+      u32 tmp = SH2Core->GetPC(context);
+      u16 inst=MappedMemoryReadWord(context->regs.PC);
+
+      // If instruction is jsr, bsr, or bsrf, step over it
+      if ((inst & 0xF000) == 0xB000 || // BSR 
+         (inst & 0xF0FF) == 0x0003 || // BSRF
+         (inst & 0xF0FF) == 0x400B)   // JSR
+      {
+         // Set breakpoint after at PC + 4
+         context->stepOverOut.callBack = func;
+         context->stepOverOut.type = SH2ST_STEPOVER;
+         context->stepOverOut.enabled = 1;
+         context->stepOverOut.address = context->regs.PC+4;
+         return 1;
+      }
+      else
+      {
+         // Execute 1 instruction instead
+         SH2Exec(context, context->cycles+1);
+
+         // Sometimes it doesn't always execute one instruction,
+         // let's make sure it did
+         if (tmp == SH2Core->GetPC(context))
+            SH2Exec(context, context->cycles+1);
+      }
+   }
+   return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2StepOut(SH2_struct *context, void (*func)(void *, u32, void *))
+{
+   if (SH2Core)
+   {
+      context->stepOverOut.callBack = func;
+      context->stepOverOut.type = SH2ST_STEPOUT;
+      context->stepOverOut.enabled = 1;
+      context->stepOverOut.address = 0;
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+int SH2TrackInfLoopInit(SH2_struct *context)
+{
+   context->trackInfLoop.maxNum = 100;
+   if ((context->trackInfLoop.match = calloc(context->trackInfLoop.maxNum, sizeof(tilInfo_struct))) == NULL)
+      return -1;
+
+   return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2TrackInfLoopDeInit(SH2_struct *context)
+{
+   if (context->trackInfLoop.match)
+      free(context->trackInfLoop.match);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2TrackInfLoopStart(SH2_struct *context)
+{
+   context->trackInfLoop.enabled = 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2TrackInfLoopStop(SH2_struct *context)
+{
+   context->trackInfLoop.enabled = 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2TrackInfLoopClear(SH2_struct *context)
+{
+   memset(context->trackInfLoop.match, 0, sizeof(tilInfo_struct) * context->trackInfLoop.maxNum);
+   context->trackInfLoop.num = 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 void SH2GetRegisters(SH2_struct *context, sh2regs_struct * r)
 {
    if (r != NULL) {
@@ -232,8 +333,9 @@ void SH2WriteNotify(u32 start, u32 length) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32)) {
+void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32, void *), void *userdata) {
    context->bp.BreakpointCallBack = func;
+   context->bp.BreakpointUserData = userdata;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -340,7 +442,7 @@ static u8 FASTCALL SH2MemoryBreakpointReadByte(u32 addr) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -375,7 +477,7 @@ static u16 FASTCALL SH2MemoryBreakpointReadWord(u32 addr) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -410,7 +512,7 @@ static u32 FASTCALL SH2MemoryBreakpointReadLong(u32 addr) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -445,7 +547,7 @@ static void FASTCALL SH2MemoryBreakpointWriteByte(u32 addr, u8 val) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -485,7 +587,7 @@ static void FASTCALL SH2MemoryBreakpointWriteWord(u32 addr, u16 val) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -525,7 +627,7 @@ static void FASTCALL SH2MemoryBreakpointWriteLong(u32 addr, u32 val) {
          if (CurrentSH2->bp.BreakpointCallBack && CurrentSH2->bp.inbreakpoint == 0)
          {
             CurrentSH2->bp.inbreakpoint = 1;
-            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0);
+            CurrentSH2->bp.BreakpointCallBack(CurrentSH2, 0, CurrentSH2->bp.BreakpointUserData);
             CurrentSH2->bp.inbreakpoint = 0;
          }
 
@@ -787,7 +889,7 @@ void SH2HandleBackTrace(SH2_struct *context)
    u16 inst = context->instruction;
    if ((inst & 0xF000) == 0xB000 || // BSR 
       (inst & 0xF0FF) == 0x0003 || // BSRF
-      (inst & 0xF0FF) == 0x400B)   // JSRF
+      (inst & 0xF0FF) == 0x400B)   // JSR
    {
       if (context->bt.numbacktrace < sizeof(context->bt.addr)/sizeof(u32))
       {
@@ -795,7 +897,7 @@ void SH2HandleBackTrace(SH2_struct *context)
          context->bt.numbacktrace++;
       }
    }
-   else if (inst == 0x000B)
+   else if (inst == 0x000B) // RTS
    {
       if (context->bt.numbacktrace > 0)
          context->bt.numbacktrace--;
@@ -808,6 +910,89 @@ u32 *SH2GetBacktraceList(SH2_struct *context, int *size)
 {
    *size = context->bt.numbacktrace;
    return context->bt.addr;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2HandleStepOverOut(SH2_struct *context)
+{
+   if (context->stepOverOut.enabled)
+   {
+      switch ((int)context->stepOverOut.type)
+      {
+      case SH2ST_STEPOVER: // Step Over
+         if (context->regs.PC == context->stepOverOut.address)
+         {
+            context->stepOverOut.enabled = 0;
+            context->stepOverOut.callBack(context, context->regs.PC, (void *)context->stepOverOut.type);
+         }
+         break;
+      case SH2ST_STEPOUT: // Step Out
+         {
+            u16 inst;
+
+            if (context->stepOverOut.levels < 0 && context->regs.PC == context->regs.PR)
+            {
+               context->stepOverOut.enabled = 0;
+               context->stepOverOut.callBack(context, context->regs.PC, (void *)context->stepOverOut.type);
+               return;
+            }
+
+            inst = context->instruction;;
+
+            if ((inst & 0xF000) == 0xB000 || // BSR 
+               (inst & 0xF0FF) == 0x0003 || // BSRF
+               (inst & 0xF0FF) == 0x400B)   // JSR
+               context->stepOverOut.levels++;
+            else if (inst == 0x000B || // RTS
+                     inst == 0x002B)   // RTE
+               context->stepOverOut.levels--;
+
+            break;
+         }
+      default: break;
+      }
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void SH2HandleTrackInfLoop(SH2_struct *context)
+{
+   if (context->trackInfLoop.enabled)
+   {
+      // Look for specific bf/bt/bra instructions that branch to address < PC
+      if ((context->instruction & 0x8B80) == 0x8B80 || // bf
+          (context->instruction & 0x8F80) == 0x8F80 || // bf/s 
+          (context->instruction & 0x8980) == 0x8980 || // bt
+          (context->instruction & 0x8D80) == 0x8D80 || // bt/s 
+          (context->instruction & 0xA800) == 0xA800)   // bra
+      {
+         int i;
+
+         // See if it's already on match list
+         for (i = 0; i < context->trackInfLoop.num; i++)
+         {
+            if (context->regs.PC == context->trackInfLoop.match[i].addr)
+            {
+               context->trackInfLoop.match[i].count++;
+               return;
+            }
+         }
+
+         if (context->trackInfLoop.num >= context->trackInfLoop.maxNum)
+         {
+            context->trackInfLoop.match = realloc(context->trackInfLoop.match, sizeof(tilInfo_struct) * (context->trackInfLoop.maxNum * 2));
+            context->trackInfLoop.maxNum *= 2;
+         }
+
+         // Add new
+         i=context->trackInfLoop.num;
+         context->trackInfLoop.match[i].addr = context->regs.PC;
+         context->trackInfLoop.match[i].count = 1;
+         context->trackInfLoop.num++;
+      }
+   }
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -26,9 +26,8 @@
 int PERMacJoyInit(void);
 void PERMacJoyDeInit(void);
 int PERMacJoyHandleEvents(void);
-void PERMacJoyNothing(void);
 
-u32 PERMacJoyScan(void);
+u32 PERMacJoyScan(u32 flags);
 void PERMacJoyFlush(void);
 void PERMacJoyKeyName(u32 key, char *name, int size);
 
@@ -38,13 +37,10 @@ PerInterface_struct PERMacJoy = {
     PERMacJoyInit,
     PERMacJoyDeInit,
     PERMacJoyHandleEvents,
-    PERMacJoyNothing,
     PERMacJoyScan,
     1,
-    PERMacJoyFlush
-#ifdef PERKEYNAME
-    ,PERMacJoyKeyName
-#endif
+    PERMacJoyFlush,
+    PERMacJoyKeyName
 };
 
 static int initted = 0;
@@ -180,11 +176,7 @@ int PERMacJoyHandleEvents(void) {
     return 0;
 }
 
-void PERMacJoyNothing(void) {
-    /* Nothing. */
-}
-
-u32 PERMacJoyScan(void) {
+u32 PERMacJoyScan(u32 flags) {
     int i, j, k, data;
     joydata_t *joy;
 

@@ -1263,7 +1263,7 @@ void shiftimm_alloc(struct regstat *current,int i)
       }
     }
   }
-  if(opcode[i]==2&opcode2[i]==13) { // XTRCT
+  if(opcode[i]==2&&opcode2[i]==13) { // XTRCT
     clear_const(current,rs2[i]);
     alloc_reg(current,i,rs2[i]);
   }
@@ -2190,12 +2190,12 @@ void load_assemble(int i,struct regstat *i_regs)
   int s,o,t,addr,map=-1,cache=-1;
   int offset;
   int jaddr=0;
-  int memtarget,c=0;
+  int memtarget=0,c=0;
   int dualindex=(addrmode[i]==DUALIND||addrmode[i]==GBRIND);
   int size=(opcode[i]==4)?2:(opcode2[i]&3);
   unsigned int hr;
   u32 reglist=0;
-  pointer constaddr;
+  pointer constaddr=0;
   t=get_reg(i_regs->regmap,rt1[i]==TBIT?-1:rt1[i]);
   s=get_reg(i_regs->regmap,rs1[i]);
   o=get_reg(i_regs->regmap,rs2[i]);
@@ -2380,7 +2380,7 @@ void store_assemble(int i,struct regstat *i_regs)
   int addr,temp;
   int offset;
   int jaddr=0,jaddr2,type;
-  int memtarget,c=0,constaddr;
+  int memtarget=0,c=0,constaddr=0;
   int dualindex=(addrmode[i]==DUALIND);
   int size=(opcode[i]==4)?2:(opcode2[i]&3);
   int agr=AGEN1+(i&1);
@@ -2526,7 +2526,7 @@ void rmw_assemble(int i,struct regstat *i_regs)
   int s,o,t,addr,map=-1,cache=-1;
   int jaddr=0;
   int type;
-  int memtarget,c=0,constaddr;
+  int memtarget,c=0,constaddr=0;
   int dualindex=(addrmode[i]==GBRIND);
   unsigned int hr;
   u32 reglist=0;
@@ -5716,7 +5716,7 @@ int sh2_recompile_block(int addr)
         if( (mode==DUALIND&&((p_isconst>>rs2[i])&(p_isconst>>rs3[i])&1)) ||
             (mode!=DUALIND&&((p_isconst>>rs2[i])&1)) )
         {
-          u32 addr;
+          u32 addr = 0;
           if(mode==DUALIND) addr=p_constmap[rs2[i]]+p_constmap[rs3[i]];
           if(mode==REGDISP||mode==GBRDISP) addr=p_constmap[rs2[i]]+imm[i];
           if(mode==PREDEC) addr=(p_constmap[rs2[i]]-=4);
@@ -5914,7 +5914,7 @@ int sh2_recompile_block(int addr)
           if(op2<6) rt2[i]=TBIT;
           if(op2==4||op2==5) {if(op3==2) rs2[i]=TBIT;} // ROTCL/ROTCR
         }
-        if(op==2&op2==13) { // XTRCT
+        if(op==2&&op2==13) { // XTRCT
           rs1[i]=(source[i]>>4)&0xf;
           rs2[i]=(source[i]>>8)&0xf;
         }

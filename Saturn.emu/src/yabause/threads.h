@@ -28,6 +28,11 @@
 // Thread IDs
 enum {
    YAB_THREAD_SCSP = 0,
+   YAB_THREAD_GDBSTUBCLIENT,
+   YAB_THREAD_GDBSTUBLISTENER,
+   YAB_THREAD_NETLINKLISTENER,
+   YAB_THREAD_NETLINKCONNECT,
+   YAB_THREAD_NETLINKCLIENT,
    YAB_NUM_THREADS      // Total number of subthreads
 };
 
@@ -42,7 +47,7 @@ enum {
 // YabThreadStart:  Start a new thread for the given function.  Only one
 // thread will be started for each thread ID (YAB_THREAD_*).  Returns 0 on
 // success, -1 on error.
-int YabThreadStart(unsigned int id, void (*func)(void));
+int YabThreadStart(unsigned int id, void (*func)(void *), void *arg);
 
 // YabThreadWait:  Wait for the given ID's thread to terminate.  Returns
 // immediately if no thread has been started on the given ID.
@@ -53,6 +58,9 @@ void YabThreadYield(void);
 
 // YabThreadSleep:  Put the current thread to sleep.
 void YabThreadSleep(void);
+
+// YabThreadSleep:  Put the specified thread to sleep.
+void YabThreadRemoteSleep(unsigned int id);
 
 // YabThreadWake:  Wake up the given thread if it is asleep.
 void YabThreadWake(unsigned int id);

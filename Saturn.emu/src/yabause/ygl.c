@@ -25,6 +25,7 @@
 #include "ygl.h"
 #include "yui.h"
 #include "vidshared.h"
+#include "error.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -195,7 +196,7 @@ GLAPI void APIENTRY glActiveTexturedmy (GLenum texture){}
 #define IS_ZERO(a) ( (a) < EPS && (a) > -EPS)
 
 // AXB = |A||B|sin
-INLINE float cross2d( float veca[2], float vecb[2] )
+static INLINE float cross2d( float veca[2], float vecb[2] )
 {
    return (veca[0]*vecb[1])-(vecb[0]*veca[1]);
 }
@@ -207,9 +208,9 @@ INLINE float cross2d( float veca[2], float vecb[2] )
   a2+-+-----+b2
       ans
       
-  get intersection point for opssite edge.
+  get intersection point for opposite edge.
 --------------------------------------------*/  
-int FASTCALL YglIntersectionOppsiteEdge(float * a1, float * a2, float * b1, float * b2, float * out ) 
+int FASTCALL YglIntersectionOppositeEdge(float * a1, float * a2, float * b1, float * b2, float * out ) 
 {
   float veca[2];
   float vecb[2];
@@ -282,7 +283,7 @@ int YglCalcTextureQ(
    p4[1]=pnts[7];
 
    // calcurate Q1
-   if( YglIntersectionOppsiteEdge( p3, p1, p2, p4,  o ) == 0 )
+   if( YglIntersectionOppositeEdge( p3, p1, p2, p4,  o ) == 0 )
    {
       dx = o[0]-p1[0];
       if( !IS_ZERO(dx) )
@@ -312,7 +313,7 @@ int YglCalcTextureQ(
    /* q2 = 1.0f; */
 
    // calcurate Q3
-   if( YglIntersectionOppsiteEdge( p1, p3, p2,p4,  o ) == 0 )
+   if( YglIntersectionOppositeEdge( p1, p3, p2,p4,  o ) == 0 )
    {
       dx = o[0]-p3[0];
       if( !IS_ZERO(dx) )
@@ -341,7 +342,7 @@ int YglCalcTextureQ(
 
    
    // calcurate Q4
-   if( YglIntersectionOppsiteEdge( p3, p1, p4, p2,  o ) == 0 )
+   if( YglIntersectionOppositeEdge( p3, p1, p4, p2,  o ) == 0 )
    {
       dx = o[0]-p1[0];
       if( !IS_ZERO(dx) )
@@ -740,14 +741,13 @@ int YglInit(int width, int height, unsigned int depth) {
    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
    if( status != GL_FRAMEBUFFER_COMPLETE )
    {
-      printf("YglInit: Framebuffer status = %08X\n", status );
+      YabErrorMsg("YglInit: Framebuffer status = %08X", status );
       return -1;
    }
    
    glBindFramebuffer(GL_FRAMEBUFFER, 0 );   
    
    _Ygl->st = 0;
-   _Ygl->msglength = 0;
 
    // This is probably wrong, but it'll have to do for now
    if ((cachelist = (cache_struct *)malloc(0x100000 / 8 * sizeof(cache_struct))) == NULL)
@@ -1772,7 +1772,6 @@ void YglReset(void) {
       level->prg[j].currentQuad = 0;
      }
    }
-   _Ygl->msglength = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1789,17 +1788,6 @@ void YglChangeResolution(int w, int h) {
    glOrtho(0, w, h, 0, 1, 0);
    _Ygl->rwidth = w;
    _Ygl->rheight = h;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void YglOnScreenDebugMessage(char *string, ...) {
-   va_list arglist;
-
-   va_start(arglist, string);
-   vsprintf(_Ygl->message, string, arglist);
-   va_end(arglist);
-   _Ygl->msglength = (int)strlen(_Ygl->message);
 }
 
 //////////////////////////////////////////////////////////////////////////////

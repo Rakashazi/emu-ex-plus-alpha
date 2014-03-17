@@ -193,12 +193,6 @@ int VideoChangeCore(int coreid)
    // Reset resolution/priority variables
    if (Vdp2Regs)
    {
-      VIDCore->Vdp2SetResolution(Vdp2Regs->TVMD);
-      VIDCore->Vdp2SetPriorityNBG0(Vdp2Regs->PRINA & 0x7);
-      VIDCore->Vdp2SetPriorityNBG1((Vdp2Regs->PRINA >> 8) & 0x7);
-      VIDCore->Vdp2SetPriorityNBG2(Vdp2Regs->PRINB & 0x7);
-      VIDCore->Vdp2SetPriorityNBG3((Vdp2Regs->PRINB >> 8) & 0x7);
-      VIDCore->Vdp2SetPriorityRBG0(Vdp2Regs->PRIR & 0x7);
       VIDCore->Vdp1Reset();
    }
 
@@ -283,6 +277,7 @@ void FASTCALL Vdp1WriteWord(u32 addr, u16 val) {
       case 0x4:
          Vdp1Regs->COPR = 0;
          Vdp1Regs->PTMR = val;
+         if (val == 1) Vdp1Draw();
          break;
       case 0x6:
          Vdp1Regs->EWDR = val;
@@ -316,9 +311,6 @@ void Vdp1Draw(void) {
    u16 command;
 
    VIDCore->Vdp1DrawStart();
-
-   if (!Vdp1Regs->PTMR)
-      return;
 
    if (!Vdp1External.disptoggle)
    {
@@ -425,10 +417,6 @@ void Vdp1NoDraw(void) {
    u32 returnAddr;
    u32 commandCounter;
    u16 command;
-
-   // Only when PTMR's not set do we not parse commands
-   if (!Vdp1Regs->PTMR)
-      return;
 
    Vdp1Regs->addr = 0;
    returnAddr = 0xFFFFFFFF;
@@ -1326,13 +1314,6 @@ int VIDDummyVdp2Reset(void);
 void VIDDummyVdp2DrawStart(void);
 void VIDDummyVdp2DrawEnd(void);
 void VIDDummyVdp2DrawScreens(void);
-void VIDDummyVdp2SetResolution(u16 TVMD);
-void FASTCALL VIDDummyVdp2SetPriorityNBG0(int priority);
-void FASTCALL VIDDummyVdp2SetPriorityNBG1(int priority);
-void FASTCALL VIDDummyVdp2SetPriorityNBG2(int priority);
-void FASTCALL VIDDummyVdp2SetPriorityNBG3(int priority);
-void FASTCALL VIDDummyVdp2SetPriorityRBG0(int priority);
-void VIDDummyOnScreenDebugMessage(char * string, ...);
 void VIDDummyGetGlSize(int *width, int *height);
 
 
@@ -1359,13 +1340,6 @@ VIDDummyVdp2Reset,
 VIDDummyVdp2DrawStart,
 VIDDummyVdp2DrawEnd,
 VIDDummyVdp2DrawScreens,
-VIDDummyVdp2SetResolution,
-VIDDummyVdp2SetPriorityNBG0,
-VIDDummyVdp2SetPriorityNBG1,
-VIDDummyVdp2SetPriorityNBG2,
-VIDDummyVdp2SetPriorityNBG3,
-VIDDummyVdp2SetPriorityRBG0,
-VIDDummyOnScreenDebugMessage,
 VIDDummyGetGlSize
 };
 
@@ -1490,48 +1464,6 @@ void VIDDummyVdp2DrawEnd(void)
 //////////////////////////////////////////////////////////////////////////////
 
 void VIDDummyVdp2DrawScreens(void)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void VIDDummyVdp2SetResolution(UNUSED u16 TVMD)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void FASTCALL VIDDummyVdp2SetPriorityNBG0(UNUSED int priority)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void FASTCALL VIDDummyVdp2SetPriorityNBG1(UNUSED int priority)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void FASTCALL VIDDummyVdp2SetPriorityNBG2(UNUSED int priority)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void FASTCALL VIDDummyVdp2SetPriorityNBG3(UNUSED int priority)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void FASTCALL VIDDummyVdp2SetPriorityRBG0(UNUSED int priority)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void VIDDummyOnScreenDebugMessage(UNUSED char * string, ...)
 {
 }
 

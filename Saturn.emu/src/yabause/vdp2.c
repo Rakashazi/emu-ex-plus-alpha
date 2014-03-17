@@ -248,6 +248,9 @@ void Vdp2Reset(void) {
 //////////////////////////////////////////////////////////////////////////////
 
 void Vdp2VBlankIN(void) {
+   VIDCore->Vdp2DrawEnd();
+   /* this should be done after a frame change or a plot trigger */
+   Vdp1Regs->COPR = 0;
    /* I'm not 100% sure about this, but it seems that when using manual change
    we should swap framebuffers in the "next field" and thus, clear the CEF...
    now we're lying a little here as we're not swapping the framebuffers. */
@@ -344,13 +347,12 @@ void Vdp2VBlankOUT(void) {
 
    if (Vdp2Regs->TVMD & 0x8000) {
       VIDCore->Vdp2DrawScreens();
-      Vdp1Draw();
+      if (Vdp1Regs->PTMR == 2) Vdp1Draw();
    }
    else
-      Vdp1NoDraw();
+      if (Vdp1Regs->PTMR == 2) Vdp1NoDraw();
 
    FPSDisplay();
-   VIDCore->Vdp2DrawEnd();
    if ((Vdp1Regs->FBCR & 2) && (Vdp1Regs->TVMR & 8))
       Vdp1External.manualerase = 1;
 
@@ -497,7 +499,6 @@ void FASTCALL Vdp2WriteWord(u32 addr, u16 val) {
    switch (addr)
    {
       case 0x000:
-         VIDCore->Vdp2SetResolution(val);
          Vdp2Regs->TVMD = val;
          yabsys.VBlankLineCount = 224+(val & 0x30);
          return;
@@ -872,17 +873,12 @@ void FASTCALL Vdp2WriteWord(u32 addr, u16 val) {
          Vdp2Regs->PRISD = val;
          return;
       case 0x0F8:
-         VIDCore->Vdp2SetPriorityNBG0(val & 0x7);
-         VIDCore->Vdp2SetPriorityNBG1((val >> 8) & 0x7);
          Vdp2Regs->PRINA = val;
          return;
       case 0x0FA:
-         VIDCore->Vdp2SetPriorityNBG2(val & 0x7);
-         VIDCore->Vdp2SetPriorityNBG3((val >> 8) & 0x7);
          Vdp2Regs->PRINB = val;
          return;
       case 0x0FC:
-         VIDCore->Vdp2SetPriorityRBG0(val & 0x7);
          Vdp2Regs->PRIR = val;
          return;
       case 0x0FE:
@@ -994,13 +990,6 @@ int Vdp2LoadState(FILE *fp, UNUSED int version, int size)
 
    // Read internal variables
    yread(&check, (void *)&Vdp2Internal, sizeof(Vdp2Internal_struct), 1, fp);
-
-   VIDCore->Vdp2SetResolution(Vdp2Regs->TVMD);
-   VIDCore->Vdp2SetPriorityNBG0(Vdp2Regs->PRINA & 0x7);
-   VIDCore->Vdp2SetPriorityNBG1((Vdp2Regs->PRINA >> 8) & 0x7);
-   VIDCore->Vdp2SetPriorityNBG2(Vdp2Regs->PRINB & 0x7);
-   VIDCore->Vdp2SetPriorityNBG3((Vdp2Regs->PRINB >> 8) & 0x7);
-   VIDCore->Vdp2SetPriorityRBG0(Vdp2Regs->PRIR & 0x7);
 
    return size;
 }

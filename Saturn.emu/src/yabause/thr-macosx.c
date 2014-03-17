@@ -27,7 +27,8 @@
 struct thd_s {
     int running;
     pthread_t thd;
-    void (*func)(void);
+    void (*func)(void *);
+    void *arg;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 };
@@ -47,14 +48,14 @@ static void *wrapper(void *hnd) {
 
     /* Set the handle for the thread, and call the actual thread function. */
     pthread_setspecific(hnd_key, hnd);
-    hnds->func();
+    hnds->func(hnds->arg);
 
     pthread_mutex_unlock(&hnds->mutex);
 
     return NULL;
 }
 
-int YabThreadStart(unsigned int id, void (*func)(void)) {
+int YabThreadStart(unsigned int id, void (*func)(void *), void *arg) {
     /* Create the key to access the thread handle if we haven't made it yet. */
     pthread_once(&hnd_key_once, make_key);
 
@@ -77,6 +78,7 @@ int YabThreadStart(unsigned int id, void (*func)(void)) {
     }
 
     thread_handle[id].func = func;
+    thread_handle[id].arg = arg;
 
     /* Create the thread. */
     if(pthread_create(&thread_handle[id].thd, NULL, wrapper,
@@ -118,6 +120,11 @@ void YabThreadSleep(void) {
 
     /* Wait on the condvar... */
     pthread_cond_wait(&thd->cond, &thd->mutex);
+}
+
+void YabThreadSleep(unsigned int id) {
+   /* Wait on the condvar... */
+   pthread_cond_wait(&thread_handle[id].cond, &thread_handle[id].mutex);
 }
 
 void YabThreadWake(unsigned int id) {

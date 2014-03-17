@@ -29,31 +29,33 @@
 
 extern PerInterface_struct PERDIRECTX;
 
-extern GUID GUIDDevice[256];
-extern u32 numguids;
-extern const char * pad_names[];
-extern PerPad_struct *pad[12];
-extern u32 numpads;
-extern int porttype[2];
-
 typedef struct
 {
    LPDIRECTINPUTDEVICE8 lpDIDevice;
    int type;
    int emulatetype;
+#ifdef HAVE_XINPUT
+	int is_xinput_device;
+	int xinput_num;
+#endif
 } padconf_struct;
 
-extern padconf_struct paddevice[12];
+enum XIAXIS
+{
+	XI_THUMBL=1,
+	XI_THUMBLX=1,
+	XI_THUMBLY=5,
+	XI_THUMBR=9,
+	XI_THUMBRX=9,
+	XI_THUMBRY=13,
+	XI_TRIGGERL=17,
+	XI_TRIGGERR=19
+};
 
-LRESULT CALLBACK ButtonConfigDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam,
-                                     LPARAM lParam);
-
-void KeyStub(PerPad_struct *pad);
-void SetupControlUpDown(u8 padnum, u8 controlcode, void (*downfunc)(PerPad_struct *), void (*upfunc)(PerPad_struct *));
-
-void PERDXLoadDevices(char *inifilename);
-void PERDXListDevices(HWND control, int emulatetype);
-int PERDXInitControlConfig(HWND hWnd, u8 padnum, int *controlmap, const char *inifilename);
-int PERDXFetchNextPress(HWND hWnd, u32 guidnum, char *buttonname);
-BOOL PERDXWriteGUID(u32 guidnum, u8 padnum, LPCSTR inifilename);
+int PERDXInit(void);
+void PERDXDeInit(void);
+int PERDXHandleEvents(void);
+void PERDXPerSetButtonMapping(void);
+u32 PERDXScan(u32 flags) ;
+void PERDXFlush(void);
 #endif

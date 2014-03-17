@@ -22,6 +22,7 @@
    sndsdl.c file in Yabause. */
 
 #include <AudioUnit/AudioUnit.h>
+#include <IOKit/audio/IOAudioTypes.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -104,8 +105,7 @@ int SNDMacInit(void) {
     AudioStreamBasicDescription basic_desc;
     Component comp;
     AURenderCallbackStruct callback;
-    UInt32 bufsz, size;
-    AudioDeviceID dev;
+    UInt32 bufsz;
     int rv = 0;
 
     /* Clear the sound to silence. */
@@ -165,17 +165,6 @@ int SNDMacInit(void) {
     if(error != noErr) {
         rv = -4;
         goto err2;
-    }
-
-    size = sizeof(dev);
-
-    error = AudioUnitGetProperty(outputAU,
-                                 kAudioOutputUnitProperty_CurrentDevice,
-                                 kAudioUnitScope_Global, 0, &dev, &size);
-
-    if(error != noErr) {
-        rv = -5;
-        goto err3;
     }
 
     bufsz = 2048;

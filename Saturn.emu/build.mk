@@ -14,12 +14,19 @@ ifneq ($(config_compiler),clang)
  HIGH_OPTIMIZE_CFLAGS = -O3 -fno-tree-vectorize $(HIGH_OPTIMIZE_CFLAGS_MISC)
 endif
 
+ifeq ($(ENV), linux)
+ ifndef RELEASE
+  # debug Saturn.emu build doesn't use address sanitizer but libimagine.a needs it
+  LDFLAGS += -fsanitize=address
+ endif
+endif
+
 include $(EMUFRAMEWORK_PATH)/common.mk
 
 SRC += main/Main.cc main/EmuControls.cc
 
 CPPFLAGS += -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 -DSysDDec=float \
--DVERSION=\"0.9.10\"
+-DVERSION=\"0.9.10\" -DHAVE_STRCASECMP=1
 
 ifeq ($(ARCH), arm)
  ifneq ($(ENV), ios)
@@ -40,7 +47,7 @@ yabause/debug.c yabause/error.c yabause/memory.c yabause/m68kcore.c yabause/m68k
 yabause/peripheral.c yabause/profile.c yabause/scu.c yabause/sh2core.c yabause/sh2d.c \
 yabause/sh2idle.c yabause/sh2int.c yabause/sh2trace.c yabause/smpc.c yabause/snddummy.c yabause/titan/titan.c \
 yabause/vdp1.c yabause/vdp2.c yabause/vdp2debug.c yabause/vidshared.c yabause/vidsoft.c yabause/yabause.c \
-yabause/scsp.c
+yabause/scsp.c yabause/japmodem.c
 
 #SRC += yabause/c68k/c68kexec.c yabause/c68k/c68k.c yabause/m68kc68k.c
 #CPPFLAGS += -DHAVE_C68K=1

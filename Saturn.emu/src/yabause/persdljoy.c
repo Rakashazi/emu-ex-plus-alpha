@@ -39,9 +39,8 @@
 int PERSDLJoyInit(void);
 void PERSDLJoyDeInit(void);
 int PERSDLJoyHandleEvents(void);
-void PERSDLJoyNothing(void);
 
-u32 PERSDLJoyScan(void);
+u32 PERSDLJoyScan(u32 flags);
 void PERSDLJoyFlush(void);
 void PERSDLKeyName(u32 key, char * name, int size);
 
@@ -51,13 +50,10 @@ PERCORE_SDLJOY,
 PERSDLJoyInit,
 PERSDLJoyDeInit,
 PERSDLJoyHandleEvents,
-PERSDLJoyNothing,
 PERSDLJoyScan,
 1,
-PERSDLJoyFlush
-#ifdef PERKEYNAME
-,PERSDLKeyName
-#endif
+PERSDLJoyFlush,
+PERSDLKeyName
 };
 
 typedef struct {
@@ -82,7 +78,11 @@ int PERSDLJoyInit(void) {
 	{
 		return 0;
 	}
-	
+
+#if defined (_MSC_VER) && SDL_VERSION_ATLEAST(2,0,0)
+   SDL_SetMainReady();
+#endif
+
 	// init joysticks
 	if ( SDL_InitSubSystem( SDL_INIT_JOYSTICK ) == -1 )
 	{
@@ -132,12 +132,17 @@ void PERSDLJoyDeInit(void) {
 		int i;
 		for ( i = 0; i < SDL_PERCORE_JOYSTICKS_INITIALIZED; i++ )
 		{
+#if SDL_VERSION_ATLEAST(2,0,0)
+         if ( SDL_PERCORE_JOYSTICKS[ i ].mJoystick )
+#else
 			if ( SDL_JoystickOpened( i ) )
-			{
-				SDL_JoystickClose( SDL_PERCORE_JOYSTICKS[ i ].mJoystick );
-				free( SDL_PERCORE_JOYSTICKS[ i ].mScanStatus );
-				free( SDL_PERCORE_JOYSTICKS[ i ].mHatStatus );
-			}
+#endif
+         {
+            SDL_JoystickClose( SDL_PERCORE_JOYSTICKS[ i ].mJoystick );
+
+            free( SDL_PERCORE_JOYSTICKS[ i ].mScanStatus );
+            free( SDL_PERCORE_JOYSTICKS[ i ].mHatStatus );
+         }
 		}
 		free( SDL_PERCORE_JOYSTICKS );
 	}
@@ -147,11 +152,6 @@ void PERSDLJoyDeInit(void) {
 	
 	// close sdl joysticks
 	SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void PERSDLJoyNothing(void) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -184,6 +184,8 @@ int PERSDLJoyHandleEvents(void) {
 		for ( i = 0; i < SDL_JoystickNumAxes( joy ); i++ )
 		{
 			cur = SDL_JoystickGetAxis( joy, i );
+
+			PerAxisValue((joyId << 18) | SDL_MEDIUM_AXIS_VALUE | i, (u8)(((int)cur+32768) >> 8));
 			
 			if ( cur < -SDL_MEDIUM_AXIS_VALUE )
 			{
@@ -256,7 +258,7 @@ int PERSDLJoyHandleEvents(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 PERSDLJoyScan( void ) {
+u32 PERSDLJoyScan( u32 flags ) {
 	// init vars
 	int joyId;
 	int i;
@@ -286,39 +288,51 @@ u32 PERSDLJoyScan( void ) {
 			{
 				if ( cur < -SDL_MEDIUM_AXIS_VALUE )
 				{
-					return (joyId << 18) | SDL_MIN_AXIS_VALUE | i;
+					if (flags & PERSF_AXIS)
+						return (joyId << 18) | SDL_MEDIUM_AXIS_VALUE | i;
+					if (flags & PERSF_HAT)
+						return (joyId << 18) | SDL_MIN_AXIS_VALUE | i;
 				}
 				else if ( cur > SDL_MEDIUM_AXIS_VALUE )
 				{
-					return (joyId << 18) | SDL_MAX_AXIS_VALUE | i;
+					if (flags & PERSF_AXIS)
+						return (joyId << 18) | SDL_MEDIUM_AXIS_VALUE | i;
+					if (flags & PERSF_HAT)
+						return (joyId << 18) | SDL_MAX_AXIS_VALUE | i;
 				}
 			}
 		}
 
-		// check buttons
-		for ( i = 0; i < SDL_JoystickNumButtons( joy ); i++ )
+		if (flags & PERSF_BUTTON)
 		{
-			if ( SDL_JoystickGetButton( joy, i ) == SDL_BUTTON_PRESSED )
+			// check buttons
+			for ( i = 0; i < SDL_JoystickNumButtons( joy ); i++ )
 			{
-				return (joyId << 18) | (i +1);
-				break;
+				if ( SDL_JoystickGetButton( joy, i ) == SDL_BUTTON_PRESSED )
+				{
+					return (joyId << 18) | (i +1);
+					break;
+				}
 			}
 		}
 
-		// check hats
-		for ( i = 0; i < SDL_JoystickNumHats( joy ); i++ )
+		if (flags & PERSF_HAT)
 		{
-			hatState = SDL_JoystickGetHat( joy, i );
-			switch (hatState)
+			// check hats
+			for ( i = 0; i < SDL_JoystickNumHats( joy ); i++ )
 			{
-				case SDL_HAT_UP:
-				case SDL_HAT_RIGHT:
-				case SDL_HAT_DOWN:
-				case SDL_HAT_LEFT:
-					return (joyId << 18) | SDL_HAT_VALUE | (hatState << 4) | i;
-					break;
-				default:
-					break;
+				hatState = SDL_JoystickGetHat( joy, i );
+				switch (hatState)
+				{
+					case SDL_HAT_UP:
+					case SDL_HAT_RIGHT:
+					case SDL_HAT_DOWN:
+					case SDL_HAT_LEFT:
+						return (joyId << 18) | SDL_HAT_VALUE | (hatState << 4) | i;
+						break;
+					default:
+						break;
+				}
 			}
 		}
 	}

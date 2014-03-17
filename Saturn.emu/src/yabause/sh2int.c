@@ -2706,6 +2706,8 @@ int SH2InterpreterInit()
    SSH2->breakpointEnabled = 0;  
    MSH2->backtraceEnabled = 0;
    SSH2->backtraceEnabled = 0;
+   MSH2->stepOverOut.enabled = 0;
+   SSH2->stepOverOut.enabled = 0;
    
    return 0;
 }
@@ -2732,6 +2734,8 @@ void SH2InterpreterDeInit()
 void SH2InterpreterReset(UNUSED SH2_struct *context)
 {
    // Reset any internal variables here
+   context->stepOverOut.enabled = 0;
+   context->stepOverOut.enabled = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2844,6 +2848,8 @@ FASTCALL void SH2DebugInterpreterExec(SH2_struct *context, u32 cycles)
       context->instruction = fetchlist[(context->regs.PC >> 20) & 0x0FF](context->regs.PC);
 
       SH2HandleBackTrace(context);
+      SH2HandleStepOverOut(context);
+      SH2HandleTrackInfLoop(context);
 
       // Execute it
       opcodes[context->instruction](context);

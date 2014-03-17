@@ -95,8 +95,8 @@ const KeyConfig defaultKeyProfile[] =
 			Input::Keycode::GAME_X,
 			Input::Keycode::GAME_Y,
 			Input::Keycode::GAME_L1,
-			Input::Keycode::GAME_LEFT_TRIGGER,
-			Input::Keycode::GAME_RIGHT_TRIGGER,
+			Input::Keycode::GAME_LEFT_THUMB,
+			Input::Keycode::GAME_RIGHT_THUMB,
 		}
 	},
 	{
@@ -214,8 +214,8 @@ const KeyConfig defaultKeyProfile[] =
 				Input::Keycode::GAME_X,
 				Input::Keycode::GAME_Y,
 				Input::Keycode::GAME_L1,
-				Input::Keycode::GAME_LEFT_TRIGGER,
-				Input::Keycode::GAME_RIGHT_TRIGGER,
+				Input::Keycode::GAME_LEFT_THUMB,
+				Input::Keycode::GAME_RIGHT_THUMB,
 			}
 		},
 		#endif

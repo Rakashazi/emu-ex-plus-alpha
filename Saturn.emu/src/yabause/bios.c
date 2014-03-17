@@ -307,17 +307,50 @@ static void FASTCALL BiosClearSemaphore(SH2_struct * sh)
 
 static void FASTCALL BiosChangeSystemClock(SH2_struct * sh)
 {
+   int i, j;
+   u32 mask;
    SH2GetRegisters(sh, &sh->regs);
 
    LOG("BiosChangeSystemClock\n");
 
+   // Set new system clock speed
    MappedMemoryWriteLong(0x06000324, sh->regs.R[4]);
+
+   MappedMemoryWriteLong(0x25FE00A8, 0); // Clear A-bus Interrupt ACK
+   MappedMemoryWriteLong(0x25FE00B8, 0); // Clear A-Bus Refresh
+   
+   MappedMemoryWriteByte(0xFFFFFE91, 0x80); // Transition to standby mode
+   MappedMemoryWriteWord(0xFFFFFE80, 0xA51D); // Set WDT counter
+   MappedMemoryWriteWord(0xFFFFFEE0, 0x8000); // Set NMI edge select to high
 
    if (sh->regs.R[4] == 0)
       SmpcCKCHG320();
    else
       SmpcCKCHG352();
-  
+
+   // Clear SCU DMA Regs
+   for (j = 0; j < 3; j++)
+   {
+      for (i = 0; i < 7; i++)
+         MappedMemoryWriteLong(0x25FE0000+(j*0xC)+(i*4), 0);
+   }
+
+   MappedMemoryWriteLong(0x25FE0060, 0); // Clear DMA force stop
+   MappedMemoryWriteLong(0x25FE0080, 0); // Clear DSP Control Port
+   MappedMemoryWriteLong(0x25FE00B0, 0x1FF01FF0); // Reset A-Bus Set
+   MappedMemoryWriteLong(0x25FE00B4, 0x1FF01FF0);
+   MappedMemoryWriteLong(0x25FE00B8, 0x1F); // Reset A-Bus Refresh
+   MappedMemoryWriteLong(0x25FE00A8, 0x1); // Reset A-bus Interrupt ACK
+   MappedMemoryWriteLong(0x25FE0090, 0x3FF); // Reset Timer 0 Compare
+   MappedMemoryWriteLong(0x25FE0094, 0x1FF); // Reset Timer 1 Set Data
+   MappedMemoryWriteLong(0x25FE0098, 0); // Reset Timer 1 Mode
+
+   mask = MappedMemoryReadLong(0x06000348);
+   MappedMemoryWriteLong(0x25FE00A0, mask); // Interrupt Mask Register
+
+   if (!(mask & 0x8000))
+      MappedMemoryWriteLong(0x25FE00A8, 1); // A-bus Interrupt Acknowledge
+
    sh->regs.PC = sh->regs.PR;
    SH2SetRegisters(sh, &sh->regs);
 }

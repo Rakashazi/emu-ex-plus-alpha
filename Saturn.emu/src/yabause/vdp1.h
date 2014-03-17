@@ -52,13 +52,6 @@ typedef struct
    void (*Vdp2DrawStart)(void);
    void (*Vdp2DrawEnd)(void);
    void (*Vdp2DrawScreens)(void);
-   void (*Vdp2SetResolution)(u16);
-   void FASTCALL (*Vdp2SetPriorityNBG0)(int);
-   void FASTCALL (*Vdp2SetPriorityNBG1)(int);
-   void FASTCALL (*Vdp2SetPriorityNBG2)(int);
-   void FASTCALL (*Vdp2SetPriorityNBG3)(int);
-   void FASTCALL (*Vdp2SetPriorityRBG0)(int);
-   void (*OnScreenDebugMessage)(char *string, ...);
    void (*GetGlSize)(int *width, int *height);
 } VideoInterface_struct;
 

@@ -26,6 +26,8 @@ extern "C"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 static PerPad_struct *pad[2];
+// from sh2_dynarec.c
+#define SH2CORE_DYNAREC 2
 
 static bool isCDExtension(const char *name)
 {
@@ -44,20 +46,20 @@ static int ssBiosFsFilter(const char *name, int type)
 	return type == Fs::TYPE_DIR || string_hasDotExtension(name, "bin");
 }
 
-CLINK void DisplayMessage(const char* str) { }
+CLINK void DisplayMessage(const char* str) {}
 CLINK int OSDInit(int coreid) { return 0; }
-CLINK void OSDPushMessage(int msgtype, int ttl, const char * message, ...) { }
-CLINK void OSDDisplayMessages(void) { }
+CLINK void OSDPushMessage(int msgtype, int ttl, const char * message, ...) {}
+CLINK void OSDDisplayMessages(void) {}
 
 // Sound
 
 // EmuFramework is in charge of audio setup & parameters
 static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
-static void SNDImagineDeInit() { }
+static void SNDImagineDeInit() {}
 static int SNDImagineReset() { return 0; }
-static void SNDImagineMuteAudio() { }
-static void SNDImagineUnMuteAudio() { }
-static void SNDImagineSetVolume(int volume) { }
+static void SNDImagineMuteAudio() {}
+static void SNDImagineUnMuteAudio() {}
+static void SNDImagineSetVolume(int volume) {}
 
 static int SNDImagineChangeVideoFormat(int vertfreq)
 {
@@ -82,8 +84,7 @@ static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer,
 static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames)
 {
 	//logMsg("got %d audio frames to write", frames);
-	frames = std::min(800U, frames);
-	s16 sample[800*2];
+	s16 sample[frames*2];
 	iterateTimes(frames, i)
 	{
 		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
@@ -93,7 +94,7 @@ static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32
 
 static u32 SNDImagineGetAudioSpace()
 {
-	return 1000; // always render all samples available
+	return 1024; // always render all samples available
 }
 
 #define SNDCORE_IMAGINE 1
@@ -125,6 +126,13 @@ SH2Interface_struct *SH2CoreList[] =
 	//&SH2DebugInterpreter,
 	nullptr
 };
+
+static const int defaultSH2CoreID =
+#ifdef SH2_DYNAREC
+SH2CORE_DYNAREC;
+#else
+SH2CORE_INTERPRETER;
+#endif
 
 PerInterface_struct *PERCoreList[] =
 {
@@ -200,21 +208,31 @@ enum
 };
 
 enum {
-	CFGKEY_BIOS_PATH = 279
+	CFGKEY_BIOS_PATH = 279, CFGKEY_SH2_CORE = 280
 };
+
+static bool OptionSH2CoreIsValid(uint8 val)
+{
+	for(const auto &coreI : SH2CoreList)
+	{
+		if(coreI->id == val)
+		{
+			logMsg("SH2 core option valid");
+			return true;
+		}
+	}
+	logMsg("SH2 core option not valid");
+	return false;
+}
 
 FsSys::cPath biosPath = "";
 static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, sizeof(biosPath), "");
+static Byte1Option optionSH2Core(CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid);
 
-static const int SH2CORE_DYNAREC = 2;
 static yabauseinit_struct yinit =
 {
 	PERCORE_DUMMY,
-	#ifdef SH2_DYNAREC
-	SH2CORE_DYNAREC,
-	#else
-	SH2CORE_INTERPRETER,
-	#endif
+	defaultSH2CoreID,
 	VIDCORE_SOFT,
 	SNDCORE_IMAGINE,
 	#if defined(HAVE_Q68)
@@ -272,7 +290,10 @@ void EmuSystem::initOptions()
 	optionTouchCtrlBtnStagger.initDefault(3);
 }
 
-void EmuSystem::onOptionsLoaded() {}
+void EmuSystem::onOptionsLoaded()
+{
+	yinit.sh2coretype = optionSH2Core;
+}
 
 bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 {
@@ -280,6 +301,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_BIOS_PATH: optionBiosPath.readFromIO(io, readSize);
+		bcase CFGKEY_SH2_CORE: optionSH2Core.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -287,6 +309,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 void EmuSystem::writeConfig(Io *io)
 {
 	optionBiosPath.writeToIO(io);
+	optionSH2Core.writeWithKeyIfNotDefault(io);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = ssFsFilter;
@@ -537,6 +560,7 @@ int EmuSystem::loadGame(const char *path)
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
+	ScspSetFrameAccurate(1);
 
 	logMsg("finished loading game");
 	return 1;
@@ -584,7 +608,6 @@ void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
-	ScspSetFrameAccurate(1);
 	mainInitCommon(argc, argv);
 	return OK;
 }

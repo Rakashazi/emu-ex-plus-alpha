@@ -1,5 +1,4 @@
-/*  src/thr-dummy.c: Dummy thread functions for systems without thread support
-    Copyright 2010 Andrew Church
+/*  Copyright 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -19,20 +18,31 @@
 */
 
 #include "core.h"
-#include "threads.h"
+#include "sock.h"
 
 //////////////////////////////////////////////////////////////////////////////
 
-int YabThreadStart(unsigned int id, void (*func)(void *), void *arg) { return -1; }
+int YabSockInit() { return -1; }
 
-void YabThreadWait(unsigned int id) {}
+int YabSockDeInit() { return -1; }
 
-void YabThreadYield(void) {}
+int YabSockConnectSocket(const char *ip, int port, YabSock *sock) { return -1; }
 
-void YabThreadSleep(void) {}
+int YabSockListenSocket(int port, YabSock *sock) { return -1; }
 
-void YabThreadRemoteSleep(unsigned int id) {}
+int YabSockCloseSocket(YabSock sock) { return -1; }
 
-void YabThreadWake(unsigned int id) {}
+int YabSockSelect(YabSock sock, int check_read, int check_write ) { return -1; }
+
+int YabSockIsReadSet(YabSock sock) { return -1; }
+
+int YabSockIsWriteSet(YabSock sock) { return -1; }
+
+YabSock YabSockAccept(YabSock sock) { return 0; }
+
+int YabSockSend(YabSock sock, const void *buf, int len, int flags)  { return -1; }
+
+int YabSockReceive(YabSock sock, void *buf, int len, int flags) { return -1; }
+
 
 //////////////////////////////////////////////////////////////////////////////

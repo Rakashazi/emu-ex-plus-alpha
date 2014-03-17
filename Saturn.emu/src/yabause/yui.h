@@ -93,7 +93,7 @@ void YuiSwapBuffers(void);
    to the current registers. context should be either MSH2 or SSH2.
 */
 
-/* void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32));
+/* void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32, void *), void *userdata);
 
    For the specified SH2 context(context), it sets the breakpoint handler
    function(func). context should be either MSH2 or SSH2.

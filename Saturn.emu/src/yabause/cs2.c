@@ -23,6 +23,7 @@
 #include "cs2.h"
 #include "debug.h"
 #include "error.h"
+#include "japmodem.h"
 #include "netlink.h"
 #include "scsp.h"
 #include "scu.h"
@@ -94,59 +95,14 @@ static INLINE void doMPEGReport(u8 status)
 
 u8 FASTCALL Cs2ReadByte(u32 addr)
 {
-   addr &= 0xFFFFF; // fix me(I should really have proper mapping)
-
-   if(Cs2Area->carttype == CART_NETLINK)
-      return NetlinkReadByte(addr);
-   else
-   {
-      // only netlink seems to use byte-access
-      switch (addr)
-      {
-         case 0x95001:
-         case 0x95005:
-         case 0x95009:
-         case 0x9500D:
-         case 0x95011:
-         case 0x95015:
-         case 0x95019:
-         case 0x9501D:
-            return 0xFF;
-         default:
-            break;
-      }
-   }
-
-   LOG("Unimplemented cs2 byte read: %08X\n", addr);
-   return 0xFF;
+   return CartridgeArea->Cs2ReadByte(addr);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 void FASTCALL Cs2WriteByte(u32 addr, u8 val)
 {
-   addr &= 0xFFFFF; // fix me(I should really have proper mapping)
-
-   if(Cs2Area->carttype == CART_NETLINK)
-   {
-      NetlinkWriteByte(addr, val);
-      return;
-   }
-   else
-   {
-      // only netlink seems to use byte-access
-      switch (addr)
-      {
-         case 0x2503D:
-         case 0x95011:
-         case 0x9501D:
-            return;
-         default:
-            break;
-      }
-   }
-
-   LOG("Unimplemented cs2 byte write: %08X\n", addr);
+   CartridgeArea->Cs2WriteByte(addr, val);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -614,6 +570,11 @@ int Cs2Init(int carttype, int coreid, const char *cdpath, const char *mpegpath, 
       if ((ret = NetlinkInit(netlinksetting)) != 0)
          return ret;
    }
+   else if (Cs2Area->carttype == CART_JAPMODEM)
+   {
+      if ((ret = JapModemInit(netlinksetting)) != 0)
+         return ret;
+   }
 
    if ((cdip = (ip_struct *) calloc(sizeof(ip_struct), 1)) == NULL)
       return -1;
@@ -679,6 +640,8 @@ void Cs2DeInit(void) {
 
       if(Cs2Area->carttype == CART_NETLINK)
          NetlinkDeInit();
+      else if (Cs2Area->carttype == CART_JAPMODEM)
+         JapModemDeInit();
 
       free(Cs2Area);
    }
@@ -806,6 +769,8 @@ void Cs2Reset(void) {
   Cs2Area->lastbuffer = 0xFF;
 
   Cs2Area->_command = 0;
+  Cs2Area->_statuscycles = 0;
+  Cs2Area->_statustiming = 1000000;
   Cs2Area->_periodiccycles = 0;
   Cs2Area->_commandtiming = 0;
   Cs2SetTiming(0);
@@ -830,7 +795,8 @@ void Cs2Reset(void) {
 //////////////////////////////////////////////////////////////////////////////
 
 void Cs2Exec(u32 timing) {
-    Cs2Area->_periodiccycles += timing * 3;
+   Cs2Area->_statuscycles += timing * 3;
+   Cs2Area->_periodiccycles += timing * 3;
 
    if (Cs2Area->_commandtiming > 0)
    {
@@ -843,36 +809,39 @@ void Cs2Exec(u32 timing) {
          Cs2Area->_commandtiming -= timing;
    }
 
+   if (Cs2Area->_statuscycles >= Cs2Area->_statustiming)
+   {
+      Cs2Area->_statuscycles -= Cs2Area->_statustiming;
+      switch(Cs2Area->cdi->GetStatus())
+      {
+         case 0:
+         case 1:
+            if ((Cs2Area->status & 0xF) == CDB_STAT_NODISC ||
+                (Cs2Area->status & 0xF) == CDB_STAT_OPEN)
+            {
+               Cs2Area->status = CDB_STAT_PAUSE;
+               Cs2Area->isdiskchanged = 1;
+            }
+            break;
+         case 2:
+            // may need to change this
+            if ((Cs2Area->status & 0xF) != CDB_STAT_NODISC)
+               Cs2Area->status = CDB_STAT_NODISC;
+            break;
+         case 3:
+            // may need to change this
+            if ((Cs2Area->status & 0xF) != CDB_STAT_OPEN)
+               Cs2Area->status = CDB_STAT_OPEN;
+            break;
+         default: break;
+      }
+   }
+
    if (Cs2Area->_periodiccycles >= Cs2Area->_periodictiming)
    {
       Cs2Area->_periodiccycles -= Cs2Area->_periodictiming; 
 
       // Get Drive's current status and compare with old status
-//      switch(cd->getStatus()) // this shouldn't be called every periodic response
-      switch(0)
-      {
-         case 0:
-         case 1:
-                 if ((Cs2Area->status & 0xF) == CDB_STAT_NODISC ||
-                     (Cs2Area->status & 0xF) == CDB_STAT_OPEN)
-                 {
-                    Cs2Area->status = CDB_STAT_PAUSE;
-                    Cs2Area->isdiskchanged = 1;
-                 }
-                 break;
-         case 2:
-                 // may need to change this
-                 if ((Cs2Area->status & 0xF) != CDB_STAT_NODISC)
-                    Cs2Area->status = CDB_STAT_NODISC;
-                 break;
-         case 3:
-                 // may need to change this
-                 if ((Cs2Area->status & 0xF) != CDB_STAT_OPEN)
-                    Cs2Area->status = CDB_STAT_OPEN;
-                 break;
-         default: break;
-      }
-
       switch (Cs2Area->status & 0xF) {
          case CDB_STAT_PAUSE:
          {
@@ -988,6 +957,8 @@ void Cs2Exec(u32 timing) {
 
    if(Cs2Area->carttype == CART_NETLINK)
       NetlinkExec(timing);
+   else if (Cs2Area->carttype == CART_JAPMODEM)
+      JapModemExec(timing);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1169,6 +1140,12 @@ void Cs2Execute(void) {
       CDLOG("cs2\t: Command: putSectorData %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
       Cs2PutSectorData();
       break;
+	 case 0x65:
+		 CDLOG("cs2\t: Command: Unimplemented copySectorData %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
+		 break;
+	 case 0x66:
+		 CDLOG("cs2\t: Command: Unimplemented moveSectorData %04x %04x %04x %04x %04x\n", Cs2Area->reg.HIRQ, Cs2Area->reg.CR1, Cs2Area->reg.CR2, Cs2Area->reg.CR3, Cs2Area->reg.CR4);
+		 break;
     case 0x67:
       CDLOG("cs2\t: Command: getCopyError\n");
       Cs2GetCopyError();
@@ -1850,7 +1827,13 @@ void Cs2ResetSelector(void) {
      }
 
      if (Cs2Area->blockfreespace > 0) Cs2Area->isbufferfull = 0;
-     if (Cs2Area->blockfreespace == 200) Cs2Area->isonesectorstored = 0;
+     if (Cs2Area->blockfreespace == 200) 
+     {
+        Cs2Area->isonesectorstored = 0;
+        Cs2Area->datatranstype = -1;
+     }
+     else if (Cs2Area->datatranspartitionnum == rsbufno)
+        Cs2Area->datatranstype = -1;
 
      doCDReport(Cs2Area->status);
      Cs2Area->reg.HIRQ |= CDB_HIRQ_CMOK | CDB_HIRQ_ESEL;
@@ -1920,6 +1903,7 @@ void Cs2ResetSelector(void) {
      }
 
      Cs2Area->isonesectorstored = 0;
+     Cs2Area->datatranstype = -1;
   }
 
   doCDReport(Cs2Area->status);
@@ -2895,13 +2879,13 @@ partition_struct * Cs2GetPartition(filter_struct * curfilter)
 
 partition_struct * Cs2FilterData(filter_struct * curfilter, int isaudio)
 {
-  int condresults = 1;
+  int condresults;
   partition_struct * fltpartition = NULL;
-
-  // fix me, this is pretty bad. Though I guess it's a start
 
   for (;;)
   {
+     // reset result
+     condresults = 1;
      // detect which type of sector we're dealing with
      // If it's not mode 2, ignore the subheader conditions
      if (Cs2Area->workblock.data[0xF] == 0x02 && !isaudio)
@@ -2950,7 +2934,7 @@ partition_struct * Cs2FilterData(filter_struct * curfilter, int isaudio)
      {
         // FAD Range Check
         if (Cs2Area->workblock.FAD < curfilter->FAD ||
-            Cs2Area->workblock.FAD > (curfilter->FAD+curfilter->range))
+            Cs2Area->workblock.FAD >= (curfilter->FAD+curfilter->range))
             condresults = 0;
      }
 

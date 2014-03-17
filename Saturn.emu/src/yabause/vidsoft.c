@@ -37,7 +37,6 @@
 #include "yui.h"
 
 #include <stdlib.h>
-#include <stdarg.h>
 #include <limits.h>
 
 #if defined(__APPLE__)
@@ -102,7 +101,6 @@ void FASTCALL VIDSoftVdp2SetPriorityNBG1(int priority);
 void FASTCALL VIDSoftVdp2SetPriorityNBG2(int priority);
 void FASTCALL VIDSoftVdp2SetPriorityNBG3(int priority);
 void FASTCALL VIDSoftVdp2SetPriorityRBG0(int priority);
-void VIDSoftOnScreenDebugMessage(char *string, ...);
 void VIDSoftGetGlSize(int *width, int *height);
 void VIDSoftVdp1SwapFrameBuffer(void);
 void VIDSoftVdp1EraseFrameBuffer(void);
@@ -134,13 +132,6 @@ VIDSoftVdp2Reset,
 VIDSoftVdp2DrawStart,
 VIDSoftVdp2DrawEnd,
 VIDSoftVdp2DrawScreens,
-VIDSoftVdp2SetResolution,
-VIDSoftVdp2SetPriorityNBG0,
-VIDSoftVdp2SetPriorityNBG1,
-VIDSoftVdp2SetPriorityNBG2,
-VIDSoftVdp2SetPriorityNBG3,
-VIDSoftVdp2SetPriorityRBG0,
-VIDSoftOnScreenDebugMessage,
 VIDSoftGetGlSize,
 };
 
@@ -171,9 +162,6 @@ static int outputheight;
 #endif
 static int resxratio;
 static int resyratio;
-
-static char message[512];
-static int msglength;
 
 typedef struct { s16 x; s16 y; } vdp1vertex;
 
@@ -1405,7 +1393,8 @@ static void Vdp2DrawNBG1(void)
    info.priority = nbg1priority;
    info.PlaneAddr = (void FASTCALL (*)(void *, int))&Vdp2NBG1PlaneAddr;
 
-   if (!(info.enable & Vdp2External.disptoggle))
+   if (!(info.enable & Vdp2External.disptoggle) ||
+       (Vdp2Regs->BGON & 0x1 && (Vdp2Regs->CHCTLA & 0x70) >> 4 == 4)) // If NBG0 16M mode is enabled, don't draw
       return;
 
    ReadMosaicData(&info, 0x2);
@@ -1485,7 +1474,8 @@ static void Vdp2DrawNBG2(void)
    info.priority = nbg2priority;
    info.PlaneAddr = (void FASTCALL (*)(void *, int))&Vdp2NBG2PlaneAddr;
 
-   if (!(info.enable & Vdp2External.disptoggle))
+   if (!(info.enable & Vdp2External.disptoggle) ||
+      (Vdp2Regs->BGON & 0x1 && (Vdp2Regs->CHCTLA & 0x70) >> 4 >= 2)) // If NBG0 2048/32786/16M mode is enabled, don't draw
       return;
 
    ReadMosaicData(&info, 0x4);
@@ -1552,7 +1542,9 @@ static void Vdp2DrawNBG3(void)
    info.priority = nbg3priority;
    info.PlaneAddr = (void FASTCALL (*)(void *, int))&Vdp2NBG3PlaneAddr;
 
-   if (!(info.enable & Vdp2External.disptoggle))
+   if (!(info.enable & Vdp2External.disptoggle) ||
+      (Vdp2Regs->BGON & 0x1 && (Vdp2Regs->CHCTLA & 0x70) >> 4 == 4) || // If NBG0 16M mode is enabled, don't draw
+      (Vdp2Regs->BGON & 0x2 && (Vdp2Regs->CHCTLA & 0x3000) >> 12 >= 2)) // If NBG1 2048/32786 is enabled, don't draw
       return;
 
    ReadMosaicData(&info, 0x8);
@@ -1705,7 +1697,7 @@ int VIDSoftInit(void)
    if (TitanInit() == -1)
       return -1;
 
-   if ((dispbuffer = (u32 *)memalign(8, sizeof(u32) * 704 * 512)) == NULL)
+   if ((dispbuffer = (pixel_t *)memalign(8, sizeof(pixel_t) * 704 * 512)) == NULL)
       return -1;
 
    // Initialize VDP1 framebuffer 1
@@ -1733,7 +1725,6 @@ int VIDSoftInit(void)
    glOrtho(-320, 320, -224, 224, 1, 0);
    outputwidth = 320;
    outputheight = 224;
-   msglength = 0;
 #endif
 
    return 0;
@@ -2909,7 +2900,7 @@ void VIDSoftVdp2DrawEnd(void)
          for (i = 0; i < vdp2width; i++)
          {
             // See if screen position is clipped, if it isn't, continue
-            if (!TestBothWindow(wctl, clip, i, i2))
+            if (!TestBothWindow(wctl, clip, i * resxratio, i2))
             {
                continue;
             }
@@ -2980,35 +2971,40 @@ void VIDSoftVdp2DrawEnd(void)
 
                   if (TestBothWindow(Vdp2Regs->WCTLD >> 8, colorcalcwindow, i, i2) && (Vdp2Regs->CCCTL & 0x40))
                   {
+                     int transparent = 0;
+
                      /* Sprite color calculation */
                      switch(SPCCCS) {
                         case 0:
-                           if (prioritytable[spi.priority] <= SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] <= SPCCN)
+                              transparent = 1;
                            break;
                         case 1:
-                           if (prioritytable[spi.priority] == SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] == SPCCN)
+                              transparent = 1;
                            break;
                         case 2:
-                           if (prioritytable[spi.priority] >= SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] >= SPCCN)
+                              transparent = 1;
                            break;
                         case 3:
-                           if (dot & 0x80000000) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (dot & 0x80000000)
+                              transparent = 1;
                            break;
                      }
 
-                     if (Vdp2Regs->CCCTL & 0x200) alpha = 0x80 | colorcalctable[spi.colorcalc];
+                     if (Vdp2Regs->CCCTL & 0x200) {
+                        /* "bottom" mode, the alpha channel will be used by another layer,
+                        so we set it regardless of whether sprites are transparent or not.
+                        The highest priority bit is only set if the sprite is transparent
+                        (in this case, it's the alpha channel of the lower priority layer
+                        that will be used. */
+                        alpha = colorcalctable[spi.colorcalc];
+                        if (transparent) alpha |= 0x80;
+                     } else if (transparent) {
+                        alpha = colorcalctable[spi.colorcalc];
+                        if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
+                     }
                   }
 
                   TitanPutPixel(prioritytable[spi.priority], i, i2, info.PostPixelFetchCalc(&info, COLSAT2YAB32(alpha, dot)), 0);
@@ -3037,35 +3033,40 @@ void VIDSoftVdp2DrawEnd(void)
 
                   if (TestBothWindow(Vdp2Regs->WCTLD >> 8, colorcalcwindow, i, i2) && (Vdp2Regs->CCCTL & 0x40))
                   {
+                     int transparent = 0;
+
                      /* Sprite color calculation */
                      switch(SPCCCS) {
                         case 0:
-                           if (prioritytable[spi.priority] <= SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] <= SPCCN)
+                              transparent = 1;
                            break;
                         case 1:
-                           if (prioritytable[spi.priority] == SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] == SPCCN)
+                              transparent = 1;
                            break;
                         case 2:
-                           if (prioritytable[spi.priority] >= SPCCN) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (prioritytable[spi.priority] >= SPCCN)
+                              transparent = 1;
                            break;
                         case 3:
-                           if (dot & 0x80000000) {
-                              alpha = colorcalctable[spi.colorcalc];
-                              if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
-                           }
+                           if (dot & 0x80000000)
+                              transparent = 1;
                            break;
                      }
 
-                     if (Vdp2Regs->CCCTL & 0x200) alpha = 0x80 | colorcalctable[spi.colorcalc];
+                     if (Vdp2Regs->CCCTL & 0x200) {
+                        /* "bottom" mode, the alpha channel will be used by another layer,
+                        so we set it regardless of whether sprites are transparent or not.
+                        The highest priority bit is only set if the sprite is transparent
+                        (in this case, it's the alpha channel of the lower priority layer
+                        that will be used. */
+                        alpha = colorcalctable[spi.colorcalc];
+                        if (transparent) alpha |= 0x80;
+                     } else if (transparent) {
+                        alpha = colorcalctable[spi.colorcalc];
+                        if (Vdp2Regs->CCCTL & 0x100) alpha |= 0x80;
+                     }
                   }
 
                   TitanPutPixel(prioritytable[spi.priority], i, i2, info.PostPixelFetchCalc(&info, COLSAT2YAB32(alpha, dot)), 0);
@@ -3081,9 +3082,14 @@ void VIDSoftVdp2DrawEnd(void)
    if (OSDUseBuffer())
       OSDDisplayMessages(dispbuffer, vdp2width, vdp2height);
 
-#ifdef USE_OPENGL
-   glRasterPos2i(0, 0);
-   glPixelZoom((float)outputwidth / (float)vdp2width, 0 - ((float)outputheight / (float)vdp2height));
+#ifdef USE_OPENGL	
+	if (vdp2height == 224)
+		i = 8;
+	else
+		i = 0;
+
+   glRasterPos2i(0, outputheight * i / vdp2height);
+   glPixelZoom((float)outputwidth / (float)vdp2width, 0 - ((float)outputheight / (float)(vdp2height+i+i)));
    glDrawPixels(vdp2width, vdp2height, GL_RGBA, GL_UNSIGNED_BYTE, dispbuffer);
 
    if (! OSDUseBuffer())
@@ -3098,6 +3104,13 @@ void VIDSoftVdp2DrawEnd(void)
 void VIDSoftVdp2DrawScreens(void)
 {
    int i;
+
+   VIDSoftVdp2SetResolution(Vdp2Regs->TVMD);
+   VIDSoftVdp2SetPriorityNBG0(Vdp2Regs->PRINA & 0x7);
+   VIDSoftVdp2SetPriorityNBG1((Vdp2Regs->PRINA >> 8) & 0x7);
+   VIDSoftVdp2SetPriorityNBG2(Vdp2Regs->PRINB & 0x7);
+   VIDSoftVdp2SetPriorityNBG3((Vdp2Regs->PRINB >> 8) & 0x7);
+   VIDSoftVdp2SetPriorityRBG0(Vdp2Regs->PRIR & 0x7);
 
    for (i = 7; i > 0; i--)
    {   
@@ -3251,18 +3264,6 @@ void FASTCALL VIDSoftVdp2SetPriorityNBG3(int priority)
 void FASTCALL VIDSoftVdp2SetPriorityRBG0(int priority)
 {
    rbg0priority = priority;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void VIDSoftOnScreenDebugMessage(char *string, ...)
-{
-   va_list arglist;
-
-   va_start(arglist, string);
-   vsprintf(message, string, arglist);
-   va_end(arglist);
-   msglength = strlen(message);
 }
 
 //////////////////////////////////////////////////////////////////////////////

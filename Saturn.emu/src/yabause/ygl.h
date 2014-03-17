@@ -39,7 +39,6 @@
         #include <GL/gl.h>
     #endif
 #endif
-#include <stdarg.h>
 #include <string.h>
 
 #ifndef YGL_H
@@ -130,8 +129,6 @@ typedef struct {
 typedef struct {
    GLuint texture;
    int st;
-   char message[512];
-   int msglength;
    unsigned int width;
    unsigned int height;
    unsigned int depth;
@@ -175,7 +172,6 @@ void YglRender(void);
 void YglReset(void);
 void YglShowTexture(void);
 void YglChangeResolution(int, int);
-void YglOnScreenDebugMessage(char *, ...);
 void YglCacheQuadGrowShading(YglSprite * input, float * colors, YglCache * cache);
 int YglQuadGrowShading(YglSprite * input, YglTexture * output, float * colors,YglCache * c);
 

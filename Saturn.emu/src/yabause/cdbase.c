@@ -63,6 +63,8 @@ static FILE * _wfopen(const wchar_t *wpath, const wchar_t *wmode)
 
    free(path);
    free(mode);
+
+   return fd;
 }
 #endif
 
@@ -343,6 +345,7 @@ static int LoadBinCue(const char *cuefilename, FILE *iso_file)
    track_info_struct trk[100];
    int file_size;
    int i;
+   FILE * bin_file;
 
    disc.session_num = 1;
    disc.session = malloc(sizeof(session_info_struct) * disc.session_num);
@@ -435,10 +438,9 @@ static int LoadBinCue(const char *cuefilename, FILE *iso_file)
    // Go back, retrieve image filename
    fseek(iso_file, 0, SEEK_SET);
    fscanf(iso_file, "FILE \"%[^\"]\" %*s\r\n", temp_buffer);
-   fclose(iso_file);
 
    // Now go and open up the image file, figure out its size, etc.
-   if ((iso_file = fopen(temp_buffer, "rb")) == NULL)
+   if ((bin_file = fopen(temp_buffer, "rb")) == NULL)
    {
       // Ok, exact path didn't work. Let's trim the path and try opening the
       // file from the same directory as the cue.
@@ -484,10 +486,10 @@ static int LoadBinCue(const char *cuefilename, FILE *iso_file)
       strcat(temp_buffer2, p);
 
       // Let's give it another try
-      iso_file = fopen(temp_buffer2, "rb");
+      bin_file = fopen(temp_buffer2, "rb");
       free(temp_buffer2);
 
-      if (iso_file == NULL)
+      if (bin_file == NULL)
       {
          YabSetError(YAB_ERR_FILENOTFOUND, temp_buffer);
          free(temp_buffer);
@@ -495,15 +497,15 @@ static int LoadBinCue(const char *cuefilename, FILE *iso_file)
       }
    }
 
-   fseek(iso_file, 0, SEEK_END);
-   file_size = ftell(iso_file);
-   fseek(iso_file, 0, SEEK_SET);
+   fseek(bin_file, 0, SEEK_END);
+   file_size = ftell(bin_file);
+   fseek(bin_file, 0, SEEK_SET);
 
    for (i = 0; i < track_num; i++)
    {
       trk[i].fad_end = trk[i+1].fad_start-1;
       trk[i].file_id = 0;
-      trk[i].fp = iso_file;
+      trk[i].fp = bin_file;
       trk[i].file_size = file_size;
    }
 
@@ -525,6 +527,8 @@ static int LoadBinCue(const char *cuefilename, FILE *iso_file)
 
    // buffer is no longer needed
    free(temp_buffer);
+
+   fclose(iso_file);
    return 0;
 }
 
@@ -831,13 +835,13 @@ static int ISOCDInit(const char * iso) {
    ext = strrchr(iso, '.');
 
    // Figure out what kind of image format we're dealing with
-   if (strcasecmp(ext, ".CUE") == 0 && strncmp(header, "FILE \"", 6) == 0)
+   if (stricmp(ext, ".CUE") == 0 && strncmp(header, "FILE \"", 6) == 0)
    {
       // It's a BIN/CUE
       imgtype = IMG_BINCUE;
       ret = LoadBinCue(iso, iso_file);
    }
-   else if (strcasecmp(ext, ".MDS") == 0 && strncmp(header, "MEDIA ", sizeof(header)) == 0)
+   else if (stricmp(ext, ".MDS") == 0 && strncmp(header, "MEDIA ", sizeof(header)) == 0)
    {
       // It's a MDS
       imgtype = IMG_MDS;

@@ -230,6 +230,8 @@ typedef struct {
   mpegstm_struct mpegstm[2];
 
   int _command;
+  u32 _statuscycles;
+  u32 _statustiming;
   u32 _periodiccycles;  // microseconds * 3
   u32 _periodictiming;  // microseconds * 3
   u32 _commandtiming;

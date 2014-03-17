@@ -1,5 +1,5 @@
 /*  Copyright 2005 Guillaume Duhamel
-    Copyright 2005-2006 Theo Berkau
+    Copyright 2005-2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -58,6 +58,8 @@ typedef struct {
 	u8 name;
 	void (*Press)(void *);
 	void (*Release)(void *);
+   void (*SetAxisValue)(void *, u32);
+   void (*MoveAxis)(void *, s32, s32);
 } PerBaseConfig_struct;
 
 typedef struct {
@@ -66,29 +68,42 @@ typedef struct {
 	void * controller;
 } PerConfig_struct;
 
-#define PERCALLBACK(func) ((void (*) (void *)) func)
+#define PERCB(func) ((void (*) (void *)) func)
+#define PERVALCB(func) ((void (*) (void *, u32)) func)
+#define PERMOVECB(func) ((void (*) (void *, s32, s32)) func)
 
-PerBaseConfig_struct perkeybaseconfig[] = {
-	{ PERPAD_UP, PERCALLBACK(PerPadUpPressed), PERCALLBACK(PerPadUpReleased) },
-	{ PERPAD_RIGHT, PERCALLBACK(PerPadRightPressed), PERCALLBACK(PerPadRightReleased) },
-	{ PERPAD_DOWN, PERCALLBACK(PerPadDownPressed), PERCALLBACK(PerPadDownReleased) },
-	{ PERPAD_LEFT, PERCALLBACK(PerPadLeftPressed), PERCALLBACK(PerPadLeftReleased) },
-	{ PERPAD_RIGHT_TRIGGER, PERCALLBACK(PerPadRTriggerPressed), PERCALLBACK(PerPadRTriggerReleased) },
-	{ PERPAD_LEFT_TRIGGER, PERCALLBACK(PerPadLTriggerPressed), PERCALLBACK(PerPadLTriggerReleased) },
-	{ PERPAD_START, PERCALLBACK(PerPadStartPressed), PERCALLBACK(PerPadStartReleased) },
-	{ PERPAD_A, PERCALLBACK(PerPadAPressed), PERCALLBACK(PerPadAReleased) },
-	{ PERPAD_B, PERCALLBACK(PerPadBPressed), PERCALLBACK(PerPadBReleased) },
-        { PERPAD_C, PERCALLBACK(PerPadCPressed), PERCALLBACK(PerPadCReleased) },
-	{ PERPAD_X, PERCALLBACK(PerPadXPressed), PERCALLBACK(PerPadXReleased) },
-	{ PERPAD_Y, PERCALLBACK(PerPadYPressed), PERCALLBACK(PerPadYReleased) },
-	{ PERPAD_Z, PERCALLBACK(PerPadZPressed), PERCALLBACK(PerPadZReleased) },
+PerBaseConfig_struct perpadbaseconfig[] = {
+	{ PERPAD_UP, PERCB(PerPadUpPressed), PERCB(PerPadUpReleased), NULL, NULL },
+	{ PERPAD_RIGHT, PERCB(PerPadRightPressed), PERCB(PerPadRightReleased), NULL, NULL },
+	{ PERPAD_DOWN, PERCB(PerPadDownPressed), PERCB(PerPadDownReleased), NULL, NULL },
+	{ PERPAD_LEFT, PERCB(PerPadLeftPressed), PERCB(PerPadLeftReleased), NULL, NULL },
+	{ PERPAD_RIGHT_TRIGGER, PERCB(PerPadRTriggerPressed), PERCB(PerPadRTriggerReleased), NULL, NULL },
+	{ PERPAD_LEFT_TRIGGER, PERCB(PerPadLTriggerPressed), PERCB(PerPadLTriggerReleased), NULL, NULL },
+	{ PERPAD_START, PERCB(PerPadStartPressed), PERCB(PerPadStartReleased), NULL, NULL },
+	{ PERPAD_A, PERCB(PerPadAPressed), PERCB(PerPadAReleased), NULL, NULL },
+	{ PERPAD_B, PERCB(PerPadBPressed), PERCB(PerPadBReleased), NULL, NULL },
+	{ PERPAD_C, PERCB(PerPadCPressed), PERCB(PerPadCReleased), NULL, NULL },
+	{ PERPAD_X, PERCB(PerPadXPressed), PERCB(PerPadXReleased), NULL, NULL },
+	{ PERPAD_Y, PERCB(PerPadYPressed), PERCB(PerPadYReleased), NULL, NULL },
+	{ PERPAD_Z, PERCB(PerPadZPressed), PERCB(PerPadZReleased), NULL, NULL },
 };
 
 PerBaseConfig_struct permousebaseconfig[] = {
-	{ PERMOUSE_LEFT, PERCALLBACK(PerMouseLeftPressed), PERCALLBACK(PerMouseLeftReleased) },
-	{ PERMOUSE_MIDDLE, PERCALLBACK(PerMouseMiddlePressed), PERCALLBACK(PerMouseMiddleReleased) },
-	{ PERMOUSE_RIGHT, PERCALLBACK(PerMouseRightPressed), PERCALLBACK(PerMouseRightReleased) },
-	{ PERMOUSE_START, PERCALLBACK(PerMouseStartPressed), PERCALLBACK(PerMouseStartReleased) },
+	{ PERMOUSE_LEFT, PERCB(PerMouseLeftPressed), PERCB(PerMouseLeftReleased), NULL, NULL },
+	{ PERMOUSE_MIDDLE, PERCB(PerMouseMiddlePressed), PERCB(PerMouseMiddleReleased), NULL, NULL },
+	{ PERMOUSE_RIGHT, PERCB(PerMouseRightPressed), PERCB(PerMouseRightReleased), NULL, NULL },
+	{ PERMOUSE_START, PERCB(PerMouseStartPressed), PERCB(PerMouseStartReleased), NULL, NULL },
+	{ PERMOUSE_AXIS, NULL, NULL, NULL, PERMOVECB(PerMouseMove) },
+};
+
+PerBaseConfig_struct peranalogbaseconfig[] = {
+	{ PERANALOG_AXIS1, NULL, NULL, PERVALCB(PerAxis1Value), NULL },
+	{ PERANALOG_AXIS2, NULL, NULL, PERVALCB(PerAxis2Value), NULL },
+	{ PERANALOG_AXIS3, NULL, NULL, PERVALCB(PerAxis3Value), NULL },
+	{ PERANALOG_AXIS4, NULL, NULL, PERVALCB(PerAxis4Value), NULL },
+	{ PERANALOG_AXIS5, NULL, NULL, PERVALCB(PerAxis5Value), NULL },
+	{ PERANALOG_AXIS6, NULL, NULL, PERVALCB(PerAxis6Value), NULL },
+	{ PERANALOG_AXIS7, NULL, NULL, PERVALCB(PerAxis7Value), NULL },
 };
 
 static u32 perkeyconfigsize = 0;
@@ -430,6 +445,55 @@ void PerMouseMove(PerMouse_struct * mouse, s32 dispx, s32 dispy)
 
 //////////////////////////////////////////////////////////////////////////////
 
+void PerAxis1Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[2] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis2Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[3] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis3Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[4] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis4Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[5] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis5Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[6] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis6Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[7] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxis7Value(PerAnalog_struct * analog, u32 val)
+{
+   analog->analogbits[8] = (u8)val;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 void * PerAddPeripheral(PortData_struct *port, int perid)
 {
    int pernum = port->data[0] & 0xF;
@@ -488,13 +552,35 @@ void * PerAddPeripheral(PortData_struct *port, int perid)
       case PERPAD:
          port->data[peroffset] = 0xFF;
          port->data[peroffset+1] = 0xFF;
-         port->size = peroffset+2;
+         port->size = peroffset+(perid&0xF);
+         break;
+      case PERWHEEL:
+         port->data[peroffset] = 0xFF;
+         port->data[peroffset+1] = 0xFF;
+         port->data[peroffset+2] = 0x7F;
+         port->size = peroffset+(perid&0xF);
+         break;
+      case PER3DPAD:
+         port->data[peroffset] = 0xFF;
+         port->data[peroffset+1] = 0xFF;
+         port->data[peroffset+2] = 0x7F;
+         port->data[peroffset+3] = 0x7F;
+         port->data[peroffset+4] = 0x7F;
+         port->data[peroffset+5] = 0x7F;
+         port->size = peroffset+(perid&0xF);
+         break;
+      case PERKEYBOARD:
+         port->data[peroffset] = 0xFF;
+         port->data[peroffset+1] = 0xF8;
+         port->data[peroffset+2] = 0x06;
+         port->data[peroffset+3] = 0x00;
+         port->size = peroffset+(perid&0xF);
          break;
       case PERMOUSE:
          port->data[peroffset] = 0;
          port->data[peroffset + 1] = 0;
          port->data[peroffset + 2] = 0;
-         port->size = peroffset + 3;
+         port->size = peroffset+(perid&0xF);
          break;
       default: break;
    }
@@ -513,10 +599,17 @@ void * PerAddPeripheral(PortData_struct *port, int perid)
    switch (perid)
    {
       case PERPAD:
-         PerUpdateConfig(perkeybaseconfig, 13, controller);
+         PerUpdateConfig(perpadbaseconfig, sizeof(perpadbaseconfig)/sizeof(PerBaseConfig_struct), controller);
+         break;
+      case PERWHEEL:
+      case PERMISSIONSTICK:
+      case PER3DPAD:
+      case PERTWINSTICKS:
+         PerUpdateConfig(perpadbaseconfig, sizeof(perpadbaseconfig)/sizeof(PerBaseConfig_struct), controller);
+         PerUpdateConfig(peranalogbaseconfig, sizeof(peranalogbaseconfig)/sizeof(PerBaseConfig_struct), controller);
          break;
       case PERMOUSE:
-         PerUpdateConfig(permousebaseconfig, 4, controller);
+         PerUpdateConfig(permousebaseconfig, sizeof(permousebaseconfig)/sizeof(PerBaseConfig_struct), controller);
          break;
    }
    return controller;
@@ -528,13 +621,6 @@ int PerGetId(void * peripheral)
 {
    u8 * id = peripheral;
    return *id;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-void PerRemovePeripheral(UNUSED PortData_struct *port, UNUSED int removeoffset)
-{
-   // stub
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -604,6 +690,40 @@ void PerSetKey(u32 key, u8 name, void * controller)
 
 //////////////////////////////////////////////////////////////////////////////
 
+void PerAxisValue(u32 key, u8 val)
+{
+   unsigned int i = 0;
+
+   while(i < perkeyconfigsize)
+   {
+      if (key == perkeyconfig[i].key)
+      {
+         if (perkeyconfig[i].base->SetAxisValue)
+            perkeyconfig[i].base->SetAxisValue(perkeyconfig[i].controller, val);
+      }
+      i++;
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void PerAxisMove(u32 key, s32 dispx, s32 dispy)
+{
+   unsigned int i = 0;
+
+   while(i < perkeyconfigsize)
+   {
+      if (key == perkeyconfig[i].key)
+      {
+         if (perkeyconfig[i].base->MoveAxis)
+            perkeyconfig[i].base->MoveAxis(perkeyconfig[i].controller, dispx, dispy);
+      }
+      i++;
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 void PerPortReset(void)
 {
         PORTDATA1.data[0] = 0xF0;
@@ -650,18 +770,45 @@ PerMouse_struct * PerMouseAdd(PortData_struct * port)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+PerAnalog_struct * PerWheelAdd(PortData_struct * port)
+{
+   return PerAddPeripheral(port, PERWHEEL);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+PerAnalog_struct * PerMissionStickAdd(PortData_struct * port)
+{
+   return PerAddPeripheral(port, PERMISSIONSTICK);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+PerAnalog_struct * Per3DPadAdd(PortData_struct * port)
+{
+   return PerAddPeripheral(port, PER3DPAD);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+PerAnalog_struct * PerTwinSticksAdd(PortData_struct * port)
+{
+   return PerAddPeripheral(port, PERTWINSTICKS);
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // Dummy Interface
 //////////////////////////////////////////////////////////////////////////////
 
 int PERDummyInit(void);
 void PERDummyDeInit(void);
 int PERDummyHandleEvents(void);
-void PERDummyNothing(void);
 
 //static PortData_struct port1;
 //static PortData_struct port2;
 
-u32 PERDummyScan(void);
+u32 PERDummyScan(u32 flags);
 void PERDummyFlush(void);
 void PERDummyKeyName(u32 key, char * name, int size);
 
@@ -671,13 +818,10 @@ PERCORE_DUMMY,
 PERDummyInit,
 PERDummyDeInit,
 PERDummyHandleEvents,
-PERDummyNothing,
 PERDummyScan,
 0,
-PERDummyFlush
-#ifdef PERKEYNAME
-,PERDummyKeyName
-#endif
+PERDummyFlush,
+PERDummyKeyName
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -694,11 +838,6 @@ void PERDummyDeInit(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void PERDummyNothing(void) {
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
 int PERDummyHandleEvents(void) {
    if (YabauseExec() != 0)
       return -1;
@@ -708,7 +847,11 @@ int PERDummyHandleEvents(void) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 PERDummyScan(void) {
+u32 PERDummyScan(u32 flags) {
+   // Scan and return next action based on flags value
+   // See PERSF_* in peripheral.h for full list of flags. 
+   // If no specified flags are supported return 0
+
    return 0;
 }
 

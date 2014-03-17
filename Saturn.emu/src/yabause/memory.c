@@ -1599,11 +1599,11 @@ result_struct *MappedMemorySearch(u32 startaddr, u32 endaddr, int searchtype,
          sscanf(searchstr, "%08lx", &searchval);
          break;
       case SEARCHUNSIGNED:
-         searchval = (unsigned long)atoi(searchstr);
+         searchval = (unsigned long)strtoul(searchstr, NULL, 10);
          issigned = 0;
          break;
       case SEARCHSIGNED:
-         searchval = (unsigned long)atoi(searchstr);
+         searchval = (unsigned long)strtol(searchstr, NULL, 10);
          issigned = 1;
          break;
    }   

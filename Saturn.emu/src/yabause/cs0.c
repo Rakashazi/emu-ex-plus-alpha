@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include "cs0.h"
 #include "error.h"
+#include "japmodem.h"
+#include "netlink.h"
 
 cartridge_struct *CartridgeArea;
 
@@ -1011,53 +1013,6 @@ static void FASTCALL ROM16MBITCs0WriteLong(u32 addr, u32 val)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Sega Saturn Modem(Japanese)
-//////////////////////////////////////////////////////////////////////////////
-
-static u8 FASTCALL JapModemCs0ReadByte(u32 addr)
-{
-   if (addr & 0x1)
-      return 0xA5;
-   else
-      return 0xFF;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static u16 FASTCALL JapModemCs0ReadWord(UNUSED u32 addr)
-{
-   return 0xFFA5;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static u32 FASTCALL JapModemCs0ReadLong(UNUSED u32 addr)
-{
-   return 0xFFA5FFA5;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static u8 FASTCALL JapModemCs1ReadByte(UNUSED u32 addr)
-{
-   return 0xA5;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static u16 FASTCALL JapModemCs1ReadWord(UNUSED u32 addr)
-{
-   return 0xA5A5;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static u32 FASTCALL JapModemCs1ReadLong(UNUSED u32 addr)
-{
-   return 0xA5A5A5A5;
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // General Cart functions
 //////////////////////////////////////////////////////////////////////////////
 
@@ -1068,6 +1023,28 @@ int CartInit(const char * filename, int type)
 
    CartridgeArea->carttype = type;
    CartridgeArea->filename = filename;
+
+   // Setup default mappings
+   CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
+   CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
+   CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
+   CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
+   CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
+   CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
+
+   CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
+   CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
+   CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
+   CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
+   CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
+   CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
+
+   CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
+   CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
+   CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
+   CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
+   CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
+   CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
 
    switch(type)
    {
@@ -1085,8 +1062,9 @@ int CartInit(const char * filename, int type)
          // Load AR firmware to memory
          if (T123Load(CartridgeArea->rom, 0x40000, 2, filename) != 0)
             return -1;
-		 flstate0 = FL_READ;
-		 flstate1 = FL_READ;
+
+         flstate0 = FL_READ;
+         flstate1 = FL_READ;
 		 
          // Setup Functions
          CartridgeArea->Cs0ReadByte = &AR4MCs0ReadByte;
@@ -1095,20 +1073,6 @@ int CartInit(const char * filename, int type)
          CartridgeArea->Cs0WriteByte = &AR4MCs0WriteByte;
          CartridgeArea->Cs0WriteWord = &AR4MCs0WriteWord;
          CartridgeArea->Cs0WriteLong = &AR4MCs0WriteLong;
-
-         CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
-         CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
-         CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
       case CART_BACKUPRAM4MBIT: // 4 Mbit Backup Ram
@@ -1123,27 +1087,12 @@ int CartInit(const char * filename, int type)
             FormatBackupRam(CartridgeArea->bupram, 0x100000);
 
          // Setup Functions
-         CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
-         CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
-         CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
-
          CartridgeArea->Cs1ReadByte = &BUP4MBITCs1ReadByte;
          CartridgeArea->Cs1ReadWord = &BUP4MBITCs1ReadWord;
          CartridgeArea->Cs1ReadLong = &BUP4MBITCs1ReadLong;
          CartridgeArea->Cs1WriteByte = &BUP4MBITCs1WriteByte;
          CartridgeArea->Cs1WriteWord = &BUP4MBITCs1WriteWord;
          CartridgeArea->Cs1WriteLong = &BUP4MBITCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
-
          break;
       }
       case CART_BACKUPRAM8MBIT: // 8 Mbit Backup Ram
@@ -1158,27 +1107,12 @@ int CartInit(const char * filename, int type)
             FormatBackupRam(CartridgeArea->bupram, 0x200000);
 
          // Setup Functions
-         CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
-         CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
-         CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
-
          CartridgeArea->Cs1ReadByte = &BUP8MBITCs1ReadByte;
          CartridgeArea->Cs1ReadWord = &BUP8MBITCs1ReadWord;
          CartridgeArea->Cs1ReadLong = &BUP8MBITCs1ReadLong;
          CartridgeArea->Cs1WriteByte = &BUP8MBITCs1WriteByte;
          CartridgeArea->Cs1WriteWord = &BUP8MBITCs1WriteWord;
          CartridgeArea->Cs1WriteLong = &BUP8MBITCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
-
          break;
       }
       case CART_BACKUPRAM16MBIT: // 16 Mbit Backup Ram
@@ -1193,26 +1127,12 @@ int CartInit(const char * filename, int type)
             FormatBackupRam(CartridgeArea->bupram, 0x400000);
 
          // Setup Functions
-         CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
-         CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
-         CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
-
          CartridgeArea->Cs1ReadByte = &BUP16MBITCs1ReadByte;
          CartridgeArea->Cs1ReadWord = &BUP16MBITCs1ReadWord;
          CartridgeArea->Cs1ReadLong = &BUP16MBITCs1ReadLong;
          CartridgeArea->Cs1WriteByte = &BUP16MBITCs1WriteByte;
          CartridgeArea->Cs1WriteWord = &BUP16MBITCs1WriteWord;
          CartridgeArea->Cs1WriteLong = &BUP16MBITCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
       case CART_BACKUPRAM32MBIT: // 32 Mbit Backup Ram
@@ -1227,26 +1147,12 @@ int CartInit(const char * filename, int type)
             FormatBackupRam(CartridgeArea->bupram, 0x800000);
 
          // Setup Functions
-         CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
-         CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
-         CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
-
          CartridgeArea->Cs1ReadByte = &BUP32MBITCs1ReadByte;
          CartridgeArea->Cs1ReadWord = &BUP32MBITCs1ReadWord;
          CartridgeArea->Cs1ReadLong = &BUP32MBITCs1ReadLong;
          CartridgeArea->Cs1WriteByte = &BUP32MBITCs1WriteByte;
          CartridgeArea->Cs1WriteWord = &BUP32MBITCs1WriteWord;
          CartridgeArea->Cs1WriteLong = &BUP32MBITCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
       case CART_DRAM8MBIT: // 8 Mbit Dram Cart
@@ -1263,20 +1169,6 @@ int CartInit(const char * filename, int type)
          CartridgeArea->Cs0WriteByte = &DRAM8MBITCs0WriteByte;
          CartridgeArea->Cs0WriteWord = &DRAM8MBITCs0WriteWord;
          CartridgeArea->Cs0WriteLong = &DRAM8MBITCs0WriteLong;
-
-         CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
-         CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
-         CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
       case CART_DRAM32MBIT: // 32 Mbit Dram Cart
@@ -1293,20 +1185,13 @@ int CartInit(const char * filename, int type)
          CartridgeArea->Cs0WriteByte = &DRAM32MBITCs0WriteByte;
          CartridgeArea->Cs0WriteWord = &DRAM32MBITCs0WriteWord;
          CartridgeArea->Cs0WriteLong = &DRAM32MBITCs0WriteLong;
-
-         CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
-         CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
-         CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
+         break;
+      }
+      case CART_NETLINK:
+      {
+         CartridgeArea->cartid = 0xFF;
+         CartridgeArea->Cs2ReadByte = &NetlinkReadByte;
+         CartridgeArea->Cs2WriteByte = &NetlinkWriteByte;
          break;
       }
       case CART_ROM16MBIT: // 16 Mbit Rom Cart
@@ -1327,20 +1212,6 @@ int CartInit(const char * filename, int type)
          CartridgeArea->Cs0WriteByte = &ROM16MBITCs0WriteByte;
          CartridgeArea->Cs0WriteWord = &ROM16MBITCs0WriteWord;
          CartridgeArea->Cs0WriteLong = &ROM16MBITCs0WriteLong;
-
-         CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
-         CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
-         CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
       case CART_JAPMODEM: // Sega Saturn Modem(Japanese)
@@ -1350,50 +1221,21 @@ int CartInit(const char * filename, int type)
          CartridgeArea->Cs0ReadByte = &JapModemCs0ReadByte;
          CartridgeArea->Cs0ReadWord = &JapModemCs0ReadWord;
          CartridgeArea->Cs0ReadLong = &JapModemCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
 
          CartridgeArea->Cs1ReadByte = &JapModemCs1ReadByte;
          CartridgeArea->Cs1ReadWord = &JapModemCs1ReadWord;
          CartridgeArea->Cs1ReadLong = &JapModemCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
+         CartridgeArea->Cs1WriteByte = &JapModemCs1WriteByte;
+         CartridgeArea->Cs1WriteWord = &JapModemCs1WriteWord;
+         CartridgeArea->Cs1WriteLong = &JapModemCs1WriteLong;
 
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
+         CartridgeArea->Cs2ReadByte = &JapModemCs2ReadByte;
+         CartridgeArea->Cs2WriteByte = &JapModemCs2WriteByte;
          break;
       }
       default: // No Cart
       {
          CartridgeArea->cartid = 0xFF;
-
-         // Setup Functions
-         CartridgeArea->Cs0ReadByte = &DummyCs0ReadByte;
-         CartridgeArea->Cs0ReadWord = &DummyCs0ReadWord;
-         CartridgeArea->Cs0ReadLong = &DummyCs0ReadLong;
-         CartridgeArea->Cs0WriteByte = &DummyCs0WriteByte;
-         CartridgeArea->Cs0WriteWord = &DummyCs0WriteWord;
-         CartridgeArea->Cs0WriteLong = &DummyCs0WriteLong;
-
-         CartridgeArea->Cs1ReadByte = &DummyCs1ReadByte;
-         CartridgeArea->Cs1ReadWord = &DummyCs1ReadWord;
-         CartridgeArea->Cs1ReadLong = &DummyCs1ReadLong;
-         CartridgeArea->Cs1WriteByte = &DummyCs1WriteByte;
-         CartridgeArea->Cs1WriteWord = &DummyCs1WriteWord;
-         CartridgeArea->Cs1WriteLong = &DummyCs1WriteLong;
-
-         CartridgeArea->Cs2ReadByte = &DummyCs2ReadByte;
-         CartridgeArea->Cs2ReadWord = &DummyCs2ReadWord;
-         CartridgeArea->Cs2ReadLong = &DummyCs2ReadLong;
-         CartridgeArea->Cs2WriteByte = &DummyCs2WriteByte;
-         CartridgeArea->Cs2WriteWord = &DummyCs2WriteWord;
-         CartridgeArea->Cs2WriteLong = &DummyCs2WriteLong;
          break;
       }
    }

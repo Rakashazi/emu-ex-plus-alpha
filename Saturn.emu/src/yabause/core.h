@@ -242,14 +242,33 @@ static INLINE int StateCheckRetrieveHeader(FILE *fp, const char *name, int *vers
 
 #ifdef PSP
 # define BSWAP16(x)  ((typeof(x)) __builtin_allegrex_wsbh((x)))
+# define BSWAP16L(x)  BSWAP16(x)
 # define BSWAP32(x)  ((typeof(x)) __builtin_allegrex_wsbw((x)))
 # define WSWAP32(x)  ((typeof(x)) __builtin_allegrex_rotr((x), 16))
+#endif
+
+#ifdef __GNUC__
+#ifdef HAVE_BUILTIN_BSWAP16
+# define BSWAP16(x)  ((__builtin_bswap16((x) >> 16) << 16) | __builtin_bswap16((x)))
+# define BSWAP16L(x) (__builtin_bswap16((x)))
+#endif
+# define BSWAP32(x)  (__builtin_bswap32((x)))
+#endif
+
+#ifdef _MSC_VER
+# define BSWAP16(x)  ((_byteswap_ushort((x) >> 16) << 16) | _byteswap_ushort((x)))
+# define BSWAP16L(x) (_byteswap_ushort((x)))
+# define BSWAP32(x)  (_byteswap_ulong((x)))
+# define WSWAP32(x)  (_lrotr((x), 16))
 #endif
 
 /* Defaults: */
 
 #ifndef BSWAP16
 # define BSWAP16(x)  (((u32)(x)>>8 & 0x00FF00FF) | ((u32)(x) & 0x00FF00FF) << 8)
+#endif
+#ifndef BSWAP16L
+# define BSWAP16L(x)  (((u16)(x)>>8 & 0xFF) | ((u16)(x) & 0xFF) << 8)
 #endif
 #ifndef BSWAP32
 # define BSWAP32(x)  ((u32)(x)>>24 | ((u32)(x)>>8 & 0xFF00) | ((u32)(x) & 0xFF00)<<8 | (u32)(x)<<24)
@@ -296,6 +315,10 @@ static INLINE int StateCheckRetrieveHeader(FILE *fp, const char *name, int *vers
 typedef u16 pixel_t;
 #else
 typedef u32 pixel_t;
+#endif
+
+#ifdef _MSC_VER
+#define snprintf sprintf_s
 #endif
 
 #endif

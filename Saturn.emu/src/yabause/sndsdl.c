@@ -91,6 +91,9 @@ static int SNDSDLInit(void)
    //so normalize it to the nearest power of 2 here
    u32 normSamples = 512;
 
+#if defined (_MSC_VER) && SDL_VERSION_ATLEAST(2,0,0)
+   SDL_SetMainReady();
+#endif
    SDL_InitSubSystem(SDL_INIT_AUDIO);
 //   if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0);
 //      return -1;

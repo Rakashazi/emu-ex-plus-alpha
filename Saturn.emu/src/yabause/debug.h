@@ -61,6 +61,12 @@ void LogChangeOutput(DebugOutType t, char * s);
 #define CDLOG(...)
 #endif
 
+#ifdef NETLINK_DEBUG
+#define NETLINK_LOG(...) DebugPrintf(MainLog, __FILE__, __LINE__, __VA_ARGS__)
+#else
+#define NETLINK_LOG(...)
+#endif
+
 #ifdef SCSP_DEBUG
 #define SCSPLOG(...) DebugPrintf(MainLog, __FILE__, __LINE__, __VA_ARGS__)
 #else

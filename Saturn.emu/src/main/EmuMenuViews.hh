@@ -38,6 +38,7 @@ public:
 		{
 			assert(val < (int)sizeofArray(SH2CoreList)-1);
 			yinit.sh2coretype = SH2CoreList[val]->id;
+			optionSH2Core = SH2CoreList[val]->id;
 		}
 	};
 

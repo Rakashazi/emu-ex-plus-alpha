@@ -567,7 +567,7 @@ static u8 m68k_in_breakpoint;
 //-------------------------------------------------------------------------
 // Local function declarations
 
-static void ScspThread(void);
+static void ScspThread(void *arg);
 static void ScspDoExec(u32 cycles);
 static u32 ScspTimerCyclesLeft(u16 timer, u8 timer_scale);
 static void ScspUpdateTimer(u32 samples, u16 *timer_ptr, u8 timer_scale,
@@ -963,7 +963,7 @@ int ScspInit(int coreid, void (*interrupt_handler)(void))
    {
       scsp_thread_running = 1;  // Set now so the thread doesn't quit instantly
       PSP_FLUSH_ALL();
-      if (YabThreadStart(YAB_THREAD_SCSP, ScspThread) < 0)
+      if (YabThreadStart(YAB_THREAD_SCSP, ScspThread, NULL) < 0)
       {
          SCSPLOG("Failed to start SCSP thread\n");
          scsp_thread_running = 0;
@@ -1238,7 +1238,7 @@ void ScspExec(int decilines)
 // ScspThread:  Control routine for SCSP thread.  Loops over ScspDoExec()
 // and SCSP write buffer processing until told to stop.
 
-static void ScspThread(void)
+static void ScspThread(void *arg)
 {
    while (PSP_UC(scsp_thread_running))
    {

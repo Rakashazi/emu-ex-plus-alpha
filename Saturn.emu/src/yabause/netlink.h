@@ -1,4 +1,4 @@
-/*  Copyright 2006 Theo Berkau
+/*  Copyright 2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -20,7 +20,39 @@
 #ifndef NETLINK_H
 #define NETLINK_H
 
+#include "sock.h"
+
 #define NETLINK_BUFFER_SIZE     1024
+
+enum NL_RESULTCODE
+{
+   NL_RESULTCODE_OK=0,
+   NL_RESULTCODE_CONNECT,
+   NL_RESULTCODE_RING,
+   NL_RESULTCODE_NOCARRIER,
+   NL_RESULTCODE_ERROR,
+   NL_RESULTCODE_CONNECT1200,
+   NL_RESULTCODE_NODIALTONE,
+   NL_RESULTCODE_BUSY,
+   NL_RESULTCODE_NOANSWER,
+};
+
+enum NL_CONNECTSTATUS
+{
+   NL_CONNECTSTATUS_IDLE,
+   NL_CONNECTSTATUS_WAIT,
+   NL_CONNECTSTATUS_CONNECT,
+   NL_CONNECTSTATUS_LOGIN1,
+   NL_CONNECTSTATUS_LOGIN2,
+   NL_CONNECTSTATUS_LOGIN3,
+   NL_CONNECTSTATUS_CONNECTED,
+};
+
+enum NL_MODEMSTATE
+{
+   NL_MODEMSTATE_COMMAND,
+   NL_MODEMSTATE_DATA,
+};
 
 typedef struct
 {
@@ -36,22 +68,38 @@ typedef struct
    u8 LSR;
    u8 MSR;
    u8 SCR;
+   u8 SREG[256];
 } netlinkregs_struct;
 
 typedef struct {
-   u8 inbuffer[NETLINK_BUFFER_SIZE];
-   u8 outbuffer[NETLINK_BUFFER_SIZE];
-   u32 inbufferstart, inbufferend, inbuffersize;
-   u32 outbufferstart, outbufferend, outbuffersize;
+   volatile u8 inbuffer[NETLINK_BUFFER_SIZE];
+   volatile u8 outbuffer[NETLINK_BUFFER_SIZE];
+   volatile u32 inbufferstart, inbufferend, inbuffersize;
+   volatile int inbufferupdate;
+   volatile u32 outbufferstart, outbufferend, outbuffersize;
+   volatile int outbufferupdate;
    netlinkregs_struct reg;
    int isechoenab;
-   int connectsocket;
-   int connectstatus;
+   YabSock listensocket;
+   YabSock connectsocket;
+   YabSock clientsocket;
+   enum NL_CONNECTSTATUS connectstatus;
    u32 cycles;
-   int modemstate;
+   enum NL_MODEMSTATE modemstate;
    char ipstring[16];
    char portstring[6];
+   u32 connect_time, connect_timeout;
+   int internet_enable;
+   volatile u32 thb_write_time;
+   int escape_count;
 } Netlink;
+
+typedef struct
+{
+   char ip[16];
+   int port;
+   YabSock sock;
+} netlink_thread;
 
 extern Netlink *NetlinkArea;
 

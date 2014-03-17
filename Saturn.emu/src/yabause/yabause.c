@@ -75,6 +75,10 @@
 #include "sh2_dynarec/sh2_dynarec.h"
 #endif
 
+#if HAVE_GDBSTUB
+    #include "gdb/stub.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 
 yabsys_struct yabsys;
@@ -273,6 +277,10 @@ int YabauseInit(yabauseinit_struct *init)
             YabauseResetNoLoad();
       }
    }
+
+#ifdef HAVE_GDBSTUB
+   GdbStubInit(MSH2, 43434);
+#endif
 
    return 0;
 }
@@ -601,10 +609,32 @@ int YabauseEmulate(void) {
 void YabauseStartSlave(void) {
    if (yabsys.emulatebios)
    {
+      CurrentSH2 = SSH2;
+      MappedMemoryWriteLong(0xFFFFFFE0, 0xA55A03F1); // BCR1
+      MappedMemoryWriteLong(0xFFFFFFE4, 0xA55A00FC); // BCR2
+      MappedMemoryWriteLong(0xFFFFFFE8, 0xA55A5555); // WCR
+      MappedMemoryWriteLong(0xFFFFFFEC, 0xA55A0070); // MCR
+
+      MappedMemoryWriteWord(0xFFFFFEE0, 0x0000); // ICR
+      MappedMemoryWriteWord(0xFFFFFEE2, 0x0000); // IPRA
+      MappedMemoryWriteWord(0xFFFFFE60, 0x0F00); // VCRWDT
+      MappedMemoryWriteWord(0xFFFFFE62, 0x6061); // VCRA
+      MappedMemoryWriteWord(0xFFFFFE64, 0x6263); // VCRB
+      MappedMemoryWriteWord(0xFFFFFE66, 0x6465); // VCRC
+      MappedMemoryWriteWord(0xFFFFFE68, 0x6600); // VCRD
+      MappedMemoryWriteWord(0xFFFFFEE4, 0x6869); // VCRWDT
+      MappedMemoryWriteLong(0xFFFFFFA8, 0x0000006C); // VCRDMA1
+      MappedMemoryWriteLong(0xFFFFFFA0, 0x0000006D); // VCRDMA0
+      MappedMemoryWriteLong(0xFFFFFF0C, 0x0000006E); // VCRDIV
+      MappedMemoryWriteLong(0xFFFFFE10, 0x00000081); // TIER
+      CurrentSH2 = MSH2;
+
       SH2GetRegisters(SSH2, &SSH2->regs);
       SSH2->regs.R[15] = 0x06001000;
       SSH2->regs.VBR = 0x06000400;
       SSH2->regs.PC = MappedMemoryReadLong(0x06000250);
+      if (MappedMemoryReadLong(0x060002AC) != 0)
+         SSH2->regs.R[15] = MappedMemoryReadLong(0x060002AC);
       SH2SetRegisters(SSH2, &SSH2->regs);
    }
    else
@@ -795,12 +825,6 @@ void YabauseSpeedySetup(void)
    Vdp2Regs->COAR = 0x0200;
    Vdp2Regs->COAG = 0x0200;
    Vdp2Regs->COAB = 0x0200;
-   VIDCore->Vdp2SetResolution(Vdp2Regs->TVMD);
-   VIDCore->Vdp2SetPriorityNBG0(Vdp2Regs->PRINA & 0x7);
-   VIDCore->Vdp2SetPriorityNBG1((Vdp2Regs->PRINA >> 8) & 0x7);
-   VIDCore->Vdp2SetPriorityNBG2(Vdp2Regs->PRINB & 0x7);
-   VIDCore->Vdp2SetPriorityNBG3((Vdp2Regs->PRINB >> 8) & 0x7);
-   VIDCore->Vdp2SetPriorityRBG0(Vdp2Regs->PRIR & 0x7);
 }
 
 //////////////////////////////////////////////////////////////////////////////

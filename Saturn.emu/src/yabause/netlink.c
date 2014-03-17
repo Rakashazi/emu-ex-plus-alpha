@@ -1,4 +1,4 @@
-/*  Copyright 2006 Theo Berkau
+/*  Copyright 2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -17,68 +17,32 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 */
 
-#ifdef USESOCKET
-#ifdef __MINGW32__
-// I blame mingw for this
-#define _WIN32_WINNT 0x501
-#endif
-#endif
 
 #include <ctype.h>
-#ifdef USESOCKET
-#ifdef WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-#endif
 #include "cs2.h"
 #include "error.h"
 #include "netlink.h"
 #include "debug.h"
 #include "scu.h"
+#ifdef USESOCKET
+#include "sock.h"
+#include "threads.h"
+#endif
 
 Netlink *NetlinkArea = NULL;
 
-#define NL_RESULTCODE_OK                0
-#define NL_RESULTCODE_CONNECT           1
-#define NL_RESULTCODE_RING              2
-#define NL_RESULTCODE_NOCARRIER         3
-#define NL_RESULTCODE_ERROR             4
-#define NL_RESULTCODE_CONNECT1200       5
-#define NL_RESULTCODE_NODIALTONE        6
-#define NL_RESULTCODE_BUSY              7
-#define NL_RESULTCODE_NOANSWER          8
+static volatile u8 netlink_listener_thread_running;
+static volatile u8 netlink_connect_thread_running;
+static volatile u8 netlink_client_thread_running;
 
-#define CONNECTTYPE_SERVER      0
-#define CONNECTTYPE_CLIENT      1
-
-#define CONNECTSTATUS_IDLE      0
-#define CONNECTSTATUS_WAIT      1
-#define CONNECTSTATUS_CONNECT   2
-#define CONNECTSTATUS_CONNECTED 3
-
-#define MODEMSTATE_COMMAND      0
-#define MODEMSTATE_ONLINE       1
-
-#ifdef USESOCKET
-static int NetworkInit(void);
+static int NetworkInit(const char *port);
 static void NetworkDeInit(void);
-static int NetworkConnect(const char *ip, const char *port);
-static int NetworkWaitForConnect(const char *port);
+static void NetworkStopClient();
+static void NetworkStopConnect();
+static void NetworkConnect(const char *ip, const char *port);
+static int NetworkWaitForConnect();
 static int NetworkSend(const void *buffer, int length);
 static int NetworkReceive(void *buffer, int maxlength);
-
-#ifndef WIN32
-#define closesocket close
-#endif
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -124,7 +88,7 @@ u8 FASTCALL NetlinkReadByte(u32 addr)
 {
    u8 ret;
 
-   switch (addr)
+   switch (addr & 0xFFFFF)
    {
       case 0x95001: // Receiver Buffer/Divisor Latch Low Byte
       {
@@ -133,7 +97,12 @@ u8 FASTCALL NetlinkReadByte(u32 addr)
          else // Receiver Buffer
          {
             if (NetlinkArea->outbuffersize == 0)
+            {
+#ifdef USESOCKET
+               YabThreadWake(YAB_THREAD_NETLINKCLIENT);
+#endif
                return 0x00;
+            }
 
             ret = NetlinkArea->outbuffer[NetlinkArea->outbufferstart];
             NetlinkArea->outbufferstart++;
@@ -155,6 +124,13 @@ u8 FASTCALL NetlinkReadByte(u32 addr)
          }
 
          return 0;
+      }
+      case 0x95005: // Interrupt Enable Register/Divisor Latch High Byte
+      {
+         if (NetlinkArea->reg.LCR & 0x80) // Divisor Latch High Byte
+            return NetlinkArea->reg.DLM;
+         else // Interrupt Enable Register
+            return NetlinkArea->reg.IER;
       }
       case 0x95009: // Interrupt Identification Register
       {
@@ -192,7 +168,7 @@ u8 FASTCALL NetlinkReadByte(u32 addr)
          break;
    }
 
-   LOG("Unimplemented Netlink byte read: %08X\n", addr);
+   NETLINK_LOG("Unimplemented Netlink byte read: %08X\n", addr);
    return 0xFF;
 }
 
@@ -220,9 +196,36 @@ static int FASTCALL NetlinkFetchATParameter(u8 val, u32 *offset)
 
 //////////////////////////////////////////////////////////////////////////////
 
+void NetlinkUpdateReceivedDataInt()
+{
+   if (NetlinkArea->outbuffersize > 0)
+   {
+      // Set Data available bit in LSR
+      NetlinkArea->reg.LSR |= 0x01;
+
+      // Trigger Interrrupt
+      NetlinkArea->reg.IIR = 0x4;
+      ScuSendExternalInterrupt12();
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void remove_all_chars(char* str, char c) 
+{
+   char *pr = str, *pw = str;
+   while (*pr) {
+      *pw = *pr++;
+      pw += (*pw != c);
+   }
+   *pw = '\0';
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
 {
-   switch (addr)
+   switch (addr & 0xFFFFF)
    {
       case 0x2503D: // ???
       {
@@ -236,15 +239,42 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
          }
          else // Transmitter Holding Buffer
          {
-            NetlinkArea->inbuffer[NetlinkArea->inbufferend] = val;
-            NetlinkArea->inbufferend++;
-            NetlinkArea->inbuffersize++;
+            if (NetlinkArea->thb_write_time == 0xFFFFFFFF)
+               NetlinkArea->thb_write_time = 0;
 
+            if (val == '+')
+            {
+               // Possible escape sequence?
+               if (NetlinkArea->escape_count == 0 &&
+                  NetlinkArea->thb_write_time >= 1000000)
+               {
+                  // Start of sequence
+                  NetlinkArea->escape_count++;
+               }
+               else if (NetlinkArea->escape_count >= 1)
+               {
+                  // Middle/possible tail
+                  NetlinkArea->escape_count++;
+               }
+            }
+            else
+               NetlinkArea->escape_count = 0;
+
+            NetlinkArea->inbuffer[NetlinkArea->inbufferend] = val;
+            NetlinkArea->thb_write_time = 0;
+            NetlinkArea->inbufferend++;
+            if (NetlinkArea->inbufferend == NETLINK_BUFFER_SIZE)
+            {
+               NetlinkArea->inbufferstart=0;
+               NetlinkArea->inbufferend=1;
+            }
+            NetlinkArea->inbuffersize++;
+            
             // If interrupt has been triggered because THB is empty, reset it
             if ((NetlinkArea->reg.IER & 0x2) && (NetlinkArea->reg.IIR & 0xF) == 0x2)
                NetlinkArea->reg.IIR = (NetlinkArea->reg.IIR & 0xF0) | 0x1;
 
-            if (NetlinkArea->modemstate == MODEMSTATE_COMMAND)
+            if (NetlinkArea->modemstate == NL_MODEMSTATE_COMMAND)
             {
 
                if (val == 0x0D &&
@@ -252,10 +282,10 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                     strncmp((char *)&NetlinkArea->inbuffer[NetlinkArea->inbufferstart], "at", 2) == 0)) // fix me
                {
                   u32 i=NetlinkArea->inbufferstart+2;
-                  int resultcode=NL_RESULTCODE_OK;
+                  enum NL_RESULTCODE resultcode=NL_RESULTCODE_OK;
                   int parameter;
 
-                  LOG("Program issued %s\n", NetlinkArea->inbuffer);
+                  NETLINK_LOG("Program issued %s\n", NetlinkArea->inbuffer);
 
                   // If echo is enabled, do it
                   if (NetlinkArea->isechoenab)
@@ -266,6 +296,9 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                   {
                      switch (toupper(NetlinkArea->inbuffer[i]))
                      {
+                        case ' ':
+                           // Whitespace
+                           break;
                         case '%':
                            break;
                         case '&':
@@ -301,22 +334,110 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                               default: break;
                            }
                            break;
+                        case 'S':
+                        {
+                           // Status Registers
+                           int reg;
+                           char *str;
+                           char *inbuffer = (char *) NetlinkArea->inbuffer;
+
+                           i++;
+
+                           reg = strtoul(inbuffer+i, &str, 10);
+                           i = str-inbuffer;
+
+                           if (inbuffer[i] == '=')
+                           {
+                              NetlinkArea->reg.SREG[reg & 0xFF] = strtoul(inbuffer+i+1, &str, 10);
+                              i = str-inbuffer;
+                           }
+
+                           i-=1;
+
+                           switch (reg)
+                           {
+                              case 7:
+                                 // Wait Time for Carrier, Silence, or Dial Tone
+                                 NetlinkArea->connect_timeout = NetlinkArea->reg.SREG[reg] * 1000000;
+                                 break;
+                              default: break;
+                           }
+                           break;
+                        }
                         case ')':
                         case '*':
                         case ':':
                         case '?':
                         case '@':
+                           break;
                         case '\\':
+                           i++;
+
+                           if (toupper(NetlinkArea->inbuffer[i]) == 'N')
+                           {
+                              // linefeed
+                           }
+
                            break;
                         case 'A':
                            // Answer Command(no other commands should follow)
+                           NETLINK_LOG("Starting answer\n");
                            break;
                         case 'D':
+                        {
                            // Dial Command
-                           NetlinkArea->connectstatus = CONNECTSTATUS_CONNECT;
-   
-                           i = NetlinkArea->inbufferend-1; // fix me
+                           char *p;
+                           int j;
+                           char *inbuffer = (char *) NetlinkArea->inbuffer;
+
+                           NetlinkArea->connectstatus = NL_CONNECTSTATUS_CONNECT;
+
+                           NetlinkArea->internet_enable = 0;
+
+                           if ((p = strchr(inbuffer+i+2, '*')) != NULL)
+                           {
+                              // Fetch IP
+                              char ipstring[45];
+
+                              sscanf(p+1, "%[^\r]\r", ipstring);
+
+                              // replace ',' with '.'
+                              for (j = 0; ipstring[j] != '\0'; j++)
+                                 if (ipstring[j] == ',')
+                                    ipstring[j] = '.';
+
+                              // Get port string if necessary
+                              if ((p = strchr(ipstring, '*')) != NULL)
+                              {
+                                 p[0] = '\0';
+                                 strcpy(NetlinkArea->portstring, p+1);
+                              }
+                              strcpy(NetlinkArea->ipstring, ipstring);
+                           }
+                           else
+                           {
+                              // If we're using Sega's old network, just assume we're using internet mode
+                              char number[45];
+
+                              sscanf(inbuffer+i+2, "%[^\r]\r", number);
+                              remove_all_chars(number, '-');
+                              if (strcmp(number, "18007798852") == 0 ||
+                                  strcmp(number, "8007798852") == 0)
+                                 NetlinkArea->internet_enable = 1;
+                           }
+
+                           if (!NetlinkArea->internet_enable)
+                           {
+#ifdef USESOCKET
+                              NetworkConnect(NetlinkArea->ipstring, NetlinkArea->portstring);
+#endif
+                              NetlinkArea->connect_time = 0;
+                              NETLINK_LOG("Starting dial %s\n", NetlinkArea->ipstring);
+                           }
+
+                           i = strchr(inbuffer+i, '\r')-inbuffer-1;
                            break;
+                        }
                         case 'E':
                            // Command State Character Echo Selection
 
@@ -355,7 +476,9 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                            // Negotiation Progress Message Selection
                            NetlinkFetchATParameter(NetlinkArea->inbuffer[i+1], &i);
                            break;
-                        default: break;
+                        default: 
+                           NETLINK_LOG("Unsupported AT command %c", NetlinkArea->inbuffer[i]);
+                           break;
                      }
 
                      i++;
@@ -393,7 +516,7 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                      default: break;
                   }
 
-                  memset(NetlinkArea->inbuffer, 0, NetlinkArea->inbuffersize);
+                  memset((void *) NetlinkArea->inbuffer, 0, NetlinkArea->inbuffersize);
                   NetlinkArea->inbufferstart = NetlinkArea->inbufferend = NetlinkArea->inbuffersize = 0;
 
                   if (NetlinkArea->outbuffersize > 0)
@@ -406,6 +529,34 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
                      ScuSendExternalInterrupt12();
                   }
                }
+            }
+            else if (NetlinkArea->connectstatus == NL_CONNECTSTATUS_LOGIN1 &&
+                     NetlinkArea->modemstate == NL_MODEMSTATE_DATA &&
+                     val == 0x0D)
+            {
+               // Internet login name
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_LOGIN2;
+               NETLINK_LOG("login response: %s", NetlinkArea->inbuffer+NetlinkArea->inbufferstart);
+               NetlinkDoATResponse("\r\npassword:");
+               NetlinkUpdateReceivedDataInt();
+            }
+            else if (NetlinkArea->connectstatus == NL_CONNECTSTATUS_LOGIN2 &&
+               NetlinkArea->modemstate == NL_MODEMSTATE_DATA &&
+               val == 0x0D)
+            {
+               // Internet password
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_LOGIN3;
+               NETLINK_LOG("password response: %s", NetlinkArea->inbuffer+NetlinkArea->inbufferstart);
+               NetlinkDoATResponse("\r\n$");
+               NetlinkUpdateReceivedDataInt();
+            }
+            else if (NetlinkArea->connectstatus == NL_CONNECTSTATUS_LOGIN3 &&
+               NetlinkArea->modemstate == NL_MODEMSTATE_DATA &&
+               val == 0x0D)
+            {
+               // Internet password
+               NETLINK_LOG("shell response: %s", NetlinkArea->inbuffer+NetlinkArea->inbufferstart);
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_CONNECTED;
             }
          }
 
@@ -458,7 +609,7 @@ void FASTCALL NetlinkWriteByte(u32 addr, u8 val)
          break;
    }
 
-   LOG("Unimplemented Netlink byte write: %08X\n", addr);
+   NETLINK_LOG("Unimplemented Netlink byte write: %08X\n", addr);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -472,15 +623,19 @@ int NetlinkInit(const char *setting)
       return 0;
    }
 
-   memset(NetlinkArea->inbuffer, 0, NETLINK_BUFFER_SIZE);
-   memset(NetlinkArea->outbuffer, 0, NETLINK_BUFFER_SIZE);
+   memset((void *) NetlinkArea->inbuffer, 0, NETLINK_BUFFER_SIZE);
+   memset((void *) NetlinkArea->outbuffer, 0, NETLINK_BUFFER_SIZE);
 
    NetlinkArea->inbufferstart = NetlinkArea->inbufferend = NetlinkArea->inbuffersize = 0;
+   NetlinkArea->inbufferupdate = 0;
    NetlinkArea->outbufferstart = NetlinkArea->outbufferend = NetlinkArea->outbuffersize = 0;
+   NetlinkArea->outbufferupdate = 0;
 
    NetlinkArea->isechoenab = 1;
    NetlinkArea->cycles = 0;
-   NetlinkArea->modemstate = MODEMSTATE_COMMAND;
+   NetlinkArea->thb_write_time = 0xFFFFFFFF;
+   NetlinkArea->modemstate = NL_MODEMSTATE_COMMAND;
+   NetlinkArea->escape_count = 0;
 
    NetlinkArea->reg.RBR = 0x00;
    NetlinkArea->reg.IER = 0x00;
@@ -494,11 +649,14 @@ int NetlinkInit(const char *setting)
    NetlinkArea->reg.MSR = 0x30;
    NetlinkArea->reg.SCR = 0x01;
 
+   NetlinkArea->reg.SREG[7] = 50;
+   NetlinkArea->connect_timeout = NetlinkArea->reg.SREG[7] * 1000000;
+
    if (setting == NULL || strcmp(setting, "") == 0)
    {
       // Use Loopback ip and port 1337
       sprintf(NetlinkArea->ipstring, "127.0.0.1");
-      sprintf(NetlinkArea->portstring, "1337");
+      sprintf(NetlinkArea->portstring, "31337");
    }
    else
    {
@@ -521,7 +679,7 @@ int NetlinkInit(const char *setting)
    }
 
 #ifdef USESOCKET
-   return NetworkInit();
+   return NetworkInit(NetlinkArea->portstring);
 #else
    return 0;
 #endif
@@ -544,123 +702,85 @@ void NetlinkDeInit(void)
 void NetlinkExec(u32 timing)
 {
    NetlinkArea->cycles += timing;
+   NetlinkArea->connect_time += timing;
+   if (NetlinkArea->thb_write_time != 0xFFFFFFFF)
+      NetlinkArea->thb_write_time += timing;
 
    if (NetlinkArea->cycles >= 20000)
    {
       NetlinkArea->cycles -= 20000;
 
+      if (NetlinkArea->escape_count == 3 && NetlinkArea->thb_write_time >= 1000000)
+      {
+         // Switch back to command mode
+         NETLINK_LOG("Detected escape sequence, switching back to command mode\n");
+         NetlinkArea->modemstate = NL_MODEMSTATE_COMMAND;
+      }
+
       switch(NetlinkArea->connectstatus)
       {
-         case CONNECTSTATUS_IDLE:
+         case NL_CONNECTSTATUS_IDLE:
          {
 #ifdef USESOCKET
-            if (NetworkWaitForConnect(NetlinkArea->portstring) == 0)
+            if (NetworkWaitForConnect() == 0)
             {
-               NetlinkArea->connectstatus = CONNECTSTATUS_CONNECTED;
-               NetlinkArea->modemstate = MODEMSTATE_ONLINE;
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_CONNECTED;
+               NetlinkArea->modemstate = NL_MODEMSTATE_DATA;
 
                // This is probably wrong, but let's give it a try anyways
                NetlinkDoATResponse("\r\nRING\r\n\r\nCONNECT\r\n");
                NetlinkMSRChange(0x08, 0x00);
+               NetlinkUpdateReceivedDataInt();
 
-               // Set Data available bit in LSR
-               NetlinkArea->reg.LSR |= 0x01;
-
-               // Trigger Interrrupt
-               NetlinkArea->reg.IIR = 0x4;
-               ScuSendExternalInterrupt12();
-               LOG("Connected via idle\n");
+               NETLINK_LOG("Connected via listener\n");
             }
 #endif
             break;
          }
-         case CONNECTSTATUS_CONNECT:
+         case NL_CONNECTSTATUS_CONNECT:
          {
 #ifdef USESOCKET
-            if (NetworkConnect(NetlinkArea->ipstring, NetlinkArea->portstring) == 0)
+            if (NetlinkArea->internet_enable || NetworkWaitForConnect() == 0)
             {
-               NetlinkArea->connectstatus = CONNECTSTATUS_CONNECTED;
-               NetlinkArea->modemstate = MODEMSTATE_ONLINE;
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_CONNECTED;
+               NetlinkArea->modemstate = NL_MODEMSTATE_DATA;
 
-               NetlinkDoATResponse("\r\nCONNECT\r\n");
+               NetlinkDoATResponse("\r\nCONNECT 28800\r\n");
                NetlinkMSRChange(0x08, 0x00);
+               NetlinkUpdateReceivedDataInt();
+               NETLINK_LOG("Connected via remote ip connect\n");
 
-               // Set Data available bit in LSR
-               NetlinkArea->reg.LSR |= 0x01;
-
-               // Trigger Interrrupt
-               NetlinkArea->reg.IIR = 0x4;
-               ScuSendExternalInterrupt12();
-               LOG("Connected via connect\n");
+               if (NetlinkArea->internet_enable)
+               {
+                  NetlinkArea->connectstatus = NL_CONNECTSTATUS_LOGIN1;
+                  NetlinkDoATResponse("\r\nlogin:");
+               }
+            }
+            else if (NetlinkArea->connect_time >= NetlinkArea->connect_timeout)
+            {
+               // Kill connect attempt
+               NetworkStopConnect();
+               NetlinkDoATResponse("\r\nNO ANSWER\r\n");
+               NetlinkUpdateReceivedDataInt();
+               NetlinkArea->connectstatus = NL_CONNECTSTATUS_IDLE;
             }
 #endif
             break;
          }
-         case CONNECTSTATUS_CONNECTED:
+         case NL_CONNECTSTATUS_CONNECTED:
          {
 #ifdef USESOCKET
-            int bytes;
-            fd_set read_fds;
-            fd_set write_fds;
-            struct timeval tv;
 
-            FD_ZERO(&read_fds);
-            FD_ZERO(&write_fds);
-
-            // Let's see if we can even connect at this point
-            FD_SET(NetlinkArea->connectsocket, &read_fds);
-            FD_SET(NetlinkArea->connectsocket, &write_fds);
-            tv.tv_sec = 0;
-            tv.tv_usec = 0;
-
-            if (select(NetlinkArea->connectsocket+1, &read_fds, &write_fds, NULL, &tv) < 1)
+            if (NetlinkArea->outbufferupdate)
             {
-               LOG("select failed\n");
-               return;
-            }
+               NetlinkMSRChange(0x08, 0x00);
+               NetlinkUpdateReceivedDataInt();
 
-            if (NetlinkArea->modemstate == MODEMSTATE_ONLINE && NetlinkArea->inbuffersize > 0 && FD_ISSET(NetlinkArea->connectsocket, &write_fds))
-            {
-               LOG("Sending to external source...");
-
-               // Send via network connection
-               if ((bytes = NetworkSend(&NetlinkArea->inbuffer[NetlinkArea->inbufferstart], NetlinkArea->inbufferend-NetlinkArea->inbufferstart)) >= 0)
-               {
-                  LOG("Successfully sent %d byte(s)\n", bytes);
-                  if (NetlinkArea->inbufferend > bytes)
-                  {
-                     NetlinkArea->inbufferstart += bytes;
-                     NetlinkArea->inbuffersize -= bytes;
-                  }
-                  else
-                     NetlinkArea->inbufferstart = NetlinkArea->inbufferend = NetlinkArea->inbuffersize = 0;
-               }
-               else
-               {
-                  LOG("failed.\n");
-               }
-            }
-
-            if (FD_ISSET(NetlinkArea->connectsocket, &read_fds))
-            {
-//               if ((bytes = NetworkReceive(&NetlinkArea->outbuffer[NetlinkArea->outbufferend], NETLINK_BUFFER_SIZE-NetlinkArea->outbufferend)) > 0)
-               if ((bytes = NetworkReceive(&NetlinkArea->outbuffer[NetlinkArea->outbufferend], 8)) > 0)
-               {
-                  NetlinkArea->outbufferend += bytes;
-                  NetlinkArea->outbuffersize += bytes;
-
-                  NetlinkMSRChange(0x08, 0x00);
-
-                  // Set Data available bit in LSR
-                  NetlinkArea->reg.LSR |= 0x01;
-
-                  // Trigger Interrrupt
-                  NetlinkArea->reg.IIR = 0x4;
-                  ScuSendExternalInterrupt12();
-                  LOG("Received %d byte(s) from external source\n", bytes);
-               }
+               //NETLINK_LOG("Received %d byte(s) from external source\n", NetlinkArea->bytes_read);
+               NetlinkArea->outbufferupdate = 0;
             }
 #endif
+
             break;
          }
          default: break;
@@ -670,183 +790,219 @@ void NetlinkExec(u32 timing)
 
 //////////////////////////////////////////////////////////////////////////////
 #ifdef USESOCKET
-
-static int NetworkInit(void)
+void netlink_client(void *data)
 {
-#ifdef WIN32
-   WSADATA wsaData;
+   netlink_thread *client=(netlink_thread *)data;
 
-   if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
-      return -1;
-#endif
+   netlink_client_thread_running = 1;
 
-   NetlinkArea->connectsocket = -1;
-   NetlinkArea->connectstatus = CONNECTSTATUS_IDLE;
-
-   return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static int NetworkConnect(const char *ip, const char *port)
-{
-   struct addrinfo *result = NULL,
-                   hints;
-
-   memset(&hints, 0, sizeof(hints));
-
-   hints.ai_family = AF_UNSPEC;
-   hints.ai_socktype = SOCK_STREAM;
-   hints.ai_protocol = IPPROTO_TCP;
-
-   if (getaddrinfo(ip, port, &hints, &result) != 0)
-      return -1;
-
-   // Create a Socket
-   if ((NetlinkArea->connectsocket = socket(result->ai_family, result->ai_socktype,
-                                            result->ai_protocol)) == -1)
+   while (netlink_client_thread_running)
    {
-      freeaddrinfo(result);
-      return -1;
-   }
-
-   // Connect to the socket
-   if (connect(NetlinkArea->connectsocket, result->ai_addr, (int)result->ai_addrlen) == -1)
-   {
-      freeaddrinfo(result);
-      closesocket(NetlinkArea->connectsocket);
-      NetlinkArea->connectsocket = -1;
-      return -1;
-   }
-
-   freeaddrinfo(result);
-
-   return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-static int NetworkWaitForConnect(const char *port)
-{
-   struct addrinfo *result = NULL,
-                   hints;
-   int ListenSocket = -1;
-   fd_set read_fds;
-   struct timeval tv;
-
-   memset(&hints, 0, sizeof(hints));
-
-   hints.ai_family = AF_INET;
-   hints.ai_socktype = SOCK_STREAM;
-   hints.ai_protocol = IPPROTO_TCP;
-   hints.ai_flags = AI_PASSIVE;
-
-   if (getaddrinfo(NULL, port, &hints, &result) != 0)
-      return -1;
-
-   // Create a socket that the client can connect to
-   if ((ListenSocket = socket(result->ai_family, result->ai_socktype,
-                              result->ai_protocol)) == -1)
-   {
-      freeaddrinfo(result);
-      return -1;
-   }
-
-   // Setup the listening socket
-   if (bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen) == -1)
-   {
-      freeaddrinfo(result);
-      closesocket(ListenSocket);
-      return -1;
-   }
-
-   freeaddrinfo(result);
-
-   // Shhh... Let's listen
-   if (listen(ListenSocket, SOMAXCONN) == -1)
-   {
-      closesocket(ListenSocket);
-      return -1;
-   }
-
-   FD_ZERO(&read_fds);
-
-   // Let's see if we can even connect at this point
-   FD_SET(ListenSocket, &read_fds);
-   tv.tv_sec = 0;
-   tv.tv_usec = 0;
-
-   if (select(ListenSocket+1, &read_fds, NULL, NULL, &tv) < 1)
-   {
-      closesocket(ListenSocket);
-      return -1;
-   }
-
-   if (FD_ISSET(ListenSocket, &read_fds))
-   {
-      // Good, time to connect
-      if ((NetlinkArea->connectsocket = accept(ListenSocket, NULL, NULL)) == -1)
+      int bytes;
+      if (YabSockSelect(client->sock, 1, 1) != 0)
       {
-         closesocket(ListenSocket);
-         return -1;
+         continue;
       }
 
-      // We don't need the listen socket anymore
-      closesocket(ListenSocket);
+      if (NetlinkArea->modemstate == NL_MODEMSTATE_DATA && NetlinkArea->inbuffersize > 0 && YabSockIsWriteSet(client->sock) && NetlinkArea->thb_write_time > 1000)
+      {
+         //NETLINK_LOG("Sending to external source...");
+
+         // Send via network connection
+         if ((bytes = YabSockSend(client->sock, (void *) &NetlinkArea->inbuffer[NetlinkArea->inbufferstart], NetlinkArea->inbufferend-NetlinkArea->inbufferstart, 0)) >= 0)
+         {
+            //NETLINK_LOG("Successfully sent %d byte(s)\n", bytes);
+            if (NetlinkArea->inbufferend > bytes)
+            {
+               NetlinkArea->inbufferstart += bytes;
+               NetlinkArea->inbuffersize -= bytes;
+            }
+            else
+               NetlinkArea->inbufferstart = NetlinkArea->inbufferend = NetlinkArea->inbuffersize = 0;
+            NetlinkArea->inbufferupdate = 1;
+         }
+         else
+         {
+            //NETLINK_LOG("failed.\n");
+         }
+      }
+      
+      if (YabSockIsReadSet(client->sock))
+      {
+         //NETLINK_LOG("Data is ready from external source...");
+         if ((bytes = YabSockReceive(client->sock, (void *) &NetlinkArea->outbuffer[NetlinkArea->outbufferend], sizeof(NetlinkArea->outbuffer)-1-NetlinkArea->outbufferend, 0)) > 0)
+         {
+            //NETLINK_LOG("Successfully received %d byte(s)\n", bytes);
+            NetlinkArea->outbufferend += bytes;
+            NetlinkArea->outbuffersize += bytes;
+            NetlinkArea->outbufferupdate = 1;
+         }
+      }
+      //YabThreadSleep();
    }
+
+   free(data);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static void NetworkStopClient()
+{
+   if (netlink_client_thread_running)
+   {
+      if (NetlinkArea->clientsocket != -1)
+         YabSockCloseSocket(NetlinkArea->clientsocket);
+      NetlinkArea->clientsocket = -1;
+
+      netlink_client_thread_running = 0;
+      YabThreadWait(YAB_THREAD_NETLINKCLIENT);
+   }
+
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void netlink_listener(void *data)
+{
+   YabSock Listener=(YabSock)(pointer)data;
+   netlink_thread *client;
+
+   netlink_listener_thread_running = 1;
+
+   while(netlink_listener_thread_running)
+   {
+      NetlinkArea->clientsocket = YabSockAccept(Listener);
+      if (NetlinkArea->clientsocket == -1)
+      {
+         perror("accept failed\n");
+         continue;
+      }
+
+      client = malloc(sizeof(netlink_thread));
+      client->sock = NetlinkArea->clientsocket;
+      YabThreadStart(YAB_THREAD_NETLINKCLIENT, netlink_client, (void *)client);
+   }
+
+   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static void NetworkStopListener()
+{
+   if (netlink_listener_thread_running)
+   {
+      if (NetlinkArea->listensocket != -1)
+         YabSockCloseSocket(NetlinkArea->listensocket);
+      NetlinkArea->listensocket = -1;
+      netlink_listener_thread_running = 0;
+      YabThreadWait(YAB_THREAD_NETLINKLISTENER);
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+int NetworkRestartListener(int port)
+{
+   int ret;
+   if ((ret = YabSockListenSocket(port, &NetlinkArea->listensocket)) != 0)
+      return ret;
+
+   YabThreadStart(YAB_THREAD_NETLINKLISTENER, netlink_listener, (void *)(pointer)NetlinkArea->listensocket);
+   return ret;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static int NetworkInit(const char *port)
+{
+   int ret;
+
+   YabSockInit();
+
+   NetlinkArea->clientsocket = NetlinkArea->listensocket = NetlinkArea->connectsocket = -1;
+
+   if (ret = NetworkRestartListener(atoi(port)) != 0)
+      return ret;
+
+   NetlinkArea->connectstatus = NL_CONNECTSTATUS_IDLE;
 
    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static int NetworkSend(const void *buffer, int length)
-{
-   int bytessent;
+void netlink_connect(void *data)
+{   
+   netlink_thread *connect=(netlink_thread *)data;
 
-   if ((bytessent = send(NetlinkArea->connectsocket, buffer, length, 0)) == -1)
+   netlink_connect_thread_running = 1;
+
+   while(netlink_connect_thread_running)
    {
-      // Fix me, better error handling is needed
-//      closesocket(NetlinkArea->connectsocket);
-//      NetlinkArea->connectsocket = -1;
-      return -1;
+      if (YabSockConnectSocket(connect->ip, connect->port, &connect->sock) == 0)
+      {
+         NetlinkArea->connectsocket = connect->sock;
+
+         YabThreadStart(YAB_THREAD_NETLINKCLIENT, netlink_client, (void *)connect);
+         return;
+      }
+      else
+         YabThreadYield();
    }
 
-   return bytessent;
+   NetworkRestartListener(connect->port);
+   free(data);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static int NetworkReceive(void *buffer, int maxlength)
+static void NetworkStopConnect()
 {
-   int bytesreceived;
-
-   bytesreceived = recv(NetlinkArea->connectsocket, buffer, maxlength, 0);
-
-   if (bytesreceived == 0)
+   if (netlink_connect_thread_running)
    {
-      // Fix me, better handling is needed
-      LOG("Connection closed\n");
-      return -1;
-   }
-   else if (bytesreceived < 0)
-   {
-      // Fix me, better error handling is needed
-      return -1;
+      if (NetlinkArea->connectsocket != -1)
+         YabSockCloseSocket(NetlinkArea->connectsocket);
+      NetlinkArea->connectsocket = -1;
+
+      netlink_connect_thread_running = 0;
+      YabThreadWait(YAB_THREAD_NETLINKCONNECT);
    }
 
-   return bytesreceived;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static void NetworkConnect(const char *ip, const char *port)
+{
+   netlink_thread *connect;
+   connect = malloc(sizeof(netlink_thread));
+   strcpy(connect->ip, ip);
+   connect->port = atoi(port);
+
+   NetworkStopListener();
+   YabThreadStart(YAB_THREAD_NETLINKCONNECT, netlink_connect, connect);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static int NetworkWaitForConnect()
+{
+   if (netlink_client_thread_running)
+      return 0;
+   else
+      return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static void NetworkDeInit(void)
 {
-   if (NetlinkArea->connectsocket != -1)
-      closesocket(NetlinkArea->connectsocket);
-#ifdef WIN32
-   WSACleanup();
-#endif
+   NetworkStopListener();
+   NetworkStopConnect();
+   NetworkStopClient();
+
+   YabSockDeInit();
 }
 
 //////////////////////////////////////////////////////////////////////////////

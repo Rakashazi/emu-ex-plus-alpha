@@ -1,5 +1,5 @@
 /*  Copyright 2005 Guillaume Duhamel
-    Copyright 2005-2006 Theo Berkau
+    Copyright 2005-2006, 2013 Theo Berkau
 
     This file is part of Yabause.
 
@@ -34,14 +34,27 @@
  * @{
  */
 
-#define PERPAD   0x02
-#define PERMOUSE 0xE3
+#define PERPAD				0x02
+#define PERWHEEL			0x13
+#define PERMISSIONSTICK	0x15
+#define PER3DPAD			0x16
+#define PERTWINSTICKS	0x19
+#define PERGUN				0x25
+#define PERKEYBOARD		0x34
+#define PERMOUSE			0xE3
 
 #define PERCORE_DEFAULT -1
 #define PERCORE_DUMMY 0
 
 extern PortData_struct PORTDATA1;
 extern PortData_struct PORTDATA2;
+
+#define PERSF_ALL       (0xFFFFFFFF)
+#define PERSF_KEY       (1 << 0)
+#define PERSF_BUTTON    (1 << 1)
+#define PERSF_HAT       (1 << 2)
+#define PERSF_AXIS      (1 << 3)
+#define PERSF_MOUSEMOVE (1 << 4)
 
 typedef struct
 {
@@ -50,13 +63,10 @@ typedef struct
    int (*Init)(void);
    void (*DeInit)(void);
    int (*HandleEvents)(void);
-   void (*PerSetButtonMapping)(void);
-   u32 (*Scan)(void);
+   u32 (*Scan)(u32 flags);
    int canScan;
    void (*Flush)(void);
-#ifdef PERKEYNAME
    void (*KeyName)(u32 key, char * name, int size);
-#endif
 } PerInterface_struct;
 
 /** @brief Pointer to the current peripheral core.
@@ -92,7 +102,6 @@ void PerDeInit(void);
  */
 void * PerAddPeripheral(PortData_struct *port, int perid);
 int PerGetId(void * peripheral);
-void PerRemovePeripheral(PortData_struct *port, int removeoffset);
 void PerPortReset(void);
 /**
  * Iterate the list of peripherals connected to a port
@@ -103,6 +112,8 @@ void PerFlush(PortData_struct * port);
 void PerKeyDown(u32 key);
 void PerKeyUp(u32 key);
 void PerSetKey(u32 key, u8 name, void * controller);
+void PerAxisValue(u32 key, u8 val);
+void PerAxisMove(u32 key, s32 dispx, s32 dispy);
 
 /** @defgroup pad Pad
  *
@@ -185,6 +196,7 @@ void PerPadLTriggerReleased(PerPad_struct * pad);
 #define PERMOUSE_MIDDLE	14
 #define PERMOUSE_RIGHT	15
 #define PERMOUSE_START	16
+#define PERMOUSE_AXIS	17
 
 extern const char * PerMouseNames[5];
 
@@ -214,6 +226,46 @@ void PerMouseStartPressed(PerMouse_struct * mouse);
 void PerMouseStartReleased(PerMouse_struct * mouse);
 
 void PerMouseMove(PerMouse_struct * mouse, s32 dispx, s32 dispy);
+/** @} */
+
+/** @defgroup 3danalog 3DAnalog
+ *
+ * @{
+ * */
+
+#define PERANALOG_AXIS1	18
+#define PERANALOG_AXIS2	19
+#define PERANALOG_AXIS3	20
+#define PERANALOG_AXIS4	21
+#define PERANALOG_AXIS5	22
+#define PERANALOG_AXIS6	23
+#define PERANALOG_AXIS7	24
+
+typedef struct
+{
+   u8 perid;
+   u8 analogbits[9];
+} PerAnalog_struct;
+
+/** @brief Adds a Analog control pad to one of the controller ports.
+ *
+ * @param port can be either &PORTDATA1 or &PORTDATA2
+ * @return pointer to a Per3DAnalog_struct or NULL if it fails
+ * */
+
+PerAnalog_struct * PerWheelAdd(PortData_struct * port);
+PerAnalog_struct * PerMissionStickAdd(PortData_struct * port);
+PerAnalog_struct * Per3DPadAdd(PortData_struct * port);
+PerAnalog_struct * PerTwinSticksAdd(PortData_struct * port);
+
+void PerAxis1Value(PerAnalog_struct * analog, u32 val);
+void PerAxis2Value(PerAnalog_struct * analog, u32 val);
+void PerAxis3Value(PerAnalog_struct * analog, u32 val);
+void PerAxis4Value(PerAnalog_struct * analog, u32 val);
+void PerAxis5Value(PerAnalog_struct * analog, u32 val);
+void PerAxis6Value(PerAnalog_struct * analog, u32 val);
+void PerAxis7Value(PerAnalog_struct * analog, u32 val);
+
 /** @} */
 
 /** @} */

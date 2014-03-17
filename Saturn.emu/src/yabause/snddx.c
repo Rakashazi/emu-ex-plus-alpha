@@ -22,6 +22,7 @@
 #include "dx.h"
 #include "scsp.h"
 #include "snddx.h"
+#include "error.h"
 
 int SNDDXInit(void);
 void SNDDXDeInit(void);
@@ -72,15 +73,15 @@ int SNDDXInit(void)
 
    if ((ret = DirectSoundCreate8(NULL, &lpDS8, NULL)) != DS_OK)
    {
-      sprintf(tempstr, "DirectSound8Create error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-      MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+      sprintf(tempstr, "Sound. DirectSound8Create error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+      YabSetError(YAB_ERR_CANNOTINIT, tempstr);
       return -1;
    }
 
    if ((ret = IDirectSound8_SetCooperativeLevel(lpDS8, DXGetWindow(), DSSCL_PRIORITY)) != DS_OK)
    {
-      sprintf(tempstr, "IDirectSound8_SetCooperativeLevel error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-      MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+      sprintf(tempstr, "Sound. IDirectSound8_SetCooperativeLevel error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+      YabSetError(YAB_ERR_CANNOTINIT, tempstr);
       return -1;
    }
 
@@ -92,8 +93,8 @@ int SNDDXInit(void)
 
    if ((ret = IDirectSound8_CreateSoundBuffer(lpDS8, &dsbdesc, &lpDSB, NULL)) != DS_OK)
    {
-      sprintf(tempstr, "Error when creating primary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-      MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+      sprintf(tempstr, "Sound. Error when creating primary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+      YabSetError(YAB_ERR_CANNOTINIT, tempstr);
       return -1;
    }
 
@@ -110,8 +111,8 @@ int SNDDXInit(void)
 
    if ((ret = IDirectSoundBuffer8_SetFormat(lpDSB, &wfx)) != DS_OK)
    {
-      sprintf(tempstr, "IDirectSoundBuffer8_SetFormat error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-      MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+      sprintf(tempstr, "Sound. IDirectSoundBuffer8_SetFormat error: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+      YabSetError(YAB_ERR_CANNOTINIT, tempstr);
       return -1;
    }
 
@@ -137,15 +138,15 @@ int SNDDXInit(void)
 
          if ((ret = IDirectSound8_CreateSoundBuffer(lpDS8, &dsbdesc, &lpDSB2, NULL)) != DS_OK)
          {
-            sprintf(tempstr, "Error when creating secondary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-            MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+            sprintf(tempstr, "Sound. Error when creating secondary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+            YabSetError(YAB_ERR_CANNOTINIT, tempstr);
             return -1;
          }
       }
       else
       {
-         sprintf(tempstr, "Error when creating secondary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
-         MessageBox (NULL, _16(tempstr), _16("Error"),  MB_OK | MB_ICONINFORMATION);
+         sprintf(tempstr, "Sound. Error when creating secondary sound buffer: %s - %s", DXGetErrorString8(ret), DXGetErrorDescription8(ret));
+         YabSetError(YAB_ERR_CANNOTINIT, tempstr);
          return -1;
       }
    }
