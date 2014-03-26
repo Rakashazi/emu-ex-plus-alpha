@@ -55,6 +55,7 @@ bool useCompressedTextures = false;
 static bool forceNoCompressedTextures = true;
 
 bool useFBOFuncs = false;
+bool useFBOFuncsEXT = false;
 static bool forceNoFBOFuncs = false;
 
 bool useVBOFuncs = false;
@@ -100,7 +101,6 @@ static void setupAutoMipmapGeneration()
 {
 	logMsg("automatic mipmap generation supported");
 	useAutoMipmapGeneration = 1;
-	//glHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
 }
 
 static void setupMultisample()
@@ -108,13 +108,13 @@ static void setupMultisample()
 	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("multisample antialiasing supported");
 	useMultisample = 1;
-	glcEnable(GL_MULTISAMPLE_ARB);
+	glcEnable(GL_MULTISAMPLE);
 	#endif
 }
 
 static void setupMultisampleHints()
 {
-	#ifndef CONFIG_GFX_OPENGL_ES
+	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__
 	logMsg("multisample hints supported");
 	glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 	#endif
@@ -226,11 +226,6 @@ static void checkExtensionString(const char *extStr)
 		if(!forceNoAnisotropicFiltering)
 			setupAnisotropicFiltering();
 	}
-	else if(string_equal(extStr, "GL_SGIS_generate_mipmap"))
-	{
-		if(!forceNoAutoMipmapGeneration && !useAutoMipmapGeneration)
-			setupAutoMipmapGeneration();
-	}
 	else if(string_equal(extStr, "GL_ARB_multisample"))
 	{
 		if(!forceNoMultisample && !useMultisample)
@@ -242,6 +237,14 @@ static void checkExtensionString(const char *extStr)
 			setupMultisampleHints();
 	}
 	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
+	{
+		if(!forceNoFBOFuncs && !useFBOFuncs)
+		{
+			setupFBOFuncs();
+			useFBOFuncsEXT = true;
+		}
+	}
+	else if(string_equal(extStr, "GL_ARB_framebuffer_object"))
 	{
 		if(!forceNoFBOFuncs && !useFBOFuncs)
 			setupFBOFuncs();
@@ -290,7 +293,7 @@ CallResult init()
 	else if(checkGLErrors)
 		logMsg("using error checks");
 
-	#if !defined CONFIG_GFX_OPENGL_ES && !defined NDEBUG
+	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__ && !defined NDEBUG
 	glDebugMessageCallback(debugCallback, nullptr);
 	glEnable(GL_DEBUG_OUTPUT);
 	#endif

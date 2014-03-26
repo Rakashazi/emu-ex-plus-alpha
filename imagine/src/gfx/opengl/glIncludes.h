@@ -26,7 +26,8 @@
 	#endif
 #endif
 
-#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES
+#if !defined CONFIG_BASE_MACOSX && \
+	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
 #define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 #endif
 #if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
@@ -45,8 +46,8 @@
 	#import <OpenGLES/ES2/glext.h>
 	#endif
 #elif defined CONFIG_BASE_MACOSX
-#import <OpenGL/gl.h>
-#import <OpenGL/glext.h>
+#import <OpenGL/gl3.h>
+#import <OpenGL/gl3ext.h>
 #elif defined CONFIG_ENV_WEBOS // standard GL headers seem to be missing some extensions
 #define GL_GLEXT_PROTOTYPES
 #include <GLES/gl.h>

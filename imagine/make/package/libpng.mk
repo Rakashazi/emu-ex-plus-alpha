@@ -12,7 +12,7 @@ ifeq ($(ENV), webos)
  LDLIBS +=  -lpng12 -lz $(webos_libm)
 else ifeq ($(ENV), macosx)
  # MacPorts version
- LDLIBS += /opt/local/lib/libpng15.a -lz
+ LDLIBS += /opt/local/lib/libpng.a -lz
 else ifeq ($(libpngStatic), 1)
  pkgConfigStaticDeps += libpng
 else

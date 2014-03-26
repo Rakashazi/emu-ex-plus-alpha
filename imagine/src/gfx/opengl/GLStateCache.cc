@@ -120,7 +120,7 @@ bool *GLStateCache::getCap(GLenum cap)
 		GLCAP_CASE(GL_CULL_FACE);
 		GLCAP_CASE(GL_DITHER);
 		#ifndef CONFIG_GFX_OPENGL_ES
-		GLCAP_CASE(GL_MULTISAMPLE_ARB);
+		GLCAP_CASE(GL_MULTISAMPLE);
 		#endif
 	default: return 0;
 	}

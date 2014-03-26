@@ -23,7 +23,7 @@
 class ResourceFontFreetype : public ResourceFont
 {
 public:
-	constexpr ResourceFontFreetype() {}
+	ResourceFontFreetype() {}
 	static ResourceFontFreetype *load();
 	static ResourceFontFreetype *load(Io *io);
 	static ResourceFontFreetype *load(const char *name);

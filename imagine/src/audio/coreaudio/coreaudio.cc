@@ -23,6 +23,7 @@
 
 #include <AudioUnit/AudioUnit.h>
 #include <AudioToolbox/AudioToolbox.h>
+#include <TargetConditionals.h>
 
 namespace Audio
 {
@@ -34,8 +35,10 @@ static AudioComponentInstance outputUnit = nullptr;
 static AudioStreamBasicDescription streamFormat;
 static bool isPlaying_ = false, isOpen_ = false, hadUnderrun = false;
 static StaticMachRingBuffer<> rBuff;
+#if TARGET_OS_IPHONE
 static bool sessionInit = false;
 static bool soloMix_ = true;
+#endif
 
 int maxRate()
 {
@@ -231,6 +234,7 @@ int framesFree()
 	return rBuff.freeSpace() / streamFormat.mBytesPerFrame;
 }
 
+#if TARGET_OS_IPHONE
 static void setAudioCategory(UInt32 category)
 {
 	AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(category), &category);
@@ -266,17 +270,24 @@ void initSession()
 		}, nullptr);
 	sessionInit = true;
 }
+#endif
 
 CallResult init()
 {
+	#if TARGET_OS_IPHONE
 	assert(sessionInit);
 	if(!soloMix_)
 		setAudioCategory(kAudioSessionCategory_AmbientSound); // kAudioSessionCategory_SoloAmbientSound is default
+	#endif
 	logMsg("setting up playback audio unit");
 	AudioComponentDescription defaultOutputDescription =
 	{
 		kAudioUnitType_Output,
+		#if TARGET_OS_IPHONE
 		kAudioUnitSubType_RemoteIO,
+		#else
+		kAudioUnitSubType_DefaultOutput,
+		#endif
 		kAudioUnitManufacturer_Apple
 	};
 	AudioComponent defaultOutput = AudioComponentFindNext(nullptr, &defaultOutputDescription);
@@ -298,10 +309,12 @@ CallResult init()
 		bug_exit("error setting callback: %d", (int)err);
 	}
 
+	#if TARGET_OS_IPHONE
 	if(AudioSessionSetActive(true) != kAudioSessionNoError)
 	{
 		logWarn("error in AudioSessionSetActive()");
 	}
+	#endif
 	return OK;
 }
 

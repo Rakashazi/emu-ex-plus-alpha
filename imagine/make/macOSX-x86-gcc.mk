@@ -5,5 +5,4 @@ ARCH := x86
 CPPFLAGS += -arch i386
 LDFLAGS += -arch i386
 
-CPPFLAGS += -I$(IMAGINE_PATH)/bundle/macosx-x86/include
-LDLIBS += -L$(IMAGINE_PATH)/bundle/macosx-x86/lib
+PKG_CONFIG_PATH := $(IMAGINE_PATH)/bundle/macosx/x86/lib/pkgconfig:$(macportsPkgconfigPath)

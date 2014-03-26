@@ -13,9 +13,6 @@ endif
 
 LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -lobjc
 #-multiply_defined suppress
-ifeq ($(SUBARCH),armv7)
-LDLIBS += -framework GLKit
-endif
 
 ifdef iOSMsgUI
  configDefs += IPHONE_MSG_COMPOSE

@@ -78,7 +78,7 @@ public:
 		bool GL_DITHER_state = 1;
 		#ifndef CONFIG_GFX_OPENGL_ES
 		// extensions
-		bool GL_MULTISAMPLE_ARB_state = 0;
+		bool GL_MULTISAMPLE_state = 0;
 		#endif
 
 		constexpr GLStateCaps() {}
@@ -138,10 +138,10 @@ public:
 	{
 		{ GL_ARRAY_BUFFER, 0 }, // needs to be first array element for glState_vertexPointer, etc
 		{ GL_ELEMENT_ARRAY_BUFFER, 0 },
-	#ifndef CONFIG_GFX_OPENGL_ES
-		{ GL_PIXEL_PACK_BUFFER_ARB, 0 },
-		{ GL_PIXEL_UNPACK_BUFFER_ARB, 0 }
-	#endif
+		#ifndef CONFIG_GFX_OPENGL_ES
+		{ GL_PIXEL_PACK_BUFFER, 0 },
+		{ GL_PIXEL_UNPACK_BUFFER, 0 }
+		#endif
 	};
 
 	bool vboIsBound();

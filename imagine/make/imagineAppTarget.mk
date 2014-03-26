@@ -21,7 +21,7 @@ $(targetDir)/$(targetFile) : $(OBJ) $(imagineStaticLib)
 ifeq ($(ENV), ios)
 	@rm -f $@
 endif
-	$(PRINT_CMD) $(LD) -o $@ $^ $(LDFLAGS)
+	$(PRINT_CMD) $(LD) -o $@ $(OBJ) $(LDFLAGS)
 ifeq ($(ENV), ios)
 ifndef iOSNoCodesign
 	@echo "Signing $@"

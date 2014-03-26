@@ -1,0 +1,1 @@
+make/shortcut/common-builds/macosx-x86_64.mk

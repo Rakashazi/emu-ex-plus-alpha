@@ -49,6 +49,8 @@ ifeq ($(ENV), ios)
  else
   include $(imagineSrcDir)/util/math/GLM.mk
  endif
+else ifeq ($(ENV), macosx)
+ include $(imagineSrcDir)/util/math/GLKit.mk
 else
  include $(imagineSrcDir)/util/math/GLM.mk
 endif

@@ -4,7 +4,7 @@
 #include <util/fixed.hh>
 #include <util/normalFloat.hh>
 
-#if defined __APPLE__ && (defined __i386__ || __ARM_ARCH >= 7)
+#if defined __APPLE__ && (defined __i386__ || defined __x86_64__ || __ARM_ARCH >= 7)
 #define CONFIG_GFX_MATH_GLKIT
 #else
 #define CONFIG_GFX_MATH_GLM

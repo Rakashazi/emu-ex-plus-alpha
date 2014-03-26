@@ -10,7 +10,7 @@ static const char *glErrorToString(GLenum err)
 		case GL_INVALID_ENUM: return "Invalid Enum";
 		case GL_INVALID_VALUE: return "Invalid Value";
 		case GL_INVALID_OPERATION: return "Invalid Operation";
-		#ifndef CONFIG_GFX_OPENGL_ES
+		#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		// TODO: check if valid in OpenGL ES
 		case GL_STACK_OVERFLOW: return "Stack Overflow";
 		case GL_STACK_UNDERFLOW: return "Stack Underflow";
@@ -52,25 +52,27 @@ static const char *glImageFormatToString(int format)
 		case GL_RGB5: return "RGB5";
 		case GL_RGBA4: return "RGBA4";
 		case GL_BGR: return "BGR";
-		case GL_LUMINANCE8: return "LUMINANCE8";
-		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
-		case GL_ALPHA8: return "ALPHA8";
 		case GL_RED: return "RED";
 		case GL_R8: return "R8";
 		case GL_RG: return "RG";
 		case GL_RG8: return "RG8";
 		#endif
-		#if !defined(CONFIG_GFX_OPENGL_ES)
+		#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		case GL_COMPRESSED_RGBA: return "COMPRESSED_RGBA";
 		case GL_COMPRESSED_RGB: return "COMPRESSED_RGB";
 		case GL_COMPRESSED_LUMINANCE: return "COMPRESSED_LUMINANCE";
 		case GL_COMPRESSED_LUMINANCE_ALPHA: return "COMPRESSED_LUMINANCE_ALPHA";
+		case GL_LUMINANCE8: return "LUMINANCE8";
+		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
+		case GL_ALPHA8: return "ALPHA8";
 		#endif
 		case GL_RGBA: return "RGBA";
 		case GL_BGRA: return "BGRA";
 		case GL_RGB: return "RGB";
+		#if defined CONFIG_GFX_OPENGL_ES || defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		case GL_LUMINANCE: return "LUMINANCE";
 		case GL_LUMINANCE_ALPHA: return "LUMINANCE_ALPHA";
+		#endif
 		case GL_ALPHA: return "ALPHA";
 		default: bug_branch("%d", format); return NULL;
 	}

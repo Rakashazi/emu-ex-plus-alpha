@@ -119,9 +119,6 @@ static void vsyncEnable()
 	{
 		logWarn("WGL_EXT_swap_control is not supported");
 	}
-	#elif defined(__APPLE__) && !defined(CONFIG_BASE_IOS)
-	GLint sync = 1;
-	CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
 	#endif
 }
 

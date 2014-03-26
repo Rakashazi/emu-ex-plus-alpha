@@ -12,14 +12,21 @@ ifdef RELEASE
  COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
+OBJCFLAGS += -fobjc-arc
+LDFLAGS += -fobjc-arc
+
 XCODE_PATH := $(shell xcode-select --print-path)
 OSX_SYSROOT ?= $(XCODE_PATH)/Platforms//MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
-OSX_FLAGS = -isysroot $(OSX_SYSROOT) -mmacosx-version-min=10.7
+OSX_FLAGS = -isysroot $(OSX_SYSROOT) -mmacosx-version-min=10.8
 CPPFLAGS += $(OSX_FLAGS)
 LDFLAGS += $(OSX_FLAGS)
 
-LDFLAGS += -dead_strip -Wl,-S,-x
+ifdef RELEASE
+ LDFLAGS += -dead_strip -Wl,-S,-x,-dead_strip_dylibs
+else
+ LDFLAGS += -dead_strip -Wl,-x,-dead_strip_dylibs
+endif
 
-extraSysroot := /opt/local
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
+macportsPath := /opt/local
+macportsPkgconfigPath := $(macportsPath)/lib/pkgconfig
+CPPFLAGS += -I$(macportsPath)/include

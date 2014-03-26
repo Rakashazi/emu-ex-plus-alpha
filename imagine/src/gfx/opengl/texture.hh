@@ -129,9 +129,15 @@ static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 				if(!useFixedFunctionPipeline)
 					return GL_RG;
 				#endif
+				#if defined CONFIG_GFX_OPENGL_ES || defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_LUMINANCE_ALPHA;
+				#endif
 			}
+			#if defined CONFIG_GFX_OPENGL_ES || defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 			else return GL_LUMINANCE;
+			#endif
+			bug_exit("no valid return values");
+			return 0;
 		}
 		else
 		{
@@ -139,7 +145,11 @@ static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 			if(!useFixedFunctionPipeline)
 				return GL_RED;
 			#endif
+			#if defined CONFIG_GFX_OPENGL_ES || defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 			return GL_ALPHA;
+			#endif
+			bug_exit("no valid return values");
+			return 0;
 		}
 	}
 	#if !defined CONFIG_GFX_OPENGL_ES
@@ -188,11 +198,23 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 			case PIXEL_BGRA4444:
 				return GL_COMPRESSED_RGB;
 			case PIXEL_I8:
+				if(!useFixedFunctionPipeline)
+					return GL_COMPRESSED_RED;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_COMPRESSED_LUMINANCE;
+				#endif
 			case PIXEL_IA88:
+				if(!useFixedFunctionPipeline)
+					return GL_COMPRESSED_RG;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_COMPRESSED_LUMINANCE_ALPHA;
+				#endif
 			case PIXEL_A8:
+				if(!useFixedFunctionPipeline)
+					return GL_COMPRESSED_RED;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_COMPRESSED_ALPHA;
+				#endif
 			default: bug_branch("%d", format.id); return 0;
 		}
 	}
@@ -223,23 +245,35 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 			case PIXEL_BGRA4444:
 				return GL_RGBA4;
 			case PIXEL_I8:
+			{
+				if(!useFixedFunctionPipeline)
+					return GL_RG8;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_LUMINANCE8;
+				#endif
+			}
 			case PIXEL_IA88:
 			{
 				if(!useFixedFunctionPipeline)
 					return GL_RG8;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_LUMINANCE8_ALPHA8;
+				#endif
 			}
 			case PIXEL_A8:
 			{
 				if(!useFixedFunctionPipeline)
 					return GL_R8;
+				#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 				return GL_ALPHA8;
+				#endif
 			}
 			default: bug_branch("%d", format.id); return 0;
 		}
 	}
 	#endif
+	bug_exit("no valid format for %s", format.name);
+	return 0;
 }
 
 enum { MIPMAP_NONE, MIPMAP_LINEAR, MIPMAP_NEAREST };
@@ -536,15 +570,20 @@ void TextureBufferImage::deinit()
 void BufferImage::generateMipmaps()
 {
 	assert(hasMipmaps());
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(useFBOFuncs)
-	{
-		logMsg("generating mipmaps via glGenerateMipmapEXT");
-		glGenerateMipmapEXT(GL_TEXTURE_2D);
-	}
-	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION != 1
+	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	logMsg("generating mipmaps");
 	glGenerateMipmap(GL_TEXTURE_2D);
+	#else
+	if(useFBOFuncs)
+	{
+		logMsg("generating mipmaps");
+		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+		if(useFBOFuncsEXT)
+			glGenerateMipmapEXT(GL_TEXTURE_2D);
+		else
+		#endif
+			glGenerateMipmap(GL_TEXTURE_2D);
+	}
 	#endif
 }
 
@@ -629,13 +668,7 @@ bool BufferImage::setupTexture(IG::Pixmap &pix, bool upload, uint internalFormat
 
 	if(hasMipmaps())
 	{
-		#ifndef CONFIG_GFX_OPENGL_ES
-		if(!useFBOFuncs)
-		{
-			logMsg("auto-generating mipmaps via GENERATE_MIPMAP_SGIS");
-			glTexParameteri(texTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-		}
-		#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+		#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 		logMsg("auto-generating mipmaps");
 		glTexParameteri(texTarget, GL_GENERATE_MIPMAP, GL_TRUE);
 		#endif

@@ -23,6 +23,7 @@ extern bool supportBGRPixels;
 extern GLenum bgrInternalFormat;
 extern bool useCompressedTextures;
 extern bool useFBOFuncs;
+extern bool useFBOFuncsEXT;
 extern bool useVBOFuncs;
 extern GLuint globalStreamVBO[4];
 extern uint globalStreamVBOIdx;

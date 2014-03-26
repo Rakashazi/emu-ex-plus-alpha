@@ -36,7 +36,7 @@ target := libimagine
 targetDir := lib/$(buildName)
 
 imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine.pc
-pkgPrefix := $(IMAGINE_PATH)
+pkgPrefix := $(CURDIR)
 pkgBuild := $(buildName)
 pkgName := imagine
 pkgDescription := Game/Multimedia Engine
