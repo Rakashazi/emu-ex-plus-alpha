@@ -28,7 +28,7 @@ ifeq ($(android_hardFP),1)
  android_libm := -lm_hard
  CPPFLAGS += -D_NDK_MATH_NO_SOFTFP=1
  LDFLAGS += -Wl,--no-warn-mismatch
- android_hardFPExt := _hard
+ android_hardFPExt := -hard
 endif
 
 include $(buildSysPath)/android-arm.mk

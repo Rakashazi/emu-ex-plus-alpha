@@ -40,7 +40,7 @@ static void* mem_calloc(size_t size) { return mem_calloc(1, size); }
 
 // TODO: this only works if the class has a trivial destructor
 template <class T>
-static T* realloc(T* o, size_t newCount)
+static T* mem_newRealloc(T* o, size_t newCount)
 {
 	static_assertHasTrivialDestructor(T);
 	T *newPtr = static_cast<T*>(::mem_realloc(o, newCount * sizeof(T)));

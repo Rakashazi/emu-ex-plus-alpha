@@ -58,10 +58,10 @@ ifndef android_stdcxx
 endif
 
 ifeq ($(android_stdcxx), gnu)
- android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/libgnustl_static$(android_hardFPExt).a
+ android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)$(android_hardFPExt)/libgnustl_static.a
  ifeq ($(ARCH), arm)
   ifeq ($(android_armState),-mthumb)
-   android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/thumb/libgnustl_static$(android_hardFPExt).a
+   android_stdcxxLib := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)$(android_hardFPExt)/thumb/libgnustl_static.a
   endif	
  endif
 else

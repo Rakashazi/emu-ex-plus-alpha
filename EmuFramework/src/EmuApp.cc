@@ -304,6 +304,7 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
+	View::defaultSmallFace = ResourceFace::create(View::defaultFace);
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)
@@ -757,6 +758,14 @@ void onDraw(Base::Window &win, FrameTimeBase frameTime)
 	else if(menuViewIsActive)
 		viewStack.draw(frameTime);
 	popup.draw();
+}
+
+void onFreeCaches()
+{
+	if(View::defaultFace)
+		View::defaultFace->freeCaches();
+	if(View::defaultSmallFace)
+		View::defaultSmallFace->freeCaches();
 }
 
 }

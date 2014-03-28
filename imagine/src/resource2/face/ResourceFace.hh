@@ -51,16 +51,19 @@ public:
 	}
 	GlyphEntry *glyphEntry(int c);
 	uint nominalHeight() const;
+	void freeCaches(uint32 rangeToFreeBits);
+	void freeCaches() { freeCaches(~0); }
 
 private:
 	ResourceFont *font = nullptr;
 	GlyphEntry *glyphTable = nullptr;
 	FontSizeRef faceSize;
 	uint nominalHeight_ = 0;
+	uint32 usedGlyphTableBits = 0;
 
 	void calcNominalHeight();
-	void initGlyphTable ();
-	CallResult cacheChar (int c, int tableIdx);
+	void initGlyphTable();
+	CallResult cacheChar(int c, int tableIdx);
 };
 
 class GfxGlyphImage : public GfxImageSource

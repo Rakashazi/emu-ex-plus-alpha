@@ -49,6 +49,7 @@ public:
 	Base::Window *win = nullptr;
 	ViewController *controller = nullptr;
 	static ResourceFace *defaultFace;
+	static ResourceFace *defaultSmallFace;
 	static Gfx::ProjectionPlane projP;
 	//enum { SHOW, ACTIVE, HIDE };
 	//ViewAnimation *animation = nullptr;

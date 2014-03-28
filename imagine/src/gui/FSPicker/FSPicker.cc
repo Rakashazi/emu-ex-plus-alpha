@@ -81,10 +81,10 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 
 void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
 {
+	deinit();
 	#if defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB)
 	singleDir = 1; // stay in Documents dir when not in jailbreak environment
 	#endif
-	text = 0;
 	faceRes = face;
 	var_selfs(filter);
 	var_selfs(singleDir);
@@ -95,7 +95,11 @@ void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImag
 void FSPicker::deinit()
 {
 	dir.closeDir();
-	delete[] text;
+	if(text)
+	{
+		mem_free(text);
+		text = nullptr;
+	}
 	navV.deinit();
 	tbl.cells = 0;
 }
@@ -194,7 +198,7 @@ void FSPicker::loadDir(const char *path)
 	if(dir.numEntries())
 	{
 		// TODO free old pointer on failure
-		text = realloc(text, dir.numEntries());
+		text = mem_newRealloc(text, dir.numEntries());
 		if(!text)
 		{
 			logMsg("out of memory loading directory");

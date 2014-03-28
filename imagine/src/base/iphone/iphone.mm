@@ -339,6 +339,12 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("entered background");
 }
 
+- (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
+{
+	logMsg("got memory warning");
+	Base::onFreeCaches();
+}
+
 @end
 
 namespace Base

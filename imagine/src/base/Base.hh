@@ -123,6 +123,9 @@ void onInterProcessMessage(const char *filename);
 // Called when app returns from backgrounded state
 void onResume(bool focused);
 
+// Called when OS needs app to free any cached data
+void onFreeCaches();
+
 // Called when app will finish execution
 // If backgrounded == true, app may eventually resume execution
 void onExit(bool backgrounded);

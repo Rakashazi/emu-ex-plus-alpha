@@ -53,7 +53,7 @@ static void engineInit()
 }
 
 // needed by GCC when not compiling with libstdc++/libsupc++, or to override it
-CLINK void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
+CLINK [[gnu::weak]] void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
 
 #if defined(__unix__) || defined(__APPLE__)
 void sleepUs(int us)
@@ -70,12 +70,13 @@ void sleepMs(int ms)
 }
 
 #if defined(__has_feature)
-	#if __has_feature(address_sanitizer)
-	#define CONFIG_BASE_NO_CUSTOM_NEW_DELETE
+	#if __has_feature(address_sanitizer) && defined CONFIG_BASE_CUSTOM_NEW_DELETE
+	#undef CONFIG_BASE_NO_CUSTOM_NEW_DELETE
+	#warning "cannot use custom new/delete with address sanitizer"
 	#endif
 #endif
 
-#ifndef CONFIG_BASE_NO_CUSTOM_NEW_DELETE
+#ifdef CONFIG_BASE_CUSTOM_NEW_DELETE
 
 void* operator new (std::size_t size)
 #ifdef __EXCEPTIONS

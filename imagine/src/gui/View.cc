@@ -15,7 +15,8 @@
 
 #include "View.hh"
 
-ResourceFace * View::defaultFace = 0;
+ResourceFace *View::defaultFace = nullptr;
+ResourceFace *View::defaultSmallFace = nullptr;
 Gfx::ProjectionPlane View::projP;
 bool View::needsBackControl = needsBackControlDefault;
 

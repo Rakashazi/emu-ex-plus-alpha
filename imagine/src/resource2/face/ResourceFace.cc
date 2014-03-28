@@ -16,18 +16,19 @@
 #define LOGTAG "ResFace"
 
 #include <util/strings.h>
+#include <util/bits.h>
 #include <gfx/GfxBufferImage.hh>
-#include "ResourceFace.hh"
+#include <resource2/face/ResourceFace.hh>
 
 #ifdef CONFIG_RESOURCE_FONT_FREETYPE
-	#include <resource2/font/ResourceFontFreetype.hh>
+#include <resource2/font/ResourceFontFreetype.hh>
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
-		#include <fontconfig/fontconfig.h>
+	#include <fontconfig/fontconfig.h>
 	#endif
 #elif defined CONFIG_RESOURCE_FONT_ANDROID
-	#include <resource2/font/ResourceFontAndroid.hh>
+#include <resource2/font/ResourceFontAndroid.hh>
 #elif defined CONFIG_RESOURCE_FONT_UIKIT
-	#include <resource2/font/ResourceFontUIKit.hh>
+#include <resource2/font/ResourceFontUIKit.hh>
 #endif
 
 // definitions for the Unicode Basic Multilingual Plane (BMP)
@@ -41,6 +42,8 @@ static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars
 
 static const uint glyphTableEntries = ResourceFace::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
+static CallResult mapCharToTable(uint c, uint &tableIdx);
+
 void ResourceFace::initGlyphTable()
 {
 	//logMsg("initGlyphTable");
@@ -48,13 +51,40 @@ void ResourceFace::initGlyphTable()
 	{
 		glyphTable[i] = {};
 	}
+	usedGlyphTableBits = 0;
+}
+
+void ResourceFace::freeCaches(uint32 purgeBits)
+{
+	auto tableBits = usedGlyphTableBits;
+	iterateTimes(32, i)
+	{
+		if((tableBits & 1) && (purgeBits & 1))
+		{
+			logMsg("purging glyphs from table range %d/31", i);
+			int firstChar = i << 11;
+			iterateTimesFromStart(2048, firstChar, c)
+			{
+				uint tableIdx;
+				if(mapCharToTable(c, tableIdx) != OK)
+				{
+					//logMsg( "%c not a known drawable character, skipping", c);
+					continue;
+				}
+				glyphTable[tableIdx].glyph.deinit();
+			}
+			unsetBits(usedGlyphTableBits, IG::bit(i));
+		}
+		tableBits >>= 1;
+		purgeBits >>= 1;
+	}
 }
 
 ResourceFace *ResourceFace::load(const char *path, FontSettings *set)
 {
 	ResourceFont *font = nullptr;
 	#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-		font = ResourceFontFreetype::load(path);
+	font = ResourceFontFreetype::load(path);
 	#endif
 	if(!font)
 		return nullptr;
@@ -66,7 +96,7 @@ ResourceFace *ResourceFace::load(Io* io, FontSettings *set)
 {
 	ResourceFont *font = nullptr;
 	#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-		font = ResourceFontFreetype::load(io);
+	font = ResourceFontFreetype::load(io);
 	#endif
 	if(!font)
 		return nullptr;
@@ -77,31 +107,31 @@ ResourceFace *ResourceFace::load(Io* io, FontSettings *set)
 ResourceFace *ResourceFace::loadSystem(FontSettings *set)
 {
 	#ifdef CONFIG_RESOURCE_FONT_ANDROID
-		auto *font = ResourceFontAndroid::loadSystem();
-		if(!font)
-			return nullptr;
-		return create(font, set);
+	auto *font = ResourceFontAndroid::loadSystem();
+	if(!font)
+		return nullptr;
+	return create(font, set);
 	#elif defined CONFIG_RESOURCE_FONT_UIKIT
-		auto *font = ResourceFontUIKit::loadSystem();
-		if(!font)
-			return nullptr;
-		return create(font, set);
+	auto *font = ResourceFontUIKit::loadSystem();
+	if(!font)
+		return nullptr;
+	return create(font, set);
 	#elif defined CONFIG_ENV_WEBOS
-		return load("/usr/share/fonts/PreludeCondensed-Medium.ttf", set);
+	return load("/usr/share/fonts/PreludeCondensed-Medium.ttf", set);
 	#else
 		#ifdef CONFIG_PACKAGE_FONTCONFIG
-			logMsg("locating system fonts with fontconfig");
-			// TODO: should move to one-time init function
-			if(!FcInitLoadConfigAndFonts())
-			{
-				logErr("error initializing fontconfig");
-				return nullptr;
-			}
-			// Let fontconfig handle loading specific fonts on-demand
-			auto font = ResourceFontFreetype::load();
-			return create(font, set);
+		logMsg("locating system fonts with fontconfig");
+		// TODO: should move to one-time init function
+		if(!FcInitLoadConfigAndFonts())
+		{
+			logErr("error initializing fontconfig");
+			return nullptr;
+		}
+		// Let fontconfig handle loading specific fonts on-demand
+		auto font = ResourceFontFreetype::load();
+		return create(font, set);
 		#else
-			return loadAsset("Vera.ttf", set);
+		return loadAsset("Vera.ttf", set);
 		#endif
 	#endif
 }
@@ -246,6 +276,8 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	glyphTable[tableIdx].metrics = metrics;
 	auto img = GfxGlyphImage(this, &glyphTable[tableIdx]);
 	glyphTable[tableIdx].glyph.init(img, Gfx::BufferImage::LINEAR, Gfx::BufferImage::HINT_NO_MINIFY);
+	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
+	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return OK;
 }
 

@@ -1185,7 +1185,10 @@ static void onConfigurationChanged(ANativeActivity* activity)
 	configChange(activity->env, aConfig, mainWindow().nWin);
 }
 
-static void onLowMemory(ANativeActivity* activity) {}
+static void onLowMemory(ANativeActivity* activity)
+{
+	onFreeCaches();
+}
 
 static void onWindowFocusChanged(ANativeActivity* activity, int focused)
 {
@@ -1199,6 +1202,7 @@ static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* wind
 
 static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* window)
 {
+	onFreeCaches();
 	windowDestroyed(activity, mainWindow());
 }
 
@@ -1245,7 +1249,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	//activity->callbacks->onPause = onPause;
 	//activity->callbacks->onStop = onStop;
 	activity->callbacks->onConfigurationChanged = onConfigurationChanged;
-	//activity->callbacks->onLowMemory = onLowMemory;
+	activity->callbacks->onLowMemory = onLowMemory;
 	activity->callbacks->onWindowFocusChanged = onWindowFocusChanged;
 	activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;
 	activity->callbacks->onNativeWindowDestroyed = onNativeWindowDestroyed;
