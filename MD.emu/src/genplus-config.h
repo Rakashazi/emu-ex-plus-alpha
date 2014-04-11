@@ -1,7 +1,7 @@
 #pragma once
 
-#include <util/ansiTypes.h>
-#include <util/builtins.h>
+#include <imagine/util/ansiTypes.h>
+#include <imagine/util/builtins.h>
 typedef int16 FMSampleType;
 typedef int16 PCMSampleType;
 static const uint8 config_dac_bits = 14;

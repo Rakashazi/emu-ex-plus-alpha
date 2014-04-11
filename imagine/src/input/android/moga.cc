@@ -14,10 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "InputAndroidMOGA"
-#include <base/Base.hh>
-#include <base/android/private.hh>
-#include <input/android/private.hh>
-#include <input/android/AndroidInputDevice.hh>
+#include <imagine/base/Base.hh>
+#include "../../base/android/private.hh"
+#include "private.hh"
+#include "AndroidInputDevice.hh"
 
 namespace Input
 {

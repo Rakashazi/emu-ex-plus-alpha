@@ -2,7 +2,7 @@
 #define _GENERAL_H
 
 #include <string>
-#include <io/Io.hh>
+#include <imagine/io/Io.hh>
 
 extern uint32 MDFN_RoundUpPow2(uint32);
 

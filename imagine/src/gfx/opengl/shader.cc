@@ -1,5 +1,5 @@
-#include <gfx/Gfx.hh>
-#include <gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
 #include "private.hh"
 
 namespace Gfx

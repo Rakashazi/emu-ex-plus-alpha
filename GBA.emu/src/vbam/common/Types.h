@@ -19,7 +19,7 @@
 #define __VBA_TYPES_H__
 
 #include <stdint.h>
-#include <util/builtins.h>
+#include <imagine/util/builtins.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;

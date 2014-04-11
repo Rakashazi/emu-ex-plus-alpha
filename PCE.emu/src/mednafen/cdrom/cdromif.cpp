@@ -24,7 +24,7 @@
 #include "../general.h"
 
 #include <algorithm>
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 using namespace CDUtility;
 

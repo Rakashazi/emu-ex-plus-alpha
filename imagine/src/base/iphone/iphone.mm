@@ -16,18 +16,17 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "Base"
 #import "MainApp.h"
-#import "EAGLView.h"
+#import <imagine/base/iphone/EAGLView.h>
 #import <dlfcn.h>
 #import <unistd.h>
 
-#include <base/Base.hh>
-#include <base/iphone/private.hh>
-#include <gfx/Gfx.hh>
-#include <fs/sys.hh>
-#include <config/machine.hh>
-#include <util/time/sys.hh>
-#include <base/common/funcs.h>
-#include <base/common/windowPrivate.hh>
+#include <imagine/base/Base.hh>
+#include "private.hh"
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/util/time/sys.hh>
+#include "../common/funcs.h"
+#include "../common/windowPrivate.hh"
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>

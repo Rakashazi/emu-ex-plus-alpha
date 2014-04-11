@@ -14,11 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <unistd.h>
-#include <base/Timer.hh>
-#include <base/EventLoopFileSource.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/logger/logger.h>
 
 #if defined __ANDROID__
-#include <base/android/private.hh>
+#include "../../android/private.hh"
 // No sys/timerfd.h on Android, need to use syscall
 #include <time.h>
 #include <sys/syscall.h>

@@ -26,8 +26,8 @@
 
 #include <gfx/Gfx.hh>
 #include <input/Input.hh>
-#include <logger/interface.h>
-#include <util/collection/DLList.hh>
+#include <logger/logger.h>
+#include <util/container/DLList.hh>
 #include <base/Base.hh>
 #include <base/common/funcs.h>
 

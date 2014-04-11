@@ -9,12 +9,13 @@ ifndef O_RELEASE
 endif
 
 ifdef staticLibcxx
- pkg_stdcxxStaticLib := -Wl,-Bstatic,-lstdc++,-Bdynamic
+ pkg_stdcxxStaticLib := -static-libstdc++
 endif
 
 ifeq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := clang
+  CXX := clang++
  endif
  include $(buildSysPath)/clang.mk
 else
@@ -27,6 +28,5 @@ ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
 LDLIBS += -lm
-LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--hash-style=gnu,--compress-debug-sections=zlib,--icf=all
+LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--compress-debug-sections=zlib,--icf=all
 
-configDefs += CONFIG_ENV_LINUX

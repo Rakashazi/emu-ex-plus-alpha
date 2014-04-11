@@ -14,9 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "ICP"
-#include "IControlPad.hh"
-#include <base/Base.hh>
-#include <util/bits.h>
+#include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/util/bits.h>
 #include <algorithm>
 
 using namespace IG;

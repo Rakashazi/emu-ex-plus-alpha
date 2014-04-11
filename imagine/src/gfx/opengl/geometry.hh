@@ -1,6 +1,6 @@
 #pragma once
-#include <gfx/GfxBufferImage.hh>
-#include <util/edge.h>
+#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/util/edge.h>
 #include "private.hh"
 
 namespace Gfx
@@ -194,7 +194,7 @@ static void setColorAlpha(Vtx v[4], ColorComp a, uint edges)
 #include "drawable/quad.hh"
 
 #if defined(CONFIG_RESOURCE_FACE)
-#include <gfx/common/GfxText.hh>
+#include "../common/GfxText.hh"
 #endif
 
-#include <gfx/common/GeomQuadMesh.hh>
+#include "../common/GeomQuadMesh.hh"

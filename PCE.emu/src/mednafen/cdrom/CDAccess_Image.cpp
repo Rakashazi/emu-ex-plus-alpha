@@ -47,7 +47,7 @@
 #include "CDAccess_Image.h"
 
 #include "audioreader.h"
-#include <io/api/stdio.hh>
+#include <imagine/io/api/stdio.hh>
 
 #include <map>
 

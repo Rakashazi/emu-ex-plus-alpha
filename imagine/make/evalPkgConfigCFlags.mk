@@ -1,3 +1,5 @@
+include $(buildSysPath)/imagineSDKPath.mk
+
 ifdef pkgConfigDeps
  pkgConfigIncludeDeps := 1
 endif

@@ -5,4 +5,4 @@ ARCH := x86_64
 CPPFLAGS += -arch x86_64
 LDFLAGS += -arch x86_64
 
-PKG_CONFIG_PATH := $(IMAGINE_PATH)/bundle/macosx/x86_64/lib/pkgconfig:$(macportsPkgconfigPath)
+PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(macportsPkgconfigPath)

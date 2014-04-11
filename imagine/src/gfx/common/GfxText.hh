@@ -1,15 +1,15 @@
 #pragma once
 
-#if defined(CONFIG_RESOURCE_FACE)
-#include <resource2/face/ResourceFace.hh>
+#if defined CONFIG_RESOURCE_FACE
+#include <imagine/resource/face/ResourceFace.hh>
 #endif
 
 // TODO: should not depend on UI code for projection plane
-#include <gui/View.hh>
+#include <imagine/gui/View.hh>
 
 #include <cctype>
-#include <gfx/GfxText.hh>
-#include <util/strings.h>
+#include <imagine/gfx/GfxText.hh>
+#include <imagine/util/strings.h>
 #include <algorithm>
 
 namespace Gfx

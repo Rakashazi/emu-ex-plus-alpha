@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "GLContextHelper.hh"
+#include <imagine/logger/logger.h>
 
 // TODO: remove GLX implementation once there is sufficient driver support from desktop GPU vendors for EGL
 

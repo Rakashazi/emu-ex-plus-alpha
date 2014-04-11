@@ -14,11 +14,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "AndroidBT"
-#include "AndroidBluetoothAdapter.hh"
-#include <util/fd-utils.h>
+#include <imagine/bluetooth/AndroidBluetoothAdapter.hh>
+#include <imagine/util/fd-utils.h>
 #include <errno.h>
 #include <cctype>
-#include <base/android/private.hh>
+#include "../base/android/private.hh"
 #include "utils.hh"
 
 using namespace Base;

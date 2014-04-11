@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <fs/sys.hh>
-#include <util/basicString.h>
-#include <util/collection/ArrayList.hh>
-#include <input/Input.hh>
-#include <gui/MenuItem/MenuItem.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/util/basicString.h>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/gui/MenuItem.hh>
 #include "EmuSystem.hh"
 
 struct RecentGameInfo

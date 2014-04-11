@@ -8,7 +8,7 @@
 // does not cover derived or ported versions created by third parties under GPL.
 
 #include "quicklz.h"
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 
 int qlz_get_setting(int setting)
 {

@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/GfxSprite.hh>
-#include <gfx/GfxBufferImage.hh>
+#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
 #include <VideoImageOverlay.hh>
 #include <VideoImageEffect.hh>
-#include <gui/View.hh>
+#include <imagine/gui/View.hh>
 #include <EmuOptions.hh>
 
 class EmuView : public View

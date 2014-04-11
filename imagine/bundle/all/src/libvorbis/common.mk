@@ -1,11 +1,11 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
-else
-#buildArg := --build=$(shell $(CC) -dumpmachine)
+ CHOST := $(shell $(CC) -dumpmachine)
 endif
 
+include $(buildSysPath)/imagineSDKPath.mk
+
 libvorbisVer := 1.3.4
-libvorbisSrcDir := libvorbis-$(libvorbisVer)
+libvorbisSrcDir := $(tempDir)/libvorbis-$(libvorbisVer)
 libvorbisSrcArchive := libvorbis-$(libvorbisVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
@@ -25,7 +25,8 @@ install : $(outputLibFile)
 
 $(libvorbisSrcDir)/configure : | $(libvorbisSrcArchive)
 	@echo "Extracting libvorbis..."
-	tar -mxJf $|
+	@mkdir -p $(libvorbisSrcDir)
+	tar -mxJf $| -C $(libvorbisSrcDir)/..
 	cp ../gnuconfig/config.* $(libvorbisSrcDir)/
 
 $(outputLibFile) : $(makeFile)
@@ -36,6 +37,6 @@ $(makeFile) : $(libvorbisSrcDir)/configure
 	@echo "Configuring libvorbis..."
 	@mkdir -p $(@D)
 	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" \
-	LDFLAGS="$(LDFLAGS) $(LDLIBS)" $$dir/$(libvorbisSrcDir)/configure \
-	--prefix=$(installDir) --disable-docs --disable-examples --disable-oggtest \
-	--disable-shared --host=$(CHOST) $(buildArg)
+	LDFLAGS="$(LDFLAGS) $(LDLIBS)" $(libvorbisSrcDir)/configure \
+	--prefix='$${pcfiledir}/../..' --disable-docs --disable-examples --disable-oggtest \
+	--disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)

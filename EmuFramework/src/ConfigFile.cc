@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/number.h>
+#include <imagine/util/number.h>
 #include <ConfigFile.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
-#include <base/Base.hh>
+#include <imagine/base/Base.hh>
 
 static bool readKeyConfig(Io &io, uint16 &size)
 {

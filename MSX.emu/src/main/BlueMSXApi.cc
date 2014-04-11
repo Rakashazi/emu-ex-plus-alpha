@@ -1,7 +1,7 @@
-#define thisModuleName "blueMSXApi"
+#define LOGTAG "blueMSXApi"
 
-#include <logger/interface.h>
-#include <util/time/sys.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/time/sys.hh>
 #include <assert.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -163,5 +163,3 @@ int frameBufferGetScanline() { return fbScanLine; }
 // dummy R800 debug funcs
 void r800DebugCreate(R800* r800) { }
 void r800DebugDestroy() { }
-
-#undef thisModuleName

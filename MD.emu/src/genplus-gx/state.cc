@@ -21,7 +21,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 //static unsigned char state[STATE_SIZE] __attribute__ ((aligned (4)));
 
 int state_load(const unsigned char *buffer)

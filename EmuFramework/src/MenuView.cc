@@ -16,7 +16,7 @@
 #include <meta.h>
 #include <MenuView.hh>
 #include <Recent.hh>
-#include <gui/AlertView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <EmuApp.hh>
 #include <EmuSystem.hh>
 #include <CreditsView.hh>
@@ -28,10 +28,10 @@
 #include <TouchConfigView.hh>
 #include <BundledGamesView.hh>
 #include <TextEntry.hh>
-#include <util/strings.h>
+#include <imagine/util/strings.h>
 #ifdef CONFIG_BLUETOOTH
-#include <bluetooth/sys.hh>
-#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/sys.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 extern const char *creditsViewStr;
 #ifdef CONFIG_BLUETOOTH

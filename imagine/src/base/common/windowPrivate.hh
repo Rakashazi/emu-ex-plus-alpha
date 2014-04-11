@@ -1,7 +1,7 @@
 #pragma once
 
-#include <base/Window.hh>
-#include <util/collection/ArrayList.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/util/container/ArrayList.hh>
 
 namespace Base
 {

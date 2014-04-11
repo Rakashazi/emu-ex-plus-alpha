@@ -30,7 +30,7 @@
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
-#include <util/memory.h>
+#include <imagine/util/memory.h>
 
 #define CART_CNT (48)
 

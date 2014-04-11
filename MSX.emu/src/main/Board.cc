@@ -1,10 +1,10 @@
-#define thisModuleName "board"
+#define LOGTAG "board"
 
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include <assert.h>
 #include <string.h>
 #include <Option.hh>
-#include <fs/sys.hh>
+#include <imagine/fs/sys.hh>
 
 extern "C"
 {
@@ -423,5 +423,3 @@ void boardInit(UInt32* systemTime)
     if(!fdcTimer)
     	fdcTimer = boardTimerCreate(onFdcDone, NULL);
 }
-
-#undef thisModuleName

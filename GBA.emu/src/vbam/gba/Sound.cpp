@@ -11,7 +11,7 @@
 #include "../apu/Multi_Buffer.h"
 
 #include "../common/SoundDriver.h"
-#include <util/number.h>
+#include <imagine/util/number.h>
 #include <algorithm>
 
 #define NR10 0x60

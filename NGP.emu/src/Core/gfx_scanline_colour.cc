@@ -66,8 +66,8 @@ and compatiblity reasons.
 #include "neopop.h"
 #include "mem.h"
 #include "gfx.h"
-#include <util/algorithm.h>
-#include <util/bits.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/bits.h>
 #include <algorithm>
 
 //=============================================================================

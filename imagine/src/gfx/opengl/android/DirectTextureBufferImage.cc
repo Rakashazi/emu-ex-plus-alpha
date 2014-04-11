@@ -13,10 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <engine-globals.h>
-
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-
 #include "DirectTextureBufferImage.hh"
 #include "../GLStateCache.hh"
 #include "../private.hh"
@@ -249,5 +245,3 @@ void DirectTextureBufferImage::deinit()
 }
 
 }
-
-#endif

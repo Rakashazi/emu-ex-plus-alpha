@@ -15,7 +15,7 @@
 
 #include <VideoImageEffect.hh>
 #include <EmuApp.hh>
-#include <io/sys.hh>
+#include <imagine/io/sys.hh>
 
 void VideoImageEffect::setEffect(uint effect)
 {

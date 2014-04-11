@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/Input.hh>
-#include <base/Base.hh>
-#include <input/common/iCade.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/base/Base.hh>
+#include "../../input/common/iCade.hh"
 
 struct ICadeHelper
 {

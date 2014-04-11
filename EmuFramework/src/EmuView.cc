@@ -17,7 +17,7 @@
 #include <EmuInput.hh>
 #include <VController.hh>
 #include <EmuApp.hh>
-#include <gui/AlertView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <FilePicker.hh>
 #include <Screenshot.hh>
 #include <algorithm>

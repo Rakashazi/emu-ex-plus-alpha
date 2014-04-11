@@ -218,7 +218,7 @@
 #define snes9x_types_defined
 typedef unsigned char		bool8;
 #ifdef HAVE_STDINT_H
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 typedef intptr_t			pint;
 #else	// HAVE_STDINT_H
 #ifdef __WIN32__

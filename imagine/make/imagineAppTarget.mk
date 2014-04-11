@@ -1,5 +1,5 @@
 include $(buildSysPath)/imagineCommonTarget.mk
-include $(buildSysPath)/package/stdc++-headers.mk
+include $(buildSysPath)/package/stdc++.mk
 include $(buildSysPath)/evalPkgConfigCFlags.mk
 include $(buildSysPath)/evalPkgConfigLibs.mk
 
@@ -14,19 +14,23 @@ endif
 
 targetFile := $(target)$(targetSuffix)$(targetExtension)
 
+linkerLibsDep := $(linkerLibs)
+# TODO: add Xcode lib path to VPATH so next lines aren't needed
+linkerLibsDep := $(linkerLibsDep:-lz=)
+linkerLibsDep := $(linkerLibsDep:-lm=)
+
+linkerLibsDep := $(linkerLibsDep:-lgcc=)
+
 # standard target
-$(targetDir)/$(targetFile) : $(OBJ) $(imagineStaticLib)
+$(targetDir)/$(targetFile) : $(OBJ) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-ifeq ($(ENV), ios)
-	@rm -f $@
-endif
 	$(PRINT_CMD) $(LD) -o $@ $(OBJ) $(LDFLAGS)
 ifeq ($(ENV), ios)
-ifndef iOSNoCodesign
+ ifndef iOSNoCodesign
 	@echo "Signing $@"
 	$(PRINT_CMD)ldid -S $@
-endif
+ endif
 endif
 
 ifeq ($(ENV), ps3)

@@ -15,8 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <config.h>
-#include <config/machine.hh>
+#include <imagine/engine-globals.h>
 
 #define BOOL X11BOOL
 #include <X11/keysym.h>

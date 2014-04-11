@@ -1,11 +1,12 @@
 -include config.mk
 
-buildDir = /tmp/imagine-bundle/$(pkgName)/build/ios-armv6
-installDir := $(IMAGINE_PATH)/bundle/darwin-iOS/armv6
-installDirUniversal := $(IMAGINE_PATH)/bundle/darwin-iOS
+tempDir = /tmp/imagine-bundle/$(pkgName)
+buildDir = $(tempDir)/build/ios-armv6
 objDir := $(buildDir)
 
 include $(IMAGINE_PATH)/make/iOS-armv6-gcc.mk
+
+installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)
 
 include common.mk
 

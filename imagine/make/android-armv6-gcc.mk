@@ -13,10 +13,6 @@ else
  noFpu = 1
 endif
 
-extraSysroot := $(IMAGINE_PATH)/bundle/android/armv6
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
-
 include $(buildSysPath)/android-arm.mk
 
 ifeq ($(android_hasSDK9), 1)

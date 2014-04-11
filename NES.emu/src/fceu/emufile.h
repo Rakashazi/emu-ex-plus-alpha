@@ -38,7 +38,7 @@ THE SOFTWARE.
 #include <vector>
 #include <algorithm>
 #include <string>
-#include <io/Io.hh>
+#include <imagine/io/Io.hh>
 
 class EMUFILE {
 protected:

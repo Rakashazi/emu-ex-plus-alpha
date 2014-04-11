@@ -26,7 +26,7 @@ use plain restrict. */
 	#include <mednafen-config.h>
 #endif
 
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 
 #include "blz.h"
 

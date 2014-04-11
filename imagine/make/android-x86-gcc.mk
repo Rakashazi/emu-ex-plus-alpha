@@ -15,16 +15,13 @@ endif
 
 ifeq ($(origin CC), default)
  CC := i686-linux-android-gcc
+ CXX := $(CC)
  CHOST := i686-linux-android
 endif
 
 # CPU flags normally patched in as defaults on official Android GCC
 android_cpuFlags += -march=i686 -mtune=atom -mstackrealign -msse3 -mfpmath=sse -m32 #-fPIC
 COMPILE_FLAGS += -fno-short-enums
-
-extraSysroot := $(IMAGINE_PATH)/bundle/android/x86
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
 
 # TODO: shared object creation not working correctly in custom GCC 4.7 toolchain,
 # maybe a patch is missing? Send the parameters directly to linker for now

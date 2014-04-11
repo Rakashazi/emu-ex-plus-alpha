@@ -4,7 +4,7 @@
 #ifndef __YM2413_2_HH__
 #define __YM2413_2_HH__
 
-#include <util/builtins.h>
+#include <imagine/util/builtins.h>
 
 //using namespace std;
 

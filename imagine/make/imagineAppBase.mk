@@ -1,5 +1,5 @@
-CPPFLAGS += -I$(genPath) -I$(projectPath)/src -I$(imagineSrcDir)
-VPATH += $(projectPath)/src $(imagineSrcDir)
+CPPFLAGS += -I$(genPath)
+VPATH += $(projectPath)/src
 
 ifdef makeConfigH
  genConfigH = $(genPath)/config.h

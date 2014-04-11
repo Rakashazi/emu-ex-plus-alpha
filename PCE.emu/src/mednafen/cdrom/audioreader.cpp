@@ -33,10 +33,10 @@
 #include <tremor/ivorbisfile.h>
 #endif
 
-#include <io/api/vorbis.hh>
+#include <imagine/io/api/vorbis.hh>
 #ifdef HAVE_LIBSNDFILE
 #include <sndfile.h>
-#include <io/api/sndfile.hh>
+#include <imagine/io/api/sndfile.hh>
 #endif
 
 #include <string.h>

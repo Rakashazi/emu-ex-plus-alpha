@@ -15,14 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/BaseMenuView.hh>
+#include <imagine/gui/BaseMenuView.hh>
 #include "EmuSystem.hh"
 #include <StateSlotView.hh>
 #ifdef CONFIG_BLUETOOTH
-#include <bluetooth/sys.hh>
-#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/sys.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
-#include <config/version.h>
+#include <imagine/config/version.h>
 #include <MultiChoiceView.hh>
 #include <VController.hh>
 

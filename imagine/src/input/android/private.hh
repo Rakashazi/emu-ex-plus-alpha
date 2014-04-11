@@ -2,7 +2,7 @@
 
 #include <jni.h>
 #include <android/input.h>
-#include <base/Window.hh>
+#include <imagine/base/Window.hh>
 
 namespace Input
 {
@@ -19,7 +19,6 @@ bool dlLoadAndroidFuncs(void *libandroid);
 void textInputEndedMsg(const char* str, jstring jStr);
 
 void devicesChanged(JNIEnv* jEnv);
-void devicesChanged();
 
 bool hasXperiaPlayGamepad();
 

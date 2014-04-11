@@ -1,6 +1,7 @@
 #pragma once
 
-#include <gfx/opengl/glIncludes.h>
+#include <imagine/gfx/opengl/glIncludes.h>
+#include <imagine/logger/logger.h>
 
 static const char *glErrorToString(GLenum err)
 {

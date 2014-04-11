@@ -86,8 +86,8 @@
 #include "flash.h"
 #include "interrupt.h"
 #include "TLCS900h_interpret.h"
-#include <logger/interface.h>
-#include <util/algorithm.h>
+#include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 
 //=============================================================================
 

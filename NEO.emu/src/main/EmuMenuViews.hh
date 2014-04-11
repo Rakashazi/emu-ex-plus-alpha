@@ -123,7 +123,7 @@ public:
 
 
 #include "MenuView.hh"
-#include <util/bits.h>
+#include <imagine/util/bits.h>
 
 struct RomListEntry
 {

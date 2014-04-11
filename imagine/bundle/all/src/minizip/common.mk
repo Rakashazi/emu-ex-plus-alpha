@@ -1,7 +1,5 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
-else
-#buildArg := --build=$(shell $(CC) -dumpmachine)
+ CHOST := $(shell $(CC) -dumpmachine)
 endif
 
 # needs GNU version of tar to support --strip-components
@@ -17,6 +15,11 @@ outputLibFile := $(buildDir)/.libs/libminizip.a
 installIncludeDir := $(installDir)/include/minizip
 
 CPPFLAGS += -DNOUNCRYPT -DNOCRYPT -DUSE_FILE32API
+
+ifeq ($(ENV), linux)
+ # compatibilty with Gentoo system zlib
+ CPPFLAGS += -DOF\(args\)=args
+endif
 
 all : $(outputLibFile)
 
@@ -48,7 +51,7 @@ $(configureFile) : $(buildDir)/configure.ac
 $(pcFile) : $(configureFile)
 	@echo "Configuring minizip..."
 	@mkdir -p $(@D)
-	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) -DOF\(args\)=args $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
-	PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --prefix=$(installDir) --disable-shared \
+	cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	PKG_CONFIG_SYSTEM_INCLUDE_PATH=$(system_externalSysroot)/include ./configure --prefix='$${pcfiledir}/../..' --disable-shared \
 	--host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
 

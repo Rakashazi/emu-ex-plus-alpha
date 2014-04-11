@@ -13,16 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
+#define LOGTAG "main"
 #include "MDFN.hh"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <mednafen/pce_fast/pce.h>
@@ -30,7 +22,7 @@
 
 using namespace IG;
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 #ifdef __clang__
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
 #endif

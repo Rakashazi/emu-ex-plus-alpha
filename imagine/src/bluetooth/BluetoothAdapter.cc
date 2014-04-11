@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "BluetoothAdapter.hh"
-#include <bluetooth/sys.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
+#include <imagine/bluetooth/sys.hh>
 
 #ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 bool BluetoothAdapter::useScanCache = 1;

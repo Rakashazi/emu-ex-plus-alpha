@@ -1,10 +1,10 @@
-#include <util/math/GLMMat4.hh>
+#include <imagine/util/math/GLMMat4.hh>
 #ifndef GLM_FORCE_RADIANS
 #define GLM_FORCE_RADIANS
 #endif
-#include <glm/geometric.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
+#include <imagine/glm/geometric.hpp>
+#include <imagine/glm/gtc/matrix_transform.hpp>
+#include <imagine/glm/gtc/matrix_inverse.hpp>
 
 GLMMat4 GLMMat4::translate(const GLMVec3 &translation) const
 {

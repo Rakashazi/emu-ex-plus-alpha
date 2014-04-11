@@ -15,14 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <io/Io.hh>
-#include <fs/sys.hh>
-#include <audio/Audio.hh>
-#include <base/Timer.hh>
-#include <util/time/sys.hh>
-#include <util/audio/PcmFormat.hh>
-#include <config/env.hh>
-#include <gui/FSPicker/FSPicker.hh>
+#include <imagine/io/Io.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/audio/Audio.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/util/time/sys.hh>
+#include <imagine/util/audio/PcmFormat.hh>
+#include <imagine/gui/FSPicker.hh>
 
 struct AspectRatioInfo
 {

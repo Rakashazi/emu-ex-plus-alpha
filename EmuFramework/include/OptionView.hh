@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/View.hh>
-#include <gui/AlertView.hh>
-#include <gui/MenuItem/MenuItem.hh>
-#include <gui/BaseMenuView.hh>
-#include <audio/Audio.hh>
+#include <imagine/gui/View.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/MenuItem.hh>
+#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/audio/Audio.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
 #include <MultiChoiceView.hh>

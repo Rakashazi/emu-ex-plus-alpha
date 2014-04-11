@@ -25,7 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include "unzip.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 static int fget8(FILE *f) {
 	if (f) {

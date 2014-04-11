@@ -14,8 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #import <UIKit/UIKit.h>
-#include <config.h>
-#include <base/Window.hh>
+#include <imagine/base/Window.hh>
 
 #ifdef IPHONE_MSG_COMPOSE
 #import <MessageUI/MessageUI.h>

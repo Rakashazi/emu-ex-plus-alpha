@@ -23,7 +23,7 @@ CartSB.cxx CartX07.cxx CartFA2.cxx CartCM.cxx MindLink.cxx \
 CartCTY.cxx CompuMate.cxx Thumbulator.cxx
 
 stellaPath := stella/emucore
-SRC += main/Main.cc main/EmuControls.cc main/EmuControls.cc main/ImagineSound.cc $(addprefix $(stellaPath)/,$(stellaSrc))
+SRC += main/Main.cc main/EmuControls.cc main/ImagineSound.cc $(addprefix $(stellaPath)/,$(stellaSrc))
 
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk

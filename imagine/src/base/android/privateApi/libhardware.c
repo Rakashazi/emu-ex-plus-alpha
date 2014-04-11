@@ -1,6 +1,6 @@
-#include <util/builtins.h>
-#include <config/imagineTypes.h>
-#include <logger/interface.h>
+#include <imagine/util/builtins.h>
+#include <imagine/config/imagineTypes.h>
+#include <imagine/logger/logger.h>
 #include <assert.h>
 #include <dlfcn.h>
 #include "libhardware.h"

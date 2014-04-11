@@ -1,8 +1,8 @@
 #pragma once
-#include "glIncludes.h"
+#include <imagine/gfx/opengl/glIncludes.h>
 #include "utils.h"
 #include "GLStateCache.hh"
-#include <util/Interpolator.hh>
+#include <imagine/util/Interpolator.hh>
 
 namespace Gfx
 {

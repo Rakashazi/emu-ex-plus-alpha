@@ -14,14 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Freetype2"
-#include "FreetypeFontData.hh"
+#include <imagine/data-type/font/FreetypeFontData.hh>
 #include <cstring>
 #include <cstdlib>
 #include <assert.h>
-#include <logger/interface.h>
-#include <base/Base.hh>
-#include <mem/interface.h>
-#include <util/pixel.h>
+#include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
+#include <imagine/util/pixel.h>
 #include FT_FREETYPE_H
 #include FT_BITMAP_H
 #include FT_SIZES_H

@@ -5,11 +5,11 @@
 #include "../common/Port.h"
 #include "../NLS.h"
 #include "Flash.h"
-#include <util/preprocessor/repeat.h>
-#include <util/builtins.h>
-#include <util/ansiTypes.h>
-#include <logger/interface.h>
-#include <io/Io.hh>
+#include <imagine/util/preprocessor/repeat.h>
+#include <imagine/util/builtins.h>
+#include <imagine/util/ansiTypes.h>
+#include <imagine/logger/logger.h>
+#include <imagine/io/Io.hh>
 
 #define SAVE_GAME_VERSION_1 1
 #define SAVE_GAME_VERSION_2 2

@@ -1,8 +1,8 @@
 #include "MDFN.hh"
-#include <base/Base.hh>
-#include <logger/interface.h>
-#include <fs/sys.hh>
-#include <util/strings.h>
+#include <imagine/base/Base.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/fs/sys.hh>
+#include <imagine/util/strings.h>
 #include "Option.hh"
 #include <EmuSystem.hh>
 

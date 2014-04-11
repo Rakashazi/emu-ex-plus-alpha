@@ -14,13 +14,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "CoreAudio"
-#include <engine-globals.h>
-#include <audio/Audio.hh>
-#include <logger/interface.h>
-#include <util/number.h>
-#include <util/thread/pthread.hh>
-#include <util/ringbuffer/MachRingBuffer.hh>
-
+#include <imagine/audio/Audio.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/number.h>
+#include <imagine/util/thread/pthread.hh>
+#include <imagine/util/ringbuffer/MachRingBuffer.hh>
 #include <AudioUnit/AudioUnit.h>
 #include <AudioToolbox/AudioToolbox.h>
 #include <TargetConditionals.h>

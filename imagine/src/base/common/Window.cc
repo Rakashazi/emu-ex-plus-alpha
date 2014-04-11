@@ -14,13 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Window"
-#include <base/Base.hh>
-#include <base/common/windowPrivate.hh>
+#include <imagine/base/Base.hh>
+#include "windowPrivate.hh"
 #ifdef CONFIG_GFX
-#include <gfx/Gfx.hh>
+#include <imagine/gfx/Gfx.hh>
 #endif
 #ifdef CONFIG_INPUT
-#include <input/Input.hh>
+#include <imagine/input/Input.hh>
 #endif
 
 namespace Base
@@ -134,6 +134,19 @@ Window &mainWindow()
 	return *mainWin;
 }
 
+static void checkTripleBufferSwap()
+{
+	// check if buffer swap blocks even though triple-buffering is used
+	auto beforeSwap = TimeSys::now();
+	mainWin->swapBuffers();
+	auto afterSwap = TimeSys::now();
+	long long diffSwap = afterSwap.toNs() - beforeSwap.toNs();
+	if(diffSwap > 10000000)
+	{
+		logWarn("buffer swap took %lldns", diffSwap);
+	}
+}
+
 bool frameUpdate(FrameTimeBase frameTime, bool forceDraw)
 {
 	mainScreen().framePosted = false;
@@ -148,7 +161,11 @@ bool frameUpdate(FrameTimeBase frameTime, bool forceDraw)
 	if(forceDraw || mainWin->needsDraw())
 	{
 		mainWin->draw(frameTime);
+		#if !defined NDEBUG && defined __ANDROID__
+		checkTripleBufferSwap();
+		#else
 		mainWin->swapBuffers();
+		#endif
 		Gfx::setClipRect(false);
 		Gfx::clear();
 		didDraw =  true;

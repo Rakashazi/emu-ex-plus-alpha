@@ -1,12 +1,4 @@
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
@@ -24,7 +16,7 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 static PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2

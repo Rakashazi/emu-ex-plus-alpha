@@ -30,7 +30,7 @@
 
 #include "m68k.h"
 #include <limits.h>
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 #ifdef BUILD_OP_TABLE
 	extern unsigned char m68ki_cycles[0x10000];

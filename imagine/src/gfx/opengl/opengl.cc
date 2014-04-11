@@ -14,19 +14,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GfxOpenGL"
-#include <engine-globals.h>
-#include <gfx/Gfx.hh>
-#include <logger/interface.h>
-#include <mem/interface.h>
-#include <base/Base.hh>
-#include <base/Window.hh>
-#include <base/Timer.hh>
-#include <util/number.h>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/util/number.h>
 
 uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
 
 #include "GLStateCache.hh"
-#include <util/Interpolator.hh>
+#include <imagine/util/Interpolator.hh>
 #include "utils.h"
 #include "geometry.hh"
 #include "texture.hh"

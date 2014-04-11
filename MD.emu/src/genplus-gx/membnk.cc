@@ -21,7 +21,7 @@
  *
  ****************************************************************************************/
 #include "shared.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 /*
   Handlers for access to unused addresses and those which make the

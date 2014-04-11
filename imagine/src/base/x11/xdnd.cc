@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/bits.h>
-#include <util/algorithm.h>
-#include <util/preprocessor/enum.h>
-#include <base/x11/xdnd.hh>
-#include <logger/interface.h>
+#include <imagine/util/bits.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/preprocessor/enum.h>
+#include "xdnd.hh"
+#include <imagine/logger/logger.h>
 
 using namespace IG;
 

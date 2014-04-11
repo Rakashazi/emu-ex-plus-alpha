@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <base/common/windowPrivate.hh>
-#include <base/x11/x11.hh>
-#include <base/x11/xlibutils.h>
-#include <base/x11/xdnd.hh>
-#include <gfx/Gfx.hh>
+#include "../common/windowPrivate.hh"
+#include "x11.hh"
+#include "xlibutils.h"
+#include "xdnd.hh"
+#include <imagine/gfx/Gfx.hh>
 #include "GLContextHelper.hh"
 
 #ifdef CONFIG_BASE_FBDEV_VSYNC

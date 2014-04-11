@@ -13,11 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/string/generic.h>
-#include <util/ansiTypes.h>
-#include <string.h>
+#include <imagine/util/string/generic.h>
+#include <imagine/util/ansiTypes.h>
+#include <cstring>
 #include <assert.h>
-#include <mem/interface.h>
 
 static const char pathSeparator[] = { '/'
 #ifdef CONFIG_BASE_WIN32

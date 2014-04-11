@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/Gfx.hh>
-#include <gfx/GfxBufferImage.hh>
-#include <pixmap/Pixmap.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/pixmap/Pixmap.hh>
 
 class VideoImageEffect
 {

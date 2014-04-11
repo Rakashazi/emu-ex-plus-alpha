@@ -16,28 +16,26 @@
 #define LOGTAG "Base"
 #include <cstdlib>
 #include <unistd.h>
-#include <engine-globals.h>
-#include <input/Input.hh>
-#include <logger/interface.h>
-#include <base/Base.hh>
-#include <base/common/windowPrivate.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
-#include <util/fd-utils.h>
-#include <util/string/generic.h>
-#include <util/algorithm.h>
-#include <base/common/funcs.h>
-#include <base/x11/x11.hh>
-#include <base/x11/xdnd.hh>
-#include <config/machine.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
+#include "../common/windowPrivate.hh"
+#include <imagine/util/strings.h>
+#include <imagine/util/time/sys.hh>
+#include <imagine/util/fd-utils.h>
+#include <imagine/util/string/generic.h>
+#include <imagine/util/algorithm.h>
+#include "../common/funcs.h"
+#include "x11.hh"
+#include "xdnd.hh"
 #include <algorithm>
 
 #ifdef CONFIG_FS
-#include <fs/sys.hh>
+#include <imagine/fs/sys.hh>
 #endif
 
 #ifdef CONFIG_INPUT_EVDEV
-#include <input/evdev/evdev.hh>
+#include "../../input/evdev/evdev.hh"
 #endif
 
 #include <time.h>

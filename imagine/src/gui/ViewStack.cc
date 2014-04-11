@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/ViewStack.hh>
+#include <imagine/gui/ViewStack.hh>
 #include <utility>
 
 void BasicViewController::push(View &v)

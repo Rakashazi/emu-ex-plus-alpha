@@ -3,7 +3,7 @@
 
 #include "../common/Types.h"
 #include "GBA.h"
-#include <util/preprocessor/repeat.h>
+#include <imagine/util/preprocessor/repeat.h>
 
 #define VERBOSE_SWI                  1
 #define VERBOSE_UNALIGNED_MEMORY     2

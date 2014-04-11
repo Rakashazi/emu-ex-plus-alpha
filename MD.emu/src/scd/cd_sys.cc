@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include "scd.h"
 #include "cd_sys.h"
 #include "cd_file.h"

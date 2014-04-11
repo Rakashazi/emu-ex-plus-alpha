@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/Device.hh>
-#include <input/AxisKeyEmu.hh>
-#include <util/collection/ArrayList.hh>
-#include <util/basicString.h>
-#include <util/jni.hh>
+#include <imagine/input/Device.hh>
+#include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/basicString.h>
+#include <imagine/util/jni.hh>
 
 namespace Input
 {

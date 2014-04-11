@@ -154,7 +154,7 @@ typedef unsigned int uint32;
 # ifdef __GNUC__  /* long long is not part of ISO C++ */
 __extension__
 # endif
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 #else /* __WIN32__ */
 
 # ifdef __BORLANDC__

@@ -14,11 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "AudioSDL"
-#include <engine-globals.h>
-#include <audio/Audio.hh>
-#include <logger/interface.h>
+#include <imagine/audio/Audio.hh>
+#include <imagine/logger/logger.h>
 #include <SDL.h>
-#include <util/ringbuffer/RingBuffer.hh>
+#include <imagine/util/ringbuffer/RingBuffer.hh>
 
 namespace Audio
 {

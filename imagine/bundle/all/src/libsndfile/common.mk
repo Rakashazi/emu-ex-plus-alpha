@@ -1,11 +1,11 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
-else
-#buildArg := --build=$(shell $(CC) -dumpmachine)
+ CHOST := $(shell $(CC) -dumpmachine)
 endif
 
+include $(buildSysPath)/imagineSDKPath.mk
+
 libsndfileVer := 1.0.25
-libsndfileSrcDir := libsndfile-$(libsndfileVer)
+libsndfileSrcDir := $(tempDir)/libsndfile-$(libsndfileVer)
 libsndfileSrcArchive := libsndfile-$(libsndfileVer).tar.gz
 
 makeFile := $(buildDir)/Makefile
@@ -25,7 +25,8 @@ install : $(outputLibFile)
 
 $(libsndfileSrcDir)/configure : | $(libsndfileSrcArchive)
 	@echo "Extracting libsndfile..."
-	tar -mxzf $|
+	@mkdir -p $(libsndfileSrcDir)
+	tar -mxzf $| -C $(libsndfileSrcDir)/..
 	patch -d $(libsndfileSrcDir) -p1 < libsndfile-1.0.25-libm-pkgconf.patch
 	cp ../gnuconfig/config.* $(libsndfileSrcDir)/Cfg/
 
@@ -39,6 +40,5 @@ $(makeFile) : $(libsndfileSrcDir)/configure
 	cp $(libsndfileSrcDir)/src/*.def $(libsndfileSrcDir)/src/*.tpl $(@D)/src/
 	cp $(libsndfileSrcDir)/tests/*.def $(libsndfileSrcDir)/tests/*.tpl $(@D)/tests/
 	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
-	$$dir/$(libsndfileSrcDir)/configure --prefix=$(installDir) --disable-sqlite --disable-alsa --disable-external-libs \
+	$(libsndfileSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-sqlite --disable-alsa --disable-external-libs \
 	--disable-octave --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)
-

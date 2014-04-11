@@ -1,6 +1,5 @@
 include $(IMAGINE_PATH)/make/config.mk
 # use user-built static minizip & libpng for better cross-distro compatibility
-extraSysroot := $(IMAGINE_PATH)/bundle/linux-x86_64
 staticLibcxx := 1
 libpngStatic := 1
 minizipStatic := 1

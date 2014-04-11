@@ -1,7 +1,7 @@
-#define thisModuleName "fileio"
+#define LOGTAG "fileio"
 #include "shared.h"
 #include <unzip.h>
-#include <io/sys.hh>
+#include <imagine/io/sys.hh>
 
 uint isROMExtension(const char *name);
 
@@ -172,5 +172,3 @@ int gzsize(gzFile gd)
     return (length);
     #undef CHUNKSIZE
 }
-
-#undef thisModuleName

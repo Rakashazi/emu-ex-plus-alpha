@@ -2,7 +2,7 @@
 
 #include <stella/emucore/TIASnd.hxx>
 #include <stella/emucore/Sound.hxx>
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 
 // Based on the Stella SDL sound class
 

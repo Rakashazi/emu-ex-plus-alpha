@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/system/pagesize.h>
+#include <imagine/util/system/pagesize.h>
 #if defined __linux__ && !defined __ANDROID__
 #include <unistd.h>
 #define USE_GETPAGESIZE

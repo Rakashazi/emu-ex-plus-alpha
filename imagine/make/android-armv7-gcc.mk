@@ -15,9 +15,6 @@ endif
 android_armState := $(android_armv7State)
 
 android_cpuFlags := $(android_armv7State) -march=armv7-a -mfloat-abi=softfp -mfpu=$(arm_fpu)
-extraSysroot := $(IMAGINE_PATH)/bundle/android/armv7
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
 LDFLAGS += -Wl,--fix-cortex-a8
 
 android_hardFP ?= 1

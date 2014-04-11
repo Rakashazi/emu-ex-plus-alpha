@@ -11,7 +11,7 @@
 #include "scd.h"
 #include "cd_sys.h"
 #include "misc.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 #define cdprintf(x...)
 

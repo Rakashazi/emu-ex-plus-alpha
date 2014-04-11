@@ -1,6 +1,6 @@
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <fs/sys.hh>
+#define LOGTAG "main"
+#include <imagine/logger/logger.h>
+#include <imagine/fs/sys.hh>
 #include <EmuSystem.hh>
 #include <sys/stat.h>
 #include <snes9x.h>
@@ -22,22 +22,22 @@ void S9xMessage(int, int, const char *msg)
 
 void S9xPrintf(const char* msg, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start(args, msg);
 	logger_vprintf(LOG_M, msg, args);
 	va_end(args);
-#endif
 }
 
 void S9xPrintfError(const char* msg, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start(args, msg);
 	logger_vprintf(LOG_E, msg, args);
 	va_end(args);
-#endif
 }
 
 /*void S9xSetPalette (void)

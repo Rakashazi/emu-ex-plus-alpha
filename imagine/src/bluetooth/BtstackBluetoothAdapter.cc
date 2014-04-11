@@ -14,8 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "BTstack"
-#include "BtstackBluetoothAdapter.hh"
-#include <util/collection/DLList.hh>
+#include <imagine/bluetooth/BtstackBluetoothAdapter.hh>
+#include <imagine/util/container/DLList.hh>
 
 static BtstackBluetoothAdapter defaultBtstackAdapter;
 static int writeAuthEnable = -1;

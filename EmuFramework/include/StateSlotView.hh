@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <EmuSystem.hh>
-#include <gui/BaseMenuView.hh>
+#include <imagine/gui/BaseMenuView.hh>
 
 class StateSlotView : public BaseMenuView
 {

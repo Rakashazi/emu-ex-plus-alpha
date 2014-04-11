@@ -17,29 +17,29 @@
 #include <cstdlib>
 #include <errno.h>
 
-#include <logger/interface.h>
-#include <engine-globals.h>
-#include <base/android/sdk.hh>
-#include <base/Base.hh>
-#include <base/Timer.hh>
-#include <base/common/windowPrivate.hh>
-#include <base/common/funcs.h>
-#include <base/android/ASurface.hh>
-#include <gfx/Gfx.hh>
-#include <input/android/private.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/engine-globals.h>
+#include <imagine/base/android/sdk.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Timer.hh>
+#include "../common/windowPrivate.hh"
+#include "../common/funcs.h"
+#include "ASurface.hh"
+#include <imagine/gfx/Gfx.hh>
+#include "private.hh"
 #include <android/window.h>
 #include <android/configuration.h>
 #include <android/looper.h>
 #include <android/native_activity.h>
 #include <dlfcn.h>
 #include <sys/eventfd.h>
-#include <fs/sys.hh>
-#include <util/fd-utils.h>
-#include <util/bits.h>
+#include <imagine/fs/sys.hh>
+#include <imagine/util/fd-utils.h>
+#include <imagine/util/bits.h>
 #ifdef CONFIG_BLUETOOTH
-#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
-#include "private.hh"
+#include "../../input/android/private.hh"
 #include "EGLContextHelper.hh"
 
 bool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
@@ -845,7 +845,20 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos))
 				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
 				{
-					//logMsg("frame time %lld, diff %lld", (long long)frameTimeNanos, (long long)(frameTimeNanos - lastFrameTime));
+					#ifndef NDEBUG
+					long long timeSinceFrame = (long long)TimeSys::now().toNs() - frameTimeNanos;
+					long long diffFromLastFrame = frameTimeNanos - prevFrameTimeNanos;
+					//logMsg("frame at %lldns, %lldns since then, %lldns since last frame",
+					//	(long long)frameTimeNanos, timeSinceFrame, diffFromLastFrame);
+					static int frameCount = 0;
+					const int timeDiffTest = 17000000;
+					frameCount++;
+					if(prevFrameTimeNanos && diffFromLastFrame > timeDiffTest)
+					{
+						logMsg("took %lldns (> %dns) after %d frames", diffFromLastFrame, timeDiffTest, frameCount);
+						frameCount = 0;
+					}
+					#endif
 					assert(mainScreen().frameIsPosted());
 					prevFrameTimeNanos = frameTimeNanos;
 					return (jboolean)onFrame(frameTimeNanos, false);

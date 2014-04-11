@@ -71,7 +71,7 @@ typedef uint32_t uint32;
 #endif
 
 #ifdef __GNUC__
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
  typedef uint64 u64;
 #ifndef INLINE
  #define INLINE inline

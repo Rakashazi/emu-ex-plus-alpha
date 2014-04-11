@@ -51,7 +51,7 @@
 #include "DeviceManager.h"
 #include "ramMapperIo.h"
 #include "CoinDevice.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 void PatchZ80(void* ref, CpuRegs* cpuRegs);
 

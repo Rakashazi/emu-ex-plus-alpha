@@ -1,7 +1,7 @@
 #include <scd/scd.h>
 #include "pcm.h"
 #include "mem.hh"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 #define READ_FONT_DATA(basemask) \
 { \

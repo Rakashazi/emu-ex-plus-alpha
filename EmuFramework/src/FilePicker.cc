@@ -19,8 +19,8 @@
 #include <EmuOptions.hh>
 #include <EmuApp.hh>
 #include <Recent.hh>
-#include <gui/FSPicker/FSPicker.hh>
-#include <gui/AlertView.hh>
+#include <imagine/gui/FSPicker.hh>
+#include <imagine/gui/AlertView.hh>
 
 void EmuFilePicker::init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter, bool singleDir)
 {

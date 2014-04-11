@@ -38,14 +38,15 @@ extern "C" {
 }
 
 #include <string.h>
-#include <util/builtins.h>
-#include <util/algorithm.h>
-#include <util/branch.h>
-#include <logger/interface.h>
+#include <imagine/util/builtins.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/branch.h>
+#include <imagine/logger/logger.h>
 // throw_exception.hpp, Boost 1.50
 #define UUID_AA15E74A856F11E08B8D93F24824019B
 #define BOOST_THROW_EXCEPTION(x)
-#include <boost/uuid/sha1.hpp>
+#define BOOST_STATIC_ASSERT( ... ) static_assert(__VA_ARGS__, #__VA_ARGS__)
+#include "../uuid/sha1.hpp"
 
 struct RomDBInfo
 {

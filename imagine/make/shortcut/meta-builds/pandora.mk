@@ -27,7 +27,7 @@ pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
 pandora-build :
 	@echo "Building Executable"
 	$(PRINT_CMD)$(MAKE) -f $(pandora_makefile) $(pandora_makefileOpts) targetDir=$(pandora_targetPNDPath) targetFile=$(pnd_metadata_exec) \
-	buildName=$(pandora_buildName) imagineLibPath=$(pandora_imagineLibPath) imagineIncludePath=$(pandora_imagineIncludePath) projectPath=$(projectPath)
+	buildName=$(pandora_buildName) projectPath=$(projectPath)
 $(pandora_execPath) : pandora-build
 
 .PHONY: pandora-exec-install

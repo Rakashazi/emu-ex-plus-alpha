@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <base/android/private.hh>
-#include <input/DragPointer.hh>
+#include "../../base/android/private.hh"
+#include <imagine/input/DragPointer.hh>
 #ifdef CONFIG_INPUT_ICADE
-#include <input/common/iCade.hh>
+#include "../common/iCade.hh"
 #endif
 
 namespace Input

@@ -14,14 +14,14 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <meta.h>
-#include <data-type/image/png/sys.hh>
+#include <imagine/data-type/image/sys.hh>
 #include "EmuApp.hh"
 #include "EmuSystem.hh"
 #include "EmuOptions.hh"
 #include "FilePicker.hh"
 #include "ConfigFile.hh"
 #include <EmuView.hh>
-#include <gui/AlertView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <cmath>
 
 bool menuViewIsActive = true;

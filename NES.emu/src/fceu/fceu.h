@@ -1,7 +1,7 @@
 #ifndef _FCEUH
 #define _FCEUH
 
-#include <fs/sys.hh>
+#include <imagine/fs/sys.hh>
 
 extern int fceuindbg;
 extern int newppu;

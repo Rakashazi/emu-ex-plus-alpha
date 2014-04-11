@@ -7,7 +7,7 @@
 #include "gfx_cd.h"
 #include <genplus-gx/m68k/musashi/InstructionCycleTableSCD.hh>
 #include <mednafen/cdrom/CDAccess.h>
-#include <util/builtins.h>
+#include <imagine/util/builtins.h>
 
 struct SegaCD
 {

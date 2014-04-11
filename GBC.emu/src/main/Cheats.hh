@@ -1,6 +1,6 @@
 #pragma once
-#include <util/bits.h>
-#include <util/collection/ArrayList.hh>
+#include <imagine/util/bits.h>
+#include <imagine/util/container/ArrayList.hh>
 #include <EmuSystem.hh>
 
 struct GbcCheat

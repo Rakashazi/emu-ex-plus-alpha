@@ -1,11 +1,9 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
-else
-#buildArg := --build=$(shell $(CC) -dumpmachine)
+ CHOST := $(shell $(CC) -dumpmachine)
 endif
 
 liboggVer := 1.3.1
-liboggSrcDir := libogg-$(liboggVer)
+liboggSrcDir := $(tempDir)/libogg-$(liboggVer)
 liboggSrcArchive := libogg-$(liboggVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
@@ -26,7 +24,8 @@ install : $(outputLibFile)
 
 $(liboggSrcDir)/configure : | $(liboggSrcArchive)
 	@echo "Extracting libogg..."
-	tar -mxJf $|
+	@mkdir -p $(liboggSrcDir)
+	tar -mxJf $| -C $(liboggSrcDir)/..
 	cp ../gnuconfig/config.* $(liboggSrcDir)
 
 $(outputLibFile) : $(makeFile)
@@ -37,5 +36,5 @@ $(makeFile) : $(liboggSrcDir)/configure
 	@echo "Configuring libogg..."
 	@mkdir -p $(@D)
 	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
-	$$dir/$(liboggSrcDir)/configure --prefix=$(installDir) --disable-shared --host=$(CHOST) $(buildArg)
+	$(liboggSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-shared --host=$(CHOST) $(buildArg)
 

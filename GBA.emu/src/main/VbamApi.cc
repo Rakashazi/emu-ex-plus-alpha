@@ -3,10 +3,10 @@
 #include <vbam/gba/RTC.h>
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
-#include <logger/interface.h>
-#include <util/time/sys.hh>
-#include <util/branch.h>
-#include <audio/Audio.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/time/sys.hh>
+#include <imagine/util/branch.h>
+#include <imagine/audio/Audio.hh>
 #include <main/Main.hh>
 
 int systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
@@ -21,13 +21,13 @@ void (*dbgOutput)(const char *, u32) = debuggerOutput;
 #ifndef NDEBUG
 void systemMessage(int num, const char *msg, ...)
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start( args, msg );
 	logger_vprintf(LOG_M, msg, args);
 	va_end( args );
 	logger_printf(LOG_M, "\n");
-	#endif
 }
 #endif
 

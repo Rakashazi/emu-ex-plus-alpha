@@ -34,7 +34,6 @@
 #include "VDP.h"
 #include "AudioMixer.h"
 #include <stdio.h>
-#include <config.h>
 
 typedef struct {
     struct {

@@ -9,8 +9,4 @@ ifndef target
  target := armv6
 endif
 
-extraSysroot := $(IMAGINE_PATH)/bundle/webos/armv6
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
-
 openGLESVersion := 1

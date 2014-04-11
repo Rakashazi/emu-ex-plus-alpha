@@ -6,15 +6,15 @@
  * Modified/adapted for PicoDrive by notaz, 2007           *
  *                                                         *
  ***********************************************************/
-#define thisModuleName "cdFile"
+#define LOGTAG "cdFile"
 #include "scd.h"
 #include "cd_file.h"
 #include "cd_sys.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <io/sys.hh>
+#include <imagine/io/sys.hh>
 
 #define cdprintf(x...)
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp

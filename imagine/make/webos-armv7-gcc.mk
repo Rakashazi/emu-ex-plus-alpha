@@ -14,8 +14,4 @@ ifndef target
  endif
 endif
 
-extraSysroot := $(IMAGINE_PATH)/bundle/webos/armv7
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
-
 openGLESVersion ?= 2

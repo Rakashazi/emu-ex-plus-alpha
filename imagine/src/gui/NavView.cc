@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/NavView.hh>
-#include <gui/View.hh>
+#include <imagine/gui/NavView.hh>
+#include <imagine/gui/View.hh>
 
 void NavView::init(ResourceFace *face)
 {

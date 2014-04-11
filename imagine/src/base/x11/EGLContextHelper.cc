@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "GLContextHelper.hh"
-#include <config/machine.hh>
 #include <EGL/eglext.h>
 
 namespace Base

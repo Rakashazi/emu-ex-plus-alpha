@@ -1,7 +1,7 @@
-#define thisModuleName "main"
+#define LOGTAG "main"
 
-#include <logger/interface.h>
-#include <fs/sys.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/fs/sys.hh>
 #include <stdio.h>
 #include <fceu/driver.h>
 #include <fceu/video.h>

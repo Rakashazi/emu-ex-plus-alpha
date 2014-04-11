@@ -14,23 +14,21 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "InputAndroid"
-#include <base/android/sdk.hh>
-#include <input/common/common.h>
-#include <input/AxisKeyEmu.hh>
-#include <base/android/private.hh>
-#include <input/android/private.hh>
-#include <input/android/AndroidInputDevice.hh>
-#include <base/Timer.hh>
-#include <config/machine.hh>
-#include <util/jni.hh>
-#include <util/collection/ArrayList.hh>
-#include <util/fd-utils.h>
-#include <util/bits.h>
+#include <imagine/base/android/sdk.hh>
+#include "../common/common.h"
+#include <imagine/input/AxisKeyEmu.hh>
+#include "../../base/android/private.hh"
+#include "private.hh"
+#include "AndroidInputDevice.hh"
+#include <imagine/base/Timer.hh>
+#include <imagine/util/jni.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/fd-utils.h>
+#include <imagine/util/bits.h>
 #include <android/input.h>
 #include <android/configuration.h>
 #include <dlfcn.h>
 #include <sys/inotify.h>
-
 #include "common.hh"
 
 namespace Input

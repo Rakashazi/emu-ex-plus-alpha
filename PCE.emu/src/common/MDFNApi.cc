@@ -1,14 +1,14 @@
-#define thisModuleName "main"
+#define LOGTAG "main"
 #include <mednafen/mednafen.h>
 #include <mednafen/general.h>
 #include <mednafen/state-driver.h>
-#include <base/Base.hh>
-#include <logger/interface.h>
-#include <util/thread/pthread.hh>
-#include <util/time/sys.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <util/strings.h>
+#include <imagine/base/Base.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/thread/pthread.hh>
+#include <imagine/util/time/sys.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/io/sys.hh>
+#include <imagine/util/strings.h>
 
 int get_line(IOFile &file, std::string &str)
 {
@@ -30,32 +30,32 @@ int get_line(IOFile &file, std::string &str)
 #ifndef NDEBUG
 void MDFN_printf(const char *format, ...) throw()
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start( args, format );
 	logger_vprintf(LOG_M, format, args);
 	va_end( args );
-	#endif
 }
 
 void MDFN_PrintError(const char *format, ...) throw()
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start( args, format );
 	logger_vprintf(LOG_E, format, args);
 	va_end( args );
-	#endif
 }
 
 void MDFN_DispMessage(const char *format, ...) throw()
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start( args, format );
 	logger_vprintf(LOG_M, format, args);
 	va_end( args );
-	#endif
 }
 #endif
 

@@ -14,10 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Pixmap"
-#include <pixmap/Pixmap.hh>
-#include <util/pixel.h>
-#include <util/fixed.hh>
-#include <string.h>
+#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/util/pixel.h>
+#include <imagine/util/fixed.hh>
+#include <cstring>
 
 namespace IG
 {

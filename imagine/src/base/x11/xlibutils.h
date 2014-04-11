@@ -1,5 +1,7 @@
 #pragma once
 
+#include <imagine/logger/logger.h>
+
 // EWMH (Extended Window Manager Hints) support
 // http://freedesktop.org/wiki/Specifications/wm-spec
 

@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/BaseMenuView.hh>
-#include <gui/AlertView.hh>
+#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <EmuInput.hh>
 
 #ifdef CONFIG_BASE_ANDROID

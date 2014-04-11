@@ -1,5 +1,5 @@
-#include <gfx/Gfx.hh>
-#include <base/Base.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Base.hh>
 #include "GLStateCache.hh"
 #include "utils.h"
 #include "private.hh"

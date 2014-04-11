@@ -28,6 +28,8 @@ else
  android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
 endif
 
+VPATH += $(android_ndkSysroot)/usr/lib
+
 ifndef targetDir
  ifdef O_RELEASE
   targetDir := target/android-$(android_minSDK)/libs-release/$(android_abi)
@@ -47,6 +49,7 @@ ifeq ($(config_compiler),clang)
  # TODO: not 100% working yet
  ifeq ($(origin CC), default)
   CC := clang
+  CXX := $(CC)
  endif
  include $(buildSysPath)/clang.mk
 else

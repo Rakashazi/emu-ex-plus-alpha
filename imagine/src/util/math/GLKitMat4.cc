@@ -1,8 +1,8 @@
-#include <util/math/GLKitMat4.hh>
-#include <util/math/GLKitVec3.hh>
-#include <util/math/GLKitVec4.hh>
-#include <util/rectangle2.h>
-#include <util/operators.hh>
+#include <imagine/util/math/GLKitMat4.hh>
+#include <imagine/util/math/GLKitVec3.hh>
+#include <imagine/util/math/GLKitVec4.hh>
+#include <imagine/util/rectangle2.h>
+#include <imagine/util/operators.hh>
 #include <GLKit/GLKMathUtils.h>
 
 GLKitMat4 GLKitMat4::translate(const GLKitVec3 &translation) const

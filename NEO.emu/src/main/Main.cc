@@ -1,14 +1,5 @@
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <base/Pipe.hh>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
-#include <util/thread/pthread.hh>
+#define LOGTAG "main"
+#include <imagine/base/Pipe.hh>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
@@ -75,7 +66,7 @@ extern "C"
 	}
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
 static ROM_DEF *activeDrv = nullptr;
 #ifdef __clang__

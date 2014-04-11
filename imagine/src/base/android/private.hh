@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <engine-globals.h>
-#include <util/jni.hh>
-#include <base/android/privateApi/gralloc.h>
-#include <util/pixel.h>
+#include <imagine/engine-globals.h>
+#include <imagine/util/jni.hh>
+#include "privateApi/gralloc.h"
+#include <imagine/util/pixel.h>
 #include <android/looper.h>
 #include <android/asset_manager.h>
 #include <EGL/egl.h>
@@ -106,8 +106,6 @@ struct AndroidSurfaceTextureConfig
 
 extern AndroidSurfaceTextureConfig surfaceTextureConf;
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-
 struct AndroidDirectTextureConfig
 {
 	bool useEGLImageKHR = 0, whitelistedEGLImageKHR = 0;
@@ -128,8 +126,6 @@ public:
 };
 
 extern AndroidDirectTextureConfig directTextureConf;
-
-#endif
 
 static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)
 {

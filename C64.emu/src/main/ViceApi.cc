@@ -1,5 +1,5 @@
-#include <logger/interface.h>
-#include <util/builtins.h>
+#include <imagine/logger/logger.h>
+#include <imagine/util/builtins.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -52,12 +52,12 @@ CLINK void c64ui_shutdown(void) { }
 
 CLINK void archdep_startup_log_error(const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(0, format, ap);
 	va_end(ap);
-#endif
 }
 
 log_t log_open(const char *id)
@@ -86,61 +86,61 @@ void log_resources_shutdown(void) { }
 
 int log_message(log_t log, const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return 0;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(LOG_M, format, ap);
 	logger_printf(LOG_M, "\n");
 	va_end(ap);
-#endif
 	return 0;
 }
 
 int log_warning(log_t log, const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return 0;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(LOG_W, format, ap);
 	logger_printf(LOG_M, "\n");
 	va_end(ap);
-#endif
 	return 0;
 }
 
 int log_error(log_t log, const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return 0;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(LOG_E, format, ap);
 	logger_printf(LOG_M, "\n");
 	va_end(ap);
-#endif
 	return 0;
 }
 
 int log_debug(const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return 0;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(LOG_D, format, ap);
 	logger_printf(LOG_M, "\n");
 	va_end(ap);
-#endif
 	return 0;
 }
 
 int log_verbose(const char *format, ...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return 0;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(LOG_D, format, ap);
 	logger_printf(LOG_M, "\n");
 	va_end(ap);
-#endif
 	return 0;
 }
 
@@ -194,12 +194,12 @@ CLINK int archdep_default_logger(const char *level_string, const char *txt) { re
 
 CLINK void ui_error(const char *format,...)
 {
-#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
   va_list ap;
   va_start(ap, format);
   logger_vprintf(0, format, ap);
   va_end(ap);
-#endif
 }
 
 CLINK void ui_update_menus(void) { }

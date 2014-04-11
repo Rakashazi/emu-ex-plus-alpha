@@ -1,9 +1,9 @@
 #pragma once
 
 #include <algorithm>
-#include <gfx/GfxBufferImage.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
 #ifdef __ANDROID__
-#include <base/android/private.hh>
+#include "../../base/android/private.hh"
 #include "android/DirectTextureBufferImage.hh"
 #include "android/SurfaceTextureBufferImage.hh"
 #endif
@@ -573,6 +573,8 @@ void BufferImage::generateMipmaps()
 	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	logMsg("generating mipmaps");
 	glGenerateMipmap(GL_TEXTURE_2D);
+	#elif defined CONFIG_GFX_OPENGL_ES
+	return; // TODO: OES_framebuffer_object extension
 	#else
 	if(useFBOFuncs)
 	{
@@ -638,7 +640,7 @@ bool BufferImage::setupTexture(IG::Pixmap &pix, bool upload, uint internalFormat
 			return 1;
 		}
 		#endif
-		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+		#ifdef __ANDROID__
 		if(directTextureConf.useEGLImageKHR)
 		{
 			logMsg("using EGL image for texture, %dx%d %s", usedX, usedY, pix.format.name);

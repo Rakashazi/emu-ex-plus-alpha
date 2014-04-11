@@ -10,7 +10,7 @@
 #endif
 
 //#include "SDL_types.h"
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 #define UINT8     uint8
 #define UINT16    uint16
 #define UINT32    uint32

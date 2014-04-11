@@ -1,5 +1,5 @@
 #pragma once
-#include <gfx/GfxSprite.hh>
+#include <imagine/gfx/GfxSprite.hh>
 
 /*void TexVertexQuad::draw() const
 {

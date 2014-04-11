@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <io/sys.hh>
+#include <imagine/io/sys.hh>
 #include <EmuApp.hh>
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include <main/Cheats.hh>
 #include <EmuSystem.hh>
 #include <MsgPopup.hh>

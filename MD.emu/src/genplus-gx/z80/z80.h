@@ -1,7 +1,7 @@
 #pragma once
 
 #include "osd_cpu.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 enum
 {

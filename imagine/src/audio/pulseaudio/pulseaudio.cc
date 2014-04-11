@@ -14,11 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "PulseAudio"
-#include <engine-globals.h>
-#include <audio/Audio.hh>
-#include <logger/interface.h>
-#include <base/Base.hh>
-#include <mem/interface.h>
+#include <imagine/audio/Audio.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
 #include <pulse/pulseaudio.h>
 #ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
 #include <pulse/glib-mainloop.h>

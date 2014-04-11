@@ -18,16 +18,16 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <util/algorithm.h>
-#include <util/bits.h>
-#include <util/fd-utils.h>
-#include <fs/sys.hh>
-#include <base/Base.hh>
-#include <base/EventLoopFileSource.hh>
-#include <input/Input.hh>
-#include <input/AxisKeyEmu.hh>
-#include <input/evdev/evdev.hh>
-#include <util/collection/ArrayList.hh>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/bits.h>
+#include <imagine/util/fd-utils.h>
+#include <imagine/fs/sys.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/input/AxisKeyEmu.hh>
+#include "evdev.hh"
+#include <imagine/util/container/ArrayList.hh>
 
 #define DEV_NODE_PATH "/dev/input"
 static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes

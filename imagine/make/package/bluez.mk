@@ -8,6 +8,4 @@ else
 SRC += bluetooth/bluezDl.cc
 endif
 
-configDefs += CONFIG_BLUEZ
-
 endif

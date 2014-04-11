@@ -1,5 +1,5 @@
 #include <main/Palette.hh>
-#include <util/basicString.h>
+#include <imagine/util/basicString.h>
 
 #define PACK15_4(c0, c1, c2, c3) {c0, c1, c2, c3}
 

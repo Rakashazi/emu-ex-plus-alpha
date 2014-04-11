@@ -23,7 +23,7 @@
 
 #include "shared.h"
 #include "hvc.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif

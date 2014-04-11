@@ -4,7 +4,7 @@
 
 #include "scd.h"
 #include "pcm.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 static unsigned int g_rate = 0; // 18.14 fixed point
 

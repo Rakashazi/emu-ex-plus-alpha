@@ -5,16 +5,15 @@ include $(IMAGINE_PATH)/make/package/stdc++.mk
 
 configDefs += CONFIG_BASE_IOS CONFIG_INPUT
 
-ifdef config_ios_jb
+ifdef iosJailbreak
  configDefs += CONFIG_BASE_IOS_JB
 else
  iOSNoCodesign := 1
 endif
 
-LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -lobjc
-#-multiply_defined suppress
+LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -ObjC
 
-ifdef iOSMsgUI
+ifdef iosMsgUI
  configDefs += IPHONE_MSG_COMPOSE
  LDLIBS += -framework MessageUI
 endif

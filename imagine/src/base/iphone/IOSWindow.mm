@@ -16,13 +16,13 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "IOSWindow"
 #import "MainApp.h"
-#import "EAGLView.h"
+#import <imagine/base/iphone/EAGLView.h>
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
-#include <base/common/windowPrivate.hh>
-#include <base/iphone/private.hh>
-#include <base/Base.hh>
-#include <gfx/Gfx.hh>
+#include "../common/windowPrivate.hh"
+#include "private.hh"
+#include <imagine/base/Base.hh>
+#include <imagine/gfx/Gfx.hh>
 #ifdef CONFIG_INPUT_ICADE
 #include "ICadeHelper.hh"
 #endif

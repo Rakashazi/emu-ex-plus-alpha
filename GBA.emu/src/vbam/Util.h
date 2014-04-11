@@ -2,7 +2,7 @@
 #define UTIL_H
 
 #include "System.h"
-#include <util/builtins.h>
+#include <imagine/util/builtins.h>
 
 enum IMAGE_TYPE {
   IMAGE_UNKNOWN = -1,

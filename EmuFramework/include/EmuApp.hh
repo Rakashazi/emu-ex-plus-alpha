@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <base/Base.hh>
-#include <input/Input.hh>
-#include <gui/NavView.hh>
-#include <gui/ViewStack.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/gui/NavView.hh>
+#include <imagine/gui/ViewStack.hh>
 #include <EmuSystem.hh>
 #include <EmuView.hh>
 #include <MsgPopup.hh>

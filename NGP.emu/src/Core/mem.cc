@@ -88,9 +88,9 @@ should stop "Gals Fighters" from writing all over itself.
 #include "sound.h"
 #include "flash.h"
 #include <assert.h>
-#include <logger/interface.h>
-#include <util/branch.h>
-#include <util/bits.h>
+#include <imagine/logger/logger.h>
+#include <imagine/util/branch.h>
+#include <imagine/util/bits.h>
 
 //=============================================================================
 

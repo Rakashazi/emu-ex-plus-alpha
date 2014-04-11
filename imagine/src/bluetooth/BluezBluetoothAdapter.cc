@@ -14,16 +14,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Bluez"
-#include "BluezBluetoothAdapter.hh"
+#include <imagine/bluetooth/BluezBluetoothAdapter.hh>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 #include <bluetooth/l2cap.h>
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/hidp.h>
-#include <util/fd-utils.h>
+#include <imagine/util/fd-utils.h>
 #include <errno.h>
-#include <util/collection/DLList.hh>
+#include <imagine/util/container/DLList.hh>
 
 #ifdef __ANDROID__
 // Bluez dlsym functions

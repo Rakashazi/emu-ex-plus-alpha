@@ -1,7 +1,7 @@
 libcxxabiSrcArchive := libcxxabi-200981.tar.xz
-libcxxabiSrcDir := libcxxabi
+libcxxabiSrcDir := $(tempDir)/libcxxabi
 
-libcxxSrcDir := ../libcxx/libcxx-3.4
+libcxxSrcDir := $(tempDir)/../libcxx/libcxx-3.4
 libcxxSrcArchive := ../libcxx/libcxx-3.4.src.tar.gz
 
 outputLibFile := $(buildDir)/libcxxabi.a
@@ -21,7 +21,7 @@ cxxRTTI := 1
 cxxExceptions := 1
 CPPFLAGS += -I$(libcxxabiSrcDir)/include -I$(libcxxSrcDir)/include
 
-all : $(outputLibFile)
+all : $(outputLibFile) $(libcxxabiSrcDir) $(libcxxSrcDir)
 
 install : $(outputLibFile)
 	@echo "Installing libcxxabi to $(installDir)..."
@@ -40,8 +40,10 @@ $(CPP_SRC) : $(libcxxabiSrcDir) $(libcxxSrcDir)
 
 $(libcxxabiSrcDir) : | $(libcxxabiSrcArchive)
 	@echo "Extracting libcxxabi..."
-	tar -mxJf $|
+	@mkdir -p $(libcxxabiSrcDir)
+	tar -mxJf $| -C $(libcxxabiSrcDir)/..
 
 $(libcxxSrcDir) : | $(libcxxSrcArchive)
 	@echo "Extracting libcxx..."
-	tar -C ../libcxx -mxJf $|
+	@mkdir -p $(libcxxSrcDir)
+	tar -mxzf $| -C $(libcxxSrcDir)/..

@@ -5,6 +5,7 @@ config_compiler := clang
 AR := ar
 ifeq ($(origin CC), default)
  CC := clang
+ CXX := clang++
 endif
 include $(buildSysPath)/clang.mk
 

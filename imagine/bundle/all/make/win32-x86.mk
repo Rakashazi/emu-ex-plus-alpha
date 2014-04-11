@@ -1,10 +1,10 @@
 -include config.mk
 
-buildDir = /tmp/imagine-bundle/$(pkgName)/build/win32-x86
-installDir := $(IMAGINE_PATH)/bundle/win32-x86
-
 compiler_noSanitizeAddress := 1
 include $(IMAGINE_PATH)/make/win32-x86.mk
 
-include common.mk
+tempDir = /tmp/imagine-bundle/$(pkgName)
+buildDir = $(tempDir)/build/win32-x86
+installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)
 
+include common.mk

@@ -5,8 +5,8 @@
 #include "misc.h"
 #include "mem.hh"
 
-#include <logger/interface.h>
-#include <io/sys.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/io/sys.hh>
 
 SegaCD sCD;
 

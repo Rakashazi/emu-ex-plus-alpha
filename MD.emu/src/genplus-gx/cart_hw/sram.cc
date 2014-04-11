@@ -21,7 +21,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 T_SRAM sram;
 

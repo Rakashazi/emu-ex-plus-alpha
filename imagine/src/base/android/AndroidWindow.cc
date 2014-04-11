@@ -14,13 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "AndroidWindow"
-#include <base/common/windowPrivate.hh>
-#include <base/Timer.hh>
-#include <base/android/sdk.hh>
-#include <base/android/private.hh>
-#include <base/android/ASurface.hh>
-#include <util/fd-utils.h>
-#include <gfx/Gfx.hh>
+#include "../common/windowPrivate.hh"
+#include <imagine/base/Timer.hh>
+#include <imagine/base/android/sdk.hh>
+#include "private.hh"
+#include "ASurface.hh"
+#include <imagine/util/fd-utils.h>
+#include <imagine/gfx/Gfx.hh>
 #include <android/native_activity.h>
 #include <android/looper.h>
 #include "EGLContextHelper.hh"

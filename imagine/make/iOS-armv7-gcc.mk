@@ -14,8 +14,4 @@ ASMFLAGS += -arch armv7
 COMPILE_FLAGS += -mdynamic-no-pic
 CHOST := $(shell $(CC) -arch armv7 -dumpmachine)
 
-extraSysroot := $(IMAGINE_PATH)/bundle/darwin-iOS/armv7
-PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
-CPPFLAGS += -I$(extraSysroot)/include
-
 include $(buildSysPath)/iOS-armv7-common.mk

@@ -14,10 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <Screenshot.hh>
-#include <data-type/image/png/sys.hh>
-#include <pixmap/Pixmap.hh>
-#include <io/sys.hh>
-#include <fs/sys.hh>
+#include <imagine/data-type/image/sys.hh>
+#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/io/sys.hh>
+#include <imagine/fs/sys.hh>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 
@@ -49,7 +49,15 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 
 #elif defined CONFIG_DATA_TYPE_IMAGE_ANDROID
 
-#include <base/android/private.hh>
+// TODO: make png writer module in imagine
+namespace Base
+{
+
+JNIEnv* eEnv(); // JNIEnv of main event thread
+extern jclass jBaseActivityCls;
+extern jobject jBaseActivity;
+
+}
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 {

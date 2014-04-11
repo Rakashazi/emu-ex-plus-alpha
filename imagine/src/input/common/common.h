@@ -15,12 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/Input.hh>
-#include <gfx/Gfx.hh>
-#include <base/Timer.hh>
+#include <imagine/input/Input.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Timer.hh>
 
 #ifdef CONFIG_BLUETOOTH
-#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 
 namespace Input
@@ -1082,5 +1082,12 @@ void dispatchInputEvent(const Input::Event &event)
 {
 	onInputEvent(Base::mainWindow(), event);
 }
+
+#ifdef CONFIG_INPUT_ICADE
+void Device::setICadeMode(bool on)
+{
+	logWarn("setICadeMode called but unimplemented");
+}
+#endif
 
 }

@@ -14,14 +14,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
-#import "EAGLView.h"
+#import <imagine/base/iphone/EAGLView.h>
 #import "MainApp.h"
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/CAEAGLLayer.h>
-#include <base/Base.hh>
-#include <base/common/windowPrivate.hh>
-#include <input/Input.hh>
-#include <input/DragPointer.hh>
+#include <imagine/base/Base.hh>
+#include "../common/windowPrivate.hh"
+#include <imagine/input/Input.hh>
+#include <imagine/input/DragPointer.hh>
 
 static const int USE_DEPTH_BUFFER = 0;
 

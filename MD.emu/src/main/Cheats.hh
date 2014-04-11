@@ -1,7 +1,7 @@
 #pragma once
 
-#include <util/collection/ArrayList.hh>
-#include <util/bits.h>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/bits.h>
 #include <EmuSystem.hh>
 
 // Needs to be a #define because it get strigified in Cheats.cc

@@ -27,7 +27,7 @@ extern "C" {
 #include "gba/gbafilter.h"
 #include "gb/gbGlobals.h"
 
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 
 #ifndef _MSC_VER
 #define _stricmp strcasecmp

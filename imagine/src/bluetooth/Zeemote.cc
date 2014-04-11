@@ -14,9 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Zeemote"
-#include "Zeemote.hh"
-#include <base/Base.hh>
-#include <util/bits.h>
+#include <imagine/bluetooth/Zeemote.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/util/bits.h>
 #include <algorithm>
 
 extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;

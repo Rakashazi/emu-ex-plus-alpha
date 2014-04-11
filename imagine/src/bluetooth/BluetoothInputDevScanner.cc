@@ -14,19 +14,19 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "BTInput"
-#include "BluetoothAdapter.hh"
-#include "Wiimote.hh"
-#include "Zeemote.hh"
-#include "IControlPad.hh"
-#include <base/Base.hh>
-#include <base/Timer.hh>
-#include <util/collection/ArrayList.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
+#include <imagine/bluetooth/Wiimote.hh>
+#include <imagine/bluetooth/Zeemote.hh>
+#include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/util/container/ArrayList.hh>
 
 StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> btInputDevPendingList;
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-#include "PS3Controller.hh"
+#include <imagine/bluetooth/PS3Controller.hh>
 static PS3Controller *pendingPS3Controller = nullptr;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;

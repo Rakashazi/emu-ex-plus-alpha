@@ -6,7 +6,7 @@ emuFrameworkPath := $(lastMakefileDir)
 
 include $(IMAGINE_PATH)/make/package/imagine.mk
 
-CPPFLAGS += -I$(emuFrameworkPath)/include
+CPPFLAGS += -I$(emuFrameworkPath)/include -I$(projectPath)/src
 VPATH += $(emuFrameworkPath)/src
 
 SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc Recent.cc \

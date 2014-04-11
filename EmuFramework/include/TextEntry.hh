@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/GfxText.hh>
-#include <gui/View.hh>
+#include <imagine/gfx/GfxText.hh>
+#include <imagine/gui/View.hh>
 
 class TextEntry
 {

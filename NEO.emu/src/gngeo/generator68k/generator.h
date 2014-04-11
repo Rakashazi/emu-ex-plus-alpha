@@ -10,8 +10,8 @@
 /* PACKAGE set by autoconf */
 
 //#include "SDL_types.h"
-#include <util/ansiTypes.h>
-#include <logger/interface.h>
+#include <imagine/util/ansiTypes.h>
+#include <imagine/logger/logger.h>
 /*#define uint8     Uint8
 #define uint16    Uint16
 #define uint32    Uint32

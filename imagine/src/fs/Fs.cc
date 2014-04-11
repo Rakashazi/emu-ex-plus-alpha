@@ -15,14 +15,14 @@
 
 #define LOGTAG "FS"
 #if defined (CONFIG_BASE_WIN32)
-	#include <direct.h>
+#include <direct.h>
 #else
-	#include <sys/stat.h>
-	#include <unistd.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
-#include <fs/Fs.hh>
-#include <logger/interface.h>
-#include <util/strings.h>
-#include <base/Base.hh>
-#include "sys.hh"
+#include <imagine/fs/Fs.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/strings.h>
+#include <imagine/base/Base.hh>
+#include <imagine/fs/sys.hh>

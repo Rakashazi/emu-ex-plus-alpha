@@ -5,9 +5,10 @@ ifeq ($(android_armv7State),-marm)
  undefine O_LTO
 endif
 
-buildDir = /tmp/imagine-bundle/$(pkgName)/build/android-armv7
-installDir := $(IMAGINE_PATH)/bundle/android/armv7
-
 include $(IMAGINE_PATH)/make/android-armv7-gcc.mk
+
+tempDir = /tmp/imagine-bundle/$(pkgName)
+buildDir = $(tempDir)/build/android-armv7
+installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)
 
 include common.mk

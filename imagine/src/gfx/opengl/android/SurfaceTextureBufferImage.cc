@@ -16,7 +16,7 @@
 #include "SurfaceTextureBufferImage.hh"
 #include "../GLStateCache.hh"
 #include "../private.hh"
-#include <base/android/private.hh>
+#include "../../../base/android/private.hh"
 
 namespace Gfx
 {

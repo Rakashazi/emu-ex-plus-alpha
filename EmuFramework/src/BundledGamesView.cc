@@ -15,8 +15,8 @@
 
 #include <BundledGamesView.hh>
 #include <EmuSystem.hh>
-#include <io/sys.hh>
-#include <io/mmap/generic/IoMmapGeneric.hh>
+#include <imagine/io/sys.hh>
+#include <imagine/io/IoMmapGeneric.hh>
 #include <unzip.h>
 
 void loadGameCompleteFromRecentItem(uint result, const Input::Event &e);

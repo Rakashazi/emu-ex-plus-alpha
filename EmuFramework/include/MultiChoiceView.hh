@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/MenuItem/MenuItem.hh>
-#include <gui/BaseMenuView.hh>
+#include <imagine/gui/MenuItem.hh>
+#include <imagine/gui/BaseMenuView.hh>
 
 class BaseMultiChoiceView : public BaseMenuView
 {

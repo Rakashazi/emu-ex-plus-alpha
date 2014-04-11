@@ -122,10 +122,10 @@
  *      http://www.msxnet.org/tech/z80-documented.pdf
  *****************************************************************************/
 
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include <genplus-config.h>
-#include <util/branch.h>
-#include <util/algorithm.h>
+#include <imagine/util/branch.h>
+#include <imagine/util/algorithm.h>
 #include <string.h>
 
 #include "z80.h"

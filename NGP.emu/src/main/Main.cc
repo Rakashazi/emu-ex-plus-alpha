@@ -1,21 +1,12 @@
-#define thisModuleName "main"
+#define LOGTAG "main"
 #include <neopop.h>
 #include <flash.h>
-
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
 #include <unzip.h>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <CommonGui.hh>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
 
 // controls
@@ -458,26 +449,26 @@ char *system_get_string(STRINGS string_id)
 #ifndef NDEBUG
 void system_message(const char* format, ...)
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start(args, format);
 	logger_vprintf(LOG_M, format, args);
 	va_end( args );
 	logger_printf(LOG_M, "\n");
-	#endif
 }
 #endif
 
 #ifdef NEOPOP_DEBUG
 void system_debug_message(const char* format, ...)
 {
-	#ifdef USE_LOGGER
+	if(!logger_isEnabled())
+		return;
 	va_list args;
 	va_start(args, format);
 	logger_vprintfn(LOG_M, format, args);
 	va_end( args );
 	logger_printfn(LOG_M, "\n");
-	#endif
 }
 
 void system_debug_message_associate_address(uint32 address)

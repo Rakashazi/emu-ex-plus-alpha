@@ -15,14 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <mem/interface.h>
-
 #if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/resource.h>
 #endif
 
-#include <util/system/pagesize.h>
+#include <imagine/util/system/pagesize.h>
 
 namespace Base
 {

@@ -8,7 +8,7 @@ ifeq ($(ENV), android)
  else
   # TODO: libc++
  endif
-else ifneq ($(filter macosx ios ,$(ENV)),)
+else ifneq ($(filter macosx ios, $(ENV)),)
  include $(buildSysPath)/package/stdc++.mk
 endif
 

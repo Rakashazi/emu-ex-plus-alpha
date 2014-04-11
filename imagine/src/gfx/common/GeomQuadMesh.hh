@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gfx/GeomQuadMesh.hh>
+#include <imagine/gfx/GeomQuadMesh.hh>
 
 namespace Gfx
 {

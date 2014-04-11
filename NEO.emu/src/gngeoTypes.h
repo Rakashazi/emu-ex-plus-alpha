@@ -1,7 +1,7 @@
 #pragma once
-#include <util/ansiTypes.h>
-#include <util/builtins.h>
-#include <logger/interface.h>
+#include <imagine/util/ansiTypes.h>
+#include <imagine/util/builtins.h>
+#include <imagine/logger/logger.h>
 
 // SDL wrapper, renamed with GN prefix to avoid conflicts on WebOS, which includes some parts of SDL
 

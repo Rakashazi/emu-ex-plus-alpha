@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/GfxText.hh>
-#include <gui/View.hh>
-#include <util/Interpolator.hh>
-#include <config/version.h>
+#include <imagine/gfx/GfxText.hh>
+#include <imagine/gui/View.hh>
+#include <imagine/util/Interpolator.hh>
+#include <imagine/config/version.h>
 
 #ifdef ENV_NOTE
 #define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"

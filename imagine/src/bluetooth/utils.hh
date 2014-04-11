@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bluetooth/BluetoothAdapter.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 
 static void baswap(BluetoothAddr *dst, const BluetoothAddr *src)
 {

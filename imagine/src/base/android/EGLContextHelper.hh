@@ -16,9 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <android/window.h>
-#include <logger/interface.h>
-#include <engine-globals.h>
-#include <util/egl.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/engine-globals.h>
+#include <imagine/util/egl.hh>
 
 struct EGLContextHelper
 {

@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/GfxBufferImage.hh>
-#include <base/android/private.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
+#include "../../../base/android/private.hh"
 
 namespace Gfx
 {

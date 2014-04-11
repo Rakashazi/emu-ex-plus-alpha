@@ -15,18 +15,18 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <engine-globals.h>
-#include <input/Input.hh>
-#include <logger/interface.h>
-#include <util/bits.h>
-#include <input/common/common.h>
-#include <input/DragPointer.hh>
-#include <util/collection/ArrayList.hh>
+#include <imagine/engine-globals.h>
+#include <imagine/input/Input.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/bits.h>
+#include "../../input/common/common.h"
+#include <imagine/input/DragPointer.hh>
+#include <imagine/util/container/ArrayList.hh>
 
 using namespace Base;
 
 #ifdef CONFIG_INPUT_ICADE
-#include <input/common/iCade.hh>
+#include "../../input/common/iCade.hh"
 #endif
 
 namespace Input

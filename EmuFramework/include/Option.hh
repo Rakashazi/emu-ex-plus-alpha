@@ -15,16 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <io/Io.hh>
-#include <bluetooth/sys.hh>
-#include <gui/View.hh>
-#include <util/2DOrigin.h>
+#include <imagine/io/Io.hh>
+#include <imagine/bluetooth/sys.hh>
+#include <imagine/gui/View.hh>
+#include <imagine/util/2DOrigin.h>
 #include <VideoImageOverlay.hh>
 #include <EmuSystem.hh>
 #include <Recent.hh>
-#include <audio/Audio.hh>
-#include <util/strings.h>
-#include <util/Rational.hh>
+#include <imagine/audio/Audio.hh>
+#include <imagine/util/strings.h>
+#include <imagine/util/Rational.hh>
 
 struct OptionBase
 {

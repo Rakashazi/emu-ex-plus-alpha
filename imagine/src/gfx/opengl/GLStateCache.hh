@@ -1,11 +1,11 @@
 #pragma once
 
-#include <config/env.hh>
-#include <util/algorithm.h>
+#include <imagine/config/env.hh>
+#include <imagine/util/algorithm.h>
 #include "utils.h"
 
 #ifdef CONFIG_BASE_ANDROID
-#include <base/android/public.hh>
+#include <imagine/base/android/public.hh>
 #else
 static const bool glPointerStateHack = 0;
 #endif

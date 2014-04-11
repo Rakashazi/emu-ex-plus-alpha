@@ -8,6 +8,7 @@ ARCH := arm
 ifneq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
   CC := arm-linux-androideabi-gcc
+  CXX := $(CC)
   CHOST := arm-linux-androideabi
  endif
 endif
@@ -17,6 +18,5 @@ ifneq ($(config_compiler),clang)
  COMPILE_FLAGS += -fsingle-precision-constant
  WARNINGS_CFLAGS += -Wdouble-promotion
 endif
-noDoubleFloat=1
 
 include $(buildSysPath)/android-gcc.mk

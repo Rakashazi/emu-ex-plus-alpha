@@ -86,7 +86,7 @@ extern void RefreshThrottleFPS();
 #include <cstdarg>
 #include <ctime>
 
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 
 using namespace std;
 

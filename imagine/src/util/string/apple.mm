@@ -13,9 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/string/apple.h>
+static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <Foundation/NSString.h>
-#include <util/basicString.h>
+#include <imagine/util/string/apple.h>
+#include <imagine/util/basicString.h>
 
 void precomposeUnicodeString(const char *src, char *dest, unsigned int destSize)
 {

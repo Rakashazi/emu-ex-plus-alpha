@@ -13,15 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <main/Main.hh>
@@ -41,7 +33,7 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *);
 bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

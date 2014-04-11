@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
+#define LOGTAG "main"
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/Cart.hxx>
 #include <stella/emucore/Props.hxx>
@@ -26,22 +26,12 @@
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
 #include "ImagineSound.hh"
-
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
-#include <util/preprocessor/repeat.h>
 #include <unzip.h>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include "CommonGui.hh"
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static ImagineSound *vcsSound = 0;
 static uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
 static uint tiaSoundRate = 0;

@@ -2,22 +2,16 @@
 
 #include "private.hh"
 
-#ifdef CONFIG_INPUT
-#include <input/Input.hh>
-#endif
-
 #ifdef __ANDROID__
-#include <base/android/private.hh>
-#include <base/android/public.hh>
+#include "../../base/android/private.hh"
+#include <imagine/base/android/public.hh>
+#include "android/DirectTextureBufferImage.hh"
+#include <dlfcn.h>
 namespace Gfx
 {
 	static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName);
 }
-#endif
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-#include "android/DirectTextureBufferImage.hh"
-#include <dlfcn.h>
 	#if CONFIG_ENV_ANDROID_MINSDK < 9
 	static EGLDisplay eglDisplay = 0;
 	static EGLImageKHR (*eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) = 0;
@@ -154,8 +148,7 @@ static void checkForDrawTexture(const char *extensions, const char *rendererName
 
 #endif
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-
+#if defined __ANDROID__
 void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, const char *rendererName)
 {
 	if((Config::MACHINE_IS_GENERIC_ARMV7 &&  strstr(rendererName, "NVIDIA")) // disable on Tegra, unneeded and causes lock-ups currently

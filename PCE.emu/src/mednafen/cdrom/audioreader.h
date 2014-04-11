@@ -1,7 +1,7 @@
 #ifndef __MDFN_AUDIOREADER_H
 #define __MDFN_AUDIOREADER_H
 
-#include <io/sys.hh>
+#include <imagine/io/sys.hh>
 
 class AudioReader
 {

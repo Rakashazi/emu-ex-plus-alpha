@@ -3,6 +3,7 @@ CROSS_COMPILE := 1
 ARCH := arm
 ifeq ($(origin CC), default)
  CC := arm-none-linux-gnueabi-gcc
+ CXX := arm-none-linux-gnueabi-g++
 endif
 
 ifndef targetDir
@@ -20,6 +21,7 @@ ifndef WEBOS_PDK_PATH
 endif
 
 webos_libm := $(WEBOS_PDK_PATH)/device/lib/libm.so.6
+staticLibcxx := 1
 
 include $(buildSysPath)/gcc.mk
 
@@ -38,14 +40,12 @@ WARNINGS_CFLAGS += -Wdouble-promotion -Wno-psabi
 LDLIBS += -L$(WEBOS_PDK_PATH)/device/lib -Wl,--allow-shlib-undefined
 
 OPTIMIZE_LDFLAGS += 
-LDFLAGS += $(webos_cpuFlags) -Wl,-O1,--as-needed,--hash-style=gnu,--gc-sections,--compress-debug-sections=zlib,--icf=all
+LDFLAGS += $(webos_cpuFlags) -Wl,-O1,--as-needed,--gc-sections,--compress-debug-sections=zlib,--icf=all
 
 # strip by default since it slows down package install due to much larger executables
 LDFLAGS += -s
 
 ASMFLAGS += $(webos_cpuFlags)
-
-noDoubleFloat=1
 
 ifdef O_LTO
  # can't use _FORTIFY_SOURCE with LTO else GLIBC symbols > 2.4 get linked in due to .symver not working

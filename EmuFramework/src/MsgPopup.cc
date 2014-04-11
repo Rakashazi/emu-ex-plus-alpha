@@ -15,7 +15,7 @@
 
 #define LOGTAG "MsgPopup"
 #include <MsgPopup.hh>
-#include <gui/View.hh>
+#include <imagine/gui/View.hh>
 
 using namespace Base;
 

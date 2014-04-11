@@ -7,15 +7,15 @@ ifdef O_LTO
  #COMPILE_FLAGS += -fipa-pta
  ifndef O_LTO_FAT
   COMPILE_FLAGS += -fno-fat-lto-objects
+  ifeq ($(origin AR), default)
+   # must use gcc's ar wrapper or slim-LTO won't work if building a static archive
+   AR := $(CHOST_PREFIX)gcc-ar
+  endif
  endif
- ifeq ($(origin AR), default)
-  # must use gcc's ar wrapper or thin-LTO won't work if building a static archive
-  AR := $(CHOST_PREFIX)gcc-ar
- endif
-else
- ifeq ($(origin AR), default)
-  AR := $(CHOST_PREFIX)ar
- endif
+endif
+
+ifeq ($(origin AR), default)
+ AR := $(CHOST_PREFIX)ar
 endif
 
 ifdef O_LTO_LINK_ONLY

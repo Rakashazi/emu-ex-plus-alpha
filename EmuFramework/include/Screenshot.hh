@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <stdlib.h>
-#include <pixmap/Pixmap.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <EmuSystem.hh>
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);

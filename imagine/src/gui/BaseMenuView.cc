@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gui/BaseMenuView.hh>
+#include <imagine/gui/BaseMenuView.hh>
 
 void BaseMenuView::init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin align)
 {

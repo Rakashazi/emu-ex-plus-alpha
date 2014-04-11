@@ -14,24 +14,27 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "LoggerStdio"
-#include <engine-globals.h>
-#include <base/Base.hh>
-#include <fs/sys.hh>
-#include <logger/interface.h>
+#include <imagine/base/Base.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/logger/logger.h>
 #include <cstdio>
 
 #ifdef CONFIG_BASE_ANDROID
 #include <android/log.h>
 #elif defined(CONFIG_BASE_IOS)
-#include <base/iphone/private.hh>
+#include "../../base/iphone/private.hh"
 #endif
 
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
-
 static const bool useExternalLogFile = false;
 static FILE *logExternalFile = nullptr;
+#ifdef NDEBUG
+static bool logEnabled = false; // default logging off in release builds
+#else
+static bool logEnabled = true;
+#endif
 
 #ifdef CONFIG_FS
 static void printExternalLogPath(FsSys::cPath &path)
@@ -51,8 +54,10 @@ static void printExternalLogPath(FsSys::cPath &path)
 
 CallResult logger_init()
 {
+	if(!logEnabled)
+		return OK;
 	#ifdef CONFIG_FS
-	if(useExternalLogFile)
+	if(useExternalLogFile && !logExternalFile)
 	{
 		FsSys::cPath path;
 		printExternalLogPath(path);
@@ -69,6 +74,20 @@ CallResult logger_init()
 	return OK;
 }
 
+void logger_setEnabled(bool enable)
+{
+	logEnabled = enable;
+	if(enable)
+	{
+		logger_init();
+	}
+}
+
+bool logger_isEnabled()
+{
+	return logEnabled;
+}
+
 static void printToLogLineBuffer(const char* msg, va_list args)
 {
 	vsnprintf(logLineBuffer + strlen(logLineBuffer), sizeof(logLineBuffer) - strlen(logLineBuffer), msg, args);
@@ -76,6 +95,8 @@ static void printToLogLineBuffer(const char* msg, va_list args)
 
 void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 {
+	if(!logEnabled)
+		return;
 	if(severity > loggerVerbosity) return;
 
 	if(logExternalFile)
@@ -118,6 +139,8 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 
 void logger_printf(LoggerSeverity severity, const char* msg, ...)
 {
+	if(!logEnabled)
+		return;
 	va_list args;
 	va_start(args, msg);
 	logger_vprintf(severity, msg, args);

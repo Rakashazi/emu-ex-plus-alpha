@@ -54,7 +54,7 @@
 #include "Z80_interface.h"
 #include "interrupt.h"
 #include "mem.h"
-#include <util/algorithm.h>
+#include <imagine/util/algorithm.h>
 #include <assert.h>
 
 //=============================================================================

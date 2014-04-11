@@ -10,9 +10,4 @@ else
  ASMFLAGS += -m64
 endif
 
-ifdef extraSysroot
- PKG_CONFIG_PATH := $(extraSysroot)/lib/pkgconfig
- CPPFLAGS += -I$(extraSysroot)/include
-endif
-
 linuxEventLoop := glib

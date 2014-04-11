@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <TextEntry.hh>
-#include <gui/GuiTable1D/GuiTable1D.hh>
+#include <imagine/gui/GuiTable1D.hh>
 
 void TextEntry::setAcceptingInput(bool on)
 {

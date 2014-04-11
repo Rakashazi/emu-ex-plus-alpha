@@ -1,7 +1,7 @@
 btstackSrcDir := btstack-svn
 
 outputLibFile := $(buildDir)/libBTstack.a
-installIncludeDir := $(installDirUniversal)/include/btstack
+installIncludeDir := $(installDir)/include/btstack
 
 VPATH += $(btstackSrcDir)/src
 C_SRC := btstack.c hci_cmds.c linked_list.c run_loop.c sdp_util.c socket_connection.c utils.c

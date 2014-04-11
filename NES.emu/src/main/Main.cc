@@ -13,19 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 uint fceuCheats = 0;
 #ifdef __clang__
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy

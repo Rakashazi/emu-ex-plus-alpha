@@ -14,10 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "PS3Ctrl"
-#include "PS3Controller.hh"
-#include <base/Base.hh>
-#include <util/bits.h>
-#include <util/algorithm.h>
+#include <imagine/bluetooth/PS3Controller.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/util/bits.h>
+#include <imagine/util/algorithm.h>
 
 using namespace IG;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vice.h"
-#include <util/ansiTypes.h>
+#include <imagine/util/ansiTypes.h>
 
 #define BYTE uint8
 

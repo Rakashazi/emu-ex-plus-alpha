@@ -6,7 +6,7 @@
 
 
 #include "scd.h"
-#include <logger/interface.h>
+#include <imagine/logger/logger.h>
 #include <string.h>
 
 static const int Table_Rot_Time[] =

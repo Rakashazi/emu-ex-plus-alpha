@@ -16,13 +16,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "Option.hh"
-#include <config/env.hh>
-#include <bluetooth/BluetoothAdapter.hh>
-#include <audio/Audio.hh>
+#include <imagine/config/env.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
+#include <imagine/audio/Audio.hh>
 
-#if (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || \
+#if (defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA) || \
 	defined CONFIG_BASE_IOS || \
-	(defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA)
+	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
 #define CONFIG_VCONTROLS_GAMEPAD
 #endif
 

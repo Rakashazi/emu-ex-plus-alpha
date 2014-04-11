@@ -13,19 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <io/zip/IoZip.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
-#include <util/preprocessor/repeat.h>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
+#include <imagine/io/IoZip.hh>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -59,7 +50,7 @@ extern "C"
 
 #include <blueMSX/Utils/ziphelper.h>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 BoardInfo boardInfo = { 0 };
 extern bool fdcActive;
 Machine *machine = 0;

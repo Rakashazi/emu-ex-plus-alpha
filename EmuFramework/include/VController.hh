@@ -14,11 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #pragma once
-#include <util/number.h>
-#include <util/memory/search.h>
-#include <gfx/GfxSprite.hh>
-#include <base/Base.hh>
-#include <input/DragPointer.hh>
+#include <imagine/util/number.h>
+#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/input/DragPointer.hh>
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include <TurboInput.hh>

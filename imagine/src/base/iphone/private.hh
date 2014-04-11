@@ -15,13 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <util/ansiTypes.h>
+#include <cstdarg>
 #include <CoreGraphics/CGColorSpace.h>
-
-#if !defined __ARM_ARCH_6K__
-#define CONFIG_BASE_IOS_GLKIT
-#define CONFIG_BASE_IOS_RETINA_SCALE
-#endif
+#include <imagine/base/iphone/config.h>
 
 namespace Base
 {

@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <gfx/GfxText.hh>
-#include <gfx/GeomRect.hh>
-#include <base/Timer.hh>
+#include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/GeomRect.hh>
+#include <imagine/base/Timer.hh>
 
 class MsgPopup
 {

@@ -16,7 +16,7 @@
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
 #include <EmuApp.hh>
-#include <audio/Audio.hh>
+#include <imagine/audio/Audio.hh>
 #include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;

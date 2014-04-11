@@ -13,18 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <io/api/stdio.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
+#include <imagine/io/api/stdio.hh>
 #include <sys/time.h>
 #ifdef __APPLE__
 	#include <mach/semaphore.h>
@@ -73,7 +65,7 @@ extern "C"
 	CLINK int warp_mode_enabled;
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 #ifdef __APPLE__
 static semaphore_t execSem, execDoneSem;
 #else

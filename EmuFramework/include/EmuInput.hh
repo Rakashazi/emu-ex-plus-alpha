@@ -15,14 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/Input.hh>
+#include <imagine/input/Input.hh>
 #ifdef CONFIG_BLUETOOTH
-#include <bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include <TurboInput.hh>
 #include <EmuSystem.hh>
 #include <inGameActionKeys.hh>
-#include <util/collection/DLList.hh>
+#include <imagine/util/container/DLList.hh>
 
 struct KeyCategory
 {

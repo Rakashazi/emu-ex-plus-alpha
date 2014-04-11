@@ -1,8 +1,8 @@
-#include <gfx/Gfx.hh>
-#include <base/Base.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Base.hh>
 #include <assert.h>
 
-#include <util/time/sys.hh>
+#include <imagine/util/time/sys.hh>
 static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameTime;
 
 #include "private.hh"
@@ -10,7 +10,7 @@ static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameT
 #include "utils.h"
 #include "GLStateCache.hh"
 #ifdef __ANDROID__
-#include <base/android/private.hh>
+#include "../../base/android/private.hh"
 #endif
 
 //#include "geometry-test.h"
@@ -501,10 +501,9 @@ CallResult init()
 #ifdef CONFIG_BASE_ANDROID
 static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
 {
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
+	// TODO: make direct texture setup optional
 	if(Base::androidSDK() < 14)
 		directTextureConf.checkForEGLImageKHR(extensions, rendererName);
-	#endif
 	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
 	if(surfaceTextureConf.isSupported())
 	{

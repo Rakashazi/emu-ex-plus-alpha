@@ -44,12 +44,6 @@ include $(IMAGINE_PATH)/make/package/stdc++.mk
 # SRC += mednafen/cdrom/CDAccess_Physical.cpp
 #endif
 
-ifneq ($(ENV), android)
- LDLIBS += -lpthread
-endif
-
-configInc += <mednafen-config.h>
-
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 
 endif

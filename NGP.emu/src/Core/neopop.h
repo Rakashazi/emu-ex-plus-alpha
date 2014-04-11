@@ -121,8 +121,8 @@
 #include <stdarg.h>
 #include <endian.h>
 // Provides min()/max()
-#include <util/basicMath.hh>
-#include <util/ansiTypes.h>
+#include <imagine/util/basicMath.hh>
+#include <imagine/util/ansiTypes.h>
 
 //=============================================================================
 

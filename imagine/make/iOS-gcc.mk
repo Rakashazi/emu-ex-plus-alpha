@@ -20,6 +20,7 @@ config_compiler := clang
 AR := ar
 ifeq ($(origin CC), default)
  CC := clang
+ CXX := clang++
 endif
 include $(buildSysPath)/clang.mk
 
@@ -58,9 +59,6 @@ ifdef RELEASE
 else
  LDFLAGS += -Wl,-x,-dead_strip_dylibs,-no_pie
 endif
-
-CPPFLAGS += -I$(IMAGINE_PATH)/bundle/darwin-iOS/include
-noDoubleFloat=1
 
 # clang SVN doesn't seem to handle ASM properly so use as directly
 AS := as

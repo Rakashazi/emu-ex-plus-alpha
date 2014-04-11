@@ -24,8 +24,8 @@
  #endif
 #endif
 
-#include <util/ansiTypes.h>
-#include <util/builtins.h>
+#include <imagine/util/ansiTypes.h>
+#include <imagine/util/builtins.h>
 
 #if !defined(HAVE_NATIVE64BIT) && SIZEOF_VOID_P >= 8
 #define HAVE_NATIVE64BIT 1

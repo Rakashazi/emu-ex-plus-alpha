@@ -16,11 +16,10 @@
 #define LOGTAG "DBus"
 #include <unistd.h>
 #include <sys/param.h>
-#include <engine-globals.h>
 #include <dbus/dbus.h>
 #include "dbus.hh"
-#include <base/Base.hh>
-#include <base/EventLoopFileSource.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/EventLoopFileSource.hh>
 #ifdef CONFIG_BASE_GLIB
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>

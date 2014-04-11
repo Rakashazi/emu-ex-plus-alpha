@@ -14,6 +14,7 @@ PKG_NPDRM := wine $(SONY_SDK)/host-win32/bin/psn_package_npdrm.exe
 
 ifeq ($(origin CC), default)
  CC := powerpc64-ps3-elf-gcc
+ CXX := powerpc64-ps3-elf-g++
 endif
 
 compiler_noSanitizeAddress := 1
@@ -36,4 +37,3 @@ system_externalSysroot := $(IMAGINE_PATH)/bundle/ps3
 CPPFLAGS += -I$(system_externalSysroot)/include
 LDLIBS += -L$(system_externalSysroot)/lib
 LDFLAGS += $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) -mcpu=cell -mhard-float
-noDoubleFloat=1

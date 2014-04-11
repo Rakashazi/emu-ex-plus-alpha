@@ -23,14 +23,10 @@
 #include <alsa/asoundlib.h>
 #include <sys/time.h>
 #include <math.h>
-
-#include <engine-globals.h>
-#include <audio/Audio.hh>
-#include <logger/interface.h>
-#include <base/Base.hh>
-#include <mem/interface.h>
-
-#include <audio/alsa/alsautils.h>
+#include <imagine/audio/Audio.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
+#include "alsautils.h"
 
 namespace Audio
 {

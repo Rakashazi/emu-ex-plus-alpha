@@ -1,7 +1,5 @@
 #pragma once
 
-#include <util/preprocessor/repeat.h>
-
 #ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
 	#define CONFIG_FILE_NAME "MsxEmu.config"
 #else

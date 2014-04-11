@@ -13,18 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define thisModuleName "main"
-#include <logger/interface.h>
-#include <gfx/GfxSprite.hh>
-#include <audio/Audio.hh>
-#include <fs/sys.hh>
-#include <io/sys.hh>
-#include <gui/View.hh>
-#include <util/strings.h>
-#include <util/time/sys.hh>
+#define LOGTAG "main"
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
-
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -41,7 +32,7 @@
 #endif
 #include <main/Cheats.hh>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2013\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
+const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 t_config config = { 0 };
 uint config_ym2413_enabled = 1;
 static int8 mdInputPortDev[2] {-1, -1};

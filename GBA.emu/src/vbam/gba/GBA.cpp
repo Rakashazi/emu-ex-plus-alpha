@@ -21,8 +21,8 @@
 #include "../System.h"
 #include "agbprint.h"
 #include "GBALink.h"
-#include <logger/interface.h>
-#include <io/sys.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/io/sys.hh>
 
 #ifdef PROFILING
 #include "prof/prof.h"

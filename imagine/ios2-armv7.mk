@@ -1,1 +1,0 @@
-make/shortcut/common-builds/ios2-armv7.mk

@@ -1,7 +1,7 @@
 #include <FileUtils.hh>
-#include <util/strings.h>
-#include <fs/sys.hh>
-#include <base/Base.hh>
+#include <imagine/util/strings.h>
+#include <imagine/fs/sys.hh>
+#include <imagine/base/Base.hh>
 
 void chdirFromFilePath(const char *path)
 {

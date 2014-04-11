@@ -16,8 +16,8 @@
 #include <TouchConfigView.hh>
 #include <EmuInput.hh>
 #include <EmuApp.hh>
-#include <gui/AlertView.hh>
-#include <base/Timer.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/base/Timer.hh>
 
 /*static const char *ctrlPosStr[] =
 {
