@@ -15,17 +15,15 @@
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "IOSWindow"
-#import "MainApp.h"
-#import <imagine/base/iphone/EAGLView.h>
+#import "MainApp.hh"
+#import <imagine/base/iphone/EAGLView.hh>
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
 #include "../common/windowPrivate.hh"
 #include "private.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/gfx/Gfx.hh>
-#ifdef CONFIG_INPUT_ICADE
-#include "ICadeHelper.hh"
-#endif
+#include "ios.hh"
 
 #ifndef GL_RENDERBUFFER
 #define GL_RENDERBUFFER GL_RENDERBUFFER_OES
@@ -38,16 +36,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace Base
 {
 
-bool useMaxColorBits = Config::MACHINE_IS_GENERIC_ARMV7;
-extern BOOL displayLinkActive;
-extern EAGLContext *mainContext;
-extern CADisplayLink *displayLink;
-extern UIApplication *sharedApp;
-extern bool useMaxColorBits;
-extern bool isIPad;
-#ifdef CONFIG_INPUT_ICADE
-extern ICadeHelper iCade;
-#endif
+bool useMaxColorBits = Config::BASE_IOS_GLKIT;
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
 static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
@@ -109,11 +98,12 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 
 static void initGLContext()
 {
-	#if __ARM_ARCH >= 7
-	mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-	#else
-	mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
-	#endif
+	if(Gfx::maxOpenGLMajorVersionSupport() == 1)
+		mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+	else if(Gfx::maxOpenGLMajorVersionSupport() == 2)
+		mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+	else
+		bug_exit("unsupported OpenGL ES major version: %d", Gfx::maxOpenGLMajorVersionSupport());
 	assert(mainContext);
 	int ret = [EAGLContext setCurrentContext:mainContext];
 	assert(ret);
@@ -174,7 +164,7 @@ void Window::setPixelBestColorHint(bool best)
 
 bool Window::pixelBestColorHintDefault()
 {
-	return Config::MACHINE_IS_GENERIC_ARMV7;
+	return Config::BASE_IOS_GLKIT;
 }
 
 void Window::swapBuffers()
@@ -231,7 +221,7 @@ void IOSWindow::updateContentRect(int width, int height, uint rotateView, UIAppl
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	uint dpi = 163 * pointScale;
-	#if !defined(__ARM_ARCH_6K__) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 30200)
+	#if !defined __ARM_ARCH_6K__
 	if(isIPad)
 	{
 		// based on iPad DPI of 132 (264 retina)
@@ -280,7 +270,7 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	[glView() bindDrawable];
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_INPUT_ICADE
-	iCade.init(glView());
+	Input::iCade.init(glView());
 	#endif
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	setAutoOrientation(1);

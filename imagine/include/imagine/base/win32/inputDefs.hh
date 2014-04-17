@@ -91,12 +91,6 @@ namespace Keycode
 			(c == '@') ? 0x105 : // TODO: remove
 			0;
 	}
-
-	static uint decodeAscii(Key k, bool isShiftPushed)
-	{
-		bug_exit("TODO");
-		return 0;
-	}
 };
 
 typedef uint16 Key;

@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,19 +13,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/bits.h>
-#include "../../input/common/common.h"
 #include <imagine/input/DragPointer.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include "x11.hh"
+#include "../../input/private.hh"
 
 using namespace Base;
-
-#ifdef CONFIG_INPUT_ICADE
-#include "../../input/common/iCade.hh"
-#endif
 
 namespace Input
 {
@@ -36,7 +30,7 @@ static DragPointer dragStateArr[Input::maxCursors];
 static Cursor blankCursor = (Cursor)0;
 static Cursor normalCursor = (Cursor)0;
 uint numCursors = 0;
-bool translateKeycodes = 0;
+bool translateKeycodes = false;
 static int xI2opcode = 0;
 static int xPointerMapping[Input::maxCursors];
 static XkbDescPtr coreKeyboardDesc = nullptr;
@@ -98,11 +92,7 @@ DragPointer *dragState(int p)
 
 void setKeyRepeat(bool on)
 {
-	allowKeyRepeats = on;
-	if(!on)
-	{
-		deinitKeyRepeatTimer();
-	}
+	setAllowKeyRepeats(on);
 }
 
 void initPerWindowData(::Window win)
@@ -170,21 +160,19 @@ bool translateKeyboardEventsByModifiers()
 	return translateKeycodes;
 }
 
-static CallResult setupXInput2()
+static CallResult setupXInput2(Display *dpy)
 {
-	// XInput Extension available?
 	int event, error;
 	if(!XQueryExtension(dpy, "XInputExtension", &xI2opcode, &event, &error))
 	{
-		logWarn("X Input extension not available");
+		logErr("XInput extension not available");
 		return INVALID_PARAMETER;
 	}
 
-	// Which version of XI
 	int major = 2, minor = 0;
 	if(XIQueryVersion(dpy, &major, &minor) == BadRequest)
 	{
-		logWarn("XI2 not available. Server supports %d.%d", major, minor);
+		logErr("required XInput 2.0 version not available, server supports %d.%d", major, minor);
 		return INVALID_PARAMETER;
 	}
 
@@ -273,7 +261,7 @@ static const char *xInputDeviceTypeToStr(int type)
 
 CallResult init()
 {
-	if(setupXInput2() != OK)
+	if(setupXInput2(dpy) != OK)
 	{
 		exit();
 	}
@@ -322,42 +310,143 @@ CallResult init()
 	return OK;
 }
 
-}
-
-static void updatePointer(Base::Window &win, uint event, int p, uint action, int x, int y, Input::Time time)
+static void updatePointer(Base::Window &win, uint key, int p, uint action, int x, int y, Input::Time time)
 {
-	using namespace Input;
 	auto &state = dragStateArr[p];
-	auto pos = pointerPos(win, x /*- win.viewRect.x*/, y /*- win.viewRect.y*/);
-	state.pointerEvent(event, action, pos);
-	Base::onInputEvent(win, Event(p, Event::MAP_POINTER, event, action, pos.x, pos.y, false, time, nullptr));
+	auto pos = transformInputPos(win, {x, y});
+	state.pointerEvent(key, action, pos);
+	Base::onInputEvent(win, Event(p, Event::MAP_POINTER, key, action, pos.x, pos.y, false, time, nullptr));
 }
 
-static void handlePointerButton(Base::Window &win, uint button, int p, uint action, int x, int y, Input::Time time)
+bool handleXI2GenericEvent(XEvent &event)
 {
-	updatePointer(win, button, p, action, x, y, time);
+	assert(event.type == GenericEvent);
+	if(event.xcookie.extension != Input::xI2opcode)
+	{
+		return false;
+	}
+	if(!XGetEventData(dpy, &event.xcookie))
+	{
+		logMsg("error in XGetEventData for XI2 event");
+		return true;
+	}
+
+	XGenericEventCookie *cookie = &event.xcookie;
+	auto &ievent = *((XIDeviceEvent*)cookie->data);
+	// XI_HierarchyChanged isn't window-specific
+	if(unlikely(ievent.evtype == XI_HierarchyChanged))
+	{
+		//logMsg("input device hierarchy changed");
+		auto &ev = *((XIHierarchyEvent*)cookie->data);
+		iterateTimes(ev.num_info, i)
+		{
+			if(ev.info[i].flags & XISlaveAdded)
+			{
+				int devices;
+				XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
+				if(devices)
+				{
+					if(device->use == XISlaveKeyboard)
+					{
+						Input::addXInputDevice(*device, true);
+					}
+					XIFreeDeviceInfo(device);
+				}
+			}
+			else if(ev.info[i].flags & XISlaveRemoved)
+			{
+				Input::removeXInputDevice(ev.info[i].deviceid);
+			}
+		}
+		XFreeEventData(dpy, &event.xcookie);
+		return true;
+	}
+	// others events are for specific windows
+	auto destWin = windowForXWindow(ievent.event);
+	if(unlikely(!destWin))
+	{
+		//logWarn("ignored event for unknown window");
+		XFreeEventData(dpy, &event.xcookie);
+		return true;
+	}
+	auto &win = *destWin;
+	//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));
+	switch(ievent.evtype)
+	{
+		bcase XI_ButtonPress:
+			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, ievent.time);
+		bcase XI_ButtonRelease:
+			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, ievent.time);
+		bcase XI_Motion:
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, ievent.time);
+		bcase XI_Enter:
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, ievent.time);
+		bcase XI_Leave:
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, ievent.time);
+		bcase XI_FocusIn:
+			onFocusChange(win, 1);
+		bcase XI_FocusOut:
+			onFocusChange(win, 0);
+		bcase XI_KeyPress:
+		{
+			Input::cancelKeyRepeatTimer();
+			auto dev = Input::deviceForInputId(ievent.sourceid);
+			KeySym k;
+			if(Input::translateKeycodes)
+			{
+				unsigned int modsReturn;
+				XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+			}
+			else
+				k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+			bool repeated = ievent.flags & XIKeyRepeat;
+			//logMsg("press KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
+			if(k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
+			{
+				toggleFullScreen(win.xWin);
+			}
+			else
+			{
+				using namespace Input;
+				if(!repeated || Input::allowKeyRepeats())
+				{
+					//logMsg("push KeySym %d, KeyCode %d", (int)k, ievent.detail);
+					#ifdef CONFIG_INPUT_ICADE
+					if(!dev->iCadeMode()
+						|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::PUSHED, *dev, win)))
+					#endif
+					{
+						bool isShiftPushed = ievent.mods.effective & ShiftMask;
+						Base::onInputEvent(win, Event(dev->enumId(), Event::MAP_SYSTEM, k & 0xFFFF, PUSHED, isShiftPushed, ievent.time, dev));
+					}
+				}
+			}
+		}
+		bcase XI_KeyRelease:
+		{
+			auto dev = Input::deviceForInputId(ievent.sourceid);
+			KeySym k;
+			if(Input::translateKeycodes)
+			{
+				unsigned int modsReturn;
+				XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
+			}
+			else
+				k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+			using namespace Input;
+			//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
+			#ifdef CONFIG_INPUT_ICADE
+			if(!dev->iCadeMode()
+				|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::RELEASED, *dev, win)))
+			#endif
+			{
+				Base::onInputEvent(win, Event(dev->enumId(), Event::MAP_SYSTEM, k & 0xFFFF, RELEASED, 0, ievent.time, dev));
+			}
+		}
+	}
+	XFreeEventData(dpy, &event.xcookie);
+	return true;
 }
 
-static void handlePointerMove(Base::Window &win, int x, int y, int p, Input::Time time)
-{
-	//Input::m[p].inWin = 1;
-	updatePointer(win, 0, p, Input::MOVED, x, y, time);
 }
 
-static void handlePointerEnter(Base::Window &win, int p, int x, int y, Input::Time time)
-{
-	//Input::m[p].inWin = 1;
-	updatePointer(win, 0, p, Input::ENTER_VIEW, x, y, time);
-}
-
-static void handlePointerLeave(Base::Window &win, int p, int x, int y, Input::Time time)
-{
-	//Input::m[p].inWin = 0;
-	updatePointer(win, 0, p, Input::EXIT_VIEW, x, y, time);
-}
-
-static void handleKeyEv(Base::Window &win, KeySym k, uint action, bool isShiftPushed, Input::Time time, const Input::Device *dev)
-{
-	Input::cancelKeyRepeatTimer();
-	Base::onInputEvent(win, Input::Event(dev->enumId(), Input::Event::MAP_SYSTEM, k & 0xFFFF, action, isShiftPushed, time, dev));
-}

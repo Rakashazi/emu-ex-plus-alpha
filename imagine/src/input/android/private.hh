@@ -30,4 +30,7 @@ extern bool sendInputToIME;
 void onPauseMOGA(JNIEnv *jEnv);
 void onResumeMOGA(JNIEnv *jEnv, bool notify);
 
+void setEventsUseOSInputMethod(bool on);
+bool eventsUseOSInputMethod();
+
 }

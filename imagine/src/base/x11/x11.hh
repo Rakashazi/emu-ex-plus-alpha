@@ -38,11 +38,15 @@ namespace Base
 
 	void setupScreenSizeFromX11();
 	Window *windowForXWindow(::Window xWin);
+	void toggleFullScreen(::Window xWin);
 }
 
 namespace Input
 {
 	void initPerWindowData(::Window win);
+
+	// returns true if event is XI2, false otherwise
+	bool handleXI2GenericEvent(XEvent &event);
 }
 
 namespace Config

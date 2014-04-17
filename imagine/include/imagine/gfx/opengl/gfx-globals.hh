@@ -4,7 +4,7 @@
 #include <imagine/util/fixed.hh>
 #include <imagine/util/normalFloat.hh>
 
-#if defined __APPLE__ && (defined __i386__ || defined __x86_64__ || __ARM_ARCH >= 7)
+#if defined __APPLE__ && !defined __ARM_ARCH_6K__
 #define CONFIG_GFX_MATH_GLKIT
 #else
 #define CONFIG_GFX_MATH_GLM

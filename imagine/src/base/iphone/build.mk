@@ -1,9 +1,9 @@
 ifndef inc_base
 inc_base := 1
 
-include $(IMAGINE_PATH)/make/package/stdc++.mk
+include $(imagineSrcDir)/input/build.mk
 
-configDefs += CONFIG_BASE_IOS CONFIG_INPUT
+configDefs += CONFIG_BASE_IOS
 
 ifdef iosJailbreak
  configDefs += CONFIG_BASE_IOS_JB
@@ -18,7 +18,9 @@ ifdef iosMsgUI
  LDLIBS += -framework MessageUI
 endif
 
-SRC += base/iphone/iphone.mm base/iphone/IOSWindow.mm base/iphone/EAGLView.mm \
- base/common/timer/CFTimer.cc base/common/PosixPipe.cc base/common/eventloop/CFEventLoop.cc util/string/apple.mm
+SRC += base/common/Base.cc base/iphone/iphone.mm base/iphone/IOSWindow.mm \
+ base/iphone/EAGLView.mm base/iphone/input.mm \
+ base/common/timer/CFTimer.cc base/common/PosixPipe.cc \
+ base/common/eventloop/CFEventLoop.cc util/string/apple.mm
 
 endif

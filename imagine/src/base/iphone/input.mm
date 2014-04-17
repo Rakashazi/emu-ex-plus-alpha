@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -16,13 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
-#include "../../input/common/common.h"
 #include <imagine/input/DragPointer.hh>
-
-namespace Base
-{
-	extern MainApp *mainApp;
-}
+#import "MainApp.hh"
+#include "../../input/private.hh"
+#include "ios.hh"
 
 namespace Input
 {
@@ -39,7 +34,7 @@ struct ICadeDevice : public Device
 	{
 		logMsg("set iCade mode %s", on ? "on" : "off");
 		iCadeMode_ = on;
-		Base::iCade.setActive(on);
+		iCade.setActive(on);
 	}
 
 	bool iCadeMode() const override
@@ -51,10 +46,7 @@ struct ICadeDevice : public Device
 
 static ICadeDevice icadeDev;
 
-#if defined(IPHONE_VKEYBOARD)
-extern UITextField *vkbdField;
-extern InputTextDelegate vKeyboardTextDelegate;
-extern IG::WindowRect textRect;
+#if defined IPHONE_VKEYBOARD
 
 static CGAffineTransform makeTransformForOrientation(uint orientation)
 {
@@ -195,11 +187,7 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 
 void setKeyRepeat(bool on)
 {
-	allowKeyRepeats = on;
-	if(!on)
-	{
-		deinitKeyRepeatTimer();
-	}
+	setAllowKeyRepeats(on);
 }
 
 CallResult init()

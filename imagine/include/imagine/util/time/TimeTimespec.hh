@@ -32,24 +32,24 @@ public:
 	static constexpr long NSEC_PER_MSEC = 1000000;
 	static constexpr long NSEC_PER_SEC = 1000000000;
 
-	static TimeTimespec makeWithNSecs(long int nsecs)
+	static TimeTimespec makeWithNSecs(long long nsecs)
 	{
-		return {(struct timespec){nsecs / NSEC_PER_SEC, nsecs}};
+		return {(struct timespec){(long int)(nsecs / NSEC_PER_SEC), (long int)(nsecs % NSEC_PER_SEC)}};
 	}
 
-	static TimeTimespec makeWithUSecs(long int usecs)
+	static TimeTimespec makeWithUSecs(long long usecs)
 	{
-		return {(struct timespec){usecs / USEC_PER_SEC, (usecs % USEC_PER_SEC) * NSEC_PER_USEC}};
+		return {(struct timespec){(long int)(usecs / USEC_PER_SEC), (long int)((usecs % USEC_PER_SEC) * NSEC_PER_USEC)}};
 	}
 
-	static TimeTimespec makeWithMSecs(long int msecs)
+	static TimeTimespec makeWithMSecs(long long msecs)
 	{
-		return {(struct timespec){msecs / MSEC_PER_SEC, (msecs % MSEC_PER_SEC) * NSEC_PER_MSEC}};
+		return {(struct timespec){(long int)(msecs / MSEC_PER_SEC), (long int)((msecs % MSEC_PER_SEC) * NSEC_PER_MSEC)}};
 	}
 
-	static TimeTimespec makeWithSecs(long int secs)
+	static TimeTimespec makeWithSecs(long long secs)
 	{
-		return {(struct timespec){secs, 0}};
+		return {(struct timespec){(long int)(secs), 0}};
 	}
 
 	static TimeTimespec now()

@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,11 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#if defined(__unix__) || defined(__APPLE__)
+#if defined __unix__ || defined __APPLE__
 #include <unistd.h>
 #include <sys/resource.h>
 #endif
-
+#include "basePrivate.hh"
+#include <imagine/base/Base.hh>
 #include <imagine/util/system/pagesize.h>
 
 namespace Base
@@ -27,13 +26,12 @@ namespace Base
 
 const char copyright[] = "Imagine is Copyright 2010-2014 Robert Broglia";
 
-[[gnu::cold]] static void engineInit();
-static void engineInit()
+void engineInit()
 {
 	#ifdef CONFIG_INITPAGESIZE
 	initPageSize();
 	#endif
-	#if defined __unix__ || defined CONFIG_BASE_MACOSX
+	#if defined __unix__ || (defined __APPLE__ && defined TARGET_OS_MAC)
 	struct rlimit stack;
 	getrlimit(RLIMIT_STACK, &stack);
 	stack.rlim_cur = 16 * 1024 * 1024;

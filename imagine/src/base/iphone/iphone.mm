@@ -15,8 +15,8 @@
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "Base"
-#import "MainApp.h"
-#import <imagine/base/iphone/EAGLView.h>
+#import "MainApp.hh"
+#import <imagine/base/iphone/EAGLView.hh>
 #import <dlfcn.h>
 #import <unistd.h>
 
@@ -25,8 +25,9 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/time/sys.hh>
-#include "../common/funcs.h"
+#include "../common/basePrivate.hh"
 #include "../common/windowPrivate.hh"
+#include "ios.hh"
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
@@ -39,7 +40,6 @@ namespace Base
 	uint screenPointScale = 1;
 	#endif
 }
-
 
 #if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
 namespace Input
@@ -54,7 +54,7 @@ namespace Input
 
 #ifdef CONFIG_INPUT_ICADE
 #include "ICadeHelper.hh"
-namespace Base
+namespace Input
 {
 	ICadeHelper iCade {nil};
 }
@@ -70,6 +70,7 @@ BOOL displayLinkActive = NO;
 bool isIPad = 0;
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
+static FrameTimeBase prevFrameTime = 0;
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -209,16 +210,21 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 - (void)displayLinkCallback
 {
+	using namespace Base;
 	//logMsg("screen update");
 	/*TimeSys now;
 	now.setTimeNow();
 	logMsg("frame time stamp %f, duration %f, now %f", displayLink.timestamp, displayLink.duration, (float)now);*/
-	Base::frameUpdate(Base::displayLink.timestamp);
-	if(!Base::mainScreen().frameIsPosted())
+	auto timestamp = displayLink.timestamp;
+	frameUpdate(timestamp);
+	if(!mainScreen().frameIsPosted())
 	{
 		//logMsg("stopping screen updates");
-		Base::mainScreen().unpostFrame();
+		mainScreen().unpostFrame();
+		prevFrameTime = 0;
 	}
+	else
+		prevFrameTime = timestamp;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -309,7 +315,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::onResume(1);
 	mainWindow().postDraw();
 	#ifdef CONFIG_INPUT_ICADE
-	iCade.didBecomeActive();
+	Input::iCade.didBecomeActive();
 	#endif
 }
 
@@ -330,7 +336,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::onExit(true);
 	mainScreen().unpostFrame();
 	#ifdef CONFIG_INPUT_ICADE
-	iCade.didEnterBackground();
+	Input::iCade.didEnterBackground();
 	#endif
 	glFinish();
 	[Base::mainWindow().glView() deleteDrawable];
@@ -523,6 +529,11 @@ bool Screen::supportsFrameTime()
 	return true;
 }
 
+FrameTimeBase Screen::lastPostedFrameTime()
+{
+	return prevFrameTime;
+}
+
 }
 
 double TimeMach::timebaseNSec = 0, TimeMach::timebaseUSec = 0,
@@ -552,7 +563,7 @@ int main(int argc, char *argv[])
 	FsPosix::changeToAppDir(argv[0]);
 	#endif
 	
-	#if !defined(__ARM_ARCH_6K__) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 30200)
+	#if !defined __ARM_ARCH_6K__
 	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
 	{
 		isIPad = 1;

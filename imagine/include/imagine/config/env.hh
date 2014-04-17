@@ -118,19 +118,21 @@ static const bool BASE_CAN_BACKGROUND_APP = 0;
 #define CONFIG_ARCH_STR "ppc"
 #elif defined __mips__
 #define CONFIG_ARCH_STR "mips"
+#elif defined __aarch64__
+#define CONFIG_ARCH_STR "aarch64"
 #elif __arm__
-	#if defined __ARM_ARCH_7A__
-		// default Android & iOS ARMv7 profile
-	#define CONFIG_ARCH_STR "armv7"
-	#elif defined __ARM_ARCH_7S__
+	#if defined __ARM_ARCH_7S__
 	#define CONFIG_ARCH_STR "armv7s"
-	#elif defined __ARM_ARCH_6__ || defined __ARM_ARCH_6K__ || defined __ARM_ARCH_6J__
-		// default iOS ARMv6 profile -> __ARM_ARCH_6K__
-		// default WebOS ARMv6 profile -> __ARM_ARCH_6J__
-	#define CONFIG_ARCH_STR "armv6"
 	#elif defined __ARM_ARCH_5TE__
-		// default Android "ARMv6" profile
-	#define CONFIG_ARCH_STR "armv5"
+	// default Android "ARM" profile
+	#define CONFIG_ARCH_STR "armv5te"
+	#elif __ARM_ARCH == 7
+	// default Android & iOS ARMv7 profile -> __ARM_ARCH_7A__
+	#define CONFIG_ARCH_STR "armv7"
+	#elif __ARM_ARCH == 6
+	// default iOS ARMv6 profile -> __ARM_ARCH_6K__
+	// default WebOS ARMv6 profile -> __ARM_ARCH_6J__
+	#define CONFIG_ARCH_STR "armv6"
 	#else
 	#define CONFIG_ARCH_STR "arm"
 	#endif

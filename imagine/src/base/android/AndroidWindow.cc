@@ -23,28 +23,12 @@
 #include <imagine/gfx/Gfx.hh>
 #include <android/native_activity.h>
 #include <android/looper.h>
-#include "EGLContextHelper.hh"
+#include "androidBase.hh"
 
 namespace Base
 {
 
-extern float androidXDPI, androidYDPI;
-extern float aDensityDPI;
-extern JavaInstMethod<void> jSetWinFormat;
-extern JavaInstMethod<int> jWinFormat;
-extern JavaInstMethod<void> jSetRequestedOrientation;
-extern JavaInstMethod<void> jPostFrame, jUnpostFrame;
-extern EGLContextHelper eglCtx;
-extern EGLDisplay display;
-extern int osOrientation;
-extern bool resumeAppOnWindowInit;
-extern uint onFrameEventIdle;
-extern int onFrameEventFd;
-extern jobject frameHelper;
-extern bool aHasFocus;
 static uint windowSizeChecks = 0;
-extern uint appState;
-extern TimeSys orientationEventTime;
 
 void onResume(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);

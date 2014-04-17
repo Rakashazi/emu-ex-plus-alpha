@@ -1,7 +1,9 @@
-ifndef inc_input
-inc_input := 1
+ifndef inc_input_android
+inc_input_android := 1
 
-configDefs += CONFIG_INPUT CONFIG_INPUT_ANDROID
+include $(imagineSrcDir)/input/build.mk
+
+configDefs += CONFIG_INPUT_ANDROID
 
 SRC += input/android/androidInput.cc
 

@@ -20,7 +20,7 @@
 #include <imagine/base/iphone/config.h>
 
 #ifdef __OBJC__
-#import <imagine/base/iphone/EAGLView.h>
+#import <imagine/base/iphone/EAGLView.hh>
 #endif
 
 namespace Base

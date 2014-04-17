@@ -39,9 +39,9 @@ struct EGLContextHelper
 		configIsSet = true;
 		#endif
 		EGLint configs = 0;
-		const EGLint *attrWinRGB888 = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinRGB888 : eglAttrWinRGB888ES2;
-		const EGLint *attrWinMaxRGBA = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinMaxRGBA : eglAttrWinMaxRGBAES2;
-		const EGLint *attrWinLowColor = Config::MACHINE_IS_GENERIC_ARM ? eglAttrWinLowColor : eglAttrWinLowColorES2;
+		const EGLint *attrWinRGB888 = Gfx::maxOpenGLMajorVersionSupport() == 1 ? eglAttrWinRGB888 : eglAttrWinRGB888ES2;
+		const EGLint *attrWinMaxRGBA = Gfx::maxOpenGLMajorVersionSupport() == 1 ? eglAttrWinMaxRGBA : eglAttrWinMaxRGBAES2;
+		const EGLint *attrWinLowColor = Gfx::maxOpenGLMajorVersionSupport() == 1 ? eglAttrWinLowColor : eglAttrWinLowColorES2;
 		if(useMaxColorBits)
 		{
 			// search for non-alpha RGB 888 config
@@ -87,12 +87,12 @@ struct EGLContextHelper
 		#ifndef NDEBUG
 		assert(configIsSet);
 		#endif
-		if(Config::MACHINE_IS_GENERIC_ARM)
+		if(Gfx::maxOpenGLMajorVersionSupport() == 1)
 			context = eglCreateContext(display, config, 0, nullptr);
-		else
-		{
+		else if(Gfx::maxOpenGLMajorVersionSupport() == 2)
 			context = eglCreateContext(display, config, 0, eglAttrES2Ctx);
-		}
+		else
+			bug_exit("unsupported OpenGL ES major version: %d", Gfx::maxOpenGLMajorVersionSupport());
 	}
 
 	static int winFormatFromConfig(EGLDisplay display, EGLConfig config)

@@ -3,17 +3,7 @@ makefilesToRun='
 	
 	src/boost/linux-armv7-pandora.mk
 '
+source runMakefiles.sh
 
-for makefile in $makefilesToRun
-do
-	oldDir=`pwd`
-	cd `dirname $makefile`
-	echo "running make on $makefile"
-	make -f `basename $makefile` $@
-	if [ $? != 0 ]
-	then
-		exit 1
-	fi
-	cd $oldDir
-done
+runMakefiles $@
 

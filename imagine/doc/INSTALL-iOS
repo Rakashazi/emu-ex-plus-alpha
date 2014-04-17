@@ -1,0 +1,20 @@
+The following sections supplement the ones in the main INSTALL text for the iOS port. An ARMv7 device running at least iOS 5.0 is required to run Imagine. However, it's possible to use an ARMv6 device with at least iOS 4.0 using the sysroot from Xcode 4.4 and some extra toolchain modifications, to be detailed in a future version of this document.
+
+1. Tools and Environment Setup
+==============================
+
+The following make variables are used by the build system:
+
+XCODE_PATH : Optional, defaults to $(shell xcode-select --print-path)
+ - The path in the Xcode app bundle containing the "Platforms/" subdirectory
+ 
+IOS_SDK : Optional, defaults to 7.1
+ - The version of the SDK in Xcode to use as the sysroot
+
+ios_arch : Optional, default set by app
+ - When building an Imagine-based app, specifies a space separated list of which architectures to build ("armv6 armv7" for example)
+
+--------------------------------
+
+Copyright 2014 by Robert Broglia
+

@@ -21,7 +21,7 @@
 #include <imagine/base/android/sdk.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
-#if defined __ANDROID__ && defined __arm__ && __ARM_ARCH < 7
+#if defined __ANDROID__ && defined CONFIG_MACHINE_GENERIC_ARM
 // some ARMv6 kernels lack mremap mirroring features, so use a plain ring buffer
 #include <imagine/util/ringbuffer/RingBuffer.hh>
 using RingBufferType = StaticRingBuffer<>;

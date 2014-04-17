@@ -29,7 +29,7 @@
 #include <logger/logger.h>
 #include <util/container/DLList.hh>
 #include <base/Base.hh>
-#include <base/common/funcs.h>
+#include "../common/basePrivate.hh"
 
 #include "input.hh"
 

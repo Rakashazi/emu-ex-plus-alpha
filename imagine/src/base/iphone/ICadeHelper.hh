@@ -17,7 +17,7 @@
 
 #include <imagine/input/Input.hh>
 #include <imagine/base/Base.hh>
-#include "../../input/common/iCade.hh"
+#include "../../input/private.hh"
 
 struct ICadeHelper
 {

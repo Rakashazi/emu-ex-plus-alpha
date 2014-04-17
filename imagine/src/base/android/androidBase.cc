@@ -16,14 +16,14 @@
 #define LOGTAG "Base"
 #include <cstdlib>
 #include <errno.h>
-
+#include <sys/resource.h>
 #include <imagine/logger/logger.h>
 #include <imagine/engine-globals.h>
 #include <imagine/base/android/sdk.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include "../common/windowPrivate.hh"
-#include "../common/funcs.h"
+#include "../common/basePrivate.hh"
 #include "ASurface.hh"
 #include <imagine/gfx/Gfx.hh>
 #include "private.hh"
@@ -40,7 +40,7 @@
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include "../../input/android/private.hh"
-#include "EGLContextHelper.hh"
+#include "androidBase.hh"
 
 bool glSyncHackEnabled = 0, glSyncHackBlacklisted = 0;
 bool glPointerStateHack = 0, glBrokenNpot = 0;
@@ -136,7 +136,7 @@ TimeSys orientationEventTime;
 // window
 jobject frameHelper = nullptr;
 static bool hasChoreographer = 0;
-static int64 prevFrameTimeNanos = 0;
+static FrameTimeBase prevFrameTimeNanos = 0;
 EGLContextHelper eglCtx;
 EGLDisplay display = EGL_NO_DISPLAY;
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
@@ -402,6 +402,11 @@ uint Screen::refreshRate()
 	return refreshRate_;
 }
 
+FrameTimeBase Screen::lastPostedFrameTime()
+{
+	return prevFrameTimeNanos;
+}
+
 bool surfaceTextureSupported()
 {
 	return Gfx::surfaceTextureConf.isSupported();
@@ -564,8 +569,9 @@ static void initEGL()
 	display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 	assert(display != EGL_NO_DISPLAY);
 	eglInitialize(display, 0, 0);
+	#ifndef NDEBUG
 	logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
-
+	#endif
 	//ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
 	//printEGLConfs(display);
 	//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
@@ -750,7 +756,7 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 	androidXDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
 	androidYDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
 
-	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
+	if(!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11)
 	{
 		// TODO: need to re-test with OpenGL ES 2.0 backend
 		/*if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
@@ -846,22 +852,25 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
 				{
 					#ifndef NDEBUG
-					long long timeSinceFrame = (long long)TimeSys::now().toNs() - frameTimeNanos;
-					long long diffFromLastFrame = frameTimeNanos - prevFrameTimeNanos;
+					FrameTimeBase timeSinceFrame = TimeSys::now().toNs() - frameTimeNanos;
+					FrameTimeBase diffFromLastFrame = frameTimeNanos - prevFrameTimeNanos;
 					//logMsg("frame at %lldns, %lldns since then, %lldns since last frame",
-					//	(long long)frameTimeNanos, timeSinceFrame, diffFromLastFrame);
-					static int frameCount = 0;
-					const int timeDiffTest = 17000000;
-					frameCount++;
+					//	(long long)frameTimeNanos, (long long)timeSinceFrame, (long long)diffFromLastFrame);
+					static int continuousFrames = 0;
+					const FrameTimeBase timeDiffTest = 25000000;
 					if(prevFrameTimeNanos && diffFromLastFrame > timeDiffTest)
 					{
-						logMsg("took %lldns (> %dns) after %d frames", diffFromLastFrame, timeDiffTest, frameCount);
-						frameCount = 0;
+						logMsg("late frame: %lldns (> %dns) after %d continuous frames", (long long)diffFromLastFrame, (int)timeDiffTest, continuousFrames);
+						continuousFrames = 0;
 					}
 					#endif
 					assert(mainScreen().frameIsPosted());
-					prevFrameTimeNanos = frameTimeNanos;
-					return (jboolean)onFrame(frameTimeNanos, false);
+					jboolean postNextFrame = onFrame(frameTimeNanos, false);
+					prevFrameTimeNanos = postNextFrame ? frameTimeNanos : 0;
+					#ifndef NDEBUG
+					continuousFrames = postNextFrame ? continuousFrames + 1 : 0;
+					#endif
+					return postNextFrame;
 				})
 			}
 		};
@@ -1043,40 +1052,6 @@ void jniThreadDeleteGlobalRef(JNIEnv* jEnv, jobject obj)
 {
 	jEnv->DeleteGlobalRef(obj);
 }
-
-/*void sendMessageToMain(int type, int shortArg, int intArg, int intArg2)
-{
-	assert(writeMsgPipe != -1);
-	uint16 shortArg16 = shortArg;
-	int msg[3] = { (shortArg16 << 16) | type, intArg, intArg2 };
-	logMsg("sending msg type %d with args %d %d %d", msg[0] & 0xFFFF, msg[0] >> 16, msg[1], msg[2]);
-	if(::write(writeMsgPipe, &msg, sizeof(msg)) != sizeof(msg))
-	{
-		logErr("unable to write message to pipe: %s", strerror(errno));
-	}
-}
-
-void sendMessageToMain(ThreadPThread &, int type, int shortArg, int intArg, int intArg2)
-{
-	sendMessageToMain(type, shortArg, intArg, intArg2);
-}*/
-
-/*#ifdef CONFIG_BLUETOOTH_ANDROID
-static const ushort MSG_BT_DATA = 150;
-
-void sendBTSocketData(BluetoothSocket &socket, int len, jbyte *data)
-{
-	int msg[3] = { MSG_BT_DATA, (int)&socket, len };
-	if(::write(writeMsgPipe, &msg, sizeof(msg)) != sizeof(msg))
-	{
-		logErr("unable to write message header to pipe: %s", strerror(errno));
-	}
-	if(::write(writeMsgPipe, data, len) != len)
-	{
-		logErr("unable to write bt data to pipe: %s", strerror(errno));
-	}
-}
-#endif*/
 
 void setIdleDisplayPowerSave(bool on)
 {

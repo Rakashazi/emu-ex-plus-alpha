@@ -91,8 +91,10 @@ public:
 	void clearOnFrameDelegates();
 	void runOnFrameDelegates(FrameTimeBase frameTime);
   #if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS
+  FrameTimeBase lastPostedFrameTime();
   static bool supportsFrameTime();
   #else
+  FrameTimeBase lastPostedFrameTime() { return 0; }
   static bool supportsFrameTime() { return false; }
   #endif
   uint refreshRate();

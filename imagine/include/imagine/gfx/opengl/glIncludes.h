@@ -12,7 +12,7 @@
 
 #ifdef CONFIG_GFX_OPENGL_ES
 	#ifndef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-		#error "CONFIG_GFX_OPENGL_ES_MAJOR_VERSION isn't defined"
+	#error "CONFIG_GFX_OPENGL_ES_MAJOR_VERSION isn't defined"
 	#endif
 #endif
 
@@ -76,10 +76,6 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
-	#if defined CONFIG_BASE_X11
-	#define CONFIG_GFX_OPENGL_GLX
-	#include <imagine/base/x11/glxIncludes.h>
-	#endif
 #endif
 
 // Symbol Re-mapping

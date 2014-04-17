@@ -83,8 +83,6 @@ enum {
 
 #endif
 
-#define CONFIG_INPUT_GENERIC_ASCII_DECODE
-
 namespace Input
 {
 
@@ -162,6 +160,8 @@ namespace OSX
 	;
 
 	static const uint COUNT = 0xffff;
+
+	static constexpr uint asciiKey(uint c) { return c; }
 };
 
 typedef uint16 Key;

@@ -210,7 +210,7 @@ ifneq ($(wildcard $(android_resSrcPath)/proguard.cfg),)
 android_proguardConfPath := $(android_targetPath)/proguard.cfg
 $(android_proguardConfPath) : | $(android_buildXml)
 	@mkdir -p $(@D)
-	ln -s $(android_resSrcPath)/proguard.cfg $@
+	ln -rs $(android_resSrcPath)/proguard.cfg $@
 endif
 
 # native libs

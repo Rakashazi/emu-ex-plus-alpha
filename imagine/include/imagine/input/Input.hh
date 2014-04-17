@@ -69,14 +69,6 @@ static void hideSoftInput() {}
 static bool softInputIsActive() { return 0; }
 #endif
 
-#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
-void setEventsUseOSInputMethod(bool on);
-bool eventsUseOSInputMethod();
-#else
-static void setEventsUseOSInputMethod(bool on) {}
-static bool eventsUseOSInputMethod() { return 0; }
-#endif
-
 #ifdef INPUT_SUPPORTS_POINTER
 extern uint numCursors;
 void hideCursor();
@@ -95,6 +87,12 @@ static bool isVolumeKey(Key event)
 	return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
 	#endif
 }
+
+	namespace CONFIG_INPUT_KEYCODE_NAMESPACE
+	{
+	uint decodeAscii(Key k, bool isShiftPushed);
+	bool isAsciiKey(Key k);
+	}
 
 static constexpr uint MAX_DEVS = Config::envIsAndroid ? 24 : 16;
 extern StaticArrayList<Device*, MAX_DEVS> devList;
@@ -233,7 +231,7 @@ public:
 
 	bool isPointer() const
 	{
-		return Input::SUPPORTS_POINTER && (map == MAP_POINTER/*input_eventIsFromPointer(button)*/ || stateIsPointer());
+		return Input::SUPPORTS_POINTER && (map == MAP_POINTER || stateIsPointer());
 	}
 
 	bool isRelativePointer() const
@@ -245,23 +243,6 @@ public:
 	{
 		return Input::SUPPORTS_POINTER && pointerIsTouch;
 	}
-
-//	bool isGamepad() const
-//	{
-//		switch(map)
-//		{
-//			#ifdef CONFIG_BLUETOOTH
-//			case MAP_WIIMOTE:
-//			case MAP_WII_CC:
-//			case MAP_ICONTROLPAD:
-//			case MAP_ZEEMOTE: return 1;
-//			#endif
-//			#ifdef CONFIG_INPUT_ICADE
-//			case MAP_ICADE: return 1;
-//			#endif
-//			default : return 0;
-//		}
-//	}
 
 	bool isKey() const
 	{
@@ -313,13 +294,13 @@ public:
 	{
 		return metaState != 0;
 	}
+
+	static const char *actionToStr(int action);
 };
 
 // Input device status
 
 bool keyInputIsPresent();
-
-const char *eventActionToStr(int action);
 
 #ifdef CONFIG_BASE_X11
 void setTranslateKeyboardEventsByModifiers(bool on);
@@ -333,6 +314,8 @@ void dispatchInputEvent(const Event &event);
 void startKeyRepeatTimer(const Event &event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();
+
+IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> srcPos);
 
 // App Callbacks
 

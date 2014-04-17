@@ -15,9 +15,9 @@
 
 #define LOGTAG "InputAndroid"
 #include <imagine/base/android/sdk.hh>
-#include "../common/common.h"
 #include <imagine/input/AxisKeyEmu.hh>
 #include "../../base/android/private.hh"
+#include "../private.hh"
 #include "private.hh"
 #include "AndroidInputDevice.hh"
 #include <imagine/base/Timer.hh>
@@ -229,11 +229,7 @@ void setKeyRepeat(bool on)
 		logMsg("set key repeat %s", on ? "On" : "Off");
 		allowOSKeyRepeats = on;
 	}
-	allowKeyRepeats = on;
-	if(!on)
-	{
-		deinitKeyRepeatTimer();
-	}
+	setAllowKeyRepeats(on);
 }
 
 void setHandleVolumeKeys(bool on)
@@ -868,5 +864,49 @@ CallResult init()
 	}
 	return OK;
 }
+
+	namespace CONFIG_INPUT_KEYCODE_NAMESPACE
+	{
+
+	uint decodeAscii(Key k, bool isShiftPushed)
+	{
+		switch(k)
+		{
+			case 7 ... 16: // 0 - 9
+				return k + 41;
+			case 29 ... 54: // a - z
+			{
+				uint ascii = k + 68;
+				if(isShiftPushed)
+					ascii -= 32;
+				return ascii;
+			}
+			case 17: return '*';
+			case 18: return '#';
+			case 55: return ',';
+			case 56: return '.';
+			case 62: return ' ';
+			case 66: return '\n';
+			case 68: return '`';
+			case 69: return '-';
+			case 70: return '=';
+			case 71: return '[';
+			case 72: return ']';
+			case 73: return '\\';
+			case 74: return ';';
+			case 75: return '\'';
+			case 76: return '/';
+			case 77: return '@';
+			case 81: return '+';
+		}
+		return 0;
+	}
+
+	bool isAsciiKey(Key k)
+	{
+		return decodeAscii(k, 0) != 0;
+	}
+
+	}
 
 }

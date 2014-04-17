@@ -336,7 +336,7 @@ CallResult init()
 	}
 	#else
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		const bool hasGLES1_1 = Config::MACHINE_IS_GENERIC_ARMV7 || strstr(version, "1.1");
+		const bool hasGLES1_1 = !Config::envIsAndroid || (!Config::MACHINE_IS_GENERIC_ARM || strstr(version, "1.1"));
 		const bool hasGLES2_0 = false;
 		#else
 		const bool hasGLES1_1 = true;

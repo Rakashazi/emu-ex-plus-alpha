@@ -15,7 +15,7 @@ else
 endif
 
 ifeq ($(android_hasSDK9), 1)
- SRC += base/android/androidBase.cc base/android/AndroidWindow.cc \
+ SRC += base/common/Base.cc base/android/androidBase.cc base/android/AndroidWindow.cc \
   base/android/ALooperEventLoop.cc base/common/timer/TimerFD.cc base/common/PosixPipe.cc
  LDLIBS += -landroid
 else

@@ -18,7 +18,6 @@
 #include <X11/X.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
-#define CONFIG_INPUT_GENERIC_ASCII_DECODE
 
 namespace Input
 {
@@ -115,6 +114,8 @@ namespace X
 	;
 
 	static const uint COUNT = 0xffff + 1;
+
+	static constexpr uint asciiKey(uint c) { return c; }
 
 	namespace Pandora
 	{

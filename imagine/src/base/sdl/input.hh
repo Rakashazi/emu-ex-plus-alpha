@@ -15,12 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <input/common/common.h>
 #include <input/DragPointer.hh>
-
-#ifdef CONFIG_INPUT_ICADE
-#include <input/common/iCade.hh>
-#endif
 
 namespace Input
 {
@@ -41,7 +36,7 @@ static void mouseEvent(uint button, int p, uint action, int x, int y)
 		logMsg("touch index out of range");
 		return;
 	}
-	pointerPos(x, y, &m[p].x, &m[p].y);
+	transformInputPos(x, y, {&m[p].x, &m[p].y});
 	#ifdef CONFIG_BASE_SDL_PDL
 		button = Input::Pointer::LBUTTON;
 		m[p].inWin = action != INPUT_RELEASED; // handle touch end on WebOS
@@ -76,11 +71,10 @@ static void keyEvent(SDL_keysym k, uint action)
 
 void setKeyRepeat(bool on)
 {
-	allowKeyRepeats = on;
+	setAllowKeyRepeats(on);
 	if(!on)
 	{
 		SDL_EnableKeyRepeat(0, 0);
-		deinitKeyRepeatTimer();
 	}
 	else
 		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);

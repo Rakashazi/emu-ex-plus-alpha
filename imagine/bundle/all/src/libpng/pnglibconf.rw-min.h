@@ -27,7 +27,7 @@
 #if 0
 #define PNG_ERROR_TEXT_SUPPORTED
 #endif
-#if defined __arm__ && (defined __SOFTFP__ || defined __ARM_ARCH_6K__)
+#if defined __arm__ && __ARM_ARCH < 7 && defined __SOFTFP__
 #define PNG_FIXED_POINT_SUPPORTED
 #else
 #define PNG_FLOATING_ARITHMETIC_SUPPORTED

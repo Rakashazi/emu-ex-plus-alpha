@@ -140,8 +140,8 @@ static void checkTripleBufferSwap()
 	auto beforeSwap = TimeSys::now();
 	mainWin->swapBuffers();
 	auto afterSwap = TimeSys::now();
-	long long diffSwap = afterSwap.toNs() - beforeSwap.toNs();
-	if(diffSwap > 10000000)
+	long long diffSwap = (afterSwap - beforeSwap).toNs();
+	if(diffSwap > 16000000)
 	{
 		logWarn("buffer swap took %lldns", diffSwap);
 	}

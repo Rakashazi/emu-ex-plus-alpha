@@ -1,0 +1,42 @@
+Building the Imagine SDK and applications is currently supported on Linux and MacOS X.
+
+1. Tools and Environment Setup
+==============================
+
+You need the following basic tools to start building Imagine. For platform-specific info, see the INSTALL-* file for that port.
+
+Linux: GCC 4.8 or newer, GNU Make, pkg-config (install from your distro's package manager)
+
+MacOS X: Xcode 5.1 or newer, MacPorts versions of pkg-config and gnutar (http://www.macports.org)
+
+The following make variables are used by the build system:
+
+IMAGINE_PATH : Required, no default
+ - The path to the root Imagine directory containing the "make/" subdirectory
+
+IMAGINE_SDK_PATH : Optional, defaults to $(HOME)/imagine-sdk
+ - When building Imagine itself, the default install path of the Imagine SDK headers & libs
+ - Also used when building an Imagine-based app as the default Imagine SDK path
+
+2. Dependencies
+===============
+
+For ports that need linking to additional static libraries (currently all except a stock Linux build), change to the "bundle/all" directory and run the specific bash script for the port to build the needed packages. All arguments passed to this script are passed to make directly. Extracted source & build output goes into "/tmp/imagine-bundle/$(pkgName)" but you can override the "tempDir" variable to change this. The "install" target installs the resulting files under "$(IMAGINE_SDK_PATH)" and is overridden via the "installDir" variable. Note that some packages need the GNU version of the tar utility for proper extraction.
+
+For example, to build and install the packages needed for the iOS ARMv7 port, and override the name of the tar utility, use:
+
+bash makeAll-ios-armv7.sh install TAR=gnutar
+
+3. Building
+===========
+
+Use one of the makefiles in the root Imagine directory to build that specific port. Build output goes into the "build" and "lib" subdirectories of the working directory. Pass "V=1" as an override for verbose build output. For example, to build and install the debug version of the Android ARMv7 port with verbose output and 4 compile jobs, use:
+
+make -f $IMAGINE_PATH/android-9-armv7.mk install V=1 -j4
+
+To use the resulting Imagine SDK with pkg-config, add that port's "lib/pkgconfig" path to the "PKG_CONFIG_PATH" environment variable. Note apps directly using Imagine's build system do this automatically by checking the "IMAGINE_SDK_PATH" environment variable.
+
+--------------------------------
+
+Copyright 2014 by Robert Broglia
+

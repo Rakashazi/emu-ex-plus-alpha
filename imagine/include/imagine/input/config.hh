@@ -40,21 +40,16 @@ static constexpr bool SUPPORTS_MOUSE = 0;
 #endif
 
 static constexpr uint8 maxCursors =
-	#if defined(CONFIG_BASE_X11)
-	4; // unknown max
-	#elif defined(CONFIG_BASE_IOS)
-		#if !defined(__ARM_ARCH_6K__)
-		7;
-		#else
+	#if defined CONFIG_BASE_X11
+	4; // arbitrary max
+	#elif defined CONFIG_BASE_IOS || defined __ANDROID__
+		// arbitrary max
+		#ifdef CONFIG_MACHINE_GENERIC_ARM
 		4;
-		#endif
-	#elif defined(CONFIG_BASE_ANDROID)
-		#if CONFIG_ENV_ANDROID_MINSDK == 4
-		1; // no multi-touch
 		#else
-		4; // unknown max
+		7;
 		#endif
-	#elif defined(CONFIG_ENV_WEBOS)
+	#elif defined CONFIG_ENV_WEBOS
 	4; // max 5
 	#else
 	1;
@@ -83,13 +78,7 @@ static constexpr bool hasSystemDeviceHotswap = 1;
 #else
 static constexpr bool hasSystemDeviceHotswap = 0;
 #endif
-
-static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 }
-
-#ifdef CONFIG_INPUT_GENERIC_ASCII_DECODE
-#include <imagine/input/genericASCIIDecode.hh>
-#endif
 
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/input/bluetoothInputDefs.hh>

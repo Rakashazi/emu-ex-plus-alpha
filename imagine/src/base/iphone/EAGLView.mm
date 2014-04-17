@@ -14,14 +14,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
-#import <imagine/base/iphone/EAGLView.h>
-#import "MainApp.h"
+#import <imagine/base/iphone/EAGLView.hh>
+#import "MainApp.hh"
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/CAEAGLLayer.h>
 #include <imagine/base/Base.hh>
 #include "../common/windowPrivate.hh"
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragPointer.hh>
+#include "ios.hh"
 
 static const int USE_DEPTH_BUFFER = 0;
 
@@ -41,23 +42,6 @@ DragPointer *dragState(int p)
 	return &m[p].dragState;
 }
 
-}
-
-#ifdef CONFIG_INPUT_ICADE
-#include "ICadeHelper.hh"
-namespace Base
-{
-	extern ICadeHelper iCade;
-}
-#endif
-
-#ifdef CONFIG_INPUT
-#include "input.h"
-#endif
-
-namespace Base
-{
-	extern UIApplication *sharedApp;
 }
 
 @implementation EAGLView
@@ -207,11 +191,12 @@ namespace Base
 			{
 				auto &p = Input::m[i];
 				p.touch = touch;
-				CGPoint startTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, startTouchPosition.x * win.pointScale, startTouchPosition.y * win.pointScale);
-				//p.s.inWin = 1;
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, pos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, pos.x, pos.y, true, 0, nullptr));
+				CGPoint pos = [touch locationInView:self];
+				pos.x *= win.pointScale;
+				pos.y *= win.pointScale;
+				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, transPos);
+				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}
@@ -230,10 +215,12 @@ namespace Base
 			if(Input::m[i].touch == touch)
 			{
 				auto &p = Input::m[i];
-				CGPoint currentTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, currentTouchPosition.x * win.pointScale, currentTouchPosition.y * win.pointScale);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, pos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, pos.x, pos.y, true, 0, nullptr));
+				CGPoint pos = [touch locationInView:self];
+				pos.x *= win.pointScale;
+				pos.y *= win.pointScale;
+				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, transPos);
+				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}
@@ -253,11 +240,12 @@ namespace Base
 			{
 				auto &p = Input::m[i];
 				p.touch = nil;
-				//p.s.inWin = 0;
-				CGPoint currentTouchPosition = [touch locationInView:self];
-				auto pos = pointerPos(win, currentTouchPosition.x * win.pointScale, currentTouchPosition.y * win.pointScale);
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, pos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, pos.x, pos.y, true, 0, nullptr));
+				CGPoint pos = [touch locationInView:self];
+				pos.x *= win.pointScale;
+				pos.y *= win.pointScale;
+				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
+				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, transPos);
+				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}
@@ -277,8 +265,8 @@ namespace Base
 - (void)insertText:(NSString *)text
 {
 	#ifdef CONFIG_INPUT_ICADE
-	if(Base::iCade.isActive())
-		Base::iCade.insertText(text);
+	if(Input::iCade.isActive())
+		Input::iCade.insertText(text);
 	#endif
 	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
 }
@@ -288,7 +276,7 @@ namespace Base
 #ifdef CONFIG_INPUT_ICADE
 - (UIView*)inputView
 {
-	return Base::iCade.dummyInputView;
+	return Input::iCade.dummyInputView;
 }
 #endif
 #endif // defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)

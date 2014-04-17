@@ -19,15 +19,18 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/base/EventLoopFileSource.hh>
 #include "../common/windowPrivate.hh"
 #include <imagine/util/strings.h>
 #include <imagine/util/time/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string/generic.h>
 #include <imagine/util/algorithm.h>
-#include "../common/funcs.h"
+#include "../common/basePrivate.hh"
 #include "x11.hh"
 #include "xdnd.hh"
+#include "xlibutils.h"
+#include "dbus.hh"
 #include <algorithm>
 
 #ifdef CONFIG_FS
@@ -40,10 +43,6 @@
 
 #include <time.h>
 #include <errno.h>
-
-#include "input.hh"
-#include "xlibutils.h"
-#include "dbus.hh"
 
 namespace Base
 {
@@ -135,11 +134,10 @@ void Screen::setRefreshRate(uint rate)
 	}
 }
 
-static void toggleFullScreen(Base::Window &win)
+void toggleFullScreen(::Window xWin)
 {
 	logMsg("toggle fullscreen");
-	ewmhFullscreen(dpy, win.xWin, _NET_WM_STATE_TOGGLE);
-	win.postDraw();
+	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
 
 void exit(int returnVal)
@@ -206,11 +204,11 @@ const char *storagePath()
 }
 #endif
 
-static int eventHandler(XEvent event)
+static int eventHandler(XEvent &event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
 	
-	switch (event.type)
+	switch(event.type)
 	{
 		bcase Expose:
 		{
@@ -280,122 +278,7 @@ static int eventHandler(XEvent event)
 		}
 		bcase GenericEvent:
 		{
-			if(event.xcookie.extension == Input::xI2opcode && XGetEventData(dpy, &event.xcookie))
-			{
-				XGenericEventCookie *cookie = &event.xcookie;
-				auto &ievent = *((XIDeviceEvent*)cookie->data);
-				// XI_HierarchyChanged isn't window-specific
-				if(unlikely(ievent.evtype == XI_HierarchyChanged))
-				{
-					//logMsg("input device hierarchy changed");
-					auto &ev = *((XIHierarchyEvent*)cookie->data);
-					iterateTimes(ev.num_info, i)
-					{
-						if(ev.info[i].flags & XISlaveAdded)
-						{
-							int devices;
-							XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
-							if(devices)
-							{
-								if(device->use == XISlaveKeyboard)
-								{
-									Input::addXInputDevice(*device, true);
-								}
-								XIFreeDeviceInfo(device);
-							}
-						}
-						else if(ev.info[i].flags & XISlaveRemoved)
-						{
-							Input::removeXInputDevice(ev.info[i].deviceid);
-						}
-					}
-					XFreeEventData(dpy, &event.xcookie);
-					break;
-				}
-				// others events are for specific windows
-				auto destWin = windowForXWindow(ievent.event);
-				if(unlikely(!destWin))
-				{
-					//logWarn("ignored event for unknown window");
-					XFreeEventData(dpy, &event.xcookie);
-					break;
-				}
-				auto &win = *destWin;
-				//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));
-				switch(ievent.evtype)
-				{
-					bcase XI_ButtonPress:
-						handlePointerButton(win, ievent.detail, Input::devIdToPointer(ievent.deviceid), Input::PUSHED, ievent.event_x, ievent.event_y, ievent.time);
-					bcase XI_ButtonRelease:
-						handlePointerButton(win, ievent.detail, Input::devIdToPointer(ievent.deviceid), Input::RELEASED, ievent.event_x, ievent.event_y, ievent.time);
-					bcase XI_Motion:
-						handlePointerMove(win, ievent.event_x, ievent.event_y, Input::devIdToPointer(ievent.deviceid), ievent.time);
-					bcase XI_Enter:
-						handlePointerEnter(win, Input::devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y, ievent.time);
-					bcase XI_Leave:
-						handlePointerLeave(win, Input::devIdToPointer(ievent.deviceid), ievent.event_x, ievent.event_y, ievent.time);
-					bcase XI_FocusIn:
-						onFocusChange(win, 1);
-					bcase XI_FocusOut:
-						onFocusChange(win, 0);
-					bcase XI_KeyPress:
-					{
-						auto dev = Input::deviceForInputId(ievent.sourceid);
-						KeySym k;
-						if(Input::translateKeycodes)
-						{
-							unsigned int modsReturn;
-							XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
-						}
-						else
-							k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
-						bool repeated = ievent.flags & XIKeyRepeat;
-						//logMsg("press KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
-						if(k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
-						{
-							toggleFullScreen(win);
-						}
-						else
-						{
-							using namespace Input;
-							if(!repeated || Input::allowKeyRepeats)
-							{
-								//logMsg("push KeySym %d, KeyCode %d", (int)k, ievent.detail);
-								#ifdef CONFIG_INPUT_ICADE
-								if(!dev->iCadeMode()
-									|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::PUSHED, *dev, win)))
-								#endif
-								{
-									handleKeyEv(win, k, Input::PUSHED, ievent.mods.effective & ShiftMask, ievent.time, dev);
-								}
-							}
-						}
-					}
-					bcase XI_KeyRelease:
-					{
-						auto dev = Input::deviceForInputId(ievent.sourceid);
-						KeySym k;
-						if(Input::translateKeycodes)
-						{
-							unsigned int modsReturn;
-							XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
-						}
-						else
-							k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
-						using namespace Input;
-						//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
-						#ifdef CONFIG_INPUT_ICADE
-						if(!dev->iCadeMode()
-							|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::RELEASED, *dev, win)))
-						#endif
-						{
-							handleKeyEv(win, k, Input::RELEASED, 0, ievent.time, dev);
-						}
-					}
-				}
-				XFreeEventData(dpy, &event.xcookie);
-				return 1;
-			}
+			Input::handleXI2GenericEvent(event);
 		}
 		bdefault:
 		{

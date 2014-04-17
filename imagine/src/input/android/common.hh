@@ -17,9 +17,6 @@
 
 #include "../../base/android/private.hh"
 #include <imagine/input/DragPointer.hh>
-#ifdef CONFIG_INPUT_ICADE
-#include "../common/iCade.hh"
-#endif
 
 namespace Input
 {
@@ -75,7 +72,7 @@ static bool handleTouchEvent(int action, int x, int y, int pid, Time time, bool 
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %f",
 	//	isTouch ? "touch" : "mouse", pid, x, y, androidEventEnumToStr(action), (double)time);
-	auto pos = pointerPos(Base::mainWindow(), x, y);
+	auto pos = transformInputPos(Base::mainWindow(), {x, y});
 	switch(action)
 	{
 		case AMOTION_EVENT_ACTION_DOWN:
@@ -146,7 +143,7 @@ static bool handleTouchEvent(int action, int x, int y, int pid, Time time, bool 
 static void handleTrackballEvent(int action, float x, float y, Time time)
 {
 	int iX = x * 1000., iY = y * 1000.;
-	auto pos = pointerPos(Base::mainWindow(), iX, iY);
+	auto pos = transformInputPos(Base::mainWindow(), {iX, iY});
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
@@ -257,14 +254,12 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 		unsetBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
 	}
 
-	#ifdef __ARM_ARCH_7A__
-	if(hasXperiaPlayGamepad() && //Base::runningDeviceType() == Base::DEV_TYPE_XPERIA_PLAY &&
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && hasXperiaPlayGamepad() &&
 		(typeBits & TYPE_BIT_GAMEPAD) && Base::hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
 	{
 		logMsg("Xperia-play gamepad in use");
 		return 1;
 	}
-	#endif
 
 	for(auto &devPtr : Input::devList)
 	{

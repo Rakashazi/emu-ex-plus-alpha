@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,18 +13,34 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/ansiTypes.h>
+#include <imagine/input/Input.hh>
 
-enum { OK, NO_FREE_ENTRIES, OUT_OF_MEMORY, IO_ERROR, ALREADY_EXISTS,
-	INIT_ERROR, INVALID_PARAMETER, OUT_OF_BOUNDS, NOT_FOUND,
-	NO_PRECOMP, PERMISSION_DENIED, UNSUPPORTED_OPERATION };
+namespace Input
+{
 
-typedef uint CallResult;
+	namespace CONFIG_INPUT_KEYCODE_NAMESPACE
+	{
 
-#if defined __arm__ && __ARM_ARCH < 7 && defined __SOFTFP__
-#define CONFIG_TYPES_SOFT_FLOAT
-#endif
+	uint decodeAscii(Key k, bool isShiftPushed)
+	{
+		if(isShiftPushed && (k >= 'a' || k <= 'z'))
+			k -= 32;
+		switch(k)
+		{
+			#ifdef INPUT_SUPPORTS_KEYBOARD
+			case ENTER: return '\n';
+			case BACK_SPACE: return '\b';
+			#endif
+			case ' ' ... '~': return k;
+		}
+		return 0;
+	}
 
-#if !defined __x86_64__ && !defined __i386__ && !defined __aarch64__
-#define CONFIG_TYPES_NO_DOUBLE
-#endif
+	bool isAsciiKey(Key k)
+	{
+		return decodeAscii(k, 0);
+	}
+
+	}
+
+}
