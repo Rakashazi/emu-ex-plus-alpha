@@ -71,20 +71,5 @@ struct ICadeHelper
 			[mainView becomeFirstResponder];
 	}
 
-	void insertText(NSString *text)
-	{
-		using namespace Input;
-		//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
-		char c = [text characterAtIndex:0];
-
-		Input::processICadeKey(c, PUSHED, *devList.front(), Base::mainWindow()); // iCade device is always added first on app init
-
-		if (++cycleResponder > 20)
-		{
-			// necessary to clear a buffer that accumulates internally
-			cycleResponder = 0;
-			[mainView resignFirstResponder];
-			[mainView becomeFirstResponder];
-		}
-	}
+	void insertText(NSString *text);
 };

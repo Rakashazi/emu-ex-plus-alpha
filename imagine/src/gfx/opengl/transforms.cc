@@ -77,8 +77,8 @@ static Base::Screen::OnFrameDelegate animateOrientation
 		mainWindow().setNeedsDraw(true);
 		if(!projAngleM.isComplete())
 		{
-			mainScreen().addOnFrameDelegate(animateOrientation);
-			mainScreen().postFrame();
+			screen.addOnFrameDelegate(animateOrientation);
+			screen.postFrame();
 		}
 	}
 };

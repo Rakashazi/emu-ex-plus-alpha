@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/Screen.hh>
 
 #define BOOL X11BOOL
 #include <X11/keysym.h>
@@ -32,12 +33,9 @@
 namespace Base
 {
 	extern Display *dpy;
-	extern int screen;
-	extern float dispXMM, dispYMM;
-	extern int dispX, dispY;
 
-	void setupScreenSizeFromX11();
 	Window *windowForXWindow(::Window xWin);
+	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);
 }
 

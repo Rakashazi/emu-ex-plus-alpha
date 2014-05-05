@@ -75,7 +75,7 @@ static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 	int x2 = rect.xSize(), y2 = rect.ySize();
 	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
 		std::swap(x2, y2);
-	logMsg("made CGRect %d,%d size %d,%d", x / win.pointScale, y / win.pointScale,
+	logMsg("made CGRect %f,%f size %f,%f", x / win.pointScale, y / win.pointScale,
 			x2 / win.pointScale, y2 / win.pointScale);
 	return CGRectMake(x / win.pointScale, y / win.pointScale, x2 / win.pointScale, y2 / win.pointScale);
 }
@@ -83,7 +83,7 @@ static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 static void setupTextView(UITextField *vkbdField, NSString *text)
 {
 	// init input text field
-	using namespace Input;
+	using namespace Base;
 
 	/*vkbdField = [ [ UITextView alloc ] initWithFrame: CGRectMake(12, 24, 286, 24*4) ];
 	vkbdField.backgroundColor = [UIColor whiteColor];
@@ -111,24 +111,25 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	vkbdField.transform = makeTransformForOrientation(Base::mainWindow().rotateView);
+	vkbdField.transform = makeTransformForOrientation(deviceWindow()->rotateView);
 	#endif
 	logMsg("init vkeyboard");
 }
 
 uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
 {
+	using namespace Base;
 	logMsg("starting system text input");
 	vKeyboardTextDelegate = callback;
 	if(!vkbdField)
 	{
-		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(Base::mainWindow(), textRect) ];
+		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(*deviceWindow(), textRect) ];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[Base::mainWindow().glView() addSubview: vkbdField];
+		[deviceWindow()->glView() addSubview: vkbdField];
 	}
 	else
 	{
-		vkbdField.frame = toCGRect(Base::mainWindow(), textRect);
+		vkbdField.frame = toCGRect(*deviceWindow(), textRect);
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
 	}
 
@@ -138,12 +139,13 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 
 void placeSysTextInput(const IG::WindowRect &rect)
 {
+	using namespace Base;
 	textRect = rect;
 	if(vkbdField)
 	{
-		vkbdField.frame = toCGRect(Base::mainWindow(), textRect);
+		vkbdField.frame = toCGRect(*deviceWindow(), textRect);
 		/*#ifdef CONFIG_GFX_SOFT_ORIENTATION
-		vkbdField.transform = makeTransformForOrientation(Base::mainWindow().rotateView);
+		vkbdField.transform = makeTransformForOrientation(deviceWindow().rotateView);
 		#endif*/
 	}
 }
@@ -198,4 +200,21 @@ CallResult init()
 	return OK;
 }
 
+}
+
+void ICadeHelper::insertText(NSString *text)
+{
+	using namespace Input;
+	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
+	char c = [text characterAtIndex:0];
+
+	Input::processICadeKey(c, PUSHED, *devList.front(), *Base::deviceWindow()); // iCade device is always added first on app init
+
+	if (++cycleResponder > 20)
+	{
+		// necessary to clear a buffer that accumulates internally
+		cycleResponder = 0;
+		[mainView resignFirstResponder];
+		[mainView becomeFirstResponder];
+	}
 }

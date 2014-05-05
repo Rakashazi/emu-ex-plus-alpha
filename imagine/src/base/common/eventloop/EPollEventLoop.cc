@@ -15,6 +15,7 @@
 
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/util/time/sys.hh>
 #include "../windowPrivate.hh"
 #include <sys/epoll.h>
 
@@ -124,7 +125,9 @@ void runMainEventLoop()
 				bug_exit("epoll_wait failed with errno %d", errno);
 		}
 		if(mainScreen().frameIsPosted())
-			frameUpdate(0);
+		{
+			mainScreen().frameUpdate(mainScreen().currFrameTime ? moveAndClear(mainScreen().currFrameTime) : TimeSys::now().toNs());
+		}
 	}
 }
 

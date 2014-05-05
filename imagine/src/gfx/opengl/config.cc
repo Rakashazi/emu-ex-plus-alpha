@@ -18,6 +18,7 @@ static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameT
 namespace Base
 {
 	void *glProcAddress(const char *funcName);
+	void initGLContext();
 }
 
 namespace Gfx
@@ -287,6 +288,7 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 CallResult init()
 {
 	logMsg("running init");
+	Base::initGLContext();
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");

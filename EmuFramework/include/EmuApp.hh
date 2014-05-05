@@ -39,11 +39,20 @@ public:
 	void draw(const Base::Window &win) override;
 };
 
+struct AppWindowData
+{
+	Base::Window win;
+	Gfx::Viewport viewport;
+	Gfx::Mat4 projectionMat;
+	IG::Point2D<int> lastWindowSize;
+	TimedInterpolator<int> viewportDelta[4];
+};
+
+extern AppWindowData mainWin, extraWin;
 extern EmuNavView viewNav;
 extern EmuView emuView;
 extern ViewStack viewStack;
 extern BasicViewController modalViewController;
-extern Base::Window mainWin, secondWin;
 extern MsgPopup popup;
 extern const char *launchGame;
 extern InputManagerView *imMenu;
@@ -66,6 +75,8 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 void initMainMenu(Base::Window &win);
 View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
+void setEmuViewOnExtraWindow(bool on);
+void placeElements(const Gfx::Viewport &viewport);
 
 template <size_t NAV_GRAD_SIZE>
 void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])

@@ -83,7 +83,7 @@ void OnScreenInputPlaceView::place()
 	}
 
 	auto &win = Base::mainWindow();
-	auto exitBtnPos = Gfx::viewport().bounds().pos(C2DO);
+	auto exitBtnPos = mainWin.viewport.bounds().pos(C2DO);
 	int exitBtnSize = win.widthSMMInPixels(10.);
 	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
 	text.compile();
@@ -133,7 +133,7 @@ void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 				vController.setPos(d.elem, newPos);
 				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size());
 				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-				auto &vCtrlLayoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+				auto &vCtrlLayoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
 				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
 				vControllerLayoutPosChanged = true;
@@ -277,7 +277,7 @@ void TouchConfigView::init(bool highlightFirst)
 	}
 	#endif
 	btnPlace.init(); text[i++] = &btnPlace;
-	auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 	{
 		if(Config::envIsIOS) // prevent iOS port from disabling menu control
 		{
@@ -361,11 +361,11 @@ void TouchConfigView::init(bool highlightFirst)
 	}
 	showOnTouch.init(optionTouchCtrlShowOnTouch); text[i++] = &showOnTouch;
 		#ifdef CONFIG_BASE_ANDROID
-		if(!optionDPI.isConst)
-		{
-			static const char *str[] = { "Auto", "96", "120", "130", "160", "220", "240", "265", "320" };
-			dpi.init(str, findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), sizeofArray(str)); text[i++] = &dpi;
-		}
+//		if(!optionDPI.isConst)
+//		{
+//			static const char *str[] = { "Auto", "96", "120", "130", "160", "220", "240", "265", "320" };
+//			dpi.init(str, findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), sizeofArray(str)); text[i++] = &dpi;
+//		}
 		useScaledCoordinates.init(optionTouchCtrlScaledCoordinates); text[i++] = &useScaledCoordinates;
 		#endif
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
@@ -397,7 +397,7 @@ void TouchConfigView::place()
 
 void TouchConfigView::refreshTouchConfigMenu()
 {
-	auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 	alpha.updateVal(findIdxInArrayOrDefault(alphaMenuVals, optionTouchCtrlAlpha.val, 3), *this);
 	ffState.updateVal(layoutPos[4].state, *this);
 	menuState.updateVal(layoutPos[3].state - (Config::envIsIOS ? 1 : 0), *this);
@@ -434,10 +434,10 @@ void TouchConfigView::refreshTouchConfigMenu()
 	}
 	showOnTouch.set((int)optionTouchCtrlShowOnTouch, *this);
 		#ifdef CONFIG_BASE_ANDROID
-		if(!optionDPI.isConst)
-		{
-			dpi.updateVal(findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), *this);
-		}
+//		if(!optionDPI.isConst)
+//		{
+//			dpi.updateVal(findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), *this);
+//		}
 		useScaledCoordinates.set(optionTouchCtrlScaledCoordinates, *this);
 		#endif
 	#endif
@@ -568,7 +568,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"D-Pad",
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][0].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][0].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
@@ -578,7 +578,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		faceBtnName,
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][2].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][2].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
@@ -588,7 +588,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		centerBtnName,
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][1].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][1].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
@@ -598,7 +598,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"L",
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][5].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][5].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
@@ -608,24 +608,24 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"R",
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][6].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][6].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
 	},
-		#ifdef CONFIG_BASE_ANDROID
-		dpi
-		{
-			"Physical DPI Override",
-			[this](MultiChoiceMenuItem &, int val)
-			{
-				optionDPI.val = dpiMenuVals[val];
-				Base::mainWindow().setDPI(optionDPI);
-				logMsg("set DPI: %d", (int)optionDPI);
-				window().dispatchResize();
-			}
-		},
-		#endif
+//		#ifdef CONFIG_BASE_ANDROID
+//		dpi
+//		{
+//			"Physical DPI Override",
+//			[this](MultiChoiceMenuItem &, int val)
+//			{
+//				optionDPI.val = dpiMenuVals[val];
+//				Base::mainWindow().setDPI(optionDPI);
+//				logMsg("set DPI: %d", (int)optionDPI);
+//				window().dispatchResize();
+//			}
+//		},
+//		#endif
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
 		imageResolution
 		{
@@ -714,7 +714,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 			{
 				val++;
 			}
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][3].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][3].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}
@@ -724,7 +724,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Fast-forward Button",
 		[this](MultiChoiceMenuItem &item, int val)
 		{
-			vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0][4].state = val;
+			vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0][4].state = val;
 			vControllerLayoutPosChanged = true;
 			EmuControls::setupVControllerVars();
 		}

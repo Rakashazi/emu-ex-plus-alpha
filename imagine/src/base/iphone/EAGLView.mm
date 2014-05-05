@@ -74,10 +74,6 @@ DragPointer *dragState(int p)
 	if(self)
 	{
 		auto eaglLayer = (CAEAGLLayer*)self.layer;
-		#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-		if(Base::screenPointScale == 2)
-			eaglLayer.contentsScale = 2.0;
-		#endif
 		eaglLayer.opaque = YES;
 		_context = context;
 	}
@@ -106,36 +102,42 @@ DragPointer *dragState(int p)
 
 - (void)bindDrawable
 {
-	if(viewFramebuffer)
+	if(!viewFramebuffer)
 	{
-		return; // already init
+		logMsg("creating OpenGL framebuffers");
+		glGenFramebuffersOES(1, &viewFramebuffer);
+		glGenRenderbuffersOES(1, &viewRenderbuffer);
+	
+		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
+		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
+		[_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
+		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
+	
+		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
+		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
+	
+		if(USE_DEPTH_BUFFER)
+		{
+			glGenRenderbuffersOES(1, &depthRenderbuffer);
+			glBindRenderbufferOES(GL_RENDERBUFFER_OES, depthRenderbuffer);
+			glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, backingWidth, backingHeight);
+			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, depthRenderbuffer);
+		}
+	
+		#ifndef NDEBUG
+		if(glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES)
+		{
+			bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
+		}
+		#endif
+		
+		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
 	}
-	logMsg("creating OpenGL framebuffers");
-	glGenFramebuffersOES(1, &viewFramebuffer);
-	glGenRenderbuffersOES(1, &viewRenderbuffer);
-
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-	glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-	[_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
-	glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
-
-	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-	if(USE_DEPTH_BUFFER)
+	else
 	{
-		glGenRenderbuffersOES(1, &depthRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, depthRenderbuffer);
-		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, depthRenderbuffer);
+		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
+		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
 	}
-
-	#ifndef NDEBUG
-	if(glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES)
-	{
-		bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
-	}
-	#endif
 }
 
 - (void)deleteDrawable
@@ -157,6 +159,41 @@ DragPointer *dragState(int p)
 	}
 }
 
+- (void)dealloc
+{
+	[self deleteDrawable];
+}
+
+#else
+
+- (void)bindDrawable
+{
+	[super bindDrawable];
+	if(!viewRenderbuffer)
+	{
+		glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
+		logMsg("got renderbuffer: %d", viewRenderbuffer);
+	}
+	glBindRenderbuffer(GL_RENDERBUFFER, viewRenderbuffer);
+}
+
+- (void)deleteDrawable
+{
+	[super deleteDrawable];
+	viewRenderbuffer = 0;
+}
+
+#endif
+
+#ifdef CONFIG_BASE_IOS_RETINA_SCALE
+- (void)willMoveToWindow:(UIWindow *)newWindow
+{
+	logMsg("view %p moving to window %p with scale %f", self, newWindow, [newWindow.screen scale]);
+	if(newWindow)
+	{
+		self.contentScaleFactor = [newWindow.screen scale];
+	}
+}
 #endif
 
 - (void)layoutSubviews
@@ -165,14 +202,21 @@ DragPointer *dragState(int p)
 	[super layoutSubviews];
 	using namespace Base;
 	[self bindDrawable]; // rebind to update internal height/width
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	#ifdef CONFIG_BASE_IOS_GLKIT
-	updateWindowSizeAndContentRect(mainWindow(), [self drawableWidth], [self drawableHeight], sharedApp);
+	glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
+	#endif
+	auto &win = *Base::windowForUIWindow(self.window);
+	if(drawTargetWindow == &win)
+	{
+		drawTargetWindow = nullptr;
+	}
+	#ifdef CONFIG_BASE_IOS_GLKIT
+	updateWindowSizeAndContentRect(win, [self drawableWidth], [self drawableHeight], sharedApp);
 	#else
 	auto frameSize = self.frame.size;
-	updateWindowSizeAndContentRect(mainWindow(), frameSize.width, frameSize.height, sharedApp);
+	updateWindowSizeAndContentRect(win, frameSize.width, frameSize.height, sharedApp);
 	#endif
-	mainWindow().postResize();
+	win.postResize();
 	//logMsg("exiting layoutSubviews");
 }
 
@@ -182,7 +226,7 @@ DragPointer *dragState(int p)
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = Base::mainWindow();
+	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find a free touch element
@@ -207,7 +251,7 @@ DragPointer *dragState(int p)
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = Base::mainWindow();
+	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
@@ -231,7 +275,7 @@ DragPointer *dragState(int p)
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = Base::mainWindow();
+	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
 		iterateTimes((uint)Input::maxCursors, i) // find the touch element
@@ -271,14 +315,14 @@ DragPointer *dragState(int p)
 	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
 }
 
-- (void)deleteBackward { }
+- (void)deleteBackward {}
 
-#ifdef CONFIG_INPUT_ICADE
-- (UIView*)inputView
-{
-	return Input::iCade.dummyInputView;
-}
-#endif
+	#ifdef CONFIG_INPUT_ICADE
+	- (UIView*)inputView
+	{
+		return Input::iCade.dummyInputView;
+	}
+	#endif
 #endif // defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
 
 #endif

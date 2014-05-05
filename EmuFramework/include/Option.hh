@@ -329,31 +329,31 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 	}
 };
 
-struct OptionDPI : public Option<OptionMethodVar<uint32> >
-{
-	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) {}
-
-	bool writeToIO(Io *io)
-	{
-		logMsg("writing dpi config %u", val * 100);
-		io->writeVar((uint16)CFGKEY_DPI);
-		io->writeVar((uint32)(val * 100));
-		return 1;
-	}
-
-	bool readFromIO(Io &io, uint readSize)
-	{
-		bool ret = Option<OptionMethodVar<uint32> >::readFromIO(io, readSize);
-		if(ret)
-		{
-			logMsg("read dpi config %u", val);
-			val /= 100;
-			if(val != 0 && (val < 96 || val > 320))
-				val = defaultVal;
-		}
-		return ret;
-	}
-};
+//struct OptionDPI : public Option<OptionMethodVar<uint32> >
+//{
+//	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) {}
+//
+//	bool writeToIO(Io *io)
+//	{
+//		logMsg("writing dpi config %u", val * 100);
+//		io->writeVar((uint16)CFGKEY_DPI);
+//		io->writeVar((uint32)(val * 100));
+//		return 1;
+//	}
+//
+//	bool readFromIO(Io &io, uint readSize)
+//	{
+//		bool ret = Option<OptionMethodVar<uint32> >::readFromIO(io, readSize);
+//		if(ret)
+//		{
+//			logMsg("read dpi config %u", val);
+//			val /= 100;
+//			if(val != 0 && (val < 96 || val > 320))
+//				val = defaultVal;
+//		}
+//		return ret;
+//	}
+//};
 
 struct OptionRecentGames : public OptionBase
 {

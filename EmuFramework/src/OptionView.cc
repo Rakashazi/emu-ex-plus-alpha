@@ -542,8 +542,8 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	{
 		dither.init(optionDitherImage); item[items++] = &dither;
 	}
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	//secondDisplay.init(false); item[items++] = &secondDisplay;
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
+	secondDisplay.init(false); item[items++] = &secondDisplay;
 	#endif
 }
 
@@ -748,6 +748,7 @@ OptionView::OptionView(Base::Window &win):
 			optionAspectRatio.val = EmuSystem::aspectRatioInfo[val].aspect;
 			logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
 			emuView.placeEmu();
+			emuView.videoWin->postDraw();
 		}
 	},
 	zoom
@@ -766,6 +767,7 @@ OptionView::OptionView(Base::Window &win):
 			}
 			logMsg("set image zoom: %d", int(optionImageZoom));
 			emuView.placeEmu();
+			emuView.videoWin->postDraw();
 		}
 	},
 	viewportZoom
@@ -781,7 +783,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 3: optionViewportZoom.val = 85;
 			}
 			logMsg("set viewport zoom: %d", int(optionViewportZoom));
-			window().dispatchResize();
+			window().postResize();
 		}
 	},
 	imgFilter
@@ -797,6 +799,7 @@ OptionView::OptionView(Base::Window &win):
 				#endif
 				)
 				emuView.vidImg.setFilter(item.on);
+			emuView.videoWin->postDraw();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -817,6 +820,7 @@ OptionView::OptionView(Base::Window &win):
 				emuView.compileDefaultPrograms();
 				emuView.placeEffect();
 			}
+			emuView.videoWin->postDraw();
 		}
 	},
 	#endif
@@ -837,6 +841,7 @@ OptionView::OptionView(Base::Window &win):
 			optionOverlayEffect.val = setVal;
 			emuView.vidImgOverlay.setEffect(setVal);
 			emuView.placeOverlay();
+			emuView.videoWin->postDraw();
 		}
 	},
 	overlayEffectLevel
@@ -856,6 +861,7 @@ OptionView::OptionView(Base::Window &win):
 			}
 			optionOverlayEffectLevel.val = setVal;
 			emuView.vidImgOverlay.intensity = setVal/100.;
+			emuView.videoWin->postDraw();
 		}
 	},
 	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
@@ -890,18 +896,14 @@ OptionView::OptionView(Base::Window &win):
 		}
 	},
 	#endif
-	#ifdef CONFIG_BASE_MULTI_WINDOW
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay
 	{
 		"2nd Window (for testing only)",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
 			item.toggle(*this);
-			extern Base::Window secondWin;
-			if(item.on)
-				secondWin.init({0, 0}, {0, 0});
-			else
-				secondWin.deinit();
+			setEmuViewOnExtraWindow(item.on);
 		}
 	},
 	#endif
@@ -1228,7 +1230,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			optionTitleBar = item.on;
 			viewStack.setNavView(item.on ? &viewNav : 0);
-			window().dispatchResize();
+			placeElements(mainWin.viewport);
 		}
 	},
 	backNav
@@ -1239,7 +1241,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
 			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
-			window().dispatchResize();
+			placeElements(mainWin.viewport);
 		}
 	},
 	rememberLastMenu
@@ -1271,7 +1273,7 @@ OptionView::OptionView(Base::Window &win):
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
 			Base::mainWindow().setValidOrientations(optionMenuOrientation);
-			window().dispatchResize();
+			window().postResize();
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 		}
 	}

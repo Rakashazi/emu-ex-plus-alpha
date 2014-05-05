@@ -16,9 +16,7 @@
 #define LOGTAG "Window"
 #include <imagine/base/Base.hh>
 #include "windowPrivate.hh"
-#ifdef CONFIG_GFX
 #include <imagine/gfx/Gfx.hh>
-#endif
 #ifdef CONFIG_INPUT
 #include <imagine/input/Input.hh>
 #endif
@@ -29,161 +27,35 @@ namespace Base
 // whether to handle animations if orientations are handled in software
 bool animateOrientationChange = !Config::envIsWebOS3;
 
-StaticArrayList<Window*, 4> window;
-static Screen mainScreen_;
-
-Screen &mainScreen()
-{
-	return mainScreen_;
-}
-
-void Screen::addOnFrameDelegate(OnFrameDelegate del)
-{
-	assert(onFrameDelegate.freeSpace());
-	onFrameDelegate.push_back(del);
-}
-
-bool Screen::removeOnFrameDelegate(OnFrameDelegate del)
-{
-	return onFrameDelegate.remove(del);
-}
-
-bool Screen::containsOnFrameDelegate(OnFrameDelegate del)
-{
-	return contains(onFrameDelegate, del);
-}
-
-void Screen::clearOnFrameDelegates()
-{
-	onFrameDelegate.clear();
-}
-
-void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
-{
-	if(onFrameDelegate.empty())
-		return;
-	logMsg("running %d onFrame delegates", onFrameDelegate.size());
-	auto thisFrameDelegate = onFrameDelegate;
-	onFrameDelegate.clear();
-	for(auto &delegate : thisFrameDelegate)
-	{
-		delegate(*this, frameTime);
-	}
-}
-
-bool Screen::frameIsPosted()
-{
-	return framePosted;
-}
-
 #ifdef CONFIG_BASE_MULTI_WINDOW
-
-Window &mainWindow()
-{
-	assert(!window.empty());
-	return *window[0];
-}
-
-bool frameUpdate(FrameTimeBase frameTime, bool forceDraw)
-{
-	mainScreen().framePosted = false;
-	bool didDraw = false;
-	if(unlikely(!appIsRunning()))
-	{
-		// unpost all windows if inactive
-		for(auto w : window)
-		{
-			w->setNeedsDraw(false);
-		}
-		return false;
-	}
-	mainScreen().inFrameHandler = true;
-	mainScreen().runOnFrameDelegates(frameTime);
-	for(auto w : window)
-	{
-		if(forceDraw || w->needsDraw())
-		{
-			w->setAsDrawTarget();
-			Gfx::setClipRect(false);
-			Gfx::clear();
-			w->draw(frameTime);
-			w->needsSwap = true;
-			didDraw = true;
-		}
-	}
-	for(auto w : window)
-	{
-		if(w->needsSwap)
-		{
-			w->swapBuffers();
-			w->needsSwap = false;
-		}
-	}
-	mainScreen().inFrameHandler = false;
-	//logMsg("%s", mainScreen().frameIsPosted() ? "drawing next frame" : "stopping at this frame");
-	return didDraw;
-}
-
+StaticArrayList<Window*, 4> window_;
 #else
-
 Window *mainWin = nullptr;
+#endif
+
+Window *drawTargetWindow = nullptr;
 
 Window &mainWindow()
 {
-	assert(mainWin);
-	return *mainWin;
+	assert(Window::windows());
+	return *Window::window(0);
 }
 
-static void checkTripleBufferSwap()
+Screen &Window::screen()
 {
-	// check if buffer swap blocks even though triple-buffering is used
-	auto beforeSwap = TimeSys::now();
-	mainWin->swapBuffers();
-	auto afterSwap = TimeSys::now();
-	long long diffSwap = (afterSwap - beforeSwap).toNs();
-	if(diffSwap > 16000000)
-	{
-		logWarn("buffer swap took %lldns", diffSwap);
-	}
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	return *screen_;
+	#else
+	return mainScreen();
+	#endif
 }
-
-bool frameUpdate(FrameTimeBase frameTime, bool forceDraw)
-{
-	mainScreen().framePosted = false;
-	if(unlikely(!appIsRunning()))
-	{
-		mainWin->setNeedsDraw(false);
-		return false;
-	}
-	mainScreen().inFrameHandler = true;
-	bool didDraw = false;
-	mainScreen().runOnFrameDelegates(frameTime);
-	if(forceDraw || mainWin->needsDraw())
-	{
-		mainWin->draw(frameTime);
-		#if !defined NDEBUG && defined __ANDROID__
-		checkTripleBufferSwap();
-		#else
-		mainWin->swapBuffers();
-		#endif
-		Gfx::setClipRect(false);
-		Gfx::clear();
-		didDraw =  true;
-	}
-	else
-	{
-		didDraw = false;
-	}
-	mainScreen().inFrameHandler = false;
-	//logMsg("%s", mainScreen().frameIsPosted() ? "drawing next frame" : "stopping at this frame");
-	return didDraw;
-}
-
-#endif
 
 void Window::setNeedsDraw(bool needsDraw)
 {
-	drawPosted = needsDraw;
+	if(needsDraw && hasSurface())
+		drawPosted = true;
+	else
+		drawPosted = false;
 }
 
 bool Window::needsDraw()
@@ -193,28 +65,33 @@ bool Window::needsDraw()
 
 void Window::postResize(bool redraw)
 {
-	logMsg("posted resize");
-	resizePosted = true;
-	if(redraw)
-		postDraw();
+	if(hasSurface())
+	{
+		logMsg("posted resize");
+		resizePosted = true;
+		if(redraw)
+			postDraw();
+	}
 }
 
 void Window::dispatchResize()
 {
+	bool wasResized = resizePosted;
 	resizePosted = false;
-	Base::onViewChange(*this);
+	Base::onViewChange(*this, wasResized);
 }
 
 void Window::draw(FrameTimeBase frameTime)
 {
-	setNeedsDraw(false);
-	if(unlikely(resizePosted))
+	bool targetChanged = setAsDrawTarget();
+	if(unlikely(resizePosted) || targetChanged)
 	{
 		dispatchResize();
 	}
-	#ifdef CONFIG_GFX
+	Gfx::setClipRect(false);
+	Gfx::clear();
+	setNeedsDraw(false);
 	Gfx::renderFrame(*this, frameTime);
-	#endif
 }
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)
@@ -317,7 +194,7 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 			return setOrientation(VIEW_ROTATE_270, preferAnimated);
 		else
 		{
-			logWarn("warning: valid orientation mask contain no valid values");
+			logWarn("warning: valid orientation mask contains no valid values");
 			return 0;
 		}
 	}
@@ -358,5 +235,48 @@ uint Window::setOrientation(uint o, bool preferAnimated)
 		return 0;
 }
 #endif
+
+bool Window::setAsDrawTarget()
+{
+	if(drawTargetWindow != this)
+	{
+		setSurfaceCurrent();
+		drawTargetWindow = this;
+		return true;
+	}
+	return false;
+}
+
+void Window::postNeededScreens()
+{
+	iterateTimes(windows(), i)
+	{
+		auto &w = *window(i);
+		if(w.needsDraw())
+		{
+			w.screen().postFrame();
+		}
+	}
+}
+
+uint Window::windows()
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	return window_.size();
+	#else
+	return mainWin ? 1 : 0;
+	#endif
+}
+
+Window *Window::window(uint idx)
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	if(idx >= window_.size())
+		return nullptr;
+	return window_[idx];
+	#else
+	return mainWin;
+	#endif
+}
 
 }

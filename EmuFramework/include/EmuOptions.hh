@@ -117,9 +117,9 @@ static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY 
 extern Byte1Option optionImageZoom;
 extern Byte1Option optionViewportZoom;
 
-#ifdef CONFIG_BASE_ANDROID
-extern OptionDPI optionDPI;
-#endif
+//#ifdef CONFIG_BASE_ANDROID
+//extern OptionDPI optionDPI;
+//#endif
 
 extern OptionRecentGames optionRecentGames;
 

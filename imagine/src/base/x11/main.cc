@@ -20,7 +20,9 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/gfx/Gfx.hh>
 #include "../common/windowPrivate.hh"
+#include "../common/screenPrivate.hh"
 #include <imagine/util/strings.h>
 #include <imagine/util/time/sys.hh>
 #include <imagine/util/fd-utils.h>
@@ -31,6 +33,7 @@
 #include "xdnd.hh"
 #include "xlibutils.h"
 #include "dbus.hh"
+#include "GLContextHelper.hh"
 #include <algorithm>
 
 #ifdef CONFIG_FS
@@ -48,11 +51,9 @@ namespace Base
 {
 
 const char *appPath = nullptr;
-int screen;
-float dispXMM, dispYMM;
-int dispX, dispY;
 int fbdev = -1;
 Display *dpy;
+extern GLContextHelper glCtx;
 extern void runMainEventLoop();
 extern void initMainEventLoop();
 
@@ -106,34 +107,6 @@ static void fileURLToPath(char *url)
 	url[destPos] = '\0';
 }
 
-uint Screen::refreshRate()
-{
-	auto conf = XRRGetScreenInfo(dpy, RootWindow(dpy, 0));
-	auto rate = XRRConfigCurrentRate(conf);
-	logMsg("refresh rate %d", (int)rate);
-	return rate;
-}
-
-void Screen::setRefreshRate(uint rate)
-{
-	if(Config::MACHINE_IS_PANDORA)
-	{
-		if(rate == REFRESH_RATE_DEFAULT)
-			rate = 60;
-		if(rate != 50 && rate != 60)
-		{
-			logWarn("tried to set unsupported refresh rate: %u", rate);
-		}
-		char cmd[64];
-		string_printf(cmd, "sudo /usr/pandora/scripts/op_lcdrate.sh %u", rate);
-		int err = system(cmd);
-		if(err)
-		{
-			logErr("error setting refresh rate, %d", err);
-		}
-	}
-}
-
 void toggleFullScreen(::Window xWin)
 {
 	logMsg("toggle fullscreen");
@@ -148,21 +121,6 @@ void exit(int returnVal)
 }
 
 void abort() { ::abort(); }
-
-static CallResult initX()
-{
-	dpy = XOpenDisplay(0);
-	if(!dpy)
-	{
-		logErr("couldn't open display");
-		return INVALID_PARAMETER;
-	}
-	
-	screen = DefaultScreen(dpy);
-	logMsg("using default screen %d", screen);
-
-	return OK;
-}
 
 /*void openURL(const char *url)
 {
@@ -305,10 +263,29 @@ void x11FDHandler()
 	}
 }
 
-void setupScreenSizeFromX11()
+void initXScreens()
 {
-	dispXMM = DisplayWidthMM(dpy, screen);
-	dispYMM = DisplayHeightMM(dpy, screen);
+	auto defaultScreenIdx = DefaultScreen(dpy);
+	static Screen main;
+	main.init(ScreenOfDisplay(dpy, defaultScreenIdx));
+	Screen::addScreen(&main);
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	iterateTimes(ScreenCount(dpy), i)
+	{
+		if((int)i == defaultScreenIdx)
+			continue;
+		Screen s = new Screen();
+		screen->init(ScreenOfDisplay(dpy, i));
+		Screen::addScreen(s);
+		if(!extraScreen.freeSpace())
+			break;
+	}
+	#endif
+}
+
+void initGLContext()
+{
+	doOrAbort(glCtx.init(dpy, mainScreen(), false, Gfx::maxOpenGLMajorVersionSupport()));
 }
 
 }
@@ -334,16 +311,19 @@ int main(int argc, char** argv)
 		}
 	}
 
-	doOrElse(initX(), return 1);
+	dpy = XOpenDisplay(0);
+	if(!dpy)
+	{
+		logErr("couldn't open display");
+		return -1;
+	}
+	initXScreens();
 	#ifdef CONFIG_INPUT
 	doOrAbort(Input::init());
 	#endif
 	#ifdef CONFIG_INPUT_EVDEV
 	Input::initEvdev();
 	#endif
-	dispX = DisplayWidth(dpy, screen);
-	dispY = DisplayHeight(dpy, screen);
-	setupScreenSizeFromX11();
 	
 	EventLoopFileSource x11Src;
 	x11Src.initX(ConnectionNumber(dpy));

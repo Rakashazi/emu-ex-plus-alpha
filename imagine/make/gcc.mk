@@ -5,7 +5,9 @@ include $(buildSysPath)/gcc-common.mk
 ifdef O_LTO
  COMPILE_FLAGS += -flto
  #COMPILE_FLAGS += -fipa-pta
- ifndef O_LTO_FAT
+ ifdef O_LTO_FAT
+  COMPILE_FLAGS += -ffat-lto-objects
+ else
   COMPILE_FLAGS += -fno-fat-lto-objects
   ifeq ($(origin AR), default)
    # must use gcc's ar wrapper or slim-LTO won't work if building a static archive

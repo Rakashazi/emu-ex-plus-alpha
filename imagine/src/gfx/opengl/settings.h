@@ -11,17 +11,6 @@ namespace Gfx
 {
 	static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName);
 }
-
-	#if CONFIG_ENV_ANDROID_MINSDK < 9
-	static EGLDisplay eglDisplay = 0;
-	static EGLImageKHR (*eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) = 0;
-	static EGLBoolean (*eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image) = 0;
-	static EGLDisplay (*eglGetDisplay)(EGLNativeDisplayType display_id);
-	namespace Base
-	{
-		EGLDisplay getAndroidEGLDisplay() { return eglDisplay; }
-	}
-	#endif
 #endif
 
 namespace Gfx
@@ -60,9 +49,8 @@ uint maxOpenGLMajorVersionSupport()
 
 void setViewport(const Base::Window &win, const Viewport &v)
 {
-	//logMsg("translated viewport y %d to %d", win.rect.y2, viewportY);
 	auto inGLFormat = v.inGLFormat();
-	logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
+	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
 	assert(inGLFormat.x2 && inGLFormat.y2);
 	glViewport(inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
 	currViewport = v;

@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "XWindow"
 #include "../common/windowPrivate.hh"
 #include "x11.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
-#include <imagine/gfx/Gfx.hh>
 #include "GLContextHelper.hh"
 
 #ifdef CONFIG_BASE_FBDEV_VSYNC
@@ -31,8 +31,7 @@ namespace Base
 {
 
 extern int fbdev;
-static GLContextHelper glCtx;
-static Window *drawTargetWindow = nullptr;
+GLContextHelper glCtx;
 
 bool Window::shouldAnimateContentBoundsChange() const
 {
@@ -42,11 +41,7 @@ bool Window::shouldAnimateContentBoundsChange() const
 void Window::setPixelBestColorHint(bool best)
 {
 	// should only call before initial window creation
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	assert(window.empty());
-	#else
-	assert(!mainWin);
-	#endif
+	assert(!windows());
 	glCtx.useMaxColorBits = best;
 }
 
@@ -86,7 +81,7 @@ void Window::postDraw()
 {
 	//logMsg("posting window");
 	setNeedsDraw(true);
-	mainScreen().postFrame();
+	screen().postFrame();
 }
 
 void Window::unpostDraw()
@@ -94,30 +89,26 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-void Screen::postFrame()
+void Window::setSurfaceCurrent()
 {
-	//logMsg("posting frame");
-	framePosted = true;
+	glCtx.makeCurrent(dpy, *this);
 }
 
-void Screen::unpostFrame()
+bool Window::hasSurface()
 {
-	framePosted = false;
+	return true;
 }
 
-void Window::setAsDrawTarget()
+void Window::setPresentInterval(int interval)
 {
-	if(drawTargetWindow != this)
-	{
-		glCtx.makeCurrent(dpy, *this);
-		onSetAsDrawTarget(*this);
-		drawTargetWindow = this;
-	}
+	glCtx.makeCurrent(dpy, *this);
+	drawTargetWindow = nullptr;
+	glCtx.setSwapInterval(interval);
 }
 
-static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool init)
+static CallResult setupGLWindow(Base::Window &win, Screen &screen, uint xres, uint yres)
 {
-	auto rootWindow = RootWindow(dpy, screen);
+	auto rootWindow = RootWindowOfScreen(screen.xScreen);
 	XSetWindowAttributes attr {0};
 	attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
 	#if defined CONFIG_MACHINE_PANDORA
@@ -134,17 +125,10 @@ static CallResult setupGLWindow(Base::Window &win, uint xres, uint yres, bool in
 		return INVALID_PARAMETER;
 	glCtx.initWindowSurface(win);
 	logMsg("created window with XID %d, drawable depth %d", (int)win.xWin, xDrawableDepth(dpy, win.xWin));
-	glCtx.makeCurrent(dpy, win);
-	if(init)
+	if(Config::BASE_MULTI_WINDOW && Window::windows())
 	{
-		Gfx::init();
+		win.setPresentInterval(0); // set interval to 0 so multiple swaps can occur at the same time
 	}
-	else
-	{
-		Window::setVideoInterval(0); // set interval to 0 so multiple swaps can occur at the same time
-	}
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	drawTargetWindow = &win;
 	//auto sres = glXJoinSwapGroupNV(dpy, win.xWin, 1);
 	//assert(sres == True);
 
@@ -200,11 +184,6 @@ void Window::swapBuffers()
 	glCtx.swap(dpy, *this);
 }
 
-void Window::setVideoInterval(uint interval)
-{
-	glCtx.setSwapInterval(interval);
-}
-
 IG::WindowRect Window::contentBounds() const
 {
 	return bounds();
@@ -212,40 +191,19 @@ IG::WindowRect Window::contentBounds() const
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	assert(dispXMM);
-	return {dispXMM * ((float)size.x/(float)dispX), dispYMM * ((float)size.y/(float)dispY)};
+	assert(screen().xMM);
+	return {screen().xMM * ((float)size.x/(float)screen().x), screen().yMM * ((float)size.y/(float)screen().y)};
 }
 
 Window *windowForXWindow(::Window xWin)
 {
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	for(auto w : window)
+	iterateTimes(Window::windows(), i)
 	{
+		auto w = Window::window(i);
 		if(w->xWin == xWin)
 			return w;
 	}
 	return nullptr;
-	#else
-	return mainWin;
-	#endif
-}
-
-void Window::setDPI(float dpi)
-{
-	assert(dispX);
-	if(dpi == 0)
-	{
-		setupScreenSizeFromX11();
-	}
-	else
-	{
-		logMsg("requested DPI %f", (double)dpi);
-		dispXMM = ((float)dispX / dpi) * 25.4;
-		dispYMM = ((float)dispY / dpi) * 25.4;
-	}
-	if(updatePhysicalSizeWithCurrentSize())
-		postResize();
-	//setupScreenSize();
 }
 
 CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
@@ -255,11 +213,12 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 		// already init
 		return OK;
 	}
-	#ifndef CONFIG_BASE_MULTI_WINDOW
-	if(mainWin)
+	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
 	}
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	screen_ = &mainScreen();
 	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	int x = 800;
@@ -292,19 +251,13 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	#endif
 
 	updateSize({x, y});
-	bool init = false;
-	if(!glCtx)
-	{
-		doOrAbort(glCtx.init(dpy, screen, false, Gfx::maxOpenGLMajorVersionSupport()));
-		init = true;
-	}
-	if(setupGLWindow(*this, w, h, init) != OK)
+	if(setupGLWindow(*this, screen(), w, h) != OK)
 	{
 		logErr("error initializing window");
 		return INVALID_PARAMETER;
 	}
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window.push_back(this);
+	window_.push_back(this);
 	#else
 	mainWin = this;
 	#endif
@@ -319,21 +272,26 @@ void Window::deinit()
 		return;
 	}
 	logMsg("destroying window with ID %d", (int)xWin);
+	if(drawTargetWindow == this)
+	{
+		glCtx.makeCurrentSurfaceless(dpy);
+		drawTargetWindow = nullptr;
+	}
 	glCtx.deinitWindowSurface(*this);
 	XDestroyWindow(dpy, xWin);
-	xWin = None;
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window.remove(this);
+	window_.remove(this);
 	#else
 	mainWin = nullptr;
 	#endif
+	*this = {};
 }
 
 void shutdownWindowSystem()
 {
 	logMsg("shutting down window system");
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	for(auto w : window)
+	for(auto w : window_)
 	{
 		glCtx.deinitWindowSurface(*w);
 		XDestroyWindow(dpy, w->xWin);

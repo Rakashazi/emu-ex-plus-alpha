@@ -151,10 +151,11 @@ void resetAllVControllerOptions()
 
 VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size)
 {
-	auto &win = Base::mainWindow();
+	auto &win = mainWin.win;
 	IG::WindowRect bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
 
-	const auto &rect = Gfx::viewport().bounds();
+	const auto &viewport = mainWin.viewport;
+	const auto &rect = viewport.bounds();
 	IG::WindowRect ltQuadrantRect{rect.x, rect.y, rect.xCenter(), rect.yCenter()};
 	IG::WindowRect rtQuadrantRect{rect.xCenter(), rect.y, rect.x2, rect.yCenter()};
 	IG::WindowRect lbQuadrantRect{rect.x, rect.yCenter(), rect.xCenter(), rect.y2};
@@ -174,18 +175,18 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 	else if(lbQuadrant) origin = LB2DO;
 	else if(rbQuadrant) origin = RB2DO;
 
-	int x = (origin.xScaler() == 0) ? pos.x - Gfx::viewport().width()/2 :
-		(origin.xScaler() == 1) ? pos.x - Gfx::viewport().width() : pos.x;
-	int y = LT2DO.adjustY(pos.y, (int)Gfx::viewport().height(), origin);
+	int x = (origin.xScaler() == 0) ? pos.x - viewport.width()/2 :
+		(origin.xScaler() == 1) ? pos.x - viewport.width() : pos.x;
+	int y = LT2DO.adjustY(pos.y, (int)viewport.height(), origin);
 	return {origin, {x, y}};
 }
 
 IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 {
-	auto &win = Base::mainWindow();
-	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + Gfx::viewport().width()/2 :
-		(lPos.origin.xScaler() == 1) ? lPos.pos.x + Gfx::viewport().width() : lPos.pos.x;
-	int y = lPos.origin.adjustY(lPos.pos.y, (int)Gfx::viewport().height(), LT2DO);
+	const auto &viewport = mainWin.viewport;
+	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + viewport.width()/2 :
+		(lPos.origin.xScaler() == 1) ? lPos.pos.x + viewport.width() : lPos.pos.x;
+	int y = lPos.origin.adjustY(lPos.pos.y, (int)viewport.height(), LT2DO);
 	return {x, y};
 }
 
@@ -773,7 +774,7 @@ void setupVControllerVars()
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
 
-	auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 	iterateTimes(vController.numElements(), i)
 	{
 		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i]));

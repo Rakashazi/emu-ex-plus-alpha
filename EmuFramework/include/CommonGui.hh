@@ -19,7 +19,7 @@
 #include <FileUtils.hh>
 #include <main/EmuMenuViews.hh>
 
-static SystemMenuView mMenu(mainWin);
+static SystemMenuView mMenu(mainWin.win);
 
 void initMainMenu(Base::Window &win)
 {

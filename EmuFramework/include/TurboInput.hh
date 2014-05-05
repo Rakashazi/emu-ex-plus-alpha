@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/memory/search.h>
+#include <imagine/logger/logger.h>
 
 struct TurboInput
 {

@@ -22,8 +22,11 @@ static void ewmhFullscreen(Display *dpy, ::Window win, int action)
 	xev.xclient.data.l[0] = action;
 	xev.xclient.data.l[1] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 
-	if (!XSendEvent(dpy, DefaultRootWindow(dpy), False,
-	     SubstructureRedirectMask | SubstructureNotifyMask, &xev))
+	// TODO: test if DefaultRootWindow(dpy) works on other screens
+	XWindowAttributes attr;
+	XGetWindowAttributes(dpy, win, &attr);
+	if(!XSendEvent(dpy, attr.root, False,
+		SubstructureRedirectMask | SubstructureNotifyMask, &xev))
 	{
 		logWarn("couldn't send root window NET_WM_STATE message");
 	}

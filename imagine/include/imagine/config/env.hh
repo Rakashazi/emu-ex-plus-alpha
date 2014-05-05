@@ -30,9 +30,9 @@ enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, WIN32_, PS3 };
 static const uint ENV =
 	#if defined __ANDROID__
 	ANDROID_;
-	#elif defined __APPLE__ && defined TARGET_OS_IPHONE
+	#elif defined __APPLE__ && TARGET_OS_IPHONE
 	IOS;
-	#elif defined __APPLE__ && defined TARGET_OS_MAC
+	#elif defined __APPLE__ && TARGET_OS_MAC
 	MACOSX;
 	#elif defined CONFIG_ENV_WEBOS
 	WEBOS;

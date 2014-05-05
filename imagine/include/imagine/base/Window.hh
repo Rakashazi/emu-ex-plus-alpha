@@ -18,6 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/defs.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
@@ -25,9 +26,15 @@
 #include <imagine/input/Input.hh>
 #endif
 
-#if defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA
+namespace Config
+{
+#if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
 #define CONFIG_BASE_MULTI_WINDOW
+static constexpr bool BASE_MULTI_WINDOW = true;
+#else
+static constexpr bool BASE_MULTI_WINDOW = false;
 #endif
+}
 
 #if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
 #define CONFIG_GFX_SOFT_ORIENTATION 1
@@ -71,39 +78,6 @@ using WindowImpl = EmptyWindow;
 namespace Base
 {
 using namespace IG;
-
-class Screen
-{
-public:
-  static const uint REFRESH_RATE_DEFAULT = 0;
-	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameTimeBase frameTime)>;
-	StaticArrayList<OnFrameDelegate, 4> onFrameDelegate;
-	bool framePosted = false;
-	bool inFrameHandler = false;
-
-	constexpr Screen() {}
-	void postFrame();
-	void unpostFrame();
-	bool frameIsPosted();
-	void addOnFrameDelegate(OnFrameDelegate del);
-	bool removeOnFrameDelegate(OnFrameDelegate del);
-	bool containsOnFrameDelegate(OnFrameDelegate del);
-	void clearOnFrameDelegates();
-	void runOnFrameDelegates(FrameTimeBase frameTime);
-  #if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS
-  FrameTimeBase lastPostedFrameTime();
-  static bool supportsFrameTime();
-  #else
-  FrameTimeBase lastPostedFrameTime() { return 0; }
-  static bool supportsFrameTime() { return false; }
-  #endif
-  uint refreshRate();
-  #ifdef CONFIG_BASE_X11
-  void setRefreshRate(uint rate);
-  #else
-  void setRefreshRate(uint rate) {}
-  #endif
-};
 
 // orientation
 static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
@@ -155,11 +129,13 @@ private:
 	float wSMM = 0, hSMM = 0; // size in millimeter scaled by OS
 	float smmToPixelXScaler = 0, smmToPixelYScaler = 0;
 	#endif
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	Screen *screen_ = nullptr;
+	#endif
 	bool drawPosted = false;
 
 public:
-	bool resizePosted = false;
-	bool needsSwap = false;
+	bool resizePosted = true; // all windows need an initial onViewChange call
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	uint rotateView = VIEW_ROTATE_0;
 	uint preferedOrientation = VIEW_ROTATE_0;
@@ -258,13 +234,6 @@ public:
 	static void setAcceptDnd(bool on) {}
 	#endif
 
-	// display swap interval
-	#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_IOS || defined CONFIG_BASE_MACOSX
-	static void setVideoInterval(uint interval);
-	#else
-	static void setVideoInterval(uint interval) {}
-	#endif
-
 	// window management
 	#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_WIN32 || defined CONFIG_BASE_MACOSX
 	void setTitle(const char *name);
@@ -276,29 +245,25 @@ public:
 	CallResult init(IG::Point2D<int> pos, IG::Point2D<int> size, bool useBestColorFormat);
 	void deinit();
 	void show();
-
-	// DPI override
-	#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_ANDROID
-	#define CONFIG_SUPPORTS_DPI_OVERRIDE
-	void setDPI(float dpi);
-	#else
-	static void setDPI(float dpi) {}
-	#endif
-
 	void setNeedsDraw(bool needsDraw);
 	bool needsDraw();
 	void postDraw();
+	static void postNeededScreens();
 	void unpostDraw();
 	void postResize(bool redraw = true);
 	void dispatchResize();
 	void draw(FrameTimeBase frameTime);
-	void setAsDrawTarget();
+	bool setAsDrawTarget();
 	void swapBuffers();
+	Screen &screen();
+	void setPresentInterval(int interval);
 
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
+	static uint windows();
+	static Window *window(uint idx);
 
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	uint setOrientation(uint o, bool preferAnimated);
@@ -309,6 +274,8 @@ public:
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
+	void setSurfaceCurrent();
+	bool hasSurface();
 };
 
 Window &mainWindow();
@@ -330,11 +297,11 @@ void onDragDrop(Base::Window &win, const char *filename);
 // it's being drawn for the first time, or a different window
 // was previously in onDraw(). Gfx settings like the viewport and
 // projection matrix should be set here.
-void onSetAsDrawTarget(Base::Window &win);
+//void onSetAsDrawTarget(Base::Window &win);
 
 void onDraw(Base::Window &win, FrameTimeBase frameTime);
 
-void onViewChange(Base::Window &win);
+void onViewChange(Base::Window &win, bool didResize);
 
 #ifdef CONFIG_INPUT
 // Called to process an event from an input device

@@ -20,6 +20,9 @@
 #include "basePrivate.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/util/system/pagesize.h>
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 namespace Base
 {
@@ -31,7 +34,7 @@ void engineInit()
 	#ifdef CONFIG_INITPAGESIZE
 	initPageSize();
 	#endif
-	#if defined __unix__ || (defined __APPLE__ && defined TARGET_OS_MAC)
+	#if defined __unix__ || (defined __APPLE__ && !TARGET_OS_IPHONE)
 	struct rlimit stack;
 	getrlimit(RLIMIT_STACK, &stack);
 	stack.rlim_cur = 16 * 1024 * 1024;
@@ -115,9 +118,17 @@ EVISIBLE void __verbose_terminate_handler()
 
 CLINK void bug_doExit(const char *msg, ...)
 {
+	#ifdef __ANDROID__
+	va_list args;
+	va_start(args, msg);
+	char str[256];
+	vsnprintf(str, sizeof(str), msg, args);
+	__android_log_assert("%s", "imagine", str);
+	#else
 	va_list args;
 	va_start(args, msg);
 	logger_vprintf(LOG_E, msg, args);
 	va_end(args);
 	Base::abort();
+	#endif
 }

@@ -19,11 +19,13 @@
 #include <imagine/logger/logger.h>
 #include <imagine/engine-globals.h>
 #include <imagine/util/egl.hh>
+#include <imagine/gfx/Gfx.hh>
 
 struct EGLContextHelper
 {
 	EGLContext context = EGL_NO_CONTEXT;
 	EGLConfig config = nullptr;
+	EGLSurface dummyPbuff = EGL_NO_SURFACE; // dummy pbuffer when no windows exist
 	bool useMaxColorBits = Config::MACHINE_IS_OUYA;
 	//bool has32BppColorBugs = false;
 	#ifndef NDEBUG
@@ -93,6 +95,35 @@ struct EGLContextHelper
 			context = eglCreateContext(display, config, 0, eglAttrES2Ctx);
 		else
 			bug_exit("unsupported OpenGL ES major version: %d", Gfx::maxOpenGLMajorVersionSupport());
+		bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
+		if(!supportsSurfaceless)
+		{
+			logMsg("surfaceless context not supported");
+			dummyPbuff = makeDummyPbuffer(display, config);
+			assert(dummyPbuff != EGL_NO_SURFACE);
+		}
+		makeCurrentSurfaceless(display);
+	}
+
+	void makeCurrentSurfaceless(EGLDisplay display)
+	{
+		assert(isInit());
+		if(dummyPbuff != EGL_NO_SURFACE)
+		{
+			logMsg("setting dummy pbuffer surface current");
+			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
+			{
+				bug_exit("error setting dummy pbuffer current");
+			}
+		}
+		else
+		{
+			logMsg("setting no surface current");
+			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
+			{
+				bug_exit("error setting no surface current");
+			}
+		}
 	}
 
 	static int winFormatFromConfig(EGLDisplay display, EGLConfig config)
@@ -141,19 +172,7 @@ struct EGLContextHelper
 
 	bool verify()
 	{
-		return eglGetCurrentContext() == context;
-	}
-
-	void restore(EGLDisplay display, EGLSurface surface)
-	{
 		assert(isInit());
-		if(!verify())
-		{
-			logMsg("context not current, setting now");
-			if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
-			{
-				logErr("error in eglMakeCurrent");
-			}
-		}
+		return eglGetCurrentContext() == context;
 	}
 };

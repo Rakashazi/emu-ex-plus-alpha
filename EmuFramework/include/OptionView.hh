@@ -63,7 +63,7 @@ protected:
 	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	BoolMenuItem bestColorModeHint;
 	#endif
-	#ifdef CONFIG_BASE_MULTI_WINDOW
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
 	#endif
 	BoolMenuItem dither;

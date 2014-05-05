@@ -15,6 +15,7 @@
 
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/util/time/sys.hh>
 #include "../windowPrivate.hh"
 #include <glib-unix.h>
 
@@ -125,7 +126,7 @@ void runMainEventLoop()
 		[](GSource *, GSourceFunc, gpointer)
 		{
 			//logMsg("events for frame handler");
-			frameUpdate(0);
+			mainScreen().frameUpdate(mainScreen().currFrameTime ? moveAndClear(mainScreen().currFrameTime) : TimeSys::now().toNs());
 			return (gboolean)TRUE;
 		},
 		nullptr

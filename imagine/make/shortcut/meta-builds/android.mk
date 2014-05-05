@@ -26,7 +26,7 @@ ifndef android_targetSDK
   android_targetSDK := 8
  endif
  ifeq ($(android_hasSDK9), 1)
-  android_targetSDK := 16
+  android_targetSDK := 17
  endif
 endif
 

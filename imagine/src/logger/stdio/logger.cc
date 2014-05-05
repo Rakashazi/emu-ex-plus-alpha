@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <cstdio>
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 #include <android/log.h>
 #elif defined(CONFIG_BASE_IOS)
 #include "../../base/iphone/private.hh"
@@ -41,7 +41,7 @@ static void printExternalLogPath(FsSys::cPath &path)
 {
 	#ifdef CONFIG_BASE_IOS
 	const char *prefix = "/var/mobile";
-	#elif defined(CONFIG_BASE_ANDROID)
+	#elif defined __ANDROID__
 	const char *prefix = Base::storagePath();
 	#elif defined(CONFIG_ENV_WEBOS)
 	const char *prefix = "/media/internal";
@@ -114,7 +114,7 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 		return;
 	}
 
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);

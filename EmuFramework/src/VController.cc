@@ -15,6 +15,7 @@
 
 #define LOGTAG "VController"
 #include <VController.hh>
+#include <EmuApp.hh>
 #include <algorithm>
 
 void VControllerDPad::init() {}
@@ -90,7 +91,7 @@ void VControllerDPad::setSize(uint sizeInPixels)
 void VControllerDPad::setPos(IG::Point2D<int> pos)
 {
 	padBaseArea.setPos(pos, C2DO);
-	padBaseArea.fitIn(Gfx::viewport().bounds());
+	padBaseArea.fitIn(mainWin.viewport.bounds());
 	padBase = View::projP.unProjectRect(padBaseArea);
 	spr.setPos(padBase);
 	//logMsg("set dpad pos %d:%d:%d:%d, %f:%f:%f:%f", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
@@ -310,7 +311,7 @@ IG::WindowRect VControllerGamepad::centerBtnBounds() const
 void VControllerGamepad::setCenterBtnPos(IG::Point2D<int> pos)
 {
 	centerBtnsBound.setPos(pos, C2DO);
-	centerBtnsBound.fitIn(Gfx::viewport().bounds());
+	centerBtnsBound.fitIn(mainWin.viewport.bounds());
 	int buttonXSpace = btnSpacePixels;//btnExtraXSize ? btnSpacePixels * 2 : btnSpacePixels;
 	int extraXSize = buttonXSpace + btnSizePixels * btnExtraXSize;
 	int spriteYPos = centerBtnsBound.yCenter() - centerBtnsBound.ySize()/6;
@@ -347,7 +348,7 @@ void VControllerGamepad::setLTriggerPos(IG::Point2D<int> pos)
 {
 	uint idx = lTriggerIdx();
 	lTriggerBound.setPos(pos, C2DO);
-	lTriggerBound.fitIn(Gfx::viewport().bounds());
+	lTriggerBound.fitIn(mainWin.viewport.bounds());
 	auto lTriggerAreaGC = View::projP.unProjectRect(lTriggerBound);
 	faceBtnBound[idx] = lTriggerBound;
 	circleBtnSpr[idx].setPos(lTriggerBound, View::projP);
@@ -362,7 +363,7 @@ void VControllerGamepad::setRTriggerPos(IG::Point2D<int> pos)
 {
 	uint idx = rTriggerIdx();
 	rTriggerBound.setPos(pos, C2DO);
-	rTriggerBound.fitIn(Gfx::viewport().bounds());
+	rTriggerBound.fitIn(mainWin.viewport.bounds());
 	auto rTriggerAreaGC = View::projP.unProjectRect(rTriggerBound);
 	faceBtnBound[idx] = rTriggerBound;
 	circleBtnSpr[idx].setPos(rTriggerBound, View::projP);
@@ -373,7 +374,7 @@ void VControllerGamepad::layoutBtnRows(uint a[], uint btns, uint rows, IG::Point
 	int btnsPerRow = btns/rows;
 	//logMsg("laying out buttons with size %d, space %d, row shift %d, stagger %d", btnSizePixels, btnSpacePixels, btnRowShiftPixels, btnStaggerPixels);
 	faceBtnsBound.setPos(pos, C2DO);
-	faceBtnsBound.fitIn(Gfx::viewport().bounds());
+	faceBtnsBound.fitIn(mainWin.viewport.bounds());
 	auto btnArea = View::projP.unProjectRect(faceBtnsBound);
 
 	int row = 0, btnPos = 0;
@@ -683,14 +684,14 @@ bool VController::boundingAreaVisible()
 void VController::setMenuBtnPos(IG::Point2D<int> pos)
 {
 	menuBound.setPos(pos, C2DO);
-	menuBound.fitIn(Gfx::viewport().bounds());
+	menuBound.fitIn(mainWin.viewport.bounds());
 	menuBtnSpr.setPos(menuBound, View::projP);
 }
 
 void VController::setFFBtnPos(IG::Point2D<int> pos)
 {
 	ffBound.setPos(pos, C2DO);
-	ffBound.fitIn(Gfx::viewport().bounds());
+	ffBound.fitIn(mainWin.viewport.bounds());
 	ffBtnSpr.setPos(ffBound, View::projP);
 }
 

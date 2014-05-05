@@ -15,6 +15,7 @@
 
 #define LOGTAG "AndroidWindow"
 #include "../common/windowPrivate.hh"
+#include "../common/screenPrivate.hh"
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/sdk.hh>
 #include "private.hh"
@@ -22,6 +23,7 @@
 #include <imagine/util/fd-utils.h>
 #include <imagine/gfx/Gfx.hh>
 #include <android/native_activity.h>
+#include <android/native_window_jni.h>
 #include <android/looper.h>
 #include "androidBase.hh"
 
@@ -32,7 +34,18 @@ static uint windowSizeChecks = 0;
 
 void onResume(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
-void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *nWin);
+void windowNeedsRedraw(Window &win, ANativeActivity* activity);
+void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus);
+void windowResized(Window &win, ANativeActivity* activity);
+void windowDestroyed(Window &win, ANativeActivity* activity);
+extern JavaInstMethod<jobject> jPresentation;
+static JavaInstMethod<void> jPresentationShow;
+static JavaInstMethod<void> jPresentationDismiss;
+
+Window *deviceWindow()
+{
+	return Window::window(0);
+}
 
 void setupEGLConfig()
 {
@@ -52,6 +65,62 @@ void setupEGLConfig()
 	}
 }
 
+static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
+{
+	if(jPresentationDismiss)
+		return; // already init
+	logMsg("Setting up Presentation JNI functions");
+	auto cls = jEnv->GetObjectClass(presentation);
+	jPresentationShow.setup(jEnv, cls, "show", "()V");
+	jPresentationDismiss.setup(jEnv, cls, "dismiss", "()V");
+	JNINativeMethod method[] =
+	{
+		{
+			"onSurfaceCreated", "(JLandroid/view/Surface;)V",
+			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jlong windowAddr, jobject surface))
+			([](JNIEnv* env, jobject thiz, jlong windowAddr, jobject surface)
+			{
+				auto nWin = ANativeWindow_fromSurface(env, surface);
+				auto &win = *((Window*)windowAddr);
+				finishWindowInit(win, baseActivity, nWin, false);
+			})
+		},
+		{
+			"onSurfaceChanged", "(J)V",
+			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jlong windowAddr))
+			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			{
+				auto &win = *((Window*)windowAddr);
+				windowResized(win, baseActivity);
+			})
+		},
+		{
+			"onSurfaceRedrawNeeded", "(J)V",
+			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jlong windowAddr))
+			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			{
+				auto &win = *((Window*)windowAddr);
+				windowNeedsRedraw(win, baseActivity);
+			})
+		},
+		{
+			"onSurfaceDestroyed", "(J)V",
+			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jlong windowAddr))
+			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			{
+				auto &win = *((Window*)windowAddr);
+				auto nWin = win.nWin;
+				windowDestroyed(win, baseActivity);
+				if(nWin)
+				{
+					ANativeWindow_release(nWin);
+				}
+			})
+		},
+	};
+	jEnv->RegisterNatives(cls, method, sizeofArray(method));
+}
+
 bool Window::shouldAnimateContentBoundsChange() const
 {
 	return orientationEventTime && (TimeSys::now() - orientationEventTime > TimeSys::makeWithMSecs(500));
@@ -59,33 +128,16 @@ bool Window::shouldAnimateContentBoundsChange() const
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	assert(xDPI && yDPI);
-	float xdpi = ASurface::isStraightOrientation(osOrientation) ? xDPI : yDPI;
-	float ydpi = ASurface::isStraightOrientation(osOrientation) ? yDPI : xDPI;
-	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / aDensityDPI) * 25.4f};
+	assert(screen().xDPI && screen().yDPI);
+	float xdpi = ASurface::isStraightOrientation(osOrientation) ? screen().xDPI : screen().yDPI;
+	float ydpi = ASurface::isStraightOrientation(osOrientation) ? screen().yDPI : screen().xDPI;
+	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / ydpi) * 25.4f};
 }
 
 IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
 {
-	assert(aDensityDPI);
-	return {((float)size.x / aDensityDPI) * 25.4f, ((float)size.y / aDensityDPI) * 25.4f};
-}
-
-void Window::setDPI(float dpi)
-{
-	if(dpi == 0) // use device reported DPI
-	{
-		xDPI = androidXDPI;
-		yDPI = androidYDPI;
-		logMsg("set DPI from OS %f,%f", (double)xDPI, (double)yDPI);
-	}
-	else
-	{
-		xDPI = yDPI = dpi;
-		logMsg("set DPI override %f", (double)dpi);
-	}
-	if(updatePhysicalSizeWithCurrentSize())
-		postResize();
+	assert(screen().densityDPI);
+	return {((float)size.x / screen().densityDPI) * 25.4f, ((float)size.y / screen().densityDPI) * 25.4f};
 }
 
 uint Window::setValidOrientations(uint oMask, bool preferAnimated)
@@ -98,10 +150,10 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 		bdefault: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
 		bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
 		bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
-		bcase VIEW_ROTATE_180: toSet = (androidSDK() > 8) ? 9 : 1; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
-		bcase VIEW_ROTATE_270: toSet = (androidSDK() > 8) ? 8 : 0; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = (androidSDK() > 8) ? 6 : 0; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = (androidSDK() > 8) ? 7 : 1; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
+		bcase VIEW_ROTATE_180: toSet = 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
+		bcase VIEW_ROTATE_270: toSet = 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 	}
 	jSetRequestedOrientation(eEnv(), jBaseActivity, toSet);
 	return 1;
@@ -118,8 +170,16 @@ bool Window::pixelBestColorHintDefault()
 	return Base::androidSDK() >= 11 /*&& !eglCtx.has32BppColorBugs*/;
 }
 
+void Window::setPresentInterval(int interval)
+{
+	// TODO
+}
+
 void Window::swapBuffers()
 {
+	#ifndef NDEBUG
+	assert(eglCtx.verify());
+	#endif
 	//auto now = TimeSys::timeNow();
 	eglSwapBuffers(display, surface);
 	//auto after = TimeSys::timeNow();
@@ -128,15 +188,57 @@ void Window::swapBuffers()
 
 CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 {
-	if(mainWin)
+	if(initialInit)
+		return OK;
+	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
-		bug_exit("created multiple windows");
+		bug_exit("no multi-window support");
 	}
-	assert(androidXDPI);
-	xDPI = androidXDPI;
-	yDPI = androidYDPI;
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	screen_ = &mainScreen();
+	#endif
+
+	initialInit = true;
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	window_.push_back(this);
+	if(window_.size() > 1 && Screen::screens() > 1)
+	{
+		logMsg("making window on external screen");
+		auto jEnv = eEnv();
+		screen_ = Screen::screen(1);
+		jDialog = jEnv->NewGlobalRef(jPresentation(jEnv, Base::jBaseActivity, Screen::screen(1)->aDisplay, this));
+		initPresentationJNI(jEnv, jDialog);
+		jPresentationShow(jEnv, jDialog);
+	}
+	#else
 	mainWin = this;
+	#endif
 	return OK;
+}
+
+
+void Window::deinit()
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	if(!initialInit || this == deviceWindow())
+	{
+		return;
+	}
+	auto nWin_ = nWin;
+	windowDestroyed(*this, baseActivity);
+	if(nWin_)
+	{
+		ANativeWindow_release(nWin_);
+	}
+	if(jDialog)
+	{
+		auto jEnv = eEnv();
+		jPresentationDismiss(jEnv, jDialog);
+		jEnv->DeleteGlobalRef(jDialog);
+	}
+	window_.remove(this);
+	*this = {};
+	#endif
 }
 
 void Window::show()
@@ -144,14 +246,12 @@ void Window::show()
 	postDraw();
 }
 
-static void runPendingInit(ANativeActivity* activity, ANativeWindow* nWin)
+static void runPendingInit(Window &win, ANativeActivity* activity)
 {
-	Window &win = mainWindow();
 	if(!win.ranInit)
 	{
 		win.ranInit = true;
 		appState = APP_RUNNING;
-		Gfx::init();
 		onWindowInit(win);
 		// the following handlers should only ever be called after the initial window init
 		activity->callbacks->onResume = onResume;
@@ -159,17 +259,27 @@ static void runPendingInit(ANativeActivity* activity, ANativeWindow* nWin)
 		handleIntent(activity);
 		orientationEventTime = TimeSys::now(); // init with the window creation time
 	}
-	else if(resumeAppOnWindowInit)
-	{
-		logMsg("running delayed onResume handler");
-		doOnResume(activity);
-		resumeAppOnWindowInit = false;
-	}
 }
 
 IG::WindowRect Window::contentBounds() const
 {
 	return contentRect;
+}
+
+void Window::setSurfaceCurrent()
+{
+	assert(eglCtx.context != EGL_NO_CONTEXT);
+	assert(surface != EGL_NO_SURFACE);
+	//logMsg("setting window 0x%p surface current", nWin);
+	if(eglMakeCurrent(display, surface, surface, eglCtx.context) == EGL_FALSE)
+	{
+		bug_exit("unable to set window 0x%p surface current", nWin);
+	}
+}
+
+bool Window::hasSurface()
+{
+	return isDrawable();
 }
 
 void AndroidWindow::initSurface(EGLDisplay display, EGLConfig config, ANativeWindow *win)
@@ -181,21 +291,11 @@ void AndroidWindow::initSurface(EGLDisplay display, EGLConfig config, ANativeWin
 	ANativeWindow_setBuffersGeometry(win, 0, 0, eglCtx.currentWindowFormat(display));
 	surface = eglCreateWindowSurface(display, config, win, 0);
 
-	if(eglMakeCurrent(display, surface, surface, eglCtx.context) == EGL_FALSE)
-	{
-		logErr("error in eglMakeCurrent");
-		abort();
-	}
 	//logMsg("window size: %d,%d, from EGL: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win), width(display), height(display));
 	//logMsg("window size: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
-
-	/*if(eglSwapInterval(display, 1) != EGL_TRUE)
-	{
-		logErr("error in eglSwapInterval");
-	}*/
 }
 
-void finishWindowInit(ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus)
+void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus)
 {
 	if(Base::androidSDK() < 11)
 	{
@@ -206,7 +306,6 @@ void finishWindowInit(ANativeActivity* activity, ANativeWindow *nWin, bool hasFo
 		logMsg("setting window format to %d (current %d) after surface creation", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
 		jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
 	}
-	Window &win = mainWindow();
 	win.nWin = nWin;
 	win.initSurface(display, eglCtx.config, nWin);
 	win.updateSize({ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin)});
@@ -221,7 +320,6 @@ void finishWindowInit(ANativeActivity* activity, ANativeWindow *nWin, bool hasFo
 	{
 		logMsg("window re-created");
 	}
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	win.setNeedsDraw(true);
 }
 
@@ -229,18 +327,19 @@ static Base::Screen::OnFrameDelegate windowSizeCheck
 {
 	[](Screen &screen, FrameTimeBase)
 	{
-		if(mainWindow().updateSize({ANativeWindow_getWidth(mainWindow().nWin), ANativeWindow_getHeight(mainWindow().nWin)}))
-			mainWindow().postResize();
+		auto &win = *deviceWindow();
+		if(win.updateSize({ANativeWindow_getWidth(win.nWin), ANativeWindow_getHeight(win.nWin)}))
+			win.postResize();
 		if(windowSizeChecks)
 		{
 			windowSizeChecks--;
-			logMsg("doing window size check & draw next frame (%d left), current size %d,%d", windowSizeChecks, mainWindow().width(), mainWindow().height());
+			logMsg("doing window size check & draw next frame (%d left), current size %d,%d", windowSizeChecks, win.width(), win.height());
 			screen.addOnFrameDelegate(windowSizeCheck);
-			mainWindow().postDraw();
+			win.postDraw();
 		}
 		else
 		{
-			logMsg("done with window size checks, current size %d,%d", mainWindow().width(), mainWindow().height());
+			logMsg("done with window size checks, current size %d,%d", win.width(), win.height());
 		}
 	}
 };
@@ -254,39 +353,59 @@ static Base::Screen::OnFrameDelegate windowSizeCheck
 // (ex. Archos Gamepad) if the window size changes from
 // an OS UI element (navigation or status bar), but shouldn't
 // be an issue since the window now uses a full screen layout
-void addOnFrameWindowSizeChecks(uint extraChecks)
+void addOnFrameWindowSizeChecks(Screen &screen, uint extraChecks)
 {
 	windowSizeChecks += extraChecks;
-	auto &screen = mainScreen();
 	if(!screen.containsOnFrameDelegate(windowSizeCheck))
 	{
 		screen.addOnFrameDelegate(windowSizeCheck);
 	}
 }
 
-void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *nWin)
+void windowNeedsRedraw(Window &win, ANativeActivity* activity)
 {
 	logMsg("window needs redraw");
-	assert(mainWindow().isDrawable());
-	Window &win = mainWindow();
+	assert(win.isDrawable());
 	win.postDraw();
-	addOnFrameWindowSizeChecks(1);
-	runPendingInit(activity, nWin);
+	if(&win == deviceWindow())
+	{
+		addOnFrameWindowSizeChecks(win.screen(), 1);
+		runPendingInit(win, activity);
+	}
+	else
+	{
+		if(!win.ranInit)
+		{
+			win.ranInit = true;
+			onWindowInit(win);
+		}
+	}
 }
 
-void windowResized(ANativeActivity* activity, ANativeWindow *nWin)
+void windowResized(Window &win, ANativeActivity* activity)
 {
-	logMsg("window resized, current size %d,%d", ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin));
-	assert(mainWindow().isDrawable());
-	Window &win = mainWindow();
+	logMsg("window resized, current size %d,%d", ANativeWindow_getWidth(win.nWin), ANativeWindow_getHeight(win.nWin));
+	assert(win.isDrawable());
 	win.postDraw();
-	addOnFrameWindowSizeChecks(1);
-	runPendingInit(activity, nWin);
+	if(&win == deviceWindow())
+	{
+		addOnFrameWindowSizeChecks(win.screen(), 1);
+		runPendingInit(win, activity);
+	}
+	else
+	{
+		if(!win.ranInit)
+		{
+			win.ranInit = true;
+			onWindowInit(win);
+		}
+		win.postResize();
+	}
 }
 
 void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *nWin)
 {
-	Window &win = mainWindow();
+	Window &win = *deviceWindow();
 	win.contentRect.x = rect.left; win.contentRect.y = rect.top;
 	win.contentRect.x2 = rect.right; win.contentRect.y2 = rect.bottom;
 	logMsg("content rect changed to %d:%d:%d:%d, last window size %d,%d",
@@ -297,24 +416,16 @@ void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWin
 		return;
 	}
 	win.postResize();
-	addOnFrameWindowSizeChecks(1);
-}
-
-bool onFrame(int64 frameTimeNanos, bool forceDraw)
-{
-	frameUpdate(frameTimeNanos, forceDraw);
-	return mainScreen().frameIsPosted();
+	addOnFrameWindowSizeChecks(win.screen(), 1);
 }
 
 void Window::postDraw()
 {
-	if(unlikely(!nWin))
+	if(hasSurface())
 	{
-		logWarn("cannot post redraw to uninitialized window");
-		return;
+		setNeedsDraw(true);
+		screen().postFrame();
 	}
-	setNeedsDraw(true);
-	mainScreen().postFrame();
 }
 
 void Window::unpostDraw()
@@ -322,71 +433,27 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-void Screen::postFrame()
-{
-	if(!appIsRunning())
-	{
-		//logMsg("can't post frame when app isn't running");
-		return;
-	}
-	else if(!framePosted)
-	{
-		framePosted = true;
-		if(inFrameHandler)
-		{
-			//logMsg("posting frame while in frame handler");
-		}
-		else
-		{
-			//logMsg("posting frame");
-			if(jPostFrame.m)
-				jPostFrame(eEnv(), frameHelper);
-			else
-			{
-				uint64_t post = 1;
-				auto ret = write(onFrameEventFd, &post, sizeof(post));
-				assert(ret == sizeof(post));
-			}
-		}
-	}
-}
-
-void Screen::unpostFrame()
-{
-	if(framePosted)
-	{
-		framePosted = false;
-		if(inFrameHandler)
-		{
-			//logMsg("un-posting frame while in frame handler");
-		}
-		else
-		{
-			//logMsg("un-posting frame");
-			if(jUnpostFrame.m)
-				jUnpostFrame(eEnv(), frameHelper);
-			else
-			{
-				uint64_t post;
-				read(onFrameEventFd, &post, sizeof(post));
-				onFrameEventIdle = 1; // force handler to idle since it could already be signaled by epoll
-			}
-		}
-	}
-}
-
 void restoreOpenGLContext()
 {
-	eglCtx.restore(display, mainWindow().surface);
+	if(!eglCtx.verify())
+	{
+		logMsg("context not current, setting now");
+		eglCtx.makeCurrentSurfaceless(display);
+		drawTargetWindow = nullptr;
+	}
 }
 
-void windowDestroyed(ANativeActivity* activity, Window &win)
+void windowDestroyed(Window &win, ANativeActivity* activity)
 {
-	mainScreen().removeOnFrameDelegate(windowSizeCheck);
+	win.screen().removeOnFrameDelegate(windowSizeCheck);
 	win.unpostDraw();
+	if(drawTargetWindow == &win)
+	{
+		eglCtx.makeCurrentSurfaceless(display);
+		drawTargetWindow = nullptr;
+	}
 	if(win.isDrawable())
 	{
-		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 		logMsg("destroying window surface");
 		eglDestroySurface(display, win.surface);
 		win.surface = EGL_NO_SURFACE;

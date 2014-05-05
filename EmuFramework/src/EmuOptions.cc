@@ -192,13 +192,13 @@ Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
 Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<10, 100>);
 
-OptionDPI optionDPI(0,
-	#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
-	0
-	#else
-	1
-	#endif
-);
+//OptionDPI optionDPI(0,
+//	#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
+//	0
+//	#else
+//	1
+//	#endif
+//);
 
 OptionRecentGames optionRecentGames;
 

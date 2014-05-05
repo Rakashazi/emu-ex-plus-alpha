@@ -23,8 +23,8 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include "../common/windowPrivate.hh"
+#include "../common/screenPrivate.hh"
 #include "../common/basePrivate.hh"
-#include "ASurface.hh"
 #include <imagine/gfx/Gfx.hh>
 #include "private.hh"
 #include <android/window.h>
@@ -104,10 +104,9 @@ static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHas
 // activity
 jclass jBaseActivityCls = nullptr;
 jobject jBaseActivity = nullptr;
-static ANativeActivity *baseActivity = nullptr;
+ANativeActivity *baseActivity = nullptr;
 uint appState = APP_PAUSED;
 bool aHasFocus = true;
-bool resumeAppOnWindowInit = false;
 static AConfiguration *aConfig = nullptr;
 static JavaInstMethod<void> jSetUIVisibility;
 //static JavaInstMethod<void> jFinish;
@@ -132,43 +131,40 @@ static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 void onResume(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
 TimeSys orientationEventTime;
+uint androidUIInUse = 0;
+JavaInstMethod<jobject> jGetDisplay;
+bool framePostedEvent = false;
 
 // window
 jobject frameHelper = nullptr;
-static bool hasChoreographer = 0;
-static FrameTimeBase prevFrameTimeNanos = 0;
+bool hasChoreographer = false;
 EGLContextHelper eglCtx;
 EGLDisplay display = EGL_NO_DISPLAY;
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
 JavaInstMethod<void> jPostFrame, jUnpostFrame;
+JavaInstMethod<jobject> jPresentation;
 int onFrameEventFd = -1;
 uint onFrameEventIdle = 0;
-bool onFrame(int64 frameTimeNanos, bool forceDraw);
-void windowNeedsRedraw(ANativeActivity* activity, ANativeWindow *win);
-void windowResized(ANativeActivity* activity, ANativeWindow *win);
+void windowNeedsRedraw(Window &win, ANativeActivity* activity);
+void windowResized(Window &win, ANativeActivity* activity);
 void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *win);
-void finishWindowInit(ANativeActivity* activity, ANativeWindow *win, bool hasFocus);
-void windowDestroyed(ANativeActivity* activity, Window &win);
-void addOnFrameWindowSizeChecks(uint extraRedraws);
+void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus);
+void windowDestroyed(Window &win, ANativeActivity* activity);
+void addOnFrameWindowSizeChecks(Screen &screen, uint extraRedraws);
 void setupEGLConfig();
-
-// display
-static JavaInstMethod<jint> jGetRotation;
-static JavaInstMethod<jfloat> jGetRefreshRate;
-static jobject jDpy = nullptr;
-static uint refreshRate_ = 0;
-float androidXDPI = 0, androidYDPI = 0; // DPI reported by OS
-float aDensityDPI = 0;
-uint androidUIInUse = 0;
 
 static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
 {
 	[](Screen &screen, FrameTimeBase)
 	{
 		// an Android UI element like EditText may make its
-		// own context current so we must check and restore ours
-		restoreOpenGLContext();
+		// own context current so make sure setAsDrawTarget restores ours
+		if(!eglCtx.verify())
+		{
+			logMsg("context not current, setting no draw target window");
+			drawTargetWindow = nullptr;
+		}
 		if(androidUIInUse)
 		{
 			// do callback each frame until UI use stops
@@ -391,21 +387,7 @@ const char *androidBuildDevice()
 	return buildDevice;
 }
 
-uint Screen::refreshRate()
-{
-	if(!refreshRate_)
-	{
-		assert(jDpy);
-		refreshRate_ = jGetRefreshRate(eEnv(), jDpy);
-		logMsg("refresh rate: %d", refreshRate_);
-	}
-	return refreshRate_;
-}
 
-FrameTimeBase Screen::lastPostedFrameTime()
-{
-	return prevFrameTimeNanos;
-}
 
 bool surfaceTextureSupported()
 {
@@ -465,25 +447,27 @@ static void initConfig(AConfiguration* config)
 		logMsg("keyboard type: %d", aKeyboardType);
 }
 
-static void appFocus(bool hasFocus, ANativeWindow* window)
+static void appFocus(bool hasFocus)
 {
 	aHasFocus = hasFocus;
 	logMsg("focus change: %d", (int)hasFocus);
-	if(hasFocus && window)
+	if(deviceWindow())
 	{
-		logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
-		mainWindow().postDraw();
-		addOnFrameWindowSizeChecks(0);
+		if(hasFocus)
+		{
+			//logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
+			deviceWindow()->postDraw();
+			addOnFrameWindowSizeChecks(mainScreen(), 0);
+		}
+		onFocusChange(*deviceWindow(), hasFocus);
 	}
-	if(eglCtx.isInit())
-		onFocusChange(mainWindow(), hasFocus);
 }
 
 static void configChange(JNIEnv* jEnv, AConfiguration* config, ANativeWindow* window)
 {
 	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
 	auto navState = AConfiguration_getNavHidden(config);
-	auto orientation = jGetRotation(jEnv, jDpy);
+	auto orientation = mainScreen().aOrientation(jEnv);
 	auto keyboard = AConfiguration_getKeyboard(config);
 	//trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
 	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
@@ -505,6 +489,7 @@ static void appPaused()
 	if(appIsRunning())
 		appState = APP_PAUSED;
 	logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
+	Screen::unpostAll();
 	onExit(appState == APP_PAUSED);
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnPause();
@@ -513,7 +498,6 @@ static void appPaused()
 	Input::onPauseMOGA(eEnv());
 	#endif
 	Input::deinitKeyRepeatTimer();
-	mainScreen().unpostFrame();
 }
 
 void handleIntent(ANativeActivity* activity)
@@ -546,22 +530,8 @@ static void appResumed(ANativeActivity* activity)
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnResume();
 	#endif
-	if(mainWindow())
-	{
-		logMsg("app resumed");
-		// check if a window needs to draw since the surface
-		// may have been created before onResume()
-		if(mainWindow().needsDraw())
-		{
-			mainScreen().postFrame();
-		}
-		doOnResume(activity);
-	}
-	else
-	{
-		logMsg("app resumed without window, delaying onResume handler");
-		resumeAppOnWindowInit = 1;
-	}
+	logMsg("app resumed");
+	doOnResume(activity);
 }
 
 static void initEGL()
@@ -572,11 +542,16 @@ static void initEGL()
 	#ifndef NDEBUG
 	logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
 	#endif
-	//ANativeWindow_setBuffersGeometry(win, 0, 0, configFormat);
 	//printEGLConfs(display);
 	//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
 	//printEGLConfsWithAttr(display, eglAttrWinRGB888);
 	//printEGLConfsWithAttr(display, eglAttrWinLowColor);
+}
+
+void initGLContext()
+{
+	setupEGLConfig();
+	eglCtx.init(display);
 }
 
 static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
@@ -607,7 +582,7 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 					(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2))
 					([](JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2)
 					{
-						contentRectChanged(baseActivity, {x, y, x2, y2}, mainWindow().nWin);
+						contentRectChanged(baseActivity, {x, y, x2, y2}, deviceWindow()->nWin);
 					})
 				}
 			};
@@ -689,9 +664,9 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 				JavaInstMethod<jboolean> jHasPermanentMenuKey;
 				jHasPermanentMenuKey.setup(jEnv, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
 				Base::hasPermanentMenuKey = jHasPermanentMenuKey(jEnv, inst);
-				if(!Base::hasPermanentMenuKey)
+				if(Base::hasPermanentMenuKey)
 				{
-					logMsg("device has software nav buttons");
+					logMsg("device has hardware nav/menu keys");
 				}
 			}
 			else
@@ -701,60 +676,94 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 
 	Gfx::surfaceTextureConf.init(jEnv);
 
-	// Display
-	JavaInstMethod<jobject> jDefaultDpy;
-	jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
-	jDpy = jEnv->NewGlobalRef(jDefaultDpy(jEnv, inst));
-
-	jclass jDisplayCls = jEnv->GetObjectClass(jDpy);
-	jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
-	jGetRefreshRate.setup(jEnv, jDisplayCls, "getRefreshRate", "()F");
-	//JavaInstMethod<void> jGetMetrics;
-	//jGetMetrics.setup(jEnv, jDisplayCls, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
-
-	auto orientation = jGetRotation(jEnv, jDpy);
-	logMsg("starting orientation %d", orientation);
-	osOrientation = orientation;
-	bool isStraightOrientation = !ASurface::isSidewaysOrientation(orientation);
-
-	// DisplayMetrics
-	JavaInstMethod<jobject> jDisplayMetrics;
-	jDisplayMetrics.setup(jEnv, jBaseActivityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
-	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
-	auto dpyMetrics = jDisplayMetrics(jEnv, inst);
-	assert(dpyMetrics);
-
-	jclass jDisplayMetricsCls = jEnv->GetObjectClass(dpyMetrics);
-	//JavaInstMethod<void> jDisplayMetrics;
-	//jDisplayMetrics.setup(jEnv, jDisplayMetricsCls, "<init>", "()V");
-	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
-	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
-	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
-	#ifndef NDEBUG
+	// init screens
 	{
-		auto jDensity = jEnv->GetFieldID(jDisplayMetricsCls, "density", "F");
-		auto jDensityDPI = jEnv->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
-		auto jWidthPixels = jEnv->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
-		auto jHeightPixels = jEnv->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
-		logMsg("display density %f, densityDPI %d, %dx%d pixels",
-			(double)jEnv->GetFloatField(dpyMetrics, jDensity), jEnv->GetIntField(dpyMetrics, jDensityDPI),
-			jEnv->GetIntField(dpyMetrics, jWidthPixels), jEnv->GetIntField(dpyMetrics, jHeightPixels));
+		JavaInstMethod<jobject> jDefaultDpy;
+		jDefaultDpy.setup(jEnv, jBaseActivityCls, "defaultDpy", "()Landroid/view/Display;");
+		// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
+		JavaInstMethod<jobject> jDisplayMetrics;
+		jDisplayMetrics.setup(jEnv, jBaseActivityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
+		static Screen main;
+		main.init(jEnv, jDefaultDpy(jEnv, inst), jDisplayMetrics(jEnv, inst), true);
+		Screen::addScreen(&main);
+	}
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	if(Base::androidSDK() >= 17)
+	{
+		jPresentation.setup(jEnv, Base::jBaseActivityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
+		logMsg("setting up screen notifications");
+		JavaInstMethod<jobject> jDisplayListenerHelper;
+		jDisplayListenerHelper.setup(jEnv, Base::jBaseActivityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;");
+		auto displayListenerHelper = jDisplayListenerHelper(jEnv, inst);
+		assert(displayListenerHelper);
+		auto displayListenerHelperCls = jEnv->GetObjectClass(displayListenerHelper);
+		JNINativeMethod method[] =
+		{
+			{
+				"displayChange", "(II)V",
+				(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jint devID, jint change))
+				([](JNIEnv* env, jobject thiz, jint id, jint change)
+				{
+					switch(change)
+					{
+						bcase 0:
+							for(auto s : screen_)
+							{
+								if(s->id == id)
+								{
+									logMsg("screen %d already in device list", id);
+									break;
+								}
+							}
+							if(!screen_.isFull())
+							{
+								Screen *s = new Screen();
+								s->init(env, jGetDisplay(env, thiz, id), nullptr, false);
+								Screen::addScreen(s);
+								onScreenChange(*s, { Screen::Change::ADDED });
+							}
+						bcase 2:
+							logMsg("screen %d removed", id);
+							forEachInContainer(screen_, it)
+							{
+								Screen *removedScreen = *it;
+								if(removedScreen->id == id)
+								{
+									it.erase();
+									onScreenChange(*removedScreen, { Screen::Change::REMOVED });
+									removedScreen->deinit();
+									delete removedScreen;
+									break;
+								}
+							}
+					}
+				})
+			}
+		};
+		jEnv->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
+
+		// get the current presentation screens
+		JavaInstMethod<jobject> jGetPresentationDisplays;
+		jGetPresentationDisplays.setup(jEnv, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;");
+		jGetDisplay.setup(jEnv, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
+		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(jEnv, displayListenerHelper);
+		uint pDisplays = jEnv->GetArrayLength(jPDisplay);
+		if(pDisplays)
+		{
+			if(pDisplays > screen_.freeSpace())
+				pDisplays = screen_.freeSpace();
+			logMsg("checking %d presentation display(s)", pDisplays);
+			iterateTimes(pDisplays, i)
+			{
+				auto display = jEnv->GetObjectArrayElement(jPDisplay, i);
+				Screen *s = new Screen();
+				s->init(jEnv, display, nullptr, false);
+				Screen::addScreen(s);
+			}
+		}
+		jEnv->DeleteLocalRef(jPDisplay);
 	}
 	#endif
-
-	auto metricsXDPI = jEnv->GetFloatField(dpyMetrics, jXDPI);
-	auto metricsYDPI = jEnv->GetFloatField(dpyMetrics, jYDPI);
-	aDensityDPI = 160.*jEnv->GetFloatField(dpyMetrics, jScaledDensity);
-	assert(aDensityDPI);
-	logMsg("set screen DPI size %f,%f, scaled density DPI %f", (double)metricsXDPI, (double)metricsYDPI, (double)aDensityDPI);
-//	if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 16 && (strstr(buildDevice, "spyder") || strstr(buildDevice, "targa")))
-//	{
-//		logMsg("using scaled DPI as physical DPI due to Droid RAZR/Bionic Android 4.1 bug");
-//		metricsXDPI = metricsYDPI = aDensityDPI;
-//	}
-	// DPI values are un-rotated from DisplayMetrics
-	androidXDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
-	androidYDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
 
 	if(!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11)
 	{
@@ -824,12 +833,10 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 
 	initEGL();
 	doOrAbort(onInit(0, nullptr));
-	if(!mainWin)
+	if(!Window::windows())
 	{
 		bug_exit("didn't create a window");
 	}
-	setupEGLConfig();
-	eglCtx.init(display);
 
 	// select display update method
 	if(Base::androidSDK() >= 16) // Choreographer
@@ -852,24 +859,43 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
 				{
 					#ifndef NDEBUG
+					// check frame time of the main screen
+					auto &testScreen = mainScreen();
 					FrameTimeBase timeSinceFrame = TimeSys::now().toNs() - frameTimeNanos;
-					FrameTimeBase diffFromLastFrame = frameTimeNanos - prevFrameTimeNanos;
+					FrameTimeBase diffFromLastFrame = frameTimeNanos - testScreen.prevFrameTime;
 					//logMsg("frame at %lldns, %lldns since then, %lldns since last frame",
 					//	(long long)frameTimeNanos, (long long)timeSinceFrame, (long long)diffFromLastFrame);
 					static int continuousFrames = 0;
 					const FrameTimeBase timeDiffTest = 25000000;
-					if(prevFrameTimeNanos && diffFromLastFrame > timeDiffTest)
+					if(testScreen.prevFrameTime && diffFromLastFrame > timeDiffTest)
 					{
 						logMsg("late frame: %lldns (> %dns) after %d continuous frames", (long long)diffFromLastFrame, (int)timeDiffTest, continuousFrames);
 						continuousFrames = 0;
 					}
 					#endif
-					assert(mainScreen().frameIsPosted());
-					jboolean postNextFrame = onFrame(frameTimeNanos, false);
-					prevFrameTimeNanos = postNextFrame ? frameTimeNanos : 0;
-					#ifndef NDEBUG
-					continuousFrames = postNextFrame ? continuousFrames + 1 : 0;
+
+					jboolean postNextFrame = false; // true if any screens post the next frame
+					bool isPostedCheck = false;
+					#ifdef CONFIG_BASE_MULTI_SCREEN
+					for(auto s : screen_)
+					#else
+					auto s = &mainScreen();
 					#endif
+					{
+						if(s->frameIsPosted())
+						{
+							isPostedCheck = true;
+							s->frameUpdate(frameTimeNanos, false);
+							s->prevFrameTime = s->frameIsPosted() ? frameTimeNanos : 0;
+							postNextFrame |= s->frameIsPosted();
+						}
+					}
+					assert(isPostedCheck); // make sure at least once screen was actually posted
+					#ifndef NDEBUG
+					// check frame time of the main screen, part 2
+					continuousFrames = testScreen.frameIsPosted() ? continuousFrames + 1 : 0;
+					#endif
+					framePostedEvent = postNextFrame;
 					return postNextFrame;
 				})
 			}
@@ -897,8 +923,12 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 					(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz))
 					([](JNIEnv* env, jobject thiz)
 					{
-						assert(mainScreen().frameIsPosted());
-						return (jboolean)onFrame(0, true); // force window draw so buffers swap to wait until next frame
+						auto &screen = mainScreen();
+						assert(screen.frameIsPosted());
+						// force window draw so buffers swap and currFrameTime is updated after vsync
+						screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs(), true);
+						framePostedEvent = screen.frameIsPosted();
+						return (jboolean)screen.frameIsPosted();
 					})
 				}
 			};
@@ -922,7 +952,6 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 						// to avoid a frame of input lag
 						onFrameEventIdle = 1;
 					}
-					assert(mainScreen().frameIsPosted());
 					if(likely(inputQueue) && AInputQueue_hasEvents(inputQueue) == 1)
 					{
 						// some devices may delay reporting input events (stock rom on R800i for example),
@@ -930,7 +959,12 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 						processInput(inputQueue);
 					}
 
-					if(!onFrame(0, true)) // force window draw so buffers swap to wait until next frame
+					auto &screen = mainScreen();
+					assert(screen.frameIsPosted());
+					// force window draw so buffers swap and currFrameTime is updated after vsync
+					screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs(), true);
+					framePostedEvent = screen.frameIsPosted();
+					if(!screen.frameIsPosted())
 					{
 						uint64_t post;
 						auto ret = read(fd, &post, sizeof(post));
@@ -971,7 +1005,7 @@ static bool handleInputEvent(AInputQueue *inputQueue, AInputEvent* event)
 {
 	#ifdef CONFIG_INPUT
 	//logMsg("input event start");
-	if(unlikely(!mainWindow().nWin))
+	if(unlikely(!deviceWindow()))
 	{
 		logMsg("ignoring input with uninitialized window");
 		AInputQueue_finishEvent(inputQueue, event, 0);
@@ -982,7 +1016,7 @@ static bool handleInputEvent(AInputQueue *inputQueue, AInputEvent* event)
 		//logMsg("input event used by pre-dispatch");
 		return 1;
 	}
-	auto handled = Input::onInputEvent(event, mainWindow());
+	auto handled = Input::onInputEvent(event, *deviceWindow());
 	AInputQueue_finishEvent(inputQueue, event, handled);
 	//logMsg("input event end: %s", handled ? "handled" : "not handled");
 	#else
@@ -1138,11 +1172,6 @@ void setProcessPriority(int nice)
 	setpriority(PRIO_PROCESS, 0, nice);
 }
 
-bool Screen::supportsFrameTime()
-{
-	return hasChoreographer;
-}
-
 static void onDestroy(ANativeActivity* activity)
 {
 	::exit(0);
@@ -1170,7 +1199,7 @@ static void onStop(ANativeActivity* activity) {}
 static void onConfigurationChanged(ANativeActivity* activity)
 {
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-	configChange(activity->env, aConfig, mainWindow().nWin);
+	configChange(activity->env, aConfig, deviceWindow()->nWin);
 }
 
 static void onLowMemory(ANativeActivity* activity)
@@ -1180,18 +1209,18 @@ static void onLowMemory(ANativeActivity* activity)
 
 static void onWindowFocusChanged(ANativeActivity* activity, int focused)
 {
-	appFocus(focused, mainWindow().nWin);
+	appFocus(focused);
 }
 
-static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* window)
+static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* nWin)
 {
-	finishWindowInit(activity, window, aHasFocus);
+	finishWindowInit(*deviceWindow(), activity, nWin, aHasFocus);
 }
 
 static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* window)
 {
 	onFreeCaches();
-	windowDestroyed(activity, mainWindow());
+	windowDestroyed(*deviceWindow(), activity);
 }
 
 static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
@@ -1215,17 +1244,17 @@ static void onInputQueueDestroyed(ANativeActivity* activity, AInputQueue* queue)
 
 static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
 {
-	windowResized(activity, window);
+	windowResized(*deviceWindow(), activity);
 }
 
 static void onNativeWindowRedrawNeeded(ANativeActivity* activity, ANativeWindow* window)
 {
-	windowNeedsRedraw(activity, window);
+	windowNeedsRedraw(*deviceWindow(), activity);
 }
 
 static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
 {
-	contentRectChanged(activity, *rect, mainWindow().nWin);
+	contentRectChanged(activity, *rect, deviceWindow()->nWin);
 }
 
 static void setNativeActivityCallbacks(ANativeActivity* activity)

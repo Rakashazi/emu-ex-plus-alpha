@@ -34,15 +34,17 @@ using EAGLViewSuper = UIView;
 @private
 	GLint backingWidth;
 	GLint backingHeight;
-	GLuint viewRenderbuffer, viewFramebuffer;
+	GLuint viewFramebuffer;
 	GLuint depthRenderbuffer;
 #endif
+	GLuint viewRenderbuffer;
 }
+
+- (void)bindDrawable;
+- (void)deleteDrawable;
 
 #ifndef CONFIG_BASE_IOS_GLKIT
 - (id)initWithFrame:(CGRect)frame context:(EAGLContext *)context;
-- (void)bindDrawable;
-- (void)deleteDrawable;
 - (void)setDrawableColorFormat:(NSString * const)format;
 @property(nonatomic, strong) EAGLContext *context;
 #endif

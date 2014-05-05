@@ -1,6 +1,7 @@
 ifndef inc_base
 inc_base := 1
 
+include $(imagineSrcDir)/base/Base.mk
 include $(imagineSrcDir)/input/build.mk
 include $(IMAGINE_PATH)/make/package/x11.mk
 include $(IMAGINE_PATH)/make/package/xinput.mk
@@ -16,10 +17,11 @@ LDLIBS += -lpthread
 configDefs += CONFIG_BASE_X11
 x11GLWinSystem ?= glx
 
-SRC += base/common/Base.cc base/x11/main.cc \
-base/x11/XWindow.cc base/x11/xdnd.cc base/x11/input.cc \
-input/genericASCIIDecode.cc base/common/timer/TimerFD.cc \
-base/common/PosixPipe.cc util/string/glibc.c
+SRC += base/x11/main.cc \
+base/x11/XWindow.cc base/x11/XScreen.cc base/x11/xdnd.cc \
+base/x11/input.cc input/genericASCIIDecode.cc \
+base/common/timer/TimerFD.cc base/common/PosixPipe.cc \
+util/string/glibc.c
 
 linuxEventLoop ?= epoll
 

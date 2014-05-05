@@ -19,6 +19,8 @@
 namespace Base
 {
 
+EGLSurface dummyPbuff = EGL_NO_SURFACE; // dummy pbuffer when no windows exist
+
 GLContextHelper::operator bool() const
 {
 	return ctx;
@@ -85,7 +87,7 @@ static EGLContext createContextForMajorVersion(uint version, Display *dpy, EGLCo
 }
 #endif
 
-CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uint version)
+CallResult GLContextHelper::init(Display *dpy, Screen &screen, bool multisample, uint version)
 {
 	// init display
 	display  = eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
@@ -179,14 +181,43 @@ CallResult GLContextHelper::init(Display *dpy, int screen, bool multisample, uin
 		logErr("error creating context: 0x%X", (int)eglGetError());
 		return INVALID_PARAMETER;
 	}
-
+	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
+	if(!supportsSurfaceless)
+	{
+		logMsg("surfaceless context not supported");
+		dummyPbuff = makeDummyPbuffer(display, config);
+		assert(dummyPbuff != EGL_NO_SURFACE);
+	}
+	makeCurrentSurfaceless(display);
 	return OK;
 }
 
 void GLContextHelper::makeCurrent(Display *dpy, XWindow const &win)
 {
 	assert(ctx != EGL_NO_CONTEXT);
+	assert(win.surface != EGL_NO_SURFACE);
 	eglMakeCurrent(display, win.surface, win.surface, ctx);
+}
+
+void makeCurrentSurfaceless(EGLDisplay display)
+{
+	assert(ctx != EGL_NO_CONTEXT);
+	if(dummyPbuff != EGL_NO_SURFACE)
+	{
+		logMsg("setting dummy pbuffer surface current");
+		if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
+		{
+			bug_exit("error setting dummy pbuffer current");
+		}
+	}
+	else
+	{
+		logMsg("setting no surface current");
+		if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
+		{
+			bug_exit("error setting no surface current");
+		}
+	}
 }
 
 void GLContextHelper::swap(Display *dpy, XWindow const &win)

@@ -41,8 +41,6 @@ bool useMaxColorBits = Config::BASE_IOS_GLKIT;
 static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
 
-void startAnimation();
-void stopAnimation();
 UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation);
 
 const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
@@ -96,7 +94,7 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 }
 #endif
 
-static void initGLContext()
+void initGLContext()
 {
 	if(Gfx::maxOpenGLMajorVersionSupport() == 1)
 		mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
@@ -107,7 +105,11 @@ static void initGLContext()
 	assert(mainContext);
 	int ret = [EAGLContext setCurrentContext:mainContext];
 	assert(ret);
-	Gfx::init();
+}
+
+Window *deviceWindow()
+{
+	return Window::window(0);
 }
 
 bool Window::shouldAnimateContentBoundsChange() const
@@ -117,43 +119,13 @@ bool Window::shouldAnimateContentBoundsChange() const
 
 void Window::postDraw()
 {
-	if(!appIsRunning())
-	{
-		logMsg("can't post window redraw when app isn't running");
-		return;
-	}
 	setNeedsDraw(true);
-	mainScreen().postFrame();
+	screen().postFrame();
 }
 
 void Window::unpostDraw()
 {
 	setNeedsDraw(false);
-}
-
-void Screen::postFrame()
-{
-	if(!appIsRunning())
-	{
-		logMsg("can't post window redraw when app isn't running");
-		return;
-	}
-	framePosted = true;
-	if(Base::displayLinkActive == NO)
-	{
-		displayLink.paused = NO; 
-		Base::displayLinkActive = YES;
-	}
-}
-
-void Screen::unpostFrame()
-{
-	framePosted = false;
-	if(Base::displayLinkActive == YES)
-	{
-		displayLink.paused = YES;
-		Base::displayLinkActive = NO;
-	}
 }
 
 void Window::setPixelBestColorHint(bool best)
@@ -167,18 +139,27 @@ bool Window::pixelBestColorHintDefault()
 	return Config::BASE_IOS_GLKIT;
 }
 
+void Window::setPresentInterval(int interval)
+{
+	screen().setFrameInterval(interval);
+}
+
+void Window::setSurfaceCurrent()
+{
+	//logMsg("setting window 0x%p drawable current", uiWin_);
+	[glView() bindDrawable];
+}
+
+bool Window::hasSurface()
+{
+	return true;
+}
+
 void Window::swapBuffers()
 {
 	//logMsg("doing swap");
 	//glBindRenderbufferOES(GL_RENDERBUFFER, viewRenderbuffer);
 	[mainContext presentRenderbuffer:GL_RENDERBUFFER];
-}
-
-void Window::setVideoInterval(uint interval)
-{
-	logMsg("setting frame interval %d", (int)interval);
-	assert(interval >= 1);
-	[displayLink setFrameInterval:interval];
 }
 
 IG::WindowRect Window::contentBounds() const
@@ -192,8 +173,9 @@ void IOSWindow::updateContentRect(int width, int height, uint rotateView, UIAppl
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
 	contentRect.y2 = height;
-	//logMsg("status bar hidden %d", sharedApp.statusBarHidden);
-	if(!sharedApp.statusBarHidden)
+	bool hasStatusBar = deviceWindow()->uiWin_ == uiWin_ && !sharedApp.statusBarHidden;
+	//logMsg("has status bar %d", hasStatusBar);
+	if(hasStatusBar)
 	{
 		#ifdef CONFIG_GFX_SOFT_ORIENTATION
 		bool isSideways = rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
@@ -233,20 +215,33 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 
 CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 {
-	if(mainWin)
+	if(uiWin_)
+		return OK;
+	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
-		bug_exit("created multiple windows");
+		bug_exit("no multi-window support");
 	}
-	if(!mainContext)
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	screen_ = &mainScreen();
+	#endif
+
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	window_.push_back(this);
+	if(window_.size() > 1 && Screen::screens() > 1)
 	{
-		initGLContext();
+		logMsg("making window on external screen");
+		screen_ = Screen::screen(1);
 	}
-	CGRect rect = [[UIScreen mainScreen] bounds];
+	#else
 	mainWin = this;
+	#endif
+	CGRect rect = [screen().uiScreen() bounds];
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	pointScale = screenPointScale;
+	pointScale = [screen().uiScreen() scale];
+	if(pointScale > 1.)
+		logMsg("using Retina scaling");
 	#endif
 	#ifndef CONFIG_GFX_SOFT_ORIENTATION
 	validO = defaultValidOrientationMask();
@@ -258,7 +253,6 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glView().enableSetNeedsDisplay = NO;
 	#endif
-	glView().multipleTouchEnabled = YES;
 	if(!Base::useMaxColorBits)
 	{
 		#ifdef CONFIG_BASE_IOS_GLKIT
@@ -267,15 +261,20 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 		[glView() setDrawableColorFormat:kEAGLColorFormatRGB565];
 		#endif
 	}
-	[glView() bindDrawable];
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	#ifdef CONFIG_INPUT_ICADE
-	Input::iCade.init(glView());
-	#endif
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	setAutoOrientation(1);
-	#endif
-
+	if(screen() == mainScreen())
+	{
+		glView().multipleTouchEnabled = YES;
+		#ifdef CONFIG_INPUT_ICADE
+		Input::iCade.init(glView());
+		#endif
+		#ifdef CONFIG_GFX_SOFT_ORIENTATION
+		setAutoOrientation(1);
+		#endif
+	}
+	else
+	{
+		uiWin().screen = screen().uiScreen();
+	}
 	//logMsg("setting root view controller");
 	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
 	rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
@@ -287,16 +286,40 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 
 void Window::deinit() 
 {
-	bug_exit("TODO");
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	if(!uiWin_ || this == deviceWindow())
+	{
+		return;
+	}
+	logMsg("deinit window %p", uiWin_);
+	if(drawTargetWindow == this)
+	{
+		drawTargetWindow = nullptr;
+	}
+	CFRelease(glView_);
+	CFRelease(uiWin_);
+	window_.remove(this);
+	*this = {};
+	#endif
 }
 
 void Window::show()
 {
 	logMsg("showing window");
-	[uiWin() makeKeyAndVisible];
-	//glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-	onSetAsDrawTarget(*this); // update viewport after window is shown
-	postDraw();
+	if(this == deviceWindow())
+		[uiWin() makeKeyAndVisible];
+	else
+		uiWin().hidden = NO;
+}
+
+Window *windowForUIWindow(UIWindow *uiWin)
+{
+	iterateTimes(windows(), i)
+	{
+		auto w = *window(i);
+		if(w->uiWin() == uiWin)
+			return w;
+	}
 }
 
 }
@@ -320,7 +343,7 @@ void Window::show()
 	// for iOS 5 (testing-only, this OS should use GLKit for orientations)
 	- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 	{
-		logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
+		//logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
 		return interfaceOrientation == UIInterfaceOrientationPortrait;
 	}
 	#endif
@@ -329,21 +352,24 @@ void Window::show()
 
 - (BOOL)shouldAutorotate
 {
-	logMsg("reporting if should autorotate");
-	return YES;
+	//logMsg("reporting if should autorotate");
+	if(self.view.window_ == Base::deviceWindow()->uiWin())
+		return YES;
+	else
+		return NO;
 }
 
 // for iOS 6 and up
 - (NSUInteger)supportedInterfaceOrientations
 {
-	logMsg("reporting supported orientations");
+	//logMsg("reporting supported orientations");
 	return Base::validO;
 }
 
 // for iOS 5
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
-	logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
+	//logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
 	return (Base::validO & (1 << interfaceOrientation)) ? YES : NO;
 }
 

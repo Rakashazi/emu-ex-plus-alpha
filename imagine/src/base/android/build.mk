@@ -1,6 +1,8 @@
 ifndef inc_base
 inc_base := 1
 
+include $(imagineSrcDir)/base/Base.mk
+
 include $(IMAGINE_PATH)/make/package/egl.mk
 
 configDefs += CONFIG_BASE_ANDROID
@@ -14,14 +16,10 @@ else
  configDefs += CONFIG_ENV_ANDROID_MINSDK=$(android_minSDK)
 endif
 
-ifeq ($(android_hasSDK9), 1)
- SRC += base/common/Base.cc base/android/androidBase.cc base/android/AndroidWindow.cc \
-  base/android/ALooperEventLoop.cc base/common/timer/TimerFD.cc base/common/PosixPipe.cc
- LDLIBS += -landroid
-else
- #SRC += base/android/main.cc
-endif
-
-SRC += base/android/privateApi/libhardware.c
+SRC += base/android/androidBase.cc base/android/AndroidWindow.cc \
+ base/android/AndroidScreen.cc base/android/ALooperEventLoop.cc \
+ base/common/timer/TimerFD.cc base/common/PosixPipe.cc \
+ base/android/privateApi/libhardware.c
+LDLIBS += -landroid
 
 endif

@@ -193,7 +193,7 @@ void CollectTextInputView::place()
 	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
 	textEntry.place(textRect);
 	#else
-	textRect.setPosRel(rect.pos(C2DO) - IG::WP{0, (int)Gfx::viewport().height()/4}, {xSize, ySize}, C2DO);
+	textRect.setPosRel(rect.pos(C2DO) - IG::WP{0, (int)rect.ySize()/4}, {xSize, ySize}, C2DO);
 	Input::placeSysTextInput(textRect);
 	#endif
 }

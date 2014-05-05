@@ -13,11 +13,13 @@
 
 static const EGLint eglAttrWinLowColor[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_NONE
 };
 
 static const EGLint eglAttrWinRGB888[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 8,
 	EGL_GREEN_SIZE, 8,
@@ -27,6 +29,7 @@ static const EGLint eglAttrWinRGB888[] =
 
 static const EGLint eglAttrWinMaxRGBA[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 1,
 	EGL_GREEN_SIZE, 1,
@@ -37,12 +40,14 @@ static const EGLint eglAttrWinMaxRGBA[] =
 
 static const EGLint eglAttrWinLowColorES2[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
 	EGL_NONE
 };
 
 static const EGLint eglAttrWinRGB888ES2[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
 	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 8,
@@ -53,6 +58,7 @@ static const EGLint eglAttrWinRGB888ES2[] =
 
 static const EGLint eglAttrWinMaxRGBAES2[] =
 {
+	EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT,
 	EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
 	EGL_CONFIG_CAVEAT, EGL_NONE,
 	EGL_BLUE_SIZE, 1,
@@ -154,4 +160,10 @@ static EGLBoolean eglSurfeaceIsValid(EGLDisplay display, EGLSurface surface)
 {
 	EGLint dummy;
 	return eglQuerySurface(display, surface, EGL_CONFIG_ID, &dummy);
+}
+
+static EGLSurface makeDummyPbuffer(EGLDisplay display, EGLConfig config)
+{
+	const EGLint attribs[] = { EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE };
+	return eglCreatePbufferSurface(display, config, attribs);
 }

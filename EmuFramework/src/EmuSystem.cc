@@ -137,7 +137,6 @@ bool EmuSystem::shouldOverwriteExistingState()
 int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
-	static const double ntscNSecs = 1000000000./60., palNSecs = 1000000000./50.;
 	static const auto ntscFrameTime = Base::decimalFrameTimeBaseFromSec(1./60.),
 			palFrameTime = Base::decimalFrameTimeBaseFromSec(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
@@ -146,37 +145,18 @@ int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 	}
 
 	int emuFrame;
-	if(Base::mainScreen().supportsFrameTime())
+	if(!startFrameTime)
 	{
-		if(!startFrameTime)
-		{
-			startFrameTime = frameTime;
-			emuFrame = 0;
-			//logMsg("first frame time %f", (double)frameTime);
-		}
-		else
-		{
-			auto timeTotal = frameTime - startFrameTime;
-			auto frame = std::round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
-			emuFrame = frame;
-			//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
-		}
+		startFrameTime = frameTime;
+		emuFrame = 0;
+		//logMsg("first frame time %f", (double)frameTime);
 	}
 	else
 	{
-		if(!startTime)
-		{
-			startTime = TimeSys::now();
-			emuFrame = 0;
-			//logMsg("first frame time %f", (double)startTime);
-		}
-		else
-		{
-			auto timeTotal = TimeSys::now() - startTime;
-			emuFrame = std::round((double)timeTotal.toNs() / (vidSysIsPAL() ? palNSecs : ntscNSecs));
-			//emuFrame = timeTotal.divByNSecs(vidSysIsPAL() ? palNSecs : ntscNSecs);
-			//logMsg("on frame %d, was %d, total time %f", emuFrame, emuFrameNow, (double)timeTotal);
-		}
+		auto timeTotal = frameTime - startFrameTime;
+		auto frame = std::round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
+		emuFrame = frame;
+		//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
 	}
 	assert(emuFrame >= emuFrameNow);
 	if(emuFrame == emuFrameNow)

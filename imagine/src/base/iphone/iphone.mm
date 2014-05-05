@@ -27,18 +27,20 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/util/time/sys.hh>
 #include "../common/basePrivate.hh"
 #include "../common/windowPrivate.hh"
+#include "../common/screenPrivate.hh"
 #include "ios.hh"
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Foundation/NSPathUtilities.h>
 
+#ifndef kCFCoreFoundationVersionNumber_iOS_7_0
+#define kCFCoreFoundationVersionNumber_iOS_7_0 847.20
+#endif
+
 namespace Base
 {
 	MainApp *mainApp = nullptr;
-	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	uint screenPointScale = 1;
-	#endif
 }
 
 #if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
@@ -65,12 +67,9 @@ namespace Base
 
 const char *appPath = 0;
 EAGLContext *mainContext = nullptr;
-CADisplayLink *displayLink = nullptr;
-BOOL displayLinkActive = NO;
 bool isIPad = 0;
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
-static FrameTimeBase prevFrameTime = 0;
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -169,32 +168,57 @@ uint appActivityState() { return appState; }
 }
 #endif
 
-/*- (void) screenDidConnect:(NSNotification *)aNotification
+- (void)screenDidConnect:(NSNotification *)aNotification
 {
-	logMsg("New screen connected");
-	UIScreen *screen = [aNotification object];
-	UIScreenMode *mode = [[screen availibleModes] lastObject];
-	screen.currentMode = mode;
-	if(!externalWindow)
+	using namespace Base;
+	logMsg("screen connected");
+	if(!screen_.freeSpace())
 	{
-		externalWindow = [UIWindow alloc];
+		logWarn("max screens reached");
+		return;
 	}
-	CGRect rect = CGRectMake(0, 0, mode.size.width, mode.size.height);
-	[externalWindow initWithFrame:rect];
-	externalWindow.screen = screen;
-	[externalWindow makeKeyAndVisible];
-}
- 
-- (void) screenDidDisconnect:(NSNotification *)aNotification
-{
-	logMsg("Screen dis-connected");
-}
- 
-- (void) screenModeDidChange:(NSNotification *)aNotification
-{
 	UIScreen *screen = [aNotification object];
-	logMsg("Screen-mode change"); // [screen currentMode]
-}*/
+	{
+		for(auto s : screen_)
+		{
+			if(s->uiScreen() == screen)
+			{
+				logMsg("screen %p already in list", screen);
+				return;
+			}
+		}
+	}
+	auto s = new Screen();
+	s->init(screen);
+	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+	Screen::addScreen(s);
+	onScreenChange(*s, { Screen::Change::ADDED });
+}
+
+- (void)screenDidDisconnect:(NSNotification *)aNotification
+{
+	using namespace Base;
+	logMsg("screen disconnected");
+	UIScreen *screen = [aNotification object];
+	forEachInContainer(screen_, it)
+	{
+		Screen *removedScreen = *it;
+		if(removedScreen->uiScreen() == screen)
+		{
+			it.erase();
+			onScreenChange(*removedScreen, { Screen::Change::REMOVED });
+			[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+			removedScreen->deinit();
+			delete removedScreen;
+			break;
+		}
+	}
+}
+
+- (void)screenModeDidChange:(NSNotification *)aNotification
+{
+	logMsg("screen mode change");
+}
 
 static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
@@ -208,49 +232,22 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 }
 
-- (void)displayLinkCallback
-{
-	using namespace Base;
-	//logMsg("screen update");
-	/*TimeSys now;
-	now.setTimeNow();
-	logMsg("frame time stamp %f, duration %f, now %f", displayLink.timestamp, displayLink.duration, (float)now);*/
-	auto timestamp = displayLink.timestamp;
-	frameUpdate(timestamp);
-	if(!mainScreen().frameIsPosted())
-	{
-		//logMsg("stopping screen updates");
-		mainScreen().unpostFrame();
-		prevFrameTime = 0;
-	}
-	else
-		prevFrameTime = timestamp;
-}
-
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 	using namespace Base;
-	NSString *currSysVer = [[UIDevice currentDevice] systemVersion];
 	#if !defined NDEBUG
 	//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
-	logMsg("iOS version %s", [currSysVer cStringUsingEncoding: NSASCIIStringEncoding]);
+	logMsg("iOS version %s", [[[UIDevice currentDevice] systemVersion] cStringUsingEncoding: NSASCIIStringEncoding]);
 	#endif
 	mainApp = self;
 	sharedApp = [UIApplication sharedApplication];
 
 	bool usingIOS7 = false;
 	#ifndef __ARM_ARCH_6K__
-	if([currSysVer compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending)
+	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0)
 	{
 		usingIOS7 = true;
 	}
-	#endif
-	/*logMsg("enabling iOS 3.2 external display features");
-	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-	[center addObserver:self selector:@selector(screenDidConnect:) name:UIScreenDidConnectNotification object:nil];
-	[center addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
-	[center addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];*/
-	#ifndef __ARM_ARCH_6K__
 	if(usingIOS7)
 		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
 	#endif
@@ -261,22 +258,32 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	//[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 	#endif
-	Base::displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayLinkCallback)];
-	Base::displayLinkActive = YES;
-	[Base::displayLink setFrameInterval:1];
-	[Base::displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	if([UIScreen mainScreen].scale == 2.0)
+	#ifdef CONFIG_BASE_MULTI_SCREEN
 	{
-		logMsg("running on Retina Display");
-		screenPointScale = 2;
+		NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
+		[nCenter addObserver:self selector:@selector(screenDidConnect:) name:UIScreenDidConnectNotification object:nil];
+		[nCenter addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
+		[nCenter addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];
 	}
-	else
-		logMsg("not running on Retina Display");
+	for(UIScreen *screen in [UIScreen screens])
+	{
+		auto s = new Screen();
+		s->init(screen);
+		[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+		Screen::addScreen(s);
+		if(!screen_.freeSpace())
+		{
+			logWarn("max screens reached");
+			break;
+		}
+	}
+	#else
+	mainScreen().init([UIScreen mainScreen]);
+	[mainScreen().displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	#endif
 	// TODO: use NSProcessInfo
 	doOrAbort(onInit(0, nullptr));
-	if(!mainWindow())
+	if(!deviceWindow())
 		bug_exit("no main window created");
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
@@ -285,22 +292,24 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 - (void)orientationChanged:(NSNotification *)notification
 {
+	using namespace Base;
 	uint o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
 	if(o == 255)
 		return;
 	if(o == Base::VIEW_ROTATE_180 && !Base::isIPad)
 		return; // ignore upside-down orientation unless using iPad
 	logMsg("new orientation %s", Base::orientationToStr(o));
-	Base::mainWindow().preferedOrientation = o;
-	Base::mainWindow().setOrientation(Base::mainWindow().preferedOrientation, true);
+	deviceWindow()->preferedOrientation = o;
+	deviceWindow()->setOrientation(deviceWindow()->preferedOrientation, true);
 }
 #endif
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
+	using namespace Base;
 	logMsg("resign active");
-	Base::mainScreen().unpostFrame();
-	glFinish();
+	if(deviceWindow())
+		onFocusChange(*deviceWindow(), false);
 	Input::deinitKeyRepeatTimer();
 }
 
@@ -308,15 +317,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("became active");
-	[Base::mainWindow().glView() bindDrawable];
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	onSetAsDrawTarget(Base::mainWindow()); // update viewport after window is shown
-	Base::appState = APP_RUNNING;
-	Base::onResume(1);
-	mainWindow().postDraw();
-	#ifdef CONFIG_INPUT_ICADE
-	Input::iCade.didBecomeActive();
-	#endif
+	if(deviceWindow())
+		onFocusChange(*deviceWindow(), true);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
@@ -334,14 +336,33 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("entering background");
 	appState = APP_PAUSED;
 	Base::onExit(true);
-	mainScreen().unpostFrame();
+	Base::Screen::unpostAll();
 	#ifdef CONFIG_INPUT_ICADE
 	Input::iCade.didEnterBackground();
 	#endif
-	glFinish();
-	[Base::mainWindow().glView() deleteDrawable];
 	Input::deinitKeyRepeatTimer();
+	iterateTimes(Window::windows(), i)
+	{
+		[Window::window(i)->glView() deleteDrawable];
+	}
+	drawTargetWindow = nullptr;
+	glFinish();
 	logMsg("entered background");
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+	using namespace Base;
+	logMsg("entered foreground");
+	Base::appState = APP_RUNNING;
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->postDraw();
+	}
+	Base::onResume(1);
+	#ifdef CONFIG_INPUT_ICADE
+	Input::iCade.didBecomeActive();
+	#endif
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
@@ -366,11 +387,6 @@ void nsLogv(const char* format, va_list arg)
 	NSLogv(formatStr, arg);
 }
 
-uint Screen::refreshRate()
-{
-	return 60;
-}
-
 void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplication *sharedApp)
 {
 	win.updateSize({width, height});
@@ -386,9 +402,12 @@ static void setStatusBarHidden(bool hidden)
 	#else
 	[sharedApp setStatusBarHidden: (hidden ? YES : NO) animated:YES];
 	#endif
-	auto &win = mainWindow();
-	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
-	win.postResize();
+	if(deviceWindow())
+	{
+		auto &win = *deviceWindow();
+		win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
+		win.postResize();
+	}
 }
 
 void setSysUIStyle(uint flags)
@@ -435,7 +454,7 @@ void Window::setAutoOrientation(bool on)
 		[[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
 	else
 	{
-		mainWindow().preferedOrientation = mainWindow().rotateView;
+		deviceWindow()->preferedOrientation = deviceWindow()->rotateView;
 		[[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
 	}
 }
@@ -524,16 +543,6 @@ bool setUIDEffective()
 
 #endif
 
-bool Screen::supportsFrameTime()
-{
-	return true;
-}
-
-FrameTimeBase Screen::lastPostedFrameTime()
-{
-	return prevFrameTime;
-}
-
 }
 
 double TimeMach::timebaseNSec = 0, TimeMach::timebaseUSec = 0,
@@ -545,7 +554,6 @@ int main(int argc, char *argv[])
 	#ifdef CONFIG_BASE_IOS_SETUID
 	setupUID();
 	#endif
-	
 	engineInit();
 	doOrAbort(logger_init());
 	TimeMach::setTimebase();

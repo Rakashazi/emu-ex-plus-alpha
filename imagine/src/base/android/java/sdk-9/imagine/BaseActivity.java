@@ -232,6 +232,13 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return getResources().getDisplayMetrics();
 	}
 	
+	DisplayMetrics getDisplayMetrics(Display display)
+	{
+		DisplayMetrics metrics = new DisplayMetrics();
+		display.getMetrics(metrics);
+		return metrics;
+	}
+	
 	String apkPath()
 	{
 		return getApplicationInfo().sourceDir;
@@ -535,6 +542,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new InputDeviceListenerHelper(this);
 	}
 	
+	DisplayListenerHelper displayListenerHelper()
+	{
+		return new DisplayListenerHelper(this);
+	}
+	
 	MOGAHelper mogaHelper()
 	{
 		return new MOGAHelper(this);
@@ -543,6 +555,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	SystemUiVisibilityChangeHelper uiVisibilityChangeHelper()
 	{
 		return new SystemUiVisibilityChangeHelper(getWindow().getDecorView());
+	}
+	
+	PresentationHelper presentation(Display display, long windowAddr)
+	{
+		PresentationHelper p = new PresentationHelper(this, display, windowAddr);
+		return p;
 	}
 	
 	Bitmap makeBitmap(int width, int height, int format)

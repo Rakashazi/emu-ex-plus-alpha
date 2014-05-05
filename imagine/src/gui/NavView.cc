@@ -151,6 +151,5 @@ void BasicNavView::place()
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		rightSpr.setPos(scaledRect);
 	}
-	//bg.setPos(Gfx::gXPos(viewRect, LT2DO), Gfx::gYPos(viewRect, LT2DO), Gfx::gXPos(viewRect, RB2DO), Gfx::gYPos(viewRect, RB2DO));
 	bg.setPos(View::projP.unProjectRect(viewRect));
 }

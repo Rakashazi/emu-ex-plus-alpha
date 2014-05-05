@@ -33,6 +33,7 @@ public:
 	Gfx::Sprite disp;
 	Gfx::BufferImage vidImg;
 	IG::Pixmap vidPix {PixelFormatRGB565};
+	Base::Window *videoWin;
 
 private:
 	char *pixBuff = nullptr;
@@ -42,15 +43,15 @@ private:
 	IG::WindowRect rect;
 
 public:
-	constexpr EmuView(Base::Window &win): View(win) {}
+	constexpr EmuView(Base::Window &win): View(win), videoWin(&win) {}
 	void deinit() override {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void placeEmu(); // game content only
-	template <bool active>
-	void drawContent();
+	void drawContent(bool drawVideo, bool videoActive, bool drawOtherContent);
 	void runFrame(Base::FrameTimeBase frameTime);
 	void draw(Base::FrameTimeBase frameTime) override;
+	void draw(Base::FrameTimeBase frameTime, Base::Window &win);
 	void inputEvent(const Input::Event &e) override;
 	void takeGameScreenshot();
 	void placeOverlay();

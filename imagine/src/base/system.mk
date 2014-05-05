@@ -16,8 +16,3 @@ endif
 
 SRC += base/common/Window.cc
 
-ifndef NO_LOGGER
- include $(imagineSrcDir)/logger/system.mk
-endif
-
-include $(IMAGINE_PATH)/make/package/stdc++-headers.mk

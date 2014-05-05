@@ -7,8 +7,6 @@
 namespace Base
 {
 
-extern float androidXDPI, androidYDPI;
-extern float aDensityDPI;
 extern JavaInstMethod<void> jSetWinFormat;
 extern JavaInstMethod<int> jWinFormat;
 extern JavaInstMethod<void> jSetRequestedOrientation;
@@ -23,5 +21,8 @@ extern jobject frameHelper;
 extern bool aHasFocus;
 extern uint appState;
 extern TimeSys orientationEventTime;
+extern ANativeActivity *baseActivity;
+extern bool framePostedEvent;
+Window *deviceWindow();
 
 }

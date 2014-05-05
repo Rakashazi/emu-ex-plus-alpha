@@ -18,6 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/util/operators.hh>
 #include <imagine/base/iphone/config.h>
+#import <CoreGraphics/CGBase.h>
 
 #ifdef __OBJC__
 #import <imagine/base/iphone/EAGLView.hh>
@@ -39,9 +40,9 @@ public:
 	void *glView_ = nullptr; // EAGLView in ObjC
 	IG::WindowRect contentRect; // active window content
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	uint pointScale = 1;
+	CGFloat pointScale = 1.;
 	#else
-	static constexpr uint pointScale = 1;
+	static constexpr CGFloat pointScale = 1.;
 	#endif
 
 	constexpr IOSWindow() {}

@@ -31,8 +31,11 @@ public:
 	ANativeWindow *nWin = nullptr;
 	EGLSurface surface = EGL_NO_SURFACE;
 	IG::WindowRect contentRect; // active window content
-	float xDPI = 0, yDPI = 0; // Active DPI
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	jobject jDialog = nullptr;
+	#endif
 	bool ranInit = false;
+	bool initialInit = false;
 
 	constexpr AndroidWindow() {}
 

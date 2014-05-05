@@ -134,9 +134,12 @@ ifdef ios_metadata_setuidPermissionHelper
 	ssh root@$(ios_installHost) chmod gu+s $(ios_deviceAppBundlePath)/fixMobilePermission
 endif
 
-.PHONY: ios-install
-ios-install : ios-build $(ios_plist)
+.PHONY: ios-plist-install
+ios-plist-install : $(ios_plist)
 	scp $(ios_plist) root@$(ios_installHost):$(ios_deviceAppBundlePath)/
+
+.PHONY: ios-install
+ios-install : ios-build
 	ssh root@$(ios_installHost) rm -f $(ios_deviceExecPath)
 	scp $(ios_fatExec) root@$(ios_installHost):$(ios_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(ios_deviceExecPath)

@@ -29,7 +29,10 @@ void EmuView::placeEmu()
 {
 	if(EmuSystem::gameIsRunning())
 	{
-		const auto &viewportRect = Gfx::viewport().bounds();
+		auto &videoWinData = *videoWin == extraWin.win ? extraWin : mainWin;
+		const auto &viewport = videoWinData.viewport;
+		const auto &viewportRect = viewport.bounds();
+		auto projP = Gfx::ProjectionPlane::makeWithMatrix(viewport, videoWinData.projectionMat);
 		// compute the video rectangle in pixel coordinates
 		if((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
@@ -65,14 +68,14 @@ void EmuView::placeEmu()
 				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 			}
 
-			if(gameAR > Gfx::viewport().aspectRatio())//Gfx::proj.aspectRatio)
+			if(gameAR > viewport.aspectRatio())//Gfx::proj.aspectRatio)
 			{
-				scaleFactor = std::max(1U, Gfx::viewport().width() / gameX);
+				scaleFactor = std::max(1U, viewport.width() / gameX);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1U, Gfx::viewport().height() / gameY);
+				scaleFactor = std::max(1U, viewport.height() / gameY);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
@@ -128,9 +131,9 @@ void EmuView::placeEmu()
 		Gfx::GC yOffset = 0;
 		int yOffsetPixels = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(/*Gfx::proj.aspectRatio*/Gfx::viewport().aspectRatio() < 1. && touchControlsAreOn && touchControlsApplicable())
+		if(viewport.aspectRatio() < 1. && touchControlsAreOn && touchControlsApplicable())
 		{
-			auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+			auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom())
 			{
 				logMsg("moving game rect to top");
@@ -199,57 +202,66 @@ void EmuView::placeEmu()
 	placeEffect();
 }
 
-template <bool active>
-void EmuView::drawContent()
+void EmuView::drawContent(bool drawVideo, bool videoActive, bool drawOtherContent)
 {
 	using namespace Gfx;
-	setBlendMode(0);
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(vidImgEffect.hasProgram())
+	if(drawVideo)
 	{
-		setProgram(vidImgEffect.program(active ? IMG_MODE_REPLACE : IMG_MODE_MODULATE), projP.makeTranslate());
-	}
-	else
-	#endif
-	{
-		disp.useDefaultProgram(active ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
-	}
-	disp.draw();
-	vidImgOverlay.draw();
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	/*if(active && ((touchControlsAreOn && touchControlsApplicable())
-		#ifdef CONFIG_VCONTROLLER_KEYBOARD
-		|| vController.kbMode
+		setBlendMode(0);
+		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+		if(vidImgEffect.hasProgram())
+		{
+			setProgram(vidImgEffect.program(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE), projP.makeTranslate());
+		}
+		else
 		#endif
-	))*/
-	if(active)
-	{
-		vController.draw(touchControlsAreOn && touchControlsApplicable(), ffGuiKeyPush || ffGuiTouch);
+		{
+			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+		}
+		disp.draw();
+		vidImgOverlay.draw();
 	}
-	#endif
-	popup.draw();
+	if(drawOtherContent)
+	{
+		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+		/*if(active && ((touchControlsAreOn && touchControlsApplicable())
+			#ifdef CONFIG_VCONTROLLER_KEYBOARD
+			|| vController.kbMode
+			#endif
+		))*/
+		//if(active)
+		{
+			vController.draw(touchControlsAreOn && touchControlsApplicable(), ffGuiKeyPush || ffGuiTouch);
+		}
+		#endif
+		//popup.draw();
+	}
 }
 
-template void EmuView::drawContent<0>();
-template void EmuView::drawContent<1>();
-
 void EmuView::draw(Base::FrameTimeBase frameTime)
+{
+	bug_exit("TODO: refactoring");
+}
+
+void EmuView::draw(Base::FrameTimeBase frameTime, Base::Window &win)
 {
 	using namespace Gfx;
 	if(likely(EmuSystem::isActive()))
 	{
-		postDraw();
-		#ifdef CONFIG_BASE_MULTI_WINDOW
-		extern Base::Window secondWin;
-		if(secondWin)
-			secondWin.postDraw();
-		#endif
-		runFrame(frameTime);
+		if(win == *videoWin)
+		{
+			videoWin->postDraw();
+			runFrame(frameTime);
+		}
+		else
+		{
+			drawContent(false, false, true);
+		}
 	}
-	else if(EmuSystem::isStarted())
+	else if(EmuSystem::isStarted() && win == *videoWin)
 	{
 		setColor(.25, .25, .25);
-		drawContent<0>();
+		drawContent(true, false, false);
 	}
 }
 
@@ -277,7 +289,7 @@ void EmuView::runFrame(Base::FrameTimeBase frameTime)
 		}
 		else if(framesToSkip == -1)
 		{
-			drawContent<1>();
+			drawContent(true, true, window() == *videoWin);
 			return;
 		}
 	}
@@ -320,7 +332,7 @@ void EmuView::inputEvent(const Input::Event &e)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
 	{
-		auto &layoutPos = vControllerLayoutPos[Gfx::viewport().isPortrait() ? 1 : 0];
+		auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
 		if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps({e.x, e.y}))
 		{
 			viewStack.top().clearSelection();
@@ -558,7 +570,7 @@ void EmuView::placeEffect()
 void EmuView::updateAndDrawContent()
 {
 	vidImg.write(vidPix, vidPixAlign);
-	drawContent<1>();
+	drawContent(true, true, window() == *videoWin);
 }
 
 void EmuView::initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch)

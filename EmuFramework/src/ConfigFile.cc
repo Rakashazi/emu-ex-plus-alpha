@@ -210,9 +210,9 @@ static bool readConfig2(Io &io)
 			bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
 			bcase CFGKEY_IMAGE_ZOOM: optionImageZoom.readFromIO(io, size);
 			bcase CFGKEY_VIEWPORT_ZOOM: optionViewportZoom.readFromIO(io, size);
-			#ifdef CONFIG_BASE_ANDROID
-			bcase CFGKEY_DPI: optionDPI.readFromIO(io, size);
-			#endif
+//			#ifdef CONFIG_BASE_ANDROID
+//			bcase CFGKEY_DPI: optionDPI.readFromIO(io, size);
+//			#endif
 			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 			bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
 			#endif
@@ -466,9 +466,9 @@ static OptionBase *cfgFileOption[] =
 	&optionMOGAInputSystem,
 	#endif
 	&optionFrameSkip,
-	#ifdef CONFIG_BASE_ANDROID
-	&optionDPI,
-	#endif
+//	#ifdef CONFIG_BASE_ANDROID
+//	&optionDPI,
+//	#endif
 	&optionVibrateOnPush,
 	&optionRecentGames,
 	&optionNotificationIcon,

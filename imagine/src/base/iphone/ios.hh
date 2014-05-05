@@ -16,6 +16,8 @@ namespace Base
 	extern CADisplayLink *displayLink;
 	extern bool useMaxColorBits;
 	extern bool isIPad;
+	Window *windowForUIWindow(UIWindow *uiWin);
+	Window *deviceWindow();
 }
 
 namespace Input
