@@ -202,13 +202,6 @@ Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMi
 
 OptionRecentGames optionRecentGames;
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-Byte4s2Option optionTouchCtrlImgRes
-(CFGKEY_TOUCH_CONTROL_IMG_PIXELS,	128,
-		Config::envIsLinux || Config::envIsIOS || Config::envIsWebOS || Config::ENV_ANDROID_MINSDK >= 9,
-		optionIsValidWithMax<128>);
-#endif
-
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	// Default & current setting isn't known until OpenGL init

@@ -435,16 +435,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	CPULoop(gGba, renderGfx, processGfx, renderAudio);
 }
 
-namespace Base
-{
-
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-
-}
-
 void EmuSystem::configAudioRate()
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
@@ -463,12 +453,7 @@ CallResult onInit(int argc, char** argv)
 {
 	emuView.initPixmap((char*)gGba.lcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -478,7 +463,7 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
 	return OK;
 }
 

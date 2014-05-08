@@ -27,6 +27,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include "evdev.hh"
+#include "../private.hh"
 #include <imagine/util/container/ArrayList.hh>
 
 #define DEV_NODE_PATH "/dev/input"
@@ -149,7 +150,7 @@ struct EvdevInputDevice : public Device
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
 					Event event{enumId(), Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, 0, this};
 					startKeyRepeatTimer(event);
-					Base::onInputEvent(Base::mainWindow(), event);
+					dispatchInputEvent(event);
 				}
 				bcase EV_ABS:
 				{
@@ -271,7 +272,8 @@ struct EvdevInputDevice : public Device
 		fdSrc.deinit();
 		::close(fd);
 		removeDevice(*this);
-		onInputDevChange(*this, { Device::Change::REMOVED });
+		if(onDeviceChange)
+			onDeviceChange(*this, { Device::Change::REMOVED });
 	}
 
 	void setJoystickAxisAsDpadBits(uint axisMask) override
@@ -387,8 +389,8 @@ static bool processDevNode(const char *path, int id, bool notify)
 	evDev->setEnumId(devId);
 	uint type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
 	addDevice(*evDev);
-	if(notify)
-		onInputDevChange(*evDev, { Device::Change::ADDED });
+	if(notify && onDeviceChange)
+		onDeviceChange(*evDev, { Device::Change::ADDED });
 
 	return true;
 }

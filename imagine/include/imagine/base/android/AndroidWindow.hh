@@ -34,6 +34,7 @@ public:
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	jobject jDialog = nullptr;
 	#endif
+	WindowInitDelegate onInit;
 	bool ranInit = false;
 	bool initialInit = false;
 

@@ -128,7 +128,7 @@ static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback;
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
-void onResume(ANativeActivity* activity);
+void onResume_(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
 TimeSys orientationEventTime;
 uint androidUIInUse = 0;
@@ -204,7 +204,8 @@ void exit(int returnVal)
 	// TODO: return exit value as activity result
 	logMsg("exiting process");
 	appState = APP_EXITING;
-	onExit(false);
+	if(onExit)
+		onExit(false);
 	auto env = eEnv();
 	jRemoveNotification(env, jBaseActivity);
 	::exit(returnVal);
@@ -459,7 +460,7 @@ static void appFocus(bool hasFocus)
 			deviceWindow()->postDraw();
 			addOnFrameWindowSizeChecks(mainScreen(), 0);
 		}
-		onFocusChange(*deviceWindow(), hasFocus);
+		deviceWindow()->onFocusChange(*deviceWindow(), hasFocus);
 	}
 }
 
@@ -490,7 +491,8 @@ static void appPaused()
 		appState = APP_PAUSED;
 	logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
 	Screen::unpostAll();
-	onExit(appState == APP_PAUSED);
+	if(onExit)
+		onExit(appState == APP_PAUSED);
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnPause();
 	#endif
@@ -502,6 +504,8 @@ static void appPaused()
 
 void handleIntent(ANativeActivity* activity)
 {
+	if(!onInterProcessMessage)
+		return;
 	// check for view intents
 	auto jEnv = activity->env;
 	jstring intentDataPathJStr = (jstring)jIntentDataPath(jEnv, activity->clazz);
@@ -520,7 +524,8 @@ void doOnResume(ANativeActivity* activity)
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	Input::onResumeMOGA(eEnv(), true);
 	#endif
-	onResume(aHasFocus);
+	if(onResume)
+		onResume(aHasFocus);
 	handleIntent(activity);
 }
 
@@ -720,7 +725,8 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 								Screen *s = new Screen();
 								s->init(env, jGetDisplay(env, thiz, id), nullptr, false);
 								Screen::addScreen(s);
-								onScreenChange(*s, { Screen::Change::ADDED });
+								if(Screen::onChange)
+									Screen::onChange(*s, { Screen::Change::ADDED });
 							}
 						bcase 2:
 							logMsg("screen %d removed", id);
@@ -730,7 +736,8 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 								if(removedScreen->id == id)
 								{
 									it.erase();
-									onScreenChange(*removedScreen, { Screen::Change::REMOVED });
+									if(Screen::onChange)
+										Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
 									removedScreen->deinit();
 									delete removedScreen;
 									break;
@@ -1179,7 +1186,7 @@ static void onDestroy(ANativeActivity* activity)
 
 static void onStart(ANativeActivity* activity) {}
 
-void onResume(ANativeActivity* activity)
+void onResume_(ANativeActivity* activity)
 {
 	appResumed(activity);
 }
@@ -1204,7 +1211,8 @@ static void onConfigurationChanged(ANativeActivity* activity)
 
 static void onLowMemory(ANativeActivity* activity)
 {
-	onFreeCaches();
+	if(onFreeCaches)
+		onFreeCaches();
 }
 
 static void onWindowFocusChanged(ANativeActivity* activity, int focused)
@@ -1219,7 +1227,8 @@ static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* nWin
 
 static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* window)
 {
-	onFreeCaches();
+	if(onFreeCaches)
+		onFreeCaches();
 	windowDestroyed(*deviceWindow(), activity);
 }
 
@@ -1261,7 +1270,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 {
 	activity->callbacks->onDestroy = onDestroy;
 	//activity->callbacks->onStart = onStart;
-	//activity->callbacks->onResume = onResume;
+	//activity->callbacks->onResume = onResume_;
 	//activity->callbacks->onSaveInstanceState = onSaveInstanceState;
 	//activity->callbacks->onPause = onPause;
 	//activity->callbacks->onStop = onStop;
@@ -1287,7 +1296,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	{
 		logMsg("skipping onCreate");
 		setNativeActivityCallbacks(activity);
-		activity->callbacks->onResume = onResume;
+		activity->callbacks->onResume = onResume_;
 		activity->callbacks->onPause = onPause;
 		assert(jVM == activity->vm);
 		assert(eJEnv == activity->env);

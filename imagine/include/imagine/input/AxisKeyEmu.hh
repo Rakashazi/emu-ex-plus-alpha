@@ -57,13 +57,13 @@ struct AxisKeyEmu
 		if(releasedKey)
 		{
 			cancelKeyRepeatTimer();
-			Base::onInputEvent(win, Event(id, map, releasedKey, RELEASED, 0, 0, &dev));
+			win.onInputEvent(win, Event(id, map, releasedKey, RELEASED, 0, 0, &dev));
 		}
 		if(pushedKey)
 		{
 			Event event{id, map, pushedKey, PUSHED, 0, 0, &dev};
 			startKeyRepeatTimer(event);
-			Base::onInputEvent(win, event);
+			win.onInputEvent(win, event);
 		}
 		return true;
 	}

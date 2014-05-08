@@ -17,6 +17,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
+#include "private.hh"
 
 namespace Input
 {
@@ -24,6 +25,7 @@ namespace Input
 static Base::Timer keyRepeatTimer;
 static Event keyRepeatEvent;
 static bool allowKeyRepeats_ = true;
+DeviceChangeDelegate onDeviceChange;
 
 void setAllowKeyRepeats(bool on)
 {
@@ -57,7 +59,7 @@ void startKeyRepeatTimer(const Event &event)
 		{
 			logMsg("repeating key event");
 			if(likely(keyRepeatEvent.pushed()))
-				Base::onInputEvent(Base::mainWindow(), keyRepeatEvent);
+				dispatchInputEvent(keyRepeatEvent);
 		}, 400, 50, Base::Timer::HINT_REUSE);
 }
 
@@ -154,7 +156,7 @@ bool keyInputIsPresent()
 
 void dispatchInputEvent(const Input::Event &event)
 {
-	onInputEvent(Base::mainWindow(), event);
+	Base::mainWindow().onInputEvent(Base::mainWindow(), event);
 }
 
 bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
@@ -187,7 +189,7 @@ bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
 			Event event{0, Event::MAP_ICADE, (Key)keycodeMap[index], PUSHED, 0, 0, &dev};
 			#endif
 			startKeyRepeatTimer(event);
-			Base::onInputEvent(win, event);
+			win.onInputEvent(win, event);
 		}
 		return true;
 	}
@@ -202,15 +204,20 @@ bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
 			{
 				cancelKeyRepeatTimer();
 				#ifdef CONFIG_BASE_IOS
-				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
+				win.onInputEvent(win, Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
 				#else
-				Base::onInputEvent(win, Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
+				win.onInputEvent(win, Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
 				#endif
 			}
 			return true;
 		}
 	}
 	return false; // not an iCade key
+}
+
+void setOnDeviceChange(DeviceChangeDelegate del)
+{
+	onDeviceChange = del;
 }
 
 }

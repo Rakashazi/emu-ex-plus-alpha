@@ -135,6 +135,12 @@ private:
 	bool drawPosted = false;
 
 public:
+	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, bool didResize)>;
+	using DrawDelegate = DelegateFunc<void (Window &win, FrameTimeBase frameTime)>;
+	using InputEventDelegate = DelegateFunc<void (Window &win, const Input::Event &event)>;
+	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
+	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
+
 	bool resizePosted = true; // all windows need an initial onViewChange call
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	uint rotateView = VIEW_ROTATE_0;
@@ -144,8 +150,26 @@ public:
 	static constexpr uint rotateView = VIEW_ROTATE_0;
 	static constexpr uint preferedOrientation = VIEW_ROTATE_0;
 	#endif
+	SurfaceChangeDelegate onSurfaceChange;
+	DrawDelegate onDraw;
+	InputEventDelegate onInputEvent;
+	FocusChangeDelegate onFocusChange;
+	DragDropDelegate onDragDrop;
 
 	constexpr Window() {}
+
+	// Called when the state of the window's drawing surface changes,
+	// such as a re-size or if it becomes the current drawing target
+	void setOnSurfaceChange(SurfaceChangeDelegate del);
+	// Called during a Screen frame callback if the window needs to be drawn
+	void setOnDraw(DrawDelegate del);
+	// Called to process an event from an input device
+	void setOnInputEvent(InputEventDelegate del);
+	// Called when app window enters/exits focus
+	void setOnFocusChange(FocusChangeDelegate del);
+	// Called when a file is dropped into into the app's window
+	// if app enables setAcceptDnd()
+	void setOnDragDrop(DragDropDelegate del);
 
 	int realWidth() const { return orientationIsSideways(rotateView) ? h : w; }
 	int realHeight() const { return orientationIsSideways(rotateView) ? w : h; }
@@ -241,8 +265,7 @@ public:
 	static void setTitle(const char *name) {}
 	#endif
 
-	CallResult init(IG::Point2D<int> pos, IG::Point2D<int> size);
-	CallResult init(IG::Point2D<int> pos, IG::Point2D<int> size, bool useBestColorFormat);
+	CallResult init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit);
 	void deinit();
 	void show();
 	void setNeedsDraw(bool needsDraw);
@@ -276,36 +299,10 @@ private:
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
 	void setSurfaceCurrent();
 	bool hasSurface();
+	void initDelegates();
 };
 
 Window &mainWindow();
 Screen &mainScreen();
-
-// App Callbacks
-
-// Called when app window enters/exits focus
-void onFocusChange(Base::Window &win, uint in);
-
-// Called when a file is dropped into into the app's window
-// if app enables setAcceptDnd()
-void onDragDrop(Base::Window &win, const char *filename);
-
-// Called on app window creation, after the graphics context is initialized
-[[gnu::cold]] CallResult onWindowInit(Base::Window &win);
-
-// Called before the window receives onDraw() and
-// it's being drawn for the first time, or a different window
-// was previously in onDraw(). Gfx settings like the viewport and
-// projection matrix should be set here.
-//void onSetAsDrawTarget(Base::Window &win);
-
-void onDraw(Base::Window &win, FrameTimeBase frameTime);
-
-void onViewChange(Base::Window &win, bool didResize);
-
-#ifdef CONFIG_INPUT
-// Called to process an event from an input device
-void onInputEvent(Base::Window &win, const Input::Event &event);
-#endif
 
 }

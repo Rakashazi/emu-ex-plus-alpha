@@ -18,6 +18,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <algorithm>
+#include "../input/private.hh"
 
 extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
@@ -77,7 +78,8 @@ void Zeemote::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		Input::removeDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -98,13 +100,15 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 		btInputDevList.push_back(this);
 		devId = player;
 		Input::addDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}

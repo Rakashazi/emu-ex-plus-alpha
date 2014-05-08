@@ -35,6 +35,40 @@ Window *mainWin = nullptr;
 
 Window *drawTargetWindow = nullptr;
 
+void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
+{
+	onSurfaceChange = del ? del : [](Window &, bool){};
+}
+
+void Window::setOnDraw(DrawDelegate del)
+{
+	onDraw = del ? del : [](Window &, FrameTimeBase){};
+}
+
+void Window::setOnFocusChange(FocusChangeDelegate del)
+{
+	onFocusChange = del ? del : [](Window &, bool){};
+}
+
+void Window::setOnDragDrop(DragDropDelegate del)
+{
+	onDragDrop = del ? del : [](Window &, const char *){};
+}
+
+void Window::setOnInputEvent(InputEventDelegate del)
+{
+	onInputEvent = del ? del : [](Window &, const Input::Event &){};
+}
+
+void Window::initDelegates()
+{
+	setOnSurfaceChange({});
+	setOnDraw({});
+	setOnFocusChange({});
+	setOnDragDrop({});
+	setOnInputEvent({});
+}
+
 Window &mainWindow()
 {
 	assert(Window::windows());
@@ -78,7 +112,7 @@ void Window::dispatchResize()
 {
 	bool wasResized = resizePosted;
 	resizePosted = false;
-	Base::onViewChange(*this, wasResized);
+	onSurfaceChange(*this, wasResized);
 }
 
 void Window::draw(FrameTimeBase frameTime)
@@ -88,8 +122,6 @@ void Window::draw(FrameTimeBase frameTime)
 	{
 		dispatchResize();
 	}
-	Gfx::setClipRect(false);
-	Gfx::clear();
 	setNeedsDraw(false);
 	Gfx::renderFrame(*this, frameTime);
 }

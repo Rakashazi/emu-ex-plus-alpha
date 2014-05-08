@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/util/DelegateFunc.hh>
 
 namespace Base
 {
@@ -45,5 +46,9 @@ constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
 	return decimalFrameTimeBaseFromSec(sec);
 }
 #endif
+
+class Window;
+
+using WindowInitDelegate = DelegateFunc<void (Window &win)>;
 
 }

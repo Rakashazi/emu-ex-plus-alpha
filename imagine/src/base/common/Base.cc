@@ -29,6 +29,11 @@ namespace Base
 
 const char copyright[] = "Imagine is Copyright 2010-2014 Robert Broglia";
 
+InterProcessMessageDelegate onInterProcessMessage;
+ResumeDelegate onResume;
+FreeCachesDelegate onFreeCaches;
+ExitDelegate onExit;
+
 void engineInit()
 {
 	#ifdef CONFIG_INITPAGESIZE
@@ -65,6 +70,26 @@ void sleepMs(int ms)
 	sleepUs(ms*1000);
 }
 #endif
+
+void setOnInterProcessMessage(InterProcessMessageDelegate del)
+{
+	onInterProcessMessage = del;
+}
+
+void setOnResume(ResumeDelegate del)
+{
+	onResume = del;
+}
+
+void setOnFreeCaches(FreeCachesDelegate del)
+{
+	onFreeCaches = del;
+}
+
+void setOnExit(ExitDelegate del)
+{
+	onExit = del;
+}
 
 }
 

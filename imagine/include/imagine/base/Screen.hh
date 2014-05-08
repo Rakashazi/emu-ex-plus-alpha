@@ -52,6 +52,7 @@ public:
 		bool added() const { return state == ADDED; }
 		bool removed() const { return state == REMOVED; }
 	};
+	using ChangeDelegate = DelegateFunc<void (const Screen &screen, const Change &change)>;
 
   static const uint REFRESH_RATE_DEFAULT = 0;
   FrameTimeBase prevFrameTime = 0;
@@ -59,6 +60,7 @@ public:
 	StaticArrayList<OnFrameDelegate, 4> onFrameDelegate;
 	bool framePosted = false;
 	bool inFrameHandler = false;
+	static ChangeDelegate onChange;
 
 	constexpr Screen() {}
 	void postFrame();
@@ -89,11 +91,9 @@ public:
 	static void addScreen(Screen *s);
 	void swapsComplete();
 	void deinit();
+
+	// Called when a screen addition/removal/change occurs
+	static void setOnChange(ChangeDelegate del);
 };
-
-// App Callbacks
-
-// Called when a screen addition/removal/change occurs
-void onScreenChange(const Screen &screen, const Screen::Change &change);
 
 }

@@ -65,7 +65,7 @@ static void processTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> 
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	p.dragState.pointerEvent(Pointer::LBUTTON, action, pos);
-	Base::onInputEvent(Base::mainWindow(), Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, time, nullptr));
+	Base::mainWindow().onInputEvent(Base::mainWindow(), Event(idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, time, nullptr));
 }
 
 static bool handleTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)
@@ -147,9 +147,9 @@ static void handleTrackballEvent(int action, float x, float y, Time time)
 	//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 	if(action == AMOTION_EVENT_ACTION_MOVE)
-		Base::onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr));
+		Base::mainWindow().onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr));
 	else
-		Base::onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr));
+		Base::mainWindow().onInputEvent(Base::mainWindow(), Event(0, Event::MAP_REL_POINTER, Keycode::ENTER, action == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr));
 }
 
 void handleKeyEvent(int key, int down, uint devId, uint metaState, Time time, const Device &dev)
@@ -161,7 +161,7 @@ void handleKeyEvent(int key, int down, uint devId, uint metaState, Time time, co
 	#endif
 	{
 		cancelKeyRepeatTimer();
-		Base::onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_SYSTEM, key & 0xff, action, metaState, time, &dev));
+		Base::mainWindow().onInputEvent(Base::mainWindow(), Event(devId, Event::MAP_SYSTEM, key & 0xff, action, metaState, time, &dev));
 	}
 }
 

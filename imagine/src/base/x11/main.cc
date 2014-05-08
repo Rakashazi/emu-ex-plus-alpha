@@ -115,7 +115,8 @@ void toggleFullScreen(::Window xWin)
 
 void exit(int returnVal)
 {
-	onExit(0);
+	if(onExit)
+		onExit(false);
 	cleanup();
 	::exit(returnVal);
 }
@@ -222,7 +223,7 @@ static int eventHandler(XEvent &event)
 				sendDNDFinished(dpy, win.xWin, win.draggerXWin, win.dragAction);
 				auto filename = (char*)prop;
 				fileURLToPath(filename);
-				onDragDrop(win, filename);
+				win.onDragDrop(win, filename);
 				XFree(prop);
 			}
 		}

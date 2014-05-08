@@ -192,7 +192,8 @@ uint appActivityState() { return appState; }
 	s->init(screen);
 	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	Screen::addScreen(s);
-	onScreenChange(*s, { Screen::Change::ADDED });
+	if(Screen::onChange)
+		Screen::onChange(*s, { Screen::Change::ADDED });
 }
 
 - (void)screenDidDisconnect:(NSNotification *)aNotification
@@ -206,7 +207,8 @@ uint appActivityState() { return appState; }
 		if(removedScreen->uiScreen() == screen)
 		{
 			it.erase();
-			onScreenChange(*removedScreen, { Screen::Change::REMOVED });
+			if(Screen::onChange)
+				Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
 			[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 			removedScreen->deinit();
 			delete removedScreen;
@@ -309,7 +311,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("resign active");
 	if(deviceWindow())
-		onFocusChange(*deviceWindow(), false);
+		deviceWindow()->onFocusChange(*deviceWindow(), false);
 	Input::deinitKeyRepeatTimer();
 }
 
@@ -318,7 +320,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("became active");
 	if(deviceWindow())
-		onFocusChange(*deviceWindow(), true);
+		deviceWindow()->onFocusChange(*deviceWindow(), true);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
@@ -326,7 +328,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("app exiting");
 	Base::appState = APP_EXITING;
-	Base::onExit(false);
+	if(onExit)
+		onExit(false);
 	logMsg("app exited");
 }
 
@@ -335,7 +338,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("entering background");
 	appState = APP_PAUSED;
-	Base::onExit(true);
+	if(onExit)
+		onExit(true);
 	Base::Screen::unpostAll();
 	#ifdef CONFIG_INPUT_ICADE
 	Input::iCade.didEnterBackground();
@@ -359,7 +363,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	{
 		Window::window(i)->postDraw();
 	}
-	Base::onResume(1);
+	if(onResume)
+		onResume(1);
 	#ifdef CONFIG_INPUT_ICADE
 	Input::iCade.didBecomeActive();
 	#endif
@@ -368,7 +373,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
 	logMsg("got memory warning");
-	Base::onFreeCaches();
+	if(Base::onFreeCaches)
+		Base::onFreeCaches();
 }
 
 @end
@@ -463,7 +469,8 @@ void Window::setAutoOrientation(bool on)
 void exit(int returnVal)
 {
 	appState = APP_EXITING;
-	onExit(0);
+	if(onExit)
+		onExit(false);
 	::exit(returnVal);
 }
 void abort() { ::abort(); }

@@ -240,7 +240,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, transPos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr));
+				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}
@@ -264,7 +264,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, transPos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr));
+				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}
@@ -289,7 +289,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, transPos);
-				Base::onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr));
+				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr));
 				break;
 			}
 		}

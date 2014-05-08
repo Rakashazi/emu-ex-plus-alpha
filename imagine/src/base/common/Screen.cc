@@ -29,6 +29,13 @@ StaticArrayList<Screen*, 4> screen_;
 static Screen mainScreen_;
 #endif
 
+Screen::ChangeDelegate Screen::onChange;
+
+void Screen::setOnChange(ChangeDelegate del)
+{
+	onChange = del;
+}
+
 Screen &mainScreen()
 {
 	return *Screen::screen(0);

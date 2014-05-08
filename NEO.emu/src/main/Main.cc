@@ -629,12 +629,12 @@ static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadG
 				loadGameInBackgroundView.setPos(0);
 				loadGameInBackgroundView.setMax(msg.intArg);
 				loadGameInBackgroundView.place();
-				mainWin.postDraw();
+				mainWin.win.postDraw();
 			}
 			bcase MSG_UPDATE_PROGRESS:
 			{
 				loadGameInBackgroundView.setPos(msg.intArg);
-				mainWin.postDraw();
+				mainWin.win.postDraw();
 			}
 		}
 	}
@@ -677,7 +677,7 @@ int EmuSystem::loadGame(const char *path)
 		{
 			if(modalViewController.hasView())
 				modalViewController.pop();
-			auto loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin);
+			auto loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin.win);
 			loadGameInBackgroundView->init();
 			modalViewController.pushAndShow(*loadGameInBackgroundView);
 			guiPipe.init(
@@ -809,16 +809,6 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-
-}
-
-namespace Base
-{
-
 CallResult onInit(int argc, char** argv)
 {
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
@@ -836,12 +826,7 @@ CallResult onInit(int argc, char** argv)
 	conf.country = (COUNTRY)optionMVSCountry.val;
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	sprintf(datafileConfItem.data.dt_str.str, Config::envIsAndroid ? "%s" : "%s/gngeo_data.zip", Base::appPath);
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -851,7 +836,7 @@ CallResult onWindowInit(Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
 	return OK;
 }
 

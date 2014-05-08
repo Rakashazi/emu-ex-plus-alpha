@@ -640,22 +640,12 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-
 CallResult onInit(int argc, char** argv)
 {
 	initVideoFormat();
 	emuView.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 	emuSys->name = (uint8*)EmuSystem::gameName;
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -665,7 +655,7 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
 	return OK;
 }
 

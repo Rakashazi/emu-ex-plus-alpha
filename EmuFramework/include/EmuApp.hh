@@ -70,8 +70,8 @@ bool isMenuDismissKey(const Input::Event &e);
 void startGameFromMenu();
 void restoreMenuFromGame();
 void applyOSNavStyle(bool inGame);
-void mainInitCommon(int argc, char** argv);
-void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize);
+using MenuShownDelegate = DelegateFunc<void (Base::Window &win)>;
+void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel);
 void initMainMenu(Base::Window &win);
 View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
@@ -79,7 +79,13 @@ void setEmuViewOnExtraWindow(bool on);
 void placeElements(const Gfx::Viewport &viewport);
 
 template <size_t NAV_GRAD_SIZE>
-void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
+void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE], MenuShownDelegate menuShownDel)
 {
-	mainInitWindowCommon(win, navViewGrad, NAV_GRAD_SIZE);
+	mainInitCommon(argc, argv, navViewGrad, NAV_GRAD_SIZE, menuShownDel);
+}
+
+template <size_t NAV_GRAD_SIZE>
+void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
+{
+	mainInitCommon(argc, argv, navViewGrad, NAV_GRAD_SIZE, {});
 }

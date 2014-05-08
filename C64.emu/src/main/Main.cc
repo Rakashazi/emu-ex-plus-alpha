@@ -954,7 +954,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	if(c64FailedInit)
 	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>(mainWin);
+		auto &ynAlertView = *allocModalView<YesNoAlertView>(mainWin.win);
 		ynAlertView.init("A previous system file load failed, you must restart the app to run any C64 software", Input::keyInputIsPresent(), "Exit Now", "Cancel");
 		ynAlertView.onYes() =
 			[](const Input::Event &e)
@@ -1059,16 +1059,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	runningFrame = 0;
 }
 
-namespace Base
-{
-
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-
-}
-
 void EmuSystem::configAudioRate()
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
@@ -1168,15 +1158,7 @@ CallResult onInit(int argc, char** argv)
 
 	EmuSystem::pcmFormat.channels = 1;
 	c64model_set(optionC64Model.defaultVal); // set the default model
-	mainInitCommon(argc, argv);
-	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
-	vController.updateKeyboardMapping();
 
-	return OK;
-}
-
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -1186,7 +1168,10 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
+	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
+	vController.updateKeyboardMapping();
+
 	return OK;
 }
 

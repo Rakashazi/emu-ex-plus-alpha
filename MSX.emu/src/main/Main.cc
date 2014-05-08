@@ -1100,12 +1100,8 @@ void RefreshScreen(int screenMode)
 	boardInfo.stop(boardInfo.cpuRef);
 }
 
-//uint skipFrame = 0;
-
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	//skipFrame = !processGfx;
-
 	// fast-forward during floppy access, but stop if access ends
 	if(unlikely(fdcActive && renderGfx))
 	{
@@ -1147,14 +1143,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 }
 
 void EmuSystem::savePathChanged() { }
-
-namespace Base
-{
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-}
 
 namespace Base
 {
@@ -1228,12 +1216,6 @@ CallResult onInit(int argc, char** argv)
 	mixerSetBoardFrequencyFixed(frequency);
 	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
-	mainInitCommon(argc, argv);
-	return OK;
-}
-
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -1243,20 +1225,24 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
-
-	if(checkForMachineFolderOnStart &&
-		!strlen(machineCustomPath) && !FsSys::fileExists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
-	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
-		ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
-		ynAlertView.onYes() =
-			[](const Input::Event &e)
+	static MenuShownDelegate menuShown =
+		[](Base::Window &win)
+		{
+			if(checkForMachineFolderOnStart &&
+				!strlen(machineCustomPath) && !FsSys::fileExists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 			{
-				installFirmwareFiles();
-			};
-		modalViewController.pushAndShow(ynAlertView);
-	}
+				auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
+				ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
+				ynAlertView.onYes() =
+					[](const Input::Event &e)
+					{
+						installFirmwareFiles();
+					};
+				modalViewController.pushAndShow(ynAlertView);
+			}
+		};
+
+	mainInitCommon(argc, argv, navViewGrad, menuShown);
 	return OK;
 }
 

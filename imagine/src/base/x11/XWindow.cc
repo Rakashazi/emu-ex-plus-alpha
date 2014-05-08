@@ -206,7 +206,7 @@ Window *windowForXWindow(::Window xWin)
 	return nullptr;
 }
 
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
+CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
 {
 	if(xWin != None)
 	{
@@ -217,6 +217,7 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	{
 		bug_exit("no multi-window support");
 	}
+	initDelegates();
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	screen_ = &mainScreen();
 	#endif
@@ -261,7 +262,7 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	#else
 	mainWin = this;
 	#endif
-	onWindowInit(*this);
+	onInit(*this);
 	return OK;
 }
 

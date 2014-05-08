@@ -18,6 +18,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include "../input/private.hh"
 
 using namespace IG;
 
@@ -133,13 +134,15 @@ uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
 		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("PS3 controller connection error");
-		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}
@@ -165,7 +168,8 @@ void PS3Controller::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		removeDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -200,7 +204,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 					Base::endIdleByUserActivity();
 					Event event{player, Event::MAP_PS3PAD, (Key)e->keyEvent, newState ? PUSHED : RELEASED, 0, 0, this};
 					startKeyRepeatTimer(event);
-					Base::onInputEvent(Base::mainWindow(), event);
+					dispatchInputEvent(event);
 				}
 			}
 			memcpy(prevData, digitalBtnData, sizeof(prevData));

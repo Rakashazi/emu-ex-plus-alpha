@@ -558,44 +558,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	// FCEUI_Emulate calls FCEUD_commitVideo & FCEUD_emulateSound depending on parameters
 }
 
-namespace Base
-{
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	if(EmuSystem::isActive())
-	{
-		if(unlikely(e.isPointer() && usingZapper))
-		{
-			if(e.state == Input::PUSHED)
-			{
-				zapperData[2] = 0;
-				if(emuView.gameRect().overlaps({e.x, e.y}))
-				{
-					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-					int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
-					int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.) + 8;
-					logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
-					zapperData[0] = xNes;
-					zapperData[1] = yNes;
-					zapperData[2] |= 0x1;
-				}
-				else // off-screen shot
-				{
-					zapperData[0] = 0;
-					zapperData[1] = 0;
-					zapperData[2] |= 0x2;
-				}
-			}
-			else if(e.state == Input::RELEASED)
-			{
-				zapperData[2] = 0;
-			}
-		}
-	}
-	handleInputEvent(win, e);
-}
-}
-
 void EmuSystem::savePathChanged()
 {
 	if(gameIsRunning())
@@ -617,12 +579,7 @@ CallResult onInit(int argc, char** argv)
 		bug_exit("error in FCEUI_Initialize");
 	}
 	//FCEUI_SetSoundQuality(2);
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -632,7 +589,44 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
+
+	mainWin.win.setOnInputEvent(
+		[](Base::Window &win, const Input::Event &e)
+		{
+			if(EmuSystem::isActive())
+			{
+				if(unlikely(e.isPointer() && usingZapper))
+				{
+					if(e.state == Input::PUSHED)
+					{
+						zapperData[2] = 0;
+						if(emuView.gameRect().overlaps({e.x, e.y}))
+						{
+							int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+							int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
+							int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.) + 8;
+							logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
+							zapperData[0] = xNes;
+							zapperData[1] = yNes;
+							zapperData[2] |= 0x1;
+						}
+						else // off-screen shot
+						{
+							zapperData[0] = 0;
+							zapperData[1] = 0;
+							zapperData[2] |= 0x2;
+						}
+					}
+					else if(e.state == Input::RELEASED)
+					{
+						zapperData[2] = 0;
+					}
+				}
+			}
+			handleInputEvent(win, e);
+		});
+
 	return OK;
 }
 

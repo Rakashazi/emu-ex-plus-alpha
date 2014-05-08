@@ -17,6 +17,7 @@
 #include <imagine/base/Base.hh>
 #include "../../base/android/private.hh"
 #include "private.hh"
+#include "../private.hh"
 #include "AndroidInputDevice.hh"
 
 namespace Input
@@ -54,15 +55,15 @@ static void updateMOGAState(JNIEnv *jEnv, bool connected, bool notify)
 			logMsg("MOGA connected");
 			string_copy(mogaDev.nameStr, jMOGAGetState(jEnv, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller");
 			Input::addDevice(mogaDev);
-			if(notify)
-				onInputDevChange(mogaDev, {Device::Change::ADDED});
+			if(notify && onDeviceChange)
+				onDeviceChange(mogaDev, {Device::Change::ADDED});
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
 			Input::removeDevice(mogaDev);
-			if(notify)
-				onInputDevChange(mogaDev, {Device::Change::REMOVED});
+			if(notify && onDeviceChange)
+				onDeviceChange(mogaDev, {Device::Change::REMOVED});
 		}
 		mogaConnected = connected;
 	}
@@ -95,7 +96,7 @@ static void initMOGAJNI(JNIEnv *jEnv)
 				Base::endIdleByUserActivity();
 				Event event{0, Event::MAP_SYSTEM, Key(keyCode & 0xff), (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, &mogaDev};
 				startKeyRepeatTimer(event);
-				Base::onInputEvent(Base::mainWindow(), event);
+				Base::mainWindow().onInputEvent(Base::mainWindow(), event);
 			})
 		},
 		{
@@ -183,7 +184,8 @@ void deinitMOGA()
 	{
 		mogaConnected = false;
 		Input::removeDevice(mogaDev);
-		onInputDevChange(mogaDev, { Device::Change::REMOVED });
+		if(onDeviceChange)
+			onDeviceChange(mogaDev, { Device::Change::REMOVED });
 	}
 }
 

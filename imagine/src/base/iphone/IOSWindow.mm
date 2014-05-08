@@ -213,10 +213,11 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
+CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
 {
 	if(uiWin_)
 		return OK;
+	initDelegates();
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -280,7 +281,7 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
 	rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
 	rootViewCtrl.view = glView();
 	uiWin().rootViewController = rootViewCtrl;
-	onWindowInit(*this);
+	onInit(*this);
 	return OK;
 }
 
@@ -314,12 +315,13 @@ void Window::show()
 
 Window *windowForUIWindow(UIWindow *uiWin)
 {
-	iterateTimes(windows(), i)
+	iterateTimes(Window::windows(), i)
 	{
-		auto w = *window(i);
+		auto w = Window::window(i);
 		if(w->uiWin() == uiWin)
 			return w;
 	}
+	return nullptr;
 }
 
 }
@@ -353,7 +355,7 @@ Window *windowForUIWindow(UIWindow *uiWin)
 - (BOOL)shouldAutorotate
 {
 	//logMsg("reporting if should autorotate");
-	if(self.view.window_ == Base::deviceWindow()->uiWin())
+	if(self.view.window == Base::deviceWindow()->uiWin())
 		return YES;
 	else
 		return NO;

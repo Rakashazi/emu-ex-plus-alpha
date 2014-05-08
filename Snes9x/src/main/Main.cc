@@ -682,8 +682,8 @@ void EmuSystem::clearInputBuffers()
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	mouseScroll.init(ContentDrag::XY_AXIS);
-	mouseScroll.dragStartY = std::max(1, mainWin.heightMMInPixels(1.));
-	mouseScroll.dragStartX = std::max(1, mainWin.widthMMInPixels(1.));
+	mouseScroll.dragStartY = std::max(1, mainWin.win.heightMMInPixels(1.));
+	mouseScroll.dragStartX = std::max(1, mainWin.win.widthMMInPixels(1.));
 }
 
 void EmuSystem::configAudioRate()
@@ -784,132 +784,6 @@ void EmuSystem::savePathChanged() { }
 
 namespace Base
 {
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	using namespace Input;
-	if(unlikely(EmuSystem::isActive() && e.isPointer()))
-	{
-		switch(snesActiveInputPort)
-		{
-			bcase SNES_SUPERSCOPE:
-			{
-				if(e.state == RELEASED)
-				{
-					snesPointerBtns = 0;
-					#ifndef SNES9X_VERSION_1_4
-					*S9xGetSuperscopeBits() = 0;
-					#endif
-				}
-				if(emuView.gameRect().overlaps({e.x, e.y}))
-				{
-					int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-					snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
-					snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.);
-					//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
-					if(e.state == PUSHED)
-					{
-						snesPointerBtns = 1;
-						#ifndef SNES9X_VERSION_1_4
-						*S9xGetSuperscopeBits() = 0x80;
-						#endif
-					}
-				}
-				else if(e.state == PUSHED)
-				{
-					snesPointerBtns = 2;
-					#ifndef SNES9X_VERSION_1_4
-					*S9xGetSuperscopeBits() = 0x40;
-					#endif
-				}
-
-				#ifndef SNES9X_VERSION_1_4
-				S9xGetSuperscopePosBits()[0] = snesPointerX;
-				S9xGetSuperscopePosBits()[1] = snesPointerY;
-				#endif
-			}
-
-			bcase SNES_MOUSE_SWAPPED:
-			{
-				auto dragState = Input::dragState(e.devId);
-				static bool dragWithButton = 0; // true to start next mouse drag with a button held
-				switch(mouseScroll.inputEvent(win.contentBounds(), e))
-				{
-					bcase ContentDrag::PUSHED:
-					{
-						rightClickFrames = 15;
-						if(doubleClickFrames) // check if in double-click time window
-						{
-							dragWithButton = 1;
-						}
-						else
-						{
-							dragWithButton = 0;
-							doubleClickFrames = 15;
-						}
-					}
-
-					bcase ContentDrag::ENTERED_ACTIVE:
-					{
-						if(dragWithButton)
-						{
-							snesMouseClick = 0;
-							if(!rightClickFrames)
-							{
-								// in right-click time window
-								snesPointerBtns = 2;
-								logMsg("started drag with right-button");
-							}
-							else
-							{
-								snesPointerBtns = 1;
-								logMsg("started drag with left-button");
-							}
-						}
-						else
-						{
-							logMsg("started drag");
-						}
-					}
-
-					bcase ContentDrag::LEFT_ACTIVE:
-					{
-						logMsg("stopped drag");
-						snesPointerBtns = 0;
-					}
-
-					bcase ContentDrag::ACTIVE:
-					{
-						snesPointerX += dragState->relX();
-						snesPointerY += dragState->relY();
-					}
-
-					bcase ContentDrag::RELEASED:
-					{
-						if(!rightClickFrames)
-						{
-							logMsg("right clicking mouse");
-							snesPointerBtns = 2;
-							doubleClickFrames = 15; // allow extra time for a right-click & drag
-						}
-						else
-						{
-							logMsg("left clicking mouse");
-							snesPointerBtns = 1;
-						}
-						snesMouseClick = 3;
-					}
-
-					bdefault: break;
-				}
-			}
-		}
-	}
-	handleInputEvent(win, e);
-}
-}
-
-namespace Base
-{
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
 
@@ -937,12 +811,7 @@ CallResult onInit(int argc, char** argv)
 	#endif
 
 	emuView.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -952,7 +821,132 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
+
+	mainWin.win.setOnInputEvent(
+		[](Base::Window &win, const Input::Event &e)
+		{
+			using namespace Input;
+			if(unlikely(EmuSystem::isActive() && e.isPointer()))
+			{
+				switch(snesActiveInputPort)
+				{
+					bcase SNES_SUPERSCOPE:
+					{
+						if(e.state == RELEASED)
+						{
+							snesPointerBtns = 0;
+							#ifndef SNES9X_VERSION_1_4
+							*S9xGetSuperscopeBits() = 0;
+							#endif
+						}
+						if(emuView.gameRect().overlaps({e.x, e.y}))
+						{
+							int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+							snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
+							snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.);
+							//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
+							if(e.state == PUSHED)
+							{
+								snesPointerBtns = 1;
+								#ifndef SNES9X_VERSION_1_4
+								*S9xGetSuperscopeBits() = 0x80;
+								#endif
+							}
+						}
+						else if(e.state == PUSHED)
+						{
+							snesPointerBtns = 2;
+							#ifndef SNES9X_VERSION_1_4
+							*S9xGetSuperscopeBits() = 0x40;
+							#endif
+						}
+
+						#ifndef SNES9X_VERSION_1_4
+						S9xGetSuperscopePosBits()[0] = snesPointerX;
+						S9xGetSuperscopePosBits()[1] = snesPointerY;
+						#endif
+					}
+
+					bcase SNES_MOUSE_SWAPPED:
+					{
+						auto dragState = Input::dragState(e.devId);
+						static bool dragWithButton = 0; // true to start next mouse drag with a button held
+						switch(mouseScroll.inputEvent(win.contentBounds(), e))
+						{
+							bcase ContentDrag::PUSHED:
+							{
+								rightClickFrames = 15;
+								if(doubleClickFrames) // check if in double-click time window
+								{
+									dragWithButton = 1;
+								}
+								else
+								{
+									dragWithButton = 0;
+									doubleClickFrames = 15;
+								}
+							}
+
+							bcase ContentDrag::ENTERED_ACTIVE:
+							{
+								if(dragWithButton)
+								{
+									snesMouseClick = 0;
+									if(!rightClickFrames)
+									{
+										// in right-click time window
+										snesPointerBtns = 2;
+										logMsg("started drag with right-button");
+									}
+									else
+									{
+										snesPointerBtns = 1;
+										logMsg("started drag with left-button");
+									}
+								}
+								else
+								{
+									logMsg("started drag");
+								}
+							}
+
+							bcase ContentDrag::LEFT_ACTIVE:
+							{
+								logMsg("stopped drag");
+								snesPointerBtns = 0;
+							}
+
+							bcase ContentDrag::ACTIVE:
+							{
+								snesPointerX += dragState->relX();
+								snesPointerY += dragState->relY();
+							}
+
+							bcase ContentDrag::RELEASED:
+							{
+								if(!rightClickFrames)
+								{
+									logMsg("right clicking mouse");
+									snesPointerBtns = 2;
+									doubleClickFrames = 15; // allow extra time for a right-click & drag
+								}
+								else
+								{
+									logMsg("left clicking mouse");
+									snesPointerBtns = 1;
+								}
+								snesMouseClick = 3;
+							}
+
+							bdefault: break;
+						}
+					}
+				}
+			}
+			handleInputEvent(win, e);
+		});
+
 	return OK;
 }
 

@@ -18,6 +18,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include "../input/private.hh"
 
 using namespace IG;
 
@@ -163,7 +164,8 @@ uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Wiimote connection error");
-		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}
@@ -196,7 +198,8 @@ void Wiimote::removeFromSystem()
 			extDevice = {};
 		}
 		removeDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -310,7 +313,8 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 				if(extDevice.map())
 				{
 					Input::removeDevice(extDevice);
-					Input::onInputDevChange(extDevice, { Input::Device::Change::REMOVED });
+					if(Input::onDeviceChange)
+						Input::onDeviceChange(extDevice, { Input::Device::Change::REMOVED });
 					extDevice = {};
 				}
 			}
@@ -326,7 +330,8 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 				sendDataModeByExtension();
 				if(!identifiedType)
 				{
-					Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+					if(Input::onDeviceChange)
+						Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
 					identifiedType = 1;
 				}
 			}
@@ -366,8 +371,8 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						assert(!extDevice.map());
 						extDevice = {player, Input::Event::MAP_WII_CC, Input::Device::TYPE_BIT_GAMEPAD, "Wii Classic Controller"};
 						Input::addDevice(extDevice);
-						if(identifiedType)
-							Input::onInputDevChange(extDevice, { Input::Device::Change::ADDED });
+						if(identifiedType && Input::onDeviceChange)
+							Input::onDeviceChange(extDevice, { Input::Device::Change::ADDED });
 					}
 					else if(memcmp(&packet[7], nunchukType, 6) == 0)
 					{
@@ -403,7 +408,8 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 
 					if(!identifiedType)
 					{
-						Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+						if(Input::onDeviceChange)
+							Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
 						identifiedType = 1;
 					}
 				}

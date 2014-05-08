@@ -840,48 +840,13 @@ void EmuSystem::savePathChanged() { }
 
 namespace Base
 {
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	if(EmuSystem::isActive())
-	{
-		int gunDevIdx = 4;
-		if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
-		{
-			if(emuView.gameRect().overlaps({e.x, e.y}))
-			{
-				int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-				input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)bitmap.viewport.w);
-				input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)bitmap.viewport.h);
-			}
-			if(e.state == Input::PUSHED)
-			{
-				input.pad[gunDevIdx] |= INPUT_A;
-				logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
-			}
-			else if(e.state == Input::RELEASED)
-			{
-				unsetBits(input.pad[gunDevIdx], INPUT_A);
-			}
-		}
-	}
-	handleInputEvent(win, e);
-}
-}
-
-namespace Base
-{
 
 void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {
 	emuView.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -891,7 +856,36 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
+
+	mainWin.win.setOnInputEvent(
+		[](Base::Window &win, const Input::Event &e)
+		{
+			if(EmuSystem::isActive())
+			{
+				int gunDevIdx = 4;
+				if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
+				{
+					if(emuView.gameRect().overlaps({e.x, e.y}))
+					{
+						int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
+						input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)bitmap.viewport.w);
+						input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)bitmap.viewport.h);
+					}
+					if(e.state == Input::PUSHED)
+					{
+						input.pad[gunDevIdx] |= INPUT_A;
+						logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
+					}
+					else if(e.state == Input::RELEASED)
+					{
+						unsetBits(input.pad[gunDevIdx], INPUT_A);
+					}
+				}
+			}
+			handleInputEvent(win, e);
+		});
+
 	return OK;
 }
 

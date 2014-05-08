@@ -123,11 +123,6 @@ extern Byte1Option optionViewportZoom;
 
 extern OptionRecentGames optionRecentGames;
 
-#if (defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS < 3) || (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK < 9)
-#define CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-extern Byte4s2Option optionTouchCtrlImgRes;
-#endif
-
 #ifdef CONFIG_BASE_ANDROID
 	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;

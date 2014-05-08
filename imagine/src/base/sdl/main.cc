@@ -99,7 +99,8 @@ void openGLUpdateScreen()
 void exit(int returnVal)
 {
 	appState = APP_EXITING;
-	onExit(0);
+	if(onExit)
+		onExit(false);
 	#ifdef CONFIG_BASE_SDL_PDL
 		PDL_Quit();
 	#endif

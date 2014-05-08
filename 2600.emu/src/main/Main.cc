@@ -499,14 +499,6 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-namespace Base
-{
-void onInputEvent(Base::Window &win, const Input::Event &e)
-{
-	handleInputEvent(win, e);
-}
-}
-
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	console->controller(Controller::Left).update();
@@ -610,12 +602,7 @@ CallResult onInit(int argc, char** argv)
 	emuView.initPixmap((char*)pixBuff, &PixelFormatRGB565, vidBufferX, vidBufferY);
 	Settings *settings = new Settings(&osystem);
 	settings->setValue("framerate", 60); // set to avoid auto-frame calculation
-	mainInitCommon(argc, argv);
-	return OK;
-}
 
-CallResult onWindowInit(Base::Window &win)
-{
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -625,7 +612,7 @@ CallResult onWindowInit(Base::Window &win)
 		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
-	mainInitWindowCommon(win, navViewGrad);
+	mainInitCommon(argc, argv, navViewGrad);
 	return OK;
 }
 

@@ -117,20 +117,25 @@ static void endIdleByUserActivity() {}
 
 // App Callbacks
 
+using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
+using ResumeDelegate = DelegateFunc<void (bool focused)>;
+using FreeCachesDelegate = DelegateFunc<void ()>;
+using ExitDelegate = DelegateFunc<void (bool backgrounded)>;
+
 // Called when another process sends the app a message
-void onInterProcessMessage(const char *filename);
+void setOnInterProcessMessage(InterProcessMessageDelegate del);
 
 // Called when app returns from backgrounded state
-void onResume(bool focused);
+void setOnResume(ResumeDelegate del);
 
 // Called when OS needs app to free any cached data
-void onFreeCaches();
+void setOnFreeCaches(FreeCachesDelegate del);
 
 // Called when app will finish execution
 // If backgrounded == true, app may eventually resume execution
-void onExit(bool backgrounded);
+void setOnExit(ExitDelegate del);
 
-// Called on app startup, before the graphics context is initialized
+// Called on app startup
 [[gnu::cold]] CallResult onInit(int argc, char** argv);
 
 } // Base

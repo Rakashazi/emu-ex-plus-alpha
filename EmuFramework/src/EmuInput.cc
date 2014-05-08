@@ -877,12 +877,7 @@ void updateVControlImg()
 	{
 		static Gfx::BufferImage overlayImg;
 		PngFile png;
-		auto filename =
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-		(optionTouchCtrlImgRes == 128U) ? "overlays128.png" : "overlays64.png";
-		#else
-		"overlays128.png";
-		#endif
+		auto filename =	"overlays128.png";
 		if(png.loadAsset(filename) != OK)
 		{
 			bug_exit("couldn't load overlay png");

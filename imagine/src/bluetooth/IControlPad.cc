@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
+#include "../input/private.hh"
 #include <algorithm>
 
 using namespace IG;
@@ -122,8 +123,8 @@ void IControlPad::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		removeDevice(*this);
-		//Input::removeDevice((Input::Device){player, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"});
-		Input::onInputDevChange(*this, { Input::Device::Change::REMOVED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -147,13 +148,15 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
-		Input::onInputDevChange(*this, { Input::Device::Change::ADDED });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("iCP connection error");
-		Input::onInputDevChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		if(Input::onDeviceChange)
+			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}

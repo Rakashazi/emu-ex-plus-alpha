@@ -18,7 +18,7 @@
 #include <sys/param.h>
 #include <dbus/dbus.h>
 #include "dbus.hh"
-#include <imagine/base/Base.hh>
+#include "../common/basePrivate.hh"
 #include <imagine/base/EventLoopFileSource.hh>
 #ifdef CONFIG_BASE_GLIB
 #include <dbus/dbus-glib.h>
@@ -77,7 +77,8 @@ static DBusHandlerResult dbusSignalHandler(DBusConnection *connection, DBusMessa
 			logMsg("signal openPath: %s", path);
 			if(path)
 			{
-				Base::onInterProcessMessage(path);
+				if(Base::onInterProcessMessage)
+					Base::onInterProcessMessage(path);
 			}
     }
 		else

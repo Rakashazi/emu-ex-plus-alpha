@@ -59,6 +59,7 @@ static Gfx::BufferImage assetBuffImg[sizeofArray(assetFilename)];
 
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport, bool updateGUI);
 static Gfx::Viewport makeViewport(const Base::Window &win);
+void mainInitWindowCommon(Base::Window &win);
 
 Gfx::BufferImage &getAsset(AssetID assetID)
 {
@@ -127,12 +128,87 @@ void EmuNavView::draw(const Base::Window &win)
 	}
 }
 
+static void animateViewportStep(AppWindowData &appWin)
+{
+	auto &viewportDelta = appWin.viewportDelta;
+	auto &viewport = appWin.viewport;
+	auto &win = appWin.win;
+	for(auto &d : viewportDelta)
+	{
+		d.update(1);
+	}
+	//logMsg("animated viewport: %d:%d:%d:%d",
+	//	viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now());
+	auto v = Gfx::Viewport::makeFromWindow(win, {viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now()});
+	viewport = v;
+	updateProjection(appWin, v, true);
+	win.setAsDrawTarget();
+	Gfx::setViewport(win, v);
+	Gfx::setProjectionMatrix(appWin.projectionMat);
+}
+
+static Base::Screen::OnFrameDelegate animateViewport
+{
+	[](Base::Screen &screen, Base::FrameTimeBase frameTime)
+	{
+		auto &winData = mainWin;
+		winData.win.setNeedsDraw(true);
+		animateViewportStep(winData);
+		placeElements(winData.viewport);
+		if(!winData.viewportDelta[0].isComplete())
+		{
+			screen.addOnFrameDelegate(animateViewport);
+			screen.postFrame();
+		}
+	}
+};
+
 void setEmuViewOnExtraWindow(bool on)
 {
 	if(on && !extraWin.win)
 	{
 		logMsg("setting emu view on extra window");
-		extraWin.win.init({0, 0}, {0, 0});
+		extraWin.win.init({0, 0}, {0, 0},
+			[](Base::Window &win)
+			{
+				logMsg("init extra window");
+				emuView.videoWin = &win;
+				extraWin.viewport = makeViewport(win);
+				updateProjection(extraWin, extraWin.viewport, false);
+				win.setTitle("Test Window");
+				win.show();
+			});
+
+		extraWin.win.setOnSurfaceChange(
+			[](Base::Window &win, bool didResize)
+			{
+				if(didResize)
+				{
+					logMsg("view resize for extra window");
+					extraWin.viewport = makeViewport(win);
+					updateProjection(extraWin, extraWin.viewport, false);
+				}
+				Gfx::setViewport(extraWin.win, extraWin.viewport);
+				Gfx::setProjectionMatrix(extraWin.projectionMat);
+				emuView.place();
+			});
+
+		extraWin.win.setOnDraw(
+			[](Base::Window &win, Base::FrameTimeBase frameTime)
+			{
+				Gfx::clear();
+				if(EmuSystem::isActive() || EmuSystem::isStarted())
+				{
+					emuView.draw(frameTime, win);
+				}
+			});
+
+		extraWin.win.setOnInputEvent(
+			[](Base::Window &win, const Input::Event &e)
+			{
+				if(!e.isPointer())
+					handleInputEvent(win, e);
+			});
 	}
 	else if(!on && extraWin.win)
 	{
@@ -207,6 +283,25 @@ void restoreMenuFromGame()
 	viewStack.show();
 }
 
+static void onFocusChange(Base::Window &win, uint in)
+{
+	if(optionPauseUnfocused && !menuViewIsActive)
+	{
+		if(in)
+		{
+			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+			vController.resetInput();
+			#endif
+			EmuSystem::start();
+		}
+		else
+		{
+			EmuSystem::pause();
+		}
+		emuView.videoWin->postDraw();
+	}
+}
+
 static void parseCmdLineArgs(int argc, char** argv)
 {
 	if(argc < 2)
@@ -217,10 +312,133 @@ static void parseCmdLineArgs(int argc, char** argv)
 	logMsg("starting game from command line: %s", launchGame);
 }
 
-void mainInitCommon(int argc, char** argv)
+void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel)
 {
+	Base::setOnResume(
+		[](bool focused)
+		{
+			if(updateInputDevicesOnResume)
+			{
+				updateInputDevices();
+				EmuControls::updateAutoOnScreenControlVisible();
+				updateInputDevicesOnResume = 0;
+			}
+
+			if(optionPauseUnfocused)
+				onFocusChange(Base::mainWindow(), focused); // let focus handler deal with resuming emulation
+			else
+			{
+				if(!menuViewIsActive) // resume emulation
+				{
+					#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+					vController.resetInput();
+					#endif
+					EmuSystem::start();
+					emuView.videoWin->postDraw();
+				}
+			}
+	});
+
+	Base::setOnFreeCaches(
+		[]()
+		{
+			if(View::defaultFace)
+				View::defaultFace->freeCaches();
+			if(View::defaultSmallFace)
+				View::defaultSmallFace->freeCaches();
+		});
+
+	Base::setOnExit(
+		[](bool backgrounded)
+		{
+			Audio::closePcm();
+			EmuSystem::pause();
+			if(backgrounded)
+			{
+				EmuSystem::saveAutoState();
+				EmuSystem::saveBackupMem();
+				if(optionNotificationIcon)
+				{
+					auto title = CONFIG_APP_NAME " was suspended";
+					Base::addNotification(title, title, EmuSystem::fullGameName());
+				}
+			}
+			else
+			{
+				EmuSystem::closeGame();
+			}
+
+			saveConfigFile();
+
+			#ifdef CONFIG_BLUETOOTH
+			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
+				Bluetooth::closeBT(bta);
+			#endif
+
+			#ifdef CONFIG_BASE_IOS
+			//if(backgrounded)
+			//	FsSys::remove("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
+			#endif
+		});
+
+	Base::Screen::setOnChange(
+		[](const Base::Screen &screen, const Base::Screen::Change &change)
+		{
+			if(change.added())
+			{
+				logMsg("screen added");
+				if(screen.screens() > 1)
+					setEmuViewOnExtraWindow(true);
+			}
+			else if(change.removed())
+			{
+				logMsg("screen removed");
+				if(extraWin.win && extraWin.win.screen() == screen)
+					setEmuViewOnExtraWindow(false);
+			}
+		});
+
+	Input::setOnDeviceChange(
+		[](const Input::Device &dev, const Input::Device::Change &change)
+		{
+			logMsg("got input dev change");
+
+			if(Base::appIsRunning())
+			{
+				updateInputDevices();
+				EmuControls::updateAutoOnScreenControlVisible();
+
+				if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
+				{
+					popup.printf(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
+					Base::mainWindow().postDraw();
+				}
+				else if(change.hadConnectError())
+				{
+					popup.printf(2, 1, "%s had a connection error", dev.name());
+					Base::mainWindow().postDraw();
+				}
+
+				#ifdef CONFIG_BLUETOOTH
+				if(viewStack.size == 1) // update bluetooth items
+					viewStack.top().onShow();
+				#endif
+			}
+			else
+			{
+				logMsg("delaying input device changes until app resumes");
+				updateInputDevicesOnResume = 1;
+			}
+		});
+
 	Base::registerInstance(CONFIG_APP_ID, argc, argv);
 	Base::setAcceptIPC(CONFIG_APP_ID, true);
+	Base::setOnInterProcessMessage(
+		[](const char *filename)
+		{
+			logMsg("got IPC: %s", filename);
+			handleOpenFileCommand(filename);
+		});
 	initOptions();
 	EmuSystem::initOptions();
 	parseCmdLineArgs(argc, argv);
@@ -233,38 +451,12 @@ void mainInitCommon(int argc, char** argv)
 	applyOSNavStyle(false);
 	Audio::init();
 	Gfx::init();
-	mainWin.win.init({0, 0}, {0, 0});
-	if(Base::Screen::screens() > 1)
-	{
-		setEmuViewOnExtraWindow(true);
-	}
-}
-
-void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(win != mainWin.win)
-	{
-		logMsg("init extra window");
-		emuView.videoWin = &win;
-		extraWin.viewport = makeViewport(win);
-		updateProjection(extraWin, extraWin.viewport, false);
-		win.setTitle("Test Window");
-		win.show();
-		return;
-	}
-	#endif
-	mainWin.lastWindowSize = win.size();
-	mainWin.viewport = makeViewport(win);
-	updateProjection(mainWin, mainWin.viewport, true);
 
 	auto compiled = Gfx::texAlphaProgram.compile();
 	compiled |= Gfx::noTexProgram.compile();
 	compiled |= View::compileGfxPrograms();
 	if(compiled)
 		Gfx::autoReleaseShaderCompiler();
-
-	win.setTitle(CONFIG_APP_NAME);
 	if(!optionDitherImage.isConst)
 	{
 		Gfx::setDither(optionDitherImage);
@@ -311,11 +503,6 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	// optionDirectTexture is treated as a boolean value after this point
 	#endif
 
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-	if(!optionTouchCtrlImgRes.isConst)
-		optionTouchCtrlImgRes.initDefault((Gfx::viewPixelWidth() * Gfx::viewPixelHeight() > 380000) ? 128 : 64);
-	#endif
-
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
 	View::defaultSmallFace = ResourceFace::create(View::defaultFace);
@@ -338,6 +525,138 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	emuView.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuView.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
 
+	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
+			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
+	viewNav.setRightBtnActive(false);
+
+	if(menuShownDel)
+	{
+		mainWin.win.init({0, 0}, {0, 0},
+			[&menuShownDel](Base::Window &win)
+			{
+				mainInitWindowCommon(win);
+				menuShownDel(win);
+			});
+	}
+	else
+	{
+		mainWin.win.init({0, 0}, {0, 0},
+			[](Base::Window &win)
+			{
+				mainInitWindowCommon(win);
+			});
+	}
+
+	mainWin.win.setOnInputEvent(
+		[](Base::Window &win, const Input::Event &e)
+		{
+			handleInputEvent(win, e);
+		});
+
+	mainWin.win.setOnFocusChange(
+		[](Base::Window &win, uint in)
+		{
+			onFocusChange(win, in);
+		});
+
+	mainWin.win.setOnDragDrop(
+		[](Base::Window &win, const char *filename)
+		{
+			logMsg("got DnD: %s", filename);
+			handleOpenFileCommand(filename);
+		});
+
+	mainWin.win.setOnSurfaceChange(
+		[](Base::Window &win, bool didResize)
+		{
+			auto &viewport = mainWin.viewport;
+			if(didResize)
+			{
+				logMsg("view resize");
+				auto &viewportDelta = mainWin.viewportDelta;
+				auto &lastWindowSize = mainWin.lastWindowSize;
+				auto oldViewport = viewport;
+				auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
+				auto newViewport = makeViewport(win);
+				if(newViewport != oldViewport && lastWindowSize == win.size() && win.shouldAnimateContentBoundsChange())
+				{
+					logMsg("viewport changed with same window size");
+					auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
+					int time = 10;
+					viewportDelta[0].set(oldViewport.bounds().x, newViewport.bounds().x, type, time);
+					viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
+					viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
+					viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
+					if(!win.screen().containsOnFrameDelegate(animateViewport))
+						win.screen().addOnFrameDelegate(animateViewport);
+					win.screen().postFrame();
+					animateViewportStep(mainWin);
+				}
+				else
+				{
+					win.screen().removeOnFrameDelegate(animateViewport);
+					viewport = newViewport;
+					if(oldViewportAR != newViewport.aspectRatio())
+					{
+						updateProjection(mainWin, newViewport, true);
+					}
+				}
+				lastWindowSize = win.size();
+				logMsg("done resize");
+			}
+			Gfx::setViewport(win, viewport);
+			Gfx::setProjectionMatrix(mainWin.projectionMat);
+			if(didResize)
+			{
+				placeElements(mainWin.viewport);
+			}
+		});
+
+	mainWin.win.setOnDraw(
+		[](Base::Window &win, Base::FrameTimeBase frameTime)
+		{
+			Gfx::clear();
+			emuView.draw(frameTime, win);
+			if(likely(EmuSystem::isActive()))
+			{
+				if(trackFPS)
+				{
+					if(frameCount == 119)
+					{
+						auto now = TimeSys::now();
+						float total = now - prevFrameTime;
+						prevFrameTime = now;
+						logMsg("%f fps", double(120./total));
+						frameCount = 0;
+					}
+					else
+						frameCount++;
+				}
+				return;
+			}
+
+			if(modalViewController.hasView())
+				modalViewController.draw(frameTime);
+			else if(menuViewIsActive)
+				viewStack.draw(frameTime);
+			popup.draw();
+			Gfx::setClipRect(false);
+		});
+
+	if(Base::Screen::screens() > 1)
+	{
+		setEmuViewOnExtraWindow(true);
+	}
+}
+
+void mainInitWindowCommon(Base::Window &win)
+{
+	mainWin.lastWindowSize = win.size();
+	mainWin.viewport = makeViewport(win);
+	updateProjection(mainWin, mainWin.viewport, true);
+
+	win.setTitle(CONFIG_APP_NAME);
+
 	setupFont();
 	popup.init();
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -348,9 +667,6 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	#endif
 
 	//logMsg("setting up view stack");
-	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
-			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
-	viewNav.setRightBtnActive(false);
 	modalViewController.init(win);
 	modalViewController.onRemoveView() =
 		[]()
@@ -370,7 +686,7 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 	win.setValidOrientations(optionMenuOrientation, false);
 	win.setAcceptDnd(1);
 
-	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
 		auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
@@ -400,13 +716,6 @@ void mainInitWindowCommon(Base::Window &win, const Gfx::LGradientStopDesc *navVi
 
 void handleInputEvent(Base::Window &win, const Input::Event &e)
 {
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(win != mainWin.win && e.isPointer())
-	{
-		return;
-	}
-	#endif
-
 	if(e.isPointer())
 	{
 		//logMsg("Pointer %s @ %d,%d", Input::eventActionToStr(e.state), e.x, e.y);
@@ -484,151 +793,6 @@ void handleOpenFileCommand(const char *filename)
 	GameFilePicker::onSelectFile(file, Input::Event{});
 }
 
-namespace Base
-{
-
-void onFocusChange(Base::Window &win, uint in)
-{
-	if(optionPauseUnfocused && !menuViewIsActive)
-	{
-		if(in)
-		{
-			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-			vController.resetInput();
-			#endif
-			EmuSystem::start();
-		}
-		else
-		{
-			EmuSystem::pause();
-		}
-		emuView.videoWin->postDraw();
-	}
-}
-
-void onExit(bool backgrounded)
-{
-	Audio::closePcm();
-	EmuSystem::pause();
-	if(backgrounded)
-	{
-		EmuSystem::saveAutoState();
-		EmuSystem::saveBackupMem();
-		if(optionNotificationIcon)
-		{
-			auto title = CONFIG_APP_NAME " was suspended";
-			Base::addNotification(title, title, EmuSystem::fullGameName());
-		}
-	}
-	else
-	{
-		EmuSystem::closeGame();
-	}
-
-	saveConfigFile();
-
-	#ifdef CONFIG_BLUETOOTH
-	if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
-		Bluetooth::closeBT(bta);
-	#endif
-
-	#ifdef CONFIG_BASE_IOS
-	//if(backgrounded)
-	//	FsSys::remove("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
-	#endif
-}
-
-void onDragDrop(Base::Window &win, const char *filename)
-{
-	logMsg("got DnD: %s", filename);
-	handleOpenFileCommand(filename);
-}
-
-void onInterProcessMessage(const char *filename)
-{
-	logMsg("got IPC: %s", filename);
-	handleOpenFileCommand(filename);
-}
-
-void onResume(bool focused)
-{
-	if(updateInputDevicesOnResume)
-	{
-		updateInputDevices();
-		EmuControls::updateAutoOnScreenControlVisible();
-		updateInputDevicesOnResume = 0;
-	}
-
-	if(optionPauseUnfocused)
-		onFocusChange(Base::mainWindow(), focused); // let focus handler deal with resuming emulation
-	else
-	{
-		if(!menuViewIsActive) // resume emulation
-		{
-			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-			vController.resetInput();
-			#endif
-			EmuSystem::start();
-			emuView.videoWin->postDraw();
-		}
-	}
-}
-
-void onScreenChange(const Screen &screen, const Screen::Change &change)
-{
-	if(change.added())
-	{
-		logMsg("screen added");
-		if(Screen::screens() > 1)
-			setEmuViewOnExtraWindow(true);
-	}
-	else if(change.removed())
-	{
-		logMsg("screen removed");
-		if(extraWin.win && extraWin.win.screen() == screen)
-			setEmuViewOnExtraWindow(false);
-	}
-}
-
-}
-
-namespace Input
-{
-
-void onInputDevChange(const Device &dev, const Device::Change &change)
-{
-	logMsg("got input dev change");
-
-	if(Base::appIsRunning())
-	{
-		updateInputDevices();
-		EmuControls::updateAutoOnScreenControlVisible();
-
-		if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
-		{
-			popup.printf(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
-			Base::mainWindow().postDraw();
-		}
-		else if(change.hadConnectError())
-		{
-			popup.printf(2, 1, "%s had a connection error", dev.name());
-			Base::mainWindow().postDraw();
-		}
-
-		#ifdef CONFIG_BLUETOOTH
-		if(viewStack.size == 1) // update bluetooth items
-			viewStack.top().onShow();
-		#endif
-	}
-	else
-	{
-		logMsg("delaying input device changes until app resumes");
-		updateInputDevicesOnResume = 1;
-	}
-}
-
-}
-
 void placeElements(const Gfx::Viewport &viewport)
 {
 	GuiTable1D::setDefaultXIndent();
@@ -637,41 +801,6 @@ void placeElements(const Gfx::Viewport &viewport)
 	viewStack.place(viewport.bounds());
 	modalViewController.place(viewport.bounds());
 }
-
-static void animateViewportStep(AppWindowData &appWin)
-{
-	auto &viewportDelta = appWin.viewportDelta;
-	auto &viewport = appWin.viewport;
-	auto &win = appWin.win;
-	for(auto &d : viewportDelta)
-	{
-		d.update(1);
-	}
-	//logMsg("animated viewport: %d:%d:%d:%d",
-	//	viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now());
-	auto v = Gfx::Viewport::makeFromWindow(win, {viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now()});
-	viewport = v;
-	updateProjection(appWin, v, true);
-	win.setAsDrawTarget();
-	Gfx::setViewport(win, v);
-	Gfx::setProjectionMatrix(appWin.projectionMat);
-}
-
-static Base::Screen::OnFrameDelegate animateViewport
-{
-	[](Base::Screen &screen, Base::FrameTimeBase frameTime)
-	{
-		auto &winData = mainWin;
-		winData.win.setNeedsDraw(true);
-		animateViewportStep(winData);
-		placeElements(winData.viewport);
-		if(!winData.viewportDelta[0].isComplete())
-		{
-			screen.addOnFrameDelegate(animateViewport);
-			screen.postFrame();
-		}
-	}
-};
 
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport, bool updateGUI)
 {
@@ -696,115 +825,4 @@ static Gfx::Viewport makeViewport(const Base::Window &win)
 	}
 	else
 		return Gfx::Viewport::makeFromWindow(win);
-}
-
-namespace Base
-{
-
-void onViewChange(Base::Window &win, bool didResize)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(win != mainWin.win)
-	{
-		if(didResize)
-		{
-			logMsg("view resize for extra window");
-			extraWin.viewport = makeViewport(win);
-			updateProjection(extraWin, extraWin.viewport, false);
-		}
-		Gfx::setViewport(extraWin.win, extraWin.viewport);
-		Gfx::setProjectionMatrix(extraWin.projectionMat);
-		emuView.place();
-		return;
-	}
-	#endif
-	auto &viewport = mainWin.viewport;
-	if(didResize)
-	{
-		logMsg("view resize");
-		auto &viewportDelta = mainWin.viewportDelta;
-		auto &lastWindowSize = mainWin.lastWindowSize;
-		auto oldViewport = viewport;
-		auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
-		auto newViewport = makeViewport(win);
-		if(newViewport != oldViewport && lastWindowSize == win.size() && win.shouldAnimateContentBoundsChange())
-		{
-			logMsg("viewport changed with same window size");
-			auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
-			int time = 10;
-			viewportDelta[0].set(oldViewport.bounds().x, newViewport.bounds().x, type, time);
-			viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
-			viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
-			viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
-			if(!mainScreen().containsOnFrameDelegate(animateViewport))
-				mainScreen().addOnFrameDelegate(animateViewport);
-			mainScreen().postFrame();
-			animateViewportStep(mainWin);
-		}
-		else
-		{
-			mainScreen().removeOnFrameDelegate(animateViewport);
-			viewport = newViewport;
-			if(oldViewportAR != newViewport.aspectRatio())
-			{
-				updateProjection(mainWin, newViewport, true);
-			}
-		}
-		lastWindowSize = win.size();
-		logMsg("done resize");
-	}
-	Gfx::setViewport(win, viewport);
-	Gfx::setProjectionMatrix(mainWin.projectionMat);
-	if(didResize)
-	{
-		placeElements(mainWin.viewport);
-	}
-}
-
-void onDraw(Base::Window &win, FrameTimeBase frameTime)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(win != mainWin.win)
-	{
-		if(EmuSystem::isActive() || EmuSystem::isStarted())
-		{
-			emuView.draw(frameTime, win);
-		}
-		return;
-	}
-	#endif
-	emuView.draw(frameTime, win);
-	if(likely(EmuSystem::isActive()))
-	{
-		if(trackFPS)
-		{
-			if(frameCount == 119)
-			{
-				auto now = TimeSys::now();
-				float total = now - prevFrameTime;
-				prevFrameTime = now;
-				logMsg("%f fps", double(120./total));
-				frameCount = 0;
-			}
-			else
-				frameCount++;
-		}
-		return;
-	}
-
-	if(modalViewController.hasView())
-		modalViewController.draw(frameTime);
-	else if(menuViewIsActive)
-		viewStack.draw(frameTime);
-	popup.draw();
-}
-
-void onFreeCaches()
-{
-	if(View::defaultFace)
-		View::defaultFace->freeCaches();
-	if(View::defaultSmallFace)
-		View::defaultSmallFace->freeCaches();
-}
-
 }

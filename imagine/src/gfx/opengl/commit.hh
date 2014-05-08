@@ -56,7 +56,7 @@ void clear()
 
 void renderFrame(Base::Window &win, Base::FrameTimeBase frameTime)
 {
-	Base::onDraw(win, frameTime);
+	win.onDraw(win, frameTime);
 
 	//glFlush();
 	//glFinish();

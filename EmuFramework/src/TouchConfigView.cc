@@ -368,12 +368,6 @@ void TouchConfigView::init(bool highlightFirst)
 //		}
 		useScaledCoordinates.init(optionTouchCtrlScaledCoordinates); text[i++] = &useScaledCoordinates;
 		#endif
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-		if(!optionTouchCtrlImgRes.isConst)
-		{
-			imageResolution.init(optionTouchCtrlImgRes == 128U ? 1 : 0); text[i++] = &imageResolution;
-		}
-		#endif
 	#endif // CONFIG_VCONTROLS_GAMEPAD
 	resetControls.init(); text[i++] = &resetControls;
 	resetAllControls.init(); text[i++] = &resetAllControls;
@@ -626,23 +620,6 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 //			}
 //		},
 //		#endif
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-		imageResolution
-		{
-			"High Resolution",
-			[](BoolMenuItem &item, const Input::Event &e)
-			{
-				item.toggle();
-				uint newRes = item.on ? 128 : 64;
-				if(optionTouchCtrlImgRes != newRes)
-				{
-					optionTouchCtrlImgRes = newRes;
-					EmuControls::updateVControlImg();
-					vController.place();
-				}
-			}
-		},
-		#endif
 	boundingBoxes
 	{
 		"Show Bounding Boxes",

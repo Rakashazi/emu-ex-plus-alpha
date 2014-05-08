@@ -656,10 +656,9 @@ static void processDevice(JNIEnv* jEnv, int devID, bool setSpecialDevices, bool 
 			}
 		}
 		logMsg("added to list with device id %d", sysInput->enumId());
-		if(notify)
+		if(notify && onDeviceChange)
 		{
-			//logMsg("notifying app of added device");
-			onInputDevChange(*sysInput, { Device::Change::ADDED });
+			onDeviceChange(*sysInput, { Device::Change::ADDED });
 		}
 	}
 	jEnv->ReleaseStringUTFChars(jName, name);
@@ -695,8 +694,8 @@ void devicesChanged(JNIEnv* jEnv)
 			Input::removeDevice(*dev);
 			it.erase();
 			delete dev;
-			//logMsg("notifying app of removed device");
-			onInputDevChange(removedDev, { Device::Change::REMOVED });
+			if(onDeviceChange)
+				onDeviceChange(removedDev, { Device::Change::REMOVED });
 		}
 	}
 
@@ -752,7 +751,8 @@ void setBuiltInKeyboardState(bool shown)
 	if(builtinKeyboardDev)
 	{
 		Device::Change change { shown ? Device::Change::SHOWN : Device::Change::HIDDEN };
-		onInputDevChange(*builtinKeyboardDev, change);
+		if(onDeviceChange)
+			onDeviceChange(*builtinKeyboardDev, change);
 	}
 }
 
@@ -798,7 +798,8 @@ CallResult init()
 										Input::removeDevice(*dev);
 										it.erase();
 										delete dev;
-										onInputDevChange(removedDev, { Device::Change::REMOVED });
+										if(onDeviceChange)
+											onDeviceChange(removedDev, { Device::Change::REMOVED });
 										break;
 									}
 								}

@@ -317,9 +317,9 @@ void deinitKeyRepeatTimer();
 
 IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> srcPos);
 
-// App Callbacks
+using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, const Device::Change &change)>;
 
 // Called when a known input device addition/removal/change occurs
-void onInputDevChange(const Device &dev, const Device::Change &change);
+void setOnDeviceChange(DeviceChangeDelegate del);
 
 }

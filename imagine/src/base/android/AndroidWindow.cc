@@ -32,7 +32,7 @@ namespace Base
 
 static uint windowSizeChecks = 0;
 
-void onResume(ANativeActivity* activity);
+void onResume_(ANativeActivity* activity);
 void onPause(ANativeActivity* activity);
 void windowNeedsRedraw(Window &win, ANativeActivity* activity);
 void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus);
@@ -186,10 +186,12 @@ void Window::swapBuffers()
 	//logMsg("swap time %f", double(after-now));
 }
 
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size)
+CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
 {
 	if(initialInit)
 		return OK;
+	initDelegates();
+	var_selfs(onInit);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -252,9 +254,10 @@ static void runPendingInit(Window &win, ANativeActivity* activity)
 	{
 		win.ranInit = true;
 		appState = APP_RUNNING;
-		onWindowInit(win);
+		if(win.onInit)
+			win.onInit(win);
 		// the following handlers should only ever be called after the initial window init
-		activity->callbacks->onResume = onResume;
+		activity->callbacks->onResume = onResume_;
 		activity->callbacks->onPause = onPause;
 		handleIntent(activity);
 		orientationEventTime = TimeSys::now(); // init with the window creation time
@@ -377,7 +380,8 @@ void windowNeedsRedraw(Window &win, ANativeActivity* activity)
 		if(!win.ranInit)
 		{
 			win.ranInit = true;
-			onWindowInit(win);
+			if(win.onInit)
+				win.onInit(win);
 		}
 	}
 }
@@ -397,7 +401,8 @@ void windowResized(Window &win, ANativeActivity* activity)
 		if(!win.ranInit)
 		{
 			win.ranInit = true;
-			onWindowInit(win);
+			if(win.onInit)
+				win.onInit(win);
 		}
 		win.postResize();
 	}
