@@ -397,6 +397,7 @@ void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplic
 {
 	win.updateSize({width, height});
 	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
+	win.surfaceChange.addContentRectResized();
 }
 
 static void setStatusBarHidden(bool hidden)
@@ -412,7 +413,8 @@ static void setStatusBarHidden(bool hidden)
 	{
 		auto &win = *deviceWindow();
 		win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
-		win.postResize();
+		win.surfaceChange.addContentRectResized();
+		win.postDraw();
 	}
 }
 
@@ -446,6 +448,7 @@ void Window::setSystemOrientation(uint o)
 	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	updateContentRect(width(), height(), rotateView, sharedApp);
+	surfaceChange.addContentRectResized();
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching

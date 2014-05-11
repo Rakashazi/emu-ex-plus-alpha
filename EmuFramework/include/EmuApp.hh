@@ -44,7 +44,6 @@ struct AppWindowData
 	Base::Window win;
 	Gfx::Viewport viewport;
 	Gfx::Mat4 projectionMat;
-	IG::Point2D<int> lastWindowSize;
 	TimedInterpolator<int> viewportDelta[4];
 };
 
@@ -77,6 +76,7 @@ View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
 void setEmuViewOnExtraWindow(bool on);
 void placeElements(const Gfx::Viewport &viewport);
+void updateWindowViewport(AppWindowData &winData, bool surfaceResized);
 
 template <size_t NAV_GRAD_SIZE>
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE], MenuShownDelegate menuShownDel)

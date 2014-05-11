@@ -128,9 +128,6 @@ static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback;
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
-void onResume_(ANativeActivity* activity);
-void onPause(ANativeActivity* activity);
-TimeSys orientationEventTime;
 uint androidUIInUse = 0;
 JavaInstMethod<jobject> jGetDisplay;
 bool framePostedEvent = false;
@@ -146,12 +143,6 @@ JavaInstMethod<void> jPostFrame, jUnpostFrame;
 JavaInstMethod<jobject> jPresentation;
 int onFrameEventFd = -1;
 uint onFrameEventIdle = 0;
-void windowNeedsRedraw(Window &win, ANativeActivity* activity);
-void windowResized(Window &win, ANativeActivity* activity);
-void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *win);
-void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus);
-void windowDestroyed(Window &win, ANativeActivity* activity);
-void addOnFrameWindowSizeChecks(Screen &screen, uint extraRedraws);
 void setupEGLConfig();
 
 static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
@@ -364,7 +355,6 @@ static bool setOrientationOS(int o)
 	};
 
 	logMsg("OS orientation change");
-	orientationEventTime = orientationEventTime.now();
 	assert(osOrientation != -1);
 	if(osOrientation != o)
 	{
@@ -452,16 +442,13 @@ static void appFocus(bool hasFocus)
 {
 	aHasFocus = hasFocus;
 	logMsg("focus change: %d", (int)hasFocus);
-	if(deviceWindow())
+	if(hasFocus && Base::androidSDK() >= 11)
 	{
-		if(hasFocus)
-		{
-			//logMsg("app in focus, window size %d,%d", ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
-			deviceWindow()->postDraw();
-			addOnFrameWindowSizeChecks(mainScreen(), 0);
-		}
-		deviceWindow()->onFocusChange(*deviceWindow(), hasFocus);
+		// re-apply UI visibility flags
+		jSetUIVisibility(eEnv(), jBaseActivity, uiVisibilityFlags);
 	}
+	if(deviceWindow() && deviceWindow()->onFocusChange)
+		deviceWindow()->onFocusChange(*deviceWindow(), hasFocus);
 }
 
 static void configChange(JNIEnv* jEnv, AConfiguration* config, ANativeWindow* window)
@@ -535,6 +522,7 @@ static void appResumed(ANativeActivity* activity)
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnResume();
 	#endif
+	Window::postNeededScreens();
 	logMsg("app resumed");
 	doOnResume(activity);
 }
@@ -559,7 +547,7 @@ void initGLContext()
 	eglCtx.init(display);
 }
 
-static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity thread
+static void activityInit(ANativeActivity* activity)
 {
 	auto jEnv = activity->env;
 	auto inst = activity->clazz;
@@ -583,11 +571,12 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 			JNINativeMethod method[] =
 			{
 				{
-					"onContentRectChanged", "(IIII)V",
-					(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2))
-					([](JNIEnv* env, jobject thiz, jint x, jint y, jint x2, jint y2)
+					"onContentRectChanged", "(JIIIIII)V",
+					(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight))
+					([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 					{
-						contentRectChanged(baseActivity, {x, y, x2, y2}, deviceWindow()->nWin);
+						auto win = windowAddr ? (Window*)windowAddr : deviceWindow();
+						androidWindowContentRectChanged(*win, {x, y, x2, y2}, {winWidth, winHeight});
 					})
 				}
 			};
@@ -797,12 +786,11 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 		jSetWinFormat.setup(jEnv, jBaseActivityCls, "setWinFormat", "(I)V");
 		jWinFormat.setup(jEnv, jBaseActivityCls, "winFormat", "()I");
 	}
-	jSetUIVisibility.setup(jEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
 
-	// ui visibility change notifications
 	if(Base::androidSDK() >= 11)
 	{
-		logMsg("setting up UI visibility change notifications");
+		jSetUIVisibility.setup(jEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
+		/*logMsg("setting up UI visibility change notifications");
 		JavaInstMethod<jobject> jUIVisibilityChangeHelper;
 		jUIVisibilityChangeHelper.setup(jEnv, Base::jBaseActivityCls, "uiVisibilityChangeHelper", "()Lcom/imagine/SystemUiVisibilityChangeHelper;");
 		auto uiVisibilityChangeHelper = jUIVisibilityChangeHelper(jEnv, Base::jBaseActivity);
@@ -835,14 +823,7 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 				})
 			}
 		};
-		jEnv->RegisterNatives(uiVisibilityChangeHelperCls, method, sizeofArray(method));
-	}
-
-	initEGL();
-	doOrAbort(onInit(0, nullptr));
-	if(!Window::windows())
-	{
-		bug_exit("didn't create a window");
+		jEnv->RegisterNatives(uiVisibilityChangeHelperCls, method, sizeofArray(method));*/
 	}
 
 	// select display update method
@@ -883,12 +864,9 @@ static void activityInit(ANativeActivity* activity) // uses JNIEnv from Activity
 
 					jboolean postNextFrame = false; // true if any screens post the next frame
 					bool isPostedCheck = false;
-					#ifdef CONFIG_BASE_MULTI_SCREEN
-					for(auto s : screen_)
-					#else
-					auto s = &mainScreen();
-					#endif
+					iterateTimes(Screen::screens(), i)
 					{
+						auto s = Screen::screen(i);
 						if(s->frameIsPosted())
 						{
 							isPostedCheck = true;
@@ -1167,7 +1145,7 @@ void setSysUIStyle(uint flags)
 		if(flags & SYS_UI_STYLE_HIDE_NAV)
 			flags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 		logMsg("setting UI visibility: 0x%X", flags);
-		uiVisibilityFlags = flags;;
+		uiVisibilityFlags = flags;
 		jSetUIVisibility(env, jBaseActivity, flags);
 	}
 }
@@ -1179,110 +1157,89 @@ void setProcessPriority(int nice)
 	setpriority(PRIO_PROCESS, 0, nice);
 }
 
-static void onDestroy(ANativeActivity* activity)
-{
-	::exit(0);
-}
-
-static void onStart(ANativeActivity* activity) {}
-
-void onResume_(ANativeActivity* activity)
-{
-	appResumed(activity);
-}
-
-static void* onSaveInstanceState(ANativeActivity* activity, size_t* outLen)
-{
-	return nullptr;
-}
-
-void onPause(ANativeActivity* activity)
-{
-	appPaused();
-}
-
-static void onStop(ANativeActivity* activity) {}
-
-static void onConfigurationChanged(ANativeActivity* activity)
-{
-	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-	configChange(activity->env, aConfig, deviceWindow()->nWin);
-}
-
-static void onLowMemory(ANativeActivity* activity)
-{
-	if(onFreeCaches)
-		onFreeCaches();
-}
-
-static void onWindowFocusChanged(ANativeActivity* activity, int focused)
-{
-	appFocus(focused);
-}
-
-static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* nWin)
-{
-	finishWindowInit(*deviceWindow(), activity, nWin, aHasFocus);
-}
-
-static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* window)
-{
-	if(onFreeCaches)
-		onFreeCaches();
-	windowDestroyed(*deviceWindow(), activity);
-}
-
-static void onInputQueueCreated(ANativeActivity* activity, AInputQueue* queue)
-{
-	inputQueue = queue;
-	logMsg("input queue created & attached");
-	AInputQueue_attachLooper(queue, activityLooper(), ALOOPER_POLL_CALLBACK,
-		[](int, int, void* data)
-		{
-			processInput((AInputQueue*)data);
-			return 1;
-		}, queue);
-}
-
-static void onInputQueueDestroyed(ANativeActivity* activity, AInputQueue* queue)
-{
-	logMsg("input queue destroyed");
-	inputQueue = nullptr;
-	AInputQueue_detachLooper(queue);
-}
-
-static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
-{
-	windowResized(*deviceWindow(), activity);
-}
-
-static void onNativeWindowRedrawNeeded(ANativeActivity* activity, ANativeWindow* window)
-{
-	windowNeedsRedraw(*deviceWindow(), activity);
-}
-
-static void onContentRectChanged(ANativeActivity* activity, const ARect* rect)
-{
-	contentRectChanged(activity, *rect, deviceWindow()->nWin);
-}
-
 static void setNativeActivityCallbacks(ANativeActivity* activity)
 {
-	activity->callbacks->onDestroy = onDestroy;
+	activity->callbacks->onDestroy =
+		[](ANativeActivity* activity)
+		{
+			::exit(0);
+		};
 	//activity->callbacks->onStart = onStart;
-	//activity->callbacks->onResume = onResume_;
+	activity->callbacks->onResume =
+		[](ANativeActivity* activity)
+		{
+			appResumed(activity);
+		};
 	//activity->callbacks->onSaveInstanceState = onSaveInstanceState;
-	//activity->callbacks->onPause = onPause;
+	activity->callbacks->onPause =
+		[](ANativeActivity* activity)
+		{
+			appPaused();
+		};
 	//activity->callbacks->onStop = onStop;
-	activity->callbacks->onConfigurationChanged = onConfigurationChanged;
-	activity->callbacks->onLowMemory = onLowMemory;
-	activity->callbacks->onWindowFocusChanged = onWindowFocusChanged;
-	activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;
-	activity->callbacks->onNativeWindowDestroyed = onNativeWindowDestroyed;
-	activity->callbacks->onNativeWindowResized = onNativeWindowResized;
-	activity->callbacks->onNativeWindowRedrawNeeded = onNativeWindowRedrawNeeded;
-	activity->callbacks->onInputQueueCreated = onInputQueueCreated;
-	activity->callbacks->onInputQueueDestroyed = onInputQueueDestroyed;
+	activity->callbacks->onConfigurationChanged =
+		[](ANativeActivity* activity)
+		{
+			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
+			configChange(activity->env, aConfig, deviceWindow()->nWin);
+		};
+	activity->callbacks->onLowMemory =
+		[](ANativeActivity* activity)
+		{
+			if(onFreeCaches)
+				onFreeCaches();
+		};
+	activity->callbacks->onWindowFocusChanged =
+		[](ANativeActivity* activity, int focused)
+		{
+			appFocus(focused);
+		};
+	activity->callbacks->onNativeWindowCreated =
+		[](ANativeActivity* activity, ANativeWindow* nWin)
+		{
+			if(Base::androidSDK() < 11)
+			{
+				// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
+				// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
+				// Explicitly setting the format here seems to fix the problem (Android driver bug?).
+				// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
+				logMsg("setting window format to %d (current %d) after surface creation", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
+				jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
+			}
+			androidWindowInitSurface(*deviceWindow(), nWin);
+		};
+	activity->callbacks->onNativeWindowDestroyed =
+		[](ANativeActivity* activity, ANativeWindow* window)
+		{
+			androidWindowSurfaceDestroyed(*deviceWindow());
+			if(onFreeCaches)
+				onFreeCaches();
+		};
+	//activity->callbacks->onNativeWindowResized = onNativeWindowResized;
+	activity->callbacks->onNativeWindowRedrawNeeded =
+		[](ANativeActivity* activity, ANativeWindow* window)
+		{
+			androidWindowNeedsRedraw(*deviceWindow());
+		};
+	activity->callbacks->onInputQueueCreated =
+		[](ANativeActivity* activity, AInputQueue* queue)
+		{
+			inputQueue = queue;
+			logMsg("input queue created & attached");
+			AInputQueue_attachLooper(queue, activityLooper(), ALOOPER_POLL_CALLBACK,
+				[](int, int, void* data)
+				{
+					processInput((AInputQueue*)data);
+					return 1;
+				}, queue);
+		};
+	activity->callbacks->onInputQueueDestroyed =
+		[](ANativeActivity* activity, AInputQueue* queue)
+		{
+			logMsg("input queue destroyed");
+			inputQueue = nullptr;
+			AInputQueue_detachLooper(queue);
+		};
 	//activity->callbacks->onContentRectChanged = onContentRectChanged;
 }
 
@@ -1296,8 +1253,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	{
 		logMsg("skipping onCreate");
 		setNativeActivityCallbacks(activity);
-		activity->callbacks->onResume = onResume_;
-		activity->callbacks->onPause = onPause;
 		assert(jVM == activity->vm);
 		assert(eJEnv == activity->env);
 		jBaseActivity = activity->clazz;
@@ -1321,5 +1276,11 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	aConfig = AConfiguration_new();
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
 	initConfig(aConfig);
+	initEGL();
+	doOrAbort(onInit(0, nullptr));
+	if(!Window::windows())
+	{
+		bug_exit("didn't create a window");
+	}
 	setNativeActivityCallbacks(activity);
 }

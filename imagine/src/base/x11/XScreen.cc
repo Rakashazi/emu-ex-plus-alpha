@@ -27,14 +27,23 @@ void XScreen::init(::Screen *xScreen)
 {
 	assert(xScreen);
 	var_selfs(xScreen);
-	x = WidthOfScreen(xScreen);
-	y = HeightOfScreen(xScreen);
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
-	logMsg("X screen: 0x%p %dx%d (%dx%dmm)", xScreen, x, y, (int)xMM, (int)yMM);
+	logMsg("X screen: 0x%p %dx%d (%dx%dmm)", xScreen,
+		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM);
 }
 
 void Screen::deinit() {}
+
+int Screen::width()
+{
+	return WidthOfScreen(xScreen);
+}
+
+int Screen::height()
+{
+	return HeightOfScreen(xScreen);
+}
 
 uint Screen::refreshRate()
 {

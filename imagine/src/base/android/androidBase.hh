@@ -20,9 +20,13 @@ extern int onFrameEventFd;
 extern jobject frameHelper;
 extern bool aHasFocus;
 extern uint appState;
-extern TimeSys orientationEventTime;
 extern ANativeActivity *baseActivity;
 extern bool framePostedEvent;
+
 Window *deviceWindow();
+void androidWindowInitSurface(Window &win, ANativeWindow *nWin);
+void androidWindowNeedsRedraw(Window &win);
+void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
+void androidWindowSurfaceDestroyed(Window &win);
 
 }

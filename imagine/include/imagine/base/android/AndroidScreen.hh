@@ -29,6 +29,7 @@ public:
 	float xDPI = 0, yDPI = 0;
 	float densityDPI = 0;
 	float refreshRate_ = 0;
+	int width_ = 0, height_ = 0;
 	FrameTimeBase currFrameTime = 0; // only used if Choreographer class isn't present
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	int id = 0;

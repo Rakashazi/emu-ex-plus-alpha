@@ -181,8 +181,8 @@ static int eventHandler(XEvent &event)
 			auto &win = *windowForXWindow(event.xconfigure.window);
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
-			if(win.updateSize({event.xconfigure.width, event.xconfigure.height}))
-				win.postResize();
+			win.updateSize({event.xconfigure.width, event.xconfigure.height});
+			win.postDraw();
 		}
 		bcase ClientMessage:
 		{

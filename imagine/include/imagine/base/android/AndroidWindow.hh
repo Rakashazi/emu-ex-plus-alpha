@@ -34,8 +34,6 @@ public:
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	jobject jDialog = nullptr;
 	#endif
-	WindowInitDelegate onInit;
-	bool ranInit = false;
 	bool initialInit = false;
 
 	constexpr AndroidWindow() {}
@@ -47,33 +45,11 @@ public:
 
 	operator bool() const
 	{
-		return nWin;
+		return initialInit;
 	}
 
-	bool isDrawable()
-	{
-		return surface != EGL_NO_SURFACE;
-	}
-
-	void initSurface(EGLDisplay display, EGLConfig config, ANativeWindow *win);
-
-	EGLint width(EGLDisplay display)
-	{
-		assert(surface != EGL_NO_SURFACE);
-		assert(display != EGL_NO_DISPLAY);
-		EGLint w;
-		eglQuerySurface(display, surface, EGL_WIDTH, &w);
-		return w;
-	}
-
-	EGLint height(EGLDisplay display)
-	{
-		assert(surface != EGL_NO_SURFACE);
-		assert(display != EGL_NO_DISPLAY);
-		EGLint h;
-		eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-		return h;
-	}
+	void initEGLSurface(EGLDisplay display, EGLConfig config);
+	void destroyEGLSurface(EGLDisplay display);
 };
 
 using WindowImpl = AndroidWindow;

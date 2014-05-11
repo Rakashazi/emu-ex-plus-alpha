@@ -135,13 +135,29 @@ private:
 	bool drawPosted = false;
 
 public:
-	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, bool didResize)>;
+	struct SurfaceChange
+	{
+		uint8 flags = 0;
+		static constexpr uint8 SURFACE_RESIZED = IG::bit(0),
+			CONTENT_RECT_RESIZED = IG::bit(1);
+
+		constexpr SurfaceChange() {}
+		constexpr SurfaceChange(uint8 flags): flags(flags) {}
+		bool resized() const { return surfaceResized() || contentRectResized(); }
+		bool surfaceResized() const { return flags & SURFACE_RESIZED; }
+		bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
+		void addSurfaceResized() { flags |= SURFACE_RESIZED; }
+		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
+	};
+
+	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
 	using DrawDelegate = DelegateFunc<void (Window &win, FrameTimeBase frameTime)>;
 	using InputEventDelegate = DelegateFunc<void (Window &win, const Input::Event &event)>;
 	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
 
 	bool resizePosted = true; // all windows need an initial onViewChange call
+	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	uint rotateView = VIEW_ROTATE_0;
 	uint preferedOrientation = VIEW_ROTATE_0;
@@ -273,8 +289,6 @@ public:
 	void postDraw();
 	static void postNeededScreens();
 	void unpostDraw();
-	void postResize(bool redraw = true);
-	void dispatchResize();
 	void draw(FrameTimeBase frameTime);
 	bool setAsDrawTarget();
 	void swapBuffers();
@@ -287,6 +301,7 @@ public:
 	bool updatePhysicalSizeWithCurrentSize();
 	static uint windows();
 	static Window *window(uint idx);
+	bool hasSurface();
 
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	uint setOrientation(uint o, bool preferAnimated);
@@ -298,8 +313,8 @@ private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
 	void setSurfaceCurrent();
-	bool hasSurface();
 	void initDelegates();
+	void dispatchSurfaceChange();
 };
 
 Window &mainWindow();

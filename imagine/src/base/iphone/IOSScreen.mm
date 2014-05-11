@@ -85,6 +85,16 @@ void IOSScreen::setFrameInterval(uint interval)
 	[displayLink() setFrameInterval:interval];
 }
 
+int Screen::width()
+{
+	return uiScreen().bounds.size.width;
+}
+
+int Screen::height()
+{
+	return uiScreen().bounds.size.height;
+}
+
 uint Screen::refreshRate()
 {
 	return 60;

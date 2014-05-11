@@ -783,7 +783,8 @@ OptionView::OptionView(Base::Window &win):
 				bcase 3: optionViewportZoom.val = 85;
 			}
 			logMsg("set viewport zoom: %d", int(optionViewportZoom));
-			window().postResize();
+			updateWindowViewport(mainWin, false);
+			window().postDraw();
 		}
 	},
 	imgFilter
@@ -1172,8 +1173,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 17: optionFontSize = 10500;
 			}
 			setupFont();
-			EmuControls::setupVControllerVars();
-			window().dispatchResize();
+			placeElements(mainWin.viewport);
 		}
 	},
 	notificationIcon
@@ -1273,7 +1273,6 @@ OptionView::OptionView(Base::Window &win):
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
 			Base::mainWindow().setValidOrientations(optionMenuOrientation);
-			window().postResize();
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 		}
 	}

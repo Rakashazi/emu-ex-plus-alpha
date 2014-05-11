@@ -157,8 +157,7 @@ bool Window::hasSurface()
 
 void Window::swapBuffers()
 {
-	//logMsg("doing swap");
-	//glBindRenderbufferOES(GL_RENDERBUFFER, viewRenderbuffer);
+	//logMsg("doing present");
 	[mainContext presentRenderbuffer:GL_RENDERBUFFER];
 }
 
@@ -236,7 +235,7 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	#else
 	mainWin = this;
 	#endif
-	CGRect rect = [screen().uiScreen() bounds];
+	CGRect rect = screen().uiScreen().bounds;
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE

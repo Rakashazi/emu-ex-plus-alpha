@@ -192,7 +192,7 @@ IG::WindowRect Window::contentBounds() const
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	assert(screen().xMM);
-	return {screen().xMM * ((float)size.x/(float)screen().x), screen().yMM * ((float)size.y/(float)screen().y)};
+	return {screen().xMM * ((float)size.x/(float)screen().width()), screen().yMM * ((float)size.y/(float)screen().height())};
 }
 
 Window *windowForXWindow(::Window xWin)

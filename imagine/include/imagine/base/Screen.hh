@@ -63,6 +63,8 @@ public:
 	static ChangeDelegate onChange;
 
 	constexpr Screen() {}
+	int width();
+	int height();
 	void postFrame();
 	void unpostFrame();
 	static void unpostAll();

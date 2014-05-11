@@ -72,26 +72,30 @@ void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool i
 	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
 	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
 	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
+	auto jWidthPixels = jEnv->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
+	auto jHeightPixels = jEnv->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
+	auto metricsXDPI = jEnv->GetFloatField(metrics, jXDPI);
+	auto metricsYDPI = jEnv->GetFloatField(metrics, jYDPI);
+	auto widthPixels = jEnv->GetIntField(metrics, jWidthPixels);
+	auto heightPixels = jEnv->GetIntField(metrics, jHeightPixels);
+	densityDPI = 160.*jEnv->GetFloatField(metrics, jScaledDensity);
+	assert(densityDPI);
+	logMsg("screen with size %dx%d, DPI size %fx%f, scaled density DPI %f",
+		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI);
 	#ifndef NDEBUG
 	{
 		auto jDensity = jEnv->GetFieldID(jDisplayMetricsCls, "density", "F");
 		auto jDensityDPI = jEnv->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
-		auto jWidthPixels = jEnv->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
-		auto jHeightPixels = jEnv->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
 		logMsg("display density %f, densityDPI %d, %dx%d pixels",
 			(double)jEnv->GetFloatField(metrics, jDensity), jEnv->GetIntField(metrics, jDensityDPI),
 			jEnv->GetIntField(metrics, jWidthPixels), jEnv->GetIntField(metrics, jHeightPixels));
 	}
 	#endif
-
-	auto metricsXDPI = jEnv->GetFloatField(metrics, jXDPI);
-	auto metricsYDPI = jEnv->GetFloatField(metrics, jYDPI);
-	densityDPI = 160.*jEnv->GetFloatField(metrics, jScaledDensity);
-	assert(densityDPI);
-	logMsg("set screen DPI size %f,%f, scaled density DPI %f", (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI);
 	// DPI values are un-rotated from DisplayMetrics
 	xDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
 	yDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
+	width_ = isStraightOrientation ? widthPixels : heightPixels;
+	height_ = isStraightOrientation ? heightPixels : widthPixels;
 }
 
 void Screen::deinit()
@@ -99,6 +103,16 @@ void Screen::deinit()
 	unpostFrame();
 	eEnv()->DeleteGlobalRef(aDisplay);
 	*this = {};
+}
+
+int Screen::width()
+{
+	return width_;
+}
+
+int Screen::height()
+{
+	return height_;
 }
 
 int AndroidScreen::aOrientation(JNIEnv *jEnv)

@@ -216,7 +216,7 @@ DragPointer *dragState(int p)
 	auto frameSize = self.frame.size;
 	updateWindowSizeAndContentRect(win, frameSize.width, frameSize.height, sharedApp);
 	#endif
-	win.postResize();
+	win.postDraw();
 	//logMsg("exiting layoutSubviews");
 }
 

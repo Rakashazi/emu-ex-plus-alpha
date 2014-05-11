@@ -25,62 +25,68 @@ import android.hardware.display.*;
 import android.graphics.*;
 import android.graphics.drawable.*;
 
-final class PresentationHelper extends Presentation implements SurfaceHolder.Callback2
+final class PresentationHelper extends Presentation
+	implements DialogInterface.OnDismissListener, SurfaceHolder.Callback2
 {
 	private static final String logTag = "Presentation";
-	private long windowAddr;
-	private View view;
+	private BaseActivity.BaseContentView contentView;
 	private native void onSurfaceCreated(long windowAddr, Surface surface);
-	private native void onSurfaceChanged(long windowAddr);
 	private native void onSurfaceRedrawNeeded(long windowAddr);
 	private native void onSurfaceDestroyed(long windowAddr);
 	
 	PresentationHelper(Activity context, Display display, long windowAddr)
 	{
 		super(context, display);
-		this.windowAddr = windowAddr;
-		view = new View(context);
-		/*GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
-        drawable.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-
-        // Set the background to a random gradient.
-        Point p = new Point();
-        getDisplay().getSize(p);
-        drawable.setGradientRadius(Math.max(p.x, p.y) / 2);
-        int[] colors = {0xFFFF0000, 0xFFCC0099};
-        drawable.setColors(colors);
-        view.setBackground(drawable);*/
+		setOnDismissListener(this);
+		contentView = new BaseActivity.BaseContentView(context, windowAddr);
 	}
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
-		Log.i(logTag, "onCreate");
+		//Log.i(logTag, "onCreate");
 		getWindow().takeSurface(this);
-        setContentView(view);
+		setContentView(contentView);
+	}
+	
+	// called by the native code if it deinits the window
+	public void deinit()
+	{
+		contentView.windowAddr = 0;
+		dismiss();
+	}
+	
+	@Override public void onDismiss(DialogInterface dialog)
+	{
+		//Log.i(logTag, "presentation dismissed");
+		if(contentView.windowAddr != 0)
+		{
+			// TODO: need to call native code and deinit the window
+		}
 	}
 	
 	public void surfaceCreated(SurfaceHolder holder)
 	{
-		Log.i(logTag, "surfaceCreated");
-		onSurfaceCreated(windowAddr, holder.getSurface());
+		//Log.i(logTag, "surfaceCreated");
+		if(contentView.windowAddr != 0)
+			onSurfaceCreated(contentView.windowAddr, holder.getSurface());
 	}
 	
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
 	{
-		Log.i(logTag, "surfaceChanged");
-		onSurfaceChanged(windowAddr);
+		//Log.i(logTag, "surfaceChanged");
 	}
 	
 	public void surfaceRedrawNeeded(SurfaceHolder holder)
 	{
-		Log.i(logTag, "surfaceRedrawNeeded");
-		onSurfaceRedrawNeeded(windowAddr);
+		//Log.i(logTag, "surfaceRedrawNeeded");
+		if(contentView.windowAddr != 0)
+			onSurfaceRedrawNeeded(contentView.windowAddr);
 	}
 	
 	public void surfaceDestroyed(SurfaceHolder holder)
 	{
-		Log.i(logTag, "surfaceDestroyed");
-		onSurfaceDestroyed(windowAddr);
+		//Log.i(logTag, "surfaceDestroyed");
+		if(contentView.windowAddr != 0)
+			onSurfaceDestroyed(contentView.windowAddr);
 	}
 }

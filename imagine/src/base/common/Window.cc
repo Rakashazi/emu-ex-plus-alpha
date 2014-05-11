@@ -37,7 +37,7 @@ Window *drawTargetWindow = nullptr;
 
 void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
 {
-	onSurfaceChange = del ? del : [](Window &, bool){};
+	onSurfaceChange = del ? del : [](Window &, SurfaceChange){};
 }
 
 void Window::setOnDraw(DrawDelegate del)
@@ -97,30 +97,18 @@ bool Window::needsDraw()
 	return drawPosted;
 }
 
-void Window::postResize(bool redraw)
+void Window::dispatchSurfaceChange()
 {
-	if(hasSurface())
-	{
-		logMsg("posted resize");
-		resizePosted = true;
-		if(redraw)
-			postDraw();
-	}
-}
-
-void Window::dispatchResize()
-{
-	bool wasResized = resizePosted;
-	resizePosted = false;
-	onSurfaceChange(*this, wasResized);
+	onSurfaceChange(*this, surfaceChange);
+	surfaceChange = {};
 }
 
 void Window::draw(FrameTimeBase frameTime)
 {
 	bool targetChanged = setAsDrawTarget();
-	if(unlikely(resizePosted) || targetChanged)
+	if(unlikely(surfaceChange.flags || targetChanged))
 	{
-		dispatchResize();
+		dispatchSurfaceChange();
 	}
 	setNeedsDraw(false);
 	Gfx::renderFrame(*this, frameTime);
@@ -147,6 +135,7 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 	#else
 	updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}));
 	#endif
+	surfaceChange.addSurfaceResized();
 	return true;
 }
 
@@ -256,7 +245,7 @@ uint Window::setOrientation(uint o, bool preferAnimated)
 			}
 		}
 		updateSize({savedRealWidth, savedRealHeight});
-		postResize();
+		postDraw();
 		setSystemOrientation(o);
 		#ifdef CONFIG_INPUT
 		Input::configureInputForOrientation(*this);

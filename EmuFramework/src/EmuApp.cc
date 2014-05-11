@@ -163,6 +163,39 @@ static Base::Screen::OnFrameDelegate animateViewport
 	}
 };
 
+void updateWindowViewport(AppWindowData &winData, bool surfaceResized)
+{
+	auto &viewport = winData.viewport;
+	auto &viewportDelta = winData.viewportDelta;
+	auto &win = winData.win;
+	auto oldViewport = viewport;
+	auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
+	auto newViewport = makeViewport(win);
+	if(newViewport != oldViewport && !surfaceResized && win.shouldAnimateContentBoundsChange())
+	{
+		//logMsg("viewport changed with same window size");
+		auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
+		int time = 10;
+		viewportDelta[0].set(oldViewport.bounds().x, newViewport.bounds().x, type, time);
+		viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
+		viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
+		viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
+		if(!win.screen().containsOnFrameDelegate(animateViewport))
+			win.screen().addOnFrameDelegate(animateViewport);
+		win.screen().postFrame();
+		animateViewportStep(winData);
+	}
+	else
+	{
+		win.screen().removeOnFrameDelegate(animateViewport);
+		viewport = newViewport;
+		if(oldViewportAR != newViewport.aspectRatio())
+		{
+			updateProjection(winData, newViewport, true);
+		}
+	}
+}
+
 void setEmuViewOnExtraWindow(bool on)
 {
 	if(on && !extraWin.win)
@@ -180,9 +213,9 @@ void setEmuViewOnExtraWindow(bool on)
 			});
 
 		extraWin.win.setOnSurfaceChange(
-			[](Base::Window &win, bool didResize)
+			[](Base::Window &win, Base::Window::SurfaceChange change)
 			{
-				if(didResize)
+				if(change.resized())
 				{
 					logMsg("view resize for extra window");
 					extraWin.viewport = makeViewport(win);
@@ -190,7 +223,8 @@ void setEmuViewOnExtraWindow(bool on)
 				}
 				Gfx::setViewport(extraWin.win, extraWin.viewport);
 				Gfx::setProjectionMatrix(extraWin.projectionMat);
-				emuView.place();
+				if(change.resized())
+					emuView.place();
 			});
 
 		extraWin.win.setOnDraw(
@@ -567,46 +601,15 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		});
 
 	mainWin.win.setOnSurfaceChange(
-		[](Base::Window &win, bool didResize)
+		[](Base::Window &win, Base::Window::SurfaceChange change)
 		{
-			auto &viewport = mainWin.viewport;
-			if(didResize)
+			if(change.resized())
 			{
-				logMsg("view resize");
-				auto &viewportDelta = mainWin.viewportDelta;
-				auto &lastWindowSize = mainWin.lastWindowSize;
-				auto oldViewport = viewport;
-				auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
-				auto newViewport = makeViewport(win);
-				if(newViewport != oldViewport && lastWindowSize == win.size() && win.shouldAnimateContentBoundsChange())
-				{
-					logMsg("viewport changed with same window size");
-					auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
-					int time = 10;
-					viewportDelta[0].set(oldViewport.bounds().x, newViewport.bounds().x, type, time);
-					viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
-					viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
-					viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
-					if(!win.screen().containsOnFrameDelegate(animateViewport))
-						win.screen().addOnFrameDelegate(animateViewport);
-					win.screen().postFrame();
-					animateViewportStep(mainWin);
-				}
-				else
-				{
-					win.screen().removeOnFrameDelegate(animateViewport);
-					viewport = newViewport;
-					if(oldViewportAR != newViewport.aspectRatio())
-					{
-						updateProjection(mainWin, newViewport, true);
-					}
-				}
-				lastWindowSize = win.size();
-				logMsg("done resize");
+				updateWindowViewport(mainWin, change.surfaceResized());
 			}
-			Gfx::setViewport(win, viewport);
+			Gfx::setViewport(win, mainWin.viewport);
 			Gfx::setProjectionMatrix(mainWin.projectionMat);
-			if(didResize)
+			if(change.resized())
 			{
 				placeElements(mainWin.viewport);
 			}
@@ -651,7 +654,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 
 void mainInitWindowCommon(Base::Window &win)
 {
-	mainWin.lastWindowSize = win.size();
 	mainWin.viewport = makeViewport(win);
 	updateProjection(mainWin, mainWin.viewport, true);
 
@@ -795,6 +797,7 @@ void handleOpenFileCommand(const char *filename)
 
 void placeElements(const Gfx::Viewport &viewport)
 {
+	logMsg("placing app elements");
 	GuiTable1D::setDefaultXIndent();
 	popup.place();
 	emuView.place();

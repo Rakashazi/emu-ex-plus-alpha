@@ -30,17 +30,9 @@
 namespace Base
 {
 
-static uint windowSizeChecks = 0;
-
-void onResume_(ANativeActivity* activity);
-void onPause(ANativeActivity* activity);
-void windowNeedsRedraw(Window &win, ANativeActivity* activity);
-void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus);
-void windowResized(Window &win, ANativeActivity* activity);
-void windowDestroyed(Window &win, ANativeActivity* activity);
 extern JavaInstMethod<jobject> jPresentation;
 static JavaInstMethod<void> jPresentationShow;
-static JavaInstMethod<void> jPresentationDismiss;
+static JavaInstMethod<void> jPresentationDeinit;
 
 Window *deviceWindow()
 {
@@ -67,12 +59,12 @@ void setupEGLConfig()
 
 static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 {
-	if(jPresentationDismiss)
+	if(jPresentationDeinit)
 		return; // already init
 	logMsg("Setting up Presentation JNI functions");
 	auto cls = jEnv->GetObjectClass(presentation);
 	jPresentationShow.setup(jEnv, cls, "show", "()V");
-	jPresentationDismiss.setup(jEnv, cls, "dismiss", "()V");
+	jPresentationDeinit.setup(jEnv, cls, "deinit", "()V");
 	JNINativeMethod method[] =
 	{
 		{
@@ -82,16 +74,7 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			{
 				auto nWin = ANativeWindow_fromSurface(env, surface);
 				auto &win = *((Window*)windowAddr);
-				finishWindowInit(win, baseActivity, nWin, false);
-			})
-		},
-		{
-			"onSurfaceChanged", "(J)V",
-			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jlong windowAddr))
-			([](JNIEnv* env, jobject thiz, jlong windowAddr)
-			{
-				auto &win = *((Window*)windowAddr);
-				windowResized(win, baseActivity);
+				androidWindowInitSurface(win, nWin);
 			})
 		},
 		{
@@ -100,7 +83,7 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				windowNeedsRedraw(win, baseActivity);
+				androidWindowNeedsRedraw(win);
 			})
 		},
 		{
@@ -109,12 +92,8 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				auto nWin = win.nWin;
-				windowDestroyed(win, baseActivity);
-				if(nWin)
-				{
-					ANativeWindow_release(nWin);
-				}
+				ANativeWindow_release(win.nWin);
+				androidWindowSurfaceDestroyed(win);
 			})
 		},
 	};
@@ -123,7 +102,7 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 
 bool Window::shouldAnimateContentBoundsChange() const
 {
-	return orientationEventTime && (TimeSys::now() - orientationEventTime > TimeSys::makeWithMSecs(500));
+	return true;
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -180,10 +159,7 @@ void Window::swapBuffers()
 	#ifndef NDEBUG
 	assert(eglCtx.verify());
 	#endif
-	//auto now = TimeSys::timeNow();
 	eglSwapBuffers(display, surface);
-	//auto after = TimeSys::timeNow();
-	//logMsg("swap time %f", double(after-now));
 }
 
 CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
@@ -191,7 +167,6 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	if(initialInit)
 		return OK;
 	initDelegates();
-	var_selfs(onInit);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -215,9 +190,14 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	#else
 	mainWin = this;
 	#endif
+	// default to screen's size
+	updateSize({screen().width(), screen().height()});
+	contentRect.x2 = width();
+	contentRect.y2 = height();
+	if(onInit)
+		onInit(*this);
 	return OK;
 }
-
 
 void Window::deinit()
 {
@@ -226,16 +206,16 @@ void Window::deinit()
 	{
 		return;
 	}
-	auto nWin_ = nWin;
-	windowDestroyed(*this, baseActivity);
-	if(nWin_)
-	{
-		ANativeWindow_release(nWin_);
-	}
 	if(jDialog)
 	{
+		logMsg("deinit presentation");
+		if(nWin)
+		{
+			ANativeWindow_release(nWin);
+		}
+		androidWindowSurfaceDestroyed(*this);
 		auto jEnv = eEnv();
-		jPresentationDismiss(jEnv, jDialog);
+		jPresentationDeinit(jEnv, jDialog);
 		jEnv->DeleteGlobalRef(jDialog);
 	}
 	window_.remove(this);
@@ -246,22 +226,6 @@ void Window::deinit()
 void Window::show()
 {
 	postDraw();
-}
-
-static void runPendingInit(Window &win, ANativeActivity* activity)
-{
-	if(!win.ranInit)
-	{
-		win.ranInit = true;
-		appState = APP_RUNNING;
-		if(win.onInit)
-			win.onInit(win);
-		// the following handlers should only ever be called after the initial window init
-		activity->callbacks->onResume = onResume_;
-		activity->callbacks->onPause = onPause;
-		handleIntent(activity);
-		orientationEventTime = TimeSys::now(); // init with the window creation time
-	}
 }
 
 IG::WindowRect Window::contentBounds() const
@@ -282,146 +246,83 @@ void Window::setSurfaceCurrent()
 
 bool Window::hasSurface()
 {
-	return isDrawable();
+	return nWin;
 }
 
-void AndroidWindow::initSurface(EGLDisplay display, EGLConfig config, ANativeWindow *win)
+void AndroidWindow::initEGLSurface(EGLDisplay display, EGLConfig config)
 {
 	assert(display != EGL_NO_DISPLAY);
 	assert(eglCtx.context != EGL_NO_CONTEXT);
-	assert(surface == EGL_NO_SURFACE);
-	logMsg("creating surface with native visual ID: %d for window with format: %d", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(win));
-	ANativeWindow_setBuffersGeometry(win, 0, 0, eglCtx.currentWindowFormat(display));
-	surface = eglCreateWindowSurface(display, config, win, 0);
-
-	//logMsg("window size: %d,%d, from EGL: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win), width(display), height(display));
-	//logMsg("window size: %d,%d", ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+	assert(nWin);
+	if(surface != EGL_NO_SURFACE)
+	{
+		return;
+	}
+	logMsg("creating EGL surface for native window %p", nWin);
+	surface = eglCreateWindowSurface(display, config, nWin, nullptr);
+	assert(surface != EGL_NO_SURFACE);
 }
 
-void finishWindowInit(Window &win, ANativeActivity* activity, ANativeWindow *nWin, bool hasFocus)
+void AndroidWindow::destroyEGLSurface(EGLDisplay display)
 {
-	if(Base::androidSDK() < 11)
+	if(surface == EGL_NO_SURFACE)
 	{
-		// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
-		// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
-		// Explicitly setting the format here seems to fix the problem (Android driver bug?).
-		// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
-		logMsg("setting window format to %d (current %d) after surface creation", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
-		jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
+		return;
 	}
+	if(drawTargetWindow == this)
+	{
+		eglCtx.makeCurrentSurfaceless(display);
+		drawTargetWindow = nullptr;
+	}
+	logMsg("destroying EGL surface for native window %p", nWin);
+	if(eglDestroySurface(display, surface) == EGL_FALSE)
+	{
+		bug_exit("couldn't destroy surface");
+	}
+	surface = EGL_NO_SURFACE;
+}
+
+void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
+{
 	win.nWin = nWin;
-	win.initSurface(display, eglCtx.config, nWin);
-	win.updateSize({ANativeWindow_getWidth(nWin), ANativeWindow_getHeight(nWin)});
-	if(!win.contentRect.x2) // check if contentRect hasn't been set yet
-	{
-		// assume it equals window size
-		win.contentRect.x2 = win.width();
-		win.contentRect.y2 = win.height();
-		logMsg("window created");
-	}
-	else
-	{
-		logMsg("window re-created");
-	}
+	#ifndef NDEBUG
+	logMsg("creating window with native visual ID: %d with format: %d", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
+	#endif
+	ANativeWindow_setBuffersGeometry(nWin, 0, 0, eglCtx.currentWindowFormat(display));
+	win.initEGLSurface(display, eglCtx.config);
 	win.setNeedsDraw(true);
 }
 
-static Base::Screen::OnFrameDelegate windowSizeCheck
+void androidWindowNeedsRedraw(Window &win)
 {
-	[](Screen &screen, FrameTimeBase)
-	{
-		auto &win = *deviceWindow();
-		if(win.updateSize({ANativeWindow_getWidth(win.nWin), ANativeWindow_getHeight(win.nWin)}))
-			win.postResize();
-		if(windowSizeChecks)
-		{
-			windowSizeChecks--;
-			logMsg("doing window size check & draw next frame (%d left), current size %d,%d", windowSizeChecks, win.width(), win.height());
-			screen.addOnFrameDelegate(windowSizeCheck);
-			win.postDraw();
-		}
-		else
-		{
-			logMsg("done with window size checks, current size %d,%d", win.width(), win.height());
-		}
-	}
-};
-
-// Post extra draws and re-check the window size to avoid incorrect display
-// if the window size is out of sync with the view (happens mostly on pre-3.0 OS versions).
-// For example, on a stock 2.3 Xperia Play,
-// putting the device to sleep in portrait, then sliding the gamepad open
-// may cause a view bounds change with swapped window width/height.
-// Previously this was also used to avoid issues on some devices
-// (ex. Archos Gamepad) if the window size changes from
-// an OS UI element (navigation or status bar), but shouldn't
-// be an issue since the window now uses a full screen layout
-void addOnFrameWindowSizeChecks(Screen &screen, uint extraChecks)
-{
-	windowSizeChecks += extraChecks;
-	if(!screen.containsOnFrameDelegate(windowSizeCheck))
-	{
-		screen.addOnFrameDelegate(windowSizeCheck);
-	}
-}
-
-void windowNeedsRedraw(Window &win, ANativeActivity* activity)
-{
-	logMsg("window needs redraw");
-	assert(win.isDrawable());
+	logMsg("window needs redraw event");
 	win.postDraw();
-	if(&win == deviceWindow())
-	{
-		addOnFrameWindowSizeChecks(win.screen(), 1);
-		runPendingInit(win, activity);
-	}
-	else
-	{
-		if(!win.ranInit)
-		{
-			win.ranInit = true;
-			if(win.onInit)
-				win.onInit(win);
-		}
-	}
 }
 
-void windowResized(Window &win, ANativeActivity* activity)
+void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize)
 {
-	logMsg("window resized, current size %d,%d", ANativeWindow_getWidth(win.nWin), ANativeWindow_getHeight(win.nWin));
-	assert(win.isDrawable());
+	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
+		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
+	win.contentRect = rect;
+	win.surfaceChange.addContentRectResized();
+	if(win.updateSize(winSize) && androidSDK() < 19)
+	{
+		// On some OS versions like CM7 on the HP Touchpad,
+		// the very next frame is rendered incorrectly
+		// (as if the window still has its previous size).
+		// Re-create the EGLSurface to make sure EGL sees
+		// the new size.
+		win.destroyEGLSurface(display);
+		win.initEGLSurface(display, eglCtx.config);
+	}
 	win.postDraw();
-	if(&win == deviceWindow())
-	{
-		addOnFrameWindowSizeChecks(win.screen(), 1);
-		runPendingInit(win, activity);
-	}
-	else
-	{
-		if(!win.ranInit)
-		{
-			win.ranInit = true;
-			if(win.onInit)
-				win.onInit(win);
-		}
-		win.postResize();
-	}
 }
 
-void contentRectChanged(ANativeActivity* activity, const ARect &rect, ANativeWindow *nWin)
+void androidWindowSurfaceDestroyed(Window &win)
 {
-	Window &win = *deviceWindow();
-	win.contentRect.x = rect.left; win.contentRect.y = rect.top;
-	win.contentRect.x2 = rect.right; win.contentRect.y2 = rect.bottom;
-	logMsg("content rect changed to %d:%d:%d:%d, last window size %d,%d",
-		rect.left, rect.top, rect.right, rect.bottom, win.width(), win.height());
-	if(!nWin)
-	{
-		logMsg("not posting resize due to uninitialized window");
-		return;
-	}
-	win.postResize();
-	addOnFrameWindowSizeChecks(win.screen(), 1);
+	win.unpostDraw();
+	win.destroyEGLSurface(display);
+	win.nWin = nullptr;
 }
 
 void Window::postDraw()
@@ -446,24 +347,6 @@ void restoreOpenGLContext()
 		eglCtx.makeCurrentSurfaceless(display);
 		drawTargetWindow = nullptr;
 	}
-}
-
-void windowDestroyed(Window &win, ANativeActivity* activity)
-{
-	win.screen().removeOnFrameDelegate(windowSizeCheck);
-	win.unpostDraw();
-	if(drawTargetWindow == &win)
-	{
-		eglCtx.makeCurrentSurfaceless(display);
-		drawTargetWindow = nullptr;
-	}
-	if(win.isDrawable())
-	{
-		logMsg("destroying window surface");
-		eglDestroySurface(display, win.surface);
-		win.surface = EGL_NO_SURFACE;
-	}
-	win.nWin = nullptr;
 }
 
 }

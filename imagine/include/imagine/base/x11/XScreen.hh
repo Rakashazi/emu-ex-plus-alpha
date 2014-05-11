@@ -29,7 +29,6 @@ class XScreen : public NotEquals<XScreen>
 public:
 	::Screen *xScreen = nullptr;
 	float xMM = 0, yMM = 0;
-	int x = 0, y = 0;
 	FrameTimeBase currFrameTime = 0;
 
 	constexpr XScreen() {}
