@@ -237,10 +237,10 @@ static void removeXInputDevice(int xDeviceId)
 		{
 			auto removedDev = *dev;
 			removeDevice(*dev);
-			delete dev;
 			xDevice.erase(e);
 			if(onDeviceChange)
 				onDeviceChange(removedDev, { Device::Change::REMOVED });
+			delete dev;
 			return;
 		}
 	}

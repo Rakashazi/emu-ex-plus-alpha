@@ -292,6 +292,9 @@ bool isMenuDismissKey(const Input::Event &e)
 		#ifdef CONFIG_INPUT_ICADE
 		case Event::MAP_ICADE: return e.button == ICade::G;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case Event::MAP_APPLE_GAME_CONTROLLER: return e.button == AppleGC::PAUSE;
+		#endif
 		#if defined CONFIG_BASE_PS3
 		case Event::MAP_PS3PAD:
 			return e.button == PS3::L2;
@@ -430,6 +433,11 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 			size = EmuControls::defaultICadeProfiles;
 			return EmuControls::defaultICadeProfile;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case Input::Event::MAP_APPLE_GAME_CONTROLLER:
+			size = EmuControls::defaultAppleGCProfiles;
+			return EmuControls::defaultAppleGCProfile;
+		#endif
 	}
 	return nullptr;
 }
@@ -511,6 +519,7 @@ const KeyConfig &InputDeviceConfig::keyConf()
 		//logMsg("has saved config %p", savedConf->keyConf_);
 		return *savedConf->keyConf;
 	}
+	assert(dev);
 	return KeyConfig::defaultConfigForDevice(*dev);
 }
 

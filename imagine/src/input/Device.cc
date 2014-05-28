@@ -601,6 +601,9 @@ const char *Device::keyName(Key b) const
 		#ifdef CONFIG_INPUT_EVDEV
 		case Input::Event::MAP_EVDEV: return evdevButtonName(b);
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case Input::Event::MAP_APPLE_GAME_CONTROLLER: return appleGCButtonName(b);
+		#endif
 	}
 	return "Unknown";
 }

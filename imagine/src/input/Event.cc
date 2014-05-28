@@ -38,6 +38,9 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		#ifdef CONFIG_INPUT_EVDEV
 		case MAP_EVDEV: return button == Input::Evdev::GAME_A || button == Input::Evdev::GAME_1;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::A;
+		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			switch(device->subtype())
@@ -84,6 +87,9 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
 		case MAP_EVDEV: return button == Input::Evdev::GAME_B || button == Input::Evdev::GAME_2;
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::B;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -132,6 +138,9 @@ bool Event::isDefaultLeftButton() const
 		case MAP_EVDEV:
 			return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG || button == Input::Evdev::JS_POV_XAXIS_NEG;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::LEFT;
+		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::LEFT
@@ -169,6 +178,9 @@ bool Event::isDefaultRightButton() const
 		#ifdef CONFIG_INPUT_EVDEV
 		case MAP_EVDEV:
 			return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS || button == Input::Evdev::JS_POV_XAXIS_POS;
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::RIGHT;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -208,6 +220,9 @@ bool Event::isDefaultUpButton() const
 		case MAP_EVDEV:
 			return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG || button == Input::Evdev::JS_POV_YAXIS_NEG;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::UP;
+		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::UP
@@ -246,6 +261,9 @@ bool Event::isDefaultDownButton() const
 		case MAP_EVDEV:
 			return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS|| button == Input::Evdev::JS_POV_YAXIS_POS;
 		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::DOWN;
+		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::DOWN
@@ -280,6 +298,9 @@ bool Event::isDefaultPageUpButton() const
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
 		case MAP_EVDEV: return button == Input::Evdev::GAME_L1;
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::L1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
@@ -318,6 +339,9 @@ bool Event::isDefaultPageDownButton() const
 		#endif
 		#ifdef CONFIG_INPUT_EVDEV
 		case MAP_EVDEV: return button == Input::Evdev::GAME_R1;
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::R1;
 		#endif
 		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:

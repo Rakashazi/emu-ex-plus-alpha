@@ -25,6 +25,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/time/sys.hh>
+#include <imagine/util/coreFoundation.h>
 #include "../common/basePrivate.hh"
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
@@ -33,10 +34,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Foundation/NSPathUtilities.h>
-
-#ifndef kCFCoreFoundationVersionNumber_iOS_7_0
-#define kCFCoreFoundationVersionNumber_iOS_7_0 847.20
-#endif
 
 namespace Base
 {

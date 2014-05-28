@@ -220,4 +220,64 @@ void setOnDeviceChange(DeviceChangeDelegate del)
 	onDeviceChange = del;
 }
 
+const char *Event::mapName(uint map)
+{
+	switch(map)
+	{
+		case MAP_NULL: return "Null";
+		case MAP_SYSTEM: return "Key Input";
+		case MAP_POINTER: return "Pointer";
+		case MAP_REL_POINTER: return "Relative Pointer";
+		#ifdef CONFIG_BLUETOOTH
+		case MAP_WIIMOTE: return "Wiimote";
+		case MAP_WII_CC: return "Classic / Wii U Pro Controller";
+		case MAP_ICONTROLPAD: return "iControlPad";
+		case MAP_ZEEMOTE: return "Zeemote JS1";
+		#endif
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return "PS3 Gamepad";
+		#endif
+		#ifdef CONFIG_INPUT_ICADE
+		case MAP_ICADE: return "iCade";
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return "Linux";
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return "Apple Game Controller";
+		#endif
+		default: return "Unknown";
+	}
+}
+
+uint Event::mapNumKeys(uint map)
+{
+	switch(map)
+	{
+		case MAP_NULL: return 0;
+		#ifdef INPUT_SUPPORTS_KEYBOARD
+		case MAP_SYSTEM: return Input::Keycode::COUNT;
+		#endif
+		#ifdef CONFIG_BLUETOOTH
+		case MAP_WIIMOTE: return Input::Wiimote::COUNT;
+		case MAP_WII_CC: return Input::WiiCC::COUNT;
+		case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
+		case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
+		#endif
+		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		case MAP_PS3PAD: return Input::PS3::COUNT;
+		#endif
+		#ifdef CONFIG_INPUT_ICADE
+		case MAP_ICADE: return Input::ICade::COUNT;
+		#endif
+		#ifdef CONFIG_INPUT_EVDEV
+		case MAP_EVDEV: return Input::Evdev::COUNT;
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case MAP_APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
+		#endif
+		default: bug_branch("%d", map); return 0;
+	}
+}
+
 }

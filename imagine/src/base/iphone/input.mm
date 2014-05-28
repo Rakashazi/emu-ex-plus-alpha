@@ -17,6 +17,7 @@
 #include <imagine/input/DragPointer.hh>
 #import "MainApp.hh"
 #include "../../input/private.hh"
+#include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
 namespace Input
@@ -196,6 +197,9 @@ CallResult init()
 {
 	#if defined CONFIG_INPUT_ICADE
 	addDevice(icadeDev);
+	#endif
+	#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+	initAppleGameControllers();
 	#endif
 	return OK;
 }

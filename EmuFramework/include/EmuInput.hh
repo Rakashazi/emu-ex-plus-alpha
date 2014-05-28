@@ -249,6 +249,8 @@ extern const KeyConfig defaultZeemoteProfile[];
 extern const uint defaultZeemoteProfiles;
 extern const KeyConfig defaultEvdevProfile[];
 extern const uint defaultEvdevProfiles;
+extern const KeyConfig defaultAppleGCProfile[];
+extern const uint defaultAppleGCProfiles;
 #if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER
 extern const KeyConfig defaultPS3Profile[];
 extern const uint defaultPS3Profiles;

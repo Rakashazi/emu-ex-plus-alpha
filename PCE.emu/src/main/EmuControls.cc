@@ -283,6 +283,35 @@ const uint defaultEvdevProfiles = sizeofArray(defaultEvdevProfile);
 
 #endif
 
+#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+
+const KeyConfig defaultAppleGCProfile[] =
+{
+	{
+		Input::Event::MAP_APPLE_GAME_CONTROLLER,
+		0,
+		"Default",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT,
+			Input::AppleGC::UP,
+			Input::AppleGC::RIGHT,
+			Input::AppleGC::DOWN,
+			Input::AppleGC::LEFT,
+			0, 0, 0, 0,
+			Input::AppleGC::RSTICK_LEFT,
+			Input::AppleGC::RSTICK_RIGHT,
+			Input::AppleGC::A,
+			Input::AppleGC::X,
+			Input::AppleGC::B,
+			Input::AppleGC::Y,
+		}
+	},
+};
+
+const uint defaultAppleGCProfiles = sizeofArray(defaultAppleGCProfile);
+
+#endif
+
 // Wiimote
 
 const KeyConfig defaultWiimoteProfile[] =

@@ -693,9 +693,9 @@ void devicesChanged(JNIEnv* jEnv)
 			auto removedDev = *dev;
 			Input::removeDevice(*dev);
 			it.erase();
-			delete dev;
 			if(onDeviceChange)
 				onDeviceChange(removedDev, { Device::Change::REMOVED });
+			delete dev;
 		}
 	}
 
@@ -797,10 +797,10 @@ CallResult init()
 										auto removedDev = *dev;
 										Input::removeDevice(*dev);
 										it.erase();
-										delete dev;
 										if(onDeviceChange)
 											onDeviceChange(removedDev, { Device::Change::REMOVED });
 										break;
+										delete dev;
 									}
 								}
 						}

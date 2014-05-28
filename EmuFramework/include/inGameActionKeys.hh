@@ -302,3 +302,25 @@ Input::Keycode::F11, \
 	Input::Keycode::Pandora::R, \
 	0, \
 	0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT \
+	0, \
+	Input::AppleGC::PAUSE, \
+	0, \
+	0, \
+	0, \
+	0, \
+	Input::AppleGC::R2, \
+	0, \
+	0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_MINIMAL_PROFILE_INIT \
+	0, \
+	Input::AppleGC::PAUSE, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0, \
+	0

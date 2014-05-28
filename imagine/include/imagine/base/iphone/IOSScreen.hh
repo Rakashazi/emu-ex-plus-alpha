@@ -20,6 +20,7 @@
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
 #endif
 
 namespace Base
