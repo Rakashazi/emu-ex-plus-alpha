@@ -120,7 +120,7 @@ void OptionView::frameSkipInit()
 	static const char *str[] =
 	{
 		"Auto", "0",
-		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_X11)
+		#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 		"1", "2", "3", "4"
 		#endif
 	};
@@ -128,7 +128,7 @@ void OptionView::frameSkipInit()
 	int val = int(optionFrameSkip);
 	if(optionFrameSkip.val == EmuSystem::optionFrameSkipAuto)
 		val = -1;
-	frameSkip.init(str, val, sizeofArray(str), baseVal);
+	frameSkip.init(str, val, Base::Screen::supportsFrameInterval() ? sizeofArray(str) : 2, baseVal);
 }
 
 void OptionView::audioRateInit()

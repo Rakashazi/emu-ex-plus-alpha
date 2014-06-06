@@ -12,6 +12,4 @@ extern StaticArrayList<Window*, 4> window_;
 extern Window *mainWin;
 #endif
 
-extern Window *drawTargetWindow;
-
 }

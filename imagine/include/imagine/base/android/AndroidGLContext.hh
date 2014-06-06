@@ -16,35 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/util/DelegateFunc.hh>
+#include <imagine/base/EGLContextBase.hh>
 
 namespace Base
 {
 
-#if defined __APPLE__
-using FrameTimeBase = double;
-
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+struct AndroidGLContext : public EGLContextBase
 {
-	return sec;
-}
+public:
+	constexpr AndroidGLContext() {}
+};
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return sec;
-}
-#else
-using FrameTimeBase = int64;
-
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
-{
-	return sec * (double)1000000000.;
-}
-
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return decimalFrameTimeBaseFromSec(sec);
-}
-#endif
+using GLContextImpl = AndroidGLContext;
 
 }

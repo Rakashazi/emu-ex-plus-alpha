@@ -87,11 +87,13 @@ public:
   {
   	return frameUpdate(frameTime, false);
   }
+	void setFrameInterval(uint interval);
+	static bool supportsFrameInterval();
 	static uint screens();
 	static Screen *screen(uint idx);
 
 	static void addScreen(Screen *s);
-	void swapsComplete();
+	void frameComplete();
 	void deinit();
 
 	// Called when a screen addition/removal/change occurs

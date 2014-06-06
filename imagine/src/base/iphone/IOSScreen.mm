@@ -78,11 +78,16 @@ void Screen::deinit()
 	*this = {};
 }
 
-void IOSScreen::setFrameInterval(uint interval)
+void Screen::setFrameInterval(uint interval)
 {
 	logMsg("setting frame interval %d", (int)interval);
 	assert(interval >= 1);
 	[displayLink() setFrameInterval:interval];
+}
+
+bool Screen::supportsFrameInterval()
+{
+	return true;
 }
 
 int Screen::width()
@@ -100,7 +105,7 @@ uint Screen::refreshRate()
 	return 60;
 }
 
-void Screen::swapsComplete() {}
+void Screen::frameComplete() {}
 
 void Screen::postFrame()
 {

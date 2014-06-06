@@ -23,6 +23,8 @@
 #import <QuartzCore/QuartzCore.h>
 #endif
 
+#define CONFIG_BASE_SCREEN_FRAME_INTERVAL
+
 namespace Base
 {
 
@@ -34,7 +36,6 @@ public:
 	bool displayLinkActive = false;
 
 	constexpr IOSScreen() {}
-	void setFrameInterval(uint interval);
 
 	bool operator ==(IOSScreen const &rhs) const
 	{

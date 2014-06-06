@@ -21,7 +21,7 @@
 #include <X11/X.h>
 #include <X11/Xutil.h>
 #ifdef CONFIG_BASE_X11_EGL
-#include <imagine/util/egl.hh>
+#include <EGL/egl.h>
 #else
 #include <imagine/base/x11/glxIncludes.h>
 #endif
@@ -39,6 +39,9 @@ public:
 	#ifdef CONFIG_BASE_X11_EGL
 	EGLSurface surface = EGL_NO_SURFACE;
 	#endif
+	#ifndef CONFIG_MACHINE_PANDORA
+	IG::Point2D<int> pos;
+	#endif
 
 	constexpr XWindow() {}
 
@@ -51,10 +54,22 @@ public:
 	{
 		return xWin != None;
 	}
+
+	void deinit();
 };
 
 void shutdownWindowSystem();
 
 using WindowImpl = XWindow;
+
+struct GLConfig
+{
+	#if !defined CONFIG_MACHINE_PANDORA
+	XVisualInfo *vi;
+	#endif
+	#ifdef CONFIG_BASE_X11_EGL
+	EGLConfig config;
+	#endif
+};
 
 }

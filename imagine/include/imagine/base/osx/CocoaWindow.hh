@@ -33,6 +33,8 @@ public:
 	{
 		return nsWin_;
 	}
+
+	void deinit();
 };
 
 using WindowImpl = CocoaWindow;

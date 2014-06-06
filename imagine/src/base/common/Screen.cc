@@ -75,19 +75,6 @@ bool Screen::frameIsPosted()
 	return framePosted;
 }
 
-static void checkBufferSwapTime(Window &win)
-{
-	// check if buffer swap blocks even though triple-buffering is used
-	auto beforeSwap = TimeSys::now();
-	win.swapBuffers();
-	auto afterSwap = TimeSys::now();
-	long long diffSwap = (afterSwap - beforeSwap).toNs();
-	if(diffSwap > 16000000)
-	{
-		logWarn("buffer swap took %lldns", diffSwap);
-	}
-}
-
 bool Screen::frameUpdate(FrameTimeBase frameTime, bool forceDraw)
 {
 	assert(frameTime);
@@ -108,18 +95,10 @@ bool Screen::frameUpdate(FrameTimeBase frameTime, bool forceDraw)
 		if(forceDraw || w.needsDraw())
 		{
 			w.draw(frameTime);
-			#if !defined NDEBUG && defined __ANDROID__
-			checkBufferSwapTime(w);
-			#else
-			w.swapBuffers();
-			#endif
 			didDraw = true;
 		}
 	}
-	if(didDraw)
-	{
-		swapsComplete();
-	}
+	frameComplete();
 	inFrameHandler = false;
 	//logMsg("%s", frameIsPosted() ? "drawing next frame" : "stopping at this frame");
 	return didDraw;

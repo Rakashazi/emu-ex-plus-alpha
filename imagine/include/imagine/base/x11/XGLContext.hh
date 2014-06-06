@@ -16,35 +16,49 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/util/DelegateFunc.hh>
+#include <imagine/base/x11/XWindow.hh>
+#ifdef CONFIG_BASE_X11_EGL
+#include <imagine/base/EGLContextBase.hh>
+#endif
 
 namespace Base
 {
 
-#if defined __APPLE__
-using FrameTimeBase = double;
+#ifdef CONFIG_BASE_X11_EGL
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+class XGLContext : public EGLContextBase
 {
-	return sec;
-}
+protected:
+	#if !defined CONFIG_MACHINE_PANDORA
+	XVisualInfo *vi = nullptr;
+	#endif
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return sec;
-}
+public:
+	constexpr XGLContext() {}
+};
+
 #else
-using FrameTimeBase = int64;
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
-{
-	return sec * (double)1000000000.;
-}
+class GLContext;
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
+class XGLContext
 {
-	return decimalFrameTimeBaseFromSec(sec);
-}
+protected:
+	Display *display = nullptr;
+	GLXContext context = nullptr;
+	GLXPbuffer dummyPbuff = (GLXPbuffer)0;
+	XVisualInfo *vi = nullptr;
+
+	static void setCurrentContext(XGLContext *context, Window *win);
+	void setCurrentDrawable(Window *win);
+	bool isRealCurrentContext();
+
+public:
+	constexpr XGLContext() {}
+};
+
 #endif
+
+using GLContextImpl = XGLContext;
 
 }

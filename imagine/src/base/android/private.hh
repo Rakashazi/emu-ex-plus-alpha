@@ -47,8 +47,6 @@ static const ushort MSG_BT_SOCKET_STATUS_DELEGATE = 151;
 
 #endif
 
-EGLDisplay getAndroidEGLDisplay();
-
 bool hasHardKeyboard();
 int hardKeyboardState();
 int keyboardType();

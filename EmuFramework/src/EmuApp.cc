@@ -142,7 +142,7 @@ static void animateViewportStep(AppWindowData &appWin)
 	auto v = Gfx::Viewport::makeFromWindow(win, {viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now()});
 	viewport = v;
 	updateProjection(appWin, v, true);
-	win.setAsDrawTarget();
+	Gfx::setCurrentWindow(&win);
 	Gfx::setViewport(win, v);
 	Gfx::setProjectionMatrix(appWin.projectionMat);
 }
@@ -171,7 +171,7 @@ void updateWindowViewport(AppWindowData &winData, bool surfaceResized)
 	auto oldViewport = viewport;
 	auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
 	auto newViewport = makeViewport(win);
-	if(newViewport != oldViewport && !surfaceResized && win.shouldAnimateContentBoundsChange())
+	if(newViewport != oldViewport && !surfaceResized)
 	{
 		//logMsg("viewport changed with same window size");
 		auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
@@ -201,20 +201,19 @@ void setEmuViewOnExtraWindow(bool on)
 	if(on && !extraWin.win)
 	{
 		logMsg("setting emu view on extra window");
-		extraWin.win.init({0, 0}, {0, 0},
-			[](Base::Window &win)
-			{
-				logMsg("init extra window");
-				emuView.videoWin = &win;
-				extraWin.viewport = makeViewport(win);
-				updateProjection(extraWin, extraWin.viewport, false);
-				win.setTitle("Test Window");
-				win.show();
-			});
+		auto winConf = Gfx::makeWindowConfig();
+		extraWin.win.init(winConf);
+		logMsg("init extra window");
+		emuView.videoWin = &extraWin.win;
+		extraWin.viewport = makeViewport(extraWin.win);
+		updateProjection(extraWin, extraWin.viewport, false);
+		extraWin.win.setTitle("Test Window");
+		extraWin.win.show();
 
 		extraWin.win.setOnSurfaceChange(
 			[](Base::Window &win, Base::Window::SurfaceChange change)
 			{
+				Gfx::setCurrentWindow(&win);
 				if(change.resized())
 				{
 					logMsg("view resize for extra window");
@@ -228,13 +227,19 @@ void setEmuViewOnExtraWindow(bool on)
 			});
 
 		extraWin.win.setOnDraw(
-			[](Base::Window &win, Base::FrameTimeBase frameTime)
+			[](Base::Window &win, Base::Window::DrawParams params)
 			{
+				if(Gfx::setCurrentWindow(&win))
+				{
+					Gfx::setViewport(extraWin.win, extraWin.viewport);
+					Gfx::setProjectionMatrix(extraWin.projectionMat);
+				}
 				Gfx::clear();
 				if(EmuSystem::isActive() || EmuSystem::isStarted())
 				{
-					emuView.draw(frameTime, win);
+					emuView.draw(params.frameTime(), win);
 				}
+				Gfx::presentWindow(win);
 			});
 
 		extraWin.win.setOnInputEvent(
@@ -243,13 +248,25 @@ void setEmuViewOnExtraWindow(bool on)
 				if(!e.isPointer())
 					handleInputEvent(win, e);
 			});
+
+		extraWin.win.setOnDismissRequest(
+			[](Base::Window &win)
+			{
+				win.dismiss();
+			});
+
+		extraWin.win.setOnDismiss(
+			[](Base::Window &win)
+			{
+				Gfx::setCurrentWindow(nullptr);
+				logMsg("setting emu view on main window");
+				emuView.videoWin = &mainWin.win;
+				emuView.place();
+			});
 	}
 	else if(!on && extraWin.win)
 	{
-		logMsg("setting emu view on main window");
-		extraWin.win.deinit();
-		emuView.videoWin = &mainWin.win;
-		emuView.place();
+		extraWin.win.dismiss();
 	}
 }
 
@@ -270,7 +287,7 @@ void startGameFromMenu()
 	Base::setIdleDisplayPowerSave(false);
 	applyOSNavStyle(true);
 	if(!optionFrameSkip.isConst && (uint)optionFrameSkip != EmuSystem::optionFrameSkipAuto)
-		emuView.videoWin->setPresentInterval(optionFrameSkip + 1);
+		emuView.videoWin->screen().setFrameInterval(optionFrameSkip + 1);
 	logMsg("running game");
 	menuViewIsActive = 0;
 	viewNav.setRightBtnActive(1);
@@ -304,7 +321,7 @@ void restoreMenuFromGame()
 	applyOSNavStyle(false);
 	EmuSystem::pause();
 	if(!optionFrameSkip.isConst)
-		Base::mainWindow().setPresentInterval(1);
+		Base::mainWindow().screen().setFrameInterval(1);
 	Base::mainWindow().setValidOrientations(optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
@@ -391,6 +408,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			{
 				EmuSystem::saveAutoState();
 				EmuSystem::saveBackupMem();
+				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
 				{
 					auto title = CONFIG_APP_NAME " was suspended";
@@ -477,14 +495,16 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	EmuSystem::initOptions();
 	parseCmdLineArgs(argc, argv);
 	loadConfigFile();
-	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	Base::Window::setPixelBestColorHint(optionBestColorModeHint);
-	#endif
 	EmuSystem::onOptionsLoaded();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 	Audio::init();
+
+	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
+	Gfx::init(optionBestColorModeHint ? 24 : 16);
+	#else
 	Gfx::init();
+	#endif
 
 	auto compiled = Gfx::texAlphaProgram.compile();
 	compiled |= Gfx::noTexProgram.compile();
@@ -563,22 +583,17 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
 	viewNav.setRightBtnActive(false);
 
+	auto winConf = Gfx::makeWindowConfig();
 	if(menuShownDel)
 	{
-		mainWin.win.init({0, 0}, {0, 0},
-			[&menuShownDel](Base::Window &win)
-			{
-				mainInitWindowCommon(win);
-				menuShownDel(win);
-			});
+		mainWin.win.init(winConf);
+		mainInitWindowCommon(mainWin.win);
+		menuShownDel(mainWin.win);
 	}
 	else
 	{
-		mainWin.win.init({0, 0}, {0, 0},
-			[](Base::Window &win)
-			{
-				mainInitWindowCommon(win);
-			});
+		mainWin.win.init(winConf);
+		mainInitWindowCommon(mainWin.win);
 	}
 
 	mainWin.win.setOnInputEvent(
@@ -603,6 +618,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	mainWin.win.setOnSurfaceChange(
 		[](Base::Window &win, Base::Window::SurfaceChange change)
 		{
+			Gfx::setCurrentWindow(&win);
 			if(change.resized())
 			{
 				updateWindowViewport(mainWin, change.surfaceResized());
@@ -616,34 +632,29 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		});
 
 	mainWin.win.setOnDraw(
-		[](Base::Window &win, Base::FrameTimeBase frameTime)
+		[](Base::Window &win, Base::Window::DrawParams params)
 		{
+			auto frameTime = params.frameTime();
+			if(Gfx::setCurrentWindow(&win))
+			{
+				Gfx::setViewport(win, mainWin.viewport);
+				Gfx::setProjectionMatrix(mainWin.projectionMat);
+			}
 			Gfx::clear();
 			emuView.draw(frameTime, win);
 			if(likely(EmuSystem::isActive()))
 			{
-				if(trackFPS)
-				{
-					if(frameCount == 119)
-					{
-						auto now = TimeSys::now();
-						float total = now - prevFrameTime;
-						prevFrameTime = now;
-						logMsg("%f fps", double(120./total));
-						frameCount = 0;
-					}
-					else
-						frameCount++;
-				}
+				Gfx::setClipRect(false);
+				Gfx::presentWindow(win);
 				return;
 			}
-
 			if(modalViewController.hasView())
 				modalViewController.draw(frameTime);
 			else if(menuViewIsActive)
 				viewStack.draw(frameTime);
 			popup.draw();
 			Gfx::setClipRect(false);
+			Gfx::presentWindow(win);
 		});
 
 	if(Base::Screen::screens() > 1)

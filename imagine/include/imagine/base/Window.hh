@@ -50,29 +50,6 @@ static constexpr bool BASE_MULTI_WINDOW = false;
 #include <imagine/base/iphone/IOSWindow.hh>
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/CocoaWindow.hh>
-#else
-namespace Base
-{
-
-class EmptyWindow
-{
-public:
-	void postDraw() {}
-
-	bool operator ==(EmptyWindow const &rhs) const
-	{
-		return true;
-	}
-
-	operator bool() const
-	{
-		return true;
-	}
-};
-
-using WindowImpl = EmptyWindow;
-
-}
 #endif
 
 namespace Base
@@ -119,6 +96,76 @@ static bool orientationIsSideways(uint rotateView)
 	return rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
 }
 
+class WindowConfig
+{
+private:
+	Point2D<int> pos{-1, -1};
+	Point2D<int> size_{0, 0};
+	Point2D<int> minSize{320, 240};
+	GLConfig glConfig_;
+
+public:
+	void setDefaultPosition()
+	{
+		pos = {-1, -1};
+	}
+
+	bool isDefaultPosition() const
+	{
+		return pos == Point2D<int>{-1, -1};
+	}
+
+	void setPosition(Point2D<int> pos)
+	{
+		var_selfs(pos);
+	}
+
+	Point2D<int> position() const
+	{
+		return pos;
+	}
+
+	void setDefaultSize()
+	{
+		size_ = {0, 0};
+	}
+
+	bool isDefaultSize() const
+	{
+		return !size_.x || !size_.y;
+	}
+
+	void setSize(Point2D<int> size_)
+	{
+		var_selfs(size_);
+	}
+
+	Point2D<int> size() const
+	{
+		return size_;
+	}
+
+	void setMinimumSize(Point2D<int> minSize)
+	{
+		var_selfs(minSize);
+	}
+
+	Point2D<int> minimumSize() const
+	{
+		return minSize;
+	}
+
+	void setGLConfig(GLConfig glConfig_)
+	{
+		var_selfs(glConfig_);
+	}
+
+	GLConfig glConfig() const
+	{
+		return glConfig_;
+	}
+};
+
 class Window : public WindowImpl
 {
 private:
@@ -150,11 +197,23 @@ public:
 		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
 	};
 
+	struct DrawParams
+	{
+		FrameTimeBase frameTime_ = 0;
+		bool wasResized_ = false;
+
+		constexpr DrawParams() {}
+		FrameTimeBase frameTime() const { return frameTime_; }
+		bool wasResized() const { return wasResized_; }
+	};
+
 	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
-	using DrawDelegate = DelegateFunc<void (Window &win, FrameTimeBase frameTime)>;
+	using DrawDelegate = DelegateFunc<void (Window &win, DrawParams params)>;
 	using InputEventDelegate = DelegateFunc<void (Window &win, const Input::Event &event)>;
 	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
+	using DismissRequestDelegate = DelegateFunc<void (Window &win)>;
+	using DismissDelegate = DelegateFunc<void (Window &win)>;
 
 	bool resizePosted = true; // all windows need an initial onViewChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
@@ -171,6 +230,8 @@ public:
 	InputEventDelegate onInputEvent;
 	FocusChangeDelegate onFocusChange;
 	DragDropDelegate onDragDrop;
+	DismissRequestDelegate onDismissRequest;
+	DismissDelegate onDismiss;
 
 	constexpr Window() {}
 
@@ -186,6 +247,13 @@ public:
 	// Called when a file is dropped into into the app's window
 	// if app enables setAcceptDnd()
 	void setOnDragDrop(DragDropDelegate del);
+	// Called when the user performs an action indicating to
+	// to the window manager they wish to dismiss the window
+	// (clicking the close button for example),
+	// by default it will exit the app
+	void setOnDismissRequest(DismissRequestDelegate del);
+	// Called when the window is dismissed
+	void setOnDismiss(DismissDelegate del);
 
 	int realWidth() const { return orientationIsSideways(rotateView) ? h : w; }
 	int realHeight() const { return orientationIsSideways(rotateView) ? w : h; }
@@ -251,21 +319,12 @@ public:
 
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
-	bool shouldAnimateContentBoundsChange() const;
 
 	uint setValidOrientations(uint oMask, bool preferAnimated);
 	uint setValidOrientations(uint oMask)
 	{
 		return setValidOrientations(oMask, true);
 	}
-
-	#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS
-	static void setPixelBestColorHint(bool best);
-	static bool pixelBestColorHintDefault();
-	#else
-	static void setPixelBestColorHint(bool best) {}
-	static bool pixelBestColorHintDefault() { return true; }
-	#endif
 
 	// drag & drop
 	#if defined CONFIG_BASE_X11
@@ -281,19 +340,16 @@ public:
 	static void setTitle(const char *name) {}
 	#endif
 
-	CallResult init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit);
-	void deinit();
+	CallResult init(const WindowConfig &config);
 	void show();
+	void dismiss();
 	void setNeedsDraw(bool needsDraw);
 	bool needsDraw();
 	void postDraw();
 	static void postNeededScreens();
 	void unpostDraw();
 	void draw(FrameTimeBase frameTime);
-	bool setAsDrawTarget();
-	void swapBuffers();
 	Screen &screen();
-	void setPresentInterval(int interval);
 
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
@@ -312,7 +368,6 @@ public:
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
-	void setSurfaceCurrent();
 	void initDelegates();
 	void dispatchSurfaceChange();
 };

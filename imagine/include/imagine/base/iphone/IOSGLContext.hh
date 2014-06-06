@@ -16,35 +16,31 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/util/DelegateFunc.hh>
+
+#ifdef __OBJC__
+#import <OpenGLES/EAGL.h>
+#endif
 
 namespace Base
 {
 
-#if defined __APPLE__
-using FrameTimeBase = double;
-
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+struct IOSGLContext
 {
-	return sec;
-}
+protected:
+	void *context_ = nullptr; // EAGLContext in ObjC
+	GLConfig config;
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return sec;
-}
-#else
-using FrameTimeBase = int64;
+	static void setCurrentContext(IOSGLContext *context, Window *win);
+	void setCurrentDrawable(Window *win);
+	bool isRealCurrentContext();
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
-{
-	return sec * (double)1000000000.;
-}
+public:
+	constexpr IOSGLContext() {}
+	#ifdef __OBJC__
+	EAGLContext *context() { return (__bridge EAGLContext*)context_; }
+	#endif
+};
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return decimalFrameTimeBaseFromSec(sec);
-}
-#endif
+using GLContextImpl = IOSGLContext;
 
 }

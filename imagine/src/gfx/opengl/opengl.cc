@@ -20,19 +20,16 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/util/number.h>
-
-uint gfx_frameTime = 0, gfx_frameTimeRel = 0;
-
 #include "GLStateCache.hh"
 #include <imagine/util/Interpolator.hh>
 #include "utils.h"
 #include "geometry.hh"
 #include "texture.hh"
-#include "commit.hh"
 
 namespace Gfx
 {
 
+Base::GLContext gfxContext;
 GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
 
@@ -253,7 +250,7 @@ void setClipRect(bool on)
 
 void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 {
-	logMsg("scissor before transform %d,%d size %d,%d", x, y, w, h);
+	//logMsg("scissor before transform %d,%d size %d,%d", x, y, w, h);
 	// translate from view to window coordinates
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	using namespace Base;
@@ -286,7 +283,7 @@ void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 	//x += win.viewport.rect.x;
 	y = win.height() - (y + h /*+ win.viewport.rect.y*/);
 	#endif
-	logMsg("setting Scissor %d,%d size %d,%d", x, y, w, h);
+	//logMsg("setting Scissor %d,%d size %d,%d", x, y, w, h);
 	glScissor(x, y, w, h);
 }
 
@@ -334,6 +331,24 @@ void autoReleaseShaderCompiler()
 			}, 1);
 	}
 	#endif
+}
+
+void clear()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+}
+
+bool setCurrentWindow(Base::Window *win)
+{
+	return gfxContext.setCurrent(&gfxContext, win);
+}
+
+void presentWindow(Base::Window &win)
+{
+	#ifdef __ANDROID__
+	if(unlikely(glSyncHackEnabled)) glFinish();
+	#endif
+	gfxContext.present(win);
 }
 
 }

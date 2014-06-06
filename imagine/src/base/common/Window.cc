@@ -33,8 +33,6 @@ StaticArrayList<Window*, 4> window_;
 Window *mainWin = nullptr;
 #endif
 
-Window *drawTargetWindow = nullptr;
-
 void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
 {
 	onSurfaceChange = del ? del : [](Window &, SurfaceChange){};
@@ -42,7 +40,7 @@ void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
 
 void Window::setOnDraw(DrawDelegate del)
 {
-	onDraw = del ? del : [](Window &, FrameTimeBase){};
+	onDraw = del ? del : [](Window &, DrawParams){};
 }
 
 void Window::setOnFocusChange(FocusChangeDelegate del)
@@ -60,6 +58,16 @@ void Window::setOnInputEvent(InputEventDelegate del)
 	onInputEvent = del ? del : [](Window &, const Input::Event &){};
 }
 
+void Window::setOnDismissRequest(DismissRequestDelegate del)
+{
+	onDismissRequest = del ? del : [](Window &win){ Base::exit(); };
+}
+
+void Window::setOnDismiss(DismissDelegate del)
+{
+	onDismiss = del ? del : [](Window &win){};
+}
+
 void Window::initDelegates()
 {
 	setOnSurfaceChange({});
@@ -67,6 +75,8 @@ void Window::initDelegates()
 	setOnFocusChange({});
 	setOnDragDrop({});
 	setOnInputEvent({});
+	setOnDismissRequest({});
+	setOnDismiss({});
 }
 
 Window &mainWindow()
@@ -105,13 +115,15 @@ void Window::dispatchSurfaceChange()
 
 void Window::draw(FrameTimeBase frameTime)
 {
-	bool targetChanged = setAsDrawTarget();
-	if(unlikely(surfaceChange.flags || targetChanged))
+	DrawParams params;
+	params.frameTime_ = frameTime;
+	if(unlikely(surfaceChange.flags))
 	{
 		dispatchSurfaceChange();
+		params.wasResized_ = true;
 	}
 	setNeedsDraw(false);
-	Gfx::renderFrame(*this, frameTime);
+	onDraw(*this, params);
 }
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)
@@ -257,17 +269,6 @@ uint Window::setOrientation(uint o, bool preferAnimated)
 }
 #endif
 
-bool Window::setAsDrawTarget()
-{
-	if(drawTargetWindow != this)
-	{
-		setSurfaceCurrent();
-		drawTargetWindow = this;
-		return true;
-	}
-	return false;
-}
-
 void Window::postNeededScreens()
 {
 	iterateTimes(windows(), i)
@@ -297,6 +298,18 @@ Window *Window::window(uint idx)
 	return window_[idx];
 	#else
 	return mainWin;
+	#endif
+}
+
+void Window::dismiss()
+{
+	onDismiss(*this);
+	deinit();
+	*this = {};
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	window_.remove(this);
+	#else
+	mainWin = nullptr;
 	#endif
 }
 

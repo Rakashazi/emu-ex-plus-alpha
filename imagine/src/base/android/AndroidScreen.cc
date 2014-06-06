@@ -15,6 +15,7 @@
 
 #include <unistd.h>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Base.hh>
 #include "androidBase.hh"
 #include "private.hh"
 #include "ASurface.hh"
@@ -134,7 +135,7 @@ uint Screen::refreshRate()
 	return refreshRate_;
 }
 
-void Screen::swapsComplete()
+void Screen::frameComplete()
 {
 	if(!hasChoreographer && frameIsPosted())
 	{
@@ -197,6 +198,18 @@ void Screen::unpostFrame()
 			}
 		}
 	}
+}
+
+void Screen::setFrameInterval(uint interval)
+{
+	// TODO
+	//logMsg("setting frame interval %d", (int)interval);
+	assert(interval >= 1);
+}
+
+bool Screen::supportsFrameInterval()
+{
+	return false;
 }
 
 }

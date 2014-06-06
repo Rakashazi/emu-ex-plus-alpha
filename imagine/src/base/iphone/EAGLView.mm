@@ -22,6 +22,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../common/windowPrivate.hh"
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragPointer.hh>
+#include <imagine/base/GLContext.hh>
 #include "ios.hh"
 
 static const int USE_DEPTH_BUFFER = 0;
@@ -201,15 +202,16 @@ DragPointer *dragState(int p)
 	logMsg("in layoutSubviews");
 	[super layoutSubviews];
 	using namespace Base;
-	[self bindDrawable]; // rebind to update internal height/width
+	auto &win = *Base::windowForUIWindow(self.window);
+	assert(GLContext::current());
+	if(GLContext::drawable() == &win)
+	{
+		GLContext::setDrawable(nullptr);
+	}
+	GLContext::setDrawable(&win); // rebind to update internal height/width
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
 	#endif
-	auto &win = *Base::windowForUIWindow(self.window);
-	if(drawTargetWindow == &win)
-	{
-		drawTargetWindow = nullptr;
-	}
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	updateWindowSizeAndContentRect(win, [self drawableWidth], [self drawableHeight], sharedApp);
 	#else

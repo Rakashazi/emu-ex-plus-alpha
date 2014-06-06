@@ -44,10 +44,10 @@ ifneq ($(SUBENV), pandora)
 endif
 
 ifeq ($(x11GLWinSystem), glx)
- SRC += base/x11/GLXContextHelper.cc
+ SRC += base/x11/XGLContextGLX.cc
 else
  include $(IMAGINE_PATH)/make/package/egl.mk
- SRC += base/x11/EGLContextHelper.cc
+ SRC += base/x11/XGLContextEGL.cc base/common/EGLContextBase.cc
  configDefs += CONFIG_BASE_X11_EGL
 endif
 

@@ -135,15 +135,12 @@ bool framePostedEvent = false;
 // window
 jobject frameHelper = nullptr;
 bool hasChoreographer = false;
-EGLContextHelper eglCtx;
-EGLDisplay display = EGL_NO_DISPLAY;
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
 JavaInstMethod<void> jPostFrame, jUnpostFrame;
 JavaInstMethod<jobject> jPresentation;
 int onFrameEventFd = -1;
 uint onFrameEventIdle = 0;
-void setupEGLConfig();
 
 static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
 {
@@ -151,11 +148,7 @@ static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
 	{
 		// an Android UI element like EditText may make its
 		// own context current so make sure setAsDrawTarget restores ours
-		if(!eglCtx.verify())
-		{
-			logMsg("context not current, setting no draw target window");
-			drawTargetWindow = nullptr;
-		}
+		restoreOpenGLContext();
 		if(androidUIInUse)
 		{
 			// do callback each frame until UI use stops
@@ -195,8 +188,7 @@ void exit(int returnVal)
 	// TODO: return exit value as activity result
 	logMsg("exiting process");
 	appState = APP_EXITING;
-	if(onExit)
-		onExit(false);
+	dispatchOnExit(false);
 	auto env = eEnv();
 	jRemoveNotification(env, jBaseActivity);
 	::exit(returnVal);
@@ -410,12 +402,6 @@ bool packageIsInstalled(const char *name)
 	return jPackageIsInstalled(jEnv, jBaseActivity, jEnv->NewStringUTF(name));
 }
 
-EGLDisplay getAndroidEGLDisplay()
-{
-	assert(display != EGL_NO_DISPLAY);
-	return display;
-}
-
 jobject newFontRenderer(JNIEnv *jEnv)
 {
 	return jNewFontRenderer(jEnv, jBaseActivity);
@@ -447,8 +433,10 @@ static void appFocus(bool hasFocus)
 		// re-apply UI visibility flags
 		jSetUIVisibility(eEnv(), jBaseActivity, uiVisibilityFlags);
 	}
-	if(deviceWindow() && deviceWindow()->onFocusChange)
-		deviceWindow()->onFocusChange(*deviceWindow(), hasFocus);
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->onFocusChange(*Window::window(i), hasFocus);
+	}
 }
 
 static void configChange(JNIEnv* jEnv, AConfiguration* config, ANativeWindow* window)
@@ -478,8 +466,7 @@ static void appPaused()
 		appState = APP_PAUSED;
 	logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
 	Screen::unpostAll();
-	if(onExit)
-		onExit(appState == APP_PAUSED);
+	dispatchOnExit(appState == APP_PAUSED);
 	#ifdef CONFIG_AUDIO
 	Audio::updateFocusOnPause();
 	#endif
@@ -491,7 +478,7 @@ static void appPaused()
 
 void handleIntent(ANativeActivity* activity)
 {
-	if(!onInterProcessMessage)
+	if(!onInterProcessMessage())
 		return;
 	// check for view intents
 	auto jEnv = activity->env;
@@ -500,7 +487,7 @@ void handleIntent(ANativeActivity* activity)
 	{
 		const char *intentDataPathStr = jEnv->GetStringUTFChars(intentDataPathJStr, nullptr);
 		logMsg("got intent with path: %s", intentDataPathStr);
-		onInterProcessMessage(intentDataPathStr);
+		dispatchOnInterProcessMessage(intentDataPathStr);
 		jEnv->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
 		jEnv->DeleteLocalRef(intentDataPathJStr);
 	}
@@ -511,8 +498,7 @@ void doOnResume(ANativeActivity* activity)
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	Input::onResumeMOGA(eEnv(), true);
 	#endif
-	if(onResume)
-		onResume(aHasFocus);
+	dispatchOnResume(aHasFocus);
 	handleIntent(activity);
 }
 
@@ -525,26 +511,6 @@ static void appResumed(ANativeActivity* activity)
 	Window::postNeededScreens();
 	logMsg("app resumed");
 	doOnResume(activity);
-}
-
-static void initEGL()
-{
-	display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	assert(display != EGL_NO_DISPLAY);
-	eglInitialize(display, 0, 0);
-	#ifndef NDEBUG
-	logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
-	#endif
-	//printEGLConfs(display);
-	//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
-	//printEGLConfsWithAttr(display, eglAttrWinRGB888);
-	//printEGLConfsWithAttr(display, eglAttrWinLowColor);
-}
-
-void initGLContext()
-{
-	setupEGLConfig();
-	eglCtx.init(display);
 }
 
 static void activityInit(ANativeActivity* activity)
@@ -760,23 +726,6 @@ static void activityInit(ANativeActivity* activity)
 		jEnv->DeleteLocalRef(jPDisplay);
 	}
 	#endif
-
-	if(!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11)
-	{
-		// TODO: need to re-test with OpenGL ES 2.0 backend
-		/*if(FsSys::fileExists("/system/lib/egl/libEGL_adreno200.so"))
-		{
-			// Hack for Adreno chips that have display artifacts when using 32-bit color.
-			logMsg("device may have broken 32-bit surfaces, defaulting to low color");
-			eglCtx.useMaxColorBits = 0;
-			eglCtx.has32BppColorBugs = 1;
-		}
-		else*/
-		{
-			logMsg("defaulting to highest color mode");
-			eglCtx.useMaxColorBits = 1;
-		}
-	}
 
 	//jSetKeepScreenOn.setup(jEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
 	jSetWinFlags.setup(jEnv, jBaseActivityCls, "setWinFlags", "(II)V");
@@ -1186,8 +1135,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onLowMemory =
 		[](ANativeActivity* activity)
 		{
-			if(onFreeCaches)
-				onFreeCaches();
+			dispatchOnFreeCaches();
 		};
 	activity->callbacks->onWindowFocusChanged =
 		[](ANativeActivity* activity, int focused)
@@ -1203,17 +1151,18 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 				// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
 				// Explicitly setting the format here seems to fix the problem (Android driver bug?).
 				// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
-				logMsg("setting window format to %d (current %d) after surface creation", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
-				jSetWinFormat(activity->env, activity->clazz, eglCtx.currentWindowFormat(display));
+				#ifndef NDEBUG
+				logMsg("setting window format to %d (current %d) after surface creation", deviceWindow()->pixelFormat, ANativeWindow_getFormat(nWin));
+				#endif
+				jSetWinFormat(activity->env, activity->clazz, deviceWindow()->pixelFormat);
 			}
 			androidWindowInitSurface(*deviceWindow(), nWin);
 		};
 	activity->callbacks->onNativeWindowDestroyed =
 		[](ANativeActivity* activity, ANativeWindow* window)
 		{
+			deviceWindow()->unpostDraw();
 			androidWindowSurfaceDestroyed(*deviceWindow());
-			if(onFreeCaches)
-				onFreeCaches();
 		};
 	//activity->callbacks->onNativeWindowResized = onNativeWindowResized;
 	activity->callbacks->onNativeWindowRedrawNeeded =
@@ -1276,7 +1225,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	aConfig = AConfiguration_new();
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
 	initConfig(aConfig);
-	initEGL();
 	doOrAbort(onInit(0, nullptr));
 	if(!Window::windows())
 	{

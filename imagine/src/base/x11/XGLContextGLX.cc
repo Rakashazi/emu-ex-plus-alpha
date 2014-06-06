@@ -13,53 +13,50 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "GLContextHelper.hh"
-#include "x11.hh"
+#include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
+#include "x11.hh"
 
 // TODO: remove GLX implementation once there is sufficient driver support from desktop GPU vendors for EGL
 
 namespace Base
 {
 
-static GLXPbuffer dummyPbuff = (GLXPbuffer)0;
-
-static const int rgbDouble[] =
+struct GLXFBConfigWrapper
 {
-	GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT|GLX_PBUFFER_BIT,
-	GLX_DOUBLEBUFFER, True,
-	GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1,
-	//GLX_DEPTH_SIZE, 16,
-	None
+	GLXFBConfig config;
+	bool isValid = false;
 };
 
-static const int rgbDoubleMultisample[] =
-{
-	GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT|GLX_PBUFFER_BIT,
-	GLX_DOUBLEBUFFER, True,
-	GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1,
-	//GLX_DEPTH_SIZE, 16,
-	GLX_SAMPLE_BUFFERS, 1,
-	GLX_SAMPLES, 4,
-	None
-};
+using GLXAttrList = StaticArrayList<int, 24>;
 
-// low-color visual
-static const int rgbLowDouble[] =
+static GLXAttrList glConfigAttrsToGLXAttrs(const GLConfigAttributes &attr)
 {
-	GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT|GLX_PBUFFER_BIT,
-	GLX_DOUBLEBUFFER, True,
-	None
-};
+	GLXAttrList list;
 
-static const int rgbLowDoubleMultisample[] =
-{
-	GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT|GLX_PBUFFER_BIT,
-	GLX_DOUBLEBUFFER, True,
-	GLX_SAMPLE_BUFFERS, 1,
-	GLX_SAMPLES, 4,
-	None
-};
+	list.push_back(GLX_DRAWABLE_TYPE);
+	list.push_back(GLX_WINDOW_BIT|GLX_PBUFFER_BIT);
+
+	list.push_back(GLX_DOUBLEBUFFER);
+	list.push_back(True);
+
+	if(attr.preferredColorBits() > 16)
+	{
+		list.push_back(GLX_RED_SIZE);
+		list.push_back(1);
+		list.push_back(GLX_GREEN_SIZE);
+		list.push_back(1);
+		list.push_back(GLX_BLUE_SIZE);
+		list.push_back(1);
+	}
+	else
+	{
+		logMsg("requesting lowest color config");
+	}
+
+	list.push_back(None);
+	return list;
+}
 
 static const char* glxConfigCaveatToStr(int cav)
 {
@@ -90,17 +87,6 @@ static void printGLXVisual(Display *display, XVisualInfo *config)
 			sampleBuff);
 }
 
-GLContextHelper::operator bool() const
-{
-	return ctx;
-}
-
-struct GLXFBConfigWrapper
-{
-	GLXFBConfig config;
-	bool isValid = false;
-};
-
 static GLXFBConfigWrapper chooseFBConfig(Display *dpy, int screen, const int *config)
 {
 	int count;
@@ -119,6 +105,7 @@ static GLXFBConfigWrapper chooseFBConfig(Display *dpy, int screen, const int *co
 static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFBConfig config, bool &supportsSurfaceless)
 {
 	supportsSurfaceless = false;
+	PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 	if(version >= 3)
 	{
 		{
@@ -197,37 +184,34 @@ static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFB
 	return (GLXContext)0;
 }
 
-CallResult GLContextHelper::init(Display *dpy, Screen &screen, bool multisample, uint version)
+CallResult GLContext::init(const GLConfigAttributes &attr)
 {
-	assert(!ctx);
-	if(!useMaxColorBits)
+	assert(!context);
+	display = dpy;
+	int screenIdx = indexOfScreen(mainScreen());
+	GLXFBConfigWrapper fbc;
 	{
-		logMsg("requesting lowest color config");
+		// TODO: check if useMaxColorBits configs actually pick lowest color mode
+		auto glxAttr = glConfigAttrsToGLXAttrs(attr);
+		fbc = chooseFBConfig(display, screenIdx, &glxAttr[0]);
 	}
-
-	// TODO: check if useMaxColorBits configs actually pick lowest color mode
-	const int *config = useMaxColorBits ? (multisample ? rgbDoubleMultisample : rgbDouble)
-		: (multisample ? rgbLowDoubleMultisample : rgbLowDouble);
-
-	int screenIdx = indexOfScreen(screen);
-	GLXFBConfigWrapper fbc = chooseFBConfig(dpy, screenIdx, config);
 	if(!fbc.isValid)
 	{
 		return INVALID_PARAMETER;
 	}
-	vi = glXGetVisualFromFBConfig(dpy, fbc.config);
+	vi = glXGetVisualFromFBConfig(display, fbc.config);
 	if(!vi)
 	{
 		logErr("failed to get matching visual for fbconfig");
 		return INVALID_PARAMETER;
 	}
 	#ifndef NDEBUG
-	printGLXVisual(dpy, vi);
+	printGLXVisual(display, vi);
 	#endif
 
 	bool supportsSurfaceless;
-	ctx = createContextForMajorVersion(version, dpy, fbc.config, supportsSurfaceless);
-	if(!ctx)
+	context = createContextForMajorVersion(attr.majorVersion(), display, fbc.config, supportsSurfaceless);
+	if(!context)
 	{
 		logErr("can't find a compatible context");
 		return INVALID_PARAMETER;
@@ -235,126 +219,106 @@ CallResult GLContextHelper::init(Display *dpy, Screen &screen, bool multisample,
 	supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly
 	if(!supportsSurfaceless)
 	{
-		const int attrib[] = { GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None };
-		dummyPbuff = glXCreatePbuffer(dpy, fbc.config, attrib);
+		const int attrib[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
+		dummyPbuff = glXCreatePbuffer(display, fbc.config, attrib);
 		if(!dummyPbuff)
 		{
 			bug_exit("couldn't make dummy pbuffer");
 		}
 	}
-	makeCurrentSurfaceless(dpy);
+	setCurrent(this, nullptr);
 
 	#ifndef NDEBUG
 	int glxMajorVersion, glxMinorVersion;
-	glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
-	logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, ctx) ? "yes" : "no");
-	if(!glXIsDirect(dpy, ctx))
+	glXQueryVersion(display, &glxMajorVersion, &glxMinorVersion);
+	logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(display, context) ? "yes" : "no");
+	if(!glXIsDirect(display, context))
 		bug_exit("direct rendering not supported, check your X configuration");
 	#endif
 
-	auto extensions = glXQueryExtensionsString(dpy, screenIdx);
-	if(strstr(extensions, "GLX_SGI_swap_control"))
+	return OK;
+}
+
+GLConfig GLContext::bufferConfig()
+{
+	return GLConfig{vi};
+}
+
+void XGLContext::setCurrentContext(XGLContext *c, Window *win)
+{
+	if(!c)
 	{
-		glXSwapIntervalSGI = (int (*)(int))glXGetProcAddress((const GLubyte*) "glXSwapIntervalSGI");
-		if(glXSwapIntervalSGI)
+		logMsg("setting no context current");
+		if(glXMakeContextCurrent(dpy, None, None, nullptr))
 		{
-			logMsg("has glXSwapIntervalSGI");
+			bug_exit("error setting no context current");
 		}
 	}
-	else if(strstr(extensions, "GLX_MESA_swap_control"))
+	if(win)
 	{
-		glXSwapIntervalMESA = (int (*)(unsigned int))glXGetProcAddress((const GLubyte*) "glXSwapIntervalMESA");
-		if(glXSwapIntervalMESA)
+		if(!glXMakeContextCurrent(c->display, win->xWin, win->xWin, c->context))
 		{
-			logMsg("has glXSwapIntervalMESA");
+			bug_exit("error setting window 0x%p current", win);
 		}
 	}
 	else
 	{
-		logWarn("no glXSwapInterval support");
-	}
-
-	return OK;
-}
-
-void GLContextHelper::makeCurrent(Display *dpy, const XWindow &win)
-{
-	assert(ctx);
-	if(!glXMakeContextCurrent(dpy, win.xWin, win.xWin, ctx))
-	{
-		bug_exit("error setting window 0x%p current", &win);
-	}
-}
-
-void GLContextHelper::makeCurrentSurfaceless(Display *dpy)
-{
-	assert(ctx);
-	// TODO: with nvidia (tested on 337.12) glXMakeContextCurrent fails with badmatch
-	// even if using a 3.0 context
-	/*if(!dummyPbuff)
-	{
-		logMsg("setting no drawable current");
-		if(!glXMakeContextCurrent(dpy, None, None, ctx))
+		// TODO: with nvidia (tested on 337.12) glXMakeContextCurrent fails with badmatch
+		// even if using a 3.0 context
+		/*if(!c->dummyPbuff)
 		{
-			bug_exit("error setting no drawable current");
+			logMsg("setting no drawable current");
+			if(!glXMakeContextCurrent(c->display, None, None, c->context))
+			{
+				bug_exit("error setting no drawable current");
+			}
 		}
-	}
-	else*/
-	{
-		logMsg("setting dummy pbuffer current");
-		if(!glXMakeContextCurrent(dpy, dummyPbuff, dummyPbuff, ctx))
+		else*/
 		{
-			bug_exit("error setting dummy pbuffer current");
+			logMsg("setting dummy pbuffer current");
+			if(!glXMakeContextCurrent(c->display, c->dummyPbuff, c->dummyPbuff, c->context))
+			{
+				bug_exit("error setting dummy pbuffer current");
+			}
 		}
 	}
 }
 
-void GLContextHelper::swap(Display *dpy, const XWindow &win)
+void XGLContext::setCurrentDrawable(Window *win)
 {
-	glXSwapBuffers(dpy, win.xWin);
+	setCurrentContext(this, win);
 }
 
-CallResult GLContextHelper::initWindowSurface(XWindow &win)
+bool XGLContext::isRealCurrentContext()
 {
-	// nothing to do
-	return OK;
+	return glXGetCurrentContext() == context;
 }
 
-void GLContextHelper::deinitWindowSurface(XWindow &win)
+void GLContext::present(Window &win)
 {
-	// nothing to do
+	glXSwapBuffers(display, win.xWin);
 }
 
-void GLContextHelper::setSwapInterval(uint interval)
+GLContext::operator bool() const
 {
-	if(glXSwapIntervalSGI || glXSwapIntervalMESA)
-		logMsg("set swap interval %d", interval);
+	return context;
+}
 
-	if(glXSwapIntervalSGI)
+void GLContext::deinit()
+{
+	if(context)
 	{
-		glXSwapIntervalSGI(interval);
-	}
-	else if(glXSwapIntervalMESA)
-	{
-		glXSwapIntervalMESA(interval);
-	}
-}
-
-void GLContextHelper::deinit(Display *dpy)
-{
-	if(!glXMakeContextCurrent(dpy, None, None, nullptr))
-	{
-		logWarn("could not release drawing context");
+		if(!glXMakeContextCurrent(display, None, None, nullptr))
+		{
+			logWarn("could not release drawing context");
+		}
+		glXDestroyContext(display, context);
+		context = nullptr;
 	}
 	if(vi)
 	{
 		XFree(vi);
 		vi = nullptr;
-	}
-	if(ctx)
-	{
-		glXDestroyContext(dpy, ctx);
-		ctx = nullptr;
 	}
 }
 

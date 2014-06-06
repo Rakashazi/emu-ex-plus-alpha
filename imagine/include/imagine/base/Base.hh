@@ -124,16 +124,24 @@ using ExitDelegate = DelegateFunc<void (bool backgrounded)>;
 
 // Called when another process sends the app a message
 void setOnInterProcessMessage(InterProcessMessageDelegate del);
+void dispatchOnInterProcessMessage(const char *filename);
+const InterProcessMessageDelegate &onInterProcessMessage();
 
 // Called when app returns from backgrounded state
 void setOnResume(ResumeDelegate del);
+void dispatchOnResume(bool focused);
+const ResumeDelegate &onResume();
 
 // Called when OS needs app to free any cached data
 void setOnFreeCaches(FreeCachesDelegate del);
+void dispatchOnFreeCaches();
+const FreeCachesDelegate &onFreeCaches();
 
 // Called when app will finish execution
 // If backgrounded == true, app may eventually resume execution
 void setOnExit(ExitDelegate del);
+void dispatchOnExit(bool backgrounded);
+const ExitDelegate &onExit();
 
 // Called on app startup
 [[gnu::cold]] CallResult onInit(int argc, char** argv);

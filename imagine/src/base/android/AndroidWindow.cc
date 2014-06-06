@@ -16,7 +16,7 @@
 #define LOGTAG "AndroidWindow"
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
-#include <imagine/base/Timer.hh>
+#include <imagine/base/GLContext.hh>
 #include <imagine/base/android/sdk.hh>
 #include "private.hh"
 #include "ASurface.hh"
@@ -39,22 +39,24 @@ Window *deviceWindow()
 	return Window::window(0);
 }
 
-void setupEGLConfig()
+static int winFormatFromEGLConfig(EGLDisplay display, EGLConfig config)
 {
-	assert(!eglCtx.isInit()); // should only call before initial window is created
-	eglCtx.chooseConfig(display);
-	#ifndef NDEBUG
-	printEGLConf(display, eglCtx.config);
-	logMsg("config value: %p", eglCtx.config);
-	#endif
-	auto env = eEnv();
-	if(Base::androidSDK() < 11)
+	EGLint nId;
+	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nId);
+	if(!nId)
 	{
-		// In testing with CM7 on a Droid, not setting window format to match
-		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
-		logMsg("setting window format to %d (current %d)", eglCtx.currentWindowFormat(display), jWinFormat(env, jBaseActivity));
-		jSetWinFormat(env, jBaseActivity, eglCtx.currentWindowFormat(display));
+		nId = WINDOW_FORMAT_RGBA_8888;
+		EGLint alphaSize;
+		eglGetConfigAttrib(display, config, EGL_ALPHA_SIZE, &alphaSize);
+		if(!alphaSize)
+			nId = WINDOW_FORMAT_RGBX_8888;
+		EGLint redSize;
+		eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
+		if(redSize < 8)
+			nId = WINDOW_FORMAT_RGB_565;
+		//logWarn("config didn't provide a native format id, guessing %d", nId);
 	}
+	return nId;
 }
 
 static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
@@ -92,17 +94,13 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
+				win.unpostDraw();
 				ANativeWindow_release(win.nWin);
 				androidWindowSurfaceDestroyed(win);
 			})
 		},
 	};
 	jEnv->RegisterNatives(cls, method, sizeofArray(method));
-}
-
-bool Window::shouldAnimateContentBoundsChange() const
-{
-	return true;
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -138,31 +136,12 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 	return 1;
 }
 
-void Window::setPixelBestColorHint(bool best)
+uint GLConfigAttributes::defaultColorBits()
 {
-	assert(!eglCtx.isInit()); // should only call before initial window is created
-	eglCtx.useMaxColorBits = best;
+	return (!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11) ? 24 : 16;
 }
 
-bool Window::pixelBestColorHintDefault()
-{
-	return Base::androidSDK() >= 11 /*&& !eglCtx.has32BppColorBugs*/;
-}
-
-void Window::setPresentInterval(int interval)
-{
-	// TODO
-}
-
-void Window::swapBuffers()
-{
-	#ifndef NDEBUG
-	assert(eglCtx.verify());
-	#endif
-	eglSwapBuffers(display, surface);
-}
-
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
+CallResult Window::init(const WindowConfig &config)
 {
 	if(initialInit)
 		return OK;
@@ -190,22 +169,29 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	#else
 	mainWin = this;
 	#endif
+	eglConfig = config.glConfig();
+	pixelFormat = winFormatFromEGLConfig(GLContext::eglDisplay(), config.glConfig());
+	if(Base::androidSDK() < 11 && this == deviceWindow())
+	{
+		// In testing with CM7 on a Droid, not setting window format to match
+		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
+		auto jEnv = eEnv();
+		#ifndef NDEBUG
+		logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(jEnv, jBaseActivity));
+		#endif
+		jSetWinFormat(jEnv, jBaseActivity, pixelFormat);
+	}
 	// default to screen's size
 	updateSize({screen().width(), screen().height()});
 	contentRect.x2 = width();
 	contentRect.y2 = height();
-	if(onInit)
-		onInit(*this);
 	return OK;
 }
 
-void Window::deinit()
+void AndroidWindow::deinit()
 {
+	assert(this != deviceWindow());
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(!initialInit || this == deviceWindow())
-	{
-		return;
-	}
 	if(jDialog)
 	{
 		logMsg("deinit presentation");
@@ -218,8 +204,6 @@ void Window::deinit()
 		jPresentationDeinit(jEnv, jDialog);
 		jEnv->DeleteGlobalRef(jDialog);
 	}
-	window_.remove(this);
-	*this = {};
 	#endif
 }
 
@@ -233,33 +217,21 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-void Window::setSurfaceCurrent()
-{
-	assert(eglCtx.context != EGL_NO_CONTEXT);
-	assert(surface != EGL_NO_SURFACE);
-	//logMsg("setting window 0x%p surface current", nWin);
-	if(eglMakeCurrent(display, surface, surface, eglCtx.context) == EGL_FALSE)
-	{
-		bug_exit("unable to set window 0x%p surface current", nWin);
-	}
-}
-
 bool Window::hasSurface()
 {
 	return nWin;
 }
 
-void AndroidWindow::initEGLSurface(EGLDisplay display, EGLConfig config)
+void AndroidWindow::initEGLSurface(EGLDisplay display)
 {
 	assert(display != EGL_NO_DISPLAY);
-	assert(eglCtx.context != EGL_NO_CONTEXT);
 	assert(nWin);
 	if(surface != EGL_NO_SURFACE)
 	{
 		return;
 	}
 	logMsg("creating EGL surface for native window %p", nWin);
-	surface = eglCreateWindowSurface(display, config, nWin, nullptr);
+	surface = eglCreateWindowSurface(display, eglConfig, nWin, nullptr);
 	assert(surface != EGL_NO_SURFACE);
 }
 
@@ -268,11 +240,6 @@ void AndroidWindow::destroyEGLSurface(EGLDisplay display)
 	if(surface == EGL_NO_SURFACE)
 	{
 		return;
-	}
-	if(drawTargetWindow == this)
-	{
-		eglCtx.makeCurrentSurfaceless(display);
-		drawTargetWindow = nullptr;
 	}
 	logMsg("destroying EGL surface for native window %p", nWin);
 	if(eglDestroySurface(display, surface) == EGL_FALSE)
@@ -286,10 +253,10 @@ void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
 {
 	win.nWin = nWin;
 	#ifndef NDEBUG
-	logMsg("creating window with native visual ID: %d with format: %d", eglCtx.currentWindowFormat(display), ANativeWindow_getFormat(nWin));
+	logMsg("creating window with native visual ID: %d with format: %d", win.pixelFormat, ANativeWindow_getFormat(nWin));
 	#endif
-	ANativeWindow_setBuffersGeometry(nWin, 0, 0, eglCtx.currentWindowFormat(display));
-	win.initEGLSurface(display, eglCtx.config);
+	ANativeWindow_setBuffersGeometry(nWin, 0, 0, win.pixelFormat);
+	win.initEGLSurface(GLContext::eglDisplay());
 	win.setNeedsDraw(true);
 }
 
@@ -312,16 +279,19 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 		// (as if the window still has its previous size).
 		// Re-create the EGLSurface to make sure EGL sees
 		// the new size.
-		win.destroyEGLSurface(display);
-		win.initEGLSurface(display, eglCtx.config);
+		if(GLContext::drawable() == &win)
+			GLContext::setDrawable(nullptr);
+		win.destroyEGLSurface(GLContext::eglDisplay());
+		win.initEGLSurface(GLContext::eglDisplay());
 	}
 	win.postDraw();
 }
 
-void androidWindowSurfaceDestroyed(Window &win)
+void androidWindowSurfaceDestroyed(AndroidWindow &win)
 {
-	win.unpostDraw();
-	win.destroyEGLSurface(display);
+	if(GLContext::drawable() == &win)
+		GLContext::setDrawable(nullptr);
+	win.destroyEGLSurface(GLContext::eglDisplay());
 	win.nWin = nullptr;
 }
 
@@ -341,11 +311,9 @@ void Window::unpostDraw()
 
 void restoreOpenGLContext()
 {
-	if(!eglCtx.verify())
+	if(GLContext::current() && !GLContext::current()->validateCurrent())
 	{
-		logMsg("context not current, setting now");
-		eglCtx.makeCurrentSurfaceless(display);
-		drawTargetWindow = nullptr;
+		logMsg("current context was restored");
 	}
 }
 

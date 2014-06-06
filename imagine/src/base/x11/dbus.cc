@@ -77,8 +77,7 @@ static DBusHandlerResult dbusSignalHandler(DBusConnection *connection, DBusMessa
 			logMsg("signal openPath: %s", path);
 			if(path)
 			{
-				if(Base::onInterProcessMessage)
-					Base::onInterProcessMessage(path);
+				Base::dispatchOnInterProcessMessage(path);
 			}
     }
 		else

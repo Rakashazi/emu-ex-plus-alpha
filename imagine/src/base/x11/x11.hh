@@ -33,7 +33,6 @@
 namespace Base
 {
 	extern Display *dpy;
-
 	Window *windowForXWindow(::Window xWin);
 	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);

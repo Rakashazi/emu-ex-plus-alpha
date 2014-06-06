@@ -18,7 +18,6 @@
 #include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
 #include "x11.hh"
-#include "GLContextHelper.hh"
 
 namespace Base
 {
@@ -73,7 +72,7 @@ void Screen::setRefreshRate(uint rate)
 	}
 }
 
-void Screen::swapsComplete()
+void Screen::frameComplete()
 {
 	// update the frame time after a blocking double-buffered swap
 	if(frameIsPosted())
@@ -90,6 +89,18 @@ void Screen::unpostFrame()
 {
 	framePosted = false;
 	currFrameTime = 0;
+}
+
+void Screen::setFrameInterval(uint interval)
+{
+	// TODO
+	//logMsg("setting frame interval %d", (int)interval);
+	assert(interval >= 1);
+}
+
+bool Screen::supportsFrameInterval()
+{
+	return false;
 }
 
 int indexOfScreen(Screen &screen)

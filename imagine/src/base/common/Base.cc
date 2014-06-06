@@ -29,10 +29,10 @@ namespace Base
 
 const char copyright[] = "Imagine is Copyright 2010-2014 Robert Broglia";
 
-InterProcessMessageDelegate onInterProcessMessage;
-ResumeDelegate onResume;
-FreeCachesDelegate onFreeCaches;
-ExitDelegate onExit;
+static InterProcessMessageDelegate onInterProcessMessage_;
+static ResumeDelegate onResume_;
+static FreeCachesDelegate onFreeCaches_;
+static ExitDelegate onExit_;
 
 void engineInit()
 {
@@ -73,22 +73,66 @@ void sleepMs(int ms)
 
 void setOnInterProcessMessage(InterProcessMessageDelegate del)
 {
-	onInterProcessMessage = del;
+	onInterProcessMessage_ = del;
 }
 
 void setOnResume(ResumeDelegate del)
 {
-	onResume = del;
+	onResume_ = del;
 }
 
 void setOnFreeCaches(FreeCachesDelegate del)
 {
-	onFreeCaches = del;
+	onFreeCaches_ = del;
 }
 
 void setOnExit(ExitDelegate del)
 {
-	onExit = del;
+	onExit_ = del;
+}
+
+void dispatchOnInterProcessMessage(const char *filename)
+{
+	if(onInterProcessMessage_)
+		onInterProcessMessage_(filename);
+}
+
+void dispatchOnResume(bool focused)
+{
+	if(onResume_)
+		onResume_(focused);
+}
+
+void dispatchOnFreeCaches()
+{
+	if(onFreeCaches_)
+		onFreeCaches_();
+}
+
+void dispatchOnExit(bool backgrounded)
+{
+	if(onExit_)
+		onExit_(backgrounded);
+}
+
+const InterProcessMessageDelegate &onInterProcessMessage()
+{
+	return onInterProcessMessage_;
+}
+
+const ResumeDelegate &onResume()
+{
+	return onResume_;
+}
+
+const FreeCachesDelegate &onFreeCaches()
+{
+	return onFreeCaches_;
+}
+
+const ExitDelegate &onExit()
+{
+	return onExit_;
 }
 
 }

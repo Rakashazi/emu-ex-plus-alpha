@@ -12,9 +12,7 @@ namespace Base
 	extern UIApplication *sharedApp;
 	extern MainApp *mainApp;
 	extern BOOL displayLinkActive;
-	extern EAGLContext *mainContext;
 	extern CADisplayLink *displayLink;
-	extern bool useMaxColorBits;
 	extern bool isIPad;
 	Window *windowForUIWindow(UIWindow *uiWin);
 	Window *deviceWindow();

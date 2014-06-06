@@ -30,7 +30,13 @@ namespace Gfx
 {
 
 // init & control
+[[gnu::cold]] CallResult init(uint colorBits);
 [[gnu::cold]] CallResult init();
+uint defaultColorBits();
+Base::WindowConfig makeWindowConfig();
+void setWindowConfig(Base::WindowConfig &config);
+bool setCurrentWindow(Base::Window *win);
+void presentWindow(Base::Window &win);
 void setViewport(const Base::Window &win, const Viewport &v);
 void setProjectionMatrix(const Mat4 &mat);
 void setProjectionMatrixRotation(Angle angle);

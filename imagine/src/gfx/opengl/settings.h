@@ -30,7 +30,7 @@ TextureSizeSupport textureSizeSupport =
 	0, 0 // maxXSize, maxYSize
 };
 
-uint maxOpenGLMajorVersionSupport()
+static uint maxOpenGLMajorVersionSupport()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -86,22 +86,6 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect 
 	v.relYFlipViewport = {v.realBounds().x, win.realHeight() - v.realBounds().y2, v.realWidth(), v.realHeight()};
 	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
 	return v;
-}
-
-static void vsyncEnable()
-{
-	#ifdef CONFIG_BASE_WIN32
-	#define WGL_VSYNC_ON_INTERVAL 1
-	if(wglewIsSupported("WGL_EXT_swap_control"))
-	{
-		wglSwapIntervalEXT(WGL_VSYNC_ON_INTERVAL);
-		logMsg("vsync enabled via WGL_EXT_swap_control");
-	}
-	else
-	{
-		logWarn("WGL_EXT_swap_control is not supported");
-	}
-	#endif
 }
 
 #if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE

@@ -1,10 +1,22 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <assert.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
-#include <assert.h>
-
 #include <imagine/util/time/sys.hh>
-static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameTime;
-
 #include "private.hh"
 #include "settings.h"
 #include "utils.h"
@@ -14,12 +26,6 @@ static TimeSys startFrameTime;//, halfFrameTime;//, oneFrameTime, firstOneFrameT
 #endif
 
 //#include "geometry-test.h"
-
-namespace Base
-{
-	void *glProcAddress(const char *funcName);
-	void initGLContext();
-}
 
 namespace Gfx
 {
@@ -279,7 +285,7 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length, const GLchar *message, const GLvoid *userParam)
 #else
 static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei length, const GLchar *message, void *userParam)
+	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 #endif
 {
 	logErr("Debug Info: %s", message);
@@ -287,8 +293,20 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 
 CallResult init()
 {
+	return init(defaultColorBits());
+}
+
+CallResult init(uint colorBits)
+{
 	logMsg("running init");
-	Base::initGLContext();
+	Base::GLConfigAttributes glAttr;
+	glAttr.setPreferredColorBits(colorBits);
+	glAttr.setMajorVersion(Gfx::maxOpenGLMajorVersionSupport());
+	#if defined CONFIG_GFX_OPENGL_ES
+	glAttr.setOpenGLESAPI(true);
+	#endif
+	gfxContext.init(glAttr);
+	Base::GLContext::setCurrent(&gfxContext, nullptr);
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");
@@ -300,7 +318,7 @@ CallResult init()
 	glEnable(GL_DEBUG_OUTPUT);
 	#endif
 	#if defined CONFIG_GFX_OPENGL_ES && defined CONFIG_BASE_X11 & !defined CONFIG_MACHINE_PANDORA && !defined NDEBUG
-	auto glDebugMessageCallback = (void (*)(GLDEBUGPROCKHR callback, const void *userParam))Base::glProcAddress("glDebugMessageCallbackKHR");
+	auto glDebugMessageCallback = (void (*)(GLDEBUGPROCKHR callback, const void *userParam))GLContext::procAddress("glDebugMessageCallbackKHR");
 	if(glDebugMessageCallback)
 	{
 		logMsg("using KHR_debug");
@@ -454,37 +472,11 @@ CallResult init()
 	assert(textureSizeSupport.maxXSize > 0 && textureSizeSupport.maxYSize > 0);
 	logMsg("max texture size is %d", texSize);
 
-	vsyncEnable();
-
-	/*#ifdef CONFIG_GFX_OPENGL_ES
-	if(strstr(extensions, "GL_EXT_discard_framebuffer") != NULL)
-	{
-		discardFrameBuffer = 1;
-		logMsg("framebuffer discarding supported");
-	}
-	#endif*/
-
 	#if defined __ANDROID__
 	//checkForDrawTexture(extensions, rendererName);
 	setupAndroidOGLExtensions(extensions, rendererName);
 	#endif
 
-	/*#ifdef CONFIG_GFX_OPENGL_GLX
-	if(GLXEW_SGI_video_sync)
-	{
-		useSGIVidSync = 1;
-		glXGetVideoSyncSGI(&gfx_frameTime);
-	}
-	else
-	#endif
-	{
-		//logMsg("no video sync counter, using system time");
-		startFrameTime.setTimeNow();
-		//halfFrameTime.setUSecs(16000/2);
-		//oneFrameTime.setUSecs(16666);
-		//firstOneFrameTime.setUSecs(19500);
-		//gfx_frameClockTime = 0;
-	}*/
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 		glcEnableClientState(GL_VERTEX_ARRAY);
@@ -498,6 +490,23 @@ CallResult init()
 	}
 	#endif
 	return OK;
+}
+
+uint defaultColorBits()
+{
+	return Base::GLConfigAttributes::defaultColorBits();
+}
+
+Base::WindowConfig makeWindowConfig()
+{
+	Base::WindowConfig config;
+	setWindowConfig(config);
+	return config;
+}
+
+void setWindowConfig(Base::WindowConfig &config)
+{
+	config.setGLConfig(gfxContext.bufferConfig());
 }
 
 #ifdef CONFIG_BASE_ANDROID

@@ -26,15 +26,11 @@ using namespace Base;
 namespace Input
 {
 
-static DragPointer dragStateArr[Input::maxCursors];
-static Cursor blankCursor = (Cursor)0;
-static Cursor normalCursor = (Cursor)0;
-uint numCursors = 0;
-bool translateKeycodes = false;
-static int xI2opcode = 0;
-static int xPointerMapping[Input::maxCursors];
-static XkbDescPtr coreKeyboardDesc = nullptr;
-static Device *vkbDevice = nullptr;
+struct XIEventMaskData
+{
+	XIEventMask eventMask;
+	uchar maskBits[XIMaskLen(XI_LASTEVENT)] {0};
+};
 
 struct XInputDevice : public Device
 {
@@ -70,6 +66,16 @@ struct XInputDevice : public Device
 };
 
 static StaticArrayList<XInputDevice*, 16> xDevice;
+static DragPointer dragStateArr[Input::maxCursors];
+static Cursor blankCursor = (Cursor)0;
+static Cursor normalCursor = (Cursor)0;
+uint numCursors = 0;
+bool translateKeycodes = false;
+static int xI2opcode = 0;
+static int xPointerMapping[Input::maxCursors];
+static XkbDescPtr coreKeyboardDesc = nullptr;
+static Device *vkbDevice = nullptr;
+
 
 static const Device *deviceForInputId(int osId)
 {
@@ -95,6 +101,22 @@ void setKeyRepeat(bool on)
 	setAllowKeyRepeats(on);
 }
 
+static void setXIEventMaskData(XIEventMaskData &data)
+{
+	data.eventMask.deviceid = XIAllMasterDevices;
+	data.eventMask.mask_len = sizeof(data.maskBits); // always in bytes
+	data.eventMask.mask = data.maskBits;
+	XISetMask(data.maskBits, XI_ButtonPress);
+	XISetMask(data.maskBits, XI_ButtonRelease);
+	XISetMask(data.maskBits, XI_Motion);
+	XISetMask(data.maskBits, XI_FocusIn);
+	XISetMask(data.maskBits, XI_Enter);
+	XISetMask(data.maskBits, XI_FocusOut);
+	XISetMask(data.maskBits, XI_Leave);
+	XISetMask(data.maskBits, XI_KeyPress);
+	XISetMask(data.maskBits, XI_KeyRelease);
+}
+
 void initPerWindowData(::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
@@ -118,6 +140,10 @@ void initPerWindowData(::Window win)
 			normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
 		}
 	}
+
+	XIEventMaskData xiMask;
+	setXIEventMaskData(xiMask);
+	XISelectEvents(dpy, win, &xiMask.eventMask, 1);
 }
 
 void hideCursor(::Window win)
@@ -322,7 +348,7 @@ static void updatePointer(Base::Window &win, uint key, int p, uint action, int x
 bool handleXI2GenericEvent(XEvent &event)
 {
 	assert(event.type == GenericEvent);
-	if(event.xcookie.extension != Input::xI2opcode)
+	if(event.xcookie.extension != xI2opcode)
 	{
 		return false;
 	}

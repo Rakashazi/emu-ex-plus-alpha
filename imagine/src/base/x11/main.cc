@@ -20,7 +20,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
-#include <imagine/gfx/Gfx.hh>
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
 #include <imagine/util/strings.h>
@@ -33,7 +32,6 @@
 #include "xdnd.hh"
 #include "xlibutils.h"
 #include "dbus.hh"
-#include "GLContextHelper.hh"
 #include <algorithm>
 
 #ifdef CONFIG_FS
@@ -53,7 +51,6 @@ namespace Base
 const char *appPath = nullptr;
 int fbdev = -1;
 Display *dpy;
-extern GLContextHelper glCtx;
 extern void runMainEventLoop();
 extern void initMainEventLoop();
 
@@ -115,8 +112,7 @@ void toggleFullScreen(::Window xWin)
 
 void exit(int returnVal)
 {
-	if(onExit)
-		onExit(false);
+	dispatchOnExit(false);
 	cleanup();
 	::exit(returnVal);
 }
@@ -192,9 +188,15 @@ static int eventHandler(XEvent &event)
 			//logDMsg("got client msg %s", clientMsgName);
 			if(string_equal(clientMsgName, "WM_PROTOCOLS"))
 			{
-				logMsg("exiting via window manager");
-				XFree(clientMsgName);
-				exit(0);
+				if((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", True))
+				{
+					//logMsg("got window manager delete window message");
+					win.onDismissRequest(win);
+				}
+				else
+				{
+					logMsg("unknown WM_PROTOCOLS message");
+				}
 			}
 			else if(Config::Base::XDND && dndInit)
 			{
@@ -282,11 +284,6 @@ void initXScreens()
 			break;
 	}
 	#endif
-}
-
-void initGLContext()
-{
-	doOrAbort(glCtx.init(dpy, mainScreen(), false, Gfx::maxOpenGLMajorVersionSupport()));
 }
 
 }

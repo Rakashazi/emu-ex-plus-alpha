@@ -22,6 +22,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../common/windowPrivate.hh"
 #include "private.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/base/GLContext.hh>
 #include <imagine/gfx/Gfx.hh>
 #include "ios.hh"
 
@@ -36,7 +37,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace Base
 {
 
-bool useMaxColorBits = Config::BASE_IOS_GLKIT;
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
 static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
@@ -94,27 +94,9 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 }
 #endif
 
-void initGLContext()
-{
-	if(Gfx::maxOpenGLMajorVersionSupport() == 1)
-		mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
-	else if(Gfx::maxOpenGLMajorVersionSupport() == 2)
-		mainContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-	else
-		bug_exit("unsupported OpenGL ES major version: %d", Gfx::maxOpenGLMajorVersionSupport());
-	assert(mainContext);
-	int ret = [EAGLContext setCurrentContext:mainContext];
-	assert(ret);
-}
-
 Window *deviceWindow()
 {
 	return Window::window(0);
-}
-
-bool Window::shouldAnimateContentBoundsChange() const
-{
-	return true;
 }
 
 void Window::postDraw()
@@ -128,37 +110,14 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-void Window::setPixelBestColorHint(bool best)
+uint GLConfigAttributes::defaultColorBits()
 {
-	assert(!mainContext); // should only call before initial window is created
-	useMaxColorBits = best;
-}
-
-bool Window::pixelBestColorHintDefault()
-{
-	return Config::BASE_IOS_GLKIT;
-}
-
-void Window::setPresentInterval(int interval)
-{
-	screen().setFrameInterval(interval);
-}
-
-void Window::setSurfaceCurrent()
-{
-	//logMsg("setting window 0x%p drawable current", uiWin_);
-	[glView() bindDrawable];
+	return Config::BASE_IOS_GLKIT ? 24 : 16;
 }
 
 bool Window::hasSurface()
 {
 	return true;
-}
-
-void Window::swapBuffers()
-{
-	//logMsg("doing present");
-	[mainContext presentRenderbuffer:GL_RENDERBUFFER];
 }
 
 IG::WindowRect Window::contentBounds() const
@@ -212,7 +171,7 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
+CallResult Window::init(const WindowConfig &config)
 {
 	if(uiWin_)
 		return OK;
@@ -249,11 +208,12 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	updateWindowSizeAndContentRect(*this, rect.size.width * pointScale, rect.size.height * pointScale, sharedApp);
 	
 	// Create the OpenGL ES view and add it to the Window
-	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect context:mainContext]);
+	assert(GLContext::current());
+	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect context:GLContext::current()->context()]);
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glView().enableSetNeedsDisplay = NO;
 	#endif
-	if(!Base::useMaxColorBits)
+	if(config.glConfig().useRGB565)
 	{
 		#ifdef CONFIG_BASE_IOS_GLKIT
 		[glView() setDrawableColorFormat:GLKViewDrawableColorFormatRGB565];
@@ -280,26 +240,23 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
 	rootViewCtrl.view = glView();
 	uiWin().rootViewController = rootViewCtrl;
-	onInit(*this);
 	return OK;
 }
 
-void Window::deinit() 
+void IOSWindow::deinit()
 {
+	assert(this != deviceWindow());
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(!uiWin_ || this == deviceWindow())
+	if(uiWin_)
 	{
-		return;
+		logMsg("deinit window %p", uiWin_);
+		if(GLContext::drawable() == this)
+			GLContext::setDrawable(nullptr);
+		CFRelease(glView_);
+		glView_ = nullptr;
+		CFRelease(uiWin_);
+		uiWin_ = nullptr;
 	}
-	logMsg("deinit window %p", uiWin_);
-	if(drawTargetWindow == this)
-	{
-		drawTargetWindow = nullptr;
-	}
-	CFRelease(glView_);
-	CFRelease(uiWin_);
-	window_.remove(this);
-	*this = {};
 	#endif
 }
 

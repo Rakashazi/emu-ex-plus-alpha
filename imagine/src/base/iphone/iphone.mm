@@ -21,6 +21,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <unistd.h>
 
 #include <imagine/base/Base.hh>
+#include <imagine/base/GLContext.hh>
 #include "private.hh"
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
@@ -63,7 +64,6 @@ namespace Base
 {
 
 const char *appPath = 0;
-EAGLContext *mainContext = nullptr;
 bool isIPad = 0;
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
@@ -307,8 +307,10 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("resign active");
-	if(deviceWindow())
-		deviceWindow()->onFocusChange(*deviceWindow(), false);
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->onFocusChange(*Window::window(i), false);
+	}
 	Input::deinitKeyRepeatTimer();
 }
 
@@ -316,8 +318,10 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("became active");
-	if(deviceWindow())
-		deviceWindow()->onFocusChange(*deviceWindow(), true);
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->onFocusChange(*Window::window(i), true);
+	}
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
@@ -325,8 +329,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("app exiting");
 	Base::appState = APP_EXITING;
-	if(onExit)
-		onExit(false);
+	dispatchOnExit(false);
 	logMsg("app exited");
 }
 
@@ -335,8 +338,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("entering background");
 	appState = APP_PAUSED;
-	if(onExit)
-		onExit(true);
+	dispatchOnExit(true);
 	Base::Screen::unpostAll();
 	#ifdef CONFIG_INPUT_ICADE
 	Input::iCade.didEnterBackground();
@@ -346,7 +348,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	{
 		[Window::window(i)->glView() deleteDrawable];
 	}
-	drawTargetWindow = nullptr;
+	GLContext::setDrawable(nullptr);
 	glFinish();
 	logMsg("entered background");
 }
@@ -360,8 +362,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	{
 		Window::window(i)->postDraw();
 	}
-	if(onResume)
-		onResume(1);
+	dispatchOnResume(true);
 	#ifdef CONFIG_INPUT_ICADE
 	Input::iCade.didBecomeActive();
 	#endif
@@ -370,8 +371,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
 	logMsg("got memory warning");
-	if(Base::onFreeCaches)
-		Base::onFreeCaches();
+	Base::dispatchOnFreeCaches();
 }
 
 @end
@@ -469,8 +469,7 @@ void Window::setAutoOrientation(bool on)
 void exit(int returnVal)
 {
 	appState = APP_EXITING;
-	if(onExit)
-		onExit(false);
+	dispatchOnExit(false);
 	::exit(returnVal);
 }
 void abort() { ::abort(); }

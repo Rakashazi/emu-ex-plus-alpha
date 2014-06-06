@@ -17,6 +17,7 @@
 #include "../GLStateCache.hh"
 #include "../private.hh"
 #include "../utils.h"
+#include <imagine/base/GLContext.hh>
 
 /*#include <unistd.h>
 
@@ -133,7 +134,7 @@ bool DirectTextureBufferImage::initTexture(IG::Pixmap &pix, uint usedX, uint use
 	//printPrivHnd(eglBuf.handle);
 
 	static const EGLint eglImgAttrs[] { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
-	eglImg = eglCreateImageKHR(Base::getAndroidEGLDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, (EGLClientBuffer)&eglBuf, eglImgAttrs);
+	eglImg = eglCreateImageKHR(Base::GLContext::eglDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, (EGLClientBuffer)&eglBuf, eglImgAttrs);
 	if(eglImg == EGL_NO_IMAGE_KHR)
 	{
 		logMsg("error creating EGL image");
@@ -160,7 +161,7 @@ bool DirectTextureBufferImage::initTexture(IG::Pixmap &pix, uint usedX, uint use
 	if(eglImg != EGL_NO_IMAGE_KHR)
 	{
 		logMsg("calling eglDestroyImageKHR");
-		eglDestroyImageKHR(Base::getAndroidEGLDisplay(), eglImg);
+		eglDestroyImageKHR(Base::GLContext::eglDisplay(), eglImg);
 	}
 	if(eglBuf.handle)
 	{
@@ -233,7 +234,7 @@ void DirectTextureBufferImage::deinit()
 	logMsg("freeing EGL image");
 	if(eglBuf.handle)
 	{
-		eglDestroyImageKHR(Base::getAndroidEGLDisplay(), eglImg);
+		eglDestroyImageKHR(Base::GLContext::eglDisplay(), eglImg);
 		if(directTextureConf.freeBuffer(eglBuf) != 0)
 		{
 			logWarn("error freeing buffer");

@@ -330,7 +330,7 @@ void initOptions()
 	#endif
 
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	optionBestColorModeHint.initDefault(Base::Window::pixelBestColorHintDefault());
+	optionBestColorModeHint.initDefault(Gfx::defaultColorBits() > 16);
 	#endif
 }
 

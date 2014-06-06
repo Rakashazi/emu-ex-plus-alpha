@@ -18,7 +18,7 @@
 #include "x11.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
-#include "GLContextHelper.hh"
+#include <imagine/base/GLContext.hh>
 
 #ifdef CONFIG_BASE_FBDEV_VSYNC
 #include <unistd.h>
@@ -31,23 +31,10 @@ namespace Base
 {
 
 extern int fbdev;
-GLContextHelper glCtx;
 
-bool Window::shouldAnimateContentBoundsChange() const
+uint GLConfigAttributes::defaultColorBits()
 {
-	return true;
-}
-
-void Window::setPixelBestColorHint(bool best)
-{
-	// should only call before initial window creation
-	assert(!windows());
-	glCtx.useMaxColorBits = best;
-}
-
-bool Window::pixelBestColorHintDefault()
-{
-	return 1; // always prefer the best color format
+	return 24;
 }
 
 void Window::setAcceptDnd(bool on)
@@ -89,99 +76,9 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-void Window::setSurfaceCurrent()
-{
-	glCtx.makeCurrent(dpy, *this);
-}
-
 bool Window::hasSurface()
 {
 	return true;
-}
-
-void Window::setPresentInterval(int interval)
-{
-	glCtx.makeCurrent(dpy, *this);
-	drawTargetWindow = nullptr;
-	glCtx.setSwapInterval(interval);
-}
-
-static CallResult setupGLWindow(Base::Window &win, Screen &screen, uint xres, uint yres)
-{
-	auto rootWindow = RootWindowOfScreen(screen.xScreen);
-	XSetWindowAttributes attr {0};
-	attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
-	#if defined CONFIG_MACHINE_PANDORA
-	win.xWin = XCreateWindow(dpy, rootWindow, 0, 0, xres, yres, 0,
-		CopyFromParent, InputOutput, CopyFromParent,
-		CWEventMask, &attr);
-	#else
-	attr.colormap = XCreateColormap(dpy, rootWindow, glCtx.vi->visual, AllocNone);
-	win.xWin = XCreateWindow(dpy, rootWindow, 0, 0, xres, yres, 0,
-		glCtx.vi->depth, InputOutput, glCtx.vi->visual,
-		CWColormap | CWEventMask, &attr);
-	#endif
-	if(!win.xWin)
-		return INVALID_PARAMETER;
-	glCtx.initWindowSurface(win);
-	logMsg("created window with XID %d, drawable depth %d", (int)win.xWin, xDrawableDepth(dpy, win.xWin));
-	if(Config::BASE_MULTI_WINDOW && Window::windows())
-	{
-		win.setPresentInterval(0); // set interval to 0 so multiple swaps can occur at the same time
-	}
-	//auto sres = glXJoinSwapGroupNV(dpy, win.xWin, 1);
-	//assert(sres == True);
-
-	Input::initPerWindowData(win.xWin);
-	if(Config::MACHINE_IS_PANDORA)
-	{
-		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
-		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-		XChangeProperty(dpy, win.xWin, wmState, XA_ATOM, 32, PropModeReplace, (uchar*)&wmFullscreen, 1);
-	}
-	else
-	{
-		auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
-		XSetWMProtocols(dpy, win.xWin, &wmDelete, 1);
-		XSizeHints hints
-		{
-			PMinSize,
-			0, 0, 0, 0,
-			320, 240 // min size
-		};
-		XSetWMNormalHints(dpy, win.xWin, &hints);
-	}
-
-	// setup xinput2
-	XIEventMask eventmask;
-	uchar mask[XIMaskLen(XI_LASTEVENT)] {0};
-	eventmask.deviceid = XIAllMasterDevices;
-	eventmask.mask_len = sizeof(mask); // always in bytes
-	eventmask.mask = mask;
-	XISetMask(mask, XI_ButtonPress);
-	XISetMask(mask, XI_ButtonRelease);
-	XISetMask(mask, XI_Motion);
-	XISetMask(mask, XI_FocusIn);
-	XISetMask(mask, XI_Enter);
-	XISetMask(mask, XI_FocusOut);
-	XISetMask(mask, XI_Leave);
-	XISetMask(mask, XI_KeyPress);
-	XISetMask(mask, XI_KeyRelease);
-	XISelectEvents(dpy, win.xWin, &eventmask, 1);
-
-	return OK;
-}
-
-void Window::swapBuffers()
-{
-	#ifdef CONFIG_BASE_FBDEV_VSYNC
-	if(fbdev >= 0)
-	{
-		int arg = 0;
-		ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
-	}
-	#endif
-	glCtx.swap(dpy, *this);
 }
 
 IG::WindowRect Window::contentBounds() const
@@ -206,7 +103,84 @@ Window *windowForXWindow(::Window xWin)
 	return nullptr;
 }
 
-CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitDelegate onInit)
+static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Window rootWindow)
+{
+	IG::WindowRect workAreaRect;
+	{
+		long *workArea;
+		int format;
+		unsigned long items, bytesAfter;
+		uchar *prop;
+		Atom type;
+		Atom _NET_WORKAREA = XInternAtom(dpy, "_NET_WORKAREA", 0);
+		if(XGetWindowProperty(dpy, rootWindow,
+			_NET_WORKAREA, 0, ~0, False,
+			XA_CARDINAL, &type, &format, &items, &bytesAfter, (uchar **)&workArea) || !workArea)
+		{
+			logWarn("error getting desktop work area, using root window size");
+			XWindowAttributes attr;
+			XGetWindowAttributes(dpy, rootWindow, &attr);
+			workAreaRect = {0, 0, attr.width, attr.height};
+		}
+		else
+		{
+			logMsg("work area: %ld:%ld:%ld:%ld", workArea[0], workArea[1], workArea[2], workArea[3]);
+			workAreaRect = {(int)workArea[0], (int)workArea[1], (int)workArea[2], (int)workArea[3]};
+			XFree(workArea);
+		}
+	}
+
+	IG::WindowRect winRect;
+
+	// set window size
+	if(config.isDefaultSize())
+	{
+		winRect.x2 = workAreaRect.xSize()/2;
+		winRect.y2 = workAreaRect.ySize()/2;
+	}
+	else
+	{
+		winRect.x2 = config.size().x;
+		winRect.y2 = config.size().y;
+	}
+
+	// reduce size to work area if too big
+	if(winRect.xSize() > workAreaRect.xSize())
+	{
+		winRect.x2 = workAreaRect.xSize();
+	}
+	if(winRect.ySize() > workAreaRect.ySize())
+	{
+		winRect.y2 = workAreaRect.ySize();
+	}
+	assert(winRect.xSize() > 0);
+	assert(winRect.ySize() > 0);
+
+	// set window position
+	if(config.isDefaultPosition())
+	{
+		// move to center of work area
+		winRect.setPos(workAreaRect.pos(C2DO), C2DO);
+	}
+	else
+	{
+		winRect.setPos(config.position(), LT2DO);
+	}
+
+	// crop right & bottom to work area if overflowing
+	if(winRect.x2 > workAreaRect.x2)
+	{
+		winRect.x2 = workAreaRect.x2;
+	}
+	if(winRect.y2 > workAreaRect.y2)
+	{
+		winRect.y2 = workAreaRect.y2;
+	}
+	logMsg("made window rect %d:%d:%d:%d", winRect.x, winRect.y, winRect.x2, winRect.y2);
+	return winRect;
+}
+
+CallResult Window::init(const WindowConfig &config)
 {
 	if(xWin != None)
 	{
@@ -221,87 +195,107 @@ CallResult Window::init(IG::Point2D<int> pos, IG::Point2D<int> size, WindowInitD
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	screen_ = &mainScreen();
 	#endif
+	auto rootWindow = RootWindowOfScreen(screen().xScreen);
 	#ifdef CONFIG_MACHINE_PANDORA
-	int x = 800;
-	int y = 480;
+	IG::WindowRect winRect{0, 0, 800, 480};
 	#else
-	int x = 1024;
-	int y = 768;
-
-	// try to crop window to workable desktop area
-	long *workArea;
-	int format;
-	unsigned long items;
-	unsigned long bytesAfter;
-	uchar *prop;
-	Atom type;
-	Atom _NET_WORKAREA = XInternAtom(dpy, "_NET_WORKAREA", 0);
-	if(XGetWindowProperty(dpy, DefaultRootWindow(dpy),
-		_NET_WORKAREA, 0, ~0, False,
-		XA_CARDINAL, &type, &format, &items, &bytesAfter, (uchar **)&workArea) || !workArea)
+	auto winRect = makeWindowRectWithConfig(config, rootWindow);
+	#endif
+	updateSize({winRect.xSize(), winRect.ySize()});
+	XSetWindowAttributes attr{0};
+	attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
+	#if defined CONFIG_MACHINE_PANDORA
+	xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
+		CopyFromParent, InputOutput, CopyFromParent,
+		CWEventMask, &attr);
+	#else
+	pos = {winRect.x, winRect.y};
+	auto visualInfo = config.glConfig().vi;
+	attr.colormap = XCreateColormap(dpy, rootWindow, visualInfo->visual, AllocNone);
+	xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
+		visualInfo->depth, InputOutput, visualInfo->visual,
+		CWColormap | CWEventMask, &attr);
+	#endif
+	if(!xWin)
 	{
-		logWarn("error getting desktop work area");
+		logErr("error initializing window");
+		deinit();
+		return INVALID_PARAMETER;
+	}
+	#ifdef CONFIG_BASE_X11_EGL
+	//logMsg("setting up EGL window surface");
+	surface = eglCreateWindowSurface(GLContext::eglDisplay(), config.glConfig().config,
+		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)xWin, nullptr);
+	if(surface == EGL_NO_SURFACE)
+	{
+		logErr("error creating window surface: 0x%X", (int)eglGetError());
+		deinit();
+		return INVALID_PARAMETER;
+	}
+	#endif
+	logMsg("created window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
+	//auto sres = glXJoinSwapGroupNV(dpy, win.xWin, 1);
+	//assert(sres == True);
+	Input::initPerWindowData(xWin);
+	if(Config::MACHINE_IS_PANDORA)
+	{
+		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
+		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+		XChangeProperty(dpy, xWin, wmState, XA_ATOM, 32, PropModeReplace, (uchar*)&wmFullscreen, 1);
 	}
 	else
 	{
-		logMsg("%ld %ld work area: %ld:%ld:%ld:%ld", items, bytesAfter, workArea[0], workArea[1], workArea[2], workArea[3]);
-		x = std::min(x, (int)workArea[2]);
-		y = std::min(y, (int)workArea[3]);
-		XFree(workArea);
+		auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+		XSetWMProtocols(dpy, xWin, &wmDelete, 1);
+		if(config.minimumSize().x || config.minimumSize().y)
+		{
+			XSizeHints hints{0};
+			hints.flags = PMinSize;
+			hints.min_width = config.minimumSize().x;
+			hints.min_height = config.minimumSize().y;
+			XSetWMNormalHints(dpy, xWin, &hints);
+		}
 	}
-	#endif
 
-	updateSize({x, y});
-	if(setupGLWindow(*this, screen(), w, h) != OK)
-	{
-		logErr("error initializing window");
-		return INVALID_PARAMETER;
-	}
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	window_.push_back(this);
 	#else
 	mainWin = this;
 	#endif
-	onInit(*this);
 	return OK;
 }
 
-void Window::deinit()
+void XWindow::deinit()
 {
-	if(xWin == None)
+	if(GLContext::drawable() == this)
+		GLContext::setDrawable(nullptr);
+	#ifdef CONFIG_BASE_X11_EGL
+	if(surface != EGL_NO_SURFACE)
 	{
-		return;
+		eglDestroySurface(GLContext::eglDisplay(), surface);
+		surface = EGL_NO_SURFACE;
 	}
-	logMsg("destroying window with ID %d", (int)xWin);
-	if(drawTargetWindow == this)
-	{
-		glCtx.makeCurrentSurfaceless(dpy);
-		drawTargetWindow = nullptr;
-	}
-	glCtx.deinitWindowSurface(*this);
-	XDestroyWindow(dpy, xWin);
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.remove(this);
-	#else
-	mainWin = nullptr;
 	#endif
-	*this = {};
+	if(xWin != None)
+	{
+		logMsg("destroying window with ID %d", (int)xWin);
+		XDestroyWindow(dpy, xWin);
+		xWin = None;
+	}
 }
 
 void shutdownWindowSystem()
 {
 	logMsg("shutting down window system");
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	for(auto w : window_)
+	if(GLContext::current())
 	{
-		glCtx.deinitWindowSurface(*w);
-		XDestroyWindow(dpy, w->xWin);
+		GLContext::current()->deinit();
+		GLContext::setCurrent(nullptr, nullptr);
 	}
-	#else
-	if(mainWin)
-		mainWin->deinit();
-	#endif
-	glCtx.deinit(dpy);
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->deinit();
+	}
 }
 
 void Window::show()
@@ -309,6 +303,9 @@ void Window::show()
 	assert(xWin != None);
 	postDraw();
 	XMapRaised(dpy, xWin);
+	#ifndef CONFIG_MACHINE_PANDORA
+	XMoveWindow(dpy, xWin, pos.x, pos.y);
+	#endif
 }
 
 void Window::setAutoOrientation(bool on) {}

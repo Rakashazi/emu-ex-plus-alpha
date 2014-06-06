@@ -30,6 +30,8 @@ class AndroidWindow : public NotEquals<AndroidWindow>
 public:
 	ANativeWindow *nWin = nullptr;
 	EGLSurface surface = EGL_NO_SURFACE;
+	EGLConfig eglConfig{};
+	int pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	jobject jDialog = nullptr;
@@ -48,10 +50,13 @@ public:
 		return initialInit;
 	}
 
-	void initEGLSurface(EGLDisplay display, EGLConfig config);
+	void initEGLSurface(EGLDisplay display);
 	void destroyEGLSurface(EGLDisplay display);
+	void deinit();
 };
 
 using WindowImpl = AndroidWindow;
+
+using GLConfig = EGLConfig;
 
 }

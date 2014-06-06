@@ -15,36 +15,32 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/util/DelegateFunc.hh>
+#include <EGL/egl.h>
 
 namespace Base
 {
 
-#if defined __APPLE__
-using FrameTimeBase = double;
+class GLConfigAttributes;
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+class EGLContextBase
 {
-	return sec;
-}
+protected:
+	static EGLDisplay display;
+	EGLContext context = EGL_NO_CONTEXT;
+	EGLSurface dummyPbuff = EGL_NO_SURFACE;
+	EGLConfig config{};
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return sec;
-}
-#else
-using FrameTimeBase = int64;
+	CallResult init(const GLConfigAttributes &attr);
+	void deinit();
+	static EGLDisplay getDisplay();
+	static void setCurrentContext(EGLContextBase *context, Window *win);
+	void setCurrentDrawable(Window *win);
+	bool isRealCurrentContext();
+	void present(Window &win);
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
-{
-	return sec * (double)1000000000.;
-}
-
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
-{
-	return decimalFrameTimeBaseFromSec(sec);
-}
-#endif
+public:
+	constexpr EGLContextBase() {}
+	static EGLDisplay eglDisplay();
+};
 
 }

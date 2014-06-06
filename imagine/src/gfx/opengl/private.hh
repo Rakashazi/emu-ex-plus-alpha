@@ -1,5 +1,6 @@
 #pragma once
 #include <imagine/gfx/opengl/glIncludes.h>
+#include <imagine/base/GLContext.hh>
 #include "utils.h"
 #include "GLStateCache.hh"
 #include <imagine/util/Interpolator.hh>
@@ -7,6 +8,7 @@
 namespace Gfx
 {
 
+extern Base::GLContext gfxContext;
 extern GLStateCache glState;
 
 #if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE

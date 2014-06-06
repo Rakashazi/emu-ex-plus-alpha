@@ -61,8 +61,17 @@ public:
 	{
 		return uiWin_;
 	}
+
+	void deinit();
 };
 
 using WindowImpl = IOSWindow;
+
+struct GLConfig
+{
+	bool useRGB565 = false;
+
+	constexpr GLConfig() {}
+};
 
 }
