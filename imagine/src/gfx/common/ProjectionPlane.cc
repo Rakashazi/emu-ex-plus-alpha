@@ -20,7 +20,7 @@ ProjectionPlane ProjectionPlane::makeWithMatrix(const Viewport &viewport, const 
 {
 	ProjectionPlane p;
 	auto matInv = mat.invert();
-
+	p.viewport = viewport;
 	auto lowerLeft = mat.unproject(viewport.inGLFormat(), {(GC)viewport.bounds().x, (GC)viewport.bounds().y, .5}, matInv);
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", viewport.bounds().x, viewport.bounds().y, (double)lowerLeft.v.x, (double)lowerLeft.v.y, (double)lowerLeft.v.z);
 	auto upperRight = mat.unproject(viewport.inGLFormat(), {(GC)viewport.bounds().x2, (GC)viewport.bounds().y2, .5}, matInv);
@@ -67,12 +67,12 @@ GC ProjectionPlane::unprojectYSize(int y) const
 
 GC ProjectionPlane::unprojectX(int x) const
 {
-	return unprojectXSize(x - viewport().bounds().x) - wHalf();
+	return unprojectXSize(x - viewport.bounds().x) - wHalf();
 }
 
 GC ProjectionPlane::unprojectY(int y) const
 {
-	return -unprojectYSize(y - viewport().bounds().y) + hHalf();
+	return -unprojectYSize(y - viewport.bounds().y) + hHalf();
 }
 
 int ProjectionPlane::projectXSize(GC x) const
@@ -92,13 +92,13 @@ int ProjectionPlane::projectYSize(GC y) const
 int ProjectionPlane::projectX(GC x) const
 {
 	//logMsg("unproject x %f", x);
-	return projectXSize(x + wHalf()) + viewport().bounds().x;
+	return projectXSize(x + wHalf()) + viewport.bounds().x;
 }
 
 int ProjectionPlane::projectY(GC y) const
 {
 	//logMsg("unproject y %f", y);
-	return projectYSize(-(y - hHalf())) + viewport().bounds().y;
+	return projectYSize(-(y - hHalf())) + viewport.bounds().y;
 }
 
 GCRect ProjectionPlane::unProjectRect(int x, int y, int x2, int y2) const

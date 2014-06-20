@@ -290,9 +290,9 @@ void commitVideoFrame()
 		mdResY = bitmap.viewport.h;
 		bitmap.pitch = mdResX * pixFmt->bytesPerPixel;
 		logMsg("mode change: %dx%d", mdResX, mdResY);
-		emuView.resizeImage(mdResX, mdResY);
+		emuVideo.resizeImage(mdResX, mdResY);
 	}
-	emuView.updateAndDrawContent();
+	updateAndDrawEmuVideo();
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -626,7 +626,7 @@ static uint detectISORegion(uint8 bootSector[0x800])
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
-	emuView.initImage(0, mdResX, mdResY);
+	emuVideo.initImage(0, mdResX, mdResY);
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
 	if(string_hasDotExtension(path, "bin"))
@@ -841,11 +841,9 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
+	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -866,11 +864,11 @@ CallResult onInit(int argc, char** argv)
 				int gunDevIdx = 4;
 				if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
 				{
-					if(emuView.gameRect().overlaps({e.x, e.y}))
+					if(emuVideoLayer.gameRect().overlaps({e.x, e.y}))
 					{
-						int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-						input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)bitmap.viewport.w);
-						input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)bitmap.viewport.h);
+						int xRel = e.x - emuVideoLayer.gameRect().x, yRel = e.y - emuVideoLayer.gameRect().y;
+						input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuVideoLayer.gameRect().xSize(), (float)bitmap.viewport.w);
+						input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuVideoLayer.gameRect().ySize(), (float)bitmap.viewport.h);
 					}
 					if(e.state == Input::PUSHED)
 					{

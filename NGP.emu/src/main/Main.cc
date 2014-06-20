@@ -340,7 +340,7 @@ static bool romLoad(const char *filename)
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-	emuView.initImage(0, ngpResX, ngpResY);
+	emuVideo.initImage(0, ngpResX, ngpResY);
 	setupGamePaths(path);
 
 	if(!romLoad(fullGamePath()))
@@ -390,7 +390,7 @@ void system_VBL(void)
 {
 	if(likely(renderToScreen))
 	{
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
 }
@@ -487,12 +487,10 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
+	emuVideo.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

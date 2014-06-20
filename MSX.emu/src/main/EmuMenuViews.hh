@@ -234,10 +234,10 @@ private:
 				[this](const char *newPath)
 				{
 					printMachinePathMenuEntryStr(machineFilePathStr);
-					machineFilePath.compile();
+					machineFilePath.compile(projP);
 					setMachineBasePath(machineBasePath, machineCustomPath);
 					msxMachine.init();
-					msxMachine.compile();
+					msxMachine.compile(projP);
 					if(!strlen(newPath))
 					{
 						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::appPath : Base::storagePath());
@@ -326,7 +326,7 @@ public:
 	{
 		strcpy(hdName[slot], name);
 		updateHDText(slot);
-		hdSlot[slot].compile();
+		hdSlot[slot].compile(projP);
 	}
 
 	void addHDFilePickerView(const Input::Event &e, uint8 slot)
@@ -402,7 +402,7 @@ public:
 	{
 		strcpy(cartName[slot], name);
 		updateROMText(slot);
-		romSlot[slot].compile();
+		romSlot[slot].compile(projP);
 		updateHDStatusFromCartSlot(slot);
 	}
 
@@ -488,7 +488,7 @@ public:
 	{
 		strcpy(diskName[slot], name);
 		updateDiskText(slot);
-		diskSlot[slot].compile();
+		diskSlot[slot].compile(projP);
 	}
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)

@@ -72,20 +72,20 @@ public:
 		setFace(face);
 	}
 
-	void initCompiled(const char *str, ResourceFace *face)
+	void initCompiled(const char *str, ResourceFace *face, const ProjectionPlane &projP)
 	{
 		init(str, face);
-		compile();
+		compile(projP);
 	}
 	void deinit();
 	void setString(const char *str);
 	void setFace(ResourceFace *face);
-	void compile();
+	void compile(const ProjectionPlane &projP);
 
-	void draw(GC xPos, GC yPos, _2DOrigin o) const;
-	void draw(GP p, _2DOrigin o) const
+	void draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
+	void draw(GP p, _2DOrigin o, const ProjectionPlane &projP) const
 	{
-		draw(p.x, p.y, o);
+		draw(p.x, p.y, o, projP);
 	}
 };
 

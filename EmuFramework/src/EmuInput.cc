@@ -42,6 +42,7 @@ bool physicalControlsPresent = 0;
 bool touchControlsAreOn = 0;
 VControllerLayoutPosition vControllerLayoutPos[2][7];
 bool vControllerLayoutPosChanged = false;
+bool fastForwardActive = false;
 
 #ifdef CONFIG_VCONTROLS_GAMEPAD
 static Gfx::GC vControllerGCSize()
@@ -61,7 +62,7 @@ void initVControls()
 	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
 	vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
-	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
@@ -154,7 +155,7 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 	auto &win = mainWin.win;
 	IG::WindowRect bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
 
-	const auto &viewport = mainWin.viewport;
+	const auto &viewport = mainWin.viewport();
 	const auto &rect = viewport.bounds();
 	IG::WindowRect ltQuadrantRect{rect.x, rect.y, rect.xCenter(), rect.yCenter()};
 	IG::WindowRect rtQuadrantRect{rect.xCenter(), rect.y, rect.x2, rect.yCenter()};
@@ -183,7 +184,7 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 
 IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 {
-	const auto &viewport = mainWin.viewport;
+	const auto &viewport = mainWin.viewport();
 	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + viewport.width()/2 :
 		(lPos.origin.xScaler() == 1) ? lPos.pos.x + viewport.width() : lPos.pos.x;
 	int y = lPos.origin.adjustY(lPos.pos.y, (int)viewport.height(), LT2DO);
@@ -232,6 +233,7 @@ void commonInitInput()
 {
 	mem_zero(relPtr);
 	mem_zero(turboActions);
+	fastForwardActive = false;
 }
 
 void commonUpdateInput()
@@ -777,13 +779,13 @@ void setupVControllerVars()
 			vController.gp.btnRowShift = -(btnSize + vController.gp.btnSpace);
 			vController.gp.btnRowShiftPixels = -(btnSizePixels + vController.gp.btnSpacePixels);
 	}
-	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75);
+	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
 
-	auto &layoutPos = vControllerLayoutPos[mainWin.viewport.isPortrait() ? 1 : 0];
+	auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
 	iterateTimes(vController.numElements(), i)
 	{
 		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i]));
@@ -795,7 +797,7 @@ void setupVControllerVars()
 void setOnScreenControls(bool on)
 {
 	touchControlsAreOn = on;
-	emuView.placeEmu();
+	emuVideoLayer.place(emuWin->viewport().bounds(), emuWin->projectionPlane);
 }
 
 void updateAutoOnScreenControlVisible()

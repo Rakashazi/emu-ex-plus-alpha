@@ -44,14 +44,18 @@ static const uint glyphTableEntries = ResourceFace::supportsUnicode ? unicodeBmp
 
 static CallResult mapCharToTable(uint c, uint &tableIdx);
 
-void ResourceFace::initGlyphTable()
+bool ResourceFace::initGlyphTable()
 {
-	//logMsg("initGlyphTable");
-	iterateTimes(glyphTableEntries, i)
+	logMsg("allocating glyph table, %d entries", glyphTableEntries);
+	mem_free(glyphTable);
+	glyphTable = (GlyphEntry*)mem_calloc(1, sizeof(GlyphEntry) * glyphTableEntries);
+	if(!glyphTable)
 	{
-		glyphTable[i] = {};
+		logErr("out of memory");
+		return false;
 	}
 	usedGlyphTableBits = 0;
+	return true;
 }
 
 void ResourceFace::freeCaches(uint32 purgeBits)
@@ -150,17 +154,12 @@ ResourceFace *ResourceFace::create(ResourceFont *font, FontSettings *set)
 		return nullptr;
 	}
 
-	logMsg("allocating glyph table, %d entries", glyphTableEntries);
-	inst->glyphTable = (GlyphEntry*)mem_alloc(sizeof(GlyphEntry) * glyphTableEntries);
-	if(!inst->glyphTable)
+	inst->font = font;
+	if(!inst->initGlyphTable())
 	{
 		delete inst;
-		logErr("out of memory");
 		return nullptr;
 	}
-
-	inst->font = font;
-	inst->initGlyphTable();
 
 	if(set)
 	{
@@ -226,7 +225,10 @@ CallResult ResourceFace::applySettings (FontSettings set)
 
 		settings = set;
 		font->newSize(settings, faceSize);
-		initGlyphTable();
+		if(!initGlyphTable())
+		{
+			bug_exit("couldn't re-allocate glyph table");
+		}
 		calcNominalHeight();
 		return OK;
 	}

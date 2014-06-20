@@ -82,6 +82,10 @@ void GLContext::deinit()
 {
 	if(context_)
 	{
+		if(current() == this)
+		{
+			GLContext::setCurrent(nullptr, nullptr);
+		}
 		CFRelease(context_);
 	}
 	*this = {};

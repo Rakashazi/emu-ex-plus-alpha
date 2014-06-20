@@ -146,7 +146,7 @@ void MenuView::onShow()
 	saveState.active = EmuSystem::gameIsRunning();
 	loadState.active = EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot);
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
-	stateSlot.compile();
+	stateSlot.compile(projP);
 	screenshot.active = EmuSystem::gameIsRunning();
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon.active = EmuSystem::gameIsRunning();
@@ -511,7 +511,7 @@ MenuView::MenuView(Base::Window &win):
 		[](TextMenuItem &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
-				emuView.takeGameScreenshot();
+				emuVideo.takeGameScreenshot();
 		}
 	}
 {}

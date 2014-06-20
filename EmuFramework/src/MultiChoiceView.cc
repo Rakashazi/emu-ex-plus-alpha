@@ -35,7 +35,7 @@ void BaseMultiChoiceView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRe
 		setColor(0., .8, 1.);
 	else
 		setColor(COLOR_WHITE);
-	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), BaseMenuView::align);
+	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), BaseMenuView::align, projP);
 }
 
 void MultiChoiceView::freeItems()

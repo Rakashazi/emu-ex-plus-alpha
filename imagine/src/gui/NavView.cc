@@ -44,9 +44,9 @@ void NavView::deinitText()
 	text.deinit();
 }
 
-void NavView::place()
+void NavView::place(const Gfx::ProjectionPlane &projP)
 {
-	text.compile();
+	text.compile(projP);
 	//logMsg("setting textRect");
 	textRect.setPosRel(viewRect.pos(LT2DO), viewRect.size(), LT2DO);
 	leftBtn.setPosRel(viewRect.pos(LT2DO), viewRect.ySize(), LT2DO);
@@ -97,16 +97,16 @@ void BasicNavView::setBackImage(Gfx::BufferImage *img)
 	hasBackBtn = leftSpr.image();
 }
 
-void BasicNavView::draw(const Base::Window &win)
+void BasicNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	setBlendMode(0);
-	noTexProgram.use(View::projP.makeTranslate());
+	noTexProgram.use(projP.makeTranslate());
 	bg.draw();
 	setColor(COLOR_WHITE);
 	texAlphaReplaceProgram.use();
 	//text.draw(unproject(viewRect, C2DO), C2DO);
-	text.draw(View::projP.unProjectRect(viewRect).pos(C2DO), C2DO);
+	text.draw(projP.unProjectRect(viewRect).pos(C2DO), C2DO, projP);
 	if(leftSpr.image())
 	{
 		/*setBlendMode(BLEND_MODE_OFF);
@@ -116,7 +116,7 @@ void BasicNavView::draw(const Base::Window &win)
 		if(leftBtnActive)
 		{
 			setBlendMode(BLEND_MODE_ALPHA);
-			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(View::projP.unProjectRect(leftBtn).pos(C2DO)));
+			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
 	}
@@ -129,27 +129,27 @@ void BasicNavView::draw(const Base::Window &win)
 		if(rightBtnActive)
 		{
 			setBlendMode(BLEND_MODE_ALPHA);
-			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(View::projP.unProjectRect(rightBtn).pos(C2DO)));
+			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
 	}
 }
 
-void BasicNavView::place()
+void BasicNavView::place(const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
-	NavView::place();
+	NavView::place(projP);
 	if(hasBackBtn)
 	{
-		auto rect = View::projP.unProjectRect(leftBtn);
+		auto rect = projP.unProjectRect(leftBtn);
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		leftSpr.setPos(scaledRect);
 	}
 	if(hasCloseBtn)
 	{
-		auto rect = View::projP.unProjectRect(rightBtn);
+		auto rect = projP.unProjectRect(rightBtn);
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos(View::projP.unProjectRect(viewRect));
+	bg.setPos(projP.unProjectRect(viewRect));
 }

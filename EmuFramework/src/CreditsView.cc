@@ -33,12 +33,12 @@ void CreditsView::draw(Base::FrameTimeBase frameTime)
 	auto textRect = rect;
 	if(IG::isOdd(textRect.ySize()))
 		textRect.y2--;
-	text.draw(projP.unProjectRect(textRect).pos(C2DO), C2DO);
+	text.draw(projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
 }
 
 void CreditsView::place()
 {
-	text.compile();
+	text.compile(projP);
 }
 
 void CreditsView::inputEvent(const Input::Event &e)

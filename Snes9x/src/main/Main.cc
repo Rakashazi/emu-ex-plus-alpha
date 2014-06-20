@@ -181,8 +181,8 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
     	return 0;
 
     //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = IG::scalePointRange((float)snesPointerX, (float)emuView.gameRect().xSize(), (float)256.);
-    y = IG::scalePointRange((float)snesPointerY, (float)emuView.gameRect().ySize(), (float)224.);
+    x = IG::scalePointRange((float)snesPointerX, (float)emuVideoLayer.gameRect().xSize(), (float)256.);
+    y = IG::scalePointRange((float)snesPointerY, (float)emuVideoLayer.gameRect().ySize(), (float)224.);
     buttons = snesPointerBtns;
 
     if(snesMouseClick)
@@ -332,11 +332,11 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 				logMsg("resolution changed to %d,%d", width, height);
 				snesResX = width;
 				snesResY = height;
-				emuView.resizeImage(snesResX, snesResY);
+				emuVideo.resizeImage(snesResX, snesResY);
 			}
 		}
 
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
 	else
@@ -607,7 +607,7 @@ static void setupSNESInput()
 
 static int loadGameCommon()
 {
-	emuView.initImage(0, snesResX, snesResY);
+	emuVideo.initImage(0, snesResX, snesResY);
 	setupSNESInput();
 
 	FsSys::cPath saveStr;
@@ -785,8 +785,6 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
-
 CallResult onInit(int argc, char** argv)
 {
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
@@ -810,7 +808,7 @@ CallResult onInit(int argc, char** argv)
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
 
-	emuView.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
+	emuVideo.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -840,11 +838,11 @@ CallResult onInit(int argc, char** argv)
 							*S9xGetSuperscopeBits() = 0;
 							#endif
 						}
-						if(emuView.gameRect().overlaps({e.x, e.y}))
+						if(emuVideoLayer.gameRect().overlaps({e.x, e.y}))
 						{
-							int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-							snesPointerX = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
-							snesPointerY = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.);
+							int xRel = e.x - emuVideoLayer.gameRect().x, yRel = e.y - emuVideoLayer.gameRect().y;
+							snesPointerX = IG::scalePointRange((float)xRel, (float)emuVideoLayer.gameRect().xSize(), (float)256.);
+							snesPointerY = IG::scalePointRange((float)yRel, (float)emuVideoLayer.gameRect().ySize(), (float)224.);
 							//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
 							if(e.state == PUSHED)
 							{

@@ -23,16 +23,6 @@
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 
-/*class ViewAnimation
-{
-public:
-	constexpr ViewAnimation() { }
-	virtual void initShow() = 0;
-	virtual void initActive() = 0;
-	virtual void initDismiss() = 0;
-	virtual bool update() = 0;
-};*/
-
 class View;
 class StackAllocator;
 
@@ -51,10 +41,7 @@ public:
 	ViewController *controller = nullptr;
 	static ResourceFace *defaultFace;
 	static ResourceFace *defaultSmallFace;
-	static Gfx::ProjectionPlane projP;
-	//enum { SHOW, ACTIVE, HIDE };
-	//ViewAnimation *animation = nullptr;
-	//uint displayState = 0;
+	Gfx::ProjectionPlane projP;
 	const char *name_ = "";
 
 	constexpr View() {}
@@ -69,10 +56,10 @@ public:
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
 
-	void placeRect(IG::WindowRect rect)
+	void setViewRect(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
 	{
 		this->viewRect() = rect;
-		place();
+		var_selfs(projP);
 	}
 
 	void postDraw()

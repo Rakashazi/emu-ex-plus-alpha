@@ -322,7 +322,7 @@ static int loadGameCommon(const uint8 *buff, uint size)
 	console = new Console(&osystem, cartridge, props);
 	settings.setValue("framerate", console->getFramerate());
 	osystem.myConsole = console;
-	emuView.initImage(0, vidBufferX, console->tia().height());
+	emuVideo.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
 	console->initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
@@ -527,7 +527,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 				pixBuff[i] = tiaColorMap[currentFrame[i]];
 			}
 		}
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 	}
 
 	#ifdef USE_NEW_AUDIO
@@ -593,13 +593,11 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuView.initPixmap((char*)pixBuff, &PixelFormatRGB565, vidBufferX, vidBufferY);
+	emuVideo.initPixmap((char*)pixBuff, &PixelFormatRGB565, vidBufferX, vidBufferY);
 	Settings *settings = new Settings(&osystem);
 	settings->setValue("framerate", 60); // set to avoid auto-frame calculation
 

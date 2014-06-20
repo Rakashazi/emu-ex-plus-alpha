@@ -76,7 +76,7 @@ public:
 	void updateView(); // move content frame in position along view frame
 	void place(IG::WindowRect *frame, View &view);
 	void updateGfx(View &view);
-	void draw();
+	void draw(const Gfx::ProjectionPlane &projP);
 	int inputEvent(const Input::Event &e, View &view);
 
 private:

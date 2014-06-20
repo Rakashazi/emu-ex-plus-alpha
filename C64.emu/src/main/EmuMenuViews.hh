@@ -138,7 +138,7 @@ class SystemOptionView : public OptionView
 				[this](const char *newPath)
 				{
 					printSysPathMenuEntryStr(systemFilePathStr);
-					systemFilePath.compile();
+					systemFilePath.compile(projP);
 					setupSysFilePaths(sysFilePath[0], firmwareBasePath);
 					if(!strlen(newPath))
 					{
@@ -240,7 +240,7 @@ public:
 	void onTapeMediaChange(const char *name)
 	{
 		updateTapeText();
-		tapeSlot.compile();
+		tapeSlot.compile(projP);
 	}
 
 	void addTapeFilePickerView(const Input::Event &e)
@@ -309,7 +309,7 @@ public:
 	void onROMMediaChange(const char *name)
 	{
 		updateROMText();
-		romSlot.compile();
+		romSlot.compile(projP);
 	}
 
 	void addCartFilePickerView(const Input::Event &e)
@@ -377,7 +377,7 @@ private:
 	void onDiskMediaChange(const char *name, int slot)
 	{
 		updateDiskText(slot);
-		diskSlot[slot].compile();
+		diskSlot[slot].compile(projP);
 	}
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)

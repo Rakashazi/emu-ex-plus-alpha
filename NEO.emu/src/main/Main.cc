@@ -553,14 +553,9 @@ public:
 		text.deinit();
 	}
 
-	void place(IG::WindowRect rect)
-	{
-		View::placeRect(rect);
-	}
-
 	void place() override
 	{
-		text.compile();
+		text.compile(projP);
 	}
 
 	void inputEvent(const Input::Event &e) override { }
@@ -582,7 +577,7 @@ public:
 		}
 		texAlphaProgram.use();
 		setColor(COLOR_WHITE);
-		text.draw(0, 0, C2DO);
+		text.draw(0, 0, C2DO, projP);
 	}
 };
 
@@ -644,7 +639,7 @@ static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadG
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-	emuView.initImage(0, 304, 224, FBResX*2);
+	emuVideo.initImage(0, 304, 224, FBResX*2);
 	setupGamePaths(path);
 
 	{
@@ -780,7 +775,7 @@ CLINK void screen_update()
 	if(likely(renderToScreen))
 	{
 		//logMsg("screen render");
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
 	else
@@ -812,7 +807,7 @@ namespace Base
 CallResult onInit(int argc, char** argv)
 {
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-	emuView.initPixmap((char*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, FBResX*2);
+	emuVideo.initPixmap((char*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, FBResX*2);
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
 	visible_area.w = 304;//320;

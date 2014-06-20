@@ -37,7 +37,7 @@ Base::WindowConfig makeWindowConfig();
 void setWindowConfig(Base::WindowConfig &config);
 bool setCurrentWindow(Base::Window *win);
 void presentWindow(Base::Window &win);
-void setViewport(const Base::Window &win, const Viewport &v);
+void setViewport(const Viewport &v);
 void setProjectionMatrix(const Mat4 &mat);
 void setProjectionMatrixRotation(Angle angle);
 void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
@@ -68,7 +68,7 @@ public:
 class BufferImage;
 Shader makeShader(const char *src, uint type);
 Shader makePluginVertexShader(const char *src, uint imgMode);
-Shader makePluginFragmentShader(const char *src, uint imgMode, const BufferImage &img);
+Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTex);
 Shader makeDefaultVShader();
 void deleteShader(Shader shader);
 void setProgram(Program &program);

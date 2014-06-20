@@ -42,7 +42,7 @@ bool GLContext::setDrawable(Window *win)
 {
 	if(currentContext && currentDrawable_ != win)
 	{
-		logMsg("setting drawable %p for current context %p", win, currentContext);
+		//logMsg("setting drawable %p for current context %p", win, currentContext);
 		currentDrawable_ = win;
 		currentContext->setCurrentDrawable(win);
 		return true;

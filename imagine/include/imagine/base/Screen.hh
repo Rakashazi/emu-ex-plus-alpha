@@ -82,11 +82,7 @@ public:
   #else
   void setRefreshRate(uint rate) {}
   #endif
-  bool frameUpdate(FrameTimeBase frameTime, bool forceDraw);
-  bool frameUpdate(FrameTimeBase frameTime)
-  {
-  	return frameUpdate(frameTime, false);
-  }
+  void frameUpdate(FrameTimeBase frameTime);
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
 	static uint screens();

@@ -21,23 +21,25 @@
 #include <VideoImageEffect.hh>
 #include <imagine/gui/View.hh>
 #include <EmuOptions.hh>
-#include <EmuVideoLayer.hh>
-#include <EmuInputView.hh>
+#include <EmuVideo.hh>
 
-class EmuView : public View
+class EmuInputView : public View
 {
 public:
-	EmuVideoLayer *layer = nullptr;
-	EmuInputView *inputView = nullptr;
+	bool ffKeyPushed = false, ffToggleActive = false;
 
 private:
 	IG::WindowRect rect;
 
 public:
-	constexpr EmuView(Base::Window &win): View(win) {}
+	constexpr EmuInputView(Base::Window &win): View(win) {}
 	void deinit() override {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void draw(Base::FrameTimeBase frameTime) override;
 	void inputEvent(const Input::Event &e) override;
+	void resetInput();
+
+private:
+	void updateFastforward();
 };

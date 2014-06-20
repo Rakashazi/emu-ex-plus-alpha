@@ -22,6 +22,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/bits.h>
 #ifdef CONFIG_INPUT
 #include <imagine/input/Input.hh>
 #endif
@@ -186,15 +187,24 @@ public:
 	{
 		uint8 flags = 0;
 		static constexpr uint8 SURFACE_RESIZED = IG::bit(0),
-			CONTENT_RECT_RESIZED = IG::bit(1);
+			CONTENT_RECT_RESIZED = IG::bit(1),
+			CUSTOM_VIEWPORT_RESIZED = IG::bit(2);
+		static constexpr uint8 RESIZE_BITS =
+			SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
 
 		constexpr SurfaceChange() {}
 		constexpr SurfaceChange(uint8 flags): flags(flags) {}
-		bool resized() const { return surfaceResized() || contentRectResized(); }
+		bool resized() const
+		{
+			return flags & RESIZE_BITS;
+		}
 		bool surfaceResized() const { return flags & SURFACE_RESIZED; }
 		bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
+		bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
 		void addSurfaceResized() { flags |= SURFACE_RESIZED; }
 		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
+		void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
+		void removeCustomViewportResized() { unsetBits(flags, CUSTOM_VIEWPORT_RESIZED); }
 	};
 
 	struct DrawParams
@@ -344,11 +354,12 @@ public:
 	void show();
 	void dismiss();
 	void setNeedsDraw(bool needsDraw);
+	void setNeedsCustomViewportResize(bool needsResize);
 	bool needsDraw();
 	void postDraw();
 	static void postNeededScreens();
 	void unpostDraw();
-	void draw(FrameTimeBase frameTime);
+	void dispatchOnDraw(FrameTimeBase frameTime);
 	Screen &screen();
 
 	bool updateSize(IG::Point2D<int> surfaceSize);

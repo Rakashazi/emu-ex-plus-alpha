@@ -25,8 +25,8 @@ class MenuItem
 {
 public:
 	constexpr MenuItem() {}
-	virtual void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const = 0;
-	virtual void compile() = 0;
+	virtual void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const = 0;
+	virtual void compile(const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
 	virtual Gfx::GC xSize() = 0;
 	virtual void deinit() = 0;
@@ -46,8 +46,8 @@ public:
 	void init(bool active, ResourceFace *face = View::defaultFace);
 	void init();
 	void deinit() override;
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
-	void compile() override;
+	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void compile(const Gfx::ProjectionPlane &projP) override;
 	int ySize() override;
 	Gfx::GC xSize() override;
 };
@@ -76,9 +76,9 @@ public:
 	void init(const char *str, const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
 	void init(const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
 	void deinit() override;
-	void compile() override;
-	void draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const;
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
+	void compile(const Gfx::ProjectionPlane &projP) override;
+	void draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const;
+	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 };
 
 class DualTextMenuItem : public BaseDualTextMenuItem
@@ -120,7 +120,7 @@ public:
 	void init(const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
 	void set(bool val, View &view);
 	void toggle(View &view);
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
+	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	void select(View *parent, const Input::Event &e) override;
 };
 
@@ -139,7 +139,7 @@ public:
 	constexpr MultiChoiceMenuItem(const char *str, ValueDelegate valueD): DualTextMenuItem(str), valueD(valueD) {}
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
 	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
+	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	bool updateVal(int val, View &view);
 	void setVal(int val, View &view);
 	bool set(int val, const Input::Event &e, View &view);

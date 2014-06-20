@@ -81,7 +81,7 @@ private:
 			inst.onRightNavBtn(e);
 		};
 		void init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir);
-		void draw(const Base::Window &win) override;
+		void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	};
 
 	TextMenuItem *text = nullptr;

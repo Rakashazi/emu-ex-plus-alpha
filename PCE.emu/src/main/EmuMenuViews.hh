@@ -20,7 +20,7 @@ public:
 				{
 					logMsg("set bios %s", ::sysCardPath);
 					printBiosMenuEntryStr(sysCardPathStr);
-					sysCardPath.compile();
+					sysCardPath.compile(projP);
 				};
 			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}

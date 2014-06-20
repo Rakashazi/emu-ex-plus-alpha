@@ -32,6 +32,7 @@ private:
 	GCRect rect;
 
 public:
+	Viewport viewport;
 	GC w = 0, h = 0,
 		focal = 0,
 		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z

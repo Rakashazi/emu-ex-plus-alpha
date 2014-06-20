@@ -16,31 +16,26 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/GfxBufferImage.hh>
 
-#ifdef __OBJC__
-#import <OpenGLES/EAGL.h>
-#endif
-
-namespace Base
+namespace Gfx
 {
 
-struct IOSGLContext
+class RenderTarget
 {
-protected:
-	void *context_ = nullptr; // EAGLContext in ObjC
-	GLConfig config;
-
-	static void setCurrentContext(IOSGLContext *context, Window *win);
-	bool isRealCurrentContext();
+private:
+	GLuint fbo = 0;
+	BufferImage tex;
 
 public:
-	constexpr IOSGLContext() {}
-	void setCurrentDrawable(Window *win);
-	#ifdef __OBJC__
-	EAGLContext *context() { return (__bridge EAGLContext*)context_; }
-	#endif
+	void init();
+	void deinit();
+	void initTexture(IG::PixmapDesc &pix, uint filter);
+	BufferImage &texture() { return tex; };
+	void setCurrent();
+	operator bool() const;
+	static void setDefaultCurrent();
 };
-
-using GLContextImpl = IOSGLContext;
 
 }

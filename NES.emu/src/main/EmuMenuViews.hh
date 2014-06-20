@@ -22,7 +22,7 @@ public:
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath);
 					printBiosMenuEntryStr(fdsBiosPathStr);
-					fdsBiosPath.compile();
+					fdsBiosPath.compile(projP);
 				};
 			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}
@@ -217,7 +217,7 @@ private:
 			TextMenuItem::init(label);
 		}
 
-		void refreshActive()
+		void refreshActive(const Gfx::ProjectionPlane &projP)
 		{
 			active = isFDS;
 			if(!isFDS)
@@ -226,7 +226,7 @@ private:
 				strcpy(label, "FDS Control (No Disk)");
 			else
 				sprintf(label, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
-			compile();
+			compile(projP);
 		}
 
 		void select(View *view, const Input::Event &e)
@@ -263,7 +263,7 @@ public:
 	{
 		MenuView::onShow();
 		cheats.active = EmuSystem::gameIsRunning();
-		fdsControl.refreshActive();
+		fdsControl.refreshActive(projP);
 	}
 
 	void init(bool highlightFirst)

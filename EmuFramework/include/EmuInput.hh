@@ -41,6 +41,7 @@ struct KeyCategory
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern uint pointerInputPlayer;
 #endif
+extern bool fastForwardActive;
 
 static const int guiKeyIdxLoadGame = 0;
 static const int guiKeyIdxMenu = 1;

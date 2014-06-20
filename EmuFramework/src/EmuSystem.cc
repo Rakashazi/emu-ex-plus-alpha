@@ -26,7 +26,6 @@ FsSys::cPath EmuSystem::savePath_ = "";
 FsSys::cPath EmuSystem::defaultSavePath_ = "";
 char EmuSystem::gameName_[256] = "";
 char EmuSystem::fullGameName_[256] = "";
-TimeSys EmuSystem::startTime;
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
@@ -130,9 +129,6 @@ bool EmuSystem::shouldOverwriteExistingState()
 {
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
 }
-
-//static int autoFrameSkipLevel = 0;
-//static int lowBufferFrames = (audio_maxRate/60)*3, highBufferFrames = (audio_maxRate/60)*5;
 
 int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
@@ -291,4 +287,22 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 		viewNav.setRightBtnActive(0);
 		state = State::OFF;
 	}
+}
+
+void EmuSystem::pause()
+{
+	if(isActive())
+		state = State::PAUSED;
+	stopSound();
+	cancelAutoSaveStateTimer();
+}
+
+void EmuSystem::start()
+{
+	state = State::ACTIVE;
+	clearInputBuffers();
+	emuFrameNow = -1;
+	startSound();
+	startFrameTime = 0;
+	startAutoSaveStateTimer();
 }

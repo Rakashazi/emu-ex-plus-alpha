@@ -35,11 +35,12 @@ void MsgPopup::clear()
 	text.str = 0;
 }
 
-void MsgPopup::place()
+void MsgPopup::place(const Gfx::ProjectionPlane &projP)
 {
-	text.maxLineSize = View::projP.w;
+	var_selfs(projP)
+	text.maxLineSize = projP.w;
 	if(text.str)
-		text.compile();
+		text.compile(projP);
 }
 
 void MsgPopup::unpost()
@@ -53,7 +54,7 @@ void MsgPopup::post(const char *msg, int secs, bool error)
 {
 	logMsg("%s", msg);
 	text.setString(msg);
-	text.compile();
+	text.compile(projP);
 	this->error = error;
 	unpostTimer.callbackAfterSec([this](){unpost();}, secs);
 }
@@ -68,26 +69,26 @@ void MsgPopup::draw()
 	using namespace Gfx;
 	if(text.str)
 	{
-		noTexProgram.use(View::projP.makeTranslate());
+		noTexProgram.use(projP.makeTranslate());
 		setBlendMode(BLEND_MODE_ALPHA);
 		if(error)
 			setColor(1., 0, 0, .7);
 		else
 			setColor(0, 0, 1., .7);
-		Gfx::GCRect rect(-View::projP.wHalf(), -View::projP.hHalf(),
-				View::projP.wHalf(), -View::projP.hHalf() + (text.ySize * 1.5));
+		Gfx::GCRect rect(-projP.wHalf(), -projP.hHalf(),
+				projP.wHalf(), -projP.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
 		if(Input::softInputIsActive())
 		{
 			// Show messages on top on WebOS 3.x since there's no way to know how large the on-screen keyboard is
-			rect.y = View::projP.hHalf - (text.ySize * 1.5);
-			rect.y2 = View::projP.hHalf;
+			rect.y = projP.hHalf - (text.ySize * 1.5);
+			rect.y2 = projP.hHalf;
 		}
 		#endif
 		GeomRect::draw(rect);
 		setColor(1., 1., 1., 1.);
 		texAlphaProgram.use();
-		text.draw(0, View::projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO);
+		text.draw(0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
 	}
 }
 

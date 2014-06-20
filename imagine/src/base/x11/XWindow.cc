@@ -290,7 +290,6 @@ void shutdownWindowSystem()
 	if(GLContext::current())
 	{
 		GLContext::current()->deinit();
-		GLContext::setCurrent(nullptr, nullptr);
 	}
 	iterateTimes(Window::windows(), i)
 	{

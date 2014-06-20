@@ -42,7 +42,7 @@ void BaseTextMenuItem::deinit()
 	t.deinit();
 }
 
-void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	if(!active)
@@ -64,10 +64,10 @@ void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC y
 		xPos += xSize/2;
 	else
 		xPos += GuiTable1D::globalXIndent;
-	t.draw(xPos, yPos, align);
+	t.draw(xPos, yPos, align, projP);
 }
 
-void BaseTextMenuItem::compile() { t.compile(); }
+void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP) { t.compile(projP); }
 int BaseTextMenuItem::ySize() { return t.face->nominalHeight(); }
 Gfx::GC BaseTextMenuItem::xSize() { return t.xSize; }
 void TextMenuItem::select(View *parent, const Input::Event &e)
@@ -108,26 +108,26 @@ void BaseDualTextMenuItem::deinit()
 	BaseTextMenuItem::deinit();
 }
 
-void BaseDualTextMenuItem::compile()
+void BaseDualTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
 {
-	BaseTextMenuItem::compile();
+	BaseTextMenuItem::compile(projP);
 	if(t2.str)
 	{
-		t2.compile();
+		t2.compile(projP);
 	}
 }
 
-void BaseDualTextMenuItem::draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	Gfx::texAlphaProgram.use();
-	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO);
+	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO, projP);
 }
 
-void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
 	if(t2.str)
-		BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
+		BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
 void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
@@ -167,7 +167,7 @@ void BoolMenuItem::set(bool val, View &view)
 		//logMsg("setting bool: %d", val);
 		on = val;
 		t2.setString(val ? onStr : offStr);
-		t2.compile();
+		t2.compile(view.projP);
 		view.postDraw();
 	}
 }
@@ -186,17 +186,17 @@ void BoolMenuItem::select(View *parent, const Input::Event &e)
 		selectD(*this, e);
 }
 
-void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
 	if(!onOffStyle) // custom strings
 		setColor(0., .8, 1.);
 	else if(on)
 		setColor(.27, 1., .27);
 	else
 		setColor(1., .27, .27);
-	draw2ndText(xPos, yPos, xSize, ySize, align);
+	draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
 void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
@@ -225,13 +225,13 @@ void MultiChoiceMenuItem::init(const char **choiceStr, int val, int max, int bas
 	init(nullptr, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
-void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
 	//setColor(0., 1., 1.); // aqua
 	setColor(0., .8, 1.);
-	BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
+	BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
 bool MultiChoiceMenuItem::updateVal(int val, View &view)
@@ -244,7 +244,7 @@ bool MultiChoiceMenuItem::updateVal(int val, View &view)
 	{
 		choice = val;
 		t2.setString(choiceStr[val]);
-		t2.compile();
+		t2.compile(view.projP);
 		view.postDraw();
 		return 1;
 	}

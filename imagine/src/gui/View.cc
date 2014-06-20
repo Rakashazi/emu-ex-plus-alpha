@@ -17,7 +17,6 @@
 
 ResourceFace *View::defaultFace = nullptr;
 ResourceFace *View::defaultSmallFace = nullptr;
-Gfx::ProjectionPlane View::projP;
 bool View::needsBackControl = needsBackControlDefault;
 
 void View::pushAndShow(View &v, StackAllocator *allocator, bool needsNavView)

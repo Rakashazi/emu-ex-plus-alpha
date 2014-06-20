@@ -40,7 +40,7 @@ void IdentInputDeviceView::deinit()
 void IdentInputDeviceView::place()
 {
 	text.maxLineSize = projP.w * 0.95;
-	text.compile();
+	text.compile(projP);
 }
 
 void IdentInputDeviceView::inputEvent(const Input::Event &e)
@@ -65,7 +65,7 @@ void IdentInputDeviceView::draw(Base::FrameTimeBase frameTime)
 	GeomRect::draw(viewFrame, projP);
 	setColor(COLOR_WHITE);
 	texAlphaProgram.use();
-	text.draw(0, 0, C2DO);
+	text.draw(0, 0, C2DO, projP);
 }
 
 static void removeKeyConfFromAllDevices(const KeyConfig *conf)
@@ -378,7 +378,7 @@ public:
 			setColor(0., .8, 1.);
 		else
 			setColor(COLOR_WHITE);
-		item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO);
+		item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO, projP);
 	}
 };
 
@@ -604,7 +604,7 @@ void InputManagerDeviceView::onShow()
 	BaseMenuView::onShow();
 	//deleteDeviceConfig.active = devConf->savedConf;
 	string_printf(profileStr, "Profile: %s", devConf->keyConf().name);
-	loadProfile.compile();
+	loadProfile.compile(projP);
 	bool keyConfIsMutable = devConf->mutableKeyConf();
 	renameProfile.active = keyConfIsMutable;
 	deleteProfile.active = keyConfIsMutable;

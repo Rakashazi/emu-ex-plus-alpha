@@ -75,12 +75,11 @@ bool Screen::frameIsPosted()
 	return framePosted;
 }
 
-bool Screen::frameUpdate(FrameTimeBase frameTime, bool forceDraw)
+void Screen::frameUpdate(FrameTimeBase frameTime)
 {
 	assert(frameTime);
 	assert(appIsRunning());
 	framePosted = false;
-	bool didDraw = false;
 	inFrameHandler = true;
 	runOnFrameDelegates(frameTime);
 	iterateTimes(Window::windows(), i)
@@ -92,16 +91,11 @@ bool Screen::frameUpdate(FrameTimeBase frameTime, bool forceDraw)
 			continue;
 		}
 		#endif
-		if(forceDraw || w.needsDraw())
-		{
-			w.draw(frameTime);
-			didDraw = true;
-		}
+		w.dispatchOnDraw(frameTime);
 	}
 	frameComplete();
 	inFrameHandler = false;
 	//logMsg("%s", frameIsPosted() ? "drawing next frame" : "stopping at this frame");
-	return didDraw;
 }
 
 uint Screen::screens()

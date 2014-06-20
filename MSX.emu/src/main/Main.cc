@@ -419,9 +419,9 @@ void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 		logMsg("setting double width line %d, %d", y, val);
 		doubleWidthFrame = val;
 		msxResX = doubleWidthFrame ? msxMaxResX : msxMaxResX/2;
-		if(emuView.vidPix.x != msxResX)
+		if(emuVideo.vidPix.x != msxResX)
 		{
-			emuView.resizeImage(msxResX, msxResY);
+			emuVideo.resizeImage(msxResX, msxResY);
 		}
 	}
 }
@@ -865,7 +865,7 @@ static int loadBlueMSXState(const char *filename)
 
 	boardInfo.loadState();
 	saveStateDestroy();
-	emuView.initImage(0, msxResX, msxResY);
+	emuVideo.initImage(0, msxResX, msxResY);
 	return STATE_RESULT_OK;
 }
 
@@ -911,7 +911,7 @@ void EmuSystem::closeSystem()
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-	emuView.initImage(0, msxResX, msxResY);
+	emuVideo.initImage(0, msxResX, msxResY);
 	setupGamePaths(path);
 
 	if(!machine && !initMachine(optionMachineName)) // make sure machine is allocated
@@ -1088,7 +1088,7 @@ static void commitVideoFrame()
 {
 	if(likely(renderToScreen))
 	{
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
 }
@@ -1147,8 +1147,6 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
-
 CallResult onInit(int argc, char** argv)
 {
 	/*mediaDbCreateRomdb();
@@ -1159,7 +1157,7 @@ CallResult onInit(int argc, char** argv)
 	mixer = mixerCreate();
 	assert(mixer);
 
-	emuView.initPixmap((char*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
+	emuVideo.initPixmap((char*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
 
 	// Init general emu
 	langInit();

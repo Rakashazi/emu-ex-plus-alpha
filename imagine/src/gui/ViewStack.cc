@@ -57,9 +57,10 @@ void BasicViewController::dismissView(View &v)
 	pop();
 }
 
-void BasicViewController::place(const IG::WindowRect &rect)
+void BasicViewController::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
 {
 	viewRect = rect;
+	var_selfs(projP);
 	place();
 }
 
@@ -67,7 +68,9 @@ void BasicViewController::place()
 {
 	if(!view)
 		return;
-	view->placeRect(viewRect);
+	assert(viewRect.xSize() && viewRect.ySize());
+	view->setViewRect(viewRect, projP);
+	view->place();
 }
 
 void BasicViewController::inputEvent(const Input::Event &e)
@@ -80,14 +83,10 @@ void BasicViewController::draw(Base::FrameTimeBase frameTime)
 	view->draw(frameTime);
 }
 
-void BasicViewController::init(const Base::Window &win)
-{
-	viewRect = Gfx::viewport().bounds();
-}
+void BasicViewController::init(const Base::Window &win) {}
 
 void ViewStack::init(const Base::Window &win)
 {
-	viewRect = Gfx::viewport().bounds();
 	if(size)
 	{
 		view[0]->controller = this;
@@ -109,9 +108,10 @@ NavView *ViewStack::navView() const
 	return nav;
 }
 
-void ViewStack::place(const IG::WindowRect &rect)
+void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
 {
 	viewRect = rect;
+	var_selfs(projP);
 	place();
 }
 
@@ -119,15 +119,17 @@ void ViewStack::place()
 {
 	if(!size)
 		return;
+	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
 	if(useNavView && nav)
 	{
 		nav->setTitle(top().name());
 		nav->viewRect.setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->text.face->nominalHeight()*1.75))}, LT2DO);
-		nav->place();
+		nav->place(projP);
 		customViewRect.y += nav->viewRect.ySize();
 	}
-	top().placeRect(customViewRect);
+	top().setViewRect(customViewRect, projP);
+	top().place();
 }
 
 void ViewStack::inputEvent(const Input::Event &e)
@@ -142,7 +144,7 @@ void ViewStack::inputEvent(const Input::Event &e)
 void ViewStack::draw(Base::FrameTimeBase frameTime)
 {
 	top().draw(frameTime);
-	if(useNavView && nav) nav->draw(top().window());
+	if(useNavView && nav) nav->draw(top().window(), projP);
 }
 
 void ViewStack::push(View &v, StackAllocator *allocator)

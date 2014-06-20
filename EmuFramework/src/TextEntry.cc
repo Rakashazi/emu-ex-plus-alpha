@@ -87,7 +87,7 @@ void TextEntry::inputEvent(const Input::Event &e)
 		if(updateText)
 		{
 			t.setString(str);
-			t.compile();
+			t.compile(projP);
 			Base::mainWindow().postDraw();
 		}
 	}
@@ -97,25 +97,26 @@ void TextEntry::draw()
 {
 	using namespace Gfx;
 	texAlphaProgram.use();
-	t.draw(View::projP.unProjectRect(b).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO);
+	t.draw(projP.unProjectRect(b).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO, projP);
 }
 
 void TextEntry::place()
 {
-	t.compile();
+	t.compile(projP);
 }
 
-void TextEntry::place(IG::WindowRect rect)
+void TextEntry::place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
 {
+	var_selfs(projP);
 	b = rect;
 	place();
 }
 
-CallResult TextEntry::init(const char *initText, ResourceFace *face)
+CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP)
 {
 	string_copy(str, initText, sizeof(str));
 	t.init(str, face);
-	t.compile();
+	t.compile(projP);
 	acceptingInput = 0;
 	return OK;
 }
@@ -139,7 +140,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	#endif
 	message.init(msgText, face);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-	textEntry.init(initialContent, face);
+	textEntry.init(initialContent, face, projP);
 	textEntry.setAcceptingInput(1);
 	#else
 	Input::startSysTextInput(
@@ -185,13 +186,13 @@ void CollectTextInputView::place()
 	}
 	#endif
 	message.maxLineSize = projP.w * 0.95;
-	message.compile();
+	message.compile(projP);
 	IG::WindowRect textRect;
 	int xSize = rect.xSize() * 0.95;
 	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
 	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
-	textEntry.place(textRect);
+	textEntry.place(textRect, projP);
 	#else
 	textRect.setPosRel(rect.pos(C2DO) - IG::WP{0, (int)rect.ySize()/4}, {xSize, ySize}, C2DO);
 	Input::placeSysTextInput(textRect);
@@ -241,10 +242,10 @@ void CollectTextInputView::draw(Base::FrameTimeBase frameTime)
 	setColor(COLOR_WHITE);
 	textEntry.draw();
 	texAlphaProgram.use();
-	message.draw(0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO);
+	message.draw(0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
 	#else
 	setColor(COLOR_WHITE);
-	texAlphaProgram.use(View::projP.makeTranslate());
-	message.draw(0, View::projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO);
+	texAlphaProgram.use(projP.makeTranslate());
+	message.draw(0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
 	#endif
 }

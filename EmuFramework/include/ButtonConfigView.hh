@@ -60,7 +60,7 @@ class ButtonConfigView : public BaseMenuView
 private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
-		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const override;
+		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	};
 
 	TextMenuItem reset;

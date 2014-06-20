@@ -18,7 +18,7 @@ public:
 				{
 					logMsg("set bios %s", ::biosPath);
 					printBiosMenuEntryStr(biosPathStr);
-					biosPath.compile();
+					biosPath.compile(projP);
 				};
 			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 		}

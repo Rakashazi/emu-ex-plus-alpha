@@ -1045,16 +1045,16 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			}
 			int width = 320+(xBorderSize*2 - startX*2);
 			int widthPadding = startX*2;
-			emuView.resizeImage(startX, startY, width, height, c64VidX, c64VidY);
+			emuVideo.resizeImage(startX, startY, width, height, c64VidX, c64VidY);
 		}
 		else
 		{
-			emuView.resizeImage(c64VidX, c64VidY);
+			emuVideo.resizeImage(c64VidX, c64VidY);
 		}
 	}
 	if(renderGfx)
 	{
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 	}
 	runningFrame = 0;
 }
@@ -1090,11 +1090,9 @@ void setupSysFilePaths(FsSys::cPath outPath[3], const char *firmwareBasePath)
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((char*)pix, pixFmt, 320, 200);
+	emuVideo.initPixmap((char*)pix, pixFmt, 320, 200);
 	#ifdef __APPLE__
 	{
 		auto ret = semaphore_create(mach_task_self(), &execSem, SYNC_POLICY_FIFO, 0);
@@ -1389,7 +1387,7 @@ CLINK int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 CLINK void video_canvas_refresh(struct video_canvas_s *canvas, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
 {
-	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuView.vidPix.pitch, pixFmt->bitsPerPixel);
+	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuVideo.vidPix.pitch, pixFmt->bitsPerPixel);
 }
 
 CLINK void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas)
@@ -1397,9 +1395,9 @@ CLINK void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas
 	c64VidX = canvas->draw_buffer->canvas_width;
 	c64VidY = canvas->draw_buffer->canvas_height;
 	logMsg("resized canvas to %d,%d", c64VidX, c64VidY);
-	if(unlikely(!emuView.vidImg))
+	if(unlikely(!emuVideo.vidImg))
 	{
-		emuView.initImage(0, c64VidX, c64VidY);
+		emuVideo.initImage(0, c64VidX, c64VidY);
 	}
 }
 

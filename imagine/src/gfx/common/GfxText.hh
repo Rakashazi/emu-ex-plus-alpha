@@ -4,9 +4,6 @@
 #include <imagine/resource/face/ResourceFace.hh>
 #endif
 
-// TODO: should not depend on UI code for projection plane
-#include <imagine/gui/View.hh>
-
 #include <cctype>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/strings.h>
@@ -42,7 +39,7 @@ void Text::setFace(ResourceFace *face)
 	this->face = face;
 }
 
-static GC xSizeOfChar(ResourceFace *face, int c, GC spaceX)
+static GC xSizeOfChar(ResourceFace *face, int c, GC spaceX, const ProjectionPlane &projP)
 {
 	assert(c != '\0');
 	if(c == ' ')
@@ -52,12 +49,12 @@ static GC xSizeOfChar(ResourceFace *face, int c, GC spaceX)
 
 	GlyphEntry *gly = face->glyphEntry(c);
 	if(gly != NULL)
-		return View::projP.unprojectXSize(gly->metrics.xAdvance);
+		return projP.unprojectXSize(gly->metrics.xAdvance);
 	else
 		return 0;
 }
 
-void Text::compile()
+void Text::compile(const ProjectionPlane &projP)
 {
 	assert(face);
 	assert(str);
@@ -73,12 +70,12 @@ void Text::compile()
 		return;
 	}
 
-	yLineStart = View::projP.alignYToPixel(View::projP.unprojectYSize(gGly->metrics.ySize - gGly->metrics.yOffset));
+	yLineStart = projP.alignYToPixel(projP.unprojectYSize(gGly->metrics.ySize - gGly->metrics.yOffset));
 	
 	int spaceSizeI = mGly->metrics.xSize/2;
-	spaceSize = View::projP.unprojectXSize(spaceSizeI);
+	spaceSize = projP.unprojectXSize(spaceSizeI);
 	uint nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
-	nominalHeight = View::projP.alignYToPixel(View::projP.unprojectYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
+	nominalHeight = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
 	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
 	
@@ -92,7 +89,7 @@ void Text::compile()
 	CallResult res;
 	while((res = string_convertCharCode(&s, c)) == OK)
 	{
-		auto cSize = xSizeOfChar(face, c, spaceSize);
+		auto cSize = xSizeOfChar(face, c, spaceSize, projP);
 		charsInLine++;
 
 		// Is this the start of a text block?
@@ -158,7 +155,7 @@ void Text::compile()
 	ySize = nominalHeight * (GC)lines;
 }
 
-void Text::draw(GC xPos, GC yPos, _2DOrigin o) const
+void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	assert(face && str);
@@ -171,14 +168,14 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o) const
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
-	yPos = o.adjustY(yPos, View::projP.alignYToPixel(ySize/2_gc), ySize, LT2DO);
-	if(IG::isOdd(Gfx::viewport().height()))
-		yPos = View::projP.alignYToPixel(yPos);
+	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2_gc), ySize, LT2DO);
+	if(IG::isOdd(projP.viewport.height()))
+		yPos = projP.alignYToPixel(yPos);
 	yPos -= nominalHeight - yLineStart;
 	GC xOrig = xPos;
 	
 	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
-	auto xViewLimit = View::projP.wHalf();
+	auto xViewLimit = projP.wHalf();
 	const char *s = str;
 	uint totalCharsDrawn = 0;
 	if(lines > 1)
@@ -190,7 +187,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o) const
 		// Get line info (1 line case doesn't use per-line info)
 		GC xLineSize = lines > 1 ? lineInfo[l].size : xSize;
 		uint charsToDraw = lines > 1 ? lineInfo[l].chars : chars;
-		xPos = View::projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
+		xPos = projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
 		//logMsg("line %d, %d chars", l, charsToDraw);
 		iterateTimes(charsToDraw, i)
 		{
@@ -220,18 +217,18 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o) const
 				//logMsg("skipped %c, off right screen edge", s[i]);
 				continue;
 			}
-			GC xSize = View::projP.unprojectXSize(gly->metrics.xSize);
+			GC xSize = projP.unprojectXSize(gly->metrics.xSize);
 
 			spr.setImg(&gly->glyph);
-			auto x = xPos + View::projP.unprojectXSize(gly->metrics.xOffset);
-			auto y = yPos - View::projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
-			spr.setPos(x, y, x + xSize, y + View::projP.unprojectYSize(gly->metrics.ySize));
+			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
+			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
+			spr.setPos(x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize));
 			//logMsg("drawing");
 			spr.draw();
-			xPos += View::projP.unprojectXSize(gly->metrics.xAdvance);
+			xPos += projP.unprojectXSize(gly->metrics.xAdvance);
 		}
 		yPos -= nominalHeight;
-		yPos = View::projP.alignYToPixel(yPos);
+		yPos = projP.alignYToPixel(yPos);
 		totalCharsDrawn += charsToDraw;
 	}
 	assert(totalCharsDrawn <= chars);

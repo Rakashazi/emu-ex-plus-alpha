@@ -35,7 +35,7 @@ void AlertView::place()
 {
 	int xSize = rect.xSize() * .8;
 	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95;
-	text.compile();
+	text.compile(projP);
 
 	int menuYSize = menu.items * menu.item[0]->ySize()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5)));
@@ -48,7 +48,8 @@ void AlertView::place()
 	IG::WindowRect menuViewFrame;
 	menuViewFrame.setPosRel({viewFrame.x, viewFrame.y + (int)labelYSize},
 			{viewFrame.xSize(), menuYSize}, LT2DO);
-	menu.placeRect(menuViewFrame);
+	menu.setViewRect(menuViewFrame, projP);
+	menu.place();
 }
 
 void AlertView::inputEvent(const Input::Event &e)
@@ -68,14 +69,14 @@ void AlertView::draw(Base::FrameTimeBase frameTime)
 {
 	using namespace Gfx;
 	setBlendMode(BLEND_MODE_ALPHA);
-	noTexProgram.use(View::projP.makeTranslate());
+	noTexProgram.use(projP.makeTranslate());
 	setColor(.4, .4, .4, .8);
 	GeomRect::draw(labelFrame);
 	setColor(.1, .1, .1, .6);
 	GeomRect::draw(menu.viewRect(), projP);
 	setColor(COLOR_WHITE);
 	texAlphaReplaceProgram.use();
-	text.draw(labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO);
+	text.draw(labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw(frameTime);

@@ -316,11 +316,11 @@ int EmuSystem::loadGame(const char *path)
 		emuSys->SetInput(i, "gamepad", &inputBuff[i]);
 	}
 
-	if(unlikely(!emuView.disp.image()))
+	if(unlikely(!emuVideo.vidImg))
 	{
 		logMsg("doing initial video setup for emulator");
 		PCE_Fast::applyVideoFormat(mSurface);
-		emuView.initImage(0, 0, 0, 256, 224, 256, 224);
+		emuVideo.initImage(0, 0, 0, 256, 224, 256, 224);
 	}
 
 	{
@@ -375,12 +375,12 @@ void EmuSystem::configAudioRate()
 
 static bool updateEmuPixmap(uint width, uint height, char *pixBuff)
 {
-	if(unlikely(width != emuView.vidPix.x || height != emuView.vidPix.y
-		|| pixBuff != emuView.vidPix.data))
+	if(unlikely(width != emuVideo.vidPix.x || height != emuVideo.vidPix.y
+		|| pixBuff != emuVideo.vidPix.data))
 	{
 		//logMsg("display rect %d:%d:%d:%d", displayRect.x, displayRect.y, displayRect.w, displayRect.h);
-		emuView.initPixmap(pixBuff, pixFmt, width, height);
-		emuView.resizeImage(0, 0, width, height, width, height);
+		emuVideo.initPixmap(pixBuff, pixFmt, width, height);
+		emuVideo.resizeImage(0, 0, width, height, width, height);
 		return true;
 	}
 	return false;
@@ -504,7 +504,7 @@ void MDFND_commitVideoFrame(const MDFN_FrameInfo &info)
 		updateEmuPixmap(pixWidth, info.displayRect.h, (char*)pixBuff);
 	}
 
-	emuView.updateAndDrawContent();
+	updateAndDrawEmuVideo();
 }
 
 #ifdef INPUT_SUPPORTS_POINTER
@@ -643,7 +643,7 @@ namespace Base
 CallResult onInit(int argc, char** argv)
 {
 	initVideoFormat();
-	emuView.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
+	emuVideo.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 	emuSys->name = (uint8*)EmuSystem::gameName;
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =

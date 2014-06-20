@@ -17,14 +17,35 @@
 #include <EmuApp.hh>
 #include <imagine/io/sys.hh>
 
-void VideoImageEffect::setEffect(uint effect)
+struct EffectDesc
 {
-	effect_ = effect;
+	const char *vShaderFilename;
+	const char *fShaderFilename;
+	IG::Point2D<uint> scale;
+
+	bool needsRenderTarget() const
+	{
+		return scale.x;
+	}
+};
+
+static const EffectDesc
+	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
+
+void VideoImageEffect::setEffect(uint effect, bool isExternalTex)
+{
+	if(effect == effect_)
+		return;
 	deinit();
+	effect_ = effect;
+	compile(isExternalTex);
 }
 
 void VideoImageEffect::deinit()
 {
+	renderTarget_.deinit();
+	renderTargetScale = {0, 0};
+	renderTargetImgSize = {0, 0};
 	iterateTimes(2, i)
 	{
 		prog[i].deinit();
@@ -46,105 +67,191 @@ uint VideoImageEffect::effect()
 	return effect_;
 }
 
-void VideoImageEffect::compile(const Gfx::BufferImage &img)
+void VideoImageEffect::initRenderTargetTexture()
+{
+	renderTargetImgSize.x = inputImgSize.x * renderTargetScale.x;
+	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
+	IG::PixmapDesc renderPix{useRGB565RenderTarget ? PixelFormatRGB565 : PixelFormatRGBA8888};
+	renderPix.x = renderTargetImgSize.x;
+	renderPix.y = renderTargetImgSize.y;
+	renderPix.pitch = renderPix.x * renderPix.format.bytesPerPixel;
+	renderTarget_.initTexture(renderPix, useLinearFilter ? Gfx::BufferImage::LINEAR : Gfx::BufferImage::NEAREST);
+}
+
+void VideoImageEffect::compile(bool isExternalTex)
 {
 	if(hasProgram())
 		return; // already compiled
+	const EffectDesc *desc = nullptr;
 	switch(effect_)
 	{
 		bcase HQ2X:
 		{
 			logMsg("compiling effect HQ2X");
-			{
-				auto file = IOFile(openAppAssetIo("hq2x-v.txt"));
-				if(!file)
-				{
-					deinit();
-					popup.postError("Can't open file: hq2x-v.txt");
-					return;
-				}
-				auto fileSize = file.size();
-				char text[fileSize + 1];
-				file.read(text, fileSize);
-				text[fileSize] = 0;
-				file.close();
-				//logMsg("read source:\n%s", text);
-				logMsg("making vertex shader");
-				vShader[0] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_MODULATE);
-				logMsg("making vertex shader (replace mode)");
-				vShader[1] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_REPLACE);
-				if(!vShader[0] || !vShader[1])
-				{
-					deinit();
-					popup.postError("GPU rejected shader (vertex compile error)");
-					Gfx::autoReleaseShaderCompiler();
-					return;
-				}
-			}
-			{
-				auto file = IOFile(openAppAssetIo("hq2x-f.txt"));
-				if(!file)
-				{
-					deinit();
-					popup.postError("Can't open file: hq2x-f.txt");
-					Gfx::autoReleaseShaderCompiler();
-					return;
-				}
-				auto fileSize = file.size();
-				char text[fileSize + 1];
-				file.read(text, fileSize);
-				text[fileSize] = 0;
-				file.close();
-				//logMsg("read source:\n%s", text);
-				logMsg("making fragment shader");
-				fShader[0] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_MODULATE, img);
-				logMsg("making fragment shader (replace mode)");
-				fShader[1] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_REPLACE, img);
-				if(!fShader[0] || !fShader[1])
-				{
-					deinit();
-					popup.postError("GPU rejected shader (fragment compile error)");
-					Gfx::autoReleaseShaderCompiler();
-					return;
-				}
-			}
-			iterateTimes(2, i)
-			{
-				logMsg("linking program: %d", i);
-				prog[i].init(vShader[i], fShader[i], i == 0, true);
-				if(!prog[i].link())
-				{
-					deinit();
-					popup.postError("GPU rejected shader (link error)");
-					Gfx::autoReleaseShaderCompiler();
-					return;
-				}
-				texDeltaU[i] = prog[i].uniformLocation("texDelta");
-			}
-			Gfx::autoReleaseShaderCompiler();
+			desc = &hq2xDesc;
 		}
 		bdefault:
 			break;
 	}
+
+	if(!desc)
+	{
+		logErr("effect descriptor not found");
+		return;
+	}
+
+	if(desc->needsRenderTarget())
+	{
+		renderTargetScale = desc->scale;
+		renderTarget_.init();
+		initRenderTargetTexture();
+	}
+	{
+		auto file = IOFile(openAppAssetIo(desc->vShaderFilename));
+		if(!file)
+		{
+			deinit();
+			popup.printf(3, true, "Can't open file: %s", desc->vShaderFilename);
+			return;
+		}
+		auto fileSize = file.size();
+		char text[fileSize + 1];
+		file.read(text, fileSize);
+		text[fileSize] = 0;
+		file.close();
+		//logMsg("read source:\n%s", text);
+		logMsg("making vertex shader (replace mode)");
+		vShader[0] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_REPLACE);
+		if(!desc->needsRenderTarget())
+		{
+			logMsg("making vertex shader (modulate mode)");
+			vShader[1] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_MODULATE);
+		}
+		iterateTimes(programs(), i)
+		{
+			if(!vShader[i])
+			{
+				deinit();
+				popup.postError("GPU rejected shader (vertex compile error)");
+				Gfx::autoReleaseShaderCompiler();
+				return;
+			}
+		}
+	}
+	{
+		auto file = IOFile(openAppAssetIo(desc->fShaderFilename));
+		if(!file)
+		{
+			deinit();
+			popup.printf(3, true, "Can't open file: %s", desc->fShaderFilename);
+			Gfx::autoReleaseShaderCompiler();
+			return;
+		}
+		auto fileSize = file.size();
+		char text[fileSize + 1];
+		file.read(text, fileSize);
+		text[fileSize] = 0;
+		file.close();
+		//logMsg("read source:\n%s", text);
+		logMsg("making fragment shader (replace mode)");
+		fShader[0] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_REPLACE, isExternalTex);
+		if(!desc->needsRenderTarget())
+		{
+			logMsg("making fragment shader (modulate mode)");
+			fShader[1] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_MODULATE, isExternalTex);
+		}
+		iterateTimes(programs(), i)
+		{
+			if(!fShader[i])
+			{
+				deinit();
+				popup.postError("GPU rejected shader (fragment compile error)");
+				Gfx::autoReleaseShaderCompiler();
+				return;
+			}
+		}
+	}
+	iterateTimes(programs(), i)
+	{
+		logMsg("linking program: %d", i);
+		prog[i].init(vShader[i], fShader[i], i == 0, true);
+		if(!prog[i].link())
+		{
+			deinit();
+			popup.postError("GPU rejected shader (link error)");
+			Gfx::autoReleaseShaderCompiler();
+			return;
+		}
+		texDeltaU[i] = prog[i].uniformLocation("texDelta");
+		updateProgramUniforms();
+	}
+	Gfx::autoReleaseShaderCompiler();
 }
 
-void VideoImageEffect::place(const IG::Pixmap &pix)
+void VideoImageEffect::updateProgramUniforms()
 {
-	if(!hasProgram())
-		return;
-	iterateTimes(2, i)
+	iterateTimes(programs(), i)
 	{
 		setProgram(prog[i]);
-		Gfx::uniformF(texDeltaU[i], 0.5f * (1.0f / (float)pix.x), 0.5f * (1.0f / (float)pix.y));
+		Gfx::uniformF(texDeltaU[i], 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
 	}
+}
+
+void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
+{
+	if(inputImgSize.x == size.x && inputImgSize.y == size.y)
+		return;
+	inputImgSize = {size.x, size.y};
+	if(hasProgram())
+		updateProgramUniforms();
+	if(renderTarget_)
+		initRenderTargetTexture();
+}
+
+void VideoImageEffect::setLinearFilter(bool on)
+{
+	if(useLinearFilter == on)
+		return;
+	useLinearFilter = on;
+	if(renderTarget_)
+	{
+		renderTarget_.texture().setLinearFilter(useLinearFilter);
+	}
+}
+
+void VideoImageEffect::setBitDepth(uint bitDepth)
+{
+	useRGB565RenderTarget = bitDepth <= 16;
 }
 
 Gfx::Program &VideoImageEffect::program(uint imgMode)
 {
-	return prog[(imgMode == Gfx::IMG_MODE_MODULATE) ? 0 : 1];
+	return prog[(imgMode == Gfx::IMG_MODE_MODULATE && !renderTarget_) ? 1 : 0];
+}
+
+uint VideoImageEffect::programs() const
+{
+	return renderTarget_ ? 1 : 2;
 }
 
 bool VideoImageEffect::hasProgram() const
 {
 	return prog[0];
+}
+
+Gfx::RenderTarget &VideoImageEffect::renderTarget()
+{
+	return renderTarget_;
+}
+
+void VideoImageEffect::drawRenderTarget(Gfx::BufferImage &img)
+{
+	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
+	Gfx::setViewport(viewport);
+	Gfx::setProjectionMatrix({});
+	Gfx::Sprite spr;
+	spr.init(-1., -1., 1., 1.);
+	spr.setImg(&img, 0., 1., 1., 0.);
+	spr.draw();
+	spr.setImg(nullptr);
 }

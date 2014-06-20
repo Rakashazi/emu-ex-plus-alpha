@@ -109,6 +109,18 @@ public:
 		return makeFromWindow(win, win.contentBounds());
 	}
 
+	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &subRect);
+
+	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &subRect)
+	{
+		return makeFromRect(fullRect, fullRect, subRect);
+	}
+
+	static Viewport makeFromRect(const IG::WindowRect &fullRect)
+	{
+		return makeFromRect(fullRect, fullRect, fullRect);
+	}
+
 	bool operator ==(Viewport const& rhs) const
 	{
 		return rect == rhs.rect;

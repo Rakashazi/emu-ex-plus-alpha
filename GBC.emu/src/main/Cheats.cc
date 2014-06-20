@@ -177,7 +177,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 						string_toUpper(cheat->code);
 						cheatsModified = 1;
 						applyCheats();
-						ggCode.compile();
+						ggCode.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();

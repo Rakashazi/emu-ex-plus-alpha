@@ -819,7 +819,7 @@ static void activityInit(ANativeActivity* activity)
 						if(s->frameIsPosted())
 						{
 							isPostedCheck = true;
-							s->frameUpdate(frameTimeNanos, false);
+							s->frameUpdate(frameTimeNanos);
 							s->prevFrameTime = s->frameIsPosted() ? frameTimeNanos : 0;
 							postNextFrame |= s->frameIsPosted();
 						}
@@ -860,7 +860,8 @@ static void activityInit(ANativeActivity* activity)
 						auto &screen = mainScreen();
 						assert(screen.frameIsPosted());
 						// force window draw so buffers swap and currFrameTime is updated after vsync
-						screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs(), true);
+						deviceWindow()->setNeedsDraw(true);
+						screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs());
 						framePostedEvent = screen.frameIsPosted();
 						return (jboolean)screen.frameIsPosted();
 					})
@@ -896,7 +897,8 @@ static void activityInit(ANativeActivity* activity)
 					auto &screen = mainScreen();
 					assert(screen.frameIsPosted());
 					// force window draw so buffers swap and currFrameTime is updated after vsync
-					screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs(), true);
+					deviceWindow()->setNeedsDraw(true);
+					screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs());
 					framePostedEvent = screen.frameIsPosted();
 					if(!screen.frameIsPosted())
 					{

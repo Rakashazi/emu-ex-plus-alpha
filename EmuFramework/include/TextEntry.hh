@@ -26,15 +26,16 @@ public:
 	char str[128] {0};
 	bool acceptingInput = 0;
 	bool multiLine = 0;
+	Gfx::ProjectionPlane projP;
 
 	constexpr TextEntry() {}
-	CallResult init(const char *initText, ResourceFace *face);
+	CallResult init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP);
 	void deinit();
 	void setAcceptingInput(bool on);
 	void inputEvent(const Input::Event &e);
 	void draw();
 	void place();
-	void place(IG::WindowRect rect);
+	void place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
 };
 
 class CollectTextInputView : public View

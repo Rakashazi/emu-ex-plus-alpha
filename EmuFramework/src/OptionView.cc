@@ -684,8 +684,8 @@ OptionView::OptionView(Base::Window &win):
 				item.toggle(*this);
 				Gfx::setUseAndroidDirectTexture(item.on);
 				optionDirectTexture = item.on;
-				if(emuView.vidImg)
-					emuView.reinitImage();
+				if(emuVideo.vidImg)
+					emuVideo.reinitImage();
 			}
 		},
 		#endif
@@ -698,15 +698,15 @@ OptionView::OptionView(Base::Window &win):
 				item.toggle(*this);
 				optionSurfaceTexture = item.on;
 				Gfx::setUseAndroidSurfaceTexture(item.on);
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-				// re-apply effect so any shaders are re-compiled
-				emuView.vidImgEffect.setEffect(optionImgEffect);
-				#endif
-				if(emuView.vidImg)
+				if(emuVideo.vidImg)
 				{
-					emuView.reinitImage();
 					#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-					emuView.placeEffect();
+					emuVideoLayer.setEffect(0);
+					#endif
+					emuVideo.reinitImage();
+					#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+					// re-apply effect so any shaders are re-compiled
+					emuVideoLayer.setEffect(optionImgEffect);
 					#endif
 				}
 			}
@@ -743,18 +743,18 @@ OptionView::OptionView(Base::Window &win):
 	aspectRatio
 	{
 		"Aspect Ratio",
-		[](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, int val)
 		{
 			optionAspectRatio.val = EmuSystem::aspectRatioInfo[val].aspect;
 			logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
-			emuView.placeEmu();
-			emuView.videoWin->postDraw();
+			emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+			emuWin->win.postDraw();
 		}
 	},
 	zoom
 	{
 		"Zoom",
-		[](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, int val)
 		{
 			switch(val)
 			{
@@ -766,8 +766,8 @@ OptionView::OptionView(Base::Window &win):
 				bcase 5: optionImageZoom.val = optionImageZoomIntegerOnlyY;
 			}
 			logMsg("set image zoom: %d", int(optionImageZoom));
-			emuView.placeEmu();
-			emuView.videoWin->postDraw();
+			emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+			emuWin->win.postDraw();
 		}
 	},
 	viewportZoom
@@ -783,7 +783,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 3: optionViewportZoom.val = 85;
 			}
 			logMsg("set viewport zoom: %d", int(optionViewportZoom));
-			updateWindowViewport(mainWin, false);
+			startViewportAnimation(mainWin);
 			window().postDraw();
 		}
 	},
@@ -794,13 +794,8 @@ OptionView::OptionView(Base::Window &win):
 		{
 			item.toggle(*this);
 			optionImgFilter.val = item.on;
-			if(emuView.disp.image()
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-				&& !emuView.vidImgEffect.effect()
-				#endif
-				)
-				emuView.vidImg.setFilter(item.on);
-			emuView.videoWin->postDraw();
+			emuVideoLayer.setLinearFilter(item.on);
+			emuWin->win.postDraw();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -815,13 +810,8 @@ OptionView::OptionView(Base::Window &win):
 				bcase 1: setVal = VideoImageEffect::HQ2X;
 			}
 			optionImgEffect.val = setVal;
-			emuView.vidImgEffect.setEffect(setVal);
-			if(emuView.disp.image())
-			{
-				emuView.compileDefaultPrograms();
-				emuView.placeEffect();
-			}
-			emuView.videoWin->postDraw();
+			emuVideoLayer.setEffect(setVal);
+			emuWin->win.postDraw();
 		}
 	},
 	#endif
@@ -840,9 +830,9 @@ OptionView::OptionView(Base::Window &win):
 				bcase 5: setVal = VideoImageOverlay::CRT_RGB_2;
 			}
 			optionOverlayEffect.val = setVal;
-			emuView.vidImgOverlay.setEffect(setVal);
-			emuView.placeOverlay();
-			emuView.videoWin->postDraw();
+			emuVideoLayer.vidImgOverlay.setEffect(setVal);
+			emuVideoLayer.placeOverlay();
+			emuWin->win.postDraw();
 		}
 	},
 	overlayEffectLevel
@@ -861,8 +851,8 @@ OptionView::OptionView(Base::Window &win):
 				bcase 6: setVal = 100;
 			}
 			optionOverlayEffectLevel.val = setVal;
-			emuView.vidImgOverlay.intensity = setVal/100.;
-			emuView.videoWin->postDraw();
+			emuVideoLayer.vidImgOverlay.intensity = setVal/100.;
+			emuWin->win.postDraw();
 		}
 	},
 	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
@@ -1105,7 +1095,7 @@ OptionView::OptionView(Base::Window &win):
 				[this](const char *newPath)
 				{
 					printPathMenuEntryStr(savePathStr);
-					savePath.compile();
+					savePath.compile(projP);
 					EmuSystem::savePathChanged();
 				};
 			postDraw();
@@ -1173,7 +1163,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 17: optionFontSize = 10500;
 			}
 			setupFont();
-			placeElements(mainWin.viewport);
+			placeElements(mainWin.viewport());
 		}
 	},
 	notificationIcon
@@ -1230,7 +1220,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			optionTitleBar = item.on;
 			viewStack.setNavView(item.on ? &viewNav : 0);
-			placeElements(mainWin.viewport);
+			placeElements(mainWin.viewport());
 		}
 	},
 	backNav
@@ -1241,7 +1231,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
 			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
-			placeElements(mainWin.viewport);
+			placeElements(mainWin.viewport());
 		}
 	},
 	rememberLastMenu

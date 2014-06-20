@@ -37,8 +37,8 @@ void ScrollableGuiTable1D::draw(View &view)
 	// TODO
 	//setClipRectBounds(view.window(), ScrollView1D::viewFrame);
 	//setClipRect(1);
-	ScrollView1D::draw();
-	GuiTable1D::draw();
+	ScrollView1D::draw(view.projP);
+	GuiTable1D::draw(view.projP);
 	//setClipRect(0);
 }
 

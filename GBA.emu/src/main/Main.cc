@@ -382,7 +382,7 @@ static int loadGameCommon(int size)
 		popup.postError("Error loading ROM");
 		return 0;
 	}
-	emuView.initImage(0, 240, 160);
+	emuVideo.initImage(0, 240, 160);
 	setGameSpecificSettings(gGba);
 	if(!applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName(), gGba.mem.rom, size))
 	{
@@ -416,7 +416,7 @@ int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
 
 static void commitVideoFrame()
 {
-	emuView.updateAndDrawContent();
+	updateAndDrawEmuVideo();
 }
 
 void systemDrawScreen()
@@ -447,11 +447,9 @@ void EmuSystem::savePathChanged() { }
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((char*)gGba.lcd.pix, pixFmt, 240, 160);
+	emuVideo.initPixmap((char*)gGba.lcd.pix, pixFmt, 240, 160);
 	utilUpdateSystemColorMaps(0);
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =

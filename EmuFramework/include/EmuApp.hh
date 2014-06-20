@@ -21,6 +21,8 @@
 #include <imagine/gui/ViewStack.hh>
 #include <EmuSystem.hh>
 #include <EmuView.hh>
+#include <EmuVideo.hh>
+#include <EmuVideoLayer.hh>
 #include <MsgPopup.hh>
 #include <InputManagerView.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -36,20 +38,24 @@ public:
 	constexpr EmuNavView() {}
 	void onLeftNavBtn(const Input::Event &e) override;
 	void onRightNavBtn(const Input::Event &e) override;
-	void draw(const Base::Window &win) override;
+	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 };
 
 struct AppWindowData
 {
 	Base::Window win;
-	Gfx::Viewport viewport;
+	Gfx::Viewport viewport() { return projectionPlane.viewport; }
 	Gfx::Mat4 projectionMat;
+	Gfx::ProjectionPlane projectionPlane;
 	TimedInterpolator<int> viewportDelta[4];
 };
 
 extern AppWindowData mainWin, extraWin;
+extern AppWindowData *emuWin;
 extern EmuNavView viewNav;
 extern EmuView emuView;
+extern EmuVideo emuVideo;
+extern EmuVideoLayer emuVideoLayer;
 extern ViewStack viewStack;
 extern BasicViewController modalViewController;
 extern MsgPopup popup;
@@ -76,7 +82,8 @@ View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
 void setEmuViewOnExtraWindow(bool on);
 void placeElements(const Gfx::Viewport &viewport);
-void updateWindowViewport(AppWindowData &winData, bool surfaceResized);
+void startViewportAnimation(AppWindowData &winData);
+void updateAndDrawEmuVideo();
 
 template <size_t NAV_GRAD_SIZE>
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE], MenuShownDelegate menuShownDel)

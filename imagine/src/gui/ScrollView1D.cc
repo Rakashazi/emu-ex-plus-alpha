@@ -312,12 +312,12 @@ void ScrollView1D::updateGfx(View &view)
 	updateView();
 }
 
-void ScrollView1D::draw()
+void ScrollView1D::draw(const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	if(contentIsBiggerThanView && (scroll.allowScrollWholeArea || scroll.active))
 	{
-		noTexProgram.use(View::projP.makeTranslate());
+		noTexProgram.use(projP.makeTranslate());
 		setBlendMode(0);
 		if(scroll.scrollWholeArea)
 		{
@@ -329,7 +329,7 @@ void ScrollView1D::draw()
 		else
 			setColor(.5, .5, .5);
 		scrollBarRect.setYPos(IG::scalePointRange((Gfx::GC)scroll.offset, (Gfx::GC)0, Gfx::GC(scroll.maxClip), (Gfx::GC)viewFrame.y, Gfx::GC(viewFrame.y2 - scrollBarRect.ySize())));
-		GeomRect::draw(scrollBarRect, View::projP);
+		GeomRect::draw(scrollBarRect, projP);
 		//setColor(COLOR_WHITE);
 	}
 }

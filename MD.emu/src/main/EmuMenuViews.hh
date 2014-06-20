@@ -134,7 +134,7 @@ public:
 				auto idx = regionCodeToIdx(region);
 				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region));
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
-				cdBiosPath[idx].compile();
+				cdBiosPath[idx].compile(projP);
 			};
 		viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
 	}

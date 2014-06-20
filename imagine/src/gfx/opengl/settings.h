@@ -47,7 +47,7 @@ static uint maxOpenGLMajorVersionSupport()
 	#endif
 }
 
-void setViewport(const Base::Window &win, const Viewport &v)
+void setViewport(const Viewport &v)
 {
 	auto inGLFormat = v.inGLFormat();
 	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
@@ -59,6 +59,29 @@ void setViewport(const Base::Window &win, const Viewport &v)
 const Viewport &viewport()
 {
 	return currViewport;
+}
+
+Viewport Viewport::makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &rect)
+{
+	Viewport v;
+	v.rect = rect;
+	v.w = rect.xSize();
+	v.h = rect.ySize();
+	float wScaler = v.w / (float)fullRect.xSize();
+	float hScaler = v.h / (float)fullRect.ySize();
+	v.wMM = 1;
+	v.hMM = 1;
+	#ifdef __ANDROID__
+	v.wSMM = 1;
+	v.hSMM = 1;
+	#endif
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
+	v.rotateView = 0;
+	#endif
+	// glViewport() needs flipped Y and relative size
+	v.relYFlipViewport = {v.realBounds().x, fullRealRect.ySize() - v.realBounds().y2, v.realWidth(), v.realHeight()};
+	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
+	return v;
 }
 
 Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect &rect)

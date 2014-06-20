@@ -12,7 +12,7 @@ void SystemEditCheatView::renamed(const char *str)
 	auto &cheat = cheatsList[idx];
 	string_copy(cheat.desc, str);
 	name.t.setString(cheat.desc);
-	name.compile();
+	name.compile(projP);
 }
 
 void SystemEditCheatView::removed()

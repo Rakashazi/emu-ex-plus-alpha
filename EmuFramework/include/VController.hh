@@ -179,7 +179,7 @@ public:
 	void setFFBtnPos(IG::Point2D<int> pos);
 	void inputAction(uint action, uint vBtn);
 	void resetInput(bool init = 0);
-	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels);
+	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	void place();
 	#ifdef CONFIG_VCONTROLLER_KEYBOARD
 	void toggleKeyboard();
@@ -193,7 +193,7 @@ public:
 	void setPos(int elemIdx, IG::Point2D<int> pos);
 	void setState(int elemIdx, uint state);
 	uint state(int elemIdx);
-	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels);
+	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 };
 
 typedef VController SysVController;

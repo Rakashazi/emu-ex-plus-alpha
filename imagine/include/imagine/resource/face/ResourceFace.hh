@@ -62,7 +62,7 @@ private:
 	uint32 usedGlyphTableBits = 0;
 
 	void calcNominalHeight();
-	void initGlyphTable();
+	bool initGlyphTable();
 	CallResult cacheChar(int c, int tableIdx);
 };
 

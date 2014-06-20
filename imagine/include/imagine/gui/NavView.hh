@@ -40,9 +40,9 @@ public:
 	void init(ResourceFace *face);
 	virtual void deinit() = 0;
 	void deinitText();
-	virtual void place();
+	virtual void place(const Gfx::ProjectionPlane &projP);
 	void inputEvent(const Input::Event &e);
-	virtual void draw(const Base::Window &win) = 0;
+	virtual void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
 };
 
 class BasicNavView : public NavView
@@ -55,7 +55,7 @@ public:
 	void init(ResourceFace *face, Gfx::BufferImage *leftRes, Gfx::BufferImage *rightRes,
 			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 	void setBackImage(Gfx::BufferImage *img);
-	void draw(const Base::Window &win) override;
-	void place() override;
+	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
+	void place(const Gfx::ProjectionPlane &projP) override;
 	void deinit() override;
 };

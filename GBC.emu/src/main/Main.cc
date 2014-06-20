@@ -388,7 +388,7 @@ static int loadGameCommon(gambatte::LoadRes result)
 		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
 		return 0;
 	}
-	emuView.initImage(0, gbResX, gbResY);
+	emuVideo.initImage(0, gbResX, gbResY);
 	if(!gbEmu.isCgb())
 	{
 		gameBuiltinPalette = findGbcTitlePal(gbEmu.romTitle().c_str());
@@ -446,7 +446,7 @@ void EmuSystem::configAudioRate()
 
 static void commitVideoFrame()
 {
-	emuView.updateAndDrawContent();
+	updateAndDrawEmuVideo();
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -484,11 +484,9 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
-
 CallResult onInit(int argc, char** argv)
 {
-	emuView.initPixmap((char*)screenBuff, pixFmt, gbResX, gbResY);
+	emuVideo.initPixmap((char*)screenBuff, pixFmt, gbResX, gbResY);
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{

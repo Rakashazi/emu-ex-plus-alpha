@@ -15,29 +15,24 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxBufferImage.hh>
-#include <VideoImageOverlay.hh>
-#include <VideoImageEffect.hh>
-#include <imagine/gui/View.hh>
-#include <EmuOptions.hh>
-#include <EmuVideoLayer.hh>
-#include <EmuInputView.hh>
 
-class EmuView : public View
+class EmuVideo
 {
 public:
-	EmuVideoLayer *layer = nullptr;
-	EmuInputView *inputView = nullptr;
-
-private:
-	IG::WindowRect rect;
+	Gfx::BufferImage vidImg;
+	IG::Pixmap vidPix {PixelFormatRGB565};
+	char *pixBuff = nullptr;
+	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
 
 public:
-	constexpr EmuView(Base::Window &win): View(win) {}
-	void deinit() override {}
-	IG::WindowRect &viewRect() override { return rect; }
-	void place() override;
-	void draw(Base::FrameTimeBase frameTime) override;
-	void inputEvent(const Input::Event &e) override;
+	constexpr EmuVideo() {}
+	void initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch = 0);
+	void reinitImage();
+	void resizeImage(uint x, uint y, uint pitch = 0);
+	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void initImage(bool force, uint x, uint y, uint pitch = 0);
+	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void takeGameScreenshot();
+	bool isExternalTexture();
 };

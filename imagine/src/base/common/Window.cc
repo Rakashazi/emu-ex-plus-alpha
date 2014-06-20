@@ -107,14 +107,28 @@ bool Window::needsDraw()
 	return drawPosted;
 }
 
-void Window::dispatchSurfaceChange()
+void Window::setNeedsCustomViewportResize(bool needsResize)
 {
-	onSurfaceChange(*this, surfaceChange);
-	surfaceChange = {};
+	if(needsResize)
+	{
+		surfaceChange.addCustomViewportResized();
+		setNeedsDraw(true);
+	}
+	else
+		surfaceChange.removeCustomViewportResized();
+
 }
 
-void Window::draw(FrameTimeBase frameTime)
+void Window::dispatchSurfaceChange()
 {
+	onSurfaceChange(*this, moveAndClear(surfaceChange));
+}
+
+void Window::dispatchOnDraw(FrameTimeBase frameTime)
+{
+	if(!needsDraw())
+		return;
+	setNeedsDraw(false);
 	DrawParams params;
 	params.frameTime_ = frameTime;
 	if(unlikely(surfaceChange.flags))
@@ -122,7 +136,6 @@ void Window::draw(FrameTimeBase frameTime)
 		dispatchSurfaceChange();
 		params.wasResized_ = true;
 	}
-	setNeedsDraw(false);
 	onDraw(*this, params);
 }
 

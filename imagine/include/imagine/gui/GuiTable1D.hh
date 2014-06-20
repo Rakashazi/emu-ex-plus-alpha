@@ -45,17 +45,17 @@ public:
 	void setXCellSize(int s);
 	void setYCellSize(int s);
 	bool inputEvent(const Input::Event &event, View &view);
-	void draw();
+	void draw(const Gfx::ProjectionPlane &projP);
 	IG::WindowRect focusRect();
 
-	static void setDefaultXIndent()
+	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP)
 	{
 		GuiTable1D::globalXIndent =
-			(Config::MACHINE_IS_OUYA) ? View::projP.xSMMSize(4) :
-			(Config::MACHINE_IS_PANDORA) ? View::projP.xSMMSize(2) :
-			(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(View::projP.xSMMSize(1)) :
-			(Config::envIsPS3) ? /*floor*/(View::projP.xSMMSize(16)) :
-			/*floor*/(View::projP.xSMMSize(4));
+			(Config::MACHINE_IS_OUYA) ? projP.xSMMSize(4) :
+			(Config::MACHINE_IS_PANDORA) ? projP.xSMMSize(2) :
+			(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(projP.xSMMSize(1)) :
+			(Config::envIsPS3) ? /*floor*/(projP.xSMMSize(16)) :
+			/*floor*/(projP.xSMMSize(4));
 	}
 
 	void clearSelection()
@@ -64,8 +64,8 @@ public:
 	}
 
 private:
-	int visibleCells() const;
-	int offscreenCells() const;
+	int visibleCells(const Gfx::ProjectionPlane &projP) const;
+	int offscreenCells(const Gfx::ProjectionPlane &projP) const;
 };
 
 class ScrollableGuiTable1D : public GuiTable1D, public ScrollView1D

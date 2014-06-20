@@ -76,13 +76,13 @@ void ButtonConfigSetView::deinit()
 
 void ButtonConfigSetView::place()
 {
-	text.compile();
+	text.compile(projP);
 
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pointerUIIsInit())
 	{
-		unbind.compile();
-		cancel.compile();
+		unbind.compile(projP);
+		cancel.compile(projP);
 
 		IG::WindowRect btnFrame;
 		btnFrame.setPosRel(viewFrame.pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight*2)), LB2DO);
@@ -169,19 +169,19 @@ void ButtonConfigSetView::draw(Base::FrameTimeBase frameTime)
 	#ifdef INPUT_SUPPORTS_POINTER
 	if(pointerUIIsInit())
 	{
-		unbind.draw(projP.unProjectRect(unbindB).pos(C2DO), C2DO);
-		cancel.draw(projP.unProjectRect(cancelB).pos(C2DO), C2DO);
+		unbind.draw(projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
+		cancel.draw(projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
 	}
 	#endif
-	text.draw(0, 0, C2DO);
+	text.draw(0, 0, C2DO, projP);
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align);
+	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
 	setColor(1., 1., 0.); // yellow
-	DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align);
+	DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
 template <size_t S>
@@ -250,7 +250,7 @@ void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.button), e.button);
 	keyEntry = e.button;
 	btn[keyToSet].t2.setString(devConf->dev->keyName(e.button));
-	btn[keyToSet].t2.compile();
+	btn[keyToSet].t2.compile(projP);
 	keyMapping.buildAll();
 }
 
@@ -342,7 +342,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win):
 					iterateTimes(cat->keys, i)
 					{
 						btn[i].t2.setString(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-						btn[i].t2.compile();
+						btn[i].t2.compile(projP);
 					}
 					keyMapping.buildAll();
 				};

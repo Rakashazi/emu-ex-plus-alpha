@@ -83,7 +83,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 				{
 					logMsg("setting cheat name %s", str);
 					renamed(str);
-					name.compile();
+					name.compile(projP);
 					window().postDraw();
 				}
 				view.dismiss();

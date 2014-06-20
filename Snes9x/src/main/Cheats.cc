@@ -10,7 +10,7 @@ void SystemEditCheatView::renamed(const char *str)
 {
 	string_copy(Cheat.c[idx].name, str);
 	name.t.setString(Cheat.c[idx].name);
-	name.compile();
+	name.compile(projP);
 }
 
 void SystemEditCheatView::removed()
@@ -76,7 +76,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						{
 							S9xEnableCheat(idx);
 						}
-						addr.compile();
+						addr.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -115,7 +115,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						{
 							S9xEnableCheat(idx);
 						}
-						value.compile();
+						value.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -171,7 +171,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						{
 							S9xEnableCheat(idx);
 						}
-						saved.compile();
+						saved.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();

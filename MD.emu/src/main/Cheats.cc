@@ -570,7 +570,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 
 						cheatsModified = 1;
 						updateCheats();
-						code.compile();
+						code.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();

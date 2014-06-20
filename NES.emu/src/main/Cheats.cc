@@ -40,7 +40,7 @@ void SystemEditCheatView::renamed(const char *str)
 	syncCheat(str);
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	name.t.setString(nameStr);
-	name.compile();
+	name.compile(projP);
 }
 
 void SystemEditCheatView::removed()
@@ -117,7 +117,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						}
 						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
 						syncCheat();
-						addr.compile();
+						addr.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -148,7 +148,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						}
 						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
 						syncCheat();
-						value.compile();
+						value.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -186,7 +186,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							compStr[0] = 0;
 						}
 						syncCheat();
-						comp.compile();
+						comp.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -215,7 +215,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 						}
 						string_copy(ggCodeStr, str, sizeof(ggCodeStr));
 						syncCheat();
-						ggCode.compile();
+						ggCode.compile(projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -225,32 +225,6 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		}
 	}
 {}
-
-//uint EditCheatListView::handleNameFromTextInput(const char *str)
-//{
-//	if(str)
-//	{
-//		if(!FCEUI_AddCheat(str, 0, 0, -1, addCheatType))
-//		{
-//			logErr("error adding new cheat");
-//			removeModalView();
-//			return 0;
-//		}
-//		fceuCheats++;
-//		FCEUI_ToggleCheat(fceuCheats-1);
-//		logMsg("added new cheat, %d total", fceuCheats);
-//		removeModalView();
-//		refreshCheatViews();
-//		auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
-//		editCheatView.init(0, fceuCheats-1);
-//		viewStack.pushAndShow(editCheatView, &menuAllocator);
-//	}
-//	else
-//	{
-//		removeModalView();
-//	}
-//	return 0;
-//}
 
 void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
 {

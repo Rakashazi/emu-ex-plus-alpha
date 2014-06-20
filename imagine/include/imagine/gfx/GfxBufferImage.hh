@@ -71,6 +71,14 @@ public:
 		return isInit();
 	}
 
+	void setLinearFilter(bool on)
+	{
+		if(on)
+			setFilter(LINEAR);
+		else
+			setFilter(NEAREST);
+	}
+
 private:
 	uint hints = 0;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

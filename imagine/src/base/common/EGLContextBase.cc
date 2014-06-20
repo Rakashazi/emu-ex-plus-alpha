@@ -286,6 +286,10 @@ void EGLContextBase::deinit()
 {
 	if(context != EGL_NO_CONTEXT)
 	{
+		if(GLContext::current() == this)
+		{
+			GLContext::setCurrent(nullptr, nullptr);
+		}
 		logMsg("destroying EGL context");
 		eglDestroyContext(display, context);
 		context = EGL_NO_CONTEXT;

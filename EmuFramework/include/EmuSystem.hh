@@ -156,25 +156,8 @@ public:
 		return !string_equal(gameName_, "");
 	}
 
-	static void pause()
-	{
-		if(isActive())
-			state = State::PAUSED;
-		stopSound();
-		cancelAutoSaveStateTimer();
-	}
-
-	static void start()
-	{
-		state = State::ACTIVE;
-		clearInputBuffers();
-		emuFrameNow = -1;
-		startSound();
-		startTime = {};
-		startFrameTime = 0;
-		startAutoSaveStateTimer();
-	}
-
+	static void pause();
+	static void start();
 	static void closeSystem();
 	static void closeGame(bool allowAutosaveState = 1);
 };

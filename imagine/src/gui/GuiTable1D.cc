@@ -134,7 +134,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			if(selected == -1)
 				selected = cells - 1;
 			else
-				selected = clipToBounds(selected-visibleCells(), 0, cells-1);
+				selected = clipToBounds(selected-visibleCells(view.projP), 0, cells-1);
 			logMsg("selected %d", selected);
 			view.postDraw();
 			usedInput = true;
@@ -144,7 +144,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			if(selected == -1)
 				selected = 0;
 			else
-				selected = clipToBounds(selected+visibleCells(), 0, cells-1);
+				selected = clipToBounds(selected+visibleCells(view.projP), 0, cells-1);
 			logMsg("selected %d", selected);
 			view.postDraw();
 			usedInput = true;
@@ -154,23 +154,23 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 	return usedInput;
 }
 
-int GuiTable1D::visibleCells() const
+int GuiTable1D::visibleCells(const Gfx::ProjectionPlane &projP) const
 {
 	//int visYCells = ceil(View::projP.h/Gfx::unprojectYSize(yCellSize)) + 1;
-	int visYCells = IG::divUp(Gfx::viewport().height(), yCellSize) + 1;
-	if(offscreenCells() < 0)
-		visYCells += offscreenCells();
+	int visYCells = IG::divUp(projP.viewport.height(), yCellSize) + 1;
+	if(offscreenCells(projP) < 0)
+		visYCells += offscreenCells(projP);
 	visYCells = IG::clipToBounds(visYCells, 0, cells);
 	return visYCells;
 }
 
-int GuiTable1D::offscreenCells() const
+int GuiTable1D::offscreenCells(const Gfx::ProjectionPlane &projP) const
 {
 	auto y = viewRect.yPos(LT2DO);
-	return (View::projP.unprojectY(y) - View::projP.hHalf())/View::projP.unprojectYSize(yCellSize);
+	return (projP.unprojectY(y) - projP.hHalf())/projP.unprojectYSize(yCellSize);
 }
 
-void GuiTable1D::draw()
+void GuiTable1D::draw(const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	if(cells == 0)
@@ -178,10 +178,10 @@ void GuiTable1D::draw()
 	auto y = viewRect.yPos(LT2DO);
 	auto x = viewRect.xPos(LT2DO);
 	// TODO: fix calculations
-	int visYCells = visibleCells();
+	int visYCells = visibleCells(projP);
 	//int visYCells = ceil(gfx_viewHeight()/gfx_iYSize(yCellSize)) + 1;
 	int startYCell = 0;
-	int yOffScreen = offscreenCells();
+	int yOffScreen = offscreenCells(projP);
 	//logMsg("%d cells offscreen", yOffScreen);
 	/*if(yOffScreen < 0)
 		visYCells += yOffScreen;
@@ -195,7 +195,7 @@ void GuiTable1D::draw()
 
 	// draw separators
 	int yStart = y;
-	noTexProgram.use(View::projP.makeTranslate());
+	noTexProgram.use(projP.makeTranslate());
 	int selectedCellY = INT_MAX;
 	setBlendMode(0);
 	setColor(.2, .2, .2);
@@ -210,7 +210,7 @@ void GuiTable1D::draw()
 		if(i != 0)
 		{
 			auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect.xSize(), 1});
-			GeomRect::draw(rect, View::projP);
+			GeomRect::draw(rect, projP);
 		}
 		y += yCellSize;
 	}
@@ -224,7 +224,7 @@ void GuiTable1D::draw()
 		else*/
 			setColor(.2, .71, .9, 1./3.);
 		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect.xSize(), yCellSize-1});
-		GeomRect::draw(rect, View::projP);
+		GeomRect::draw(rect, projP);
 	}
 
 	// draw elements
@@ -235,7 +235,7 @@ void GuiTable1D::draw()
 				(float)gfx_iXPos(x), (float)gfx_iYPos(y) - gfx_iYSize(yCellSize/2),
 				gfx_iXSize(viewRect.xSize()), gfx_iYSize(yCellSize));*/
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect.xSize(), yCellSize});
-		src->drawElement(*this, i, View::projP.unProjectRect(rect));
+		src->drawElement(*this, i, projP.unProjectRect(rect));
 		y += yCellSize;
 	}
 }

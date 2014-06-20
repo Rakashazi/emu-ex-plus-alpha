@@ -73,6 +73,7 @@ class BasicViewController : public ViewController
 {
 	View *view {nullptr};
 	IG::WindowRect viewRect;
+	Gfx::ProjectionPlane projP;
 	typedef DelegateFunc<void ()> RemoveViewDelegate;
 	RemoveViewDelegate removeViewDel;
 
@@ -84,7 +85,7 @@ public:
 	void pushAndShow(View &v);
 	void pop();
 	void dismissView(View &v) override;
-	void place(const IG::WindowRect &rect);
+	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return view; }
 	void inputEvent(const Input::Event &e);
@@ -100,6 +101,7 @@ private:
 	NavView *nav = nullptr;
 	//ViewController *nextController = nullptr;
 	IG::WindowRect viewRect, customViewRect;
+	Gfx::ProjectionPlane projP;
 
 public:
 	uint size = 0;
@@ -110,7 +112,7 @@ public:
 	void init(const Base::Window &win);
 	void setNavView(NavView *nav);
 	NavView *navView() const;
-	void place(const IG::WindowRect &rect);
+	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	void inputEvent(const Input::Event &e);
 	void draw(Base::FrameTimeBase frameTime);

@@ -36,11 +36,11 @@ void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gf
 	//logMsg("has back:%p close:%p", leftSpr.img, rightSpr.img);
 }
 
-void FSPicker::FSNavView::draw(const Base::Window &win)
+void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	setBlendMode(0);
-	noTexProgram.use(View::projP.makeTranslate());
+	noTexProgram.use(projP.makeTranslate());
 	bg.draw();
 	setColor(COLOR_WHITE);
 	texAlphaReplaceProgram.use();
@@ -48,12 +48,12 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 	{
 		setClipRectBounds(win, textRect);
 		setClipRect(1);
-		text.draw(projP.unProjectRect(textRect).pos(RC2DO) - GP{GuiTable1D::globalXIndent, 0}, RC2DO);
+		text.draw(projP.unProjectRect(textRect).pos(RC2DO) - GP{GuiTable1D::globalXIndent, 0}, RC2DO, projP);
 		setClipRect(0);
 	}
 	else
 	{
-		text.draw(projP.unProjectRect(textRect).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO);
+		text.draw(projP.unProjectRect(textRect).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO, projP);
 	}
 	if(leftSpr.image())
 	{
@@ -61,7 +61,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
+			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
 	}
@@ -71,7 +71,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win)
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
-			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, View::projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
+			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
 	}
@@ -108,7 +108,7 @@ void FSPicker::place()
 {
 	iterateTimes(tbl.cells, i)
 	{
-		text[i].compile();
+		text[i].compile(projP);
 	}
 
 	tbl.setYCellSize(faceRes->nominalHeight()*2);
@@ -121,7 +121,7 @@ void FSPicker::place()
 	tbl.place(&tableFrame, *this);
 	//logMsg("nav %d, table %d, content %d", gfx_toIYSize(navV.view.ySize), tbl.viewFrame.ySize(), tbl.contentFrame->ySize());
 
-	navV.place();
+	navV.place(projP);
 }
 
 void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
@@ -173,14 +173,14 @@ void FSPicker::draw(Base::FrameTimeBase frameTime)
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
 	tbl.draw(*this);
-	navV.draw(window());
+	navV.draw(window(), projP);
 }
 
 void FSPicker::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
-	text[i].draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO);
+	text[i].draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO, projP);
 }
 
 void FSPicker::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)

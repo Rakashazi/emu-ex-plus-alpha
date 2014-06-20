@@ -19,25 +19,42 @@
 #include <imagine/gfx/GfxBufferImage.hh>
 #include <VideoImageOverlay.hh>
 #include <VideoImageEffect.hh>
-#include <imagine/gui/View.hh>
 #include <EmuOptions.hh>
-#include <EmuVideoLayer.hh>
-#include <EmuInputView.hh>
+#include <EmuVideo.hh>
 
-class EmuView : public View
+struct AppWindowData;
+
+class EmuVideoLayer
 {
 public:
-	EmuVideoLayer *layer = nullptr;
-	EmuInputView *inputView = nullptr;
+	VideoImageOverlay vidImgOverlay;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	VideoImageEffect vidImgEffect;
+	#endif
+	EmuVideo &video;
 
 private:
-	IG::WindowRect rect;
+	Gfx::Sprite disp;
+	IG::WindowRect gameRect_;
+	Gfx::GCRect gameRectG;
+	bool useLinearFilter = true;
+
+	void compileDefaultPrograms();
 
 public:
-	constexpr EmuView(Base::Window &win): View(win) {}
-	void deinit() override {}
-	IG::WindowRect &viewRect() override { return rect; }
-	void place() override;
-	void draw(Base::FrameTimeBase frameTime) override;
-	void inputEvent(const Input::Event &e) override;
+	constexpr EmuVideoLayer(EmuVideo &video): video{video} {}
+	void init();
+	void deinit();
+	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP);
+	void draw(Base::FrameTimeBase frameTime, const Gfx::ProjectionPlane &projP);
+	void placeOverlay();
+	void placeEffect();
+	void setEffect(uint effect);
+	void setLinearFilter(bool on);
+	void resetImage();
+
+	const IG::WindowRect &gameRect() const
+	{
+		return gameRect_;
+	}
 };

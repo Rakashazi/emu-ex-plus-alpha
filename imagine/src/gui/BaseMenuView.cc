@@ -41,7 +41,7 @@ void BaseMenuView::place()
 	iterateTimes(items, i)
 	{
 		//logMsg("compile item %d", i);
-		item[i]->compile();
+		item[i]->compile(projP);
 	}
 	if(items)
 	{
@@ -69,7 +69,7 @@ void BaseMenuView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
-	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align);
+	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
 }
 
 void BaseMenuView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)

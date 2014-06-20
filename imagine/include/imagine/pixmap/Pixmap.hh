@@ -56,7 +56,8 @@ class Pixmap : public PixmapDesc
 public:
 	char *data = nullptr;
 
-	constexpr Pixmap(const PixelFormatDesc &format): PixmapDesc(format) {}
+	constexpr Pixmap(const PixelFormatDesc &format): PixmapDesc{format} {}
+	constexpr Pixmap(const PixmapDesc &desc): PixmapDesc{desc} {}
 	char *getPixel(uint x, uint y) const;
 
 	void init2(void *data, uint x, uint y, uint pitch)

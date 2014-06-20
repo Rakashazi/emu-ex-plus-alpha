@@ -249,12 +249,12 @@ void XGLContext::setCurrentContext(XGLContext *c, Window *win)
 	if(!c)
 	{
 		logMsg("setting no context current");
-		if(glXMakeContextCurrent(dpy, None, None, nullptr))
+		if(!glXMakeContextCurrent(dpy, None, None, nullptr))
 		{
 			bug_exit("error setting no context current");
 		}
 	}
-	if(win)
+	else if(win)
 	{
 		if(!glXMakeContextCurrent(c->display, win->xWin, win->xWin, c->context))
 		{
@@ -308,9 +308,9 @@ void GLContext::deinit()
 {
 	if(context)
 	{
-		if(!glXMakeContextCurrent(display, None, None, nullptr))
+		if(current() == this)
 		{
-			logWarn("could not release drawing context");
+			GLContext::setCurrent(nullptr, nullptr);
 		}
 		glXDestroyContext(display, context);
 		context = nullptr;

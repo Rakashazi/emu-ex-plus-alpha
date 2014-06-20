@@ -17,16 +17,28 @@
 
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/RenderTarget.hh>
 #include <imagine/pixmap/Pixmap.hh>
 
 class VideoImageEffect
 {
 private:
 	Gfx::Program prog[2];
-	Gfx::Shader vShader[2] {0};
-	Gfx::Shader fShader[2] {0};
-	int texDeltaU[2] {0};
+	Gfx::Shader vShader[2]{0};
+	Gfx::Shader fShader[2]{0};
+	int texDeltaU[2]{0};
 	uint effect_ = NO_EFFECT;
+	Gfx::RenderTarget renderTarget_;
+	IG::Point2D<uint> renderTargetScale;
+	IG::Point2D<uint> renderTargetImgSize;
+	IG::Point2D<uint> inputImgSize{1, 1};
+	bool useRGB565RenderTarget = false;
+	bool useLinearFilter = true;
+
+	uint programs() const;
+	void initRenderTargetTexture();
+	void updateProgramUniforms();
+	void compile(bool isExternalTex);
 
 public:
 	enum
@@ -38,11 +50,14 @@ public:
 	};
 
 	constexpr	VideoImageEffect() {}
-	void setEffect(uint effect);
+	void setEffect(uint effect, bool isExternalTex);
 	uint effect();
-	void compile(const Gfx::BufferImage &img);
-	void place(const IG::Pixmap &pix);
+	void setImageSize(IG::Point2D<uint> size);
+	void setBitDepth(uint bitDepth);
+	void setLinearFilter(bool on);
 	Gfx::Program &program(uint imgMode);
 	bool hasProgram() const;
+	Gfx::RenderTarget &renderTarget();
+	void drawRenderTarget(Gfx::BufferImage &img);
 	void deinit();
 };

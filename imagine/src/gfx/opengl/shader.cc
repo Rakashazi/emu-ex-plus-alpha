@@ -357,7 +357,7 @@ Shader makePluginVertexShader(const char *src, uint imgMode)
 	return makeShader(shaderStr, GL_VERTEX_SHADER);
 }
 
-Shader makePluginFragmentShader(const char *src, uint imgMode, const BufferImage &img)
+Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTex)
 {
 	const char *modulateDefs =
 	"#define OUT_FRAGCOLOR(c) " GLSL_FRAGCOLOR " = colorOut * c\n"
@@ -372,7 +372,7 @@ Shader makePluginFragmentShader(const char *src, uint imgMode, const BufferImage
 		GLSL_VERSION_DIRECTIVE
 		GLSL_FRAGCOLOR_DEF
 		"%s%s%s",
-		(Config::envIsAndroid && img.type() == TEX_2D_EXTERNAL) ? externalTexDefs : "",
+		(Config::envIsAndroid && isExternalTex) ? externalTexDefs : "",
 		imgMode == IMG_MODE_MODULATE ? modulateDefs : replaceDefs,
 		src))
 	{

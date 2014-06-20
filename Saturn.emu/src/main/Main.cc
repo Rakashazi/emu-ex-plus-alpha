@@ -414,10 +414,10 @@ CLINK void YuiSwapBuffers()
 			logMsg("resolution changed to %d,%d", width, height);
 			ssResX = width;
 			ssResY = height;
-			emuView.resizeImage(ssResX, ssResY);
+			emuVideo.resizeImage(ssResX, ssResY);
 		}
 
-		emuView.updateAndDrawContent();
+		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
 	else
@@ -546,8 +546,8 @@ int EmuSystem::loadGame(const char *path)
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
-	emuView.initPixmap((char*)dispbuffer, pixFmt, ssResX, ssResY);
-	emuView.initImage(0, ssResX, ssResY);
+	emuVideo.initPixmap((char*)dispbuffer, pixFmt, ssResX, ssResY);
+	emuVideo.initImage(0, ssResX, ssResY);
 
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
@@ -587,8 +587,6 @@ void EmuSystem::savePathChanged() { }
 
 namespace Base
 {
-
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) { }
 
 CallResult onInit(int argc, char** argv)
 {

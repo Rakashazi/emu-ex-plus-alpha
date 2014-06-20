@@ -442,7 +442,7 @@ static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int 
 
 static int loadGameCommon()
 {
-	emuView.initImage(0, nesPixX, nesVisiblePixY);
+	emuVideo.initImage(0, nesPixX, nesVisiblePixY);
 	autoDetectedVidSysPAL = PAL;
 	if((int)optionVideoSystem == 1)
 	{
@@ -539,7 +539,7 @@ void FCEUD_RenderPPULine(uint8 *line, uint y)
 
 void FCEUD_commitVideo()
 {
-	emuView.updateAndDrawContent();
+	updateAndDrawEmuVideo();
 }
 
 void FCEUD_emulateSound()
@@ -567,12 +567,10 @@ void EmuSystem::savePathChanged()
 namespace Base
 {
 
-void onAppMessage(int type, int shortArg, int intArg, int intArg2) {}
-
 CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuView.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
+	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{
@@ -601,11 +599,11 @@ CallResult onInit(int argc, char** argv)
 					if(e.state == Input::PUSHED)
 					{
 						zapperData[2] = 0;
-						if(emuView.gameRect().overlaps({e.x, e.y}))
+						if(emuVideoLayer.gameRect().overlaps({e.x, e.y}))
 						{
-							int xRel = e.x - emuView.gameRect().x, yRel = e.y - emuView.gameRect().y;
-							int xNes = IG::scalePointRange((float)xRel, (float)emuView.gameRect().xSize(), (float)256.);
-							int yNes = IG::scalePointRange((float)yRel, (float)emuView.gameRect().ySize(), (float)224.) + 8;
+							int xRel = e.x - emuVideoLayer.gameRect().x, yRel = e.y - emuVideoLayer.gameRect().y;
+							int xNes = IG::scalePointRange((float)xRel, (float)emuVideoLayer.gameRect().xSize(), (float)256.);
+							int yNes = IG::scalePointRange((float)yRel, (float)emuVideoLayer.gameRect().ySize(), (float)224.) + 8;
 							logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
 							zapperData[0] = xNes;
 							zapperData[1] = yNes;

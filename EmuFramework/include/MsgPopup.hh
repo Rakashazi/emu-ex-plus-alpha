@@ -23,6 +23,7 @@ class MsgPopup
 {
 public:
 	Gfx::Text text;
+	Gfx::ProjectionPlane projP;
 	Base::Timer unpostTimer;
 	bool error = 0;
 	char str[1024] {0};
@@ -30,7 +31,7 @@ public:
 	MsgPopup() {}
 	void init();
 	void clear();
-	void place();
+	void place(const Gfx::ProjectionPlane &projP);
 	void unpost();
 	void post(const char *msg, int secs = 3, bool error = 0);
 	void postError(const char *msg, int secs = 3);
