@@ -245,7 +245,7 @@ public:
 
 	void addTapeFilePickerView(const Input::Event &e)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, c64TapeExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
@@ -267,7 +267,7 @@ private:
 			if(!item.active) return;
 			if(tape_get_file_name() && strlen(tape_get_file_name()))
 			{
-				auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Tape Drive", window());
+				auto &multiChoiceView = *new MultiChoiceView{"Tape Drive", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 				multiChoiceView.onSelect() =
 					[this](int action, const Input::Event &e)
@@ -286,7 +286,7 @@ private:
 						}
 						return 0;
 					};
-				viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+				viewStack.pushAndShow(multiChoiceView);
 			}
 			else
 			{
@@ -314,7 +314,7 @@ public:
 
 	void addCartFilePickerView(const Input::Event &e)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, c64CartExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
@@ -335,7 +335,7 @@ private:
 		{
 			if(cartridge_get_file_name(mem_cartridge_type) && strlen(cartridge_get_file_name(mem_cartridge_type)))
 			{
-				auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Cartridge Slot", window());
+				auto &multiChoiceView = *new MultiChoiceView{"Cartridge Slot", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 				multiChoiceView.onSelect() =
 					[this](int action, const Input::Event &e)
@@ -354,7 +354,7 @@ private:
 						}
 						return 0;
 					};
-				viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+				viewStack.pushAndShow(multiChoiceView);
 			}
 			else
 			{
@@ -382,7 +382,7 @@ private:
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, c64DiskExtensionFsFilter, 1);
 		fPicker.onSelectFile() =
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
@@ -402,7 +402,7 @@ public:
 	{
 		if(file_system_get_disk_name(slot+8) && strlen(file_system_get_disk_name(slot+8)))
 		{
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Disk Drive", window());
+			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
 			multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
@@ -421,7 +421,7 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
 		{
@@ -482,9 +482,9 @@ class SystemMenuView : public MenuView
 			if(item.active)
 			{
 				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
-				auto &c64IoMenu = *menuAllocator.allocNew<C64IOControlView>(window());
+				auto &c64IoMenu = *new C64IOControlView{window()};
 				c64IoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(c64IoMenu, &menuAllocator);
+				viewStack.pushAndShow(c64IoMenu);
 			}
 		}
 	};
@@ -501,7 +501,7 @@ class SystemMenuView : public MenuView
 				"3. PAL & True Drive Emu",
 				"4. PAL",
 			};
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
+			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
 			multiChoiceView.init(str, sizeofArray(str), !e.isPointer(), LC2DO);
 			multiChoiceView.onSelect() =
 				[](int action, const Input::Event &e)
@@ -531,7 +531,7 @@ class SystemMenuView : public MenuView
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView);
 		}
 	};
 

@@ -11,7 +11,7 @@ public:
 		"",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>("BIOS", &::biosPath, ssBiosFsFilter, window());
+			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, ssBiosFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -20,7 +20,7 @@ public:
 					printBiosMenuEntryStr(biosPathStr);
 					biosPath.compile(projP);
 				};
-			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu);
 		}
 	};
 

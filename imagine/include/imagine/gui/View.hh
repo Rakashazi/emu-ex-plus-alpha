@@ -24,13 +24,12 @@
 #include <imagine/gfx/ProjectionPlane.hh>
 
 class View;
-class StackAllocator;
 
 class ViewController
 {
 public:
 	constexpr ViewController() {}
-	virtual void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView) = 0;
+	virtual void pushAndShow(View &v, bool needsNavView) = 0;
 	virtual void dismissView(View &v) = 0;
 };
 
@@ -45,6 +44,7 @@ public:
 	const char *name_ = "";
 
 	constexpr View() {}
+	virtual ~View() {}
 	constexpr View(Base::Window &win): win(&win) {}
 	constexpr View(const char *name, Base::Window &win) : win(&win), name_(name) {}
 
@@ -91,7 +91,7 @@ public:
 	static bool compileGfxPrograms();
 
 	void dismiss();
-	void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView = true);
+	void pushAndShow(View &v, bool needsNavView = true);
 
 	void show(bool animated = 1)
 	{
@@ -104,30 +104,4 @@ public:
 	{
 
 	}
-
-	/*bool updateAnimation()
-	{
-		if(animation && animation->update())
-		{
-			// still animating
-			postDraw();
-			return 1;
-		}
-
-		if(displayState == HIDE)
-		{
-			// hide animation done, trigger view to dismiss
-			doDismiss();
-			return 0;
-		}
-
-		if(displayState == SHOW)
-		{
-			// show animation complete
-			displayState = ACTIVE;
-		}
-
-		// not animating, view is active
-		return 1;
-	}*/
 };

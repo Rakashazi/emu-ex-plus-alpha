@@ -43,7 +43,7 @@ void BiosSelectMenu::init(bool highlightFirst)
 		{
 			workDirStack.push();
 			chdirFromFilePath(*biosPathStr);
-			auto &fPicker = *allocModalView<EmuFilePicker>(window());
+			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.init(!e.isPointer(), false, fsFilter);
 			fPicker.onSelectFile() =
 				[this](FSPicker &picker, const char* name, const Input::Event &e)
@@ -432,7 +432,7 @@ public:
 	void init(bool highlightFirst)
 	{
 		static const char *str[] { "Set Custom Path", "Same as Game" };
-		auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Save Path", Base::mainWindow());
+		auto &multiChoiceView = *new MultiChoiceView{"Save Path", Base::mainWindow()};
 		multiChoiceView.init(str, sizeofArray(str), highlightFirst);
 		multiChoiceView.onSelect() =
 			[this](int i, const Input::Event &e)
@@ -442,7 +442,7 @@ public:
 				{
 					workDirStack.push();
 					FsSys::chdir(optionSavePath);
-					auto &fPicker = *allocModalView<EmuFilePicker>(Base::mainWindow());
+					auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
 					fPicker.init(!e.isPointer(), true, dirFsFilter);
 					fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
 						{
@@ -458,7 +458,7 @@ public:
 				}
 				return 0;
 			};
-		viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+		viewStack.pushAndShow(multiChoiceView);
 	}
 } pathSelectMenu;
 
@@ -473,7 +473,7 @@ void FirmwarePathSelector::onClose(const Input::Event &e)
 void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 {
 	static const char *str[] { "Set Custom Path", "Default" };
-	auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(name, Base::mainWindow());
+	auto &multiChoiceView = *new MultiChoiceView{name, Base::mainWindow()};
 	multiChoiceView.init(str, sizeofArray(str), highlightFirst);
 	multiChoiceView.onSelect() =
 		[this](int i, const Input::Event &e)
@@ -483,7 +483,7 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 			{
 				workDirStack.push();
 				FsSys::chdir(optionFirmwarePath);
-				auto &fPicker = *allocModalView<EmuFilePicker>(Base::mainWindow());
+				auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
 				fPicker.init(!e.isPointer(), true, dirFsFilter);
 				fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
 					{
@@ -499,7 +499,7 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 			}
 			return 0;
 		};
-	viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+	viewStack.pushAndShow(multiChoiceView);
 }
 
 void OptionView::loadVideoItems(MenuItem *item[], uint &items)
@@ -869,7 +869,7 @@ OptionView::OptionView(Base::Window &win):
 			auto onMsg = Config::envIsAndroid ? "Enable" : "Toggle";
 			if((!item.on && Config::envIsAndroid) || !Config::envIsAndroid)
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init(alertMsg, !e.isPointer(), onMsg, "Cancel");
 				ynAlertView.onYes() =
 					[this, &item](const Input::Event &e)

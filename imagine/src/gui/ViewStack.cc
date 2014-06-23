@@ -28,7 +28,7 @@ void BasicViewController::push(View &v)
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(View &v, StackAllocator *allocator, bool needsNavView)
+void BasicViewController::pushAndShow(View &v, bool needsNavView)
 {
 	push(v);
 	place();
@@ -38,7 +38,7 @@ void BasicViewController::pushAndShow(View &v, StackAllocator *allocator, bool n
 
 void BasicViewController::pushAndShow(View &v)
 {
-	pushAndShow(v, nullptr, true);
+	pushAndShow(v, true);
 }
 
 void BasicViewController::pop()
@@ -46,6 +46,7 @@ void BasicViewController::pop()
 	assert(view);
 	view->postDraw();
 	view->deinit();
+	delete view;
 	view = nullptr;
 	if(removeViewDel)
 		removeViewDel();
@@ -147,12 +148,11 @@ void ViewStack::draw(Base::FrameTimeBase frameTime)
 	if(useNavView && nav) nav->draw(top().window(), projP);
 }
 
-void ViewStack::push(View &v, StackAllocator *allocator)
+void ViewStack::push(View &v)
 {
 	assert(size != sizeofArray(view));
 	v.controller = this;
 	view[size] = &v;
-	viewAllocator[size] = allocator;
 	size++;
 	logMsg("push view, %d in stack", size);
 
@@ -162,40 +162,27 @@ void ViewStack::push(View &v, StackAllocator *allocator)
 	}
 }
 
-void ViewStack::push(View &v)
-{
-	push(v, nullptr);
-}
-
-void ViewStack::pushAndShow(View &v, StackAllocator *allocator, bool needsNavView)
+void ViewStack::pushAndShow(View &v, bool needsNavView)
 {
 	useNavView = needsNavView;
-	push(v, allocator);
+	push(v);
 	place();
 	v.show();
 	v.postDraw();
 }
 
-void ViewStack::pushAndShow(View &v, StackAllocator *allocator)
-{
-	pushAndShow(v, allocator, true);
-}
-
 void ViewStack::pushAndShow(View &v)
 {
-	pushAndShow(v, nullptr, true);
+	pushAndShow(v, true);
 }
 
 void ViewStack::pop()
 {
+	assert(size > 1);
 	top().deinit();
-	if(viewAllocator[size-1])
-	{
-		viewAllocator[size-1]->pop();
-	}
+	delete &top();
 	size--;
 	logMsg("pop view, %d in stack", size);
-	assert(size != 0);
 
 	if(nav)
 	{

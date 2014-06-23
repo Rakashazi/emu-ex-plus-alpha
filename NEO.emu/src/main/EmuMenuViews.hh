@@ -444,7 +444,7 @@ private:
 			{
 				if(entry->bugs)
 				{
-					auto &ynAlertView = *allocModalView<YesNoAlertView>(view->window());
+					auto &ynAlertView = *new YesNoAlertView{view->window()};
 					ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
 					ynAlertView.onYes() =
 						[this](const Input::Event &e)
@@ -561,13 +561,13 @@ private:
 		"Load Game From List",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &gameListMenu = *menuAllocator.allocNew<GameListView>(window());
+			auto &gameListMenu = *new GameListView{window()};
 			if(!gameListMenu.init(!e.isPointer()))
 			{
 				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
 				return;
 			}
-			viewStack.pushAndShow(gameListMenu, &menuAllocator);
+			viewStack.pushAndShow(gameListMenu);
 		}
 	};
 
@@ -580,9 +580,9 @@ private:
 			{
 				if(item.active)
 				{
-					auto &unibiosSwitchesMenu = *menuAllocator.allocNew<UnibiosSwitchesView>(window());
+					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{window()};
 					unibiosSwitchesMenu.init(!e.isPointer());
-					viewStack.pushAndShow(unibiosSwitchesMenu, &menuAllocator);
+					viewStack.pushAndShow(unibiosSwitchesMenu);
 				}
 				else
 				{

@@ -69,6 +69,7 @@ public:
 class InputManagerDeviceView : public BaseMenuView
 {
 private:
+	InputManagerView &rootIMView;
 	MultiChoiceSelectMenuItem player;
 	char profileStr[128] {0};
 	TextMenuItem loadProfile;
@@ -89,7 +90,7 @@ private:
 	void confirmICadeMode(const Input::Event &e);
 
 public:
-	InputManagerDeviceView(Base::Window &win);
+	InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView);
 
 	void init(bool highlightFirst, InputDeviceConfig &devConf);
 	void onShow() override;

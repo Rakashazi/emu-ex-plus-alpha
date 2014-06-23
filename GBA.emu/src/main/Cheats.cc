@@ -64,9 +64,9 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView);
 			};
 	}
 }
@@ -79,7 +79,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 		window().postDraw();
 		return;
 	}
-	auto &textInputView = *allocModalView<CollectTextInputView>(window());
+	auto &textInputView = *new CollectTextInputView{window()};
 	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", getCollectTextCloseAsset());
 	textInputView.onText() =
 		[this, isGSv3](CollectTextInputView &view, const char *str)
@@ -112,7 +112,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 				view.dismiss();
 				refreshCheatViews();
 
-				auto &textInputView = *allocModalView<CollectTextInputView>(window());
+				auto &textInputView = *new CollectTextInputView{window()};
 				textInputView.init("Input description", getCollectTextCloseAsset());
 				textInputView.onText() =
 					[this](CollectTextInputView &view, const char *str)

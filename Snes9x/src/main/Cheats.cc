@@ -50,7 +50,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Address",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 6-digit hex", addrStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -90,7 +90,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -129,7 +129,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Saved Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", savedStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -196,9 +196,9 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
-				pushAndShow(editCheatView, &menuAllocator);
+				pushAndShow(editCheatView);
 			};
 	}
 }
@@ -216,7 +216,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 				window().postDraw();
 				return;
 			}
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -249,7 +249,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						view.dismiss();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>(window());
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[this](CollectTextInputView &view, const char *str)

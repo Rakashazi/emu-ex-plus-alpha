@@ -15,7 +15,7 @@ public:
 		"",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath, biosFsFilter, window());
+			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, biosFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -24,7 +24,7 @@ public:
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile(projP);
 				};
-			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu);
 		}
 	};
 
@@ -233,9 +233,9 @@ private:
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
-				auto &fdsMenu = *menuAllocator.allocNew<FDSControlView>(view->window());
+				auto &fdsMenu = *new FDSControlView{view->window()};
 				fdsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(fdsMenu, &menuAllocator);
+				viewStack.pushAndShow(fdsMenu);
 			}
 			else
 				popup.post("Disk System not in use", 2);
@@ -249,9 +249,9 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
+				auto &cheatsMenu = *new CheatsView{window()};
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu, &menuAllocator);
+				viewStack.pushAndShow(cheatsMenu);
 			}
 		}
 	};

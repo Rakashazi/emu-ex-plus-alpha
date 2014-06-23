@@ -19,10 +19,10 @@ ResourceFace *View::defaultFace = nullptr;
 ResourceFace *View::defaultSmallFace = nullptr;
 bool View::needsBackControl = needsBackControlDefault;
 
-void View::pushAndShow(View &v, StackAllocator *allocator, bool needsNavView)
+void View::pushAndShow(View &v, bool needsNavView)
 {
 	assert(controller);
-	controller->pushAndShow(v, allocator, needsNavView);
+	controller->pushAndShow(v, needsNavView);
 }
 
 void View::dismiss()

@@ -27,9 +27,9 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 		"Add/Edit",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &editCheatListView = *menuAllocator.allocNew<EditCheatListView>(window());
+			auto &editCheatListView = *new EditCheatListView{window()};
 			editCheatListView.init(!e.isPointer());
-			pushAndShow(editCheatListView, &menuAllocator);
+			pushAndShow(editCheatListView);
 		}
 	},
 	onRefreshCheats
@@ -74,7 +74,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 	{
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset());
 			textInputView.onText() =
 			[this](CollectTextInputView &view, const char *str)

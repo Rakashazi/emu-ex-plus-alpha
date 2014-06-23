@@ -13,7 +13,7 @@ public:
 		"",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>("System Card", &::sysCardPath, pceHuFsFilter, window());
+			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, pceHuFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -22,7 +22,7 @@ public:
 					printBiosMenuEntryStr(sysCardPathStr);
 					sysCardPath.compile(projP);
 				};
-			viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
+			viewStack.pushAndShow(biosSelectMenu);
 		}
 	};
 

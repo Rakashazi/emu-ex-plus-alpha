@@ -160,7 +160,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 		"Code",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -204,9 +204,9 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), cheatList[c]);
-				viewStack.pushAndShow(editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView);
 			};
 		++it;
 	}
@@ -219,7 +219,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 		"Add Game Genie / GameShark Code",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -249,7 +249,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						view.dismiss();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>(window());
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[this](CollectTextInputView &view, const char *str)

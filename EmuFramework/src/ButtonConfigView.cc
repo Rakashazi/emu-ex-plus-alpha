@@ -128,17 +128,18 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			if(d == savedDev)
 			{
 				popup.clear();
+				auto &rootIMView = this->rootIMView;
 				dismiss();
-				viewStack.popTo(*imMenu);
-				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
+				viewStack.popTo(rootIMView);
+				auto &imdMenu = *new InputManagerDeviceView{window(), rootIMView};
 				imdMenu.init(1, inputDevConf[d->idx]);
-				imdMenu.name_ = imMenu->inputDevNameStr[d->idx];
-				pushAndShow(imdMenu, &menuAllocator);
+				imdMenu.name_ = rootIMView.inputDevNameStr[d->idx];
+				rootIMView.pushAndShow(imdMenu);
 			}
 			else
 			{
 				savedDev = d;
-				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", imMenu->inputDevNameStr[d->idx]);
+				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", rootIMView.inputDevNameStr[d->idx]);
 				postDraw();
 			}
 			return;
@@ -299,7 +300,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 			[this, i2](DualTextMenuItem &item, const Input::Event &e)
 			{
 				auto keyToSet = i2;
-				auto &btnSetView = *allocModalView<ButtonConfigSetView>(window());
+				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
 				btnSetView.init(*this->devConf->dev, btn[keyToSet].t.str, e.isPointer(),
 					[this, keyToSet](const Input::Event &e)
 					{
@@ -323,14 +324,15 @@ void ButtonConfigView::deinit()
 	delete[] text;
 }
 
-ButtonConfigView::ButtonConfigView(Base::Window &win):
+ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMView):
 	BaseMenuView(win),
+	rootIMView{rootIMView},
 	reset
 	{
 		"Unbind All",
 		[this](TextMenuItem &t, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)

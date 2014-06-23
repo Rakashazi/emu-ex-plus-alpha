@@ -1229,7 +1229,7 @@ CallResult onInit(int argc, char** argv)
 			if(checkForMachineFolderOnStart &&
 				!strlen(machineCustomPath) && !FsSys::fileExists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
+				auto &ynAlertView = *new YesNoAlertView{win};
 				ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)

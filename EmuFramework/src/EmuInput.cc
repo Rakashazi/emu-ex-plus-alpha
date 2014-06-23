@@ -356,16 +356,9 @@ void updateInputDevices()
 		logMsg("Physical controls are present");
 	}
 
-	if(imMenu)
+	if(onUpdateInputDevices)
 	{
-		if(modalViewController.hasView())
-			modalViewController.pop();
-		auto menu = imMenu;
-		viewStack.popTo(*menu);
-		menu->deinit();
-		menu->init(false);
-		menu->place();
-		menu->show();
+		onUpdateInputDevices();
 	}
 
 	keyMapping.buildAll();

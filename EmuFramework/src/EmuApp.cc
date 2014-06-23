@@ -34,17 +34,14 @@ EmuInputView emuInputView{mainWin.win};
 AppWindowData *emuWin = &mainWin;
 ViewStack viewStack;
 MsgPopup popup;
-StackAllocator menuAllocator;
 BasicViewController modalViewController;
-uint8 modalViewStorage[2][1024] __attribute__((aligned)) {{0}};
-uint modalViewStorageIdx = 0;
 WorkDirStack<1> workDirStack;
 static bool trackFPS = 0;
 static TimeSys prevFrameTime;
 static uint frameCount = 0;
 const char *launchGame = nullptr;
 static bool updateInputDevicesOnResume = false;
-InputManagerView *imMenu = nullptr;
+DelegateFunc<void ()> onUpdateInputDevices;
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta = nullptr;
 #endif
@@ -830,10 +827,10 @@ void handleOpenFileCommand(const char *filename)
 		restoreMenuFromGame();
 		FsSys::chdir(filename);
 		viewStack.popToRoot();
-		auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(Base::mainWindow());
+		auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
 		fPicker.init(Input::keyInputIsPresent(), false);
 		viewStack.useNavView = 0;
-		viewStack.pushAndShow(fPicker, &menuAllocator);
+		viewStack.pushAndShow(fPicker);
 		return;
 	}
 	if(type != Fs::TYPE_FILE || !EmuFilePicker::defaultFsFilter(filename, type))

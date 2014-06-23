@@ -39,7 +39,7 @@ public:
 	{
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
 					"Turn on to make them compatible with other emulators like Gens. "
 					"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
@@ -126,7 +126,7 @@ public:
 
 	void cdBiosPathHandler(const Input::Event &e, int region)
 	{
-		auto &biosSelectMenu = *menuAllocator.allocNew<BiosSelectMenu>(biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), mdROMFsFilter, window());
+		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), mdROMFsFilter, window()};
 		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.onBiosChange() =
 			[this, region]()
@@ -136,7 +136,7 @@ public:
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile(projP);
 			};
-		viewStack.pushAndShow(biosSelectMenu, &menuAllocator);
+		viewStack.pushAndShow(biosSelectMenu);
 	}
 
 	void cdBiosPathInit(MenuItem *item[], uint &items)
@@ -278,9 +278,9 @@ class SystemMenuView : public MenuView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
+				auto &cheatsMenu = *new CheatsView{window()};
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu, &menuAllocator);
+				viewStack.pushAndShow(cheatsMenu);
 			}
 		}
 	};

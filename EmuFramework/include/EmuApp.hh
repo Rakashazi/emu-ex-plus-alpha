@@ -60,8 +60,7 @@ extern ViewStack viewStack;
 extern BasicViewController modalViewController;
 extern MsgPopup popup;
 extern const char *launchGame;
-extern InputManagerView *imMenu;
-extern StackAllocator menuAllocator;
+extern DelegateFunc<void ()> onUpdateInputDevices;
 extern bool menuViewIsActive;
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
@@ -79,7 +78,7 @@ using MenuShownDelegate = DelegateFunc<void (Base::Window &win)>;
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel);
 void initMainMenu(Base::Window &win);
 View &mainMenu();
-View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx);
+View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, uint idx);
 void setEmuViewOnExtraWindow(bool on);
 void placeElements(const Gfx::Viewport &viewport);
 void startViewportAnimation(AppWindowData &winData);

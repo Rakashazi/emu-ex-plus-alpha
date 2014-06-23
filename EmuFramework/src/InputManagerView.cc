@@ -107,14 +107,14 @@ InputManagerView::InputManagerView(Base::Window &win):
 			{
 				printfDeviceNameWithNumber(deviceConfigStr[devs++], e.name, e.enumId);
 			}
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
+			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
 			multiChoiceView.init(deviceConfigStr, devs, !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, &multiChoiceView](int i, const Input::Event &e)
 				{
 					multiChoiceView.dismiss();
 					int deleteDeviceConfigIdx = i;
-					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+					auto &ynAlertView = *new YesNoAlertView{window()};
 					ynAlertView.init(confirmDeleteDeviceSettingsStr, !e.isPointer());
 					ynAlertView.onYes() =
 						[this, deleteDeviceConfigIdx](const Input::Event &e)
@@ -141,7 +141,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					modalViewController.pushAndShow(ynAlertView);
 					return 0;
 				};
-			pushAndShow(multiChoiceView, &menuAllocator);
+			pushAndShow(multiChoiceView);
 		}
 	},
 	deleteProfile
@@ -159,14 +159,14 @@ InputManagerView::InputManagerView(Base::Window &win):
 			{
 				profileStr[profiles++] = e.name;
 			}
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>(item.t.str, window());
+			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
 			multiChoiceView.init(profileStr, profiles, !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, &multiChoiceView](int i, const Input::Event &e)
 				{
 					multiChoiceView.dismiss();
 					int deleteProfileIdx = i;
-					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+					auto &ynAlertView = *new YesNoAlertView{window()};
 					ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
 					ynAlertView.onYes() =
 						[this, deleteProfileIdx](const Input::Event &e)
@@ -185,7 +185,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					modalViewController.pushAndShow(ynAlertView);
 					return 0;
 				};
-			pushAndShow(multiChoiceView, &menuAllocator);
+			pushAndShow(multiChoiceView);
 		}
 	},
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
@@ -241,7 +241,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 		"Auto-detect Device To Setup",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &identView = *allocModalView<IdentInputDeviceView>(window());
+			auto &identView = *new IdentInputDeviceView{window()};
 			identView.init();
 			identView.onIdentInput =
 				[this](const Input::Event &e)
@@ -249,10 +249,10 @@ InputManagerView::InputManagerView(Base::Window &win):
 					auto dev = e.device;
 					if(dev)
 					{
-						auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
+						auto &imdMenu = *new InputManagerDeviceView{window(), *this};
 						imdMenu.init(true, inputDevConf[dev->idx]);
 						imdMenu.name_ = inputDevNameStr[dev->idx];
-						pushAndShow(imdMenu, &menuAllocator);
+						pushAndShow(imdMenu);
 					}
 				};
 			modalViewController.pushAndShow(identView);
@@ -270,12 +270,24 @@ void InputManagerView::onShow()
 void InputManagerView::deinit()
 {
 	BaseMenuView::deinit();
-	imMenu = nullptr;
+	assert(onUpdateInputDevices);
+	onUpdateInputDevices = {};
 }
 
 void InputManagerView::init(bool highlightFirst)
 {
-	imMenu = this;
+	assert(!onUpdateInputDevices);
+	onUpdateInputDevices =
+		[this]()
+		{
+			if(modalViewController.hasView())
+				modalViewController.pop();
+			viewStack.popTo(*this);
+			deinit();
+			init(false);
+			place();
+			show();
+		};
 	uint i = 0;
 	assert(EmuSystem::maxPlayers <= 5);
 	deleteDeviceConfig.init((bool)savedInputDevList.size()); item[i++] = &deleteDeviceConfig;
@@ -304,10 +316,10 @@ void InputManagerView::init(bool highlightFirst)
 		inputDevName[devs].onSelect() =
 			[this, devs](TextMenuItem &, const Input::Event &e)
 			{
-				auto &imdMenu = *menuAllocator.allocNew<InputManagerDeviceView>(window());
+				auto &imdMenu = *new InputManagerDeviceView{window(), *this};
 				imdMenu.init(!e.isPointer(), inputDevConf[devs]);
 				imdMenu.name_ = inputDevNameStr[devs];
-				pushAndShow(imdMenu, &menuAllocator);
+				pushAndShow(imdMenu);
 			};
 		devs++;
 	}
@@ -382,8 +394,9 @@ public:
 	}
 };
 
-InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
+InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView):
 	BaseMenuView(win),
+	rootIMView{rootIMView},
 	player
 	{
 		"Player",
@@ -411,7 +424,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 	{
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &profileSelectMenu = *menuAllocator.allocNew<ProfileSelectMenu>(window());
+			auto &profileSelectMenu = *new ProfileSelectMenu{window()};
 			profileSelectMenu.init(!e.isPointer(), *devConf->dev, devConf->keyConf().name);
 			profileSelectMenu.onProfileChange =
 				[this](const KeyConfig &profile)
@@ -421,7 +434,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 					onShow();
 					keyMapping.buildAll();
 				};
-			pushAndShow(profileSelectMenu, &menuAllocator);
+			pushAndShow(profileSelectMenu);
 		}
 	},
 	renameProfile
@@ -435,7 +448,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 				postDraw();
 				return;
 			}
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input name", devConf->keyConf().name, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -470,12 +483,12 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 				postDraw();
 				return;
 			}
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Create a new profile? All keys from the current profile will be copied over.", !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{
-					auto &textInputView = *allocModalView<CollectTextInputView>(window());
+					auto &textInputView = *new CollectTextInputView{window()};
 					textInputView.init("Input name", "", getCollectTextCloseAsset());
 					textInputView.onText() =
 						[this](CollectTextInputView &view, const char *str)
@@ -515,7 +528,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 				popup.post("Can't delete a built-in profile", 2, 0);
 				return;
 			}
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
@@ -546,7 +559,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win):
 			#else
 			if(!item.on)
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init("This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", !e.isPointer(), "Enable", "Cancel");
 				ynAlertView.onYes() =
 					[this](const Input::Event &e)
@@ -655,9 +668,9 @@ void InputManagerDeviceView::init(bool highlightFirst, InputDeviceConfig &devCon
 		inputCategory[c_i].onSelect() =
 			[this, c_i](TextMenuItem &item, const Input::Event &e)
 			{
-				auto &bcMenu = *menuAllocator.allocNew<ButtonConfigView>(window());
+				auto &bcMenu = *new ButtonConfigView{window(), rootIMView};
 				bcMenu.init(&EmuControls::category[c_i], *this->devConf, !e.isPointer());
-				pushAndShow(bcMenu, &menuAllocator);
+				pushAndShow(bcMenu);
 			};
 	}
 	newProfile.init(); item[i++] = &newProfile;

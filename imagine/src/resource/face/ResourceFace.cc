@@ -278,6 +278,7 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	glyphTable[tableIdx].metrics = metrics;
 	auto img = GfxGlyphImage(this, &glyphTable[tableIdx]);
 	glyphTable[tableIdx].glyph.init(img, Gfx::BufferImage::LINEAR, Gfx::BufferImage::HINT_NO_MINIFY);
+	glyphTable[tableIdx].glyph.ref();
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return OK;

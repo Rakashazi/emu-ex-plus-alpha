@@ -204,9 +204,9 @@ MenuView::MenuView(Base::Window &win):
 		"Load Game",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &fPicker = *menuAllocator.allocNew<EmuFilePicker>(window());
+			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.init(!e.isPointer(), false);
-			pushAndShow(fPicker, &menuAllocator, false);
+			pushAndShow(fPicker, false);
 		}
 	},
 	reset
@@ -216,7 +216,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init("Really Reset Game?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -235,7 +235,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(item.active && EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init("Really Load State?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -260,9 +260,9 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(recentGameList.size())
 			{
-				auto &rMenu = *menuAllocator.allocNew<RecentGameView>(window());
+				auto &rMenu = *new RecentGameView{window()};
 				rMenu.init(!e.isPointer());
-				pushAndShow(rMenu, &menuAllocator);
+				pushAndShow(rMenu);
 			}
 		}
 	},
@@ -272,9 +272,9 @@ MenuView::MenuView(Base::Window &win):
 		"Bundled Games",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &bMenu = *menuAllocator.allocNew<BundledGamesView>(window());
+			auto &bMenu = *new BundledGamesView{window()};
 			bMenu.init(!e.isPointer());
-			pushAndShow(bMenu, &menuAllocator);
+			pushAndShow(bMenu);
 		}
 	},
 	#endif
@@ -301,7 +301,7 @@ MenuView::MenuView(Base::Window &win):
 				}
 				else
 				{
-					auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+					auto &ynAlertView = *new YesNoAlertView{window()};
 					ynAlertView.init("Really Overwrite State?", !e.isPointer());
 					ynAlertView.onYes() =
 						[](const Input::Event &e)
@@ -317,9 +317,9 @@ MenuView::MenuView(Base::Window &win):
 	{
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &ssMenu = *menuAllocator.allocNew<StateSlotView>(window());
+			auto &ssMenu = *new StateSlotView{window()};
 			ssMenu.init(!e.isPointer());
-			pushAndShow(ssMenu, &menuAllocator);
+			pushAndShow(ssMenu);
 		}
 	},
 	stateSlotText // Can't init with string literal due to GCC bug #43453
@@ -329,9 +329,9 @@ MenuView::MenuView(Base::Window &win):
 		"Options",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &oMenu = *menuAllocator.allocNew<OptionCategoryView>(window());
+			auto &oMenu = *new OptionCategoryView{window()};
 			oMenu.init(!e.isPointer());
-			pushAndShow(oMenu, &menuAllocator);
+			pushAndShow(oMenu);
 		}
 	},
 	onScreenInputManager
@@ -339,9 +339,9 @@ MenuView::MenuView(Base::Window &win):
 		"On-screen Input Setup",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &tcMenu = *menuAllocator.allocNew<TouchConfigView>(window(), touchConfigFaceBtnName, touchConfigCenterBtnName);
+			auto &tcMenu = *new TouchConfigView{window(), touchConfigFaceBtnName, touchConfigCenterBtnName};
 			tcMenu.init(!e.isPointer());
-			pushAndShow(tcMenu, &menuAllocator);
+			pushAndShow(tcMenu);
 		}
 	},
 	inputManager
@@ -349,9 +349,9 @@ MenuView::MenuView(Base::Window &win):
 		"Key/Gamepad Input Setup",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &menu = *menuAllocator.allocNew<InputManagerView>(window());
+			auto &menu = *new InputManagerView{window()};
 			menu.init(!e.isPointer());
-			pushAndShow(menu, &menuAllocator);
+			pushAndShow(menu);
 		}
 	},
 	benchmark
@@ -359,7 +359,7 @@ MenuView::MenuView(Base::Window &win):
 		"Benchmark Game",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &fPicker = *allocModalView<EmuFilePicker>(window());
+			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.initForBenchmark(!e.isPointer());
 			modalViewController.pushAndShow(fPicker);
 		}
@@ -434,7 +434,7 @@ MenuView::MenuView(Base::Window &win):
 			{
 				static char str[64];
 				snprintf(str, sizeof(str), "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init(str, !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -492,9 +492,9 @@ MenuView::MenuView(Base::Window &win):
 		"About",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &credits = *menuAllocator.allocNew<CreditsView>(creditsViewStr, window());
+			auto &credits = *new CreditsView{creditsViewStr, window()};
 			credits.init();
-			pushAndShow(credits, &menuAllocator);
+			pushAndShow(credits);
 		}
 	},
 	exitApp
@@ -526,8 +526,8 @@ void OptionCategoryView::init(bool highlightFirst)
 		e->onSelect() =
 		[this, e_i](TextMenuItem &, const Input::Event &e)
 		{
-			auto &oCategoryMenu = allocAndGetOptionCategoryMenu(window(), e, menuAllocator, e_i);
-			viewStack.pushAndShow(oCategoryMenu, &menuAllocator);
+			auto &oCategoryMenu = allocAndGetOptionCategoryMenu(window(), e, e_i);
+			viewStack.pushAndShow(oCategoryMenu);
 		};
 	}
 	assert(i <= sizeofArray(item));

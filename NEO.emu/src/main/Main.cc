@@ -672,7 +672,7 @@ int EmuSystem::loadGame(const char *path)
 		{
 			if(modalViewController.hasView())
 				modalViewController.pop();
-			auto loadGameInBackgroundView = allocModalView<LoadGameInBackgroundView>(mainWin.win);
+			auto loadGameInBackgroundView = new LoadGameInBackgroundView{mainWin.win};
 			loadGameInBackgroundView->init();
 			modalViewController.pushAndShow(*loadGameInBackgroundView);
 			guiPipe.init(

@@ -672,7 +672,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Set Button Positions",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &onScreenInputPlace = *allocModalView<OnScreenInputPlaceView>(window());
+			auto &onScreenInputPlace = *new OnScreenInputPlaceView{window()};
 			onScreenInputPlace.init();
 			modalViewController.pushAndShow(onScreenInputPlace);
 		}
@@ -706,7 +706,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Reset Position & Spacing Options",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Reset buttons to default positions & spacing?", !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
@@ -723,7 +723,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Reset All Options",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Reset all on-screen control options to default?", !e.isPointer());
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)

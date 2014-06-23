@@ -100,7 +100,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Address",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -131,7 +131,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Value",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -162,7 +162,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"Compare",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -200,7 +200,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 		"GG Code",
 		[this](DualTextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -245,9 +245,9 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, const Input::Event &e)
 			{
-				auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(editCheatView, &menuAllocator);
+				viewStack.pushAndShow(editCheatView);
 			};
 	}
 }
@@ -258,7 +258,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 		"Add Game Genie Code",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
@@ -291,7 +291,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 						view.dismiss();
 						refreshCheatViews();
 
-						auto &textInputView = *allocModalView<CollectTextInputView>(window());
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[this](CollectTextInputView &view, const char *str)
@@ -324,7 +324,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 		"Add RAM Patch",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &textInputView = *allocModalView<CollectTextInputView>(window());
+			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", getCollectTextCloseAsset());
 			textInputView.onText() =
 			[this](CollectTextInputView &view, const char *str)
@@ -342,10 +342,10 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 					logMsg("added new cheat, %d total", fceuCheats);
 					view.dismiss();
 					refreshCheatViews();
-					auto &editCheatView = *menuAllocator.allocNew<SystemEditCheatView>(window());
+					auto &editCheatView = *new SystemEditCheatView{window()};
 					editCheatView.init(0, fceuCheats-1);
 					// go to directly to cheat's menu to finish entering values
-					viewStack.pushAndShow(editCheatView, &menuAllocator);
+					viewStack.pushAndShow(editCheatView);
 				}
 				else
 				{

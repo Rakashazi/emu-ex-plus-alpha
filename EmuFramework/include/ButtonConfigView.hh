@@ -18,6 +18,7 @@
 #include <imagine/gui/BaseMenuView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <EmuInput.hh>
+class InputManagerView;
 
 #ifdef CONFIG_BASE_ANDROID
 #define BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
@@ -40,12 +41,15 @@ private:
 	SetDelegate onSetD;
 	const Input::Device *dev = nullptr;
 	const Input::Device *savedDev = nullptr;
+	InputManagerView &rootIMView;
 
 	void initPointerUI();
 	bool pointerUIIsInit();
 
 public:
-	constexpr ButtonConfigSetView(Base::Window &win): View(win) {}
+	constexpr ButtonConfigSetView(Base::Window &win, InputManagerView &rootIMView):
+		View(win), rootIMView{rootIMView}
+	{}
 
 	IG::WindowRect &viewRect() { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet);
@@ -63,6 +67,7 @@ private:
 		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	};
 
+	InputManagerView &rootIMView;
 	TextMenuItem reset;
 	MenuItem **text = nullptr;
 	BtnConfigMenuItem *btn = nullptr;
@@ -75,7 +80,7 @@ private:
 	void onSet(const Input::Event &e, int keyToSet);
 
 public:
-	ButtonConfigView(Base::Window &win);
+	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView);
 
 	void init(const KeyCategory *cat,
 		InputDeviceConfig &devConf, bool highlightFirst);

@@ -59,9 +59,9 @@ class SystemMenuView : public MenuView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *menuAllocator.allocNew<CheatsView>(window());
+				auto &cheatsMenu = *new CheatsView{window()};
 				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu, &menuAllocator);
+				viewStack.pushAndShow(cheatsMenu);
 			}
 		}
 	};

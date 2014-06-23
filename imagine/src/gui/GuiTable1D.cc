@@ -51,7 +51,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 	if(cells == 0)
 		return false;
 
-	bool usedInput = false;
+	bool movedSelected = false;
 
 	if(e.isPointer())
 	{
@@ -69,7 +69,6 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			{
 				selected = i;
 				view.postDraw();
-				usedInput = true;
 			}
 		}
 		else if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
@@ -81,9 +80,8 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				logDMsg("entry %d pushed", i);
 				selectedIsActivated = 1;
 				view.postDraw();
-				usedInput = true;
-				src->onSelectElement(this, e, i);
 				selected = -1;
+				src->onSelectElement(this, e, i);
 			}
 		}
 	}
@@ -105,7 +103,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			}
 			logMsg("up, selected %d", selected);
 			view.postDraw();
-			usedInput = true;
+			movedSelected = true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
 			|| (e.isRelativePointer() && e.y > 0))
@@ -116,7 +114,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				selected = wrapToBound(selected+1, 0, cells);
 			logMsg("down, selected %d", selected);
 			view.postDraw();
-			usedInput = true;
+			movedSelected = true;
 		}
 		else if(e.pushed() && e.isDefaultConfirmButton())
 		{
@@ -125,8 +123,6 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				logDMsg("entry %d pushed", selected);
 				selectedIsActivated = 1;
 				src->onSelectElement(this, e, selected);
-				view.postDraw();
-				usedInput = true;
 			}
 		}
 		else if(e.pushed() && e.isDefaultPageUpButton())
@@ -137,7 +133,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				selected = clipToBounds(selected-visibleCells(view.projP), 0, cells-1);
 			logMsg("selected %d", selected);
 			view.postDraw();
-			usedInput = true;
+			movedSelected = true;
 		}
 		else if(e.pushed() && e.isDefaultPageDownButton())
 		{
@@ -147,11 +143,11 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 				selected = clipToBounds(selected+visibleCells(view.projP), 0, cells-1);
 			logMsg("selected %d", selected);
 			view.postDraw();
-			usedInput = true;
+			movedSelected = true;
 		}
 	}
 
-	return usedInput;
+	return movedSelected;
 }
 
 int GuiTable1D::visibleCells(const Gfx::ProjectionPlane &projP) const

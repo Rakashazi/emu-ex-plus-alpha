@@ -97,7 +97,7 @@ class VCSSwitchesView : public BaseMenuView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+				auto &ynAlertView = *new YesNoAlertView{window()};
 				ynAlertView.init("Really Soft Reset Game?", !e.isPointer());
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
@@ -179,9 +179,9 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &vcsSwitchesView = *menuAllocator.allocNew<VCSSwitchesView>(window());
+				auto &vcsSwitchesView = *new VCSSwitchesView{window()};
 				vcsSwitchesView.init(!e.isPointer());
-				viewStack.pushAndShow(vcsSwitchesView, &menuAllocator);
+				viewStack.pushAndShow(vcsSwitchesView);
 			}
 		}
 	};

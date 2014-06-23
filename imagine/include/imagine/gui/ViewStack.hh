@@ -19,55 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
 #include <utility>
-
-class StackAllocator
-{
-public:
-	constexpr StackAllocator() {}
-	uint itemEndOffset[5] {0};
-	uint items = 0;
-	uint8 storage[1024*74] __attribute__((aligned)) {0};
-
-	void *alloc(uint size)
-	{
-		if(items >= sizeofArray(itemEndOffset))
-		{
-			bug_exit("too many items");
-		}
-
-		auto itemStart = items ? itemEndOffset[items-1] : 0;
-		auto itemEnd = itemStart + size;
-		auto itemEndAligned = IG::alignRoundedUp(itemEnd, 16);
-		itemEndOffset[items] = itemEndAligned;
-		items++;
-		logMsg("allocated %u bytes @ offset 0x%X (%d)", size, itemStart, itemStart);
-		if(itemEnd != itemEndAligned)
-		{
-			logMsg("end offset 0x%X (%u) aligned to 0x%X (%u)", itemEnd, itemEnd, itemEndAligned, itemEndAligned);
-		}
-
-		if(itemEndOffset[items-1] > sizeof(storage))
-		{
-			bug_exit("out of space");
-		}
-
-		return &storage[itemStart];
-	}
-
-	template<typename T, typename... ARGS>
-	T *allocNew(ARGS&&... args)
-	{
-		auto allocated = alloc(sizeof(T));
-		auto obj = new(allocated) T(std::forward<ARGS>(args)...);
-		return obj;
-	}
-
-	void pop()
-	{
-		assert(items);
-		items--;
-	}
-};
+#include <memory>
 
 class BasicViewController : public ViewController
 {
@@ -81,7 +33,7 @@ public:
 	constexpr BasicViewController() {}
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
 	void push(View &v);
-	void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView) override;
+	void pushAndShow(View &v, bool needsNavView) override;
 	void pushAndShow(View &v);
 	void pop();
 	void dismissView(View &v) override;
@@ -97,7 +49,6 @@ class ViewStack : public ViewController
 {
 private:
 	View *view[5] {nullptr};
-	StackAllocator *viewAllocator[5] {nullptr};
 	NavView *nav = nullptr;
 	//ViewController *nextController = nullptr;
 	IG::WindowRect viewRect, customViewRect;
@@ -116,10 +67,8 @@ public:
 	void place();
 	void inputEvent(const Input::Event &e);
 	void draw(Base::FrameTimeBase frameTime);
-	void push(View &v, StackAllocator *allocator);
 	void push(View &v);
-	void pushAndShow(View &v, StackAllocator *allocator, bool needsNavView) override;
-	void pushAndShow(View &v, StackAllocator *allocator);
+	void pushAndShow(View &v, bool needsNavView) override;
 	void pushAndShow(View &v);
 	void pop();
 	void popAndShow();

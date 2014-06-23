@@ -32,9 +32,9 @@ View &mainMenu()
 	return mMenu;
 }
 
-View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, StackAllocator &allocator, uint idx)
+View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, uint idx)
 {
-	auto oCategoryMenu = allocator.allocNew<SystemOptionView>(win);
+	auto oCategoryMenu = new SystemOptionView{win};
 	oCategoryMenu->init(idx, !e.isPointer());
 	return *oCategoryMenu;
 }

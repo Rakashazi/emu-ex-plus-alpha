@@ -181,17 +181,6 @@ static const char *stateNameStr(int slot)
 	return str[slot+1];
 }
 
-extern uint8 modalViewStorage[2][1024] __attribute__((aligned));
-extern uint modalViewStorageIdx;
-template<typename T, typename... ARGS>
-static T *allocModalView(ARGS&&... args)
-{
-	static_assert(sizeof(T) <= sizeof(modalViewStorage[0]), "out of modal view storage");
-	auto obj = new(modalViewStorage[modalViewStorageIdx]) T(std::forward<ARGS>(args)...);
-	modalViewStorageIdx = (modalViewStorageIdx + 1) % 2;
-	return obj;
-}
-
 #if defined INPUT_SUPPORTS_POINTER
 #define CONFIG_EMUFRAMEWORK_VCONTROLS
 #endif

@@ -155,7 +155,7 @@ private:
 				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath);
 				return;
 			}
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Machine Type", view->window());
+			auto &multiChoiceView = *new MultiChoiceView{"Machine Type", view->window()};
 			multiChoiceView.init(*this, !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, view](int idx, const Input::Event &e)
@@ -164,7 +164,7 @@ private:
 					viewStack.popAndShow();
 					return 0;
 				};
-			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView);
 		}
 
 		void deinit()
@@ -193,7 +193,7 @@ private:
 		[this](TextMenuItem &, const Input::Event &e)
 		{
 			printInstallFirmwareFilesStr(installFirmwareFilesStr);
-			auto &ynAlertView = *allocModalView<YesNoAlertView>(window());
+			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init(installFirmwareFilesStr, !e.isPointer());
 			ynAlertView.onYes() =
 				[](const Input::Event &e)
@@ -331,7 +331,7 @@ public:
 
 	void addHDFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
@@ -352,7 +352,7 @@ public:
 		if(!item.active) return;
 		if(strlen(hdName[slot]))
 		{
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Hard Drive", window());
+			auto &multiChoiceView = *new MultiChoiceView{"Hard Drive", window()};
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
@@ -371,7 +371,7 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
 		{
@@ -408,7 +408,7 @@ public:
 
 	void addROMFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
 		fPicker.onSelectFile() =
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
@@ -424,7 +424,7 @@ public:
 
 	void onSelectROM(const Input::Event &e, uint8 slot)
 	{
-		auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("ROM Cartridge Slot", window());
+		auto &multiChoiceView = *new MultiChoiceView{"ROM Cartridge Slot", window()};
 		multiChoiceView.init(insertEjectRomMenuStr, sizeofArray(insertEjectRomMenuStr), !e.isPointer());
 		multiChoiceView.onSelect() =
 			[this, slot](int action, const Input::Event &e)
@@ -465,7 +465,7 @@ public:
 				}
 				return 0;
 			};
-		viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+		viewStack.pushAndShow(multiChoiceView);
 	}
 
 	TextMenuItem romSlot[2]
@@ -493,7 +493,7 @@ public:
 
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)
 	{
-		auto &fPicker = *allocModalView<EmuFilePicker>(window());
+		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
 		fPicker.onSelectFile() =
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
@@ -512,7 +512,7 @@ public:
 	{
 		if(strlen(diskName[slot]))
 		{
-			auto &multiChoiceView = *menuAllocator.allocNew<MultiChoiceView>("Disk Drive", window());
+			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
 			multiChoiceView.onSelect() =
 				[this, slot](int action, const Input::Event &e)
@@ -531,7 +531,7 @@ public:
 					}
 					return 0;
 				};
-			viewStack.pushAndShow(multiChoiceView, &menuAllocator);
+			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
 		{
@@ -588,9 +588,9 @@ private:
 			if(item.active)
 			{
 				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
-				auto &msxIoMenu = *menuAllocator.allocNew<MsxIOControlView>(window());
+				auto &msxIoMenu = *new MsxIOControlView{window()};
 				msxIoMenu.init(!e.isPointer());
-				viewStack.pushAndShow(msxIoMenu, &menuAllocator);
+				viewStack.pushAndShow(msxIoMenu);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{
