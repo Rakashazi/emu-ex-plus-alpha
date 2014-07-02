@@ -1,8 +1,6 @@
 #ifndef __PCFX_SCSICD_H
 #define __PCFX_SCSICD_H
 
-#include <blip/Blip_Buffer.h>
-
 typedef int32 scsicd_timestamp_t;
 
 typedef struct
@@ -70,7 +68,7 @@ void SCSICD_SetRST(bool set);
 void SCSICD_SetATN(bool set);
 
 uint32 SCSICD_Run(scsicd_timestamp_t);
-void SCSICD_ResetTS(void);
+void SCSICD_ResetTS(uint32 ts_base);
 
 enum
 {
@@ -89,11 +87,11 @@ void SCSICD_GetCDDAValues(int16 &left, int16 &right);
 
 void SCSICD_SetLog(void (*logfunc)(const char *, const char *, ...));
 
-void SCSICD_Init(int type, int CDDATimeDiv, Blip_Buffer *leftbuf, Blip_Buffer *rightbuf, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int));
+void SCSICD_Init(int type, int CDDATimeDiv, int32* left_hrbuf, int32* right_hrbuf, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int));
 void SCSICD_Close(void);
 
 void SCSICD_SetTransferRate(uint32 TransferRate);
-void SCSICD_SetCDDAVolume(SysDDec left, SysDDec right);
+void SCSICD_SetCDDAVolume(double left, double right);
 int SCSICD_StateAction(StateMem *sm, int load, int data_only, const char *sname);
 
 void SCSICD_SetDisc(bool tray_open, CDIF *cdif, bool no_emu_side_effects = false);

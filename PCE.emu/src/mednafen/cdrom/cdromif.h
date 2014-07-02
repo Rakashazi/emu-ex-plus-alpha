@@ -57,7 +57,7 @@ class CDIF
  bool UnrecoverableError;
  bool is_phys_cache;
  CDUtility::TOC disc_toc;
- bool DiscEjected;
+ int DiscEjected;	// 0 = inserted, 1 = ejected, -1 = DRAGONS ATE THE DISC. NOM NOM NOM.
 };
 
 CDIF *CDIF_Open(const char *path, const bool is_device, bool image_memcache);

@@ -24,16 +24,60 @@
 #include "CDAccess_Physical.h"
 
 #include <time.h>
+#include <stdlib.h>
+#include <string>
+#include <vector>
 
 #include <cdio/cdio.h>
 #include <cdio/mmc.h>
-//#include <cdio/logging.h>
+#include <cdio/logging.h>
 
 #if LIBCDIO_VERSION_NUM >= 83
 #include <cdio/mmc_cmds.h>
 #endif
 
 using namespace CDUtility;
+
+static bool Logging = false;
+static std::string LogMessage;
+static void LogHandler(cdio_log_level_t level, const char message[])
+{
+ if(!Logging)
+  return;
+
+ try
+ {
+  if(LogMessage.size() > 0)
+   LogMessage.append(" - ");
+
+  LogMessage.append(message);
+ }
+ catch(...)	// Don't throw exceptions through libcdio's code.
+ {
+  LogMessage.clear();
+ }
+}
+
+static INLINE void StartLogging(void)
+{
+ Logging = true;
+ LogMessage.clear();
+}
+
+static INLINE void ClearLogging(void)
+{
+ LogMessage.clear();
+}
+
+static INLINE std::string StopLogging(void)
+{
+ std::string ret = LogMessage;
+
+ Logging = false;
+ LogMessage.clear();
+
+ return(ret);
+}
 
 void CDAccess_Physical::DetermineFeatures(void)
 {
@@ -50,17 +94,20 @@ void CDAccess_Physical::DetermineFeatures(void)
  cdb.field[7] = sizeof(buf) >> 8;
  cdb.field[8] = sizeof(buf) & 0xFF;
 
+ StartLogging();
  if(mmc_run_cmd ((CdIo *)p_cdio, MMC_TIMEOUT_DEFAULT,
                     &cdb,
                     SCSI_MMC_DATA_READ,
                     sizeof(buf),
                     buf))
  {
-  throw(MDFN_Error(0, _("MMC [MODE SENSE 10] command failed.")));
+  throw(MDFN_Error(0, _("MMC [MODE SENSE 10] command failed: %s"), StopLogging().c_str()));
  }
  else
  {
   const uint8 *pd = &buf[8];
+
+  StopLogging();
 
   if(pd[0] != 0x2A || pd[1] < 0x14)
   {
@@ -114,42 +161,115 @@ void CDAccess_Physical::PreventAllowMediumRemoval(bool prevent)
 #endif
 }
 
+
+// To be used in the future for constructing semi-raw TOC data.
+#if 0
+static uint8 cond_hex_to_bcd(uint8 val)
+{
+ if( ((val & 0xF) > 0x9) || ((val & 0xF0) > 0x90) )
+  return val;
+
+ return U8_to_BCD(val);
+}
+#endif
+
 void CDAccess_Physical::ReadPhysDiscInfo(unsigned retry)
 {
  mmc_cdb_t cdb = {{0, }};
- uint8 toc_buffer[8192];
+ std::vector<uint8> toc_buffer;
  int64 start_time = time(NULL);
  int cdio_rc;
 
+ toc_buffer.resize(0x3FFF); // (2**(8 * 2 - 1 - 1)) - 1, in case the drive has buggy firmware which chops upper bits off or overflows with values near
+			    // the max of a 16-bit signed value
+
  cdb.field[0] = 0x43;	// Read TOC
  cdb.field[1] = 0x00;
- cdb.field[2] = 0x00;	// Format 0000b
+ cdb.field[2] = 0x02;	// Format 0010b
  cdb.field[3] = 0x00;
  cdb.field[4] = 0x00;
  cdb.field[5] = 0x00;
- cdb.field[6] = 0x01;	// Track number
- cdb.field[7] = sizeof(toc_buffer) >> 8;
- cdb.field[8] = sizeof(toc_buffer) & 0xFF;
+ cdb.field[6] = 0x01;	// First session number
+ cdb.field[7] = toc_buffer.size() >> 8;
+ cdb.field[8] = toc_buffer.size() & 0xFF;
  cdb.field[9] = 0x00;
 
- memset(toc_buffer, 0, sizeof(toc_buffer));
-
+ StartLogging();
  while((cdio_rc = mmc_run_cmd ((CdIo *)p_cdio, MMC_TIMEOUT_DEFAULT,
                       &cdb,
                       SCSI_MMC_DATA_READ,
-                      sizeof(toc_buffer),
-                      toc_buffer)))
+                      toc_buffer.size(),
+                      &toc_buffer[0])))
  {
   if(!retry || time(NULL) >= (start_time + retry))
   {
-   throw(MDFN_Error(0, _("Error reading disc TOC.")));
+   throw(MDFN_Error(0, _("Error reading disc TOC: %s"), StopLogging().c_str()));
   }
+  else
+   ClearLogging();
  }
+ StopLogging();
 
  PhysTOC.Clear();
 
- PhysTOC.first_track = toc_buffer[2];
- PhysTOC.last_track = toc_buffer[3];
+ {
+  int32 len_counter = MDFN_de16msb(&toc_buffer[0]) - 2;
+  uint8 *tbi = &toc_buffer[4];
+
+  if(len_counter < 0 || (len_counter % 11) != 0)
+   throw MDFN_Error(0, _("READ TOC command response data is of an invalid length."));
+
+  while(len_counter)
+  {
+   // Ref: MMC-3 draft revision 10g, page 221
+   uint8 sess MDFN_NOWARN_UNUSED = tbi[0];
+   uint8 adr_ctrl = tbi[1];
+   uint8 tno MDFN_NOWARN_UNUSED = tbi[2];
+   uint8 point = tbi[3];
+   uint8 min MDFN_NOWARN_UNUSED = tbi[4];
+   uint8 sec MDFN_NOWARN_UNUSED = tbi[5];
+   uint8 frame MDFN_NOWARN_UNUSED = tbi[6];
+   uint8 hour_phour MDFN_NOWARN_UNUSED = tbi[7];
+   uint8 pmin = tbi[8];
+   uint8 psec = tbi[9];
+   uint8 pframe = tbi[10];
+
+   if((adr_ctrl >> 4) == 1)
+   {
+    switch(((adr_ctrl >> 4) << 8) | point)
+    {
+     case 0x101 ... 0x163:
+	PhysTOC.tracks[point].adr = adr_ctrl >> 4;
+	PhysTOC.tracks[point].control = adr_ctrl & 0xF;
+	PhysTOC.tracks[point].lba = AMSF_to_LBA(pmin, psec, pframe);
+	break;
+
+     case 0x1A0:
+	PhysTOC.first_track = pmin;
+	PhysTOC.disc_type = psec;
+	break;
+
+     case 0x1A1:
+	PhysTOC.last_track = pmin;
+	break;
+
+     case 0x1A2:
+	PhysTOC.tracks[100].adr = adr_ctrl >> 4;
+	PhysTOC.tracks[100].control = adr_ctrl & 0xF;
+	PhysTOC.tracks[100].lba = AMSF_to_LBA(pmin, psec, pframe);
+	break;
+
+     default:
+	//MDFN_printf("%02x %02x\n", adr_ctrl >> 4, point);
+	break;
+    }
+   }
+
+   tbi += 11;
+   len_counter -= 11;
+  }
+ }
+
 
  if(PhysTOC.first_track < 1 || PhysTOC.first_track > 99)
  {
@@ -159,36 +279,6 @@ void CDAccess_Physical::ReadPhysDiscInfo(unsigned retry)
  if(PhysTOC.last_track > 99 || PhysTOC.last_track < PhysTOC.first_track)
  {
   throw(MDFN_Error(0, _("Invalid last track: %d\n"), PhysTOC.last_track));
- }
-
- int32 len_counter = MDFN_de16msb(&toc_buffer[0]) - 2;
- uint8 *tbi = &toc_buffer[4];
-
- assert(len_counter >= 0);
- assert((len_counter & 7) == 0);
-
- while(len_counter)
- {
-  uint8 adr = tbi[1] >> 4;
-  uint8 control = tbi[1] & 0xF;
-  uint8 tnum = tbi[2];
-  uint32 lba = MDFN_de32msb(&tbi[4]);
-
-  if(tnum == 0xAA)
-  {
-   PhysTOC.tracks[100].adr = adr;
-   PhysTOC.tracks[100].control = control;
-   PhysTOC.tracks[100].lba = lba;
-  }
-  else if(tnum >= PhysTOC.first_track && tnum <= PhysTOC.last_track)
-  {
-   PhysTOC.tracks[tnum].adr = adr;
-   PhysTOC.tracks[tnum].control = control;
-   PhysTOC.tracks[tnum].lba = lba;
-  }
-
-  tbi += 8;
-  len_counter -= 8;
  }
 
  // Convenience leadout track duplication.
@@ -201,7 +291,7 @@ void CDAccess_Physical::Read_TOC(TOC *toc)
  *toc = PhysTOC;
 }
 
-bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
+void CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
 {
  mmc_cdb_t cdb = {{0, }};
  int cdio_rc;
@@ -211,9 +301,10 @@ bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
  CDIO_MMC_SET_READ_LBA     (cdb.field, lba);
  CDIO_MMC_SET_READ_LENGTH24(cdb.field, 1);
 
+ StartLogging();
  if(SkipSectorRead[(lba >> 3) & 0xFFFF] & (1 << (lba & 7)))
  {
-	MDFN_printf("Read(skipped): %d\n", lba);
+  printf("Read(skipped): %d\n", lba);
   memset(buf, 0, 2352);
 
   cdb.field[9] = 0x00;
@@ -225,7 +316,7 @@ bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
                       96,
                       buf + 2352)))
   {
-   throw(MDFN_Error(0, _("MMC Read Error; libcdio return code %d"), cdio_rc));
+   throw(MDFN_Error(0, _("MMC Read Error: %s"), StopLogging().c_str()));
   }
  }
  else
@@ -239,18 +330,11 @@ bool CDAccess_Physical::Read_Raw_Sector(uint8 *buf, int32 lba)
                       2352 + 96,
                       buf)))
   {
-   throw(MDFN_Error(0, _("MMC Read Error; libcdio return code %d"), cdio_rc));
+   throw(MDFN_Error(0, _("MMC Read Error: %s"), StopLogging().c_str()));
   }
  }
- return true;
+ StopLogging();
 }
-
-bool CDAccess_Physical::Read_Sector(uint8 *buf, int32 lba, uint32 size) { return false; } // TODO
-
-//static void nlh(cdio_log_level_t level, const char message[])
-//{
-// printf("%s\n", message);
-//}
 
 CDAccess_Physical::CDAccess_Physical(const char *path)
 {
@@ -260,7 +344,8 @@ CDAccess_Physical::CDAccess_Physical(const char *path)
  p_cdio = NULL;
 
  cdio_init();
- //cdio_log_set_handler(nlh);
+ cdio_log_set_handler(LogHandler);
+
 //
 //
 //
@@ -291,11 +376,13 @@ CDAccess_Physical::CDAccess_Physical(const char *path)
    devices = NULL;
   }
 
+  StartLogging();
   p_cdio = cdio_open_cd(path);
   if(!p_cdio) 
   {
-   throw(MDFN_Error(0, _("Unknown error opening physical CD")));
+   throw(MDFN_Error(0, _("Error opening physical CD: %s"), StopLogging().c_str()));
   }
+  StopLogging();
 
   //PreventAllowMediumRemoval(true);
   ReadPhysDiscInfo(0);
@@ -333,19 +420,21 @@ void CDAccess_Physical::Eject(bool eject_status)
 {
  int cdio_rc;
 
+ StartLogging();
 #if LIBCDIO_VERSION_NUM >= 83
  if((cdio_rc = mmc_start_stop_unit((CdIo *)p_cdio, eject_status, false, 0, 0)) != 0)
  {
   if(cdio_rc != DRIVER_OP_UNSUPPORTED)	// Don't error out if it's just an unsupported operation.
-   throw(MDFN_Error(0, _("Error ejecting medium;; libcdio return code %d"), cdio_rc));
+   throw(MDFN_Error(0, _("Error ejecting medium: %s"), StopLogging().c_str()));
  }
 #else
  if((cdio_rc = mmc_start_stop_media((CdIo *)p_cdio, eject_status, false, 0)) != 0)
  {
   if(cdio_rc != DRIVER_OP_UNSUPPORTED)	// Don't error out if it's just an unsupported operation.
-   throw(MDFN_Error(0, _("Error ejecting medium;; libcdio return code %d"), cdio_rc));
+   throw(MDFN_Error(0, _("Error ejecting medium: %s"), StopLogging().c_str()));
  }
 #endif
+ StopLogging();
 
  if(!eject_status)
  {

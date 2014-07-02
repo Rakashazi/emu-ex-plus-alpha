@@ -136,6 +136,39 @@ int MDFND_UnlockMutex(MDFN_Mutex *mutex)
 	return 0;
 }
 
+struct MDFN_Cond : public CondVarPThread {};
+
+MDFN_Cond* MDFND_CreateCond(void)
+{
+	MDFN_Cond *cond = new MDFN_Cond();
+	if(!cond)
+		return nullptr;
+	if(!cond->init())
+	{
+		delete cond;
+		return nullptr;
+	}
+	return cond;
+}
+
+void MDFND_DestroyCond(MDFN_Cond* cond)
+{
+	cond->deinit();
+	delete cond;
+}
+
+int MDFND_SignalCond(MDFN_Cond* cond)
+{
+	cond->signal();
+	return 0;
+}
+
+int MDFND_WaitCond(MDFN_Cond* cond, MDFN_Mutex* mutex)
+{
+	cond->wait(*mutex);
+	return 0;
+}
+
 #ifdef CONFIG_BASE_IOS
 
 // Mach semaphores
@@ -214,12 +247,6 @@ int MDFND_WaitSemaphore(MDFN_Semaphore *semaphore)
 
 #endif
 
-void MDFND_Sleep(uint32 ms)
-{
-	// TODO eliminate sleep from CD-ROM code so this won't be needed
-	Base::sleepUs(10);
-}
-
 void GetFileBase(const char *f) { }
 
 void MDFN_indent(int indent) { }
@@ -239,23 +266,6 @@ int Player_Init(int tsongs, UTF8 *album, UTF8 *artist, UTF8 *copyright, UTF8 **s
 void Player_Draw(const MDFN_Surface *surface, MDFN_Rect *dr, int CurrentSong, int16 *samples, int32 sampcount) { }
 
 int MDFNnetplay=0;
-
-void *MDFN_calloc_real(uint32 nmemb, uint32 size, const char *purpose, const char *_file, const int _line)
-{
-	return mem_calloc(nmemb, size);
-}
-
-void *MDFN_malloc_real(uint32 size, const char *purpose, const char *_file, const int _line)
-{
-	return mem_alloc(size);
-}
-
-void *MDFN_realloc_real(void *ptr, uint32 size, const char *purpose, const char *_file, const int _line)
-{
-	return mem_realloc(ptr, size);
-}
-
-void MDFN_free(void *ptr) { mem_free(ptr); }
 
 /*void ErrnoHolder::SetErrno(int the_errno)
 {

@@ -21,8 +21,8 @@
 #include "pce_psg/pce_psg.h"
 #include "input.h"
 #include "huc.h"
-#include "../cdrom/pcecd.h"
-#include "../cdrom/scsicd.h"
+#include "pcecd.h"
+#include "pcecd_drive.h"
 #include "hes.h"
 #include "tsushin.h"
 #include "arcade_card/arcade_card.h"
@@ -138,28 +138,27 @@ static DECLFW(IOWrite)
 {
  A &= 0x1FFF;
   
- switch(A & 0x1c00)
+ switch(A >> 10)
  {
-  case 0x0000: HuC6280_StealCycle();
+  case 0: HuC6280_StealCycle();
 	       VDC_Write(A, V);
 	       break;
-  case 0x0400: HuC6280_StealCycle();
+
+  case 1: HuC6280_StealCycle();
 	       VCE_Write(A, V);
 	       break;
 
-  case 0x0800: PCEIODataBuffer = V;
+  case 2: PCEIODataBuffer = V;
 	       psg->Write(HuCPU.timestamp / pce_overclocked, A, V);
 	       break;
 
-  case 0x0c00: PCEIODataBuffer = V;
+  case 3: PCEIODataBuffer = V;
 	       HuC6280_TimerWrite(A, V);
 	       break;
 
-  case 0x1000: PCEIODataBuffer = V; INPUT_Write(A, V); break;
-  case 0x1400: PCEIODataBuffer = V; HuC6280_IRQStatusWrite(A, V); break;
-  case 0x1800: if(IsTsushin)
-                PCE_TsushinWrite(A, V);
-
+  case 4: PCEIODataBuffer = V; INPUT_Write(A, V); break;
+	case 5: PCEIODataBuffer = V; HuC6280_IRQStatusWrite(A, V); break;
+	case 6:
 	       if(!PCE_IsCD)
 		break;
 
@@ -170,15 +169,12 @@ static DECLFW(IOWrite)
 	       }
 	       else
 	       {
-	         int32 dummy_ne;
-
-	         dummy_ne = PCECD_Write(HuCPU.timestamp * 3, A, V);
+	         PCECD_Write(HuCPU.timestamp * 3, A, V);
 	       }
 	       break;
-  //case 0x1C00: break; // Expansion
-  //default: printf("Eep: %04x\n", A); break;
- }
 
+  case 7: break;	// Expansion.
+ }
 }
 
 static void PCECDIRQCB(bool asserted)
@@ -210,10 +206,10 @@ bool PCE_InitCD(void)
 }
 
 
-static int LoadCommon(void);
+static void LoadCommon(void);
 static void LoadCommonPre(void);
 
-static bool TestMagic(const char *name, MDFNFILE *fp)
+static bool TestMagic(MDFNFILE *fp)
 {
  if(memcmp(fp->data, "HESM", 4) && strcasecmp(fp->ext, "pce") && strcasecmp(fp->ext, "sgx"))
   return(FALSE);
@@ -221,82 +217,112 @@ static bool TestMagic(const char *name, MDFNFILE *fp)
  return(TRUE);
 }
 
-static int Load(const char *name, MDFNFILE *fp)
+static void Cleanup(void) MDFN_COLD;
+static void Cleanup(void)
 {
- uint32 headerlen = 0;
- uint32 r_size;
-
- //IsHES = 0;
- IsSGX = 0;
-
- /*if(!memcmp(fp->data, "HESM", 4))
-  IsHES = 1;*/
-
- LoadCommonPre();
-
- if(!IsHES)
- {
-  if(fp->size & 0x200) // 512 byte header!
-   headerlen = 512;
- }
-
- r_size = fp->size - headerlen;
- if(r_size > 4096 * 1024) r_size = 4096 * 1024;
-
- for(int x = 0; x < 0x100; x++)
- {
-  PCERead[x] = PCEBusRead;
-  PCEWrite[x] = PCENullWrite;
- }
-
- uint32 crc = crc32(0, fp->data + headerlen, fp->size - headerlen);
-
-
  if(IsHES)
- {
-  if(!PCE_HESLoad(fp->data, fp->size))
-   return(0);
- }
+  HES_Close();
  else
-  HuCLoad(fp->data + headerlen, fp->size - headerlen, crc);
-
- if(!strcasecmp(fp->ext, "sgx"))
-  IsSGX = TRUE;
-
- if(fp->size >= 8192 && !memcmp(fp->data + headerlen, "DARIUS Version 1.11b", strlen("DARIUS VERSION 1.11b")))
  {
-  MDFN_printf("SuperGfx:  Darius Plus\n");
-  IsSGX = 1;
+  HuC_Close();
  }
 
- if(crc == 0x4c2126b0)
- {
-  MDFN_printf("SuperGfx:  Aldynes\n");
-  IsSGX = 1;
- }
+ VDC_Close();
 
- if(crc == 0x8c4588e2)
+ if(psg)
  {
-  MDFN_printf("SuperGfx:  1941 - Counter Attack\n");
-  IsSGX = 1;
+  delete psg;
+  psg = NULL;
  }
- if(crc == 0x1f041166)
- {
-  MDFN_printf("SuperGfx:  Madouou Granzort\n");
-  IsSGX = 1;
- }
- if(crc == 0xb486a8ed)
- {
-  MDFN_printf("SuperGfx:  Daimakaimura\n");
-  IsSGX = 1;
- }
- if(crc == 0x3b13af61)
- {
-  MDFN_printf("SuperGfx:  Battle Ace\n");
-  IsSGX = 1;
- }
+}
 
- return(LoadCommon());
+static int Load(MDFNFILE *fp)
+{
+ try
+ {
+	 uint32 headerlen = 0;
+	 uint32 r_size;
+
+	 //IsHES = 0;
+	 IsSGX = 0;
+
+	 /*if(!memcmp(fp->data, "HESM", 4))
+		IsHES = 1;*/
+
+	 LoadCommonPre();
+
+	 if(!IsHES)
+	 {
+		if(fp->size & 0x200) // 512 byte header!
+		 headerlen = 512;
+	 }
+
+	 r_size = fp->size - headerlen;
+	 if(r_size > 4096 * 1024) r_size = 4096 * 1024;
+
+	 for(int x = 0; x < 0x100; x++)
+	 {
+		PCERead[x] = PCEBusRead;
+		PCEWrite[x] = PCENullWrite;
+	 }
+
+	 uint32 crc = crc32(0, fp->data + headerlen, fp->size - headerlen);
+
+
+	 if(IsHES)
+	 {
+		HES_Load(fp->data, fp->size);
+	 }
+	 else
+		HuC_Load(fp->data + headerlen, fp->size - headerlen, crc);
+
+	 if(!strcasecmp(fp->ext, "sgx"))
+		IsSGX = TRUE;
+
+	 if(fp->size >= 8192 && !memcmp(fp->data + headerlen, "DARIUS Version 1.11b", strlen("DARIUS VERSION 1.11b")))
+	 {
+		MDFN_printf("SuperGfx:  Darius Plus\n");
+		IsSGX = 1;
+	 }
+
+	 if(crc == 0x4c2126b0)
+	 {
+		MDFN_printf("SuperGfx:  Aldynes\n");
+		IsSGX = 1;
+	 }
+
+	 if(crc == 0x8c4588e2)
+	 {
+		MDFN_printf("SuperGfx:  1941 - Counter Attack\n");
+		IsSGX = 1;
+	 }
+
+	 if(crc == 0x1f041166)
+	 {
+		MDFN_printf("SuperGfx:  Madouou Granzort\n");
+		IsSGX = 1;
+	 }
+
+	 if(crc == 0xb486a8ed)
+	 {
+		MDFN_printf("SuperGfx:  Daimakaimura\n");
+		IsSGX = 1;
+	 }
+
+	 if(crc == 0x3b13af61)
+	 {
+		MDFN_printf("SuperGfx:  Battle Ace\n");
+		IsSGX = 1;
+	 }
+
+	 LoadCommon();
+ }
+ catch(...)
+ {
+  Cleanup();
+  throw;
+ }
+ return(1);
 }
 
 static void LoadCommonPre(void)
@@ -321,7 +347,7 @@ static void LoadCommonPre(void)
  MDFNMP_Init(1024, (1 << 21) / 1024);
 }
 
-static int LoadCommon(void)
+static void LoadCommon(void)
 { 
  IsSGX |= MDFN_GetSettingB("pce_fast.forcesgx") ? 1 : 0;
 
@@ -399,8 +425,6 @@ static int LoadCommon(void)
   MDFNGameInfo->lcm_width = MDFN_GetSettingB("pce_fast.correct_aspect") ? 1024 : 341;
   MDFNGameInfo->lcm_height = MDFNGameInfo->nominal_height;
  }
-
- return(1);
 }
 
 static bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
@@ -463,38 +487,28 @@ static bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
  return(ret);
 }
 
-static int LoadCD(std::vector<CDIF *> *CDInterfaces)
+static void LoadCD(std::vector<CDIF *> *CDInterfaces)
 {
- std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios").c_str() );
-
- //IsHES = 0;
- IsSGX = 0;
-
- LoadCommonPre();
-
- if(!HuCLoadCD(bios_path.c_str()))
-  return(0);
-
- SCSICD_SetDisc(true, NULL, true);
- SCSICD_SetDisc(false, (*CDInterfaces)[0], true);
-
- return(LoadCommon());
-}
-
-
-static void CloseGame(void)
-{
- if(IsHES)
-  HES_Close();
- else
+ try
  {
-  HuCClose();
+	 std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios").c_str() );
+
+	 //IsHES = 0;
+	 IsSGX = 0;
+
+	 LoadCommonPre();
+
+	 HuC_LoadCD(bios_path.c_str());
+
+	 PCECD_Drive_SetDisc(true, NULL, true);
+	 PCECD_Drive_SetDisc(false, (*CDInterfaces)[0], true);
+
+	 LoadCommon();
  }
- VDC_Close();
- if(psg)
+ catch(...)
  {
-  delete psg;
-  psg = NULL;
+	 Cleanup();
+	 throw;
  }
 }
 
@@ -519,8 +533,13 @@ void applySoundFormat(EmulateSpecStruct *espec)
 	{
 		sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
 		sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
-		sbuf[y].bass_freq(20);
+		sbuf[y].bass_freq(10);
 	}
+}
+
+static void CloseGame(void)
+{
+	Cleanup();
 }
 
 static void Emulate(EmulateSpecStruct *espec)
@@ -538,7 +557,7 @@ static void Emulate(EmulateSpecStruct *espec)
   {
    sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
    sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
-   sbuf[y].bass_freq(20);
+   sbuf[y].bass_freq(10);
   }
  }*/
  int usedSubSurfaces = 0;
@@ -548,9 +567,7 @@ static void Emulate(EmulateSpecStruct *espec)
 
  if(PCE_IsCD)
  {
-  int32 dummy_ne;
-
-  dummy_ne = PCECD_Run(HuCPU.timestamp * 3);
+  PCECD_Run(HuCPU.timestamp * 3);
  }
 
  psg->EndFrame(HuCPU.timestamp / pce_overclocked);
@@ -626,9 +643,7 @@ void PCE_Power(void)
 
  if(PCE_IsCD)
  {
-  int32 dummy_ne;
-
-  dummy_ne = PCECD_Power(HuCPU.timestamp * 3);
+  PCECD_Power(HuCPU.timestamp * 3);
  }
 }
 
@@ -643,14 +658,6 @@ static void DoSimpleCommand(int cmd)
 
 static MDFNSetting PCESettings[] = 
 {
-/*
-  { "pce_fast.input.port1", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("Input device for input port 1."), NULL, MDFNST_STRING, "gamepad", NULL, NULL },
-  { "pce_fast.input.port2", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("Input device for input port 2."), NULL, MDFNST_STRING, "gamepad", NULL, NULL },
-  { "pce_fast.input.port3", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("Input device for input port 3."), NULL, MDFNST_STRING, "gamepad", NULL, NULL },
-  { "pce_fast.input.port4", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("Input device for input port 4."), NULL, MDFNST_STRING, "gamepad", NULL, NULL },
-  { "pce_fast.input.port5", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("Input device for input port 5."), NULL, MDFNST_STRING, "gamepad", NULL, NULL },
-*/
-
   { "pce_fast.correct_aspect", MDFNSF_CAT_VIDEO, gettext_noop("Correct the aspect ratio."), NULL, MDFNST_BOOL, "1" },
   { "pce_fast.slstart", MDFNSF_NOFLAGS, gettext_noop("First rendered scanline."), NULL, MDFNST_UINT, "4", "0", "239" },
   { "pce_fast.slend", MDFNSF_NOFLAGS, gettext_noop("Last rendered scanline."), NULL, MDFNST_UINT, "235", "0", "239" },

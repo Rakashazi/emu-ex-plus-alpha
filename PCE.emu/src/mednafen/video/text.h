@@ -18,6 +18,8 @@ enum
  _MDFN_FONT_COUNT
 };
 
+uint32 GetFontHeight(unsigned which_font);
+
 uint32 GetTextPixLength(const UTF8 *msg, uint32 which_font = MDFN_FONT_9x18_18x18);
 uint32 GetTextPixLength(const UTF32 *msg, uint32 which_font = MDFN_FONT_9x18_18x18);
 

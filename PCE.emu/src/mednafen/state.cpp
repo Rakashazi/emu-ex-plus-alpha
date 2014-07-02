@@ -548,7 +548,7 @@ int MDFNSS_StateAction(StateMem *st, int load, int data_only, SFORMAT *sf, const
  return(MDFNSS_StateAction(st, load, data_only, love));
 }
 
-int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const MDFN_Rect *LineWidths)
+int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const int32 *LineWidths)
 {
 	static const char *header_magic = "MDFNSVST";
   uint8 header[32];
@@ -565,12 +565,12 @@ int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDF
 	 neowidth = MDFNGameInfo->nominal_width;
 	 neoheight = MDFNGameInfo->nominal_height;
 
-	 if(LineWidths[0].w != ~0)
+	 if(LineWidths[0] != ~0)
  	 {
-	  uint32 first_w = LineWidths[DisplayRect->y].w;
+	  uint32 first_w = LineWidths[DisplayRect->y];
 
 	  for(int y = 0; y < DisplayRect->h; y++)
-	   if(LineWidths[DisplayRect->y + y].w != first_w)
+	   if(LineWidths[DisplayRect->y + y] != first_w)
 	   {
 		   MDFN_printf("Multires!");
 	    is_multires = TRUE;
@@ -611,7 +611,7 @@ int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDF
 	 dest_rect.w = neowidth;
 	 dest_rect.h = neoheight;
 
-	 MDFN_ResizeSurface(surface, DisplayRect, (LineWidths[0].w != ~0) ? LineWidths : NULL, dest_surface, &dest_rect);
+	 MDFN_ResizeSurface(surface, DisplayRect, LineWidths, dest_surface, &dest_rect);
 
 	 {
 	  uint32 a, b = 0;
@@ -654,7 +654,7 @@ int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDF
 	return(1);
 }
 
-int MDFNSS_Save(const char *fname, const char *suffix, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const MDFN_Rect *LineWidths)
+int MDFNSS_Save(const char *fname, const char *suffix, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const int32 *LineWidths)
 {
 	StateMem st;
 
@@ -699,7 +699,7 @@ int MDFNSS_Save(const char *fname, const char *suffix, const MDFN_Surface *surfa
 }
 
 // Convenience function for movie.cpp
-int MDFNSS_SaveFP(gzFile fp, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const MDFN_Rect *LineWidths)
+int MDFNSS_SaveFP(gzFile fp, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const int32 *LineWidths)
 {
  StateMem st;
 
@@ -957,7 +957,7 @@ void MDFNI_SelectState(int w)
  MDFND_SetStateStatus(status);
 }  
 
-int MDFNI_SaveState(const char *fname, const char *suffix, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const MDFN_Rect *LineWidths)
+int MDFNI_SaveState(const char *fname, const char *suffix, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const int32 *LineWidths)
 {
  if(!MDFNGameInfo->StateAction) 
   return 0;

@@ -17,6 +17,7 @@
 
 #include "../mednafen.h"
 #include "../general.h"
+#include "../string/trim.h"
 #include "CDAccess_CCD.h"
 #include <trio/trio.h>
 
@@ -396,16 +397,6 @@ CDAccess_CCD::~CDAccess_CCD()
  Cleanup();
 }
 
-bool CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
-{
-	if(lba < 0 || (size_t)lba >= img_numsectors)
-	 return false;
-
-	img_stream->seek(lba * 2352, SEEK_SET);
-	img_stream->read(buf, size);
-	return true;
-}
-
 bool CDAccess_CCD::Read_Raw_Sector(uint8 *buf, int32 lba)
 {
  if(lba < 0 || (size_t)lba >= img_numsectors)
@@ -422,6 +413,16 @@ bool CDAccess_CCD::Read_Raw_Sector(uint8 *buf, int32 lba)
 
  subpw_interleave(sub_buf, buf + 2352);
  return true;
+}
+
+bool CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
+{
+	if(lba < 0 || (size_t)lba >= img_numsectors)
+	 return false;
+
+	img_stream->seek(lba * 2352, SEEK_SET);
+	img_stream->read(buf, size);
+	return true;
 }
 
 void CDAccess_CCD::HintReadSector(int32 lba, int32 count)

@@ -17,6 +17,17 @@ void MDFN_printf(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
 #define MDFN_printf(format, ...) { }
 #endif
 
+struct MDFN_AutoIndent
+{
+ INLINE MDFN_AutoIndent() : indented(0) { }
+ INLINE MDFN_AutoIndent(int amount) : indented(amount) { MDFN_indent(indented); }
+ INLINE ~MDFN_AutoIndent() { MDFN_indent(-indented); }
+
+ //INLINE void indent(int indoot) { indented += indoot; MDFN_indent(indoot); }
+ private:
+ int indented;
+};
+
 #define MDFNI_printf MDFN_printf
 
 /* Displays an error.  Can block or not. */
@@ -40,28 +51,49 @@ void MDFND_Sleep(uint32 ms);
 // will subtly break at least one PC Engine game(Takeda Shingen), and raise input latency on some other PC Engine games.
 void MDFND_MidSync(const EmulateSpecStruct *espec);
 
-/* Being threading support. */
+//
+// Begin threading support.
+//
 // Mostly based off SDL's prototypes and semantics.
 // Driver code should actually define MDFN_Thread and MDFN_Mutex.
-
+//
+// Caution: Do not attempt to use the synchronization primitives(mutex, cond variables, etc.) for inter-process synchronization, they'll only work reliably with
+// intra-process synchronization(the "mutex" is implemented as a a critical section under Windows, for example).
+//
 struct MDFN_Thread;
 struct MDFN_Mutex;
 struct MDFN_Semaphore;
+struct MDFN_Cond;	// mmm condiments
+struct MDFN_Sem;
 
 MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data);
 void MDFND_WaitThread(MDFN_Thread *thread, int *status);
+uint32 MDFND_ThreadID(void);
 
-MDFN_Mutex *MDFND_CreateMutex(void);
-void MDFND_DestroyMutex(MDFN_Mutex *mutex);
+MDFN_Mutex *MDFND_CreateMutex(void) MDFN_COLD;
+void MDFND_DestroyMutex(MDFN_Mutex *mutex) MDFN_COLD;
+
 int MDFND_LockMutex(MDFN_Mutex *mutex);
 int MDFND_UnlockMutex(MDFN_Mutex *mutex);
+
+MDFN_Cond* MDFND_CreateCond(void) MDFN_COLD;
+void MDFND_DestroyCond(MDFN_Cond* cond) MDFN_COLD;
+
+/* MDFND_SignalCond() *MUST* be called with a lock on the mutex used with MDFND_WaitCond() or MDFND_WaitCondTimeout() */
+int MDFND_SignalCond(MDFN_Cond* cond);
+int MDFND_WaitCond(MDFN_Cond* cond, MDFN_Mutex* mutex);
+
+#define MDFND_COND_TIMEDOUT	1
+int MDFND_WaitCondTimeout(MDFN_Cond* cond, MDFN_Mutex* mutex, unsigned ms);
 
 MDFN_Semaphore *MDFND_CreateSemaphore(void);
 void MDFND_DestroySemaphore(MDFN_Semaphore *mutex);
 int MDFND_SignalSemaphore(MDFN_Semaphore *mutex);
 int MDFND_WaitSemaphore(MDFN_Semaphore *mutex);
 
-/* End threading support. */
+//
+// End threading support.
+//
 
 void MDFNI_Reset(void);
 void MDFNI_Power(void);

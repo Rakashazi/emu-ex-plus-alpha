@@ -15,6 +15,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+// AR_Open(), and AudioReader, will NOT take "ownership" of the Stream object(IE it won't ever delete it).  Though it does assume it has exclusive access
+// to it for as long as the AudioReader object exists.
+
+// Don't allow exceptions to propagate into the vorbis/musepack/etc. libraries, as it could easily leave the state of the library's decoder "object" in an
+// inconsistent state, which would cause all sorts of unfun when we try to destroy it while handling the exception farther up.
+
 #include "../mednafen.h"
 #include "audioreader.h"
 
@@ -74,166 +80,171 @@ int64 AudioReader::FrameCount(void)
  return(0);
 }
 
+/*
+**
+**
+**
+**
+**
+**
+**
+**
+**
+*/
+
 class OggVorbisReader : public AudioReader
 {
  public:
- static OggVorbisReader *open(Io *fp)
+ OggVorbisReader(Io *fp);
+ ~OggVorbisReader();
+
+ int64 Read_(int16 *buffer, int64 frames);
+ bool Seek_(int64 frame_offset);
+ int64 FrameCount(void);
+
+ private:
+ OggVorbis_File ovfile;
+};
+
+OggVorbisReader::OggVorbisReader(Io *fp)
+{
+ fp->seekA(0);
+
+ if(ov_open_callbacks(fp, &ovfile, NULL, 0, imagineVorbisIONoClose))
+	 throw(0);
+}
+
+OggVorbisReader::~OggVorbisReader()
+{
+	 ov_clear(&ovfile);
+}
+
+int64 OggVorbisReader::Read_(int16 *buffer, int64 frames)
+{
+ uint8 *tw_buf = (uint8 *)buffer;
+ int cursection = 0;
+ long toread = frames * sizeof(int16) * 2;
+
+ while(toread > 0)
  {
-	 OggVorbisReader *o = new OggVorbisReader();
-	 if(!o)
-		 return 0;
-	 o->init = 0;
-	 fp->seekA(0);
-
-  if(ov_open_callbacks(fp, &o->ovfile, NULL, 0, imagineVorbisIONoClose))
-  {
-	  delete o;
-	return 0;
-  }
-  o->init = 1;
-  return o;
- }
-
- ~OggVorbisReader()
- {
-	 if(init)
-		 ov_clear(&ovfile);
- }
-
- int64 Read_(int16 *buffer, int64 frames)
- {
-  uint8 *tw_buf = (uint8 *)buffer;
-  int cursection = 0;
-  long toread = frames * sizeof(int16) * 2;
-
-  while(toread > 0)
-  {
 	#ifdef MSB_FIRST
 	  int endianPack = 1;
 	#else
 	  int endianPack = 0;
 	#endif
-   long didread =
+  long didread =
 	#ifdef CONFIG_PACKAGE_LIBVORBIS
 	 ov_read(&ovfile, (char*)tw_buf, toread, endianPack, 2, 1, &cursection);
 	#else
 	 ov_read(&ovfile, (char*)tw_buf, toread, &cursection);
 	#endif
 
-   if(didread == 0)
-    break;
+  if(didread == 0)
+   break;
 
-   tw_buf = (uint8 *)tw_buf + didread;
-   toread -= didread;
-  }
-
-  return(frames - toread / sizeof(int16) / 2);
+  tw_buf = (uint8 *)tw_buf + didread;
+  toread -= didread;
  }
 
- bool Seek_(int64 frame_offset)
- {
-  ov_pcm_seek(&ovfile, frame_offset);
-  return(true);
- }
+ return(frames - toread / sizeof(int16) / 2);
+}
 
- int64 FrameCount(void)
- {
-  return(ov_pcm_total(&ovfile, -1));
- }
+bool OggVorbisReader::Seek_(int64 frame_offset)
+{
+ ov_pcm_seek(&ovfile, frame_offset);
+ return(true);
+}
 
- private:
- OggVorbis_File ovfile;
- bool init;
-};
+int64 OggVorbisReader::FrameCount(void)
+{
+ return(ov_pcm_total(&ovfile, -1));
+}
+
+/*
+**
+**
+**
+**
+**
+**
+**
+**
+**
+*/
 
 #ifdef HAVE_LIBSNDFILE
-
-
-
 class SFReader : public AudioReader
 {
  public:
 
- static SFReader *open(Io *fp)
- {
-	 SFReader *o = new SFReader();
-	 if(!o)
-		 return 0;
-	 o->init = 0;
-  memset(&o->sfinfo, 0, sizeof(SF_INFO));
-  fp->seekA(0);
-  o->sf = sf_open_virtual(&imagineSndFileIO, SFM_READ, &o->sfinfo, fp);
-  if(!o->sf)
-  {
-	  delete o;
-	  return 0;
-  }
-  o->init = 1;
-  return o;
- }
+ SFReader(Io *fp);
+ ~SFReader();
 
- ~SFReader() 
- {
-	 if(init)
-	 {
-		 sf_close(sf);
-	 }
- }
-
- int64 Read_(int16 *buffer, int64 frames)
- {
-  return(sf_read_short(sf, (short*)buffer, frames * 2) / 2);
- }
-
- bool Seek_(int64 frame_offset)
- {
-  // FIXME error condition
-  if(sf_seek(sf, frame_offset, SEEK_SET) != frame_offset)
-   return(false);
-  return(true);
- }
-
- int64 FrameCount(void)
- {
-  return(sfinfo.frames);
- }
+ int64 Read_(int16 *buffer, int64 frames);
+ bool Seek_(int64 frame_offset);
+ int64 FrameCount(void);
 
  private:
  SNDFILE *sf;
  SF_INFO sfinfo;
- bool init;
 };
+
+SFReader::SFReader(Io *fp)
+{
+ fp->seekA(0);
+
+ memset(&sfinfo, 0, sizeof(sfinfo));
+ if(!(sf = sf_open_virtual(&imagineSndFileIO, SFM_READ, &sfinfo, fp)))
+	throw(0);
+}
+
+SFReader::~SFReader()
+{
+ sf_close(sf);
+}
+
+int64 SFReader::Read_(int16 *buffer, int64 frames)
+{
+ return(sf_read_short(sf, (short*)buffer, frames * 2) / 2);
+}
+
+bool SFReader::Seek_(int64 frame_offset)
+{
+ // FIXME error condition
+ if(sf_seek(sf, frame_offset, SEEK_SET) != frame_offset)
+  return(false);
+ return(true);
+}
+
+int64 SFReader::FrameCount(void)
+{
+ return(sfinfo.frames);
+}
+
 #endif
 
 
 AudioReader *AR_Open(Io *fp)
 {
- AudioReader *AReader = NULL;
-
- /*if(!AReader)
+ try
  {
-  try
-  {
-   AReader = new MPCReader(fp);
-  }
-  catch(int i)
-  {
-  }
- }*/
-
- if(!AReader)
+  return new OggVorbisReader(fp);
+ }
+ catch(int i)
  {
-   AReader = OggVorbisReader::open(fp);
  }
 
 
 #ifdef HAVE_LIBSNDFILE
- if(!AReader)
+ try
  {
-   AReader = SFReader::open(fp);
+	return new SFReader(fp);
+ }
+ catch(int i)
+ {
  }
 #endif
 
- return(AReader);
+ return(NULL);
 }
 

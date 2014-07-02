@@ -15,7 +15,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "mednafen.h"
+#include <mednafen/mednafen.h>
 #include "okiadpcm.h"
 #include <math.h>
 

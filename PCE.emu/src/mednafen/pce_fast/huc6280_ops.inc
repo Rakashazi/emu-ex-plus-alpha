@@ -631,5 +631,5 @@ case 0xFC:
 	   }
 	   break;
 
-default: MDFN_printf("Bad %02x at $%04x\n", b1, GetRealPC());
+default: //MDFN_printf("Bad %02x at $%04x\n", b1, GetRealPC());
 	 break;

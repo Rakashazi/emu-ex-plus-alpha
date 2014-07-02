@@ -18,6 +18,7 @@
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 #include <mednafen/pce_fast/pce.h>
+#include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
 
 using namespace IG;
@@ -29,7 +30,6 @@ PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker ha
 
 namespace PCE_Fast
 {
-	void HuCDumpSave(void);
 	void applyVideoFormat(MDFN_Surface &espec);
 	void applySoundFormat(EmulateSpecStruct *espec);
 	extern bool AVPad6Enabled[5];
@@ -90,8 +90,6 @@ void EmuSystem::onOptionsLoaded()
 	vController.gp.activeFaceBtns = 2;
 	#endif
 }
-
-extern char MDFN_cdErrorStr[256];
 
 enum
 {
@@ -198,7 +196,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		logMsg("saving backup memory");
 		// TODO: fix iOS permissions if needed
-		PCE_Fast::HuCDumpSave();
+		PCE_Fast::HuC_DumpSave();
 	}
 }
 
@@ -265,21 +263,20 @@ int EmuSystem::loadGame(const char *path)
 
 	if(isHuCardExtension(path))
 	{
-		MDFNFILE fp;
 		const FileExtensionSpecStruct ext[]
 		{
 			{".pce", 0},
 			{".sgx", 0},
 			{0, 0}
 		};
-		if(!fp.Open(fullGamePath(), ext, 0))
+		try
 		{
-			popup.printf(3, 1, "Error opening file");
-			goto FAIL;
+			MDFNFILE fp(fullGamePath(), ext);
+			emuSys->Load(&fp);
 		}
-		if(emuSys->Load(0, &fp) != 1)
+		catch(std::exception &e)
 		{
-			popup.printf(3, 1, "Error loading ROM");
+			popup.printf(3, 1, "%s", e.what());
 			goto FAIL;
 		}
 	}
@@ -294,16 +291,12 @@ int EmuSystem::loadGame(const char *path)
 		try
 		{
 			CDInterfaces.push_back(CDIF_Open(fullGamePath(), false, false));
+			writeCDMD5();
+			emuSys->LoadCD(&CDInterfaces);
 		}
 		catch(std::exception &e)
 		{
 			popup.printf(4, 1, "%s", e.what());
-			goto FAIL;
-		}
-		writeCDMD5(); // calc MD5s for CDs or mednafen will leave the previous hucard's MD5 in memory
-		if(!emuSys->LoadCD(&CDInterfaces))
-		{
-			popup.printf(3, 1, "Error loading CD");
 			goto FAIL;
 		}
 	}

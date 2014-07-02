@@ -60,7 +60,7 @@ ifdef hasSCD
  SRC += MDFNApi.cc error.cpp endian.cpp general.cpp \
   cdrom/audioreader.cpp cdrom/lec.cpp cdrom/recover-raw.cpp \
   cdrom/galois.cpp cdrom/crc32.cpp cdrom/l-ec.cpp cdrom/CDUtility.cpp \
-  cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp
+  cdrom/CDAccess_Image.cpp cdrom/CDAccess.cpp string/trim.cpp
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk

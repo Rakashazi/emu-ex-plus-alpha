@@ -9,7 +9,7 @@
 
 void MDFN_ResetMessages(void);
 void MDFN_InitFontData(void);
-void MDFN_DispMessage(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
+void MDFN_DispMessage(const char *format, ...) throw() MDFN_FORMATSTR(gnu_printf, 1, 2);
 
 int MDFN_InitVirtualVideo(void);
 void MDFN_KillVirtualVideo(void);

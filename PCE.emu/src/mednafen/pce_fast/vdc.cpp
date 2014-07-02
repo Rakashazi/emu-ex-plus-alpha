@@ -29,7 +29,7 @@ The spectrum peaked at 15734 Hz.  21477272.727272... / 3 / 15734 = 455.00(CPU cy
 #include "../video.h"
 #include "vdc.h"
 #include "huc.h"
-#include "../cdrom/pcecd.h"
+#include "pcecd.h"
 #include "../cputest/cputest.h"
 #include <trio/trio.h>
 #include <math.h>
@@ -389,7 +389,7 @@ void VDC_SetPixelFormat(const MDFN_PixelFormat &format)
   {
    double y;
 
-   y = round(0.300 * r + 0.589 * g + 0.111 * b);
+   y = floor(0.5 + (0.300 * r + 0.589 * g + 0.111 * b));
 
    if(y < 0)
     y = 0;
@@ -1626,9 +1626,7 @@ void VDC_RunFrame(MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_SubSurface
 
   if(PCE_IsCD)
   {
-   int32 dummy_ne;
-
-   dummy_ne = PCECD_Run(HuCPU.timestamp * 3);
+   PCECD_Run(HuCPU.timestamp * 3);
   }
   for(int chip = 0; chip < VDC_TotalChips; chip++)
   {
@@ -1714,9 +1712,9 @@ void VDC_Power(void)
  VDC_Reset();
 }
 
-#include <errno.h>
 // Warning:  As of 0.8.x, this custom colormap function will only work if it's called from VDC_Init(), in the Load()
 // game load path.
+static bool LoadCustomPalette(const char *path) MDFN_COLD;
 static bool LoadCustomPalette(const char *path)
 {
  MDFN_printf(_("Loading custom palette from \"%s\"...\n"),  path);
@@ -1743,14 +1741,14 @@ static bool LoadCustomPalette(const char *path)
    MDFN_indent(-1);
    MDFN_free(CustomColorMap);
    CustomColorMap = NULL;
-   return(FALSE);
+   return(false);
   }
 
   CustomColorMapLen = length_read / 3;
  }
  MDFN_indent(-1);
 
- return(TRUE);
+ return(true);
 }
 
 

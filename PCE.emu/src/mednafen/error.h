@@ -14,7 +14,7 @@ class MDFN_Error : public std::exception
 
  MDFN_Error() throw();
 
- MDFN_Error(int errno_code_new, const char *format, ...) throw();
+ MDFN_Error(int errno_code_new, const char *format, ...) throw() MDFN_FORMATSTR(gnu_printf, 3, 4);
  MDFN_Error(const ErrnoHolder &enh);
 
  ~MDFN_Error() throw();

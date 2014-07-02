@@ -15,15 +15,16 @@ CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -I$(projectPath)/src/include -I$(pro
 # mednafen sources
 SRC += mednafen/pce_fast/input.cpp mednafen/pce_fast/vdc.cpp \
 mednafen/pce_fast/huc6280.cpp mednafen/pce_fast/pce.cpp mednafen/pce_fast/huc.cpp \
-mednafen/pce_fast/tsushin.cpp
+mednafen/pce_fast/tsushin.cpp mednafen/pce_fast/pcecd.cpp mednafen/pce_fast/pcecd_drive.cpp
 MDFN_SRC += mednafen/endian.cpp mednafen/movie.cpp mednafen/state.cpp mednafen/file.cpp \
-mednafen/md5.cpp mednafen/mempatcher.cpp mednafen/okiadpcm.cpp mednafen/cdrom/audioreader.cpp \
+mednafen/md5.cpp mednafen/mempatcher.cpp mednafen/sound/okiadpcm.cpp mednafen/cdrom/audioreader.cpp \
 mednafen/cdrom/galois.cpp mednafen/cdrom/recover-raw.cpp mednafen/cdrom/CDAccess.cpp \
 mednafen/cdrom/CDAccess_Image.cpp mednafen/cdrom/CDAccess_CCD.cpp mednafen/cdrom/CDUtility.cpp \
 mednafen/cdrom/l-ec.cpp mednafen/cdrom/scsicd.cpp mednafen/cdrom/cdromif.cpp mednafen/cdrom/lec.cpp \
-mednafen/cdrom/crc32.cpp mednafen/cdrom/pcecd.cpp mednafen/hw_misc/arcade_card/arcade_card.cpp \
+mednafen/cdrom/crc32.cpp mednafen/hw_misc/arcade_card/arcade_card.cpp \
 mednafen/hw_sound/pce_psg/pce_psg.cpp mednafen/sound/Blip_Buffer.cpp mednafen/video/resize.cpp \
-mednafen/video/surface.cpp mednafen/general.cpp mednafen/error.cpp mednafen/cputest/cputest.c
+mednafen/video/surface.cpp mednafen/general.cpp mednafen/error.cpp mednafen/cputest/cputest.c \
+mednafen/FileStream.cpp mednafen/Stream.cpp mednafen/memory.cpp mednafen/string/trim.cpp
 
 ifeq ($(ARCH),x86)
  MDFN_SRC += mednafen/cputest/x86_cpu.c

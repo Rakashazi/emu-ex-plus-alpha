@@ -461,6 +461,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
  }
  return(tmp_path);
 }
+#endif
 
 const char * GetFNComponent(const char *str)
 {
@@ -487,6 +488,7 @@ const char * GetFNComponent(const char *str)
   return(str);
 }
 
+#if 0
 void GetFileBase(const char *f)
 {
         const char *tp1,*tp3;
@@ -534,123 +536,3 @@ void GetFileBase(const char *f)
      }
 }
 #endif
-
-char *MDFN_RemoveControlChars(char *str)
-{
- char *orig = str;
- if(str)
-  while(*str)
-  {
-   if(*str < 0x20) *str = 0x20;
-   str++;
-  }
- return(orig);
-}
-
-// Remove whitespace from beginning of string
-void MDFN_ltrim(char *string)
-{
- int32 di, si;
- bool InWhitespace = TRUE;
-
- di = si = 0;
-
- while(string[si])
- {
-  if(InWhitespace && (string[si] == ' ' || string[si] == '\r' || string[si] == '\n' || string[si] == '\t' || string[si] == 0x0b))
-  {
-
-  }
-  else
-  {
-   InWhitespace = FALSE;
-   string[di] = string[si];
-   di++;
-  }
-  si++;
- }
- string[di] = 0;
-}
-
-// Remove whitespace from end of string
-void MDFN_rtrim(char *string)
-{
- int32 len = strlen(string);
-
- if(len)
- {
-  for(int32 x = len - 1; x >= 0; x--)
-  {
-   if(string[x] == ' ' || string[x] == '\r' || string[x] == '\n' || string[x] == '\t' || string[x] == 0x0b)
-    string[x] = 0;
-   else
-    break;
-  }
- }
-
-}
-
-void MDFN_trim(char *string)
-{
- MDFN_rtrim(string);
- MDFN_ltrim(string);
-}
-
-
-// Remove whitespace from beginning of string
-void MDFN_ltrim(std::string &string)
-{
- size_t len = string.length();
- size_t di, si;
- bool InWhitespace = TRUE;
-
- di = si = 0;
-
- while(si < len)
- {
-  if(InWhitespace && (string[si] == ' ' || string[si] == '\r' || string[si] == '\n' || string[si] == '\t' || string[si] == 0x0b))
-  {
-
-  }
-  else
-  {
-   InWhitespace = FALSE;
-   string[di] = string[si];
-   di++;
-  }
-  si++;
- }
-
- string.resize(di);
-}
-
-// Remove whitespace from end of string
-void MDFN_rtrim(std::string &string)
-{
- size_t len = string.length();
-
- if(len)
- {
-  size_t x = len;
-  size_t new_len = len;
-
-  do
-  {
-   x--;
-
-   if(!(string[x] == ' ' || string[x] == '\r' || string[x] == '\n' || string[x] == '\t' || string[x] == 0x0b))
-    break;
-
-   new_len--;
-  } while(x);
-
-  string.resize(new_len);
- }
-}
-
-
-void MDFN_trim(std::string &string)
-{
- MDFN_rtrim(string);
- MDFN_ltrim(string);
-}

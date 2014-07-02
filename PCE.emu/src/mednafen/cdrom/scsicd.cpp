@@ -16,14 +16,19 @@
  */
 
 #include "../mednafen.h"
-#include "../clamp.h"
 #include <math.h>
+#include <algorithm>
 #include <trio/trio.h>
 #include "scsicd.h"
 #include "cdromif.h"
 #include "SimpleFIFO.h"
 
-#define SCSIDBG(format, ...) { MDFN_printf("SCSI: " format "\n",  ## __VA_ARGS__); }
+#if defined(__SSE2__)
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#endif
+
+#define SCSIDBG(format, ...) { MDFN_printf("[SCSICD] " format "\n",  ## __VA_ARGS__); }
 //#define SCSIDBG(format, ...) { }
 
 using namespace CDUtility;
@@ -33,7 +38,7 @@ static uint32 CD_DATA_TRANSFER_RATE;
 static uint32 System_Clock;
 static void (*CDIRQCallback)(int);
 static void (*CDStuffSubchannels)(uint8, int);
-static Blip_Buffer *sbuf[2];
+static int32* HRBufs[2];
 static int WhichSystem;
 static CDIF *Cur_CDIF;
 
@@ -87,10 +92,10 @@ typedef struct
  // Used for multiple sector CD reads.
  bool data_transfer_done;
 
- // To target(the cd unit), for "MODE SELECT" mainly
- uint8 data_out[8192];
- uint32 data_out_pos;
- uint32 data_out_size;
+ // To target(the cd unit); for "MODE SELECT".
+ uint8 data_out[256];	// Technically it only needs to be 255, but powers of 2 are better than those degenerate powers of 2 minus one goons.
+ uint8 data_out_pos;	// Current index for writing into data_out.
+ uint8 data_out_want;	// Total number of bytes to buffer into data_out.
 
  bool TrayOpen;
  bool DiscChanged;
@@ -101,8 +106,6 @@ typedef struct
  uint8 SubPWBuf[96];
 
 } scsicd_t;
-
-typedef Blip_Synth < /*64*/blip_good_quality, 1 > CDSynth;
 
 enum
 {
@@ -122,24 +125,30 @@ enum
 
 typedef struct
 {
- int32 CDDADivAcc;
+ uint32 CDDADivAcc;
+ uint8 CDDADivAccVolFudge;	// For PC-FX CD-DA rate control RE impulses and resampling; 100 = 1.0.
  uint32 scan_sec_end;
 
  uint8 PlayMode;
- CDSynth CDDASynth[2];
- int32 CDDAVolume[2];
- int16 last_sample[2];
+ int32 CDDAVolume[2];		// 65536 = 1.0, the maximum.
  int16 CDDASectorBuffer[1176];
  uint32 CDDAReadPos;
 
  int8 CDDAStatus;
  uint8 ScanMode;
- int32 CDDADiv;
+ int64 CDDADiv;
  int CDDATimeDiv;
+
+ int16 OversampleBuffer[2][0x10 * 2];	// *2 so our MAC loop can blast through without masking the index.
+ unsigned OversamplePos;
+
+ int16 sr[2];
 
  uint8 OutPortChSelect[2];
  uint32 OutPortChSelectCache[2];
  int32 OutPortVolumeCache[2];
+
+ float DeemphState[2][2];
 } cdda_t;
 
 void MakeSense(uint8 * target, uint8 key, uint8 asc, uint8 ascq, uint8 fru)
@@ -196,7 +205,11 @@ static void FixOPV(void)
 {
  for(int port = 0; port < 2; port++)
  {
-  cdda.OutPortVolumeCache[port] = cdda.CDDAVolume[port];
+	int32 tmpvol = cdda.CDDAVolume[port] * 100 / (2 * cdda.CDDADivAccVolFudge);
+
+	//printf("TV: %d\n", tmpvol);
+
+	cdda.OutPortVolumeCache[port] = tmpvol;
 
   if(cdda.OutPortChSelect[port] & 0x01)
    cdda.OutPortChSelectCache[port] = 0;
@@ -216,7 +229,6 @@ static void VirtualReset(void)
 
  din->Flush();
 
- cdda.CDDADivAcc = (int64)System_Clock * 65536 / 44100;
  CDReadTimer = 0;
 
  pce_lastsapsp_timestamp = monotonic_timestamp;
@@ -233,8 +245,14 @@ static void VirtualReset(void)
  cdda.ScanMode = 0;
  cdda.scan_sec_end = 0;
 
+ cdda.OversamplePos = 0;
+ memset(cdda.sr, 0, sizeof(cdda.sr));
+ memset(cdda.OversampleBuffer, 0, sizeof(cdda.OversampleBuffer));
+ memset(cdda.DeemphState, 0, sizeof(cdda.DeemphState));
 
- cd.data_out_pos = cd.data_out_size = 0;
+ memset(cd.data_out, 0, sizeof(cd.data_out));
+ cd.data_out_pos = 0;
+ cd.data_out_want = 0;
 
  FixOPV();
 
@@ -437,7 +455,7 @@ static void SendStatusAndMessage(uint8 status, uint8 message)
  // This should never ever happen, but that doesn't mean it won't. ;)
  if(din->CanRead())
  {
-	MDFN_PrintError("BUG: %d bytes still in SCSI CD FIFO\n", din->CanRead());
+	MDFN_PrintError("[SCSICD] BUG: %d bytes still in SCSI CD FIFO\n", din->CanRead());
   din->Flush();
  }
 
@@ -497,7 +515,7 @@ void SCSICD_SetDisc(bool tray_open, CDIF *cdif, bool no_emu_side_effects)
 
 static void CommandCCError(int key, int asc = 0, int ascq = 0)
 {
- MDFN_PrintError("CC Error: %02x %02x %02x\n", key, asc, ascq);
+ MDFN_PrintError("[SCSICD] CC Error: %02x %02x %02x\n", key, asc, ascq);
 
  cd.key_pending = key;
  cd.asc_pending = asc;
@@ -529,8 +547,8 @@ static void DoMODESELECT6(const uint8 *cdb)
  if(cdb[4])
  {
   cd.data_out_pos = 0;
-  cd.data_out_size = cdb[4];
-  //printf("Switch to DATA OUT phase, len: %d\n", cd.data_out_size);
+  cd.data_out_want = cdb[4];
+  //printf("Switch to DATA OUT phase, len: %d\n", cd.data_out_want);
 
   ChangePhase(PHASE_DATA_OUT);
  }
@@ -593,7 +611,7 @@ static void DoMODESELECT6(const uint8 *cdb)
 
 struct ModePageParam
 {
-	constexpr ModePageParam() { }
+	constexpr ModePageParam() {}
 	constexpr ModePageParam(uint8 default_value, uint8 alterable_mask, uint8 real_mask):
 		default_value(default_value), alterable_mask(alterable_mask), real_mask(real_mask) { }
  const uint8 default_value = 0;
@@ -619,8 +637,9 @@ struct ModePage
 	0x2B:
 	0x3F(Yes, not really a mode page but a fetch method)
 */
+// Remember to update the code in StateAction() if we change the number or layout of modepages here.
 static const int NumModePages = 5;
-static ModePage ModePages[] =
+static ModePage ModePages[NumModePages] =
 {
  // Unknown
  { 0x28,
@@ -682,16 +701,8 @@ static ModePage ModePages[] =
  },
 };
 
-static void UpdateMPCache(uint8 code)
+static void UpdateMPCacheP(const ModePage* mp)
 {
- for(int pi = 0; pi < NumModePages; pi++)
- { 
-  const ModePage *mp = &ModePages[pi];
-  //const ModePageParam *params = &ModePages[pi].params[0];
-
-  if(mp->code != code)
-   continue;
-
   switch(mp->code)
   {
    case 0x0E:
@@ -715,15 +726,48 @@ static void UpdateMPCache(uint8 code)
 
    case 0x2B:
 	    {
-             int8 speed = mp->current_value[0];
-             SysDDec rate = 44100 + (SysDDec)44100 * speed / 100;
-             //printf("Speed: %d %f\n", speed, rate);
-             cdda.CDDADivAcc = (int32)((int64)System_Clock * 65536 / rate);
+        int speed;
+        int rate;
+
+				//
+				// Not sure what the actual limits are, or what happens when exceeding them, but these will at least keep the
+				// CD-DA playback system from imploding in on itself.
+				//
+				// The range of speed values accessible via the BIOS CD-DA player is apparently -10 to 10.
+				//
+				// No game is known to use the CD-DA playback speed control.  It may be useful in homebrew to lower the rate for fitting more CD-DA onto the disc,
+				// is implemented on the PC-FX in such a way that it degrades audio quality, so it wouldn't really make sense to increase the rate in homebrew.
+				//
+				// Due to performance considerations, we only partially emulate the CD-DA oversampling filters used on the PC Engine and PC-FX, and instead
+				// blast impulses into the 1.78MHz buffer, relying on the final sound resampler to kill spectrum mirrors.  This is less than ideal, but generally
+				// works well in practice, except when lowering CD-DA playback rate...which causes the spectrum mirrors to enter the non-murder zone, causing
+				// the sound output amplitude to approach overflow levels.
+				// But, until there's a killer PC-FX homebrew game that necessitates more computationally-expensive CD-DA handling,
+				// I don't see a good reason to change how CD-DA resampling is currently implemented.
+				//
+				speed = std::max<int>(-32, std::min<int>(32, (int8)mp->current_value[0]));
+				rate = 44100 + 441 * speed;
+
+							//printf("[SCSICD] Speed: %d(pre-clamped=%d) %d\n", speed, (int8)mp->current_value[0], rate);
+							cdda.CDDADivAcc = ((int64)System_Clock * (1024 * 1024) / (2 * rate));
+				cdda.CDDADivAccVolFudge = 100 + speed;
+				FixOPV();	// Resampler impulse amplitude volume adjustment(call after setting cdda.CDDADivAccVolFudge)
 	    }
 	    break;
   }
+}
 
-  break;
+static void UpdateMPCache(uint8 code)
+{
+ for(int pi = 0; pi < NumModePages; pi++)
+ {
+  const ModePage* mp = &ModePages[pi];
+
+  if(mp->code == code)
+  {
+   UpdateMPCacheP(mp);
+   break;
+  }
  }
 }
 
@@ -737,18 +781,18 @@ static void InitModePages(void)
   for(int parami = 0; parami < mp->param_length; parami++)
    mp->current_value[parami] = params[parami].default_value;
 
-  UpdateMPCache(mp->code);
+  UpdateMPCacheP(mp);
  }
 }
 
-static void FinishMODESELECT6(const uint8 *data, const uint32 data_len)
+static void FinishMODESELECT6(const uint8 *data, const uint8 data_len)
 {
 	uint8 mode_data_length, medium_type, device_specific, block_descriptor_length;
 	uint32 offset = 0;
 
-				MDFN_printf("Mode Select (6) Data: 0x%08x, ", data_len);
-        for(unsigned int i = 0; i < cd.data_out_size; i++)
-        	MDFN_printf("0x%02x ", cd.data_out[i]);
+				MDFN_printf("Mode Select (6) Data: Length=0x%02x, ", data_len);
+				for(uint32 i = 0; i < data_len; i++)
+        	MDFN_printf("0x%02x ", data[i]);
         MDFN_printf("\n");
 
         if(data_len < 4)
@@ -761,6 +805,11 @@ static void FinishMODESELECT6(const uint8 *data, const uint32 data_len)
 	medium_type = data[offset++];
 	device_specific = data[offset++];
 	block_descriptor_length = data[offset++];
+
+	// For now, shut up gcc.
+	(void)mode_data_length;
+	(void)medium_type;
+	(void)device_specific;
 
 	if(block_descriptor_length & 0x7)
 	{
@@ -832,7 +881,7 @@ static void FinishMODESELECT6(const uint8 *data, const uint32 data_len)
 	    mp->current_value[parami] |= (data[offset++]) & mp->params[parami].real_mask;
 	   }
 
-	   UpdateMPCache(mp->code);
+	   UpdateMPCacheP(mp);
 	   break;
 	  }
 	 }
@@ -858,7 +907,7 @@ static void DoMODESENSE6(const uint8 *cdb)
  uint8 PageMatchOR = 0x00;
  bool AnyPageMatch = false;
 
- SCSIDBG("Mode sense 6: %02x %d %d %d\n", PageCode, PC, DBD, AllocSize);
+ SCSIDBG("Mode sense 6: %02x %d %d %d", PageCode, PC, DBD, AllocSize);
 
  if(!AllocSize)
  {
@@ -1719,8 +1768,8 @@ static void DoPATI(const uint8 *cdb)
  //  problematic when Mednafen is used with a physical CD.
  int StartTrack = cdb[4];
  int EndTrack = cdb[7];
- int StartIndex = cdb[5];
- int EndIndex = cdb[8];
+ //int StartIndex = cdb[5];
+ //int EndIndex = cdb[8];
 
  if(!StartTrack || StartTrack < toc.first_track || StartTrack > toc.last_track)
  {
@@ -1959,7 +2008,7 @@ static void DoPREFETCH(const uint8 *cdb)
 
  // Note: This command appears to lock up the CD unit to some degree on a real PC-FX if the (lba + len) >= leadout_track_lba,
  // more testing is needed if we ever try to fully emulate this command.
- if(lba >= (int32)toc.tracks[100].lba)
+ if(lba >= toc.tracks[100].lba)
  {
   CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_END_OF_VOLUME);
   return;
@@ -2025,7 +2074,7 @@ static void DoREADSUBCHANNEL(const uint8 *cdb)
  uint8 data_in[8192];
  int DataFormat = cdb[3];
  int TrackNum = cdb[6];
- int AllocSize = (cdb[7] << 8) | cdb[8];
+ unsigned AllocSize = (cdb[7] << 8) | cdb[8];
  bool WantQ = cdb[2] & 0x40;
  bool WantMSF = cdb[1] & 0x02;
  uint32 offset = 0;
@@ -2368,36 +2417,58 @@ static SCSICH PCECommandDefs[] =
  { 0xFF, 0, 0, NULL, NULL },
 };
 
-void SCSICD_ResetTS(void)
+void SCSICD_ResetTS(uint32 ts_base)
 {
- lastts = 0;
+ lastts = ts_base;
 }
 
 void SCSICD_GetCDDAValues(int16 &left, int16 &right)
 {
  if(cdda.CDDAStatus)
  {
-  left = cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2];
-  right = cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2 + 1];
+  left = cdda.sr[0];
+  right = cdda.sr[1];
  }
  else
   left = right = 0;
 }
 
+#define CDDA_FILTER_NUMCONVOLUTIONS		7
+#define CDDA_FILTER_NUMCONVOLUTIONS_PADDED	8
+
+#define CDDA_FILTER_NUMPHASES_SHIFT		6
+#define CDDA_FILTER_NUMPHASES	       		(1 << CDDA_FILTER_NUMPHASES_SHIFT)
+
+static const int16 CDDA_Filter[1 + CDDA_FILTER_NUMPHASES + 1][CDDA_FILTER_NUMCONVOLUTIONS_PADDED] MDFN_ALIGN(16) =
+{
+ #include "scsicd_cdda_filter.inc"
+};
+
+static const int16 OversampleFilter[2][0x10] MDFN_ALIGN(16) =
+{
+ {    -82,    217,   -463,    877,  -1562,   2783,  -5661,  29464,   9724,  -3844,   2074,  -1176,    645,   -323,    138,    -43,  }, /* sum=32768, sum_abs=59076 */
+ {    -43,    138,   -323,    645,  -1176,   2074,  -3844,   9724,  29464,  -5661,   2783,  -1562,    877,   -463,    217,    -82,  }, /* sum=32768, sum_abs=59076 */
+};
+
 static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
 {
  if(cdda.CDDAStatus == CDDASTATUS_PLAYING || cdda.CDDAStatus == CDDASTATUS_SCANNING)
  {
-  int32 sample[2];
-
-  cdda.CDDADiv -= run_time << 16;
+	cdda.CDDADiv -= (int64)run_time << 20;
 
   while(cdda.CDDADiv <= 0)
   {
+   const uint32 synthtime_ex = (((uint64)system_timestamp << 20) + (int64)cdda.CDDADiv) / cdda.CDDATimeDiv;
+   const int synthtime = (synthtime_ex >> 16) & 0xFFFF;	// & 0xFFFF(or equivalent) to prevent overflowing HRBufs[]
+   const int synthtime_phase = (int)(synthtime_ex & 0xFFFF) - 0x80;
+   const int synthtime_phase_int = synthtime_phase >> (16 - CDDA_FILTER_NUMPHASES_SHIFT);
+   const int synthtime_phase_fract = synthtime_phase & ((1 << (16 - CDDA_FILTER_NUMPHASES_SHIFT)) - 1);
+   int32 sample_va[2];
+
    cdda.CDDADiv += cdda.CDDADivAcc;
 
-   //MDFN_DispMessage("%d %d %d\n", read_sec_start, read_sec, read_sec_end);
-
+   if(!(cdda.OversamplePos & 1))
+   {
    if(cdda.CDDAReadPos == 588)
    {
     if(read_sec >= read_sec_end || (cdda.CDDAStatus == CDDASTATUS_SCANNING && read_sec == cdda.scan_sec_end))
@@ -2462,6 +2533,12 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
     }
     GenSubQFromSubPW();
 
+    if(!(cd.SubQBuf_Last[0] & 0x10))
+    {
+     // Not using de-emphasis, so clear the de-emphasis filter state.
+     memset(cdda.DeemphState, 0, sizeof(cdda.DeemphState));
+    }
+
     if(cdda.CDDAStatus == CDDASTATUS_SCANNING)
     {
      int64 tmp_read_sec = read_sec;
@@ -2484,17 +2561,6 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
      read_sec++;
    } // End    if(CDDAReadPos == 588)
 
-   // If the last valid sub-Q data decoded indicate that the corresponding sector is a data sector, don't output the
-   // current sector as audio.
-   sample[0] = sample[1] = 0;
-
-   if(!(cd.SubQBuf_Last[0] & 0x40) && cdda.PlayMode != PLAYMODE_SILENT)
-   {
-    sample[0] += (cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2 + cdda.OutPortChSelectCache[0]] * cdda.OutPortVolumeCache[0]) >> 16;
-    sample[1] += (cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2 + cdda.OutPortChSelectCache[1]] * cdda.OutPortVolumeCache[1]) >> 16;
-   }
-
-   uint32 synthtime = ((system_timestamp + (cdda.CDDADiv >> 16))) / cdda.CDDATimeDiv;
    if(!(cdda.CDDAReadPos % 6))
    {
     int subindex = cdda.CDDAReadPos / 6 - 2;
@@ -2505,17 +2571,153 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
      CDStuffSubchannels(0x00, subindex);
    }
 
-   if(sbuf[0] && sbuf[1])
+   // If the last valid sub-Q data decoded indicate that the corresponding sector is a data sector, don't output the
+   // current sector as audio.
+   if(!(cd.SubQBuf_Last[0] & 0x40) && cdda.PlayMode != PLAYMODE_SILENT)
    {
-    cdda.CDDASynth[0].offset_inline(synthtime, sample[0] - cdda.last_sample[0], sbuf[0]);
-    cdda.CDDASynth[1].offset_inline(synthtime, sample[1] - cdda.last_sample[1], sbuf[1]);
+    cdda.sr[0] = cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2 + cdda.OutPortChSelectCache[0]];
+    cdda.sr[1] = cdda.CDDASectorBuffer[cdda.CDDAReadPos * 2 + cdda.OutPortChSelectCache[1]];
    }
 
-   cdda.last_sample[0] = sample[0];
-   cdda.last_sample[1] = sample[1];
+#if 0
+   {
+    static int16 wv = 0x7FFF; //0x5000;
+    static unsigned counter = 0;
+    static double phase = 0;
+    static double phase_inc = 0;
+    static const double phase_inc_inc = 0.000003 / 2;
+
+    cdda.sr[0] = 32767 * sin(phase);
+    cdda.sr[1] = 32767 * sin(phase);
+
+    //cdda.sr[0] = wv;
+    //cdda.sr[1] = wv;
+
+    if(counter == 0)
+     wv = -wv;
+    counter = (counter + 1) & 1;
+    phase += phase_inc;
+    phase_inc += phase_inc_inc;
+   }
+#endif
+
+   {
+    const unsigned obwp = cdda.OversamplePos >> 1;
+    cdda.OversampleBuffer[0][obwp] = cdda.OversampleBuffer[0][0x10 + obwp] = cdda.sr[0];
+    cdda.OversampleBuffer[1][obwp] = cdda.OversampleBuffer[1][0x10 + obwp] = cdda.sr[1];
+   }
 
    cdda.CDDAReadPos++;
+  } // End if(!(cdda.OversamplePos & 1))
+
+  {
+   const int16* f = OversampleFilter[cdda.OversamplePos & 1];
+#if defined(__SSE2__)
+   __m128i f0 = _mm_load_si128((__m128i *)&f[0]);
+   __m128i f1 = _mm_load_si128((__m128i *)&f[8]);
+#endif
+
+   for(unsigned lr = 0; lr < 2; lr++)
+   {
+    const int16* b = &cdda.OversampleBuffer[lr][((cdda.OversamplePos >> 1) + 1) & 0xF];
+#if defined(__SSE2__)
+    union
+    {
+     int32 accum;
+     float accum_f;
+     //__m128i accum_m128;
+    };
+
+    {
+     __m128i b0;
+     __m128i b1;
+     __m128i sum;
+
+     b0 = _mm_loadu_si128((__m128i *)&b[0]);
+     b1 = _mm_loadu_si128((__m128i *)&b[8]);
+
+     sum = _mm_add_epi32(_mm_madd_epi16(f0, b0), _mm_madd_epi16(f1, b1));
+     sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, (3 << 0) | (2 << 2) | (1 << 4) | (0 << 6)));
+     sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, (1 << 0) | (0 << 2) | (3 << 4) | (2 << 6)));
+     _mm_store_ss(&accum_f, (__m128)sum);
+     //_mm_store_si128(&accum_m128, sum);
+    }
+#else
+    int32 accum = 0;
+
+    for(unsigned i = 0; i < 0x10; i++)
+     accum += f[i] * b[i];
+#endif
+    // sum_abs * cdda_min =
+    // 59076 * -32768 = -1935802368
+    // OPVC can have a maximum value of 65536.
+    // -1935802368 * 65536 = -126864743989248
+    //
+    // -126864743989248 / 65536 = -1935802368
+    sample_va[lr] = ((int64)accum * cdda.OutPortVolumeCache[lr]) >> 16;
+    // Output of this stage will be (approximate max ranges) -2147450880 through 2147385345.
+   }
   }
+
+  //
+  // This de-emphasis filter's frequency response isn't totally correct, but it's much better than nothing(and it's not like any known PCE CD/TG16 CD/PC-FX games
+  // utilize pre-emphasis anyway).
+  //
+  if(MDFN_UNLIKELY(cd.SubQBuf_Last[0] & 0x10))
+  {
+   //puts("Deemph");
+   for(unsigned lr = 0; lr < 2; lr++)
+   {
+    float inv = sample_va[lr] * 0.35971507338824012f;
+
+    cdda.DeemphState[lr][1] = (cdda.DeemphState[lr][0] - 0.4316395666f * inv) + (0.7955522347f * cdda.DeemphState[lr][1]);
+    cdda.DeemphState[lr][0] = inv;
+
+    sample_va[lr] = std::max<float>(-2147483648.0, std::min<float>(2147483647.0, cdda.DeemphState[lr][1]));
+    //printf("%u: %f, %d\n", lr, cdda.DeemphState[lr][1], sample_va[lr]);
+   }
+  }
+
+
+  if(HRBufs[0] && HRBufs[1])
+  {
+   //
+   // FINAL_OUT_SHIFT should be 32 so we can take advantage of 32x32->64 multipliers on 32-bit CPUs.
+   //
+   #define FINAL_OUT_SHIFT 32
+   #define MULT_SHIFT_ADJ (32 - (26 + (8 - CDDA_FILTER_NUMPHASES_SHIFT)))
+
+   #if (((1 << (16 - CDDA_FILTER_NUMPHASES_SHIFT)) - 0) << MULT_SHIFT_ADJ) > 32767
+    #error "COEFF MULT OVERFLOW"
+   #endif
+
+   const int16 mult_a = ((1 << (16 - CDDA_FILTER_NUMPHASES_SHIFT)) - synthtime_phase_fract) << MULT_SHIFT_ADJ;
+   const int16 mult_b = synthtime_phase_fract << MULT_SHIFT_ADJ;
+   int32 coeff[CDDA_FILTER_NUMCONVOLUTIONS];
+
+   //if(synthtime_phase_fract == 0)
+   // printf("%5d: %d %d\n", synthtime_phase_fract, mult_a, mult_b);
+
+   for(unsigned c = 0; c < CDDA_FILTER_NUMCONVOLUTIONS; c++)
+   {
+    coeff[c] = (CDDA_Filter[1 + synthtime_phase_int + 0][c] * mult_a +
+		 CDDA_Filter[1 + synthtime_phase_int + 1][c] * mult_b);
+   }
+
+   int32* tb0 = &HRBufs[0][synthtime];
+   int32* tb1 = &HRBufs[1][synthtime];
+
+   for(unsigned c = 0; c < CDDA_FILTER_NUMCONVOLUTIONS; c++)
+   {
+    tb0[c] += ((int64)coeff[c] * sample_va[0]) >> FINAL_OUT_SHIFT;
+    tb1[c] += ((int64)coeff[c] * sample_va[1]) >> FINAL_OUT_SHIFT;
+   }
+   #undef FINAL_OUT_SHIFT
+   #undef MULT_SHIFT_ADJ
+  }
+
+  cdda.OversamplePos = (cdda.OversamplePos + 1) & 0x1F;
+ } // end while(cdda.CDDADiv <= 0)
  }
 }
 
@@ -2719,7 +2921,20 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
        }
        else
        {
+      	bool prev_ps = (cdda.CDDAStatus == CDDASTATUS_PLAYING || cdda.CDDAStatus == CDDASTATUS_SCANNING);
+
         cmd_info_ptr->func(cd.command_buffer);
+
+        bool new_ps = (cdda.CDDAStatus == CDDASTATUS_PLAYING || cdda.CDDAStatus == CDDASTATUS_SCANNING);
+
+        // A bit kludgey, but ehhhh.
+        if(!prev_ps && new_ps)
+        {
+         memset(cdda.sr, 0, sizeof(cdda.sr));
+         memset(cdda.OversampleBuffer, 0, sizeof(cdda.OversampleBuffer));
+         memset(cdda.DeemphState, 0, sizeof(cdda.DeemphState));
+         //printf("CLEAR BUFFERS LALALA\n");
+        }
        }
 
        cd.command_buffer_pos = 0;
@@ -2739,12 +2954,12 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
     }
     else if(!REQ_signal && !ACK_signal && cd.data_out_pos)
     {
-     if(cd.data_out_pos == cd.data_out_size)
+     if(cd.data_out_pos == cd.data_out_want)
      {
       cd.data_out_pos = 0;
 
       if(cd.command_buffer[0] == 0x15)
-	FinishMODESELECT6(cd.data_out, cd.data_out_size);
+	FinishMODESELECT6(cd.data_out, cd.data_out_want);
       else	// Error out here?  It shouldn't be reached:
        SendStatusAndMessage(STATUS_GOOD, 0x00);
      }
@@ -2766,16 +2981,16 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
     //if(cd_bus.DB == 0x6)		// ABORT message!
     if(1)
     {
-     MDFN_printf("ABORT");
+     MDFN_printf("[SCSICD] Abort Received(DB=0x%02x)\n", cd_bus.DB);
      din->Flush();
-     cd.data_out_pos = cd.data_out_size = 0;
+     cd.data_out_pos = cd.data_out_want = 0;
 
      CDReadTimer = 0;
      cdda.CDDAStatus = CDDASTATUS_STOPPED;
      ChangePhase(PHASE_BUS_FREE);
     }
     else
-     MDFN_printf("Message to target: %02x\n", cd_bus.DB);
+     MDFN_printf("[SCSICD] Message to target: 0x%02x\n", cd_bus.DB);
    }
    break;
 
@@ -2847,7 +3062,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
 
  if(cdda.CDDAStatus == CDDASTATUS_PLAYING || cdda.CDDAStatus == CDDASTATUS_SCANNING)
  {
-  int32 cdda_div_sexytime = (cdda.CDDADiv + 0xFFFF) >> 16;
+	int32 cdda_div_sexytime = (cdda.CDDADiv + (cdda.CDDADivAcc * (cdda.OversamplePos & 1)) + ((1 << 20) - 1)) >> 20;
   if(cdda_div_sexytime > 0 && cdda_div_sexytime < next_time)
    next_time = cdda_div_sexytime;
  }
@@ -2861,99 +3076,6 @@ void SCSICD_SetLog(void (*logfunc)(const char *, const char *, ...))
 {
  SCSILog = logfunc;
 }
-#if 0
-static void kaiser_window( SysDDec* io, int count, SysDDec beta )
-{
-        int const accuracy = 20; //12;
-
-        SysDDec* end = io + count;
-
-        SysDDec beta2    = beta * beta * (SysDDec) -0.25;
-        SysDDec to_fract = beta2 / ((SysDDec) count * count);
-        SysDDec i        = 0;
-        SysDDec rescale;
-        for ( ; io < end; ++io, i += 1 )
-        {
-                SysDDec x = i * i * to_fract - beta2;
-                SysDDec u = x;
-                SysDDec k = x + 1;
-
-                SysDDec n = 2;
-                do
-                {
-                        u *= x / (n * n);
-                        n += 1;
-                        k += u;
-                }
-                while ( k <= u * (1 << accuracy) );
-
-                if ( !i )
-                        rescale = 1 / k; // otherwise values get large
-
-                *io *= k * rescale;
-        }
-}
-
-static void gen_sinc( SysDDec* out, int size, SysDDec cutoff, SysDDec kaiser )
-{
-        assert( size % 2 == 0 ); // size must be enev
-
-        int const half_size = size / 2;
-        SysDDec* const mid = &out [half_size];
-
-        // Generate right half of sinc
-        for ( int i = 0; i < half_size; i++ )
-        {
-                SysDDec angle = (i * 2 + 1) * (M_PI / 2);
-                mid [i] = sin( angle * cutoff ) / angle;
-        }
-
-        kaiser_window( mid, half_size, kaiser );
-
-        // Mirror for left half
-        for ( int i = 0; i < half_size; i++ )
-                out [i] = mid [half_size - 1 - i];
-}
-
-static void normalize( SysDDec* io, int size, SysDDec gain = 1.0 )
-{
-        SysDDec sum = 0;
-        for ( int i = 0; i < size; i++ )
-                sum += io [i];
-
-        SysDDec scale = gain / sum;
-        for ( int i = 0; i < size; i++ )
-                io [i] *= scale;
-}
-
-struct my_kernel : blip_eq_t
-{
-        SysDDec cutoff;
-
-        my_kernel( SysDDec cutoff ) : cutoff( cutoff )
-        {
-        }
-
-        void generate( SysDDec* out, int count ) const
-        {
-                SysDDec tmp_buf[count * 2];
-                SysDDec moo = 0;
-
-		printf("%f %f\n", (SysDDec)cutoff, (SysDDec)oversample);
-
-                gen_sinc(tmp_buf, count * 2, cutoff / oversample * 2, 10);
-                normalize(tmp_buf, count * 2, 1); //189216615);
-
-                for(int i = 0; i < count; i++)
-                {
-                 out[i] = tmp_buf[count + i];
-                 moo += out[i];
-                }
-                printf("Moo: %f\n", moo);
-        }
-};
-#endif
-
 
 void SCSICD_SetTransferRate(uint32 TransferRate)
 {
@@ -2969,10 +3091,12 @@ void SCSICD_Close(void)
  }
 }
 
-void SCSICD_Init(int type, int cdda_time_div, Blip_Buffer *leftbuf, Blip_Buffer *rightbuf, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int))
+void SCSICD_Init(int type, int cdda_time_div, int32* left_hrbuf, int32* right_hrbuf, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int))
 {
  Cur_CDIF = NULL;
  cd.TrayOpen = false;
+
+ assert(SystemClock < 30000000);	// 30 million, sanity check.
 
  monotonic_timestamp = 0;
  lastts = 0;
@@ -2985,23 +3109,18 @@ void SCSICD_Init(int type, int cdda_time_div, Blip_Buffer *leftbuf, Blip_Buffer 
   din = new SimpleFIFO<uint8>(2048); //8192); //1024); /2048);
 
  WhichSystem = type;
- cdda.CDDATimeDiv = cdda_time_div;
 
- for(int i = 0; i < 2; i++)
- {
-  //SysDDec meow = (((SysDDec)22050 / 48000) - (6.4 / 64 / 2));
-  //my_kernel eq(meow);
+ cdda.CDDADivAcc = (int64)System_Clock * (1024 * 1024) / 88200;
+ cdda.CDDADivAccVolFudge = 100;
+ cdda.CDDATimeDiv = cdda_time_div * (1 << (4 + 2));
 
-  cdda.CDDASynth[i].volume(1.0f / 65536);
-
-  cdda.CDDAVolume[i] = 65536; //1.0;
-  //CDDASynth[i].treble_eq(eq);
- }
+ cdda.CDDAVolume[0] = 65536;
+ cdda.CDDAVolume[1] = 65536;
 
  FixOPV();
 
- sbuf[0] = leftbuf;
- sbuf[1] = rightbuf;
+ HRBufs[0] = left_hrbuf;
+ HRBufs[1] = right_hrbuf;
 
  CD_DATA_TRANSFER_RATE = TransferRate;
  System_Clock = SystemClock;
@@ -3018,7 +3137,7 @@ void SCSICD_SetCDDAVolume(SysDDec left, SysDDec right)
  {
   if(cdda.CDDAVolume[i] > 65536)
   {
-   MDFN_printf("Debug Warning: CD-DA volume %d too large: %d\n", i, cdda.CDDAVolume[i]);
+   MDFN_printf("[SCSICD] Debug Warning: CD-DA volume %d too large: %d\n", i, cdda.CDDAVolume[i]);
    cdda.CDDAVolume[i] = 65536;
   }
  }
@@ -3033,16 +3152,6 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   SFVARN(cd_bus.DB, "DB"),
   SFVARN(cd_bus.signals, "Signals"),
   SFVAR(CurrentPhase),
-
-  //SFVARN(cd_bus.BSY, "BSY"),
-  //SFVARN(cd_bus.MSG, "MSG"),
-  //SFVARN(cd_bus.CD, "CD"),
-  //SFVARN(cd_bus.REQ, "REQ"),
-  //SFVARN(cd_bus.IO, "IO"),
-  //SFVARN(cd_bus.kingACK, "kingACK"),
-  //SFVARN(cd_bus.kingRST, "kingRST"),
-  //SFVARN(cd_bus.kingSEL, "kingSEL"),
-  //SFVARN(cd_bus.kingATN, "kingATN"),
 
   SFVARN(cd.last_RST_signal, "last_RST"),
   SFVARN(cd.message_pending, "message_pending"),
@@ -3063,9 +3172,9 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   SFVARN(din->in_count, "din_in_count"),
   SFVARN(cd.data_transfer_done, "data_transfer_done"),
 
-  SFARRAYN(cd.data_out, 8192, "data_out"),
+  SFARRAYN(cd.data_out, sizeof(cd.data_out), "data_out"),
   SFVARN(cd.data_out_pos, "data_out_pos"),
-  SFVARN(cd.data_out_size, "data_out_size"),
+  SFVARN(cd.data_out_want, "data_out_want"),
 
   SFVARN(cd.TrayOpen, "TrayOpen"),
   SFVARN(cd.DiscChanged, "DiscChanged"),
@@ -3086,6 +3195,15 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   SFVAR(cdda.ScanMode),
   SFVAR(cdda.scan_sec_end),
 
+  SFVAR(cdda.OversamplePos),
+  SFARRAY16(&cdda.sr[0], sizeof(cdda.sr) / sizeof(cdda.sr[0])),
+  SFARRAY16(&cdda.OversampleBuffer[0][0], sizeof(cdda.OversampleBuffer) / sizeof(cdda.OversampleBuffer[0][0])),
+
+  SFVAR(cdda.DeemphState[0][0]),
+  SFVAR(cdda.DeemphState[0][1]),
+  SFVAR(cdda.DeemphState[1][0]),
+  SFVAR(cdda.DeemphState[1][1]),
+
   SFARRAYN(&cd.SubQBuf[0][0], sizeof(cd.SubQBuf), "SubQBufs"),
   SFARRAYN(cd.SubQBuf_Last, sizeof(cd.SubQBuf_Last), "SubQBufLast"),
   SFARRAYN(cd.SubPWBuf, sizeof(cd.SubPWBuf), "SubPWBuf"),
@@ -3093,6 +3211,14 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   SFVAR(monotonic_timestamp),
   SFVAR(pce_lastsapsp_timestamp),
 
+  //
+  //
+  //
+  SFARRAY(ModePages[0].current_value, ModePages[0].param_length),
+  SFARRAY(ModePages[1].current_value, ModePages[1].param_length),
+  SFARRAY(ModePages[2].current_value, ModePages[2].param_length),
+  SFARRAY(ModePages[3].current_value, ModePages[3].param_length),
+  SFARRAY(ModePages[4].current_value, ModePages[4].param_length),
   SFEND
  };
 
@@ -3104,6 +3230,17 @@ int SCSICD_StateAction(StateMem * sm, int load, int data_only, const char *sname
   din->read_pos &= din->size - 1;
   din->write_pos = (din->read_pos + din->in_count) & (din->size - 1);
   //printf("%d %d %d\n", din->in_count, din->read_pos, din->write_pos);
+
+  if(load < 0x0935)
+   cdda.CDDADiv /= 2;
+
+  if(cdda.CDDADiv <= 0)
+   cdda.CDDADiv = 1;
+
+  cdda.OversamplePos &= 0x1F;
+
+  for(int i = 0; i < NumModePages; i++)
+   UpdateMPCacheP(&ModePages[i]);
  }
 
  return (ret);

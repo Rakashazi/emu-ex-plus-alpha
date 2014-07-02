@@ -20,7 +20,7 @@ typedef uint8 (MDFN_FASTCALL *readfunc)(uint32 A);
 
 extern uint8 PCEIODataBuffer;
 
-bool PCE_InitCD(void);
+bool PCE_InitCD(void) MDFN_COLD;
 
 };
 
@@ -29,7 +29,7 @@ bool PCE_InitCD(void);
 namespace PCE_Fast
 {
 extern bool PCE_ACEnabled; // Arcade Card emulation enabled?
-void PCE_Power(void);
+void PCE_Power(void) MDFN_COLD;
 
 extern readfunc PCERead[0x100];
 extern writefunc PCEWrite[0x100];

@@ -2,13 +2,19 @@
 
 // These functions can be used from driver code or from internal Mednafen code.
 
-#define MDFN_malloc(size, purpose) MDFN_malloc_real(size, purpose, __FILE__, __LINE__)
-#define MDFN_calloc(nmemb, size, purpose) MDFN_calloc_real(nmemb, size, purpose, __FILE__, __LINE__)
-#define MDFN_realloc(ptr, size, purpose) MDFN_realloc_real(ptr, size, purpose, __FILE__, __LINE__)
+#define MDFN_malloc(size, purpose) MDFN_malloc_real(false, size, purpose, __FILE__, __LINE__)
+#define MDFN_calloc(nmemb, size, purpose) MDFN_calloc_real(false, nmemb, size, purpose, __FILE__, __LINE__)
+#define MDFN_realloc(ptr, size, purpose) MDFN_realloc_real(false, ptr, size, purpose, __FILE__, __LINE__)
 
-void *MDFN_malloc_real(uint32 size, const char *purpose, const char *_file, const int _line);
-void *MDFN_calloc_real(uint32 nmemb, uint32 size, const char *purpose, const char *_file, const int _line);
-void *MDFN_realloc_real(void *ptr, uint32 size, const char *purpose, const char *_file, const int _line);
+// These three will throw an error message instead of returning NULL.
+#define MDFN_malloc_T(size, purpose) MDFN_malloc_real(true, size, purpose, __FILE__, __LINE__)
+#define MDFN_calloc_T(nmemb, size, purpose) MDFN_calloc_real(true, nmemb, size, purpose, __FILE__, __LINE__)
+#define MDFN_realloc_T(ptr, size, purpose) MDFN_realloc_real(true, ptr, size, purpose, __FILE__, __LINE__)
+
+
+void *MDFN_malloc_real(bool dothrow, uint32 size, const char *purpose, const char *_file, const int _line);
+void *MDFN_calloc_real(bool dothrow, uint32 nmemb, uint32 size, const char *purpose, const char *_file, const int _line);
+void *MDFN_realloc_real(bool dothrow, void *ptr, uint32 size, const char *purpose, const char *_file, const int _line);
 void MDFN_free(void *ptr);
 
 static INLINE void MDFN_FastU32MemsetM8(uint32 *array, uint32 value_32, unsigned int u32len)

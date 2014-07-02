@@ -26,11 +26,26 @@ class FileWrapper
 
  void write(const void *data, uint64 count);
 
- int scanf(const char *format, ...) MDFN_FORMATSTR(scanf, 2, 3);
+ int scanf(const char *format, ...) MDFN_FORMATSTR(gnu_scanf, 2, 3);
 
- void printf(const char *format, ...) MDFN_FORMATSTR(printf, 2, 3);
+ void printf(const char *format, ...) MDFN_FORMATSTR(gnu_printf, 2, 3);
 
  void put_char(int c);
+
+ INLINE int get_char(void)
+ {
+  int ret;
+
+  errno = 0;
+  ret = fgetc(fp);
+
+  if(MDFN_UNLIKELY(errno != 0))
+  {
+   ErrnoHolder ene(errno);
+   throw(MDFN_Error(ene.Errno(), _("Error reading from opened file \"%s\": %s"), path_save.c_str(), ene.StrError()));
+  }
+  return(ret);
+ }
 
  void put_string(const char *str);
  void put_string(const std::string &str);

@@ -636,11 +636,11 @@ void HuC6280_Run(int32 cycles)
 	 }*/
 	}
 
-	while(HuCPU.timestamp < next_user_event)
+	while(MDFN_LIKELY(HuCPU.timestamp < next_user_event))
 	{
 	 next_event = (next_user_event < HuCPU.timer_next_timestamp) ? next_user_event : HuCPU.timer_next_timestamp;
 
-	 while(HuCPU.timestamp < next_event)
+	 while(MDFN_LIKELY(HuCPU.timestamp < next_event))
 	 {
 	  uint8 b1;
 

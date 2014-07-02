@@ -9,9 +9,9 @@ class AudioReader;
 struct CDRFILE_TRACK_INFO
 {
         int32 LBA;
-	
-	CDUtility::CD_Track_Format_t Format;
+
 	uint32 DIFormat;
+	uint8 subq_control;
 
         int32 pregap;
 	int32 pregap_dv;
@@ -82,6 +82,7 @@ class CDAccess_Image : public CDAccess
  int32 FirstTrack;
  int32 LastTrack;
  int32 total_sectors;
+ uint8 disc_type;
  CDRFILE_TRACK_INFO Tracks[100]; // Track #0(HMM?) through 99
 
  std::string base_dir;

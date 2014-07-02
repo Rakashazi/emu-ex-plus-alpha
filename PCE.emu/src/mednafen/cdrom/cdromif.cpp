@@ -76,7 +76,7 @@ class CDIF_Queue
  private:
  std::queue<CDIF_Message> ze_queue;
  MDFN_Mutex *ze_mutex;
- MDFN_Semaphore *ze_semaphore;
+ MDFN_Cond *ze_cond;
 };
 
 
@@ -125,6 +125,7 @@ class CDIF_MT : public CDIF
  uint32 SBWritePos;
 
  MDFN_Mutex *SBMutex;
+ MDFN_Cond *SBCond;
 
 
  //
@@ -197,30 +198,51 @@ CDIF_Message::~CDIF_Message()
 CDIF_Queue::CDIF_Queue()
 {
  ze_mutex = MDFND_CreateMutex();
- ze_semaphore = MDFND_CreateSemaphore();
+ ze_cond = MDFND_CreateCond();
 }
 
 CDIF_Queue::~CDIF_Queue()
 {
  MDFND_DestroyMutex(ze_mutex);
- MDFND_DestroySemaphore(ze_semaphore);
+ MDFND_DestroyCond(ze_cond);
 }
 
- // Returns FALSE if message not read, TRUE if it was read.  Will always return TRUE if "blocking" is set.
+// Returns FALSE if message not read, TRUE if it was read.  Will always return TRUE if "blocking" is set.
+// Will throw MDFN_Error if the read message code is CDIF_MSG_FATAL_ERROR
 bool CDIF_Queue::Read(CDIF_Message *message, bool blocking)
 {
-  if(!blocking && ze_queue.size() == 0)
-  {
-     return FALSE;
-  }
+ bool ret = true;
 
-  MDFND_WaitSemaphore(ze_semaphore);
-  MDFND_LockMutex(ze_mutex);
-  assert(ze_queue.size() > 0);
+ //
+ //
+ //
+ MDFND_LockMutex(ze_mutex);
+
+ if(blocking)
+ {
+  while(ze_queue.size() == 0)	// while, not just if.
+  {
+   MDFND_WaitCond(ze_cond, ze_mutex);
+  }
+ }
+
+ if(ze_queue.size() == 0)
+  ret = false;
+ else
+ {
   *message = ze_queue.front();
   ze_queue.pop();
-  MDFND_UnlockMutex(ze_mutex);
-  return TRUE;
+ }
+
+ MDFND_UnlockMutex(ze_mutex);
+ //
+ //
+ //
+
+ //if(ret && message->message == CDIF_MSG_FATAL_ERROR)
+ // throw MDFN_Error(0, "%s", message->str_message.c_str());
+
+ return(ret);
 }
 
 void CDIF_Queue::Write(const CDIF_Message &message)
@@ -229,21 +251,20 @@ void CDIF_Queue::Write(const CDIF_Message &message)
 
  ze_queue.push(message);
 
- MDFND_UnlockMutex(ze_mutex);
+ MDFND_SignalCond(ze_cond);	// Signal while the mutex is held to prevent icky race conditions.
 
- MDFND_SignalSemaphore(ze_semaphore);
+ MDFND_UnlockMutex(ze_mutex);
 }
 
 void CDIF_MT::RT_EjectDisc(bool eject_status, bool skip_actual_eject)
 {
- int32 old_de = DiscEjected;
-
- DiscEjected = eject_status;
-
- if(old_de != DiscEjected)
+ if(eject_status != DiscEjected)
  {
   if(!skip_actual_eject)
    disc_cdaccess->Eject(eject_status);
+
+  // Set after ->Eject(), since it might throw an exception.
+  DiscEjected = -1;	// For if TOC reading fails or there's something horribly wrong with the disc.
 
   if(!eject_status)	// Re-read the TOC
   {
@@ -254,6 +275,7 @@ void CDIF_MT::RT_EjectDisc(bool eject_status, bool skip_actual_eject)
     throw(MDFN_Error(0, _("TOC first(%d)/last(%d) track numbers bad."), disc_toc.first_track, disc_toc.last_track));
    }
   }
+  DiscEjected = eject_status;
 
   SBWritePos = 0;
   ra_lba = 0;
@@ -384,6 +406,8 @@ int CDIF_MT::ReadThreadStart()
     error_condition = true;
    }*/
 
+   //
+   //
    MDFND_LockMutex(SBMutex);
 
    SectorBuffers[SBWritePos].lba = ra_lba;
@@ -392,7 +416,11 @@ int CDIF_MT::ReadThreadStart()
    SectorBuffers[SBWritePos].error = error_condition;
    SBWritePos = (SBWritePos + 1) % SBSize;
 
+   MDFND_SignalCond(SBCond);
+
    MDFND_UnlockMutex(SBMutex);
+   //
+   //
 
    ra_lba++;
    ra_count--;
@@ -409,7 +437,12 @@ CDIF_MT::CDIF_MT(CDAccess *cda) : disc_cdaccess(cda), CDReadThread(NULL), SBMute
   CDIF_Message msg;
   RTS_Args s;
 
-  SBMutex = MDFND_CreateMutex();
+  if(!(SBMutex = MDFND_CreateMutex()))
+   bug_exit("Error creating CD read thread mutex.");
+
+  if(!(SBCond = MDFND_CreateCond()))
+   bug_exit("Error creating CD read thread condition variable.");
+
   UnrecoverableError = false;
 
   s.cdif_ptr = this;
@@ -429,6 +462,12 @@ CDIF_MT::CDIF_MT(CDAccess *cda) : disc_cdaccess(cda), CDReadThread(NULL), SBMute
   {
    MDFND_DestroyMutex(SBMutex);
    SBMutex = NULL;
+  }
+
+  if(SBCond)
+  {
+   MDFND_DestroyCond(SBCond);
+   SBCond = NULL;
   }
 
   if(disc_cdaccess)
@@ -463,6 +502,12 @@ CDIF_MT::~CDIF_MT()
  {
   MDFND_DestroyMutex(SBMutex);
   SBMutex = NULL;
+ }
+
+ if(SBCond)
+ {
+  MDFND_DestroyCond(SBCond);
+  SBCond = NULL;
  }
 
  if(disc_cdaccess)
@@ -506,10 +551,13 @@ bool CDIF_MT::ReadRawSector(uint8 *buf, uint32 lba)
 
  ReadThreadQueue.Write(CDIF_Message(CDIF_MSG_READ_SECTOR, lba));
 
+ //
+ //
+ //
+ MDFND_LockMutex(SBMutex);
+
  do
  {
-  MDFND_LockMutex(SBMutex);
-
   for(int i = 0; i < SBSize; i++)
   {
    if(SectorBuffers[i].valid && SectorBuffers[i].lba == lba)
@@ -520,11 +568,19 @@ bool CDIF_MT::ReadRawSector(uint8 *buf, uint32 lba)
    }
   }
 
-  MDFND_UnlockMutex(SBMutex);
-
   if(!found)
-   MDFND_Sleep(1);
+  {
+   //int32 swt = MDFND_GetTime();
+   MDFND_WaitCond(SBCond, SBMutex);
+   //printf("SB Waited: %d\n", MDFND_GetTime() - swt);
+  }
  } while(!found);
+
+ MDFND_UnlockMutex(SBMutex);
+ //
+ //
+ //
+
 
  return(!error_condition);
 }
@@ -701,13 +757,12 @@ bool CDIF_ST::Eject(bool eject_status)
 
  try
  {
-  int32 old_de = DiscEjected;
-
-  DiscEjected = eject_status;
-
-  if(old_de != DiscEjected)
+  if(eject_status != DiscEjected)
   {
    disc_cdaccess->Eject(eject_status);
+
+   // Set after ->Eject(), since it might throw an exception.
+   DiscEjected = -1;	// For if TOC reading fails or there's something horribly wrong with the disc.
 
    if(!eject_status)     // Re-read the TOC
    {
@@ -718,6 +773,7 @@ bool CDIF_ST::Eject(bool eject_status)
      throw(MDFN_Error(0, _("TOC first(%d)/last(%d) track numbers bad."), disc_toc.first_track, disc_toc.last_track));
     }
    }
+   DiscEjected = eject_status;
   }
  }
  catch(std::exception &e)
@@ -726,7 +782,6 @@ bool CDIF_ST::Eject(bool eject_status)
   return(false);
  }
 
- last_read_lba = 0;
  return(true);
 }
 

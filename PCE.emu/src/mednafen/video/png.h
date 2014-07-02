@@ -8,11 +8,7 @@ class PNGWrite
 {
  public:
 
- PNGWrite(const char *path, const MDFN_Surface *src, const MDFN_Rect &rect, const MDFN_Rect *LineWidths);
- #if 0
- PNGWrite(FileWrapper &pngfile, const MDFN_Surface *src, const MDFN_Rect &rect, const MDFN_Rect *LineWidths);
- #endif
-
+ PNGWrite(const char *path, const MDFN_Surface *src, const MDFN_Rect &rect, const int32 *LineWidths);
  ~PNGWrite();
 
 
@@ -20,8 +16,8 @@ class PNGWrite
 
  private:
 
- void WriteIt(FileWrapper &pngfile, const MDFN_Surface *src, const MDFN_Rect &rect, const MDFN_Rect *LineWidths);
- void EncodeImage(const MDFN_Surface *src, const MDFN_PixelFormat &format, const MDFN_Rect &rect, const MDFN_Rect *LineWidths, const int png_width);
+ void WriteIt(FileWrapper &pngfile, const MDFN_Surface *src, const MDFN_Rect &rect, const int32 *LineWidths);
+ void EncodeImage(const MDFN_Surface *src, const MDFN_PixelFormat &format, const MDFN_Rect &rect, const int32 *LineWidths, const int png_width);
 
  FileWrapper ownfile;
  std::vector<uint8> compmem;

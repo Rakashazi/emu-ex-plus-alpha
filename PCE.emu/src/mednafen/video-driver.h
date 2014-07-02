@@ -4,6 +4,6 @@
 #include "video.h"
 
 void MDFND_DispMessage(UTF8 *text);
-void MDFNI_SaveSnapshot(const MDFN_Surface *src, const MDFN_Rect *rect, const MDFN_Rect *LineWidths);
+void MDFNI_SaveSnapshot(const MDFN_Surface *src, const MDFN_Rect *rect, const int32 *LineWidths);
 
 #endif

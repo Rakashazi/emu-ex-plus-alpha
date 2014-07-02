@@ -27,6 +27,39 @@ class SimpleFIFO
 
  }
 
+ INLINE void SaveStatePostLoad(void)
+ {
+  read_pos %= data.size();
+  write_pos %= data.size();
+  in_count %= (data.size() + 1);
+ }
+
+#if 0
+ INLINE int StateAction(StateMem *sm, int load, int data_only, const char* sname)
+ {
+  SFORMAT StateRegs[] =
+  {
+   std::vector<T> data;
+   uint32 size;
+
+   SFVAR(read_pos),
+   SFVAR(write_pos),
+   SFVAR(in_count),
+   SFEND;
+  }
+  int ret = MDFNSS_StateAction(sm, load, data_only, sname);
+
+  if(load)
+  {
+   read_pos %= data.size();
+   write_pos %= data.size();
+   in_count %= (data.size() + 1);
+  }
+
+  return(ret);
+ }
+#endif
+
  INLINE uint32 CanRead(void)
  {
   return(in_count);

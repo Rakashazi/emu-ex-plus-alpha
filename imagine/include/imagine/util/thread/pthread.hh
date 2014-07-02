@@ -165,24 +165,39 @@ class CondVarPThread
 {
 private:
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-	pthread_mutex_t *mutex = nullptr;
-	bool init = false;
+	bool isInit = false;
 
 public:
 	constexpr CondVarPThread() {}
 
-	bool create(MutexPThread &mutex)
+	bool init()
 	{
-		pthread_cond_init(&cond, 0);
-		this->mutex = &mutex.mutex;
-		init = true;
+		if(isInit)
+			return true;
+		if(pthread_cond_init(&cond, nullptr))
+			return false;
+		isInit = true;
 		return true;
 	}
 
-	void wait(MutexPThread *mutex = nullptr)
+	void deinit()
 	{
-		assert(mutex || this->mutex);
-		pthread_mutex_t *waitMutex = mutex ? &mutex->mutex : this->mutex;
-		pthread_cond_wait(&cond, waitMutex);
+		if(isInit)
+		{
+			pthread_cond_destroy(&cond);
+			isInit = false;
+		}
+	}
+
+	void wait(MutexPThread &mutex)
+	{
+		assert(isInit);
+		pthread_cond_wait(&cond, &mutex.mutex);
+	}
+
+	void signal()
+	{
+		assert(isInit);
+		pthread_cond_signal(&cond);
 	}
 };

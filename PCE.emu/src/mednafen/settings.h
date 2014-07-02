@@ -5,7 +5,7 @@
 
 #include "settings-common.h"
 
-bool MDFN_LoadSettings(const char *path, const char *section = NULL, bool override = false);
+void MDFN_LoadSettings(const char *path, bool override = false);
 bool MDFN_MergeSettings(const MDFNSetting *);
 bool MDFN_MergeSettings(const std::vector<MDFNSetting> &);
 bool MDFN_SaveSettings(const char *path);

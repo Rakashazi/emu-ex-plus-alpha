@@ -829,8 +829,7 @@ void handleOpenFileCommand(const char *filename)
 		viewStack.popToRoot();
 		auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
 		fPicker.init(Input::keyInputIsPresent(), false);
-		viewStack.useNavView = 0;
-		viewStack.pushAndShow(fPicker);
+		viewStack.pushAndShow(fPicker, false);
 		return;
 	}
 	if(type != Fs::TYPE_FILE || !EmuFilePicker::defaultFsFilter(filename, type))

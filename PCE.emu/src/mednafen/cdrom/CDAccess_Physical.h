@@ -1,6 +1,10 @@
 #ifndef __MDFN_CDACCESS_PHYSICAL_H
 #define __MDFN_CDACCESS_PHYSICAL_H
 
+//
+// This class's methods are NOT re-entrant!
+//
+
 // Don't include <cdio.h> here, else it will pollute with its #define's.
 
 class CDAccess_Physical : public CDAccess
