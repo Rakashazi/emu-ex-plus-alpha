@@ -181,15 +181,14 @@ CallResult Window::init(const WindowConfig &config)
 		bug_exit("no multi-window support");
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_ = &mainScreen();
+	screen_ = &config.screen();
 	#endif
 
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	window_.push_back(this);
-	if(window_.size() > 1 && Screen::screens() > 1)
+	if(window_.size() > 1)
 	{
-		logMsg("making window on external screen");
-		screen_ = Screen::screen(1);
+		logMsg("making additional window");
 	}
 	#else
 	mainWin = this;

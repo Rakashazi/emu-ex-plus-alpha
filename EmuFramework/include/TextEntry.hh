@@ -56,7 +56,7 @@ public:
 	OnTextDelegate onTextD;
 	OnTextDelegate &onText() { return onTextD; }
 
-	constexpr CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
+	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
 	void init(const char *msgText, const char *initialContent, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace);
 	void init(const char *msgText, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace)
 	{

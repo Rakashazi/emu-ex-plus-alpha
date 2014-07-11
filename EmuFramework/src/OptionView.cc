@@ -432,7 +432,7 @@ public:
 	void init(bool highlightFirst)
 	{
 		static const char *str[] { "Set Custom Path", "Same as Game" };
-		auto &multiChoiceView = *new MultiChoiceView{"Save Path", Base::mainWindow()};
+		auto &multiChoiceView = *new MultiChoiceView{"Save Path", mainWin.win};
 		multiChoiceView.init(str, sizeofArray(str), highlightFirst);
 		multiChoiceView.onSelect() =
 			[this](int i, const Input::Event &e)
@@ -442,7 +442,7 @@ public:
 				{
 					workDirStack.push();
 					FsSys::chdir(optionSavePath);
-					auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
+					auto &fPicker = *new EmuFilePicker{mainWin.win};
 					fPicker.init(!e.isPointer(), true, dirFsFilter);
 					fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
 						{
@@ -473,7 +473,7 @@ void FirmwarePathSelector::onClose(const Input::Event &e)
 void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 {
 	static const char *str[] { "Set Custom Path", "Default" };
-	auto &multiChoiceView = *new MultiChoiceView{name, Base::mainWindow()};
+	auto &multiChoiceView = *new MultiChoiceView{name, mainWin.win};
 	multiChoiceView.init(str, sizeofArray(str), highlightFirst);
 	multiChoiceView.onSelect() =
 		[this](int i, const Input::Event &e)
@@ -483,7 +483,7 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 			{
 				workDirStack.push();
 				FsSys::chdir(optionFirmwarePath);
-				auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
+				auto &fPicker = *new EmuFilePicker{mainWin.win};
 				fPicker.init(!e.isPointer(), true, dirFsFilter);
 				fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
 					{
@@ -544,6 +544,12 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	}
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay.init(false); item[items++] = &secondDisplay;
+	#endif
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
+	if(!optionShowOnSecondScreen.isConst)
+	{
+		showOnSecondScreen.init(optionShowOnSecondScreen); item[items++] = &showOnSecondScreen;
+	}
 	#endif
 }
 
@@ -895,6 +901,19 @@ OptionView::OptionView(Base::Window &win):
 		{
 			item.toggle(*this);
 			setEmuViewOnExtraWindow(item.on);
+		}
+	},
+	#endif
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
+	showOnSecondScreen
+	{
+		"External Screen", "OS Managed", "Game Content",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionShowOnSecondScreen = item.on;
+			if(Base::Screen::screens() > 1)
+				setEmuViewOnExtraWindow(item.on);
 		}
 	},
 	#endif
@@ -1262,7 +1281,7 @@ OptionView::OptionView(Base::Window &win):
 		[this](MultiChoiceMenuItem &, int val)
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
-			Base::mainWindow().setValidOrientations(optionMenuOrientation);
+			mainWin.win.setValidOrientations(optionMenuOrientation);
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 		}
 	}

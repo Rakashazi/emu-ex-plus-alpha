@@ -28,8 +28,8 @@ public:
 	ScrollableGuiTable1D tbl;
 	_2DOrigin align;
 
-	constexpr BaseMenuView(Base::Window &win): View(win) {}
-	constexpr BaseMenuView(const char *name, Base::Window &win) : View(name, win) {}
+	BaseMenuView(Base::Window &win): View(win) {}
+	BaseMenuView(const char *name, Base::Window &win) : View(name, win) {}
 	IG::WindowRect &viewRect() { return viewFrame; }
 	void init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin align = LC2DO);
 	void deinit() override;

@@ -116,10 +116,7 @@ extern Byte1Option optionFrameSkip;
 static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 extern Byte1Option optionImageZoom;
 extern Byte1Option optionViewportZoom;
-
-//#ifdef CONFIG_BASE_ANDROID
-//extern OptionDPI optionDPI;
-//#endif
+extern Byte1Option optionShowOnSecondScreen;
 
 extern OptionRecentGames optionRecentGames;
 

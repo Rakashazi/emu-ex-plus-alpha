@@ -28,7 +28,7 @@ public:
 	typedef DelegateFunc<void (const Input::Event &e)> OnIdentInputDelegate;
 	OnIdentInputDelegate onIdentInput;
 
-	constexpr IdentInputDeviceView(Base::Window &win): View(win) {}
+	IdentInputDeviceView(Base::Window &win): View(win) {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init();
 	void deinit() override;

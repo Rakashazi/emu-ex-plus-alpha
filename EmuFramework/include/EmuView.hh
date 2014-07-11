@@ -34,7 +34,7 @@ private:
 	IG::WindowRect rect;
 
 public:
-	constexpr EmuView(Base::Window &win): View(win) {}
+	EmuView(Base::Window &win): View(win) {}
 	void deinit() override {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;

@@ -239,18 +239,45 @@ static void runEmuFrame(Base::FrameTimeBase frameTime, bool fastForward)
 	EmuSystem::runFrame(1, 1, renderAudio);
 }
 
+static void onFocusChange(uint in)
+{
+	if(!menuViewIsActive)
+	{
+		if(in && EmuSystem::isStarted())
+		{
+			logMsg("resuming emulation due to window focus");
+			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+			vController.resetInput();
+			#endif
+			EmuSystem::start();
+			postDrawToEmuWindows();
+		}
+		else if(optionPauseUnfocused && !mainWin.focused && (!extraWin.win || !extraWin.focused))
+		{
+			logMsg("pausing emulation with all windows unfocused");
+			EmuSystem::pause();
+			postDrawToEmuWindows();
+		}
+	}
+}
+
 void setEmuViewOnExtraWindow(bool on)
 {
 	if(on && !extraWin.win)
 	{
 		logMsg("setting emu view on extra window");
 		auto winConf = Gfx::makeWindowConfig();
+		if(Base::Screen::screens() > 1)
+		{
+			winConf.setScreen(*Base::Screen::screen(1));
+		}
 		extraWin.win.init(winConf);
+		extraWin.focused = true;
 		logMsg("init extra window");
 		emuWin = &extraWin;
 		std::swap(emuView.layer, emuView2.layer);
 		updateProjection(extraWin, makeViewport(extraWin.win));
-		extraWin.win.setTitle("Test Window");
+		extraWin.win.setTitle(CONFIG_APP_NAME);
 		extraWin.win.show();
 		extraWin.win.postDraw();
 		emuView.place();
@@ -293,6 +320,13 @@ void setEmuViewOnExtraWindow(bool on)
 			{
 				if(!e.isPointer())
 					handleInputEvent(win, e);
+			});
+
+		extraWin.win.setOnFocusChange(
+			[](Base::Window &win, uint in)
+			{
+				extraWin.focused = in;
+				onFocusChange(in);
 			});
 
 		extraWin.win.setOnDismissRequest(
@@ -341,7 +375,7 @@ void startGameFromMenu()
 	viewNav.setRightBtnActive(1);
 	emuInputView.resetInput();
 	//logMsg("touch control state: %d", touchControlsAreOn);
-	Base::mainWindow().setValidOrientations(optionGameOrientation);
+	mainWin.win.setValidOrientations(optionGameOrientation);
 	commonInitInput();
 	popup.clear();
 	Input::setKeyRepeat(false);
@@ -352,6 +386,7 @@ void startGameFromMenu()
 	if(extraWin.win)
 		extraWin.win.postDraw();
 	emuView.place();
+	emuView2.place();
 	if(trackFPS)
 	{
 		frameCount = 0;
@@ -366,36 +401,17 @@ void restoreMenuFromGame()
 	applyOSNavStyle(false);
 	EmuSystem::pause();
 	if(!optionFrameSkip.isConst)
-		Base::mainWindow().screen().setFrameInterval(1);
-	Base::mainWindow().setValidOrientations(optionMenuOrientation);
+		mainWin.win.screen().setFrameInterval(1);
+	mainWin.win.setValidOrientations(optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
 		viewStack.popToRoot();
-	Base::mainScreen().setRefreshRate(Base::Screen::REFRESH_RATE_DEFAULT);
+	mainWin.win.screen().setRefreshRate(Base::Screen::REFRESH_RATE_DEFAULT);
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
 	viewStack.show();
-}
-
-static void onFocusChange(Base::Window &win, uint in)
-{
-	if(optionPauseUnfocused && !menuViewIsActive)
-	{
-		if(in)
-		{
-			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-			vController.resetInput();
-			#endif
-			EmuSystem::start();
-		}
-		else
-		{
-			EmuSystem::pause();
-		}
-		postDrawToEmuWindows();
-	}
 }
 
 static void parseCmdLineArgs(int argc, char** argv)
@@ -418,20 +434,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 				updateInputDevices();
 				EmuControls::updateAutoOnScreenControlVisible();
 				updateInputDevicesOnResume = 0;
-			}
-
-			if(optionPauseUnfocused)
-				onFocusChange(Base::mainWindow(), focused); // let focus handler deal with resuming emulation
-			else
-			{
-				if(!menuViewIsActive) // resume emulation
-				{
-					#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-					vController.resetInput();
-					#endif
-					EmuSystem::start();
-					postDrawToEmuWindows();
-				}
 			}
 	});
 
@@ -484,7 +486,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			if(change.added())
 			{
 				logMsg("screen added");
-				if(screen.screens() > 1)
+				if(optionShowOnSecondScreen && screen.screens() > 1)
 					setEmuViewOnExtraWindow(true);
 			}
 			else if(change.removed())
@@ -508,12 +510,12 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 				if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 				{
 					popup.printf(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
-					Base::mainWindow().postDraw();
+					mainWin.win.postDraw();
 				}
 				else if(change.hadConnectError())
 				{
 					popup.printf(2, 1, "%s had a connection error", dev.name());
-					Base::mainWindow().postDraw();
+					mainWin.win.postDraw();
 				}
 
 				#ifdef CONFIG_BLUETOOTH
@@ -652,7 +654,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	mainWin.win.setOnFocusChange(
 		[](Base::Window &win, uint in)
 		{
-			onFocusChange(win, in);
+			mainWin.focused = in;
+			onFocusChange(in);
 		});
 
 	mainWin.win.setOnDragDrop(
@@ -702,7 +705,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			}
 		});
 
-	if(Base::Screen::screens() > 1)
+	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
 	{
 		setEmuViewOnExtraWindow(true);
 	}
@@ -746,7 +749,7 @@ void mainInitWindowCommon(Base::Window &win)
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>(win);
+		auto &ynAlertView = *new YesNoAlertView{win};
 		ynAlertView.init("Warning: App has been modified by 3rd party, use at your own risk", 0);
 		ynAlertView.onNo() =
 			[](const Input::Event &e)
@@ -827,7 +830,7 @@ void handleOpenFileCommand(const char *filename)
 		restoreMenuFromGame();
 		FsSys::chdir(filename);
 		viewStack.popToRoot();
-		auto &fPicker = *new EmuFilePicker{Base::mainWindow()};
+		auto &fPicker = *new EmuFilePicker{mainWin.win};
 		fPicker.init(Input::keyInputIsPresent(), false);
 		viewStack.pushAndShow(fPicker, false);
 		return;
@@ -856,6 +859,7 @@ void placeElements(const Gfx::Viewport &viewport)
 	popup.place(mainWin.projectionPlane);
 	emuView.setViewRect(viewport.bounds(), mainWin.projectionPlane);
 	emuView.place();
+	emuView2.place();
 	viewStack.place(viewport.bounds(), mainWin.projectionPlane);
 	modalViewController.place(viewport.bounds(), mainWin.projectionPlane);
 }

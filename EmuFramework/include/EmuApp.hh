@@ -48,12 +48,14 @@ struct AppWindowData
 	Gfx::Mat4 projectionMat;
 	Gfx::ProjectionPlane projectionPlane;
 	TimedInterpolator<int> viewportDelta[4];
+	bool focused = true;
+
+	constexpr AppWindowData() {};
 };
 
 extern AppWindowData mainWin, extraWin;
 extern AppWindowData *emuWin;
 extern EmuNavView viewNav;
-extern EmuView emuView;
 extern EmuVideo emuVideo;
 extern EmuVideoLayer emuVideoLayer;
 extern ViewStack viewStack;

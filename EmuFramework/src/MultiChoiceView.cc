@@ -124,7 +124,7 @@ void MultiChoiceSelectMenuItem::init(const char **choiceStr, int val, int max, i
 
 void MultiChoiceSelectMenuItem::select(View *parent, const Input::Event &e)
 {
-	auto &multiChoiceView = *new MultiChoiceView{t.str, Base::mainWindow()};
+	auto &multiChoiceView = *new MultiChoiceView{t.str, parent->window()};
 	multiChoiceView.init(*this, !e.isPointer());
 	parent->pushAndShow(multiChoiceView);
 }

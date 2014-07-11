@@ -151,20 +151,24 @@ CallResult Window::init(const WindowConfig &config)
 		bug_exit("no multi-window support");
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_ = &mainScreen();
+	screen_ = &config.screen();
 	#endif
 
 	initialInit = true;
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	window_.push_back(this);
-	if(window_.size() > 1 && Screen::screens() > 1)
+	if(window_.size() > 1)
 	{
-		logMsg("making window on external screen");
+		logMsg("making presentation window");
+		assert(&screen() != Screen::screen(0));
 		auto jEnv = eEnv();
-		screen_ = Screen::screen(1);
-		jDialog = jEnv->NewGlobalRef(jPresentation(jEnv, Base::jBaseActivity, Screen::screen(1)->aDisplay, this));
+		jDialog = jEnv->NewGlobalRef(jPresentation(jEnv, Base::jBaseActivity, screen().aDisplay, this));
 		initPresentationJNI(jEnv, jDialog);
 		jPresentationShow(jEnv, jDialog);
+	}
+	else
+	{
+		logMsg("making device window");
 	}
 	#else
 	mainWin = this;

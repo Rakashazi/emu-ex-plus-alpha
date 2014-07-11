@@ -17,6 +17,7 @@
 #include <EmuOptions.hh>
 #include <EmuSystem.hh>
 #include <EmuInput.hh>
+#include <EmuApp.hh>
 #include <VideoImageEffect.hh>
 #include "VController.hh"
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -191,14 +192,7 @@ bool optionImageZoomIsValid(uint8 val)
 Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
 Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<10, 100>);
-
-//OptionDPI optionDPI(0,
-//	#ifdef CONFIG_SUPPORTS_DPI_OVERRIDE
-//	0
-//	#else
-//	1
-//	#endif
-//);
+Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
 OptionRecentGames optionRecentGames;
 
@@ -320,6 +314,11 @@ void initOptions()
 		#endif
 		optionSoundBuffers.initDefault(4);
 	}
+
+	if(Base::androidSDK() < 17)
+	{
+		optionShowOnSecondScreen.isConst = true;
+	}
 	#endif
 
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -432,7 +431,7 @@ void setupFont()
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	View::defaultFace->applySettings(FontSettings(Base::mainWindow().heightSMMInPixels(size)));
+	View::defaultFace->applySettings(FontSettings(mainWin.win.heightSMMInPixels(size)));
 	float smallSize = std::max(2000, optionFontSize - 500) / 1000.;
-	View::defaultSmallFace->applySettings(FontSettings(Base::mainWindow().heightSMMInPixels(smallSize)));
+	View::defaultSmallFace->applySettings(FontSettings(mainWin.win.heightSMMInPixels(smallSize)));
 }

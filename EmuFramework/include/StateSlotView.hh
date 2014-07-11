@@ -27,7 +27,6 @@ private:
 	MenuItem *item[stateSlots] = {nullptr};
 
 public:
-	constexpr StateSlotView(Base::Window &win): BaseMenuView("State Slot", win) {}
-
+	StateSlotView(Base::Window &win): BaseMenuView("State Slot", win) {}
 	void init(bool highlightFirst);
 };

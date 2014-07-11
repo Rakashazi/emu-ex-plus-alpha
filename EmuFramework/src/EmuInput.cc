@@ -52,19 +52,19 @@ static Gfx::GC vControllerGCSize()
 
 static int vControllerPixelSize()
 {
-	return IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchCtrlSize) / 100.));
+	return IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlSize) / 100.));
 }
 #endif
 
 void initVControls()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
+	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
 	vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
 
 	if(!vControllerLayoutPosChanged) // setup default positions if not provided in config file
@@ -81,7 +81,7 @@ void initVControls()
 void resetVControllerPositions()
 {
 	logMsg("resetting on-screen controls to default positions & states");
-	auto &win = Base::mainWindow();
+	auto &win = mainWin.win;
 	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()) || Config::envIsWebOS3)
 		? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
 	uint initMenuState = ((Config::envIsWebOS && !Config::envIsWebOS3) || (Config::envIsAndroid && Base::hasHardwareNavButtons()))
@@ -742,7 +742,7 @@ void setupVControllerVars()
 	int btnSizePixels = vControllerPixelSize();
 	logMsg("set on-screen button size: %f, %d pixels", (double)btnSize, btnSizePixels);
 	vController.gp.btnSpace = vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
-	vController.gp.btnSpacePixels = IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchCtrlBtnSpace) / 100.));
+	vController.gp.btnSpacePixels = IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlBtnSpace) / 100.));
 	vController.gp.btnRowShift = 0;
 	vController.gp.btnRowShiftPixels = 0;
 	vController.gp.btnExtraXSize = optionTouchCtrlExtraXBtnSize / 1000.;
@@ -775,7 +775,7 @@ void setupVControllerVars()
 	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(Base::mainWindow(), 8.5)), View::defaultFace->nominalHeight()*1.75);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75);
 	#endif
 
 	auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];

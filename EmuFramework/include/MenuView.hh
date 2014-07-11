@@ -39,7 +39,7 @@ class OptionCategoryView : public BaseMenuView
 	MenuItem *item[5] {nullptr};
 
 public:
-	constexpr OptionCategoryView(Base::Window &win): BaseMenuView("Options", win) {}
+	OptionCategoryView(Base::Window &win): BaseMenuView("Options", win) {}
 	void init(bool highlightFirst);
 };
 

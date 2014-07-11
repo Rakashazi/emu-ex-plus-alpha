@@ -15,6 +15,7 @@
 
 #define LOGTAG "MsgPopup"
 #include <MsgPopup.hh>
+#include <EmuApp.hh>
 #include <imagine/gui/View.hh>
 
 using namespace Base;
@@ -47,7 +48,7 @@ void MsgPopup::unpost()
 {
 	logMsg("unposting");
 	text.str = 0;
-	Base::mainWindow().postDraw();
+	mainWin.win.postDraw();
 }
 
 void MsgPopup::post(const char *msg, int secs, bool error)

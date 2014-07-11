@@ -811,7 +811,6 @@ static void activityInit(ANativeActivity* activity)
 					}
 					#endif
 
-					jboolean postNextFrame = false; // true if any screens post the next frame
 					bool isPostedCheck = false;
 					iterateTimes(Screen::screens(), i)
 					{
@@ -821,7 +820,6 @@ static void activityInit(ANativeActivity* activity)
 							isPostedCheck = true;
 							s->frameUpdate(frameTimeNanos);
 							s->prevFrameTime = s->frameIsPosted() ? frameTimeNanos : 0;
-							postNextFrame |= s->frameIsPosted();
 						}
 					}
 					assert(isPostedCheck); // make sure at least once screen was actually posted
@@ -829,6 +827,7 @@ static void activityInit(ANativeActivity* activity)
 					// check frame time of the main screen, part 2
 					continuousFrames = testScreen.frameIsPosted() ? continuousFrames + 1 : 0;
 					#endif
+					jboolean postNextFrame = Screen::screensArePosted();
 					framePostedEvent = postNextFrame;
 					return postNextFrame;
 				})

@@ -66,6 +66,9 @@ protected:
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
 	#endif
+	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
+	BoolMenuItem showOnSecondScreen;
+	#endif
 	BoolMenuItem dither;
 	MultiChoiceSelectMenuItem gameOrientation;
 	void gameOrientationInit();
@@ -159,8 +162,8 @@ public:
 	FsSys::cPath *biosPathStr = nullptr;
 	int (*fsFilter)(const char *name, int type) = nullptr;
 
-	constexpr BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
-	constexpr BiosSelectMenu(const char *name, FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
+	BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
+	BiosSelectMenu(const char *name, FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
 		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
 	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
 	void onSelectFile(const char* name, const Input::Event &e);

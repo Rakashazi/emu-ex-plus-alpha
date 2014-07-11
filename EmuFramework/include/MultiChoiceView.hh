@@ -23,8 +23,8 @@ class BaseMultiChoiceView : public BaseMenuView
 public:
 	int activeItem = -1;
 
-	constexpr BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
-	constexpr BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
+	BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
+	BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
 	void draw(Base::FrameTimeBase frameTime) override;
 	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override;
 };
@@ -40,8 +40,8 @@ public:
 	// Required delegates
 	OnInputDelegate &onSelect() { return onSelectD; }
 
-	constexpr MultiChoiceView(Base::Window &win): BaseMultiChoiceView(win) {}
-	constexpr MultiChoiceView(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
+	MultiChoiceView(Base::Window &win): BaseMultiChoiceView(win) {}
+	MultiChoiceView(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
 	void freeItems();
 	void allocItems(int items);
 	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);

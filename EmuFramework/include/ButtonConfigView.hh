@@ -47,7 +47,7 @@ private:
 	bool pointerUIIsInit();
 
 public:
-	constexpr ButtonConfigSetView(Base::Window &win, InputManagerView &rootIMView):
+	ButtonConfigSetView(Base::Window &win, InputManagerView &rootIMView):
 		View(win), rootIMView{rootIMView}
 	{}
 

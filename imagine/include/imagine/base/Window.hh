@@ -104,6 +104,7 @@ private:
 	Point2D<int> size_{0, 0};
 	Point2D<int> minSize{320, 240};
 	GLConfig glConfig_;
+	Screen *screen_ = nullptr;
 
 public:
 	void setDefaultPosition()
@@ -164,6 +165,16 @@ public:
 	GLConfig glConfig() const
 	{
 		return glConfig_;
+	}
+
+	void setScreen(Screen &screen)
+	{
+		screen_ = &screen;
+	}
+
+	Screen &screen() const
+	{
+		return screen_ ? *screen_ : *Screen::screen(0);
 	}
 };
 

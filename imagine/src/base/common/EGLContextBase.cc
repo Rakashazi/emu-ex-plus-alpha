@@ -148,6 +148,7 @@ EGLDisplay EGLContextBase::eglDisplay()
 			bug_exit("error initializing EGL");
 			display = EGL_NO_DISPLAY;
 		}
+		//logMsg("initialized EGL with display %ld", (long)display);
 	}
 	return display;
 }

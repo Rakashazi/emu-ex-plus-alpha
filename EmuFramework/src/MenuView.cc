@@ -72,28 +72,28 @@ static auto onScanStatus =
 				if(Config::envIsIOS)
 				{
 					popup.postError("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
-					Base::mainWindow().postDraw();
+					mainWin.win.postDraw();
 				}
 			}
 			bcase BluetoothAdapter::SCAN_FAILED:
 			{
 				popup.postError("Scan failed");
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NO_DEVS:
 			{
 				popup.post("No devices found");
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
 				popup.printf(2, 0, "Checking %d device(s)...", arg);
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
 				popup.postError("Failed reading a device name");
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_COMPLETE:
 			{
@@ -107,12 +107,12 @@ static auto onScanStatus =
 				{
 					popup.post("Scan complete, no recognized devices");
 				}
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}
 			/*bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
 				popup.postError("Failed opening a Bluetooth connection");
-				Base::mainWindow().postDraw();
+				mainWin.win.postDraw();
 			}*/
 		}
 	};
@@ -123,7 +123,7 @@ static void handledFailedBTAdapterInit(const Input::Event &e)
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	if(!FsSys::fileExists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
-		auto &ynAlertView = *allocModalView<YesNoAlertView>(Base::mainWindow());
+		auto &ynAlertView = *new YesNoAlertView{mainWin.win};
 		ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
 		ynAlertView.onYes() =
 			[](const Input::Event &e)
@@ -377,7 +377,7 @@ MenuView::MenuView(Base::Window &win):
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				auto &textInputView = *allocModalView<CollectTextInputView>(window());
+				auto &textInputView = *new CollectTextInputView{window()};
 				textInputView.init("Shortcut Name", EmuSystem::fullGameName(),
 						getCollectTextCloseAsset());
 				textInputView.onText() =

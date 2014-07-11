@@ -25,7 +25,7 @@
 class AlertView : public View
 {
 public:
-	constexpr AlertView(Base::Window &win): View{win}, menu{win} {}
+	AlertView(Base::Window &win): View{win}, menu{win} {}
 	Gfx::GCRect labelFrame;
 	Gfx::Text text;
 	BaseMenuView menu;
