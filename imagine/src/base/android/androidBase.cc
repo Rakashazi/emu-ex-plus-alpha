@@ -15,7 +15,6 @@
 
 #define LOGTAG "Base"
 #include <cstdlib>
-#include <errno.h>
 #include <sys/resource.h>
 #include <imagine/logger/logger.h>
 #include <imagine/engine-globals.h>
@@ -32,7 +31,6 @@
 #include <android/looper.h>
 #include <android/native_activity.h>
 #include <dlfcn.h>
-#include <sys/eventfd.h>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
@@ -99,7 +97,7 @@ AInputQueue *inputQueue = nullptr;
 static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static void processInputWithGetEvent(AInputQueue *inputQueue);
 static void processInputWithHasEvents(AInputQueue *inputQueue);
-static void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHasEvents;
+void (*processInput)(AInputQueue *inputQueue) = Base::processInputWithHasEvents;
 
 // activity
 jclass jBaseActivityCls = nullptr;
@@ -130,17 +128,11 @@ static Timer userActivityCallback;
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 uint androidUIInUse = 0;
 JavaInstMethod<jobject> jGetDisplay;
-bool framePostedEvent = false;
 
 // window
-jobject frameHelper = nullptr;
-bool hasChoreographer = false;
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
-JavaInstMethod<void> jPostFrame, jUnpostFrame;
 JavaInstMethod<jobject> jPresentation;
-int onFrameEventFd = -1;
-uint onFrameEventIdle = 0;
 
 static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
 {
@@ -727,7 +719,6 @@ static void activityInit(ANativeActivity* activity)
 	}
 	#endif
 
-	//jSetKeepScreenOn.setup(jEnv, jBaseActivityCls, "setKeepScreenOn", "(Z)V");
 	jSetWinFlags.setup(jEnv, jBaseActivityCls, "setWinFlags", "(II)V");
 	jWinFlags.setup(jEnv, jBaseActivityCls, "winFlags", "()I");
 	if(Base::androidSDK() < 11)
@@ -774,142 +765,7 @@ static void activityInit(ANativeActivity* activity)
 		};
 		jEnv->RegisterNatives(uiVisibilityChangeHelperCls, method, sizeofArray(method));*/
 	}
-
-	// select display update method
-	if(Base::androidSDK() >= 16) // Choreographer
-	{
-		//logMsg("using Choreographer for display updates");
-		hasChoreographer = true;
-		JavaInstMethod<jobject> jNewChoreographerHelper;
-		jNewChoreographerHelper.setup(jEnv, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
-		frameHelper = jNewChoreographerHelper(jEnv, inst);
-		assert(frameHelper);
-		frameHelper = jEnv->NewGlobalRef(frameHelper);
-		auto choreographerHelperCls = jEnv->GetObjectClass(frameHelper);
-		jPostFrame.setup(jEnv, choreographerHelperCls, "postFrame", "()V");
-		jUnpostFrame.setup(jEnv, choreographerHelperCls, "unpostFrame", "()V");
-		JNINativeMethod method[] =
-		{
-			{
-				"onFrame", "(J)Z",
-				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos))
-				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
-				{
-					#ifndef NDEBUG
-					// check frame time of the main screen
-					auto &testScreen = mainScreen();
-					FrameTimeBase timeSinceFrame = TimeSys::now().toNs() - frameTimeNanos;
-					FrameTimeBase diffFromLastFrame = frameTimeNanos - testScreen.prevFrameTime;
-					//logMsg("frame at %lldns, %lldns since then, %lldns since last frame",
-					//	(long long)frameTimeNanos, (long long)timeSinceFrame, (long long)diffFromLastFrame);
-					static int continuousFrames = 0;
-					const FrameTimeBase timeDiffTest = 25000000;
-					if(testScreen.prevFrameTime && diffFromLastFrame > timeDiffTest)
-					{
-						logMsg("late frame: %lldns (> %dns) after %d continuous frames", (long long)diffFromLastFrame, (int)timeDiffTest, continuousFrames);
-						continuousFrames = 0;
-					}
-					#endif
-
-					bool isPostedCheck = false;
-					iterateTimes(Screen::screens(), i)
-					{
-						auto s = Screen::screen(i);
-						if(s->frameIsPosted())
-						{
-							isPostedCheck = true;
-							s->frameUpdate(frameTimeNanos);
-							s->prevFrameTime = s->frameIsPosted() ? frameTimeNanos : 0;
-						}
-					}
-					assert(isPostedCheck); // make sure at least once screen was actually posted
-					#ifndef NDEBUG
-					// check frame time of the main screen, part 2
-					continuousFrames = testScreen.frameIsPosted() ? continuousFrames + 1 : 0;
-					#endif
-					jboolean postNextFrame = Screen::screensArePosted();
-					framePostedEvent = postNextFrame;
-					return postNextFrame;
-				})
-			}
-		};
-		jEnv->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
-	}
-	else
-	{
-		onFrameEventFd = eventfd(0, 0);
-		if(unlikely(onFrameEventFd == -1)) // MessageQueue.IdleHandler
-		{
-			logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
-			JavaInstMethod<jobject> jNewIdleHelper;
-			jNewIdleHelper.setup(jEnv, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
-			frameHelper = jNewIdleHelper(jEnv, inst);
-			assert(frameHelper);
-			frameHelper = jEnv->NewGlobalRef(frameHelper);
-			auto idleHelperCls = jEnv->GetObjectClass(frameHelper);
-			jPostFrame.setup(jEnv, idleHelperCls, "postFrame", "()V");
-			jUnpostFrame.setup(jEnv, idleHelperCls, "unpostFrame", "()V");
-			JNINativeMethod method[]
-			{
-				{
-					"onFrame", "()Z",
-					(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz))
-					([](JNIEnv* env, jobject thiz)
-					{
-						auto &screen = mainScreen();
-						assert(screen.frameIsPosted());
-						// force window draw so buffers swap and currFrameTime is updated after vsync
-						deviceWindow()->setNeedsDraw(true);
-						screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs());
-						framePostedEvent = screen.frameIsPosted();
-						return (jboolean)screen.frameIsPosted();
-					})
-				}
-			};
-			jEnv->RegisterNatives(idleHelperCls, method, sizeofArray(method));
-		}
-		else // eventfd
-		{
-			// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
-			int ret = ALooper_addFd(activityLooper(), onFrameEventFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
-				[](int fd, int, void*)
-				{
-					if(onFrameEventIdle)
-					{
-						//logMsg("idled");
-						onFrameEventIdle--;
-						return 1;
-					}
-					else
-					{
-						// "idle" every other call so other fds are processed
-						// to avoid a frame of input lag
-						onFrameEventIdle = 1;
-					}
-					if(likely(inputQueue) && AInputQueue_hasEvents(inputQueue) == 1)
-					{
-						// some devices may delay reporting input events (stock rom on R800i for example),
-						// check for any before rendering frame to avoid extra latency
-						processInput(inputQueue);
-					}
-
-					auto &screen = mainScreen();
-					assert(screen.frameIsPosted());
-					// force window draw so buffers swap and currFrameTime is updated after vsync
-					deviceWindow()->setNeedsDraw(true);
-					screen.frameUpdate(screen.currFrameTime ? moveAndClear(screen.currFrameTime) : TimeSys::now().toNs());
-					framePostedEvent = screen.frameIsPosted();
-					if(!screen.frameIsPosted())
-					{
-						uint64_t post;
-						auto ret = read(fd, &post, sizeof(post));
-						assert(ret == sizeof(post));
-					}
-					return 1;
-				}, nullptr);
-			assert(ret == 1);
-		}
-	}
+	initFrameTimer(jEnv, inst);
 }
 
 static void dlLoadFuncs()
@@ -1026,7 +882,6 @@ void setIdleDisplayPowerSave(bool on)
 {
 	auto env = eEnv();
 	jint keepOn = !on;
-	//jSetKeepScreenOn(eEnv(), jBaseActivity, keepOn);
 	auto keepsScreenOn = userActivityCallback ? false : (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
 	{

@@ -33,12 +33,13 @@ void AlertView::deinit()
 
 void AlertView::place()
 {
+	using namespace Gfx;
 	int xSize = rect.xSize() * .8;
-	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95;
+	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95_gc;
 	text.compile(projP);
 
 	int menuYSize = menu.items * menu.item[0]->ySize()*2;
-	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5)));
+	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5_gc)));
 	IG::WindowRect viewFrame;
 	viewFrame.setPosRel({rect.xSize()/2, rect.ySize()/2},
 			{xSize, labelYSize + menuYSize}, C2DO);

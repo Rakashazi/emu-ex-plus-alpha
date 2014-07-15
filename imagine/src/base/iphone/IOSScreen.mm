@@ -105,8 +105,6 @@ uint Screen::refreshRate()
 	return 60;
 }
 
-void Screen::frameComplete() {}
-
 void Screen::postFrame()
 {
 	if(!appIsRunning())

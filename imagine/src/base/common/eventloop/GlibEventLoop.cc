@@ -15,8 +15,6 @@
 
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
-#include <imagine/util/time/sys.hh>
-#include "../windowPrivate.hh"
 #include <glib-unix.h>
 
 namespace Base
@@ -111,31 +109,6 @@ void initMainEventLoop() {}
 
 void runMainEventLoop()
 {
-	static GSourceFuncs onFrameSourceFuncs
-	{
-		[](GSource *, gint *timeout)
-		{
-			bool ready = Base::mainScreen().frameIsPosted();
-			*timeout = ready ? 0 : -1;
-			return (gboolean)ready;
-		},
-		[](GSource *)
-		{
-			return (gboolean)Base::mainScreen().frameIsPosted();
-		},
-		[](GSource *, GSourceFunc, gpointer)
-		{
-			//logMsg("events for frame handler");
-			mainScreen().frameUpdate(mainScreen().currFrameTime ? moveAndClear(mainScreen().currFrameTime) : TimeSys::now().toNs());
-			return (gboolean)TRUE;
-		},
-		nullptr
-	};
-	auto onFrameSource = g_source_new(&onFrameSourceFuncs, sizeof(GSource));
-	g_source_set_priority(onFrameSource, G_PRIORITY_HIGH_IDLE);
-	g_source_attach(onFrameSource, nullptr);
-	g_source_unref(onFrameSource);
-
 	logMsg("entering glib event loop");
 	auto mainLoop = g_main_loop_new(nullptr, false);
 	g_main_loop_run(mainLoop);

@@ -20,17 +20,8 @@
 #include "xdnd.hh"
 #include <imagine/base/GLContext.hh>
 
-#ifdef CONFIG_BASE_FBDEV_VSYNC
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/fb.h>
-#endif
-
 namespace Base
 {
-
-extern int fbdev;
 
 uint GLConfigAttributes::defaultColorBits()
 {
@@ -234,8 +225,6 @@ CallResult Window::init(const WindowConfig &config)
 	}
 	#endif
 	logMsg("created window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
-	//auto sres = glXJoinSwapGroupNV(dpy, win.xWin, 1);
-	//assert(sres == True);
 	Input::initPerWindowData(xWin);
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -262,6 +251,7 @@ CallResult Window::init(const WindowConfig &config)
 	#else
 	mainWin = this;
 	#endif
+
 	return OK;
 }
 

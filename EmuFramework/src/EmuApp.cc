@@ -107,6 +107,8 @@ static void drawEmuVideo()
 		emuView.draw(0);
 	else if(emuView2.layer)
 		emuView2.draw(0);
+	Gfx::setClipRect(false);
+	Gfx::presentWindow(emuWin->win);
 }
 
 void updateAndDrawEmuVideo()
@@ -310,9 +312,11 @@ void setEmuViewOnExtraWindow(bool on)
 					runEmuFrame(params.frameTime(), fastForwardActive);
 				}
 				else
+				{
 					emuView2.draw(params.frameTime());
-				Gfx::setClipRect(false);
-				Gfx::presentWindow(win);
+					Gfx::setClipRect(false);
+					Gfx::presentWindow(win);
+				}
 			});
 
 		extraWin.win.setOnInputEvent(
@@ -689,8 +693,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			{
 				win.postDraw();
 				runEmuFrame(frameTime, fastForwardActive);
-				Gfx::setClipRect(false);
-				Gfx::presentWindow(win);
 			}
 			else
 			{

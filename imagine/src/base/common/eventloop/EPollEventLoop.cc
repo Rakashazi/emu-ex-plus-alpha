@@ -15,8 +15,6 @@
 
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
-#include <imagine/util/time/sys.hh>
-#include "../windowPrivate.hh"
 #include <sys/epoll.h>
 
 namespace Base
@@ -72,25 +70,13 @@ void EventLoopFileSource::deinit()
 	epoll_ctl(ePoll, EPOLL_CTL_DEL, fd_, nullptr);
 }
 
-static int pollTimeout()
-{
-	// When waiting for events:
-	// 1. If a frame is posted on a screen, don't block
-	// 2. Else block until next event
-	int pollTimeout = Base::mainScreen().frameIsPosted() ? 0 :
-		-1;
-	/*if(pollTimeout == -1)
-		logMsg("will poll for next event");*/
-	return pollTimeout;
-}
-
 static int epollWaitWrapper(int epfd, struct epoll_event *events, int maxevents)
 {
 	#ifdef CONFIG_BASE_X11
 	x11FDHandler();  // must check X before entering epoll since some events may be
 										// in memory queue and won't trigger the FD
 	#endif
-	return epoll_wait(epfd, events, maxevents, pollTimeout());
+	return epoll_wait(epfd, events, maxevents, -1);
 }
 
 void initMainEventLoop()
@@ -123,10 +109,6 @@ void runMainEventLoop()
 			}
 			else
 				bug_exit("epoll_wait failed with errno %d", errno);
-		}
-		if(mainScreen().frameIsPosted())
-		{
-			mainScreen().frameUpdate(mainScreen().currFrameTime ? moveAndClear(mainScreen().currFrameTime) : TimeSys::now().toNs());
 		}
 	}
 }

@@ -27,10 +27,10 @@ ProjectionPlane ProjectionPlane::makeWithMatrix(const Viewport &viewport, const 
 	//logMsg("Upper-right projection point %d,%d -> %f %f %f", viewport.bounds().x2, viewport.bounds().y2, (double)upperRight.v.x, (double)upperRight.v.y, (double)upperRight.v.z);
 	p.w = upperRight.v.x - lowerLeft.v.x, p.h = upperRight.v.y - lowerLeft.v.y;
 	p.focal = upperRight.v.z;
-	p.rect.x = -p.w/2.;
-	p.rect.y = -p.h/2.;
-	p.rect.x2 = p.w/2.;
-	p.rect.y2 = p.h/2.;
+	p.rect.x = -p.w/2._gc;
+	p.rect.y = -p.h/2._gc;
+	p.rect.x2 = p.w/2._gc;
+	p.rect.y2 = p.h/2._gc;
 	p.pixToXScale = p.w / (GC)viewport.width();
 	p.pixToYScale = p.h / (GC)viewport.height();
 	p.xToPixScale = (GC)viewport.width() / p.w;

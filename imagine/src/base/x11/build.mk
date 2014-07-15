@@ -19,7 +19,8 @@ x11GLWinSystem ?= glx
 
 SRC += base/x11/main.cc \
 base/x11/XWindow.cc base/x11/XScreen.cc base/x11/xdnd.cc \
-base/x11/input.cc input/genericASCIIDecode.cc \
+base/x11/input.cc base/x11/FrameTimer.cc \
+input/genericASCIIDecode.cc \
 base/common/timer/TimerFD.cc base/common/PosixPipe.cc \
 util/string/glibc.c
 

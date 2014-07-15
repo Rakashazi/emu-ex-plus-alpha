@@ -98,7 +98,7 @@ public:
 
 	float floatingPt() const
 	{
-		return integer() + ( (frac()/(float)fracMaxVal) - 1./(float)fracMaxValExtraBit );
+		return integer() + ( (frac()/(float)fracMaxVal) - 1.f/(float)fracMaxValExtraBit );
 	}
 
 	operator float() const

@@ -70,7 +70,7 @@ void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime
 
 void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, Flags flags)
 {
-	callbackInCFAbsoluteTime(callback, ns / 1000000., repeatNs / 1000000., flags & HINT_REUSE);
+	callbackInCFAbsoluteTime(callback, ns / 1000000000., repeatNs / 1000000000., flags & HINT_REUSE);
 }
 
 void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, Flags flags)

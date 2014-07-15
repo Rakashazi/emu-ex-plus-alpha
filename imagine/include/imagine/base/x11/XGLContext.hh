@@ -32,9 +32,11 @@ protected:
 	#if !defined CONFIG_MACHINE_PANDORA
 	XVisualInfo *vi = nullptr;
 	#endif
+	static bool swapBuffersIsAsync();
 
 public:
 	constexpr XGLContext() {}
+	void swapPresentedBuffers(Window &win);
 };
 
 #else
@@ -49,12 +51,13 @@ protected:
 	GLXPbuffer dummyPbuff = (GLXPbuffer)0;
 	XVisualInfo *vi = nullptr;
 
-	static void setCurrentContext(XGLContext *context, Window *win);
 	void setCurrentDrawable(Window *win);
 	bool isRealCurrentContext();
 
 public:
 	constexpr XGLContext() {}
+	static void setCurrentContext(XGLContext *context, Window *win);
+	void swapPresentedBuffers(Window &win);
 };
 
 #endif

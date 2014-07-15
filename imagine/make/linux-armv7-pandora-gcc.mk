@@ -26,7 +26,6 @@ compiler_noSanitizeAddress := 1
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-COMPILE_FLAGS += -fsingle-precision-constant
 WARNINGS_CFLAGS += -Wdouble-promotion
 # fix warning from old DBUS & libpng headers
 BASE_CXXFLAGS += -Wno-literal-suffix

@@ -28,16 +28,7 @@ final class ChoreographerHelper
 	{
 		@Override public void doFrame(long frameTimeNanos)
 		{
-			choreographer.postFrameCallback(this);
-			if(!onFrame(frameTimeNanos))
-			{
-				//Log.i(logTag, "stopping frame updates");
-				choreographer.removeFrameCallback(this);
-			}
-			else
-			{
-				//Log.i(logTag, "continuing frame updates");
-			}
+			onFrame(frameTimeNanos);
 		}
 	}
 

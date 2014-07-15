@@ -36,6 +36,9 @@ namespace Base
 	Window *windowForXWindow(::Window xWin);
 	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);
+	void initFrameTimer();
+	void frameTimerScheduleVSync();
+	void frameTimerCancel();
 }
 
 namespace Input

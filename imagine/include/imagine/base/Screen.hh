@@ -89,7 +89,6 @@ public:
 	static Screen *screen(uint idx);
 
 	static void addScreen(Screen *s);
-	void frameComplete();
 	void deinit();
 
 	// Called when a screen addition/removal/change occurs

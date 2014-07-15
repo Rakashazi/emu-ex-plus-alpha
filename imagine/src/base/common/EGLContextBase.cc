@@ -263,7 +263,7 @@ void EGLContextBase::setCurrentDrawable(Window *win)
 	setCurrentContext(this, win);
 }
 
-void EGLContextBase::present(Window &win)
+void EGLContextBase::swapBuffers(Window &win)
 {
 	assert(display != EGL_NO_DISPLAY);
 	assert(win.surface != EGL_NO_SURFACE);

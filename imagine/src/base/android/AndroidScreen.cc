@@ -14,6 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <unistd.h>
+#include <errno.h>
+#include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include "androidBase.hh"
@@ -23,7 +25,6 @@
 namespace Base
 {
 
-extern bool hasChoreographer;
 static JavaInstMethod<jint> jGetRotation;
 
 void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool isMain)
@@ -135,15 +136,6 @@ uint Screen::refreshRate()
 	return refreshRate_;
 }
 
-void Screen::frameComplete()
-{
-	if(!hasChoreographer && frameIsPosted())
-	{
-		// update the frame time after a blocking double-buffered swap
-		currFrameTime = TimeSys::now().toNs();
-	}
-}
-
 void Screen::postFrame()
 {
 	if(!appIsRunning())
@@ -151,53 +143,26 @@ void Screen::postFrame()
 		//logMsg("can't post frame when app isn't running");
 		return;
 	}
-	else if(!framePosted)
+	if(framePosted)
+		return;
+	//logMsg("posting frame");
+	framePosted = true;
+	frameTimer->scheduleVSync();
+	if(!inFrameHandler)
 	{
-		framePosted = true;
-		if(inFrameHandler)
-		{
-			//logMsg("posting frame while in frame handler");
-		}
-		else if(!framePostedEvent)
-		{
-			framePostedEvent = true;
-			//logMsg("posting frame");
-			if(jPostFrame.m)
-				jPostFrame(eEnv(), frameHelper);
-			else
-			{
-				uint64_t post = 1;
-				auto ret = write(onFrameEventFd, &post, sizeof(post));
-				assert(ret == sizeof(post));
-			}
-		}
+		if(Base::androidSDK() < 16)
+			currFrameTime = TimeSys::now().toNs();
+		prevFrameTime = 0;
 	}
 }
 
 void Screen::unpostFrame()
 {
-	if(framePosted)
-	{
-		framePosted = false;
-		currFrameTime = 0;
-		if(inFrameHandler)
-		{
-			//logMsg("un-posting frame while in frame handler");
-		}
-		else if(framePostedEvent && !screensArePosted())
-		{
-			framePostedEvent = false;
-			//logMsg("un-posting frame");
-			if(jUnpostFrame.m)
-				jUnpostFrame(eEnv(), frameHelper);
-			else
-			{
-				uint64_t post;
-				read(onFrameEventFd, &post, sizeof(post));
-				onFrameEventIdle = 1; // force handler to idle since it could already be signaled by epoll
-			}
-		}
-	}
+	if(!framePosted)
+		return;
+	framePosted = false;
+	if(!screensArePosted())
+		frameTimer->cancel();
 }
 
 void Screen::setFrameInterval(uint interval)

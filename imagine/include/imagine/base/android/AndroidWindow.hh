@@ -37,6 +37,7 @@ public:
 	jobject jDialog = nullptr;
 	#endif
 	bool initialInit = false;
+	bool presented = false;
 
 	constexpr AndroidWindow() {}
 

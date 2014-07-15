@@ -42,6 +42,7 @@ public:
 	#ifndef CONFIG_MACHINE_PANDORA
 	IG::Point2D<int> pos;
 	#endif
+	bool presented = false;
 
 	constexpr XWindow() {}
 

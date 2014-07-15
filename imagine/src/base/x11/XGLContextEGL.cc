@@ -73,15 +73,30 @@ GLConfig GLContext::bufferConfig()
 
 void GLContext::present(Window &win)
 {
-	//logMsg("presenting window %p, surface %ld", &win, (long)win.surface);
-	#ifdef CONFIG_BASE_FBDEV_VSYNC
-	if(fbdev >= 0)
+	if(swapBuffersIsAsync())
 	{
-		int arg = 0;
-		ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+		EGLContextBase::swapBuffers(win);
 	}
-	#endif
-	EGLContextBase::present(win);
+	else
+	{
+		glFlush();
+		win.presented = true;
+	}
+}
+
+bool XGLContext::swapBuffersIsAsync()
+{
+	return !Config::MACHINE_IS_PANDORA;
+}
+
+void XGLContext::swapPresentedBuffers(Window &win)
+{
+	if(win.presented)
+	{
+		assert(!swapBuffersIsAsync()); // shouldn't set presented to true if swap is async
+		win.presented = false;
+		EGLContextBase::swapBuffers(win);
+	}
 }
 
 }

@@ -72,23 +72,25 @@ void Screen::setRefreshRate(uint rate)
 	}
 }
 
-void Screen::frameComplete()
-{
-	// update the frame time after a blocking double-buffered swap
-	if(frameIsPosted())
-		currFrameTime = TimeSys::now().toNs();
-}
-
 void Screen::postFrame()
 {
+	if(framePosted)
+		return;
 	//logMsg("posting frame");
 	framePosted = true;
+	frameTimerScheduleVSync();
+	if(!inFrameHandler)
+	{
+		prevFrameTime = 0;
+	}
 }
 
 void Screen::unpostFrame()
 {
+	if(!framePosted)
+		return;
 	framePosted = false;
-	currFrameTime = 0;
+	frameTimerCancel();
 }
 
 void Screen::setFrameInterval(uint interval)

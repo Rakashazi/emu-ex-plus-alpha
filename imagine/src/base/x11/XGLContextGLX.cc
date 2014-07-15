@@ -105,7 +105,7 @@ static GLXFBConfigWrapper chooseFBConfig(Display *dpy, int screen, const int *co
 static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFBConfig config, bool &supportsSurfaceless)
 {
 	supportsSurfaceless = false;
-	PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+	auto glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 	if(version >= 3)
 	{
 		{
@@ -226,7 +226,6 @@ CallResult GLContext::init(const GLConfigAttributes &attr)
 			bug_exit("couldn't make dummy pbuffer");
 		}
 	}
-	setCurrent(this, nullptr);
 
 	#ifndef NDEBUG
 	int glxMajorVersion, glxMinorVersion;

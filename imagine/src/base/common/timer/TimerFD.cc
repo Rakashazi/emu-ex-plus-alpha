@@ -134,10 +134,10 @@ void TimerFD::timerFired()
 void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, Flags flags)
 {
 	var_selfs(callback);
-	int seconds = ns / 1000000;
-	long leftoverNs = ns % 1000000;
-	int repeatSeconds = repeatNs / 1000000;
-	long repeatLeftoverNs = repeatNs % 1000000;
+	int seconds = ns / 1000000000;
+	long leftoverNs = ns % 1000000000;
+	int repeatSeconds = repeatNs / 1000000000;
+	long repeatLeftoverNs = repeatNs % 1000000000;
 	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, flags & HINT_REUSE))
 	{
 		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");

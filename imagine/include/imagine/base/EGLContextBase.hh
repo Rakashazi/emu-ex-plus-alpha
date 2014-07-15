@@ -36,7 +36,7 @@ protected:
 	static void setCurrentContext(EGLContextBase *context, Window *win);
 	void setCurrentDrawable(Window *win);
 	bool isRealCurrentContext();
-	void present(Window &win);
+	void swapBuffers(Window &win);
 
 public:
 	constexpr EGLContextBase() {}

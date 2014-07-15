@@ -23,8 +23,12 @@ namespace Base
 
 struct AndroidGLContext : public EGLContextBase
 {
+protected:
+	static bool swapBuffersIsAsync();
+
 public:
 	constexpr AndroidGLContext() {}
+	void swapPresentedBuffers(Window &win);
 };
 
 using GLContextImpl = AndroidGLContext;

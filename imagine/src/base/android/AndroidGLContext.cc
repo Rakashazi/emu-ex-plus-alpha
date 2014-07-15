@@ -31,7 +31,6 @@ CallResult GLContext::init(const GLConfigAttributes &attr)
 	auto result = EGLContextBase::init(attr);
 	if(result != OK)
 		return result;
-	setCurrent(this, nullptr);
 	return OK;
 }
 
@@ -49,12 +48,16 @@ GLConfig GLContext::bufferConfig()
 void GLContext::present(Window &win)
 {
 	#if !defined NDEBUG
-	if(Base::androidSDK() >= 16)
+	const bool checkSwapTime = true;
+	#else
+	const bool checkSwapTime = false;
+	#endif
+	if(swapBuffersIsAsync())
 	{
 		// check if buffer swap blocks even though triple-buffering is used
-		auto beforeSwap = TimeSys::now();
-		EGLContextBase::present(win);
-		auto afterSwap = TimeSys::now();
+		auto beforeSwap = checkSwapTime ? TimeSys::now() : TimeSys{};
+		EGLContextBase::swapBuffers(win);
+		auto afterSwap = checkSwapTime ? TimeSys::now() : TimeSys{};
 		long long diffSwap = (afterSwap - beforeSwap).toNs();
 		if(diffSwap > 16000000)
 		{
@@ -62,10 +65,25 @@ void GLContext::present(Window &win)
 		}
 	}
 	else
-		EGLContextBase::present(win);
-	#else
-	EGLContextBase::present(win);
-	#endif
+	{
+		glFlush();
+		win.presented = true;
+	}
+}
+
+void AndroidGLContext::swapPresentedBuffers(Window &win)
+{
+	if(win.presented)
+	{
+		assert(!swapBuffersIsAsync()); // shouldn't set presented = true if swap is async
+		win.presented = false;
+		EGLContextBase::swapBuffers(win);
+	}
+}
+
+bool AndroidGLContext::swapBuffersIsAsync()
+{
+	return Base::androidSDK() >= 16;
 }
 
 }

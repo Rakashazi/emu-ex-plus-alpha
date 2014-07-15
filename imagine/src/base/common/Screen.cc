@@ -93,7 +93,6 @@ void Screen::frameUpdate(FrameTimeBase frameTime)
 		#endif
 		w.dispatchOnDraw(frameTime);
 	}
-	frameComplete();
 	inFrameHandler = false;
 	//logMsg("%s", frameIsPosted() ? "drawing next frame" : "stopping at this frame");
 }

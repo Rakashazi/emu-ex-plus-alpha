@@ -49,7 +49,6 @@ namespace Base
 {
 
 const char *appPath = nullptr;
-int fbdev = -1;
 Display *dpy;
 extern void runMainEventLoop();
 extern void initMainEventLoop();
@@ -300,15 +299,10 @@ int main(int argc, char** argv)
 
 	initMainEventLoop();
 
-	if(Config::Base::FBDEV_VSYNC)
-	{
-		fbdev = open("/dev/fb0", O_RDONLY);
-		if(fbdev == -1)
-		{
-			logWarn("unable to open framebuffer device");
-		}
-	}
-
+	#ifndef CONFIG_BASE_X11_EGL
+	// needed to call glXWaitVideoSyncSGI in separate thread
+	XInitThreads();
+	#endif
 	dpy = XOpenDisplay(0);
 	if(!dpy)
 	{
@@ -316,6 +310,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 	initXScreens();
+	initFrameTimer();
 	#ifdef CONFIG_INPUT
 	doOrAbort(Input::init());
 	#endif
