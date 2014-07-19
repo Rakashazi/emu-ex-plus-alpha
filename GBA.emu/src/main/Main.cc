@@ -267,18 +267,17 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
-	if(CPUWriteState(gGba, saveStr))
+		fixFilePermissions(saveStr.data());
+	if(CPUWriteState(gGba, saveStr.data()))
 		return STATE_RESULT_OK;
 	else
 		return STATE_RESULT_IO_ERROR;
@@ -286,9 +285,8 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(CPUReadState(gGba, saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(CPUReadState(gGba, saveStr.data()))
 		return STATE_RESULT_OK;
 	else
 		return STATE_RESULT_IO_ERROR;
@@ -298,11 +296,10 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
-		CPUWriteState(gGba, saveStr);
+			fixFilePermissions(saveStr.data());
+		CPUWriteState(gGba, saveStr.data());
 	}
 }
 
@@ -311,11 +308,10 @@ void EmuSystem::saveBackupMem()
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		FsSys::cPath saveStr;
-		snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", savePath(), gameName());
+		auto saveStr = makeFSPathStringPrintf("%s/%s.sav", savePath(), gameName());
 		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
-		CPUWriteBatteryFile(gGba, saveStr);
+			fixFilePermissions(saveStr.data());
+		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
 	}
 }
@@ -338,12 +334,11 @@ void EmuSystem::closeSystem()
 
 static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
 {
-	FsSys::cPath patchStr;
-	string_printf(patchStr, "%s/%s.ips", patchDir, romName);
-	if(FsSys::fileExists(patchStr))
+	auto patchStr = makeFSPathStringPrintf("%s/%s.ips", patchDir, romName);
+	if(FsSys::fileExists(patchStr.data()))
 	{
-		logMsg("applying IPS patch: %s", patchStr);
-		if(!patchApplyIPS(patchStr, &rom, &romSize))
+		logMsg("applying IPS patch: %s", patchStr.data());
+		if(!patchApplyIPS(patchStr.data(), &rom, &romSize))
 		{
 			popup.postError("Error applying IPS patch");
 			return false;
@@ -351,10 +346,10 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		return true;
 	}
 	string_printf(patchStr, "%s/%s.ups", patchDir, romName);
-	if(FsSys::fileExists(patchStr))
+	if(FsSys::fileExists(patchStr.data()))
 	{
-		logMsg("applying UPS patch: %s", patchStr);
-		if(!patchApplyUPS(patchStr, &rom, &romSize))
+		logMsg("applying UPS patch: %s", patchStr.data());
+		if(!patchApplyUPS(patchStr.data(), &rom, &romSize))
 		{
 			popup.postError("Error applying UPS patch");
 			return false;
@@ -362,10 +357,10 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		return true;
 	}
 	string_printf(patchStr, "%s/%s.ppf", patchDir, romName);
-	if(FsSys::fileExists(patchStr))
+	if(FsSys::fileExists(patchStr.data()))
 	{
-		logMsg("applying UPS patch: %s", patchStr);
-		if(!patchApplyPPF(patchStr, &rom, &romSize))
+		logMsg("applying UPS patch: %s", patchStr.data());
+		if(!patchApplyPPF(patchStr.data(), &rom, &romSize))
 		{
 			popup.postError("Error applying PPF patch");
 			return false;
@@ -390,9 +385,8 @@ static int loadGameCommon(int size)
 	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	FsSys::cPath saveStr;
-	snprintf(saveStr, sizeof(saveStr), "%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
-	CPUReadBatteryFile(gGba, saveStr);
+	auto saveStr = makeFSPathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
+	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
 	logMsg("started emu");
 	return 1;

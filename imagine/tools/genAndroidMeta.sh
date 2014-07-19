@@ -151,6 +151,7 @@ echo "		android:versionCode=\"$versionCode\" android:versionName=\"$version\">" 
 if [ $writeExtStore ]
 then
 	echo '	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' >> $outPath
+	echo '	<uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />' >> $outPath
 fi
 
 if [ $bluetooth ]

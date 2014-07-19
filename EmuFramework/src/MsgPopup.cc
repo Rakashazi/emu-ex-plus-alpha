@@ -53,6 +53,7 @@ void MsgPopup::unpost()
 
 void MsgPopup::post(const char *msg, int secs, bool error)
 {
+	mainWin.win.postDraw();
 	logMsg("%s", msg);
 	text.setString(msg);
 	text.compile(projP);

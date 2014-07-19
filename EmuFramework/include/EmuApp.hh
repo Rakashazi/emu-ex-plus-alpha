@@ -19,6 +19,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
+#include <imagine/fs/WorkDirStack.hh>
 #include <EmuSystem.hh>
 #include <EmuView.hh>
 #include <EmuVideo.hh>
@@ -67,6 +68,7 @@ extern bool menuViewIsActive;
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
+extern WorkDirStack<1> workDirStack;
 
 Gfx::BufferImage &getAsset(AssetID assetID);
 Gfx::BufferImage *getCollectTextCloseAsset();

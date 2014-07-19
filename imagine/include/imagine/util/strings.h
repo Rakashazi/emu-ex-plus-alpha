@@ -144,7 +144,7 @@ static void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
 #ifdef __cplusplus
 
 template <size_t S>
-static char *string_basename(const char *filename, char (&storage)[S])
+static char *string_basename(const char *filename, std::array<char, S> &storage)
 {
 	#ifdef CONFIG_USE_GNU_BASENAME
 	return gnu_basename(filename);
@@ -164,12 +164,18 @@ static char *string_basename(const char *filename, char (&storage)[S])
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage
 	string_copy(storage, filename);
-	return basename(storage);
+	return basename(storage.data());
 	#endif
 }
 
+template <size_t S1, size_t S2>
+static char *string_basename(std::array<char, S1> &filename, std::array<char, S2> &storage)
+{
+	return string_basename(filename.data(), storage);
+}
+
 template <size_t S>
-static char *string_dirname(const char *filename, char (&storage)[S])
+static char *string_dirname(const char *filename, std::array<char, S> &storage)
 {
 	#if defined __ANDROID__
 	return dirname(filename);
@@ -187,8 +193,14 @@ static char *string_dirname(const char *filename, char (&storage)[S])
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage
 	string_copy(storage, filename);
-	return dirname(storage);
+	return dirname(storage.data());
 	#endif
+}
+
+template <size_t S1, size_t S2>
+static char *string_dirname(std::array<char, S1> &filename, std::array<char, S2> &storage)
+{
+	return string_dirname(filename.data(), storage);
 }
 
 #ifdef CONFIG_UNICODE_CHARS

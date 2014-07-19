@@ -24,7 +24,7 @@
 
 struct RecentGameInfo
 {
-	FsSys::cPath path {0};
+	FsSys::PathString path{};
 	char name[256] {0};
 	static constexpr uint MAX_RECENT = 10;
 
@@ -32,7 +32,7 @@ struct RecentGameInfo
 
 	bool operator ==(RecentGameInfo const& rhs) const
 	{
-		return string_equal(path, rhs.path);
+		return string_equal(path.data(), rhs.path.data());
 	}
 
 	void handleMenuSelection(TextMenuItem &, const Input::Event &e);

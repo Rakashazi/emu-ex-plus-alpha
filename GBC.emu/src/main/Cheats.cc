@@ -50,24 +50,23 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = makeFSPathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatList.size())
 	{
-		logMsg("deleting cheats file %s", filename);
-		FsSys::remove(filename);
+		logMsg("deleting cheats file %s", filename.data());
+		FsSys::remove(filename.data());
 		cheatsModified = 0;
 		return;
 	}
 
-	auto file = IoSys::create(filename);
+	auto file = IoSys::create(filename.data());
 	if(!file)
 	{
-		logMsg("error creating cheats file %s", filename);
+		logMsg("error creating cheats file %s", filename.data());
 		return;
 	}
-	logMsg("writing cheats file %s", filename);
+	logMsg("writing cheats file %s", filename.data());
 
 	int version = 0;
 	file->writeVar((uint8)version);
@@ -86,14 +85,13 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
-	auto file = IoSys::open(filename);
+	auto filename = makeFSPathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto file = IoSys::open(filename.data());
 	if(!file)
 	{
 		return;
 	}
-	logMsg("reading cheats file %s", filename);
+	logMsg("reading cheats file %s", filename.data());
 
 	uint8 version = 0;
 	file->readVar(version);

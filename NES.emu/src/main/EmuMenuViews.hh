@@ -20,7 +20,7 @@ public:
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
-					logMsg("set fds bios %s", ::fdsBiosPath);
+					logMsg("set fds bios %s", ::fdsBiosPath.data());
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile(projP);
 				};
@@ -31,8 +31,8 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::cPath basenameTemp;
-		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath) ? string_basename(::fdsBiosPath, basenameTemp) : "None set");
+		FsSys::PathString basenameTemp;
+		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? string_basename(::fdsBiosPath, basenameTemp) : "None set");
 	}
 
 	BoolMenuItem fourScore

@@ -719,10 +719,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 			break;
 		case FCEUMKF_GGROM:sprintf(ret,"%s" PSS "gg.rom",BaseDirectory.c_str());break;
 		case FCEUMKF_FDSROM:
-			if(fdsBiosPath)
-				sprintf(ret,"%s",fdsBiosPath);
-			else
-				sprintf(ret," ");
+			sprintf(ret,"%s",fdsBiosPath.data());
 			/*if(odirs[FCEUIOD_FDSROM])
 				sprintf(ret,"%s" PSS "disksys.rom",odirs[FCEUIOD_FDSROM]);
 			else

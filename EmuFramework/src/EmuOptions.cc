@@ -214,7 +214,8 @@ Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 #endif
 
-PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, sizeof(EmuSystem::savePath_), "");
+PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
+Byte1Option optionCheckSavePathWriteAccess{CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS, 1};
 
 #ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);

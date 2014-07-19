@@ -68,6 +68,7 @@ static char *string_dup(const char *s)
 
 #ifdef __cplusplus
 
+#include <array>
 #include <algorithm>
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
@@ -101,6 +102,12 @@ static char *string_copy(char (&dest)[S], const char *src)
 	return string_copy(dest, src, S);
 }
 
+template <size_t S>
+static char *string_copy(std::array<char, S> &dest, const char *src)
+{
+	return string_copy(dest.data(), src, S);
+}
+
 #ifdef __clang__
 // need to directly v=call builtin version to get constexpr
 #define string_len(s) __builtin_strlen(s)
@@ -131,6 +138,12 @@ static char *string_cat(char (&dest)[S], const char *src)
 	return string_cat(dest, src, S);
 }
 
+template <size_t S>
+static char *string_cat(std::array<char, S> &dest, const char *src)
+{
+	return string_cat(dest.data(), src, S);
+}
+
 #endif
 
 // prints format string to buffer and returns number of bytes written
@@ -158,6 +171,21 @@ static int string_printf(char (&buffer)[S], const char *format, ... )
 	va_list args;
 	va_start(args, format);
 	int ret = vsnprintf(buffer, S, format, args);
+	va_end(args);
+	// error if text would overflow, or actual error in vsnprintf()
+	if(ret >= (int)S || ret < 0)
+		return 0;
+	return ret;
+}
+
+template <size_t S>
+static int string_printf(std::array<char, S> &buffer, const char *format, ... ) __attribute__ ((format (printf, 2, 3)));
+template <size_t S>
+static int string_printf(std::array<char, S> &buffer, const char *format, ... )
+{
+	va_list args;
+	va_start(args, format);
+	int ret = vsnprintf(buffer.data(), S, format, args);
 	va_end(args);
 	// error if text would overflow, or actual error in vsnprintf()
 	if(ret >= (int)S || ret < 0)

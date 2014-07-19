@@ -842,7 +842,7 @@ void handleOpenFileCommand(const char *filename)
 		logMsg("unrecognized file type");
 		return;
 	}
-	FsSys::cPath dirnameTemp, basenameTemp;
+	FsSys::PathString dirnameTemp, basenameTemp;
 	auto dir = string_dirname(filename, dirnameTemp);
 	auto file = string_basename(filename, basenameTemp);
 	FsSys::chdir(dir);

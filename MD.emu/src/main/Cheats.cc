@@ -386,24 +386,23 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = makeFSPathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatList.size())
 	{
-		logMsg("deleting cheats file %s", filename);
-		FsSys::remove(filename);
+		logMsg("deleting cheats file %s", filename.data());
+		FsSys::remove(filename.data());
 		cheatsModified = 0;
 		return;
 	}
 
-	auto file = IoSys::create(filename);
+	auto file = IoSys::create(filename.data());
 	if(!file)
 	{
-		logMsg("error creating cheats file %s", filename);
+		logMsg("error creating cheats file %s", filename.data());
 		return;
 	}
-	logMsg("writing cheats file %s", filename);
+	logMsg("writing cheats file %s", filename.data());
 
 	for(auto &e : cheatList)
 	{
@@ -426,14 +425,13 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
-	auto file = IoSys::open(filename);
+	auto filename = makeFSPathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
+	auto file = IoSys::open(filename.data());
 	if(!file)
 	{
 		return;
 	}
-	logMsg("reading cheats file %s", filename);
+	logMsg("reading cheats file %s", filename.data());
 
 	char line[256];
 	while(file->readLine(line, sizeof(line)) == OK)

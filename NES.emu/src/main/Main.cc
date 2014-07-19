@@ -89,8 +89,8 @@ enum {
 	CFGKEY_VIDEO_SYSTEM = 272,
 };
 
-FsSys::cPath fdsBiosPath = "";
-static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, sizeof(fdsBiosPath), "");
+FsSys::PathString fdsBiosPath{};
+static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, "");
 static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
 static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
@@ -152,7 +152,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 		bcase CFGKEY_FOUR_SCORE: optionFourScore.readFromIO(io, readSize);
 		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
-		logMsg("fds bios path %s", fdsBiosPath);
+		logMsg("fds bios path %s", fdsBiosPath.data());
 	}
 	return 1;
 }
@@ -269,18 +269,17 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
-	if(!FCEUI_SaveState(saveStr))
+		fixFilePermissions(saveStr.data());
+	if(!FCEUI_SaveState(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
 		return STATE_RESULT_OK;
@@ -288,12 +287,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(!FCEUI_LoadState(saveStr))
+		logMsg("loading state %s", saveStr.data());
+		if(!FCEUI_LoadState(saveStr.data()))
 			return STATE_RESULT_IO_ERROR;
 		else
 			return STATE_RESULT_OK;
@@ -320,11 +318,10 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		FCEUI_SaveState(saveStr);
+		FCEUI_SaveState(saveStr.data());
 	}
 }
 

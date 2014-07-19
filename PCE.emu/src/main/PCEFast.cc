@@ -7,7 +7,7 @@
 #include <EmuSystem.hh>
 
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
-extern FsSys::cPath sysCardPath;
+extern FsSys::PathString sysCardPath;
 extern Byte1Option optionArcadeCard;
 
 namespace PCE_Fast
@@ -115,8 +115,8 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_FIRMWARE:
 		{
 			// pce-specific
-			logMsg("getting firmware path %s", sysCardPath);
-			return std::string(sysCardPath);
+			logMsg("getting firmware path %s", sysCardPath.data());
+			return std::string(sysCardPath.data());
 		}
 		case MDFNMKF_AUX:
 		{

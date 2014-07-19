@@ -57,13 +57,12 @@ Machine *machine = 0;
 Mixer *mixer = 0;
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-static FsSys::cPath machineCustomPath = "";
-static FsSys::cPath machineBasePath = "";
+static FsSys::PathString machineCustomPath{};
+static FsSys::PathString machineBasePath{};
 
-template <size_t S>
-static void setMachineBasePath(char (&outPath)[S], FsSys::cPath customPath)
+static void setMachineBasePath(FsSys::PathString &outPath, const FsSys::PathString &customPath)
 {
-	if(!strlen(customPath))
+	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
 		string_printf(outPath, "%s/MSX.emu", Base::appPath);
@@ -73,14 +72,14 @@ static void setMachineBasePath(char (&outPath)[S], FsSys::cPath customPath)
 	}
 	else
 	{
-		string_printf(outPath, "%s", customPath);
+		string_printf(outPath, "%s", customPath.data());
 	}
-	logMsg("set machine file path: %s", outPath);
+	logMsg("set machine file path: %s", outPath.data());
 }
 
 const char *machineBasePathStr()
 {
-	return machineBasePath;
+	return machineBasePath.data();
 }
 
 static char cartName[2][512] = { "", "" };
@@ -207,7 +206,7 @@ enum
 static char optionMachineNameStr[128] = optionMachineNameDefault;
 static PathOption optionMachineName(CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault);
 Byte1Option optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
-PathOption optionFirmwarePath(CFGKEY_MACHINE_FILE_PATH, machineCustomPath, sizeof(machineCustomPath), "");
+PathOption optionFirmwarePath(CFGKEY_MACHINE_FILE_PATH, machineCustomPath, "");
 static uint activeBoardType = BOARD_MSX;
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -589,14 +588,14 @@ static bool initMachine(const char *machineName)
 	logMsg("loading machine %s", machineName);
 	if(machine)
 		machineDestroy(machine);
-	FsSys::cPath wDir;
-	strcpy(wDir, FsSys::workDir());
-	FsSys::chdir(machineBasePath);
+	FsSys::PathString wDir;
+	strcpy(wDir.data(), FsSys::workDir());
+	FsSys::chdir(machineBasePath.data());
 	machine = machineCreate(machineName);
-	FsSys::chdir(wDir);
+	FsSys::chdir(wDir.data());
 	if(!machine)
 	{
-		popup.printf(5, 1, "Error loading machine files for\n\"%s\",\nmake sure they are in:\n%s", machineName, machineBasePath);
+		popup.printf(5, 1, "Error loading machine files for\n\"%s\",\nmake sure they are in:\n%s", machineName, machineBasePath.data());
 		return 0;
 	}
 	boardSetMachine(machine);
@@ -736,9 +735,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 static char saveStateVersion[] = "blueMSX - state  v 8";
@@ -785,9 +784,8 @@ static int saveBlueMSXState(const char *filename)
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	return saveBlueMSXState(saveStr);
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	return saveBlueMSXState(saveStr.data());
 }
 
 static void closeGameByFailedStateLoad()
@@ -871,11 +869,10 @@ static int loadBlueMSXState(const char *filename)
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		return loadBlueMSXState(saveStr);
+		return loadBlueMSXState(saveStr.data());
 	}
 	return STATE_RESULT_NO_FILE;
 }
@@ -892,9 +889,8 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		saveBlueMSXState(saveStr);
+		auto saveStr = sprintStateFilename(-1);
+		saveBlueMSXState(saveStr.data());
 	}
 }
 
@@ -923,7 +919,7 @@ int EmuSystem::loadGame(const char *path)
 	/*if(allowAutosaveState && optionAutoSaveState)
 	{
 		string_copyUpToLastCharInstance(gameName, path, '.');
-		FsSys::cPath saveStr;
+		FsSys::PathString saveStr;
 		sprintStateFilename(saveStr, -1);
 		if(FsSys::fileExists(saveStr) && loadBlueMSXState(saveStr) == STATE_RESULT_OK)
 		{
@@ -1227,7 +1223,7 @@ CallResult onInit(int argc, char** argv)
 		[](Base::Window &win)
 		{
 			if(checkForMachineFolderOnStart &&
-				!strlen(machineCustomPath) && !FsSys::fileExists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
+				!strlen(machineCustomPath.data()) && !FsSys::fileExists(machineBasePath.data())) // prompt to install if using default machine path & it doesn't exist
 			{
 				auto &ynAlertView = *new YesNoAlertView{win};
 				ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());

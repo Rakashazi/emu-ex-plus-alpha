@@ -17,6 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <cstdio>
+#include <array>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -29,8 +30,8 @@ public:
 	static constexpr uint timeStrSize = 26; // 26 bytes needed for asctime_r (from glibc & Apple man pages)
 	using timeStr = char[timeStrSize];
 	// definitions for common file path sizes
-	static constexpr uint cPathSize = IG::maxConst(1024, PATH_MAX);
-	using cPath = char[cPathSize];
+	static constexpr uint PATH_STRING_SIZE = IG::maxConst(1024, PATH_MAX);
+	using PathString = std::array<char, PATH_STRING_SIZE>;
 
 	constexpr FsPosix() {}
 	uint numEntries() const override;

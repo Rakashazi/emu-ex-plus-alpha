@@ -91,7 +91,7 @@ public:
 		}
 	}
 
-	static FsSys::cPath &regionCodeToStrBuffer(int region)
+	static FsSys::PathString &regionCodeToStrBuffer(int region)
 	{
 		switch(region)
 		{
@@ -115,12 +115,12 @@ public:
 		const char *path = "";
 		switch(region)
 		{
-			bdefault: path = cdBiosUSAPath;
-			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath;
-			bcase REGION_EUROPE: path = cdBiosEurPath;
+			bdefault: path = cdBiosUSAPath.data();
+			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath.data();
+			bcase REGION_EUROPE: path = cdBiosEurPath.data();
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(str, "%s: %s", regionStr, strlen(path) ? string_basename(path, basenameTemp) : "None set");
 	}
 
@@ -132,7 +132,7 @@ public:
 			[this, region]()
 			{
 				auto idx = regionCodeToIdx(region);
-				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region));
+				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region).data());
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile(projP);
 			};

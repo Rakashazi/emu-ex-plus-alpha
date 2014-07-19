@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/Io.hh>
-#include <imagine/fs/sys.hh> // for FsSys::cPath
+#include <imagine/fs/sys.hh> // for FsSys::PathString
 #include <imagine/base/Base.hh>
 
 #if defined CONFIG_IO_FD
@@ -45,9 +45,6 @@ static Io *openAppAssetIo(const char *name)
 	#ifdef CONFIG_IO_AASSET
 	return AAssetIO::open(name);
 	#else
-	FsSys::cPath path;
-	if(!string_printf(path, "%s/%s", Base::appPath, name))
-		return nullptr;
-	return IoSys::open(path);
+	return IoSys::open(makeFSPathStringPrintf("%s/%s", Base::appPath, name).data());
 	#endif
 }

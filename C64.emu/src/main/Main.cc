@@ -79,10 +79,10 @@ static bool c64IsInit = false, c64FailedInit = false, isPal = false,
 static uint c64VidX = 320, c64VidY = 200,
 		c64VidActiveX = 0, c64VidActiveY = 0;
 
-static FsSys::cPath firmwareBasePath = "";
-static FsSys::cPath sysFilePath[Config::envIsLinux ? 4 : 2][3] {{""}};
+static FsSys::PathString firmwareBasePath{};
+static FsSys::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3]{};
 
-void setupSysFilePaths(FsSys::cPath outPath[3], const char *firmwareBasePath);
+void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath);
 
 enum
 {
@@ -199,7 +199,7 @@ static Option<OptionMethodFunc<int, sidEngine, setSidEngine>, uint8>
 		#endif
 	);
 static Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
-PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, sizeof(firmwareBasePath), "");
+PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 
 void EmuSystem::initOptions() {}
 
@@ -810,23 +810,23 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
 }
 
 struct SnapshotTrapData
 {
 	constexpr SnapshotTrapData() { }
 	uint result = STATE_RESULT_IO_ERROR;
-	FsSys::cPath pathStr {0};
+	FsSys::PathString pathStr{};
 };
 
 static void loadSnapshotTrap(WORD, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
-	logMsg("loading state: %s", snapData->pathStr);
-	if(machine_read_snapshot(snapData->pathStr, 0) < 0)
+	logMsg("loading state: %s", snapData->pathStr.data());
+	if(machine_read_snapshot(snapData->pathStr.data(), 0) < 0)
 		snapData->result = STATE_RESULT_IO_ERROR;
 	else
 		snapData->result = STATE_RESULT_OK;
@@ -835,8 +835,8 @@ static void loadSnapshotTrap(WORD, void *data)
 static void saveSnapshotTrap(WORD, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
-	logMsg("saving state: %s", snapData->pathStr);
-	if(machine_write_snapshot(snapData->pathStr, 1, 1, 0) < 0)
+	logMsg("saving state: %s", snapData->pathStr.data());
+	if(machine_write_snapshot(snapData->pathStr.data(), 1, 1, 0) < 0)
 		snapData->result = STATE_RESULT_IO_ERROR;
 	else
 		snapData->result = STATE_RESULT_OK;
@@ -845,7 +845,7 @@ static void saveSnapshotTrap(WORD, void *data)
 int EmuSystem::saveState()
 {
 	SnapshotTrapData data;
-	sprintStateFilename(data.pathStr, saveStateSlot);
+	data.pathStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
 		fixFilePermissions(data.pathStr);
 	interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
@@ -856,7 +856,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	SnapshotTrapData data;
-	sprintStateFilename(data.pathStr, saveStateSlot);
+	data.pathStr = sprintStateFilename(saveStateSlot);
 	resources_set_int("WarpMode", 0);
 	runFrame(0, 0, 0); // run extra frame in case C64 was just started
 	interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
@@ -869,14 +869,14 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		SnapshotTrapData data;
-		sprintStateFilename(data.pathStr, -1);
+		data.pathStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(data.pathStr);
 		interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 		runFrame(0, 0, 0); // execute cpu trap
 		if(data.result != STATE_RESULT_OK)
 		{
-			logErr("error writing auto-save state %s", data.pathStr);
+			logErr("error writing auto-save state %s", data.pathStr.data());
 		}
 	}
 }
@@ -1074,17 +1074,17 @@ void EmuSystem::configAudioRate()
 
 void EmuSystem::savePathChanged() { }
 
-void setupSysFilePaths(FsSys::cPath outPath[3], const char *firmwareBasePath)
+void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath)
 {
-	if(!strlen(firmwareBasePath))
+	if(!strlen(firmwareBasePath.data()))
 	{
 		mem_zero(outPath);
 		return;
 	}
-	logMsg("setup system file path: %s", firmwareBasePath);
-	string_printf(outPath[0], "%s/C64", firmwareBasePath); // emu_id
-	string_printf(outPath[1], "%s/DRIVES", firmwareBasePath);
-	string_printf(outPath[2], "%s/PRINTER", firmwareBasePath);
+	logMsg("setup system file path: %s", firmwareBasePath.data());
+	string_printf(outPath[0], "%s/C64", firmwareBasePath.data()); // emu_id
+	string_printf(outPath[1], "%s/DRIVES", firmwareBasePath.data());
+	string_printf(outPath[2], "%s/PRINTER", firmwareBasePath.data());
 }
 
 namespace Base
@@ -1124,8 +1124,7 @@ CallResult onInit(int argc, char** argv)
 	setupSysFilePaths(sysFilePath[3], "/usr/share/games/vice");
 	#else
 	{
-		FsSys::cPath path;
-		string_printf(path, "%s/C64.emu", Base::storagePath());
+		auto path = makeFSPathStringPrintf("%s/C64.emu", Base::storagePath());
 		setupSysFilePaths(sysFilePath[1], path);
 	}
 	#endif
@@ -1181,16 +1180,15 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 	{
 		for(const auto &p : pathGroup)
 		{
-			if(!strlen(p))
+			if(!strlen(p.data()))
 				continue;
-			FsSys::cPath fullPath;
-			string_printf(fullPath, "%s/%s", p, name);
-			auto file = fopen(fullPath, open_mode);
+			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
+			auto file = fopen(fullPath.data(), open_mode);
 			if(file)
 			{
 				if(complete_path_return)
 				{
-					*complete_path_return = strdup(fullPath);
+					*complete_path_return = strdup(fullPath.data());
 					if(!*complete_path_return)
 					{
 						logErr("out of memory trying to allocate string in sysfile_open");
@@ -1212,15 +1210,14 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 	{
 		for(const auto &p : pathGroup)
 		{
-			if(!strlen(p))
+			if(!strlen(p.data()))
 				continue;
-			FsSys::cPath fullPath;
-			string_printf(fullPath, "%s/%s", p, name);
-			if(FsSys::fileExists(fullPath))
+			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
+			if(FsSys::fileExists(fullPath.data()))
 			{
 				if(complete_path_return)
 				{
-					*complete_path_return = strdup(fullPath);
+					*complete_path_return = strdup(fullPath.data());
 					if(!*complete_path_return)
 					{
 						logErr("out of memory trying to allocate string in sysfile_locate");
@@ -1241,11 +1238,10 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 	{
 		for(const auto &p : pathGroup)
 		{
-			if(!strlen(p))
+			if(!strlen(p.data()))
 				continue;
-			FsSys::cPath complete_path;
-			string_printf(complete_path, "%s/%s", p, name);
-			auto file = IoSys::open(complete_path);
+			auto complete_path = makeFSPathStringPrintf("%s/%s", p.data(), name);
+			auto file = IoSys::open(complete_path.data());
 			if(file)
 			{
 				//logMsg("loading system file: %s", complete_path);
@@ -1262,12 +1258,12 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 				}
 				if(rsize < ((size_t)minsize))
 				{
-					logErr("ROM %s: short file", complete_path);
+					logErr("ROM %s: short file", complete_path.data());
 					goto fail;
 				}
 				if(rsize == ((size_t)maxsize + 2))
 				{
-					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path);
+					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path.data());
 					if(fread((char*)dest, 1, 2, file) < 2)
 					{
 						goto fail;
@@ -1280,7 +1276,7 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 				}
 				else if(rsize > ((size_t)maxsize))
 				{
-					logWarn("ROM `%s': long file, discarding end.", complete_path);
+					logWarn("ROM `%s': long file, discarding end.", complete_path.data());
 					rsize = maxsize;
 				}
 				if((rsize = fread((char *)dest, 1, rsize, file)) < ((size_t)minsize))

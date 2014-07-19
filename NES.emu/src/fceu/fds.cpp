@@ -678,7 +678,7 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
 
 	if (!(zp = FCEUD_UTF8fopen(fn, "rb"))) {
 		FCEU_PrintError("FDS BIOS ROM image missing: %s", FCEU_MakeFName(FCEUMKF_FDSROM, 0, 0).c_str());
-		if(!strlen(fdsBiosPath) || !CheckFileExists(fdsBiosPath))
+		if(!strlen(fdsBiosPath.data()) || !CheckFileExists(fdsBiosPath.data()))
 			fceuReturnedError = "No FDS BIOS set";
 		else
 			fceuReturnedError = "Error opening FDS BIOS";

@@ -39,9 +39,8 @@ void BundledGamesView::init(bool highlightFirst)
 			auto res = EmuSystem::loadGameFromIO(*file.io(), info.assetName);
 			file.close();
 			#else
-			FsSys::cPath zipPath;
-			string_printf(zipPath, "%s/%s", Base::appPath, info.assetName);
-			auto zip = unzOpen(zipPath);
+			auto zipPath = makeFSPathStringPrintf("%s/%s", Base::appPath, info.assetName);
+			auto zip = unzOpen(zipPath.data());
 			if(!zip)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);

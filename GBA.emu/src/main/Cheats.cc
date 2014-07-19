@@ -185,26 +185,24 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	FsSys::cPath filename;
-	string_printf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = makeFSPathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatsNumber)
 	{
-		logMsg("deleting cheats file %s", filename);
-		FsSys::remove(filename);
+		logMsg("deleting cheats file %s", filename.data());
+		FsSys::remove(filename.data());
 		cheatsModified = false;
 		return;
 	}
-	cheatsSaveCheatList(filename);
+	cheatsSaveCheatList(filename.data());
 	cheatsModified = false;
 }
 
 void readCheatFile()
 {
-	FsSys::cPath filename;
-	sprintf(filename, "%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
-	if(cheatsLoadCheatList(filename))
+	auto filename = makeFSPathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
+	if(cheatsLoadCheatList(filename.data()))
 	{
-		logMsg("loaded cheat file: %s", filename);
+		logMsg("loaded cheat file: %s", filename.data());
 	}
 }

@@ -395,7 +395,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	return true;
 }
 
-static bool processDevNodeName(const char *name, FsSys::cPath &path, uint &id)
+static bool processDevNodeName(const char *name, FsSys::PathString &path, uint &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)
@@ -433,10 +433,10 @@ void initEvdev()
 							if(inotifyEv->len > 1)
 							{
 								uint id;
-								FsSys::cPath path;
+								FsSys::PathString path;
 								if(processDevNodeName(inotifyEv->name, path, id))
 								{
-									processDevNode(path, id, true);
+									processDevNode(path.data(), id, true);
 								}
 							}
 							len -= inotifyEvSize;
@@ -474,10 +474,10 @@ void initEvdev()
 		}
 		auto filename = f.entryFilename(i);
 		uint id;
-		FsSys::cPath path;
+		FsSys::PathString path;
 		if(!processDevNodeName(filename, path, id))
 			continue;
-		processDevNode(path, id, false);
+		processDevNode(path.data(), id, false);
 	}
 }
 

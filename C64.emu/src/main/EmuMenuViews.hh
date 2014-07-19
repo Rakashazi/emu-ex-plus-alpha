@@ -122,8 +122,8 @@ class SystemOptionView : public OptionView
 	template <size_t S>
 	static void printSysPathMenuEntryStr(char (&str)[S])
 	{
-		FsSys::cPath basenameTemp;
-		string_printf(str, "System File Path: %s", strlen(firmwareBasePath) ? string_basename(firmwareBasePath, basenameTemp) : "Default");
+		FsSys::PathString basenameTemp;
+		string_printf(str, "System File Path: %s", strlen(firmwareBasePath.data()) ? string_basename(firmwareBasePath, basenameTemp) : "Default");
 	}
 
 	FirmwarePathSelector systemFileSelector;
@@ -232,7 +232,7 @@ private:
 	void updateTapeText()
 	{
 		auto name = tape_get_file_name();
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(tapeSlotStr, "Tape: %s", name ? string_basename(name, basenameTemp) : "");
 	}
 
@@ -301,7 +301,7 @@ private:
 	void updateROMText()
 	{
 		auto name = cartridge_get_file_name(mem_cartridge_type);
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(romSlotStr, "ROM: %s", name ? string_basename(name, basenameTemp) : "");
 	}
 
@@ -370,7 +370,7 @@ private:
 	void updateDiskText(int slot)
 	{
 		auto name = file_system_get_disk_name(slot+8);
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], name ? string_basename(name, basenameTemp) : "");
 	}
 
@@ -524,9 +524,9 @@ class SystemMenuView : public MenuView
 					}
 					if(EmuSystem::gameIsRunning())
 					{
-						FsSys::cPath gamePath;
+						FsSys::PathString gamePath;
 						string_copy(gamePath, EmuSystem::fullGamePath());
-						EmuSystem::loadGame(gamePath);
+						EmuSystem::loadGame(gamePath.data());
 						startGameFromMenu();
 					}
 					return 0;

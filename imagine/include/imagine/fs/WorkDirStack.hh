@@ -15,27 +15,34 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/Fs.hh>
+#include <imagine/fs/sys.hh>
+#include <imagine/logger/logger.h>
 
-#if defined CONFIG_FS_POSIX
-#include <imagine/fs/FsPosix.hh>
-#define FsSys FsPosix
-#elif defined CONFIG_FS_WIN32
-#include <imagine/fs/FsWin32.hh>
-#define FsSys FsWin32
-#elif defined CONFIG_FS_PS3
-#include <imagine/fs/FsPs3.hh>
-#define FsSys FsPs3
-#endif
-
-static FsSys::PathString makeFSPathStringPrintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-static FsSys::PathString makeFSPathStringPrintf(const char *format, ...)
+template <uint SIZE>
+class WorkDirStack
 {
-	FsSys::PathString path{};
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(path.data(), sizeof(path), format, args);
-	assert(ret >= 0);
-	va_end(args);
-	return path;
-}
+	std::array<FsSys::PathString, SIZE> dir{{{{0}}}};
+public:
+	uint size = 0;
+	constexpr WorkDirStack() {}
+
+	void push()
+	{
+		assert(size < SIZE);
+		string_copy(dir[size], FsSys::workDir());
+		logMsg("pushed work dir %s", dir[size].data());
+		size++;
+	}
+
+	void pop()
+	{
+		if(!size)
+		{
+			logWarn("no work dir in stack");
+			return;
+		}
+		size--;
+		logMsg("popped work dir %s", dir[size].data());
+		FsSys::chdir(dir[size].data());
+	}
+};

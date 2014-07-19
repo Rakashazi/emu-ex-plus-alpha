@@ -16,16 +16,18 @@
 #include <EmuSystem.hh>
 #include <EmuOptions.hh>
 #include <EmuApp.hh>
+#include <FileUtils.hh>
 #include <imagine/audio/Audio.hh>
 #include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
-FsSys::cPath EmuSystem::gamePath_ = "";
-FsSys::cPath EmuSystem::fullGamePath_ = "";
-FsSys::cPath EmuSystem::savePath_ = "";
-FsSys::cPath EmuSystem::defaultSavePath_ = "";
-char EmuSystem::gameName_[256] = "";
-char EmuSystem::fullGameName_[256] = "";
+FsSys::PathString EmuSystem::gamePath_{};
+FsSys::PathString EmuSystem::fullGamePath_{};
+FsSys::PathString EmuSystem::savePath_{};
+FsSys::PathString EmuSystem::defaultSavePath_{};
+FsSys::PathString EmuSystem::gameSavePath_{};
+char EmuSystem::gameName_[256]{};
+char EmuSystem::fullGameName_[256]{};
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 int EmuSystem::emuFrameNow;
 int EmuSystem::saveStateSlot = 0;
@@ -34,7 +36,6 @@ uint EmuSystem::audioFramesPerVideoFrame = 0;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::Timer EmuSystem::autoSaveStateTimer;
-void fixFilePermissions(const char *path);
 
 void saveAutoStateFromTimer();
 
@@ -107,9 +108,8 @@ void EmuSystem::commitSound(Audio::BufferContext buffer, uint frames)
 
 bool EmuSystem::stateExists(int slot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, slot);
-	return FsSys::fileExists(saveStr);
+	auto saveStr = sprintStateFilename(slot);
+	return FsSys::fileExists(saveStr.data());
 }
 
 bool EmuSystem::loadAutoState()
@@ -176,28 +176,27 @@ void EmuSystem::setupGamePaths(const char *filePath)
 {
 	{
 		// find the realpath of the dirname portion separately in case the file is a symlink
-		FsSys::cPath dirnameTemp;
-		strcpy(gamePath_, string_dirname(filePath, dirnameTemp));
+		FsSys::PathString dirnameTemp;
+		strcpy(gamePath_.data(), string_dirname(filePath, dirnameTemp));
 		char realPath[PATH_MAX];
-		if(!realpath(gamePath_, realPath))
+		if(!realpath(gamePath_.data(), realPath))
 		{
 			gamePath_[0] = 0;
 			logErr("error in realpath()");
 			return;
 		}
-		strcpy(gamePath_, realPath); // destination is always large enough
-		logMsg("set game directory: %s", gamePath_);
-		#ifdef CONFIG_BASE_IOS_SETUID
-		fixFilePermissions(gamePath_);
-		#endif
+		strcpy(gamePath_.data(), realPath); // destination is always large enough
+		logMsg("set game directory: %s", gamePath_.data());
+		if(Config::envIsIOSJB)
+			fixFilePermissions(gamePath_);
 	}
 
 	{
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_copy(gameName_, string_basename(filePath, basenameTemp));
 
-		string_printf(fullGamePath_, "%s/%s", gamePath_, gameName_);
-		logMsg("set full game path: %s", fullGamePath_);
+		string_printf(fullGamePath_, "%s/%s", gamePath_.data(), gameName_);
+		logMsg("set full game path: %s", fullGamePath_.data());
 
 		// If gameName has an extension, truncate it
 		auto dotPos = strrchr(gameName_, '.');
@@ -206,14 +205,13 @@ void EmuSystem::setupGamePaths(const char *filePath)
 		logMsg("set game name: %s", gameName_);
 	}
 
-	string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
-	logMsg("set default save path: %s", defaultSavePath_);
+	setupGameSavePath();
 }
 
 void EmuSystem::setupGameName(const char *name)
 {
 	{
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_copy(gameName_, string_basename(name, basenameTemp));
 
 		// If gameName has an extension, truncate it
@@ -223,53 +221,128 @@ void EmuSystem::setupGameName(const char *name)
 		logMsg("set game name: %s", gameName_);
 	}
 
-	string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
-	logMsg("set default save path: %s", defaultSavePath_);
+	setupGameSavePath();
+}
+
+void EmuSystem::setupGameSavePath()
+{
+	if(!strlen(gameName_))
+		return;
+	if(strlen(savePath_.data()))
+	{
+		if(string_equal(savePath_.data(), optionSavePathDefaultToken))
+			setGameSavePath(defaultSavePath());
+		else
+			setGameSavePath(savePath_.data());
+	}
+	else
+	{
+		setGameSavePath(gamePath_.data());
+	}
+}
+
+static bool hasWriteAccessToDir(const char *path)
+{
+	auto hasAccess = FsSys::hasWriteAccess(path);
+	#ifdef CONFIG_BASE_ANDROID
+	// only Android 4.4 also test file creation since
+	// access() can still claim an SD card is writable
+	// even though parts are locked-down by the OS
+	if(Base::androidSDK() >= 19)
+	{
+		auto testFilePath = makeFSPathStringPrintf("%s/.safe-to-delete-me", path);
+		auto testFile = IOFile(IoSys::create(testFilePath.data()));
+		if(!testFile)
+		{
+			hasAccess = false;
+		}
+		else
+		{
+			FsSys::remove(testFilePath.data());
+		}
+	}
+	#endif
+	return hasAccess;
+}
+
+void EmuSystem::setGameSavePath(const char *path)
+{
+	if(!strlen(gameName_))
+		return;
+	bool reportNoWriteAccess = false;
+	// check if the path is writable
+	if(path && strlen(path))
+	{
+		if(Config::envIsIOSJB)
+			fixFilePermissions(path);
+		if(optionCheckSavePathWriteAccess && !hasWriteAccessToDir(path))
+		{
+			reportNoWriteAccess = true;
+		}
+		else
+		{
+			logMsg("set game save path: %s", path);
+			string_copy(gameSavePath_, path);
+			return;
+		}
+	}
+	// fallback to a default path
+	logMsg("set game save path to default: %s", defaultSavePath());
+	string_copy(gameSavePath_, defaultSavePath());
+	if(Config::envIsIOSJB)
+		fixFilePermissions(gameSavePath_);
+	if(reportNoWriteAccess)
+	{
+		popup.printf(4, true, "Save path lacks write access, using default:\n%s", gameSavePath_.data());
+	}
 }
 
 void EmuSystem::makeDefaultSavePath()
 {
-	FsSys::cPath pathTemp;
+	assert(strlen(gameName_));
+	FsSys::PathString pathTemp;
 	string_printf(pathTemp, "%s/Game Data", Base::storagePath());
-	FsSys::mkdir(pathTemp);
+	FsSys::mkdir(pathTemp.data());
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, shortSystemName());
-	FsSys::mkdir(pathTemp);
+	FsSys::mkdir(pathTemp.data());
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, gameName_);
-	FsSys::mkdir(pathTemp);
+	FsSys::mkdir(pathTemp.data());
 }
 
 void EmuSystem::clearGamePaths()
 {
 	strcpy(gameName_, "");
 	strcpy(fullGameName_, "");
-	strcpy(gamePath_, "");
-	strcpy(fullGamePath_, "");
-	strcpy(defaultSavePath_, "");
+	strcpy(gamePath_.data(), "");
+	strcpy(fullGamePath_.data(), "");
+	strcpy(defaultSavePath_.data(), "");
+	strcpy(gameSavePath_.data(), "");
 }
 
 const char *EmuSystem::savePath()
 {
-	if(strlen(savePath_))
-	{
-		return savePath_;
-	}
-	// check if the game's path is writable
-	if(strlen(gamePath_) && FsSys::hasWriteAccess(gamePath_))
-	{
-		return gamePath_;
-	}
-	// fallback to a default path
-	assert(strlen(defaultSavePath()));
-	if(!FsSys::fileExists(defaultSavePath()))
-		makeDefaultSavePath();
-	return defaultSavePath();
+	assert(strlen(gameSavePath_.data()));
+	return gameSavePath_.data();
 }
 
 const char *EmuSystem::defaultSavePath()
 {
-	return defaultSavePath_;
+	assert(strlen(gameName_));
+	if(!strlen(defaultSavePath_.data()))
+	{
+		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
+		logMsg("game default save path: %s", defaultSavePath_.data());
+	}
+	if(!FsSys::fileExists(defaultSavePath_.data()))
+		makeDefaultSavePath();
+	return defaultSavePath_.data();
+}
+
+FsSys::PathString EmuSystem::baseDefaultGameSavePath()
+{
+	return makeFSPathStringPrintf("%s/Game Data/%s", Base::storagePath(), shortSystemName());
 }
 
 void EmuSystem::closeGame(bool allowAutosaveState)

@@ -369,32 +369,29 @@ static char saveSlotChar(int slot)
 	#define FREEZE_EXT "s96"
 #endif
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
 }
 
 #undef FREEZE_EXT
 
-template <size_t S>
-static void sprintSRAMFilename(char (&str)[S])
+static FsSys::PathString sprintSRAMFilename()
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return makeFSPathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
-template <size_t S>
-static void sprintCheatsFilename(char (&str)[S])
+static FsSys::PathString sprintCheatsFilename()
 {
-	snprintf(str, S, "%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
+	return makeFSPathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
-	if(!S9xFreezeGame(saveStr))
+		fixFilePermissions(saveStr.data());
+	if(!S9xFreezeGame(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
 		return STATE_RESULT_OK;
@@ -402,12 +399,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(S9xUnfreezeGame(saveStr))
+		logMsg("loading state %s", saveStr.data());
+		if(S9xUnfreezeGame(saveStr.data()))
 		{
 			IPPU.RenderThisFrame = TRUE;
 			return STATE_RESULT_OK;
@@ -425,19 +421,17 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		if(Memory.SRAMSize)
 		{
 			logMsg("saving backup memory");
-			FsSys::cPath saveStr;
-			sprintSRAMFilename(saveStr);
+			auto saveStr = sprintSRAMFilename();
 			if(Config::envIsIOSJB)
 				fixFilePermissions(saveStr);
-			Memory.SaveSRAM(saveStr);
+			Memory.SaveSRAM(saveStr.data());
 		}
-		FsSys::cPath cheatsStr;
-		sprintCheatsFilename(cheatsStr);
+		auto cheatsStr = sprintCheatsFilename();
 		if(!Cheat.num_cheats)
 			logMsg("no cheats present, removing .cht file if present");
 		else
 			logMsg("saving %d cheat(s)", Cheat.num_cheats);
-		S9xSaveCheatFile(cheatsStr);
+		S9xSaveCheatFile(cheatsStr.data());
 	}
 }
 
@@ -445,12 +439,11 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		if(!S9xFreezeGame(saveStr))
-			logMsg("error saving state %s", saveStr);
+		if(!S9xFreezeGame(saveStr.data()))
+			logMsg("error saving state %s", saveStr.data());
 	}
 }
 
@@ -610,9 +603,8 @@ static int loadGameCommon()
 	emuVideo.initImage(0, snesResX, snesResY);
 	setupSNESInput();
 
-	FsSys::cPath saveStr;
-	sprintSRAMFilename(saveStr);
-	Memory.LoadSRAM(saveStr);
+	auto saveStr = sprintSRAMFilename();
+	Memory.LoadSRAM(saveStr.data());
 
 	IPPU.RenderThisFrame = TRUE;
 	EmuSystem::configAudioPlayback();

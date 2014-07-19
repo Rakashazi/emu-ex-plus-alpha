@@ -105,7 +105,7 @@ static SoundInterface_struct SNDImagine =
 	SNDImagineSetVolume
 };
 
-static FsSys::cPath bupPath = "";
+static FsSys::PathString bupPath{};
 static char mpegPath[] = "";
 static char cartPath[] = "";
 
@@ -217,8 +217,8 @@ static bool OptionSH2CoreIsValid(uint8 val)
 	return false;
 }
 
-FsSys::cPath biosPath = "";
-static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, sizeof(biosPath), "");
+FsSys::PathString biosPath{};
+static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, "");
 static Byte1Option optionSH2Core(CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid);
 
 static yabauseinit_struct yinit =
@@ -235,9 +235,9 @@ static yabauseinit_struct yinit =
 	CDCORE_ISO,
 	CART_NONE,
 	REGION_AUTODETECT,
-	biosPath,
+	biosPath.data(),
 	EmuSystem::fullGamePath(),
-	bupPath,
+	bupPath.data(),
 	mpegPath,
 	cartPath,
 	nullptr,
@@ -462,18 +462,17 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	if(YabSaveState(saveStr) == 0)
+	if(YabSaveState(saveStr.data()) == 0)
 		return STATE_RESULT_OK;
 	else
 		return STATE_RESULT_IO_ERROR;
@@ -481,12 +480,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(YabLoadState(saveStr) == 0)
+		logMsg("loading state %s", saveStr.data());
+		if(YabLoadState(saveStr.data()) == 0)
 			return STATE_RESULT_OK;
 		else
 			return STATE_RESULT_IO_ERROR;
@@ -499,7 +497,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		T123Save(BupRam, 0x10000, 1, bupPath);
+		T123Save(BupRam, 0x10000, 1, bupPath.data());
 	}
 }
 
@@ -507,12 +505,11 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		if(YabSaveState(saveStr) != 0)
-			logMsg("error saving state %s", saveStr);
+		if(YabSaveState(saveStr.data()) != 0)
+			logMsg("error saving state %s", saveStr.data());
 	}
 }
 
@@ -537,7 +534,7 @@ int EmuSystem::loadGame(const char *path)
 	closeGame();
 	setupGamePaths(path);
 
-	snprintf(bupPath, sizeof(bupPath), "%s/bkram.bin", savePath());
+	string_printf(bupPath, "%s/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");

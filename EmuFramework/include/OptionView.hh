@@ -25,7 +25,6 @@
 #include <MultiChoiceView.hh>
 #include <EmuApp.hh>
 #include <FilePicker.hh>
-extern WorkDirStack<1> workDirStack;
 void onCloseModalPopWorkDir(const Input::Event &e);
 void chdirFromFilePath(const char *path);
 
@@ -113,6 +112,7 @@ protected:
 	void savePathUpdated(const char *newPath);
 	char savePathStr[256] {0};
 	TextMenuItem savePath;
+	BoolMenuItem checkSavePathWriteAccess;
 	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
 	void fastForwardSpeedinit();
 	MultiChoiceSelectMenuItem fastForwardSpeed;
@@ -145,7 +145,7 @@ protected:
 	virtual void loadSystemItems(MenuItem *item[], uint &items);
 	virtual void loadGUIItems(MenuItem *item[], uint &items);
 
-	MenuItem *item[24] {nullptr};
+	MenuItem *item[25]{nullptr};
 
 public:
 	OptionView(Base::Window &win);
@@ -156,18 +156,18 @@ class BiosSelectMenu : public BaseMultiChoiceView
 {
 public:
 	TextMenuItem choiceEntry[2];
-	MenuItem *choiceEntryItem[2] {nullptr};
+	MenuItem *choiceEntryItem[2]{nullptr};
 	typedef DelegateFunc<void ()> BiosChangeDelegate;
 	BiosChangeDelegate onBiosChangeD;
-	FsSys::cPath *biosPathStr = nullptr;
+	FsSys::PathString *biosPathStr = nullptr;
 	int (*fsFilter)(const char *name, int type) = nullptr;
 
 	BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
-	BiosSelectMenu(const char *name, FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
+	BiosSelectMenu(const char *name, FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
 		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
 	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
 	void onSelectFile(const char* name, const Input::Event &e);
-	void init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst);
+	void init(FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst);
 	void init(bool highlightFirst);
 };
 

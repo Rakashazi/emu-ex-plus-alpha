@@ -265,6 +265,7 @@ static bool readConfig2(Io &io)
 			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
+			bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);
 			#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 			bcase CFGKEY_SHOW_BUNDLED_GAMES: optionShowBundledGames.readFromIO(io, size);
 			#endif
@@ -513,6 +514,7 @@ static OptionBase *cfgFileOption[] =
 	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	&optionShowBundledGames,
 	#endif
+	&optionCheckSavePathWriteAccess
 };
 
 static void writeConfig2(Io *io)
@@ -689,13 +691,13 @@ static void writeConfig2(Io *io)
 
 void loadConfigFile()
 {
-	FsSys::cPath configFilePath;
+	FsSys::PathString configFilePath;
 	#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	snprintf(configFilePath, sizeof(configFilePath), "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+	string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
 	#else
-	snprintf(configFilePath, sizeof(configFilePath), "%s/" CONFIG_FILE_NAME, Base::documentsPath());
+	string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
 	#endif
-	auto configFile = IOFile(IoSys::open(configFilePath));
+	auto configFile = IOFile(IoSys::open(configFilePath.data()));
 	if(!configFile)
 	{
 		logMsg("no config file");
@@ -708,16 +710,16 @@ void loadConfigFile()
 
 void saveConfigFile()
 {
-	FsSys::cPath configFilePath;
+	FsSys::PathString configFilePath;
 	#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	snprintf(configFilePath, sizeof(configFilePath), "%s/explusalpha.com", Base::documentsPath());
-	FsSys::mkdir(configFilePath);
+	string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
+	FsSys::mkdir(configFilePath.data());
 	/*#ifdef CONFIG_BASE_IOS_SETUID
 	fixFilePermissions(configFilePath);
 	#endif*/
-	snprintf(configFilePath, sizeof(configFilePath), "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+	string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
 	#else
-	snprintf(configFilePath, sizeof(configFilePath), "%s/" CONFIG_FILE_NAME, Base::documentsPath());
+	string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
 	#endif
-	writeConfig2(IoSys::create(configFilePath));
+	writeConfig2(IoSys::create(configFilePath.data()));
 }

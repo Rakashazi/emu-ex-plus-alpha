@@ -16,7 +16,7 @@ public:
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
-					logMsg("set bios %s", ::biosPath);
+					logMsg("set bios %s", ::biosPath.data());
 					printBiosMenuEntryStr(biosPathStr);
 					biosPath.compile(projP);
 				};
@@ -27,8 +27,8 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::cPath basenameTemp;
-		string_printf(str, "BIOS: %s", strlen(::biosPath) ? string_basename(::biosPath, basenameTemp) : "None set");
+		FsSys::PathString basenameTemp;
+		string_printf(str, "BIOS: %s", strlen(::biosPath.data()) ? string_basename(::biosPath, basenameTemp) : "None set");
 	}
 
 	MultiChoiceSelectMenuItem sh2Core

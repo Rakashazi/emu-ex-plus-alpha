@@ -165,18 +165,17 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	if(!state_store(saveStr))
+	if(!state_store(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
 		return STATE_RESULT_OK;
@@ -184,12 +183,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(!state_restore(saveStr))
+		logMsg("loading state %s", saveStr.data());
+		if(!state_restore(saveStr.data()))
 			return STATE_RESULT_IO_ERROR;
 		else
 		{
@@ -204,28 +202,25 @@ bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLeng
 	return IoSys::readFromFile(filename, buffer, bufferLength) ? 1 : 0;
 }
 
-template <size_t S>
-static void sprintSaveFilename(char (&str)[S])
+static FsSys::PathString sprintSaveFilename()
 {
-	snprintf(str, S, "%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
+	return makeFSPathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 bool system_io_flash_read(uchar* buffer, uint32 len)
 {
-	FsSys::cPath saveStr;
-	sprintSaveFilename(saveStr);
-	return IoSys::readFromFile(saveStr, buffer, len) ? 1 : 0;
+	auto saveStr = sprintSaveFilename();
+	return IoSys::readFromFile(saveStr.data(), buffer, len) ? 1 : 0;
 }
 
 bool system_io_flash_write(uchar* buffer, uint32 len)
 {
 	if(!len)
 		return 0;
-	FsSys::cPath saveStr;
-	sprintSaveFilename(saveStr);
-	logMsg("writing flash %s", saveStr);
+	auto saveStr = sprintSaveFilename();
+	logMsg("writing flash %s", saveStr.data());
 	CallResult ret;
-	if((ret = IoSys::writeToNewFile(saveStr, buffer, len)) == OK)
+	if((ret = IoSys::writeToNewFile(saveStr.data(), buffer, len)) == OK)
 		return 1;
 	else
 		return 0;
@@ -242,11 +237,10 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		logMsg("saving auto-state");
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		state_store(saveStr);
+		state_store(saveStr.data());
 	}
 }
 

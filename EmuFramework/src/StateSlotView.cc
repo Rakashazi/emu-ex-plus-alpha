@@ -26,13 +26,12 @@ void StateSlotView::init(bool highlightFirst)
 
 		if(EmuSystem::gameIsRunning())
 		{
-			FsSys::cPath saveStr;
-			EmuSystem::sprintStateFilename(saveStr, slot);
-			bool fileExists = FsSys::fileExists(saveStr);
+			auto saveStr = EmuSystem::sprintStateFilename(slot);
+			bool fileExists = FsSys::fileExists(saveStr.data());
 			if(fileExists)
 			{
 				FsSys::timeStr date = "";
-				FsSys::mTimeAsStr(saveStr, date);
+				FsSys::mTimeAsStr(saveStr.data(), date);
 				string_printf(stateStr[idx], "%s (%s)", stateNameStr(slot), date);
 			}
 			else

@@ -179,7 +179,7 @@ void EmuSystem::onOptionsLoaded()
 	// TODO: remove now that long names are correctly used
 	for(auto &e : recentGameList)
 	{
-		ROM_DEF *drv = dr_check_zip(e.path);
+		ROM_DEF *drv = dr_check_zip(e.path.data());
 		if(!drv)
 			continue;
 		logMsg("updating recent game name %s to %s", e.name, drv->longname);
@@ -379,18 +379,17 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	if(!save_stateWithName(saveStr))
+	if(!save_stateWithName(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
 		return STATE_RESULT_OK;
@@ -398,12 +397,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(load_stateWithName(saveStr))
+		logMsg("loading state %s", saveStr.data());
+		if(load_stateWithName(saveStr.data()))
 			return STATE_RESULT_OK;
 		else
 			return STATE_RESULT_IO_ERROR;
@@ -424,12 +422,11 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		if(!save_stateWithName(saveStr))
-			logMsg("error saving state %s", saveStr);
+		if(!save_stateWithName(saveStr.data()))
+			logMsg("error saving state %s", saveStr.data());
 	}
 }
 

@@ -16,16 +16,16 @@ static char installFirmwareFilesStr[512] = "";
 template <size_t S>
 static void printInstallFirmwareFilesStr(char (&str)[S])
 {
-	FsSys::cPath basenameTemp;
-	string_printf(str, "Install the C-BIOS BlueMSX machine files to: %s", machineBasePath);
+	FsSys::PathString basenameTemp;
+	string_printf(str, "Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data());
 }
 
 static void installFirmwareFiles()
 {
-	CallResult ret = FsSys::mkdir(machineBasePath);
+	CallResult ret = FsSys::mkdir(machineBasePath.data());
 	if(ret != OK && ret != ALREADY_EXISTS)
 	{
-		popup.printf(4, 1, "Can't create directory:\n%s", machineBasePath);
+		popup.printf(4, 1, "Can't create directory:\n%s", machineBasePath.data());
 		return;
 	}
 
@@ -37,12 +37,11 @@ static void installFirmwareFiles()
 
 	forEachDInArray(dirsToCreate, e)
 	{
-		FsSys::cPath pathTemp;
-		snprintf(pathTemp, sizeof(pathTemp), "%s/%s", machineBasePath, e);
-		CallResult ret = FsSys::mkdir(pathTemp);
+		auto pathTemp = makeFSPathStringPrintf("%s/%s", machineBasePath.data(), e);
+		CallResult ret = FsSys::mkdir(pathTemp.data());
 		if(ret != OK && ret != ALREADY_EXISTS)
 		{
-			popup.printf(4, 1, "Can't create directory:\n%s", pathTemp);
+			popup.printf(4, 1, "Can't create directory:\n%s", pathTemp.data());
 			return;
 		}
 	}
@@ -70,10 +69,9 @@ static void installFirmwareFiles()
 			popup.printf(4, 1, "Can't open source file:\n %s", e);
 			return;
 		}
-		FsSys::cPath pathTemp;
-		snprintf(pathTemp, sizeof(pathTemp), "%s/Machines/%s/%s",
-				machineBasePath, destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		CallResult ret = copyIoToPath(*src.io(), pathTemp);
+		auto pathTemp = makeFSPathStringPrintf("%s/Machines/%s/%s",
+				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
+		CallResult ret = copyIoToPath(*src.io(), pathTemp.data());
 		if(ret != OK)
 		{
 			popup.printf(4, 1, "Can't write file:\n%s", e);
@@ -108,11 +106,10 @@ private:
 			FsSys f;
 			static const char *title = "Machine Type";
 			static const char *noneStr[] = { "None" };
-			FsSys::cPath machinePath;
-			snprintf(machinePath, sizeof(machinePath), "%s/Machines", machineBasePath);
-			if(f.openDir(machinePath, 0, dirFsFilter) != OK)
+			auto machinePath = makeFSPathStringPrintf("%s/Machines", machineBasePath.data());
+			if(f.openDir(machinePath.data(), 0, dirFsFilter) != OK)
 			{
-				logMsg("couldn't open %s", machinePath);
+				logMsg("couldn't open %s", machinePath.data());
 				MultiChoiceSelectMenuItem::init(title, noneStr, 0, 1);
 				return;
 			}
@@ -121,11 +118,10 @@ private:
 			machines = 0;
 			iterateTimes(std::min(f.numEntries(), 256U), i)
 			{
-				FsSys::cPath configPath;
-				snprintf(configPath, sizeof(configPath), "%s/%s/config.ini", machinePath, f.entryFilename(i));
-				if(!FsSys::fileExists(configPath))
+				auto configPath = makeFSPathStringPrintf("%s/%s/config.ini", machinePath.data(), f.entryFilename(i));
+				if(!FsSys::fileExists(configPath.data()))
 				{
-					logMsg("%s doesn't exist", configPath);
+					logMsg("%s doesn't exist", configPath.data());
 					continue;
 				}
 				machineName[machines] = string_dup(f.entryFilename(i));
@@ -152,7 +148,7 @@ private:
 		{
 			if(!machines)
 			{
-				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath);
+				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
 				return;
 			}
 			auto &multiChoiceView = *new MultiChoiceView{"Machine Type", view->window()};
@@ -218,8 +214,8 @@ private:
 	template <size_t S>
 	static void printMachinePathMenuEntryStr(char (&str)[S])
 	{
-		FsSys::cPath basenameTemp;
-		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath) ? string_basename(machineCustomPath, basenameTemp) : "Default");
+		FsSys::PathString basenameTemp;
+		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath.data()) ? string_basename(machineCustomPath, basenameTemp) : "Default");
 	}
 
 	FirmwarePathSelector machineFileSelector;
@@ -309,7 +305,7 @@ public:
 
 	void updateHDText(int slot)
 	{
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot],
 			strlen(hdName[slot]) ? string_basename(hdName[slot], basenameTemp) : "");
 	}
@@ -393,7 +389,7 @@ public:
 
 	void updateROMText(int slot)
 	{
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot],
 			strlen(cartName[slot]) ? string_basename(cartName[slot], basenameTemp) : "");
 	}
@@ -479,7 +475,7 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		FsSys::cPath basenameTemp;
+		FsSys::PathString basenameTemp;
 		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot],
 				strlen(diskName[slot]) ? string_basename(diskName[slot], basenameTemp) : "");
 	}

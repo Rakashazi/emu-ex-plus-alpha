@@ -467,7 +467,7 @@ private:
 
 	MenuItem *item[sizeofArrayConst(romlist)] = {nullptr};
 public:
-	constexpr GameListView(Base::Window &win): BaseMenuView("Game List", win) { }
+	GameListView(Base::Window &win): BaseMenuView("Game List", win) { }
 
 	bool init(bool highlightFirst)
 	{

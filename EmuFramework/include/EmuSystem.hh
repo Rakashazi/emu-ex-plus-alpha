@@ -49,12 +49,13 @@ public:
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 private:
-	static FsSys::cPath gamePath_, fullGamePath_;
+	static FsSys::PathString gamePath_, fullGamePath_;
 	using GameNameArr = char[256];
 	static GameNameArr gameName_, fullGameName_;
-	static FsSys::cPath defaultSavePath_;
+	static FsSys::PathString defaultSavePath_;
+	static FsSys::PathString gameSavePath_;
 public:
-	static FsSys::cPath savePath_;
+	static FsSys::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
 	static TimeSys startTime;
@@ -77,22 +78,16 @@ public:
 	static const char *systemName();
 	static const char *shortSystemName();
 	static const BundledGameInfo &bundledGameInfo(uint idx);
-	static const char *gamePath() { return gamePath_; }
-	static const char *fullGamePath() { return fullGamePath_; }
+	static const char *gamePath() { return gamePath_.data(); }
+	static const char *fullGamePath() { return fullGamePath_.data(); }
 	static const GameNameArr &gameName() { return gameName_; }
 	static const GameNameArr &fullGameName() { return strlen(fullGameName_) ? fullGameName_ : gameName_; }
 	static void setFullGameName(const char *name) { string_copy(fullGameName_, name); }
 	static void makeDefaultSavePath();
 	static const char *defaultSavePath();
 	static const char *savePath();
-	static void sprintStateFilename(char *str, size_t size, int slot,
+	static FsSys::PathString sprintStateFilename(int slot,
 		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_);
-	template <size_t S>
-	static void sprintStateFilename(char (&str)[S], int slot,
-		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_)
-	{
-		sprintStateFilename(str, S, slot, statePath, gameName);
-	}
 	static bool loadAutoState();
 	static void saveAutoState();
 	static void saveBackupMem();
@@ -137,8 +132,11 @@ public:
 	static void commitSound(Audio::BufferContext buffer, uint frames);
 	static int setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime);
 	static void setupGamePaths(const char *filePath);
+	static void setGameSavePath(const char *path);
+	static void setupGameSavePath();
 	static void setupGameName(const char *name);
 	static void clearGamePaths();
+	static FsSys::PathString baseDefaultGameSavePath();
 
 	static TimeSys benchmark()
 	{

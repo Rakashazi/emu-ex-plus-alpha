@@ -561,14 +561,14 @@ void loadGameCompleteFromRecentItem(uint result, const Input::Event &e)
 
 void RecentGameInfo::handleMenuSelection(TextMenuItem &, const Input::Event &e)
 {
-	FsSys::cPath dirnameTemp;
+	FsSys::PathString dirnameTemp;
 	FsSys::chdir(string_dirname(path, dirnameTemp));
 	EmuSystem::onLoadGameComplete() =
 		[](uint result, const Input::Event &e)
 		{
 			loadGameCompleteFromRecentItem(result, e);
 		};
-	auto res = EmuSystem::loadGame(path);
+	auto res = EmuSystem::loadGame(path.data());
 	if(res == 1)
 	{
 		loadGameCompleteFromRecentItem(1, e);
@@ -585,7 +585,7 @@ void RecentGameView::init(bool highlightFirst)
 	int rIdx = 0;
 	for(auto &e : recentGameList)
 	{
-		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path)); item[i++] = &recentGame[rIdx];
+		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path.data())); item[i++] = &recentGame[rIdx];
 		recentGame[rIdx].onSelect() = [&](TextMenuItem &t, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}

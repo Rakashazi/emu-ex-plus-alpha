@@ -140,7 +140,9 @@ extern Byte1Option optionDitherImage;
 extern Byte1Option optionBestColorModeHint;
 #endif
 
+static const char *optionSavePathDefaultToken = ":DEFAULT:";
 extern PathOption optionSavePath;
+extern Byte1Option optionCheckSavePathWriteAccess;
 
 #ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 extern Byte1Option optionShowBundledGames;

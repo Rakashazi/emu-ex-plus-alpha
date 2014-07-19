@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <array>
 #include <imagine/io/Io.hh>
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/gui/View.hh>
@@ -172,6 +173,8 @@ struct PathOption : public OptionBase
 	constexpr PathOption(uint16 key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
 	template <size_t S>
 	constexpr PathOption(uint16 key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
+	template <size_t S>
+	constexpr PathOption(uint16 key, std::array<char, S> &val, const char *defaultVal): PathOption(key, val.data(), S, defaultVal) {}
 
 	bool isDefault() const { return string_equal(val, defaultVal); }
 
@@ -288,7 +291,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES = 66, CFGKEY_VIEWPORT_ZOOM = 67,
 	CFGKEY_VCONTROLLER_LAYOUT_POS = 68, CFGKEY_MOGA_INPUT_SYSTEM = 69,
 	CFGKEY_FAST_FORWARD_SPEED = 70, CFGKEY_SHOW_BUNDLED_GAMES = 71,
-	CFGKEY_IMAGE_EFFECT = 72, CFGKEY_SHOW_ON_2ND_SCREEN = 73
+	CFGKEY_IMAGE_EFFECT = 72, CFGKEY_SHOW_ON_2ND_SCREEN = 73,
+	CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS = 74
 	// 256+ is reserved
 };
 
@@ -366,9 +370,9 @@ struct OptionRecentGames : public OptionBase
 		io->writeVar(key);
 		for(auto &e : recentGameList)
 		{
-			uint len = strlen(e.path);
+			uint len = strlen(e.path.data());
 			io->writeVar((uint16)len);
-			io->fwrite(e.path, len, 1);
+			io->fwrite(e.path.data(), len, 1);
 		}
 		return 1;
 	}
@@ -395,11 +399,11 @@ struct OptionRecentGames : public OptionBase
 			}
 
 			RecentGameInfo info;
-			io.read(info.path, len);
+			io.read(info.path.data(), len);
 			info.path[len] = 0;
 			readSize -= len;
-			FsSys::cPath basenameTemp;
-			string_copyUpToLastCharInstance(info.name, string_basename(info.path, basenameTemp), '.');
+			FsSys::PathString basenameTemp;
+			string_copyUpToLastCharInstance(info.name, string_basename(info.path.data(), basenameTemp), '.');
 			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 			recentGameList.push_back(info);
 		}
@@ -418,7 +422,7 @@ struct OptionRecentGames : public OptionBase
 		for(auto &e : recentGameList)
 		{
 			strSizes += 2;
-			strSizes += strlen(e.path);
+			strSizes += strlen(e.path.data());
 		}
 		return sizeof(key) + strSizes;
 	}

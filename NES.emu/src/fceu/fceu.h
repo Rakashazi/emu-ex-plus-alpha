@@ -131,7 +131,7 @@ static void FCEU_DispMessage(const char *format, int disppos, ...) { }
 static void FCEU_DispMessageOnMovie(const char *format, ...) { }
 #endif
 extern const char *fceuReturnedError;
-extern FsSys::cPath fdsBiosPath;
+extern FsSys::PathString fdsBiosPath;
 void FCEU_TogglePPU();
 
 void SetNESDeemph(uint8 d, int force);

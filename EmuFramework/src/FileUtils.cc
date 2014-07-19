@@ -5,7 +5,7 @@
 
 void chdirFromFilePath(const char *path)
 {
-	FsSys::cPath dirnameTemp;
+	FsSys::PathString dirnameTemp;
 	FsSys::chdir(string_dirname(path, dirnameTemp));
 }
 
@@ -18,10 +18,9 @@ void fixFilePermissions(const char *path)
 	else
 		return;
 
-	FsSys::cPath execPath;
-	string_printf(execPath, "%s/fixMobilePermission '%s'", Base::appPath, path);
+	auto execPath = makeFSPathStringPrintf("%s/fixMobilePermission '%s'", Base::appPath, path);
 	//logMsg("executing %s", execPath);
-	int err = system(execPath);
+	int err = system(execPath.data());
 	if(err)
 	{
 		logWarn("error from fixMobilePermission helper: %d", err);

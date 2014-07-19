@@ -77,7 +77,7 @@ void EmuVideo::initImage(bool force, uint xO, uint yO, uint x, uint y, uint tota
 
 void EmuVideo::takeGameScreenshot()
 {
-	FsSys::cPath path;
+	FsSys::PathString path;
 	int screenshotNum = sprintScreenshotFilename(path);
 	if(screenshotNum == -1)
 	{
@@ -85,7 +85,7 @@ void EmuVideo::takeGameScreenshot()
 	}
 	else
 	{
-		if(!writeScreenshot(vidPix, path))
+		if(!writeScreenshot(vidPix, path.data()))
 		{
 			popup.printf(2, 1, "Error writing screenshot #%d", screenshotNum);
 		}

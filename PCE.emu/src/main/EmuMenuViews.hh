@@ -18,7 +18,7 @@ public:
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
-					logMsg("set bios %s", ::sysCardPath);
+					logMsg("set bios %s", ::sysCardPath.data());
 					printBiosMenuEntryStr(sysCardPathStr);
 					sysCardPath.compile(projP);
 				};
@@ -29,8 +29,8 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::cPath basenameTemp;
-		string_printf(str, "System Card: %s", strlen(::sysCardPath) ? string_basename(::sysCardPath, basenameTemp) : "None set");
+		FsSys::PathString basenameTemp;
+		string_printf(str, "System Card: %s", strlen(::sysCardPath.data()) ? string_basename(::sysCardPath, basenameTemp) : "None set");
 	}
 
 	BoolMenuItem arcadeCard

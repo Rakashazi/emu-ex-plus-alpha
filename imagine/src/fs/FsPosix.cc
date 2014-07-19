@@ -246,7 +246,7 @@ int FsPosix::workDirChanged = 0;
 
 char *FsPosix::workDir()
 {
-	static cPath wDir = { 0 };
+	static PathString wDir{};
 	if(workDirChanged)
 	{
 		//logMsg("getting working dir");
@@ -260,19 +260,19 @@ char *FsPosix::workDir()
 			}
 			string_copy(wDir, currentDirName);
 		}*/
-		if(!getcwd(wDir, sizeof(wDir)))
+		if(!getcwd(wDir.data(), sizeof(wDir)))
 		{
 			logWarn("unable to get working dir from getcwd: %s", strerror(errno));
-			return wDir;
+			return wDir.data();
 		}
 		#ifdef __APPLE__
 		// Precompose all strings for text renderer
 		// TODO: make optional when renderer supports decomposed unicode
-		precomposeUnicodeString(wDir, wDir, sizeof(wDir));
+		precomposeUnicodeString(wDir.data(), wDir.data(), sizeof(wDir));
 		#endif
 		workDirChanged = 0;
 	}
-	return wDir;
+	return wDir.data();
 }
 
 int FsPosix::fileType(const char *path)
@@ -343,6 +343,7 @@ int FsPosix::hasWriteAccess(const char *path)
 		logMsg("couldn't read access bits for %s", path);
 		return -1;
 	}
+	logMsg("no write access to: %s", path);
 	return 0;
 }
 
@@ -409,7 +410,7 @@ CallResult FsPosix::rename(const char *oldname, const char *newname)
 CallResult FsPosix::changeToAppDir(const char *launchCmd)
 {
 	logMsg("app called with cmd %s", launchCmd);
-	cPath dirnameTemp;
+	PathString dirnameTemp;
 	auto dir = string_dirname(launchCmd, dirnameTemp);
 	if(chdir(dir) != 0)
 	{

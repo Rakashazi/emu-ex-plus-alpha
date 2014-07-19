@@ -37,7 +37,7 @@ static bool logEnabled = true;
 #endif
 
 #ifdef CONFIG_FS
-static void printExternalLogPath(FsSys::cPath &path)
+static void printExternalLogPath(FsSys::PathString &path)
 {
 	#ifdef CONFIG_BASE_IOS
 	const char *prefix = "/var/mobile";
@@ -59,10 +59,10 @@ CallResult logger_init()
 	#ifdef CONFIG_FS
 	if(useExternalLogFile && !logExternalFile)
 	{
-		FsSys::cPath path;
+		FsSys::PathString path;
 		printExternalLogPath(path);
-		logMsg("external log file: %s", path);
-		logExternalFile = fopen(path, "wb");
+		logMsg("external log file: %s", path.data());
+		logExternalFile = fopen(path.data(), "wb");
 		if(!logExternalFile)
 		{
 			return IO_ERROR;

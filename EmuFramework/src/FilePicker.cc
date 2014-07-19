@@ -48,12 +48,11 @@ bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
 	{
 		return 0;
 	}
-	FsSys::cPath saveStr;
-	EmuSystem::sprintStateFilename(saveStr, -1);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = EmuSystem::sprintStateFilename(-1);
+	if(FsSys::fileExists(saveStr.data()))
 	{
 		FsSys::timeStr date = "";
-		FsSys::mTimeAsStr(saveStr, date);
+		FsSys::mTimeAsStr(saveStr.data(), date);
 		static char msg[96] = "";
 		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", date);
 		auto &ynAlertView = *new YesNoAlertView{mainWin.win};

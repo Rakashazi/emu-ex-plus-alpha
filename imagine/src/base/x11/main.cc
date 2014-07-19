@@ -129,7 +129,7 @@ const char *storagePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
-		static FsSys::cPath sdPath {""};
+		static FsSys::PathString sdPath{};
 		FsSys dir;
 		// look for the first mounted SD card
 		if(dir.openDir("/media", 0,
@@ -147,9 +147,9 @@ const char *storagePath()
 			else
 				sdPath[0] = 0;
 			dir.closeDir();
-			if(strlen(sdPath))
+			if(strlen(sdPath.data()))
 			{
-				return sdPath;
+				return sdPath.data();
 			}
 		}
 		// fall back to appPath

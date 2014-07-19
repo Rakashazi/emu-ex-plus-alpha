@@ -18,16 +18,36 @@
 #include <FilePicker.hh>
 #include <algorithm>
 
+static FsSys::PathString savePathStrToDescStr(char *savePathStr)
+{
+	FsSys::PathString desc{};
+	if(strlen(savePathStr))
+	{
+		if(string_equal(savePathStr, optionSavePathDefaultToken))
+			string_copy(desc, "Default");
+		else
+		{
+			FsSys::PathString basenameTemp;
+			string_copy(desc, string_basename(optionSavePath, basenameTemp));
+		}
+	}
+	else
+	{
+		string_copy(desc, "Same as Game");
+	}
+	return desc;
+}
+
 void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
 {
 	logMsg("size %d", (int)sizeof(*biosPathStr));
-	snprintf(*biosPathStr, sizeof(*biosPathStr), "%s/%s", FsSys::workDir(), name);
+	string_printf(*biosPathStr, "%s/%s", FsSys::workDir(), name);
 	if(onBiosChangeD) onBiosChangeD();
 	workDirStack.pop();
 	viewStack.popAndShow();
 }
 
-void BiosSelectMenu::init(FsSys::cPath *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
+void BiosSelectMenu::init(FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
 {
 	var_selfs(biosPathStr);
 	var_selfs(fsFilter);
@@ -42,7 +62,7 @@ void BiosSelectMenu::init(bool highlightFirst)
 		[this](TextMenuItem &, const Input::Event &e)
 		{
 			workDirStack.push();
-			chdirFromFilePath(*biosPathStr);
+			chdirFromFilePath(biosPathStr->data());
 			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.init(!e.isPointer(), false, fsFilter);
 			fPicker.onSelectFile() =
@@ -64,7 +84,7 @@ void BiosSelectMenu::init(bool highlightFirst)
 		[this](TextMenuItem &, const Input::Event &e)
 		{
 			viewStack.popAndShow();
-			strcpy(*biosPathStr, "");
+			strcpy(biosPathStr->data(), "");
 			if(onBiosChangeD) onBiosChangeD();
 		};
 	BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst);
@@ -410,8 +430,7 @@ static int dirFsFilter(const char *name, int type)
 template <size_t S>
 static void printPathMenuEntryStr(char (&str)[S])
 {
-	FsSys::cPath basenameTemp;
-	string_printf(str, "Save Path: %s", strlen(optionSavePath) ? string_basename(optionSavePath, basenameTemp) : "Same as Game");
+	string_printf(str, "Save Path: %s", savePathStrToDescStr(optionSavePath).data());
 }
 
 static class SavePathSelectMenu
@@ -423,7 +442,7 @@ public:
 
 	void onClose(const Input::Event &e)
 	{
-		snprintf(optionSavePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
+		string_printf(optionSavePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
 		logMsg("set save path %s", (char*)optionSavePath);
 		if(onPathChange) onPathChange(optionSavePath);
 		workDirStack.pop();
@@ -431,13 +450,13 @@ public:
 
 	void init(bool highlightFirst)
 	{
-		static const char *str[] { "Set Custom Path", "Same as Game" };
+		static const char *str[] { "Set Custom Path", "Same as Game", "Default" };
 		auto &multiChoiceView = *new MultiChoiceView{"Save Path", mainWin.win};
 		multiChoiceView.init(str, sizeofArray(str), highlightFirst);
 		multiChoiceView.onSelect() =
 			[this](int i, const Input::Event &e)
 			{
-				viewStack.popAndShow();
+				auto onPathChange = this->onPathChange;
 				if(i == 0)
 				{
 					workDirStack.push();
@@ -448,13 +467,21 @@ public:
 						{
 							onClose(e);
 							picker.dismiss();
+							viewStack.popAndShow();
 						};
 					modalViewController.pushAndShow(fPicker);
 				}
-				else
+				else if(i == 1)
 				{
+					viewStack.popAndShow();
 					strcpy(optionSavePath, "");
 					if(onPathChange) onPathChange("");
+				}
+				else
+				{
+					viewStack.popAndShow();
+					strcpy(optionSavePath, optionSavePathDefaultToken);
+					if(onPathChange) onPathChange(optionSavePathDefaultToken);
 				}
 				return 0;
 			};
@@ -464,7 +491,7 @@ public:
 
 void FirmwarePathSelector::onClose(const Input::Event &e)
 {
-	snprintf(optionFirmwarePath, sizeof(FsSys::cPath), "%s", FsSys::workDir());
+	string_printf(optionFirmwarePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
 	if(onPathChange) onPathChange(optionFirmwarePath);
 	workDirStack.pop();
@@ -600,6 +627,7 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	confirmOverwriteState.init(optionConfirmOverwriteState); item[items++] = &confirmOverwriteState;
 	printPathMenuEntryStr(savePathStr);
 	savePath.init(savePathStr, true); item[items++] = &savePath;
+	checkSavePathWriteAccess.init(optionCheckSavePathWriteAccess); item[items++] = &checkSavePathWriteAccess;
 	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
 	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
 	processPriorityInit(); item[items++] = &processPriority;
@@ -1113,11 +1141,26 @@ OptionView::OptionView(Base::Window &win):
 			pathSelectMenu.onPathChange =
 				[this](const char *newPath)
 				{
+					if(string_equal(newPath, optionSavePathDefaultToken))
+					{
+						auto path = EmuSystem::baseDefaultGameSavePath();
+						popup.printf(4, false, "Default Save Path:\n%s", path.data());
+					}
 					printPathMenuEntryStr(savePathStr);
 					savePath.compile(projP);
+					EmuSystem::setupGameSavePath();
 					EmuSystem::savePathChanged();
 				};
 			postDraw();
+		}
+	},
+	checkSavePathWriteAccess
+	{
+		"Check Save Path Write Access",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionCheckSavePathWriteAccess = item.on;
 		}
 	},
 	fastForwardSpeed

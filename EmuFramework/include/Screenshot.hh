@@ -16,20 +16,21 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <stdlib.h>
+#include <array>
 #include <imagine/pixmap/Pixmap.hh>
 #include <EmuSystem.hh>
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);
 
 template <size_t S>
-static int sprintScreenshotFilename(char (&str)[S])
+static int sprintScreenshotFilename(std::array<char, S> &str)
 {
 	const uint maxNum = 999;
 	int num = -1;
 	iterateTimes(maxNum, i)
 	{
-		snprintf(str, S, "%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName(), i);
-		if(!FsSys::fileExists(str))
+		string_printf(str, "%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName(), i);
+		if(!FsSys::fileExists(str.data()))
 		{
 			num = i;
 			break;

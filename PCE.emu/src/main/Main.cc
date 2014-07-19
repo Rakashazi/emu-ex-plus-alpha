@@ -58,8 +58,8 @@ static int pceHuFsFilter(const char *name, int type)
 
 static uint audioFramesPerUpdate = 0;
 Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
-FsSys::cPath sysCardPath = "";
-static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, sizeof(sysCardPath), "");
+FsSys::PathString sysCardPath{};
+static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, "");
 
 #include <CommonGui.hh>
 
@@ -124,7 +124,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 		default: return 0;
 		bcase CFGKEY_ARCADE_CARD: optionArcadeCard.readFromIO(io, readSize);
 		bcase CFGKEY_SYSCARD_PATH: optionSysCardPath.readFromIO(io, readSize);
-		logMsg("syscard path %s", sysCardPath);
+		logMsg("syscard path %s", sysCardPath.data());
 	}
 	return 1;
 }
@@ -210,9 +210,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -282,7 +282,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else if(isCDExtension(path))
 	{
-		if(!strlen(sysCardPath) || !FsSys::fileExists(sysCardPath))
+		if(!strlen(sysCardPath.data()) || !FsSys::fileExists(sysCardPath.data()))
 		{
 			popup.printf(3, 1, "No System Card Set");
 			goto FAIL;

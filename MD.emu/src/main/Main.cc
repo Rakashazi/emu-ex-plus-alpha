@@ -115,10 +115,10 @@ static Byte1Option optionSmsFM(CFGKEY_SMS_FM, 1);
 static Byte1Option option6BtnPad(CFGKEY_6_BTN_PAD, 0);
 static Byte1Option optionRegion(CFGKEY_MD_REGION, 0);
 #ifndef NO_SCD
-FsSys::cPath cdBiosUSAPath = "", cdBiosJpnPath = "", cdBiosEurPath = "";
-static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, sizeof(cdBiosUSAPath), "");
-static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, sizeof(cdBiosJpnPath), "");
-static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, sizeof(cdBiosEurPath), "");
+FsSys::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
+static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, "");
+static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, "");
+static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, "");
 #endif
 static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
@@ -337,21 +337,19 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
 }
 
-template <size_t S>
-static void sprintSaveFilename(char (&str)[S])
+static FsSys::PathString sprintSaveFilename()
 {
-	snprintf(str, S, "%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return makeFSPathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
-template <size_t S>
-static void sprintBRAMSaveFilename(char (&str)[S])
+static FsSys::PathString sprintBRAMSaveFilename()
 {
-	snprintf(str, S, "%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
+	return makeFSPathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
@@ -415,20 +413,18 @@ static int loadMDState(const char *path)
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
-	logMsg("saving state %s", saveStr);
-	return saveMDState(saveStr);
+		fixFilePermissions(saveStr.data());
+	logMsg("saving state %s", saveStr.data());
+	return saveMDState(saveStr.data());
 }
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	logMsg("loading state %s", saveStr);
-	return loadMDState(saveStr);
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	logMsg("loading state %s", saveStr.data());
+	return loadMDState(saveStr.data());
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -439,9 +435,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(sCD.isActive)
 	{
 		logMsg("saving BRAM");
-		FsSys::cPath saveStr;
-		sprintBRAMSaveFilename(saveStr);
-		Io *bramFile = IoSys::create(saveStr);
+		auto saveStr = sprintBRAMSaveFilename();
+		Io *bramFile = IoSys::create(saveStr.data());
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
@@ -461,10 +456,9 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	#endif
 	if(sram.on)
 	{
-		FsSys::cPath saveStr;
-		sprintSaveFilename(saveStr);
+		auto saveStr = sprintSaveFilename();
 		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
+			fixFilePermissions(saveStr.data());
 
 		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
 
@@ -479,7 +473,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			sramPtr = sramTemp;
 		}
-		if(IoSys::writeToNewFile(saveStr, sramPtr, 0x10000) == IO_ERROR)
+		if(IoSys::writeToNewFile(saveStr.data(), sramPtr, 0x10000) == IO_ERROR)
 			logMsg("error creating sram file");
 	}
 	writeCheatFile();
@@ -489,11 +483,10 @@ void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
-		saveMDState(saveStr);
+			fixFilePermissions(saveStr.data());
+		saveMDState(saveStr.data());
 	}
 }
 
@@ -631,15 +624,15 @@ int EmuSystem::loadGame(const char *path)
 	// check if loading a .bin with matching .cue
 	if(string_hasDotExtension(path, "bin"))
 	{
-		FsSys::cPath possibleCuePath {0};
+		FsSys::PathString possibleCuePath{};
 		auto len = strlen(path);
-		strcpy(possibleCuePath, path);
+		strcpy(possibleCuePath.data(), path);
 		possibleCuePath[len-3] = 0; // delete extension
-		strcat(possibleCuePath, "cue");
-		if(FsSys::fileExists(possibleCuePath))
+		strcat(possibleCuePath.data(), "cue");
+		if(FsSys::fileExists(possibleCuePath.data()))
 		{
-			logMsg("loading %s instead of .bin file", possibleCuePath);
-			setupGamePaths(possibleCuePath);
+			logMsg("loading %s instead of .bin file", possibleCuePath.data());
+			setupGamePaths(possibleCuePath.data());
 		}
 		else
 			setupGamePaths(path);
@@ -688,9 +681,9 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 
-		FsSys::cPath loadFullGamePath;
-		strcpy(loadFullGamePath, biosPath);
-		if(!load_rom(loadFullGamePath)) // load_rom can modify the string
+		FsSys::PathString loadFullGamePath;
+		strcpy(loadFullGamePath.data(), biosPath);
+		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
 		{
 			popup.printf(4, 1, "Error loading BIOS: %s", biosPath);
 			delete cd;
@@ -708,9 +701,9 @@ int EmuSystem::loadGame(const char *path)
 	if(isMDExtension(fullGamePath())) // ROM
 	{
 		logMsg("loading ROM %s", fullGamePath());
-		FsSys::cPath loadFullGamePath;
-		strcpy(loadFullGamePath, fullGamePath());
-		if(!load_rom(loadFullGamePath)) // load_rom can modify the string
+		FsSys::PathString loadFullGamePath;
+		strcpy(loadFullGamePath.data(), fullGamePath());
+		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
 		{
 			popup.post("Error loading game", 1);
 			return 0;
@@ -745,9 +738,8 @@ int EmuSystem::loadGame(const char *path)
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
-		FsSys::cPath saveStr;
-		sprintBRAMSaveFilename(saveStr);
-		Io *bramFile = IoSys::open(saveStr);
+		auto saveStr = sprintBRAMSaveFilename();
+		Io *bramFile = IoSys::open(saveStr.data());
 
 		if(!bramFile)
 		{
@@ -777,10 +769,9 @@ int EmuSystem::loadGame(const char *path)
 	#endif
 	if(sram.on)
 	{
-		FsSys::cPath saveStr;
-		sprintSaveFilename(saveStr);
+		auto saveStr = sprintSaveFilename();
 
-		if(IoSys::readFromFile(saveStr, sram.sram, 0x10000) == 0)
+		if(IoSys::readFromFile(saveStr.data(), sram.sram, 0x10000) == 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");

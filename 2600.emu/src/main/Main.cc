@@ -183,21 +183,20 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *savePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
 }
 
 void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
 	{
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
-		logMsg("saving autosave-state %s", saveStr);
+		auto saveStr = sprintStateFilename(-1);
+		logMsg("saving autosave-state %s", saveStr.data());
 		if(Config::envIsIOSJB)
 			fixFilePermissions(saveStr);
-		Serializer state(string(saveStr), 0);
+		Serializer state(string(saveStr.data()), 0);
 		if(!stateManager.saveState(state))
 		{
 			logMsg("failed");
@@ -249,14 +248,14 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 		bool foundRom = 0;
 		do
 		{
-			FsSys::cPath name;
-			if(unzGetCurrentFileInfo(zipFile, &info, name, 128, NULL, 0, NULL, 0) != UNZ_OK)
+			FsSys::PathString name;
+			if(unzGetCurrentFileInfo(zipFile, &info, name.data(), 128, NULL, 0, NULL, 0) != UNZ_OK)
 			{
 				unzClose(zipFile);
 				return 0;
 			}
 
-			if(isVCSRomExtension(name))
+			if(isVCSRomExtension(name.data()))
 			{
 				foundRom = 1;
 				break;
@@ -559,12 +558,11 @@ void EmuSystem::resetGame()
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	logMsg("saving state %s", saveStr);
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	logMsg("saving state %s", saveStr.data());
 	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	Serializer state(string(saveStr), 0);
+	Serializer state(string(saveStr.data()), 0);
 	if(!stateManager.saveState(state))
 	{
 		return STATE_RESULT_IO_ERROR;
@@ -574,12 +572,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	logMsg("loading state %s", saveStr);
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	logMsg("loading state %s", saveStr.data());
 	if(Config::envIsIOSJB)
 		fixFilePermissions(saveStr);
-	Serializer state(string(saveStr), 1);
+	Serializer state(string(saveStr.data()), 1);
 	if(!stateManager.loadState(state))
 	{
 		return STATE_RESULT_IO_ERROR;

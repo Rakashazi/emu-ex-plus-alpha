@@ -308,19 +308,18 @@ static char saveSlotChar(int slot)
 	}
 }
 
-void EmuSystem::sprintStateFilename(char *str, size_t size, int slot, const char *statePath, const char *gameName)
+FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	snprintf(str, size, "%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
+	return makeFSPathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
+	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
-	logMsg("saving state %s", saveStr);
-	if(!gbEmu.saveState(/*screenBuff*/0, 160, saveStr))
+		fixFilePermissions(saveStr.data());
+	logMsg("saving state %s", saveStr.data());
+	if(!gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
 		return STATE_RESULT_OK;
@@ -328,12 +327,11 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
-	FsSys::cPath saveStr;
-	sprintStateFilename(saveStr, saveStateSlot);
-	if(FsSys::fileExists(saveStr))
+	auto saveStr = sprintStateFilename(saveStateSlot);
+	if(FsSys::fileExists(saveStr.data()))
 	{
-		logMsg("loading state %s", saveStr);
-		if(!gbEmu.loadState(saveStr))
+		logMsg("loading state %s", saveStr.data());
+		if(!gbEmu.loadState(saveStr.data()))
 			return STATE_RESULT_IO_ERROR;
 		else
 			return STATE_RESULT_OK;
@@ -360,11 +358,10 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		logMsg("saving auto-state");
-		FsSys::cPath saveStr;
-		sprintStateFilename(saveStr, -1);
+		auto saveStr = sprintStateFilename(-1);
 		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
-		gbEmu.saveState(/*screenBuff*/0, 160, saveStr);
+			fixFilePermissions(saveStr.data());
+		gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data());
 	}
 }
 
