@@ -29,7 +29,7 @@
 
 #define OV_EXCLUDE_STATIC_CALLBACKS
 
-#ifdef ARCH_X86
+#if defined ARCH_X86 || defined __aarch64__
 #define CONFIG_PACKAGE_LIBVORBIS
 #endif
 

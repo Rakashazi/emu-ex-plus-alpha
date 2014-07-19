@@ -33,14 +33,27 @@ LDFLAGS += -fobjc-arc
 
  # base engine code needs at least iOS 4.0
 minIOSVer = 4.0
-IOS_SDK ?= 7.1
 XCODE_PATH := $(shell xcode-select --print-path)
 ifeq ($(ARCH),x86)
- IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$(IOS_SDK).sdk
+ iosSDKsPath := $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs
+ ifndef IOS_SYSROOT
+  ifdef IOS_SDK
+   IOS_SYSROOT := $(iosSDKsPath)/iPhoneSimulator$(IOS_SDK).sdk
+  else
+   IOS_SYSROOT := $(firstword $(wildcard $(iosSDKsPath)/iPhoneSimulator*.sdk))
+  endif
+ endif
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -mios-simulator-version-min=$(minIOSVer)
  OBJCFLAGS += -fobjc-abi-version=2 -fobjc-legacy-dispatch
 else
- IOS_SYSROOT ?= $(XCODE_PATH)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$(IOS_SDK).sdk
+ iosSDKsPath := $(XCODE_PATH)/Platforms/iPhoneOS.platform/Developer/SDKs
+ ifndef IOS_SYSROOT
+  ifdef IOS_SDK
+   IOS_SYSROOT := $(iosSDKsPath)/iPhoneOS$(IOS_SDK).sdk
+  else
+   IOS_SYSROOT := $(firstword $(wildcard $(iosSDKsPath)/iPhoneOS*.sdk))
+  endif
+ endif
  IOS_FLAGS = -isysroot $(IOS_SYSROOT) -miphoneos-version-min=$(minIOSVer)
 endif
 CPPFLAGS += $(IOS_FLAGS)

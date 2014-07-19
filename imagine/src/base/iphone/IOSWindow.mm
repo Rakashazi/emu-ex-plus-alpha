@@ -236,7 +236,9 @@ CallResult Window::init(const WindowConfig &config)
 	}
 	//logMsg("setting root view controller");
 	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
-	rootViewCtrl.wantsFullScreenLayout = YES; // for iOS < 7.0
+	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+	rootViewCtrl.wantsFullScreenLayout = YES;
+	#endif
 	rootViewCtrl.view = glView();
 	uiWin().rootViewController = rootViewCtrl;
 	return OK;

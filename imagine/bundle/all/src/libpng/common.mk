@@ -6,7 +6,7 @@ ifndef CHOST
  CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-libpngVer := 1.6.8
+libpngVer := 1.6.12
 libpngSrcDir := $(tempDir)/libpng-$(libpngVer)
 libpngSrcArchive := libpng-$(libpngVer).tar.xz
 

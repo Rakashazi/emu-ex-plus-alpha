@@ -2,7 +2,7 @@ ifndef CHOST
  CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-liboggVer := 1.3.1
+liboggVer := 1.3.2
 liboggSrcDir := $(tempDir)/libogg-$(liboggVer)
 liboggSrcArchive := libogg-$(liboggVer).tar.xz
 

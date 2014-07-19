@@ -12,7 +12,7 @@ else
  iOSNoCodesign := 1
 endif
 
-LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -ObjC
+LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -fobjc-link-runtime
 
 ifdef iosMsgUI
  configDefs += IPHONE_MSG_COMPOSE

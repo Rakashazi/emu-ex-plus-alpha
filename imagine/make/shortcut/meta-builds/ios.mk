@@ -15,19 +15,15 @@ ios_resourcePath := $(projectPath)/res/ios
 ios_iconPath := $(projectPath)/res/icons/iOS
 ios_plistTxt := $(ios_targetPath)/Info.txt
 ios_plist := $(ios_targetPath)/Info.plist
-ios_imagineLibPathARMv6 ?= $(IMAGINE_PATH)/lib/ios-armv6
-ios_imagineIncludePathARMv6 ?= $(IMAGINE_PATH)/build/ios-armv6/gen
-ios_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/ios-armv7
-ios_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/ios-armv7/gen
 ios_icons := $(wildcard $(ios_iconPath)/*)
 ifdef HIGH_OPTIMIZE_CFLAGS
-ios_HIGH_OPTIMIZE_CFLAGS_param = "HIGH_OPTIMIZE_CFLAGS=$(HIGH_OPTIMIZE_CFLAGS)"
+ ios_HIGH_OPTIMIZE_CFLAGS_param = "HIGH_OPTIMIZE_CFLAGS=$(HIGH_OPTIMIZE_CFLAGS)"
 endif
 
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone5
 
-ios_arch ?= armv7
+ios_arch ?= armv7 arm64
 ifeq ($(filter armv6, $(ios_arch)),)
  ios_noARMv6 := 1
 endif
@@ -36,6 +32,9 @@ ifeq ($(filter armv7, $(ios_arch)),)
 endif
 ifeq ($(filter armv7s, $(ios_arch)),)
  ios_noARMv7s := 1
+endif
+ifeq ($(filter arm64, $(ios_arch)),)
+ ios_noARM64 := 1
 endif
 ifeq ($(filter x86, $(ios_arch)),)
  ios_noX86 := 1
@@ -82,6 +81,31 @@ $(ios_armv7Exec) : ios-armv7
 
 .PHONY: ios-armv7-install
 ios-armv7-install : $(ios_armv7Exec)
+	ssh root@$(ios_installHost) rm -f $(ios_deviceExecPath)
+	scp $^ root@$(ios_installHost):$(ios_deviceExecPath)
+	ssh root@$(ios_installHost) chmod a+x $(ios_deviceExecPath)
+ifdef iOS_metadata_setuid
+	ssh root@$(ios_installHost) chmod gu+s $(ios_deviceExecPath)
+endif
+
+endif
+
+ifndef ios_noARM64
+
+ios_arm64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-arm64.mk
+ios_arm64ExecName := $(iOS_metadata_exec)-arm64
+ios_arm64Exec := $(ios_targetBinPath)/$(ios_arm64ExecName)
+ios_execs += $(ios_arm64Exec)
+.PHONY: ios-arm64
+ios-arm64 :
+	@echo "Building ARM64 Executable"
+	$(PRINT_CMD)$(MAKE) -f $(ios_arm64Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_arm64ExecName) \
+	buildName=$(ios_buildName)-arm64 \
+	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
+$(ios_arm64Exec) : ios-arm64
+
+.PHONY: ios-arm64-install
+ios-arm64-install : $(ios_arm64Exec)
 	ssh root@$(ios_installHost) rm -f $(ios_deviceExecPath)
 	scp $^ root@$(ios_installHost):$(ios_deviceExecPath)
 	ssh root@$(ios_installHost) chmod a+x $(ios_deviceExecPath)
@@ -200,5 +224,5 @@ ios-check :
 
 .PHONY: ios-clean
 ios-clean:
-	rm -f $(ios_fatExec) $(iOS_armv6Exec) $(iOS_armv7Exec)
-	rm -rf build/$(ios_buildName)-armv6 build/$(ios_buildName)-armv7
+	rm -f $(ios_fatExec) $(iOS_armv6Exec) $(iOS_armv7Exec) $(iOS_arm64Exec)
+	rm -rf build/$(ios_buildName)-armv6 build/$(ios_buildName)-armv7 build/$(ios_buildName)-arm64

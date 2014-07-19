@@ -32,6 +32,8 @@
 #pragma warning(disable: 4996)
 #if defined(WIN32) || defined (WINDOWS_HOST)
 #include <io.h> // not on Linux
+#else
+#include <unistd.h>
 #endif
 
 #include <fcntl.h>
