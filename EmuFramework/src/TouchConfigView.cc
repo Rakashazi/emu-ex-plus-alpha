@@ -132,7 +132,7 @@ void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
 				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
 				vControllerLayoutPosChanged = true;
-				emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+				placeEmuViews();
 				postDraw();
 			}
 			else if(e.released())

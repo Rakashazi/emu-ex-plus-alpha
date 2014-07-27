@@ -84,7 +84,8 @@ void initMainMenu(Base::Window &win);
 View &mainMenu();
 View &allocAndGetOptionCategoryMenu(Base::Window &win, const Input::Event &e, uint idx);
 void setEmuViewOnExtraWindow(bool on);
-void placeElements(const Gfx::Viewport &viewport);
+void placeEmuViews();
+void placeElements();
 void startViewportAnimation(AppWindowData &winData);
 void updateAndDrawEmuVideo();
 

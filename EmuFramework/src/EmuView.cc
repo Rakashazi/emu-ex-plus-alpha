@@ -28,6 +28,7 @@ void EmuView::draw(Base::FrameTimeBase frameTime)
 	}
 	if(EmuSystem::isActive() && inputView)
 	{
+		loadTransform(projP.makeTranslate());
 		inputView->draw(frameTime);
 	}
 }
@@ -36,7 +37,7 @@ void EmuView::place()
 {
 	if(layer)
 	{
-		layer->place(emuWin->viewport().bounds(), projP);
+		layer->place(viewRect(), projP, inputView);
 	}
 	if(inputView)
 	{

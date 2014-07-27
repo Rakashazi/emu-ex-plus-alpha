@@ -84,7 +84,7 @@ void EmuInputView::inputEvent(const Input::Event &e)
 		{
 			logMsg("turning on on-screen controls from touch input");
 			touchControlsAreOn = 1;
-			emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+			placeEmuViews();
 		}
 		#endif
 	}

@@ -71,6 +71,15 @@ static const char *documentsPath() { return appPath; }
 
 const char *storagePath();
 
+#if defined CONFIG_BASE_IOS
+bool documentsPathIsShared();
+#else
+static bool documentsPathIsShared()
+{
+	return false;
+}
+#endif
+
 // OS UI management (status & navigation bar)
 
 static constexpr uint
@@ -155,13 +164,6 @@ namespace Config
 static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
 #else
 static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
-#endif
-
-#if defined(CONFIG_BASE_IOS) && defined(CONFIG_BASE_IOS_JB)
-#define CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-static constexpr bool BASE_USES_SHARED_DOCUMENTS_DIR = true;
-#else
-static constexpr bool BASE_USES_SHARED_DOCUMENTS_DIR = false;
 #endif
 
 }

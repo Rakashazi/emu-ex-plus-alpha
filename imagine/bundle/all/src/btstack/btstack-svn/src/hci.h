@@ -185,6 +185,36 @@ extern "C" {
 #define RFCOMM_REGISTER_SERVICE_WITH_CREDITS 0x48
 #define RFCOMM_GRANT_CREDITS                 0x49
     
+// GAP Classic 0x50
+#define GAP_DISCONNECT              0x50
+
+// GAP LE      0x60  
+#define GAP_LE_SCAN_START           0x60
+#define GAP_LE_SCAN_STOP            0x61
+#define GAP_LE_CONNECT              0x62
+#define GAP_LE_CONNECT_CANCEL       0x63
+#define GAP_LE_SET_SCAN_PARAMETERS  0x64
+
+// GATT (Client) 0x70
+#define GATT_DISCOVER_ALL_PRIMARY_SERVICES                       0x70
+#define GATT_DISCOVER_PRIMARY_SERVICES_BY_UUID16                 0x71
+#define GATT_DISCOVER_PRIMARY_SERVICES_BY_UUID128                0x72
+#define GATT_FIND_INCLUDED_SERVICES_FOR_SERVICE                  0x73
+#define GATT_DISCOVER_CHARACTERISTICS_FOR_SERVICE                0x74
+#define GATT_DISCOVER_CHARACTERISTICS_FOR_SERVICE_BY_UUID128     0x75
+#define GATT_DISCOVER_CHARACTERISTIC_DESCRIPTORS                 0x76
+#define GATT_READ_VALUE_OF_CHARACTERISTIC                        0x77
+#define GATT_READ_LONG_VALUE_OF_CHARACTERISTIC                   0x78
+#define GATT_WRITE_VALUE_OF_CHARACTERISTIC_WITHOUT_RESPONSE      0x79
+#define GATT_WRITE_VALUE_OF_CHARACTERISTIC                       0x7A
+#define GATT_WRITE_LONG_VALUE_OF_CHARACTERISTIC                  0x7B
+#define GATT_RELIABLE_WRITE_LONG_VALUE_OF_CHARACTERISTIC         0x7C
+#define GATT_READ_CHARACTERISTIC_DESCRIPTOR                      0X7D
+#define GATT_READ_LONG_CHARACTERISTIC_DESCRIPTOR                 0X7E
+#define GATT_WRITE_CHARACTERISTIC_DESCRIPTOR                     0X7F
+#define GATT_WRITE_LONG_CHARACTERISTIC_DESCRIPTOR                0X80
+#define GATT_WRITE_CLIENT_CHARACTERISTIC_CONFIGURATION           0X81
+
 // 
 #define IS_COMMAND(packet, command) (READ_BT_16(packet,0) == command.opcode)
 
@@ -230,10 +260,13 @@ typedef enum {
 typedef enum {
     SEND_CREATE_CONNECTION = 0,
     SENT_CREATE_CONNECTION,
+    SEND_CANCEL_CONNECTION,
+    SENT_CANCEL_CONNECTION,
     RECEIVED_CONNECTION_REQUEST,
     ACCEPTED_CONNECTION_REQUEST,
     REJECTED_CONNECTION_REQUEST,
     OPEN,
+    SEND_DISCONNECT,
     SENT_DISCONNECT
 } CONNECTION_STATE;
 
@@ -254,6 +287,15 @@ typedef enum {
     BLUETOOTH_ACTIVE
 } BLUETOOTH_STATE;
 
+// le central scanning state
+typedef enum {
+    LE_SCAN_IDLE,
+    LE_START_SCAN,
+    LE_SCANNING,
+    LE_STOP_SCAN,
+} le_scanning_state_t;
+
+
 typedef struct {
     // linked list - assert: first field
     linked_item_t    item;
@@ -264,11 +306,14 @@ typedef struct {
     // module handle
     hci_con_handle_t con_handle;
 
+    // le public, le random, classic
+    bd_addr_type_t address_type;
+
     // connection state
     CONNECTION_STATE state;
     
     // bonding
-    bonding_flags_t bonding_flags;
+    uint16_t bonding_flags;
 
     // requested security level
     gap_security_level_t requested_security_level;
@@ -277,7 +322,7 @@ typedef struct {
     link_key_type_t link_key_type;
 
     // errands
-    hci_authentication_flags_t authentication_flags;
+    uint32_t authentication_flags;
 
     timer_source_t timeout;
     
@@ -296,8 +341,8 @@ typedef struct {
     
     // number ACL packets sent to controller
     uint8_t num_acl_packets_sent;
-    
 } hci_connection_t;
+
 
 /**
  * main data structure
@@ -323,7 +368,8 @@ typedef struct {
     linked_list_t     connections;
 
     // single buffer for HCI Command assembly
-    uint8_t          hci_packet_buffer[HCI_PACKET_BUFFER_SIZE]; // opcode (16), len(8)
+    uint8_t   hci_packet_buffer[HCI_PACKET_BUFFER_SIZE]; // opcode (16), len(8)
+    uint8_t   hci_packet_buffer_reserved;
     
     /* host to controller flow control */
     uint8_t  num_cmd_packets;
@@ -350,6 +396,8 @@ typedef struct {
     uint8_t   substate;
     uint8_t   cmds_ready;
     
+    uint16_t  last_cmd_opcode;
+
     uint8_t   discoverable;
     uint8_t   connectable;
     uint8_t   bondable;
@@ -364,8 +412,25 @@ typedef struct {
     uint8_t   adv_addr_type;
     bd_addr_t adv_address;
 
+    le_scanning_state_t le_scanning_state;
+
+    // buffer for le scan type command - 0xff not set
+    uint8_t  le_scan_type;
+    uint16_t le_scan_interval;  
+    uint16_t le_scan_window;
 } hci_stack_t;
 
+//*************** le client start
+
+le_command_status_t le_central_start_scan();
+le_command_status_t le_central_stop_scan();
+le_command_status_t le_central_connect(bd_addr_t * addr, bd_addr_type_t addr_type);
+le_command_status_t le_central_connect_cancel();
+le_command_status_t gap_disconnect(hci_con_handle_t handle);
+void le_central_set_scan_parameters(uint8_t scan_type, uint16_t scan_interval, uint16_t scan_window);
+
+//*************** le client end
+    
 // create and send hci command packets based on a template and a list of parameters
 uint16_t hci_create_cmd(uint8_t *hci_cmd_buffer, hci_cmd_t *cmd, ...);
 uint16_t hci_create_cmd_internal(uint8_t *hci_cmd_buffer, const hci_cmd_t *cmd, va_list argptr);
@@ -386,18 +451,33 @@ int hci_send_acl_packet(uint8_t *packet, int size);
 
 // non-blocking UART driver needs
 int hci_can_send_packet_now(uint8_t packet_type);
+
+// same as hci_can_send_packet_now, but also checks if packet buffer is free for use
+int hci_can_send_packet_now_using_packet_buffer(uint8_t packet_type);
+
+// reserves outgoing packet buffer. @returns 1 if successful
+int  hci_reserve_packet_buffer(void);
+void hci_release_packet_buffer(void);
+
+// used for internal checks in l2cap[-le].c
+int hci_is_packet_buffer_reserved(void);
+
+// get point to packet buffer
+uint8_t* hci_get_outgoing_packet_buffer(void);
     
 bd_addr_t * hci_local_bd_addr(void);
 hci_connection_t * hci_connection_for_handle(hci_con_handle_t con_handle);
-hci_connection_t * hci_connection_for_bd_addr(bd_addr_t *addr);
+hci_connection_t * hci_connection_for_bd_addr_and_type(bd_addr_t *addr, bd_addr_type_t addr_type);
+int hci_is_le_connection(hci_connection_t * connection);
 uint8_t  hci_number_outgoing_packets(hci_con_handle_t handle);
 uint8_t  hci_number_free_acl_slots(void);
 int      hci_authentication_active_for_handle(hci_con_handle_t handle);
 uint16_t hci_max_acl_data_packet_length(void);
 uint16_t hci_usable_acl_packet_types(void);
-uint8_t* hci_get_outgoing_acl_packet_buffer(void);
+int      hci_non_flushable_packet_boundary_flag_supported(void);
 
-// 
+void hci_disconnect_all();
+
 void hci_emit_state(void);
 void hci_emit_connection_complete(hci_connection_t *conn, uint8_t status);
 void hci_emit_l2cap_check_timeout(hci_connection_t *conn);

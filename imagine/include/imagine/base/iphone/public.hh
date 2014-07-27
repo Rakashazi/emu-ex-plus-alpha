@@ -4,5 +4,6 @@ namespace Base
 {
 
 bool deviceIsIPad();
+bool isSystemApp();
 
 }

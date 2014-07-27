@@ -76,6 +76,7 @@ IG::WindowRect VControllerDPad::bounds() const
 
 void VControllerDPad::setSize(uint sizeInPixels)
 {
+	//logMsg("set dpad pixel size: %d", sizeInPixels);
 	btnSizePixels = sizeInPixels;
 	auto rect = IG::makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
 	bool changedSize = rect.xSize() != padBaseArea.xSize();
@@ -482,7 +483,7 @@ void VControllerGamepad::setBaseBtnSize(uint sizeInPixels)
 {
 	btnSizePixels = sizeInPixels;
 	btnSize = mainWin.projectionPlane.unprojectXSize(sizeInPixels);
-	dp.setSize(IG::makeEvenRoundedUp(int(sizeInPixels*2.5)));
+	dp.setSize(IG::makeEvenRoundedUp(int(sizeInPixels*(double)2.5)));
 
 	// face buttons
 	uint btns = (systemHasTriggerBtns && !triggersInline) ? systemFaceBtns-2 : activeFaceBtns;
@@ -494,7 +495,7 @@ void VControllerGamepad::setBaseBtnSize(uint sizeInPixels)
 
 	// center buttons
 	int cenBtnFullXSize = (systemCenterBtns == 2) ? (btnSizePixels*2) + btnSpacePixels : btnSizePixels;
-	int cenBtnFullYSize = IG::makeEvenRoundedUp(int(btnSizePixels*1.25));
+	int cenBtnFullYSize = IG::makeEvenRoundedUp(int(btnSizePixels*(double)1.25));
 	centerBtnsBound = IG::makeWindowRectRel({0, 0}, {cenBtnFullXSize, cenBtnFullYSize});
 
 	// triggers

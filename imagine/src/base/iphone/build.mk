@@ -6,12 +6,6 @@ include $(imagineSrcDir)/input/build.mk
 
 configDefs += CONFIG_BASE_IOS
 
-ifdef iosJailbreak
- configDefs += CONFIG_BASE_IOS_JB
-else
- iOSNoCodesign := 1
-endif
-
 LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -fobjc-link-runtime
 
 ifdef iosMsgUI

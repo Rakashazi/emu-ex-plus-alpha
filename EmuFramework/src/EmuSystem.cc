@@ -29,7 +29,7 @@ FsSys::PathString EmuSystem::gameSavePath_{};
 char EmuSystem::gameName_[256]{};
 char EmuSystem::fullGameName_[256]{};
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
-int EmuSystem::emuFrameNow;
+uint EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 uint EmuSystem::audioFramesPerVideoFrame = 0;
@@ -133,19 +133,20 @@ bool EmuSystem::shouldOverwriteExistingState()
 int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
-	static const auto ntscFrameTime = Base::decimalFrameTimeBaseFromSec(1./60.),
+	static constexpr auto ntscFrameTime = Base::decimalFrameTimeBaseFromSec(1./60.),
 			palFrameTime = Base::decimalFrameTimeBaseFromSec(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source
 	}
 
-	int emuFrame;
-	if(!startFrameTime)
+	uint emuFrame;
+	if(unlikely(!startFrameTime))
 	{
-		startFrameTime = frameTime;
-		emuFrame = 0;
 		//logMsg("first frame time %f", (double)frameTime);
+		startFrameTime = frameTime;
+		emuFrameNow = 0;
+		return 0;
 	}
 	else
 	{
@@ -154,7 +155,10 @@ int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 		emuFrame = frame;
 		//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
 	}
-	assert(emuFrame >= emuFrameNow);
+	if(emuFrame < emuFrameNow)
+	{
+		bug_exit("current frame %d is in the past (last one was %d)", emuFrame, emuFrameNow);
+	}
 	if(emuFrame == emuFrameNow)
 	{
 		//logMsg("repeating frame %d", emuFrame);
@@ -162,7 +166,7 @@ int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 	}
 	else
 	{
-		uint skip = std::min((emuFrame - emuFrameNow) - 1, (int)maxFrameSkip);
+		uint skip = std::min((emuFrame - emuFrameNow) - 1, maxFrameSkip);
 		emuFrameNow = emuFrame;
 		if(skip)
 		{
@@ -187,8 +191,7 @@ void EmuSystem::setupGamePaths(const char *filePath)
 		}
 		strcpy(gamePath_.data(), realPath); // destination is always large enough
 		logMsg("set game directory: %s", gamePath_.data());
-		if(Config::envIsIOSJB)
-			fixFilePermissions(gamePath_);
+		fixFilePermissions(gamePath_);
 	}
 
 	{
@@ -273,8 +276,7 @@ void EmuSystem::setGameSavePath(const char *path)
 	// check if the path is writable
 	if(path && strlen(path))
 	{
-		if(Config::envIsIOSJB)
-			fixFilePermissions(path);
+		fixFilePermissions(path);
 		if(optionCheckSavePathWriteAccess && !hasWriteAccessToDir(path))
 		{
 			reportNoWriteAccess = true;
@@ -289,8 +291,7 @@ void EmuSystem::setGameSavePath(const char *path)
 	// fallback to a default path
 	logMsg("set game save path to default: %s", defaultSavePath());
 	string_copy(gameSavePath_, defaultSavePath());
-	if(Config::envIsIOSJB)
-		fixFilePermissions(gameSavePath_);
+	fixFilePermissions(gameSavePath_);
 	if(reportNoWriteAccess)
 	{
 		popup.printf(4, true, "Save path lacks write access, using default:\n%s", gameSavePath_.data());
@@ -362,6 +363,11 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 	}
 }
 
+void EmuSystem::resetFrameTime()
+{
+	startFrameTime = 0;
+}
+
 void EmuSystem::pause()
 {
 	if(isActive())
@@ -374,8 +380,7 @@ void EmuSystem::start()
 {
 	state = State::ACTIVE;
 	clearInputBuffers();
-	emuFrameNow = -1;
+	resetFrameTime();
 	startSound();
-	startFrameTime = 0;
 	startAutoSaveStateTimer();
 }

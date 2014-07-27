@@ -29,7 +29,7 @@
 - (id)initWithScreen:(Base::Screen *)screen
 {
 	self = [super init];
-	if (self)
+	if(self)
 	{
 		screen_ = screen;
 	}
@@ -41,10 +41,14 @@
 	//logMsg("screen update for %p", self);
 	auto &screen = *screen_;
 	auto timestamp = screen.displayLink().timestamp;
-	/*auto now = TimeSys::now();
-	logMsg("frame time stamp %f, duration %f, now %f",
-		(double)timestamp, (double)screen.displayLink().duration, (double)now);*/
+	//auto startTime = TimeSys::now();
+	//logMsg("screen: %p, frame time stamp: %f, duration: %f, now: %f",
+	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration, (double)startTime);*/
 	screen.frameUpdate(timestamp);
+	//auto endTime = TimeSys::now();
+	//logMsg("screen: %p, frame @ %f (duration %f) ran from %f - %f (%f)",
+	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration,
+	//	(double)startTime, (double)endTime, (double)(endTime - startTime));
 	if(!screen.frameIsPosted())
 	{
 		//logMsg("stopping screen updates");
@@ -62,12 +66,34 @@ namespace Base
 
 void IOSScreen::init(UIScreen *screen)
 {
+	logMsg("init screen %p", screen);
+	auto currMode = screen.currentMode;
+	if(currMode.size.width == 1600 && currMode.size.height == 900)
+	{
+		logMsg("looking for 720p mode to improve non-native video adapter performance");
+		for(UIScreenMode *mode in screen.availableModes)
+		{
+			if(mode.size.width == 1280 && mode.size.height == 720)
+			{
+				logMsg("setting 720p mode");
+				screen.currentMode = mode;
+				break;
+			}
+		}
+	}
+	#ifndef NDEBUG
+	for(UIScreenMode *mode in screen.availableModes)
+	{
+		logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);
+	}
+	logMsg("current mode: %dx%d", (int)screen.currentMode.size.width, (int)screen.currentMode.size.height);
+	logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
+	#endif
 	uiScreen_ = (void*)CFBridgingRetain(screen);
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
 	                                       selector:@selector(onFrame)]);
 	displayLink().paused = YES;
 	displayLinkActive = false;
-	logMsg("init screen %p", uiScreen_);
 }
 
 void Screen::deinit()

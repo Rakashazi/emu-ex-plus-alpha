@@ -81,22 +81,45 @@
 // Symbol Re-mapping
 
 #if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+// un-define ES 2.0 symbols in case headers are implicitly included,
+// such as when including UIKit.h on iOS
+	#ifdef GL_FRAMEBUFFER
+	#undef GL_FRAMEBUFFER
+	#endif
+	#ifdef GL_FRAMEBUFFER_COMPLETE
+	#undef GL_FRAMEBUFFER_COMPLETE
+	#endif
+	#ifdef GL_COLOR_ATTACHMENT0
+	#undef GL_COLOR_ATTACHMENT0
+	#endif
+	#ifdef GL_FUNC_ADD
+	#undef GL_FUNC_ADD
+	#endif
+	#ifdef GL_FUNC_SUBTRACT
+	#undef GL_FUNC_SUBTRACT
+	#endif
+	#ifdef GL_FUNC_REVERSE_SUBTRACT
+	#undef GL_FUNC_REVERSE_SUBTRACT
+	#endif
+
 #define glBlendEquation glBlendEquationOES
+#define glGenFramebuffers glGenFramebuffersOES
+#define glDeleteFramebuffers glDeleteFramebuffersOES
+#define glCheckFramebufferStatus glCheckFramebufferStatusOES
+#define glBindFramebuffer glBindFramebufferOES
+#define glFramebufferTexture2D glFramebufferTexture2DOES
+#define GL_FRAMEBUFFER GL_FRAMEBUFFER_OES
+#define GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_OES
+#define GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_OES
+#define GL_FUNC_ADD GL_FUNC_ADD_OES
+#define GL_FUNC_SUBTRACT GL_FUNC_SUBTRACT_OES
+#define GL_FUNC_REVERSE_SUBTRACT GL_FUNC_REVERSE_SUBTRACT_OES
 
 	#if defined __ANDROID__
 	// glTexEnvi isn't supported in ES 1.0 but can be directly re-mapped
 	#define glTexEnvi glTexEnvx
 	#endif
 
-	#ifndef GL_FUNC_ADD
-	#define GL_FUNC_ADD GL_FUNC_ADD_OES
-	#endif
-	#ifndef GL_FUNC_SUBTRACT
-	#define GL_FUNC_SUBTRACT GL_FUNC_SUBTRACT_OES
-	#endif
-	#ifndef GL_FUNC_REVERSE_SUBTRACT
-	#define GL_FUNC_REVERSE_SUBTRACT GL_FUNC_REVERSE_SUBTRACT_OES
-	#endif
 	#ifndef GL_STREAM_DRAW
 	#define GL_STREAM_DRAW GL_DYNAMIC_DRAW
 	#endif

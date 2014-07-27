@@ -846,8 +846,7 @@ int EmuSystem::saveState()
 {
 	SnapshotTrapData data;
 	data.pathStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(data.pathStr);
+	fixFilePermissions(data.pathStr);
 	interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap
 	return data.result;
@@ -870,8 +869,7 @@ void EmuSystem::saveAutoState()
 	{
 		SnapshotTrapData data;
 		data.pathStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(data.pathStr);
+		fixFilePermissions(data.pathStr);
 		interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 		runFrame(0, 0, 0); // execute cpu trap
 		if(data.result != STATE_RESULT_OK)

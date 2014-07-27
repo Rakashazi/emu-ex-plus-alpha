@@ -63,10 +63,12 @@ namespace Input
 namespace Base
 {
 
-const char *appPath = 0;
-bool isIPad = 0;
+const char *appPath = nullptr;
+bool isIPad = false;
+static bool isRunningAsSystemApp = false;
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
+static const char *docPath = nullptr;
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -175,16 +177,16 @@ uint appActivityState() { return appState; }
 		return;
 	}
 	UIScreen *screen = [aNotification object];
+	for(auto s : screen_)
 	{
-		for(auto s : screen_)
+		if(s->uiScreen() == screen)
 		{
-			if(s->uiScreen() == screen)
-			{
-				logMsg("screen %p already in list", screen);
-				return;
-			}
+			logMsg("screen %p already in list", screen);
+			return;
 		}
 	}
+	// prevent overscan compensation
+	screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
 	auto s = new Screen();
 	s->init(screen);
 	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
@@ -266,6 +268,11 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 	for(UIScreen *screen in [UIScreen screens])
 	{
+		if(Screen::screens())
+		{
+			// prevent overscan compensation on secondary screens
+			screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
+		}
 		auto s = new Screen();
 		s->init(screen);
 		[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
@@ -379,17 +386,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 namespace Base
 {
 
-void nsLog(const char* str)
-{
-	NSLog(@"%s", str);
-}
-
-void nsLogv(const char* format, va_list arg)
-{
-	auto formatStr = [[NSString alloc] initWithBytesNoCopy:(void*)format length:strlen(format) encoding:NSUTF8StringEncoding freeWhenDone:false];
-	NSLogv(formatStr, arg);
-}
-
 void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplication *sharedApp)
 {
 	win.updateSize({width, height});
@@ -496,35 +492,46 @@ void endIdleByUserActivity()
 	}
 }
 
-static const char *docPath = 0;
-
 const char *documentsPath()
 {
 	if(!docPath)
 	{
-		#ifdef CONFIG_BASE_IOS_JB
-		return "/User/Library/Preferences";
-		#else
-		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-		NSString *documentsDirectory = [paths objectAtIndex:0];
-		docPath = strdup([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
-		#endif
+		if(isRunningAsSystemApp)
+			return "/User/Library/Preferences";
+		else
+		{
+			NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+			NSString *documentsDirectory = [paths firstObject];
+			if(documentsDirectory)
+				docPath = strdup([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
+			else
+				docPath = "";
+		}
 	}
 	return docPath;
 }
 
 const char *storagePath()
 {
-	#ifdef CONFIG_BASE_IOS_JB
-	return "/User/Media";
-	#else
-	return documentsPath();
-	#endif
+	if(isRunningAsSystemApp)
+		return "/User/Media";
+	else
+		return documentsPath();
+}
+
+bool documentsPathIsShared()
+{
+	return isRunningAsSystemApp;
 }
 
 bool deviceIsIPad()
 {
 	return isIPad;
+}
+
+bool isSystemApp()
+{
+	return isRunningAsSystemApp;
 }
 
 #ifdef CONFIG_BASE_IOS_SETUID
@@ -557,6 +564,11 @@ double TimeMach::timebaseNSec = 0, TimeMach::timebaseUSec = 0,
 int main(int argc, char *argv[])
 {
 	using namespace Base;
+	// check if running from system apps directory
+	if(strlen(argv[0]) >= 14 && memcmp(argv[0], "/Applications/", 14) == 0)
+	{
+		isRunningAsSystemApp = true;
+	}
 	#ifdef CONFIG_BASE_IOS_SETUID
 	setupUID();
 	#endif

@@ -316,8 +316,7 @@ FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath
 int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr.data());
+	fixFilePermissions(saveStr);
 	logMsg("saving state %s", saveStr.data());
 	if(!gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
@@ -359,8 +358,7 @@ void EmuSystem::saveAutoState()
 	{
 		logMsg("saving auto-state");
 		auto saveStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr.data());
+		fixFilePermissions(saveStr);
 		gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data());
 	}
 }

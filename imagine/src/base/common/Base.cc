@@ -198,6 +198,8 @@ CLINK void bug_doExit(const char *msg, ...)
 	va_start(args, msg);
 	logger_vprintf(LOG_E, msg, args);
 	va_end(args);
+	logger_printf(LOG_E, "\n");
+	usleep(500000); // TODO: need a way to flush every type of log output
 	Base::abort();
 	#endif
 }

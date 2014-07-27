@@ -277,8 +277,7 @@ FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath
 int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr.data());
+	fixFilePermissions(saveStr);
 	if(!FCEUI_SaveState(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -319,8 +318,7 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		auto saveStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
+		fixFilePermissions(saveStr);
 		FCEUI_SaveState(saveStr.data());
 	}
 }

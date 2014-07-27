@@ -125,7 +125,7 @@ void ViewStack::place()
 	if(useNavView && nav)
 	{
 		nav->setTitle(top().name());
-		nav->viewRect.setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->text.face->nominalHeight()*1.75))}, LT2DO);
+		nav->viewRect.setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->text.face->nominalHeight()*(double)1.75))}, LT2DO);
 		nav->place(projP);
 		customViewRect.y += nav->viewRect.ySize();
 	}

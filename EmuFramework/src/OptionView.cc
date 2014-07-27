@@ -781,7 +781,7 @@ OptionView::OptionView(Base::Window &win):
 		{
 			optionAspectRatio.val = EmuSystem::aspectRatioInfo[val].aspect;
 			logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
-			emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+			placeEmuViews();
 			emuWin->win.postDraw();
 		}
 	},
@@ -800,7 +800,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 5: optionImageZoom.val = optionImageZoomIntegerOnlyY;
 			}
 			logMsg("set image zoom: %d", int(optionImageZoom));
-			emuVideoLayer.place(emuWin->viewport().bounds(), projP);
+			placeEmuViews();
 			emuWin->win.postDraw();
 		}
 	},
@@ -1225,7 +1225,7 @@ OptionView::OptionView(Base::Window &win):
 				bcase 17: optionFontSize = 10500;
 			}
 			setupFont();
-			placeElements(mainWin.viewport());
+			placeElements();
 		}
 	},
 	notificationIcon
@@ -1282,7 +1282,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			optionTitleBar = item.on;
 			viewStack.setNavView(item.on ? &viewNav : 0);
-			placeElements(mainWin.viewport());
+			placeElements();
 		}
 	},
 	backNav
@@ -1293,7 +1293,7 @@ OptionView::OptionView(Base::Window &win):
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
 			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
-			placeElements(mainWin.viewport());
+			placeElements();
 		}
 	},
 	rememberLastMenu

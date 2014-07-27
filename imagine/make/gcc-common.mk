@@ -31,7 +31,8 @@ ifdef O_RELEASE
  RELEASE := 1
 endif
 
-NORMAL_OPTIMIZE_CFLAGS_MISC := -fmerge-all-constants
+# TODO: segfault when compiling with LTO on Android GCC 4.9 with -fmerge-all-constants
+#NORMAL_OPTIMIZE_CFLAGS_MISC := -fmerge-all-constants
 ifdef RELEASE
  NORMAL_OPTIMIZE_CFLAGS_MISC += -fomit-frame-pointer
 endif

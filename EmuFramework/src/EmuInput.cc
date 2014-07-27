@@ -790,7 +790,7 @@ void setupVControllerVars()
 void setOnScreenControls(bool on)
 {
 	touchControlsAreOn = on;
-	emuVideoLayer.place(emuWin->viewport().bounds(), emuWin->projectionPlane);
+	placeEmuViews();
 }
 
 void updateAutoOnScreenControlVisible()

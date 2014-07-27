@@ -35,12 +35,14 @@ void EmuVideoLayer::init()
 
 void EmuVideoLayer::resetImage()
 {
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(vidImgEffect.renderTarget())
 	{
 		logMsg("drawing video via render target");
 		disp.setImg(&vidImgEffect.renderTarget().texture());
 	}
 	else
+	#endif
 	{
 		logMsg("drawing video texture directly");
 		disp.setImg(&video.vidImg);
@@ -52,7 +54,7 @@ void EmuVideoLayer::resetImage()
 	setLinearFilter(useLinearFilter);
 }
 
-void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP)
+void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, bool onScreenControlsOverlay)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -155,7 +157,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		Gfx::GC yOffset = 0;
 		int yOffsetPixels = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(viewportAspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
+		if(onScreenControlsOverlay && viewportAspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
 		{
 			auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom())
@@ -292,16 +294,20 @@ void EmuVideoLayer::compileDefaultPrograms()
 
 void EmuVideoLayer::setEffect(uint effect)
 {
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	vidImgEffect.setEffect(effect, video.isExternalTexture());
 	placeEffect();
 	if(video.vidImg)
 		resetImage();
+	#endif
 }
 
 void EmuVideoLayer::setLinearFilter(bool on)
 {
 	useLinearFilter = on;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	vidImgEffect.setLinearFilter(on);
+	#endif
 	if(!video.vidImg)
 		return;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

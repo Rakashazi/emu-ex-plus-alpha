@@ -428,6 +428,16 @@ OPCODE(OGF_LE_CONTROLLER, 0x05), "B"
 // params: random device address
 // return: status
 };
+/**
+ * @param advertising_interval_min
+ * @param advertising_interval_max
+ * @param advertising_type
+ * @param own_address_type
+ * @param direct_address_type
+ * @param direct_address
+ * @param advertising_channel_map
+ * @param advertising_filter_policy
+ */
 const hci_cmd_t hci_le_set_advertising_parameters = {
 OPCODE(OGF_LE_CONTROLLER, 0x06), "22111B11"
 // param: min advertising interval, [0x0020,0x4000], default: 0x0800, unit: 0.625 msec
@@ -445,6 +455,11 @@ OPCODE(OGF_LE_CONTROLLER, 0x07), ""
 // params: none
 // return: status, level [-20,10] signed int (8), units dBm
 };
+
+/**
+ * @param advertising_data_length
+ * @param advertising_data
+ */
 const hci_cmd_t hci_le_set_advertising_data= {
 OPCODE(OGF_LE_CONTROLLER, 0x08), "1A"
 // param: advertising data len
@@ -457,6 +472,9 @@ OPCODE(OGF_LE_CONTROLLER, 0x09), "1A"
 // param: scan response data (31 bytes)
 // return: status
 };
+/**
+ * @param advertise_enable
+ */
 const hci_cmd_t hci_le_set_advertise_enable = {
 OPCODE(OGF_LE_CONTROLLER, 0x0a), "1"
 // params: avertise enable: off (0), on (1)
@@ -587,14 +605,14 @@ OPCODE(OGF_LE_CONTROLLER, 0x1d), "1"
 // return: status
 };
 const hci_cmd_t hci_le_transmitter_test = {
-    OPCODE(OGF_LE_CONTROLLER, 0x1e), "111"
+OPCODE(OGF_LE_CONTROLLER, 0x1e), "111"
     // param: tx frequency, [0x00 0x27], frequency (MHz): 2420 + N*2
     // param: lengh of test payload [0x00,0x25]
     // param: packet payload [0,7] different patterns
     // return: status
 };
 const hci_cmd_t hci_le_test_end = {
-    OPCODE(OGF_LE_CONTROLLER, 0x1f), "1"
+OPCODE(OGF_LE_CONTROLLER, 0x1f), "1"
     // params: none
     // return: status, number of packets (8)
 };
@@ -606,6 +624,9 @@ OPCODE(OGF_BTSTACK, BTSTACK_GET_STATE), ""
 // no params -> 
 };
 
+/**
+ * @param power_mode
+ */
 const hci_cmd_t btstack_set_power_mode = {
 OPCODE(OGF_BTSTACK, BTSTACK_SET_POWER_MODE), "1"
 // mode: 0 = off, 1 = on
@@ -687,46 +708,243 @@ OPCODE(OGF_BTSTACK, SDP_CLIENT_QUERY_SERVICES), "BSS"
 
 // create rfcomm channel: @param bd_addr(48), channel (8)
 const hci_cmd_t rfcomm_create_channel = {
-	OPCODE(OGF_BTSTACK, RFCOMM_CREATE_CHANNEL), "B1"
+OPCODE(OGF_BTSTACK, RFCOMM_CREATE_CHANNEL), "B1"
 };
 // create rfcomm channel: @param bd_addr(48), channel (8), mtu (16), credits (8)
 const hci_cmd_t rfcomm_create_channel_with_initial_credits = {
-	OPCODE(OGF_BTSTACK, RFCOMM_CREATE_CHANNEL_WITH_CREDITS), "B121"
+OPCODE(OGF_BTSTACK, RFCOMM_CREATE_CHANNEL_WITH_CREDITS), "B121"
 };
 // grant credits: @param rfcomm_cid(16), credits (8)
 const hci_cmd_t rfcomm_grants_credits= {
-	OPCODE(OGF_BTSTACK, RFCOMM_GRANT_CREDITS), "21"
+OPCODE(OGF_BTSTACK, RFCOMM_GRANT_CREDITS), "21"
 };
 // disconnect rfcomm disconnect, @param rfcomm_cid(16), reason(8)
-const  hci_cmd_t rfcomm_disconnect = {
-	OPCODE(OGF_BTSTACK, RFCOMM_DISCONNECT), "21"
+const hci_cmd_t rfcomm_disconnect = {
+OPCODE(OGF_BTSTACK, RFCOMM_DISCONNECT), "21"
 };
 
 // register rfcomm service: @param channel(8), mtu (16)
 const hci_cmd_t rfcomm_register_service = {
-    OPCODE(OGF_BTSTACK, RFCOMM_REGISTER_SERVICE), "12"
+OPCODE(OGF_BTSTACK, RFCOMM_REGISTER_SERVICE), "12"
 };
 // register rfcomm service: @param channel(8), mtu (16), initial credits (8)
 const hci_cmd_t rfcomm_register_service_with_initial_credits = {
-    OPCODE(OGF_BTSTACK, RFCOMM_REGISTER_SERVICE_WITH_CREDITS), "121"
+OPCODE(OGF_BTSTACK, RFCOMM_REGISTER_SERVICE_WITH_CREDITS), "121"
 };
 
 // unregister rfcomm service, @param service_channel(16)
 const hci_cmd_t rfcomm_unregister_service = {
-    OPCODE(OGF_BTSTACK, RFCOMM_UNREGISTER_SERVICE), "2"
+OPCODE(OGF_BTSTACK, RFCOMM_UNREGISTER_SERVICE), "2"
 };
 // accept connection @param source cid (16)
 const hci_cmd_t rfcomm_accept_connection = {
-    OPCODE(OGF_BTSTACK, RFCOMM_ACCEPT_CONNECTION), "2"
+OPCODE(OGF_BTSTACK, RFCOMM_ACCEPT_CONNECTION), "2"
 };
 // decline connection @param source cid (16)
 const hci_cmd_t rfcomm_decline_connection = {
-    OPCODE(OGF_BTSTACK, RFCOMM_DECLINE_CONNECTION), "21"
+OPCODE(OGF_BTSTACK, RFCOMM_DECLINE_CONNECTION), "21"
 };
-// request persisten rfcomm channel number for named service
+// request persistent rfcomm channel number for named service
 const hci_cmd_t rfcomm_persistent_channel_for_service = {
-    OPCODE(OGF_BTSTACK, RFCOMM_PERSISTENT_CHANNEL), "N"
+OPCODE(OGF_BTSTACK, RFCOMM_PERSISTENT_CHANNEL), "N"
 };
 
-// register rfcomm service: @param channel(8), mtu (16), initial credits (8)
-extern const hci_cmd_t rfcomm_register_service_with_initial_credits;
+/**
+ * @param handle
+ */
+const hci_cmd_t gap_disconnect_cmd = {
+OPCODE(OGF_BTSTACK, GAP_DISCONNECT), "H"
+};
+
+/**
+ */
+const hci_cmd_t gap_le_scan_start = {
+OPCODE(OGF_BTSTACK, GAP_LE_SCAN_START), ""
+};
+
+/**
+ */
+const hci_cmd_t gap_le_scan_stop = {
+OPCODE(OGF_BTSTACK, GAP_LE_SCAN_STOP), ""
+};
+
+/**
+ * @param scan_type
+ * @param scan_interval
+ * @param scan_window
+ */
+const hci_cmd_t gap_le_set_scan_parameters = {
+OPCODE(OGF_BTSTACK, GAP_LE_SET_SCAN_PARAMETERS), "122"
+};
+
+/**
+ * @param peer_address_type
+ * @param peer_address
+ */
+const hci_cmd_t gap_le_connect_cmd = {
+OPCODE(OGF_BTSTACK, GAP_LE_CONNECT), "1B"
+};
+
+/**
+ * @param peer_address_type
+ * @param peer_address
+ */
+const hci_cmd_t gap_le_connect_cancel_cmd = {
+OPCODE(OGF_BTSTACK, GAP_LE_CONNECT_CANCEL), ""
+};
+
+/**
+ * @param handle
+ */
+const hci_cmd_t gatt_discover_primary_services_cmd = {
+OPCODE(OGF_BTSTACK, GATT_DISCOVER_ALL_PRIMARY_SERVICES), "H"
+};
+
+/**
+ * @param handle
+ * @param uuid16
+ */
+const hci_cmd_t gatt_discover_primary_services_by_uuid16_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_DISCOVER_PRIMARY_SERVICES_BY_UUID16), "H2"
+};
+
+/**
+ * @param handle
+ * @param uuid128
+ */
+const hci_cmd_t gatt_discover_primary_services_by_uuid128_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_DISCOVER_PRIMARY_SERVICES_BY_UUID128), "HU"
+};
+
+/**
+ * @param handle
+ * @param service
+ */
+const hci_cmd_t gatt_find_included_services_for_service_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_FIND_INCLUDED_SERVICES_FOR_SERVICE), "HX"
+};
+
+/**
+ * @param handle
+ * @param service
+ */
+const hci_cmd_t gatt_discover_characteristics_for_service_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_DISCOVER_CHARACTERISTICS_FOR_SERVICE), "HX"
+};
+
+/**
+ * @param handle
+ * @param service
+ * @param uuid128
+ */
+const hci_cmd_t gatt_discover_characteristics_for_service_by_uuid128_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_DISCOVER_CHARACTERISTICS_FOR_SERVICE_BY_UUID128), "HXU"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ */
+const hci_cmd_t gatt_discover_characteristic_descriptors_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_DISCOVER_CHARACTERISTIC_DESCRIPTORS), "HY"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ */
+const hci_cmd_t gatt_read_value_of_characteristic_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_READ_VALUE_OF_CHARACTERISTIC), "HY"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ */
+const hci_cmd_t gatt_read_long_value_of_characteristic_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_READ_LONG_VALUE_OF_CHARACTERISTIC), "HY"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_write_value_of_characteristic_without_response_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_VALUE_OF_CHARACTERISTIC_WITHOUT_RESPONSE), "HYLV"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_write_value_of_characteristic_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_VALUE_OF_CHARACTERISTIC), "HYLV"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_write_long_value_of_characteristic_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_LONG_VALUE_OF_CHARACTERISTIC), "HYLV"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_reliable_write_long_value_of_characteristic_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_RELIABLE_WRITE_LONG_VALUE_OF_CHARACTERISTIC), "HYLV"
+};
+
+/**
+ * @param handle
+ * @param descriptor
+ */
+const hci_cmd_t gatt_read_characteristic_descriptor_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_READ_CHARACTERISTIC_DESCRIPTOR), "HZ"
+};
+
+/**
+ * @param handle
+ * @param descriptor
+ */
+const hci_cmd_t gatt_read_long_characteristic_descriptor_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_READ_LONG_CHARACTERISTIC_DESCRIPTOR), "HZ"
+};
+
+/**
+ * @param handle
+ * @param descriptor
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_write_characteristic_descriptor_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_CHARACTERISTIC_DESCRIPTOR), "HZLV"
+};
+
+/**
+ * @param handle
+ * @param descriptor
+ * @param data_length
+ * @param data
+ */
+const hci_cmd_t gatt_write_long_characteristic_descriptor_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_LONG_CHARACTERISTIC_DESCRIPTOR), "HZLV"
+};
+
+/**
+ * @param handle
+ * @param characteristic
+ */
+const hci_cmd_t gatt_write_client_characteristic_configuration_cmd = {
+    OPCODE(OGF_BTSTACK, GATT_WRITE_CLIENT_CHARACTERISTIC_CONFIGURATION), "HY2"
+};

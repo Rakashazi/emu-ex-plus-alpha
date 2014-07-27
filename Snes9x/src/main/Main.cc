@@ -111,11 +111,11 @@ void EmuSystem::initOptions()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 		#ifdef CONFIG_BASE_IOS
-		if(Base::deviceIsIPad())
+		if(!Base::deviceIsIPad())
 		#endif
 		{
-				if(!Config::envIsWebOS3)
-					optionTouchCtrlSize.initDefault(700);
+			if(!Config::envIsWebOS3)
+				optionTouchCtrlSize.initDefault(700);
 		}
 		optionTouchCtrlBtnSpace.initDefault(100);
 		optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
@@ -389,8 +389,7 @@ static FsSys::PathString sprintCheatsFilename()
 int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr.data());
+	fixFilePermissions(saveStr);
 	if(!S9xFreezeGame(saveStr.data()))
 		return STATE_RESULT_IO_ERROR;
 	else
@@ -422,8 +421,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		{
 			logMsg("saving backup memory");
 			auto saveStr = sprintSRAMFilename();
-			if(Config::envIsIOSJB)
-				fixFilePermissions(saveStr);
+			fixFilePermissions(saveStr);
 			Memory.SaveSRAM(saveStr.data());
 		}
 		auto cheatsStr = sprintCheatsFilename();
@@ -440,8 +438,7 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		auto saveStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
+		fixFilePermissions(saveStr);
 		if(!S9xFreezeGame(saveStr.data()))
 			logMsg("error saving state %s", saveStr.data());
 	}

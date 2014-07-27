@@ -17,6 +17,7 @@
 #include <ConfigFile.hh>
 #include <EmuInput.hh>
 #include <EmuOptions.hh>
+#include <FileUtils.hh>
 #include <imagine/base/Base.hh>
 
 static bool readKeyConfig(Io &io, uint16 &size)
@@ -692,11 +693,10 @@ static void writeConfig2(Io *io)
 void loadConfigFile()
 {
 	FsSys::PathString configFilePath;
-	#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
-	#else
-	string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
-	#endif
+	if(Base::documentsPathIsShared())
+		string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+	else
+		string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
 	auto configFile = IOFile(IoSys::open(configFilePath.data()));
 	if(!configFile)
 	{
@@ -711,15 +711,16 @@ void loadConfigFile()
 void saveConfigFile()
 {
 	FsSys::PathString configFilePath;
-	#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
-	FsSys::mkdir(configFilePath.data());
-	/*#ifdef CONFIG_BASE_IOS_SETUID
-	fixFilePermissions(configFilePath);
-	#endif*/
-	string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
-	#else
-	string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
-	#endif
+	if(Base::documentsPathIsShared())
+	{
+		string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
+		FsSys::mkdir(configFilePath.data());
+		fixFilePermissions(configFilePath);
+		string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+	}
+	else
+	{
+		string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
+	}
 	writeConfig2(IoSys::create(configFilePath.data()));
 }

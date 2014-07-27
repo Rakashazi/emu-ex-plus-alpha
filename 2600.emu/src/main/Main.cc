@@ -194,8 +194,7 @@ void EmuSystem::saveAutoState()
 	{
 		auto saveStr = sprintStateFilename(-1);
 		logMsg("saving autosave-state %s", saveStr.data());
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr);
+		fixFilePermissions(saveStr);
 		Serializer state(string(saveStr.data()), 0);
 		if(!stateManager.saveState(state))
 		{
@@ -560,8 +559,7 @@ int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	logMsg("saving state %s", saveStr.data());
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
+	fixFilePermissions(saveStr);
 	Serializer state(string(saveStr.data()), 0);
 	if(!stateManager.saveState(state))
 	{
@@ -574,8 +572,7 @@ int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	logMsg("loading state %s", saveStr.data());
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr);
+	fixFilePermissions(saveStr);
 	Serializer state(string(saveStr.data()), 1);
 	if(!stateManager.loadState(state))
 	{

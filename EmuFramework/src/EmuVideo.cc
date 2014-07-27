@@ -56,7 +56,7 @@ void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint t
 	// update all EmuVideoLayers
 	emuVideoLayer.resetImage();
 	if((uint)optionImageZoom > 100)
-		emuVideoLayer.place(emuWin->viewport().bounds(), emuWin->projectionPlane);
+		placeEmuViews();
 }
 
 void EmuVideo::initImage(bool force, uint x, uint y, uint pitch)

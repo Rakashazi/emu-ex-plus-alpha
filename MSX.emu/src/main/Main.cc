@@ -258,8 +258,7 @@ void EmuSystem::initOptions()
 void EmuSystem::onOptionsLoaded()
 {
 	setMachineBasePath(machineBasePath, machineCustomPath);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(machineBasePath);
+	fixFilePermissions(machineBasePath);
 }
 
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = msxFsFilter;

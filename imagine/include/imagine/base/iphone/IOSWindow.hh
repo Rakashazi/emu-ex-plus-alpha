@@ -40,9 +40,9 @@ public:
 	void *glView_ = nullptr; // EAGLView in ObjC
 	IG::WindowRect contentRect; // active window content
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	CGFloat pointScale = 1.;
+	CGFloat pointScale{1.};
 	#else
-	static constexpr CGFloat pointScale = 1.;
+	static constexpr CGFloat pointScale{1.};
 	#endif
 
 	constexpr IOSWindow() {}

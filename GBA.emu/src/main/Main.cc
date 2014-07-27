@@ -275,8 +275,7 @@ FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath
 int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr.data());
+	fixFilePermissions(saveStr);
 	if(CPUWriteState(gGba, saveStr.data()))
 		return STATE_RESULT_OK;
 	else
@@ -297,8 +296,7 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		auto saveStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr.data());
+		fixFilePermissions(saveStr);
 		CPUWriteState(gGba, saveStr.data());
 	}
 }
@@ -309,8 +307,7 @@ void EmuSystem::saveBackupMem()
 	{
 		logMsg("saving backup memory");
 		auto saveStr = makeFSPathStringPrintf("%s/%s.sav", savePath(), gameName());
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr.data());
+		fixFilePermissions(saveStr);
 		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
 	}

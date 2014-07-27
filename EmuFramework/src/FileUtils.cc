@@ -11,6 +11,10 @@ void chdirFromFilePath(const char *path)
 
 void fixFilePermissions(const char *path)
 {
+	#if defined CONFIG_BASE_IOS
+	if(!Base::isSystemApp())
+		return;
+	// try to fix permissions if using jailbreak environment
 	if(FsSys::hasWriteAccess(path) == 0)
 	{
 		logMsg("%s lacks write permission, setting user as owner", path);
@@ -25,4 +29,5 @@ void fixFilePermissions(const char *path)
 	{
 		logWarn("error from fixMobilePermission helper: %d", err);
 	}
+	#endif
 }

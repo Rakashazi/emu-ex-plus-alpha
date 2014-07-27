@@ -15,7 +15,10 @@ int main(int argc, char *argv[])
 	{
 		return 2; // path invalid or too long
 	}
-	if(!strstr(realPath, "/private/var/mobile/Media") && !strstr(realPath, "/private/var/mobile/Documents"))
+	if(!strstr(realPath, "/private/var/mobile/Media")
+		&& !strstr(realPath, "/private/var/mobile/Documents")
+		&& !strstr(realPath, "/private/var/mobile/Library/Preferences")
+		)
 	{
 		return 3; // path isn't part of mobile's files
 	}

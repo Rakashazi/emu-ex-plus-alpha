@@ -414,8 +414,7 @@ static int loadMDState(const char *path)
 int EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(Config::envIsIOSJB)
-		fixFilePermissions(saveStr.data());
+	fixFilePermissions(saveStr);
 	logMsg("saving state %s", saveStr.data());
 	return saveMDState(saveStr.data());
 }
@@ -457,8 +456,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(sram.on)
 	{
 		auto saveStr = sprintSaveFilename();
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr.data());
+		fixFilePermissions(saveStr);
 
 		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
 
@@ -484,8 +482,7 @@ void EmuSystem::saveAutoState()
 	if(gameIsRunning() && optionAutoSaveState)
 	{
 		auto saveStr = sprintStateFilename(-1);
-		if(Config::envIsIOSJB)
-			fixFilePermissions(saveStr.data());
+		fixFilePermissions(saveStr);
 		saveMDState(saveStr.data());
 	}
 }

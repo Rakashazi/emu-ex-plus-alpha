@@ -8,7 +8,7 @@ The following make variables are used by the build system:
 XCODE_PATH : Optional, defaults to $(shell xcode-select --print-path)
  - The path in the Xcode app bundle containing the "Platforms/" subdirectory
  
-IOS_SDK : Optional, defaults to 7.1
+IOS_SDK : Optional, if not set the first SDK directory found is used
  - The version of the SDK in Xcode to use as the sysroot
 
 ios_arch : Optional, default set by app

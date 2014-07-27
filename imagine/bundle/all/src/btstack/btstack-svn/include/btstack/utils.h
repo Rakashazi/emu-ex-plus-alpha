@@ -124,8 +124,14 @@ void bt_flip_addr(bd_addr_t dest, bd_addr_t src);
 void net_store_16(uint8_t *buffer, uint16_t pos, uint16_t value);
 void net_store_32(uint8_t *buffer, uint16_t pos, uint32_t value);
 
+void swapX(const uint8_t *src, uint8_t *dst, int len);
+void swap24(const uint8_t  src[3],  uint8_t dst[3]);
+void swap56(const uint8_t  src[7],  uint8_t dst[7]);
+void swap64(const uint8_t  src[8],  uint8_t dst[8]);
+void swap128(const uint8_t src[16], uint8_t dst[16]);
+
 void hexdump(void *data, int size);
-void printUUID(uint8_t *uuid);
+void printUUID128(uint8_t *uuid);
 void print_key(const char * name, sm_key_t key);
 
 // @deprecated please use more convenient bd_addr_to_str

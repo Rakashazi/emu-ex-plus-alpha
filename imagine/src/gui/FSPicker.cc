@@ -82,8 +82,9 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	deinit();
-	#if defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB)
-	singleDir = 1; // stay in Documents dir when not in jailbreak environment
+	#ifdef CONFIG_BASE_IOS
+	if(!Base::isSystemApp())
+		singleDir = 1; // stay in Documents dir when not in jailbreak environment
 	#endif
 	faceRes = face;
 	var_selfs(filter);
@@ -226,9 +227,10 @@ void FSPicker::loadDir(const char *path)
 		}
 	}
 	tbl.init(this, dir.numEntries(), *this);
-	#if defined(CONFIG_BASE_IOS) && !defined(CONFIG_BASE_IOS_JB)
-	navV.setTitle("Documents");
-	#else
-	navV.setTitle(FsSys::workDir());
+	#ifdef CONFIG_BASE_IOS
+	if(!Base::isSystemApp())
+		navV.setTitle("Documents");
+	else
 	#endif
+		navV.setTitle(FsSys::workDir());
 }

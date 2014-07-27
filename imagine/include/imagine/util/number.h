@@ -146,7 +146,7 @@ static T sqrt(T remainder)
 template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
 constexpr static bool isEven(T num)
 {
-	return num % 2 == 0 ? 1 : 0;
+	return num % 2 == 0;
 }
 
 template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>

@@ -25,6 +25,10 @@
 #include "../../base/iphone/private.hh"
 #endif
 
+#ifdef __APPLE__
+#include <asl.h>
+#endif
+
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
@@ -127,11 +131,11 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);
-		Base::nsLog(logLineBuffer);
+		asl_log(nullptr, nullptr, ASL_LEVEL_NOTICE, "%s", logLineBuffer);
 		logLineBuffer[0] = 0;
 	}
 	else
-		Base::nsLogv(msg, args);
+		asl_vlog(nullptr, nullptr, ASL_LEVEL_NOTICE, msg, args);
 	#else
 	vfprintf(stderr, msg, args);
 	#endif

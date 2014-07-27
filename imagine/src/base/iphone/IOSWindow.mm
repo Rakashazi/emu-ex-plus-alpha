@@ -41,6 +41,10 @@ namespace Base
 static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
 
+#ifndef CONFIG_BASE_IOS_RETINA_SCALE
+constexpr CGFloat IOSWindow::pointScale;
+#endif
+
 UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation);
 
 const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)

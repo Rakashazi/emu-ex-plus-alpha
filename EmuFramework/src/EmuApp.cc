@@ -268,6 +268,7 @@ void setEmuViewOnExtraWindow(bool on)
 	if(on && !extraWin.win)
 	{
 		logMsg("setting emu view on extra window");
+		EmuSystem::resetFrameTime();
 		auto winConf = Gfx::makeWindowConfig();
 		if(Base::Screen::screens() > 1)
 		{
@@ -343,6 +344,7 @@ void setEmuViewOnExtraWindow(bool on)
 			[](Base::Window &win)
 			{
 				Gfx::setCurrentWindow(nullptr);
+				EmuSystem::resetFrameTime();
 				logMsg("setting emu view on main window");
 				emuWin = &mainWin;
 				std::swap(emuView.layer, emuView2.layer);
@@ -675,7 +677,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			if(change.resized())
 			{
 				updateWindowViewport(mainWin, change);
-				placeElements(mainWin.viewport());
+				emuView.setViewRect(mainWin.viewport().bounds(), mainWin.projectionPlane);
+				placeElements();
 			}
 		});
 
@@ -762,7 +765,7 @@ void mainInitWindowCommon(Base::Window &win)
 	}
 	#endif
 
-	placeElements(mainWin.viewport());
+	placeElements();
 	initMainMenu(win);
 	auto &mMenu = mainMenu();
 	viewStack.pushAndShow(mMenu);
@@ -854,16 +857,20 @@ void handleOpenFileCommand(const char *filename)
 	GameFilePicker::onSelectFile(file, Input::Event{});
 }
 
-void placeElements(const Gfx::Viewport &viewport)
+void placeEmuViews()
+{
+	emuView.place();
+	emuView2.place();
+}
+
+void placeElements()
 {
 	logMsg("placing app elements");
 	GuiTable1D::setDefaultXIndent(mainWin.projectionPlane);
 	popup.place(mainWin.projectionPlane);
-	emuView.setViewRect(viewport.bounds(), mainWin.projectionPlane);
-	emuView.place();
-	emuView2.place();
-	viewStack.place(viewport.bounds(), mainWin.projectionPlane);
-	modalViewController.place(viewport.bounds(), mainWin.projectionPlane);
+	placeEmuViews();
+	viewStack.place(mainWin.viewport().bounds(), mainWin.projectionPlane);
+	modalViewController.place(mainWin.viewport().bounds(), mainWin.projectionPlane);
 }
 
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport)

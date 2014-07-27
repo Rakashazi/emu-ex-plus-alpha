@@ -80,6 +80,25 @@ void bt_flip_addr(bd_addr_t dest, bd_addr_t src){
     dest[5] = src[0];
 }
 
+// general swap/endianess utils
+void swapX(const uint8_t *src, uint8_t *dst, int len){
+    int i;
+    for (i = 0; i < len; i++)
+        dst[len - 1 - i] = src[i];
+}
+void swap24(const uint8_t src[3], uint8_t dst[3]){
+    swapX(src, dst, 3);
+}
+void swap56(const uint8_t src[7], uint8_t dst[7]){
+    swapX(src, dst, 7);
+}
+void swap64(const uint8_t src[8], uint8_t dst[8]){
+    swapX(src, dst, 8);
+}
+void swap128(const uint8_t src[16], uint8_t dst[16]){
+    swapX(src, dst, 16);
+}
+
 void hexdump(void *data, int size){
     int i;
     for (i=0; i<size;i++){
@@ -93,8 +112,8 @@ void print_key(const char * name, sm_key_t key){
     hexdump(key, 16);
 }
 
-void printUUID(uint8_t *uuid) {
-    log_info("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+void printUUID128(uint8_t *uuid) {
+    printf("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
            uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
            uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
 }

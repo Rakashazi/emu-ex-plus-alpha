@@ -189,10 +189,14 @@ DragPointer *dragState(int p)
 #ifdef CONFIG_BASE_IOS_RETINA_SCALE
 - (void)willMoveToWindow:(UIWindow *)newWindow
 {
-	logMsg("view %p moving to window %p with scale %f", self, newWindow, [newWindow.screen scale]);
 	if(newWindow)
 	{
+		logMsg("view %p moving to window %p with scale %f", self, newWindow, [newWindow.screen scale]);
 		self.contentScaleFactor = [newWindow.screen scale];
+	}
+	else
+	{
+		logMsg("view %p removed from window", self);
 	}
 }
 #endif
@@ -211,8 +215,6 @@ DragPointer *dragState(int p)
 	GLContext::setDrawable(&win); // rebind to update internal height/width
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
-	#endif
-	#ifdef CONFIG_BASE_IOS_GLKIT
 	updateWindowSizeAndContentRect(win, [self drawableWidth], [self drawableHeight], sharedApp);
 	#else
 	auto frameSize = self.frame.size;

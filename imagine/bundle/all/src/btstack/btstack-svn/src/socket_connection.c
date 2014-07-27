@@ -64,6 +64,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
+
 #ifdef USE_LAUNCHD
 #include "../3rdparty/launch.h"
 #endif
@@ -489,6 +491,11 @@ int socket_connection_create_unix(char *path){
         return -1;
 	}
 	
+    // http://blog.henning.makholm.net/2008/06/unix-domain-socket-woes.html
+    // make socket accept from all clients
+    chmod(path, S_IRWXU | S_IRWXG | S_IRWXO);
+    //
+
 	if (listen (ds->fd, MAX_PENDING_CONNECTIONS)) {
 		log_error( "Error on listen() ...(%s)\n", strerror(errno));
 		free(ds);

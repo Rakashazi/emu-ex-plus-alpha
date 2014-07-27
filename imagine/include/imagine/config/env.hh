@@ -49,12 +49,6 @@ static const uint ENV =
 
 static const bool envIsAndroid = ENV == ANDROID_;
 static const bool envIsIOS = ENV == IOS;
-static const bool envIsIOSJB =
-	#ifdef CONFIG_BASE_IOS_JB
-	true;
-	#else
-	false;
-	#endif
 static const bool envIsMacOSX = ENV == MACOSX;
 static const bool envIsWebOS = ENV == WEBOS;
 static const bool envIsLinux = ENV == LINUX;

@@ -82,22 +82,77 @@ extern "C" {
 #define PSM_HID_INTERRUPT 0x13
 
 // Events from host controller to host
+
+/**
+ * @format 1
+ * @param status
+ */
 #define HCI_EVENT_INQUIRY_COMPLETE				           0x01
+// no format yet, can contain multiple results
 #define HCI_EVENT_INQUIRY_RESULT				           0x02
+/**
+ * @format 12B11
+ * @param status
+ * @param connection_handle
+ * @param bd_addr
+ * @param link_type
+ * @param encryption_enabled
+ */
 #define HCI_EVENT_CONNECTION_COMPLETE			           0x03
+/**
+ * @format B31
+ * @param bd_addr
+ * @param class_of_device
+ * @param link_type
+ */
 #define HCI_EVENT_CONNECTION_REQUEST			           0x04
+/**
+ * @format 121
+ * @param status
+ * @param connection_handle
+ * @param reason 
+ */
 #define HCI_EVENT_DISCONNECTION_COMPLETE		      	   0x05
+/**
+ * @format 12
+ * @param status
+ * @param connection_handle
+ */
 #define HCI_EVENT_AUTHENTICATION_COMPLETE_EVENT            0x06
+// name not handle, no format yet
 #define HCI_EVENT_REMOTE_NAME_REQUEST_COMPLETE	           0x07
+/**
+ * @format 121
+ * @param status
+ * @param connection_handle
+ * @param encryption_enabled 
+ */
 #define HCI_EVENT_ENCRYPTION_CHANGE                        0x08
+/**
+ * @format 12
+ * @param status
+ * @param connection_handle
+ */
 #define HCI_EVENT_CHANGE_CONNECTION_LINK_KEY_COMPLETE      0x09
+/**
+ * @format 121
+ * @param status
+ * @param connection_handle
+ * @param key_flag 
+ */
 #define HCI_EVENT_MASTER_LINK_KEY_COMPLETE                 0x0A
 #define HCI_EVENT_READ_REMOTE_SUPPORTED_FEATURES_COMPLETE  0x0B
 #define HCI_EVENT_READ_REMOTE_VERSION_INFORMATION_COMPLETE 0x0C
 #define HCI_EVENT_QOS_SETUP_COMPLETE			           0x0D
 #define HCI_EVENT_COMMAND_COMPLETE				           0x0E
 #define HCI_EVENT_COMMAND_STATUS				           0x0F
+
+/**
+ * @format 121
+ * @param hardware_code
+ */
 #define HCI_EVENT_HARDWARE_ERROR                           0x10
+
 #define HCI_EVENT_FLUSH_OCCURED                            0x11
 #define HCI_EVENT_ROLE_CHANGE				               0x12
 #define HCI_EVENT_NUMBER_OF_COMPLETED_PACKETS	      	   0x13
@@ -121,6 +176,19 @@ extern "C" {
 #define HCI_EVENT_LE_META                                  0x3E
 #define HCI_EVENT_VENDOR_SPECIFIC				           0xFF
 
+/** 
+ * @format 11211B2221
+ * @param subevent_code
+ * @param status
+ * @param connection_handle
+ * @param role
+ * @param peer_address_type
+ * @param peer_address
+ * @param conn_interval
+ * @param conn_latency
+ * @param supervision_timeout
+ * @param master_clock_accuracy
+ */
 #define HCI_SUBEVENT_LE_CONNECTION_COMPLETE                0x01
 #define HCI_SUBEVENT_LE_ADVERTISING_REPORT                 0x02
 #define HCI_SUBEVENT_LE_CONNECTION_UPDATE_COMPLETE         0x03
@@ -134,6 +202,11 @@ extern "C" {
 // BTSTACK DAEMON EVENTS
 
 // events from BTstack for application/client lib
+
+/**
+ * @format 1
+ * @param state
+ */
 #define BTSTACK_EVENT_STATE                                0x60
 
 // data: event(8), len(8), nr hci connections
@@ -220,41 +293,122 @@ extern "C" {
 // not provided by daemon, only used for internal testing
 #define SDP_QUERY_SERVICE_RECORD_HANDLE                    0x94
 
-// data: event(8), gatt subevent(8), address_type(8), address(6x8), rssi(8), len(8), data(len*8)
-#define GATT_ADVERTISEMENT								   0xA0
+/**
+ * @format H1
+ * @param handle
+ * @param status
+ */
+#define GATT_QUERY_COMPLETE                                0xA0
 
-#define GATT_CONNECTION_COMPLETE	 					   0xA1
-#define GATT_SERVICE_QUERY_RESULT     					   0xA2
-#define GATT_SERVICE_QUERY_COMPLETE    					   0xA3
-#define GATT_CHARACTERISTIC_QUERY_RESULT				   0xA4
-#define GATT_CHARACTERISTIC_QUERY_COMPLETE    			   0xA5
+/**
+ * @format HX
+ * @param handle
+ * @param service
+ */
+#define GATT_SERVICE_QUERY_RESULT     					   0xA1
 
+/**
+ * @format HY
+ * @param handle
+ * @param characteristic
+ */
+#define GATT_CHARACTERISTIC_QUERY_RESULT				   0xA2
+
+/**
+ * @format HX
+ * @param handle
+ * @param service
+ */
+#define GATT_INCLUDED_SERVICE_QUERY_RESULT     			   0xA3
+
+/**
+ * @format HY
+ * @param handle
+ * @param characteristic_descriptor
+ */
+#define GATT_ALL_CHARACTERISTIC_DESCRIPTORS_QUERY_RESULT   0xA4
+
+/**
+ * @format H2LV
+ * @param handle
+ * @param value_handle
+ * @param value_length
+ * @param value
+ */
+#define GATT_CHARACTERISTIC_VALUE_QUERY_RESULT  		   0xA5
+
+/**
+ * @format H2LV
+ * @param handle
+ * @param value_handle
+ * @param value_length
+ * @param value
+ */
+#define GATT_LONG_CHARACTERISTIC_VALUE_QUERY_RESULT		   0xA6
+
+/**
+ * @format H2LV
+ * @param handle
+ * @param value_handle
+ * @param value_length
+ * @param value
+ */
+#define GATT_NOTIFICATION								   0xA7
+
+/**
+ * @format H2LV
+ * @param handle
+ * @param value_handle
+ * @param value_length
+ * @param value
+ */
+#define GATT_INDICATION									   0xA8
+
+#define GATT_CHARACTERISTIC_DESCRIPTOR_QUERY_RESULT        0xA9
+#define GATT_LONG_CHARACTERISTIC_DESCRIPTOR_QUERY_RESULT   0xAA
+    
 // data: event(8), len(8), status (8), hci_handle (16), attribute_handle (16)
-#define ATT_HANDLE_VALUE_INDICATION_COMPLETE        	   0xAF
+#define ATT_HANDLE_VALUE_INDICATION_COMPLETE        	   0xB6
 
 // data: event(8), address_type(8), address (48), [number(32)]
-#define SM_JUST_WORKS_REQUEST							   0xb0
-#define SM_JUST_WORKS_CANCEL							   0xb1 
-#define SM_PASSKEY_DISPLAY_NUMBER						   0xb2
-#define SM_PASSKEY_DISPLAY_CANCEL  						   0xb3
-#define SM_PASSKEY_INPUT_NUMBER							   0xb4
-#define SM_PASSKEY_INPUT_CANCEL      					   0xb5
-#define SM_IDENTITY_RESOLVING_STARTED	        		   0xb6
-#define SM_IDENTITY_RESOLVING_FAILED	        		   0xb7
-#define SM_IDENTITY_RESOLVING_SUCCEEDED  				   0xb8
-#define SM_AUTHORIZATION_REQUEST						   0xb9
-#define SM_AUTHORIZATION_RESULT							   0xba
+#define SM_JUST_WORKS_REQUEST							   0xD0
+#define SM_JUST_WORKS_CANCEL							   0xD1 
+#define SM_PASSKEY_DISPLAY_NUMBER						   0xD2
+#define SM_PASSKEY_DISPLAY_CANCEL  						   0xD3
+#define SM_PASSKEY_INPUT_NUMBER							   0xD4
+#define SM_PASSKEY_INPUT_CANCEL      					   0xD5
+#define SM_IDENTITY_RESOLVING_STARTED	        		   0xD6
+#define SM_IDENTITY_RESOLVING_FAILED	        		   0xD7
+#define SM_IDENTITY_RESOLVING_SUCCEEDED  				   0xD8
+#define SM_AUTHORIZATION_REQUEST						   0xD9
+#define SM_AUTHORIZATION_RESULT							   0xDA
 
 // GAP
 
 // data: event(8), len(8), hci_handle (16), security_level (8)
-#define GAP_SECURITY_LEVEL     						   	   0xc0
+#define GAP_SECURITY_LEVEL     						   	   0xE0
 
 // data: event(8), len(8), status (8), bd_addr(48)
-#define GAP_DEDICATED_BONDING_COMPLETED					   0xc1
+#define GAP_DEDICATED_BONDING_COMPLETED					   0xE1
 
-// Error Code
+/**
+ * @format 11B1JV
+ * @param event_type
+ * @param address_type
+ * @param address
+ * @param rssi
+ * @param data_length
+ * @param data
+ */
+#define GAP_LE_ADVERTISING_REPORT						   0xE2
+
+//
+// Error Codes
+//
+
+// from Bluetooth Core Specification
 #define ERROR_CODE_UNKNOWN_CONNECTION_IDENTIFIER 	       0x02
+#define ERROR_CODE_COMMAND_DISALLOWED                      0x0C
 #define ERROR_CODE_PAIRING_NOT_ALLOWED					   0x18
 #define ERROR_CODE_INSUFFICIENT_SECURITY 				   0x2F
 
@@ -297,6 +451,20 @@ extern "C" {
 #define ATT_HANDLE_VALUE_INDICATION_IN_PORGRESS 		   0x90 
 #define ATT_HANDLE_VALUE_INDICATION_TIMEOUT				   0x91
 
+#define GATT_CLIENT_NOT_CONNECTED                          0x93
+#define GATT_CLIENT_BUSY								   0x94
+
+typedef enum {
+    BLE_PERIPHERAL_OK = 0xA0,
+    BLE_PERIPHERAL_IN_WRONG_STATE,
+    BLE_PERIPHERAL_DIFFERENT_CONTEXT_FOR_ADDRESS_ALREADY_EXISTS,
+    BLE_PERIPHERAL_NOT_CONNECTED,
+    BLE_VALUE_TOO_LONG,
+    BLE_PERIPHERAL_BUSY,
+    BLE_CHARACTERISTIC_NOTIFICATION_NOT_SUPPORTED,
+    BLE_CHARACTERISTIC_INDICATION_NOT_SUPPORTED
+} le_command_status_t;
+
 /**
  * Default INQ Mode
  */
@@ -332,6 +500,16 @@ extern "C" {
 
 // . Use IO capabilities to determine authentication procedure.
 #define SSP_IO_AUTHREQ_MITM_PROTECTION_REQUIRED_GENERAL_BONDING 0x05
+
+/**
+ * Address types
+ * @note: BTstack uses a custom addr type to refer to classic devices
+ */
+ typedef enum {
+ 	BD_ADDR_TYPE_LE_PUBLIC = 0,
+ 	BD_ADDR_TYPE_LE_RANDOM = 1,
+ 	BD_ADDR_TYPE_CLASSIC   = 0xff
+ } bd_addr_type_t;
 
 /**
  *  Hardware state of Bluetooth controller 
@@ -490,6 +668,14 @@ extern const hci_cmd_t rfcomm_unregister_service;
 // request persisten rfcomm channel for service name: serive name (char*) 
 extern const hci_cmd_t rfcomm_persistent_channel_for_service;
     
+extern const hci_cmd_t gap_disconnect_cmd;
+extern const hci_cmd_t gap_le_scan_start;
+extern const hci_cmd_t gap_le_scan_stop;
+extern const hci_cmd_t gap_le_set_scan_parameters;
+extern const hci_cmd_t gap_le_connect_cmd;
+extern const hci_cmd_t gap_le_connect_cancel_cmd;
+extern const hci_cmd_t gatt_discover_primary_services_cmd;
+
 #if defined __cplusplus
 }
 #endif

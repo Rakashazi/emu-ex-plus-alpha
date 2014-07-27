@@ -1,6 +1,6 @@
 runMakefiles ()
 {
-	if [ $@ ]
+	if [[ "$@" ]]
 	then
 		echo "Make parameters: $@"
 	fi

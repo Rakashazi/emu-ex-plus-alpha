@@ -60,7 +60,7 @@ public:
 	static int saveStateSlot;
 	static TimeSys startTime;
 	static Base::FrameTimeBase startFrameTime;
-	static int emuFrameNow;
+	static uint emuFrameNow;
 	static Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
 	static const uint optionFrameSkipAuto;
@@ -154,6 +154,7 @@ public:
 		return !string_equal(gameName_, "");
 	}
 
+	static void resetFrameTime();
 	static void pause();
 	static void start();
 	static void closeSystem();
