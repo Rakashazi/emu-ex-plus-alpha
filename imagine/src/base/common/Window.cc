@@ -17,9 +17,7 @@
 #include <imagine/base/Base.hh>
 #include "windowPrivate.hh"
 #include <imagine/gfx/Gfx.hh>
-#ifdef CONFIG_INPUT
 #include <imagine/input/Input.hh>
-#endif
 
 namespace Base
 {
@@ -117,6 +115,26 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 	else
 		surfaceChange.removeCustomViewportResized();
 
+}
+
+void Window::dispatchInputEvent(const Input::Event &event)
+{
+	onInputEvent(*this, event);
+}
+
+void Window::dispatchFocusChange(bool in)
+{
+	onFocusChange(*this, in);
+}
+
+void Window::dispatchDragDrop(const char *filename)
+{
+	onDragDrop(*this, filename);
+}
+
+void Window::dispatchDismissRequest()
+{
+	onDismissRequest(*this);
 }
 
 void Window::dispatchSurfaceChange()
@@ -272,9 +290,7 @@ uint Window::setOrientation(uint o, bool preferAnimated)
 		updateSize({savedRealWidth, savedRealHeight});
 		postDraw();
 		setSystemOrientation(o);
-		#ifdef CONFIG_INPUT
 		Input::configureInputForOrientation(*this);
-		#endif
 		return 1;
 	}
 	else

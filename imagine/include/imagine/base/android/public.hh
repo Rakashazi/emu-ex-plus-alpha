@@ -64,6 +64,3 @@ bool mogaSystemIsActive();
 void devicesChanged();
 
 }
-
-extern bool glSyncHackBlacklisted, glSyncHackEnabled;
-extern bool glPointerStateHack, glBrokenNpot;

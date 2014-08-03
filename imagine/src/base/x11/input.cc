@@ -342,7 +342,7 @@ static void updatePointer(Base::Window &win, uint key, int p, uint action, int x
 	auto &state = dragStateArr[p];
 	auto pos = transformInputPos(win, {x, y});
 	state.pointerEvent(key, action, pos);
-	win.onInputEvent(win, Event(p, Event::MAP_POINTER, key, action, pos.x, pos.y, false, time, nullptr));
+	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, action, pos.x, pos.y, false, time, nullptr});
 }
 
 bool handleXI2GenericEvent(XEvent &event)
@@ -411,9 +411,9 @@ bool handleXI2GenericEvent(XEvent &event)
 		bcase XI_Leave:
 			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, ievent.time);
 		bcase XI_FocusIn:
-			win.onFocusChange(win, 1);
+			win.dispatchFocusChange(1);
 		bcase XI_FocusOut:
-			win.onFocusChange(win, 0);
+			win.dispatchFocusChange(0);
 		bcase XI_KeyPress:
 		{
 			Input::cancelKeyRepeatTimer();
@@ -444,7 +444,7 @@ bool handleXI2GenericEvent(XEvent &event)
 					#endif
 					{
 						bool isShiftPushed = ievent.mods.effective & ShiftMask;
-						win.onInputEvent(win, Event(dev->enumId(), Event::MAP_SYSTEM, k & 0xFFFF, PUSHED, isShiftPushed, ievent.time, dev));
+						win.dispatchInputEvent(Event{dev->enumId(), Event::MAP_SYSTEM, (Key)(k & 0xFFFF), PUSHED, isShiftPushed, ievent.time, dev});
 					}
 				}
 			}
@@ -467,7 +467,7 @@ bool handleXI2GenericEvent(XEvent &event)
 				|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::RELEASED, *dev, win)))
 			#endif
 			{
-				win.onInputEvent(win, Event(dev->enumId(), Event::MAP_SYSTEM, k & 0xFFFF, RELEASED, 0, ievent.time, dev));
+				win.dispatchInputEvent(Event{dev->enumId(), Event::MAP_SYSTEM, (Key)(k & 0xFFFF), RELEASED, 0, ievent.time, dev});
 			}
 		}
 	}

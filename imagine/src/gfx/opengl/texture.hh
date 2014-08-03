@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <imagine/gfx/GfxBufferImage.hh>
 #ifdef __ANDROID__
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #include "android/DirectTextureBufferImage.hh"
 #include "android/SurfaceTextureBufferImage.hh"
 #endif
@@ -461,10 +461,6 @@ void TextureBufferImage::write(IG::Pixmap &p, uint hints, uint alignment)
 {
 	glcBindTexture(GL_TEXTURE_2D, desc.tid);
 	writeGLTexture(p, hints, GL_TEXTURE_2D, alignment);
-
-	#ifdef __ANDROID__
-	if(unlikely(glSyncHackEnabled)) glFinish();
-	#endif
 }
 
 void TextureBufferImage::write(IG::Pixmap &p, uint hints)

@@ -345,9 +345,6 @@ bool setCurrentWindow(Base::Window *win)
 
 void presentWindow(Base::Window &win)
 {
-	#ifdef __ANDROID__
-	if(unlikely(glSyncHackEnabled)) glFinish();
-	#endif
 	gfxContext.present(win);
 }
 

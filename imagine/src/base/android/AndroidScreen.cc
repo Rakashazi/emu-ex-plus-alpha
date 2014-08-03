@@ -18,14 +18,110 @@
 #include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
-#include "androidBase.hh"
-#include "private.hh"
+#include "internal.hh"
+#include "android.hh"
 #include "ASurface.hh"
+#include "../common/screenPrivate.hh"
 
 namespace Base
 {
 
 static JavaInstMethod<jint> jGetRotation;
+JavaInstMethod<jobject> jPresentation;
+JavaInstMethod<jobject> jGetDisplay;
+
+void initScreens(JNIEnv *jEnv, jobject activity, jclass activityCls)
+{
+	{
+		JavaInstMethod<jobject> jDefaultDpy;
+		jDefaultDpy.setup(jEnv, activityCls, "defaultDpy", "()Landroid/view/Display;");
+		// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
+		JavaInstMethod<jobject> jDisplayMetrics;
+		jDisplayMetrics.setup(jEnv, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
+		static Screen main;
+		main.init(jEnv, jDefaultDpy(jEnv, activity), jDisplayMetrics(jEnv, activity), true);
+		Screen::addScreen(&main);
+	}
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	if(Base::androidSDK() >= 17)
+	{
+		jPresentation.setup(jEnv, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
+		logMsg("setting up screen notifications");
+		JavaInstMethod<jobject> jDisplayListenerHelper;
+		jDisplayListenerHelper.setup(jEnv, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;");
+		auto displayListenerHelper = jDisplayListenerHelper(jEnv, activity);
+		assert(displayListenerHelper);
+		auto displayListenerHelperCls = jEnv->GetObjectClass(displayListenerHelper);
+		JNINativeMethod method[] =
+		{
+			{
+				"displayChange", "(II)V",
+				(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jint devID, jint change))
+				([](JNIEnv* env, jobject thiz, jint id, jint change)
+				{
+					switch(change)
+					{
+						bcase 0:
+							for(auto s : screen_)
+							{
+								if(s->id == id)
+								{
+									logMsg("screen %d already in device list", id);
+									break;
+								}
+							}
+							if(!screen_.isFull())
+							{
+								Screen *s = new Screen();
+								s->init(env, jGetDisplay(env, thiz, id), nullptr, false);
+								Screen::addScreen(s);
+								if(Screen::onChange)
+									Screen::onChange(*s, {Screen::Change::ADDED});
+							}
+						bcase 2:
+							logMsg("screen %d removed", id);
+							forEachInContainer(screen_, it)
+							{
+								Screen *removedScreen = *it;
+								if(removedScreen->id == id)
+								{
+									it.erase();
+									if(Screen::onChange)
+										Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
+									removedScreen->deinit();
+									delete removedScreen;
+									break;
+								}
+							}
+					}
+				})
+			}
+		};
+		jEnv->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
+
+		// get the current presentation screens
+		JavaInstMethod<jobject> jGetPresentationDisplays;
+		jGetPresentationDisplays.setup(jEnv, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;");
+		jGetDisplay.setup(jEnv, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
+		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(jEnv, displayListenerHelper);
+		uint pDisplays = jEnv->GetArrayLength(jPDisplay);
+		if(pDisplays)
+		{
+			if(pDisplays > screen_.freeSpace())
+				pDisplays = screen_.freeSpace();
+			logMsg("checking %d presentation display(s)", pDisplays);
+			iterateTimes(pDisplays, i)
+			{
+				auto display = jEnv->GetObjectArrayElement(jPDisplay, i);
+				Screen *s = new Screen();
+				s->init(jEnv, display, nullptr, false);
+				Screen::addScreen(s);
+			}
+		}
+		jEnv->DeleteLocalRef(jPDisplay);
+	}
+	#endif
+}
 
 void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool isMain)
 {

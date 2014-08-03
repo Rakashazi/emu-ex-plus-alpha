@@ -16,11 +16,12 @@ else
  configDefs += CONFIG_ENV_ANDROID_MINSDK=$(android_minSDK)
 endif
 
-SRC += base/android/androidBase.cc base/android/AndroidWindow.cc \
+SRC += base/android/android.cc base/android/AndroidWindow.cc \
  base/android/AndroidScreen.cc base/android/ALooperEventLoop.cc \
  base/common/timer/TimerFD.cc base/common/PosixPipe.cc \
  base/android/AndroidGLContext.cc base/common/EGLContextBase.cc \
- base/android/FrameTimer.cc \
+ base/android/FrameTimer.cc base/android/intent.cc \
+ base/android/input.cc base/android/system.cc \
  base/android/privateApi/libhardware.c
 LDLIBS += -landroid
 

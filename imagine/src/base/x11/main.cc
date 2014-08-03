@@ -190,7 +190,7 @@ static int eventHandler(XEvent &event)
 				if((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", True))
 				{
 					//logMsg("got window manager delete window message");
-					win.onDismissRequest(win);
+					win.dispatchDismissRequest();
 				}
 				else
 				{
@@ -224,7 +224,7 @@ static int eventHandler(XEvent &event)
 				sendDNDFinished(dpy, win.xWin, win.draggerXWin, win.dragAction);
 				auto filename = (char*)prop;
 				fileURLToPath(filename);
-				win.onDragDrop(win, filename);
+				win.dispatchDragDrop(filename);
 				XFree(prop);
 			}
 		}
@@ -311,9 +311,7 @@ int main(int argc, char** argv)
 	}
 	initXScreens();
 	initFrameTimer();
-	#ifdef CONFIG_INPUT
 	doOrAbort(Input::init());
-	#endif
 	#ifdef CONFIG_INPUT_EVDEV
 	Input::initEvdev();
 	#endif

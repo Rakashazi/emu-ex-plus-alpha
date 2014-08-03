@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 #define BOOL X11BOOL
 #include <X11/X.h>
@@ -30,7 +31,7 @@
 namespace Base
 {
 
-class XWindow : public NotEquals<XWindow>
+class XWindow : public BaseWindow, public NotEquals<XWindow>
 {
 public:
 	::Window xWin = None;
@@ -55,8 +56,6 @@ public:
 	{
 		return xWin != None;
 	}
-
-	void deinit();
 };
 
 void shutdownWindowSystem();

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 #include <EGL/egl.h>
 
@@ -25,7 +26,7 @@ struct ANativeActivity;
 namespace Base
 {
 
-class AndroidWindow : public NotEquals<AndroidWindow>
+class AndroidWindow : public BaseWindow, public NotEquals<AndroidWindow>
 {
 public:
 	ANativeWindow *nWin = nullptr;
@@ -53,7 +54,7 @@ public:
 
 	void initEGLSurface(EGLDisplay display);
 	void destroyEGLSurface(EGLDisplay display);
-	void deinit();
+	void updateContentRect(const IG::WindowRect &rect);
 };
 
 using WindowImpl = AndroidWindow;

@@ -22,7 +22,7 @@
 #include "utils.h"
 #include "GLStateCache.hh"
 #ifdef __ANDROID__
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #endif
 
 //#include "geometry-test.h"

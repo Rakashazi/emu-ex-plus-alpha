@@ -557,10 +557,6 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 			surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
 		}
 		#endif
-	if(!optionGLSyncHack.isConst)
-	{
-		glSyncHack.init(optionGLSyncHack); item[items++] = &glSyncHack;
-	}
 	#endif
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
@@ -746,15 +742,6 @@ OptionView::OptionView(Base::Window &win):
 			}
 		},
 		#endif
-	glSyncHack
-	{
-		"GPU Sync Hack",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			glSyncHackEnabled = item.on;
-		}
-	},
 	#endif
 	frameSkip
 	{

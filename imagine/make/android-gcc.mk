@@ -4,8 +4,6 @@ configDefs += CONFIG_MACHINE_$(MACHINE)
 binStatic := 1
 android_libm ?= -lm
 
-android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
-android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
 android_hasSDK14 := $(shell expr $(android_minSDK) \>= 14)
 android_hasSDK16 := $(shell expr $(android_minSDK) \>= 16)
 
@@ -13,12 +11,8 @@ ifeq ($(android_hasSDK16), 1)
  android_ndkSDK := 16
 else ifeq ($(android_hasSDK14), 1)
  android_ndkSDK := 14
-else ifeq ($(android_hasSDK9), 1)
- android_ndkSDK := 9
-else ifeq ($(android_hasSDK5), 1)
- android_ndkSDK := 5
 else
- android_ndkSDK := 4
+ android_ndkSDK := 9
 endif
 
 # TODO: android_minSDK should only apply to APK metadata
@@ -38,11 +32,7 @@ ifndef targetDir
  endif
 endif
 
-ifeq ($(android_hasSDK9), 1)
- android_soName := main
-else
- android_soName := imagine
-endif
+android_soName := main
 
 compiler_noSanitizeAddress := 1
 ifeq ($(config_compiler),clang)

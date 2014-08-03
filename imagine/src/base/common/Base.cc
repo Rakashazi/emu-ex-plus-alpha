@@ -59,18 +59,6 @@ void engineInit()
 // needed by GCC when not compiling with libstdc++/libsupc++, or to override it
 CLINK [[gnu::weak]] void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
 
-#if defined(__unix__) || defined(__APPLE__)
-void sleepUs(int us)
-{
-	usleep(us);
-}
-
-void sleepMs(int ms)
-{
-	sleepUs(ms*1000);
-}
-#endif
-
 void setOnInterProcessMessage(InterProcessMessageDelegate del)
 {
 	onInterProcessMessage_ = del;

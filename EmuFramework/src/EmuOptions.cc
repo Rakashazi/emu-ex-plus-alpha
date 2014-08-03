@@ -205,7 +205,6 @@ OptionRecentGames optionRecentGames;
 	Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
 	SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 	#endif
-Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack(CFGKEY_GL_SYNC_HACK, 0);
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
@@ -237,7 +236,6 @@ void initOptions()
 	#endif
 
 	#ifdef CONFIG_BASE_ANDROID
-	optionGLSyncHack.initDefault(glSyncHackBlacklisted);
 	if(Base::hasHardwareNavButtons())
 	{
 		optionLowProfileOSNav.isConst = 1;
@@ -253,7 +251,6 @@ void initOptions()
 	if(Base::androidSDK() >= 11)
 	{
 		optionNotificationIcon.initDefault(0);
-		optionGLSyncHack.isConst = 1;
 		// don't change dither setting on Android 3.0+
 		optionDitherImage.isConst = 1;
 		if(Base::mainScreen().refreshRate() == 60)

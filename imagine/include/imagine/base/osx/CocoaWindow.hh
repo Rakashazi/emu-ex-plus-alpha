@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 
 #ifdef __OBJC__
@@ -12,7 +13,7 @@
 namespace Base
 {
 
-class CocoaWindow : public NotEquals<CocoaWindow>
+class CocoaWindow : public BaseWindow, public NotEquals<CocoaWindow>
 {
 public:
 	void *nsWin_ = nullptr; // NSWindow in ObjC
@@ -33,8 +34,6 @@ public:
 	{
 		return nsWin_;
 	}
-
-	void deinit();
 };
 
 using WindowImpl = CocoaWindow;

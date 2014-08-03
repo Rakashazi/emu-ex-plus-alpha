@@ -23,9 +23,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
-#ifdef CONFIG_INPUT
 #include <imagine/input/Input.hh>
-#endif
 
 namespace Config
 {
@@ -36,12 +34,6 @@ static constexpr bool BASE_MULTI_WINDOW = true;
 static constexpr bool BASE_MULTI_WINDOW = false;
 #endif
 }
-
-#if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
-#define CONFIG_GFX_SOFT_ORIENTATION 1
-#elif !defined __ANDROID__ && !defined CONFIG_BASE_IOS
-#define CONFIG_GFX_SOFT_ORIENTATION 1
-#endif
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XWindow.hh>
@@ -56,46 +48,6 @@ static constexpr bool BASE_MULTI_WINDOW = false;
 namespace Base
 {
 using namespace IG;
-
-// orientation
-static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
-static constexpr uint VIEW_ROTATE_AUTO = bit(5);
-
-static const char *orientationToStr(uint o)
-{
-	using namespace Base;
-	switch(o)
-	{
-		case VIEW_ROTATE_AUTO: return "Auto";
-		case VIEW_ROTATE_0: return "0";
-		case VIEW_ROTATE_90: return "90";
-		case VIEW_ROTATE_180: return "180";
-		case VIEW_ROTATE_270: return "270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
-		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
-		default: bug_branch("%d", o); return 0;
-	}
-}
-
-#ifdef CONFIG_GFX
-static Gfx::GC orientationToGC(uint o)
-{
-	switch(o)
-	{
-		case VIEW_ROTATE_0: return Gfx::angleFromDegree(0.);
-		case VIEW_ROTATE_90: return Gfx::angleFromDegree(-90.);
-		case VIEW_ROTATE_180: return Gfx::angleFromDegree(-180.);
-		case VIEW_ROTATE_270: return Gfx::angleFromDegree(90.);
-		default: bug_branch("%d", o); return 0.;
-	}
-}
-#endif
-
-static bool orientationIsSideways(uint rotateView)
-{
-	return rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
-}
 
 class WindowConfig
 {
@@ -180,81 +132,24 @@ public:
 
 class Window : public WindowImpl
 {
-private:
-	int w = 0, h = 0; // size of full window surface
-	float wMM = 0, hMM = 0; // size in millimeter
-	float mmToPixelXScaler = 0, mmToPixelYScaler = 0;
-	#ifdef __ANDROID__
-	float wSMM = 0, hSMM = 0; // size in millimeter scaled by OS
-	float smmToPixelXScaler = 0, smmToPixelYScaler = 0;
-	#endif
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	Screen *screen_ = nullptr;
-	#endif
-	bool drawPosted = false;
-
 public:
-	struct SurfaceChange
-	{
-		uint8 flags = 0;
-		static constexpr uint8 SURFACE_RESIZED = IG::bit(0),
-			CONTENT_RECT_RESIZED = IG::bit(1),
-			CUSTOM_VIEWPORT_RESIZED = IG::bit(2);
-		static constexpr uint8 RESIZE_BITS =
-			SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
-
-		constexpr SurfaceChange() {}
-		constexpr SurfaceChange(uint8 flags): flags(flags) {}
-		bool resized() const
-		{
-			return flags & RESIZE_BITS;
-		}
-		bool surfaceResized() const { return flags & SURFACE_RESIZED; }
-		bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
-		bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
-		void addSurfaceResized() { flags |= SURFACE_RESIZED; }
-		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
-		void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
-		void removeCustomViewportResized() { unsetBits(flags, CUSTOM_VIEWPORT_RESIZED); }
-	};
-
-	struct DrawParams
-	{
-		FrameTimeBase frameTime_ = 0;
-		bool wasResized_ = false;
-
-		constexpr DrawParams() {}
-		FrameTimeBase frameTime() const { return frameTime_; }
-		bool wasResized() const { return wasResized_; }
-	};
-
-	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
-	using DrawDelegate = DelegateFunc<void (Window &win, DrawParams params)>;
-	using InputEventDelegate = DelegateFunc<void (Window &win, const Input::Event &event)>;
-	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
-	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
-	using DismissRequestDelegate = DelegateFunc<void (Window &win)>;
-	using DismissDelegate = DelegateFunc<void (Window &win)>;
-
-	bool resizePosted = true; // all windows need an initial onViewChange call
-	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint rotateView = VIEW_ROTATE_0;
-	uint preferedOrientation = VIEW_ROTATE_0;
-	uint validOrientations = Base::VIEW_ROTATE_0 | Base::VIEW_ROTATE_90 | Base::VIEW_ROTATE_180 | Base::VIEW_ROTATE_270;
-	#else
-	static constexpr uint rotateView = VIEW_ROTATE_0;
-	static constexpr uint preferedOrientation = VIEW_ROTATE_0;
-	#endif
-	SurfaceChangeDelegate onSurfaceChange;
-	DrawDelegate onDraw;
-	InputEventDelegate onInputEvent;
-	FocusChangeDelegate onFocusChange;
-	DragDropDelegate onDragDrop;
-	DismissRequestDelegate onDismissRequest;
-	DismissDelegate onDismiss;
-
 	constexpr Window() {}
+
+	CallResult init(const WindowConfig &config);
+	void show();
+	void dismiss();
+	void setAcceptDnd(bool on);
+	void setTitle(const char *name);
+	void setNeedsDraw(bool needsDraw);
+	void setNeedsCustomViewportResize(bool needsResize);
+	bool needsDraw();
+	void postDraw();
+	void unpostDraw();
+	void dispatchOnDraw(FrameTimeBase frameTime);
+	Screen &screen();
+	static void postNeededScreens();
+	static uint windows();
+	static Window *window(uint idx);
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target
@@ -341,51 +236,27 @@ public:
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
 
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
+	uint setOrientation(uint o, bool preferAnimated);
+	void setAutoOrientation(bool on);
+	void setSystemOrientation(uint o);
+	#endif
 	uint setValidOrientations(uint oMask, bool preferAnimated);
 	uint setValidOrientations(uint oMask)
 	{
 		return setValidOrientations(oMask, true);
 	}
 
-	// drag & drop
-	#if defined CONFIG_BASE_X11
-	void setAcceptDnd(bool on);
-	#else
-	static void setAcceptDnd(bool on) {}
-	#endif
-
-	// window management
-	#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_WIN32 || defined CONFIG_BASE_MACOSX
-	void setTitle(const char *name);
-	#else
-	static void setTitle(const char *name) {}
-	#endif
-
-	CallResult init(const WindowConfig &config);
-	void show();
-	void dismiss();
-	void setNeedsDraw(bool needsDraw);
-	void setNeedsCustomViewportResize(bool needsResize);
-	bool needsDraw();
-	void postDraw();
-	static void postNeededScreens();
-	void unpostDraw();
-	void dispatchOnDraw(FrameTimeBase frameTime);
-	Screen &screen();
-
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
-	static uint windows();
-	static Window *window(uint idx);
 	bool hasSurface();
-
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint setOrientation(uint o, bool preferAnimated);
-	void setAutoOrientation(bool on);
-	void setSystemOrientation(uint o);
-	#endif
+	void dispatchInputEvent(const Input::Event &event);
+	void dispatchFocusChange(bool in);
+	void dispatchDragDrop(const char *filename);
+	void dispatchDismissRequest();
+	void deinit();
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);

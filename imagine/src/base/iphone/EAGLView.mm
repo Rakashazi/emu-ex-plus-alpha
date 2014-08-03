@@ -224,8 +224,6 @@ DragPointer *dragState(int p)
 	//logMsg("exiting layoutSubviews");
 }
 
-#ifdef CONFIG_INPUT
-
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	using namespace Base;
@@ -244,7 +242,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, transPos);
-				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr));
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr});
 				break;
 			}
 		}
@@ -268,7 +266,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, transPos);
-				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr));
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr});
 				break;
 			}
 		}
@@ -293,7 +291,7 @@ DragPointer *dragState(int p)
 				pos.y *= win.pointScale;
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, transPos);
-				win.onInputEvent(win, Input::Event(i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr));
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr});
 				break;
 			}
 		}
@@ -328,7 +326,5 @@ DragPointer *dragState(int p)
 	}
 	#endif
 #endif // defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
-
-#endif
 
 @end

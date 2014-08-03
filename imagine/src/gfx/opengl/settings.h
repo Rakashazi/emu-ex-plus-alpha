@@ -3,7 +3,7 @@
 #include "private.hh"
 
 #ifdef __ANDROID__
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #include <imagine/base/android/public.hh>
 #include "android/DirectTextureBufferImage.hh"
 #include <dlfcn.h>

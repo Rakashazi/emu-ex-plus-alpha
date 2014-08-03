@@ -18,7 +18,7 @@
 #include <imagine/util/fd-utils.h>
 #include <errno.h>
 #include <cctype>
-#include "../base/android/private.hh"
+#include "../base/android/android.hh"
 #include "utils.hh"
 
 using namespace Base;

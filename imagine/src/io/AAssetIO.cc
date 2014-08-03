@@ -20,7 +20,7 @@
 #include <imagine/io/IoMmapGeneric.hh>
 #include <imagine/io/sys.hh>
 #include <imagine/io/utils.hh>
-#include "../base/android/private.hh"
+#include "../base/android/android.hh"
 #include <imagine/logger/logger.h>
 
 Io* AAssetIO::open(const char *name)

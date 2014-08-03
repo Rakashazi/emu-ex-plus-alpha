@@ -255,7 +255,7 @@ CallResult Window::init(const WindowConfig &config)
 	return OK;
 }
 
-void XWindow::deinit()
+void Window::deinit()
 {
 	if(GLContext::drawable() == this)
 		GLContext::setDrawable(nullptr);

@@ -160,6 +160,7 @@ void IOSWindow::updateContentRect(int width, int height, uint rotateView, UIAppl
 	{
 		logMsg("using full window size for content rect %d,%d", contentRect.x2, contentRect.y2);
 	}
+	surfaceChange.addContentRectResized();
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -248,7 +249,7 @@ CallResult Window::init(const WindowConfig &config)
 	return OK;
 }
 
-void IOSWindow::deinit()
+void Window::deinit()
 {
 	assert(this != deviceWindow());
 	#ifdef CONFIG_BASE_MULTI_WINDOW
@@ -284,6 +285,10 @@ Window *windowForUIWindow(UIWindow *uiWin)
 	}
 	return nullptr;
 }
+
+void Window::setTitle(const char *name) {}
+
+void Window::setAcceptDnd(bool on) {}
 
 }
 

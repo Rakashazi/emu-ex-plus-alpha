@@ -13,15 +13,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "FrameTimer"
 #include <unistd.h>
 #include <errno.h>
 #include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
-#include "androidBase.hh"
-#include "private.hh"
-#include "ASurface.hh"
+#include "internal.hh"
+#include "android.hh"
 
 namespace Base
 {
@@ -258,7 +258,7 @@ void initFrameTimer(JNIEnv *jEnv, jobject activity)
 {
 	if(Base::androidSDK() < 16)
 	{
-		// use eventfd if OS support it
+		// use eventfd if OS supports it
 		if(eventFDFrameTimer.init(jEnv, activity))
 		{
 			frameTimer = &eventFDFrameTimer;

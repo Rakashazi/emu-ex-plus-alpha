@@ -483,9 +483,7 @@ int main(int argc, char** argv)
 		appPath = getcwd(0, 0);
 	#endif
 
-	#ifdef CONFIG_INPUT
 	doOrAbort(Input::init());
-	#endif
 	doOrAbort(onInit(argc, argv));
 	engineInit();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

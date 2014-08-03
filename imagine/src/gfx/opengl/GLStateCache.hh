@@ -4,14 +4,6 @@
 #include <imagine/util/algorithm.h>
 #include "utils.h"
 
-#ifdef CONFIG_BASE_ANDROID
-#include <imagine/base/android/public.hh>
-#else
-static const bool glPointerStateHack = 0;
-#endif
-
-static const bool glEnableStateHack = 0;
-
 static GLenum textureTargetToGet(GLenum target)
 {
 	switch(target)

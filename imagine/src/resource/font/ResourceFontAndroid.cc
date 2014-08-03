@@ -18,7 +18,7 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
 #include <imagine/util/jni.hh>
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #include <android/bitmap.h>
 
 using namespace Base;
@@ -73,7 +73,7 @@ ResourceFont *ResourceFontAndroid::loadSystem()
 		inst->free();
 		return nullptr;
 	}
-	inst->renderer = Base::jniThreadNewGlobalRef(jEnv, inst->renderer);
+	inst->renderer = jEnv->NewGlobalRef(inst->renderer);
 
 	return inst;
 }
@@ -81,7 +81,7 @@ ResourceFont *ResourceFontAndroid::loadSystem()
 void ResourceFontAndroid::free()
 {
 	if(renderer)
-		Base::jniThreadDeleteGlobalRef(eEnv(), renderer);
+		Base::eEnv()->DeleteGlobalRef(renderer);
 	delete this;
 }
 
@@ -104,7 +104,7 @@ IG::Pixmap ResourceFontAndroid::charBitmap()
 	lockedBitmap = jCharBitmap(jEnv, renderer);
 	assert(lockedBitmap);
 	//logMsg("got bitmap @ %p", lockedBitmap);
-	//lockedBitmap = Base::jniThreadNewGlobalRef(jEnv, lockedBitmap);
+	//lockedBitmap = jEnv->NewGlobalRef(lockedBitmap);
 	AndroidBitmapInfo info;
 	{
 		auto res = AndroidBitmap_getInfo(jEnv, lockedBitmap, &info);
@@ -128,7 +128,7 @@ void ResourceFontAndroid::unlockCharBitmap(IG::Pixmap &pix)
 	AndroidBitmap_unlockPixels(jEnv, lockedBitmap);
 	jUnlockCharBitmap(jEnv, renderer, lockedBitmap);
 	jEnv->DeleteLocalRef(lockedBitmap);
-	//Base::jniThreadDeleteGlobalRef(jEnv, lockedBitmap);
+	//jEnv->DeleteGlobalRef(lockedBitmap);
 	lockedBitmap = nullptr;
 }
 
@@ -166,7 +166,7 @@ CallResult ResourceFontAndroid::newSize(const FontSettings &settings, FontSizeRe
 	auto size = jNewSize(jEnv, renderer, settings.pixelHeight);
 	assert(size);
 	logMsg("allocated new size %dpx @ 0x%p", settings.pixelHeight, size);
-	sizeRef.ptr = Base::jniThreadNewGlobalRef(jEnv, size);
+	sizeRef.ptr = jEnv->NewGlobalRef(size);
 	return OK;
 }
 
@@ -182,6 +182,6 @@ void ResourceFontAndroid::freeSize(FontSizeRef &sizeRef)
 		return;
 	auto jEnv = eEnv();
 	jFreeSize(jEnv, renderer, sizeRef.ptr);
-	Base::jniThreadDeleteGlobalRef(jEnv, (jobject)sizeRef.ptr);
+	jEnv->DeleteGlobalRef((jobject)sizeRef.ptr);
 	sizeRef.ptr = nullptr;
 }

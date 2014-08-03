@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxBufferImage.hh>
-#include "../../../base/android/private.hh"
+#include "../../../base/android/android.hh"
 
 namespace Gfx
 {

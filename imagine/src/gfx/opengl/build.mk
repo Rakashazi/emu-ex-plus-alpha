@@ -57,10 +57,7 @@ else
 endif
 
 ifeq ($(ENV), android)
- ifeq ($(android_hasSDK9), 1)
-  SRC += gfx/opengl/android/SurfaceTextureBufferImage.cc
- endif
- SRC += gfx/opengl/android/DirectTextureBufferImage.cc
+ SRC += gfx/opengl/android/SurfaceTextureBufferImage.cc gfx/opengl/android/DirectTextureBufferImage.cc
 endif
 
 endif

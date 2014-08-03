@@ -39,7 +39,6 @@ protected:
 		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		BoolMenuItem surfaceTexture;
 		#endif
-	BoolMenuItem glSyncHack;
 	#endif
 	MultiChoiceSelectMenuItem frameSkip;
 	void frameSkipInit();

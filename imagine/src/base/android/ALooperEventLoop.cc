@@ -34,7 +34,7 @@ ALooper *activityLooper()
 	return aLooper;
 }
 
-void setupActivityLooper()
+void initActivityLooper()
 {
 	if(aLooper)
 	{

@@ -61,12 +61,12 @@ static void glcBlendFunc(GLenum sfactor, GLenum dfactor)
 static void glcBlendEquation(GLenum mode)
 { if(useGLCache) glState.blendEquation(mode); else glBlendEquation(mode); }
 static void glcEnable(GLenum cap)
-{ if(useGLCache && likely(!glEnableStateHack)) glState.enable(cap); else glEnable(cap); }
+{ if(useGLCache) glState.enable(cap); else glEnable(cap); }
 static void glcDisable(GLenum cap)
-{ if(useGLCache && likely(!glEnableStateHack)) glState.disable(cap); else glDisable(cap); }
+{ if(useGLCache) glState.disable(cap); else glDisable(cap); }
 static GLboolean glcIsEnabled(GLenum cap)
 {
-	if(useGLCache && likely(!glEnableStateHack))
+	if(useGLCache)
 		return glState.isEnabled(cap);
 	else
 		return glIsEnabled(cap);
@@ -91,11 +91,11 @@ static void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 	}
 }
 static void glcTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
-{ if(useGLCache && likely(!glPointerStateHack)) glState.texCoordPointer(size, type, stride, pointer); else glTexCoordPointer(size, type, stride, pointer); }
+{ if(useGLCache) glState.texCoordPointer(size, type, stride, pointer); else glTexCoordPointer(size, type, stride, pointer); }
 static void glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
-{ if(useGLCache && likely(!glPointerStateHack)) glState.colorPointer(size, type, stride, pointer); else glColorPointer(size, type, stride, pointer); }
+{ if(useGLCache) glState.colorPointer(size, type, stride, pointer); else glColorPointer(size, type, stride, pointer); }
 static void glcVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
-{ if(useGLCache && likely(!glPointerStateHack)) glState.vertexPointer(size, type, stride, pointer); else glVertexPointer(size, type, stride, pointer); }
+{ if(useGLCache) glState.vertexPointer(size, type, stride, pointer); else glVertexPointer(size, type, stride, pointer); }
 #endif
 static void glcBindBuffer(GLenum target, GLuint buffer)
 { if(useGLCache) glState.bindBuffer(target, buffer); else glBindBuffer(target, buffer); }

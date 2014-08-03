@@ -33,8 +33,6 @@ namespace Base
 
 extern JavaVM* jVM;
 JNIEnv* eEnv(); // JNIEnv of main event thread
-jobject jniThreadNewGlobalRef(JNIEnv* jEnv, jobject obj);
-void jniThreadDeleteGlobalRef(JNIEnv* jEnv, jobject obj);
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
@@ -52,7 +50,6 @@ int hardKeyboardState();
 int keyboardType();
 
 // Activity thread ALooper
-void setupActivityLooper();
 ALooper *activityLooper();
 
 AAssetManager *activityAAssetManager();
@@ -62,9 +59,6 @@ jobject newFontRenderer(JNIEnv *jEnv);
 void restoreOpenGLContext();
 void unrefUIGL();
 void refUIGL();
-
-void doOnResume(ANativeActivity* activity);
-void handleIntent(ANativeActivity* activity);
 
 bool hasLowLatencyAudio();
 

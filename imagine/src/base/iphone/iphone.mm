@@ -41,7 +41,7 @@ namespace Base
 	MainApp *mainApp = nullptr;
 }
 
-#if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
+#if defined IPHONE_VKEYBOARD
 namespace Input
 {
 	//static UITextView *vkbdField = nil;
@@ -96,7 +96,7 @@ uint appActivityState() { return appState; }
 
 @implementation MainApp
 
-#if defined(CONFIG_INPUT) && defined(IPHONE_VKEYBOARD)
+#if defined IPHONE_VKEYBOARD
 /*- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
 {
 	if (textView.text.length >= 127 && range.length == 0)
@@ -390,7 +390,6 @@ void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplic
 {
 	win.updateSize({width, height});
 	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
-	win.surfaceChange.addContentRectResized();
 }
 
 static void setStatusBarHidden(bool hidden)
@@ -406,7 +405,6 @@ static void setStatusBarHidden(bool hidden)
 	{
 		auto &win = *deviceWindow();
 		win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
-		win.surfaceChange.addContentRectResized();
 		win.postDraw();
 	}
 }
@@ -441,7 +439,6 @@ void Window::setSystemOrientation(uint o)
 	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	updateContentRect(width(), height(), rotateView, sharedApp);
-	surfaceChange.addContentRectResized();
 }
 
 static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching
@@ -597,9 +594,7 @@ int main(int argc, char *argv[])
 	}
 	#endif
 	
-	#ifdef CONFIG_INPUT
 	doOrAbort(Input::init());
-	#endif
 	
 	#ifdef CONFIG_AUDIO
 	Audio::initSession();

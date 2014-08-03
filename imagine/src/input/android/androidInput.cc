@@ -16,7 +16,7 @@
 #define LOGTAG "InputAndroid"
 #include <imagine/base/android/sdk.hh>
 #include <imagine/input/AxisKeyEmu.hh>
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #include "../private.hh"
 #include "private.hh"
 #include "AndroidInputDevice.hh"

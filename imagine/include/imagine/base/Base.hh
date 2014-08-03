@@ -50,10 +50,6 @@ static const uint APP_RUNNING = 0, APP_PAUSED = 1, APP_EXITING = 2;
 uint appActivityState();
 static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 
-// sleeping
-void sleepMs(int ms); //sleep for ms milliseconds
-void sleepUs(int us);
-
 // external services
 #if defined (CONFIG_BASE_IOS)
 void openURL(const char *url);

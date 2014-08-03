@@ -20,7 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/pixel.h>
 #include <imagine/util/strings.h>
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 
 static jclass jBitmapFactory = nullptr;
 static JavaClassMethod<jobject> jDecodeFile;

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/base/iphone/config.h>
 #import <CoreGraphics/CGBase.h>
@@ -33,7 +34,7 @@ extern uint screenPointScale;
 static constexpr uint screenPointScale = 1;
 #endif
 
-class IOSWindow : public NotEquals<IOSWindow>
+class IOSWindow : public BaseWindow, public NotEquals<IOSWindow>
 {
 public:
 	void *uiWin_ = nullptr; // UIWindow in ObjC
@@ -61,8 +62,6 @@ public:
 	{
 		return uiWin_;
 	}
-
-	void deinit();
 };
 
 using WindowImpl = IOSWindow;

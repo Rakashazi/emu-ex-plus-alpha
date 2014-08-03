@@ -8,33 +8,10 @@ all : android-apk
 # SDK level setup
 
 android_minSDK ?= 9
+android_baseModuleSDK := 9
+android_targetSDK ?= 17
 
-android_hasSDK5 := $(shell expr $(android_minSDK) \>= 5)
-android_hasSDK9 := $(shell expr $(android_minSDK) \>= 9)
-
-ifeq ($(android_hasSDK9), 1)
- android_baseModuleSDK := 9
-else ifeq ($(android_hasSDK5), 1)
- android_baseModuleSDK := 5
-else
- android_baseModuleSDK := 4
-endif
-
-ifndef android_targetSDK
- android_targetSDK := $(android_minSDK)
- ifeq ($(android_minSDK), 5)
-  android_targetSDK := 8
- endif
- ifeq ($(android_hasSDK9), 1)
-  android_targetSDK := 17
- endif
-endif
-
-ifeq ($(android_hasSDK9), 1)
- android_soName := main
-else
- android_soName := imagine
-endif
+android_soName := main
 
 # Architecture setup
 
@@ -42,15 +19,7 @@ ifndef android_arch
  ifdef android_ouyaBuild
   android_arch := armv7
  else
-  ifeq ($(android_minSDK), 4)
-   # only build ARM for older Android OS
-   android_arch := arm
-  else ifeq ($(android_minSDK), 5)
-   android_arch := arm armv7
-  else
-   # also build X86 on Android 2.3+
-   android_arch := arm armv7 x86
-  endif
+  android_arch := armv7 x86
  endif
 endif
 
@@ -167,10 +136,8 @@ $(android_drawableXxhdpiIconPath) :
 	cp $@ $(android_targetPath)/res/drawable/iconbig.xml
 endif
 
-android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath)
-ifeq ($(android_hasSDK9), 1)
- android_drawableIconPaths += $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath)
-endif
+android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath) \
+ $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath)
 
 ifdef android_ouyaBuild
  android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png

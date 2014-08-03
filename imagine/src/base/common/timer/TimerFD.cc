@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 
 #if defined __ANDROID__
-#include "../../android/private.hh"
+#include "../../android/android.hh"
 // No sys/timerfd.h on Android, need to use syscall
 #include <time.h>
 #include <sys/syscall.h>

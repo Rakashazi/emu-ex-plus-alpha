@@ -16,7 +16,7 @@
 #include "SurfaceTextureBufferImage.hh"
 #include "../GLStateCache.hh"
 #include "../private.hh"
-#include "../../../base/android/private.hh"
+#include "../../../base/android/android.hh"
 
 namespace Gfx
 {
@@ -33,12 +33,12 @@ void SurfaceTextureBufferImage::init(int tid, IG::Pixmap &pixmap)
 	auto jEnv = eEnv();
 	surfaceTex = jEnv->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tid);
 	assert(surfaceTex);
-	surfaceTex = Base::jniThreadNewGlobalRef(jEnv, surfaceTex);
+	surfaceTex = jEnv->NewGlobalRef(surfaceTex);
 	//jEnv->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
 
 	surface = jEnv->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
 	assert(surface);
-	surface = Base::jniThreadNewGlobalRef(jEnv, surface);
+	surface = jEnv->NewGlobalRef(surface);
 
 	// ANativeWindow_fromSurfaceTexture was removed from Android 4.1
 	//nativeWin = surfaceTextureConf.ANativeWindow_fromSurfaceTexture(eEnv(), surfaceTex);
@@ -103,9 +103,9 @@ void SurfaceTextureBufferImage::deinit()
 	ANativeWindow_release(nativeWin);
 	auto jEnv = eEnv();
 	surfaceTextureConf.jSurfaceRelease(jEnv, surface);
-	Base::jniThreadDeleteGlobalRef(jEnv, surface);
+	jEnv->DeleteGlobalRef(surface);
 	surfaceTextureConf.jSurfaceTextureRelease(jEnv, surfaceTex);
-	Base::jniThreadDeleteGlobalRef(jEnv, surfaceTex);
+	jEnv->DeleteGlobalRef(surfaceTex);
 	freeTexRef(desc.tid);
 	desc.tid = 0;
 

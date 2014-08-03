@@ -130,7 +130,6 @@ extern OptionRecentGames optionRecentGames;
 	extern Byte1Option optionSurfaceTexture;
 	extern SByte1Option optionProcessPriority;
 	#endif
-extern Option<OptionMethodRef<template_ntype(glSyncHackEnabled)>, uint8> optionGLSyncHack;
 #endif
 
 extern Byte1Option optionDitherImage;

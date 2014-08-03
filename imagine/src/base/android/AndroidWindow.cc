@@ -18,14 +18,14 @@
 #include "../common/screenPrivate.hh"
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/android/sdk.hh>
-#include "private.hh"
+#include "android.hh"
 #include "ASurface.hh"
 #include <imagine/util/fd-utils.h>
 #include <imagine/gfx/Gfx.hh>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
-#include "androidBase.hh"
+#include "internal.hh"
 
 namespace Base
 {
@@ -94,7 +94,6 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				win.unpostDraw();
 				ANativeWindow_release(win.nWin);
 				androidWindowSurfaceDestroyed(win);
 			})
@@ -192,7 +191,7 @@ CallResult Window::init(const WindowConfig &config)
 	return OK;
 }
 
-void AndroidWindow::deinit()
+void Window::deinit()
 {
 	assert(this != deviceWindow());
 	#ifdef CONFIG_BASE_MULTI_WINDOW
@@ -253,6 +252,12 @@ void AndroidWindow::destroyEGLSurface(EGLDisplay display)
 	surface = EGL_NO_SURFACE;
 }
 
+void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
+{
+	contentRect = rect;
+	surfaceChange.addContentRectResized();
+}
+
 void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
 {
 	win.nWin = nWin;
@@ -274,8 +279,7 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 {
 	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
-	win.contentRect = rect;
-	win.surfaceChange.addContentRectResized();
+	win.updateContentRect(rect);
 	if(win.updateSize(winSize) && androidSDK() < 19)
 	{
 		// On some OS versions like CM7 on the HP Touchpad,
@@ -291,8 +295,9 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 	win.postDraw();
 }
 
-void androidWindowSurfaceDestroyed(AndroidWindow &win)
+void androidWindowSurfaceDestroyed(Window &win)
 {
+	win.unpostDraw();
 	if(GLContext::drawable() == &win)
 		GLContext::setDrawable(nullptr);
 	win.destroyEGLSurface(GLContext::eglDisplay());
@@ -320,5 +325,11 @@ void restoreOpenGLContext()
 		logMsg("current context was restored");
 	}
 }
+
+void Window::setTitle(const char *name) {}
+
+void Window::setAcceptDnd(bool on) {}
+
+
 
 }

@@ -575,11 +575,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new MOGAHelper(this);
 	}
 	
-	SystemUiVisibilityChangeHelper uiVisibilityChangeHelper()
-	{
-		return new SystemUiVisibilityChangeHelper(getWindow().getDecorView());
-	}
-	
 	PresentationHelper presentation(Display display, long windowAddr)
 	{
 		PresentationHelper p = new PresentationHelper(this, display, windowAddr);

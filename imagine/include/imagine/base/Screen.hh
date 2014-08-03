@@ -53,16 +53,20 @@ public:
 		bool removed() const { return state == REMOVED; }
 	};
 	using ChangeDelegate = DelegateFunc<void (const Screen &screen, const Change &change)>;
+	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameTimeBase frameTime)>;
 
   static const uint REFRESH_RATE_DEFAULT = 0;
   FrameTimeBase prevFrameTime = 0;
-	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameTimeBase frameTime)>;
 	StaticArrayList<OnFrameDelegate, 4> onFrameDelegate;
 	bool framePosted = false;
 	bool inFrameHandler = false;
 	static ChangeDelegate onChange;
 
 	constexpr Screen() {}
+	static uint screens();
+	static Screen *screen(uint idx);
+	// Called when a screen addition/removal/change occurs
+	static void setOnChange(ChangeDelegate del);
 	int width();
 	int height();
 	void postFrame();
@@ -85,14 +89,8 @@ public:
   void frameUpdate(FrameTimeBase frameTime);
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
-	static uint screens();
-	static Screen *screen(uint idx);
-
 	static void addScreen(Screen *s);
 	void deinit();
-
-	// Called when a screen addition/removal/change occurs
-	static void setOnChange(ChangeDelegate del);
 };
 
 }

@@ -156,7 +156,7 @@ bool keyInputIsPresent()
 
 void dispatchInputEvent(const Input::Event &event)
 {
-	Base::mainWindow().onInputEvent(Base::mainWindow(), event);
+	Base::mainWindow().dispatchInputEvent(event);
 }
 
 bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
@@ -189,7 +189,7 @@ bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
 			Event event{0, Event::MAP_ICADE, (Key)keycodeMap[index], PUSHED, 0, 0, &dev};
 			#endif
 			startKeyRepeatTimer(event);
-			win.onInputEvent(win, event);
+			win.dispatchInputEvent(event);
 		}
 		return true;
 	}
@@ -204,9 +204,9 @@ bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
 			{
 				cancelKeyRepeatTimer();
 				#ifdef CONFIG_BASE_IOS
-				win.onInputEvent(win, Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
+				win.dispatchInputEvent(Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
 				#else
-				win.onInputEvent(win, Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
+				win.dispatchInputEvent(Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
 				#endif
 			}
 			return true;

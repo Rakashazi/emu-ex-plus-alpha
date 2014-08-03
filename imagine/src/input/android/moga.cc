@@ -15,7 +15,7 @@
 
 #define LOGTAG "InputAndroidMOGA"
 #include <imagine/base/Base.hh>
-#include "../../base/android/private.hh"
+#include "../../base/android/android.hh"
 #include "private.hh"
 #include "../private.hh"
 #include "AndroidInputDevice.hh"
@@ -96,7 +96,7 @@ static void initMOGAJNI(JNIEnv *jEnv)
 				Base::endIdleByUserActivity();
 				Event event{0, Event::MAP_SYSTEM, Key(keyCode & 0xff), (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, &mogaDev};
 				startKeyRepeatTimer(event);
-				Base::mainWindow().onInputEvent(Base::mainWindow(), event);
+				Base::mainWindow().dispatchInputEvent(event);
 			})
 		},
 		{
