@@ -181,12 +181,16 @@ void startViewportAnimation(AppWindowData &winData)
 		viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
 		viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
 		viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
-		winData.win.setNeedsCustomViewportResize(true);
-		winData.win.postDraw();
+		animateViewportStep(winData);
+		if(!winData.viewportDelta[0].isComplete())
+		{
+			winData.win.setNeedsCustomViewportResize(true);
+			winData.win.postDraw();
+		}
 	}
 }
 
-void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change)
+static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change)
 {
 	if(change.surfaceResized())
 	{
@@ -195,7 +199,6 @@ void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange ch
 	else if(change.contentRectResized())
 	{
 		startViewportAnimation(winData);
-		animateViewportStep(winData);
 	}
 	else if(change.customViewportResized())
 	{

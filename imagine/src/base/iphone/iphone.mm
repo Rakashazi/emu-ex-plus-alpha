@@ -36,6 +36,14 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <QuartzCore/QuartzCore.h>
 #import <Foundation/NSPathUtilities.h>
 
+#if defined __ARM_ARCH_6K__
+// firstObject is availible since iOS 4.0
+// but not declared in the 5.1 SDK
+@interface NSArray (FirstObject)
+- (id)firstObject;
+@end
+#endif
+
 namespace Base
 {
 	MainApp *mainApp = nullptr;
@@ -316,7 +324,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("resign active");
 	iterateTimes(Window::windows(), i)
 	{
-		Window::window(i)->onFocusChange(*Window::window(i), false);
+		Window::window(i)->dispatchFocusChange(false);
 	}
 	Input::deinitKeyRepeatTimer();
 }
@@ -327,7 +335,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("became active");
 	iterateTimes(Window::windows(), i)
 	{
-		Window::window(i)->onFocusChange(*Window::window(i), true);
+		Window::window(i)->dispatchFocusChange(true);
 	}
 }
 
@@ -564,6 +572,7 @@ int main(int argc, char *argv[])
 	// check if running from system apps directory
 	if(strlen(argv[0]) >= 14 && memcmp(argv[0], "/Applications/", 14) == 0)
 	{
+		logMsg("launched as system app from: %s", argv[0]);
 		isRunningAsSystemApp = true;
 	}
 	#ifdef CONFIG_BASE_IOS_SETUID

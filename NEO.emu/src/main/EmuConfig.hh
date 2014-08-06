@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "NeoEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
+#define CONFIG_FILE_NAME "NeoEmu.config"
 
 static const char *touchConfigFaceBtnName = "A/B/C/D", *touchConfigCenterBtnName = "Select/Start";
 static const uint systemFaceBtns = 4, systemCenterBtns = 2;

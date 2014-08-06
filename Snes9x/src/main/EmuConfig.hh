@@ -3,14 +3,10 @@
 #include <cheats.h>
 #include <meta.h>
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#ifdef SNES9X_VERSION_1_4
-		#define CONFIG_FILE_NAME "Snes9x.config"
-	#else
-		#define CONFIG_FILE_NAME "Snes9xP.config"
-	#endif
+#ifdef SNES9X_VERSION_1_4
+#define CONFIG_FILE_NAME "Snes9x.config"
 #else
-	#define CONFIG_FILE_NAME "config"
+#define CONFIG_FILE_NAME "Snes9xP.config"
 #endif
 
 static const char *touchConfigFaceBtnName = "A/B/X/Y", *touchConfigCenterBtnName = "Select/Start";

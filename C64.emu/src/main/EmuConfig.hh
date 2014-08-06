@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "C64Emu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
+#define CONFIG_FILE_NAME "C64Emu.config"
 
 static const char *touchConfigFaceBtnName = "JS Buttons", *touchConfigCenterBtnName = "F1/KB";
 #define CONFIG_VCONTROLLER_KEYBOARD

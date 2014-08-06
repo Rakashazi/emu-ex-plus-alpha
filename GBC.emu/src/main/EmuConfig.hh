@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "GbcEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
+#define CONFIG_FILE_NAME "GbcEmu.config"
 
 static const char *touchConfigFaceBtnName = "A/B", *touchConfigCenterBtnName = "Select/Start";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;

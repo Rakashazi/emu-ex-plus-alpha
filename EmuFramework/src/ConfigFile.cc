@@ -694,7 +694,7 @@ void loadConfigFile()
 	if(Base::documentsPathIsShared())
 		string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
 	else
-		string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
+		string_printf(configFilePath, "%s/config", Base::documentsPath());
 	auto configFile = IOFile(IoSys::open(configFilePath.data()));
 	if(!configFile)
 	{
@@ -718,7 +718,7 @@ void saveConfigFile()
 	}
 	else
 	{
-		string_printf(configFilePath, "%s/" CONFIG_FILE_NAME, Base::documentsPath());
+		string_printf(configFilePath, "%s/config", Base::documentsPath());
 	}
 	writeConfig2(IoSys::create(configFilePath.data()));
 }

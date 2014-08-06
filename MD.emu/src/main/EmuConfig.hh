@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "MdEmu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
+#define CONFIG_FILE_NAME "MdEmu.config"
 
 static const char *touchConfigFaceBtnName = "A/B/C", *touchConfigCenterBtnName = "Mode/Start";
 static const uint systemFaceBtns = 6, systemCenterBtns = 2;

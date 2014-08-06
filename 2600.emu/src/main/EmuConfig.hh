@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef CONFIG_BASE_USES_SHARED_DOCUMENTS_DIR
-	#define CONFIG_FILE_NAME "2600emu.config"
-#else
-	#define CONFIG_FILE_NAME "config"
-#endif
+#define CONFIG_FILE_NAME "2600emu.config"
 
 static const char *touchConfigFaceBtnName = "JS Buttons", *touchConfigCenterBtnName = "Select/Reset";
 static const uint systemFaceBtns = 2, systemCenterBtns = 2;

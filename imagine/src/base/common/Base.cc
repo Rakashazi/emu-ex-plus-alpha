@@ -17,6 +17,9 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #endif
+#ifndef __ANDROID__
+#include <execinfo.h>
+#endif
 #include "basePrivate.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/util/system/pagesize.h>
@@ -170,6 +173,17 @@ EVISIBLE void __verbose_terminate_handler()
   abort();
 }
 
+}
+#endif
+
+#ifndef __ANDROID__
+static void logBacktrace()
+{
+	void *arr[10];
+	auto size = backtrace(arr, 10);
+	char **backtraceStrings = backtrace_symbols(arr, size);
+	iterateTimes(size, i)
+		logger_printf(LOG_E, "%s\n", backtraceStrings[i]);
 }
 #endif
 
