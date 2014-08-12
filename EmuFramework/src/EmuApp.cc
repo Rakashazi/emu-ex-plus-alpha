@@ -548,7 +548,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			handleOpenFileCommand(filename);
 		});
 	initOptions();
-	EmuSystem::initOptions();
 	parseCmdLineArgs(argc, argv);
 	loadConfigFile();
 	EmuSystem::onOptionsLoaded();

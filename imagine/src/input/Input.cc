@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>

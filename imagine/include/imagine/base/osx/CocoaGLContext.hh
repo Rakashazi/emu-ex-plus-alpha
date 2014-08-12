@@ -16,22 +16,32 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/base/EGLContextBase.hh>
 #include <imagine/base/Window.hh>
+
+#ifdef __OBJC__
+#import <AppKit/NSOpenGL.h>
+#endif
 
 namespace Base
 {
 
-struct AndroidGLContext : public EGLContextBase
+struct CocoaGLContext
 {
 protected:
-	static bool swapBuffersIsAsync();
+	void *context_ = nullptr; // NSOpenGLContext in ObjC
+	GLConfig config;
+
+	static void setCurrentContext(CocoaGLContext *context, Window *win);
+	bool isRealCurrentContext();
 
 public:
-	constexpr AndroidGLContext() {}
-	void swapPresentedBuffers(Window &win);
+	constexpr CocoaGLContext() {}
+	void setCurrentDrawable(Window *win);
+	#ifdef __OBJC__
+	NSOpenGLContext *context() { return (__bridge NSOpenGLContext*)context_; }
+	#endif
 };
 
-using GLContextImpl = AndroidGLContext;
+using GLContextImpl = CocoaGLContext;
 
 }

@@ -16,22 +16,37 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/base/EGLContextBase.hh>
-#include <imagine/base/Window.hh>
+#include <imagine/util/operators.hh>
+
+#import <QuartzCore/CVDisplayLink.h>
 
 namespace Base
 {
 
-struct AndroidGLContext : public EGLContextBase
+class CocoaScreen : public NotEquals<CocoaScreen>
 {
-protected:
-	static bool swapBuffersIsAsync();
-
 public:
-	constexpr AndroidGLContext() {}
-	void swapPresentedBuffers(Window &win);
+	CVDisplayLinkRef displayLink = nullptr; // CADisplayLink in ObjC
+	uint64_t hostFrameTime = 0;
+	bool displayLinkActive = false;
+
+	constexpr CocoaScreen() {}
+
+	bool operator ==(CocoaScreen const &rhs) const
+	{
+		//TODO
+		return displayLink == rhs.displayLink;
+	}
+
+	operator bool() const
+	{
+		//TODO
+		return displayLink;
+	}
+
+	void init();
 };
 
-using GLContextImpl = AndroidGLContext;
+using ScreenImpl = CocoaScreen;
 
 }

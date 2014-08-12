@@ -110,15 +110,9 @@ const char *EmuSystem::systemName()
 void EmuSystem::initOptions()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-		#ifdef CONFIG_BASE_IOS
-		if(!Base::deviceIsIPad())
-		#endif
-		{
-			if(!Config::envIsWebOS3)
-				optionTouchCtrlSize.initDefault(700);
-		}
-		optionTouchCtrlBtnSpace.initDefault(100);
-		optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
+	optionTouchCtrlSize.initDefault(700);
+	optionTouchCtrlBtnSpace.initDefault(100);
+	optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
 	#endif
 }
 

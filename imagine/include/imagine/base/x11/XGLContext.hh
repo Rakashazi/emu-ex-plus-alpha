@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/base/x11/XWindow.hh>
+#include <imagine/base/Window.hh>
 #ifdef CONFIG_BASE_X11_EGL
 #include <imagine/base/EGLContextBase.hh>
 #endif

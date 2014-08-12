@@ -38,4 +38,10 @@ public:
 
 using WindowImpl = CocoaWindow;
 
+struct GLConfig
+{
+	constexpr GLConfig() {}
+};
+
+
 }

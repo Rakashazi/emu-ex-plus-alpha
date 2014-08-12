@@ -319,15 +319,22 @@ void initOptions()
 	}
 	#endif
 
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		#ifdef CONFIG_BASE_IOS
-		if(Base::deviceIsIPad())
-			optionTouchCtrlSize.initDefault(1400);
-		#endif
-	#endif
-
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	optionBestColorModeHint.initDefault(Gfx::defaultColorBits() > 16);
+	#endif
+
+	EmuSystem::initOptions();
+
+	bool defaultToLargeControls = false;
+	#ifdef CONFIG_BASE_IOS
+	if(Base::deviceIsIPad())
+		defaultToLargeControls = true;
+	#endif
+	if(Config::envIsWebOS3)
+		defaultToLargeControls = true;
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+	if(defaultToLargeControls)
+		optionTouchCtrlSize.initDefault(1400);
 	#endif
 }
 

@@ -369,7 +369,7 @@ struct SSettings{
     //bool8  GlideEnable;
     static const bool8  OpenGLEnable = 1;
     static const int32  AutoSaveDelay = 30; /* Time in seconds before S-RAM auto-saved if modified. */
-    bool8  ApplyCheats;
+    static const bool8  ApplyCheats = true;
     //bool8  TurboMode;
     //uint32 TurboSkipFrames;
     //uint32 AutoMaxSkipFrames;

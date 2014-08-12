@@ -21,7 +21,7 @@
 namespace Base
 {
 
-#if defined __APPLE__
+#if defined __APPLE__ && TARGET_OS_IPHONE
 using FrameTimeBase = double;
 
 constexpr static double decimalFrameTimeBaseFromSec(double sec)
@@ -34,7 +34,7 @@ constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
 	return sec;
 }
 #else
-using FrameTimeBase = int64;
+using FrameTimeBase = uint64_t;
 
 constexpr static double decimalFrameTimeBaseFromSec(double sec)
 {

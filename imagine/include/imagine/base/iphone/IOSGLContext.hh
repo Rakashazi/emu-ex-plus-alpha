@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/base/Window.hh>
 
 #ifdef __OBJC__
 #import <OpenGLES/EAGL.h>
