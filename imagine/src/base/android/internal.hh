@@ -31,13 +31,13 @@ void androidWindowInitSurface(Window &win, ANativeWindow *nWin);
 void androidWindowNeedsRedraw(Window &win);
 void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
 void androidWindowSurfaceDestroyed(Window &win);
-void initFrameTimer(JNIEnv *jEnv, jobject activity);
+void initFrameTimer(JNIEnv *env, jobject activity);
 void removePostedNotifications();
-void initScreens(JNIEnv *jEnv, jobject activity, jclass activityCls);
+void initScreens(JNIEnv *env, jobject activity, jclass activityCls);
 void initInputConfig(AConfiguration* config);
-void changeInputConfig(JNIEnv *jEnv, AConfiguration *config);
+void changeInputConfig(AConfiguration *config);
 void processInputWithGetEvent(AInputQueue *inputQueue);
-void handleIntent(ANativeActivity* activity);
+void handleIntent(JNIEnv *env, jobject activity);
 void initActivityLooper();
 
 }

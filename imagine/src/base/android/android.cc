@@ -15,76 +15,33 @@
 
 #define LOGTAG "Base"
 #include <cstdlib>
-#include <imagine/logger/logger.h>
-#include <imagine/engine-globals.h>
-#include <imagine/base/android/sdk.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/base/Timer.hh>
-#include "../common/windowPrivate.hh"
-#include "../common/basePrivate.hh"
-#include <imagine/gfx/Gfx.hh>
-#include "android.hh"
 #include <android/window.h>
 #include <android/configuration.h>
 #include <android/looper.h>
 #include <android/native_activity.h>
 #include <dlfcn.h>
+#include <imagine/logger/logger.h>
+#include <imagine/base/android/sdk.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
+#include "../common/windowPrivate.hh"
+#include "../common/basePrivate.hh"
 #include "../../input/android/private.hh"
+#include "android.hh"
 #include "internal.hh"
-
-namespace Gfx
-{
-
-AndroidSurfaceTextureConfig surfaceTextureConf;
-
-void AndroidSurfaceTextureConfig::init(JNIEnv *jEnv)
-{
-	if(Base::androidSDK() >= 14)
-	{
-		//logMsg("setting up SurfaceTexture JNI");
-		// Surface members
-		jSurfaceCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/Surface"));
-		jSurface.setup(jEnv, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-		jSurfaceRelease.setup(jEnv, jSurfaceCls, "release", "()V");
-		// SurfaceTexture members
-		jSurfaceTextureCls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/graphics/SurfaceTexture"));
-		jSurfaceTexture.setup(jEnv, jSurfaceTextureCls, "<init>", "(I)V");
-		//jSetDefaultBufferSize.setup(jEnv, jSurfaceTextureCls, "setDefaultBufferSize", "(II)V");
-		jUpdateTexImage.setup(jEnv, jSurfaceTextureCls, "updateTexImage", "()V");
-		jSurfaceTextureRelease.setup(jEnv, jSurfaceTextureCls, "release", "()V");
-		use = 1;
-	}
-}
-
-void AndroidSurfaceTextureConfig::deinit()
-{
-	// TODO
-	jSurfaceTextureCls = nullptr;
-	use = whiteListed = 0;
-}
-
-bool supportsAndroidSurfaceTexture() { return surfaceTextureConf.isSupported(); }
-bool supportsAndroidSurfaceTextureWhitelisted() { return surfaceTextureConf.isSupported() && surfaceTextureConf.whiteListed; };
-bool useAndroidSurfaceTexture() { return surfaceTextureConf.isSupported() ? surfaceTextureConf.use : 0; };
-void setUseAndroidSurfaceTexture(bool on)
-{
-	if(surfaceTextureConf.isSupported())
-		surfaceTextureConf.use = on;
-}
-
-}
 
 namespace Base
 {
 
 JavaVM* jVM = nullptr;
-static JNIEnv* aJEnv = nullptr;
+static JNIEnv* jEnv_ = nullptr;
 
 // activity
 jclass jBaseActivityCls = nullptr;
@@ -97,7 +54,6 @@ static JavaInstMethod<void> jSetUIVisibility;
 //static JavaInstMethod<void> jFinish;
 static JavaInstMethod<jobject> jNewFontRenderer;
 JavaInstMethod<void> jSetRequestedOrientation;
-const char *appPath = nullptr;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static uint aSDK = aMinSDK;
 static bool osAnimatesRotation = false;
@@ -167,8 +123,10 @@ void abort() { ::abort(); }
 
 //void openURL(const char *url) { };
 
+const char *assetPath() { return ""; }
 const char *documentsPath() { return filesDir; }
 const char *storagePath() { return eStoreDir; }
+bool documentsPathIsShared() { return false; }
 
 AAssetManager *activityAAssetManager()
 {
@@ -214,14 +172,9 @@ static bool setOrientationOS(int o)
 	return false;
 }
 
-bool surfaceTextureSupported()
+jobject newFontRenderer(JNIEnv *env)
 {
-	return Gfx::surfaceTextureConf.isSupported();
-}
-
-jobject newFontRenderer(JNIEnv *jEnv)
-{
-	return jNewFontRenderer(jEnv, jBaseActivity);
+	return jNewFontRenderer(env, jBaseActivity);
 }
 
 static void initConfig(AConfiguration* config)
@@ -229,25 +182,25 @@ static void initConfig(AConfiguration* config)
 	initInputConfig(config);
 }
 
-static void configChange(JNIEnv* jEnv, AConfiguration* config)
+static void configChange(JNIEnv* env, AConfiguration* config)
 {
-	auto orientation = mainScreen().aOrientation(jEnv);
+	auto orientation = mainScreen().aOrientation(env);
 	if(setOrientationOS(orientation))
 	{
 		//logMsg("changed OS orientation");
 	}
-	changeInputConfig(jEnv, config);
+	changeInputConfig(config);
 }
 
-static void activityInit(JNIEnv* jEnv, jobject activity)
+static void activityInit(JNIEnv* env, jobject activity)
 {
 	// BaseActivity members
 	{
-		jBaseActivityCls = (jclass)jEnv->NewGlobalRef(jEnv->GetObjectClass(activity));
-		jSetRequestedOrientation.setup(jEnv, jBaseActivityCls, "setRequestedOrientation", "(I)V");
-		//jFinish.setup(jEnv, jBaseActivityCls, "finish", "()V");
+		jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(activity));
+		jSetRequestedOrientation.setup(env, jBaseActivityCls, "setRequestedOrientation", "(I)V");
+		//jFinish.setup(env, jBaseActivityCls, "finish", "()V");
 		#ifdef CONFIG_RESOURCE_FONT_ANDROID
-		jNewFontRenderer.setup(jEnv, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
+		jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
 		#endif
 
 		{
@@ -263,20 +216,20 @@ static void activityInit(JNIEnv* jEnv, jobject activity)
 					})
 				}
 			};
-			jEnv->RegisterNatives(jBaseActivityCls, method, sizeofArray(method));
+			env->RegisterNatives(jBaseActivityCls, method, sizeofArray(method));
 		}
 
 		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 		{
 			logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
 			JavaInstMethod<jobject> jFilesDir;
-			jFilesDir.setup(jEnv, jBaseActivityCls, "filesDir", "()Ljava/lang/String;");
-			filesDir = jEnv->GetStringUTFChars((jstring)jFilesDir(jEnv, activity), nullptr);
+			jFilesDir.setup(env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;");
+			filesDir = env->GetStringUTFChars((jstring)jFilesDir(env, activity), nullptr);
 		}
 		{
 			JavaClassMethod<jobject> extStorageDir;
-			extStorageDir.setup(jEnv, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;");
-			eStoreDir = jEnv->GetStringUTFChars((jstring)extStorageDir(jEnv), nullptr);
+			extStorageDir.setup(env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;");
+			eStoreDir = env->GetStringUTFChars((jstring)extStorageDir(env), nullptr);
 		}
 		assert(filesDir);
 		assert(eStoreDir);
@@ -287,20 +240,13 @@ static void activityInit(JNIEnv* jEnv, jobject activity)
 		engineInit();
 		logMsg("SDK API Level: %d", aSDK);
 
-		{
-			JavaInstMethod<jobject> jApkPath;
-			jApkPath.setup(jEnv, jBaseActivityCls, "apkPath", "()Ljava/lang/String;");
-			appPath = jEnv->GetStringUTFChars((jstring)jApkPath(jEnv, activity), nullptr);
-			logMsg("apk @ %s", appPath);
-		}
-
 		if(Base::androidSDK() >= 11)
 			osAnimatesRotation = true;
 		else
 		{
 			JavaClassMethod<jboolean> jAnimatesRotation;
-			jAnimatesRotation.setup(jEnv, jBaseActivityCls, "gbAnimatesRotation", "()Z");
-			osAnimatesRotation = jAnimatesRotation(jEnv);
+			jAnimatesRotation.setup(env, jBaseActivityCls, "gbAnimatesRotation", "()Z");
+			osAnimatesRotation = jAnimatesRotation(env);
 		}
 		if(!osAnimatesRotation)
 		{
@@ -312,8 +258,8 @@ static void activityInit(JNIEnv* jEnv, jobject activity)
 			if(Base::androidSDK() >= 14)
 			{
 				JavaInstMethod<jboolean> jHasPermanentMenuKey;
-				jHasPermanentMenuKey.setup(jEnv, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
-				Base::hasPermanentMenuKey = jHasPermanentMenuKey(jEnv, activity);
+				jHasPermanentMenuKey.setup(env, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
+				Base::hasPermanentMenuKey = jHasPermanentMenuKey(env, activity);
 				if(Base::hasPermanentMenuKey)
 				{
 					logMsg("device has hardware nav/menu keys");
@@ -324,22 +270,22 @@ static void activityInit(JNIEnv* jEnv, jobject activity)
 		}
 	}
 
-	Gfx::surfaceTextureConf.init(jEnv);
+	Gfx::surfaceTextureConf.init(env);
 
-	initScreens(jEnv, activity, jBaseActivityCls);
-	initFrameTimer(jEnv, activity);
+	initScreens(env, activity, jBaseActivityCls);
+	initFrameTimer(env, activity);
 
-	jSetWinFlags.setup(jEnv, jBaseActivityCls, "setWinFlags", "(II)V");
-	jWinFlags.setup(jEnv, jBaseActivityCls, "winFlags", "()I");
+	jSetWinFlags.setup(env, jBaseActivityCls, "setWinFlags", "(II)V");
+	jWinFlags.setup(env, jBaseActivityCls, "winFlags", "()I");
 	if(Base::androidSDK() < 11)
 	{
-		jSetWinFormat.setup(jEnv, jBaseActivityCls, "setWinFormat", "(I)V");
-		jWinFormat.setup(jEnv, jBaseActivityCls, "winFormat", "()I");
+		jSetWinFormat.setup(env, jBaseActivityCls, "setWinFormat", "(I)V");
+		jWinFormat.setup(env, jBaseActivityCls, "winFormat", "()I");
 	}
 
 	if(Base::androidSDK() >= 11)
 	{
-		jSetUIVisibility.setup(jEnv, jBaseActivityCls, "setUIVisibility", "(I)V");
+		jSetUIVisibility.setup(env, jBaseActivityCls, "setUIVisibility", "(I)V");
 	}
 }
 
@@ -365,11 +311,11 @@ static void dlLoadFuncs()
 	Input::dlLoadAndroidFuncs(libandroid);
 }
 
-JNIEnv* eEnv() { assert(aJEnv); return aJEnv; }
+JNIEnv* jEnv() { assert(jEnv_); return jEnv_; }
 
 void setIdleDisplayPowerSave(bool on)
 {
-	auto env = eEnv();
+	auto env = jEnv();
 	jint keepOn = !on;
 	auto keepsScreenOn = userActivityCallback ? false : (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
@@ -385,7 +331,7 @@ void endIdleByUserActivity()
 	if(!keepScreenOn)
 	{
 		//logMsg("signaling user activity to the OS");
-		auto env = eEnv();
+		auto env = jEnv();
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(env, jBaseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
@@ -422,7 +368,7 @@ void setSysUIStyle(uint flags)
 	{
 		return;
 	}
-	auto env = eEnv();
+	auto env = jEnv();
 	// Using SYSTEM_UI_FLAG_FULLSCREEN has an odd delay when
 	// combined with SYSTEM_UI_FLAG_HIDE_NAVIGATION, so we'll
 	// set the window flag even on Android 4.1+.
@@ -462,10 +408,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			#endif
 			Window::postNeededScreens();
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
-			Input::onResumeMOGA(eEnv(), true);
+			Input::onResumeMOGA(jEnv(), true);
 			#endif
 			dispatchOnResume(aHasFocus);
-			handleIntent(activity);
+			handleIntent(activity->env, activity->clazz);
 		};
 	//activity->callbacks->onSaveInstanceState = nullptr; // unused
 	activity->callbacks->onPause =
@@ -577,14 +523,14 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	}*/
 	aSDK = activity->sdkVersion;
 	if(Base::androidSDK() >= 16)
-		processInput = Base::processInputWithGetEvent;
+		processInput = processInputWithGetEvent;
 	initActivityLooper();
 	jVM = activity->vm;
 	assetManager = activity->assetManager;
 	jBaseActivity = activity->clazz;
-	aJEnv = activity->env;
+	jEnv_ = activity->env;
 	filesDir = activity->internalDataPath;
-	activityInit(aJEnv, activity->clazz);
+	activityInit(jEnv_, activity->clazz);
 	setNativeActivityCallbacks(activity);
 	Base::dlLoadFuncs();
 	doOrAbort(Input::init());

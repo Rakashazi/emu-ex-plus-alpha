@@ -4,7 +4,7 @@
 
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
-#include <imagine/base/android/public.hh>
+#include <imagine/base/android/android.hh>
 #include "android/DirectTextureBufferImage.hh"
 #include <dlfcn.h>
 namespace Gfx

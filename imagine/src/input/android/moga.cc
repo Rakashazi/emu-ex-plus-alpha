@@ -46,14 +46,14 @@ static void JNICALL mogaMotionEvent(JNIEnv* env, jobject thiz, jfloat x, jfloat 
 	mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
 }
 
-static void updateMOGAState(JNIEnv *jEnv, bool connected, bool notify)
+static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
 {
 	if(connected != mogaConnected)
 	{
 		if(connected)
 		{
 			logMsg("MOGA connected");
-			string_copy(mogaDev.nameStr, jMOGAGetState(jEnv, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller");
+			string_copy(mogaDev.nameStr, jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller");
 			Input::addDevice(mogaDev);
 			if(notify && onDeviceChange)
 				onDeviceChange(mogaDev, {Device::Change::ADDED});
@@ -69,20 +69,20 @@ static void updateMOGAState(JNIEnv *jEnv, bool connected, bool notify)
 	}
 }
 
-static void initMOGAJNI(JNIEnv *jEnv)
+static void initMOGAJNI(JNIEnv *env)
 {
 	if(jNewMOGAHelper)
 		return;
 	logMsg("init MOGA JNI & input system");
-	jNewMOGAHelper.setup(jEnv, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
-	mogaHelper = jNewMOGAHelper(jEnv, Base::jBaseActivity);
+	jNewMOGAHelper.setup(env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
+	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
 	assert(mogaHelper);
-	mogaHelper = jEnv->NewGlobalRef(mogaHelper);
-	auto mogaHelperCls = jEnv->GetObjectClass(mogaHelper);
-	jMOGAGetState.setup(jEnv, mogaHelperCls, "getState", "(I)I");
-	jMOGAOnPause.setup(jEnv, mogaHelperCls, "onPause", "()V");
-	jMOGAOnResume.setup(jEnv, mogaHelperCls, "onResume", "()V");
-	jMOGAExit.setup(jEnv, mogaHelperCls, "exit", "()V");
+	mogaHelper = env->NewGlobalRef(mogaHelper);
+	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
+	jMOGAGetState.setup(env, mogaHelperCls, "getState", "(I)I");
+	jMOGAOnPause.setup(env, mogaHelperCls, "onPause", "()V");
+	jMOGAOnResume.setup(env, mogaHelperCls, "onResume", "()V");
+	jMOGAExit.setup(env, mogaHelperCls, "exit", "()V");
 	JNINativeMethod method[] =
 	{
 		{
@@ -129,7 +129,7 @@ static void initMOGAJNI(JNIEnv *jEnv)
 			})
 		}
 	};
-	jEnv->RegisterNatives(mogaHelperCls, method, sizeofArray(method));
+	env->RegisterNatives(mogaHelperCls, method, sizeofArray(method));
 
 	mogaDev.subtype_ = Input::Device::SUBTYPE_GENERIC_GAMEPAD;
 	mogaDev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
@@ -159,16 +159,16 @@ static void initMOGAJNI(JNIEnv *jEnv)
 
 void initMOGA(bool notify)
 {
-	auto jEnv = Base::eEnv();
+	auto env = Base::jEnv();
 	if(mogaHelper)
 		return;
-	initMOGAJNI(jEnv);
+	initMOGAJNI(env);
 	if(!mogaHelper) // initMOGAJNI() allocates MOGA helper on first init
 	{
 		logMsg("init MOGA input system");
-		mogaHelper = jEnv->NewGlobalRef(jNewMOGAHelper(jEnv, Base::jBaseActivity));
+		mogaHelper = env->NewGlobalRef(jNewMOGAHelper(env, Base::jBaseActivity));
 	}
-	onResumeMOGA(jEnv, notify);
+	onResumeMOGA(env, notify);
 }
 
 void deinitMOGA()
@@ -176,9 +176,9 @@ void deinitMOGA()
 	if(!mogaHelper)
 		return;
 	logMsg("deinit MOGA input system");
-	auto jEnv = Base::eEnv();
-	jMOGAExit(jEnv, mogaHelper);
-	jEnv->DeleteGlobalRef(mogaHelper);
+	auto env = Base::jEnv();
+	jMOGAExit(env, mogaHelper);
+	env->DeleteGlobalRef(mogaHelper);
 	mogaHelper = nullptr;
 	if(contains(devList, &mogaDev))
 	{
@@ -194,20 +194,20 @@ bool mogaSystemIsActive()
 	return mogaHelper;
 }
 
-void onPauseMOGA(JNIEnv *jEnv)
+void onPauseMOGA(JNIEnv *env)
 {
 	if(mogaHelper)
-		jMOGAOnPause(jEnv, mogaHelper);
+		jMOGAOnPause(env, mogaHelper);
 }
 
-void onResumeMOGA(JNIEnv *jEnv, bool notify)
+void onResumeMOGA(JNIEnv *env, bool notify)
 {
 	if(mogaHelper)
 	{
-		jMOGAOnResume(jEnv, mogaHelper);
-		bool isConnected = jMOGAGetState(jEnv, mogaHelper, STATE_CONNECTION);
+		jMOGAOnResume(env, mogaHelper);
+		bool isConnected = jMOGAGetState(env, mogaHelper, STATE_CONNECTION);
 		logMsg("checked MOGA connection state: %s", isConnected ? "yes" : "no");
-		updateMOGAState(jEnv, isConnected, notify);
+		updateMOGAState(env, isConnected, notify);
 	}
 }
 

@@ -22,7 +22,7 @@
 #include <imagine/util/DelegateFunc.hh>
 
 #if defined CONFIG_BASE_ANDROID
-#include <imagine/base/android/public.hh>
+#include <imagine/base/android/android.hh>
 #elif defined CONFIG_BASE_IOS
 #include <imagine/base/iphone/public.hh>
 #endif
@@ -58,23 +58,10 @@ static void openURL(const char *url) {}
 #endif
 
 // file system paths
-extern const char *appPath;
-#if defined (CONFIG_BASE_ANDROID) || defined(CONFIG_BASE_IOS)
+const char *assetPath();
 const char *documentsPath();
-#else
-static const char *documentsPath() { return appPath; }
-#endif
-
 const char *storagePath();
-
-#if defined CONFIG_BASE_IOS
 bool documentsPathIsShared();
-#else
-static bool documentsPathIsShared()
-{
-	return false;
-}
-#endif
 
 // OS UI management (status & navigation bar)
 

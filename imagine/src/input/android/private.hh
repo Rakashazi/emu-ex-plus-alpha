@@ -18,7 +18,7 @@ bool dlLoadAndroidFuncs(void *libandroid);
 // EditText-based Input
 void textInputEndedMsg(const char* str, jstring jStr);
 
-void devicesChanged(JNIEnv* jEnv);
+void devicesChanged(JNIEnv* env);
 
 bool hasXperiaPlayGamepad();
 
@@ -27,8 +27,8 @@ void setBuiltInKeyboardState(bool shown);
 int32_t onInputEvent(AInputEvent* event, Base::Window &win);
 extern bool sendInputToIME;
 
-void onPauseMOGA(JNIEnv *jEnv);
-void onResumeMOGA(JNIEnv *jEnv, bool notify);
+void onPauseMOGA(JNIEnv *env);
+void onResumeMOGA(JNIEnv *env, bool notify);
 
 void setEventsUseOSInputMethod(bool on);
 bool eventsUseOSInputMethod();

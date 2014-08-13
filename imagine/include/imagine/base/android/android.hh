@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "sdk.hh"
-#include <imagine/util/time/sys.hh>
 
 namespace Gfx
 {

@@ -59,14 +59,14 @@ static int winFormatFromEGLConfig(EGLDisplay display, EGLConfig config)
 	return nId;
 }
 
-static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
+static void initPresentationJNI(JNIEnv* env, jobject presentation)
 {
 	if(jPresentationDeinit)
 		return; // already init
 	logMsg("Setting up Presentation JNI functions");
-	auto cls = jEnv->GetObjectClass(presentation);
-	jPresentationShow.setup(jEnv, cls, "show", "()V");
-	jPresentationDeinit.setup(jEnv, cls, "deinit", "()V");
+	auto cls = env->GetObjectClass(presentation);
+	jPresentationShow.setup(env, cls, "show", "()V");
+	jPresentationDeinit.setup(env, cls, "deinit", "()V");
 	JNINativeMethod method[] =
 	{
 		{
@@ -99,7 +99,7 @@ static void initPresentationJNI(JNIEnv* jEnv, jobject presentation)
 			})
 		},
 	};
-	jEnv->RegisterNatives(cls, method, sizeofArray(method));
+	env->RegisterNatives(cls, method, sizeofArray(method));
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -131,7 +131,7 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 	}
-	jSetRequestedOrientation(eEnv(), jBaseActivity, toSet);
+	jSetRequestedOrientation(jEnv(), jBaseActivity, toSet);
 	return 1;
 }
 
@@ -160,10 +160,10 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		logMsg("making presentation window");
 		assert(&screen() != Screen::screen(0));
-		auto jEnv = eEnv();
-		jDialog = jEnv->NewGlobalRef(jPresentation(jEnv, Base::jBaseActivity, screen().aDisplay, this));
-		initPresentationJNI(jEnv, jDialog);
-		jPresentationShow(jEnv, jDialog);
+		auto env = jEnv();
+		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen().aDisplay, this));
+		initPresentationJNI(env, jDialog);
+		jPresentationShow(env, jDialog);
 	}
 	else
 	{
@@ -178,11 +178,11 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
-		auto jEnv = eEnv();
+		auto env = jEnv();
 		#ifndef NDEBUG
-		logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(jEnv, jBaseActivity));
+		logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(env, jBaseActivity));
 		#endif
-		jSetWinFormat(jEnv, jBaseActivity, pixelFormat);
+		jSetWinFormat(env, jBaseActivity, pixelFormat);
 	}
 	// default to screen's size
 	updateSize({screen().width(), screen().height()});
@@ -203,9 +203,9 @@ void Window::deinit()
 			ANativeWindow_release(nWin);
 		}
 		androidWindowSurfaceDestroyed(*this);
-		auto jEnv = eEnv();
-		jPresentationDeinit(jEnv, jDialog);
-		jEnv->DeleteGlobalRef(jDialog);
+		auto env = jEnv();
+		jPresentationDeinit(env, jDialog);
+		env->DeleteGlobalRef(jDialog);
 	}
 	#endif
 }

@@ -109,7 +109,7 @@ CallResult PngFile::load(const char *name)
 
 CallResult PngFile::loadAsset(const char *name)
 {
-	return load(makeFSPathStringPrintf("%s/%s", Base::appPath, name).data());
+	return load(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
 }
 
 void PngFile::deinit()

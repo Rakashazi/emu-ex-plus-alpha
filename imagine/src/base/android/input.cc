@@ -96,7 +96,7 @@ void initInputConfig(AConfiguration *config)
 		logMsg("keyboard type: %d", aKeyboardType);
 }
 
-void changeInputConfig(JNIEnv *jEnv, AConfiguration *config)
+void changeInputConfig(AConfiguration *config)
 {
 	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
 	auto navState = AConfiguration_getNavHidden(config);

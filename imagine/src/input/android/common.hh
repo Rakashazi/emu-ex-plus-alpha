@@ -171,34 +171,34 @@ static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTe
 static
 void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss);
 
-static void setupTextInputJni(JNIEnv* jEnv)
+static void setupTextInputJni(JNIEnv* env)
 {
 	using namespace Base;
 	if(!jStartSysTextInput.m)
 	{
 		logMsg("setting up text input JNI");
-		jStartSysTextInput.setup(jEnv, jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIII)V");
-		jFinishSysTextInput.setup(jEnv, jBaseActivityCls, "finishSysTextInput", "(Z)V");
-		jPlaceSysTextInput.setup(jEnv, jBaseActivityCls, "placeSysTextInput", "(IIII)V");
+		jStartSysTextInput.setup(env, jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIII)V");
+		jFinishSysTextInput.setup(env, jBaseActivityCls, "finishSysTextInput", "(Z)V");
+		jPlaceSysTextInput.setup(env, jBaseActivityCls, "placeSysTextInput", "(IIII)V");
 
 		static JNINativeMethod activityMethods[] =
 		{
 			{"sysTextInputEnded", "(Ljava/lang/String;ZZ)V", (void *)&textInputEnded}
 		};
-		jEnv->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+		env->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
 	}
 }
 
 uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
 {
 	using namespace Base;
-	auto jEnv = eEnv();
+	auto env = jEnv();
 	refUIGL();
-	setupTextInputJni(jEnv);
+	setupTextInputJni(env);
 	logMsg("starting system text input");
 	setEventsUseOSInputMethod(true);
 	vKeyboardTextDelegate = callback;
-	jStartSysTextInput(jEnv, jBaseActivity, jEnv->NewStringUTF(initialText), jEnv->NewStringUTF(promptText),
+	jStartSysTextInput(env, jBaseActivity, env->NewStringUTF(initialText), env->NewStringUTF(promptText),
 		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels);
 	return 0;
 }
@@ -206,28 +206,28 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 void cancelSysTextInput()
 {
 	using namespace Base;
-	auto jEnv = eEnv();
-	setupTextInputJni(jEnv);
+	auto env = jEnv();
+	setupTextInputJni(env);
 	vKeyboardTextDelegate = {};
-	jFinishSysTextInput(jEnv, jBaseActivity, 1);
+	jFinishSysTextInput(env, jBaseActivity, 1);
 }
 
 void finishSysTextInput()
 {
 	using namespace Base;
-	auto jEnv = eEnv();
-	setupTextInputJni(jEnv);
-	jFinishSysTextInput(jEnv, jBaseActivity, 0);
+	auto env = jEnv();
+	setupTextInputJni(env);
+	jFinishSysTextInput(env, jBaseActivity, 0);
 }
 
 void placeSysTextInput(const IG::WindowRect &rect)
 {
 	using namespace Base;
-	auto jEnv = eEnv();
-	setupTextInputJni(jEnv);
+	auto env = jEnv();
+	setupTextInputJni(env);
 	textRect = rect;
 	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());
-	jPlaceSysTextInput(jEnv, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
+	jPlaceSysTextInput(env, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
 const IG::WindowRect &sysTextInputRect()

@@ -39,7 +39,6 @@ WorkDirStack<1> workDirStack;
 static bool trackFPS = 0;
 static TimeSys prevFrameTime;
 static uint frameCount = 0;
-const char *launchGame = nullptr;
 static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices;
 #ifdef CONFIG_BLUETOOTH
@@ -423,14 +422,15 @@ void restoreMenuFromGame()
 	viewStack.show();
 }
 
-static void parseCmdLineArgs(int argc, char** argv)
+static const char *parseCmdLineArgs(int argc, char** argv)
 {
 	if(argc < 2)
 	{
-		return;
+		return nullptr;
 	}
-	launchGame = argv[1];
+	auto launchGame = argv[1];
 	logMsg("starting game from command line: %s", launchGame);
+	return launchGame;
 }
 
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel)
@@ -548,7 +548,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			handleOpenFileCommand(filename);
 		});
 	initOptions();
-	parseCmdLineArgs(argc, argv);
+	auto launchGame = parseCmdLineArgs(argc, argv);
 	loadConfigFile();
 	EmuSystem::onOptionsLoaded();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
@@ -716,6 +716,11 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	{
 		setEmuViewOnExtraWindow(true);
 	}
+
+	if(launchGame)
+	{
+		handleOpenFileCommand(launchGame);
+	}
 }
 
 void mainInitWindowCommon(Base::Window &win)
@@ -773,12 +778,7 @@ void mainInitWindowCommon(Base::Window &win)
 	viewStack.pushAndShow(mMenu);
 
 	win.show();
-
-	if(launchGame)
-	{
-		FsSys::chdir(Base::appPath);
-		handleOpenFileCommand(launchGame);
-	}
+	win.postDraw();
 }
 
 void handleInputEvent(Base::Window &win, const Input::Event &e)

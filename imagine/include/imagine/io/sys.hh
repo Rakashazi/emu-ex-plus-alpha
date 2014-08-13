@@ -45,6 +45,6 @@ static Io *openAppAssetIo(const char *name)
 	#ifdef CONFIG_IO_AASSET
 	return AAssetIO::open(name);
 	#else
-	return IoSys::open(makeFSPathStringPrintf("%s/%s", Base::appPath, name).data());
+	return IoSys::open(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
 	#endif
 }

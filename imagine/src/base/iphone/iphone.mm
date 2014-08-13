@@ -71,12 +71,12 @@ namespace Input
 namespace Base
 {
 
-const char *appPath = nullptr;
 bool isIPad = false;
 static bool isRunningAsSystemApp = false;
 CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
 static const char *docPath = nullptr;
+static FsSys::PathString appPath{};
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -497,6 +497,8 @@ void endIdleByUserActivity()
 	}
 }
 
+const char *assetPath() { return appPath.data(); }
+
 const char *documentsPath()
 {
 	if(!docPath)
@@ -581,6 +583,7 @@ int main(int argc, char *argv[])
 	engineInit();
 	doOrAbort(logger_init());
 	TimeMach::setTimebase();
+	appPath = makeAppPathFromLaunchCommand(argv[0]);
 	
 	#ifdef CONFIG_BASE_IOS_SETUID
 	logMsg("real UID %d, effective UID %d", realUID, effectiveUID);
@@ -589,10 +592,6 @@ int main(int argc, char *argv[])
 		logMsg("manually loading Backgrounder.dylib");
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
 	}
-	#endif
-
-	#ifdef CONFIG_FS
-	FsPosix::changeToAppDir(argv[0]);
 	#endif
 	
 	#if !defined __ARM_ARCH_6K__

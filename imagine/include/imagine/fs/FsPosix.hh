@@ -54,8 +54,6 @@ public:
 		return fileType(path) != TYPE_NONE;
 	}
 
-	static CallResult changeToAppDir(const char *launchCmd);
-
 private:
 	char **entry = nullptr;
 	int numEntries_ = 0;

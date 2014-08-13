@@ -53,7 +53,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 namespace Base
 {
 
-JNIEnv* eEnv(); // JNIEnv of main event thread
+JNIEnv* jEnv(); // JNIEnv of main event thread
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
 
@@ -64,7 +64,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	static JavaInstMethod<jobject> jMakeBitmap;
 	static JavaInstMethod<jobject> jWritePNG;
 	using namespace Base;
-	auto env = eEnv();
+	auto env = jEnv();
 	if(!jMakeBitmap)
 	{
 		jMakeBitmap.setup(env, jBaseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");

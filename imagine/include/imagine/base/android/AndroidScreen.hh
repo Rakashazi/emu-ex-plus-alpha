@@ -39,8 +39,8 @@ public:
 
 	constexpr AndroidScreen() {}
 
-	void init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool isMain);
-	int aOrientation(JNIEnv *jEnv);
+	void init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain);
+	int aOrientation(JNIEnv *env);
 
 	bool operator ==(AndroidScreen const &rhs) const
 	{

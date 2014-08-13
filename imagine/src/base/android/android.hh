@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/base/android/android.hh>
 #include <imagine/util/jni.hh>
 #include "privateApi/gralloc.h"
 #include <imagine/util/pixel.h>
@@ -25,25 +25,18 @@
 #define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
 
-struct ANativeActivity;
 class BluetoothSocket;
+struct ANativeWindow;
 
 namespace Base
 {
 
 extern JavaVM* jVM;
-JNIEnv* eEnv(); // JNIEnv of main event thread
+JNIEnv* jEnv(); // JNIEnv of activity thread
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
-
-#if CONFIG_ENV_ANDROID_MINSDK >= 9
-
-// Android Bluetooth
-static const ushort MSG_BT_SOCKET_STATUS_DELEGATE = 151;
-
-#endif
 
 bool hasHardKeyboard();
 int hardKeyboardState();
@@ -54,7 +47,7 @@ ALooper *activityLooper();
 
 AAssetManager *activityAAssetManager();
 
-jobject newFontRenderer(JNIEnv *jEnv);
+jobject newFontRenderer(JNIEnv *env);
 
 void restoreOpenGLContext();
 void unrefUIGL();
@@ -63,8 +56,6 @@ void refUIGL();
 bool hasLowLatencyAudio();
 
 }
-
-struct ANativeWindow;
 
 namespace Gfx
 {
@@ -81,7 +72,7 @@ struct AndroidSurfaceTextureConfig
 	// Extra dlsym function from libandroid.so
 	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
 
-	void init(JNIEnv *jEnv);
+	void init(JNIEnv *env);
 	void deinit();
 
 	bool isSupported()
@@ -95,8 +86,6 @@ struct AndroidSurfaceTextureConfig
 			use = on;
 	}
 };
-
-extern AndroidSurfaceTextureConfig surfaceTextureConf;
 
 struct AndroidDirectTextureConfig
 {
@@ -117,6 +106,7 @@ public:
 	int freeBuffer(android_native_buffer_t &eglBuf);
 };
 
+extern AndroidSurfaceTextureConfig surfaceTextureConf;
 extern AndroidDirectTextureConfig directTextureConf;
 
 static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)

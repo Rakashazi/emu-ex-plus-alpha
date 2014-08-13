@@ -14,15 +14,30 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "FS"
-#if defined (CONFIG_BASE_WIN32)
-#include <direct.h>
-#else
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
-#include <imagine/fs/Fs.hh>
+#include <stdlib.h>
+#include <imagine/fs/sys.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/strings.h>
-#include <imagine/base/Base.hh>
-#include <imagine/fs/sys.hh>
+
+FsSys::PathString makeFSPathStringPrintf(const char *format, ...)
+{
+	FsSys::PathString path{};
+	va_list args;
+	va_start(args, format);
+	int ret = vsnprintf(path.data(), sizeof(path), format, args);
+	assert(ret >= 0);
+	va_end(args);
+	return path;
+}
+
+FsSys::PathString makeAppPathFromLaunchCommand(const char *launchCmd)
+{
+	logMsg("getting app path from launch command: %s", launchCmd);
+	FsSys::PathString realPath, dirnameTemp;
+	if(!realpath(string_dirname(launchCmd, dirnameTemp), realPath.data()))
+	{
+		bug_exit("error in realpath()");
+		return {};
+	}
+	return realPath;
+}

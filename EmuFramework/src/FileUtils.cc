@@ -22,7 +22,7 @@ void fixFilePermissions(const char *path)
 	else
 		return;
 
-	auto execPath = makeFSPathStringPrintf("%s/fixMobilePermission '%s'", Base::appPath, path);
+	auto execPath = makeFSPathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath(), path);
 	//logMsg("executing %s", execPath);
 	int err = system(execPath.data());
 	if(err)

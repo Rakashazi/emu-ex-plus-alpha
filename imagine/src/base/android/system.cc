@@ -34,9 +34,9 @@ const char *androidBuildDevice()
 	if(unlikely(!buildDevice))
 	{
 		JavaClassMethod<jobject> jDevName;
-		jDevName.setup(eEnv(), jBaseActivityCls, "devName", "()Ljava/lang/String;");
-		auto devName = (jstring)jDevName(eEnv());
-		buildDevice = eEnv()->GetStringUTFChars(devName, nullptr);
+		jDevName.setup(jEnv(), jBaseActivityCls, "devName", "()Ljava/lang/String;");
+		auto devName = (jstring)jDevName(jEnv());
+		buildDevice = jEnv()->GetStringUTFChars(devName, nullptr);
 		logMsg("device name: %s", buildDevice);
 		assert(buildDevice);
 	}
@@ -60,52 +60,52 @@ bool apkSignatureIsConsistent()
 	bool sigMatchesAPK = true;
 	#ifdef ANDROID_APK_SIGNATURE_HASH
 	JavaInstMethod<jint> jSigHash;
-	auto jEnv = eEnv();
-	jSigHash.setup(jEnv, jBaseActivityCls, "sigHash", "()I");
-	sigMatchesAPK = jSigHash(jEnv, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
+	auto env = jEnv();
+	jSigHash.setup(env, jBaseActivityCls, "sigHash", "()I");
+	sigMatchesAPK = jSigHash(env, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
 	#endif
 	return sigMatchesAPK;
 }
 
 bool packageIsInstalled(const char *name)
 {
-	auto jEnv = eEnv();
+	auto env = jEnv();
 	if(!jPackageIsInstalled)
-		jPackageIsInstalled.setup(jEnv, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z");
-	return jPackageIsInstalled(jEnv, jBaseActivity, jEnv->NewStringUTF(name));
+		jPackageIsInstalled.setup(env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z");
+	return jPackageIsInstalled(env, jBaseActivity, env->NewStringUTF(name));
 }
 
-static void initVibration(JNIEnv* jEnv)
+static void initVibration(JNIEnv* env)
 {
 	if(likely(vibrationSystemIsInit) || Config::MACHINE_IS_OUYA)
 		return;
 	{
 		JavaInstMethod<jobject> jSysVibrator;
-		jSysVibrator.setup(jEnv, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;");
-		vibrator = jSysVibrator(jEnv, jBaseActivity);
+		jSysVibrator.setup(env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;");
+		vibrator = jSysVibrator(env, jBaseActivity);
 	}
 	vibrationSystemIsInit = true;
 	if(!vibrator)
 		return;
 	logMsg("Vibrator present");
-	vibrator = jEnv->NewGlobalRef(vibrator);
-	auto vibratorCls = jEnv->FindClass("android/os/Vibrator");
-	jVibrate.setup(jEnv, vibratorCls, "vibrate", "(J)V");
+	vibrator = env->NewGlobalRef(vibrator);
+	auto vibratorCls = env->FindClass("android/os/Vibrator");
+	jVibrate.setup(env, vibratorCls, "vibrate", "(J)V");
 }
 
 bool hasVibrator()
 {
-	initVibration(eEnv());
+	initVibration(jEnv());
 	return vibrator;
 }
 
 void vibrate(uint ms)
 {
-	initVibration(eEnv());
+	initVibration(jEnv());
 	if(unlikely(!vibrator))
 		return;
 	//logDMsg("vibrating for %u ms", ms);
-	jVibrate(eEnv(), vibrator, (jlong)ms);
+	jVibrate(jEnv(), vibrator, (jlong)ms);
 }
 
 }

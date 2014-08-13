@@ -17,9 +17,7 @@
 #include <ButtonConfigView.hh>
 #include <EmuApp.hh>
 #include <TextEntry.hh>
-#ifdef CONFIG_BASE_ANDROID
-#include <imagine/base/android/public.hh>
-#endif
+#include <imagine/base/Base.hh>
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 

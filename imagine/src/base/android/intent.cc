@@ -32,10 +32,10 @@ void addNotification(const char *onShow, const char *title, const char *message)
 	logMsg("adding notificaion icon");
 	if(unlikely(!jAddNotification))
 	{
-		jAddNotification.setup(eEnv(), jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-		jRemoveNotification.setup(eEnv(), jBaseActivityCls, "removeNotification", "()V");
+		jAddNotification.setup(jEnv(), jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		jRemoveNotification.setup(jEnv(), jBaseActivityCls, "removeNotification", "()V");
 	}
-	jAddNotification(eEnv(), jBaseActivity, eEnv()->NewStringUTF(onShow), eEnv()->NewStringUTF(title), eEnv()->NewStringUTF(message));
+	jAddNotification(jEnv(), jBaseActivity, jEnv()->NewStringUTF(onShow), jEnv()->NewStringUTF(title), jEnv()->NewStringUTF(message));
 }
 
 void removePostedNotifications()
@@ -44,7 +44,7 @@ void removePostedNotifications()
 	{
 		// check if notification functions were used at some point
 		// and remove the posted notification
-		jRemoveNotification(eEnv(), jBaseActivity);
+		jRemoveNotification(jEnv(), jBaseActivity);
 	}
 }
 
@@ -53,29 +53,28 @@ void addLauncherIcon(const char *name, const char *path)
 	logMsg("adding launcher icon: %s, for path: %s", name, path);
 	if(unlikely(!jAddViewShortcut))
 	{
-		jAddViewShortcut.setup(eEnv(), jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
+		jAddViewShortcut.setup(jEnv(), jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
 	}
-	jAddViewShortcut(eEnv(), jBaseActivity, eEnv()->NewStringUTF(name), eEnv()->NewStringUTF(path));
+	jAddViewShortcut(jEnv(), jBaseActivity, jEnv()->NewStringUTF(name), jEnv()->NewStringUTF(path));
 }
 
-void handleIntent(ANativeActivity* activity)
+void handleIntent(JNIEnv *env, jobject activity)
 {
 	if(!onInterProcessMessage())
 		return;
 	// check for view intents
-	auto jEnv = activity->env;
 	if(!jIntentDataPath)
 	{
-		jIntentDataPath.setup(jEnv, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;");
+		jIntentDataPath.setup(env, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;");
 	}
-	jstring intentDataPathJStr = (jstring)jIntentDataPath(jEnv, activity->clazz);
+	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, activity);
 	if(intentDataPathJStr)
 	{
-		const char *intentDataPathStr = jEnv->GetStringUTFChars(intentDataPathJStr, nullptr);
+		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
 		logMsg("got intent with path: %s", intentDataPathStr);
 		dispatchOnInterProcessMessage(intentDataPathStr);
-		jEnv->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
-		jEnv->DeleteLocalRef(intentDataPathJStr);
+		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
+		env->DeleteLocalRef(intentDataPathJStr);
 	}
 }
 

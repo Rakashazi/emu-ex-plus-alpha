@@ -33,7 +33,7 @@ public:
 	uint idle = 1;
 	bool requested = false;
 
-	bool init(JNIEnv *jEnv, jobject activity);
+	bool init(JNIEnv *env, jobject activity);
 	void scheduleVSync();
 	void cancel();
 };
@@ -45,7 +45,7 @@ public:
 	jobject frameHelper = nullptr;
 	bool requested = false;
 
-	bool init(JNIEnv *jEnv, jobject activity);
+	bool init(JNIEnv *env, jobject activity);
 	void scheduleVSync();
 	void cancel();
 };
@@ -54,7 +54,7 @@ static EventFDFrameTimer eventFDFrameTimer;
 static FrameworkFrameTimer frameworkFrameTimer;
 FrameTimer *frameTimer = &frameworkFrameTimer;
 
-bool EventFDFrameTimer::init(JNIEnv *jEnv, jobject activity)
+bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 {
 	if(fd >= 0)
 		return true;
@@ -131,19 +131,19 @@ void EventFDFrameTimer::cancel()
 	assert(ret == sizeof(post));
 }
 
-bool FrameworkFrameTimer::init(JNIEnv *jEnv, jobject activity)
+bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 {
 	if(Base::androidSDK() >= 16) // Choreographer
 	{
 		//logMsg("using Choreographer for display updates");
 		JavaInstMethod<jobject> jNewChoreographerHelper;
-		jNewChoreographerHelper.setup(jEnv, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
-		frameHelper = jNewChoreographerHelper(jEnv, activity);
+		jNewChoreographerHelper.setup(env, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
+		frameHelper = jNewChoreographerHelper(env, activity);
 		assert(frameHelper);
-		frameHelper = jEnv->NewGlobalRef(frameHelper);
-		auto choreographerHelperCls = jEnv->GetObjectClass(frameHelper);
-		jPostFrame.setup(jEnv, choreographerHelperCls, "postFrame", "()V");
-		jUnpostFrame.setup(jEnv, choreographerHelperCls, "unpostFrame", "()V");
+		frameHelper = env->NewGlobalRef(frameHelper);
+		auto choreographerHelperCls = env->GetObjectClass(frameHelper);
+		jPostFrame.setup(env, choreographerHelperCls, "postFrame", "()V");
+		jUnpostFrame.setup(env, choreographerHelperCls, "unpostFrame", "()V");
 		JNINativeMethod method[] =
 		{
 			{
@@ -191,19 +191,19 @@ bool FrameworkFrameTimer::init(JNIEnv *jEnv, jobject activity)
 				})
 			}
 		};
-		jEnv->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
 	}
 	else // MessageQueue.IdleHandler
 	{
 		logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
 		JavaInstMethod<jobject> jNewIdleHelper;
-		jNewIdleHelper.setup(jEnv, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
-		frameHelper = jNewIdleHelper(jEnv, activity);
+		jNewIdleHelper.setup(env, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
+		frameHelper = jNewIdleHelper(env, activity);
 		assert(frameHelper);
-		frameHelper = jEnv->NewGlobalRef(frameHelper);
-		auto idleHelperCls = jEnv->GetObjectClass(frameHelper);
-		jPostFrame.setup(jEnv, idleHelperCls, "postFrame", "()V");
-		jUnpostFrame.setup(jEnv, idleHelperCls, "unpostFrame", "()V");
+		frameHelper = env->NewGlobalRef(frameHelper);
+		auto idleHelperCls = env->GetObjectClass(frameHelper);
+		jPostFrame.setup(env, idleHelperCls, "postFrame", "()V");
+		jUnpostFrame.setup(env, idleHelperCls, "unpostFrame", "()V");
 		JNINativeMethod method[]
 		{
 			{
@@ -231,7 +231,7 @@ bool FrameworkFrameTimer::init(JNIEnv *jEnv, jobject activity)
 				})
 			}
 		};
-		jEnv->RegisterNatives(idleHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(idleHelperCls, method, sizeofArray(method));
 	}
 	return true;
 }
@@ -242,7 +242,7 @@ void FrameworkFrameTimer::scheduleVSync()
 	if(requested)
 		return;
 	requested = true;
-	jPostFrame(eEnv(), frameHelper);
+	jPostFrame(jEnv(), frameHelper);
 }
 
 void FrameworkFrameTimer::cancel()
@@ -251,26 +251,26 @@ void FrameworkFrameTimer::cancel()
 	if(!requested)
 		return;
 	requested = false;
-	jUnpostFrame(eEnv(), frameHelper);
+	jUnpostFrame(jEnv(), frameHelper);
 }
 
-void initFrameTimer(JNIEnv *jEnv, jobject activity)
+void initFrameTimer(JNIEnv *env, jobject activity)
 {
 	if(Base::androidSDK() < 16)
 	{
 		// use eventfd if OS supports it
-		if(eventFDFrameTimer.init(jEnv, activity))
+		if(eventFDFrameTimer.init(env, activity))
 		{
 			frameTimer = &eventFDFrameTimer;
 			return;
 		}
 		// fallback to MessageQueue.IdleHandler
-		frameworkFrameTimer.init(jEnv, activity);
+		frameworkFrameTimer.init(env, activity);
 	}
 	else
 	{
 		// use Choreographer
-		frameworkFrameTimer.init(jEnv, activity);
+		frameworkFrameTimer.init(env, activity);
 	}
 }
 

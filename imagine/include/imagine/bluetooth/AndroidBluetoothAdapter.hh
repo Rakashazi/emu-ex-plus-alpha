@@ -42,7 +42,7 @@ public:
 	void handleScanStatus(int status);
 	void handleTurnOnResult(bool success);
 	void sendSocketStatusMessage(const SocketStatusMessage &msg);
-	jobject openSocket(JNIEnv *jEnv, const char *addrStr, int channel, bool isL2cap);
+	jobject openSocket(JNIEnv *env, const char *addrStr, int channel, bool isL2cap);
 
 private:
 	jobject adapter = nullptr;

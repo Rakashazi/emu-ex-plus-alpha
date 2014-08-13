@@ -406,22 +406,3 @@ CallResult FsPosix::rename(const char *oldname, const char *newname)
 	logMsg("renamed %s to %s", oldname, newname);
 	return OK;
 }
-
-CallResult FsPosix::changeToAppDir(const char *launchCmd)
-{
-	logMsg("app called with cmd %s", launchCmd);
-	PathString dirnameTemp;
-	auto dir = string_dirname(launchCmd, dirnameTemp);
-	if(chdir(dir) != 0)
-	{
-		logErr("error changing working directory to %s", dir);
-		return INVALID_PARAMETER;
-	}
-	//logMsg("changed working directory to %s", path);
-	if(!Base::appPath)
-	{
-		Base::appPath = string_dup(workDir());
-		logMsg("set app dir to %s", Base::appPath);
-	}
-	return OK;
-}

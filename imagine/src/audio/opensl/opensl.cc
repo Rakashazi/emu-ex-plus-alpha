@@ -99,32 +99,32 @@ static void playCallback(SLPlayItf caller, void *, SLuint32 event)
 		logMsg("got playback end event");
 }
 
-static void setupAudioManagerJNI(JNIEnv* jEnv)
+static void setupAudioManagerJNI(JNIEnv* env)
 {
 	if(!audioManager)
 	{
 		JavaInstMethod<jobject> jAudioManager;
-		jAudioManager.setup(jEnv, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;");
-		audioManager = jAudioManager(jEnv, jBaseActivity);
+		jAudioManager.setup(env, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;");
+		audioManager = jAudioManager(env, jBaseActivity);
 		assert(audioManager);
-		audioManager = jEnv->NewGlobalRef(audioManager);
-		jclass jAudioManagerCls = jEnv->GetObjectClass(audioManager);
-		jRequestAudioFocus.setup(jEnv, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
-		jAbandonAudioFocus.setup(jEnv, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
+		audioManager = env->NewGlobalRef(audioManager);
+		jclass jAudioManagerCls = env->GetObjectClass(audioManager);
+		jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
+		jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
 	}
 }
 
-static void requestAudioFocus(JNIEnv* jEnv)
+static void requestAudioFocus(JNIEnv* env)
 {
-	setupAudioManagerJNI(jEnv);
-	auto res = jRequestAudioFocus(jEnv, audioManager, jBaseActivity, 3, 1);
+	setupAudioManagerJNI(env);
+	auto res = jRequestAudioFocus(env, audioManager, jBaseActivity, 3, 1);
 	//logMsg("%d from requestAudioFocus()", (int)res);
 }
 
-static void abandonAudioFocus(JNIEnv* jEnv)
+static void abandonAudioFocus(JNIEnv* env)
 {
-	setupAudioManagerJNI(jEnv);
-	jAbandonAudioFocus(jEnv, audioManager, jBaseActivity);
+	setupAudioManagerJNI(env);
+	jAbandonAudioFocus(env, audioManager, jBaseActivity);
 }
 
 static uint bufferFramesForSampleRate(int rate)
@@ -375,11 +375,11 @@ void setSoloMix(bool newSoloMix)
 			return; // audio init() will take care of initial focus setting
 		if(newSoloMix)
 		{
-			requestAudioFocus(eEnv());
+			requestAudioFocus(jEnv());
 		}
 		else
 		{
-			abandonAudioFocus(eEnv());
+			abandonAudioFocus(jEnv());
 		}
 	}
 }
@@ -393,7 +393,7 @@ void updateFocusOnResume()
 {
 	if(soloMix())
 	{
-		requestAudioFocus(eEnv());
+		requestAudioFocus(jEnv());
 	}
 }
 
@@ -401,7 +401,7 @@ void updateFocusOnPause()
 {
 	if(soloMix())
 	{
-		abandonAudioFocus(eEnv());
+		abandonAudioFocus(jEnv());
 	}
 }
 
@@ -411,20 +411,20 @@ bool hasLowLatency()
 	return preferredOutputBufferFrames;
 }
 
-static int audioManagerIntProperty(JNIEnv* jEnv, JavaInstMethod<jobject> &jGetProperty, const char *propStr)
+static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject> &jGetProperty, const char *propStr)
 {
-	auto propJStr = jEnv->NewStringUTF(propStr);
-	auto valJStr = (jstring)jGetProperty(jEnv, audioManager, propJStr);
-	jEnv->DeleteLocalRef(propJStr);
+	auto propJStr = env->NewStringUTF(propStr);
+	auto valJStr = (jstring)jGetProperty(env, audioManager, propJStr);
+	env->DeleteLocalRef(propJStr);
 	if(!valJStr)
 	{
 		logWarn("%s is null", propStr);
 		return 0;
 	}
-	auto valStr = jEnv->GetStringUTFChars(valJStr, nullptr);
+	auto valStr = env->GetStringUTFChars(valJStr, nullptr);
 	int val = atoi(valStr);
-	jEnv->ReleaseStringUTFChars(valJStr, valStr);
-	jEnv->DeleteLocalRef(valJStr);
+	env->ReleaseStringUTFChars(valJStr, valStr);
+	env->DeleteLocalRef(valJStr);
 	return val;
 }
 
@@ -432,19 +432,19 @@ CallResult init()
 {
 	logMsg("running init");
 	{
-		auto jEnv = eEnv();
+		auto env = jEnv();
 		JavaInstMethod<void> jSetVolumeControlStream;
-		jSetVolumeControlStream.setup(jEnv, jBaseActivityCls, "setVolumeControlStream", "(I)V");
-		jSetVolumeControlStream(jEnv, jBaseActivity, 3);
+		jSetVolumeControlStream.setup(env, jBaseActivityCls, "setVolumeControlStream", "(I)V");
+		jSetVolumeControlStream(env, jBaseActivity, 3);
 
 		// check preferred settings for low latency
 		if(Base::androidSDK() >= 17)
 		{
-			setupAudioManagerJNI(jEnv);
+			setupAudioManagerJNI(env);
 			JavaInstMethod<jobject> jGetProperty;
-			jclass jAudioManagerCls = jEnv->GetObjectClass(audioManager);
-			jGetProperty.setup(jEnv, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
-			preferredPcmFormat.rate = audioManagerIntProperty(jEnv, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
+			jclass jAudioManagerCls = env->GetObjectClass(audioManager);
+			jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+			preferredPcmFormat.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
 			if(preferredPcmFormat.rate != 44100 && preferredPcmFormat.rate != 48000)
 			{
 				// only support 44KHz and 48KHz for now
@@ -456,10 +456,10 @@ CallResult init()
 				logMsg("set preferred sample rate: %d", preferredPcmFormat.rate);
 				// find the preferred buffer size for this rate if device has low-latency support
 				JavaInstMethod<jboolean> jHasLowLatencyAudio;
-				jHasLowLatencyAudio.setup(jEnv, jBaseActivityCls, "hasLowLatencyAudio", "()Z");
-				if(jHasLowLatencyAudio(jEnv, jBaseActivity))
+				jHasLowLatencyAudio.setup(env, jBaseActivityCls, "hasLowLatencyAudio", "()Z");
+				if(jHasLowLatencyAudio(env, jBaseActivity))
 				{
-					preferredOutputBufferFrames = audioManagerIntProperty(jEnv, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
+					preferredOutputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
 					if(!preferredOutputBufferFrames)
 						logMsg("preferred buffer frames value not present");
 					else

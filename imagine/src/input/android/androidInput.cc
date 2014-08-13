@@ -76,7 +76,7 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint enumId, int osId, int src, const char *name):
+AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enumId, int osId, int src, const char *name):
 	Device{enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEY_MISC, nameStr},
 	osId{osId}
 {
@@ -133,7 +133,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint en
 	}
 	if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD))
 	{
-		auto kbType = aDev.getKeyboardType(jEnv);
+		auto kbType = aDev.getKeyboardType(env);
 		// Classify full alphabetic keyboards, and also devices with other keyboard
 		// types, as long as they are exclusively SOURCE_KEYBOARD
 		// (needed for the iCade 8-bitty since it reports a non-alphabetic keyboard type)
@@ -166,13 +166,13 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint en
 			uint axisIdx = 0;
 			for(auto axisId : stickAxes)
 			{
-				auto range = aDev.getMotionRange(jEnv, axisId);
+				auto range = aDev.getMotionRange(env, axisId);
 				if(!range)
 				{
 					axisIdx++;
 					continue;
 				}
-				jEnv->DeleteLocalRef(range);
+				env->DeleteLocalRef(range);
 				logMsg("joystick axis: %d", axisId);
 				auto size = 2.0f;
 				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f, Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
@@ -191,10 +191,10 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint en
 			const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE };
 			for(auto axisId : triggerAxes)
 			{
-				auto range = aDev.getMotionRange(jEnv, axisId);
+				auto range = aDev.getMotionRange(env, axisId);
 				if(!range)
 					continue;
-				jEnv->DeleteLocalRef(range);
+				env->DeleteLocalRef(range);
 				logMsg("trigger axis: %d", axisId);
 				// use unreachable lowLimit value so only highLimit is used
 				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f, 0, axisToKeycode(axisId)});
@@ -209,12 +209,12 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint en
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault_); // default left analog and POV hat as dpad
 		/*iterateTimes(48, i)
 		{
-			auto range = dev.getMotionRange(eEnv(), i);
+			auto range = dev.getMotionRange(jEnv(), i);
 			if(!range)
 			{
 				continue;
 			}
-			eEnv()->DeleteLocalRef(range);
+			jEnv()->DeleteLocalRef(range);
 			logMsg("has axis: %d", i);
 		}*/
 	}
@@ -625,23 +625,23 @@ static bool deviceIDPresent(int id)
 	return false;
 }
 
-static void processDevice(JNIEnv* jEnv, int devID, bool setSpecialDevices, bool notify)
+static void processDevice(JNIEnv* env, int devID, bool setSpecialDevices, bool notify)
 {
-	auto dev = AInputDeviceJ::getDevice(jEnv, devID);
-	jstring jName = dev.getName(jEnv);
+	auto dev = AInputDeviceJ::getDevice(env, devID);
+	jstring jName = dev.getName(env);
 	if(!jName)
 	{
 		logWarn("no name from device id %d", devID);
-		jEnv->DeleteLocalRef(dev);
+		env->DeleteLocalRef(dev);
 		return;
 	}
-	const char *name = jEnv->GetStringUTFChars(jName, nullptr);
-	jint src = dev.getSources(jEnv);
+	const char *name = env->GetStringUTFChars(jName, nullptr);
+	jint src = dev.getSources(env);
 	bool hasKeys = src & AInputDeviceJ::SOURCE_CLASS_BUTTON;
 	logMsg("%d: %s, source %X", devID, name, src);
 	if(hasKeys && !devList.isFull() && !sysInputDev.isFull() && isUsefulDevice(name))
 	{
-		auto sysInput = new AndroidInputDevice(jEnv, dev, nextEnumID(name), devID, src, name);
+		auto sysInput = new AndroidInputDevice(env, dev, nextEnumID(name), devID, src, name);
 		sysInputDev.push_back(sysInput);
 		Input::addDevice(*sysInput);
 		if(setSpecialDevices)
@@ -661,17 +661,17 @@ static void processDevice(JNIEnv* jEnv, int devID, bool setSpecialDevices, bool 
 			onDeviceChange(*sysInput, { Device::Change::ADDED });
 		}
 	}
-	jEnv->ReleaseStringUTFChars(jName, name);
-	jEnv->DeleteLocalRef(dev);
+	env->ReleaseStringUTFChars(jName, name);
+	env->DeleteLocalRef(dev);
 }
 
-void devicesChanged(JNIEnv* jEnv)
+void devicesChanged(JNIEnv* env)
 {
 	logMsg("rescanning all devices for changes");
 	using namespace Base;
-	auto jID = AInputDeviceJ::getDeviceIds(jEnv);
-	auto id = jEnv->GetIntArrayElements(jID, 0);
-	auto ids = jEnv->GetArrayLength(jID);
+	auto jID = AInputDeviceJ::getDeviceIds(env);
+	auto id = env->GetIntArrayElements(jID, 0);
+	auto ids = env->GetArrayLength(jID);
 
 	// check for and remove device IDs no longer present
 	forEachInContainer(sysInputDev, it)
@@ -704,29 +704,29 @@ void devicesChanged(JNIEnv* jEnv)
 	{
 		if(deviceIDPresent(id[i]))
 			continue;
-		processDevice(jEnv, id[i], false, true);
+		processDevice(env, id[i], false, true);
 	}
 
-	jEnv->ReleaseIntArrayElements(jID, id, 0);
+	env->ReleaseIntArrayElements(jID, id, 0);
 }
 
 void devicesChanged()
 {
-	devicesChanged(Base::eEnv());
+	devicesChanged(Base::jEnv());
 }
 
-static void setupDevices(JNIEnv* jEnv)
+static void setupDevices(JNIEnv* env)
 {
 	using namespace Base;
-	auto jID = AInputDeviceJ::getDeviceIds(jEnv);
-	auto id = jEnv->GetIntArrayElements(jID, 0);
+	auto jID = AInputDeviceJ::getDeviceIds(env);
+	auto id = env->GetIntArrayElements(jID, 0);
 	logMsg("scanning input devices");
-	iterateTimes(jEnv->GetArrayLength(jID), i)
+	iterateTimes(env->GetArrayLength(jID), i)
 	{
 		auto devID = id[i];
-		processDevice(jEnv, devID, true, false);
+		processDevice(env, devID, true, false);
 	}
-	jEnv->ReleaseIntArrayElements(jID, id, 0);
+	env->ReleaseIntArrayElements(jID, id, 0);
 
 	if(!virtualDev)
 	{
@@ -760,17 +760,17 @@ CallResult init()
 {
 	if(Base::androidSDK() >= 12)
 	{
-		auto jEnv = Base::eEnv();
+		auto env = Base::jEnv();
 
 		// device change notifications
 		if(Base::androidSDK() >= 16)
 		{
 			logMsg("setting up input notifications");
 			JavaInstMethod<jobject> jInputDeviceListenerHelper;
-			jInputDeviceListenerHelper.setup(jEnv, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;");
-			auto inputDeviceListenerHelper = jInputDeviceListenerHelper(jEnv, Base::jBaseActivity);
+			jInputDeviceListenerHelper.setup(env, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;");
+			auto inputDeviceListenerHelper = jInputDeviceListenerHelper(env, Base::jBaseActivity);
 			assert(inputDeviceListenerHelper);
-			auto inputDeviceListenerHelperCls = jEnv->GetObjectClass(inputDeviceListenerHelper);
+			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);
 			JNINativeMethod method[] =
 			{
 				{
@@ -807,7 +807,7 @@ CallResult init()
 					})
 				}
 			};
-			jEnv->RegisterNatives(inputDeviceListenerHelperCls, method, sizeofArray(method));
+			env->RegisterNatives(inputDeviceListenerHelperCls, method, sizeofArray(method));
 		}
 		else
 		{
@@ -827,7 +827,7 @@ CallResult init()
 							inputRescanCallback.callbackAfterMSec(
 								[]()
 								{
-									Input::devicesChanged(Base::eEnv());
+									Input::devicesChanged(Base::jEnv());
 								}, 250);
 						}
 						return 1;
@@ -840,9 +840,9 @@ CallResult init()
 			}
 		}
 
-		AInputDeviceJ::jniInit(jEnv);
+		AInputDeviceJ::jniInit(env);
 		//AInputDeviceMotionRangeJ::jniInit();
-		setupDevices(jEnv);
+		setupDevices(env);
 	}
 	else
 	{

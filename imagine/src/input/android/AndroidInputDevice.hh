@@ -45,9 +45,9 @@ public:
 	static void jniInit()
 	{
 		using namespace Base;
-		cls = (jclass)eEnv()->NewGlobalRef(eEnv()->FindClass("android/view/InputDevice$MotionRange"));
-		getMax_.setup(eEnv(), cls, "getMax", "()F");
-		getMin_.setup(eEnv(), cls, "getMin", "()F");
+		cls = (jclass)jEnv()->NewGlobalRef(jEnv()->FindClass("android/view/InputDevice$MotionRange"));
+		getMax_.setup(jEnv(), cls, "getMax", "()F");
+		getMin_.setup(jEnv(), cls, "getMin", "()F");
 	}*/
 };
 
@@ -103,17 +103,17 @@ public:
 
 	static constexpr jint KEYBOARD_TYPE_NONE = 0,  KEYBOARD_TYPE_NON_ALPHABETIC = 1, KEYBOARD_TYPE_ALPHABETIC = 2;
 
-	static void jniInit(JNIEnv* jEnv)
+	static void jniInit(JNIEnv* env)
 	{
 		using namespace Base;
-		cls = (jclass)jEnv->NewGlobalRef(jEnv->FindClass("android/view/InputDevice"));
-		getDeviceIds_.setup(jEnv, cls, "getDeviceIds", "()[I");
-		getDevice_.setup(jEnv, cls, "getDevice", "(I)Landroid/view/InputDevice;");
-		getName_.setup(jEnv, cls, "getName", "()Ljava/lang/String;");
-		//getDescriptor_.setup(jEnv, cls, "getDescriptor", "()Ljava/lang/String;");
-		getSources_.setup(jEnv, cls, "getSources", "()I");
-		getKeyboardType_.setup(jEnv, cls, "getKeyboardType", "()I");
-		getMotionRange_.setup(jEnv, cls, "getMotionRange", "(I)Landroid/view/InputDevice$MotionRange;");
+		cls = (jclass)env->NewGlobalRef(env->FindClass("android/view/InputDevice"));
+		getDeviceIds_.setup(env, cls, "getDeviceIds", "()[I");
+		getDevice_.setup(env, cls, "getDevice", "(I)Landroid/view/InputDevice;");
+		getName_.setup(env, cls, "getName", "()Ljava/lang/String;");
+		//getDescriptor_.setup(env, cls, "getDescriptor", "()Ljava/lang/String;");
+		getSources_.setup(env, cls, "getSources", "()I");
+		getKeyboardType_.setup(env, cls, "getKeyboardType", "()I");
+		getMotionRange_.setup(env, cls, "getMotionRange", "(I)Landroid/view/InputDevice$MotionRange;");
 	}
 };
 
@@ -153,7 +153,7 @@ struct AndroidInputDevice : public Input::Device
 		string_copy(nameStr, name);
 	}
 
-	AndroidInputDevice(JNIEnv* jEnv, AInputDeviceJ aDev, uint enumId, int osId, int src, const char *name);
+	AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enumId, int osId, int src, const char *name);
 
 	bool operator ==(AndroidInputDevice const& rhs) const
 	{

@@ -30,28 +30,28 @@ static JavaInstMethod<jint> jGetRotation;
 JavaInstMethod<jobject> jPresentation;
 JavaInstMethod<jobject> jGetDisplay;
 
-void initScreens(JNIEnv *jEnv, jobject activity, jclass activityCls)
+void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
 	{
 		JavaInstMethod<jobject> jDefaultDpy;
-		jDefaultDpy.setup(jEnv, activityCls, "defaultDpy", "()Landroid/view/Display;");
+		jDefaultDpy.setup(env, activityCls, "defaultDpy", "()Landroid/view/Display;");
 		// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
 		JavaInstMethod<jobject> jDisplayMetrics;
-		jDisplayMetrics.setup(jEnv, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
+		jDisplayMetrics.setup(env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
 		static Screen main;
-		main.init(jEnv, jDefaultDpy(jEnv, activity), jDisplayMetrics(jEnv, activity), true);
+		main.init(env, jDefaultDpy(env, activity), jDisplayMetrics(env, activity), true);
 		Screen::addScreen(&main);
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	if(Base::androidSDK() >= 17)
 	{
-		jPresentation.setup(jEnv, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
+		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
 		logMsg("setting up screen notifications");
 		JavaInstMethod<jobject> jDisplayListenerHelper;
-		jDisplayListenerHelper.setup(jEnv, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;");
-		auto displayListenerHelper = jDisplayListenerHelper(jEnv, activity);
+		jDisplayListenerHelper.setup(env, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;");
+		auto displayListenerHelper = jDisplayListenerHelper(env, activity);
 		assert(displayListenerHelper);
-		auto displayListenerHelperCls = jEnv->GetObjectClass(displayListenerHelper);
+		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
 		JNINativeMethod method[] =
 		{
 			{
@@ -97,14 +97,14 @@ void initScreens(JNIEnv *jEnv, jobject activity, jclass activityCls)
 				})
 			}
 		};
-		jEnv->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
 
 		// get the current presentation screens
 		JavaInstMethod<jobject> jGetPresentationDisplays;
-		jGetPresentationDisplays.setup(jEnv, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;");
-		jGetDisplay.setup(jEnv, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
-		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(jEnv, displayListenerHelper);
-		uint pDisplays = jEnv->GetArrayLength(jPDisplay);
+		jGetPresentationDisplays.setup(env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;");
+		jGetDisplay.setup(env, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
+		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
+		uint pDisplays = env->GetArrayLength(jPDisplay);
 		if(pDisplays)
 		{
 			if(pDisplays > screen_.freeSpace())
@@ -112,32 +112,32 @@ void initScreens(JNIEnv *jEnv, jobject activity, jclass activityCls)
 			logMsg("checking %d presentation display(s)", pDisplays);
 			iterateTimes(pDisplays, i)
 			{
-				auto display = jEnv->GetObjectArrayElement(jPDisplay, i);
+				auto display = env->GetObjectArrayElement(jPDisplay, i);
 				Screen *s = new Screen();
-				s->init(jEnv, display, nullptr, false);
+				s->init(env, display, nullptr, false);
 				Screen::addScreen(s);
 			}
 		}
-		jEnv->DeleteLocalRef(jPDisplay);
+		env->DeleteLocalRef(jPDisplay);
 	}
 	#endif
 }
 
-void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool isMain)
+void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain)
 {
 	assert(aDisplay);
-	this->aDisplay = jEnv->NewGlobalRef(aDisplay);
+	this->aDisplay = env->NewGlobalRef(aDisplay);
 
 	if(!jGetRotation)
 	{
-		jclass jDisplayCls = jEnv->GetObjectClass(aDisplay);
-		jGetRotation.setup(jEnv, jDisplayCls, "getRotation", "()I");
+		jclass jDisplayCls = env->GetObjectClass(aDisplay);
+		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
 	}
 
 	bool isStraightOrientation = true;
 	if(isMain)
 	{
-		auto orientation = jGetRotation(jEnv, aDisplay);
+		auto orientation = jGetRotation(env, aDisplay);
 		logMsg("starting orientation %d", orientation);
 		osOrientation = orientation;
 		isStraightOrientation = !ASurface::isSidewaysOrientation(orientation);
@@ -149,10 +149,10 @@ void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool i
 	}
 	else
 	{
-		jclass jDisplayCls = jEnv->GetObjectClass(aDisplay);
+		jclass jDisplayCls = env->GetObjectClass(aDisplay);
 		JavaInstMethod<jint> jGetDisplayId;
-		jGetDisplayId.setup(jEnv, jDisplayCls, "getDisplayId", "()I");
-		id = jGetDisplayId(jEnv, aDisplay);;
+		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
+		id = jGetDisplayId(env, aDisplay);;
 		logMsg("init display with id: %d", id);
 	}
 	#endif
@@ -162,31 +162,31 @@ void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool i
 	{
 		logMsg("getting metrics from display");
 		JavaInstMethod<jobject> jGetMetrics;
-		jGetMetrics.setup(jEnv, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
-		metrics = jGetMetrics(jEnv, Base::jBaseActivity, aDisplay);
+		jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
+		metrics = jGetMetrics(env, Base::jBaseActivity, aDisplay);
 		assert(metrics);
 	}
-	jclass jDisplayMetricsCls = jEnv->GetObjectClass(metrics);
-	auto jXDPI = jEnv->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
-	auto jYDPI = jEnv->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
-	auto jScaledDensity = jEnv->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
-	auto jWidthPixels = jEnv->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
-	auto jHeightPixels = jEnv->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
-	auto metricsXDPI = jEnv->GetFloatField(metrics, jXDPI);
-	auto metricsYDPI = jEnv->GetFloatField(metrics, jYDPI);
-	auto widthPixels = jEnv->GetIntField(metrics, jWidthPixels);
-	auto heightPixels = jEnv->GetIntField(metrics, jHeightPixels);
-	densityDPI = 160.*jEnv->GetFloatField(metrics, jScaledDensity);
+	jclass jDisplayMetricsCls = env->GetObjectClass(metrics);
+	auto jXDPI = env->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
+	auto jYDPI = env->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
+	auto jScaledDensity = env->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
+	auto jWidthPixels = env->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
+	auto jHeightPixels = env->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
+	auto metricsXDPI = env->GetFloatField(metrics, jXDPI);
+	auto metricsYDPI = env->GetFloatField(metrics, jYDPI);
+	auto widthPixels = env->GetIntField(metrics, jWidthPixels);
+	auto heightPixels = env->GetIntField(metrics, jHeightPixels);
+	densityDPI = 160.*env->GetFloatField(metrics, jScaledDensity);
 	assert(densityDPI);
 	logMsg("screen with size %dx%d, DPI size %fx%f, scaled density DPI %f",
 		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI);
 	#ifndef NDEBUG
 	{
-		auto jDensity = jEnv->GetFieldID(jDisplayMetricsCls, "density", "F");
-		auto jDensityDPI = jEnv->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
+		auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
+		auto jDensityDPI = env->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
 		logMsg("display density %f, densityDPI %d, %dx%d pixels",
-			(double)jEnv->GetFloatField(metrics, jDensity), jEnv->GetIntField(metrics, jDensityDPI),
-			jEnv->GetIntField(metrics, jWidthPixels), jEnv->GetIntField(metrics, jHeightPixels));
+			(double)env->GetFloatField(metrics, jDensity), env->GetIntField(metrics, jDensityDPI),
+			env->GetIntField(metrics, jWidthPixels), env->GetIntField(metrics, jHeightPixels));
 	}
 	#endif
 	// DPI values are un-rotated from DisplayMetrics
@@ -199,7 +199,7 @@ void AndroidScreen::init(JNIEnv *jEnv, jobject aDisplay, jobject metrics, bool i
 void Screen::deinit()
 {
 	unpostFrame();
-	eEnv()->DeleteGlobalRef(aDisplay);
+	jEnv()->DeleteGlobalRef(aDisplay);
 	*this = {};
 }
 
@@ -213,9 +213,9 @@ int Screen::height()
 	return height_;
 }
 
-int AndroidScreen::aOrientation(JNIEnv *jEnv)
+int AndroidScreen::aOrientation(JNIEnv *env)
 {
-	return jGetRotation(jEnv, aDisplay);
+	return jGetRotation(env, aDisplay);
 }
 
 uint Screen::refreshRate()
@@ -224,9 +224,9 @@ uint Screen::refreshRate()
 	{
 		assert(aDisplay);
 		JavaInstMethod<jfloat> jGetRefreshRate;
-		auto jEnv = eEnv();
-		jGetRefreshRate.setup(jEnv, jEnv->GetObjectClass(aDisplay), "getRefreshRate", "()F");
-		refreshRate_ = jGetRefreshRate(jEnv, aDisplay);
+		auto env = jEnv();
+		jGetRefreshRate.setup(env, env->GetObjectClass(aDisplay), "getRefreshRate", "()F");
+		refreshRate_ = jGetRefreshRate(env, aDisplay);
 		logMsg("refresh rate: %f", (double)refreshRate_);
 	}
 	return refreshRate_;

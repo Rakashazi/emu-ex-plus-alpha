@@ -64,7 +64,7 @@ const PixelFormatDesc *BitmapFactoryImage::pixelFormat()
 CallResult BitmapFactoryImage::load(const char *name)
 {
 	freeImageData();
-	auto env = Base::eEnv();
+	auto env = Base::jEnv();
 	if(!jBitmapFactory)
 	{
 		jBitmapFactory = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/BitmapFactory"));
@@ -91,7 +91,7 @@ CallResult BitmapFactoryImage::loadAsset(const char *name)
 {
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
-	auto env = Base::eEnv();
+	auto env = Base::jEnv();
 	using namespace Base;
 	if(!jDecodeAsset)
 	{
@@ -123,7 +123,7 @@ bool BitmapFactoryImage::hasAlphaChannel()
 CallResult BitmapFactoryImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format.id == pixelFormat()->id);
-	auto env = Base::eEnv();
+	auto env = Base::jEnv();
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
 	IG::Pixmap src(*pixelFormat());
@@ -137,7 +137,7 @@ void BitmapFactoryImage::freeImageData()
 {
 	if(bitmap)
 	{
-		auto env = Base::eEnv();
+		auto env = Base::jEnv();
 		jRecycle(env, bitmap);
 		env->DeleteGlobalRef(bitmap);
 		bitmap = nullptr;

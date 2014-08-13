@@ -48,7 +48,7 @@
 namespace Base
 {
 
-const char *appPath = nullptr;
+static FsSys::PathString appPath{};
 Display *dpy;
 extern void runMainEventLoop();
 extern void initMainEventLoop();
@@ -124,7 +124,16 @@ void abort() { ::abort(); }
 	logMsg("openURL called with %s", url);
 }*/
 
-#ifdef CONFIG_FS
+const char *assetPath()
+{
+	return appPath.data();
+}
+
+const char *documentsPath()
+{
+	return appPath.data();
+}
+
 const char *storagePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
@@ -154,9 +163,14 @@ const char *storagePath()
 		}
 		// fall back to appPath
 	}
-	return appPath;
+	return appPath.data();
 }
-#endif
+
+bool documentsPathIsShared()
+{
+	// TODO
+	return false;
+}
 
 static int eventHandler(XEvent &event)
 {
@@ -292,10 +306,7 @@ int main(int argc, char** argv)
 	using namespace Base;
 	doOrAbort(logger_init());
 	engineInit();
-
-	#ifdef CONFIG_FS
-	FsSys::changeToAppDir(argv[0]);
-	#endif
+	appPath = makeAppPathFromLaunchCommand(argv[0]);
 
 	initMainEventLoop();
 

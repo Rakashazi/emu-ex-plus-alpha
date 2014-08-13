@@ -28,14 +28,5 @@
 #define FsSys FsPs3
 #endif
 
-static FsSys::PathString makeFSPathStringPrintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-static FsSys::PathString makeFSPathStringPrintf(const char *format, ...)
-{
-	FsSys::PathString path{};
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(path.data(), sizeof(path), format, args);
-	assert(ret >= 0);
-	va_end(args);
-	return path;
-}
+FsSys::PathString makeFSPathStringPrintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+FsSys::PathString makeAppPathFromLaunchCommand(const char *launchPath);

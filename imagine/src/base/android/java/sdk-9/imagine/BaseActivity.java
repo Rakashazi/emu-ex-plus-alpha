@@ -262,11 +262,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return metrics;
 	}
 	
-	String apkPath()
-	{
-		return getApplicationInfo().sourceDir;
-	}
-	
 	String filesDir()
 	{
 		return getApplicationContext().getFilesDir().getAbsolutePath();

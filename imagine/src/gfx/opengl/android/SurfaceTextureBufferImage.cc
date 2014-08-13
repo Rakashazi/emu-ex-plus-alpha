@@ -30,19 +30,19 @@ void SurfaceTextureBufferImage::init(int tid, IG::Pixmap &pixmap)
 	new(&pix) IG::Pixmap(pixmap.format);
 	pix.init(nullptr, pixmap.x, pixmap.y);
 	logMsg("creating SurfaceTexture with id %d", tid);
-	auto jEnv = eEnv();
-	surfaceTex = jEnv->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tid);
+	auto env = jEnv();
+	surfaceTex = env->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tid);
 	assert(surfaceTex);
-	surfaceTex = jEnv->NewGlobalRef(surfaceTex);
-	//jEnv->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
+	surfaceTex = env->NewGlobalRef(surfaceTex);
+	//env->CallVoidMethod(surfaceTex, jSetDefaultBufferSize.m, x, y);
 
-	surface = jEnv->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
+	surface = env->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
 	assert(surface);
-	surface = jEnv->NewGlobalRef(surface);
+	surface = env->NewGlobalRef(surface);
 
 	// ANativeWindow_fromSurfaceTexture was removed from Android 4.1
-	//nativeWin = surfaceTextureConf.ANativeWindow_fromSurfaceTexture(eEnv(), surfaceTex);
-	nativeWin = ANativeWindow_fromSurface(jEnv, surface);
+	//nativeWin = surfaceTextureConf.ANativeWindow_fromSurfaceTexture(jEnv(), surfaceTex);
+	nativeWin = ANativeWindow_fromSurface(env, surface);
 	assert(nativeWin);
 	logMsg("got native window %p from Surface %p", nativeWin, surface);
 	replace(pixmap, 0);
@@ -90,7 +90,7 @@ void SurfaceTextureBufferImage::unlock(IG::Pixmap *pix, uint hints)
 {
 	using namespace Base;
 	ANativeWindow_unlockAndPost(nativeWin);
-	surfaceTextureConf.jUpdateTexImage(eEnv(), surfaceTex);
+	surfaceTextureConf.jUpdateTexImage(jEnv(), surfaceTex);
 	// texture implicitly bound in updateTexImage()
 	glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = desc.tid;
 }
@@ -101,11 +101,11 @@ void SurfaceTextureBufferImage::deinit()
 	using namespace Gfx;
 	logMsg("deinit SurfaceTexture, releasing window");
 	ANativeWindow_release(nativeWin);
-	auto jEnv = eEnv();
-	surfaceTextureConf.jSurfaceRelease(jEnv, surface);
-	jEnv->DeleteGlobalRef(surface);
-	surfaceTextureConf.jSurfaceTextureRelease(jEnv, surfaceTex);
-	jEnv->DeleteGlobalRef(surfaceTex);
+	auto env = jEnv();
+	surfaceTextureConf.jSurfaceRelease(env, surface);
+	env->DeleteGlobalRef(surface);
+	surfaceTextureConf.jSurfaceTextureRelease(env, surfaceTex);
+	env->DeleteGlobalRef(surfaceTex);
 	freeTexRef(desc.tid);
 	desc.tid = 0;
 
