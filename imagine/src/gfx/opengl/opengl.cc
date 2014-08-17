@@ -252,37 +252,40 @@ void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 {
 	//logMsg("scissor before transform %d,%d size %d,%d", x, y, w, h);
 	// translate from view to window coordinates
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	using namespace Base;
-	switch(win.rotateView)
+	if(!Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		bcase VIEW_ROTATE_0:
-			//x += win.viewport.rect.x;
-			y = win.height() - (y + h);
-		bcase VIEW_ROTATE_90:
-			//x += win.viewport.rect.y;
-			//y = win.width() - (y + h /*+ (win.w - win.viewport.rect.x2)*/);
-			std::swap(x, y);
-			std::swap(w, h);
-			x = (win.realWidth() - x) - w;
-			y = (win.realHeight() - y) - h;
-		bcase VIEW_ROTATE_270:
-			//x += win.viewport.rect.y;
-			//y += win.viewport.rect.x;
-			std::swap(x, y);
-			std::swap(w, h);
-		bcase VIEW_ROTATE_180:
-			x = (win.realWidth() - x) - w;
-			//y = win.height() - (y + h);
-			//std::swap(x, y);
-			//std::swap(w, h);
-			//x += win.viewport.rect.x;
-			//y += win.height() - win.viewport.bounds().y2;
+		using namespace Base;
+		switch(win.softOrientation())
+		{
+			bcase VIEW_ROTATE_0:
+				//x += win.viewport.rect.x;
+				y = win.height() - (y + h);
+			bcase VIEW_ROTATE_90:
+				//x += win.viewport.rect.y;
+				//y = win.width() - (y + h /*+ (win.w - win.viewport.rect.x2)*/);
+				std::swap(x, y);
+				std::swap(w, h);
+				x = (win.realWidth() - x) - w;
+				y = (win.realHeight() - y) - h;
+			bcase VIEW_ROTATE_270:
+				//x += win.viewport.rect.y;
+				//y += win.viewport.rect.x;
+				std::swap(x, y);
+				std::swap(w, h);
+			bcase VIEW_ROTATE_180:
+				x = (win.realWidth() - x) - w;
+				//y = win.height() - (y + h);
+				//std::swap(x, y);
+				//std::swap(w, h);
+				//x += win.viewport.rect.x;
+				//y += win.height() - win.viewport.bounds().y2;
+		}
 	}
-	#else
-	//x += win.viewport.rect.x;
-	y = win.height() - (y + h /*+ win.viewport.rect.y*/);
-	#endif
+	else
+	{
+		//x += win.viewport.rect.x;
+		y = win.height() - (y + h /*+ win.viewport.rect.y*/);
+	}
 	//logMsg("setting Scissor %d,%d size %d,%d", x, y, w, h);
 	glScissor(x, y, w, h);
 }

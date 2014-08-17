@@ -127,7 +127,7 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	}
 	else
 		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
-	#elif defined CONFIG_BASE_IOS && !defined __ARM_ARCH_6K__
+	#elif defined CONFIG_BASE_IOS
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);

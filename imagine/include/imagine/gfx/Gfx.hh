@@ -35,6 +35,8 @@ namespace Gfx
 uint defaultColorBits();
 Base::WindowConfig makeWindowConfig();
 void setWindowConfig(Base::WindowConfig &config);
+void initWindow(Base::Window &win, Base::WindowConfig config);
+void setWindowValidOrientations(Base::Window &win, uint validO);
 bool setCurrentWindow(Base::Window *win);
 void presentWindow(Base::Window &win);
 void setViewport(const Viewport &v);

@@ -19,11 +19,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <imagine/base/iphone/EAGLView.hh>
 #import <dlfcn.h>
 #import <unistd.h>
-
+#import <OpenGLES/ES2/gl.h> // for glFinish()
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
 #include "private.hh"
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/time/sys.hh>
 #include <imagine/util/coreFoundation.h>
@@ -77,6 +76,7 @@ CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
 UIApplication *sharedApp = nullptr;
 static const char *docPath = nullptr;
 static FsSys::PathString appPath{};
+static id onOrientationChangedObserver = nil;
 
 #ifdef IPHONE_IMG_PICKER
 static UIImagePickerController* imagePickerController;
@@ -237,7 +237,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		case UIDeviceOrientationLandscapeLeft: return Base::VIEW_ROTATE_90;
 		case UIDeviceOrientationLandscapeRight: return Base::VIEW_ROTATE_270;
 		case UIDeviceOrientationPortraitUpsideDown: return Base::VIEW_ROTATE_180;
-		default : return 255; // TODO: handle Face-up/down
+		default : return 0; // TODO: handle Face-up/down
 	}
 }
 
@@ -260,13 +260,9 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	if(usingIOS7)
 		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
 	#endif
-	
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
-	[nCenter addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
+
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	//[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
-	#endif
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	{
 		NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
@@ -302,21 +298,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
 }
-
-#ifdef CONFIG_GFX_SOFT_ORIENTATION
-- (void)orientationChanged:(NSNotification *)notification
-{
-	using namespace Base;
-	uint o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
-	if(o == 255)
-		return;
-	if(o == Base::VIEW_ROTATE_180 && !Base::isIPad)
-		return; // ignore upside-down orientation unless using iPad
-	logMsg("new orientation %s", Base::orientationToStr(o));
-	deviceWindow()->preferedOrientation = o;
-	deviceWindow()->setOrientation(deviceWindow()->preferedOrientation, true);
-}
-#endif
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
@@ -397,22 +378,18 @@ namespace Base
 void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplication *sharedApp)
 {
 	win.updateSize({width, height});
-	win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
+	win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
 }
 
 static void setStatusBarHidden(bool hidden)
 {
 	assert(sharedApp);
 	logMsg("setting status bar hidden: %d", (int)hidden);
-	#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 30200
 	[sharedApp setStatusBarHidden: (hidden ? YES : NO) withAnimation: UIStatusBarAnimationFade];
-	#else
-	[sharedApp setStatusBarHidden: (hidden ? YES : NO) animated:YES];
-	#endif
 	if(deviceWindow())
 	{
 		auto &win = *deviceWindow();
-		win.updateContentRect(win.width(), win.height(), win.rotateView, sharedApp);
+		win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
 		win.postDraw();
 	}
 }
@@ -434,9 +411,53 @@ UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
 	}
 }
 
-#ifdef CONFIG_GFX_SOFT_ORIENTATION
-void Window::setSystemOrientation(uint o)
+void setDeviceOrientationChangeSensor(bool enable)
 {
+	UIDevice *currDev = [UIDevice currentDevice];
+	auto notificationsAreOn = currDev.generatesDeviceOrientationNotifications;
+	if(enable && !notificationsAreOn)
+	{
+		logMsg("enabling device orientation notifications");
+		[currDev beginGeneratingDeviceOrientationNotifications];
+	}
+	else if(!enable && notificationsAreOn)
+	{
+		logMsg("disabling device orientation notifications");
+		[currDev endGeneratingDeviceOrientationNotifications];
+	}
+}
+
+void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate onOrientationChanged)
+{
+	if(onOrientationChanged)
+	{
+		NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
+		if(onOrientationChangedObserver)
+		{
+			[nCenter removeObserver:onOrientationChangedObserver];
+		}
+		onOrientationChangedObserver = [nCenter addObserverForName:UIDeviceOrientationDidChangeNotification
+		                               object:nil queue:nil usingBlock:
+		                               ^(NSNotification *note)
+		                               {
+		                              	auto o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
+		                              	if(o)
+		                              	{
+		                              		onOrientationChanged(o);
+		                              	}
+		                               }];
+	}
+	else if(!onOrientationChanged && onOrientationChangedObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:onOrientationChangedObserver];
+		onOrientationChangedObserver = nil;
+	}
+
+}
+
+void setSystemOrientation(uint o)
+{
+	logMsg("setting system orientation %s", orientationToStr(o));
 	using namespace Input;
 	if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
 	{
@@ -446,26 +467,23 @@ void Window::setSystemOrientation(uint o)
 	}
 	assert(sharedApp);
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
-	updateContentRect(width(), height(), rotateView, sharedApp);
-}
-
-static bool autoOrientationState = 0; // Turned on in applicationDidFinishLaunching
-
-void Window::setAutoOrientation(bool on)
-{
-	if(autoOrientationState == on)
-		return;
-	autoOrientationState = on;
-	logMsg("set auto-orientation: %d", on);
-	if(on)
-		[[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-	else
+	if(deviceWindow())
 	{
-		deviceWindow()->preferedOrientation = deviceWindow()->rotateView;
-		[[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
+		auto &win = *deviceWindow();
+		win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
+		win.postDraw();
 	}
 }
-#endif
+
+uint defaultSystemOrientations()
+{
+	return Base::isIPad ? VIEW_ROTATE_ALL : VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN;
+}
+
+void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
+{
+	// TODO
+}
 
 void exit(int returnVal)
 {

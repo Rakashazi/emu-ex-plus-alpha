@@ -145,9 +145,9 @@ void configureInputForOrientation(const Base::Window &win)
 {
 	using namespace Input;
 	using namespace Base;
-	xPointerTransform(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_90 ? POINTER_NORMAL : POINTER_INVERT);
-	yPointerTransform(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_270 ? POINTER_NORMAL : POINTER_INVERT);
-	pointerAxis(win.rotateView == VIEW_ROTATE_0 || win.rotateView == VIEW_ROTATE_180 ? POINTER_NORMAL : POINTER_INVERT);
+	xPointerTransform(win.softOrientation() == VIEW_ROTATE_0 || win.softOrientation() == VIEW_ROTATE_90 ? POINTER_NORMAL : POINTER_INVERT);
+	yPointerTransform(win.softOrientation() == VIEW_ROTATE_0 || win.softOrientation() == VIEW_ROTATE_270 ? POINTER_NORMAL : POINTER_INVERT);
+	pointerAxis(win.softOrientation() == VIEW_ROTATE_0 || win.softOrientation() == VIEW_ROTATE_180 ? POINTER_NORMAL : POINTER_INVERT);
 }
 
 bool keyInputIsPresent()

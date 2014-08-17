@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/gfx/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/util/rectangle2.h>
@@ -171,8 +170,8 @@ public:
 	// Called when the window is dismissed
 	void setOnDismiss(DismissDelegate del);
 
-	int realWidth() const { return orientationIsSideways(rotateView) ? h : w; }
-	int realHeight() const { return orientationIsSideways(rotateView) ? w : h; }
+	int realWidth() const { return orientationIsSideways(softOrientation()) ? h : w; }
+	int realHeight() const { return orientationIsSideways(softOrientation()) ? w : h; }
 	int width() const { return w; }
 	int height() const { return h; }
 	IG::Point2D<int> realSize() const { return {realWidth(), realHeight()}; }
@@ -236,16 +235,11 @@ public:
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
 
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint setOrientation(uint o, bool preferAnimated);
-	void setAutoOrientation(bool on);
-	void setSystemOrientation(uint o);
-	#endif
-	uint setValidOrientations(uint oMask, bool preferAnimated);
-	uint setValidOrientations(uint oMask)
-	{
-		return setValidOrientations(oMask, true);
-	}
+	uint softOrientation() const;
+	uint validSoftOrientations() const;
+	bool requestOrientationChange(uint o);
+	bool setValidOrientations(uint oMask);
+	static bool systemAnimatesRotation();
 
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
@@ -261,7 +255,6 @@ public:
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
-	void initDelegates();
 	void dispatchSurfaceChange();
 };
 

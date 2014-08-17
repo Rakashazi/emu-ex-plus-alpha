@@ -126,6 +126,37 @@ const ExitDelegate &onExit()
 	return onExit_;
 }
 
+const char *orientationToStr(uint o)
+{
+	switch(o)
+	{
+		case VIEW_ROTATE_AUTO: return "Auto";
+		case VIEW_ROTATE_0: return "0";
+		case VIEW_ROTATE_90: return "90";
+		case VIEW_ROTATE_180: return "180";
+		case VIEW_ROTATE_270: return "270";
+		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
+		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
+		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
+		default: bug_branch("%d", o); return "";
+	}
+}
+
+bool orientationIsSideways(uint o)
+{
+	return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270;
+}
+
+uint validateOrientationMask(uint oMask)
+{
+	if(bit_numSet(oMask & VIEW_ROTATE_ALL) == 0)
+	{
+		// use default when none of the orientation bits are set
+		oMask = defaultSystemOrientations();
+	}
+	return oMask;
+}
+
 }
 
 #if defined(__has_feature)

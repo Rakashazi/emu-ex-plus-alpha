@@ -1311,7 +1311,7 @@ OptionView::OptionView(Base::Window &win):
 		[this](MultiChoiceMenuItem &, int val)
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
-			mainWin.win.setValidOrientations(optionMenuOrientation);
+			Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 		}
 	}

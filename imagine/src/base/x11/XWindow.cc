@@ -182,7 +182,7 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		bug_exit("no multi-window support");
 	}
-	initDelegates();
+	BaseWindow::init();
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	screen_ = &mainScreen();
 	#endif
@@ -297,7 +297,9 @@ void Window::show()
 	#endif
 }
 
-void Window::setAutoOrientation(bool on) {}
-void Window::setSystemOrientation(uint o) {}
+bool Window::systemAnimatesRotation()
+{
+	return false;
+}
 
 }

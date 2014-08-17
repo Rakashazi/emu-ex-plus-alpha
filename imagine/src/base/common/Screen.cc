@@ -16,9 +16,6 @@
 #define LOGTAG "Screen"
 #include <imagine/base/Base.hh>
 #include "windowPrivate.hh"
-#ifdef CONFIG_GFX
-#include <imagine/gfx/Gfx.hh>
-#endif
 
 namespace Base
 {

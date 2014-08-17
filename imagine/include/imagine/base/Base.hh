@@ -20,7 +20,7 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-
+#include <imagine/base/baseDefs.hh>
 #if defined CONFIG_BASE_ANDROID
 #include <imagine/base/android/android.hh>
 #elif defined CONFIG_BASE_IOS
@@ -78,6 +78,11 @@ bool hasHardwareNavButtons();
 static void setSysUIStyle(uint flags) {}
 static bool hasHardwareNavButtons() { return false; }
 #endif
+void setSystemOrientation(uint o);
+uint defaultSystemOrientations();
+
+// Sensors
+void setDeviceOrientationChangeSensor(bool on);
 
 // vibration support
 #if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
@@ -113,6 +118,8 @@ using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
 using ResumeDelegate = DelegateFunc<void (bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void ()>;
 using ExitDelegate = DelegateFunc<void (bool backgrounded)>;
+using DeviceOrientationChangedDelegate = DelegateFunc<void (uint newOrientation)>;
+using SystemOrientationChangedDelegate = DelegateFunc<void (uint oldOrientation, uint newOrientation)>;
 
 // Called when another process sends the app a message
 void setOnInterProcessMessage(InterProcessMessageDelegate del);
@@ -134,6 +141,12 @@ const FreeCachesDelegate &onFreeCaches();
 void setOnExit(ExitDelegate del);
 void dispatchOnExit(bool backgrounded);
 const ExitDelegate &onExit();
+
+// Called when device changes orientation and the sensor is enabled
+void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del);
+
+// Called when system UI changes orientation
+void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 
 // Called on app startup
 [[gnu::cold]] CallResult onInit(int argc, char** argv);

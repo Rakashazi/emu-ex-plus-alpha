@@ -34,19 +34,19 @@ private:
 	float wSMM = 0, hSMM = 0;
 	#endif
 	IG::Rect2<int> relYFlipViewport;
-
-public:
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint rotateView = Base::VIEW_ROTATE_0;
+	uint softOrientation_ = Base::VIEW_ROTATE_0;
 	#else
-	static constexpr uint rotateView = Base::VIEW_ROTATE_0;
+	static constexpr uint softOrientation_ = Base::VIEW_ROTATE_0;
 	#endif
 
+public:
+
 	constexpr Viewport() {}
-	IG::WindowRect realBounds() const { return Base::orientationIsSideways(rotateView) ? IG::WindowRect{rect.y, rect.x, rect.y2, rect.x2} : rect; }
+	IG::WindowRect realBounds() const { return Base::orientationIsSideways(softOrientation_) ? IG::WindowRect{rect.y, rect.x, rect.y2, rect.x2} : rect; }
 	IG::WindowRect bounds() const { return rect; }
-	int realWidth() const { return Base::orientationIsSideways(rotateView) ? h : w; }
-	int realHeight() const { return Base::orientationIsSideways(rotateView) ? w : h; }
+	int realWidth() const { return Base::orientationIsSideways(softOrientation_) ? h : w; }
+	int realHeight() const { return Base::orientationIsSideways(softOrientation_) ? w : h; }
 	int width() const { return w; }
 	int height() const { return h; }
 	float aspectRatio() const { return (float)width() / (float)height(); }

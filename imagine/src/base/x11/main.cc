@@ -172,6 +172,19 @@ bool documentsPathIsShared()
 	return false;
 }
 
+void setDeviceOrientationChangeSensor(bool on) {}
+
+void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
+
+void setSystemOrientation(uint o) {}
+
+uint defaultSystemOrientations()
+{
+	return VIEW_ROTATE_ALL;
+}
+
+void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
+
 static int eventHandler(XEvent &event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);

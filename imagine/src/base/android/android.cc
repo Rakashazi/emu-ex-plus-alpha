@@ -24,7 +24,6 @@
 #include <imagine/base/android/sdk.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
@@ -58,6 +57,7 @@ static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static uint aSDK = aMinSDK;
 static bool osAnimatesRotation = false;
 int osOrientation = -1;
+static SystemOrientationChangedDelegate onSystemOrientationChanged;
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback;
@@ -144,32 +144,19 @@ uint androidSDK()
 	return std::max(aMinSDK, aSDK);
 }
 
-static bool setOrientationOS(int o)
+void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
 {
-	using namespace Gfx;
-	static const Angle orientationDiffTable[4][4] =
-	{
-			{ 0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90) },
-			{ angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180) },
-			{ angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90) },
-			{ angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0 },
-	};
+	onSystemOrientationChanged = del;
+}
 
-	logMsg("OS orientation change");
-	assert(osOrientation != -1);
-	if(osOrientation != o)
-	{
-		if(!osAnimatesRotation)
-		{
-			auto rotAngle = orientationDiffTable[osOrientation][o];
-			logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-			Gfx::animateProjectionMatrixRotation(rotAngle, 0.);
-		}
-		//logMsg("new value %d", o);
-		osOrientation = o;
-		return true;
-	}
-	return false;
+bool Window::systemAnimatesRotation()
+{
+	return osAnimatesRotation;
+}
+
+uint defaultSystemOrientations()
+{
+	return VIEW_ROTATE_ALL;
 }
 
 jobject newFontRenderer(JNIEnv *env)
@@ -180,16 +167,6 @@ jobject newFontRenderer(JNIEnv *env)
 static void initConfig(AConfiguration* config)
 {
 	initInputConfig(config);
-}
-
-static void configChange(JNIEnv* env, AConfiguration* config)
-{
-	auto orientation = mainScreen().aOrientation(env);
-	if(setOrientationOS(orientation))
-	{
-		//logMsg("changed OS orientation");
-	}
-	changeInputConfig(config);
 }
 
 static void activityInit(JNIEnv* env, jobject activity)
@@ -435,7 +412,16 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		[](ANativeActivity *activity)
 		{
 			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-			configChange(activity->env, aConfig);
+			auto orientation = mainScreen().aOrientation(activity->env);
+			if(orientation != osOrientation)
+			{
+				logMsg("changed OS orientation");
+				auto oldOrientation = osOrientation;
+				osOrientation = orientation;
+				if(onSystemOrientationChanged)
+					onSystemOrientationChanged(oldOrientation, orientation);
+			}
+			changeInputConfig(aConfig);
 		};
 	activity->callbacks->onLowMemory =
 		[](ANativeActivity *)

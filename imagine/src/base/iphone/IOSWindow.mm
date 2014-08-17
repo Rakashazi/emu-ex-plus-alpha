@@ -23,7 +23,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "private.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/gfx/Gfx.hh>
 #include "ios.hh"
 
 #ifndef GL_RENDERBUFFER
@@ -65,24 +64,18 @@ static uint defaultValidOrientationMask()
 	return Base::isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 
-uint Window::setValidOrientations(uint oMask, bool preferAnimated)
+bool Window::setValidOrientations(uint oMask)
 {
+	oMask = validateOrientationMask(oMask);
 	validO = 0;
-	if(oMask == VIEW_ROTATE_AUTO)
-	{
-		validO = defaultValidOrientationMask();
-	}
-	else
-	{
-		if(oMask & VIEW_ROTATE_0)
-			validO |= UIInterfaceOrientationMaskPortrait;
-		if(oMask & VIEW_ROTATE_90)
-			validO |= UIInterfaceOrientationMaskLandscapeLeft;
-		if(oMask & VIEW_ROTATE_180)
-			validO |= UIInterfaceOrientationMaskPortraitUpsideDown;
-		if(oMask & VIEW_ROTATE_270)
-			validO |= UIInterfaceOrientationMaskLandscapeRight;
-	}
+	if(oMask & VIEW_ROTATE_0)
+		validO |= UIInterfaceOrientationMaskPortrait;
+	if(oMask & VIEW_ROTATE_90)
+		validO |= UIInterfaceOrientationMaskLandscapeLeft;
+	if(oMask & VIEW_ROTATE_180)
+		validO |= UIInterfaceOrientationMaskPortraitUpsideDown;
+	if(oMask & VIEW_ROTATE_270)
+		validO |= UIInterfaceOrientationMaskLandscapeRight;
 	auto currO = [sharedApp statusBarOrientation];
 	logMsg("set valid orientation mask 0x%X, current orientation: %s", validO, uiInterfaceOrientationToStr(currO));
 	if(!(validO & (1 << currO)))
@@ -94,9 +87,20 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 	}
 	else
 		[UIViewController attemptRotationToDeviceOrientation];
-	return 1;
+	return true;
+}
+
+bool Window::requestOrientationChange(uint o)
+{
+	// no-op, OS manages orientation changes
+	return false;
 }
 #endif
+
+bool Window::systemAnimatesRotation()
+{
+	return Config::SYSTEM_ROTATES_WINDOWS;
+}
 
 Window *deviceWindow()
 {
@@ -129,9 +133,8 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-void IOSWindow::updateContentRect(int width, int height, uint rotateView, UIApplication *sharedApp_)
+void IOSWindow::updateContentRect(int width, int height, uint softOrientation, UIApplication *sharedApp_)
 {
-	using namespace Gfx;
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
 	contentRect.y2 = height;
@@ -139,20 +142,24 @@ void IOSWindow::updateContentRect(int width, int height, uint rotateView, UIAppl
 	//logMsg("has status bar %d", hasStatusBar);
 	if(hasStatusBar)
 	{
-		#ifdef CONFIG_GFX_SOFT_ORIENTATION
-		bool isSideways = rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
-		auto statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
-		bool statusBarBeginsOnWindowOrigin = rotateView == VIEW_ROTATE_0 || rotateView == VIEW_ROTATE_270;
-		if(statusBarBeginsOnWindowOrigin)
-			contentRect.y = statusBarHeight;
+		CGFloat statusBarHeight;
+		if(!Config::SYSTEM_ROTATES_WINDOWS)
+		{
+			bool isSideways = softOrientation == VIEW_ROTATE_90 || softOrientation == VIEW_ROTATE_270;
+			statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
+			bool statusBarBeginsOnWindowOrigin = softOrientation == VIEW_ROTATE_0 || softOrientation == VIEW_ROTATE_270;
+			if(statusBarBeginsOnWindowOrigin)
+				contentRect.y = statusBarHeight;
+			else
+				contentRect.y2 -= statusBarHeight;
+		}
 		else
-			contentRect.y2 -= statusBarHeight;
-		#else
-		auto statusBarO = [sharedApp statusBarOrientation];
-		bool isSideways = statusBarO == UIInterfaceOrientationLandscapeLeft || statusBarO == UIInterfaceOrientationLandscapeRight;
-		auto statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
-		contentRect.y = statusBarHeight;
-		#endif
+		{
+			auto statusBarO = [sharedApp statusBarOrientation];
+			bool isSideways = statusBarO == UIInterfaceOrientationLandscapeLeft || statusBarO == UIInterfaceOrientationLandscapeRight;
+			statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
+			contentRect.y = statusBarHeight;
+		}
 		logMsg("adjusted content rect to %d:%d:%d:%d for status bar height %d",
 			contentRect.x, contentRect.y, contentRect.x2, contentRect.y2, (int)statusBarHeight);
 	}
@@ -180,7 +187,7 @@ CallResult Window::init(const WindowConfig &config)
 {
 	if(uiWin_)
 		return OK;
-	initDelegates();
+	BaseWindow::init();
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -230,9 +237,6 @@ CallResult Window::init(const WindowConfig &config)
 		glView().multipleTouchEnabled = YES;
 		#ifdef CONFIG_INPUT_ICADE
 		Input::iCade.init(glView());
-		#endif
-		#ifdef CONFIG_GFX_SOFT_ORIENTATION
-		setAutoOrientation(1);
 		#endif
 	}
 	else

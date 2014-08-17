@@ -65,16 +65,16 @@ static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 {
 	using namespace Base;
 	int x = rect.x, y = rect.y;
-	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
+	if(win.softOrientation() == VIEW_ROTATE_90 || win.softOrientation() == VIEW_ROTATE_270)
 	{
 		std::swap(x, y);
 	}
-	if(win.rotateView == VIEW_ROTATE_90)
+	if(win.softOrientation() == VIEW_ROTATE_90)
 	{
 		x = (win.height() - x) - rect.ySize();
 	}
 	int x2 = rect.xSize(), y2 = rect.ySize();
-	if(win.rotateView == VIEW_ROTATE_90 || win.rotateView == VIEW_ROTATE_270)
+	if(win.softOrientation() == VIEW_ROTATE_90 || win.softOrientation() == VIEW_ROTATE_270)
 		std::swap(x2, y2);
 	logMsg("made CGRect %f,%f size %f,%f", x / win.pointScale, y / win.pointScale,
 			x2 / win.pointScale, y2 / win.pointScale);
@@ -111,9 +111,8 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.text = text;
 	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	vkbdField.transform = makeTransformForOrientation(deviceWindow()->rotateView);
-	#endif
+	if(!Config::SYSTEM_ROTATES_WINDOWS)
+		vkbdField.transform = makeTransformForOrientation(deviceWindow()->softOrientation());
 	logMsg("init vkeyboard");
 }
 
@@ -146,7 +145,7 @@ void placeSysTextInput(const IG::WindowRect &rect)
 	{
 		vkbdField.frame = toCGRect(*deviceWindow(), textRect);
 		/*#ifdef CONFIG_GFX_SOFT_ORIENTATION
-		vkbdField.transform = makeTransformForOrientation(deviceWindow().rotateView);
+		vkbdField.transform = makeTransformForOrientation(deviceWindow().softOrientation());
 		#endif*/
 	}
 }

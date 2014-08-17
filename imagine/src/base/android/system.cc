@@ -108,4 +108,14 @@ void vibrate(uint ms)
 	jVibrate(jEnv(), vibrator, (jlong)ms);
 }
 
+void setDeviceOrientationChangedSensor(bool on)
+{
+	// TODO
+}
+
+void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del)
+{
+	// TODO
+}
+
 }

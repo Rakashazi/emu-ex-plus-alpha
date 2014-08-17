@@ -271,12 +271,12 @@ void setEmuViewOnExtraWindow(bool on)
 	{
 		logMsg("setting emu view on extra window");
 		EmuSystem::resetFrameTime();
-		auto winConf = Gfx::makeWindowConfig();
+		Base::WindowConfig winConf;
 		if(Base::Screen::screens() > 1)
 		{
 			winConf.setScreen(*Base::Screen::screen(1));
 		}
-		extraWin.win.init(winConf);
+		Gfx::initWindow(extraWin.win, winConf);
 		extraWin.focused = true;
 		logMsg("init extra window");
 		emuWin = &extraWin;
@@ -383,7 +383,7 @@ void startGameFromMenu()
 	viewNav.setRightBtnActive(1);
 	emuInputView.resetInput();
 	//logMsg("touch control state: %d", touchControlsAreOn);
-	mainWin.win.setValidOrientations(optionGameOrientation);
+	Gfx::setWindowValidOrientations(mainWin.win, optionGameOrientation);
 	commonInitInput();
 	popup.clear();
 	Input::setKeyRepeat(false);
@@ -410,7 +410,7 @@ void restoreMenuFromGame()
 	EmuSystem::pause();
 	if(!optionFrameSkip.isConst)
 		mainWin.win.screen().setFrameInterval(1);
-	mainWin.win.setValidOrientations(optionMenuOrientation);
+	Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
@@ -635,16 +635,15 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
 	viewNav.setRightBtnActive(false);
 
-	auto winConf = Gfx::makeWindowConfig();
 	if(menuShownDel)
 	{
-		mainWin.win.init(winConf);
+		Gfx::initWindow(mainWin.win, {});
 		mainInitWindowCommon(mainWin.win);
 		menuShownDel(mainWin.win);
 	}
 	else
 	{
-		mainWin.win.init(winConf);
+		Gfx::initWindow(mainWin.win, {});
 		mainInitWindowCommon(mainWin.win);
 	}
 
@@ -755,7 +754,7 @@ void mainInitWindowCommon(Base::Window &win)
 		viewStack.setNavView(&viewNav);
 	}
 	//logMsg("setting menu orientation");
-	win.setValidOrientations(optionMenuOrientation, false);
+	Gfx::setWindowValidOrientations(win, optionMenuOrientation);
 	win.setAcceptDnd(1);
 
 	#if defined CONFIG_BASE_ANDROID

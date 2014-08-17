@@ -17,9 +17,11 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/bits.h>
 
 namespace Base
 {
+using namespace IG;
 
 #if defined __APPLE__ && TARGET_OS_IPHONE
 using FrameTimeBase = double;
@@ -47,4 +49,13 @@ constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
 }
 #endif
 
+// orientation
+static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
+static constexpr uint VIEW_ROTATE_AUTO = bit(5);
+static constexpr uint VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
+static constexpr uint VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270;
+
+const char *orientationToStr(uint o);
+bool orientationIsSideways(uint o);
+uint validateOrientationMask(uint oMask);
 }

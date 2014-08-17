@@ -48,7 +48,7 @@ public:
 
 	constexpr IOSWindow() {}
 	#ifdef __OBJC__
-	void updateContentRect(int width, int height, uint rotateView, UIApplication *sharedApp);
+	void updateContentRect(int width, int height, uint softOrientation, UIApplication *sharedApp);
 	UIWindow *uiWin() { return (__bridge UIWindow*)uiWin_; }
 	EAGLView *glView() { return (__bridge EAGLView*)glView_; }
 	#endif

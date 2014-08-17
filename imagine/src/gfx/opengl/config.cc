@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/util/time/sys.hh>
 #include "private.hh"
 #include "settings.h"
@@ -78,6 +79,19 @@ uint globalStreamVBOIdx = 0;
 
 bool forceNoTextureSwizzle = false;
 bool useTextureSwizzle = false;
+
+static Gfx::GC orientationToGC(uint o)
+{
+	using namespace Base;
+	switch(o)
+	{
+		case VIEW_ROTATE_0: return Gfx::angleFromDegree(0.);
+		case VIEW_ROTATE_90: return Gfx::angleFromDegree(-90.);
+		case VIEW_ROTATE_180: return Gfx::angleFromDegree(-180.);
+		case VIEW_ROTATE_270: return Gfx::angleFromDegree(90.);
+		default: bug_branch("%d", o); return 0.;
+	}
+}
 
 bool usingAutoMipmaping()
 {
@@ -299,6 +313,38 @@ CallResult init()
 CallResult init(uint colorBits)
 {
 	logMsg("running init");
+
+	if(!Config::SYSTEM_ROTATES_WINDOWS)
+	{
+		Base::setOnDeviceOrientationChanged(
+			[](uint newO)
+			{
+				auto &win = Base::mainWindow();
+				auto oldWinO = win.softOrientation();
+				if(win.requestOrientationChange(newO))
+				{
+					Gfx::animateProjectionMatrixRotation(Gfx::orientationToGC(oldWinO), Gfx::orientationToGC(newO));
+				}
+			});
+	}
+	else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
+	{
+		Base::setOnSystemOrientationChanged(
+			[](uint oldO, uint newO)
+			{
+				static constexpr Angle orientationDiffTable[4][4]
+				{
+						{ 0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90) },
+						{ angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180) },
+						{ angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90) },
+						{ angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0 },
+				};
+				auto rotAngle = orientationDiffTable[oldO][newO];
+				logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
+				Gfx::animateProjectionMatrixRotation(rotAngle, 0.);
+			});
+	}
+
 	Base::GLConfigAttributes glAttr;
 	glAttr.setPreferredColorBits(colorBits);
 	glAttr.setMajorVersion(Gfx::maxOpenGLMajorVersionSupport());
@@ -507,6 +553,36 @@ Base::WindowConfig makeWindowConfig()
 void setWindowConfig(Base::WindowConfig &config)
 {
 	config.setGLConfig(gfxContext.bufferConfig());
+}
+
+static void updateSensorStateForWindowOrientations(Base::Window &win)
+{
+	// activate orientation sensor if doing rotation in software and the main window
+	// has multiple valid orientations
+	if(Config::SYSTEM_ROTATES_WINDOWS || win != Base::mainWindow())
+		return;
+	Base::setDeviceOrientationChangeSensor(bit_numSet(win.validSoftOrientations()) > 1);
+}
+
+void initWindow(Base::Window &win, Base::WindowConfig config)
+{
+	setWindowConfig(config);
+	win.init(config);
+	if(!Config::SYSTEM_ROTATES_WINDOWS && win == Base::mainWindow())
+		Gfx::setProjectionMatrixRotation(Gfx::orientationToGC(win.softOrientation()));
+	updateSensorStateForWindowOrientations(win);
+}
+
+void setWindowValidOrientations(Base::Window &win, uint validO)
+{
+	if(win != Base::mainWindow())
+		return;
+	auto oldWinO = win.softOrientation();
+	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
+	{
+		Gfx::animateProjectionMatrixRotation(Gfx::orientationToGC(oldWinO), Gfx::orientationToGC(win.softOrientation()));
+	}
+	updateSensorStateForWindowOrientations(win);
 }
 
 #ifdef CONFIG_BASE_ANDROID

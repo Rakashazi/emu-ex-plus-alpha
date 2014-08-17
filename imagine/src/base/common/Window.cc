@@ -16,14 +16,10 @@
 #define LOGTAG "Window"
 #include <imagine/base/Base.hh>
 #include "windowPrivate.hh"
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/input/Input.hh>
 
 namespace Base
 {
-
-// whether to handle animations if orientations are handled in software
-bool animateOrientationChange = !Config::envIsWebOS3;
 
 #ifdef CONFIG_BASE_MULTI_WINDOW
 StaticArrayList<Window*, 4> window_;
@@ -31,42 +27,42 @@ StaticArrayList<Window*, 4> window_;
 Window *mainWin = nullptr;
 #endif
 
-void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
+void BaseWindow::setOnSurfaceChange(SurfaceChangeDelegate del)
 {
 	onSurfaceChange = del ? del : [](Window &, SurfaceChange){};
 }
 
-void Window::setOnDraw(DrawDelegate del)
+void BaseWindow::setOnDraw(DrawDelegate del)
 {
 	onDraw = del ? del : [](Window &, DrawParams){};
 }
 
-void Window::setOnFocusChange(FocusChangeDelegate del)
+void BaseWindow::setOnFocusChange(FocusChangeDelegate del)
 {
 	onFocusChange = del ? del : [](Window &, bool){};
 }
 
-void Window::setOnDragDrop(DragDropDelegate del)
+void BaseWindow::setOnDragDrop(DragDropDelegate del)
 {
 	onDragDrop = del ? del : [](Window &, const char *){};
 }
 
-void Window::setOnInputEvent(InputEventDelegate del)
+void BaseWindow::setOnInputEvent(InputEventDelegate del)
 {
 	onInputEvent = del ? del : [](Window &, const Input::Event &){};
 }
 
-void Window::setOnDismissRequest(DismissRequestDelegate del)
+void BaseWindow::setOnDismissRequest(DismissRequestDelegate del)
 {
 	onDismissRequest = del ? del : [](Window &win){ Base::exit(); };
 }
 
-void Window::setOnDismiss(DismissDelegate del)
+void BaseWindow::setOnDismiss(DismissDelegate del)
 {
 	onDismiss = del ? del : [](Window &win){};
 }
 
-void Window::initDelegates()
+void BaseWindow::initDelegates()
 {
 	setOnSurfaceChange({});
 	setOnDraw({});
@@ -75,6 +71,54 @@ void Window::initDelegates()
 	setOnInputEvent({});
 	setOnDismissRequest({});
 	setOnDismiss({});
+}
+
+void BaseWindow::initDefaultValidSoftOrientations()
+{
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
+	validSoftOrientations_ = defaultSystemOrientations();
+	#endif
+}
+
+void BaseWindow::init()
+{
+	initDelegates();
+	initDefaultValidSoftOrientations();
+}
+
+void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
+{
+	BaseWindow::setOnSurfaceChange(del);
+}
+
+void Window::setOnDraw(DrawDelegate del)
+{
+	BaseWindow::setOnDraw(del);
+}
+
+void Window::setOnFocusChange(FocusChangeDelegate del)
+{
+	BaseWindow::setOnFocusChange(del);
+}
+
+void Window::setOnDragDrop(DragDropDelegate del)
+{
+	BaseWindow::setOnDragDrop(del);
+}
+
+void Window::setOnInputEvent(InputEventDelegate del)
+{
+	BaseWindow::setOnInputEvent(del);
+}
+
+void Window::setOnDismissRequest(DismissRequestDelegate del)
+{
+	BaseWindow::setOnDismissRequest(del);
+}
+
+void Window::setOnDismiss(DismissDelegate del)
+{
+	BaseWindow::setOnDismiss(del);
 }
 
 Window &mainWindow()
@@ -162,14 +206,14 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 	auto oldW = w, oldH = h;
 	w = surfaceSize.x;
 	h = surfaceSize.y;
-	if(orientationIsSideways(rotateView))
+	if(orientationIsSideways(softOrientation_))
 		std::swap(w, h);
 	if(oldW == w && oldH == h) // is the new size the same as the old?
 	{
 		logMsg("same window size %d,%d", realWidth(), realHeight());
 		return false;
 	}
-	if(rotateView == VIEW_ROTATE_0)
+	if(softOrientation_ == VIEW_ROTATE_0)
 		logMsg("updated window size %d,%d", w, h);
 	else
 		logMsg("updated window size %d,%d with rotation, real size %d,%d", w, h, realWidth(), realHeight());
@@ -188,7 +232,7 @@ bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<fl
 	auto oldW = wMM, oldH = hMM;
 	wMM = surfaceSizeMM.x;
 	hMM = surfaceSizeMM.y;
-	if(orientationIsSideways(rotateView))
+	if(orientationIsSideways(softOrientation_))
 		std::swap(wMM, hMM);
 	mmToPixelXScaler = w / wMM;
 	mmToPixelYScaler = h / hMM;
@@ -199,7 +243,7 @@ bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<fl
 	auto oldSW = wSMM, oldSH = hSMM;
 	wSMM = surfaceSizeSMM.x;
 	hSMM = surfaceSizeSMM.y;
-	if(orientationIsSideways(rotateView))
+	if(orientationIsSideways(softOrientation_))
 		std::swap(wSMM, hSMM);
 	smmToPixelXScaler = w / wSMM;
 	smmToPixelYScaler = h / hSMM;
@@ -227,76 +271,60 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
-uint Window::setValidOrientations(uint oMask, bool preferAnimated)
+bool Window::setValidOrientations(uint oMask)
 {
-	if(oMask == VIEW_ROTATE_AUTO)
+	oMask = validateOrientationMask(oMask);
+	validSoftOrientations_ = oMask;
+	if(validSoftOrientations_ & setSoftOrientation)
+		return requestOrientationChange(setSoftOrientation);
+	if(!(validSoftOrientations_ & softOrientation_))
 	{
-		oMask = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
-	}
-	else
-	{
-		assert(oMask >= bit(0) && oMask < bit(4));
-	}
-
-	if(bit_numSet(oMask) > 1)
-		setAutoOrientation(true);
-	else
-		setAutoOrientation(false);
-
-	validOrientations = oMask;
-	if(validOrientations & preferedOrientation)
-		return setOrientation(preferedOrientation, preferAnimated);
-	if(!(validOrientations & rotateView))
-	{
-		if(validOrientations & VIEW_ROTATE_0)
-			return setOrientation(VIEW_ROTATE_0, preferAnimated);
-		else if(validOrientations & VIEW_ROTATE_90)
-			return setOrientation(VIEW_ROTATE_90, preferAnimated);
-		else if(validOrientations & VIEW_ROTATE_180)
-			return setOrientation(VIEW_ROTATE_180, preferAnimated);
-		else if(validOrientations & VIEW_ROTATE_270)
-			return setOrientation(VIEW_ROTATE_270, preferAnimated);
+		if(validSoftOrientations_ & VIEW_ROTATE_0)
+			return requestOrientationChange(VIEW_ROTATE_0);
+		else if(validSoftOrientations_ & VIEW_ROTATE_90)
+			return requestOrientationChange(VIEW_ROTATE_90);
+		else if(validSoftOrientations_ & VIEW_ROTATE_180)
+			return requestOrientationChange(VIEW_ROTATE_180);
+		else if(validSoftOrientations_ & VIEW_ROTATE_270)
+			return requestOrientationChange(VIEW_ROTATE_270);
 		else
 		{
-			logWarn("warning: valid orientation mask contains no valid values");
-			return 0;
+			bug_exit("bad orientation mask: 0x%X", oMask);
 		}
 	}
-	return 0;
+	return false;
 }
 
-uint Window::setOrientation(uint o, bool preferAnimated)
+bool Window::requestOrientationChange(uint o)
 {
 	assert(o == VIEW_ROTATE_0 || o == VIEW_ROTATE_90 || o == VIEW_ROTATE_180 || o == VIEW_ROTATE_270);
-
-	if((validOrientations & o) && rotateView != o)
+	setSoftOrientation = o;
+	if((validSoftOrientations_ & o) && softOrientation_ != o)
 	{
-		logMsg("setting orientation %d", o);
+		logMsg("setting orientation %s", orientationToStr(o));
 		int savedRealWidth = realWidth();
 		int savedRealHeight = realHeight();
-		auto oldRotateView = rotateView;
-		rotateView = o;
-		if(animateOrientationChange)
-		{
-			if(preferAnimated)
-			{
-				Gfx::animateProjectionMatrixRotation(orientationToGC(oldRotateView), orientationToGC(rotateView));
-			}
-			else
-			{
-				Gfx::setProjectionMatrixRotation(orientationToGC(rotateView));
-			}
-		}
+		softOrientation_ = o;
 		updateSize({savedRealWidth, savedRealHeight});
 		postDraw();
-		setSystemOrientation(o);
+		if(*this == mainWindow())
+			setSystemOrientation(o);
 		Input::configureInputForOrientation(*this);
-		return 1;
+		return true;
 	}
-	else
-		return 0;
+	return false;
 }
 #endif
+
+uint Window::softOrientation() const
+{
+	return softOrientation_;
+}
+
+uint Window::validSoftOrientations() const
+{
+	return validSoftOrientations_;
+}
 
 void Window::postNeededScreens()
 {

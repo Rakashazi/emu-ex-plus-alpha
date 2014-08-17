@@ -19,57 +19,26 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/util/DelegateFunc.hh>
 
+namespace Config
+{
 #if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
 #define CONFIG_GFX_SOFT_ORIENTATION 1
 #elif !defined __ANDROID__ && !defined CONFIG_BASE_IOS
 #define CONFIG_GFX_SOFT_ORIENTATION 1
 #endif
 
+#if defined CONFIG_GFX_SOFT_ORIENTATION
+static constexpr bool SYSTEM_ROTATES_WINDOWS = false;
+#else
+static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
+#endif
+}
+
 namespace Base
 {
 using namespace IG;
 
 class Window;
-
-// orientation
-static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
-static constexpr uint VIEW_ROTATE_AUTO = bit(5);
-
-static const char *orientationToStr(uint o)
-{
-	using namespace Base;
-	switch(o)
-	{
-		case VIEW_ROTATE_AUTO: return "Auto";
-		case VIEW_ROTATE_0: return "0";
-		case VIEW_ROTATE_90: return "90";
-		case VIEW_ROTATE_180: return "180";
-		case VIEW_ROTATE_270: return "270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
-		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
-		default: bug_branch("%d", o); return 0;
-	}
-}
-
-#ifdef CONFIG_GFX
-static Gfx::GC orientationToGC(uint o)
-{
-	switch(o)
-	{
-		case VIEW_ROTATE_0: return Gfx::angleFromDegree(0.);
-		case VIEW_ROTATE_90: return Gfx::angleFromDegree(-90.);
-		case VIEW_ROTATE_180: return Gfx::angleFromDegree(-180.);
-		case VIEW_ROTATE_270: return Gfx::angleFromDegree(90.);
-		default: bug_branch("%d", o); return 0.;
-	}
-}
-#endif
-
-static bool orientationIsSideways(uint rotateView)
-{
-	return rotateView == VIEW_ROTATE_90 || rotateView == VIEW_ROTATE_270;
-}
 
 class BaseWindow
 {
@@ -131,14 +100,14 @@ protected:
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 
-public:
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint rotateView = VIEW_ROTATE_0;
-	uint preferedOrientation = VIEW_ROTATE_0;
-	uint validOrientations = Base::VIEW_ROTATE_0 | Base::VIEW_ROTATE_90 | Base::VIEW_ROTATE_180 | Base::VIEW_ROTATE_270;
+	uint softOrientation_ = VIEW_ROTATE_0;
+	uint setSoftOrientation = VIEW_ROTATE_0;
+	uint validSoftOrientations_ = VIEW_ROTATE_0;
 	#else
-	static constexpr uint rotateView = VIEW_ROTATE_0;
-	static constexpr uint preferedOrientation = VIEW_ROTATE_0;
+	static constexpr uint softOrientation_ = VIEW_ROTATE_0;
+	static constexpr uint setSoftOrientation = VIEW_ROTATE_0;
+	static constexpr uint validSoftOrientations_ = VIEW_ROTATE_0;
 	#endif
 
 protected:
@@ -149,5 +118,16 @@ protected:
 	DragDropDelegate onDragDrop;
 	DismissRequestDelegate onDismissRequest;
 	DismissDelegate onDismiss;
+
+	void setOnSurfaceChange(SurfaceChangeDelegate del);
+	void setOnDraw(DrawDelegate del);
+	void setOnInputEvent(InputEventDelegate del);
+	void setOnFocusChange(FocusChangeDelegate del);
+	void setOnDragDrop(DragDropDelegate del);
+	void setOnDismissRequest(DismissRequestDelegate del);
+	void setOnDismiss(DismissDelegate del);
+	void init();
+	void initDelegates();
+	void initDefaultValidSoftOrientations();
 };
 }

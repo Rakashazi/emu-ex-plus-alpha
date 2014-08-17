@@ -24,6 +24,11 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/input/DragPointer.hh>
 #include <imagine/base/GLContext.hh>
 #include "ios.hh"
+#ifdef CONFIG_BASE_IOS_GLKIT
+#import <OpenGLES/ES2/gl.h>
+#else
+#import <OpenGLES/ES1/glext.h>
+#endif
 
 static const int USE_DEPTH_BUFFER = 0;
 

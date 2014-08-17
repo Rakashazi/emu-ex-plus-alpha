@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/rectangle2.h>
 
 class DragPointer

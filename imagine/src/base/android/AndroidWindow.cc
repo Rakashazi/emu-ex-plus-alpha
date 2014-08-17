@@ -21,7 +21,6 @@
 #include "android.hh"
 #include "ASurface.hh"
 #include <imagine/util/fd-utils.h>
-#include <imagine/gfx/Gfx.hh>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
@@ -116,7 +115,7 @@ IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
 	return {((float)size.x / screen().densityDPI) * 25.4f, ((float)size.y / screen().densityDPI) * 25.4f};
 }
 
-uint Window::setValidOrientations(uint oMask, bool preferAnimated)
+bool Window::setValidOrientations(uint oMask)
 {
 	using namespace Base;
 	logMsg("requested orientation change to %s", Base::orientationToStr(oMask));
@@ -130,9 +129,16 @@ uint Window::setValidOrientations(uint oMask, bool preferAnimated)
 		bcase VIEW_ROTATE_270: toSet = 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
 		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
+		bcase VIEW_ROTATE_ALL: toSet = 10; // SCREEN_ORIENTATION_FULL_SENSOR
 	}
 	jSetRequestedOrientation(jEnv(), jBaseActivity, toSet);
-	return 1;
+	return true;
+}
+
+bool Window::requestOrientationChange(uint o)
+{
+	// no-op, OS manages orientation changes
+	return false;
 }
 
 uint GLConfigAttributes::defaultColorBits()
@@ -144,7 +150,7 @@ CallResult Window::init(const WindowConfig &config)
 {
 	if(initialInit)
 		return OK;
-	initDelegates();
+	BaseWindow::init();
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
