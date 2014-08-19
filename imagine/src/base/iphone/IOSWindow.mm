@@ -118,7 +118,7 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-uint GLConfigAttributes::defaultColorBits()
+uint GLBufferConfigAttributes::defaultColorBits()
 {
 	return Config::BASE_IOS_GLKIT ? 24 : 16;
 }
@@ -220,7 +220,7 @@ CallResult Window::init(const WindowConfig &config)
 	
 	// Create the OpenGL ES view and add it to the Window
 	assert(GLContext::current());
-	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect context:GLContext::current()->context()]);
+	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect context:GLContext::current().context()]);
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glView().enableSetNeedsDisplay = NO;
 	#endif
@@ -260,8 +260,6 @@ void Window::deinit()
 	if(uiWin_)
 	{
 		logMsg("deinit window %p", uiWin_);
-		if(GLContext::drawable() == this)
-			GLContext::setDrawable(nullptr);
 		CFRelease(glView_);
 		glView_ = nullptr;
 		CFRelease(uiWin_);

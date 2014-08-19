@@ -154,7 +154,7 @@ bool FBDevFrameTimer::init()
 	fdSrc.init(fd,
 		[this](int fd, int event)
 		{
-			GLContext::current()->swapPresentedBuffers(mainWindow());
+			GLContext::swapPresentedBuffers(mainWindow());
 			uint64_t frameTimeNanos;
 			auto ret = read(fd, &frameTimeNanos, sizeof(frameTimeNanos));
 			assert(ret == sizeof(frameTimeNanos));
@@ -256,22 +256,23 @@ bool SGIFrameTimer::init()
 		[this, &initSem](ThreadPThread &thread)
 		{
 			GLContext context;
+			GLBufferConfig bufferConfig;
 			{
-				Base::GLConfigAttributes glAttr;
+				Base::GLContextAttributes glAttr;
 				glAttr.setMajorVersion(3);
-				context.init(glAttr);
+				bufferConfig = context.makeBufferConfig(glAttr, {});
+				context.init(glAttr, bufferConfig);
 			}
 			{
 				auto rootWindow = RootWindowOfScreen(mainScreen().xScreen);
-				XSetWindowAttributes attr{0};
-				auto visualInfo = context.bufferConfig().vi;
-				attr.colormap = XCreateColormap(dpy, rootWindow, visualInfo->visual, AllocNone);
+				XSetWindowAttributes attr{};
+				attr.colormap = XCreateColormap(dpy, rootWindow, bufferConfig.visual, AllocNone);
 				Base::Window dummyWindow;
 				dummyWindow.xWin = XCreateWindow(dpy, rootWindow, 0, 0, 1, 1, 0,
-					visualInfo->depth, InputOutput, visualInfo->visual,
+					bufferConfig.depth, InputOutput, bufferConfig.visual,
 					CWColormap, &attr);
 				//logMsg("setting context current");
-				XGLContext::setCurrentContext(&context, &dummyWindow);
+				GLContext::setCurrent(context, &dummyWindow);
 			}
 			//logMsg("getting glXWaitVideoSyncSGI address");
 			auto glXWaitVideoSyncSGI = (PFNGLXWAITVIDEOSYNCSGIPROC)glXGetProcAddress((const GLubyte*)"glXWaitVideoSyncSGI");
@@ -384,7 +385,7 @@ void OMLFrameTimer::scheduleVSync()
 		#ifndef CONFIG_BASE_X11_EGL
 		getSyncValues(dpy, mainWindow().xWin, &ust, &msc, &sbc);
 		#else
-		getSyncValues(GLContext::eglDisplay(), mainWindow().surface, &lastFrameTimeUSecs, &msc, &sbc);
+		getSyncValues(GLContext::eglDisplay(), mainWindow().surface, &ust, &msc, &sbc);
 		#endif
 		// TODO: get real refresh rate, assuming 60Hz
 		nextFrameTimeUSecs = ust + (1000000 / (syncval_t)60);

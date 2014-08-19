@@ -62,14 +62,37 @@ void shutdownWindowSystem();
 
 using WindowImpl = XWindow;
 
-struct GLConfig
+struct GLBufferConfig
 {
-	#if !defined CONFIG_MACHINE_PANDORA
-	XVisualInfo *vi;
-	#endif
 	#ifdef CONFIG_BASE_X11_EGL
-	EGLConfig config;
+	EGLConfig glConfig{};
+	#else
+	GLXFBConfig glConfig{};
 	#endif
+	using Config = typeof(glConfig);
+	#ifndef CONFIG_MACHINE_PANDORA
+	Visual *visual{};
+	int depth{};
+	#else
+	bool isInit = false;
+	#endif
+
+	constexpr GLBufferConfig(const Config &config):
+		glConfig{config}
+		#ifdef CONFIG_MACHINE_PANDORA
+		, isInit{true}
+		#endif
+		{}
+	constexpr GLBufferConfig() {}
+
+	operator bool() const
+	{
+		#ifndef CONFIG_MACHINE_PANDORA
+		return visual;
+		#else
+		return isInit;
+		#endif
+	}
 };
 
 }

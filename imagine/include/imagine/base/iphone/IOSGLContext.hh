@@ -29,14 +29,9 @@ struct IOSGLContext
 {
 protected:
 	void *context_ = nullptr; // EAGLContext in ObjC
-	GLConfig config;
-
-	static void setCurrentContext(IOSGLContext *context, Window *win);
-	bool isRealCurrentContext();
 
 public:
 	constexpr IOSGLContext() {}
-	void setCurrentDrawable(Window *win);
 	#ifdef __OBJC__
 	EAGLContext *context() { return (__bridge EAGLContext*)context_; }
 	#endif

@@ -29,14 +29,11 @@ namespace Base
 class XGLContext : public EGLContextBase
 {
 protected:
-	#if !defined CONFIG_MACHINE_PANDORA
-	XVisualInfo *vi = nullptr;
-	#endif
 	static bool swapBuffersIsAsync();
 
 public:
 	constexpr XGLContext() {}
-	void swapPresentedBuffers(Window &win);
+	static void swapPresentedBuffers(Window &win);
 };
 
 #else
@@ -46,18 +43,11 @@ class GLContext;
 class XGLContext
 {
 protected:
-	Display *display = nullptr;
-	GLXContext context = nullptr;
-	GLXPbuffer dummyPbuff = (GLXPbuffer)0;
-	XVisualInfo *vi = nullptr;
-
-	void setCurrentDrawable(Window *win);
-	bool isRealCurrentContext();
+	GLXContext context{};
 
 public:
 	constexpr XGLContext() {}
-	static void setCurrentContext(XGLContext *context, Window *win);
-	void swapPresentedBuffers(Window &win);
+	static void swapPresentedBuffers(Window &win);
 };
 
 #endif

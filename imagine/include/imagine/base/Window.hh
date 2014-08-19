@@ -54,10 +54,12 @@ private:
 	Point2D<int> pos{-1, -1};
 	Point2D<int> size_{0, 0};
 	Point2D<int> minSize{320, 240};
-	GLConfig glConfig_;
-	Screen *screen_ = nullptr;
+	GLBufferConfig glConfig_{};
+	Screen *screen_{};
 
 public:
+	constexpr WindowConfig() {}
+
 	void setDefaultPosition()
 	{
 		pos = {-1, -1};
@@ -108,12 +110,12 @@ public:
 		return minSize;
 	}
 
-	void setGLConfig(GLConfig glConfig_)
+	void setGLConfig(GLBufferConfig glConfig_)
 	{
 		var_selfs(glConfig_);
 	}
 
-	GLConfig glConfig() const
+	GLBufferConfig glConfig() const
 	{
 		return glConfig_;
 	}
@@ -258,6 +260,10 @@ private:
 	void dispatchSurfaceChange();
 };
 
+using OnGLDrawableChangedDelegate = DelegateFunc<void (Window *newDrawable)>;
+
+// Called when a system event changes the currently bound GL drawable
+void setOnGLDrawableChanged(OnGLDrawableChangedDelegate del);
 Window &mainWindow();
 Screen &mainScreen();
 

@@ -22,28 +22,48 @@
 namespace Base
 {
 
+static EGLContext activityThreadContext = EGL_NO_CONTEXT;
+
+GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
+{
+	auto configResult = chooseConfig(ctxAttr, attr);
+	if(configResult.first != OK)
+	{
+		return GLBufferConfig{};
+	}
+	return GLBufferConfig{configResult.second};
+}
+
 EGLDisplay EGLContextBase::getDisplay()
 {
 	return eglGetDisplay(EGL_DEFAULT_DISPLAY);
 }
 
-CallResult GLContext::init(const GLConfigAttributes &attr)
+CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &config)
 {
-	auto result = EGLContextBase::init(attr);
+	auto result = EGLContextBase::init(attr, config);
 	if(result != OK)
 		return result;
 	return OK;
 }
-
 
 void GLContext::deinit()
 {
 	EGLContextBase::deinit();
 }
 
-GLConfig GLContext::bufferConfig()
+void GLContext::setCurrent(GLContext c, Window *win)
 {
-	return config;
+	activityThreadContext = c.context; // TODO: check current thread
+	setCurrentContext(c.context, win);
+}
+
+bool AndroidGLContext::validateActivityThreadContext()
+{
+	if(eglGetCurrentContext() == activityThreadContext)
+		return true; // unchanged
+	setCurrentContext(activityThreadContext, nullptr);
+	return false;
 }
 
 void GLContext::present(Window &win)

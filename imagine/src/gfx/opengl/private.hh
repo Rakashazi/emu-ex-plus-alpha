@@ -9,6 +9,7 @@ namespace Gfx
 {
 
 extern Base::GLContext gfxContext;
+extern Base::Window *currWin;
 extern GLStateCache glState;
 
 #if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE

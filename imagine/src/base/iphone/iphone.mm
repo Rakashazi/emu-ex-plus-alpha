@@ -345,6 +345,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		[Window::window(i)->glView() deleteDrawable];
 	}
 	GLContext::setDrawable(nullptr);
+	if(onGLDrawableChanged)
+		onGLDrawableChanged(nullptr);
 	glFinish();
 	logMsg("entered background");
 }

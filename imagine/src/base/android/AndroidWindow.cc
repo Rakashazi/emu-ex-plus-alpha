@@ -141,7 +141,7 @@ bool Window::requestOrientationChange(uint o)
 	return false;
 }
 
-uint GLConfigAttributes::defaultColorBits()
+uint GLBufferConfigAttributes::defaultColorBits()
 {
 	return (!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11) ? 24 : 16;
 }
@@ -178,8 +178,8 @@ CallResult Window::init(const WindowConfig &config)
 	#else
 	mainWin = this;
 	#endif
-	eglConfig = config.glConfig();
-	pixelFormat = winFormatFromEGLConfig(GLContext::eglDisplay(), config.glConfig());
+	eglConfig = config.glConfig().glConfig;
+	pixelFormat = winFormatFromEGLConfig(GLContext::eglDisplay(), eglConfig);
 	if(Base::androidSDK() < 11 && this == deviceWindow())
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
@@ -293,8 +293,12 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 		// (as if the window still has its previous size).
 		// Re-create the EGLSurface to make sure EGL sees
 		// the new size.
-		if(GLContext::drawable() == &win)
+		if(eglGetCurrentSurface(EGL_DRAW) == win.surface)
+		{
 			GLContext::setDrawable(nullptr);
+			if(onGLDrawableChanged)
+				onGLDrawableChanged(nullptr);
+		}
 		win.destroyEGLSurface(GLContext::eglDisplay());
 		win.initEGLSurface(GLContext::eglDisplay());
 	}
@@ -304,8 +308,10 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 void androidWindowSurfaceDestroyed(Window &win)
 {
 	win.unpostDraw();
-	if(GLContext::drawable() == &win)
+	if(eglGetCurrentSurface(EGL_DRAW) == win.surface)
+	{
 		GLContext::setDrawable(nullptr);
+	}
 	win.destroyEGLSurface(GLContext::eglDisplay());
 	win.nWin = nullptr;
 }
@@ -326,9 +332,11 @@ void Window::unpostDraw()
 
 void restoreOpenGLContext()
 {
-	if(GLContext::current() && !GLContext::current()->validateCurrent())
+	if(!AndroidGLContext::validateActivityThreadContext())
 	{
 		logMsg("current context was restored");
+		if(onGLDrawableChanged)
+			onGLDrawableChanged(nullptr);
 	}
 }
 

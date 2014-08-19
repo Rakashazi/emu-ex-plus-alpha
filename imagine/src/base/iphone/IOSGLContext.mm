@@ -20,7 +20,7 @@
 namespace Base
 {
 
-CallResult GLContext::init(const GLConfigAttributes &attr)
+CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &)
 {
 	if(attr.majorVersion() == 1)
 		context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1]);
@@ -29,44 +29,55 @@ CallResult GLContext::init(const GLConfigAttributes &attr)
 	else
 		bug_exit("unsupported OpenGL ES major version: %d", attr.majorVersion());
 	assert(context());
-	auto success = [EAGLContext setCurrentContext:context()];
-	assert(success);
-	if(attr.preferredColorBits() <= 16)
-	{
-		config.useRGB565 = true;
-	}
 	return OK;
 }
 
-GLConfig GLContext::bufferConfig()
+GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GLBufferConfigAttributes &attr)
 {
-	return config;
+	GLBufferConfig conf;
+	if(attr.preferredColorBits() <= 16)
+	{
+		conf.useRGB565 = true;
+	}
+	return conf;
 }
 
-void IOSGLContext::setCurrentContext(IOSGLContext *c, Window *win)
+void GLContext::setCurrent(GLContext c, Window *win)
 {
-	if(c)
+	if(c.context())
 	{
-		auto success = [EAGLContext setCurrentContext:c->context()];
-		assert(success);
-		c->setCurrentDrawable(win);
+		if(win)
+		{
+			setDrawable(win);
+			assert(c.context() == [EAGLContext currentContext]);
+		}
+		else
+		{
+			auto success = [EAGLContext setCurrentContext:c.context()];
+			assert(success);	
+		}
 	}
 	else
 	{
 		auto success = [EAGLContext setCurrentContext:nil];
 		assert(success);
+		assert(!win);
 	}
 }
 
-void IOSGLContext::setCurrentDrawable(Window *win)
+void GLContext::setDrawable(Window *win)
 {
 	if(win)
+	{
 		[win->glView() bindDrawable];
+	}
 }
 
-bool IOSGLContext::isRealCurrentContext()
+GLContext GLContext::current()
 {
-	return [EAGLContext currentContext] == context();
+	GLContext c;
+	c.context_ = (__bridge void*)[EAGLContext currentContext];
+	return c;
 }
 
 void GLContext::present(Window &win)
@@ -83,13 +94,9 @@ void GLContext::deinit()
 {
 	if(context_)
 	{
-		if(current() == this)
-		{
-			GLContext::setCurrent(nullptr, nullptr);
-		}
 		CFRelease(context_);
+		context_ = nil;
 	}
-	*this = {};
 }
 
 }

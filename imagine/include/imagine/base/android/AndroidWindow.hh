@@ -59,6 +59,20 @@ public:
 
 using WindowImpl = AndroidWindow;
 
-using GLConfig = EGLConfig;
+
+struct GLBufferConfig
+{
+	EGLConfig glConfig{};
+	bool isInit = false;
+
+	constexpr GLBufferConfig(const EGLConfig &eglConfig):
+		glConfig{eglConfig}, isInit{true} {}
+	constexpr GLBufferConfig() {}
+
+	operator bool() const
+	{
+		return isInit;
+	}
+};
 
 }

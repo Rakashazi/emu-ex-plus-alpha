@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/RenderTarget.hh>
 #include <imagine/base/GLContext.hh>
+#include "private.hh"
 
 namespace Gfx
 {
@@ -43,6 +44,14 @@ void RenderTarget::initTexture(IG::PixmapDesc &pix, uint filter)
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.textureDesc().tid, 0);
 	setDefaultCurrent();
+	#if defined __APPLE__ && TARGET_OS_IPHONE
+	if(viewport().width())
+	{
+		logMsg("re-setting viewport: %d:%d:%d:%d",
+			viewport().bounds().x, viewport().bounds().y, viewport().bounds().x2, viewport().bounds().y2);
+		setViewport(viewport());
+	}
+	#endif
 	logMsg("set texture %u as FBO %u target", tex.textureDesc().tid, fbo);
 }
 
@@ -60,7 +69,7 @@ void RenderTarget::setCurrent()
 void RenderTarget::setDefaultCurrent()
 {
 	#if defined __APPLE__ && TARGET_OS_IPHONE
-	Base::GLContext::current()->setCurrentDrawable(Base::GLContext::drawable());
+	Base::GLContext::setDrawable(currWin);
 	#else
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	#endif

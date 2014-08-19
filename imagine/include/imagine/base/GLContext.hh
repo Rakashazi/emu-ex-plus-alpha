@@ -16,40 +16,15 @@
 namespace Base
 {
 
-class Window;
-
-class GLConfigAttributes
+class GLBufferConfigAttributes
 {
 private:
-	uint majorVer = 0;
-	uint minorVer = 0;
 	uint colorBits = 0;
 	bool useAlpha_ = false;
 	bool useDepth_ = false;
 	bool useStencil_ = false;
-	bool glesAPI = false;
 
 public:
-	void setMajorVersion(uint majorVer)
-	{
-		var_selfs(majorVer);
-	}
-
-	uint majorVersion() const
-	{
-		return majorVer;
-	}
-
-	void setMinorVersion(uint minorVer)
-	{
-		var_selfs(minorVer);
-	}
-
-	uint minorVersion() const
-	{
-		return minorVer;
-	}
-
 	void setPreferredColorBits(uint colorBits)
 	{
 		var_selfs(colorBits);
@@ -90,6 +65,37 @@ public:
 		return useStencil_;
 	}
 
+	static uint defaultColorBits();
+};
+
+class GLContextAttributes
+{
+private:
+	uint majorVer{};
+	uint minorVer{};
+	bool glesAPI = false;
+
+public:
+	void setMajorVersion(uint majorVer)
+	{
+		var_selfs(majorVer);
+	}
+
+	uint majorVersion() const
+	{
+		return majorVer;
+	}
+
+	void setMinorVersion(uint minorVer)
+	{
+		var_selfs(minorVer);
+	}
+
+	uint minorVersion() const
+	{
+		return minorVer;
+	}
+
 	void setOpenGLESAPI(bool glesAPI)
 	{
 		var_selfs(glesAPI);
@@ -99,25 +105,21 @@ public:
 	{
 		return glesAPI;
 	}
-
-	static uint defaultColorBits();
 };
 
 class GLContext : public GLContextImpl
 {
 public:
 	constexpr GLContext() {}
-	CallResult init(const GLConfigAttributes &attr);
-	void *procAddress(const char *funcName);
-	GLConfig bufferConfig();
-	static bool setCurrent(GLContext *context, Window *win);
-	static bool setDrawable(Window *win);
-	static GLContext *current();
-	static Window *drawable();
-	static bool validateCurrent();
-	void present(Window &win);
+	CallResult init(const GLContextAttributes &attr, const GLBufferConfig &config);
 	operator bool() const;
 	void deinit();
+	static GLBufferConfig makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
+	static void *procAddress(const char *funcName);
+	static void setCurrent(GLContext context, Window *win);
+	static void setDrawable(Window *win);
+	static GLContext current();
+	void present(Window &win);
 };
 
 }

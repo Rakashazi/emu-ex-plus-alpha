@@ -29,7 +29,8 @@ protected:
 
 public:
 	constexpr AndroidGLContext() {}
-	void swapPresentedBuffers(Window &win);
+	static bool validateActivityThreadContext();
+	static void swapPresentedBuffers(Window &win);
 };
 
 using GLContextImpl = AndroidGLContext;

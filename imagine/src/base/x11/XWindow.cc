@@ -23,7 +23,7 @@
 namespace Base
 {
 
-uint GLConfigAttributes::defaultColorBits()
+uint GLBufferConfigAttributes::defaultColorBits()
 {
 	return 24;
 }
@@ -201,11 +201,12 @@ CallResult Window::init(const WindowConfig &config)
 		CWEventMask, &attr);
 	#else
 	pos = {winRect.x, winRect.y};
-	auto visualInfo = config.glConfig().vi;
-	attr.colormap = XCreateColormap(dpy, rootWindow, visualInfo->visual, AllocNone);
-	xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
-		visualInfo->depth, InputOutput, visualInfo->visual,
-		CWColormap | CWEventMask, &attr);
+	{
+		attr.colormap = XCreateColormap(dpy, rootWindow, config.glConfig().visual, AllocNone);
+		xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
+			config.glConfig().depth, InputOutput, config.glConfig().visual,
+			CWColormap | CWEventMask, &attr);
+	}
 	#endif
 	if(!xWin)
 	{
@@ -215,7 +216,7 @@ CallResult Window::init(const WindowConfig &config)
 	}
 	#ifdef CONFIG_BASE_X11_EGL
 	//logMsg("setting up EGL window surface");
-	surface = eglCreateWindowSurface(GLContext::eglDisplay(), config.glConfig().config,
+	surface = eglCreateWindowSurface(GLContext::eglDisplay(), config.glConfig().glConfig,
 		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)xWin, nullptr);
 	if(surface == EGL_NO_SURFACE)
 	{
@@ -257,8 +258,6 @@ CallResult Window::init(const WindowConfig &config)
 
 void Window::deinit()
 {
-	if(GLContext::drawable() == this)
-		GLContext::setDrawable(nullptr);
 	#ifdef CONFIG_BASE_X11_EGL
 	if(surface != EGL_NO_SURFACE)
 	{
@@ -277,10 +276,8 @@ void Window::deinit()
 void shutdownWindowSystem()
 {
 	logMsg("shutting down window system");
-	if(GLContext::current())
-	{
-		GLContext::current()->deinit();
-	}
+	GLContext::current().deinit();
+	GLContext::setCurrent({}, nullptr);
 	iterateTimes(Window::windows(), i)
 	{
 		Window::window(i)->deinit();

@@ -60,19 +60,6 @@ DragPointer *dragState(int p)
 	return [CAEAGLLayer class];
 }
 
-//#ifdef CONFIG_BASE_IPHONE_NIB
-//// Init from NIB
-//- (id)initWithCoder:(NSCoder*)coder
-//{
-//	if ((self = [super initWithCoder:coder]))
-//	{
-//		self = [self initGLES];
-//	}
-//	return self;
-//}
-//#endif
-
-// Init from code
 - (id)initWithFrame:(CGRect)frame context:(EAGLContext *)context
 {
 	logMsg("entered initWithFrame");
@@ -213,11 +200,9 @@ DragPointer *dragState(int p)
 	using namespace Base;
 	auto &win = *Base::windowForUIWindow(self.window);
 	assert(GLContext::current());
-	if(GLContext::drawable() == &win)
-	{
-		GLContext::setDrawable(nullptr);
-	}
 	GLContext::setDrawable(&win); // rebind to update internal height/width
+	if(onGLDrawableChanged)
+		onGLDrawableChanged(&win);
 	#ifdef CONFIG_BASE_IOS_GLKIT
 	glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
 	updateWindowSizeAndContentRect(win, [self drawableWidth], [self drawableHeight], sharedApp);

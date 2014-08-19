@@ -80,6 +80,8 @@ uint globalStreamVBOIdx = 0;
 bool forceNoTextureSwizzle = false;
 bool useTextureSwizzle = false;
 
+static Base::GLBufferConfig gfxBufferConfig;
+
 static Gfx::GC orientationToGC(uint o)
 {
 	using namespace Base;
@@ -345,14 +347,24 @@ CallResult init(uint colorBits)
 			});
 	}
 
-	Base::GLConfigAttributes glAttr;
-	glAttr.setPreferredColorBits(colorBits);
+	Base::setOnGLDrawableChanged(
+		[](Base::Window *newDrawable)
+		{
+			// update the cached current window
+			logMsg("current window changed by event to %p", newDrawable);
+			currWin = newDrawable;
+		});
+
+	Base::GLBufferConfigAttributes glBuffAttr;
+	glBuffAttr.setPreferredColorBits(colorBits);
+	Base::GLContextAttributes glAttr;
 	glAttr.setMajorVersion(Gfx::maxOpenGLMajorVersionSupport());
 	#if defined CONFIG_GFX_OPENGL_ES
 	glAttr.setOpenGLESAPI(true);
 	#endif
-	gfxContext.init(glAttr);
-	Base::GLContext::setCurrent(&gfxContext, nullptr);
+	gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+	gfxContext.init(glAttr, gfxBufferConfig);
+	Base::GLContext::setCurrent(gfxContext, nullptr);
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");
@@ -540,7 +552,7 @@ CallResult init(uint colorBits)
 
 uint defaultColorBits()
 {
-	return Base::GLConfigAttributes::defaultColorBits();
+	return Base::GLBufferConfigAttributes::defaultColorBits();
 }
 
 Base::WindowConfig makeWindowConfig()
@@ -552,7 +564,7 @@ Base::WindowConfig makeWindowConfig()
 
 void setWindowConfig(Base::WindowConfig &config)
 {
-	config.setGLConfig(gfxContext.bufferConfig());
+	config.setGLConfig(gfxBufferConfig);
 }
 
 static void updateSensorStateForWindowOrientations(Base::Window &win)

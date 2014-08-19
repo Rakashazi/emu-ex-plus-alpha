@@ -66,11 +66,14 @@ public:
 
 using WindowImpl = IOSWindow;
 
-struct GLConfig
+struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	constexpr GLConfig() {}
+	operator bool() const
+	{
+		return true;
+	}
 };
 
 }

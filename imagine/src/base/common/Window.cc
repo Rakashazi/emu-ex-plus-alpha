@@ -21,6 +21,8 @@
 namespace Base
 {
 
+OnGLDrawableChangedDelegate onGLDrawableChanged;
+
 #ifdef CONFIG_BASE_MULTI_WINDOW
 StaticArrayList<Window*, 4> window_;
 #else
@@ -368,6 +370,11 @@ void Window::dismiss()
 	#else
 	mainWin = nullptr;
 	#endif
+}
+
+void setOnGLDrawableChanged(OnGLDrawableChangedDelegate del)
+{
+	onGLDrawableChanged = del;
 }
 
 }

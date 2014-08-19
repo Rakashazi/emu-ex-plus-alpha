@@ -29,14 +29,9 @@ struct CocoaGLContext
 {
 protected:
 	void *context_ = nullptr; // NSOpenGLContext in ObjC
-	GLConfig config;
-
-	static void setCurrentContext(CocoaGLContext *context, Window *win);
-	bool isRealCurrentContext();
 
 public:
 	constexpr CocoaGLContext() {}
-	void setCurrentDrawable(Window *win);
 	#ifdef __OBJC__
 	NSOpenGLContext *context() { return (__bridge NSOpenGLContext*)context_; }
 	#endif

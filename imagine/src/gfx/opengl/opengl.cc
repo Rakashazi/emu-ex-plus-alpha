@@ -30,6 +30,7 @@ namespace Gfx
 {
 
 Base::GLContext gfxContext;
+Base::Window *currWin = nullptr;
 GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
 
@@ -343,7 +344,11 @@ void clear()
 
 bool setCurrentWindow(Base::Window *win)
 {
-	return gfxContext.setCurrent(&gfxContext, win);
+	if(win == currWin)
+		return false;
+	currWin = win;
+	gfxContext.setDrawable(win);
+	return true;
 }
 
 void presentWindow(Base::Window &win)

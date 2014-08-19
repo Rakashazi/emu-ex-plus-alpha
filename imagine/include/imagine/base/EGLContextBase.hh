@@ -16,27 +16,25 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <EGL/egl.h>
+#include <utility>
 
 namespace Base
 {
 
-class GLConfigAttributes;
+class GLContextAttributes;
+class GLBufferConfigAttributes;
 
 class EGLContextBase
 {
 protected:
-	static EGLDisplay display;
 	EGLContext context = EGL_NO_CONTEXT;
-	EGLSurface dummyPbuff = EGL_NO_SURFACE;
-	EGLConfig config{};
 
-	CallResult init(const GLConfigAttributes &attr);
+	CallResult init(const GLContextAttributes &attr, const GLBufferConfig &config);
 	void deinit();
+	static std::pair<CallResult, EGLConfig> chooseConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
 	static EGLDisplay getDisplay();
-	static void setCurrentContext(EGLContextBase *context, Window *win);
-	void setCurrentDrawable(Window *win);
-	bool isRealCurrentContext();
-	void swapBuffers(Window &win);
+	static void setCurrentContext(EGLContext context, Window *win);
+	static void swapBuffers(Window &win);
 
 public:
 	constexpr EGLContextBase() {}

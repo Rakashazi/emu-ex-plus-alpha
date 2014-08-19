@@ -21,18 +21,13 @@
 namespace Base
 {
 
-EGLDisplay EGLContextBase::display = EGL_NO_DISPLAY;
+static EGLSurface dummyPbuff = EGL_NO_SURFACE;
+static EGLDisplay display = EGL_NO_DISPLAY;
 using EGLAttrList = StaticArrayList<int, 24>;
 
-static EGLAttrList glConfigAttrsToEGLAttrs(const GLConfigAttributes &attr, bool supportsSurfaceless, bool failsafe)
+static EGLAttrList glConfigAttrsToEGLAttrs(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr, bool failsafe)
 {
 	EGLAttrList list;
-
-	if(!supportsSurfaceless)
-	{
-		list.push_back(EGL_SURFACE_TYPE);
-		list.push_back(EGL_WINDOW_BIT|EGL_PBUFFER_BIT);
-	}
 
 	if(!failsafe)
 	{
@@ -55,13 +50,13 @@ static EGLAttrList glConfigAttrsToEGLAttrs(const GLConfigAttributes &attr, bool 
 		logMsg("requesting lowest color config");
 	}
 
-	if(!attr.openGLESAPI())
+	if(!ctxAttr.openGLESAPI())
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
 		list.push_back(EGL_OPENGL_BIT);
 		logMsg("using OpenGL renderable");
 	}
-	else if(attr.majorVersion() >= 2)
+	else if(ctxAttr.majorVersion() >= 2)
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
 		list.push_back(EGL_OPENGL_ES2_BIT);
@@ -132,6 +127,36 @@ static EGLContext createContextForMajorVersion(uint version, EGLDisplay dpy, EGL
 }
 #endif
 
+std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
+{
+	if(eglDisplay() == EGL_NO_DISPLAY)
+	{
+		logErr("unable to get EGL display");
+		return std::make_pair(INVALID_PARAMETER, EGLConfig{});
+	}
+	EGLConfig config;
+	EGLint configs = 0;
+	{
+		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr, false);
+		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
+	}
+	if(!configs)
+	{
+		logErr("no EGL configs found, retrying with failsafe config");
+		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr, true);
+		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
+		if(!configs)
+		{
+			logErr("no usable EGL configs found");
+			return std::make_pair(INVALID_PARAMETER, EGLConfig{});
+		}
+	}
+	#ifndef NDEBUG
+	printEGLConf(display, config);
+	#endif
+	return std::make_pair(OK, config);
+}
+
 void *GLContext::procAddress(const char *funcName)
 {
 	return (void*)eglGetProcAddress(funcName);
@@ -153,7 +178,7 @@ EGLDisplay EGLContextBase::eglDisplay()
 	return display;
 }
 
-CallResult EGLContextBase::init(const GLConfigAttributes &attr)
+CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferConfig &config)
 {
 	if(eglDisplay() == EGL_NO_DISPLAY)
 	{
@@ -176,26 +201,6 @@ CallResult EGLContextBase::init(const GLConfigAttributes &attr)
 	#endif
 
 	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
-	EGLint configs = 0;
-	{
-		auto eglAttr = glConfigAttrsToEGLAttrs(attr, supportsSurfaceless, false);
-		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
-	}
-	if(!configs)
-	{
-		logErr("no EGL configs found, retrying with failsafe config");
-		auto eglAttr = glConfigAttrsToEGLAttrs(attr, supportsSurfaceless, true);
-		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
-		if(!configs)
-		{
-			logErr("no usable EGL configs found");
-			return INVALID_PARAMETER;
-		}
-	}
-	#ifndef NDEBUG
-	printEGLConf(display, config);
-	#endif
-
 	// create context
 	#ifdef CONFIG_GFX_OPENGL_ES
 		#if defined NDEBUG || defined CONFIG_MACHINE_PANDORA || defined __ANDROID__
@@ -204,45 +209,46 @@ CallResult EGLContextBase::init(const GLConfigAttributes &attr)
 		auto attributes = attr.majorVersion() == 1 ? nullptr : eglAttrES2DebugCtx;
 		#endif
 	logMsg("making ES %d context", attr.majorVersion());
-	context = eglCreateContext(display, config, EGL_NO_CONTEXT, attributes);
+	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, attributes);
 	#else
-	context = createContextForMajorVersion(attr.majorVersion(), display, config);
+	context = createContextForMajorVersion(attr.majorVersion(), display, config.glConfig);
 	#endif
 	if(context == EGL_NO_CONTEXT)
 	{
 		logErr("error creating context: 0x%X", (int)eglGetError());
 		return INVALID_PARAMETER;
 	}
-	if(!supportsSurfaceless)
+	if(!supportsSurfaceless && !dummyPbuff)
 	{
 		logMsg("surfaceless context not supported");
-		dummyPbuff = makeDummyPbuffer(display, config);
+		dummyPbuff = makeDummyPbuffer(display, config.glConfig);
 		assert(dummyPbuff != EGL_NO_SURFACE);
 	}
 	return OK;
 }
 
-void EGLContextBase::setCurrentContext(EGLContextBase *c, Window *win)
+void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 {
 	assert(display != EGL_NO_DISPLAY);
-	if(!c)
+	if(context == EGL_NO_CONTEXT)
 	{
 		logMsg("making no context current");
+		assert(!win);
 		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 	}
 	else if(win)
 	{
-		assert(c->context != EGL_NO_CONTEXT);
+		assert(context != EGL_NO_CONTEXT);
 		logMsg("setting surface %ld current", (long)win->surface);
-		eglMakeCurrent(display, win->surface, win->surface, c->context);
+		eglMakeCurrent(display, win->surface, win->surface, context);
 	}
 	else
 	{
-		assert(c->context != EGL_NO_CONTEXT);
-		if(c->dummyPbuff != EGL_NO_SURFACE)
+		assert(context != EGL_NO_CONTEXT);
+		if(dummyPbuff != EGL_NO_SURFACE)
 		{
 			logMsg("setting dummy pbuffer surface current");
-			if(eglMakeCurrent(display, c->dummyPbuff, c->dummyPbuff, c->context) == EGL_FALSE)
+			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
 			{
 				bug_exit("error setting dummy pbuffer current");
 			}
@@ -250,7 +256,7 @@ void EGLContextBase::setCurrentContext(EGLContextBase *c, Window *win)
 		else
 		{
 			logMsg("setting no surface current");
-			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, c->context) == EGL_FALSE)
+			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
 			{
 				bug_exit("error setting no surface current");
 			}
@@ -258,9 +264,16 @@ void EGLContextBase::setCurrentContext(EGLContextBase *c, Window *win)
 	}
 }
 
-void EGLContextBase::setCurrentDrawable(Window *win)
+void GLContext::setDrawable(Window *win)
 {
-	setCurrentContext(this, win);
+	setCurrentContext(eglGetCurrentContext(), win);
+}
+
+GLContext GLContext::current()
+{
+	GLContext c;
+	c.context = eglGetCurrentContext();
+	return c;
 }
 
 void EGLContextBase::swapBuffers(Window &win)
@@ -273,11 +286,6 @@ void EGLContextBase::swapBuffers(Window &win)
 	}
 }
 
-bool EGLContextBase::isRealCurrentContext()
-{
-	return eglGetCurrentContext() == context;
-}
-
 GLContext::operator bool() const
 {
 	return context != EGL_NO_CONTEXT;
@@ -287,10 +295,6 @@ void EGLContextBase::deinit()
 {
 	if(context != EGL_NO_CONTEXT)
 	{
-		if(GLContext::current() == this)
-		{
-			GLContext::setCurrent(nullptr, nullptr);
-		}
 		logMsg("destroying EGL context");
 		eglDestroyContext(display, context);
 		context = EGL_NO_CONTEXT;

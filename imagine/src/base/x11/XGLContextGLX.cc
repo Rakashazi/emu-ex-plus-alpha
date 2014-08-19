@@ -22,20 +22,12 @@
 namespace Base
 {
 
-struct GLXFBConfigWrapper
-{
-	GLXFBConfig config;
-	bool isValid = false;
-};
-
+static GLXPbuffer dummyPbuff{};
 using GLXAttrList = StaticArrayList<int, 24>;
 
-static GLXAttrList glConfigAttrsToGLXAttrs(const GLConfigAttributes &attr)
+static GLXAttrList glConfigAttrsToGLXAttrs(const GLBufferConfigAttributes &attr)
 {
 	GLXAttrList list;
-
-	list.push_back(GLX_DRAWABLE_TYPE);
-	list.push_back(GLX_WINDOW_BIT|GLX_PBUFFER_BIT);
 
 	list.push_back(GLX_DOUBLEBUFFER);
 	list.push_back(True);
@@ -69,37 +61,22 @@ static const char* glxConfigCaveatToStr(int cav)
 	return "unknown";
 }
 
-static void printGLXVisual(Display *display, XVisualInfo *config)
+static void printGLXVisual(Display *display, XVisualInfo &config)
 {
 	int buffSize, redSize, greenSize, blueSize, alphaSize, depthSize, stencilSize, sampleBuff;
-	glXGetConfig(display, config, GLX_BUFFER_SIZE, &buffSize);
-	glXGetConfig(display, config, GLX_RED_SIZE, &redSize);
-	glXGetConfig(display, config, GLX_GREEN_SIZE, &greenSize);
-	glXGetConfig(display, config, GLX_BLUE_SIZE, &blueSize);
-	glXGetConfig(display, config, GLX_ALPHA_SIZE, &alphaSize);
-	//glXGetConfig(display, config, GLX_CONFIG_CAVEAT, &cav);
-	glXGetConfig(display, config, GLX_DEPTH_SIZE, &depthSize);
-	glXGetConfig(display, config, GLX_STENCIL_SIZE, &stencilSize);
-	glXGetConfig(display, config, GLX_SAMPLE_BUFFERS, &sampleBuff);
+	glXGetConfig(display, &config, GLX_BUFFER_SIZE, &buffSize);
+	glXGetConfig(display, &config, GLX_RED_SIZE, &redSize);
+	glXGetConfig(display, &config, GLX_GREEN_SIZE, &greenSize);
+	glXGetConfig(display, &config, GLX_BLUE_SIZE, &blueSize);
+	glXGetConfig(display, &config, GLX_ALPHA_SIZE, &alphaSize);
+	//glXGetConfig(display, &config, GLX_CONFIG_CAVEAT, &cav);
+	glXGetConfig(display, &config, GLX_DEPTH_SIZE, &depthSize);
+	glXGetConfig(display, &config, GLX_STENCIL_SIZE, &stencilSize);
+	glXGetConfig(display, &config, GLX_SAMPLE_BUFFERS, &sampleBuff);
 	logMsg("config %d %d:%d:%d:%d d:%d sten:%d sampleBuff:%d",
 			buffSize, redSize, greenSize, blueSize, alphaSize,
 			depthSize, stencilSize,
 			sampleBuff);
-}
-
-static GLXFBConfigWrapper chooseFBConfig(Display *dpy, int screen, const int *config)
-{
-	int count;
-	GLXFBConfigWrapper fbc;
-	GLXFBConfig *configPtr = glXChooseFBConfig(dpy, screen, config, &count);
-	if(!configPtr)
-	{
-		return fbc;
-	}
-	fbc.config = *configPtr;
-	fbc.isValid = true;
-	XFree(configPtr);
-	return fbc;
 }
 
 static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFBConfig config, bool &supportsSurfaceless)
@@ -184,43 +161,53 @@ static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFB
 	return (GLXContext)0;
 }
 
-CallResult GLContext::init(const GLConfigAttributes &attr)
+GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GLBufferConfigAttributes &attr)
+{
+	GLBufferConfig conf;
+	int screenIdx = indexOfScreen(mainScreen());
+	{
+		int count;
+		auto glxAttr = glConfigAttrsToGLXAttrs(attr);
+		auto fbcArr = glXChooseFBConfig(dpy, screenIdx, &glxAttr[0], &count);
+		if(!fbcArr)
+		{
+			return GLBufferConfig{};
+		}
+		conf.glConfig = fbcArr[0];
+		XFree(fbcArr);
+	}
+	{
+		auto viPtr = glXGetVisualFromFBConfig(dpy, conf.glConfig);
+		if(!viPtr)
+		{
+			logErr("failed to get matching visual for fbconfig");
+			return GLBufferConfig{};
+		}
+		#ifndef NDEBUG
+		printGLXVisual(dpy, *viPtr);
+		#endif
+		conf.visual = viPtr->visual;
+		conf.depth = viPtr->depth;
+		XFree(viPtr);
+	}
+	return conf;
+}
+
+CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &config)
 {
 	assert(!context);
-	display = dpy;
-	int screenIdx = indexOfScreen(mainScreen());
-	GLXFBConfigWrapper fbc;
-	{
-		// TODO: check if useMaxColorBits configs actually pick lowest color mode
-		auto glxAttr = glConfigAttrsToGLXAttrs(attr);
-		fbc = chooseFBConfig(display, screenIdx, &glxAttr[0]);
-	}
-	if(!fbc.isValid)
-	{
-		return INVALID_PARAMETER;
-	}
-	vi = glXGetVisualFromFBConfig(display, fbc.config);
-	if(!vi)
-	{
-		logErr("failed to get matching visual for fbconfig");
-		return INVALID_PARAMETER;
-	}
-	#ifndef NDEBUG
-	printGLXVisual(display, vi);
-	#endif
-
 	bool supportsSurfaceless;
-	context = createContextForMajorVersion(attr.majorVersion(), display, fbc.config, supportsSurfaceless);
+	context = createContextForMajorVersion(attr.majorVersion(), dpy, config.glConfig, supportsSurfaceless);
 	if(!context)
 	{
 		logErr("can't find a compatible context");
 		return INVALID_PARAMETER;
 	}
-	supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly
-	if(!supportsSurfaceless)
+	supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly on some drivers, see below
+	if(!supportsSurfaceless && !dummyPbuff)
 	{
 		const int attrib[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
-		dummyPbuff = glXCreatePbuffer(display, fbc.config, attrib);
+		dummyPbuff = glXCreatePbuffer(dpy, config.glConfig, attrib);
 		if(!dummyPbuff)
 		{
 			bug_exit("couldn't make dummy pbuffer");
@@ -229,25 +216,21 @@ CallResult GLContext::init(const GLConfigAttributes &attr)
 
 	#ifndef NDEBUG
 	int glxMajorVersion, glxMinorVersion;
-	glXQueryVersion(display, &glxMajorVersion, &glxMinorVersion);
-	logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(display, context) ? "yes" : "no");
-	if(!glXIsDirect(display, context))
+	glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
+	logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, context) ? "yes" : "no");
+	if(!glXIsDirect(dpy, context))
 		bug_exit("direct rendering not supported, check your X configuration");
 	#endif
 
 	return OK;
 }
 
-GLConfig GLContext::bufferConfig()
+static void setCurrentContext(GLXContext context, Window *win)
 {
-	return GLConfig{vi};
-}
-
-void XGLContext::setCurrentContext(XGLContext *c, Window *win)
-{
-	if(!c)
+	if(!context)
 	{
 		logMsg("setting no context current");
+		assert(!win);
 		if(!glXMakeContextCurrent(dpy, None, None, nullptr))
 		{
 			bug_exit("error setting no context current");
@@ -255,7 +238,7 @@ void XGLContext::setCurrentContext(XGLContext *c, Window *win)
 	}
 	else if(win)
 	{
-		if(!glXMakeContextCurrent(c->display, win->xWin, win->xWin, c->context))
+		if(!glXMakeContextCurrent(dpy, win->xWin, win->xWin, context))
 		{
 			bug_exit("error setting window 0x%p current", win);
 		}
@@ -264,10 +247,10 @@ void XGLContext::setCurrentContext(XGLContext *c, Window *win)
 	{
 		// TODO: with nvidia (tested on 337.12) glXMakeContextCurrent fails with badmatch
 		// even if using a 3.0 context
-		/*if(!c->dummyPbuff)
+		/*if(!dummyPbuff)
 		{
 			logMsg("setting no drawable current");
-			if(!glXMakeContextCurrent(c->display, None, None, c->context))
+			if(!glXMakeContextCurrent(c->display, None, None, context))
 			{
 				bug_exit("error setting no drawable current");
 			}
@@ -275,7 +258,7 @@ void XGLContext::setCurrentContext(XGLContext *c, Window *win)
 		else*/
 		{
 			logMsg("setting dummy pbuffer current");
-			if(!glXMakeContextCurrent(c->display, c->dummyPbuff, c->dummyPbuff, c->context))
+			if(!glXMakeContextCurrent(dpy, dummyPbuff, dummyPbuff, context))
 			{
 				bug_exit("error setting dummy pbuffer current");
 			}
@@ -283,19 +266,26 @@ void XGLContext::setCurrentContext(XGLContext *c, Window *win)
 	}
 }
 
-void XGLContext::setCurrentDrawable(Window *win)
+void GLContext::setCurrent(GLContext context, Window *win)
 {
-	setCurrentContext(this, win);
+	setCurrentContext(context.context, win);
 }
 
-bool XGLContext::isRealCurrentContext()
+void GLContext::setDrawable(Window *win)
 {
-	return glXGetCurrentContext() == context;
+	setCurrentContext(glXGetCurrentContext(), win);
+}
+
+GLContext GLContext::current()
+{
+	GLContext c;
+	c.context = glXGetCurrentContext();
+	return c;
 }
 
 void GLContext::present(Window &win)
 {
-	glXSwapBuffers(display, win.xWin);
+	glXSwapBuffers(dpy, win.xWin);
 }
 
 GLContext::operator bool() const
@@ -307,17 +297,8 @@ void GLContext::deinit()
 {
 	if(context)
 	{
-		if(current() == this)
-		{
-			GLContext::setCurrent(nullptr, nullptr);
-		}
-		glXDestroyContext(display, context);
+		glXDestroyContext(dpy, context);
 		context = nullptr;
-	}
-	if(vi)
-	{
-		XFree(vi);
-		vi = nullptr;
 	}
 }
 

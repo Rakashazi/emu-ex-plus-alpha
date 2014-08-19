@@ -38,9 +38,12 @@ public:
 
 using WindowImpl = CocoaWindow;
 
-struct GLConfig
+struct GLBufferConfig
 {
-	constexpr GLConfig() {}
+	operator bool() const
+	{
+		return true;
+	}
 };
 
 

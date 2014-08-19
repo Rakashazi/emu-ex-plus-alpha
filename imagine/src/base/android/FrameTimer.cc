@@ -93,7 +93,7 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 			deviceWindow()->setNeedsDraw(true);
 			screen.frameUpdate(screen.currFrameTime);
 			screen.prevFrameTime = screen.currFrameTime;
-			GLContext::current()->swapPresentedBuffers(*deviceWindow());
+			GLContext::swapPresentedBuffers(*deviceWindow());
 			if(screen.frameIsPosted())
 			{
 				screen.currFrameTime = TimeSys::now().toNs();
@@ -217,7 +217,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 					deviceWindow()->setNeedsDraw(true);
 					screen.frameUpdate(screen.currFrameTime);
 					screen.prevFrameTime = screen.currFrameTime;
-					GLContext::current()->swapPresentedBuffers(*deviceWindow());
+					GLContext::swapPresentedBuffers(*deviceWindow());
 					if(screen.frameIsPosted())
 					{
 						screen.currFrameTime = TimeSys::now().toNs();
