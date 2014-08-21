@@ -364,7 +364,7 @@ CallResult init(uint colorBits)
 	#endif
 	gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
 	gfxContext.init(glAttr, gfxBufferConfig);
-	Base::GLContext::setCurrent(gfxContext, nullptr);
+	gfxContext.setCurrent(gfxContext, nullptr);
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");

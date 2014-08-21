@@ -92,6 +92,11 @@ void GLContext::present(Window &win)
 	}
 }
 
+void GLContext::present(Window &win, GLContext cachedCurrentContext)
+{
+	present(win);
+}
+
 void AndroidGLContext::swapPresentedBuffers(Window &win)
 {
 	if(win.presented)

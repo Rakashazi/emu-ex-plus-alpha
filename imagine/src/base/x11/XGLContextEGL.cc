@@ -87,6 +87,11 @@ void GLContext::present(Window &win)
 	}
 }
 
+void GLContext::present(Window &win, GLContext cachedCurrentContext)
+{
+	present(win);
+}
+
 bool XGLContext::swapBuffersIsAsync()
 {
 	return !Config::MACHINE_IS_PANDORA;

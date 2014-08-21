@@ -115,11 +115,13 @@ public:
 	operator bool() const;
 	void deinit();
 	static GLBufferConfig makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
+	static GLContext current();
 	static void *procAddress(const char *funcName);
 	static void setCurrent(GLContext context, Window *win);
 	static void setDrawable(Window *win);
-	static GLContext current();
-	void present(Window &win);
+	static void setDrawable(Window *win, GLContext cachedCurrentContext);
+	static void present(Window &win);
+	static void present(Window &win, GLContext cachedCurrentContext);
 };
 
 }

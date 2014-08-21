@@ -266,7 +266,12 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 
 void GLContext::setDrawable(Window *win)
 {
-	setCurrentContext(eglGetCurrentContext(), win);
+	setDrawable(win, current());
+}
+
+void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+{
+	setCurrentContext(cachedCurrentContext.context, win);
 }
 
 GLContext GLContext::current()

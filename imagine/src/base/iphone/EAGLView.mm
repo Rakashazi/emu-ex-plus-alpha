@@ -28,6 +28,16 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <OpenGLES/ES2/gl.h>
 #else
 #import <OpenGLES/ES1/glext.h>
+#define glGenFramebuffers glGenFramebuffersOES
+#define glGenRenderbuffers glGenRenderbuffersOES
+#define glDeleteFramebuffers glDeleteFramebuffersOES
+#define glDeleteRenderbuffers glDeleteRenderbuffersOES
+#define glBindFramebuffer glBindFramebufferOES
+#define glBindFramebuffer glBindFramebufferOES
+#define glFramebufferRenderbuffer glFramebufferRenderbufferOES
+#define glRenderbufferStorage glRenderbufferStorageOES
+#define glGetRenderbufferParameteriv glGetRenderbufferParameterivOES
+#define glCheckFramebufferStatus glCheckFramebufferStatusOES
 #endif
 
 static const int USE_DEPTH_BUFFER = 0;
@@ -50,17 +60,54 @@ DragPointer *dragState(int p)
 
 }
 
+static GLuint currentGLFramebuffer()
+{
+	GLint fb;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fb);
+	return fb;
+}
+
+static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *layer,
+	GLuint &framebuffer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)
+{
+	glGenFramebuffers(1, &framebuffer);
+	logMsg("creating layer framebuffer: %u", framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	// make the color renderbuffer
+	glGenRenderbuffers(1, &colorRenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
+	[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer];
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderbuffer);
+	GLint backingWidth, backingHeight;
+	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &backingWidth);
+	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &backingHeight);
+
+	if(USE_DEPTH_BUFFER)
+	{
+		glGenRenderbuffers(1, &depthRenderbuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, backingWidth, backingHeight);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
+	}
+
+	#ifndef NDEBUG
+	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
+	}
+	#endif
+	return {backingWidth, backingHeight};
+}
+
 @implementation EAGLView
 
-#ifndef CONFIG_BASE_IOS_GLKIT
-// Implement this to override the default layer class (which is [CALayer class]).
-// We do this so that our view will be backed by a layer that is capable of OpenGL ES rendering.
 + (Class)layerClass
 {
 	return [CAEAGLLayer class];
 }
 
-- (id)initWithFrame:(CGRect)frame context:(EAGLContext *)context
+- (id)initWithFrame:(CGRect)frame
 {
 	logMsg("entered initWithFrame");
 	self = [super initWithFrame:frame];
@@ -68,7 +115,6 @@ DragPointer *dragState(int p)
 	{
 		auto eaglLayer = (CAEAGLLayer*)self.layer;
 		eaglLayer.opaque = YES;
-		_context = context;
 	}
 	else
 	{
@@ -95,88 +141,69 @@ DragPointer *dragState(int p)
 
 - (void)bindDrawable
 {
-	if(!viewFramebuffer)
+	if(!framebuffer)
 	{
-		logMsg("creating OpenGL framebuffers");
-		glGenFramebuffersOES(1, &viewFramebuffer);
-		glGenRenderbuffersOES(1, &viewRenderbuffer);
+		/*glGenFramebuffers(1, &viewFramebuffer);
+		glGenRenderbuffers(1, &viewRenderbuffer);
+		logMsg("creating view framebuffer: %u renderbuffer: %u", viewFramebuffer, viewRenderbuffer);
 	
-		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-		[_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, viewFramebuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, viewRenderbuffer);
+		[[EAGLContext currentContext] renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer*)self.layer];
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewRenderbuffer);
 	
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
+		GLint backingWidth, backingHeight;
+		glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &backingWidth);
+		glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &backingHeight);
 	
 		if(USE_DEPTH_BUFFER)
 		{
-			glGenRenderbuffersOES(1, &depthRenderbuffer);
-			glBindRenderbufferOES(GL_RENDERBUFFER_OES, depthRenderbuffer);
-			glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, backingWidth, backingHeight);
-			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, depthRenderbuffer);
+			glGenRenderbuffers(1, &depthRenderbuffer);
+			glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, backingWidth, backingHeight);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
 		}
 	
 		#ifndef NDEBUG
-		if(glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES)
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
-			bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
+			bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 		}
-		#endif
-		
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
+		#endif*/
+		makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
+			framebuffer, colorRenderbuffer, depthRenderbuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
 	}
 	else
 	{
-		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
 	}
 }
 
 - (void)deleteDrawable
 {
-	if(!viewFramebuffer)
+	if(!framebuffer)
 	{
 		return; // already deinit
 	}
-	logMsg("deleting OpenGL framebuffers");
-	glDeleteFramebuffersOES(1, &viewFramebuffer);
-	viewFramebuffer = 0;
-	glDeleteRenderbuffersOES(1, &viewRenderbuffer);
-	viewRenderbuffer = 0;
-
+	logMsg("deleting layer framebuffer: %u", framebuffer);
+	glDeleteFramebuffers(1, &framebuffer);
+	framebuffer = 0;
+	glDeleteRenderbuffers(1, &colorRenderbuffer);
+	colorRenderbuffer = 0;
 	if(depthRenderbuffer)
 	{
-		glDeleteRenderbuffersOES(1, &depthRenderbuffer);
+		glDeleteRenderbuffers(1, &depthRenderbuffer);
 		depthRenderbuffer = 0;
 	}
 }
 
 - (void)dealloc
 {
+	assert(Base::GLContext::current());
 	[self deleteDrawable];
 }
-
-#else
-
-- (void)bindDrawable
-{
-	[super bindDrawable];
-	if(!viewRenderbuffer)
-	{
-		glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
-		logMsg("got renderbuffer: %d", viewRenderbuffer);
-	}
-	glBindRenderbuffer(GL_RENDERBUFFER, viewRenderbuffer);
-}
-
-- (void)deleteDrawable
-{
-	[super deleteDrawable];
-	viewRenderbuffer = 0;
-}
-
-#endif
 
 #ifdef CONFIG_BASE_IOS_RETINA_SCALE
 - (void)willMoveToWindow:(UIWindow *)newWindow
@@ -196,20 +223,16 @@ DragPointer *dragState(int p)
 - (void)layoutSubviews
 {
 	logMsg("in layoutSubviews");
-	[super layoutSubviews];
 	using namespace Base;
-	auto &win = *Base::windowForUIWindow(self.window);
 	assert(GLContext::current());
-	GLContext::setDrawable(&win); // rebind to update internal height/width
+	[self deleteDrawable];
+	auto size = makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
+		framebuffer, colorRenderbuffer, depthRenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
+	auto &win = *Base::windowForUIWindow(self.window);
 	if(onGLDrawableChanged)
 		onGLDrawableChanged(&win);
-	#ifdef CONFIG_BASE_IOS_GLKIT
-	glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint*)&viewRenderbuffer);
-	updateWindowSizeAndContentRect(win, [self drawableWidth], [self drawableHeight], sharedApp);
-	#else
-	auto frameSize = self.frame.size;
-	updateWindowSizeAndContentRect(win, frameSize.width, frameSize.height, sharedApp);
-	#endif
+	updateWindowSizeAndContentRect(win, size.x, size.y, sharedApp);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");
 }

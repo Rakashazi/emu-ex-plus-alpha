@@ -219,18 +219,10 @@ CallResult Window::init(const WindowConfig &config)
 	updateWindowSizeAndContentRect(*this, rect.size.width * pointScale, rect.size.height * pointScale, sharedApp);
 	
 	// Create the OpenGL ES view and add it to the Window
-	assert(GLContext::current());
-	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect context:GLContext::current().context()]);
-	#ifdef CONFIG_BASE_IOS_GLKIT
-	glView().enableSetNeedsDisplay = NO;
-	#endif
+	glView_ = (void*)CFBridgingRetain([[EAGLView alloc] initWithFrame:rect]);
 	if(config.glConfig().useRGB565)
 	{
-		#ifdef CONFIG_BASE_IOS_GLKIT
-		[glView() setDrawableColorFormat:GLKViewDrawableColorFormatRGB565];
-		#else
 		[glView() setDrawableColorFormat:kEAGLColorFormatRGB565];
-		#endif
 	}
 	if(screen() == mainScreen())
 	{

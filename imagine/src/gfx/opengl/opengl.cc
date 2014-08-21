@@ -347,13 +347,13 @@ bool setCurrentWindow(Base::Window *win)
 	if(win == currWin)
 		return false;
 	currWin = win;
-	gfxContext.setDrawable(win);
+	gfxContext.setDrawable(win, gfxContext);
 	return true;
 }
 
 void presentWindow(Base::Window &win)
 {
-	gfxContext.present(win);
+	gfxContext.present(win, gfxContext);
 }
 
 }

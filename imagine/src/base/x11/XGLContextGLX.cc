@@ -273,7 +273,12 @@ void GLContext::setCurrent(GLContext context, Window *win)
 
 void GLContext::setDrawable(Window *win)
 {
-	setCurrentContext(glXGetCurrentContext(), win);
+	setDrawable(win, current());
+}
+
+void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+{
+	setCurrentContext(cachedCurrentContext.context, win);
 }
 
 GLContext GLContext::current()
@@ -286,6 +291,11 @@ GLContext GLContext::current()
 void GLContext::present(Window &win)
 {
 	glXSwapBuffers(dpy, win.xWin);
+}
+
+void GLContext::present(Window &win, GLContext cachedCurrentContext)
+{
+	present(win);
 }
 
 GLContext::operator bool() const

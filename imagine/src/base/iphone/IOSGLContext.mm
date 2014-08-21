@@ -46,16 +46,9 @@ void GLContext::setCurrent(GLContext c, Window *win)
 {
 	if(c.context())
 	{
-		if(win)
-		{
-			setDrawable(win);
-			assert(c.context() == [EAGLContext currentContext]);
-		}
-		else
-		{
-			auto success = [EAGLContext setCurrentContext:c.context()];
-			assert(success);	
-		}
+		auto success = [EAGLContext setCurrentContext:c.context()];
+		assert(success);	
+		setDrawable(win);
 	}
 	else
 	{
@@ -73,6 +66,11 @@ void GLContext::setDrawable(Window *win)
 	}
 }
 
+void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+{
+	setDrawable(win);
+}
+
 GLContext GLContext::current()
 {
 	GLContext c;
@@ -82,7 +80,12 @@ GLContext GLContext::current()
 
 void GLContext::present(Window &win)
 {
-	[context() presentRenderbuffer:GL_RENDERBUFFER];
+	present(win, current());
+}
+
+void GLContext::present(Window &win, GLContext cachedCurrentContext)
+{
+	[cachedCurrentContext.context() presentRenderbuffer:GL_RENDERBUFFER];
 }
 
 GLContext::operator bool() const
