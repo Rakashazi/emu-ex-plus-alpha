@@ -143,7 +143,7 @@ class SystemOptionView : public OptionView
 					if(!strlen(newPath))
 					{
 						if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-							popup.printf(5, false, "Using default paths:\n%s\n%s\n%s", Base::appPath, "~/.local/share/C64.emu", "/usr/share/games/vice");
+							popup.printf(5, false, "Using default paths:\n%s\n%s\n%s", Base::assetPath(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 						else
 							popup.printf(4, false, "Using default path:\n%s/C64.emu", Base::storagePath());
 					}

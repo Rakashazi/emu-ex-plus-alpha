@@ -20,7 +20,7 @@ SRC += $(GEO)/mamez80/z80.c $(GEO)/mamez80_interf.c
 SRC += $(GEO)/ym2610/2610intf.c $(GEO)/ym2610/ym2610.c
 
 SRC += $(GEO)/debug.c $(GEO)/emu.c $(GEO)/fileio.c $(GEO)/mame_layer.c \
-$(GEO)/memory.c $(GEO)/neoboot.c $(GEO)/neocrypt.c $(GEO)/pd4990a.c $(GEO)/resfile.c $(GEO)/roms.c $(GEO)/state.c \
+$(GEO)/memory.c $(GEO)/neoboot.c $(GEO)/neocrypt.c $(GEO)/pd4990a.c $(GEO)/roms.c $(GEO)/state.c \
 $(GEO)/timer.c $(GEO)/video.c $(GEO)/unzip.c
 
 ifeq ($(ENV), webos)

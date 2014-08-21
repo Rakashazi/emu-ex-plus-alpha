@@ -65,7 +65,7 @@ static void setMachineBasePath(FsSys::PathString &outPath, const FsSys::PathStri
 	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		string_printf(outPath, "%s/MSX.emu", Base::appPath);
+		string_printf(outPath, "%s/MSX.emu", Base::assetPath());
 		#else
 		string_printf(outPath, "%s/MSX.emu", Base::storagePath());
 		#endif

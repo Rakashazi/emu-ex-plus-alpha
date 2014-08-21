@@ -35,7 +35,9 @@
 typedef enum SYSTEM {
     SYS_ARCADE=0,
     SYS_HOME,
-    SYS_UNIBIOS,
+    SYS_UNIBIOS, // selects 2.3 for backwards compatibility
+    SYS_UNIBIOS_3_0,
+    SYS_UNIBIOS_3_1,
     SYS_MAX
 } SYSTEM;
 

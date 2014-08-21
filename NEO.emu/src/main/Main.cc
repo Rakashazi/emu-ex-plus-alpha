@@ -1,5 +1,6 @@
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
+#include <imagine/io/IoZip.hh>
 #include <EmuSystem.hh>
 #include <CommonFrameworkIncludes.hh>
 
@@ -21,19 +22,13 @@ extern "C"
 	extern int skip_this_frame;
 	Uint16 play_buffer[16384] {0};
 	GN_Surface *buffer = 0;
-	static CONF_ITEM datafileConfItem {0};
 	static CONF_ITEM rompathConfItem {0};
 
 	CONF_ITEM* cf_get_item_by_name(const char *name)
 	{
 		//logMsg("getting conf item %s", name);
 		static CONF_ITEM conf {0};
-		if(string_equal(name, "datafile"))
-		{
-			static CONF_ITEM datafile {0};
-			return &datafileConfItem;
-		}
-		else if(string_equal(name, "rompath"))
+		if(string_equal(name, "rompath"))
 		{
 			static CONF_ITEM rompath {0};
 			return &rompathConfItem;
@@ -73,7 +68,8 @@ static ROM_DEF *activeDrv = nullptr;
 PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
 #endif
 
-Base::Pipe guiPipe;
+static Base::Pipe guiPipe;
+static FsSys::PathString datafilePath{};
 
 // controls
 
@@ -108,9 +104,19 @@ enum {
 	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
 };
 
+static bool systemEnumIsValid(uint8 val)
+{
+	return val < SYS_MAX;
+}
+
+static bool countryEnumIsValid(uint8 val)
+{
+	return val < CTY_MAX;
+}
+
 static Byte1Option optionListAllGames(CFGKEY_LIST_ALL_GAMES, 0);
-static Byte1Option optionBIOSType(CFGKEY_BIOS_TYPE, SYS_UNIBIOS);
-static Byte1Option optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA);
+static Byte1Option optionBIOSType(CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid);
+static Byte1Option optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid);
 static Byte1Option optionTimerInt(CFGKEY_TIMER_INT, 2);
 static Byte1Option optionCreateAndUseCache(CFGKEY_CREATE_USE_CACHE, 0);
 static Byte1Option optionStrictROMChecking(CFGKEY_STRICT_ROM_CHECKING, 0);
@@ -170,6 +176,8 @@ void EmuSystem::initOptions()
 
 void EmuSystem::onOptionsLoaded()
 {
+	conf.system = (SYSTEM)optionBIOSType.val;
+	conf.country = (COUNTRY)optionMVSCountry.val;
 	// TODO: remove now that long names are correctly used
 	for(auto &e : recentGameList)
 	{
@@ -510,6 +518,66 @@ void gn_update_pbar(int pos)
 	}
 }
 
+static Io *openGngeoDataIO(const char *filename)
+{
+	if(Config::envIsAndroid)
+	{
+		return openAppAssetIo(filename);
+	}
+	else
+	{
+		return IoZip::open(datafilePath.data(), filename);
+	}
+}
+
+CLINK ROM_DEF *res_load_drv(char *name)
+{
+	std::array<char, 32> drvFilename;
+	string_printf(drvFilename, DATAFILE_PREFIX "rom/%s.drv", name);
+	Io *io = openGngeoDataIO(drvFilename.data());
+	if(!io)
+	{
+		logErr("Can't open driver %s", name);
+		return nullptr;
+	}
+
+	// Fill out the driver struct
+	auto drv = (ROM_DEF*)calloc(sizeof(ROM_DEF), 1);
+	io->read(drv->name, 32);
+	io->read(drv->parent, 32);
+	io->read(drv->longname, 128);
+	io->readVarAsType<uint32>(drv->year); // TODO: LE byte-swap on uint32 reads
+	iterateTimes(10, i)
+		io->readVarAsType<uint32>(drv->romsize[i]);
+	io->readVarAsType<uint32>(drv->nb_romfile);
+	iterateTimes(drv->nb_romfile, i)
+	{
+		io->read(drv->rom[i].filename, 32);
+		io->readVarAsType<uint8>(drv->rom[i].region);
+		io->readVarAsType<uint32>(drv->rom[i].src);
+		io->readVarAsType<uint32>(drv->rom[i].dest);
+		io->readVarAsType<uint32>(drv->rom[i].size);
+		io->readVarAsType<uint32>(drv->rom[i].crc);
+	}
+	io->close();
+	return drv;
+}
+
+CLINK void *res_load_data(char *name)
+{
+	Io *io = openGngeoDataIO(name);
+	if(!io)
+	{
+		logErr("Can't data file %s", name);
+		return nullptr;
+	}
+	auto size = io->size();
+	auto buffer = (char*)malloc(size);
+	io->read(buffer, size);
+	io->close();
+	return buffer;
+}
+
 class LoadGameInBackgroundView : public View
 {
 public:
@@ -519,7 +587,7 @@ public:
 
 	uint pos = 0, max = 0;
 
-	constexpr LoadGameInBackgroundView(Base::Window &win): View(win) {}
+	LoadGameInBackgroundView(Base::Window &win): View(win) {}
 
 	void setMax(uint val)
 	{
@@ -806,10 +874,11 @@ CallResult onInit(int argc, char** argv)
 	sdlSurf.pixels = screenBuff;
 	buffer = &sdlSurf;
 	conf.sound = 1;
-	conf.system = (SYSTEM)optionBIOSType.val;
-	conf.country = (COUNTRY)optionMVSCountry.val;
 	strcpy(rompathConfItem.data.dt_str.str, ".");
-	sprintf(datafileConfItem.data.dt_str.str, Config::envIsAndroid ? "%s" : "%s/gngeo_data.zip", Base::appPath);
+	if(!Config::envIsAndroid)
+	{
+		string_printf(datafilePath, "%s/gngeo_data.zip", Base::assetPath());
+	}
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{

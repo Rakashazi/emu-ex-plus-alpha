@@ -52,7 +52,13 @@ private:
 		"BIOS Type",
 		[](MultiChoiceMenuItem &, int val)
 		{
-			conf.system = val == 0 ? SYS_UNIBIOS : SYS_ARCADE;
+			switch(val)
+			{
+				bcase 0: conf.system = SYS_UNIBIOS;
+				bcase 1: conf.system = SYS_UNIBIOS_3_0;
+				bcase 2: conf.system = SYS_UNIBIOS_3_1;
+				bcase 3: conf.system = SYS_ARCADE;
+			}
 			optionBIOSType = conf.system;
 		}
 	};
@@ -61,12 +67,15 @@ private:
 	{
 		static const char *str[] =
 		{
-			"Unibios", "MVS"
+			"Unibios 2.3", "Unibios 3.0", "Unibios 3.1", "MVS"
 		};
 		int setting = 0;
-		if(conf.system == SYS_ARCADE)
+		switch(conf.system)
 		{
-			setting = 1;
+			bdefault: setting = 0;
+			bcase SYS_UNIBIOS_3_0: setting = 1;
+			bcase SYS_UNIBIOS_3_1: setting = 2;
+			bcase SYS_ARCADE: setting = 3;
 		}
 		bios.init(str, setting, sizeofArray(str));
 	}
@@ -598,7 +607,8 @@ public:
 	void onShow()
 	{
 		MenuView::onShow();
-		unibiosSwitches.active = EmuSystem::gameIsRunning() && conf.system == SYS_UNIBIOS;
+		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
+		unibiosSwitches.active = EmuSystem::gameIsRunning() && isUnibios;
 	}
 
 	void init(bool highlightFirst)

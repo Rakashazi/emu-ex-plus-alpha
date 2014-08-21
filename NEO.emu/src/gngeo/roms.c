@@ -1219,12 +1219,33 @@ static int init_roms(GAME_ROMS *r) {
 	return 0;
 }
 
+static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file_crc, PKZIP *pz, char *rpath)
+{
+	/* First check in neogeo.zip */
+	r->bios_m68k.p = gn_unzip_file_malloc(pz, unibiosFilename, file_crc, &r->bios_m68k.size);
+	if (r->bios_m68k.p == NULL) {
+		char *unipath = malloc(strlen(rpath) + strlen(unibiosFilename) + 2);
+
+		sprintf(unipath, "%s/%s", rpath, unibiosFilename);
+		FILE *f = fopen(unipath, "rb");
+		if (!f) { /* TODO: Fallback to arcade mode */
+			sprintf(romerror, "%s missing or invalid, make sure it's in your neogeo.zip", unibiosFilename);
+			free(unipath);
+			return false;
+		}
+		r->bios_m68k.p = malloc(0x20000);
+		fread(r->bios_m68k.p, 0x20000, 1, f); // TODO: check error
+		r->bios_m68k.size = 0x20000;
+		fclose(f);
+		free(unipath);
+	}
+	return true;
+}
+
 bool dr_load_bios(GAME_ROMS *r) {
-	FILE *f;
 	int i;
 	PKZIP *pz;
 	ZFILE *z;
-	size_t totread = 0;
 	unsigned int size;
 	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
 	char *fpath;
@@ -1267,27 +1288,22 @@ bool dr_load_bios(GAME_ROMS *r) {
 
 	if (!(r->info.flags & HAS_CUSTOM_CPU_BIOS)) {
 		if (conf.system == SYS_UNIBIOS) {
-			char *unipath;
-
-			/* First check in neogeo.zip */
-			const char *unibiosFilename = "uni-bios_2_3.rom";
-			r->bios_m68k.p = gn_unzip_file_malloc(pz, unibiosFilename, 0x27664eb5, &r->bios_m68k.size);
-			if (r->bios_m68k.p == NULL) {
-				unipath = malloc(strlen(rpath) + strlen(unibiosFilename) + 2);
-
-				sprintf(unipath, "%s/%s", rpath, unibiosFilename);
-				f = fopen(unipath, "rb");
-				if (!f) { /* TODO: Fallback to arcade mode */
-					sprintf(romerror, "%s missing or invalid, make sure it's in your neogeo.zip", unibiosFilename);
-					free(fpath);
-					free(unipath);
-					return false;
-				}
-				r->bios_m68k.p = malloc(0x20000);
-				totread = fread(r->bios_m68k.p, 0x20000, 1, f);
-				r->bios_m68k.size = 0x20000;
-				fclose(f);
-				free(unipath);
+			if(!loadUnibios(r, "uni-bios_2_3.rom", 0x27664eb5, pz, rpath))
+			{
+				free(fpath);
+				return false;
+			}
+		} else if (conf.system == SYS_UNIBIOS_3_0) {
+			if(!loadUnibios(r, "uni-bios_3_0.rom", 0xa97c89a9, pz, rpath))
+			{
+				free(fpath);
+				return false;
+			}
+		} else if (conf.system == SYS_UNIBIOS_3_1) {
+			if(!loadUnibios(r, "uni-bios_3_1.rom", 0x0c58093f, pz, rpath))
+			{
+				free(fpath);
+				return false;
 			}
 		} else {
 			uint32_t crc32 = 0;
