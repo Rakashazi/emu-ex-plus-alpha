@@ -233,8 +233,4 @@
 /* #undef inline */
 #endif
 
-#ifdef __ANDROID__
-	#define DATAFILE_PREFIX "assets/"
-#else
-	#define DATAFILE_PREFIX
-#endif
+#define DATAFILE_PREFIX

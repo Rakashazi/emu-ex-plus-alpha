@@ -28,17 +28,9 @@ android_arch := $(filter-out $(android_noArch),$(android_arch))
 ifdef android_ouyaBuild
  android_minSDK := 16
  android_buildPrefix := android-ouya
- android_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/android-ouya-16-armv7
- android_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/android-ouya-16-armv7/gen
  android_releaseReadySubdir := ouya
 else
  android_buildPrefix := android
- android_imagineLibPathARM ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-armv6
- android_imagineIncludePathARM ?= $(IMAGINE_PATH)/build/android-$(android_minSDK)-armv6/gen
- android_imagineLibPathARMv7 ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-armv7
- android_imagineIncludePathARMv7 ?= $(IMAGINE_PATH)/build/android-$(android_minSDK)-armv7/gen
- android_imagineLibPathX86 ?= $(IMAGINE_PATH)/lib/android-$(android_minSDK)-x86
- android_imagineIncludePathX86 ?= $(IMAGINE_PATH)/build/android-$(android_minSDK)-x86/gen
  android_releaseReadySubdir := android
 endif
 
@@ -60,6 +52,10 @@ endif
 android_targetPath := target/$(android_buildName)
 
 android_useMOGASrc ?= 1
+
+ifdef imagineLibExt
+ android_makefileOpts += imagineLibExt=$(imagineLibExt)
+endif
 
 # metadata
 

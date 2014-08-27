@@ -250,6 +250,12 @@ void AndroidWindow::destroyEGLSurface(EGLDisplay display)
 	{
 		return;
 	}
+	if(eglGetCurrentSurface(EGL_DRAW) == surface)
+	{
+		GLContext::setDrawable(nullptr);
+		if(onGLDrawableChanged)
+			onGLDrawableChanged(nullptr);
+	}
 	logMsg("destroying EGL surface for native window %p", nWin);
 	if(eglDestroySurface(display, surface) == EGL_FALSE)
 	{
@@ -286,19 +292,13 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	win.updateContentRect(rect);
-	if(win.updateSize(winSize) && androidSDK() < 19)
+	if(win.updateSize(winSize) && androidSDK() < 19 && !Config::MACHINE_IS_OUYA)
 	{
 		// On some OS versions like CM7 on the HP Touchpad,
 		// the very next frame is rendered incorrectly
 		// (as if the window still has its previous size).
 		// Re-create the EGLSurface to make sure EGL sees
 		// the new size.
-		if(eglGetCurrentSurface(EGL_DRAW) == win.surface)
-		{
-			GLContext::setDrawable(nullptr);
-			if(onGLDrawableChanged)
-				onGLDrawableChanged(nullptr);
-		}
 		win.destroyEGLSurface(GLContext::eglDisplay());
 		win.initEGLSurface(GLContext::eglDisplay());
 	}
@@ -308,10 +308,6 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 void androidWindowSurfaceDestroyed(Window &win)
 {
 	win.unpostDraw();
-	if(eglGetCurrentSurface(EGL_DRAW) == win.surface)
-	{
-		GLContext::setDrawable(nullptr);
-	}
 	win.destroyEGLSurface(GLContext::eglDisplay());
 	win.nWin = nullptr;
 }

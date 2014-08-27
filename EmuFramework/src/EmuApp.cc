@@ -648,7 +648,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	}
 
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	emuVideoLayer.vidImgEffect.setBitDepth(optionBestColorModeHint ? 24 : 16);
+	// TODO: set bit depth based on source texture depth and allow user setting
+	//emuVideoLayer.vidImgEffect.setBitDepth(optionBestColorModeHint ? 24 : 16);
 	emuVideoLayer.setEffect(optionImgEffect);
 	#endif
 

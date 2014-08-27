@@ -32,7 +32,7 @@ private:
 	IG::Point2D<uint> renderTargetScale;
 	IG::Point2D<uint> renderTargetImgSize;
 	IG::Point2D<uint> inputImgSize{1, 1};
-	bool useRGB565RenderTarget = false;
+	bool useRGB565RenderTarget = true;
 	bool useLinearFilter = true;
 
 	uint programs() const;
