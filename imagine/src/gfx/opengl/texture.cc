@@ -1,7 +1,22 @@
-#pragma once
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <algorithm>
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/GfxBufferImage.hh>
+#include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
 #include "android/DirectTextureBufferImage.hh"
@@ -311,8 +326,6 @@ static void setDefaultImageTextureParams(uint imgFilter, uchar mipmapType, int x
 	if(useAnisotropicFiltering)
 		glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
 	#endif
-	//float col[] = {1, 0.5, 0.5, 1};
-	//glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, col);
 }
 
 static uint writeGLTexture(IG::Pixmap &pix, bool includePadding, GLenum target, uint srcAlign)
@@ -513,7 +526,7 @@ bool BufferImage::compileDefaultProgram(uint mode)
 				case TEX_2D_EXTERNAL : return texExternalReplaceProgram.compile();
 				default: bug_branch("%d", type_); return false;
 			}
-		case IMG_MODE_MODULATE:
+		bcase IMG_MODE_MODULATE:
 			switch(type_)
 			{
 				case TEX_2D_1 : return texAlphaProgram.compile();
@@ -522,7 +535,7 @@ bool BufferImage::compileDefaultProgram(uint mode)
 				case TEX_2D_EXTERNAL : return texExternalProgram.compile();
 				default: bug_branch("%d", type_); return false;
 			}
-		default: bug_branch("%d", type_); return false;
+		bdefault: bug_branch("%d", type_); return false;
 	}
 }
 

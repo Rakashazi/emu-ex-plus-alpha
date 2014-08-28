@@ -21,16 +21,26 @@ class GLStateCache
 public:
 	constexpr GLStateCache() {}
 	
-	#ifdef NDEBUG
-	static constexpr bool verifyState = 0;
-	#else
-	bool verifyState = 0;
-	#endif
+	struct GLPointerVal
+	{
+		GLint size = 4;
+		GLenum type = GL_FLOAT;
+		GLsizei stride = 0;
+		const GLvoid *pointer = nullptr;
 
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	GLenum matrixModeState = GL_MODELVIEW;
-	void matrixMode(GLenum mode);
-	#endif
+		constexpr GLPointerVal() {}
+	};
+
+	struct GLAttribPointerVal
+	{
+		GLint size = 4;
+		GLenum type = GL_FLOAT;
+		GLsizei stride = 0;
+		GLboolean normalized = GL_FALSE;
+		const GLvoid *pointer = nullptr;
+
+		constexpr GLAttribPointerVal() {}
+	};
 
 	struct GLBindTextureState
 	{
@@ -38,20 +48,9 @@ public:
 		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
 		GLuint GL_TEXTURE_EXTERNAL_OES_state = 0;
 		#endif
+
 		constexpr GLBindTextureState() {}
-	} bindTextureState;
-
-	GLuint *getBindTextureState(GLenum target);
-
-	void bindTexture(GLenum target, GLuint texture);
-
-	void deleteTextures(GLsizei n, const GLuint *textures);
-
-	GLenum blendFuncSfactor = GL_ONE, blendFuncDfactor = GL_ZERO;
-	void blendFunc(GLenum sfactor, GLenum dfactor);
-
-	GLenum blendEquationState = GL_FUNC_ADD;
-	void blendEquation(GLenum mode);
+	};
 
 	struct GLStateCaps
 	{
@@ -74,24 +73,62 @@ public:
 		#endif
 
 		constexpr GLStateCaps() {}
-	} stateCap;
+	};
 
+	struct GLBindBufferVal
+	{
+		GLenum target;
+		GLuint buffer;
+	};
+
+	struct GLClientStateCaps
+	{
+		bool GL_TEXTURE_COORD_ARRAY_state = 0;
+		bool GL_COLOR_ARRAY_state = 0;
+
+		constexpr GLClientStateCaps() {}
+	};
+
+	struct GLPixelStoreParams
+	{
+		GLint GL_UNPACK_ALIGNMENT_state = 4;
+		#ifndef CONFIG_GFX_OPENGL_ES
+		GLint GL_UNPACK_ROW_LENGTH_state = 0;
+		#endif
+
+		constexpr GLPixelStoreParams() {}
+	};
+
+	#ifdef NDEBUG
+	static constexpr bool verifyState = 0;
+	#else
+	bool verifyState = 0;
+	#endif
+
+	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	GLenum matrixModeState = GL_MODELVIEW;
+	void matrixMode(GLenum mode);
+	#endif
+
+	GLBindTextureState bindTextureState;
+	GLuint *getBindTextureState(GLenum target);
+	void bindTexture(GLenum target, GLuint texture);
+	void deleteTextures(GLsizei n, const GLuint *textures);
+
+	GLenum blendFuncSfactor = GL_ONE, blendFuncDfactor = GL_ZERO;
+	void blendFunc(GLenum sfactor, GLenum dfactor);
+
+	GLenum blendEquationState = GL_FUNC_ADD;
+	void blendEquation(GLenum mode);
+
+	GLStateCaps stateCap;
 	bool *getCap(GLenum cap);
-
 	void enable(GLenum cap);
-
 	void disable(GLenum cap);
-
 	GLboolean isEnabled(GLenum cap);
 
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	struct GLClientStateCaps
-	{
-		constexpr GLClientStateCaps() { }
-		bool GL_TEXTURE_COORD_ARRAY_state = 0;
-		bool GL_COLOR_ARRAY_state = 0;
-	} clientStateCap;
-
+	GLClientStateCaps clientStateCap;
 	bool *getClientCap(GLenum cap);
 	void enableClientState(GLenum cap);
 	void disableClientState(GLenum cap);
@@ -101,17 +138,6 @@ public:
 	void texEnvfv(GLenum target, GLenum pname, const GLfloat *params);
 	GLfloat colorState[4] = { 1, 1, 1, 1 };
 	void color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-
-	struct GLPointerVal
-	{
-		GLint size = 4;
-		GLenum type = GL_FLOAT;
-		GLsizei stride = 0;
-		const GLvoid *pointer = nullptr;
-		constexpr GLPointerVal() {}
-	};
-
-	static uint applyGenericPointerState(GLPointerVal *state, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 	GLPointerVal texCoordPointerState;
 	void texCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 	GLPointerVal colorPointerState;
@@ -119,12 +145,10 @@ public:
 	GLPointerVal vertexPointerState;
 	void vertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 	#endif
-
-	struct GLBindBufferVal
-	{
-		GLenum target;
-		GLuint buffer;
-	};
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	GLAttribPointerVal vertexAttribPointerState[3];
+	void vertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
+	#endif
 
 	GLBindBufferVal glBindBufferVal[4]
 	{
@@ -137,19 +161,13 @@ public:
 	};
 
 	bool vboIsBound();
-
 	void bindBuffer(GLenum target, GLuint buffer);
 
-	struct GLPixelStoreParams
-	{
-		constexpr GLPixelStoreParams() { }
-		GLint GL_UNPACK_ALIGNMENT_state = 4;
-		#ifndef CONFIG_GFX_OPENGL_ES
-		GLint GL_UNPACK_ROW_LENGTH_state = 0;
-		#endif
-	} pixelStoreParam;
 
+	GLPixelStoreParams pixelStoreParam;
 	GLint *getPixelStoreParam(GLenum pname);
-
 	void pixelStorei(GLenum pname, GLint param);
+
+private:
+	static uint applyGenericPointerState(GLPointerVal &state, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 };

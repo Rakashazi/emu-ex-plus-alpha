@@ -98,6 +98,10 @@ static void glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoi
 static void glcVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 { if(useGLCache) glState.vertexPointer(size, type, stride, pointer); else glVertexPointer(size, type, stride, pointer); }
 #endif
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+static void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
+{ if(useGLCache) glState.vertexAttribPointer(index, size, type, normalized, stride, pointer); else glVertexAttribPointer(index, size, type, normalized, stride, pointer); }
+#endif
 static void glcBindBuffer(GLenum target, GLuint buffer)
 { if(useGLCache) glState.bindBuffer(target, buffer); else glBindBuffer(target, buffer); }
 static void glcPixelStorei(GLenum pname, GLint param)

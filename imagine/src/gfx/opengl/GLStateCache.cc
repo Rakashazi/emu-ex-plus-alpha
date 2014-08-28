@@ -1,3 +1,18 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include "GLStateCache.hh"
 #include "utils.h"
 
@@ -210,6 +225,22 @@ GLboolean GLStateCache::isEnabled(GLenum cap)
 	return *state;
 }
 
+uint GLStateCache::applyGenericPointerState(GLPointerVal &state, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+	if(size != state.size
+		|| pointer != state.pointer
+		|| type != state.type
+		|| stride != state.stride)
+	{
+		state.size = size;
+		state.type = type;
+		state.stride = stride;
+		state.pointer = pointer;
+		return 1;
+	}
+	return 0;
+}
+
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 bool *GLStateCache::getClientCap(GLenum cap)
 {
@@ -340,22 +371,6 @@ void GLStateCache::color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alp
 	}
 }
 
-uint GLStateCache::applyGenericPointerState(GLPointerVal *state, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
-{
-	if(size != state->size
-		|| type != state->type
-		|| stride != state->stride
-		|| pointer != state->pointer)
-	{
-		state->size = size;
-		state->type = type;
-		state->stride = stride;
-		state->pointer = pointer;
-		return 1;
-	}
-	return 0;
-}
-
 void GLStateCache::texCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
 	/*		,bufferBindState = { 4, GL_FLOAT, 0, 0 };
@@ -365,7 +380,7 @@ void GLStateCache::texCoordPointer(GLint size, GLenum type, GLsizei stride, cons
 		glTexCoordPointer(size, type, stride, pointer);
 		return;
 	}
-	if(applyGenericPointerState(&texCoordPointerState, size, type, stride, pointer))
+	if(applyGenericPointerState(texCoordPointerState, size, type, stride, pointer))
 	{
 		glTexCoordPointer(size, type, stride, pointer);
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexCoordPointer", err); });
@@ -386,7 +401,7 @@ void GLStateCache::colorPointer(GLint size, GLenum type, GLsizei stride, const G
 		glColorPointer(size, type, stride, pointer);
 		return;
 	}
-	if(applyGenericPointerState(&colorPointerState, size, type, stride, pointer))
+	if(applyGenericPointerState(colorPointerState, size, type, stride, pointer))
 	{
 		glColorPointer(size, type, stride, pointer);
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glColorPointer", err); });
@@ -407,10 +422,42 @@ void GLStateCache::vertexPointer(GLint size, GLenum type, GLsizei stride, const 
 		glVertexPointer(size, type, stride, pointer);
 		return;
 	}
-	if(applyGenericPointerState(&vertexPointerState, size, type, stride, pointer))
+	if(applyGenericPointerState(vertexPointerState, size, type, stride, pointer))
 	{
 		glVertexPointer(size, type, stride, pointer);
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glVertexPointer", err); });
+	}
+	else
+	{
+		//logMsg("cached");
+	}
+}
+#endif
+
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+void GLStateCache::vertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
+{
+	if(index >= sizeofArray(vertexAttribPointerState) || vboIsBound())
+	{
+		// uncached
+		glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glVertexAttribPointer", err); });
+		return;
+	}
+	auto &state = vertexAttribPointerState[index];
+	if(pointer != state.pointer
+		|| size != state.size
+		|| type != state.type
+		|| normalized != state.normalized
+		|| stride != state.stride)
+	{
+		glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glVertexAttribPointer", err); });
+		state.size = size;
+		state.type = type;
+		state.stride = stride;
+		state.normalized = normalized;
+		state.pointer = pointer;
 	}
 	else
 	{

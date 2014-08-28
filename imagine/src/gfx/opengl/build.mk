@@ -42,7 +42,8 @@ include $(IMAGINE_PATH)/make/package/opengl.mk
 
 SRC += gfx/opengl/opengl.cc gfx/opengl/transforms.cc gfx/opengl/config.cc \
  gfx/opengl/shader.cc gfx/opengl/GLStateCache.cc gfx/common/ProjectionPlane.cc \
- gfx/opengl/RenderTarget.cc
+ gfx/opengl/RenderTarget.cc gfx/opengl/texture.cc gfx/opengl/geometry.cc \
+ gfx/opengl/GeomQuadMesh.cc gfx/common/GfxText.cc
  
 ifeq ($(ENV), ios)
  ifneq ($(SUBARCH), armv6)

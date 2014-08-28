@@ -11,8 +11,8 @@ static const char *glErrorToString(GLenum err)
 		case GL_INVALID_ENUM: return "Invalid Enum";
 		case GL_INVALID_VALUE: return "Invalid Value";
 		case GL_INVALID_OPERATION: return "Invalid Operation";
-		#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		// TODO: check if valid in OpenGL ES
+		#if (!defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE) \
+			|| (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1)
 		case GL_STACK_OVERFLOW: return "Stack Overflow";
 		case GL_STACK_UNDERFLOW: return "Stack Underflow";
 		#endif
@@ -43,9 +43,6 @@ static const char *glImageFormatToString(int format)
 {
 	switch(format)
 	{
-//		#if defined CONFIG_BASE_PS3
-//		case GL_ARGB_SCE: return "ARGB_SCE";
-//		#endif
 		#if !defined CONFIG_GFX_OPENGL_ES
 		case GL_RGBA8: return "RGBA8";
 		case GL_RGB8: return "RGB8";
@@ -87,7 +84,8 @@ static const bool checkGLErrors = 1;
 static const bool checkGLErrorsVerbose = 0;
 #endif
 
-static bool handleGLErrors(void (*callback)(GLenum error, const char *str) = nullptr)
+template <class FUNC>
+static bool handleGLErrors(FUNC callback)
 {
 	if(!checkGLErrors)
 		return 0;
@@ -97,17 +95,31 @@ static bool handleGLErrors(void (*callback)(GLenum error, const char *str) = nul
 	while((error = glGetError()) != GL_NO_ERROR)
 	{
 		gotError = 1;
-		if(callback)
-			callback(error, glErrorToString(error));
-		else
-			logWarn("clearing error: %s", glErrorToString(error));
+		callback(error, glErrorToString(error));
 	}
 	return gotError;
 }
 
-static bool handleGLErrorsVerbose(void (*callback)(GLenum error, const char *str) = nullptr)
+static bool handleGLErrors()
+{
+	return handleGLErrors(
+		[](GLenum, const char *errorStr)
+		{
+			logWarn("clearing error: %s", errorStr);
+		});
+}
+
+template <class FUNC>
+static bool handleGLErrorsVerbose(FUNC callback)
 {
 	if(!checkGLErrorsVerbose)
 		return 0;
 	return handleGLErrors(callback);
+}
+
+static bool handleGLErrorsVerbose()
+{
+	if(!checkGLErrorsVerbose)
+		return 0;
+	return handleGLErrors();
 }

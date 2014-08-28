@@ -1,4 +1,19 @@
-#pragma once
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/GfxBufferImage.hh>
 #include <imagine/util/edge.h>
 #include "private.hh"
@@ -89,7 +104,7 @@ static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
 
 	if(Vtx::hasTexture)
 	{
-		glVertexAttribPointer(VATTR_TEX_UV, 2, GL_TEX_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
+		glcVertexAttribPointer(VATTR_TEX_UV, 2, GL_TEX_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
 		//glUniform1i(textureUniform, 0);
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
@@ -97,10 +112,10 @@ static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
 
 	if(Vtx::hasColor)
 	{
-		glVertexAttribPointer(VATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
+		glcVertexAttribPointer(VATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
 	}
 
-	glVertexAttribPointer(VATTR_POS, numV, GL_VERT_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::posOffset);
+	glcVertexAttribPointer(VATTR_POS, numV, GL_VERT_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::posOffset);
 }
 #endif
 
@@ -188,13 +203,16 @@ static void setColorAlpha(Vtx v[4], ColorComp a, uint edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
+template void VertexInfo::draw<Vertex>(const Vertex *v, uint type, uint count);
+template void VertexInfo::draw<Vertex>(const Vertex *v, const VertexIndex *idx, uint type, uint count);
+template void VertexInfo::draw<ColVertex>(const ColVertex *v, uint type, uint count);
+template void VertexInfo::draw<ColVertex>(const ColVertex *v, const VertexIndex *idx, uint type, uint count);
+template void VertexInfo::draw<TexVertex>(const TexVertex *v, uint type, uint count);
+template void VertexInfo::draw<TexVertex>(const TexVertex *v, const VertexIndex *idx, uint type, uint count);
+template void VertexInfo::draw<ColTexVertex>(const ColTexVertex *v, uint type, uint count);
+template void VertexInfo::draw<ColTexVertex>(const ColTexVertex *v, const VertexIndex *idx, uint type, uint count);
+
 }
 
 #include "drawable/sprite.hh"
 #include "drawable/quad.hh"
-
-#if defined(CONFIG_RESOURCE_FACE)
-#include "../common/GfxText.hh"
-#endif
-
-#include "../common/GeomQuadMesh.hh"
