@@ -227,9 +227,17 @@ uint Screen::refreshRate()
 		auto env = jEnv();
 		jGetRefreshRate.setup(env, env->GetObjectClass(aDisplay), "getRefreshRate", "()F");
 		refreshRate_ = jGetRefreshRate(env, aDisplay);
-		logMsg("refresh rate: %f", (double)refreshRate_);
+		if(refreshRate_ < 20.f || refreshRate_ > 200.f) // sanity check in case device has a junk value
+		{
+			logWarn("ignoring unusual refresh rate: %f", (double)refreshRate_);
+			refreshRate_ = 60;
+		}
+		else
+		{
+			logMsg("refresh rate: %f", (double)refreshRate_);
+		}
 	}
-	return refreshRate_;
+	return std::round(refreshRate_);
 }
 
 void Screen::postFrame()
@@ -271,6 +279,11 @@ void Screen::setFrameInterval(uint interval)
 bool Screen::supportsFrameInterval()
 {
 	return false;
+}
+
+void Screen::setRefreshRate(uint rate)
+{
+	// unsupported
 }
 
 }

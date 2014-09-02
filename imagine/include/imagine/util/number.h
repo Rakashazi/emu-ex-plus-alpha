@@ -24,9 +24,9 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/basicMath.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/util/typeTraits.hh>
 #include <imagine/config/imagineTypes.h>
 #include <cmath>
-#include <type_traits>
 
 #ifdef __ANDROID__
 // missing C99 math functions in Bionic prevent TR1 function definitions in cmath,
@@ -46,7 +46,7 @@ constexpr double
 round(double x)
 { return __builtin_round(x); }
 
-template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr T round(T x)
 { return __builtin_round(x); }
 
@@ -56,12 +56,12 @@ constexpr T round(T x)
 namespace IG
 {
 
-template<class T, class = typename std::enable_if<std::is_floating_point<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
 static constexpr T toRadians(T degrees) { return degrees * (T)(M_PI / 180.0); }
-template<class T, class = typename std::enable_if<std::is_floating_point<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
 static constexpr T toDegrees(T radians) { return radians * (T)(180.0 / M_PI); }
 
-template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
 static T pow(T base, T exp)
 {
 	T result = 1;
@@ -118,7 +118,7 @@ static float sqrt(float x)
 	return u.x;
 }
 
-template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
 static T sqrt(T remainder)
 {
 	if(remainder < 0) // if type is unsigned this will be ignored = no runtime
@@ -143,35 +143,28 @@ static T sqrt(T remainder)
 }
 #endif
 
-template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr static bool isEven(T num)
 {
 	return num % 2 == 0;
 }
 
-template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr static bool isOdd(T num)
 {
 	return !isEven(num);
 }
 
-template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr static T makeEvenRoundedUp(T num)
 {
 	return isEven(num) ? num : num+1;
 }
 
-template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr static T makeEvenRoundedDown(T num)
 {
 	return isEven(num) ? num : num-1;
-}
-
-// divide integer rounding-upwards
-template<class T, class = typename std::enable_if<std::is_integral<T>::value>::type>
-constexpr static T divUp(T x, T y)
-{
-	return (x + y - 1) / y;
 }
 
 // ceil/floor/round "n" to the nearest multiple "mult"
@@ -448,6 +441,30 @@ template <class T>
 static void rotateAboutAxis(T rads, T &x, T &y)
 {
 	rotateAboutPoint(rads, x, y, (T)0, (T)0);
+}
+
+// divide integer rounding-upwards
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+constexpr static T divRoundUp(T x, T y)
+{
+	return (x + (y - 1)) / y;
+}
+
+
+
+// divide rounding to closest integer
+template<class T, ENABLE_IF_COND(std::is_unsigned<T>)>
+constexpr static T divRoundClosest(T x, T y)
+{
+	return (x > 0) ?
+		(x + (y / 2)) / y :
+		(x - (y / 2)) / y;
+}
+
+template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
+constexpr static T divRoundClosest(T x, T y)
+{
+	return std::round(x / y);
 }
 
 }

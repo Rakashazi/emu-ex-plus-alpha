@@ -15,6 +15,7 @@
 
 #define LOGTAG "Screen"
 #include <imagine/base/Base.hh>
+#include <imagine/util/time/sys.hh>
 #include "windowPrivate.hh"
 
 namespace Base
@@ -141,6 +142,47 @@ bool Screen::screensArePosted()
 			return true;
 	}
 	return false;
+}
+
+uint Screen::elaspedFrames(FrameTimeBase frameTime)
+{
+	if(!prevFrameTime || frameTime < prevFrameTime)
+		return 0;
+	if(unlikely(!timePerFrame))
+	{
+		timePerFrame = frameTimeBaseFromS((double)1./(double)refreshRate());
+		assert(timePerFrame);
+	}
+	FrameTimeBase diff = frameTime - prevFrameTime;
+	uint elapsed = divRoundClosest(diff, timePerFrame);
+	return elapsed;
+}
+
+void Screen::startDebugFrameStats(FrameTimeBase frameTime)
+{
+	#ifndef NDEBUG
+	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNS(TimeSys::now().toNs()) - frameTime;
+	FrameTimeBase diffFromLastFrame = frameTime - prevFrameTime;
+	/*logMsg("frame at %f, %f since then, %f since last frame",
+		frameTimeBaseToSDec(frameTime),
+		frameTimeBaseToSDec(timeSinceCurrentFrame),
+		frameTimeBaseToSDec(diffFromLastFrame));*/
+	auto elapsedFrames = elaspedFrames(frameTime);
+	if(elapsedFrames > 1)
+	{
+		logWarn("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
+			elapsedFrames - 1, continuousFrames,
+			frameTimeBaseToSDec(frameTime), frameTimeBaseToSDec(diffFromLastFrame));
+		continuousFrames = 0;
+	}
+	#endif
+}
+
+void Screen::endDebugFrameStats()
+{
+	#ifndef NDEBUG
+	continuousFrames = frameIsPosted() ? continuousFrames + 1 : 0;
+	#endif
 }
 
 }

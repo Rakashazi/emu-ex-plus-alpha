@@ -303,11 +303,7 @@ void setEmuViewOnExtraWindow(bool on)
 		extraWin.win.setOnDraw(
 			[](Base::Window &win, Base::Window::DrawParams params)
 			{
-				if(Gfx::setCurrentWindow(&win) || params.wasResized())
-				{
-					Gfx::setViewport(extraWin.viewport());
-					Gfx::setProjectionMatrix(extraWin.projectionMat);
-				}
+				Gfx::updateCurrentWindow(win, params, extraWin.viewport(), extraWin.projectionMat);
 				Gfx::clear();
 				if(EmuSystem::isActive())
 				{
@@ -688,11 +684,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto frameTime = params.frameTime();
-			if(Gfx::setCurrentWindow(&win) || params.wasResized())
-			{
-				Gfx::setViewport(mainWin.viewport());
-				Gfx::setProjectionMatrix(mainWin.projectionMat);
-			}
+			Gfx::updateCurrentWindow(win, params, mainWin.viewport(), mainWin.projectionMat);
 			Gfx::clear();
 			if(EmuSystem::isActive() && emuView.layer)
 			{

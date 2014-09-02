@@ -2,7 +2,6 @@ include $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 metadata_name = Saturn.emu
 metadata_exec = saturnemu
 metadata_supportedFileExtensions = iso cue
-webOS_metadata_id = com.explusalpha.saturnemubeta
 metadata_id = com.explusalpha.SaturnEmuBeta
 metadata_vendor = Robert Broglia
 android_metadata_project = SaturnEmu

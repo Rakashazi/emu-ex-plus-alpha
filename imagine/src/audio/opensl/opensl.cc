@@ -152,7 +152,7 @@ CallResult openPcm(const PcmFormat &format)
 	// setup ring buffer and related
 	uint outputBufferFrames = bufferFramesForSampleRate(format.rate);
 	outputBufferBytes = pcmFormat.framesToBytes(outputBufferFrames);
-	uint ringBufferSize = std::max(2u, IG::divUp(pcmFormat.uSecsToBytes(wantedLatency), outputBufferBytes)) * outputBufferBytes;
+	uint ringBufferSize = std::max(2u, IG::divRoundUp(pcmFormat.uSecsToBytes(wantedLatency), outputBufferBytes)) * outputBufferBytes;
 	uint outputBuffers = ringBufferSize / outputBufferBytes;
 	rBuff.init(ringBufferSize);
 	ringBuffNextQueuePos = rBuff.writeAddr();

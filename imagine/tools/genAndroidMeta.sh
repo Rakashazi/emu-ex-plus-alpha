@@ -47,6 +47,9 @@ do
 		--xperia-play-optimized)
 			xperiaPlayOpt=1
 		;;
+		--is-game)
+			isGame=1
+		;;
 		--no-icon)
 			noIcon=1
 		;;
@@ -103,7 +106,14 @@ then
 		echo "error: must use an icon to be Xperia Play optimized"
 		exit 1
 	fi
+	isGame=1
 fi
+
+# TODO: used by Android TV when non-preview SDK is released 
+#if [ $isGame ]
+#then
+#	isGameOutput="android:isGame=\"true\""
+#fi
 
 if [ ! "$minSDK" ]
 then
@@ -190,7 +200,8 @@ else
 fi
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
-				<category android:name=\"android.intent.category.LAUNCHER\" />"
+				<category android:name=\"android.intent.category.LAUNCHER\" />
+				<category android:name=\"android.intent.category.LEANBACK_LAUNCHER\" />"
 
 if [ $ouyaBuild ]
 then
@@ -213,8 +224,7 @@ then
 		fileIntentFilters="$fileIntentFilters				<data android:mimeType=\"$type\"/>
 "
 	done
-	fileIntentFilters="$fileIntentFilters"'			</intent-filter>
-'
+	fileIntentFilters="$fileIntentFilters"'			</intent-filter>'
 fi
 
 if [ "$intentFileExtensions" ]
@@ -238,7 +248,7 @@ then
 fi
 
 echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
-	<application android:label=\"@string/app_name\" $iconOutput>
+	<application android:label=\"@string/app_name\" $iconOutput $isGameOutput>
 		<activity android:name=\"$activityName\"
 				android:label=\"@string/app_name\"
 				android:theme=\"@android:style/Theme.NoTitleBar\"
@@ -254,8 +264,8 @@ if [ $xperiaPlayOpt ]
 then
 	if [ $minSDK -ge 9 ]
 	then
-		echo '	<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
-	<meta-data android:name="game_icon" android:resource="@drawable/iconbig" />' >> $outPath
+		echo '		<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
+		<meta-data android:name="game_icon" android:resource="@drawable/iconbig" />' >> $outPath
 	fi
 fi
 

@@ -69,12 +69,8 @@ static const uint ENV_ANDROID_MINSDK =
 	0;
 	#endif
 
-#if (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK < 9)
-static const bool UNICODE_CHARS = 0;
-#else
 #define CONFIG_UNICODE_CHARS
-static const bool UNICODE_CHARS = 1;
-#endif
+static const bool UNICODE_CHARS = true;
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
 #define CONFIG_BASE_CAN_BACKGROUND_APP
@@ -86,10 +82,6 @@ static const bool BASE_CAN_BACKGROUND_APP = 0;
 
 #ifdef CONFIG_MACHINE_OUYA
 #define ENV_NOTE "OUYA"
-#elif CONFIG_ENV_ANDROID_MINSDK == 4
-#define ENV_NOTE "Android 1.6"
-#elif CONFIG_ENV_ANDROID_MINSDK == 5
-#define ENV_NOTE "Android 2-2.2"
 #elif CONFIG_ENV_ANDROID_MINSDK == 9
 #define ENV_NOTE "Android 2.3+"
 #endif

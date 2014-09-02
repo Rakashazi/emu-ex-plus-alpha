@@ -38,17 +38,13 @@
 
 - (void)onFrame
 {
-	//logMsg("screen update for %p", self);
 	auto &screen = *screen_;
 	auto timestamp = screen.displayLink().timestamp;
-	//auto startTime = TimeSys::now();
-	//logMsg("screen: %p, frame time stamp: %f, duration: %f, now: %f",
-	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration, (double)startTime);*/
+	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
+	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration);*/
+	if(&screen == screen.screen(0))
+		screen.startDebugFrameStats(timestamp);
 	screen.frameUpdate(timestamp);
-	//auto endTime = TimeSys::now();
-	//logMsg("screen: %p, frame @ %f (duration %f) ran from %f - %f (%f)",
-	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration,
-	//	(double)startTime, (double)endTime, (double)(endTime - startTime));
 	if(!screen.frameIsPosted())
 	{
 		//logMsg("stopping screen updates");
@@ -57,6 +53,8 @@
 	}
 	else
 		screen.prevFrameTime = timestamp;
+	if(&screen == screen.screen(0))
+		screen.endDebugFrameStats();
 }
 
 @end
@@ -154,6 +152,11 @@ void Screen::unpostFrame()
 		displayLink().paused = YES;
 		displayLinkActive = false;
 	}
+}
+
+void Screen::setRefreshRate(uint rate)
+{
+	// unsupported
 }
 
 }

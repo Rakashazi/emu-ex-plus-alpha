@@ -34,11 +34,11 @@ protected:
 	static std::pair<CallResult, EGLConfig> chooseConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
 	static EGLDisplay getDisplay();
 	static void setCurrentContext(EGLContext context, Window *win);
-	static void swapBuffers(Window &win);
 
 public:
 	constexpr EGLContextBase() {}
 	static EGLDisplay eglDisplay();
+	static void swapBuffers(Window &win);
 };
 
 }

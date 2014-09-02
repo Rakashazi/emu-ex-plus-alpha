@@ -31,12 +31,19 @@ struct SocketStatusMessage
 	uint8 type = 0;
 };
 
+// From Android source header abort_socket.h
+struct asocket
+{
+	int fd;           /* primary socket fd */
+	int abort_fd[2];  /* pipe used to abort */
+};
+
 static AndroidBluetoothAdapter defaultAndroidAdapter;
 
 static JavaInstMethod<jint> jStartScan, jInRead, jGetFd, jState;
 static JavaInstMethod<jobject> jDefaultAdapter, jOpenSocket, jBtSocketInputStream, jBtSocketOutputStream;
 static JavaInstMethod<void> jBtSocketClose, jOutWrite, jCancelScan, jTurnOn;
-static jfieldID fdDataId = nullptr;
+static jfieldID fdDataId{};
 
 void AndroidBluetoothAdapter::sendSocketStatusMessage(const SocketStatusMessage &msg)
 {
@@ -164,6 +171,7 @@ bool AndroidBluetoothAdapter::openDefault()
 			if(!fdDataId)
 			{
 				logWarn("can't find mSocketData member of BluetoothSocket class, not using native FDs");
+				env->ExceptionClear();
 			}
 		}
 		else
@@ -179,6 +187,7 @@ bool AndroidBluetoothAdapter::openDefault()
 			else
 			{
 				logWarn("can't find mPfd member of BluetoothSocket class, not using native FDs");
+				env->ExceptionClear();
 			}
 		}
 
@@ -214,7 +223,7 @@ bool AndroidBluetoothAdapter::openDefault()
 				while(fd_bytesReadable(fd))
 				{
 					SocketStatusMessage msg;
-					if(read(fd, &msg, sizeof(SocketStatusMessage)) != sizeof(msg))
+					if(read(fd, &msg, sizeof(msg)) != sizeof(msg))
 					{
 						logErr("error reading BT socket status message in pipe");
 						return 1;
@@ -372,7 +381,12 @@ int AndroidBluetoothSocket::readPendingData(int events)
 
 void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 {
-	assert(status == STATUS_OPENED);
+	if(status != STATUS_OPENED)
+	{
+		// error
+		onStatusD(*this, status);
+		return;
+	}
 	if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 	{
 		if(nativeFd != -1)
@@ -389,8 +403,9 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 			readThread.create(1,
 				[this](ThreadPThread &thread)
 				{
+					#ifndef NDEBUG
 					logMsg("in read thread %d", gettid());
-					#if CONFIG_ENV_ANDROID_MINSDK >= 9
+					#endif
 					JNIEnv *env;
 					if(Base::jVM->AttachCurrentThread(&env, 0) != 0)
 					{
@@ -398,7 +413,6 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 						// TODO: cleanup
 						return 0;
 					}
-					#endif
 
 					auto looper = Base::activityLooper();
 					int dataPipe[2];
@@ -414,15 +428,17 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 								while(fd_bytesReadable(fd))
 								{
 									uint16 size;
-									if(read(fd, &size, sizeof(size)) != sizeof(size))
+									int ret = read(fd, &size, sizeof(size));
+									if(ret != sizeof(size))
 									{
-										logErr("error reading BT socket data header in pipe");
+										logErr("error reading BT socket data header in pipe, returned %d", ret);
 										return 1;
 									}
 									char data[size];
-									if(read(fd, data, size) != size)
+									ret = read(fd, data, size);
+									if(ret != size)
 									{
-										logErr("error reading BT socket data header in pipe");
+										logErr("error reading BT socket data header in pipe, returned %d", ret);
 										return 1;
 									}
 									socket.onData()(data, size);
@@ -433,24 +449,18 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					}
 
 					jbyteArray jData = env->NewByteArray(48);
-					jboolean jDataArrayIsCopy;
-					jbyte *data = env->GetByteArrayElements(jData, &jDataArrayIsCopy);
-					if(unlikely(jDataArrayIsCopy)) // can't get direct pointer to memory
+					jboolean usingArrayCopy;
+					jbyte *data = env->GetByteArrayElements(jData, &usingArrayCopy);
+					if(usingArrayCopy) // will call GetByteArrayElements each iteration
 					{
 						env->ReleaseByteArrayElements(jData, data, 0);
 						logErr("couldn't get direct array pointer");
-						defaultAndroidAdapter.sendSocketStatusMessage({*this, STATUS_READ_ERROR});
-						#if CONFIG_ENV_ANDROID_MINSDK >= 9
-						Base::jVM->DetachCurrentThread();
-						#endif
-						// TODO: cleanup
-						return 0;
 					}
 					jobject jInput = jBtSocketInputStream(env, socket);
 					for(;;)
 					{
-						int len = jInRead(env, jInput, jData, 0, 48);
-						logMsg("read %d bytes", len);
+						int16 len = jInRead(env, jInput, jData, 0, 48);
+						//logMsg("read %d bytes", (int)len);
 						if(unlikely(len <= 0 || env->ExceptionOccurred()))
 						{
 							if(isClosing)
@@ -466,21 +476,22 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 						{
 							logErr("unable to write message header to pipe: %s", strerror(errno));
 						}
+						if(usingArrayCopy)
+							data = env->GetByteArrayElements(jData, nullptr);
 						if(::write(dataPipe[1], data, len) != len)
 						{
 							logErr("unable to write bt data to pipe: %s", strerror(errno));
 						}
+						if(usingArrayCopy)
+							env->ReleaseByteArrayElements(jData, data, JNI_ABORT);
 					}
-
-					env->ReleaseByteArrayElements(jData, data, 0);
+					if(!usingArrayCopy)
+						env->ReleaseByteArrayElements(jData, data, 0);
 					ALooper_removeFd(looper, dataPipe[0]);
 					::close(dataPipe[0]);
 					::close(dataPipe[1]);
 
-					#if CONFIG_ENV_ANDROID_MINSDK >= 9
 					Base::jVM->DetachCurrentThread();
-					#endif
-
 					return 0;
 				}
 			);
@@ -488,15 +499,9 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 	}
 }
 
-struct asocket
-{
-	int fd;           /* primary socket fd */
-	int abort_fd[2];  /* pipe used to abort */
-};
-
 static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 {
-	if(jGetFd.m != 0)
+	if(jGetFd)
 	{
 		// ParcelFileDescriptor method
 		auto pFd = env->GetObjectField(btSocket, fdDataId);
@@ -513,7 +518,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return fd;
 	}
-	else
+	else if(fdDataId)
 	{
 		// asocket method
 		auto sockPtr = (asocket*)env->GetIntField(btSocket, fdDataId);
@@ -529,6 +534,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return sockPtr->fd;
 	}
+	return -1;
 }
 
 CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel, bool l2cap)
@@ -540,17 +546,12 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 		[this](ThreadPThread &thread)
 		{
 			logMsg("in connect thread %d", gettid());
-			#if CONFIG_ENV_ANDROID_MINSDK >= 9
 			JNIEnv *env;
 			if(Base::jVM->AttachCurrentThread(&env, 0) != 0)
 			{
 				logErr("error attaching env to thread");
 				return 0;
 			}
-			#endif
-
-			//socket = jOpenSocket(env, Base::jBaseActivity,
-					//AndroidBluetoothAdapter::defaultAdapter()->adapter, env->NewStringUTF(addrStr), this->channel, isL2cap ? 1 : 0);
 			socket = AndroidBluetoothAdapter::defaultAdapter()->openSocket(env, addrStr, this->channel, isL2cap);
 			if(socket)
 			{
@@ -574,9 +575,7 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 			else
 				defaultAndroidAdapter.sendSocketStatusMessage({*this, STATUS_CONNECT_ERROR});
 
-			#if CONFIG_ENV_ANDROID_MINSDK >= 9
 			Base::jVM->DetachCurrentThread();
-			#endif
 			return 0;
 		}
 	);

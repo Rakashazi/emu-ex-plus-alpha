@@ -17,8 +17,8 @@
 
 #include <assert.h>
 #include <new>
-#include <type_traits>
 #include <cstdint>
+#include <imagine/util/typeTraits.hh>
 
 template <typename T> class DelegateFunc {};
 
@@ -30,8 +30,8 @@ public:
 	constexpr DelegateFunc() {}
 
 	// construct from lambda
-	template<class T>
-	DelegateFunc(T const &lambda /*, typename std::enable_if<!std::is_function<T>::value>::type* = 0*/) :
+	template<class T, DISABLE_IF_COND(std::is_convertible<T, R (*)(ARGS...)>)>
+	DelegateFunc(T const &lambda) :
 		exec
 		{
 			[](const Storage &lambda, ARGS... arguments) -> R
@@ -41,21 +41,21 @@ public:
 		}
 	{
 		static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
-		new (this->lambdaMem.mem) T(lambda);
+		new (execData.mem) T{lambda};
 	}
 
 	// construct from free function
-	/*template <class T>
-	constexpr DelegateFunc(T const &func, typename std::enable_if<std::is_function<T>::value>::type* = 0) :
+	template <class T, ENABLE_IF_COND(std::is_convertible<T, R (*)(ARGS...)>)>
+	constexpr DelegateFunc(T const &func) :
 		exec
 		{
-			[](const Storage &lambda, ARGS... arguments) -> R
+			[](const Storage &funcData, ARGS... arguments) -> R
 			{
-				return lambda.func(arguments...);
+				return funcData.func(arguments...);
 			}
 		},
-		lambdaMem{func}
-	{}*/
+		execData{func}
+	{}
 
 	operator bool() const
 	{
@@ -65,7 +65,7 @@ public:
 	R operator()(ARGS ... in) const
 	{
 		assert(exec);
-		return exec(lambdaMem, in...);
+		return exec(execData, in...);
 	}
 
 	bool operator ==(DelegateFunc const &rhs) const
@@ -77,15 +77,15 @@ private:
 	struct Storage
 	{
 		constexpr Storage() {}
-		//constexpr Storage(R (*func)(ARGS...)): func{func} {}
+		constexpr Storage(R (*func)(ARGS...)): func{func} {}
 		const void *data() const { return mem; }
-		//union
-		//{
-			//R (*func)(ARGS...);
-			char mem[STORAGE_SIZE] {0};
-		//};
+		union
+		{
+			R (*func)(ARGS...){};
+			char mem[STORAGE_SIZE];
+		};
 	};
 
-	R (*exec)(const Storage &, ARGS...) = nullptr;
-	Storage lambdaMem;
+	R (*exec)(const Storage &, ARGS...){};
+	Storage execData;
 };

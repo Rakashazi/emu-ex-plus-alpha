@@ -23,6 +23,7 @@ class IoMmap : public Io
 public:
 	void init(const void* buffer, size_t size);
 	ssize_t readUpTo(void *buffer, size_t numBytes) override;
+	ssize_t readAtPos(void* buffer, size_t numBytes, ulong offset) override;
 	const char *mmapConst() override { return data; };
 	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
 	CallResult tell(ulong &offset) override;
@@ -38,4 +39,5 @@ protected:
 	size_t iSize = 0;
 
 	const char *endofBuffer();
+	ssize_t readAtPos(void* buffer, size_t numBytes, const char *readPos);
 };

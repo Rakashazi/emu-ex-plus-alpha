@@ -151,42 +151,21 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos))
 				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
 				{
-					#ifndef NDEBUG
-					// check frame time of the main screen
-					static int continuousFrames = 0;
-					auto &testScreen = mainScreen();
-					if(testScreen.frameIsPosted())
-					{
-						FrameTimeBase timeSinceFrame = TimeSys::now().toNs() - frameTimeNanos;
-						FrameTimeBase diffFromLastFrame = frameTimeNanos - testScreen.prevFrameTime;
-						//logMsg("frame at %lldns, %lldns since then, %lldns since last frame",
-						//	(long long)frameTimeNanos, (long long)timeSinceFrame, (long long)diffFromLastFrame);
-						const FrameTimeBase timeDiffTest = 25000000;
-						if(testScreen.prevFrameTime && diffFromLastFrame > timeDiffTest)
-						{
-							logMsg("late frame: %lldns (> %dns) after %d continuous frames", (long long)diffFromLastFrame, (int)timeDiffTest, continuousFrames);
-							continuousFrames = 0;
-						}
-					}
-					#endif
-
+					mainScreen().startDebugFrameStats(frameTimeNanos);
 					frameworkFrameTimer.requested = false; // Choreographer callbacks are one-shot
-					bool isPostedCheck = false;
+					bool screenWasReallyPosted = false;
 					iterateTimes(Screen::screens(), i)
 					{
 						auto s = Screen::screen(i);
 						if(s->frameIsPosted())
 						{
-							isPostedCheck = true;
+							screenWasReallyPosted = true;
 							s->frameUpdate(frameTimeNanos);
 							s->prevFrameTime = frameTimeNanos;
 						}
 					}
-					assert(isPostedCheck); // make sure at least once screen was actually posted
-					#ifndef NDEBUG
-					// check frame time of the main screen, part 2
-					continuousFrames = testScreen.frameIsPosted() ? continuousFrames + 1 : 0;
-					#endif
+					assert(screenWasReallyPosted);
+					mainScreen().endDebugFrameStats();
 					return (jboolean)0;
 				})
 			}

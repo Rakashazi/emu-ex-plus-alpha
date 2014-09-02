@@ -72,7 +72,7 @@ static constexpr bool supportsKeyboard = 0;
 #endif
 
 // dynamic input device list from system
-#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9) || defined CONFIG_BASE_IOS
+#if defined CONFIG_BASE_X11 || defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS
 static constexpr bool hasSystemDeviceHotswap = 1;
 #define INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
 #else

@@ -351,6 +351,17 @@ bool setCurrentWindow(Base::Window *win)
 	return true;
 }
 
+bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)
+{
+	if(setCurrentWindow(&win) || params.wasResized())
+	{
+		setViewport(viewport);
+		setProjectionMatrix(projMat);
+		return true;
+	}
+	return false;
+}
+
 void presentWindow(Base::Window &win)
 {
 	gfxContext.present(win, gfxContext);

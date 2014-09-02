@@ -20,6 +20,8 @@
 #ifndef CONFIG_ENV_ANDROID_MINSDK
 #warning "CONFIG_ENV_ANDROID_MINSDK not defined, using 9"
 #define CONFIG_ENV_ANDROID_MINSDK 9
+#elif CONFIG_ENV_ANDROID_MINSDK < 9
+#error "Only CONFIG_ENV_ANDROID_MINSDK >= 9 is supported"
 #endif
 
 namespace Base

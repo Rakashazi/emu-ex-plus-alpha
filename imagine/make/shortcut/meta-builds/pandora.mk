@@ -9,7 +9,6 @@ pandora_buildName ?= $(firstMakefileName:.mk=)
 pandora_targetPath ?= target/$(pandora_buildName)
 pandora_targetPNDPath := $(pandora_targetPath)/$(pnd_metadata_pndName)
 pandora_exec := $(pandora_targetPNDPath)/$(pnd_metadata_exec)
-pandora_resourcePath := res/pandora
 pandora_icon := res/icons/iOS/icon-114.png
 pandora_pxml := $(pandora_targetPNDPath)/PXML.xml
 pandora_pnd := $(pandora_targetPath)/$(pnd_metadata_pndName).pnd
@@ -22,6 +21,7 @@ pandora_makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/linux-armv7-pand
 pandora_execPath := $(pandora_targetPNDPath)/$(pnd_metadata_exec)
 pandora_imagineLibPath ?= $(IMAGINE_PATH)/lib/pandora
 pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
+pandora_pndDeps = $(pandora_exec)
 
 .PHONY: pandora-build
 pandora-build :
@@ -47,6 +47,9 @@ $(pandora_iconPNDPath) :
 	ln $(pandora_icon) $@
 endif
 
+ifneq ($(wildcard $(projectPath)/res/pandora),)
+pandora_resourcePath := res/pandora
+
 .PHONY: pandora-resources
 pandora-resources : $(pandora_resourcePath) $(pandora_iconPNDPath) $(pandora_pxml)
 	@mkdir -p $(pandora_targetPNDPath)
@@ -63,7 +66,10 @@ pandora-resources-install : $(pandora_pxml)
 	scp $(pandora_icon) $(pandora_installUser)@$(pandora_installHost):$(pandora_deviceExecInstallPath)/icon.png
 	scp $(pandora_pxml) $(pandora_installUser)@$(pandora_installHost):$(pandora_deviceExecInstallPath)/PXML.xml
 
-$(pandora_pnd) : $(pandora_exec) pandora-resources
+pandora_pndDeps += pandora-resources
+endif
+
+$(pandora_pnd) : $(pandora_pndDeps)
 	pnd_make.sh -c -d $(<D) -i $(<D)/icon.png -x $(<D)/PXML.xml -p $@
 .PHONY: pandora-pnd
 pandora-pnd : $(pandora_pnd)

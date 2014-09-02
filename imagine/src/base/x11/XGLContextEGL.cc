@@ -15,6 +15,7 @@
 
 #include <GLES/gl.h> // for glFlush()
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
 #include "x11.hh"
 
@@ -78,7 +79,11 @@ void GLContext::present(Window &win)
 {
 	if(swapBuffersIsAsync())
 	{
-		EGLContextBase::swapBuffers(win);
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).toNs();
+		if(swapTime > 16000000)
+		{
+			//logWarn("buffer swap took %lldns", (long long)swapTime);
+		}
 	}
 	else
 	{

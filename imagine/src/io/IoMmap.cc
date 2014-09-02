@@ -35,20 +35,31 @@ const char *IoMmap::endofBuffer()
 ssize_t IoMmap::readUpTo(void* buffer, size_t numBytes)
 {
 	assert(currPos >= data);
-	if(currPos >= endofBuffer())
+	auto bytesRead = readAtPos(buffer, numBytes, currPos);
+	currPos += bytesRead;
+	return bytesRead;
+}
+
+ssize_t IoMmap::readAtPos(void* buffer, size_t numBytes, ulong offset)
+{
+	return readAtPos(buffer, numBytes, data + offset);
+}
+
+ssize_t IoMmap::readAtPos(void* buffer, size_t numBytes, const char *readPos)
+{
+	if(readPos >= endofBuffer())
 		return 0;
-	
+
 	size_t bytesToRead;
-	const char *posToReadTo = currPos + numBytes;
+	const char *posToReadTo = readPos + numBytes;
 	if(posToReadTo > endofBuffer())
 	{
-		bytesToRead = endofBuffer() - currPos;
+		bytesToRead = endofBuffer() - readPos;
 	}
 	else bytesToRead = numBytes;
 
-	//logDMsg("reading %d bytes at offset %d to %p", (int)bytesToRead, int(currPos - data), buffer);
-	memcpy(buffer, currPos, bytesToRead);
-	currPos += bytesToRead;
+	//logDMsg("reading %d bytes at offset %d to %p", (int)bytesToRead, int(readPos - data), buffer);
+	memcpy(buffer, readPos, bytesToRead);
 
 	return bytesToRead;
 }

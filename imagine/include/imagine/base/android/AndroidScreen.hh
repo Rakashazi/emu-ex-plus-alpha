@@ -25,14 +25,14 @@ namespace Base
 class AndroidScreen : public NotEquals<AndroidScreen>
 {
 public:
-	jobject aDisplay = nullptr;
-	float xDPI = 0, yDPI = 0;
-	float densityDPI = 0;
-	float refreshRate_ = 0;
-	int width_ = 0, height_ = 0;
-	FrameTimeBase currFrameTime = 0; // only used if Choreographer class isn't present
+	jobject aDisplay{};
+	float xDPI{}, yDPI{};
+	float densityDPI{};
+	float refreshRate_{};
+	int width_{}, height_{};
+	FrameTimeBase currFrameTime{}; // only used if Choreographer class isn't present
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	int id = 0;
+	int id{};
 	#else
 	static constexpr int id = 0;
 	#endif

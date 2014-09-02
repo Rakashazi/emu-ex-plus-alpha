@@ -35,6 +35,15 @@ CallResult Io::read(void* buffer, size_t numBytes)
 		return OK;
 }
 
+ssize_t Io::readAtPos(void* buffer, size_t numBytes, ulong offset)
+{
+	auto savedOffset = ftell();
+	seekA(offset);
+	auto bytesRead = readUpTo(buffer, numBytes);
+	seekA(savedOffset);
+	return bytesRead;
+}
+
 size_t Io::fread(void* ptr, size_t size, size_t nmemb)
 {
 	return readUpTo(ptr, (size * nmemb)) / size;

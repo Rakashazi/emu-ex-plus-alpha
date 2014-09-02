@@ -4,7 +4,6 @@ metadata_exec = pceemu
 metadata_pkgName = PceEmu
 metadata_supportedMIMETypes = application/zip
 metadata_supportedFileExtensions = pce cue ccd
-webOS_metadata_id = com.explusalpha.pceemu
 android_metadata_id = com.PceEmu
 metadata_id = com.explusalpha.PceEmu
 metadata_vendor = Robert Broglia

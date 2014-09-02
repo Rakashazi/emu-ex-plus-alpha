@@ -133,8 +133,8 @@ bool EmuSystem::shouldOverwriteExistingState()
 int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
-	static constexpr auto ntscFrameTime = Base::decimalFrameTimeBaseFromSec(1./60.),
-			palFrameTime = Base::decimalFrameTimeBaseFromSec(1./50.);
+	static constexpr auto ntscFrameTime = Base::frameTimeBaseFromS(1./60.),
+		palFrameTime = Base::frameTimeBaseFromS(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source
@@ -151,7 +151,7 @@ int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 	else
 	{
 		auto timeTotal = frameTime - startFrameTime;
-		auto frame = std::round(timeTotal / (vidSysIsPAL() ? palFrameTime : ntscFrameTime));
+		auto frame = IG::divRoundClosest(timeTotal, vidSysIsPAL() ? palFrameTime : ntscFrameTime);
 		emuFrame = frame;
 		//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
 	}

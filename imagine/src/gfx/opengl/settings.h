@@ -174,7 +174,6 @@ bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 	#else
 	bool verbose = 1;
 	#endif
-	static const char *basicEGLErrorStr = "Unsupported libEGL";
 	static const char *basicLibhardwareErrorStr = "Unsupported libhardware";
 
 	logMsg("attempting to setup EGLImageKHR support");
@@ -190,53 +189,6 @@ bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 		logMsg("uses GL_OES_EGL_image_external");
 		directTextureTarget = GL_TEXTURE_EXTERNAL_OES;
 	}*/
-
-	void *libegl = 0;
-
-	#if CONFIG_ENV_ANDROID_MINSDK < 9
-	if((libegl = dlopen("/system/lib/libEGL.so", RTLD_LOCAL | RTLD_LAZY)) == 0)
-	{
-		errorStr = verbose ? "Can't load libEGL.so" : basicEGLErrorStr;
-		goto FAIL;
-	}
-
-	//char const *(*eglQueryString)(EGLDisplay, EGLint) = (char const *(*)(EGLDisplay, EGLint))dlsym(libegl, "eglQueryString");
-	//logMsg("EGL Extensions: %s", eglQueryString((EGLDisplay)1, EGL_EXTENSIONS));
-
-	//logMsg("eglCreateImageKHR @ %p", eglCreateImageKHR);
-	if((eglCreateImageKHR = (EGLImageKHR(*)(EGLDisplay, EGLContext, EGLenum, EGLClientBuffer, const EGLint *))dlsym(libegl, "eglCreateImageKHR"))
-		== 0)
-	{
-
-		errorStr = verbose ? "Can't find eglCreateImageKHR" : basicEGLErrorStr;
-		goto FAIL;
-	}
-
-	//logMsg("eglDestroyImageKHR @ %p", eglCreateImageKHR);
-	if((eglDestroyImageKHR = (EGLBoolean(*)(EGLDisplay, EGLImageKHR))dlsym(libegl, "eglDestroyImageKHR")) == 0)
-	{
-		errorStr = verbose ? "Can't find eglDestroyImageKHR" : basicEGLErrorStr;
-		goto FAIL;
-	}
-	/*eglGetCurrentDisplay = (EGLDisplay(*)())dlsym(libegl, "eglGetCurrentDisplay");
-	logMsg("eglGetCurrentDisplay @ %p", eglGetCurrentDisplay);*/
-
-
-	//logMsg("eglGetDisplay @ %p", eglGetDisplay);
-	if((eglGetDisplay = (EGLDisplay(*)(EGLNativeDisplayType))dlsym(libegl, "eglGetDisplay")) == 0)
-	{
-		errorStr = verbose ? "Can't find eglGetDisplay" : basicEGLErrorStr;
-		goto FAIL;
-	}
-
-
-	if((eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY)
-	{
-		errorStr = verbose ? "Failed to get EGL display" : basicEGLErrorStr;
-		goto FAIL;
-	}
-	logMsg("got EGL display: %d", (int)eglDisplay);
-	#endif
 
 	if(libhardware_dl() != OK)
 	{
@@ -267,11 +219,6 @@ bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 	return 1;
 
 	FAIL:
-	if(libegl)
-	{
-		dlclose(libegl);
-		libegl = nullptr;
-	}
 	grallocMod = nullptr;
 	//TODO: free allocDev if needed
 

@@ -153,7 +153,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 int GuiTable1D::visibleCells(const Gfx::ProjectionPlane &projP) const
 {
 	//int visYCells = ceil(View::projP.h/Gfx::unprojectYSize(yCellSize)) + 1;
-	int visYCells = IG::divUp(projP.viewport.height(), yCellSize) + 1;
+	int visYCells = IG::divRoundUp(projP.viewport.height(), yCellSize) + 1;
 	if(offscreenCells(projP) < 0)
 		visYCells += offscreenCells(projP);
 	visYCells = IG::clipToBounds(visYCells, 0, cells);

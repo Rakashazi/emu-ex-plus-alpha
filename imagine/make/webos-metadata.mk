@@ -18,7 +18,8 @@ endif
 webOS_gen_metadata_args += "--exec=$(webOS_metadata_exec)"
 
 ifndef webOS_metadata_id
- webOS_metadata_id := $(metadata_id)
+ # WebOS needs lower-case package IDs
+ webOS_metadata_id := $(shell echo $(metadata_id) | tr A-Z a-z)
  ifndef webOS_metadata_id
   $(error Please specify metadata_id or webOS_metadata_id)
  endif

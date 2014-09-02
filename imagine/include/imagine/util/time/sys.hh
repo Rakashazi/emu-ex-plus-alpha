@@ -13,3 +13,29 @@ using TimeSys = TimeWin32;
 #include "TimeTimespec.hh"
 using TimeSys = TimeTimespec;
 #endif
+
+namespace IG
+{
+
+template <class FUNC>
+static TimeSys timeFunc(FUNC func)
+{
+	auto before = TimeSys::now();
+	func();
+	auto after = TimeSys::now();
+	return after - before;
+}
+
+template <class FUNC>
+static TimeSys timeFuncDebug(FUNC func)
+{
+	#ifdef NDEBUG
+	// execute directly without timing
+	func();
+	return {};
+	#else
+	return timeFunc(func);
+	#endif
+}
+
+}

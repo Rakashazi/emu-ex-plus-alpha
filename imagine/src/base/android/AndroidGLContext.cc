@@ -68,21 +68,13 @@ bool AndroidGLContext::validateActivityThreadContext()
 
 void GLContext::present(Window &win)
 {
-	#if !defined NDEBUG
-	const bool checkSwapTime = true;
-	#else
-	const bool checkSwapTime = false;
-	#endif
 	if(swapBuffersIsAsync())
 	{
 		// check if buffer swap blocks even though triple-buffering is used
-		auto beforeSwap = checkSwapTime ? TimeSys::now() : TimeSys{};
-		EGLContextBase::swapBuffers(win);
-		auto afterSwap = checkSwapTime ? TimeSys::now() : TimeSys{};
-		long long diffSwap = (afterSwap - beforeSwap).toNs();
-		if(diffSwap > 16000000)
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).toNs();
+		if(swapTime > 16000000)
 		{
-			logWarn("buffer swap took %lldns", diffSwap);
+			logWarn("buffer swap took %lldns", (long long)swapTime);
 		}
 	}
 	else

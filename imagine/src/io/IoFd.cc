@@ -213,10 +213,15 @@ void IoFd::sync()
 
 ssize_t IoFd::readUpTo(void* buffer, size_t numBytes)
 {
-	size_t bytesRead = ::read(fd, buffer, numBytes);
+	auto bytesRead = ::read(fd, buffer, numBytes);
 	//logMsg("read %d bytes out of %d requested from file @ %p", (int)bytesRead, (int)numBytes, this);
+	return bytesRead;
+}
 
-	return(bytesRead);
+ssize_t IoFd::readAtPos(void* buffer, size_t numBytes, ulong offset)
+{
+	auto bytesRead = ::pread(fd, buffer, numBytes, offset);
+	return bytesRead;
 }
 
 size_t IoFd::fwrite(const void* ptr, size_t size, size_t nmemb)

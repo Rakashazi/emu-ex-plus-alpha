@@ -26,6 +26,7 @@
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
+#include <imagine/util/time/sys.hh>
 
 namespace Base
 {
@@ -155,6 +156,11 @@ uint validateOrientationMask(uint oMask)
 		oMask = defaultSystemOrientations();
 	}
 	return oMask;
+}
+
+FrameTimeBase timeSinceFrameTime(FrameTimeBase time)
+{
+	return frameTimeBaseFromNS(TimeSys::now().toNs()) - time;
 }
 
 }

@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
 #include "x11.hh"
 
@@ -290,7 +291,11 @@ GLContext GLContext::current()
 
 void GLContext::present(Window &win)
 {
-	glXSwapBuffers(dpy, win.xWin);
+	auto swapTime = IG::timeFuncDebug([&](){ glXSwapBuffers(dpy, win.xWin); }).toNs();
+	if(swapTime > 16000000)
+	{
+		//logWarn("buffer swap took %lldns", (long long)swapTime);
+	}
 }
 
 void GLContext::present(Window &win, GLContext cachedCurrentContext)

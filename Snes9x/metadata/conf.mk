@@ -4,7 +4,6 @@ metadata_exec = s9xp
 metadata_pkgName = Snes9xEXPlus
 metadata_supportedMIMETypes = application/zip
 metadata_supportedFileExtensions = smc sfc
-webOS_metadata_id = com.explusalpha.snes9xplus
 metadata_id = com.explusalpha.Snes9xPlus
 metadata_vendor = Robert Broglia
 pnd_metadata_license = Proprietary

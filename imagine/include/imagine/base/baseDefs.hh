@@ -26,28 +26,60 @@ using namespace IG;
 #if defined __APPLE__ && TARGET_OS_IPHONE
 using FrameTimeBase = double;
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+template<class T>
+constexpr static FrameTimeBase frameTimeBaseFromS(T s)
 {
-	return sec;
+	return s;
 }
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
+constexpr static double frameTimeBaseToSDec(FrameTimeBase time)
 {
-	return sec;
+	return time;
+}
+
+template<class T>
+constexpr static FrameTimeBase frameTimeBaseFromNS(T ns)
+{
+	return (double)ns / 1000000000.;
+}
+
+constexpr static int64_t frameTimeBaseToNS(FrameTimeBase time)
+{
+	return time * 1000000000.;
 }
 #else
 using FrameTimeBase = uint64_t;
 
-constexpr static double decimalFrameTimeBaseFromSec(double sec)
+template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+constexpr static FrameTimeBase frameTimeBaseFromS(T s)
 {
-	return sec * (double)1000000000.;
+	return (FrameTimeBase)s * (FrameTimeBase)1000000000;
 }
 
-constexpr static FrameTimeBase frameTimeBaseFromSec(double sec)
+template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
+constexpr static FrameTimeBase frameTimeBaseFromS(T s)
 {
-	return decimalFrameTimeBaseFromSec(sec);
+	return s * (double)1000000000.;
+}
+
+constexpr static double frameTimeBaseToSDec(FrameTimeBase time)
+{
+	return (double)time / (double)1000000000.;
+}
+
+template<class T>
+constexpr static FrameTimeBase frameTimeBaseFromNS(T ns)
+{
+	return ns;
+}
+
+constexpr static int64_t frameTimeBaseToNS(FrameTimeBase time)
+{
+	return time;
 }
 #endif
+
+FrameTimeBase timeSinceFrameTime(FrameTimeBase time);
 
 // orientation
 static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);

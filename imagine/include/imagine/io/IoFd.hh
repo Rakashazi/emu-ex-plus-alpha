@@ -26,6 +26,7 @@ public:
 	~IoFd() { close(); }
 
 	ssize_t readUpTo(void *buffer, size_t numBytes) override;
+	ssize_t readAtPos(void* buffer, size_t numBytes, ulong offset) override;
 	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
 	CallResult tell(ulong &offset) override;
 	CallResult seek(long offset, uint mode) override;

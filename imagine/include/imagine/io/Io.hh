@@ -45,6 +45,7 @@ public:
 
 	// reading
 	virtual ssize_t readUpTo(void* buffer, size_t numBytes) = 0;
+	virtual ssize_t readAtPos(void* buffer, size_t numBytes, ulong offset);
 	virtual const char *mmapConst() { return nullptr; };
 	CallResult readLine(void* buffer, uint maxBytes);
 	int fgetc();
@@ -123,6 +124,7 @@ public:
 	}
 
 	ssize_t readUpTo(void *buffer, size_t numBytes) { return io_->readUpTo(buffer, numBytes); }
+	ssize_t readAtPos(void *buffer, size_t numBytes, ulong offset) { return io_->readAtPos(buffer, numBytes, offset); }
 	const char *mmapConst() { return io_->mmapConst(); }
 	CallResult readLine(void* buffer, uint maxBytes) { return io_->readLine(buffer, maxBytes); }
 	int fgetc() { return io_->fgetc(); }
