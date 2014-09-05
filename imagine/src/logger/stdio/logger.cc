@@ -21,8 +21,6 @@
 
 #ifdef __ANDROID__
 #include <android/log.h>
-#elif defined(CONFIG_BASE_IOS)
-#include "../../base/iphone/private.hh"
 #endif
 
 #ifdef __APPLE__
@@ -34,33 +32,24 @@ static char logLineBuffer[512] {0};
 uint loggerVerbosity = loggerMaxVerbosity;
 static const bool useExternalLogFile = false;
 static FILE *logExternalFile = nullptr;
-#ifdef NDEBUG
-static bool logEnabled = false; // default logging off in release builds
-#else
-static bool logEnabled = true;
-#endif
+static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 
-#ifdef CONFIG_FS
 static void printExternalLogPath(FsSys::PathString &path)
 {
-	#ifdef CONFIG_BASE_IOS
-	const char *prefix = "/var/mobile";
-	#elif defined __ANDROID__
-	const char *prefix = Base::storagePath();
-	#elif defined(CONFIG_ENV_WEBOS)
-	const char *prefix = "/media/internal";
-	#else
 	const char *prefix = ".";
-	#endif
+	if(Config::envIsIOS)
+		prefix = "/var/mobile";
+	else if(Config::envIsAndroid)
+		prefix = Base::storagePath();
+	else if(Config::envIsWebOS)
+		prefix = "/media/internal";
 	string_printf(path, "%s/imagine.log", prefix);
 }
-#endif
 
 CallResult logger_init()
 {
 	if(!logEnabled)
 		return OK;
-	#ifdef CONFIG_FS
 	if(useExternalLogFile && !logExternalFile)
 	{
 		FsSys::PathString path;
@@ -72,7 +61,6 @@ CallResult logger_init()
 			return IO_ERROR;
 		}
 	}
-	#endif
 
 	//logMsg("init logger");
 	return OK;

@@ -184,9 +184,8 @@ GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GL
 			logErr("failed to get matching visual for fbconfig");
 			return GLBufferConfig{};
 		}
-		#ifndef NDEBUG
-		printGLXVisual(dpy, *viPtr);
-		#endif
+		if(Config::DEBUG_BUILD)
+			printGLXVisual(dpy, *viPtr);
 		conf.visual = viPtr->visual;
 		conf.depth = viPtr->depth;
 		XFree(viPtr);
@@ -215,13 +214,14 @@ CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig
 		}
 	}
 
-	#ifndef NDEBUG
-	int glxMajorVersion, glxMinorVersion;
-	glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
-	logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, context) ? "yes" : "no");
-	if(!glXIsDirect(dpy, context))
-		bug_exit("direct rendering not supported, check your X configuration");
-	#endif
+	if(Config::DEBUG_BUILD)
+	{
+		int glxMajorVersion, glxMinorVersion;
+		glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
+		logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, context) ? "yes" : "no");
+		if(!glXIsDirect(dpy, context))
+			bug_exit("direct rendering not supported, check your X configuration");
+	}
 
 	return OK;
 }

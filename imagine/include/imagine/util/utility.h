@@ -45,13 +45,13 @@ static constexpr size_t sizeofArray(const T (&a)[S])
 // repeating the class name and produce the parameter pair
 #define template_mfunc(cls, mFunc) cls, &cls::mFunc
 
-// perform and std::move but clear the source variable afterwards
+// make and return a copy of the variable, clearing the original
 template <class T>
 static T moveAndClear(T& v)
 {
-	auto temp = std::move(v);
+	auto temp = v;
 	v = {};
-	return std::move(temp);
+	return temp;
 }
 
 #endif

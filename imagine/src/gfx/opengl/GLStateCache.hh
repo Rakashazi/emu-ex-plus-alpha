@@ -99,11 +99,7 @@ public:
 		constexpr GLPixelStoreParams() {}
 	};
 
-	#ifdef NDEBUG
-	static constexpr bool verifyState = 0;
-	#else
-	bool verifyState = 0;
-	#endif
+	static bool verifyState;
 
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	GLenum matrixModeState = GL_MODELVIEW;

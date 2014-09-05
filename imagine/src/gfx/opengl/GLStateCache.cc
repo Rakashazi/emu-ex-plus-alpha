@@ -16,6 +16,8 @@
 #include "GLStateCache.hh"
 #include "utils.h"
 
+bool GLStateCache::verifyState = false;
+
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 void GLStateCache::matrixMode(GLenum mode)
 {

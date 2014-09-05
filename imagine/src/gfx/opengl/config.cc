@@ -414,7 +414,7 @@ CallResult init(uint colorBits)
 	}
 	#else
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		const bool hasGLES1_1 = !Config::envIsAndroid || (!Config::MACHINE_IS_GENERIC_ARM || strstr(version, "1.1"));
+		const bool hasGLES1_1 = !Config::envIsAndroid || (!Config::MACHINE_IS_GENERIC_ARMV6 || strstr(version, "1.1"));
 		const bool hasGLES2_0 = false;
 		#else
 		const bool hasGLES1_1 = true;
@@ -463,14 +463,15 @@ CallResult init(uint colorBits)
 	{
 		GLint numExtensions;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-		#ifndef NDEBUG
-		logMsgNoBreak("extensions: ");
-		iterateTimes(numExtensions, i)
+		if(Config::DEBUG_BUILD)
 		{
-			logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+			logMsgNoBreak("extensions: ");
+			iterateTimes(numExtensions, i)
+			{
+				logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+			}
+			logger_printf(LOG_M, "\n");
 		}
-		logger_printf(LOG_M, "\n");
-		#endif
 		iterateTimes(numExtensions, i)
 		{
 			checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i));

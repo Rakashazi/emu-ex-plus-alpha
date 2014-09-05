@@ -83,12 +83,10 @@ void Screen::frameUpdate(FrameTimeBase frameTime)
 	iterateTimes(Window::windows(), i)
 	{
 		auto &w = *Window::window(i);
-		#ifdef CONFIG_BASE_MULT_SCREEN
-		if(w.screen() != *this)
+		if(Config::BASE_MULTI_SCREEN && w.screen() != *this)
 		{
 			continue;
 		}
-		#endif
 		w.dispatchOnDraw(frameTime);
 	}
 	inFrameHandler = false;

@@ -49,10 +49,11 @@ void engineInit()
 	stack.rlim_cur = 16 * 1024 * 1024;
 	assert(stack.rlim_cur <= stack.rlim_max);
 	setrlimit(RLIMIT_STACK, &stack);
-		#ifndef NDEBUG
+	if(Config::DEBUG_BUILD)
+	{
 		getrlimit(RLIMIT_STACK, &stack);
 		logMsg("stack limit %u:%u", (uint)stack.rlim_cur, (uint)stack.rlim_max);
-		#endif
+	}
 	#endif
 
 	logDMsg("%s", copyright);

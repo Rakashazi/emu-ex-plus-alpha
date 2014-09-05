@@ -79,14 +79,15 @@ void IOSScreen::init(UIScreen *screen)
 			}
 		}
 	}
-	#ifndef NDEBUG
-	for(UIScreenMode *mode in screen.availableModes)
+	if(Config::DEBUG_BUILD)
 	{
-		logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);
+		for(UIScreenMode *mode in screen.availableModes)
+		{
+			logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);
+		}
+		logMsg("current mode: %dx%d", (int)screen.currentMode.size.width, (int)screen.currentMode.size.height);
+		logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
 	}
-	logMsg("current mode: %dx%d", (int)screen.currentMode.size.width, (int)screen.currentMode.size.height);
-	logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
-	#endif
 	uiScreen_ = (void*)CFBridgingRetain(screen);
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
 	                                       selector:@selector(onFrame)]);

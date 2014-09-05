@@ -43,12 +43,8 @@ static constexpr uint8 maxCursors =
 	#if defined CONFIG_BASE_X11
 	4; // arbitrary max
 	#elif defined CONFIG_BASE_IOS || defined __ANDROID__
-		// arbitrary max
-		#ifdef CONFIG_MACHINE_GENERIC_ARM
-		4;
-		#else
-		7;
-		#endif
+	// arbitrary max
+	Config::MACHINE_IS_GENERIC_ARMV6 ? 4 : 7;
 	#elif defined CONFIG_ENV_WEBOS
 	4; // max 5
 	#else

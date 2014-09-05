@@ -6,7 +6,7 @@
 
 COMPILE_FLAGS += -pipe -fvisibility=hidden
 BASE_CFLAGS := -std=gnu99 -fno-common
-BASE_CXXFLAGS = -std=gnu++11 -Woverloaded-virtual $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
+BASE_CXXFLAGS = -std=gnu++1y -Woverloaded-virtual $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
 ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches

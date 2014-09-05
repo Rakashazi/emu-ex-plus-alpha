@@ -169,11 +169,7 @@ void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, con
 
 bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 {
-	#ifdef NDEBUG
-	bool verbose = 0;
-	#else
-	bool verbose = 1;
-	#endif
+	bool verbose = Config::DEBUG_BUILD;
 	static const char *basicLibhardwareErrorStr = "Unsupported libhardware";
 
 	logMsg("attempting to setup EGLImageKHR support");

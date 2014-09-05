@@ -196,12 +196,13 @@ bool linkProgram(GLuint program)
 	glLinkProgram(program);
 	GLint success;
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
-	#ifndef NDEBUG
-	GLchar messages[4096];
-	glGetProgramInfoLog(program, sizeof(messages), nullptr, messages);
-	if(strlen(messages))
-		logDMsg("linker info log: %s", messages);
-	#endif
+	if(Config::DEBUG_BUILD)
+	{
+		GLchar messages[4096];
+		glGetProgramInfoLog(program, sizeof(messages), nullptr, messages);
+		if(strlen(messages))
+			logDMsg("linker info log: %s", messages);
+	}
 	if(success == GL_FALSE)
 		return false;
 	return true;
@@ -332,13 +333,13 @@ Shader makeShader(const char *src, uint type)
 	glCompileShader(shader);
 	GLint success;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-	#ifndef NDEBUG
-	GLchar messages[4096];
-	glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
-	if(strlen(messages))
-		logDMsg("shader info log: %s", messages);
-	#endif
+	if(Config::DEBUG_BUILD)
+	{
+		GLchar messages[4096];
+		glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
+		if(strlen(messages))
+			logDMsg("shader info log: %s", messages);
+	}
 	if(success == GL_FALSE)
 		return 0;
 	return shader;

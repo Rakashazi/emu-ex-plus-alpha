@@ -151,9 +151,8 @@ std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(const GLContextAtt
 			return std::make_pair(INVALID_PARAMETER, EGLConfig{});
 		}
 	}
-	#ifndef NDEBUG
-	printEGLConf(display, config);
-	#endif
+	if(Config::DEBUG_BUILD)
+		printEGLConf(display, config);
 	return std::make_pair(OK, config);
 }
 
@@ -185,13 +184,8 @@ CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferC
 		logErr("unable to get EGL display");
 		return INVALID_PARAMETER;
 	}
-	#ifndef NDEBUG
-	logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
-	#endif
-	//printEGLConfs(display);
-	//printEGLConfsWithAttr(display, eglAttrWinMaxRGBA);
-	//printEGLConfsWithAttr(display, eglAttrWinRGB888);
-	//printEGLConfsWithAttr(display, eglAttrWinLowColor);
+	if(Config::DEBUG_BUILD)
+		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
 
 	#ifndef CONFIG_GFX_OPENGL_ES
 	if(!eglBindAPI(EGL_OPENGL_API))

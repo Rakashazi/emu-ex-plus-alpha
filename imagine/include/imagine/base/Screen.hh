@@ -21,10 +21,16 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
 
+namespace Config
+{
 #if (defined __ANDROID__ && !(defined __arm__ && __ARM_ARCH < 7)) || defined CONFIG_BASE_IOS
 #define CONFIG_BASE_MULTI_SCREEN
 #define CONFIG_BASE_SCREEN_HOTPLUG
+static constexpr bool BASE_MULTI_SCREEN = true;
+#else
+static constexpr bool BASE_MULTI_SCREEN = false;
 #endif
+}
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XScreen.hh>

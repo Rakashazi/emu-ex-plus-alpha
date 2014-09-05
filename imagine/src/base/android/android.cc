@@ -452,9 +452,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 				// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
 				// Explicitly setting the format here seems to fix the problem (Android driver bug?).
 				// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
-				#ifndef NDEBUG
-				logMsg("setting window format to %d (current %d) after surface creation", deviceWindow()->pixelFormat, ANativeWindow_getFormat(nWin));
-				#endif
+				if(Config::DEBUG_BUILD)
+					logMsg("setting window format to %d (current %d) after surface creation", deviceWindow()->pixelFormat, ANativeWindow_getFormat(nWin));
 				jSetWinFormat(activity->env, activity->clazz, deviceWindow()->pixelFormat);
 			}
 			androidWindowInitSurface(*deviceWindow(), nWin);
@@ -497,16 +496,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
 	using namespace Base;
-	logMsg("called ANativeActivity_onCreate, thread ID %d", gettid());
-	/*if(aLooper)
-	{
-		logMsg("skipping onCreate");
-		setNativeActivityCallbacks(activity);
-		assert(jVM == activity->vm);
-		assert(aJEnv == activity->env);
-		jBaseActivity = activity->clazz;
-		return;
-	}*/
+	if(Config::DEBUG_BUILD)
+		logMsg("called ANativeActivity_onCreate, thread ID %d", gettid());
 	aSDK = activity->sdkVersion;
 	if(Base::androidSDK() >= 16)
 		processInput = processInputWithGetEvent;

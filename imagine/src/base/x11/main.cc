@@ -20,6 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/fs/sys.hh>
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
 #include <imagine/util/strings.h>
@@ -33,10 +34,6 @@
 #include "xlibutils.h"
 #include "dbus.hh"
 #include <algorithm>
-
-#ifdef CONFIG_FS
-#include <imagine/fs/sys.hh>
-#endif
 
 #ifdef CONFIG_INPUT_EVDEV
 #include "../../input/evdev/evdev.hh"

@@ -120,7 +120,7 @@ void Window::unpostDraw()
 
 uint GLBufferConfigAttributes::defaultColorBits()
 {
-	return Config::BASE_IOS_GLKIT ? 24 : 16;
+	return Config::MACHINE_IS_GENERIC_ARMV6 ? 16 : 24;
 }
 
 bool Window::hasSurface()

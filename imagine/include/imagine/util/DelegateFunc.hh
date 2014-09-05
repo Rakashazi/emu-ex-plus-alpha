@@ -41,7 +41,7 @@ public:
 		}
 	{
 		static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
-		new (execData.mem) T{lambda};
+		new (execData.mem) T(lambda);
 	}
 
 	// construct from free function

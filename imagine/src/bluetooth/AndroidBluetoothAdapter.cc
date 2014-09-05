@@ -403,9 +403,8 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 			readThread.create(1,
 				[this](ThreadPThread &thread)
 				{
-					#ifndef NDEBUG
-					logMsg("in read thread %d", gettid());
-					#endif
+					if(Config::DEBUG_BUILD)
+						logMsg("in read thread %d", gettid());
 					JNIEnv *env;
 					if(Base::jVM->AttachCurrentThread(&env, 0) != 0)
 					{

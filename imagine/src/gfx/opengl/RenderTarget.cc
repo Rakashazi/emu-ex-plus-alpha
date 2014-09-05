@@ -50,12 +50,10 @@ void RenderTarget::initTexture(IG::PixmapDesc &pix, uint filter)
 void RenderTarget::setCurrent()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	#ifndef NDEBUG
-	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		bug_exit("FBO %u incomplete", fbo);
 	}
-	#endif
 }
 
 void RenderTarget::setDefaultCurrent()

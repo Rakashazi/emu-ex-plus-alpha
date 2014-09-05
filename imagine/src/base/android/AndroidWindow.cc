@@ -143,7 +143,7 @@ bool Window::requestOrientationChange(uint o)
 
 uint GLBufferConfigAttributes::defaultColorBits()
 {
-	return (!Config::MACHINE_IS_GENERIC_ARM && Base::androidSDK() >= 11) ? 24 : 16;
+	return (!Config::MACHINE_IS_GENERIC_ARMV6 && Base::androidSDK() >= 11) ? 24 : 16;
 }
 
 CallResult Window::init(const WindowConfig &config)
@@ -185,9 +185,8 @@ CallResult Window::init(const WindowConfig &config)
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
 		auto env = jEnv();
-		#ifndef NDEBUG
-		logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(env, jBaseActivity));
-		#endif
+		if(Config::DEBUG_BUILD)
+			logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(env, jBaseActivity));
 		jSetWinFormat(env, jBaseActivity, pixelFormat);
 	}
 	// default to screen's size
@@ -273,9 +272,8 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
 {
 	win.nWin = nWin;
-	#ifndef NDEBUG
-	logMsg("creating window with native visual ID: %d with format: %d", win.pixelFormat, ANativeWindow_getFormat(nWin));
-	#endif
+	if(Config::DEBUG_BUILD)
+		logMsg("creating window with native visual ID: %d with format: %d", win.pixelFormat, ANativeWindow_getFormat(nWin));
 	ANativeWindow_setBuffersGeometry(nWin, 0, 0, win.pixelFormat);
 	win.initEGLSurface(GLContext::eglDisplay());
 	win.setNeedsDraw(true);

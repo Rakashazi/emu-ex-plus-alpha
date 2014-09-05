@@ -78,6 +78,12 @@ static const bool BASE_CAN_BACKGROUND_APP = 1;
 #else
 static const bool BASE_CAN_BACKGROUND_APP = 0;
 #endif
+
+#ifndef NDEBUG
+static constexpr bool DEBUG_BUILD = true;
+#else
+static constexpr bool DEBUG_BUILD = false;
+#endif
 }
 
 #ifdef CONFIG_MACHINE_OUYA

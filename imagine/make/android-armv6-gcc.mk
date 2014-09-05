@@ -2,7 +2,7 @@ include $(IMAGINE_PATH)/make/config.mk
 SUBARCH := armv6
 android_abi := armeabi
 ifndef MACHINE
- MACHINE := GENERIC_ARM
+ MACHINE := GENERIC_ARMV6
 endif
 
 ifdef arm_fpu

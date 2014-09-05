@@ -24,7 +24,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/input/DragPointer.hh>
 #include <imagine/base/GLContext.hh>
 #include "ios.hh"
-#ifdef CONFIG_BASE_IOS_GLKIT
+#if !defined __ARM_ARCH_6K__
 #import <OpenGLES/ES2/gl.h>
 #else
 #import <OpenGLES/ES1/glext.h>
@@ -91,12 +91,10 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
 	}
 
-	#ifndef NDEBUG
-	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 	}
-	#endif
 	return {backingWidth, backingHeight};
 }
 
@@ -143,33 +141,6 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 {
 	if(!framebuffer)
 	{
-		/*glGenFramebuffers(1, &viewFramebuffer);
-		glGenRenderbuffers(1, &viewRenderbuffer);
-		logMsg("creating view framebuffer: %u renderbuffer: %u", viewFramebuffer, viewRenderbuffer);
-	
-		glBindFramebuffer(GL_FRAMEBUFFER, viewFramebuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, viewRenderbuffer);
-		[[EAGLContext currentContext] renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer*)self.layer];
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewRenderbuffer);
-	
-		GLint backingWidth, backingHeight;
-		glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &backingWidth);
-		glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &backingHeight);
-	
-		if(USE_DEPTH_BUFFER)
-		{
-			glGenRenderbuffers(1, &depthRenderbuffer);
-			glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, backingWidth, backingHeight);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-		}
-	
-		#ifndef NDEBUG
-		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		{
-			bug_exit("failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
-		}
-		#endif*/
 		makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
 			framebuffer, colorRenderbuffer, depthRenderbuffer);
 		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);

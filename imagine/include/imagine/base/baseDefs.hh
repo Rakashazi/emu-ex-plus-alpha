@@ -59,7 +59,7 @@ constexpr static FrameTimeBase frameTimeBaseFromS(T s)
 template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
 constexpr static FrameTimeBase frameTimeBaseFromS(T s)
 {
-	return s * (double)1000000000.;
+	return (double)s * (double)1000000000.;
 }
 
 constexpr static double frameTimeBaseToSDec(FrameTimeBase time)

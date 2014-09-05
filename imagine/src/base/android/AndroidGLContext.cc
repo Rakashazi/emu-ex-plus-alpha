@@ -27,11 +27,11 @@ static EGLContext activityThreadContext = EGL_NO_CONTEXT;
 GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
 {
 	auto configResult = chooseConfig(ctxAttr, attr);
-	if(configResult.first != OK)
+	if(std::get<CallResult>(configResult) != OK)
 	{
 		return GLBufferConfig{};
 	}
-	return GLBufferConfig{configResult.second};
+	return GLBufferConfig{std::get<EGLConfig>(configResult)};
 }
 
 EGLDisplay EGLContextBase::getDisplay()

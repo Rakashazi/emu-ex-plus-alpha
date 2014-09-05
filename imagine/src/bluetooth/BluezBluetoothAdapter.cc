@@ -407,11 +407,12 @@ int BluezBluetoothSocket::readPendingData(int events)
 		if(events & Base::POLLEV_OUT) // happened while connecting
 		{
 			logErr("error connecting socket %d", fd);
-			#ifndef NDEBUG
-			socklen_t optLen = sizeof(int), opt = 0;
-			getsockopt(fd, SOL_SOCKET, SO_ERROR, &opt, &optLen);
-			logMsg("got so_error %d", opt);
-			#endif
+			if(Config::DEBUG_BUILD)
+			{
+				socklen_t optLen = sizeof(int), opt = 0;
+				getsockopt(fd, SOL_SOCKET, SO_ERROR, &opt, &optLen);
+				logMsg("got so_error %d", opt);
+			}
 			onStatusD(*this, STATUS_CONNECT_ERROR);
 			//defaultBluezAdapter.onScanStatus()(defaultBluezAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);
 		}
