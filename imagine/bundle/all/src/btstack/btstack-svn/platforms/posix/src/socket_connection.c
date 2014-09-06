@@ -67,7 +67,7 @@
 #include <sys/stat.h>
 
 #ifdef USE_LAUNCHD
-#include "../3rdparty/launch.h"
+#include "../platforms/ios/3rdparty/launch.h"
 #endif
 
 #define MAX_PENDING_CONNECTIONS 10
@@ -189,7 +189,7 @@ void static socket_connection_emit_nr_connections(void){
     event[0] = DAEMON_NR_CONNECTIONS_CHANGED;
     event[1] = nr_connections;
     (*socket_connection_packet_callback)(NULL, DAEMON_EVENT_PACKET, 0, (uint8_t *) &event, 2);
-    // log_info("Nr connections changed,.. new %u\n", nr_connections); 
+    // log_info("Nr connections changed,.. new %u", nr_connections); 
 }
 
 static int fdReadableBytes(int fd)
@@ -199,9 +199,10 @@ static int fdReadableBytes(int fd)
 	return maxReadable;
 }
 
+
 int socket_connection_hci_process(struct data_source *ds) {
     connection_t *conn = (connection_t *) ds;
-
+    
     do
     {
 		int bytes_read = read(ds->fd, &conn->buffer[conn->bytes_read], conn->bytes_to_read);
@@ -248,13 +249,12 @@ int socket_connection_hci_process(struct data_source *ds) {
 		    
 		    // "park" if dispatch failed
 		    if (dispatch_err) {
-		        log_info("socket_connection_hci_process dispatch failed -> park connection\n");
+		        log_info("socket_connection_hci_process dispatch failed -> park connection");
 		        run_loop_remove_data_source(ds);
 		        linked_list_add_tail(&parked, (linked_item_t *) ds);
 		    }
 		}
 	} while(fdReadableBytes(ds->fd));
-
 	return 0;
 }
 
@@ -264,18 +264,18 @@ int socket_connection_hci_process(struct data_source *ds) {
  * pre: connections get parked iff packet was dispatched but could not be sent
  */
 void socket_connection_retry_parked(){
-    // log_info("socket_connection_hci_process retry parked\n");
+    // log_info("socket_connection_hci_process retry parked");
     linked_item_t *it = (linked_item_t *) &parked;
     while (it->next) {
         connection_t * conn = (connection_t *) it->next;
         
         // dispatch packet !!! connection, type, channel, data, size
-        log_info("socket_connection_hci_process retry parked %p\n", conn);
+        log_info("socket_connection_hci_process retry parked %p", conn);
         int dispatch_err = (*socket_connection_packet_callback)(conn, READ_BT_16( conn->buffer, 0), READ_BT_16( conn->buffer, 2),
                                                             &conn->buffer[sizeof(packet_header_t)], READ_BT_16( conn->buffer, 4));
         // "un-park" if successful
         if (!dispatch_err) {
-            log_info("socket_connection_hci_process dispatch succeeded -> un-park connection %p\n", conn);
+            log_info("socket_connection_hci_process dispatch succeeded -> un-park connection %p", conn);
             it->next = it->next->next;
             run_loop_add_data_source( (data_source_t *) conn);
         } else {
@@ -304,7 +304,7 @@ static int socket_connection_accept(struct data_source *socket_ds) {
     // no sigpipe
     socket_connection_set_no_sigpipe(fd);
     
-    log_info("socket_connection_accept new connection %u\n", fd);
+    log_info("socket_connection_accept new connection %u", fd);
     
     connection_t * connection = socket_connection_register_new_connection(fd);
     socket_connection_emit_connection_opened(connection);
@@ -328,12 +328,12 @@ int socket_connection_create_tcp(int port){
     
 	// create tcp socket
 	if ((ds->fd = socket (PF_INET, SOCK_STREAM, 0)) < 0) {
-		log_error("Error creating socket ...(%s)\n", strerror(errno));
+		log_error("Error creating socket ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
     
-	log_info ("Socket created for port %u\n", port);
+	log_info ("Socket created for port %u", port);
 	
     struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -344,20 +344,20 @@ int socket_connection_create_tcp(int port){
 	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, &y, sizeof(int));
 	
 	if (bind ( ds->fd, (struct sockaddr *) &addr, sizeof (addr) ) ) {
-		log_error("Error on bind() ...(%s)\n", strerror(errno));
+		log_error("Error on bind() ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
 	
 	if (listen (ds->fd, MAX_PENDING_CONNECTIONS)) {
-		log_error("Error on listen() ...(%s)\n", strerror(errno));
+		log_error("Error on listen() ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
     
     run_loop_add_data_source(ds);
     
-	log_info ("Server up and running ...\n");
+	log_info ("Server up and running ...");
     return 0;
 }
 
@@ -373,7 +373,7 @@ void socket_connection_launchd_register_fd_array(launch_data_t listening_fd_arra
         launch_data_t tempi = launch_data_array_get_index (listening_fd_array, i);
         int listening_fd = launch_data_get_fd(tempi);
         launch_data_free (tempi);
-		log_info("file descriptor = %u\n", listening_fd);
+		log_info("file descriptor = %u", listening_fd);
         
         // create data_source_t for fd
         data_source_t *ds = malloc( sizeof(data_source_t));
@@ -437,7 +437,7 @@ int socket_connection_create_launchd(){
 	 */
 	listening_fd_array = launch_data_dict_lookup(sockets_dict, "Listeners");
 	if (listening_fd_array) {
-        // log_error("Listeners...\n");
+        // log_error("Listeners...");
         socket_connection_launchd_register_fd_array( listening_fd_array );
     }
     
@@ -446,7 +446,7 @@ int socket_connection_create_launchd(){
 	 */
 	listening_fd_array = launch_data_dict_lookup(sockets_dict, "Listeners2");
 	if (listening_fd_array) {
-        // log_error("Listeners2...\n");
+        // log_error("Listeners2...");
         socket_connection_launchd_register_fd_array( listening_fd_array );
     }
     
@@ -469,12 +469,12 @@ int socket_connection_create_unix(char *path){
 
 	// create unix socket
 	if ((ds->fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		log_error( "Error creating socket ...(%s)\n", strerror(errno));
+		log_error( "Error creating socket ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
     
-	log_info ("Socket created at %s\n", path);
+	log_info ("Socket created at %s", path);
 	
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
@@ -486,25 +486,25 @@ int socket_connection_create_unix(char *path){
 	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, &y, sizeof(int));
     
 	if (bind ( ds->fd, (struct sockaddr *) &addr, sizeof (addr) ) ) {
-		log_error( "Error on bind() ...(%s)\n", strerror(errno));
+		log_error( "Error on bind() ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
-	
+
     // http://blog.henning.makholm.net/2008/06/unix-domain-socket-woes.html
     // make socket accept from all clients
     chmod(path, S_IRWXU | S_IRWXG | S_IRWXO);
     //
 
 	if (listen (ds->fd, MAX_PENDING_CONNECTIONS)) {
-		log_error( "Error on listen() ...(%s)\n", strerror(errno));
+		log_error( "Error on listen() ...(%s)", strerror(errno));
 		free(ds);
         return -1;
 	}
     
     run_loop_add_data_source(ds);
 
-	log_info ("Server up and running ...\n");
+	log_info ("Server up and running ...");
     return 0;
 }
 

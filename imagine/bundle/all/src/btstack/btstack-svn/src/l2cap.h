@@ -65,6 +65,9 @@ extern "C" {
 #define L2CAP_MINIMAL_MTU 48
 #define L2CAP_DEFAULT_MTU 672
     
+// Minimum/default MTU
+#define L2CAP_LE_DEFAULT_MTU  23
+
 // check L2CAP MTU
 #if (L2CAP_MINIMAL_MTU + L2CAP_HEADER_SIZE) > HCI_ACL_PAYLOAD_SIZE
 #error "HCI_ACL_PAYLOAD_SIZE too small for minimal L2CAP MTU of 48 bytes"
@@ -199,6 +202,9 @@ void l2cap_block_new_credits(uint8_t blocked);
 
 int  l2cap_can_send_packet_now(uint16_t local_cid);    // non-blocking UART write
 
+int  l2cap_can_send_fixed_channel_packet_now(uint16_t handle);
+
+// @deprecated use l2cap_can_send_fixed_channel_packet_now instead
 int  l2cap_can_send_connectionless_packet_now(void);
 
 int  l2cap_reserve_packet_buffer(void);
@@ -215,10 +221,9 @@ int l2cap_send_prepared_connectionless(uint16_t handle, uint16_t cid, uint16_t l
 void l2cap_register_fixed_channel(btstack_packet_handler_t packet_handler, uint16_t channel_id);
 
 uint16_t l2cap_max_mtu(void);
+uint16_t l2cap_max_le_mtu(void);
 
 int  l2cap_send_connectionless(uint16_t handle, uint16_t cid, uint8_t *data, uint16_t len);
-
-void l2cap_close_connection(void *connection);
 
 int l2cap_send_echo_request(uint16_t handle, uint8_t *data, uint16_t len);
 

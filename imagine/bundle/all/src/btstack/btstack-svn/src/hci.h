@@ -111,6 +111,7 @@ extern "C" {
 #define OGF_LINK_POLICY           0x02
 #define OGF_CONTROLLER_BASEBAND   0x03
 #define OGF_INFORMATIONAL_PARAMETERS 0x04
+#define OGF_STATUS_PARAMETERS     0x05
 #define OGF_LE_CONTROLLER 0x08
 #define OGF_BTSTACK 0x3d
 #define OGF_VENDOR  0x3f
@@ -279,6 +280,7 @@ typedef enum {
     BONDING_SEND_AUTHENTICATE_REQUEST = 0x20,
     BONDING_SEND_ENCRYPTION_REQUEST   = 0x40,
     BONDING_DEDICATED                 = 0x80,
+    BONDING_EMIT_COMPLETE_ON_DISCONNECT = 0x100
 } bonding_flags_t;
 
 typedef enum {
@@ -314,7 +316,7 @@ typedef struct {
     
     // bonding
     uint16_t bonding_flags;
-
+    uint8_t  bonding_status;
     // requested security level
     gap_security_level_t requested_security_level;
 
@@ -374,10 +376,10 @@ typedef struct {
     /* host to controller flow control */
     uint8_t  num_cmd_packets;
     // uint8_t  total_num_cmd_packets;
-    uint8_t  total_num_acl_packets;
+    uint8_t  acl_packets_total_num;
     uint16_t acl_data_packet_length;
-    uint8_t  total_num_le_packets;
-    uint16_t le_data_packet_length;
+    uint8_t  le_acl_packets_total_num;
+    uint16_t le_data_packets_length;
 
     /* local supported features */
     uint8_t local_supported_features[8];
@@ -446,13 +448,20 @@ void hci_run(void);
 // send complete CMD packet
 int hci_send_cmd_packet(uint8_t *packet, int size);
 
-// send ACL packet
-int hci_send_acl_packet(uint8_t *packet, int size);
+// send ACL packet prepared in hci packet buffer
+int hci_send_acl_packet_buffer(int size);
+
+// new functions replacing hci_can_send_packet_now[_using_packet_buffer]
+int hci_can_send_command_packet_now(void);
+int hci_can_send_acl_packet_now(hci_con_handle_t con_handle);
+int hci_can_send_prepared_acl_packet_now(hci_con_handle_t con_handle);
 
 // non-blocking UART driver needs
+// @deprecated use hci_can_send_X_now instead
 int hci_can_send_packet_now(uint8_t packet_type);
 
 // same as hci_can_send_packet_now, but also checks if packet buffer is free for use
+// @deprecated use hci_can_send_X_now instead
 int hci_can_send_packet_now_using_packet_buffer(uint8_t packet_type);
 
 // reserves outgoing packet buffer. @returns 1 if successful
@@ -470,7 +479,7 @@ hci_connection_t * hci_connection_for_handle(hci_con_handle_t con_handle);
 hci_connection_t * hci_connection_for_bd_addr_and_type(bd_addr_t *addr, bd_addr_type_t addr_type);
 int hci_is_le_connection(hci_connection_t * connection);
 uint8_t  hci_number_outgoing_packets(hci_con_handle_t handle);
-uint8_t  hci_number_free_acl_slots(void);
+uint8_t  hci_number_free_acl_slots_for_handle(hci_con_handle_t con_handle);
 int      hci_authentication_active_for_handle(hci_con_handle_t handle);
 uint16_t hci_max_acl_data_packet_length(void);
 uint16_t hci_usable_acl_packet_types(void);
@@ -489,7 +498,7 @@ void hci_emit_system_bluetooth_enabled(uint8_t enabled);
 void hci_emit_remote_name_cached(bd_addr_t *addr, device_name_t *name);
 void hci_emit_discoverable_enabled(uint8_t enabled);
 void hci_emit_security_level(hci_con_handle_t con_handle, gap_security_level_t level);
-void hci_emit_dedicated_bonding_result(hci_connection_t * connection, uint8_t status);
+void hci_emit_dedicated_bonding_result(bd_addr_t address, uint8_t status);
 
 // query if remote side supports SSP
 // query if the local side supports SSP

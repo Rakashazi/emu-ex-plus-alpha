@@ -9,4 +9,3 @@ include $(IMAGINE_PATH)/make/iOS-armv6-gcc.mk
 installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)
 
 include common.mk
-

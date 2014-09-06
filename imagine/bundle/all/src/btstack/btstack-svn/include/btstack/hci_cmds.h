@@ -144,7 +144,20 @@ extern "C" {
 #define HCI_EVENT_READ_REMOTE_SUPPORTED_FEATURES_COMPLETE  0x0B
 #define HCI_EVENT_READ_REMOTE_VERSION_INFORMATION_COMPLETE 0x0C
 #define HCI_EVENT_QOS_SETUP_COMPLETE			           0x0D
+
+/**
+ * @format 12R
+ * @param num_hci_command_packets
+ * @param command_opcode
+ * @param return_parameters
+ */
 #define HCI_EVENT_COMMAND_COMPLETE				           0x0E
+/**
+ * @format 112
+ * @param status
+ * @param num_hci_command_packets
+ * @param command_opcode
+ */
 #define HCI_EVENT_COMMAND_STATUS				           0x0F
 
 /**
@@ -247,6 +260,11 @@ extern "C" {
 // data: event(8), len(8), status (8), psm (16)
 #define L2CAP_EVENT_SERVICE_REGISTERED                     0x75
 
+// data: event(8), len(8), handle(16), interval min(16), interval max(16), latency(16), timeout multiplier(16)
+#define L2CAP_EVENT_CONNECTION_PARAMETER_UPDATE_REQUEST    0x76
+
+// data: event(8), len(8), handle(16), result (16) (0 == ok, 1 == fail)
+#define L2CAP_EVENT_CONNECTION_PARAMETER_UPDATE_RESPONSE   0x77
 
 // RFCOMM EVENTS
 	
@@ -431,14 +449,10 @@ extern "C" {
 #define L2CAP_CONNECTION_RESPONSE_RESULT_PENDING           0x64
 #define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_PSM       0x65
 #define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_SECURITY  0x66
-#define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_RESOURCES 0x65
-#define L2CAP_CONNECTION_RESPONSE_RESULT_RTX_TIMEOUT       0x66
+#define L2CAP_CONNECTION_RESPONSE_RESULT_REFUSED_RESOURCES 0x67
+#define L2CAP_CONNECTION_RESPONSE_RESULT_RTX_TIMEOUT       0x68
 
-#define L2CAP_CONFIG_RESPONSE_RESULT_SUCCESSFUL            0x67
-#define L2CAP_CONFIG_RESPONSE_RESULT_UNACCEPTABLE_PARAMS   0x68
-#define L2CAP_CONFIG_RESPONSE_RESULT_REJECTED              0x69
-#define L2CAP_CONFIG_RESPONSE_RESULT_UNKNOWN_OPTIONS       0x6a
-#define L2CAP_SERVICE_ALREADY_REGISTERED                   0x6b
+#define L2CAP_SERVICE_ALREADY_REGISTERED                   0x69
     
 #define RFCOMM_MULTIPLEXER_STOPPED                         0x70
 #define RFCOMM_CHANNEL_ALREADY_REGISTERED                  0x71
@@ -508,7 +522,8 @@ typedef enum {
  typedef enum {
  	BD_ADDR_TYPE_LE_PUBLIC = 0,
  	BD_ADDR_TYPE_LE_RANDOM = 1,
- 	BD_ADDR_TYPE_CLASSIC   = 0xff
+ 	BD_ADDR_TYPE_CLASSIC   = 0xff,
+ 	BD_ADDR_TYPE_UNKNOWN   = 0xfe
  } bd_addr_type_t;
 
 /**
@@ -577,6 +592,7 @@ extern const hci_cmd_t hci_read_link_supervision_timeout;
 extern const hci_cmd_t hci_read_local_supported_features;
 extern const hci_cmd_t hci_read_num_broadcast_retransmissions;
 extern const hci_cmd_t hci_read_remote_supported_features_command;
+extern const hci_cmd_t hci_read_rssi;
 extern const hci_cmd_t hci_reject_connection_request;
 extern const hci_cmd_t hci_remote_name_request;
 extern const hci_cmd_t hci_remote_name_request_cancel;

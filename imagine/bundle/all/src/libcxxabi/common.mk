@@ -1,11 +1,18 @@
-libcxxabiSrcArchive := libcxxabi-200981.tar.xz
-libcxxabiSrcDir := $(tempDir)/libcxxabi
+libcxxVersion := 3.5.0
+libcxxabiSrcDir := $(tempDir)/libcxxabi-$(libcxxVersion).src
+libcxxabiSrcArchive := libcxxabi-$(libcxxVersion).src.tar.xz
 
-libcxxSrcDir := $(tempDir)/../libcxx/libcxx-3.4
-libcxxSrcArchive := ../libcxx/libcxx-3.4.src.tar.gz
+libcxxSrcDir := $(tempDir)/../libcxx/libcxx-$(libcxxVersion).src
+libcxxSrcArchive := ../libcxx/libcxx-$(libcxxVersion).src.tar.xz
 
 outputLibFile := $(buildDir)/libcxxabi.a
 installIncludeDir := $(installDir)/include
+
+ifeq ($(wildcard $(libcxxabiSrcDir)/src),)
+ $(info Extracting libcxxabi...)
+ $(shell mkdir -p $(libcxxabiSrcDir))
+ $(shell tar -mxJf $(libcxxabiSrcArchive) -C $(libcxxabiSrcDir)/..)
+endif
 
 VPATH += $(libcxxabiSrcDir)/src
 CPP_SRC := abort_message.cpp cxa_guard.cpp cxa_virtual.cpp \
@@ -31,19 +38,14 @@ install : $(outputLibFile)
 
 .PHONY : all install
 
+$(CPP_SRC) : $(libcxxabiSrcDir) $(libcxxSrcDir)
+
 $(outputLibFile) : $(OBJ)
 	@echo "Archiving libcxxabi..."
 	@mkdir -p `dirname $@`
 	ar cr $@ $(OBJ)
 
-$(CPP_SRC) : $(libcxxabiSrcDir) $(libcxxSrcDir)
-
-$(libcxxabiSrcDir) : | $(libcxxabiSrcArchive)
-	@echo "Extracting libcxxabi..."
-	@mkdir -p $(libcxxabiSrcDir)
-	tar -mxJf $| -C $(libcxxabiSrcDir)/..
-
 $(libcxxSrcDir) : | $(libcxxSrcArchive)
 	@echo "Extracting libcxx..."
 	@mkdir -p $(libcxxSrcDir)
-	tar -mxzf $| -C $(libcxxSrcDir)/..
+	tar -mxJf $| -C $(libcxxSrcDir)/..

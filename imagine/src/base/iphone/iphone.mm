@@ -100,6 +100,18 @@ uint appState = APP_RUNNING;
 
 uint appActivityState() { return appState; }
 
+static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
+{
+	// prevent overscan compensation
+	if(!Config::MACHINE_IS_GENERIC_ARMV6 && setOverscanCompensation)
+		screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
+	auto s = new Screen();
+	s->init(screen);
+	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+	Screen::addScreen(s);
+	return *s;
+}
+
 }
 
 @implementation MainApp
@@ -175,60 +187,6 @@ uint appActivityState() { return appState; }
 }
 #endif
 
-- (void)screenDidConnect:(NSNotification *)aNotification
-{
-	using namespace Base;
-	logMsg("screen connected");
-	if(!screen_.freeSpace())
-	{
-		logWarn("max screens reached");
-		return;
-	}
-	UIScreen *screen = [aNotification object];
-	for(auto s : screen_)
-	{
-		if(s->uiScreen() == screen)
-		{
-			logMsg("screen %p already in list", screen);
-			return;
-		}
-	}
-	// prevent overscan compensation
-	screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
-	auto s = new Screen();
-	s->init(screen);
-	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-	Screen::addScreen(s);
-	if(Screen::onChange)
-		Screen::onChange(*s, { Screen::Change::ADDED });
-}
-
-- (void)screenDidDisconnect:(NSNotification *)aNotification
-{
-	using namespace Base;
-	logMsg("screen disconnected");
-	UIScreen *screen = [aNotification object];
-	forEachInContainer(screen_, it)
-	{
-		Screen *removedScreen = *it;
-		if(removedScreen->uiScreen() == screen)
-		{
-			it.erase();
-			if(Screen::onChange)
-				Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
-			[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-			removedScreen->deinit();
-			delete removedScreen;
-			break;
-		}
-	}
-}
-
-- (void)screenModeDidChange:(NSNotification *)aNotification
-{
-	logMsg("screen mode change");
-}
-
 static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	switch(orientation)
@@ -251,7 +209,15 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 	mainApp = self;
 	sharedApp = [UIApplication sharedApplication];
-
+	if(!Config::MACHINE_IS_GENERIC_ARMV6 && UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+	{
+		isIPad = 1;
+		logMsg("running on iPad");
+	}
+	doOrAbort(Input::init());	
+	#ifdef CONFIG_AUDIO
+	Audio::initSession();
+	#endif
 	bool usingIOS7 = false;
 	#ifndef __ARM_ARCH_6K__
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0)
@@ -267,21 +233,63 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	{
 		NSNotificationCenter *nCenter = [NSNotificationCenter defaultCenter];
-		[nCenter addObserver:self selector:@selector(screenDidConnect:) name:UIScreenDidConnectNotification object:nil];
-		[nCenter addObserver:self selector:@selector(screenDidDisconnect:) name:UIScreenDidDisconnectNotification object:nil];
-		[nCenter addObserver:self selector:@selector(screenModeDidChange:) name:UIScreenModeDidChangeNotification object:nil];
+		[nCenter addObserverForName:UIScreenDidConnectNotification
+			object:nil queue:nil usingBlock:
+			^(NSNotification *note)
+			{
+				logMsg("screen connected");
+				if(!screen_.freeSpace())
+				{
+					logWarn("max screens reached");
+					return;
+				}
+				UIScreen *screen = [note object];
+				for(auto s : screen_)
+				{
+					if(s->uiScreen() == screen)
+					{
+						logMsg("screen %p already in list", screen);
+						return;
+					}
+				}
+				auto &s = setupUIScreen(screen, true);
+				if(Screen::onChange)
+					Screen::onChange(s, {Screen::Change::ADDED});
+			}];
+		[nCenter addObserverForName:UIScreenDidDisconnectNotification
+			object:nil queue:nil usingBlock:
+			^(NSNotification *note)
+			{
+				logMsg("screen disconnected");
+				UIScreen *screen = [note object];
+				forEachInContainer(screen_, it)
+				{
+					Screen *removedScreen = *it;
+					if(removedScreen->uiScreen() == screen)
+					{
+						it.erase();
+						if(Screen::onChange)
+							Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
+						[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+						removedScreen->deinit();
+						delete removedScreen;
+						break;
+					}
+				}
+			}];
+		if(Config::DEBUG_BUILD)
+		{
+			[nCenter addObserverForName:UIScreenModeDidChangeNotification
+				object:nil queue:nil usingBlock:
+				^(NSNotification *note)
+				{
+					logMsg("screen mode change");
+				}];
+		}
 	}
 	for(UIScreen *screen in [UIScreen screens])
 	{
-		if(Screen::screens())
-		{
-			// prevent overscan compensation on secondary screens
-			screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
-		}
-		auto s = new Screen();
-		s->init(screen);
-		[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-		Screen::addScreen(s);
+		setupUIScreen(screen, Screen::screens());
 		if(!screen_.freeSpace())
 		{
 			logWarn("max screens reached");
@@ -613,20 +621,6 @@ int main(int argc, char *argv[])
 		logMsg("manually loading Backgrounder.dylib");
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
 	}
-	#endif
-	
-	#if !defined __ARM_ARCH_6K__
-	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-	{
-		isIPad = 1;
-		logMsg("running on iPad");
-	}
-	#endif
-	
-	doOrAbort(Input::init());
-	
-	#ifdef CONFIG_AUDIO
-	Audio::initSession();
 	#endif
 
 	Base::grayColorSpace = CGColorSpaceCreateDeviceGray();

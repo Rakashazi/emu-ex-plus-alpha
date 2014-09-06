@@ -9,7 +9,7 @@ runMakefiles ()
 		oldDir=`pwd`
 		cd `dirname $makefile`
 		echo "running make on $makefile"
-		make -f `basename $makefile` $@
+		make -f `basename $makefile` install $@
 		if [ $? != 0 ]
 		then
 			exit 1

@@ -1,5 +1,6 @@
-libcxxSrcDir := $(tempDir)/libcxx-3.4
-libcxxSrcArchive := libcxx-3.4.src.tar.gz
+libcxxVersion := 3.5.0
+libcxxSrcDir := $(tempDir)/libcxx-$(libcxxVersion).src
+libcxxSrcArchive := libcxx-$(libcxxVersion).src.tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/lib/libc++.a
@@ -18,7 +19,7 @@ install : $(outputLibFile)
 $(libcxxSrcDir)/CMakeLists.txt : | $(libcxxSrcArchive)
 	@echo "Extracting libcxx..."
 	@mkdir -p $(libcxxSrcDir)
-	tar -mxzf $| -C $(libcxxSrcDir)/..
+	tar -mxJf $| -C $(libcxxSrcDir)/..
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libcxx..."
@@ -27,7 +28,8 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libcxxSrcDir)/CMakeLists.txt
 	@echo "Configuring libcxx..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC=clang CXX=clang cmake -DLIBCXX_ENABLE_SHARED=OFF -DLIBCXX_ENABLE_RTTI=OFF \
+	dir=`pwd` && cd $(@D) && CC=clang CXX=clang cmake -DLIBCXX_ENABLE_SHARED=OFF \
+	-DLIBCXX_ENABLE_RTTI=OFF -DLIBCXX_ENABLE_ASSERTIONS=OFF \
 	-DCMAKE_BUILD_TYPE=Release -DLIBCXX_CXX_FEATURE_FLAGS="$(IOS_FLAGS) -fvisibility=hidden" \
-	-DLIBCXX_LIBCXXABI_INCLUDE_PATHS=$(tempDir)/../libcxxabi/libcxxabi/include -DLIBCXX_CXX_ABI=libcxxabi \
+	-DLIBCXX_LIBCXXABI_INCLUDE_PATHS=$(tempDir)/../libcxxabi/libcxxabi-$(libcxxVersion).src/include -DLIBCXX_CXX_ABI=libcxxabi \
 	$(buildArg) $(libcxxSrcDir)/
