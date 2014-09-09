@@ -129,9 +129,10 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 			{
 				popup.clear();
 				auto &rootIMView = this->rootIMView;
+				auto &win = window();
 				dismiss();
 				viewStack.popTo(rootIMView);
-				auto &imdMenu = *new InputManagerDeviceView{window(), rootIMView};
+				auto &imdMenu = *new InputManagerDeviceView{win, rootIMView};
 				imdMenu.init(1, inputDevConf[d->idx]);
 				imdMenu.name_ = rootIMView.inputDevNameStr[d->idx];
 				rootIMView.pushAndShow(imdMenu);

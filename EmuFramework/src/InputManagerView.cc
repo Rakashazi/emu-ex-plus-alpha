@@ -49,8 +49,9 @@ void IdentInputDeviceView::inputEvent(const Input::Event &e)
 	}
 	else if(!e.isPointer() && e.state == Input::PUSHED)
 	{
+		auto del = onIdentInput;
 		dismiss();
-		onIdentInput(e);
+		del(e);
 	}
 }
 
@@ -349,8 +350,9 @@ public:
 				choiceEntry[i].onSelect() =
 					[this, &conf](TextMenuItem &, const Input::Event &e)
 					{
+						auto del = onProfileChange;
 						dismiss();
-						onProfileChange(conf);
+						del(conf);
 					};
 				i++;
 				if(i >= sizeofArray(choiceEntry))
@@ -369,8 +371,9 @@ public:
 			choiceEntry[i].onSelect() =
 				[this, &conf](TextMenuItem &, const Input::Event &e)
 				{
+					auto del = onProfileChange;
 					dismiss();
-					onProfileChange(conf);
+					del(conf);
 				};
 			i++;
 		}
