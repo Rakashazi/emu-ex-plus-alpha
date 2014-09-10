@@ -25,4 +25,4 @@ if [ -f $1 ]; then
 fi
 
 #echo "writing config to $1"
-echo -n "$NEW" > $1
+printf "$NEW" > $1

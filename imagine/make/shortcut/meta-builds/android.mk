@@ -128,7 +128,7 @@ android_drawableXxhdpiIconPath := $(android_targetPath)/res/drawable-xxhdpi/icon
 $(android_drawableXxhdpiIconPath) :
 	@mkdir -p $(@D) $(android_targetPath)/res/drawable/
 	ln -rs $(resPath)/icons/icon-144.png $(android_targetPath)/res/drawable/icon144.png
-	echo -e "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<bitmap xmlns:android=\"http://schemas.android.com/apk/res/android\" android:src=\"@drawable/icon144\" />" > $@
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/icon144" />\n' > $@
 	cp $@ $(android_targetPath)/res/drawable/iconbig.xml
 endif
 
@@ -160,7 +160,7 @@ android_stringsXml := $(android_targetPath)/res/values/strings.xml
 
 $(android_stringsXml) : $(projectPath)/metadata/conf.mk
 	@mkdir -p $(@D)
-	echo -e "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n\t<string name=\"app_name\">$(android_metadata_name)</string>\n</resources>" > $@
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<string name="app_name">$(android_metadata_name)</string>\n</resources>\n' > $@
 
 android_buildXml := $(android_targetPath)/build.xml
 
