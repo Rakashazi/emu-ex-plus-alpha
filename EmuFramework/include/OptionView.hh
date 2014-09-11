@@ -36,9 +36,7 @@ protected:
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		BoolMenuItem directTexture;
 		#endif
-		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		BoolMenuItem surfaceTexture;
-		#endif
 	#endif
 	MultiChoiceSelectMenuItem frameSkip;
 	void frameSkipInit();

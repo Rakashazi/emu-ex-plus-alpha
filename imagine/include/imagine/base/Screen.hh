@@ -91,7 +91,7 @@ public:
 	void clearOnFrameDelegates();
 	void runOnFrameDelegates(FrameTimeBase frameTime);
 	FrameTimeBase lastPostedFrameTime() const { return prevFrameTime; }
-	uint elaspedFrames(FrameTimeBase frameTime);
+	uint elapsedFrames(FrameTimeBase frameTime);
   uint refreshRate();
   void setRefreshRate(uint rate);
   void frameUpdate(FrameTimeBase frameTime);

@@ -97,8 +97,8 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameT
 	}
 	else
 	{
-		auto elapsedScreenFrames = screen.elaspedFrames(frameTime);
-		//logMsg("elapsed: %d", screen.elaspedFrames(frameTime));
+		auto elapsedScreenFrames = screen.elapsedFrames(frameTime);
+		//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 		if(elapsedScreenFrames > 1)
 		{
 			droppedFrames++;

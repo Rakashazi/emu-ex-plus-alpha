@@ -125,11 +125,9 @@ extern OptionRecentGames optionRecentGames;
 	static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
 	extern Byte1Option optionDirectTexture;
 	#endif
-	#if CONFIG_ENV_ANDROID_MINSDK >= 9
 	static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
 	extern Byte1Option optionSurfaceTexture;
 	extern SByte1Option optionProcessPriority;
-	#endif
 #endif
 
 extern Byte1Option optionDitherImage;

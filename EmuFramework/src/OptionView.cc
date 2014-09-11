@@ -406,7 +406,7 @@ void OptionView::relativePointerDecelInit()
 }
 #endif
 
-#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+#if defined CONFIG_BASE_ANDROID
 void OptionView::processPriorityInit()
 {
 	static const char *str[] = { "Normal", "High", "Very High" };
@@ -551,12 +551,10 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 			directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
 		}
 		#endif
-		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		if(!Config::MACHINE_IS_OUYA && Base::androidSDK() >= 14 && !optionSurfaceTexture.isConst)
 		{
 			surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
 		}
-		#endif
 	#endif
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
@@ -625,7 +623,7 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	savePath.init(savePathStr, true); item[items++] = &savePath;
 	checkSavePathWriteAccess.init(optionCheckSavePathWriteAccess); item[items++] = &checkSavePathWriteAccess;
 	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
-	#if defined(CONFIG_INPUT_ANDROID) && CONFIG_ENV_ANDROID_MINSDK >= 9
+	#if defined CONFIG_INPUT_ANDROID
 	processPriorityInit(); item[items++] = &processPriority;
 	#endif
 }
@@ -719,7 +717,6 @@ OptionView::OptionView(Base::Window &win):
 			}
 		},
 		#endif
-		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		surfaceTexture
 		{
 			"Fast CPU->GPU Copy",
@@ -741,7 +738,6 @@ OptionView::OptionView(Base::Window &win):
 				}
 			}
 		},
-		#endif
 	#endif
 	frameSkip
 	{
@@ -1158,7 +1154,7 @@ OptionView::OptionView(Base::Window &win):
 			optionFastForwardSpeed = val + MIN_FAST_FORWARD_SPEED;
 		}
 	},
-	#if defined CONFIG_BASE_ANDROID && CONFIG_ENV_ANDROID_MINSDK >= 9
+	#if defined CONFIG_BASE_ANDROID
 	processPriority
 	{
 		"Process Priority",

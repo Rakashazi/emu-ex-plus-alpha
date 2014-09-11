@@ -201,10 +201,8 @@ OptionRecentGames optionRecentGames;
 	// Default & current setting isn't known until OpenGL init
 	Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
 	#endif
-	#if CONFIG_ENV_ANDROID_MINSDK >= 9
 	Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
 	SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
-	#endif
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);

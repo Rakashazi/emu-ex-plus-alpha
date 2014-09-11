@@ -244,10 +244,8 @@ static bool readConfig2(Io &io)
 				#if defined SUPPORT_ANDROID_DIRECT_TEXTURE
 				bcase CFGKEY_DIRECT_TEXTURE: optionDirectTexture.readFromIO(io, size);
 				#endif
-				#if CONFIG_ENV_ANDROID_MINSDK >= 9
 				bcase CFGKEY_SURFACE_TEXTURE: optionSurfaceTexture.readFromIO(io, size);
 				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
-				#endif
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
@@ -487,10 +485,8 @@ static OptionBase *cfgFileOption[] =
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		&optionDirectTexture,
 		#endif
-		#if CONFIG_ENV_ANDROID_MINSDK >= 9
 		&optionSurfaceTexture,
 		&optionProcessPriority,
-		#endif
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,

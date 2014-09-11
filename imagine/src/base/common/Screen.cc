@@ -142,7 +142,7 @@ bool Screen::screensArePosted()
 	return false;
 }
 
-uint Screen::elaspedFrames(FrameTimeBase frameTime)
+uint Screen::elapsedFrames(FrameTimeBase frameTime)
 {
 	if(!prevFrameTime || frameTime < prevFrameTime)
 		return 0;
@@ -165,11 +165,11 @@ void Screen::startDebugFrameStats(FrameTimeBase frameTime)
 		frameTimeBaseToSDec(frameTime),
 		frameTimeBaseToSDec(timeSinceCurrentFrame),
 		frameTimeBaseToSDec(diffFromLastFrame));*/
-	auto elapsedFrames = elaspedFrames(frameTime);
-	if(elapsedFrames > 1)
+	auto elapsed = elapsedFrames(frameTime);
+	if(elapsed > 1)
 	{
 		logWarn("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
-			elapsedFrames - 1, continuousFrames,
+			elapsed - 1, continuousFrames,
 			frameTimeBaseToSDec(frameTime), frameTimeBaseToSDec(diffFromLastFrame));
 		continuousFrames = 0;
 	}
