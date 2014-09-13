@@ -120,7 +120,7 @@ public:
 struct AndroidInputDevice : public Input::Device
 {
 	int osId = 0;
-	char nameStr[48]{0};
+	char nameStr[48]{};
 	uint joystickAxisAsDpadBits_ = 0, joystickAxisAsDpadBitsDefault_ = 0;
 	uint axisBits = 0;
 	bool iCadeMode_ = false;

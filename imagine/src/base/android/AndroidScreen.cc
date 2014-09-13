@@ -20,7 +20,6 @@
 #include <imagine/base/Base.hh>
 #include "internal.hh"
 #include "android.hh"
-#include "ASurface.hh"
 #include "../common/screenPrivate.hh"
 
 namespace Base
@@ -134,13 +133,13 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
 	}
 
-	bool isStraightOrientation = true;
+	bool isStraightRotation = true;
 	if(isMain)
 	{
-		auto orientation = jGetRotation(env, aDisplay);
+		auto orientation = (SurfaceRotation)jGetRotation(env, aDisplay);
 		logMsg("starting orientation %d", orientation);
-		osOrientation = orientation;
-		isStraightOrientation = !ASurface::isSidewaysOrientation(orientation);
+		osRotation = orientation;
+		isStraightRotation = surfaceRotationIsStraight(orientation);
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	if(isMain)
@@ -190,10 +189,10 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	}
 	#endif
 	// DPI values are un-rotated from DisplayMetrics
-	xDPI = isStraightOrientation ? metricsXDPI : metricsYDPI;
-	yDPI = isStraightOrientation ? metricsYDPI : metricsXDPI;
-	width_ = isStraightOrientation ? widthPixels : heightPixels;
-	height_ = isStraightOrientation ? heightPixels : widthPixels;
+	xDPI = isStraightRotation ? metricsXDPI : metricsYDPI;
+	yDPI = isStraightRotation ? metricsYDPI : metricsXDPI;
+	width_ = isStraightRotation ? widthPixels : heightPixels;
+	height_ = isStraightRotation ? heightPixels : widthPixels;
 }
 
 void Screen::deinit()
@@ -213,9 +212,9 @@ int Screen::height()
 	return height_;
 }
 
-int AndroidScreen::aOrientation(JNIEnv *env)
+SurfaceRotation AndroidScreen::rotation(JNIEnv *env)
 {
-	return jGetRotation(env, aDisplay);
+	return (SurfaceRotation)jGetRotation(env, aDisplay);
 }
 
 uint Screen::refreshRate()

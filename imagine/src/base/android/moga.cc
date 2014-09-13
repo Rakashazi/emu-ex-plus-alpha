@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "InputAndroidMOGA"
+#define LOGTAG "MOGAInput"
 #include <imagine/base/Base.hh>
-#include "../../base/android/android.hh"
-#include "private.hh"
-#include "../private.hh"
+#include "internal.hh"
+#include "android.hh"
+#include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
 
 namespace Input
@@ -54,14 +54,14 @@ static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
 		{
 			logMsg("MOGA connected");
 			string_copy(mogaDev.nameStr, jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller");
-			Input::addDevice(mogaDev);
+			addDevice(mogaDev);
 			if(notify && onDeviceChange)
 				onDeviceChange(mogaDev, {Device::Change::ADDED});
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
-			Input::removeDevice(mogaDev);
+			removeDevice(mogaDev);
 			if(notify && onDeviceChange)
 				onDeviceChange(mogaDev, {Device::Change::REMOVED});
 		}
@@ -131,7 +131,7 @@ static void initMOGAJNI(JNIEnv *env)
 	};
 	env->RegisterNatives(mogaHelperCls, method, sizeofArray(method));
 
-	mogaDev.subtype_ = Input::Device::SUBTYPE_GENERIC_GAMEPAD;
+	mogaDev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
 	mogaDev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
 	// set joystick axes
 	{
@@ -183,7 +183,7 @@ void deinitMOGA()
 	if(contains(devList, &mogaDev))
 	{
 		mogaConnected = false;
-		Input::removeDevice(mogaDev);
+		removeDevice(mogaDev);
 		if(onDeviceChange)
 			onDeviceChange(mogaDev, { Device::Change::REMOVED });
 	}

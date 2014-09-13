@@ -83,7 +83,7 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 			{
 				// some devices may delay reporting input events (stock rom on R800i for example),
 				// check for any before rendering frame to avoid extra latency
-				processInput(inputQueue);
+				Input::processInput(inputQueue);
 			}
 
 			auto &screen = mainScreen();

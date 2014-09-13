@@ -22,6 +22,8 @@
 namespace Base
 {
 
+enum SurfaceRotation : int;
+
 class AndroidScreen : public NotEquals<AndroidScreen>
 {
 public:
@@ -40,7 +42,7 @@ public:
 	constexpr AndroidScreen() {}
 
 	void init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain);
-	int aOrientation(JNIEnv *env);
+	SurfaceRotation rotation(JNIEnv *env);
 
 	bool operator ==(AndroidScreen const &rhs) const
 	{

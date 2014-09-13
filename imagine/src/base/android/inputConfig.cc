@@ -13,57 +13,179 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "InputAndroid"
-#include <imagine/base/android/sdk.hh>
-#include <imagine/input/AxisKeyEmu.hh>
-#include "../../base/android/android.hh"
-#include "../private.hh"
-#include "private.hh"
-#include "AndroidInputDevice.hh"
-#include <imagine/base/Timer.hh>
-#include <imagine/util/jni.hh>
-#include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/fd-utils.h>
-#include <imagine/util/bits.h>
-#include <android/input.h>
-#include <android/configuration.h>
-#include <dlfcn.h>
+#define LOGTAG "InputConfig"
 #include <sys/inotify.h>
-#include "common.hh"
+#include <imagine/base/Base.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/logger/logger.h>
+#include <imagine/util/fd-utils.h>
+#include "internal.hh"
+#include "android.hh"
+#include "../../input/private.hh"
+#include "AndroidInputDevice.hh"
 
 namespace Input
 {
 
-#if CONFIG_ENV_ANDROID_MINSDK < 12
-using AMotionEvent_getAxisValueProto = float (__NDK_FPABI__ *)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
-static AMotionEvent_getAxisValueProto AMotionEvent_getAxisValue = nullptr;
-static bool hasGetAxisValue()
-{
-	return likely(AMotionEvent_getAxisValue);
-}
-#else
-static bool hasGetAxisValue()
-{
-	return true;
-}
-#endif
+static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
+static bool trackballNav = false;
+bool handleVolumeKeys = false;
+bool allowOSKeyRepeats = true;
+bool sendInputToIME = false;
+static constexpr uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
 static Base::Timer inputRescanCallback;
-static bool handleVolumeKeys = false;
-static bool allowOSKeyRepeats = true;
-static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
-static const uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
-static const uint maxSysInputDevs = MAX_DEVS;
+static Device *builtinKeyboardDev{};
 StaticArrayList<AndroidInputDevice*, maxSysInputDevs> sysInputDev;
-static Device *virtualDev = nullptr;
-static AndroidInputDevice genericKeyDev { -1,
-	Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Key Input (All Devices)" };
+Device *virtualDev{};
+AndroidInputDevice genericKeyDev
+{
+	-1,
+	Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
+	"Key Input (All Devices)"
+};
 jclass AInputDeviceJ::cls = nullptr;
 JavaClassMethod<jobject> AInputDeviceJ::getDeviceIds_, AInputDeviceJ::getDevice_;
 JavaInstMethod<jobject> AInputDeviceJ::getName_, AInputDeviceJ::getKeyCharacterMap_, AInputDeviceJ::getMotionRange_, AInputDeviceJ::getDescriptor_;
 JavaInstMethod<jint> AInputDeviceJ::getSources_, AInputDeviceJ::getKeyboardType_;
-//jclass AInputDeviceMotionRangeJ::cls = nullptr;
-//JavaInstMethod<jfloat> AInputDeviceMotionRangeJ::getMin_, AInputDeviceMotionRangeJ::getMax_;
-bool sendInputToIME = false;
+
+// NAVHIDDEN_* mirrors KEYSHIDDEN_*
+
+static const char *hardKeyboardNavStateToStr(int state)
+{
+	switch(state)
+	{
+		case ACONFIGURATION_KEYSHIDDEN_ANY: return "undefined";
+		case ACONFIGURATION_KEYSHIDDEN_NO: return "no";
+		case ACONFIGURATION_KEYSHIDDEN_YES: return "yes";
+		case ACONFIGURATION_KEYSHIDDEN_SOFT:  return "soft";
+		default: return "unknown";
+	}
+}
+
+bool hasHardKeyboard() { return aHasHardKeyboard; }
+int hardKeyboardState() { return aHardKeyboardState; }
+
+static void setHardKeyboardState(int hardKeyboardState)
+{
+	if(aHardKeyboardState != hardKeyboardState)
+	{
+		aHardKeyboardState = hardKeyboardState;
+		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
+		if(builtinKeyboardDev)
+		{
+			bool shown = aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
+			Device::Change change{shown ? Device::Change::SHOWN : Device::Change::HIDDEN};
+			if(onDeviceChange)
+				onDeviceChange(*builtinKeyboardDev, change);
+		}
+	}
+}
+
+int keyboardType()
+{
+	return aKeyboardType;
+}
+
+bool hasTrackball()
+{
+	return trackballNav;
+}
+
+bool hasXperiaPlayGamepad()
+{
+	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Device::SUBTYPE_XPERIA_PLAY;
+}
+
+void initInputConfig(AConfiguration *config)
+{
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navigationState = AConfiguration_getNavHidden(config);
+	auto keyboard = AConfiguration_getKeyboard(config);
+	trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
+	if(trackballNav)
+		logMsg("detected trackball");
+
+	aHardKeyboardState = hasXperiaPlayGamepad() ? navigationState : hardKeyboardState;
+	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
+
+	aKeyboardType = keyboard;
+	if(aKeyboardType != ACONFIGURATION_KEYBOARD_NOKEYS)
+		logMsg("keyboard type: %d", aKeyboardType);
+}
+
+void changeInputConfig(AConfiguration *config)
+{
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navState = AConfiguration_getNavHidden(config);
+	auto keyboard = AConfiguration_getKeyboard(config);
+	//trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
+	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
+	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
+}
+
+static const char *androidEventEnumToStr(uint e)
+{
+	switch(e)
+	{
+		case AMOTION_EVENT_ACTION_DOWN: return "Down";
+		case AMOTION_EVENT_ACTION_UP: return "Up";
+		case AMOTION_EVENT_ACTION_MOVE: return "Move";
+		case AMOTION_EVENT_ACTION_CANCEL: return "Cancel";
+		case AMOTION_EVENT_ACTION_POINTER_DOWN: return "PDown";
+		case AMOTION_EVENT_ACTION_POINTER_UP: return "PUp";
+	}
+	return "Unknown";
+}
+
+void setKeyRepeat(bool on)
+{
+	// always accept repeats on Android 3.1+ because 2+ devices pushing
+	// the same button is considered a repeat by the OS
+	if(Base::androidSDK() < 12)
+	{
+		logMsg("set key repeat %s", on ? "On" : "Off");
+		allowOSKeyRepeats = on;
+	}
+	setAllowKeyRepeats(on);
+}
+
+void setHandleVolumeKeys(bool on)
+{
+	logMsg("set volume key use %s", on ? "On" : "Off");
+	handleVolumeKeys = on;
+}
+
+void setEventsUseOSInputMethod(bool on)
+{
+	logMsg("set IME use %s", on ? "On" : "Off");
+	sendInputToIME = on;
+}
+
+bool eventsUseOSInputMethod()
+{
+	return sendInputToIME;
+}
+
+static bool remapAxisKeyEmu(Device &dev, AxisKeyEmu<float> &keyEmu, const Key (&matchKey)[4], const Key (&setKey)[4])
+{
+	bool didRemap = false;
+	forEachDInArray(matchKey, match)
+	{
+		if(keyEmu.lowKey == match)
+		{
+			keyEmu.lowKey = setKey[match_i];
+			logMsg("set low key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.lowKey));
+			didRemap = true;
+		}
+		if(keyEmu.highKey == match)
+		{
+			keyEmu.highKey = setKey[match_i];
+			logMsg("set high key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.highKey));
+			didRemap = true;
+		}
+	}
+	return didRemap;
+}
 
 static const char *inputDeviceKeyboardTypeToStr(int type)
 {
@@ -220,324 +342,6 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 	}
 }
 
-void setKeyRepeat(bool on)
-{
-	// always accept repeats on Android 3.1+ because 2+ devices pushing
-	// the same button is considered a repeat by the OS
-	if(Base::androidSDK() < 12)
-	{
-		logMsg("set key repeat %s", on ? "On" : "Off");
-		allowOSKeyRepeats = on;
-	}
-	setAllowKeyRepeats(on);
-}
-
-void setHandleVolumeKeys(bool on)
-{
-	logMsg("set volume key use %s", on ? "On" : "Off");
-	handleVolumeKeys = on;
-}
-
-void setEventsUseOSInputMethod(bool on)
-{
-	logMsg("set IME use %s", on ? "On" : "Off");
-	sendInputToIME = on;
-}
-
-bool eventsUseOSInputMethod()
-{
-	return sendInputToIME;
-}
-
-static const char* aInputSourceToStr(uint source)
-{
-	switch(source)
-	{
-		case AINPUT_SOURCE_UNKNOWN: return "Unknown";
-		case AINPUT_SOURCE_KEYBOARD: return "Keyboard";
-		case AINPUT_SOURCE_DPAD: return "DPad";
-		case AINPUT_SOURCE_TOUCHSCREEN: return "Touchscreen";
-		case AINPUT_SOURCE_MOUSE: return "Mouse";
-		case AINPUT_SOURCE_TRACKBALL: return "Trackball";
-		case AINPUT_SOURCE_TOUCHPAD: return "Touchpad";
-		case AINPUT_SOURCE_JOYSTICK: return "Joystick";
-		case AINPUT_SOURCE_ANY: return "Any";
-		default:  return "Unhandled value";
-	}
-}
-
-static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState, AInputEvent *event)
-{
-	switch(dev.subtype())
-	{
-		bcase Device::SUBTYPE_XPERIA_PLAY:
-		{
-			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::ESCAPE && (metaState & AMETA_ALT_ON)))
-			{
-				keyCode = Keycode::GAME_B;
-			}
-		}
-		bcase Device::SUBTYPE_XBOX_360_CONTROLLER:
-		{
-			if(keyCode)
-				break;
-			// map d-pad on wireless controller adapter
-			auto scanCode = AKeyEvent_getScanCode(event);
-			switch(scanCode)
-			{
-				bcase 704: keyCode = Keycode::LEFT;
-				bcase 705: keyCode = Keycode::RIGHT;
-				bcase 706: keyCode = Keycode::UP;
-				bcase 707: keyCode = Keycode::DOWN;
-			}
-		}
-		bdefault: break;
-	}
-}
-
-static const Device *deviceForInputId(int osId)
-{
-	if(Base::androidSDK() < 12)
-	{
-		// no multi-input device support
-		return &genericKeyDev;
-	}
-	for(auto &e : sysInputDev)
-	{
-		if(e->osId == osId)
-		{
-			return e;
-		}
-	}
-	return nullptr;
-}
-
-static AndroidInputDevice *sysDeviceForInputId(int osId)
-{
-	for(auto &e : sysInputDev)
-	{
-		if(e->osId == osId)
-		{
-			return e;
-		}
-	}
-	return nullptr;
-}
-
-int32_t onInputEvent(AInputEvent* event, Base::Window &win)
-{
-	auto type = AInputEvent_getType(event);
-	auto source = AInputEvent_getSource(event);
-	switch(type)
-	{
-		case AINPUT_EVENT_TYPE_MOTION:
-		{
-			int eventAction = AMotionEvent_getAction(event);
-			//logMsg("get motion event action %d", eventAction);
-			bool isTouch = false;
-			switch(source)
-			{
-				case AINPUT_SOURCE_TRACKBALL:
-				{
-					//logMsg("from trackball");
-					handleTrackballEvent(eventAction, AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0), AMotionEvent_getEventTime(event));
-					return 1;
-				}
-				case AINPUT_SOURCE_TOUCHPAD: // TODO
-				{
-					//logMsg("from touchpad");
-					return 0;
-				}
-				case AINPUT_SOURCE_TOUCHSCREEN:
-				{
-					isTouch = true;
-					// fall-through to case AINPUT_SOURCE_MOUSE
-				}
-				case AINPUT_SOURCE_MOUSE:
-				{
-					//logMsg("from touchscreen or mouse");
-					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
-					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
-					{
-						// touch gesture ended
-						handleTouchEvent(AMOTION_EVENT_ACTION_UP,
-								AMotionEvent_getX(event, 0),
-								AMotionEvent_getY(event, 0),
-								AMotionEvent_getPointerId(event, 0),
-								AMotionEvent_getEventTime(event), isTouch);
-						return 1;
-					}
-					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-					int pointers = AMotionEvent_getPointerCount(event);
-					iterateTimes(pointers, i)
-					{
-						int pAction = action;
-						// a pointer not performing the action just needs its position updated
-						if(actionPIdx != i)
-						{
-							//logMsg("non-action pointer idx %d", i);
-							pAction = AMOTION_EVENT_ACTION_MOVE;
-						}
-						handleTouchEvent(pAction,
-							AMotionEvent_getX(event, i),
-							AMotionEvent_getY(event, i),
-							AMotionEvent_getPointerId(event, i),
-							AMotionEvent_getEventTime(event), isTouch);
-					}
-					return 1;
-				}
-				case AINPUT_SOURCE_JOYSTICK: // Joystick
-				{
-					auto dev = sysDeviceForInputId(AInputEvent_getDeviceId(event));
-					if(unlikely(!dev))
-					{
-						logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
-						return 0;
-					}
-					auto enumID = dev->enumId();
-					//logMsg("Joystick input from %s", dev->name());
-
-					if(hasGetAxisValue())
-					{
-						for(auto &axis : dev->axis)
-						{
-							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
-							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, *dev, win);
-						}
-					}
-					else
-					{
-						// no getAxisValue, can only use 2 axis values (X and Y)
-						iterateTimes(std::min(dev->axis.size(), (uint)2), i)
-						{
-							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, *dev, win);
-						}
-					}
-					return 1;
-				}
-				default:
-				{
-					//logWarn("from other source: %s, %dx%d", aInputSourceToStr(source), (int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0));
-					return 0;
-				}
-			}
-		}
-		bcase AINPUT_EVENT_TYPE_KEY:
-		{
-			auto keyCode = AKeyEvent_getKeyCode(event);
-			//logMsg("key event, code: %d id: %d source: 0x%X repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
-			if(!handleVolumeKeys &&
-				(keyCode == (int)Keycode::VOL_UP || keyCode == (int)Keycode::VOL_DOWN))
-			{
-				return 0;
-			}
-
-			if(allowOSKeyRepeats || AKeyEvent_getRepeatCount(event) == 0)
-			{
-				auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
-				if(unlikely(!dev))
-				{
-					assert(virtualDev);
-					//logWarn("re-mapping unknown device ID %d to Virtual", AInputEvent_getDeviceId(event));
-					dev = virtualDev;
-				}
-				auto metaState = AKeyEvent_getMetaState(event);
-				mapKeycodesForSpecialDevices(*dev, keyCode, metaState, event);
-				if(unlikely(!keyCode)) // ignore "unknown" key codes
-				{
-					return 0;
-				}
-				handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, dev->enumId(), metaState & AMETA_SHIFT_ON, AKeyEvent_getEventTime(event), *dev);
-			}
-			return 1;
-		}
-	}
-	logWarn("unhandled input event type %d", type);
-	return 0;
-}
-
-static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss)
-{
-	if(isDoingDismiss)
-		Base::unrefUIGL();
-	if(!processText)
-	{
-		return;
-	}
-	setEventsUseOSInputMethod(false);
-	auto delegate = moveAndClear(vKeyboardTextDelegate);
-	if(delegate)
-	{
-		Base::restoreOpenGLContext();
-		if(jStr)
-		{
-			const char *str = env->GetStringUTFChars(jStr, nullptr);
-			logMsg("running text entry callback with text: %s", str);
-			delegate(str);
-			env->ReleaseStringUTFChars(jStr, str);
-		}
-		else
-		{
-			logMsg("canceled text entry callback");
-			delegate(nullptr);
-		}
-	}
-	else
-	{
-		logMsg("text entry has no callback");
-	}
-}
-
-bool dlLoadAndroidFuncs(void *libandroid)
-{
-	#if CONFIG_ENV_ANDROID_MINSDK < 12
-	if(Base::androidSDK() < 12)
-	{
-		return 0;
-	}
-	// load AMotionEvent_getAxisValue dynamically
-	if((AMotionEvent_getAxisValue = (AMotionEvent_getAxisValueProto)dlsym(libandroid, "AMotionEvent_getAxisValue")) == nullptr)
-	{
-		bug_exit("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
-		return 0;
-	}
-	#endif
-	return 1;
-}
-
-static bool isUsefulDevice(const char *name)
-{
-	// skip various devices that don't have useful functions
-	if(strstr(name, "pwrkey") || strstr(name, "pwrbutton")) // various power keys
-	{
-		return false;
-	}
-	return true;
-}
-
-static bool remapAxisKeyEmu(Device &dev, AxisKeyEmu<float> &keyEmu, const Key (&matchKey)[4], const Key (&setKey)[4])
-{
-	bool didRemap = false;
-	forEachDInArray(matchKey, match)
-	{
-		if(keyEmu.lowKey == match)
-		{
-			keyEmu.lowKey = setKey[match_i];
-			logMsg("set low key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.lowKey));
-			didRemap = true;
-		}
-		if(keyEmu.highKey == match)
-		{
-			keyEmu.highKey = setKey[match_i];
-			logMsg("set high key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.highKey));
-			didRemap = true;
-		}
-	}
-	return didRemap;
-}
-
 void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
 {
 	if(Base::androidSDK() >= 12 && joystickAxisAsDpadBits_ != axisMask)
@@ -600,6 +404,55 @@ uint AndroidInputDevice::joystickAxisAsDpadBits()
 	return joystickAxisAsDpadBits_;
 }
 
+bool Device::anyTypeBitsPresent(uint typeBits)
+{
+	if(typeBits & TYPE_BIT_KEYBOARD)
+	{
+		if(keyboardType() == ACONFIGURATION_KEYBOARD_QWERTY)
+		{
+			if(hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_YES || hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_SOFT)
+			{
+				logMsg("keyboard present, but not in use");
+			}
+			else
+			{
+				logMsg("keyboard present");
+				return true;
+			}
+		}
+		unsetBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
+	}
+
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && hasXperiaPlayGamepad() &&
+		(typeBits & TYPE_BIT_GAMEPAD) && hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
+	{
+		logMsg("Xperia-play gamepad in use");
+		return true;
+	}
+
+	for(auto &devPtr : devList)
+	{
+		auto &e = *devPtr;
+		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
+				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
+		{
+			logMsg("device idx %d has bits 0x%X", e.idx, typeBits);
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool isUsefulDevice(const char *name)
+{
+	// skip various devices that don't have useful functions
+	if(strstr(name, "pwrkey") || strstr(name, "pwrbutton")) // various power keys
+	{
+		return false;
+	}
+	return true;
+}
+
 static uint nextEnumID(const char *name)
 {
 	uint enumID = 0;
@@ -643,7 +496,7 @@ static void processDevice(JNIEnv* env, int devID, bool setSpecialDevices, bool n
 	{
 		auto sysInput = new AndroidInputDevice(env, dev, nextEnumID(name), devID, src, name);
 		sysInputDev.push_back(sysInput);
-		Input::addDevice(*sysInput);
+		addDevice(*sysInput);
 		if(setSpecialDevices)
 		{
 			if(devID == 0) // built-in keyboard is always id 0 according to Android docs
@@ -691,7 +544,7 @@ void devicesChanged(JNIEnv* env)
 		if(!found)
 		{
 			auto removedDev = *dev;
-			Input::removeDevice(*dev);
+			removeDevice(*dev);
 			it.erase();
 			if(onDeviceChange)
 				onDeviceChange(removedDev, { Device::Change::REMOVED });
@@ -741,18 +594,8 @@ static void setupDevices(JNIEnv* env)
 		logMsg("no \"Virtual\" device id found, adding one");
 		auto sysInput = new AndroidInputDevice(-1, Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual");
 		sysInputDev.push_back(sysInput);
-		Input::addDevice(*sysInput);
+		addDevice(*sysInput);
 		virtualDev = sysInput;
-	}
-}
-
-void setBuiltInKeyboardState(bool shown)
-{
-	if(builtinKeyboardDev)
-	{
-		Device::Change change { shown ? Device::Change::SHOWN : Device::Change::HIDDEN };
-		if(onDeviceChange)
-			onDeviceChange(*builtinKeyboardDev, change);
 	}
 }
 
@@ -761,6 +604,7 @@ CallResult init()
 	if(Base::androidSDK() >= 12)
 	{
 		auto env = Base::jEnv();
+		processInput = processInputWithGetEvent;
 
 		// device change notifications
 		if(Base::androidSDK() >= 16)
@@ -795,7 +639,7 @@ CallResult init()
 									if(dev->osId == devID)
 									{
 										auto removedDev = *dev;
-										Input::removeDevice(*dev);
+										removeDevice(*dev);
 										it.erase();
 										if(onDeviceChange)
 											onDeviceChange(removedDev, { Device::Change::REMOVED });
@@ -827,7 +671,7 @@ CallResult init()
 							inputRescanCallback.callbackAfterMSec(
 								[]()
 								{
-									Input::devicesChanged(Base::jEnv());
+									devicesChanged(Base::jEnv());
 								}, 250);
 						}
 						return 1;
@@ -841,7 +685,6 @@ CallResult init()
 		}
 
 		AInputDeviceJ::jniInit(env);
-		//AInputDeviceMotionRangeJ::jniInit();
 		setupDevices(env);
 	}
 	else
@@ -849,7 +692,7 @@ CallResult init()
 		// no multi-input device support
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			if(isXperiaPlayDeviceStr(Base::androidBuildDevice()))
+			if(Base::isXperiaPlayDeviceStr(Base::androidBuildDevice()))
 			{
 				logMsg("detected Xperia Play gamepad");
 				genericKeyDev.subtype_ = Device::SUBTYPE_XPERIA_PLAY;
@@ -860,7 +703,7 @@ CallResult init()
 				genericKeyDev.subtype_ = Device::SUBTYPE_MOTO_DROID_KEYBOARD;
 			}
 		}
-		Input::addDevice(genericKeyDev);
+		addDevice(genericKeyDev);
 		builtinKeyboardDev = &genericKeyDev;
 	}
 	return OK;

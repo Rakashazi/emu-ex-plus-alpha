@@ -42,7 +42,6 @@ void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();
 const char *androidBuildDevice();
-bool hasTrackball();
 bool packageIsInstalled(const char *name);
 
 }
@@ -61,5 +60,6 @@ void initMOGA(bool notify);
 void deinitMOGA();
 bool mogaSystemIsActive();
 void devicesChanged();
+bool hasTrackball();
 
 }

@@ -43,6 +43,11 @@ const char *androidBuildDevice()
 	return buildDevice;
 }
 
+bool isXperiaPlayDeviceStr(const char *str)
+{
+	return strstr(str, "R800") || string_equal(str, "zeus");
+}
+
 int processPriority()
 {
 	return getpriority(PRIO_PROCESS, 0);

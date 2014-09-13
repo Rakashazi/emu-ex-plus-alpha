@@ -332,7 +332,7 @@ CallResult init(uint colorBits)
 	else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 	{
 		Base::setOnSystemOrientationChanged(
-			[](uint oldO, uint newO)
+			[](uint oldO, uint newO) // TODO: parameters need proper type definitions in API
 			{
 				static constexpr Angle orientationDiffTable[4][4]
 				{

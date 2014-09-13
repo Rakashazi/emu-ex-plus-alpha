@@ -32,7 +32,6 @@
 #endif
 #include "../common/windowPrivate.hh"
 #include "../common/basePrivate.hh"
-#include "../../input/android/private.hh"
 #include "android.hh"
 #include "internal.hh"
 
@@ -56,13 +55,14 @@ JavaInstMethod<void> jSetRequestedOrientation;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
 static uint aSDK = aMinSDK;
 static bool osAnimatesRotation = false;
-int osOrientation = -1;
+SurfaceRotation osRotation{};
 static SystemOrientationChangedDelegate onSystemOrientationChanged;
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback;
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 uint androidUIInUse = 0;
+AInputQueue *inputQueue{};
 
 // window
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
@@ -166,7 +166,7 @@ jobject newFontRenderer(JNIEnv *env)
 
 static void initConfig(AConfiguration* config)
 {
-	initInputConfig(config);
+	Input::initInputConfig(config);
 }
 
 static void activityInit(JNIEnv* env, jobject activity)
@@ -412,16 +412,16 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		[](ANativeActivity *activity)
 		{
 			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-			auto orientation = mainScreen().aOrientation(activity->env);
-			if(orientation != osOrientation)
+			auto rotation = mainScreen().rotation(activity->env);
+			if(rotation != osRotation)
 			{
 				logMsg("changed OS orientation");
-				auto oldOrientation = osOrientation;
-				osOrientation = orientation;
+				auto oldRotation = osRotation;
+				osRotation = rotation;
 				if(onSystemOrientationChanged)
-					onSystemOrientationChanged(oldOrientation, orientation);
+					onSystemOrientationChanged(oldRotation, rotation);
 			}
-			changeInputConfig(aConfig);
+			Input::changeInputConfig(aConfig);
 		};
 	activity->callbacks->onLowMemory =
 		[](ANativeActivity *)
@@ -477,7 +477,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			AInputQueue_attachLooper(queue, activityLooper(), ALOOPER_POLL_CALLBACK,
 				[](int, int, void* data)
 				{
-					processInput((AInputQueue*)data);
+					Input::processInput((AInputQueue*)data);
 					return 1;
 				}, queue);
 		};
@@ -499,8 +499,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	if(Config::DEBUG_BUILD)
 		logMsg("called ANativeActivity_onCreate, thread ID %d", gettid());
 	aSDK = activity->sdkVersion;
-	if(Base::androidSDK() >= 16)
-		processInput = processInputWithGetEvent;
 	initActivityLooper();
 	jVM = activity->vm;
 	assetManager = activity->assetManager;

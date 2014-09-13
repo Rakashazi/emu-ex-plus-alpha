@@ -19,12 +19,11 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/android/sdk.hh>
 #include "android.hh"
-#include "ASurface.hh"
+#include "internal.hh"
 #include <imagine/util/fd-utils.h>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
-#include "internal.hh"
 
 namespace Base
 {
@@ -104,8 +103,8 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	assert(screen().xDPI && screen().yDPI);
-	float xdpi = ASurface::isStraightOrientation(osOrientation) ? screen().xDPI : screen().yDPI;
-	float ydpi = ASurface::isStraightOrientation(osOrientation) ? screen().yDPI : screen().xDPI;
+	float xdpi = surfaceRotationIsStraight(osRotation) ? screen().xDPI : screen().yDPI;
+	float ydpi = surfaceRotationIsStraight(osRotation) ? screen().yDPI : screen().xDPI;
 	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / ydpi) * 25.4f};
 }
 

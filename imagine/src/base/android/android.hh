@@ -38,10 +38,6 @@ JNIEnv* jEnv(); // JNIEnv of activity thread
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
 
-bool hasHardKeyboard();
-int hardKeyboardState();
-int keyboardType();
-
 // Activity thread ALooper
 ALooper *activityLooper();
 

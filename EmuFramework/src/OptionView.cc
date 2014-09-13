@@ -606,7 +606,7 @@ void OptionView::loadInputItems(MenuItem *item[], uint &items)
 	btScanCache.init(optionBlueToothScanCache); item[items++] = &btScanCache;
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
-	if(Base::hasTrackball())
+	if(Input::hasTrackball())
 	{
 		relativePointerDecelInit(); item[items++] = &relativePointerDecel;
 	}
