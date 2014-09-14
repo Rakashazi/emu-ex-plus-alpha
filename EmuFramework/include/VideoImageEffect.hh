@@ -23,10 +23,13 @@
 class VideoImageEffect
 {
 private:
-	Gfx::Program prog[2];
-	Gfx::Shader vShader[2]{0};
-	Gfx::Shader fShader[2]{0};
-	int texDeltaU[2]{0};
+	static constexpr uint MAX_PROGRAMS = 2;
+	Gfx::Program prog[MAX_PROGRAMS];
+	Gfx::Shader vShader[MAX_PROGRAMS]{};
+	Gfx::Shader fShader[MAX_PROGRAMS]{};
+	int srcTexelDeltaU[MAX_PROGRAMS]{};
+	int srcTexelHalfDeltaU[MAX_PROGRAMS]{};
+	int srcPixelsU[MAX_PROGRAMS]{};
 	uint effect_ = NO_EFFECT;
 	Gfx::RenderTarget renderTarget_;
 	IG::Point2D<uint> renderTargetScale;
@@ -45,8 +48,9 @@ public:
 	{
 		NO_EFFECT = 0,
 		HQ2X = 1,
+		SCALE2X = 2,
 
-		MAX_EFFECT_VAL = HQ2X
+		LAST_EFFECT_VAL
 	};
 
 	constexpr	VideoImageEffect() {}

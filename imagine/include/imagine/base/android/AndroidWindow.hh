@@ -21,7 +21,6 @@
 #include <EGL/egl.h>
 
 struct ANativeWindow;
-struct ANativeActivity;
 
 namespace Base
 {

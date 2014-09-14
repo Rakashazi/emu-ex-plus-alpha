@@ -1,0 +1,31 @@
+varying lowp vec2 texUVOut[5];
+varying mediump vec2 texelPosOut;
+uniform sampler2D tex;
+
+void main()
+{
+	precision lowp float;
+
+	vec4 E = texture2D(tex, texUVOut[2]);
+	vec4 D = texture2D(tex, texUVOut[1]);
+	vec4 F = texture2D(tex, texUVOut[3]);
+	vec4 H = texture2D(tex, texUVOut[4]);
+	vec4 B = texture2D(tex, texUVOut[0]);
+	vec2 subTexel = fract(texelPosOut);
+	
+	if(subTexel.y >= 0.5)
+	{
+		// adjust to E2 (swap B and H)
+		vec4 tmp = B; B = H; H = tmp;
+	}
+	if(subTexel.x >= 0.5)
+	{
+		// adjust to E1 or E3 (swap D and F)
+		vec4 tmp = F; F = D; D = tmp;
+	}
+
+	if(D == B && B != H && D != F)
+ 		E = D;
+
+	OUT_FRAGCOLOR(E);
+}

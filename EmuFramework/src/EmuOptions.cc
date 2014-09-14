@@ -100,7 +100,7 @@ OptionAspectRatio optionAspectRatio(EmuSystem::aspectRatioInfo[0].aspect);
 
 Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::LINEAR, 0, Gfx::BufferImage::isFilterValid);
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<VideoImageEffect::MAX_EFFECT_VAL>);
+Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<VideoImageEffect::LAST_EFFECT_VAL-1>);
 #endif
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);

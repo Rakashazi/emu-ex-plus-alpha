@@ -32,6 +32,9 @@ struct EffectDesc
 static const EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
+static const EffectDesc
+	scale2xDesc{"scale2x-v.txt", "scale2x-f.txt", {2, 2}};
+
 void VideoImageEffect::setEffect(uint effect, bool isExternalTex)
 {
 	if(effect == effect_)
@@ -90,6 +93,11 @@ void VideoImageEffect::compile(bool isExternalTex)
 			logMsg("compiling effect HQ2X");
 			desc = &hq2xDesc;
 		}
+		bcase SCALE2X:
+		{
+			logMsg("compiling effect Scale2X");
+			desc = &scale2xDesc;
+		}
 		bdefault:
 			break;
 	}
@@ -107,7 +115,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		initRenderTargetTexture();
 	}
 	{
-		auto file = IOFile(openAppAssetIo(desc->vShaderFilename));
+		auto file = IOFile(openAppAssetIo(makeFSPathStringPrintf("shaders/%s", desc->vShaderFilename)));
 		if(!file)
 		{
 			deinit();
@@ -139,7 +147,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		}
 	}
 	{
-		auto file = IOFile(openAppAssetIo(desc->fShaderFilename));
+		auto file = IOFile(openAppAssetIo(makeFSPathStringPrintf("shaders/%s", desc->fShaderFilename)));
 		if(!file)
 		{
 			deinit();
@@ -182,7 +190,9 @@ void VideoImageEffect::compile(bool isExternalTex)
 			Gfx::autoReleaseShaderCompiler();
 			return;
 		}
-		texDeltaU[i] = prog[i].uniformLocation("texDelta");
+		srcTexelDeltaU[i] = prog[i].uniformLocation("srcTexelDelta");
+		srcTexelHalfDeltaU[i] = prog[i].uniformLocation("srcTexelHalfDelta");
+		srcPixelsU[i] = prog[i].uniformLocation("srcPixels");
 		updateProgramUniforms();
 	}
 	Gfx::autoReleaseShaderCompiler();
@@ -193,7 +203,12 @@ void VideoImageEffect::updateProgramUniforms()
 	iterateTimes(programs(), i)
 	{
 		setProgram(prog[i]);
-		Gfx::uniformF(texDeltaU[i], 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
+		if(srcTexelDeltaU[i] != -1)
+			Gfx::uniformF(srcTexelDeltaU[i], 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
+		if(srcTexelHalfDeltaU[i] != -1)
+			Gfx::uniformF(srcTexelHalfDeltaU[i], 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
+		if(srcPixelsU[i] != -1)
+			Gfx::uniformF(srcPixelsU[i], inputImgSize.x, inputImgSize.y);
 	}
 }
 

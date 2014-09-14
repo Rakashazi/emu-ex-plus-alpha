@@ -266,7 +266,6 @@ bool Program::link()
 int Program::uniformLocation(const char *uniformName)
 {
 	auto loc = glGetUniformLocation(program_, uniformName);
-	assert(loc != -1);
 	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation proj", err); });
 	return loc;
 }

@@ -1,1 +1,0 @@
-../../../EmuFramework/res/shaders/hq2x-f.txt

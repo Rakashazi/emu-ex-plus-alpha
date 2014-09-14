@@ -48,3 +48,9 @@ static Io *openAppAssetIo(const char *name)
 	return IoSys::open(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
 	#endif
 }
+
+template <size_t S>
+static Io *openAppAssetIo(std::array<char, S> name)
+{
+	return openAppAssetIo(name.data());
+}

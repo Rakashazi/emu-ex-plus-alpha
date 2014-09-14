@@ -1,0 +1,18 @@
+uniform vec2 srcTexelDelta;
+uniform vec2 srcPixels;
+attribute vec2 texUV;
+varying vec2 texUVOut[5];
+varying vec2 texelPosOut;
+
+void main()
+{
+	vec2 offsetX = vec2(srcTexelDelta.x, 0.0);
+	vec2 offsetY = vec2(0.0, srcTexelDelta.y);
+	texUVOut[0] = texUV - offsetY;
+	texUVOut[1] = texUV - offsetX;
+	texUVOut[2] = texUV;
+	texUVOut[3] = texUV + offsetX;
+	texUVOut[4] = texUV + offsetY;
+	texelPosOut = texUV * srcPixels;
+	OUT_POSITION;
+}

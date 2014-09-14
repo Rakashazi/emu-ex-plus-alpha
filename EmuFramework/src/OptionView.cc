@@ -312,11 +312,12 @@ void OptionView::viewportZoomInit()
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 void OptionView::imgEffectInit()
 {
-	static const char *str[] {"Off", "hq2x"};
+	static const char *str[] {"Off", "hq2x", "Scale2x"};
 	uint init = 0;
 	switch(optionImgEffect)
 	{
 		bcase VideoImageEffect::HQ2X: init = 1;
+		bcase VideoImageEffect::SCALE2X: init = 2;
 	}
 	imgEffect.init(str, init, sizeofArray(str));
 }
@@ -825,6 +826,7 @@ OptionView::OptionView(Base::Window &win):
 			switch(val)
 			{
 				bcase 1: setVal = VideoImageEffect::HQ2X;
+				bcase 2: setVal = VideoImageEffect::SCALE2X;
 			}
 			optionImgEffect.val = setVal;
 			emuVideoLayer.setEffect(setVal);

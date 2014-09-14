@@ -1,13 +1,13 @@
-uniform vec2 texDelta;
+uniform vec2 srcTexelHalfDelta;
 attribute vec2 texUV;
 varying vec2 texUVOut[9];
 
 void main()
 {
-	vec2 offsetDiag = vec2(texDelta.x, texDelta.y);
-	vec2 offsetDiagNegX = vec2(-texDelta.x, texDelta.y);
-	vec2 offsetX = vec2(texDelta.x, 0.0);
-	vec2 offsetY = vec2(0.0, texDelta.y);
+	vec2 offsetDiag = vec2(srcTexelHalfDelta.x, srcTexelHalfDelta.y);
+	vec2 offsetDiagNegX = vec2(-srcTexelHalfDelta.x, srcTexelHalfDelta.y);
+	vec2 offsetX = vec2(srcTexelHalfDelta.x, 0.0);
+	vec2 offsetY = vec2(0.0, srcTexelHalfDelta.y);
 	texUVOut[0] = texUV - offsetDiag;
 	texUVOut[1] = texUV - offsetY;
 	texUVOut[2] = texUV - offsetDiagNegX;
