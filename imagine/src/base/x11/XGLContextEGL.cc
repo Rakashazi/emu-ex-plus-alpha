@@ -17,7 +17,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
-#include "x11.hh"
+#include "internal.hh"
 
 namespace Base
 {

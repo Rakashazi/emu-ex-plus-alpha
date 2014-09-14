@@ -27,7 +27,7 @@
 #if !defined CONFIG_MACHINE_PANDORA && defined CONFIG_BASE_X11_EGL
 #include <EGL/eglextchromium.h>
 #endif
-#include "x11.hh"
+#include "internal.hh"
 
 // for fbdev vsync
 #include <unistd.h>

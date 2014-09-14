@@ -46,6 +46,7 @@ CPPFLAGS += -I$(pandoraSDKSysroot)/include \
 # link librt to avoid pulling in GLIBC 2.17+ clock functions
 LDLIBS += -L$(pandoraSDKSysroot)/lib -Wl,-rpath-link=$(pandoraSDKSysroot)/lib -lrt
 
+linuxEventLoop := epoll
 x11GLWinSystem := egl
 openGLESVersion ?= 2
 

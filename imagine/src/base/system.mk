@@ -1,5 +1,5 @@
 ifeq ($(ENV), linux)
- include $(imagineSrcDir)/base/x11/build.mk
+ include $(imagineSrcDir)/base/linux/build.mk
 else ifeq ($(ENV), android)
  include $(imagineSrcDir)/base/android/build.mk
 else ifeq ($(ENV), ios)
@@ -13,6 +13,3 @@ else ifeq ($(ENV), webos)
 else ifeq ($(ENV), ps3)
  include $(imagineSrcDir)/base/ps3/build.mk
 endif
-
-SRC += base/common/Window.cc
-

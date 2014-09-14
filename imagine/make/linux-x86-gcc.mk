@@ -16,5 +16,3 @@ ifneq ($(filter x86_64-%,$(CHOST)),)
  x86PkgConfigPath ?= /usr/lib32/pkgconfig
  PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(x86PkgConfigPath)
 endif
-
-linuxEventLoop := glib

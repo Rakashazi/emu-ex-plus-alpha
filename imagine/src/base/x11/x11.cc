@@ -13,53 +13,23 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Base"
-#include <cstdlib>
-#include <unistd.h>
+#define LOGTAG "X11"
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/base/EventLoopFileSource.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/util/strings.h>
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
-#include <imagine/util/strings.h>
-#include <imagine/util/time/sys.hh>
-#include <imagine/util/fd-utils.h>
-#include <imagine/util/string/generic.h>
-#include <imagine/util/algorithm.h>
 #include "../common/basePrivate.hh"
 #include "x11.hh"
+#include "internal.hh"
 #include "xdnd.hh"
 #include "xlibutils.h"
-#include "dbus.hh"
-#include <algorithm>
-
-#ifdef CONFIG_INPUT_EVDEV
-#include "../../input/evdev/evdev.hh"
-#endif
-
-#include <time.h>
-#include <errno.h>
 
 namespace Base
 {
 
-static FsSys::PathString appPath{};
 Display *dpy;
-extern void runMainEventLoop();
-extern void initMainEventLoop();
-
-uint appActivityState() { return APP_RUNNING; }
-
-static void cleanup()
-{
-	#ifdef CONFIG_BASE_DBUS
-	deinitDBus();
-	#endif
-	shutdownWindowSystem();
-	XCloseDisplay(dpy);
-}
 
 // TODO: move into generic header after testing
 static void fileURLToPath(char *url)
@@ -105,82 +75,6 @@ void toggleFullScreen(::Window xWin)
 	logMsg("toggle fullscreen");
 	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
-
-void exit(int returnVal)
-{
-	dispatchOnExit(false);
-	cleanup();
-	::exit(returnVal);
-}
-
-void abort() { ::abort(); }
-
-/*void openURL(const char *url)
-{
-	// TODO
-	logMsg("openURL called with %s", url);
-}*/
-
-const char *assetPath()
-{
-	return appPath.data();
-}
-
-const char *documentsPath()
-{
-	return appPath.data();
-}
-
-const char *storagePath()
-{
-	if(Config::MACHINE_IS_PANDORA)
-	{
-		static FsSys::PathString sdPath{};
-		FsSys dir;
-		// look for the first mounted SD card
-		if(dir.openDir("/media", 0,
-			[](const char *name, int type) -> int
-			{
-				return type == Fs::TYPE_DIR && strstr(name, "mmcblk");
-			}
-		) == OK)
-		{
-			if(dir.numEntries())
-			{
-				//logMsg("storage dir: %s", dir.entryFilename(0));
-				string_printf(sdPath, "/media/%s", dir.entryFilename(0));
-			}
-			else
-				sdPath[0] = 0;
-			dir.closeDir();
-			if(strlen(sdPath.data()))
-			{
-				return sdPath.data();
-			}
-		}
-		// fall back to appPath
-	}
-	return appPath.data();
-}
-
-bool documentsPathIsShared()
-{
-	// TODO
-	return false;
-}
-
-void setDeviceOrientationChangeSensor(bool on) {}
-
-void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
-
-void setSystemOrientation(uint o) {}
-
-uint defaultSystemOrientations()
-{
-	return VIEW_ROTATE_ALL;
-}
-
-void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
 
 static int eventHandler(XEvent &event)
 {
@@ -309,17 +203,8 @@ void initXScreens()
 	#endif
 }
 
-}
-
-int main(int argc, char** argv)
+CallResult initWindowSystem(EventLoopFileSource &eventSrc)
 {
-	using namespace Base;
-	doOrAbort(logger_init());
-	engineInit();
-	appPath = makeAppPathFromLaunchCommand(argv[0]);
-
-	initMainEventLoop();
-
 	#ifndef CONFIG_BASE_X11_EGL
 	// needed to call glXWaitVideoSyncSGI in separate thread
 	XInitThreads();
@@ -328,19 +213,13 @@ int main(int argc, char** argv)
 	if(!dpy)
 	{
 		logErr("couldn't open display");
-		return -1;
+		return IO_ERROR;
 	}
 	initXScreens();
 	initFrameTimer();
 	doOrAbort(Input::init());
-	#ifdef CONFIG_INPUT_EVDEV
-	Input::initEvdev();
-	#endif
-	
-	EventLoopFileSource x11Src;
-	x11Src.initX(ConnectionNumber(dpy));
+	eventSrc.initX(ConnectionNumber(dpy));
+	return OK;
+}
 
-	doOrAbort(onInit(argc, argv));
-	runMainEventLoop();
-	return 0;
 }

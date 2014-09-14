@@ -9,5 +9,3 @@ else
  LDFLAGS += -m64
  ASMFLAGS += -m64
 endif
-
-linuxEventLoop := glib

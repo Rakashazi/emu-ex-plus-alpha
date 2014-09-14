@@ -16,7 +16,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
-#include "x11.hh"
+#include "internal.hh"
 
 // TODO: remove GLX implementation once there is sufficient driver support from desktop GPU vendors for EGL
 

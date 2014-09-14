@@ -15,7 +15,7 @@
 
 #define LOGTAG "XWindow"
 #include "../common/windowPrivate.hh"
-#include "x11.hh"
+#include "internal.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
 #include <imagine/base/GLContext.hh>
@@ -273,7 +273,7 @@ void Window::deinit()
 	}
 }
 
-void shutdownWindowSystem()
+void deinitWindowSystem()
 {
 	logMsg("shutting down window system");
 	GLContext::current().deinit();
@@ -282,6 +282,7 @@ void shutdownWindowSystem()
 	{
 		Window::window(i)->deinit();
 	}
+	XCloseDisplay(dpy);
 }
 
 void Window::show()

@@ -15,51 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/base/Screen.hh>
-
-#define BOOL X11BOOL
-#include <X11/keysym.h>
-#include <X11/Xatom.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/XInput2.h>
-#include <X11/cursorfont.h>
-#include <X11/XKBlib.h>
-#include <X11/extensions/Xfixes.h>
-#include <X11/extensions/Xrandr.h>
-#undef BOOL
+#include <imagine/base/EventLoopFileSource.hh>
 
 namespace Base
 {
-	extern Display *dpy;
-	Window *windowForXWindow(::Window xWin);
-	int indexOfScreen(Screen &screen);
-	void toggleFullScreen(::Window xWin);
-	void initFrameTimer();
-	void frameTimerScheduleVSync();
-	void frameTimerCancel();
-}
-
-namespace Input
-{
-	void initPerWindowData(::Window win);
-
-	// returns true if event is XI2, false otherwise
-	bool handleXI2GenericEvent(XEvent &event);
-}
-
-namespace Config
-{
-	namespace Base
-	{
-	#if defined CONFIG_MACHINE_PANDORA
-	#define CONFIG_BASE_FBDEV_VSYNC
-	static constexpr bool FBDEV_VSYNC = true;
-	#else
-	static constexpr bool FBDEV_VSYNC = false;
-	#endif
-
-	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
-	}
+	CallResult initWindowSystem(EventLoopFileSource &eventSrc);
+	void deinitWindowSystem();
 }
