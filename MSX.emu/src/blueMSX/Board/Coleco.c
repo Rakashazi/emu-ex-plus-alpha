@@ -28,7 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "Coleco.h"
 
@@ -311,11 +310,7 @@ static void reset()
 static void destroy() 
 {
   char wDir[1024];
-getcwd(wDir, sizeof(wDir));
-chdir(machineBasePathStr());
-#ifndef NDEBUG
-fprintf(stderr, "switched to %s\n", machineBasePathStr());
-#endif
+  chdirToMachineBaseDir(wDir, sizeof(wDir));
 
     boardRemoveExternalDevices();
 
@@ -325,10 +320,7 @@ fprintf(stderr, "switched to %s\n", machineBasePathStr());
     deviceManagerDestroy();
     r800Destroy(r800);
 
-#ifndef NDEBUG
-fprintf(stderr, "back to %s\n", wDir);
-#endif
-chdir(wDir);
+    chdirToPrevWorkingDir(wDir);
 }
 
 static int getRefreshRate()
@@ -384,11 +376,7 @@ int colecoCreate(Machine* machine,
     boardInfo->setDataBus       = r800SetDataBus;
 
     char wDir[1024];
-	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePathStr());
-	#ifndef NDEBUG
-	fprintf(stderr, "switched to %s\n", machineBasePathStr());
-	#endif
+    chdirToMachineBaseDir(wDir, sizeof(wDir));
 
     deviceManagerCreate();
 
@@ -430,10 +418,7 @@ int colecoCreate(Machine* machine,
         slotMapRamPage(0, 0, i);
     }
 
-#ifndef NDEBUG
-fprintf(stderr, "back to %s\n", wDir);
-#endif
-chdir(wDir);
+    chdirToPrevWorkingDir(wDir);
 
     if (success) {
         success = boardInsertExternalDevices();

@@ -78,4 +78,9 @@ void handleIntent(JNIEnv *env, jobject activity)
 	}
 }
 
+void openURL(const char *url)
+{
+	// TODO
+}
+
 }

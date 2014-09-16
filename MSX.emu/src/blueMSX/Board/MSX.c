@@ -28,7 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "MSX.h"
 
@@ -101,11 +100,7 @@ static void reset()
 
 static void destroy() {
     char wDir[1024];
-	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePathStr());
-	#ifndef NDEBUG
-	logMsg("switched to %s\n", machineBasePathStr());
-	#endif
+    chdirToMachineBaseDir(wDir, sizeof(wDir));
 
     rtcDestroy(rtc);
 
@@ -121,10 +116,7 @@ static void destroy() {
 
     r800Destroy(r800);
 
-	#ifndef NDEBUG
-  logMsg("back to %s\n", wDir);
-	#endif
-	chdir(wDir);
+  chdirToPrevWorkingDir(wDir);
 }
 
 int getPC(){return r800->regs.PC.W;}
@@ -229,11 +221,7 @@ int msxCreate(Machine* machine,
     boardInfo->setDataBus       = r800SetDataBus;
 
     char wDir[1024];
-	getcwd(wDir, sizeof(wDir));
-	chdir(machineBasePathStr());
-	#ifndef NDEBUG
-	logMsg("switched to %s", machineBasePathStr());
-	#endif
+    chdirToMachineBaseDir(wDir, sizeof(wDir));
 
     deviceManagerCreate();
     boardInit(&r800->systemTime);
@@ -288,10 +276,7 @@ int msxCreate(Machine* machine,
         slotMapRamPage(0, 0, i);
     }
 
-	#ifndef NDEBUG
-    logMsg("back to %s\n", wDir);
-	#endif
-	chdir(wDir);
+    chdirToPrevWorkingDir(wDir);
 
     if (success) {
         success = boardInsertExternalDevices();

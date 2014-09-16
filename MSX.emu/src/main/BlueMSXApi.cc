@@ -1,10 +1,9 @@
 #define LOGTAG "blueMSXApi"
 
 #include <imagine/logger/logger.h>
+#include <imagine/fs/sys.hh>
 #include <imagine/util/time/sys.hh>
 #include <assert.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,7 +34,9 @@ extern "C"
 
 int archCreateDirectory(const char* pathname)
 {
-    return mkdir(pathname, 0777);
+    if(FsSys::mkdir(pathname) != OK)
+    	return -1;
+    return 0;
 }
 
 // needed by machineGetAvailable(), should never be called

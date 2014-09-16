@@ -183,12 +183,20 @@ ifndef android_noArm
 android_armMakefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv6.mk
 android_armSODir := $(android_targetPath)/libs/armeabi
 android_armSO := $(android_armSODir)/lib$(android_soName).so
+android_armMakeArgs = -f $(android_armMakefile) $(android_makefileOpts) \
+ targetDir=$(android_armSODir) buildName=$(android_buildName)-armv6 \
+ projectPath=$(projectPath)
 .PHONY: android-arm
 android-arm :
 	@echo "Building ARM Shared Object"
-	$(PRINT_CMD)$(MAKE) -f $(android_armMakefile) $(android_makefileOpts) targetDir=$(android_armSODir) buildName=$(android_buildName)-armv6 \
-	projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs)
 $(android_armSO) : android-arm
+
+.PHONY: android-arm-clean
+android-arm-clean :
+	@echo "Cleaning ARM Build"
+	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs) clean
+android_cleanTargets += android-arm-clean
 
 endif
 
@@ -197,12 +205,20 @@ ifndef android_noArmv7
 android_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv7.mk
 android_armv7SODir := $(android_targetPath)/libs/armeabi-v7a
 android_armv7SO := $(android_armv7SODir)/lib$(android_soName).so
+android_armv7MakeArgs = -f $(android_armv7Makefile) $(android_makefileOpts) \
+ targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
+ projectPath=$(projectPath)
 .PHONY: android-armv7
 android-armv7 :
 	@echo "Building ARMv7 Shared Object"
-	$(PRINT_CMD)$(MAKE) -f $(android_armv7Makefile) $(android_makefileOpts) targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
-	projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(android_armv7MakeArgs)
 $(android_armv7SO) : android-armv7
+
+.PHONY: android-armv7-clean
+android-armv7-clean :
+	@echo "Cleaning ARMv7 Build"
+	$(PRINT_CMD)$(MAKE) $(android_armv7MakeArgs) clean
+android_cleanTargets += android-armv7-clean
 
 endif
 
@@ -211,12 +227,20 @@ ifndef android_noX86
 android_x86Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-x86.mk
 android_x86SODir := $(android_targetPath)/libs/x86
 android_x86SO := $(android_x86SODir)/lib$(android_soName).so
+android_x86MakeArgs = -f $(android_x86Makefile) $(android_makefileOpts) \
+ targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
+ projectPath=$(projectPath)
 .PHONY: android-x86
 android-x86 :
 	@echo "Building X86 Shared Object"
-	$(PRINT_CMD)$(MAKE) -f $(android_x86Makefile) $(android_makefileOpts) targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
-	projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(android_x86MakeArgs)
 $(android_x86SO) : android-x86
+
+.PHONY: android-x86-clean
+android-x86-clean :
+	@echo "Cleaning X86 Build"
+	$(PRINT_CMD)$(MAKE) $(android_x86MakeArgs) clean
+android_cleanTargets += android-x86-clean
 
 endif
 
@@ -259,6 +283,5 @@ android-check :
 	@strings $(android_targetPath)/libs/*/*.so | grep " $(android_metadata_version)"
 
 .PHONY: android-clean
-android-clean:
-	rm -f $(android_armSO) $(android_armv7SO) $(android_x86SO)
-	rm -rf build/$(android_buildName)-armv6 build/$(android_buildName)-armv7 build/$(android_buildName)-x86
+android-clean: $(android_cleanTargets)
+	rm -rf $(android_targetPath)

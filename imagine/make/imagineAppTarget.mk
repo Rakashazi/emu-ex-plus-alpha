@@ -60,3 +60,9 @@ else
 main: $(targetDir)/$(targetFile)
 
 endif
+
+.PHONY: clean
+clean :
+	rm -f $(targetDir)/$(targetFile)
+	rm -rf $(genPath)
+	rm -rf $(objDir)

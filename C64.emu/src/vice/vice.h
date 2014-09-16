@@ -110,6 +110,11 @@
 #define ALLOW_UNALIGNED_ACCESS
 #endif
 
+/* Allow unaligned access for AArch64 */
+#if defined(__aarch64__)
+#define ALLOW_UNALIGNED_ACCESS
+#endif
+
 /* SunOS 4.x specific stuff */
 #if defined(sun) || defined(__sun)
 #  if !defined(__SVR4) && !defined(__svr4__)

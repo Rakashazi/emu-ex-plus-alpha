@@ -127,7 +127,7 @@ static void reset(RomMapperFMPAC* rm)
     rm->bankSelect = 0;
 }
 
-static UInt8 read(RomMapperFMPAC* rm, UInt16 address) 
+static UInt8 read(RomMapperFMPAC* rm, UInt16 address)
 {
 	address &= 0x3fff;
 

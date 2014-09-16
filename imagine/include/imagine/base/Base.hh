@@ -51,11 +51,7 @@ uint appActivityState();
 static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 
 // external services
-#if defined (CONFIG_BASE_IOS)
 void openURL(const char *url);
-#else
-static void openURL(const char *url) {}
-#endif
 
 // file system paths
 const char *assetPath();

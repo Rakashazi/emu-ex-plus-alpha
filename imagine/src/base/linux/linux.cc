@@ -55,7 +55,7 @@ void abort() { ::abort(); }
 void openURL(const char *url)
 {
 	logMsg("opening url:%s", url);
-	system(makeFSPathStringPrintf("xdg-open %s", url).data());
+	auto ret = system(makeFSPathStringPrintf("xdg-open %s", url).data());
 }
 
 const char *assetPath()

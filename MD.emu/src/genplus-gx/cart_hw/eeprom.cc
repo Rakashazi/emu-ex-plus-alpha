@@ -95,20 +95,19 @@ void eeprom_init()
   sram.custom = 0;
 
   /* look into game database */
-  while (i<GAME_CNT)
+  for(const auto &entry : database)
   {
-    if (strstr(rominfo.product,database[i].game_id) != NULL)
+    if (strstr(rominfo.product, entry.game_id) != NULL)
     {
       /* additional check (Micro Machines, Rockman Mega World) */
-      if ((database[i].chk == 0) || (database[i].chk == rominfo.checksum))
+      if ((entry.chk == 0) || (entry.chk == rominfo.checksum))
       {
         sram.custom = 1;
         sram.on = 1;
-        memcpy(&eeprom.type, &database[i].type, sizeof(T_EEPROM_TYPE));
+        memcpy(&eeprom.type, &entry.type, sizeof(T_EEPROM_TYPE));
         return;
       }
     }
-    i++;
   }
 
   /* Game not found in database but header seems to indicate it uses EEPROM */

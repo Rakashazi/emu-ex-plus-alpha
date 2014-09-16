@@ -45,14 +45,22 @@ ifndef ios_noARMv6
 ios_armv6Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-armv6.mk
 ios_armv6ExecName := $(iOS_metadata_exec)-armv6
 ios_armv6Exec := $(ios_targetBinPath)/$(ios_armv6ExecName)
+ios_armv6MakeArgs = -f $(ios_armv6Makefile) $(ios_makefileOpts)\
+ targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
+ buildName=$(ios_buildName)-armv6 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ projectPath=$(projectPath)
 ios_execs += $(ios_armv6Exec)
 .PHONY: ios-armv6
 ios-armv6 :
 	@echo "Building ARMv6 Executable"
-	$(PRINT_CMD)$(MAKE) -f $(ios_armv6Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
-	buildName=$(ios_buildName)-armv6 \
-	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(ios_armv6MakeArgs)
 $(ios_armv6Exec) : ios-armv6
+
+.PHONY: ios-armv6-clean
+ios-armv6-clean :
+	@echo "Cleaning ARMv6 Build"
+	$(PRINT_CMD)$(MAKE) $(ios_armv6MakeArgs) clean
+ios_cleanTargets += ios-armv6-clean
 
 .PHONY: ios-armv6-install
 ios-armv6-install : $(ios_armv6Exec)
@@ -70,14 +78,22 @@ ifndef ios_noARMv7
 ios_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-armv7.mk
 ios_armv7ExecName := $(iOS_metadata_exec)-armv7
 ios_armv7Exec := $(ios_targetBinPath)/$(ios_armv7ExecName)
+ios_armv7MakeArgs = -f $(ios_armv7Makefile) $(ios_makefileOpts) \
+ targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
+ buildName=$(ios_buildName)-armv7 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ projectPath=$(projectPath)
 ios_execs += $(ios_armv7Exec)
 .PHONY: ios-armv7
 ios-armv7 :
 	@echo "Building ARMv7 Executable"
-	$(PRINT_CMD)$(MAKE) -f $(ios_armv7Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
-	buildName=$(ios_buildName)-armv7 \
-	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(ios_armv7MakeArgs)
 $(ios_armv7Exec) : ios-armv7
+
+.PHONY: ios-armv7-clean
+ios-armv7-clean :
+	@echo "Cleaning ARMv7 Build"
+	$(PRINT_CMD)$(MAKE) $(ios_armv7MakeArgs) clean
+ios_cleanTargets += ios-armv7-clean
 
 .PHONY: ios-armv7-install
 ios-armv7-install : $(ios_armv7Exec)
@@ -95,14 +111,22 @@ ifndef ios_noARM64
 ios_arm64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-arm64.mk
 ios_arm64ExecName := $(iOS_metadata_exec)-arm64
 ios_arm64Exec := $(ios_targetBinPath)/$(ios_arm64ExecName)
+ios_arm64MakeArgs = -f $(ios_arm64Makefile) $(ios_makefileOpts) \
+ targetDir=$(ios_targetBinPath) targetFile=$(ios_arm64ExecName) \
+ buildName=$(ios_buildName)-arm64 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ projectPath=$(projectPath)
 ios_execs += $(ios_arm64Exec)
 .PHONY: ios-arm64
 ios-arm64 :
 	@echo "Building ARM64 Executable"
-	$(PRINT_CMD)$(MAKE) -f $(ios_arm64Makefile) $(ios_makefileOpts) targetDir=$(ios_targetBinPath) targetFile=$(ios_arm64ExecName) \
-	buildName=$(ios_buildName)-arm64 \
-	$(ios_HIGH_OPTIMIZE_CFLAGS_param) projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) $(ios_arm64MakeArgs)
 $(ios_arm64Exec) : ios-arm64
+
+.PHONY: ios-arm64-clean
+ios-arm64-clean :
+	@echo "Cleaning ARM64 Build"
+	$(PRINT_CMD)$(MAKE) $(ios_arm64MakeArgs) clean
+ios_cleanTargets += ios-arm64-clean
 
 .PHONY: ios-arm64-install
 ios-arm64-install : $(ios_arm64Exec)
@@ -223,6 +247,5 @@ ios-check :
 	strings $(ios_fatExec) | grep " $(iOS_metadata_version)"
 
 .PHONY: ios-clean
-ios-clean:
-	rm -f $(ios_fatExec) $(iOS_armv6Exec) $(iOS_armv7Exec) $(iOS_arm64Exec)
-	rm -rf build/$(ios_buildName)-armv6 build/$(ios_buildName)-armv7 build/$(ios_buildName)-arm64
+ios-clean: $(ios_cleanTargets)
+	rm -f $(ios_fatExec)

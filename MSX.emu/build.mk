@@ -20,6 +20,8 @@ CPPFLAGS += -I$(projectPath)/src/$(BMSX)/SoundChips -I$(projectPath)/src/$(BMSX)
 -I$(projectPath)/src/$(BMSX)/Arch -I$(projectPath)/src/$(BMSX)/Memory -I$(projectPath)/src/$(BMSX)/Emulator -I$(projectPath)/src/$(BMSX)/Input -I$(projectPath)/src/$(BMSX)/Utils \
 -I$(projectPath)/src/$(BMSX)/Unzip -I$(projectPath)/src/$(BMSX)/Language -I$(projectPath)/src/$(BMSX)/IoDevice -I$(projectPath)/src/$(BMSX)/Debugger
 
+WARNINGS_CFLAGS += -Werror=implicit-function-declaration
+
 # blueMSX sources
 
 # Sound Chips
@@ -39,12 +41,16 @@ $(BMSX)/VideoChips/CRTC6845.c
 
 # Io Device
 SRC += $(BMSX)/IoDevice/Casette.c $(BMSX)/IoDevice/Led.c $(BMSX)/IoDevice/Disk.c \
-$(BMSX)/IoDevice/DirAsDisk.c $(BMSX)/IoDevice/ScsiDevice.c $(BMSX)/IoDevice/Switches.c \
+$(BMSX)/IoDevice/ScsiDevice.c $(BMSX)/IoDevice/Switches.c \
 $(BMSX)/IoDevice/I8255.c $(BMSX)/IoDevice/SunriseIDE.c $(BMSX)/IoDevice/RTC.c \
 $(BMSX)/IoDevice/MsxPPI.c $(BMSX)/IoDevice/WD2793.c $(BMSX)/IoDevice/FdcAudio.c \
 $(BMSX)/IoDevice/MidiIO.c $(BMSX)/IoDevice/TC8566AF.c $(BMSX)/IoDevice/PrinterIO.c \
 $(BMSX)/IoDevice/TurboRIO.c $(BMSX)/IoDevice/MSXMidi.c $(BMSX)/IoDevice/I8251.c \
 $(BMSX)/IoDevice/I8254.c $(BMSX)/IoDevice/Z8530.c $(BMSX)/IoDevice/HarddiskIDE.c
+
+# TODO: this file causes LTO linker error with multiple read() symbols
+# in Android NDK r10, possibly due to linker bug
+# $(BMSX)/IoDevice/DirAsDisk.c
 
 # Utils
 SRC += $(BMSX)/Utils/SaveState.c $(BMSX)/Utils/ziphelper.c $(BMSX)/Utils/ZipFromMem.c \

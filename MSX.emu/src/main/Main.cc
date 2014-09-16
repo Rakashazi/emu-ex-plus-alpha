@@ -82,6 +82,19 @@ const char *machineBasePathStr()
 	return machineBasePath.data();
 }
 
+void chdirToMachineBaseDir(char *prevWDir, size_t prevWDirSize)
+{
+	string_copy(prevWDir, FsPosix::workDir(), prevWDirSize);
+	FsSys::chdir(machineBasePathStr());
+	logMsg("changed to machine base path: %s", machineBasePathStr());
+}
+
+void chdirToPrevWorkingDir(char *prevWDir)
+{
+	FsSys::chdir(prevWDir);
+	logMsg("changed back to: %s", prevWDir);
+}
+
 static char cartName[2][512] = { "", "" };
 extern RomType currentRomType[2];
 static char diskName[2][512] = { "", "" };

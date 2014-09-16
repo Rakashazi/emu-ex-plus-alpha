@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 
 const char* sramCreateFilenameWithSuffix(const char* romFilename, char* suffix, char* ext)
@@ -80,23 +78,22 @@ const char* sramCreateFilename(const char* romFilename) {
     return sramCreateFilenameWithSuffix(romFilename, "", NULL);
 }
 void sramLoad(const char* filename, UInt8* sram, int length, void* header, int headerLength) {
-	// converted to low-level io funcs due to WebOS bug
-	int file;//FILE* file;
+	FILE* file;
 	#ifndef NDEBUG
 	fprintf(stderr, "loading sram %s\n", filename);
 	#endif
-    file = open(filename, O_RDONLY, 0);//fopen(filename, "rb");
-    if (file <= 0) {
+    file = fopen(filename, "rb");
+    if (file != NULL) {
         if (headerLength > 0) {
             char readHeader[256];
-			read(file, readHeader, headerLength);//fread(readHeader, 1, headerLength, file);
+			fread(readHeader, 1, headerLength, file);
             if (memcmp(readHeader, header, headerLength)) {
-                close(file);//fclose(file);
+                fclose(file);
                 return;
             }
         }
-		read(file, sram, length);//fread(sram, 1, length, file);
-        close(file);//fclose(file);
+		fread(sram, 1, length, file);
+    fclose(file);
     }
 }
 

@@ -77,8 +77,8 @@ typedef struct
 } PERIPHERALINFO;
 
 
-ROMINFO rominfo;
-char rom_filename[256];
+ROMINFO rominfo{};
+char rom_filename[256]{};
 
 /***************************************************************************
   * Genesis ROM Manufacturers
@@ -548,7 +548,7 @@ void region_autodetect(void)
       /* need PAL settings */
       region_code = REGION_EUROPE;
     }
-    
+
     if ((rominfo.realchecksum == 0x532e) && (strstr(rominfo.product,"1011-00") != NULL)) 
     {
       /* On Dal Jang Goon (Korea) needs JAPAN region code */

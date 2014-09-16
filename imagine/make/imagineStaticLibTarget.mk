@@ -23,3 +23,9 @@ $(genPkgConf) : $(imaginePkgconfigTemplate)
 config : $(genPkgConf)
 
 main: $(targetDir)/$(targetFile)
+
+.PHONY: clean
+clean :
+	rm -f $(targetDir)/$(targetFile)
+	rm -rf $(genPath)
+	rm -rf $(objDir)

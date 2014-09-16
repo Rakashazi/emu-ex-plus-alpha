@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <string.h>
 #include <Option.hh>
-#include <imagine/fs/sys.hh>
 
 extern "C"
 {
@@ -16,9 +15,9 @@ extern "C"
 extern BoardInfo boardInfo;
 extern Mixer* mixer;
 extern Machine *machine;
-static HdType hdType[MAX_HD_COUNT] = { (HdType)0 };
-RomType currentRomType[2] = { 0 };
-static BoardTimer* fdcTimer = nullptr;
+static HdType hdType[MAX_HD_COUNT]{};
+RomType currentRomType[2]{};
+static BoardTimer* fdcTimer{};
 
 Mixer* boardGetMixer()
 {
@@ -387,8 +386,7 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
     if(changeToMachineDir)
     {
     	logMsg("loading ROM from Machine path");
-		strcpy(wDir.data(), FsSys::workDir());
-		FsSys::chdir(machineBasePathStr());
+    	chdirToMachineBaseDir(wDir.data(), sizeof(wDir));
     }
 
     bool success;
@@ -398,7 +396,7 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
     	success = 0;
 
     if(changeToMachineDir)
-    	FsSys::chdir(wDir.data());
+    	chdirToPrevWorkingDir(wDir.data());
     return success;
 }
 

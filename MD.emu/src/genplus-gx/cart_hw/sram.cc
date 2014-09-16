@@ -23,7 +23,7 @@
 #include "shared.h"
 #include <imagine/logger/logger.h>
 
-T_SRAM sram;
+T_SRAM sram{};
 
 /****************************************************************************
  * A quick guide to SRAM on the Genesis
