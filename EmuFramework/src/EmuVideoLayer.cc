@@ -160,18 +160,21 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		if(onScreenControlsOverlay && viewportAspectRatio < 1. && touchControlsAreOn && touchControlsApplicable())
 		{
 			auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
-			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom())
-			{
-				logMsg("moving game rect to top");
-				gameRectG.setYPos(projP.bounds().y2, CT2DO);
-				gameRect_.setYPos(viewportRect.y, CT2DO);
-			}
-			else if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
+			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				logMsg("moving game rect to bottom");
 				gameRectG.setYPos(projP.bounds().y, CB2DO);
 				gameRect_.setYPos(viewportRect.y2, CB2DO);
 			}
+			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
+				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
+			{
+				// move controls to top if d-pad & face button aren't on opposite Y quadrants
+				logMsg("moving game rect to top");
+				gameRectG.setYPos(projP.bounds().y2, CT2DO);
+				gameRect_.setYPos(viewportRect.y, CT2DO);
+			}
+
 		}
 		#endif
 

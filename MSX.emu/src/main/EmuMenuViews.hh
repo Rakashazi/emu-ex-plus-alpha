@@ -257,21 +257,6 @@ public:
 		installCBIOS.init(); item[items++] = &installCBIOS;
 		#endif
 	}
-
-	void init(uint idx, bool highlightFirst)
-	{
-		uint i = 0;
-		switch(idx)
-		{
-			bcase 0: loadVideoItems(item, i);
-			bcase 1: loadAudioItems(item, i);
-			bcase 2: loadInputItems(item, i);
-			bcase 3: loadSystemItems(item, i);
-			bcase 4: loadGUIItems(item, i);
-		}
-		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
-	}
 };
 
 #include "MenuView.hh"

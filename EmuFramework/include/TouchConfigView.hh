@@ -43,7 +43,6 @@ public:
 	MultiChoiceSelectMenuItem centerBtnState;
 	MultiChoiceSelectMenuItem lTriggerState;
 	MultiChoiceSelectMenuItem rTriggerState;
-	MultiChoiceSelectMenuItem dpi;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
 		BoolMenuItem imageResolution;
 		#endif
@@ -60,8 +59,13 @@ public:
 	MultiChoiceSelectMenuItem ffState;
 	TextMenuItem resetControls;
 	TextMenuItem resetAllControls;
+	TextMenuItem systemOptions;
+	TextHeadingMenuItem btnTogglesHeading;
+	TextHeadingMenuItem dpadtHeading;
+	TextHeadingMenuItem faceBtnHeading;
+	TextHeadingMenuItem otherHeading;
 
-	MenuItem *text[27] = {nullptr};
+	MenuItem *text[32]{};
 
 	void refreshTouchConfigMenu();
 

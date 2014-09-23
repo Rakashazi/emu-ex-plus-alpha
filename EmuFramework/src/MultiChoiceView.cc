@@ -103,7 +103,7 @@ void MultiChoiceView::deinit()
 	freeItems();
 }
 
-void MultiChoiceView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+void MultiChoiceView::onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i)
 {
 	logMsg("set choice %d", i);
 	if(onSelectD((int)i, e))

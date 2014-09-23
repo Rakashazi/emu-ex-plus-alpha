@@ -559,6 +559,8 @@ void EmuSystem::savePathChanged()
 		setDirOverrides();
 }
 
+bool EmuSystem::hasInputOptions() { return true; }
+
 namespace Base
 {
 

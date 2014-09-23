@@ -25,6 +25,10 @@ class MenuItem
 {
 public:
 	constexpr MenuItem() {}
+	constexpr MenuItem(bool isSelectable):
+		isSelectable{isSelectable}
+		{}
+	bool isSelectable = true;
 	virtual void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const = 0;
 	virtual void compile(const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
@@ -41,6 +45,10 @@ public:
 
 	constexpr BaseTextMenuItem() {}
 	constexpr BaseTextMenuItem(const char *str): t(str) {}
+	constexpr BaseTextMenuItem(const char *str, bool isSelectable):
+		MenuItem(isSelectable),
+		t(str)
+		{}
 	void init(const char *str, bool active, ResourceFace *face = View::defaultFace);
 	void init(const char *str, ResourceFace *face = View::defaultFace);
 	void init(bool active, ResourceFace *face = View::defaultFace);
@@ -64,6 +72,14 @@ public:
 	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectD(selectDel) {}
 	void select(View *parent, const Input::Event &e) override;
 	SelectDelegate &onSelect() { return selectD; }
+};
+
+class TextHeadingMenuItem : public BaseTextMenuItem
+{
+public:
+	constexpr TextHeadingMenuItem() {}
+	constexpr TextHeadingMenuItem(const char *str): BaseTextMenuItem(str, false) {}
+	void select(View *parent, const Input::Event &e) override {};
 };
 
 class BaseDualTextMenuItem : public BaseTextMenuItem

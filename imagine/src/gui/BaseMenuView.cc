@@ -72,7 +72,12 @@ void BaseMenuView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect
 	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
 }
 
-void BaseMenuView::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+void BaseMenuView::onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i)
 {
 	item[i]->select(this, e);
+}
+
+bool BaseMenuView::elementIsSelectable(const GuiTable1D &table, uint i)
+{
+	return item[i]->isSelectable;
 }

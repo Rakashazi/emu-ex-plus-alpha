@@ -522,6 +522,10 @@ void OptionCategoryView::init(bool highlightFirst)
 	uint i = 0;
 	forEachInArray(subConfig, e)
 	{
+		// TODO: Emulated system input options moved to on-screen & key input option views,
+		// rework how option views are initialized
+		if(e_i == 2)
+			continue;
 		e->init(); item[i++] = e;
 		e->onSelect() =
 		[this, e_i](TextMenuItem &, const Input::Event &e)

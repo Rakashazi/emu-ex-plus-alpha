@@ -1072,6 +1072,8 @@ void EmuSystem::configAudioRate()
 
 void EmuSystem::savePathChanged() { }
 
+bool EmuSystem::hasInputOptions() { return false; }
+
 void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath)
 {
 	if(!strlen(firmwareBasePath.data()))

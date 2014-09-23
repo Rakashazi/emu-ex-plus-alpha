@@ -270,8 +270,21 @@ void TouchConfigView::init(bool highlightFirst)
 		static const char *str[] = { "1", "2", "3", "4", "5" };
 		pointerInput.init(str, pointerInputPlayer, EmuSystem::maxPlayers); text[i++] = &pointerInput;
 	}
+	if(EmuSystem::hasInputOptions())
+	{
+		systemOptions.init(); text[i++] = &systemOptions;
+	}
+	{
+		static const char *str[] =
+		{
+			"6.5", "7", "7.5", "8", "8.5", "9",
+			"10", "12", "14", "15", "16"
+		};
+		size.init(str, findIdxInArrayOrDefault(touchCtrlSizeMenuVals, (uint)optionTouchCtrlSize, 0)); text[i++] = &size;
+	}
 	#endif
 	btnPlace.init(); text[i++] = &btnPlace;
+	btnTogglesHeading.init(); text[i++] = &btnTogglesHeading;
 	auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
 	{
 		if(Config::envIsIOS) // prevent iOS port from disabling menu control
@@ -296,19 +309,8 @@ void TouchConfigView::init(bool highlightFirst)
 		triggerPos.init(optionTouchCtrlTriggerBtnPos); text[i++] = &triggerPos;
 	}
 	#endif
-	{
-		static const char *str[] = { "0%", "10%", "25%", "50%", "65%", "75%" };
-		alpha.init(str, findIdxInArrayOrDefault(alphaMenuVals, optionTouchCtrlAlpha.val, 3)); text[i++] = &alpha;
-	}
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	{
-		static const char *str[] =
-		{
-			"6.5", "7", "7.5", "8", "8.5", "9",
-			"10", "12", "14", "15", "16"
-		};
-		size.init(str, findIdxInArrayOrDefault(touchCtrlSizeMenuVals, (uint)optionTouchCtrlSize, 0)); text[i++] = &size;
-	}
+	dpadtHeading.init(); text[i++] = &dpadtHeading;
 	{
 		static const char *str[] = { "1", "1.35", "1.6" };
 		int init = findIdxInArrayOrDefault(touchDpadDeadzoneMenuVals, (uint)optionTouchDpadDeadzone, 0);
@@ -319,6 +321,7 @@ void TouchConfigView::init(bool highlightFirst)
 		int init = findIdxInArrayOrDefault(touchDpadDiagonalSensitivityMenuVals, (uint)optionTouchDpadDiagonalSensitivity, 0);
 		diagonalSensitivity.init(str, init); text[i++] = &diagonalSensitivity;
 	}
+	faceBtnHeading.init(); text[i++] = &faceBtnHeading;
 	{
 		static const char *str[] = { "1", "2", "3", "4" };
 		int init = findIdxInArrayOrDefault(touchCtrlBtnSpaceMenuVals, (uint)optionTouchCtrlBtnSpace, 0);
@@ -349,6 +352,7 @@ void TouchConfigView::init(bool highlightFirst)
 		btnExtraYSizeMultiRow.init((systemFaceBtns == 4 || (systemFaceBtns >= 6 && systemHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str));
 		text[i++] = &btnExtraYSizeMultiRow;
 	}
+	otherHeading.init(); text[i++] = &otherHeading;
 	boundingBoxes.init(optionTouchCtrlBoundingBoxes); text[i++] = &boundingBoxes;
 	if(!optionVibrateOnPush.isConst)
 	{
@@ -356,14 +360,15 @@ void TouchConfigView::init(bool highlightFirst)
 	}
 	showOnTouch.init(optionTouchCtrlShowOnTouch); text[i++] = &showOnTouch;
 		#ifdef CONFIG_BASE_ANDROID
-//		if(!optionDPI.isConst)
-//		{
-//			static const char *str[] = { "Auto", "96", "120", "130", "160", "220", "240", "265", "320" };
-//			dpi.init(str, findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), sizeofArray(str)); text[i++] = &dpi;
-//		}
 		useScaledCoordinates.init(optionTouchCtrlScaledCoordinates); text[i++] = &useScaledCoordinates;
 		#endif
+	#else
+	otherHeading.init(); text[i++] = &otherHeading;
 	#endif // CONFIG_VCONTROLS_GAMEPAD
+	{
+		static const char *str[] = { "0%", "10%", "25%", "50%", "65%", "75%" };
+		alpha.init(str, findIdxInArrayOrDefault(alphaMenuVals, optionTouchCtrlAlpha.val, 3)); text[i++] = &alpha;
+	}
 	resetControls.init(); text[i++] = &resetControls;
 	resetAllControls.init(); text[i++] = &resetAllControls;
 	assert(i <= sizeofArray(text));
@@ -423,10 +428,6 @@ void TouchConfigView::refreshTouchConfigMenu()
 	}
 	showOnTouch.set((int)optionTouchCtrlShowOnTouch, *this);
 		#ifdef CONFIG_BASE_ANDROID
-//		if(!optionDPI.isConst)
-//		{
-//			dpi.updateVal(findIdxInArrayOrDefault(dpiMenuVals, (uint)optionDPI, 0), *this);
-//		}
 		useScaledCoordinates.set(optionTouchCtrlScaledCoordinates, *this);
 		#endif
 	#endif
@@ -477,7 +478,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	},
 	deadzone
 	{
-		"D-Pad Deadzone",
+		"Deadzone",
 		[](MultiChoiceMenuItem &, int val)
 		{
 			optionTouchDpadDeadzone = touchDpadDeadzoneMenuVals[val];
@@ -495,7 +496,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	},
 	btnSpace
 	{
-		"Button Spacing",
+		"Spacing",
 		[](MultiChoiceMenuItem &, int val)
 		{
 			optionTouchCtrlBtnSpace = touchCtrlBtnSpaceMenuVals[val];
@@ -544,7 +545,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	},
 	btnStagger
 	{
-		"Button Stagger",
+		"Stagger",
 		[](MultiChoiceMenuItem &, int val)
 		{
 			optionTouchCtrlBtnStagger = val;
@@ -602,19 +603,6 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 			EmuControls::setupVControllerVars();
 		}
 	},
-//		#ifdef CONFIG_BASE_ANDROID
-//		dpi
-//		{
-//			"Physical DPI Override",
-//			[this](MultiChoiceMenuItem &, int val)
-//			{
-//				optionDPI.val = dpiMenuVals[val];
-//				Base::mainWindow().setDPI(optionDPI);
-//				logMsg("set DPI: %d", (int)optionDPI);
-//				window().dispatchResize();
-//			}
-//		},
-//		#endif
 	boundingBoxes
 	{
 		"Show Bounding Boxes",
@@ -734,5 +722,30 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 				};
 			modalViewController.pushAndShow(ynAlertView);
 		}
+	},
+	systemOptions
+	{
+		"Emulated System Options",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto &optView = allocAndGetOptionCategoryMenu(window(), e, 2);
+			pushAndShow(optView);
+		}
+	},
+	btnTogglesHeading
+	{
+		"Individual Button Toggles"
+	},
+	dpadtHeading
+	{
+		"D-Pad Options"
+	},
+	faceBtnHeading
+	{
+		"Face Button Layout"
+	},
+	otherHeading
+	{
+		"Other Options"
 	}
 {}

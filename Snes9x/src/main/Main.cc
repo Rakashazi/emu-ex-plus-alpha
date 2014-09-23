@@ -765,6 +765,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 
 void EmuSystem::savePathChanged() { }
 
+bool EmuSystem::hasInputOptions() { return true; }
+
 namespace Base
 {
 

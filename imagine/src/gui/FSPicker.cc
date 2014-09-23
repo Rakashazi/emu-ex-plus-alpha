@@ -184,7 +184,7 @@ void FSPicker::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) co
 	text[i].draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO, projP);
 }
 
-void FSPicker::onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i)
+void FSPicker::onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i)
 {
 	assert(i < dir.numEntries());
 	text[i].select(this, e);

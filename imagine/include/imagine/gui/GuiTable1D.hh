@@ -28,7 +28,8 @@ class GuiTableSource
 public:
 	constexpr GuiTableSource() { }
 	virtual void drawElement(const GuiTable1D &table, uint element, Gfx::GCRect rect) const = 0;
-	virtual void onSelectElement(const GuiTable1D *table, const Input::Event &event, uint element) = 0;
+	virtual void onSelectElement(const GuiTable1D &table, const Input::Event &event, uint element) = 0;
+	virtual bool elementIsSelectable(const GuiTable1D &table, uint element) { return true; }
 };
 
 class GuiTable1D
@@ -66,6 +67,8 @@ public:
 private:
 	int visibleCells(const Gfx::ProjectionPlane &projP) const;
 	int offscreenCells(const Gfx::ProjectionPlane &projP) const;
+	int nextSelectableElement(int start);
+	int prevSelectableElement(int start);
 };
 
 class ScrollableGuiTable1D : public GuiTable1D, public ScrollView1D

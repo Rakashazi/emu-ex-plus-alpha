@@ -476,6 +476,8 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	}
 }
 
+bool EmuSystem::hasInputOptions() { return false; }
+
 namespace Base
 {
 

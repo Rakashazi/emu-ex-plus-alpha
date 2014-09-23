@@ -187,36 +187,6 @@ InputManagerView::InputManagerView(Base::Window &win):
 			pushAndShow(multiChoiceView);
 		}
 	},
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	mogaInputSystem
-	{
-		"MOGA Controller Support",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
-			{
-				popup.post("Install the MOGA Pivot app from Google Play to use your MOGA Pocket or Pro in mode A. "
-					"If your controller supports mode B, you can pair it as a HID device in the Android settings app instead.", 8);
-				return;
-			}
-			item.toggle(*this);
-			optionMOGAInputSystem = item.on;
-			if(item.on)
-				Input::initMOGA(true);
-			else
-				Input::deinitMOGA();
-		}
-	},
-	#endif
-	notifyDeviceChange
-	{
-		"Notify If Devices Change",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			optionNotifyInputDeviceChange = item.on;
-		}
-	},
 	#ifdef CONFIG_BASE_ANDROID
 	rescanOSDevices
 	{
@@ -256,6 +226,29 @@ InputManagerView::InputManagerView(Base::Window &win):
 				};
 			modalViewController.pushAndShow(identView);
 		}
+	},
+	generalOptions
+	{
+		"General Options",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto &optView = *new InputManagerOptionsView{window()};
+			optView.init(!e.isPointer());
+			pushAndShow(optView);
+		}
+	},
+	systemOptions
+	{
+		"Emulated System Options",
+		[this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto &optView = allocAndGetOptionCategoryMenu(window(), e, 2);
+			pushAndShow(optView);
+		}
+	},
+	deviceListHeading
+	{
+		"Individual Device Settings"
 	}
 {}
 
@@ -289,24 +282,21 @@ void InputManagerView::init(bool highlightFirst)
 		};
 	uint i = 0;
 	assert(EmuSystem::maxPlayers <= 5);
+	identDevice.init(); item[i++] = &identDevice;
+	generalOptions.init(); item[i++] = &generalOptions;
+	if(EmuSystem::hasInputOptions())
+	{
+		systemOptions.init(); item[i++] = &systemOptions;
+	}
 	deleteDeviceConfig.init((bool)savedInputDevList.size()); item[i++] = &deleteDeviceConfig;
 	deleteProfile.init((bool)customKeyConfig.size()); item[i++] = &deleteProfile;
-	identDevice.init(); item[i++] = &identDevice;
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	mogaInputSystem.init(optionMOGAInputSystem); item[i++] = &mogaInputSystem;
-	#endif
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-	if(!optionNotifyInputDeviceChange.isConst)
-	{
-		notifyDeviceChange.init(optionNotifyInputDeviceChange); item[i++] = &notifyDeviceChange;
-	}
-	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	if(Base::androidSDK() >= 12 && Base::androidSDK() < 16)
 	{
 		rescanOSDevices.init(); item[i++] = &rescanOSDevices;
 	}
 	#endif
+	deviceListHeading.init(); item[i++] = &deviceListHeading;
 	int devs = 0;
 	for(auto &e : Input::devList)
 	{
@@ -322,6 +312,183 @@ void InputManagerView::init(bool highlightFirst)
 			};
 		devs++;
 	}
+	BaseMenuView::init(item, i, highlightFirst);
+}
+
+#ifdef CONFIG_BASE_ANDROID
+void InputManagerOptionsView::relativePointerDecelInit()
+{
+	static const char *str[] = { "Low", "Med.", "High" };
+	int init = 0;
+	if(optionRelPointerDecel == optionRelPointerDecelLow)
+		init = 0;
+	if(optionRelPointerDecel == optionRelPointerDecelMed)
+		init = 1;
+	if(optionRelPointerDecel == optionRelPointerDecelHigh)
+		init = 2;
+	relativePointerDecel.init(str, init, sizeofArray(str));
+}
+#endif
+
+#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+void InputManagerOptionsView::btScanSecsInit()
+{
+	static const char *str[] =
+	{
+		"2secs", "4secs", "6secs", "8secs", "10secs"
+	};
+
+	int val = 1;
+	switch(BluetoothAdapter::scanSecs)
+	{
+		bcase 2: val = 0;
+		bcase 4: val = 1;
+		bcase 6: val = 2;
+		bcase 8: val = 3;
+		bcase 10: val = 4;
+	}
+	btScanSecs.init(str, val, sizeofArray(str));
+}
+#endif
+
+InputManagerOptionsView::InputManagerOptionsView(Base::Window &win):
+	BaseMenuView("General Input Options", win),
+	#ifdef CONFIG_BASE_ANDROID
+	relativePointerDecel
+	{
+		"Trackball Sensitivity",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			#if defined(CONFIG_BASE_ANDROID)
+			if(val == 0)
+				optionRelPointerDecel.val = optionRelPointerDecelLow;
+			else if(val == 1)
+				optionRelPointerDecel.val = optionRelPointerDecelMed;
+			else if(val == 2)
+				optionRelPointerDecel.val = optionRelPointerDecelHigh;
+			#endif
+		}
+	},
+	#endif
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	mogaInputSystem
+	{
+		"MOGA Controller Support",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
+			{
+				popup.post("Install the MOGA Pivot app from Google Play to use your MOGA Pocket. "
+					"For MOGA Pro or newer, set switch to mode B and pair in the Android Bluetooth settings app instead.", 8);
+				return;
+			}
+			item.toggle(*this);
+			optionMOGAInputSystem = item.on;
+			if(item.on)
+				Input::initMOGA(true);
+			else
+				Input::deinitMOGA();
+		}
+	},
+	#endif
+	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	notifyDeviceChange
+	{
+		"Notify If Devices Change",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionNotifyInputDeviceChange = item.on;
+		}
+	},
+	#endif
+	#ifdef CONFIG_BLUETOOTH
+	bluetoothHeading
+	{
+		"In-app Bluetooth Options"
+	},
+	keepBtActive
+	{
+		"Keep Connections In Background",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionKeepBluetoothActive = item.on;
+		}
+	},
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+	btScanSecs
+	{
+		"Scan Time",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			switch(val)
+			{
+				bcase 0: BluetoothAdapter::scanSecs = 2;
+				bcase 1: BluetoothAdapter::scanSecs = 4;
+				bcase 2: BluetoothAdapter::scanSecs = 6;
+				bcase 3: BluetoothAdapter::scanSecs = 8;
+				bcase 4: BluetoothAdapter::scanSecs = 10;
+			}
+			logMsg("set bluetooth scan time %d", BluetoothAdapter::scanSecs);
+		}
+	},
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	btScanCache
+	{
+		"Cache Scan Results",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionBlueToothScanCache = item.on;
+		}
+	},
+	#endif
+	altGamepadConfirm
+	{
+		"Swap Confirm/Cancel Keys",
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			item.toggle(*this);
+			Input::swappedGamepadConfirm = item.on;
+		}
+	}
+	{}
+
+void InputManagerOptionsView::init(bool highlightFirst)
+{
+	uint i = 0;
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	mogaInputSystem.init(optionMOGAInputSystem); item[i++] = &mogaInputSystem;
+	#endif
+	altGamepadConfirm.init(Input::swappedGamepadConfirm); item[i++] = &altGamepadConfirm;
+	#ifdef CONFIG_BASE_ANDROID
+	if(Input::hasTrackball())
+	{
+		relativePointerDecelInit(); item[i++] = &relativePointerDecel;
+	}
+	#endif
+	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	if(!optionNotifyInputDeviceChange.isConst)
+	{
+		notifyDeviceChange.init(optionNotifyInputDeviceChange); item[i++] = &notifyDeviceChange;
+	}
+	#endif
+	#ifdef CONFIG_BLUETOOTH
+	bluetoothHeading.init(); item[i++] = &bluetoothHeading;
+	if(!optionKeepBluetoothActive.isConst)
+	{
+		keepBtActive.init(optionKeepBluetoothActive); item[i++] = &keepBtActive;
+	}
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+	btScanSecsInit(); item[i++] = &btScanSecs;
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	btScanCache.init(optionBlueToothScanCache); item[i++] = &btScanCache;
+	#endif
 	BaseMenuView::init(item, i, highlightFirst);
 }
 

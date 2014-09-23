@@ -54,7 +54,7 @@ public:
 	void inputEvent(const Input::Event &e) override;
 	void draw(Base::FrameTimeBase frameTime) override;
 	void drawElement(const GuiTable1D &table, uint element, Gfx::GCRect rect) const override;
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
+	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
 	OnSelectFileDelegate &onSelectFile() { return onSelectFileD; }
 	OnCloseDelegate &onClose() { return onCloseD; }
 	void onLeftNavBtn(const Input::Event &e);

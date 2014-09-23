@@ -66,8 +66,6 @@ protected:
 	BoolMenuItem showOnSecondScreen;
 	#endif
 	BoolMenuItem dither;
-	MultiChoiceSelectMenuItem gameOrientation;
-	void gameOrientationInit();
 
 	// Audio
 	BoolMenuItem snd;
@@ -82,23 +80,6 @@ protected:
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
 	BoolMenuItem audioSoloMix;
-	#endif
-
-	// Input
-	BoolMenuItem altGamepadConfirm;
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	MultiChoiceSelectMenuItem btScanSecs;
-	void btScanSecsInit();
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	BoolMenuItem keepBtActive;
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	BoolMenuItem btScanCache;
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
-	MultiChoiceSelectMenuItem relativePointerDecel;
-	void relativePointerDecelInit();
 	#endif
 
 	// System
@@ -133,8 +114,11 @@ protected:
 	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	BoolMenuItem showBundledGames;
 	#endif
+	TextHeadingMenuItem orientationHeading;
 	MultiChoiceSelectMenuItem menuOrientation;
 	void menuOrientationInit();
+	MultiChoiceSelectMenuItem gameOrientation;
+	void gameOrientationInit();
 
 	virtual void loadVideoItems(MenuItem *item[], uint &items);
 	virtual void loadAudioItems(MenuItem *item[], uint &items);

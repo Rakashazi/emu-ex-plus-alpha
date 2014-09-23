@@ -45,6 +45,36 @@ void GuiTable1D::setYCellSize(int s)
 	viewRect.y2 = viewRect.y + ((cells * s)-1);
 }
 
+int GuiTable1D::nextSelectableElement(int start)
+{
+	using namespace IG;
+	int elem = wrapToBound(start, 0, cells);
+	iterateTimes(cells, i)
+	{
+		if(src->elementIsSelectable(*this, elem))
+		{
+			return elem;
+		}
+		elem = wrapToBound(elem+1, 0, cells);
+	}
+	return -1;
+}
+
+int GuiTable1D::prevSelectableElement(int start)
+{
+	using namespace IG;
+	int elem = wrapToBound(start, 0, cells);
+	iterateTimes(cells, i)
+	{
+		if(src->elementIsSelectable(*this, elem))
+		{
+			return elem;
+		}
+		elem = wrapToBound(elem-1, 0, cells);
+	}
+	return -1;
+}
+
 bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 {
 	using namespace IG;
@@ -65,7 +95,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 		{
 			int i = (e.y - viewRect.y) / yCellSize;
 			logMsg("input pushed on cell %d", i);
-			if(i >= 0 && i < cells)
+			if(i >= 0 && i < cells && src->elementIsSelectable(*this, i))
 			{
 				selected = i;
 				view.postDraw();
@@ -75,13 +105,13 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 		{
 			int i = (e.y - viewRect.y) / yCellSize;
 			//logMsg("input released on cell %d", i);
-			if(i >= 0 && i < cells && selected == i)
+			if(i >= 0 && i < cells && selected == i && src->elementIsSelectable(*this, i))
 			{
 				logDMsg("entry %d pushed", i);
 				selectedIsActivated = 1;
 				view.postDraw();
 				selected = -1;
-				src->onSelectElement(this, e, i);
+				src->onSelectElement(*this, e, i);
 			}
 		}
 	}
@@ -95,11 +125,11 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 		{
 			//logMsg("move up %d", selected);
 			if(selected == -1)
-				selected = cells - 1;
+				selected = prevSelectableElement(cells - 1);//cells - 1;
 			else
 			{
 				//logMsg("wrapping %d-1 to 0-%d", selected, cells);
-				selected = wrapToBound(selected-1, 0, cells);
+				selected = prevSelectableElement(selected - 1);//wrapToBound(selected-1, 0, cells);
 			}
 			logMsg("up, selected %d", selected);
 			view.postDraw();
@@ -109,9 +139,9 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			|| (e.isRelativePointer() && e.y > 0))
 		{
 			if(selected == -1)
-				selected = 0;
+				selected = nextSelectableElement(0);//0;
 			else
-				selected = wrapToBound(selected+1, 0, cells);
+				selected = nextSelectableElement(selected + 1);//wrapToBound(selected+1, 0, cells);
 			logMsg("down, selected %d", selected);
 			view.postDraw();
 			movedSelected = true;
@@ -122,7 +152,7 @@ bool GuiTable1D::inputEvent(const Input::Event &e, View &view)
 			{
 				logDMsg("entry %d pushed", selected);
 				selectedIsActivated = 1;
-				src->onSelectElement(this, e, selected);
+				src->onSelectElement(*this, e, selected);
 			}
 		}
 		else if(e.pushed() && e.isDefaultPageUpButton())
@@ -194,7 +224,6 @@ void GuiTable1D::draw(const Gfx::ProjectionPlane &projP)
 	noTexProgram.use(projP.makeTranslate());
 	int selectedCellY = INT_MAX;
 	setBlendMode(0);
-	setColor(.2, .2, .2);
 	for(int i = startYCell; i < endYCell; i++)
 	{
 		/*if(i >= cells)
@@ -205,7 +234,17 @@ void GuiTable1D::draw(const Gfx::ProjectionPlane &projP)
 		}
 		if(i != 0)
 		{
-			auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect.xSize(), 1});
+			int ySize = 1;
+			if(!src->elementIsSelectable(*this, i - 1))
+			{
+				setColor(.4, .4, .4);
+				ySize = 4;
+			}
+			else
+			{
+				setColor(.2, .2, .2);
+			}
+			auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect.xSize(), ySize});
 			GeomRect::draw(rect, projP);
 		}
 		y += yCellSize;

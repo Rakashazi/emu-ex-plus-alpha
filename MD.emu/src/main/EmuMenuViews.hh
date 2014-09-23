@@ -14,7 +14,10 @@ public:
 			item.toggle(*this);
 			option6BtnPad = item.on;
 			setupMDInput();
+			#ifdef CONFIG_VCONTROLS_GAMEPAD
+			EmuControls::setupVControllerVars();
 			vController.place();
+			#endif
 		}
 	},
 	multitap

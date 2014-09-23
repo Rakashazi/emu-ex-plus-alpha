@@ -40,25 +40,22 @@ public:
 class InputManagerView : public BaseMenuView
 {
 private:
-	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE] {{0}};
+	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE]{};
 	TextMenuItem deleteDeviceConfig;
 	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS] {nullptr};
 	TextMenuItem deleteProfile;
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	BoolMenuItem mogaInputSystem;
-	#endif
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-	BoolMenuItem notifyDeviceChange;
-	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	TextMenuItem rescanOSDevices;
 	#endif
 	TextMenuItem identDevice;
+	TextMenuItem generalOptions;
+	TextMenuItem systemOptions;
+	TextHeadingMenuItem deviceListHeading;
 	TextMenuItem inputDevName[Input::MAX_DEVS];
-	MenuItem *item[sizeofArrayConst(inputDevName) + 6] = {nullptr};
+	MenuItem *item[sizeofArrayConst(inputDevName) + 7]{};
 
 public:
-	char inputDevNameStr[Input::MAX_DEVS][80] {{0}};
+	char inputDevNameStr[Input::MAX_DEVS][80]{};
 
 	InputManagerView(Base::Window &win);
 	void init(bool highlightFirst);
@@ -66,12 +63,44 @@ public:
 	void onShow() override;
 };
 
+class InputManagerOptionsView : public BaseMenuView
+{
+private:
+	#ifdef CONFIG_BASE_ANDROID
+	MultiChoiceSelectMenuItem relativePointerDecel;
+	void relativePointerDecelInit();
+	#endif
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	BoolMenuItem mogaInputSystem;
+	#endif
+	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	BoolMenuItem notifyDeviceChange;
+	#endif
+	#ifdef CONFIG_BLUETOOTH
+	TextHeadingMenuItem bluetoothHeading;
+	BoolMenuItem keepBtActive;
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+	MultiChoiceSelectMenuItem btScanSecs;
+	void btScanSecsInit();
+	#endif
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	BoolMenuItem btScanCache;
+	#endif
+	BoolMenuItem altGamepadConfirm;
+	MenuItem *item[10]{};
+
+public:
+	InputManagerOptionsView(Base::Window &win);
+	void init(bool highlightFirst);
+};
+
 class InputManagerDeviceView : public BaseMenuView
 {
 private:
 	InputManagerView &rootIMView;
 	MultiChoiceSelectMenuItem player;
-	char profileStr[128] {0};
+	char profileStr[128]{};
 	TextMenuItem loadProfile;
 	TextMenuItem renameProfile;
 	TextMenuItem newProfile;
@@ -84,8 +113,8 @@ private:
 	BoolMenuItem joystickAxisHatDPad;
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	TextMenuItem inputCategory[EmuControls::categories];
-	MenuItem *item[EmuControls::categories + 11] = {nullptr};
-	InputDeviceConfig *devConf = nullptr;
+	MenuItem *item[EmuControls::categories + 11]{};
+	InputDeviceConfig *devConf{};
 
 	void confirmICadeMode(const Input::Event &e);
 

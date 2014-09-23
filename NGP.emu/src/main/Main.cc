@@ -476,6 +476,8 @@ void gfx_buildMonoConvMap();
 
 void EmuSystem::savePathChanged() { }
 
+bool EmuSystem::hasInputOptions() { return false; }
+
 namespace Base
 {
 

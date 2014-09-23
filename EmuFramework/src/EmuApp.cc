@@ -610,7 +610,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
-	View::defaultSmallFace = ResourceFace::create(View::defaultFace);
+	// TODO: not used yet
+	//View::defaultSmallFace = ResourceFace::create(View::defaultFace);
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)

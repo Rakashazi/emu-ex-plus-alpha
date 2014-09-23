@@ -47,7 +47,7 @@ public:
 	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
 	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = LC2DO);
 	void deinit() override;
-	void onSelectElement(const GuiTable1D *table, const Input::Event &e, uint i) override;
+	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
 
 	template <size_t S, size_t S2>
 	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = LC2DO)

@@ -94,7 +94,7 @@ void OptionView::autoSaveStateInit()
 {
 	static const char *str[] =
 	{
-		"Off", "On Exit",
+		"Off", "Game Exit",
 		"15mins", "30mins"
 	};
 	int val = 0;
@@ -174,27 +174,6 @@ void OptionView::audioRateInit()
 
 	audioRate.init(str, val, rates);
 }
-
-#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-void OptionView::btScanSecsInit()
-{
-	static const char *str[] =
-	{
-		"2secs", "4secs", "6secs", "8secs", "10secs"
-	};
-
-	int val = 1;
-	switch(BluetoothAdapter::scanSecs)
-	{
-		bcase 2: val = 0;
-		bcase 4: val = 1;
-		bcase 6: val = 2;
-		bcase 8: val = 3;
-		bcase 10: val = 4;
-	}
-	btScanSecs.init(str, val, sizeofArray(str));
-}
-#endif
 
 enum { O_AUTO = -1, O_90, O_270, O_0, O_180 };
 
@@ -392,21 +371,6 @@ void OptionView::fontSizeInit()
 	fontSize.init(str, init, sizeofArray(str));
 }
 
-#ifdef CONFIG_BASE_ANDROID
-void OptionView::relativePointerDecelInit()
-{
-	static const char *str[] = { "Low", "Med.", "High" };
-	int init = 0;
-	if(optionRelPointerDecel == optionRelPointerDecelLow)
-		init = 0;
-	if(optionRelPointerDecel == optionRelPointerDecelMed)
-		init = 1;
-	if(optionRelPointerDecel == optionRelPointerDecelHigh)
-		init = 2;
-	relativePointerDecel.init(str, init, sizeofArray(str));
-}
-#endif
-
 #if defined CONFIG_BASE_ANDROID
 void OptionView::processPriorityInit()
 {
@@ -534,8 +498,6 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 {
 	name_ = "Video Options";
 	if(!optionFrameSkip.isConst) { frameSkipInit(); item[items++] = &frameSkip; }
-	if(!optionGameOrientation.isConst) { gameOrientationInit(); item[items++] = &gameOrientation; }
-	aspectRatioInit(); item[items++] = &aspectRatio;
 	imgFilter.init(optionImgFilter); item[items++] = &imgFilter;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectInit(); item[items++] = &imgEffect;
@@ -544,6 +506,7 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	overlayEffectLevelInit(); item[items++] = &overlayEffectLevel;
 	zoomInit(); item[items++] = &zoom;
 	viewportZoomInit(); item[items++] = &viewportZoom;
+	aspectRatioInit(); item[items++] = &aspectRatio;
 	#ifdef CONFIG_BASE_ANDROID
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		if(Base::androidSDK() < 14)
@@ -594,24 +557,6 @@ void OptionView::loadAudioItems(MenuItem *item[], uint &items)
 void OptionView::loadInputItems(MenuItem *item[], uint &items)
 {
 	name_ = "Input Options";
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	btScanSecsInit(); item[items++] = &btScanSecs;
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	if(!optionKeepBluetoothActive.isConst)
-	{
-		keepBtActive.init(optionKeepBluetoothActive); item[items++] = &keepBtActive;
-	}
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	btScanCache.init(optionBlueToothScanCache); item[items++] = &btScanCache;
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
-	if(Input::hasTrackball())
-	{
-		relativePointerDecelInit(); item[items++] = &relativePointerDecel;
-	}
-	#endif
 }
 
 void OptionView::loadSystemItems(MenuItem *item[], uint &items)
@@ -632,7 +577,6 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 {
 	name_ = "GUI Options";
-	if(!optionMenuOrientation.isConst) { menuOrientationInit(); item[items++] = &menuOrientation; }
 	if(!optionPauseUnfocused.isConst)
 	{
 		pauseUnfocused.init(optionPauseUnfocused); item[items++] = &pauseUnfocused;
@@ -654,9 +598,6 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	{
 		fontSizeInit(); item[items++] = &fontSize;
 	}
-	#ifndef CONFIG_ENV_WEBOS
-	altGamepadConfirm.init(Input::swappedGamepadConfirm); item[items++] = &altGamepadConfirm;
-	#endif
 	if(!optionIdleDisplayPowerSave.isConst)
 	{
 		idleDisplayPowerSave.init(optionIdleDisplayPowerSave); item[items++] = &idleDisplayPowerSave;
@@ -678,6 +619,12 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	showBundledGames.init(optionShowBundledGames); item[items++] = &showBundledGames;
 	#endif
+	if(!optionGameOrientation.isConst)
+	{
+		orientationHeading.init(); item[items++] = &orientationHeading;
+		gameOrientationInit(); item[items++] = &gameOrientation;
+		menuOrientationInit(); item[items++] = &menuOrientation;
+	}
 }
 
 void OptionView::init(uint idx, bool highlightFirst)
@@ -940,15 +887,6 @@ OptionView::OptionView(Base::Window &win):
 			Gfx::setDither(item.on);
 		}
 	},
-	gameOrientation
-	{
-		"Orientation",
-		[](MultiChoiceMenuItem &, int val)
-		{
-			optionGameOrientation.val = convertOrientationMenuValueToOption(val);
-			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
-		}
-	},
 	// Audio
 	snd
 	{
@@ -1013,73 +951,6 @@ OptionView::OptionView(Base::Window &win):
 		{
 			item.toggle(*this);
 			optionAudioSoloMix = !item.on;
-		}
-	},
-	#endif
-	// Input
-	altGamepadConfirm
-	{
-		"Alt Gamepad Confirm",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			Input::swappedGamepadConfirm = item.on;
-		}
-	},
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	btScanSecs
-	{
-		"Bluetooth Scan",
-		[](MultiChoiceMenuItem &, int val)
-		{
-			switch(val)
-			{
-				bcase 0: BluetoothAdapter::scanSecs = 2;
-				bcase 1: BluetoothAdapter::scanSecs = 4;
-				bcase 2: BluetoothAdapter::scanSecs = 6;
-				bcase 3: BluetoothAdapter::scanSecs = 8;
-				bcase 4: BluetoothAdapter::scanSecs = 10;
-			}
-			logMsg("set bluetooth scan time %d", BluetoothAdapter::scanSecs);
-		}
-	},
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	keepBtActive
-	{
-		"Background Bluetooth",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			optionKeepBluetoothActive = item.on;
-		}
-	},
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	btScanCache
-	{
-		"Bluetooth Scan Cache",
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			item.toggle(*this);
-			optionBlueToothScanCache = item.on;
-		}
-	},
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
-	relativePointerDecel
-	{
-		"Trackball Sensitivity",
-		[](MultiChoiceMenuItem &, int val)
-		{
-			#if defined(CONFIG_BASE_ANDROID)
-			if(val == 0)
-				optionRelPointerDecel.val = optionRelPointerDecelLow;
-			else if(val == 1)
-				optionRelPointerDecel.val = optionRelPointerDecelMed;
-			else if(val == 2)
-				optionRelPointerDecel.val = optionRelPointerDecelHigh;
-			#endif
 		}
 	},
 	#endif
@@ -1303,14 +1174,27 @@ OptionView::OptionView(Base::Window &win):
 		}
 	},
 	#endif
-	menuOrientation
+	orientationHeading
 	{
 		"Orientation",
+	},
+	menuOrientation
+	{
+		"In Menu",
 		[this](MultiChoiceMenuItem &, int val)
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
 			Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
+		}
+	},
+	gameOrientation
+	{
+		"In Game",
+		[](MultiChoiceMenuItem &, int val)
+		{
+			optionGameOrientation.val = convertOrientationMenuValueToOption(val);
+			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
 		}
 	}
 {}

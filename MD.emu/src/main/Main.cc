@@ -528,7 +528,10 @@ static void setupSMSInput()
 static void setupMDInput()
 {
 	if(!EmuSystem::gameIsRunning())
+	{
+		vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
 		return;
+	}
 
 	mem_zero(playerIdxMap);
 	playerIdxMap[0] = 0;
@@ -825,6 +828,8 @@ void EmuSystem::configAudioRate()
 }
 
 void EmuSystem::savePathChanged() { }
+
+bool EmuSystem::hasInputOptions() { return true; }
 
 namespace Base
 {

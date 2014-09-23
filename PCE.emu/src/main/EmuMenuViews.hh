@@ -44,7 +44,7 @@ public:
 	},
 	sixButtonPad
 	{
-		"6-button support",
+		"6-button Gamepad",
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
 			item.toggle(*this);
@@ -52,6 +52,7 @@ public:
 			PCE_Fast::AVPad6Enabled[1] = item.on;
 			#ifdef CONFIG_VCONTROLS_GAMEPAD
 			vController.gp.activeFaceBtns = item.on ? 6 : 2;
+			EmuControls::setupVControllerVars();
 			vController.place();
 			#endif
 		}

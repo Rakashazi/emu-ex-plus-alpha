@@ -15,8 +15,8 @@
 
 #include <imagine/gui/View.hh>
 
-ResourceFace *View::defaultFace = nullptr;
-ResourceFace *View::defaultSmallFace = nullptr;
+ResourceFace *View::defaultFace{};
+ResourceFace *View::defaultSmallFace{};
 bool View::needsBackControl = needsBackControlDefault;
 
 void View::pushAndShow(View &v, bool needsNavView)

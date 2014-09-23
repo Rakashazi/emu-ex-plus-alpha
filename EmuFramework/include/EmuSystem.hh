@@ -126,6 +126,7 @@ public:
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
+	static bool hasInputOptions();
 	static void stopSound();
 	static void startSound();
 	static void writeSound(const void *samples, uint framesToWrite);
