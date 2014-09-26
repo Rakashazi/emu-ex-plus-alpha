@@ -274,9 +274,9 @@ private:
 					{
 						if(action == 0)
 						{
-							viewStack.popAndShow();
 							addTapeFilePickerView(e);
 							window().postDraw();
+							viewStack.popAndShow();
 						}
 						else
 						{
@@ -342,9 +342,9 @@ private:
 					{
 						if(action == 0)
 						{
-							viewStack.popAndShow();
 							addCartFilePickerView(e);
 							window().postDraw();
+							viewStack.popAndShow();
 						}
 						else if(action == 1)
 						{
@@ -409,9 +409,9 @@ public:
 				{
 					if(action == 0)
 					{
-						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
 						window().postDraw();
+						viewStack.popAndShow();
 					}
 					else
 					{

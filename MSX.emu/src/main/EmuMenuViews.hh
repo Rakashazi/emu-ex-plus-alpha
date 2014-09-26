@@ -340,9 +340,9 @@ public:
 				{
 					if(action == 0)
 					{
-						viewStack.popAndShow();
 						addHDFilePickerView(e, slot);
 						window().postDraw();
+						viewStack.popAndShow();
 					}
 					else
 					{
@@ -412,9 +412,9 @@ public:
 			{
 				if(action == 0)
 				{
-					viewStack.popAndShow();
 					addROMFilePickerView(e, slot);
 					window().postDraw();
+					viewStack.popAndShow();
 				}
 				else if(action == 1)
 				{
@@ -500,9 +500,9 @@ public:
 				{
 					if(action == 0)
 					{
-						viewStack.popAndShow();
 						addDiskFilePickerView(e, slot);
 						window().postDraw();
+						viewStack.popAndShow();
 					}
 					else
 					{

@@ -37,9 +37,14 @@ extern sms_ntsc_t *sms_ntsc;
 #define LUT_SIZE    (0x10000)
 
 #if __ARM_ARCH < 6 || (defined __ANDROID__ && __ARM_ARCH < 7)
-	#define ALIGN_LONG
+#define ALIGN_LONG
 #endif
 #define ALT_RENDERER
+
+// 32-bit type for VDP writes to prevent generating code
+// using instructions that assume 4-byte alignment.
+// Fixes SIGBUS issues on ARM targets.
+using uint32u [[gnu::aligned(2)]] = uint32;
 
 #ifdef ALIGN_LONG
 /* Or change the names if you depend on these from elsewhere.. */
@@ -1436,7 +1441,8 @@ void render_bg_m4(int line, int width)
 void render_bg_m5(int line, int width)
 {
   int column;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
 
   /* Common data */
   uint32 xscroll = vram.getL(hscb + ((line & hscroll_mask) << 2));
@@ -1581,7 +1587,8 @@ void render_bg_m5(int line, int width)
 void render_bg_m5_vs(int line, int width)
 {
   int column;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 v_line, *nt;
 
   /* Common data */
@@ -1768,7 +1775,8 @@ void render_bg_m5_vs(int line, int width)
 void render_bg_m5_im2(int line, int width)
 {
   int column;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
 
   /* Common data */
   uint32 xscroll      = vram.getL(hscb + ((line & hscroll_mask) << 2));
@@ -1918,7 +1926,8 @@ void render_bg_m5_im2(int line, int width)
 void render_bg_m5_im2_vs(int line, int width)
 {
   int column;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 v_line, *nt;
 
   /* Common data */
@@ -2110,7 +2119,8 @@ void render_bg_m5_im2_vs(int line, int width)
 void render_bg_m5(int line, int width)
 {
   int column, start, end;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2266,7 +2276,8 @@ void render_bg_m5(int line, int width)
 void render_bg_m5_vs(int line, int width)
 {
   int column, start, end;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2460,7 +2471,8 @@ void render_bg_m5_vs(int line, int width)
 void render_bg_m5_im2(int line, int width)
 {
   int column, start, end;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2617,7 +2629,8 @@ void render_bg_m5_im2(int line, int width)
 void render_bg_m5_im2_vs(int line, int width)
 {
   int column, start, end;
-  uint32 atex, atbuf, *src, *dst;
+  uint32 atex, atbuf, *src;
+  uint32u *dst;
   uint32 shift, index, v_line, *nt;
 
   /* common data */
