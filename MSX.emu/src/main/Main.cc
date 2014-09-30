@@ -27,11 +27,13 @@
 #undef Rect
 #endif
 
-#if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || (defined CONFIG_BASE_IOS && defined CONFIG_BASE_IOS_JB) || defined CONFIG_MACHINE_IS_PANDORA
-static const bool checkForMachineFolderOnStart = 1;
+#if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
+static const bool checkForMachineFolderOnStart = true;
 #else
-static const bool checkForMachineFolderOnStart = 0;
+static const bool checkForMachineFolderOnStart = false;
 #endif
+
+static bool canInstallCBIOS = true;
 
 extern "C"
 {
@@ -1163,6 +1165,13 @@ CallResult onInit(int argc, char** argv)
 	mediaDbAddFromXmlFile("msxromdb.xml");
 	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
 
+	#ifdef CONFIG_BASE_IOS
+	if(!Base::isSystemApp())
+	{
+		canInstallCBIOS = false;
+	}
+	#endif
+
 	// must create the mixer first since mainInitCommon() will access it
 	mixer = mixerCreate();
 	assert(mixer);
@@ -1236,7 +1245,7 @@ CallResult onInit(int argc, char** argv)
 	static MenuShownDelegate menuShown =
 		[](Base::Window &win)
 		{
-			if(checkForMachineFolderOnStart &&
+			if(canInstallCBIOS && checkForMachineFolderOnStart &&
 				!strlen(machineCustomPath.data()) && !FsSys::fileExists(machineBasePath.data())) // prompt to install if using default machine path & it doesn't exist
 			{
 				auto &ynAlertView = *new YesNoAlertView{win};

@@ -529,7 +529,9 @@ static void setupMDInput()
 {
 	if(!EmuSystem::gameIsRunning())
 	{
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
+		#endif
 		return;
 	}
 

@@ -112,7 +112,7 @@ Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDece
 
 Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Base::VIEW_ROTATE_90 : Base::VIEW_ROTATE_0,
-		Config::envIsPS3, optionOrientationIsValid);
+		Config::envIsPS3 || Config::MACHINE_IS_OUYA, optionOrientationIsValid);
 
 Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,

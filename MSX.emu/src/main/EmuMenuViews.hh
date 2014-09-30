@@ -2,11 +2,11 @@
 #include "OptionView.hh"
 
 static const char *installFirmwareFilesMessage =
-	#if defined(CONFIG_BASE_ANDROID)
+	#if defined CONFIG_BASE_ANDROID
 	"Install the C-BIOS BlueMSX machine files to your storage device?";
-	#elif defined(CONFIG_ENV_WEBOS)
+	#elif defined CONFIG_ENV_WEBOS
 	"Install the C-BIOS BlueMSX machine files to internal storage? If using WebOS 1.4.5, make sure you have a version without the write permission bug.";
-	#elif defined(CONFIG_BASE_IOS_JB)
+	#elif defined CONFIG_BASE_IOS
 	"Install the C-BIOS BlueMSX machine files to /User/Media/MSX.emu?";
 	#else
 	"Install the C-BIOS BlueMSX machine files to Machines directory?";
@@ -182,7 +182,6 @@ private:
 		}
 	} msxMachine;
 
-	#if !defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_IOS_JB)
 	TextMenuItem installCBIOS
 	{
 		"Install MSX C-BIOS",
@@ -199,7 +198,6 @@ private:
 			modalViewController.pushAndShow(ynAlertView);
 		}
 	};
-	#endif
 
 	BoolMenuItem skipFdcAccess
 	{
@@ -253,9 +251,10 @@ public:
 		skipFdcAccess.init(optionSkipFdcAccess); item[items++] = &skipFdcAccess;
 		printMachinePathMenuEntryStr(machineFilePathStr);
 		machineFilePath.init(machineFilePathStr, true); item[items++] = &machineFilePath;
-		#if !defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_IOS_JB)
-		installCBIOS.init(); item[items++] = &installCBIOS;
-		#endif
+		if(canInstallCBIOS)
+		{
+			installCBIOS.init(); item[items++] = &installCBIOS;
+		}
 	}
 };
 
