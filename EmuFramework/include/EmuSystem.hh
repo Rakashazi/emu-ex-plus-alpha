@@ -48,6 +48,7 @@ public:
 	static State state;
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
+	static bool isPaused() { return state == State::PAUSED; }
 private:
 	static FsSys::PathString gamePath_, fullGamePath_;
 	using GameNameArr = char[256];

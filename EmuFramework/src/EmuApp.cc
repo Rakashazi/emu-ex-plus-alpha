@@ -243,11 +243,16 @@ static void runEmuFrame(Base::FrameTimeBase frameTime, bool fastForward)
 	EmuSystem::runFrame(1, 1, renderAudio);
 }
 
+static bool allWindowsAreFocused()
+{
+	return mainWin.focused && (!extraWin.win || extraWin.focused);
+}
+
 static void onFocusChange(uint in)
 {
 	if(!menuViewIsActive)
 	{
-		if(in && EmuSystem::isStarted())
+		if(in && EmuSystem::isPaused())
 		{
 			logMsg("resuming emulation due to window focus");
 			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -256,7 +261,7 @@ static void onFocusChange(uint in)
 			EmuSystem::start();
 			postDrawToEmuWindows();
 		}
-		else if(optionPauseUnfocused && !mainWin.focused && (!extraWin.win || !extraWin.focused))
+		else if(optionPauseUnfocused && !EmuSystem::isPaused() && !allWindowsAreFocused())
 		{
 			logMsg("pausing emulation with all windows unfocused");
 			EmuSystem::pause();
@@ -439,6 +444,15 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 				updateInputDevices();
 				EmuControls::updateAutoOnScreenControlVisible();
 				updateInputDevicesOnResume = 0;
+			}
+			if(!menuViewIsActive && focused && EmuSystem::isPaused())
+			{
+				logMsg("resuming emulation due to app resume");
+				#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+				vController.resetInput();
+				#endif
+				EmuSystem::start();
+				postDrawToEmuWindows();
 			}
 	});
 
