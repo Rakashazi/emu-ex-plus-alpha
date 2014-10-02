@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstdio>
 #include <imagine/fs/Fs.hh>
 
 #if defined CONFIG_FS_POSIX
@@ -28,5 +29,13 @@
 #define FsSys FsPs3
 #endif
 
-FsSys::PathString makeFSPathStringPrintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+template <typename... ARGS>
+FsSys::PathString makeFSPathStringPrintf(const char *format, ARGS&&... args)
+{
+	FsSys::PathString path;
+	int ret = snprintf(path.data(), sizeof(path), format, std::forward<ARGS>(args)...);
+	assert(ret >= 0);
+	return path;
+}
+
 FsSys::PathString makeAppPathFromLaunchCommand(const char *launchPath);

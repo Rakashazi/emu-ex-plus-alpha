@@ -93,13 +93,3 @@ void MsgPopup::draw()
 		text.draw(0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
 	}
 }
-
-void MsgPopup::printf(uint secs, bool error, const char *format, ...)
-{
-	va_list args;
-	va_start( args, format );
-	vsnprintf(str, sizeof(str), format, args);
-	va_end( args );
-	//logMsg("%s", str);
-	post(str, secs, error);
-}

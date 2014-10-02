@@ -41,95 +41,76 @@ public:
 		return m;
 	}
 
-	T operator()(JNIEnv* j, ...);
+	template<class... ARGS>
+	T operator()(JNIEnv* j, ARGS&&... args);
 };
 
-template<> inline void JavaClassMethod<void>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline void JavaClassMethod<void>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	j->CallStaticVoidMethodV(c, m, args);
-	va_end(args);
+	j->CallStaticVoidMethod(c, m, std::forward<ARGS>(args)...);
 }
 
-template<> inline jobject JavaClassMethod<jobject>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jobject JavaClassMethod<jobject>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticObjectMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticObjectMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jboolean JavaClassMethod<jboolean>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jboolean JavaClassMethod<jboolean>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticBooleanMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticBooleanMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jbyte JavaClassMethod<jbyte>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jbyte JavaClassMethod<jbyte>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticByteMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticByteMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jchar JavaClassMethod<jchar>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jchar JavaClassMethod<jchar>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticCharMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticCharMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jshort JavaClassMethod<jshort>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jshort JavaClassMethod<jshort>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticShortMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticShortMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jint JavaClassMethod<jint>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jint JavaClassMethod<jint>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticIntMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticIntMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jlong JavaClassMethod<jlong>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jlong JavaClassMethod<jlong>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticLongMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticLongMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jfloat JavaClassMethod<jfloat>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jfloat JavaClassMethod<jfloat>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticFloatMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticFloatMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jdouble JavaClassMethod<jdouble>::operator()(JNIEnv* j, ...)
+template<> template<class... ARGS>
+inline jdouble JavaClassMethod<jdouble>::operator()(JNIEnv* j, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, j);
-	auto ret = j->CallStaticDoubleMethodV(c, m, args);
-	va_end(args);
+	auto ret = j->CallStaticDoubleMethod(c, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
@@ -160,95 +141,76 @@ public:
 		return m;
 	}
 
-	T operator()(JNIEnv* j, jobject obj, ...) const;
+	template<class... ARGS>
+	T operator()(JNIEnv* j, jobject obj, ARGS&&... args) const;
 };
 
-template<> inline void JavaInstMethod<void>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline void JavaInstMethod<void>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	j->CallVoidMethodV(obj, m, args);
-	va_end(args);
+	j->CallVoidMethod(obj, m, std::forward<ARGS>(args)...);
 }
 
-template<> inline jobject JavaInstMethod<jobject>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jobject JavaInstMethod<jobject>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallObjectMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallObjectMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jboolean JavaInstMethod<jboolean>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jboolean JavaInstMethod<jboolean>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallBooleanMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallBooleanMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jbyte JavaInstMethod<jbyte>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jbyte JavaInstMethod<jbyte>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallByteMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallByteMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jchar JavaInstMethod<jchar>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jchar JavaInstMethod<jchar>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallCharMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallCharMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jshort JavaInstMethod<jshort>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jshort JavaInstMethod<jshort>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallShortMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallShortMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jint JavaInstMethod<jint>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jint JavaInstMethod<jint>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallIntMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallIntMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jlong JavaInstMethod<jlong>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jlong JavaInstMethod<jlong>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallLongMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallLongMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jfloat JavaInstMethod<jfloat>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jfloat JavaInstMethod<jfloat>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallFloatMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallFloatMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 
-template<> inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject obj, ...) const
+template<> template<class... ARGS>
+inline jdouble JavaInstMethod<jdouble>::operator()(JNIEnv* j, jobject obj, ARGS&&... args) const
 {
-	va_list args;
-	va_start(args, obj);
-	auto ret = j->CallDoubleMethodV(obj, m, args);
-	va_end(args);
+	auto ret = j->CallDoubleMethod(obj, m, std::forward<ARGS>(args)...);
 	return ret;
 }
 

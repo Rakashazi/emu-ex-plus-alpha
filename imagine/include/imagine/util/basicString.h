@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <ctype.h>
 #include <imagine/mem/mem.h>
 #include <imagine/util/algorithm.h>
@@ -146,51 +145,30 @@ static char *string_cat(std::array<char, S> &dest, const char *src)
 
 #endif
 
+#ifdef __cplusplus
+
 // prints format string to buffer and returns number of bytes written
 // returns zero if buffer is too small or on error
-static int string_printf(char *buffer, int buff_size, const char *format, ... ) __attribute__ ((format (printf, 3, 4)));
-static int string_printf(char *buffer, int buff_size, const char *format, ... )
+template<typename... ARGS>
+static int string_printf(char *buffer, int buff_size, const char *format, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(buffer, buff_size, format, args);
-	va_end(args);
+	int ret = snprintf(buffer, buff_size, format, std::forward<ARGS>(args)...);
 	// error if text would overflow, or actual error in vsnprintf()
 	if(ret >= buff_size || ret < 0)
 		return 0;
 	return ret;
 }
 
-#ifdef __cplusplus
-
-template <size_t S>
-static int string_printf(char (&buffer)[S], const char *format, ... ) __attribute__ ((format (printf, 2, 3)));
-template <size_t S>
-static int string_printf(char (&buffer)[S], const char *format, ... )
+template <size_t S, typename... ARGS>
+static int string_printf(char (&buffer)[S], const char *format, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(buffer, S, format, args);
-	va_end(args);
-	// error if text would overflow, or actual error in vsnprintf()
-	if(ret >= (int)S || ret < 0)
-		return 0;
-	return ret;
+	return string_printf(buffer, S, format, std::forward<ARGS>(args)...);
 }
 
-template <size_t S>
-static int string_printf(std::array<char, S> &buffer, const char *format, ... ) __attribute__ ((format (printf, 2, 3)));
-template <size_t S>
-static int string_printf(std::array<char, S> &buffer, const char *format, ... )
+template <size_t S, typename... ARGS>
+static int string_printf(std::array<char, S> &buffer, const char *format, ARGS&&... args)
 {
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(buffer.data(), S, format, args);
-	va_end(args);
-	// error if text would overflow, or actual error in vsnprintf()
-	if(ret >= (int)S || ret < 0)
-		return 0;
-	return ret;
+	return string_printf(buffer.data(), S, format, std::forward<ARGS>(args)...);
 }
 
 #endif

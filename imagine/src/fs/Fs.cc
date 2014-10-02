@@ -19,17 +19,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/strings.h>
 
-FsSys::PathString makeFSPathStringPrintf(const char *format, ...)
-{
-	FsSys::PathString path{};
-	va_list args;
-	va_start(args, format);
-	int ret = vsnprintf(path.data(), sizeof(path), format, args);
-	assert(ret >= 0);
-	va_end(args);
-	return path;
-}
-
 FsSys::PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 {
 	logMsg("getting app path from launch command: %s", launchCmd);

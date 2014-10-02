@@ -15,26 +15,35 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstdio>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Timer.hh>
 
 class MsgPopup
 {
-public:
+private:
 	Gfx::Text text;
 	Gfx::ProjectionPlane projP;
 	Base::Timer unpostTimer;
 	bool error = 0;
-	char str[1024] {0};
+	std::array<char, 1024> str{};
 
+public:
 	MsgPopup() {}
 	void init();
 	void clear();
 	void place(const Gfx::ProjectionPlane &projP);
 	void unpost();
-	void post(const char *msg, int secs = 3, bool error = 0);
+	void post(const char *msg, int secs = 3, bool error = false);
 	void postError(const char *msg, int secs = 3);
 	void draw();
-	void printf(uint secs, bool error, const char *format, ...) __attribute__ ((format (printf, 4, 5)));
+
+	template <typename... ARGS>
+	void printf(uint secs, bool error, const char *format, ARGS&&... args)
+	{
+		snprintf(str.data(), sizeof(str), format, std::forward<ARGS>(args)...);
+		//logMsg("%s", str);
+		post(str.data(), secs, error);
+	}
 };
