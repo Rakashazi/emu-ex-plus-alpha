@@ -1,7 +1,7 @@
 #define LOGTAG "main"
 #include <imagine/logger/logger.h>
 #include <imagine/fs/sys.hh>
-#include <EmuSystem.hh>
+#include <emuframework/EmuSystem.hh>
 #include <sys/stat.h>
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4

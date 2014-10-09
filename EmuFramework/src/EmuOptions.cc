@@ -14,12 +14,12 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/machine.hh>
-#include <EmuOptions.hh>
-#include <EmuSystem.hh>
-#include <EmuInput.hh>
-#include <EmuApp.hh>
-#include <VideoImageEffect.hh>
-#include "VController.hh"
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/VideoImageEffect.hh>
+#include <emuframework/VController.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
@@ -214,9 +214,9 @@ Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
 Byte1Option optionCheckSavePathWriteAccess{CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS, 1};
 
-#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
-#endif
+
+[[gnu::weak]] PathOption optionFirmwarePath(0, nullptr, 0, nullptr);
 
 void initOptions()
 {

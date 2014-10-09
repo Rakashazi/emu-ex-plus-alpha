@@ -6,11 +6,9 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 SRC += main/Main.cc main/EmuControls.cc
 
-CPPFLAGS += -DSysDDec=float -DHAVE_CONFIG_H
+CPPFLAGS += -I$(projectPath)/src -DSysDDec=float -DHAVE_CONFIG_H
 
 GEO := gngeo
 
@@ -46,6 +44,7 @@ endif
 
 configInc += <gngeo-config.h>
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

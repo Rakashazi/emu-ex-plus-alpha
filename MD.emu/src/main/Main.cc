@@ -14,8 +14,9 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -27,18 +28,16 @@
 #include "vdp_ctrl.h"
 #include "genesis.h"
 #include "genplus-config.h"
+#include "EmuConfig.hh"
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
 #include <main/Cheats.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
-t_config config = { 0 };
+t_config config{};
 uint config_ym2413_enabled = 1;
-static int8 mdInputPortDev[2] {-1, -1};
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
+static int8 mdInputPortDev[2]{-1, -1};
 
 uint isROMExtension(const char *name)
 {
@@ -123,6 +122,13 @@ static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath,
 static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
 
+const char *EmuSystem::inputFaceBtnName = "A/B/C";
+const char *EmuSystem::inputCenterBtnName = "Mode/Start";
+const uint EmuSystem::inputFaceBtns = 6;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = true;
+const char *EmuSystem::configFilename = "MdEmu.config";
 const uint EmuSystem::maxPlayers = 4;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -130,7 +136,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
+#include <emuframework/CommonGui.hh>
+#include <emuframework/CommonCheatGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {

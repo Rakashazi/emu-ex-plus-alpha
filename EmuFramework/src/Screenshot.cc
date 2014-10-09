@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <Screenshot.hh>
+#include <emuframework/Screenshot.hh>
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/sys.hh>

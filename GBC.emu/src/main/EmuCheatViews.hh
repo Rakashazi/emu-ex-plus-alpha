@@ -1,5 +1,5 @@
 #pragma once
-#include <Cheats.hh>
+#include <emuframework/Cheats.hh>
 #include <main/Cheats.hh>
 
 class SystemEditCheatView : public EditCheatView

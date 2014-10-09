@@ -1,5 +1,6 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
 
 class SystemOptionView : public OptionView
 {
@@ -76,8 +77,6 @@ public:
 		biosPath.init(biosPathStr); item[items++] = &biosPath;
 	}
 };
-
-#include "MenuView.hh"
 
 class SystemMenuView : public MenuView
 {

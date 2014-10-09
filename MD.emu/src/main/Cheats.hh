@@ -2,7 +2,14 @@
 
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/bits.h>
-#include <EmuSystem.hh>
+#include <emuframework/EmuSystem.hh>
+
+namespace EmuCheats
+{
+
+static const uint MAX = 100;
+
+}
 
 // Needs to be a #define because it get strigified in Cheats.cc
 #define MAX_CHEAT_NAME_CHARS 127

@@ -14,10 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/number.h>
-#include <ConfigFile.hh>
-#include <EmuInput.hh>
-#include <EmuOptions.hh>
-#include <FileUtils.hh>
+#include <emuframework/ConfigFile.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
 
 static bool readKeyConfig(Io &io, uint16 &size)
@@ -264,9 +264,11 @@ static bool readConfig2(Io &io)
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
 			bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);
-			#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
-			bcase CFGKEY_SHOW_BUNDLED_GAMES: optionShowBundledGames.readFromIO(io, size);
-			#endif
+			bcase CFGKEY_SHOW_BUNDLED_GAMES:
+			{
+				if(EmuSystem::hasBundledGames)
+					optionShowBundledGames.readFromIO(io, size);
+			}
 			#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 			bcase CFGKEY_BEST_COLOR_MODE_HINT: optionBestColorModeHint.readFromIO(io, size);
 			#endif
@@ -506,9 +508,7 @@ static OptionBase *cfgFileOption[] =
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	&optionBestColorModeHint,
 	#endif
-	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	&optionShowBundledGames,
-	#endif
 	&optionCheckSavePathWriteAccess
 };
 
@@ -688,7 +688,7 @@ void loadConfigFile()
 {
 	FsSys::PathString configFilePath;
 	if(Base::documentsPathIsShared())
-		string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
 	else
 		string_printf(configFilePath, "%s/config", Base::documentsPath());
 	auto configFile = IOFile(IoSys::open(configFilePath.data()));
@@ -710,7 +710,7 @@ void saveConfigFile()
 		string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
 		FsSys::mkdir(configFilePath.data());
 		fixFilePermissions(configFilePath);
-		string_printf(configFilePath, "%s/explusalpha.com/" CONFIG_FILE_NAME, Base::documentsPath());
+		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
 	}
 	else
 	{

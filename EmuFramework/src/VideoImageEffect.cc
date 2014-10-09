@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <VideoImageEffect.hh>
-#include <EmuApp.hh>
+#include <emuframework/VideoImageEffect.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/io/sys.hh>
 
 struct EffectDesc

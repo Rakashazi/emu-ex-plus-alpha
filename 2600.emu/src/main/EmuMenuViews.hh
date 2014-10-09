@@ -1,5 +1,6 @@
 #pragma once
-#include <OptionView.hh>
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
 #include <stella/emucore/Console.hxx>
 #include "OSystem.hxx"
 
@@ -83,8 +84,6 @@ public:
 		videoSystemInit(); item[items++] = &videoSystem;
 	}
 };
-
-#include "MenuView.hh"
 
 class VCSSwitchesView : public BaseMenuView
 {
@@ -197,6 +196,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		switches.init(); item[items++] = &switches;

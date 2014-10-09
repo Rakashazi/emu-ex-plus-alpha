@@ -14,11 +14,11 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "CreditsView"
-#include <CreditsView.hh>
-#include <meta.h>
+#include <emuframework/CreditsView.hh>
+#include <emuframework/EmuApp.hh>
 
 CreditsView::CreditsView(const char *str, Base::Window &win):
-	View(CONFIG_APP_NAME " " IMAGINE_VERSION, win), str(str) {}
+	View{win}, str(str) {}
 
 void CreditsView::draw(Base::FrameTimeBase frameTime)
 {
@@ -52,6 +52,7 @@ void CreditsView::inputEvent(const Input::Event &e)
 
 void CreditsView::init()
 {
+	name_ = appViewTitle();
 	text.init(str, View::defaultFace);
 	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	place();

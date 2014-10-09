@@ -13,21 +13,20 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <meta.h>
-#include <MenuView.hh>
-#include <Recent.hh>
+#include <emuframework/MenuView.hh>
+#include <emuframework/Recent.hh>
 #include <imagine/gui/AlertView.hh>
-#include <EmuApp.hh>
-#include <EmuSystem.hh>
-#include <CreditsView.hh>
-#include <FilePicker.hh>
-#include <StateSlotView.hh>
-#include <EmuInput.hh>
-#include <EmuOptions.hh>
-#include <InputManagerView.hh>
-#include <TouchConfigView.hh>
-#include <BundledGamesView.hh>
-#include <TextEntry.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CreditsView.hh>
+#include <emuframework/FilePicker.hh>
+#include <emuframework/StateSlotView.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/InputManagerView.hh>
+#include <emuframework/TouchConfigView.hh>
+#include <emuframework/BundledGamesView.hh>
+#include <emuframework/TextEntry.hh>
 #include <imagine/util/strings.h>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
@@ -160,12 +159,10 @@ void MenuView::loadFileBrowserItems(MenuItem *item[], uint &items)
 {
 	loadGame.init(); item[items++] = &loadGame;
 	recentGames.init(); item[items++] = &recentGames;
-	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
-	if(optionShowBundledGames)
+	if(EmuSystem::hasBundledGames && optionShowBundledGames)
 	{
 		bundledGames.init(); item[items++] = &bundledGames;
 	}
-	#endif
 }
 
 void MenuView::loadStandardItems(MenuItem *item[], uint &items)
@@ -198,7 +195,7 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 }
 
 MenuView::MenuView(Base::Window &win):
-	BaseMenuView(CONFIG_APP_NAME " " IMAGINE_VERSION, win),
+	BaseMenuView{win},
 	loadGame
 	{
 		"Load Game",
@@ -266,7 +263,6 @@ MenuView::MenuView(Base::Window &win):
 			}
 		}
 	},
-	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	bundledGames
 	{
 		"Bundled Games",
@@ -277,7 +273,6 @@ MenuView::MenuView(Base::Window &win):
 			pushAndShow(bMenu);
 		}
 	},
-	#endif
 	saveState
 	{
 		"Save State",
@@ -339,7 +334,7 @@ MenuView::MenuView(Base::Window &win):
 		"On-screen Input Setup",
 		[this](TextMenuItem &, const Input::Event &e)
 		{
-			auto &tcMenu = *new TouchConfigView{window(), touchConfigFaceBtnName, touchConfigCenterBtnName};
+			auto &tcMenu = *new TouchConfigView{window(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName};
 			tcMenu.init(!e.isPointer());
 			pushAndShow(tcMenu);
 		}
@@ -516,6 +511,16 @@ MenuView::MenuView(Base::Window &win):
 	}
 {}
 
+void MenuView::init(bool highlightFirst)
+{
+	name_ = appViewTitle();
+	uint items = 0;
+	loadFileBrowserItems(item, items);
+	loadStandardItems(item, items);
+	assert(items <= sizeofArray(item));
+	BaseMenuView::init(item, items, highlightFirst);
+}
+
 void OptionCategoryView::init(bool highlightFirst)
 {
 	//logMsg("running option category init");
@@ -530,7 +535,7 @@ void OptionCategoryView::init(bool highlightFirst)
 		e->onSelect() =
 		[this, e_i](TextMenuItem &, const Input::Event &e)
 		{
-			auto &oCategoryMenu = allocAndGetOptionCategoryMenu(window(), e, e_i);
+			auto &oCategoryMenu = *makeOptionCategoryMenu(window(), e, e_i);
 			viewStack.pushAndShow(oCategoryMenu);
 		};
 	}
@@ -585,6 +590,7 @@ void RecentGameInfo::handleMenuSelection(TextMenuItem &, const Input::Event &e)
 
 void RecentGameView::init(bool highlightFirst)
 {
+	name_ = appViewTitle();
 	uint i = 0;
 	int rIdx = 0;
 	for(auto &e : recentGameList)

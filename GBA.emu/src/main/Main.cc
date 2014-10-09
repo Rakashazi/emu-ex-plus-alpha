@@ -14,8 +14,8 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
 #include <main/Main.hh>
 #include <main/Cheats.hh>
 #include <vbam/gba/GBA.h>
@@ -34,6 +34,14 @@ bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputCenterBtnName = "Select/Start";
+const uint EmuSystem::inputFaceBtns = 4;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = true;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "GbaEmu.config";
+const bool EmuSystem::hasBundledGames = true;
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -41,10 +49,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
-#include "CommonGui.hh"
+#include <emuframework/CommonGui.hh>
+#include <emuframework/CommonCheatGui.hh>
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "gba"

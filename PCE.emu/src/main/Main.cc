@@ -15,8 +15,9 @@
 
 #define LOGTAG "main"
 #include "MDFN.hh"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include "EmuConfig.hh"
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
@@ -24,9 +25,6 @@
 using namespace IG;
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
 
 namespace PCE_Fast
 {
@@ -61,8 +59,15 @@ Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::PathString sysCardPath{};
 static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, "");
 
-#include <CommonGui.hh>
+#include <emuframework/CommonGui.hh>
 
+const char *EmuSystem::inputFaceBtnName = "I/II";
+const char *EmuSystem::inputCenterBtnName = "Select/Run";
+const uint EmuSystem::inputFaceBtns = 6;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "PceEmu.config";
 const uint EmuSystem::maxPlayers = 5;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

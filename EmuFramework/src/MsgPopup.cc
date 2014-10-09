@@ -14,8 +14,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "MsgPopup"
-#include <MsgPopup.hh>
-#include <EmuApp.hh>
+#include <emuframework/MsgPopup.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/View.hh>
 
 using namespace Base;

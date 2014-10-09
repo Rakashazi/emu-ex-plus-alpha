@@ -3,8 +3,6 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 SRC += main/Main.cc main/EmuControls.cc main/ViceApi.cc
 
 CPPFLAGS += -DSysDecimal=float -I$(projectPath)/src -I$(projectPath)/src/config -I$(projectPath)/src/vice -I$(projectPath)/src/vice/c64 -I$(projectPath)/src/vice/c64/cart \
@@ -524,6 +522,7 @@ $(libfsdevice_a_SOURCES) $(base_sources) $(libprinterdrv_a_SOURCES) $(librs232dr
 $(libdiskimage_a_SOURCES) $(libfileio_a_SOURCES) $(EXTRA_libsid_a_SOURCES) $(libsounddrv_a_SOURCES) \
 maincpu.c
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

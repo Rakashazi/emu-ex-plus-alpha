@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <VideoImageOverlay.hh>
-#include <EmuSystem.hh>
+#include <emuframework/VideoImageOverlay.hh>
+#include <emuframework/EmuSystem.hh>
 
 #define CONV_COL(x) 0, x
 alignas(2) static uint8 scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };

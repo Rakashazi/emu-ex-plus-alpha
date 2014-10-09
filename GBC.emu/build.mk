@@ -3,11 +3,9 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-emuFramework_cheats := 1
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 CPPFLAGS += -DHAVE_STDINT_H -DGAMBATTE_CONST_FB_PITCH=160 -DGAMBATTE_NO_OSD -DSysDDec=float \
--I$(projectPath)/src/libgambatte/include -I$(projectPath)/src/common -iquote $(projectPath)/src/libgambatte/src
+-I$(projectPath)/src -I$(projectPath)/src/libgambatte/include -I$(projectPath)/src/common \
+-iquote $(projectPath)/src/libgambatte/src
 
 libgambatteSrc :=  src/cpu.cpp src/gambatte.cpp src/initstate.cpp \
 src/interrupter.cpp src/tima.cpp src/memory.cpp src/mem/rtc.cpp \
@@ -29,6 +27,7 @@ resample/src/kaiser50sinc.cpp resample/src/kaiser70sinc.cpp
 gambatteCommonPath := common
 SRC +=  $(addprefix $(gambatteCommonPath)/,$(gambatteCommonSrc))
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk

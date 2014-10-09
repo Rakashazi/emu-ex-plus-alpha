@@ -1,7 +1,7 @@
-#include <Cheats.hh>
-#include <MsgPopup.hh>
-#include <TextEntry.hh>
-#include <EmuApp.hh>
+#include <emuframework/Cheats.hh>
+#include <emuframework/MsgPopup.hh>
+#include <emuframework/TextEntry.hh>
+#include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <cheats.h>
 extern CollectTextInputView textInputView;

@@ -13,10 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <EmuSystem.hh>
-#include <EmuOptions.hh>
-#include <EmuApp.hh>
-#include <FileUtils.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/FileUtils.hh>
 #include <imagine/audio/Audio.hh>
 #include <algorithm>
 
@@ -36,6 +36,8 @@ uint EmuSystem::audioFramesPerVideoFrame = 0;
 const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::Timer EmuSystem::autoSaveStateTimer;
+[[gnu::weak]] const bool EmuSystem::inputHasKeyboard = false;
+[[gnu::weak]] const bool EmuSystem::hasBundledGames = false;
 
 void saveAutoStateFromTimer();
 

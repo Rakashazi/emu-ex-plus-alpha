@@ -62,9 +62,8 @@ void Screen::setRefreshRate(uint rate)
 		{
 			logWarn("tried to set unsupported refresh rate: %u", rate);
 		}
-		char cmd[64];
-		string_printf(cmd, "sudo /usr/pandora/scripts/op_lcdrate.sh %u", rate);
-		int err = system(cmd);
+		auto cmd = string_makePrintf<64>("sudo /usr/pandora/scripts/op_lcdrate.sh %u", rate);
+		int err = system(cmd.data());
 		if(err)
 		{
 			logErr("error setting refresh rate, %d", err);

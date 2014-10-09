@@ -2,9 +2,9 @@
 #include <neopop.h>
 #include <flash.h>
 #include <unzip.h>
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
-#include <CommonGui.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/CommonGui.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
@@ -34,6 +34,13 @@ enum {
 
 static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
 
+const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputCenterBtnName = "Option";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 1;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = true;
+const char *EmuSystem::configFilename = "NgpEmu.config";
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

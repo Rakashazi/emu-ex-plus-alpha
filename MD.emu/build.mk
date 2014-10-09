@@ -6,9 +6,6 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-emuFramework_cheats := 1
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 gplusPath := genplus-gx
 
 CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \
@@ -16,8 +13,10 @@ CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \
 # -DNO_SVP -DNO_SYSTEM_PBC
 
 # Genesis Plus includes
-CPPFLAGS += -I$(projectPath)/src/$(gplusPath) -I$(projectPath)/src/$(gplusPath)/m68k -I$(projectPath)/src/$(gplusPath)/z80 -I$(projectPath)/src/$(gplusPath)/input_hw \
--I$(projectPath)/src/$(gplusPath)/sound -I$(projectPath)/src/$(gplusPath)/cart_hw -I$(projectPath)/src/$(gplusPath)/cart_hw/svp
+CPPFLAGS += -I$(projectPath)/src -I$(projectPath)/src/$(gplusPath) -I$(projectPath)/src/$(gplusPath)/m68k \
+-I$(projectPath)/src/$(gplusPath)/z80 -I$(projectPath)/src/$(gplusPath)/input_hw \
+-I$(projectPath)/src/$(gplusPath)/sound -I$(projectPath)/src/$(gplusPath)/cart_hw \
+-I$(projectPath)/src/$(gplusPath)/cart_hw/svp
 
 # Genesis Plus sources
 gplusSrc += system.cc genesis.cc io_ctrl.cc loadrom.cc \
@@ -72,6 +71,7 @@ endif
 
 SRC += main/Main.cc main/EmuControls.cc main/Cheats.cc fileio/fileio.cc $(addprefix $(gplusPath)/,$(gplusSrc))
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 

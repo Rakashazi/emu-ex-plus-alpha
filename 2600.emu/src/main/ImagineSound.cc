@@ -1,5 +1,5 @@
 #include "ImagineSound.hh"
-#include <EmuSystem.hh>
+#include <emuframework/EmuSystem.hh>
 
 void ImagineSound::open()
 {

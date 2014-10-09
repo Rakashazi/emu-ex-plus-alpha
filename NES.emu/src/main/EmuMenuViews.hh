@@ -1,5 +1,7 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
+#include "EmuCheatViews.hh"
 
 static bool isFDSBIOSExtension(const char *name);
 static void setupNESInputPorts();
@@ -146,9 +148,6 @@ public:
 	}
 };
 
-#include "EmuCheatViews.hh"
-#include "MenuView.hh"
-
 class FDSControlView : public BaseMenuView
 {
 private:
@@ -268,7 +267,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
-		logMsg("init menu");
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		fdsControl.init(); item[items++] = &fdsControl;

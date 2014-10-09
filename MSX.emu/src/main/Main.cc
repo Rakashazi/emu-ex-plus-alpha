@@ -14,8 +14,9 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
 #include <imagine/io/IoZip.hh>
 
 // TODO: remove when namespace code is complete
@@ -97,11 +98,11 @@ void chdirToPrevWorkingDir(char *prevWDir)
 	logMsg("changed back to: %s", prevWDir);
 }
 
-static char cartName[2][512] = { "", "" };
+static char cartName[2][512]{};
 extern RomType currentRomType[2];
-static char diskName[2][512] = { "", "" };
-static char tapeName[512] = "";
-char hdName[4][512] = { "", "", "", "" };
+static char diskName[2][512]{};
+static char tapeName[512]{};
+char hdName[4][512]{};
 
 static bool insertDisk(const char *path, uint slot = 0);
 static bool insertROM(const char *path, uint slot = 0);
@@ -223,6 +224,14 @@ static PathOption optionMachineName(CFGKEY_MACHINE_NAME, optionMachineNameStr, o
 Byte1Option optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
 PathOption optionFirmwarePath(CFGKEY_MACHINE_FILE_PATH, machineCustomPath, "");
 static uint activeBoardType = BOARD_MSX;
+const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputCenterBtnName = "Space/KB";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const bool EmuSystem::inputHasKeyboard = true;
+const char *EmuSystem::configFilename = "MsxEmu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -230,7 +239,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include <CommonGui.hh>
+#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {

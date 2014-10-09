@@ -13,12 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <EmuInputView.hh>
-#include <EmuInput.hh>
-#include <VController.hh>
-#include <EmuApp.hh>
+#include <emuframework/EmuInputView.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/VController.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
-#include <FilePicker.hh>
+#include <emuframework/FilePicker.hh>
 
 extern bool touchControlsAreOn;
 bool touchControlsApplicable();
@@ -67,18 +67,14 @@ void EmuInputView::inputEvent(const Input::Event &e)
 			updateFastforward();
 		}
 		else if((touchControlsAreOn && touchControlsApplicable())
-			#ifdef CONFIG_VCONTROLLER_KEYBOARD
-			|| vController.kbMode
-			#endif
+			|| (EmuSystem::inputHasKeyboard && vController.kbMode)
 			)
 		{
 			vController.applyInput(e);
 		}
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
-			#ifdef CONFIG_VCONTROLLER_KEYBOARD
-			&& !vController.kbMode
-			#endif
+			&& (EmuSystem::inputHasKeyboard && !vController.kbMode)
 			&& e.isTouch() && e.state == Input::PUSHED
 			)
 		{

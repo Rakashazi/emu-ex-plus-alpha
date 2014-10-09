@@ -3,8 +3,8 @@
 #include <imagine/logger/logger.h>
 #include <imagine/fs/sys.hh>
 #include <imagine/util/strings.h>
-#include "Option.hh"
-#include <EmuSystem.hh>
+#include <emuframework/Option.hh>
+#include <emuframework/EmuSystem.hh>
 
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 extern FsSys::PathString sysCardPath;

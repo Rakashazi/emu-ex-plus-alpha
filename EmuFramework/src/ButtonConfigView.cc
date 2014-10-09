@@ -13,11 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <ButtonConfigView.hh>
-#include <inGameActionKeys.hh>
-#include <main/EmuConfig.hh>
-#include <InputManagerView.hh>
-#include <EmuApp.hh>
+#include <emuframework/ButtonConfigView.hh>
+#include <emuframework/inGameActionKeys.hh>
+#include <emuframework/InputManagerView.hh>
+#include <emuframework/EmuApp.hh>
 
 #ifdef INPUT_SUPPORTS_POINTER
 bool ButtonConfigSetView::pointerUIIsInit()

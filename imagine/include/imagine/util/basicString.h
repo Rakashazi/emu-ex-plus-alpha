@@ -171,4 +171,12 @@ static int string_printf(std::array<char, S> &buffer, const char *format, ARGS&&
 	return string_printf(buffer.data(), S, format, std::forward<ARGS>(args)...);
 }
 
+template <size_t S, typename... ARGS>
+static std::array<char, S> string_makePrintf(const char *format, ARGS&&... args)
+{
+	std::array<char, S> str;
+	string_printf(str, format, std::forward<ARGS>(args)...);
+	return str;
+}
+
 #endif

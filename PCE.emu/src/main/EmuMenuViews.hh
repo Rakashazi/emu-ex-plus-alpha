@@ -1,5 +1,6 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
 
 static int pceHuFsFilter(const char *name, int type);
 
@@ -77,8 +78,6 @@ public:
 		sysCardPath.init(sysCardPathStr); item[items++] = &sysCardPath;
 	}
 };
-
-#include "MenuView.hh"
 
 class SystemMenuView : public MenuView
 {

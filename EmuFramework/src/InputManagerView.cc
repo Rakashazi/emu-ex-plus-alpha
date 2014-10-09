@@ -13,10 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <InputManagerView.hh>
-#include <ButtonConfigView.hh>
-#include <EmuApp.hh>
-#include <TextEntry.hh>
+#include <emuframework/InputManagerView.hh>
+#include <emuframework/ButtonConfigView.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/TextEntry.hh>
 #include <imagine/base/Base.hh>
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
@@ -242,7 +242,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 		"Emulated System Options",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &optView = allocAndGetOptionCategoryMenu(window(), e, 2);
+			auto &optView = *makeOptionCategoryMenu(window(), e, 2);
 			pushAndShow(optView);
 		}
 	},
@@ -808,7 +808,7 @@ void InputManagerDeviceView::confirmICadeMode(const Input::Event &e)
 	iCadeMode.toggle(*this);
 	devConf->setICadeMode(iCadeMode.on);
 	onShow();
-	physicalControlsPresent = EmuControls::keyInputIsPresent();
+	physicalControlsPresent = Input::keyInputIsPresent();
 	EmuControls::updateAutoOnScreenControlVisible();
 	keyMapping.buildAll();
 }
@@ -825,19 +825,20 @@ void InputManagerDeviceView::init(bool highlightFirst, InputDeviceConfig &devCon
 	}
 	string_printf(profileStr, "Profile: %s", devConf.keyConf().name);
 	loadProfile.init(profileStr); item[i++] = &loadProfile;
-	forEachInArray(EmuControls::category, c)
+	iterateTimes(EmuControls::categories, c)
 	{
-		if(EmuControls::category[c_i].isMultiplayer && devConf.player != InputDeviceConfig::PLAYER_MULTI)
+		auto &cat = EmuControls::category[c];
+		if(cat.isMultiplayer && devConf.player != InputDeviceConfig::PLAYER_MULTI)
 		{
-			//logMsg("skipping category %s (%d)", EmuControls::category[c_i].name, (int)c_i);
+			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
 			continue;
 		}
-		inputCategory[c_i].init(c->name); item[i++] = &inputCategory[c_i];
-		inputCategory[c_i].onSelect() =
-			[this, c_i](TextMenuItem &item, const Input::Event &e)
+		inputCategory[c].init(cat.name); item[i++] = &inputCategory[c];
+		inputCategory[c].onSelect() =
+			[this, c](TextMenuItem &item, const Input::Event &e)
 			{
 				auto &bcMenu = *new ButtonConfigView{window(), rootIMView};
-				bcMenu.init(&EmuControls::category[c_i], *this->devConf, !e.isPointer());
+				bcMenu.init(&EmuControls::category[c], *this->devConf, !e.isPointer());
 				pushAndShow(bcMenu);
 			};
 	}

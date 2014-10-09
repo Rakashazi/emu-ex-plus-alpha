@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <BundledGamesView.hh>
-#include <EmuSystem.hh>
+#include <emuframework/BundledGamesView.hh>
+#include <emuframework/EmuSystem.hh>
 #include <imagine/io/sys.hh>
 #include <imagine/io/IoMmapGeneric.hh>
 #include <unzip.h>
@@ -70,4 +70,14 @@ void BundledGamesView::init(bool highlightFirst)
 		};
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);
+}
+
+[[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+{
+	static const BundledGameInfo info[]
+	{
+		{ "test", "test" }
+	};
+
+	return info[0];
 }

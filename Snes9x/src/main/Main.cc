@@ -1,6 +1,8 @@
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include "EmuConfig.hh"
 
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4
@@ -15,9 +17,6 @@
 #include <cheats.h>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
 
 #ifndef SNES9X_VERSION_1_4
 
@@ -70,8 +69,21 @@ static Byte1Option optionMultitap(CFGKEY_MULTITAP, 0);
 static Byte1Option optionBlockInvalidVRAMAccess(CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1);
 #endif
 
-#include <CommonGui.hh>
+#include <emuframework/CommonGui.hh>
+#include <emuframework/CommonCheatGui.hh>
 
+const char *EmuSystem::inputFaceBtnName = "A/B/X/Y";
+const char *EmuSystem::inputCenterBtnName = "Select/Start";
+const uint EmuSystem::inputFaceBtns = 6;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = true;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+#ifdef SNES9X_VERSION_1_4
+const char *EmuSystem::configFilename = "Snes9x.config";
+#else
+const bool EmuSystem::hasBundledGames = true;
+const char *EmuSystem::configFilename = "Snes9xP.config";
+#endif
 const uint EmuSystem::maxPlayers = 5;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

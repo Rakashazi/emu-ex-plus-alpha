@@ -87,8 +87,6 @@ const char *storagePath()
 				//logMsg("storage dir: %s", dir.entryFilename(0));
 				string_printf(sdPath, "/media/%s", dir.entryFilename(0));
 			}
-			else
-				sdPath[0] = 0;
 			dir.closeDir();
 			if(strlen(sdPath.data()))
 			{

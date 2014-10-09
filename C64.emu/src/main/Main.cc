@@ -14,8 +14,8 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
 #include <imagine/io/api/stdio.hh>
 #include <sys/time.h>
 #ifdef __APPLE__
@@ -236,6 +236,14 @@ void EmuSystem::writeConfig(Io *io)
 	optionFirmwarePath.writeToIO(io);
 }
 
+const char *EmuSystem::inputFaceBtnName = "JS Buttons";
+const char *EmuSystem::inputCenterBtnName = "F1/KB";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const bool EmuSystem::inputHasKeyboard = true;
+const char *EmuSystem::configFilename = "C64Emu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -243,7 +251,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
+#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {

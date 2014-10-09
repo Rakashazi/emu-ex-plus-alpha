@@ -1,8 +1,14 @@
 #include <imagine/util/preprocessor/repeat.h>
-#include <EmuInput.hh>
+#include <emuframework/EmuInput.hh>
 
 namespace EmuControls
 {
+
+const uint categories = 6;
+static const uint joystickKeys = 12;
+static const uint colecoNumericKeys = 12;
+static const uint kbKeys = 93;
+const uint systemTotalKeys = gameActionKeys + joystickKeys*2 + colecoNumericKeys*2 + kbKeys;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player)
 {
@@ -153,14 +159,14 @@ static const uint colecoJoystickKeyOffset = msxJoystick2KeyOffset + joystickKeys
 static const uint colecoJoystick2KeyOffset = colecoJoystickKeyOffset + colecoNumericKeys;
 static const uint keyboardKeyOffset = colecoJoystick2KeyOffset + colecoNumericKeys;
 
-const KeyCategory category[categories]
+const KeyCategory category[MAX_CATEGORIES]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-	KeyCategory("Set Joystick Keys", gamepadName, msxJoystickKeyOffset),
-	KeyCategory("Set Joystick 2 Keys", gamepadName, msxJoystick2KeyOffset, 1),
-	KeyCategory("Set Coleco Numpad Keys", colecoName, colecoJoystickKeyOffset),
-	KeyCategory("Set Coleco Numpad 2 Keys", colecoName, colecoJoystick2KeyOffset, 1),
-	KeyCategory("Set Keyboard Keys", keyboardName, keyboardKeyOffset),
+	{"Set Joystick Keys", gamepadName, msxJoystickKeyOffset},
+	{"Set Joystick 2 Keys", gamepadName, msxJoystick2KeyOffset, 1},
+	{"Set Coleco Numpad Keys", colecoName, colecoJoystickKeyOffset},
+	{"Set Coleco Numpad 2 Keys", colecoName, colecoJoystick2KeyOffset, 1},
+	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset},
 };
 
 #ifdef INPUT_SUPPORTS_KEYBOARD

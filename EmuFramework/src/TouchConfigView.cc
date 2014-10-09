@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <TouchConfigView.hh>
-#include <EmuInput.hh>
-#include <EmuApp.hh>
+#include <emuframework/TouchConfigView.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 
@@ -338,18 +338,18 @@ void TouchConfigView::init(bool highlightFirst)
 		int init = findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVals, (uint)optionTouchCtrlExtraXBtnSize, 0);
 		btnExtraXSize.init(str, init); text[i++] = &btnExtraXSize;
 	}
-	if(systemFaceBtns < 4 || (systemFaceBtns == 6 && !systemHasTriggerBtns))
+	if(EmuSystem::inputFaceBtns < 4 || (EmuSystem::inputFaceBtns == 6 && !EmuSystem::inputHasTriggerBtns))
 	{
 		static const char *str[] = { "None", "Gap only", "25%", "50%" };
 		int init = findIdxInArrayOrDefault(touchCtrlExtraYBtnSizeMenuVals, (uint)optionTouchCtrlExtraYBtnSize, 0);
 		btnExtraYSize.init(str, init); text[i++] = &btnExtraYSize;
 	}
-	if(systemFaceBtns >= 4)
+	if(EmuSystem::inputFaceBtns >= 4)
 	{
 		static const char *str[] = { "None", "Gap only", "10%", "25%" };
 		// uses same values as X counter-part
 		int init = findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVals, (uint)optionTouchCtrlExtraYBtnSizeMultiRow, 0);
-		btnExtraYSizeMultiRow.init((systemFaceBtns == 4 || (systemFaceBtns >= 6 && systemHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str));
+		btnExtraYSizeMultiRow.init((EmuSystem::inputFaceBtns == 4 || (EmuSystem::inputFaceBtns >= 6 && EmuSystem::inputHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str));
 		text[i++] = &btnExtraYSizeMultiRow;
 	}
 	otherHeading.init(); text[i++] = &otherHeading;
@@ -412,11 +412,11 @@ void TouchConfigView::refreshTouchConfigMenu()
 	diagonalSensitivity.updateVal(findIdxInArray(touchDpadDiagonalSensitivityMenuVals, (uint)optionTouchDpadDiagonalSensitivity), *this);
 	btnSpace.updateVal(findIdxInArray(touchCtrlBtnSpaceMenuVals, (uint)optionTouchCtrlBtnSpace), *this);
 	btnExtraXSize.updateVal(findIdxInArray(touchCtrlExtraXBtnSizeMenuVals, (uint)optionTouchCtrlExtraXBtnSize), *this);
-	if(systemFaceBtns < 4 || (systemFaceBtns == 6 && !systemHasTriggerBtns))
+	if(EmuSystem::inputFaceBtns < 4 || (EmuSystem::inputFaceBtns == 6 && !EmuSystem::inputHasTriggerBtns))
 	{
 		btnExtraYSize.updateVal(findIdxInArray(touchCtrlExtraYBtnSizeMenuVals, (uint)optionTouchCtrlExtraYBtnSize), *this);
 	}
-	if(systemFaceBtns >= 4)
+	if(EmuSystem::inputFaceBtns >= 4)
 	{
 		btnExtraYSizeMultiRow.updateVal(findIdxInArray(touchCtrlExtraXBtnSizeMenuVals, (uint)optionTouchCtrlExtraYBtnSizeMultiRow), *this);
 	}
@@ -728,7 +728,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Emulated System Options",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &optView = allocAndGetOptionCategoryMenu(window(), e, 2);
+			auto &optView = *makeOptionCategoryMenu(window(), e, 2);
 			pushAndShow(optView);
 		}
 	},

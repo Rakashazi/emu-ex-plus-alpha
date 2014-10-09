@@ -3,9 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-include $(EMUFRAMEWORK_PATH)/common.mk
-
-CPPFLAGS += -DHAVE_INTTYPES -DBSPF_UNIX -DTHUMB_SUPPORT \
+CPPFLAGS += -I$(projectPath)/src -DHAVE_INTTYPES -DBSPF_UNIX -DTHUMB_SUPPORT \
 -DSTELLA_MINIMAL_SETTINGS -DSysDDec=float -I$(projectPath)/src/stella/common
 
 stellaSrc := Console.cxx Cart.cxx Props.cxx MD5.cxx Settings.cxx \
@@ -25,6 +23,7 @@ CartCTY.cxx CompuMate.cxx Thumbulator.cxx
 stellaPath := stella/emucore
 SRC += main/Main.cc main/EmuControls.cc main/ImagineSound.cc $(addprefix $(stellaPath)/,$(stellaSrc))
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

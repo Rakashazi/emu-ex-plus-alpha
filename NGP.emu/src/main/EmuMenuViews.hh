@@ -1,5 +1,6 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
 
 class SystemOptionView : public OptionView
 {
@@ -22,8 +23,6 @@ public:
 		ngpLanguage.init(language_english); item[items++] = &ngpLanguage;
 	}
 };
-
-#include "MenuView.hh"
 
 class SystemMenuView : public MenuView
 {

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <Recent.hh>
+#include <emuframework/Recent.hh>
 
 StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <Cheats.hh>
+#include <emuframework/Cheats.hh>
 #include <main/Cheats.hh>
 #include "system.h"
 uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);

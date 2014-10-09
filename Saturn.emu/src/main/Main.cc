@@ -1,6 +1,8 @@
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include "EmuConfig.hh"
 
 extern "C"
 {
@@ -244,7 +246,13 @@ static yabauseinit_struct yinit =
 	VIDEOFORMATTYPE_NTSC
 };
 
-
+const char *EmuSystem::inputFaceBtnName = "A-Z";
+const char *EmuSystem::inputCenterBtnName = "Start";
+const uint EmuSystem::inputFaceBtns = 8;
+const uint EmuSystem::inputCenterBtns = 1;
+const bool EmuSystem::inputHasTriggerBtns = true;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "SaturnEmu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -252,7 +260,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include <CommonGui.hh>
+#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {

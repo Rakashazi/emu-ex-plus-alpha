@@ -1,14 +1,21 @@
 #pragma once
 #include <imagine/util/bits.h>
 #include <imagine/util/container/ArrayList.hh>
-#include <EmuSystem.hh>
+#include <emuframework/EmuSystem.hh>
+
+namespace EmuCheats
+{
+
+static const uint MAX = 255;
+
+}
 
 struct GbcCheat
 {
-	constexpr GbcCheat() { }
+	constexpr GbcCheat() {}
 	uchar flags = 0;
-	char name[64] {0};
-	char code[12] {0};
+	char name[64]{};
+	char code[12]{};
 
 	static const uint ON = IG::bit(0);
 

@@ -358,7 +358,7 @@ Shader makePluginVertexShader(const char *src, uint imgMode)
 	GLSL_VIN " vec4 pos; "
 	"uniform mat4 modelview; "
 	"uniform mat4 proj; ";
-	char shaderStr[8192] {0};
+	char shaderStr[8192];
 	if(!string_printf(shaderStr,
 		GLSL_VERSION_DIRECTIVE
 		"%s%s",
@@ -382,7 +382,7 @@ Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTe
 	const char *externalTexDefs =
 	"#extension GL_OES_EGL_image_external:enable\n"
 	"#define sampler2D samplerExternalOES\n";
-	char shaderStr[8192] {0};
+	char shaderStr[8192];
 	if(!string_printf(shaderStr,
 		GLSL_VERSION_DIRECTIVE
 		GLSL_FRAGCOLOR_DEF

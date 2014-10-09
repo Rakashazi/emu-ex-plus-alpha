@@ -13,10 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <Cheats.hh>
-#include <EmuApp.hh>
-#include <TextEntry.hh>
-#include <main/EmuCheatViews.hh>
+#include <emuframework/Cheats.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/TextEntry.hh>
 
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
@@ -27,8 +26,7 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 		"Add/Edit",
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto &editCheatListView = *new EditCheatListView{window()};
-			editCheatListView.init(!e.isPointer());
+			auto &editCheatListView = *makeEditCheatListView(window(), e);
 			pushAndShow(editCheatListView);
 		}
 	},
@@ -122,7 +120,7 @@ void BaseEditCheatListView::init(bool highlightFirst)
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
 	uint i = 0;
 	loadAddCheatItems(item, i);
-	assert(i == EmuCheats::MAX_CODE_TYPES);
+	assert(i <= EmuCheats::MAX_CODE_TYPES);
 	loadCheatItems(item, i);
 	assert(i <= sizeofArray(item));
 	BaseMenuView::init(item, i, highlightFirst);

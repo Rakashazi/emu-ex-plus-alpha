@@ -1,8 +1,13 @@
 #include <imagine/util/preprocessor/repeat.h>
-#include <EmuInput.hh>
+#include <emuframework/EmuInput.hh>
+#include "EmuConfig.hh"
 
 namespace EmuControls
 {
+
+const uint categories = 4;
+static const uint switchKeys = 1;
+const uint systemTotalKeys = gameActionKeys + switchKeys + joystickKeys*2;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player)
 {
@@ -41,12 +46,12 @@ static const uint joystickKeyOffset = gameActionKeys;
 static const uint joystick2KeyOffset = joystickKeyOffset + joystickKeys;
 static const uint switchKeyOffset = joystick2KeyOffset + joystickKeys;
 
-const KeyCategory category[categories]
+const KeyCategory category[MAX_CATEGORIES]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
-	KeyCategory("Set Joystick Keys", gamepadName, joystickKeyOffset),
-	KeyCategory("Set Joystick 2 Keys", gamepadName, joystick2KeyOffset, 1),
-	KeyCategory("Set Switch Keys", switchName, switchKeyOffset)
+	{"Set Joystick Keys", gamepadName, joystickKeyOffset},
+	{"Set Joystick 2 Keys", gamepadName, joystick2KeyOffset, 1},
+	{"Set Switch Keys", switchName, switchKeyOffset}
 };
 
 #ifdef INPUT_SUPPORTS_KEYBOARD

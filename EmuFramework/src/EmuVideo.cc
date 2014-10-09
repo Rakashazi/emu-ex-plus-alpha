@@ -13,10 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <EmuVideo.hh>
-#include <EmuOptions.hh>
-#include <EmuApp.hh>
-#include <Screenshot.hh>
+#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/Screenshot.hh>
 
 void EmuVideo::initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch)
 {

@@ -27,9 +27,9 @@
 #include <stella/emucore/Paddles.hxx>
 #include "ImagineSound.hh"
 #include <unzip.h>
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
-#include "CommonGui.hh"
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/CommonGui.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static ImagineSound *vcsSound = 0;
@@ -44,11 +44,15 @@ static Cartridge *cartridge = nullptr;
 OSystem osystem;
 static StateManager stateManager(&osystem);
 bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
 
+const char *EmuSystem::inputFaceBtnName = "JS Buttons";
+const char *EmuSystem::inputCenterBtnName = "Select/Reset";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
 const uint EmuSystem::maxPlayers = 2;
+const char *EmuSystem::configFilename = "2600emu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
 		{"4:3 (Original)", 4, 3},

@@ -6,11 +6,10 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 SRC += main/Main.cc main/EmuControls.cc common/MDFNApi.cc main/PCEFast.cc
 
-CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -I$(projectPath)/src/include -I$(projectPath)/src/mednafen/hw_misc -I$(projectPath)/src/mednafen/hw_sound
+CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -I$(projectPath)/src -I$(projectPath)/src/include \
+-I$(projectPath)/src/mednafen/hw_misc -I$(projectPath)/src/mednafen/hw_sound
 
 # mednafen sources
 SRC += mednafen/pce_fast/input.cpp mednafen/pce_fast/vdc.cpp \
@@ -34,6 +33,7 @@ COMPRESS_SRC := mednafen/compress/blz.c mednafen/compress/minilzo.c mednafen/com
 SRC += $(MDFN_SRC) $(COMPRESS_SRC)
 # mednafen/pce_fast/hes.cpp mednafen/memory.cpp mednafen/error.cpp mednafen/general.cpp
 
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/libvorbis.mk
 include $(IMAGINE_PATH)/make/package/libsndfile.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk

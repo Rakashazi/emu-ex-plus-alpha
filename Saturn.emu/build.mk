@@ -21,12 +21,10 @@ ifeq ($(ENV), linux)
  endif
 endif
 
-include $(EMUFRAMEWORK_PATH)/common.mk
-
 SRC += main/Main.cc main/EmuControls.cc
 
-CPPFLAGS += -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 -DSysDDec=float \
--DVERSION=\"0.9.10\" -DHAVE_STRCASECMP=1
+CPPFLAGS += -I$(projectPath)/src -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 \
+-DSysDDec=float -DVERSION=\"0.9.10\" -DHAVE_STRCASECMP=1
 
 ifeq ($(ARCH), arm)
  ifneq ($(ENV), ios)
@@ -54,6 +52,8 @@ yabause/scsp.c yabause/japmodem.c
 SRC += yabause/q68/q68.c yabause/q68/q68-core.c yabause/m68kq68.c
 CPPFLAGS += -DHAVE_Q68=1
 # TODO: -DQ68_USE_JIT=1
+
+include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

@@ -14,13 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/data-type/image/sys.hh>
-#include <EmuSystem.hh>
-#include <EmuInput.hh>
-#include <EmuOptions.hh>
-#include <EmuApp.hh>
-#include <InputManagerView.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/InputManagerView.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <VController.hh>
+#include <emuframework/VController.hh>
 SysVController vController;
 uint pointerInputPlayer = 0;
 #endif
@@ -103,7 +103,7 @@ void resetVControllerPositions()
 		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {0, 0}, initMenuState};
 		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {0, 0}, initFastForwardState};
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
-		if(systemHasTriggerBtns)
+		if(EmuSystem::inputHasTriggerBtns)
 		{
 			int y = std::min(e[0].pos.y - vController.bounds(0).ySize()/2, e[2].pos.y - vController.bounds(2).ySize()/2);
 			y -= vController.bounds(5).ySize()/2 + vController.yMMSizeToPixel(win, 1.);
@@ -621,19 +621,15 @@ void KeyMapping::buildAll()
 		{
 			totalKeys += Input::Event::mapNumKeys(e->map());
 		}
+		mem_free(inputDevActionTablePtr[0]);
+		inputDevActionTablePtr[0] = nullptr;
 		if(unlikely(!totalKeys))
 		{
 			logMsg("no keys in mapping");
-			if(inputDevActionTablePtr[0])
-			{
-				mem_free(inputDevActionTablePtr[0]);
-				inputDevActionTablePtr[0] = nullptr;
-			}
 			return;
 		}
 		logMsg("allocating key mapping with %d keys", totalKeys);
-		inputDevActionTablePtr[0] = (ActionGroup*)mem_realloc(inputDevActionTablePtr[0], totalKeys * sizeof(ActionGroup));
-		mem_zero(inputDevActionTablePtr[0], totalKeys * sizeof(ActionGroup));
+		inputDevActionTablePtr[0] = (ActionGroup*)mem_calloc(totalKeys * sizeof(ActionGroup));
 	}
 	uint totalKeys = 0;
 	int i = 0;
@@ -890,7 +886,7 @@ void updateVControlImg()
 		vController.setImg(overlayImg);
 	}
 	#endif
-	#ifdef CONFIG_VCONTROLLER_KEYBOARD
+	if(EmuSystem::inputHasKeyboard)
 	{
 		static Gfx::BufferImage kbOverlayImg;
 		PngFile png;
@@ -901,7 +897,6 @@ void updateVControlImg()
 		kbOverlayImg.init(png);
 		vController.kb.setImg(&kbOverlayImg);
 	}
-	#endif
 }
 
 }

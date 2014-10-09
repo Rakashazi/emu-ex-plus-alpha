@@ -1,8 +1,10 @@
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
 #include <imagine/io/IoZip.hh>
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include "EmuConfig.hh"
 
 extern "C"
 {
@@ -16,13 +18,13 @@ extern "C"
 	#include <gngeo/screen.h>
 	#include <gngeo/menu.h>
 
-	CONFIG conf {0};
+	CONFIG conf{};
 	GN_Rect visible_area;
 
 	extern int skip_this_frame;
-	Uint16 play_buffer[16384] {0};
-	GN_Surface *buffer = 0;
-	static CONF_ITEM rompathConfItem {0};
+	Uint16 play_buffer[16384]{};
+	GN_Surface *buffer{};
+	static CONF_ITEM rompathConfItem{};
 
 	CONF_ITEM* cf_get_item_by_name(const char *name)
 	{
@@ -63,10 +65,7 @@ extern "C"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
-static ROM_DEF *activeDrv = nullptr;
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
+static ROM_DEF *activeDrv{};
 
 static Base::Pipe guiPipe;
 static FsSys::PathString datafilePath{};
@@ -138,6 +137,13 @@ static void setTimerIntOption()
 	}
 }
 
+const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
+const char *EmuSystem::inputCenterBtnName = "Select/Start";
+const uint EmuSystem::inputFaceBtns = 4;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "NeoEmu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -145,7 +151,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include <CommonGui.hh>
+#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {

@@ -14,14 +14,13 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
+#include "EmuConfig.hh"
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 uint fceuCheats = 0;
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
 
 #include <fceu/driver.h>
 #include <fceu/state.h>
@@ -82,7 +81,7 @@ enum
 	nesKeyIdxAB,
 };
 
-static ESI nesInputPortDev[2] = { SI_UNSET, SI_UNSET };
+static ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 
 enum {
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
@@ -95,6 +94,13 @@ static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
 static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
 static uint autoDetectedVidSysPAL = 0;
 
+const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputCenterBtnName = "Select/Start";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "NesEmu.config";
 const uint EmuSystem::maxPlayers = 4;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -103,7 +109,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
+#include <emuframework/CommonGui.hh>
+#include <emuframework/CommonCheatGui.hh>
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "nes"

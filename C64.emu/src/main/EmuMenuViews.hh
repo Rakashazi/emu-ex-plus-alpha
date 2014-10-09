@@ -1,5 +1,5 @@
 #pragma once
-#include <OptionView.hh>
+#include <emuframework/OptionView.hh>
 
 static void setTrueDriveEmu(bool on)
 {
@@ -547,6 +547,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		c64IOControl.init(); item[items++] = &c64IOControl;

@@ -14,11 +14,11 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "FilePicker"
-#include <FilePicker.hh>
-#include <EmuSystem.hh>
-#include <EmuOptions.hh>
-#include <EmuApp.hh>
-#include <Recent.hh>
+#include <emuframework/FilePicker.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/Recent.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 

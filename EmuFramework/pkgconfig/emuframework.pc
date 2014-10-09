@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: NAME
+Description: DESCRIPTION
+Version: VERSION
+Requires: REQUIRES
+Libs: -L${libdir} LIBS
+Cflags: CFLAGS -I${includedir}

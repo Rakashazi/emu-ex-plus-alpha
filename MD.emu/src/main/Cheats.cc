@@ -14,12 +14,12 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/sys.hh>
-#include <EmuApp.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <main/Cheats.hh>
-#include <EmuSystem.hh>
-#include <MsgPopup.hh>
-#include <TextEntry.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/MsgPopup.hh>
+#include <emuframework/TextEntry.hh>
 #include "EmuCheatViews.hh"
 #include "system.h"
 #include "z80.h"

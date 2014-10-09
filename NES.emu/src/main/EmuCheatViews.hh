@@ -1,5 +1,12 @@
 #pragma once
-#include <Cheats.hh>
+#include <emuframework/Cheats.hh>
+
+namespace EmuCheats
+{
+
+static const uint MAX = 254;
+
+}
 
 class SystemEditCheatView : public EditCheatView
 {
@@ -9,7 +16,7 @@ private:
 	int type = 0;
 	char *nameStr = nullptr;
 	MenuItem *item[5] {nullptr};
-	char addrStr[5] {0}, valueStr[3] {0}, compStr[3] {0}, ggCodeStr[9] {0};
+	char addrStr[5]{}, valueStr[3]{}, compStr[3]{}, ggCodeStr[9]{};
 
 	void syncCheat(const char *newName = nullptr);
 	void renamed(const char *str) override;

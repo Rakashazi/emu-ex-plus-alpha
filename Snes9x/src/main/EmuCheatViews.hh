@@ -1,5 +1,13 @@
 #pragma once
-#include <Cheats.hh>
+#include <emuframework/Cheats.hh>
+#include <cheats.h>
+
+namespace EmuCheats
+{
+
+static const uint MAX = MAX_CHEATS;
+
+}
 
 class SystemEditCheatView : public EditCheatView
 {

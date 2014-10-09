@@ -1,5 +1,7 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
+#include <imagine/util/bits.h>
 
 class SystemOptionView : public OptionView
 {
@@ -129,10 +131,6 @@ public:
 		listAll.init(optionListAllGames); item[items++] = &listAll;
 	}
 };
-
-
-#include "MenuView.hh"
-#include <imagine/util/bits.h>
 
 struct RomListEntry
 {
@@ -613,6 +611,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		gameList.init(); item[items++] = &gameList;

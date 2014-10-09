@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <TextEntry.hh>
+#include <emuframework/TextEntry.hh>
 #include <imagine/gui/GuiTable1D.hh>
 
 void TextEntry::setAcceptingInput(bool on)

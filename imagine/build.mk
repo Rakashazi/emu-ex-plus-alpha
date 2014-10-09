@@ -56,7 +56,7 @@ prefix ?= $(IMAGINE_SDK_PLATFORM_PATH)
 imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine.pc
 pkgName := $(libName)
 pkgDescription := Game/Multimedia Engine
-pkgVersion := 1.5.19
+pkgVersion := 1.5.21
 LDLIBS := -l$(libName) $(LDLIBS)
 ifdef libNameExt
  pkgCFlags := -DIMAGINE_CONFIG_H=$(configFilename)
@@ -67,16 +67,16 @@ include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk
 
 install : config main
 	@echo "Installing lib & headers to $(prefix)"
-	@mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
-	@cp lib/$(buildName)/lib$(libName).a $(prefix)/lib/
-	@cp lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
-	@cp -r $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+	$(PRINT_CMD)mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
+	$(PRINT_CMD)cp lib/$(buildName)/lib$(libName).a $(prefix)/lib/
+	$(PRINT_CMD)cp lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
+	$(PRINT_CMD)cp -r $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
 
 install-links : config main
 	@echo "Installing symlink lib & headers to $(prefix)"
-	@mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
-	@$(LN) -srf lib/$(buildName)/lib$(libName).a $(prefix)/lib/
-	@$(LN) -srf lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
-	@$(LN) -srf $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+	$(PRINT_CMD)mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
+	$(PRINT_CMD)$(LN) -srf lib/$(buildName)/lib$(libName).a $(prefix)/lib/
+	$(PRINT_CMD)$(LN) -srf lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
+	$(PRINT_CMD)$(LN) -srf $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
 
 endif

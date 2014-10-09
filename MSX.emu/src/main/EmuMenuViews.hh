@@ -1,5 +1,6 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
 
 static const char *installFirmwareFilesMessage =
 	#if defined CONFIG_BASE_ANDROID
@@ -257,8 +258,6 @@ public:
 		}
 	}
 };
-
-#include "MenuView.hh"
 
 class MsxMediaFilePicker
 {
@@ -598,6 +597,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		msxIOControl.init(); item[items++] = &msxIOControl;

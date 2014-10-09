@@ -14,8 +14,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/number.h>
-#include <EmuApp.hh>
-#include <MultiChoiceView.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/MultiChoiceView.hh>
 #include <algorithm>
 
 void BaseMultiChoiceView::draw(Base::FrameTimeBase frameTime)

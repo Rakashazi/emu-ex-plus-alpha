@@ -25,9 +25,9 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #endif
 
-static DBusConnection *bus = nullptr;
+static DBusConnection *bus{};
 #define DBUS_APP_OBJECT_PATH "/com/explusalpha/imagine"
-static const char *dbusAppInterface = nullptr;
+static const char *dbusAppInterface{};
 
 bool initDBus()
 {
@@ -44,7 +44,7 @@ bool initDBus()
 	}
 	bus = dbus_g_connection_get_connection(gbus);
 	#else
-	DBusError err {0};
+	DBusError err{};
 	bus = dbus_bus_get(DBUS_BUS_SESSION, &err);
 	if(dbus_error_is_set(&err))
 	{
@@ -185,11 +185,10 @@ bool setDefaultDBusWatchFuncs()
 
 static bool setupDBusListener(const char *name)
 {
-	DBusError err {0};
+	DBusError err{};
 	dbusAppInterface = name;
-	char ruleStr[128];
-	string_printf(ruleStr, "type='signal',interface='%s',path='" DBUS_APP_OBJECT_PATH "'", name);
-	dbus_bus_add_match(bus, ruleStr, &err);
+	auto ruleStr = string_makePrintf<128>("type='signal',interface='%s',path='" DBUS_APP_OBJECT_PATH "'", name);
+	dbus_bus_add_match(bus, ruleStr.data(), &err);
 	if(dbus_error_is_set(&err))
 	{
 		logWarn("error registering rule: %s", err.message);
@@ -201,7 +200,7 @@ static bool setupDBusListener(const char *name)
 
 bool uniqueInstanceRunning(DBusConnection *bus, const char *name)
 {
-	DBusError err {0};
+	DBusError err{};
 	auto ret = dbus_bus_request_name(bus, name, DBUS_NAME_FLAG_DO_NOT_QUEUE, &err);
 	if(dbus_error_is_set(&err))
 	{

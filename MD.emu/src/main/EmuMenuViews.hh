@@ -1,5 +1,7 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
+#include "EmuCheatViews.hh"
 
 static void setupMDInput();
 
@@ -269,9 +271,6 @@ public:
 constexpr const char *SystemOptionView::biosHeadingStr[3];
 #endif
 
-#include "EmuCheatViews.hh"
-#include "MenuView.hh"
-
 class SystemMenuView : public MenuView
 {
 	TextMenuItem cheats
@@ -299,6 +298,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;

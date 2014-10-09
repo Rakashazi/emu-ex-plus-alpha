@@ -1,5 +1,7 @@
 #pragma once
-#include "OptionView.hh"
+#include <emuframework/OptionView.hh>
+#include <emuframework/MenuView.hh>
+#include "EmuCheatViews.hh"
 
 static void setupSNESInput();
 
@@ -104,9 +106,6 @@ public:
 	}
 };
 
-#include "EmuCheatViews.hh"
-#include "MenuView.hh"
-
 class SystemMenuView : public MenuView
 {
 	TextMenuItem cheats
@@ -134,7 +133,7 @@ public:
 
 	void init(bool highlightFirst)
 	{
-		logMsg("init menu");
+		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;

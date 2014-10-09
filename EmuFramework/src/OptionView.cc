@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <OptionView.hh>
-#include <EmuApp.hh>
-#include <FilePicker.hh>
+#include <emuframework/OptionView.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/FilePicker.hh>
 #include <algorithm>
 
 static FsSys::PathString savePathStrToDescStr(char *savePathStr)
@@ -616,9 +616,10 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	{
 		uiVisibiltyInit(optionHideStatusBar, statusBar); item[items++] = &statusBar;
 	}
-	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
-	showBundledGames.init(optionShowBundledGames); item[items++] = &showBundledGames;
-	#endif
+	if(EmuSystem::hasBundledGames)
+	{
+		showBundledGames.init(optionShowBundledGames); item[items++] = &showBundledGames;
+	}
 	if(!optionGameOrientation.isConst)
 	{
 		orientationHeading.init(); item[items++] = &orientationHeading;
@@ -1161,7 +1162,6 @@ OptionView::OptionView(Base::Window &win):
 			optionRememberLastMenu = item.on;
 		}
 	},
-	#ifdef EMU_FRAMEWORK_BUNDLED_GAMES
 	showBundledGames
 	{
 		"Show Bundled Games",
@@ -1173,7 +1173,6 @@ OptionView::OptionView(Base::Window &win):
 			initMainMenu(window());
 		}
 	},
-	#endif
 	orientationHeading
 	{
 		"Orientation",

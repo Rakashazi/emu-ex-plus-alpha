@@ -13,10 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <EmuView.hh>
-#include <EmuInput.hh>
-#include <VController.hh>
-#include <EmuApp.hh>
+#include <emuframework/EmuView.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/VController.hh>
+#include <emuframework/EmuApp.hh>
 #include <algorithm>
 
 void EmuView::draw(Base::FrameTimeBase frameTime)

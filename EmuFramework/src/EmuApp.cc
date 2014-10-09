@@ -13,14 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <meta.h>
 #include <imagine/data-type/image/sys.hh>
-#include "EmuApp.hh"
-#include "EmuSystem.hh"
-#include "EmuOptions.hh"
-#include "FilePicker.hh"
-#include "ConfigFile.hh"
-#include <EmuView.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/FilePicker.hh>
+#include <emuframework/ConfigFile.hh>
+#include <emuframework/EmuView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <cmath>
 
@@ -287,7 +286,7 @@ void setEmuViewOnExtraWindow(bool on)
 		emuWin = &extraWin;
 		std::swap(emuView.layer, emuView2.layer);
 		updateProjection(extraWin, makeViewport(extraWin.win));
-		extraWin.win.setTitle(CONFIG_APP_NAME);
+		extraWin.win.setTitle(appName());
 		extraWin.win.show();
 		extraWin.win.postDraw();
 		emuView.place();
@@ -477,8 +476,9 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
 				{
-					auto title = CONFIG_APP_NAME " was suspended";
-					Base::addNotification(title, title, EmuSystem::fullGameName());
+					//auto title = CONFIG_APP_NAME " was suspended";
+					auto title = string_makePrintf<64>("%s was suspended", appName());
+					Base::addNotification(title.data(), title.data(), EmuSystem::fullGameName());
 				}
 			}
 			else
@@ -549,8 +549,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			}
 		});
 
-	Base::registerInstance(CONFIG_APP_ID, argc, argv);
-	Base::setAcceptIPC(CONFIG_APP_ID, true);
+	Base::registerInstance(appID(), argc, argv);
+	Base::setAcceptIPC(appID(), true);
 	Base::setOnInterProcessMessage(
 		[](const char *filename)
 		{
@@ -734,7 +734,7 @@ void mainInitWindowCommon(Base::Window &win)
 {
 	updateProjection(mainWin, makeViewport(win));
 
-	win.setTitle(CONFIG_APP_NAME);
+	win.setTitle(appName());
 
 	setupFont();
 	popup.init();

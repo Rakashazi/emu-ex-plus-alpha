@@ -14,8 +14,9 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <EmuSystem.hh>
-#include <CommonFrameworkIncludes.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/CommonFrameworkIncludes.hh>
 #include <gambatte.h>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
@@ -24,12 +25,9 @@
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
-static Resampler *resampler = nullptr;
+static Resampler *resampler{};
 static uint8 activeResampler = 1;
-static const GBPalette *gameBuiltinPalette = nullptr;
-#ifdef __clang__
-PathOption optionFirmwarePath(0, nullptr, 0, nullptr); // unused, make linker happy
-#endif
+static const GBPalette *gameBuiltinPalette{};
 
 class ImagineFile : public gambatte::File
 {
@@ -145,6 +143,13 @@ extern bool useFullColorSaturation;
 
 static Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation(CFGKEY_FULL_GBC_SATURATION, 0);
 
+const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputCenterBtnName = "Select/Start";
+const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = false;
+const char *EmuSystem::configFilename = "GbcEmu.config";
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -152,7 +157,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-#include "CommonGui.hh"
+#include <emuframework/CommonGui.hh>
+#include <emuframework/CommonCheatGui.hh>
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {

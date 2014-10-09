@@ -1,12 +1,19 @@
 #pragma once
-#include <Cheats.hh>
+#include <emuframework/Cheats.hh>
+
+namespace EmuCheats
+{
+
+static const uint MAX = 100;
+
+}
 
 class SystemEditCheatView : public EditCheatView
 {
 private:
 	DualTextMenuItem code;
 	uint idx = 0;
-	MenuItem *item[5] {nullptr};
+	MenuItem *item[5]{};
 
 	void renamed(const char *str) override;
 	void removed() override;
