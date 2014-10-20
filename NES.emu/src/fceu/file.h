@@ -57,12 +57,11 @@ struct FCEUFILE {
 	//guarantees that the file contains a memorystream, and returns it for your convenience
 	EMUFILE_MEMORY* EnsureMemorystream() {
 
-		// TODO: dynamic_cast not supported on Android stlport
-		EMUFILE_MEMORY* ret = /*dynamic_cast<EMUFILE_MEMORY*>*/(EMUFILE_MEMORY*)(stream);
-		if(ret) return ret;
+		if(stream->isMemStream())
+			return (EMUFILE_MEMORY*)(stream);
 		
 		//nope, we need to create it: copy the contents 
-		ret = new EMUFILE_MEMORY(size);
+		auto ret = new EMUFILE_MEMORY(size);
 		stream->fread(ret->buf(),size);
 		delete stream;
 		stream = ret;

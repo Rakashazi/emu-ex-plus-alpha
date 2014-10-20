@@ -17,7 +17,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
-#include <imagine/io/IoZip.hh>
+#include <imagine/io/ZipIO.hh>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -251,7 +251,7 @@ const char *EmuSystem::systemName()
 	return "MSX";
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -263,7 +263,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	if(!optionMachineName.isDefault())
 	{
@@ -981,9 +981,10 @@ int EmuSystem::loadGame(const char *path)
 		else if(getFirstDiskFilenameInZip(path, fileInZipName, sizeof(fileInZipName)))
 		{
 			logMsg("found %s in zip", fileInZipName);
-			Io *fileInZip = IoZip::open(path, fileInZipName);
-			bool loadAsHD = fileInZip->size() >= 1024 * 1024;
-			delete fileInZip;
+			ZipIO fileInZip;
+			fileInZip.open(path, fileInZipName);
+			bool loadAsHD = fileInZip.size() >= 1024 * 1024;
+			fileInZip.close();
 			if(loadAsHD)
 			{
 				logMsg("load disk as HD");
@@ -1073,7 +1074,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }

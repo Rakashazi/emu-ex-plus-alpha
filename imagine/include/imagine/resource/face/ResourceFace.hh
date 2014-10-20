@@ -19,7 +19,7 @@
 #include <imagine/resource/font/ResourceFont.h>
 #include <imagine/resource/font/glyphTable.h>
 #define RESOURCE_FACE_SETTINGS_UNCHANGED 128
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 
@@ -33,10 +33,10 @@ public:
 	static ResourceFace *create(ResourceFont *font, FontSettings *set = nullptr);
 	static ResourceFace *create(ResourceFace *face, FontSettings *set = nullptr);
 	static ResourceFace *load(const char *path, FontSettings *set = nullptr);
-	static ResourceFace *load(Io* io, FontSettings *set = nullptr);
+	static ResourceFace *load(GenericIO io, FontSettings *set = nullptr);
 	static ResourceFace *loadAsset(const char *name, FontSettings *set = nullptr)
 	{
-		return load(openAppAssetIo(name), set);
+		return load(openAppAssetIO(name), set);
 	}
 	static ResourceFace *loadSystem(FontSettings *set = nullptr);
 	void free();

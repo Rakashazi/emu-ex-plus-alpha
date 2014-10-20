@@ -125,7 +125,7 @@ enum
 Byte1Option optionTVPhosphor(CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO);
 Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0, 0, optionIsValidWithMax<6>);
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -150,7 +150,7 @@ static const char *optionVideoSystemToStr()
 	}
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionTVPhosphor.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
@@ -293,11 +293,11 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 	}
 	else
 	{
-		Io *f = IoSys::open(path);
+		FileIO f;
+		f.open(path);
 		if(!f)
 			return 0;
-		size = f->readUpTo(buff, MAX_ROM_SIZE);
-		delete f;
+		size = f.read(buff, MAX_ROM_SIZE);
 		return 1;
 	}
 }
@@ -346,12 +346,12 @@ int EmuSystem::loadGame(const char *path)
 	return loadGameCommon(buff, size);
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);
 	uint8 buff[MAX_ROM_SIZE];
-	uint32 size = io.readUpTo(buff, MAX_ROM_SIZE);
+	uint32 size = io.read(buff, MAX_ROM_SIZE);
 	return loadGameCommon(buff, size);
 }
 

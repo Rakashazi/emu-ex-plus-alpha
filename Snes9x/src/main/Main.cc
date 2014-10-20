@@ -135,7 +135,7 @@ void EmuSystem::onOptionsLoaded()
 	#endif
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -148,7 +148,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionMultitap.writeWithKeyIfNotDefault(io);
 	#ifndef SNES9X_VERSION_1_4
@@ -628,7 +628,7 @@ int EmuSystem::loadGame(const char *path)
 	return loadGameCommon();
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	#ifndef SNES9X_VERSION_1_4
 	closeGame();

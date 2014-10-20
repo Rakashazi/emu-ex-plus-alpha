@@ -7,16 +7,16 @@
 #include <imagine/util/thread/pthread.hh>
 #include <imagine/util/time/sys.hh>
 #include <imagine/fs/sys.hh>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/strings.h>
 
-int get_line(IOFile &file, std::string &str)
+int get_line(IO &file, std::string &str)
 {
  uint8 c;
 
  str.clear();	// or str.resize(0)??
 
- while(file.read(&c, sizeof(c)) == OK)
+ while(file.readAll(&c, sizeof(c)) == OK)
  {
   if(c == '\r' || c == '\n' || c == 0)
    return(c);

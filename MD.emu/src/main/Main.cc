@@ -165,7 +165,7 @@ void EmuSystem::onOptionsLoaded()
 	config_ym2413_enabled = optionSmsFM;
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -193,7 +193,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionBigEndianSram.writeWithKeyIfNotDefault(io);
 	optionSmsFM.writeWithKeyIfNotDefault(io);
@@ -371,7 +371,7 @@ static int saveMDState(const char *path)
 	int size = state_save(stateData);
 	logMsg("writing to file");
 	CallResult ret;
-	if((ret = IoSys::writeToNewFile(path, stateData, size)) != OK)
+	if((ret = writeToNewFile(path, stateData, size)) != OK)
 	{
 		free(stateData);
 		logMsg("error writing state file");
@@ -388,9 +388,9 @@ static int saveMDState(const char *path)
 
 static int loadMDState(const char *path)
 {
-	CallResult ret;
-	Io *f = IoSys::open(path, 0, &ret);
-	if(!f)
+	FileIO f;
+	auto ret = f.open(path);
+	if(ret != OK)
 	{
 		switch(ret)
 		{
@@ -400,19 +400,15 @@ static int loadMDState(const char *path)
 		}
 	}
 
-	auto stateData = (const uchar *)f->mmapConst();
+	auto stateData = (const uchar *)f.mmapConst();
 	if(!stateData)
 	{
-		delete f;
 		return STATE_RESULT_IO_ERROR;
 	}
 	if(state_load(stateData) <= 0)
 	{
-		delete f;
 		return STATE_RESULT_INVALID_DATA;
 	}
-
-	delete f;
 
 	//sound_restore();
 	return STATE_RESULT_OK;
@@ -442,19 +438,20 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		logMsg("saving BRAM");
 		auto saveStr = sprintBRAMSaveFilename();
-		Io *bramFile = IoSys::create(saveStr.data());
+		FileIO bramFile;
+		bramFile.create(saveStr.data());
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
 		{
-			bramFile->fwrite(bram, sizeof(bram), 1);
-			uchar sramTemp[0x10000];
+			bramFile.write(bram, sizeof(bram));
+			char sramTemp[0x10000];
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
 			for(uint i = 0; i < 0x10000; i += 2)
 			{
 				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
-			bramFile->fwrite(sramTemp, 0x10000, 1);
+			bramFile.write(sramTemp, 0x10000);
 			delete bramFile;
 		}
 	}
@@ -478,7 +475,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			sramPtr = sramTemp;
 		}
-		if(IoSys::writeToNewFile(saveStr.data(), sramPtr, 0x10000) == IO_ERROR)
+		if(writeToNewFile(saveStr.data(), sramPtr, 0x10000) == IO_ERROR)
 			logMsg("error creating sram file");
 	}
 	writeCheatFile();
@@ -748,7 +745,8 @@ int EmuSystem::loadGame(const char *path)
 	if(sCD.isActive)
 	{
 		auto saveStr = sprintBRAMSaveFilename();
-		Io *bramFile = IoSys::open(saveStr.data());
+		FileIO bramFile;
+		bramFile.open(saveStr.data());
 
 		if(!bramFile)
 		{
@@ -764,14 +762,13 @@ int EmuSystem::loadGame(const char *path)
 		}
 		else
 		{
-			bramFile->read(bram, sizeof(bram));
-			bramFile->read(sram.sram, 0x10000);
+			bramFile.read(bram, sizeof(bram));
+			bramFile.read(sram.sram, 0x10000);
 			for(uint i = 0; i < 0x10000; i += 2) // byte-swap
 			{
 				std::swap(sram.sram[i], sram.sram[i+1]);
 			}
 			logMsg("loaded BRAM from disk");
-			delete bramFile;
 		}
 	}
 	else
@@ -780,7 +777,7 @@ int EmuSystem::loadGame(const char *path)
 	{
 		auto saveStr = sprintSaveFilename();
 
-		if(IoSys::readFromFile(saveStr.data(), sram.sram, 0x10000) == 0)
+		if(readFromFile(saveStr.data(), sram.sram, 0x10000) == 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");
@@ -816,7 +813,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }

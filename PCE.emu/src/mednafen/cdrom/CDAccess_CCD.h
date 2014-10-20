@@ -15,7 +15,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include "CDAccess.h"
 
 #include <vector>
@@ -45,8 +45,8 @@ class CDAccess_CCD : public CDAccess
 
  void CheckSubQSanity(void);
 
- Io* img_stream;
- Io* sub_stream;
+ FileIO img_stream;
+ FileIO sub_stream;
  size_t img_numsectors;
  CDUtility::TOC tocd;
 };

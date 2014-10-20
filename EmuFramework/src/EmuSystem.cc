@@ -256,8 +256,8 @@ static bool hasWriteAccessToDir(const char *path)
 	if(Base::androidSDK() >= 19)
 	{
 		auto testFilePath = makeFSPathStringPrintf("%s/.safe-to-delete-me", path);
-		auto testFile = IOFile(IoSys::create(testFilePath.data()));
-		if(!testFile)
+		FileIO testFile;
+		if(testFile.create(testFilePath.data()) != OK)
 		{
 			hasAccess = false;
 		}

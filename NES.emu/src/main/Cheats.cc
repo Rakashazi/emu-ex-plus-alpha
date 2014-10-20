@@ -261,14 +261,13 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](CollectTextInputView &view, const char *str)
+				[](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!isValidGGCodeLen(str))
 						{
 							popup.postError("Invalid, must be 6 or 8 digits");
-							window().postDraw();
 							return 1;
 						}
 						{
@@ -288,13 +287,11 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
-						view.dismiss();
-						refreshCheatViews();
 
-						auto &textInputView = *new CollectTextInputView{window()};
+						auto &textInputView = *new CollectTextInputView{view.window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](CollectTextInputView &view, const char *str)
+							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
@@ -308,6 +305,8 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 								}
 								return 0;
 							};
+						view.dismiss();
+						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}
 					else
@@ -327,7 +326,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", getCollectTextCloseAsset());
 			textInputView.onText() =
-			[this](CollectTextInputView &view, const char *str)
+			[](CollectTextInputView &view, const char *str)
 			{
 				if(str)
 				{
@@ -340,11 +339,11 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 					fceuCheats++;
 					FCEUI_ToggleCheat(fceuCheats-1);
 					logMsg("added new cheat, %d total", fceuCheats);
+					auto &editCheatView = *new SystemEditCheatView{view.window()};
 					view.dismiss();
 					refreshCheatViews();
-					auto &editCheatView = *new SystemEditCheatView{window()};
-					editCheatView.init(0, fceuCheats-1);
 					// go to directly to cheat's menu to finish entering values
+					editCheatView.init(0, fceuCheats-1);
 					viewStack.pushAndShow(editCheatView);
 				}
 				else

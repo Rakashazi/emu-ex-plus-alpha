@@ -15,42 +15,34 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/Io.hh>
+#include <type_traits>
+#include <imagine/io/IO.hh>
 #include <imagine/fs/sys.hh> // for FsSys::PathString
 #include <imagine/base/Base.hh>
 
-#if defined CONFIG_IO_FD
-#include <imagine/io/IoFd.hh>
-using IoSys = IoFd;
-#elif defined CONFIG_IO_WIN32
-#include <imagine/io/IoWin32.hh>
-using IoSys = IoWin32;
+#if defined CONFIG_IO_WIN32
+#include <imagine/io/Win32IO.hh>
+using FileIO = Win32IO;
+#else
+#include <imagine/io/PosixFileIO.hh>
+using FileIO = PosixFileIO;
 #endif
 
 #ifdef CONFIG_IO_AASSET
 #include <imagine/io/AAssetIO.hh>
+using AssetIO = AAssetIO;
+#else
+using AssetIO = FileIO;
 #endif
 
-static CallResult copyIoToPath(Io &io, const char *outPath)
-{
-	auto outFile = IOFile(IoSys::create(outPath));
-	if(!outFile)
-		return IO_ERROR;
-	CallResult ret = io.writeToIO(*outFile.io());
-	return ret;
-}
-
-static Io *openAppAssetIo(const char *name)
-{
-	#ifdef CONFIG_IO_AASSET
-	return AAssetIO::open(name);
-	#else
-	return IoSys::open(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
-	#endif
-}
+AssetIO openAppAssetIO(const char *name);
 
 template <size_t S>
-static Io *openAppAssetIo(std::array<char, S> name)
+static AssetIO openAppAssetIO(std::array<char, S> name)
 {
-	return openAppAssetIo(name.data());
+	return openAppAssetIO(name.data());
 }
+
+CallResult writeToNewFile(const char *path, void *data, size_t size);
+size_t readFromFile(const char *path, void *data, size_t size);
+CallResult writeIOToNewFile(IO &io, const char *path);

@@ -62,8 +62,8 @@ CLINK void PNGAPI EVISIBLE png_chunk_warning(png_const_structrp png_ptr, png_con
 
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
-	auto stream = (Io*)png_get_io_ptr(pngPtr);
-	if(stream->read(data, length) != OK)
+	auto &io = *(IO*)png_get_io_ptr(pngPtr);
+	if(io.readAll(data, length) != OK)
 	{
 		logErr("error reading png file");
 		png_error(pngPtr, "Read Error");
@@ -106,7 +106,7 @@ static void png_memFree(png_structp png_ptr, png_voidp ptr)
 	mem_free(ptr);
 }
 
-CallResult Png::readHeader(Io *stream)
+CallResult Png::readHeader(GenericIO io)
 {
 	//logMsg("reading header from file handle @ %p",stream);
 	
@@ -114,7 +114,7 @@ CallResult Png::readHeader(Io *stream)
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	uchar header[INITIAL_HEADER_READ_BYTES];
-	doOrReturnVal(stream->read(&header, INITIAL_HEADER_READ_BYTES), IO_ERROR);
+	doOrReturn(io.readAll(&header, INITIAL_HEADER_READ_BYTES));
 	
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
@@ -164,14 +164,13 @@ CallResult Png::readHeader(Io *stream)
 	}
 	
 	//init custom libpng io
-	png_set_read_fn(png, stream, png_ioReader);
+	png_set_read_fn(png, io.release(), png_ioReader);
 	//log_mPrintf(LOG_MSG,"set custom png read function %p", png_ioReader);
 	
 	png_set_sig_bytes(png, INITIAL_HEADER_READ_BYTES);
 	//log_mPrintf(LOG_MSG,"let libpng know we read %d bytes already", INITIAL_HEADER_READ_BYTES);
 	
 	png_read_info(png, info);
-	//io_seekF(stream, HEADER_MAGIC_BYTES + HEADER_BMP_SIZE_BYTES + HEADER_RESERVED_1_BYTES + HEADER_RESERVED_2_BYTES);
 	
 	//log_mPrintf(LOG_MSG,"finished reading header");
 	return (OK);
@@ -182,6 +181,7 @@ void Png::freeImageData()
 	if(png)
 	{
 		logMsg("deallocating libpng data");
+		delete (IO*)png_get_io_ptr(png);
 		png_structpp pngStructpAddr = &png;
 		png_infopp pngInfopAddr = &info;
 		//void * pngEndInfopAddr = &data->end;
@@ -278,7 +278,7 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-CallResult Png::readImage(Io *stream, IG::Pixmap &dest)
+CallResult Png::readImage(IG::Pixmap &dest)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
@@ -349,17 +349,16 @@ CallResult Png::readImage(Io *stream, IG::Pixmap &dest)
 
 CallResult PngFile::getImage(IG::Pixmap &dest)
 {
-	return(png.readImage(io, dest));
+	return(png.readImage(dest));
 }
 
-CallResult PngFile::load(Io* io)
+CallResult PngFile::load(GenericIO io)
 {
 	deinit();
 	if(!io)
 		return INVALID_PARAMETER;
-	var_selfs(io);
 
-	if(png.readHeader(io) != OK)
+	if(png.readHeader(std::move(io)) != OK)
 	{
 		logErr("error reading header");
 		return IO_ERROR;
@@ -377,7 +376,8 @@ CallResult PngFile::load(const char *name)
 		return INVALID_PARAMETER;
 	}
 
-	Io *io = IoSys::open(name);
+	FileIO io;
+	io.open(name);
 	if(!io)
 	{
 		return IO_ERROR;
@@ -389,6 +389,4 @@ CallResult PngFile::load(const char *name)
 void PngFile::deinit()
 {
 	png.freeImageData();
-	if(io)
-		io->close();
 }

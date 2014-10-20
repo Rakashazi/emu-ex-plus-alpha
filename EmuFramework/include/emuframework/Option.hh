@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <array>
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/util/2DOrigin.h>
@@ -35,7 +35,7 @@ struct OptionBase
 	constexpr OptionBase(bool isConst): isConst(isConst) {}
 	virtual bool isDefault() const = 0;
 	virtual uint ioSize() = 0;
-	virtual bool writeToIO(Io *io) = 0;
+	virtual bool writeToIO(IO &io) = 0;
 };
 
 template <class T>
@@ -115,25 +115,27 @@ public:
 		return V::get();
 	}
 
-	bool writeToIO(Io *io)
+	bool writeToIO(IO &io)
 	{
 		logMsg("writing option key %u after size %u", KEY, ioSize());
-		io->writeVar(KEY);
-		io->writeVar((SERIALIZED_T)V::get());
-		return 1;
+		CallResult r = OK;
+		io.writeVal(KEY, &r);
+		io.writeVal((SERIALIZED_T)V::get(), &r);
+		return true;
 	}
 
-	bool writeWithKeyIfNotDefault(Io *io)
+	bool writeWithKeyIfNotDefault(IO &io)
 	{
 		if(!isDefault())
 		{
-			io->writeVar((uint16)ioSize());
+			CallResult r = OK;
+			io.writeVal((uint16)ioSize(), &r);
 			writeToIO(io);
 		}
-		return 1;
+		return true;
 	}
 
-	bool readFromIO(Io &io, uint readSize)
+	bool readFromIO(IO &io, uint readSize)
 	{
 		if(isConst || readSize != sizeof(SERIALIZED_T))
 		{
@@ -141,20 +143,21 @@ public:
 				logMsg("skipping const option value");
 			else
 				logMsg("skipping %d byte option value, expected %d", readSize, (int)sizeof(SERIALIZED_T));
-			return 0;
+			return false;
 		}
 
-		SERIALIZED_T x;
-		if(io.readVar(x) != OK)
+		CallResult r = OK;
+		auto x = io.readVal<SERIALIZED_T>(&r);
+		if(r != OK)
 		{
 			logErr("error reading option from io");
-			return 0;
+			return false;
 		}
 		if(V::isValidVal(x))
 			V::set(x);
 		else
 			logMsg("skipped invalid option value");
-		return 1;
+		return true;
 	}
 
 	uint ioSize()
@@ -183,7 +186,7 @@ struct PathOption : public OptionBase
 		return val;
 	}
 
-	bool writeToIO(Io *io)
+	bool writeToIO(IO &io)
 	{
 		uint len = strlen(val);
 		if(len > strSize-1)
@@ -196,13 +199,14 @@ struct PathOption : public OptionBase
 			logMsg("skipping 0 length option string");
 			return 0;
 		}
-		io->writeVar((uint16)(2 + len));
-		io->writeVar((uint16)KEY);
-		io->fwrite(val, len, 1);
-		return 1;
+		CallResult r = OK;
+		io.writeVal((uint16)(2 + len), &r);
+		io.writeVal((uint16)KEY, &r);
+		io.write(val, len, &r);
+		return true;
 	}
 
-	bool readFromIO(Io &io, uint readSize)
+	bool readFromIO(IO &io, uint readSize)
 	{
 		if(readSize > strSize-1)
 		{
@@ -210,8 +214,13 @@ struct PathOption : public OptionBase
 			return 0;
 		}
 
-		io.read(val, readSize);
-		val[readSize] = 0;
+		auto bytesRead = io.read(val, readSize);
+		if(bytesRead == -1)
+		{
+			logErr("error reading string option");
+			return 0;
+		}
+		val[bytesRead] = 0;
 		logMsg("read path option %s", val);
 		return 1;
 	}
@@ -305,79 +314,54 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 		return 2 + 2;
 	}
 
-	bool writeToIO(Io *io)
+	bool writeToIO(IO &io)
 	{
-		io->writeVar((uint16)CFGKEY_GAME_ASPECT_RATIO);
+		CallResult r = OK;
+		io.writeVal((uint16)CFGKEY_GAME_ASPECT_RATIO, &r);
 		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
-		io->writeVar((uint8)val.x);
-		io->writeVar((uint8)val.y);
-		return 1;
+		io.writeVal((uint8)val.x, &r);
+		io.writeVal((uint8)val.y, &r);
+		return true;
 	}
 
-	bool readFromIO(Io &io, uint readSize)
+	bool readFromIO(IO &io, uint readSize)
 	{
 		if(isConst || readSize != 2)
 		{
 			logMsg("skipping %d byte option value, expected %d", readSize, 2);
-			return 0;
+			return false;
 		}
 
-		uint8 x, y;
-		io.readVar(x);
-		io.readVar(y);
+		auto x = io.readVal<uint8>();
+		auto y = io.readVal<uint8>();
 		logMsg("read aspect ratio config %u,%u", x, y);
 		if(y == 0)
 			y = 1;
 		val = Rational::make<uint>(x, y);
-		return 1;
+		return true;
 	}
 };
-
-//struct OptionDPI : public Option<OptionMethodVar<uint32> >
-//{
-//	constexpr OptionDPI(T defaultVal = 0, bool isConst = 0): Option<OptionMethodVar<uint32> >(CFGKEY_DPI, defaultVal, isConst) {}
-//
-//	bool writeToIO(Io *io)
-//	{
-//		logMsg("writing dpi config %u", val * 100);
-//		io->writeVar((uint16)CFGKEY_DPI);
-//		io->writeVar((uint32)(val * 100));
-//		return 1;
-//	}
-//
-//	bool readFromIO(Io &io, uint readSize)
-//	{
-//		bool ret = Option<OptionMethodVar<uint32> >::readFromIO(io, readSize);
-//		if(ret)
-//		{
-//			logMsg("read dpi config %u", val);
-//			val /= 100;
-//			if(val != 0 && (val < 96 || val > 320))
-//				val = defaultVal;
-//		}
-//		return ret;
-//	}
-//};
 
 struct OptionRecentGames : public OptionBase
 {
 	bool isDefault() const { return recentGameList.size() == 0; }
 	const uint16 key = CFGKEY_RECENT_GAMES;
 
-	bool writeToIO(Io *io)
+	bool writeToIO(IO &io)
 	{
 		logMsg("writing recent list");
-		io->writeVar(key);
+		CallResult r = OK;
+		io.writeVal(key, &r);
 		for(auto &e : recentGameList)
 		{
 			uint len = strlen(e.path.data());
-			io->writeVar((uint16)len);
-			io->fwrite(e.path.data(), len, 1);
+			io.writeVal((uint16)len, &r);
+			io.write(e.path.data(), len, &r);
 		}
-		return 1;
+		return true;
 	}
 
-	bool readFromIO(Io &io, uint readSize_)
+	bool readFromIO(IO &io, uint readSize_)
 	{
 		int readSize = readSize_;
 		while(readSize && !recentGameList.isFull())
@@ -388,8 +372,7 @@ struct OptionRecentGames : public OptionBase
 				break;
 			}
 
-			uint16 len;
-			io.readVar(len);
+			auto len = io.readVal<uint16>();
 			readSize -= 2;
 
 			if(len > readSize)
@@ -399,8 +382,13 @@ struct OptionRecentGames : public OptionBase
 			}
 
 			RecentGameInfo info;
-			io.read(info.path.data(), len);
-			info.path[len] = 0;
+			auto bytesRead = io.read(info.path.data(), len);
+			if(bytesRead == -1)
+			{
+				logErr("error reading string option");
+				return true;
+			}
+			info.path[bytesRead] = 0;
 			readSize -= len;
 			FsSys::PathString basenameTemp;
 			string_copyUpToLastCharInstance(info.name, string_basename(info.path.data(), basenameTemp), '.');
@@ -413,7 +401,7 @@ struct OptionRecentGames : public OptionBase
 			logMsg("skipping excess %d bytes", readSize);
 		}
 
-		return 1;
+		return true;
 	}
 
 	uint ioSize()
@@ -433,7 +421,7 @@ struct OptionVControllerLayoutPosition : public OptionBase
 	const uint16 key = CFGKEY_VCONTROLLER_LAYOUT_POS;
 
 	bool isDefault() const override;
-	bool writeToIO(Io *io) override;
-	bool readFromIO(Io &io, uint readSize_);
+	bool writeToIO(IO &io) override;
+	bool readFromIO(IO &io, uint readSize_);
 	uint ioSize() override;
 };

@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 #define cdprintf(x...)
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp

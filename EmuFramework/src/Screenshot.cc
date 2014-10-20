@@ -16,7 +16,7 @@
 #include <emuframework/Screenshot.hh>
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/fs/sys.hh>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
@@ -103,9 +103,9 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 
 static void png_ioWriter(png_structp pngPtr, png_bytep data, png_size_t length)
 {
-	Io *stream = (Io*)png_get_io_ptr(pngPtr);
+	auto &io = *(IO*)png_get_io_ptr(pngPtr);
 
-	if(stream->fwrite(data, length, 1) != 1)
+	if(io.write(data, length) != (ssize_t)length)
 	{
 		logErr("error writing png file");
 		//png_error(pngPtr, "Write Error");
@@ -119,7 +119,8 @@ static void png_ioFlush(png_structp pngPtr)
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 {
-	auto fp = IOFile(IoSys::create(fname));
+	FileIO fp;
+	fp.create(fname);
 	if(!fp)
 	{
 		return false;
@@ -128,7 +129,6 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!pngPtr)
 	{
-		fp.close();
 		FsSys::remove(fname);
 		return false;
 	}
@@ -136,7 +136,6 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	if(!infoPtr)
 	{
 		png_destroy_write_struct(&pngPtr, (png_infopp)NULL);
-		fp.close();
 		FsSys::remove(fname);
 		return false;
 	}
@@ -144,7 +143,6 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	if(setjmp(png_jmpbuf(pngPtr)))
 	{
 		png_destroy_write_struct(&pngPtr, &infoPtr);
-		fp.close();
 		FsSys::remove(fname);
 		return false;
 	}
@@ -152,7 +150,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	uint imgwidth = vidPix.x;
 	uint imgheight = vidPix.y;
 
-	png_set_write_fn(pngPtr, fp.io(), png_ioWriter, png_ioFlush);
+	png_set_write_fn(pngPtr, &fp, png_ioWriter, png_ioFlush);
 	png_set_IHDR(pngPtr, infoPtr, imgwidth, imgheight, 8,
 		PNG_COLOR_TYPE_RGB,
 		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,

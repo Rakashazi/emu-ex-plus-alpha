@@ -63,7 +63,7 @@ void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -73,7 +73,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionNGPLanguage.writeWithKeyIfNotDefault(io);
 }
@@ -205,7 +205,7 @@ int EmuSystem::loadState(int saveStateSlot)
 
 bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
 {
-	return IoSys::readFromFile(filename, buffer, bufferLength) ? 1 : 0;
+	return readFromFile(filename, buffer, bufferLength) == OK;
 }
 
 static FsSys::PathString sprintSaveFilename()
@@ -216,7 +216,7 @@ static FsSys::PathString sprintSaveFilename()
 bool system_io_flash_read(uchar* buffer, uint32 len)
 {
 	auto saveStr = sprintSaveFilename();
-	return IoSys::readFromFile(saveStr.data(), buffer, len) ? 1 : 0;
+	return readFromFile(saveStr.data(), buffer, len) == OK;
 }
 
 bool system_io_flash_write(uchar* buffer, uint32 len)
@@ -226,7 +226,7 @@ bool system_io_flash_write(uchar* buffer, uint32 len)
 	auto saveStr = sprintSaveFilename();
 	logMsg("writing flash %s", saveStr.data());
 	CallResult ret;
-	if((ret = IoSys::writeToNewFile(saveStr.data(), buffer, len)) == OK)
+	if((ret = writeToNewFile(saveStr.data(), buffer, len)) == OK)
 		return 1;
 	else
 		return 0;
@@ -317,7 +317,7 @@ static bool romLoad(const char *filename)
 	const uint maxRomSize = 0x400000;
 	rom.data = (uchar*)calloc(maxRomSize, 1);
 
-	uint readSize = IoSys::readFromFile(filename, rom.data, maxRomSize);
+	uint readSize = readFromFile(filename, rom.data, maxRomSize);
 	if(readSize)
 	{
     	logMsg("read 0x%X byte rom", readSize);
@@ -358,7 +358,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }

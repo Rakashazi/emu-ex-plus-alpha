@@ -64,7 +64,7 @@ static void installFirmwareFiles()
 
 	forEachDInArray(srcPath, e)
 	{
-		auto src = IOFile(openAppAssetIo(e));
+		auto src = openAppAssetIO(e);
 		if(!src)
 		{
 			popup.printf(4, 1, "Can't open source file:\n %s", e);
@@ -72,7 +72,7 @@ static void installFirmwareFiles()
 		}
 		auto pathTemp = makeFSPathStringPrintf("%s/Machines/%s/%s",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		CallResult ret = copyIoToPath(*src.io(), pathTemp.data());
+		CallResult ret = writeIOToNewFile(src, pathTemp.data());
 		if(ret != OK)
 		{
 			popup.printf(4, 1, "Can't write file:\n%s", e);

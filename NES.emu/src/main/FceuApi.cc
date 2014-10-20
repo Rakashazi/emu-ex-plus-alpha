@@ -2,6 +2,7 @@
 
 #include <imagine/logger/logger.h>
 #include <imagine/fs/sys.hh>
+#include <imagine/io/api/stdio.hh>
 #include <stdio.h>
 #include <fceu/driver.h>
 #include <fceu/video.h>
@@ -198,4 +199,37 @@ void EncodeGG(char *str, int a, int v, int c)
 		str[8] = 0;
 	}
 	return;
+}
+
+void EMUFILE_IO::truncate(s32 length)
+{
+	io.truncate(length);
+}
+
+int EMUFILE_IO::fgetc()
+{
+	return ::fgetc(io);
+}
+
+size_t EMUFILE_IO::_fread(const void *ptr, size_t bytes)
+{
+	ssize_t ret = io.read((void*)ptr, bytes);
+	if(ret < (ssize_t)bytes)
+		failbit = true;
+	return ret;
+}
+
+int EMUFILE_IO::fseek(int offset, int origin)
+{
+	return ::fseek(io, offset, origin);
+}
+
+int EMUFILE_IO::ftell()
+{
+	return (int)::ftell(io);
+}
+
+int EMUFILE_IO::size()
+{
+	return io.size();
 }

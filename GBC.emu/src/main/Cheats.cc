@@ -60,7 +60,8 @@ void writeCheatFile()
 		return;
 	}
 
-	auto file = IoSys::create(filename.data());
+	FileIO file;
+	file.create(filename.data());
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", filename.data());
@@ -68,41 +69,39 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename.data());
 
+	CallResult r;
 	int version = 0;
-	file->writeVar((uint8)version);
-	file->writeVar((uint16)cheatList.size());
+	file.writeVal((uint8)version, &r);
+	file.writeVal((uint16)cheatList.size(), &r);
 	for(auto &e : cheatList)
 	{
-		file->writeVar((uint8)e.flags);
-		file->writeVar((uint16)strlen(e.name));
-		file->fwrite(e.name, strlen(e.name), 1);
-		file->writeVar((uint8)strlen(e.code));
-		file->fwrite(e.code, strlen(e.code), 1);
+		file.writeVal((uint8)e.flags, &r);
+		file.writeVal((uint16)strlen(e.name), &r);
+		file.write(e.name, strlen(e.name), &r);
+		file.writeVal((uint8)strlen(e.code), &r);
+		file.write(e.code, strlen(e.code), &r);
 	}
-	file->close();
 	cheatsModified = 0;
 }
 
 void readCheatFile()
 {
 	auto filename = makeFSPathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
-	auto file = IoSys::open(filename.data());
+	FileIO file;
+	file.open(filename.data());
 	if(!file)
 	{
 		return;
 	}
 	logMsg("reading cheats file %s", filename.data());
 
-	uint8 version = 0;
-	file->readVar(version);
+	auto version = file.readVal<uint8>();
 	if(version != 0)
 	{
 		logMsg("skipping due to version code %d", version);
-		file->close();
 		return;
 	}
-	uint16 size = 0;
-	file->readVar(size);
+	auto size = file.readVal<uint16>();
 	iterateTimes(size, i)
 	{
 		if(cheatList.isFull())
@@ -111,18 +110,14 @@ void readCheatFile()
 			break;
 		}
 		GbcCheat cheat;
-		uint8 flags = 0;
-		file->readVar(flags);
+		auto flags = file.readVal<uint8>();
 		cheat.flags = flags;
-		uint16 nameLen = 0;
-		file->readVar(nameLen);
-		file->read(cheat.name, std::min(uint16(sizeof(cheat.name)-1), nameLen));
-		uint8 codeLen = 0;
-		file->readVar(codeLen);
-		file->read(cheat.code, std::min(uint8(sizeof(cheat.code)-1), codeLen));
+		auto nameLen = file.readVal<uint16>();
+		file.read(cheat.name, std::min(uint16(sizeof(cheat.name)-1), nameLen));
+		auto codeLen = file.readVal<uint8>();
+		file.read(cheat.code, std::min(uint8(sizeof(cheat.code)-1), codeLen));
 		cheatList.push_back(cheat);
 	}
-	file->close();
 }
 
 void SystemEditCheatView::renamed(const char *str)
@@ -220,7 +215,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](CollectTextInputView &view, const char *str)
+				[](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -233,7 +228,6 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						if(!strIsGGCode(str) && !strIsGSCode(str))
 						{
 							popup.postError("Invalid format");
-							window().postDraw();
 							return 1;
 						}
 						GbcCheat c;
@@ -244,13 +238,11 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						logMsg("added new cheat, %d total", cheatList.size());
 						cheatsModified = 1;
 						applyCheats();
-						view.dismiss();
-						refreshCheatViews();
 
-						auto &textInputView = *new CollectTextInputView{window()};
+						auto &textInputView = *new CollectTextInputView{view.window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](CollectTextInputView &view, const char *str)
+							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
@@ -264,6 +256,8 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								}
 								return 0;
 							};
+						view.dismiss();
+						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}
 					else

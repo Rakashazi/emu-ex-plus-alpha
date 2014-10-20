@@ -242,7 +242,7 @@ uint FsPosix::numEntries() const
 	return numEntries_;
 }
 
-int FsPosix::workDirChanged = 0;
+int FsPosix::workDirChanged = true;
 
 char *FsPosix::workDir()
 {

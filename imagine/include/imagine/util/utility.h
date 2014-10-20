@@ -47,9 +47,9 @@ static constexpr size_t sizeofArray(const T (&a)[S])
 
 // make and return a copy of the variable, clearing the original
 template <class T>
-static T moveAndClear(T& v)
+static T moveAndClear(T &v)
 {
-	auto temp = v;
+	auto temp = std::move(v);
 	v = {};
 	return temp;
 }

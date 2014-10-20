@@ -96,11 +96,11 @@ ResourceFace *ResourceFace::load(const char *path, FontSettings *set)
 	return create(font, set);
 }
 
-ResourceFace *ResourceFace::load(Io* io, FontSettings *set)
+ResourceFace *ResourceFace::load(GenericIO io, FontSettings *set)
 {
 	ResourceFont *font = nullptr;
 	#ifdef CONFIG_RESOURCE_FONT_FREETYPE
-	font = ResourceFontFreetype::load(io);
+	font = ResourceFontFreetype::load(std::move(io));
 	#endif
 	if(!font)
 		return nullptr;
@@ -203,7 +203,7 @@ void ResourceFace::calcNominalHeight()
 	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
 }
 
-CallResult ResourceFace::applySettings (FontSettings set)
+CallResult ResourceFace::applySettings(FontSettings set)
 {
 	set.process();
 	if(set.pixelWidth < font->minUsablePixels())

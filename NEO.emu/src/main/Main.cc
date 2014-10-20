@@ -1,6 +1,6 @@
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
-#include <imagine/io/IoZip.hh>
+#include <imagine/io/ZipIO.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
@@ -196,7 +196,7 @@ void EmuSystem::onOptionsLoaded()
 	}
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -211,7 +211,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionListAllGames.writeWithKeyIfNotDefault(io);
 	optionBIOSType.writeWithKeyIfNotDefault(io);
@@ -524,23 +524,21 @@ void gn_update_pbar(int pos)
 	}
 }
 
-static Io *openGngeoDataIO(const char *filename)
+static auto openGngeoDataIO(const char *filename)
 {
-	if(Config::envIsAndroid)
-	{
-		return openAppAssetIo(filename);
-	}
-	else
-	{
-		return IoZip::open(datafilePath.data(), filename);
-	}
+	#ifdef __ANDROID__
+	return openAppAssetIO(filename);
+	#else
+	ZipIO io;
+	io.open(datafilePath.data(), filename);
+	return io;
+	#endif
 }
 
 CLINK ROM_DEF *res_load_drv(char *name)
 {
-	std::array<char, 32> drvFilename;
-	string_printf(drvFilename, DATAFILE_PREFIX "rom/%s.drv", name);
-	Io *io = openGngeoDataIO(drvFilename.data());
+	auto drvFilename = string_makePrintf<32>(DATAFILE_PREFIX "rom/%s.drv", name);
+	auto io = openGngeoDataIO(drvFilename.data());
 	if(!io)
 	{
 		logErr("Can't open driver %s", name);
@@ -549,38 +547,36 @@ CLINK ROM_DEF *res_load_drv(char *name)
 
 	// Fill out the driver struct
 	auto drv = (ROM_DEF*)calloc(sizeof(ROM_DEF), 1);
-	io->read(drv->name, 32);
-	io->read(drv->parent, 32);
-	io->read(drv->longname, 128);
-	io->readVarAsType<uint32>(drv->year); // TODO: LE byte-swap on uint32 reads
+	io.read(drv->name, 32);
+	io.read(drv->parent, 32);
+	io.read(drv->longname, 128);
+	drv->year = io.readVal<uint32>(); // TODO: LE byte-swap on uint32 reads
 	iterateTimes(10, i)
-		io->readVarAsType<uint32>(drv->romsize[i]);
-	io->readVarAsType<uint32>(drv->nb_romfile);
+		drv->romsize[i] = io.readVal<uint32>();
+	drv->nb_romfile = io.readVal<uint32>();
 	iterateTimes(drv->nb_romfile, i)
 	{
-		io->read(drv->rom[i].filename, 32);
-		io->readVarAsType<uint8>(drv->rom[i].region);
-		io->readVarAsType<uint32>(drv->rom[i].src);
-		io->readVarAsType<uint32>(drv->rom[i].dest);
-		io->readVarAsType<uint32>(drv->rom[i].size);
-		io->readVarAsType<uint32>(drv->rom[i].crc);
+		io.read(drv->rom[i].filename, 32);
+		drv->rom[i].region = io.readVal<uint8>();
+		drv->rom[i].src = io.readVal<uint32>();
+		drv->rom[i].dest = io.readVal<uint32>();
+		drv->rom[i].size = io.readVal<uint32>();
+		drv->rom[i].crc = io.readVal<uint32>();
 	}
-	io->close();
 	return drv;
 }
 
 CLINK void *res_load_data(char *name)
 {
-	Io *io = openGngeoDataIO(name);
+	auto io = openGngeoDataIO(name);
 	if(!io)
 	{
 		logErr("Can't data file %s", name);
 		return nullptr;
 	}
-	auto size = io->size();
+	auto size = io.size();
 	auto buffer = (char*)malloc(size);
-	io->read(buffer, size);
-	io->close();
+	io.read(buffer, size);
 	return buffer;
 }
 
@@ -805,7 +801,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }

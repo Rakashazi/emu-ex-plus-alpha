@@ -151,7 +151,7 @@ void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -164,7 +164,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionFourScore.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
@@ -482,7 +482,7 @@ int EmuSystem::loadGame(const char *path)
 	return loadGameCommon();
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);

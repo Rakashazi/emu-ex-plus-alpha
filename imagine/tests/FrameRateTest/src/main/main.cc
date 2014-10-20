@@ -17,7 +17,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include <unistd.h>
@@ -27,7 +27,7 @@ static Base::Window mainWin;
 static Gfx::ProjectionPlane projP;
 static Gfx::Mat4 projMat;
 static Gfx::GCRect testRect;
-static Io *cpuFreqFile{};
+static FileIO cpuFreqFile;
 static TestFramework *activeTest{};
 static TestPicker picker{mainWin};
 
@@ -43,7 +43,7 @@ static void updateCPUFreq()
 	if(!activeTest || !cpuFreqFile)
 		return;
 	char buff[32]{};
-	cpuFreqFile->readAtPos(buff, sizeof(buff)-1, 0);
+	cpuFreqFile.readAtPos(buff, sizeof(buff)-1, 0);
 	//logMsg("read CPU freq: %s", buff);
 	activeTest->setCPUFreqText(buff);
 }
@@ -53,8 +53,7 @@ static void setupCPUFreqStatus()
 	if(!Config::envIsLinux && !Config::envIsAndroid)
 		return; // ignore cpufreq monitoring on non-linux systems
 	static const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
-	cpuFreqFile = IoSys::open(cpuFreqPath);
-	if(!cpuFreqFile)
+	if(cpuFreqFile.open(cpuFreqPath) != OK)
 	{
 		logWarn("can't open %s", cpuFreqPath);
 	}
@@ -76,11 +75,7 @@ static void placeElements()
 
 static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
 {
-	if(cpuFreqFile)
-	{
-		cpuFreqFile->close();
-		cpuFreqFile = nullptr;
-	}
+	cpuFreqFile.close();
 	if(activeTest)
 	{
 		activeTest->finish(frameTime);

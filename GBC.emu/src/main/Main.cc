@@ -32,13 +32,13 @@ static const GBPalette *gameBuiltinPalette{};
 class ImagineFile : public gambatte::File
 {
 public:
-	ImagineFile(Io &io): io(io) {}
+	ImagineFile(IO &io): io(io) {}
 
 	~ImagineFile() override {}
 
 	void rewind() override
 	{
-		io.seekA(0);
+		io.seekS(0);
 	}
 
 	std::size_t size() const override
@@ -48,14 +48,14 @@ public:
 
 	void read(char *buffer, std::size_t amount) override
 	{
-		if(io.read(buffer, amount) != OK)
+		if(io.readAll(buffer, amount) != OK)
 			failed = true;
 	}
 
 	bool fail() const override { return failed; }
 
 private:
-	Io &io;
+	IO &io;
 	bool failed = false;
 };
 
@@ -180,7 +180,7 @@ const char *EmuSystem::systemName()
 	return "Game Boy";
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -194,7 +194,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionGBPal.writeWithKeyIfNotDefault(io);
 	optionReportAsGba.writeWithKeyIfNotDefault(io);
@@ -414,7 +414,7 @@ int EmuSystem::loadGame(const char *path)
 	return loadGameCommon(result);
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);

@@ -88,7 +88,7 @@ static T CCD_ReadInt(CCD_Section &s, const std::string &propname, const bool hav
 }
 
 
-CDAccess_CCD::CDAccess_CCD(const char *path, bool image_memcache) : img_stream(NULL), sub_stream(NULL), img_numsectors(0)
+CDAccess_CCD::CDAccess_CCD(const char *path, bool image_memcache) : img_numsectors(0)
 {
  try
  {
@@ -104,7 +104,8 @@ CDAccess_CCD::CDAccess_CCD(const char *path, bool image_memcache) : img_stream(N
 void CDAccess_CCD::Load(const char *path, bool image_memcache)
 {
  //FileStream cf(path, FileStream::MODE_READ);
- IOFile cf(IoSys::open(path));
+ FileIO cf;
+ cf.open(path);
  if(!cf)
  {
 	throw MDFN_Error(0, "Error opening file \"%s\"", path);
@@ -266,13 +267,13 @@ void CDAccess_CCD::Load(const char *path, bool image_memcache)
  {
   std::string image_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(img_extsd), true);
 
- 	img_stream = IoSys::open(image_path.c_str());
+ 	img_stream.open(image_path.c_str());
  	if(!img_stream)
  	{
  	 throw MDFN_Error(0, "Error opening file \"%s\"", image_path.c_str());
  	}
 
-  int64 ss = img_stream->size();
+  int64 ss = img_stream.size();
 
   if(ss % 2352)
    throw MDFN_Error(0, _("CCD image size is not evenly divisible by 2352."));
@@ -285,13 +286,13 @@ void CDAccess_CCD::Load(const char *path, bool image_memcache)
  {
   std::string sub_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(sub_extsd), true);
 
- 	sub_stream = IoSys::open(sub_path.c_str());
+ 	sub_stream.open(sub_path.c_str());
  	if(!sub_stream)
 	{
 	 throw MDFN_Error(0, "Error opening file \"%s\"", sub_path.c_str());
 	}
 
-  if(sub_stream->size() != (int64)img_numsectors * 96)
+  if(sub_stream.size() != (size_t)img_numsectors * 96)
    throw MDFN_Error(0, _("CCD SUB file size mismatch."));
  }
 
@@ -324,8 +325,7 @@ void CDAccess_CCD::CheckSubQSanity(void)
    };
   } buf;
 
-  sub_stream->seek(s * 96, SEEK_SET);
-  sub_stream->read(buf.full, 96);
+  sub_stream.readAtPos(buf.full, 96, s * 96);
 
   if(subq_check_checksum(buf.qbuf))
   {
@@ -379,17 +379,8 @@ void CDAccess_CCD::CheckSubQSanity(void)
 
 void CDAccess_CCD::Cleanup(void)
 {
- if(img_stream)
- {
-  delete img_stream;
-  img_stream = NULL;
- }
-
- if(sub_stream)
- {
-  delete sub_stream;
-  sub_stream = NULL;
- }
+	img_stream.close();
+	sub_stream.close();
 }
 
 CDAccess_CCD::~CDAccess_CCD()
@@ -405,11 +396,9 @@ bool CDAccess_CCD::Read_Raw_Sector(uint8 *buf, int32 lba)
 
  uint8 sub_buf[96];
 
- img_stream->seek(lba * 2352, SEEK_SET);
- img_stream->read(buf, 2352);
+ img_stream.readAtPos(buf, 2352, lba * 2352);
 
- sub_stream->seek(lba * 96, SEEK_SET);
- sub_stream->read(sub_buf, 96);
+ sub_stream.readAtPos(sub_buf, 96, lba * 96);
 
  subpw_interleave(sub_buf, buf + 2352);
  return true;
@@ -420,15 +409,14 @@ bool CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 	if(lba < 0 || (size_t)lba >= img_numsectors)
 	 return false;
 
-	img_stream->seek(lba * 2352, SEEK_SET);
-	img_stream->read(buf, size);
+	img_stream.readAtPos(buf, size, lba * 2352);
 	return true;
 }
 
 void CDAccess_CCD::HintReadSector(int32 lba, int32 count)
 {
- img_stream->advise(lba * 2352, 2352 * count, Io::ADVICE_WILLNEED);
- sub_stream->advise(lba * 96, 96 * count, Io::ADVICE_WILLNEED);
+ img_stream.advise(lba * 2352, 2352 * count, IO::ADVICE_WILLNEED);
+ sub_stream.advise(lba * 96, 96 * count, IO::ADVICE_WILLNEED);
 }
 
 

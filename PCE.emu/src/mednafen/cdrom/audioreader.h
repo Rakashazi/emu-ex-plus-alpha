@@ -1,7 +1,7 @@
 #ifndef __MDFN_AUDIOREADER_H
 #define __MDFN_AUDIOREADER_H
 
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 class AudioReader
 {
@@ -38,6 +38,6 @@ class AudioReader
 
 // AR_Open(), and AudioReader, will NOT take "ownership" of the Stream object(IE it won't ever delete it).  Though it does assume it has exclusive access
 // to it for as long as the AudioReader object exists.
-AudioReader *AR_Open(Io *fp);
+AudioReader *AR_Open(IO &fp);
 
 #endif

@@ -295,7 +295,7 @@ void EmuSystem::onOptionsLoaded()
 	yinit.sh2coretype = optionSH2Core;
 }
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -306,7 +306,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionBiosPath.writeToIO(io);
 	optionSH2Core.writeWithKeyIfNotDefault(io);
@@ -561,7 +561,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }

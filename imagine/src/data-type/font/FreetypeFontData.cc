@@ -25,26 +25,26 @@
 #include FT_BITMAP_H
 #include FT_SIZES_H
 
-FT_Library FreetypeFontData::library = nullptr;
+FT_Library FreetypeFontData::library{};
 
 static unsigned long freetypeIoFunc(FT_Stream stream, unsigned long offset, unsigned char* buffer, unsigned long count)
 {
-	auto *io = (Io*)stream->descriptor.pointer;
+	auto &io = *((IO*)stream->descriptor.pointer);
 	//logMsg("using io addr %p", io);
-	io->seekA(offset);
 	stream->pos = offset;
 	//logMsg("offset %d", (int)offset);
 	
 	if(count == 0) return 0;
 	
-	size_t bytesRead = io->readUpTo(buffer, count);
+	// TODO: error checking
+	size_t bytesRead = io.readAtPos(buffer, count, offset);
 	//logMsg("read %d out of %d req bytes", (int)bytesRead, (int)count);
 	return bytesRead;
 }
 
 //void (*FT_Stream_CloseFunc)( FT_Stream  stream );
 
-CallResult FreetypeFontData::open(Io *file)
+CallResult FreetypeFontData::open(GenericIO file)
 {
 	if(!library)
 	{
@@ -62,14 +62,13 @@ CallResult FreetypeFontData::open(Io *file)
 	}
 	
 	//streamRec.base = nullptr;
-	streamRec.size = file->size();
-	ulong fileOffset;
-	file->tell(fileOffset);
+	streamRec.size = file.size();
+	auto fileOffset =	file.tell();
 	streamRec.pos = fileOffset;
-	streamRec.descriptor.pointer = file;
+	streamRec.descriptor.pointer = file.release();
 	streamRec.read = &freetypeIoFunc;
 	//streamRec.close = nullptr;
-	FT_Open_Args openS {0};
+	FT_Open_Args openS{};
 	openS.flags = FT_OPEN_STREAM;
 	openS.stream = &streamRec;
 
@@ -186,7 +185,7 @@ void FreetypeFontData::close(bool closeIo)
 	}
 	if(closeIo && streamRec.descriptor.pointer)
 	{
-		delete ((Io*)streamRec.descriptor.pointer);
+		delete (IO*)streamRec.descriptor.pointer;
 		streamRec.descriptor.pointer = nullptr;
 	}
 }

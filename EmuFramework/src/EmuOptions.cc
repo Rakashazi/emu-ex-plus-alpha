@@ -263,8 +263,8 @@ void initOptions()
 		// enable if cpu governor is "ondemand" ("interactive" doesn't have this problem)
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
 		{
-			auto file = IOFile(IoSys::open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"));
-			if(file)
+			FileIO file;
+			if(file.open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor") == OK)
 			{
 				char ondemandText[strlen("ondemand")] {0};
 				if(file.read(ondemandText, sizeof(ondemandText)) == OK)
@@ -341,18 +341,19 @@ bool OptionVControllerLayoutPosition::isDefault() const
 	return !vControllerLayoutPosChanged;
 }
 
-bool OptionVControllerLayoutPosition::writeToIO(Io *io)
+bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 {
 	logMsg("writing vcontroller positions");
-	io->writeVar(key);
+	CallResult r = OK;
+	io.writeVal(key, &r);
 	for(auto &posArr : vControllerLayoutPos)
 	{
 		for(auto &e : posArr)
 		{
-			io->writeVar((uint8)e.origin);
-			io->writeVar((uint8)e.state);
-			io->writeVar((int32)e.pos.x);
-			io->writeVar((int32)e.pos.y);
+			io.writeVal((uint8)e.origin, &r);
+			io.writeVal((uint8)e.state, &r);
+			io.writeVal((int32)e.pos.x, &r);
+			io.writeVal((int32)e.pos.y, &r);
 		}
 	}
 	return 1;
@@ -363,7 +364,7 @@ static uint sizeofVControllerLayoutPositionEntry()
 	return 1 + 1 + 4 + 4;
 }
 
-bool OptionVControllerLayoutPosition::readFromIO(Io &io, uint readSize_)
+bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 {
 	int readSize = readSize_;
 
@@ -377,24 +378,22 @@ bool OptionVControllerLayoutPosition::readFromIO(Io &io, uint readSize_)
 				break;
 			}
 
-			_2DOrigin origin;
-			io.readVarAsType<int8>(origin);
+			_2DOrigin origin = io.readVal<int8>();
 			if(!origin.isValid())
 			{
 				logWarn("invalid v-controller origin from config file");
 			}
 			else
 				e.origin = origin;
-			uint state = 1;
-			io.readVarAsType<int8>(state);
+			uint state = io.readVal<int8>();
 			if(state > 2)
 			{
 				logWarn("invalid v-controller state from config file");
 			}
 			else
 				e.state = state;
-			io.readVarAsType<int32>(e.pos.x);
-			io.readVarAsType<int32>(e.pos.y);
+			e.pos.x = io.readVal<int32>();
+			e.pos.y = io.readVal<int32>();
 			vControllerLayoutPosChanged = true;
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}

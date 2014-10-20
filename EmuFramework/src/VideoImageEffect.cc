@@ -15,7 +15,7 @@
 
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 struct EffectDesc
 {
@@ -115,7 +115,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		initRenderTargetTexture();
 	}
 	{
-		auto file = IOFile(openAppAssetIo(makeFSPathStringPrintf("shaders/%s", desc->vShaderFilename)));
+		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s", desc->vShaderFilename));
 		if(!file)
 		{
 			deinit();
@@ -147,7 +147,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		}
 	}
 	{
-		auto file = IOFile(openAppAssetIo(makeFSPathStringPrintf("shaders/%s", desc->fShaderFilename)));
+		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s", desc->fShaderFilename));
 		if(!file)
 		{
 			deinit();

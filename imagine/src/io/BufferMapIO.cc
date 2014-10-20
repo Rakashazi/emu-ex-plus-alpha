@@ -13,28 +13,52 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "IOMMapGeneric"
-#include <imagine/io/IoMmapGeneric.hh>
+#define LOGTAG "BufferMapIO"
+#include <imagine/io/BufferMapIO.hh>
 #include <imagine/logger/logger.h>
 
-Io* IoMmapGeneric::open(const void *buffer, size_t size, OnFreeDelegate onFree)
+BufferMapIO::~BufferMapIO()
 {
-	IoMmapGeneric *inst = new IoMmapGeneric;
-	if(!inst)
-	{
-		logErr("out of memory");
-		return nullptr;
-	}
-	inst->init(buffer, size);
-	inst->onFree = onFree;
-	return inst;
+	close();
 }
 
-void IoMmapGeneric::close()
+BufferMapIO::BufferMapIO(BufferMapIO &&o)
 {
-	if(onFree)
+	*this = o;
+	o.resetData();
+}
+
+BufferMapIO &BufferMapIO::operator=(BufferMapIO &&o)
+{
+	close();
+	*this = o;
+	o.resetData();
+	return *this;
+}
+
+BufferMapIO::operator GenericIO()
+{
+	return GenericIO{*this};
+}
+
+CallResult BufferMapIO::open(const void *buff, size_t size, OnCloseDelegate onClose)
+{
+	close();
+	setData(buff, size);
+	var_selfs(onClose);
+	return OK;
+}
+
+void BufferMapIO::close()
+{
+	if(data)
 	{
-		onFree(*this);
-		onFree = {};
+		if(onClose)
+		{
+			onClose(*this);
+			onClose = {};
+		}
+		resetData();
 	}
 }
+

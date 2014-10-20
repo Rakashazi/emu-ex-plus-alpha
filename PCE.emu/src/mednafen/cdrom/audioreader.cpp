@@ -95,7 +95,7 @@ int64 AudioReader::FrameCount(void)
 class OggVorbisReader : public AudioReader
 {
  public:
- OggVorbisReader(Io *fp);
+ OggVorbisReader(IO &fp);
  ~OggVorbisReader();
 
  int64 Read_(int16 *buffer, int64 frames);
@@ -106,17 +106,17 @@ class OggVorbisReader : public AudioReader
  OggVorbis_File ovfile;
 };
 
-OggVorbisReader::OggVorbisReader(Io *fp)
+OggVorbisReader::OggVorbisReader(IO &fp)
 {
- fp->seekA(0);
+ fp.seekS(0);
 
- if(ov_open_callbacks(fp, &ovfile, NULL, 0, imagineVorbisIONoClose))
+ if(ov_open_callbacks(&fp, &ovfile, NULL, 0, IOAPI::vorbisNoClose))
 	 throw(0);
 }
 
 OggVorbisReader::~OggVorbisReader()
 {
-	 ov_clear(&ovfile);
+	ov_clear(&ovfile);
 }
 
 int64 OggVorbisReader::Read_(int16 *buffer, int64 frames)
@@ -177,7 +177,7 @@ class SFReader : public AudioReader
 {
  public:
 
- SFReader(Io *fp);
+ SFReader(IO &fp);
  ~SFReader();
 
  int64 Read_(int16 *buffer, int64 frames);
@@ -189,12 +189,12 @@ class SFReader : public AudioReader
  SF_INFO sfinfo;
 };
 
-SFReader::SFReader(Io *fp)
+SFReader::SFReader(IO &fp)
 {
- fp->seekA(0);
+ fp.seekS(0);
 
  memset(&sfinfo, 0, sizeof(sfinfo));
- if(!(sf = sf_open_virtual(&imagineSndFileIO, SFM_READ, &sfinfo, fp)))
+ if(!(sf = sf_open_virtual(&IOAPI::sndfile, SFM_READ, &sfinfo, &fp)))
 	throw(0);
 }
 
@@ -224,7 +224,7 @@ int64 SFReader::FrameCount(void)
 #endif
 
 
-AudioReader *AR_Open(Io *fp)
+AudioReader *AR_Open(IO &fp)
 {
  try
  {

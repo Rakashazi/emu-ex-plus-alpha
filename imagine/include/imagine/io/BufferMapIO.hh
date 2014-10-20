@@ -16,23 +16,32 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/io/IoMmap.hh>
+#include <imagine/io/MapIO.hh>
 #include <imagine/util/DelegateFunc.hh>
 
-class IoMmapGeneric : public IoMmap
+class BufferMapIO : public MapIO
 {
 public:
 	// optional function to call on close
-	using OnFreeDelegate = DelegateFunc<void (IoMmapGeneric &io)>;
+	using OnCloseDelegate = DelegateFunc<void (BufferMapIO &io)>;
 
-	static Io* open(const void *buffer, size_t size, OnFreeDelegate onFree);
-	static Io* open(const void *buffer, size_t size)
+	constexpr BufferMapIO() {}
+	~BufferMapIO() override;
+	BufferMapIO(BufferMapIO &&o);
+	BufferMapIO &operator=(BufferMapIO &&o);
+	operator GenericIO();
+	CallResult open(const void *buff, size_t size, OnCloseDelegate onClose);
+	CallResult open(const void *buff, size_t size)
 	{
-		return open(buffer, size, {});
+		return open(buff, size, {});
 	}
-	~IoMmapGeneric() { close(); }
+
 	void close() override;
 
-private:
-	OnFreeDelegate onFree;
+protected:
+	OnCloseDelegate onClose;
+
+	// no copying outside of class
+	BufferMapIO(const BufferMapIO &) = default;
+	BufferMapIO &operator=(const BufferMapIO &) = default;
 };

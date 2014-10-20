@@ -3,6 +3,6 @@ inc_io := 1
 
 configDefs += CONFIG_IO
 
-SRC += io/Io.cc
+SRC += io/IO.cc
 
 endif

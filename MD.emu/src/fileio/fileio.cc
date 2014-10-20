@@ -1,7 +1,7 @@
 #define LOGTAG "fileio"
 #include "shared.h"
 #include <unzip.h>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 uint isROMExtension(const char *name);
 
@@ -107,28 +107,24 @@ uint8 *load_archive(char *filename, int *file_size)
     }
     else
     {
-        Io *gd = NULL;
+        FileIO file;
 
         /* Open file */
-        gd = IoSys::open(filename);
-        if(!gd) return (0);
+        file.open(filename);
+        if(!file) return (0);
 
         /* Get file size */
-        size = gd->size();
+        size = file.size();
 
         /* Allocate file data buffer */
         buf = (uint8*)malloc(size);
         if(!buf)
         {
-            delete gd;
             return (0);
         }
 
         /* Read file data */
-        gd->read(buf, size);
-
-        /* Close file */
-        delete gd;
+        file.read(buf, size);
 
         /* Update file size and return pointer to file data */
         *file_size = size;

@@ -213,13 +213,12 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			if(Cheat.num_cheats == EmuCheats::MAX)
 			{
 				popup.postError("Too many cheats, delete some first");
-				window().postDraw();
 				return;
 			}
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](CollectTextInputView &view, const char *str)
+				[](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -241,18 +240,15 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						else
 						{
 							popup.postError("Invalid format");
-							window().postDraw();
 							return 1;
 						}
 						string_copy(Cheat.c[Cheat.num_cheats - 1].name, "Unnamed Cheat");
 						logMsg("added new cheat, %d total", Cheat.num_cheats);
-						view.dismiss();
-						refreshCheatViews();
 
-						auto &textInputView = *new CollectTextInputView{window()};
+						auto &textInputView = *new CollectTextInputView{view.window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](CollectTextInputView &view, const char *str)
+							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
@@ -266,6 +262,8 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								}
 								return 0;
 							};
+						view.dismiss();
+						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}
 					else

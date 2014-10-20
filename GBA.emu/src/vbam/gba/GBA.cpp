@@ -22,7 +22,7 @@
 #include "agbprint.h"
 #include "GBALink.h"
 #include <imagine/logger/logger.h>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 #ifdef PROFILING
 #include "prof/prof.h"
@@ -1309,37 +1309,32 @@ bool CPUImportEepromFile(GBASys &gba, const char *fileName)
 
 bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
 {
-	// Converted to Imagine IO funcs due to WebOS fread glitch
-  auto *file = IoSys::open(fileName);
-
+	FileIO file;
+	file.open(fileName);
   if(!file)
     return false;
 
   // check file size to know what we should read
-  auto size = file->size();
+  auto size = file.size();
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
   if(size == 512 || size == 0x2000) {
-    if(file->readUpTo(eepromData, size) != (ssize_t)size) {
-      delete file;
+    if(file.read(eepromData, size) != (ssize_t)size) {
       return false;
     }
   } else {
     if(size == 0x20000) {
-      if(file->readUpTo(flashSaveMemory, 0x20000) != 0x20000) {
-      	delete file;
+      if(file.read(flashSaveMemory, 0x20000) != 0x20000) {
         return false;
       }
       flashSetSize(0x20000);
     } else {
-      if(file->readUpTo(flashSaveMemory, 0x10000) != 0x10000) {
-      	delete file;
+      if(file.read(flashSaveMemory, 0x10000) != 0x10000) {
         return false;
       }
       flashSetSize(0x10000);
     }
   }
-  delete file;
   return true;
 }
 
@@ -1516,11 +1511,11 @@ int CPULoadRom(GBASys &gba, const char *szFile)
   return romSize;
 }
 
-int CPULoadRomWithIO(GBASys &gba, Io &io)
+int CPULoadRomWithIO(GBASys &gba, IO &io)
 {
 	preLoadRomSetup(gba);
 	u8 *whereToLoad = gba.mem.rom;
-	romSize = io.readUpTo(whereToLoad, romSize);
+	romSize = io.read(whereToLoad, romSize);
   postLoadRomSetup(gba);
   return romSize;
 }

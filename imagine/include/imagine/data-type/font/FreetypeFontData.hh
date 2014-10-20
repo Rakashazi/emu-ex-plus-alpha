@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/font/FontData.hh>
 
@@ -27,7 +27,7 @@ class FreetypeFontData
 {
 public:
 	constexpr FreetypeFontData() {}
-	CallResult open(Io *file);
+	CallResult open(GenericIO file);
 	void close(bool closeIo);
 	IG::Pixmap accessCharBitmap() const;
 	int getCurrentCharBitmapXAdvance() const;

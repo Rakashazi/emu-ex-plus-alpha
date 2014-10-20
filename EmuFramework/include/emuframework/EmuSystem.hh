@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/audio/Audio.hh>
 #include <imagine/base/Timer.hh>
@@ -96,10 +96,10 @@ public:
 	static void resetGame();
 	static void initOptions();
 	static void onOptionsLoaded();
-	static void writeConfig(Io *io);
-	static bool readConfig(Io &io, uint key, uint readSize);
+	static void writeConfig(IO &io);
+	static bool readConfig(IO &io, uint key, uint readSize);
 	static int loadGame(const char *path);
-	static int loadGameFromIO(Io &io, const char *origFilename);
+	static int loadGameFromIO(IO &io, const char *origFilename);
 	typedef DelegateFunc<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }

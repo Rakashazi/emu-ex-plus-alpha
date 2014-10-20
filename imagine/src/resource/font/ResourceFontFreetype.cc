@@ -17,7 +17,7 @@
 #include <imagine/resource/font/ResourceFontFreetype.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 #include <fontconfig/fontconfig.h>
 #endif
@@ -89,7 +89,7 @@ ResourceFontFreetype *ResourceFontFreetype::load()
 	return inst;
 }
 
-ResourceFontFreetype *ResourceFontFreetype::loadWithIoWithName(Io* io, const char *name)
+ResourceFontFreetype *ResourceFontFreetype::loadWithIoWithName(GenericIO io, const char *name)
 {
 	if(!io)
 		return nullptr;
@@ -102,7 +102,7 @@ ResourceFontFreetype *ResourceFontFreetype::loadWithIoWithName(Io* io, const cha
 	}
 
 	//logMsg("fontData_open");
-	if(inst->f[0].open(io) != OK)
+	if(inst->f[0].open(std::move(io)) != OK)
 	{
 		logErr("error reading font");
 		inst->free();
@@ -121,10 +121,10 @@ ResourceFontFreetype *ResourceFontFreetype::loadWithIoWithName(Io* io, const cha
 	return inst;
 }
 
-ResourceFontFreetype *ResourceFontFreetype::load(Io* io)
+ResourceFontFreetype *ResourceFontFreetype::load(GenericIO io)
 {
 	//logMsg("loadWithIo");
-	return loadWithIoWithName(io, nullptr);
+	return loadWithIoWithName(std::move(io), nullptr);
 }
 
 ResourceFontFreetype *ResourceFontFreetype::load(const char *name)
@@ -132,7 +132,8 @@ ResourceFontFreetype *ResourceFontFreetype::load(const char *name)
 	//if(string_hasDotExtension(name, "ttf"))
 	{
 		//logMsg("suffix matches TT Font");
-		auto io = IoSys::open(name, 0);
+		FileIO io;
+		io.open(name);
 		if(!io)
 		{
 			logMsg("unable to open file");
@@ -146,14 +147,14 @@ ResourceFontFreetype *ResourceFontFreetype::load(const char *name)
 
 ResourceFontFreetype *ResourceFontFreetype::loadAsset(const char *name)
 {
-	return load(openAppAssetIo(name));
+	return load(openAppAssetIO(name));
 }
 
-CallResult ResourceFontFreetype::loadIntoSlot(Io *io, uint slot)
+CallResult ResourceFontFreetype::loadIntoSlot(GenericIO io, uint slot)
 {
 	if(f[slot].isOpen())
 		f[slot].close(1);
-	if(f[slot].open(io) != OK)
+	if(f[slot].open(std::move(io)) != OK)
 	{
 		logErr("error reading font");
 		return IO_ERROR;
@@ -164,7 +165,8 @@ CallResult ResourceFontFreetype::loadIntoSlot(Io *io, uint slot)
 
 CallResult ResourceFontFreetype::loadIntoSlot(const char *name, uint slot)
 {
-	auto io = IoSys::open(name, 0);
+	FileIO io;
+	io.open(name);
 	if(!io)
 	{
 		logMsg("unable to open file %s", name);
@@ -173,7 +175,6 @@ CallResult ResourceFontFreetype::loadIntoSlot(const char *name, uint slot)
 	auto res = loadIntoSlot(io, slot);
 	if(res != OK)
 	{
-		io->close();
 		return res;
 	}
 	return OK;

@@ -13,7 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/io/IOStream.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <main/Cheats.hh>
@@ -392,11 +393,12 @@ void writeCheatFile()
 	{
 		logMsg("deleting cheats file %s", filename.data());
 		FsSys::remove(filename.data());
-		cheatsModified = 0;
+		cheatsModified = false;
 		return;
 	}
 
-	auto file = IoSys::create(filename.data());
+	FileIO file;
+	file.create(filename.data());
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", filename.data());
@@ -404,29 +406,30 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename.data());
 
+	CallResult r = OK;
 	for(auto &e : cheatList)
 	{
 		if(!strlen(e.code))
 		{
 			continue; // ignore incomplete code entries
 		}
-		file->fwrite(e.code, strlen(e.code), 1);
-		file->writeVar('\t');
-		file->fwrite(e.name, strlen(e.name), 1);
-		file->writeVar('\n');
+		file.write(e.code, strlen(e.code), &r);
+		file.writeVal('\t', &r);
+		file.write(e.name, strlen(e.name), &r);
+		file.writeVal('\n', &r);
 		if(e.isOn())
 		{
-			file->fwrite("ON\n", strlen("ON\n"), 1);
+			file.write("ON\n", strlen("ON\n"), &r);
 		}
 	}
-	file->close();
-	cheatsModified = 0;
+	cheatsModified = false;
 }
 
 void readCheatFile()
 {
 	auto filename = makeFSPathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
-	auto file = IoSys::open(filename.data());
+	FileIO file;
+	file.open(filename.data());
 	if(!file)
 	{
 		return;
@@ -434,11 +437,12 @@ void readCheatFile()
 	logMsg("reading cheats file %s", filename.data());
 
 	char line[256];
-	while(file->readLine(line, sizeof(line)) == OK)
+	IOStream<FileIO> fileStream{std::move(file), "r"};
+	while(fgets(line, sizeof(line), fileStream))
 	{
 		logMsg("got line: %s", line);
 		MdCheat cheat;
-		auto items = sscanf(line, "%11s %" PP_STRINGIFY_EXP(MAX_CHEAT_NAME_CHARS) "c", cheat.code, cheat.name);
+		auto items = sscanf(line, "%11s %" PP_STRINGIFY_EXP(MAX_CHEAT_NAME_CHARS) "[^\n]", cheat.code, cheat.name);
 
 		if(items == 2) // code & name
 		{
@@ -466,7 +470,6 @@ void readCheatFile()
 			}
 		}
 	}
-	file->close();
 }
 
 void RAMCheatUpdate()
@@ -613,7 +616,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[this](CollectTextInputView &view, const char *str)
+				[](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -629,7 +632,6 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
 							popup.postError("Invalid code");
-							window().postDraw();
 							return 1;
 						}
 						string_copy(c.name, "Unnamed Cheat");
@@ -637,19 +639,17 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						logMsg("added new cheat, %d total", cheatList.size());
 						cheatsModified = 1;
 						updateCheats();
-						view.dismiss();
-						refreshCheatViews();
 
-						auto &textInputView = *new CollectTextInputView{window()};
+						auto &textInputView = *new CollectTextInputView{view.window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
-							[this](CollectTextInputView &view, const char *str)
+							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									string_copy(cheatList.back().name, str);
-									view.dismiss();
 									refreshCheatViews();
+									view.dismiss();
 								}
 								else
 								{
@@ -657,6 +657,8 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								}
 								return 0;
 							};
+						view.dismiss();
+						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}
 					else

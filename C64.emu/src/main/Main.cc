@@ -205,7 +205,7 @@ void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -223,7 +223,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
 	optionAutostartWarp.writeWithKeyIfNotDefault(io);
@@ -996,7 +996,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	return 0; // TODO
 }
@@ -1249,11 +1249,12 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 			if(!strlen(p.data()))
 				continue;
 			auto complete_path = makeFSPathStringPrintf("%s/%s", p.data(), name);
-			auto file = IoSys::open(complete_path.data());
+			FileIO file;
+			file.open(complete_path.data());
 			if(file)
 			{
 				//logMsg("loading system file: %s", complete_path);
-				size_t rsize = file->size();
+				ssize_t rsize = file.size();
 				bool load_at_end;
 				if(minsize < 0)
 				{
@@ -1264,38 +1265,36 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 				{
 					load_at_end = 1;
 				}
-				if(rsize < ((size_t)minsize))
+				if(rsize < (minsize))
 				{
 					logErr("ROM %s: short file", complete_path.data());
 					goto fail;
 				}
-				if(rsize == ((size_t)maxsize + 2))
+				if(rsize == (maxsize + 2))
 				{
 					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path.data());
-					if(fread((char*)dest, 1, 2, file) < 2)
+					if(file.read((char*)dest, 2) < 2)
 					{
 						goto fail;
 					}
 					rsize -= 2;
 				}
-				if(load_at_end && rsize < ((size_t)maxsize))
+				if(load_at_end && rsize < (maxsize))
 				{
 					dest += maxsize - rsize;
 				}
-				else if(rsize > ((size_t)maxsize))
+				else if(rsize > (maxsize))
 				{
 					logWarn("ROM `%s': long file, discarding end.", complete_path.data());
 					rsize = maxsize;
 				}
-				if((rsize = fread((char *)dest, 1, rsize, file)) < ((size_t)minsize))
+				if((rsize = file.read((char *)dest, rsize)) < minsize)
 					goto fail;
 
-				file->close();
 				return (int)rsize;
 
 				fail:
 					logErr("failed loading system file: %s", name);
-					file->close();
 					return -1;
 			}
 		}

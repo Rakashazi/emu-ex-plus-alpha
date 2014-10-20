@@ -22,8 +22,8 @@ include $(imagineSrcDir)/input/system.mk
 include $(imagineSrcDir)/gfx/system.mk
 include $(imagineSrcDir)/fs/system.mk
 include $(imagineSrcDir)/io/system.mk
-include $(imagineSrcDir)/io/IoZip.mk
-include $(imagineSrcDir)/io/IoMmapGeneric.mk
+include $(imagineSrcDir)/io/ZipIO.mk
+include $(imagineSrcDir)/io/MapIO.mk
 include $(imagineSrcDir)/bluetooth/system.mk
 include $(imagineSrcDir)/gui/GuiTable1D.mk
 include $(imagineSrcDir)/gui/MenuItem.mk

@@ -203,7 +203,7 @@ enum
 Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 bool detectedRtcGame = 0;
 
-bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -213,7 +213,7 @@ bool EmuSystem::readConfig(Io &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(Io *io)
+void EmuSystem::writeConfig(IO &io)
 {
 	optionRtcEmulation.writeWithKeyIfNotDefault(io);
 }
@@ -403,7 +403,7 @@ int EmuSystem::loadGame(const char *path)
 	return loadGameCommon(size);
 }
 
-int EmuSystem::loadGameFromIO(Io &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 {
 	closeGame();
 	setupGameName(origFilename);

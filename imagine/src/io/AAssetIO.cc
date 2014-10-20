@@ -17,20 +17,44 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <imagine/io/AAssetIO.hh>
-#include <imagine/io/IoMmapGeneric.hh>
-#include <imagine/io/sys.hh>
-#include <imagine/io/utils.hh>
+#include "utils.hh"
 #include "../base/android/android.hh"
 #include <imagine/logger/logger.h>
 
-Io* AAssetIO::open(const char *name)
+AAssetIO::~AAssetIO()
+{
+	close();
+}
+
+AAssetIO::AAssetIO(AAssetIO &&o)
+{
+	asset = o.asset;
+	o.asset = {};
+	mapIO = std::move(o.mapIO);
+}
+
+AAssetIO &AAssetIO::operator=(AAssetIO &&o)
+{
+	close();
+	asset = o.asset;
+	o.asset = {};
+	mapIO = std::move(o.mapIO);
+	return *this;
+}
+
+AAssetIO::operator GenericIO()
+{
+	return GenericIO{*this};
+}
+
+CallResult AAssetIO::open(const char *name)
 {
 	logMsg("opening asset %s", name);
 	AAsset *asset = AAssetManager_open(Base::activityAAssetManager(), name, AASSET_MODE_BUFFER);
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");
-		return nullptr;
+		return INVALID_PARAMETER;
 	}
 
 	// try to get a memory mapping
@@ -38,86 +62,52 @@ Io* AAssetIO::open(const char *name)
 	if(buff)
 	{
 		auto size = AAsset_getLength(asset);
-		if(!AAsset_isAllocated(asset) && madvise(buff, size, MADV_SEQUENTIAL) != 0)
+		if(!AAsset_isAllocated(asset) && size > 4096 && madvise(buff, size, MADV_SEQUENTIAL) != 0)
 			logWarn("madvise failed");
-		auto mapIO = IoMmapGeneric::open(buff, size,
-			[asset](IoMmapGeneric &)
-			{
-				logMsg("closing mapped asset @ %p", asset);
-				AAsset_close(asset);
-			});
-		if(mapIO)
-		{
-			logMsg("mapped into memory");
-			return mapIO;
-		}
+		mapIO.open(buff, size);
+		logMsg("mapped into memory");
 	}
-
-	// fall back to using AAsset directly
-	AAssetIO *inst = new AAssetIO;
-	if(!inst)
-	{
-		logErr("out of memory");
-		AAsset_close(asset);
-		return nullptr;
-	}
-	inst->asset = asset;
-	return inst;
-}
-
-void AAssetIO::close()
-{
-	if(asset)
-	{
-		logMsg("closing asset @ %p", asset);
-		AAsset_close(asset);
-		asset = nullptr;
-	}
-}
-
-void AAssetIO::truncate(ulong offset) {}
-void AAssetIO::sync() {}
-
-ssize_t AAssetIO::readUpTo(void* buffer, size_t numBytes)
-{
-	auto bytesRead = AAsset_read(asset, buffer, numBytes);
-	if(bytesRead < 0)
-		bytesRead = 0;
-	return bytesRead;
-}
-
-size_t AAssetIO::fwrite(const void* ptr, size_t size, size_t nmemb)
-{
-	return 0;
-}
-
-CallResult AAssetIO::tell(ulong &offset)
-{
-	offset = size() - AAsset_getRemainingLength(asset);
 	return OK;
 }
 
-static int fdSeekMode(int mode)
+ssize_t AAssetIO::read(void *buff, size_t bytes, CallResult *resultOut)
 {
-	switch(mode)
+	if(mapIO)
+		return mapIO.read(buff, bytes, resultOut);
+	auto bytesRead = AAsset_read(asset, buff, bytes);
+	if(bytesRead < 0)
 	{
-		case IO_SEEK_ABS: return SEEK_SET;
-		case IO_SEEK_ABS_END: return SEEK_END;
-		case IO_SEEK_REL: return SEEK_CUR;
-		default:
-			bug_branch("%d", mode);
-			return 0;
+		if(resultOut)
+			*resultOut = READ_ERROR;
+		return -1;
 	}
+	return bytesRead;
 }
 
-CallResult AAssetIO::seek(long offset, uint mode)
+ssize_t AAssetIO::write(const void *buff, size_t bytes, CallResult *resultOut)
 {
+	if(resultOut)
+		*resultOut = UNSUPPORTED_OPERATION;
+	return -1;
+}
+
+off_t AAssetIO::tell(CallResult *resultOut)
+{
+	if(mapIO)
+		return mapIO.tell(resultOut);
+	return size() - AAsset_getRemainingLength(asset);
+}
+
+CallResult AAssetIO::seek(off_t offset, SeekMode mode)
+{
+	if(mapIO)
+		return mapIO.seek(offset, mode);
 	if(!isSeekModeValid(mode))
 	{
 		bug_exit("invalid seek mode: %u", mode);
 		return INVALID_PARAMETER;
 	}
-	if(AAsset_seek(asset, offset, fdSeekMode(mode)) >= 0)
+	if(AAsset_seek(asset, offset, mode) >= 0)
 	{
 		return OK;
 	}
@@ -125,12 +115,32 @@ CallResult AAssetIO::seek(long offset, uint mode)
 		return IO_ERROR;
 }
 
-ulong AAssetIO::size()
+void AAssetIO::close()
 {
+	mapIO.close();
+	if(asset)
+	{
+		logMsg("closing asset: %p", asset);
+		AAsset_close(asset);
+		asset = nullptr;
+	}
+}
+
+size_t AAssetIO::size()
+{
+	if(mapIO)
+		return mapIO.size();
 	return AAsset_getLength(asset);
 }
 
-int AAssetIO::eof()
+bool AAssetIO::eof()
 {
+	if(mapIO)
+		return mapIO.eof();
 	return !AAsset_getRemainingLength(asset);
+}
+
+AAssetIO::operator bool()
+{
+	return asset;
 }

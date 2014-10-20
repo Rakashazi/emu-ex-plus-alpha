@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,34 +13,39 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/io/BufferMapIO.hh>
-#include <android/asset_manager.h>
+#pragma once
 
-class AAssetIO : public IO
+#include <imagine/engine-globals.h>
+#include <imagine/io/IO.hh>
+
+class MapIO : public IO
 {
 public:
 	using IOUtils::read;
+	using IOUtils::readAtPos;
 	using IOUtils::write;
 	using IOUtils::tell;
 
-	constexpr AAssetIO() {}
-	~AAssetIO();
-	AAssetIO(AAssetIO &&o);
-	AAssetIO &operator=(AAssetIO &&o);
-	operator GenericIO();
-	CallResult open(const char *name);
-
+	constexpr MapIO() {}
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut) override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
 	off_t tell(CallResult *resultOut) override;
 	CallResult seek(off_t offset, SeekMode mode) override;
-	void close() override;
 	size_t size() override;
 	bool eof() override;
 	operator bool() override;
+	#if defined __linux__ || defined __APPLE__
+	void advise(off_t offset, size_t bytes, Advice advice) override;
+	#endif
 
 protected:
-	AAsset *asset{};
-	BufferMapIO mapIO;
+	const char *data{};
+	const char *currPos{};
+	size_t dataSize = 0;
+
+	void setData(const void* buff, size_t size);
+	void resetData();
+	const char *dataEnd();
+	ssize_t readAtAddr(void* buff, size_t bytes, const char *readPos, CallResult *resultOut);
 };

@@ -18,14 +18,14 @@
 #include <imagine/engine-globals.h>
 #include <imagine/data-type/font/FreetypeFontData.hh>
 #include <imagine/resource/font/ResourceFont.h>
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 
 class ResourceFontFreetype : public ResourceFont
 {
 public:
 	ResourceFontFreetype() {}
 	static ResourceFontFreetype *load();
-	static ResourceFontFreetype *load(Io *io);
+	static ResourceFontFreetype *load(GenericIO io);
 	static ResourceFontFreetype *load(const char *name);
 	static ResourceFontFreetype *loadAsset(const char *name);
 	void free() override;
@@ -36,7 +36,7 @@ public:
 	CallResult newSize(const FontSettings &settings, FontSizeRef &sizeRef) override;
 	CallResult applySize(FontSizeRef &sizeRef) override;
 	void freeSize(FontSizeRef &sizeRef) override;
-	CallResult loadIntoSlot(Io *io, uint slot);
+	CallResult loadIntoSlot(GenericIO io, uint slot);
 	CallResult loadIntoSlot(const char *name, uint slot);
 	CallResult loadIntoNextSlot(const char *name);
 
@@ -53,6 +53,6 @@ private:
 	uint16 usedCharSlots = 0;
 	FontSizeData *activeFontSizeData = nullptr;
 
-	static ResourceFontFreetype *loadWithIoWithName (Io *io, const char *name);
+	static ResourceFontFreetype *loadWithIoWithName (GenericIO io, const char *name);
 	void setMetrics(const FreetypeFontData &fontData, GlyphMetrics &metrics);
 };

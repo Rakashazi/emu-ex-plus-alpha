@@ -6,7 +6,7 @@
 #include "mem.hh"
 
 #include <imagine/logger/logger.h>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 
 SegaCD sCD;
 
@@ -28,9 +28,9 @@ void scd_interruptSubCpu(uint irq)
 
 void dumpPRG(const char *n)
 {
-	Io *f = IoSys::create(n);
-	f->fwrite(sCD.prg.b, sizeof(sCD.prg.b), 1);
-	delete f;
+	FileIO f;
+	f.create(n);
+	f.write(sCD.prg.b, sizeof(sCD.prg.b));
 }
 
 void handleBad68KIns()

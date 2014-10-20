@@ -18,7 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
-#include <imagine/io/sys.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/fs/sys.hh>
 
 #define PNG_SKIP_SETJMP_CHECK
@@ -30,8 +30,8 @@ class Png
 {
 public:
 	constexpr Png() {}
-	CallResult readHeader(Io *stream);
-	CallResult readImage(Io *stream, IG::Pixmap &dest);
+	CallResult readHeader(GenericIO io);
+	CallResult readImage(IG::Pixmap &dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
@@ -55,11 +55,11 @@ public:
 	{
 		deinit();
 	}
-	CallResult load(Io *io);
+	CallResult load(GenericIO io);
 	CallResult load(const char *name);
 	CallResult loadAsset(const char *name)
 	{
-		return load(openAppAssetIo(name));
+		return load(openAppAssetIO(name));
 	}
 	void deinit();
 	CallResult getImage(IG::Pixmap &dest) override;
@@ -69,5 +69,5 @@ public:
 
 private:
 	Png png;
-	Io *io = nullptr;
+	//GenericIO io;
 };

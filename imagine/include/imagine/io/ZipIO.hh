@@ -16,30 +16,41 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 #include <unzip.h>
 
-class IoZip : public Io
+class ZipIO : public IO
 {
 public:
-	static Io *open(const char *path, const char *pathInZip);
-	~IoZip() { close(); }
-	ssize_t readUpTo(void *buffer, size_t numBytes) override;
-	size_t fwrite(const void *buffer, size_t size, size_t nmemb) override;
-	CallResult tell(ulong &offset) override;
-	CallResult seek(long offset, uint mode) override;
-	void truncate(ulong offset) override;
+	using IOUtils::read;
+	using IOUtils::write;
+	using IOUtils::tell;
+
+	constexpr ZipIO() {}
+	~ZipIO() override;
+	ZipIO(ZipIO &&o);
+	ZipIO &operator=(ZipIO &&o);
+	operator GenericIO();
+	CallResult open(const char *path, const char *pathInZip);
+
+	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
+	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
+	off_t tell(CallResult *resultOut) override;
+	CallResult seek(off_t offset, SeekMode mode) override;
 	void close() override;
-	ulong size() override;
-	void sync() override;
-	int eof() override;
+	size_t size() override;
+	bool eof() override;
+	operator bool() override;
 
 private:
-	unzFile zip = nullptr;
-	Io *zipIo = nullptr;
-	ulong uncompSize = 0;
+	unzFile zip{};
+	GenericIO zipIo;
+	size_t uncompSize = 0;
 
 	bool openZipFile(const char *path);
 	bool openFileInZip();
 	void resetFileInZip();
+	// no copying outside of class
+	ZipIO(const ZipIO &) = default;
+	ZipIO &operator=(const ZipIO &) = default;
 };

@@ -15,8 +15,8 @@
 
 #include <emuframework/BundledGamesView.hh>
 #include <emuframework/EmuSystem.hh>
-#include <imagine/io/sys.hh>
-#include <imagine/io/IoMmapGeneric.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/io/BufferMapIO.hh>
 #include <unzip.h>
 
 void loadGameCompleteFromRecentItem(uint result, const Input::Event &e);
@@ -30,13 +30,13 @@ void BundledGamesView::init(bool highlightFirst)
 		[&info](TextMenuItem &t, const Input::Event &ev)
 		{
 			#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
-			auto file = IOFile(openAppAssetIo(info.assetName));
+			auto file = openAppAssetIO(info.assetName);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			auto res = EmuSystem::loadGameFromIO(*file.io(), info.assetName);
+			auto res = EmuSystem::loadGameFromIO(file, info.assetName);
 			file.close();
 			#else
 			auto zipPath = makeFSPathStringPrintf("%s/%s", Base::assetPath(), info.assetName);
@@ -55,9 +55,9 @@ void BundledGamesView::init(bool highlightFirst)
 			unzReadCurrentFile(zip, buf, size);
 			unzCloseCurrentFile(zip);
 			unzClose(zip);
-			auto io = IoMmapGeneric::open(buf, size, [buf](IoMmapGeneric &) { mem_free(buf); });
-			auto res = EmuSystem::loadGameFromIO(*io, info.assetName);
-			delete io;
+			BufferMapIO io;
+			io.open(buf, size, [buf](BufferMapIO &) { mem_free(buf); });
+			auto res = EmuSystem::loadGameFromIO(io, info.assetName);
 			#endif
 			if(res == 1)
 			{

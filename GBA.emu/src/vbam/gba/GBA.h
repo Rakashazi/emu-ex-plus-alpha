@@ -9,7 +9,7 @@
 #include <imagine/util/builtins.h>
 #include <imagine/util/ansiTypes.h>
 #include <imagine/logger/logger.h>
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
 
 #define SAVE_GAME_VERSION_1 1
 #define SAVE_GAME_VERSION_2 2
@@ -1028,7 +1028,7 @@ extern bool CPUReadState(GBASys &gba, const char *);
 extern bool CPUWriteMemState(GBASys &gba, char *, int);
 extern bool CPUWriteState(GBASys &gba, const char *);
 extern int CPULoadRom(GBASys &gba, const char *);
-extern int CPULoadRomWithIO(GBASys &gba, Io &);
+extern int CPULoadRomWithIO(GBASys &gba, IO &);
 extern void doMirroring(GBASys &gba, bool);
 extern void CPUUpdateRegister(ARM7TDMI &cpu, u32, u16);
 extern void applyTimer(ARM7TDMI &cpu);

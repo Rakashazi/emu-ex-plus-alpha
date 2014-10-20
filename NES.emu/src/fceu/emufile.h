@@ -38,7 +38,6 @@ THE SOFTWARE.
 #include <vector>
 #include <algorithm>
 #include <string>
-#include <imagine/io/Io.hh>
 
 class EMUFILE {
 protected:
@@ -117,6 +116,8 @@ public:
 	virtual void fflush() = 0;
 
 	virtual void truncate(s32 length) = 0;
+
+	virtual bool isMemStream() { return false; }
 };
 
 //todo - handle read-only specially?
@@ -260,6 +261,8 @@ public:
 	}
 
 	virtual int size() { return (int)len; }
+
+	bool isMemStream() { return true; }
 };
 
 class EMUFILE_FILE : public EMUFILE { 
@@ -344,16 +347,17 @@ public:
 
 };
 
+class IO;
+
 class EMUFILE_IO : public EMUFILE {
 protected:
-	Io &io;
+	IO &io;
 
 public:
 
-	EMUFILE_IO(Io &io): io(io) {}
+	EMUFILE_IO(IO &io): io(io) {}
 
 	~EMUFILE_IO() {
-		io.close();
 	}
 
 	FILE *get_fp() {
@@ -364,25 +368,19 @@ public:
 
 	//bool is_open() { return io; }
 
-	void truncate(s32 length) { io.truncate(length); }
+	void truncate(s32 length);
 
 	int fprintf(const char *format, ...) {
 		return 0;
 	};
 
-	int fgetc() {
-		return io.fgetc();
-	}
+	int fgetc();
+
 	int fputc(int c) {
 		return 0;
 	}
 
-	size_t _fread(const void *ptr, size_t bytes){
-		size_t ret = io.fread((void*)ptr, 1, bytes);
-		if(ret < bytes)
-			failbit = true;
-		return ret;
-	}
+	size_t _fread(const void *ptr, size_t bytes);
 
 	//removing these return values for now so we can find any code that might be using them and make sure
 	//they handle the return values correctly
@@ -391,17 +389,11 @@ public:
 		failbit = true;
 	}
 
-	int fseek(int offset, int origin) {
-		return io.fseek(offset, origin);
-	}
+	int fseek(int offset, int origin);
 
-	int ftell() {
-		return (u32)io.ftell();
-	}
+	int ftell();
 
-	int size() {
-		return io.size();
-	}
+	int size();
 
 	void fflush() {
 	}

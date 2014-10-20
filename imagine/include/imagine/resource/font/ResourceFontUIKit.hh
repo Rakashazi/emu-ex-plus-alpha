@@ -17,7 +17,6 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/resource/font/ResourceFont.h>
-#include <imagine/io/sys.hh>
 #include <CoreFoundation/CFBase.h>
 #ifdef __OBJC__
 #import <UIKit/UIFont.h>

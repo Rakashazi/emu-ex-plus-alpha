@@ -19,72 +19,70 @@
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/io/FileIO.hh>
 
-static bool readKeyConfig(Io &io, uint16 &size)
+static bool readKeyConfig(IO &io, uint16 &size)
 {
-	uint8 confs; // TODO: unused currently, use to pre-allocate memory for configs
-	io.readVar(confs);
+	auto confs = io.readVal<uint8>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
 	if(!size)
-		return 0;
+		return false;
 
 	while(size)
 	{
-		KeyConfig keyConf {0};
+		KeyConfig keyConf{};
 
-		io.readVarAsType<uint8>(keyConf.map);
+		keyConf.map = io.readVal<uint8>();
 		size--;
 		if(!size)
-			return 0;
+			return false;
 
-		uint8 nameLen;
-		io.readVar(nameLen);
+		auto nameLen = io.readVal<uint8>();
 		size--;
 		if(size < nameLen)
-			return 0;
+			return false;
 
 		if(nameLen > sizeof(keyConf.name)-1)
 			return 0;
-		io.read(keyConf.name, nameLen);
+		if(io.read(keyConf.name, nameLen) != nameLen)
+			return false;
 		size -= nameLen;
 		if(!size)
-			return 0;
+			return false;
 
-		uint8 categories;
-		io.readVar(categories);
+		auto categories = io.readVal<uint8>();
 		size--;
 		if(categories > EmuControls::categories)
 		{
-			return 0;
+			return false;
 		}
 
 		iterateTimes(categories, i)
 		{
 			if(!size)
-				return 0;
+				return false;
 
-			uint8 categoryIdx;
-			io.readVar(categoryIdx);
+			auto categoryIdx = io.readVal<uint8>();
 			size--;
 			if(categoryIdx >= EmuControls::categories)
 			{
-				return 0;
+				return false;
 			}
 			if(size < 2)
 			{
-				return 0;
+				return false;
 			}
 
-			uint16 catSize;
-			io.readVar(catSize);
+			auto catSize = io.readVal<uint16>();
 			size -= 2;
 			if(size < catSize)
-				return 0;
+				return false;
 
 			if(catSize > EmuControls::category[categoryIdx].keys * sizeof(KeyConfig::Key))
-				return 0;
+				return false;
 			auto key = keyConf.key(EmuControls::category[categoryIdx]);
-			io.read(key, catSize);
+			if(io.read(key, catSize) != catSize)
+				return false;
 			size -= catSize;
 
 			// verify keys
@@ -105,17 +103,16 @@ static bool readKeyConfig(Io &io, uint16 &size)
 
 		logMsg("read key config %s", keyConf.name);
 		if(!customKeyConfig.addToEnd(keyConf))
-			return 0;
+			return false;
 	}
-	return 1;
+	return true;
 }
 
-static bool readConfig2(Io &io)
+static bool readConfig2(IO &io)
 {
 	int dirChange = 0;
 
-	uint8 blockSize;
-	io.readVar(blockSize);
+	auto blockSize = io.readVal<uint8>();
 	auto fileBytesLeft = io.size() - 1;
 
 	if(blockSize != 2)
@@ -126,9 +123,8 @@ static bool readConfig2(Io &io)
 
 	while(!io.eof() && fileBytesLeft >= 2)
 	{
-		uint16 size;
-		io.readVar(size);
-		auto nextBlockPos = io.ftell() + size;
+		auto size = io.readVal<uint16>();
+		auto nextBlockPos = io.tell() + size;
 
 		if(!size)
 		{
@@ -146,7 +142,7 @@ static bool readConfig2(Io &io)
 		if(size < 3) // all blocks are at least a 2 byte key + 1 byte or more of data
 		{
 			logMsg("skipping %d byte block", size);
-			if(io.seekR(size) != OK)
+			if(io.seekC(size) != OK)
 			{
 				logErr("unable to seek to next block, skipping rest of config");
 				goto CLEANUP;
@@ -154,8 +150,7 @@ static bool readConfig2(Io &io)
 			continue;
 		}
 
-		uint16 key;
-		io.readVar(key);
+		auto key = io.readVal<uint16>();
 		size -= 2;
 
 		logMsg("got config key %u, size %u", key, size);
@@ -198,11 +193,14 @@ static bool readConfig2(Io &io)
 			bcase CFGKEY_LAST_DIR:
 			{
 				char lastDir[size+1];
-				io.read(lastDir, size);
-				lastDir[size] = 0;
-				logMsg("switching to last dir %s", lastDir);
-				if(FsSys::chdir(lastDir) == 0)
-					dirChange = 1;
+				auto bytesRead = io.read(lastDir, size);
+				if(bytesRead > 0)
+				{
+					lastDir[bytesRead] = 0;
+					logMsg("switching to last dir %s", lastDir);
+					if(FsSys::chdir(lastDir) == 0)
+						dirChange = 1;
+				}
 			}
 			bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 			bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
@@ -286,8 +284,7 @@ static bool readConfig2(Io &io)
 			}
 			bcase CFGKEY_INPUT_DEVICE_CONFIGS:
 			{
-				uint8 confs; // TODO: unused currently, use to pre-allocate memory for configs
-				io.readVar(confs);
+				auto confs = io.readVal<uint8>(); // TODO: unused currently, use to pre-allocate memory for configs
 				size--;
 				if(!size)
 					break;
@@ -296,7 +293,7 @@ static bool readConfig2(Io &io)
 				{
 					InputDeviceSavedConfig devConf;
 
-					io.readVarAsType<uint8>(devConf.enumId);
+					devConf.enumId = io.readVal<uint8>();
 					size--;
 					if(!size)
 						break;
@@ -306,12 +303,12 @@ static bool readConfig2(Io &io)
 						break;
 					}
 
-					io.readVarAsType<uint8>(devConf.enabled);
+					devConf.enabled = io.readVal<uint8>();
 					size--;
 					if(!size)
 						break;
 
-					io.readVarAsType<uint8>(devConf.player);
+					devConf.player = io.readVal<uint8>();
 					if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
 					{
 						logWarn("player %d out of range", devConf.player);
@@ -321,20 +318,19 @@ static bool readConfig2(Io &io)
 					if(!size)
 						break;
 
-					io.readVarAsType<uint8>(devConf.joystickAxisAsDpadBits);
+					devConf.joystickAxisAsDpadBits = io.readVal<uint8>();
 					size--;
 					if(!size)
 						break;
 
 					#ifdef CONFIG_INPUT_ICADE
-					io.readVarAsType<uint8>(devConf.iCadeMode);
+					devConf.iCadeMode = io.readVal<uint8>();
 					size--;
 					if(!size)
 						break;
 					#endif
 
-					uint8 nameLen;
-					io.readVar(nameLen);
+					auto nameLen = io.readVal<uint8>();
 					size--;
 					if(size < nameLen)
 						break;
@@ -346,8 +342,7 @@ static bool readConfig2(Io &io)
 					if(!size)
 						break;
 
-					uint8 keyConfMap;
-					io.readVar(keyConfMap);
+					auto keyConfMap = io.readVal<uint8>();
 					size--;
 
 					if(keyConfMap)
@@ -355,16 +350,16 @@ static bool readConfig2(Io &io)
 						if(!size)
 							break;
 
-						uint8 keyConfNameLen;
-						io.readVar(keyConfNameLen);
+						auto keyConfNameLen = io.readVal<uint8>();
 						size--;
 						if(size < keyConfNameLen)
 							break;
 
 						if(keyConfNameLen > sizeof(devConf.name)-1)
 							break;
-						char keyConfName[sizeof(devConf.name)] {0};
-						io.read(keyConfName, keyConfNameLen);
+						char keyConfName[sizeof(devConf.name)]{};
+						if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
+							break;
 						size -= keyConfNameLen;
 
 						for(auto &e : customKeyConfig)
@@ -405,7 +400,7 @@ static bool readConfig2(Io &io)
 			}
 		}
 
-		if(io.seekA(nextBlockPos) != OK)
+		if(io.seekS(nextBlockPos) != OK)
 		{
 			logErr("unable to seek to next block, skipping rest of config");
 			goto CLEANUP;
@@ -512,7 +507,7 @@ static OptionBase *cfgFileOption[] =
 	&optionCheckSavePathWriteAccess
 };
 
-static void writeConfig2(Io *io)
+static void writeConfig2(IO &io)
 {
 	if(!io)
 	{
@@ -520,14 +515,15 @@ static void writeConfig2(Io *io)
 		return;
 	}
 
+	CallResult r = OK;
 	uint8 blockHeaderSize = 2;
-	io->writeVar(blockHeaderSize);
+	io.writeVal(blockHeaderSize, &r);
 
 	forEachDInArray(cfgFileOption, e)
 	{
 		if(!e->isDefault())
 		{
-			io->writeVar((uint16)e->ioSize());
+			io.writeVal((uint16)e->ioSize(), &r);
 			e->writeToIO(io);
 		}
 	}
@@ -578,26 +574,26 @@ static void writeConfig2(Io *io)
 		}
 		// write to config file
 		logMsg("saving %d key configs, %d bytes", customKeyConfig.size(), bytes);
-		io->writeVar(uint16(bytes));
-		io->writeVar((uint16)CFGKEY_INPUT_KEY_CONFIGS);
-		io->writeVar((uint8)customKeyConfig.size());
+		io.writeVal(uint16(bytes), &r);
+		io.writeVal((uint16)CFGKEY_INPUT_KEY_CONFIGS, &r);
+		io.writeVal((uint8)customKeyConfig.size(), &r);
 		configs = 0;
 		for(auto &e : customKeyConfig)
 		{
 			logMsg("writing config %s", e.name);
-			io->writeVar(uint8(e.map));
+			io.writeVal(uint8(e.map), &r);
 			uint8 nameLen = strlen(e.name);
-			io->writeVar(nameLen);
-			io->fwrite(e.name, nameLen, 1);
-			io->writeVar(writeCategories[configs]);
+			io.writeVal(nameLen, &r);
+			io.write(e.name, nameLen, &r);
+			io.writeVal(writeCategories[configs], &r);
 			iterateTimes(EmuControls::categories, cat)
 			{
 				if(!writeCategory[configs][cat])
 					continue;
-				io->writeVar((uint8)cat);
+				io.writeVal((uint8)cat, &r);
 				uint16 catSize = EmuControls::category[cat].keys * sizeof(KeyConfig::Key);
-				io->writeVar(catSize);
-				io->fwrite(e.key(EmuControls::category[cat]), catSize, 1);
+				io.writeVal(catSize, &r);
+				io.write(e.key(EmuControls::category[cat]), catSize, &r);
 			}
 			configs++;
 		}
@@ -636,30 +632,30 @@ static void writeConfig2(Io *io)
 		}
 		// write to config file
 		logMsg("saving %d input device configs, %d bytes", savedInputDevList.size(), bytes);
-		io->writeVar((uint16)bytes);
-		io->writeVar((uint16)CFGKEY_INPUT_DEVICE_CONFIGS);
-		io->writeVar((uint8)savedInputDevList.size());
+		io.writeVal((uint16)bytes, &r);
+		io.writeVal((uint16)CFGKEY_INPUT_DEVICE_CONFIGS, &r);
+		io.writeVal((uint8)savedInputDevList.size(), &r);
 		for(auto &e : savedInputDevList)
 		{
 			logMsg("writing config %s, id %d", e.name, e.enumId);
-			io->writeVar((uint8)e.enumId);
-			io->writeVar((uint8)e.enabled);
-			io->writeVar((uint8)e.player);
-			io->writeVar((uint8)e.joystickAxisAsDpadBits);
+			io.writeVal((uint8)e.enumId, &r);
+			io.writeVal((uint8)e.enabled, &r);
+			io.writeVal((uint8)e.player, &r);
+			io.writeVal((uint8)e.joystickAxisAsDpadBits, &r);
 			#ifdef CONFIG_INPUT_ICADE
-			io->writeVar((uint8)e.iCadeMode);
+			io.writeVal((uint8)e.iCadeMode, &r);
 			#endif
 			uint8 nameLen = strlen(e.name);
-			io->writeVar(nameLen);
-			io->fwrite(e.name, nameLen, 1);
+			io.writeVal(nameLen, &r);
+			io.write(e.name, nameLen, &r);
 			uint8 keyConfMap = e.keyConf ? e.keyConf->map : 0;
-			io->writeVar(keyConfMap);
+			io.writeVal(keyConfMap, &r);
 			if(keyConfMap)
 			{
 				logMsg("has key conf %s, map %d", e.keyConf->name, keyConfMap);
 				uint8 keyConfNameLen = strlen(e.keyConf->name);
-				io->writeVar(keyConfNameLen);
-				io->fwrite(e.keyConf->name, keyConfNameLen, 1);
+				io.writeVal(keyConfNameLen, &r);
+				io.write(e.keyConf->name, keyConfNameLen, &r);
 			}
 		}
 	}
@@ -672,16 +668,14 @@ static void writeConfig2(Io *io)
 	else if(!string_equal(FsSys::workDir(), Base::storagePath()))
 	{
 		logMsg("saving current directory: %s", FsSys::workDir());
-		io->writeVar((uint16)(2 + len));
-		io->writeVar((uint16)CFGKEY_LAST_DIR);
-		io->fwrite(FsSys::workDir(), len, 1);
+		io.writeVal((uint16)(2 + len), &r);
+		io.writeVal((uint16)CFGKEY_LAST_DIR, &r);
+		io.write(FsSys::workDir(), len, &r);
 	}
 
 	optionSavePath.writeToIO(io);
 
 	EmuSystem::writeConfig(io);
-
-	delete io;
 }
 
 void loadConfigFile()
@@ -691,12 +685,12 @@ void loadConfigFile()
 		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
 	else
 		string_printf(configFilePath, "%s/config", Base::documentsPath());
-	auto configFile = IOFile(IoSys::open(configFilePath.data()));
-	if(!configFile)
+	FileIO configFile;
+	if(configFile.open(configFilePath.data()) != OK)
 	{
 		logMsg("no config file");
 	}
-	if(!configFile || !readConfig2(*configFile.io()))
+	if(!configFile || !readConfig2(configFile))
 	{
 		FsSys::chdir(Base::storagePath());
 	}
@@ -716,5 +710,7 @@ void saveConfigFile()
 	{
 		string_printf(configFilePath, "%s/config", Base::documentsPath());
 	}
-	writeConfig2(IoSys::create(configFilePath.data()));
+	FileIO configFile;
+	configFile.create(configFilePath.data());
+	writeConfig2(configFile);
 }

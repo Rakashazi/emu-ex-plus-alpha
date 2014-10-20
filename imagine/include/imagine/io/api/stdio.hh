@@ -1,35 +1,17 @@
 #pragma once
-#include <imagine/io/Io.hh>
+#include <imagine/io/IO.hh>
+#include <cstdio>
 
-// Functions to wrap stdio functionality
+// Functions to wrap basic stdio functionality
 
-static size_t io_fwrite(void* ptr, size_t size, size_t nmemb, Io *stream)
-{
-	return stream->fwrite(ptr, size, nmemb);
-}
+int fgetc(IO &stream);
 
-static size_t fread(void *data, size_t size, size_t count, Io *stream)
-{
-	return stream->fread(data, size, count);
-}
+size_t fwrite(void *ptr, size_t size, size_t nmemb, IO &stream);
 
-static int fseek(Io *stream, long int offset, int whence)
-{
-	return stream->fseek(offset, whence);
-}
+size_t fread(void *ptr, size_t size, size_t count, IO &stream);
 
-static long int ftell(Io *stream)
-{
-	return stream->ftell();
-}
+int fseek(IO &stream, long int offset, int origin);
 
-static int fclose(Io *stream)
-{
-	delete stream;
-	return 0;
-}
+long int ftell(IO &stream);
 
-static int io_ferror(Io *stream) // can't override ferror because it's a macro on some C libs
-{
-	return 0;
-}
+int fclose(IO &stream);
