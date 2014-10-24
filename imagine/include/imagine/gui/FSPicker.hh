@@ -52,7 +52,7 @@ public:
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 	void drawElement(const GuiTable1D &table, uint element, Gfx::GCRect rect) const override;
 	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
 	OnSelectFileDelegate &onSelectFile() { return onSelectFileD; }

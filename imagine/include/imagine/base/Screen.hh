@@ -58,20 +58,21 @@ public:
 		bool added() const { return state == ADDED; }
 		bool removed() const { return state == REMOVED; }
 	};
-	using ChangeDelegate = DelegateFunc<void (const Screen &screen, const Change &change)>;
-	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameTimeBase frameTime)>;
+	struct FrameParams;
+
+	using ChangeDelegate = DelegateFunc<void (const Screen &screen, Change change)>;
+	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameParams params)>;
+
+	struct FrameParams
+	{
+		FrameTimeBase frameTime_;
+		OnFrameDelegate onFrame_;
+
+		FrameTimeBase frameTime() const { return frameTime_; }
+		OnFrameDelegate thisOnFrame() const { return onFrame_; }
+	};
 
   static const uint REFRESH_RATE_DEFAULT = 0;
-  FrameTimeBase prevFrameTime{};
-  FrameTimeBase timePerFrame{};
-	StaticArrayList<OnFrameDelegate, 4> onFrameDelegate;
-	bool framePosted = false;
-	bool inFrameHandler = false;
-	static ChangeDelegate onChange;
-	#ifndef NDEBUG
-	// for debug frame stats
-	uint continuousFrames{};
-	#endif
 
 	constexpr Screen() {}
 	static uint screens();
@@ -83,24 +84,42 @@ public:
 	void postFrame();
 	void unpostFrame();
 	static void unpostAll();
-	bool frameIsPosted();
+	bool isPosted();
 	static bool screensArePosted();
-	void addOnFrameDelegate(OnFrameDelegate del);
-	bool removeOnFrameDelegate(OnFrameDelegate del);
-	bool containsOnFrameDelegate(OnFrameDelegate del);
-	void clearOnFrameDelegates();
-	void runOnFrameDelegates(FrameTimeBase frameTime);
+	void addOnFrame(OnFrameDelegate del);
+	bool addOnFrameOnce(OnFrameDelegate del);
+	void postOnFrame(OnFrameDelegate del);
+	bool postOnFrameOnce(OnFrameDelegate del);
+	bool removeOnFrame(OnFrameDelegate del);
+	bool containsOnFrame(OnFrameDelegate del);
 	FrameTimeBase lastPostedFrameTime() const { return prevFrameTime; }
 	uint elapsedFrames(FrameTimeBase frameTime);
   uint refreshRate();
   void setRefreshRate(uint rate);
-  void frameUpdate(FrameTimeBase frameTime);
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
+
+	// for internal use
+	FrameTimeBase prevFrameTime{};
+	static ChangeDelegate onChange;
+
 	static void addScreen(Screen *s);
-	void deinit();
+	void frameUpdate(FrameTimeBase frameTime);
 	void startDebugFrameStats(FrameTimeBase frameTime);
 	void endDebugFrameStats();
+	void deinit();
+
+private:
+  FrameTimeBase timePerFrame{};
+	bool framePosted = false;
+	bool inFrameHandler = false;
+	#ifndef NDEBUG
+	// for debug frame stats
+	uint continuousFrames{};
+	#endif
+	StaticArrayList<OnFrameDelegate, 8> onFrameDelegate;
+
+	void runOnFrameDelegates(FrameTimeBase frameTime);
 };
 
 }

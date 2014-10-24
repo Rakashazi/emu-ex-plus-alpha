@@ -102,16 +102,18 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	assert(screen().xDPI && screen().yDPI);
-	float xdpi = surfaceRotationIsStraight(osRotation) ? screen().xDPI : screen().yDPI;
-	float ydpi = surfaceRotationIsStraight(osRotation) ? screen().yDPI : screen().xDPI;
+	auto &s = *screen();
+	assert(s.xDPI && s.yDPI);
+	float xdpi = surfaceRotationIsStraight(osRotation) ? s.xDPI : s.yDPI;
+	float ydpi = surfaceRotationIsStraight(osRotation) ? s.yDPI : s.xDPI;
 	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / ydpi) * 25.4f};
 }
 
 IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
 {
-	assert(screen().densityDPI);
-	return {((float)size.x / screen().densityDPI) * 25.4f, ((float)size.y / screen().densityDPI) * 25.4f};
+	auto &s = *screen();
+	assert(s.densityDPI);
+	return {((float)size.x / s.densityDPI) * 25.4f, ((float)size.y / s.densityDPI) * 25.4f};
 }
 
 bool Window::setValidOrientations(uint oMask)
@@ -149,7 +151,7 @@ CallResult Window::init(const WindowConfig &config)
 {
 	if(initialInit)
 		return OK;
-	BaseWindow::init();
+	BaseWindow::init(config);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -164,9 +166,9 @@ CallResult Window::init(const WindowConfig &config)
 	if(window_.size() > 1)
 	{
 		logMsg("making presentation window");
-		assert(&screen() != Screen::screen(0));
+		assert(screen() != Screen::screen(0));
 		auto env = jEnv();
-		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen().aDisplay, this));
+		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->aDisplay, this));
 		initPresentationJNI(env, jDialog);
 		jPresentationShow(env, jDialog);
 	}
@@ -189,7 +191,7 @@ CallResult Window::init(const WindowConfig &config)
 		jSetWinFormat(env, jBaseActivity, pixelFormat);
 	}
 	// default to screen's size
-	updateSize({screen().width(), screen().height()});
+	updateSize({screen()->width(), screen()->height()});
 	contentRect.x2 = width();
 	contentRect.y2 = height();
 	return OK;
@@ -281,6 +283,14 @@ void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
 void androidWindowNeedsRedraw(Window &win)
 {
 	logMsg("window needs redraw event");
+	win.setNeedsDraw(true);
+	win.dispatchOnDraw();
+	if(!AndroidGLContext::swapBuffersIsAsync())
+		GLContext::swapPresentedBuffers(win);
+	// On some OS versions like CM7 on the HP Touchpad,
+	// the very next frame is rendered incorrectly
+	// (as if the window still has its previous size).
+	// Post another window draw to work-around this
 	win.postDraw();
 }
 
@@ -289,16 +299,7 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	win.updateContentRect(rect);
-	if(win.updateSize(winSize) && androidSDK() < 19 && !Config::MACHINE_IS_OUYA)
-	{
-		// On some OS versions like CM7 on the HP Touchpad,
-		// the very next frame is rendered incorrectly
-		// (as if the window still has its previous size).
-		// Re-create the EGLSurface to make sure EGL sees
-		// the new size.
-		win.destroyEGLSurface(GLContext::eglDisplay());
-		win.initEGLSurface(GLContext::eglDisplay());
-	}
+	win.updateSize(winSize);
 	win.postDraw();
 }
 
@@ -314,7 +315,7 @@ void Window::postDraw()
 	if(hasSurface())
 	{
 		setNeedsDraw(true);
-		screen().postFrame();
+		screen()->postFrame();
 	}
 }
 
@@ -336,7 +337,5 @@ void restoreOpenGLContext()
 void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}
-
-
 
 }

@@ -25,7 +25,7 @@ public:
 
 	BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
 	BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override;
 };
 

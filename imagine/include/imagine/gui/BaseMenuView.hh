@@ -36,7 +36,7 @@ public:
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void clearSelection();
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override;
 	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
 	bool elementIsSelectable(const GuiTable1D &table, uint element) override;

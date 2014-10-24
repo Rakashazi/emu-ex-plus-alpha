@@ -149,7 +149,7 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 	}
 }
 
-void ButtonConfigSetView::draw(Base::FrameTimeBase frameTime)
+void ButtonConfigSetView::draw()
 {
 	using namespace Gfx;
 	setBlendMode(0);

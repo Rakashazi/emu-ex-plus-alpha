@@ -52,7 +52,7 @@ static void setupCPUFreqStatus()
 {
 	if(!Config::envIsLinux && !Config::envIsAndroid)
 		return; // ignore cpufreq monitoring on non-linux systems
-	static const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
+	const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
 	if(cpuFreqFile.open(cpuFreqPath) != OK)
 	{
 		logWarn("can't open %s", cpuFreqPath);
@@ -106,6 +106,29 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 	Input::setKeyRepeat(false);
 	setupCPUFreqStatus();
 	placeElements();
+
+	win.screen()->addOnFrame(
+		[&win](Base::Screen &screen, Base::Screen::FrameParams params)
+		{
+			auto frameTime = params.frameTime();
+
+			if(activeTest->frames % 8 == 0)
+			{
+				updateCPUFreq();
+			}
+
+			activeTest->frameUpdate(screen, frameTime);
+
+			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
+			{
+				finishTest(win, frameTime);
+			}
+			else
+			{
+				win.postDraw();
+				screen.addOnFrame(params.thisOnFrame());
+			}
+		});
 	return activeTest;
 }
 
@@ -118,14 +141,9 @@ CallResult onInit(int argc, char** argv)
 	View::compileGfxPrograms();
 	View::defaultFace = ResourceFace::loadSystem();
 	assert(View::defaultFace);
-	Gfx::initWindow(mainWin, {});
-	mainWin.setTitle("Frame Rate Test");
-	uint faceSize = mainWin.heightSMMInPixels(3.5);
-	View::defaultFace->applySettings(faceSize);
-	View::defaultFace->precacheAlphaNum();
-	picker.init(testParam, sizeofArray(testParam));
+	WindowConfig winConf;
 
-	mainWin.setOnSurfaceChange(
+	winConf.setOnSurfaceChange(
 		[](Base::Window &win, Base::Window::SurfaceChange change)
 		{
 			if(change.resized())
@@ -138,42 +156,24 @@ CallResult onInit(int argc, char** argv)
 			}
 		});
 
-	mainWin.setOnDraw(
+	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
 			Gfx::updateCurrentWindow(win, params, projP.viewport, projMat);
-			auto frameTime = params.frameTime();
 			if(!activeTest)
 			{
 				Gfx::clear();
-				picker.draw(frameTime);
+				picker.draw();
 			}
 			else
 			{
-				if(activeTest->frames % 8 == 0)
-				{
-					updateCPUFreq();
-				}
-
-				activeTest->frameUpdate(win.screen(), frameTime);
-
-				if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
-				{
-					finishTest(win, frameTime);
-					Gfx::clear();
-					picker.draw(frameTime);
-				}
-				else
-				{
-					win.postDraw();
-					activeTest->draw();
-				}
+				activeTest->draw();
 			}
 			Gfx::setClipRect(false);
 			Gfx::presentWindow(win);
 		});
 
-	mainWin.setOnInputEvent(
+	winConf.setOnInputEvent(
 		[](Base::Window &, const Input::Event &e)
 		{
 			if(!activeTest)
@@ -191,6 +191,12 @@ CallResult onInit(int argc, char** argv)
 			}
 		});
 
+	Gfx::initWindow(mainWin, winConf);
+	mainWin.setTitle("Frame Rate Test");
+	uint faceSize = mainWin.heightSMMInPixels(3.5);
+	View::defaultFace->applySettings(faceSize);
+	View::defaultFace->precacheAlphaNum();
+	picker.init(testParam, sizeofArray(testParam));
 	mainWin.show();
 	return OK;
 }

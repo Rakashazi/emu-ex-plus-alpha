@@ -73,5 +73,5 @@ public:
 	TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName);
 	void init(bool highlightFirst);
 	void place() override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 };

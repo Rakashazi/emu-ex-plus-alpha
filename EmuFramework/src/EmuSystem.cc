@@ -30,6 +30,7 @@ char EmuSystem::gameName_[256]{};
 char EmuSystem::fullGameName_[256]{};
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 uint EmuSystem::emuFrameNow = 0;
+bool EmuSystem::runFrameOnDraw = false;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 uint EmuSystem::audioFramesPerVideoFrame = 0;

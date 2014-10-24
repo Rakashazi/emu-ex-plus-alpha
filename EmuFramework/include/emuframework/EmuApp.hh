@@ -20,7 +20,7 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/fs/WorkDirStack.hh>
-#include <imagine/util/Interpolator.hh>
+#include <imagine/gfx/AnimatedViewport.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideo.hh>
@@ -49,7 +49,7 @@ struct AppWindowData
 	Gfx::Viewport viewport() { return projectionPlane.viewport; }
 	Gfx::Mat4 projectionMat;
 	Gfx::ProjectionPlane projectionPlane;
-	TimedInterpolator<int> viewportDelta[4];
+	Gfx::AnimatedViewport animatedViewport;
 	bool focused = true;
 
 	constexpr AppWindowData() {};
@@ -78,6 +78,7 @@ void handleOpenFileCommand(const char *filename);
 bool isMenuDismissKey(const Input::Event &e);
 void startGameFromMenu();
 void restoreMenuFromGame();
+void closeGame(bool allowAutosaveState = true);
 void applyOSNavStyle(bool inGame);
 using MenuShownDelegate = DelegateFunc<void (Base::Window &win)>;
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel);

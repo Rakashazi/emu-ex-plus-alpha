@@ -39,18 +39,40 @@ Screen &mainScreen()
 	return *Screen::screen(0);
 }
 
-void Screen::addOnFrameDelegate(OnFrameDelegate del)
+void Screen::addOnFrame(OnFrameDelegate del)
 {
 	assert(onFrameDelegate.freeSpace());
 	onFrameDelegate.push_back(del);
 }
 
-bool Screen::removeOnFrameDelegate(OnFrameDelegate del)
+bool Screen::addOnFrameOnce(OnFrameDelegate del)
+{
+	if(!containsOnFrame(del))
+	{
+		addOnFrame(del);
+		return true;
+	}
+	return false;
+}
+
+void Screen::postOnFrame(OnFrameDelegate del)
+{
+	postFrame();
+	addOnFrame(del);
+}
+
+bool Screen::postOnFrameOnce(OnFrameDelegate del)
+{
+	postFrame();
+	return addOnFrameOnce(del);
+}
+
+bool Screen::removeOnFrame(OnFrameDelegate del)
 {
 	return onFrameDelegate.remove(del);
 }
 
-bool Screen::containsOnFrameDelegate(OnFrameDelegate del)
+bool Screen::containsOnFrame(OnFrameDelegate del)
 {
 	return contains(onFrameDelegate, del);
 }
@@ -59,16 +81,16 @@ void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
 {
 	if(onFrameDelegate.empty())
 		return;
-	logMsg("running %d onFrame delegates", onFrameDelegate.size());
+	//logMsg("running %d onFrame delegates", onFrameDelegate.size());
 	auto thisFrameDelegate = onFrameDelegate;
 	onFrameDelegate.clear();
 	for(auto &delegate : thisFrameDelegate)
 	{
-		delegate(*this, frameTime);
+		delegate(*this, {frameTime, delegate});
 	}
 }
 
-bool Screen::frameIsPosted()
+bool Screen::isPosted()
 {
 	return framePosted;
 }
@@ -83,14 +105,14 @@ void Screen::frameUpdate(FrameTimeBase frameTime)
 	iterateTimes(Window::windows(), i)
 	{
 		auto &w = *Window::window(i);
-		if(Config::BASE_MULTI_SCREEN && w.screen() != *this)
+		if(Config::BASE_MULTI_SCREEN && w.screen() != this)
 		{
 			continue;
 		}
-		w.dispatchOnDraw(frameTime);
+		w.dispatchOnDraw();
 	}
 	inFrameHandler = false;
-	//logMsg("%s", frameIsPosted() ? "drawing next frame" : "stopping at this frame");
+	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
 }
 
 uint Screen::screens()
@@ -136,7 +158,7 @@ bool Screen::screensArePosted()
 {
 	iterateTimes(screens(), i)
 	{
-		if(screen(i)->frameIsPosted())
+		if(screen(i)->isPosted())
 			return true;
 	}
 	return false;
@@ -179,7 +201,7 @@ void Screen::startDebugFrameStats(FrameTimeBase frameTime)
 void Screen::endDebugFrameStats()
 {
 	#ifndef NDEBUG
-	continuousFrames = frameIsPosted() ? continuousFrames + 1 : 0;
+	continuousFrames = isPosted() ? continuousFrames + 1 : 0;
 	#endif
 }
 

@@ -66,7 +66,7 @@ void AlertView::inputEvent(const Input::Event &e)
 	menu.inputEvent(e);
 }
 
-void AlertView::draw(Base::FrameTimeBase frameTime)
+void AlertView::draw()
 {
 	using namespace Gfx;
 	setBlendMode(BLEND_MODE_ALPHA);
@@ -80,7 +80,7 @@ void AlertView::draw(Base::FrameTimeBase frameTime)
 	text.draw(labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
-	menu.draw(frameTime);
+	menu.draw();
 	//setClipRect(0);
 }
 

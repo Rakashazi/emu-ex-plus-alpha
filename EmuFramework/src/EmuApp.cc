@@ -41,7 +41,7 @@ static uint frameCount = 0;
 static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices;
 #ifdef CONFIG_BLUETOOTH
-BluetoothAdapter *bta = nullptr;
+BluetoothAdapter *bta{};
 #endif
 
 static const char *assetFilename[] =
@@ -94,7 +94,7 @@ void EmuNavView::onRightNavBtn(const Input::Event &e)
 	}
 };
 
-static void postDrawToEmuWindows()
+void postDrawToEmuWindows()
 {
 	emuWin->win.postDraw();
 }
@@ -102,9 +102,9 @@ static void postDrawToEmuWindows()
 static void drawEmuVideo()
 {
 	if(emuView.layer)
-		emuView.draw(0);
+		emuView.draw();
 	else if(emuView2.layer)
-		emuView2.draw(0);
+		emuView2.draw();
 	Gfx::setClipRect(false);
 	Gfx::presentWindow(emuWin->win);
 }
@@ -148,50 +148,18 @@ void EmuNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP
 	}
 }
 
-static void animateViewportStep(AppWindowData &appWin)
-{
-	auto &viewportDelta = appWin.viewportDelta;
-	auto &win = appWin.win;
-	for(auto &d : viewportDelta)
-	{
-		d.update(1);
-	}
-	//logMsg("animated viewport: %d:%d:%d:%d",
-	//	viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now());
-	auto v = Gfx::Viewport::makeFromWindow(win, {viewportDelta[0].now(), viewportDelta[1].now(), viewportDelta[2].now(), viewportDelta[3].now()});
-	updateProjection(appWin, v);
-}
-
 void startViewportAnimation(AppWindowData &winData)
 {
-	auto newViewport = makeViewport(winData.win);
 	auto oldViewport = winData.viewport();
-	auto oldViewportAR = (oldViewport.width() && oldViewport.height()) ? oldViewport.aspectRatio() : 0;
-	if(newViewport != oldViewport)
-	{
-		logMsg("animating from viewport %d:%d:%d:%d to %d:%d:%d:%d",
-			oldViewport.bounds().x, oldViewport.bounds().y, oldViewport.bounds().x2, oldViewport.bounds().y2,
-			newViewport.bounds().x, newViewport.bounds().y, newViewport.bounds().x2, newViewport.bounds().y2);
-		auto &viewportDelta = winData.viewportDelta;
-		auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
-		int time = 10;
-		viewportDelta[0].set(oldViewport.bounds().x, newViewport.bounds().x, type, time);
-		viewportDelta[1].set(oldViewport.bounds().y, newViewport.bounds().y, type, time);
-		viewportDelta[2].set(oldViewport.bounds().x2, newViewport.bounds().x2, type, time);
-		viewportDelta[3].set(oldViewport.bounds().y2, newViewport.bounds().y2, type, time);
-		animateViewportStep(winData);
-		if(!winData.viewportDelta[0].isComplete())
-		{
-			winData.win.setNeedsCustomViewportResize(true);
-			winData.win.postDraw();
-		}
-	}
+	auto newViewport = makeViewport(winData.win);
+	winData.animatedViewport.start(winData.win, oldViewport, newViewport);
 }
 
 static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change)
 {
 	if(change.surfaceResized())
 	{
+		winData.animatedViewport.cancel();
 		updateProjection(winData, makeViewport(winData.win));
 	}
 	else if(change.contentRectResized())
@@ -200,46 +168,70 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 	}
 	else if(change.customViewportResized())
 	{
-		animateViewportStep(winData);
-		if(!winData.viewportDelta[0].isComplete())
-		{
-			//logMsg("continuing viewport animation");
-			winData.win.setNeedsCustomViewportResize(true);
-			winData.win.postDraw();
-		}
+		updateProjection(winData, winData.animatedViewport.viewport());
 	}
 }
 
-static void runEmuFrame(Base::FrameTimeBase frameTime, bool fastForward)
-{
-	commonUpdateInput();
-	bool renderAudio = optionSound;
-
-	if(unlikely(fastForward))
+static Base::Screen::OnFrameDelegate frameUpdate =
+	[](Base::Screen &screen, Base::Screen::FrameParams params)
 	{
-		iterateTimes((uint)optionFastForwardSpeed, i)
+		commonUpdateInput();
+
+		if(unlikely(fastForwardActive))
 		{
-			EmuSystem::runFrame(0, 0, 0);
+			EmuSystem::runFrameOnDraw = true;
+			iterateTimes((uint)optionFastForwardSpeed, i)
+			{
+				EmuSystem::runFrame(false, false, false);
+			}
 		}
+		else
+		{
+			int framesToSkip = EmuSystem::setupFrameSkip(optionFrameSkip, params.frameTime());
+			if(framesToSkip >= 0)
+			{
+				EmuSystem::runFrameOnDraw = true;
+				bool renderAudio = optionSound;
+				iterateTimes(framesToSkip, i)
+				{
+					EmuSystem::runFrame(false, false, renderAudio);
+				}
+			}
+		}
+		postDrawToEmuWindows();
+		screen.postOnFrame(params.thisOnFrame());
+	};
+
+static void startEmulation()
+{
+	EmuSystem::start();
+	emuWin->win.screen()->addOnFrame(frameUpdate);
+}
+
+static void pauseEmulation()
+{
+	EmuSystem::pause();
+	emuWin->win.screen()->removeOnFrame(frameUpdate);
+}
+
+void closeGame(bool allowAutosaveState)
+{
+	EmuSystem::closeGame();
+	emuWin->win.screen()->removeOnFrame(frameUpdate);
+}
+
+static void drawEmuFrame()
+{
+	if(EmuSystem::runFrameOnDraw)
+	{
+		bool renderAudio = optionSound;
+		EmuSystem::runFrame(true, true, renderAudio);
+		EmuSystem::runFrameOnDraw = false;
 	}
 	else
 	{
-		int framesToSkip = EmuSystem::setupFrameSkip(optionFrameSkip, frameTime);
-		if(framesToSkip > 0)
-		{
-			iterateTimes(framesToSkip, i)
-			{
-				EmuSystem::runFrame(0, 0, renderAudio);
-			}
-		}
-		else if(framesToSkip == -1)
-		{
-			drawEmuVideo();
-			return;
-		}
+		drawEmuVideo();
 	}
-
-	EmuSystem::runFrame(1, 1, renderAudio);
 }
 
 static bool allWindowsAreFocused()
@@ -257,13 +249,13 @@ static void onFocusChange(uint in)
 			#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 			vController.resetInput();
 			#endif
-			EmuSystem::start();
+			startEmulation();
 			postDrawToEmuWindows();
 		}
 		else if(optionPauseUnfocused && !EmuSystem::isPaused() && !allWindowsAreFocused())
 		{
 			logMsg("pausing emulation with all windows unfocused");
-			EmuSystem::pause();
+			pauseEmulation();
 			postDrawToEmuWindows();
 		}
 	}
@@ -274,25 +266,13 @@ void setEmuViewOnExtraWindow(bool on)
 	if(on && !extraWin.win)
 	{
 		logMsg("setting emu view on extra window");
-		EmuSystem::resetFrameTime();
 		Base::WindowConfig winConf;
 		if(Base::Screen::screens() > 1)
 		{
 			winConf.setScreen(*Base::Screen::screen(1));
 		}
-		Gfx::initWindow(extraWin.win, winConf);
-		extraWin.focused = true;
-		logMsg("init extra window");
-		emuWin = &extraWin;
-		std::swap(emuView.layer, emuView2.layer);
-		updateProjection(extraWin, makeViewport(extraWin.win));
-		extraWin.win.setTitle(appName());
-		extraWin.win.show();
-		extraWin.win.postDraw();
-		emuView.place();
-		mainWin.win.postDraw();
 
-		extraWin.win.setOnSurfaceChange(
+		winConf.setOnSurfaceChange(
 			[](Base::Window &win, Base::Window::SurfaceChange change)
 			{
 				if(change.resized())
@@ -304,45 +284,44 @@ void setEmuViewOnExtraWindow(bool on)
 				}
 			});
 
-		extraWin.win.setOnDraw(
+		winConf.setOnDraw(
 			[](Base::Window &win, Base::Window::DrawParams params)
 			{
 				Gfx::updateCurrentWindow(win, params, extraWin.viewport(), extraWin.projectionMat);
 				Gfx::clear();
 				if(EmuSystem::isActive())
 				{
-					win.postDraw();
-					runEmuFrame(params.frameTime(), fastForwardActive);
+					drawEmuFrame();
 				}
 				else
 				{
-					emuView2.draw(params.frameTime());
+					emuView2.draw();
 					Gfx::setClipRect(false);
 					Gfx::presentWindow(win);
 				}
 			});
 
-		extraWin.win.setOnInputEvent(
+		winConf.setOnInputEvent(
 			[](Base::Window &win, const Input::Event &e)
 			{
 				if(!e.isPointer())
 					handleInputEvent(win, e);
 			});
 
-		extraWin.win.setOnFocusChange(
+		winConf.setOnFocusChange(
 			[](Base::Window &win, uint in)
 			{
 				extraWin.focused = in;
 				onFocusChange(in);
 			});
 
-		extraWin.win.setOnDismissRequest(
+		winConf.setOnDismissRequest(
 			[](Base::Window &win)
 			{
 				win.dismiss();
 			});
 
-		extraWin.win.setOnDismiss(
+		winConf.setOnDismiss(
 			[](Base::Window &win)
 			{
 				Gfx::setCurrentWindow(nullptr);
@@ -353,9 +332,32 @@ void setEmuViewOnExtraWindow(bool on)
 				emuView.place();
 				mainWin.win.postDraw();
 			});
+
+		Gfx::initWindow(extraWin.win, winConf);
+		extraWin.focused = true;
+		logMsg("init extra window");
+		emuWin = &extraWin;
+		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
+		{
+			mainWin.win.screen()->removeOnFrame(frameUpdate);
+			extraWin.win.screen()->addOnFrame(frameUpdate);
+			EmuSystem::resetFrameTime();
+		}
+		std::swap(emuView.layer, emuView2.layer);
+		updateProjection(extraWin, makeViewport(extraWin.win));
+		extraWin.win.setTitle(appName());
+		extraWin.win.show();
+		emuView.place();
+		mainWin.win.postDraw();
 	}
 	else if(!on && extraWin.win)
 	{
+		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
+		{
+			extraWin.win.screen()->removeOnFrame(frameUpdate);
+			mainWin.win.screen()->addOnFrame(frameUpdate);
+			EmuSystem::resetFrameTime();
+		}
 		extraWin.win.dismiss();
 	}
 }
@@ -377,7 +379,7 @@ void startGameFromMenu()
 	Base::setIdleDisplayPowerSave(false);
 	applyOSNavStyle(true);
 	if(!optionFrameSkip.isConst && (uint)optionFrameSkip != EmuSystem::optionFrameSkipAuto)
-		emuWin->win.screen().setFrameInterval(optionFrameSkip + 1);
+		emuWin->win.screen()->setFrameInterval(optionFrameSkip + 1);
 	logMsg("running game");
 	menuViewIsActive = 0;
 	viewNav.setRightBtnActive(1);
@@ -388,8 +390,8 @@ void startGameFromMenu()
 	popup.clear();
 	Input::setKeyRepeat(false);
 	EmuControls::setupVolKeysInGame();
-	emuWin->win.screen().setRefreshRate(EmuSystem::vidSysIsPAL() ? 50 : 60);
-	EmuSystem::start();
+	emuWin->win.screen()->setRefreshRate(EmuSystem::vidSysIsPAL() ? 50 : 60);
+	startEmulation();
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
@@ -407,15 +409,15 @@ void restoreMenuFromGame()
 	menuViewIsActive = 1;
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
-	EmuSystem::pause();
+	pauseEmulation();
 	if(!optionFrameSkip.isConst)
-		mainWin.win.screen().setFrameInterval(1);
+		mainWin.win.screen()->setFrameInterval(1);
 	Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
 		viewStack.popToRoot();
-	mainWin.win.screen().setRefreshRate(Base::Screen::REFRESH_RATE_DEFAULT);
+	mainWin.win.screen()->setRefreshRate(Base::Screen::REFRESH_RATE_DEFAULT);
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
@@ -450,7 +452,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 				#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 				vController.resetInput();
 				#endif
-				EmuSystem::start();
+				startEmulation();
 				postDrawToEmuWindows();
 			}
 	});
@@ -468,9 +470,9 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](bool backgrounded)
 		{
 			Audio::closePcm();
-			EmuSystem::pause();
 			if(backgrounded)
 			{
+				pauseEmulation();
 				EmuSystem::saveAutoState();
 				EmuSystem::saveBackupMem();
 				Base::dispatchOnFreeCaches();
@@ -483,7 +485,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			}
 			else
 			{
-				EmuSystem::closeGame();
+				closeGame();
 			}
 
 			saveConfigFile();
@@ -500,7 +502,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		});
 
 	Base::Screen::setOnChange(
-		[](const Base::Screen &screen, const Base::Screen::Change &change)
+		[](const Base::Screen &screen, Base::Screen::Change change)
 		{
 			if(change.added())
 			{
@@ -511,7 +513,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			else if(change.removed())
 			{
 				logMsg("screen removed");
-				if(extraWin.win && extraWin.win.screen() == screen)
+				if(extraWin.win && *extraWin.win.screen() == screen)
 					setEmuViewOnExtraWindow(false);
 			}
 		});
@@ -646,45 +648,29 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
 	viewNav.setRightBtnActive(false);
 
-	if(menuShownDel)
-	{
-		Gfx::initWindow(mainWin.win, {});
-		mainInitWindowCommon(mainWin.win);
-		menuShownDel(mainWin.win);
-	}
-	else
-	{
-		Gfx::initWindow(mainWin.win, {});
-		mainInitWindowCommon(mainWin.win);
-	}
+	Base::WindowConfig winConf;
 
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	// TODO: set bit depth based on source texture depth and allow user setting
-	//emuVideoLayer.vidImgEffect.setBitDepth(optionBestColorModeHint ? 24 : 16);
-	emuVideoLayer.setEffect(optionImgEffect);
-	#endif
-
-	mainWin.win.setOnInputEvent(
+	winConf.setOnInputEvent(
 		[](Base::Window &win, const Input::Event &e)
 		{
 			handleInputEvent(win, e);
 		});
 
-	mainWin.win.setOnFocusChange(
+	winConf.setOnFocusChange(
 		[](Base::Window &win, uint in)
 		{
 			mainWin.focused = in;
 			onFocusChange(in);
 		});
 
-	mainWin.win.setOnDragDrop(
+	winConf.setOnDragDrop(
 		[](Base::Window &win, const char *filename)
 		{
 			logMsg("got DnD: %s", filename);
 			handleOpenFileCommand(filename);
 		});
 
-	mainWin.win.setOnSurfaceChange(
+	winConf.setOnSurfaceChange(
 		[](Base::Window &win, Base::Window::SurfaceChange change)
 		{
 			if(change.resized())
@@ -695,29 +681,38 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			}
 		});
 
-	mainWin.win.setOnDraw(
+	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			auto frameTime = params.frameTime();
 			Gfx::updateCurrentWindow(win, params, mainWin.viewport(), mainWin.projectionMat);
 			Gfx::clear();
 			if(EmuSystem::isActive() && emuView.layer)
 			{
-				win.postDraw();
-				runEmuFrame(frameTime, fastForwardActive);
+				drawEmuFrame();
 			}
 			else
 			{
-				emuView.draw(frameTime);
+				emuView.draw();
 				if(modalViewController.hasView())
-					modalViewController.draw(frameTime);
+					modalViewController.draw();
 				else if(menuViewIsActive)
-					viewStack.draw(frameTime);
+					viewStack.draw();
 				popup.draw();
 				Gfx::setClipRect(false);
 				Gfx::presentWindow(win);
 			}
 		});
+
+	Gfx::initWindow(mainWin.win, winConf);
+	mainInitWindowCommon(mainWin.win);
+	if(menuShownDel)
+		menuShownDel(mainWin.win);
+
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	// TODO: set bit depth based on source texture depth and allow user setting
+	//emuVideoLayer.vidImgEffect.setBitDepth(optionBestColorModeHint ? 24 : 16);
+	emuVideoLayer.setEffect(optionImgEffect);
+	#endif
 
 	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
 	{

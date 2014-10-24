@@ -45,7 +45,7 @@
 	if(&screen == screen.screen(0))
 		screen.startDebugFrameStats(timestamp);
 	screen.frameUpdate(timestamp);
-	if(!screen.frameIsPosted())
+	if(!screen.isPosted())
 	{
 		//logMsg("stopping screen updates");
 		screen.unpostFrame();

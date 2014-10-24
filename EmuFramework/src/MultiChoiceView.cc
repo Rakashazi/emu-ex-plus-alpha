@@ -18,14 +18,14 @@
 #include <emuframework/MultiChoiceView.hh>
 #include <algorithm>
 
-void BaseMultiChoiceView::draw(Base::FrameTimeBase frameTime)
+void BaseMultiChoiceView::draw()
 {
 	using namespace Gfx;
 	/*resetTransforms();
 	setBlendMode(0);
 	setColor(.2, .2, .2, 1.);
 	GeomRect::draw(viewFrame);*/
-	BaseMenuView::draw(frameTime);
+	BaseMenuView::draw();
 }
 
 void BaseMultiChoiceView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const

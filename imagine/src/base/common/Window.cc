@@ -64,15 +64,15 @@ void BaseWindow::setOnDismiss(DismissDelegate del)
 	onDismiss = del ? del : [](Window &win){};
 }
 
-void BaseWindow::initDelegates()
+void BaseWindow::initDelegates(const WindowConfig &config)
 {
-	setOnSurfaceChange({});
-	setOnDraw({});
-	setOnFocusChange({});
-	setOnDragDrop({});
-	setOnInputEvent({});
-	setOnDismissRequest({});
-	setOnDismiss({});
+	setOnSurfaceChange(config.onSurfaceChange());
+	setOnDraw(config.onDraw());
+	setOnFocusChange(config.onFocusChange());
+	setOnDragDrop(config.onDragDrop());
+	setOnInputEvent(config.onInputEvent());
+	setOnDismissRequest(config.onDismissRequest());
+	setOnDismiss(config.onDismiss());
 }
 
 void BaseWindow::initDefaultValidSoftOrientations()
@@ -82,9 +82,9 @@ void BaseWindow::initDefaultValidSoftOrientations()
 	#endif
 }
 
-void BaseWindow::init()
+void BaseWindow::init(const WindowConfig &config)
 {
-	initDelegates();
+	initDelegates(config);
 	initDefaultValidSoftOrientations();
 }
 
@@ -129,12 +129,12 @@ Window &mainWindow()
 	return *Window::window(0);
 }
 
-Screen &Window::screen()
+Screen *Window::screen()
 {
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	return *screen_;
+	return screen_;
 	#else
-	return mainScreen();
+	return &mainScreen();
 	#endif
 }
 
@@ -188,13 +188,12 @@ void Window::dispatchSurfaceChange()
 	onSurfaceChange(*this, moveAndClear(surfaceChange));
 }
 
-void Window::dispatchOnDraw(FrameTimeBase frameTime)
+void Window::dispatchOnDraw()
 {
 	if(!needsDraw())
 		return;
 	setNeedsDraw(false);
 	DrawParams params;
-	params.frameTime_ = frameTime;
 	if(unlikely(surfaceChange.flags))
 	{
 		dispatchSurfaceChange();
@@ -335,7 +334,7 @@ void Window::postNeededScreens()
 		auto &w = *window(i);
 		if(w.needsDraw())
 		{
-			w.screen().postFrame();
+			w.screen()->postFrame();
 		}
 	}
 }

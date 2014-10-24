@@ -15,22 +15,26 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/base/EGLContextBase.hh>
-#include <imagine/base/Window.hh>
+#include <imagine/gfx/Viewport.hh>
+#include <imagine/util/Interpolator.hh>
 
-namespace Base
+namespace Gfx
 {
 
-struct AndroidGLContext : public EGLContextBase
+class AnimatedViewport
 {
 public:
-	constexpr AndroidGLContext() {}
-	static bool validateActivityThreadContext();
-	static void swapPresentedBuffers(Window &win);
-	static bool swapBuffersIsAsync();
-};
+	constexpr AnimatedViewport() {}
+	void start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport end);
+	void finish();
+	bool isFinished();
+	void cancel();
+	Gfx::Viewport viewport();
 
-using GLContextImpl = AndroidGLContext;
+protected:
+	TimedInterpolator<int> animator[4];
+	Base::Screen::OnFrameDelegate animate;
+	Base::Window *win{};
+};
 
 }

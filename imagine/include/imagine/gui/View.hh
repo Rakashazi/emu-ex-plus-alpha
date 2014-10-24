@@ -51,7 +51,7 @@ public:
 	virtual void deinit() = 0;
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
-	virtual void draw(Base::FrameTimeBase frameTime) = 0;
+	virtual void draw() = 0;
 	virtual void inputEvent(const Input::Event &event) = 0;
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
@@ -72,6 +72,11 @@ public:
 	{
 		assert(win);
 		return *win;
+	}
+
+	Base::Screen *screen()
+	{
+		return win->screen();
 	}
 
 	const char *name() { return name_; }

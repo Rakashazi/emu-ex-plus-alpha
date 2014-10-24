@@ -66,5 +66,5 @@ public:
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 };

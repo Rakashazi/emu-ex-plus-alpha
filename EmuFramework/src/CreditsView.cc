@@ -20,15 +20,10 @@
 CreditsView::CreditsView(const char *str, Base::Window &win):
 	View{win}, str(str) {}
 
-void CreditsView::draw(Base::FrameTimeBase frameTime)
+void CreditsView::draw()
 {
 	using namespace Gfx;
-	float fadeVal;
-	if(fade.update(1, fadeVal))
-	{
-		postDraw();
-	}
-	setColor(1., 1., 1., fadeVal);
+	setColor(1., 1., 1., fade.now());
 	texAlphaProgram.use(projP.makeTranslate());
 	auto textRect = rect;
 	if(IG::isOdd(textRect.ySize()))
@@ -55,6 +50,16 @@ void CreditsView::init()
 	name_ = appViewTitle();
 	text.init(str, View::defaultFace);
 	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
+	animate =
+		[this](Base::Screen &screen, Base::Screen::FrameParams param)
+		{
+			window().setNeedsDraw(true);
+			if(fade.update(1))
+			{
+				screen.postOnFrame(param.thisOnFrame());
+			}
+		};
+	screen()->postOnFrame(animate);
 	place();
 	View::init();
 }
@@ -62,4 +67,5 @@ void CreditsView::init()
 void CreditsView::deinit()
 {
 	text.deinit();
+	screen()->removeOnFrame(animate);
 }

@@ -80,29 +80,24 @@ void setProjectionMatrix(const Mat4 &mat)
 	}
 }
 
-static Base::Screen::OnFrameDelegate animateOrientation
-{
-	[](Base::Screen &screen, Base::FrameTimeBase frameTime)
-	{
-		using namespace Base;
-		//logMsg("animating rotation");
-		projAngleM.update(1);
-		setProjectionMatrixRotation(projAngleM.now());
-		setProjectionMatrix(projectionMatrix());
-		mainWindow().setNeedsDraw(true);
-		if(!projAngleM.isComplete())
-		{
-			screen.addOnFrameDelegate(animateOrientation);
-			screen.postFrame();
-		}
-	}
-};
-
 void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 {
 	Gfx::projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
-	if(!Base::mainScreen().containsOnFrameDelegate(animateOrientation))
-		Base::mainScreen().addOnFrameDelegate(animateOrientation);
+	Base::mainScreen().addOnFrameOnce(
+		[](Base::Screen &screen, Base::Screen::FrameParams params)
+		{
+			using namespace Base;
+			setCurrentWindow(&mainWindow());
+			//logMsg("animating rotation");
+			projAngleM.update(1);
+			setProjectionMatrixRotation(projAngleM.now());
+			setProjectionMatrix(projectionMatrix());
+			mainWindow().setNeedsDraw(true);
+			if(!projAngleM.isComplete())
+			{
+				screen.postOnFrame(params.thisOnFrame());
+			}
+		});
 }
 
 void setTransformTarget(TransformTargetEnum target)

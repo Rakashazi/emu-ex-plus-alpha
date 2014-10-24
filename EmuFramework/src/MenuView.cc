@@ -71,28 +71,23 @@ static auto onScanStatus =
 				if(Config::envIsIOS)
 				{
 					popup.postError("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
-					mainWin.win.postDraw();
 				}
 			}
 			bcase BluetoothAdapter::SCAN_FAILED:
 			{
 				popup.postError("Scan failed");
-				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NO_DEVS:
 			{
 				popup.post("No devices found");
-				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
 				popup.printf(2, 0, "Checking %d device(s)...", arg);
-				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
 				popup.postError("Failed reading a device name");
-				mainWin.win.postDraw();
 			}
 			bcase BluetoothAdapter::SCAN_COMPLETE:
 			{
@@ -106,12 +101,10 @@ static auto onScanStatus =
 				{
 					popup.post("Scan complete, no recognized devices");
 				}
-				mainWin.win.postDraw();
 			}
 			/*bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
 				popup.postError("Failed opening a Bluetooth connection");
-				mainWin.win.postDraw();
 			}*/
 		}
 	};
@@ -382,7 +375,6 @@ MenuView::MenuView(Base::Window &win):
 						{
 							Base::addLauncherIcon(str, EmuSystem::fullGamePath());
 							popup.printf(2, false, "Added shortcut:\n%s", str);
-							postDraw();
 						}
 						view.dismiss();
 						return 0;
@@ -459,12 +451,10 @@ MenuView::MenuView(Base::Window &win):
 							{
 								popup.postError(Config::envIsLinux ? "Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
 									"Bluetooth setup failed", Config::envIsLinux ? 8 : 2);
-								postDraw();
 							}
 							bcase BluetoothAdapter::SCAN_COMPLETE:
 							{
 								popup.post("Push the PS button on your controller\n(see website for pairing help)", 4);
-								postDraw();
 							}
 							bdefault: onScanStatus(bta, status, arg);
 						}

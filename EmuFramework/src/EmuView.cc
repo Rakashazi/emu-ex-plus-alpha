@@ -19,17 +19,17 @@
 #include <emuframework/EmuApp.hh>
 #include <algorithm>
 
-void EmuView::draw(Base::FrameTimeBase frameTime)
+void EmuView::draw()
 {
 	using namespace Gfx;
 	if(layer)
 	{
-		layer->draw(frameTime, projP);
+		layer->draw(projP);
 	}
 	if(EmuSystem::isActive() && inputView)
 	{
 		loadTransform(projP.makeTranslate());
-		inputView->draw(frameTime);
+		inputView->draw();
 	}
 }
 

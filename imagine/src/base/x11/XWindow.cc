@@ -59,7 +59,7 @@ void Window::postDraw()
 {
 	//logMsg("posting window");
 	setNeedsDraw(true);
-	screen().postFrame();
+	screen()->postFrame();
 }
 
 void Window::unpostDraw()
@@ -79,8 +79,9 @@ IG::WindowRect Window::contentBounds() const
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	assert(screen().xMM);
-	return {screen().xMM * ((float)size.x/(float)screen().width()), screen().yMM * ((float)size.y/(float)screen().height())};
+	auto &s = *screen();
+	assert(s.xMM);
+	return {s.xMM * ((float)size.x/(float)s.width()), s.yMM * ((float)size.y/(float)s.height())};
 }
 
 Window *windowForXWindow(::Window xWin)
@@ -182,11 +183,11 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		bug_exit("no multi-window support");
 	}
-	BaseWindow::init();
+	BaseWindow::init(config);
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	screen_ = &mainScreen();
 	#endif
-	auto rootWindow = RootWindowOfScreen(screen().xScreen);
+	auto rootWindow = RootWindowOfScreen(screen()->xScreen);
 	#ifdef CONFIG_MACHINE_PANDORA
 	IG::WindowRect winRect{0, 0, 800, 480};
 	#else

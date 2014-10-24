@@ -231,7 +231,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 	placeEffect();
 }
 
-void EmuVideoLayer::draw(Base::FrameTimeBase frameTime, const Gfx::ProjectionPlane &projP)
+void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	if(EmuSystem::isStarted())

@@ -60,7 +60,7 @@ void BaseMenuView::clearSelection()
 	tbl.clearSelection();
 }
 
-void BaseMenuView::draw(Base::FrameTimeBase frameTime)
+void BaseMenuView::draw()
 {
 	tbl.draw(*this);
 }

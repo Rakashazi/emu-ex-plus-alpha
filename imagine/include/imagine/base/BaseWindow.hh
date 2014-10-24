@@ -17,6 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/base/Screen.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 
 namespace Config
@@ -39,6 +40,7 @@ namespace Base
 using namespace IG;
 
 class Window;
+class WindowConfig;
 
 class BaseWindow
 {
@@ -69,11 +71,9 @@ public:
 
 	struct DrawParams
 	{
-		FrameTimeBase frameTime_ = 0;
 		bool wasResized_ = false;
 
 		constexpr DrawParams() {}
-		FrameTimeBase frameTime() const { return frameTime_; }
 		bool wasResized() const { return wasResized_; }
 	};
 
@@ -126,8 +126,8 @@ protected:
 	void setOnDragDrop(DragDropDelegate del);
 	void setOnDismissRequest(DismissRequestDelegate del);
 	void setOnDismiss(DismissDelegate del);
-	void init();
-	void initDelegates();
+	void init(const WindowConfig &config);
+	void initDelegates(const WindowConfig &config);
 	void initDefaultValidSoftOrientations();
 };
 }

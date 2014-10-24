@@ -36,7 +36,7 @@ public:
 	void deinit() override {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 	void inputEvent(const Input::Event &e) override;
 	void resetInput();
 

@@ -55,7 +55,7 @@ void IdentInputDeviceView::inputEvent(const Input::Event &e)
 	}
 }
 
-void IdentInputDeviceView::draw(Base::FrameTimeBase frameTime)
+void IdentInputDeviceView::draw()
 {
 	using namespace Gfx;
 	setBlendMode(0);
@@ -613,7 +613,6 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 			if(!devConf->mutableKeyConf())
 			{
 				popup.post("Can't rename a built-in profile", 2, 0);
-				postDraw();
 				return;
 			}
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -648,7 +647,6 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 			if(customKeyConfig.isFull())
 			{
 				popup.postError("No space left for new key profiles, please delete one");
-				postDraw();
 				return;
 			}
 			auto &ynAlertView = *new YesNoAlertView{window()};
@@ -666,7 +664,6 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 								if(customKeyConfigsContainName(str))
 								{
 									popup.postError("Another profile is already using this name");
-									postDraw();
 									return 1;
 								}
 								if(devConf->setKeyConfCopiedFromExisting(str))

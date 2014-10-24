@@ -41,7 +41,7 @@ public:
 	void place();
 	bool hasView() { return view; }
 	void inputEvent(const Input::Event &e);
-	void draw(Base::FrameTimeBase frameTime);
+	void draw();
 	void init(const Base::Window &win);
 };
 
@@ -66,7 +66,7 @@ public:
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	void inputEvent(const Input::Event &e);
-	void draw(Base::FrameTimeBase frameTime);
+	void draw();
 	void push(View &v);
 	void pushAndShow(View &v, bool needsNavView) override;
 	void pushAndShow(View &v);

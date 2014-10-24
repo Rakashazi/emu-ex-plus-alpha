@@ -70,7 +70,7 @@ public:
 
 	bool operator ==(DelegateFunc const &rhs) const
 	{
-		return exec == rhs.exec;
+		return memcmp(this, &rhs, sizeof(DelegateFunc)) == 0;
 	}
 
 private:

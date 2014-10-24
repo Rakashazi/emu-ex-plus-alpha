@@ -68,25 +68,6 @@ AInputQueue *inputQueue{};
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
 
-static Base::Screen::OnFrameDelegate restoreGLContextFromAndroidUI
-{
-	[](Screen &screen, FrameTimeBase)
-	{
-		// an Android UI element like EditText may make its
-		// own context current so make sure setAsDrawTarget restores ours
-		restoreOpenGLContext();
-		if(androidUIInUse)
-		{
-			// do callback each frame until UI use stops
-			screen.addOnFrameDelegate(restoreGLContextFromAndroidUI);
-		}
-		else
-		{
-			logMsg("stopping per-frame context check");
-		}
-	}
-};
-
 void unrefUIGL()
 {
 	assert(androidUIInUse);
@@ -101,10 +82,22 @@ void refUIGL()
 {
 	androidUIInUse++;
 	auto &screen = mainScreen();
-	if(!screen.containsOnFrameDelegate(restoreGLContextFromAndroidUI))
-	{
-		screen.addOnFrameDelegate(restoreGLContextFromAndroidUI);
-	}
+	screen.addOnFrameOnce(
+		[](Screen &screen, Screen::FrameParams params)
+		{
+			// an Android UI element like EditText may make its
+			// own context current so make sure setAsDrawTarget restores ours
+			restoreOpenGLContext();
+			if(androidUIInUse)
+			{
+				// do callback each frame until UI use stops
+				screen.addOnFrame(params.thisOnFrame());
+			}
+			else
+			{
+				logMsg("stopping per-frame context check");
+			}
+		});
 }
 
 uint appActivityState() { return appState; }

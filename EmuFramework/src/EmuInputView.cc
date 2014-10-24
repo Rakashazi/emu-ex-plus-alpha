@@ -23,7 +23,7 @@
 extern bool touchControlsAreOn;
 bool touchControlsApplicable();
 
-void EmuInputView::draw(Base::FrameTimeBase frameTime)
+void EmuInputView::draw()
 {
 	vController.draw(touchControlsAreOn && touchControlsApplicable(), ffKeyPushed || ffToggleActive);
 }

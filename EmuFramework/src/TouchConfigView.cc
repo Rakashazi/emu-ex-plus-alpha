@@ -36,6 +36,7 @@ class OnScreenInputPlaceView : public View
 	Gfx::Text text;
 	TimedInterpolator<float> textFade;
 	Base::Timer animationStartTimer;
+	Base::Screen::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect;
 	DragState drag[Input::maxCursors];
 
@@ -46,7 +47,7 @@ public:
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 };
 
 void OnScreenInputPlaceView::init()
@@ -54,12 +55,23 @@ void OnScreenInputPlaceView::init()
 	applyOSNavStyle(true);
 	text.init("Click center to go back", View::defaultFace);
 	textFade.set(1.);
+	animate =
+		[this](Base::Screen &screen, Base::Screen::FrameParams param)
+		{
+			window().setNeedsDraw(true);
+			//logMsg("updating fade");
+			if(textFade.update(1))
+			{
+				screen.postOnFrame(param.thisOnFrame());
+			}
+		};
 	animationStartTimer.callbackAfterSec(
 		[this]()
 		{
 			logMsg("starting fade");
 			postDraw();
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 25);
+			screen()->postOnFrame(animate);
 		}, 2);
 }
 
@@ -67,6 +79,7 @@ void OnScreenInputPlaceView::deinit()
 {
 	applyOSNavStyle(false);
 	animationStartTimer.deinit();
+	screen()->removeOnFrame(animate);
 	text.deinit();
 }
 
@@ -98,8 +111,8 @@ void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 		{
 			animationStartTimer.deinit();
 			logMsg("starting fade");
-			postDraw();
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
+			screen()->postOnFrame(animate);
 		}
 
 		auto &d = drag[e.devId];
@@ -148,7 +161,7 @@ void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 	}
 }
 
-void OnScreenInputPlaceView::draw(Base::FrameTimeBase frameTime)
+void OnScreenInputPlaceView::draw()
 {
 	using namespace Gfx;
 	projP.resetTransforms();
@@ -162,11 +175,6 @@ void OnScreenInputPlaceView::draw(Base::FrameTimeBase frameTime)
 	GeomRect::draw(Gfx::GCRect{-lineSize/(Gfx::GC)2., -projP.hHalf(),
 		lineSize/(Gfx::GC)2., projP.hHalf()});
 
-	if(textFade.update(1))
-	{
-		//logMsg("updating fade");
-		postDraw();
-	}
 	if(textFade.now() != 0.)
 	{
 		setColor(0., 0., 0., textFade.now()/2.);
@@ -375,12 +383,12 @@ void TouchConfigView::init(bool highlightFirst)
 	BaseMenuView::init(text, i, highlightFirst);
 }
 
-void TouchConfigView::draw(Base::FrameTimeBase frameTime)
+void TouchConfigView::draw()
 {
 	using namespace Gfx;
 	projP.resetTransforms();
 	vController.draw(true, false, true, .75);
-	BaseMenuView::draw(frameTime);
+	BaseMenuView::draw();
 }
 
 void TouchConfigView::place()

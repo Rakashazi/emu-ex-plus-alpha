@@ -34,7 +34,7 @@ public:
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 };
 
 class InputManagerView : public BaseMenuView

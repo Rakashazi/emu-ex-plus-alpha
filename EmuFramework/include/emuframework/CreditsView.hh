@@ -32,13 +32,14 @@ class CreditsView : public View
 private:
 	Gfx::Text text;
 	TimedInterpolator<float> fade;
+	Base::Screen::OnFrameDelegate animate;
 	const char *str;
 	IG::WindowRect rect;
 
 public:
 	CreditsView(const char *str, Base::Window &win);
 	IG::WindowRect &viewRect() override { return rect; }
-	void draw(Base::FrameTimeBase frameTime) override;
+	void draw() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void init();

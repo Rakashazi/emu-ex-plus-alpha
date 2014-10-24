@@ -18,118 +18,15 @@
 #include <imagine/engine-globals.h>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/WindowConfig.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
 #include <imagine/input/Input.hh>
 
-namespace Config
-{
-#if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
-#define CONFIG_BASE_MULTI_WINDOW
-static constexpr bool BASE_MULTI_WINDOW = true;
-#else
-static constexpr bool BASE_MULTI_WINDOW = false;
-#endif
-}
-
-#if defined CONFIG_BASE_X11
-#include <imagine/base/x11/XWindow.hh>
-#elif defined CONFIG_BASE_ANDROID
-#include <imagine/base/android/AndroidWindow.hh>
-#elif defined CONFIG_BASE_IOS
-#include <imagine/base/iphone/IOSWindow.hh>
-#elif defined CONFIG_BASE_MACOSX
-#include <imagine/base/osx/CocoaWindow.hh>
-#endif
-
 namespace Base
 {
-using namespace IG;
-
-class WindowConfig
-{
-private:
-	Point2D<int> pos{-1, -1};
-	Point2D<int> size_{0, 0};
-	Point2D<int> minSize{320, 240};
-	GLBufferConfig glConfig_{};
-	Screen *screen_{};
-
-public:
-	constexpr WindowConfig() {}
-
-	void setDefaultPosition()
-	{
-		pos = {-1, -1};
-	}
-
-	bool isDefaultPosition() const
-	{
-		return pos == Point2D<int>{-1, -1};
-	}
-
-	void setPosition(Point2D<int> pos)
-	{
-		var_selfs(pos);
-	}
-
-	Point2D<int> position() const
-	{
-		return pos;
-	}
-
-	void setDefaultSize()
-	{
-		size_ = {0, 0};
-	}
-
-	bool isDefaultSize() const
-	{
-		return !size_.x || !size_.y;
-	}
-
-	void setSize(Point2D<int> size_)
-	{
-		var_selfs(size_);
-	}
-
-	Point2D<int> size() const
-	{
-		return size_;
-	}
-
-	void setMinimumSize(Point2D<int> minSize)
-	{
-		var_selfs(minSize);
-	}
-
-	Point2D<int> minimumSize() const
-	{
-		return minSize;
-	}
-
-	void setGLConfig(GLBufferConfig glConfig_)
-	{
-		var_selfs(glConfig_);
-	}
-
-	GLBufferConfig glConfig() const
-	{
-		return glConfig_;
-	}
-
-	void setScreen(Screen &screen)
-	{
-		screen_ = &screen;
-	}
-
-	Screen &screen() const
-	{
-		return screen_ ? *screen_ : *Screen::screen(0);
-	}
-};
 
 class Window : public WindowImpl
 {
@@ -146,8 +43,8 @@ public:
 	bool needsDraw();
 	void postDraw();
 	void unpostDraw();
-	void dispatchOnDraw(FrameTimeBase frameTime);
-	Screen &screen();
+	void dispatchOnDraw();
+	Screen *screen();
 	static void postNeededScreens();
 	static uint windows();
 	static Window *window(uint idx);

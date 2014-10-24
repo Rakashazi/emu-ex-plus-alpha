@@ -19,6 +19,7 @@
 #include <imagine/fs/sys.hh>
 #include <imagine/audio/Audio.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/util/time/sys.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/gui/FSPicker.hh>
@@ -62,6 +63,7 @@ public:
 	static TimeSys startTime;
 	static Base::FrameTimeBase startFrameTime;
 	static uint emuFrameNow;
+	static bool runFrameOnDraw;
 	static Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
 	static const uint optionFrameSkipAuto;

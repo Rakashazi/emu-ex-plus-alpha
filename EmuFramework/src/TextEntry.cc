@@ -223,7 +223,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 	#endif
 }
 
-void CollectTextInputView::draw(Base::FrameTimeBase frameTime)
+void CollectTextInputView::draw()
 {
 	using namespace Gfx;
 	#ifndef CONFIG_BASE_ANDROID

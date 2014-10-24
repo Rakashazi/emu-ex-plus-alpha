@@ -165,7 +165,7 @@ bool FBDevFrameTimer::init()
 				return 1; // frame request was cancelled
 			}
 			auto &screen = mainScreen();
-			assert(screen.frameIsPosted());
+			assert(screen.isPosted());
 			screen.frameUpdate(frameTimeNanos);
 			screen.prevFrameTime = frameTimeNanos;
 			if(!requested && mainWindow().presented)
@@ -244,7 +244,7 @@ bool SGIFrameTimer::init()
 			iterateTimes(Screen::screens(), i)
 			{
 				auto s = Screen::screen(i);
-				if(s->frameIsPosted())
+				if(s->isPosted())
 				{
 					s->frameUpdate(frameTimeNanos);
 					s->prevFrameTime = frameTimeNanos;
@@ -362,7 +362,7 @@ bool OMLFrameTimer::init()
 			iterateTimes(Screen::screens(), i)
 			{
 				auto s = Screen::screen(i);
-				if(s->frameIsPosted())
+				if(s->isPosted())
 				{
 					s->frameUpdate(frameTimeNanos);
 					s->prevFrameTime = frameTimeNanos;

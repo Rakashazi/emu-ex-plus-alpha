@@ -46,7 +46,7 @@ public:
 	void init();
 	void deinit();
 	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, bool onScreenControlsOverlay);
-	void draw(Base::FrameTimeBase frameTime, const Gfx::ProjectionPlane &projP);
+	void draw(const Gfx::ProjectionPlane &projP);
 	void placeOverlay();
 	void placeEffect();
 	void setEffect(uint effect);

@@ -79,9 +79,9 @@ void BasicViewController::inputEvent(const Input::Event &e)
 	view->inputEvent(e);
 }
 
-void BasicViewController::draw(Base::FrameTimeBase frameTime)
+void BasicViewController::draw()
 {
-	view->draw(frameTime);
+	view->draw();
 }
 
 void BasicViewController::init(const Base::Window &win) {}
@@ -142,9 +142,9 @@ void ViewStack::inputEvent(const Input::Event &e)
 	top().inputEvent(e);
 }
 
-void ViewStack::draw(Base::FrameTimeBase frameTime)
+void ViewStack::draw()
 {
-	top().draw(frameTime);
+	top().draw();
 	if(useNavView && nav) nav->draw(top().window(), projP);
 }
 

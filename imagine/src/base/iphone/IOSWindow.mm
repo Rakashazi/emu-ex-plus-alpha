@@ -110,7 +110,7 @@ Window *deviceWindow()
 void Window::postDraw()
 {
 	setNeedsDraw(true);
-	screen().postFrame();
+	screen()->postFrame();
 }
 
 void Window::unpostDraw()
@@ -187,7 +187,7 @@ CallResult Window::init(const WindowConfig &config)
 {
 	if(uiWin_)
 		return OK;
-	BaseWindow::init();
+	BaseWindow::init(config);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
 		bug_exit("no multi-window support");
@@ -205,11 +205,11 @@ CallResult Window::init(const WindowConfig &config)
 	#else
 	mainWin = this;
 	#endif
-	CGRect rect = screen().uiScreen().bounds;
+	CGRect rect = screen()->uiScreen().bounds;
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	pointScale = [screen().uiScreen() scale];
+	pointScale = [screen()->uiScreen() scale];
 	if(pointScale > 1.)
 		logMsg("using Retina scaling");
 	#endif
@@ -224,7 +224,7 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		[glView() setDrawableColorFormat:kEAGLColorFormatRGB565];
 	}
-	if(screen() == mainScreen())
+	if(*screen() == mainScreen())
 	{
 		glView().multipleTouchEnabled = YES;
 		#ifdef CONFIG_INPUT_ICADE
@@ -233,7 +233,7 @@ CallResult Window::init(const WindowConfig &config)
 	}
 	else
 	{
-		uiWin().screen = screen().uiScreen();
+		uiWin().screen = screen()->uiScreen();
 	}
 	//logMsg("setting root view controller");
 	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
@@ -267,6 +267,7 @@ void Window::show()
 		[uiWin() makeKeyAndVisible];
 	else
 		uiWin().hidden = NO;
+	postDraw();
 }
 
 Window *windowForUIWindow(UIWindow *uiWin)
