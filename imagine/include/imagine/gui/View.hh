@@ -30,18 +30,24 @@ class ViewController
 public:
 	constexpr ViewController() {}
 	virtual void pushAndShow(View &v, bool needsNavView) = 0;
+	virtual void pop() = 0;
+	virtual void popAndShow() { pop(); };
 	virtual void dismissView(View &v) = 0;
 };
 
 class View
 {
 public:
-	Base::Window *win = nullptr;
-	ViewController *controller = nullptr;
-	static ResourceFace *defaultFace;
-	static ResourceFace *defaultSmallFace;
+	Base::Window *win{};
+	ViewController *controller{};
 	Gfx::ProjectionPlane projP;
 	const char *name_ = "";
+	static ResourceFace *defaultFace;
+	static ResourceFace *defaultSmallFace;
+	// Does the platform need an on-screen/pointer-based control to move to a previous view?
+	static bool needsBackControl;
+	static const bool needsBackControlDefault = !(Config::envIsPS3 || Config::envIsAndroid || (Config::envIsWebOS && !Config::envIsWebOS3));
+	static const bool needsBackControlIsConst = Config::envIsPS3 || Config::envIsIOS || Config::envIsWebOS3;
 
 	constexpr View() {}
 	virtual ~View() {}
@@ -56,57 +62,17 @@ public:
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
 
-	void setViewRect(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
-	{
-		this->viewRect() = rect;
-		var_selfs(projP);
-	}
-
-	void postDraw()
-	{
-		assert(win);
-		win->postDraw();
-	}
-
-	Base::Window &window()
-	{
-		assert(win);
-		return *win;
-	}
-
-	Base::Screen *screen()
-	{
-		return win->screen();
-	}
-
+	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
+	void postDraw();
+	Base::Window &window();
+	Base::Screen *screen();
 	const char *name() { return name_; }
-
-	// Does the platform need an on-screen/pointer-based control to move to a previous view?
-	static bool needsBackControl;
-	static const bool needsBackControlDefault = !(Config::envIsPS3 || Config::envIsAndroid || (Config::envIsWebOS && !Config::envIsWebOS3));
-	static const bool needsBackControlIsConst = Config::envIsPS3 || Config::envIsIOS || Config::envIsWebOS3;
-
-	static void setNeedsBackControl(bool on)
-	{
-		if(!needsBackControlIsConst) // only modify on environments that make sense
-		{
-			needsBackControl = on;
-		}
-	}
+	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms();
-
 	void dismiss();
 	void pushAndShow(View &v, bool needsNavView = true);
-
-	void show(bool animated = 1)
-	{
-		onShow();
-		//logMsg("showed view");
-		postDraw();
-	}
-
-	void init()
-	{
-
-	}
+	void pop();
+	void popAndShow();
+	void show();
+	void init();
 };

@@ -542,7 +542,7 @@ void SystemEditCheatView::init(bool highlightFirst, MdCheat &cheat)
 	code.init(cheat.code); item[i++] = &code;
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win):
@@ -550,7 +550,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 	code
 	{
 		"Code",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset());
@@ -596,7 +596,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		auto &thisCheat = *it;
 		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, const Input::Event &e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), cheatList[c]);
@@ -611,7 +611,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addCode
 	{
 		"Add Game Genie / Action Replay Code",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
@@ -681,7 +681,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		auto &thisCheat = *it;
 		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
 		cheat[cIdx].onSelect() =
-			[this, cIdx](BoolMenuItem &item, const Input::Event &e)
+			[this, cIdx](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				item.toggle(*this);
 				auto &c = cheatList[cIdx];

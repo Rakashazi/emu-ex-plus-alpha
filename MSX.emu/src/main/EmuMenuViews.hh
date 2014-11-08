@@ -98,7 +98,7 @@ private:
 		}
 
 		uint machines = 0;
-		char *machineName[256] {nullptr};
+		char *machineName[256]{};
 
 		void init()
 		{
@@ -145,22 +145,24 @@ private:
 				currentMachineIdx, machines, 0, true, currentMachineIdx == -1 ? "None" : nullptr);
 		}
 
-		void select(View *view, const Input::Event &e)
+		void select(View &view, const Input::Event &e) override
 		{
 			if(!machines)
 			{
 				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
 				return;
 			}
-			auto &multiChoiceView = *new MultiChoiceView{"Machine Type", view->window()};
+			auto &multiChoiceView = *new MultiChoiceView{"Machine Type", view.window()};
 			multiChoiceView.init(*this, !e.isPointer());
-			multiChoiceView.onSelect() =
-				[this, view](int idx, const Input::Event &e)
-				{
-					setVal(idx, *view);
-					viewStack.popAndShow();
-					return 0;
-				};
+			iterateTimes(machines, i)
+			{
+				multiChoiceView.setItem(i,
+					[this, i](TextMenuItem &, View &view, const Input::Event &e)
+					{
+						setVal(i, view);
+						view.popAndShow();
+					});
+			}
 			viewStack.pushAndShow(multiChoiceView);
 		}
 
@@ -175,7 +177,7 @@ private:
 			machines = 0;
 		}
 
-		void doSet(int val)
+		void doSet(int val, View &view) override
 		{
 			assert((uint)val < machines);
 			string_copy(optionMachineName, machineName[val], sizeof(optionMachineName));
@@ -186,7 +188,7 @@ private:
 	TextMenuItem installCBIOS
 	{
 		"Install MSX C-BIOS",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			printInstallFirmwareFilesStr(installFirmwareFilesStr);
 			auto &ynAlertView = *new YesNoAlertView{window()};
@@ -203,7 +205,7 @@ private:
 	BoolMenuItem skipFdcAccess
 	{
 		"Fast-forward Disk IO",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionSkipFdcAccess = item.on;
@@ -218,11 +220,11 @@ private:
 	}
 
 	FirmwarePathSelector machineFileSelector;
-	char machineFilePathStr[256] {0};
+	char machineFilePathStr[256]{};
 	TextMenuItem machineFilePath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			machineFileSelector.init("System/BIOS Path", !e.isPointer());
 			machineFileSelector.onPathChange =
@@ -275,16 +277,14 @@ public:
 	}
 };
 
-static const char *insertEjectDiskMenuStr[] { "Insert File", "Eject" };
+static const char *insertEjectDiskMenuStr[] {"Insert File", "Eject"};
 
-static const char *insertEjectRomMenuStr[] { "Insert File", "Eject", "Insert SCC", "Insert SCC+", "Insert Sunrise IDE" };
-
-class MsxIOControlView : public BaseMenuView
+class MsxIOControlView : public TableView
 {
 public:
 
 	static const char *hdSlotPrefix[4];
-	char hdSlotStr[4][1024] { {0} };
+	char hdSlotStr[4][1024]{};
 
 	void updateHDText(int slot)
 	{
@@ -333,23 +333,20 @@ public:
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Hard Drive", window()};
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
-			multiChoiceView.onSelect() =
-				[this, slot](int action, const Input::Event &e)
+			multiChoiceView.setItem(0,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
 				{
-					if(action == 0)
-					{
-						addHDFilePickerView(e, slot);
-						window().postDraw();
-						viewStack.popAndShow();
-					}
-					else
-					{
-						diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
-						onHDMediaChange("", slot);
-						viewStack.popAndShow();
-					}
-					return 0;
-				};
+					addHDFilePickerView(e, slot);
+					postDraw();
+					popAndShow();
+				});
+			multiChoiceView.setItem(1,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
+				{
+					diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
+					onHDMediaChange("", slot);
+					popAndShow();
+				});
 			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
@@ -361,14 +358,14 @@ public:
 
 	TextMenuItem hdSlot[4]
 	{
-		{[this](TextMenuItem &item, const Input::Event &e) { onSelectHD(item, e, 0); }},
-		{[this](TextMenuItem &item, const Input::Event &e) { onSelectHD(item, e, 1); }},
-		{[this](TextMenuItem &item, const Input::Event &e) { onSelectHD(item, e, 2); }},
-		{[this](TextMenuItem &item, const Input::Event &e) { onSelectHD(item, e, 3); }}
+		{[this](TextMenuItem &item, View &, const Input::Event &e) { onSelectHD(item, e, 0); }},
+		{[this](TextMenuItem &item, View &, const Input::Event &e) { onSelectHD(item, e, 1); }},
+		{[this](TextMenuItem &item, View &, const Input::Event &e) { onSelectHD(item, e, 2); }},
+		{[this](TextMenuItem &item, View &, const Input::Event &e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
-	char romSlotStr[2][1024] { {0} };
+	char romSlotStr[2][1024]{};
 
 	void updateROMText(int slot)
 	{
@@ -404,57 +401,57 @@ public:
 	void onSelectROM(const Input::Event &e, uint8 slot)
 	{
 		auto &multiChoiceView = *new MultiChoiceView{"ROM Cartridge Slot", window()};
-		multiChoiceView.init(insertEjectRomMenuStr, sizeofArray(insertEjectRomMenuStr), !e.isPointer());
-		multiChoiceView.onSelect() =
-			[this, slot](int action, const Input::Event &e)
+		multiChoiceView.init(5, !e.isPointer());
+		multiChoiceView.setItem(0, "Insert File",
+			[this, slot](TextMenuItem &, View &, const Input::Event &e)
 			{
-				if(action == 0)
+				addROMFilePickerView(e, slot);
+				postDraw();
+				popAndShow();
+			});
+		multiChoiceView.setItem(1, "Eject",
+			[this, slot](TextMenuItem &, View &, const Input::Event &e)
+			{
+				boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
+				onROMMediaChange("", slot);
+				popAndShow();
+			});
+		multiChoiceView.setItem(2, "Insert SCC",
+			[this, slot](TextMenuItem &, View &, const Input::Event &e)
+			{
+				boardChangeCartridge(slot, ROM_SCC, "", 0);
+				onROMMediaChange("SCC", slot);
+				popAndShow();
+			});
+		multiChoiceView.setItem(3, "Insert SCC+",
+			[this, slot](TextMenuItem &, View &, const Input::Event &e)
+			{
+				boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
+				onROMMediaChange("SCC+", slot);
+				popAndShow();
+			});
+		multiChoiceView.setItem(4, "Insert Sunrise IDE",
+			[this, slot](TextMenuItem &, View &, const Input::Event &e)
+			{
+				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
-					addROMFilePickerView(e, slot);
-					window().postDraw();
-					viewStack.popAndShow();
+					popup.postError("Error loading Sunrise IDE device");
 				}
-				else if(action == 1)
-				{
-					boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
-					onROMMediaChange("", slot);
-					viewStack.popAndShow();
-				}
-				else if(action == 2)
-				{
-					boardChangeCartridge(slot, ROM_SCC, "", 0);
-					onROMMediaChange("SCC", slot);
-					viewStack.popAndShow();
-				}
-				else if(action == 3)
-				{
-					boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
-					onROMMediaChange("SCC+", slot);
-					viewStack.popAndShow();
-				}
-				else if(action == 4)
-				{
-					if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
-					{
-						popup.postError("Error loading Sunrise IDE device");
-					}
-					else
-						onROMMediaChange("Sunrise IDE", slot);
-					viewStack.popAndShow();
-				}
-				return 0;
-			};
+				else
+					onROMMediaChange("Sunrise IDE", slot);
+				popAndShow();
+			});
 		viewStack.pushAndShow(multiChoiceView);
 	}
 
 	TextMenuItem romSlot[2]
 	{
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectROM(e, 0); }},
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectROM(e, 1); }}
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectROM(e, 0); }},
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
-	char diskSlotStr[2][1024] { {0} };
+	char diskSlotStr[2][1024]{};
 
 	void updateDiskText(int slot)
 	{
@@ -493,23 +490,20 @@ public:
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
 			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr), !e.isPointer());
-			multiChoiceView.onSelect() =
-				[this, slot](int action, const Input::Event &e)
+			multiChoiceView.setItem(0,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
 				{
-					if(action == 0)
-					{
-						addDiskFilePickerView(e, slot);
-						window().postDraw();
-						viewStack.popAndShow();
-					}
-					else
-					{
-						diskChange(slot, 0, 0);
-						onDiskMediaChange("", slot);
-						viewStack.popAndShow();
-					}
-					return 0;
-				};
+					addDiskFilePickerView(e, slot);
+					postDraw();
+					popAndShow();
+				});
+			multiChoiceView.setItem(1,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
+				{
+					diskChange(slot, 0, 0);
+					onDiskMediaChange("", slot);
+					popAndShow();
+				});
 			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
@@ -521,13 +515,13 @@ public:
 
 	TextMenuItem diskSlot[2]
 	{
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectDisk(e, 0); }},
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectDisk(e, 1); }}
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 0); }},
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 1); }}
 	};
 
-	MenuItem *item[9] {nullptr};
+	MenuItem *item[9]{};
 public:
-	MsxIOControlView(Base::Window &win): BaseMenuView("IO Control", win) {}
+	MsxIOControlView(Base::Window &win): TableView{"IO Control", win} {}
 
 	void init(bool highlightFirst)
 	{
@@ -548,7 +542,7 @@ public:
 			hdSlot[slot].init(hdSlotStr[slot], boardGetHdType(slot/2) == HD_SUNRISEIDE); item[i++] = &hdSlot[slot];
 		}
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 };
 
@@ -562,7 +556,7 @@ private:
 	TextMenuItem msxIOControl
 	{
 		"ROM/Disk Control",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(item.active)
 			{
@@ -603,6 +597,6 @@ public:
 		msxIOControl.init(); item[items++] = &msxIOControl;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

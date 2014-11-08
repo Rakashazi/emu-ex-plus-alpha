@@ -10,7 +10,7 @@ public:
 	TextMenuItem biosPath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, ssBiosFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
@@ -35,7 +35,7 @@ public:
 	MultiChoiceSelectMenuItem sh2Core
 	{
 		"SH2",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			assert(val < (int)sizeofArray(SH2CoreList)-1);
 			yinit.sh2coretype = SH2CoreList[val]->id;

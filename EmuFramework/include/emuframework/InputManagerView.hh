@@ -37,7 +37,7 @@ public:
 	void draw() override;
 };
 
-class InputManagerView : public BaseMenuView
+class InputManagerView : public TableView
 {
 private:
 	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE]{};
@@ -63,7 +63,7 @@ public:
 	void onShow() override;
 };
 
-class InputManagerOptionsView : public BaseMenuView
+class InputManagerOptionsView : public TableView
 {
 private:
 	#ifdef CONFIG_BASE_ANDROID
@@ -95,7 +95,7 @@ public:
 	void init(bool highlightFirst);
 };
 
-class InputManagerDeviceView : public BaseMenuView
+class InputManagerDeviceView : public TableView
 {
 private:
 	InputManagerView &rootIMView;

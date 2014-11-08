@@ -8,7 +8,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem gbPalette
 	{
 		"GB Palette",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionGBPal.val = val;
 			applyGBPalette();
@@ -27,7 +27,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem useBuiltinGBPalette
 	{
 		"Use Built-in GB Palettes",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionUseBuiltinGBPalette = item.on;
@@ -38,7 +38,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem resampler
 	{
 		"Resampler",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionAudioResampler = val;
 			EmuSystem::configAudioPlayback();
@@ -63,7 +63,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem reportAsGba
 	{
 		"Report Hardware as GBA",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionReportAsGba = item.on;
@@ -73,7 +73,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem fullSaturation
 	{
 		"Saturated GBC Colors",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionFullGbcSaturation = item.on;
@@ -113,7 +113,7 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -125,7 +125,7 @@ class SystemMenuView : public MenuView
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) {}
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
 	void onShow()
 	{
@@ -141,6 +141,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

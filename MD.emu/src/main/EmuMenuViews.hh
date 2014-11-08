@@ -11,7 +11,7 @@ public:
 
 	BoolMenuItem sixButtonPad
 	{
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			option6BtnPad = item.on;
@@ -24,7 +24,7 @@ public:
 	},
 	multitap
 	{
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			usingMultiTap = item.on;
@@ -33,7 +33,7 @@ public:
 	},
 	smsFM
 	{
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionSmsFM = item.on;
@@ -42,7 +42,7 @@ public:
 	},
 	bigEndianSram
 	{
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
@@ -61,7 +61,7 @@ public:
 	MultiChoiceSelectMenuItem region
 	{
 		"Game Region",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionRegion = val;
 			config.region_detect = val;
@@ -109,9 +109,9 @@ public:
 	char cdBiosPathStr[3][256] { {0} };
 	TextMenuItem cdBiosPath[3]
 	{
-		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_USA); } },
-		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); } },
-		{ [this](TextMenuItem &item, const Input::Event &e){ cdBiosPathHandler(e, REGION_EUROPE); } }
+		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_USA); } },
+		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); } },
+		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_EUROPE); } }
 	};
 
 	template <size_t S>
@@ -158,7 +158,7 @@ public:
 	MultiChoiceSelectMenuItem inputPorts
 	{
 		"Input Ports",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(val == 0)
 			{
@@ -201,7 +201,7 @@ public:
 	MultiChoiceSelectMenuItem videoSystem
 	{
 		"Video System",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionVideoSystem = val;
 		}
@@ -263,7 +263,7 @@ public:
 			bcase 4: loadGUIItems(item, i);
 		}
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 };
 
@@ -276,7 +276,7 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -304,6 +304,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

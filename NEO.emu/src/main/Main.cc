@@ -619,7 +619,7 @@ public:
 
 	void inputEvent(const Input::Event &e) override { }
 
-	void draw(Base::FrameTimeBase frameTime) override
+	void draw() override
 	{
 		using namespace Gfx;
 		projP.resetTransforms();

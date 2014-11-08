@@ -63,25 +63,31 @@ void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC y
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
-		xPos += GuiTable1D::globalXIndent;
+		xPos += TableView::globalXIndent;
 	t.draw(xPos, yPos, align, projP);
 }
 
 void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP) { t.compile(projP); }
 int BaseTextMenuItem::ySize() { return t.face->nominalHeight(); }
 Gfx::GC BaseTextMenuItem::xSize() { return t.xSize; }
-void TextMenuItem::select(View *parent, const Input::Event &e)
+void TextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	if(selectD)
-		selectD(*this, e);
+	{
+		auto del = selectD;
+		del(*this, parent, e);
+	}
 }
 
-void DualTextMenuItem::select(View *parent, const Input::Event &e)
+void DualTextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	if(selectD)
-		selectD(*this, e);
+	{
+		auto del = selectD;
+		del(*this, parent, e);
+	}
 }
 
 void BaseDualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
@@ -120,7 +126,7 @@ void BaseDualTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
 void BaseDualTextMenuItem::draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	Gfx::texAlphaProgram.use();
-	t2.draw((xPos + xSize) - GuiTable1D::globalXIndent, yPos, RC2DO, projP);
+	t2.draw((xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
 }
 
 void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
@@ -180,10 +186,13 @@ void BoolMenuItem::toggle(View &view)
 		set(1, view);
 }
 
-void BoolMenuItem::select(View *parent, const Input::Event &e)
+void BoolMenuItem::select(View &parent, const Input::Event &e)
 {
 	if(selectD)
-		selectD(*this, e);
+	{
+		auto del = selectD;
+		del(*this, parent, e);
+	}
 }
 
 void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
@@ -255,7 +264,7 @@ void MultiChoiceMenuItem::setVal(int val, View &view)
 {
 	if(updateVal(val, view))
 	{
-		doSet(val + baseVal);
+		doSet(val + baseVal, view);
 	}
 }
 

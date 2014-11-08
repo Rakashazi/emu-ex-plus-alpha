@@ -63,22 +63,21 @@ private:
 	const IG::WindowRect *contentFrame = nullptr;
 };
 
-class ScrollView1D
+class ScrollView : public View
 {
 public:
-	constexpr ScrollView1D() {}
+	using View::View;
+	void init();
+	bool isDoingScrollGesture() { return scroll.active; }
+
+protected:
 	KScroll scroll;
-	IG::WindowRect viewFrame;
+	IG::WindowRect contentSize;
 	IG::WindowRect scrollBarRect;
 	bool contentIsBiggerThanView = false;
 
-	void init(IG::WindowRect *contentFrame);
-	void updateView(); // move content frame in position along view frame
-	void place(IG::WindowRect *frame, View &view);
-	void updateGfx(View &view);
-	void draw(const Gfx::ProjectionPlane &projP);
-	int inputEvent(const Input::Event &e, View &view);
-
-private:
-	IG::WindowRect *contentFrame = nullptr;
+	void setContentSize(IG::WP size);
+	void updateGfx();
+	void drawScrollContent();
+	int scrollInputEvent(const Input::Event &e);
 };

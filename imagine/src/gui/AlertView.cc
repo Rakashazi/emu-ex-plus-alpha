@@ -21,7 +21,7 @@ void AlertView::init(const char *label, MenuItem **menuItem, bool highlightFirst
 {
 	text.init(label, View::defaultFace);
 	menu.init(menuItem, 2, highlightFirst, C2DO);
-	menu.tbl.onlyScrollIfNeeded = 1;
+	menu.onlyScrollIfNeeded = 1;
 }
 
 void AlertView::deinit()
@@ -38,7 +38,7 @@ void AlertView::place()
 	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95_gc;
 	text.compile(projP);
 
-	int menuYSize = menu.items * menu.item[0]->ySize()*2;
+	int menuYSize = menu.cells() * text.face->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5_gc)));
 	IG::WindowRect viewFrame;
 	viewFrame.setPosRel({rect.xSize()/2, rect.ySize()/2},
@@ -89,7 +89,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 	AlertView(win),
 	yes
 	{
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &view, const Input::Event &e)
 		{
 			auto callback = onYesD;
 			dismiss();
@@ -98,7 +98,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 	},
 	no
 	{
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &view, const Input::Event &e)
 		{
 			auto callback = onNoD;
 			dismiss();

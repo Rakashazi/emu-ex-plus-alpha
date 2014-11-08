@@ -7,7 +7,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem ngpLanguage
 	{
 		"NGP Language", "Japanese", "English",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			language_english = item.on;

@@ -44,16 +44,16 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 	bg.draw();
 	setColor(COLOR_WHITE);
 	texAlphaReplaceProgram.use();
-	if(text.xSize > projP.unprojectXSize(textRect) - GuiTable1D::globalXIndent*2)
+	if(text.xSize > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
 	{
 		setClipRectBounds(win, textRect);
 		setClipRect(1);
-		text.draw(projP.unProjectRect(textRect).pos(RC2DO) - GP{GuiTable1D::globalXIndent, 0}, RC2DO, projP);
+		text.draw(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}, RC2DO, projP);
 		setClipRect(0);
 	}
 	else
 	{
-		text.draw(projP.unProjectRect(textRect).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO, projP);
+		text.draw(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}, LC2DO, projP);
 	}
 	if(leftSpr.image())
 	{
@@ -96,40 +96,36 @@ void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImag
 void FSPicker::deinit()
 {
 	dir.closeDir();
+	navV.deinit();
+	tbl.deinit();
 	if(text)
 	{
 		mem_free(text);
 		text = nullptr;
 	}
-	navV.deinit();
-	tbl.cells = 0;
+	if(textPtr)
+	{
+		mem_free(textPtr);
+		textPtr = nullptr;
+	}
 }
 
 void FSPicker::place()
 {
-	iterateTimes(tbl.cells, i)
-	{
-		text[i].compile(projP);
-	}
-
-	tbl.setYCellSize(faceRes->nominalHeight()*2);
-
-	//logMsg("setting viewRect");
 	navV.viewRect.setPosRel({viewFrame.x, viewFrame.y}, {viewFrame.xSize(), int(faceRes->nominalHeight() * 1.75)}, LT2DO);
 	IG::WindowRect tableFrame = viewFrame;
 	tableFrame.setYPos(navV.viewRect.yPos(LB2DO));
 	tableFrame.y2 -= navV.viewRect.ySize();
-	tbl.place(&tableFrame, *this);
-	//logMsg("nav %d, table %d, content %d", gfx_toIYSize(navV.view.ySize), tbl.viewFrame.ySize(), tbl.contentFrame->ySize());
-
+	tbl.setViewRect(tableFrame, projP);
+	tbl.place();
 	navV.place(projP);
 }
 
 void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
 {
 	loadDir(path);
-	if(!e.isPointer() && tbl.cells)
-		tbl.selected = 0;
+	if(!e.isPointer())
+		tbl.highlightFirstCell();
 	place();
 	postDraw();
 }
@@ -158,14 +154,14 @@ void FSPicker::inputEvent(const Input::Event &e)
 		logMsg("going up a dir");
 		changeDirByInput("..", e);
 	}
-	else if(e.isPointer() && navV.viewRect.overlaps({e.x, e.y}) && !tbl.scroll.active)
+	else if(e.isPointer() && navV.viewRect.overlaps({e.x, e.y}) && !tbl.isDoingScrollGesture())
 	{
 		navV.inputEvent(e);
 		return;
 	}
 	else
 	{
-		tbl.inputEvent(e, *this);
+		tbl.inputEvent(e);
 	}
 }
 
@@ -173,21 +169,8 @@ void FSPicker::draw()
 {
 	using namespace Gfx;
 	setColor(COLOR_WHITE);
-	tbl.draw(*this);
+	tbl.draw();
 	navV.draw(window(), projP);
-}
-
-void FSPicker::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const
-{
-	using namespace Gfx;
-	setColor(COLOR_WHITE);
-	text[i].draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), LC2DO, projP);
-}
-
-void FSPicker::onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i)
-{
-	assert(i < dir.numEntries());
-	text[i].select(this, e);
 }
 
 void FSPicker::loadDir(const char *path)
@@ -205,12 +188,19 @@ void FSPicker::loadDir(const char *path)
 			logMsg("out of memory loading directory");
 			Base::abort(); // TODO: handle without exiting
 		}
+		textPtr = mem_newRealloc(textPtr, dir.numEntries());
+		if(!textPtr)
+		{
+			logMsg("out of memory loading directory");
+			Base::abort(); // TODO: handle without exiting
+		}
 		iterateTimes(dir.numEntries(), i)
 		{
 			text[i].init(dir.entryFilename(i), 1, faceRes);
+			textPtr[i] = &text[i];
 			if(FsSys::fileType(dir.entryFilename(i)) == Fs::TYPE_DIR)
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &item, const Input::Event &e)
+				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
 					{
 						assert(!singleDir);
 						logMsg("going to dir %s", dir.entryFilename(i));
@@ -219,14 +209,14 @@ void FSPicker::loadDir(const char *path)
 			}
 			else
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &item, const Input::Event &e)
+				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
 					{
 						onSelectFileD(*this, dir.entryFilename(i), e);
 					};
 			}
 		}
 	}
-	tbl.init(this, dir.numEntries(), *this);
+	tbl.init(textPtr, dir.numEntries(), false); // TODO: highlight first cell
 	#ifdef CONFIG_BASE_IOS
 	if(!Base::isSystemApp())
 		navV.setTitle("Documents");

@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <emuframework/EmuInput.hh>
 class InputManagerView;
@@ -59,7 +59,7 @@ public:
 	void draw() override;
 };
 
-class ButtonConfigView : public BaseMenuView
+class ButtonConfigView : public TableView
 {
 private:
 	struct BtnConfigMenuItem : public DualTextMenuItem

@@ -23,7 +23,7 @@
 
 class BasicViewController : public ViewController
 {
-	View *view {nullptr};
+	View *view{};
 	IG::WindowRect viewRect;
 	Gfx::ProjectionPlane projP;
 	typedef DelegateFunc<void ()> RemoveViewDelegate;
@@ -35,7 +35,7 @@ public:
 	void push(View &v);
 	void pushAndShow(View &v, bool needsNavView) override;
 	void pushAndShow(View &v);
-	void pop();
+	void pop() override;
 	void dismissView(View &v) override;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
@@ -48,9 +48,9 @@ public:
 class ViewStack : public ViewController
 {
 private:
-	View *view[5] {nullptr};
-	NavView *nav = nullptr;
-	//ViewController *nextController = nullptr;
+	View *view[5]{};
+	NavView *nav{};
+	//ViewController *nextController{};
 	IG::WindowRect viewRect, customViewRect;
 	Gfx::ProjectionPlane projP;
 
@@ -70,8 +70,8 @@ public:
 	void push(View &v);
 	void pushAndShow(View &v, bool needsNavView) override;
 	void pushAndShow(View &v);
-	void pop();
-	void popAndShow();
+	void pop() override;
+	void popAndShow() override;
 	void popToRoot();
 	void popTo(View &v);
 	void show();

@@ -16,7 +16,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem tvPhosphor
 	{
 		"Simulate TV Phosphor",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTVPhosphor.val = val;
 			if(!EmuSystem::gameIsRunning())
@@ -58,7 +58,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem videoSystem
 	{
 		"Video System",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionVideoSystem = val;
 		}
@@ -85,14 +85,14 @@ public:
 	}
 };
 
-class VCSSwitchesView : public BaseMenuView
+class VCSSwitchesView : public TableView
 {
-	MenuItem *item[4] {nullptr};
+	MenuItem *item[4]{};
 
 	TextMenuItem softReset
 	{
 		"Soft Reset",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -118,7 +118,7 @@ class VCSSwitchesView : public BaseMenuView
 	BoolMenuItem diff1
 	{
 		"Left (P1) Difficulty",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			p1DiffB = item.on;
@@ -128,7 +128,7 @@ class VCSSwitchesView : public BaseMenuView
 	BoolMenuItem diff2
 	{
 		"Right (P2) Difficulty",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			p2DiffB = item.on;
@@ -138,7 +138,7 @@ class VCSSwitchesView : public BaseMenuView
 	BoolMenuItem color
 	{
 		"Color",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			vcsColor = item.on;
@@ -146,7 +146,7 @@ class VCSSwitchesView : public BaseMenuView
 	};
 
 public:
-	VCSSwitchesView(Base::Window &win): BaseMenuView("Switches", win) {}
+	VCSSwitchesView(Base::Window &win): TableView{"Switches", win} {}
 
 	void init(bool highlightFirst)
 	{
@@ -156,10 +156,10 @@ public:
 		color.init(vcsColor); item[i++] = &color;
 		softReset.init(); item[i++] = &softReset;
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 
-	void onShow()
+	void onShow() override
 	{
 		diff1.set(p1DiffB, *this);
 		diff2.set(p2DiffB, *this);
@@ -174,7 +174,7 @@ private:
 	TextMenuItem switches
 	{
 		"Console Switches",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -186,9 +186,9 @@ private:
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) {}
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
-	void onShow()
+	void onShow() override
 	{
 		MenuView::onShow();
 		switches.active = EmuSystem::gameIsRunning();
@@ -202,6 +202,6 @@ public:
 		switches.init(); item[items++] = &switches;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

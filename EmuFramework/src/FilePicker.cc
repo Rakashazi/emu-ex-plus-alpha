@@ -27,9 +27,9 @@ void EmuFilePicker::init(bool highlightFirst, bool pickingDir, FsDirFilterFunc f
 	FSPicker::init(".", needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr, filter, singleDir);
 	onSelectFile() = [this](FSPicker &picker, const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
-	if(highlightFirst && tbl.cells)
+	if(highlightFirst)
 	{
-		tbl.selected = 0;
+		tbl.highlightFirstCell();
 	}
 }
 

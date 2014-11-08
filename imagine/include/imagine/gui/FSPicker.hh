@@ -23,17 +23,17 @@
 #include <imagine/input/Input.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/resource/face/ResourceFace.hh>
-#include <imagine/gui/GuiTable1D.hh>
+#include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
 
-class FSPicker : public View, public GuiTableSource
+class FSPicker : public View
 {
 public:
-	FsDirFilterFunc filter = nullptr;
-	ScrollableGuiTable1D tbl;
+	FsDirFilterFunc filter{};
+	TableView tbl;
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
 	OnSelectFileDelegate onSelectFileD;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, const Input::Event &e)>;
@@ -46,15 +46,13 @@ public:
 	};
 	static const bool needsUpDirControl = !Config::envIsPS3;
 
-	FSPicker(Base::Window &win): View(win) {}
+	FSPicker(Base::Window &win): View{win}, tbl{win} {}
 	void init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes,
 			FsDirFilterFunc filter = 0, bool singleDir = 0, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void draw() override;
-	void drawElement(const GuiTable1D &table, uint element, Gfx::GCRect rect) const override;
-	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
 	OnSelectFileDelegate &onSelectFile() { return onSelectFileD; }
 	OnCloseDelegate &onClose() { return onCloseD; }
 	void onLeftNavBtn(const Input::Event &e);
@@ -84,11 +82,12 @@ private:
 		void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	};
 
-	TextMenuItem *text = nullptr;
+	MenuItem **textPtr{};
+	TextMenuItem *text{};
 	FsSys dir;
 	IG::WindowRect viewFrame;
-	ResourceFace *faceRes = nullptr;
-	FSNavView navV {*this};
+	ResourceFace *faceRes{};
+	FSNavView navV{*this};
 	bool singleDir = false;
 
 	void loadDir(const char *path);

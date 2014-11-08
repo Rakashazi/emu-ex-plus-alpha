@@ -27,6 +27,7 @@
 #include <imagine/util/typeTraits.hh>
 #include <imagine/config/imagineTypes.h>
 #include <cmath>
+#include <algorithm>
 
 #ifdef __ANDROID__
 // missing C99 math functions in Bionic prevent TR1 function definitions in cmath,
@@ -281,58 +282,9 @@ static T signOf(T num)
 }
 
 template <class T>
-static T clipToLowBound(T val, T bound) { return val < bound ? bound : val; }
-
-template <class T>
-static T clipToHighBoundExclusive(T val, T bound) { return val >= bound ? (bound - 1) : val; }
-
-template <class T>
-static T clipToHighBound(T val, T bound) { return val > bound ? (bound) : val; }
-
-template <class T>
-static T clipToBounds(T val, T low, T high) { return clipToLowBound(clipToHighBound(val, high), low); }
-
-template <class T>
-static T clipToHalfOpenBounds(T val, T low, T high) { return clipToLowBound(clipToHighBoundExclusive(val, high), low); }
-
-template <class T, class C>
-static T clipToBoundsAndConfirm(T val, T low, T high, C *confirm)
+static T clamp(T val, T low, T high)
 {
-	T newVal = clipToBounds(val, low, high);
-	if(newVal != val)
-		*confirm = 1;
-	else
-		*confirm = 0;
-	return newVal;
-}
-
-template <class T, class C>
-static T clipToHalfOpenBoundsAndConfirm(T val, T low, T high, C *confirm)
-{
-	T newVal = clipToHalfOpenBounds(val, low, high);
-	if(newVal != val)
-		*confirm = 1;
-	else
-		*confirm = 0;
-	return newVal;
-}
-
-template <class T>
-static T clipToLowZero(T val)
-{
-	return clipToLowBound(val, (T)0);
-}
-
-template <class T>
-static T clipToZeroSigned(T val, T offset)
-{
-	T sign = signOf(val);
-	val += offset;
-	if(signOf(val) != sign)
-	{
-		val = 0;
-	}
-	return val;
+	return std::min(std::max(val, low), high);
 }
 
 template <class T>

@@ -15,7 +15,7 @@
 
 #define LOGTAG "ScrollView1D"
 
-#include <imagine/gui/ScrollView1D.hh>
+#include <imagine/gui/ScrollView.hh>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Base.hh>
@@ -201,7 +201,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 				//logMsg("%d from %d-%d to %d-%d", e.y, 0, gfx_viewPixelHeight(), 0, maxClip);
 				offset = IG::scalePointRange((Gfx::GC)e.y, (Gfx::GC)viewFrame->y, (Gfx::GC)viewFrame->y + (Gfx::GC)viewFrame->ySize(), (Gfx::GC)0, (Gfx::GC)maxClip);
 				//logMsg("offset %d", offset);
-				offset = IG::clipToBounds(offset, 0, maxClip);
+				offset = IG::clamp(offset, 0, maxClip);
 			}
 			else
 			{
@@ -277,43 +277,38 @@ void KScroll::animate(int minClip, int maxClip, View &view)
 		decel2(view);
 }
 
-void ScrollView1D::init(IG::WindowRect *contentFrame)
+void ScrollView::init()
 {
-	assert(contentFrame);
-	this->contentFrame = contentFrame;
-	scroll.init(&viewFrame, contentFrame);
+	View::init();
+	scroll.init(&viewRect(), &contentSize);
 }
 
-void ScrollView1D::updateView() // move content frame in position along view frame
+void ScrollView::setContentSize(IG::WP size)
 {
-	contentFrame->setPos({viewFrame.xPos(LT2DO), viewFrame.yPos(LT2DO) - scroll.offset}, LT2DO);
-}
-
-void ScrollView1D::place(IG::WindowRect *frame, View &view)
-{
-	assert(frame);
-	assert(contentFrame);
-	viewFrame.setPosRel(frame->pos(LT2DO), frame->size(), LT2DO);
-	scroll.place(view);
-	contentIsBiggerThanView = contentFrame->ySize() > viewFrame.ySize();
-	scrollBarRect.x = viewFrame.x2 - 5;
-	scrollBarRect.x2 = scrollBarRect.x + 3;
+	contentSize = {0, 0, size.x, size.y};
+	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
+	//scrollFrame.setPosRel(rect.pos(LT2DO), rect.size(), LT2DO);
+	scroll.place(*this);
+	contentIsBiggerThanView = contentSize.y > viewRect().ySize();
+	scrollBarRect.x = viewRect().x2 - 5;
+	scrollBarRect.x2 = viewRect().x + 3;
 	scrollBarRect.y = 0;
 	/*if(contentFrame->ySize() == 0)
 		scrollBarRect.y2 = 0;*/
-	scrollBarRect.y2 = viewFrame.ySize() * (viewFrame.ySize() / (Gfx::GC)contentFrame->ySize());
+	scrollBarRect.y2 = viewRect().ySize() * (viewRect().ySize() / (Gfx::GC)contentSize.y);
 	if(scrollBarRect.y2 < 10)
 		scrollBarRect.y2 = 10;
 }
 
-void ScrollView1D::updateGfx(View &view)
+void ScrollView::updateGfx()
 {
-	scroll.animate(0, contentFrame->ySize() - viewFrame.ySize(), view);
-	updateView();
+	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
+	scroll.animate(0, contentSize.y - viewRect().ySize(), *this);
 }
 
-void ScrollView1D::draw(const Gfx::ProjectionPlane &projP)
+void ScrollView::drawScrollContent()
 {
+	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
 	using namespace Gfx;
 	if(contentIsBiggerThanView && (scroll.allowScrollWholeArea || scroll.active))
 	{
@@ -328,23 +323,21 @@ void ScrollView1D::draw(const Gfx::ProjectionPlane &projP)
 		}
 		else
 			setColor(.5, .5, .5);
-		scrollBarRect.setYPos(IG::scalePointRange((Gfx::GC)scroll.offset, (Gfx::GC)0, Gfx::GC(scroll.maxClip), (Gfx::GC)viewFrame.y, Gfx::GC(viewFrame.y2 - scrollBarRect.ySize())));
+		scrollBarRect.setYPos(
+			IG::scalePointRange((Gfx::GC)scroll.offset, 0_gc, Gfx::GC(scroll.maxClip), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
 		GeomRect::draw(scrollBarRect, projP);
 		//setColor(COLOR_WHITE);
 	}
 }
 
-int ScrollView1D::inputEvent(const Input::Event &e, View &view)
+int ScrollView::scrollInputEvent(const Input::Event &e)
 {
+	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
 	int scrollHasControl = 0;
 	auto oldOffset = scroll.offset;
-	if(scroll.inputEvent(0, contentFrame->ySize() - viewFrame.ySize(), e, view))
+	if(scroll.inputEvent(0, contentSize.y - viewRect().ySize(), e, *this))
 	{
 		scrollHasControl = 1;
-	}
-	if(oldOffset != scroll.offset)
-	{
-		updateView();
 	}
 	return scrollHasControl;
 }

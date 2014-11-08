@@ -15,7 +15,7 @@ public:
 	TextMenuItem fdsBiosPath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, biosFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
@@ -40,7 +40,7 @@ public:
 	BoolMenuItem fourScore
 	{
 		"4-Player Adapter",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionFourScore = item.on;
@@ -51,7 +51,7 @@ public:
 	MultiChoiceSelectMenuItem inputPorts
 	{
 		"Input Ports",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(val == 0)
 			{
@@ -94,7 +94,7 @@ public:
 	MultiChoiceSelectMenuItem videoSystem
 	{
 		"Video System",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionVideoSystem = val;
 			switch(val)
@@ -122,8 +122,6 @@ public:
 		videoSystem.init(str, std::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
 	}
 
-
-
 public:
 	SystemOptionView(Base::Window &win): OptionView(win) {}
 
@@ -148,33 +146,49 @@ public:
 	}
 };
 
-class FDSControlView : public BaseMenuView
+class FDSControlView : public TableView
 {
 private:
-	struct SetSideMenuItem : public TextMenuItem
+	TextMenuItem setSide[4]
 	{
-		constexpr SetSideMenuItem() { }
-		int side = 0;
-		void init(const char *sideStr, int side)
 		{
-			TextMenuItem::init(sideStr, side < FCEU_FDSSides());
-			this->side = side;
-		}
-
-		void select(View *view, const Input::Event &e)
-		{
-			if(side < FCEU_FDSSides())
+			"Set Disk 1 Side A",
+			[](TextMenuItem &, View &view, const Input::Event &e)
 			{
-				FCEU_FDSSetDisk(side);
-				viewStack.popAndShow();
+				FCEU_FDSSetDisk(0);
+				view.popAndShow();
+			}
+		},
+		{
+			"Set Disk 1 Side B",
+			[](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				FCEU_FDSSetDisk(1);
+				view.popAndShow();
+			}
+		},
+		{
+			"Set Disk 2 Side A",
+			[](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				FCEU_FDSSetDisk(2);
+				view.popAndShow();
+			}
+		},
+		{
+			"Set Disk 2 Side B",
+			[](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				FCEU_FDSSetDisk(3);
+				view.popAndShow();
 			}
 		}
-	} setSide[4];
+	};
 
 	TextMenuItem insertEject
 	{
 		"Eject",
-		[](TextMenuItem &, const Input::Event &e)
+		[](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(FCEU_FDSInserted())
 			{
@@ -184,67 +198,49 @@ private:
 		}
 	};
 
+	MenuItem *item[sizeofArrayConst(setSide) + 1]{};
 
-
-	MenuItem *item[5] = {nullptr}; //sizeofArrayConst(setSide) + 2 not accepted by older GCC
 public:
-	FDSControlView(Base::Window &win): BaseMenuView("FDS Control", win) {}
+	FDSControlView(Base::Window &win): TableView{"FDS Control", win} {}
 
 	void init(bool highlightFirst)
 	{
 		uint i = 0;
-		setSide[0].init("Set Disk 1 Side A", 0); item[i++] = &setSide[0];
-		setSide[1].init("Set Disk 1 Side B", 1); item[i++] = &setSide[1];
-		setSide[2].init("Set Disk 2 Side A", 2); item[i++] = &setSide[2];
-		setSide[3].init("Set Disk 2 Side B", 3); item[i++] = &setSide[3];
+		setSide[0].init(0 < FCEU_FDSSides()); item[i++] = &setSide[0];
+		setSide[1].init(1 < FCEU_FDSSides()); item[i++] = &setSide[1];
+		setSide[2].init(2 < FCEU_FDSSides()); item[i++] = &setSide[2];
+		setSide[3].init(3 < FCEU_FDSSides()); item[i++] = &setSide[3];
 		insertEject.init(FCEU_FDSInserted()); item[i++] = &insertEject;
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 };
 
 class SystemMenuView : public MenuView
 {
 private:
-	struct FDSControlMenuItem : public TextMenuItem
+	char diskLabel[sizeof("FDS Control (Disk 1:A)")]{};
+
+	TextMenuItem fdsControl
 	{
-		constexpr FDSControlMenuItem() {}
-		char label[sizeof("FDS Control (Disk 1:A)")] {0};
-		void init()
-		{
-			strcpy(label, "");
-			TextMenuItem::init(label);
-		}
-
-		void refreshActive(const Gfx::ProjectionPlane &projP)
-		{
-			active = isFDS;
-			if(!isFDS)
-				strcpy(label, "FDS Control");
-			else if(!FCEU_FDSInserted())
-				strcpy(label, "FDS Control (No Disk)");
-			else
-				sprintf(label, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
-			compile(projP);
-		}
-
-		void select(View *view, const Input::Event &e)
+		"",
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
-				auto &fdsMenu = *new FDSControlView{view->window()};
+				auto &fdsMenu = *new FDSControlView{window()};
 				fdsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(fdsMenu);
+				pushAndShow(fdsMenu);
 			}
 			else
 				popup.post("Disk System not in use", 2);
 		}
-	} fdsControl;
+	};
 
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -255,14 +251,27 @@ private:
 		}
 	};
 
+	void refreshFDSItem()
+	{
+		fdsControl.active = isFDS;
+		if(!isFDS)
+			strcpy(diskLabel, "FDS Control");
+		else if(!FCEU_FDSInserted())
+			strcpy(diskLabel, "FDS Control (No Disk)");
+		else
+			sprintf(diskLabel, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
+		fdsControl.t.setString(diskLabel);
+		fdsControl.compile(projP);
+	}
+
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) {}
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
 	void onShow()
 	{
 		MenuView::onShow();
 		cheats.active = EmuSystem::gameIsRunning();
-		fdsControl.refreshActive(projP);
+		refreshFDSItem();
 	}
 
 	void init(bool highlightFirst)
@@ -274,6 +283,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

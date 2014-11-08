@@ -86,7 +86,7 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 	}
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 static bool isValidGGCodeLen(const char *str)
@@ -98,7 +98,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	addr
 	{
 		"Address",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset());
@@ -129,7 +129,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	value
 	{
 		"Value",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
@@ -160,7 +160,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	comp
 	{
 		"Compare",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset());
@@ -198,7 +198,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	ggCode
 	{
 		"GG Code",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset());
@@ -243,7 +243,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		if(!gotCheat) continue;
 		cheat[c].init(name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, const Input::Event &e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
@@ -256,7 +256,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 	addGG
 	{
 		"Add Game Genie Code",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
@@ -321,7 +321,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 	addRAM
 	{
 		"Add RAM Patch",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", getCollectTextCloseAsset());
@@ -369,7 +369,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		if(!gotCheat) continue;
 		cheat[c].init(name, status); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				uint32 a;
 				uint8 v;

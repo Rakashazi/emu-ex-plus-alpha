@@ -18,7 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 
@@ -28,7 +28,7 @@ public:
 	AlertView(Base::Window &win): View{win}, menu{win} {}
 	Gfx::GCRect labelFrame;
 	Gfx::Text text;
-	BaseMenuView menu;
+	TableView menu;
 	IG::WindowRect rect;
 
 	IG::WindowRect &viewRect() { return rect; }

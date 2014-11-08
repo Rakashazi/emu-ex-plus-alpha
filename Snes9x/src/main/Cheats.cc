@@ -41,14 +41,14 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	addr
 	{
 		"Address",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 6-digit hex", addrStr, getCollectTextCloseAsset());
@@ -88,7 +88,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	value
 	{
 		"Value",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
@@ -127,7 +127,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	saved
 	{
 		"Saved Value",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", savedStr, getCollectTextCloseAsset());
@@ -194,7 +194,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 	{
 		cheat[c].init(Cheat.c[c].name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, const Input::Event &e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
@@ -208,7 +208,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addCode
 	{
 		"Add Game Genie/Action Replay/Gold Finger Code",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(Cheat.num_cheats == EmuCheats::MAX)
 			{
@@ -284,7 +284,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 	{
 		cheat[c].init(Cheat.c[c].name, Cheat.c[c].enabled); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				item.toggle(*this);
 				if(item.on)

@@ -14,28 +14,17 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/number.h>
-#include <emuframework/EmuApp.hh>
 #include <emuframework/MultiChoiceView.hh>
 #include <algorithm>
 
-void BaseMultiChoiceView::draw()
-{
-	using namespace Gfx;
-	/*resetTransforms();
-	setBlendMode(0);
-	setColor(.2, .2, .2, 1.);
-	GeomRect::draw(viewFrame);*/
-	BaseMenuView::draw();
-}
-
-void BaseMultiChoiceView::drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const
+void BaseMultiChoiceView::drawElement(uint i, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	if((int)i == activeItem)
 		setColor(0., .8, 1.);
 	else
 		setColor(COLOR_WHITE);
-	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), BaseMenuView::align, projP);
+	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 }
 
 void MultiChoiceView::freeItems()
@@ -63,16 +52,23 @@ void MultiChoiceView::allocItems(int items)
 	}
 }
 
+void MultiChoiceView::init(uint choices, bool highlightCurrent, _2DOrigin align)
+{
+	init(nullptr, choices, highlightCurrent, align);
+}
+
 void MultiChoiceView::init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align)
 {
-	//assert(choices <= sizeofArray(choiceEntry));
 	allocItems(choices);
 	iterateTimes(choices, i)
 	{
-		choiceEntry[i].init(choice[i]);
+		if(choice)
+			choiceEntry[i].init(choice[i]);
+		else
+			choiceEntry[i].init();
 		choiceEntryItem[i] = &choiceEntry[i];
 	}
-	BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
+	TableView::init(choiceEntryItem, choices, highlightCurrent, align);
 }
 
 void MultiChoiceView::init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align)
@@ -82,34 +78,42 @@ void MultiChoiceView::init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DO
 	iterateTimes(src.choices, i)
 	{
 		choiceEntry[i].init(src.choiceStr[i], src.t2.face);
+		choiceEntry[i].onSelect() =
+			[&src, i](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				logMsg("set choice %d", i);
+				if(src.set((int)i, e, view))
+				{
+					view.dismiss();
+				}
+			};
 		choiceEntryItem[i] = &choiceEntry[i];
 	}
-	BaseMenuView::init(choiceEntryItem, src.choices, 0, align);
+	TableView::init(choiceEntryItem, src.choices, false, align);
 	activeItem = src.choice;
 	if(highlightCurrent)
 	{
-		tbl.selected = src.choice;
+		selected = src.choice;
 	}
-	onSelectD =
-		[&](int i, const Input::Event &e)
-		{
-			return src.set(i, e, *this);
-		};
 }
 
 void MultiChoiceView::deinit()
 {
-	BaseMenuView::deinit();
+	TableView::deinit();
 	freeItems();
 }
 
-void MultiChoiceView::onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i)
+void MultiChoiceView::setItem(int idx, TextMenuItem::SelectDelegate del)
 {
-	logMsg("set choice %d", i);
-	if(onSelectD((int)i, e))
-	{
-		dismiss();
-	}
+	assert(idx < cells());
+	choiceEntry[idx].onSelect() = del;
+}
+
+void MultiChoiceView::setItem(int idx, const char *name, TextMenuItem::SelectDelegate del)
+{
+	assert(idx < cells());
+	choiceEntry[idx].t.setString(name);
+	choiceEntry[idx].onSelect() = del;
 }
 
 void MultiChoiceSelectMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
@@ -122,9 +126,9 @@ void MultiChoiceSelectMenuItem::init(const char **choiceStr, int val, int max, i
 	MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
-void MultiChoiceSelectMenuItem::select(View *parent, const Input::Event &e)
+void MultiChoiceSelectMenuItem::select(View &parent, const Input::Event &e)
 {
-	auto &multiChoiceView = *new MultiChoiceView{t.str, parent->window()};
+	auto &multiChoiceView = *new MultiChoiceView{t.str, parent.window()};
 	multiChoiceView.init(*this, !e.isPointer());
-	parent->pushAndShow(multiChoiceView);
+	parent.pushAndShow(multiChoiceView);
 }

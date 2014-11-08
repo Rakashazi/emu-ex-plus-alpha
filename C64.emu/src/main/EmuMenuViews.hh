@@ -15,7 +15,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem trueDriveEmu
 	{
 		"True Drive Emulation (TDE)",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			setTrueDriveEmu(item.on);
@@ -25,7 +25,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem autostartWarp
 	{
 		"Autostart Fast-forward",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			resources_set_int("AutostartWarp", item.on);
@@ -35,7 +35,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem autostartTDE
 	{
 		"Autostart Handles TDE",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			resources_set_int("AutostartHandleTrueDriveEmulation", item.on);
@@ -45,7 +45,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem cropNormalBorders
 	{
 		"Crop Normal Borders",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionCropNormalBorders = item.on;
@@ -56,7 +56,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem c64Model
 	{
 		"C64 Model",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			setC64Model(val);
 		}
@@ -85,7 +85,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem borderMode
 	{
 		"Border Mode",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			resources_set_int("VICIIBorderMode", val);
 		}
@@ -111,7 +111,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem sidEngine
 	{
 		"SID Engine",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			assert(val <= (int)sizeofArray(sidEngineChoiceMap));
 			logMsg("setting SID engine: %d", sidEngineChoiceMap[val]);
@@ -131,7 +131,7 @@ class SystemOptionView : public OptionView
 	TextMenuItem systemFilePath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			systemFileSelector.init("System File Path", !e.isPointer());
 			systemFileSelector.onPathChange =
@@ -223,7 +223,7 @@ static int c64TapeExtensionFsFilter(const char *name, int type);
 static int c64CartExtensionFsFilter(const char *name, int type);
 extern int mem_cartridge_type;
 
-class C64IOControlView : public BaseMenuView
+class C64IOControlView : public TableView
 {
 private:
 
@@ -262,30 +262,27 @@ public:
 private:
 	TextMenuItem tapeSlot
 	{
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(!item.active) return;
 			if(tape_get_file_name() && strlen(tape_get_file_name()))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Tape Drive", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
-				multiChoiceView.onSelect() =
-					[this](int action, const Input::Event &e)
+				multiChoiceView.setItem(0,
+					[this](TextMenuItem &, View &, const Input::Event &e)
 					{
-						if(action == 0)
-						{
-							addTapeFilePickerView(e);
-							window().postDraw();
-							viewStack.popAndShow();
-						}
-						else
-						{
-							tape_image_detach(1);
-							onTapeMediaChange("");
-							viewStack.popAndShow();
-						}
-						return 0;
-					};
+						addTapeFilePickerView(e);
+						postDraw();
+						popAndShow();
+					});
+				multiChoiceView.setItem(1,
+					[this](TextMenuItem &, View &, const Input::Event &e)
+					{
+						tape_image_detach(1);
+						onTapeMediaChange("");
+						popAndShow();
+					});
 				viewStack.pushAndShow(multiChoiceView);
 			}
 			else
@@ -296,7 +293,7 @@ private:
 		}
 	};
 
-	char romSlotStr[1024] {0};
+	char romSlotStr[1024]{};
 
 	void updateROMText()
 	{
@@ -331,29 +328,26 @@ public:
 private:
 	TextMenuItem romSlot
 	{
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(cartridge_get_file_name(mem_cartridge_type) && strlen(cartridge_get_file_name(mem_cartridge_type)))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Cartridge Slot", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
-				multiChoiceView.onSelect() =
-					[this](int action, const Input::Event &e)
+				multiChoiceView.setItem(0,
+					[this](TextMenuItem &, View &, const Input::Event &e)
 					{
-						if(action == 0)
-						{
-							addCartFilePickerView(e);
-							window().postDraw();
-							viewStack.popAndShow();
-						}
-						else if(action == 1)
-						{
-							cartridge_detach_image(-1);
-							onROMMediaChange("");
-							viewStack.popAndShow();
-						}
-						return 0;
-					};
+						addCartFilePickerView(e);
+						postDraw();
+						popAndShow();
+					});
+				multiChoiceView.setItem(1,
+					[this](TextMenuItem &, View &, const Input::Event &e)
+					{
+						cartridge_detach_image(-1);
+						onROMMediaChange("");
+						popAndShow();
+					});
 				viewStack.pushAndShow(multiChoiceView);
 			}
 			else
@@ -404,23 +398,20 @@ public:
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
 			multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
-			multiChoiceView.onSelect() =
-				[this, slot](int action, const Input::Event &e)
+			multiChoiceView.setItem(0,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
 				{
-					if(action == 0)
-					{
-						addDiskFilePickerView(e, slot);
-						window().postDraw();
-						viewStack.popAndShow();
-					}
-					else
-					{
-						file_system_detach_disk(slot+8);
-						onDiskMediaChange("", slot);
-						viewStack.popAndShow();
-					}
-					return 0;
-				};
+					addDiskFilePickerView(e, slot);
+					postDraw();
+					popAndShow();
+				});
+			multiChoiceView.setItem(1,
+				[this, slot](TextMenuItem &, View &, const Input::Event &e)
+				{
+					file_system_detach_disk(slot+8);
+					onDiskMediaChange("", slot);
+					popAndShow();
+				});
 			viewStack.pushAndShow(multiChoiceView);
 		}
 		else
@@ -433,13 +424,13 @@ public:
 private:
 	TextMenuItem diskSlot[2]
 	{
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectDisk(e, 0); }},
-		{[this](TextMenuItem &, const Input::Event &e) { onSelectDisk(e, 1); }},
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 0); }},
+		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 1); }},
 	};
 
 	MenuItem *item[9] {nullptr};
 public:
-	C64IOControlView(Base::Window &win): BaseMenuView("IO Control", win) { }
+	C64IOControlView(Base::Window &win): TableView{"IO Control", win} { }
 
 	void init(bool highlightFirst)
 	{
@@ -456,7 +447,7 @@ public:
 		updateTapeText();
 		tapeSlot.init(tapeSlotStr); item[i++] = &tapeSlot;
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 };
 
@@ -467,7 +458,7 @@ class SystemMenuView : public MenuView
 	BoolMenuItem swapJoystickPorts
 	{
 		"Swap Joystick Ports",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionSwapJoystickPorts = item.on;
@@ -477,7 +468,7 @@ class SystemMenuView : public MenuView
 	TextMenuItem c64IOControl
 	{
 		"ROM/Disk/Tape Control",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(item.active)
 			{
@@ -492,36 +483,11 @@ class SystemMenuView : public MenuView
 	TextMenuItem quickSettings
 	{
 		"Apply Quick C64 Settings",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
-			static const char *str[] =
-			{
-				"1. NTSC & True Drive Emu",
-				"2. NTSC",
-				"3. PAL & True Drive Emu",
-				"4. PAL",
-			};
-			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
-			multiChoiceView.init(str, sizeofArray(str), !e.isPointer(), LC2DO);
-			multiChoiceView.onSelect() =
-				[](int action, const Input::Event &e)
+			static auto reloadGame =
+				[]()
 				{
-					viewStack.popAndShow();
-					switch(action)
-					{
-						bcase 0:
-							setTrueDriveEmu(1);
-							setC64Model(C64MODEL_C64_NTSC);
-						bcase 1:
-							setTrueDriveEmu(0);
-							setC64Model(C64MODEL_C64_NTSC);
-						bcase 2:
-							setTrueDriveEmu(1);
-							setC64Model(C64MODEL_C64_PAL);
-						bcase 3:
-							setTrueDriveEmu(0);
-							setC64Model(C64MODEL_C64_PAL);
-					}
 					if(EmuSystem::gameIsRunning())
 					{
 						FsSys::PathString gamePath;
@@ -529,14 +495,48 @@ class SystemMenuView : public MenuView
 						EmuSystem::loadGame(gamePath.data());
 						startGameFromMenu();
 					}
-					return 0;
 				};
+
+			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
+			multiChoiceView.init(4, !e.isPointer(), LC2DO);
+			multiChoiceView.setItem(0, "1. NTSC & True Drive Emu",
+				[this](TextMenuItem &, View &, const Input::Event &e)
+				{
+					popAndShow();
+					setTrueDriveEmu(1);
+					setC64Model(C64MODEL_C64_NTSC);
+					reloadGame();
+				});
+			multiChoiceView.setItem(1, "2. NTSC",
+				[this](TextMenuItem &, View &, const Input::Event &e)
+				{
+					popAndShow();
+					setTrueDriveEmu(0);
+					setC64Model(C64MODEL_C64_NTSC);
+					reloadGame();
+				});
+			multiChoiceView.setItem(2, "3. PAL & True Drive Emu",
+				[this](TextMenuItem &, View &, const Input::Event &e)
+				{
+					popAndShow();
+					setTrueDriveEmu(1);
+					setC64Model(C64MODEL_C64_PAL);
+					reloadGame();
+				});
+			multiChoiceView.setItem(3, "4. PAL",
+				[this](TextMenuItem &, View &, const Input::Event &e)
+				{
+					popAndShow();
+					setTrueDriveEmu(0);
+					setC64Model(C64MODEL_C64_PAL);
+					reloadGame();
+				});
 			viewStack.pushAndShow(multiChoiceView);
 		}
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) { }
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
 	void onShow()
 	{
@@ -555,6 +555,6 @@ public:
 		swapJoystickPorts.init(optionSwapJoystickPorts); item[items++] = &swapJoystickPorts;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

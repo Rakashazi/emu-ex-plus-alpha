@@ -380,7 +380,7 @@ void TouchConfigView::init(bool highlightFirst)
 	resetControls.init(); text[i++] = &resetControls;
 	resetAllControls.init(); text[i++] = &resetAllControls;
 	assert(i <= sizeofArray(text));
-	BaseMenuView::init(text, i, highlightFirst);
+	TableView::init(text, i, highlightFirst);
 }
 
 void TouchConfigView::draw()
@@ -388,13 +388,13 @@ void TouchConfigView::draw()
 	using namespace Gfx;
 	projP.resetTransforms();
 	vController.draw(true, false, true, .75);
-	BaseMenuView::draw();
+	TableView::draw();
 }
 
 void TouchConfigView::place()
 {
 	refreshTouchConfigMenu();
-	BaseMenuView::place();
+	TableView::place();
 }
 
 void TouchConfigView::refreshTouchConfigMenu()
@@ -442,20 +442,20 @@ void TouchConfigView::refreshTouchConfigMenu()
 }
 
 TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName):
-	BaseMenuView("On-screen Input Setup", win),
+	TableView{"On-screen Input Setup", win},
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	touchCtrl
 	{
 		"Use Virtual Gamepad",
 		#ifdef CONFIG_ENV_WEBOS
-		[](BoolMenuItem &item, const Input::Event &e)
+		[](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle();
 			optionTouchCtrl = item.on;
 			setOnScreenControls(item.on);
 		}
 		#else
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrl = val;
 			if(val == 2)
@@ -468,7 +468,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	pointerInput
 	{
 		"Virtual Gamepad Player",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			pointerInputPlayer = val;
 			vController.updateMapping(pointerInputPlayer);
@@ -477,7 +477,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	size
 	{
 		"Button Size",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlSize = touchCtrlSizeMenuVals[val];
 			EmuControls::setupVControllerVars();
@@ -487,7 +487,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	deadzone
 	{
 		"Deadzone",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchDpadDeadzone = touchDpadDeadzoneMenuVals[val];
 			vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
@@ -496,7 +496,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	diagonalSensitivity
 	{
 		"Diagonal Sensitivity",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchDpadDiagonalSensitivity = touchDpadDiagonalSensitivityMenuVals[val];
 			vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
@@ -505,7 +505,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnSpace
 	{
 		"Spacing",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlBtnSpace = touchCtrlBtnSpaceMenuVals[val];
 			EmuControls::setupVControllerVars();
@@ -515,7 +515,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnExtraXSize
 	{
 		"H Overlap",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlExtraXBtnSize = touchCtrlExtraXBtnSizeMenuVals[val];
 			EmuControls::setupVControllerVars();
@@ -524,7 +524,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	},
 	btnExtraYSizeMultiRow
 	{
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlExtraYBtnSizeMultiRow = touchCtrlExtraXBtnSizeMenuVals[val];
 			EmuControls::setupVControllerVars();
@@ -534,7 +534,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnExtraYSize
 	{
 		"V Overlap",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlExtraYBtnSize = touchCtrlExtraYBtnSizeMenuVals[val];
 			EmuControls::setupVControllerVars();
@@ -544,7 +544,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	triggerPos
 	{
 		"Inline L/R",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlTriggerBtnPos = item.on;
@@ -554,7 +554,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnStagger
 	{
 		"Stagger",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlBtnStagger = val;
 			EmuControls::setupVControllerVars();
@@ -564,7 +564,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	dPadState
 	{
 		"D-Pad",
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][0].state = val;
 			vControllerLayoutPosChanged = true;
@@ -574,7 +574,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	faceBtnState
 	{
 		faceBtnName,
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][2].state = val;
 			vControllerLayoutPosChanged = true;
@@ -584,7 +584,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	centerBtnState
 	{
 		centerBtnName,
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][1].state = val;
 			vControllerLayoutPosChanged = true;
@@ -594,7 +594,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	lTriggerState
 	{
 		"L",
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][5].state = val;
 			vControllerLayoutPosChanged = true;
@@ -604,7 +604,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	rTriggerState
 	{
 		"R",
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][6].state = val;
 			vControllerLayoutPosChanged = true;
@@ -614,7 +614,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	boundingBoxes
 	{
 		"Show Bounding Boxes",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlBoundingBoxes = item.on;
@@ -625,7 +625,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	vibrate
 	{
 		"Vibration",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionVibrateOnPush = item.on;
@@ -635,7 +635,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		useScaledCoordinates
 		{
 			"Size Units", "Physical (Millimeters)", "Scaled Points",
-			[this](BoolMenuItem &item, const Input::Event &e)
+			[this](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				item.toggle(*this);
 				optionTouchCtrlScaledCoordinates = item.on;
@@ -647,7 +647,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	showOnTouch
 	{
 		"Show Gamepad If Screen Touched",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlShowOnTouch = item.on;
@@ -657,7 +657,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	alpha
 	{
 		"Blend Amount",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTouchCtrlAlpha = alphaMenuVals[val];
 			vController.alpha = (int)optionTouchCtrlAlpha / 255.0;
@@ -666,7 +666,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnPlace
 	{
 		"Set Button Positions",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &onScreenInputPlace = *new OnScreenInputPlaceView{window()};
 			onScreenInputPlace.init();
@@ -676,7 +676,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	menuState
 	{
 		"Open Menu Button",
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			if(Config::envIsIOS) // iOS port doesn't use "off" value
 			{
@@ -690,7 +690,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	ffState
 	{
 		"Fast-forward Button",
-		[this](MultiChoiceMenuItem &item, int val)
+		[this](MultiChoiceMenuItem &item, View &, int val)
 		{
 			vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][4].state = val;
 			vControllerLayoutPosChanged = true;
@@ -700,7 +700,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	resetControls
 	{
 		"Reset Position & Spacing Options",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Reset buttons to default positions & spacing?", !e.isPointer());
@@ -717,7 +717,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	resetAllControls
 	{
 		"Reset All Options",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Reset all on-screen control options to default?", !e.isPointer());
@@ -734,7 +734,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	systemOptions
 	{
 		"Emulated System Options",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &optView = *makeOptionCategoryMenu(window(), e, 2);
 			pushAndShow(optView);

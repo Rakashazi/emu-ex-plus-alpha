@@ -16,9 +16,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 
-class StateSlotView : public BaseMenuView
+class StateSlotView : public TableView
 {
 private:
 	static constexpr uint stateSlots = 11;
@@ -27,6 +27,6 @@ private:
 	MenuItem *item[stateSlots] = {nullptr};
 
 public:
-	StateSlotView(Base::Window &win): BaseMenuView("State Slot", win) {}
+	StateSlotView(Base::Window &win): TableView{"State Slot", win} {}
 	void init(bool highlightFirst);
 };

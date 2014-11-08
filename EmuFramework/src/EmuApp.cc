@@ -870,7 +870,7 @@ void placeEmuViews()
 void placeElements()
 {
 	logMsg("placing app elements");
-	GuiTable1D::setDefaultXIndent(mainWin.projectionPlane);
+	TableView::setDefaultXIndent(mainWin.projectionPlane);
 	popup.place(mainWin.projectionPlane);
 	placeEmuViews();
 	viewStack.place(mainWin.viewport().bounds(), mainWin.projectionPlane);

@@ -25,12 +25,10 @@ include $(imagineSrcDir)/io/system.mk
 include $(imagineSrcDir)/io/ZipIO.mk
 include $(imagineSrcDir)/io/MapIO.mk
 include $(imagineSrcDir)/bluetooth/system.mk
-include $(imagineSrcDir)/gui/GuiTable1D.mk
-include $(imagineSrcDir)/gui/MenuItem.mk
+include $(imagineSrcDir)/gui/TableView.mk
 include $(imagineSrcDir)/gui/FSPicker.mk
 include $(imagineSrcDir)/gui/AlertView.mk
 include $(imagineSrcDir)/gui/ViewStack.mk
-include $(imagineSrcDir)/gui/BaseMenuView.mk
 include $(imagineSrcDir)/resource/font/system.mk
 include $(imagineSrcDir)/data-type/image/system.mk
 include $(imagineSrcDir)/mem/malloc.mk

@@ -8,7 +8,7 @@ class SystemOptionView : public OptionView
 	MultiChoiceSelectMenuItem rtc
 	{
 		"RTC Emulation",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionRtcEmulation = val;
 
@@ -54,7 +54,7 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -66,7 +66,7 @@ class SystemMenuView : public MenuView
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) {}
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
 	void onShow()
 	{
@@ -82,6 +82,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

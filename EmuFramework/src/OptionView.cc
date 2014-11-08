@@ -59,7 +59,7 @@ void BiosSelectMenu::init(bool highlightFirst)
 	assert(biosPathStr);
 	choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
 	choiceEntry[0].onSelect() =
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			workDirStack.push();
 			chdirFromFilePath(biosPathStr->data());
@@ -81,13 +81,13 @@ void BiosSelectMenu::init(bool highlightFirst)
 		};
 	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
 	choiceEntry[1].onSelect() =
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			viewStack.popAndShow();
+			popAndShow();
 			strcpy(biosPathStr->data(), "");
 			if(onBiosChangeD) onBiosChangeD();
 		};
-	BaseMenuView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst);
+	TableView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst);
 }
 
 void OptionView::autoSaveStateInit()
@@ -415,41 +415,40 @@ public:
 
 	void init(bool highlightFirst)
 	{
-		static const char *str[] { "Set Custom Path", "Same as Game", "Default" };
 		auto &multiChoiceView = *new MultiChoiceView{"Save Path", mainWin.win};
-		multiChoiceView.init(str, sizeofArray(str), highlightFirst);
-		multiChoiceView.onSelect() =
-			[this](int i, const Input::Event &e)
+		multiChoiceView.init(3, highlightFirst);
+		multiChoiceView.setItem(0, "Set Custom Path",
+			[this](TextMenuItem &, View &, const Input::Event &e)
+			{
+				workDirStack.push();
+				FsSys::chdir(optionSavePath);
+				auto &fPicker = *new EmuFilePicker{mainWin.win};
+				fPicker.init(!e.isPointer(), true, dirFsFilter);
+				fPicker.onClose() =
+					[this](FSPicker &picker, const Input::Event &e)
+					{
+						onClose(e);
+						picker.dismiss();
+						viewStack.popAndShow();
+					};
+				modalViewController.pushAndShow(fPicker);
+			});
+		multiChoiceView.setItem(1, "Same as Game",
+			[this](TextMenuItem &, View &, const Input::Event &e)
 			{
 				auto onPathChange = this->onPathChange;
-				if(i == 0)
-				{
-					workDirStack.push();
-					FsSys::chdir(optionSavePath);
-					auto &fPicker = *new EmuFilePicker{mainWin.win};
-					fPicker.init(!e.isPointer(), true, dirFsFilter);
-					fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
-						{
-							onClose(e);
-							picker.dismiss();
-							viewStack.popAndShow();
-						};
-					modalViewController.pushAndShow(fPicker);
-				}
-				else if(i == 1)
-				{
-					viewStack.popAndShow();
-					strcpy(optionSavePath, "");
-					if(onPathChange) onPathChange("");
-				}
-				else
-				{
-					viewStack.popAndShow();
-					strcpy(optionSavePath, optionSavePathDefaultToken);
-					if(onPathChange) onPathChange(optionSavePathDefaultToken);
-				}
-				return 0;
-			};
+				viewStack.popAndShow();
+				strcpy(optionSavePath, "");
+				if(onPathChange) onPathChange("");
+			});
+		multiChoiceView.setItem(2, "Default",
+			[this](TextMenuItem &, View &, const Input::Event &e)
+			{
+				auto onPathChange = this->onPathChange;
+				viewStack.popAndShow();
+				strcpy(optionSavePath, optionSavePathDefaultToken);
+				if(onPathChange) onPathChange(optionSavePathDefaultToken);
+			});
 		viewStack.pushAndShow(multiChoiceView);
 	}
 } pathSelectMenu;
@@ -464,33 +463,30 @@ void FirmwarePathSelector::onClose(const Input::Event &e)
 
 void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 {
-	static const char *str[] { "Set Custom Path", "Default" };
 	auto &multiChoiceView = *new MultiChoiceView{name, mainWin.win};
-	multiChoiceView.init(str, sizeofArray(str), highlightFirst);
-	multiChoiceView.onSelect() =
-		[this](int i, const Input::Event &e)
+	multiChoiceView.init(2, highlightFirst);
+	multiChoiceView.setItem(0, "Set Custom Path",
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			viewStack.popAndShow();
-			if(i == 0)
-			{
-				workDirStack.push();
-				FsSys::chdir(optionFirmwarePath);
-				auto &fPicker = *new EmuFilePicker{mainWin.win};
-				fPicker.init(!e.isPointer(), true, dirFsFilter);
-				fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
-					{
-						onClose(e);
-						picker.dismiss();
-					};
-				modalViewController.pushAndShow(fPicker);
-			}
-			else
-			{
-				strcpy(optionFirmwarePath, "");
-				if(onPathChange) onPathChange("");
-			}
-			return 0;
-		};
+			workDirStack.push();
+			FsSys::chdir(optionFirmwarePath);
+			auto &fPicker = *new EmuFilePicker{mainWin.win};
+			fPicker.init(!e.isPointer(), true, dirFsFilter);
+			fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
+				{
+					onClose(e);
+					picker.dismiss();
+				};
+			modalViewController.pushAndShow(fPicker);
+		});
+	multiChoiceView.setItem(1, "Default",
+		[this](TextMenuItem &, View &, const Input::Event &e)
+		{
+			viewStack.popAndShow();
+			strcpy(optionFirmwarePath, "");
+			if(onPathChange) onPathChange("");
+		});
 	viewStack.pushAndShow(multiChoiceView);
 }
 
@@ -640,18 +636,18 @@ void OptionView::init(uint idx, bool highlightFirst)
 		bcase 4: loadGUIItems(item, i);
 	}
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 OptionView::OptionView(Base::Window &win):
-	BaseMenuView("Options", win),
+	TableView{"Options", win},
 	// Video
 	#ifdef CONFIG_BASE_ANDROID
 		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 		directTexture
 		{
 			"Direct Texture",
-			[this](BoolMenuItem &item, const Input::Event &e)
+			[this](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				if(!item.active)
 				{
@@ -669,7 +665,7 @@ OptionView::OptionView(Base::Window &win):
 		surfaceTexture
 		{
 			"Fast CPU->GPU Copy",
-			[this](BoolMenuItem &item, const Input::Event &e)
+			[this](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				item.toggle(*this);
 				optionSurfaceTexture = item.on;
@@ -691,7 +687,7 @@ OptionView::OptionView(Base::Window &win):
 	frameSkip
 	{
 		"Frame Skip",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(val == -1)
 			{
@@ -709,7 +705,7 @@ OptionView::OptionView(Base::Window &win):
 	aspectRatio
 	{
 		"Aspect Ratio",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionAspectRatio.val = EmuSystem::aspectRatioInfo[val].aspect;
 			logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
@@ -720,7 +716,7 @@ OptionView::OptionView(Base::Window &win):
 	zoom
 	{
 		"Zoom",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			switch(val)
 			{
@@ -739,7 +735,7 @@ OptionView::OptionView(Base::Window &win):
 	viewportZoom
 	{
 		"Screen Area",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			switch(val)
 			{
@@ -756,7 +752,7 @@ OptionView::OptionView(Base::Window &win):
 	imgFilter
 	{
 		"Image Interpolation", "None", "Linear",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionImgFilter.val = item.on;
@@ -768,7 +764,7 @@ OptionView::OptionView(Base::Window &win):
 	imgEffect
 	{
 		"Image Effect",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			uint setVal = 0;
 			switch(val)
@@ -785,7 +781,7 @@ OptionView::OptionView(Base::Window &win):
 	overlayEffect
 	{
 		"Overlay Effect",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			uint setVal = 0;
 			switch(val)
@@ -805,7 +801,7 @@ OptionView::OptionView(Base::Window &win):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			uint setVal = 10;
 			switch(val)
@@ -826,7 +822,7 @@ OptionView::OptionView(Base::Window &win):
 	bestColorModeHint
 	{
 		"Use Highest Color Mode",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			auto alertMsg = Config::envIsAndroid ? "This option takes effect next time you launch the app. "
 					"Not all devices properly support high color modes so turn this off "
@@ -858,7 +854,7 @@ OptionView::OptionView(Base::Window &win):
 	secondDisplay
 	{
 		"2nd Window (for testing only)",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			setEmuViewOnExtraWindow(item.on);
@@ -869,7 +865,7 @@ OptionView::OptionView(Base::Window &win):
 	showOnSecondScreen
 	{
 		"External Screen", "OS Managed", "Game Content",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionShowOnSecondScreen = item.on;
@@ -881,7 +877,7 @@ OptionView::OptionView(Base::Window &win):
 	dither
 	{
 		"Dither Image",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionDitherImage = item.on;
@@ -892,7 +888,7 @@ OptionView::OptionView(Base::Window &win):
 	snd
 	{
 		"Sound",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionSound = item.on;
@@ -904,7 +900,7 @@ OptionView::OptionView(Base::Window &win):
 	soundBuffers
 	{
 		"Buffer Size In Frames",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(Audio::isOpen())
 				Audio::closePcm();
@@ -915,7 +911,7 @@ OptionView::OptionView(Base::Window &win):
 	audioRate
 	{
 		"Sound Rate",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			uint rate = 44100;
 			switch(val)
@@ -935,7 +931,7 @@ OptionView::OptionView(Base::Window &win):
 	sndUnderrunCheck
 	{
 		"Strict Underrun Check",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			if(Audio::isOpen())
 				Audio::closePcm();
@@ -948,7 +944,7 @@ OptionView::OptionView(Base::Window &win):
 	audioSoloMix
 	{
 		"Mix With Other Apps",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionAudioSoloMix = !item.on;
@@ -959,7 +955,7 @@ OptionView::OptionView(Base::Window &win):
 	autoSaveState
 	{
 		"Auto-save State",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			switch(val)
 			{
@@ -974,7 +970,7 @@ OptionView::OptionView(Base::Window &win):
 	confirmAutoLoadState
 	{
 		"Confirm Auto-load State",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionConfirmAutoLoadState = item.on;
@@ -983,7 +979,7 @@ OptionView::OptionView(Base::Window &win):
 	confirmOverwriteState
 	{
 		"Confirm Overwrite State",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionConfirmOverwriteState = item.on;
@@ -992,7 +988,7 @@ OptionView::OptionView(Base::Window &win):
 	savePath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			pathSelectMenu.init(!e.isPointer());
 			pathSelectMenu.onPathChange =
@@ -1014,7 +1010,7 @@ OptionView::OptionView(Base::Window &win):
 	checkSavePathWriteAccess
 	{
 		"Check Save Path Write Access",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionCheckSavePathWriteAccess = item.on;
@@ -1023,7 +1019,7 @@ OptionView::OptionView(Base::Window &win):
 	fastForwardSpeed
 	{
 		"Fast Forward Speed",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionFastForwardSpeed = val + MIN_FAST_FORWARD_SPEED;
 		}
@@ -1032,7 +1028,7 @@ OptionView::OptionView(Base::Window &win):
 	processPriority
 	{
 		"Process Priority",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(val == 0)
 				optionProcessPriority.val = 0;
@@ -1048,7 +1044,7 @@ OptionView::OptionView(Base::Window &win):
 	pauseUnfocused
 	{
 		Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionPauseUnfocused = item.on;
@@ -1057,7 +1053,7 @@ OptionView::OptionView(Base::Window &win):
 	fontSize
 	{
 		"Font Size",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionFontSize = 3000;
 			switch(val)
@@ -1088,7 +1084,7 @@ OptionView::OptionView(Base::Window &win):
 	notificationIcon
 	{
 		"Suspended App Icon",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionNotificationIcon = item.on;
@@ -1097,7 +1093,7 @@ OptionView::OptionView(Base::Window &win):
 	statusBar
 	{
 		"Hide Status Bar",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionHideStatusBar = val;
 			applyOSNavStyle(false);
@@ -1106,7 +1102,7 @@ OptionView::OptionView(Base::Window &win):
 	lowProfileOSNav
 	{
 		"Dim OS Navigation",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionLowProfileOSNav = val;
 			applyOSNavStyle(false);
@@ -1115,7 +1111,7 @@ OptionView::OptionView(Base::Window &win):
 	hideOSNav
 	{
 		"Hide OS Navigation",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionHideOSNav = val;
 			applyOSNavStyle(false);
@@ -1124,7 +1120,7 @@ OptionView::OptionView(Base::Window &win):
 	idleDisplayPowerSave
 	{
 		"Dim Screen If Idle",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionIdleDisplayPowerSave = item.on;
@@ -1134,7 +1130,7 @@ OptionView::OptionView(Base::Window &win):
 	navView
 	{
 		"Title Bar",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionTitleBar = item.on;
@@ -1145,7 +1141,7 @@ OptionView::OptionView(Base::Window &win):
 	backNav
 	{
 		"Title Back Navigation",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
@@ -1156,7 +1152,7 @@ OptionView::OptionView(Base::Window &win):
 	rememberLastMenu
 	{
 		"Remember Last Menu",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionRememberLastMenu = item.on;
@@ -1165,7 +1161,7 @@ OptionView::OptionView(Base::Window &win):
 	showBundledGames
 	{
 		"Show Bundled Games",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionShowBundledGames = item.on;
@@ -1180,7 +1176,7 @@ OptionView::OptionView(Base::Window &win):
 	menuOrientation
 	{
 		"In Menu",
-		[this](MultiChoiceMenuItem &, int val)
+		[this](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
 			Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
@@ -1190,7 +1186,7 @@ OptionView::OptionView(Base::Window &win):
 	gameOrientation
 	{
 		"In Game",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionGameOrientation.val = convertOrientationMenuValueToOption(val);
 			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));

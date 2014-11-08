@@ -188,11 +188,11 @@ void MenuView::loadStandardItems(MenuItem *item[], uint &items)
 }
 
 MenuView::MenuView(Base::Window &win):
-	BaseMenuView{win},
+	TableView{win},
 	loadGame
 	{
 		"Load Game",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.init(!e.isPointer(), false);
@@ -202,7 +202,7 @@ MenuView::MenuView(Base::Window &win):
 	reset
 	{
 		"Reset",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -221,7 +221,7 @@ MenuView::MenuView(Base::Window &win):
 	loadState
 	{
 		"Load State",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(item.active && EmuSystem::gameIsRunning())
 			{
@@ -246,7 +246,7 @@ MenuView::MenuView(Base::Window &win):
 	recentGames
 	{
 		"Recent Games",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(recentGameList.size())
 			{
@@ -259,7 +259,7 @@ MenuView::MenuView(Base::Window &win):
 	bundledGames
 	{
 		"Bundled Games",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &bMenu = *new BundledGamesView{window()};
 			bMenu.init(!e.isPointer());
@@ -269,7 +269,7 @@ MenuView::MenuView(Base::Window &win):
 	saveState
 	{
 		"Save State",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -303,7 +303,7 @@ MenuView::MenuView(Base::Window &win):
 	},
 	stateSlot
 	{
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &ssMenu = *new StateSlotView{window()};
 			ssMenu.init(!e.isPointer());
@@ -315,7 +315,7 @@ MenuView::MenuView(Base::Window &win):
 	options
 	{
 		"Options",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &oMenu = *new OptionCategoryView{window()};
 			oMenu.init(!e.isPointer());
@@ -325,7 +325,7 @@ MenuView::MenuView(Base::Window &win):
 	onScreenInputManager
 	{
 		"On-screen Input Setup",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &tcMenu = *new TouchConfigView{window(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName};
 			tcMenu.init(!e.isPointer());
@@ -335,7 +335,7 @@ MenuView::MenuView(Base::Window &win):
 	inputManager
 	{
 		"Key/Gamepad Input Setup",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &menu = *new InputManagerView{window()};
 			menu.init(!e.isPointer());
@@ -345,7 +345,7 @@ MenuView::MenuView(Base::Window &win):
 	benchmark
 	{
 		"Benchmark Game",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.initForBenchmark(!e.isPointer());
@@ -356,7 +356,7 @@ MenuView::MenuView(Base::Window &win):
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -392,7 +392,7 @@ MenuView::MenuView(Base::Window &win):
 	scanWiimotes
 	{
 		"Scan for Wiimotes/iCP/JS1",
-		[this](TextMenuItem &t, const Input::Event &e)
+		[this](TextMenuItem &t, View &, const Input::Event &e)
 		{
 			if(initBTAdapter())
 			{
@@ -415,7 +415,7 @@ MenuView::MenuView(Base::Window &win):
 	bluetoothDisconnect
 	{
 		"Disconnect Bluetooth",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(Bluetooth::devsConnected())
 			{
@@ -437,7 +437,7 @@ MenuView::MenuView(Base::Window &win):
 	acceptPS3ControllerConnection
 	{
 		"Scan for PS3 Controller",
-		[this](TextMenuItem &t, const Input::Event &e)
+		[this](TextMenuItem &t, View &, const Input::Event &e)
 		{
 			if(initBTAdapter())
 			{
@@ -475,7 +475,7 @@ MenuView::MenuView(Base::Window &win):
 	about
 	{
 		"About",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &credits = *new CreditsView{creditsViewStr, window()};
 			credits.init();
@@ -485,7 +485,7 @@ MenuView::MenuView(Base::Window &win):
 	exitApp
 	{
 		"Exit",
-		[](TextMenuItem &, const Input::Event &e)
+		[](TextMenuItem &, View &, const Input::Event &e)
 		{
 			Base::exit();
 		}
@@ -493,7 +493,7 @@ MenuView::MenuView(Base::Window &win):
 	screenshot
 	{
 		"Game Screenshot",
-		[](TextMenuItem &, const Input::Event &e)
+		[](TextMenuItem &, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 				emuVideo.takeGameScreenshot();
@@ -508,7 +508,7 @@ void MenuView::init(bool highlightFirst)
 	loadFileBrowserItems(item, items);
 	loadStandardItems(item, items);
 	assert(items <= sizeofArray(item));
-	BaseMenuView::init(item, items, highlightFirst);
+	TableView::init(item, items, highlightFirst);
 }
 
 void OptionCategoryView::init(bool highlightFirst)
@@ -523,14 +523,14 @@ void OptionCategoryView::init(bool highlightFirst)
 			continue;
 		e->init(); item[i++] = e;
 		e->onSelect() =
-		[this, e_i](TextMenuItem &, const Input::Event &e)
+		[this, e_i](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &oCategoryMenu = *makeOptionCategoryMenu(window(), e, e_i);
 			viewStack.pushAndShow(oCategoryMenu);
 		};
 	}
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 extern void loadGameComplete(bool tryAutoState, bool addToRecent);
@@ -586,20 +586,20 @@ void RecentGameView::init(bool highlightFirst)
 	for(auto &e : recentGameList)
 	{
 		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path.data())); item[i++] = &recentGame[rIdx];
-		recentGame[rIdx].onSelect() = [&](TextMenuItem &t, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
+		recentGame[rIdx].onSelect() = [&](TextMenuItem &t, View &, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}
 	clear.init(recentGameList.size()); item[i++] = &clear;
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 RecentGameView::RecentGameView(Base::Window &win):
-	BaseMenuView("Recent Games", win),
+	TableView{"Recent Games", win},
 	clear
 	{
 		"Clear List",
-		[this](TextMenuItem &t, const Input::Event &e)
+		[this](TextMenuItem &t, View &, const Input::Event &e)
 		{
 			recentGameList.clear();
 			dismiss();

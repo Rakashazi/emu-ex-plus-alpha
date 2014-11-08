@@ -15,15 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 
-class BundledGamesView : public BaseMenuView
+class BundledGamesView : public TableView
 {
 private:
 	TextMenuItem game[1];
 	MenuItem *item[1] {nullptr};
 
 public:
-	BundledGamesView(Base::Window &win): BaseMenuView("Bundled Games", win) {}
+	BundledGamesView(Base::Window &win): TableView{"Bundled Games", win} {}
 	void init(bool highlightFirst);
 };

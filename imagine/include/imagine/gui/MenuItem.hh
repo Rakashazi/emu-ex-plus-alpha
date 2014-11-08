@@ -18,7 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gui/GuiTable1D.hh>
+#include <imagine/gui/TableView.hh>
 #include <imagine/util/DelegateFunc.hh>
 
 class MenuItem
@@ -34,7 +34,7 @@ public:
 	virtual int ySize() = 0;
 	virtual Gfx::GC xSize() = 0;
 	virtual void deinit() = 0;
-	virtual void select(View *parent, const Input::Event &e) { bug_exit("unimplemented select()"); };
+	virtual void select(View &parent, const Input::Event &e) { bug_exit("unimplemented select()"); };
 };
 
 class BaseTextMenuItem : public MenuItem
@@ -63,14 +63,14 @@ public:
 class TextMenuItem : public BaseTextMenuItem
 {
 public:
-	using SelectDelegate = DelegateFunc<void (TextMenuItem &item, const Input::Event &e)>;
+	using SelectDelegate = DelegateFunc<void (TextMenuItem &item, View &parent, const Input::Event &e)>;
 	SelectDelegate selectD;
 
 	constexpr TextMenuItem() {}
 	constexpr TextMenuItem(const char *str): BaseTextMenuItem(str) {}
 	constexpr TextMenuItem(SelectDelegate selectDel): selectD(selectDel) {}
 	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectD(selectDel) {}
-	void select(View *parent, const Input::Event &e) override;
+	void select(View &parent, const Input::Event &e) override;
 	SelectDelegate &onSelect() { return selectD; }
 };
 
@@ -79,7 +79,7 @@ class TextHeadingMenuItem : public BaseTextMenuItem
 public:
 	constexpr TextHeadingMenuItem() {}
 	constexpr TextHeadingMenuItem(const char *str): BaseTextMenuItem(str, false) {}
-	void select(View *parent, const Input::Event &e) override {};
+	void select(View &parent, const Input::Event &e) override {};
 };
 
 class BaseDualTextMenuItem : public BaseTextMenuItem
@@ -100,14 +100,14 @@ public:
 class DualTextMenuItem : public BaseDualTextMenuItem
 {
 public:
-	using SelectDelegate = DelegateFunc<void (DualTextMenuItem &item, const Input::Event &e)>;
+	using SelectDelegate = DelegateFunc<void (DualTextMenuItem &item, View &parent, const Input::Event &e)>;
 	SelectDelegate selectD;
 
 	constexpr DualTextMenuItem() {}
 	constexpr DualTextMenuItem(const char *str): BaseDualTextMenuItem(str) {}
 	constexpr DualTextMenuItem(SelectDelegate selectDel): selectD(selectDel) {}
 	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectD(selectDel) {}
-	void select(View *parent, const Input::Event &e) override;
+	void select(View &parent, const Input::Event &e) override;
 	SelectDelegate &onSelect() { return selectD; }
 };
 
@@ -115,7 +115,7 @@ public:
 class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
-	typedef DelegateFunc<void (BoolMenuItem &item, const Input::Event &e)> SelectDelegate;
+	typedef DelegateFunc<void (BoolMenuItem &item, View &parent, const Input::Event &e)> SelectDelegate;
 	SelectDelegate selectD;
 	SelectDelegate &onSelect() { return selectD; }
 	const char *offStr = "Off", *onStr = "On";
@@ -137,13 +137,13 @@ public:
 	void set(bool val, View &view);
 	void toggle(View &view);
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
-	void select(View *parent, const Input::Event &e) override;
+	void select(View &parent, const Input::Event &e) override;
 };
 
 class MultiChoiceMenuItem : public DualTextMenuItem
 {
 public:
-	typedef DelegateFunc<void (MultiChoiceMenuItem &item, int val)> ValueDelegate;
+	typedef DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, int val)> ValueDelegate;
 	ValueDelegate valueD;
 	ValueDelegate &onValue() { return valueD; }
 	const char **choiceStr = nullptr;
@@ -159,6 +159,6 @@ public:
 	bool updateVal(int val, View &view);
 	void setVal(int val, View &view);
 	bool set(int val, const Input::Event &e, View &view);
-	virtual void doSet(int val) { valueD(*this, val); }
+	virtual void doSet(int val, View &view) { valueD(*this, view, val); }
 	void cycle(int direction, View &view);
 };

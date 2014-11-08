@@ -9,7 +9,7 @@ private:
 	MultiChoiceSelectMenuItem timer
 	{
 		"Emulate Timer",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionTimerInt = val;
 			setTimerIntOption();
@@ -28,7 +28,7 @@ private:
 	MultiChoiceSelectMenuItem region
 	{
 		"MVS Region",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			conf.country = (COUNTRY)val;
 			optionMVSCountry = conf.country;
@@ -52,7 +52,7 @@ private:
 	MultiChoiceSelectMenuItem bios
 	{
 		"BIOS Type",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			switch(val)
 			{
@@ -85,7 +85,7 @@ private:
 	BoolMenuItem listAll
 	{
 		"List All Games",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionListAllGames = item.on;
@@ -95,7 +95,7 @@ private:
 	BoolMenuItem createAndUseCache
 	{
 		"Make/Use Cache Files",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle((*this));
 			optionCreateAndUseCache = item.on;
@@ -105,7 +105,7 @@ private:
 	BoolMenuItem strictROMChecking
 	{
 		"Strict ROM Checking",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionStrictROMChecking = item.on;
@@ -411,86 +411,77 @@ static const RomListEntry romlist[] = {
 	{ "zupapa.zip", 0 },
 };
 
-class GameListView : public BaseMenuView
+class GameListView : public TableView
 {
 private:
+	char longName[sizeofArrayConst(romlist)][128]{};
+	TextMenuItem rom[sizeofArrayConst(romlist)];
+	MenuItem *item[sizeofArrayConst(romlist)]{};
 
-	struct GameMenuItem : public TextMenuItem
+	static void loadGame(const RomListEntry &entry)
 	{
-		constexpr GameMenuItem() { }
-		const RomListEntry *entry = nullptr;
-		char longName[128] = {0};
-		void init(const char *name, const RomListEntry *entry, bool exists)
+		EmuSystem::onLoadGameComplete() =
+			[](uint result, const Input::Event &e)
+			{
+				loadGameCompleteFromFilePicker(result, e);
+			};
+		auto res = EmuSystem::loadGame(entry.filename);
+		if(res == 1)
 		{
-			var_selfs(entry);
-			string_copy(longName, name, sizeof(longName));
-			TextMenuItem::init(longName, exists);
+			loadGameCompleteFromFilePicker(1, Input::Event{});
 		}
-
-		void loadGame()
+		else if(res == 0)
 		{
-			EmuSystem::onLoadGameComplete() =
-				[](uint result, const Input::Event &e)
-				{
-					loadGameCompleteFromFilePicker(result, e);
-				};
-			auto res = EmuSystem::loadGame(entry->filename);
-			if(res == 1)
-			{
-				loadGameCompleteFromFilePicker(1, Input::Event{});
-			}
-			else if(res == 0)
-			{
-				EmuSystem::clearGamePaths();
-			}
+			EmuSystem::clearGamePaths();
 		}
+	}
 
-		void select(View *view, const Input::Event &e)
-		{
-			if(active)
-			{
-				if(entry->bugs)
-				{
-					auto &ynAlertView = *new YesNoAlertView{view->window()};
-					ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
-					ynAlertView.onYes() =
-						[this](const Input::Event &e)
-						{
-							loadGame();
-						};
-					modalViewController.pushAndShow(ynAlertView);
-				}
-				else
-				{
-					loadGame();
-				}
-			}
-			else
-			{
-				popup.printf(3, 1, "%s not present", entry->filename);
-			}
-		}
-	} rom[sizeofArrayConst(romlist)];
-
-	MenuItem *item[sizeofArrayConst(romlist)] = {nullptr};
 public:
-	GameListView(Base::Window &win): BaseMenuView("Game List", win) { }
+	GameListView(Base::Window &win): TableView{"Game List", win} { }
 
 	bool init(bool highlightFirst)
 	{
 		uint i = 0, roms = 0;
-		forEachInArray(romlist, e)
+		for(const auto &entry : romlist)
 		{
-			ROM_DEF *drv = dr_check_zip(e->filename);
+			ROM_DEF *drv = dr_check_zip(entry.filename);
 			if(drv)
 			{
-				bool fileExists = FsSys::fileExists(e->filename);
+				bool fileExists = FsSys::fileExists(entry.filename);
 				if(!optionListAllGames && !fileExists)
 				{
+					// TODO: free via scope exit wrapper
 					free(drv);
 					continue;
 				}
-				rom[roms].init(drv->longname, e, fileExists); item[i++] = &rom[roms];
+				string_copy(longName[roms], drv->longname);
+				rom[roms].init(longName[roms], fileExists); item[i++] = &rom[roms];
+				rom[roms].onSelect() =
+					[this, &entry](TextMenuItem &item, View &, const Input::Event &e)
+					{
+						if(item.active)
+						{
+							if(entry.bugs)
+							{
+								auto &ynAlertView = *new YesNoAlertView{window()};
+								ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
+								ynAlertView.onYes() =
+									[&entry](const Input::Event &e)
+									{
+										loadGame(entry);
+									};
+								modalViewController.pushAndShow(ynAlertView);
+							}
+							else
+							{
+								loadGame(entry);
+							}
+						}
+						else
+						{
+							popup.printf(3, 1, "%s not present", entry.filename);
+						}
+					};
 				roms++;
 			}
 			free(drv);
@@ -499,18 +490,18 @@ public:
 			return 0;
 
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 		return 1;
 	}
 };
 
-class UnibiosSwitchesView : public BaseMenuView
+class UnibiosSwitchesView : public TableView
 {
 	MenuItem *item[2] {nullptr};
 	MultiChoiceSelectMenuItem region
 	{
 		"Region",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			updateBits(memory.memcard[3], val, 0x3);
 			updateBits(memory.sram[3], val, 0x3);
@@ -520,7 +511,7 @@ class UnibiosSwitchesView : public BaseMenuView
 	BoolMenuItem system
 	{
 		"Mode",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			updateBits(memory.memcard[2], item.on ? IG::bit(7) : 0, 0x80);
@@ -528,7 +519,7 @@ class UnibiosSwitchesView : public BaseMenuView
 		}
 	};
 public:
-	UnibiosSwitchesView(Base::Window &win): BaseMenuView("Unibios Switches", win) {}
+	UnibiosSwitchesView(Base::Window &win): TableView{"Unibios Switches", win} {}
 
 	void regionInit()
 	{
@@ -547,7 +538,7 @@ public:
 		regionInit(); item[i++] = &region;
 		system.init("Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
 		assert(i <= sizeofArray(item));
-		BaseMenuView::init(item, i, highlightFirst);
+		TableView::init(item, i, highlightFirst);
 	}
 
 	/*void onShow()
@@ -566,7 +557,7 @@ private:
 	TextMenuItem gameList
 	{
 		"Load Game From List",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &gameListMenu = *new GameListView{window()};
 			if(!gameListMenu.init(!e.isPointer()))
@@ -581,7 +572,7 @@ private:
 	TextMenuItem unibiosSwitches
 	{
 		"Unibios Switches",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -600,7 +591,7 @@ private:
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) {}
+	SystemMenuView(Base::Window &win): MenuView{win} {}
 
 	void onShow()
 	{
@@ -618,6 +609,6 @@ public:
 		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

@@ -18,7 +18,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <imagine/audio/Audio.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
@@ -28,7 +28,7 @@
 void onCloseModalPopWorkDir(const Input::Event &e);
 void chdirFromFilePath(const char *path);
 
-class OptionView : public BaseMenuView
+class OptionView : public TableView
 {
 protected:
 	// Video

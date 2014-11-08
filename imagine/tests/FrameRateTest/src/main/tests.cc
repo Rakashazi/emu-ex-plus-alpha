@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/GuiTable1D.hh>
+#include <imagine/gui/TableView.hh>
 #include "tests.hh"
 
 const char *testIDToStr(TestID id)
@@ -125,7 +125,7 @@ void TestFramework::draw()
 		GeomRect::draw(cpuFreqRect);
 		setColor(1., 1., 1., 1.);
 		texAlphaProgram.use();
-		cpuFreqText.draw(projP.alignXToPixel(cpuFreqRect.x + GuiTable1D::globalXIndent),
+		cpuFreqText.draw(projP.alignXToPixel(cpuFreqRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(cpuFreqRect.yCenter()), LC2DO, projP);
 	}
 	if(strlen(skippedFrameStr.data()))
@@ -136,7 +136,7 @@ void TestFramework::draw()
 		GeomRect::draw(skippedFrameRect);
 		setColor(1., 1., 1., 1.);
 		texAlphaProgram.use();
-		skippedFrameText.draw(projP.alignXToPixel(skippedFrameRect.x + GuiTable1D::globalXIndent),
+		skippedFrameText.draw(projP.alignXToPixel(skippedFrameRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(skippedFrameRect.yCenter()), LC2DO, projP);
 	}
 }

@@ -61,7 +61,7 @@ static void setupCPUFreqStatus()
 
 static void placeElements()
 {
-	GuiTable1D::setDefaultXIndent(projP);
+	TableView::setDefaultXIndent(projP);
 	if(!activeTest)
 	{
 		picker.setViewRect(projP.viewport.bounds(), projP);

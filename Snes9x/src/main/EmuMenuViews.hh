@@ -12,7 +12,7 @@ public:
 	BoolMenuItem multitap
 	{
 		"5-Player Adapter",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionMultitap = item.on;
@@ -23,7 +23,7 @@ public:
 	MultiChoiceSelectMenuItem inputPorts
 	{
 		"Input Ports",
-		[](MultiChoiceMenuItem &, int val)
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			if(val == SNES_JOYPAD_MENU_IDX)
 			{
@@ -78,7 +78,7 @@ public:
 	BoolMenuItem blockInvalidVRAMAccess
 	{
 		"Block Invalid VRAM Access",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionBlockInvalidVRAMAccess = item.on;
@@ -111,7 +111,7 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -123,7 +123,7 @@ class SystemMenuView : public MenuView
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView(win) { }
+	SystemMenuView(Base::Window &win): MenuView{win} { }
 
 	void onShow()
 	{
@@ -139,6 +139,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		BaseMenuView::init(item, items, highlightFirst);
+		TableView::init(item, items, highlightFirst);
 	}
 };

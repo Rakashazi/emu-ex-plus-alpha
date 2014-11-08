@@ -269,14 +269,14 @@ void ButtonConfigView::inputEvent(const Input::Event &e)
 		}
 	}
 	#endif
-	if(e.pushed() && e.isDefaultLeftButton() && tbl.selected > 0)
+	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
 		// unset key
-		onSet(Input::Event(), tbl.selected-1);
+		onSet(Input::Event(), selected-1);
 		postDraw();
 	}
 	else
-		BaseMenuView::inputEvent(e);
+		TableView::inputEvent(e);
 }
 
 void ButtonConfigView::init(const KeyCategory *cat,
@@ -297,7 +297,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	{
 		btn[i2].init(cat->keyName[i2], devConf.dev->keyName(keyConfig.key(*cat)[i2]));
 		btn[i2].onSelect() =
-			[this, i2](DualTextMenuItem &item, const Input::Event &e)
+			[this, i2](DualTextMenuItem &item, View &, const Input::Event &e)
 			{
 				auto keyToSet = i2;
 				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
@@ -313,24 +313,24 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	}
 
 	assert(i <= tblEntries);
-	BaseMenuView::init(text, i, highlightFirst);
+	TableView::init(text, i, highlightFirst);
 }
 
 void ButtonConfigView::deinit()
 {
 	logMsg("deinit ButtonConfigView");
-	BaseMenuView::deinit();
+	TableView::deinit();
 	delete[] btn;
 	delete[] text;
 }
 
 ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMView):
-	BaseMenuView(win),
+	TableView{win},
 	rootIMView{rootIMView},
 	reset
 	{
 		"Unbind All",
-		[this](TextMenuItem &t, const Input::Event &e)
+		[this](TextMenuItem &t, View &, const Input::Event &e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window()};
 			ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());

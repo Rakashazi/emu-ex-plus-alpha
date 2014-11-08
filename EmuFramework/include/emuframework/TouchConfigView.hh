@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <emuframework/MultiChoiceView.hh>
 #include <emuframework/EmuOptions.hh>
 
-class TouchConfigView : public BaseMenuView
+class TouchConfigView : public TableView
 {
 public:
 	#ifdef CONFIG_VCONTROLS_GAMEPAD

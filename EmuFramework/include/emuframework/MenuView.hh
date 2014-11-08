@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/StateSlotView.hh>
 #ifdef CONFIG_BLUETOOTH
@@ -26,7 +26,7 @@
 #include <emuframework/MultiChoiceView.hh>
 #include <emuframework/VController.hh>
 
-class OptionCategoryView : public BaseMenuView
+class OptionCategoryView : public TableView
 {
 	TextMenuItem subConfig[5]
 	{
@@ -39,11 +39,11 @@ class OptionCategoryView : public BaseMenuView
 	MenuItem *item[5] {nullptr};
 
 public:
-	OptionCategoryView(Base::Window &win): BaseMenuView("Options", win) {}
+	OptionCategoryView(Base::Window &win): TableView{"Options", win} {}
 	void init(bool highlightFirst);
 };
 
-class RecentGameView : public BaseMenuView
+class RecentGameView : public TableView
 {
 private:
 	TextMenuItem recentGame[10];
@@ -55,7 +55,7 @@ public:
 	void init(bool highlightFirst);
 };
 
-class MenuView : public BaseMenuView
+class MenuView : public TableView
 {
 public:
 	MenuView(Base::Window &win);

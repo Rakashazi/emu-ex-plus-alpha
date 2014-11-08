@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include <emuframework/EmuSystem.hh>
 
 namespace EmuCheats
@@ -28,7 +28,7 @@ static constexpr uint MAX_CODE_TYPES = 2;
 
 using RefreshCheatsDelegate = DelegateFunc<void ()>;
 
-class BaseCheatsView : public BaseMenuView
+class BaseCheatsView : public TableView
 {
 protected:
 	TextMenuItem edit;
@@ -42,7 +42,7 @@ public:
 	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
 };
 
-class EditCheatView : public BaseMenuView
+class EditCheatView : public TableView
 {
 protected:
 	TextMenuItem name, remove;
@@ -55,7 +55,7 @@ public:
 	virtual void removed() = 0;
 };
 
-class BaseEditCheatListView : public BaseMenuView
+class BaseEditCheatListView : public TableView
 {
 protected:
 	MenuItem *item[EmuCheats::MAX_ITEMS + EmuCheats::MAX_CODE_TYPES]{};

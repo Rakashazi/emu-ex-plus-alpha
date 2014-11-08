@@ -25,6 +25,18 @@ void View::pushAndShow(View &v, bool needsNavView)
 	controller->pushAndShow(v, needsNavView);
 }
 
+void View::pop()
+{
+	assert(controller);
+	controller->pop();
+}
+
+void View::popAndShow()
+{
+	assert(controller);
+	controller->popAndShow();
+}
+
 void View::dismiss()
 {
 	if(controller)
@@ -45,3 +57,43 @@ bool View::compileGfxPrograms()
 	compiled |= Gfx::texAlphaReplaceProgram.compile();
 	return compiled;
 }
+
+void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
+{
+	this->viewRect() = rect;
+	var_selfs(projP);
+}
+
+void View::postDraw()
+{
+	if(likely(win))
+		win->postDraw();
+}
+
+Base::Window &View::window()
+{
+	assert(win);
+	return *win;
+}
+
+Base::Screen *View::screen()
+{
+	return win ? win->screen() : nullptr;
+}
+
+void View::setNeedsBackControl(bool on)
+{
+	if(!needsBackControlIsConst) // only modify on environments that make sense
+	{
+		needsBackControl = on;
+	}
+}
+
+void View::show()
+{
+	onShow();
+	//logMsg("showed view");
+	postDraw();
+}
+
+void View::init() {}

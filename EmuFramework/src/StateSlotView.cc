@@ -45,13 +45,13 @@ void StateSlotView::init(bool highlightFirst)
 		}
 
 		stateSlot[idx].onSelect() =
-			[this, slot](TextMenuItem &item, const Input::Event &e)
+			[slot](TextMenuItem &, View &view, const Input::Event &e)
 			{
 				EmuSystem::saveStateSlot = slot;
 				logMsg("set state slot %d", EmuSystem::saveStateSlot);
-				dismiss();
+				view.dismiss();
 			};
 	}
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }

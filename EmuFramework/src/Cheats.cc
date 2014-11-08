@@ -20,11 +20,11 @@
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
 BaseCheatsView::BaseCheatsView(Base::Window &win):
-	BaseMenuView("Cheats", win),
+	TableView{"Cheats", win},
 	edit
 	{
 		"Add/Edit",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &editCheatListView = *makeEditCheatListView(window(), e);
 			pushAndShow(editCheatListView);
@@ -49,11 +49,12 @@ void BaseCheatsView::init(bool highlightFirst)
 	edit.init(); item[i++] = &edit;
 	loadCheatItems(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 void BaseCheatsView::deinit()
 {
+	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
 }
 
@@ -67,10 +68,11 @@ void EditCheatView::loadRemoveItem(MenuItem *item[], uint &items)
 	remove.init(); item[items++] = &remove;
 }
 
-EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuView(viewName, win),
+EditCheatView::EditCheatView(const char *viewName, Base::Window &win):
+	TableView{viewName, win},
 	name
 	{
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset());
@@ -93,7 +95,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 	remove
 	{
 		"Delete Cheat",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			removed();
 			dismiss();
@@ -102,7 +104,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win): BaseMenuV
 {}
 
 BaseEditCheatListView::BaseEditCheatListView(Base::Window &win):
-	BaseMenuView("Edit Cheats", win),
+	TableView{"Edit Cheats", win},
 	onRefreshCheats
 	{
 		[this]()
@@ -123,11 +125,12 @@ void BaseEditCheatListView::init(bool highlightFirst)
 	assert(i <= EmuCheats::MAX_CODE_TYPES);
 	loadCheatItems(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 void BaseEditCheatListView::deinit()
 {
+	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
 }
 

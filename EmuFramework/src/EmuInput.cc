@@ -262,15 +262,21 @@ void commonUpdateInput()
 	if(turboClock == turboFrames) turboClock = 0;
 
 #ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+	auto applyRelPointerDecel =
+		[](int val)
+		{
+			return std::max(std::abs(val) - (int)optionRelPointerDecel, 0) * IG::signOf(val);
+		};
+
 	if(relPtr.x)
 	{
-		relPtr.x = clipToZeroSigned(relPtr.x, (int)optionRelPointerDecel * -signOf(relPtr.x));
+		relPtr.x = applyRelPointerDecel(relPtr.x);
 		if(!relPtr.x)
 			EmuSystem::handleInputAction(Input::RELEASED, relPtr.xAction);
 	}
 	if(relPtr.y)
 	{
-		relPtr.y = clipToZeroSigned(relPtr.y, (int)optionRelPointerDecel * -signOf(relPtr.y));
+		relPtr.y = applyRelPointerDecel(relPtr.y);
 		if(!relPtr.y)
 			EmuSystem::handleInputAction(Input::RELEASED, relPtr.yAction);
 	}

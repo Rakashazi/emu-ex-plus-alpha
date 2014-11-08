@@ -27,7 +27,7 @@ void BundledGamesView::init(bool highlightFirst)
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0].init(info.displayName); item[i++] = &game[0];
 	game[0].onSelect() =
-		[&info](TextMenuItem &t, const Input::Event &ev)
+		[&info](TextMenuItem &t, View &, const Input::Event &ev)
 		{
 			#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 			auto file = openAppAssetIO(info.assetName);
@@ -69,7 +69,7 @@ void BundledGamesView::init(bool highlightFirst)
 			}
 		};
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 [[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)

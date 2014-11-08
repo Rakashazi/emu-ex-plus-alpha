@@ -12,7 +12,7 @@ public:
 	TextMenuItem sysCardPath
 	{
 		"",
-		[this](TextMenuItem &, const Input::Event &e)
+		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, pceHuFsFilter, window()};
 			biosSelectMenu.init(!e.isPointer());
@@ -37,7 +37,7 @@ public:
 	BoolMenuItem arcadeCard
 	{
 		"Arcade Card",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			optionArcadeCard = item.on;
@@ -46,7 +46,7 @@ public:
 	sixButtonPad
 	{
 		"6-button Gamepad",
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
 			item.toggle(*this);
 			PCE_Fast::AVPad6Enabled[0] = item.on;

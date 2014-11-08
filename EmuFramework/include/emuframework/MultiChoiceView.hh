@@ -16,38 +16,35 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 
-class BaseMultiChoiceView : public BaseMenuView
+class BaseMultiChoiceView : public TableView
 {
 public:
 	int activeItem = -1;
 
-	BaseMultiChoiceView(Base::Window &win): BaseMenuView(win) {}
-	BaseMultiChoiceView(const char *name, Base::Window &win): BaseMenuView(name, win) {}
-	void draw() override;
-	void drawElement(const GuiTable1D &table, uint i, Gfx::GCRect rect) const override;
+	BaseMultiChoiceView(Base::Window &win): TableView{win} {}
+	BaseMultiChoiceView(const char *name, Base::Window &win): TableView{name, win} {}
+	void drawElement(uint i, Gfx::GCRect rect) const override;
 };
 
 class MultiChoiceView : public BaseMultiChoiceView
 {
 public:
 	typedef DelegateFunc<bool (int i, const Input::Event &e)> OnInputDelegate;
-	OnInputDelegate onSelectD;
-	TextMenuItem *choiceEntry = nullptr;
-	MenuItem **choiceEntryItem = nullptr;
-
-	// Required delegates
-	OnInputDelegate &onSelect() { return onSelectD; }
+	TextMenuItem *choiceEntry{};
+	MenuItem **choiceEntryItem{};
 
 	MultiChoiceView(Base::Window &win): BaseMultiChoiceView(win) {}
 	MultiChoiceView(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
 	void freeItems();
 	void allocItems(int items);
+	void init(uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
 	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
 	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = LC2DO);
 	void deinit() override;
-	void onSelectElement(const GuiTable1D &table, const Input::Event &e, uint i) override;
+	void setItem(int idx, const char *name, TextMenuItem::SelectDelegate del);
+	void setItem(int idx, TextMenuItem::SelectDelegate del);
 
 	template <size_t S, size_t S2>
 	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = LC2DO)
@@ -59,7 +56,7 @@ public:
 			choiceEntry[i].init(choice[i]);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		BaseMenuView::init(choiceEntryItem, choices, highlightCurrent, align);
+		TableView::init(choiceEntryItem, choices, highlightCurrent, align);
 	}
 };
 
@@ -72,7 +69,7 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
 	void init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
 	void handleChoices(DualTextMenuItem &, const Input::Event &e);
-	void select(View *parent, const Input::Event &e) override;
+	void select(View &parent, const Input::Event &e) override;
 
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr)
 	{

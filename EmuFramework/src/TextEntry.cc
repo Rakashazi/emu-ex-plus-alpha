@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/TextEntry.hh>
-#include <imagine/gui/GuiTable1D.hh>
+#include <imagine/gui/TableView.hh>
 
 void TextEntry::setAcceptingInput(bool on)
 {
@@ -97,7 +97,7 @@ void TextEntry::draw()
 {
 	using namespace Gfx;
 	texAlphaProgram.use();
-	t.draw(projP.unProjectRect(b).pos(LC2DO) + GP{GuiTable1D::globalXIndent, 0}, LC2DO, projP);
+	t.draw(projP.unProjectRect(b).pos(LC2DO) + GP{TableView::globalXIndent, 0}, LC2DO, projP);
 }
 
 void TextEntry::place()

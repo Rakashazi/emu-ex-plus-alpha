@@ -35,14 +35,14 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	BaseMenuView::init(item, i, highlightFirst);
+	TableView::init(item, i, highlightFirst);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	code
 	{
 		"Code",
-		[this](DualTextMenuItem &item, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, const Input::Event &e)
 		{
 			popup.post("To change this cheat, please delete and re-add it");
 		}
@@ -62,7 +62,7 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 	{
 		cheat[c].init(cheatsList[c].desc); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, const Input::Event &e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(!e.isPointer(), c);
@@ -144,7 +144,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addGS12CBCode
 	{
 		"Add Game Shark v1-2/Code Breaker Code",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			addNewCheat(false);
 		}
@@ -152,7 +152,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addGS3Code
 	{
 		"Add Game Shark v3 Code",
-		[this](TextMenuItem &item, const Input::Event &e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			addNewCheat(true);
 		}
@@ -167,7 +167,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		auto &cheatEntry = cheatsList[c];
 		cheat[c].init(cheatEntry.desc, cheatEntry.enabled); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
 			{
 				cheatsModified = true;
 				item.toggle(*this);

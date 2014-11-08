@@ -15,9 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/ScrollView1D.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gui/BaseMenuView.hh>
+#include <imagine/gui/TableView.hh>
 #include "tests.hh"
 
 class TestTableEntry : public DualTextMenuItem
@@ -31,12 +30,12 @@ public:
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 };
 
-class TestPicker : public BaseMenuView
+class TestPicker : public TableView
 {
 public:
 	static constexpr uint MAX_TESTS = 16;
 
-	TestPicker(Base::Window &win): BaseMenuView(win) {}
+	TestPicker(Base::Window &win): TableView(win) {}
 	void init(const TestParams *testParams, uint tests);
 
 private:
