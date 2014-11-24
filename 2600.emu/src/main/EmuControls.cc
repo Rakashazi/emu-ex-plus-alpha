@@ -70,13 +70,98 @@ const KeyCategory category[MAX_CATEGORIES]
 	{"Set Keyboard 2 Keys", keyboardName, keyboard2KeyOffset}
 };
 
-#ifdef INPUT_SUPPORTS_KEYBOARD
-
 const KeyConfig defaultKeyProfile[] =
 {
+	#ifdef CONFIG_BASE_ANDROID
+	KEY_CONFIG_ANDROID_NAV_KEYS,
+	#endif
+	{
+		Event::MAP_SYSTEM,
+		0,
+		"PC Keyboard",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
+
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::Z,
+			Keycode::X,
+
+			// JS 2
+			PP_ZERO_LIST(10)
+
+			// Switches
+			Keycode::SPACE,
+			Keycode::ENTER,
+			Keycode::A,
+			Keycode::S,
+			Keycode::Q,
+
+			// KB 1
+			Keycode::_3,
+			Keycode::_4,
+			Keycode::_5,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::D,
+			Keycode::F,
+			Keycode::G,
+			Keycode::C,
+			Keycode::V,
+			Keycode::B,
+
+			// KB 2
+			Keycode::_6,
+			Keycode::_7,
+			Keycode::_8,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::H,
+			Keycode::J,
+			Keycode::K,
+			Keycode::N,
+			Keycode::M,
+			Keycode::COMMA,
+		}
+	},
+	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_GENERIC_GAMEPAD,
+		"Generic Gamepad",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
+
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_A,
+			Keycode::GAME_X,
+
+			// JS 2
+			PP_ZERO_LIST(10)
+
+			// Switches
+			Keycode::GAME_R1,
+			Keycode::GAME_START,
+			Keycode::GAME_Y,
+			Keycode::GAME_B,
+			Keycode::GAME_L1,
+		}
+	},
+	#endif
 	#ifdef CONFIG_ENV_WEBOS
 	{
-		Input::Event::MAP_SYSTEM,
+		Event::MAP_SYSTEM,
 		0,
 		"WebOS Keyboard",
 		{
@@ -84,267 +169,184 @@ const KeyConfig defaultKeyProfile[] =
 
 			// JS 1
 			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			Keycode::asciiKey(','),
-			Keycode::asciiKey('m'),
+			Keycode::COMMA,
+			Keycode::M,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Keycode::asciiKey(' '),
-			Input::Keycode::ENTER,
-			Keycode::asciiKey('k'),
-			Keycode::asciiKey('l'),
+			Keycode::SPACE,
+			Keycode::ENTER,
+			Keycode::K,
+			Keycode::L,
 		}
 	},
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
-	KEY_CONFIG_ANDROID_NAV_KEYS,
 	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_GENERIC_GAMEPAD,
-		"Generic Gamepad",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
-
-			// JS 1
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0, 0, 0, 0,
-			Input::Keycode::GAME_A,
-			Input::Keycode::GAME_B,
-
-			// JS 2
-			PP_ZERO_LIST(10)
-
-			// Switches
-			Input::Keycode::GAME_R1,
-			Input::Keycode::GAME_START,
-			Input::Keycode::GAME_X,
-			Input::Keycode::GAME_Y,
-			Input::Keycode::GAME_L1,
-		}
-	},
-	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_PS3_CONTROLLER,
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_PS3_CONTROLLER,
 		"PS3 Controller",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::PS3::UP,
-			Input::Keycode::PS3::RIGHT,
-			Input::Keycode::PS3::DOWN,
-			Input::Keycode::PS3::LEFT,
+			Keycode::PS3::UP,
+			Keycode::PS3::RIGHT,
+			Keycode::PS3::DOWN,
+			Keycode::PS3::LEFT,
 			0, 0, 0, 0,
-			Input::Keycode::PS3::CROSS,
-			Input::Keycode::PS3::CIRCLE,
+			Keycode::PS3::CROSS,
+			Keycode::PS3::SQUARE,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::Keycode::PS3::SELECT,
-			Input::Keycode::PS3::START,
-			Input::Keycode::PS3::SQUARE,
-			Input::Keycode::PS3::TRIANGLE,
-			Input::Keycode::PS3::L1,
+			Keycode::PS3::SELECT,
+			Keycode::PS3::START,
+			Keycode::PS3::TRIANGLE,
+			Keycode::PS3::CIRCLE,
+			Keycode::PS3::L1,
 		}
 	},
 	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_OUYA_CONTROLLER,
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::Ouya::UP,
-			Input::Keycode::Ouya::RIGHT,
-			Input::Keycode::Ouya::DOWN,
-			Input::Keycode::Ouya::LEFT,
+			Keycode::Ouya::UP,
+			Keycode::Ouya::RIGHT,
+			Keycode::Ouya::DOWN,
+			Keycode::Ouya::LEFT,
 			0, 0, 0, 0,
-			Input::Keycode::Ouya::O,
-			Input::Keycode::Ouya::U,
+			Keycode::Ouya::O,
+			Keycode::Ouya::U,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::Keycode::Ouya::L3,
-			Input::Keycode::Ouya::R3,
-			Input::Keycode::Ouya::Y,
-			Input::Keycode::Ouya::A,
-			Input::Keycode::Ouya::L1,
+			Keycode::Ouya::L3,
+			Keycode::Ouya::R3,
+			Keycode::Ouya::Y,
+			Keycode::Ouya::A,
+			Keycode::Ouya::L1,
 		}
 	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_XPERIA_PLAY,
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
 				// JS 1
-				Input::Keycode::XperiaPlay::UP,
-				Input::Keycode::XperiaPlay::RIGHT,
-				Input::Keycode::XperiaPlay::DOWN,
-				Input::Keycode::XperiaPlay::LEFT,
+				Keycode::XperiaPlay::UP,
+				Keycode::XperiaPlay::RIGHT,
+				Keycode::XperiaPlay::DOWN,
+				Keycode::XperiaPlay::LEFT,
 				0, 0, 0, 0,
-				Input::Keycode::XperiaPlay::CROSS,
-				Input::Keycode::XperiaPlay::CIRCLE,
+				Keycode::XperiaPlay::CROSS,
+				Keycode::XperiaPlay::SQUARE,
 
 				// JS 2
 				PP_ZERO_LIST(10)
 
 				// Switches
-				Input::Keycode::XperiaPlay::SELECT,
-				Input::Keycode::XperiaPlay::START,
-				Input::Keycode::XperiaPlay::SQUARE,
-				Input::Keycode::XperiaPlay::TRIANGLE,
-				Input::Keycode::XperiaPlay::L1,
+				Keycode::XperiaPlay::SELECT,
+				Keycode::XperiaPlay::START,
+				Keycode::XperiaPlay::TRIANGLE,
+				Keycode::XperiaPlay::CIRCLE,
+				Keycode::XperiaPlay::L1,
 			}
 		},
 		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
 				// JS 1
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
+				Keycode::UP,
+				Keycode::RIGHT,
+				Keycode::DOWN,
+				Keycode::LEFT,
 				0, 0, 0, 0,
-				Keycode::asciiKey('x'),
-				Keycode::asciiKey('c'),
+				Keycode::X,
+				Keycode::C,
 
 				// JS 2
 				PP_ZERO_LIST(10)
 
 				// Switches
-				Keycode::asciiKey(' '),
-				Input::Keycode::ENTER,
-				Keycode::asciiKey('s'),
-				Keycode::asciiKey('d'),
+				Keycode::SPACE,
+				Keycode::ENTER,
+				Keycode::S,
+				Keycode::D,
 			}
 		},
 		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_NVIDIA_SHIELD,
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_NVIDIA_SHIELD,
 			"NVidia Shield",
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
 
 				// JS 1
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
+				Keycode::UP,
+				Keycode::RIGHT,
+				Keycode::DOWN,
+				Keycode::LEFT,
 				0, 0, 0, 0,
-				Input::Keycode::GAME_A,
-				Input::Keycode::GAME_B,
+				Keycode::GAME_A,
+				Keycode::GAME_X,
 
 				// JS 2
 				PP_ZERO_LIST(10)
 
 				// Switches
-				Input::Keycode::GAME_R1,
-				Input::Keycode::GAME_START,
-				Input::Keycode::GAME_X,
-				Input::Keycode::GAME_Y,
-				Input::Keycode::GAME_L1,
+				Keycode::GAME_R1,
+				Keycode::GAME_START,
+				Keycode::GAME_Y,
+				Keycode::GAME_B,
+				Keycode::GAME_L1,
 			}
 		},
 		#endif
 	#endif
-	{
-		Input::Event::MAP_SYSTEM,
-		0,
-		"PC Keyboard",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
-
-			// JS 1
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0, 0, 0, 0,
-			Keycode::asciiKey('z'),
-			Keycode::asciiKey('x'),
-
-			// JS 2
-			PP_ZERO_LIST(10)
-
-			// Switches
-			Keycode::asciiKey(' '),
-			Input::Keycode::ENTER,
-			Keycode::asciiKey('a'),
-			Keycode::asciiKey('s'),
-			Keycode::asciiKey('q'),
-
-			// KB 1
-			Keycode::asciiKey('3'),
-			Keycode::asciiKey('4'),
-			Keycode::asciiKey('5'),
-			Keycode::asciiKey('e'),
-			Keycode::asciiKey('r'),
-			Keycode::asciiKey('t'),
-			Keycode::asciiKey('d'),
-			Keycode::asciiKey('f'),
-			Keycode::asciiKey('g'),
-			Keycode::asciiKey('c'),
-			Keycode::asciiKey('v'),
-			Keycode::asciiKey('b'),
-
-			// KB 2
-			Keycode::asciiKey('6'),
-			Keycode::asciiKey('7'),
-			Keycode::asciiKey('8'),
-			Keycode::asciiKey('y'),
-			Keycode::asciiKey('u'),
-			Keycode::asciiKey('i'),
-			Keycode::asciiKey('h'),
-			Keycode::asciiKey('j'),
-			Keycode::asciiKey('k'),
-			Keycode::asciiKey('n'),
-			Keycode::asciiKey('m'),
-			Keycode::asciiKey(','),
-		}
-	},
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_PANDORA_HANDHELD,
-		"Default Pandora",
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_PANDORA_HANDHELD,
+		"Pandora Keys",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::Pandora::UP,
-			Input::Keycode::Pandora::RIGHT,
-			Input::Keycode::Pandora::DOWN,
-			Input::Keycode::Pandora::LEFT,
+			Keycode::Pandora::UP,
+			Keycode::Pandora::RIGHT,
+			Keycode::Pandora::DOWN,
+			Keycode::Pandora::LEFT,
 			0, 0, 0, 0,
-			Input::Keycode::Pandora::X,
-			Input::Keycode::Pandora::B,
+			Keycode::Pandora::X,
+			Keycode::Pandora::A,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::Keycode::Pandora::SELECT,
-			Input::Keycode::Pandora::START,
-			Keycode::asciiKey('a'),
-			Keycode::asciiKey('s'),
-			Keycode::asciiKey('q'),
+			Keycode::Pandora::SELECT,
+			Keycode::Pandora::START,
+			Keycode::Pandora::Y,
+			Keycode::Pandora::B,
+			Keycode::Q,
 		}
 	},
 	#endif
@@ -352,68 +354,35 @@ const KeyConfig defaultKeyProfile[] =
 
 const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);
 
-#endif
-
-#ifdef CONFIG_INPUT_EVDEV
-
-const KeyConfig defaultEvdevProfile[] =
-{
-	{
-		Input::Event::MAP_EVDEV,
-		0,
-		"Default",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
-
-			// JS 1
-			Input::Evdev::UP,
-			Input::Evdev::RIGHT,
-			Input::Evdev::DOWN,
-			Input::Evdev::LEFT,
-			0, 0, 0, 0,
-			Input::Evdev::GAME_A,
-			Input::Evdev::GAME_B,
-
-			// JS 2
-			PP_ZERO_LIST(10)
-
-			// Switches
-			Input::Evdev::GAME_SELECT,
-			Input::Evdev::GAME_START,
-		}
-	},
-};
-
-const uint defaultEvdevProfiles = sizeofArray(defaultEvdevProfile);
-
-#endif
-
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 
 const KeyConfig defaultAppleGCProfile[] =
 {
 	{
-		Input::Event::MAP_APPLE_GAME_CONTROLLER,
+		Event::MAP_APPLE_GAME_CONTROLLER,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT,
 
 			// JS 1
-			Input::AppleGC::UP,
-			Input::AppleGC::RIGHT,
-			Input::AppleGC::DOWN,
-			Input::AppleGC::LEFT,
+			AppleGC::UP,
+			AppleGC::RIGHT,
+			AppleGC::DOWN,
+			AppleGC::LEFT,
 			0, 0, 0, 0,
-			Input::AppleGC::A,
-			Input::AppleGC::X,
+			AppleGC::A,
+			AppleGC::X,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::AppleGC::RSTICK_LEFT,
-			Input::AppleGC::RSTICK_RIGHT,
+			AppleGC::RSTICK_LEFT,
+			AppleGC::RSTICK_RIGHT,
+			AppleGC::Y,
+			AppleGC::B,
+			AppleGC::L1,
 		}
 	},
 };
@@ -427,28 +396,28 @@ const uint defaultAppleGCProfiles = sizeofArray(defaultAppleGCProfile);
 const KeyConfig defaultWiimoteProfile[] =
 {
 	{
-		Input::Event::MAP_WIIMOTE,
+		Event::MAP_WIIMOTE,
 		0,
 		"Default Wiimote",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
 
 			// JS 1
-			Input::Wiimote::UP,
-			Input::Wiimote::RIGHT,
-			Input::Wiimote::DOWN,
-			Input::Wiimote::LEFT,
+			Wiimote::UP,
+			Wiimote::RIGHT,
+			Wiimote::DOWN,
+			Wiimote::LEFT,
 			0, 0, 0, 0,
-			Input::Wiimote::_1,
-			Input::Wiimote::_2,
+			Wiimote::_1,
+			Wiimote::_2,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::Wiimote::MINUS,
-			Input::Wiimote::PLUS,
-			Input::Wiimote::A,
+			Wiimote::MINUS,
+			Wiimote::PLUS,
+			Wiimote::A,
 		}
 	},
 };
@@ -458,30 +427,30 @@ const uint defaultWiimoteProfiles = sizeofArray(defaultWiimoteProfile);
 const KeyConfig defaultWiiCCProfile[] =
 {
 	{
-		Input::Event::MAP_WII_CC,
+		Event::MAP_WII_CC,
 		0,
 		"Default Classic / Wii U Pro Controller",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
 
 			// JS 1
-			Input::WiiCC::UP,
-			Input::WiiCC::RIGHT,
-			Input::WiiCC::DOWN,
-			Input::WiiCC::LEFT,
+			WiiCC::UP,
+			WiiCC::RIGHT,
+			WiiCC::DOWN,
+			WiiCC::LEFT,
 			0, 0, 0, 0,
-			Input::WiiCC::Y,
-			Input::WiiCC::B,
+			WiiCC::B,
+			WiiCC::Y,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::WiiCC::MINUS,
-			Input::WiiCC::PLUS,
-			Input::WiiCC::L,
-			Input::WiiCC::R,
-			Input::WiiCC::X,
+			WiiCC::MINUS,
+			WiiCC::PLUS,
+			WiiCC::X,
+			WiiCC::A,
+			WiiCC::L,
 		}
 	},
 };
@@ -493,29 +462,30 @@ const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
 const KeyConfig defaultIControlPadProfile[] =
 {
 	{
-		Input::Event::MAP_ICONTROLPAD,
+		Event::MAP_ICONTROLPAD,
 		0,
 		"Default iControlPad",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
 
 			// JS 1
-			Input::iControlPad::UP,
-			Input::iControlPad::RIGHT,
-			Input::iControlPad::DOWN,
-			Input::iControlPad::LEFT,
+			iControlPad::UP,
+			iControlPad::RIGHT,
+			iControlPad::DOWN,
+			iControlPad::LEFT,
 			0, 0, 0, 0,
-			Input::iControlPad::X,
-			Input::iControlPad::A,
+			iControlPad::X,
+			iControlPad::A,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::iControlPad::SELECT,
-			Input::iControlPad::START,
-			Input::iControlPad::Y,
-			Input::iControlPad::B,
+			iControlPad::SELECT,
+			iControlPad::START,
+			iControlPad::Y,
+			iControlPad::B,
+			iControlPad::L,
 		}
 	},
 };
@@ -527,29 +497,30 @@ const uint defaultIControlPadProfiles = sizeofArray(defaultIControlPadProfile);
 const KeyConfig defaultICadeProfile[] =
 {
 	{
-		Input::Event::MAP_ICADE,
+		Event::MAP_ICADE,
 		0,
 		"Default iCade",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ICADE_PROFILE_INIT,
 
 			// JS 1
-			Input::ICade::UP,
-			Input::ICade::RIGHT,
-			Input::ICade::DOWN,
-			Input::ICade::LEFT,
+			ICade::UP,
+			ICade::RIGHT,
+			ICade::DOWN,
+			ICade::LEFT,
 			0, 0, 0, 0,
-			Input::ICade::H,
-			Input::ICade::F,
+			ICade::A,
+			ICade::X,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::ICade::A,
-			Input::ICade::C,
-			Input::ICade::E,
-			Input::ICade::G,
+			ICade::SELECT,
+			ICade::START,
+			ICade::Y,
+			ICade::B,
+			ICade::Z,
 		}
 	},
 };
@@ -561,27 +532,27 @@ const uint defaultICadeProfiles = sizeofArray(defaultICadeProfile);
 const KeyConfig defaultZeemoteProfile[] =
 {
 	{
-		Input::Event::MAP_ZEEMOTE,
+		Event::MAP_ZEEMOTE,
 		0,
 		"Default Zeemote",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
 			// JS 1
-			Input::Zeemote::UP,
-			Input::Zeemote::RIGHT,
-			Input::Zeemote::DOWN,
-			Input::Zeemote::LEFT,
+			Zeemote::UP,
+			Zeemote::RIGHT,
+			Zeemote::DOWN,
+			Zeemote::LEFT,
 			0, 0, 0, 0,
-			Input::Zeemote::A,
-			Input::Zeemote::B,
+			Zeemote::A,
+			Zeemote::B,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::Zeemote::C,
-			Input::Zeemote::POWER,
+			Zeemote::C,
+			Zeemote::POWER,
 		}
 	},
 };
@@ -593,30 +564,30 @@ const uint defaultZeemoteProfiles = sizeofArray(defaultZeemoteProfile);
 const KeyConfig defaultPS3Profile[] =
 {
 	{
-		Input::Event::MAP_PS3PAD,
+		Event::MAP_PS3PAD,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT,
 
 			// JS 1
-			Input::PS3::UP,
-			Input::PS3::RIGHT,
-			Input::PS3::DOWN,
-			Input::PS3::LEFT,
+			PS3::UP,
+			PS3::RIGHT,
+			PS3::DOWN,
+			PS3::LEFT,
 			0, 0, 0, 0,
-			Input::PS3::CROSS,
-			Input::PS3::CIRCLE,
+			PS3::CROSS,
+			PS3::SQUARE,
 
 			// JS 2
 			PP_ZERO_LIST(10)
 
 			// Switches
-			Input::PS3::SELECT,
-			Input::PS3::START,
-			Input::PS3::SQUARE,
-			Input::PS3::TRIANGLE,
-			Input::PS3::L1,
+			PS3::SELECT,
+			PS3::START,
+			PS3::TRIANGLE,
+			PS3::CIRCLE,
+			PS3::L1,
 		}
 	},
 };

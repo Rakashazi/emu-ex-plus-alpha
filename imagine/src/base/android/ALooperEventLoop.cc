@@ -19,7 +19,7 @@
 namespace Base
 {
 
-static ALooper *aLooper = nullptr;
+static ALooper *aLooper{};
 
 static int pollEventCallback(int fd, int events, void *data)
 {

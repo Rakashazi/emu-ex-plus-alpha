@@ -35,8 +35,8 @@ static struct TouchState
 	int id = -1;
 	DragPointer dragState;
 	bool isTouching = false;
-} m[maxCursors];
-uint numCursors = maxCursors;
+} m[Config::Input::MAX_POINTERS];
+static uint numCursors = sizeofArray(m);
 
 #if CONFIG_ENV_ANDROID_MINSDK < 12
 using AMotionEvent_getAxisValueProto = float (__NDK_FPABI__ *)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
@@ -87,7 +87,7 @@ static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, in
 	{
 		bcase Device::SUBTYPE_XPERIA_PLAY:
 		{
-			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::ESCAPE && (metaState & AMETA_ALT_ON)))
+			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::BACK && (metaState & AMETA_ALT_ON)))
 			{
 				keyCode = Keycode::GAME_B;
 			}
@@ -127,7 +127,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 		case AMOTION_EVENT_ACTION_DOWN:
 		case AMOTION_EVENT_ACTION_POINTER_DOWN:
 			//logMsg("touch down for %d", pid);
-			iterateTimes((uint)maxCursors, i) // find a free touch element
+			iterateTimes(sizeofArray(m), i) // find a free touch element
 			{
 				if(m[i].id == -1)
 				{
@@ -154,7 +154,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
 			//logMsg("touch up for %d", pid);
-			iterateTimes((uint)maxCursors, i) // find the touch element
+			iterateTimes(sizeofArray(m), i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
@@ -168,7 +168,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 		bdefault:
 			// move event
 			//logMsg("event id %d", action);
-			iterateTimes((uint)maxCursors, i) // find the touch element
+			iterateTimes(sizeofArray(m), i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
@@ -213,9 +213,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 					if(eventAction == AMOTION_EVENT_ACTION_MOVE)
-						Base::mainWindow().dispatchInputEvent(Event{0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr});
+						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr});
 					else
-						Base::mainWindow().dispatchInputEvent(Event{0, Event::MAP_REL_POINTER, Keycode::ENTER, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr});
+					{
+						Key key = Keycode::ENTER;
+						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr});
+					}
 					return 1;
 				}
 				case AINPUT_SOURCE_TOUCHPAD: // TODO
@@ -330,11 +333,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				assert((uint)keyCode < Keycode::COUNT);
 				uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
 				#ifdef CONFIG_INPUT_ICADE
-				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(keyCode, 0), action, *dev, Base::mainWindow())))
+				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, *dev, Base::mainWindow())))
 				#endif
 				{
 					cancelKeyRepeatTimer();
-					Base::mainWindow().dispatchInputEvent(Event{dev->enumId(), Event::MAP_SYSTEM, (Key)(keyCode & 0xff), action, shiftState, time, dev});
+					Key key = keyCode & 0x1ff;
+					Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, time, dev});
 				}
 			}
 			return 1;

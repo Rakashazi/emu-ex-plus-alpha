@@ -4,7 +4,6 @@
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
 #import "MainApp.hh"
-#include "ICadeHelper.hh"
 #include <imagine/input/Input.hh>
 
 namespace Base
@@ -23,5 +22,8 @@ namespace Input
 	extern UITextField *vkbdField;
 	extern Input::InputTextDelegate vKeyboardTextDelegate;
 	extern IG::WindowRect textRect;
-	extern ICadeHelper iCade;
+	static constexpr int GSEVENTKEY_KEYCODE_IOS7 = 17;
+	static constexpr int GSEVENTKEY_KEYCODE_64_BIT = 13;
+	extern int GSEVENTKEY_KEYCODE;
+	void handleKeyEvent(UIEvent *event);
 }

@@ -18,7 +18,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
 
-#ifdef INPUT_SUPPORTS_POINTER
+#ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()
 {
 	return unbindB.x != unbindB.x2;
@@ -43,7 +43,7 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool 
 	else
 		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nPush [Left] key in menu screen", actionName);
 	text.init(str, View::defaultFace);
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(withPointerInput)
 	{
 		initPointerUI();
@@ -60,7 +60,7 @@ void ButtonConfigSetView::deinit()
 {
 	savedDev = nullptr;
 	text.deinit();
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		unbind.deinit();
@@ -77,7 +77,7 @@ void ButtonConfigSetView::place()
 {
 	text.compile(projP);
 
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		unbind.compile(projP);
@@ -97,7 +97,7 @@ void ButtonConfigSetView::place()
 
 void ButtonConfigSetView::inputEvent(const Input::Event &e)
 {
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer() && !pointerUIIsInit())
 	{
 		initPointerUI();
@@ -156,7 +156,7 @@ void ButtonConfigSetView::draw()
 	noTexProgram.use(projP.makeTranslate());
 	setColor(.4, .4, .4, 1.);
 	GeomRect::draw(viewFrame, projP);
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		setColor(.2, .2, .2, 1.);
@@ -167,7 +167,7 @@ void ButtonConfigSetView::draw()
 
 	setColor(COLOR_WHITE);
 	texAlphaProgram.use();
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		unbind.draw(projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);

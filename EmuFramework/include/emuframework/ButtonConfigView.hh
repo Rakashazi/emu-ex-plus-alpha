@@ -30,17 +30,17 @@ private:
 	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
 
 	IG::WindowRect viewFrame;
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	IG::WindowRect unbindB, cancelB;
 	#endif
-	char str[128] {0};
+	char str[128]{};
 	Gfx::Text text;
-	#ifdef INPUT_SUPPORTS_POINTER
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	Gfx::Text unbind, cancel;
 	#endif
 	SetDelegate onSetD;
-	const Input::Device *dev = nullptr;
-	const Input::Device *savedDev = nullptr;
+	const Input::Device *dev{};
+	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
 
 	void initPointerUI();
@@ -69,10 +69,10 @@ private:
 
 	InputManagerView &rootIMView;
 	TextMenuItem reset;
-	MenuItem **text = nullptr;
-	BtnConfigMenuItem *btn = nullptr;
-	const KeyCategory *cat = nullptr;
-	InputDeviceConfig *devConf = nullptr;
+	MenuItem **text{};
+	BtnConfigMenuItem *btn{};
+	const KeyCategory *cat{};
+	InputDeviceConfig *devConf{};
 	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
 	Input::Time lastKeySetTime = 0;
 	#endif

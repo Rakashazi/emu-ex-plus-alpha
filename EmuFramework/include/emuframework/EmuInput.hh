@@ -240,11 +240,8 @@ extern const uint systemTotalKeys;
 static constexpr uint MAX_CATEGORIES = 8;
 extern const KeyCategory category[MAX_CATEGORIES];
 
-#ifdef INPUT_SUPPORTS_KEYBOARD
 extern const KeyConfig defaultKeyProfile[];
 extern const uint defaultKeyProfiles;
-#endif
-
 extern const KeyConfig defaultWiimoteProfile[];
 extern const uint defaultWiimoteProfiles;
 extern const KeyConfig defaultWiiCCProfile[];
@@ -255,8 +252,6 @@ extern const KeyConfig defaultICadeProfile[];
 extern const uint defaultICadeProfiles;
 extern const KeyConfig defaultZeemoteProfile[];
 extern const uint defaultZeemoteProfiles;
-extern const KeyConfig defaultEvdevProfile[];
-extern const uint defaultEvdevProfiles;
 extern const KeyConfig defaultAppleGCProfile[];
 extern const uint defaultAppleGCProfiles;
 #if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER

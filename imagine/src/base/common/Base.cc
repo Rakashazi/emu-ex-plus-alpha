@@ -86,26 +86,22 @@ void setOnExit(ExitDelegate del)
 
 void dispatchOnInterProcessMessage(const char *filename)
 {
-	if(onInterProcessMessage_)
-		onInterProcessMessage_(filename);
+	onInterProcessMessage_.callCopySafe(filename);
 }
 
 void dispatchOnResume(bool focused)
 {
-	if(onResume_)
-		onResume_(focused);
+	onResume_.callCopySafe(focused);
 }
 
 void dispatchOnFreeCaches()
 {
-	if(onFreeCaches_)
-		onFreeCaches_();
+	onFreeCaches_.callCopySafe();
 }
 
 void dispatchOnExit(bool backgrounded)
 {
-	if(onExit_)
-		onExit_(backgrounded);
+	onExit_.callCopySafe(backgrounded);
 }
 
 const InterProcessMessageDelegate &onInterProcessMessage()

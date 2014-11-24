@@ -73,7 +73,7 @@ private:
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	BoolMenuItem mogaInputSystem;
 	#endif
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	BoolMenuItem notifyDeviceChange;
 	#endif
 	#ifdef CONFIG_BLUETOOTH

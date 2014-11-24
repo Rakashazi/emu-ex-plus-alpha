@@ -20,13 +20,11 @@ void TextEntry::setAcceptingInput(bool on)
 {
 	if(on)
 	{
-		Input::setTranslateKeyboardEventsByModifiers(1);
 		Input::showSoftInput();
 		logMsg("accepting input");
 	}
 	else
 	{
-		Input::setTranslateKeyboardEventsByModifiers(0);
 		Input::hideSoftInput();
 		logMsg("stopped accepting input");
 	}
@@ -43,46 +41,36 @@ void TextEntry::inputEvent(const Input::Event &e)
 		return;
 	}
 
-	if(acceptingInput && e.pushed() && e.isKeyboard())
+	if(acceptingInput && e.pushed() && e.map == e.MAP_SYSTEM)
 	{
-		bool updateText = 0;
+		bool updateText = false;
 
-		if(!e.isKeyboard())
-		{
-			//setAcceptingInput(0);
-			return;
-		}
-		#ifdef INPUT_SUPPORTS_KEYBOARD
-		else if(e.button == Input::Keycode::BACK_SPACE)
+		if(e.button == Input::Keycode::BACK_SPACE)
 		{
 			int len = strlen(str);
 			if(len > 0)
 			{
 				str[len-1] = '\0';
-				updateText = 1;
+				updateText = true;
 			}
 		}
-		else if(Input::Keycode::isAsciiKey(e.button))
+		else
 		{
-			if(strlen(str) < 127)
+			auto keyStr = e.keyString();
+			if(strlen(keyStr.data()))
 			{
-				uchar key = e.decodeAscii();
-				//logMsg("got input %c", key);
-				char keyStr[] = " ";
 				if(!multiLine)
 				{
-					if(key == '\r' || key == '\n')
+					if(keyStr[0] == '\r' || keyStr[0] == '\n')
 					{
 						setAcceptingInput(0);
 						return;
 					}
 				}
-				keyStr[0] = key == '\r' ? '\n' : key;
-				strcat(str, keyStr);
-				updateText = 1;
+				string_cat(str, keyStr.data());
+				updateText = true;
 			}
 		}
-		#endif
 
 		if(updateText)
 		{
@@ -123,7 +111,6 @@ CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::
 
 void TextEntry::deinit()
 {
-	Input::setTranslateKeyboardEventsByModifiers(0);
 	Input::hideSoftInput();
 	t.deinit();
 }
@@ -139,7 +126,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	}
 	#endif
 	message.init(msgText, face);
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry.init(initialContent, face, projP);
 	textEntry.setAcceptingInput(1);
 	#else
@@ -168,7 +155,7 @@ void CollectTextInputView::deinit()
 	cancelSpr.deinit();
 	#endif
 	message.deinit();
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry.deinit();
 	#else
 	Input::cancelSysTextInput();
@@ -190,7 +177,7 @@ void CollectTextInputView::place()
 	IG::WindowRect textRect;
 	int xSize = rect.xSize() * 0.95;
 	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
 	textEntry.place(textRect, projP);
 	#else
@@ -209,7 +196,7 @@ void CollectTextInputView::inputEvent(const Input::Event &e)
 			return;
 		}
 	}
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	bool acceptingInput = textEntry.acceptingInput;
 	textEntry.inputEvent(e);
 	if(!textEntry.acceptingInput && acceptingInput)
@@ -235,7 +222,7 @@ void CollectTextInputView::draw()
 		cancelSpr.draw();
 	}
 	#endif
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	setColor(0.25);
 	noTexProgram.use(projP.makeTranslate());
 	GeomRect::draw(textEntry.b, projP);

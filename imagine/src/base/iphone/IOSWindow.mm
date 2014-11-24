@@ -227,9 +227,6 @@ CallResult Window::init(const WindowConfig &config)
 	if(*screen() == mainScreen())
 	{
 		glView().multipleTouchEnabled = YES;
-		#ifdef CONFIG_INPUT_ICADE
-		Input::iCade.init(glView());
-		#endif
 	}
 	else
 	{

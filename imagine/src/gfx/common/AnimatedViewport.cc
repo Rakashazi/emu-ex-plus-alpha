@@ -58,7 +58,7 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 				animate = {};
 			}
 		};
-	w.screen()->addOnFrame(animate);
+	w.screen()->postOnFrame(animate);
 }
 
 void AnimatedViewport::finish()

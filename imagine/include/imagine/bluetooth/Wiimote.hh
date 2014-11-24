@@ -27,8 +27,8 @@ public:
 	static StaticArrayList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 
 	Wiimote(BluetoothAddr addr):
-		Device {0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
-		addr(addr)
+		Device{0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
+		addr{addr}
 	{}
 	CallResult open(BluetoothAdapter &adapter) override;
 	void close();
@@ -44,6 +44,7 @@ public:
 	void sendDataMode(uchar mode);
 	void writeReg(uchar offset, uchar val);
 	void readReg(uint offset, uchar size);
+	const char *keyName(Input::Key k) const override;
 
 	static bool isSupportedClass(const uchar devClass[3])
 	{
@@ -59,14 +60,15 @@ private:
 	uint function = FUNC_NONE;
 	uint joystickAxisAsDpadBits_;
 	Input::AxisKeyEmu<int> axisKey[4];
-	uchar prevBtnData[2] {0};
-	uchar prevExtData[11] {0};
+	uchar prevBtnData[2]{};
+	uchar prevExtData[11]{};
 	BluetoothAddr addr;
 	bool identifiedType = false;
 
 	struct ExtDevice : public Device
 	{
 		using Device::Device;
+		const char *keyName(Input::Key k) const override;
 	};
 	ExtDevice extDevice;
 
@@ -90,11 +92,8 @@ private:
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
 	static void decodeProSticks(const uchar *proSticks, int &lX, int &lY, int &rX, int &rY);
-	//void processStickDataForButtonEmulation(int player, const uchar *data);
-	//void processProStickDataForButtonEmulation(int player, const uchar *data);
 	void processCoreButtons(const uchar *packet, uint player);
 	void processClassicButtons(const uchar *packet, uint player);
 	void processProButtons(const uchar *packet, uint player);
-	//void processNunchukStickDataForButtonEmulation(int player, const uchar *data);
 	void processNunchukButtons(const uchar *packet, uint player);
 };

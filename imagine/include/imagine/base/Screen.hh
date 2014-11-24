@@ -92,6 +92,7 @@ public:
 	bool postOnFrameOnce(OnFrameDelegate del);
 	bool removeOnFrame(OnFrameDelegate del);
 	bool containsOnFrame(OnFrameDelegate del);
+	uint onFrameDelegates();
 	FrameTimeBase lastPostedFrameTime() const { return prevFrameTime; }
 	uint elapsedFrames(FrameTimeBase frameTime);
   uint refreshRate();

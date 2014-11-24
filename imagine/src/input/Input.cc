@@ -28,6 +28,15 @@ static Event keyRepeatEvent;
 static bool allowKeyRepeats_ = true;
 DeviceChangeDelegate onDeviceChange;
 
+static constexpr Key iCadeMap[12]
+{
+	Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT,
+	Keycode::GAME_X, Keycode::GAME_B,
+	Keycode::GAME_A, Keycode::GAME_Y,
+	Keycode::GAME_C, Keycode::GAME_Z,
+	Keycode::GAME_START, Keycode::GAME_SELECT
+};
+
 void setAllowKeyRepeats(bool on)
 {
 	allowKeyRepeats_ = on;
@@ -160,58 +169,67 @@ void dispatchInputEvent(const Input::Event &event)
 	Base::mainWindow().dispatchInputEvent(event);
 }
 
-bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win)
+static Key keyToICadeOnKey(Key key)
 {
-	static const char *ON_STATES  = "wdxayhujikol";
-	static const char *OFF_STATES = "eczqtrfnmpgv";
-
-	#ifndef CONFIG_BASE_IOS
-	using namespace ICade;
-	static const Key keycodeMap[14] =
+	switch(key)
 	{
-		UP, RIGHT, DOWN, LEFT,
-		A, B, C, D, E, F, G, H
-	};
-	#endif
+		case Keycode::W : return iCadeMap[0];
+		case Keycode::D : return iCadeMap[1];
+		case Keycode::X : return iCadeMap[2];
+		case Keycode::A : return iCadeMap[3];
+		case Keycode::Y : return iCadeMap[4];
+		case Keycode::H : return iCadeMap[5];
+		case Keycode::U : return iCadeMap[6];
+		case Keycode::J : return iCadeMap[7];
+		case Keycode::I : return iCadeMap[8];
+		case Keycode::K : return iCadeMap[9];
+		case Keycode::O : return iCadeMap[10];
+		case Keycode::L : return iCadeMap[11];
+	}
+	return 0;
+}
 
-	if(!c)
-		return false; // ignore null character
-
-	const char *p = strchr(ON_STATES, c);
-	if(p)
+static Key keyToICadeOffKey(Key key)
+{
+	switch(key)
 	{
-		//logMsg("handling iCade on-state key %c", *p);
-		int index = p-ON_STATES;
+		case Keycode::E : return iCadeMap[0];
+		case Keycode::C : return iCadeMap[1];
+		case Keycode::Z : return iCadeMap[2];
+		case Keycode::Q : return iCadeMap[3];
+		case Keycode::T : return iCadeMap[4];
+		case Keycode::R : return iCadeMap[5];
+		case Keycode::F : return iCadeMap[6];
+		case Keycode::N : return iCadeMap[7];
+		case Keycode::M : return iCadeMap[8];
+		case Keycode::P : return iCadeMap[9];
+		case Keycode::G : return iCadeMap[10];
+		case Keycode::V : return iCadeMap[11];
+	}
+	return 0;
+}
+
+bool processICadeKey(Key key, uint action, const Device &dev, Base::Window &win)
+{
+	if(Key onKey = keyToICadeOnKey(key))
+	{
 		if(action == PUSHED)
 		{
-			#ifdef CONFIG_BASE_IOS
-			Event event{0, Event::MAP_ICADE, (Key)(index+1), PUSHED, 0, 0, &dev};
-			#else
-			Event event{0, Event::MAP_ICADE, (Key)keycodeMap[index], PUSHED, 0, 0, &dev};
-			#endif
+			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
+			Event event{0, Event::MAP_ICADE, onKey, onKey, PUSHED, 0, 0, &dev};
 			startKeyRepeatTimer(event);
 			win.dispatchInputEvent(event);
 		}
 		return true;
 	}
-	else
+	if(Key offKey = keyToICadeOffKey(key))
 	{
-		p = strchr(OFF_STATES, c);
-		if(p)
+		if(action == PUSHED)
 		{
-			//logMsg("handling iCade off-state key %c", *p);
-			int index = p-OFF_STATES;
-			if(action == PUSHED)
-			{
-				cancelKeyRepeatTimer();
-				#ifdef CONFIG_BASE_IOS
-				win.dispatchInputEvent(Input::Event{0, Event::MAP_ICADE, (Key)(index+1), RELEASED, 0, 0, &dev});
-				#else
-				win.dispatchInputEvent(Input::Event{0, Event::MAP_ICADE, keycodeMap[index], RELEASED, 0, 0, &dev});
-				#endif
-			}
-			return true;
+			cancelKeyRepeatTimer();
+			win.dispatchInputEvent({0, Event::MAP_ICADE, offKey, offKey, RELEASED, 0, 0, &dev});
 		}
+		return true;
 	}
 	return false; // not an iCade key
 }
@@ -241,9 +259,6 @@ const char *Event::mapName(uint map)
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return "iCade";
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return "Linux";
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return "Apple Game Controller";
 		#endif
@@ -256,9 +271,7 @@ uint Event::mapNumKeys(uint map)
 	switch(map)
 	{
 		case MAP_NULL: return 0;
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM: return Input::Keycode::COUNT;
-		#endif
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return Input::Wiimote::COUNT;
 		case MAP_WII_CC: return Input::WiiCC::COUNT;
@@ -271,14 +284,38 @@ uint Event::mapNumKeys(uint map)
 		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return Input::ICade::COUNT;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return Input::Evdev::COUNT;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
 		#endif
 		default: bug_branch("%d", map); return 0;
 	}
 }
+
+bool isVolumeKey(Key event)
+{
+	#if defined __ANDROID__ || defined CONFIG_BASE_X11
+	return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
+	#else
+	return false;
+	#endif
+}
+
+#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
+uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
+{
+	return 0;
+}
+
+void cancelSysTextInput() {}
+
+void finishSysTextInput() {}
+
+void placeSysTextInput(IG::WindowRect rect) {}
+
+IG::WindowRect sysTextInputRect()
+{
+	return {};
+}
+#endif
 
 }

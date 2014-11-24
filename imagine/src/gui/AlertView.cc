@@ -93,7 +93,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 		{
 			auto callback = onYesD;
 			dismiss();
-			if(callback) callback(e);
+			callback.callSafe(e);
 		}
 	},
 	no
@@ -102,7 +102,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 		{
 			auto callback = onNoD;
 			dismiss();
-			if(callback) callback(e);
+			callback.callSafe(e);
 		}
 	}
 {}

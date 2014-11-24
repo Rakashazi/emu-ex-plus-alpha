@@ -31,8 +31,7 @@ void ContentDrag::init(uint axis)
 
 ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, const Input::Event &e)
 {
-	#ifdef INPUT_SUPPORTS_POINTER
-	if(pushed && e.devId != devId)
+	if(!Config::Input::POINTING_DEVICES || (pushed && e.devId != devId))
 		return NO_CHANGE;
 
 	auto dragState = Input::dragState(e.devId);
@@ -70,9 +69,6 @@ ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, const Input
 	{
 		return INACTIVE;
 	}
-	#else
-	return NO_CHANGE;
-	#endif
 }
 
 void KScroll::init(const IG::WindowRect *viewFrame, const IG::WindowRect *contentFrame)
@@ -161,7 +157,8 @@ void KScroll::decel2(View &view)
 
 bool KScroll::inputEvent(const Input::Event &e, View &view)
 {
-	#ifdef INPUT_SUPPORTS_POINTER
+	if(!Config::Input::POINTING_DEVICES)
+		return false;
 	auto dragState = Input::dragState(e.devId);
 	switch(ContentDrag::inputEvent(*viewFrame, e))
 	{
@@ -169,7 +166,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 		{
 			start = offset;
 		}
-		return 0;
+		return false;
 
 		case ContentDrag::ENTERED_ACTIVE:
 		{
@@ -184,7 +181,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 				scrollWholeArea = 0;
 			}
 		}
-		return 1;
+		return true;
 
 		case ContentDrag::LEFT_ACTIVE:
 		{
@@ -192,7 +189,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 			//if(vel != (GC)0) // TODO: situations where a redraw is needed even with vel == 0
 				view.postDraw();
 		}
-		return 1;
+		return true;
 
 		case ContentDrag::ACTIVE:
 		{
@@ -211,21 +208,18 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 			}
 			view.postDraw();
 		}
-		return 1;
+		return true;
 
-		default: return 0;
+		default: return false;
 	}
-	#else
-	return 0;
-	#endif
 }
 
 bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &view)
 {
 	prevOffset = offset;
 	bool ret = 0;
-	#ifdef INPUT_SUPPORTS_MOUSE
-	if(e.isPointer() && (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
+	if(Config::Input::MOUSE_DEVICES
+			&& e.isPointer() && (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
 	{
 		if(e.pushed() && offset >= minClip && offset <= maxClip)
 		{
@@ -248,7 +242,6 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &
 		ret = 1;
 	}
 	else
-	#endif
 	{
 		ret = e.isPointer() ? inputEvent(e, view) : 0;
 	}

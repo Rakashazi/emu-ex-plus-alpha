@@ -31,68 +31,29 @@ class Window;
 namespace Input
 {
 
+[[gnu::cold]] CallResult init();
+
 // OS text input support
 typedef DelegateFunc<void (const char *str)> InputTextDelegate;
-#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
-#define CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
-static const bool SYSTEM_CAN_COLLECT_TEXT = 1;
 uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels);
 void cancelSysTextInput();
 void finishSysTextInput();
-void placeSysTextInput(const IG::WindowRect &rect);
-const IG::WindowRect &sysTextInputRect();
-#else
-static const bool SYSTEM_CAN_COLLECT_TEXT = 0;
-static uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels) { return 0; }
-#endif
-
-[[gnu::cold]] CallResult init();
+void placeSysTextInput(IG::WindowRect rect);
+IG::WindowRect sysTextInputRect();
 
 void setKeyRepeat(bool on);
 
 // Control if volume keys are used by the app or passed on to the OS
-#ifdef CONFIG_BASE_ANDROID
 void setHandleVolumeKeys(bool on);
-#else
-static void setHandleVolumeKeys(bool on) {}
-#endif
 
-#if defined(CONFIG_INPUT_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
 void showSoftInput();
 void hideSoftInput();
-	#if CONFIG_ENV_WEBOS_OS >= 3
-	bool softInputIsActive();
-	#endif
-#else
-static void showSoftInput() {}
-static void hideSoftInput() {}
-static bool softInputIsActive() { return 0; }
-#endif
+bool softInputIsActive();
 
-#ifdef INPUT_SUPPORTS_POINTER
-extern uint numCursors;
 void hideCursor();
 void showCursor();
-#else
-static uint numCursors = 0;
-static void hideCursor() {}
-static void showCursor() {}
-#endif
 
-static bool isVolumeKey(Key event)
-{
-	#if defined CONFIG_BASE_SDL || defined CONFIG_BASE_MACOSX || defined CONFIG_BASE_WIN32 || !defined INPUT_SUPPORTS_KEYBOARD
-	return 0;
-	#else
-	return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
-	#endif
-}
-
-	namespace CONFIG_INPUT_KEYCODE_NAMESPACE
-	{
-	uint decodeAscii(Key k, bool isShiftPushed);
-	bool isAsciiKey(Key k);
-	}
+bool isVolumeKey(Key event);
 
 static constexpr uint MAX_DEVS = Config::envIsAndroid ? 24 : 16;
 extern StaticArrayList<Device*, MAX_DEVS> devList;
@@ -113,7 +74,8 @@ struct PackedInputAccess
 {
 	uint byteOffset;
 	uint mask;
-	uint keyEvent;
+	Key keyEvent;
+	Key sysKey;
 
 	int updateState(const uchar *prev, const uchar *curr) const
 	{
@@ -137,6 +99,7 @@ public:
 	static constexpr uint MAP_NULL = 0,
 		MAP_SYSTEM = 1,
 		MAP_X = 1,
+		MAP_EVDEV = 1,
 		MAP_ANDROID = 1,
 		MAP_WIN32 = 1,
 		MAP_MACOSX = 1,
@@ -148,9 +111,10 @@ public:
 		MAP_ZEEMOTE = 21,
 		MAP_ICADE = 22,
 		MAP_PS3PAD = 23,
-		MAP_EVDEV = 30,
 		MAP_APPLE_GAME_CONTROLLER = 31
 		;
+
+	using KeyString = std::array<char, 4>;
 
 	static const char *mapName(uint map);
 
@@ -164,18 +128,21 @@ public:
 	constexpr Event() {}
 
 	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, bool pointerIsTouch, Time time, const Device *device)
-		: devId(devId), map(map), button(button), state(state), x(x), y(y), time(time), device(device), pointerIsTouch(pointerIsTouch) {}
+		: devId{devId}, map{map}, button{button}, state{state}, x{x}, y{y}, time{time}, device{device}, pointerIsTouch{pointerIsTouch} {}
 
-	constexpr Event(uint devId, uint map, Key button, uint state, uint metaState, Time time, const Device *device)
-		: devId(devId), map(map), button(button), state(state), metaState(metaState), time(time), device(device) {}
+	constexpr Event(uint devId, uint map, Key button, Key sysKey, uint state, uint metaState, Time time, const Device *device)
+		: devId{devId}, map{map}, button{button}, sysKey_{sysKey}, state{state}, metaState{metaState}, time{time}, device{device} {}
 
 	uint devId = 0, map = MAP_NULL;
-	Key button = 0;
+	Key button = 0, sysKey_ = 0;
+	#ifdef CONFIG_BASE_X11
+	Key rawKey = 0;
+	#endif
 	uint state = 0;
 	int x = 0, y = 0;
 	uint metaState = 0;
-	Time time = (Time)0;
-	const Device *device = nullptr;
+	Time time{};
+	const Device *device{};
 	bool pointerIsTouch = false;
 
 	bool stateIsPointer() const
@@ -185,27 +152,22 @@ public:
 
 	bool isPointer() const
 	{
-		return Input::SUPPORTS_POINTER && (map == MAP_POINTER || stateIsPointer());
+		return Config::Input::POINTING_DEVICES && (map == MAP_POINTER || stateIsPointer());
 	}
 
 	bool isRelativePointer() const
 	{
-		return Input::supportsRelativePointer && state == MOVED_RELATIVE;
+		return Config::Input::RELATIVE_MOTION_DEVICES && state == MOVED_RELATIVE;
 	}
 
 	bool isTouch() const
 	{
-		return Input::SUPPORTS_POINTER && pointerIsTouch;
+		return Config::Input::TOUCH_DEVICES && pointerIsTouch;
 	}
 
 	bool isKey() const
 	{
-		return Input::supportsKeyboard && !isPointer() && !isRelativePointer();
-	}
-
-	bool isKeyboard() const
-	{
-		return Input::supportsKeyboard && map == MAP_SYSTEM;
+		return !isPointer() && !isRelativePointer();
 	}
 
 	bool isDefaultConfirmButton(uint swapped = Input::swappedGamepadConfirm) const;
@@ -217,6 +179,11 @@ public:
 	bool isDefaultPageUpButton() const;
 	bool isDefaultPageDownButton() const;
 
+	Key key() const
+	{
+		return sysKey_;
+	}
+
 	bool pushed() const
 	{
 		return state == PUSHED;
@@ -225,6 +192,11 @@ public:
 	bool pushed(Key button) const
 	{
 		return pushed() && this->button == button;
+	}
+
+	bool pushedKey(Key sysKey) const
+	{
+		return pushed() && sysKey_ == sysKey;
 	}
 
 	bool released() const
@@ -237,32 +209,19 @@ public:
 		return state == MOVED;
 	}
 
-	#ifdef INPUT_SUPPORTS_KEYBOARD
-	uint decodeAscii() const
-	{
-		return Input::Keycode::decodeAscii(button, 0);
-	}
-	#endif
-
 	bool isShiftPushed() const
 	{
 		return metaState != 0;
 	}
 
 	static const char *actionToStr(int action);
+
+	KeyString keyString() const;
 };
 
 // Input device status
 
 bool keyInputIsPresent();
-
-#ifdef CONFIG_BASE_X11
-void setTranslateKeyboardEventsByModifiers(bool on);
-bool translateKeyboardEventsByModifiers();
-#else
-static void setTranslateKeyboardEventsByModifiers(bool on) {}
-static bool translateKeyboardEventsByModifiers() { return false; }
-#endif
 
 void dispatchInputEvent(const Event &event);
 void startKeyRepeatTimer(const Event &event);
@@ -271,7 +230,7 @@ void deinitKeyRepeatTimer();
 
 IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> srcPos);
 
-using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, const Device::Change &change)>;
+using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, Device::Change change)>;
 
 // Called when a known input device addition/removal/change occurs
 void setOnDeviceChange(DeviceChangeDelegate del);

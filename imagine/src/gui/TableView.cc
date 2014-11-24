@@ -31,13 +31,10 @@ void TableView::init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin
 	cells_ = items;
 	var_selfs(align);
 	selected = -1;
-	if(highlightFirst && items)
+	if((!Config::Input::POINTING_DEVICES || highlightFirst) && items)
 		selected = nextSelectableElement(0);
-
 	ScrollView::init();
 	onlyScrollIfNeeded = false;
-	if(!Input::SUPPORTS_POINTER && items)
-		selected = 0;
 	selectedIsActivated = false;
 }
 
@@ -46,6 +43,7 @@ void TableView::deinit()
 	iterateTimes(cells_, i)
 	{
 		item[i]->deinit();
+		cells_ = 0;
 	}
 }
 

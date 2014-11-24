@@ -165,27 +165,27 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 
 void Window::dispatchInputEvent(const Input::Event &event)
 {
-	onInputEvent(*this, event);
+	onInputEvent.callCopy(*this, event);
 }
 
 void Window::dispatchFocusChange(bool in)
 {
-	onFocusChange(*this, in);
+	onFocusChange.callCopy(*this, in);
 }
 
 void Window::dispatchDragDrop(const char *filename)
 {
-	onDragDrop(*this, filename);
+	onDragDrop.callCopy(*this, filename);
 }
 
 void Window::dispatchDismissRequest()
 {
-	onDismissRequest(*this);
+	onDismissRequest.callCopy(*this);
 }
 
 void Window::dispatchSurfaceChange()
 {
-	onSurfaceChange(*this, moveAndClear(surfaceChange));
+	onSurfaceChange.callCopy(*this, moveAndClear(surfaceChange));
 }
 
 void Window::dispatchOnDraw()
@@ -199,7 +199,7 @@ void Window::dispatchOnDraw()
 		dispatchSurfaceChange();
 		params.wasResized_ = true;
 	}
-	onDraw(*this, params);
+	onDraw.callCopy(*this, params);
 }
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)
@@ -335,6 +335,13 @@ void Window::postNeededScreens()
 		if(w.needsDraw())
 		{
 			w.screen()->postFrame();
+		}
+	}
+	iterateTimes(Screen::screens(), i)
+	{
+		if(Screen::screen(i)->onFrameDelegates())
+		{
+			Screen::screen(i)->postFrame();
 		}
 	}
 }

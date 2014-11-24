@@ -38,7 +38,7 @@ class OnScreenInputPlaceView : public View
 	Base::Timer animationStartTimer;
 	Base::Screen::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect;
-	DragState drag[Input::maxCursors];
+	DragState drag[Config::Input::MAX_POINTERS];
 
 public:
 	OnScreenInputPlaceView(Base::Window &win): View(win) {}

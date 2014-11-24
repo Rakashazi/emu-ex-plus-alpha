@@ -28,7 +28,7 @@ using FileIO = Win32IO;
 using FileIO = PosixFileIO;
 #endif
 
-#ifdef CONFIG_IO_AASSET
+#ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
 using AssetIO = AAssetIO;
 #else

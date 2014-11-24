@@ -122,7 +122,7 @@ public:
 	virtual uint joystickAxisAsDpadBitsDefault() { return 0; }
 	virtual uint joystickAxisBits() { return 0; }
 
-	const char *keyName(Key b) const;
+	virtual const char *keyName(Key k) const;
 
 	// TODO
 	//bool isDisconnectable() { return 0; }

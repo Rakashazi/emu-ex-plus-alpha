@@ -21,25 +21,26 @@
 #include <algorithm>
 
 using namespace IG;
+using namespace Input;
 
 extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
 StaticArrayList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
 
-static const Input::PackedInputAccess iCPDataAccess[] =
+static const PackedInputAccess iCPDataAccess[] =
 {
-	{ 0, bit(2), Input::iControlPad::LEFT },
-	{ 0, bit(1), Input::iControlPad::RIGHT },
-	{ 0, bit(3), Input::iControlPad::DOWN },
-	{ 0, bit(0), Input::iControlPad::UP },
-	{ 0, bit(4), Input::iControlPad::L },
+	{ 0, bit(2), iControlPad::LEFT, Keycode::LEFT },
+	{ 0, bit(1), iControlPad::RIGHT, Keycode::RIGHT },
+	{ 0, bit(3), iControlPad::DOWN, Keycode::DOWN },
+	{ 0, bit(0), iControlPad::UP, Keycode::UP },
+	{ 0, bit(4), iControlPad::L, Keycode::GAME_L1 },
 
-	{ 1, bit(3), Input::iControlPad::A },
-	{ 1, bit(4), Input::iControlPad::X },
-	{ 1, bit(5), Input::iControlPad::B },
-	{ 1, bit(6), Input::iControlPad::R },
-	{ 1, bit(0), Input::iControlPad::SELECT },
-	{ 1, bit(2), Input::iControlPad::Y },
-	{ 1, bit(1), Input::iControlPad::START },
+	{ 1, bit(3), iControlPad::A, Keycode::GAME_X },
+	{ 1, bit(4), iControlPad::X, Keycode::GAME_A },
+	{ 1, bit(5), iControlPad::B, Keycode::GAME_B },
+	{ 1, bit(6), iControlPad::R, Keycode::GAME_R1 },
+	{ 1, bit(0), iControlPad::SELECT, Keycode::GAME_SELECT },
+	{ 1, bit(2), iControlPad::Y, Keycode::GAME_Y },
+	{ 1, bit(1), iControlPad::START, Keycode::GAME_START },
 };
 
 static const uchar CMD_SPP_GP_REPORTS = 0xAD;
@@ -72,6 +73,40 @@ static const uchar PWR_OFF_CHK_BYTE3 = 0xFE;
 static const uchar RESP_OKAY = 0x80;
 
 const uchar IControlPad::btClass[3] = { 0x00, 0x1F, 0x00 };
+
+static const char *icpButtonName(Key b)
+{
+	switch(b)
+	{
+		case 0: return "None";
+		case iControlPad::A: return "A";
+		case iControlPad::B: return "B";
+		case iControlPad::X: return "X";
+		case iControlPad::Y: return "Y";
+		case iControlPad::L: return "L";
+		case iControlPad::R: return "R";
+		case iControlPad::START: return "Start";
+		case iControlPad::SELECT: return "Select";
+		case iControlPad::LNUB_LEFT: return "L:Left";
+		case iControlPad::LNUB_RIGHT: return "L:Right";
+		case iControlPad::LNUB_UP: return "L:Up";
+		case iControlPad::LNUB_DOWN: return "L:Down";
+		case iControlPad::RNUB_LEFT: return "R:Left";
+		case iControlPad::RNUB_RIGHT: return "R:Right";
+		case iControlPad::RNUB_UP: return "R:Up";
+		case iControlPad::RNUB_DOWN: return "R:Down";
+		case iControlPad::UP: return "Up";
+		case iControlPad::RIGHT: return "Right";
+		case iControlPad::DOWN: return "Down";
+		case iControlPad::LEFT: return "Left";
+	}
+	return "Unknown";
+}
+
+const char *IControlPad::keyName(Key k) const
+{
+	return icpButtonName(k);
+}
 
 uint IControlPad::findFreeDevId()
 {
@@ -123,8 +158,7 @@ void IControlPad::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		removeDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -148,15 +182,13 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("iCP connection error");
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}
@@ -235,7 +267,7 @@ void IControlPad::processBtnReport(const char *btnData, uint player)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ICONTROLPAD, (Key)e->keyEvent, newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_ICONTROLPAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, 0, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -264,52 +296,29 @@ void IControlPad::setJoystickAxisAsDpadBits(uint axisMask)
 	{
 		bool on = axisMask & Device::AXIS_BIT_X;
 		axisKey[0].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::LNUB_LEFT;
+		axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
 		axisKey[0].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::LNUB_RIGHT;
+		axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_Y;
 		axisKey[1].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::LNUB_UP;
+		axisKey[1].lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
 		axisKey[1].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::LNUB_DOWN;
+		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_Z;
 		axisKey[2].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::RNUB_LEFT;
+		axisKey[2].lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
 		axisKey[2].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::RNUB_RIGHT;
+		axisKey[2].highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_RZ;
 		axisKey[3].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::RNUB_UP;
+		axisKey[3].lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
 		axisKey[3].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::RNUB_DOWN;
+		axisKey[3].highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
 	}
 }
-
-//void IControlPad::processNubDataForButtonEmulation(const schar *nubData, uint player)
-//{
-//	using namespace Input;
-//	//logMsg("iCP nubs %d %d %d %d", (int)nubData[0], (int)nubData[1], (int)nubData[2], (int)nubData[3]);
-//	forEachInArray(nubBtn, e)
-//	{
-//		bool newState;
-//		if(e_i % 2)
-//		{
-//			newState = nubData[e_i/2] > nubDeadzone;
-//		}
-//		else
-//		{
-//			newState = nubData[e_i/2] < -nubDeadzone;
-//		}
-//		if(*e != newState)
-//		{
-//			static const uint nubBtnEvent[8] =
-//			{
-//				Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT, Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
-//				Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT, Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN
-//			};
-//			Base::endIdleByUserActivity();
-//			Event event{player, Event::MAP_ICONTROLPAD, (Key)nubBtnEvent[e_i], newState ? PUSHED : RELEASED, 0, 0, this};
-//			startKeyRepeatTimer(event);
-//			dispatchInputEvent(event);
-//		}
-//		*e = newState;
-//	}
-//}

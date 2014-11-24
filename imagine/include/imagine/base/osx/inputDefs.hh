@@ -160,14 +160,11 @@ namespace OSX
 	;
 
 	static const uint COUNT = 0xffff;
-
-	static constexpr uint asciiKey(uint c) { return c; }
 };
 
 typedef uint16 Key;
 
 namespace Keycode = OSX;
-#define CONFIG_INPUT_KEYCODE_NAMESPACE OSX
 
 namespace Pointer
 {

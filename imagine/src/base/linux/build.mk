@@ -7,7 +7,6 @@ include $(imagineSrcDir)/input/build.mk
 LDLIBS += -lpthread
 
 SRC += base/linux/linux.cc \
- input/genericASCIIDecode.cc \
  base/common/timer/TimerFD.cc \
  base/common/PosixPipe.cc \
  util/string/glibc.c

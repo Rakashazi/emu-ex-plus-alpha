@@ -27,7 +27,7 @@ public:
 	using IOUtils::tell;
 
 	constexpr AAssetIO() {}
-	~AAssetIO();
+	~AAssetIO() override;
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
 	operator GenericIO();
@@ -42,7 +42,7 @@ public:
 	bool eof() override;
 	operator bool() override;
 
-protected:
+public:
 	AAsset *asset{};
 	BufferMapIO mapIO;
 };

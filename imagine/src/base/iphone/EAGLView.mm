@@ -50,8 +50,8 @@ static struct TouchState
 	constexpr TouchState() {}
 	UITouch *touch = nil;
 	DragPointer dragState;
-} m[maxCursors];
-uint numCursors = maxCursors;
+} m[Config::Input::MAX_POINTERS];
+static uint numCursors = Config::Input::MAX_POINTERS;
 
 DragPointer *dragState(int p)
 {
@@ -201,8 +201,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 		framebuffer, colorRenderbuffer, depthRenderbuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
 	auto &win = *Base::windowForUIWindow(self.window);
-	if(onGLDrawableChanged)
-		onGLDrawableChanged(&win);
+	onGLDrawableChanged.callCopySafe(&win);
 	updateWindowSizeAndContentRect(win, size.x, size.y, sharedApp);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");
@@ -215,7 +214,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes((uint)Input::maxCursors, i) // find a free touch element
+		iterateTimes(sizeofArray(m), i) // find a free touch element
 		{
 			if(Input::m[i].touch == nil)
 			{
@@ -240,7 +239,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes((uint)Input::maxCursors, i) // find the touch element
+		iterateTimes(sizeofArray(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{
@@ -264,7 +263,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes((uint)Input::maxCursors, i) // find the touch element
+		iterateTimes(sizeofArray(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{
@@ -286,29 +285,5 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 {
 	[self touchesEnded:touches withEvent:event];
 }
-
-#if defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
-- (BOOL)canBecomeFirstResponder { return YES; }
-
-- (BOOL)hasText { return NO; }
-
-- (void)insertText:(NSString *)text
-{
-	#ifdef CONFIG_INPUT_ICADE
-	if(Input::iCade.isActive())
-		Input::iCade.insertText(text);
-	#endif
-	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
-}
-
-- (void)deleteBackward {}
-
-	#ifdef CONFIG_INPUT_ICADE
-	- (UIView*)inputView
-	{
-		return Input::iCade.dummyInputView;
-	}
-	#endif
-#endif // defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
 
 @end

@@ -41,17 +41,17 @@ public:
 		uint chars;
 	};
 
-	ResourceFace *face = nullptr;
+	ResourceFace *face{};
 	GC spaceSize = 0;
 	GC nominalHeight = 0;
 	GC yLineStart = 0;
 	GC xSize = 0, ySize = 0;
 	GC maxLineSize = NO_MAX_LINE_SIZE;
-	const char *str = nullptr;
+	const char *str{};
 	uint chars = 0;
 	ushort lines = 0;
 	ushort maxLines = NO_MAX_LINES;
-	LineInfo *lineInfo = nullptr;
+	LineInfo *lineInfo{};
 
 	constexpr Text() {}
 	constexpr Text(const char *str): str(str) {}

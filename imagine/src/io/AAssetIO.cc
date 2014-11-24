@@ -50,7 +50,7 @@ AAssetIO::operator GenericIO()
 CallResult AAssetIO::open(const char *name)
 {
 	logMsg("opening asset %s", name);
-	AAsset *asset = AAssetManager_open(Base::activityAAssetManager(), name, AASSET_MODE_BUFFER);
+	asset = AAssetManager_open(Base::activityAAssetManager(), name, AASSET_MODE_BUFFER);
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");

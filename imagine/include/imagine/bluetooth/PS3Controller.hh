@@ -26,8 +26,8 @@ public:
 	static StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 
 	PS3Controller(BluetoothAddr addr):
-		Device {0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
-		addr(addr)
+		Device{0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
+		addr{addr}
 	{}
 	CallResult open(BluetoothAdapter &adapter) override;
 	CallResult open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
@@ -41,16 +41,33 @@ public:
 	uint joystickAxisAsDpadBitsDefault() override;
 	void setJoystickAxisAsDpadBits(uint axisMask) override;
 	uint joystickAxisAsDpadBits() override { return joystickAxisAsDpadBits_; }
+	const char *keyName(Input::Key k) const override;
 
 private:
-	uchar prevData[3] {0};
+	uchar prevData[3]{};
 	bool didSetLEDs = false;
 	Input::AxisKeyEmu<int> axisKey[4]
 	{
-		{64, 192, Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT}, // Left X Axis
-		{64, 192, Input::PS3::LSTICK_UP, Input::PS3::LSTICK_DOWN},  // Left Y Axis
-		{64, 192, Input::PS3::RSTICK_LEFT, Input::PS3::RSTICK_RIGHT}, // Right X Axis
-		{64, 192, Input::PS3::RSTICK_UP, Input::PS3::RSTICK_DOWN}   // Right Y Axis
+		{
+			64, 192,
+			Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT,
+			Input::Keycode::JS1_XAXIS_NEG, Input::Keycode::JS1_XAXIS_POS
+		}, // Left X Axis
+		{
+			64, 192,
+			Input::PS3::LSTICK_UP, Input::PS3::LSTICK_DOWN,
+			Input::Keycode::JS1_YAXIS_NEG, Input::Keycode::JS1_YAXIS_POS
+		},  // Left Y Axis
+		{
+			64, 192,
+			Input::PS3::RSTICK_LEFT, Input::PS3::RSTICK_RIGHT,
+			Input::Keycode::JS2_XAXIS_NEG, Input::Keycode::JS2_XAXIS_POS
+		}, // Right X Axis
+		{
+			64, 192,
+			Input::PS3::RSTICK_UP, Input::PS3::RSTICK_DOWN,
+			Input::Keycode::JS2_YAXIS_NEG, Input::Keycode::JS2_YAXIS_POS
+		}   // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
 	uint player = 0;

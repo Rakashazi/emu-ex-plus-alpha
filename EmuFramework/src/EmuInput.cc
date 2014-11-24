@@ -30,7 +30,7 @@ struct RelPtr  // for Android trackball
 	int x, y;
 	uint xAction, yAction;
 };
-static RelPtr relPtr = { 0 };
+static RelPtr relPtr{};
 
 TurboInput turboActions;
 uint inputDevConfs = 0;
@@ -191,7 +191,6 @@ IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 	return {x, y};
 }
 
-#ifdef INPUT_SUPPORTS_POINTER
 void processRelPtr(const Input::Event &e)
 {
 	using namespace IG;
@@ -227,7 +226,6 @@ void processRelPtr(const Input::Event &e)
 
 	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
 }
-#endif
 
 void commonInitInput()
 {
@@ -261,7 +259,7 @@ void commonUpdateInput()
 	turboClock++;
 	if(turboClock == turboFrames) turboClock = 0;
 
-#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 	auto applyRelPointerDecel =
 		[](int val)
 		{
@@ -286,53 +284,17 @@ void commonUpdateInput()
 bool isMenuDismissKey(const Input::Event &e)
 {
 	using namespace Input;
-	#ifdef INPUT_SUPPORTS_KEYBOARD
-	static const auto dismissKey = Config::envIsWebOS1 ? Keycode::RCTRL : Keycode::MENU;
-	#endif
-	switch(e.map)
+	Key dismissKey = Keycode::MENU;
+	Key dismissKey2 = Keycode::GAME_Y;
+	if(Config::envIsWebOS1)
+		dismissKey = Keycode::RCTRL;
+	if(Config::MACHINE_IS_PANDORA && e.device->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
-		#ifdef CONFIG_BLUETOOTH
-		case Event::MAP_WIIMOTE: return e.button == Wiimote::HOME;
-		case Event::MAP_WII_CC: return e.button == WiiCC::HOME;
-		case Event::MAP_ICONTROLPAD: return e.button == iControlPad::Y;
-		case Event::MAP_ZEEMOTE: return e.button == Zeemote::POWER;
-		#endif
-		#ifdef CONFIG_INPUT_ICADE
-		case Event::MAP_ICADE: return e.button == ICade::G;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Event::MAP_APPLE_GAME_CONTROLLER: return e.button == AppleGC::PAUSE;
-		#endif
-		#if defined CONFIG_BASE_PS3
-		case Event::MAP_PS3PAD:
-			return e.button == PS3::L2;
-		#elif defined CONFIG_BLUETOOTH_SERVER
-		case Event::MAP_PS3PAD:
-			return e.button == PS3::PS;
-		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
-		case Event::MAP_SYSTEM:
-			switch(e.device->subtype())
-			{
-				#ifdef CONFIG_BASE_ANDROID
-				case Device::SUBTYPE_PS3_CONTROLLER:
-					return e.button == Keycode::PS3::PS;
-				#endif
-				#ifdef CONFIG_MACHINE_PANDORA
-				case Device::SUBTYPE_PANDORA_HANDHELD:
-					return !translateKeyboardEventsByModifiers() // make sure not performing text input
-						&& e.button == Input::Keycode::asciiKey(' ');
-				#endif
-				default: break;
-			}
-			return
-				#ifdef CONFIG_INPUT_ANDROID
-				e.button == Keycode::GAME_Y ||
-				#endif
-				e.button == dismissKey;
-		#endif
+		if(modalViewController.hasView()) // make sure not performing text input
+			return false;
+		dismissKey = Keycode::SPACE;
 	}
-	return 0;
+	return e.key() == dismissKey || e.key() == dismissKey2;
 }
 
 void updateInputDevices()
@@ -355,18 +317,12 @@ void updateInputDevices()
 		i++;
 	}
 	inputDevConfs = i;
-
 	physicalControlsPresent = keyInputIsPresent();
 	if(physicalControlsPresent)
 	{
 		logMsg("Physical controls are present");
 	}
-
-	if(onUpdateInputDevices)
-	{
-		onUpdateInputDevices();
-	}
-
+	onUpdateInputDevices.callCopySafe();
 	keyMapping.buildAll();
 }
 
@@ -400,11 +356,9 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 {
 	switch(map)
 	{
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case Input::Event::MAP_SYSTEM:
 			size = EmuControls::defaultKeyProfiles;
 			return EmuControls::defaultKeyProfile;
-		#endif
 		#ifdef CONFIG_BLUETOOTH
 		case Input::Event::MAP_WIIMOTE:
 			size = EmuControls::defaultWiimoteProfiles;
@@ -423,11 +377,6 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 		case Input::Event::MAP_PS3PAD:
 			size = EmuControls::defaultPS3Profiles;
 			return EmuControls::defaultPS3Profile;
-		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case Input::Event::MAP_EVDEV:
-			size = EmuControls::defaultEvdevProfiles;
-			return EmuControls::defaultEvdevProfile;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
@@ -713,7 +662,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 
 void setupVolKeysInGame()
 {
-	#if defined(INPUT_SUPPORTS_KEYBOARD)
+	#if defined __ANDROID__
 	iterateTimes(inputDevConfs, i)
 	{
 		if(!inputDevConf[i].enabled ||

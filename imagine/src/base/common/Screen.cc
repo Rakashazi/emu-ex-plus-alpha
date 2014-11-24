@@ -90,6 +90,11 @@ void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
 	}
 }
 
+uint Screen::onFrameDelegates()
+{
+	return onFrameDelegate.size();
+}
+
 bool Screen::isPosted()
 {
 	return framePosted;

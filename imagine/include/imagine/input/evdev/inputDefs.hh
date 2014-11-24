@@ -87,7 +87,7 @@ namespace Evdev
 	GAME_7 = BTN_BASE, GAME_8 = BTN_BASE2, GAME_9 = BTN_BASE3, GAME_10 = BTN_BASE4, GAME_11 = BTN_BASE5, GAME_12 = BTN_BASE6,
 	GAME_13 = BTN_BASE6+1, GAME_14 = BTN_BASE6+2, GAME_15 = BTN_BASE6+3, GAME_16 = BTN_DEAD,
 
-	// Our own key-codes for analog -> digital joystick axis emulation
+	// private key-codes for analog -> digital joystick axis emulation
 	JS1_XAXIS_POS = KEY_MAX+1, JS1_XAXIS_NEG = KEY_MAX+2,
 	JS1_YAXIS_POS = KEY_MAX+3, JS1_YAXIS_NEG = KEY_MAX+4,
 

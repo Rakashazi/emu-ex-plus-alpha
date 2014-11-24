@@ -20,135 +20,68 @@
 namespace Input
 {
 
-#ifdef INPUT_SUPPORTS_KEYBOARD
 static const char *keyButtonName(Key b)
 {
-	using namespace Keycode;
 	switch(b)
 	{
 		case 0: return "None";
-
-		case asciiKey(' '): return "Space";
-		#if !defined CONFIG_BASE_ANDROID && !defined CONFIG_BASE_WIN32
-		// no unique codes for these on Android
-		case asciiKey('{'): return "{";
-		case asciiKey('|'): return "|";
-		case asciiKey('}'): return "}";
-		case asciiKey('~'): return "~";
-		case asciiKey('!'): return "!";
-		case asciiKey('"'): return "\"";
-		case asciiKey('$'): return "$";
-		case asciiKey('%'): return "%";
-		case asciiKey('&'): return "&";
-		case asciiKey('('): return "(";
-		case asciiKey(')'): return ")";
-		case asciiKey('>'): return ">";
-		case asciiKey('<'): return "<";
-		case asciiKey('?'): return "?";
-		case asciiKey(':'): return ":";
-		case asciiKey('^'): return "^";
-		case asciiKey('_'): return "_";
-		case asciiKey('A'): return "A";
-		case asciiKey('B'): return "B";
-		case asciiKey('C'): return "C";
-		case asciiKey('D'): return "D";
-		case asciiKey('E'): return "E";
-		case asciiKey('F'): return "F";
-		case asciiKey('G'): return "G";
-		case asciiKey('H'): return "H";
-		case asciiKey('I'): return "I";
-		case asciiKey('J'): return "J";
-		case asciiKey('K'): return "K";
-		case asciiKey('L'): return "L";
-		case asciiKey('M'): return "M";
-		case asciiKey('N'): return "N";
-		case asciiKey('O'): return "O";
-		case asciiKey('P'): return "P";
-		case asciiKey('Q'): return "Q";
-		case asciiKey('R'): return "R";
-		case asciiKey('S'): return "S";
-		case asciiKey('T'): return "T";
-		case asciiKey('U'): return "U";
-		case asciiKey('V'): return "V";
-		case asciiKey('W'): return "W";
-		case asciiKey('X'): return "X";
-		case asciiKey('Y'): return "Y";
-		case asciiKey('Z'): return "Z";
-		#endif
-		case asciiKey('+'): return "+";
-		case asciiKey('\''): return "'";
-		case asciiKey(','): return ",";
-		case asciiKey('-'): return "-";
-		case asciiKey('.'): return ".";
-		case asciiKey('/'): return "/";
-		case asciiKey('#'): return "#";
-		case asciiKey('*'): return "*";
-		case asciiKey('0'): return "0";
-		case asciiKey('1'): return "1";
-		case asciiKey('2'): return "2";
-		case asciiKey('3'): return "3";
-		case asciiKey('4'): return "4";
-		case asciiKey('5'): return "5";
-		case asciiKey('6'): return "6";
-		case asciiKey('7'): return "7";
-		case asciiKey('8'): return "8";
-		case asciiKey('9'): return "9";
-		case asciiKey(';'): return ";";
-		case asciiKey('='): return "=";
-		case asciiKey('@'): return "@";
-		case asciiKey('['): return "[";
-		case asciiKey('\\'): return "\\";
-		case asciiKey(']'): return "]";
-		case asciiKey('`'): return "`";
-		case asciiKey('a'): return "a";
-		case asciiKey('b'): return "b";
-		case asciiKey('c'): return "c";
-		case asciiKey('d'): return "d";
-		case asciiKey('e'): return "e";
-		case asciiKey('f'): return "f";
-		case asciiKey('g'): return "g";
-		case asciiKey('h'): return "h";
-		case asciiKey('i'): return "i";
-		case asciiKey('j'): return "j";
-		case asciiKey('k'): return "k";
-		case asciiKey('l'): return "l";
-		case asciiKey('m'): return "m";
-		case asciiKey('n'): return "n";
-		case asciiKey('o'): return "o";
-		case asciiKey('p'): return "p";
-		case asciiKey('q'): return "q";
-		case asciiKey('r'): return "r";
-		case asciiKey('s'): return "s";
-		case asciiKey('t'): return "t";
-		case asciiKey('u'): return "u";
-		case asciiKey('v'): return "v";
-		case asciiKey('w'): return "w";
-		case asciiKey('x'): return "x";
-		case asciiKey('y'): return "y";
-		case asciiKey('z'): return "z";
-		case Keycode::ESCAPE:
-		#ifdef CONFIG_BASE_ANDROID
-		return "Back";
-		#else
-		return "Escape";
-		#endif
+		case Keycode::SPACE: return "Space";
+		case Keycode::A: return "a";
+		case Keycode::B: return "b";
+		case Keycode::C: return "c";
+		case Keycode::D: return "d";
+		case Keycode::E: return "e";
+		case Keycode::F: return "f";
+		case Keycode::G: return "g";
+		case Keycode::H: return "h";
+		case Keycode::I: return "i";
+		case Keycode::J: return "j";
+		case Keycode::K: return "k";
+		case Keycode::L: return "l";
+		case Keycode::M: return "m";
+		case Keycode::N: return "n";
+		case Keycode::O: return "o";
+		case Keycode::P: return "p";
+		case Keycode::Q: return "q";
+		case Keycode::R: return "r";
+		case Keycode::S: return "s";
+		case Keycode::T: return "t";
+		case Keycode::U: return "u";
+		case Keycode::V: return "v";
+		case Keycode::W: return "w";
+		case Keycode::X: return "x";
+		case Keycode::Y: return "y";
+		case Keycode::Z: return "z";
+		case Keycode::APOSTROPHE: return "'";
+		case Keycode::COMMA: return ",";
+		case Keycode::MINUS: return "-";
+		case Keycode::PERIOD: return ".";
+		case Keycode::SLASH: return "/";
+		case Keycode::_0: return "0";
+		case Keycode::_1: return "1";
+		case Keycode::_2: return "2";
+		case Keycode::_3: return "3";
+		case Keycode::_4: return "4";
+		case Keycode::_5: return "5";
+		case Keycode::_6: return "6";
+		case Keycode::_7: return "7";
+		case Keycode::_8: return "8";
+		case Keycode::_9: return "9";
+		case Keycode::SEMICOLON: return ";";
+		case Keycode::EQUALS: return "=";
+		case Keycode::LEFT_BRACKET: return "[";
+		case Keycode::BACKSLASH: return "\\";
+		case Keycode::RIGHT_BRACKET: return "]";
+		case Keycode::GRAVE: return "`";
+		case Keycode::BACK: return "Back";
+		case Keycode::ESCAPE: return "Escape";
 		case Keycode::ENTER: return "Enter";
 		case Keycode::LALT: return "Left Alt";
-		case Keycode::RALT:
-		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-		return "Mod";
-		#else
-		return "Right Alt";
-		#endif
+		case Keycode::RALT: return Config::envIsWebOS1 ? "Mod" : "Right Alt";
 		case Keycode::LSHIFT: return "Left Shift";
 		case Keycode::RSHIFT: return "Right Shift";
 		case Keycode::LCTRL: return "Left Ctrl";
-		case Keycode::RCTRL:
-		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-		return "Sym";
-		#else
-		return "Right Ctrl";
-		#endif
+		case Keycode::RCTRL: return Config::envIsWebOS1 ? "Sym" : "Right Ctrl";
 		case Keycode::UP: return "Up";
 		case Keycode::RIGHT: return "Right";
 		case Keycode::DOWN: return "Down";
@@ -163,10 +96,6 @@ static const char *keyButtonName(Key b)
 		case Keycode::SCROLL_LOCK: return "Scroll Lock";
 		case Keycode::CAPS: return "Caps Lock";
 		case Keycode::PAUSE: return "Pause";
-		#ifdef CONFIG_BASE_X11
-		case Keycode::LMETA: return "Left Meta";
-		case Keycode::RMETA: return "Right Meta";
-		#endif
 		case Keycode::LSUPER: return "Left Start/Option";
 		case Keycode::RSUPER: return "Right Start/Option";
 		case Keycode::PGUP: return "Page Up";
@@ -189,9 +118,21 @@ static const char *keyButtonName(Key b)
 		case Keycode::NUMPAD_ADD: return "Numpad +";
 		case Keycode::NUMPAD_DOT: return "Numpad .";
 		case Keycode::NUMPAD_COMMA: return "Numpad ,";
-		#ifndef CONFIG_BASE_WIN32
 		case Keycode::NUMPAD_ENTER: return "Numpad Enter";
 		case Keycode::NUMPAD_EQUALS: return "Numpad =";
+		#if defined CONFIG_BASE_X11 || defined __ANDROID__
+		case Keycode::AT: return "@";
+		case Keycode::STAR: return "*";
+		case Keycode::PLUS: return "+";
+		case Keycode::POUND: return "#";
+		case Keycode::LEFT_PAREN: return "(";
+		case Keycode::RIGHT_PAREN: return ")";
+		case Keycode::SEARCH: return "Search";
+		case Keycode::CLEAR: return "Clear";
+		case Keycode::EXPLORER: return "Explorer";
+		case Keycode::MAIL: return "Mail";
+		case Keycode::VOL_UP: return "Vol Up";
+		case Keycode::VOL_DOWN: return "Vol Down";
 		#endif
 		#ifdef CONFIG_BASE_X11
 		case Keycode::NUMPAD_INSERT: return "Numpad Insert";
@@ -205,6 +146,8 @@ static const char *keyButtonName(Key b)
 		case Keycode::NUMPAD_RIGHT: return "Numpad Right";
 		case Keycode::NUMPAD_DOWN: return "Numpad Down";
 		case Keycode::NUMPAD_LEFT: return "Numpad Left";
+		case Keycode::LMETA: return "Left Meta";
+		case Keycode::RMETA: return "Right Meta";
 		#endif
 		case Keycode::F1: return "F1";
 		case Keycode::F2: return "F2";
@@ -218,22 +161,6 @@ static const char *keyButtonName(Key b)
 		case Keycode::F10: return "F10";
 		case Keycode::F11: return "F11";
 		case Keycode::F12: return "F12";
-		#ifndef CONFIG_ENV_WEBOS
-		case Keycode::SEARCH: return "Search";
-		#endif
-
-		// Android-specific
-		#ifdef CONFIG_BASE_ANDROID
-		case Keycode::CENTER: return "Center";
-		case Keycode::CAMERA: return "Camera";
-		case Keycode::CALL: return "Call";
-		case Keycode::END_CALL: return "End Call";
-		case Keycode::CLEAR: return "Clear";
-		case Keycode::SYMBOL: return "Sym";
-		case Keycode::EXPLORER: return "Explorer";
-		case Keycode::MAIL: return "Mail";
-		case Keycode::NUM: return "Num";
-		case Keycode::FUNCTION: return "Function";
 		case Keycode::GAME_A: return "A";
 		case Keycode::GAME_B: return "B";
 		case Keycode::GAME_C: return "C";
@@ -265,11 +192,6 @@ static const char *keyButtonName(Key b)
 		case Keycode::GAME_14: return "G14";
 		case Keycode::GAME_15: return "G15";
 		case Keycode::GAME_16: return "G16";
-		case Keycode::VOL_UP: return "Vol Up";
-		case Keycode::VOL_DOWN: return "Vol Down";
-		case Keycode::FOCUS: return "Focus";
-		case Keycode::HEADSET_HOOK: return "Headset Hook";
-
 		case Keycode::JS1_XAXIS_POS: return "X Axis+";
 		case Keycode::JS1_XAXIS_NEG: return "X Axis-";
 		case Keycode::JS1_YAXIS_POS: return "Y Axis+";
@@ -294,123 +216,21 @@ static const char *keyButtonName(Key b)
 		case Keycode::JS_RTRIGGER_AXIS: return "R Trigger";
 		case Keycode::JS_GAS_AXIS: return "Gas";
 		case Keycode::JS_BRAKE_AXIS: return "Brake";
+		// Android-specific
+		#ifdef __ANDROID__
+		case Keycode::SYMBOL: return "Sym";
+		case Keycode::NUM: return "Num";
+		case Keycode::FUNCTION: return "Function";
+		case Keycode::CENTER: return "Center";
+		case Keycode::CAMERA: return "Camera";
+		case Keycode::CALL: return "Call";
+		case Keycode::END_CALL: return "End Call";
+		case Keycode::FOCUS: return "Focus";
+		case Keycode::HEADSET_HOOK: return "Headset Hook";
 		#endif
 	}
 	return "Unknown";
 }
-#endif
-
-#ifdef CONFIG_BLUETOOTH
-
-static const char *wiimoteButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		case Wiimote::_1: return "1";
-		case Wiimote::_2: return "2";
-		case Wiimote::A: return "A";
-		case Wiimote::B: return "B";
-		case Wiimote::PLUS: return "+";
-		case Wiimote::MINUS: return "-";
-		case Wiimote::HOME: return "Home";
-		case Wiimote::UP: return "Up";
-		case Wiimote::RIGHT: return "Right";
-		case Wiimote::DOWN: return "Down";
-		case Wiimote::LEFT: return "Left";
-		case Wiimote::NUN_C: return "C";
-		case Wiimote::NUN_Z: return "Z";
-		case Wiimote::NUN_STICK_LEFT: return "N:Left";
-		case Wiimote::NUN_STICK_RIGHT: return "N:Right";
-		case Wiimote::NUN_STICK_UP: return "N:Up";
-		case Wiimote::NUN_STICK_DOWN: return "N:Down";
-	}
-	return "Unknown";
-}
-
-static const char *wiiCCButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		case WiiCC::A: return "A";
-		case WiiCC::B: return "B";
-		case WiiCC::PLUS: return "+";
-		case WiiCC::MINUS: return "-";
-		case WiiCC::HOME: return "Home";
-		case WiiCC::L: return "L";
-		case WiiCC::R: return "R";
-		case WiiCC::ZL: return "ZL";
-		case WiiCC::ZR: return "ZR";
-		case WiiCC::X: return "X";
-		case WiiCC::Y: return "Y";
-		case WiiCC::LH: return "LH";
-		case WiiCC::RH: return "RH";
-		case WiiCC::LSTICK_LEFT: return "L:Left";
-		case WiiCC::LSTICK_RIGHT: return "L:Right";
-		case WiiCC::LSTICK_UP: return "L:Up";
-		case WiiCC::LSTICK_DOWN: return "L:Down";
-		case WiiCC::RSTICK_LEFT: return "R:Left";
-		case WiiCC::RSTICK_RIGHT: return "R:Right";
-		case WiiCC::RSTICK_UP: return "R:Up";
-		case WiiCC::RSTICK_DOWN: return "R:Down";
-		case WiiCC::UP: return "Up";
-		case WiiCC::RIGHT: return "Right";
-		case WiiCC::DOWN: return "Down";
-		case WiiCC::LEFT: return "Left";
-	}
-	return "Unknown";
-}
-
-static const char *icpButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		case iControlPad::A: return "A";
-		case iControlPad::B: return "B";
-		case iControlPad::X: return "X";
-		case iControlPad::Y: return "Y";
-		case iControlPad::L: return "L";
-		case iControlPad::R: return "R";
-		case iControlPad::START: return "Start";
-		case iControlPad::SELECT: return "Select";
-		case iControlPad::LNUB_LEFT: return "L:Left";
-		case iControlPad::LNUB_RIGHT: return "L:Right";
-		case iControlPad::LNUB_UP: return "L:Up";
-		case iControlPad::LNUB_DOWN: return "L:Down";
-		case iControlPad::RNUB_LEFT: return "R:Left";
-		case iControlPad::RNUB_RIGHT: return "R:Right";
-		case iControlPad::RNUB_UP: return "R:Up";
-		case iControlPad::RNUB_DOWN: return "R:Down";
-		case iControlPad::UP: return "Up";
-		case iControlPad::RIGHT: return "Right";
-		case iControlPad::DOWN: return "Down";
-		case iControlPad::LEFT: return "Left";
-	}
-	return "Unknown";
-}
-
-static const char *zeemoteButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		case Zeemote::A: return "A";
-		case Zeemote::B: return "B";
-		case Zeemote::C: return "C";
-		case Zeemote::POWER: return "Power";
-		case Zeemote::UP: return "Up";
-		case Zeemote::RIGHT: return "Right";
-		case Zeemote::DOWN: return "Down";
-		case Zeemote::LEFT: return "Left";
-	}
-	return "Unknown";
-}
-
-#endif
-
-#ifdef CONFIG_INPUT_ICADE
 
 static const char *iCadeButtonName(Key b)
 {
@@ -419,23 +239,23 @@ static const char *iCadeButtonName(Key b)
 		case 0: return "None";
 		#ifdef CONFIG_BASE_IOS
 		// Show the iControlPad buttons only on iOS
-		case ICade::A: return "A (iCP A)";
-		case ICade::B: return "B (iCP B)";
-		case ICade::C: return "C (iCP X)";
-		case ICade::D: return "D (iCP Y)";
-		case ICade::E: return "E (iCP R)";
-		case ICade::F: return "F (iCP L)";
-		case ICade::G: return "G (iCP Start)";
-		case ICade::H: return "H (iCP Select)";
+		case ICade::X: return "5 (iCP A)";
+		case ICade::A: return "6 (iCP X)";
+		case ICade::Y: return "7 (iCP Y)";
+		case ICade::B: return "8 (iCP B)";
+		case ICade::Z: return "9 (iCP L)";
+		case ICade::C: return "0 (iCP R)";
+		case ICade::SELECT: return "E1 (iCP Select)";
+		case ICade::START: return "E2 (iCP Start)";
 		#else
-		case ICade::A: return "A";
-		case ICade::B: return "B";
-		case ICade::C: return "C";
-		case ICade::D: return "D";
-		case ICade::E: return "E";
-		case ICade::F: return "F";
-		case ICade::G: return "G";
-		case ICade::H: return "H";
+		case ICade::X: return "5";
+		case ICade::A: return "6";
+		case ICade::Y: return "7";
+		case ICade::B: return "8";
+		case ICade::Z: return "9";
+		case ICade::C: return "0";
+		case ICade::SELECT: return "E1";
+		case ICade::START: return "E2";
 		#endif
 		case ICade::UP: return "Up";
 		case ICade::RIGHT: return "Right";
@@ -444,8 +264,6 @@ static const char *iCadeButtonName(Key b)
 	}
 	return nullptr;
 }
-
-#endif
 
 static const char *ps3SysButtonName(Key b)
 {
@@ -465,42 +283,6 @@ static const char *ps3SysButtonName(Key b)
 	return nullptr;
 	#endif
 }
-
-#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
-static const char *ps3ButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		case PS3::CROSS: return "Cross";
-		case PS3::CIRCLE: return "Circle";
-		case PS3::SQUARE: return "Square";
-		case PS3::TRIANGLE: return "Triangle";
-		case PS3::L1: return "L1";
-		case PS3::L2: return "L2";
-		case PS3::L3: return "L3";
-		case PS3::R1: return "R1";
-		case PS3::R2: return "R2";
-		case PS3::R3: return "R3";
-		case PS3::SELECT: return "Select";
-		case PS3::START: return "Start";
-		case PS3::UP: return "Up";
-		case PS3::RIGHT: return "Right";
-		case PS3::DOWN: return "Down";
-		case PS3::LEFT: return "Left";
-		case PS3::PS: return "PS";
-		case PS3::LSTICK_UP: return "L:Up";
-		case PS3::LSTICK_RIGHT: return "L:Right";
-		case PS3::LSTICK_DOWN: return "L:Down";
-		case PS3::LSTICK_LEFT: return "L:Left";
-		case PS3::RSTICK_UP: return "R:Up";
-		case PS3::RSTICK_RIGHT: return "R:Right";
-		case PS3::RSTICK_DOWN: return "R:Down";
-		case PS3::RSTICK_LEFT: return "R:Left";
-	}
-	return "Unknown";
-}
-#endif
 
 #ifdef CONFIG_BASE_ANDROID
 static const char *xperiaPlayButtonName(Key b)
@@ -550,59 +332,38 @@ static const char *openPandoraButtonName(Key b)
 }
 #endif
 
-const char *Device::keyName(Key b) const
+const char *Device::keyName(Key k) const
 {
 	switch(map())
 	{
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case Input::Event::MAP_SYSTEM:
 		{
 			const char *name = nullptr;
 			switch(subtype())
 			{
 				#ifdef CONFIG_BASE_ANDROID
-				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(b);
-				bcase Device::SUBTYPE_OUYA_CONTROLLER: name = ouyaButtonName(b);
-				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3SysButtonName(b);
+				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(k);
+				bcase Device::SUBTYPE_OUYA_CONTROLLER: name = ouyaButtonName(k);
+				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3SysButtonName(k);
 				#endif
 				#ifdef CONFIG_MACHINE_PANDORA
-				bcase Device::SUBTYPE_PANDORA_HANDHELD: name = openPandoraButtonName(b);
+				bcase Device::SUBTYPE_PANDORA_HANDHELD: name = openPandoraButtonName(k);
 				#endif
 			}
 			if(!name)
-				return keyButtonName(b);
+				return keyButtonName(k);
 			return name;
 		}
-		#endif
-		#ifdef CONFIG_BLUETOOTH
-		case Input::Event::MAP_WIIMOTE: return wiimoteButtonName(b);
-		case Event::MAP_WII_CC: return wiiCCButtonName(b);
-		case Input::Event::MAP_ICONTROLPAD: return icpButtonName(b);
-		case Input::Event::MAP_ZEEMOTE: return zeemoteButtonName(b);
-		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
 		{
-			auto name = iCadeButtonName(b);
+			auto name = iCadeButtonName(k);
 			if(!name)
 			{
-				#ifdef CONFIG_BASE_IOS
-					return "Unknown";
-				#else
-					return keyButtonName(b); // if it's not an iCade button, fall back to regular keys
-				#endif
+				return keyButtonName(k); // if it's not an iCade button, fall back to regular keys
 			}
 			return name;
 		}
-		#endif
-		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
-		case Input::Event::MAP_PS3PAD: return ps3ButtonName(b);
-		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case Input::Event::MAP_EVDEV: return evdevButtonName(b);
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Input::Event::MAP_APPLE_GAME_CONTROLLER: return appleGCButtonName(b);
 		#endif
 	}
 	return "Unknown";

@@ -30,7 +30,7 @@ namespace Gfx
 {
 
 Base::GLContext gfxContext;
-Base::Window *currWin = nullptr;
+Base::Window *currWin{};
 GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
 

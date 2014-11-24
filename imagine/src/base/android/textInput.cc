@@ -78,7 +78,7 @@ void finishSysTextInput()
 	jFinishSysTextInput(env, jBaseActivity, 0);
 }
 
-void placeSysTextInput(const IG::WindowRect &rect)
+void placeSysTextInput(IG::WindowRect rect)
 {
 	using namespace Base;
 	auto env = jEnv();
@@ -88,7 +88,7 @@ void placeSysTextInput(const IG::WindowRect &rect)
 	jPlaceSysTextInput(env, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-const IG::WindowRect &sysTextInputRect()
+IG::WindowRect sysTextInputRect()
 {
 	return textRect;
 }

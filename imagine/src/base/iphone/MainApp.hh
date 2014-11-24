@@ -26,6 +26,9 @@
 
 #define IPHONE_VKEYBOARD
 
+@interface MainUIApp : UIApplication {}
+@end
+
 @interface MainApp : NSObject <UIApplicationDelegate
 #ifdef IPHONE_VKEYBOARD
 , UITextFieldDelegate
@@ -40,11 +43,7 @@
 #ifdef IPHONE_GAMEKIT
 , GKSessionDelegate, GKPeerPickerControllerDelegate
 #endif
->
-{
-
-}
-
+> {}
 @end
 
 namespace Base

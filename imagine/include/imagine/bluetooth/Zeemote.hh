@@ -27,14 +27,15 @@ public:
 	static StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
 
 	Zeemote(BluetoothAddr addr):
-		Device {0, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
-		addr(addr)
+		Device{0, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
+		addr{addr}
 	{}
 	CallResult open(BluetoothAdapter &adapter) override;
 	void close();
 	void removeFromSystem() override;
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const char *packet, size_t size);
+	const char *keyName(Input::Key k) const override;
 
 	static bool isSupportedClass(const uchar devClass[3])
 	{
@@ -43,14 +44,22 @@ public:
 
 private:
 	BluetoothSocketSys sock;
-	uchar inputBuffer[46] {0};
-	bool prevBtnPush[4] {0};
+	uchar inputBuffer[46]{};
+	bool prevBtnPush[4]{};
 	uint inputBufferPos = 0;
 	uint packetSize = 0;
 	Input::AxisKeyEmu<int> axisKey[2]
 	{
-		{-63, 63, Input::Zeemote::LEFT, Input::Zeemote::RIGHT}, // X Axis
-		{-63, 63, Input::Zeemote::UP, Input::Zeemote::DOWN},  // Y Axis
+		{
+			-63, 63,
+			Input::Zeemote::LEFT, Input::Zeemote::RIGHT,
+			Input::Keycode::LEFT, Input::Keycode::RIGHT
+		}, // X Axis
+		{
+			-63, 63,
+			Input::Zeemote::UP, Input::Zeemote::DOWN,
+			Input::Keycode::UP, Input::Keycode::DOWN
+		},  // Y Axis
 	};
 	uint player;
 	BluetoothAddr addr;

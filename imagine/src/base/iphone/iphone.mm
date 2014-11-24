@@ -45,36 +45,25 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 namespace Base
 {
-	MainApp *mainApp = nullptr;
+	MainApp *mainApp{};
 }
 
-#if defined IPHONE_VKEYBOARD
 namespace Input
 {
-	//static UITextView *vkbdField = nil;
-	UITextField *vkbdField = nil;
-	//static bool inVKeyboard = 0;
+	int GSEVENTKEY_KEYCODE = sizeof(NSInteger) == 8 ? GSEVENTKEY_KEYCODE_64_BIT : 15;
+	UITextField *vkbdField{};
 	InputTextDelegate vKeyboardTextDelegate;
-	IG::WindowRect textRect(8, 200, 8+304, 200+48);
+	IG::WindowRect textRect{8, 200, 8+304, 200+48};
 }
-#endif
-
-#ifdef CONFIG_INPUT_ICADE
-#include "ICadeHelper.hh"
-namespace Input
-{
-	ICadeHelper iCade {nil};
-}
-#endif
 
 namespace Base
 {
 
 bool isIPad = false;
 static bool isRunningAsSystemApp = false;
-CGColorSpaceRef grayColorSpace = nullptr, rgbColorSpace = nullptr;
-UIApplication *sharedApp = nullptr;
-static const char *docPath = nullptr;
+CGColorSpaceRef grayColorSpace{}, rgbColorSpace{};
+UIApplication *sharedApp{};
+static const char *docPath{};
 static FsSys::PathString appPath{};
 static id onOrientationChangedObserver = nil;
 
@@ -226,6 +215,8 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	}
 	if(usingIOS7)
 		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
+	if(sizeof(NSInteger) == 4 && usingIOS7)
+		Input::GSEVENTKEY_KEYCODE = Input::GSEVENTKEY_KEYCODE_IOS7;
 	#endif
 
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
@@ -345,17 +336,13 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	appState = APP_PAUSED;
 	dispatchOnExit(true);
 	Base::Screen::unpostAll();
-	#ifdef CONFIG_INPUT_ICADE
-	Input::iCade.didEnterBackground();
-	#endif
 	Input::deinitKeyRepeatTimer();
 	iterateTimes(Window::windows(), i)
 	{
 		[Window::window(i)->glView() deleteDrawable];
 	}
 	GLContext::setDrawable(nullptr);
-	if(onGLDrawableChanged)
-		onGLDrawableChanged(nullptr);
+	onGLDrawableChanged.callCopySafe(nullptr);
 	glFinish();
 	logMsg("entered background");
 }
@@ -370,9 +357,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		Window::window(i)->postDraw();
 	}
 	dispatchOnResume(true);
-	#ifdef CONFIG_INPUT_ICADE
-	Input::iCade.didBecomeActive();
-	#endif
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
@@ -380,6 +364,31 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("got memory warning");
 	Base::dispatchOnFreeCaches();
 }
+
+@end
+
+@interface UIApplication ()
+- (void)handleKeyUIEvent:(UIEvent *)event;
+@end
+
+@implementation MainUIApp
+
+#ifndef __aarch64__
+- (void)sendEvent:(UIEvent *)event
+{
+	[super sendEvent:event];
+	if(sizeof(NSInteger) == 4 && Input::GSEVENTKEY_KEYCODE != Input::GSEVENTKEY_KEYCODE_IOS7)
+		Input::handleKeyEvent(event);
+}
+#endif
+
+#ifndef __ARM_ARCH_6K__
+- (void)handleKeyUIEvent:(UIEvent *)event
+{
+	[super handleKeyUIEvent:event];
+	Input::handleKeyEvent(event);
+}
+#endif
 
 @end
 
@@ -628,6 +637,6 @@ int main(int argc, char *argv[])
 
 	@autoreleasepool
 	{
-		return UIApplicationMain(argc, argv, nil, @"MainApp");
+		return UIApplicationMain(argc, argv, @"MainUIApp", @"MainApp");
 	}
 }

@@ -740,7 +740,7 @@ void VController::inputAction(uint action, uint vBtn)
 
 void VController::resetInput(bool init)
 {
-	iterateTimes(Input::maxCursors, i)
+	iterateTimes(Config::Input::MAX_POINTERS, i)
 	{
 		iterateTimes(2, j)
 		{

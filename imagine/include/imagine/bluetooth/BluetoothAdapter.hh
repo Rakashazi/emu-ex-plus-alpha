@@ -24,7 +24,7 @@ class BluetoothPendingSocket;
 
 struct BluetoothAddr : public NotEquals<BluetoothAddr>
 {
-	uint8 b[6] {0};
+	uint8 b[6]{};
 
 	constexpr BluetoothAddr() {}
 	constexpr BluetoothAddr(uint8 b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}

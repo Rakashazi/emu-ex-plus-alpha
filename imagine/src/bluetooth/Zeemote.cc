@@ -25,6 +25,36 @@ StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
 
 const uchar Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
+static const Input::Key sysKeyMap[4]
+{
+	Input::Keycode::GAME_A,
+	Input::Keycode::GAME_B,
+	Input::Keycode::GAME_C,
+	Input::Keycode::MENU
+};
+
+static const char *zeemoteButtonName(Input::Key k)
+{
+	switch(k)
+	{
+		case 0: return "None";
+		case Input::Zeemote::A: return "A";
+		case Input::Zeemote::B: return "B";
+		case Input::Zeemote::C: return "C";
+		case Input::Zeemote::POWER: return "Power";
+		case Input::Zeemote::UP: return "Up";
+		case Input::Zeemote::RIGHT: return "Right";
+		case Input::Zeemote::DOWN: return "Down";
+		case Input::Zeemote::LEFT: return "Left";
+	}
+	return "Unknown";
+}
+
+const char *Zeemote::keyName(Input::Key k) const
+{
+	return zeemoteButtonName(k);
+}
+
 uint Zeemote::findFreeDevId()
 {
 	uint id[5] = { 0 };
@@ -78,8 +108,7 @@ void Zeemote::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		Input::removeDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -100,15 +129,13 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 		btInputDevList.push_back(this);
 		devId = player;
 		Input::addDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}
@@ -209,7 +236,7 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ZEEMOTE, (Key)code, newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

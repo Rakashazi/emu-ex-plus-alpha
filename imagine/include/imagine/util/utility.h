@@ -21,9 +21,6 @@
 #define PP_STRINGIFY(A) #A
 #define PP_STRINGIFY_EXP(A) PP_STRINGIFY(A)
 
-// call a function pointer if non-null
-#define callSafe(funcPtr, ...) { if(likely(funcPtr)) funcPtr(__VA_ARGS__); }
-
 #ifdef __cplusplus
 
 // assign variable to class member variable of the same name

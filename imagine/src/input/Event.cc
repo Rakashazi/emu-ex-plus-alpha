@@ -25,42 +25,34 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultCancelButton(0) :
 				(button == Input::Wiimote::_1 || button == Input::Wiimote::NUN_Z);
-		case MAP_WII_CC: return swapped ? isDefaultCancelButton(0) : button == Input::WiiCC::B;
-		case MAP_ICONTROLPAD: return swapped ? isDefaultCancelButton(0) : (button == Input::iControlPad::X);
-		case MAP_ZEEMOTE: return swapped ? isDefaultCancelButton(0) : (button == Input::Zeemote::A);
+		case MAP_WII_CC:
+		case MAP_ICONTROLPAD:
+		case MAP_ZEEMOTE:
+			return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case MAP_ICADE: return swapped ? isDefaultCancelButton(0) : (button == Input::ICade::A || button == Input::ICade::B);
+		case MAP_ICADE: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
-		case MAP_PS3PAD: return swapped ? isDefaultCancelButton(0) : (button == Input::PS3::CROSS);
-		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::GAME_A || button == Input::Evdev::GAME_1;
+		case MAP_PS3PAD: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::A;
+		case MAP_APPLE_GAME_CONTROLLER: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
-				#ifdef CONFIG_BASE_ANDROID
-				case Device::SUBTYPE_PS3_CONTROLLER:
-					return swapped ? isDefaultCancelButton(0) : button == Input::Keycode::GAME_X;
-				#endif
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
 					return button == Input::Keycode::ENTER ||
 						(swapped ? isDefaultCancelButton(0) : button == Keycode::Pandora::X);
 				#endif
 			}
-			return button == Input::Keycode::ENTER
+			return button == Keycode::ENTER
 			#ifdef CONFIG_BASE_ANDROID
-			|| button == Input::Keycode::CENTER || (swapped ? isDefaultCancelButton(0) : (button == Input::Keycode::GAME_A || button == Input::Keycode::GAME_1))
+			|| button == Keycode::CENTER
 			#endif
-			;
-		#endif
+			|| (swapped ? isDefaultCancelButton(0) : (button == Keycode::GAME_A || button == Keycode::GAME_1));
 	}
 	return false;
 }
@@ -72,33 +64,26 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultConfirmButton(0) :
 				(button == Input::Wiimote::_2 || button == Input::Wiimote::NUN_C);
-		case MAP_WII_CC: return swapped ? isDefaultConfirmButton(0) : button == Input::WiiCC::A;
-		case MAP_ICONTROLPAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::iControlPad::B);
-		case MAP_ZEEMOTE: return swapped ? isDefaultConfirmButton(0) : (button == Input::Zeemote::B);
+		case MAP_WII_CC:
+		case MAP_ICONTROLPAD:
+		case MAP_ZEEMOTE:
+			return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case MAP_ICADE: return swapped ? isDefaultConfirmButton(0) : (button == Input::ICade::C || button == Input::ICade::D);
+		case MAP_ICADE: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
-		case MAP_PS3PAD: return swapped ? isDefaultConfirmButton(0) : (button == Input::PS3::CIRCLE);
+		case MAP_PS3PAD: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
-		#ifdef INPUT_SUPPORTS_MOUSE
-		case MAP_POINTER: return button == Input::Pointer::DOWN_BUTTON;
-		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::GAME_B || button == Input::Evdev::GAME_2;
+		#ifdef CONFIG_INPUT_MOUSE_DEVICES
+		case MAP_POINTER: return button == Pointer::DOWN_BUTTON;
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::B;
+		case MAP_APPLE_GAME_CONTROLLER: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
-				#ifdef CONFIG_BASE_ANDROID
-				case Device::SUBTYPE_PS3_CONTROLLER:
-					return swapped ? isDefaultConfirmButton(0) : button == Input::Keycode::GAME_Y;
-				#endif
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
 					// TODO: can't call isDefaultConfirmButton(0) since it doesn't check whether the source was
@@ -106,12 +91,8 @@ bool Event::isDefaultCancelButton(uint swapped) const
 					return swapped ? (button == Keycode::Pandora::X) : (button == Keycode::Pandora::B);
 				#endif
 			}
-			return button == Input::Keycode::ESCAPE
-				#ifdef CONFIG_INPUT_ANDROID
-				|| (swapped ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2))
-				#endif
-				;
-		#endif
+			return button == Input::Keycode::ESCAPE || button == Input::Keycode::BACK
+				|| (swapped ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2));
 	}
 	return false;
 }
@@ -134,25 +115,17 @@ bool Event::isDefaultLeftButton() const
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::LEFT || button == PS3::LSTICK_LEFT;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV:
-			return button == Input::Evdev::LEFT || button == Input::Evdev::JS1_XAXIS_NEG || button == Input::Evdev::JS_POV_XAXIS_NEG;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::LEFT;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::LEFT
-			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_NEG
 			|| button == Input::Keycode::JS_POV_XAXIS_NEG
-			#endif
 			#ifdef CONFIG_ENV_WEBOS
-			|| button == Input::asciiKey('d')
+			|| button == Input::Keycode::D
 			#endif
 			;
-		#endif
 	}
 	return false;
 }
@@ -175,25 +148,17 @@ bool Event::isDefaultRightButton() const
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::RIGHT || button == PS3::LSTICK_RIGHT;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV:
-			return button == Input::Evdev::RIGHT || button == Input::Evdev::JS1_XAXIS_POS || button == Input::Evdev::JS_POV_XAXIS_POS;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::RIGHT;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::RIGHT
-			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_XAXIS_POS
 			|| button == Input::Keycode::JS_POV_XAXIS_POS
-			#endif
 			#ifdef CONFIG_ENV_WEBOS
-			|| button == Input::asciiKey('g')
+			|| button == Input::Keycode::G
 			#endif
 			;
-		#endif
 	}
 	return 0;
 }
@@ -216,25 +181,17 @@ bool Event::isDefaultUpButton() const
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::UP || button == PS3::LSTICK_UP;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV:
-			return button == Input::Evdev::UP || button == Input::Evdev::JS1_YAXIS_NEG || button == Input::Evdev::JS_POV_YAXIS_NEG;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::UP;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::UP
-			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_NEG
 			|| button == Input::Keycode::JS_POV_YAXIS_NEG
-			#endif
 			#ifdef CONFIG_ENV_WEBOS
-			|| button == Input::asciiKey('r')
+			|| button == Input::Keycode::R
 			#endif
 			;
-		#endif
 	}
 	return false;
 }
@@ -257,25 +214,17 @@ bool Event::isDefaultDownButton() const
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::DOWN || button == PS3::LSTICK_DOWN;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV:
-			return button == Input::Evdev::DOWN || button == Input::Evdev::JS1_YAXIS_POS|| button == Input::Evdev::JS_POV_YAXIS_POS;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::DOWN;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			return button == Input::Keycode::DOWN
-			#ifdef CONFIG_BASE_ANDROID
 			|| button == Input::Keycode::JS1_YAXIS_POS
 			|| button == Input::Keycode::JS_POV_YAXIS_POS
-			#endif
 			#ifdef CONFIG_ENV_WEBOS
-			|| button == Input::asciiKey('c')
+			|| button == Input::Keycode::C
 			#endif
 			;
-		#endif
 	}
 	return false;
 }
@@ -291,18 +240,14 @@ bool Event::isDefaultPageUpButton() const
 		case MAP_ZEEMOTE: return 0;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case MAP_ICADE: return button == Input::ICade::E;
+		case MAP_ICADE: return button == Input::ICade::Z;
 		#endif
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::L1;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::GAME_L1;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::L1;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
@@ -312,11 +257,7 @@ bool Event::isDefaultPageUpButton() const
 				#endif
 			}
 			return button == Input::Keycode::PGUP
-		#ifdef CONFIG_BASE_ANDROID
-				|| button == Input::Keycode::GAME_L1
-		#endif
-				;
-		#endif
+				|| button == Input::Keycode::GAME_L1;
 	}
 	return false;
 }
@@ -332,18 +273,14 @@ bool Event::isDefaultPageDownButton() const
 		case MAP_ZEEMOTE: return 0;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case MAP_ICADE: return button == Input::ICade::F;
+		case MAP_ICADE: return button == Input::ICade::C;
 		#endif
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return button == Input::PS3::R1;
 		#endif
-		#ifdef CONFIG_INPUT_EVDEV
-		case MAP_EVDEV: return button == Input::Evdev::GAME_R1;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::R1;
 		#endif
-		#ifdef INPUT_SUPPORTS_KEYBOARD
 		case MAP_SYSTEM:
 			switch(device->subtype())
 			{
@@ -353,11 +290,7 @@ bool Event::isDefaultPageDownButton() const
 				#endif
 			}
 			return button == Input::Keycode::PGDOWN
-		#ifdef CONFIG_BASE_ANDROID
-				|| button == Input::Keycode::GAME_R1
-		#endif
-				;
-		#endif
+				|| button == Input::Keycode::GAME_R1;
 	}
 	return false;
 }

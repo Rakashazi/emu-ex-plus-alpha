@@ -110,17 +110,16 @@ static bool readKeyConfig(IO &io, uint16 &size)
 
 static bool readConfig2(IO &io)
 {
-	int dirChange = 0;
-
 	auto blockSize = io.readVal<uint8>();
 	auto fileBytesLeft = io.size() - 1;
 
 	if(blockSize != 2)
 	{
 		logErr("can't read config with block size %d", blockSize);
-		goto CLEANUP;
+		return false;
 	}
 
+	bool dirChange = false;
 	while(!io.eof() && fileBytesLeft >= 2)
 	{
 		auto size = io.readVal<uint16>();
@@ -129,13 +128,13 @@ static bool readConfig2(IO &io)
 		if(!size)
 		{
 			logMsg("invalid 0 size block, skipping rest of config");
-			goto CLEANUP;
+			return dirChange;
 		}
 
 		if(size > fileBytesLeft)
 		{
 			logErr("size of key exceeds rest of file, skipping rest of config");
-			goto CLEANUP;
+			return dirChange;
 		}
 		fileBytesLeft -= size;
 
@@ -145,7 +144,7 @@ static bool readConfig2(IO &io)
 			if(io.seekC(size) != OK)
 			{
 				logErr("unable to seek to next block, skipping rest of config");
-				goto CLEANUP;
+				return dirChange;
 			}
 			continue;
 		}
@@ -229,7 +228,7 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
 			bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
-			#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+			#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 			bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
@@ -403,11 +402,9 @@ static bool readConfig2(IO &io)
 		if(io.seekS(nextBlockPos) != OK)
 		{
 			logErr("unable to seek to next block, skipping rest of config");
-			goto CLEANUP;
+			return dirChange;
 		}
 	}
-
-	CLEANUP:
 	return dirChange;
 }
 
@@ -429,7 +426,7 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
-	#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+	#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 	&optionRelPointerDecel,
 	#endif
 	&optionFontSize,
@@ -458,7 +455,7 @@ static OptionBase *cfgFileOption[] =
 	&optionSwappedGamepadConfirm,
 	&optionConfirmOverwriteState,
 	&optionFastForwardSpeed,
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	&optionNotifyInputDeviceChange,
 	#endif
 	#ifdef CONFIG_INPUT_ANDROID_MOGA

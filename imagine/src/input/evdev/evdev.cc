@@ -41,67 +41,68 @@ static int dirFsFilter(const char *name, int type)
 namespace Input
 {
 
-const char *evdevButtonName(Key b)
+static Key toSysKey(Key key)
 {
-	switch(b)
+	#define EVDEV_TO_SYSKEY_CASE(keyIdent) case Evdev::keyIdent: return Keycode::keyIdent
+	switch(key)
 	{
-		case 0: return "None";
-		case Evdev::UP: return "Up";
-		case Evdev::RIGHT: return "Right";
-		case Evdev::DOWN: return "Down";
-		case Evdev::LEFT: return "Left";
-		case Evdev::GAME_A: return "A";
-		case Evdev::GAME_B: return "B";
-		case Evdev::GAME_C: return "C";
-		case Evdev::GAME_X: return "X";
-		case Evdev::GAME_Y: return "Y";
-		case Evdev::GAME_Z: return "Z";
-		case Evdev::GAME_L1: return "L1";
-		case Evdev::GAME_R1: return "R1";
-		case Evdev::GAME_L2: return "L2";
-		case Evdev::GAME_R2: return "R2";
-		case Evdev::GAME_LEFT_THUMB: return "L-Thumb";
-		case Evdev::GAME_RIGHT_THUMB: return "R-Thumb";
-		case Evdev::GAME_START: return "Start";
-		case Evdev::GAME_SELECT: return "Select";
-		case Evdev::GAME_MODE: return "Mode";
-		case Evdev::GAME_1: return "G1";
-		case Evdev::GAME_2: return "G2";
-		case Evdev::GAME_3: return "G3";
-		case Evdev::GAME_4: return "G4";
-		case Evdev::GAME_5: return "G5";
-		case Evdev::GAME_6: return "G6";
-		case Evdev::GAME_7: return "G7";
-		case Evdev::GAME_8: return "G8";
-		case Evdev::GAME_9: return "G9";
-		case Evdev::GAME_10: return "G10";
-		case Evdev::GAME_11: return "G11";
-		case Evdev::GAME_12: return "G12";
-		case Evdev::GAME_13: return "G13";
-		case Evdev::GAME_14: return "G14";
-		case Evdev::GAME_15: return "G15";
-		case Evdev::GAME_16: return "G16";
+		default: return 0;
+		EVDEV_TO_SYSKEY_CASE(UP);
+		EVDEV_TO_SYSKEY_CASE(RIGHT);
+		EVDEV_TO_SYSKEY_CASE(DOWN);
+		EVDEV_TO_SYSKEY_CASE(LEFT);
+		EVDEV_TO_SYSKEY_CASE(GAME_A);
+		EVDEV_TO_SYSKEY_CASE(GAME_B);
+		EVDEV_TO_SYSKEY_CASE(GAME_C);
+		EVDEV_TO_SYSKEY_CASE(GAME_X);
+		EVDEV_TO_SYSKEY_CASE(GAME_Y);
+		EVDEV_TO_SYSKEY_CASE(GAME_Z);
+		EVDEV_TO_SYSKEY_CASE(GAME_L1);
+		EVDEV_TO_SYSKEY_CASE(GAME_R1);
+		EVDEV_TO_SYSKEY_CASE(GAME_L2);
+		EVDEV_TO_SYSKEY_CASE(GAME_R2);
+		EVDEV_TO_SYSKEY_CASE(GAME_LEFT_THUMB);
+		EVDEV_TO_SYSKEY_CASE(GAME_RIGHT_THUMB);
+		EVDEV_TO_SYSKEY_CASE(GAME_START);
+		EVDEV_TO_SYSKEY_CASE(GAME_SELECT);
+		EVDEV_TO_SYSKEY_CASE(GAME_MODE);
+		EVDEV_TO_SYSKEY_CASE(GAME_1);
+		EVDEV_TO_SYSKEY_CASE(GAME_2);
+		EVDEV_TO_SYSKEY_CASE(GAME_3);
+		EVDEV_TO_SYSKEY_CASE(GAME_4);
+		EVDEV_TO_SYSKEY_CASE(GAME_5);
+		EVDEV_TO_SYSKEY_CASE(GAME_6);
+		EVDEV_TO_SYSKEY_CASE(GAME_7);
+		EVDEV_TO_SYSKEY_CASE(GAME_8);
+		EVDEV_TO_SYSKEY_CASE(GAME_9);
+		EVDEV_TO_SYSKEY_CASE(GAME_10);
+		EVDEV_TO_SYSKEY_CASE(GAME_11);
+		EVDEV_TO_SYSKEY_CASE(GAME_12);
+		EVDEV_TO_SYSKEY_CASE(GAME_13);
+		EVDEV_TO_SYSKEY_CASE(GAME_14);
+		EVDEV_TO_SYSKEY_CASE(GAME_15);
+		EVDEV_TO_SYSKEY_CASE(GAME_16);
 
-		case Evdev::JS1_XAXIS_POS: return "X Axis+";
-		case Evdev::JS1_XAXIS_NEG: return "X Axis-";
-		case Evdev::JS1_YAXIS_POS: return "Y Axis+";
-		case Evdev::JS1_YAXIS_NEG: return "Y Axis-";
-		case Evdev::JS2_XAXIS_POS: return "X Axis+ 2";
-		case Evdev::JS2_XAXIS_NEG: return "X Axis- 2";
-		case Evdev::JS2_YAXIS_POS: return "Y Axis+ 2";
-		case Evdev::JS2_YAXIS_NEG: return "Y Axis- 2";
-		case Evdev::JS3_XAXIS_POS: return "X Axis+ 3";
-		case Evdev::JS3_XAXIS_NEG: return "X Axis- 3";
-		case Evdev::JS3_YAXIS_POS: return "Y Axis+ 3";
-		case Evdev::JS3_YAXIS_NEG: return "Y Axis- 3";
-		case Evdev::JS_LTRIGGER_AXIS: return "L Trigger";
-		case Evdev::JS_RTRIGGER_AXIS: return "R Trigger";
-		case Evdev::JS_POV_XAXIS_POS: return "POV Right";
-		case Evdev::JS_POV_XAXIS_NEG: return "POV Left";
-		case Evdev::JS_POV_YAXIS_POS: return "POV Down";
-		case Evdev::JS_POV_YAXIS_NEG: return "POV Up";
+		EVDEV_TO_SYSKEY_CASE(JS1_XAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS1_XAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS1_YAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS1_YAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS2_XAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS2_XAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS2_YAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS2_YAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS3_XAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS3_XAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS3_YAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS3_YAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS_LTRIGGER_AXIS);
+		EVDEV_TO_SYSKEY_CASE(JS_RTRIGGER_AXIS);
+		EVDEV_TO_SYSKEY_CASE(JS_POV_XAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS_POV_XAXIS_NEG);
+		EVDEV_TO_SYSKEY_CASE(JS_POV_YAXIS_POS);
+		EVDEV_TO_SYSKEY_CASE(JS_POV_YAXIS_NEG);
 	}
-	return "Unknown";
+	#undef EVDEV_TO_SYSKEY_CASE
 }
 
 /*static uint absAxisToKeycode(int axis)
@@ -122,7 +123,7 @@ struct EvdevInputDevice : public Device
 {
 	constexpr EvdevInputDevice() {}
 	EvdevInputDevice(int id, int fd, uint type):
-		Device{0, Event::MAP_EVDEV, type, name},
+		Device{0, Event::MAP_SYSTEM, type, name},
 		id{id}, fd{fd}
 	{}
 	int id = 0;
@@ -148,7 +149,8 @@ struct EvdevInputDevice : public Device
 				bcase EV_KEY:
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
-					Event event{enumId(), Event::MAP_EVDEV, ev.code, ev.value ? PUSHED : RELEASED, 0, 0, this};
+					auto key = toSysKey(ev.code);
+					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -159,7 +161,7 @@ struct EvdevInputDevice : public Device
 						continue; // out of range or inactive
 					}
 					//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_EVDEV, *this, Base::mainWindow());
+					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_SYSTEM, *this, Base::mainWindow());
 				}
 			}
 		}
@@ -186,12 +188,12 @@ struct EvdevInputDevice : public Device
 			uint keycodeIdx = 0;
 			Key axisKeycode[] =
 			{
-				Evdev::JS1_XAXIS_NEG, Evdev::JS1_XAXIS_POS,
-				Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS,
-				Evdev::JS2_XAXIS_NEG, Evdev::JS2_XAXIS_POS,
-				Evdev::JS2_YAXIS_NEG, Evdev::JS2_YAXIS_POS,
-				Evdev::JS_POV_XAXIS_NEG, Evdev::JS_POV_XAXIS_POS,
-				Evdev::JS_POV_YAXIS_NEG, Evdev::JS_POV_YAXIS_POS,
+				Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS,
+				Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS,
+				Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS,
+				Keycode::JS2_YAXIS_NEG, Keycode::JS2_YAXIS_POS,
+				Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS,
+				Keycode::JS_POV_YAXIS_NEG, Keycode::JS_POV_YAXIS_POS,
 			};
 			const uint8 stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
 				ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_HAT2X, ABS_HAT2Y, ABS_HAT3X, ABS_HAT3Y,
@@ -218,7 +220,8 @@ struct EvdevInputDevice : public Device
 					keyEmuMin = info.minimum;
 					keyEmuMax = info.maximum;
 				}
-				axis[axisId].keyEmu = {keyEmuMin, keyEmuMax, axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
+				axis[axisId].keyEmu = {keyEmuMin, keyEmuMax,
+					axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1], axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
 				axis[axisId].active = 1;
 				logMsg("%d - %d", axis[axisId].keyEmu.lowLimit, axis[axisId].keyEmu.highLimit);
 				axes++;
@@ -272,24 +275,23 @@ struct EvdevInputDevice : public Device
 		fdSrc.deinit();
 		::close(fd);
 		removeDevice(*this);
-		if(onDeviceChange)
-			onDeviceChange(*this, { Device::Change::REMOVED });
+		onDeviceChange.callCopySafe(*this, { Device::Change::REMOVED });
 	}
 
 	void setJoystickAxisAsDpadBits(uint axisMask) override
 	{
-		Key jsKey[4] = { Evdev::JS1_XAXIS_NEG, Evdev::JS1_XAXIS_POS, Evdev::JS1_YAXIS_NEG, Evdev::JS1_YAXIS_POS };
-		Key dpadKey[4] = { Evdev::LEFT, Evdev::RIGHT, Evdev::UP, Evdev::DOWN };
+		Key jsKey[4] {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
+		Key dpadKey[4] {Keycode::LEFT, Keycode::RIGHT, Keycode::UP, Keycode::DOWN};
 		Key (&setKey)[4] = (axisMask & IG::bit(0)) ? dpadKey : jsKey;
-		axis[ABS_X].keyEmu.lowKey = setKey[0];
-		axis[ABS_X].keyEmu.highKey = setKey[1];
-		axis[ABS_Y].keyEmu.lowKey = setKey[2];
-		axis[ABS_Y].keyEmu.highKey = setKey[3];
+		axis[ABS_X].keyEmu.lowKey = axis[ABS_X].keyEmu.lowSysKey = setKey[0];
+		axis[ABS_X].keyEmu.highKey = axis[ABS_X].keyEmu.highSysKey = setKey[1];
+		axis[ABS_Y].keyEmu.lowKey = axis[ABS_Y].keyEmu.lowSysKey = setKey[2];
+		axis[ABS_Y].keyEmu.highKey = axis[ABS_Y].keyEmu.highSysKey = setKey[3];
 	}
 
 	uint joystickAxisAsDpadBits() override
 	{
-		return axis[ABS_X].keyEmu.lowKey == Evdev::LEFT;
+		return axis[ABS_X].keyEmu.lowKey == Keycode::LEFT;
 	}
 };
 
@@ -381,7 +383,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	uint devId = 0;
 	for(auto &e : devList)
 	{
-		if(e->map() != Event::MAP_EVDEV)
+		if(e->map() != Event::MAP_SYSTEM)
 			continue;
 		if(string_equal(e->name(), evDev->name) && e->enumId() == devId)
 			devId++;
@@ -389,8 +391,8 @@ static bool processDevNode(const char *path, int id, bool notify)
 	evDev->setEnumId(devId);
 	uint type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
 	addDevice(*evDev);
-	if(notify && onDeviceChange)
-		onDeviceChange(*evDev, { Device::Change::ADDED });
+	if(notify)
+		onDeviceChange.callCopySafe(*evDev, { Device::Change::ADDED });
 
 	return true;
 }

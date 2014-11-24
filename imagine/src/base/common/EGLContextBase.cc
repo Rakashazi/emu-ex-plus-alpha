@@ -194,7 +194,9 @@ CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferC
 	}
 	#endif
 
-	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
+	// TODO: disabled surfaceless usage due to Nvidia Shield driver bug on Android 5.0,
+	// re-enable in next update
+	bool supportsSurfaceless = false;//strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
 	// create context
 	#ifdef CONFIG_GFX_OPENGL_ES
 		#if defined NDEBUG || defined CONFIG_MACHINE_PANDORA || defined __ANDROID__

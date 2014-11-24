@@ -52,26 +52,66 @@ static const uint CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2
 using namespace Input;
 static const PackedInputAccess padDataAccess[] =
 {
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_SELECT, PS3::SELECT },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_L3, PS3::L3 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_R3, PS3::R3 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_START, PS3::START },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_UP, PS3::UP },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_RIGHT, PS3::RIGHT },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_DOWN, PS3::DOWN },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_LEFT, PS3::LEFT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_SELECT, PS3::SELECT, Keycode::GAME_SELECT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_L3, PS3::L3, Keycode::GAME_LEFT_THUMB },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_R3, PS3::R3, Keycode::GAME_RIGHT_THUMB },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_START, PS3::START, Keycode::GAME_START },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_UP, PS3::UP, Keycode::UP },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_RIGHT, PS3::RIGHT, Keycode::RIGHT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_DOWN, PS3::DOWN, Keycode::DOWN },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_LEFT, PS3::LEFT, Keycode::LEFT },
 
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L2, PS3::L2 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R2, PS3::R2 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L1, PS3::L1 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R1, PS3::R1 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_TRIANGLE, PS3::TRIANGLE },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CIRCLE, PS3::CIRCLE },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CROSS, PS3::CROSS },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_SQUARE, PS3::SQUARE },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L2, PS3::L2, Keycode::GAME_L2 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R2, PS3::R2, Keycode::GAME_R2 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L1, PS3::L1, Keycode::GAME_L1 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R1, PS3::R1, Keycode::GAME_R1 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_TRIANGLE, PS3::TRIANGLE, Keycode::GAME_Y },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CIRCLE, PS3::CIRCLE, Keycode::GAME_B },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CROSS, PS3::CROSS, Keycode::GAME_A },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_SQUARE, PS3::SQUARE, Keycode::GAME_X },
 
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2+1, CELL_PAD_CTRL_PS, PS3::PS },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2+1, CELL_PAD_CTRL_PS, PS3::PS, Keycode::MENU },
 };
+
+static const char *ps3ButtonName(Input::Key k)
+{
+	using namespace Input;
+	switch(k)
+	{
+		case 0: return "None";
+		case PS3::CROSS: return "Cross";
+		case PS3::CIRCLE: return "Circle";
+		case PS3::SQUARE: return "Square";
+		case PS3::TRIANGLE: return "Triangle";
+		case PS3::L1: return "L1";
+		case PS3::L2: return "L2";
+		case PS3::L3: return "L3";
+		case PS3::R1: return "R1";
+		case PS3::R2: return "R2";
+		case PS3::R3: return "R3";
+		case PS3::SELECT: return "Select";
+		case PS3::START: return "Start";
+		case PS3::UP: return "Up";
+		case PS3::RIGHT: return "Right";
+		case PS3::DOWN: return "Down";
+		case PS3::LEFT: return "Left";
+		case PS3::PS: return "PS";
+		case PS3::LSTICK_UP: return "L:Up";
+		case PS3::LSTICK_RIGHT: return "L:Right";
+		case PS3::LSTICK_DOWN: return "L:Down";
+		case PS3::LSTICK_LEFT: return "L:Left";
+		case PS3::RSTICK_UP: return "R:Up";
+		case PS3::RSTICK_RIGHT: return "R:Right";
+		case PS3::RSTICK_DOWN: return "R:Down";
+		case PS3::RSTICK_LEFT: return "R:Left";
+	}
+	return "Unknown";
+}
+
+const char *PS3Controller::keyName(Input::Key k) const
+{
+	return ps3ButtonName(k);
+}
 
 CallResult PS3Controller::open(BluetoothAdapter &adapter)
 {
@@ -134,15 +174,13 @@ uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
 		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		Input::addDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::ADDED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::ADDED });
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("PS3 controller connection error");
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::CONNECT_ERROR });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::CONNECT_ERROR });
 		close();
 		delete this;
 	}
@@ -168,8 +206,7 @@ void PS3Controller::removeFromSystem()
 	if(btInputDevList.remove(this))
 	{
 		removeDevice(*this);
-		if(Input::onDeviceChange)
-			Input::onDeviceChange(*this, { Input::Device::Change::REMOVED });
+		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
 	}
 }
 
@@ -202,7 +239,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e->keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					Event event{player, Event::MAP_PS3PAD, (Key)e->keyEvent, newState ? PUSHED : RELEASED, 0, 0, this};
+					Event event{player, Event::MAP_PS3PAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, 0, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -306,21 +343,29 @@ void PS3Controller::setJoystickAxisAsDpadBits(uint axisMask)
 	{
 		bool on = axisMask & Device::AXIS_BIT_X;
 		axisKey[0].lowKey = on ? Input::PS3::LEFT : Input::PS3::LSTICK_LEFT;
+		axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
 		axisKey[0].highKey = on ? Input::PS3::RIGHT : Input::PS3::LSTICK_RIGHT;
+		axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_Y;
 		axisKey[1].lowKey = on ? Input::PS3::UP : Input::PS3::LSTICK_UP;
+		axisKey[1].lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
 		axisKey[1].highKey = on ? Input::PS3::DOWN : Input::PS3::LSTICK_DOWN;
+		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_Z;
 		axisKey[2].lowKey = on ? Input::PS3::LEFT : Input::PS3::RSTICK_LEFT;
+		axisKey[2].lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
 		axisKey[2].highKey = on ? Input::PS3::RIGHT : Input::PS3::RSTICK_RIGHT;
+		axisKey[2].highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
 	}
 	{
 		bool on = axisMask & Device::AXIS_BIT_RZ;
 		axisKey[3].lowKey = on ? Input::PS3::UP : Input::PS3::RSTICK_UP;
+		axisKey[3].lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
 		axisKey[3].highKey = on ? Input::PS3::DOWN : Input::PS3::RSTICK_DOWN;
+		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
 	}
 }

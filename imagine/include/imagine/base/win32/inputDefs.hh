@@ -69,7 +69,7 @@ namespace Keycode
 
 	static const uint COUNT = 0xffff;
 
-	static constexpr uint asciiKey(uint c)
+	/*static constexpr uint asciiKey(uint c)
 	{
 		return (c >= 'a' && c <= 'z') ? c-0x20 :
 			((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) ? c :
@@ -90,7 +90,7 @@ namespace Keycode
 			(c == '*') ? 0x104 : // TODO: remove
 			(c == '@') ? 0x105 : // TODO: remove
 			0;
-	}
+	}*/
 };
 
 typedef uint16 Key;

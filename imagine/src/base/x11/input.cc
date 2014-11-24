@@ -29,14 +29,14 @@ namespace Input
 
 struct XIEventMaskData
 {
-	XIEventMask eventMask;
-	uchar maskBits[XIMaskLen(XI_LASTEVENT)] {0};
+	XIEventMask eventMask{};
+	uchar maskBits[XIMaskLen(XI_LASTEVENT)]{};
 };
 
 struct XInputDevice : public Device
 {
 	int id = -1;
-	char nameStr[80] {0};
+	char nameStr[80]{};
 	bool iCadeMode_ = false;
 
 	constexpr XInputDevice() {}
@@ -67,15 +67,14 @@ struct XInputDevice : public Device
 };
 
 static StaticArrayList<XInputDevice*, 16> xDevice;
-static DragPointer dragStateArr[Input::maxCursors];
-static Cursor blankCursor = (Cursor)0;
-static Cursor normalCursor = (Cursor)0;
-uint numCursors = 0;
-bool translateKeycodes = false;
+static DragPointer dragStateArr[Config::Input::MAX_POINTERS];
+static Cursor blankCursor{};
+static Cursor normalCursor{};
+static uint numCursors = 0;
 static int xI2opcode = 0;
-static int xPointerMapping[Input::maxCursors];
-static XkbDescPtr coreKeyboardDesc = nullptr;
-static Device *vkbDevice = nullptr;
+static int xPointerMapping[Config::Input::MAX_POINTERS]{};
+static XkbDescPtr coreKeyboardDesc{};
+static Device *vkbDevice{};
 
 
 static const Device *deviceForInputId(int osId)
@@ -173,20 +172,6 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	return 0;
 }
 
-void setTranslateKeyboardEventsByModifiers(bool on)
-{
-	if(on)
-		logMsg("translating key codes by modifier keys");
-	else
-		logMsg("using direct key codes");
-	translateKeycodes = on;
-}
-
-bool translateKeyboardEventsByModifiers()
-{
-	return translateKeycodes;
-}
-
 static CallResult setupXInput2(Display *dpy)
 {
 	int event, error;
@@ -251,8 +236,8 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 	{
 		dev->subtype_ = Device::SUBTYPE_PANDORA_HANDHELD;
 	}
-	if(notify && onDeviceChange)
-		onDeviceChange(*dev, { Device::Change::ADDED });
+	if(notify)
+		onDeviceChange.callCopySafe(*dev, { Device::Change::ADDED });
 }
 
 static void removeXInputDevice(int xDeviceId)
@@ -265,8 +250,7 @@ static void removeXInputDevice(int xDeviceId)
 			auto removedDev = *dev;
 			removeDevice(*dev);
 			xDevice.erase(e);
-			if(onDeviceChange)
-				onDeviceChange(removedDev, { Device::Change::REMOVED });
+			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
 			delete dev;
 			return;
 		}
@@ -285,6 +269,14 @@ static const char *xInputDeviceTypeToStr(int type)
 		case XIFloatingSlave: return "Floating Slave";
 		default: return "Unknown";
 	}
+}
+
+static Key keysymToKey(KeySym k)
+{
+	// if the keysym fits in 2 bytes leave as is,
+	// otherwise use only first 15-bits to match
+	// definition in Keycode namespace
+	return k <= 0xFFFF ? k : k & 0xEFFF;
 }
 
 CallResult init()
@@ -398,6 +390,36 @@ bool handleXI2GenericEvent(XEvent &event)
 		return true;
 	}
 	auto &win = *destWin;
+
+	auto handleKeyEvent =
+		[](Base::Window &win, XIDeviceEvent &ievent, bool pushed)
+		{
+			auto action = pushed ? PUSHED : RELEASED;
+			if(pushed)
+				cancelKeyRepeatTimer();
+			auto dev = deviceForInputId(ievent.sourceid);
+			KeySym k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
+			bool repeated = ievent.flags & XIKeyRepeat;
+			//logMsg("KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
+			if(pushed && k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
+			{
+				toggleFullScreen(win.xWin);
+			}
+			else if(!pushed || (pushed && (allowKeyRepeats() || !repeated)))
+			{
+				#ifdef CONFIG_INPUT_ICADE
+				if(!dev->iCadeMode()
+					|| (dev->iCadeMode() && !processICadeKey(k, action, *dev, win)))
+				#endif
+				{
+					bool isShiftPushed = ievent.mods.effective & ShiftMask;
+					auto key = keysymToKey(k);
+					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, ievent.time, dev};
+					ev.rawKey = ievent.detail;
+					win.dispatchInputEvent(ev);
+				}
+			}
+		};
 	//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));
 	switch(ievent.evtype)
 	{
@@ -412,69 +434,34 @@ bool handleXI2GenericEvent(XEvent &event)
 		bcase XI_Leave:
 			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, ievent.time);
 		bcase XI_FocusIn:
-			win.dispatchFocusChange(1);
+			win.dispatchFocusChange(true);
 		bcase XI_FocusOut:
-			win.dispatchFocusChange(0);
+			win.dispatchFocusChange(false);
+			deinitKeyRepeatTimer();
 		bcase XI_KeyPress:
-		{
-			Input::cancelKeyRepeatTimer();
-			auto dev = Input::deviceForInputId(ievent.sourceid);
-			KeySym k;
-			if(Input::translateKeycodes)
-			{
-				unsigned int modsReturn;
-				XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
-			}
-			else
-				k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
-			bool repeated = ievent.flags & XIKeyRepeat;
-			//logMsg("press KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
-			if(k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
-			{
-				toggleFullScreen(win.xWin);
-			}
-			else
-			{
-				using namespace Input;
-				if(!repeated || Input::allowKeyRepeats())
-				{
-					//logMsg("push KeySym %d, KeyCode %d", (int)k, ievent.detail);
-					#ifdef CONFIG_INPUT_ICADE
-					if(!dev->iCadeMode()
-						|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::PUSHED, *dev, win)))
-					#endif
-					{
-						bool isShiftPushed = ievent.mods.effective & ShiftMask;
-						win.dispatchInputEvent(Event{dev->enumId(), Event::MAP_SYSTEM, (Key)(k & 0xFFFF), PUSHED, isShiftPushed, ievent.time, dev});
-					}
-				}
-			}
-		}
+			handleKeyEvent(win, ievent, true);
 		bcase XI_KeyRelease:
-		{
-			auto dev = Input::deviceForInputId(ievent.sourceid);
-			KeySym k;
-			if(Input::translateKeycodes)
-			{
-				unsigned int modsReturn;
-				XkbTranslateKeyCode(Input::coreKeyboardDesc, ievent.detail, ievent.mods.effective, &modsReturn, &k);
-			}
-			else
-				k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
-			using namespace Input;
-			//logMsg("release KeySym %d, KeyCode %d", (int)k, ievent.detail);
-			#ifdef CONFIG_INPUT_ICADE
-			if(!dev->iCadeMode()
-				|| (dev->iCadeMode() && !processICadeKey(Keycode::decodeAscii(k, 0), Input::RELEASED, *dev, win)))
-			#endif
-			{
-				win.dispatchInputEvent(Event{dev->enumId(), Event::MAP_SYSTEM, (Key)(k & 0xFFFF), RELEASED, 0, ievent.time, dev});
-			}
-		}
+			handleKeyEvent(win, ievent, false);
 	}
 	XFreeEventData(dpy, &event.xcookie);
 	return true;
 }
+
+Event::KeyString Event::keyString() const
+{
+	KeyString str{};
+	KeySym k;
+	uint mods = metaState ? ShiftMask : 0;
+	XkbTranslateKeyCode(Input::coreKeyboardDesc, rawKey, mods, nullptr, &k);
+	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(KeyString), nullptr);
+	return str;
+}
+
+void setHandleVolumeKeys(bool on) {}
+
+void showSoftInput() {}
+void hideSoftInput() {}
+bool softInputIsActive() { return false; }
 
 }
 

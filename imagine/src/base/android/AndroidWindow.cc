@@ -253,8 +253,7 @@ void AndroidWindow::destroyEGLSurface(EGLDisplay display)
 	if(eglGetCurrentSurface(EGL_DRAW) == surface)
 	{
 		GLContext::setDrawable(nullptr);
-		if(onGLDrawableChanged)
-			onGLDrawableChanged(nullptr);
+		onGLDrawableChanged.callCopySafe(nullptr);
 	}
 	logMsg("destroying EGL surface for native window %p", nWin);
 	if(eglDestroySurface(display, surface) == EGL_FALSE)
@@ -290,6 +289,9 @@ void androidWindowNeedsRedraw(Window &win)
 	// On some OS versions like CM7 on the HP Touchpad,
 	// the very next frame is rendered incorrectly
 	// (as if the window still has its previous size).
+	// A similar issue occurs on the stock AT&T Xperia Play
+	// when sliding the phone open from sleep with the
+	// screen previously in portrait.
 	// Post another window draw to work-around this
 	win.postDraw();
 }
@@ -299,7 +301,14 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	win.updateContentRect(rect);
-	win.updateSize(winSize);
+	if(win.updateSize(winSize))
+	{
+		// If the surface changed size, make sure
+		// it's set again with eglMakeCurrent to avoid
+		// the context possibly rendering to it with
+		// the old size, as occurs on Intel HD Graphics
+		onGLDrawableChanged.callCopySafe(nullptr);
+	}
 	win.postDraw();
 }
 
@@ -329,8 +338,7 @@ void restoreOpenGLContext()
 	if(!AndroidGLContext::validateActivityThreadContext())
 	{
 		logMsg("current context was restored");
-		if(onGLDrawableChanged)
-			onGLDrawableChanged(nullptr);
+		onGLDrawableChanged.callCopySafe(nullptr);
 	}
 }
 

@@ -61,7 +61,7 @@ extern Byte1Option optionHideStatusBar;
 extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
 extern Byte1Option optionConfirmOverwriteState;
 extern Byte1Option optionFastForwardSpeed;
-#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 extern Byte1Option optionNotifyInputDeviceChange;
 #endif
 #ifdef CONFIG_INPUT_ANDROID_MOGA
@@ -83,7 +83,7 @@ extern Byte1Option optionImgEffect;
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
-#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
 extern Byte4Option optionRelPointerDecel;
 #endif

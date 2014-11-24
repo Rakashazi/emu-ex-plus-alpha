@@ -82,8 +82,8 @@ Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, (!Config::envIsAndroi
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, Input::SWAPPED_GAMEPAD_CONFIRM_DEFAULT);
 Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
 Byte1Option optionFastForwardSpeed(CFGKEY_FAST_FORWARD_SPEED, 4, 0, optionIsValidWithMinMax<2, 7>);
-#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
-Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Input::hasSystemDeviceHotswap, !Input::hasSystemDeviceHotswap);
+#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
+Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP);
 #endif
 #ifdef CONFIG_INPUT_ANDROID_MOGA
 Byte1Option optionMOGAInputSystem(CFGKEY_MOGA_INPUT_SYSTEM, 0, 0);
@@ -105,7 +105,7 @@ Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<Vide
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
-#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
+#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
 #endif
@@ -283,7 +283,7 @@ void initOptions()
 		optionDitherImage.initDefault(0);
 	}
 
-		#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		if(Base::androidSDK() < 12)
 		{
 			optionNotifyInputDeviceChange.isConst = 1;

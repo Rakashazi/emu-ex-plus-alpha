@@ -75,8 +75,7 @@ static void setHardKeyboardState(int hardKeyboardState)
 		{
 			bool shown = aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
 			Device::Change change{shown ? Device::Change::SHOWN : Device::Change::HIDDEN};
-			if(onDeviceChange)
-				onDeviceChange(*builtinKeyboardDev, change);
+			onDeviceChange.callCopySafe(*builtinKeyboardDev, change);
 		}
 	}
 }
@@ -164,27 +163,6 @@ void setEventsUseOSInputMethod(bool on)
 bool eventsUseOSInputMethod()
 {
 	return sendInputToIME;
-}
-
-static bool remapAxisKeyEmu(Device &dev, AxisKeyEmu<float> &keyEmu, const Key (&matchKey)[4], const Key (&setKey)[4])
-{
-	bool didRemap = false;
-	forEachDInArray(matchKey, match)
-	{
-		if(keyEmu.lowKey == match)
-		{
-			keyEmu.lowKey = setKey[match_i];
-			logMsg("set low key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.lowKey));
-			didRemap = true;
-		}
-		if(keyEmu.highKey == match)
-		{
-			keyEmu.highKey = setKey[match_i];
-			logMsg("set high key from %s to %s", dev.keyName(match), dev.keyName(keyEmu.highKey));
-			didRemap = true;
-		}
-	}
-	return didRemap;
 }
 
 static const char *inputDeviceKeyboardTypeToStr(int type)
@@ -297,7 +275,8 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 				env->DeleteLocalRef(range);
 				logMsg("joystick axis: %d", axisId);
 				auto size = 2.0f;
-				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f, Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
+				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
+					Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
 				axisBits |= stickAxesBits[axisIdx];
 				if(axis.isFull())
 				{
@@ -319,7 +298,8 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 				env->DeleteLocalRef(range);
 				logMsg("trigger axis: %d", axisId);
 				// use unreachable lowLimit value so only highLimit is used
-				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f, 0, axisToKeycode(axisId)});
+				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
+					0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
 				if(axis.isFull())
 				{
 					logMsg("reached maximum joystick axes");
@@ -356,43 +336,43 @@ void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
 				{
 					bool on = axisMask & AXIS_BIT_X;
 					//logMsg("axis x as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
 				}
 				bcase AXIS_Y:
 				{
 					bool on = axisMask & AXIS_BIT_Y;
 					//logMsg("axis y as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
 				}
 				bcase AXIS_Z:
 				{
 					bool on = axisMask & AXIS_BIT_Z;
 					//logMsg("axis z as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
 				}
 				bcase AXIS_RZ:
 				{
 					bool on = axisMask & AXIS_BIT_RZ;
 					//logMsg("axis rz as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
 				}
 				bcase AXIS_HAT_X:
 				{
 					bool on = axisMask & AXIS_BIT_HAT_X;
 					//logMsg("axis hat x as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::LEFT : Keycode::JS_POV_XAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::RIGHT : Keycode::JS_POV_XAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS_POV_XAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS_POV_XAXIS_POS;
 				}
 				bcase AXIS_HAT_Y:
 				{
 					bool on = axisMask & AXIS_BIT_HAT_Y;
 					//logMsg("axis hat y as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = on ? Keycode::UP : Keycode::JS_POV_YAXIS_NEG;
-					e.keyEmu.highKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
+					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS_POV_YAXIS_NEG;
+					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
 				}
 			}
 		}
@@ -509,9 +489,9 @@ static void processDevice(JNIEnv* env, int devID, bool setSpecialDevices, bool n
 			}
 		}
 		logMsg("added to list with device id %d", sysInput->enumId());
-		if(notify && onDeviceChange)
+		if(notify)
 		{
-			onDeviceChange(*sysInput, { Device::Change::ADDED });
+			onDeviceChange.callCopySafe(*sysInput, { Device::Change::ADDED });
 		}
 	}
 	env->ReleaseStringUTFChars(jName, name);
@@ -546,8 +526,7 @@ void devicesChanged(JNIEnv* env)
 			auto removedDev = *dev;
 			removeDevice(*dev);
 			it.erase();
-			if(onDeviceChange)
-				onDeviceChange(removedDev, { Device::Change::REMOVED });
+			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
 			delete dev;
 		}
 	}
@@ -641,8 +620,7 @@ CallResult init()
 										auto removedDev = *dev;
 										removeDevice(*dev);
 										it.erase();
-										if(onDeviceChange)
-											onDeviceChange(removedDev, { Device::Change::REMOVED });
+										onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
 										break;
 										delete dev;
 									}
@@ -708,49 +686,5 @@ CallResult init()
 	}
 	return OK;
 }
-
-	namespace CONFIG_INPUT_KEYCODE_NAMESPACE
-	{
-
-	uint decodeAscii(Key k, bool isShiftPushed)
-	{
-		switch(k)
-		{
-			case 7 ... 16: // 0 - 9
-				return k + 41;
-			case 29 ... 54: // a - z
-			{
-				uint ascii = k + 68;
-				if(isShiftPushed)
-					ascii -= 32;
-				return ascii;
-			}
-			case 17: return '*';
-			case 18: return '#';
-			case 55: return ',';
-			case 56: return '.';
-			case 62: return ' ';
-			case 66: return '\n';
-			case 68: return '`';
-			case 69: return '-';
-			case 70: return '=';
-			case 71: return '[';
-			case 72: return ']';
-			case 73: return '\\';
-			case 74: return ';';
-			case 75: return '\'';
-			case 76: return '/';
-			case 77: return '@';
-			case 81: return '+';
-		}
-		return 0;
-	}
-
-	bool isAsciiKey(Key k)
-	{
-		return decodeAscii(k, 0) != 0;
-	}
-
-	}
 
 }

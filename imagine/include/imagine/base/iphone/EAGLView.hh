@@ -19,9 +19,6 @@
 #include <imagine/base/iphone/config.h>
 
 @interface EAGLView : UIView
-#if defined(CONFIG_BASE_IOS_KEY_INPUT) || defined(CONFIG_INPUT_ICADE)
-<UIKeyInput>
-#endif
 {
 @private
 	GLuint framebuffer;

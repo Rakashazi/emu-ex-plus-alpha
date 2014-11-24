@@ -83,27 +83,24 @@ void EmuInputView::inputEvent(const Input::Event &e)
 			placeEmuViews();
 		}
 		#endif
+		return;
 	}
-	else
-	#elif defined INPUT_SUPPORTS_POINTER
+	#else
 	if(e.isPointer())
 	{
 		if(e.state == Input::PUSHED)
 		{
 			viewStack.top()->clearSelection();
 			restoreMenuFromGame();
-			return;
 		}
+		return;
 	}
-	else
 	#endif
-	#ifdef INPUT_SUPPORTS_RELATIVE_POINTER
 	if(e.isRelativePointer())
 	{
 		processRelPtr(e);
 	}
 	else
-	#endif
 	{
 		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
 		if(e.state == Input::PUSHED && e.button == Input::Keycode::ESCAPE)

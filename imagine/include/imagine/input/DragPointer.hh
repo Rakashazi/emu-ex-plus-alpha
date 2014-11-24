@@ -110,9 +110,5 @@ public:
 
 namespace Input
 {
-#ifdef INPUT_SUPPORTS_POINTER
 	DragPointer *dragState(int p);
-#else
-	//static DragPointer *dragState(int p) { bugExit("input_dragState called with no platform support"); return 0; }
-#endif
 }

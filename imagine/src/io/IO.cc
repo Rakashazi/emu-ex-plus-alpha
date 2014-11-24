@@ -118,7 +118,7 @@ GenericIO::operator bool()
 AssetIO openAppAssetIO(const char *name)
 {
 	AssetIO io;
-	#ifdef CONFIG_IO_AASSET
+	#ifdef __ANDROID__
 	io.open(name);
 	#else
 	io.open(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());

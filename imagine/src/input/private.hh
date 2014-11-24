@@ -10,6 +10,6 @@ extern DeviceChangeDelegate onDeviceChange;
 
 void setAllowKeyRepeats(bool on);
 bool allowKeyRepeats();
-bool processICadeKey(char c, uint action, const Device &dev, Base::Window &win);
+bool processICadeKey(Key k, uint action, const Device &dev, Base::Window &win);
 
 }

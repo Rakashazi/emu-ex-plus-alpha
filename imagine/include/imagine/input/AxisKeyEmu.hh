@@ -26,42 +26,59 @@ struct AxisKeyEmu
 {
 	Range lowLimit = 0, highLimit = 0;
 	Key lowKey = 0, highKey = 0;
+	Key lowSysKey = 0, highSysKey = 0;
 	int8 state = 0;
 
-	constexpr AxisKeyEmu() {}
-	constexpr AxisKeyEmu(Range lowLimit, Range highLimit, Key lowKey, Key highKey):
-		lowLimit(lowLimit), highLimit(highLimit), lowKey(lowKey), highKey(highKey) {}
-
-	bool update(Range pos, Key &released, Key &pushed)
+	struct UpdateKeys
 	{
+		Key released = 0, sysReleased = 0,
+			pushed = 0, sysPushed = 0;
+		bool updated = false;
+	};
+
+	constexpr AxisKeyEmu() {}
+	constexpr AxisKeyEmu(Range lowLimit, Range highLimit,
+		Key lowKey, Key highKey, Key lowSysKey, Key highSysKey):
+		lowLimit{lowLimit}, highLimit{highLimit},
+		lowKey{lowKey}, highKey{highKey}, lowSysKey{lowSysKey}, highSysKey{highSysKey} {}
+
+	UpdateKeys update(Range pos)
+	{
+		UpdateKeys keys;
 		int8 newState = (pos <= lowLimit) ? -1 :
 			(pos >= highLimit) ? 1 :
 			0;
 		if(newState != state)
 		{
-			released = (state > 0) ? highKey : (state < 0) ? lowKey : 0;
-			pushed = (newState > 0) ? highKey : (newState < 0) ? lowKey : 0;
+			const bool stateHigh = (state > 0);
+			const bool stateLow = (state < 0);
+			keys.released = stateHigh ? highKey : stateLow ? lowKey : 0;
+			keys.sysReleased = stateHigh ? highSysKey : stateLow ? lowSysKey : 0;
+			const bool newStateHigh = (newState > 0);
+			const bool newStateLow = (newState < 0);
+			keys.pushed = newStateHigh ? highKey : newStateLow ? lowKey : 0;
+			keys.sysPushed = newStateHigh ? highSysKey : newStateLow ? lowSysKey : 0;
+			keys.updated = true;
 			state = newState;
-			return true;
 		}
-		return false;
+		return keys;
 	}
 
 	bool dispatch(Range pos, uint id, uint map, const Device &dev, Base::Window &win)
 	{
-		Key releasedKey, pushedKey;
-		if(!update(pos, releasedKey, pushedKey))
+		auto updateKeys = update(pos);
+		if(!updateKeys.updated)
 		{
 			return false; // no change
 		}
-		if(releasedKey)
+		if(updateKeys.released)
 		{
 			cancelKeyRepeatTimer();
-			win.dispatchInputEvent(Event(id, map, releasedKey, RELEASED, 0, 0, &dev));
+			win.dispatchInputEvent(Event(id, map, updateKeys.released, updateKeys.sysReleased, RELEASED, 0, 0, &dev));
 		}
-		if(pushedKey)
+		if(updateKeys.pushed)
 		{
-			Event event{id, map, pushedKey, PUSHED, 0, 0, &dev};
+			Event event{id, map, updateKeys.pushed, updateKeys.sysPushed, PUSHED, 0, 0, &dev};
 			startKeyRepeatTimer(event);
 			win.dispatchInputEvent(event);
 		}

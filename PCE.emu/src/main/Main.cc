@@ -504,8 +504,6 @@ void MDFND_commitVideoFrame(const MDFN_FrameInfo &info)
 	updateAndDrawEmuVideo();
 }
 
-#ifdef INPUT_SUPPORTS_POINTER
-
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
 	uint playerMask = player << 12;
@@ -528,8 +526,6 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+7] = bit(6) | playerMask;
 	map[SysVController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
 }
-
-#endif
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {

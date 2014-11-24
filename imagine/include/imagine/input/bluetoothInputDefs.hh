@@ -16,14 +16,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/input/config.hh>
 
 namespace Input
 {
 
 static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 
-namespace PS3
-{
+	namespace PS3
+	{
 	static const uint CROSS = 1,
 	CIRCLE = 2,
 	SQUARE = 3,
@@ -43,10 +44,10 @@ namespace PS3
 	;
 
 	static const uint COUNT = 26;
-}
+	}
 
-namespace Wiimote
-{
+	namespace Wiimote
+	{
 	static const uint PLUS = 1,
 	MINUS = 2,
 	HOME = 3,
@@ -61,10 +62,10 @@ namespace Wiimote
 	;
 
 	static const uint COUNT = 18;
-}
+	}
 
-namespace WiiCC
-{
+	namespace WiiCC
+	{
 	static const uint PLUS = 1,
 	MINUS = 2,
 	HOME = 3,
@@ -79,10 +80,10 @@ namespace WiiCC
 	;
 
 	static const uint COUNT = 26;
-}
+	}
 
-namespace iControlPad
-{
+	namespace iControlPad
+	{
 	static const uint A = 1,
 	B = 2,
 	X = 3,
@@ -97,10 +98,10 @@ namespace iControlPad
 	;
 
 	static const uint COUNT = 21;
-}
+	}
 
-namespace Zeemote
-{
+	namespace Zeemote
+	{
 	static const uint A = 1,
 	B = 2,
 	C = 3,
@@ -110,51 +111,29 @@ namespace Zeemote
 	;
 
 	static const uint COUNT = 9;
-}
+	}
 
-namespace ICade
-{
-#if defined INPUT_SUPPORTS_KEYBOARD
+	namespace ICade
+	{
+	// Due to lack of naming standard and for clarity,
+	// face buttons are labeled like a SEGA Saturn controller
+	// with E1 and E2 as SELECT and START respectively
 
-// mapping overlaps system/keyboard so the same "device" can send iCade
-// events as well as other key events that don't conflict with its mapping.
-// Here we just use all the On-States since they won't be sent as regular
-// key events.
-static const uint UP = Keycode::asciiKey('w'),
-	RIGHT = Keycode::asciiKey('d'),
-	DOWN = Keycode::asciiKey('x'),
-	LEFT = Keycode::asciiKey('a'),
-	A = Keycode::asciiKey('y'),
-	B = Keycode::asciiKey('h'),
-	C = Keycode::asciiKey('u'),
-	D = Keycode::asciiKey('j'),
-	E = Keycode::asciiKey('i'),
-	F = Keycode::asciiKey('k'),
-	G = Keycode::asciiKey('o'),
-	H = Keycode::asciiKey('l');
+	static const uint UP = Keycode::UP,
+	RIGHT = Keycode::RIGHT,
+	DOWN = Keycode::DOWN,
+	LEFT = Keycode::LEFT,
+	X = Keycode::GAME_X,
+	A = Keycode::GAME_A,
+	Y = Keycode::GAME_Y,
+	B = Keycode::GAME_B,
+	Z = Keycode::GAME_Z,
+	C = Keycode::GAME_C,
+	SELECT = Keycode::GAME_SELECT,
+	START = Keycode::GAME_START
+	;
 
-static const uint COUNT = Keycode::COUNT;
-
-#else
-
-// dedicated mapping
-static const uint UP = 1,
-RIGHT = 2,
-DOWN = 3,
-LEFT = 4,
-A = 5,
-B = 6,
-C = 7,
-D = 8,
-E = 9,
-F = 10,
-G = 11,
-H = 12
-;
-
-static const uint COUNT = 13;
-
-#endif
-}
+	static const uint COUNT = Keycode::COUNT;
+	}
 
 }

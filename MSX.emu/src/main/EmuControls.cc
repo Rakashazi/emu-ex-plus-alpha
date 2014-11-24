@@ -169,324 +169,26 @@ const KeyCategory category[MAX_CATEGORIES]
 	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset},
 };
 
-#ifdef INPUT_SUPPORTS_KEYBOARD
-
 const KeyConfig defaultKeyProfile[] =
 {
-	#ifdef CONFIG_ENV_WEBOS
-	{
-		Input::Event::MAP_SYSTEM,
-		0,
-		"WebOS Keyboard (Joystick use)",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
-
-			// JS 1
-			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			Keycode::asciiKey(','),
-			Keycode::asciiKey('m'),
-			0,
-			0,
-
-			// JS 2
-			PP_ZERO_LIST(12)
-
-			// Coleco 1 & 2
-			PP_ZERO_LIST(24)
-
-			// Keyboard
-			Keycode::asciiKey(' '),
-		}
-	},
-	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	KEY_CONFIG_ANDROID_NAV_KEYS,
-	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_GENERIC_GAMEPAD,
-		"Generic Gamepad",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
-
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
-			0, 0, 0, 0,
-			Input::Keycode::GAME_A,
-			Input::Keycode::GAME_B,
-			0,
-			0,
-
-			// JS 2
-			PP_ZERO_LIST(12)
-
-			// Coleco 1
-			PP_ZERO_LIST(10)
-			Input::Keycode::GAME_Y,
-			Input::Keycode::GAME_X,
-
-			// Coleco 2
-			PP_ZERO_LIST(12)
-
-			// Keyboard
-			Input::Keycode::GAME_START,
-			Input::Keycode::GAME_Y, // F1 ... F5
-			Input::Keycode::GAME_L1,
-			Input::Keycode::GAME_R1,
-			Input::Keycode::GAME_X,
-			Input::Keycode::GAME_SELECT,
-			PP_ZERO_LIST(87) // 26 - 92
-		}
-	},
-	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_PS3_CONTROLLER,
-		"PS3 Controller",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
-
-			// JS 1
-			Input::Keycode::PS3::UP,
-			Input::Keycode::PS3::RIGHT,
-			Input::Keycode::PS3::DOWN,
-			Input::Keycode::PS3::LEFT,
-			0, 0, 0, 0,
-			Input::Keycode::PS3::CROSS,
-			Input::Keycode::PS3::CIRCLE,
-			0,
-			0,
-
-			// JS 2
-			PP_ZERO_LIST(12)
-
-			// Coleco 1
-			PP_ZERO_LIST(10)
-			Input::Keycode::PS3::TRIANGLE,
-			Input::Keycode::PS3::SQUARE,
-
-			// Coleco 2
-			PP_ZERO_LIST(12)
-
-			// Keyboard
-			Input::Keycode::PS3::START,
-			Input::Keycode::PS3::TRIANGLE, // F1 ... F5
-			Input::Keycode::PS3::L1,
-			Input::Keycode::PS3::R1,
-			Input::Keycode::PS3::SQUARE,
-			Input::Keycode::PS3::SELECT,
-		}
-	},
-	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_OUYA_CONTROLLER,
-		"OUYA Controller",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
-
-			// JS 1
-			Input::Keycode::Ouya::UP,
-			Input::Keycode::Ouya::RIGHT,
-			Input::Keycode::Ouya::DOWN,
-			Input::Keycode::Ouya::LEFT,
-			0, 0, 0, 0,
-			Input::Keycode::Ouya::O,
-			Input::Keycode::Ouya::U,
-			0,
-			0,
-
-			// JS 2
-			PP_ZERO_LIST(12)
-
-			// Coleco 1
-			PP_ZERO_LIST(10)
-			Input::Keycode::Ouya::A,
-			Input::Keycode::Ouya::Y,
-
-			// Coleco 2
-			PP_ZERO_LIST(12)
-
-			// Keyboard
-			Input::Keycode::Ouya::R3,
-			Input::Keycode::Ouya::Y, // F1 ... F5
-			Input::Keycode::Ouya::L1,
-			Input::Keycode::Ouya::R1,
-			Input::Keycode::Ouya::U,
-			Input::Keycode::Ouya::L3,
-		}
-	},
-		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
-		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_XPERIA_PLAY,
-			"Xperia Play",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
-
-				// JS 1
-				Input::Keycode::XperiaPlay::UP,
-				Input::Keycode::XperiaPlay::RIGHT,
-				Input::Keycode::XperiaPlay::DOWN,
-				Input::Keycode::XperiaPlay::LEFT,
-				0, 0, 0, 0,
-				Input::Keycode::XperiaPlay::CROSS,
-				Input::Keycode::XperiaPlay::CIRCLE,
-				0,
-				0,
-
-				// JS 2
-				PP_ZERO_LIST(12)
-
-				// Coleco 1
-				PP_ZERO_LIST(10)
-				Input::Keycode::XperiaPlay::TRIANGLE,
-				Input::Keycode::XperiaPlay::SQUARE,
-
-				// Coleco 2
-				PP_ZERO_LIST(12)
-
-				// Keyboard
-				Input::Keycode::XperiaPlay::START,
-				Input::Keycode::XperiaPlay::TRIANGLE, // F1 ... F5
-				Input::Keycode::XperiaPlay::L1,
-				Input::Keycode::XperiaPlay::R1,
-				Input::Keycode::XperiaPlay::SQUARE,
-				Input::Keycode::XperiaPlay::SELECT,
-				PP_ZERO_LIST(87) // 26 - 92
-			}
-		},
-		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD,
-			"Droid/Milestone Keyboard (w/ Joystick Keys)",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
-
-				// JS 1
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::asciiKey('c'),
-				Keycode::asciiKey('x'),
-				0,
-				0,
-
-				// JS 2
-				PP_ZERO_LIST(12)
-
-				// Coleco 1
-				Keycode::asciiKey('p'),
-				Keycode::asciiKey('q'),
-				Keycode::asciiKey('w'),
-				Keycode::asciiKey('e'),
-				Keycode::asciiKey('r'),
-				Keycode::asciiKey('t'),
-				Keycode::asciiKey('y'),
-				Keycode::asciiKey('u'),
-				Keycode::asciiKey('i'),
-				Keycode::asciiKey('o'),
-				Keycode::asciiKey('k'),
-				Keycode::asciiKey('d'),
-
-				// Coleco 2
-				PP_ZERO_LIST(12)
-
-				// Keyboard
-				0,
-				Keycode::asciiKey('t'), // F1 ... F5
-				Keycode::asciiKey('y'),
-				Keycode::asciiKey('u'),
-				Keycode::asciiKey('i'),
-				Keycode::asciiKey('o'),
-				PP_ZERO_LIST(6) // 6 - 11
-				Keycode::asciiKey('g'), // 1 ... 0
-				Keycode::asciiKey('h'),
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				PP_ZERO_LIST(3) // 22 - 24
-				Input::Keycode::BACK_SPACE,
-				PP_ZERO_LIST(11) // 26 - 36
-				0, // @
-				0,
-				Input::Keycode::ENTER,
-				0, // CTRL
-				PP_ZERO_LIST(12) // 41 ... 52
-				0, // Left Shift
-				PP_ZERO_LIST(7) // 54 ... 60
-				0, // ,
-				0, // .
-				0, // /
-				0,
-				0, // Right Shift
-				PP_ZERO_LIST(3) // 66 - 68
-				Keycode::asciiKey(' '),
-				PP_ZERO_LIST(23) // 70 - 92
-			}
-		},
-		{
-			Input::Event::MAP_SYSTEM,
-			Input::Device::SUBTYPE_NVIDIA_SHIELD,
-			"NVidia Shield",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
-
-				// JS 1
-				Input::Keycode::UP,
-				Input::Keycode::RIGHT,
-				Input::Keycode::DOWN,
-				Input::Keycode::LEFT,
-				0, 0, 0, 0,
-				Input::Keycode::GAME_A,
-				Input::Keycode::GAME_B,
-				0,
-				0,
-
-				// JS 2
-				PP_ZERO_LIST(12)
-
-				// Coleco 1
-				PP_ZERO_LIST(10)
-				Input::Keycode::GAME_Y,
-				Input::Keycode::GAME_X,
-
-				// Coleco 2
-				PP_ZERO_LIST(12)
-
-				// Keyboard
-				Input::Keycode::GAME_START,
-				Input::Keycode::GAME_Y, // F1 ... F5
-				Input::Keycode::GAME_L1,
-				Input::Keycode::GAME_R1,
-				Input::Keycode::GAME_X,
-				Input::Keycode::GAME_LEFT_THUMB,
-				PP_ZERO_LIST(87) // 26 - 92
-			}
-		},
-		#endif
 	#endif
 	{
-		Input::Event::MAP_SYSTEM,
+		Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard (w/ Joystick Keys)",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::UP,
-			Input::Keycode::RIGHT,
-			Input::Keycode::DOWN,
-			Input::Keycode::LEFT,
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
 			0, 0, 0, 0,
-			Keycode::asciiKey('c'),
-			Keycode::asciiKey('x'),
+			Keycode::C,
+			Keycode::X,
 			0,
 			0,
 
@@ -494,32 +196,32 @@ const KeyConfig defaultKeyProfile[] =
 			PP_ZERO_LIST(12)
 
 			// Coleco 1
-			Keycode::asciiKey('p'),
-			Keycode::asciiKey('q'),
-			Keycode::asciiKey('w'),
-			Keycode::asciiKey('e'),
-			Keycode::asciiKey('r'),
-			Keycode::asciiKey('t'),
-			Keycode::asciiKey('y'),
-			Keycode::asciiKey('u'),
-			Keycode::asciiKey('i'),
-			Keycode::asciiKey('o'),
-			Keycode::asciiKey('k'),
-			Keycode::asciiKey('d'),
+			Keycode::P,
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::K,
+			Keycode::D,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
 			0,
-			Keycode::asciiKey('t'), // F1 ... F5
-			Keycode::asciiKey('y'),
-			Keycode::asciiKey('u'),
-			Keycode::asciiKey('i'),
-			Keycode::asciiKey('o'),
+			Keycode::T, // F1 ... F5
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
 			PP_ZERO_LIST(6) // 6 - 11
-			Keycode::asciiKey('g'), // 1 ... 0
-			Keycode::asciiKey('h'),
+			Keycode::G, // 1 ... 0
+			Keycode::H,
 			0,
 			0,
 			0,
@@ -529,11 +231,11 @@ const KeyConfig defaultKeyProfile[] =
 			0,
 			0,
 			PP_ZERO_LIST(3) // 22 - 24
-			Input::Keycode::BACK_SPACE,
+			Keycode::BACK_SPACE,
 			PP_ZERO_LIST(11) // 26 - 36
 			0, // @
 			0,
-			Input::Keycode::ENTER,
+			Keycode::ENTER,
 			0, // CTRL
 			PP_ZERO_LIST(12) // 41 ... 52
 			0, // Left Shift
@@ -544,12 +246,12 @@ const KeyConfig defaultKeyProfile[] =
 			0,
 			0, // Right Shift
 			PP_ZERO_LIST(3) // 66 - 68
-			Keycode::asciiKey(' '),
+			Keycode::SPACE,
 			PP_ZERO_LIST(23) // 70 - 92
 		}
 	},
 	{
-		Input::Event::MAP_SYSTEM,
+		Event::MAP_SYSTEM,
 		0,
 		"PC Keyboard",
 		{
@@ -563,109 +265,409 @@ const KeyConfig defaultKeyProfile[] =
 
 			// Keyboard
 			0,
-			Input::Keycode::F1, // F1 ... F5
-			Input::Keycode::F2,
-			Input::Keycode::F3,
-			Input::Keycode::F4,
-			Input::Keycode::F5,
+			Keycode::F1, // F1 ... F5
+			Keycode::F2,
+			Keycode::F3,
+			Keycode::F4,
+			Keycode::F5,
 
-			Input::Keycode::SCROLL_LOCK, // STOP - DEL
-			Input::Keycode::END,
-			Input::Keycode::HOME,
-			Input::Keycode::INSERT,
-			Input::Keycode::DELETE,
+			Keycode::SCROLL_LOCK, // STOP - DEL
+			Keycode::END,
+			Keycode::HOME,
+			Keycode::INSERT,
+			Keycode::DELETE,
 
-			Input::Keycode::ESCAPE,
+			Keycode::ESCAPE,
 
-			Keycode::asciiKey('1'), // 1 ... 0
-			Keycode::asciiKey('2'),
-			Keycode::asciiKey('3'),
-			Keycode::asciiKey('4'),
-			Keycode::asciiKey('5'),
-			Keycode::asciiKey('6'),
-			Keycode::asciiKey('7'),
-			Keycode::asciiKey('8'),
-			Keycode::asciiKey('9'),
-			Keycode::asciiKey('0'),
-			Keycode::asciiKey('-'),
-			Keycode::asciiKey('='),
-			Keycode::asciiKey('\\'),
-			Input::Keycode::BACK_SPACE,
+			Keycode::_1, // 1 ... 0
+			Keycode::_2,
+			Keycode::_3,
+			Keycode::_4,
+			Keycode::_5,
+			Keycode::_6,
+			Keycode::_7,
+			Keycode::_8,
+			Keycode::_9,
+			Keycode::_0,
+			Keycode::MINUS,
+			Keycode::EQUALS,
+			Keycode::BACKSLASH,
+			Keycode::BACK_SPACE,
 
-			Input::Keycode::TAB,
-			Keycode::asciiKey('q'),
-			Keycode::asciiKey('w'),
-			Keycode::asciiKey('e'),
-			Keycode::asciiKey('r'),
-			Keycode::asciiKey('t'),
-			Keycode::asciiKey('y'),
-			Keycode::asciiKey('u'),
-			Keycode::asciiKey('i'),
-			Keycode::asciiKey('o'),
-			Keycode::asciiKey('p'),
-			Keycode::asciiKey('`'), // @
-			Keycode::asciiKey('['),
-			Input::Keycode::ENTER,
+			Keycode::TAB,
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::P,
+			Keycode::GRAVE, // @
+			Keycode::LEFT_BRACKET,
+			Keycode::ENTER,
 
-			Input::Keycode::LCTRL, // CTRL
-			Keycode::asciiKey('a'),
-			Keycode::asciiKey('s'),
-			Keycode::asciiKey('d'),
-			Keycode::asciiKey('f'),
-			Keycode::asciiKey('g'),
-			Keycode::asciiKey('h'),
-			Keycode::asciiKey('j'),
-			Keycode::asciiKey('k'),
-			Keycode::asciiKey('l'),
-			Keycode::asciiKey(';'),
-			Keycode::asciiKey('\''),
-			Keycode::asciiKey(']'),
+			Keycode::LCTRL, // CTRL
+			Keycode::A,
+			Keycode::S,
+			Keycode::D,
+			Keycode::F,
+			Keycode::G,
+			Keycode::H,
+			Keycode::J,
+			Keycode::K,
+			Keycode::L,
+			Keycode::SEMICOLON,
+			Keycode::APOSTROPHE,
+			Keycode::RIGHT_BRACKET,
 
-			Input::Keycode::LSHIFT, // Left Shift
-			Keycode::asciiKey('z'),
-			Keycode::asciiKey('x'),
-			Keycode::asciiKey('c'),
-			Keycode::asciiKey('v'),
-			Keycode::asciiKey('b'),
-			Keycode::asciiKey('n'),
-			Keycode::asciiKey('m'),
-			Keycode::asciiKey(','),
-			Keycode::asciiKey('.'),
-			Keycode::asciiKey('/'),
-			Input::Keycode::RCTRL,
-			Input::Keycode::RSHIFT, // Right Shift
+			Keycode::LSHIFT, // Left Shift
+			Keycode::Z,
+			Keycode::X,
+			Keycode::C,
+			Keycode::V,
+			Keycode::B,
+			Keycode::N,
+			Keycode::M,
+			Keycode::COMMA,
+			Keycode::PERIOD,
+			Keycode::SLASH,
+			Keycode::RCTRL,
+			Keycode::RSHIFT, // Right Shift
 
-			Input::Keycode::CAPS,
-			Input::Keycode::LSUPER,
-			Input::Keycode::LALT,
-			Keycode::asciiKey(' '),
-			Input::Keycode::RSUPER,
-			Input::Keycode::RALT,
-			Input::Keycode::PAUSE,
+			Keycode::CAPS,
+			Keycode::LSUPER,
+			Keycode::LALT,
+			Keycode::SPACE,
+			Keycode::RSUPER,
+			Keycode::RALT,
+			Keycode::PAUSE,
 
-			Input::Keycode::LEFT,
-			Input::Keycode::UP,
-			Input::Keycode::DOWN,
-			Input::Keycode::RIGHT,
+			Keycode::LEFT,
+			Keycode::UP,
+			Keycode::DOWN,
+			Keycode::RIGHT,
 			PP_ZERO_LIST(15) // 77 - 92
 		}
 	},
+	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_GENERIC_GAMEPAD,
+		"Generic Gamepad",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
+
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_A,
+			Keycode::GAME_X,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1
+			PP_ZERO_LIST(10)
+			Keycode::GAME_B,
+			Keycode::GAME_Y,
+
+			// Coleco 2
+			PP_ZERO_LIST(12)
+
+			// Keyboard
+			Keycode::GAME_START,
+			Keycode::GAME_Y, // F1 ... F5
+			Keycode::GAME_L1,
+			Keycode::GAME_R1,
+			Keycode::GAME_B,
+			Keycode::GAME_SELECT,
+			PP_ZERO_LIST(87) // 26 - 92
+		}
+	},
+	#endif
+	#ifdef CONFIG_ENV_WEBOS
+	{
+		Event::MAP_SYSTEM,
+		0,
+		"WebOS Keyboard (Joystick use)",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
+
+			// JS 1
+			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
+			Keycode::COMMA,
+			Keycode::M,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1 & 2
+			PP_ZERO_LIST(24)
+
+			// Keyboard
+			Keycode::SPACE,
+		}
+	},
+	#endif
+	#ifdef CONFIG_BASE_ANDROID
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_PS3_CONTROLLER,
+		"PS3 Controller",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
+
+			// JS 1
+			Keycode::PS3::UP,
+			Keycode::PS3::RIGHT,
+			Keycode::PS3::DOWN,
+			Keycode::PS3::LEFT,
+			0, 0, 0, 0,
+			Keycode::PS3::CROSS,
+			Keycode::PS3::SQUARE,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1
+			PP_ZERO_LIST(10)
+			Keycode::PS3::CIRCLE,
+			Keycode::PS3::TRIANGLE,
+
+			// Coleco 2
+			PP_ZERO_LIST(12)
+
+			// Keyboard
+			Keycode::PS3::START,
+			Keycode::PS3::TRIANGLE, // F1 ... F5
+			Keycode::PS3::L1,
+			Keycode::PS3::R1,
+			Keycode::PS3::CIRCLE,
+			Keycode::PS3::SELECT,
+		}
+	},
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_OUYA_CONTROLLER,
+		"OUYA Controller",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
+
+			// JS 1
+			Keycode::Ouya::UP,
+			Keycode::Ouya::RIGHT,
+			Keycode::Ouya::DOWN,
+			Keycode::Ouya::LEFT,
+			0, 0, 0, 0,
+			Keycode::Ouya::O,
+			Keycode::Ouya::U,
+			0,
+			0,
+
+			// JS 2
+			PP_ZERO_LIST(12)
+
+			// Coleco 1
+			PP_ZERO_LIST(10)
+			Keycode::Ouya::A,
+			Keycode::Ouya::Y,
+
+			// Coleco 2
+			PP_ZERO_LIST(12)
+
+			// Keyboard
+			Keycode::Ouya::R3,
+			Keycode::Ouya::Y, // F1 ... F5
+			Keycode::Ouya::L1,
+			Keycode::Ouya::R1,
+			Keycode::Ouya::A,
+			Keycode::Ouya::L3,
+		}
+	},
+		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
+		{
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_XPERIA_PLAY,
+			"Xperia Play",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+
+				// JS 1
+				Keycode::XperiaPlay::UP,
+				Keycode::XperiaPlay::RIGHT,
+				Keycode::XperiaPlay::DOWN,
+				Keycode::XperiaPlay::LEFT,
+				0, 0, 0, 0,
+				Keycode::XperiaPlay::CROSS,
+				Keycode::XperiaPlay::SQUARE,
+				0,
+				0,
+
+				// JS 2
+				PP_ZERO_LIST(12)
+
+				// Coleco 1
+				PP_ZERO_LIST(10)
+				Keycode::XperiaPlay::CIRCLE,
+				Keycode::XperiaPlay::TRIANGLE,
+
+				// Coleco 2
+				PP_ZERO_LIST(12)
+
+				// Keyboard
+				Keycode::XperiaPlay::START,
+				Keycode::XperiaPlay::TRIANGLE, // F1 ... F5
+				Keycode::XperiaPlay::L1,
+				Keycode::XperiaPlay::R1,
+				Keycode::XperiaPlay::CIRCLE,
+				Keycode::XperiaPlay::SELECT,
+				PP_ZERO_LIST(87) // 26 - 92
+			}
+		},
+		{
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_MOTO_DROID_KEYBOARD,
+			"Droid/Milestone Keyboard (w/ Joystick Keys)",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+
+				// JS 1
+				Keycode::UP,
+				Keycode::RIGHT,
+				Keycode::DOWN,
+				Keycode::LEFT,
+				0, 0, 0, 0,
+				Keycode::C,
+				Keycode::X,
+				0,
+				0,
+
+				// JS 2
+				PP_ZERO_LIST(12)
+
+				// Coleco 1
+				Keycode::P,
+				Keycode::Q,
+				Keycode::W,
+				Keycode::E,
+				Keycode::R,
+				Keycode::T,
+				Keycode::Y,
+				Keycode::U,
+				Keycode::I,
+				Keycode::O,
+				Keycode::K,
+				Keycode::D,
+
+				// Coleco 2
+				PP_ZERO_LIST(12)
+
+				// Keyboard
+				0,
+				Keycode::T, // F1 ... F5
+				Keycode::Y,
+				Keycode::U,
+				Keycode::I,
+				Keycode::O,
+				PP_ZERO_LIST(6) // 6 - 11
+				Keycode::G, // 1 ... 0
+				Keycode::H,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0,
+				PP_ZERO_LIST(3) // 22 - 24
+				Keycode::BACK_SPACE,
+				PP_ZERO_LIST(11) // 26 - 36
+				0, // @
+				0,
+				Keycode::ENTER,
+				0, // CTRL
+				PP_ZERO_LIST(12) // 41 ... 52
+				0, // Left Shift
+				PP_ZERO_LIST(7) // 54 ... 60
+				0, // ,
+				0, // .
+				0, // /
+				0,
+				0, // Right Shift
+				PP_ZERO_LIST(3) // 66 - 68
+				Keycode::SPACE,
+				PP_ZERO_LIST(23) // 70 - 92
+			}
+		},
+		{
+			Event::MAP_SYSTEM,
+			Device::SUBTYPE_NVIDIA_SHIELD,
+			"NVidia Shield",
+			{
+				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+				// JS 1
+				Keycode::UP,
+				Keycode::RIGHT,
+				Keycode::DOWN,
+				Keycode::LEFT,
+				0, 0, 0, 0,
+				Keycode::GAME_A,
+				Keycode::GAME_X,
+				0,
+				0,
+
+				// JS 2
+				PP_ZERO_LIST(12)
+
+				// Coleco 1
+				PP_ZERO_LIST(10)
+				Keycode::GAME_B,
+				Keycode::GAME_Y,
+
+				// Coleco 2
+				PP_ZERO_LIST(12)
+
+				// Keyboard
+				Keycode::GAME_START,
+				Keycode::GAME_Y, // F1 ... F5
+				Keycode::GAME_L1,
+				Keycode::GAME_R1,
+				Keycode::GAME_B,
+				Keycode::GAME_LEFT_THUMB,
+				PP_ZERO_LIST(87) // 26 - 92
+			}
+		},
+		#endif
+	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Input::Event::MAP_SYSTEM,
-		Input::Device::SUBTYPE_PANDORA_HANDHELD,
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_MINIMAL_PROFILE_INIT,
 
 			// JS 1
-			Input::Keycode::Pandora::UP,
-			Input::Keycode::Pandora::RIGHT,
-			Input::Keycode::Pandora::DOWN,
-			Input::Keycode::Pandora::LEFT,
+			Keycode::Pandora::UP,
+			Keycode::Pandora::RIGHT,
+			Keycode::Pandora::DOWN,
+			Keycode::Pandora::LEFT,
 			0, 0, 0, 0,
-			Input::Keycode::Pandora::X,
-			Input::Keycode::Pandora::B,
+			Keycode::Pandora::X,
+			Keycode::Pandora::A,
 			0,
 			0,
 
@@ -677,90 +679,90 @@ const KeyConfig defaultKeyProfile[] =
 
 			// Keyboard
 			0,
-			Input::Keycode::F1, // F1 ... F5
-			Input::Keycode::F2,
-			Input::Keycode::F3,
-			Input::Keycode::F4,
-			Input::Keycode::F5,
+			Keycode::F1, // F1 ... F5
+			Keycode::F2,
+			Keycode::F3,
+			Keycode::F4,
+			Keycode::F5,
 
-			Input::Keycode::SCROLL_LOCK, // STOP - DEL
-			Input::Keycode::END,
-			Input::Keycode::HOME,
-			Input::Keycode::INSERT,
-			Input::Keycode::DELETE,
+			Keycode::SCROLL_LOCK, // STOP - DEL
+			Keycode::END,
+			Keycode::HOME,
+			Keycode::INSERT,
+			Keycode::DELETE,
 
-			Input::Keycode::ESCAPE,
+			Keycode::ESCAPE,
 
-			Keycode::asciiKey('1'), // 1 ... 0
-			Keycode::asciiKey('2'),
-			Keycode::asciiKey('3'),
-			Keycode::asciiKey('4'),
-			Keycode::asciiKey('5'),
-			Keycode::asciiKey('6'),
-			Keycode::asciiKey('7'),
-			Keycode::asciiKey('8'),
-			Keycode::asciiKey('9'),
-			Keycode::asciiKey('0'),
-			Keycode::asciiKey('-'),
-			Keycode::asciiKey('='),
-			Keycode::asciiKey('\\'),
-			Input::Keycode::BACK_SPACE,
+			Keycode::_1, // 1 ... 0
+			Keycode::_2,
+			Keycode::_3,
+			Keycode::_4,
+			Keycode::_5,
+			Keycode::_6,
+			Keycode::_7,
+			Keycode::_8,
+			Keycode::_9,
+			Keycode::_0,
+			Keycode::MINUS,
+			Keycode::EQUALS,
+			Keycode::BACKSLASH,
+			Keycode::BACK_SPACE,
 
-			Input::Keycode::TAB,
-			Keycode::asciiKey('q'),
-			Keycode::asciiKey('w'),
-			Keycode::asciiKey('e'),
-			Keycode::asciiKey('r'),
-			Keycode::asciiKey('t'),
-			Keycode::asciiKey('y'),
-			Keycode::asciiKey('u'),
-			Keycode::asciiKey('i'),
-			Keycode::asciiKey('o'),
-			Keycode::asciiKey('p'),
-			Keycode::asciiKey('`'), // @
-			Keycode::asciiKey('['),
-			Input::Keycode::ENTER,
+			Keycode::TAB,
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::P,
+			Keycode::GRAVE, // @
+			Keycode::LEFT_BRACKET,
+			Keycode::ENTER,
 
-			Input::Keycode::LCTRL, // CTRL
-			Keycode::asciiKey('a'),
-			Keycode::asciiKey('s'),
-			Keycode::asciiKey('d'),
-			Keycode::asciiKey('f'),
-			Keycode::asciiKey('g'),
-			Keycode::asciiKey('h'),
-			Keycode::asciiKey('j'),
-			Keycode::asciiKey('k'),
-			Keycode::asciiKey('l'),
-			Keycode::asciiKey(';'),
-			Keycode::asciiKey('\''),
-			Keycode::asciiKey(']'),
+			Keycode::LCTRL, // CTRL
+			Keycode::A,
+			Keycode::S,
+			Keycode::D,
+			Keycode::F,
+			Keycode::G,
+			Keycode::H,
+			Keycode::J,
+			Keycode::K,
+			Keycode::L,
+			Keycode::SEMICOLON,
+			Keycode::APOSTROPHE,
+			Keycode::RIGHT_BRACKET,
 
-			Input::Keycode::LSHIFT, // Left Shift
-			Keycode::asciiKey('z'),
-			Keycode::asciiKey('x'),
-			Keycode::asciiKey('c'),
-			Keycode::asciiKey('v'),
-			Keycode::asciiKey('b'),
-			Keycode::asciiKey('n'),
-			Keycode::asciiKey('m'),
-			Keycode::asciiKey(','),
-			Keycode::asciiKey('.'),
-			Keycode::asciiKey('/'),
-			Input::Keycode::RCTRL,
-			Input::Keycode::RSHIFT, // Right Shift
+			Keycode::LSHIFT, // Left Shift
+			Keycode::Z,
+			Keycode::X,
+			Keycode::C,
+			Keycode::V,
+			Keycode::B,
+			Keycode::N,
+			Keycode::M,
+			Keycode::COMMA,
+			Keycode::PERIOD,
+			Keycode::SLASH,
+			Keycode::RCTRL,
+			Keycode::RSHIFT, // Right Shift
 
-			Input::Keycode::CAPS,
-			Input::Keycode::LSUPER,
-			Input::Keycode::LALT,
-			Keycode::asciiKey(' '),
-			Input::Keycode::RSUPER,
-			Input::Keycode::RALT,
-			Input::Keycode::PAUSE,
+			Keycode::CAPS,
+			Keycode::LSUPER,
+			Keycode::LALT,
+			Keycode::SPACE,
+			Keycode::RSUPER,
+			Keycode::RALT,
+			Keycode::PAUSE,
 
-			Input::Keycode::LEFT,
-			Input::Keycode::UP,
-			Input::Keycode::DOWN,
-			Input::Keycode::RIGHT,
+			Keycode::LEFT,
+			Keycode::UP,
+			Keycode::DOWN,
+			Keycode::RIGHT,
 			PP_ZERO_LIST(15) // 77 - 92
 		}
 	},
@@ -769,54 +771,25 @@ const KeyConfig defaultKeyProfile[] =
 
 const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);
 
-#endif
-
-#ifdef CONFIG_INPUT_EVDEV
-
-const KeyConfig defaultEvdevProfile[] =
-{
-	{
-		Input::Event::MAP_EVDEV,
-		0,
-		"Default",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
-
-			// JS 1
-			Input::Evdev::UP,
-			Input::Evdev::RIGHT,
-			Input::Evdev::DOWN,
-			Input::Evdev::LEFT,
-			0, 0, 0, 0,
-			Input::Evdev::GAME_A,
-			Input::Evdev::GAME_B,
-		}
-	},
-};
-
-const uint defaultEvdevProfiles = sizeofArray(defaultEvdevProfile);
-
-#endif
-
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 
 const KeyConfig defaultAppleGCProfile[] =
 {
 	{
-		Input::Event::MAP_APPLE_GAME_CONTROLLER,
+		Event::MAP_APPLE_GAME_CONTROLLER,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT,
 
 			// JS 1
-			Input::AppleGC::UP,
-			Input::AppleGC::RIGHT,
-			Input::AppleGC::DOWN,
-			Input::AppleGC::LEFT,
+			AppleGC::UP,
+			AppleGC::RIGHT,
+			AppleGC::DOWN,
+			AppleGC::LEFT,
 			0, 0, 0, 0,
-			Input::AppleGC::A,
-			Input::AppleGC::X,
+			AppleGC::A,
+			AppleGC::X,
 			0,
 			0,
 
@@ -825,19 +798,19 @@ const KeyConfig defaultAppleGCProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(10)
-			Input::AppleGC::Y,
-			Input::AppleGC::X,
+			AppleGC::B,
+			AppleGC::Y,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::AppleGC::RSTICK_RIGHT,
-			Input::AppleGC::Y, // F1 ... F5
-			Input::AppleGC::L1,
-			Input::AppleGC::R1,
-			Input::AppleGC::B,
-			Input::AppleGC::RSTICK_LEFT,
+			AppleGC::RSTICK_RIGHT,
+			AppleGC::Y, // F1 ... F5
+			AppleGC::L1,
+			AppleGC::R1,
+			AppleGC::B,
+			AppleGC::RSTICK_LEFT,
 			PP_ZERO_LIST(87) // 26 - 92
 		}
 	},
@@ -852,20 +825,20 @@ const uint defaultAppleGCProfiles = sizeofArray(defaultAppleGCProfile);
 const KeyConfig defaultWiimoteProfile[] =
 {
 	{
-		Input::Event::MAP_WIIMOTE,
+		Event::MAP_WIIMOTE,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
 
 			// JS 1
-			Input::Wiimote::UP,
-			Input::Wiimote::RIGHT,
-			Input::Wiimote::DOWN,
-			Input::Wiimote::LEFT,
+			Wiimote::UP,
+			Wiimote::RIGHT,
+			Wiimote::DOWN,
+			Wiimote::LEFT,
 			0, 0, 0, 0,
-			Input::Wiimote::_2,
-			Input::Wiimote::_1,
+			Wiimote::_2,
+			Wiimote::_1,
 			0,
 			0,
 
@@ -874,13 +847,13 @@ const KeyConfig defaultWiimoteProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(11)
-			Input::Wiimote::MINUS,
+			Wiimote::MINUS,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::Wiimote::PLUS,
+			Wiimote::PLUS,
 		}
 	},
 };
@@ -890,20 +863,20 @@ const uint defaultWiimoteProfiles = sizeofArray(defaultWiimoteProfile);
 const KeyConfig defaultWiiCCProfile[] =
 {
 	{
-		Input::Event::MAP_WII_CC,
+		Event::MAP_WII_CC,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
 
 			// JS 1
-			Input::WiiCC::UP,
-			Input::WiiCC::RIGHT,
-			Input::WiiCC::DOWN,
-			Input::WiiCC::LEFT,
+			WiiCC::UP,
+			WiiCC::RIGHT,
+			WiiCC::DOWN,
+			WiiCC::LEFT,
 			0, 0, 0, 0,
-			Input::WiiCC::B,
-			Input::WiiCC::Y,
+			WiiCC::B,
+			WiiCC::Y,
 			0,
 			0,
 
@@ -912,18 +885,18 @@ const KeyConfig defaultWiiCCProfile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(11)
-			Input::WiiCC::MINUS,
+			WiiCC::MINUS,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::WiiCC::PLUS,
-			Input::WiiCC::X, // F1 - F5
-			Input::WiiCC::L,
-			Input::WiiCC::R,
-			Input::WiiCC::A,
-			Input::WiiCC::MINUS,
+			WiiCC::PLUS,
+			WiiCC::X, // F1 - F5
+			WiiCC::L,
+			WiiCC::R,
+			WiiCC::A,
+			WiiCC::MINUS,
 		}
 	},
 };
@@ -935,20 +908,20 @@ const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
 const KeyConfig defaultIControlPadProfile[] =
 {
 	{
-		Input::Event::MAP_ICONTROLPAD,
+		Event::MAP_ICONTROLPAD,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
 
 			// JS 1
-			Input::iControlPad::UP,
-			Input::iControlPad::RIGHT,
-			Input::iControlPad::DOWN,
-			Input::iControlPad::LEFT,
+			iControlPad::UP,
+			iControlPad::RIGHT,
+			iControlPad::DOWN,
+			iControlPad::LEFT,
 			0, 0, 0, 0,
-			Input::iControlPad::X,
-			Input::iControlPad::A,
+			iControlPad::X,
+			iControlPad::A,
 			0,
 			0,
 
@@ -959,12 +932,12 @@ const KeyConfig defaultIControlPadProfile[] =
 			PP_ZERO_LIST(24)
 
 			// Keyboard
-			Input::iControlPad::START,
-			Input::iControlPad::Y, // F1 - F5
-			Input::iControlPad::L,
-			Input::iControlPad::R,
-			Input::iControlPad::B,
-			Input::iControlPad::SELECT,
+			iControlPad::START,
+			iControlPad::Y, // F1 - F5
+			iControlPad::L,
+			iControlPad::R,
+			iControlPad::B,
+			iControlPad::SELECT,
 			PP_ZERO_LIST(87) // 6 - 92
 		}
 	},
@@ -977,20 +950,20 @@ const uint defaultIControlPadProfiles = sizeofArray(defaultIControlPadProfile);
 const KeyConfig defaultICadeProfile[] =
 {
 	{
-		Input::Event::MAP_ICADE,
+		Event::MAP_ICADE,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
 			// JS 1
-			Input::ICade::UP,
-			Input::ICade::RIGHT,
-			Input::ICade::DOWN,
-			Input::ICade::LEFT,
+			ICade::UP,
+			ICade::RIGHT,
+			ICade::DOWN,
+			ICade::LEFT,
 			0, 0, 0, 0,
-			Input::ICade::H,
-			Input::ICade::F,
+			ICade::A,
+			ICade::X,
 			0,
 			0,
 
@@ -1001,12 +974,12 @@ const KeyConfig defaultICadeProfile[] =
 			PP_ZERO_LIST(24)
 
 			// Keyboard
-			Input::ICade::C,
-			Input::ICade::E, // F1 - F5
-			Input::ICade::B,
-			Input::ICade::D,
-			Input::ICade::G,
-			Input::ICade::A,
+			ICade::START,
+			ICade::Y, // F1 ... F5
+			ICade::Z,
+			ICade::C,
+			ICade::B,
+			ICade::SELECT,
 			PP_ZERO_LIST(87) // 6 - 92
 		}
 	},
@@ -1019,23 +992,23 @@ const uint defaultICadeProfiles = sizeofArray(defaultICadeProfile);
 const KeyConfig defaultZeemoteProfile[] =
 {
 	{
-		Input::Event::MAP_ZEEMOTE,
+		Event::MAP_ZEEMOTE,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
 			// JS 1
-			Input::Zeemote::UP,
-			Input::Zeemote::RIGHT,
-			Input::Zeemote::DOWN,
-			Input::Zeemote::LEFT,
+			Zeemote::UP,
+			Zeemote::RIGHT,
+			Zeemote::DOWN,
+			Zeemote::LEFT,
 			0,
 			0,
 			0,
 			0,
-			Input::Zeemote::B,
-			Input::Zeemote::A,
+			Zeemote::B,
+			Zeemote::A,
 			0,
 			0,
 
@@ -1046,7 +1019,7 @@ const KeyConfig defaultZeemoteProfile[] =
 			PP_ZERO_LIST(24)
 
 			// Keyboard
-			Input::Zeemote::C,
+			Zeemote::C,
 		}
 	},
 };
@@ -1058,20 +1031,20 @@ const uint defaultZeemoteProfiles = sizeofArray(defaultZeemoteProfile);
 const KeyConfig defaultPS3Profile[] =
 {
 	{
-		Input::Event::MAP_PS3PAD,
+		Event::MAP_PS3PAD,
 		0,
 		"Default",
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT,
 
 			// JS 1
-			Input::PS3::UP,
-			Input::PS3::RIGHT,
-			Input::PS3::DOWN,
-			Input::PS3::LEFT,
+			PS3::UP,
+			PS3::RIGHT,
+			PS3::DOWN,
+			PS3::LEFT,
 			0, 0, 0, 0,
-			Input::PS3::CROSS,
-			Input::PS3::CIRCLE,
+			PS3::CROSS,
+			PS3::SQUARE,
 			0,
 			0,
 
@@ -1080,19 +1053,19 @@ const KeyConfig defaultPS3Profile[] =
 
 			// Coleco 1
 			PP_ZERO_LIST(10)
-			Input::PS3::TRIANGLE,
-			Input::PS3::SQUARE,
+			PS3::CIRCLE,
+			PS3::TRIANGLE,
 
 			// Coleco 2
 			PP_ZERO_LIST(12)
 
 			// Keyboard
-			Input::PS3::START,
-			Input::PS3::TRIANGLE, // F1 ... F5
-			Input::PS3::L1,
-			Input::PS3::R1,
-			Input::PS3::SQUARE,
-			Input::PS3::SELECT,
+			PS3::START,
+			PS3::TRIANGLE, // F1 ... F5
+			PS3::L1,
+			PS3::R1,
+			PS3::CIRCLE,
+			PS3::SELECT,
 		}
 	},
 };

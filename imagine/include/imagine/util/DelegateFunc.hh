@@ -73,6 +73,26 @@ public:
 		return memcmp(this, &rhs, sizeof(DelegateFunc)) == 0;
 	}
 
+	R callCopy(ARGS ... in) const
+	{
+		// Call a copy to avoid trashing captured variables
+		// if delegate's function can modify the delegate
+		auto del = *this;
+		return del(in...);
+	}
+
+	R callSafe(ARGS ... in) const
+	{
+		if(exec)
+			return this->operator()(in...);
+	}
+
+	R callCopySafe(ARGS ... in) const
+	{
+		if(exec)
+			callCopy(in...);
+	}
+
 private:
 	struct Storage
 	{

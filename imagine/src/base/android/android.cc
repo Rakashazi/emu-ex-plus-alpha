@@ -435,6 +435,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			{
 				Window::window(i)->dispatchFocusChange(focused);
 			}
+			if(!focused)
+				Input::deinitKeyRepeatTimer();
 		};
 	activity->callbacks->onNativeWindowCreated =
 		[](ANativeActivity *activity, ANativeWindow *nWin)

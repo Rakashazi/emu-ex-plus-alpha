@@ -193,6 +193,6 @@ static const char *stateNameStr(int slot)
 	return str[slot+1];
 }
 
-#if defined INPUT_SUPPORTS_POINTER
+#if defined CONFIG_INPUT_POINTING_DEVICES
 #define CONFIG_EMUFRAMEWORK_VCONTROLS
 #endif

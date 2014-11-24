@@ -13,29 +13,42 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "Input"
+#import <CoreFoundation/CoreFoundation.h>
+#include <dlfcn.h>
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragPointer.hh>
+#include <imagine/logger/logger.h>
 #import "MainApp.hh"
 #include "../../input/private.hh"
 #include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
+@interface UIEvent ()
+- (NSInteger*)_gsEvent;
+@end
+
 namespace Input
 {
 
-#ifdef CONFIG_INPUT_ICADE
-struct ICadeDevice : public Device
+static constexpr int GSEVENT_TYPE = 2;
+static constexpr int GSEVENT_FLAGS = 12;
+static constexpr int GSEVENT_TYPE_KEYDOWN = 10;
+static constexpr int GSEVENT_TYPE_KEYUP = 11;
+
+struct KeyboardDevice : public Device
 {
 	bool iCadeMode_ = false;
 
-	ICadeDevice(): Device{0, Event::MAP_ICADE, Device::TYPE_BIT_KEY_MISC, "iCade Controller"}
+	KeyboardDevice(): Device{0, Event::MAP_SYSTEM,
+		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
+		"Keyboard/iCade"}
 	{}
 
 	void setICadeMode(bool on) override
 	{
 		logMsg("set iCade mode %s", on ? "on" : "off");
 		iCadeMode_ = on;
-		iCade.setActive(on);
 	}
 
 	bool iCadeMode() const override
@@ -43,9 +56,12 @@ struct ICadeDevice : public Device
 		return iCadeMode_;
 	}
 };
-#endif
 
-static ICadeDevice icadeDev;
+static KeyboardDevice keyDev;
+static bool hardwareKBAttached = false;
+
+using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
+static GSEventIsHardwareKeyboardAttachedProto GSEventIsHardwareKeyboardAttached{};
 
 #if defined IPHONE_VKEYBOARD
 
@@ -123,7 +139,7 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	vKeyboardTextDelegate = callback;
 	if(!vkbdField)
 	{
-		vkbdField = [ [ UITextField alloc ] initWithFrame: toCGRect(*deviceWindow(), textRect) ];
+		vkbdField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(), textRect)];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
 		[deviceWindow()->glView() addSubview: vkbdField];
 	}
@@ -137,7 +153,7 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	return 0;
 }
 
-void placeSysTextInput(const IG::WindowRect &rect)
+void placeSysTextInput(IG::WindowRect rect)
 {
 	using namespace Base;
 	textRect = rect;
@@ -150,7 +166,7 @@ void placeSysTextInput(const IG::WindowRect &rect)
 	}
 }
 
-const IG::WindowRect &sysTextInputRect() { return textRect; }
+IG::WindowRect sysTextInputRect() { return textRect; }
 
 void cancelSysTextInput()
 {
@@ -173,17 +189,18 @@ void finishSysTextInput()
 
 bool Device::anyTypeBitsPresent(uint typeBits)
 {
+	if((typeBits & TYPE_BIT_KEYBOARD) && hardwareKBAttached)
+		return true;
 	if(typeBits & TYPE_BIT_GAMEPAD)
 	{
 		#ifdef CONFIG_INPUT_ICADE
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers
-		return devList.front()->iCadeMode() || devList.size() != 1;
+		return (hardwareKBAttached && devList.front()->iCadeMode()) || devList.size() != 1;
 		#else
-		return devList.size();
+		return devList.size() != 1;
 		#endif
 	}
-	// no other device types supported
 	return false;
 }
 
@@ -192,32 +209,51 @@ void setKeyRepeat(bool on)
 	setAllowKeyRepeats(on);
 }
 
+void handleKeyEvent(UIEvent *event)
+{
+	const auto *eventMem = [event _gsEvent];
+	if(!eventMem)
+		return;
+	auto eventType = eventMem[GSEVENT_TYPE];
+	if(eventType != GSEVENT_TYPE_KEYDOWN && eventType != GSEVENT_TYPE_KEYUP)
+		return;
+	auto action = eventType == GSEVENT_TYPE_KEYDOWN ? Input::PUSHED : Input::RELEASED;
+	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
+	#ifdef CONFIG_INPUT_ICADE
+	if(!keyDev.iCadeMode()
+		|| (keyDev.iCadeMode() && !processICadeKey(key, action, keyDev, *Base::deviceWindow())))
+	#endif
+	{
+		Base::deviceWindow()->dispatchInputEvent({0, Event::MAP_SYSTEM, key, key, action, 0, (double)[event timestamp], &keyDev});
+	}
+}
+
+void setHandleVolumeKeys(bool on) {}
+
 CallResult init()
 {
-	#if defined CONFIG_INPUT_ICADE
-	addDevice(icadeDev);
-	#endif
+	addDevice(keyDev);
+	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
+	if(GSEventIsHardwareKeyboardAttached)
+	{
+		hardwareKBAttached = GSEventIsHardwareKeyboardAttached();
+		if(hardwareKBAttached)
+			logMsg("hardware keyboard present");
+		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), nullptr,
+			[](CFNotificationCenterRef, void *, CFStringRef, const void *, CFDictionaryRef)
+			{
+				hardwareKBAttached = GSEventIsHardwareKeyboardAttached();
+				logMsg("hardware keyboard %s", hardwareKBAttached ? "attached" : "detached");
+				Device::Change change{hardwareKBAttached ? Device::Change::SHOWN : Device::Change::HIDDEN};
+				onDeviceChange.callCopySafe(keyDev, change);
+			},
+			(__bridge CFStringRef)@"GSEventHardwareKeyboardAttached",
+			nullptr, CFNotificationSuspensionBehaviorCoalesce);
+	}
 	#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 	initAppleGameControllers();
 	#endif
 	return OK;
 }
 
-}
-
-void ICadeHelper::insertText(NSString *text)
-{
-	using namespace Input;
-	//logMsg("got text %s", [text cStringUsingEncoding: NSUTF8StringEncoding]);
-	char c = [text characterAtIndex:0];
-
-	Input::processICadeKey(c, PUSHED, *devList.front(), *Base::deviceWindow()); // iCade device is always added first on app init
-
-	if (++cycleResponder > 20)
-	{
-		// necessary to clear a buffer that accumulates internally
-		cycleResponder = 0;
-		[mainView resignFirstResponder];
-		[mainView becomeFirstResponder];
-	}
 }

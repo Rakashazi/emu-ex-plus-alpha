@@ -47,7 +47,7 @@ public:
 	Gfx::Sprite cancelSpr;
 	#endif
 	Gfx::Text message;
-	#ifndef CONFIG_INPUT_SYSTEM_CAN_COLLECT_TEXT
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	TextEntry textEntry;
 	#endif
 

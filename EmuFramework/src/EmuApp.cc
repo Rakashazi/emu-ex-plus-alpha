@@ -444,7 +444,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			{
 				updateInputDevices();
 				EmuControls::updateAutoOnScreenControlVisible();
-				updateInputDevicesOnResume = 0;
+				updateInputDevicesOnResume = false;
 			}
 			if(!menuViewIsActive && focused && EmuSystem::isPaused())
 			{
@@ -519,7 +519,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		});
 
 	Input::setOnDeviceChange(
-		[](const Input::Device &dev, const Input::Device::Change &change)
+		[](const Input::Device &dev, Input::Device::Change change)
 		{
 			logMsg("got input dev change");
 
@@ -547,7 +547,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 			else
 			{
 				logMsg("delaying input device changes until app resumes");
-				updateInputDevicesOnResume = 1;
+				updateInputDevicesOnResume = true;
 			}
 		});
 

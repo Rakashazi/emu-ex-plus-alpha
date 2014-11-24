@@ -132,7 +132,8 @@ class VController
 public:
 	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
 	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
-	int ptrElem[Input::maxCursors][2]{}, prevPtrElem[Input::maxCursors][2]{};
+	int ptrElem[Config::Input::MAX_POINTERS][2]{};
+	int prevPtrElem[Config::Input::MAX_POINTERS][2]{};
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	VControllerGamepad gp;
 	#endif

@@ -56,7 +56,7 @@ Input::iControlPad::LNUB_UP, \
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ICADE_PROFILE_INIT \
 0, \
-Input::ICade::D, \
+Input::ICade::Z, \
 0, \
 0, \
 0, \
@@ -90,23 +90,23 @@ Input::WiiCC::ZR, \
 #define EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT \
 Input::Keycode::LSHIFT, \
 Input::Keycode::RCTRL, \
-Input::Keycode::asciiKey('q'), \
-Input::Keycode::asciiKey('a'), \
+Input::Keycode::Q, \
+Input::Keycode::A, \
 0, \
 0, \
-Input::Keycode::asciiKey('@'), \
+Input::Keycode::AT, \
 0, \
 0
 
 #define EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT \
-Input::Keycode::asciiKey('r'), \
-Input::Keycode::asciiKey('g'), \
-Input::Keycode::asciiKey('c'), \
-Input::Keycode::asciiKey('d'), \
-Input::Keycode::asciiKey('e'), \
-Input::Keycode::asciiKey('t'), \
-Input::Keycode::asciiKey('v'), \
-Input::Keycode::asciiKey('x')
+Input::Keycode::R, \
+Input::Keycode::G, \
+Input::Keycode::C, \
+Input::Keycode::D, \
+Input::Keycode::E, \
+Input::Keycode::T, \
+Input::Keycode::V, \
+Input::Keycode::X
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT \
 0, \
@@ -117,7 +117,7 @@ Input::Keycode::MENU, \
 0, \
 Input::Keycode::SEARCH, \
 0, \
-Input::Keycode::ESCAPE
+Input::Keycode::BACK
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT \
 0, \
@@ -161,7 +161,7 @@ Input::Keycode::MENU, \
 0, \
 Input::Keycode::JS_RTRIGGER_AXIS, \
 0, \
-Input::Keycode::ESCAPE
+Input::Keycode::BACK
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_MINIMAL_PROFILE_INIT \
 0, \
@@ -172,7 +172,7 @@ Input::Keycode::ESCAPE
 0, \
 Input::Keycode::JS_RTRIGGER_AXIS, \
 0, \
-Input::Keycode::ESCAPE
+Input::Keycode::BACK
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT \
 0, \
@@ -197,24 +197,24 @@ Input::Keycode::GAME_1, \
 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT \
-Input::Keycode::asciiKey('l'), \
+Input::Keycode::L, \
 Input::Keycode::MENU, \
 Input::Keycode::F1, \
 Input::Keycode::F4, \
-Input::Keycode::asciiKey('['), \
-Input::Keycode::asciiKey(']'), \
-Input::Keycode::asciiKey('`'), \
+Input::Keycode::LEFT_BRACKET, \
+Input::Keycode::RIGHT_BRACKET, \
+Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::ESCAPE
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT_PROFILE_INIT \
-Input::Keycode::asciiKey('l'), \
+Input::Keycode::L, \
 Input::Keycode::MENU, \
 Input::Keycode::F9, \
 Input::Keycode::F12, \
-Input::Keycode::asciiKey('['), \
-Input::Keycode::asciiKey(']'), \
-Input::Keycode::asciiKey('`'), \
+Input::Keycode::LEFT_BRACKET, \
+Input::Keycode::RIGHT_BRACKET, \
+Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::ESCAPE
 
@@ -271,24 +271,24 @@ Input::Keycode::F11, \
 	0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_PROFILE_INIT \
-	Input::Keycode::asciiKey('l'), \
-	Input::Keycode::asciiKey(' '), \
-	Input::Keycode::asciiKey('3'), \
-	Input::Keycode::asciiKey('4'), \
-	Input::Keycode::asciiKey('5'), \
-	Input::Keycode::asciiKey('6'), \
+	Input::Keycode::L, \
+	Input::Keycode::SPACE, \
+	Input::Keycode::_3, \
+	Input::Keycode::_4, \
+	Input::Keycode::_5, \
+	Input::Keycode::_6, \
 	Input::Keycode::Pandora::R, \
 	0, \
 	Input::Keycode::BACK_SPACE
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_PROFILE_INIT \
-	Input::Keycode::asciiKey('l'), \
-	Input::Keycode::asciiKey(' '), \
-	Input::Keycode::asciiKey('3'), \
-	Input::Keycode::asciiKey('4'), \
-	Input::Keycode::asciiKey('5'), \
-	Input::Keycode::asciiKey('6'), \
-	Input::Keycode::asciiKey('0'), \
+	Input::Keycode::L, \
+	Input::Keycode::SPACE, \
+	Input::Keycode::_3, \
+	Input::Keycode::_4, \
+	Input::Keycode::_5, \
+	Input::Keycode::_6, \
+	Input::Keycode::_0, \
 	0, \
 	Input::Keycode::BACK_SPACE
 

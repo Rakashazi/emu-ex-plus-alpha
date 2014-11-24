@@ -395,7 +395,7 @@ InputManagerOptionsView::InputManagerOptionsView(Base::Window &win):
 		}
 	},
 	#endif
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	notifyDeviceChange
 	{
 		"Notify If Devices Change",
@@ -474,7 +474,7 @@ void InputManagerOptionsView::init(bool highlightFirst)
 		relativePointerDecelInit(); item[i++] = &relativePointerDecel;
 	}
 	#endif
-	#ifdef INPUT_HAS_SYSTEM_DEVICE_HOTSWAP
+	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	if(!optionNotifyInputDeviceChange.isConst)
 	{
 		notifyDeviceChange.init(optionNotifyInputDeviceChange); item[i++] = &notifyDeviceChange;
