@@ -47,7 +47,10 @@ do
 		--xperia-play-optimized)
 			xperiaPlayOpt=1
 		;;
-		--is-game)
+		--tv)
+			isTV=1
+		;;
+		--game)
 			isGame=1
 		;;
 		--no-icon)
@@ -109,15 +112,30 @@ then
 	isGame=1
 fi
 
-# TODO: used by Android TV when non-preview SDK is released 
-#if [ $isGame ]
-#then
-#	isGameOutput="android:isGame=\"true\""
-#fi
+if [ ! $noIcon ]
+then
+	applicationOutput="$applicationOutput android:icon=\"@drawable/icon\""
+fi
+
+if [ $isTV ]
+then
+	applicationOutput="$applicationOutput android:banner=\"@drawable/banner\""
+fi
+
+if [ $isGame ]
+then
+	applicationOutput="$applicationOutput android:isGame=\"true\""
+fi
 
 if [ ! "$minSDK" ]
 then
 	minSDK=9
+fi
+
+if [ $minSDK -lt 9 ]
+then
+	echo "error: --min-sdk must be at least 9"
+	exit 1
 fi
 
 if [ ! $versionCode ]
@@ -135,26 +153,14 @@ then
 	activityName=com.imagine.BaseActivity
 fi
 
-uiChanges='mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|orientation'
-if [ $minSDK -ge 5 ]
-then
-	uiChanges=${uiChanges}'|uiMode'
-fi
-
-if [ $minSDK -ge 9 ]
-then
-	uiChanges=${uiChanges}'|screenSize|smallestScreenSize'
-fi
+uiChanges='mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|orientation|uiMode|screenSize|smallestScreenSize'
 
 # start XML
 echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"
 		package=\"$id\""  > $outPath
 
-if [ $minSDK -ge 5 ]
-then
-	echo '		android:installLocation="auto"' >> $outPath
-fi
+echo '		android:installLocation="auto"' >> $outPath
 
 echo "		android:versionCode=\"$versionCode\" android:versionName=\"$version\">" >> $outPath 
 
@@ -167,11 +173,13 @@ fi
 if [ $bluetooth ]
 then
 	echo '	<uses-permission android:name="android.permission.BLUETOOTH" />
-	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />' >> $outPath
-	if [ $minSDK -ge 5 ]
-	then
-	echo '	<uses-feature android:name="android.hardware.bluetooth" android:required="false" />' >> $outPath
-	fi
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+	<uses-feature android:name="android.hardware.bluetooth" android:required="false" />' >> $outPath
+fi
+
+if [ $isGame ]
+then
+	echo '	<uses-feature android:name="android.hardware.gamepad" android:required="false" />' >> $outPath
 fi
 
 if [ $vibrate ]
@@ -185,19 +193,9 @@ then
 	#echo '	<uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />' >> $outPath
 fi
 
-if [ $minSDK -ge 9 ]
-then
-	echo '	<supports-screens android:xlargeScreens="true" />' >> $outPath
-	echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-	targetSDKOutput='android:targetSdkVersion="19"'
-fi
-
-if [ $noIcon ]
-then
-	iconOutput=
-else
-	iconOutput="android:icon=\"@drawable/icon\""
-fi
+echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath
+echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
+targetSDKOutput='android:targetSdkVersion="21"'
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />
@@ -248,7 +246,7 @@ then
 fi
 
 echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
-	<application android:label=\"@string/app_name\" $iconOutput $isGameOutput>
+	<application android:label=\"@string/app_name\" $applicationOutput>
 		<activity android:name=\"$activityName\"
 				android:label=\"@string/app_name\"
 				android:theme=\"@android:style/Theme.NoTitleBar\"
@@ -262,11 +260,8 @@ $fileIntentFilters
 
 if [ $xperiaPlayOpt ]
 then
-	if [ $minSDK -ge 9 ]
-	then
-		echo '		<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
+	echo '		<meta-data android:name="xperiaplayoptimized_content" android:resource="@drawable/iconbig" />
 		<meta-data android:name="game_icon" android:resource="@drawable/iconbig" />' >> $outPath
-	fi
 fi
 
 echo '	</application>

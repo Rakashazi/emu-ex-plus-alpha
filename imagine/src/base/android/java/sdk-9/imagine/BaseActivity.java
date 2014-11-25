@@ -473,7 +473,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
-		if(android.os.Build.VERSION.SDK_INT >= 11)
+		if(android.os.Build.VERSION.SDK_INT >= 21)
+		{
+			setTheme(android.R.style.Theme_Material_NoActionBar);
+		}
+		else if(android.os.Build.VERSION.SDK_INT >= 11)
 		{
 			setTheme(android.R.style.Theme_Holo_NoActionBar);
 		}

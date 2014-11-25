@@ -9,7 +9,7 @@ all : android-apk
 
 android_minSDK ?= 9
 android_baseModuleSDK := 9
-android_targetSDK ?= 19
+android_targetSDK ?= 21
 
 android_soName := main
 
@@ -141,6 +141,18 @@ ifdef android_ouyaBuild
 	@mkdir -p $(@D)
 	ln -rs $(resPath)/icons/ouya_icon.png $@
  android_drawableIconPaths := $(android_drawableXhdpiIconPath) $(android_drawableXhdpiOuyaIconPath)
+else
+ ifneq ($(wildcard $(resPath)/icons/tv-banner.png),)
+  android_drawableTVBannerPath := $(android_targetPath)/res/drawable-xhdpi/banner.png
+  android_drawableIconPaths += $(android_drawableTVBannerPath)
+  android_gen_metadata_args += --tv
+ endif
+endif
+
+ifdef android_drawableTVBannerPath
+$(android_drawableTVBannerPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/tv-banner.png $@
 endif
 
 android_imagineJavaSrcPath := $(android_targetPath)/src/com/imagine
@@ -282,6 +294,10 @@ android-check :
 	@echo "Checking compiled version of $(android_metadata_project) (SDK $(android_minSDK)) $(android_metadata_version)"
 	@strings $(android_targetPath)/libs/*/*.so | grep " $(android_metadata_version)"
 
+.PHONY: android-clean-project
+android-clean-project:
+	rm -rf $(android_targetPath)
+android_cleanTargets += android-clean-project
+
 .PHONY: android-clean
 android-clean: $(android_cleanTargets)
-	rm -rf $(android_targetPath)

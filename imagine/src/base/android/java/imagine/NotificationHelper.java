@@ -25,7 +25,7 @@ final class NotificationHelper
 	{
 		if(notificationManager == null)
 			notificationManager = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
-		int icon = 0x7f020000; // TODO: don't hard-code
+		int icon = ctx.getResources().getIdentifier("icon", "drawable", ctx.getPackageName());
 		long when = System.currentTimeMillis();
 		Notification notification = new Notification(icon, onShow, when);
 		notification.flags |= /*Notification.FLAG_ONGOING_EVENT |*/ Notification.FLAG_AUTO_CANCEL;
