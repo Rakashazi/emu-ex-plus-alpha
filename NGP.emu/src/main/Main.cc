@@ -205,7 +205,7 @@ int EmuSystem::loadState(int saveStateSlot)
 
 bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
 {
-	return readFromFile(filename, buffer, bufferLength) == OK;
+	return readFromFile(filename, buffer, bufferLength) > 0;
 }
 
 static FsSys::PathString sprintSaveFilename()
@@ -216,7 +216,7 @@ static FsSys::PathString sprintSaveFilename()
 bool system_io_flash_read(uchar* buffer, uint32 len)
 {
 	auto saveStr = sprintSaveFilename();
-	return readFromFile(saveStr.data(), buffer, len) == OK;
+	return readFromFile(saveStr.data(), buffer, len) > 0;
 }
 
 bool system_io_flash_write(uchar* buffer, uint32 len)
@@ -318,7 +318,7 @@ static bool romLoad(const char *filename)
 	rom.data = (uchar*)calloc(maxRomSize, 1);
 
 	uint readSize = readFromFile(filename, rom.data, maxRomSize);
-	if(readSize)
+	if(readSize > 0)
 	{
     	logMsg("read 0x%X byte rom", readSize);
     	rom.length = readSize;

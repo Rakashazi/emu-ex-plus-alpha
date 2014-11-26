@@ -776,7 +776,7 @@ int EmuSystem::loadGame(const char *path)
 	{
 		auto saveStr = sprintSaveFilename();
 
-		if(readFromFile(saveStr.data(), sram.sram, 0x10000) == 0)
+		if(readFromFile(saveStr.data(), sram.sram, 0x10000) <= 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");

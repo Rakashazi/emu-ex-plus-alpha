@@ -137,12 +137,12 @@ CallResult writeToNewFile(const char *path, void *data, size_t size)
 	return OK;
 }
 
-size_t readFromFile(const char *path, void *data, size_t size)
+ssize_t readFromFile(const char *path, void *data, size_t size)
 {
 	FileIO f;
 	f.open(path);
 	if(!f)
-		return 0;
+		return -1;
 	auto readSize = f.read(data, size);
 	return readSize;
 }
