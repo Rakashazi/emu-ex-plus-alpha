@@ -25,7 +25,7 @@ linkerLibsDep := $(linkerLibsDep:-lgcc=)
 $(targetDir)/$(targetFile) : $(OBJ) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(OBJ) $(LDFLAGS)
+	$(PRINT_CMD) $(LD) -o $@ $(OBJ) $(LDFLAGS) $(STDCXXLIB)
 ifeq ($(ENV), ios)
  ifndef iOSNoCodesign
 	@echo "Signing $@"

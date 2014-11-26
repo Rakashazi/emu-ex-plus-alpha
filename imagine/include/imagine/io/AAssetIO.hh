@@ -34,6 +34,7 @@ public:
 	CallResult open(const char *name);
 
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
+	const char *mmapConst() override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
 	off_t tell(CallResult *resultOut) override;
 	CallResult seek(off_t offset, SeekMode mode) override;

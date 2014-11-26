@@ -84,6 +84,13 @@ ssize_t AAssetIO::read(void *buff, size_t bytes, CallResult *resultOut)
 	return bytesRead;
 }
 
+const char *AAssetIO::mmapConst()
+{
+	if(mapIO)
+		return mapIO.mmapConst();
+	else return nullptr;
+}
+
 ssize_t AAssetIO::write(const void *buff, size_t bytes, CallResult *resultOut)
 {
 	if(resultOut)

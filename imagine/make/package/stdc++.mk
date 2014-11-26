@@ -6,15 +6,15 @@ ifneq ($(filter macosx ios, $(ENV)),)
  inc_pkg_stdcxx_headers := 1
  ifeq ($(SUBARCH), armv6)
   CPPFLAGS += -I$(IMAGINE_SDK_PLATFORM_PATH)/include/c++/v1
-  LDLIBS += $(IMAGINE_SDK_PLATFORM_PATH)/lib/libc++.a $(IMAGINE_SDK_PLATFORM_PATH)/lib/libcxxabi.a
+  STDCXXLIB = $(IMAGINE_SDK_PLATFORM_PATH)/lib/libc++.a $(IMAGINE_SDK_PLATFORM_PATH)/lib/libcxxabi.a
  else
   # Use clang to get include/lib path
   BASE_CXXFLAGS += -stdlib=libc++
-  LDLIBS += -stdlib=libc++
+  STDCXXLIB = -stdlib=libc++
  endif
 else
  ifdef pkg_stdcxxStaticLib
-  LDLIBS += $(pkg_stdcxxStaticLib)
+  STDCXXLIB = $(pkg_stdcxxStaticLib)
  endif
 endif
 

@@ -11,7 +11,7 @@
 
 struct SegaCD
 {
-	constexpr SegaCD(): cpu(m68kCyclesSCD, 1) { }
+	constexpr SegaCD(): cpu(m68kCyclesSCD, 1) {}
 	M68KCPU cpu;
 	bool isActive = 0;
 	uchar busreq = 0;
@@ -20,7 +20,7 @@ struct SegaCD
 	int timer_int3 = 0;
 	uint volume = 1024;
 
-	uchar gate[0x200] = {0};
+	uchar gate[0x200]{};
 
 	_scd_toc TOC;
 	int32 cddaLBA = 0;
@@ -36,16 +36,16 @@ struct SegaCD
 
 	union PrgRam
 	{
-		constexpr PrgRam(): b{0} { }
-		uchar b[512 * 1024];
+		constexpr PrgRam() {}
+		uchar b[512 * 1024]{};
 		uchar bank[4][128 * 1024];
 	};
 	PrgRam prg;
 
 	union WordRam
 	{
-		constexpr WordRam(): ram2M{0} { }
-		uchar ram2M[0x40000];
+		constexpr WordRam() { }
+		uchar ram2M[0x40000]{};
 		uchar ram1M[2][0x20000];
 	};
 	WordRam word;
@@ -54,15 +54,15 @@ struct SegaCD
 
 	union PCMRam
 	{
-		constexpr PCMRam(): b{0} { }
-		uchar b[0x10000];
+		constexpr PCMRam() {}
+		uchar b[0x10000]{};
 		uchar bank[0x10][0x1000];
 	};
 	PCMRam pcmMem;
 
 	struct PCM
 	{
-		constexpr PCM() { }
+		constexpr PCM() {}
 		uchar control = 0; // reg7
 		uchar enabled = 0; // reg8
 		uchar cur_ch = 0;
@@ -70,8 +70,8 @@ struct SegaCD
 
 		struct Channel // 08, size 0x10
 		{
-			constexpr Channel() { }
-			uchar regs[8] = {0};
+			constexpr Channel() {}
+			uchar regs[8]{};
 			uint  addr = 0;	// .08: played sample address
 		} ch[8];
 	};

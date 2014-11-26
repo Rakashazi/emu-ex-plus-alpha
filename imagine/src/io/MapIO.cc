@@ -39,6 +39,11 @@ ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset, CallResult *res
 	return readAtAddr(buff, bytes, data + offset, resultOut);
 }
 
+const char *MapIO::mmapConst()
+{
+	return data;
+}
+
 ssize_t MapIO::write(const void *buff, size_t bytes, CallResult *resultOut)
 {
 	// TODO

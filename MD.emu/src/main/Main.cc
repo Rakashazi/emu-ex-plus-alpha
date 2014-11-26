@@ -452,7 +452,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
 			bramFile.write(sramTemp, 0x10000);
-			delete bramFile;
 		}
 	}
 	else

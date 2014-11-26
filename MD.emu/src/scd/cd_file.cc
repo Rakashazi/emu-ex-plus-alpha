@@ -58,7 +58,10 @@ void Unload_ISO(void)
 	sCD.Status_CDD = 0;
 	delete cdImage;
 	cdImage = nullptr;
-	memset(sCD.TOC.Tracks, 0, sizeof(sCD.TOC.Tracks));
+	for(auto &track: sCD.TOC.Tracks)
+	{
+		track = {};
+	}
 }
 
 static void readLBA(void *dest, int lba)

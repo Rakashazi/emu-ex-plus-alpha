@@ -27,7 +27,7 @@
 
 struct _msf
 {
-	constexpr _msf() { }
+	constexpr _msf() {}
   unsigned char M = 0;
   unsigned char S = 0;
   unsigned char F = 0;
@@ -35,7 +35,7 @@ struct _msf
 
 struct _scd_track
 {
-	constexpr _scd_track() { }
+	constexpr _scd_track() {}
 //	unsigned char Type; // always 1 (data) for 1st track, 0 (audio) for others
 //	unsigned char Num; // unused
 	_msf MSF;
@@ -45,7 +45,7 @@ struct _scd_track
 
 struct _scd_toc
 {
-	constexpr _scd_toc() { }
+	constexpr _scd_toc() {}
 //	unsigned char First_Track; // always 1
 	_scd_track Tracks[100];
 	unsigned int Last_Track = 0;
