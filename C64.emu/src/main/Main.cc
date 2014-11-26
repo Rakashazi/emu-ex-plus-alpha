@@ -60,6 +60,7 @@ extern "C"
 	#include "vicii.h"
 	#include "interrupt.h"
 	#include "sid/sid.h"
+	#include "c64/cart/c64cartsystem.h"
 
 	CLINK void (*vsync_hook)(void);
 	CLINK int warp_mode_enabled;

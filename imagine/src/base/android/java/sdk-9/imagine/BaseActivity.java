@@ -41,111 +41,11 @@ import java.io.*;
 public final class BaseActivity extends NativeActivity implements AudioManager.OnAudioFocusChangeListener
 {
 	private static final String logTag = "BaseActivity";
-	private static native void onContentRectChanged(long windowAddr,
+	static native void onContentRectChanged(long windowAddr,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-	private View contentView;
-
-	// For API level <= 9, FLAG_LAYOUT_INSET_DECOR will adjust the view rectangle to not overlap the system windows
-	// For API level >= 10 and <= 15, use getGlobalVisibleRect since fitSystemWindows isn't called
-	static final class BaseContentLegacyView extends View
-	{
-		private Rect contentRect = new Rect();
-		private int windowWidth, windowHeight;
-
-		public BaseContentLegacyView(Context context)
-		{
-			super(context);
-		}
-		
-		@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
-		{
-			//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
-			View rootView = getRootView();
-			int newWindowWidth = rootView.getWidth();
-			int newWindowHeight = rootView.getHeight();
-			if(android.os.Build.VERSION.SDK_INT >= 10)
-			{
-				Rect globalRect = new Rect();
-				if(getGlobalVisibleRect(globalRect))
-				{
-					//Log.i(logTag, "getGlobalVisibleRect: " + globalRect.left + ":" + globalRect.top + ":" + globalRect.right + ":" + globalRect.bottom);
-					left = globalRect.left;
-					top = globalRect.top;
-					right = globalRect.right;
-					bottom = globalRect.bottom;
-				}
-			}
-			if(contentRect.left != left || contentRect.top != top
-				|| contentRect.right != right || contentRect.bottom != bottom
-				|| newWindowWidth != windowWidth || newWindowHeight != windowHeight)
-			{
-				//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
-				//		+ " -> " + left + "," + top + " " + right + "," + bottom);
-				onContentRectChanged(0, left, top, right, bottom, newWindowWidth, newWindowHeight);
-				contentRect.left = left;
-				contentRect.top = top;
-				contentRect.right = right;
-				contentRect.bottom = bottom;
-				windowWidth = newWindowWidth;
-				windowHeight = newWindowHeight;
-			}
-		}
-	}
-
-	// For API level >= 16, SYSTEM_UI_FLAG_LAYOUT_* always gives us a full screen view rectangle,
-	// so use fitSystemWindows to get the area not overlapping the system windows
-	static final class BaseContentView extends View
-	{
-		public long windowAddr;
-		private Rect contentRect = new Rect();
-		private int windowWidth, windowHeight;
-
-		public BaseContentView(Context context)
-		{
-			super(context);
-		}
-		
-		public BaseContentView(Context context, long windowAddr)
-		{
-			super(context);
-			this.windowAddr = windowAddr; 
-		}
-		
-		@Override protected boolean fitSystemWindows(Rect insets)
-		{
-			if(getWidth() == 0 || getHeight() == 0)
-				return true;
-			//Log.i(logTag, "system window insets: " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
-			View rootView = getRootView();
-			int newWindowWidth = rootView.getWidth();
-			int newWindowHeight = rootView.getHeight();
-			// adjust insets to become content rect
-			insets.right = getWidth() - insets.right;
-			insets.bottom = getHeight() - insets.bottom;
-			if(!contentRect.equals(insets) || newWindowWidth != windowWidth || newWindowHeight != windowHeight)
-			{
-				//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
-				//		+ " -> " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
-				onContentRectChanged(windowAddr, insets.left, insets.top, insets.right, insets.bottom, newWindowWidth, newWindowHeight);
-				contentRect.left = insets.left;
-				contentRect.top = insets.top;
-				contentRect.right = insets.right;
-				contentRect.bottom = insets.bottom;
-				windowWidth = newWindowWidth;
-				windowHeight = newWindowHeight;
-			}
-			return true;
-		}
-		
-		@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
-		{
-			//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
-			requestFitSystemWindows();
-		}
-	}
 	
 	private final class IdleHelper implements MessageQueue.IdleHandler
 	{
@@ -460,7 +360,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, name);
 		final String EXTRA_SHORTCUT_DUPLICATE = "duplicate";
 		launcherIntent.putExtra(EXTRA_SHORTCUT_DUPLICATE, false);
-		int icon = 0x7f020000; // TODO: don't hard-code
+		int icon = getResources().getIdentifier("icon", "drawable", getPackageName());
 		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), icon));
 		launcherIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
 		getApplicationContext().sendBroadcast(launcherIntent);
@@ -500,10 +400,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		// get rid of NativeActivity's view and layout listener, then add our custom view
 		View nativeActivityView = findViewById(android.R.id.content);
 		nativeActivityView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+		View contentView;
 		if(android.os.Build.VERSION.SDK_INT >= 16)
-			contentView = new BaseContentView(this);
+			contentView = new ContentView(this);
 		else
-			contentView = new BaseContentLegacyView(this);
+			contentView = new ContentLegacyView(this);
 		setContentView(contentView);
 		contentView.requestFocus();
 	}

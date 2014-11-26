@@ -221,13 +221,11 @@ static const char *insertEjectMenuStr[] { "Insert File", "Eject" };
 static int c64DiskExtensionFsFilter(const char *name, int type);
 static int c64TapeExtensionFsFilter(const char *name, int type);
 static int c64CartExtensionFsFilter(const char *name, int type);
-extern int mem_cartridge_type;
 
 class C64IOControlView : public TableView
 {
 private:
-
-	char tapeSlotStr[1024] {0};
+	char tapeSlotStr[1024]{};
 
 	void updateTapeText()
 	{
@@ -297,7 +295,7 @@ private:
 
 	void updateROMText()
 	{
-		auto name = cartridge_get_file_name(mem_cartridge_type);
+		auto name = cartridge_get_file_name(cart_getid_slotmain());
 		FsSys::PathString basenameTemp;
 		string_printf(romSlotStr, "ROM: %s", name ? string_basename(name, basenameTemp) : "");
 	}
@@ -330,7 +328,8 @@ private:
 	{
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			if(cartridge_get_file_name(mem_cartridge_type) && strlen(cartridge_get_file_name(mem_cartridge_type)))
+			auto cartFilename = cartridge_get_file_name(cart_getid_slotmain());
+			if(cartFilename && strlen(cartFilename))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Cartridge Slot", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr), !e.isPointer());
@@ -359,7 +358,7 @@ private:
 	};
 
 	static constexpr const char *diskSlotPrefix[2] {"Disk #8:", "Disk #9:"};
-	char diskSlotStr[2][1024] { {0} };
+	char diskSlotStr[2][1024]{};
 
 	void updateDiskText(int slot)
 	{
@@ -428,7 +427,7 @@ private:
 		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 1); }},
 	};
 
-	MenuItem *item[9] {nullptr};
+	MenuItem *item[9]{};
 public:
 	C64IOControlView(Base::Window &win): TableView{"IO Control", win} { }
 

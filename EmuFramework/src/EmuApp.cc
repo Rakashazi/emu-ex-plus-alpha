@@ -105,6 +105,7 @@ static void drawEmuVideo()
 		emuView.draw();
 	else if(emuView2.layer)
 		emuView2.draw();
+	popup.draw();
 	Gfx::setClipRect(false);
 	Gfx::presentWindow(emuWin->win);
 }
@@ -686,9 +687,16 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		{
 			Gfx::updateCurrentWindow(win, params, mainWin.viewport(), mainWin.projectionMat);
 			Gfx::clear();
-			if(EmuSystem::isActive() && emuView.layer)
+			if(EmuSystem::isActive())
 			{
-				drawEmuFrame();
+				if(emuView.layer)
+					drawEmuFrame();
+				else
+				{
+					emuView.draw();
+					Gfx::setClipRect(false);
+					Gfx::presentWindow(win);
+				}
 			}
 			else
 			{
@@ -871,7 +879,7 @@ void placeElements()
 {
 	logMsg("placing app elements");
 	TableView::setDefaultXIndent(mainWin.projectionPlane);
-	popup.place(mainWin.projectionPlane);
+	popup.place(emuWin->projectionPlane);
 	placeEmuViews();
 	viewStack.place(mainWin.viewport().bounds(), mainWin.projectionPlane);
 	modalViewController.place(mainWin.viewport().bounds(), mainWin.projectionPlane);

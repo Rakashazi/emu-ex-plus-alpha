@@ -604,8 +604,8 @@ blargg_err_t Std_File_Reader::open( const char path [] )
 
 void Std_File_Reader::make_unbuffered()
 {
-	if ( setvbuf( STATIC_CAST(FILE*, file_), NULL, _IONBF, 0 ) )
-		check( false ); // shouldn't fail, but OK if it does
+	//if ( setvbuf( STATIC_CAST(FILE*, file_), NULL, _IONBF, 0 ) )
+	//	check( false ); // shouldn't fail, but OK if it does
 }
 
 blargg_err_t Std_File_Reader::read_v( void* p, int s )
