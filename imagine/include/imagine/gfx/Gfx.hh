@@ -139,4 +139,6 @@ void loadTransform(Mat4 mat);
 void loadTranslate(GC x, GC y, GC z);
 void loadIdentTransform();
 
+void setCorrectnessChecks(bool on);
+
 }

@@ -25,13 +25,14 @@
 
 #ifdef __APPLE__
 #include <asl.h>
+#include <unistd.h>
 #endif
 
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
-static char logLineBuffer[512] {0};
+static char logLineBuffer[512]{};
 uint loggerVerbosity = loggerMaxVerbosity;
 static const bool useExternalLogFile = false;
-static FILE *logExternalFile = nullptr;
+static FILE *logExternalFile{};
 static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 
 static void printExternalLogPath(FsSys::PathString &path)
@@ -50,6 +51,9 @@ CallResult logger_init()
 {
 	if(!logEnabled)
 		return OK;
+	#if defined __APPLE__ && (defined __i386__ || defined __x86_64__)
+	asl_add_log_file(nullptr, STDERR_FILENO); // output to stderr
+	#endif
 	if(useExternalLogFile && !logExternalFile)
 	{
 		FsSys::PathString path;
@@ -61,7 +65,6 @@ CallResult logger_init()
 			return IO_ERROR;
 		}
 	}
-
 	//logMsg("init logger");
 	return OK;
 }
@@ -115,7 +118,7 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	}
 	else
 		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
-	#elif defined CONFIG_BASE_IOS
+	#elif defined __APPLE__
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);

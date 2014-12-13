@@ -16,6 +16,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/util/time/sys.hh>
+#include "ios.hh"
 
 @interface DisplayLinkHelper : NSObject
 {
@@ -81,6 +82,12 @@ void IOSScreen::init(UIScreen *screen)
 	}
 	if(Config::DEBUG_BUILD)
 	{
+		#ifdef CONFIG_BASE_IOS_RETINA_SCALE
+		if(Base::hasAtLeastIOS8())
+		{
+			logMsg("has %f point scaling (%f native)", (double)[screen scale], (double)[screen nativeScale]);
+		}
+		#endif
 		for(UIScreenMode *mode in screen.availableModes)
 		{
 			logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);

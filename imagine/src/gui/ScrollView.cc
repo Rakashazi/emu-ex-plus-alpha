@@ -284,7 +284,7 @@ void ScrollView::setContentSize(IG::WP size)
 	scroll.place(*this);
 	contentIsBiggerThanView = contentSize.y > viewRect().ySize();
 	scrollBarRect.x = viewRect().x2 - 5;
-	scrollBarRect.x2 = viewRect().x + 3;
+	scrollBarRect.x2 = scrollBarRect.x + 3;
 	scrollBarRect.y = 0;
 	/*if(contentFrame->ySize() == 0)
 		scrollBarRect.y2 = 0;*/
@@ -301,7 +301,6 @@ void ScrollView::updateGfx()
 
 void ScrollView::drawScrollContent()
 {
-	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
 	using namespace Gfx;
 	if(contentIsBiggerThanView && (scroll.allowScrollWholeArea || scroll.active))
 	{
@@ -319,7 +318,6 @@ void ScrollView::drawScrollContent()
 		scrollBarRect.setYPos(
 			IG::scalePointRange((Gfx::GC)scroll.offset, 0_gc, Gfx::GC(scroll.maxClip), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
 		GeomRect::draw(scrollBarRect, projP);
-		//setColor(COLOR_WHITE);
 	}
 }
 

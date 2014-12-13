@@ -172,13 +172,12 @@ static void activityInit(JNIEnv* env, jobject activity)
 		#ifdef CONFIG_RESOURCE_FONT_ANDROID
 		jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
 		#endif
-
 		{
 			JNINativeMethod method[] =
 			{
 				{
 					"onContentRectChanged", "(JIIIIII)V",
-					(void*)(void JNICALL (*)(JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight))
+					(void*)(void JNICALL (*)(JNIEnv*, jobject, jlong, jint, jint, jint, jint, jint, jint))
 					([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 					{
 						auto win = windowAddr ? (Window*)windowAddr : deviceWindow();

@@ -167,8 +167,6 @@ void FSPicker::inputEvent(const Input::Event &e)
 
 void FSPicker::draw()
 {
-	using namespace Gfx;
-	setColor(COLOR_WHITE);
 	tbl.draw();
 	navV.draw(window(), projP);
 }

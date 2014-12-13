@@ -351,8 +351,11 @@ CallResult init(uint colorBits)
 		[](Base::Window *newDrawable)
 		{
 			// update the cached current window
-			logMsg("current window changed by event to %p", newDrawable);
-			currWin = newDrawable;
+			if(currWin != newDrawable)
+			{
+				logMsg("current window changed by event to %p", newDrawable);
+				currWin = newDrawable;
+			}
 		});
 
 	Base::GLBufferConfigAttributes glBuffAttr;

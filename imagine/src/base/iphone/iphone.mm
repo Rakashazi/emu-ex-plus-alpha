@@ -207,17 +207,14 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	#ifdef CONFIG_AUDIO
 	Audio::initSession();
 	#endif
-	bool usingIOS7 = false;
-	#ifndef __ARM_ARCH_6K__
-	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0)
+	if(hasAtLeastIOS7())
 	{
-		usingIOS7 = true;
-	}
-	if(usingIOS7)
+		#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
 		[sharedApp setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
-	if(sizeof(NSInteger) == 4 && usingIOS7)
-		Input::GSEVENTKEY_KEYCODE = Input::GSEVENTKEY_KEYCODE_IOS7;
-	#endif
+		#endif
+		if(sizeof(NSInteger) == 4)
+			Input::GSEVENTKEY_KEYCODE = Input::GSEVENTKEY_KEYCODE_IOS7;
+	}
 
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
 	//[nCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
@@ -577,6 +574,18 @@ bool deviceIsIPad()
 bool isSystemApp()
 {
 	return isRunningAsSystemApp;
+}
+
+bool hasAtLeastIOS7()
+{
+	return !Config::MACHINE_IS_GENERIC_ARMV6 &&
+			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0;
+}
+
+bool hasAtLeastIOS8()
+{
+	return !Config::MACHINE_IS_GENERIC_ARMV6 &&
+			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
 }
 
 #ifdef CONFIG_BASE_IOS_SETUID

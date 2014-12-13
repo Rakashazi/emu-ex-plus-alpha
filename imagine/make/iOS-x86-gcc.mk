@@ -1,6 +1,7 @@
 include $(IMAGINE_PATH)/make/config.mk
 
 ARCH := x86
+MACHINE := GENERIC_X86
 include $(buildSysPath)/iOS-gcc.mk
 
 ifndef targetSuffix

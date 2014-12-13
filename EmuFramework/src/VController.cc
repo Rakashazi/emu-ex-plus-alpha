@@ -713,7 +713,7 @@ void VController::setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPi
 
 void VController::inputAction(uint action, uint vBtn)
 {
-	if(EmuSystem::inputHasKeyboard && kbMode)
+	if(isInKeyboardMode())
 	{
 		assert(vBtn < sizeofArray(kbMap));
 		EmuSystem::handleInputAction(action, kbMap[vBtn]);
@@ -781,7 +781,7 @@ void VController::toggleKeyboard()
 
 void VController::findElementUnderPos(const Input::Event &e, int elemOut[2])
 {
-	if(EmuSystem::inputHasKeyboard && kbMode)
+	if(isInKeyboardMode())
 	{
 		int kbChar = kb.getInput(e.x, e.y);
 		if(kbChar == -1)
@@ -896,12 +896,12 @@ void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden, f
 	setBlendMode(BLEND_MODE_ALPHA);
 	setColor(1., 1., 1., alpha);
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if(EmuSystem::inputHasKeyboard && kbMode)
+	if(isInKeyboardMode())
 		kb.draw();
 	else if(emuSystemControls)
 		gp.draw(showHidden);
 	#else
-	if(EmuSystem::inputHasKeyboard && kbMode)
+	if(isInKeyboardMode())
 		kb.draw();
 	#endif
 	//GeomRect::draw(menuBound);
@@ -1035,6 +1035,11 @@ uint VController::state(int elemIdx)
 		default: bug_branch("%d", elemIdx); return 0;
 	}
 	#endif
+}
+
+bool VController::isInKeyboardMode() const
+{
+	return EmuSystem::inputHasKeyboard && vController.kbMode;
 }
 
 void VController::updateMapping(uint player)

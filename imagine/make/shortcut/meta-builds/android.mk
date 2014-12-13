@@ -126,14 +126,21 @@ ifneq ($(wildcard $(resPath)/icons/icon-144.png),)
 android_drawableXxhdpiIconPath := $(android_targetPath)/res/drawable-xxhdpi/icon.xml
 # "iconbig" used by Xperia Play launcher, links to xxhdpi icon
 $(android_drawableXxhdpiIconPath) :
-	@mkdir -p $(@D) $(android_targetPath)/res/drawable/
-	ln -rs $(resPath)/icons/icon-144.png $(android_targetPath)/res/drawable/icon144.png
+	@mkdir -p $(@D) $(android_targetPath)/res/drawable-mdpi/
+	ln -rs $(resPath)/icons/icon-144.png $(android_targetPath)/res/drawable-mdpi/icon144.png
 	printf '<?xml version="1.0" encoding="utf-8"?>\n<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/icon144" />\n' > $@
-	cp $@ $(android_targetPath)/res/drawable/iconbig.xml
+	cp $@ $(android_targetPath)/res/drawable-mdpi/iconbig.xml
+endif
+
+ifneq ($(wildcard $(resPath)/icons/icon-192.png),)
+android_drawableXxxhdpiIconPath := $(android_targetPath)/res/drawable-xxxhdpi/icon.png
+$(android_drawableXxxhdpiIconPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/icon-192.png $@
 endif
 
 android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath) \
- $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath)
+ $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath) $(android_drawableXxxhdpiIconPath)
 
 ifdef android_ouyaBuild
  android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png

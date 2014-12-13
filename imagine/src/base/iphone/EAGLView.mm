@@ -181,8 +181,9 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 {
 	if(newWindow)
 	{
-		logMsg("view %p moving to window %p with scale %f", self, newWindow, [newWindow.screen scale]);
-		self.contentScaleFactor = [newWindow.screen scale];
+		auto scale = Base::hasAtLeastIOS8() ? [newWindow.screen nativeScale] : [newWindow.screen scale];
+		logMsg("view %p moving to window %p with scale %f", self, newWindow, (double)scale);
+		self.contentScaleFactor = scale;
 	}
 	else
 	{

@@ -18,6 +18,8 @@ static constexpr bool useFixedFunctionPipeline = false;
 extern bool useFixedFunctionPipeline;
 #endif
 
+extern bool checkGLErrors;
+extern bool checkGLErrorsVerbose;
 extern TimedInterpolator<Gfx::GC> projAngleM;
 extern GLfloat maximumAnisotropy, anisotropy, forceAnisotropy;
 extern bool useAnisotropicFiltering;

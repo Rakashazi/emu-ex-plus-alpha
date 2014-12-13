@@ -4,9 +4,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
+import java.util.List;
 
 public final class Controller
 {
@@ -151,6 +153,13 @@ public final class Controller
   {
     if (!this.mIsBound) {
       Intent intent = new Intent("com.bda.controller.IControllerService");
+      List<ResolveInfo> resolveInfos =
+    	mContext.getPackageManager().queryIntentServices(intent, 0);
+      if (resolveInfos == null || resolveInfos.size() != 1) {
+          throw new java.lang.SecurityException();
+      }
+      ResolveInfo info = resolveInfos.get(0);
+      intent.setComponent(new ComponentName(info.serviceInfo.packageName, info.serviceInfo.name));
       this.mContext.startService(intent);
       this.mContext.bindService(intent, this.mServiceConnection, 1 | 0x80);
       this.mIsBound = true;

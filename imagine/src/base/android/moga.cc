@@ -26,11 +26,11 @@ namespace Input
 static const int ACTION_VERSION_MOGAPRO = 1;
 static const int STATE_CONNECTION = 1;
 static const int STATE_SELECTED_VERSION = 4;
-static jobject mogaHelper = nullptr;
+static jobject mogaHelper{};
 static JavaInstMethod<jobject> jNewMOGAHelper;
 static JavaInstMethod<jint> jMOGAGetState;
 static JavaInstMethod<void> jMOGAOnPause, jMOGAOnResume, jMOGAExit;
-static AndroidInputDevice mogaDev { 0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK };
+static AndroidInputDevice mogaDev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK};
 static bool mogaConnected = false;
 
 static void JNICALL mogaMotionEvent(JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong time)
@@ -76,7 +76,12 @@ static void initMOGAJNI(JNIEnv *env)
 	logMsg("init MOGA JNI & input system");
 	jNewMOGAHelper.setup(env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
 	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
-	assert(mogaHelper);
+	if(env->ExceptionOccurred())
+	{
+		env->ExceptionClear();
+		logErr("error creating MOGA helper object");
+		return;
+	}
 	mogaHelper = env->NewGlobalRef(mogaHelper);
 	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
 	jMOGAGetState.setup(env, mogaHelperCls, "getState", "(I)I");
@@ -87,7 +92,7 @@ static void initMOGAJNI(JNIEnv *env)
 	{
 		{
 			"keyEvent", "(IIJ)V",
-			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong time))
+			(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint, jlong))
 			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong time)
 			{
 				assert(mogaConnected);
@@ -102,24 +107,12 @@ static void initMOGAJNI(JNIEnv *env)
 		},
 		{
 			"motionEvent", "(FFFFFFJ)V",
+			// TODO: can't inline as lambda because applying attribute via JNICALL in gcc 4.9 has no effect
 			(void*)mogaMotionEvent
-			// TODO: can't inline as lambda because gcc 4.8 seems to ignore JNICALL's hard-float attribute
-			/*(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong time))
-			([](JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong time)
-			{
-				assert(mogaConnected);
-				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)time);
-				mogaDev.axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-				mogaDev.axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-				mogaDev.axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-				mogaDev.axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-				mogaDev.axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-				mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-			})*/
 		},
 		{
 			"stateEvent", "(II)V",
-			(void*)(void JNICALL(*)(JNIEnv* env, jobject thiz, jint state, jint action))
+			(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint))
 			([](JNIEnv* env, jobject thiz, jint state, jint action)
 			{
 				logMsg("MOGA state event: %d %d", state, action);
@@ -168,8 +161,15 @@ void initMOGA(bool notify)
 	initMOGAJNI(env);
 	if(!mogaHelper) // initMOGAJNI() allocates MOGA helper on first init
 	{
+		mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
+		if(env->ExceptionOccurred())
+		{
+			env->ExceptionClear();
+			logErr("error creating MOGA helper object");
+			return;
+		}
+		mogaHelper = env->NewGlobalRef(mogaHelper);
 		logMsg("init MOGA input system");
-		mogaHelper = env->NewGlobalRef(jNewMOGAHelper(env, Base::jBaseActivity));
 	}
 	onResumeMOGA(env, notify);
 }

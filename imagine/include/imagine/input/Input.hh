@@ -22,6 +22,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/Device.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 
 namespace Base
 {

@@ -33,6 +33,8 @@ Base::GLContext gfxContext;
 Base::Window *currWin{};
 GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
+bool checkGLErrors = Config::DEBUG_BUILD;
+bool checkGLErrorsVerbose = false;
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 bool useFixedFunctionPipeline = true;
@@ -365,6 +367,17 @@ bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Vie
 void presentWindow(Base::Window &win)
 {
 	gfxContext.present(win, gfxContext);
+}
+
+void setCorrectnessChecks(bool on)
+{
+	if(on)
+	{
+		logWarn("enabling verification of OpenGL state");
+	}
+	GLStateCache::verifyState = on;
+	checkGLErrors = on ? true : Config::DEBUG_BUILD;
+	checkGLErrorsVerbose = on;
 }
 
 }

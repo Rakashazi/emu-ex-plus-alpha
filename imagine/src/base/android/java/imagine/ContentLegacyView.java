@@ -24,6 +24,7 @@ import android.content.Context;
 final class ContentLegacyView extends View
 {
 	private Rect contentRect = new Rect();
+	private Rect globalRect = new Rect(); // preallocate
 	private int windowWidth, windowHeight;
 
 	public ContentLegacyView(Context context)
@@ -39,7 +40,6 @@ final class ContentLegacyView extends View
 		int newWindowHeight = rootView.getHeight();
 		if(android.os.Build.VERSION.SDK_INT >= 10)
 		{
-			Rect globalRect = new Rect();
 			if(getGlobalVisibleRect(globalRect))
 			{
 				//Log.i(logTag, "getGlobalVisibleRect: " + globalRect.left + ":" + globalRect.top + ":" + globalRect.right + ":" + globalRect.bottom);

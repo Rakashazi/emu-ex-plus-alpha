@@ -148,7 +148,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 		{
 			{
 				"onFrame", "(J)Z",
-				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz, jlong frameTimeNanos))
+				(void*)(jboolean JNICALL(*)(JNIEnv*, jobject, jlong))
 				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
 				{
 					mainScreen().startDebugFrameStats(frameTimeNanos);
@@ -187,7 +187,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 		{
 			{
 				"onFrame", "()Z",
-				(void*)(jboolean JNICALL(*)(JNIEnv* env, jobject thiz))
+				(void*)(jboolean JNICALL(*)(JNIEnv*, jobject))
 				([](JNIEnv* env, jobject thiz)
 				{
 					auto &screen = mainScreen();

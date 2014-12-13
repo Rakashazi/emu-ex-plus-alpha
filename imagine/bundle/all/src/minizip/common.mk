@@ -3,8 +3,13 @@ ifndef CHOST
 endif
 
 # needs GNU version of tar to support --strip-components
-# Note: if on MacOSX, user must override with gnutar from MacPorts
-TAR ?= tar
+# Note: if on MacOSX, install gnutar from MacPorts
+osName := $(shell uname -s)
+ifeq ($(osName),Darwin)
+ TAR ?= gnutar
+else
+ TAR ?= tar
+endif
 
 zlibVer := 1.2.8
 zlibSrcArchive := zlib-$(zlibVer).tar.gz

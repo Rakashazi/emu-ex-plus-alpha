@@ -3,6 +3,12 @@
 #include <imagine/gfx/opengl/glIncludes.h>
 #include <imagine/logger/logger.h>
 
+namespace Gfx
+{
+extern bool checkGLErrors;
+extern bool checkGLErrorsVerbose;
+}
+
 static const char *glErrorToString(GLenum err)
 {
 	switch(err)
@@ -76,25 +82,17 @@ static const char *glImageFormatToString(int format)
 	}
 }
 
-#if defined NDEBUG
-static const bool checkGLErrors = 0;
-static const bool checkGLErrorsVerbose = 0;
-#else
-static const bool checkGLErrors = 1;
-static const bool checkGLErrorsVerbose = 0;
-#endif
-
 template <class FUNC>
 static bool handleGLErrors(FUNC callback)
 {
-	if(!checkGLErrors)
-		return 0;
+	if(!Gfx::checkGLErrors)
+		return false;
 
-	bool gotError = 0;
+	bool gotError = false;
 	GLenum error;
 	while((error = glGetError()) != GL_NO_ERROR)
 	{
-		gotError = 1;
+		gotError = true;
 		callback(error, glErrorToString(error));
 	}
 	return gotError;
@@ -112,14 +110,14 @@ static bool handleGLErrors()
 template <class FUNC>
 static bool handleGLErrorsVerbose(FUNC callback)
 {
-	if(!checkGLErrorsVerbose)
-		return 0;
+	if(!Gfx::checkGLErrorsVerbose)
+		return false;
 	return handleGLErrors(callback);
 }
 
 static bool handleGLErrorsVerbose()
 {
-	if(!checkGLErrorsVerbose)
-		return 0;
+	if(!Gfx::checkGLErrorsVerbose)
+		return false;
 	return handleGLErrors();
 }

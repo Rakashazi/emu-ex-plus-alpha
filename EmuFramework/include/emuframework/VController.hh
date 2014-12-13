@@ -189,6 +189,7 @@ public:
 	void setState(int elemIdx, uint state);
 	uint state(int elemIdx);
 	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
+	bool isInKeyboardMode() const;
 };
 
 using SysVController = VController;

@@ -15,6 +15,8 @@ namespace Base
 	extern bool isIPad;
 	Window *windowForUIWindow(UIWindow *uiWin);
 	Window *deviceWindow();
+	bool hasAtLeastIOS7();
+	bool hasAtLeastIOS8();
 }
 
 namespace Input

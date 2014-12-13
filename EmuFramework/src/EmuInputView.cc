@@ -67,14 +67,13 @@ void EmuInputView::inputEvent(const Input::Event &e)
 			updateFastforward();
 		}
 		else if((touchControlsAreOn && touchControlsApplicable())
-			|| (EmuSystem::inputHasKeyboard && vController.kbMode)
-			)
+			|| vController.isInKeyboardMode())
 		{
 			vController.applyInput(e);
 		}
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
-			&& (EmuSystem::inputHasKeyboard && !vController.kbMode)
+			&& !vController.isInKeyboardMode()
 			&& e.isTouch() && e.state == Input::PUSHED
 			)
 		{

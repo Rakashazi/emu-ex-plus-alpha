@@ -209,9 +209,9 @@ CallResult Window::init(const WindowConfig &config)
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-	pointScale = [screen()->uiScreen() scale];
+	pointScale = hasAtLeastIOS8() ? [screen()->uiScreen() nativeScale] : [screen()->uiScreen() scale];
 	if(pointScale > 1.)
-		logMsg("using Retina scaling");
+		logMsg("using point scale: %f", (double)pointScale);
 	#endif
 	#ifndef CONFIG_GFX_SOFT_ORIENTATION
 	validO = defaultValidOrientationMask();

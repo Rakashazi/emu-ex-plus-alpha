@@ -147,6 +147,9 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 		<string>icon-72.png</string>
 		<string>icon-114.png</string>
 	</array>
+	
+	<key>UILaunchStoryboardName</key>
+	<string>Launch</string>
 
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

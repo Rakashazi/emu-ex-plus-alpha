@@ -139,6 +139,30 @@ endif
 
 endif
 
+ifndef ios_noX86
+
+ios_x86Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-x86.mk
+ios_x86ExecName := $(iOS_metadata_exec)-x86
+ios_x86Exec := $(ios_targetBinPath)/$(ios_x86ExecName)
+ios_x86MakeArgs = -f $(ios_x86Makefile) $(ios_makefileOpts) \
+ targetDir=$(ios_targetBinPath) targetFile=$(ios_x86ExecName) \
+ buildName=$(ios_buildName)-x86 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ projectPath=$(projectPath)
+ios_execs += $(ios_x86Exec)
+.PHONY: ios-x86
+ios-x86 :
+	@echo "Building X86 Executable"
+	$(PRINT_CMD)$(MAKE) $(ios_x86MakeArgs)
+$(ios_x86Exec) : ios-x86
+
+.PHONY: ios-x86-clean
+ios-x86-clean :
+	@echo "Cleaning X86 Build"
+	$(PRINT_CMD)$(MAKE) $(ios_x86MakeArgs) clean
+ios_cleanTargets += ios-x86-clean
+
+endif
+
 ios_fatExec := $(ios_targetBinPath)/$(iOS_metadata_exec)
 $(ios_fatExec) : $(ios_execs)
 	@mkdir -p $(@D)
@@ -172,7 +196,7 @@ endif
 .PHONY: ios-resources-install
 ios-resources-install : $(ios_plist) $(ios_setuidLauncher) $(ios_setuidPermissionHelper)
 	ssh root@$(ios_installHost) mkdir -p $(ios_deviceAppBundlePath)
-	scp $(ios_resourcePath)/* root@$(ios_installHost):$(ios_deviceAppBundlePath)/
+	scp -r $(ios_resourcePath)/* root@$(ios_installHost):$(ios_deviceAppBundlePath)/
 	scp $(ios_icons) root@$(ios_installHost):$(ios_deviceAppBundlePath)/
 	ssh root@$(ios_installHost) chmod -R a+r $(ios_deviceAppBundlePath)
 ifdef ios_metadata_setuidPermissionHelper
