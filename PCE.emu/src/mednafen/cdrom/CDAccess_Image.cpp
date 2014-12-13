@@ -1149,7 +1149,7 @@ bool CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 			return false;
 		}
 		//fread(buf, 1, 2352, *ct->fp);
-		ct->fp->readAtPos(buf, 2048, SeekPos);
+		ct->fp->readAtPos(buf, 2352, SeekPos);
 
 		if(ct->RawAudioMSBFirst)
 		 Endian_A16_Swap(buf, 588 * 2);
