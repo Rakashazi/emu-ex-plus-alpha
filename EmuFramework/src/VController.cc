@@ -246,7 +246,8 @@ int VControllerKeyboard::getInput(int cx, int cy)
 
 void VControllerGamepad::init(float alpha)
 {
-	activeFaceBtns = EmuSystem::inputFaceBtns;
+	if(!activeFaceBtns)
+		activeFaceBtns = EmuSystem::inputFaceBtns;
 	dp.init();
 }
 
