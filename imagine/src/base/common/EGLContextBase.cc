@@ -21,7 +21,8 @@
 namespace Base
 {
 
-static EGLSurface dummyPbuff = EGL_NO_SURFACE;
+static bool hasDummyPbuffConfig = false;
+static EGLConfig dummyPbuffConfig{};
 static EGLDisplay display = EGL_NO_DISPLAY;
 using EGLAttrList = StaticArrayList<int, 24>;
 
@@ -194,9 +195,8 @@ CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferC
 	}
 	#endif
 
-	// TODO: disabled surfaceless usage due to Nvidia Shield driver bug on Android 5.0,
-	// re-enable in next update
-	bool supportsSurfaceless = false;//strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
+	// TODO: EGL 1.5 or higher supports surfaceless without any extension
+	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
 	// create context
 	#ifdef CONFIG_GFX_OPENGL_ES
 		#if defined NDEBUG || defined CONFIG_MACHINE_PANDORA || defined __ANDROID__
@@ -214,11 +214,19 @@ CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferC
 		logErr("error creating context: 0x%X", (int)eglGetError());
 		return INVALID_PARAMETER;
 	}
-	if(!supportsSurfaceless && !dummyPbuff)
+	if(!supportsSurfaceless)
 	{
 		logMsg("surfaceless context not supported");
-		dummyPbuff = makeDummyPbuffer(display, config.glConfig);
-		assert(dummyPbuff != EGL_NO_SURFACE);
+		if(!hasDummyPbuffConfig)
+		{
+			dummyPbuffConfig = config.glConfig;
+			hasDummyPbuffConfig = true;
+		}
+		else
+		{
+			// all contexts must use same config if surfaceless isn't supported
+			assert(dummyPbuffConfig == config.glConfig);
+		}
 	}
 	return OK;
 }
@@ -241,13 +249,16 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	else
 	{
 		assert(context != EGL_NO_CONTEXT);
-		if(dummyPbuff != EGL_NO_SURFACE)
+		if(hasDummyPbuffConfig)
 		{
 			logMsg("setting dummy pbuffer surface current");
+			auto dummyPbuff = makeDummyPbuffer(display, dummyPbuffConfig);
+			assert(dummyPbuff != EGL_NO_SURFACE);
 			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
 			{
 				bug_exit("error setting dummy pbuffer current");
 			}
+			eglDestroySurface(display, dummyPbuff);
 		}
 		else
 		{

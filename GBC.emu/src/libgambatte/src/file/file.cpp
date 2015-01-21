@@ -2,7 +2,7 @@
 Copyright (C) 2007 by Nach
 http://nsrt.edgeemu.com
 
-Copyright (C) 2007-2011 by Sindre Aamås
+Copyright (C) 2007-2011 by sinamas <sinamas at users.sourceforge.net>
 sinamas@users.sourceforge.net
 
 This program is free software; you can redistribute it and/or modify

@@ -1,21 +1,21 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "cpu.h"
 #include "memory.h"
 #include "savestate.h"
@@ -464,10 +464,11 @@ void CPU::loadState(SaveState const &state) {
 
 // CALLS, RESTARTS AND RETURNS:
 // call nn (24 cycles):
-// Push address of next instruction onto stack and then jump to address stored in next two bytes in memory:
+// Jump to 16-bit immediate operand and push return address onto stack:
 #define call_nn() do { \
-	PUSH(((pc + 2) >> 8) & 0xFF, (pc + 2) & 0xFF); \
+	unsigned const npc = (pc + 2) & 0xFFFF; \
 	jp_nn(); \
+	PUSH(npc >> 8, npc & 0xFF); \
 } while (0)
 
 // rst n (16 Cycles):
@@ -487,6 +488,7 @@ void CPU::loadState(SaveState const &state) {
 
 void CPU::process(unsigned long const cycles) {
 	mem_.setEndtime(cycleCounter_, cycles);
+	mem_.updateInput();
 
 	unsigned char a = a_;
 	unsigned long cycleCounter = cycleCounter_;
@@ -931,7 +933,7 @@ void CPU::process(unsigned long const cycles) {
 				hf2 = 0;
 				break;
 
-			case 0x40: b = b; break;
+			case 0x40: /*b = b;*/ break;
 			case 0x41: b = c; break;
 			case 0x42: b = d; break;
 			case 0x43: b = e; break;
@@ -941,7 +943,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x47: b = a; break;
 
 			case 0x48: c = b; break;
-			case 0x49: c = c; break;
+			case 0x49: /*c = c;*/ break;
 			case 0x4A: c = d; break;
 			case 0x4B: c = e; break;
 			case 0x4C: c = h; break;
@@ -951,7 +953,7 @@ void CPU::process(unsigned long const cycles) {
 
 			case 0x50: d = b; break;
 			case 0x51: d = c; break;
-			case 0x52: d = d; break;
+			case 0x52: /*d = d;*/ break;
 			case 0x53: d = e; break;
 			case 0x54: d = h; break;
 			case 0x55: d = l; break;
@@ -961,7 +963,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x58: e = b; break;
 			case 0x59: e = c; break;
 			case 0x5A: e = d; break;
-			case 0x5B: e = e; break;
+			case 0x5B: /*e = e;*/ break;
 			case 0x5C: e = h; break;
 			case 0x5D: e = l; break;
 			case 0x5E: READ(e, hl()); break;
@@ -971,7 +973,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x61: h = c; break;
 			case 0x62: h = d; break;
 			case 0x63: h = e; break;
-			case 0x64: h = h; break;
+			case 0x64: /*h = h;*/ break;
 			case 0x65: h = l; break;
 			case 0x66: READ(h, hl()); break;
 			case 0x67: h = a; break;
@@ -981,7 +983,7 @@ void CPU::process(unsigned long const cycles) {
 			case 0x6A: l = d; break;
 			case 0x6B: l = e; break;
 			case 0x6C: l = h; break;
-			case 0x6D: l = l; break;
+			case 0x6D: /*l = l;*/ break;
 			case 0x6E: READ(l, hl()); break;
 			case 0x6F: l = a; break;
 

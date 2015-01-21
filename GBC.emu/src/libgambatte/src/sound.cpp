@@ -1,21 +1,21 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "sound.h"
 #include "savestate.h"
 #include <algorithm>
@@ -26,8 +26,8 @@
 
 	Step    Length Ctr  Vol Env     Sweep
 	- - - - - - - - - - - - - - - - - - - -
-	0       Clock       -           Clock
-S	1       -           Clock       -
+S0	0       Clock       -           Clock
+S1	1       -           Clock       -
 	2       Clock       -           -
 	3       -           -           -
 	4       Clock       -           Clock
@@ -37,7 +37,10 @@ S	1       -           Clock       -
 	- - - - - - - - - - - - - - - - - - - -
 	Rate    256 Hz      64 Hz       128 Hz
 
-S) start step on sound power on.
+S0) start step on sound power on.
+S1) step gets immediately incremented at power on if closer to previous edge than next.
+Clock) clock timer on transition to step.
+
 */
 
 namespace gambatte {
@@ -54,9 +57,7 @@ PSG::PSG()
 
 void PSG::init(bool cgb) {
 	ch1_.init(cgb);
-	ch2_.init(cgb);
 	ch3_.init(cgb);
-	ch4_.init(cgb);
 }
 
 void PSG::reset() {

@@ -55,8 +55,7 @@ private:
 	long reference_;
 	usec_t maxPeriod_;
 	usec_t last_;
-	usec_t usecs_;
-	std::ptrdiff_t samples_;
+	SysDDec t_, s_, st_, t2_;
 };
 
 #endif

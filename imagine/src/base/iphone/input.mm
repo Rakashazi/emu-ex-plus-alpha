@@ -228,7 +228,16 @@ void handleKeyEvent(UIEvent *event)
 	}
 }
 
+Event::KeyString Event::keyString() const
+{
+	return {}; // TODO
+}
+
 void setHandleVolumeKeys(bool on) {}
+
+void showSoftInput() {}
+void hideSoftInput() {}
+bool softInputIsActive() { return false; }
 
 CallResult init()
 {

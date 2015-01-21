@@ -15,6 +15,18 @@ else
  android_ndkSDK := 9
 endif
 
+ifndef ANDROID_NDK_PATH
+ # needs GNU version of readlink for -f
+ # Note: if on MacOSX, install coreutils from MacPorts
+ osName := $(shell uname -s)
+ ifeq ($(osName),Darwin)
+  READLINK ?= greadlink
+ else
+  READLINK ?= readlink
+ endif
+ ANDROID_NDK_PATH := $(shell $(READLINK) -f $$(dirname $$(which $(CC)))/../../../../..)
+endif
+
 # TODO: android_minSDK should only apply to APK metadata
 ifdef android_minLibSDK
  android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_minLibSDK)/arch-$(android_ndkArch)

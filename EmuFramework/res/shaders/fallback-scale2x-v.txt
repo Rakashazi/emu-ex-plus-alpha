@@ -1,0 +1,11 @@
+uniform vec2 srcPixels;
+attribute vec2 texUV;
+varying vec2 texUVOut;
+varying vec2 texelPosOut;
+
+void main()
+{
+	texUVOut = texUV;
+	texelPosOut = texUV * srcPixels;
+	OUT_POSITION;
+}

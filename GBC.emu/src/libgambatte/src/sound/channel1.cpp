@@ -1,21 +1,21 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "channel1.h"
 #include "../savestate.h"
 #include <algorithm>
@@ -28,6 +28,7 @@ Channel1::SweepUnit::SweepUnit(MasterDisabler &disabler, DutyUnit &dutyUnit)
 , shadow_(0)
 , nr0_(0)
 , negging_(false)
+, cgb_(false)
 {
 }
 
@@ -78,7 +79,7 @@ void Channel1::SweepUnit::nr4Init(unsigned long const cc) {
 	unsigned const shift = nr0_ & 0x07;
 
 	if (period | shift)
-		counter_ = ((cc >> 14) + (period ? period : 8)) << 14;
+		counter_ = ((((cc + 2 + cgb_ * 2) >> 14) + (period ? period : 8)) << 14) + 2;
 	else
 		counter_ = counter_disabled;
 
@@ -176,7 +177,8 @@ void Channel1::setSo(unsigned long soMask) {
 
 void Channel1::reset() {
 	// cycleCounter >> 12 & 7 represents the frame sequencer position.
-	cycleCounter_ = 0x1000 | (cycleCounter_ & 0xFFF);
+	cycleCounter_ &= 0xFFF;
+	cycleCounter_ += ~(cycleCounter_ + 2) << 1 & 0x1000;
 
 	dutyUnit_.reset();
 	envelopeUnit_.reset();
@@ -185,7 +187,7 @@ void Channel1::reset() {
 }
 
 void Channel1::init(bool cgb) {
-	lengthCounter_.init(cgb);
+	sweepUnit_.init(cgb);
 }
 
 void Channel1::saveState(SaveState &state) {

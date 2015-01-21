@@ -5,10 +5,12 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 
 Install the Android NDK Revision 10, and add the bin paths of the GCC 4.9 toolchains (ARM and X86 architectures) to your PATH environment variable.
 
+If using MacOS X, install the gmake package from MacPorts and use it instead of the regular make command when building.
+
 The following make variables are used by the build system:
 
-ANDROID_NDK_PATH : Required, no default
- - The path of the root Android SDK directory containing the "platforms/" subdirectory
+ANDROID_NDK_PATH : Optional, defaults to 5 directories above compiler path
+ - The path of the root Android NDK directory containing the "platforms/" subdirectory
 
 android_arch : Optional, default set by app
  - When building an Imagine-based app, specifies a space separated list of which architectures to build ("arm armv7 x86" for example)

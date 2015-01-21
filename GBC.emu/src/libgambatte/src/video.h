@@ -166,7 +166,9 @@ private:
 	class EventTimes {
 	public:
 		explicit EventTimes(VideoInterruptRequester memEventRequester)
-		: memEventRequester_(memEventRequester)
+		: eventMin_(disabled_time)
+		, memEventMin_(disabled_time)
+		, memEventRequester_(memEventRequester)
 		{
 		}
 

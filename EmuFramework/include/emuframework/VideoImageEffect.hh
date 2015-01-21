@@ -22,7 +22,21 @@
 
 class VideoImageEffect
 {
+public:
+	struct EffectDesc
+	{
+		const char *vShaderFilename;
+		const char *fShaderFilename;
+		IG::Point2D<uint> scale;
+
+		bool needsRenderTarget() const
+		{
+			return scale.x;
+		}
+	};
+
 private:
+	using ErrorMessage = std::array<char, 128>;
 	static constexpr uint MAX_PROGRAMS = 2;
 	Gfx::Program prog[MAX_PROGRAMS];
 	Gfx::Shader vShader[MAX_PROGRAMS]{};
@@ -42,6 +56,8 @@ private:
 	void initRenderTargetTexture();
 	void updateProgramUniforms();
 	void compile(bool isExternalTex);
+	CallResult compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback, ErrorMessage *msg);
+	void deinitPrograms();
 
 public:
 	enum
@@ -49,6 +65,7 @@ public:
 		NO_EFFECT = 0,
 		HQ2X = 1,
 		SCALE2X = 2,
+		PRESCALE2X = 3,
 
 		LAST_EFFECT_VAL
 	};

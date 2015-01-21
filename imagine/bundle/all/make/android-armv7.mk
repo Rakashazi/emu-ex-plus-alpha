@@ -1,6 +1,6 @@
 -include config.mk
 
-# don't LTO with -marm since oupt will eventually be combined with THUMB code
+# don't LTO with -marm since output will eventually be combined with THUMB code
 ifeq ($(android_armv7State),-marm)
  undefine O_LTO
 endif

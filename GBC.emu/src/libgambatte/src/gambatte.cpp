@@ -153,7 +153,7 @@ bool GB::loadState(std::string const &filepath) {
 
 		SaveState state;
 		p_->cpu.setStatePtrs(state);
-
+		setInitState(state, p_->cpu.isCgb(), p_->loadflags & GBA_CGB);
 		if (StateSaver::loadState(state, filepath)) {
 			p_->cpu.loadState(state);
 			return true;

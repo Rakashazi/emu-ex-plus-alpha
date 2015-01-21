@@ -111,6 +111,7 @@ public:
 	void refreshPalettes() { lcd_.refreshPalettes(); }
 	void setGameGenie(std::string const &codes) { cart_.setGameGenie(codes); }
 	void setGameShark(std::string const &codes) { interrupter_.setGameShark(codes); }
+	void updateInput();
 
 private:
 	Cartridge cart_;
@@ -129,7 +130,6 @@ private:
 	unsigned char serialCnt_;
 	bool blanklcd_;
 
-	void updateInput();
 	void decEventCycles(IntEventId eventId, unsigned long dec);
 	void oamDmaInitSetup();
 	void updateOamDma(unsigned long cycleCounter);

@@ -277,7 +277,7 @@ public:
 			break;
 		case 1:
 			rombank_ = data & 0x7F;
-			memptrs_.setRombank(rombank_ & (rombanks(memptrs_) - 1));
+			setRombank();
 			break;
 		case 2:
 			rambank_ = data;
@@ -302,7 +302,7 @@ public:
 		rambank_ = ss.rambank;
 		enableRam_ = ss.enableRam;
 		setRambank();
-		memptrs_.setRombank(rombank_ & (rombanks(memptrs_) - 1));
+		setRombank();
 	}
 
 private:
@@ -323,6 +323,10 @@ private:
 		}
 
 		memptrs_.setRambank(flags, rambank_ & (rambanks(memptrs_) - 1));
+	}
+
+	void setRombank() const {
+		memptrs_.setRombank(std::max(rombank_ & (rombanks(memptrs_) - 1), 1u));
 	}
 };
 
@@ -531,12 +535,11 @@ static bool presumedMulti64Mbc1(unsigned char const header[], unsigned rombanks)
 	return header[0x147] == 1 && header[0x149] == 0 && rombanks == 64;
 }
 
-LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
+LoadRes Cartridge::loadROM(File &rom, std::string const &romfilename,
                            bool const forceDmg,
                            bool const multicartCompat)
 {
-	auto rom = &romfile;
-	if (rom->fail())
+	if (rom.fail())
 		return LOADRES_IO_ERROR;
 
 	enum Cartridgetype { type_plain,
@@ -552,7 +555,7 @@ LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
 
 	{
 		unsigned char header[0x150];
-		rom->read(reinterpret_cast<char *>(header), sizeof header);
+		rom.read(reinterpret_cast<char *>(header), sizeof header);
 
 		switch (header[0x0147]) {
 		case 0x00: type = type_plain; break;
@@ -580,6 +583,8 @@ LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
 		case 0x1C:
 		case 0x1D:
 		case 0x1E: type = type_mbc5; break;
+		case 0x20: return LOADRES_UNSUPPORTED_MBC_MBC6;
+		case 0x22: return LOADRES_UNSUPPORTED_MBC_MBC7;
 		case 0xFC: return LOADRES_UNSUPPORTED_MBC_POCKET_CAMERA;
 		case 0xFD: return LOADRES_UNSUPPORTED_MBC_TAMA5;
 		case 0xFE: return LOADRES_UNSUPPORTED_MBC_HUC3;
@@ -607,7 +612,7 @@ LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
 		cgb = header[0x0143] >> 7 & (1 ^ forceDmg);
 	}
 
-	std::size_t const filesize = rom->size();
+	std::size_t const filesize = rom.size();
 	rombanks = std::max(pow2ceil(filesize / 0x4000), 2u);
 
 	defaultSaveBasePath_.clear();
@@ -616,14 +621,14 @@ LoadRes Cartridge::loadROM(File &romfile, std::string const &romfilename,
 	memptrs_.reset(rombanks, rambanks, cgb ? 8 : 2);
 	rtc_.set(false, 0);
 
-	rom->rewind();
-	rom->read(reinterpret_cast<char*>(memptrs_.romdata()), filesize / 0x4000 * 0x4000ul);
+	rom.rewind();
+	rom.read(reinterpret_cast<char*>(memptrs_.romdata()), filesize / 0x4000 * 0x4000ul);
 	std::memset(memptrs_.romdata() + filesize / 0x4000 * 0x4000ul,
 	            0xFF,
 	            (rombanks - filesize / 0x4000) * 0x4000ul);
 	enforce8bit(memptrs_.romdata(), rombanks * 0x4000ul);
 
-	if (rom->fail())
+	if (rom.fail())
 		return LOADRES_IO_ERROR;
 
 	defaultSaveBasePath_ = stripExtension(romfilename);

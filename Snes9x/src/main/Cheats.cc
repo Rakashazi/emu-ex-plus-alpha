@@ -218,7 +218,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[](CollectTextInputView &view, const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -244,8 +244,8 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						}
 						string_copy(Cheat.c[Cheat.num_cheats - 1].name, "Unnamed Cheat");
 						logMsg("added new cheat, %d total", Cheat.num_cheats);
-
-						auto &textInputView = *new CollectTextInputView{view.window()};
+						view.dismiss();
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[](CollectTextInputView &view, const char *str)
@@ -262,7 +262,6 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								}
 								return 0;
 							};
-						view.dismiss();
 						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}

@@ -107,6 +107,6 @@ static EGLBoolean eglSurfeaceIsValid(EGLDisplay display, EGLSurface surface)
 
 static EGLSurface makeDummyPbuffer(EGLDisplay display, EGLConfig config)
 {
-	const EGLint attribs[] = { EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE };
+	const EGLint attribs[]{EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
 	return eglCreatePbufferSurface(display, config, attribs);
 }

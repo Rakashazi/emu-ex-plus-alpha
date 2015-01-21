@@ -45,15 +45,15 @@ static long limit(long est, long const reference) {
 	return est;
 }
 
-enum { mean_scale = 1 << 5 };
-
 RateEst::RateEst(long const nominalSampleRate, std::size_t const maxValidFeedPeriodSamples)
 : srate_(nominalSampleRate * est_scale)
 , reference_(srate_)
 , maxPeriod_(sampleUsecs(maxValidFeedPeriodSamples, nominalSampleRate))
 , last_(0)
-, usecs_(12000000 * mean_scale)
-, samples_(nominalSampleRate * 12 * mean_scale)
+, t_(6000)
+, s_(nominalSampleRate * 6)
+, st_(s_ * t_)
+, t2_(t_ * t_)
 {
 }
 
@@ -69,16 +69,19 @@ void RateEst::feed(std::ptrdiff_t samplesIn, usec_t const now) {
 
 			long const srateIn = long(samplesIn * (1000000.0f * est_scale) / usecsIn);
 			if (std::abs(srateIn - reference_) < reference_ >> 1) {
-				samples_ += (samplesIn - sumq_.samples()) * mean_scale;
-				usecs_   += (  usecsIn - sumq_.usecs()  ) * mean_scale;
+				s_ +=  samplesIn - sumq_.samples()         ;
+				t_ += (  usecsIn - sumq_.usecs()  ) * 0.001;
+				st_ += s_ * t_;
+				t2_ += t_ * t_;
 
-				long est = long(samples_ * (1000000.0f * est_scale) / usecs_ + 0.5f);
-				est = limit((srate_ * 31 + est + 16) >> 5, reference_);
-				srate_ = est;
+				long est = long(st_ * (1000.0 * est_scale) / t2_ + 0.5);
+				srate_ = limit((srate_ * 31 + est + 16) >> 5, reference_);
 
-				if (usecs_ > 16000000 * mean_scale) {
-					samples_ = (samples_ * 3 + 2) >> 2;
-					usecs_   = (usecs_   * 3 + 2) >> 2;
+				if (t_ > 8000) {
+					s_ *= 3.0 / 4;
+					t_ *= 3.0 / 4;
+					st_ *= 9.0 / 16;
+					t2_ *= 9.0 / 16;
 				}
 			}
 		}

@@ -1,21 +1,21 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "envelope_unit.h"
 #include <algorithm>
 
@@ -82,17 +82,12 @@ bool EnvelopeUnit::nr2Change(unsigned const newNr2) {
 }
 
 bool EnvelopeUnit::nr4Init(unsigned long const cc) {
-	{
-		unsigned long period = nr2_ & 7;
+	unsigned long period = nr2_ & 7 ? nr2_ & 7 : 8;
 
-		if (!period)
-			period = 8;
+	if (((cc + 2) & 0x7000) == 0x0000)
+		++period;
 
-		if (!(cc & 0x7000))
-			++period;
-
-		counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
-	}
+	counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 
 	volume_ = nr2_ >> 4;
 	return !(nr2_ & 0xF8);

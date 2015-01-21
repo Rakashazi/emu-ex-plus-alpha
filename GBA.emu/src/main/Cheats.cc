@@ -82,7 +82,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 	auto &textInputView = *new CollectTextInputView{window()};
 	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", getCollectTextCloseAsset());
 	textInputView.onText() =
-		[isGSv3](CollectTextInputView &view, const char *str)
+		[this, isGSv3](CollectTextInputView &view, const char *str)
 		{
 			if(str)
 			{
@@ -108,8 +108,8 @@ void EditCheatListView::addNewCheat(int isGSv3)
 				}
 				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsNumber-1);
-
-				auto &textInputView = *new CollectTextInputView{view.window()};
+				view.dismiss();
+				auto &textInputView = *new CollectTextInputView{window()};
 				textInputView.init("Input description", getCollectTextCloseAsset());
 				textInputView.onText() =
 					[](CollectTextInputView &view, const char *str)
@@ -126,7 +126,6 @@ void EditCheatListView::addNewCheat(int isGSv3)
 						}
 						return 0;
 					};
-				view.dismiss();
 				refreshCheatViews();
 				modalViewController.pushAndShow(textInputView);
 			}

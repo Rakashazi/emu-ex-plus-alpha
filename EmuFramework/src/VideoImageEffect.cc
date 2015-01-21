@@ -17,23 +17,14 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
 
-struct EffectDesc
-{
-	const char *vShaderFilename;
-	const char *fShaderFilename;
-	IG::Point2D<uint> scale;
-
-	bool needsRenderTarget() const
-	{
-		return scale.x;
-	}
-};
-
-static const EffectDesc
+static const VideoImageEffect::EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
-static const EffectDesc
+static const VideoImageEffect::EffectDesc
 	scale2xDesc{"scale2x-v.txt", "scale2x-f.txt", {2, 2}};
+
+static const VideoImageEffect::EffectDesc
+	prescale2xDesc{"direct-v.txt", "direct-f.txt", {2, 2}};
 
 void VideoImageEffect::setEffect(uint effect, bool isExternalTex)
 {
@@ -49,6 +40,11 @@ void VideoImageEffect::deinit()
 	renderTarget_.deinit();
 	renderTargetScale = {0, 0};
 	renderTargetImgSize = {0, 0};
+	deinitPrograms();
+}
+
+void VideoImageEffect::deinitPrograms()
+{
 	iterateTimes(2, i)
 	{
 		prog[i].deinit();
@@ -85,7 +81,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 {
 	if(hasProgram())
 		return; // already compiled
-	const EffectDesc *desc = nullptr;
+	const EffectDesc *desc{};
 	switch(effect_)
 	{
 		bcase HQ2X:
@@ -97,6 +93,11 @@ void VideoImageEffect::compile(bool isExternalTex)
 		{
 			logMsg("compiling effect Scale2X");
 			desc = &scale2xDesc;
+		}
+		bcase PRESCALE2X:
+		{
+			logMsg("compiling effect Prescale 2X");
+			desc = &prescale2xDesc;
 		}
 		bdefault:
 			break;
@@ -114,13 +115,32 @@ void VideoImageEffect::compile(bool isExternalTex)
 		renderTarget_.init();
 		initRenderTargetTexture();
 	}
+	ErrorMessage msg{};
+	if(compileEffect(*desc, isExternalTex, false, &msg) != OK)
 	{
-		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s", desc->vShaderFilename));
+		ErrorMessage fallbackMsg{};
+		auto r = compileEffect(*desc, isExternalTex, true, &fallbackMsg);
+		if(r != OK)
+		{
+			// print error from original compile if fallback effect not found
+			popup.printf(3, true, "%s", r == NOT_FOUND ? msg.data() : fallbackMsg.data(), 3);
+			deinit();
+			return;
+		}
+		logMsg("compiled fallback version of effect");
+	}
+}
+
+CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback, ErrorMessage *msg)
+{
+	{
+		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename));
 		if(!file)
 		{
-			deinit();
-			popup.printf(3, true, "Can't open file: %s", desc->vShaderFilename);
-			return;
+			deinitPrograms();
+			if(msg)
+				string_printf(*msg, "Can't open file: %s", desc.vShaderFilename);
+			return NOT_FOUND;
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];
@@ -130,7 +150,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		//logMsg("read source:\n%s", text);
 		logMsg("making vertex shader (replace mode)");
 		vShader[0] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_REPLACE);
-		if(!desc->needsRenderTarget())
+		if(!desc.needsRenderTarget())
 		{
 			logMsg("making vertex shader (modulate mode)");
 			vShader[1] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_MODULATE);
@@ -139,21 +159,23 @@ void VideoImageEffect::compile(bool isExternalTex)
 		{
 			if(!vShader[i])
 			{
-				deinit();
-				popup.postError("GPU rejected shader (vertex compile error)");
+				deinitPrograms();
+				if(msg)
+					string_printf(*msg, "GPU rejected shader (vertex compile error)");
 				Gfx::autoReleaseShaderCompiler();
-				return;
+				return INVALID_PARAMETER;
 			}
 		}
 	}
 	{
-		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s", desc->fShaderFilename));
+		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename));
 		if(!file)
 		{
-			deinit();
-			popup.printf(3, true, "Can't open file: %s", desc->fShaderFilename);
+			deinitPrograms();
+			if(msg)
+				string_printf(*msg, "Can't open file: %s", desc.fShaderFilename);
 			Gfx::autoReleaseShaderCompiler();
-			return;
+			return NOT_FOUND;
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];
@@ -163,7 +185,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		//logMsg("read source:\n%s", text);
 		logMsg("making fragment shader (replace mode)");
 		fShader[0] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_REPLACE, isExternalTex);
-		if(!desc->needsRenderTarget())
+		if(!desc.needsRenderTarget())
 		{
 			logMsg("making fragment shader (modulate mode)");
 			fShader[1] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_MODULATE, isExternalTex);
@@ -172,10 +194,11 @@ void VideoImageEffect::compile(bool isExternalTex)
 		{
 			if(!fShader[i])
 			{
-				deinit();
-				popup.postError("GPU rejected shader (fragment compile error)");
+				deinitPrograms();
+				if(msg)
+					string_printf(*msg, "GPU rejected shader (fragment compile error)");
 				Gfx::autoReleaseShaderCompiler();
-				return;
+				return INVALID_PARAMETER;
 			}
 		}
 	}
@@ -185,10 +208,11 @@ void VideoImageEffect::compile(bool isExternalTex)
 		prog[i].init(vShader[i], fShader[i], i == 0, true);
 		if(!prog[i].link())
 		{
-			deinit();
-			popup.postError("GPU rejected shader (link error)");
+			deinitPrograms();
+			if(msg)
+				string_printf(*msg, "GPU rejected shader (link error)");
 			Gfx::autoReleaseShaderCompiler();
-			return;
+			return INVALID_PARAMETER;
 		}
 		srcTexelDeltaU[i] = prog[i].uniformLocation("srcTexelDelta");
 		srcTexelHalfDeltaU[i] = prog[i].uniformLocation("srcTexelHalfDelta");
@@ -196,6 +220,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		updateProgramUniforms();
 	}
 	Gfx::autoReleaseShaderCompiler();
+	return OK;
 }
 
 void VideoImageEffect::updateProgramUniforms()

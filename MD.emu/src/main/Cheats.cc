@@ -616,7 +616,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
 			textInputView.onText() =
-				[](CollectTextInputView &view, const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -639,8 +639,8 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 						logMsg("added new cheat, %d total", cheatList.size());
 						cheatsModified = 1;
 						updateCheats();
-
-						auto &textInputView = *new CollectTextInputView{view.window()};
+						view.dismiss();
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[](CollectTextInputView &view, const char *str)
@@ -657,7 +657,6 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								}
 								return 0;
 							};
-						view.dismiss();
 						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}

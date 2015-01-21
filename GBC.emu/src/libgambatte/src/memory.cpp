@@ -310,7 +310,7 @@ unsigned long Memory::stop(unsigned long cc) {
 	if (ioamhram_[0x14D] & isCgb()) {
 		psg_.generateSamples(cc, isDoubleSpeed());
 		lcd_.speedChange(cc);
-		ioamhram_[0x14D] = ~ioamhram_[0x14D] & 0x80;
+		ioamhram_[0x14D] ^= 0x81;
 		intreq_.setEventTime<intevent_blit>(ioamhram_[0x140] & lcdc_en
 			? lcd_.nextMode1IrqTime()
 			: cc + (70224 << isDoubleSpeed()));
@@ -371,21 +371,22 @@ unsigned long Memory::resetCounters(unsigned long cc) {
 }
 
 void Memory::updateInput() {
-	unsigned button = 0xFF;
-	unsigned dpad = 0xFF;
+	unsigned state = 0xF;
 
-	if (getInput_) {
-		unsigned is = (*getInput_)();
-		button ^= is      & 0x0F;
-		dpad   ^= is >> 4 & 0x0F;
+	if ((ioamhram_[0x100] & 0x30) != 0x30 && getInput_) {
+		unsigned input = (*getInput_)();
+		unsigned dpad_state = ~input >> 4;
+		unsigned button_state = ~input;
+		if (!(ioamhram_[0x100] & 0x10))
+			state &= dpad_state;
+		if (!(ioamhram_[0x100] & 0x20))
+			state &= button_state;
 	}
 
-	ioamhram_[0x100] |= 0xF;
+	if (state != 0xF && (ioamhram_[0x100] & 0xF) == 0xF)
+		intreq_.flagIrq(0x10);
 
-	if (!(ioamhram_[0x100] & 0x10))
-		ioamhram_[0x100] &= dpad;
-	if (!(ioamhram_[0x100] & 0x20))
-		ioamhram_[0x100] &= button;
+	ioamhram_[0x100] = (ioamhram_[0x100] & -0x10u) | state;
 }
 
 void Memory::updateOamDma(unsigned long const cc) {
@@ -591,8 +592,12 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 
 	switch (p & 0xFF) {
 	case 0x00:
-		data = (ioamhram_[0x100] & 0xCF) | (data & 0xF0);
-		break;
+		if ((data ^ ioamhram_[0x100]) & 0x30) {
+			ioamhram_[0x100] = (ioamhram_[0x100] & ~0x30u) | (data & 0x30);
+			updateInput();
+		}
+
+		return;
 	case 0x01:
 		updateSerial(cc);
 		break;
@@ -896,7 +901,9 @@ void Memory::nontrivial_ff_write(unsigned const p, unsigned data, unsigned long 
 		break;
 
 	case 0x4D:
-		ioamhram_[0x14D] |= data & 0x01;
+		if (isCgb())
+			ioamhram_[0x14D] = (ioamhram_[0x14D] & ~1u) | (data & 1);
+
 		return;
 	case 0x4F:
 		if (isCgb()) {

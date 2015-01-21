@@ -261,7 +261,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
 			textInputView.onText() =
-				[](CollectTextInputView &view, const char *str)
+				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
@@ -287,8 +287,8 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
-
-						auto &textInputView = *new CollectTextInputView{view.window()};
+						view.dismiss();
+						auto &textInputView = *new CollectTextInputView{window()};
 						textInputView.init("Input description", getCollectTextCloseAsset());
 						textInputView.onText() =
 							[](CollectTextInputView &view, const char *str)
@@ -305,7 +305,6 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 								}
 								return 0;
 							};
-						view.dismiss();
 						refreshCheatViews();
 						modalViewController.pushAndShow(textInputView);
 					}

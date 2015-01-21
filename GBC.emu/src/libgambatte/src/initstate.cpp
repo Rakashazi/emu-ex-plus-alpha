@@ -1,21 +1,21 @@
-/***************************************************************************
- *   Copyright (C) 2008 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2008 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 #include "initstate.h"
 #include "counterdef.h"
 #include "savestate.h"
@@ -26,7 +26,7 @@
 
 namespace {
 
-static void setInitialCgbWram(unsigned char *const wram) {
+static void setInitialCgbWram(unsigned char wram[]) {
 	static struct { unsigned short addr; unsigned char val; } const cgbWramDumpDiff[] = {
 		{ 0x0083, 0x7F }, { 0x008B, 0x10 }, { 0x00C0, 0x7F }, { 0x00E1, 0x7F },
 		{ 0x00E2, 0x7F }, { 0x00EA, 0x10 }, { 0x010A, 0x40 }, { 0x0179, 0x01 },
@@ -705,7 +705,7 @@ static void setInitialCgbWram(unsigned char *const wram) {
 		wram[cgbWramDumpDiff[i].addr] = cgbWramDumpDiff[i].val;
 }
 
-static void setInitialDmgWram(unsigned char *const wram) {
+static void setInitialDmgWram(unsigned char wram[]) {
 	static struct { unsigned short addr; unsigned char val; } const dmgWramDumpDiff[] = {
 		{ 0x0000, 0x08 }, { 0x0004, 0x08 }, { 0x0008, 0x4D }, { 0x000A, 0x80 },
 		{ 0x0010, 0x02 }, { 0x0018, 0x04 }, { 0x0020, 0x10 }, { 0x0028, 0x05 },
@@ -977,7 +977,7 @@ static void setInitialDmgWram(unsigned char *const wram) {
 		wram[dmgWramDumpDiff[i].addr] = dmgWramDumpDiff[i].val;
 }
 
-static void setInitialVram(unsigned char *const vram, bool const cgb) {
+static void setInitialVram(unsigned char vram[], bool const cgb) {
 	static unsigned char const even_numbered_8010_to_81a0_dump[] = {
 		0xF0, 0xF0, 0xFC, 0xFC, 0xFC, 0xFC, 0xF3, 0xF3,
 		0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C,
@@ -1025,7 +1025,7 @@ static void setInitialVram(unsigned char *const vram, bool const cgb) {
 	}
 }
 
-static void setInitialCgbIoamhram(unsigned char *const ioamhram) {
+static void setInitialCgbIoamhram(unsigned char ioamhram[]) {
 	static unsigned char const feaxDump[0x60] = {
 		0x08, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD,
 		0x08, 0x01, 0xEF, 0xDE, 0x06, 0x4A, 0xCD, 0xBD,
@@ -1081,7 +1081,7 @@ static void setInitialCgbIoamhram(unsigned char *const ioamhram) {
 	std::memcpy(ioamhram + 0x100, ffxxDump, sizeof ffxxDump);
 }
 
-static void setInitialDmgIoamhram(unsigned char *const ioamhram) {
+static void setInitialDmgIoamhram(unsigned char ioamhram[]) {
 	static unsigned char const oamDump[0xA0] = {
 		0xBB, 0xD8, 0xC4, 0x04, 0xCD, 0xAC, 0xA1, 0xC7,
 		0x7D, 0x85, 0x15, 0xF0, 0xAD, 0x19, 0x11, 0x6A,
@@ -1260,36 +1260,41 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.ppu.pendingLcdstatIrq = false;
 
 	// spu.cycleCounter >> 12 & 7 represents the frame sequencer position.
-	state.spu.cycleCounter = 0x1000 | (state.cpu.cycleCounter >> 1 & 0xFFF);
+	state.spu.cycleCounter = (cgb ? 0x1E00 : 0x2400) | (state.cpu.cycleCounter >> 1 & 0x1FF);
 
 	state.spu.ch1.sweep.counter = SoundUnit::counter_disabled;
 	state.spu.ch1.sweep.shadow = 0;
 	state.spu.ch1.sweep.nr0 = 0;
 	state.spu.ch1.sweep.negging = false;
-	state.spu.ch1.duty.nextPosUpdate = (state.spu.cycleCounter & ~1) + 2048 * 2;
-	state.spu.ch1.duty.nr3 = 0;
-	state.spu.ch1.duty.pos = 0;
+	if (cgb) {
+		state.spu.ch1.duty.nextPosUpdate = (state.spu.cycleCounter & ~1ul) + 37 * 2;
+		state.spu.ch1.duty.pos = 6;
+		state.spu.ch1.duty.high = true;
+	} else {
+		state.spu.ch1.duty.nextPosUpdate = (state.spu.cycleCounter & ~1ul) + 69 * 2;
+		state.spu.ch1.duty.pos = 3;
+		state.spu.ch1.duty.high = false;
+	}
+	state.spu.ch1.duty.nr3 = 0xC1;
 	state.spu.ch1.env.counter = SoundUnit::counter_disabled;
 	state.spu.ch1.env.volume = 0;
 	state.spu.ch1.lcounter.counter = SoundUnit::counter_disabled;
 	state.spu.ch1.lcounter.lengthCounter = 0x40;
-	state.spu.ch1.nr4 = 0;
+	state.spu.ch1.nr4 = 0x07;
 	state.spu.ch1.master = true;
 
-	state.spu.ch2.duty.nextPosUpdate = (state.spu.cycleCounter & ~1) + 2048 * 2;
+	state.spu.ch2.duty.nextPosUpdate = SoundUnit::counter_disabled;
 	state.spu.ch2.duty.nr3 = 0;
 	state.spu.ch2.duty.pos = 0;
-	state.spu.ch2.env.counter = state.spu.cycleCounter
-		- ((state.spu.cycleCounter - 0x1000) & 0x7FFF) + 8ul * 0x8000;
+	state.spu.ch2.duty.high = false;
+	state.spu.ch2.env.counter = SoundUnit::counter_disabled;
 	state.spu.ch2.env.volume = 0;
 	state.spu.ch2.lcounter.counter = SoundUnit::counter_disabled;
 	state.spu.ch2.lcounter.lengthCounter = 0x40;
 	state.spu.ch2.nr4 = 0;
 	state.spu.ch2.master = false;
 
-	for (int i = 0; i < 0x10; ++i)
-		state.spu.ch3.waveRam.ptr[i] = state.mem.ioamhram.get()[0x130 + i];
-
+	std::memcpy(state.spu.ch3.waveRam.ptr, state.mem.ioamhram.get() + 0x130, 0x10);
 	state.spu.ch3.lcounter.counter = SoundUnit::counter_disabled;
 	state.spu.ch3.lcounter.lengthCounter = 0x100;
 	state.spu.ch3.waveCounter = SoundUnit::counter_disabled;
@@ -1302,8 +1307,7 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 
 	state.spu.ch4.lfsr.counter = state.spu.cycleCounter + 4;
 	state.spu.ch4.lfsr.reg = 0xFF;
-	state.spu.ch4.env.counter = state.spu.cycleCounter
-		- ((state.spu.cycleCounter - 0x1000) & 0x7FFF) + 8ul * 0x8000;
+	state.spu.ch4.env.counter = SoundUnit::counter_disabled;
 	state.spu.ch4.env.volume = 0;
 	state.spu.ch4.lcounter.counter = SoundUnit::counter_disabled;
 	state.spu.ch4.lcounter.lengthCounter = 0x40;
