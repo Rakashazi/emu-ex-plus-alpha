@@ -36,7 +36,7 @@ public:
 		assert(m);
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return m;
 	}
@@ -136,7 +136,7 @@ public:
 		}
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return m;
 	}

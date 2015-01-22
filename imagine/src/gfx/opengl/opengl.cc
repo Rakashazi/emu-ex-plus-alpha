@@ -35,12 +35,13 @@ GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
+static constexpr bool multipleContextsPerThread = Config::envIsAndroid;
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 bool useFixedFunctionPipeline = true;
 #endif
-static ColorComp vColor[4] {0}; // color when using shader pipeline
-static ColorComp texEnvColor[4] {0}; // color when using shader pipeline
+static ColorComp vColor[4]{}; // color when using shader pipeline
+static ColorComp texEnvColor[4]{}; // color when using shader pipeline
 static Base::Timer releaseShaderCompilerTimer;
 
 void setActiveTexture(TextureHandle texture, uint type)
@@ -202,6 +203,7 @@ void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	// !useFixedFunctionPipeline
 	if(vColor[0] == r && vColor[1] == g && vColor[2] == b && vColor[3] == a)
 		return;
 	vColor[0] = r;
@@ -344,13 +346,34 @@ void clear()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+bool bind()
+{
+	if(multipleContextsPerThread && gfxContext != Base::GLContext::current())
+	{
+		logMsg("restoring context");
+		gfxContext.setCurrent(gfxContext, currWin);
+		return true;
+	}
+	return false;
+}
+
 bool setCurrentWindow(Base::Window *win)
 {
-	if(win == currWin)
-		return false;
-	currWin = win;
-	gfxContext.setDrawable(win, gfxContext);
-	return true;
+	if(multipleContextsPerThread && gfxContext != Base::GLContext::current())
+	{
+		logMsg("restoring context");
+		currWin = win;
+		gfxContext.setCurrent(gfxContext, win);
+		return true;
+	}
+	else
+	{
+		if(win == currWin)
+			return false;
+		currWin = win;
+		gfxContext.setDrawable(win, gfxContext);
+		return true;
+	}
 }
 
 bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)

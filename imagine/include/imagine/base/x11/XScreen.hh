@@ -39,7 +39,7 @@ public:
 		return xScreen == rhs.xScreen;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return xScreen;
 	}

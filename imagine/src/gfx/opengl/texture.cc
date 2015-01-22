@@ -130,10 +130,6 @@ static GLenum pixelFormatToOGLDataType(const PixelFormatDesc &format)
 
 static GLenum pixelFormatToOGLFormat(const PixelFormatDesc &format)
 {
-//	#if defined(CONFIG_BASE_PS3)
-//		if(format.id == PIXEL_ARGB8888)
-//			return GL_BGRA;
-//	#endif
 	if(format.isGrayscale())
 	{
 		if(format.hasColorComponent())
@@ -238,14 +234,8 @@ static int pixelToOGLInternalFormat(const PixelFormatDesc &format)
 		switch(format.id)
 		{
 			case PIXEL_BGRA8888:
-//			#if defined(CONFIG_BASE_PS3)
-//				return GL_BGRA;
-//			#endif
 			case PIXEL_ARGB8888:
 			case PIXEL_ABGR8888:
-//			#if defined(CONFIG_BASE_PS3)
-//				return GL_ARGB_SCE;
-//			#endif
 			case PIXEL_RGBA8888:
 				return GL_RGBA8;
 			case PIXEL_RGB888:

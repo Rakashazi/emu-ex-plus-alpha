@@ -51,7 +51,7 @@ public:
 	size_t size();
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
-	operator bool();
+	explicit operator bool();
 
 protected:
 	union [[gnu::aligned]]

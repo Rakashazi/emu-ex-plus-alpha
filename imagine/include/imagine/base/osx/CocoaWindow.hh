@@ -30,7 +30,7 @@ public:
 		return nsWin_ == rhs.nsWin_;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return nsWin_;
 	}
@@ -40,7 +40,7 @@ using WindowImpl = CocoaWindow;
 
 struct GLBufferConfig
 {
-	operator bool() const
+	explicit operator bool() const
 	{
 		return true;
 	}

@@ -58,7 +58,7 @@ public:
 		return uiWin_ == rhs.uiWin_;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return uiWin_;
 	}
@@ -70,7 +70,7 @@ struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return true;
 	}

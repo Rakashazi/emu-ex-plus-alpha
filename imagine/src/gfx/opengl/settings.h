@@ -30,23 +30,6 @@ TextureSizeSupport textureSizeSupport =
 	0, 0 // maxXSize, maxYSize
 };
 
-static uint maxOpenGLMajorVersionSupport()
-{
-	#ifdef CONFIG_GFX_OPENGL_ES
-		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		return 2;
-		#else
-		return 1;
-		#endif
-	#else
-		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		return 3;
-		#else
-		return 1;
-		#endif
-	#endif
-}
-
 void setViewport(const Viewport &v)
 {
 	auto inGLFormat = v.inGLFormat();

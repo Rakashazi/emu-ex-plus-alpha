@@ -45,10 +45,6 @@ AAssetManager *activityAAssetManager();
 
 jobject newFontRenderer(JNIEnv *env);
 
-void restoreOpenGLContext();
-void unrefUIGL();
-void refUIGL();
-
 bool hasLowLatencyAudio();
 
 }

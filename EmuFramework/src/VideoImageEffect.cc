@@ -276,7 +276,7 @@ uint VideoImageEffect::programs() const
 
 bool VideoImageEffect::hasProgram() const
 {
-	return prog[0];
+	return (bool)prog[0];
 }
 
 Gfx::RenderTarget &VideoImageEffect::renderTarget()

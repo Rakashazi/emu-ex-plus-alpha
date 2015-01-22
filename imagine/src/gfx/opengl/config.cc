@@ -26,6 +26,15 @@
 #include "../../base/android/android.hh"
 #endif
 
+#ifndef GL_KHR_debug
+typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void *);
+#define GL_DEBUG_OUTPUT_KHR 0x92E0
+#endif
+
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+
 //#include "geometry-test.h"
 
 namespace Gfx
@@ -58,9 +67,7 @@ bool preferBGRA = !forceNoBGRPixels, preferBGR = !forceNoBGRPixels;
 #endif
 GLenum bgrInternalFormat = GL_BGRA;
 
-static bool supportCompressedTextures = false;
 bool useCompressedTextures = false;
-static bool forceNoCompressedTextures = true;
 
 bool useFBOFuncs = false;
 bool useFBOFuncsEXT = false;
@@ -74,7 +81,7 @@ static bool forceNoVBOFuncs = false;
 #endif
 
 static GLuint globalStreamVAO = 0;
-GLuint globalStreamVBO[4] {0};
+GLuint globalStreamVBO[4]{};
 uint globalStreamVBOIdx = 0;
 
 bool forceNoTextureSwizzle = false;
@@ -162,15 +169,6 @@ static void setupBGRPixelSupport()
 }
 #endif
 
-static void setupCompressedTexturesSupport()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	supportCompressedTextures = 1;
-	useCompressedTextures = 1;
-	logMsg("Compressed textures are supported");
-	#endif
-}
-
 static void setupFBOFuncs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -210,6 +208,12 @@ static void setupTextureSwizzle()
 	useTextureSwizzle = true;
 }
 
+static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
+	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+{
+	logErr("Debug Info: %s", message);
+}
+
 static void checkExtensionString(const char *extStr)
 {
 	//logMsg("checking %s", extStr);
@@ -227,6 +231,22 @@ static void checkExtensionString(const char *extStr)
 	{
 		if(!forceNoNonPow2Textures && !Gfx::textureSizeSupport.nonPow2)
 			setupNonPow2Textures();
+	}
+	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
+	{
+		#ifdef CONFIG_GFX_OPENGL_ES
+		using DebugMessageCallbackProto = void (*)(GLDEBUGPROCKHR callback, const void *userParam);
+		const char *glDebugMessageCallbackStr = "glDebugMessageCallbackKHR";
+		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
+		#else
+		using DebugMessageCallbackProto = void (*)(GLDEBUGPROC callback, const void *userParam);
+		const char *glDebugMessageCallbackStr = "glDebugMessageCallback";
+		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
+		#endif
+		logMsg("enabling debug output");
+		auto glDebugMessageCallback = (DebugMessageCallbackProto)Base::GLContext::procAddress(glDebugMessageCallbackStr);
+		glDebugMessageCallback(debugCallback, nullptr);
+		glEnable(DEBUG_OUTPUT);
 	}
 	#ifdef CONFIG_GFX_OPENGL_ES
 	else if(string_equal(extStr, "GL_APPLE_texture_format_BGRA8888"))
@@ -292,19 +312,17 @@ static void checkFullExtensionString(const char *fullExtStr)
 	}
 }
 
-#ifndef APIENTRY
-#define APIENTRY
-#endif
-
-#if defined CONFIG_GFX_OPENGL_ES
-static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei length, const GLchar *message, const GLvoid *userParam)
-#else
-static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
-#endif
+static int glVersionFromStr(const char *versionStr)
 {
-	logErr("Debug Info: %s", message);
+	// skip to version number
+	while(!isdigit(*versionStr) && *versionStr != '\0')
+		versionStr++;
+	int major, minor;
+	if(sscanf(versionStr, "%d.%d", &major, &minor) != 2)
+	{
+		bug_exit("unable to parse GL version string");
+	}
+	return 10 * major + minor;
 }
 
 CallResult init()
@@ -334,12 +352,12 @@ CallResult init(uint colorBits)
 		Base::setOnSystemOrientationChanged(
 			[](uint oldO, uint newO) // TODO: parameters need proper type definitions in API
 			{
-				static constexpr Angle orientationDiffTable[4][4]
+				const Angle orientationDiffTable[4][4]
 				{
-						{ 0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90) },
-						{ angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180) },
-						{ angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90) },
-						{ angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0 },
+					{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
+					{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},
+					{angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90)},
+					{angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0},
 				};
 				auto rotAngle = orientationDiffTable[oldO][newO];
 				logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
@@ -361,32 +379,58 @@ CallResult init(uint colorBits)
 	Base::GLBufferConfigAttributes glBuffAttr;
 	glBuffAttr.setPreferredColorBits(colorBits);
 	Base::GLContextAttributes glAttr;
-	glAttr.setMajorVersion(Gfx::maxOpenGLMajorVersionSupport());
+	if(Config::DEBUG_BUILD)
+		glAttr.setDebug(true);
 	#if defined CONFIG_GFX_OPENGL_ES
+	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+	{
+		bug_exit("unable to bind GLES API");
+	}
 	glAttr.setOpenGLESAPI(true);
-	#endif
+	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
+		glAttr.setMajorVersion(2);
 	gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
 	gfxContext.init(glAttr, gfxBufferConfig);
+	#else
+	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_API))
+	{
+		bug_exit("unable to bind GL API");
+	}
+	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
+	{
+		useFixedFunctionPipeline = false;
+		glAttr.setMajorVersion(3);
+		glAttr.setMinorVersion(3);
+		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+		if(gfxContext.init(glAttr, gfxBufferConfig) != OK)
+		{
+			logMsg("3.3 context not supported");
+		}
+	}
+	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxContext)
+	{
+		useFixedFunctionPipeline = true;
+		glAttr.setMajorVersion(1);
+		glAttr.setMinorVersion(3);
+		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+		if(gfxContext.init(glAttr, gfxBufferConfig) != OK)
+		{
+			logMsg("1.3 context not supported");
+		}
+	}
+	if(!gfxContext)
+	{
+		bug_exit("can't create context");
+		return INVALID_PARAMETER;
+	}
+	#endif
+
 	gfxContext.setCurrent(gfxContext, nullptr);
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");
 	else if(checkGLErrors)
 		logMsg("using error checks");
-
-	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__ && !defined NDEBUG
-	glDebugMessageCallback(debugCallback, nullptr);
-	glEnable(GL_DEBUG_OUTPUT);
-	#endif
-	#if defined CONFIG_GFX_OPENGL_ES && defined CONFIG_BASE_X11 & !defined CONFIG_MACHINE_PANDORA && !defined NDEBUG
-	auto glDebugMessageCallback = (void (*)(GLDEBUGPROCKHR callback, const void *userParam))GLContext::procAddress("glDebugMessageCallbackKHR");
-	if(glDebugMessageCallback)
-	{
-		logMsg("using KHR_debug");
-		glDebugMessageCallback(debugCallback, nullptr);
-		glEnable(GL_DEBUG_OUTPUT_KHR);
-	}
-	#endif
 	
 	auto version = (const char*)glGetString(GL_VERSION);
 	assert(version);
@@ -394,55 +438,28 @@ CallResult init(uint colorBits)
 	logMsg("version: %s (%s)", version, rendererName);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
-	//glClearDepth(1.0f);
-	//glDepthFunc(GL_LEQUAL);
-	auto dotPos = strchr(version, '.');
-	int majorVer = dotPos[-1]-'0' , minorVer = dotPos[1]-'0';
-	const bool hasGL3_3 = false;//(majorVer > 3) || (majorVer == 3 && minorVer >= 3);
-	const bool hasGL3_2 = (majorVer > 3) || (majorVer == 3 && minorVer >= 2);
-	const bool hasGL3_1 = (majorVer > 3) || (majorVer == 3 && minorVer >= 1);
-	const bool hasGL3_0 = majorVer >= 3;
-	const bool hasGL2_0 = majorVer >= 2;
-	const bool hasGL1_5 = (majorVer > 1) || (majorVer == 1 && minorVer >= 5);
-	const bool hasGL1_4 = hasGL1_5 || (majorVer == 1 && minorVer >= 4);
-	const bool hasGL1_3 = hasGL1_4 || (majorVer == 1 && minorVer >= 3);
-	const bool hasGL1_2 = hasGL1_3 || (majorVer == 1 && minorVer >= 2);
-	assert(hasGL1_2); // needed for CLAMP_TO_EDGE
-
-	if(hasGL3_0)
-	{
-		#if defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE && defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		useFixedFunctionPipeline = false;
-		#endif
-	}
+	int glVer = glVersionFromStr(version);
 	#else
-		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		const bool hasGLES1_1 = !Config::envIsAndroid || (!Config::MACHINE_IS_GENERIC_ARMV6 || strstr(version, "1.1"));
-		const bool hasGLES2_0 = false;
-		#else
-		const bool hasGLES1_1 = true;
-		const bool hasGLES2_0 = true;
-		#endif
+	int glVer = 20;
+	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE)
+	{
+		glVer = glVersionFromStr(version);
+	}
 	#endif
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
 	// core functionality
-	if(hasGL1_3)
-	{
-		if(!forceNoCompressedTextures)
-			setupCompressedTexturesSupport();
-	}
-	if(hasGL1_5)
+	if(glVer >= 15)
 	{
 		if(!forceNoVBOFuncs)
 			setupVBOFuncs();
 	}
-	if(hasGL2_0)
+	if(glVer >= 20)
 	{
 		if(!forceNoNonPow2Textures)
 			setupNonPow2Textures();
 	}
-	if(hasGL3_0)
+	if(glVer >= 30)
 	{
 		if(!useFixedFunctionPipeline)
 		{
@@ -450,19 +467,16 @@ CallResult init(uint colorBits)
 			setupVAOFuncs();
 			if(!useVBOFuncs)
 				setupVBOFuncs();
+			setupTextureSwizzle();
 		}
 		if(!forceNoAutoMipmapGeneration)
 			setupAutoMipmapGeneration();
 		if(!forceNoFBOFuncs)
 			setupFBOFuncs();
 	}
-	if(hasGL3_3)
-	{
-		setupTextureSwizzle();
-	}
 
 	// extension functionality
-	if(hasGL3_0)
+	if(glVer >= 30)
 	{
 		GLint numExtensions;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
@@ -489,28 +503,14 @@ CallResult init(uint colorBits)
 	}
 	#else
 	// core functionality
-	if(hasGLES1_1)
+	if(glVer >= 11)
 	{
-		// TODO: re-test with OpenGL ES 2.0 renderer
-		/*if(Config::MACHINE_IS_GENERIC_ARMV7)
-		{
-			if(strstr(rendererName, "GC800 Graphics"))
-			{
-				logMsg("automatic mipmap generation bugged on Vivante, disabling");
-				forceNoAutoMipmapGeneration = true;
-			}
-			else if(strstr(rendererName, "Adreno (TM) 220"))
-			{
-				logMsg("automatic mipmap generation bugged some Adreno 220 drivers, disabling");
-				forceNoAutoMipmapGeneration = true;
-			}
-		}*/
 		if(!forceNoAutoMipmapGeneration)
 			setupAutoMipmapGeneration();
 		if(!forceNoVBOFuncs)
 			setupVBOFuncs();
 	}
-	if(hasGLES2_0)
+	if(glVer >= 20)
 	{
 		if(!forceNoNonPow2Textures)
 			setupNonPow2Textures();
@@ -543,14 +543,12 @@ CallResult init(uint colorBits)
 	if(useFixedFunctionPipeline)
 		glcEnableClientState(GL_VERTEX_ARRAY);
 	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
+	if(Config::Gfx::OPENGL_SHADER_PIPELINE && !useFixedFunctionPipeline)
 	{
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s before shaders", err); });
 		logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 		initShaders();
 	}
-	#endif
 	return OK;
 }
 

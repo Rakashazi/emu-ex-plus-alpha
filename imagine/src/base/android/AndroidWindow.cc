@@ -333,15 +333,6 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-void restoreOpenGLContext()
-{
-	if(!AndroidGLContext::validateActivityThreadContext())
-	{
-		logMsg("current context was restored");
-		onGLDrawableChanged.callCopySafe(nullptr);
-	}
-}
-
 void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}

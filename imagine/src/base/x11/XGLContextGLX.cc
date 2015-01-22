@@ -25,6 +25,7 @@ namespace Base
 
 static GLXPbuffer dummyPbuff{};
 using GLXAttrList = StaticArrayList<int, 24>;
+using GLXContextAttrList = StaticArrayList<int, 16>;
 
 static GLXAttrList glConfigAttrsToGLXAttrs(const GLBufferConfigAttributes &attr)
 {
@@ -45,6 +46,32 @@ static GLXAttrList glConfigAttrsToGLXAttrs(const GLBufferConfigAttributes &attr)
 	else
 	{
 		logMsg("requesting lowest color config");
+	}
+
+	list.push_back(None);
+	return list;
+}
+
+static GLXContextAttrList glContextAttrsToGLXAttrs(const GLContextAttributes &attr)
+{
+	GLXContextAttrList list;
+
+	list.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
+	list.push_back(attr.majorVersion());
+	list.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
+	list.push_back(attr.minorVersion());
+
+	if(attr.majorVersion() > 3
+		|| (attr.majorVersion() == 3 && attr.minorVersion() >= 2))
+	{
+		list.push_back(GLX_CONTEXT_PROFILE_MASK_ARB);
+		list.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+	}
+
+	if(attr.debug())
+	{
+		list.push_back(GLX_CONTEXT_FLAGS_ARB);
+		list.push_back(GLX_CONTEXT_DEBUG_BIT_ARB);
 	}
 
 	list.push_back(None);
@@ -80,89 +107,7 @@ static void printGLXVisual(Display *display, XVisualInfo &config)
 			sampleBuff);
 }
 
-static GLXContext createContextForMajorVersion(uint version, Display *dpy, GLXFBConfig config, bool &supportsSurfaceless)
-{
-	supportsSurfaceless = false;
-	auto glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
-	if(version >= 3)
-	{
-		{
-			// Try 3.2 Core
-			const int attrCore3_2[]
-			{
-				GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-				GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-				GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-				#ifndef NDEBUG
-				GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
-				#endif
-				None
-			};
-			GLXContext ctx = glXCreateContextAttribsARB(dpy, config, 0, True, attrCore3_2);
-			if(ctx)
-			{
-				supportsSurfaceless = true;
-				return ctx;
-			}
-			logErr("failed creating 3.2 core context");
-		}
-		{
-			// Try 3.1
-			const int attr3_1[] =
-			{
-				GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-				GLX_CONTEXT_MINOR_VERSION_ARB, 1,
-				#ifndef NDEBUG
-				GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
-				#endif
-				None
-			};
-			GLXContext ctx = glXCreateContextAttribsARB(dpy, config, 0, True, attr3_1);
-			if(ctx)
-			{
-				supportsSurfaceless = true;
-				return ctx;
-			}
-			logErr("failed creating 3.1 context");
-		}
-		{
-			// Try 3.0
-			const int attr3_0[] =
-			{
-				GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-				GLX_CONTEXT_MINOR_VERSION_ARB, 0,
-				#ifndef NDEBUG
-				GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
-				#endif
-				None
-			};
-			GLXContext ctx = glXCreateContextAttribsARB(dpy, config, 0, True, attr3_0);
-			if(ctx)
-			{
-				supportsSurfaceless = true;
-				return ctx;
-			}
-			logErr("failed creating 3.0 context");
-		}
-		// Fallback to 1.2
-	}
-	const int attr[] =
-	{
-		GLX_CONTEXT_MAJOR_VERSION_ARB, 1,
-		GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-		#ifndef NDEBUG
-		GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
-		#endif
-		None
-	};
-	GLXContext ctx = glXCreateContextAttribsARB(dpy, config, 0, True, attr);
-	if(ctx)
-		return ctx;
-	logErr("failed creating 1.2 context");
-	return (GLXContext)0;
-}
-
-GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GLBufferConfigAttributes &attr)
+GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
 	int screenIdx = indexOfScreen(mainScreen());
@@ -193,21 +138,22 @@ GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GL
 	return conf;
 }
 
-CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &config)
+CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	assert(!context);
-	bool supportsSurfaceless;
-	context = createContextForMajorVersion(attr.majorVersion(), dpy, config.glConfig, supportsSurfaceless);
+	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
+	auto glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+	context = glXCreateContextAttribsARB(dpy, config.glConfig, 0, True, &glContextAttrsToGLXAttrs(attr)[0]);
 	if(!context)
 	{
 		logErr("can't find a compatible context");
 		return INVALID_PARAMETER;
 	}
-	supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly on some drivers, see below
+	bool supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly on some drivers, see below
 	if(!supportsSurfaceless && !dummyPbuff)
 	{
-		const int attrib[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
-		dummyPbuff = glXCreatePbuffer(dpy, config.glConfig, attrib);
+		const int pbuffAttr[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
+		dummyPbuff = glXCreatePbuffer(dpy, config.glConfig, pbuffAttr);
 		if(!dummyPbuff)
 		{
 			bug_exit("couldn't make dummy pbuffer");
@@ -308,6 +254,11 @@ GLContext::operator bool() const
 	return context;
 }
 
+bool GLContext::operator ==(GLContext const &rhs) const
+{
+	return context == rhs.context;
+}
+
 void GLContext::deinit()
 {
 	if(context)
@@ -315,6 +266,16 @@ void GLContext::deinit()
 		glXDestroyContext(dpy, context);
 		context = nullptr;
 	}
+}
+
+bool GLContext::bindAPI(API api)
+{
+	return api == OPENGL_API;
+}
+
+void *GLContext::procAddress(const char *funcName)
+{
+	return (void*)glXGetProcAddress((const GLubyte*)funcName);
 }
 
 }

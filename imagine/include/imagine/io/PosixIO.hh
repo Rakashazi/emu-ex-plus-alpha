@@ -51,7 +51,7 @@ public:
 	size_t size() override;
 	bool eof() override;
 	void advise(off_t offset, size_t bytes, Advice advice) override;
-	operator bool() override;
+	explicit operator bool() override;
 
 protected:
 	int fd_ = -1;

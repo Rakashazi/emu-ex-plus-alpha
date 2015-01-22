@@ -29,9 +29,9 @@ class EGLContextBase
 protected:
 	EGLContext context = EGL_NO_CONTEXT;
 
-	CallResult init(const GLContextAttributes &attr, const GLBufferConfig &config);
+	CallResult init(GLContextAttributes attr, GLBufferConfig config);
 	void deinit();
-	static std::pair<CallResult, EGLConfig> chooseConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
+	static std::pair<CallResult, EGLConfig> chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
 	static EGLDisplay getDisplay();
 	static void setCurrentContext(EGLContext context, Window *win);
 

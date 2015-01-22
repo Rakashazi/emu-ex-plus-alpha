@@ -51,7 +51,6 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 {
 	using namespace Base;
 	auto env = jEnv();
-	refUIGL();
 	setupTextInputJni(env);
 	logMsg("starting system text input");
 	setEventsUseOSInputMethod(true);
@@ -95,8 +94,6 @@ IG::WindowRect sysTextInputRect()
 
 static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss)
 {
-	if(isDoingDismiss)
-		Base::unrefUIGL();
 	if(!processText)
 	{
 		return;
@@ -105,7 +102,6 @@ static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboo
 	auto delegate = moveAndClear(vKeyboardTextDelegate);
 	if(delegate)
 	{
-		Base::restoreOpenGLContext();
 		if(jStr)
 		{
 			const char *str = env->GetStringUTFChars(jStr, nullptr);

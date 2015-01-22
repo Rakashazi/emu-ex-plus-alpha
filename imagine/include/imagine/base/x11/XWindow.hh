@@ -52,7 +52,7 @@ public:
 		return xWin == rhs.xWin;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return xWin != None;
 	}
@@ -85,7 +85,7 @@ struct GLBufferConfig
 		{}
 	constexpr GLBufferConfig() {}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		#ifndef CONFIG_MACHINE_PANDORA
 		return visual;

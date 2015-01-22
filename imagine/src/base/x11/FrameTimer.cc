@@ -54,7 +54,7 @@ public:
 	void scheduleVSync();
 	void cancel();
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return fd >= 0;
 	}
@@ -77,7 +77,7 @@ public:
 	void scheduleVSync();
 	void cancel();
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return fd >= 0;
 	}
@@ -103,7 +103,7 @@ public:
 	void scheduleVSync();
 	void cancel();
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return fd >= 0;
 	}

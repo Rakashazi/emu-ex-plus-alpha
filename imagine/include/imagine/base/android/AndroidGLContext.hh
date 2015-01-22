@@ -26,7 +26,6 @@ struct AndroidGLContext : public EGLContextBase
 {
 public:
 	constexpr AndroidGLContext() {}
-	static bool validateActivityThreadContext();
 	static void swapPresentedBuffers(Window &win);
 	static bool swapBuffersIsAsync();
 };

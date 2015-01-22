@@ -60,7 +60,7 @@ public:
 	uint channel() { return ch; }
 	void requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName);
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return ch != 0;
 	}

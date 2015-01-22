@@ -131,7 +131,7 @@ public:
 		return f;
 	}
 
-	operator bool()
+	explicit operator bool()
 	{
 		return f;
 	}

@@ -107,10 +107,6 @@ void SpriteBase<BaseRect>::draw() const
 	else
 	#endif
 	{
-//		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-//		if(!useFixedFunctionPipeline)
-//			setProgram(img->defaultProgram());
-//		#endif
 		BaseRect::draw();
 	}
 }

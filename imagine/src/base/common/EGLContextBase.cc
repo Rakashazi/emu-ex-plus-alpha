@@ -15,8 +15,8 @@
 
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
-#include <imagine/util/egl.hh>
 #include <EGL/eglext.h>
+#include <imagine/util/egl.hh>
 
 namespace Base
 {
@@ -25,8 +25,9 @@ static bool hasDummyPbuffConfig = false;
 static EGLConfig dummyPbuffConfig{};
 static EGLDisplay display = EGL_NO_DISPLAY;
 using EGLAttrList = StaticArrayList<int, 24>;
+using EGLContextAttrList = StaticArrayList<int, 16>;
 
-static EGLAttrList glConfigAttrsToEGLAttrs(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr, bool failsafe)
+static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr, bool failsafe)
 {
 	EGLAttrList list;
 
@@ -67,68 +68,41 @@ static EGLAttrList glConfigAttrsToEGLAttrs(const GLContextAttributes &ctxAttr, c
 	return list;
 }
 
-#ifndef CONFIG_GFX_OPENGL_ES
-static EGLContext createContextForMajorVersion(uint version, EGLDisplay dpy, EGLConfig config)
+static EGLContextAttrList glContextAttrsToGLXAttrs(GLContextAttributes attr)
 {
-	if(version >= 3)
-	{
-		{
-			// Try 3.2 Core
-			const EGLint attrCore3_2[]
-			{
-				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-				EGL_CONTEXT_MINOR_VERSION_KHR, 2,
-				EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
-				EGL_NONE
-			};
-			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attrCore3_2);
-			if(ctx != EGL_NO_CONTEXT)
-				return ctx;
-			logErr("failed creating 3.2 core context");
-		}
-		{
-			// Try 3.1
-			const EGLint attr3_1[] =
-			{
-				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-				EGL_CONTEXT_MINOR_VERSION_KHR, 1,
-				EGL_NONE
-			};
-			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attr3_1);
-			if(ctx != EGL_NO_CONTEXT)
-				return ctx;
-			logErr("failed creating 3.1 context");
-		}
-		{
-			// Try 3.0
-			const EGLint attr3_0[] =
-			{
-				EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-				EGL_CONTEXT_MINOR_VERSION_KHR, 0,
-				EGL_NONE
-			};
-			auto ctx = eglCreateContext(dpy, config, EGL_NO_CONTEXT, attr3_0);
-			if(ctx != EGL_NO_CONTEXT)
-				return ctx;
-			logErr("failed creating 3.0 context");
-		}
-		// Fallback to 1.2
-	}
-	const EGLint attr[] =
-	{
-		EGL_CONTEXT_MAJOR_VERSION_KHR, 1,
-		EGL_CONTEXT_MINOR_VERSION_KHR, 2,
-		EGL_NONE
-	};
-	auto ctx = eglCreateContext(dpy, config, 0, attr);
-	if(ctx != EGL_NO_CONTEXT)
-		return ctx;
-	logErr("failed creating 1.2 context");
-	return EGL_NO_CONTEXT;
-}
-#endif
+	EGLContextAttrList list;
 
-std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
+	if(attr.openGLESAPI())
+	{
+		list.push_back(EGL_CONTEXT_CLIENT_VERSION);
+		list.push_back(attr.majorVersion());
+	}
+	else
+	{
+		list.push_back(EGL_CONTEXT_MAJOR_VERSION_KHR);
+		list.push_back(attr.majorVersion());
+		list.push_back(EGL_CONTEXT_MINOR_VERSION_KHR);
+		list.push_back(attr.minorVersion());
+
+		if(attr.majorVersion() > 3
+			|| (attr.majorVersion() == 3 && attr.minorVersion() >= 2))
+		{
+			list.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR);
+			list.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR);
+		}
+	}
+
+	if(attr.debug())
+	{
+		list.push_back(EGL_CONTEXT_FLAGS_KHR);
+		list.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);
+	}
+
+	list.push_back(EGL_NONE);
+	return list;
+}
+
+std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	if(eglDisplay() == EGL_NO_DISPLAY)
 	{
@@ -172,48 +146,42 @@ EGLDisplay EGLContextBase::eglDisplay()
 		{
 			bug_exit("error initializing EGL");
 			display = EGL_NO_DISPLAY;
+			return display;
 		}
 		//logMsg("initialized EGL with display %ld", (long)display);
+		if(Config::DEBUG_BUILD)
+		{
+			logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
+		}
 	}
 	return display;
 }
 
-CallResult EGLContextBase::init(const GLContextAttributes &attr, const GLBufferConfig &config)
+CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	if(eglDisplay() == EGL_NO_DISPLAY)
 	{
 		logErr("unable to get EGL display");
 		return INVALID_PARAMETER;
 	}
-	if(Config::DEBUG_BUILD)
-		logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
-
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(!eglBindAPI(EGL_OPENGL_API))
-	{
-		bug_exit("OpenGL not a supported EGL API");
-	}
-	#endif
-
-	// TODO: EGL 1.5 or higher supports surfaceless without any extension
-	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
-	// create context
-	#ifdef CONFIG_GFX_OPENGL_ES
-		#if defined NDEBUG || defined CONFIG_MACHINE_PANDORA || defined __ANDROID__
-		auto attributes = attr.majorVersion() == 1 ? nullptr : eglAttrES2Ctx;
-		#else
-		auto attributes = attr.majorVersion() == 1 ? nullptr : eglAttrES2DebugCtx;
-		#endif
-	logMsg("making ES %d context", attr.majorVersion());
-	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, attributes);
-	#else
-	context = createContextForMajorVersion(attr.majorVersion(), display, config.glConfig);
-	#endif
+	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
+	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToGLXAttrs(attr)[0]);
 	if(context == EGL_NO_CONTEXT)
 	{
-		logErr("error creating context: 0x%X", (int)eglGetError());
-		return INVALID_PARAMETER;
+		if(attr.debug())
+		{
+			logMsg("retrying without debug bit");
+			attr.setDebug(false);
+			context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToGLXAttrs(attr)[0]);
+		}
+		if(context == EGL_NO_CONTEXT)
+		{
+			logErr("error creating context: 0x%X", (int)eglGetError());
+			return INVALID_PARAMETER;
+		}
 	}
+	// TODO: EGL 1.5 or higher supports surfaceless without any extension
+	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
 	if(!supportsSurfaceless)
 	{
 		logMsg("surfaceless context not supported");
@@ -244,7 +212,10 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	{
 		assert(context != EGL_NO_CONTEXT);
 		logMsg("setting surface %ld current", (long)win->surface);
-		eglMakeCurrent(display, win->surface, win->surface, context);
+		if(eglMakeCurrent(display, win->surface, win->surface, context) == EGL_FALSE)
+		{
+			bug_exit("error setting surface current");
+		}
 	}
 	else
 	{
@@ -301,6 +272,11 @@ void EGLContextBase::swapBuffers(Window &win)
 GLContext::operator bool() const
 {
 	return context != EGL_NO_CONTEXT;
+}
+
+bool GLContext::operator ==(GLContext const &rhs) const
+{
+	return context == rhs.context;
 }
 
 void EGLContextBase::deinit()

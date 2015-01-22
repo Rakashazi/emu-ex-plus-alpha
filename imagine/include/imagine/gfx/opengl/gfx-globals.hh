@@ -13,6 +13,31 @@
 #include <imagine/gfx/Mat4.hh>
 #include "glIncludes.h"
 
+namespace Config
+{
+	namespace Gfx
+	{
+	#if !defined CONFIG_BASE_MACOSX && \
+	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
+	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = true;
+	#else
+	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = false;
+	#endif
+
+	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
+	#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	static constexpr bool OPENGL_SHADER_PIPELINE = true;
+	#else
+	static constexpr bool OPENGL_SHADER_PIPELINE = false;
+	#endif
+
+	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE && !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
+	#endif
+	}
+}
+
 namespace Gfx
 {
 /*#ifdef CONFIG_BASE_ANDROID
@@ -163,7 +188,7 @@ public:
 	bool init(Shader vShader, Shader fShader, bool hasColor, bool hasTex);
 	void deinit();
 	bool link();
-	operator bool() const
+	explicit operator bool() const
 	{
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 		return program_;

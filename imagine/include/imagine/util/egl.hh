@@ -4,25 +4,24 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 
+#ifndef EGL_CONTEXT_MAJOR_VERSION_KHR
+#define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
+#endif
+#ifndef EGL_CONTEXT_MINOR_VERSION_KHR
+#define EGL_CONTEXT_MINOR_VERSION_KHR 0x30FB
+#endif
 #ifndef EGL_CONTEXT_FLAGS_KHR
 #define EGL_CONTEXT_FLAGS_KHR 0x30FC
+#endif
+#ifndef EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR
+#define EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR 0x30FD
 #endif
 #ifndef EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR
 #define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR 0x00000001
 #endif
-
-static const EGLint eglAttrES2Ctx[] =
-{
-	EGL_CONTEXT_CLIENT_VERSION, 2,
-	EGL_NONE
-};
-
-static const EGLint eglAttrES2DebugCtx[] =
-{
-	EGL_CONTEXT_CLIENT_VERSION, 2,
-	EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
-	EGL_NONE
-};
+#ifndef EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR
+#define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR 0x00000001
+#endif
 
 static const char* eglSurfaceTypeToStr(EGLint type)
 {

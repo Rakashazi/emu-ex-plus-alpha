@@ -110,6 +110,7 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 	win.screen()->addOnFrame(
 		[&win](Base::Screen &screen, Base::Screen::FrameParams params)
 		{
+			Gfx::bind();
 			auto frameTime = params.frameTime();
 
 			if(activeTest->frames % 8 == 0)
@@ -148,6 +149,7 @@ CallResult onInit(int argc, char** argv)
 		{
 			if(change.resized())
 			{
+				Gfx::bind();
 				auto viewport = Gfx::Viewport::makeFromWindow(win);
 				projMat = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.);
 				projP = Gfx::ProjectionPlane::makeWithMatrix(viewport, projMat);
@@ -176,6 +178,7 @@ CallResult onInit(int argc, char** argv)
 	winConf.setOnInputEvent(
 		[](Base::Window &, const Input::Event &e)
 		{
+			Gfx::bind();
 			if(!activeTest)
 			{
 				if(e.pushed() && e.isDefaultCancelButton())

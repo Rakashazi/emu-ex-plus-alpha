@@ -34,7 +34,7 @@ public:
 	void initTexture(IG::PixmapDesc &pix, uint filter);
 	BufferImage &texture() { return tex; };
 	void setCurrent();
-	operator bool() const;
+	explicit operator bool() const;
 	static void setDefaultCurrent();
 };
 

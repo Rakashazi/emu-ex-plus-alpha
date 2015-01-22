@@ -38,7 +38,7 @@ public:
 		return displayLink == rhs.displayLink;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		//TODO
 		return displayLink;

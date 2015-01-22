@@ -22,9 +22,7 @@
 namespace Base
 {
 
-static EGLContext activityThreadContext = EGL_NO_CONTEXT;
-
-GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
+GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	auto configResult = chooseConfig(ctxAttr, attr);
 	if(std::get<CallResult>(configResult) != OK)
@@ -39,7 +37,7 @@ EGLDisplay EGLContextBase::getDisplay()
 	return eglGetDisplay(EGL_DEFAULT_DISPLAY);
 }
 
-CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &config)
+CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	auto result = EGLContextBase::init(attr, config);
 	if(result != OK)
@@ -54,16 +52,7 @@ void GLContext::deinit()
 
 void GLContext::setCurrent(GLContext c, Window *win)
 {
-	activityThreadContext = c.context; // TODO: check current thread
 	setCurrentContext(c.context, win);
-}
-
-bool AndroidGLContext::validateActivityThreadContext()
-{
-	if(eglGetCurrentContext() == activityThreadContext)
-		return true; // unchanged
-	setCurrentContext(activityThreadContext, nullptr);
-	return false;
 }
 
 void GLContext::present(Window &win)
@@ -102,6 +91,11 @@ void AndroidGLContext::swapPresentedBuffers(Window &win)
 bool AndroidGLContext::swapBuffersIsAsync()
 {
 	return Base::androidSDK() >= 16;
+}
+
+bool GLContext::bindAPI(API api)
+{
+	return api == OPENGL_ES_API;
 }
 
 }

@@ -133,6 +133,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	Input::startSysTextInput(
 		[this](const char *str)
 		{
+			Gfx::bind();
 			if(!str)
 			{
 				logMsg("text collection canceled by external source");

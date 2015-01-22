@@ -20,8 +20,9 @@
 namespace Base
 {
 
-CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &)
+CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
 {
+	assert(attr.openGLESAPI());
 	if(attr.majorVersion() == 1)
 		context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1]);
 	else if(attr.majorVersion() == 2)
@@ -32,7 +33,7 @@ CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig
 	return OK;
 }
 
-GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &, const GLBufferConfigAttributes &attr)
+GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
 	if(attr.preferredColorBits() <= 16)
@@ -93,6 +94,11 @@ GLContext::operator bool() const
 	return context_;
 }
 
+bool GLContext::operator ==(GLContext const &rhs) const
+{
+	return context_ == rhs.context_;
+}
+
 void GLContext::deinit()
 {
 	if(context_)
@@ -100,6 +106,16 @@ void GLContext::deinit()
 		CFRelease(context_);
 		context_ = nil;
 	}
+}
+
+bool GLContext::bindAPI(API api)
+{
+	return api == OPENGL_ES_API;
+}
+
+void *GLContext::procAddress(const char *funcName)
+{
+	return nullptr;
 }
 
 }

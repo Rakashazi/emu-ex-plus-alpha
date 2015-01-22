@@ -1,5 +1,5 @@
 #pragma once
-#include <imagine/gfx/opengl/glIncludes.h>
+#include <imagine/gfx/opengl/gfx-globals.hh>
 #include <imagine/base/GLContext.hh>
 #include "utils.h"
 #include "GLStateCache.hh"

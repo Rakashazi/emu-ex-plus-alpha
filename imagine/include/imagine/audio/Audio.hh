@@ -44,7 +44,7 @@ struct BufferContext
 	constexpr BufferContext() {}
 	constexpr BufferContext(void *data, uframes frames): data{data}, frames{frames} {}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return data;
 	}

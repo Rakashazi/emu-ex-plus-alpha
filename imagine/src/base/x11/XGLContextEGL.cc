@@ -112,4 +112,12 @@ void XGLContext::swapPresentedBuffers(Window &win)
 	}
 }
 
+bool GLContext::bindAPI(API api)
+{
+	if(api == OPENGL_ES_API)
+		return eglBindAPI(EGL_OPENGL_ES_API);
+	else
+		return eglBindAPI(EGL_OPENGL_API);
+}
+
 }

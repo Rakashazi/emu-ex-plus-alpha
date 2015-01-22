@@ -153,7 +153,7 @@ void PosixFileIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 
 PosixFileIO::operator bool()
 {
-	return io();
+	return (bool)io();
 }
 
 IO &PosixFileIO::io()

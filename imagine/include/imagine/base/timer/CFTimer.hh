@@ -34,7 +34,7 @@ public:
 	void callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime, CFTimeInterval repeatInterval, bool shouldReuseResources);
 	void deinit();
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return armed;
 	}

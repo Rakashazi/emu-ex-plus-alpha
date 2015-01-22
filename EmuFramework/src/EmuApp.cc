@@ -279,6 +279,7 @@ void setEmuViewOnExtraWindow(bool on)
 				if(change.resized())
 				{
 					logMsg("view resize for extra window");
+					Gfx::bind();
 					updateProjection(extraWin, makeViewport(win));
 					emuView2.setViewRect(extraWin.viewport().bounds(), extraWin.projectionPlane);
 					emuView2.place();
@@ -306,12 +307,16 @@ void setEmuViewOnExtraWindow(bool on)
 			[](Base::Window &win, const Input::Event &e)
 			{
 				if(!e.isPointer())
+				{
+					Gfx::bind();
 					handleInputEvent(win, e);
+				}
 			});
 
 		winConf.setOnFocusChange(
 			[](Base::Window &win, uint in)
 			{
+				Gfx::bind();
 				extraWin.focused = in;
 				onFocusChange(in);
 			});
@@ -441,6 +446,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Base::setOnResume(
 		[](bool focused)
 		{
+			Gfx::bind();
 			if(updateInputDevicesOnResume)
 			{
 				updateInputDevices();
@@ -461,6 +467,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Base::setOnFreeCaches(
 		[]()
 		{
+			Gfx::bind();
 			if(View::defaultFace)
 				View::defaultFace->freeCaches();
 			if(View::defaultSmallFace)
@@ -471,6 +478,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](bool backgrounded)
 		{
 			Audio::closePcm();
+			Gfx::bind();
 			if(backgrounded)
 			{
 				pauseEmulation();
@@ -526,6 +534,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 
 			if(Base::appIsRunning())
 			{
+				Gfx::bind();
 				updateInputDevices();
 				EmuControls::updateAutoOnScreenControlVisible();
 
@@ -558,6 +567,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](const char *filename)
 		{
 			logMsg("got IPC: %s", filename);
+			Gfx::bind();
 			handleOpenFileCommand(filename);
 		});
 	initOptions();
@@ -654,12 +664,14 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	winConf.setOnInputEvent(
 		[](Base::Window &win, const Input::Event &e)
 		{
+			Gfx::bind();
 			handleInputEvent(win, e);
 		});
 
 	winConf.setOnFocusChange(
 		[](Base::Window &win, uint in)
 		{
+			Gfx::bind();
 			mainWin.focused = in;
 			onFocusChange(in);
 		});
@@ -668,6 +680,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](Base::Window &win, const char *filename)
 		{
 			logMsg("got DnD: %s", filename);
+			Gfx::bind();
 			handleOpenFileCommand(filename);
 		});
 
@@ -676,6 +689,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		{
 			if(change.resized())
 			{
+				Gfx::bind();
 				updateWindowViewport(mainWin, change);
 				emuView.setViewRect(mainWin.viewport().bounds(), mainWin.projectionPlane);
 				placeElements();

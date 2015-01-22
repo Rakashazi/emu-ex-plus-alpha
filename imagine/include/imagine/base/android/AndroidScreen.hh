@@ -49,7 +49,7 @@ public:
 		return id == rhs.id;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return aDisplay;
 	}

@@ -36,7 +36,7 @@ public:
 	uint channel() { return addr.l2_psm; }
 	void requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName);
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return fd != -1;
 	}

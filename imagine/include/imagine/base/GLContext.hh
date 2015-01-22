@@ -2,6 +2,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/base/Window.hh>
+#include <imagine/util/operators.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGLContext.hh>
@@ -71,13 +72,15 @@ public:
 class GLContextAttributes
 {
 private:
-	uint majorVer{};
-	uint minorVer{};
+	uint majorVer = 1;
+	uint minorVer = 0;
 	bool glesAPI = false;
+	bool debug_ = false;
 
 public:
 	void setMajorVersion(uint majorVer)
 	{
+		assert(majorVer > 0);
 		var_selfs(majorVer);
 	}
 
@@ -105,16 +108,29 @@ public:
 	{
 		return glesAPI;
 	}
+
+	void setDebug(bool debug)
+	{
+		debug_ = debug;
+	}
+
+	bool debug() const
+	{
+		return debug_;
+	}
 };
 
-class GLContext : public GLContextImpl
+class GLContext : public GLContextImpl, public NotEquals<GLContext>
 {
 public:
+	enum API {OPENGL_API, OPENGL_ES_API};
+
 	constexpr GLContext() {}
-	CallResult init(const GLContextAttributes &attr, const GLBufferConfig &config);
-	operator bool() const;
+	CallResult init(GLContextAttributes attr, GLBufferConfig config);
+	explicit operator bool() const;
+	bool operator ==(GLContext const &rhs) const;
 	void deinit();
-	static GLBufferConfig makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr);
+	static GLBufferConfig makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
 	static GLContext current();
 	static void *procAddress(const char *funcName);
 	static void setCurrent(GLContext context, Window *win);
@@ -122,6 +138,7 @@ public:
 	static void setDrawable(Window *win, GLContext cachedCurrentContext);
 	static void present(Window &win);
 	static void present(Window &win, GLContext cachedCurrentContext);
+	static bool bindAPI(API api);
 };
 
 }

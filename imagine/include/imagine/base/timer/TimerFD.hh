@@ -46,7 +46,7 @@ public:
 		return fd == rhs.fd;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return armed;
 	}

@@ -158,7 +158,7 @@ public:
 	virtual size_t size() = 0;
 	virtual bool eof() = 0;
 	virtual void advise(off_t offset, size_t bytes, Advice advice) {}
-	virtual operator bool() = 0;
+	virtual explicit operator bool() = 0;
 };
 
 class GenericIO : public IOUtils<GenericIO>
@@ -191,7 +191,7 @@ public:
 	size_t size();
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
-	operator bool();
+	explicit operator bool();
 
 protected:
 	std::unique_ptr<IO> io;

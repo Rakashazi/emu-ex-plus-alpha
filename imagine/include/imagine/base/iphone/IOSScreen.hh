@@ -42,7 +42,7 @@ public:
 		return uiScreen_ == rhs.uiScreen_;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return uiScreen_;
 	}

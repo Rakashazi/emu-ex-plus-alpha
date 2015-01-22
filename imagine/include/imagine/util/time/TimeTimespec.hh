@@ -115,7 +115,7 @@ public:
 		return timespec_toDouble(t);
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return t.tv_sec != 0 || t.tv_nsec != 0;
 	}

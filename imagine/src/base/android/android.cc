@@ -61,44 +61,11 @@ static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback;
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
-uint androidUIInUse = 0;
 AInputQueue *inputQueue{};
 
 // window
 JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
 JavaInstMethod<int> jWinFormat, jWinFlags;
-
-void unrefUIGL()
-{
-	assert(androidUIInUse);
-	androidUIInUse--;
-	if(!androidUIInUse)
-	{
-		//logMsg("no more Android UI elements in use");
-	}
-}
-
-void refUIGL()
-{
-	androidUIInUse++;
-	auto &screen = mainScreen();
-	screen.addOnFrameOnce(
-		[](Screen &screen, Screen::FrameParams params)
-		{
-			// an Android UI element like EditText may make its
-			// own context current so make sure setAsDrawTarget restores ours
-			restoreOpenGLContext();
-			if(androidUIInUse)
-			{
-				// do callback each frame until UI use stops
-				screen.addOnFrame(params.thisOnFrame());
-			}
-			else
-			{
-				logMsg("stopping per-frame context check");
-			}
-		});
-}
 
 uint appActivityState() { return appState; }
 

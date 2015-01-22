@@ -35,7 +35,7 @@ public:
 	CallResult seek(off_t offset, SeekMode mode) override;
 	size_t size() override;
 	bool eof() override;
-	operator bool() override;
+	explicit operator bool() override;
 	#if defined __linux__ || defined __APPLE__
 	void advise(off_t offset, size_t bytes, Advice advice) override;
 	#endif

@@ -28,7 +28,7 @@ namespace Base
 struct IOSGLContext
 {
 protected:
-	void *context_ = nullptr; // EAGLContext in ObjC
+	void *context_{}; // EAGLContext in ObjC
 
 public:
 	constexpr IOSGLContext() {}

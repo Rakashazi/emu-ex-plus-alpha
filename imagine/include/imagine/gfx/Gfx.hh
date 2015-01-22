@@ -40,6 +40,7 @@ void setWindowValidOrientations(Base::Window &win, uint validO);
 bool setCurrentWindow(Base::Window *win);
 bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat);
 void presentWindow(Base::Window &win);
+bool bind(); // for callbacks using Gfx functions to verify context is bound, and that don't call setCurrentWindow
 void setViewport(const Viewport &v);
 void setProjectionMatrix(const Mat4 &mat);
 void setProjectionMatrixRotation(Angle angle);

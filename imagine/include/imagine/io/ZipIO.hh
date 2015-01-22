@@ -40,7 +40,7 @@ public:
 	void close() override;
 	size_t size() override;
 	bool eof() override;
-	operator bool() override;
+	explicit operator bool() override;
 
 private:
 	unzFile zip{};

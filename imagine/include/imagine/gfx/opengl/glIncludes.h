@@ -23,14 +23,6 @@
 	#endif
 #endif
 
-#if !defined CONFIG_BASE_MACOSX && \
-	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
-#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-#endif
-#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
-#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
-#endif
-
 // Header Locations For Platform
 
 #if defined CONFIG_BASE_IOS

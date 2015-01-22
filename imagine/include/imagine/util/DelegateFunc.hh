@@ -57,7 +57,7 @@ public:
 		execData{func}
 	{}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return exec;
 	}

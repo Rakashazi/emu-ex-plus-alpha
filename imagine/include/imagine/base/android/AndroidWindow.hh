@@ -46,7 +46,7 @@ public:
 		return nWin == rhs.nWin;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return initialInit;
 	}
@@ -68,7 +68,7 @@ struct GLBufferConfig
 		glConfig{eglConfig}, isInit{true} {}
 	constexpr GLBufferConfig() {}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return isInit;
 	}

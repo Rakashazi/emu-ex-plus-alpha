@@ -28,7 +28,7 @@ namespace Base
 struct CocoaGLContext
 {
 protected:
-	void *context_ = nullptr; // NSOpenGLContext in ObjC
+	void *context_{}; // NSOpenGLContext in ObjC
 
 public:
 	constexpr CocoaGLContext() {}

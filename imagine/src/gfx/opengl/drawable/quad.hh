@@ -36,10 +36,6 @@ void QuadGeneric<Vtx>::draw() const
 	if(!Vtx::hasTexture)
 	{
 		Gfx::setActiveTexture(0);
-//		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-//		if(!useFixedFunctionPipeline)
-//			setProgram(noTexProgram);
-//		#endif
 	}
 	if(useVBOFuncs)
 	{
