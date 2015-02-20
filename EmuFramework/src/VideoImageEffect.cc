@@ -74,7 +74,8 @@ void VideoImageEffect::initRenderTargetTexture()
 	renderPix.x = renderTargetImgSize.x;
 	renderPix.y = renderTargetImgSize.y;
 	renderPix.pitch = renderPix.x * renderPix.format.bytesPerPixel;
-	renderTarget_.initTexture(renderPix, useLinearFilter ? Gfx::BufferImage::LINEAR : Gfx::BufferImage::NEAREST);
+	renderTarget_.initTexture(renderPix);
+	Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler();
 }
 
 void VideoImageEffect::compile(bool isExternalTex)
@@ -248,17 +249,6 @@ void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
 		initRenderTargetTexture();
 }
 
-void VideoImageEffect::setLinearFilter(bool on)
-{
-	if(useLinearFilter == on)
-		return;
-	useLinearFilter = on;
-	if(renderTarget_)
-	{
-		renderTarget_.texture().setLinearFilter(useLinearFilter);
-	}
-}
-
 void VideoImageEffect::setBitDepth(uint bitDepth)
 {
 	useRGB565RenderTarget = bitDepth <= 16;
@@ -284,14 +274,15 @@ Gfx::RenderTarget &VideoImageEffect::renderTarget()
 	return renderTarget_;
 }
 
-void VideoImageEffect::drawRenderTarget(Gfx::BufferImage &img)
+void VideoImageEffect::drawRenderTarget(Gfx::PixmapTexture &img)
 {
 	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
 	Gfx::setViewport(viewport);
 	Gfx::setProjectionMatrix({});
+	Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler();
 	Gfx::Sprite spr;
-	spr.init(-1., -1., 1., 1.);
-	spr.setImg(&img, 0., 1., 1., 0.);
+	spr.init({-1., -1., 1., 1.});
+	spr.setImg(&img, {0., 1., 1., 0.});
 	spr.draw();
 	spr.setImg(nullptr);
 }

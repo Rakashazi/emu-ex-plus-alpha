@@ -44,34 +44,35 @@ static ColorComp vColor[4]{}; // color when using shader pipeline
 static ColorComp texEnvColor[4]{}; // color when using shader pipeline
 static Base::Timer releaseShaderCompilerTimer;
 
-void setActiveTexture(TextureHandle texture, uint type)
+TextureRef newTex()
+{
+	GLuint ref;
+	glGenTextures(1, &ref);
+	//logMsg("created texture:0x%X", ref);
+	return ref;
+}
+
+void deleteTex(TextureRef texRef)
+{
+	//logMsg("deleting texture:0x%X", texRef);
+	glcDeleteTextures(1, &texRef);
+}
+
+void setActiveTexture(TextureRef texture, uint target)
 {
 	bool setGLState = useFixedFunctionPipeline;
-
-	#if !defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	type = GL_TEXTURE_2D;
-	#endif
-	if(texture != 0)
+	if(setGLState && target != GL_TEXTURE_2D)
+		bug_exit("cannot manage different texture target state");
+	if(texture)
 	{
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		//GLenum otherTarget = type == GL_TEXTURE_EXTERNAL_OES ? GL_TEXTURE_2D : GL_TEXTURE_EXTERNAL_OES;
-		//glcDisable(otherTarget);
-		if(setGLState && type == GL_TEXTURE_2D)
-			glcDisable(GL_TEXTURE_EXTERNAL_OES);
-		// enabling GL_TEXTURE_EXTERNAL_OES overrides GL_TEXTURE_2D so no need to
-		// handle disabling GL_TEXTURE_2D
-		#endif
-		glcBindTexture(type, texture);
+		glcBindTexture(target, texture);
 		if(setGLState)
-			glcEnable(type);
+			glcEnable(GL_TEXTURE_2D);
 	}
-	else if(setGLState)
+	else
 	{
-		glcDisable(GL_TEXTURE_2D);
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-		glcDisable(GL_TEXTURE_EXTERNAL_OES);
-		#endif
-		// TODO: binding texture 0 causes implicit glDisable(GL_TEXTURE_2D) ?
+		if(setGLState)
+			glcDisable(GL_TEXTURE_2D);
 	}
 }
 
@@ -303,7 +304,7 @@ void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 	glClearColor((float)r, (float)g, (float)b, (float)a);
 }
 
-void setDither(uint on)
+void setDither(bool on)
 {
 	if(on)
 		glcEnable(GL_DITHER);

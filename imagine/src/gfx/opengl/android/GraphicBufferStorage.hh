@@ -15,29 +15,25 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 #include "../../../base/android/android.hh"
 
 namespace Gfx
 {
 
-struct DirectTextureBufferImage: public TextureBufferImage
+struct GraphicBufferStorage: public DirectTextureStorage
 {
-	IG::Pixmap eglPixmap {PixelFormatRGB565};
 	android_native_buffer_t eglBuf;
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
+	uint pitch = 0;
 
-	constexpr DirectTextureBufferImage() {}
+	constexpr GraphicBufferStorage() {}
+	~GraphicBufferStorage() override;
+	CallResult init();
+	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
+	Buffer lock() override;
+	void unlock(GLuint tex) override;
 	static bool testSupport(const char **errorStr);
-	bool init(IG::Pixmap &pix, uint texRef, uint usedX, uint usedY, const char **errorStr = nullptr);
-	void write(IG::Pixmap &p, uint hints) override;
-	void write(IG::Pixmap &p, uint hints, uint alignment) override;
-	IG::Pixmap *lock(uint x, uint y, uint xlen, uint ylen, IG::Pixmap *fallback = nullptr) override;
-	void unlock(IG::Pixmap *p = nullptr, uint hints = 0) override;
-	void deinit() override;
-
-private:
-	bool initTexture(IG::Pixmap &pix, uint usedX, uint usedY, bool testLock, const char **errorStr = nullptr);
 };
 
 }

@@ -32,11 +32,9 @@ class OptionView : public TableView
 {
 protected:
 	// Video
-	#ifdef CONFIG_BASE_ANDROID
-		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		BoolMenuItem directTexture;
-		#endif
-		BoolMenuItem surfaceTexture;
+	#ifdef __ANDROID__
+	BoolMenuItem directTexture;
+	BoolMenuItem surfaceTexture;
 	#endif
 	MultiChoiceSelectMenuItem frameSkip;
 	void frameSkipInit();

@@ -98,7 +98,7 @@ Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::
 
 OptionAspectRatio optionAspectRatio(EmuSystem::aspectRatioInfo[0].aspect);
 
-Byte4s1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, Gfx::BufferImage::LINEAR, 0, Gfx::BufferImage::isFilterValid);
+Byte1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, 1, 0);
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<VideoImageEffect::LAST_EFFECT_VAL-1>);
 #endif
@@ -196,13 +196,11 @@ Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
 OptionRecentGames optionRecentGames;
 
-#ifdef CONFIG_BASE_ANDROID
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	// Default & current setting isn't known until OpenGL init
-	Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
-	#endif
-	Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
-	SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
+#ifdef __ANDROID__
+// Default & current setting isn't known until OpenGL init
+Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
+Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
+SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);

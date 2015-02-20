@@ -1,29 +1,25 @@
 #pragma once
 
 #include <imagine/engine-globals.h>
+#include <imagine/gfx/defs.hh>
 #include <imagine/util/number.h>
 #include <algorithm>
 
 class TextureSizeSupport
 {
 public:
-	bool nonPow2;
-	bool nonSquare;
-	bool filtering;
-	bool nonPow2CanMipmap;
-	uint minXSize, minYSize;
-	uint maxXSize, maxYSize;
+	bool nonPow2 = Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2;
+	static constexpr bool nonSquare = true;
+	bool nonPow2CanMipmap = false;
+	bool nonPow2CanRepeat = false;
+	uint maxXSize = 0, maxYSize = 0;
 
-	static const uint streamHint = IG::bit(0);
+	constexpr TextureSizeSupport() {}
 
-	void findBufferXYPixels(uint &x, uint &y, uint imageX, uint imageY, uint hints = 0)
+	bool findBufferXYPixels(uint &x, uint &y, uint imageX, uint imageY)
 	{
 		using namespace IG;
-		if(nonPow2
-			/*#ifndef CONFIG_BASE_PS3
-				&& (hints & streamHint) // don't use npot for static use textures
-			#endif*/
-			)
+		if(nonPow2)
 		{
 			x = imageX;
 			y = imageY;
@@ -43,14 +39,11 @@ public:
 			// force small textures as square due to PowerVR driver bug
 			x = y = std::max(x, y);
 		}
-
-		if(minXSize && x < minXSize) x = minXSize;
-		if(minYSize && y < minYSize) y = minYSize;
+		return x == imageX && y == imageY;
 	}
 
 	bool supportsMipmaps(uint imageX, uint imageY)
 	{
-		// TODO: setup and use nonPow2CanMipmap variable
-		return IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY);
+		return nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY));
 	}
 };

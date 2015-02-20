@@ -830,7 +830,7 @@ void updateVControlImg()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
-		static Gfx::BufferImage overlayImg;
+		static Gfx::PixmapTexture overlayImg;
 		PngFile png;
 		auto filename =	"overlays128.png";
 		if(png.loadAsset(filename) != OK)
@@ -843,7 +843,7 @@ void updateVControlImg()
 	#endif
 	if(EmuSystem::inputHasKeyboard)
 	{
-		static Gfx::BufferImage kbOverlayImg;
+		static Gfx::PixmapTexture kbOverlayImg;
 		PngFile png;
 		if(png.loadAsset("kbOverlay.png") != OK)
 		{

@@ -17,6 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/util/pixel.h>
+#include <imagine/util/rectangle2.h>
 
 namespace IG
 {
@@ -26,9 +27,9 @@ class PixmapDesc
 public:
 	uint x = 0, y = 0;
 	uint pitch = 0; // bytes per line
-	const PixelFormatDesc &format;
+	PixelFormatDesc format;
 
-	constexpr PixmapDesc(const PixelFormatDesc &format): format(format) {}
+	constexpr PixmapDesc(PixelFormatDesc format): format(format) {}
 
 	uint sizeOfPixels(uint pixels) const
 	{
@@ -40,6 +41,11 @@ public:
 		return pitch * (y * format.bytesPerPixel);
 	}
 
+	uint unpaddedSize() const
+	{
+		return x * y * format.bytesPerPixel;
+	}
+
 	uint pitchPixels() const
 	{
 		return pitch / format.bytesPerPixel;
@@ -49,15 +55,20 @@ public:
 	{
 		return x != pitchPixels();
 	}
+
+	bool isSameGeometry(PixmapDesc other)
+	{
+		return x == other.x && y == other.y;
+	}
 };
 
 class Pixmap : public PixmapDesc
 {
 public:
-	char *data = nullptr;
+	char *data{};
 
-	constexpr Pixmap(const PixelFormatDesc &format): PixmapDesc{format} {}
-	constexpr Pixmap(const PixmapDesc &desc): PixmapDesc{desc} {}
+	constexpr Pixmap(PixelFormatDesc format): PixmapDesc{format} {}
+	constexpr Pixmap(PixmapDesc desc): PixmapDesc{desc} {}
 	char *getPixel(uint x, uint y) const;
 
 	void init2(void *data, uint x, uint y, uint pitch)
@@ -77,22 +88,23 @@ public:
 	void copy(int srcX, int srcY, int width, int height, Pixmap &dest, int destX, int destY) const;
 	void clearRect(uint xStart, uint yStart, uint xlen, uint ylen);
 	void initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint ylen);
+	Pixmap makeSubPixmap(IG::WP offset, IG::WP size);
 	uint size() const { return y * pitch; }
-	/*void copyHLineToRectFromSelf(uint xStart, uint yStart, uint xlen, uint xDest, uint yDest, uint yDestLen);
-	void copyVLineToRectFromSelf(uint xStart, uint yStart, uint ylen, uint xDest, uint yDest, uint xDestLen);
-	void copyPixelToRectFromSelf(uint xStart, uint yStart, uint xDest, uint yDest, uint xDestLen, uint yDestLen);
-	void subPixmapOffsets(Pixmap *sub, uint *x, uint *y) const;*/
+	explicit operator bool() const { return data; }
 };
 
-class ManagedPixmap : public Pixmap
+class StaticManagedPixmap : public Pixmap
 {
 public:
-	constexpr ManagedPixmap(const PixelFormatDesc &format): Pixmap(format) {}
+	constexpr StaticManagedPixmap(PixelFormatDesc format): Pixmap{format} {}
 
-	void init(uint x, uint y)
+	bool init(uint x, uint y)
 	{
 		auto buffer = (char*)mem_realloc(data, x * y * format.bytesPerPixel);
+		if(!buffer)
+			return false;
 		Pixmap::init(buffer, x, y);
+		return true;
 	}
 
 	void deinit()
@@ -102,6 +114,16 @@ public:
 			mem_free(data);
 			data = nullptr;
 		}
+	}
+};
+
+class ManagedPixmap : public StaticManagedPixmap
+{
+public:
+	constexpr ManagedPixmap(PixelFormatDesc format): StaticManagedPixmap{format} {}
+	~ManagedPixmap()
+	{
+		deinit();
 	}
 };
 

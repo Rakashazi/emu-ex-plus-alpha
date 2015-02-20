@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
 #include <imagine/util/edge.h>
 #include "private.hh"
 
@@ -163,17 +162,6 @@ static void mapImg(Vtx v[4], GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTe
 	v[1].u = leftTexU; v[1].v = topTexV; //TL
 	v[2].u = rightTexU; v[2].v = bottomTexV; //BR
 	v[3].u = rightTexU; v[3].v = topTexV; //TR
-}
-
-template<class Vtx>
-static void mapImg(Vtx v[4], const Gfx::TextureDesc &img)
-{
-	auto leftTexU = img.xStart;
-	auto topTexV = img.yStart;
-	auto rightTexU = img.xEnd;
-	auto bottomTexV = img.yEnd;
-	//logMsg("setting UV map %f:%f:%f:%f from texture description", (double)leftTexU, (double)topTexV, (double)rightTexU, (double)bottomTexV);
-	mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV);
 }
 
 template<class Vtx>

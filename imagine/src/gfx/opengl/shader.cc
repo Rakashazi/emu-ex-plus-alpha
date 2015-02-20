@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
 #include "private.hh"
 
 namespace Gfx
@@ -40,11 +39,7 @@ static GLuint defaultVShader = 0;
 	#define GLSL_TEXTURE "texture"
 	#define GLSL_FRAGCOLOR "fragColor"
 	#define GLSL_FRAGCOLOR_DEF "out vec4 fragColor;\n"
-		#ifdef __APPLE__
-		#define GLSL_VERSION_DIRECTIVE "#version 150\n"
-		#else
-		#define GLSL_VERSION_DIRECTIVE "#version 130\n"
-		#endif
+	#define GLSL_VERSION_DIRECTIVE "#version 150\n"
 	#endif
 
 static const char *vShaderSrc =
@@ -149,7 +144,7 @@ GLSL_FIN " lowp vec2 texUVOut; "
 	static const char *texIntensityAlphaReplaceFragShaderSrc = nullptr;
 	#endif
 
-	#if defined CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
+	#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 	static const char *texExternalFragShaderSrc =
 	GLSL_VERSION_DIRECTIVE
 	GLSL_FRAGCOLOR_DEF
@@ -688,7 +683,7 @@ void DefaultTexIntensityAlphaProgram::use(const Mat4 *modelMat)
 
 bool DefaultTexExternalReplaceProgram::compile()
 {
-	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
+	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 	if(program() || useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
@@ -718,7 +713,7 @@ void DefaultTexExternalReplaceProgram::use(const Mat4 *modelMat)
 
 bool DefaultTexExternalProgram::compile()
 {
-	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
+	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 	if(program() || useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
@@ -764,7 +759,7 @@ void DefaultColorProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
-		setActiveTexture(0);
+		setActiveTexture(0, GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
 			loadTransform(*modelMat);

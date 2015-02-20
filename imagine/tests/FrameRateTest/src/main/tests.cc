@@ -179,11 +179,14 @@ void DrawTest::initTest(IG::Point2D<int> pixmapSize)
 	pixBuff = new char[pixmap.sizeOfPixels(pixmapSize.x * pixmapSize.y)];
 	pixmap.init(pixBuff, pixmapSize.x, pixmapSize.y);
 	memset(pixmap.data, 0xFF, pixmap.pitch * pixmap.y);
-	doOrAbort(texture.init(pixmap, texture.NEAREST, texture.HINT_STREAM));
+	Gfx::TextureConfig texConf{pixmap};
+	texConf.setWillWriteOften(true);
+	doOrAbort(texture.init(texConf));
+	texture.write(0, pixmap, {});
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-	texture.write(pixmap);
-	sprite.init(&texture);
+	sprite.init({}, texture);
+	Gfx::TextureSampler::initDefaultNoMipClampSampler();
 }
 
 void DrawTest::placeTest(const Gfx::GCRect &rect)
@@ -208,6 +211,7 @@ void DrawTest::drawTest()
 	using namespace Gfx;
 	Gfx::clear();
 	setBlendMode(Gfx::BLEND_MODE_OFF);
+	Gfx::TextureSampler::bindDefaultNoMipClampSampler();
 	sprite.useDefaultProgram(IMG_MODE_MODULATE);
 	if(flash)
 	{
@@ -228,6 +232,7 @@ void WriteTest::drawTest()
 	using namespace Gfx;
 	Gfx::clear();
 	setBlendMode(Gfx::BLEND_MODE_OFF);
+	Gfx::TextureSampler::bindDefaultNoMipClampSampler();
 	sprite.useDefaultProgram(IMG_MODE_REPLACE);
 	if(flash)
 	{
@@ -247,6 +252,6 @@ void WriteTest::drawTest()
 	{
 		memset(pixmap.data, 0, pixmap.pitch * pixmap.y);
 	}
-	texture.write(pixmap);
+	texture.write(0, pixmap, {});
 	sprite.draw();
 }

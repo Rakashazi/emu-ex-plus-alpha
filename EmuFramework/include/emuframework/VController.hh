@@ -34,14 +34,14 @@ public:
 	float diagonalSensitivity = 1.;
 	Gfx::Sprite spr;
 	uint state = 1;
-	Gfx::BufferImage mapImg;
-	IG::ManagedPixmap mapPix {PixelFormatRGB565};
+	Gfx::PixmapTexture mapImg;
+	IG::StaticManagedPixmap mapPix{PixelFormatRGB565};
 	Gfx::Sprite mapSpr;
 	bool visualizeBounds = 0;
 
 	constexpr VControllerDPad() {}
 	void init();
-	void setImg(Gfx::BufferImage &dpadR, Gfx::GC texHeight);
+	void setImg(Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
 	void draw();
 	void setBoundingAreaVisible(bool on);
 	int getInput(int cx, int cy);
@@ -65,11 +65,12 @@ public:
 	uint keyXSize = 0, keyYSize = 0;
 	static const uint cols = 10;
 	uint mode = 0;
+	Gfx::GTexC texXEnd = 0;
 
 	constexpr VControllerKeyboard() {}
 	void init();
 	void updateImg();
-	void setImg(Gfx::BufferImage *img);
+	void setImg(Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
 	void draw();
 	int getInput(int cx, int cy);
@@ -106,7 +107,7 @@ public:
 	void init(float alpha);
 	void setBoundingAreaVisible(bool on);
 	bool boundingAreaVisible();
-	void setImg(Gfx::BufferImage &pics);
+	void setImg(Gfx::PixmapTexture &pics);
 	uint rowsForButtons(uint activeButtons);
 	void setBaseBtnSize(uint sizeInPixels);
 	IG::WindowRect centerBtnBounds() const;
@@ -169,7 +170,7 @@ public:
 	void updateMapping(uint player);
 	void updateKeyboardMapping();
 	bool hasTriggers() const;
-	void setImg(Gfx::BufferImage &pics);
+	void setImg(Gfx::PixmapTexture &pics);
 	void setBoundingAreaVisible(bool on);
 	bool boundingAreaVisible();
 	void setMenuBtnPos(IG::Point2D<int> pos);

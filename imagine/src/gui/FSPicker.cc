@@ -19,16 +19,16 @@
 
 static const Gfx::LGradientStopDesc fsNavViewGrad[] =
 {
-	{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-	{ .3, VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-	{ .97, VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
-	{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	{ .03, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+	{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+	{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
+	{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 };
 
 // FSNavView
 
-void FSPicker::FSNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir)
+void FSPicker::FSNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, bool singleDir)
 {
 	if(singleDir)
 		backRes = nullptr;
@@ -61,6 +61,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
@@ -71,6 +72,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
@@ -79,7 +81,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 
 // FSPicker
 
-void FSPicker::init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
+void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	deinit();
 	#ifdef CONFIG_BASE_IOS

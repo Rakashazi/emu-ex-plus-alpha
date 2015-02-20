@@ -1,6 +1,7 @@
 #pragma once
 #include <imagine/gfx/opengl/gfx-globals.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/gfx/TextureSizeSupport.hh>
 #include "utils.h"
 #include "GLStateCache.hh"
 #include <imagine/util/Interpolator.hh>
@@ -23,21 +24,30 @@ extern bool checkGLErrorsVerbose;
 extern TimedInterpolator<Gfx::GC> projAngleM;
 extern GLfloat maximumAnisotropy, anisotropy, forceAnisotropy;
 extern bool useAnisotropicFiltering;
-bool usingAutoMipmaping();
 extern bool supportBGRPixels;
 extern GLenum bgrInternalFormat;
-extern bool useCompressedTextures;
 extern bool useFBOFuncs;
-extern bool useFBOFuncsEXT;
+using GenerateMipmapsProto = void (*)(GLenum target);
+extern GenerateMipmapsProto generateMipmaps;
 extern bool useVBOFuncs;
 extern GLuint globalStreamVBO[4];
 extern uint globalStreamVBOIdx;
 extern bool useTextureSwizzle;
+extern bool useUnpackRowLength;
+extern bool useSamplerObjects;
+extern GLenum luminanceFormat;
+extern GLenum luminanceInternalFormat;
+extern GLenum luminanceAlphaFormat;
+extern GLenum luminanceAlphaInternalFormat;
+extern GLenum alphaFormat;
+extern GLenum alphaInternalFormat;
+extern bool useImmutableTexStorage;
+extern TextureSizeSupport textureSizeSupport;
 
 static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 
-TextureHandle newTexRef();
-void freeTexRef(TextureHandle texRef);
+TextureRef newTex();
+void deleteTex(TextureRef texRef);
 
 void initShaders();
 GLuint makeProgram(GLuint vShader, GLuint fShader);
@@ -48,6 +58,17 @@ void updateProgramProjectionTransform(GLSLProgram &program);
 void updateProgramModelViewTransform(GLSLProgram &program);
 
 void setImgMode(uint mode);
+
+void setActiveTexture(TextureRef tex, uint target);
+
+#ifdef CONFIG_GFX_OPENGL_ES
+extern GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers);
+extern GL_APICALL void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers);
+extern GL_APICALL GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler);
+extern GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler);
+extern GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
+extern GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+#endif
 
 static const bool useGLCache = true;
 

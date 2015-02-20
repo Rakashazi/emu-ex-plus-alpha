@@ -1,112 +1,51 @@
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
 
-/*void TexVertexQuad::draw() const
-{
-	if(useVBOFuncs)
-	{
-		//logMsg("binding VBO id %d", vArr.ref);
-		glState_bindBuffer(GL_ARRAY_BUFFER, vArr.ref);
-		TexVertex::draw(0, TRIANGLE_STRIP, 4);
-	}
-	else
-		TexVertex::draw(v, TRIANGLE_STRIP, 4);
-}*/
 
 namespace Gfx
 {
 
 template<class BaseRect>
-CallResult SpriteBase<BaseRect>::init(GC x, GC y, GC x2, GC y2, BufferImage *img)
+CallResult SpriteBase<BaseRect>::init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds)
 {
-	BaseRect::init(x, y, x2, y2);
-
-	//logMsg("set sprite img %p", img);
+	BaseRect::init(pos.x, pos.y, pos.x2, pos.y2);
 	setImg(img);
-
+	setUVBounds(uvBounds);
 	return OK;
 }
 
-#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-static void setupCropRect(BufferImage *img)
-{
-	assert(useDrawTex);
-	logMsg("setting GL_TEXTURE_CROP_RECT_OES %d,%d", img->xSize, img->ySize);
-	GLint coords[] = {0, (int)img->ySize, (int)img->xSize, -(int)img->ySize};
-	#if !defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	GLenum target = GL_TEXTURE_2D;
-	#else
-	GLenum target = img->textureDesc().target;
-	#endif
-	Gfx::setActiveTexture(img->textureDesc().tid, target);
-	glTexParameteriv(target, GL_TEXTURE_CROP_RECT_OES, coords);
-}
-#endif
-
 template<class BaseRect>
-void SpriteBase<BaseRect>::setRefImg(BufferImage *newImg)
+void SpriteBase<BaseRect>::setImg(Texture *newImg)
 {
-	if(!newImg)
-	{
-		if(img)
-			img->freeRef();
-		img = nullptr;
-		return;
-	}
-
-	newImg->ref();
-	if(img)
-		img->freeRef();
 	img = newImg;
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(BufferImage *newImg)
+void SpriteBase<BaseRect>::setUVBounds(IG::Rect2<GTexC> uvBounds)
 {
-	setRefImg(newImg);
-	if(!newImg)
-		return;
-
-	Gfx::mapImg(BaseRect::v, newImg->textureDesc());
-	#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex)
-		setupCropRect(img);
-	#endif
-}
-
-template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(BufferImage *newImg, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
-{
-	setRefImg(newImg);
-	mapImg(leftTexU, topTexV, rightTexU, bottomTexV);
-}
-
-template<class BaseRect>
-void SpriteBase<BaseRect>::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
-{
-	//logMsg("setting UV map %f:%f:%f:%f", (double)leftTexU, (double)topTexV, (double)rightTexU, (double)bottomTexV);
-	Gfx::mapImg(BaseRect::v, leftTexU, topTexV, rightTexU, bottomTexV);
+	if(uvBounds.xSize())
+	{
+		//logMsg("setting UV bounds:%f:%f:%f:%f", (double)uvBounds.x, (double)uvBounds.y, (double)uvBounds.x2, (double)uvBounds.y2);
+		mapImg(BaseRect::v, uvBounds.x, uvBounds.y, uvBounds.x2, uvBounds.y2);
+	}
+	else
+	{
+		mapImg(BaseRect::v, 0., 0., 1., 1.);
+	}
 }
 
 template<class BaseRect>
 void SpriteBase<BaseRect>::deinit()
 {
-	setRefImg(nullptr);
 	BaseRect::deinit();
 }
 
 template<class BaseRect>
 void SpriteBase<BaseRect>::draw() const
 {
-	Gfx::setActiveTexture(img->textureDesc().tid, img->textureDesc().target);
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-	if(flags & HINT_NO_MATRIX_TRANSFORM && useDrawTex && projAngleM.isComplete())
+	if(likely(img))
 	{
-		glDrawTexiOES(screenX, screenY, 1, screenX2, screenY2);
-	}
-	else
-	#endif
-	{
+		img->bind();
 		BaseRect::draw();
 	}
 }

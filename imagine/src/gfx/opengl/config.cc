@@ -31,11 +31,9 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum, GLenum, GLuint, GLenum, GLsiz
 #define GL_DEBUG_OUTPUT_KHR 0x92E0
 #endif
 
-#ifndef APIENTRY
-#define APIENTRY
+#ifndef CONFIG_GFX_OPENGL_ES
+#define GL_APIENTRY APIENTRY
 #endif
-
-//#include "geometry-test.h"
 
 namespace Gfx
 {
@@ -45,9 +43,6 @@ GLint projectionUniform, modelViewUniform, textureUniform;
 GLfloat maximumAnisotropy, anisotropy = 0, forceAnisotropy = 0;
 bool useAnisotropicFiltering = false;
 static bool forceNoAnisotropicFiltering = true;
-
-bool useAutoMipmapGeneration = false;
-static bool forceNoAutoMipmapGeneration = false;
 
 static bool useMultisample = false;
 static bool forceNoMultisample = true;
@@ -67,11 +62,13 @@ bool preferBGRA = !forceNoBGRPixels, preferBGR = !forceNoBGRPixels;
 #endif
 GLenum bgrInternalFormat = GL_BGRA;
 
-bool useCompressedTextures = false;
-
 bool useFBOFuncs = false;
-bool useFBOFuncsEXT = false;
-static bool forceNoFBOFuncs = false;
+using GenerateMipmapsProto = void (*)(GLenum target);
+#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+GenerateMipmapsProto generateMipmaps = glGenerateMipmap;
+#else
+GenerateMipmapsProto generateMipmaps{}; // set via extensions
+#endif
 
 bool useVBOFuncs = false;
 #if defined CONFIG_GFX_OPENGL_ES || !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -86,6 +83,29 @@ uint globalStreamVBOIdx = 0;
 
 bool forceNoTextureSwizzle = false;
 bool useTextureSwizzle = false;
+
+bool useUnpackRowLength = !Config::Gfx::OPENGL_ES;
+
+bool useSamplerObjects = !Config::Gfx::OPENGL_ES;
+#ifdef CONFIG_GFX_OPENGL_ES
+GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
+GL_APICALL void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
+GL_APICALL GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler){};
+GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
+GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
+#endif
+
+GLenum luminanceFormat = GL_LUMINANCE;
+GLenum luminanceInternalFormat = GL_LUMINANCE8;
+GLenum luminanceAlphaFormat = GL_LUMINANCE_ALPHA;
+GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
+GLenum alphaFormat = GL_ALPHA;
+GLenum alphaInternalFormat = GL_ALPHA8;
+
+bool useImmutableTexStorage = false;
+#ifdef CONFIG_GFX_OPENGL_ES
+GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
+#endif
 
 static Base::GLBufferConfig gfxBufferConfig;
 
@@ -102,17 +122,6 @@ static Gfx::GC orientationToGC(uint o)
 	}
 }
 
-bool usingAutoMipmaping()
-{
-	if(useAutoMipmapGeneration
-		#ifndef CONFIG_GFX_OPENGL_ES
-		|| useFBOFuncs
-		#endif
-	  )
-		return 1;
-	else return 0;
-}
-
 static void setupAnisotropicFiltering()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -125,12 +134,6 @@ static void setupAnisotropicFiltering()
 	else anisotropy = maximumAnisotropy;
 	assert(anisotropy <= maximumAnisotropy);
 	#endif
-}
-
-static void setupAutoMipmapGeneration()
-{
-	logMsg("automatic mipmap generation supported");
-	useAutoMipmapGeneration = 1;
 }
 
 static void setupMultisample()
@@ -152,8 +155,26 @@ static void setupMultisampleHints()
 
 static void setupNonPow2Textures()
 {
-	logMsg("Non-Power-of-2 textures are supported");
-	Gfx::textureSizeSupport.nonPow2 = 1;
+	if(!Gfx::textureSizeSupport.nonPow2)
+		logMsg("Non-Power-of-2 textures supported");
+	Gfx::textureSizeSupport.nonPow2 = true;
+}
+
+static void setupNonPow2MipmapTextures()
+{
+	if(!Gfx::textureSizeSupport.nonPow2CanMipmap)
+		logMsg("Non-Power-of-2 textures with mipmaps supported");
+	Gfx::textureSizeSupport.nonPow2 = true;
+	Gfx::textureSizeSupport.nonPow2CanMipmap = true;
+}
+
+static void setupNonPow2MipmapRepeatTextures()
+{
+	if(!Gfx::textureSizeSupport.nonPow2CanRepeat)
+		logMsg("Non-Power-of-2 textures with mipmaps & repeat modes supported");
+	Gfx::textureSizeSupport.nonPow2 = true;
+	Gfx::textureSizeSupport.nonPow2CanMipmap = true;
+	Gfx::textureSizeSupport.nonPow2CanRepeat = true;
 }
 
 #ifdef CONFIG_GFX_OPENGL_ES
@@ -171,10 +192,13 @@ static void setupBGRPixelSupport()
 
 static void setupFBOFuncs()
 {
-	#ifndef CONFIG_GFX_OPENGL_ES
-	useFBOFuncs = 1;
-	logMsg("FBO functions are supported");
+	useFBOFuncs = true;
+	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	generateMipmaps = glGenerateMipmapOES;
+	#elif !defined CONFIG_GFX_OPENGL_ES
+	generateMipmaps = glGenerateMipmap;
 	#endif
+	logMsg("FBO functions are supported");
 }
 
 static void setupVAOFuncs()
@@ -208,7 +232,18 @@ static void setupTextureSwizzle()
 	useTextureSwizzle = true;
 }
 
-static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
+static void setupImmutableTexStorage()
+{
+	if(useImmutableTexStorage)
+		return;
+	logMsg("using immutable texture storage");
+	useImmutableTexStorage = true;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	glTexStorage2D = (typeof(glTexStorage2D))Base::GLContext::procAddress("glTexStorage2D");
+	#endif
+}
+
+static void GL_APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
 	logErr("Debug Info: %s", message);
@@ -217,20 +252,30 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 static void checkExtensionString(const char *extStr)
 {
 	//logMsg("checking %s", extStr);
-	if(
-		string_equal(extStr, "GL_ARB_texture_non_power_of_two")
-		#ifdef CONFIG_GFX_OPENGL_ES
-		|| (CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1 && string_equal(extStr, "GL_APPLE_texture_2D_limited_npot")) // no mipmaps or repeat modes
-			#if !defined __APPLE__
-			|| string_equal(extStr, "GL_IMG_texture_npot")
-			|| string_equal(extStr, "GL_NV_texture_npot_2D_mipmap") // no repeat modes
-			|| string_equal(extStr, "GL_OES_texture_npot") // allows mipmaps and repeat modes
-			#endif
-		#endif
-		)
+	if(string_equal(extStr, "GL_ARB_texture_non_power_of_two")
+		|| (Config::Gfx::OPENGL_ES && string_equal(extStr, "GL_OES_texture_npot")))
 	{
-		if(!forceNoNonPow2Textures && !Gfx::textureSizeSupport.nonPow2)
+		 // allows mipmaps and repeat modes
+		if(!forceNoNonPow2Textures)
+			setupNonPow2MipmapRepeatTextures();
+	}
+	else if(Config::Gfx::OPENGL_ES && !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
+	{
+		// no repeat modes
+		if(!forceNoNonPow2Textures)
+			setupNonPow2MipmapTextures();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
+		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
+	{
+		// no mipmaps or repeat modes
+		if(!forceNoNonPow2Textures)
 			setupNonPow2Textures();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1 && string_equal(extStr, "GL_EXT_unpack_subimage"))
+	{
+		logMsg("unpacking sub-images supported");
+		useUnpackRowLength = true;
 	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
@@ -262,6 +307,15 @@ static void checkExtensionString(const char *extStr)
 		if(!forceNoBGRPixels)
 			setupBGRPixelSupport();
 	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && string_equal(extStr, "GL_OES_framebuffer_object"))
+	{
+		if(!useFBOFuncs)
+			setupFBOFuncs();
+	}
+	else if(string_equal(extStr, "GL_EXT_texture_storage"))
+	{
+		setupImmutableTexStorage();
+	}
 	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
@@ -281,20 +335,20 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
 	{
-		if(!forceNoFBOFuncs && !useFBOFuncs)
+		if(!useFBOFuncs)
 		{
 			setupFBOFuncs();
-			useFBOFuncsEXT = true;
+			generateMipmaps = glGenerateMipmapEXT;
 		}
 	}
 	else if(string_equal(extStr, "GL_ARB_framebuffer_object"))
 	{
-		if(!forceNoFBOFuncs && !useFBOFuncs)
+		if(!useFBOFuncs)
 			setupFBOFuncs();
 	}
-	else if(string_equal(extStr, "GL_ARB_texture_swizzle"))
+	else if(string_equal(extStr, "GL_ARB_texture_storage"))
 	{
-		setupTextureSwizzle();
+		setupImmutableTexStorage();
 	}
 	#endif
 }
@@ -437,15 +491,7 @@ CallResult init(uint colorBits)
 	auto rendererName = (const char*)glGetString(GL_RENDERER);
 	logMsg("version: %s (%s)", version, rendererName);
 	
-	#ifndef CONFIG_GFX_OPENGL_ES
 	int glVer = glVersionFromStr(version);
-	#else
-	int glVer = 20;
-	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE)
-	{
-		glVer = glVersionFromStr(version);
-	}
-	#endif
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
 	// core functionality
@@ -457,7 +503,7 @@ CallResult init(uint colorBits)
 	if(glVer >= 20)
 	{
 		if(!forceNoNonPow2Textures)
-			setupNonPow2Textures();
+			setupNonPow2MipmapRepeatTextures();
 	}
 	if(glVer >= 30)
 	{
@@ -468,11 +514,15 @@ CallResult init(uint colorBits)
 			if(!useVBOFuncs)
 				setupVBOFuncs();
 			setupTextureSwizzle();
+			luminanceFormat = GL_RED;
+			luminanceInternalFormat = GL_R8;
+			luminanceAlphaFormat = GL_RG;
+			luminanceAlphaInternalFormat = GL_RG8;
+			alphaFormat = GL_RED;
+			alphaInternalFormat = GL_R8;
+			useSamplerObjects = true;
 		}
-		if(!forceNoAutoMipmapGeneration)
-			setupAutoMipmapGeneration();
-		if(!forceNoFBOFuncs)
-			setupFBOFuncs();
+		setupFBOFuncs();
 	}
 
 	// extension functionality
@@ -503,17 +553,21 @@ CallResult init(uint colorBits)
 	}
 	#else
 	// core functionality
-	if(glVer >= 11)
+	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && glVer >= 11)
 	{
-		if(!forceNoAutoMipmapGeneration)
-			setupAutoMipmapGeneration();
 		if(!forceNoVBOFuncs)
 			setupVBOFuncs();
 	}
-	if(glVer >= 20)
+	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
 	{
 		if(!forceNoNonPow2Textures)
-			setupNonPow2Textures();
+		{
+			if(glVer >= 30)
+				setupNonPow2MipmapRepeatTextures();
+			else
+				setupNonPow2Textures();
+		}
+		setupFBOFuncs();
 	}
 
 	// extension functionality
@@ -535,7 +589,6 @@ CallResult init(uint colorBits)
 	logMsg("max texture size is %d", texSize);
 
 	#if defined __ANDROID__
-	//checkForDrawTexture(extensions, rendererName);
 	setupAndroidOGLExtensions(extensions, rendererName);
 	#endif
 
@@ -543,12 +596,14 @@ CallResult init(uint colorBits)
 	if(useFixedFunctionPipeline)
 		glcEnableClientState(GL_VERTEX_ARRAY);
 	#endif
-	if(Config::Gfx::OPENGL_SHADER_PIPELINE && !useFixedFunctionPipeline)
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(!useFixedFunctionPipeline)
 	{
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s before shaders", err); });
 		logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 		initShaders();
 	}
+	#endif
 	return OK;
 }
 
@@ -599,13 +654,12 @@ void setWindowValidOrientations(Base::Window &win, uint validO)
 	updateSensorStateForWindowOrientations(win);
 }
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
 {
 	// TODO: make direct texture setup optional
 	if(Base::androidSDK() < 14)
 		directTextureConf.checkForEGLImageKHR(extensions, rendererName);
-	#ifdef CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES
 	if(surfaceTextureConf.isSupported())
 	{
 		if(!strstr(extensions, "GL_OES_EGL_image_external"))
@@ -629,12 +683,11 @@ static void setupAndroidOGLExtensions(const char *extensions, const char *render
 			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
 			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
 			// This hack will fix-up the GL state cache manually when that happens.
-			// TODO: should be re-tested with OpenGL ES 2.0 context
-			logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-			surfaceTextureConf.texture2dBindingHack = 1;
+			// TODO: remove
+			//logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
+			//surfaceTextureConf.texture2dBindingHack = 1;
 		}
 	}
-	#endif
 }
 #endif
 

@@ -115,12 +115,12 @@ void TextEntry::deinit()
 	t.deinit();
 }
 
-void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::BufferImage *closeRes, ResourceFace *face)
+void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face)
 {
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl && closeRes)
 	{
-		cancelSpr.init(-.5, -.5, .5, .5, closeRes);
+		cancelSpr.init({-.5, -.5, .5, .5}, *closeRes);
 		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 			Gfx::autoReleaseShaderCompiler();
 	}
@@ -219,6 +219,7 @@ void CollectTextInputView::draw()
 	{
 		setColor(COLOR_WHITE);
 		setBlendMode(BLEND_MODE_ALPHA);
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		cancelSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(cancelBtn).pos(C2DO)));
 		cancelSpr.draw();
 	}

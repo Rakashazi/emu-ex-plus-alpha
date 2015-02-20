@@ -19,7 +19,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GfxLGradient.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/resource/face/ResourceFace.hh>
@@ -47,7 +47,7 @@ public:
 	static const bool needsUpDirControl = !Config::envIsPS3;
 
 	FSPicker(Base::Window &win): View{win}, tbl{win} {}
-	void init(const char *path, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes,
+	void init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FsDirFilterFunc filter = 0, bool singleDir = 0, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
@@ -78,7 +78,7 @@ private:
 		{
 			inst.onRightNavBtn(e);
 		};
-		void init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes, bool singleDir);
+		void init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, bool singleDir);
 		void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	};
 

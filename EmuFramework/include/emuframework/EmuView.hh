@@ -15,11 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxSprite.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
 #include <imagine/gui/View.hh>
-#include <emuframework/VideoImageOverlay.hh>
-#include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
@@ -27,8 +23,8 @@
 class EmuView : public View
 {
 public:
-	EmuVideoLayer *layer = nullptr;
-	EmuInputView *inputView = nullptr;
+	EmuVideoLayer *layer{};
+	EmuInputView *inputView{};
 
 private:
 	IG::WindowRect rect;

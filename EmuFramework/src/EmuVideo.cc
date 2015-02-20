@@ -30,7 +30,9 @@ void EmuVideo::initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, 
 
 void EmuVideo::reinitImage()
 {
-	vidImg.init(vidPix, 0);
+	Gfx::TextureConfig conf{vidPix};
+	conf.setWillWriteOften(true);
+	vidImg.init(conf);
 
 	// update all EmuVideoLayers
 	emuVideoLayer.resetImage();
@@ -49,7 +51,16 @@ void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint t
 	else
 		basePix.init(pixBuff, totalX, totalY);
 	vidPix.initSubPixmap(basePix, xO, yO, x, y);
-	vidImg.init(vidPix, 0);
+	if(!vidImg)
+	{
+		Gfx::TextureConfig conf{(IG::PixmapDesc)vidPix};
+		conf.setWillWriteOften(true);
+		vidImg.init(conf);
+	}
+	else if(!vidPix.isSameGeometry(vidImg.pixmapDesc()))
+	{
+		vidImg.setFormat(vidPix, 1);
+	}
 	vidPixAlign = vidImg.bestAlignment(vidPix);
 	logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
 

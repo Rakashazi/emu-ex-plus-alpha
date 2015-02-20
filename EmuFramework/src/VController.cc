@@ -20,10 +20,11 @@
 
 void VControllerDPad::init() {}
 
-void VControllerDPad::setImg(Gfx::BufferImage &dpadR, Gfx::GC texHeight)
+void VControllerDPad::setImg(Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight)
 {
-	spr.init(-.5, -.5, .5, .5, &dpadR);
-	spr.setImg(&dpadR, 0., 0., 1., 64./texHeight);
+	using namespace Gfx;
+	spr.init({-.5, -.5, .5, .5,});
+	spr.setImg(&dpadR, {0., 0., 1., 64._gtexc/texHeight});
 	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 		Gfx::autoReleaseShaderCompiler();
 }
@@ -33,10 +34,6 @@ void VControllerDPad::updateBoundingAreaGfx()
 	if(visualizeBounds && padArea.xSize())
 	{
 		mapPix.init(padArea.xSize(), padArea.ySize());
-		mapImg.init(mapPix, 0, Gfx::BufferImage::LINEAR, Gfx::BufferImage::HINT_NO_MINIFY);
-		mapSpr.init(&mapImg);
-		mapSpr.setPos(padArea, mainWin.projectionPlane);
-
 		iterateTimes(mapPix.y, y)
 			iterateTimes(mapPix.x, x)
 			{
@@ -46,7 +43,10 @@ void VControllerDPad::updateBoundingAreaGfx()
 										: IG::isOdd(input) ? PixelFormatRGB565.build(1., 1., 1., 1.)
 										: PixelFormatRGB565.build(0., 1., 0., 1.);
 			}
-		mapImg.write(mapPix);
+		mapImg.init({mapPix});
+		mapImg.write(0, mapPix, {});
+		mapSpr.init({}, mapImg);
+		mapSpr.setPos(padArea, mainWin.projectionPlane);
 	}
 }
 
@@ -127,6 +127,7 @@ void VControllerDPad::setBoundingAreaVisible(bool on)
 
 void VControllerDPad::draw()
 {
+	Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
 	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	spr.draw();
 
@@ -176,16 +177,17 @@ void VControllerKeyboard::init()
 void VControllerKeyboard::updateImg()
 {
 	if(mode)
-		spr.setImg(spr.image(), 0., .5, spr.image()->textureDesc().xEnd/*384./512.*/, 1.);
+		spr.setImg(spr.image(), {0., .5, texXEnd, 1.});
 	else
-		spr.setImg(spr.image(), 0., 0., spr.image()->textureDesc().xEnd/*384./512.*/, .5);
+		spr.setImg(spr.image(), {0., 0., texXEnd, .5});
 	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 		Gfx::autoReleaseShaderCompiler();
 }
 
-void VControllerKeyboard::setImg(Gfx::BufferImage *img)
+void VControllerKeyboard::setImg(Gfx::PixmapTexture *img)
 {
-	spr.init(-.5, -.5, .5, .5, img);
+	spr.init({-.5, -.5, .5, .5});
+	texXEnd = img->uvBounds().x2;
 	updateImg();
 }
 
@@ -209,6 +211,7 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 
 void VControllerKeyboard::draw()
 {
+	Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
 	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	spr.draw();
 }
@@ -262,46 +265,47 @@ bool VControllerGamepad::boundingAreaVisible()
 	return showBoundingArea;
 }
 
-void VControllerGamepad::setImg(Gfx::BufferImage &pics)
+void VControllerGamepad::setImg(Gfx::PixmapTexture &pics)
 {
+	using namespace Gfx;
 	if(pics.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 		Gfx::autoReleaseShaderCompiler();
-	Gfx::GC h = EmuSystem::inputFaceBtns == 2 ? 128. : 256.;
+	Gfx::GTexC h = EmuSystem::inputFaceBtns == 2 ? 128. : 256.;
 	dp.setImg(pics, h);
 	iterateTimes(EmuSystem::inputCenterBtns, i)
 	{
-		centerBtnSpr[i].init(&pics);
+		centerBtnSpr[i].init({});
 	}
-	centerBtnSpr[0].setImg(&pics, 0., 65./h, 32./64., 81./h);
+	centerBtnSpr[0].setImg(&pics, {0., 65._gtexc/h, 32./64., 81._gtexc/h});
 	if(EmuSystem::inputCenterBtns == 2)
 	{
-		centerBtnSpr[1].setImg(&pics, 33./64., 65./h, 1., 81./h);
+		centerBtnSpr[1].setImg(&pics, {33./64., 65._gtexc/h, 1., 81._gtexc/h});
 	}
 
 	iterateTimes(EmuSystem::inputFaceBtns, i)
 	{
-		circleBtnSpr[i].init(&pics);
+		circleBtnSpr[i].init({});
 	}
 	if(EmuSystem::inputFaceBtns == 2)
 	{
-		circleBtnSpr[0].setImg(&pics, 0., 82./h, 32./64., 114./h);
-		circleBtnSpr[1].setImg(&pics, 33./64., 83./h, 1., 114./h);
+		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
+		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
 	}
 	else // for tall overlay image
 	{
-		circleBtnSpr[0].setImg(&pics, 0., 82./h, 32./64., 114./h);
-		circleBtnSpr[1].setImg(&pics, 33./64., 83./h, 1., 114./h);
-		circleBtnSpr[2].setImg(&pics, 0., 115./h, 32./64., 147./h);
-		circleBtnSpr[3].setImg(&pics, 33./64., 116./h, 1., 147./h);
+		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
+		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
+		circleBtnSpr[2].setImg(&pics, {0., 115._gtexc/h, 32./64., 147._gtexc/h});
+		circleBtnSpr[3].setImg(&pics, {33./64., 116._gtexc/h, 1., 147._gtexc/h});
 		if(EmuSystem::inputFaceBtns >= 6)
 		{
-			circleBtnSpr[4].setImg(&pics, 0., 148./h, 32./64., 180./h);
-			circleBtnSpr[5].setImg(&pics, 33./64., 149./h, 1., 180./h);
+			circleBtnSpr[4].setImg(&pics, {0., 148._gtexc/h, 32./64., 180._gtexc/h});
+			circleBtnSpr[5].setImg(&pics, {33./64., 149._gtexc/h, 1., 180._gtexc/h});
 		}
 		if(EmuSystem::inputFaceBtns == 8)
 		{
-			circleBtnSpr[6].setImg(&pics, 0., 181./h, 32./64., 213./h);
-			circleBtnSpr[7].setImg(&pics, 33./64., 182./h, 1., 213./h);
+			circleBtnSpr[6].setImg(&pics, {0., 181._gtexc/h, 32./64., 213._gtexc/h});
+			circleBtnSpr[7].setImg(&pics, {33./64., 182._gtexc/h, 1., 213._gtexc/h});
 		}
 	}
 }
@@ -575,6 +579,7 @@ void VControllerGamepad::draw(bool showHidden)
 
 	if(faceBtnsState == 1 || (showHidden && faceBtnsState))
 	{
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		if(showBoundingArea)
 		{
 			noTexProgram.use();
@@ -593,6 +598,7 @@ void VControllerGamepad::draw(bool showHidden)
 
 	if(EmuSystem::inputHasTriggerBtns && !triggersInline)
 	{
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		if(showBoundingArea)
 		{
 			if(lTriggerState == 1 || (showHidden && lTriggerState))
@@ -620,6 +626,7 @@ void VControllerGamepad::draw(bool showHidden)
 
 	if(centerBtnsState == 1 || (showHidden && centerBtnsState))
 	{
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		if(showBoundingArea)
 		{
 			noTexProgram.use();
@@ -661,7 +668,7 @@ bool VController::hasTriggers() const
 	return EmuSystem::inputHasTriggerBtns;
 }
 
-void VController::setImg(Gfx::BufferImage &pics)
+void VController::setImg(Gfx::PixmapTexture &pics)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	gp.setImg(pics);
@@ -909,11 +916,13 @@ void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden, f
 	//GeomRect::draw(ffBound);
 	if(menuBtnState == 1 || (showHidden && menuBtnState))
 	{
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		menuBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
 		menuBtnSpr.draw();
 	}
 	if(ffBtnState == 1 || (showHidden && ffBtnState))
 	{
+		TextureSampler::bindDefaultNearestMipClampSampler();
 		ffBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
 		if(activeFF)
 			setColor(1., 0., 0., alpha);

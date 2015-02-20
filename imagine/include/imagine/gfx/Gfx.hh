@@ -69,7 +69,6 @@ public:
 	int uniformLocation(const char *uniformName);
 };
 
-class BufferImage;
 Shader makeShader(const char *src, uint type);
 Shader makePluginVertexShader(const char *src, uint imgMode);
 Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTex);
@@ -89,11 +88,9 @@ enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
 enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
 void setBlendEquation(uint mode);
 
-void setActiveTexture(TextureHandle tex, uint type = 0);
-
 void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
 
-void setDither(uint on);
+void setDither(bool on);
 uint dither();
 
 void setZTest(bool on);

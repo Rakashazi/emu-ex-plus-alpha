@@ -505,17 +505,15 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	viewportZoomInit(); item[items++] = &viewportZoom;
 	aspectRatioInit(); item[items++] = &aspectRatio;
 	#ifdef CONFIG_BASE_ANDROID
-		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		if(Base::androidSDK() < 14)
-		{
-			assert(optionDirectTexture != OPTION_DIRECT_TEXTURE_UNSET);
-			directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
-		}
-		#endif
-		if(!Config::MACHINE_IS_OUYA && Base::androidSDK() >= 14 && !optionSurfaceTexture.isConst)
-		{
-			surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
-		}
+	if(Base::androidSDK() < 14)
+	{
+		assert(optionDirectTexture != OPTION_DIRECT_TEXTURE_UNSET);
+		directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
+	}
+	if(!Config::MACHINE_IS_OUYA && Base::androidSDK() >= 14 && !optionSurfaceTexture.isConst)
+	{
+		surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
+	}
 	#endif
 	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
 	bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
@@ -643,47 +641,45 @@ void OptionView::init(uint idx, bool highlightFirst)
 OptionView::OptionView(Base::Window &win):
 	TableView{"Options", win},
 	// Video
-	#ifdef CONFIG_BASE_ANDROID
-		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		directTexture
+	#ifdef __ANDROID__
+	directTexture
+	{
+		"Direct Texture",
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
-			"Direct Texture",
-			[this](BoolMenuItem &item, View &, const Input::Event &e)
+			if(!item.active)
 			{
-				if(!item.active)
-				{
-					popup.postError(Gfx::androidDirectTextureError());
-					return;
-				}
-				item.toggle(*this);
-				Gfx::setUseAndroidDirectTexture(item.on);
-				optionDirectTexture = item.on;
-				if(emuVideo.vidImg)
-					emuVideo.reinitImage();
+				popup.postError(Gfx::androidDirectTextureError());
+				return;
 			}
-		},
-		#endif
-		surfaceTexture
+			item.toggle(*this);
+			Gfx::setUseAndroidDirectTexture(item.on);
+			optionDirectTexture = item.on;
+			if(emuVideo.vidImg)
+				emuVideo.reinitImage();
+		}
+	},
+	surfaceTexture
+	{
+		"Fast CPU->GPU Copy",
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
-			"Fast CPU->GPU Copy",
-			[this](BoolMenuItem &item, View &, const Input::Event &e)
+			item.toggle(*this);
+			optionSurfaceTexture = item.on;
+			Gfx::setUseAndroidSurfaceTexture(item.on);
+			if(emuVideo.vidImg)
 			{
-				item.toggle(*this);
-				optionSurfaceTexture = item.on;
-				Gfx::setUseAndroidSurfaceTexture(item.on);
-				if(emuVideo.vidImg)
-				{
-					#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-					emuVideoLayer.setEffect(0);
-					#endif
-					emuVideo.reinitImage();
-					#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-					// re-apply effect so any shaders are re-compiled
-					emuVideoLayer.setEffect(optionImgEffect);
-					#endif
-				}
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				emuVideoLayer.setEffect(0);
+				#endif
+				emuVideo.reinitImage();
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				// re-apply effect so any shaders are re-compiled
+				emuVideoLayer.setEffect(optionImgEffect);
+				#endif
 			}
-		},
+		}
+	},
 	#endif
 	frameSkip
 	{

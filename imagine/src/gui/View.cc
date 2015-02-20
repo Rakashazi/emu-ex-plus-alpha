@@ -51,6 +51,7 @@ void View::dismiss()
 
 bool View::compileGfxPrograms()
 {
+	Gfx::TextureSampler::initDefaultNearestMipClampSampler();
 	auto compiled = Gfx::noTexProgram.compile();
 	// for text
 	compiled |= Gfx::texAlphaProgram.compile();

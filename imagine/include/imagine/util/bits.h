@@ -4,6 +4,9 @@
 #include <imagine/util/builtins.h>
 #include <assert.h>
 #include <stddef.h>
+#ifdef __APPLE__
+#include <strings.h>
+#endif
 
 #ifdef __cplusplus
 namespace IG
@@ -21,6 +24,13 @@ constexpr static T bit(T bitIdx)
 	#endif
 // macro-based for use in C
 #define BIT(x) ( 1 << (x) )
+#endif
+
+#ifndef __APPLE__
+static int fls(int x)
+{
+	return x ? sizeof(x) * 8 - __builtin_clz(x) : 0;
+}
 #endif
 
 #ifdef __cplusplus

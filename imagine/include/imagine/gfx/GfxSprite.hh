@@ -17,7 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GeomQuad.hh>
 
@@ -29,25 +29,35 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase() {}
-	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, BufferImage *img);
-	CallResult init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2)
+	CallResult init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds);
+
+	CallResult init(GCRect pos)
 	{
-		return init(x, y, x2, y2, (BufferImage*)nullptr);
+		return init(pos, (Texture*)nullptr, {});
 	}
-	CallResult init()
+
+	CallResult init(GCRect pos, PixmapTexture &img)
 	{
-		return init(0, 0, 0, 0);
-	}
-	CallResult init(BufferImage *img)
-	{
-		return init(0, 0, 0, 0, img);
+		return init(pos, &img, img.uvBounds());
 	}
 
 	void deinit();
-	void setImg(BufferImage *img);
-	void setImg(BufferImage *img, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
-	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
+	void setImg(Texture *img);
+
+	void setImg(Texture *img, IG::Rect2<GTexC> uvBounds)
+	{
+		setImg(img);
+		setUVBounds(uvBounds);
+	}
+
+	void setImg(PixmapTexture &img)
+	{
+		setImg(&img, img.uvBounds());
+	}
+
+	void setUVBounds(IG::Rect2<GTexC> uvBounds);
 	void draw() const;
+
 	bool compileDefaultProgram(uint mode)
 	{
 		if(img)
@@ -55,24 +65,19 @@ public:
 		else
 			return false;
 	}
+
 	void useDefaultProgram(uint mode, const Mat4 *modelMat)
 	{
 		if(img)
 			img->useDefaultProgram(mode, modelMat);
 	}
+
 	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }
 	void useDefaultProgram(uint mode, Mat4 modelMat) { useDefaultProgram(mode, &modelMat); }
-
-	BufferImage *image() { return img; }
+	Texture *image() { return img; }
 
 private:
-	BufferImage *img = nullptr;
-	#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-	uint flags = 0;
-	static constexpr uint HINT_NO_MATRIX_TRANSFORM = bit(0);
-	int screenX = 0, screenY = 0, screenX2 = 0, screenY2 = 0;
-	#endif
-	void setRefImg(BufferImage *img);
+	Texture *img{};
 };
 
 using Sprite = SpriteBase<TexRect>;

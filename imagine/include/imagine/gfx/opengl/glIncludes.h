@@ -16,13 +16,6 @@
 	#endif
 #endif
 
-#if defined __ANDROID__
-	#define CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES 1
-	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES) || defined(SUPPORT_ANDROID_DIRECT_TEXTURE)
-	#define CONFIG_GFX_OPENGL_BUFFER_IMAGE_MULTI_IMPL 1
-	#endif
-#endif
-
 // Header Locations For Platform
 
 #if defined CONFIG_BASE_IOS
@@ -104,6 +97,9 @@
 #define GL_FUNC_ADD GL_FUNC_ADD_OES
 #define GL_FUNC_SUBTRACT GL_FUNC_SUBTRACT_OES
 #define GL_FUNC_REVERSE_SUBTRACT GL_FUNC_REVERSE_SUBTRACT_OES
+#define GL_RGB5_A1 GL_RGB5_A1_OES
+#define GL_RGB565 GL_RGB565_OES
+#define GL_RGBA4 GL_RGBA4_OES
 
 	#if defined __ANDROID__
 	// glTexEnvi isn't supported in ES 1.0 but can be directly re-mapped
@@ -115,6 +111,66 @@
 	#endif
 #endif
 
+#ifndef GL_APICALL
+#define GL_APICALL
+#endif
+
+#ifndef GL_UNPACK_ROW_LENGTH
+#define GL_UNPACK_ROW_LENGTH 0x0CF2
+#endif
+
+#ifndef GL_MIRRORED_REPEAT
+#define GL_MIRRORED_REPEAT 0x8370
+#endif
+
+#ifndef GL_TEXTURE_EXTERNAL_OES
+#define GL_TEXTURE_EXTERNAL_OES 0x8D65
+#endif
+
 #ifndef GL_BGRA
 #define GL_BGRA GL_BGRA_EXT
+#endif
+
+#ifndef GL_RGB8
+#define GL_RGB8 0x8051
+#endif
+
+#ifndef GL_RGBA8
+#define GL_RGBA8 0x8058
+#endif
+
+#ifndef GL_ALPHA8
+#define GL_ALPHA8 0x803C
+#endif
+
+#ifndef GL_LUMINANCE8
+#define GL_LUMINANCE8 0x8040
+#endif
+
+#ifndef GL_LUMINANCE8_ALPHA8
+#define GL_LUMINANCE8_ALPHA8 0x8045
+#endif
+
+#ifndef GL_BGR
+#define GL_BGR 0x80E0
+#endif
+
+#ifndef GL_BGR
+#define GL_BGR 0x80E0
+#endif
+
+#ifndef GL_RED
+#define GL_RED 0x1903
+#endif
+
+#ifndef GL_R8
+#define GL_R8 0x8229
+#endif
+
+#ifndef GL_RG
+#define GL_RG 0x8227
+#endif
+
+#ifndef GL_RG8
+#define GL_RG8 0x822B
 #endif

@@ -5,7 +5,7 @@
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
 #include <imagine/base/android/android.hh>
-#include "android/DirectTextureBufferImage.hh"
+#include "android/GraphicBufferStorage.hh"
 #include <dlfcn.h>
 namespace Gfx
 {
@@ -18,17 +18,8 @@ namespace Gfx
 
 static Viewport currViewport;
 static int discardFrameBuffer = 0;
-static bool useSGIVidSync = 0;
 
-TextureSizeSupport textureSizeSupport =
-{
-	0, // nonPow2
-	1, // nonSquare
-	1, // filtering
-	0, // nonPow2CanMipmap
-	0, 0, // minXSize, minYSize
-	0, 0 // maxXSize, maxYSize
-};
+TextureSizeSupport textureSizeSupport;
 
 void setViewport(const Viewport &v)
 {
@@ -94,38 +85,6 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect 
 	return v;
 }
 
-#if defined __ANDROID__ && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-
-static bool useDrawTex = 0;
-static bool forceNoDrawTex = 0;
-
-static void checkForDrawTexture(const char *extensions, const char *rendererName)
-{
-	// Limited usefulness due to no 90deg rotation support,
-	// only use on Android since OS takes care of screen orientation,
-	// but there are lots of GPUs that produce blank out even though
-	// they "support" this extension so don't actually use for now
-	if(!forceNoDrawTex && strstr(extensions, "GL_OES_draw_texture"))
-	{
-		if(strstr(rendererName, "NVIDIA") || string_equal(rendererName, "VideoCore IV HW"))
-		{
-			// completely blank output on Tegra & VideoCore
-			logMsg("ignoring reported Draw Texture extension due to driver bugs");
-			return;
-		}
-		if(Base::androidSDK() >= 14 && strstr(rendererName, "Adreno"))
-		{
-			// blank output if source is SurfaceTexture
-			logMsg("ignoring reported Draw Texture extension due to driver bug with SurfaceTexture");
-			return;
-		}
-		useDrawTex = 1;
-		logMsg("Draw Texture supported");
-	}
-}
-
-#endif
-
 #if defined __ANDROID__
 void AndroidDirectTextureConfig::checkForEGLImageKHR(const char *extensions, const char *rendererName)
 {
@@ -189,7 +148,7 @@ bool AndroidDirectTextureConfig::setupEGLImageKHR(const char *extensions)
 	}
 	logMsg("alloc device @ %p", allocDev);
 
-	if(!DirectTextureBufferImage::testSupport(&errorStr))
+	if(!GraphicBufferStorage::testSupport(&errorStr))
 	{
 		goto FAIL;
 	}

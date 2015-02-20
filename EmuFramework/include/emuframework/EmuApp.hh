@@ -71,8 +71,8 @@ extern SysVController vController;
 #endif
 extern WorkDirStack<1> workDirStack;
 
-Gfx::BufferImage &getAsset(AssetID assetID);
-Gfx::BufferImage *getCollectTextCloseAsset();
+Gfx::PixmapTexture &getAsset(AssetID assetID);
+Gfx::PixmapTexture *getCollectTextCloseAsset();
 void handleInputEvent(Base::Window &win, const Input::Event &e);
 void handleOpenFileCommand(const char *filename);
 bool isMenuDismissKey(const Input::Event &e);

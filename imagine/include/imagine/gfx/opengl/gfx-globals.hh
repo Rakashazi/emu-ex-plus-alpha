@@ -3,6 +3,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/util/fixed.hh>
 #include <imagine/util/normalFloat.hh>
+#include <imagine/util/pixel.h>
 
 #if defined __APPLE__ && !defined __ARM_ARCH_6K__
 #define CONFIG_GFX_MATH_GLKIT
@@ -35,24 +36,28 @@ namespace Config
 	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE && !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
 	#endif
+
+	#ifdef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
+	static constexpr bool OPENGL_ES = true;
+	static constexpr int OPENGL_ES_MAJOR_VERSION = CONFIG_GFX_OPENGL_ES_MAJOR_VERSION;
+	#else
+	static constexpr bool OPENGL_ES = false;
+	#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 0
+	static constexpr int OPENGL_ES_MAJOR_VERSION = 0;
+	#endif
+
+	#ifdef __ANDROID__
+	#define CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+	#endif
 	}
 }
 
 namespace Gfx
 {
-/*#ifdef CONFIG_BASE_ANDROID
-	typedef Fixed16S16 TransformCoordinate;
-	typedef Fixed16S16 Angle;
-	typedef Fixed16S16 VertexPos;
-	#define GL_VERT_ARRAY_TYPE GL_FIXED
-	typedef Fixed16S16 TextureCoordinate;
-	#define GL_TEX_ARRAY_TYPE GL_FIXED
-#else*/
-	typedef float TransformCoordinate;
-	typedef float VertexPos;
-	typedef float Angle;
-	typedef float TextureCoordinate;
-//#endif
+using TransformCoordinate = float;
+using VertexPos = float;
+using Angle = float;
+using TextureCoordinate = float;
 
 static constexpr Angle angleFromDegree(Angle deg) { return IG::toRadians(deg); }
 static constexpr Angle angleFromRadian(Angle rad) { return rad; }
@@ -60,21 +65,14 @@ static constexpr Angle angleToDegree(Angle a) { return IG::toDegrees(a); }
 static constexpr Angle angleToRadian(Angle a) { return a; }
 
 static const uint gColor_steps = 255;
-typedef NormalFloat<gColor_steps> ColorComp;
-//typedef NormalFloat<gColor_steps> GColorD;
-//typedef NormalFixed<int32, 16, int64, gColor_steps> GColor;
-//typedef NormalFixed<int32, 16, int64, gColor_steps> GColorD;
+using ColorComp = NormalFloat<gColor_steps>;
 
-typedef GLuint TextureHandle;
-typedef GLushort VertexIndex;
-typedef uint VertexColor;
-typedef uint VertexArrayRef;
+using TextureRef = GLuint;
+using VertexIndex = GLushort;
+using VertexColor = uint;
+using VertexArrayRef = uint;
 
-//#ifdef CONFIG_BASE_PS3
-//#define VertexColorPixelFormat PixelFormatRGBA8888
-//#else
-#define VertexColorPixelFormat PixelFormatABGR8888
-//#endif
+static const PixelFormatDesc &VertexColorPixelFormat = PixelFormatABGR8888;
 
 class VertexInfo
 {
@@ -144,21 +142,6 @@ public:
 	static constexpr bool hasTexture = true;
 	static const uint textureOffset;
 	static constexpr uint ID = 4;
-};
-
-class TextureDesc
-{
-public:
-	TextureHandle tid = 0;
-	#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
-	GLenum target = GL_TEXTURE_2D;
-	#else
-	static const GLenum target = GL_TEXTURE_2D;
-	#endif
-	TextureCoordinate xStart = 0, xEnd = 0;
-	TextureCoordinate yStart = 0, yEnd = 0;
-
-	constexpr TextureDesc() {}
 };
 
 using Shader = GLuint;

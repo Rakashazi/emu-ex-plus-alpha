@@ -35,7 +35,7 @@ void QuadGeneric<Vtx>::draw() const
 {
 	if(!Vtx::hasTexture)
 	{
-		Gfx::setActiveTexture(0);
+		Gfx::setActiveTexture(0, GL_TEXTURE_2D);
 	}
 	if(useVBOFuncs)
 	{
@@ -53,14 +53,12 @@ template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-void TexQuad::mapImg(const BufferImage &img) { Gfx::mapImg(v, img.textureDesc()); };
 void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 
 void ColQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
 void ColQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
 void ColQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
 
-void ColTexQuad::mapImg(const BufferImage &img) { Gfx::mapImg(v, img.textureDesc()); };
 void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
 void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }

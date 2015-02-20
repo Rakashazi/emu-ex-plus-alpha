@@ -70,53 +70,14 @@ void Pixmap::initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint y
 	pitch = orig.pitch;
 }
 
-/*void Pixmap::copyHLineToRectFromSelf(uint xStart, uint yStart, uint xlen, uint xDest, uint yDest, uint yDestLen)
+Pixmap Pixmap::makeSubPixmap(IG::WP offset, IG::WP size)
 {
-	char *srcLine = Pixmap::getPixel(xStart, yStart);
-	uint runLen = xlen * format.bytesPerPixel;
-	for(uint y = 0; y < yDestLen; y++)
-	{
-		char *destline = Pixmap::getPixel(xDest, yDest+y);
-		memcpy(destline, srcLine, runLen);
-	}
+	assert(offset.x >= 0 && offset.y >= 0);
+	assert(offset.x + size.x <= (int)x && offset.y + size.y <= (int)y);
+	Pixmap sub{*this};
+	sub.initSubPixmap(*this, offset.x, offset.y, size.x, size.y);
+	return sub;
 }
-
-void Pixmap::copyVLineToRectFromSelf(uint xStart, uint yStart, uint ylen, uint xDest, uint yDest, uint xDestLen)
-{
-	for(uint y = 0; y < ylen; y++)
-	{
-		char *srcPixel = Pixmap::getPixel(xStart, yStart+y);
-		char *destPixel = Pixmap::getPixel(xDest, yDest+y);
-		for(uint x = 0; x < xDestLen; x++)
-		{
-			memcpy(destPixel, srcPixel, format.bytesPerPixel);
-			destPixel = Pixmap::nextPixelOnLine(destPixel);
-		}
-	}
-}
-
-void Pixmap::copyPixelToRectFromSelf(uint xStart, uint yStart, uint xDest, uint yDest, uint xDestLen, uint yDestLen)
-{
-	char *srcPixel = Pixmap::getPixel(xStart, yStart);
-	for(uint y = 0; y < yDestLen; y++)
-	{
-		char *destPixel = Pixmap::getPixel(xDest, yDest+y);
-		for(uint x = 0; x < xDestLen; x++)
-		{
-			memcpy(destPixel, srcPixel, format.bytesPerPixel);
-			destPixel = Pixmap::nextPixelOnLine(destPixel);
-		}
-	}
-}
-
-void Pixmap::subPixmapOffsets(Pixmap *sub, uint *x, uint *y) const
-{
-	ptrsize dataOffset = sub->data - data;
-	assert(dataOffset < Pixmap::sizeOfImage());
-	*x = ((uint)dataOffset % pitch) / format.bytesPerPixel;
-	*y = (uint)dataOffset / pitch;
-}
-*/
 
 void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
 {

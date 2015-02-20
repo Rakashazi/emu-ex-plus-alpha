@@ -59,20 +59,22 @@ void NavView::place(const Gfx::ProjectionPlane &projP)
 
 // BasicNavView
 
-void BasicNavView::init(ResourceFace *face, Gfx::BufferImage *backRes, Gfx::BufferImage *closeRes,
+void BasicNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 		const Gfx::LGradientStopDesc *gradStop, uint gradStops)
 {
 	NavView::init(face);
-	leftSpr.init(-.5, -.5, .5, .5, backRes);
-	rightSpr.init(-.5, -.5, .5, .5, closeRes);
+	leftSpr.init({-.5, -.5, .5, .5});
+	rightSpr.init({-.5, -.5, .5, .5});
 	bool compiled = false;
 	if(backRes)
 	{
+		leftSpr.setImg(*backRes);
 		compiled |= backRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		hasBackBtn = 1;
 	}
 	if(closeRes)
 	{
+		rightSpr.setImg(*closeRes);
 		compiled |= closeRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		hasCloseBtn = 1;
 	}
@@ -89,7 +91,7 @@ void BasicNavView::deinit()
 	bg.deinit();
 }
 
-void BasicNavView::setBackImage(Gfx::BufferImage *img)
+void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
 {
 	leftSpr.setImg(img);
 	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
@@ -116,6 +118,7 @@ void BasicNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &pro
 		if(leftBtnActive)
 		{
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO)));
 			leftSpr.draw();
 		}
@@ -129,6 +132,7 @@ void BasicNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &pro
 		if(rightBtnActive)
 		{
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}

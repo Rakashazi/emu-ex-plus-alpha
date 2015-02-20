@@ -292,15 +292,9 @@ struct android_native_buffer_t
 {
 #ifdef __cplusplus
 	constexpr android_native_buffer_t() :
-		common { ANDROID_NATIVE_BUFFER_MAGIC, sizeof(android_native_buffer_t), {0}, 0, 0 },
-		width(0), height(0), stride(0), format(0), usage(0), reserved {0}, handle(0), reserved_proc {0}
-	{ }
-	/*android_native_base_t()
-	{
-		common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
-		common.version = sizeof(android_native_buffer_t);
-		memset(common.reserved, 0, sizeof(common.reserved));
-	}*/
+		common{ANDROID_NATIVE_BUFFER_MAGIC, sizeof(android_native_buffer_t)},
+		width{0}, height{0}, stride{0}, format{0}, usage{0}, reserved{}, handle{}, reserved_proc{}
+	{}
 #endif
 
 	struct android_native_base_t common;

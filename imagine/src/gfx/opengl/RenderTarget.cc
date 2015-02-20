@@ -23,28 +23,27 @@ namespace Gfx
 void RenderTarget::init()
 {
 	glGenFramebuffers(1, &fbo);
-	logMsg("init FBO: %u", fbo);
+	logMsg("init FBO:0x%X", fbo);
 }
 
 void RenderTarget::deinit()
 {
 	if(fbo)
 	{
-		logMsg("deinit FBO: %u", fbo);
+		logMsg("deinit FBO:0x%X", fbo);
 		glDeleteFramebuffers(1, &fbo);
 		fbo = 0;
 	}
 	tex.deinit();
 }
 
-void RenderTarget::initTexture(IG::PixmapDesc &pix, uint filter)
+void RenderTarget::initTexture(IG::PixmapDesc pix)
 {
-	IG::Pixmap pixmap = pix;
-	tex.init(pixmap, 0, filter, 0);
+	tex.init({pix});
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.textureDesc().tid, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.texName(), 0);
 	setDefaultCurrent();
-	logMsg("set texture %u as FBO %u target", tex.textureDesc().tid, fbo);
+	logMsg("set texture:0x%X as FBO:0x%X target", tex.texName(), fbo);
 }
 
 void RenderTarget::setCurrent()
@@ -52,7 +51,7 @@ void RenderTarget::setCurrent()
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		bug_exit("FBO %u incomplete", fbo);
+		bug_exit("FBO:0x%X incomplete", fbo);
 	}
 }
 

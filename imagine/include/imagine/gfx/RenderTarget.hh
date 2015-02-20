@@ -17,7 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 
 namespace Gfx
 {
@@ -26,13 +26,13 @@ class RenderTarget
 {
 private:
 	GLuint fbo = 0;
-	BufferImage tex;
+	Texture tex;
 
 public:
 	void init();
 	void deinit();
-	void initTexture(IG::PixmapDesc &pix, uint filter);
-	BufferImage &texture() { return tex; };
+	void initTexture(IG::PixmapDesc pix);
+	Texture &texture() { return tex; };
 	void setCurrent();
 	explicit operator bool() const;
 	static void setDefaultCurrent();

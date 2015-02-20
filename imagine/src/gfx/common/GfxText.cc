@@ -68,6 +68,7 @@ void Text::compile(const ProjectionPlane &projP)
 {
 	assert(face);
 	assert(str);
+	TextureSampler::initDefaultNoMipClampSampler();;
 	//logMsg("compiling text %s", str);
 	
 	// TODO: move calc into Face class
@@ -173,8 +174,9 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	//resetTransforms();
 	setBlendMode(BLEND_MODE_ALPHA);
+	TextureSampler::bindDefaultNoMipClampSampler();
 	Sprite spr;
-	spr.init(0, 0, 1, 1);
+	spr.init({});
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
@@ -229,7 +231,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 			}
 			GC xSize = projP.unprojectXSize(gly->metrics.xSize);
 
-			spr.setImg(&gly->glyph);
+			spr.setImg(gly->glyph);
 			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 			spr.setPos(x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize));

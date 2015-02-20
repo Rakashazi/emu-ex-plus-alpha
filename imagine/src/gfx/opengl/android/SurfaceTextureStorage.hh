@@ -15,19 +15,24 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-class GfxImageSource
+#include <imagine/gfx/Texture.hh>
+#include <android/native_window_jni.h>
+
+namespace Gfx
 {
-public:
-	constexpr GfxImageSource() { }
-	virtual ~GfxImageSource() { }
-	virtual CallResult getImage(IG::Pixmap &dest) = 0;
-	virtual uint width() = 0;
-	virtual uint height() = 0;
-	virtual const PixelFormatDesc *pixelFormat() = 0;
-	bool isGrayscale() { return pixelFormat()->isGrayscale(); }
-	bool bitsPP() { return pixelFormat()->bitsPerPixel; }
-	uint imageBytes()
-	{
-		return width() * height() * pixelFormat()->bytesPerPixel;
-	}
+
+struct SurfaceTextureStorage: public DirectTextureStorage
+{
+	jobject surfaceTex{}, surface{};
+	ANativeWindow* nativeWin{};
+	uint bpp = 0;
+
+	constexpr SurfaceTextureStorage() {}
+	~SurfaceTextureStorage() override;
+	CallResult init(GLuint tex);
+	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
+	Buffer lock() override;
+	void unlock(GLuint tex) override;
 };
+
+}

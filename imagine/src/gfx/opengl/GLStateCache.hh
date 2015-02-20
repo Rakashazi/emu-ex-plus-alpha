@@ -4,12 +4,16 @@
 #include <imagine/util/algorithm.h>
 #include "utils.h"
 
+#if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+#define HAS_UNPACK_ROW_LENGTH
+#endif
+
 static GLenum textureTargetToGet(GLenum target)
 {
 	switch(target)
 	{
 		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
 		#endif
 		default: bug_branch("%d", target); return 0;
@@ -45,7 +49,7 @@ public:
 	struct GLBindTextureState
 	{
 		GLuint GL_TEXTURE_2D_state = 0;
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		GLuint GL_TEXTURE_EXTERNAL_OES_state = 0;
 		#endif
 
@@ -58,7 +62,7 @@ public:
 		bool GL_ALPHA_TEST_state = 0;
 		bool GL_FOG_state = 0;
 		bool GL_TEXTURE_2D_state = 0;
-			#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+			#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 			bool GL_TEXTURE_EXTERNAL_OES_state = 0;
 			#endif
 		#endif
@@ -92,7 +96,7 @@ public:
 	struct GLPixelStoreParams
 	{
 		GLint GL_UNPACK_ALIGNMENT_state = 4;
-		#ifndef CONFIG_GFX_OPENGL_ES
+		#ifdef HAS_UNPACK_ROW_LENGTH
 		GLint GL_UNPACK_ROW_LENGTH_state = 0;
 		#endif
 

@@ -19,7 +19,6 @@
 #include <imagine/util/number.h>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/gfx/TextureSizeSupport.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -44,6 +43,16 @@ static constexpr GC operator"" _gc (unsigned long long n)
 	return (GC)n;
 }
 
+static constexpr GC operator"" _gtexc (long double n)
+{
+	return (GTexC)n;
+}
+
+static constexpr GC operator"" _gtexc (unsigned long long n)
+{
+	return (GTexC)n;
+}
+
 using GCRect = IG::CoordinateRect<GC, true, true>;
 
 static GCRect makeGCRectRel(GP p, GP size)
@@ -54,6 +63,17 @@ static GCRect makeGCRectRel(GP p, GP size)
 template <class T>
 static GTexC pixelToTexC(T pixel, T total) { return (GTexC)pixel / (GTexC)total; }
 
-extern TextureSizeSupport textureSizeSupport;
+enum WrapMode
+{
+	WRAP_REPEAT,
+	WRAP_CLAMP
+};
+
+enum MipFilterMode
+{
+	MIP_FILTER_NONE,
+	MIP_FILTER_NEAREST,
+	MIP_FILTER_LINEAR,
+};
 
 }

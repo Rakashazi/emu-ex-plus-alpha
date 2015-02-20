@@ -75,7 +75,7 @@ extern Byte1Option optionKeepBluetoothActive;
 	#endif
 #endif
 
-extern Byte4s1Option optionImgFilter;
+extern Byte1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 extern Byte1Option optionImgEffect;
@@ -120,14 +120,12 @@ extern Byte1Option optionShowOnSecondScreen;
 
 extern OptionRecentGames optionRecentGames;
 
-#ifdef CONFIG_BASE_ANDROID
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-	static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
-	extern Byte1Option optionDirectTexture;
-	#endif
-	static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
-	extern Byte1Option optionSurfaceTexture;
-	extern SByte1Option optionProcessPriority;
+#ifdef __ANDROID__
+static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
+extern Byte1Option optionDirectTexture;
+static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
+extern Byte1Option optionSurfaceTexture;
+extern SByte1Option optionProcessPriority;
 #endif
 
 extern Byte1Option optionDitherImage;

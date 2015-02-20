@@ -57,8 +57,8 @@ public:
 	OnTextDelegate &onText() { return onTextD; }
 
 	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
-	void init(const char *msgText, const char *initialContent, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace);
-	void init(const char *msgText, Gfx::BufferImage *closeRes, ResourceFace *face = View::defaultFace)
+	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace);
+	void init(const char *msgText, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace)
 	{
 		init(msgText, "", closeRes, face);
 	}

@@ -49,27 +49,29 @@ static const char *glImageFormatToString(int format)
 {
 	switch(format)
 	{
-		#if !defined CONFIG_GFX_OPENGL_ES
 		case GL_RGBA8: return "RGBA8";
 		case GL_RGB8: return "RGB8";
 		case GL_RGB5_A1: return "RGB5_A1";
+		#if defined CONFIG_GFX_OPENGL_ES
+		case GL_RGB565: return "RGB565";
+		#else
 		case GL_RGB5: return "RGB5";
+		#endif
 		case GL_RGBA4: return "RGBA4";
 		case GL_BGR: return "BGR";
 		case GL_RED: return "RED";
 		case GL_R8: return "R8";
 		case GL_RG: return "RG";
 		case GL_RG8: return "RG8";
-		#endif
 		#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		case GL_COMPRESSED_RGBA: return "COMPRESSED_RGBA";
 		case GL_COMPRESSED_RGB: return "COMPRESSED_RGB";
 		case GL_COMPRESSED_LUMINANCE: return "COMPRESSED_LUMINANCE";
 		case GL_COMPRESSED_LUMINANCE_ALPHA: return "COMPRESSED_LUMINANCE_ALPHA";
+		#endif
 		case GL_LUMINANCE8: return "LUMINANCE8";
 		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
 		case GL_ALPHA8: return "ALPHA8";
-		#endif
 		case GL_RGBA: return "RGBA";
 		case GL_BGRA: return "BGRA";
 		case GL_RGB: return "RGB";

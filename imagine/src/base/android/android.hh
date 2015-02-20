@@ -60,7 +60,7 @@ struct AndroidSurfaceTextureConfig
 	JavaInstMethod<void> jSurface, jSurfaceRelease,
 		jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
 	bool use = 0, whiteListed = 1;
-	bool texture2dBindingHack = 0;
+	//bool texture2dBindingHack = 0;
 	// Extra dlsym function from libandroid.so
 	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
 
@@ -107,13 +107,9 @@ static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)
 	{
 		case PIXEL_RGBA8888: return HAL_PIXEL_FORMAT_RGBA_8888;
 		case PIXEL_BGRA8888: return HAL_PIXEL_FORMAT_BGRA_8888;
-		//case PIXEL_RGB888: return HAL_PIXEL_FORMAT_RGB_888;
+		case PIXEL_RGB888: return HAL_PIXEL_FORMAT_RGB_888;
 		case PIXEL_RGB565: return HAL_PIXEL_FORMAT_RGB_565;
-		case PIXEL_ARGB1555: return HAL_PIXEL_FORMAT_RGBA_5551;
-		case PIXEL_ARGB4444: return HAL_PIXEL_FORMAT_RGBA_4444;
-		//case PIXEL_I8: return GGL_PIXEL_FORMAT_L_8;
-		//case PIXEL_IA88: return GGL_PIXEL_FORMAT_LA_88;
-		default: return GGL_PIXEL_FORMAT_NONE;
+		default: return 0;
 	}
 }
 

@@ -3,7 +3,6 @@
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/gfx/GfxBufferImage.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/edge.h>
 
@@ -79,7 +78,6 @@ class TexQuad : public QuadGeneric<TexVertex>
 {
 public:
 	constexpr TexQuad() { }
-	void mapImg(const BufferImage &img);
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
 };
 
@@ -96,7 +94,6 @@ class ColTexQuad : public QuadGeneric<ColTexVertex>
 {
 public:
 	constexpr ColTexQuad() { }
-	void mapImg(const BufferImage &img);
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
 	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges = EDGE_AI);
 	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);

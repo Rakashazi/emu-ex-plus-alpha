@@ -20,13 +20,11 @@
 namespace Gfx
 {
 
-#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 bool supportsAndroidDirectTexture();
 bool supportsAndroidDirectTextureWhitelisted();
 const char* androidDirectTextureError();
 bool useAndroidDirectTexture();
 void setUseAndroidDirectTexture(bool on);
-#endif
 
 bool supportsAndroidSurfaceTexture();
 bool supportsAndroidSurfaceTextureWhitelisted();

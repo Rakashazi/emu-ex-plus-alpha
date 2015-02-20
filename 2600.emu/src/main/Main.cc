@@ -603,11 +603,11 @@ CallResult onInit(int argc, char** argv)
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-		{ .3, VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-		{ .97, VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
-		{ 1., VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 
 	mainInitCommon(argc, argv, navViewGrad);

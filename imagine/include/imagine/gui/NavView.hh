@@ -19,7 +19,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GfxLGradient.hh>
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/Input.hh>
 
@@ -52,9 +52,9 @@ public:
 	Gfx::LGradient bg;
 
 	constexpr BasicNavView() {}
-	void init(ResourceFace *face, Gfx::BufferImage *leftRes, Gfx::BufferImage *rightRes,
+	void init(ResourceFace *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes,
 			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
-	void setBackImage(Gfx::BufferImage *img);
+	void setBackImage(Gfx::PixmapTexture *img);
 	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	void place(const Gfx::ProjectionPlane &projP) override;
 	void deinit() override;

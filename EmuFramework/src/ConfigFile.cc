@@ -234,15 +234,13 @@ static bool readConfig2(IO &io)
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
 			#endif
-			#if defined(CONFIG_BASE_ANDROID)
+			#if defined __ANDROID__
 			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 			bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
 			bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-				#if defined SUPPORT_ANDROID_DIRECT_TEXTURE
-				bcase CFGKEY_DIRECT_TEXTURE: optionDirectTexture.readFromIO(io, size);
-				#endif
-				bcase CFGKEY_SURFACE_TEXTURE: optionSurfaceTexture.readFromIO(io, size);
-				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
+			bcase CFGKEY_DIRECT_TEXTURE: optionDirectTexture.readFromIO(io, size);
+			bcase CFGKEY_SURFACE_TEXTURE: optionSurfaceTexture.readFromIO(io, size);
+			bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
@@ -472,15 +470,13 @@ static OptionBase *cfgFileOption[] =
 	&optionBackNavigation,
 	#endif
 	&optionRememberLastMenu,
-	#ifdef CONFIG_BASE_ANDROID
+	#if defined __ANDROID__
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
 	&optionDitherImage,
-		#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
-		&optionDirectTexture,
-		#endif
-		&optionSurfaceTexture,
-		&optionProcessPriority,
+	&optionDirectTexture,
+	&optionSurfaceTexture,
+	&optionProcessPriority,
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,

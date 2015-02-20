@@ -37,7 +37,7 @@ GLuint *GLStateCache::getBindTextureState(GLenum target)
 	switch(target)
 	{
 		GLTARGET_CASE(GL_TEXTURE_2D);
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		GLTARGET_CASE(GL_TEXTURE_EXTERNAL_OES);
 		#endif
 	default: bug_branch("%d", target); return nullptr;
@@ -85,7 +85,7 @@ void GLStateCache::deleteTextures(GLsizei n, const GLuint *textures)
 		//logMsg("deleting texture %u", textures[i]);
 		if(textures[i] == bindTextureState.GL_TEXTURE_2D_state)
 			bindTextureState.GL_TEXTURE_2D_state = 0;
-		#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		if(textures[i] == bindTextureState.GL_TEXTURE_EXTERNAL_OES_state)
 		{
 			//logMsg("is bound to TEXTURE_EXTERNAL_OES");
@@ -127,7 +127,7 @@ bool *GLStateCache::getCap(GLenum cap)
 		GLCAP_CASE(GL_ALPHA_TEST);
 		GLCAP_CASE(GL_FOG);
 		GLCAP_CASE(GL_TEXTURE_2D);
-			#if defined(CONFIG_GFX_OPENGL_TEXTURE_EXTERNAL_OES)
+			#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 			GLCAP_CASE(GL_TEXTURE_EXTERNAL_OES);
 			#endif
 		#endif
@@ -496,7 +496,7 @@ GLint *GLStateCache::getPixelStoreParam(GLenum pname)
 	switch(pname)
 	{
 		GLPARAM_CASE(GL_UNPACK_ALIGNMENT);
-		#ifndef CONFIG_GFX_OPENGL_ES
+		#ifdef HAS_UNPACK_ROW_LENGTH
 		GLPARAM_CASE(GL_UNPACK_ROW_LENGTH);
 		#endif
 	default: return 0;
@@ -522,9 +522,5 @@ void GLStateCache::pixelStorei(GLenum pname, GLint param)
 		glPixelStorei(pname, param);
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glPixelStorei", err); });
 		*state = param;
-		#ifndef CONFIG_GFX_OPENGL_ES
-		if(pname == GL_UNPACK_ROW_LENGTH && param != 0)
-			logMsg("using GL_UNPACK_ROW_LENGTH %d", (int)param);
-		#endif
 	}
 }

@@ -13,7 +13,7 @@ CallResult libhardware_dl()
 {
 	if(hw_get_moduleSym)
 		return OK;
-	void *libhardware = dlopen("/system/lib/libhardware.so", RTLD_LOCAL | RTLD_LAZY);
+	void *libhardware = dlopen("libhardware.so", RTLD_LAZY);
 	if(!libhardware)
 	{
 		logErr("libhardware not found");

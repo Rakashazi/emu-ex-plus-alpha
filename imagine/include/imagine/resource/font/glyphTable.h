@@ -1,27 +1,22 @@
 #pragma once
 
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 
 struct GlyphMetrics
 {
-	constexpr GlyphMetrics() { }
 	int xSize = 0;
 	int ySize = 0;
 	int xOffset = 0;
 	int yOffset = 0;
 	int xAdvance = 0;
+
+	constexpr GlyphMetrics() {}
 };
-
-namespace Gfx
-{
-
-class BufferImage;
-
-}
 
 struct GlyphEntry
 {
-	constexpr GlyphEntry() { }
-	Gfx::BufferImage glyph;
+	Gfx::PixmapTexture glyph;
 	GlyphMetrics metrics;
+
+	constexpr GlyphEntry() {}
 };

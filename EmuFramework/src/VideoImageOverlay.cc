@@ -75,10 +75,13 @@ void VideoImageOverlay::setEffect(uint effect)
 			img.deinit();
 			return;
 	}
-
-	bool mipmapFilter = true;
-	img.init(pix, true, Gfx::BufferImage::LINEAR, mipmapFilter ? 0 : Gfx::BufferImage::HINT_NO_MINIFY, 1);
-	spr.init(&img);
+	Gfx::TextureSampler::initDefaultNearestMipRepeatSampler();
+	Gfx::TextureConfig texConf{pix};
+	texConf.setWillGenerateMipmaps(true);
+	img.init(texConf);
+	img.write(0, pix, {});
+	img.generateMipmaps();
+	spr.init({}, &img, {});
 	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 	{
 		Gfx::autoReleaseShaderCompiler();
@@ -89,21 +92,22 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 {
 	if(spr.image())
 	{
+		using namespace Gfx;
 		spr.setPos(disp);
 		float width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
 		//logMsg("width %f", (double)width);
 		switch(effect)
 		{
 			bcase SCANLINES:
-				spr.setImg(&img, 0, 0, 1.0, lines);
+				spr.setImg(&img, {0., 0., 1.0, (Gfx::GTexC)lines});
 			bcase SCANLINES_2:
-				spr.setImg(&img, 0, 0, 1.0, lines*2.);
+				spr.setImg(&img, {0., 0., 1.0, lines*2._gtexc});
 			bcase CRT:
-				spr.setImg(&img, 0, 0, width/2., lines/2.);
+				spr.setImg(&img, {0., 0., width/2._gtexc, lines/2._gtexc});
 			bcase CRT_RGB:
-				spr.setImg(&img, 0, 0, width/2., lines);
+				spr.setImg(&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines});
 			bcase CRT_RGB_2:
-				spr.setImg(&img, 0, 0, width/2., lines*2.);
+				spr.setImg(&img, {0., 0., width/2._gtexc, lines*2._gtexc});
 		}
 	}
 }
@@ -113,6 +117,7 @@ void VideoImageOverlay::draw()
 	using namespace Gfx;
 	if(spr.image())
 	{
+		TextureSampler::bindDefaultNearestMipRepeatSampler();
 		setColor(1., 1., 1., intensity);
 		setBlendMode(BLEND_MODE_ALPHA);
 		spr.useDefaultProgram(IMG_MODE_MODULATE);

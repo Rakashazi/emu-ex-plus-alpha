@@ -96,8 +96,8 @@ class DrawTest : public TestFramework
 {
 protected:
 	int flash{true};
-	Gfx::BufferImage texture;
 	IG::Pixmap pixmap{PixelFormatRGB565};
+	Gfx::PixmapTexture texture;
 	Gfx::Sprite sprite;
 	char *pixBuff{};
 

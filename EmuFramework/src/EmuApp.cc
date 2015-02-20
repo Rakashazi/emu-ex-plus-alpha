@@ -54,13 +54,13 @@ static const char *assetFilename[] =
 	"fastForward.png"
 };
 
-static Gfx::BufferImage assetBuffImg[sizeofArray(assetFilename)];
+static Gfx::PixmapTexture assetBuffImg[sizeofArray(assetFilename)];
 
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
 static Gfx::Viewport makeViewport(const Base::Window &win);
 void mainInitWindowCommon(Base::Window &win);
 
-Gfx::BufferImage &getAsset(AssetID assetID)
+Gfx::PixmapTexture &getAsset(AssetID assetID)
 {
 	assert(assetID < sizeofArray(assetFilename));
 	auto &res = assetBuffImg[assetID];
@@ -76,7 +76,7 @@ Gfx::BufferImage &getAsset(AssetID assetID)
 	return res;
 }
 
-Gfx::BufferImage *getCollectTextCloseAsset()
+Gfx::PixmapTexture *getCollectTextCloseAsset()
 {
 	return Config::envIsAndroid ? nullptr : &getAsset(ASSET_CLOSE);
 }
@@ -112,7 +112,7 @@ static void drawEmuVideo()
 
 void updateAndDrawEmuVideo()
 {
-	emuVideo.vidImg.write(emuVideo.vidPix, emuVideo.vidPixAlign);
+	emuVideo.vidImg.write(0, emuVideo.vidPix, {}, emuVideo.vidPixAlign);
 	drawEmuVideo();
 }
 
@@ -131,6 +131,7 @@ void EmuNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			auto trans = projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO));
 			trans = trans.rollRotate(angleFromDegree(90));
 			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, trans);
@@ -143,6 +144,7 @@ void EmuNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP
 		{
 			setColor(COLOR_WHITE);
 			setBlendMode(BLEND_MODE_ALPHA);
+			TextureSampler::bindDefaultNearestMipClampSampler();
 			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
 			rightSpr.draw();
 		}
@@ -594,7 +596,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		Gfx::setDither(optionDitherImage);
 	}
 
-	#if defined CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if((int8)optionProcessPriority != 0)
 		Base::setProcessPriority(optionProcessPriority);
 
@@ -614,9 +616,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		Gfx::setUseAndroidSurfaceTexture(optionSurfaceTexture);
 	}
 	// optionSurfaceTexture is treated as a boolean value after this point
-	#endif
 
-	#ifdef SUPPORT_ANDROID_DIRECT_TEXTURE
 	optionDirectTexture.defaultVal = Gfx::supportsAndroidDirectTextureWhitelisted();
 	if(!Gfx::supportsAndroidDirectTexture())
 	{
@@ -758,8 +758,8 @@ void mainInitWindowCommon(Base::Window &win)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	initVControls();
 	EmuControls::updateVControlImg();
-	vController.menuBtnSpr.init(&getAsset(ASSET_MENU));
-	vController.ffBtnSpr.init(&getAsset(ASSET_FAST_FORWARD));
+	vController.menuBtnSpr.init({}, getAsset(ASSET_MENU));
+	vController.ffBtnSpr.init({}, getAsset(ASSET_FAST_FORWARD));
 	#endif
 
 	//logMsg("setting up view stack");

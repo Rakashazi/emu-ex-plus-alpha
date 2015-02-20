@@ -15,15 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxBufferImage.hh>
+#include <imagine/gfx/Texture.hh>
 
 class EmuVideo
 {
 public:
-	Gfx::BufferImage vidImg;
+	Gfx::PixmapTexture vidImg;
 	IG::Pixmap vidPix {PixelFormatRGB565};
-	char *pixBuff = nullptr;
-	uint vidPixAlign = Gfx::BufferImage::MAX_ASSUME_ALIGN;
+	char *pixBuff{};
+	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
 
 public:
 	constexpr EmuVideo() {}

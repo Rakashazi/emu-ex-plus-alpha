@@ -24,10 +24,7 @@ bool touchControlsApplicable();
 
 void EmuVideoLayer::init()
 {
-	disp.init();
-	#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-	disp.flags = Gfx::Sprite::HINT_NO_MATRIX_TRANSFORM;
-	#endif
+	disp.init({});
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	vidImgEffect.setImageSize({video.vidPix.x, video.vidPix.y});
 	#endif
@@ -217,12 +214,6 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		}
 
 		disp.setPos(gameRectG);
-		#if defined CONFIG_BASE_ANDROID && defined CONFIG_GFX_OPENGL_USE_DRAW_TEXTURE
-		disp.screenX = gameView.xIPos(LB2DO);
-		disp.screenY = Gfx::viewPixelHeight() - gameView.yIPos(LB2DO);
-		disp.screenX2 = gameView.iXSize;
-		disp.screenY2 = gameView.iYSize;
-		#endif
 		logMsg("placed game rect at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
 				gameRect_.x, gameRect_.y, gameRect_.x2, gameRect_.y2,
 				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
@@ -270,6 +261,10 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 		{
 			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
+		if(useLinearFilter)
+			Gfx::TextureSampler::bindDefaultNoMipClampSampler();
+		else
+			Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler();
 		disp.draw();
 		vidImgOverlay.draw();
 	}
@@ -308,19 +303,8 @@ void EmuVideoLayer::setEffect(uint effect)
 void EmuVideoLayer::setLinearFilter(bool on)
 {
 	useLinearFilter = on;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setLinearFilter(on);
-	#endif
-	if(!video.vidImg)
-		return;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(vidImgEffect.renderTarget())
-	{
-		video.vidImg.setLinearFilter(false);
-	}
+	if(useLinearFilter)
+		Gfx::TextureSampler::initDefaultNoMipClampSampler();
 	else
-	#endif
-	{
-		video.vidImg.setLinearFilter(on);
-	}
+		Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler();
 }
