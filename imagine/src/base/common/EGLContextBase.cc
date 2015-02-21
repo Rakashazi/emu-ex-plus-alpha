@@ -18,6 +18,10 @@
 #include <EGL/eglext.h>
 #include <imagine/util/egl.hh>
 
+#ifndef EGL_OPENGL_ES3_BIT
+#define EGL_OPENGL_ES3_BIT 0x0040
+#endif
+
 namespace Base
 {
 
@@ -58,17 +62,22 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 		list.push_back(EGL_OPENGL_BIT);
 		logMsg("using OpenGL renderable");
 	}
-	else if(ctxAttr.majorVersion() >= 2)
+	else if(ctxAttr.majorVersion() == 2)
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
 		list.push_back(EGL_OPENGL_ES2_BIT);
+	}
+	else if(ctxAttr.majorVersion() == 3)
+	{
+		list.push_back(EGL_RENDERABLE_TYPE);
+		list.push_back(EGL_OPENGL_ES3_BIT);
 	}
 
 	list.push_back(EGL_NONE);
 	return list;
 }
 
-static EGLContextAttrList glContextAttrsToGLXAttrs(GLContextAttributes attr)
+static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 {
 	EGLContextAttrList list;
 
@@ -165,14 +174,14 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 		return INVALID_PARAMETER;
 	}
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
-	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToGLXAttrs(attr)[0]);
+	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToEGLAttrs(attr)[0]);
 	if(context == EGL_NO_CONTEXT)
 	{
 		if(attr.debug())
 		{
 			logMsg("retrying without debug bit");
 			attr.setDebug(false);
-			context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToGLXAttrs(attr)[0]);
+			context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToEGLAttrs(attr)[0]);
 		}
 		if(context == EGL_NO_CONTEXT)
 		{

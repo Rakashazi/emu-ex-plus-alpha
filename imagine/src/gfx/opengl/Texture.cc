@@ -508,7 +508,8 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		}
 		if(useImmutableTexStorage)
 		{
-			deleteTex(texName_);
+			if(texName_)
+				deleteTex(texName_);
 			texName_ = newTex();
 			glcBindTexture(GL_TEXTURE_2D, texName_);
 			auto internalFormat = makeGLSizedInternalFormat(desc.format);

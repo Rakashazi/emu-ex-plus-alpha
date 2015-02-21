@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <dlfcn.h>
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
@@ -23,12 +24,19 @@ namespace Base
 CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
 {
 	assert(attr.openGLESAPI());
-	if(attr.majorVersion() == 1)
-		context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1]);
-	else if(attr.majorVersion() == 2)
-		context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
-	else
-		bug_exit("unsupported OpenGL ES major version: %d", attr.majorVersion());
+	switch(attr.majorVersion())
+	{
+		bcase 1:
+			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1]);
+		bcase 2:
+			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
+		#if !defined __ARM_ARCH_6K__
+		bcase 3:
+			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
+		#endif
+		bdefault:
+			bug_exit("unsupported OpenGL ES major version:%d", attr.majorVersion());
+	}
 	assert(context());
 	return OK;
 }
@@ -115,7 +123,7 @@ bool GLContext::bindAPI(API api)
 
 void *GLContext::procAddress(const char *funcName)
 {
-	return nullptr;
+	return dlsym(RTLD_DEFAULT, funcName);
 }
 
 }

@@ -80,7 +80,8 @@ private:
 public:
 	void setMajorVersion(uint majorVer)
 	{
-		assert(majorVer > 0);
+		if(!majorVer)
+			majorVer = 1;
 		var_selfs(majorVer);
 	}
 
