@@ -1,7 +1,7 @@
 uniform vec2 srcPixels;
-attribute vec2 texUV;
-varying vec2 texUVOut;
-varying vec2 texelPosOut;
+in vec2 texUV;
+out vec2 texUVOut;
+out vec2 texelPosOut;
 
 void main()
 {

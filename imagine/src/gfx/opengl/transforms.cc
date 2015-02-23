@@ -148,7 +148,8 @@ void updateProgramProjectionTransform(GLSLProgram &program)
 	if(program.projectionUniformAge != projectionMatAge)
 	{
 		//logMsg("updating projection matrix for program %d (age was %d, now %d)", program.program(), program.projectionUniformAge, projectionMatAge);
-		glUniformMatrix4fv(program.projectionUniform, 1, GL_FALSE, &projectionMat[0][0]);
+		if(likely(program.projectionUniform != -1))
+			glUniformMatrix4fv(program.projectionUniform, 1, GL_FALSE, &projectionMat[0][0]);
 		program.projectionUniformAge = projectionMatAge;
 	}
 }
@@ -158,7 +159,8 @@ void updateProgramModelViewTransform(GLSLProgram &program)
 	if(program.modelViewUniformAge != modelMatAge)
 	{
 		//logMsg("updating model/view matrix for program %d (age was %d, now %d)", program.program(), program.modelViewUniformAge, modelMatAge);
-		glUniformMatrix4fv(program.modelViewUniform, 1, GL_FALSE, &modelMat[0][0]);
+		if(likely(program.modelViewUniform != -1))
+			glUniformMatrix4fv(program.modelViewUniform, 1, GL_FALSE, &modelMat[0][0]);
 		program.modelViewUniformAge = modelMatAge;
 	}
 }

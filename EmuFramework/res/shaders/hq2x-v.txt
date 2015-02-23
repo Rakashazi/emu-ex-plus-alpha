@@ -1,6 +1,6 @@
 uniform vec2 srcTexelHalfDelta;
-attribute vec2 texUV;
-varying vec2 texUVOut[9];
+in vec2 texUV;
+out vec2 texUVOut[9];
 
 void main()
 {

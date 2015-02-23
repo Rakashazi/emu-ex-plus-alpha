@@ -1,7 +1,6 @@
-varying lowp vec2 texUVOut;
-uniform sampler2D tex;
+in lowp vec2 texUVOut;
 
 void main()
 {
-	OUT_FRAGCOLOR(texture2D(tex, texUVOut));
+	OUT_FRAGCOLOR(texture(TEX, texUVOut));
 }

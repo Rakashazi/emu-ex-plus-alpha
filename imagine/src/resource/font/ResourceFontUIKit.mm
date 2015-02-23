@@ -55,6 +55,7 @@ static void renderTextIntoBuffer(NSString *str, void *buff, uint xSize, uint ySi
 {
 	auto context = CGBitmapContextCreate(buff, xSize, ySize, 8, xSize, colorSpace, kCGImageAlphaOnly);
 	assert(context);
+	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextSetTextDrawingMode(context, kCGTextFill);
 	//CGContextSetStrokeColorWithColor(context, textColor);
 	CGContextSetFillColorWithColor(context, textColor);

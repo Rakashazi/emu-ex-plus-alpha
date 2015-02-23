@@ -177,16 +177,16 @@ void VControllerKeyboard::init()
 void VControllerKeyboard::updateImg()
 {
 	if(mode)
-		spr.setImg(spr.image(), {0., .5, texXEnd, 1.});
+		spr.setUVBounds({0., .5, texXEnd, 1.});
 	else
-		spr.setImg(spr.image(), {0., 0., texXEnd, .5});
+		spr.setUVBounds({0., 0., texXEnd, .5});
 	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 		Gfx::autoReleaseShaderCompiler();
 }
 
 void VControllerKeyboard::setImg(Gfx::PixmapTexture *img)
 {
-	spr.init({-.5, -.5, .5, .5});
+	spr.init({-.5, -.5, .5, .5}, *img);
 	texXEnd = img->uvBounds().x2;
 	updateImg();
 }

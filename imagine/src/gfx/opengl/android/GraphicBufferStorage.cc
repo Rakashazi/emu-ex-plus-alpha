@@ -59,7 +59,7 @@ bool GraphicBufferStorage::testSupport(const char **errorStr)
 	IG::PixmapDesc desc{PixelFormatRGB565};
 	desc.x = desc.y = 256;
 	GraphicBufferStorage directTex;
-	if(!directTex.init())
+	if(directTex.init() != OK)
 	{
 		if(errorStr) *errorStr = "Missing native buffer functions";
 		return false;

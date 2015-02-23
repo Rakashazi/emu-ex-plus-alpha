@@ -315,7 +315,7 @@ void setDither(bool on)
 	}
 }
 
-uint dither()
+bool dither()
 {
 	return glcIsEnabled(GL_DITHER);
 }

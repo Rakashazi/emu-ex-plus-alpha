@@ -220,7 +220,7 @@ public:
 class DefaultTexAlphaReplaceProgram : public TexProgram
 {
 public:
-	DefaultTexProgram *impl = nullptr;
+	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaReplaceProgram() {}
 	bool compile();
 	void use() { use(nullptr); }
@@ -231,30 +231,8 @@ public:
 class DefaultTexAlphaProgram : public TexProgram
 {
 public:
-	DefaultTexProgram *impl = nullptr;
+	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
-};
-
-class DefaultTexIntensityAlphaReplaceProgram : public TexProgram
-{
-public:
-	DefaultTexReplaceProgram *impl = nullptr;
-	constexpr DefaultTexIntensityAlphaReplaceProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
-};
-
-class DefaultTexIntensityAlphaProgram : public TexProgram
-{
-public:
-	DefaultTexProgram *impl = nullptr;
-	constexpr DefaultTexIntensityAlphaProgram() {}
 	bool compile();
 	void use() { use(nullptr); }
 	void use(Mat4 modelMat) { use(&modelMat); }
@@ -294,13 +272,13 @@ public:
 // color replacement
 extern DefaultTexReplaceProgram texReplaceProgram;
 extern DefaultTexAlphaReplaceProgram texAlphaReplaceProgram;
-extern DefaultTexIntensityAlphaReplaceProgram texIntensityAlphaReplaceProgram;
+extern DefaultTexReplaceProgram &texIntensityAlphaReplaceProgram;
 extern DefaultTexExternalReplaceProgram texExternalReplaceProgram;
 
 // color modulation
 extern DefaultTexProgram texProgram;
 extern DefaultTexAlphaProgram texAlphaProgram;
-extern DefaultTexIntensityAlphaProgram texIntensityAlphaProgram;
+extern DefaultTexProgram &texIntensityAlphaProgram;
 extern DefaultTexExternalProgram texExternalProgram;
 extern DefaultColorProgram noTexProgram;
 

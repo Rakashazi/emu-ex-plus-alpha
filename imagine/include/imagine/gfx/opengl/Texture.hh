@@ -73,6 +73,7 @@ protected:
 	TextureRef texName_ = 0;
 	IG::PixmapDesc pixDesc{PixelFormatRGBA8888};
 	GLuint sampler = 0; // used when separate sampler objects not supported
+	uint levels_ = 0;
 
 	static void setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex);
 

@@ -28,22 +28,16 @@ public:
 		const char *vShaderFilename;
 		const char *fShaderFilename;
 		IG::Point2D<uint> scale;
-
-		bool needsRenderTarget() const
-		{
-			return scale.x;
-		}
 	};
 
 private:
 	using ErrorMessage = std::array<char, 128>;
-	static constexpr uint MAX_PROGRAMS = 2;
-	Gfx::Program prog[MAX_PROGRAMS];
-	Gfx::Shader vShader[MAX_PROGRAMS]{};
-	Gfx::Shader fShader[MAX_PROGRAMS]{};
-	int srcTexelDeltaU[MAX_PROGRAMS]{};
-	int srcTexelHalfDeltaU[MAX_PROGRAMS]{};
-	int srcPixelsU[MAX_PROGRAMS]{};
+	Gfx::Program prog;
+	Gfx::Shader vShader{};
+	Gfx::Shader fShader{};
+	int srcTexelDeltaU{};
+	int srcTexelHalfDeltaU{};
+	int srcPixelsU{};
 	uint effect_ = NO_EFFECT;
 	Gfx::RenderTarget renderTarget_;
 	IG::Point2D<uint> renderTargetScale;
@@ -51,12 +45,11 @@ private:
 	IG::Point2D<uint> inputImgSize{1, 1};
 	bool useRGB565RenderTarget = true;
 
-	uint programs() const;
 	void initRenderTargetTexture();
 	void updateProgramUniforms();
 	void compile(bool isExternalTex);
 	CallResult compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback, ErrorMessage *msg);
-	void deinitPrograms();
+	void deinitProgram();
 
 public:
 	enum
@@ -74,8 +67,7 @@ public:
 	uint effect();
 	void setImageSize(IG::Point2D<uint> size);
 	void setBitDepth(uint bitDepth);
-	Gfx::Program &program(uint imgMode);
-	bool hasProgram() const;
+	Gfx::Program &program();
 	Gfx::RenderTarget &renderTarget();
 	void drawRenderTarget(Gfx::PixmapTexture &img);
 	void deinit();

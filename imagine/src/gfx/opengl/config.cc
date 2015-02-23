@@ -107,6 +107,8 @@ bool useImmutableTexStorage = false;
 GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
 #endif
 
+bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
+
 static Base::GLBufferConfig gfxBufferConfig;
 
 static Gfx::GC orientationToGC(uint o)

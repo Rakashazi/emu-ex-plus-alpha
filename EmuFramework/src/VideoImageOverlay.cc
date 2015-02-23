@@ -94,7 +94,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	{
 		using namespace Gfx;
 		spr.setPos(disp);
-		float width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
+		Gfx::GTexC width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
 		//logMsg("width %f", (double)width);
 		switch(effect)
 		{

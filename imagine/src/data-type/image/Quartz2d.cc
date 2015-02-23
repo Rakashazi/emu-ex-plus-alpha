@@ -82,6 +82,7 @@ CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
 	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
 	auto bitmapInfo = hasAlphaChannel() ? kCGImageAlphaPremultipliedLast : kCGImageAlphaNone;
 	auto context = CGBitmapContextCreate(dest.data, width, height, 8, dest.pitch, colorSpace, bitmapInfo);
+	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
 	CGContextRelease(context);
 	return OK;

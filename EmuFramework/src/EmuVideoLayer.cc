@@ -42,7 +42,7 @@ void EmuVideoLayer::resetImage()
 	#endif
 	{
 		logMsg("drawing video texture directly");
-		disp.setImg(&video.vidImg);
+		disp.setImg(video.vidImg);
 	}
 	compileDefaultPrograms();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -236,25 +236,17 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 
 		setBlendMode(0);
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		if(vidImgEffect.hasProgram())
+		if(vidImgEffect.program())
 		{
-			if(vidImgEffect.renderTarget())
-			{
-				auto prevPMat = Gfx::projectionMatrix();
-				auto prevViewport = Gfx::viewport();
-				setProgram(vidImgEffect.program(IMG_MODE_REPLACE), {});
-				vidImgEffect.renderTarget().setCurrent();
-				Gfx::clear();
-				vidImgEffect.drawRenderTarget(video.vidImg);
-				RenderTarget::setDefaultCurrent();
-				Gfx::setViewport(prevViewport);
-				Gfx::setProjectionMatrix(prevPMat);
-				disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
-			}
-			else
-			{
-				setProgram(vidImgEffect.program(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE), projP.makeTranslate());
-			}
+			auto prevViewport = Gfx::viewport();
+			setClipRect(false);
+			setProgram(vidImgEffect.program());
+			vidImgEffect.renderTarget().setCurrent();
+			Gfx::clear();
+			vidImgEffect.drawRenderTarget(video.vidImg);
+			RenderTarget::setDefaultCurrent();
+			Gfx::setViewport(prevViewport);
+			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		else
 		#endif

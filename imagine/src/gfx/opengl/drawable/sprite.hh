@@ -38,6 +38,7 @@ template<class BaseRect>
 void SpriteBase<BaseRect>::deinit()
 {
 	BaseRect::deinit();
+	setImg(nullptr);
 }
 
 template<class BaseRect>

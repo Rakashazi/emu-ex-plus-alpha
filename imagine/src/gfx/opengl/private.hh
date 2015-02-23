@@ -43,6 +43,7 @@ extern GLenum alphaFormat;
 extern GLenum alphaInternalFormat;
 extern bool useImmutableTexStorage;
 extern TextureSizeSupport textureSizeSupport;
+extern bool useLegacyGLSL;
 
 static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 

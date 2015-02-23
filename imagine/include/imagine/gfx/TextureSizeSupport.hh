@@ -44,6 +44,7 @@ public:
 
 	bool supportsMipmaps(uint imageX, uint imageY)
 	{
-		return nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY));
+		return imageX && imageY &&
+			(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));
 	}
 };

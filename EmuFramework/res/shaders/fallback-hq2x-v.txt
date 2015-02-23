@@ -1,5 +1,5 @@
-attribute vec2 texUV;
-varying vec2 texUVOut;
+in vec2 texUV;
+out vec2 texUVOut;
 
 void main()
 {

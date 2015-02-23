@@ -48,11 +48,6 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
 const Mat4 &projectionMatrix();
 const Viewport &viewport();
 
-// commit/sync
-void renderFrame(Base::Window &win, Base::FrameTimeBase frameTime);
-void updateFrameTime();
-extern uint frameTime, frameTimeRel;
-
 enum { TRIANGLE = 1, TRIANGLE_STRIP, QUAD, };
 
 extern bool preferBGRA, preferBGR;
@@ -69,9 +64,10 @@ public:
 	int uniformLocation(const char *uniformName);
 };
 
+Shader makeShader(const char **src, uint srcCount, uint type);
 Shader makeShader(const char *src, uint type);
-Shader makePluginVertexShader(const char *src, uint imgMode);
-Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTex);
+Shader makeCompatShader(const char **src, uint srcCount, uint type);
+Shader makeCompatShader(const char *src, uint type);
 Shader makeDefaultVShader();
 void deleteShader(Shader shader);
 void setProgram(Program &program);
@@ -91,7 +87,7 @@ void setBlendEquation(uint mode);
 void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
 
 void setDither(bool on);
-uint dither();
+bool dither();
 
 void setZTest(bool on);
 

@@ -26,6 +26,40 @@ static const VideoImageEffect::EffectDesc
 static const VideoImageEffect::EffectDesc
 	prescale2xDesc{"direct-v.txt", "direct-f.txt", {2, 2}};
 
+static Gfx::Shader makeEffectVertexShader(const char *src)
+{
+	const char *posDefs =
+	"#define OUT_POSITION gl_Position = pos\n"
+	"in vec4 pos;\n";
+	const char *shaderSrc[]
+	{
+		posDefs,
+		src
+	};
+	return Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_VERTEX_SHADER);
+}
+
+static Gfx::Shader makeEffectFragmentShader(const char *src, bool isExternalTex)
+{
+	const char *externalTexExt =
+	"#extension GL_OES_EGL_image_external : require\n";
+	const char *fragDefs =
+	"#define OUT_FRAGCOLOR(c) FRAGCOLOR = c\n"
+	"FRAGCOLOR_DEF\n";
+	const char *samplerExternal = "uniform samplerExternalOES TEX;\n";
+	const char *sampler2D = "uniform sampler2D TEX;\n";
+	const char *shaderSrc[]
+	{
+		#ifdef __ANDROID__
+		isExternalTex ? externalTexExt : "",
+		#endif
+		fragDefs,
+		(Config::envIsAndroid && isExternalTex) ? samplerExternal : sampler2D,
+		src
+	};
+	return Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_FRAGMENT_SHADER);
+}
+
 void VideoImageEffect::setEffect(uint effect, bool isExternalTex)
 {
 	if(effect == effect_)
@@ -40,24 +74,21 @@ void VideoImageEffect::deinit()
 	renderTarget_.deinit();
 	renderTargetScale = {0, 0};
 	renderTargetImgSize = {0, 0};
-	deinitPrograms();
+	deinitProgram();
 }
 
-void VideoImageEffect::deinitPrograms()
+void VideoImageEffect::deinitProgram()
 {
-	iterateTimes(2, i)
+	prog.deinit();
+	if(vShader)
 	{
-		prog[i].deinit();
-		if(vShader[i])
-		{
-			Gfx::deleteShader(vShader[i]);
-			vShader[i] = 0;
-		}
-		if(fShader[i])
-		{
-			Gfx::deleteShader(fShader[i]);
-			fShader[i] = 0;
-		}
+		Gfx::deleteShader(vShader);
+		vShader = 0;
+	}
+	if(fShader)
+	{
+		Gfx::deleteShader(fShader);
+		fShader = 0;
 	}
 }
 
@@ -80,7 +111,7 @@ void VideoImageEffect::initRenderTargetTexture()
 
 void VideoImageEffect::compile(bool isExternalTex)
 {
-	if(hasProgram())
+	if(program())
 		return; // already compiled
 	const EffectDesc *desc{};
 	switch(effect_)
@@ -110,12 +141,9 @@ void VideoImageEffect::compile(bool isExternalTex)
 		return;
 	}
 
-	if(desc->needsRenderTarget())
-	{
-		renderTargetScale = desc->scale;
-		renderTarget_.init();
-		initRenderTargetTexture();
-	}
+	renderTargetScale = desc->scale;
+	renderTarget_.init();
+	initRenderTargetTexture();
 	ErrorMessage msg{};
 	if(compileEffect(*desc, isExternalTex, false, &msg) != OK)
 	{
@@ -138,7 +166,7 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename));
 		if(!file)
 		{
-			deinitPrograms();
+			deinitProgram();
 			if(msg)
 				string_printf(*msg, "Can't open file: %s", desc.vShaderFilename);
 			return NOT_FOUND;
@@ -149,30 +177,22 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		text[fileSize] = 0;
 		file.close();
 		//logMsg("read source:\n%s", text);
-		logMsg("making vertex shader (replace mode)");
-		vShader[0] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_REPLACE);
-		if(!desc.needsRenderTarget())
+		logMsg("making vertex shader");
+		vShader = makeEffectVertexShader(text);
+		if(!vShader)
 		{
-			logMsg("making vertex shader (modulate mode)");
-			vShader[1] = Gfx::makePluginVertexShader(text, Gfx::IMG_MODE_MODULATE);
-		}
-		iterateTimes(programs(), i)
-		{
-			if(!vShader[i])
-			{
-				deinitPrograms();
-				if(msg)
-					string_printf(*msg, "GPU rejected shader (vertex compile error)");
-				Gfx::autoReleaseShaderCompiler();
-				return INVALID_PARAMETER;
-			}
+			deinitProgram();
+			if(msg)
+				string_printf(*msg, "GPU rejected shader (vertex compile error)");
+			Gfx::autoReleaseShaderCompiler();
+			return INVALID_PARAMETER;
 		}
 	}
 	{
 		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename));
 		if(!file)
 		{
-			deinitPrograms();
+			deinitProgram();
 			if(msg)
 				string_printf(*msg, "Can't open file: %s", desc.fShaderFilename);
 			Gfx::autoReleaseShaderCompiler();
@@ -184,58 +204,44 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		text[fileSize] = 0;
 		file.close();
 		//logMsg("read source:\n%s", text);
-		logMsg("making fragment shader (replace mode)");
-		fShader[0] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_REPLACE, isExternalTex);
-		if(!desc.needsRenderTarget())
+		logMsg("making fragment shader");
+		fShader = makeEffectFragmentShader(text, isExternalTex);
+		if(!fShader)
 		{
-			logMsg("making fragment shader (modulate mode)");
-			fShader[1] = Gfx::makePluginFragmentShader(text, Gfx::IMG_MODE_MODULATE, isExternalTex);
-		}
-		iterateTimes(programs(), i)
-		{
-			if(!fShader[i])
-			{
-				deinitPrograms();
-				if(msg)
-					string_printf(*msg, "GPU rejected shader (fragment compile error)");
-				Gfx::autoReleaseShaderCompiler();
-				return INVALID_PARAMETER;
-			}
-		}
-	}
-	iterateTimes(programs(), i)
-	{
-		logMsg("linking program: %d", i);
-		prog[i].init(vShader[i], fShader[i], i == 0, true);
-		if(!prog[i].link())
-		{
-			deinitPrograms();
+			deinitProgram();
 			if(msg)
-				string_printf(*msg, "GPU rejected shader (link error)");
+				string_printf(*msg, "GPU rejected shader (fragment compile error)");
 			Gfx::autoReleaseShaderCompiler();
 			return INVALID_PARAMETER;
 		}
-		srcTexelDeltaU[i] = prog[i].uniformLocation("srcTexelDelta");
-		srcTexelHalfDeltaU[i] = prog[i].uniformLocation("srcTexelHalfDelta");
-		srcPixelsU[i] = prog[i].uniformLocation("srcPixels");
-		updateProgramUniforms();
 	}
+	logMsg("linking program");
+	prog.init(vShader, fShader, false, true);
+	if(!prog.link())
+	{
+		deinitProgram();
+		if(msg)
+			string_printf(*msg, "GPU rejected shader (link error)");
+		Gfx::autoReleaseShaderCompiler();
+		return INVALID_PARAMETER;
+	}
+	srcTexelDeltaU = prog.uniformLocation("srcTexelDelta");
+	srcTexelHalfDeltaU = prog.uniformLocation("srcTexelHalfDelta");
+	srcPixelsU = prog.uniformLocation("srcPixels");
+	updateProgramUniforms();
 	Gfx::autoReleaseShaderCompiler();
 	return OK;
 }
 
 void VideoImageEffect::updateProgramUniforms()
 {
-	iterateTimes(programs(), i)
-	{
-		setProgram(prog[i]);
-		if(srcTexelDeltaU[i] != -1)
-			Gfx::uniformF(srcTexelDeltaU[i], 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
-		if(srcTexelHalfDeltaU[i] != -1)
-			Gfx::uniformF(srcTexelHalfDeltaU[i], 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
-		if(srcPixelsU[i] != -1)
-			Gfx::uniformF(srcPixelsU[i], inputImgSize.x, inputImgSize.y);
-	}
+	setProgram(prog);
+	if(srcTexelDeltaU != -1)
+		Gfx::uniformF(srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
+	if(srcTexelHalfDeltaU != -1)
+		Gfx::uniformF(srcTexelHalfDeltaU, 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
+	if(srcPixelsU != -1)
+		Gfx::uniformF(srcPixelsU, inputImgSize.x, inputImgSize.y);
 }
 
 void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
@@ -243,7 +249,7 @@ void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
 	if(inputImgSize.x == size.x && inputImgSize.y == size.y)
 		return;
 	inputImgSize = {size.x, size.y};
-	if(hasProgram())
+	if(program())
 		updateProgramUniforms();
 	if(renderTarget_)
 		initRenderTargetTexture();
@@ -254,19 +260,9 @@ void VideoImageEffect::setBitDepth(uint bitDepth)
 	useRGB565RenderTarget = bitDepth <= 16;
 }
 
-Gfx::Program &VideoImageEffect::program(uint imgMode)
+Gfx::Program &VideoImageEffect::program()
 {
-	return prog[(imgMode == Gfx::IMG_MODE_MODULATE && !renderTarget_) ? 1 : 0];
-}
-
-uint VideoImageEffect::programs() const
-{
-	return renderTarget_ ? 1 : 2;
-}
-
-bool VideoImageEffect::hasProgram() const
-{
-	return (bool)prog[0];
+	return prog;
 }
 
 Gfx::RenderTarget &VideoImageEffect::renderTarget()
@@ -278,11 +274,9 @@ void VideoImageEffect::drawRenderTarget(Gfx::PixmapTexture &img)
 {
 	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
 	Gfx::setViewport(viewport);
-	Gfx::setProjectionMatrix({});
 	Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler();
 	Gfx::Sprite spr;
-	spr.init({-1., -1., 1., 1.});
-	spr.setImg(&img, {0., 1., 1., 0.});
+	spr.init({-1., -1., 1., 1.}, &img, {0., 1., 1., 0.});
 	spr.draw();
 	spr.setImg(nullptr);
 }

@@ -21,34 +21,15 @@ namespace Gfx
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 
-GLSLProgram *currProgram = nullptr;
+GLSLProgram *currProgram{};
 static GLuint defaultVShader = 0;
 
-	#ifdef CONFIG_GFX_OPENGL_ES
-	#define GLSL_VERSION_DIRECTIVE
-	#define GLSL_VIN "attribute"
-	#define GLSL_VOUT "varying"
-	#define GLSL_FIN "varying"
-	#define GLSL_TEXTURE "texture2D"
-	#define GLSL_FRAGCOLOR "gl_FragColor"
-	#define GLSL_FRAGCOLOR_DEF
-	#else
-	#define GLSL_VIN "in"
-	#define GLSL_VOUT "out"
-	#define GLSL_FIN "in"
-	#define GLSL_TEXTURE "texture"
-	#define GLSL_FRAGCOLOR "fragColor"
-	#define GLSL_FRAGCOLOR_DEF "out vec4 fragColor;\n"
-	#define GLSL_VERSION_DIRECTIVE "#version 150\n"
-	#endif
-
 static const char *vShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_VIN " vec4 pos; "
-GLSL_VIN " vec4 color; "
-GLSL_VIN " vec2 texUV; "
-GLSL_VOUT " vec4 colorOut; "
-GLSL_VOUT " vec2 texUVOut; "
+"in vec4 pos; "
+"in vec4 color; "
+"in vec2 texUV; "
+"out vec4 colorOut; "
+"out vec2 texUVOut; "
 "uniform mat4 modelview; "
 "uniform mat4 proj; "
 "void main() { "
@@ -59,122 +40,79 @@ GLSL_VOUT " vec2 texUVOut; "
 ;
 
 static const char *texFragShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_FRAGCOLOR_DEF
-GLSL_FIN " lowp vec4 colorOut; "
-GLSL_FIN " lowp vec2 texUVOut; "
+"FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
+"in lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
-	GLSL_FRAGCOLOR " = colorOut * " GLSL_TEXTURE "(tex, texUVOut); "
+	"FRAGCOLOR = colorOut * texture(tex, texUVOut); "
 "}"
 ;
 
 static const char *texReplaceFragShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_FRAGCOLOR_DEF
-GLSL_FIN " lowp vec2 texUVOut; "
+"FRAGCOLOR_DEF "
+"in lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
-	GLSL_FRAGCOLOR " = " GLSL_TEXTURE "(tex, texUVOut); "
+	"FRAGCOLOR = texture(tex, texUVOut); "
 "}"
 ;
 
 static const char *texAlphaFragShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_FRAGCOLOR_DEF
-GLSL_FIN " lowp vec4 colorOut; "
-GLSL_FIN " lowp vec2 texUVOut; "
+"FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
+"in lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
 	// adapted from: gl_FragColor = colorOut * vec4(1., 1., 1., texture2D(tex, texUVOut).[alpha]);
 	"lowp vec4 tmp; "
 	"tmp.rgb = colorOut.rgb; "
-	#ifdef CONFIG_GFX_OPENGL_ES
-	"tmp.a = colorOut.a * " GLSL_TEXTURE "(tex, texUVOut).a; "
-	#else
-	"tmp.a = colorOut.a * " GLSL_TEXTURE "(tex, texUVOut).r; "
-	#endif
-	GLSL_FRAGCOLOR " = tmp;"
+	"tmp.a = colorOut.a * texture(tex, texUVOut).a; "
+	"FRAGCOLOR = tmp;"
 "}"
 ;
 
 static const char *texAlphaReplaceFragShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_FRAGCOLOR_DEF
-GLSL_FIN " lowp vec4 colorOut; "
-GLSL_FIN " lowp vec2 texUVOut; "
+"FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
+"in lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
 	"lowp vec4 tmp; "
 	"tmp.rgb = colorOut.rgb; "
-	#ifdef CONFIG_GFX_OPENGL_ES
-	"tmp.a = " GLSL_TEXTURE "(tex, texUVOut).a; "
-	#else
-	"tmp.a = " GLSL_TEXTURE "(tex, texUVOut).r; "
-	#endif
-	GLSL_FRAGCOLOR " = tmp;"
+	"tmp.a = texture(tex, texUVOut).a; "
+	"FRAGCOLOR = tmp;"
 "}"
 ;
 
-	#ifndef CONFIG_GFX_OPENGL_ES
-	static const char *texIntensityAlphaFragShaderSrc =
-	GLSL_VERSION_DIRECTIVE
-	GLSL_FRAGCOLOR_DEF
-	GLSL_FIN " lowp vec4 colorOut; "
-	GLSL_FIN " lowp vec2 texUVOut; "
-	"uniform sampler2D tex; "
-	"void main() { "
-		"lowp float i = " GLSL_TEXTURE "(tex, texUVOut).r; "
-		GLSL_FRAGCOLOR " = colorOut * vec4(i, i, i, " GLSL_TEXTURE "(tex, texUVOut).g); "
-	"}"
-	;
+#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+static const char *texExternalFragShaderSrc =
+"#extension GL_OES_EGL_image_external : require\n"
+"FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
+"in lowp vec2 texUVOut; "
+"uniform samplerExternalOES tex; "
+"void main() { "
+	"FRAGCOLOR = colorOut * texture(tex, texUVOut); "
+"}"
+;
 
-	static const char *texIntensityAlphaReplaceFragShaderSrc =
-	GLSL_VERSION_DIRECTIVE
-	GLSL_FRAGCOLOR_DEF
-	GLSL_FIN " lowp vec2 texUVOut; "
-	"uniform sampler2D tex; "
-	"void main() { "
-		"lowp float i = " GLSL_TEXTURE "(tex, texUVOut).r; "
-		GLSL_FRAGCOLOR " = vec4(i, i, i, " GLSL_TEXTURE "(tex, texUVOut).g); "
-	"}"
-	;
-	#else
-	static const char *texIntensityAlphaFragShaderSrc = nullptr;
-	static const char *texIntensityAlphaReplaceFragShaderSrc = nullptr;
-	#endif
-
-	#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	static const char *texExternalFragShaderSrc =
-	GLSL_VERSION_DIRECTIVE
-	GLSL_FRAGCOLOR_DEF
-	"#extension GL_OES_EGL_image_external:enable\n"
-	GLSL_FIN " lowp vec4 colorOut; "
-	GLSL_FIN " lowp vec2 texUVOut; "
-	"uniform samplerExternalOES tex; "
-	"void main() { "
-		GLSL_FRAGCOLOR " = colorOut * " GLSL_TEXTURE "(tex, texUVOut); "
-	"}"
-	;
-
-	static const char *texExternalReplaceFragShaderSrc =
-	GLSL_VERSION_DIRECTIVE
-	GLSL_FRAGCOLOR_DEF
-	"#extension GL_OES_EGL_image_external:enable\n"
-	GLSL_FIN " lowp vec2 texUVOut; "
-	"uniform samplerExternalOES tex; "
-	"void main() { "
-		GLSL_FRAGCOLOR " = " GLSL_TEXTURE "(tex, texUVOut); "
-	"}"
-	;
-	#endif
+static const char *texExternalReplaceFragShaderSrc =
+"#extension GL_OES_EGL_image_external : require\n"
+"FRAGCOLOR_DEF "
+"in lowp vec2 texUVOut; "
+"uniform samplerExternalOES tex; "
+"void main() { "
+	"FRAGCOLOR = texture(tex, texUVOut); "
+"}"
+;
+#endif
 
 static const char *noTexFragShaderSrc =
-GLSL_VERSION_DIRECTIVE
-GLSL_FRAGCOLOR_DEF
-GLSL_FIN " lowp vec4 colorOut; "
+"FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
 "void main() { "
-	GLSL_FRAGCOLOR " = colorOut; "
+	"FRAGCOLOR = colorOut; "
 "}"
 ;
 
@@ -229,8 +167,8 @@ void GLSLProgram::deinit()
 	{
 		logMsg("deleting program %d", (int)program_);
 		glDeleteProgram(program_);
-		projectionUniformAge = 0;
-		modelViewUniformAge = 0;
+		projectionUniformAge = -1;
+		modelViewUniformAge = -1;
 		program_ = 0;
 	}
 }
@@ -278,8 +216,6 @@ void TexProgram::init(GLuint vShader, GLuint fShader)
 {
 	GLSLProgram::init(vShader, fShader, true, true);
 	link();
-	//textureUniform = glGetUniformLocation(program_, "tex");
-	//handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glGetUniformLocation tex", err); });
 }
 
 void ColorProgram::init(GLuint vShader, GLuint fShader)
@@ -320,10 +256,10 @@ void setProgram(Program &program, Mat4 modelMat)
 	setProgram((GLSLProgram&)program, &modelMat);
 }
 
-Shader makeShader(const char *src, uint type)
+Shader makeShader(const char **src, uint srcCount, uint type)
 {
 	auto shader = glCreateShader(type);
-	glShaderSource(shader, 1, &src, nullptr);
+	glShaderSource(shader, srcCount, src, nullptr);
 	glCompileShader(shader);
 	GLint success;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -335,74 +271,71 @@ Shader makeShader(const char *src, uint type)
 			logDMsg("shader info log: %s", messages);
 	}
 	if(success == GL_FALSE)
+	{
+		logErr("failed shader source:");
+		iterateTimes(srcCount, i)
+		{
+			logErr("part %u:", i);
+			logErr("%s", src[i]);
+		}
 		return 0;
+	}
 	return shader;
 }
 
-Shader makePluginVertexShader(const char *src, uint imgMode)
+Shader makeShader(const char *src, uint type)
 {
-	const char *modulateDefs =
-	"#define OUT_POSITION colorOut = color; gl_Position = (proj * modelview) * pos\n"
-	GLSL_VIN " vec4 pos; "
-	"uniform mat4 modelview; "
-	"uniform mat4 proj; "
-	GLSL_VIN " vec4 color; "
-	GLSL_VOUT " vec4 colorOut; ";
-	const char *replaceDefs =
-	"#define OUT_POSITION gl_Position = (proj * modelview) * pos\n"
-	GLSL_VIN " vec4 pos; "
-	"uniform mat4 modelview; "
-	"uniform mat4 proj; ";
-	char shaderStr[8192];
-	if(!string_printf(shaderStr,
-		GLSL_VERSION_DIRECTIVE
-		"%s%s",
-		imgMode == IMG_MODE_MODULATE ? modulateDefs : replaceDefs,
-		src))
-	{
-		logMsg("shader text too large");
-		return 0;
-	}
-	//logMsg("making vertex shader with source:\n%s", shaderStr);
-	return makeShader(shaderStr, GL_VERTEX_SHADER);
+	const char *singleSrc[]{src};
+	return makeShader(singleSrc, 1, type);
 }
 
-Shader makePluginFragmentShader(const char *src, uint imgMode, bool isExternalTex)
+Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 {
-	const char *modulateDefs =
-	"#define OUT_FRAGCOLOR(c) " GLSL_FRAGCOLOR " = colorOut * c\n"
-	GLSL_FIN " lowp vec4 colorOut;\n";
-	const char *replaceDefs =
-	"#define OUT_FRAGCOLOR(c) " GLSL_FRAGCOLOR " = c\n";
-	const char *externalTexDefs =
-	"#extension GL_OES_EGL_image_external:enable\n"
-	"#define sampler2D samplerExternalOES\n";
-	char shaderStr[8192];
-	if(!string_printf(shaderStr,
-		GLSL_VERSION_DIRECTIVE
-		GLSL_FRAGCOLOR_DEF
-		"%s%s%s",
-		(Config::envIsAndroid && isExternalTex) ? externalTexDefs : "",
-		imgMode == IMG_MODE_MODULATE ? modulateDefs : replaceDefs,
-		src))
+	const uint srcCount = mainSrcCount + 2;
+	const char *src[srcCount];
+	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 150\n";
+	const char legacyVertDefs[] // for GL ES 2.0
 	{
-		logMsg("shader text too large");
-		return 0;
-	}
-	//logMsg("making fragment shader with source:\n%s", shaderStr);
-	return makeShader(shaderStr, GL_FRAGMENT_SHADER);
+		"#define in attribute\n"
+		"#define out varying\n"
+	};
+	const char legacyFragDefs[] // for GL ES 2.0
+	{
+		"#define in varying\n"
+		"#define texture texture2D\n"
+		"#define FRAGCOLOR_DEF\n"
+		"#define FRAGCOLOR gl_FragColor\n"
+	};
+	const char fragDefs[]
+	{
+		"#define FRAGCOLOR_DEF out vec4 fragColor;\n"
+		"#define FRAGCOLOR fragColor\n"
+	};
+	src[0] = useLegacyGLSL ? "" : version;
+	if(type == GL_VERTEX_SHADER)
+		src[1] = useLegacyGLSL ? legacyVertDefs : "";
+	else
+		src[1] = useLegacyGLSL ? legacyFragDefs : fragDefs;
+	memcpy(&src[2], &mainSrc[0], sizeof(const char *) * mainSrcCount);
+	return makeShader(src, srcCount, type);
+}
+
+Shader makeCompatShader(const char *src, uint type)
+{
+	const char *singleSrc[]{src};
+	return makeCompatShader(singleSrc, 1, type);
 }
 
 Shader makeDefaultVShader()
 {
 	if(!defaultVShader)
-		defaultVShader = makeShader(vShaderSrc, GL_VERTEX_SHADER);
+		defaultVShader = makeCompatShader(vShaderSrc, GL_VERTEX_SHADER);
 	return defaultVShader;
 }
 
 void deleteShader(Shader shader)
 {
-	logMsg("deleting shader %d", (int)shader);
+	logMsg("deleting shader:%u", (uint)shader);
 	assert(shader != defaultVShader);
 	glDeleteShader(shader);
 }
@@ -424,8 +357,11 @@ static void compileDefaultProgram(T &prog, const char *fragSrc)
 {
 	assert(fragSrc);
 	auto vShader = makeDefaultVShader();
-	auto fShader = makeShader(fragSrc, GL_FRAGMENT_SHADER);
+	assert(vShader);
+	auto fShader = makeCompatShader(fragSrc, GL_FRAGMENT_SHADER);
+	assert(fShader);
 	prog.init(vShader, fShader);
+	assert(prog.program());
 	// TODO: we should be able to delete unused shaders after they're linked,
 	// but when testing on a Droid running Android 2.3 (CM7), it can cause
 	// malfunctions like the wrong color used for a fragment, probably a driver issue
@@ -458,12 +394,12 @@ void deleteShader(Shader shader) {}
 
 DefaultTexReplaceProgram texReplaceProgram;
 DefaultTexAlphaReplaceProgram texAlphaReplaceProgram;
-DefaultTexIntensityAlphaReplaceProgram texIntensityAlphaReplaceProgram;
+DefaultTexReplaceProgram &texIntensityAlphaReplaceProgram = texReplaceProgram;
 DefaultTexExternalReplaceProgram texExternalReplaceProgram;
 
 DefaultTexProgram texProgram;
 DefaultTexAlphaProgram texAlphaProgram;
-DefaultTexIntensityAlphaProgram texIntensityAlphaProgram;
+DefaultTexProgram &texIntensityAlphaProgram = texProgram;
 DefaultTexExternalProgram texExternalProgram;
 DefaultColorProgram noTexProgram;
 
@@ -583,86 +519,6 @@ bool DefaultTexAlphaProgram::compile()
 };
 
 void DefaultTexAlphaProgram::use(const Mat4 *modelMat)
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
-	{
-		setImgMode(IMG_MODE_MODULATE);
-		if(modelMat)
-			loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(impl)
-		impl->use(modelMat);
-	else
-		setProgram(*this, modelMat);
-	#endif
-}
-
-bool DefaultTexIntensityAlphaReplaceProgram::compile()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
-		return false;
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(useTextureSwizzle)
-	#endif
-	{
-		auto compiled = texReplaceProgram.compile();
-		impl = &texReplaceProgram;
-		return compiled;
-	}
-	logMsg("making intensity+alpha texture program (replace mode)");
-	compileDefaultProgram(*this, texIntensityAlphaReplaceFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexIntensityAlphaReplaceProgram::use(const Mat4 *modelMat)
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
-	{
-		setImgMode(IMG_MODE_REPLACE);
-		if(modelMat)
-			loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(impl)
-		impl->use(modelMat);
-	else
-		setProgram(*this, modelMat);
-	#endif
-}
-
-bool DefaultTexIntensityAlphaProgram::compile()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
-		return false;
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(useTextureSwizzle)
-	#endif
-	{
-		auto compiled = texProgram.compile();
-		impl = &texProgram;
-		return compiled;
-	}
-	logMsg("making intensity+alpha texture program");
-	compileDefaultProgram(*this, texIntensityAlphaFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexIntensityAlphaProgram::use(const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)

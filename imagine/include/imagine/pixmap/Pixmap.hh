@@ -100,10 +100,11 @@ public:
 
 	bool init(uint x, uint y)
 	{
-		auto buffer = (char*)mem_realloc(data, x * y * format.bytesPerPixel);
-		if(!buffer)
+		deinit();
+		data = (char*)mem_alloc(x * y * format.bytesPerPixel);
+		if(!data)
 			return false;
-		Pixmap::init(buffer, x, y);
+		Pixmap::init(data, x, y);
 		return true;
 	}
 
