@@ -14,5 +14,5 @@ void main()
 	texUVOut[3] = texUV + offsetX;
 	texUVOut[4] = texUV + offsetY;
 	texelPosOut = texUV * srcPixels;
-	OUT_POSITION;
+	gl_Position = POS;
 }

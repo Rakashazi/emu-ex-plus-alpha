@@ -7,5 +7,5 @@ void main()
 {
 	texUVOut = texUV;
 	texelPosOut = texUV * srcPixels;
-	OUT_POSITION;
+	gl_Position = POS;
 }

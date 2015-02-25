@@ -90,7 +90,6 @@ bool useSamplerObjects = !Config::Gfx::OPENGL_ES;
 #ifdef CONFIG_GFX_OPENGL_ES
 GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
 GL_APICALL void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
-GL_APICALL GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler){};
 GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
 GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
 #endif
@@ -242,6 +241,30 @@ static void setupImmutableTexStorage()
 	useImmutableTexStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	glTexStorage2D = (typeof(glTexStorage2D))Base::GLContext::procAddress("glTexStorage2D");
+	#endif
+}
+
+static void setupRGFormats()
+{
+	luminanceFormat = GL_RED;
+	luminanceInternalFormat = GL_R8;
+	luminanceAlphaFormat = GL_RG;
+	luminanceAlphaInternalFormat = GL_RG8;
+	alphaFormat = GL_RED;
+	alphaInternalFormat = GL_R8;
+}
+
+static void setupSamplerObjects()
+{
+	if(useSamplerObjects)
+		return;
+	logMsg("using sampler objects");
+	useSamplerObjects = true;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	glGenSamplers = (typeof(glGenSamplers))Base::GLContext::procAddress("glGenSamplers");
+	glDeleteSamplers = (typeof(glDeleteSamplers))Base::GLContext::procAddress("glDeleteSamplers");
+	glBindSampler = (typeof(glBindSampler))Base::GLContext::procAddress("glBindSampler");
+	glSamplerParameteri = (typeof(glSamplerParameteri))Base::GLContext::procAddress("glSamplerParameteri");
 	#endif
 }
 
@@ -432,21 +455,37 @@ CallResult init(uint colorBits)
 			}
 		});
 
+	int glVer = 0;
 	Base::GLBufferConfigAttributes glBuffAttr;
 	glBuffAttr.setPreferredColorBits(colorBits);
 	Base::GLContextAttributes glAttr;
 	if(Config::DEBUG_BUILD)
 		glAttr.setDebug(true);
-	#if defined CONFIG_GFX_OPENGL_ES
+	#ifdef CONFIG_GFX_OPENGL_ES
 	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
 	{
 		bug_exit("unable to bind GLES API");
 	}
 	glAttr.setOpenGLESAPI(true);
-	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
-		glAttr.setMajorVersion(2);
-	gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-	gfxContext.init(glAttr, gfxBufferConfig);
+	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
+	{
+		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+		gfxContext.init(glAttr, gfxBufferConfig);
+	}
+	else
+	{
+		glAttr.setMajorVersion(3);
+		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+		gfxContext.init(glAttr, gfxBufferConfig);
+		glVer = 30;
+		if(!gfxContext)
+		{
+			glAttr.setMajorVersion(2);
+			gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+			gfxContext.init(glAttr, gfxBufferConfig);
+			glVer = 20;
+		}
+	}
 	#else
 	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_API))
 	{
@@ -474,12 +513,12 @@ CallResult init(uint colorBits)
 			logMsg("1.3 context not supported");
 		}
 	}
+	#endif
 	if(!gfxContext)
 	{
 		bug_exit("can't create context");
 		return INVALID_PARAMETER;
 	}
-	#endif
 
 	gfxContext.setCurrent(gfxContext, nullptr);
 
@@ -493,7 +532,8 @@ CallResult init(uint colorBits)
 	auto rendererName = (const char*)glGetString(GL_RENDERER);
 	logMsg("version: %s (%s)", version, rendererName);
 	
-	int glVer = glVersionFromStr(version);
+	if(!glVer)
+		glVer = glVersionFromStr(version);
 	
 	#ifndef CONFIG_GFX_OPENGL_ES
 	// core functionality
@@ -516,13 +556,8 @@ CallResult init(uint colorBits)
 			if(!useVBOFuncs)
 				setupVBOFuncs();
 			setupTextureSwizzle();
-			luminanceFormat = GL_RED;
-			luminanceInternalFormat = GL_R8;
-			luminanceAlphaFormat = GL_RG;
-			luminanceAlphaInternalFormat = GL_RG8;
-			alphaFormat = GL_RED;
-			alphaInternalFormat = GL_R8;
-			useSamplerObjects = true;
+			setupRGFormats();
+			setupSamplerObjects();
 		}
 		setupFBOFuncs();
 	}
@@ -570,6 +605,15 @@ CallResult init(uint colorBits)
 				setupNonPow2Textures();
 		}
 		setupFBOFuncs();
+		if(glVer >= 30)
+		{
+			setupImmutableTexStorage();
+			setupTextureSwizzle();
+			setupRGFormats();
+			setupSamplerObjects();
+			useUnpackRowLength = true;
+			useLegacyGLSL = false;
+		}
 	}
 
 	// extension functionality
@@ -602,7 +646,8 @@ CallResult init(uint colorBits)
 	if(!useFixedFunctionPipeline)
 	{
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s before shaders", err); });
-		logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+		if(Config::DEBUG_BUILD)
+			logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 		initShaders();
 	}
 	#endif

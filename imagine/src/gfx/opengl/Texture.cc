@@ -23,6 +23,22 @@
 #include "android/SurfaceTextureStorage.hh"
 #endif
 
+#ifndef GL_TEXTURE_SWIZZLE_R
+#define GL_TEXTURE_SWIZZLE_R 0x8E42
+#endif
+
+#ifndef GL_TEXTURE_SWIZZLE_G
+#define GL_TEXTURE_SWIZZLE_G 0x8E43
+#endif
+
+#ifndef GL_TEXTURE_SWIZZLE_B
+#define GL_TEXTURE_SWIZZLE_B 0x8E44
+#endif
+
+#ifndef GL_TEXTURE_SWIZZLE_A
+#define GL_TEXTURE_SWIZZLE_A 0x8E45
+#endif
+
 namespace Gfx
 {
 
@@ -571,7 +587,7 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 	else
 		type_ = typeForPixelFormat(desc.format);
 	#endif
-	setSwizzleForFormat(desc.format, texName_);
+	setSwizzleForFormat(desc.format, texName_, target);
 	return OK;
 }
 
@@ -847,20 +863,30 @@ GLuint GLTexture::texName() const
 	return texName_;
 }
 
-void GLTexture::setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex)
+void GLTexture::setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, GLenum target)
 {
-	#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(useFixedFunctionPipeline)
 		return;
-	if(useTextureSwizzle)
+	if(useTextureSwizzle && target == GL_TEXTURE_2D)
 	{
 		glcBindTexture(GL_TEXTURE_2D, tex);
 		const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
 		const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
 		const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
+		#ifdef CONFIG_GFX_OPENGL_ES
+		auto &swizzleMask = (format.id == PIXEL_IA88) ? swizzleMaskIA88
+				: (format.id == PIXEL_A8) ? swizzleMaskA8
+				: swizzleMaskRGBA;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
+		#else
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format.id == PIXEL_IA88) ? swizzleMaskIA88
 				: (format.id == PIXEL_A8) ? swizzleMaskA8
 				: swizzleMaskRGBA);
+		#endif
 	}
 	#endif
 }

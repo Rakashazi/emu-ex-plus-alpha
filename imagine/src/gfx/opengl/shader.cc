@@ -91,9 +91,9 @@ static const char *texExternalFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
-"uniform samplerExternalOES tex; "
+"uniform lowp samplerExternalOES tex; "
 "void main() { "
-	"FRAGCOLOR = colorOut * texture(tex, texUVOut); "
+	"FRAGCOLOR = colorOut * texture2D(tex, texUVOut); "
 "}"
 ;
 
@@ -101,9 +101,9 @@ static const char *texExternalReplaceFragShaderSrc =
 "#extension GL_OES_EGL_image_external : require\n"
 "FRAGCOLOR_DEF "
 "in lowp vec2 texUVOut; "
-"uniform samplerExternalOES tex; "
+"uniform lowp samplerExternalOES tex; "
 "void main() { "
-	"FRAGCOLOR = texture(tex, texUVOut); "
+	"FRAGCOLOR = texture2D(tex, texUVOut); "
 "}"
 ;
 #endif
@@ -272,11 +272,14 @@ Shader makeShader(const char **src, uint srcCount, uint type)
 	}
 	if(success == GL_FALSE)
 	{
-		logErr("failed shader source:");
-		iterateTimes(srcCount, i)
+		if(Config::DEBUG_BUILD)
 		{
-			logErr("part %u:", i);
-			logErr("%s", src[i]);
+			logErr("failed shader source:");
+			iterateTimes(srcCount, i)
+			{
+				logger_printfn(LOG_E, "[part %u]", i);
+				logger_printfn(LOG_E, "%s", src[i]);
+			}
 		}
 		return 0;
 	}
@@ -308,14 +311,14 @@ Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 	};
 	const char fragDefs[]
 	{
-		"#define FRAGCOLOR_DEF out vec4 fragColor;\n"
-		"#define FRAGCOLOR fragColor\n"
+		"#define FRAGCOLOR_DEF out lowp vec4 FRAGCOLOR;\n"
 	};
-	src[0] = useLegacyGLSL ? "" : version;
+	bool legacyGLSL = useLegacyGLSL;
+	src[0] = legacyGLSL ? "" : version;
 	if(type == GL_VERTEX_SHADER)
-		src[1] = useLegacyGLSL ? legacyVertDefs : "";
+		src[1] = legacyGLSL ? legacyVertDefs : "";
 	else
-		src[1] = useLegacyGLSL ? legacyFragDefs : fragDefs;
+		src[1] = legacyGLSL ? legacyFragDefs : fragDefs;
 	memcpy(&src[2], &mainSrc[0], sizeof(const char *) * mainSrcCount);
 	return makeShader(src, srcCount, type);
 }
@@ -353,20 +356,26 @@ void initShaders()
 }
 
 template <class T>
-static void compileDefaultProgram(T &prog, const char *fragSrc)
+static bool compileDefaultProgram(T &prog, const char **fragSrc, uint fragSrcCount)
 {
 	assert(fragSrc);
 	auto vShader = makeDefaultVShader();
 	assert(vShader);
-	auto fShader = makeCompatShader(fragSrc, GL_FRAGMENT_SHADER);
-	assert(fShader);
+	auto fShader = makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
+	if(!fShader)
+	{
+		return false;
+	}
 	prog.init(vShader, fShader);
 	assert(prog.program());
-	// TODO: we should be able to delete unused shaders after they're linked,
-	// but when testing on a Droid running Android 2.3 (CM7), it can cause
-	// malfunctions like the wrong color used for a fragment, probably a driver issue
-	//glDetachShader(prog.program(), fShader);
-	//glDeleteShader(fShader);
+	return true;
+}
+
+template <class T>
+static bool compileDefaultProgram(T &prog, const char *fragSrc)
+{
+	const char *singleSrc[]{fragSrc};
+	return compileDefaultProgram(prog, singleSrc, 1);
 }
 
 #else
@@ -545,6 +554,13 @@ bool DefaultTexExternalReplaceProgram::compile()
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program (replace mode)");
 	compileDefaultProgram(*this, texExternalReplaceFragShaderSrc);
+	if(!program())
+	{
+		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
+		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
+		const char *fragSrc[]{"#define texture2D texture\n", texExternalReplaceFragShaderSrc};
+		compileDefaultProgram(*this, fragSrc, sizeofArray(fragSrc));
+	}
 	return true;
 	#else
 	return false;
@@ -575,6 +591,13 @@ bool DefaultTexExternalProgram::compile()
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program");
 	compileDefaultProgram(*this, texExternalFragShaderSrc);
+	if(!program())
+	{
+		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
+		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
+		const char *fragSrc[]{"#define texture2D texture\n", texExternalFragShaderSrc};
+		compileDefaultProgram(*this, fragSrc, sizeofArray(fragSrc));
+	}
 	return true;
 	#else
 	return false;

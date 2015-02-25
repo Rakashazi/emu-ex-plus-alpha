@@ -17,5 +17,5 @@ void main()
 	texUVOut[6] = texUV + offsetDiagNegX;
 	texUVOut[7] = texUV + offsetY;
 	texUVOut[8] = texUV + offsetDiag;
-	OUT_POSITION;
+	gl_Position = POS;
 }

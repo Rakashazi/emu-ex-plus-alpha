@@ -75,7 +75,7 @@ protected:
 	GLuint sampler = 0; // used when separate sampler objects not supported
 	uint levels_ = 0;
 
-	static void setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex);
+	static void setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, GLenum target);
 
 public:
 	constexpr GLTexture() {}

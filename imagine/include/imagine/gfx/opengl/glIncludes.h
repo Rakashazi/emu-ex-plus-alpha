@@ -163,6 +163,14 @@
 #define GL_RED 0x1903
 #endif
 
+#ifndef GL_GREEN
+#define GL_GREEN 0x1904
+#endif
+
+#ifndef GL_BLUE
+#define GL_BLUE 0x1905
+#endif
+
 #ifndef GL_R8
 #define GL_R8 0x8229
 #endif

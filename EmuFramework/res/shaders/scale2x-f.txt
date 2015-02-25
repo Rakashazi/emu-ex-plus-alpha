@@ -5,11 +5,11 @@ void main()
 {
 	precision lowp float;
 
-	vec4 E = texture(TEX, texUVOut[2]);
-	vec4 D = texture(TEX, texUVOut[1]);
-	vec4 F = texture(TEX, texUVOut[3]);
-	vec4 H = texture(TEX, texUVOut[4]);
-	vec4 B = texture(TEX, texUVOut[0]);
+	vec4 E = TEXTURE(TEX, texUVOut[2]);
+	vec4 D = TEXTURE(TEX, texUVOut[1]);
+	vec4 F = TEXTURE(TEX, texUVOut[3]);
+	vec4 H = TEXTURE(TEX, texUVOut[4]);
+	vec4 B = TEXTURE(TEX, texUVOut[0]);
 	vec2 subTexel = fract(texelPosOut);
 	
 	if(subTexel.y >= 0.5)
@@ -26,5 +26,5 @@ void main()
 	if(D == B && B != H && D != F)
  		E = D;
 
-	OUT_FRAGCOLOR(E);
+	FRAGCOLOR = E;
 }

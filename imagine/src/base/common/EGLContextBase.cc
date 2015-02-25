@@ -173,6 +173,7 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 		logErr("unable to get EGL display");
 		return INVALID_PARAMETER;
 	}
+	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
 	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToEGLAttrs(attr)[0]);
 	if(context == EGL_NO_CONTEXT)
@@ -185,7 +186,8 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 		}
 		if(context == EGL_NO_CONTEXT)
 		{
-			logErr("error creating context: 0x%X", (int)eglGetError());
+			if(Config::DEBUG_BUILD)
+				logErr("error creating context: 0x%X", (int)eglGetError());
 			return INVALID_PARAMETER;
 		}
 	}

@@ -29,8 +29,8 @@ static const VideoImageEffect::EffectDesc
 static Gfx::Shader makeEffectVertexShader(const char *src)
 {
 	const char *posDefs =
-	"#define OUT_POSITION gl_Position = pos\n"
-	"in vec4 pos;\n";
+		"#define POS pos\n"
+		"in vec4 pos;\n";
 	const char *shaderSrc[]
 	{
 		posDefs,
@@ -41,23 +41,38 @@ static Gfx::Shader makeEffectVertexShader(const char *src)
 
 static Gfx::Shader makeEffectFragmentShader(const char *src, bool isExternalTex)
 {
-	const char *externalTexExt =
-	"#extension GL_OES_EGL_image_external : require\n";
-	const char *fragDefs =
-	"#define OUT_FRAGCOLOR(c) FRAGCOLOR = c\n"
-	"FRAGCOLOR_DEF\n";
-	const char *samplerExternal = "uniform samplerExternalOES TEX;\n";
-	const char *sampler2D = "uniform sampler2D TEX;\n";
-	const char *shaderSrc[]
+	const char *fragDefs = "FRAGCOLOR_DEF\n";
+	if(isExternalTex)
 	{
-		#ifdef __ANDROID__
-		isExternalTex ? externalTexExt : "",
-		#endif
-		fragDefs,
-		(Config::envIsAndroid && isExternalTex) ? samplerExternal : sampler2D,
-		src
-	};
-	return Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_FRAGMENT_SHADER);
+		const char *shaderSrc[]
+		{
+			"#extension GL_OES_EGL_image_external : require\n",
+			"#define TEXTURE texture2D\n",
+			fragDefs,
+			"uniform lowp samplerExternalOES TEX;\n",
+			src
+		};
+		auto shader = Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_FRAGMENT_SHADER);
+		if(!shader)
+		{
+			// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
+			logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
+			shaderSrc[1] = "#define TEXTURE texture\n";
+			shader = Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_FRAGMENT_SHADER);
+		}
+		return shader;
+	}
+	else
+	{
+		const char *shaderSrc[]
+		{
+			fragDefs,
+			"#define TEXTURE texture\n"
+			"uniform sampler2D TEX;\n",
+			src
+		};
+		return Gfx::makeCompatShader(shaderSrc, sizeofArray(shaderSrc), GL_FRAGMENT_SHADER);
+	}
 }
 
 void VideoImageEffect::setEffect(uint effect, bool isExternalTex)

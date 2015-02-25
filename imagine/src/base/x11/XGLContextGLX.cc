@@ -140,7 +140,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAt
 
 CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
-	assert(!context);
+	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
 	auto glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 	context = glXCreateContextAttribsARB(dpy, config.glConfig, 0, True, &glContextAttrsToGLXAttrs(attr)[0]);

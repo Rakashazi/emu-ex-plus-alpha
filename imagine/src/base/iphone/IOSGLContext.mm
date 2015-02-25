@@ -24,20 +24,28 @@ namespace Base
 CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
 {
 	assert(attr.openGLESAPI());
+	deinit();
+	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
+	EAGLContext *newContext = nil;
 	switch(attr.majorVersion())
 	{
 		bcase 1:
-			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1]);
+			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
 		bcase 2:
-			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2]);
+			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
 		#if !defined __ARM_ARCH_6K__
 		bcase 3:
-			context_ = (void*)CFBridgingRetain([[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3]);
+			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
 		#endif
 		bdefault:
 			bug_exit("unsupported OpenGL ES major version:%d", attr.majorVersion());
 	}
-	assert(context());
+	if(!newContext)
+	{
+		logErr("error creating context");
+		return INVALID_PARAMETER;
+	}
+	context_ = (void*)CFBridgingRetain(newContext);
 	return OK;
 }
 

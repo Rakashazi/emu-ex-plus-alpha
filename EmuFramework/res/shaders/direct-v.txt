@@ -4,5 +4,5 @@ out vec2 texUVOut;
 void main()
 {
 	texUVOut = texUV;
-	OUT_POSITION;
+	gl_Position = POS;
 }

@@ -8,11 +8,11 @@ void main()
 
 	vec2 offsetX = vec2(srcTexelDelta.x, 0.0);
 	vec2 offsetY = vec2(0.0, srcTexelDelta.y);
-	vec4 E = texture(TEX, texUVOut);
-	vec4 D = texture(TEX, texUVOut - offsetX);
-	vec4 F = texture(TEX, texUVOut + offsetX);
-	vec4 H = texture(TEX, texUVOut + offsetY);
-	vec4 B = texture(TEX, texUVOut - offsetY);
+	vec4 E = TEXTURE(TEX, texUVOut);
+	vec4 D = TEXTURE(TEX, texUVOut - offsetX);
+	vec4 F = TEXTURE(TEX, texUVOut + offsetX);
+	vec4 H = TEXTURE(TEX, texUVOut + offsetY);
+	vec4 B = TEXTURE(TEX, texUVOut - offsetY);
 	vec2 subTexel = fract(texelPosOut);
 	
 	if(subTexel.y >= 0.5)
@@ -29,5 +29,5 @@ void main()
 	if(D == B && B != H && D != F)
  		E = D;
 
-	OUT_FRAGCOLOR(E);
+	FRAGCOLOR = E;
 }
