@@ -39,8 +39,7 @@ void QuadGeneric<Vtx>::draw() const
 	}
 	if(useVBOFuncs)
 	{
-		glcBindBuffer(GL_ARRAY_BUFFER, globalStreamVBO[globalStreamVBOIdx]);
-		globalStreamVBOIdx = (globalStreamVBOIdx+1) % sizeofArray(globalStreamVBO);
+		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
 		glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STREAM_DRAW);
 		Vtx::draw((Vtx*)nullptr, Gfx::TRIANGLE_STRIP, 4);
 	}

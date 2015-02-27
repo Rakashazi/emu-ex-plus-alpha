@@ -53,14 +53,14 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 	}
 	else
 	{
-		logMsg("requesting lowest color config");
+		//logDMsg("requesting lowest color config");
 	}
 
 	if(!ctxAttr.openGLESAPI())
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
 		list.push_back(EGL_OPENGL_BIT);
-		logMsg("using OpenGL renderable");
+		//logDMsg("using OpenGL renderable");
 	}
 	else if(ctxAttr.majorVersion() == 2)
 	{
@@ -131,7 +131,7 @@ std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttribute
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 		if(!configs)
 		{
-			logErr("no usable EGL configs found");
+			logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
 			return std::make_pair(INVALID_PARAMETER, EGLConfig{});
 		}
 	}
@@ -142,6 +142,7 @@ std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttribute
 
 void *GLContext::procAddress(const char *funcName)
 {
+	//logDMsg("getting proc address for:%s", funcName);
 	return (void*)eglGetProcAddress(funcName);
 }
 

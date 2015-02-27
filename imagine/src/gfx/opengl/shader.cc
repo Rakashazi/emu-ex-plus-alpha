@@ -296,7 +296,7 @@ Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 {
 	const uint srcCount = mainSrcCount + 2;
 	const char *src[srcCount];
-	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 150\n";
+	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 330\n";
 	const char legacyVertDefs[] // for GL ES 2.0
 	{
 		"#define in attribute\n"

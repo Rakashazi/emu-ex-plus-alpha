@@ -40,9 +40,7 @@ namespace Gfx
 
 GLint projectionUniform, modelViewUniform, textureUniform;
 
-GLfloat maximumAnisotropy, anisotropy = 0, forceAnisotropy = 0;
 bool useAnisotropicFiltering = false;
-static bool forceNoAnisotropicFiltering = true;
 
 static bool useMultisample = false;
 static bool forceNoMultisample = true;
@@ -70,18 +68,12 @@ GenerateMipmapsProto generateMipmaps = glGenerateMipmap;
 GenerateMipmapsProto generateMipmaps{}; // set via extensions
 #endif
 
-bool useVBOFuncs = false;
-#if defined CONFIG_GFX_OPENGL_ES || !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static bool forceNoVBOFuncs = true;
-#else
-static bool forceNoVBOFuncs = false;
-#endif
+bool useVBOFuncs = Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2;
 
-static GLuint globalStreamVAO = 0;
-GLuint globalStreamVBO[4]{};
-uint globalStreamVBOIdx = 0;
+static GLuint streamVAO = 0;
+GLuint streamVBO[6]{};
+uint streamVBOIdx = 0;
 
-bool forceNoTextureSwizzle = false;
 bool useTextureSwizzle = false;
 
 bool useUnpackRowLength = !Config::Gfx::OPENGL_ES;
@@ -106,9 +98,29 @@ bool useImmutableTexStorage = false;
 GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
 #endif
 
+bool usePBO = false;
+#ifdef CONFIG_GFX_OPENGL_ES
+GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
+GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target){};
+#endif
+
 bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 
 static Base::GLBufferConfig gfxBufferConfig;
+
+static void initVBOs()
+{
+	logMsg("making stream VBO");
+	glGenBuffers(sizeofArray(streamVBO), streamVBO);
+}
+
+GLuint getVBO()
+{
+	assert(streamVBO[streamVBOIdx]);
+	auto vbo = streamVBO[streamVBOIdx];
+	streamVBOIdx = (streamVBOIdx+1) % sizeofArray(streamVBO);
+	return vbo;
+}
 
 static Gfx::GC orientationToGC(uint o)
 {
@@ -129,11 +141,6 @@ static void setupAnisotropicFiltering()
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
 	logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
 	useAnisotropicFiltering = 1;
-
-	if(forceAnisotropy) // force a specific anisotropy value
-		anisotropy = forceAnisotropy;
-	else anisotropy = maximumAnisotropy;
-	assert(anisotropy <= maximumAnisotropy);
 	#endif
 }
 
@@ -206,41 +213,28 @@ static void setupVAOFuncs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("using VAOs");
-	glGenVertexArrays(1, &globalStreamVAO);
-	glBindVertexArray(globalStreamVAO);
+	glGenVertexArrays(1, &streamVAO);
+	glBindVertexArray(streamVAO);
 	#endif
-}
-
-static void setupVBOFuncs()
-{
-	logMsg("using VBOs");
-	useVBOFuncs = 1;
-	glGenBuffers(sizeofArray(globalStreamVBO), globalStreamVBO);
-	/*iterateTimes(sizeofArray(globalStreamVBO), i)
-	{
-		glcBindBuffer(GL_ARRAY_BUFFER, globalStreamVBO[i]);
-		//glBufferData(GL_ARRAY_BUFFER, 64, nullptr, GL_DYNAMIC_DRAW);
-		glBufferData(GL_ARRAY_BUFFER, 64*32, nullptr, GL_DYNAMIC_DRAW);
-	}*/
-	//logMsg("created global stream VBO: %d", globalStreamVBO);
 }
 
 static void setupTextureSwizzle()
 {
-	if(forceNoTextureSwizzle || useTextureSwizzle)
+	if(useTextureSwizzle)
 		return;
 	logMsg("using texture swizzling");
 	useTextureSwizzle = true;
 }
 
-static void setupImmutableTexStorage()
+static void setupImmutableTexStorage(bool extSuffix)
 {
 	if(useImmutableTexStorage)
 		return;
 	logMsg("using immutable texture storage");
 	useImmutableTexStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	glTexStorage2D = (typeof(glTexStorage2D))Base::GLContext::procAddress("glTexStorage2D");
+	const char *procName = extSuffix ? "glTexStorage2DEXT" : "glTexStorage2D";
+	glTexStorage2D = (typeof(glTexStorage2D))Base::GLContext::procAddress(procName);
 	#endif
 }
 
@@ -268,6 +262,15 @@ static void setupSamplerObjects()
 	#endif
 }
 
+static void setupPBO()
+{
+	if(usePBO)
+		return;
+	logMsg("using PBOs");
+	usePBO = true;
+	initTexturePBO();
+}
+
 static void GL_APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -284,24 +287,6 @@ static void checkExtensionString(const char *extStr)
 		if(!forceNoNonPow2Textures)
 			setupNonPow2MipmapRepeatTextures();
 	}
-	else if(Config::Gfx::OPENGL_ES && !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
-	{
-		// no repeat modes
-		if(!forceNoNonPow2Textures)
-			setupNonPow2MipmapTextures();
-	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
-		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
-	{
-		// no mipmaps or repeat modes
-		if(!forceNoNonPow2Textures)
-			setupNonPow2Textures();
-	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1 && string_equal(extStr, "GL_EXT_unpack_subimage"))
-	{
-		logMsg("unpacking sub-images supported");
-		useUnpackRowLength = true;
-	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
 		#ifdef CONFIG_GFX_OPENGL_ES
@@ -313,12 +298,31 @@ static void checkExtensionString(const char *extStr)
 		const char *glDebugMessageCallbackStr = "glDebugMessageCallback";
 		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 		#endif
-		logMsg("enabling debug output");
+		logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
 		auto glDebugMessageCallback = (DebugMessageCallbackProto)Base::GLContext::procAddress(glDebugMessageCallbackStr);
 		glDebugMessageCallback(debugCallback, nullptr);
 		glEnable(DEBUG_OUTPUT);
 	}
 	#ifdef CONFIG_GFX_OPENGL_ES
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
+		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
+	{
+		// no mipmaps or repeat modes
+		if(!forceNoNonPow2Textures)
+			setupNonPow2Textures();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2
+		&& !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
+	{
+		// no repeat modes
+		if(!forceNoNonPow2Textures)
+			setupNonPow2MipmapTextures();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
+	{
+		logMsg("unpacking sub-images supported");
+		useUnpackRowLength = true;
+	}
 	else if(string_equal(extStr, "GL_APPLE_texture_format_BGRA8888"))
 	{
 		if(!forceNoBGRPixels)
@@ -339,14 +343,37 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if(string_equal(extStr, "GL_EXT_texture_storage"))
 	{
-		setupImmutableTexStorage();
+		setupImmutableTexStorage(true);
 	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
+	{
+		setupPBO();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
+	{
+		logMsg("supports map buffer range (NVIDIA)");
+		if(!glMapBufferRange)
+			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
+		if(!glUnmapBuffer)
+			glUnmapBuffer = glUnmapBufferOES;
+	}
+	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
+	{
+		logMsg("supports map buffer range");
+		if(!glMapBufferRange)
+			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
+		if(!glUnmapBuffer)
+			glUnmapBuffer = glUnmapBufferOES;
+	}
+	/*else if(string_equal(extStr, "GL_OES_mapbuffer"))
+	{
+		// handled in *_map_buffer_range currently
+	}*/
 	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
 	{
-		if(!forceNoAnisotropicFiltering)
-			setupAnisotropicFiltering();
+		setupAnisotropicFiltering();
 	}
 	else if(string_equal(extStr, "GL_ARB_multisample"))
 	{
@@ -373,7 +400,11 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if(string_equal(extStr, "GL_ARB_texture_storage"))
 	{
-		setupImmutableTexStorage();
+		setupImmutableTexStorage(false);
+	}
+	else if(string_equal(extStr, "GL_ARB_pixel_buffer_object"))
+	{
+		setupPBO();
 	}
 	#endif
 }
@@ -476,8 +507,11 @@ CallResult init(uint colorBits)
 	{
 		glAttr.setMajorVersion(3);
 		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		gfxContext.init(glAttr, gfxBufferConfig);
-		glVer = 30;
+		if(gfxBufferConfig)
+		{
+			gfxContext.init(glAttr, gfxBufferConfig);
+			glVer = 30;
+		}
 		if(!gfxContext)
 		{
 			glAttr.setMajorVersion(2);
@@ -539,13 +573,16 @@ CallResult init(uint colorBits)
 	// core functionality
 	if(glVer >= 15)
 	{
-		if(!forceNoVBOFuncs)
-			setupVBOFuncs();
+		useVBOFuncs = true;
 	}
 	if(glVer >= 20)
 	{
 		if(!forceNoNonPow2Textures)
 			setupNonPow2MipmapRepeatTextures();
+	}
+	if(glVer >= 21)
+	{
+		setupPBO();
 	}
 	if(glVer >= 30)
 	{
@@ -553,8 +590,6 @@ CallResult init(uint colorBits)
 		{
 			// must render via VAOs/VBOs in 3.1+ without compatibility context
 			setupVAOFuncs();
-			if(!useVBOFuncs)
-				setupVBOFuncs();
 			setupTextureSwizzle();
 			setupRGFormats();
 			setupSamplerObjects();
@@ -592,8 +627,7 @@ CallResult init(uint colorBits)
 	// core functionality
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && glVer >= 11)
 	{
-		if(!forceNoVBOFuncs)
-			setupVBOFuncs();
+		// safe to use VBOs
 	}
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
 	{
@@ -607,10 +641,13 @@ CallResult init(uint colorBits)
 		setupFBOFuncs();
 		if(glVer >= 30)
 		{
-			setupImmutableTexStorage();
+			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
+			glUnmapBuffer = (typeof(glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+			setupImmutableTexStorage(false);
 			setupTextureSwizzle();
 			setupRGFormats();
 			setupSamplerObjects();
+			setupPBO();
 			useUnpackRowLength = true;
 			useLegacyGLSL = false;
 		}
@@ -623,6 +660,8 @@ CallResult init(uint colorBits)
 	checkFullExtensionString(extensions);
 	#endif // CONFIG_GFX_OPENGL_ES
 
+	if(useVBOFuncs)
+		initVBOs();
 	setClearColor(0., 0., 0.);
 	//glShadeModel(GL_SMOOTH);
 	//glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);

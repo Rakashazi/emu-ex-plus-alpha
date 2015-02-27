@@ -154,7 +154,7 @@ public:
 	{
 		{ GL_ARRAY_BUFFER, 0 }, // needs to be first array element for glState_vertexPointer, etc
 		{ GL_ELEMENT_ARRAY_BUFFER, 0 },
-		#ifndef CONFIG_GFX_OPENGL_ES
+		#if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 		{ GL_PIXEL_PACK_BUFFER, 0 },
 		{ GL_PIXEL_UNPACK_BUFFER, 0 }
 		#endif

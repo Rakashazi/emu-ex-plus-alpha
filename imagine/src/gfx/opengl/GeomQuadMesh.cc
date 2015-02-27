@@ -73,8 +73,7 @@ void GeomQuadMesh::draw()
 {
 	if(useVBOFuncs)
 	{
-		glcBindBuffer(GL_ARRAY_BUFFER, globalStreamVBO[globalStreamVBOIdx]);
-		globalStreamVBOIdx = (globalStreamVBOIdx+1) % sizeofArray(globalStreamVBO);
+		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
 		glBufferData(GL_ARRAY_BUFFER, sizeof(ColVertex) * verts, v, GL_STREAM_DRAW);
 		v.arr->draw((ColVertex*)nullptr, i, Gfx::TRIANGLE, idxs);
 	}

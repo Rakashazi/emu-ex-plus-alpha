@@ -18,16 +18,9 @@
 class GfxImageSource
 {
 public:
-	constexpr GfxImageSource() { }
-	virtual ~GfxImageSource() { }
-	virtual CallResult getImage(IG::Pixmap &dest) = 0;
-	virtual uint width() = 0;
-	virtual uint height() = 0;
-	virtual const PixelFormatDesc *pixelFormat() = 0;
-	bool isGrayscale() { return pixelFormat()->isGrayscale(); }
-	bool bitsPP() { return pixelFormat()->bitsPerPixel; }
-	uint imageBytes()
-	{
-		return width() * height() * pixelFormat()->bytesPerPixel;
-	}
+	constexpr GfxImageSource() {}
+	virtual ~GfxImageSource() {}
+	virtual CallResult write(IG::Pixmap dest) = 0;
+	virtual IG::Pixmap lockPixmap() = 0;
+	virtual void unlockPixmap() = 0;
 };

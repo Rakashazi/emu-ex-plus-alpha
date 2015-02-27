@@ -254,7 +254,7 @@ CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
 	#endif
 	src.copy(0, 0, 0, 0, out, 0, 0);
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
-	font->unlockCharBitmap(src);
+	font->unlockCharBitmap();
 	return OK;
 }
 
@@ -358,4 +358,19 @@ GlyphEntry *ResourceFace::glyphEntry(int c)
 	}
 
 	return &glyphTable[tableIdx];
+}
+
+CallResult GfxGlyphImage::write(IG::Pixmap dest)
+{
+	return face->writeCurrentChar(dest);
+}
+
+IG::Pixmap GfxGlyphImage::lockPixmap()
+{
+	return face->charBitmap();
+}
+
+void GfxGlyphImage::unlockPixmap()
+{
+	face->unlockCharBitmap();
 }

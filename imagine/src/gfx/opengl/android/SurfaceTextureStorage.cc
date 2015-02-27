@@ -94,7 +94,7 @@ CallResult SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 	return OK;
 }
 
-SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock()
+SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(IG::WindowRect *dirtyRect)
 {
 	if(unlikely(!nativeWin))
 	{
@@ -102,14 +102,30 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock()
 		return {};
 	}
 	ANativeWindow_Buffer winBuffer;
-	//ARect rect{};
-	if(ANativeWindow_lock(nativeWin, &winBuffer, 0/*&rect*/) < 0)
+	ARect aRect;
+	if(dirtyRect)
+	{
+		aRect.left = dirtyRect->x;
+		aRect.top = dirtyRect->y;
+		aRect.right = dirtyRect->x2;
+		aRect.bottom = dirtyRect->y2;
+	}
+	if(ANativeWindow_lock(nativeWin, &winBuffer, dirtyRect ? &aRect : nullptr) < 0)
 	{
 		logErr("ANativeWindow_lock failed");
 		return {};
 	}
 	Buffer buff{winBuffer.bits, winBuffer.stride * bpp};
 	//logMsg("locked buffer %p with pitch %d", buff.data, buff.pitch);
+	if(dirtyRect)
+	{
+		// update dirty rectangle & adjust pointer by locked region
+		dirtyRect->x = aRect.left;
+		dirtyRect->y = aRect.top;
+		dirtyRect->x2 = aRect.right;
+		dirtyRect->y2 = aRect.bottom;
+		buff.data = (char*)buff.data + (aRect.top * buff.pitch + aRect.left * bpp);
+	}
 	return buff;
 }
 

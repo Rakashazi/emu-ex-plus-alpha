@@ -62,7 +62,7 @@ public:
 	int minUsablePixels() const;
 	virtual void free() = 0;
 	virtual IG::Pixmap charBitmap() = 0;
-	virtual void unlockCharBitmap(IG::Pixmap &pix) {}
+	virtual void unlockCharBitmap() = 0;
 	virtual CallResult activeChar(int idx, GlyphMetrics &metrics) = 0;
 	//virtual int currentFaceDescender() const = 0;
 	//virtual int currentFaceAscender() const = 0;

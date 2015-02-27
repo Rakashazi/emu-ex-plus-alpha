@@ -53,10 +53,12 @@ public:
 	uint nominalHeight() const;
 	void freeCaches(uint32 rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
+	IG::Pixmap charBitmap() { return font->charBitmap(); }
+	void unlockCharBitmap() { font->unlockCharBitmap(); }
 
 private:
-	ResourceFont *font = nullptr;
-	GlyphEntry *glyphTable = nullptr;
+	ResourceFont *font{};
+	GlyphEntry *glyphTable{};
 	FontSizeRef faceSize;
 	uint nominalHeight_ = 0;
 	uint32 usedGlyphTableBits = 0;
@@ -73,8 +75,7 @@ public:
 	GlyphEntry *entry;
 
 	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
-	CallResult getImage(IG::Pixmap &dest) override { return face->writeCurrentChar(dest); }
-	uint width() override { return entry->metrics.xSize; }
-	uint height() override { return entry->metrics.ySize; }
-	const PixelFormatDesc *pixelFormat() override { return &PixelFormatA8; }
+	CallResult write(IG::Pixmap dest) override;
+	IG::Pixmap lockPixmap() override;
+	void unlockPixmap() override;
 };

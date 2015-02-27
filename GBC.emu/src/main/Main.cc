@@ -232,19 +232,12 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbcFsFilter;
 static const int gbResX = 160, gbResY = 144;
 
 #ifdef GAMBATTE_COLOR_RGB565
-	static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
 #else
-	static const PixelFormatDesc *pixFmt = &PixelFormatBGRA8888;
+static const PixelFormatDesc *pixFmt = &PixelFormatBGRA8888;
 #endif
 
-static const uint PADDING_HACK_SIZE =
-#ifdef CONFIG_BASE_ANDROID
-	gbResX*9; // Adreno 205 crashing due to driver bug reading beyond the array bounds, add some padding
-#else
-	0;
-#endif
-
-static gambatte::PixelType screenBuff[(gbResX*gbResY)+PADDING_HACK_SIZE] __attribute__ ((aligned (8))) {0};
+alignas(8) static gambatte::PixelType screenBuff[gbResX*gbResY]{};
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
@@ -452,7 +445,7 @@ static void commitVideoFrame()
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	uint8 snd[(35112+2064)*4] ATTRS(aligned(4));
+	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
 	size_t samples = 35112;
 	int frameSample = gbEmu.runFor(processGfx ? screenBuff : nullptr, 160, (uint_least32_t*)snd, samples,
 		renderGfx ? commitVideoFrame : nullptr);

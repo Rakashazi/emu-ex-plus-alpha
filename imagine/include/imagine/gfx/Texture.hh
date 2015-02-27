@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <utility>
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
@@ -191,6 +192,15 @@ public:
 	static void bindDefaultNearestMipRepeatSampler();
 };
 
+class LockedTextureBuffer: public LockedTextureBufferImpl
+{
+public:
+	constexpr LockedTextureBuffer() {}
+	IG::Pixmap pixmap();
+	IG::WindowRect sourceDirtyRect();
+	explicit operator bool() const;
+};
+
 class Texture: public TextureImpl
 {
 public:
@@ -212,8 +222,9 @@ public:
 	void write(uint level, IG::Pixmap pixmap, IG::WP destPos);
 	void write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumedDataAlignment);
 	void clear(uint level);
-	IG::Pixmap lock();
-	void unlock();
+	LockedTextureBuffer lock(uint level);
+	LockedTextureBuffer lock(uint level, IG::WindowRect rect);
+	void unlock(LockedTextureBuffer lockBuff);
 	IG::WP size(uint level) const;
 	IG::PixmapDesc pixmapDesc();
 	bool compileDefaultProgram(uint mode);

@@ -27,7 +27,7 @@ EGLDisplay EGLContextBase::getDisplay()
 	return eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
 }
 
-CallResult GLContext::init(const GLContextAttributes &attr, const GLBufferConfig &config)
+CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	auto result = EGLContextBase::init(attr, config);
 	if(result != OK)
@@ -45,7 +45,7 @@ void GLContext::setCurrent(GLContext context, Window *win)
 	setCurrentContext(context.context, win);
 }
 
-GLBufferConfig GLContext::makeBufferConfig(const GLContextAttributes &ctxAttr, const GLBufferConfigAttributes &attr)
+GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	auto configResult = chooseConfig(ctxAttr, attr);
 	if(configResult.first != OK)

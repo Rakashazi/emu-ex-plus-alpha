@@ -52,9 +52,24 @@ public:
 
 	virtual ~DirectTextureStorage() = 0;
 	virtual CallResult setFormat(IG::PixmapDesc desc, GLuint tex) = 0;
-	virtual Buffer lock() = 0;
+	virtual Buffer lock(IG::WindowRect *dirtyRect) = 0;
 	virtual void unlock(GLuint tex) = 0;
 };
+
+class GLLockedTextureBuffer
+{
+protected:
+	IG::Pixmap pix{PixelFormatRGBA8888};
+	IG::WindowRect srcDirtyRect;
+	uint lockedLevel = 0;
+
+public:
+	constexpr GLLockedTextureBuffer() {}
+	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel);
+	uint level() const { return lockedLevel; }
+};
+
+using LockedTextureBufferImpl = GLLockedTextureBuffer;
 
 class GLTexture
 {
@@ -74,6 +89,7 @@ protected:
 	IG::PixmapDesc pixDesc{PixelFormatRGBA8888};
 	GLuint sampler = 0; // used when separate sampler objects not supported
 	uint levels_ = 0;
+	GLuint ownPBO = 0;
 
 	static void setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, GLenum target);
 

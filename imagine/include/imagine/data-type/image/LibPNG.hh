@@ -62,12 +62,10 @@ public:
 		return load(openAppAssetIO(name));
 	}
 	void deinit();
-	CallResult getImage(IG::Pixmap &dest) override;
-	uint width() override { return png.width(); }
-	uint height() override { return png.height(); }
-	const PixelFormatDesc *pixelFormat() override { return png.pixelFormat(); }
+	CallResult write(IG::Pixmap dest) override;
+	IG::Pixmap lockPixmap() override;
+	void unlockPixmap() override;
 
 private:
 	Png png;
-	//GenericIO io;
 };

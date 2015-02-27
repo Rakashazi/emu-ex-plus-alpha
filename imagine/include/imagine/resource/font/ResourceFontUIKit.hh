@@ -30,7 +30,7 @@ public:
 	void free() override;
 	IG::Pixmap charBitmap() override;
 	CallResult activeChar(int idx, GlyphMetrics &metrics) override;
-	void unlockCharBitmap(IG::Pixmap &pix) override;
+	void unlockCharBitmap() override;
 	//int currentFaceDescender() const override;
 	//int currentFaceAscender() const override;
 	CallResult newSize(const FontSettings &settings, FontSizeRef &sizeRef) override;
@@ -39,8 +39,8 @@ public:
 
 private:
 	UniChar currChar = 0;
-	char *pixBuffer = nullptr, *startOfCharInPixBuffer = nullptr;
-	void *activeFont_ = nullptr; // UIFont in ObjC
+	char *pixBuffer{}, *startOfCharInPixBuffer{};
+	void *activeFont_{}; // UIFont in ObjC
 	uint cXFullSize = 0, cYFullSize = 0;
 	uint cXSize = 0, cYSize = 0; // size of the just the glyph pixels
 

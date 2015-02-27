@@ -55,7 +55,6 @@ bool GraphicBufferStorage::testSupport(const char **errorStr)
 	GLuint ref;
 	glGenTextures(1, &ref);
 	auto freeTexture = IG::scopeGuard([&](){ glcDeleteTextures(1, &ref); });
-	glcBindTexture(GL_TEXTURE_2D, ref);
 	IG::PixmapDesc desc{PixelFormatRGB565};
 	desc.x = desc.y = 256;
 	GraphicBufferStorage directTex;
@@ -64,7 +63,7 @@ bool GraphicBufferStorage::testSupport(const char **errorStr)
 		if(errorStr) *errorStr = "Missing native buffer functions";
 		return false;
 	}
-	if(directTex.setFormat(desc, ref) != OK)
+	if(directTex.setFormat(desc, ref) == OK)
 	{
 		logMsg("tests passed");
 		return true;
@@ -148,11 +147,12 @@ CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 		*this = {};
 		return UNSUPPORTED_OPERATION;
 	}
+	bpp = desc.format.bytesPerPixel;
 	pitch = eglBuf.stride * desc.format.bytesPerPixel;
 	return OK;
 }
 
-GraphicBufferStorage::Buffer GraphicBufferStorage::lock()
+GraphicBufferStorage::Buffer GraphicBufferStorage::lock(IG::WindowRect *dirtyRect)
 {
 	if(unlikely(!eglBuf.handle))
 	{
@@ -160,11 +160,20 @@ GraphicBufferStorage::Buffer GraphicBufferStorage::lock()
 		return {};
 	}
 	Buffer buff{nullptr, pitch};
+	int x = dirtyRect ? dirtyRect->x : 0;
+	int y = dirtyRect ? dirtyRect->y : 0;
+	int w = dirtyRect ? dirtyRect->xSize() : eglBuf.width;
+	int h = dirtyRect ? dirtyRect->ySize() : eglBuf.height;
 	if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN,
-		0, 0, eglBuf.width, eglBuf.height, buff.data) != 0)
+		x, y, w, h, buff.data) != 0)
 	{
 		logErr("error locking");
 		return {};
+	}
+	if(dirtyRect)
+	{
+		// adjust pointer by locked region
+		buff.data = (char*)buff.data + (dirtyRect->y * buff.pitch + dirtyRect->x * bpp);
 	}
 	return buff;
 }

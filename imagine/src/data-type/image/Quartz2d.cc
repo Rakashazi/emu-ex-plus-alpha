@@ -74,7 +74,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
+CallResult Quartz2dImage::readImage(IG::Pixmap dest)
 {
 	assert(dest.format.id == pixelFormat()->id);
 	int height = this->height();
@@ -97,10 +97,20 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-CallResult PngFile::getImage(IG::Pixmap &dest)
+CallResult PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }
+
+IG::Pixmap PngFile::lockPixmap()
+{
+	IG::Pixmap pix{*png.pixelFormat()};
+	pix.x = png.width();
+	pix.y = png.height();
+	return pix;
+}
+
+void PngFile::unlockPixmap() {}
 
 CallResult PngFile::load(const char *name)
 {

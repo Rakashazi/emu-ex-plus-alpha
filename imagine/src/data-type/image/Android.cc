@@ -144,10 +144,20 @@ void BitmapFactoryImage::freeImageData()
 	}
 }
 
-CallResult PngFile::getImage(IG::Pixmap &dest)
+CallResult PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }
+
+IG::Pixmap PngFile::lockPixmap()
+{
+	IG::Pixmap pix{*png.pixelFormat()};
+	pix.x = png.width();
+	pix.y = png.height();
+	return pix;
+}
+
+void PngFile::unlockPixmap() {}
 
 CallResult PngFile::load(const char *name)
 {

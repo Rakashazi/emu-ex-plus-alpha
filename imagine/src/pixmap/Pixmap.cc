@@ -27,7 +27,7 @@ char *Pixmap::getPixel(uint x, uint y) const
 	return(data + format.offsetBytes(x, y, pitch));
 }
 
-void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap &dest, int destX, int destY) const
+void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap dest, int destX, int destY) const
 {
 	//logDMsg("copying pixmap format src: %s dest: %s", pixelformat_toString(src->format), pixelformat_toString(dest->format));
 	// copy all width/height if 0
@@ -62,7 +62,7 @@ void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap &dest, int d
 	}
 }
 
-void Pixmap::initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint ylen)
+void Pixmap::initSubPixmap(Pixmap orig, uint x, uint y, uint xlen, uint ylen)
 {
 	data = orig.getPixel(x, y);
 	this->x = xlen;

@@ -122,7 +122,7 @@ IG::Pixmap ResourceFontAndroid::charBitmap()
 	return pix;
 }
 
-void ResourceFontAndroid::unlockCharBitmap(IG::Pixmap &pix)
+void ResourceFontAndroid::unlockCharBitmap()
 {
 	auto env = jEnv();
 	AndroidBitmap_unlockPixels(env, lockedBitmap);

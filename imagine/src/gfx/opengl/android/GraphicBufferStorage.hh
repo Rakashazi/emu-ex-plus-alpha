@@ -25,13 +25,14 @@ struct GraphicBufferStorage: public DirectTextureStorage
 {
 	android_native_buffer_t eglBuf;
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
+	uint bpp = 0;
 	uint pitch = 0;
 
 	constexpr GraphicBufferStorage() {}
 	~GraphicBufferStorage() override;
 	CallResult init();
 	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock() override;
+	Buffer lock(IG::WindowRect *dirtyRect) override;
 	void unlock(GLuint tex) override;
 	static bool testSupport(const char **errorStr);
 };

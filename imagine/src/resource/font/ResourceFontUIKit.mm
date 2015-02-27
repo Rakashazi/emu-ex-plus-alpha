@@ -43,7 +43,7 @@ ResourceFont *ResourceFontUIKit::loadSystem()
 	return inst;
 }
 
-void ResourceFontUIKit::free ()
+void ResourceFontUIKit::free()
 {
 	if(pixBuffer)
 		mem_free(pixBuffer);
@@ -84,13 +84,13 @@ IG::Pixmap ResourceFontUIKit::charBitmap()
 	return pix;
 }
 
-void ResourceFontUIKit::unlockCharBitmap(IG::Pixmap &pix)
+void ResourceFontUIKit::unlockCharBitmap()
 {
 	mem_freeSafe(pixBuffer);
 	pixBuffer = nullptr;
 }
 
-CallResult ResourceFontUIKit::activeChar (int idx, GlyphMetrics &metrics)
+CallResult ResourceFontUIKit::activeChar(int idx, GlyphMetrics &metrics)
 {
 	//logMsg("active char: %c", idx);
 	if(currChar != (unichar)idx)

@@ -85,9 +85,9 @@ public:
 		init2(data, x, y, x * format.bytesPerPixel);
 	}
 
-	void copy(int srcX, int srcY, int width, int height, Pixmap &dest, int destX, int destY) const;
+	void copy(int srcX, int srcY, int width, int height, Pixmap dest, int destX, int destY) const;
 	void clearRect(uint xStart, uint yStart, uint xlen, uint ylen);
-	void initSubPixmap(const Pixmap &orig, uint x, uint y, uint xlen, uint ylen);
+	void initSubPixmap(Pixmap orig, uint x, uint y, uint xlen, uint ylen);
 	Pixmap makeSubPixmap(IG::WP offset, IG::WP size);
 	uint size() const { return y * pitch; }
 	explicit operator bool() const { return data; }

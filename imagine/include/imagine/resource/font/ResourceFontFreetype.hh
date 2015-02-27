@@ -30,6 +30,7 @@ public:
 	static ResourceFontFreetype *loadAsset(const char *name);
 	void free() override;
 	IG::Pixmap charBitmap() override;
+	void unlockCharBitmap() override {}
 	CallResult activeChar(int idx, GlyphMetrics &metrics) override;
 	//int currentFaceDescender() const override;
 	//int currentFaceAscender() const override;

@@ -27,7 +27,7 @@ public:
 	void free() override;
 	IG::Pixmap charBitmap() override;
 	CallResult activeChar(int idx, GlyphMetrics &metrics) override;
-	void unlockCharBitmap(IG::Pixmap &pix) override;
+	void unlockCharBitmap() override;
 	//int currentFaceDescender() const override;
 	//int currentFaceAscender() const override;
 	CallResult newSize(const FontSettings &settings, FontSizeRef &sizeRef) override;

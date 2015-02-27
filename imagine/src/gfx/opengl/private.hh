@@ -30,8 +30,6 @@ extern bool useFBOFuncs;
 using GenerateMipmapsProto = void (*)(GLenum target);
 extern GenerateMipmapsProto generateMipmaps;
 extern bool useVBOFuncs;
-extern GLuint globalStreamVBO[4];
-extern uint globalStreamVBOIdx;
 extern bool useTextureSwizzle;
 extern bool useUnpackRowLength;
 extern bool useSamplerObjects;
@@ -42,6 +40,7 @@ extern GLenum luminanceAlphaInternalFormat;
 extern GLenum alphaFormat;
 extern GLenum alphaInternalFormat;
 extern bool useImmutableTexStorage;
+extern bool usePBO;
 extern TextureSizeSupport textureSizeSupport;
 extern bool useLegacyGLSL;
 
@@ -49,6 +48,8 @@ static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 
 TextureRef newTex();
 void deleteTex(TextureRef texRef);
+void initTexturePBO();
+GLuint getVBO();
 
 void initShaders();
 GLuint makeProgram(GLuint vShader, GLuint fShader);
@@ -69,6 +70,8 @@ extern GL_APICALL GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler);
 extern GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler);
 extern GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
 extern GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+extern GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+extern GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target);
 #endif
 
 static const bool useGLCache = true;

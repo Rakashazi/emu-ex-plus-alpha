@@ -31,7 +31,7 @@ struct SurfaceTextureStorage: public DirectTextureStorage
 	~SurfaceTextureStorage() override;
 	CallResult init(GLuint tex);
 	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock() override;
+	Buffer lock(IG::WindowRect *dirtyRect) override;
 	void unlock(GLuint tex) override;
 };
 
