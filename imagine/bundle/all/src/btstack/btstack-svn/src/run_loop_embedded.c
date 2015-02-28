@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 by Matthias Ringwald
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    personal benefit and not for any commercial purpose or for
  *    monetary gain.
  *
- * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MATTHIAS
@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at btstack@ringwald.ch
+ * Please inquire about commercial licensing options at 
+ * contact@bluekitchen-gmbh.com
  *
  */
 
@@ -92,7 +93,8 @@ static void embedded_set_timer(timer_source_t *ts, uint32_t timeout_in_ms){
 #ifdef HAVE_TICK
     uint32_t ticks = embedded_ticks_for_ms(timeout_in_ms);
     if (ticks == 0) ticks++;
-    ts->timeout = system_ticks + ticks; 
+    // time until next tick is < hal_tick_get_tick_period_in_ms() and we don't know, so we add one
+    ts->timeout = system_ticks + 1 + ticks; 
 #endif
 }
 
@@ -203,6 +205,11 @@ void embedded_set_ticks(uint32_t ticks){
 uint32_t embedded_ticks_for_ms(uint32_t time_in_ms){
     return time_in_ms / hal_tick_get_tick_period_in_ms();
 }
+
+uint32_t embedded_get_time_ms(void){
+    return system_ticks * hal_tick_get_tick_period_in_ms();
+}
+
 #endif
 
 /**

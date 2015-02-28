@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 by Matthias Ringwald
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    personal benefit and not for any commercial purpose or for
  *    monetary gain.
  *
- * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MATTHIAS
@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at btstack@ringwald.ch
+ * Please inquire about commercial licensing options at 
+ * contact@bluekitchen-gmbh.com
  *
  */
 
@@ -405,6 +406,9 @@ void rfcomm_decline_connection_internal(uint16_t rfcomm_cid);
 // Grant more incoming credits to the remote side for the given RFCOMM channel identifier.
 void rfcomm_grant_credits(uint16_t rfcomm_cid, uint8_t credits);
 
+// Checks if RFCOMM can send packet. Returns yes if packet can be sent.
+int rfcomm_can_send_packet_now(uint16_t rfcomm_cid);
+
 // Sends RFCOMM data packet to the RFCOMM channel with given identifier.
 int  rfcomm_send_internal(uint16_t rfcomm_cid, uint8_t *data, uint16_t len);
 
@@ -419,6 +423,13 @@ int rfcomm_send_port_configuration(uint16_t rfcomm_cid, rpn_baud_t baud_rate, rp
 
 // Query remote port 
 int rfcomm_query_port_configuration(uint16_t rfcomm_cid);
+
+// allow to create rfcomm packet in outgoing buffer
+int       rfcomm_reserve_packet_buffer(void);
+void      rfcomm_release_packet_buffer(void);
+uint8_t * rfcomm_get_outgoing_buffer(void);
+uint16_t  rfcomm_get_max_frame_size(uint16_t rfcomm_cid);
+int       rfcomm_send_prepared(uint16_t rfcomm_cid, uint16_t len);
 
 #if defined __cplusplus
 }

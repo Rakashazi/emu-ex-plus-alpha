@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 by Matthias Ringwald
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,8 +13,11 @@
  * 3. Neither the name of the copyright holders nor the names of
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
+ * 4. Any redistribution, use, or modification is done solely for
+ *    personal benefit and not for any commercial purpose or for
+ *    monetary gain.
  *
- * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MATTHIAS
@@ -26,6 +29,9 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * Please inquire about commercial licensing options at 
+ * contact@bluekitchen-gmbh.com
  *
  */
 
@@ -83,9 +89,19 @@ typedef enum {
 #define SDP_SupportedFormatsList    0x0303
 
 // SERVICE CLASSES
-#define SDP_OBEXObjectPush    0x1105
-#define SDP_OBEXFileTransfer  0x1106
-#define SDP_PublicBrowseGroup 0x1002
+#define SDP_OBEXObjectPush          0x1105
+#define SDP_OBEXFileTransfer        0x1106
+#define SDP_PublicBrowseGroup       0x1002
+#define SDP_HSP                     0x1108
+#define SDP_Headset_AG              0x1112
+#define SDP_PANU                    0x1115
+#define SDP_NAP                     0x1116
+#define SDP_GN                      0x1117
+#define SDP_Handsfree               0x111E
+#define SDP_HandsfreeAudioGateway   0x111F
+#define SDP_Headset_HS              0x1131
+#define SDP_GenericAudio            0x1203
+
 
 // PROTOCOLS
 #define SDP_SDPProtocol       0x0001
@@ -93,6 +109,8 @@ typedef enum {
 #define SDP_RFCOMMProtocol    0x0003
 #define SDP_OBEXProtocol      0x0008
 #define SDP_L2CAPProtocol     0x0100
+#define SDP_BNEPProtocol      0x000F
+#define SDP_AVDTPProtocol     0x0019
 
 // OFFSETS FOR LOCALIZED ATTRIBUTES - SDP_LanguageBaseAttributeIDList
 #define SDP_Offest_ServiceName      0x0000
@@ -109,20 +127,37 @@ typedef enum {
 #define SDP_OBEXFileTypeAny 0xFF
 
 // MARK: DateElement
-void de_dump_data_element(uint8_t * record);
-int de_get_len(uint8_t *header);
+void      de_dump_data_element(uint8_t * record);
+int       de_get_len(uint8_t *header);
 de_size_t de_get_size_type(uint8_t *header);
 de_type_t de_get_element_type(uint8_t *header);
-int de_get_header_size(uint8_t * header);
-void de_create_sequence(uint8_t *header);
-void de_store_descriptor_with_len(uint8_t * header, de_type_t type, de_size_t size, uint32_t len);
+int       de_get_header_size(uint8_t * header);
+void      de_create_sequence(uint8_t *header);
+void      de_store_descriptor_with_len(uint8_t * header, de_type_t type, de_size_t size, uint32_t len);
 uint8_t * de_push_sequence(uint8_t *header);
-void de_pop_sequence(uint8_t * parent, uint8_t * child);
-void de_add_number(uint8_t *seq, de_type_t type, de_size_t size, uint32_t value);
-void de_add_data( uint8_t *seq, de_type_t type, uint16_t size, uint8_t *data);
+void      de_pop_sequence(uint8_t * parent, uint8_t * child);
+void      de_add_number(uint8_t *seq, de_type_t type, de_size_t size, uint32_t value);
+void      de_add_data( uint8_t *seq, de_type_t type, uint16_t size, uint8_t *data);
+int       de_element_get_uint16(uint8_t * element, uint16_t * value);
 
-int de_get_data_size(uint8_t * header);
-void de_add_uuid128(uint8_t * seq, uint8_t * uuid);
+int       de_get_data_size(uint8_t * header);
+void      de_add_uuid128(uint8_t * seq, uint8_t * uuid);
+uint32_t  de_get_uuid32(uint8_t * element);
+int       de_get_normalized_uuid(uint8_t *uuid128, uint8_t *element);
+
+// MARK: DES iterator
+typedef struct {
+    uint8_t * element;
+    uint16_t pos;
+    uint16_t length;
+} des_iterator_t;
+
+int des_iterator_init(des_iterator_t * it, uint8_t * element);
+int  des_iterator_has_more(des_iterator_t * it);
+de_type_t des_iterator_get_type (des_iterator_t * it);
+uint16_t des_iterator_get_size (des_iterator_t * it);
+uint8_t * des_iterator_get_element(des_iterator_t * it);
+void des_iterator_next(des_iterator_t * it);
 
 // MARK: SDP
 uint16_t  sdp_append_attributes_in_attributeIDList(uint8_t *record, uint8_t *attributeIDList, uint16_t startOffset, uint16_t maxBytes, uint8_t *buffer);
@@ -134,6 +169,7 @@ int       sdp_filter_attributes_in_attributeIDList(uint8_t *record, uint8_t *att
 
 void      sdp_create_spp_service(uint8_t *service, int service_id, const char *name);
 void      sdp_normalize_uuid(uint8_t *uuid, uint32_t shortUUID);
+int       sdp_has_blueooth_base_uuid(uint8_t * uuid128);
 
 #if defined __cplusplus
 }

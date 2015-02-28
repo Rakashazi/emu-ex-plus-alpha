@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 by Matthias Ringwald
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    personal benefit and not for any commercial purpose or for
  *    monetary gain.
  *
- * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MATTHIAS
@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at btstack@ringwald.ch
+ * Please inquire about commercial licensing options at 
+ * contact@bluekitchen-gmbh.com
  *
  */
 
@@ -65,6 +66,10 @@ const uint8_t sdp_bluetooth_base_uuid[] = { 0x00, 0x00, 0x00, 0x00, /* - */ 0x00
 void sdp_normalize_uuid(uint8_t *uuid, uint32_t shortUUID){
     memcpy(uuid, sdp_bluetooth_base_uuid, 16);
     net_store_32(uuid, 0, shortUUID);
+}
+
+int sdp_has_blueooth_base_uuid(uint8_t * uuid128){
+    return memcmp(&uuid128[4], &sdp_bluetooth_base_uuid[4], 12) == 0;
 }
 
 // MARK: DataElement getter
@@ -114,6 +119,13 @@ int de_get_len(uint8_t *header){
     return de_get_header_size(header) + de_get_data_size(header); 
 }
 
+// @returns OK, if UINT16 value was read
+int de_element_get_uint16(uint8_t * element, uint16_t * value){
+    if (de_get_size_type(element) != DE_SIZE_16) return 0;
+    *value = READ_NET_16(element, de_get_header_size(element));
+    return 1;
+}
+
 // @returns: element is valid UUID
 int de_get_normalized_uuid(uint8_t *uuid128, uint8_t *element){
     de_type_t uuidType = de_get_element_type(element);
@@ -135,6 +147,16 @@ int de_get_normalized_uuid(uint8_t *uuid128, uint8_t *element){
     }
     sdp_normalize_uuid(uuid128, shortUUID);
     return 1;
+}
+
+// @returns 0 if no UUID16 or UUID32 is present, and UUID32 otherwise
+uint32_t de_get_uuid32(uint8_t * element){
+    uint8_t uuid128[16];
+    int validUuid128 = de_get_normalized_uuid(uuid128, element);
+    if (!validUuid128) return 0;
+    int hasBlueoothBaseUuid = sdp_has_blueooth_base_uuid(uuid128);
+    if (!hasBlueoothBaseUuid) return 0;
+    return READ_NET_32(uuid128, 0);
 }
 
 // functions to create record
@@ -228,6 +250,43 @@ void de_add_uuid128(uint8_t * seq, uint8_t * uuid){
     de_store_descriptor(seq+3+data_size, DE_UUID, DE_SIZE_128); 
     memcpy( seq + 4 + data_size, uuid, 16);
     net_store_16(seq, 1, data_size+1+16);
+}
+
+// MARK: DES iterator
+int des_iterator_init(des_iterator_t * it, uint8_t * element){
+    de_type_t type = de_get_element_type(element);
+    if (type != DE_DES) return 0;
+
+    it->element = element;
+    it->pos = de_get_header_size(element);
+    it->length = de_get_len(element);
+    // printf("des_iterator_init current pos %d, total len %d\n", it->pos, it->length);
+    return 1;
+}
+
+de_type_t des_iterator_get_type (des_iterator_t * it){
+    return de_get_element_type(&it->element[it->pos]);
+}
+
+uint16_t des_iterator_get_size (des_iterator_t * it){
+    int length = de_get_len(&it->element[it->pos]);
+    int header_size = de_get_header_size(&it->element[it->pos]);
+    return length - header_size;
+}
+
+int des_iterator_has_more(des_iterator_t * it){
+    return it->pos < it->length;
+}
+
+uint8_t * des_iterator_get_element(des_iterator_t * it){
+    if (!des_iterator_has_more(it)) return NULL;
+    return &it->element[it->pos];
+}
+
+void des_iterator_next(des_iterator_t * it){
+    int element_len = de_get_len(&it->element[it->pos]);
+    // printf("des_iterator_next element size %d, current pos %d, total len %d\n", element_len, it->pos, it->length);
+    it->pos += element_len;
 }
 
 void sdp_add_attribute(uint8_t *seq, uint16_t attributeID, uint8_t attributeValue){
@@ -654,13 +713,13 @@ void sdp_create_spp_service(uint8_t *service, int service_id, const char *name){
 	{
 		uint8_t* l2cpProtocol = de_push_sequence(attribute);
 		{
-			de_add_number(l2cpProtocol,  DE_UUID, DE_SIZE_16, 0x0100);
+			de_add_number(l2cpProtocol,  DE_UUID, DE_SIZE_16, SDP_L2CAPProtocol);
 		}
 		de_pop_sequence(attribute, l2cpProtocol);
 		
 		uint8_t* rfcomm = de_push_sequence(attribute);
 		{
-			de_add_number(rfcomm,  DE_UUID, DE_SIZE_16, 0x0003);  // rfcomm_service
+			de_add_number(rfcomm,  DE_UUID, DE_SIZE_16, SDP_RFCOMMProtocol);  // rfcomm_service
 			de_add_number(rfcomm,  DE_UINT, DE_SIZE_8,  service_id);  // rfcomm channel
 		}
 		de_pop_sequence(attribute, rfcomm);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 by Matthias Ringwald
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    personal benefit and not for any commercial purpose or for
  *    monetary gain.
  *
- * THIS SOFTWARE IS PROVIDED BY MATTHIAS RINGWALD AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MATTHIAS
@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at btstack@ringwald.ch
+ * Please inquire about commercial licensing options at 
+ * contact@bluekitchen-gmbh.com
  *
  */
 
@@ -52,19 +53,38 @@
 
 #include <btstack/btstack.h>
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 #include <sys/stat.h>
+
+#ifndef _WIN32
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#endif
+
+#include <sys/ioctl.h>
+ 
+#ifdef _WIN32
+#include "Winsock2.h"
+// define missing types
+typedef int32_t socklen_t;
+//
+#define UNIX_PATH_MAX 108
+struct sockaddr_un {
+    uint16_t sun_family;
+    char sun_path[UNIX_PATH_MAX];  
+};
+//
+#define S_IRWXG 0
+#define S_IRWXO 0
+#endif
 
 #ifdef USE_LAUNCHD
 #include "../platforms/ios/3rdparty/launch.h"
@@ -111,16 +131,6 @@ static int (*socket_connection_packet_callback)(connection_t *connection, uint16
 
 static int socket_connection_dummy_handler(connection_t *connection, uint16_t packet_type, uint16_t channel, uint8_t *data, uint16_t length){
     return 0;
-}
-
-
-int socket_connection_set_non_blocking(int fd) {
-    int err;
-    int flags;
-    // According to the man page, F_GETFL can't error!
-    flags = fcntl(fd, F_GETFL, NULL);
-    err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    return err;
 }
 
 void socket_connection_set_no_sigpipe(int fd){
@@ -199,7 +209,6 @@ static int fdReadableBytes(int fd)
 	return maxReadable;
 }
 
-
 int socket_connection_hci_process(struct data_source *ds) {
     connection_t *conn = (connection_t *) ds;
     
@@ -254,7 +263,7 @@ int socket_connection_hci_process(struct data_source *ds) {
 		        linked_list_add_tail(&parked, (linked_item_t *) ds);
 		    }
 		}
-	} while(fdReadableBytes(ds->fd));
+    } while(fdReadableBytes(ds->fd));
 	return 0;
 }
 
@@ -298,8 +307,6 @@ static int socket_connection_accept(struct data_source *socket_ds) {
 		perror("accept");
         return 0;
 	}
-    // non-blocking ?
-	// socket_connection_set_non_blocking(ds->fd);
         
     // no sigpipe
     socket_connection_set_no_sigpipe(fd);
@@ -341,7 +348,7 @@ int socket_connection_create_tcp(int port){
 	memset (&addr.sin_addr, 0, sizeof (addr.sin_addr));
 	
 	const int y = 1;
-	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, &y, sizeof(int));
+	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, (void*) &y, sizeof(int));
 	
 	if (bind ( ds->fd, (struct sockaddr *) &addr, sizeof (addr) ) ) {
 		log_error("Error on bind() ...(%s)", strerror(errno));
@@ -483,7 +490,7 @@ int socket_connection_create_unix(char *path){
     unlink(path);
     
 	const int y = 1;
-	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, &y, sizeof(int));
+	setsockopt(ds->fd, SOL_SOCKET, SO_REUSEADDR, (void*) &y, sizeof(int));
     
 	if (bind ( ds->fd, (struct sockaddr *) &addr, sizeof (addr) ) ) {
 		log_error( "Error on bind() ...(%s)", strerror(errno));
@@ -523,7 +530,7 @@ void socket_connection_send_packet(connection_t *conn, uint16_t type, uint16_t c
     bt_store_16(header, 0, type);
     bt_store_16(header, 2, channel);
     bt_store_16(header, 4, size);
-#ifdef HAVE_SO_NOSIGPIPE
+#if defined(HAVE_SO_NOSIGPIPE) || defined (_WIN32)
     // BSD Variants like Darwin and iOS
     write(conn->ds.fd, header, 6);
     write(conn->ds.fd, packet, size);
@@ -581,7 +588,11 @@ connection_t * socket_connection_open_tcp(const char *address, uint16_t port){
  */
 int socket_connection_close_tcp(connection_t * connection){
     if (!connection) return -1;
+#ifdef _WIN32
+    shutdown(connection->ds.fd, SD_BOTH);
+#else    
     shutdown(connection->ds.fd, SHUT_RDWR);
+#endif
     socket_connection_free_connection(connection);
     return 0;
 }
@@ -614,7 +625,11 @@ connection_t * socket_connection_open_unix(){
  */
 int socket_connection_close_unix(connection_t * connection){
     if (!connection) return -1;
+#ifdef _WIN32
+    shutdown(connection->ds.fd, SD_BOTH);
+#else    
     shutdown(connection->ds.fd, SHUT_RDWR);
+#endif 
     socket_connection_free_connection(connection);
     return 0;
 }
