@@ -18,7 +18,6 @@
 #include <imagine/engine-globals.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/time/sys.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Mat4.hh>

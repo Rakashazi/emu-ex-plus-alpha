@@ -391,7 +391,7 @@ bool soloMix()
 
 void updateFocusOnResume()
 {
-	if(soloMix())
+	if(slI && soloMix())
 	{
 		requestAudioFocus(jEnv());
 	}
@@ -399,7 +399,7 @@ void updateFocusOnResume()
 
 void updateFocusOnPause()
 {
-	if(soloMix())
+	if(slI && soloMix())
 	{
 		abandonAudioFocus(jEnv());
 	}

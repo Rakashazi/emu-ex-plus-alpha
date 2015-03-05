@@ -17,7 +17,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/android/sdk.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 
 namespace Base
 {
@@ -60,7 +60,7 @@ void GLContext::present(Window &win)
 	if(swapBuffersIsAsync())
 	{
 		// check if buffer swap blocks even though triple-buffering is used
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).toNs();
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).nSecs();
 		if(swapTime > 16000000)
 		{
 			logWarn("buffer swap took %lldns", (long long)swapTime);

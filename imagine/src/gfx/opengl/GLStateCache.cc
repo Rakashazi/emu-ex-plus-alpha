@@ -475,19 +475,37 @@ bool GLStateCache::vboIsBound()
 
 void GLStateCache::bindBuffer(GLenum target, GLuint buffer)
 {
-	forEachInArray(glBindBufferVal, e)
+	for(auto &e : glBindBufferVal)
 	{
-		if(e->target == target)
+		if(e.target == target)
 		{
-			if(e->buffer != buffer)
+			if(e.buffer != buffer)
 			{
 				//logMsg("binding buffer %u to target %u", buffer, target);
 				glBindBuffer(target, buffer);
-				e->buffer = buffer;
+				e.buffer = buffer;
 			}
 			return;
 		}
 	}
+}
+
+void GLStateCache::deleteBuffers(GLsizei n, const GLuint *buffers)
+{
+	// From the OpenGL manual:
+	// If a buffer that is currently bound is deleted, the binding reverts to 0
+	iterateTimes(n, i)
+	{
+		for(auto &e : glBindBufferVal)
+		{
+			if(e.buffer == buffers[i])
+			{
+				e.buffer = 0;
+			}
+		}
+	}
+
+	glDeleteBuffers(n, buffers);
 }
 
 GLint *GLStateCache::getPixelStoreParam(GLenum pname)

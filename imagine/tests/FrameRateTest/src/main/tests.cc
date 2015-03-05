@@ -13,8 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
 #include "tests.hh"
+#include "cpuUtils.hh"
 
 const char *testIDToStr(TestID id)
 {
@@ -39,57 +41,85 @@ std::array<char, 64> TestParams::makeTestName() const
 
 void TestFramework::init(IG::Point2D<int> pixmapSize)
 {
-	cpuFreqText.init(View::defaultFace);
-	cpuFreqText.maxLines = 1;
-	cpuFreqText.setString(cpuFreqStr.data());
-	skippedFrameText.init(View::defaultFace);
-	skippedFrameText.setString(skippedFrameStr.data());
+	cpuStatsText.init(View::defaultFace);
+	cpuStatsText.setString(cpuStatsStr.data());
+	frameStatsText.init(View::defaultFace);
+	frameStatsText.setString(frameStatsStr.data());
 	initTest(pixmapSize);
 }
 
 void TestFramework::deinit()
 {
-	skippedFrameText.deinit();
+	frameStatsText.deinit();
 	deinitTest();
 }
 
 void TestFramework::setCPUFreqText(const char *str)
 {
 	string_printf(cpuFreqStr, "CPU Frequency: %s", str);
-	placeCPUFreqText();
 }
 
-void TestFramework::placeCPUFreqText()
+void TestFramework::setCPUUseText(const char *str)
 {
-	if(strlen(cpuFreqStr.data()))
+	string_printf(cpuUseStr, "CPU Load (System): %s", str);
+}
+
+void TestFramework::placeCPUStatsText()
+{
+	if(strlen(cpuStatsStr.data()))
 	{
-		cpuFreqText.compile(projP);
-		cpuFreqRect = projP.bounds();
-		cpuFreqRect.y = cpuFreqRect.y2 - cpuFreqText.ySize * 1.5f; // adjust to top
+		cpuStatsText.compile(projP);
+		cpuStatsRect = projP.bounds();
+		cpuStatsRect.y = (cpuStatsRect.y2 - cpuStatsText.nominalHeight * cpuStatsText.lines)
+			- cpuStatsText.nominalHeight * .5f; // adjust to top
 	}
 }
 
-void TestFramework::placeSkippedFrameText()
+void TestFramework::placeFrameStatsText()
 {
-	if(strlen(skippedFrameStr.data()))
+	if(strlen(frameStatsStr.data()))
 	{
-		skippedFrameText.compile(projP);
-		skippedFrameRect = projP.bounds();
-		skippedFrameRect.y2 = skippedFrameRect.y + skippedFrameText.ySize * 1.5f; // adjust to bottom
+		frameStatsText.compile(projP);
+		frameStatsRect = projP.bounds();
+		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight * frameStatsText.lines)
+			+ cpuStatsText.nominalHeight * .5f; // adjust to bottom
 	}
 }
 
 void TestFramework::place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
 {
 	var_selfs(projP);
-	skippedFrameText.maxLineSize = projP.bounds().xSize();
-	placeCPUFreqText();
-	placeSkippedFrameText();
+	frameStatsText.maxLineSize = projP.bounds().xSize();
+	placeCPUStatsText();
+	placeFrameStatsText();
 	placeTest(testRect);
 }
 
 void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameTime)
 {
+	// CPU stats
+	bool updatedCPUStats = false;
+	if(frames % 8 == 0)
+	{
+		updateCPUFreq(*this);
+		updatedCPUStats = true;
+	}
+	if(frames % 120 == 0)
+	{
+		updateCPULoad(*this);
+		updatedCPUStats = true;
+	}
+	if(updatedCPUStats)
+	{
+		string_printf(cpuStatsStr, "%s%s%s",
+			strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
+			strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
+			strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
+		placeCPUStatsText();
+	}
+
+	// frame stats
+	bool updatedFrameStats = false;
 	if(!frames)
 	{
 		startTime = frameTime;
@@ -101,13 +131,35 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameT
 		//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 		if(elapsedScreenFrames > 1)
 		{
+			lostFrameDispatchTime = (lastFramePresentTime.atOnFrame - lastFramePresentTime.frameTime).mSecs();
+			lostFrameProcessTime = (lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs();
+			lostFramePresentTime = (lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs();
+
 			droppedFrames++;
-			string_printf(skippedFrameStr, "Lost %u frame(s) after %u continuous\nat time %f",
-				elapsedScreenFrames - 1, continuousFrames, Base::frameTimeBaseToSDec(frameTime));
-			placeSkippedFrameText();
+			string_printf(skippedFrameStr, "Lost %u frame(s) after %u continuous\nat time %fs",
+				elapsedScreenFrames - 1, continuousFrames, Base::frameTimeBaseToSecsDec(frameTime));
+			updatedFrameStats = true;
 			continuousFrames = 0;
 		}
 	}
+	if(frames && frames % 4 == 0)
+	{
+		string_printf(statsStr, "Dispatch: %02ums (%02ums)\nProcess: %02ums (%02ums)\nPresent: %02ums (%02ums)",
+			(uint)(lastFramePresentTime.atOnFrame - lastFramePresentTime.frameTime).mSecs(), lostFrameDispatchTime,
+			(uint)(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs(), lostFrameProcessTime,
+			(uint)(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs(), lostFramePresentTime);
+		updatedFrameStats = true;
+	}
+	if(updatedFrameStats)
+	{
+		string_printf(frameStatsStr, "%s%s%s",
+			strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
+			strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
+			strlen(statsStr.data()) ? statsStr.data() : "");
+		placeFrameStatsText();
+	}
+
+	// run frame
 	frameUpdateTest(screen, frameTime);
 	frames++;
 	continuousFrames++;
@@ -117,27 +169,27 @@ void TestFramework::draw()
 {
 	using namespace Gfx;
 	drawTest();
-	if(strlen(cpuFreqStr.data()))
+	if(strlen(cpuStatsStr.data()))
 	{
 		noTexProgram.use();
 		setBlendMode(BLEND_MODE_ALPHA);
 		setColor(0., 0., 0., .7);
-		GeomRect::draw(cpuFreqRect);
+		GeomRect::draw(cpuStatsRect);
 		setColor(1., 1., 1., 1.);
 		texAlphaProgram.use();
-		cpuFreqText.draw(projP.alignXToPixel(cpuFreqRect.x + TableView::globalXIndent),
-			projP.alignYToPixel(cpuFreqRect.yCenter()), LC2DO, projP);
+		cpuStatsText.draw(projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
+			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
-	if(strlen(skippedFrameStr.data()))
+	if(strlen(frameStatsStr.data()))
 	{
 		noTexProgram.use();
 		setBlendMode(BLEND_MODE_ALPHA);
 		setColor(0., 0., 0., .7);
-		GeomRect::draw(skippedFrameRect);
+		GeomRect::draw(frameStatsRect);
 		setColor(1., 1., 1., 1.);
 		texAlphaProgram.use();
-		skippedFrameText.draw(projP.alignXToPixel(skippedFrameRect.x + TableView::globalXIndent),
-			projP.alignYToPixel(skippedFrameRect.yCenter()), LC2DO, projP);
+		frameStatsText.draw(projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
+			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
 	}
 }
 

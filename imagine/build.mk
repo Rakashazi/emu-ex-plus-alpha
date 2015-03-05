@@ -17,6 +17,7 @@ ifneq ($(ENV), ps3)
  configDefs += CONFIG_INPUT_ICADE
 endif
 
+include $(imagineSrcDir)/time/system.mk
 include $(imagineSrcDir)/audio/system.mk
 include $(imagineSrcDir)/input/system.mk
 include $(imagineSrcDir)/gfx/system.mk

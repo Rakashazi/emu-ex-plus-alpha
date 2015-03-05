@@ -107,7 +107,7 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 	if(result)
 	{
 		logMsg("starting benchmark");
-		TimeSys time = EmuSystem::benchmark();
+		IG::Time time = EmuSystem::benchmark();
 		EmuSystem::closeGame(0);
 		logMsg("done in: %f", double(time));
 		popup.printf(2, 0, "%.2f fps", double(180.)/double(time));

@@ -15,7 +15,6 @@
 
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
-#include <imagine/util/time/sys.hh>
 #include "ios.hh"
 
 @interface DisplayLinkHelper : NSObject

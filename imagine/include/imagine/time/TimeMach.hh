@@ -15,38 +15,19 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/util/operators.hh>
-#define BOOL X11BOOL
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
-#undef BOOL
+#include <stdint.h>
 
-namespace Base
+namespace IG
 {
 
-class XScreen : public NotEquals<XScreen>
+class TimeMach
 {
+protected:
+	uint64_t t = 0;
 public:
-	::Screen *xScreen{};
-	float xMM = 0, yMM = 0;
-	XRRScreenConfiguration *xrrConf{};
-
-	constexpr XScreen() {}
-
-	void init(::Screen *xScreen);
-
-	bool operator ==(XScreen const &rhs) const
-	{
-		return xScreen == rhs.xScreen;
-	}
-
-	explicit operator bool() const
-	{
-		return xScreen;
-	}
+	constexpr TimeMach() {}
 };
 
-using ScreenImpl = XScreen;
+using TimeImpl = TimeMach;
 
 }

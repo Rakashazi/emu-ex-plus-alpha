@@ -131,6 +131,8 @@ static void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLbool
 #endif
 static void glcBindBuffer(GLenum target, GLuint buffer)
 { if(useGLCache) glState.bindBuffer(target, buffer); else glBindBuffer(target, buffer); }
+static void glcDeleteBuffers(GLsizei n, const GLuint *buffers)
+{ if(useGLCache) glState.deleteBuffers(n, buffers); else glDeleteBuffers(n, buffers); }
 static void glcPixelStorei(GLenum pname, GLint param)
 { if(useGLCache) glState.pixelStorei(pname, param); else glPixelStorei(pname, param); }
 

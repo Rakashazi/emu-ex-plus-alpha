@@ -20,6 +20,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/time/Time.hh>
 #include "internal.hh"
 #include "android.hh"
 
@@ -96,7 +97,7 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 			GLContext::swapPresentedBuffers(*deviceWindow());
 			if(screen.isPosted())
 			{
-				screen.currFrameTime = TimeSys::now().toNs();
+				screen.currFrameTime = IG::Time::now().nSecs();
 			}
 			else
 			{
@@ -199,7 +200,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 					GLContext::swapPresentedBuffers(*deviceWindow());
 					if(screen.isPosted())
 					{
-						screen.currFrameTime = TimeSys::now().toNs();
+						screen.currFrameTime = IG::Time::now().nSecs();
 						return (jboolean)true;
 					}
 					else

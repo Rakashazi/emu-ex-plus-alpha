@@ -18,6 +18,7 @@
 #include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/time/Time.hh>
 #include "internal.hh"
 #include "android.hh"
 #include "../common/screenPrivate.hh"
@@ -254,7 +255,7 @@ void Screen::postFrame()
 	if(!inFrameHandler)
 	{
 		if(Base::androidSDK() < 16)
-			currFrameTime = TimeSys::now().toNs();
+			currFrameTime = IG::Time::now().nSecs();
 		prevFrameTime = 0;
 	}
 }

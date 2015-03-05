@@ -48,11 +48,11 @@ void TestPicker::init(const TestParams *testParams, uint tests)
 						using namespace Base;
 						auto diff = test.endTime - test.startTime;
 						logMsg("ran from %f to %f, took %f",
-							frameTimeBaseToSDec(test.startTime),
-							frameTimeBaseToSDec(test.endTime),
-							frameTimeBaseToSDec(diff));
+							frameTimeBaseToSecsDec(test.startTime),
+							frameTimeBaseToSecsDec(test.endTime),
+							frameTimeBaseToSecsDec(diff));
 						auto &entry = testEntry[i];
-						double fps = (double)Base::frameTimeBaseFromS(test.frames-1)/(double)diff;
+						double fps = (double)Base::frameTimeBaseFromSecs(test.frames-1)/(double)diff;
 						string_printf(entry.fpsStr, "%.2f", fps);
 						entry.t2.setString(entry.fpsStr.data());
 						entry.redText = test.droppedFrames;

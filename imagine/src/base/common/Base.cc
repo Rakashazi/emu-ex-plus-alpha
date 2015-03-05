@@ -26,7 +26,7 @@
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 
 namespace Base
 {
@@ -60,9 +60,6 @@ void engineInit()
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
 	mem_init();
 }
-
-// needed by GCC when not compiling with libstdc++/libsupc++, or to override it
-CLINK [[gnu::weak]] void __cxa_pure_virtual() { bug_exit("called pure virtual"); }
 
 void setOnInterProcessMessage(InterProcessMessageDelegate del)
 {
@@ -157,7 +154,7 @@ uint validateOrientationMask(uint oMask)
 
 FrameTimeBase timeSinceFrameTime(FrameTimeBase time)
 {
-	return frameTimeBaseFromNS(TimeSys::now().toNs()) - time;
+	return frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - time;
 }
 
 }

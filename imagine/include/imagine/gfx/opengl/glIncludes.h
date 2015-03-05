@@ -111,10 +111,6 @@
 	#endif
 #endif
 
-#ifndef GL_APICALL
-#define GL_APICALL
-#endif
-
 #ifndef GL_UNPACK_ROW_LENGTH
 #define GL_UNPACK_ROW_LENGTH 0x0CF2
 #endif
@@ -189,4 +185,8 @@
 
 #ifndef GL_PIXEL_UNPACK_BUFFER
 #define GL_PIXEL_UNPACK_BUFFER 0x88EC
+#endif
+
+#ifndef GL_APICALL
+#define GL_APICALL
 #endif

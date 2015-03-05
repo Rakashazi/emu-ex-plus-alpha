@@ -18,7 +18,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EventLoopFileSource.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/thread/sys.hh>
 #include <imagine/logger/logger.h>
 #include <sys/eventfd.h>
@@ -187,7 +187,7 @@ bool FBDevFrameTimer::init()
 				//logMsg("waiting for vsync");
 				int arg = 0;
 				ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
-				uint64_t frameTimeNanos = TimeSys::now().toNs();
+				uint64_t frameTimeNanos = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)frameTimeNanos);
 				auto ret = write(fd, &frameTimeNanos, sizeof(frameTimeNanos));
 				assert(ret == sizeof(frameTimeNanos));
@@ -260,8 +260,17 @@ bool SGIFrameTimer::init()
 			{
 				Base::GLContextAttributes glAttr;
 				glAttr.setMajorVersion(3);
+				glAttr.setMinorVersion(3);
 				bufferConfig = context.makeBufferConfig(glAttr, {});
 				context.init(glAttr, bufferConfig);
+				if(!context)
+				{
+					glAttr.setMajorVersion(1);
+					glAttr.setMinorVersion(3);
+					bufferConfig = context.makeBufferConfig(glAttr, {});
+					context.init(glAttr, bufferConfig);
+				}
+				assert(context);
 			}
 			{
 				auto rootWindow = RootWindowOfScreen(mainScreen().xScreen);
@@ -287,7 +296,7 @@ bool SGIFrameTimer::init()
 				{
 					bug_exit("error in glXWaitVideoSyncSGI");
 				}
-				uint64_t frameTimeNanos = TimeSys::now().toNs();
+				uint64_t frameTimeNanos = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)frameTimeNanos);
 				auto ret = write(fd, &frameTimeNanos, sizeof(frameTimeNanos));
 				assert(ret == sizeof(frameTimeNanos));
@@ -390,7 +399,7 @@ void OMLFrameTimer::scheduleVSync()
 		// TODO: get real refresh rate, assuming 60Hz
 		nextFrameTimeUSecs = ust + (1000000 / (syncval_t)60);
 	}
-	//logMsg("last frame at %lld, next at %lld, now %lld", (long long)lastFrameTimeUSecs, (long long)nextFrameTimeUSecs, (long long)TimeSys::now().toNs() / 1000);
+	//logMsg("last frame at %lld, next at %lld, now %lld", (long long)lastFrameTimeUSecs, (long long)nextFrameTimeUSecs, (long long)IG::Time::now().toNs() / 1000);
 	int64_t seconds = nextFrameTimeUSecs / 1000000;
 	int64_t leftoverUs = nextFrameTimeUSecs % 1000000;
 	int64_t leftoverNs = leftoverUs * 1000;

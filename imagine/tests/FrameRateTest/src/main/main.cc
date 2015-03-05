@@ -17,47 +17,23 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/io/FileIO.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
-#include <unistd.h>
+#include "cpuUtils.hh"
 
 static const uint framesToRun = 60*60;
 static Base::Window mainWin;
 static Gfx::ProjectionPlane projP;
 static Gfx::Mat4 projMat;
 static Gfx::GCRect testRect;
-static FileIO cpuFreqFile;
 static TestFramework *activeTest{};
 static TestPicker picker{mainWin};
-
 static TestParams testParam[] =
 {
 	{TEST_CLEAR},
 	{TEST_DRAW, {320, 224}},
 	{TEST_WRITE, {320, 224}},
 };
-
-static void updateCPUFreq()
-{
-	if(!activeTest || !cpuFreqFile)
-		return;
-	char buff[32]{};
-	cpuFreqFile.readAtPos(buff, sizeof(buff)-1, 0);
-	//logMsg("read CPU freq: %s", buff);
-	activeTest->setCPUFreqText(buff);
-}
-
-static void setupCPUFreqStatus()
-{
-	if(!Config::envIsLinux && !Config::envIsAndroid)
-		return; // ignore cpufreq monitoring on non-linux systems
-	const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
-	if(cpuFreqFile.open(cpuFreqPath) != OK)
-	{
-		logWarn("can't open %s", cpuFreqPath);
-	}
-}
 
 static void placeElements()
 {
@@ -75,7 +51,8 @@ static void placeElements()
 
 static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
 {
-	cpuFreqFile.close();
+	deinitCPUFreqStatus();
+	deinitCPULoadStatus();
 	if(activeTest)
 	{
 		activeTest->finish(frameTime);
@@ -104,22 +81,19 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 	win.postDraw();
 	Base::setIdleDisplayPowerSave(false);
 	Input::setKeyRepeat(false);
-	setupCPUFreqStatus();
+	initCPUFreqStatus();
+	initCPULoadStatus();
 	placeElements();
 
 	win.screen()->addOnFrame(
 		[&win](Base::Screen &screen, Base::Screen::FrameParams params)
 		{
-			Gfx::bind();
+			auto atOnFrame = IG::Time::now();
 			auto frameTime = params.frameTime();
-
-			if(activeTest->frames % 8 == 0)
-			{
-				updateCPUFreq();
-			}
-
+			Gfx::bind();
 			activeTest->frameUpdate(screen, frameTime);
-
+			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
+			activeTest->lastFramePresentTime.frameTime = IG::Time::makeWithNSecs(Base::frameTimeBaseToNSecs(frameTime));
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
 				finishTest(win, frameTime);
@@ -172,7 +146,15 @@ CallResult onInit(int argc, char** argv)
 				activeTest->draw();
 			}
 			Gfx::setClipRect(false);
+			if(activeTest)
+			{
+				activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
+			}
 			Gfx::presentWindow(win);
+			if(activeTest)
+			{
+				activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
+			}
 		});
 
 	winConf.setOnInputEvent(
@@ -199,6 +181,7 @@ CallResult onInit(int argc, char** argv)
 	uint faceSize = mainWin.heightSMMInPixels(3.5);
 	View::defaultFace->applySettings(faceSize);
 	View::defaultFace->precacheAlphaNum();
+	View::defaultFace->precache(":.%()");
 	picker.init(testParam, sizeofArray(testParam));
 	mainWin.show();
 	return OK;

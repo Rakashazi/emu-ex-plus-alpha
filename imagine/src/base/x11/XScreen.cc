@@ -15,7 +15,6 @@
 
 #define LOGTAG "XScreen"
 #include <imagine/base/Screen.hh>
-#include <imagine/util/time/sys.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 
@@ -28,11 +27,15 @@ void XScreen::init(::Screen *xScreen)
 	var_selfs(xScreen);
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
+	xrrConf = XRRGetScreenInfo(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
 	logMsg("X screen: 0x%p %dx%d (%dx%dmm)", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM);
 }
 
-void Screen::deinit() {}
+void Screen::deinit()
+{
+	 XRRFreeScreenConfigInfo(xrrConf);
+}
 
 int Screen::width()
 {
@@ -46,9 +49,8 @@ int Screen::height()
 
 uint Screen::refreshRate()
 {
-	auto conf = XRRGetScreenInfo(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-	auto rate = XRRConfigCurrentRate(conf);
-	logMsg("refresh rate %d", (int)rate);
+	auto rate = XRRConfigCurrentRate(xrrConf);
+	//logMsg("refresh rate %d", (int)rate);
 	return rate;
 }
 

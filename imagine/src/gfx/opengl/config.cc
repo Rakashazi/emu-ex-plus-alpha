@@ -17,7 +17,6 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/time/sys.hh>
 #include "private.hh"
 #include "settings.h"
 #include "utils.h"
@@ -138,6 +137,7 @@ static Gfx::GC orientationToGC(uint o)
 static void setupAnisotropicFiltering()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
+	GLfloat maximumAnisotropy;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
 	logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
 	useAnisotropicFiltering = 1;
@@ -271,12 +271,6 @@ static void setupPBO()
 	initTexturePBO();
 }
 
-static void GL_APIENTRY debugCallback(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
-{
-	logErr("Debug Info: %s", message);
-}
-
 static void checkExtensionString(const char *extStr)
 {
 	//logMsg("checking %s", extStr);
@@ -289,18 +283,26 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wattributes" // ignore visibility warning
 		#ifdef CONFIG_GFX_OPENGL_ES
-		using DebugMessageCallbackProto = void (*)(GLDEBUGPROCKHR callback, const void *userParam);
+		GL_APICALL void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
 		const char *glDebugMessageCallbackStr = "glDebugMessageCallbackKHR";
 		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
 		#else
-		using DebugMessageCallbackProto = void (*)(GLDEBUGPROC callback, const void *userParam);
+		GLAPI void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
 		const char *glDebugMessageCallbackStr = "glDebugMessageCallback";
 		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 		#endif
+		#pragma GCC diagnostic pop
 		logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
-		auto glDebugMessageCallback = (DebugMessageCallbackProto)Base::GLContext::procAddress(glDebugMessageCallbackStr);
-		glDebugMessageCallback(debugCallback, nullptr);
+		glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
+		glDebugMessageCallback(
+			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
+				GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+			{
+				logDMsg("GL Debug: %s", message);
+			}, nullptr);
 		glEnable(DEBUG_OUTPUT);
 	}
 	#ifdef CONFIG_GFX_OPENGL_ES

@@ -36,7 +36,7 @@ MsgPopup popup;
 BasicViewController modalViewController;
 WorkDirStack<1> workDirStack;
 static bool trackFPS = 0;
-static TimeSys prevFrameTime;
+static IG::Time prevFrameTime;
 static uint frameCount = 0;
 static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices;
@@ -408,7 +408,7 @@ void startGameFromMenu()
 	if(trackFPS)
 	{
 		frameCount = 0;
-		prevFrameTime = TimeSys::now();
+		prevFrameTime = IG::Time::now();
 	}
 }
 

@@ -15,7 +15,7 @@
 
 #include <GLES/gl.h> // for glFlush()
 #include <imagine/base/GLContext.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 

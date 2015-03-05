@@ -22,7 +22,7 @@ void VertexArray::write(const void *data, uint offset, uint size)
 void VertexArray::deinit()
 {
 	logMsg("deleting VBO id %d", ref);
-	glDeleteBuffers(1, &ref);
+	glcDeleteBuffers(1, &ref);
 }
 
 }

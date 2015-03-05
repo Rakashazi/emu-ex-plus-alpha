@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/GLContext.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 
@@ -149,7 +149,7 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 		logErr("can't find a compatible context");
 		return INVALID_PARAMETER;
 	}
-	bool supportsSurfaceless = false; // TODO: glXMakeContextCurrent doesn't work correctly on some drivers, see below
+	bool supportsSurfaceless = true;
 	if(!supportsSurfaceless && !dummyPbuff)
 	{
 		const int pbuffAttr[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
@@ -192,17 +192,15 @@ static void setCurrentContext(GLXContext context, Window *win)
 	}
 	else
 	{
-		// TODO: with nvidia (tested on 337.12) glXMakeContextCurrent fails with badmatch
-		// even if using a 3.0 context
-		/*if(!dummyPbuff)
+		if(!dummyPbuff)
 		{
 			logMsg("setting no drawable current");
-			if(!glXMakeContextCurrent(c->display, None, None, context))
+			if(!glXMakeContextCurrent(dpy, None, None, context))
 			{
 				bug_exit("error setting no drawable current");
 			}
 		}
-		else*/
+		else
 		{
 			logMsg("setting dummy pbuffer current");
 			if(!glXMakeContextCurrent(dpy, dummyPbuff, dummyPbuff, context))
@@ -237,7 +235,7 @@ GLContext GLContext::current()
 
 void GLContext::present(Window &win)
 {
-	auto swapTime = IG::timeFuncDebug([&](){ glXSwapBuffers(dpy, win.xWin); }).toNs();
+	auto swapTime = IG::timeFuncDebug([&](){ glXSwapBuffers(dpy, win.xWin); }).nSecs();
 	if(swapTime > 16000000)
 	{
 		//logWarn("buffer swap took %lldns", (long long)swapTime);

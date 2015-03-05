@@ -586,7 +586,7 @@ void Texture::deinit()
 	if(ownPBO)
 	{
 		logMsg("deleting PBO:0x%X", ownPBO);
-		glDeleteBuffers(1, &ownPBO);
+		glcDeleteBuffers(1, &ownPBO);
 	}
 	*this = {};
 }

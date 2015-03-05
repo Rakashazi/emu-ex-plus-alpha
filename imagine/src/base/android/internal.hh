@@ -1,7 +1,6 @@
 #pragma once
 
 #include <imagine/util/jni.hh>
-#include <imagine/util/time/sys.hh>
 #include <imagine/base/Window.hh>
 #include <android/input.h>
 #include <android/configuration.h>

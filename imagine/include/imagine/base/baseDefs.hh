@@ -27,23 +27,23 @@ using namespace IG;
 using FrameTimeBase = double;
 
 template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromS(T s)
+constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
 {
 	return s;
 }
 
-constexpr static double frameTimeBaseToSDec(FrameTimeBase time)
+constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)
 {
 	return time;
 }
 
 template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromNS(T ns)
+constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
 {
 	return (double)ns / 1000000000.;
 }
 
-constexpr static int64_t frameTimeBaseToNS(FrameTimeBase time)
+constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
 {
 	return time * 1000000000.;
 }
@@ -51,29 +51,29 @@ constexpr static int64_t frameTimeBaseToNS(FrameTimeBase time)
 using FrameTimeBase = uint64_t;
 
 template<class T, ENABLE_IF_COND(std::is_integral<T>)>
-constexpr static FrameTimeBase frameTimeBaseFromS(T s)
+constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
 {
 	return (FrameTimeBase)s * (FrameTimeBase)1000000000;
 }
 
 template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
-constexpr static FrameTimeBase frameTimeBaseFromS(T s)
+constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
 {
 	return (double)s * (double)1000000000.;
 }
 
-constexpr static double frameTimeBaseToSDec(FrameTimeBase time)
+constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)
 {
 	return (double)time / (double)1000000000.;
 }
 
 template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromNS(T ns)
+constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
 {
 	return ns;
 }
 
-constexpr static int64_t frameTimeBaseToNS(FrameTimeBase time)
+constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
 {
 	return time;
 }

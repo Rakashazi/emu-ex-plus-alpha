@@ -162,7 +162,7 @@ public:
 
 	bool vboIsBound();
 	void bindBuffer(GLenum target, GLuint buffer);
-
+	void deleteBuffers(GLsizei n, const GLuint *buffers);
 
 	GLPixelStoreParams pixelStoreParam;
 	GLint *getPixelStoreParam(GLenum pname);

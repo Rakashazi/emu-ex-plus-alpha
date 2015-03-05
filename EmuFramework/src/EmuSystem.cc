@@ -136,8 +136,8 @@ bool EmuSystem::shouldOverwriteExistingState()
 int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
 {
 	static const uint maxFrameSkip = 6;
-	static constexpr auto ntscFrameTime = Base::frameTimeBaseFromS(1./60.),
-		palFrameTime = Base::frameTimeBaseFromS(1./50.);
+	static constexpr auto ntscFrameTime = Base::frameTimeBaseFromSecs(1./60.),
+		palFrameTime = Base::frameTimeBaseFromSecs(1./50.);
 	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
 	{
 		return optionVal; // constant frame-skip for NTSC source

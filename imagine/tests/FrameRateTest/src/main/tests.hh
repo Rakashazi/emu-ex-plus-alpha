@@ -18,12 +18,23 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/time/Time.hh>
 
 enum TestID
 {
 	TEST_CLEAR,
 	TEST_DRAW,
 	TEST_WRITE,
+};
+
+struct FramePresentTime
+{
+	IG::Time frameTime;
+	IG::Time atOnFrame;
+	IG::Time atWinPresent;
+	IG::Time atWinPresentEnd;
+
+	constexpr FramePresentTime() {}
 };
 
 class TestParams
@@ -51,6 +62,7 @@ public:
 	uint continuousFrames{};
 	Base::FrameTimeBase startTime{}, endTime{};
 	TestFinishedDelegate onTestFinished;
+	FramePresentTime lastFramePresentTime;
 
 	constexpr TestFramework() {}
 	virtual ~TestFramework() {}
@@ -66,18 +78,26 @@ public:
 	void draw();
 	void finish(Base::FrameTimeBase frameTime);
 	void setCPUFreqText(const char *str);
+	void setCPUUseText(const char *str);
 
 protected:
-	Gfx::Text cpuFreqText;
-	Gfx::GCRect cpuFreqRect{};
+	Gfx::Text cpuStatsText;
+	Gfx::GCRect cpuStatsRect{};
 	std::array<char, 256> cpuFreqStr{};
-	Gfx::Text skippedFrameText;
-	Gfx::GCRect skippedFrameRect{};
+	std::array<char, 64> cpuUseStr{};
+	std::array<char, 256> cpuStatsStr{};
+	Gfx::Text frameStatsText;
+	Gfx::GCRect frameStatsRect{};
 	std::array<char, 256> skippedFrameStr{};
+	std::array<char, 256> statsStr{};
+	std::array<char, 512> frameStatsStr{};
 	Gfx::ProjectionPlane projP;
+	uint lostFrameDispatchTime = 0;
+	uint lostFrameProcessTime = 0;
+	uint lostFramePresentTime = 0;
 
-	void placeCPUFreqText();
-	void placeSkippedFrameText();
+	void placeCPUStatsText();
+	void placeFrameStatsText();
 };
 
 class ClearTest : public TestFramework

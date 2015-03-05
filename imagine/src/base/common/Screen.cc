@@ -15,7 +15,7 @@
 
 #define LOGTAG "Screen"
 #include <imagine/base/Base.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include "windowPrivate.hh"
 
 namespace Base
@@ -28,6 +28,8 @@ static Screen mainScreen_;
 #endif
 
 Screen::ChangeDelegate Screen::onChange;
+
+[[gnu::weak]] bool logDroppedFrames = false;
 
 void Screen::setOnChange(ChangeDelegate del)
 {
@@ -175,7 +177,7 @@ uint Screen::elapsedFrames(FrameTimeBase frameTime)
 		return 0;
 	if(unlikely(!timePerFrame))
 	{
-		timePerFrame = frameTimeBaseFromS((double)1./(double)refreshRate());
+		timePerFrame = frameTimeBaseFromSecs((double)1./(double)refreshRate());
 		assert(timePerFrame);
 	}
 	FrameTimeBase diff = frameTime - prevFrameTime;
@@ -186,7 +188,7 @@ uint Screen::elapsedFrames(FrameTimeBase frameTime)
 void Screen::startDebugFrameStats(FrameTimeBase frameTime)
 {
 	#ifndef NDEBUG
-	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNS(TimeSys::now().toNs()) - frameTime;
+	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - frameTime;
 	FrameTimeBase diffFromLastFrame = frameTime - prevFrameTime;
 	/*logMsg("frame at %f, %f since then, %f since last frame",
 		frameTimeBaseToSDec(frameTime),
@@ -195,9 +197,10 @@ void Screen::startDebugFrameStats(FrameTimeBase frameTime)
 	auto elapsed = elapsedFrames(frameTime);
 	if(elapsed > 1)
 	{
-		logWarn("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
-			elapsed - 1, continuousFrames,
-			frameTimeBaseToSDec(frameTime), frameTimeBaseToSDec(diffFromLastFrame));
+		if(logDroppedFrames)
+			logDMsg("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
+				elapsed - 1, continuousFrames,
+				frameTimeBaseToSecsDec(frameTime), frameTimeBaseToSecsDec(diffFromLastFrame));
 		continuousFrames = 0;
 	}
 	#endif

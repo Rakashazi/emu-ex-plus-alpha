@@ -3,7 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-SRC += main/main.cc main/tests.cc main/TestPicker.cc
+SRC += main/main.cc main/tests.cc main/TestPicker.cc main/cpuUtils.cc
 
 include $(IMAGINE_PATH)/make/package/imagine.mk
 

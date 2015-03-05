@@ -20,7 +20,7 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/Screen.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/gui/FSPicker.hh>
 
@@ -60,7 +60,7 @@ public:
 	static FsSys::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
-	static TimeSys startTime;
+	static IG::Time startTime;
 	static Base::FrameTimeBase startFrameTime;
 	static uint emuFrameNow;
 	static bool runFrameOnDraw;
@@ -151,14 +151,14 @@ public:
 	static const bool inputHasKeyboard;
 	static const bool hasBundledGames;
 
-	static TimeSys benchmark()
+	static IG::Time benchmark()
 	{
-		auto now = TimeSys::now();
+		auto now = IG::Time::now();
 		iterateTimes(180, i)
 		{
 			runFrame(0, 1, 0);
 		}
-		auto after = TimeSys::now();
+		auto after = IG::Time::now();
 		return after-now;
 	}
 
