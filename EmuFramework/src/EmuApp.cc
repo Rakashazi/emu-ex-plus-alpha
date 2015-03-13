@@ -580,8 +580,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	applyOSNavStyle(false);
 	Audio::init();
 
-	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	Gfx::init(optionBestColorModeHint ? 24 : 16);
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	Gfx::init(optionWindowPixelFormat);
 	#else
 	Gfx::init();
 	#endif
@@ -600,39 +600,11 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	if((int8)optionProcessPriority != 0)
 		Base::setProcessPriority(optionProcessPriority);
 
-	optionSurfaceTexture.defaultVal = Gfx::supportsAndroidSurfaceTextureWhitelisted();
-	if(!Gfx::supportsAndroidSurfaceTexture())
+	if(Base::androidSDK() < 14 && optionAndroidTextureStorage == OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE)
 	{
-		optionSurfaceTexture = 0;
-		optionSurfaceTexture.isConst = 1;
+		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
 	}
-	else if(optionSurfaceTexture == OPTION_SURFACE_TEXTURE_UNSET)
-	{
-		optionSurfaceTexture = Gfx::useAndroidSurfaceTexture();
-	}
-	else
-	{
-		logMsg("using surface texture setting from config file");
-		Gfx::setUseAndroidSurfaceTexture(optionSurfaceTexture);
-	}
-	// optionSurfaceTexture is treated as a boolean value after this point
-
-	optionDirectTexture.defaultVal = Gfx::supportsAndroidDirectTextureWhitelisted();
-	if(!Gfx::supportsAndroidDirectTexture())
-	{
-		optionDirectTexture = 0;
-		optionDirectTexture.isConst = 1;
-	}
-	else if(optionDirectTexture == OPTION_DIRECT_TEXTURE_UNSET)
-	{
-		optionDirectTexture = Gfx::useAndroidDirectTexture();
-	}
-	else
-	{
-		logMsg("using direct texture setting from config file");
-		Gfx::setUseAndroidDirectTexture(optionDirectTexture);
-	}
-	// optionDirectTexture is treated as a boolean value after this point
+	Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage));
 	#endif
 
 	View::defaultFace = ResourceFace::loadSystem();
@@ -654,6 +626,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	emuVideoLayer.setLinearFilter(optionImgFilter);
 	emuVideoLayer.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuVideoLayer.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
+	emuVideoLayer.vidImgEffect.setBitDepth((int)optionImageEffectPixelFormat == PIXEL_RGBA8888 ? 32 : 16);
 
 	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
@@ -729,12 +702,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	mainInitWindowCommon(mainWin.win);
 	if(menuShownDel)
 		menuShownDel(mainWin.win);
-
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	// TODO: set bit depth based on source texture depth and allow user setting
-	//emuVideoLayer.vidImgEffect.setBitDepth(optionBestColorModeHint ? 24 : 16);
-	emuVideoLayer.setEffect(optionImgEffect);
-	#endif
 
 	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
 	{

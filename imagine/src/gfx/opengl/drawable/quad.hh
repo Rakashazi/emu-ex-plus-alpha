@@ -33,10 +33,6 @@ void QuadGeneric<Vtx>::setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC 
 template<class Vtx>
 void QuadGeneric<Vtx>::draw() const
 {
-	if(!Vtx::hasTexture)
-	{
-		Gfx::setActiveTexture(0, GL_TEXTURE_2D);
-	}
 	if(useVBOFuncs)
 	{
 		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());

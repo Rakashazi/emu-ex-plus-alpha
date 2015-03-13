@@ -42,7 +42,7 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 		list.push_back(EGL_NONE);
 	}
 
-	if(!failsafe && attr.preferredColorBits() > 16)
+	if(!failsafe && attr.pixelFormat() == PIXEL_RGB888)
 	{
 		list.push_back(EGL_RED_SIZE);
 		list.push_back(8);
@@ -161,7 +161,9 @@ EGLDisplay EGLContextBase::eglDisplay()
 		//logMsg("initialized EGL with display %ld", (long)display);
 		if(Config::DEBUG_BUILD)
 		{
-			logMsg("%s (%s), extensions: %s", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION), eglQueryString(display, EGL_EXTENSIONS));
+			logMsg("version: %s (%s)", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION));
+			logMsg("APIs: %s", eglQueryString(display, EGL_CLIENT_APIS));
+			logMsg("extensions: %s", eglQueryString(display, EGL_EXTENSIONS));
 		}
 	}
 	return display;

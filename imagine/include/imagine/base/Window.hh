@@ -48,6 +48,7 @@ public:
 	static void postNeededScreens();
 	static uint windows();
 	static Window *window(uint idx);
+	static uint defaultPixelFormat();
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target

@@ -58,24 +58,6 @@ void deleteTex(TextureRef texRef)
 	glcDeleteTextures(1, &texRef);
 }
 
-void setActiveTexture(TextureRef texture, uint target)
-{
-	bool setGLState = useFixedFunctionPipeline;
-	if(setGLState && target != GL_TEXTURE_2D)
-		bug_exit("cannot manage different texture target state");
-	if(texture)
-	{
-		glcBindTexture(target, texture);
-		if(setGLState)
-			glcEnable(GL_TEXTURE_2D);
-	}
-	else
-	{
-		if(setGLState)
-			glcDisable(GL_TEXTURE_2D);
-	}
-}
-
 void setZTest(bool on)
 {
 	if(on)
@@ -342,6 +324,11 @@ void autoReleaseShaderCompiler()
 	#endif
 }
 
+static void discardTemporaryData()
+{
+	discardTexturePBO();
+}
+
 void clear()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -390,6 +377,7 @@ bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Vie
 
 void presentWindow(Base::Window &win)
 {
+	discardTemporaryData();
 	gfxContext.present(win, gfxContext);
 }
 

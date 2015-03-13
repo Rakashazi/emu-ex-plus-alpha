@@ -15,9 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define pointer X11pointer
+#define BOOL X11BOOL
 #include <X11/X.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
+#undef BOOL
+#undef pointer
 
 namespace Input
 {

@@ -24,8 +24,9 @@ namespace Gfx
 struct SurfaceTextureStorage: public DirectTextureStorage
 {
 	jobject surfaceTex{}, surface{};
-	ANativeWindow* nativeWin{};
+	ANativeWindow *nativeWin{};
 	uint bpp = 0;
+	bool singleBuffered = false;
 
 	constexpr SurfaceTextureStorage() {}
 	~SurfaceTextureStorage() override;
@@ -33,6 +34,7 @@ struct SurfaceTextureStorage: public DirectTextureStorage
 	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
 	Buffer lock(IG::WindowRect *dirtyRect) override;
 	void unlock(GLuint tex) override;
+	static bool isRendererBlacklisted(const char *rendererStr);
 };
 
 }

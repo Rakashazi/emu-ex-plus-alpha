@@ -13,57 +13,84 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Base"
+#define LOGTAG "SurfaceTex"
 #include "android.hh"
-
-namespace Gfx
-{
-
-AndroidSurfaceTextureConfig surfaceTextureConf;
-
-void AndroidSurfaceTextureConfig::init(JNIEnv *env)
-{
-	if(Base::androidSDK() >= 14)
-	{
-		//logMsg("setting up SurfaceTexture JNI");
-		// Surface members
-		jSurfaceCls = (jclass)env->NewGlobalRef(env->FindClass("android/view/Surface"));
-		jSurface.setup(env, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-		jSurfaceRelease.setup(env, jSurfaceCls, "release", "()V");
-		// SurfaceTexture members
-		jSurfaceTextureCls = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/SurfaceTexture"));
-		jSurfaceTexture.setup(env, jSurfaceTextureCls, "<init>", "(I)V");
-		//jSetDefaultBufferSize.setup(env, jSurfaceTextureCls, "setDefaultBufferSize", "(II)V");
-		jUpdateTexImage.setup(env, jSurfaceTextureCls, "updateTexImage", "()V");
-		jSurfaceTextureRelease.setup(env, jSurfaceTextureCls, "release", "()V");
-		use = 1;
-	}
-}
-
-void AndroidSurfaceTextureConfig::deinit()
-{
-	// TODO
-	jSurfaceTextureCls = nullptr;
-	use = whiteListed = 0;
-}
-
-bool supportsAndroidSurfaceTexture() { return surfaceTextureConf.isSupported(); }
-bool supportsAndroidSurfaceTextureWhitelisted() { return surfaceTextureConf.isSupported() && surfaceTextureConf.whiteListed; };
-bool useAndroidSurfaceTexture() { return surfaceTextureConf.isSupported() ? surfaceTextureConf.use : 0; };
-void setUseAndroidSurfaceTexture(bool on)
-{
-	if(surfaceTextureConf.isSupported())
-		surfaceTextureConf.use = on;
-}
-
-}
 
 namespace Base
 {
 
-bool surfaceTextureSupported()
+static jclass jSurfaceCls{}, jSurfaceTextureCls{};
+static JavaInstMethod<void> jSurface, jSurfaceRelease,
+	jSurfaceTexture, jSurfaceTexture2,
+	jUpdateTexImage, jReleaseTexImage,
+	jSurfaceTextureRelease;
+
+static void initSurfaceTextureJNI(JNIEnv *env)
 {
-	return Gfx::surfaceTextureConf.isSupported();
+	assert(androidSDK() >= 14);
+	if(likely(jSurfaceTextureCls))
+		return;
+	jSurfaceTextureCls = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/SurfaceTexture"));
+	jSurfaceTexture.setup(env, jSurfaceTextureCls, "<init>", "(I)V");
+	if(androidSDK() >= 19)
+	{
+		jSurfaceTexture2.setup(env, jSurfaceTextureCls, "<init>", "(IZ)V");
+		jReleaseTexImage.setup(env, jSurfaceTextureCls, "releaseTexImage", "()V");
+	}
+	jUpdateTexImage.setup(env, jSurfaceTextureCls, "updateTexImage", "()V");
+	jSurfaceTextureRelease.setup(env, jSurfaceTextureCls, "release", "()V");
+}
+
+static void initSurfaceJNI(JNIEnv *env)
+{
+	if(likely(jSurfaceCls))
+		return;
+	jSurfaceCls = (jclass)env->NewGlobalRef(env->FindClass("android/view/Surface"));
+	jSurface.setup(env, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
+	jSurfaceRelease.setup(env, jSurfaceCls, "release", "()V");
+}
+
+jobject makeSurfaceTexture(JNIEnv *env, jint texName)
+{
+	if(androidSDK() < 14)
+		return nullptr;
+	initSurfaceTextureJNI(env);
+	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture.m, texName);
+}
+
+jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
+{
+	if(androidSDK() < 19)
+		return nullptr;
+	initSurfaceTextureJNI(env);
+	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.m, texName, singleBufferMode);
+}
+
+void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
+{
+	assert(jReleaseTexImage);
+	jReleaseTexImage(env, surfaceTexture);
+}
+
+void updateSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
+{
+	jUpdateTexImage(env, surfaceTexture);
+}
+
+void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture)
+{
+	jSurfaceTextureRelease(env, surfaceTexture);
+}
+
+jobject makeSurface(JNIEnv *env, jobject surfaceTexture)
+{
+	initSurfaceJNI(env);
+	return env->NewObject(jSurfaceCls, jSurface.m, surfaceTexture);
+}
+
+void releaseSurface(JNIEnv *env, jobject surface)
+{
+	jSurfaceRelease(env, surface);
 }
 
 }

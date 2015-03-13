@@ -29,9 +29,8 @@ namespace Gfx
 {
 
 // init & control
-[[gnu::cold]] CallResult init(uint colorBits);
+[[gnu::cold]] CallResult init(uint pixelFormatID);
 [[gnu::cold]] CallResult init();
-uint defaultColorBits();
 Base::WindowConfig makeWindowConfig();
 void setWindowConfig(Base::WindowConfig &config);
 void initWindow(Base::Window &win, Base::WindowConfig config);

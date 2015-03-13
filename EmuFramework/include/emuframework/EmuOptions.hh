@@ -82,6 +82,7 @@ extern Byte1Option optionImgEffect;
 #endif
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
+extern Byte1Option optionImageEffectPixelFormat;
 
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
@@ -121,18 +122,21 @@ extern Byte1Option optionShowOnSecondScreen;
 extern OptionRecentGames optionRecentGames;
 
 #ifdef __ANDROID__
-static const uint8 OPTION_DIRECT_TEXTURE_UNSET = 2;
-extern Byte1Option optionDirectTexture;
-static const uint8 OPTION_SURFACE_TEXTURE_UNSET = 2;
-extern Byte1Option optionSurfaceTexture;
+static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_AUTO = 0;
+static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_NONE = 1;
+static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER = 2;
+static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE = 3;
+static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
+extern Byte1Option optionAndroidTextureStorage;
+Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val);
 extern SByte1Option optionProcessPriority;
 #endif
 
 extern Byte1Option optionDitherImage;
 
 #if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || defined CONFIG_BASE_IOS
-#define EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-extern Byte1Option optionBestColorModeHint;
+#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+extern Byte1Option optionWindowPixelFormat;
 #endif
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";

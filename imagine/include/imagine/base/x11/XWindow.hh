@@ -18,6 +18,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
+#define pointer X11pointer
 #define BOOL X11BOOL
 #include <X11/X.h>
 #include <X11/Xutil.h>
@@ -27,6 +28,7 @@
 #include <imagine/base/x11/glxIncludes.h>
 #endif
 #undef BOOL
+#undef pointer
 
 namespace Base
 {

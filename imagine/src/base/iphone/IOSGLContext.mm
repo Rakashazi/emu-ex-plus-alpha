@@ -52,7 +52,7 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
 GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
-	if(attr.preferredColorBits() <= 16)
+	if(attr.pixelFormat() == PIXEL_RGB565)
 	{
 		conf.useRGB565 = true;
 	}

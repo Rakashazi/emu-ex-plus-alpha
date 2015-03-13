@@ -27,32 +27,32 @@ static GLXPbuffer dummyPbuff{};
 using GLXAttrList = StaticArrayList<int, 24>;
 using GLXContextAttrList = StaticArrayList<int, 16>;
 
-static GLXAttrList glConfigAttrsToGLXAttrs(const GLBufferConfigAttributes &attr)
+static GLXAttrList glConfigAttrsToGLXAttrs(GLBufferConfigAttributes attr)
 {
 	GLXAttrList list;
 
 	list.push_back(GLX_DOUBLEBUFFER);
 	list.push_back(True);
 
-	if(attr.preferredColorBits() > 16)
+	if(attr.pixelFormat() == PIXEL_RGB888)
 	{
 		list.push_back(GLX_RED_SIZE);
-		list.push_back(1);
+		list.push_back(8);
 		list.push_back(GLX_GREEN_SIZE);
-		list.push_back(1);
+		list.push_back(8);
 		list.push_back(GLX_BLUE_SIZE);
-		list.push_back(1);
+		list.push_back(8);
 	}
 	else
 	{
-		logMsg("requesting lowest color config");
+		//logMsg("requesting lowest color config");
 	}
 
 	list.push_back(None);
 	return list;
 }
 
-static GLXContextAttrList glContextAttrsToGLXAttrs(const GLContextAttributes &attr)
+static GLXContextAttrList glContextAttrsToGLXAttrs(GLContextAttributes attr)
 {
 	GLXContextAttrList list;
 

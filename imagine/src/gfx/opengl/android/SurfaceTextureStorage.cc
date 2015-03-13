@@ -22,6 +22,13 @@
 namespace Gfx
 {
 
+static void updateTexImage(JNIEnv *env, jobject surfaceTex, GLuint tex)
+{
+	Base::updateSurfaceTextureImage(env, surfaceTex);
+	// texture implicitly bound in updateTexImage()
+	glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tex;
+}
+
 SurfaceTextureStorage::~SurfaceTextureStorage()
 {
 	using namespace Base;
@@ -33,12 +40,12 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 	auto env = jEnv();
 	if(surface)
 	{
-		surfaceTextureConf.jSurfaceRelease(env, surface);
+		releaseSurface(env, surface);
 		env->DeleteGlobalRef(surface);
 	}
 	if(surfaceTex)
 	{
-		surfaceTextureConf.jSurfaceTextureRelease(env, surfaceTex);
+		releaseSurfaceTexture(env, surfaceTex);
 		env->DeleteGlobalRef(surfaceTex);
 	}
 }
@@ -46,17 +53,34 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 CallResult SurfaceTextureStorage::init(GLuint tex)
 {
 	using namespace Base;
+	if(!useExternalEGLImages)
+	{
+		logMsg("can't init without OES_EGL_image_external extension");
+		return UNSUPPORTED_OPERATION;
+	}
 	*this = {};
-	logMsg("creating SurfaceTexture with texture:0x%X", tex);
 	auto env = jEnv();
-	surfaceTex = env->NewObject(surfaceTextureConf.jSurfaceTextureCls, surfaceTextureConf.jSurfaceTexture.m, tex);
+	surfaceTex = makeSurfaceTexture(env, tex, true);
 	if(!surfaceTex)
 	{
-		logErr("SurfaceTexture ctor failed");
+		// fallback to buffered mode
+		surfaceTex = makeSurfaceTexture(env, tex);
+		singleBuffered = false;
+	}
+	else
+	{
+		updateTexImage(env, surfaceTex, tex);
+		singleBuffered = true;
+	}
+	if(!surfaceTex)
+	{
+		logErr("SurfaceTexture ctor failed with texture:0x%X", tex);
 		*this = {};
 		return INVALID_PARAMETER;
 	}
-	surface = env->NewObject(surfaceTextureConf.jSurfaceCls, surfaceTextureConf.jSurface.m, surfaceTex);
+	logMsg("created%sSurfaceTexture with texture:0x%X",
+		singleBuffered ? " " : " buffered ", tex);
+	surface = makeSurface(env, surfaceTex);
 	if(!surface)
 	{
 		logErr("Surface ctor failed");
@@ -79,7 +103,7 @@ CallResult SurfaceTextureStorage::init(GLuint tex)
 CallResult SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 {
 	logMsg("setting size:%dx%d format:%s", desc.x, desc.y, desc.format.name);
-	int winFormat = pixelFormatToDirectAndroidFormat(desc.format);
+	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format);
 	if(!winFormat)
 	{
 		logErr("pixel format not usable");
@@ -96,10 +120,15 @@ CallResult SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 
 SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(IG::WindowRect *dirtyRect)
 {
+	using namespace Base;
 	if(unlikely(!nativeWin))
 	{
 		logErr("called lock when uninitialized");
 		return {};
+	}
+	if(singleBuffered)
+	{
+		releaseSurfaceTextureImage(jEnv(), surfaceTex);
 	}
 	ANativeWindow_Buffer winBuffer;
 	ARect aRect;
@@ -138,9 +167,29 @@ void SurfaceTextureStorage::unlock(GLuint tex)
 		return;
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
-	surfaceTextureConf.jUpdateTexImage(jEnv(), surfaceTex);
-	// texture implicitly bound in updateTexImage()
-	glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tex;
+	updateTexImage(jEnv(), surfaceTex, tex);
 }
+
+bool SurfaceTextureStorage::isRendererBlacklisted(const char *rendererStr)
+{
+	return false;
+	// TODO: these need to be tested on an ES 2.0 context,
+	// so assume nothing is blacklisted for now
+	if(strstr(rendererStr, "GC1000")) // Texture binding issues on Samsung Galaxy Tab 3 7.0 on Android 4.1
+	{
+		logWarn("buggy SurfaceTexture implementation on Vivante GC1000, blacklisted");
+		return true;
+	}
+	else if(strstr(rendererStr, "Adreno"))
+	{
+		if(strstr(rendererStr, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
+		{
+			logWarn("buggy SurfaceTexture implementation on Adreno 200, blacklisted");
+			return true;
+		}
+	}
+	return false;
+}
+
 
 }

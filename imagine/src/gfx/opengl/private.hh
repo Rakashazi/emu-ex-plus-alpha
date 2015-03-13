@@ -41,6 +41,8 @@ extern GLenum alphaFormat;
 extern GLenum alphaInternalFormat;
 extern bool useImmutableTexStorage;
 extern bool usePBO;
+extern bool useEGLImages;
+extern bool useExternalEGLImages;
 extern TextureSizeSupport textureSizeSupport;
 extern bool useLegacyGLSL;
 
@@ -49,6 +51,7 @@ static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 TextureRef newTex();
 void deleteTex(TextureRef texRef);
 void initTexturePBO();
+void discardTexturePBO();
 GLuint getVBO();
 
 void initShaders();
@@ -60,8 +63,6 @@ void updateProgramProjectionTransform(GLSLProgram &program);
 void updateProgramModelViewTransform(GLSLProgram &program);
 
 void setImgMode(uint mode);
-
-void setActiveTexture(TextureRef tex, uint target);
 
 #ifdef CONFIG_GFX_OPENGL_ES
 extern GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers);

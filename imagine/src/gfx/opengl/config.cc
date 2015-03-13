@@ -18,12 +18,8 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include "private.hh"
-#include "settings.h"
 #include "utils.h"
 #include "GLStateCache.hh"
-#ifdef __ANDROID__
-#include "../../base/android/android.hh"
-#endif
 
 #ifndef GL_KHR_debug
 typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void *);
@@ -67,11 +63,11 @@ GenerateMipmapsProto generateMipmaps = glGenerateMipmap;
 GenerateMipmapsProto generateMipmaps{}; // set via extensions
 #endif
 
-bool useVBOFuncs = Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2;
+bool useVBOFuncs = false;
 
 static GLuint streamVAO = 0;
-GLuint streamVBO[6]{};
-uint streamVBOIdx = 0;
+static GLuint streamVBO[6]{};
+static uint streamVBOIdx = 0;
 
 bool useTextureSwizzle = false;
 
@@ -102,6 +98,18 @@ bool usePBO = false;
 GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
 GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target){};
 #endif
+
+bool useEGLImages = false;
+bool useExternalEGLImages = false;
+
+#ifdef CONFIG_GFX_OPENGL_ES
+GL_APICALL void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
+static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
+#else
+GLAPI void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
+static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
+#endif
+static bool useDebugOutput = false;
 
 bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 
@@ -283,27 +291,7 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
-		#pragma GCC diagnostic push
-		#pragma GCC diagnostic ignored "-Wattributes" // ignore visibility warning
-		#ifdef CONFIG_GFX_OPENGL_ES
-		GL_APICALL void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
-		const char *glDebugMessageCallbackStr = "glDebugMessageCallbackKHR";
-		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
-		#else
-		GLAPI void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
-		const char *glDebugMessageCallbackStr = "glDebugMessageCallback";
-		const auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
-		#endif
-		#pragma GCC diagnostic pop
-		logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
-		glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
-		glDebugMessageCallback(
-			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
-				GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
-			{
-				logDMsg("GL Debug: %s", message);
-			}, nullptr);
-		glEnable(DEBUG_OUTPUT);
+		useDebugOutput = true;
 	}
 	#ifdef CONFIG_GFX_OPENGL_ES
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
@@ -346,6 +334,15 @@ static void checkExtensionString(const char *extStr)
 	else if(string_equal(extStr, "GL_EXT_texture_storage"))
 	{
 		setupImmutableTexStorage(true);
+	}
+	else if(Config::envIsAndroid && string_equal(extStr, "GL_OES_EGL_image"))
+	{
+		useEGLImages = true;
+	}
+	else if(Config::envIsAndroid && Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
+		string_equal(extStr, "GL_OES_EGL_image_external"))
+	{
+		useExternalEGLImages = true;
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
 	{
@@ -439,10 +436,10 @@ static int glVersionFromStr(const char *versionStr)
 
 CallResult init()
 {
-	return init(defaultColorBits());
+	return init(Base::Window::defaultPixelFormat());
 }
 
-CallResult init(uint colorBits)
+CallResult init(uint pixelFormatID)
 {
 	logMsg("running init");
 
@@ -488,9 +485,11 @@ CallResult init(uint colorBits)
 			}
 		});
 
+	if(!pixelFormatID)
+		pixelFormatID = Base::Window::defaultPixelFormat();
 	int glVer = 0;
 	Base::GLBufferConfigAttributes glBuffAttr;
-	glBuffAttr.setPreferredColorBits(colorBits);
+	glBuffAttr.setPixelFormat(pixelFormatID);
 	Base::GLContextAttributes glAttr;
 	if(Config::DEBUG_BUILD)
 		glAttr.setDebug(true);
@@ -512,14 +511,12 @@ CallResult init(uint colorBits)
 		if(gfxBufferConfig)
 		{
 			gfxContext.init(glAttr, gfxBufferConfig);
-			glVer = 30;
 		}
 		if(!gfxContext)
 		{
 			glAttr.setMajorVersion(2);
 			gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
 			gfxContext.init(glAttr, gfxBufferConfig);
-			glVer = 20;
 		}
 	}
 	#else
@@ -675,10 +672,6 @@ CallResult init(uint colorBits)
 	assert(textureSizeSupport.maxXSize > 0 && textureSizeSupport.maxYSize > 0);
 	logMsg("max texture size is %d", texSize);
 
-	#if defined __ANDROID__
-	setupAndroidOGLExtensions(extensions, rendererName);
-	#endif
-
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 		glcEnableClientState(GL_VERTEX_ARRAY);
@@ -693,11 +686,6 @@ CallResult init(uint colorBits)
 	}
 	#endif
 	return OK;
-}
-
-uint defaultColorBits()
-{
-	return Base::GLBufferConfigAttributes::defaultColorBits();
 }
 
 Base::WindowConfig makeWindowConfig()
@@ -742,41 +730,33 @@ void setWindowValidOrientations(Base::Window &win, uint validO)
 	updateSensorStateForWindowOrientations(win);
 }
 
-#ifdef __ANDROID__
-static void setupAndroidOGLExtensions(const char *extensions, const char *rendererName)
+void setDebugOutput(bool on)
 {
-	// TODO: make direct texture setup optional
-	if(Base::androidSDK() < 14)
-		directTextureConf.checkForEGLImageKHR(extensions, rendererName);
-	if(surfaceTextureConf.isSupported())
+	if(!useDebugOutput)
 	{
-		if(!strstr(extensions, "GL_OES_EGL_image_external"))
+		return;
+	}
+	if(!on)
+	{
+		glDisable(DEBUG_OUTPUT);
+	}
+	else
+	{
+		if(!glDebugMessageCallback)
 		{
-			logWarn("SurfaceTexture is supported but OpenGL extension missing, disabling");
-			surfaceTextureConf.deinit();
+			auto glDebugMessageCallbackStr =
+					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
+			logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
+			glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
+			glDebugMessageCallback(
+				GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
+					GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+				{
+					logger_printfn(LOG_D, "GL Debug: %s", message);
+				}, nullptr);
 		}
-		else if(strstr(rendererName, "GC1000")) // Texture binding issues on Samsung Galaxy Tab 3 7.0 on Android 4.1
-		{
-			logWarn("buggy SurfaceTexture implementation on Vivante GC1000, disabling by default");
-			surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
-		}
-		else if(strstr(rendererName, "Adreno"))
-		{
-			if(strstr(rendererName, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
-			{
-				logWarn("buggy SurfaceTexture implementation on Adreno 200, disabling by default");
-				surfaceTextureConf.use = surfaceTextureConf.whiteListed = 0;
-			}
-
-			// When deleting a SurfaceTexture, Adreno 225 on Android 4.0 will unbind
-			// the current GL_TEXTURE_2D texture, even though its state shouldn't change.
-			// This hack will fix-up the GL state cache manually when that happens.
-			// TODO: remove
-			//logWarn("enabling SurfaceTexture GL_TEXTURE_2D binding hack");
-			//surfaceTextureConf.texture2dBindingHack = 1;
-		}
+		glEnable(DEBUG_OUTPUT);
 	}
 }
-#endif
 
 }

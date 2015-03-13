@@ -15,33 +15,31 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "sdk.hh"
+#include <imagine/util/rectangle2.h>
+#include "gralloc.h"
+
+// Wrapper for ANativeWindowBuffer (android_native_buffer_t)
+// similar to GraphicBuffer class in Android frameworks
 
 namespace Base
 {
 
-void setProcessPriority(int nice);
-int processPriority();
-bool apkSignatureIsConsistent();
-const char *androidBuildDevice();
-bool packageIsInstalled(const char *name);
-
-}
-
-namespace Audio
+class GraphicBuffer : public android_native_buffer_t
 {
+public:
+	GraphicBuffer();
+	~GraphicBuffer();
+	bool reallocate(uint w, uint h, uint format, uint usage);
+	bool lock(uint usage, void **vaddr);
+	bool lock(uint usage, IG::WindowRect rect, void **vaddr);
+	void unlock();
+	uint getWidth();
+	uint getHeight();
+	uint getStride();
+	android_native_buffer_t *getNativeBuffer();
 
-bool hasLowLatency();
-
-}
-
-namespace Input
-{
-
-void initMOGA(bool notify);
-void deinitMOGA();
-bool mogaSystemIsActive();
-void devicesChanged();
-bool hasTrackball();
+private:
+	bool initSize(uint w, uint h, uint format, uint usage);
+};
 
 }

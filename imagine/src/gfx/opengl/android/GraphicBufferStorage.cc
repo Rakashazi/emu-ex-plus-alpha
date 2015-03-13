@@ -18,60 +18,18 @@
 #include "../GLStateCache.hh"
 #include "../private.hh"
 #include "../utils.h"
+#include "../../../base/android/android.hh"
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/ScopeGuard.hh>
 
 namespace Gfx
 {
 
-static void setupAndroidNativeBuffer(android_native_buffer_t &eglBuf, int x, int y, int format, int usage)
-{
-	eglBuf.common.incRef = [](struct android_native_base_t *){ logMsg("called incRef"); };
-	eglBuf.common.decRef = [](struct android_native_base_t *){ logMsg("called decRef"); };
-	eglBuf.width = x;
-	eglBuf.height = y;
-	eglBuf.format = format;
-	eglBuf.usage = usage;
-}
-
 GraphicBufferStorage::~GraphicBufferStorage()
 {
 	if(eglImg != EGL_NO_IMAGE_KHR)
 	{
 		eglDestroyImageKHR(Base::GLContext::eglDisplay(), eglImg);
-	}
-	if(eglBuf.handle)
-	{
-		logMsg("deinit native buffer:%p", eglBuf.handle);
-		if(directTextureConf.freeBuffer(eglBuf) != 0)
-		{
-			logWarn("error freeing buffer");
-		}
-	}
-}
-
-bool GraphicBufferStorage::testSupport(const char **errorStr)
-{
-	GLuint ref;
-	glGenTextures(1, &ref);
-	auto freeTexture = IG::scopeGuard([&](){ glcDeleteTextures(1, &ref); });
-	IG::PixmapDesc desc{PixelFormatRGB565};
-	desc.x = desc.y = 256;
-	GraphicBufferStorage directTex;
-	if(directTex.init() != OK)
-	{
-		if(errorStr) *errorStr = "Missing native buffer functions";
-		return false;
-	}
-	if(directTex.setFormat(desc, ref) == OK)
-	{
-		logMsg("tests passed");
-		return true;
-	}
-	else
-	{
-		if(errorStr) *errorStr = "Failed native buffer allocation";
-		return false;
 	}
 }
 
@@ -84,55 +42,26 @@ CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 {
 	*this = {};
 	logMsg("setting size:%dx%d format:%s", desc.x, desc.y, desc.format.name);
-	int androidFormat = pixelFormatToDirectAndroidFormat(desc.format);
+	int androidFormat = Base::pixelFormatToDirectAndroidFormat(desc.format);
 	if(!androidFormat)
 	{
 		logErr("pixel format not usable");
-		*this = {};
 		return INVALID_PARAMETER;
 	}
-	setupAndroidNativeBuffer(eglBuf, desc.x, desc.y, androidFormat,
-		/*GRALLOC_USAGE_SW_READ_OFTEN |*/ GRALLOC_USAGE_SW_WRITE_OFTEN
-		/*| GRALLOC_USAGE_HW_RENDER*/ | GRALLOC_USAGE_HW_TEXTURE);
-	int err;
-	if((err = directTextureConf.allocBuffer(eglBuf)) != 0)
+	if(!gBuff.reallocate(desc.x, desc.y, androidFormat,
+		GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
 	{
-		logErr("alloc buffer failed: %s", strerror(-err));
-		*this = {};
+		logErr("allocation failed");
 		return UNSUPPORTED_OPERATION;
 	}
-	logMsg("native buffer:%p with stride:%d", eglBuf.handle, eglBuf.stride);
-	/*if(grallocMod->registerBuffer(grallocMod, eglBuf.handle) != 0)
-	{
-		logMsg("error registering");
-	}*/
-	bool testLock = !directTextureConf.whitelistedEGLImageKHR;
-	if(testLock)
-	{
-		logMsg("testing locking");
-		void *data;
-		if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, desc.x, desc.y, data) != 0)
-		{
-			logMsg("error locking");
-			*this = {};
-			return UNSUPPORTED_OPERATION;
-		}
-		logMsg("data addr %p", data);
-		//memset(data, 0, eglBuf.stride * eglBuf.height * 2);
-		logMsg("unlocking");
-		if(directTextureConf.unlockBuffer(eglBuf) != 0)
-		{
-			logErr("error unlocking");
-			*this = {};
-			return UNSUPPORTED_OPERATION;
-		}
-	}
+	logMsg("native buffer:%p with stride:%d", gBuff.handle, gBuff.getStride());
 	const EGLint eglImgAttrs[]
 	{
 		EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
 		EGL_NONE, EGL_NONE
 	};
-	eglImg = eglCreateImageKHR(Base::GLContext::eglDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, (EGLClientBuffer)&eglBuf, eglImgAttrs);
+	eglImg = eglCreateImageKHR(Base::GLContext::eglDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
+		(EGLClientBuffer)gBuff.getNativeBuffer(), eglImgAttrs);
 	if(eglImg == EGL_NO_IMAGE_KHR)
 	{
 		logErr("error creating EGL image");
@@ -148,24 +77,20 @@ CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 		return UNSUPPORTED_OPERATION;
 	}
 	bpp = desc.format.bytesPerPixel;
-	pitch = eglBuf.stride * desc.format.bytesPerPixel;
+	pitch = gBuff.getStride() * desc.format.bytesPerPixel;
 	return OK;
 }
 
 GraphicBufferStorage::Buffer GraphicBufferStorage::lock(IG::WindowRect *dirtyRect)
 {
-	if(unlikely(!eglBuf.handle))
-	{
-		logErr("called lock when uninitialized");
-		return {};
-	}
+	assert(gBuff.handle);
 	Buffer buff{nullptr, pitch};
-	int x = dirtyRect ? dirtyRect->x : 0;
-	int y = dirtyRect ? dirtyRect->y : 0;
-	int w = dirtyRect ? dirtyRect->xSize() : eglBuf.width;
-	int h = dirtyRect ? dirtyRect->ySize() : eglBuf.height;
-	if(directTextureConf.lockBuffer(eglBuf, GRALLOC_USAGE_SW_WRITE_OFTEN,
-		x, y, w, h, buff.data) != 0)
+	bool success;
+	if(dirtyRect)
+		success = gBuff.lock(GRALLOC_USAGE_SW_WRITE_OFTEN, *dirtyRect, &buff.data);
+	else
+		success = gBuff.lock(GRALLOC_USAGE_SW_WRITE_OFTEN, &buff.data);
+	if(!success)
 	{
 		logErr("error locking");
 		return {};
@@ -180,12 +105,30 @@ GraphicBufferStorage::Buffer GraphicBufferStorage::lock(IG::WindowRect *dirtyRec
 
 void GraphicBufferStorage::unlock(GLuint tex)
 {
-	if(unlikely(!eglBuf.handle))
+	assert(gBuff.handle);
+	gBuff.unlock();
+}
+
+bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
+{
+	if(Config::MACHINE_IS_GENERIC_ARMV7)
 	{
-		logErr("called unlock when uninitialized");
-		return;
+		if(string_equal(rendererStr, "PowerVR SGX 530"))
+			return true;
+		if(string_equal(rendererStr, "PowerVR SGX 540"))
+			return true;
+		if(string_equal(rendererStr, "Mali-400 MP"))
+			return true;
+		if(Base::androidSDK() >= 20 &&
+			string_equal(rendererStr, "Adreno (TM) 320"))
+			return true;
 	}
-	directTextureConf.unlockBuffer(eglBuf);
+	else if(Config::MACHINE_IS_GENERIC_X86)
+	{
+		if(strstr(rendererStr, "BayTrail"))
+			return true;
+	}
+	return false;
 }
 
 }

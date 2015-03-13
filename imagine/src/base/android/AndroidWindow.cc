@@ -142,9 +142,9 @@ bool Window::requestOrientationChange(uint o)
 	return false;
 }
 
-uint GLBufferConfigAttributes::defaultColorBits()
+uint Window::defaultPixelFormat()
 {
-	return (!Config::MACHINE_IS_GENERIC_ARMV6 && Base::androidSDK() >= 11) ? 24 : 16;
+	return (!Config::MACHINE_IS_GENERIC_ARMV6 && Base::androidSDK() >= 11) ? PIXEL_RGB888 : PIXEL_RGB565;
 }
 
 CallResult Window::init(const WindowConfig &config)

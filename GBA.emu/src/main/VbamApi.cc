@@ -4,7 +4,6 @@
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/time/sys.hh>
 #include <imagine/util/branch.h>
 #include <imagine/audio/Audio.hh>
 #include <main/Main.hh>

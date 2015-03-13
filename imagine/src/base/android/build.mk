@@ -24,7 +24,8 @@ SRC += base/android/android.cc base/android/AndroidWindow.cc \
  base/android/inputConfig.cc base/android/textInput.cc \
  base/android/input.cc base/android/system.cc \
  base/android/surfaceTexture.cc \
- base/android/privateApi/libhardware.c
+ base/android/privateApi/libhardware.c \
+ base/android/privateApi/GraphicBuffer.cc
 LDLIBS += -landroid
 
 ifneq ($(MACHINE),OUYA)

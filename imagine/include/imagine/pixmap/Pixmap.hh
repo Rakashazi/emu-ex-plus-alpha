@@ -87,6 +87,7 @@ public:
 
 	void copy(int srcX, int srcY, int width, int height, Pixmap dest, int destX, int destY) const;
 	void clearRect(uint xStart, uint yStart, uint xlen, uint ylen);
+	void clear();
 	void initSubPixmap(Pixmap orig, uint x, uint y, uint xlen, uint ylen);
 	Pixmap makeSubPixmap(IG::WP offset, IG::WP size);
 	uint size() const { return y * pitch; }

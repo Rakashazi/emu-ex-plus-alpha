@@ -35,7 +35,19 @@ void EmuVideo::reinitImage()
 	vidImg.init(conf);
 
 	// update all EmuVideoLayers
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	emuVideoLayer.setEffect(optionImgEffect);
+	#else
 	emuVideoLayer.resetImage();
+	#endif
+}
+
+void EmuVideo::clearImage()
+{
+	if(vidImg)
+	{
+		vidImg.clear(0);
+	}
 }
 
 void EmuVideo::resizeImage(uint x, uint y, uint pitch)
@@ -53,9 +65,7 @@ void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint t
 	vidPix.initSubPixmap(basePix, xO, yO, x, y);
 	if(!vidImg)
 	{
-		Gfx::TextureConfig conf{(IG::PixmapDesc)vidPix};
-		conf.setWillWriteOften(true);
-		vidImg.init(conf);
+		reinitImage();
 	}
 	else if(!vidPix.isSameGeometry(vidImg.pixmapDesc()))
 	{
@@ -110,7 +120,7 @@ void EmuVideo::takeGameScreenshot()
 bool EmuVideo::isExternalTexture()
 {
 	#ifdef __ANDROID__
-	return optionSurfaceTexture;
+	return vidImg.isExternal();
 	#else
 	return false;
 	#endif

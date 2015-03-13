@@ -105,6 +105,20 @@ Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<Vide
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
+bool imageEffectPixelFormatIsValid(uint8 val)
+{
+	switch(val)
+	{
+		case PIXEL_UNKNOWN:
+		case PIXEL_RGB565:
+		case PIXEL_RGBA8888:
+			return true;
+	}
+	return false;
+}
+
+Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, PIXEL_UNKNOWN, 0, imageEffectPixelFormatIsValid);
+
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
@@ -197,16 +211,27 @@ Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 OptionRecentGames optionRecentGames;
 
 #ifdef __ANDROID__
-// Default & current setting isn't known until OpenGL init
-Byte1Option optionDirectTexture(CFGKEY_DIRECT_TEXTURE, OPTION_DIRECT_TEXTURE_UNSET);
-Byte1Option optionSurfaceTexture(CFGKEY_SURFACE_TEXTURE, OPTION_SURFACE_TEXTURE_UNSET);
+Byte1Option optionAndroidTextureStorage(CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
+	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>);
 SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
 
-#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-Byte1Option optionBestColorModeHint(CFGKEY_BEST_COLOR_MODE_HINT, 1);
+#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+bool windowPixelFormatIsValid(uint8 val)
+{
+	switch(val)
+	{
+		case PIXEL_UNKNOWN:
+		case PIXEL_RGB565:
+		case PIXEL_RGB888:
+			return true;
+	}
+	return false;
+}
+
+Byte1Option optionWindowPixelFormat(CFGKEY_WINDOW_PIXEL_FORMAT, PIXEL_UNKNOWN, 0, windowPixelFormatIsValid);
 #endif
 
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
@@ -313,10 +338,6 @@ void initOptions()
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
-	#endif
-
-	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	optionBestColorModeHint.initDefault(Gfx::defaultColorBits() > 16);
 	#endif
 
 	EmuSystem::initOptions();
@@ -436,3 +457,17 @@ void setupFont()
 	//float smallSize = std::max(2000, optionFontSize - 500) / 1000.;
 	//View::defaultSmallFace->applySettings(FontSettings(mainWin.win.heightSMMInPixels(smallSize)));
 }
+
+#ifdef __ANDROID__
+Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val)
+{
+	using namespace Gfx;
+	switch(val)
+	{
+		case OPTION_ANDROID_TEXTURE_STORAGE_NONE: return Texture::ANDROID_NONE;
+		case OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER: return Texture::ANDROID_GRAPHIC_BUFFER;
+		case OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE: return Texture::ANDROID_SURFACE_TEXTURE;
+		default: return Texture::ANDROID_AUTO;
+	}
+}
+#endif

@@ -29,6 +29,7 @@ public:
 	constexpr EmuVideo() {}
 	void initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch = 0);
 	void reinitImage();
+	void clearImage();
 	void resizeImage(uint x, uint y, uint pitch = 0);
 	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
 	void initImage(bool force, uint x, uint y, uint pitch = 0);

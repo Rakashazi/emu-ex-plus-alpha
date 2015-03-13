@@ -114,13 +114,15 @@ uint VideoImageEffect::effect()
 
 void VideoImageEffect::initRenderTargetTexture()
 {
+	if(!renderTarget_)
+		return;
 	renderTargetImgSize.x = inputImgSize.x * renderTargetScale.x;
 	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
 	IG::PixmapDesc renderPix{useRGB565RenderTarget ? PixelFormatRGB565 : PixelFormatRGBA8888};
 	renderPix.x = renderTargetImgSize.x;
 	renderPix.y = renderTargetImgSize.y;
 	renderPix.pitch = renderPix.x * renderPix.format.bytesPerPixel;
-	renderTarget_.initTexture(renderPix);
+	renderTarget_.setFormat(renderPix);
 	Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler();
 }
 
@@ -273,6 +275,7 @@ void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
 void VideoImageEffect::setBitDepth(uint bitDepth)
 {
 	useRGB565RenderTarget = bitDepth <= 16;
+	initRenderTargetTexture();
 }
 
 Gfx::Program &VideoImageEffect::program()
@@ -293,5 +296,4 @@ void VideoImageEffect::drawRenderTarget(Gfx::PixmapTexture &img)
 	Gfx::Sprite spr;
 	spr.init({-1., -1., 1., 1.}, &img, {0., 1., 1., 0.});
 	spr.draw();
-	spr.setImg(nullptr);
 }

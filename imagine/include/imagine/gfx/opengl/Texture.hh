@@ -73,6 +73,17 @@ using LockedTextureBufferImpl = GLLockedTextureBuffer;
 
 class GLTexture
 {
+public:
+	#ifdef __ANDROID__
+	enum AndroidStorageImpl : int
+	{
+		ANDROID_AUTO,
+		ANDROID_NONE,
+		ANDROID_GRAPHIC_BUFFER,
+		ANDROID_SURFACE_TEXTURE
+	};
+	#endif
+
 protected:
 	DirectTextureStorage *directTex{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -90,12 +101,20 @@ protected:
 	GLuint sampler = 0; // used when separate sampler objects not supported
 	uint levels_ = 0;
 	GLuint ownPBO = 0;
+	#ifdef __ANDROID__
+	static AndroidStorageImpl androidStorageImpl_;
+	#endif
 
 	static void setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, GLenum target);
 
 public:
 	constexpr GLTexture() {}
 	GLuint texName() const;
+	#ifdef __ANDROID__
+	static bool setAndroidStorageImpl(AndroidStorageImpl impl);
+	static AndroidStorageImpl androidStorageImpl();
+	bool isExternal();
+	#endif
 };
 
 using TextureImpl = GLTexture;

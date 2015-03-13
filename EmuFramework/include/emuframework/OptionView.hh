@@ -33,8 +33,8 @@ class OptionView : public TableView
 protected:
 	// Video
 	#ifdef __ANDROID__
-	BoolMenuItem directTexture;
-	BoolMenuItem surfaceTexture;
+	void androidTextureStorageInit();
+	MultiChoiceSelectMenuItem androidTextureStorage;
 	#endif
 	MultiChoiceSelectMenuItem frameSkip;
 	void frameSkipInit();
@@ -54,8 +54,11 @@ protected:
 	void overlayEffectInit();
 	MultiChoiceSelectMenuItem overlayEffectLevel;
 	void overlayEffectLevelInit();
-	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	BoolMenuItem bestColorModeHint;
+	MultiChoiceSelectMenuItem imgEffectPixelFormat;
+	void imgEffectPixelFormatInit();
+	#if defined EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	MultiChoiceSelectMenuItem windowPixelFormat;
+	void windowPixelFormatInit();
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;

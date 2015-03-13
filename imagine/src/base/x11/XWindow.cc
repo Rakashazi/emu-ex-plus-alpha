@@ -23,9 +23,9 @@
 namespace Base
 {
 
-uint GLBufferConfigAttributes::defaultColorBits()
+uint Window::defaultPixelFormat()
 {
-	return 24;
+	return PIXEL_RGB888;
 }
 
 void Window::setAcceptDnd(bool on)

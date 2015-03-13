@@ -79,7 +79,7 @@ void GLContext::present(Window &win)
 {
 	if(swapBuffersIsAsync())
 	{
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).toNs();
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).nSecs();
 		if(swapTime > 16000000)
 		{
 			//logWarn("buffer swap took %lldns", (long long)swapTime);

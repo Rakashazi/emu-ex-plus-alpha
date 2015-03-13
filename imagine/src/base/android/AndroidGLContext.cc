@@ -24,6 +24,11 @@ namespace Base
 
 GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
+	if(ctxAttr.majorVersion() > 2 && Base::androidSDK() < 18)
+	{
+		// need at least Android 4.3 to use ES 3 attributes
+		return GLBufferConfig{};
+	}
 	auto configResult = chooseConfig(ctxAttr, attr);
 	if(std::get<CallResult>(configResult) != OK)
 	{

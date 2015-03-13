@@ -208,7 +208,6 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 			if(res != OK)
 			{
 				logWarn("failed char conversion while drawing line %d, char %d, result %d", l, i, res);
-				spr.setImg(nullptr);
 				return;
 			}
 
@@ -244,7 +243,6 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 		totalCharsDrawn += charsToDraw;
 	}
 	assert(totalCharsDrawn <= chars);
-	spr.setImg(nullptr);
 }
 
 }

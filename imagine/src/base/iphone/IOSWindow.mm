@@ -118,9 +118,9 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-uint GLBufferConfigAttributes::defaultColorBits()
+uint Window::defaultPixelFormat()
 {
-	return Config::MACHINE_IS_GENERIC_ARMV6 ? 16 : 24;
+	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGB888;
 }
 
 bool Window::hasSurface()

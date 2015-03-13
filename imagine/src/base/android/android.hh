@@ -17,13 +17,10 @@
 
 #include <imagine/base/android/android.hh>
 #include <imagine/util/jni.hh>
-#include "privateApi/gralloc.h"
 #include <imagine/util/pixel.h>
 #include <android/looper.h>
 #include <android/asset_manager.h>
-#include <EGL/egl.h>
-#define EGL_EGLEXT_PROTOTYPES
-#include <EGL/eglext.h>
+#include "privateApi/GraphicBuffer.hh"
 
 class BluetoothSocket;
 struct ANativeWindow;
@@ -47,59 +44,14 @@ jobject newFontRenderer(JNIEnv *env);
 
 bool hasLowLatencyAudio();
 
-}
+jobject makeSurfaceTexture(JNIEnv *env, jint texName);
+jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode);
+void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
+void updateSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
+void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 
-namespace Gfx
-{
-
-// SurfaceTexture JNI
-struct AndroidSurfaceTextureConfig
-{
-	constexpr AndroidSurfaceTextureConfig() { }
-	jclass jSurfaceCls = nullptr, jSurfaceTextureCls = nullptr;
-	JavaInstMethod<void> jSurface, jSurfaceRelease,
-		jSurfaceTexture, jUpdateTexImage, jSurfaceTextureRelease/*, jSetDefaultBufferSize*/;
-	bool use = 0, whiteListed = 1;
-	//bool texture2dBindingHack = 0;
-	// Extra dlsym function from libandroid.so
-	//ANativeWindow* (*ANativeWindow_fromSurfaceTexture)(JNIEnv* env, jobject surfaceTexture) = nullptr;
-
-	void init(JNIEnv *env);
-	void deinit();
-
-	bool isSupported()
-	{
-		return jSurfaceTextureCls;
-	}
-
-	void setUse(bool on)
-	{
-		if(isSupported())
-			use = on;
-	}
-};
-
-struct AndroidDirectTextureConfig
-{
-	bool useEGLImageKHR = 0, whitelistedEGLImageKHR = 0;
-	const char *errorStr = "";
-private:
-	gralloc_module_t const *grallocMod = nullptr;
-	alloc_device_t *allocDev = nullptr;
-
-public:
-	constexpr AndroidDirectTextureConfig() { }
-	bool isSupported() const { return grallocMod; }
-	void checkForEGLImageKHR(const char *extensions, const char *rendererName);
-	bool setupEGLImageKHR(const char *extensions);
-	int allocBuffer(android_native_buffer_t &eglBuf);
-	int lockBuffer(android_native_buffer_t &eglBuf, int usage, int l, int t, int w, int h, void *&data);
-	int unlockBuffer(android_native_buffer_t &eglBuf);
-	int freeBuffer(android_native_buffer_t &eglBuf);
-};
-
-extern AndroidSurfaceTextureConfig surfaceTextureConf;
-extern AndroidDirectTextureConfig directTextureConf;
+jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
+void releaseSurface(JNIEnv *env, jobject surface);
 
 static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)
 {

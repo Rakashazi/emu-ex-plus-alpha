@@ -90,4 +90,9 @@ void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
 	}
 }
 
+void Pixmap::clear()
+{
+	memset(data, 0, size());
+}
+
 }

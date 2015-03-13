@@ -135,6 +135,21 @@ static void uiVisibiltyInit(const Byte1Option &option, MultiChoiceSelectMenuItem
 	menuItem.init(str, val, sizeofArray(str));
 }
 
+#ifdef __ANDROID__
+void OptionView::androidTextureStorageInit()
+{
+	static const char *str[]
+	{
+		"Auto",
+		"Standard",
+		"Graphic Buffer",
+		"Surface Texture"
+	};
+	int val = optionAndroidTextureStorage;
+	androidTextureStorage.init(str, val, Base::androidSDK() >= 14 ? sizeofArray(str) : sizeofArray(str)-1);
+}
+#endif
+
 void OptionView::frameSkipInit()
 {
 	static const char *str[] =
@@ -334,6 +349,36 @@ void OptionView::overlayEffectLevelInit()
 	overlayEffectLevel.init(str, init, sizeofArray(str));
 }
 
+void OptionView::imgEffectPixelFormatInit()
+{
+	static const char *str[]
+	{
+		"Auto", "RGB565", "RGBA8888"
+	};
+	uint init = 0;
+	switch(optionImageEffectPixelFormat.val)
+	{
+		bcase PIXEL_RGB565: init = 1;
+		bcase PIXEL_RGBA8888: init = 2;
+	}
+	imgEffectPixelFormat.init(str, init, sizeofArray(str));
+}
+
+void OptionView::windowPixelFormatInit()
+{
+	static const char *str[]
+	{
+		"Auto", "RGB565", "RGB888"
+	};
+	uint init = 0;
+	switch(optionWindowPixelFormat.val)
+	{
+		bcase PIXEL_RGB565: init = 1;
+		bcase PIXEL_RGB888: init = 2;
+	}
+	windowPixelFormat.init(str, init, sizeofArray(str));
+}
+
 void OptionView::fontSizeInit()
 {
 	static const char *str[] =
@@ -505,18 +550,14 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	viewportZoomInit(); item[items++] = &viewportZoom;
 	aspectRatioInit(); item[items++] = &aspectRatio;
 	#ifdef CONFIG_BASE_ANDROID
-	if(Base::androidSDK() < 14)
+	if(!Config::MACHINE_IS_OUYA)
 	{
-		assert(optionDirectTexture != OPTION_DIRECT_TEXTURE_UNSET);
-		directTexture.init(optionDirectTexture, Gfx::supportsAndroidDirectTexture()); item[items++] = &directTexture;
-	}
-	if(!Config::MACHINE_IS_OUYA && Base::androidSDK() >= 14 && !optionSurfaceTexture.isConst)
-	{
-		surfaceTexture.init(optionSurfaceTexture); item[items++] = &surfaceTexture;
+		androidTextureStorageInit(); item[items++] = &androidTextureStorage;
 	}
 	#endif
-	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	bestColorModeHint.init(optionBestColorModeHint); item[items++] = &bestColorModeHint;
+	imgEffectPixelFormatInit(); item[items++] = &imgEffectPixelFormat;
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	windowPixelFormatInit(); item[items++] = &windowPixelFormat;
 	#endif
 	if(!optionDitherImage.isConst)
 	{
@@ -642,41 +683,49 @@ OptionView::OptionView(Base::Window &win):
 	TableView{"Options", win},
 	// Video
 	#ifdef __ANDROID__
-	directTexture
+	androidTextureStorage
 	{
-		"Direct Texture",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		"GPU Copy Mode",
+		[this](MultiChoiceMenuItem &item, View &view, int val)
 		{
-			if(!item.active)
+			using namespace Gfx;
+			auto newVal = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
+			switch(val)
 			{
-				popup.postError(Gfx::androidDirectTextureError());
-				return;
+				bcase 1: newVal = OPTION_ANDROID_TEXTURE_STORAGE_NONE;
+				bcase 2: newVal = OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER;
+				bcase 3: newVal = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
 			}
-			item.toggle(*this);
-			Gfx::setUseAndroidDirectTexture(item.on);
-			optionDirectTexture = item.on;
-			if(emuVideo.vidImg)
-				emuVideo.reinitImage();
-		}
-	},
-	surfaceTexture
-	{
-		"Fast CPU->GPU Copy",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
-		{
-			item.toggle(*this);
-			optionSurfaceTexture = item.on;
-			Gfx::setUseAndroidSurfaceTexture(item.on);
+			if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(newVal)))
+			{
+				popup.postError("Not supported on this GPU, using Auto");
+				item.updateVal(0, view);
+				optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
+				Gfx::Texture::setAndroidStorageImpl(Texture::ANDROID_AUTO);
+			}
+			else
+			{
+				optionAndroidTextureStorage = newVal;
+				if(newVal == OPTION_ANDROID_TEXTURE_STORAGE_AUTO)
+				{
+					const char *modeStr = "Standard";
+					switch(Texture::androidStorageImpl())
+					{
+						bcase Texture::ANDROID_GRAPHIC_BUFFER: modeStr = "Graphic Buffer";
+						bcase Texture::ANDROID_SURFACE_TEXTURE: modeStr = "Surface Texture";
+						bdefault: break;
+					}
+					popup.printf(3, false, "Set %s mode via Auto", modeStr);
+				}
+			}
 			if(emuVideo.vidImg)
 			{
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				// texture may switch to external format so
+				// force effect shaders to re-compile
 				emuVideoLayer.setEffect(0);
-				#endif
 				emuVideo.reinitImage();
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-				// re-apply effect so any shaders are re-compiled
+				emuVideo.clearImage();
 				emuVideoLayer.setEffect(optionImgEffect);
-				#endif
 			}
 		}
 	},
@@ -771,8 +820,11 @@ OptionView::OptionView(Base::Window &win):
 				bcase 3: setVal = VideoImageEffect::PRESCALE2X;
 			}
 			optionImgEffect.val = setVal;
-			emuVideoLayer.setEffect(setVal);
-			emuWin->win.postDraw();
+			if(emuVideo.vidImg)
+			{
+				emuVideoLayer.setEffect(setVal);
+				emuWin->win.postDraw();
+			}
 		}
 	},
 	#endif
@@ -816,35 +868,46 @@ OptionView::OptionView(Base::Window &win):
 			emuWin->win.postDraw();
 		}
 	},
-	#if defined EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	bestColorModeHint
+	imgEffectPixelFormat
 	{
-		"Use Highest Color Mode",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		"Effect Color Format",
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			auto alertMsg = Config::envIsAndroid ? "This option takes effect next time you launch the app. "
-					"Not all devices properly support high color modes so turn this off "
-					"if you experience graphics problems."
-					: "This option takes effect next time you launch the app. "
-					"If off, it may improve performance at the cost of color accuracy.";
-			auto onMsg = Config::envIsAndroid ? "Enable" : "Toggle";
-			if((!item.on && Config::envIsAndroid) || !Config::envIsAndroid)
+			uint format = PIXEL_UNKNOWN;
+			switch(val)
 			{
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init(alertMsg, !e.isPointer(), onMsg, "Cancel");
-				ynAlertView.onYes() =
-					[this, &item](const Input::Event &e)
-					{
-						item.toggle(*this);
-						optionBestColorModeHint = item.on;
-					};
-				modalViewController.pushAndShow(ynAlertView);
+				bcase 1: format = PIXEL_RGB565;
+				bcase 2: format = PIXEL_RGBA8888;
+			}
+			if(format == PIXEL_UNKNOWN)
+				popup.printf(3, false, "Set RGB565 mode via Auto");
+			optionImageEffectPixelFormat.val = format;
+			emuVideoLayer.vidImgEffect.setBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
+			emuWin->win.postDraw();
+		}
+	},
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	windowPixelFormat
+	{
+		"Display Color Format",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			uint format = PIXEL_UNKNOWN;
+			switch(val)
+			{
+				bcase 1: format = PIXEL_RGB565;
+				bcase 2: format = PIXEL_RGB888;
+			}
+			if(format == PIXEL_UNKNOWN)
+			{
+				popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
+					Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGB888");
 			}
 			else
 			{
-				item.toggle(*this);
-				optionBestColorModeHint = item.on;
+				popup.post("Restart app for option to take effect");
 			}
+			optionWindowPixelFormat.val = format;
 		}
 	},
 	#endif

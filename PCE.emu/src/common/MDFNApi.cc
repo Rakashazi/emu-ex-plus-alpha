@@ -5,7 +5,6 @@
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/thread/pthread.hh>
-#include <imagine/util/time/sys.hh>
 #include <imagine/fs/sys.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/strings.h>
@@ -255,12 +254,6 @@ void MDFND_SetMovieStatus(StateStatusStruct *status) { }
 void MDFND_SetStateStatus(StateStatusStruct *status) { }
 void NetplaySendState(void) { }
 void MDFND_NetplayText(const uint8 *text, bool NetEcho) { }
-
-uint32 MDFND_GetTime(void)
-{
-	auto time = TimeSys::now();
-	return (uint32)(time.divByUSecs(1000));
-}
 
 int Player_Init(int tsongs, UTF8 *album, UTF8 *artist, UTF8 *copyright, UTF8 **snames) { return 1; }
 void Player_Draw(const MDFN_Surface *surface, MDFN_Rect *dr, int CurrentSong, int16 *samples, int32 sampcount) { }

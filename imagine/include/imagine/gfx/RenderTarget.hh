@@ -31,7 +31,7 @@ private:
 public:
 	void init();
 	void deinit();
-	void initTexture(IG::PixmapDesc pix);
+	void setFormat(IG::PixmapDesc pix);
 	Texture &texture() { return tex; };
 	void setCurrent();
 	explicit operator bool() const;

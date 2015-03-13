@@ -37,9 +37,12 @@ void RenderTarget::deinit()
 	tex.deinit();
 }
 
-void RenderTarget::initTexture(IG::PixmapDesc pix)
+void RenderTarget::setFormat(IG::PixmapDesc pix)
 {
-	tex.init({pix});
+	if(!tex)
+		tex.init({pix});
+	else
+		tex.setFormat(pix, 1);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.texName(), 0);
 	setDefaultCurrent();

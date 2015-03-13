@@ -3,6 +3,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/util/pixel.h>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGLContext.hh>
@@ -20,30 +21,21 @@ namespace Base
 class GLBufferConfigAttributes
 {
 private:
-	uint colorBits = 0;
-	bool useAlpha_ = false;
+	uint pixelFormatID = PIXEL_UNKNOWN;
 	bool useDepth_ = false;
 	bool useStencil_ = false;
 
 public:
-	void setPreferredColorBits(uint colorBits)
+	void setPixelFormat(uint pixelFormatID)
 	{
-		var_selfs(colorBits);
+		var_selfs(pixelFormatID);
 	}
 
-	uint preferredColorBits() const
+	uint pixelFormat() const
 	{
-		return colorBits;
-	}
-
-	void setUseAlpha(bool useAlpha_)
-	{
-		var_selfs(useAlpha_);
-	}
-
-	bool useAlpha() const
-	{
-		return useAlpha_;
+		if(!pixelFormatID)
+			return Window::defaultPixelFormat();
+		return pixelFormatID;
 	}
 
 	void setUseDepth(bool useDepth_)
@@ -65,8 +57,6 @@ public:
 	{
 		return useStencil_;
 	}
-
-	static uint defaultColorBits();
 };
 
 class GLContextAttributes

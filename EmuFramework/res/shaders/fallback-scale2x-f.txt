@@ -23,7 +23,7 @@ void main()
 	if(subTexel.x >= 0.5)
 	{
 		// adjust to E1 or E3 (swap D and F)
-		vec4 tmp = F; F = D; D = tmp;
+		vec4 tmp2 = F; F = D; D = tmp2;
 	}
 
 	if(D == B && B != H && D != F)

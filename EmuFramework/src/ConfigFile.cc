@@ -216,6 +216,7 @@ static bool readConfig2(IO &io)
 			#endif
 			bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
+			bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
 			bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
 			bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
@@ -238,8 +239,7 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 			bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
 			bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-			bcase CFGKEY_DIRECT_TEXTURE: optionDirectTexture.readFromIO(io, size);
-			bcase CFGKEY_SURFACE_TEXTURE: optionSurfaceTexture.readFromIO(io, size);
+			bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
 			bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_BLUETOOTH
@@ -264,8 +264,8 @@ static bool readConfig2(IO &io)
 				if(EmuSystem::hasBundledGames)
 					optionShowBundledGames.readFromIO(io, size);
 			}
-			#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-			bcase CFGKEY_BEST_COLOR_MODE_HINT: optionBestColorModeHint.readFromIO(io, size);
+			#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+			bcase CFGKEY_WINDOW_PIXEL_FORMAT: optionWindowPixelFormat.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_INPUT_KEY_CONFIGS:
 			{
@@ -424,6 +424,7 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
+	&optionImageEffectPixelFormat,
 	#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 	&optionRelPointerDecel,
 	#endif
@@ -474,8 +475,7 @@ static OptionBase *cfgFileOption[] =
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
 	&optionDitherImage,
-	&optionDirectTexture,
-	&optionSurfaceTexture,
+	&optionAndroidTextureStorage,
 	&optionProcessPriority,
 	#endif
 	#ifdef CONFIG_BLUETOOTH
@@ -493,8 +493,8 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif
-	#ifdef EMU_FRAMEWORK_BEST_COLOR_MODE_OPTION
-	&optionBestColorModeHint,
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	&optionWindowPixelFormat,
 	#endif
 	&optionShowBundledGames,
 	&optionCheckSavePathWriteAccess

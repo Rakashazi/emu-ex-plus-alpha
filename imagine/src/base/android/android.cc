@@ -27,9 +27,6 @@
 #include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
-#ifdef CONFIG_BLUETOOTH
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
-#endif
 #include "../common/windowPrivate.hh"
 #include "../common/basePrivate.hh"
 #include "android.hh"
@@ -205,8 +202,6 @@ static void activityInit(JNIEnv* env, jobject activity)
 				Base::hasPermanentMenuKey = 1;
 		}
 	}
-
-	Gfx::surfaceTextureConf.init(env);
 
 	initScreens(env, activity, jBaseActivityCls);
 	initFrameTimer(env, activity);

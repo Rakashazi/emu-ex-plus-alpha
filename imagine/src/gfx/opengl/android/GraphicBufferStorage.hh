@@ -15,26 +15,28 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define EGL_EGLEXT_PROTOTYPES
+#include <EGL/eglext.h>
 #include <imagine/gfx/Texture.hh>
-#include "../../../base/android/android.hh"
+#include "../../../base/android/privateApi/GraphicBuffer.hh"
 
 namespace Gfx
 {
 
 struct GraphicBufferStorage: public DirectTextureStorage
 {
-	android_native_buffer_t eglBuf;
+	Base::GraphicBuffer gBuff;
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
 	uint bpp = 0;
 	uint pitch = 0;
 
-	constexpr GraphicBufferStorage() {}
+	GraphicBufferStorage() {}
 	~GraphicBufferStorage() override;
 	CallResult init();
 	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
 	Buffer lock(IG::WindowRect *dirtyRect) override;
 	void unlock(GLuint tex) override;
-	static bool testSupport(const char **errorStr);
+	static bool isRendererWhitelisted(const char *rendererStr);
 };
 
 }

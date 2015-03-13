@@ -17,10 +17,12 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/util/operators.hh>
+#define pointer X11pointer
 #define BOOL X11BOOL
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #undef BOOL
+#undef pointer
 
 namespace Base
 {

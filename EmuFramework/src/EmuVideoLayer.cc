@@ -285,10 +285,10 @@ void EmuVideoLayer::compileDefaultPrograms()
 void EmuVideoLayer::setEffect(uint effect)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	assert(video.vidImg);
 	vidImgEffect.setEffect(effect, video.isExternalTexture());
 	placeEffect();
-	if(video.vidImg)
-		resetImage();
+	resetImage();
 	#endif
 }
 

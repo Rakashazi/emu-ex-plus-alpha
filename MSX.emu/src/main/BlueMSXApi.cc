@@ -2,7 +2,7 @@
 
 #include <imagine/logger/logger.h>
 #include <imagine/fs/sys.hh>
-#include <imagine/util/time/sys.hh>
+#include <imagine/time/Time.hh>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,14 +53,12 @@ void archMouseSetForceLock(int lock) { }
 
 UInt32 archGetSystemUpTime(UInt32 frequency)
 {
-	auto time = TimeSys::now();
-	return (uint32)(time.divByUSecs(1000));
+	return archGetHiresTimer() / (1000 / frequency);
 }
 
 UInt32 archGetHiresTimer()
 {
-	auto time = TimeSys::now();
-	return (float)time*1000000;
+	return IG::Time::now().mSecs();
 }
 
 Properties* propGetGlobalProperties() { assert(0); return 0; }; // TODO: needed in Casette.c

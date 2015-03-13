@@ -430,6 +430,7 @@ void DefaultTexProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
+		glcEnable(GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
 			loadTransform(*modelMat);
@@ -459,6 +460,7 @@ void DefaultTexReplaceProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
+		glcEnable(GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
 			loadTransform(*modelMat);
@@ -494,6 +496,7 @@ void DefaultTexAlphaReplaceProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
+		glcEnable(GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
 			loadTransform(*modelMat);
@@ -532,6 +535,7 @@ void DefaultTexAlphaProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
+		glcEnable(GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
 			loadTransform(*modelMat);
@@ -572,9 +576,7 @@ void DefaultTexExternalReplaceProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
-		setImgMode(IMG_MODE_REPLACE);
-		if(modelMat)
-			loadTransform(*modelMat);
+		bug_exit("external texture program not supported");
 		return;
 	}
 	#endif
@@ -609,9 +611,7 @@ void DefaultTexExternalProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
-		setImgMode(IMG_MODE_MODULATE);
-		if(modelMat)
-			loadTransform(*modelMat);
+		bug_exit("external texture program not supported");
 		return;
 	}
 	#endif
@@ -638,7 +638,7 @@ void DefaultColorProgram::use(const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 	{
-		setActiveTexture(0, GL_TEXTURE_2D);
+		glcDisable(GL_TEXTURE_2D);
 		setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
 			loadTransform(*modelMat);
