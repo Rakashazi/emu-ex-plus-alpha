@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 ///
 /// This half implementation is based on OpenEXR which is Copyright (c) 2002, 
 /// Industrial Light & Magic, a division of Lucas Digital Ltd. LLC
@@ -16,6 +16,10 @@
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
 /// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
+/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +29,7 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/core/type_half.inl
+/// @file glm/detail/type_half.inl
 /// @date 2008-08-17 / 2011-06-15
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
@@ -38,8 +42,7 @@ namespace detail
 		volatile float f = 1e10;
 
 		for(int i = 0; i < 10; ++i)	
-			f *= f;             // this will overflow before
-								// the for­loop terminates
+			f *= f; // this will overflow before the for loop terminates
 		return f;
 	}
 

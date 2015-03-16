@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,6 +11,10 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -35,8 +39,7 @@
 /// <glm/gtx/polar_coordinates.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_GTX_polar_coordinates
-#define GLM_GTX_polar_coordinates
+#pragma once
 
 // Dependency:
 #include "../glm.hpp"
@@ -54,19 +57,17 @@ namespace glm
 	///
 	/// @see gtx_polar_coordinates
 	template <typename T, precision P>
-	detail::tvec3<T, P> polar(
-		detail::tvec3<T, P> const & euclidean);
+	GLM_FUNC_DECL tvec3<T, P> polar(
+		tvec3<T, P> const & euclidean);
 
 	/// Convert Polar to Euclidean coordinates.
 	///
 	/// @see gtx_polar_coordinates
 	template <typename T, precision P>
-	detail::tvec3<T, P> euclidean(
-		detail::tvec2<T, P> const & polar);
+	GLM_FUNC_DECL tvec3<T, P> euclidean(
+		tvec2<T, P> const & polar);
 
 	/// @}
 }//namespace glm
 
 #include "polar_coordinates.inl"
-
-#endif//GLM_GTX_polar_coordinates

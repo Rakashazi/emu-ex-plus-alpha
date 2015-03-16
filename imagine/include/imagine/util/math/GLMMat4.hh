@@ -19,9 +19,6 @@
 #include <imagine/util/math/GLMVec4.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/operators.hh>
-#ifndef GLM_FORCE_RADIANS
-#define GLM_FORCE_RADIANS
-#endif
 #include <imagine/glm/mat4x4.hpp>
 
 class GLMMat4 : NotEquals<GLMMat4>

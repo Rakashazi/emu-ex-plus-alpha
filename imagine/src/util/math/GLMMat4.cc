@@ -1,7 +1,4 @@
 #include <imagine/util/math/GLMMat4.hh>
-#ifndef GLM_FORCE_RADIANS
-#define GLM_FORCE_RADIANS
-#endif
 #include <imagine/glm/geometric.hpp>
 #include <imagine/glm/gtc/matrix_transform.hpp>
 #include <imagine/glm/gtc/matrix_inverse.hpp>
@@ -45,5 +42,5 @@ GLMVec3 GLMMat4::project(IG::Rect2<int> viewport, GLMVec3 obj) const
 GLMVec3 GLMMat4::unproject(IG::Rect2<int> viewport, GLMVec3 win, const GLMMat4 &inverse) const
 {
 	glm::ivec4 viewportVec {viewport.x, viewport.y, viewport.x2, viewport.y2};
-	return glm::unProjectWithInverse(win.v, inverse.m, m, viewportVec);
+	return glm::unProjectWithInverse(win.v, inverse.m, viewportVec);
 }

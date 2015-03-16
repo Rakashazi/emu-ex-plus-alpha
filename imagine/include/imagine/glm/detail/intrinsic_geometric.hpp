@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -21,13 +21,12 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/core/intrinsic_geometric.hpp
+/// @file glm/detail/intrinsic_geometric.hpp
 /// @date 2009-05-08 / 2011-06-15
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef glm_core_intrinsic_geometric
-#define glm_core_intrinsic_geometric
+#pragma once
 
 #include "setup.hpp"
 
@@ -73,4 +72,3 @@ namespace detail
 #include "intrinsic_geometric.inl"
 
 #endif//GLM_ARCH
-#endif//glm_core_intrinsic_geometric

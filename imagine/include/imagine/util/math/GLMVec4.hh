@@ -15,9 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifndef GLM_FORCE_RADIANS
-#define GLM_FORCE_RADIANS
-#endif
 #include <imagine/glm/vec4.hpp>
 
 class GLMVec4

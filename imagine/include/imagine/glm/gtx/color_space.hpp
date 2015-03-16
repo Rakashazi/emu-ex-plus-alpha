@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,6 +11,10 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -35,8 +39,7 @@
 /// <glm/gtx/color_space.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_GTX_color_space
-#define GLM_GTX_color_space
+#pragma once
 
 // Dependency:
 #include "../glm.hpp"
@@ -53,44 +56,42 @@ namespace glm
 	/// Converts a color from HSV color space to its color in RGB color space.
 	/// @see gtx_color_space
 	template <typename T, precision P>
-	detail::tvec3<T, P> rgbColor(
-		detail::tvec3<T, P> const & hsvValue);
+	GLM_FUNC_DECL tvec3<T, P> rgbColor(
+		tvec3<T, P> const & hsvValue);
 
 	/// Converts a color from RGB color space to its color in HSV color space.
 	/// @see gtx_color_space
 	template <typename T, precision P>
-	detail::tvec3<T, P> hsvColor(
-		detail::tvec3<T, P> const & rgbValue);
+	GLM_FUNC_DECL tvec3<T, P> hsvColor(
+		tvec3<T, P> const & rgbValue);
 		
 	/// Build a saturation matrix.
 	/// @see gtx_color_space
-	template <typename T, precision P>
-	detail::tmat4x4<T, P> saturation(
+	template <typename T>
+	GLM_FUNC_DECL tmat4x4<T, defaultp> saturation(
 		T const s);
 
 	/// Modify the saturation of a color.
 	/// @see gtx_color_space
 	template <typename T, precision P>
-	detail::tvec3<T, P> saturation(
+	GLM_FUNC_DECL tvec3<T, P> saturation(
 		T const s,
-		detail::tvec3<T, P> const & color);
+		tvec3<T, P> const & color);
 		
 	/// Modify the saturation of a color.
 	/// @see gtx_color_space
 	template <typename T, precision P>
-	detail::tvec4<T, P> saturation(
+	GLM_FUNC_DECL tvec4<T, P> saturation(
 		T const s,
-		detail::tvec4<T, P> const & color);
+		tvec4<T, P> const & color);
 		
 	/// Compute color luminosity associating ratios (0.33, 0.59, 0.11) to RGB canals.
 	/// @see gtx_color_space
 	template <typename T, precision P>
-	T luminosity(
-		detail::tvec3<T, P> const & color);
+	GLM_FUNC_DECL T luminosity(
+		tvec3<T, P> const & color);
 
 	/// @}
 }//namespace glm
 
 #include "color_space.inl"
-
-#endif//GLM_GTX_color_space

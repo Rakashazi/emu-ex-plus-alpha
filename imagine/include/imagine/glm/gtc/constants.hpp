@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,6 +11,10 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -36,8 +40,7 @@
 /// <glm/gtc/constants.hpp> need to be included to use these features.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_GTC_constants
-#define GLM_GTC_constants
+#pragma once
 
 // Dependencies
 #include "../detail/setup.hpp"
@@ -52,7 +55,6 @@ namespace glm
 	/// @{
 
 	/// Return the epsilon constant for floating point types.
-	/// @todo Implement epsilon for half-precision floating point type.
 	/// @see gtc_constants
 	template <typename genType>
 	GLM_FUNC_DECL genType epsilon();
@@ -72,6 +74,11 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_DECL genType pi();
 
+	/// Return pi * 2.
+	/// @see gtc_constants
+	template <typename genType>
+	GLM_FUNC_DECL genType two_pi();
+
 	/// Return square root of pi.
 	/// @see gtc_constants
 	template <typename genType>
@@ -81,6 +88,11 @@ namespace glm
 	/// @see gtc_constants
 	template <typename genType>
 	GLM_FUNC_DECL genType half_pi();
+
+	/// Return pi / 2 * 3.
+	/// @see gtc_constants
+	template <typename genType>
+	GLM_FUNC_DECL genType three_over_two_pi();
 
 	/// Return pi / 4.
 	/// @see gtc_constants
@@ -92,10 +104,20 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_DECL genType one_over_pi();
 
+	/// Return 1 / (pi * 2).
+	/// @see gtc_constants
+	template <typename genType>
+	GLM_FUNC_DECL genType one_over_two_pi();
+
 	/// Return 2 / pi.
 	/// @see gtc_constants
 	template <typename genType>
 	GLM_FUNC_DECL genType two_over_pi();
+
+	/// Return 4 / pi.
+	/// @see gtc_constants
+	template <typename genType>
+	GLM_FUNC_DECL genType four_over_pi();
 
 	/// Return 2 / sqrt(pi).
 	/// @see gtc_constants
@@ -181,5 +203,3 @@ namespace glm
 } //namespace glm
 
 #include "constants.inl"
-
-#endif//GLM_GTC_constants

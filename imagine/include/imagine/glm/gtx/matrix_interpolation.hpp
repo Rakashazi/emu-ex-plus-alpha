@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,6 +11,10 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -35,8 +39,7 @@
 /// <glm/gtx/matrix_interpolation.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_GTX_matrix_interpolation
-#define GLM_GTX_matrix_interpolation
+#pragma once
 
 // Dependency:
 #include "../glm.hpp"
@@ -53,36 +56,34 @@ namespace glm
 	/// Get the axis and angle of the rotation from a matrix.
 	/// From GLM_GTX_matrix_interpolation extension.
 	template <typename T, precision P>
-	void axisAngle(
-		detail::tmat4x4<T, P> const & mat,
-		detail::tvec3<T, P> & axis,
+	GLM_FUNC_DECL void axisAngle(
+		tmat4x4<T, P> const & mat,
+		tvec3<T, P> & axis,
 		T & angle);
 
 	/// Build a matrix from axis and angle.
 	/// From GLM_GTX_matrix_interpolation extension.
 	template <typename T, precision P>
-	detail::tmat4x4<T, P> axisAngleMatrix(
-		detail::tvec3<T, P> const & axis,
+	GLM_FUNC_DECL tmat4x4<T, P> axisAngleMatrix(
+		tvec3<T, P> const & axis,
 		T const angle);
 
 	/// Extracts the rotation part of a matrix.
 	/// From GLM_GTX_matrix_interpolation extension.
 	template <typename T, precision P>
-	detail::tmat4x4<T, P> extractMatrixRotation(
-		detail::tmat4x4<T, P> const & mat);
+	GLM_FUNC_DECL tmat4x4<T, P> extractMatrixRotation(
+		tmat4x4<T, P> const & mat);
 
 	/// Build a interpolation of 4 * 4 matrixes.
 	/// From GLM_GTX_matrix_interpolation extension.
 	/// Warning! works only with rotation and/or translation matrixes, scale will generate unexpected results.
 	template <typename T, precision P>
-	detail::tmat4x4<T, P> interpolate(
-		detail::tmat4x4<T, P> const & m1,
-		detail::tmat4x4<T, P> const & m2,
+	GLM_FUNC_DECL tmat4x4<T, P> interpolate(
+		tmat4x4<T, P> const & m1,
+		tmat4x4<T, P> const & m2,
 		T const delta);
 
 	/// @}
 }//namespace glm
 
 #include "matrix_interpolation.inl"
-
-#endif//GLM_GTX_matrix_interpolation
