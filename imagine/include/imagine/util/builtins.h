@@ -17,10 +17,7 @@
 #endif
 
 // Make symbol remain visible after linking
-#define LVISIBLE __attribute__((visibility("default"), externally_visible))
-
-// Make symbol remain visible outside compilation unit
-#define EVISIBLE __attribute__((externally_visible))
+#define LVISIBLE __attribute__((visibility("default")))
 
 // Shortcut for GCC attributes
 #define ATTRS(...) __attribute__((__VA_ARGS__))

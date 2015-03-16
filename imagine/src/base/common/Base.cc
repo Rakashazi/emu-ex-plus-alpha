@@ -198,7 +198,7 @@ void operator delete[] (void *o) noexcept { mem_free(o); }
 namespace __gnu_cxx
 {
 
-EVISIBLE void __verbose_terminate_handler()
+void __verbose_terminate_handler()
 {
 	logErr("terminated by uncaught exception");
   abort();

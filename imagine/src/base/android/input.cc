@@ -15,6 +15,7 @@
 
 #define LOGTAG "Input"
 #include <dlfcn.h>
+#include <android/api-level.h>
 #include <imagine/base/Base.hh>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/logger/logger.h>
@@ -38,7 +39,7 @@ static struct TouchState
 } m[Config::Input::MAX_POINTERS];
 static uint numCursors = sizeofArray(m);
 
-#if CONFIG_ENV_ANDROID_MINSDK < 12
+#if __ANDROID_API__ < 12
 using AMotionEvent_getAxisValueProto = float (__NDK_FPABI__ *)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
 static AMotionEvent_getAxisValueProto AMotionEvent_getAxisValue{};
 static bool hasGetAxisValue()
@@ -79,6 +80,16 @@ static const Device *deviceForInputId(int osId)
 		}
 	}
 	return nullptr;
+}
+
+static Time makeTimeFromMotionEvent(AInputEvent *event)
+{
+	return Time::makeWithNSecs(AMotionEvent_getEventTime(event));
+}
+
+static Time makeTimeFromKeyEvent(AInputEvent *event)
+{
+	return Time::makeWithNSecs(AKeyEvent_getEventTime(event));
 }
 
 static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, int32_t &metaState, AInputEvent *event)
@@ -207,7 +218,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					//logMsg("from trackball");
 					auto x = AMotionEvent_getX(event, 0);
 					auto y = AMotionEvent_getY(event, 0);
-					auto time = AMotionEvent_getEventTime(event);
+					auto time = makeTimeFromMotionEvent(event);
 					int iX = x * 1000., iY = y * 1000.;
 					auto pos = transformInputPos(Base::mainWindow(), {iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
@@ -242,7 +253,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 								AMotionEvent_getX(event, 0),
 								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
-								AMotionEvent_getEventTime(event), isTouch);
+								makeTimeFromMotionEvent(event), isTouch);
 						return 1;
 					}
 					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
@@ -260,7 +271,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 							AMotionEvent_getX(event, i),
 							AMotionEvent_getY(event, i),
 							AMotionEvent_getPointerId(event, i),
-							AMotionEvent_getEventTime(event), isTouch);
+							makeTimeFromMotionEvent(event), isTouch);
 					}
 					return 1;
 				}
@@ -274,14 +285,14 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					}
 					auto enumID = dev->enumId();
 					//logMsg("Joystick input from %s", dev->name());
-
+					auto time = makeTimeFromMotionEvent(event);
 					if(hasGetAxisValue())
 					{
 						for(auto &axis : dev->axis)
 						{
 							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, *dev, win);
+							axis.keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
 						}
 					}
 					else
@@ -290,7 +301,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 						iterateTimes(std::min(dev->axis.size(), (uint)2), i)
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, *dev, win);
+							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
 						}
 					}
 					return 1;
@@ -327,13 +338,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				{
 					return 0;
 				}
-				//handleKeyEvent(keyCode, AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? 0 : 1, dev->enumId(), metaState & AMETA_SHIFT_ON, AKeyEvent_getEventTime(event), *dev);
 				uint shiftState = metaState & AMETA_SHIFT_ON;
-				auto time = AKeyEvent_getEventTime(event);
+				auto time = makeTimeFromKeyEvent(event);
 				assert((uint)keyCode < Keycode::COUNT);
 				uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
 				#ifdef CONFIG_INPUT_ICADE
-				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, *dev, Base::mainWindow())))
+				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
 				#endif
 				{
 					cancelKeyRepeatTimer();
@@ -420,7 +430,7 @@ void processInputWithHasEvents(AInputQueue *inputQueue)
 // dlsym extra functions from supplied libandroid.so
 bool dlLoadAndroidFuncs(void *libandroid)
 {
-	#if CONFIG_ENV_ANDROID_MINSDK < 12
+	#if __ANDROID_API__ < 12
 	if(Base::androidSDK() < 12)
 	{
 		return false;
@@ -455,6 +465,59 @@ static const char* aInputSourceToStr(uint source)
 DragPointer *dragState(int p)
 {
 	return &m[p].dragState;
+}
+
+Time Time::makeWithNSecs(uint64_t nsecs)
+{
+	Time time;
+	time.t = IG::Time::makeWithNSecs(nsecs);
+	return time;
+}
+
+Time Time::makeWithUSecs(uint64_t usecs)
+{
+	Time time;
+	time.t = IG::Time::makeWithUSecs(usecs);
+	return time;
+}
+
+Time Time::makeWithMSecs(uint64_t msecs)
+{
+	Time time;
+	time.t = IG::Time::makeWithMSecs(msecs);
+	return time;
+}
+
+Time Time::makeWithSecs(uint64_t secs)
+{
+	Time time;
+	time.t = IG::Time::makeWithSecs(secs);
+	return time;
+}
+
+uint64_t Time::nSecs() const
+{
+	return t.nSecs();
+}
+
+uint64_t Time::uSecs() const
+{
+	return t.uSecs();
+}
+
+uint64_t Time::mSecs() const
+{
+	return t.mSecs();
+}
+
+uint64_t Time::secs() const
+{
+	return t.secs();
+}
+
+Time::operator IG::Time() const
+{
+	return t;
 }
 
 }

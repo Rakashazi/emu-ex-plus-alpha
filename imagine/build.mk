@@ -37,10 +37,6 @@ include $(imagineSrcDir)/util/system/pagesize.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
 
-ifeq ($(ENV), android)
- configDefs += SUPPORT_ANDROID_DIRECT_TEXTURE
-endif
-
 libName := imagine$(libNameExt)
 ifndef RELEASE
  libName := $(libName)-debug

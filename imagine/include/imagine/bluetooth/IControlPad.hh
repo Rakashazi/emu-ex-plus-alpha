@@ -88,5 +88,5 @@ private:
 	BluetoothAddr addr;
 
 	static uint findFreeDevId();
-	void processBtnReport(const char *btnData, uint player);
+	void processBtnReport(const char *btnData, Input::Time time, uint player);
 };

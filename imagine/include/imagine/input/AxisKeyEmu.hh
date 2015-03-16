@@ -64,7 +64,7 @@ struct AxisKeyEmu
 		return keys;
 	}
 
-	bool dispatch(Range pos, uint id, uint map, const Device &dev, Base::Window &win)
+	bool dispatch(Range pos, uint id, uint map, Time time, const Device &dev, Base::Window &win)
 	{
 		auto updateKeys = update(pos);
 		if(!updateKeys.updated)
@@ -74,11 +74,11 @@ struct AxisKeyEmu
 		if(updateKeys.released)
 		{
 			cancelKeyRepeatTimer();
-			win.dispatchInputEvent(Event(id, map, updateKeys.released, updateKeys.sysReleased, RELEASED, 0, 0, &dev));
+			win.dispatchInputEvent(Event(id, map, updateKeys.released, updateKeys.sysReleased, RELEASED, 0, time, &dev));
 		}
 		if(updateKeys.pushed)
 		{
-			Event event{id, map, updateKeys.pushed, updateKeys.sysPushed, PUSHED, 0, 0, &dev};
+			Event event{id, map, updateKeys.pushed, updateKeys.sysPushed, PUSHED, 0, time, &dev};
 			startKeyRepeatTimer(event);
 			win.dispatchInputEvent(event);
 		}

@@ -33,17 +33,18 @@ static JavaInstMethod<void> jMOGAOnPause, jMOGAOnResume, jMOGAExit;
 static AndroidInputDevice mogaDev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK};
 static bool mogaConnected = false;
 
-static void JNICALL mogaMotionEvent(JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong time)
+static void JNICALL mogaMotionEvent(JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
 {
 	assert(mogaConnected);
 	Base::endIdleByUserActivity();
-	logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)time);
-	mogaDev.axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-	mogaDev.axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-	mogaDev.axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-	mogaDev.axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-	mogaDev.axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
-	mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, mogaDev, Base::mainWindow());
+	auto time = Time::makeWithNSecs(timestamp);
+	logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
+	mogaDev.axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+	mogaDev.axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+	mogaDev.axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+	mogaDev.axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+	mogaDev.axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+	mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
 }
 
 static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
@@ -93,14 +94,15 @@ static void initMOGAJNI(JNIEnv *env)
 		{
 			"keyEvent", "(IIJ)V",
 			(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint, jlong))
-			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong time)
+			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong timestamp)
 			{
 				assert(mogaConnected);
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
 				assert((uint)keyCode < Keycode::COUNT);
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
-				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, &mogaDev};
+				auto time = Time::makeWithNSecs(timestamp);
+				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, time, &mogaDev};
 				startKeyRepeatTimer(event);
 				Base::mainWindow().dispatchInputEvent(event);
 			})

@@ -69,5 +69,5 @@ private:
 
 	static uint findFreeDevId();
 	static const char *reportIDToStr(uint id);
-	void processBtnReport(const uchar *btnData, uint player);
+	void processBtnReport(const uchar *btnData, Input::Time time, uint player);
 };

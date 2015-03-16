@@ -16,7 +16,7 @@
 #include <GLES/gl.h> // for glFlush()
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/android/sdk.hh>
+#include <imagine/base/android/android.hh>
 #include <imagine/time/Time.hh>
 
 namespace Base

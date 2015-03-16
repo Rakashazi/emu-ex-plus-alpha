@@ -191,9 +191,10 @@ struct AppleGameDevice : public Device
 		assert(key < AppleGC::COUNT);
 		if(pushState[key] == pressed)
 			return;
+		auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 		pushState[key] = pressed;
 		Base::endIdleByUserActivity();
-		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, this};
+		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, time, this};
 		if(repeatable)
 			startKeyRepeatTimer(event);
 		dispatchInputEvent(event);

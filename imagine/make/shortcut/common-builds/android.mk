@@ -29,6 +29,12 @@ ifneq ($(filter x86, $(android_arch)),)
  targets += $(x86Target)
 endif
 
+makefileOpts += projectPath=$(projectPath)
+
+ifdef imagineLibExt
+ makefileOpts += imagineLibExt=$(imagineLibExt)
+endif
+
 installTargets := $(targets:=-install)
 installLinksTargets := $(targets:=-install-links)
 commonBuildPath := $(buildSysPath)/shortcut/common-builds
@@ -41,12 +47,12 @@ install-links : $(installLinksTargets)
 
 $(targets) :
 	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$@.mk projectPath=$(projectPath)
+	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$@.mk $(makefileOpts)
 
 $(installTargets) :
 	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install=).mk projectPath=$(projectPath) install
+	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install=).mk $(makefileOpts) install
 
 $(installLinksTargets) :
 	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install-links=).mk projectPath=$(projectPath) install-links
+	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install-links=).mk $(makefileOpts) install-links

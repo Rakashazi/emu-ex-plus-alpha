@@ -9,7 +9,7 @@ all : android-apk
 
 android_minSDK ?= 9
 android_baseModuleSDK := 9
-android_targetSDK ?= 21
+android_targetSDK ?= 22
 
 android_soName := main
 

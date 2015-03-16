@@ -20,6 +20,9 @@
 #if defined __APPLE__
 #include <TargetConditionals.h>
 #endif
+#ifdef __ANDROID__
+#include <android/api-level.h>
+#endif
 #include "machine.hh"
 
 namespace Config
@@ -63,8 +66,8 @@ static const bool envIsWebOS3 =
 static const bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
 
 static const uint ENV_ANDROID_MINSDK =
-	#if CONFIG_ENV_ANDROID_MINSDK
-	CONFIG_ENV_ANDROID_MINSDK;
+	#ifdef __ANDROID_API__
+	__ANDROID_API__;
 	#else
 	0;
 	#endif
@@ -88,7 +91,7 @@ static constexpr bool DEBUG_BUILD = false;
 
 #ifdef CONFIG_MACHINE_OUYA
 #define ENV_NOTE "OUYA"
-#elif CONFIG_ENV_ANDROID_MINSDK == 9
+#elif __ANDROID_API__ >= 9
 #define ENV_NOTE "Android 2.3+"
 #endif
 

@@ -18,9 +18,9 @@ endif
 
 HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 
-libName := emuframework
+libName := emuframework$(libNameExt)
 ifndef RELEASE
- libName := emuframework-debug
+ libName := $(libName)-debug
 endif
 
 target := lib$(libName)

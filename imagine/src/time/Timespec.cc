@@ -75,19 +75,6 @@ uint64_t Time::secs() const
 	return nSecs() / NSEC_PER_SEC;
 }
 
-Time & Time::operator -=(Time const& rhs)
-{
-	assert(t >= rhs.t);
-	t = t - rhs.t;
-	return *this;
-}
-
-Time & Time::operator +=(Time const& rhs)
-{
-	t = t + rhs.t;
-	return *this;
-}
-
 Time::operator float() const
 {
 	return float(t)/1.0e9f;
@@ -96,26 +83,6 @@ Time::operator float() const
 Time::operator double() const
 {
 	return double(t)/double(1.0e9);
-}
-
-Time::operator bool() const
-{
-	return t;
-}
-
-bool Time::operator <(Time const& rhs) const
-{
-	return t < rhs.t;
-}
-
-bool Time::operator >(Time const& rhs) const
-{
-	return t > rhs.t;
-}
-
-bool Time::operator ==(Time const& rhs) const
-{
-	return t == rhs.t;
 }
 
 }

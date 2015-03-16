@@ -22,12 +22,20 @@
 namespace Input
 {
 
-using Time = double; // NSTimeInterval
+class Time;
 
-static Time msToTime(int ms)
+class TimeIOS
 {
-	return ms / 1000.;
-}
+protected:
+	double t = 0; // time in seconds
+public:
+	constexpr TimeIOS() {}
+	double &primitiveVal() { return t; }
+	const double &primitiveVal() const { return t; }
+	static Time makeWithSecsD(double t);
+};
+
+using TimeImpl = TimeIOS;
 
 using Key = uint16;
 

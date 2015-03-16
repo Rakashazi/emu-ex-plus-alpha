@@ -33,6 +33,10 @@
 #define DEV_NODE_PATH "/dev/input"
 static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
 
+static constexpr uint64_t NSEC_PER_USEC = 1000;
+static constexpr uint64_t USEC_PER_MSEC = 1000;
+static constexpr uint64_t USEC_PER_SEC = 1000000;
+
 static int dirFsFilter(const char *name, int type)
 {
 	return type == Fs::TYPE_FILE && strstr(name, "event");
@@ -144,13 +148,14 @@ struct EvdevInputDevice : public Device
 		{
 			auto &ev = event[i];
 			//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
-			switch(event[i].type)
+			auto time = Time::makeWithUSecs(((uint64_t)ev.time.tv_sec * USEC_PER_SEC) + (uint64_t)ev.time.tv_usec);
+			switch(ev.type)
 			{
 				bcase EV_KEY:
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
 					auto key = toSysKey(ev.code);
-					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, this};
+					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -161,7 +166,7 @@ struct EvdevInputDevice : public Device
 						continue; // out of range or inactive
 					}
 					//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_SYSTEM, *this, Base::mainWindow());
+					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_SYSTEM, time, *this, Base::mainWindow());
 				}
 			}
 		}
@@ -481,6 +486,53 @@ void initEvdev()
 			continue;
 		processDevNode(path.data(), id, false);
 	}
+}
+
+Time Time::makeWithNSecs(uint64_t nsecs)
+{
+	return makeWithUSecs(nsecs / NSEC_PER_USEC);
+}
+
+Time Time::makeWithUSecs(uint64_t usecs)
+{
+	Time time;
+	time.t = usecs;
+	return time;
+}
+
+Time Time::makeWithMSecs(uint64_t msecs)
+{
+	return makeWithUSecs(msecs * USEC_PER_MSEC);
+}
+
+Time Time::makeWithSecs(uint64_t secs)
+{
+	return makeWithUSecs(secs * USEC_PER_SEC);
+}
+
+uint64_t Time::nSecs() const
+{
+	return uSecs() * NSEC_PER_USEC;
+}
+
+uint64_t Time::uSecs() const
+{
+	return t;
+}
+
+uint64_t Time::mSecs() const
+{
+	return uSecs() / USEC_PER_MSEC;
+}
+
+uint64_t Time::secs() const
+{
+	return uSecs() / USEC_PER_SEC;
+}
+
+Time::operator IG::Time() const
+{
+	return IG::Time::makeWithUSecs(uSecs());
 }
 
 }

@@ -390,9 +390,9 @@ bool handleXI2GenericEvent(XEvent &event)
 		return true;
 	}
 	auto &win = *destWin;
-
+	auto time = Time::makeWithMSecs(ievent.time); // X11 timestamps are in ms
 	auto handleKeyEvent =
-		[](Base::Window &win, XIDeviceEvent &ievent, bool pushed)
+		[](Base::Window &win, XIDeviceEvent &ievent, Time time, bool pushed)
 		{
 			auto action = pushed ? PUSHED : RELEASED;
 			if(pushed)
@@ -409,12 +409,12 @@ bool handleXI2GenericEvent(XEvent &event)
 			{
 				#ifdef CONFIG_INPUT_ICADE
 				if(!dev->iCadeMode()
-					|| (dev->iCadeMode() && !processICadeKey(k, action, *dev, win)))
+					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))
 				#endif
 				{
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
-					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, ievent.time, dev};
+					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, time, dev};
 					ev.rawKey = ievent.detail;
 					win.dispatchInputEvent(ev);
 				}
@@ -424,24 +424,24 @@ bool handleXI2GenericEvent(XEvent &event)
 	switch(ievent.evtype)
 	{
 		bcase XI_ButtonPress:
-			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, ievent.time);
+			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time);
 		bcase XI_ButtonRelease:
-			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, ievent.time);
+			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time);
 		bcase XI_Motion:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, ievent.time);
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, time);
 		bcase XI_Enter:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, ievent.time);
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, time);
 		bcase XI_Leave:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, ievent.time);
+			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, time);
 		bcase XI_FocusIn:
 			win.dispatchFocusChange(true);
 		bcase XI_FocusOut:
 			win.dispatchFocusChange(false);
 			deinitKeyRepeatTimer();
 		bcase XI_KeyPress:
-			handleKeyEvent(win, ievent, true);
+			handleKeyEvent(win, ievent, time, true);
 		bcase XI_KeyRelease:
-			handleKeyEvent(win, ievent, false);
+			handleKeyEvent(win, ievent, time, false);
 	}
 	XFreeEventData(dpy, &event.xcookie);
 	return true;

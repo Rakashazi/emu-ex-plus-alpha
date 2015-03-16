@@ -239,13 +239,13 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			// check if inputBuffer is complete
 			if(inputBufferPos == 6)
 			{
-				//processNubDataForButtonEmulation((schar*)inputBuffer, player);
+				auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Event::MAP_ICONTROLPAD, *this, Base::mainWindow()))
+					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Event::MAP_ICONTROLPAD, time, *this, Base::mainWindow()))
 						Base::endIdleByUserActivity();
 				}
-				processBtnReport(&inputBuffer[4], player);
+				processBtnReport(&inputBuffer[4], time, player);
 				inputBufferPos = 0;
 			}
 			bytesLeft -= processBytes;
@@ -256,7 +256,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const char *btnData, uint player)
+void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint player)
 {
 	using namespace Input;
 	forEachInArray(iCPDataAccess, e)
@@ -267,7 +267,7 @@ void IControlPad::processBtnReport(const char *btnData, uint player)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ICONTROLPAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_ICONTROLPAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

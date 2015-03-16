@@ -19,7 +19,7 @@ template <class T>
 class NotEquals
 {
 public:
-	constexpr NotEquals() { }
+	constexpr NotEquals() {}
 	friend bool operator!=(const T &lhs, const T &rhs) { return !(lhs == rhs); }
 };
 
@@ -27,7 +27,7 @@ template <class T>
 class Compares
 {
 public:
-	constexpr Compares() { }
+	constexpr Compares() {}
 	friend bool operator<=(const T &lhs, const T &rhs) { return !(lhs > rhs); }
 	friend bool operator>=(const T &lhs, const T &rhs) { return !(lhs < rhs); }
 };
@@ -36,129 +36,106 @@ template <class T>
 class Adds
 {
 public:
-	constexpr Adds() { }
+	constexpr Adds() {}
 	friend T operator+(const T &v1, const T &v2)
 	{
-		T sum(v1);
+		T sum{v1};
 		sum += v2;
 		return sum;
 	}
 };
 
-/*template <class T>
-class AddsConv
-{
-public:
-	template <class T2>
-	friend T operator+(const T &v1, const T2 &v2)
-	{
-	    return T(v1 + T(v2));
-	}
-
-	template <class T2>
-	friend T operator+(const T2 &v1, const T &v2)
-	{
-	    return v2 + v1;
-	}
-};*/
-
 template <class T>
 class Subtracts
 {
 public:
-	constexpr Subtracts() { }
+	constexpr Subtracts() {}
 	friend T operator-(const T &v1, const T &v2)
 	{
-		T diff(v1);
+		T diff{v1};
 		diff -= v2;
 		return diff;
 	}
 };
 
-/*template <class T>
-class SubtractsConv
-{
-public:
-	template <class T2>
-	friend T operator-(const T &v1, const T2 &v2)
-	{
-	    return T(v1 - T(v2));
-	}
-
-	template <class T2>
-	friend T operator-(const T2 &v1, const T &v2)
-	{
-	    return T(T(v1) - v2);
-	}
-};*/
-
 template <class T>
 class Multiplies
 {
 public:
-	constexpr Multiplies() { }
+	constexpr Multiplies() {}
 	friend T operator*(const T &v1, const T &v2)
 	{
-		T prod(v1);
+		T prod{v1};
 		prod *= v2;
 		return prod;
 	}
 };
 
-/*template <class T>
-class MultipliesConv
-{
-public:
-	template <class T2>
-	friend T operator*(const T &v1, const T2 &v2)
-	{
-	    return T(v1 * T(v2));
-	}
-
-	template <class T2>
-	friend T operator*(const T2 &v1, const T &v2)
-	{
-	    return T(T(v1) * v2);
-	}
-};*/
-
 template <class T>
 class Divides
 {
 public:
-	constexpr Divides() { }
+	constexpr Divides() {}
 	friend T operator/(const T &v1, const T &v2)
 	{
-		T quot(v1);
+		T quot{v1};
 		quot /= v2;
 		return quot;
 	}
 };
 
-/*template <class T>
-class DividesConv
-{
-public:
-	template <class T2>
-	friend T operator/(const T &v1, const T2 &v2)
-	{
-	    return T(v1 / T(v2));
-	}
-
-	template <class T2>
-	friend T operator/(const T2 &v1, const T &v2)
-	{
-	    return T(T(v1) / v2);
-	}
-};*/
+template <class T>
+class Arithmetics : public Adds<T>, public Subtracts<T>, public Multiplies<T>, public Divides<T> {};
 
 template <class T>
-class Arithmetics : Adds<T>, Subtracts<T>, Multiplies<T>, Divides<T>
+class PrimitiveOperators : public Arithmetics<T>, public NotEquals<T>, public Compares<T>
 {
+public:
+	T &operator +=(T rhs)
+	{
+		auto &val = static_cast<T*>(this)->primitiveVal();
+		val = val + rhs.primitiveVal();
+		return *static_cast<T*>(this);
+	}
 
+	T &operator -=(T rhs)
+	{
+		auto &val = static_cast<T*>(this)->primitiveVal();
+		val = val - rhs.primitiveVal();
+		return *static_cast<T*>(this);
+	}
+
+	T &operator *=(T rhs)
+	{
+		auto &val = static_cast<T*>(this)->primitiveVal();
+		val = val * rhs.primitiveVal();
+		return *static_cast<T*>(this);
+	}
+
+	T &operator /=(T rhs)
+	{
+		auto &val = static_cast<T*>(this)->primitiveVal();
+		val = val / rhs.primitiveVal();
+		return *static_cast<T*>(this);
+	}
+
+	explicit operator bool() const
+	{
+		return static_cast<const T*>(this)->primitiveVal();
+	}
+
+	bool operator <(T rhs) const
+	{
+		return static_cast<const T*>(this)->primitiveVal() < rhs.primitiveVal();
+	}
+
+	bool operator >(T rhs) const
+	{
+		return static_cast<const T*>(this)->primitiveVal() > rhs.primitiveVal();
+	}
+
+	bool operator ==(T rhs) const
+	{
+		return static_cast<const T*>(this)->primitiveVal() == rhs.primitiveVal();
+	}
 };
-
-/*template <class T>
-class ArithmeticsConv : AddsConv<T>, SubtractsConv<T>, MultipliesConv<T>, DividesConv<T>
-{
-};*/

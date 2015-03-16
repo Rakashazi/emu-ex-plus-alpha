@@ -15,11 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "sdk.hh"
+#include <android/api-level.h>
+#include <imagine/engine-globals.h>
 
 namespace Base
 {
 
+uint androidSDK();
 void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();

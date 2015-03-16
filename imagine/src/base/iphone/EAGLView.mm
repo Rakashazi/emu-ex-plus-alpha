@@ -224,9 +224,10 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
+				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, 0, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, time, nullptr});
 				break;
 			}
 		}
@@ -248,9 +249,10 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
+				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, 0, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, time, nullptr});
 				break;
 			}
 		}
@@ -273,9 +275,10 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
+				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, 0, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, time, nullptr});
 				break;
 			}
 		}

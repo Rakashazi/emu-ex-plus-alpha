@@ -353,7 +353,7 @@ void OptionView::imgEffectPixelFormatInit()
 {
 	static const char *str[]
 	{
-		"Auto", "RGB565", "RGBA8888"
+		"Auto", "RGB 16", "RGB 24"
 	};
 	uint init = 0;
 	switch(optionImageEffectPixelFormat.val)
@@ -364,11 +364,12 @@ void OptionView::imgEffectPixelFormatInit()
 	imgEffectPixelFormat.init(str, init, sizeofArray(str));
 }
 
+#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 void OptionView::windowPixelFormatInit()
 {
 	static const char *str[]
 	{
-		"Auto", "RGB565", "RGB888"
+		"Auto", "RGB 16", "RGB 24"
 	};
 	uint init = 0;
 	switch(optionWindowPixelFormat.val)
@@ -378,6 +379,7 @@ void OptionView::windowPixelFormatInit()
 	}
 	windowPixelFormat.init(str, init, sizeofArray(str));
 }
+#endif
 
 void OptionView::fontSizeInit()
 {

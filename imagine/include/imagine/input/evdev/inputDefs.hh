@@ -20,6 +20,20 @@
 namespace Input
 {
 
+class TimeLinux
+{
+protected:
+	uint64_t t = 0; // time in micro-seconds
+public:
+	constexpr TimeLinux() {}
+	uint64_t &primitiveVal() { return t; }
+	const uint64_t &primitiveVal() const { return t; }
+};
+
+using TimeImpl = TimeLinux;
+
+using Key = uint16;
+
 namespace Evdev
 {
 	static const uint
@@ -105,7 +119,5 @@ namespace Evdev
 	static const uint EX_KEYS = 18;
 	static const uint COUNT = KEY_CNT + EX_KEYS;
 }
-
-const char *evdevButtonName(Key b);
 
 }

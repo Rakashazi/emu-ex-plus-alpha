@@ -17,7 +17,6 @@
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/android/sdk.hh>
 #include "android.hh"
 #include "internal.hh"
 #include <imagine/util/fd-utils.h>

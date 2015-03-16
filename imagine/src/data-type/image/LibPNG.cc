@@ -29,16 +29,16 @@ bool Png::supportUncommonConv = 0;
 
 #ifndef PNG_ERROR_TEXT_SUPPORTED
 
-CLINK void PNGAPI EVISIBLE png_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
-CLINK void PNGAPI EVISIBLE png_error(png_const_structrp png_ptr, png_const_charp error_message)
+CLINK void PNGAPI png_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
+CLINK void PNGAPI png_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
 	// TODO: print out more verbose error
 	logErr("fatal libpng error");
 	Base::abort();
 }
 
-CLINK void PNGAPI EVISIBLE png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
-CLINK void PNGAPI EVISIBLE png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message)
+CLINK void PNGAPI png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
+CLINK void PNGAPI png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
 	png_error(png_ptr, error_message);
 }
@@ -47,13 +47,13 @@ CLINK void PNGAPI EVISIBLE png_chunk_error(png_const_structrp png_ptr, png_const
 
 #ifndef PNG_WARNINGS_SUPPORTED
 
-CLINK void PNGAPI EVISIBLE png_warning(png_const_structrp png_ptr, png_const_charp warning_message)
+CLINK void PNGAPI png_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
 	// TODO: print out more verbose warning
 	logWarn("libpng warning");
 }
 
-CLINK void PNGAPI EVISIBLE png_chunk_warning(png_const_structrp png_ptr, png_const_charp warning_message)
+CLINK void PNGAPI png_chunk_warning(png_const_structrp png_ptr, png_const_charp warning_message)
 {
 	png_warning(png_ptr, warning_message);
 }

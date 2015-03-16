@@ -22,18 +22,10 @@
 #include <X11/XF86keysym.h>
 #undef BOOL
 #undef pointer
+#include <imagine/input/evdev/inputDefs.hh>
 
 namespace Input
 {
-
-using Time = ::Time; // X time base
-
-static Time msToTime(int ms)
-{
-	return ms;
-}
-
-using Key = uint16;
 
 // Note: only first 15-bits of XF86XK_* values are used
 // so they fit in 2 bytes and don't conflict with other keys

@@ -208,14 +208,14 @@ static Key keyToICadeOffKey(Key key)
 	return 0;
 }
 
-bool processICadeKey(Key key, uint action, const Device &dev, Base::Window &win)
+bool processICadeKey(Key key, uint action, Time time, const Device &dev, Base::Window &win)
 {
 	if(Key onKey = keyToICadeOnKey(key))
 	{
 		if(action == PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			Event event{0, Event::MAP_ICADE, onKey, onKey, PUSHED, 0, 0, &dev};
+			Event event{0, Event::MAP_ICADE, onKey, onKey, PUSHED, 0, time, &dev};
 			startKeyRepeatTimer(event);
 			win.dispatchInputEvent(event);
 		}
@@ -226,7 +226,7 @@ bool processICadeKey(Key key, uint action, const Device &dev, Base::Window &win)
 		if(action == PUSHED)
 		{
 			cancelKeyRepeatTimer();
-			win.dispatchInputEvent({0, Event::MAP_ICADE, offKey, offKey, RELEASED, 0, 0, &dev});
+			win.dispatchInputEvent({0, Event::MAP_ICADE, offKey, offKey, RELEASED, 0, time, &dev});
 		}
 		return true;
 	}

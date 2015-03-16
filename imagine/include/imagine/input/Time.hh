@@ -15,19 +15,26 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/ansiTypes.h>
+#include <imagine/time/Time.hh>
+#include <imagine/util/operators.hh>
 
-#ifndef CONFIG_ENV_ANDROID_MINSDK
-#warning "CONFIG_ENV_ANDROID_MINSDK not defined, using 9"
-#define CONFIG_ENV_ANDROID_MINSDK 9
-#elif CONFIG_ENV_ANDROID_MINSDK < 9
-#error "Only CONFIG_ENV_ANDROID_MINSDK >= 9 is supported"
-#endif
-
-namespace Base
+namespace Input
 {
 
-const uint aMinSDK = CONFIG_ENV_ANDROID_MINSDK;
-uint androidSDK();
+class Time : public TimeImpl, public PrimitiveOperators<Time>
+{
+public:
+	constexpr Time() {}
+	static Time makeWithNSecs(uint64_t nsecs);
+	static Time makeWithUSecs(uint64_t usecs);
+	static Time makeWithMSecs(uint64_t msecs);
+	static Time makeWithSecs(uint64_t secs);
+	uint64_t nSecs() const;
+	uint64_t uSecs() const;
+	uint64_t mSecs() const;
+	uint64_t secs() const;
+	operator IG::Time() const;
+};
+
 
 }

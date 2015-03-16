@@ -1,5 +1,7 @@
 #pragma once
 
+#include <imagine/time/Time.hh>
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -18,12 +20,17 @@
 namespace Input
 {
 
-using Time = int64_t; // java.lang.System.nanoTime() time base
-
-static Time msToTime(int ms)
+class TimeAndroid
 {
-	return ms * 1000000.;
-}
+protected:
+	IG::Time t;
+public:
+	constexpr TimeAndroid() {}
+	uint64_t &primitiveVal() { return t.primitiveVal(); }
+	const uint64_t &primitiveVal() const { return t.primitiveVal(); }
+};
+
+using TimeImpl = TimeAndroid;
 
 using Key = uint16;
 

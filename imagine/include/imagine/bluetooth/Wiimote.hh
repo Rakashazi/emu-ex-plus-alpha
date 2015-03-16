@@ -92,8 +92,8 @@ private:
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
 	static void decodeProSticks(const uchar *proSticks, int &lX, int &lY, int &rX, int &rY);
-	void processCoreButtons(const uchar *packet, uint player);
-	void processClassicButtons(const uchar *packet, uint player);
-	void processProButtons(const uchar *packet, uint player);
-	void processNunchukButtons(const uchar *packet, uint player);
+	void processCoreButtons(const uchar *packet, Input::Time time, uint player);
+	void processClassicButtons(const uchar *packet, Input::Time time, uint player);
+	void processProButtons(const uchar *packet, Input::Time time, uint player);
+	void processNunchukButtons(const uchar *packet, Input::Time time, uint player);
 };

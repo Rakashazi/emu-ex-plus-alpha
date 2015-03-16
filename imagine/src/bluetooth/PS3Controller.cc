@@ -231,6 +231,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 	{
 		bcase 0xA1:
 		{
+			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 			const uchar *digitalBtnData = &packet[3];
 			forEachInArray(padDataAccess, e)
 			{
@@ -239,7 +240,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e->keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					Event event{player, Event::MAP_PS3PAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, 0, this};
+					Event event{player, Event::MAP_PS3PAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -250,7 +251,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				if(axisKey[i].dispatch(stickData[i], player, Event::MAP_PS3PAD, *this, Base::mainWindow()))
+				if(axisKey[i].dispatch(stickData[i], player, Event::MAP_PS3PAD, time, *this, Base::mainWindow()))
 					Base::endIdleByUserActivity();
 			}
 		}

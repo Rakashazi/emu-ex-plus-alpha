@@ -195,7 +195,7 @@ fi
 
 echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath
 echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-targetSDKOutput='android:targetSdkVersion="21"'
+targetSDKOutput='android:targetSdkVersion="22"'
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />

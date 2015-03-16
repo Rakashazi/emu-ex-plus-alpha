@@ -23,6 +23,7 @@
 #include <imagine/input/config.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
+#include <imagine/input/Time.hh>
 
 namespace Base
 {

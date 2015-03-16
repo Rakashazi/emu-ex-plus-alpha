@@ -177,6 +177,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		// check if inputBuffer is complete
 		if(inputBufferPos == packetSize)
 		{
+			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 			uint rID = inputBuffer[2];
 			logMsg("report id 0x%X, %s", rID, reportIDToStr(rID));
 			switch(rID)
@@ -185,14 +186,14 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				{
 					const uchar *key = &inputBuffer[3];
 					logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
-					processBtnReport(key, player);
+					processBtnReport(key, time, player);
 				}
 				bcase RID_8BA_2A_JS_REPORT:
 					logMsg("got analog report %d %d", (schar)inputBuffer[4], (schar)inputBuffer[5]);
 					//processStickDataForButtonEmulation((schar*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Event::MAP_ZEEMOTE, *this, Base::mainWindow()))
+						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Event::MAP_ZEEMOTE, time, *this, Base::mainWindow()))
 							Base::endIdleByUserActivity();
 					}
 			}
@@ -218,7 +219,7 @@ const char *Zeemote::reportIDToStr(uint id)
 	return "Unknown";
 }
 
-void Zeemote::processBtnReport(const uchar *btnData, uint player)
+void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint player)
 {
 	using namespace Input;
 	uchar btnPush[4] {0};
@@ -236,41 +237,10 @@ void Zeemote::processBtnReport(const uchar *btnData, uint player)
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
 }
-
-
-//void Zeemote::processStickDataForButtonEmulation(const schar *pos, int player)
-//{
-//	using namespace Input;
-//	//logMsg("CC sticks left %dx%d right %dx%d", pos[0], pos[1], pos[2], pos[3]);
-//	forEachInArray(stickBtn, e)
-//	{
-//		bool newState;
-//		switch(e_i)
-//		{
-//			case 0: newState = pos[0] < -63; break;
-//			case 1: newState = pos[0] > 63; break;
-//			case 2: newState = pos[1] > 63; break;
-//			case 3: newState = pos[1] < -63; break;
-//			default: bug_branch("%d", (int)e_i); return;
-//		}
-//		if(*e != newState)
-//		{
-//			static const uint btnEvent[] =
-//			{
-//				Input::Zeemote::LEFT, Input::Zeemote::RIGHT, Input::Zeemote::DOWN, Input::Zeemote::UP,
-//			};
-//			Base::endIdleByUserActivity();
-//			Event event{(uint)player, Event::MAP_ZEEMOTE, (Key)btnEvent[e_i], newState ? PUSHED : RELEASED, 0, 0, this};
-//			startKeyRepeatTimer(event);
-//			dispatchInputEvent(event);
-//		}
-//		*e = newState;
-//	}
-//}

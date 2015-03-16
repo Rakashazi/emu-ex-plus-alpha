@@ -28,7 +28,7 @@
 namespace IG
 {
 
-class Time : public TimeImpl, public Arithmetics<Time>, public Compares<Time>
+class Time : public TimeImpl, public PrimitiveOperators<Time>
 {
 public:
 	constexpr Time() {}
@@ -41,14 +41,8 @@ public:
 	uint64_t uSecs() const;
 	uint64_t mSecs() const;
 	uint64_t secs() const;
-	Time & operator -=(Time const& rhs);
-	Time & operator +=(Time const& rhs);
 	operator float() const;
 	operator double() const;
-	explicit operator bool() const;
-	bool operator <(Time const& rhs) const;
-	bool operator >(Time const& rhs) const;
-	bool operator ==(Time const& rhs) const;
 };
 
 template <class FUNC>

@@ -18,7 +18,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/number.h>
 #include "../../base/android/android.hh"
-#include <imagine/base/android/sdk.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #if defined __ANDROID__ && defined CONFIG_MACHINE_GENERIC_ARMV6

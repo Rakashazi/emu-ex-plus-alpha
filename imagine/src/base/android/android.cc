@@ -19,9 +19,9 @@
 #include <android/configuration.h>
 #include <android/looper.h>
 #include <android/native_activity.h>
+#include <android/api-level.h>
 #include <dlfcn.h>
 #include <imagine/logger/logger.h>
-#include <imagine/base/android/sdk.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/fs/sys.hh>
@@ -50,7 +50,7 @@ static JavaInstMethod<void> jSetUIVisibility;
 static JavaInstMethod<jobject> jNewFontRenderer;
 JavaInstMethod<void> jSetRequestedOrientation;
 static const char *filesDir = nullptr, *eStoreDir = nullptr;
-static uint aSDK = aMinSDK;
+static uint aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
 SurfaceRotation osRotation{};
 static SystemOrientationChangedDelegate onSystemOrientationChanged;
@@ -98,7 +98,7 @@ bool hasHardwareNavButtons()
 
 uint androidSDK()
 {
-	return std::max(aMinSDK, aSDK);
+	return std::max((uint)__ANDROID_API__, aSDK);
 }
 
 void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
@@ -222,7 +222,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 
 static void dlLoadFuncs()
 {
-	#if CONFIG_ENV_ANDROID_MINSDK >= 12
+	#if __ANDROID_API__ >= 12
 	 // no functions from dlopen needed if targeting at least Android 3.1 (SDK 12)
 	return;
 	#endif

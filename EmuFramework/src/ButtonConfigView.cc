@@ -41,7 +41,7 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool 
 	if(withPointerInput)
 		string_printf(str, "Push key to set:\n%s", actionName);
 	else
-		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nPush [Left] key in menu screen", actionName);
+		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionName);
 	text.init(str, View::defaultFace);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(withPointerInput)
@@ -240,9 +240,6 @@ static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
 
 void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 {
-	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
-	lastKeySetTime = e.time;
-	#endif
 	auto conf = mutableConfForDeviceConf(*devConf);
 	if(!conf)
 		return;
@@ -257,26 +254,22 @@ void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 
 void ButtonConfigView::inputEvent(const Input::Event &e)
 {
-	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
-	if(e.pushed() && e.time && lastKeySetTime)
-	{
-		auto durationSinceLastKeySet = e.time - lastKeySetTime;
-		if(durationSinceLastKeySet < Input::msToTime(100))
-		{
-			lastKeySetTime = 0;
-			logMsg("possible spurious input event after key set, ignoring");
-			return;
-		}
-	}
-	#endif
 	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
-		// unset key
-		onSet(Input::Event(), selected-1);
-		postDraw();
+		auto durationSinceLastKeySet = leftKeyPushTime ? e.time - leftKeyPushTime : Input::Time{};
+		leftKeyPushTime = e.time;
+		if(durationSinceLastKeySet && durationSinceLastKeySet <= Input::Time::makeWithMSecs(500))
+		{
+			// unset key
+			leftKeyPushTime = {};
+			onSet(Input::Event(), selected-1);
+			postDraw();
+		}
 	}
 	else
+	{
 		TableView::inputEvent(e);
+	}
 }
 
 void ButtonConfigView::init(const KeyCategory *cat,

@@ -356,26 +356,27 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 		logWarn("Unknown report in Wiimote packet");
 		return 1;
 	}
+	auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 	switch(packet[1])
 	{
 		bcase 0x30:
 		{
 			//logMsg("got core report");
 			//assert(device);
-			processCoreButtons(packet, player);
+			processCoreButtons(packet, time, player);
 		}
 
 		bcase 0x32:
 		{
 			//logMsg("got core+extension report");
 			//assert(device);
-			processCoreButtons(packet, player);
+			processCoreButtons(packet, time, player);
 			switch(extension)
 			{
 				bcase EXT_CC:
-					processClassicButtons(packet, player);
+					processClassicButtons(packet, time, player);
 				bcase EXT_NUNCHUK:
-					processNunchukButtons(packet, player);
+					processNunchukButtons(packet, time, player);
 			}
 		}
 
@@ -383,7 +384,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 		{
 			//logMsg("got core+extension19 report");
 			//assert(device);
-			processProButtons(packet, player);
+			processProButtons(packet, time, player);
 		}
 
 		bcase 0x20:
@@ -557,7 +558,7 @@ void Wiimote::decodeProSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, 
 	rY = ccSticks[6] | (ccSticks[7] << 8);
 }
 
-void Wiimote::processCoreButtons(const uchar *packet, uint player)
+void Wiimote::processCoreButtons(const uchar *packet, Input::Time time, uint player)
 {
 	using namespace Input;
 	auto btnData = &packet[2];
@@ -568,7 +569,7 @@ void Wiimote::processCoreButtons(const uchar *packet, uint player)
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Event::MAP_WIIMOTE, e->keyEvent), newState ? "pushed" : "released", player);
 			Base::endIdleByUserActivity();
-			Event event{(uint)player, Event::MAP_WIIMOTE, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{(uint)player, Event::MAP_WIIMOTE, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -576,7 +577,7 @@ void Wiimote::processCoreButtons(const uchar *packet, uint player)
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-void Wiimote::processClassicButtons(const uchar *packet, uint player)
+void Wiimote::processClassicButtons(const uchar *packet, Input::Time time, uint player)
 {
 	using namespace Input;
 	auto ccData = &packet[4];
@@ -585,7 +586,7 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 	decodeCCSticks(ccData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], player, Input::Event::MAP_WIIMOTE, *this, Base::mainWindow()))
+		if(axisKey[i].dispatch(stickPos[i], player, Input::Event::MAP_WIIMOTE, time, *this, Base::mainWindow()))
 			Base::endIdleByUserActivity();
 	}
 	forEachInArray(wiimoteCCDataAccess, e)
@@ -596,7 +597,7 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Event::MAP_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WII_CC, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, 0, &extDevice};
+			Event event{player, Event::MAP_WII_CC, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, time, &extDevice};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -604,7 +605,7 @@ void Wiimote::processClassicButtons(const uchar *packet, uint player)
 	memcpy(prevExtData, ccData, ccDataBytes);
 }
 
-void Wiimote::processProButtons(const uchar *packet, uint player)
+void Wiimote::processProButtons(const uchar *packet, Input::Time time, uint player)
 {
 	using namespace Input;
 	const uchar *proData = &packet[4];
@@ -613,7 +614,7 @@ void Wiimote::processProButtons(const uchar *packet, uint player)
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], player, Input::Event::MAP_WIIMOTE, *this, Base::mainWindow()))
+		if(axisKey[i].dispatch(stickPos[i], player, Input::Event::MAP_WIIMOTE, time, *this, Base::mainWindow()))
 			Base::endIdleByUserActivity();
 	}
 	forEachInArray(wiimoteProDataAccess, e)
@@ -624,7 +625,7 @@ void Wiimote::processProButtons(const uchar *packet, uint player)
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wii u pro", buttonName(Event::MAP_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WII_CC, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_WII_CC, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -632,14 +633,14 @@ void Wiimote::processProButtons(const uchar *packet, uint player)
 	memcpy(prevExtData, proData, proDataBytes);
 }
 
-void Wiimote::processNunchukButtons(const uchar *packet, uint player)
+void Wiimote::processNunchukButtons(const uchar *packet, Input::Time time, uint player)
 {
 	using namespace Input;
 	const uchar *nunData = &packet[4];
 	//processNunchukStickDataForButtonEmulation(player, nunData);
 	iterateTimes(2, i)
 	{
-		if(axisKey[i].dispatch(nunData[i], player, Input::Event::MAP_WIIMOTE, *this, Base::mainWindow()))
+		if(axisKey[i].dispatch(nunData[i], player, Input::Event::MAP_WIIMOTE, time, *this, Base::mainWindow()))
 			Base::endIdleByUserActivity();
 	}
 	forEachInArray(wiimoteNunchukDataAccess, e)
@@ -649,7 +650,7 @@ void Wiimote::processNunchukButtons(const uchar *packet, uint player)
 		{
 			//logMsg("%s %s @ wiimote nunchuk",buttonName(Event::MAP_WIIMOTE, e->keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WIIMOTE, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, 0, this};
+			Event event{player, Event::MAP_WIIMOTE, e->keyEvent, e->sysKey, !newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

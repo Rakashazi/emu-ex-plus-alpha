@@ -20,10 +20,6 @@
 #include <emuframework/EmuInput.hh>
 class InputManagerView;
 
-#ifdef CONFIG_BASE_ANDROID
-#define BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
-#endif
-
 class ButtonConfigSetView : public View
 {
 private:
@@ -73,9 +69,7 @@ private:
 	BtnConfigMenuItem *btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
-	#ifdef BUTTONCONFIGVIEW_CHECK_SPURIOUS_EVENTS
-	Input::Time lastKeySetTime = 0;
-	#endif
+	Input::Time leftKeyPushTime;
 
 	void onSet(const Input::Event &e, int keyToSet);
 
