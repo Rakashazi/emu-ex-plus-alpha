@@ -109,15 +109,15 @@ bool imageEffectPixelFormatIsValid(uint8 val)
 {
 	switch(val)
 	{
-		case PIXEL_UNKNOWN:
-		case PIXEL_RGB565:
-		case PIXEL_RGBA8888:
+		case IG::PIXEL_NONE:
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGBA8888:
 			return true;
 	}
 	return false;
 }
 
-Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, PIXEL_UNKNOWN, 0, imageEffectPixelFormatIsValid);
+Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
 
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
@@ -223,15 +223,15 @@ bool windowPixelFormatIsValid(uint8 val)
 {
 	switch(val)
 	{
-		case PIXEL_UNKNOWN:
-		case PIXEL_RGB565:
-		case PIXEL_RGB888:
+		case IG::PIXEL_NONE:
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGB888:
 			return true;
 	}
 	return false;
 }
 
-Byte1Option optionWindowPixelFormat(CFGKEY_WINDOW_PIXEL_FORMAT, PIXEL_UNKNOWN, 0, windowPixelFormatIsValid);
+Byte1Option optionWindowPixelFormat(CFGKEY_WINDOW_PIXEL_FORMAT, IG::PIXEL_NONE, 0, windowPixelFormatIsValid);
 #endif
 
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");

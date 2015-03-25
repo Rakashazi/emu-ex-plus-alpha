@@ -315,7 +315,7 @@ void EmuSystem::writeConfig(IO &io)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = ssFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ssFsFilter;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {

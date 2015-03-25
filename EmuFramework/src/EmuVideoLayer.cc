@@ -26,7 +26,7 @@ void EmuVideoLayer::init()
 {
 	disp.init({});
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize({video.vidPix.x, video.vidPix.y});
+	vidImgEffect.setImageSize(video.vidPix.size());
 	#endif
 }
 
@@ -46,7 +46,7 @@ void EmuVideoLayer::resetImage()
 	}
 	compileDefaultPrograms();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize({video.vidPix.x, video.vidPix.y});
+	vidImgEffect.setImageSize(video.vidPix.size());
 	#endif
 	setLinearFilter(useLinearFilter);
 }
@@ -60,7 +60,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		if((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
 			uint scaleFactor;
-			uint gameX = video.vidPix.x, gameY = video.vidPix.y;
+			uint gameX = video.vidPix.w(), gameY = video.vidPix.h();
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
@@ -264,13 +264,13 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, video.vidPix.y);
+	vidImgOverlay.place(disp, video.vidPix.h());
 }
 
 void EmuVideoLayer::placeEffect()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize({video.vidPix.x, video.vidPix.y});
+	vidImgEffect.setImageSize(video.vidPix.size());
 	#endif
 }
 

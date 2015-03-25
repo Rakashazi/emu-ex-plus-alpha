@@ -102,19 +102,19 @@ CallResult SurfaceTextureStorage::init(GLuint tex)
 
 CallResult SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 {
-	logMsg("setting size:%dx%d format:%s", desc.x, desc.y, desc.format.name);
-	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format);
+	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
+	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!winFormat)
 	{
 		logErr("pixel format not usable");
 		return INVALID_PARAMETER;
 	}
-	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.x, desc.y, winFormat) < 0)
+	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0)
 	{
 		logErr("ANativeWindow_setBuffersGeometry failed");
 		return INVALID_PARAMETER;
 	}
-	bpp = desc.format.bytesPerPixel;
+	bpp = desc.format().bytesPerPixel();
 	return OK;
 }
 

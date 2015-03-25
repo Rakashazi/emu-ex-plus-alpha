@@ -72,6 +72,10 @@ void processInputWithGetEvent(AInputQueue *inputQueue);
 void processInputWithHasEvents(AInputQueue *inputQueue);
 void onPauseMOGA(JNIEnv *env);
 void onResumeMOGA(JNIEnv *env, bool notify);
-bool dlLoadAndroidFuncs(void *libandroid);
+bool hasGetAxisValue();
 
 }
+
+#if __ANDROID_API__ < 12
+extern float (__NDK_FPABI__ *AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
+#endif

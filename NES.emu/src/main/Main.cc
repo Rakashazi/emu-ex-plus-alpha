@@ -175,9 +175,9 @@ FsDirFilterFunc EmuFilePicker::defaultFsFilter = nesFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = nesFsFilter;
 
 #ifdef USE_PIX_RGB565
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 #else
-static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 #endif
 
 const char *fceuReturnedError = 0;
@@ -339,9 +339,9 @@ void EmuSystem::closeSystem()
 void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 {
 	#ifdef USE_PIX_RGB565
-		nativeCol[index] = pixFmt->build(r >> 3, g >> 2, b >> 3, 0);
+	nativeCol[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
 	#else
-		nativeCol[index] = pixFmt->build(r, g, b, 0);
+	nativeCol[index] = pixFmt.desc().build(r, g, b, 0);
 	#endif
 	//logMsg("set palette %d %X", index, nativeCol[index]);
 }

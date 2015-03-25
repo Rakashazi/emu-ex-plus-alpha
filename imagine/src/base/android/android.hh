@@ -17,7 +17,7 @@
 
 #include <imagine/base/android/android.hh>
 #include <imagine/util/jni.hh>
-#include <imagine/util/pixel.h>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <android/looper.h>
 #include <android/asset_manager.h>
 #include "privateApi/GraphicBuffer.hh"
@@ -53,17 +53,7 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
-static int pixelFormatToDirectAndroidFormat(const PixelFormatDesc &format)
-{
-	switch(format.id)
-	{
-		case PIXEL_RGBA8888: return HAL_PIXEL_FORMAT_RGBA_8888;
-		case PIXEL_BGRA8888: return HAL_PIXEL_FORMAT_BGRA_8888;
-		case PIXEL_RGB888: return HAL_PIXEL_FORMAT_RGB_888;
-		case PIXEL_RGB565: return HAL_PIXEL_FORMAT_RGB_565;
-		default: return 0;
-	}
-}
+int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format);
 
 }
 

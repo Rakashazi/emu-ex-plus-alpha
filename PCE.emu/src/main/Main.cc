@@ -152,16 +152,16 @@ static const MDFN_PixelFormat mPixFmtBGRA8888 { MDFN_COLORSPACE_RGB, 16, 8, 0, 2
 	#if MDFN_PIXELFORMAT_SINGLE_BPP == 16
 	using Pixel = uint16;
 	static const MDFN_PixelFormat &mPixFmt = mPixFmtRGB565;
-	static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+	static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 	#else
 	using Pixel = uint32;
 	static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
-	static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
+	static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 	#endif
 #else
 using Pixel = uint32;
 static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
-static const PixelFormatDesc *pixFmt = &PixelFormatRGBA8888;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 #endif
 
 static const uint vidBufferX = 512, vidBufferY = 242;
@@ -372,8 +372,8 @@ void EmuSystem::configAudioRate()
 
 static bool updateEmuPixmap(uint width, uint height, char *pixBuff)
 {
-	if(unlikely(width != emuVideo.vidPix.x || height != emuVideo.vidPix.y
-		|| pixBuff != emuVideo.vidPix.data))
+	if(unlikely(width != emuVideo.vidPix.w() || height != emuVideo.vidPix.h()
+		|| pixBuff != emuVideo.vidPix.pixel({})))
 	{
 		//logMsg("display rect %d:%d:%d:%d", displayRect.x, displayRect.y, displayRect.w, displayRect.h);
 		emuVideo.initPixmap(pixBuff, pixFmt, width, height);

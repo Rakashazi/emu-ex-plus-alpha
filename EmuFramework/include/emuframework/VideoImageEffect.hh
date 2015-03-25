@@ -27,7 +27,7 @@ public:
 	{
 		const char *vShaderFilename;
 		const char *fShaderFilename;
-		IG::Point2D<uint> scale;
+		IG::WP scale;
 	};
 
 private:
@@ -40,9 +40,9 @@ private:
 	int srcPixelsU{};
 	uint effect_ = NO_EFFECT;
 	Gfx::RenderTarget renderTarget_;
-	IG::Point2D<uint> renderTargetScale;
-	IG::Point2D<uint> renderTargetImgSize;
-	IG::Point2D<uint> inputImgSize{1, 1};
+	IG::WP renderTargetScale;
+	IG::WP renderTargetImgSize;
+	IG::WP inputImgSize{1, 1};
 	bool useRGB565RenderTarget = true;
 
 	void initRenderTargetTexture();
@@ -65,7 +65,7 @@ public:
 	constexpr	VideoImageEffect() {}
 	void setEffect(uint effect, bool isExternalTex);
 	uint effect();
-	void setImageSize(IG::Point2D<uint> size);
+	void setImageSize(IG::WP size);
 	void setBitDepth(uint bitDepth);
 	Gfx::Program &program();
 	Gfx::RenderTarget &renderTarget();

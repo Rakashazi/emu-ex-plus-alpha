@@ -35,7 +35,6 @@ public:
 	Gfx::Sprite spr;
 	uint state = 1;
 	Gfx::PixmapTexture mapImg;
-	IG::StaticManagedPixmap mapPix{PixelFormatRGB565};
 	Gfx::Sprite mapSpr;
 	bool visualizeBounds = 0;
 

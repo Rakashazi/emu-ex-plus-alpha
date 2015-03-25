@@ -79,8 +79,7 @@ IG::Pixmap ResourceFontUIKit::charBitmap()
 			Base::grayColorSpace, textColor, activeFont());
 		//[str release];
 	}
-	IG::Pixmap pix{PixelFormatA8};
-	pix.init2(startOfCharInPixBuffer, cXSize, cYSize, cXFullSize);
+	IG::Pixmap pix{{{(int)cXSize, (int)cYSize}, IG::PIXEL_FMT_A8}, startOfCharInPixBuffer, {cXFullSize, IG::Pixmap::BYTE_UNITS}};
 	return pix;
 }
 

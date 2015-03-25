@@ -19,6 +19,7 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/WindowConfig.hh>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
@@ -48,7 +49,7 @@ public:
 	static void postNeededScreens();
 	static uint windows();
 	static Window *window(uint idx);
-	static uint defaultPixelFormat();
+	static PixelFormat defaultPixelFormat();
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target

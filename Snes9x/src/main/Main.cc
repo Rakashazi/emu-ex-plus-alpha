@@ -177,7 +177,7 @@ static int snesFsFilter(const char *name, int type)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = snesFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = snesFsFilter;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 

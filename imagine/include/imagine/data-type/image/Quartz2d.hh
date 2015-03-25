@@ -28,14 +28,14 @@ class Quartz2dImage
 public:
 	constexpr Quartz2dImage() {}
 	CallResult load(const char *name);
-	CallResult readImage(IG::Pixmap dest);
+	CallResult readImage(IG::Pixmap &dest);
 	static CallResult writeImage(const IG::Pixmap &pix, const char *name);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
 	uint width();
 	uint height();
-	const PixelFormatDesc *pixelFormat();
+	const IG::PixelFormat pixelFormat();
 
 private:
 	CGImageRef img = nullptr;
@@ -52,7 +52,7 @@ public:
 	CallResult load(const char *name);
 	CallResult loadAsset(const char *name);
 	void deinit();
-	CallResult write(IG::Pixmap dest) override;
+	CallResult write(IG::Pixmap &dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 

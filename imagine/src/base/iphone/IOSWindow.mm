@@ -118,7 +118,7 @@ void Window::unpostDraw()
 	setNeedsDraw(false);
 }
 
-uint Window::defaultPixelFormat()
+IG::PixelFormat Window::defaultPixelFormat()
 {
 	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGB888;
 }

@@ -235,7 +235,7 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbaFsFilter;
 
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565; //PixelFormatARGB1555; //PixelFormatRGB565
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 int systemColorDepth = 16;
 int systemRedShift = 11;
 int systemGreenShift = 6;

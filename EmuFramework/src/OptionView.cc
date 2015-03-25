@@ -18,6 +18,8 @@
 #include <emuframework/FilePicker.hh>
 #include <algorithm>
 
+using namespace IG;
+
 static FsSys::PathString savePathStrToDescStr(char *savePathStr)
 {
 	FsSys::PathString desc{};
@@ -455,7 +457,7 @@ public:
 
 	void onClose(const Input::Event &e)
 	{
-		string_printf(optionSavePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
+		snprintf(optionSavePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
 		logMsg("set save path %s", (char*)optionSavePath);
 		if(onPathChange) onPathChange(optionSavePath);
 		workDirStack.pop();
@@ -503,7 +505,7 @@ public:
 
 void FirmwarePathSelector::onClose(const Input::Event &e)
 {
-	string_printf(optionFirmwarePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
+	snprintf(optionFirmwarePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
 	if(onPathChange) onPathChange(optionFirmwarePath);
 	workDirStack.pop();
@@ -875,13 +877,13 @@ OptionView::OptionView(Base::Window &win):
 		"Effect Color Format",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			uint format = PIXEL_UNKNOWN;
+			PixelFormatID format = PIXEL_NONE;
 			switch(val)
 			{
 				bcase 1: format = PIXEL_RGB565;
 				bcase 2: format = PIXEL_RGBA8888;
 			}
-			if(format == PIXEL_UNKNOWN)
+			if(format == PIXEL_NONE)
 				popup.printf(3, false, "Set RGB565 mode via Auto");
 			optionImageEffectPixelFormat.val = format;
 			emuVideoLayer.vidImgEffect.setBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
@@ -894,13 +896,13 @@ OptionView::OptionView(Base::Window &win):
 		"Display Color Format",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			uint format = PIXEL_UNKNOWN;
+			uint format = PIXEL_NONE;
 			switch(val)
 			{
 				bcase 1: format = PIXEL_RGB565;
 				bcase 2: format = PIXEL_RGB888;
 			}
-			if(format == PIXEL_UNKNOWN)
+			if(format == PIXEL_NONE)
 			{
 				popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
 					Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGB888");

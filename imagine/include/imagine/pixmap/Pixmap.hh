@@ -16,117 +16,89 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/util/pixel.h>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/DelegateFunc.hh>
 
 namespace IG
 {
 
-class PixmapDesc
+class PixmapDesc : public NotEquals<PixmapDesc>
 {
 public:
-	uint x = 0, y = 0;
-	uint pitch = 0; // bytes per line
-	PixelFormatDesc format;
+	constexpr PixmapDesc() {}
+	constexpr PixmapDesc(WP size, PixelFormat format): w_{(uint)size.x}, h_{(uint)size.y}, format_(format) {}
+	constexpr uint w() const { return w_; }
+	constexpr uint h() const { return h_; }
+	constexpr WP size() const { return {(int)w(), (int)h()}; }
+	constexpr PixelFormat format() const { return format_; }
+	constexpr uint pixelBytes() const { return format().pixelBytes(w() * h()); }
 
-	constexpr PixmapDesc(PixelFormatDesc format): format(format) {}
-
-	uint sizeOfPixels(uint pixels) const
+	constexpr bool operator ==(const PixmapDesc &rhs) const
 	{
-		return pixels * format.bytesPerPixel;
+		return w_ == rhs.w_ && h_ == rhs.h_ && format_ == rhs.format_;
 	}
 
-	uint size() const
-	{
-		return pitch * (y * format.bytesPerPixel);
-	}
-
-	uint unpaddedSize() const
-	{
-		return x * y * format.bytesPerPixel;
-	}
-
-	uint pitchPixels() const
-	{
-		return pitch / format.bytesPerPixel;
-	}
-
-	bool isPadded() const
-	{
-		return x != pitchPixels();
-	}
-
-	bool isSameGeometry(PixmapDesc other)
-	{
-		return x == other.x && y == other.y;
-	}
+protected:
+	uint w_ = 0, h_ = 0;
+	PixelFormat format_;
 };
 
 class Pixmap : public PixmapDesc
 {
 public:
-	char *data{};
-
-	constexpr Pixmap(PixelFormatDesc format): PixmapDesc{format} {}
-	constexpr Pixmap(PixmapDesc desc): PixmapDesc{desc} {}
-	char *getPixel(uint x, uint y) const;
-
-	void init2(void *data, uint x, uint y, uint pitch)
+	enum PitchUnits { PIXEL_UNITS, BYTE_UNITS };
+	class PitchInit
 	{
-		this->data = (char*)data;
-		this->x = x;
-		this->y = y;
-		this->pitch = pitch;
-		//logMsg("init %dx%d pixmap, pitch %d", x, y, pitch);
-	}
+	public:
+		uint val;
+		PitchUnits units;
 
-	void init(void *data, uint x, uint y)
-	{
-		init2(data, x, y, x * format.bytesPerPixel);
-	}
+		constexpr PitchInit(uint pitchVal, PitchUnits units):
+			val{pitchVal}, units{units}
+			{}
+	};
 
-	void copy(int srcX, int srcY, int width, int height, Pixmap dest, int destX, int destY) const;
-	void clearRect(uint xStart, uint yStart, uint xlen, uint ylen);
+	constexpr Pixmap() {}
+
+	constexpr Pixmap(PixmapDesc desc, void *data, PitchInit pitch):
+		PixmapDesc{desc}, data{data},
+		pitch{pitch.units == PIXEL_UNITS ? pitch.val * desc.format().bytesPerPixel() : pitch.val}
+		{}
+
+	constexpr Pixmap(PixmapDesc desc, void *data):
+		Pixmap{desc, data, {desc.w(), PIXEL_UNITS}}
+		{}
+
+	char *pixel(IG::WP pos) const;
+	void write(const IG::Pixmap &pixmap, IG::WP destPos);
+	void clear(IG::WP pos, IG::WP size);
 	void clear();
-	void initSubPixmap(Pixmap orig, uint x, uint y, uint xlen, uint ylen);
-	Pixmap makeSubPixmap(IG::WP offset, IG::WP size);
-	uint size() const { return y * pitch; }
-	explicit operator bool() const { return data; }
+	Pixmap subPixmap(IG::WP pos, IG::WP size) const;
+	explicit operator bool() const;
+	uint pitchPixels() const;
+	uint pitchBytes() const;
+	uint bytes() const;
+	bool isPadded() const;
+
+protected:
+	void *data{};
+	uint pitch = 0; // in bytes
 };
 
-class StaticManagedPixmap : public Pixmap
+class MemPixmap : public Pixmap
 {
 public:
-	constexpr StaticManagedPixmap(PixelFormatDesc format): Pixmap{format} {}
+	MemPixmap() {}
+	MemPixmap(PixmapDesc format);
+	MemPixmap(MemPixmap &&o);
+	MemPixmap &operator=(MemPixmap &&o);
+	~MemPixmap();
 
-	bool init(uint x, uint y)
-	{
-		deinit();
-		data = (char*)mem_alloc(x * y * format.bytesPerPixel);
-		if(!data)
-			return false;
-		Pixmap::init(data, x, y);
-		return true;
-	}
-
-	void deinit()
-	{
-		if(data)
-		{
-			mem_free(data);
-			data = nullptr;
-		}
-	}
-};
-
-class ManagedPixmap : public StaticManagedPixmap
-{
-public:
-	constexpr ManagedPixmap(PixelFormatDesc format): StaticManagedPixmap{format} {}
-	~ManagedPixmap()
-	{
-		deinit();
-	}
+protected:
+	// no copying outside of class
+	MemPixmap(const MemPixmap &) = default;
+	MemPixmap &operator=(const MemPixmap &) = default;
 };
 
 }

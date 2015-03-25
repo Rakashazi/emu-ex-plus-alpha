@@ -100,7 +100,7 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ngpFsFilter;
 
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;//&PixelFormatBGRA4444;//
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 static const uint ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;

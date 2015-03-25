@@ -226,11 +226,10 @@ void ClearTest::drawTest()
 	Gfx::clear();
 }
 
-void DrawTest::initTest(IG::Point2D<int> pixmapSize)
+void DrawTest::initTest(IG::WP pixmapSize)
 {
-	pixBuff = new char[pixmap.sizeOfPixels(pixmapSize.x * pixmapSize.y)];
-	pixmap.init(pixBuff, pixmapSize.x, pixmapSize.y);
-	memset(pixmap.data, 0xFF, pixmap.pitch * pixmap.y);
+	pixmap = {{pixmapSize, IG::PIXEL_FMT_RGB565}};
+	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
 	Gfx::TextureConfig texConf{pixmap};
 	texConf.setWillWriteOften(true);
 	doOrAbort(texture.init(texConf));
@@ -250,7 +249,6 @@ void DrawTest::deinitTest()
 {
 	sprite.deinit();
 	texture.deinit();
-	delete[] pixBuff;
 }
 
 void DrawTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
@@ -290,19 +288,19 @@ void WriteTest::drawTest()
 	{
 		uint writeColor;
 		if(!droppedFrames)
-			writeColor = PixelFormatRGB565.build(.7, .7, .7, 1.);
+			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .7, 1.);
 		else if(droppedFrames % 2 == 0)
-			writeColor = PixelFormatRGB565.build(.7, .7, .0, 1.);
+			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .0, 1.);
 		else
-			writeColor = PixelFormatRGB565.build(.7, .0, .0, 1.);
-		iterateTimes(pixmap.x * pixmap.y, i)
+			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
+		iterateTimes(pixmap.w() * pixmap.h(), i)
 		{
-			((uint16*)pixmap.data)[i] = writeColor;
+			((uint16*)pixmap.pixel({}))[i] = writeColor;
 		}
 	}
 	else
 	{
-		memset(pixmap.data, 0, pixmap.pitch * pixmap.y);
+		memset(pixmap.pixel({}), 0, pixmap.pitchBytes() * pixmap.h());
 	}
 	texture.write(0, pixmap, {});
 	sprite.draw();

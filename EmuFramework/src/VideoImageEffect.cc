@@ -118,10 +118,7 @@ void VideoImageEffect::initRenderTargetTexture()
 		return;
 	renderTargetImgSize.x = inputImgSize.x * renderTargetScale.x;
 	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
-	IG::PixmapDesc renderPix{useRGB565RenderTarget ? PixelFormatRGB565 : PixelFormatRGBA8888};
-	renderPix.x = renderTargetImgSize.x;
-	renderPix.y = renderTargetImgSize.y;
-	renderPix.pitch = renderPix.x * renderPix.format.bytesPerPixel;
+	IG::PixmapDesc renderPix{renderTargetImgSize, useRGB565RenderTarget ? IG::PIXEL_RGB565 : IG::PIXEL_RGBA8888};
 	renderTarget_.setFormat(renderPix);
 	Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler();
 }
@@ -261,11 +258,11 @@ void VideoImageEffect::updateProgramUniforms()
 		Gfx::uniformF(srcPixelsU, inputImgSize.x, inputImgSize.y);
 }
 
-void VideoImageEffect::setImageSize(IG::Point2D<uint> size)
+void VideoImageEffect::setImageSize(IG::WP size)
 {
-	if(inputImgSize.x == size.x && inputImgSize.y == size.y)
+	if(inputImgSize == size)
 		return;
-	inputImgSize = {size.x, size.y};
+	inputImgSize = size;
 	if(program())
 		updateProgramUniforms();
 	if(renderTarget_)

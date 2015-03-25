@@ -21,10 +21,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 CallResult Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
 {
-	auto provider = CGDataProviderCreateWithData(nullptr, pix.data, pix.size(), nullptr);
+	auto provider = CGDataProviderCreateWithData(nullptr, pix.pixel({}), pix.bytes(), nullptr);
 	int bitsPerComponent = 8;
 	CGBitmapInfo bitmapInfo = kCGImageAlphaNone;
-	auto imageRef = CGImageCreate(pix.x, pix.y, bitsPerComponent, pix.format.bitsPerPixel, pix.pitch, Base::grayColorSpace, bitmapInfo,
+	auto imageRef = CGImageCreate(pix.w(), pix.h(), bitsPerComponent, pix.format().bitsPerPixel(), pix.pitchBytes(), Base::grayColorSpace, bitmapInfo,
 		provider, nullptr, NO, kCGRenderingIntentDefault);
 	CGDataProviderRelease(provider);
 	@autoreleasepool

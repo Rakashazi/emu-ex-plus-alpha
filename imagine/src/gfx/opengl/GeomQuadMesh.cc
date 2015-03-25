@@ -87,7 +87,7 @@ void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
 	iterateTimes(verts, i)
 	{
-		v[i].color = VertexColorPixelFormat.build(r, g, b, VertexColorPixelFormat.a(v[i].color));
+		v[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v[i].color));
 	}
 }
 
@@ -95,19 +95,19 @@ void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
 	iterateTimes(verts, i)
 	{
-		v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), a);
+		v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), (uint)a);
 	}
 }
 
 void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i)
 {
-	v[i].color = VertexColorPixelFormat.build(r, g, b, VertexColorPixelFormat.a(v[i].color));
+	v[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v[i].color));
 }
 
 void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint i)
 {
 	// swap for tri strip
-	v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), a);
+	v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), (uint)a);
 }
 
 void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)

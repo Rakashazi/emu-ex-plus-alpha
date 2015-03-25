@@ -40,9 +40,9 @@ public:
 	void draw();
 
 	template <typename... ARGS>
-	void printf(uint secs, bool error, const char *format, ARGS&&... args)
+	void printf(uint secs, bool error, ARGS&&... args)
 	{
-		snprintf(str.data(), sizeof(str), format, std::forward<ARGS>(args)...);
+		snprintf(str.data(), sizeof(str), std::forward<ARGS>(args)...);
 		//logMsg("%s", str);
 		post(str.data(), secs, error);
 	}

@@ -597,7 +597,7 @@ CallResult onInit(int argc, char** argv)
 {
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuVideo.initPixmap((char*)pixBuff, &PixelFormatRGB565, vidBufferX, vidBufferY);
+	emuVideo.initPixmap((char*)pixBuff, IG::PIXEL_FMT_RGB565, vidBufferX, vidBufferY);
 	Settings *settings = new Settings(&osystem);
 	settings->setValue("framerate", 60); // set to avoid auto-frame calculation
 

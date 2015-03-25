@@ -112,14 +112,13 @@ IG::Pixmap ResourceFontAndroid::charBitmap()
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 		//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
 	}
-	IG::Pixmap pix{PixelFormatA8};
-	pix.init2(nullptr, info.width, info.height, info.stride);
+	void *data{};
 	{
-		auto res = AndroidBitmap_lockPixels(env, lockedBitmap, (void**)&pix.data);
+		auto res = AndroidBitmap_lockPixels(env, lockedBitmap, &data);
 		//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 		assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	}
-	return pix;
+	return {{{(int)info.width, (int)info.height}, PIXEL_A8}, data, {info.stride, IG::Pixmap::BYTE_UNITS}};
 }
 
 void ResourceFontAndroid::unlockCharBitmap()

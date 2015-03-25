@@ -20,7 +20,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include "../../base/iphone/private.hh"
-#include <imagine/util/pixel.h>
 #include <imagine/util/strings.h>
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
@@ -40,12 +39,12 @@ bool Quartz2dImage::isGrayscale()
 	return CGImageGetBitsPerPixel(img) == 8;
 }
 
-const PixelFormatDesc *Quartz2dImage::pixelFormat()
+const IG::PixelFormat Quartz2dImage::pixelFormat()
 {
 	if(isGrayscale())
-		return &PixelFormatI8;
+		return IG::PIXEL_FMT_I8;
 	else
-		return hasAlphaChannel() ? &PixelFormatRGBA8888 : &PixelFormatRGB888;
+		return hasAlphaChannel() ? IG::PIXEL_FMT_RGBA8888 : IG::PIXEL_FMT_RGB888;
 }
 
 CallResult Quartz2dImage::load(const char *name)
@@ -74,14 +73,14 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-CallResult Quartz2dImage::readImage(IG::Pixmap dest)
+CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
 {
-	assert(dest.format.id == pixelFormat()->id);
+	assert(dest.format() == pixelFormat());
 	int height = this->height();
 	int width = this->width();
 	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
 	auto bitmapInfo = hasAlphaChannel() ? kCGImageAlphaPremultipliedLast : kCGImageAlphaNone;
-	auto context = CGBitmapContextCreate(dest.data, width, height, 8, dest.pitch, colorSpace, bitmapInfo);
+	auto context = CGBitmapContextCreate(dest.pixel({}), width, height, 8, dest.pitchBytes(), colorSpace, bitmapInfo);
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
 	CGContextRelease(context);
@@ -97,16 +96,14 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-CallResult PngFile::write(IG::Pixmap dest)
+CallResult PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
 
 IG::Pixmap PngFile::lockPixmap()
 {
-	IG::Pixmap pix{*png.pixelFormat()};
-	pix.x = png.width();
-	pix.y = png.height();
+	IG::Pixmap pix{{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, nullptr};
 	return pix;
 }
 

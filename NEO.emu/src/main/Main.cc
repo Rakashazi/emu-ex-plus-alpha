@@ -234,7 +234,7 @@ static int neogeoFsFilter(const char *name, int type)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = neogeoFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = neogeoFsFilter;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
 static GN_Surface sdlSurf;
 

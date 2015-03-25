@@ -37,7 +37,7 @@ public:
 	void freeImageData();
 	uint width();
 	uint height();
-	const PixelFormatDesc *pixelFormat();
+	IG::PixelFormat pixelFormat() const;
 
 private:
 	jobject bitmap = nullptr;
@@ -55,7 +55,7 @@ public:
 	CallResult load(const char *name);
 	CallResult loadAsset(const char *name);
 	void deinit();
-	CallResult write(IG::Pixmap dest) override;
+	CallResult write(IG::Pixmap &dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 

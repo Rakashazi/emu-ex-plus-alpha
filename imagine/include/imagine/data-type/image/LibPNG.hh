@@ -37,13 +37,13 @@ public:
 	void freeImageData();
 	uint width();
 	uint height();
-	const PixelFormatDesc *pixelFormat();
+	IG::PixelFormat pixelFormat();
 
 private:
 	png_structp png = nullptr;
 	png_infop info = nullptr;
 	//png_infop end;
-	void setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo);
+	void setTransforms(IG::PixelFormat outFormat, png_infop transInfo);
 	static bool supportUncommonConv;
 };
 
@@ -62,7 +62,7 @@ public:
 		return load(openAppAssetIO(name));
 	}
 	void deinit();
-	CallResult write(IG::Pixmap dest) override;
+	CallResult write(IG::Pixmap &dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 

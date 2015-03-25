@@ -15,84 +15,132 @@
 
 #define LOGTAG "Pixmap"
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/util/pixel.h>
+#include <imagine/logger/logger.h>
 #include <imagine/util/fixed.hh>
+#include <imagine/util/assume.h>
 #include <cstring>
 
 namespace IG
 {
 
-char *Pixmap::getPixel(uint x, uint y) const
+char *Pixmap::pixel(IG::WP pos) const
 {
-	return(data + format.offsetBytes(x, y, pitch));
+	return (char*)data + format().offsetBytes(pos.x, pos.y, pitch);
 }
 
-void Pixmap::copy(int srcX, int srcY, int width, int height, Pixmap dest, int destX, int destY) const
+void Pixmap::write(const IG::Pixmap &pixmap, IG::WP destPos)
 {
-	//logDMsg("copying pixmap format src: %s dest: %s", pixelformat_toString(src->format), pixelformat_toString(dest->format));
-	// copy all width/height if 0
-	if(!width) width = x;
-	if(!height) height = y;
-	//logDMsg("from %dx%d img to dest %dx%d img src: x %d-%d y %d-%d to dest: %dx%d", x, y, dest.x, dest.y, srcX, width, srcY, height, destX, destY);
-	assert(width <= (int)dest.x + destX);
-	assert(height <= (int)dest.y + destY);
-	if(data == dest.data)
-	{
-		assert(dest.format.bytesPerPixel <= format.bytesPerPixel);
-	}
-	//logMsg("copying %s to %s", dest->format->name, format->name);
-	assert(format.id == dest.format.id);
-	char *srcData = getPixel(srcX, srcY);
-	char *destData = dest.getPixel(destX, destY);
-	if(dest.x == x && dest.pitch == pitch && dest.x == (uint)width)
+	assumeExpr(destPos.x + pixmap.w() <= w());
+	assumeExpr(destPos.y + pixmap.h() <= h());
+	assumeExpr(format() == pixmap.format());
+	if(!isPadded() && !pixmap.isPadded())
 	{
 		// whole block
 		//logDMsg("copying whole block");
-		memcpy(destData, srcData, sizeOfPixels(width * height));
+		memcpy(data, pixmap.data, pixmap.pixelBytes());
 	}
 	else
 	{
 		// line at a time
-		for(int y = srcY; y < height; y++)
+		auto srcData = (char*)pixmap.data;
+		auto destData = (char*)data;
+		uint lineBytes = format().pixelBytes(pixmap.w());
+		iterateTimes(pixmap.h(), i)
 		{
-			memcpy(destData, srcData, sizeOfPixels(width));
-			srcData += pitch;
-			destData += dest.pitch;
+			memcpy(destData, srcData, lineBytes);
+			srcData += pixmap.pitch;
+			destData += pitch;
 		}
 	}
 }
 
-void Pixmap::initSubPixmap(Pixmap orig, uint x, uint y, uint xlen, uint ylen)
+Pixmap Pixmap::subPixmap(IG::WP pos, IG::WP size) const
 {
-	data = orig.getPixel(x, y);
-	this->x = xlen;
-	this->y = ylen;
-	pitch = orig.pitch;
+	//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
+	assumeExpr(pos.x >= 0 && pos.y >= 0);
+	assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
+	return Pixmap{{size, format()}, pixel(pos), {pitchBytes(), BYTE_UNITS}};
 }
 
-Pixmap Pixmap::makeSubPixmap(IG::WP offset, IG::WP size)
+Pixmap::operator bool() const
 {
-	assert(offset.x >= 0 && offset.y >= 0);
-	assert(offset.x + size.x <= (int)x && offset.y + size.y <= (int)y);
-	Pixmap sub{*this};
-	sub.initSubPixmap(*this, offset.x, offset.y, size.x, size.y);
-	return sub;
+	return data;
 }
 
-void Pixmap::clearRect(uint xStart, uint yStart, uint xlen, uint ylen)
+uint Pixmap::pitchPixels() const
 {
-	char *destPixel = Pixmap::getPixel(xStart, yStart+y);
-	uint clearBytes = format.bytesPerPixel * xlen;
-	iterateTimes(ylen, i)
+	return pitch / format().bytesPerPixel();
+}
+
+uint Pixmap::pitchBytes() const
+{
+	return pitch;
+}
+
+uint Pixmap::bytes() const
+{
+	return pitchBytes() * format().pixelBytes(h());
+}
+
+bool Pixmap::isPadded() const
+{
+	return w() != pitchPixels();
+}
+
+void Pixmap::clear(IG::WP pos, IG::WP size)
+{
+	char *destData = pixel(pos);
+	if(!isPadded() && (int)w() == size.x)
 	{
-		memset(destPixel, 0, clearBytes);
-		destPixel += pitch;
+		memset(destData, 0, format().pixelBytes(size.x * size.y));
+	}
+	else
+	{
+		uint lineBytes = format().pixelBytes(size.x);
+		iterateTimes(size.y, i)
+		{
+			memset(destData, 0, lineBytes);
+			destData += pitch;
+		}
 	}
 }
 
 void Pixmap::clear()
 {
-	memset(data, 0, size());
+	clear({}, {(int)w(), (int)h()});
+}
+
+MemPixmap::MemPixmap(PixmapDesc desc):
+	Pixmap{desc, malloc(desc.format().pixelBytes(desc.w() * desc.h()))}
+	{
+		logDMsg("allocated memory pixmap data:%p", data);
+	}
+
+MemPixmap::MemPixmap(MemPixmap &&o)
+{
+	*this = o;
+	o.data = nullptr;
+}
+
+MemPixmap &MemPixmap::operator=(MemPixmap &&o)
+{
+	if(data)
+	{
+		logDMsg("freed memory pixmap data:%p via move ctor", data);
+		free(data);
+	}
+	*this = o;
+	o.data = nullptr;
+	return *this;
+}
+
+MemPixmap::~MemPixmap()
+{
+	if(data)
+	{
+		logDMsg("freed memory pixmap data:%p", data);
+		free(data);
+	}
 }
 
 }

@@ -18,9 +18,10 @@
 #include <imagine/data-type/image/Android.hh>
 #include <assert.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/pixel.h>
 #include <imagine/util/strings.h>
 #include "../../base/android/android.hh"
+
+using namespace IG;
 
 static jclass jBitmapFactory = nullptr;
 static JavaClassMethod<jobject> jDecodeFile;
@@ -42,21 +43,21 @@ bool BitmapFactoryImage::isGrayscale()
 	return info.format == ANDROID_BITMAP_FORMAT_A_8;
 }
 
-const PixelFormatDesc *BitmapFactoryImage::pixelFormat()
+PixelFormat BitmapFactoryImage::pixelFormat() const
 {
 	switch(info.format)
 	{
-		case ANDROID_BITMAP_FORMAT_RGBA_8888: return &PixelFormatRGBA8888;
-		case ANDROID_BITMAP_FORMAT_RGB_565: return &PixelFormatRGB565;
-		case ANDROID_BITMAP_FORMAT_RGBA_4444: return &PixelFormatRGBA4444;
-		case ANDROID_BITMAP_FORMAT_A_8: return &PixelFormatI8;
+		case ANDROID_BITMAP_FORMAT_RGBA_8888: return PIXEL_FMT_RGBA8888;
+		case ANDROID_BITMAP_FORMAT_RGB_565: return PIXEL_FMT_RGB565;
+		case ANDROID_BITMAP_FORMAT_RGBA_4444: return PIXEL_FMT_RGBA4444;
+		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
 		default:
 		{
 			if(info.format == ANDROID_BITMAP_FORMAT_NONE)
 				logWarn("format wasn't provided");
 			else
 				bug_exit("unhandled format");
-			return &PixelFormatRGBA8888;
+			return PIXEL_FMT_RGBA8888;
 		}
 	}
 }
@@ -122,13 +123,12 @@ bool BitmapFactoryImage::hasAlphaChannel()
 
 CallResult BitmapFactoryImage::readImage(IG::Pixmap &dest)
 {
-	assert(dest.format.id == pixelFormat()->id);
+	assert(dest.format() == pixelFormat());
 	auto env = Base::jEnv();
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
-	IG::Pixmap src(*pixelFormat());
-	src.init2((char*)buff, info.width, info.height, info.stride);
-	src.copy(0, 0, 0, 0, dest, 0, 0);
+	IG::Pixmap src{{{(int)info.width, (int)info.height}, pixelFormat()}, buff, {info.stride, IG::Pixmap::BYTE_UNITS}};
+	dest.write(src, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	return OK;
 }
@@ -144,16 +144,14 @@ void BitmapFactoryImage::freeImageData()
 	}
 }
 
-CallResult PngFile::write(IG::Pixmap dest)
+CallResult PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
 
 IG::Pixmap PngFile::lockPixmap()
 {
-	IG::Pixmap pix{*png.pixelFormat()};
-	pix.x = png.width();
-	pix.y = png.height();
+	IG::Pixmap pix{{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, nullptr};
 	return pix;
 }
 

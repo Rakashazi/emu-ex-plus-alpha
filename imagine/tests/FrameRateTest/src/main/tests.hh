@@ -116,15 +116,14 @@ class DrawTest : public TestFramework
 {
 protected:
 	int flash{true};
-	IG::Pixmap pixmap{PixelFormatRGB565};
+	IG::MemPixmap pixmap;
 	Gfx::PixmapTexture texture;
 	Gfx::Sprite sprite;
-	char *pixBuff{};
 
 public:
 	DrawTest() {}
 
-	void initTest(IG::Point2D<int> pixmapSize) override;
+	void initTest(IG::WP pixmapSize) override;
 	void placeTest(const Gfx::GCRect &rect) override;
 	void deinitTest() override;
 	void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) override;

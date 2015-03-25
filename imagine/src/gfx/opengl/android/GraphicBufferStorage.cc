@@ -41,14 +41,14 @@ CallResult GraphicBufferStorage::init()
 CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 {
 	*this = {};
-	logMsg("setting size:%dx%d format:%s", desc.x, desc.y, desc.format.name);
-	int androidFormat = Base::pixelFormatToDirectAndroidFormat(desc.format);
+	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
+	int androidFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!androidFormat)
 	{
 		logErr("pixel format not usable");
 		return INVALID_PARAMETER;
 	}
-	if(!gBuff.reallocate(desc.x, desc.y, androidFormat,
+	if(!gBuff.reallocate(desc.w(), desc.h(), androidFormat,
 		GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
 	{
 		logErr("allocation failed");
@@ -76,8 +76,8 @@ CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 		*this = {};
 		return UNSUPPORTED_OPERATION;
 	}
-	bpp = desc.format.bytesPerPixel;
-	pitch = gBuff.getStride() * desc.format.bytesPerPixel;
+	bpp = desc.format().bytesPerPixel();
+	pitch = gBuff.getStride() * desc.format().bytesPerPixel();
 	return OK;
 }
 

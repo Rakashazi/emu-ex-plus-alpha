@@ -18,13 +18,12 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
 
-void EmuVideo::initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch)
+void EmuVideo::initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch)
 {
-	new(&vidPix) IG::Pixmap(*format);
 	if(!pitch)
-		vidPix.init(pixBuff, x, y);
+		vidPix = {{{(int)x, (int)y}, format}, pixBuff};
 	else
-		vidPix.init2(pixBuff, x, y, pitch);
+		vidPix = {{{(int)x, (int)y}, format}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
 	var_selfs(pixBuff);
 }
 
@@ -57,17 +56,17 @@ void EmuVideo::resizeImage(uint x, uint y, uint pitch)
 
 void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch)
 {
-	IG::Pixmap basePix(vidPix.format);
+	IG::Pixmap basePix;
 	if(pitch)
-		basePix.init2(pixBuff, totalX, totalY, pitch);
+		basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
 	else
-		basePix.init(pixBuff, totalX, totalY);
-	vidPix.initSubPixmap(basePix, xO, yO, x, y);
+		basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff};
+	vidPix = basePix.subPixmap({(int)xO, (int)yO}, {(int)x, (int)y});
 	if(!vidImg)
 	{
 		reinitImage();
 	}
-	else if(!vidPix.isSameGeometry(vidImg.pixmapDesc()))
+	else if(vidPix != vidImg.pixmapDesc())
 	{
 		vidImg.setFormat(vidPix, 1);
 	}
@@ -82,7 +81,7 @@ void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint t
 
 void EmuVideo::initImage(bool force, uint x, uint y, uint pitch)
 {
-	if(force || !vidImg || vidPix.x != x || vidPix.y != y)
+	if(force || !vidImg || vidPix.w() != x || vidPix.h() != y)
 	{
 		resizeImage(x, y, pitch);
 	}
@@ -90,7 +89,7 @@ void EmuVideo::initImage(bool force, uint x, uint y, uint pitch)
 
 void EmuVideo::initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch)
 {
-	if(force || !vidImg || vidPix.x != x || vidPix.y != y)
+	if(force || !vidImg || vidPix.w() != x || vidPix.h() != y)
 	{
 		resizeImage(xO, yO, x, y, totalX, totalY, pitch);
 	}

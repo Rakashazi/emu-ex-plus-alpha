@@ -21,15 +21,15 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/util/pixel.h>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/pixmap/PixelFormat.hh>
 
 namespace Gfx
 {
 
 // init & control
-[[gnu::cold]] CallResult init(uint pixelFormatID);
+[[gnu::cold]] CallResult init(IG::PixelFormat pixelFormat);
 [[gnu::cold]] CallResult init();
 Base::WindowConfig makeWindowConfig();
 void setWindowConfig(Base::WindowConfig &config);
@@ -119,7 +119,7 @@ static void setColor(GfxColorEnum colConst)
 	}
 }
 
-static const PixelFormatDesc &ColorFormat = PixelFormatRGBA8888;
+static constexpr auto ColorFormat = IG::PIXEL_DESC_RGBA8888;
 uint color();
 
 // transforms

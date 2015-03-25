@@ -15,6 +15,7 @@
 
 #define LOGTAG "GBuff"
 #include "../android.hh"
+#include <imagine/logger/logger.h>
 
 namespace Base
 {

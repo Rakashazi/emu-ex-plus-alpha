@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Input"
-#include <dlfcn.h>
 #include <android/api-level.h>
 #include <imagine/base/Base.hh>
 #include <imagine/input/DragPointer.hh>
@@ -38,20 +37,6 @@ static struct TouchState
 	bool isTouching = false;
 } m[Config::Input::MAX_POINTERS];
 static uint numCursors = sizeofArray(m);
-
-#if __ANDROID_API__ < 12
-using AMotionEvent_getAxisValueProto = float (__NDK_FPABI__ *)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
-static AMotionEvent_getAxisValueProto AMotionEvent_getAxisValue{};
-static bool hasGetAxisValue()
-{
-	return likely(AMotionEvent_getAxisValue);
-}
-#else
-static bool hasGetAxisValue()
-{
-	return true;
-}
-#endif
 
 static AndroidInputDevice *sysDeviceForInputId(int osId)
 {
@@ -425,24 +410,6 @@ void processInputWithHasEvents(AInputQueue *inputQueue)
 	{
 		logWarn("error %d in AInputQueue_hasEvents", hasEventsRet);
 	}
-}
-
-// dlsym extra functions from supplied libandroid.so
-bool dlLoadAndroidFuncs(void *libandroid)
-{
-	#if __ANDROID_API__ < 12
-	if(Base::androidSDK() < 12)
-	{
-		return false;
-	}
-	// load AMotionEvent_getAxisValue dynamically
-	if((AMotionEvent_getAxisValue = (AMotionEvent_getAxisValueProto)dlsym(libandroid, "AMotionEvent_getAxisValue")) == nullptr)
-	{
-		bug_exit("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
-		return false;
-	}
-	#endif
-	return true;
 }
 
 static const char* aInputSourceToStr(uint source)

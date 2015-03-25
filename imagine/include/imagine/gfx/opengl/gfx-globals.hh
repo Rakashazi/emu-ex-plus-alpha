@@ -3,7 +3,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/util/fixed.hh>
 #include <imagine/util/normalFloat.hh>
-#include <imagine/util/pixel.h>
+#include <imagine/pixmap/PixelFormat.hh>
 
 #if defined __APPLE__ && !defined __ARM_ARCH_6K__
 #define CONFIG_GFX_MATH_GLKIT
@@ -72,7 +72,7 @@ using VertexIndex = GLushort;
 using VertexColor = uint;
 using VertexArrayRef = uint;
 
-static const PixelFormatDesc &VertexColorPixelFormat = PixelFormatABGR8888;
+static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
 
 class VertexInfo
 {

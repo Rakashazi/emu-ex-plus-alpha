@@ -27,6 +27,7 @@
 #include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
+#include <imagine/util/assume.h>
 #include "../common/windowPrivate.hh"
 #include "../common/basePrivate.hh"
 #include "android.hh"
@@ -126,6 +127,19 @@ static void initConfig(AConfiguration* config)
 	Input::initInputConfig(config);
 }
 
+int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format)
+{
+	using namespace IG;
+	switch(format)
+	{
+		case PIXEL_RGBA8888: return HAL_PIXEL_FORMAT_RGBA_8888;
+		case PIXEL_BGRA8888: return HAL_PIXEL_FORMAT_BGRA_8888;
+		case PIXEL_RGB888: return HAL_PIXEL_FORMAT_RGB_888;
+		case PIXEL_RGB565: return HAL_PIXEL_FORMAT_RGB_565;
+		default: return 0;
+	}
+}
+
 static void activityInit(JNIEnv* env, jobject activity)
 {
 	// BaseActivity members
@@ -218,28 +232,6 @@ static void activityInit(JNIEnv* env, jobject activity)
 	{
 		jSetUIVisibility.setup(env, jBaseActivityCls, "setUIVisibility", "(I)V");
 	}
-}
-
-static void dlLoadFuncs()
-{
-	#if __ANDROID_API__ >= 12
-	 // no functions from dlopen needed if targeting at least Android 3.1 (SDK 12)
-	return;
-	#endif
-	 // no functions from dlopen needed if running less than Android 3.1 (SDK 12)
-	if(Base::androidSDK() < 12)
-	{
-		return;
-	}
-
-	void *libandroid = dlopen("/system/lib/libandroid.so", RTLD_LOCAL | RTLD_LAZY);
-	if(!libandroid)
-	{
-		logWarn("unable to dlopen libandroid.so");
-		return;
-	}
-
-	Input::dlLoadAndroidFuncs(libandroid);
 }
 
 JNIEnv* jEnv() { assert(jEnv_); return jEnv_; }
@@ -463,7 +455,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	filesDir = activity->internalDataPath;
 	activityInit(jEnv_, activity->clazz);
 	setNativeActivityCallbacks(activity);
-	Base::dlLoadFuncs();
 	doOrAbort(Input::init());
 	aConfig = AConfiguration_new();
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);

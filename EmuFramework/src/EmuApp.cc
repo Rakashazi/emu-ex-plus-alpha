@@ -581,7 +581,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Audio::init();
 
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	Gfx::init(optionWindowPixelFormat);
+	Gfx::init((IG::PixelFormatID)optionWindowPixelFormat.val);
 	#else
 	Gfx::init();
 	#endif
@@ -626,7 +626,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	emuVideoLayer.setLinearFilter(optionImgFilter);
 	emuVideoLayer.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuVideoLayer.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
-	emuVideoLayer.vidImgEffect.setBitDepth((int)optionImageEffectPixelFormat == PIXEL_RGBA8888 ? 32 : 16);
+	emuVideoLayer.vidImgEffect.setBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
 
 	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);

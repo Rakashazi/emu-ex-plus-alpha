@@ -3,7 +3,7 @@
 #include <imagine/engine-globals.h>
 #include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
-#include <imagine/util/pixel.h>
+#include <imagine/pixmap/PixelFormat.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGLContext.hh>
@@ -21,21 +21,21 @@ namespace Base
 class GLBufferConfigAttributes
 {
 private:
-	uint pixelFormatID = PIXEL_UNKNOWN;
+	PixelFormat pixelFormat_;
 	bool useDepth_ = false;
 	bool useStencil_ = false;
 
 public:
-	void setPixelFormat(uint pixelFormatID)
+	void setPixelFormat(PixelFormat pixelFormat_)
 	{
-		var_selfs(pixelFormatID);
+		var_selfs(pixelFormat_);
 	}
 
 	uint pixelFormat() const
 	{
-		if(!pixelFormatID)
+		if(!pixelFormat_)
 			return Window::defaultPixelFormat();
-		return pixelFormatID;
+		return pixelFormat_;
 	}
 
 	void setUseDepth(bool useDepth_)

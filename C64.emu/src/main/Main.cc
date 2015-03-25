@@ -801,7 +801,7 @@ static int c64FsFilter(const char *name, int type)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = c64FsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = c64FsFilter;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 void EmuSystem::resetGame()
 {
@@ -1375,14 +1375,14 @@ CLINK int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 	iterateTimes(palette->num_entries, i)
 	{
-		auto col = pixFmt->build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
+		auto col = pixFmt.desc().build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
 		logMsg("set color %d to %X", i, col);
-		video_render_setphysicalcolor(c->videoconfig, i, col, pixFmt->bitsPerPixel);
+		video_render_setphysicalcolor(c->videoconfig, i, col, pixFmt.bitsPerPixel());
 	}
 
 	iterateTimes(256, i)
 	{
-		video_render_setrawrgb(i, pixFmt->build(i/255., 0., 0., 0.), pixFmt->build(0., i/255., 0., 0.), pixFmt->build(0., 0., i/255., 0.));
+		video_render_setrawrgb(i, pixFmt.desc().build(i/255., 0., 0., 0.), pixFmt.desc().build(0., i/255., 0., 0.), pixFmt.desc().build(0., 0., i/255., 0.));
 	}
 	video_render_initraw(c->videoconfig);
 
@@ -1391,7 +1391,7 @@ CLINK int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 CLINK void video_canvas_refresh(struct video_canvas_s *canvas, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
 {
-	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuVideo.vidPix.pitch, pixFmt->bitsPerPixel);
+	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuVideo.vidPix.pitchBytes(), pixFmt.bitsPerPixel());
 }
 
 CLINK void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas)

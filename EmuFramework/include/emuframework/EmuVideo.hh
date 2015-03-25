@@ -21,13 +21,13 @@ class EmuVideo
 {
 public:
 	Gfx::PixmapTexture vidImg;
-	IG::Pixmap vidPix {PixelFormatRGB565};
+	IG::Pixmap vidPix;
 	char *pixBuff{};
 	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
 
 public:
 	constexpr EmuVideo() {}
-	void initPixmap(char *pixBuff, const PixelFormatDesc *format, uint x, uint y, uint pitch = 0);
+	void initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch = 0);
 	void reinitImage();
 	void clearImage();
 	void resizeImage(uint x, uint y, uint pitch = 0);

@@ -20,7 +20,7 @@ class GfxImageSource
 public:
 	constexpr GfxImageSource() {}
 	virtual ~GfxImageSource() {}
-	virtual CallResult write(IG::Pixmap dest) = 0;
+	virtual CallResult write(IG::Pixmap &dest) = 0;
 	virtual IG::Pixmap lockPixmap() = 0;
 	virtual void unlockPixmap() = 0;
 };

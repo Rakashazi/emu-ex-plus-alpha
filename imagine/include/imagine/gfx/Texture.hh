@@ -116,7 +116,7 @@ private:
 	bool writeOften = false;
 	bool genMipmaps = false;
 	uint levels_ = 1;
-	IG::PixmapDesc pixmapDesc_{PixelFormatRGBA8888};
+	IG::PixmapDesc pixmapDesc_;
 
 public:
 	constexpr TextureConfig() {}
@@ -164,7 +164,7 @@ public:
 		pixmapDesc_ = pixDesc;
 	}
 
-	IG::PixmapDesc &pixmapDesc()
+	IG::PixmapDesc pixmapDesc()
 	{
 		return pixmapDesc_;
 	}
@@ -196,7 +196,7 @@ class LockedTextureBuffer: public LockedTextureBufferImpl
 {
 public:
 	constexpr LockedTextureBuffer() {}
-	IG::Pixmap pixmap();
+	IG::Pixmap &pixmap();
 	IG::WindowRect sourceDirtyRect();
 	explicit operator bool() const;
 };
@@ -214,13 +214,13 @@ public:
 		return init(img, true);
 	}
 	void deinit();
-	static uint bestAlignment(IG::Pixmap p);
+	static uint bestAlignment(const IG::Pixmap &pixmap);
 	bool canUseMipmaps();
 	bool generateMipmaps();
 	CallResult setFormat(IG::PixmapDesc desc, uint levels);
 	void bind();
-	void write(uint level, IG::Pixmap pixmap, IG::WP destPos);
-	void write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumedDataAlignment);
+	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
+	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment);
 	void clear(uint level);
 	LockedTextureBuffer lock(uint level);
 	LockedTextureBuffer lock(uint level, IG::WindowRect rect);

@@ -242,17 +242,15 @@ CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
 {
 	auto src = font->charBitmap();
 	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
-	assert(src.x != 0 && src.y != 0 && src.data);
-	#if defined CONFIG_BASE_ANDROID
-	if(!src.pitch) // Hack for JXD S7300B which returns y = x, and pitch = 0
+	assert(src.w() != 0 && src.h() != 0 && src.pixel({}));
+	#if defined __ANDROID__
+	if(!src.pitchBytes()) // Hack for JXD S7300B which returns y = x, and pitch = 0
 	{
 		logWarn("invalid pitch returned for char bitmap");
-		src.x = out.x;
-		src.y = out.y;
-		src.pitch = out.pitch;
+		src = {{out.size(), out.format()}, src.pixel({}), {out.pitchBytes(), IG::Pixmap::BYTE_UNITS}};
 	}
 	#endif
-	src.copy(0, 0, 0, 0, out, 0, 0);
+	out.write(src, {});
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
 	font->unlockCharBitmap();
 	return OK;
@@ -360,7 +358,7 @@ GlyphEntry *ResourceFace::glyphEntry(int c)
 	return &glyphTable[tableIdx];
 }
 
-CallResult GfxGlyphImage::write(IG::Pixmap dest)
+CallResult GfxGlyphImage::write(IG::Pixmap &dest)
 {
 	return face->writeCurrentChar(dest);
 }

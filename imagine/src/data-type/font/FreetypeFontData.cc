@@ -20,7 +20,6 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/pixel.h>
 #include FT_FREETYPE_H
 #include FT_BITMAP_H
 #include FT_SIZES_H
@@ -247,8 +246,8 @@ IG::Pixmap FreetypeFontData::accessCharBitmap() const
 	auto slot = face->glyph;
 	auto &bitmap = convBitmap.buffer ? convBitmap : slot->bitmap;
 	//logMsg("character is %dx%d pixels, left-top offsets %dx%d", bitmap.width, bitmap.rows, slot->bitmap_left, slot->bitmap_top);
-	IG::Pixmap pix{PixelFormatA8};
-	pix.init2(bitmap.buffer, bitmap.width, bitmap.rows, bitmap.pitch);
+	IG::Pixmap pix{{{(int)bitmap.width, (int)bitmap.rows}, IG::PIXEL_FMT_A8},
+		bitmap.buffer, {(uint)bitmap.pitch, IG::Pixmap::BYTE_UNITS}};
 	return pix;
 }
 

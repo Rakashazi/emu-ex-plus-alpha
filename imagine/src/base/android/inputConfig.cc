@@ -15,6 +15,7 @@
 
 #define LOGTAG "InputConfig"
 #include <sys/inotify.h>
+#include <dlfcn.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
@@ -23,6 +24,10 @@
 #include "android.hh"
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
+
+#if __ANDROID_API__ < 12
+float (__NDK_FPABI__ *AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+#endif
 
 namespace Input
 {
@@ -93,6 +98,15 @@ bool hasTrackball()
 bool hasXperiaPlayGamepad()
 {
 	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Device::SUBTYPE_XPERIA_PLAY;
+}
+
+bool hasGetAxisValue()
+{
+	#if __ANDROID_API__ < 12
+	return likely(AMotionEvent_getAxisValue);
+	#else
+	return true;
+	#endif
 }
 
 void initInputConfig(AConfiguration *config)
@@ -584,6 +598,14 @@ CallResult init()
 	{
 		auto env = Base::jEnv();
 		processInput = processInputWithGetEvent;
+
+		#if __ANDROID_API__ < 12
+		// load AMotionEvent_getAxisValue dynamically
+		if(!(AMotionEvent_getAxisValue = (typeof(AMotionEvent_getAxisValue))dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue")))
+		{
+			bug_exit("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
+		}
+		#endif
 
 		// device change notifications
 		if(Base::androidSDK() >= 16)

@@ -19,13 +19,14 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/pixel.h>
 #include <imagine/util/strings.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
 
 bool Png::supportUncommonConv = 0;
+
+using namespace IG;
 
 #ifndef PNG_ERROR_TEXT_SUPPORTED
 
@@ -85,14 +86,14 @@ bool Png::isGrayscale()
 	return !(png_get_color_type(png, info) & PNG_COLOR_MASK_COLOR);
 }
 
-const PixelFormatDesc *Png::pixelFormat()
+PixelFormat Png::pixelFormat()
 {
 	bool grayscale = isGrayscale();
 	bool alpha = hasAlphaChannel();
 	if(grayscale)
-		return alpha ? &PixelFormatIA88 : &PixelFormatI8;
+		return alpha ? PIXEL_FMT_IA88 : PIXEL_FMT_I8;
 	else
-		return alpha ? &PixelFormatRGBA8888 : &PixelFormatRGB888;
+		return alpha ? PIXEL_FMT_RGBA8888 : PIXEL_FMT_RGB888;
 }
 
 static png_voidp png_memAlloc(png_structp png_ptr, png_size_t size)
@@ -201,7 +202,7 @@ bool Png::hasAlphaChannel()
 	
 }*/
 
-void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
+void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 {
 	int addingAlphaChannel = 0;
 	
@@ -242,7 +243,7 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 			png_set_gray_to_rgb(png);
 		}
 
-		if(!outFormat.aBits)
+		if(!outFormat.desc().aBits)
 		{
 			if(png_get_color_type(png, info) & PNG_COLOR_MASK_ALPHA || addingAlphaChannel)
 			{
@@ -251,13 +252,13 @@ void Png::setTransforms(const PixelFormatDesc &outFormat, png_infop transInfo)
 			}
 		}
 		else if((!hasAlphaChannel() && png_get_color_type(png, info) == PNG_COLOR_TYPE_RGB)
-			|| (!hasAlphaChannel() && outFormat.aBits ))
+			|| (!hasAlphaChannel() && outFormat.desc().aBits ))
 		{
 			logMsg("adding alpha channel");
 				png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
 		}
 
-		if(outFormat.aBits && outFormat.aShift != 0)
+		if(outFormat.desc().aBits && outFormat.desc().aShift != 0)
 		{
 			logMsg("swapping RGBA to ARGB");
 			png_set_swap_alpha(png);
@@ -297,11 +298,11 @@ CallResult Png::readImage(IG::Pixmap &dest)
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
 		return (OUT_OF_MEMORY);
 	}
-	setTransforms(dest.format, transInfo);
+	setTransforms(dest.format(), transInfo);
 	
 	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint)png_get_rowbytes(data->png, data->info));
 
-	assert( (uint)width*dest.format.bytesPerPixel == png_get_rowbytes(png, info) );
+	assert( (uint)width*dest.format().bytesPerPixel() == png_get_rowbytes(png, info) );
 	
 	if(png_get_interlace_type(png, info) == PNG_INTERLACE_NONE)
 	{
@@ -314,8 +315,7 @@ CallResult Png::readImage(IG::Pixmap &dest)
 
 		for (int i = 0; i < height; i++)
 		{
-			size_t offset = dest.format.offsetBytes(0, i, dest.pitch);
-			png_read_row(png, (uchar*)dest.data + offset, nullptr);
+			png_read_row(png, (png_bytep)dest.pixel({0, i}), nullptr);
 		}
 	}
 	else // read the whole image in 1 call with interlace handling, but needs array of row pointers allocated
@@ -324,9 +324,8 @@ CallResult Png::readImage(IG::Pixmap &dest)
 		png_bytep rowPtr[height];
 		for (int i = 0; i < height; i++)
 		{
-			size_t offset = dest.format.offsetBytes(0, i, dest.pitch);
 			//logr_mPrintf(LOG_MSG,row relative offset = %d", offset);
-			rowPtr[i] = (uchar*)dest.data + offset;
+			rowPtr[i] = (png_bytep)dest.pixel({0, i});
 			//log_mPrintf(LOG_MSG, "set row pointer %d to %p", i, row_pointers[i]);
 		}
 
@@ -347,16 +346,14 @@ CallResult Png::readImage(IG::Pixmap &dest)
 	return OK;
 }
 
-CallResult PngFile::write(IG::Pixmap dest)
+CallResult PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
 
 IG::Pixmap PngFile::lockPixmap()
 {
-	IG::Pixmap pix{*png.pixelFormat()};
-	pix.x = png.width();
-	pix.y = png.height();
+	IG::Pixmap pix{{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, nullptr};
 	return pix;
 }
 

@@ -210,12 +210,12 @@ void EmuSystem::writeConfig(IO &io)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = mdFsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = mdROMFsFilter;
 
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 static const uint mdMaxResX = 320, mdMaxResY = 240;
 static int mdResX = 256, mdResY = 224;
 static uint16 nativePixBuff[mdMaxResX*mdMaxResY] __attribute__ ((aligned (8))) {0};
-t_bitmap bitmap = { (uint8*)nativePixBuff, mdResY, mdResX * pixFmt->bytesPerPixel };
+t_bitmap bitmap = { (uint8*)nativePixBuff, mdResY, mdResX * (int)pixFmt.bytesPerPixel() };
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
@@ -295,7 +295,7 @@ void commitVideoFrame()
 	{
 		mdResX = bitmap.viewport.w;
 		mdResY = bitmap.viewport.h;
-		bitmap.pitch = mdResX * pixFmt->bytesPerPixel;
+		bitmap.pitch = mdResX * pixFmt.bytesPerPixel();
 		logMsg("mode change: %dx%d", mdResX, mdResY);
 		emuVideo.resizeImage(mdResX, mdResY);
 	}

@@ -75,7 +75,7 @@ public:
 	GlyphEntry *entry;
 
 	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
-	CallResult write(IG::Pixmap dest) override;
+	CallResult write(IG::Pixmap &dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 };

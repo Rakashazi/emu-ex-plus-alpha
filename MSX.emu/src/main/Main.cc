@@ -292,7 +292,7 @@ static const uint msxMaxResX = (256) * 2, msxResY = 224,
 		msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
 
 static uint msxResX = msxMaxResX/2;
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
 //static uint16 dummyLine[msxMaxFrameBuffResX] __attribute__ ((aligned (8)));
 
@@ -441,7 +441,7 @@ void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 		logMsg("setting double width line %d, %d", y, val);
 		doubleWidthFrame = val;
 		msxResX = doubleWidthFrame ? msxMaxResX : msxMaxResX/2;
-		if(emuVideo.vidPix.x != msxResX)
+		if(emuVideo.vidPix.w() != msxResX)
 		{
 			emuVideo.resizeImage(msxResX, msxResY);
 		}

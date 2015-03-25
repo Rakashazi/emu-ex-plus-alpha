@@ -59,17 +59,15 @@ alignas(8) static uint32 crtRgbPixmapBuff[] =
 void VideoImageOverlay::setEffect(uint effect)
 {
 	var_selfs(effect);
+	IG::Pixmap pix;
 	switch(effect)
 	{
 		bcase SCANLINES ... SCANLINES_2:
-			new(&pix) IG::Pixmap(PixelFormatIA88);
-			pix.init(scanlinePixmapBuff, 1, 2);
+			pix = {{{1, 2}, IG::PIXEL_IA88}, scanlinePixmapBuff};
 		bcase CRT:
-			new(&pix) IG::Pixmap(PixelFormatIA88);
-			pix.init(crtPixmapBuff, 8, 8);
+			pix = {{{8, 8}, IG::PIXEL_IA88}, crtPixmapBuff};
 		bcase CRT_RGB ... CRT_RGB_2:
-			new(&pix) IG::Pixmap(PixelFormatRGBA8888);
-			pix.init(crtRgbPixmapBuff, 16, 2);//8, 2);
+			pix = {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
 		bdefault: // turn off effect
 			spr.deinit();
 			img.deinit();

@@ -232,9 +232,9 @@ FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbcFsFilter;
 static const int gbResX = 160, gbResY = 144;
 
 #ifdef GAMBATTE_COLOR_RGB565
-static const PixelFormatDesc *pixFmt = &PixelFormatRGB565;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 #else
-static const PixelFormatDesc *pixFmt = &PixelFormatBGRA8888;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 #endif
 
 alignas(8) static gambatte::PixelType screenBuff[gbResX*gbResY]{};

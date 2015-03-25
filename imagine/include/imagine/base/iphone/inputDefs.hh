@@ -32,7 +32,7 @@ public:
 	constexpr TimeIOS() {}
 	double &primitiveVal() { return t; }
 	const double &primitiveVal() const { return t; }
-	static Time makeWithSecsD(double t);
+	static Time makeWithSecsD(double secs);
 };
 
 using TimeImpl = TimeIOS;

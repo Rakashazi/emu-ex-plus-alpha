@@ -2,6 +2,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/defs.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/number.h>
 #include <algorithm>
 
@@ -16,30 +17,33 @@ public:
 
 	constexpr TextureSizeSupport() {}
 
-	bool findBufferXYPixels(uint &x, uint &y, uint imageX, uint imageY)
+	IG::PixmapDesc makePixmapDescWithSupportedSize(IG::PixmapDesc desc)
+	{
+		return {makeSupportedSize(desc.size()), desc.format()};
+	}
+
+	IG::WP makeSupportedSize(IG::WP size)
 	{
 		using namespace IG;
+		IG::WP supportedSize;
 		if(nonPow2)
 		{
-			x = imageX;
-			y = imageY;
+			supportedSize = size;
 		}
 		else if(nonSquare)
 		{
-			x = nextHighestPowerOf2(imageX);
-			y = nextHighestPowerOf2(imageY);
+			supportedSize = {(int)nextHighestPowerOf2(size.x), (int)nextHighestPowerOf2(size.y)};
 		}
 		else
 		{
-			x = y = nextHighestPowerOf2(std::max(imageX,imageY));
+			supportedSize.x = supportedSize.y = nextHighestPowerOf2(std::max(size.x, size.y));
 		}
-
-		if(Config::MACHINE_IS_PANDORA && (x <= 16 || y <= 16))
+		if(Config::MACHINE_IS_PANDORA && (supportedSize.x <= 16 || supportedSize.y <= 16))
 		{
 			// force small textures as square due to PowerVR driver bug
-			x = y = std::max(x, y);
+			supportedSize.x = supportedSize.y = std::max(supportedSize.x, supportedSize.y);
 		}
-		return x == imageX && y == imageY;
+		return supportedSize;
 	}
 
 	bool supportsMipmaps(uint imageX, uint imageY)

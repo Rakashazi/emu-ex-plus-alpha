@@ -33,15 +33,15 @@ void VControllerDPad::updateBoundingAreaGfx()
 {
 	if(visualizeBounds && padArea.xSize())
 	{
-		mapPix.init(padArea.xSize(), padArea.ySize());
-		iterateTimes(mapPix.y, y)
-			iterateTimes(mapPix.x, x)
+		IG::MemPixmap mapPix{{padArea.size(), IG::PIXEL_FMT_RGB565}};
+		iterateTimes(mapPix.h(), y)
+			iterateTimes(mapPix.w(), x)
 			{
 				int input = getInput(padArea.xPos(LT2DO) + x, padArea.yPos(LT2DO) + y);
 				//logMsg("got input %d", input);
-				*((uint16*)mapPix.getPixel(x,y)) = input == -1 ? PixelFormatRGB565.build(1., 0., 0., 1.)
-										: IG::isOdd(input) ? PixelFormatRGB565.build(1., 1., 1., 1.)
-										: PixelFormatRGB565.build(0., 1., 0., 1.);
+				*((uint16*)mapPix.pixel({(int)x, (int)y})) = input == -1 ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
+										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
+										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}
 		mapImg.init({mapPix});
 		mapImg.write(0, mapPix, {});
@@ -116,7 +116,6 @@ void VControllerDPad::setBoundingAreaVisible(bool on)
 			logMsg("deallocating bounding box display resources");
 			mapSpr.deinit();
 			mapImg.deinit();
-			mapPix.deinit();
 		}
 	}
 	else

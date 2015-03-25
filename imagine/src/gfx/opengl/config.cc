@@ -439,7 +439,7 @@ CallResult init()
 	return init(Base::Window::defaultPixelFormat());
 }
 
-CallResult init(uint pixelFormatID)
+CallResult init(IG::PixelFormat pixelFormat)
 {
 	logMsg("running init");
 
@@ -485,11 +485,11 @@ CallResult init(uint pixelFormatID)
 			}
 		});
 
-	if(!pixelFormatID)
-		pixelFormatID = Base::Window::defaultPixelFormat();
+	if(!pixelFormat)
+		pixelFormat = Base::Window::defaultPixelFormat();
 	int glVer = 0;
 	Base::GLBufferConfigAttributes glBuffAttr;
-	glBuffAttr.setPixelFormat(pixelFormatID);
+	glBuffAttr.setPixelFormat(pixelFormat);
 	Base::GLContextAttributes glAttr;
 	if(Config::DEBUG_BUILD)
 		glAttr.setDebug(true);

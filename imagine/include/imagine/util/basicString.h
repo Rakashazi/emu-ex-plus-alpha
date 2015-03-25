@@ -147,35 +147,23 @@ static char *string_cat(std::array<char, S> &dest, const char *src)
 
 #ifdef __cplusplus
 
-// prints format string to buffer and returns number of bytes written
-// returns zero if buffer is too small or on error
-template<typename... ARGS>
-static int string_printf(char *buffer, int buff_size, const char *format, ARGS&&... args)
+template <size_t S, typename... ARGS>
+static int string_printf(char (&buffer)[S], ARGS&&... args)
 {
-	int ret = snprintf(buffer, buff_size, format, std::forward<ARGS>(args)...);
-	// error if text would overflow, or actual error in vsnprintf()
-	if(ret >= buff_size || ret < 0)
-		return 0;
-	return ret;
+	return snprintf(buffer, S, std::forward<ARGS>(args)...);
 }
 
 template <size_t S, typename... ARGS>
-static int string_printf(char (&buffer)[S], const char *format, ARGS&&... args)
+static int string_printf(std::array<char, S> &buffer, ARGS&&... args)
 {
-	return string_printf(buffer, S, format, std::forward<ARGS>(args)...);
+	return snprintf(buffer.data(), S, std::forward<ARGS>(args)...);
 }
 
 template <size_t S, typename... ARGS>
-static int string_printf(std::array<char, S> &buffer, const char *format, ARGS&&... args)
-{
-	return string_printf(buffer.data(), S, format, std::forward<ARGS>(args)...);
-}
-
-template <size_t S, typename... ARGS>
-static std::array<char, S> string_makePrintf(const char *format, ARGS&&... args)
+static std::array<char, S> string_makePrintf(ARGS&&... args)
 {
 	std::array<char, S> str;
-	string_printf(str, format, std::forward<ARGS>(args)...);
+	snprintf(str.data(), S, std::forward<ARGS>(args)...);
 	return str;
 }
 

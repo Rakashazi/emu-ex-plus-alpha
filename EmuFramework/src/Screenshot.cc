@@ -23,14 +23,12 @@
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 {
-	auto screen = vidPix.data;
-	auto tempImgBuff = (char*)mem_alloc(vidPix.x * vidPix.y * 3);
-	IG::Pixmap tempPix(PixelFormatRGB888);
-	tempPix.init(tempImgBuff, vidPix.x, vidPix.y);
-	for(uint y = 0; y < vidPix.y; y++, screen += vidPix.pitch, tempImgBuff += tempPix.pitch)
+	auto screen = vidPix.pixel({});
+	IG::MemPixmap tempPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
+	for(uint y = 0; y < vidPix.h(); y++, screen += vidPix.pitchBytes())
 	{
-		auto rowpix = tempImgBuff;
-		for(uint x = 0; x < vidPix.x; x++)
+		auto rowpix = tempPix.pixel({0, (int)y});
+		for(uint x = 0; x < vidPix.w(); x++)
 		{
 			// assumes RGB565
 			uint16 pixVal = *(uint16 *)(screen+2*x);
@@ -42,7 +40,6 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		}
 	}
 	Quartz2dImage::writeImage(tempPix, fname);
-	mem_free(tempPix.data);
 	logMsg("%s saved.", fname);
 	return 1;
 }
@@ -70,7 +67,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		jMakeBitmap.setup(env, jBaseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
 		jWritePNG.setup(env, jBaseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
 	}
-	auto bitmap = jMakeBitmap(env, jBaseActivity, vidPix.x, vidPix.y, ANDROID_BITMAP_FORMAT_RGB_565);
+	auto bitmap = jMakeBitmap(env, jBaseActivity, vidPix.w(), vidPix.h(), ANDROID_BITMAP_FORMAT_RGB_565);
 	if(!bitmap)
 	{
 		logErr("error allocating bitmap");
@@ -82,9 +79,8 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	assert(info.format == ANDROID_BITMAP_FORMAT_RGB_565);
 	void *buffer;
 	AndroidBitmap_lockPixels(env, bitmap, &buffer);
-	Pixmap dest(PixelFormatRGB565);
-	dest.init2((char*)buffer, info.width, info.height, info.stride);
-	vidPix.copy(0, 0, 0, 0, dest, 0, 0);
+	Pixmap dest{{{(int)info.width, (int)info.height}, PIXEL_FMT_RGB565}, buffer, {info.stride, Pixmap::BYTE_UNITS}};
+	dest.write(vidPix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto nameJStr = env->NewStringUTF(fname);
 	auto writeOK = jWritePNG(env, jBaseActivity, bitmap, nameJStr);
@@ -147,8 +143,8 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		return false;
 	}
 
-	uint imgwidth = vidPix.x;
-	uint imgheight = vidPix.y;
+	uint imgwidth = vidPix.w();
+	uint imgheight = vidPix.h();
 
 	png_set_write_fn(pngPtr, &fp, png_ioWriter, png_ioFlush);
 	png_set_IHDR(pngPtr, infoPtr, imgwidth, imgheight, 8,
@@ -161,11 +157,11 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	//png_set_packing(pngPtr);
 
 	png_byte *rowPtr= (png_byte*)mem_alloc(png_get_rowbytes(pngPtr, infoPtr));
-	auto screen = vidPix.data;
-	for(uint y=0; y < vidPix.y; y++, screen+=vidPix.pitch)
+	auto screen = vidPix.pixel({});
+	for(uint y=0; y < vidPix.h(); y++, screen+=vidPix.pitchBytes())
 	{
 		png_byte *rowpix = rowPtr;
-		for(uint x=0; x < vidPix.x; x++)
+		for(uint x=0; x < vidPix.w(); x++)
 		{
 			// assumes RGB565
 			uint16 pixVal = *(uint16 *)(screen+2*x);
@@ -174,7 +170,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 			*(rowpix++) = r;
 			*(rowpix++) = g;
 			*(rowpix++) = b;
-			if(imgwidth!=vidPix.x)
+			if(imgwidth != vidPix.w())
 			{
 				*(rowpix++) = r;
 				*(rowpix++) = g;
@@ -182,7 +178,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 			}
 		}
 		png_write_row(pngPtr, rowPtr);
-		if(imgheight!=vidPix.y)
+		if(imgheight != vidPix.h())
 			png_write_row(pngPtr, rowPtr);
 	}
 

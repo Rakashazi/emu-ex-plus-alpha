@@ -236,6 +236,13 @@ Event::KeyString Event::keyString() const
 	return {}; // TODO
 }
 
+Time TimeIOS::makeWithSecsD(double secs)
+{
+	Time time;
+	time.t = secs;
+	return time;
+}
+
 Time Time::makeWithNSecs(uint64_t nsecs)
 {
 	Time time;

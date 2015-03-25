@@ -23,9 +23,9 @@
 namespace Base
 {
 
-uint Window::defaultPixelFormat()
+PixelFormat Window::defaultPixelFormat()
 {
-	return PIXEL_RGB888;
+	return PIXEL_FMT_RGB888;
 }
 
 void Window::setAcceptDnd(bool on)

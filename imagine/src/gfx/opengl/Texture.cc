@@ -17,12 +17,15 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/assume.h>
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
 #include "android/GraphicBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
+
+using namespace IG;
 
 #ifndef GL_TEXTURE_SWIZZLE_R
 #define GL_TEXTURE_SWIZZLE_R 0x8E42
@@ -93,9 +96,9 @@ static uint unpackAlignForAddrAndPitch(void *srcAddr, uint pitch)
 	return std::min(alignmentForPitch, alignmentForAddr);
 }
 
-static GLenum makeGLDataType(const PixelFormatDesc &format)
+static GLenum makeGLDataType(IG::PixelFormatID format)
 {
-	switch(format.id)
+	switch(format)
 	{
 		case PIXEL_RGBA8888:
 		case PIXEL_BGRA8888:
@@ -115,23 +118,23 @@ static GLenum makeGLDataType(const PixelFormatDesc &format)
 			return GL_UNSIGNED_BYTE;
 		case PIXEL_RGB565:
 			return GL_UNSIGNED_SHORT_5_6_5;
-		case PIXEL_ARGB1555:
+		case PIXEL_RGBA5551:
 			return GL_UNSIGNED_SHORT_5_5_5_1;
-		case PIXEL_ARGB4444:
+		case PIXEL_RGBA4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4;
 		#if !defined CONFIG_GFX_OPENGL_ES
-		case PIXEL_BGRA4444:
+		case PIXEL_ABGR4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4_REV;
 		case PIXEL_ABGR1555:
 			return GL_UNSIGNED_SHORT_1_5_5_5_REV;
 		#endif
-		default: bug_branch("%d", format.id); return 0;
+		default: bug_branch("%d", format); return 0;
 	}
 }
 
-static GLenum makeGLFormat(const PixelFormatDesc &format)
+static GLenum makeGLFormat(IG::PixelFormatID format)
 {
-	switch(format.id)
+	switch(format)
 	{
 		case PIXEL_I8:
 			return luminanceFormat;
@@ -144,8 +147,8 @@ static GLenum makeGLFormat(const PixelFormatDesc &format)
 			return GL_RGB;
 		case PIXEL_RGBA8888:
 		case PIXEL_ARGB8888:
-		case PIXEL_ARGB1555:
-		case PIXEL_ARGB4444:
+		case PIXEL_RGBA5551:
+		case PIXEL_RGBA4444:
 			return GL_RGBA;
 		#if !defined CONFIG_GFX_OPENGL_ES
 		case PIXEL_BGR888:
@@ -153,25 +156,25 @@ static GLenum makeGLFormat(const PixelFormatDesc &format)
 			return GL_BGR;
 		case PIXEL_ABGR8888:
 		case PIXEL_BGRA8888:
-		case PIXEL_BGRA4444:
+		case PIXEL_ABGR4444:
 		case PIXEL_ABGR1555:
 			assert(supportBGRPixels);
 			return GL_BGRA;
 		#endif
-		default: bug_branch("%d", format.id); return 0;
+		default: bug_branch("%d", format); return 0;
 	}
 }
 
-static int makeGLESInternalFormat(const PixelFormatDesc &format)
+static int makeGLESInternalFormat(IG::PixelFormatID format)
 {
-	if(format.id == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
+	if(format == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
 		return bgrInternalFormat;
 	else return makeGLFormat(format); // OpenGL ES manual states internalformat always equals format
 }
 
-static int makeGLSizedInternalFormat(const PixelFormatDesc &format)
+static int makeGLSizedInternalFormat(IG::PixelFormatID format)
 {
-	switch(format.id)
+	switch(format)
 	{
 		case PIXEL_BGRA8888:
 		case PIXEL_ARGB8888:
@@ -188,10 +191,10 @@ static int makeGLSizedInternalFormat(const PixelFormatDesc &format)
 			return GL_RGB5;
 			#endif
 		case PIXEL_ABGR1555:
-		case PIXEL_ARGB1555:
+		case PIXEL_RGBA5551:
 			return GL_RGB5_A1;
-		case PIXEL_ARGB4444:
-		case PIXEL_BGRA4444:
+		case PIXEL_RGBA4444:
+		case PIXEL_ABGR4444:
 			return GL_RGBA4;
 		case PIXEL_I8:
 			return luminanceInternalFormat;
@@ -199,20 +202,20 @@ static int makeGLSizedInternalFormat(const PixelFormatDesc &format)
 			return luminanceAlphaInternalFormat;
 		case PIXEL_A8:
 			return alphaInternalFormat;
-		default: bug_branch("%d", format.id); return 0;
+		default: bug_branch("%d", format); return 0;
 	}
 }
 
-static int makeGLInternalFormat(const PixelFormatDesc &format)
+static int makeGLInternalFormat(PixelFormatID format)
 {
 	return Config::Gfx::OPENGL_ES ? makeGLESInternalFormat(format)
 		: makeGLSizedInternalFormat(format);
 }
 
-static uint typeForPixelFormat(const PixelFormatDesc &format)
+static uint typeForPixelFormat(PixelFormatID format)
 {
-	return (format.id == PIXEL_A8) ? TEX_2D_1 :
-		(format.id == PIXEL_IA88) ? TEX_2D_2 :
+	return (format == PIXEL_A8) ? TEX_2D_1 :
+		(format == PIXEL_IA88) ? TEX_2D_2 :
 		TEX_2D_4;
 }
 
@@ -253,16 +256,6 @@ static GLint makeMagFilter(bool linearFiltering)
 static GLint makeWrapMode(WrapMode mode)
 {
 	return mode == WRAP_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-}
-
-static const PixelFormatDesc *swapRGBToPreferedOrder(const PixelFormatDesc *fmt)
-{
-	if(Gfx::preferBGR && fmt->id == PIXEL_RGB888)
-		return &PixelFormatBGR888;
-	else if(Gfx::preferBGRA && fmt->id == PIXEL_RGBA8888)
-		return &PixelFormatBGRA8888;
-	else
-		return fmt;
 }
 
 static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps)
@@ -323,7 +316,7 @@ static CallResult initTextureCommon(T &texture, GfxImageSource &img, bool makeMi
 		if(imgPix)
 		{
 			//logDMsg("copying locked image pixmap to locked texture");
-			imgPix.copy(0, 0, 0, 0, lockBuff.pixmap(), 0, 0);
+			lockBuff.pixmap().write(imgPix, {});
 		}
 		else
 		{
@@ -342,8 +335,8 @@ static CallResult initTextureCommon(T &texture, GfxImageSource &img, bool makeMi
 		else
 		{
 			//logDMsg("writing image to texture");
-			IG::ManagedPixmap texPix{imgPix.format};
-			if(!texPix.init(imgPix.x, imgPix.y))
+			IG::MemPixmap texPix{imgPix};
+			if(!texPix)
 				return OUT_OF_MEMORY;
 			img.write(texPix);
 			texture.write(0, texPix, {});
@@ -514,7 +507,7 @@ void GLTextureSampler::setTexParams(GLenum target)
 
 DirectTextureStorage::~DirectTextureStorage() {}
 
-IG::Pixmap LockedTextureBuffer::pixmap()
+IG::Pixmap &LockedTextureBuffer::pixmap()
 {
 	return pix;
 }
@@ -615,14 +608,14 @@ void Texture::deinit()
 	*this = {};
 }
 
-uint Texture::bestAlignment(IG::Pixmap p)
+uint Texture::bestAlignment(const IG::Pixmap &p)
 {
-	return unpackAlignForAddrAndPitch(p.data, p.pitch);
+	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
 }
 
 bool Texture::canUseMipmaps()
 {
-	return !directTex && textureSizeSupport.supportsMipmaps(pixDesc.x, pixDesc.y);
+	return !directTex && textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
 }
 
 bool Texture::generateMipmaps()
@@ -635,7 +628,7 @@ bool Texture::generateMipmaps()
 	if(!useImmutableTexStorage)
 	{
 		// all possible levels generated by glGenerateMipmap
-		levels_ = fls(pixDesc.x | pixDesc.y);
+		levels_ = fls(pixDesc.w() | pixDesc.h());
 	}
 	return true;
 }
@@ -647,18 +640,18 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 	if(directTex)
 	{
 		levels = 1;
-		if(pixDesc.isSameGeometry(desc))
-			logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.x, desc.y);
+		if(pixDesc == desc)
+			logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
 		auto result = directTex->setFormat(desc, texName_);
 		if(result != OK)
 			return result;
 	}
 	else
 	{
-		if(textureSizeSupport.supportsMipmaps(desc.x, desc.y))
+		if(textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 		{
 			if(!levels)
-				levels = fls(desc.x | desc.y);
+				levels = fls(desc.w() | desc.h());
 		}
 		else
 		{
@@ -672,11 +665,11 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 				texName_ = newTex();
 			}
 			glcBindTexture(GL_TEXTURE_2D, texName_);
-			auto internalFormat = makeGLSizedInternalFormat(desc.format);
+			auto internalFormat = makeGLSizedInternalFormat(desc.format());
 			logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-				texName_, desc.x, desc.y, levels, glImageFormatToString(internalFormat));
+				texName_, desc.w(), desc.w(), levels, glImageFormatToString(internalFormat));
 			handleGLErrors();
-			glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.x, desc.y);
+			glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexStorage2D", err); }))
 			{
 				return INVALID_PARAMETER;
@@ -690,13 +683,13 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 				texName_ = newTex();
 			}
 			glcBindTexture(GL_TEXTURE_2D, texName_);
-			auto format = makeGLFormat(desc.format);
-			auto dataType = makeGLDataType(desc.format);
-			auto internalFormat = makeGLInternalFormat(desc.format);
+			auto format = makeGLFormat(desc.format());
+			auto dataType = makeGLDataType(desc.format());
+			auto internalFormat = makeGLInternalFormat(desc.format());
 			logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
-				texName_, desc.x, desc.y, levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+				texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 			handleGLErrors();
-			uint w = desc.x, h = desc.y;
+			uint w = desc.w(), h = desc.h();
 			iterateTimes(levels, i)
 			{
 				glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
@@ -710,7 +703,7 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		}
 		if(ownPBO)
 		{
-			uint buffSize = desc.sizeOfPixels(desc.x * desc.y);
+			uint buffSize = desc.pixelBytes();
 			glcBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
 			glBufferData(GL_PIXEL_UNPACK_BUFFER, buffSize, nullptr, GL_STREAM_DRAW);
 			logMsg("allocated PBO buffer bytes:%u", buffSize);
@@ -723,9 +716,9 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 	if(Config::Gfx::OPENGL_ES && target == GL_TEXTURE_EXTERNAL_OES)
 		type_ = TEX_2D_EXTERNAL;
 	else
-		type_ = typeForPixelFormat(desc.format);
+		type_ = typeForPixelFormat(desc.format());
 	#endif
-	setSwizzleForFormat(desc.format, texName_, target);
+	setSwizzleForFormat(desc.format(), texName_, target);
 	return OK;
 }
 
@@ -745,7 +738,7 @@ void Texture::bind()
 	}
 }
 
-void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumeAlign)
+void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumeAlign)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
@@ -753,15 +746,15 @@ void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumeAl
 		logErr("can't write to uninitialized texture");
 		return;
 	}
-	assert(destPos.x + pixmap.x <= (uint)size(level).x);
-	assert(destPos.y + pixmap.y <= (uint)size(level).y);
-	assert(pixmap.format.id == pixDesc.format.id);
+	assumeExpr(destPos.x + pixmap.w() <= (uint)size(level).x);
+	assumeExpr(destPos.y + pixmap.h() <= (uint)size(level).y);
+	assumeExpr(pixmap.format() == pixDesc.format());
 	if(!assumeAlign)
-		assumeAlign = unpackAlignForAddrAndPitch(pixmap.data, pixmap.pitch);
+		assumeAlign = unpackAlignForAddrAndPitch(pixmap.pixel({}), pixmap.pitchBytes());
 	if(directTex)
 	{
 		assert(level == 0);
-		if(destPos != IG::WP{0, 0} || pixmap.x != (uint)size(0).x || pixmap.y != (uint)size(0).y)
+		if(destPos != IG::WP{0, 0} || pixmap.w() != (uint)size(0).x || pixmap.h() != (uint)size(0).y)
 		{
 			bug_exit("partial write of direct texture unsupported, use lock()");
 		}
@@ -770,36 +763,36 @@ void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumeAl
 		{
 			return;
 		}
-		pixmap.copy(0, 0, 0, 0, lockBuff.pixmap(), 0, 0);
+		lockBuff.pixmap().write(pixmap, {});
 		unlock(lockBuff);
 	}
 	else
 	{
 		glcBindTexture(GL_TEXTURE_2D, texName_);
-		if((ptrsize)pixmap.data % (ptrsize)assumeAlign != 0)
+		if((ptrsize)pixmap.pixel({}) % (ptrsize)assumeAlign != 0)
 		{
-			bug_exit("expected data from address %p to be aligned to %u bytes", pixmap.data, assumeAlign);
+			bug_exit("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
 		}
-		GLenum format = makeGLFormat(pixmap.format);
-		GLenum dataType = makeGLDataType(pixmap.format);
+		GLenum format = makeGLFormat(pixmap.format());
+		GLenum dataType = makeGLDataType(pixmap.format());
 		if(usePBO)
 		{
-			auto lockBuff = lock(level, {destPos.x, destPos.y, destPos.x + (int)pixmap.x, destPos.y + (int)pixmap.y});
+			auto lockBuff = lock(level, {destPos.x, destPos.y, destPos.x + (int)pixmap.w(), destPos.y + (int)pixmap.h()});
 			if(!lockBuff)
 			{
 				return;
 			}
-			pixmap.copy(0, 0, 0, 0, lockBuff.pixmap(), 0, 0);
+			lockBuff.pixmap().write(pixmap, {});
 			unlock(lockBuff);
 		}
-		else if(useUnpackRowLength || pixmap.pitchPixels() == pixmap.x)
+		else if(useUnpackRowLength || pixmap.pitchPixels() == pixmap.w())
 		{
 			glcPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
 			if(useUnpackRowLength)
 				glcPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
 			handleGLErrors();
 			glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-				pixmap.x, pixmap.y, format, dataType, pixmap.data);
+				pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 			{
 				return;
@@ -809,20 +802,19 @@ void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumeAl
 		{
 			// must copy to temp pixmap without extra pitch pixels
 			static uint prevPixmapX = 0, prevPixmapY = 0;
-			if(pixmap.x != prevPixmapX || pixmap.y != prevPixmapY) // don't spam log with repeated calls of same size pixmap
+			if(pixmap.w() != prevPixmapX || pixmap.h() != prevPixmapY) // don't spam log with repeated calls of same size pixmap
 			{
-				prevPixmapX = pixmap.x;
-				prevPixmapY = pixmap.y;
-				logDMsg("non-optimal texture write operation with %ux%u pixmap", pixmap.x, pixmap.y);
+				prevPixmapX = pixmap.w();
+				prevPixmapY = pixmap.h();
+				logDMsg("non-optimal texture write operation with %ux%u pixmap", pixmap.w(), pixmap.h());
 			}
-			IG::Pixmap tempPix{pixmap};
-			alignas(8) char tempPixData[pixmap.unpaddedSize()];
-			tempPix.init(tempPixData, pixmap.x, pixmap.y);
-			glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitch));
-			pixmap.copy(0, 0, 0, 0, tempPix, 0, 0);
+			alignas(8) char tempPixData[pixmap.pixelBytes()];
+			IG::Pixmap tempPix{pixmap, tempPixData};
+			glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
+			tempPix.write(pixmap, {});
 			handleGLErrors();
 			glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-				tempPix.x, tempPix.y, format, dataType, tempPix.data);
+				tempPix.w(), tempPix.h(), format, dataType, tempPix.pixel({}));
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 			{
 				return;
@@ -831,7 +823,7 @@ void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos, uint assumeAl
 	}
 }
 
-void Texture::write(uint level, IG::Pixmap pixmap, IG::WP destPos)
+void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos)
 {
 	write(level, pixmap, destPos, 0);
 }
@@ -846,13 +838,10 @@ void Texture::clear(uint level)
 	}
 	else
 	{
-		IG::PixmapDesc levelPixDesc{pixDesc};
-		levelPixDesc.x = size(level).x;
-		levelPixDesc.y = size(level).y;
-		void *tempPixData = mem_calloc(levelPixDesc.unpaddedSize());
-		IG::Pixmap blankPix{levelPixDesc};
-		blankPix.init(tempPixData, pixDesc.x, pixDesc.y);
-		write(level, blankPix, {}, unpackAlignForAddrAndPitch(nullptr, blankPix.pitch));
+		IG::PixmapDesc levelPixDesc{size(level), pixDesc.format()};
+		void *tempPixData = mem_calloc(levelPixDesc.pixelBytes());
+		IG::Pixmap blankPix{levelPixDesc, tempPixData};
+		write(level, blankPix, {}, unpackAlignForAddrAndPitch(nullptr, blankPix.pitchBytes()));
 		mem_free(tempPixData);
 	}
 }
@@ -863,9 +852,7 @@ LockedTextureBuffer Texture::lock(uint level)
 	{
 		assert(level == 0);
 		auto buff = directTex->lock(nullptr);
-		IG::Pixmap pix{pixDesc};
-		pix.data = (char*)buff.data;
-		pix.pitch = buff.pitch;
+		IG::Pixmap pix{pixDesc, buff.data, {buff.pitch, IG::Pixmap::BYTE_UNITS}};
 		return makeLockedTextureBuffer(pix, {}, 0);
 	}
 	else if(usePBO)
@@ -884,14 +871,12 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 	{
 		assert(level == 0);
 		auto buff = directTex->lock(&rect);
-		IG::Pixmap pix{pixDesc};
-		pix.data = (char*)buff.data;
-		pix.pitch = buff.pitch;
+		IG::Pixmap pix{pixDesc, buff.data, {buff.pitch, IG::Pixmap::BYTE_UNITS}};
 		return makeLockedTextureBuffer(pix, rect, 0);
 	}
 	else if(usePBO)
 	{
-		uint rangeBytes = pixDesc.sizeOfPixels(rect.xSize() * rect.ySize());
+		uint rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
 		void *data;
 		if(ownPBO)
 		{
@@ -912,8 +897,7 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 			logErr("error mapping buffer");
 			return {};
 		}
-		IG::Pixmap pix{pixDesc};
-		pix.init(data, rect.xSize(), rect.ySize());
+		IG::Pixmap pix{{rect.size(), pixDesc.format()}, data};
 		return makeLockedTextureBuffer(pix, rect, level);
 	}
 	else
@@ -930,13 +914,13 @@ void Texture::unlock(LockedTextureBuffer lockBuff)
 		IG::WP destPos = {lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y};
 		//logDMsg("unmapped PBO");
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-		glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitch));
+		glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-		GLenum format = makeGLFormat(pix.format);
-		GLenum dataType = makeGLDataType(pix.format);
+		GLenum format = makeGLFormat(pix.format());
+		GLenum dataType = makeGLDataType(pix.format());
 		handleGLErrors();
 		glTexSubImage2D(GL_TEXTURE_2D, lockBuff.level(), destPos.x, destPos.y,
-			pix.x, pix.y, format, dataType, nullptr);
+			pix.w(), pix.h(), format, dataType, nullptr);
 		if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
 		{
 			return;
@@ -946,7 +930,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff)
 
 IG::WP Texture::size(uint level) const
 {
-	uint w = pixDesc.x, h = pixDesc.y;
+	uint w = pixDesc.w(), h = pixDesc.h();
 	iterateTimes(level, i)
 	{
 		w = std::max(1u, (w / 2));
@@ -1026,13 +1010,13 @@ CallResult PixmapTexture::init(TextureConfig config)
 			return OK;
 	}
 	auto origPixDesc = config.pixmapDesc();
-	textureSizeSupport.findBufferXYPixels(config.pixmapDesc().x, config.pixmapDesc().y, origPixDesc.x, origPixDesc.y);
+	config.setPixmapDesc(textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
 	auto result = Texture::init(config);
 	if(result != OK)
 		return result;
-	if(!origPixDesc.isSameGeometry(config.pixmapDesc()))
+	if(origPixDesc != config.pixmapDesc())
 		clear(0);
-	updateUV({}, {(int)origPixDesc.x, (int)origPixDesc.y});
+	updateUV({}, origPixDesc.size());
 	return OK;
 }
 
@@ -1049,16 +1033,15 @@ CallResult PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 	}
 	else
 	{
-		IG::PixmapDesc newPixDesc{desc};
-		textureSizeSupport.findBufferXYPixels(newPixDesc.x, newPixDesc.y, desc.x, desc.y);
+		IG::PixmapDesc newPixDesc = textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 		auto result = Texture::setFormat(newPixDesc, levels);
 		if(result != OK)
 		{
 			return result;
 		}
-		if(!desc.isSameGeometry(newPixDesc))
+		if(desc != newPixDesc)
 			clear(0);
-		updateUV({}, {(int)desc.x, (int)desc.y});
+		updateUV({}, desc.size());
 		return OK;
 	}
 }
@@ -1070,10 +1053,10 @@ IG::Rect2<GTexC> PixmapTexture::uvBounds() const
 
 void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)
 {
-	uv.x = pixelToTexC((uint)pixPos.x, pixDesc.x);
-	uv.y = pixelToTexC((uint)pixPos.y, pixDesc.y);
-	uv.x2 = pixelToTexC((uint)(pixPos.x + pixSize.x), pixDesc.x);
-	uv.y2 = pixelToTexC((uint)(pixPos.y + pixSize.y), pixDesc.y);
+	uv.x = pixelToTexC((uint)pixPos.x, pixDesc.w());
+	uv.y = pixelToTexC((uint)pixPos.y, pixDesc.h());
+	uv.x2 = pixelToTexC((uint)(pixPos.x + pixSize.x), pixDesc.w());
+	uv.y2 = pixelToTexC((uint)(pixPos.y + pixSize.y), pixDesc.h());
 }
 
 GLuint GLTexture::texName() const
@@ -1081,7 +1064,7 @@ GLuint GLTexture::texName() const
 	return texName_;
 }
 
-void GLTexture::setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, GLenum target)
+void GLTexture::setSwizzleForFormat(PixelFormatID format, GLuint tex, GLenum target)
 {
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(useFixedFunctionPipeline)
@@ -1093,16 +1076,16 @@ void GLTexture::setSwizzleForFormat(const PixelFormatDesc &format, GLuint tex, G
 		const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
 		const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
 		#ifdef CONFIG_GFX_OPENGL_ES
-		auto &swizzleMask = (format.id == PIXEL_IA88) ? swizzleMaskIA88
-				: (format.id == PIXEL_A8) ? swizzleMaskA8
+		auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
+				: (format == PIXEL_A8) ? swizzleMaskA8
 				: swizzleMaskRGBA;
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
 		#else
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format.id == PIXEL_IA88) ? swizzleMaskIA88
-				: (format.id == PIXEL_A8) ? swizzleMaskA8
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
+				: (format == PIXEL_A8) ? swizzleMaskA8
 				: swizzleMaskRGBA);
 		#endif
 	}
