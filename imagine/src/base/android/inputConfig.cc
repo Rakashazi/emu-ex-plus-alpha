@@ -207,8 +207,8 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 			logMsg("detected Xperia Play gamepad");
 			subtype_ = Device::SUBTYPE_XPERIA_PLAY;
 		}
-		else if(Config::MACHINE_IS_GENERIC_ARMV7 &&
-			(string_equal(name, "sii9234_rcp") || string_equal(name, "MHLRCP" ) || strstr(name, "Button Jack")))
+		else if((Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(name, "sii9234_rcp"))
+			|| string_equal(name, "MHLRCP" ) || strstr(name, "Button Jack"))
 		{
 			// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 			// but has only special function keys
@@ -226,7 +226,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 			logMsg("detected OUYA gamepad");
 			subtype_ = Device::SUBTYPE_OUYA_CONTROLLER;
 		}
-		else if(Config::MACHINE_IS_GENERIC_ARMV7 && strstr(name, "NVIDIA Controller"))
+		else if(strstr(name, "NVIDIA Controller"))
 		{
 			logMsg("detected NVidia Shield gamepad");
 			subtype_ = Device::SUBTYPE_NVIDIA_SHIELD;

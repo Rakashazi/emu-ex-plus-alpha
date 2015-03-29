@@ -45,6 +45,9 @@ endif
 ifeq ($(filter armv7, $(android_arch)),)
  android_noArmv7 := 1
 endif
+ifeq ($(filter arm64, $(android_arch)),)
+ android_noArm64 := 1
+endif
 ifeq ($(filter x86, $(android_arch)),)
  android_noX86 := 1
 endif
@@ -216,6 +219,7 @@ android-arm-clean :
 	@echo "Cleaning ARM Build"
 	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs) clean
 android_cleanTargets += android-arm-clean
+android_soFiles += $(android_armSO)
 
 endif
 
@@ -238,6 +242,30 @@ android-armv7-clean :
 	@echo "Cleaning ARMv7 Build"
 	$(PRINT_CMD)$(MAKE) $(android_armv7MakeArgs) clean
 android_cleanTargets += android-armv7-clean
+android_soFiles += $(android_armv7SO)
+
+endif
+
+ifndef android_noArm64
+
+android_arm64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm64.mk
+android_arm64SODir := $(android_targetPath)/libs/arm64-v8a
+android_arm64SO := $(android_arm64SODir)/lib$(android_soName).so
+android_arm64MakeArgs = -f $(android_arm64Makefile) $(android_makefileOpts) \
+ targetDir=$(android_arm64SODir) buildName=$(android_buildName)-arm64 \
+ projectPath=$(projectPath)
+.PHONY: android-arm64
+android-arm64 :
+	@echo "Building ARM64 Shared Object"
+	$(PRINT_CMD)$(MAKE) $(android_arm64MakeArgs)
+$(android_arm64SO) : android-arm64
+
+.PHONY: android-arm64-clean
+android-arm64-clean :
+	@echo "Cleaning ARM64 Build"
+	$(PRINT_CMD)$(MAKE) $(android_arm64MakeArgs) clean
+android_cleanTargets += android-arm64-clean
+android_soFiles += $(android_arm64SO)
 
 endif
 
@@ -260,11 +288,12 @@ android-x86-clean :
 	@echo "Cleaning X86 Build"
 	$(PRINT_CMD)$(MAKE) $(android_x86MakeArgs) clean
 android_cleanTargets += android-x86-clean
+android_soFiles += $(android_x86SO)
 
 endif
 
 .PHONY: android-build
-android-build : $(android_armSO) $(android_armv7SO) $(android_x86SO)
+android-build : $(android_soFiles)
 
 # apks
 
@@ -280,7 +309,7 @@ endif
 
 android_apkPath := $(android_targetPath)/bin/$(android_metadata_project)-$(android_antTarget).apk
 .PHONY: android-apk
-android-apk : $(android_projectDeps) $(android_armSO) $(android_armv7SO) $(android_x86SO)
+android-apk : $(android_projectDeps) $(android_soFiles)
 	cd $(android_targetPath) && ANT_OPTS=-Dimagine.path=$(IMAGINE_PATH) ant $(antVerbose) $(android_antTarget)
 $(android_apkPath) : android-apk
 

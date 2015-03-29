@@ -24,6 +24,10 @@ ifneq ($(filter armv7, $(android_arch)),)
  armv7Target := $(android_buildPrefix)-$(android_minSDK)-armv7$(targetExt)
  targets += $(armv7Target)
 endif
+ifneq ($(filter arm64, $(android_arch)),)
+ arm64Target := $(android_buildPrefix)-$(android_minSDK)-arm64$(targetExt)
+ targets += $(arm64Target)
+endif
 ifneq ($(filter x86, $(android_arch)),)
  x86Target := $(android_buildPrefix)-$(android_minSDK)-x86$(targetExt)
  targets += $(x86Target)

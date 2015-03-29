@@ -167,6 +167,28 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::Ouya::R1,
 		}
 	},
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_NVIDIA_SHIELD,
+		"NVidia Shield",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_LEFT_THUMB,
+			Keycode::GAME_START,
+			Keycode::GAME_X,
+			Keycode::GAME_A,
+			Keycode::GAME_B,
+			Keycode::GAME_L1,
+			Keycode::GAME_Y,
+			Keycode::GAME_R1,
+		}
+	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
 			Event::MAP_SYSTEM,
@@ -210,28 +232,6 @@ const KeyConfig defaultKeyProfile[] =
 				Keycode::A,
 				Keycode::S,
 				Keycode::D,
-			}
-		},
-		{
-			Event::MAP_SYSTEM,
-			Device::SUBTYPE_NVIDIA_SHIELD,
-			"NVidia Shield",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
-
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::GAME_LEFT_THUMB,
-				Keycode::GAME_START,
-				Keycode::GAME_X,
-				Keycode::GAME_A,
-				Keycode::GAME_B,
-				Keycode::GAME_L1,
-				Keycode::GAME_Y,
-				Keycode::GAME_R1,
 			}
 		},
 		#endif

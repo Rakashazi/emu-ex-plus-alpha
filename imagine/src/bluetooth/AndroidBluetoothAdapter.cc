@@ -517,6 +517,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return fd;
 	}
+	#if __ANDROID_API__ < 17
 	else if(fdDataId)
 	{
 		// asocket method
@@ -533,6 +534,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return sockPtr->fd;
 	}
+	#endif
 	return -1;
 }
 
@@ -620,7 +622,7 @@ void AndroidBluetoothSocket::close()
 
 CallResult AndroidBluetoothSocket::write(const void *data, size_t size)
 {
-	logMsg("writing %d bytes", size);
+	logMsg("writing %zd bytes", size);
 	if(nativeFd != -1)
 	{
 		if(fd_writeAll(nativeFd, data, size) != (ssize_t)size)

@@ -87,4 +87,9 @@ LDFLAGS += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-pre
 LDFLAGS_SO := -Wl,-soname,lib$(android_soName).so -shared
 LDLIBS += -lgcc -lc $(android_libm)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
+ifeq ($(ARCH), aarch64)
+ # not using GOLD
+ LDFLAGS += -s -Wl,-O1,--gc-sections,--as-needed
+else
+ LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
+endif

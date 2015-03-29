@@ -441,6 +441,37 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::Ouya::A,
 		}
 	},
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_NVIDIA_SHIELD,
+		"NVidia Shield",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
+
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_A,
+			Keycode::GAME_B,
+			Keycode::GAME_Y,
+
+			// JS 2
+			PP_ZERO_LIST(11)
+
+			// Keyboard
+			Keycode::GAME_START,
+			Keycode::GAME_LEFT_THUMB, // F1 ... F8
+			0,
+			Keycode::GAME_L1,
+			0,
+			Keycode::GAME_R1,
+			0,
+			Keycode::GAME_X,
+		}
+	},
 		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
 		{
 			Event::MAP_SYSTEM,
@@ -636,37 +667,6 @@ const KeyConfig defaultKeyProfile[] =
 				Keycode::LEFT,
 
 				Keycode::SPACE,
-			}
-		},
-		{
-			Event::MAP_SYSTEM,
-			Device::SUBTYPE_NVIDIA_SHIELD,
-			"NVidia Shield",
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
-
-				// JS 1
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::GAME_A,
-				Keycode::GAME_B,
-				Keycode::GAME_Y,
-
-				// JS 2
-				PP_ZERO_LIST(11)
-
-				// Keyboard
-				Keycode::GAME_START,
-				Keycode::GAME_LEFT_THUMB, // F1 ... F8
-				0,
-				Keycode::GAME_L1,
-				0,
-				Keycode::GAME_R1,
-				0,
-				Keycode::GAME_X,
 			}
 		},
 		#endif
