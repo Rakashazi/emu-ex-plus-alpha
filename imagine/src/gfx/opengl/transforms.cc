@@ -84,7 +84,7 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 {
 	Gfx::projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
 	Base::mainScreen().addOnFrameOnce(
-		[](Base::Screen &screen, Base::Screen::FrameParams params)
+		[](Base::Screen::FrameParams params)
 		{
 			using namespace Base;
 			setCurrentWindow(&mainWindow());
@@ -95,7 +95,7 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 			mainWindow().setNeedsDraw(true);
 			if(!projAngleM.isComplete())
 			{
-				screen.postOnFrame(params.thisOnFrame());
+				params.addOnFrameToScreen();
 			}
 		});
 }

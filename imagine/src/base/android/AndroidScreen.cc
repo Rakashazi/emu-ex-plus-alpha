@@ -242,7 +242,7 @@ uint Screen::refreshRate()
 
 void Screen::postFrame()
 {
-	if(!appIsRunning())
+	if(!isActive)
 	{
 		//logMsg("can't post frame when app isn't running");
 		return;

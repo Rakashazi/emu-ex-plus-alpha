@@ -118,6 +118,8 @@ protected:
 	DragDropDelegate onDragDrop;
 	DismissRequestDelegate onDismissRequest;
 	DismissDelegate onDismiss;
+	// used to post the window's screen when a draw is requested
+	Screen::OnFrameDelegate onFrame;
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);

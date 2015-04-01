@@ -90,6 +90,7 @@ void Screen::unpostFrame()
 {
 	if(!framePosted)
 		return;
+	//logMsg("un-posting frame");
 	framePosted = false;
 	frameTimerCancel();
 }

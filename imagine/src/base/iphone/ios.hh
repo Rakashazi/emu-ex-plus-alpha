@@ -10,7 +10,6 @@ namespace Base
 {
 	extern UIApplication *sharedApp;
 	extern MainApp *mainApp;
-	extern BOOL displayLinkActive;
 	extern CADisplayLink *displayLink;
 	extern bool isIPad;
 	Window *windowForUIWindow(UIWindow *uiWin);

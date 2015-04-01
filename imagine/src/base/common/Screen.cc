@@ -45,6 +45,7 @@ void Screen::addOnFrame(OnFrameDelegate del)
 {
 	assert(onFrameDelegate.freeSpace());
 	onFrameDelegate.push_back(del);
+	postFrame();
 }
 
 bool Screen::addOnFrameOnce(OnFrameDelegate del)
@@ -52,26 +53,20 @@ bool Screen::addOnFrameOnce(OnFrameDelegate del)
 	if(!containsOnFrame(del))
 	{
 		addOnFrame(del);
+		postFrame();
 		return true;
 	}
 	return false;
 }
 
-void Screen::postOnFrame(OnFrameDelegate del)
-{
-	postFrame();
-	addOnFrame(del);
-}
-
-bool Screen::postOnFrameOnce(OnFrameDelegate del)
-{
-	postFrame();
-	return addOnFrameOnce(del);
-}
-
 bool Screen::removeOnFrame(OnFrameDelegate del)
 {
-	return onFrameDelegate.remove(del);
+	bool removed = onFrameDelegate.remove(del);
+	if(onFrameDelegate.empty())
+	{
+		unpostFrame();
+	}
+	return removed;
 }
 
 bool Screen::containsOnFrame(OnFrameDelegate del)
@@ -88,13 +83,18 @@ void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
 	onFrameDelegate.clear();
 	for(auto &delegate : thisFrameDelegate)
 	{
-		delegate(*this, {frameTime, delegate});
+		delegate({*this, frameTime, delegate});
 	}
 }
 
 uint Screen::onFrameDelegates()
 {
 	return onFrameDelegate.size();
+}
+
+bool Screen::runningOnFrameDelegates()
+{
+	return inFrameHandler;
 }
 
 bool Screen::isPosted()
@@ -105,10 +105,11 @@ bool Screen::isPosted()
 void Screen::frameUpdate(FrameTimeBase frameTime)
 {
 	assert(frameTime);
-	assert(appIsRunning());
+	assert(isActive);
 	framePosted = false;
 	inFrameHandler = true;
 	runOnFrameDelegates(frameTime);
+	inFrameHandler = false;
 	iterateTimes(Window::windows(), i)
 	{
 		auto &w = *Window::window(i);
@@ -118,8 +119,24 @@ void Screen::frameUpdate(FrameTimeBase frameTime)
 		}
 		w.dispatchOnDraw();
 	}
-	inFrameHandler = false;
 	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
+}
+
+void Screen::setActive(bool active)
+{
+	if(active && !isActive)
+	{
+		logMsg("screen:%p activated", this);
+		isActive = true;
+		if(!onFrameDelegate.empty())
+			postFrame();
+	}
+	else if(!active && isActive)
+	{
+		logMsg("screen:%p deactivated", this);
+		isActive = false;
+		unpostFrame();
+	}
 }
 
 uint Screen::screens()
@@ -153,11 +170,11 @@ void Screen::addScreen(Screen *s)
 	#endif
 }
 
-void Screen::unpostAll()
+void Screen::setActiveAll(bool active)
 {
 	iterateTimes(screens(), i)
 	{
-		screen(i)->unpostFrame();
+		screen(i)->setActive(active);
 	}
 }
 

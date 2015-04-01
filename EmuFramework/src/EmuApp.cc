@@ -176,7 +176,7 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 }
 
 static Base::Screen::OnFrameDelegate frameUpdate =
-	[](Base::Screen &screen, Base::Screen::FrameParams params)
+	[](Base::Screen::FrameParams params)
 	{
 		commonUpdateInput();
 
@@ -202,7 +202,7 @@ static Base::Screen::OnFrameDelegate frameUpdate =
 			}
 		}
 		postDrawToEmuWindows();
-		screen.postOnFrame(params.thisOnFrame());
+		params.addOnFrameToScreen();
 	};
 
 static void startEmulation()

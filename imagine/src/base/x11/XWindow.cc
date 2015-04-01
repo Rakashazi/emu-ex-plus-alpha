@@ -55,18 +55,6 @@ void Window::setTitle(const char *name)
 	}
 }
 
-void Window::postDraw()
-{
-	//logMsg("posting window");
-	setNeedsDraw(true);
-	screen()->postFrame();
-}
-
-void Window::unpostDraw()
-{
-	setNeedsDraw(false);
-}
-
 bool Window::hasSurface()
 {
 	return true;

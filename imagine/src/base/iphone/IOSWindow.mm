@@ -107,17 +107,6 @@ Window *deviceWindow()
 	return Window::window(0);
 }
 
-void Window::postDraw()
-{
-	setNeedsDraw(true);
-	screen()->postFrame();
-}
-
-void Window::unpostDraw()
-{
-	setNeedsDraw(false);
-}
-
 IG::PixelFormat Window::defaultPixelFormat()
 {
 	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGB888;

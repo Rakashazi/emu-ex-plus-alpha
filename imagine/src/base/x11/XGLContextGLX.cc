@@ -23,7 +23,8 @@
 namespace Base
 {
 
-static GLXPbuffer dummyPbuff{};
+static bool hasDummyPbuffConfig = false;
+static GLXFBConfig dummyPbuffConfig{};
 using GLXAttrList = StaticArrayList<int, 24>;
 using GLXContextAttrList = StaticArrayList<int, 16>;
 
@@ -149,14 +150,19 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 		logErr("can't find a compatible context");
 		return INVALID_PARAMETER;
 	}
-	bool supportsSurfaceless = true;
-	if(!supportsSurfaceless && !dummyPbuff)
+	bool supportsSurfaceless = false;
+	if(!supportsSurfaceless)
 	{
-		const int pbuffAttr[] {GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
-		dummyPbuff = glXCreatePbuffer(dpy, config.glConfig, pbuffAttr);
-		if(!dummyPbuff)
+		if(!hasDummyPbuffConfig)
 		{
-			bug_exit("couldn't make dummy pbuffer");
+			logMsg("surfaceless context not supported");
+			dummyPbuffConfig = config.glConfig;
+			hasDummyPbuffConfig = true;
+		}
+		else
+		{
+			// all contexts must use same config if surfaceless isn't supported
+			assert(dummyPbuffConfig == config.glConfig);
 		}
 	}
 
@@ -192,20 +198,23 @@ static void setCurrentContext(GLXContext context, Window *win)
 	}
 	else
 	{
-		if(!dummyPbuff)
+		if(hasDummyPbuffConfig)
+		{
+			logMsg("setting dummy pbuffer surface current");
+			const int pbuffAttr[]{GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None};
+			auto dummyPbuff = glXCreatePbuffer(dpy, dummyPbuffConfig, pbuffAttr);
+			if(!glXMakeContextCurrent(dpy, dummyPbuff, dummyPbuff, context))
+			{
+				bug_exit("error setting dummy pbuffer current");
+			}
+			glXDestroyPbuffer(dpy, dummyPbuff);
+		}
+		else
 		{
 			logMsg("setting no drawable current");
 			if(!glXMakeContextCurrent(dpy, None, None, context))
 			{
 				bug_exit("error setting no drawable current");
-			}
-		}
-		else
-		{
-			logMsg("setting dummy pbuffer current");
-			if(!glXMakeContextCurrent(dpy, dummyPbuff, dummyPbuff, context))
-			{
-				bug_exit("error setting dummy pbuffer current");
 			}
 		}
 	}

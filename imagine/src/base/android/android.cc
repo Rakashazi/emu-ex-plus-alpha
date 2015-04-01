@@ -329,7 +329,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			#ifdef CONFIG_AUDIO
 			Audio::updateFocusOnResume();
 			#endif
-			Window::postNeededScreens();
+			Screen::setActiveAll(true);
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onResumeMOGA(jEnv(), true);
 			#endif
@@ -343,7 +343,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			if(appIsRunning())
 				appState = APP_PAUSED;
 			logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
-			Screen::unpostAll();
+			Screen::setActiveAll(false);
 			dispatchOnExit(appState == APP_PAUSED);
 			#ifdef CONFIG_AUDIO
 			Audio::updateFocusOnPause();

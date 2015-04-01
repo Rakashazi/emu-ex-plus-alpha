@@ -73,6 +73,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	setOnInputEvent(config.onInputEvent());
 	setOnDismissRequest(config.onDismissRequest());
 	setOnDismiss(config.onDismiss());
+	onFrame = [this](Screen::FrameParams){};
 }
 
 void BaseWindow::initDefaultValidSoftOrientations()
@@ -140,15 +141,35 @@ Screen *Window::screen()
 
 void Window::setNeedsDraw(bool needsDraw)
 {
-	if(needsDraw && hasSurface())
+	if(needsDraw && !drawPosted && hasSurface())
+	{
+		//logMsg("posting window");
 		drawPosted = true;
-	else
+		if(!screen()->runningOnFrameDelegates())
+			screen()->addOnFrame(onFrame);
+	}
+	else if(!needsDraw && drawPosted)
+	{
+		//logMsg("un-posting window");
 		drawPosted = false;
+		if(!screen()->runningOnFrameDelegates())
+			screen()->removeOnFrame(onFrame);
+	}
 }
 
 bool Window::needsDraw()
 {
 	return drawPosted;
+}
+
+void Window::postDraw()
+{
+	setNeedsDraw(true);
+}
+
+void Window::unpostDraw()
+{
+	setNeedsDraw(false);
 }
 
 void Window::setNeedsCustomViewportResize(bool needsResize)
@@ -327,25 +348,6 @@ uint Window::validSoftOrientations() const
 	return validSoftOrientations_;
 }
 
-void Window::postNeededScreens()
-{
-	iterateTimes(windows(), i)
-	{
-		auto &w = *window(i);
-		if(w.needsDraw())
-		{
-			w.screen()->postFrame();
-		}
-	}
-	iterateTimes(Screen::screens(), i)
-	{
-		if(Screen::screen(i)->onFrameDelegates())
-		{
-			Screen::screen(i)->postFrame();
-		}
-	}
-}
-
 uint Window::windows()
 {
 	#ifdef CONFIG_BASE_MULTI_WINDOW
@@ -369,6 +371,8 @@ Window *Window::window(uint idx)
 void Window::dismiss()
 {
 	onDismiss(*this);
+	if(screen())
+		screen()->removeOnFrame(onFrame);
 	deinit();
 	*this = {};
 	#ifdef CONFIG_BASE_MULTI_WINDOW

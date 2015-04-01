@@ -56,22 +56,21 @@ void OnScreenInputPlaceView::init()
 	text.init("Click center to go back", View::defaultFace);
 	textFade.set(1.);
 	animate =
-		[this](Base::Screen &screen, Base::Screen::FrameParams param)
+		[this](Base::Screen::FrameParams params)
 		{
-			window().setNeedsDraw(true);
+			window().postDraw();
 			//logMsg("updating fade");
 			if(textFade.update(1))
 			{
-				screen.postOnFrame(param.thisOnFrame());
+				params.addOnFrameToScreen();
 			}
 		};
 	animationStartTimer.callbackAfterSec(
 		[this]()
 		{
 			logMsg("starting fade");
-			postDraw();
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 25);
-			screen()->postOnFrame(animate);
+			screen()->addOnFrame(animate);
 		}, 2);
 }
 
@@ -112,7 +111,7 @@ void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 			animationStartTimer.deinit();
 			logMsg("starting fade");
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
-			screen()->postOnFrame(animate);
+			screen()->addOnFrame(animate);
 		}
 
 		auto &d = drag[e.devId];

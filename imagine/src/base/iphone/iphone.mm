@@ -332,7 +332,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	logMsg("entering background");
 	appState = APP_PAUSED;
 	dispatchOnExit(true);
-	Base::Screen::unpostAll();
+	Base::Screen::setActiveAll(false);
 	Input::deinitKeyRepeatTimer();
 	iterateTimes(Window::windows(), i)
 	{
@@ -349,6 +349,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	logMsg("entered foreground");
 	Base::appState = APP_RUNNING;
+	Base::Screen::setActiveAll(true);
 	iterateTimes(Window::windows(), i)
 	{
 		Window::window(i)->postDraw();

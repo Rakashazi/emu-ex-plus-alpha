@@ -318,20 +318,6 @@ void androidWindowSurfaceDestroyed(Window &win)
 	win.nWin = nullptr;
 }
 
-void Window::postDraw()
-{
-	if(hasSurface())
-	{
-		setNeedsDraw(true);
-		screen()->postFrame();
-	}
-}
-
-void Window::unpostDraw()
-{
-	setNeedsDraw(false);
-}
-
 void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}

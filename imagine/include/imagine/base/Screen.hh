@@ -61,15 +61,18 @@ public:
 	struct FrameParams;
 
 	using ChangeDelegate = DelegateFunc<void (const Screen &screen, Change change)>;
-	using OnFrameDelegate = DelegateFunc<void (Screen &screen, FrameParams params)>;
+	using OnFrameDelegate = DelegateFunc<void (FrameParams params)>;
 
 	struct FrameParams
 	{
+		Screen &screen_;
 		FrameTimeBase frameTime_;
 		OnFrameDelegate onFrame_;
 
+		Screen &screen() const { return screen_; }
 		FrameTimeBase frameTime() const { return frameTime_; }
-		OnFrameDelegate thisOnFrame() const { return onFrame_; }
+		OnFrameDelegate onFrame() const { return onFrame_; }
+		void addOnFrameToScreen() { screen_.addOnFrame(onFrame_); }
 	};
 
   static const uint REFRESH_RATE_DEFAULT = 0;
@@ -81,18 +84,14 @@ public:
 	static void setOnChange(ChangeDelegate del);
 	int width();
 	int height();
-	void postFrame();
-	void unpostFrame();
-	static void unpostAll();
 	bool isPosted();
 	static bool screensArePosted();
 	void addOnFrame(OnFrameDelegate del);
 	bool addOnFrameOnce(OnFrameDelegate del);
-	void postOnFrame(OnFrameDelegate del);
-	bool postOnFrameOnce(OnFrameDelegate del);
 	bool removeOnFrame(OnFrameDelegate del);
 	bool containsOnFrame(OnFrameDelegate del);
 	uint onFrameDelegates();
+	bool runningOnFrameDelegates();
 	FrameTimeBase lastPostedFrameTime() const { return prevFrameTime; }
 	uint elapsedFrames(FrameTimeBase frameTime);
   uint refreshRate();
@@ -108,12 +107,15 @@ public:
 	void frameUpdate(FrameTimeBase frameTime);
 	void startDebugFrameStats(FrameTimeBase frameTime);
 	void endDebugFrameStats();
+	void setActive(bool active);
+	static void setActiveAll(bool active);
 	void deinit();
 
 private:
   FrameTimeBase timePerFrame{};
 	bool framePosted = false;
 	bool inFrameHandler = false;
+	bool isActive = true;
 	#ifndef NDEBUG
 	// for debug frame stats
 	uint continuousFrames{};
@@ -121,6 +123,8 @@ private:
 	StaticArrayList<OnFrameDelegate, 8> onFrameDelegate;
 
 	void runOnFrameDelegates(FrameTimeBase frameTime);
+	void postFrame();
+	void unpostFrame();
 };
 
 }

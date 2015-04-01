@@ -46,7 +46,6 @@ public:
 	void unpostDraw();
 	void dispatchOnDraw();
 	Screen *screen();
-	static void postNeededScreens();
 	static uint windows();
 	static Window *window(uint idx);
 	static PixelFormat defaultPixelFormat();

@@ -42,7 +42,7 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 	animator[3].set(begin.bounds().y2, end.bounds().y2, type, time);
 	win->setNeedsCustomViewportResize(true);
 	animate =
-		[this](Base::Screen &screen, Base::Screen::FrameParams param)
+		[this](Base::Screen::FrameParams param)
 		{
 			for(auto &d : animator)
 			{
@@ -51,14 +51,14 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 			win->setNeedsCustomViewportResize(true);
 			if(!animator[0].isComplete())
 			{
-				screen.postOnFrame(param.thisOnFrame());
+				param.addOnFrameToScreen();
 			}
 			else
 			{
 				animate = {};
 			}
 		};
-	w.screen()->postOnFrame(animate);
+	w.screen()->addOnFrame(animate);
 }
 
 void AnimatedViewport::finish()

@@ -51,15 +51,15 @@ void CreditsView::init()
 	text.init(str, View::defaultFace);
 	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	animate =
-		[this](Base::Screen &screen, Base::Screen::FrameParams param)
+		[this](Base::Screen::FrameParams params)
 		{
-			window().setNeedsDraw(true);
+			window().postDraw();
 			if(fade.update(1))
 			{
-				screen.postOnFrame(param.thisOnFrame());
+				params.addOnFrameToScreen();
 			}
 		};
-	screen()->postOnFrame(animate);
+	screen()->addOnFrame(animate);
 	place();
 	View::init();
 }

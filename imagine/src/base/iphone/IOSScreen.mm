@@ -48,7 +48,7 @@
 	if(!screen.isPosted())
 	{
 		//logMsg("stopping screen updates");
-		screen.unpostFrame();
+		screen.displayLink().paused = YES;
 		screen.prevFrameTime = 0;
 	}
 	else
@@ -99,7 +99,6 @@ void IOSScreen::init(UIScreen *screen)
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
 	                                       selector:@selector(onFrame)]);
 	displayLink().paused = YES;
-	displayLinkActive = false;
 }
 
 void Screen::deinit()
@@ -139,26 +138,24 @@ uint Screen::refreshRate()
 
 void Screen::postFrame()
 {
-	if(!appIsRunning())
+	if(!isActive)
 	{
 		logMsg("can't post screen update when app isn't running");
 		return;
 	}
-	framePosted = true;
-	if(!displayLinkActive)
+	if(!framePosted)
 	{
+		framePosted = true;
 		displayLink().paused = NO; 
-		displayLinkActive = true;
 	}
 }
 
 void Screen::unpostFrame()
 {
-	framePosted = false;
-	if(displayLinkActive)
+	if(framePosted)
 	{
+		framePosted = false;
 		displayLink().paused = YES;
-		displayLinkActive = false;
 	}
 }
 

@@ -70,6 +70,7 @@ private:
 	sem_t sem{};
 	bool requested = false;
 	bool cancelled = false;
+	bool inFrameHandlers = false;
 
 public:
 	constexpr SGIFrameTimer() {}
@@ -239,8 +240,10 @@ bool SGIFrameTimer::init()
 			if(cancelled)
 			{
 				cancelled = false;
+				logMsg("cancelled");
 				return 1; // frame request was cancelled
 			}
+			inFrameHandlers = true;
 			iterateTimes(Screen::screens(), i)
 			{
 				auto s = Screen::screen(i);
@@ -248,8 +251,13 @@ bool SGIFrameTimer::init()
 				{
 					s->frameUpdate(frameTimeNanos);
 					s->prevFrameTime = frameTimeNanos;
+					if(requested)
+					{
+						sem_post(&sem);
+					}
 				}
 			}
+			inFrameHandlers = false;
 			return 1;
 		});
 	thread.create(1,
@@ -316,7 +324,8 @@ void SGIFrameTimer::scheduleVSync()
 	if(requested)
 		return;
 	requested = true;
-	sem_post(&sem);
+	if(!inFrameHandlers)
+		sem_post(&sem);
 }
 
 void SGIFrameTimer::cancel()
