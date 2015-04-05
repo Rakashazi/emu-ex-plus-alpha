@@ -23,7 +23,6 @@
 #ifdef __ANDROID__
 #include <android/api-level.h>
 #endif
-#include "machine.hh"
 
 namespace Config
 {
@@ -75,24 +74,16 @@ static const uint ENV_ANDROID_MINSDK =
 #define CONFIG_UNICODE_CHARS
 static const bool UNICODE_CHARS = true;
 
-#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
-#define CONFIG_BASE_CAN_BACKGROUND_APP
-static const bool BASE_CAN_BACKGROUND_APP = 1;
-#else
-static const bool BASE_CAN_BACKGROUND_APP = 0;
-#endif
-
 #ifndef NDEBUG
 static constexpr bool DEBUG_BUILD = true;
 #else
 static constexpr bool DEBUG_BUILD = false;
 #endif
-}
 
 #ifdef CONFIG_MACHINE_OUYA
 #define ENV_NOTE "OUYA"
-#elif __ANDROID_API__ >= 9
-#define ENV_NOTE "Android 2.3+"
+#elif defined __ANDROID__
+#define ENV_NOTE "Android"
 #endif
 
 #ifdef CONFIG_ENV_WEBOS
@@ -103,34 +94,83 @@ static constexpr bool DEBUG_BUILD = false;
 	#endif
 #endif
 
-// Platform architecture
+// Platform architecture & machine
+
+enum Machine
+{
+	GENERIC,
+	GENERIC_X86,
+	GENERIC_X86_64,
+	GENERIC_ARM,
+	GENERIC_ARMV5,
+	GENERIC_ARMV6,
+	GENERIC_ARMV7,
+	GENERIC_ARMV7S,
+	GENERIC_AARCH64,
+	GENERIC_PPC,
+	GENERIC_MIPS,
+	PANDORA,
+	OUYA
+};
 
 #if defined __x86_64__
+static constexpr Machine MACHINE = GENERIC_X86_64;
 #define CONFIG_ARCH_STR "x86_64"
 #elif defined __i386__
+static constexpr Machine MACHINE = GENERIC_X86;
 #define CONFIG_ARCH_STR "x86"
 #elif defined __powerpc__
+static constexpr Machine MACHINE = GENERIC_PPC;
 #define CONFIG_ARCH_STR "ppc"
 #elif defined __mips__
+static constexpr Machine MACHINE = GENERIC_MIPS;
 #define CONFIG_ARCH_STR "mips"
 #elif defined __aarch64__
+static constexpr Machine MACHINE = GENERIC_AARCH64;
 #define CONFIG_ARCH_STR "aarch64"
 #elif __arm__
 	#if defined __ARM_ARCH_7S__
+	static constexpr Machine MACHINE = GENERIC_ARMV7S;
 	#define CONFIG_ARCH_STR "armv7s"
 	#elif defined __ARM_ARCH_5TE__
 	// default Android "ARM" profile
+	static constexpr Machine MACHINE = GENERIC_ARMV5;
 	#define CONFIG_ARCH_STR "armv5te"
 	#elif __ARM_ARCH == 7
 	// default Android & iOS ARMv7 profile -> __ARM_ARCH_7A__
+		#if defined CONFIG_MACHINE_OUYA
+		static constexpr Machine MACHINE = OUYA;
+		#elif defined CONFIG_MACHINE_PANDORA
+		static constexpr Machine MACHINE = PANDORA;
+		#else
+		static constexpr Machine MACHINE = GENERIC_ARMV7;
+		#endif
 	#define CONFIG_ARCH_STR "armv7"
 	#elif __ARM_ARCH == 6
 	// default iOS ARMv6 profile -> __ARM_ARCH_6K__
 	// default WebOS ARMv6 profile -> __ARM_ARCH_6J__
+	static constexpr Machine MACHINE = GENERIC_ARMV6;
 	#define CONFIG_ARCH_STR "armv6"
 	#else
+	static constexpr Machine MACHINE = GENERIC_ARM;
 	#define CONFIG_ARCH_STR "arm"
 	#endif
 #else
+static constexpr Machine MACHINE = GENERIC;
 #warning Compiling on unknown architecture
 #endif
+
+#ifdef __ARM_ARCH
+static constexpr uint ARM_ARCH = __ARM_ARCH;
+#else
+static constexpr uint ARM_ARCH = 0;
+#endif
+
+static constexpr bool MACHINE_IS_GENERIC_X86 = MACHINE == GENERIC_X86;
+static constexpr bool MACHINE_IS_GENERIC_ARMV6 = MACHINE == GENERIC_ARMV6;
+static constexpr bool MACHINE_IS_GENERIC_ARMV7 = MACHINE == GENERIC_ARMV7;
+static constexpr bool MACHINE_IS_GENERIC_AARCH64 = MACHINE == GENERIC_AARCH64;
+static constexpr bool MACHINE_IS_OUYA = MACHINE == OUYA;
+static constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
+
+}

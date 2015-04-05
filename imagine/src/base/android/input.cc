@@ -327,9 +327,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				auto time = makeTimeFromKeyEvent(event);
 				assert((uint)keyCode < Keycode::COUNT);
 				uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
-				#ifdef CONFIG_INPUT_ICADE
 				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
-				#endif
 				{
 					cancelKeyRepeatTimer();
 					Key key = keyCode & 0x1ff;

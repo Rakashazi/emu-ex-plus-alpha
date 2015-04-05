@@ -48,7 +48,6 @@ LDLIBS += -L$(pandoraSDKSysroot)/lib -Wl,-rpath-link=$(pandoraSDKSysroot)/lib -l
 
 linuxEventLoop := epoll
 x11GLWinSystem := egl
-openGLESVersion ?= 2
 
 ifdef O_LTO
  # -flto-partition=none seems to help .symver issues

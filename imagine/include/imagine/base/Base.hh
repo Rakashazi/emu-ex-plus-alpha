@@ -158,4 +158,11 @@ static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
 static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
 #endif
 
+#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
+#define CONFIG_BASE_CAN_BACKGROUND_APP
+static const bool BASE_CAN_BACKGROUND_APP = true;
+#else
+static const bool BASE_CAN_BACKGROUND_APP = false;
+#endif
+
 }

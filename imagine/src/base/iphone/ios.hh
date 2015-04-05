@@ -14,6 +14,7 @@ namespace Base
 	extern bool isIPad;
 	Window *windowForUIWindow(UIWindow *uiWin);
 	Window *deviceWindow();
+	bool hasAtLeastIOS5();
 	bool hasAtLeastIOS7();
 	bool hasAtLeastIOS8();
 }

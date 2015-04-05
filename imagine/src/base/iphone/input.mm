@@ -195,13 +195,9 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 		return true;
 	if(typeBits & TYPE_BIT_GAMEPAD)
 	{
-		#ifdef CONFIG_INPUT_ICADE
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers
 		return (hardwareKBAttached && devList.front()->iCadeMode()) || devList.size() != 1;
-		#else
-		return devList.size() != 1;
-		#endif
 	}
 	return false;
 }
@@ -222,10 +218,8 @@ void handleKeyEvent(UIEvent *event)
 	auto action = eventType == GSEVENT_TYPE_KEYDOWN ? Input::PUSHED : Input::RELEASED;
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
 	auto time = Time::makeWithSecsD((double)[event timestamp]);
-	#ifdef CONFIG_INPUT_ICADE
 	if(!keyDev.iCadeMode()
 		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow())))
-	#endif
 	{
 		Base::deviceWindow()->dispatchInputEvent({0, Event::MAP_SYSTEM, key, key, action, 0, time, &keyDev});
 	}

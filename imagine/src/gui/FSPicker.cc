@@ -84,10 +84,6 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	deinit();
-	#ifdef CONFIG_BASE_IOS
-	if(!Base::isSystemApp())
-		singleDir = 1; // stay in Documents dir when not in jailbreak environment
-	#endif
 	faceRes = face;
 	var_selfs(filter);
 	var_selfs(singleDir);
@@ -217,10 +213,5 @@ void FSPicker::loadDir(const char *path)
 		}
 	}
 	tbl.init(textPtr, dir.numEntries(), false); // TODO: highlight first cell
-	#ifdef CONFIG_BASE_IOS
-	if(!Base::isSystemApp())
-		navV.setTitle("Documents");
-	else
-	#endif
-		navV.setTitle(FsSys::workDir());
+	navV.setTitle(FsSys::workDir());
 }

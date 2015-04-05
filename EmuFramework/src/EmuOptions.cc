@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/machine.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>

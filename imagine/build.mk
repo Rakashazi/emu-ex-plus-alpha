@@ -13,8 +13,10 @@ HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
 CPPFLAGS += -I$(projectPath)/include/imagine/override
 imagineSrcDir := $(projectPath)/src
 
-ifneq ($(ENV), ps3)
- configDefs += CONFIG_INPUT_ICADE
+ifeq ($(SUBARCH),armv6)
+ openGLESVersion ?= 1
+else
+ openGLESVersion ?= 2
 endif
 
 include $(imagineSrcDir)/time/system.mk

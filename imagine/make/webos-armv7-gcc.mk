@@ -13,5 +13,3 @@ ifndef target
   target := armv7
  endif
 endif
-
-openGLESVersion ?= 2

@@ -19,7 +19,7 @@ SRC += base/android/android.cc base/android/AndroidWindow.cc \
  base/android/privateApi/GraphicBuffer.cc
 LDLIBS += -landroid
 
-ifneq ($(MACHINE),OUYA)
+ifeq (,$(findstring $(configDefs),CONFIG_MACHINE_OUYA))
  configDefs += CONFIG_INPUT_ANDROID_MOGA
  SRC += base/android/moga.cc
 endif

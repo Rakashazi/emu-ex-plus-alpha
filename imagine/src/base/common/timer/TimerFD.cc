@@ -17,10 +17,18 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/logger/logger.h>
-
+// TODO: can use __has_include in GCC 5 to simplify
 #if defined __ANDROID__
 #include "../../android/android.hh"
-// No sys/timerfd.h on Android, need to use syscall
+	#if __ANDROID_API__ >= 21
+	#define HAS_TIMERFD_H
+	#endif
+#else
+#define HAS_TIMERFD_H
+#endif
+#ifdef HAS_TIMERFD_H
+#include <sys/timerfd.h>
+#else
 #include <time.h>
 #include <sys/syscall.h>
 
@@ -35,8 +43,6 @@ static int timerfd_settime(int __ufd, int __flags,
 {
 	return syscall(__NR_timerfd_settime, __ufd, __flags, __utmr, __otmr);
 }
-#else
-#include <sys/timerfd.h>
 #endif
 
 namespace Base

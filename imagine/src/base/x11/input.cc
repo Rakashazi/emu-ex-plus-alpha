@@ -52,7 +52,6 @@ struct XInputDevice : public Device
 		string_copy(nameStr, info.name);
 	}
 
-	#ifdef CONFIG_INPUT_ICADE
 	void setICadeMode(bool on) override
 	{
 		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
@@ -63,7 +62,6 @@ struct XInputDevice : public Device
 	{
 		return iCadeMode_;
 	}
-	#endif
 };
 
 static StaticArrayList<XInputDevice*, 16> xDevice;
@@ -407,10 +405,8 @@ bool handleXI2GenericEvent(XEvent &event)
 			}
 			else if(!pushed || (pushed && (allowKeyRepeats() || !repeated)))
 			{
-				#ifdef CONFIG_INPUT_ICADE
 				if(!dev->iCadeMode()
 					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))
-				#endif
 				{
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);

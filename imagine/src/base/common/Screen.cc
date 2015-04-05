@@ -53,7 +53,6 @@ bool Screen::addOnFrameOnce(OnFrameDelegate del)
 	if(!containsOnFrame(del))
 	{
 		addOnFrame(del);
-		postFrame();
 		return true;
 	}
 	return false;

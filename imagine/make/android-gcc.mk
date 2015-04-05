@@ -1,6 +1,5 @@
 ENV := android
 CROSS_COMPILE := 1
-configDefs += CONFIG_MACHINE_$(MACHINE)
 binStatic := 1
 android_libm ?= -lm
 
@@ -88,7 +87,7 @@ LDFLAGS_SO := -Wl,-soname,lib$(android_soName).so -shared
 LDLIBS += -lgcc -lc $(android_libm)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
 ifeq ($(ARCH), aarch64)
- # not using GOLD
+ # TODO: not using GOLD, remove when future NDK version released
  LDFLAGS += -s -Wl,-O1,--gc-sections,--as-needed
 else
  LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed

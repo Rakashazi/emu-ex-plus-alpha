@@ -20,6 +20,4 @@ endif
 
 include $(buildSysPath)/package/stdc++-headers.mk
 
-configDefs += CONFIG_STDCXX
-
 endif

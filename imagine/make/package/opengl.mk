@@ -35,13 +35,6 @@ else ifeq ($(ENV), win32)
 else ifeq ($(ENV), webos)
  openGLAPI := gles
  LDLIBS += -lGLES_CM $(webos_libm)
-else ifeq ($(ENV), ps3)
- CPPFLAGS += -DPSGL
- LDLIBS += -L/usr/local/cell/target/ppu/lib/PSGL/RSX/ultra-opt -lPSGL -lm -lgcm_cmd -lgcm_sys_stub -lresc_stub -lsysutil_stub
- #\
- $(ps3CellPPULibPath)/libcgc.a $(ps3CellPPULibPath)/libsnc.a \
- $(ps3CellPPULibPath)/liblv2_stub.a
- # -lPSGLFX -lperf
 endif
 
 ifeq ($(openGLAPI), gles)

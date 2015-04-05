@@ -603,7 +603,7 @@ CallResult init()
 		// load AMotionEvent_getAxisValue dynamically
 		if(!(AMotionEvent_getAxisValue = (typeof(AMotionEvent_getAxisValue))dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue")))
 		{
-			bug_exit("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
+			logWarn("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
 		}
 		#endif
 

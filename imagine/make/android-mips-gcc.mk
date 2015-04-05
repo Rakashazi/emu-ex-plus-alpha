@@ -1,9 +1,6 @@
 include $(IMAGINE_PATH)/make/config.mk
 ARCH := mips
 android_abi := mips
-ifndef MACHINE
- MACHINE := GENERIC_MIPS
-endif
 
 android_cpuFlags := -EL -mips32 -mhard-float
 
@@ -20,7 +17,5 @@ endif
 CPPFLAGS += -D__ANDROID__
 COMPILE_FLAGS += -fno-short-enums
 LDLIBS += -nostartfiles
-
-openGLESVersion ?= 2
 
 include $(buildSysPath)/android-gcc.mk

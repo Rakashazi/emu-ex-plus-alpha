@@ -354,7 +354,6 @@ const char *Device::keyName(Key k) const
 				return keyButtonName(k);
 			return name;
 		}
-		#ifdef CONFIG_INPUT_ICADE
 		case Input::Event::MAP_ICADE:
 		{
 			auto name = iCadeButtonName(k);
@@ -364,25 +363,23 @@ const char *Device::keyName(Key k) const
 			}
 			return name;
 		}
-		#endif
 	}
 	return "Unknown";
 }
 
 uint Device::map() const
 {
-	return
-		#ifdef CONFIG_INPUT_ICADE
-		iCadeMode() ? (uint)Input::Event::MAP_ICADE :
-		#endif
-		map_;
+	return iCadeMode() ? (uint)Input::Event::MAP_ICADE : map_;
 }
 
-#ifdef CONFIG_INPUT_ICADE
+uint Device::typeBits() const
+{
+	return iCadeMode() ? TYPE_BIT_GAMEPAD :	type_;
+}
+
 void Device::setICadeMode(bool on)
 {
 	logWarn("setICadeMode called but unimplemented");
 }
-#endif
 
 }

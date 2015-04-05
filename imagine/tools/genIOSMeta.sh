@@ -112,9 +112,6 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 	<key>CFBundleShortVersionString</key>
 	<string>$version</string>
 
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleBlackOpaque</string>
-
 <!--
 	Common app keys
 -->
@@ -123,12 +120,6 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-
-	<key>CFBundleIconFile</key>
-	<string>icon-57.png</string>
-
-	<key>DTPlatformName</key>
-	<string>iphoneos</string>
 
 	<key>CFBundleSupportedPlatforms</key>
 	<array>
@@ -139,7 +130,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 	<string>6.0</string>
 
 	<key>MinimumOSVersion</key>
-	<string>4.0</string>
+	<string>4.2</string>
 
 	<key>CFBundleIconFiles</key>
 	<array>
@@ -164,9 +155,6 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 	
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	
-	<key>UIStatusBarHidden</key>
-	<true/>
 
 	<key>CFBundleSignature</key>
 	<string>????</string>
@@ -176,13 +164,12 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 		<integer>1</integer>
 		<integer>2</integer>
 	</array>
-
-" > $outPath 
+" > $outPath
 
 if [ $fileShare ]
 then
-	echo "<key>UIFileSharingEnabled</key>
-		<true/>
+	echo "	<key>UIFileSharingEnabled</key>
+	<true/>
 " >> $outPath
 fi
 

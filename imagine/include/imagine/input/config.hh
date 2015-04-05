@@ -76,7 +76,7 @@ namespace Config
 	4; // arbitrary max
 	#elif defined CONFIG_BASE_IOS || defined __ANDROID__
 	// arbitrary max
-	Config::MACHINE_IS_GENERIC_ARMV6 ? 4 : 7;
+	7;
 	#elif defined CONFIG_ENV_WEBOS
 	4; // max 5
 	#else

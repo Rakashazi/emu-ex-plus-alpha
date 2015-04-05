@@ -196,3 +196,7 @@ static const char *stateNameStr(int slot)
 #if defined CONFIG_INPUT_POINTING_DEVICES
 #define CONFIG_EMUFRAMEWORK_VCONTROLS
 #endif
+
+#if defined CONFIG_INPUT_KEYBOARD_DEVICES
+#define CONFIG_INPUT_ICADE
+#endif

@@ -1136,7 +1136,7 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 		bcase ANDROID_GRAPHIC_BUFFER:
 		{
 			auto rendererStr = (const char*)glGetString(GL_RENDERER);
-			if(Config::MACHINE_IS_GENERIC_ARMV7 && useLegacyGLSL && strstr(rendererStr, "Tegra"))
+			if(Config::ARM_ARCH == 7 && useLegacyGLSL && strstr(rendererStr, "Tegra"))
 			{
 				logMsg("not using GraphicBuffer due to app lockup on Tegra 4 and older");
 				return false;

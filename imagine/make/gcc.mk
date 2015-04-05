@@ -46,9 +46,7 @@ ifdef RELEASE
 endif
 
 ifndef RELEASE
- ifneq ($(ENV), ps3)
-  COMPILE_FLAGS += -ggdb
- endif
+ COMPILE_FLAGS += -ggdb
 endif
 
 ifdef cxxExceptions

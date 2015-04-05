@@ -1,10 +1,6 @@
 include $(IMAGINE_PATH)/make/config.mk
 
-MACHINE := OUYA
-
-ifndef arm_fpu
- arm_fpu := neon
-endif
+configDefs += CONFIG_MACHINE_OUYA
 
 ifndef targetDir
  ifdef O_RELEASE
@@ -14,9 +10,7 @@ ifndef targetDir
  endif
 endif
 
-include $(buildSysPath)/android-armv7-gcc.mk
-
 # using cortex-a9 for -mcpu or -mtune can cause crashes from bad alignment (SIGBUS & BUS_ADRALN)
-android_cpuFlags += -mcpu=cortex-a8
+armv7CPUFlags := -march=armv7-a -mcpu=cortex-a8 -mfloat-abi=softfp -mfpu=neon
 
-openGLESVersion ?= 2
+include $(buildSysPath)/android-armv7-gcc.mk

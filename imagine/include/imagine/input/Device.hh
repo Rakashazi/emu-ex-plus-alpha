@@ -96,15 +96,7 @@ public:
 	uint enumId() const { return devId; }
 	const char *name() const { return name_; }
 	uint map() const;
-	uint typeBits() const
-	{
-		return
-		#ifdef CONFIG_INPUT_ICADE
-		iCadeMode() ? TYPE_BIT_GAMEPAD :
-		#endif
-		type_;
-	}
-
+	uint typeBits() const;
 	uint subtype() const { return subtype_; }
 
 	bool operator ==(Device const& rhs) const
@@ -112,11 +104,8 @@ public:
 		return enumId() == rhs.enumId() && map_ == rhs.map_ && string_equal(name(), rhs.name());
 	}
 
-	#ifdef CONFIG_INPUT_ICADE
 	virtual void setICadeMode(bool on);
 	virtual bool iCadeMode() const { return false; }
-	#endif
-
 	virtual void setJoystickAxisAsDpadBits(uint axisMask) {}
 	virtual uint joystickAxisAsDpadBits() { return 0; }
 	virtual uint joystickAxisAsDpadBitsDefault() { return 0; }
@@ -128,11 +117,7 @@ public:
 	//bool isDisconnectable() { return 0; }
 	//void disconnect() { }
 
-	#if defined CONFIG_ENV_WEBOS
-	bool anyTypeBitsPresent(uint typeBits) { bug_exit("TODO"); return 0; }
-	#else
 	static bool anyTypeBitsPresent(uint typeBits);
-	#endif
 
 protected:
 	uint map_ = 0;

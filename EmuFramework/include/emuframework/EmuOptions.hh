@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Option.hh>
-#include <imagine/config/env.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/Audio.hh>
 

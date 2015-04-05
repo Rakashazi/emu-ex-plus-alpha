@@ -40,9 +40,7 @@ static ExitDelegate onExit_;
 
 void engineInit()
 {
-	#ifdef CONFIG_INITPAGESIZE
 	initPageSize();
-	#endif
 	#if defined __unix__ || (defined __APPLE__ && !TARGET_OS_IPHONE)
 	struct rlimit stack;
 	getrlimit(RLIMIT_STACK, &stack);

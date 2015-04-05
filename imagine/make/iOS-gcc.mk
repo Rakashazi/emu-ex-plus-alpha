@@ -1,6 +1,5 @@
 ENV := ios
 CROSS_COMPILE := 1
-configDefs += CONFIG_MACHINE_$(MACHINE)
 binStatic := 1
 
 ifndef target
@@ -31,8 +30,6 @@ endif
 OBJCFLAGS += -fobjc-arc
 LDFLAGS += -fobjc-arc
 
- # base engine code needs at least iOS 4.0
-minIOSVer = 4.0
 XCODE_PATH := $(shell xcode-select --print-path)
 ifeq ($(ARCH),x86)
  iosSDKsPath := $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs

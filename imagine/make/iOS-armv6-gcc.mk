@@ -2,7 +2,7 @@ include $(IMAGINE_PATH)/make/config.mk
 
 ARCH := arm
 SUBARCH := armv6
-MACHINE := GENERIC_ARMV6
+minIOSVer := 4.2
 include $(buildSysPath)/iOS-gcc.mk
 
 # don't use clang++ since we're providing libc++
@@ -17,5 +17,3 @@ IOS_FLAGS += -arch armv6
 ASMFLAGS += -arch armv6
 COMPILE_FLAGS += -mdynamic-no-pic
 CHOST := $(shell $(CC) -arch armv6 -dumpmachine)
-
-openGLESVersion := 1

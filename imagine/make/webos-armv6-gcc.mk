@@ -8,5 +8,3 @@ include $(buildSysPath)/webos-gcc.mk
 ifndef target
  target := armv6
 endif
-
-openGLESVersion := 1

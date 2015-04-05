@@ -52,5 +52,17 @@ endif
 iOS_gen_metadata_args += --bundle-name=$(iOS_metadata_bundleName)
 
 ifdef iOS_metadata_setuid
-iOS_gen_metadata_args += --setuid
+ iOS_gen_metadata_args += --setuid
+endif
+
+ifdef metadata_supportedMIMETypes
+ ios_metadata_fileSharing := 1
+endif
+
+ifdef metadata_supportedFileExtensions
+ ios_metadata_fileSharing := 1
+endif
+
+ifdef ios_metadata_fileSharing
+ iOS_gen_metadata_args += --file-share
 endif

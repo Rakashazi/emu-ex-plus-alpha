@@ -92,7 +92,7 @@ uint appActivityState() { return appState; }
 static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 {
 	// prevent overscan compensation
-	if(!Config::MACHINE_IS_GENERIC_ARMV6 && setOverscanCompensation)
+	if(hasAtLeastIOS5() && setOverscanCompensation)
 		screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
 	auto s = new Screen();
 	s->init(screen);
@@ -214,6 +214,12 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		#endif
 		if(sizeof(NSInteger) == 4)
 			Input::GSEVENTKEY_KEYCODE = Input::GSEVENTKEY_KEYCODE_IOS7;
+	}
+	else
+	{
+		#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+		[sharedApp setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:YES];
+		#endif
 	}
 
 	//[nCenter addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
@@ -575,6 +581,11 @@ bool deviceIsIPad()
 bool isSystemApp()
 {
 	return isRunningAsSystemApp;
+}
+
+bool hasAtLeastIOS5()
+{
+	return !Config::MACHINE_IS_GENERIC_ARMV6;
 }
 
 bool hasAtLeastIOS7()

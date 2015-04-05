@@ -255,9 +255,7 @@ const char *Event::mapName(uint map)
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return "PS3 Gamepad";
 		#endif
-		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return "iCade";
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return "Apple Game Controller";
 		#endif
@@ -280,9 +278,7 @@ uint Event::mapNumKeys(uint map)
 		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
 		case MAP_PS3PAD: return Input::PS3::COUNT;
 		#endif
-		#ifdef CONFIG_INPUT_ICADE
 		case MAP_ICADE: return Input::ICade::COUNT;
-		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
 		#endif

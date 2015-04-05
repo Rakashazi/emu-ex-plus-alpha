@@ -92,7 +92,7 @@ void IOSScreen::init(UIScreen *screen)
 			logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);
 		}
 		logMsg("current mode: %dx%d", (int)screen.currentMode.size.width, (int)screen.currentMode.size.height);
-		if(!Config::MACHINE_IS_GENERIC_ARMV6)
+		if(hasAtLeastIOS5())
 			logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
 	}
 	uiScreen_ = (void*)CFBridgingRetain(screen);
