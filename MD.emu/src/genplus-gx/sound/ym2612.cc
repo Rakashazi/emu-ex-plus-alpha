@@ -555,7 +555,7 @@ typedef struct
 
 typedef struct
 {
-	SysDDec  clock;          /* master clock  (Hz)   */
+	float  clock;          /* master clock  (Hz)   */
   UINT32  rate;           /* sampling rate (Hz)   */
   UINT16  address;        /* address register     */
   UINT8   status;         /* status flag          */
@@ -1747,17 +1747,17 @@ INLINE void OPNWriteReg(int r, int v)
 
 
 /* initialize time tables */
-static void init_timetables(SysDDec freqbase)
+static void init_timetables(double freqbase)
 {
   int i,d;
-  SysDDec rate;
+  double rate;
 
   /* DeTune table */
   for (d = 0;d <= 3;d++)
   {
     for (i = 0;i <= 31;i++)
     {
-      rate = ((SysDDec)dt_tab[d*32 + i]) * freqbase * (1<<(FREQ_SH-10)); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
+      rate = ((double)dt_tab[d*32 + i]) * freqbase * (1<<(FREQ_SH-10)); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
       ym2612.OPN.ST.dt_tab[d][i]   = (INT32) rate;
       ym2612.OPN.ST.dt_tab[d+4][i] = -ym2612.OPN.ST.dt_tab[d][i];
     }
@@ -1774,18 +1774,18 @@ static void init_timetables(SysDDec freqbase)
     /* where sample clock is  M/144 */
     /* this means the increment value for one clock sample is FNUM * 2^(B-1) = FNUM * 64 for octave 7 */
     /* we also need to handle the ratio between the chip frequency and the emulated frequency (can be 1.0)  */
-    ym2612.OPN.fn_table[i] = (UINT32)( (SysDDec)i * 32 * freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
+    ym2612.OPN.fn_table[i] = (UINT32)( (double)i * 32 * freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
   }
 
   /* maximal frequency is required for Phase overflow calculation, register size is 17 bits (Nemesis) */
-  ym2612.OPN.fn_max = (UINT32)( (SysDDec)0x20000 * freqbase * (1<<(FREQ_SH-10)) );
+  ym2612.OPN.fn_max = (UINT32)( (double)0x20000 * freqbase * (1<<(FREQ_SH-10)) );
 }
 
 /* prescaler set (and make time tables) */
 static void OPNSetPres(int pres)
 {
   /* frequency base (ratio between FM original samplerate & desired output samplerate)*/
-	SysDDec freqbase = ym2612.OPN.ST.clock / ym2612.OPN.ST.rate / pres;
+	double freqbase = ym2612.OPN.ST.clock / ym2612.OPN.ST.rate / pres;
 
   /* YM2612 running at original frequency (~53267 Hz) */
   if (config_hq_fm) freqbase  = 1.0;
@@ -1831,7 +1831,7 @@ static void init_tables(void)
 {
   signed int i,x;
   signed int n;
-  SysDDec o,m;
+  double o,m;
   
   /* DAC precision */
   unsigned int mask = ~((1 << (14 - config_dac_bits)) - 1);
@@ -1930,7 +1930,7 @@ static void init_tables(void)
 
 
 /* initialize ym2612 emulator(s) */
-void YM2612Init(SysDDec clock, int rate)
+void YM2612Init(double clock, int rate)
 {
   memset(&ym2612,0,sizeof(YM2612));
   init_tables();
@@ -2180,7 +2180,7 @@ unsigned int YM2612GetContextSize(void)
 void YM2612Restore(unsigned char *buffer)
 {
   /* save current timings */
-	SysDDec clock = ym2612.OPN.ST.clock;
+	float clock = ym2612.OPN.ST.clock;
   int rate = ym2612.OPN.ST.rate;
 
   /* restore internal state */

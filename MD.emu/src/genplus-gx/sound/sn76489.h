@@ -8,7 +8,7 @@
 
 /* Function prototypes */
 
-extern void SN76489_Init(SysDDec PSGClockValue, int SamplingRate);
+extern void SN76489_Init(double PSGClockValue, int SamplingRate);
 extern void SN76489_Reset(void);
 extern void SN76489_Shutdown(void);
 extern void SN76489_SetContext(uint8 *data);

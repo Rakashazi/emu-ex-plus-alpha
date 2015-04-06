@@ -13,7 +13,7 @@ band-limited synthesis. */
 /* Creates a new blip_buffer with specified input clock rate, output
 sample rate, and size (in samples), or returns NULL if out of memory. */
 typedef struct blip_buffer_t blip_buffer_t;
-blip_buffer_t* blip_alloc( SysDDec clock_rate, SysDDec sample_rate, int size );
+blip_buffer_t* blip_alloc( double clock_rate, double sample_rate, int size );
 
 /* Frees memory used by a blip_buffer. No effect if NULL is passed. */
 void blip_free( blip_buffer_t* );

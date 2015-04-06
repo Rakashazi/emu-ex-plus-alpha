@@ -448,7 +448,7 @@ void dac_update(uint8* dac_buffer, int length_bytes)
 void sound_init(int SampleRate)
 {
 	int i;
-	SysDDec out;
+	double out;
 
 	/* the base clock for the tone generators is the chip clock divided by 16; */
 	/* for the noise generator, it is clock / 256. */
@@ -456,7 +456,7 @@ void sound_init(int SampleRate)
 	/* at the given sample rate. No. of events = sample rate / (clock/16). */
 	/* STEP is a multiplier used to turn the fraction into a fixed point */
 	/* number. */
-	UpdateStep = (uint32)(((SysDDec)STEP * SampleRate * 16) / SOUNDCHIPCLOCK);
+	UpdateStep = (uint32)(((double)STEP * SampleRate * 16) / SOUNDCHIPCLOCK);
 
 	//Initialise Left Chip
 	memset(&toneChip, 0, sizeof(SoundChip));

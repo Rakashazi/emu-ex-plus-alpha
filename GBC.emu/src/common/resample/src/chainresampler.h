@@ -45,7 +45,7 @@ public:
 private:
 	typedef std::list<SubResampler *> List;
 	typedef SubResampler * (*CreateSinc)(unsigned div, float rollOffStart,
-	                                     float rollOffWidth, SysDDec gain);
+	                                     float rollOffWidth, double gain);
 	enum { big_sinc_mul   = 2048 };
 	enum { small_sinc_mul =   32 };
 
@@ -57,16 +57,16 @@ private:
 	std::size_t maxOut_;
 
 	ChainResampler(long inRate, long outRate, std::size_t periodSize);
-	void downinitAddSincResamplers(SysDDec ratio, float outRate,
+	void downinitAddSincResamplers(double ratio, float outRate,
 	                               CreateSinc createBigSinc,
 	                               CreateSinc createSmallSinc,
-	                               SysDDec gain);
+	                               double gain);
 	void upinit(long inRate, long outRate, CreateSinc);
 	void reallocateBuffer();
 
 	template<class Sinc>
 	static SubResampler * createSinc(unsigned div,
-			float rollOffStart, float rollOffWidth, SysDDec gain) {
+			float rollOffStart, float rollOffWidth, double gain) {
 		return new Sinc(div, typename Sinc::RollOff(rollOffStart, rollOffWidth), gain);
 	}
 
@@ -92,8 +92,8 @@ void ChainResampler::downinit(long const inRate,
 	typedef Sinc<channels,   big_sinc_mul> BigSinc;
 	typedef Sinc<channels, small_sinc_mul> SmallSinc;
 
-	SysDDec ratio = static_cast<SysDDec>(inRate) / outRate;
-	SysDDec gain = 1.0;
+	double ratio = static_cast<double>(inRate) / outRate;
+	double gain = 1.0;
 	while (ratio >= BigSinc::cicLimit() * 2) {
 		int const div = std::min<int>(int(ratio / BigSinc::cicLimit()),
 		                              BigSinc::Cic::MAX_DIV);

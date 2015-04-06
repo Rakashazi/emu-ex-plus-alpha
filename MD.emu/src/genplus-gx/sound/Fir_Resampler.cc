@@ -34,24 +34,24 @@ static int imp_phase = 0;
 static unsigned long skip_bits = 0;
 static int step = STEREO;
 static int input_per_cycle;
-static SysDDec ratio = 1.0;
+static double ratio = 1.0;
 
-static void gen_sinc(SysDDec rolloff, int width, SysDDec offset, SysDDec spacing, SysDDec scale, int count, sample_t *out )
+static void gen_sinc(double rolloff, int width, double offset, double spacing, double scale, int count, sample_t *out )
 {
-	SysDDec w, rolloff_cos_a, num, den, sinc;
-	SysDDec const maxh = 256;
-	SysDDec const fstep = M_PI / maxh * spacing;
-	SysDDec const to_w = maxh * 2 / width;
-	SysDDec const pow_a_n = pow( rolloff, maxh );
+	double w, rolloff_cos_a, num, den, sinc;
+	double const maxh = 256;
+	double const fstep = M_PI / maxh * spacing;
+	double const to_w = maxh * 2 / width;
+	double const pow_a_n = pow( rolloff, maxh );
   scale /= maxh * 2;
 
-  SysDDec angle = (count / 2 - 1 + offset) * -fstep;
+  double angle = (count / 2 - 1 + offset) * -fstep;
 
   do
   {
     *out++ = 0;
     w = angle * to_w;
-    if ( fabs( w ) < (SysDDec)M_PI )
+    if ( fabs( w ) < (double)M_PI )
     {
       rolloff_cos_a = rolloff * cos( angle );
       num = 1 - rolloff_cos_a -
@@ -152,15 +152,15 @@ void Fir_Resampler_clear()
   }
 }
 
-SysDDec Fir_Resampler_time_ratio( SysDDec new_factor, SysDDec rolloff )
+double Fir_Resampler_time_ratio( double new_factor, double rolloff )
 {
   ratio = new_factor;
 
   int i, r;
-  SysDDec nearest, error;
-  SysDDec fstep = 0.0;
-  SysDDec least_error = 2;
-  SysDDec pos = 0.0;
+  double nearest, error;
+  double fstep = 0.0;
+  double least_error = 2;
+  double pos = 0.0;
   res = -1;
 
   for ( r = 1; r <= MAX_RES; r++ )
@@ -183,7 +183,7 @@ SysDDec Fir_Resampler_time_ratio( SysDDec new_factor, SysDDec rolloff )
   ratio = fstep;
   fstep = fmod( fstep, 1.0 );
 
-  SysDDec filter = (ratio < 1.0) ? 1.0 : 1.0 / ratio;
+  double filter = (ratio < 1.0) ? 1.0 : 1.0 / ratio;
   pos = 0.0;
   input_per_cycle = 0;
 
@@ -192,7 +192,7 @@ SysDDec Fir_Resampler_time_ratio( SysDDec new_factor, SysDDec rolloff )
   for ( i = 0; i < res; i++ )
   {
     gen_sinc( rolloff, (int) (WIDTH * filter + 1) & ~1, pos, filter,
-              (SysDDec) (0x7FFF * GAIN * filter),
+              (double) (0x7FFF * GAIN * filter),
               (int) WIDTH, impulses[i] );
 
     pos += fstep;
@@ -211,7 +211,7 @@ SysDDec Fir_Resampler_time_ratio( SysDDec new_factor, SysDDec rolloff )
 }
 
 /* Current ratio */
-SysDDec Fir_Resampler_ratio( void )
+double Fir_Resampler_ratio( void )
 {
   return ratio;
 }

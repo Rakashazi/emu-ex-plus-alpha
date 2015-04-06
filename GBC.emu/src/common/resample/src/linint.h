@@ -45,7 +45,7 @@ private:
 	int prevSample_;
 
 	static unsigned long calcRatio(long inRate, long outRate) {
-		return static_cast<unsigned long>((SysDDec(inRate) / outRate) * 0x10000 + 0.5);
+		return static_cast<unsigned long>((double(inRate) / outRate) * 0x10000 + 0.5);
 	}
 };
 

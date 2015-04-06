@@ -57,14 +57,14 @@ public:
 		}
 	};
 
-	RectSinc(unsigned div, unsigned phaseLen, SysDDec fc)
+	RectSinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel_(phaseLen * phases)
 	, polyfir_(kernel_, phaseLen, div)
 	{
 		makeSincKernel(kernel_, phases, phaseLen, fc, rectWin, 1.0);
 	}
 
-	RectSinc(unsigned div, RollOff ro, SysDDec gain)
+	RectSinc(unsigned div, RollOff ro, double gain)
 	: kernel_(ro.taps * phases)
 	, polyfir_(kernel_, ro.taps, div)
 	{
@@ -83,7 +83,7 @@ private:
 	Array<short> const kernel_;
 	PolyphaseFir<channels, phases> polyfir_;
 
-	static SysDDec rectWin(long /*i*/, long /*M*/) { return 1; }
+	static double rectWin(long /*i*/, long /*M*/) { return 1; }
 };
 
 #endif

@@ -8,7 +8,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/EmuControls.cc
 
-CPPFLAGS += -I$(projectPath)/src -DSysDDec=float -DHAVE_CONFIG_H
+CPPFLAGS += -I$(projectPath)/src -DHAVE_CONFIG_H
 
 GEO := gngeo
 

@@ -3,7 +3,7 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
-CPPFLAGS += -DHAVE_STDINT_H -DGAMBATTE_CONST_FB_PITCH=160 -DGAMBATTE_NO_OSD -DSysDDec=float \
+CPPFLAGS += -DHAVE_STDINT_H -DGAMBATTE_CONST_FB_PITCH=160 -DGAMBATTE_NO_OSD \
 -I$(projectPath)/src -I$(projectPath)/src/libgambatte/include -I$(projectPath)/src/common \
 -iquote $(projectPath)/src/libgambatte/src
 

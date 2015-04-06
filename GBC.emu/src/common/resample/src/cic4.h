@@ -30,7 +30,7 @@ public:
 	std::size_t filter(short *out, short const *in, std::size_t inlen);
 	void reset(unsigned div);
 
-	static SysDDec gain(unsigned div) {
+	static double gain(unsigned div) {
 		return rshift16_round(-32768l * (div * div * div * div) * mulForDiv(div)) / -32768.0;
 	}
 
@@ -170,7 +170,7 @@ public:
 	virtual std::size_t resample(short *out, short const *in, std::size_t inlen);
 	virtual unsigned mul() const { return 1; }
 	virtual unsigned div() const { return cics_[0].div(); }
-	static SysDDec gain(unsigned div) { return Cic4Core<channels>::gain(div); }
+	static double gain(unsigned div) { return Cic4Core<channels>::gain(div); }
 
 private:
 	Cic4Core<channels> cics_[channels];

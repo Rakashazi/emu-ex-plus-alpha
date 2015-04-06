@@ -35,7 +35,7 @@ struct blip_buffer_t
   buf_t buf [65536]; /* delta buffer, only size elements actually allocated */
 };
 
-blip_buffer_t* blip_alloc( SysDDec clock_rate, SysDDec sample_rate, int size )
+blip_buffer_t* blip_alloc( double clock_rate, double sample_rate, int size )
 {
   /* Allocate space for structure and delta buffer */
   blip_buffer_t* s = (blip_buffer_t*) malloc(
@@ -43,7 +43,7 @@ blip_buffer_t* blip_alloc( SysDDec clock_rate, SysDDec sample_rate, int size )
   if ( s != NULL )
   {
     /* Calculate output:input ratio and convert to fixed-point */
-	  SysDDec ratio = sample_rate / clock_rate;
+	  double ratio = sample_rate / clock_rate;
     s->factor = (int) (ratio * time_unit + 0.5);
     
     s->size = size;

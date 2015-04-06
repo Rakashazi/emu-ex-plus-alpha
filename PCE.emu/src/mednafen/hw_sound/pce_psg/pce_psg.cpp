@@ -22,7 +22,7 @@
 #include <string.h>
 #include <trio/trio.h>
 
-void PCE_PSG::SetVolume(SysDDec new_volume)
+void PCE_PSG::SetVolume(double new_volume)
 {
  OutputVolume = new_volume;
 
@@ -370,7 +370,7 @@ void PCE_PSG::init(Blip_Buffer *bb_l, Blip_Buffer *bb_r, int want_revision)
 
         for(int vl = 0; vl < 32; vl++)
         {
-         SysDDec flub = 1;
+         double flub = 1;
 
          if(vl)
           flub /= pow(2, 1.0 / 4 * vl);                  // ~1.5dB reduction per increment of vl

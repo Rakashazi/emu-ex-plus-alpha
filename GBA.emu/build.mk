@@ -4,7 +4,7 @@ inc_main := 1
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 CPPFLAGS += -DHAVE_ZLIB_H -DFINAL_VERSION -DC_CORE -DNO_PNG -DNO_LINK -DNO_DEBUGGER -DBLIP_BUFFER_FAST=1 \
--DSysDecimal=float -I$(projectPath)/src -I$(projectPath)/src/vbam
+-I$(projectPath)/src -I$(projectPath)/src/vbam
 
 vbamSrc := gba/GBA-thumb.cpp gba/bios.cpp gba/Globals.cpp \
 gba/Cheats.cpp gba/Mode0.cpp gba/CheatSearch.cpp gba/Mode1.cpp \

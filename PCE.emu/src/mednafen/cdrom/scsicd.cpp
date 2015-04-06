@@ -3128,7 +3128,7 @@ void SCSICD_Init(int type, int cdda_time_div, int32* left_hrbuf, int32* right_hr
  CDStuffSubchannels = SSCFunc;
 }
 
-void SCSICD_SetCDDAVolume(SysDDec left, SysDDec right)
+void SCSICD_SetCDDAVolume(double left, double right)
 {
  cdda.CDDAVolume[0] = 65536 * left;
  cdda.CDDAVolume[1] = 65536 * right;

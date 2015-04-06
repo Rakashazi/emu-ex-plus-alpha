@@ -211,17 +211,17 @@ const unsigned short DSP1ROM[1024] = {
 
 #define INCR 2048
 #define Angle(x) (((x)/(65536/INCR)) & (INCR-1))
-#define Cos(x) ((SysDDec) CosTable2[x])
-#define Sin(x) ((SysDDec) SinTable2[x])
+#define Cos(x) ((double) CosTable2[x])
+#define Sin(x) ((double) SinTable2[x])
 #ifdef PI
 #undef PI
 #endif
 #define PI 3.1415926535897932384626433832795
-SysDDec CosTable2[INCR];
-SysDDec SinTable2[INCR];
+double CosTable2[INCR];
+double SinTable2[INCR];
 
 
-SysDDec Atan(SysDDec x)
+double Atan(double x)
 {
 	if ((x>=1) || (x<=1)) 
 		return (x/(1+0.28*x*x));
@@ -241,28 +241,28 @@ short C4WFX2Val;
 short C4WFY2Val;
 short C4WFDist;
 short C4WFScale;
-SysDDec tanval;
-SysDDec c4x,c4y,c4z;
-SysDDec c4x2,c4y2,c4z2;
+double tanval;
+double c4x,c4y,c4z;
+double c4x2,c4y2,c4z2;
 
 void C4TransfWireFrame()
 {
-  c4x=(SysDDec)C4WFXVal;
-  c4y=(SysDDec)C4WFYVal;
-  c4z=(SysDDec)C4WFZVal-0x95;
+  c4x=(double)C4WFXVal;
+  c4y=(double)C4WFYVal;
+  c4z=(double)C4WFZVal-0x95;
 
   // Rotate X
-  tanval=-(SysDDec)C4WFX2Val*PI*2/128;
+  tanval=-(double)C4WFX2Val*PI*2/128;
   c4y2=c4y*cos(tanval)-c4z*sin(tanval);
   c4z2=c4y*sin(tanval)+c4z*cos(tanval);
 
   // Rotate Y
-  tanval=-(SysDDec)C4WFY2Val*PI*2/128;
+  tanval=-(double)C4WFY2Val*PI*2/128;
   c4x2=c4x*cos(tanval)+c4z2*sin(tanval);
   c4z=c4x*-sin(tanval)+c4z2*cos(tanval);
 
   // Rotate Z
-  tanval=-(SysDDec)C4WFDist*PI*2/128;
+  tanval=-(double)C4WFDist*PI*2/128;
   c4x=c4x2*cos(tanval)-c4y2*sin(tanval);
   c4y=c4x2*sin(tanval)+c4y2*cos(tanval);
 
@@ -273,22 +273,22 @@ void C4TransfWireFrame()
 
 void C4TransfWireFrame2()
 {
-  c4x=(SysDDec)C4WFXVal;
-  c4y=(SysDDec)C4WFYVal;
-  c4z=(SysDDec)C4WFZVal;
+  c4x=(double)C4WFXVal;
+  c4y=(double)C4WFYVal;
+  c4z=(double)C4WFZVal;
 
   // Rotate X
-  tanval=-(SysDDec)C4WFX2Val*PI*2/128;
+  tanval=-(double)C4WFX2Val*PI*2/128;
   c4y2=c4y*cos(tanval)-c4z*sin(tanval);
   c4z2=c4y*sin(tanval)+c4z*cos(tanval);
 
   // Rotate Y
-  tanval=-(SysDDec)C4WFY2Val*PI*2/128;
+  tanval=-(double)C4WFY2Val*PI*2/128;
   c4x2=c4x*cos(tanval)+c4z2*sin(tanval);
   c4z=c4x*-sin(tanval)+c4z2*cos(tanval);
 
   // Rotate Z
-  tanval=-(SysDDec)C4WFDist*PI*2/128;
+  tanval=-(double)C4WFDist*PI*2/128;
   c4x=c4x2*cos(tanval)-c4y2*sin(tanval);
   c4y=c4x2*sin(tanval)+c4y2*cos(tanval);
 
@@ -330,7 +330,7 @@ void C4Op1F()
       else C41FAngleRes=0x180;
   }
   else {
-    tanval = ((SysDDec)C41FYVal)/((SysDDec)C41FXVal);
+    tanval = ((double)C41FYVal)/((double)C41FXVal);
     C41FAngleRes=(short)(atan(tanval)/(PI*2)*512);
     C41FAngleRes=C41FAngleRes;
     if (C41FXVal<0) C41FAngleRes+=0x100;
@@ -340,18 +340,18 @@ void C4Op1F()
 
 void C4Op15()
 {
-  tanval=sqrt(((SysDDec)C41FYVal)*((SysDDec)C41FYVal)+((SysDDec)C41FXVal)*
-    ((SysDDec)C41FXVal));
+  tanval=sqrt(((double)C41FYVal)*((double)C41FYVal)+((double)C41FXVal)*
+    ((double)C41FXVal));
   C41FDist=(short)tanval;
 }
 
 void C4Op0D()
 {
-  tanval=sqrt(((SysDDec)C41FYVal)*((SysDDec)C41FYVal)+((SysDDec)C41FXVal)*
-    ((SysDDec)C41FXVal));
-  tanval=(SysDDec)C41FDistVal/tanval;
-  C41FYVal=(short)(((SysDDec)C41FYVal*tanval)*0.99);
-  C41FXVal=(short)(((SysDDec)C41FXVal*tanval)*0.98);
+  tanval=sqrt(((double)C41FYVal)*((double)C41FYVal)+((double)C41FXVal)*
+    ((double)C41FXVal));
+  tanval=(double)C41FDistVal/tanval;
+  C41FYVal=(short)(((double)C41FYVal*tanval)*0.99);
+  C41FXVal=(short)(((double)C41FXVal*tanval)*0.98);
 }
 #endif
 
@@ -364,8 +364,8 @@ void InitDSP(void)
 #ifdef __OPT__
         unsigned int i;
 	for (i=0; i<INCR; i++){
-		CosTable2[i] = (cos((SysDDec)(2*PI*i/INCR)));
-		SinTable2[i] = (sin((SysDDec)(2*PI*i/INCR)));
+		CosTable2[i] = (cos((double)(2*PI*i/INCR)));
+		SinTable2[i] = (sin((double)(2*PI*i/INCR)));
 	}
 #endif
 #ifdef DebugDSP1
@@ -831,16 +831,16 @@ short Op06H;
 short Op06V;
 unsigned short Op06S;
 
-SysDDec ObjPX;
-SysDDec ObjPY;
-SysDDec ObjPZ;
-SysDDec ObjPX1;
-SysDDec ObjPY1;
-SysDDec ObjPZ1;
-SysDDec ObjPX2;
-SysDDec ObjPY2;
-SysDDec ObjPZ2;
-SysDDec DivideOp06;
+double ObjPX;
+double ObjPY;
+double ObjPZ;
+double ObjPX1;
+double ObjPY1;
+double ObjPZ1;
+double ObjPX2;
+double ObjPY2;
+double ObjPZ2;
+double DivideOp06;
 int Temp;
 int tanval2;
 
@@ -874,10 +874,10 @@ void DSPOp06()
 
    if (ObjPZ2<0)
    {
-      SysDDec d;
+      double d;
       Op06H=(short)(-ObjPX2*Op02LES/-(ObjPZ2)); //-ObjPX2*256/-ObjPZ2;
       Op06V=(short)(-ObjPY2*Op02LES/-(ObjPZ2)); //-ObjPY2*256/-ObjPZ2;
-      d=(SysDDec)Op02LES;
+      d=(double)Op02LES;
 	  d*=256.0;
 	  d/=(-ObjPZ2);
 	  if(d>65535.0)
@@ -885,8 +885,8 @@ void DSPOp06()
 	  else if(d<0.0)
 		  d=0.0;
 	  Op06S=(unsigned short)d;
-	  //Op06S=(unsigned short)(256*(SysDDec)Op02LES/-ObjPZ2);
-      //Op06S=(unsigned short)((SysDDec)(256.0*((SysDDec)Op02LES)/(-ObjPZ2)));
+	  //Op06S=(unsigned short)(256*(double)Op02LES/-ObjPZ2);
+      //Op06S=(unsigned short)((double)(256.0*((double)Op02LES)/(-ObjPZ2)));
    }
    else
    {
@@ -937,7 +937,7 @@ void DSPOp06()
    {
       Op06H=(short)(-ObjPX2*Op02LES/-(ObjPZ2)); //-ObjPX2*256/-ObjPZ2;
       Op06V=(short)(-ObjPY2*Op02LES/-(ObjPZ2)); //-ObjPY2*256/-ObjPZ2;
-      SysDDec d=(SysDDec)Op02LES;
+      double d=(double)Op02LES;
 	  d*=256.0;
 	  d/=(-ObjPZ2);
 	  if(d>65535.0)
@@ -945,7 +945,7 @@ void DSPOp06()
 	  else if(d<0.0)
 		  d=0.0;
 	  Op06S=(unsigned short)d;
-//	  Op06S=(unsigned short)(256*(SysDDec)Op02LES/-ObjPZ2);
+//	  Op06S=(unsigned short)(256*(double)Op02LES/-ObjPZ2);
    }
    else
    {

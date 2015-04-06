@@ -23,11 +23,11 @@
 #include <math.h>
 
 #define INT(x) ((int)(x))
-#define FRACT(x) ((SysDDec)(x) - floor((SysDDec)x))
+#define FRACT(x) ((double)(x) - floor((double)x))
 
 #define READ_PIXEL(src_x, src_y, components)	\
 {	\
-   SysDDec source_components[2][2][4];	\
+   double source_components[2][2][4];	\
 	\
    for(unsigned int xc = 0; xc < 2; xc++)	\
    {						\

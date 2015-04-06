@@ -24,7 +24,7 @@ endif
 SRC += main/Main.cc main/EmuControls.cc
 
 CPPFLAGS += -I$(projectPath)/src -DHAVE_SYS_TIME_H=1 -DHAVE_GETTIMEOFDAY=1 -DHAVE_STDINT_H=1 \
--DSysDDec=float -DVERSION=\"0.9.10\" -DHAVE_STRCASECMP=1
+-DVERSION=\"0.9.10\" -DHAVE_STRCASECMP=1
 
 ifeq ($(ARCH), arm)
  ifneq ($(ENV), ios)

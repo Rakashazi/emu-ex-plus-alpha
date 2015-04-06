@@ -114,9 +114,9 @@ void audio_reset(void)
 void audio_set_equalizer(void)
 {
   //init_3band_state(&eq,config_low_freq,config_high_freq,snd.sample_rate);
-  eq.lg = (SysDDec)(config_lg) / 100.0;
-  eq.mg = (SysDDec)(config_mg) / 100.0;
-  eq.hg = (SysDDec)(config_hg) / 100.0;
+  eq.lg = (double)(config_lg) / 100.0;
+  eq.mg = (double)(config_mg) / 100.0;
+  eq.hg = (double)(config_hg) / 100.0;
 }
 
 void audio_shutdown(void)

@@ -20,11 +20,11 @@
 #include "i0.h"
 #include <cmath>
 
-SysDDec kaiser50SincWin(long const n, long const M) {
-	SysDDec const beta = 4.62;
-	static SysDDec const i0beta_rec = 1.0 / i0(beta);
+double kaiser50SincWin(long const n, long const M) {
+	double const beta = 4.62;
+	static double const i0beta_rec = 1.0 / i0(beta);
 
-	SysDDec x = static_cast<SysDDec>(n * 2) / M - 1.0;
+	double x = static_cast<double>(n * 2) / M - 1.0;
 	x = x * x;
 	x = beta * std::sqrt(1.0 - x);
 

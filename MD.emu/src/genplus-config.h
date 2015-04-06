@@ -19,7 +19,7 @@ static const int16 config_high_freq = 5000;
 static const int16 config_lg = 1;
 static const int16 config_mg = 1;
 static const int16 config_hg = 1;
-static const SysDDec config_rolloff = 0.990;
+static const double config_rolloff = 0.990;
 extern uint config_ym2413_enabled;
 static const int16 config_ym2612_clip = 1;
 static const uint8 config_force_dtack = 0;

@@ -8,7 +8,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/EmuControls.cc common/MDFNApi.cc main/PCEFast.cc
 
-CPPFLAGS += -DHAVE_CONFIG_H -DSysDDec=float -I$(projectPath)/src -I$(projectPath)/src/include \
+CPPFLAGS += -DHAVE_CONFIG_H -I$(projectPath)/src -I$(projectPath)/src/include \
 -I$(projectPath)/src/mednafen/hw_misc -I$(projectPath)/src/mednafen/hw_sound
 
 # mednafen sources

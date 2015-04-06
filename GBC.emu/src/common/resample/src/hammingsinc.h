@@ -57,14 +57,14 @@ public:
 		}
 	};
 
-	HammingSinc(unsigned div, unsigned phaseLen, SysDDec fc)
+	HammingSinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel_(phaseLen * phases)
 	, polyfir_(kernel_, phaseLen, div)
 	{
 		makeSincKernel(kernel_, phases, phaseLen, fc, hammingWin, 1.0);
 	}
 
-	HammingSinc(unsigned div, RollOff ro, SysDDec gain)
+	HammingSinc(unsigned div, RollOff ro, double gain)
 	: kernel_(ro.taps * phases)
 	, polyfir_(kernel_, ro.taps, div)
 	{
@@ -83,8 +83,8 @@ private:
 	Array<short> const kernel_;
 	PolyphaseFir<channels, phases> polyfir_;
 
-	static SysDDec hammingWin(long i, long M) {
-		SysDDec pi = 3.14159265358979323846;
+	static double hammingWin(long i, long M) {
+		double pi = 3.14159265358979323846;
 		return 0.53836 - 0.46164 * std::cos(2 * pi * i / M);
 	}
 };

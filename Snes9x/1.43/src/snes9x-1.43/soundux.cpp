@@ -486,7 +486,7 @@ void S9xSetSoundFrequency (int channel, int hertz)
 		if (Settings.FixFrequency)
 		{
 			SoundData.channels[channel].frequency = 
-				(unsigned int) ((SysDDec)  SoundData.channels[channel].frequency * 0.980);
+				(unsigned int) ((double)  SoundData.channels[channel].frequency * 0.980);
 		}
     }
 }
@@ -696,7 +696,7 @@ void AltDecodeBlock2 (Channel *ch)
 			//Sample 1 = Top Nibble, shifted down and Sign Extended.
 			sample1 >>= 4;
 			out = (int32)(sample1 << shift);
-			out += (int32)((SysDDec)prev0 * 15/16);
+			out += (int32)((double)prev0 * 15/16);
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -704,7 +704,7 @@ void AltDecodeBlock2 (Channel *ch)
 			*raw++ = (int16)out;
 			
 			out = (int32)(sample2 << shift);
-			out += (int32)((SysDDec)prev0 * 15/16);
+			out += (int32)((double)prev0 * 15/16);
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -746,7 +746,7 @@ void AltDecodeBlock2 (Channel *ch)
 			//Sample 1 = Top Nibble, shifted down and Sign Extended.
 			sample1 >>= 4;
 			out = (int32)(sample1 << shift);
-			out += (int32)((SysDDec)prev0 * 115/64 - (SysDDec)prev1 * 13/16);
+			out += (int32)((double)prev0 * 115/64 - (double)prev1 * 13/16);
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -755,7 +755,7 @@ void AltDecodeBlock2 (Channel *ch)
 			*raw++ = (int16)out;
 			
 			out = (int32)(sample2 << shift);
-			out += (int32)((SysDDec)prev0 * 115/64 - (SysDDec)prev1 * 13/16);
+			out += (int32)((double)prev0 * 115/64 - (double)prev1 * 13/16);
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -880,7 +880,7 @@ void MixStereo (int sample_count)
 		if (ch->state == SOUND_SILENT || !(so.sound_switch & (1 << J)))
 			continue;
 		
-		//freq0 = (unsigned long) ((SysDDec) freq0 * 0.985);//uncommented by jonathan gevaryahu, as it is necessary for most cards in linux
+		//freq0 = (unsigned long) ((double) freq0 * 0.985);//uncommented by jonathan gevaryahu, as it is necessary for most cards in linux
 		
 		bool8 mod = pitch_mod & (1 << J);
 		
@@ -1846,7 +1846,7 @@ void S9xResetSound (bool8 full)
 void S9xSetPlaybackRate (uint32 playback_rate)
 {
     so.playback_rate = playback_rate;
-    so.err_rate = (uint32) (SNES_SCANLINE_TIME * FIXED_POINT / (1.0 / (SysDDec) so.playback_rate));
+    so.err_rate = (uint32) (SNES_SCANLINE_TIME * FIXED_POINT / (1.0 / (double) so.playback_rate));
     S9xSetEchoDelay (APU.DSP [APU_EDL] & 0xf);
     for (int i = 0; i < 8; i++)
 		S9xSetSoundFrequency (i, SoundData.channels [i].hertz);

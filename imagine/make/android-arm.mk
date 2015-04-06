@@ -14,9 +14,5 @@ ifneq ($(config_compiler),clang)
 endif
 
 COMPILE_FLAGS += -fpic
-ifneq ($(config_compiler),clang)
- COMPILE_FLAGS += -fsingle-precision-constant
- WARNINGS_CFLAGS += -Wdouble-promotion
-endif
 
 include $(buildSysPath)/android-gcc.mk

@@ -23,14 +23,14 @@ void SexyFilter2(FCEU_SoundSample *in, int32 count)
 {
  #ifdef moo
  static int64 acc=0;
- SysDDec x,p;
+ double x,p;
  int64 c;
 
  x=2*M_PI*6000/FSettings.SndRate;
- p=((SysDDec)2-cos(x)) - sqrt(pow((SysDDec)2-cos(x),2) -1 );
+ p=((double)2-cos(x)) - sqrt(pow((double)2-cos(x),2) -1 );
 
  c=p*0x100000;
- //printf("%f\n",(SysDDec)c/0x100000);
+ //printf("%f\n",(double)c/0x100000);
  #endif
  static int64 acc=0;
 

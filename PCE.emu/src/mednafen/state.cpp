@@ -579,10 +579,10 @@ int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDF
 
 	 if(!is_multires)
 	 {
-	  if(((SysDDec)DisplayRect->w / MDFNGameInfo->nominal_width) > 0.75  && ((SysDDec)DisplayRect->w / MDFNGameInfo->nominal_width) < 1.25)
+	  if(((double)DisplayRect->w / MDFNGameInfo->nominal_width) > 0.75  && ((double)DisplayRect->w / MDFNGameInfo->nominal_width) < 1.25)
 	   neowidth = DisplayRect->w;
 
-          if(((SysDDec)DisplayRect->h / MDFNGameInfo->nominal_height) > 0.75  && ((SysDDec)DisplayRect->h / MDFNGameInfo->nominal_height) < 1.25)
+          if(((double)DisplayRect->h / MDFNGameInfo->nominal_height) > 0.75  && ((double)DisplayRect->h / MDFNGameInfo->nominal_height) < 1.25)
 	   neoheight = DisplayRect->h;
 	 }
 	}

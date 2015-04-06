@@ -196,18 +196,18 @@ static void CalculatePalette(void)
 {
 	int x,z;
 	int r,g,b;
-	SysDDec s,luma,theta;
+	double s,luma,theta;
 	static uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
 	static uint8 br1[4]={6,9,12,12};
-	static SysDDec br2[4]={.29,.45,.73,.9};
-	static SysDDec br3[4]={0,.24,.47,.77};
+	static double br2[4]={.29,.45,.73,.9};
+	static double br3[4]={0,.24,.47,.77};
 
 	for(x=0;x<=3;x++)
 		for(z=0;z<16;z++)
 		{
-			s=(SysDDec)ntsctint/128;
+			s=(double)ntsctint/128;
 			luma=br2[x];
-			if(z==0)  {s=0;luma=((SysDDec)br1[x])/12;}
+			if(z==0)  {s=0;luma=((double)br1[x])/12;}
 
 			if(z>=13)
 			{
@@ -216,9 +216,9 @@ static void CalculatePalette(void)
 					luma=br3[x];
 			}
 
-			theta=(SysDDec)M_PI*(SysDDec)(((SysDDec)cols[z]*10+ (((SysDDec)ntschue/2)+300) )/(SysDDec)180);
+			theta=(double)M_PI*(double)(((double)cols[z]*10+ (((double)ntschue/2)+300) )/(double)180);
 			r=(int)((luma+s*sin(theta))*256);
-			g=(int)((luma-(SysDDec)27/53*s*sin(theta)+(SysDDec)10/53*s*cos(theta))*256);
+			g=(int)((luma-(double)27/53*s*sin(theta)+(double)10/53*s*cos(theta))*256);
 			b=(int)((luma-s*cos(theta))*256);
 
 

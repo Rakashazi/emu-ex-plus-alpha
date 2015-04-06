@@ -6,7 +6,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 SRC += main/Main.cc main/EmuControls.cc main/FceuApi.cc main/Cheats.cc
 
 CPPFLAGS += -I$(projectPath)/src -DHAVE_ASPRINTF -DPSS_STYLE=1 -DLSB_FIRST -DFRAMESKIP \
--DFCEU_NO_HQ_SOUND -DSysDDec=float -DSysLDDec=float -DUSE_PIX_RGB565 -I$(projectPath)/src/fceu
+-DFCEU_NO_HQ_SOUND -DUSE_PIX_RGB565 -I$(projectPath)/src/fceu
 # fceux sources
 FCEUX_SRC := fceu/cart.cpp fceu/cheat.cpp fceu/emufile.cpp fceu/fceu.cpp fceu/file.cpp fceu/filter.cpp \
 fceu/ines.cpp fceu/input.cpp fceu/palette.cpp fceu/ppu.cpp fceu/sound.cpp fceu/state.cpp fceu/unif.cpp fceu/vsuni.cpp \

@@ -28,7 +28,7 @@
 #include <cmath>
 #include <cstddef>
 
-SysDDec kaiser50SincWin(long n, long M);
+double kaiser50SincWin(long n, long M);
 
 template<unsigned channels, unsigned phases>
 class Kaiser50Sinc : public SubResampler {
@@ -59,14 +59,14 @@ public:
 		}
 	};
 
-	Kaiser50Sinc(unsigned div, unsigned phaseLen, SysDDec fc)
+	Kaiser50Sinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel_(phaseLen * phases)
 	, polyfir_(kernel_, phaseLen, div)
 	{
 		makeSincKernel(kernel_, phases, phaseLen, fc, kaiser50SincWin, 1.0);
 	}
 
-	Kaiser50Sinc(unsigned div, RollOff ro, SysDDec gain)
+	Kaiser50Sinc(unsigned div, RollOff ro, double gain)
 	: kernel_(ro.taps * phases)
 	, polyfir_(kernel_, ro.taps, div)
 	{

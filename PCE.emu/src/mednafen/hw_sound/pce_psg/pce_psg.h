@@ -118,7 +118,7 @@ class PCE_PSG
         void Power(const int32 timestamp);
         void Write(int32 timestamp, uint8 A, uint8 V);
 
-	void SetVolume(SysDDec new_volume);
+	void SetVolume(double new_volume);
 
 	void EndFrame(int32 timestamp);
 
@@ -151,7 +151,7 @@ class PCE_PSG
 	void RecalcFreqCache(int chnum);
 	void RecalcNoiseFreqCache(int chnum);
 	void RunChannel(int chc, int32 timestamp, bool LFO_On);
-	SysDDec OutputVolume;
+	double OutputVolume;
 
         uint8 select;               /* Selected channel (0-5) */
         uint8 globalbalance;        /* Global sound balance */

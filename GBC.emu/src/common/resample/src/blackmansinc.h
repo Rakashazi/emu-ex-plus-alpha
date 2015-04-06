@@ -57,14 +57,14 @@ public:
 		}
 	};
 
-	BlackmanSinc(unsigned div, unsigned phaseLen, SysDDec fc)
+	BlackmanSinc(unsigned div, unsigned phaseLen, double fc)
 	: kernel_(phaseLen * phases)
 	, polyfir_(kernel_, phaseLen, div)
 	{
 		makeSincKernel(kernel_, phases, phaseLen, fc, blackmanWin, 1.0);
 	}
 
-	BlackmanSinc(unsigned div, RollOff ro, SysDDec gain)
+	BlackmanSinc(unsigned div, RollOff ro, double gain)
 	: kernel_(ro.taps * phases)
 	, polyfir_(kernel_, ro.taps, div)
 	{
@@ -83,8 +83,8 @@ private:
 	Array<short> const kernel_;
 	PolyphaseFir<channels, phases> polyfir_;
 
-	static SysDDec blackmanWin(long i, long M) {
-		SysDDec pi = 3.14159265358979323846;
+	static double blackmanWin(long i, long M) {
+		double pi = 3.14159265358979323846;
 		return 0.42 - 0.5  * std::cos(2 * pi * i / M)
 		            + 0.08 * std::cos(4 * pi * i / M);
 	}

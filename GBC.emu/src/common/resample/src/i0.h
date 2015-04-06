@@ -19,6 +19,6 @@
 #ifndef I0_H
 #define I0_H
 
-SysDDec i0(SysDDec x);
+double i0(double x);
 
 #endif

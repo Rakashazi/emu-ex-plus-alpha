@@ -85,7 +85,7 @@ public:
 
 	// Sets frame sequencer rate, where 1.0 is normal. Meant for adjusting the
 	// tempo in a game music player.
-	void set_tempo( float );
+	void set_tempo( double );
 
 // Save states
 

@@ -12,7 +12,7 @@
 #ifndef _H_YM2413_
 #define _H_YM2413_
 
-extern void YM2413Init(SysDDec clock, int rate);
+extern void YM2413Init(double clock, int rate);
 extern void YM2413ResetChip(void);
 extern void YM2413Update(FMSampleType *buffer, int length);
 extern void YM2413Write(unsigned int a, unsigned int v);

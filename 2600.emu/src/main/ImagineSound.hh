@@ -18,7 +18,7 @@ class ImagineSound : public Sound
 	{
 		uInt16 addr;
 		uInt8 value;
-		SysDDec delta;
+		double delta;
 	};
 
 	class RegWriteQueue
@@ -50,7 +50,7 @@ class ImagineSound : public Sound
 		/**
 		Return the duration of all the items in the queue.
 		*/
-		SysDDec duration();
+		double duration();
 
 		/**
 		Enqueue the specified object.
@@ -125,7 +125,7 @@ public:
 	{
 		// First, calculate how many seconds would have past since the last
 		// register write on a real 2600
-		SysDDec delta = (((SysDDec)(cycle - myLastRegisterSetCycle)) / (1193191.66666667));
+		double delta = (((double)(cycle - myLastRegisterSetCycle)) / (1193191.66666667));
 
 		// Now, adjust the time based on the frame rate the user has selected. For
 		// the sound to "scale" correctly, we have to know the games real frame

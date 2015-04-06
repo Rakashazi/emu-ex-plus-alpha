@@ -5,7 +5,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc main/EmuControls.cc main/ViceApi.cc
 
-CPPFLAGS += -DSysDecimal=float -I$(projectPath)/src -I$(projectPath)/src/config -I$(projectPath)/src/vice -I$(projectPath)/src/vice/c64 -I$(projectPath)/src/vice/c64/cart \
+CPPFLAGS += -I$(projectPath)/src -I$(projectPath)/src/config -I$(projectPath)/src/vice -I$(projectPath)/src/vice/c64 -I$(projectPath)/src/vice/c64/cart \
 -I$(projectPath)/src/vice/drive -I$(projectPath)/src/vice/lib/p64 -I$(projectPath)/src/vice/sid -I$(projectPath)/src/vice/vicii -I$(projectPath)/src/vice/tape -I$(projectPath)/src/vice/userport \
 -I$(projectPath)/src/vice/video -I$(projectPath)/src/vice/drive/iec/c64exp -I$(projectPath)/src/vice/core -I$(projectPath)/src/vice/rtc -I$(projectPath)/src/vice/vdrive \
 -I$(projectPath)/src/vice/imagecontents -I$(projectPath)/src/vice/monitor -I$(projectPath)/src/vice/platform -I$(projectPath)/src/vice/raster -I$(projectPath)/src/vice/c64dtv \

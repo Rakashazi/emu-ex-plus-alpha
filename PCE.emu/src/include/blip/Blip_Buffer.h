@@ -161,7 +161,7 @@ private:
 		int last_amp;
 		int delta_factor;
 		
-		void volume_unit( SysDDec );
+		void volume_unit( double );
 		Blip_Synth_Fast_();
 		void treble_eq( blip_eq_t const& ) { }
 	};
@@ -172,11 +172,11 @@ private:
 		int last_amp;
 		int delta_factor;
 		
-		void volume_unit( SysDDec );
+		void volume_unit( double );
 		Blip_Synth_( short* impulses, int width );
 		void treble_eq( blip_eq_t const& );
 	private:
-		SysDDec volume_unit_;
+		double volume_unit_;
 		short* const impulses;
 		int const width;
 		blip_long kernel_unit;
@@ -196,7 +196,7 @@ template<int quality,int range>
 class Blip_Synth {
 public:
 	// Set overall volume of waveform
-	void volume( SysDDec v ) { impl.volume_unit( v * (1.0 / (range < 0 ? -range : range)) ); }
+	void volume( double v ) { impl.volume_unit( v * (1.0 / (range < 0 ? -range : range)) ); }
 	
 	// Configure low-pass filter (see blip_buffer.txt)
 	void treble_eq( blip_eq_t const& eq )       { impl.treble_eq( eq ); }
@@ -245,13 +245,13 @@ class blip_eq_t {
 public:
 	// Logarithmic rolloff to treble dB at half sampling rate. Negative values reduce
 	// treble, small positive values (0 to 5.0) increase treble.
-	blip_eq_t( SysDDec treble_db = 0 );
+	blip_eq_t( double treble_db = 0 );
 	
 	// See blip_buffer.txt
-	blip_eq_t( SysDDec treble, long rolloff_freq, long sample_rate, long cutoff_freq = 0 );
+	blip_eq_t( double treble, long rolloff_freq, long sample_rate, long cutoff_freq = 0 );
 	
 private:
-	SysDDec treble;
+	double treble;
 	long rolloff_freq;
 	long sample_rate;
 	long cutoff_freq;
@@ -470,9 +470,9 @@ void Blip_Synth<quality,range>::update( blip_time_t t, int amp )
 	offset_resampled( t * impl.buf->factor_ + impl.buf->offset_, delta, impl.buf );
 }
 
-blip_inline blip_eq_t::blip_eq_t( SysDDec t ) :
+blip_inline blip_eq_t::blip_eq_t( double t ) :
 		treble( t ), rolloff_freq( 0 ), sample_rate( 44100 ), cutoff_freq( 0 ) { }
-blip_inline blip_eq_t::blip_eq_t( SysDDec t, long rf, long sr, long cf ) :
+blip_inline blip_eq_t::blip_eq_t( double t, long rf, long sr, long cf ) :
 		treble( t ), rolloff_freq( rf ), sample_rate( sr ), cutoff_freq( cf ) { }
 
 blip_inline int  Blip_Buffer::length() const         { return length_; }

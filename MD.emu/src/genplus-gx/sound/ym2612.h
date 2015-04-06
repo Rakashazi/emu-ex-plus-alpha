@@ -18,7 +18,7 @@
 
 #include "genplus-config.h"
 
-extern void YM2612Init(SysDDec clock, int rate);
+extern void YM2612Init(double clock, int rate);
 extern void YM2612ResetChip(void);
 extern void YM2612Update(FMSampleType *buffer, int length);
 extern void YM2612Write(unsigned int a, unsigned int v);

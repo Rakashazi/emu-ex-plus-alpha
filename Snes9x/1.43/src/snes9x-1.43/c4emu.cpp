@@ -715,7 +715,7 @@ void S9xSetC4 (uint8 byte, uint16 Address)
 #endif
                 C41FXVal=READ_WORD(Memory.C4RAM+0x1f80);
                 C41FYVal=READ_WORD(Memory.C4RAM+0x1f83);
-                C41FDist=(int16)sqrt((SysDDec)C41FXVal*C41FXVal + (SysDDec)C41FYVal*C41FYVal);
+                C41FDist=(int16)sqrt((double)C41FXVal*C41FXVal + (double)C41FYVal*C41FYVal);
                 WRITE_WORD(Memory.C4RAM+0x1f80, C41FDist);
                 break;
 

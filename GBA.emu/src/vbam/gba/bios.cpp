@@ -1122,7 +1122,7 @@ void BIOS_Sqrt(ARM7TDMI &cpu)
         VCOUNT);
   }
 #endif
-  reg[0].I = (u32)sqrt((SysDecimal)reg[0].I);
+  reg[0].I = (u32)sqrt((double)reg[0].I);
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Sqrt: return=%08x\n",
@@ -1143,10 +1143,10 @@ void BIOS_MidiKey2Freq(ARM7TDMI &cpu)
   }
 #endif
   int freq = CPUReadMemory(cpu, reg[0].I+4);
-  SysDecimal tmp;
-  tmp = ((SysDecimal)(180 - reg[1].I)) - ((SysDecimal)reg[2].I / 256.f);
-  tmp = pow((SysDecimal)2.f, tmp / 12.f);
-  reg[0].I = (int)((SysDecimal)freq / tmp);
+  double tmp;
+  tmp = ((double)(180 - reg[1].I)) - ((double)reg[2].I / 256.f);
+  tmp = pow((double)2.f, tmp / 12.f);
+  reg[0].I = (int)((double)freq / tmp);
 
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {

@@ -11,7 +11,7 @@ SRC += main/Main.cc main/EmuControls.cc main/BlueMSXApi.cc main/Board.cc
 BMSX := blueMSX
 
 CPPFLAGS += -DNO_FRAMEBUFFER -DLSB_FIRST -DNO_ASM -DSINGLE_THREADED -DNO_FILE_HISTORY \
--DNO_EMBEDDED_SAMPLES -DSysLDDec=float -I$(projectPath)/src/$(BMSX)
+-DNO_EMBEDDED_SAMPLES -I$(projectPath)/src/$(BMSX)
 
 CPPFLAGS += -I$(projectPath)/src -I$(projectPath)/src/$(BMSX)/SoundChips -I$(projectPath)/src/$(BMSX)/VideoChips \
 -I$(projectPath)/src/$(BMSX)/Z80 -I$(projectPath)/src/$(BMSX)/Media -I$(projectPath)/src/$(BMSX)/Common \

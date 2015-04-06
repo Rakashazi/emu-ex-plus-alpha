@@ -20,6 +20,6 @@
 #define MAKE_SINC_KERNEL_H
 
 void makeSincKernel(short *kernel, int phases, int phaseLen,
-                    SysDDec fc, SysDDec (*win)(long m, long M), SysDDec gain);
+                    double fc, double (*win)(long m, long M), double gain);
 
 #endif

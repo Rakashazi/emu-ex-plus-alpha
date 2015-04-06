@@ -4,7 +4,7 @@ inc_main := 1
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 CPPFLAGS += -I$(projectPath)/src -DHAVE_INTTYPES -DBSPF_UNIX -DTHUMB_SUPPORT \
--DSTELLA_MINIMAL_SETTINGS -DSysDDec=float -I$(projectPath)/src/stella/common
+-DSTELLA_MINIMAL_SETTINGS -I$(projectPath)/src/stella/common
 
 stellaSrc := Console.cxx Cart.cxx Props.cxx MD5.cxx Settings.cxx \
 Serializer.cxx System.cxx NullDev.cxx Random.cxx TIA.cxx \

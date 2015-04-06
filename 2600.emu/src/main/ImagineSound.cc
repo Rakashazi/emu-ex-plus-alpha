@@ -18,11 +18,11 @@ void ImagineSound::processAudio(Int16* stream, uint length)
 	const uint channels = soundChannels;
 	// If there are excessive items on the queue then we'll remove some
 	//logMsg("sound duration %f", myRegWriteQueue.duration());
-	SysDDec streamLengthInSecs = (SysDDec)length/(SysDDec)EmuSystem::pcmFormat.rate;
-	SysDDec excessStreamSecs = myRegWriteQueue.duration() - streamLengthInSecs;
+	double streamLengthInSecs = (double)length/(double)EmuSystem::pcmFormat.rate;
+	double excessStreamSecs = myRegWriteQueue.duration() - streamLengthInSecs;
 	if(excessStreamSecs > 0.0)
 	{
-		SysDDec removed = 0.0;
+		double removed = 0.0;
 		while(removed < excessStreamSecs)
 		{
 			RegWrite& info = myRegWriteQueue.front();
@@ -32,8 +32,8 @@ void ImagineSound::processAudio(Int16* stream, uint length)
 		}
 	}
 
-	SysDDec position = 0.0;
-	SysDDec remaining = length;
+	double position = 0.0;
+	double remaining = length;
 
 	while(remaining > 0.0)
 	{
@@ -58,7 +58,7 @@ void ImagineSound::processAudio(Int16* stream, uint length)
 			RegWrite& info = myRegWriteQueue.front();
 
 			// How long will the remaining samples in the fragment take to play
-			SysDDec duration = remaining / (SysDDec)EmuSystem::pcmFormat.rate;
+			double duration = remaining / (double)EmuSystem::pcmFormat.rate;
 
 			// Does the register update occur before the end of the fragment?
 			if(info.delta <= duration)
@@ -69,7 +69,7 @@ void ImagineSound::processAudio(Int16* stream, uint length)
 				{
 					// Process the fragment upto the next TIA register write.  We
 					// round the count passed to process up if needed.
-					SysDDec samples = (EmuSystem::pcmFormat.rate * info.delta);
+					double samples = (EmuSystem::pcmFormat.rate * info.delta);
 					myTIASound.process(stream + ((uInt32)position * channels),
 							(uInt32)samples + (uInt32)(position + samples) -
 							((uInt32)position + (uInt32)samples));
@@ -127,9 +127,9 @@ void ImagineSound::RegWriteQueue::dequeue()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SysDDec ImagineSound::RegWriteQueue::duration()
+double ImagineSound::RegWriteQueue::duration()
 {
-	SysDDec duration = 0.0;
+	double duration = 0.0;
   for(uInt32 i = 0; i < mySize; ++i)
   {
     duration += myBuffer[(myHead + i) % myCapacity].delta;

@@ -55,7 +55,7 @@ private:
 	long reference_;
 	usec_t maxPeriod_;
 	usec_t last_;
-	SysDDec t_, s_, st_, t2_;
+	double t_, s_, st_, t2_;
 };
 
 #endif

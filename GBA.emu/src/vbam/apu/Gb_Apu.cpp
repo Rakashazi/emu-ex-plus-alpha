@@ -59,7 +59,7 @@ void Gb_Apu::set_output( Blip_Buffer* center, Blip_Buffer* left, Blip_Buffer* ri
 
 void Gb_Apu::synth_volume( int iv )
 {
-	SysDecimal v = volume_ * 0.60 / osc_count / 15 /*steps*/ / 8 /*master vol range*/ * iv;
+	double v = volume_ * 0.60 / osc_count / 15 /*steps*/ / 8 /*master vol range*/ * iv;
 	good_synth.volume( v );
 	med_synth .volume( v );
 }
@@ -76,7 +76,7 @@ void Gb_Apu::apply_volume()
 	synth_volume( max( left, right ) + 1 );
 }
 
-void Gb_Apu::volume( SysDecimal v )
+void Gb_Apu::volume( float v )
 {
 	if ( volume_ != v )
 	{
@@ -158,7 +158,7 @@ void Gb_Apu::reset( mode_t mode, bool agb_wave )
 	}
 }
 
-void Gb_Apu::set_tempo( SysDecimal t )
+void Gb_Apu::set_tempo( double t )
 {
 	frame_period = 4194304 / 512; // 512 Hz
 	if ( t != 1.0 )

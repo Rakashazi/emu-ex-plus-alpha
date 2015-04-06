@@ -7,7 +7,7 @@ SRC += main/Main.cc main/EmuControls.cc
 
 NP_CORE := Core
 
-CPPFLAGS += -DLSB_FIRST -D__cdecl= -DSysDDec=float \
+CPPFLAGS += -DLSB_FIRST -D__cdecl= \
 -I$(projectPath)/src -I$(projectPath)/src/$(NP_CORE)/z80 \
 -I$(projectPath)/src/$(NP_CORE)/TLCS-900h -I$(projectPath)/src/$(NP_CORE)
 

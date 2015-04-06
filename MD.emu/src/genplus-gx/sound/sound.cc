@@ -124,12 +124,12 @@ void sound_init(void)
   /* This ensure there is no audio skipping or lag between emulated frames, while keeping */
   /* accurate timings for sound chips execution & synchronization.                        */
   /*                                                                                      */
-	SysDDec mclk = MCYCLES_PER_LINE * lines_per_frame * snd.frame_rate;
+	double mclk = MCYCLES_PER_LINE * lines_per_frame * snd.frame_rate;
 
   /* For better accuracy, sound chips run in synchronization with 68k and Z80 cpus        */
   /* These values give the exact number of M-cycles between 2 rendered samples.           */
   /* we use 21.11 fixed point precision (max. mcycle value is 3420*313 i.e 21 bits max)   */
-  psg_cycles_ratio  = (unsigned int)(mclk / (SysDDec) snd.sample_rate * 2048.0);
+  psg_cycles_ratio  = (unsigned int)(mclk / (double) snd.sample_rate * 2048.0);
   fm_cycles_ratio   = psg_cycles_ratio;
   fm_cycles_count   = 0;
   psg_cycles_count  = 0;
@@ -152,7 +152,7 @@ void sound_init(void)
 	if (config_hq_fm)
 	{
 	  fm_cycles_ratio = 72 * 15 * (1 << 11);
-	  Fir_Resampler_time_ratio(mclk / (SysDDec)snd.sample_rate / (72.0 * 15.0), config_rolloff);
+	  Fir_Resampler_time_ratio(mclk / (double)snd.sample_rate / (72.0 * 15.0), config_rolloff);
 	}
   }
   else
@@ -169,7 +169,7 @@ void sound_init(void)
 	if (config_hq_fm)
 	{
 	fm_cycles_ratio = 144 * 7 * (1 << 11);
-	Fir_Resampler_time_ratio(mclk / (SysDDec)snd.sample_rate / (144.0 * 7.0), config_rolloff);
+	Fir_Resampler_time_ratio(mclk / (double)snd.sample_rate / (144.0 * 7.0), config_rolloff);
 	}
   }
 

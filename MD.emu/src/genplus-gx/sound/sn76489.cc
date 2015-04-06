@@ -80,7 +80,7 @@ static struct blip_buffer_t* blip;  /* delta resampler */
 
 static SN76489_Context SN76489;
 
-void SN76489_Init(SysDDec PSGClockValue, int SamplingRate)
+void SN76489_Init(double PSGClockValue, int SamplingRate)
 {
   SN76489_Shutdown();
   

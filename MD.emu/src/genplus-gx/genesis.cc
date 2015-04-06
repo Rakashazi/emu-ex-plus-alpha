@@ -190,7 +190,7 @@ void gen_reset(int hard_reset)
   }
 
   /* 68k & Z80 could restart anywhere in VDP frame (Bonkers, Eternal Champions, X-Men 2) */
-  mm68k.cycleCount = Z80.cycleCount = (uint32)((MCYCLES_PER_LINE * lines_per_frame) * ((SysDDec)rand() / (SysDDec)RAND_MAX));
+  mm68k.cycleCount = Z80.cycleCount = (uint32)((MCYCLES_PER_LINE * lines_per_frame) * ((double)rand() / (double)RAND_MAX));
 	#ifndef NO_SCD
   sCD.cpu.cycleCount = mm68k.cycleCount;
 	#endif

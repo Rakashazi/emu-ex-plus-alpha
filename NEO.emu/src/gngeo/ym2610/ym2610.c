@@ -576,8 +576,8 @@ typedef struct
 {
 	int		clock;		/* master clock  (Hz)   */
 	int		rate;		/* sampling rate (Hz)   */
-	SysDDec	freqbase;	/* frequency base       */
-	SysDDec	TimerBase;	/* Timer base time      */
+	double	freqbase;	/* frequency base       */
+	double	TimerBase;	/* Timer base time      */
 #if FM_BUSY_FLAG_SUPPORT
 	AudioTime	BusyExpire;	/* ExpireTime of Busy clear */
 #endif
@@ -688,7 +688,7 @@ typedef struct
 typedef struct adpcmb_state
 {
 	s32		*pan;			/* pan : &output_pointer[pan]   */
-	SysDDec	freqbase;
+	double	freqbase;
 	int		output_range;
 	u32		now_addr;		/* current address      */
 	u32		now_step;		/* currect step         */
@@ -1500,7 +1500,7 @@ INLINE void refresh_fc_eg_chan(FM_CH *CH )
 static void init_timetables( FM_ST *ST , const u8 *dttable )
 {
 	int i,d;
-	SysDDec rate;
+	double rate;
 
 #if 0
 	logerror("FM.C: samplerate=%8i chip clock=%8i  freqbase=%f  \n",
@@ -1510,7 +1510,7 @@ static void init_timetables( FM_ST *ST , const u8 *dttable )
 	/* DeTune table */
 	for (d = 0;d <= 3;d++){
 		for (i = 0;i <= 31;i++){
-			rate = ((SysDDec)dttable[d*32 + i]) * SIN_LEN  * ST->freqbase  * (1<<FREQ_SH) / ((SysDDec)(1<<20));
+			rate = ((double)dttable[d*32 + i]) * SIN_LEN  * ST->freqbase  * (1<<FREQ_SH) / ((double)(1<<20));
 			ST->dt_tab[d][i]   = (s32) rate;
 			ST->dt_tab[d+4][i] = -ST->dt_tab[d][i];
 #if 0
@@ -1551,7 +1551,7 @@ static void OPNInitTable(void)
 {
 	signed int i,x;
 	signed int n;
-	SysDDec o,m;
+	double o,m;
 
 	for (x=0; x<TL_RES_LEN; x++)
 	{
@@ -1677,7 +1677,7 @@ static void OPNSetPres(FM_OPN *OPN , int pres , int TimerPres, int SSGpres)
 	int i;
 
 	/* frequency base */
-	OPN->ST.freqbase = (OPN->ST.rate) ? ((SysDDec)OPN->ST.clock / OPN->ST.rate) / pres : 0;
+	OPN->ST.freqbase = (OPN->ST.rate) ? ((double)OPN->ST.clock / OPN->ST.rate) / pres : 0;
 
 #if 0
 	OPN->ST.rate = (double)OPN->ST.clock / pres;
@@ -1690,10 +1690,10 @@ static void OPNSetPres(FM_OPN *OPN , int pres , int TimerPres, int SSGpres)
 
 	/* Timer base time */
 	//OPN->ST.TimerBase = 1.0/((AudioTime)OPN->ST.clock / (AudioTime)TimerPres);
-	OPN->ST.TimerBase = ((SysDDec)nb_interlace*(60./1.001))/(OPN->ST.clock / (SysDDec)TimerPres);
+	OPN->ST.TimerBase = ((double)nb_interlace*(60./1.001))/(OPN->ST.clock / (double)TimerPres);
 
 	/* SSG part  prescaler set */
-	if (SSGpres) SSG.step = ((SysDDec)SSG_STEP * OPN->ST.rate * 8) / (OPN->ST.clock * 2 / SSGpres);
+	if (SSGpres) SSG.step = ((double)SSG_STEP * OPN->ST.rate * 8) / (OPN->ST.clock * 2 / SSGpres);
 
 	/* make time tables */
 	init_timetables( &OPN->ST, dt_tab );
@@ -1705,7 +1705,7 @@ static void OPNSetPres(FM_OPN *OPN , int pres , int TimerPres, int SSGpres)
 	{
 		/* freq table for octave 7 */
 		/* OPN phase increment counter = 20bit */
-		OPN->fn_table[i] = (u32)( (SysDDec)i * 32 * OPN->ST.freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
+		OPN->fn_table[i] = (u32)( (double)i * 32 * OPN->ST.freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
 #if 0
 		logerror("FM.C: fn_table[%4i] = %08x (dec=%8i)\n",
 				 i, OPN->fn_table[i]>>6,OPN->fn_table[i]>>6 );
@@ -2210,7 +2210,7 @@ static int SSG_CALC(int outn)
 static void SSG_init_table(void)
 {
 	int i;
-	SysDDec out;
+	double out;
 
 	/* calculate the volume->voltage conversion table */
 	/* The AY-3-8910 has 16 levels, in a logarithmic scale (3dB per step) */
@@ -2665,7 +2665,7 @@ value:   START, REC, MEMDAT, REPEAT, SPOFF, x,x,RESET   meaning:
 	case 0x19:	/* DELTA-N L (ADPCM Playback Prescaler) */
 	case 0x1a:	/* DELTA-N H */
 		adpcmb->delta = (YM2610.regs[0x1a] << 8) | YM2610.regs[0x19];
-		adpcmb->step  = (u32)((SysDDec)(adpcmb->delta /* * (1 << (ADPCMb_SHIFT - 16)) */) * (adpcmb->freqbase));
+		adpcmb->step  = (u32)((double)(adpcmb->delta /* * (1 << (ADPCMb_SHIFT - 16)) */) * (adpcmb->freqbase));
 		/*logerror("DELTAT deltan:09=%2x 0a=%2x\n", YM2610.regs[0x19], YM2610.regs[0x1a]);*/
 		break;
 
@@ -2681,7 +2681,7 @@ value:   START, REC, MEMDAT, REPEAT, SPOFF, x,x,RESET   meaning:
 			/*logerror("DELTAT vol = %2x\n", v & 0xff);*/
 			if (oldvol != 0)
 			{
-				adpcmb->adpcml = (int)((SysDDec)adpcmb->adpcml / (SysDDec)oldvol * (SysDDec)adpcmb->volume);
+				adpcmb->adpcml = (int)((double)adpcmb->adpcml / (double)oldvol * (double)adpcmb->volume);
 			}
 		}
 		break;
@@ -2821,7 +2821,7 @@ void YM2610Init(int clock, int rate,
 	YM2610.OPN.ST.Timer_Handler = TimerHandler;
 	YM2610.OPN.ST.IRQ_Handler   = IRQHandler;
 	/* SSG */
-	SSG.step = ((SysDDec)SSG_STEP * rate * 8) / clock;
+	SSG.step = ((double)SSG_STEP * rate * 8) / clock;
 	/* ADPCM-A */
 	pcmbufA = (u8 *)pcmroma;
 	pcmsizeA = pcmsizea;
@@ -2837,10 +2837,10 @@ void YM2610Init(int clock, int rate,
 void YM2610ChangeSamplerate(int rate) {
 	int i;
 	YM2610.OPN.ST.rate = rate;
-	SSG.step = ((SysDDec)SSG_STEP * rate * 8) / YM2610.OPN.ST.clock;
+	SSG.step = ((double)SSG_STEP * rate * 8) / YM2610.OPN.ST.clock;
 	OPNSetPres(&YM2610.OPN, 6*24, 6*24, 4*2); /* OPN 1/6, SSG 1/4 */
 	for (i = 0; i < 6; i++) {
-		YM2610.adpcma[i].step = (u32) ((SysDDec) (1 << ADPCM_SHIFT) * ((SysDDec) YM2610.OPN.ST.freqbase) / 3.0);
+		YM2610.adpcma[i].step = (u32) ((double) (1 << ADPCM_SHIFT) * ((double) YM2610.OPN.ST.freqbase) / 3.0);
 	}
 	YM2610.adpcmb.freqbase = YM2610.OPN.ST.freqbase;
 }

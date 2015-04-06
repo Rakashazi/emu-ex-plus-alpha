@@ -161,7 +161,7 @@ typedef struct {
   UINT8 address;          /* address register */
   UINT8 status;          /* status flag       */
 
-  SysDDec clock;         /* master clock  (Hz) */
+  float clock;         /* master clock  (Hz) */
   int rate;            /* sampling rate (Hz)  */
 } YM2413;
 
@@ -1014,7 +1014,7 @@ static int init_tables(void)
 {
   signed int i,x;
   signed int n;
-  SysDDec o,m;
+  double o,m;
 
   for (x=0; x<TL_RES_LEN; x++)
   {
@@ -1082,7 +1082,7 @@ static void OPLL_initalize(void)
   int i;
 
   /* frequency base */
-  SysDDec freqbase = (ym2413.clock / 72.0) / (SysDDec)ym2413.rate;
+  double freqbase = (ym2413.clock / 72.0) / (double)ym2413.rate;
 
   /* YM2413 running at original frequency */
   if (config_hq_fm) freqbase = 1.0;
@@ -1091,7 +1091,7 @@ static void OPLL_initalize(void)
   for( i = 0 ; i < 1024; i++ )
   {
     /* OPLL (YM2413) phase increment counter = 18bit */
-    ym2413.fn_tab[i] = (UINT32)( (SysDDec)i * 64 * freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
+    ym2413.fn_tab[i] = (UINT32)( (double)i * 64 * freqbase * (1<<(FREQ_SH-10)) ); /* -10 because chip works with 10.10 fixed point, while we use 16.16 */
   }
 
   /* Amplitude modulation: 27 output levels (triangle waveform); 1 level takes one of: 192, 256 or 448 samples */
@@ -1598,7 +1598,7 @@ static void OPLLWriteReg(int r, int v)
 }
 
 
-void YM2413Init(SysDDec clock, int rate)
+void YM2413Init(double clock, int rate)
 {
   init_tables();
 
@@ -1739,7 +1739,7 @@ unsigned int YM2413GetContextSize(void)
 void YM2413Restore(unsigned char *buffer)
 {
   /* save current timings */
-	SysDDec clock = ym2413.clock;
+	float clock = ym2413.clock;
   int rate = ym2413.rate;
 
   /* restore internal state */

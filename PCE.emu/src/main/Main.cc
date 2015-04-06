@@ -358,7 +358,7 @@ void EmuSystem::configAudioRate()
 {
 	pcmFormat.rate = optionSoundRate;
 	EmulateSpecStruct espec;
-	espec.SoundRate = std::round((SysDDec)optionSoundRate * (vce.lc263 ? 0.99709 : 1.00086));
+	espec.SoundRate = std::round((double)optionSoundRate * (vce.lc263 ? 0.99709 : 1.00086));
 	#ifdef CONFIG_ENV_WEBOS
 	if(optionFrameSkip != optionFrameSkipAuto)
 		espec.SoundRate *= 42660./44100.; // better sync with Pre's refresh rate

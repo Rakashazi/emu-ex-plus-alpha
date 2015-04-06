@@ -18,10 +18,10 @@
  ***************************************************************************/
 #include "i0.h"
 
-SysDDec i0(SysDDec x) {
-	SysDDec sum = 1.0;
-	SysDDec xpm_dmfac = 1.0;
-	SysDDec m = 1.0;
+double i0(double x) {
+	double sum = 1.0;
+	double xpm_dmfac = 1.0;
+	double m = 1.0;
 
 	x = 0.25 * x * x;
 

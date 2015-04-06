@@ -11,7 +11,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 snes9xPath := snes9x
 CPPFLAGS += -I$(projectPath)/src -I$(projectPath)/src/snes9x -I$(projectPath)/src/snes9x/apu/bapu \
 -DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR -DZLIB -DUNZIP_SUPPORT \
--DSysDDec=float -DUSE_OPENGL -DPIXEL_FORMAT=RGB565
+-DUSE_OPENGL -DPIXEL_FORMAT=RGB565
 #-DHAVE_MKSTEMP -DUSE_THREADS -DJMA_SUPPORT
 
 snes9xSrc := bsx.cpp c4.cpp c4emu.cpp cheats.cpp \

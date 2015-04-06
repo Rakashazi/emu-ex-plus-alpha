@@ -685,7 +685,7 @@ void S9xSetST010 (uint32 Address, uint8 Byte)
 				x = Memory.SRAM[0] | (Memory.SRAM[1] << 8);
 				y = Memory.SRAM[2] | (Memory.SRAM[3] << 8);
 			#endif
-				square = (int16) sqrt((SysDDec) (y * y + x * x));
+				square = (int16) sqrt((double) (y * y + x * x));
 				//SETA_Distance(x, y, square);
 
 			#ifdef FAST_LSB_WORD_ACCESS

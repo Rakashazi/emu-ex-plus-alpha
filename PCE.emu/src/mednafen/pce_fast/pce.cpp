@@ -190,10 +190,10 @@ bool PCE_InitCD(void)
  PCECD_Settings cd_settings;
  memset(&cd_settings, 0, sizeof(PCECD_Settings));
 
- cd_settings.CDDA_Volume = (SysDDec)MDFN_GetSettingUI("pce_fast.cddavolume") / 100;
+ cd_settings.CDDA_Volume = (double)MDFN_GetSettingUI("pce_fast.cddavolume") / 100;
  cd_settings.CD_Speed = MDFN_GetSettingUI("pce_fast.cdspeed");
 
- cd_settings.ADPCM_Volume = (SysDDec)MDFN_GetSettingUI("pce_fast.adpcmvolume") / 100;
+ cd_settings.ADPCM_Volume = (double)MDFN_GetSettingUI("pce_fast.adpcmvolume") / 100;
  cd_settings.ADPCM_LPF = MDFN_GetSettingB("pce_fast.adpcmlp");
 
  if(cd_settings.CDDA_Volume != 1.0)

@@ -217,7 +217,7 @@ struct EmulateSpecStruct
 	//bool SoundFormatChanged;
 
 	// Sound rate.  Set by driver side.
-	SysDDec SoundRate = 0;
+	double SoundRate = 0;
 
 	// Pointer to sound buffer, set by the driver code, that the emulation code should render sound to.
 	// Guaranteed to be at least 500ms in length, but emulation code really shouldn't exceed 40ms or so.  Additionally, if emulation code
@@ -241,13 +241,13 @@ struct EmulateSpecStruct
 
 	// Current sound volume(0.000...<=volume<=1.000...).  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally.
 	// Emulation modules can handle volume themselves if they like, for speed reasons.  If they do, afterwards, they should set its value to 1.
-	//SysDDec SoundVolume;
+	//double SoundVolume;
 
 	// Current sound speed multiplier.  Set by the driver code.  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally
 	// by resampling the audio.  This means that emulation modules can handle(and set the value to 1 after handling it) it if they want to get the most
 	// performance possible.  HOWEVER, emulation modules must make sure the value is in a range(with minimum and maximum) that their code can handle
 	// before they try to handle it.
-	//SysDDec soundmultiplier;
+	//double soundmultiplier;
 
 	// True if we want to rewind one frame.  Set by the driver code.
 	bool NeedRewind = 0;
@@ -411,6 +411,6 @@ typedef struct
  std::vector<const char *>DesiredInput; // Desired input device for the input ports, NULL for don't care
 
  // For mouse relative motion.
- SysDDec mouse_sensitivity;
+ double mouse_sensitivity;
 } MDFNGI;
 #endif

@@ -126,7 +126,7 @@ Blip_Buffer::blargg_err_t Blip_Buffer::set_sample_rate( long new_rate, int msec 
 
 blip_resampled_time_t Blip_Buffer::clock_rate_factor( long rate ) const
 {
-	SysDecimal ratio = (SysDecimal) sample_rate_ / rate;
+	double ratio = (double) sample_rate_ / rate;
 	blip_long factor = (blip_long) floor( ratio * (1L << BLIP_BUFFER_ACCURACY) + 0.5 );
 	assert( factor > 0 || !sample_rate_ ); // fails if clock/output ratio is too large
 	return (blip_resampled_time_t) factor;
@@ -194,7 +194,7 @@ void Blip_Buffer::remove_samples( long count )
 	delta_factor = 0;
 }*/
 
-void Blip_Synth_Fast_::volume_unit( SysDecimal new_unit )
+void Blip_Synth_Fast_::volume_unit( double new_unit )
 {
 	delta_factor = int (new_unit * (1L << blip_sample_bits) + 0.5);
 }
@@ -215,7 +215,7 @@ Blip_Synth_::Blip_Synth_( short* p, int w ) :
 #undef PI
 #define PI 3.1415926535897932384626433832795029
 
-static void gen_sinc( float* out, int count, SysDecimal oversample, SysDecimal treble, SysDecimal cutoff )
+static void gen_sinc( float* out, int count, double oversample, double treble, double cutoff )
 {
 	if ( cutoff >= 0.999 )
 		cutoff = 0.999;
@@ -225,22 +225,22 @@ static void gen_sinc( float* out, int count, SysDecimal oversample, SysDecimal t
 	if ( treble > 5.0 )
 		treble = 5.0;
 
-	SysDecimal const maxh = 4096.0;
-	SysDecimal const rolloff = pow( 10.0, 1.0 / (maxh * 20.0) * treble / (1.0 - cutoff) );
-	SysDecimal const pow_a_n = pow( rolloff, maxh - maxh * cutoff );
-	SysDecimal const to_angle = PI / 2 / maxh / oversample;
+	double const maxh = 4096.0;
+	double const rolloff = pow( 10.0, 1.0 / (maxh * 20.0) * treble / (1.0 - cutoff) );
+	double const pow_a_n = pow( rolloff, maxh - maxh * cutoff );
+	double const to_angle = PI / 2 / maxh / oversample;
 	for ( int i = 0; i < count; i++ )
 	{
-		SysDecimal angle = ((i - count) * 2 + 1) * to_angle;
-		SysDecimal c = rolloff * cos( (maxh - 1.0) * angle ) - cos( maxh * angle );
-		SysDecimal cos_nc_angle = cos( maxh * cutoff * angle );
-		SysDecimal cos_nc1_angle = cos( (maxh * cutoff - 1.0) * angle );
+		double angle = ((i - count) * 2 + 1) * to_angle;
+		double c = rolloff * cos( (maxh - 1.0) * angle ) - cos( maxh * angle );
+		double cos_nc_angle = cos( maxh * cutoff * angle );
+		double cos_nc1_angle = cos( (maxh * cutoff - 1.0) * angle );
 		double cos_angle = cos( angle );
 
 		c = c * pow_a_n - rolloff * cos_nc1_angle + cos_nc_angle;
-		SysDecimal d = 1.0 + rolloff * (rolloff - cos_angle - cos_angle);
-		SysDecimal b = 2.0 - cos_angle - cos_angle;
-		SysDecimal a = 1.0 - cos_angle - cos_nc_angle + cos_nc1_angle;
+		double d = 1.0 + rolloff * (rolloff - cos_angle - cos_angle);
+		double b = 2.0 - cos_angle - cos_angle;
+		double a = 1.0 - cos_angle - cos_nc_angle + cos_nc1_angle;
 
 		out [i] = (float) ((a * d + c * b) / (b * d)); // a / b + c / d
 	}
@@ -250,16 +250,16 @@ void blip_eq_t::generate( float* out, int count ) const
 {
 	// lower cutoff freq for narrow kernels with their wider transition band
 	// (8 points->1.49, 16 points->1.15)
-	SysDecimal oversample = blip_res * 2.25 / count + 0.85;
-	SysDecimal half_rate = sample_rate * 0.5;
+	double oversample = blip_res * 2.25 / count + 0.85;
+	double half_rate = sample_rate * 0.5;
 	if ( cutoff_freq )
 		oversample = half_rate / cutoff_freq;
-	SysDecimal cutoff = rolloff_freq * oversample / half_rate;
+	double cutoff = rolloff_freq * oversample / half_rate;
 
 	gen_sinc( out, count, blip_res * oversample, treble, cutoff );
 
 	// apply (half of) hamming window
-	SysDecimal to_fraction = PI / (count - 1);
+	double to_fraction = PI / (count - 1);
 	for ( int i = count; i--; )
 		out [i] *= 0.54f - 0.46f * (float) cos( i * to_fraction );
 }
@@ -306,19 +306,19 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 		fimpulse [i] = 0.0f;
 
 	// find rescale factor
-	SysDecimal total = 0.0;
+	double total = 0.0;
 	for ( i = 0; i < half_size; i++ )
 		total += fimpulse [blip_res + i];
 
-	//SysDecimal const base_unit = 44800.0 - 128 * 18; // allows treble up to +0 dB
-	//SysDecimal const base_unit = 37888.0; // allows treble to +5 dB
-	SysDecimal const base_unit = 32768.0; // necessary for blip_unscaled to work
-	SysDecimal rescale = base_unit / 2 / total;
+	//double const base_unit = 44800.0 - 128 * 18; // allows treble up to +0 dB
+	//double const base_unit = 37888.0; // allows treble to +5 dB
+	double const base_unit = 32768.0; // necessary for blip_unscaled to work
+	double rescale = base_unit / 2 / total;
 	kernel_unit = (long) base_unit;
 
 	// integrate, first difference, rescale, convert to int
-	SysDecimal sum = 0.0;
-	SysDecimal next = 0.0;
+	double sum = 0.0;
+	double next = 0.0;
 	int const size = this->impulses_size();
 	for ( i = 0; i < size; i++ )
 	{
@@ -329,7 +329,7 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 	adjust_impulse();
 
 	// volume might require rescaling
-	SysDecimal vol = volume_unit_;
+	double vol = volume_unit_;
 	if ( vol )
 	{
 		volume_unit_ = 0.0;
@@ -337,7 +337,7 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 	}
 }
 
-void Blip_Synth_::volume_unit( SysDecimal new_unit )
+void Blip_Synth_::volume_unit( double new_unit )
 {
 	if ( new_unit != volume_unit_ )
 	{
@@ -346,7 +346,7 @@ void Blip_Synth_::volume_unit( SysDecimal new_unit )
 			treble_eq( -8.0 );
 
 		volume_unit_ = new_unit;
-		SysDecimal factor = new_unit * (1L << blip_sample_bits) / kernel_unit;
+		double factor = new_unit * (1L << blip_sample_bits) / kernel_unit;
 
 		if ( factor > 0.0 )
 		{

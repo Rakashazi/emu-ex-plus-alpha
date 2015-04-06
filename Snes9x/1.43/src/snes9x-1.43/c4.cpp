@@ -100,60 +100,60 @@ short C4WFY2Val;
 short C4WFDist;
 short C4WFScale;
 
-static SysDDec tanval;
-static SysDDec c4x, c4y, c4z;
-static SysDDec c4x2, c4y2, c4z2;
+static double tanval;
+static double c4x, c4y, c4z;
+static double c4x2, c4y2, c4z2;
 
 void C4TransfWireFrame ()
 {
-    c4x = (SysDDec) C4WFXVal;
-    c4y = (SysDDec) C4WFYVal;
-    c4z = (SysDDec) C4WFZVal - 0x95;
+    c4x = (double) C4WFXVal;
+    c4y = (double) C4WFYVal;
+    c4z = (double) C4WFZVal - 0x95;
     
     // Rotate X
-    tanval = -(SysDDec) C4WFX2Val * 3.14159265 * 2 / 128;
+    tanval = -(double) C4WFX2Val * 3.14159265 * 2 / 128;
     c4y2 = c4y * cos (tanval) - c4z * sin (tanval);
     c4z2 = c4y * sin (tanval) + c4z * cos (tanval);
     
     // Rotate Y
-    tanval = -(SysDDec)C4WFY2Val*3.14159265*2/128;
+    tanval = -(double)C4WFY2Val*3.14159265*2/128;
     c4x2 = c4x * cos (tanval) + c4z2 * sin (tanval);
     c4z = c4x * - sin (tanval) + c4z2 * cos (tanval);
     
     // Rotate Z
-    tanval = -(SysDDec) C4WFDist * 3.14159265*2 / 128;
+    tanval = -(double) C4WFDist * 3.14159265*2 / 128;
     c4x = c4x2 * cos (tanval) - c4y2 * sin (tanval);
     c4y = c4x2 * sin (tanval) + c4y2 * cos (tanval);
     
     // Scale
-    C4WFXVal = (short) (c4x*(SysDDec)C4WFScale/(0x90*(c4z+0x95))*0x95);
-    C4WFYVal = (short) (c4y*(SysDDec)C4WFScale/(0x90*(c4z+0x95))*0x95);
+    C4WFXVal = (short) (c4x*(double)C4WFScale/(0x90*(c4z+0x95))*0x95);
+    C4WFYVal = (short) (c4y*(double)C4WFScale/(0x90*(c4z+0x95))*0x95);
 }
 
 void C4TransfWireFrame2 ()
 {
-    c4x = (SysDDec)C4WFXVal;
-    c4y = (SysDDec)C4WFYVal;
-    c4z = (SysDDec)C4WFZVal;
+    c4x = (double)C4WFXVal;
+    c4y = (double)C4WFYVal;
+    c4z = (double)C4WFZVal;
     
     // Rotate X
-    tanval = -(SysDDec) C4WFX2Val * 3.14159265 * 2 / 128;
+    tanval = -(double) C4WFX2Val * 3.14159265 * 2 / 128;
     c4y2 = c4y * cos (tanval) - c4z * sin (tanval);
     c4z2 = c4y * sin (tanval) + c4z * cos (tanval);
     
     // Rotate Y
-    tanval = -(SysDDec) C4WFY2Val * 3.14159265 * 2 / 128;
+    tanval = -(double) C4WFY2Val * 3.14159265 * 2 / 128;
     c4x2 = c4x * cos (tanval) + c4z2 * sin (tanval);
     c4z = c4x * -sin (tanval) + c4z2 * cos (tanval);
     
     // Rotate Z
-    tanval = -(SysDDec)C4WFDist * 3.14159265 * 2 / 128;
+    tanval = -(double)C4WFDist * 3.14159265 * 2 / 128;
     c4x = c4x2 * cos (tanval) - c4y2 * sin (tanval);
     c4y = c4x2 * sin (tanval) + c4y2 * cos (tanval);
     
     // Scale
-    C4WFXVal =(short)(c4x * (SysDDec)C4WFScale / 0x100);
-    C4WFYVal =(short)(c4y * (SysDDec)C4WFScale / 0x100);
+    C4WFXVal =(short)(c4x * (double)C4WFScale / 0x100);
+    C4WFYVal =(short)(c4y * (double)C4WFScale / 0x100);
 }
 
 void C4CalcWireFrame ()
@@ -163,7 +163,7 @@ void C4CalcWireFrame ()
     if (abs (C4WFXVal) > abs (C4WFYVal))
     {
         C4WFDist = abs (C4WFXVal) + 1;
-        C4WFYVal = (short) (256 * (SysDDec) C4WFYVal / abs (C4WFXVal));
+        C4WFYVal = (short) (256 * (double) C4WFYVal / abs (C4WFXVal));
         if (C4WFXVal < 0)
             C4WFXVal = -256;
         else 
@@ -174,7 +174,7 @@ void C4CalcWireFrame ()
         if (C4WFYVal != 0) 
         {
             C4WFDist = abs(C4WFYVal)+1;
-            C4WFXVal = (short) (256 * (SysDDec)C4WFXVal / abs (C4WFYVal));
+            C4WFXVal = (short) (256 * (double)C4WFXVal / abs (C4WFYVal));
             if (C4WFYVal < 0)
                 C4WFYVal = -256;
             else 
@@ -202,7 +202,7 @@ void C4Op1F ()
     }
     else 
     {
-        tanval = (SysDDec) C41FYVal / C41FXVal;
+        tanval = (double) C41FYVal / C41FXVal;
         C41FAngleRes = (short) (atan (tanval) / (3.141592675 * 2) * 512);
         C41FAngleRes = C41FAngleRes;
         if (C41FXVal< 0) 
@@ -213,13 +213,13 @@ void C4Op1F ()
 
 void C4Op15()
 {
-    tanval = sqrt ((SysDDec) C41FYVal * C41FYVal + (SysDDec) C41FXVal * C41FXVal);
+    tanval = sqrt ((double) C41FYVal * C41FYVal + (double) C41FXVal * C41FXVal);
     C41FDist = (short) tanval;
 }
 
 void C4Op0D()
 {
-    tanval = sqrt ((SysDDec) C41FYVal * C41FYVal + (SysDDec) C41FXVal * C41FXVal);
+    tanval = sqrt ((double) C41FYVal * C41FYVal + (double) C41FXVal * C41FXVal);
     tanval = C41FDistVal / tanval;
     C41FYVal = (short) (C41FYVal * tanval * 0.99);
     C41FXVal = (short) (C41FXVal * tanval * 0.98);

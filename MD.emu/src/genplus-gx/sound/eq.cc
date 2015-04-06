@@ -40,7 +40,7 @@
 //| Constants |
 // -----------
 
-static SysDDec vsa = (1.0 / 4294967295.0); // Very small amount (Denormal Fix)
+static double vsa = (1.0 / 4294967295.0); // Very small amount (Denormal Fix)
 
 
 // ---------------
@@ -68,8 +68,8 @@ void init_3band_state(EQSTATE * es, int lowfreq, int highfreq, int mixfreq)
 
     // Calculate filter cutoff frequencies
 
-    es->lf = 2 * sin(M_PI * ((SysDDec) lowfreq / (SysDDec) mixfreq));
-    es->hf = 2 * sin(M_PI * ((SysDDec) highfreq / (SysDDec) mixfreq));
+    es->lf = 2 * sin(M_PI * ((double) lowfreq / (double) mixfreq));
+    es->hf = 2 * sin(M_PI * ((double) highfreq / (double) mixfreq));
 }
 
 
@@ -83,15 +83,15 @@ void init_3band_state(EQSTATE * es, int lowfreq, int highfreq, int mixfreq)
 // (especially the bass) so may require clipping before output, but you 
 // knew that anyway :)
 
-SysDDec do_3band(EQSTATE * es, int sample)
+double do_3band(EQSTATE * es, int sample)
 {
     // Locals
 
-	SysDDec l, m, h;   // Low / Mid / High - Sample Values
+	double l, m, h;   // Low / Mid / High - Sample Values
 
     // Filter #1 (lowpass)
 
-    es->f1p0 += (es->lf * ((SysDDec) sample - es->f1p0)) + vsa;
+    es->f1p0 += (es->lf * ((double) sample - es->f1p0)) + vsa;
     es->f1p1 += (es->lf * (es->f1p0 - es->f1p1));
     es->f1p2 += (es->lf * (es->f1p1 - es->f1p2));
     es->f1p3 += (es->lf * (es->f1p2 - es->f1p3));
@@ -100,7 +100,7 @@ SysDDec do_3band(EQSTATE * es, int sample)
 
     // Filter #2 (highpass)
 
-    es->f2p0 += (es->hf * ((SysDDec) sample - es->f2p0)) + vsa;
+    es->f2p0 += (es->hf * ((double) sample - es->f2p0)) + vsa;
     es->f2p1 += (es->hf * (es->f2p0 - es->f2p1));
     es->f2p2 += (es->hf * (es->f2p1 - es->f2p2));
     es->f2p3 += (es->hf * (es->f2p2 - es->f2p3));

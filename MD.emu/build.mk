@@ -9,7 +9,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 gplusPath := genplus-gx
 
 CPPFLAGS += -DSUPPORT_16BPP_RENDER -DLSB_FIRST \
--DSysDDec=float -DSysLDDec=float -DNO_SYSTEM_PICO
+-DNO_SYSTEM_PICO
 # -DNO_SVP -DNO_SYSTEM_PBC
 
 # Genesis Plus includes
