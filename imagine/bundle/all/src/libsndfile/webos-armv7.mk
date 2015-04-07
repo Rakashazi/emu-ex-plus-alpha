@@ -1,1 +1,0 @@
-../../make/webos-armv7.mk
