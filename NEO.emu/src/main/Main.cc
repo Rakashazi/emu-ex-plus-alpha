@@ -814,14 +814,10 @@ void EmuSystem::clearInputBuffers()
 	memory.intern_p2 = 0xFF;
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	conf.sample_rate = optionSoundRate;
-	#ifdef CONFIG_ENV_WEBOS
-	if(optionFrameSkip != optionFrameSkipAuto)
-		conf.sample_rate *= 42660./44100.; // better sync with Pre's refresh rate
-	#endif
+	conf.sample_rate = std::round(optionSoundRate * ((60./1.001) * frameTime));
 	if(gameIsRunning())
 	{
 		logMsg("setting YM2610 rate to %d", conf.sample_rate);

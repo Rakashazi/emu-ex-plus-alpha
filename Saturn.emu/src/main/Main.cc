@@ -282,10 +282,6 @@ void EmuSystem::initOptions()
 		optionSound.initDefault(0);
 	optionSoundRate.initDefault(44100);
 	optionSoundRate.isConst = 1;
-
-	#ifndef CONFIG_BASE_ANDROID
-	optionFrameSkip.initDefault(optionFrameSkipAuto); // auto-frameskip default due to highly variable CPU usage
-	#endif
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(3);
 }
@@ -573,8 +569,9 @@ void EmuSystem::clearInputBuffers()
 	pad[1] = PerPadAdd(&PORTDATA2);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
+	// TODO: use frameTime
 	pcmFormat.rate = optionSoundRate;
 }
 

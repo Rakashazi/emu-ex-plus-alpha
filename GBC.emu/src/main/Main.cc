@@ -16,6 +16,7 @@
 #define LOGTAG "main"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <gambatte.h>
 #include <resample/resampler.h>
@@ -422,11 +423,11 @@ void EmuSystem::clearInputBuffers()
 	gbcInput.bits = 0;
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	long outputRate = optionSoundRate;
-	long inputRate = std::round(2097152. * 1.004605);
+	long outputRate = std::round(optionSoundRate * (59.73 * frameTime));
+	long inputRate = 2097152;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
@@ -468,7 +469,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 			samples = 35112;
 		}
 		// video rendered in runFor()
-		short destBuff[(Audio::maxRate()/59)*2];
+		short destBuff[(Audio::maxRate()/54)*2];
 		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
 		assert(Audio::pcmFormat.framesToBytes(destFrames) <= sizeof(destBuff));
 		EmuSystem::writeSound(destBuff, destFrames);

@@ -44,34 +44,46 @@ enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE
 
 class EmuSystem
 {
-public:
-	enum class State { OFF, STARTING, PAUSED, ACTIVE };
-	static State state;
-	static bool isActive() { return state == State::ACTIVE; }
-	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
-	static bool isPaused() { return state == State::PAUSED; }
 private:
-	static FsSys::PathString gamePath_, fullGamePath_;
 	using GameNameArr = char[256];
+	static FsSys::PathString gamePath_, fullGamePath_;
 	static GameNameArr gameName_, fullGameName_;
 	static FsSys::PathString defaultSavePath_;
 	static FsSys::PathString gameSavePath_;
+
 public:
+	enum class State { OFF, STARTING, PAUSED, ACTIVE };
+	static State state;
 	static FsSys::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
-	static IG::Time startTime;
 	static Base::FrameTimeBase startFrameTime;
+	static Base::FrameTimeBase timePerVideoFrame;
 	static uint emuFrameNow;
 	static bool runFrameOnDraw;
 	static Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
-	static const uint optionFrameSkipAuto;
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
 	static const AspectRatioInfo aspectRatioInfo[];
 	static const uint aspectRatioInfos;
+	static const char *configFilename;
+	static const char *inputFaceBtnName;
+	static const char *inputCenterBtnName;
+	static const uint inputCenterBtns;
+	static const uint inputFaceBtns;
+	static const bool inputHasTriggerBtns;
+	static const bool inputHasRevBtnLayout;
+	static const bool inputHasKeyboard;
+	static const bool hasBundledGames;
+	static const bool hasPALVideoSystem;
+	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
+	static double frameTimeNative;
+	static double frameTimePAL;
 
+	static bool isActive() { return state == State::ACTIVE; }
+	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
+	static bool isPaused() { return state == State::PAUSED; }
 	static void cancelAutoSaveStateTimer();
 	static void startAutoSaveStateTimer();
 	static int loadState(int slot = saveStateSlot);
@@ -107,20 +119,16 @@ public:
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
 	[[gnu::hot]] static void runFrame(bool renderGfx, bool processGfx, bool renderAudio);
 	static bool vidSysIsPAL();
+	static double frameTime();
+	static double frameTime(VideoSystem system);
+	static double defaultFrameTime(VideoSystem system);
+	static bool frameTimeIsValid(VideoSystem system, double time);
+	static bool setFrameTime(VideoSystem system, double time);
 	static uint multiresVideoBaseX();
 	static uint multiresVideoBaseY();
-	static void configAudioRate();
-	static void configAudioPlayback()
-	{
-		auto prevFormat = pcmFormat;
-		configAudioRate();
-		audioFramesPerVideoFrame = pcmFormat.rate / (vidSysIsPAL() ? 50 : 60);
-		if(prevFormat != pcmFormat && Audio::isOpen())
-		{
-			logMsg("PCM format has changed, closing existing playback");
-			Audio::closePcm();
-		}
-	}
+	static void configAudioRate(double frameTime);
+	static void configAudioPlayback();
+	static void configFrameTime();
 	static void clearInputBuffers();
 	static void handleInputAction(uint state, uint emuKey);
 	static uint translateInputAction(uint input, bool &turbo);
@@ -134,39 +142,18 @@ public:
 	static void startSound();
 	static void writeSound(const void *samples, uint framesToWrite);
 	static void commitSound(Audio::BufferContext buffer, uint frames);
-	static int setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime);
+	static uint advanceFramesWithTime(Base::FrameTimeBase time);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);
 	static void setupGameSavePath();
 	static void setupGameName(const char *name);
 	static void clearGamePaths();
 	static FsSys::PathString baseDefaultGameSavePath();
-	static const char *configFilename;
-	static const char *inputFaceBtnName;
-	static const char *inputCenterBtnName;
-	static const uint inputCenterBtns;
-	static const uint inputFaceBtns;
-	static const bool inputHasTriggerBtns;
-	static const bool inputHasRevBtnLayout;
-	static const bool inputHasKeyboard;
-	static const bool hasBundledGames;
-
-	static IG::Time benchmark()
-	{
-		auto now = IG::Time::now();
-		iterateTimes(180, i)
-		{
-			runFrame(0, 1, 0);
-		}
-		auto after = IG::Time::now();
-		return after-now;
-	}
-
+	static IG::Time benchmark();
 	static bool gameIsRunning()
 	{
 		return !string_equal(gameName_, "");
 	}
-
 	static void resetFrameTime();
 	static void pause();
 	static void start();

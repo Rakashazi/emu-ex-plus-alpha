@@ -59,6 +59,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const bool EmuSystem::hasPALVideoSystem = true;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
@@ -368,14 +369,10 @@ void EmuSystem::clearInputBuffers()
 	ev.set(Event::ConsoleBlackWhite, !vcsColor);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	tiaSoundRate = optionSoundRate;
-	#if defined(CONFIG_ENV_WEBOS)
-	if(optionFrameSkip != optionFrameSkipAuto)
-		tiaSoundRate = (float)optionSoundRate * (42660./44100.); // better sync with Pre's refresh rate
-	#endif
+	tiaSoundRate = std::round(optionSoundRate * (osystem.settings().value("framerate").toFloat() * frameTime));
 	if(gameIsRunning())
 	{
 		vcsSound->tiaSound().outputFrequency(tiaSoundRate);
@@ -545,7 +542,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		vcsSound->processAudio(nullptr, 0);
 	}
 	#else
-	auto frames = renderAudio ? audioFramesPerVideoFrame : 0;
+	auto frames = audioFramesPerVideoFrame;
 	Int16 buff[frames*soundChannels];
 	vcsSound->processAudio(buff, frames);
 	if(renderAudio)

@@ -18,6 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FileUtils.hh>
 #include <imagine/audio/Audio.hh>
+#include <imagine/util/assume.h>
 #include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
@@ -29,16 +30,19 @@ FsSys::PathString EmuSystem::gameSavePath_{};
 char EmuSystem::gameName_[256]{};
 char EmuSystem::fullGameName_[256]{};
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
+Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
 uint EmuSystem::emuFrameNow = 0;
 bool EmuSystem::runFrameOnDraw = false;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
 uint EmuSystem::audioFramesPerVideoFrame = 0;
-const uint EmuSystem::optionFrameSkipAuto = 32;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::Timer EmuSystem::autoSaveStateTimer;
 [[gnu::weak]] const bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] const bool EmuSystem::hasBundledGames = false;
+[[gnu::weak]] const bool EmuSystem::hasPALVideoSystem = false;
+double EmuSystem::frameTimeNative = 1./60.;
+double EmuSystem::frameTimePAL = 1./50.;
 
 void saveAutoStateFromTimer();
 
@@ -69,7 +73,7 @@ void EmuSystem::startSound()
 		if(!Audio::isOpen())
 		{
 			#ifdef CONFIG_AUDIO_LATENCY_HINT
-			uint wantedLatency = std::round((float)optionSoundBuffers * (vidSysIsPAL() ? 20000.f : 1000000.f/60.f));
+			uint wantedLatency = std::round(optionSoundBuffers * (1000000. * frameTime()));
 			logMsg("requesting audio latency %dus", wantedLatency);
 			Audio::setHintOutputLatency(wantedLatency);
 			#endif
@@ -133,50 +137,23 @@ bool EmuSystem::shouldOverwriteExistingState()
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
 }
 
-int EmuSystem::setupFrameSkip(uint optionVal, Base::FrameTimeBase frameTime)
+uint EmuSystem::advanceFramesWithTime(Base::FrameTimeBase time)
 {
-	static const uint maxFrameSkip = 6;
-	static constexpr auto ntscFrameTime = Base::frameTimeBaseFromSecs(1./60.),
-		palFrameTime = Base::frameTimeBaseFromSecs(1./50.);
-	if(!EmuSystem::vidSysIsPAL() && optionVal != optionFrameSkipAuto)
-	{
-		return optionVal; // constant frame-skip for NTSC source
-	}
-
-	uint emuFrame;
 	if(unlikely(!startFrameTime))
 	{
-		//logMsg("first frame time %f", (double)frameTime);
-		startFrameTime = frameTime;
+		// first frame
+		startFrameTime = time;
 		emuFrameNow = 0;
-		return 0;
+		return 1;
 	}
-	else
-	{
-		auto timeTotal = frameTime - startFrameTime;
-		auto frame = IG::divRoundClosest(timeTotal, vidSysIsPAL() ? palFrameTime : ntscFrameTime);
-		emuFrame = frame;
-		//logMsg("last frame time %f, on frame %d, was %d, total time %f", (double)frameTime, emuFrame, emuFrameNow, (double)timeTotal);
-	}
-	if(emuFrame < emuFrameNow)
-	{
-		bug_exit("current frame %d is in the past (last one was %d)", emuFrame, emuFrameNow);
-	}
-	if(emuFrame == emuFrameNow)
-	{
-		//logMsg("repeating frame %d", emuFrame);
-		return -1;
-	}
-	else
-	{
-		uint skip = std::min((emuFrame - emuFrameNow) - 1, maxFrameSkip);
-		emuFrameNow = emuFrame;
-		if(skip)
-		{
-			//logMsg("skipping %u frames", skip);
-		}
-		return skip;
-	}
+	assumeExpr(timePerVideoFrame > 0);
+	assumeExpr(startFrameTime > 0);
+	assumeExpr(time > startFrameTime);
+	auto timeTotal = time - startFrameTime;
+	auto frameNow = IG::divRoundClosest(timeTotal, timePerVideoFrame);
+	auto elapsedEmuFrames = frameNow - emuFrameNow;
+	emuFrameNow = frameNow;
+	return elapsedEmuFrames;
 }
 
 void EmuSystem::setupGamePaths(const char *filePath)
@@ -386,4 +363,82 @@ void EmuSystem::start()
 	resetFrameTime();
 	startSound();
 	startAutoSaveStateTimer();
+}
+
+IG::Time EmuSystem::benchmark()
+{
+	auto now = IG::Time::now();
+	iterateTimes(180, i)
+	{
+		runFrame(0, 1, 0);
+	}
+	auto after = IG::Time::now();
+	return after-now;
+}
+
+void EmuSystem::configFrameTime()
+{
+	configAudioRate(frameTime());
+	audioFramesPerVideoFrame = pcmFormat.rate * frameTime();
+	timePerVideoFrame = Base::frameTimeBaseFromSecs(frameTime());
+	resetFrameTime();
+}
+
+void EmuSystem::configAudioPlayback()
+{
+	auto prevFormat = pcmFormat;
+	configFrameTime();
+	if(prevFormat != pcmFormat && Audio::isOpen())
+	{
+		logMsg("PCM format has changed, closing existing playback");
+		Audio::closePcm();
+	}
+}
+
+double EmuSystem::frameTime()
+{
+	return frameTime(vidSysIsPAL() ? VIDSYS_PAL : VIDSYS_NATIVE_NTSC);
+}
+
+double EmuSystem::frameTime(VideoSystem system)
+{
+	switch(system)
+	{
+		case VIDSYS_NATIVE_NTSC: return frameTimeNative;
+		case VIDSYS_PAL: return frameTimePAL;
+	}
+	return 0;
+}
+
+double EmuSystem::defaultFrameTime(VideoSystem system)
+{
+	switch(system)
+	{
+		case VIDSYS_NATIVE_NTSC: return 1./60.;
+		case VIDSYS_PAL: return 1./50.;
+	}
+	return 0;
+}
+
+bool EmuSystem::frameTimeIsValid(VideoSystem system, double time)
+{
+	auto rate = 1. / time; // convert to frames per second
+	switch(system)
+	{
+		case VIDSYS_NATIVE_NTSC: return rate >= 55 && rate <= 65;
+		case VIDSYS_PAL: return rate >= 45 && rate <= 65;
+	}
+	return false;
+}
+
+bool EmuSystem::setFrameTime(VideoSystem system, double time)
+{
+	if(!frameTimeIsValid(system, time))
+		return false;
+	switch(system)
+	{
+		bcase VIDSYS_NATIVE_NTSC: frameTimeNative = time;
+		bcase VIDSYS_PAL: frameTimePAL = time;
+	}
+	return true;
 }

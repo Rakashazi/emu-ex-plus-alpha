@@ -667,7 +667,7 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 			glcBindTexture(GL_TEXTURE_2D, texName_);
 			auto internalFormat = makeGLSizedInternalFormat(desc.format());
 			logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-				texName_, desc.w(), desc.w(), levels, glImageFormatToString(internalFormat));
+				texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
 			handleGLErrors();
 			glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexStorage2D", err); }))

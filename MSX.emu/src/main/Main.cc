@@ -1084,14 +1084,10 @@ void EmuSystem::clearInputBuffers()
 	mem_zero(eventMap);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = 44100; // TODO: not all sound chips handle non-44100Hz sample rate
-	uint rate = std::round(pcmFormat.rate * .998715);
-	#if defined(CONFIG_ENV_WEBOS)
-	if(optionFrameSkip != optionFrameSkipAuto)
-		rate *= 42660./44100.; // better sync with Pre's refresh rate
-	#endif
+	uint rate = std::round(pcmFormat.rate * (59.924 * frameTime));
 	mixerSetSampleRate(mixer, rate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }

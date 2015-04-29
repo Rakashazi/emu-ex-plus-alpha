@@ -32,12 +32,13 @@ public:
 	float densityDPI{};
 	float refreshRate_{};
 	int width_{}, height_{};
-	FrameTimeBase currFrameTime{}; // only used if Choreographer class isn't present
+	FrameTimeBase currFrameTimestamp{}; // only used if Choreographer class isn't present
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	int id{};
 	#else
 	static constexpr int id = 0;
 	#endif
+	bool reliableRefreshRate = true;
 
 	constexpr AndroidScreen() {}
 

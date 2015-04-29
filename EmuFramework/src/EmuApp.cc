@@ -35,9 +35,6 @@ ViewStack viewStack;
 MsgPopup popup;
 BasicViewController modalViewController;
 WorkDirStack<1> workDirStack;
-static bool trackFPS = 0;
-static IG::Time prevFrameTime;
-static uint frameCount = 0;
 static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices;
 #ifdef CONFIG_BLUETOOTH
@@ -175,7 +172,8 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 	}
 }
 
-static Base::Screen::OnFrameDelegate frameUpdate =
+static Base::Screen::OnFrameDelegate onFrameUpdate
+{
 	[](Base::Screen::FrameParams params)
 	{
 		commonUpdateInput();
@@ -183,6 +181,7 @@ static Base::Screen::OnFrameDelegate frameUpdate =
 		if(unlikely(fastForwardActive))
 		{
 			EmuSystem::runFrameOnDraw = true;
+			postDrawToEmuWindows();
 			iterateTimes((uint)optionFastForwardSpeed, i)
 			{
 				EmuSystem::runFrame(false, false, false);
@@ -190,37 +189,54 @@ static Base::Screen::OnFrameDelegate frameUpdate =
 		}
 		else
 		{
-			int framesToSkip = EmuSystem::setupFrameSkip(optionFrameSkip, params.frameTime());
-			if(framesToSkip >= 0)
+			uint frames = EmuSystem::advanceFramesWithTime(params.timestamp());
+			//logDMsg("%d frames elapsed (%fs)", frames, Base::frameTimeBaseToSecsDec(params.frameTimeDiff()));
+			if(frames)
 			{
 				EmuSystem::runFrameOnDraw = true;
-				bool renderAudio = optionSound;
-				iterateTimes(framesToSkip, i)
+				postDrawToEmuWindows();
+				if(frames > 1 && optionSkipLateFrames)
 				{
-					EmuSystem::runFrame(false, false, renderAudio);
+					const uint maxFrameSkip = 6;
+					uint framesToSkip = frames - 1;
+					framesToSkip = std::min(framesToSkip, maxFrameSkip);
+					bool renderAudio = optionSound;
+					iterateTimes(framesToSkip, i)
+					{
+						EmuSystem::runFrame(false, false, renderAudio);
+					}
 				}
 			}
 		}
-		postDrawToEmuWindows();
-		params.addOnFrameToScreen();
-	};
+		params.readdOnFrame();
+	}
+};
+
+static void applyFrameRates()
+{
+	EmuSystem::setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC,
+		optionFrameRate.val ? optionFrameRate.val : emuWin->win.screen()->frameTime());
+	EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL,
+		optionFrameRatePAL.val ? optionFrameRatePAL.val : emuWin->win.screen()->frameTime());
+	EmuSystem::configFrameTime();
+}
 
 static void startEmulation()
 {
 	EmuSystem::start();
-	emuWin->win.screen()->addOnFrame(frameUpdate);
+	emuWin->win.screen()->addOnFrameOnce(onFrameUpdate);
 }
 
 static void pauseEmulation()
 {
 	EmuSystem::pause();
-	emuWin->win.screen()->removeOnFrame(frameUpdate);
+	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
 }
 
 void closeGame(bool allowAutosaveState)
 {
 	EmuSystem::closeGame();
-	emuWin->win.screen()->removeOnFrame(frameUpdate);
+	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
 }
 
 static void drawEmuFrame()
@@ -339,6 +355,12 @@ void setEmuViewOnExtraWindow(bool on)
 				std::swap(emuView.layer, emuView2.layer);
 				emuView.place();
 				mainWin.win.postDraw();
+				if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
+				{
+					extraWin.win.screen()->removeOnFrame(onFrameUpdate);
+					mainWin.win.screen()->addOnFrame(onFrameUpdate);
+					applyFrameRates();
+				}
 			});
 
 		Gfx::initWindow(extraWin.win, winConf);
@@ -347,9 +369,9 @@ void setEmuViewOnExtraWindow(bool on)
 		emuWin = &extraWin;
 		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
 		{
-			mainWin.win.screen()->removeOnFrame(frameUpdate);
-			extraWin.win.screen()->addOnFrame(frameUpdate);
-			EmuSystem::resetFrameTime();
+			mainWin.win.screen()->removeOnFrame(onFrameUpdate);
+			extraWin.win.screen()->addOnFrame(onFrameUpdate);
+			applyFrameRates();
 		}
 		std::swap(emuView.layer, emuView2.layer);
 		updateProjection(extraWin, makeViewport(extraWin.win));
@@ -360,12 +382,6 @@ void setEmuViewOnExtraWindow(bool on)
 	}
 	else if(!on && extraWin.win)
 	{
-		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
-		{
-			extraWin.win.screen()->removeOnFrame(frameUpdate);
-			mainWin.win.screen()->addOnFrame(frameUpdate);
-			EmuSystem::resetFrameTime();
-		}
 		extraWin.win.dismiss();
 	}
 }
@@ -386,8 +402,9 @@ void startGameFromMenu()
 {
 	Base::setIdleDisplayPowerSave(false);
 	applyOSNavStyle(true);
-	if(!optionFrameSkip.isConst && (uint)optionFrameSkip != EmuSystem::optionFrameSkipAuto)
-		emuWin->win.screen()->setFrameInterval(optionFrameSkip + 1);
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	emuWin->win.screen()->setFrameInterval(optionFrameInterval);
+	#endif
 	logMsg("running game");
 	menuViewIsActive = 0;
 	viewNav.setRightBtnActive(1);
@@ -398,18 +415,13 @@ void startGameFromMenu()
 	popup.clear();
 	Input::setKeyRepeat(false);
 	EmuControls::setupVolKeysInGame();
-	emuWin->win.screen()->setRefreshRate(EmuSystem::vidSysIsPAL() ? 50 : 60);
+	emuWin->win.screen()->setFrameRate(1. / EmuSystem::frameTime());
 	startEmulation();
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
 	emuView.place();
 	emuView2.place();
-	if(trackFPS)
-	{
-		frameCount = 0;
-		prevFrameTime = IG::Time::now();
-	}
 }
 
 void restoreMenuFromGame()
@@ -418,14 +430,15 @@ void restoreMenuFromGame()
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 	pauseEmulation();
-	if(!optionFrameSkip.isConst)
-		mainWin.win.screen()->setFrameInterval(1);
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	mainWin.win.screen()->setFrameInterval(1);
+	#endif
 	Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
 		viewStack.popToRoot();
-	mainWin.win.screen()->setRefreshRate(Base::Screen::REFRESH_RATE_DEFAULT);
+	mainWin.win.screen()->setFrameRate(Base::Screen::DISPLAY_RATE_DEFAULT);
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
@@ -617,8 +630,6 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		Input::initMOGA(false);
 	#endif
 	updateInputDevices();
-	EmuSystem::audioFramesPerVideoFrame = optionSoundRate / (EmuSystem::vidSysIsPAL() ? 50 : 60);
-	EmuSystem::configAudioRate();
 
 	emuView.inputView = &emuInputView;
 	emuView.layer = &emuVideoLayer;
@@ -707,6 +718,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	{
 		setEmuViewOnExtraWindow(true);
 	}
+
+	applyFrameRates();
 
 	if(launchGame)
 	{

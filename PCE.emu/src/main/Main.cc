@@ -54,7 +54,6 @@ static int pceHuFsFilter(const char *name, int type)
 	return type == Fs::TYPE_DIR || isHuCardExtension(name);
 }
 
-static uint audioFramesPerUpdate = 0;
 Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
 FsSys::PathString sysCardPath{};
 static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, "");
@@ -172,17 +171,6 @@ static MDFN_Surface mSurface{pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFm
 static uint16 inputBuff[5] {0}; // 5 gamepad buffers
 static bool usingMultires = false;
 
-static void initVideoFormat()
-{
-	/*mSurface.Init(pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFmt);
-	#if !defined(USE_PIX_RGB565) && !defined(CONFIG_BASE_PS3)
-	if(gfx_preferBGRA)
-	{
-		pixFmt = &PixelFormatBGRA8888;
-		mSurface.format = mPixFmtBGRA8888;
-	}
-	#endif*/
-}
 void EmuSystem::saveAutoState()
 {
 	if(gameIsRunning() && optionAutoSaveState)
@@ -354,20 +342,14 @@ void EmuSystem::clearInputBuffers()
 	mem_zero(inputBuff);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
 	EmulateSpecStruct espec;
-	espec.SoundRate = std::round((double)optionSoundRate * (vce.lc263 ? 0.99709 : 1.00086));
-	#ifdef CONFIG_ENV_WEBOS
-	if(optionFrameSkip != optionFrameSkipAuto)
-		espec.SoundRate *= 42660./44100.; // better sync with Pre's refresh rate
-	#elif defined(CONFIG_BASE_PS3)
-	espec.SoundRate *= 1.0011;
-	#endif
-	logMsg("emu sound rate %f, 262 lines %d, fskip %d", (double)espec.SoundRate, !vce.lc263, (int)optionFrameSkip);
+	double systemFrameRate = vce.lc263 ? 59.826 : 60.0545;
+	espec.SoundRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
+	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, vce.lc263);
 	PCE_Fast::applySoundFormat(&espec);
-	audioFramesPerUpdate = optionSoundRate/60.;
 }
 
 static bool updateEmuPixmap(uint width, uint height, char *pixBuff)
@@ -571,7 +553,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	uint maxFrames = Audio::maxRate()/59;
+	uint maxFrames = Audio::maxRate()/54;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec;
 	if(renderAudio)
@@ -636,7 +618,6 @@ namespace Base
 
 CallResult onInit(int argc, char** argv)
 {
-	initVideoFormat();
 	emuVideo.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
 	emuSys->name = (uint8*)EmuSystem::gameName;
 

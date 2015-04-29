@@ -95,7 +95,7 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 			mainWindow().setNeedsDraw(true);
 			if(!projAngleM.isComplete())
 			{
-				params.addOnFrameToScreen();
+				params.readdOnFrame();
 			}
 		});
 }

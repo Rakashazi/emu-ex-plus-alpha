@@ -62,7 +62,7 @@ void OnScreenInputPlaceView::init()
 			//logMsg("updating fade");
 			if(textFade.update(1))
 			{
-				params.addOnFrameToScreen();
+				params.readdOnFrame();
 			}
 		};
 	animationStartTimer.callbackAfterSec(

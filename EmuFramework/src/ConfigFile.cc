@@ -185,7 +185,12 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_VCONTROLLER_LAYOUT_POS: optionVControllerLayoutPos.readFromIO(io, size);
 			bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
-			bcase CFGKEY_FRAME_SKIP: optionFrameSkip.readFromIO(io, size);
+			#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+			bcase CFGKEY_FRAME_INTERVAL: optionFrameInterval.readFromIO(io, size);
+			#endif
+			bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
+			bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
+			bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
 			#if defined(CONFIG_BASE_ANDROID)
 			bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
 			#endif
@@ -460,7 +465,12 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	&optionMOGAInputSystem,
 	#endif
-	&optionFrameSkip,
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	&optionFrameInterval,
+	#endif
+	&optionSkipLateFrames,
+	&optionFrameRate,
+	&optionFrameRatePAL,
 	&optionVibrateOnPush,
 	&optionRecentGames,
 	&optionNotificationIcon,

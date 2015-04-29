@@ -95,7 +95,7 @@ void TestFramework::place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameTime)
+void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase timestamp)
 {
 	// CPU stats
 	bool updatedCPUStats = false;
@@ -122,12 +122,12 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameT
 	bool updatedFrameStats = false;
 	if(!frames)
 	{
-		startTime = frameTime;
+		startTime = timestamp;
 		//logMsg("start time: %llu", (unsigned long long)startTime);
 	}
 	else
 	{
-		auto elapsedScreenFrames = screen.elapsedFrames(frameTime);
+		auto elapsedScreenFrames = screen.elapsedFrames(timestamp);
 		//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 		if(elapsedScreenFrames > 1)
 		{
@@ -136,8 +136,9 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameT
 			lostFramePresentTime = (lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs();
 
 			droppedFrames++;
-			string_printf(skippedFrameStr, "Lost %u frame(s) after %u continuous\nat time %fs",
-				elapsedScreenFrames - 1, continuousFrames, Base::frameTimeBaseToSecsDec(frameTime));
+			string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
+				elapsedScreenFrames - 1, Base::frameTimeBaseToSecsDec(timestamp - screen.lastFrameTimestamp()),
+				continuousFrames, Base::frameTimeBaseToSecsDec(timestamp));
 			updatedFrameStats = true;
 			continuousFrames = 0;
 		}
@@ -160,7 +161,7 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameT
 	}
 
 	// run frame
-	frameUpdateTest(screen, frameTime);
+	frameUpdateTest(screen, timestamp);
 	frames++;
 	continuousFrames++;
 }

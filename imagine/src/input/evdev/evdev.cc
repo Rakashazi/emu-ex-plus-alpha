@@ -486,6 +486,7 @@ void initEvdev()
 			continue;
 		processDevNode(path.data(), id, false);
 	}
+	f.closeDir();
 }
 
 Time Time::makeWithNSecs(uint64_t nsecs)

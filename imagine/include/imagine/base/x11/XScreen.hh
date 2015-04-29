@@ -32,7 +32,8 @@ class XScreen : public NotEquals<XScreen>
 public:
 	::Screen *xScreen{};
 	float xMM = 0, yMM = 0;
-	XRRScreenConfiguration *xrrConf{};
+	double frameTime_ = 0;
+	bool reliableFrameTime = true;
 
 	constexpr XScreen() {}
 

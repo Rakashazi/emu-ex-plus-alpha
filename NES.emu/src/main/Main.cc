@@ -109,6 +109,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const bool EmuSystem::hasPALVideoSystem = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -510,15 +511,11 @@ void EmuSystem::clearInputBuffers()
 	mem_zero(padData);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	bool usingTimer = (uint)optionFrameSkip == optionFrameSkipAuto || PAL;
-	float rate = std::round((float)optionSoundRate * (PAL ? 1. : 601./600.));
-	#if defined(CONFIG_ENV_WEBOS)
-	if(optionFrameSkip != optionFrameSkipAuto)
-		rate *= 42660./44100.; // better sync with Pre's refresh rate
-	#endif
+	double systemFrameRate = PAL ? 50. : 60.;
+	double rate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	FCEUI_Sound(rate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }

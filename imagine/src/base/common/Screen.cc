@@ -16,6 +16,7 @@
 #define LOGTAG "Screen"
 #include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/assume.h>
 #include "windowPrivate.hh"
 
 namespace Base
@@ -73,7 +74,7 @@ bool Screen::containsOnFrame(OnFrameDelegate del)
 	return contains(onFrameDelegate, del);
 }
 
-void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
+void Screen::runOnFrameDelegates(FrameTimeBase timestamp)
 {
 	if(onFrameDelegate.empty())
 		return;
@@ -82,7 +83,7 @@ void Screen::runOnFrameDelegates(FrameTimeBase frameTime)
 	onFrameDelegate.clear();
 	for(auto &delegate : thisFrameDelegate)
 	{
-		delegate({*this, frameTime, delegate});
+		delegate({*this, timestamp, delegate});
 	}
 }
 
@@ -101,13 +102,13 @@ bool Screen::isPosted()
 	return framePosted;
 }
 
-void Screen::frameUpdate(FrameTimeBase frameTime)
+void Screen::frameUpdate(FrameTimeBase timestamp)
 {
-	assert(frameTime);
+	assert(timestamp);
 	assert(isActive);
 	framePosted = false;
 	inFrameHandler = true;
-	runOnFrameDelegates(frameTime);
+	runOnFrameDelegates(timestamp);
 	inFrameHandler = false;
 	iterateTimes(Window::windows(), i)
 	{
@@ -187,36 +188,38 @@ bool Screen::screensArePosted()
 	return false;
 }
 
-uint Screen::elapsedFrames(FrameTimeBase frameTime)
+uint Screen::elapsedFrames(FrameTimeBase timestamp)
 {
-	if(!prevFrameTime || frameTime < prevFrameTime)
+	if(!prevFrameTimestamp)
 		return 0;
+	assumeExpr(timestamp >= prevFrameTimestamp);
 	if(unlikely(!timePerFrame))
 	{
-		timePerFrame = frameTimeBaseFromSecs((double)1./(double)refreshRate());
+		timePerFrame = frameTimeBaseFromSecs(1./frameRate());
 		assert(timePerFrame);
 	}
-	FrameTimeBase diff = frameTime - prevFrameTime;
+	assumeExpr(timePerFrame > 0);
+	FrameTimeBase diff = timestamp - prevFrameTimestamp;
 	uint elapsed = divRoundClosest(diff, timePerFrame);
-	return elapsed;
+	return std::max(elapsed, 1u);
 }
 
-void Screen::startDebugFrameStats(FrameTimeBase frameTime)
+void Screen::startDebugFrameStats(FrameTimeBase timestamp)
 {
 	#ifndef NDEBUG
-	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - frameTime;
-	FrameTimeBase diffFromLastFrame = frameTime - prevFrameTime;
+	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - timestamp;
+	FrameTimeBase diffFromLastFrame = timestamp - prevFrameTimestamp;
 	/*logMsg("frame at %f, %f since then, %f since last frame",
 		frameTimeBaseToSDec(frameTime),
 		frameTimeBaseToSDec(timeSinceCurrentFrame),
 		frameTimeBaseToSDec(diffFromLastFrame));*/
-	auto elapsed = elapsedFrames(frameTime);
+	auto elapsed = elapsedFrames(timestamp);
 	if(elapsed > 1)
 	{
 		if(logDroppedFrames)
 			logDMsg("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
 				elapsed - 1, continuousFrames,
-				frameTimeBaseToSecsDec(frameTime), frameTimeBaseToSecsDec(diffFromLastFrame));
+				frameTimeBaseToSecsDec(timestamp), frameTimeBaseToSecsDec(diffFromLastFrame));
 		continuousFrames = 0;
 	}
 	#endif

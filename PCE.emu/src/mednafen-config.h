@@ -22,7 +22,7 @@
 #define BLIP_BUFFER_FAST 1
 
 /* Blip Buffer resample ratio accuracy. */
-#define BLIP_BUFFER_ACCURACY 20
+#define BLIP_BUFFER_ACCURACY 26
 
 /* Blip Buffer maximum quality. */
 #define BLIP_MAX_QUALITY 32

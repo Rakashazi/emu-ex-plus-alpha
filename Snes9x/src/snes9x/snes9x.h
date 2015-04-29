@@ -393,7 +393,7 @@ struct SSettings
 	static const bool8	SoundSync = 0;
 	static const bool8	SixteenBitSound = 1;
 	uint32	SoundPlaybackRate = 44100;
-	uint32	SoundInputRate = 31990;//32000;
+	static const uint32	SoundInputRate = 32000;
 	bool8	Stereo = 1;
 	static const bool8	ReverseStereo = 0;
 	static const bool8	Mute = 0;

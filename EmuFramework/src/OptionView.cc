@@ -16,6 +16,7 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include <emuframework/TextEntry.hh>
 #include <algorithm>
 
 using namespace IG;
@@ -152,21 +153,18 @@ void OptionView::androidTextureStorageInit()
 }
 #endif
 
-void OptionView::frameSkipInit()
+#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+void OptionView::frameIntervalInit()
 {
 	static const char *str[] =
 	{
-		"Auto", "0",
-		#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-		"1", "2", "3", "4"
-		#endif
+		"Full", "1/2", "1/3", "1/4"
 	};
-	int baseVal = -1;
-	int val = int(optionFrameSkip);
-	if(optionFrameSkip.val == EmuSystem::optionFrameSkipAuto)
-		val = -1;
-	frameSkip.init(str, val, Base::Screen::supportsFrameInterval() ? sizeofArray(str) : 2, baseVal);
+	int baseVal = 1;
+	int val = int(optionFrameInterval);
+	frameInterval.init(str, val, sizeofArray(str), baseVal);
 }
+#endif
 
 void OptionView::audioRateInit()
 {
@@ -503,6 +501,230 @@ public:
 	}
 } pathSelectMenu;
 
+class DetectFrameRateView : public View
+{
+	IG::WindowRect viewFrame;
+
+public:
+	using DetectFrameRateDelegate = DelegateFunc<void (double frameRate)>;
+	DetectFrameRateDelegate onDetectFrameTime;
+	Base::Screen::OnFrameDelegate detectFrameRate;
+	Base::FrameTimeBase totalFrameTime{};
+	Gfx::Text fpsText;
+	double lastAverageFrameTimeSecs = 0;
+	uint totalFrames = 0;
+	uint callbacks = 0;
+	std::array<char, 32> fpsStr{};
+
+	DetectFrameRateView(Base::Window &win): View(win) {}
+	IG::WindowRect &viewRect() override { return viewFrame; }
+
+	double totalFrameTimeSecs() const
+	{
+		return Base::frameTimeBaseToSecsDec(totalFrameTime);
+	}
+
+	double averageFrameTimeSecs() const
+	{
+		return totalFrameTimeSecs() / (double)totalFrames;
+	}
+
+	void init()
+	{
+		View::defaultFace->precacheAlphaNum();
+		View::defaultFace->precache(".");
+		fpsText.init(View::defaultFace);
+		fpsText.setString("Preparing to detect frame rate...");
+		detectFrameRate =
+			[this](Base::Screen::FrameParams params)
+			{
+				const uint callbacksToSkip = 30;
+				callbacks++;
+				if(callbacks >= callbacksToSkip)
+				{
+					detectFrameRate =
+						[this](Base::Screen::FrameParams params)
+						{
+							const uint framesToTime = 120 * 10;
+							totalFrameTime += params.timestampDiff();
+							totalFrames++;
+							if(totalFrames % 120 == 0)
+							{
+								if(!lastAverageFrameTimeSecs)
+									lastAverageFrameTimeSecs = averageFrameTimeSecs();
+								else
+								{
+									double avgFrameTimeSecs = averageFrameTimeSecs();
+									double avgFrameTimeDiff = std::abs(lastAverageFrameTimeSecs - avgFrameTimeSecs);
+									if(avgFrameTimeDiff < 0.00001)
+									{
+										logMsg("finished with diff %.8f, total frame time: %.2f, average %.6f over %u frames",
+											avgFrameTimeDiff, totalFrameTimeSecs(), avgFrameTimeSecs, totalFrames);
+										onDetectFrameTime(avgFrameTimeSecs);
+										popAndShow();
+										return;
+									}
+									else
+										lastAverageFrameTimeSecs = averageFrameTimeSecs();
+								}
+								if(totalFrames % 60 == 0)
+								{
+									string_printf(fpsStr, "%.2ffps", 1. / averageFrameTimeSecs());
+									fpsText.setString(fpsStr.data());
+									fpsText.compile(projP);
+									postDraw();
+								}
+							}
+							if(totalFrames >= framesToTime)
+							{
+								logErr("unstable frame rate over frame time: %.2f, average %.6f over %u frames",
+									totalFrameTimeSecs(), averageFrameTimeSecs(), totalFrames);
+								onDetectFrameTime(0);
+								popAndShow();
+							}
+							else
+							{
+								params.readdOnFrame();
+							}
+						};
+					params.screen().addOnFrame(detectFrameRate);
+				}
+				else
+				{
+					params.readdOnFrame();
+				}
+			};
+		emuWin->win.screen()->addOnFrame(detectFrameRate);
+	}
+
+	void deinit()
+	{
+		emuWin->win.screen()->removeOnFrame(detectFrameRate);
+	}
+
+	void place()
+	{
+		fpsText.compile(projP);
+	}
+
+	void inputEvent(const Input::Event &e)
+	{
+		if(e.pushed() && e.isDefaultCancelButton())
+		{
+			logMsg("aborted detection");
+			popAndShow();
+		}
+	}
+
+	void draw()
+	{
+		using namespace Gfx;
+		setColor(1., 1., 1., 1.);
+		texAlphaProgram.use(projP.makeTranslate());
+		fpsText.draw(projP.alignXToPixel(projP.bounds().xCenter()),
+			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
+	}
+};
+
+static class FrameRateSelectMenu
+{
+public:
+	using FrameRateChangeDelegate = DelegateFunc<void (double frameRate)>;
+	FrameRateChangeDelegate onFrameTimeChange;
+
+	constexpr FrameRateSelectMenu() {}
+
+	void init(bool highlightFirst, EmuSystem::VideoSystem vidSys)
+	{
+		auto &multiChoiceView = *new MultiChoiceView{"Frame Rate", mainWin.win};
+		const bool includeFrameRateDetection = !Config::envIsIOS;
+		multiChoiceView.init(includeFrameRateDetection ? 4 : 3, highlightFirst);
+		multiChoiceView.setItem(0, "Set with screen's reported rate",
+			[this](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				if(!emuWin->win.screen()->frameRateIsReliable())
+				{
+					#ifdef __ANDROID__
+					if(Base::androidSDK() <= 10)
+					{
+						popup.postError("Many Android 2.3 devices mis-report their refresh rate, "
+							"using the detected or default rate may give better results");
+					}
+					else
+					#endif
+					{
+						popup.postError("Reported rate potentially unreliable, "
+							"using the detected or default rate may give better results");
+					}
+				}
+				onFrameTimeChange.callSafe(0);
+				view.popAndShow();
+			});
+		multiChoiceView.setItem(1, "Set default rate",
+			[this, vidSys](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				onFrameTimeChange.callSafe(EmuSystem::defaultFrameTime(vidSys));
+				view.popAndShow();
+			});
+		multiChoiceView.setItem(2, "Set custom rate",
+			[this](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				auto &textInputView = *new CollectTextInputView{view.window()};
+				textInputView.init("Input decimal or fraction", "", getCollectTextCloseAsset());
+				textInputView.onText() =
+					[this](CollectTextInputView &view, const char *str)
+					{
+						if(str)
+						{
+							double numer, denom;
+							int items = sscanf(str, "%lf /%lf", &numer, &denom);
+							if(items == 1 && numer > 0)
+							{
+								onFrameTimeChange.callSafe(1. / numer);
+							}
+							else if(items > 1 && (numer > 0 && denom > 0))
+							{
+								onFrameTimeChange.callSafe(denom / numer);
+							}
+							else
+							{
+								popup.postError("Invalid input");
+								return 1;
+							}
+						}
+						view.dismiss();
+						return 0;
+					};
+				view.popAndShow();
+				modalViewController.pushAndShow(textInputView);
+			});
+		if(includeFrameRateDetection)
+		{
+			multiChoiceView.setItem(3, "Detect screen's rate and set",
+				[this](TextMenuItem &, View &view, const Input::Event &e)
+				{
+					auto &frView = *new DetectFrameRateView{view.window()};
+					frView.init();
+					frView.onDetectFrameTime =
+						[this](double frameTime)
+						{
+							if(frameTime)
+							{
+								onFrameTimeChange.callSafe(frameTime);
+							}
+							else
+							{
+								popup.postError("Detected rate too unstable to use");
+							}
+						};
+					view.popAndShow();
+					modalViewController.pushAndShow(frView);
+				});
+		}
+		viewStack.pushAndShow(multiChoiceView);
+	}
+} frameRateSelectMenu;
+
 void FirmwarePathSelector::onClose(const Input::Event &e)
 {
 	snprintf(optionFirmwarePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
@@ -540,10 +762,34 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 	viewStack.pushAndShow(multiChoiceView);
 }
 
+template <size_t S>
+static void printFrameRateStr(char (&str)[S])
+{
+	string_printf(str, "Frame Rate: %.2fHz",
+		1. / EmuSystem::frameTime(EmuSystem::VIDSYS_NATIVE_NTSC));
+}
+
+template <size_t S>
+static void printFrameRatePALStr(char (&str)[S])
+{
+	string_printf(str, "Frame Rate (PAL): %.2fHz",
+		1. / EmuSystem::frameTime(EmuSystem::VIDSYS_PAL));
+}
+
 void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 {
 	name_ = "Video Options";
-	if(!optionFrameSkip.isConst) { frameSkipInit(); item[items++] = &frameSkip; }
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	frameIntervalInit(); item[items++] = &frameInterval;
+	#endif
+	dropLateFrames.init(optionSkipLateFrames); item[items++] = &dropLateFrames;
+	printFrameRateStr(frameRateStr);
+	frameRate.init(frameRateStr, true); item[items++] = &frameRate;
+	if(!optionFrameRatePAL.isConst)
+	{
+		printFrameRatePALStr(frameRatePALStr);
+		frameRatePAL.init(frameRatePALStr, true); item[items++] = &frameRatePAL;
+	}
 	imgFilter.init(optionImgFilter); item[items++] = &imgFilter;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectInit(); item[items++] = &imgEffect;
@@ -734,22 +980,78 @@ OptionView::OptionView(Base::Window &win):
 		}
 	},
 	#endif
-	frameSkip
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	frameInterval
 	{
-		"Frame Skip",
+		"Target Frame Rate",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			if(val == -1)
-			{
-				optionFrameSkip.val = EmuSystem::optionFrameSkipAuto;
-				logMsg("set auto frame skip");
-			}
-			else
-			{
-				optionFrameSkip.val = val;
-				logMsg("set frame skip: %d", int(optionFrameSkip));
-			}
-			EmuSystem::configAudioPlayback();
+			optionFrameInterval.val = val;
+			logMsg("set frame interval: %d", int(optionFrameInterval));
+		}
+	},
+	#endif
+	dropLateFrames
+	{
+		"Skip Late Frames",
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		{
+			item.toggle(*this);
+			optionSkipLateFrames.val = item.on;
+		}
+	},
+	frameRate
+	{
+		"",
+		[this](TextMenuItem &, View &, const Input::Event &e)
+		{
+			frameRateSelectMenu.init(!e.isPointer(), EmuSystem::VIDSYS_NATIVE_NTSC);
+			frameRateSelectMenu.onFrameTimeChange =
+				[this](double time)
+				{
+					double wantedTime = time;
+					if(!time)
+					{
+						wantedTime = emuWin->win.screen()->frameTime();
+					}
+					if(!EmuSystem::setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC, wantedTime))
+					{
+						popup.printf(4, true, "%.2fHz not in valid range", 1. / wantedTime);
+						return;
+					}
+					EmuSystem::configFrameTime();
+					optionFrameRate = time;
+					printFrameRateStr(frameRateStr);
+					frameRate.compile(projP);
+				};
+			postDraw();
+		}
+	},
+	frameRatePAL
+	{
+		"",
+		[this](TextMenuItem &, View &, const Input::Event &e)
+		{
+			frameRateSelectMenu.init(!e.isPointer(), EmuSystem::VIDSYS_PAL);
+			frameRateSelectMenu.onFrameTimeChange =
+				[this](double time)
+				{
+					double wantedTime = time;
+					if(!time)
+					{
+						wantedTime = emuWin->win.screen()->frameTime();
+					}
+					if(!EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL, wantedTime))
+					{
+						popup.printf(4, true, "%.2fHz not in valid range", 1. / wantedTime);
+						return;
+					}
+					EmuSystem::configFrameTime();
+					optionFrameRatePAL = time;
+					printFrameRatePALStr(frameRatePALStr);
+					frameRatePAL.compile(projP);
+				};
+			postDraw();
 		}
 	},
 	aspectRatio

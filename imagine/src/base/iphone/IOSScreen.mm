@@ -17,6 +17,10 @@
 #include <imagine/base/Base.hh>
 #include "ios.hh"
 
+@interface UIScreen ()
+- (double)_refreshRate;
+@end
+
 @interface DisplayLinkHelper : NSObject
 {
 @private
@@ -49,10 +53,10 @@
 	{
 		//logMsg("stopping screen updates");
 		screen.displayLink().paused = YES;
-		screen.prevFrameTime = 0;
+		screen.prevFrameTimestamp = 0;
 	}
 	else
-		screen.prevFrameTime = timestamp;
+		screen.prevFrameTimestamp = timestamp;
 	if(&screen == screen.screen(0))
 		screen.endDebugFrameStats();
 }
@@ -111,7 +115,7 @@ void Screen::deinit()
 
 void Screen::setFrameInterval(uint interval)
 {
-	logMsg("setting frame interval %d", (int)interval);
+	logMsg("setting display interval %d", (int)interval);
 	assert(interval >= 1);
 	[displayLink() setFrameInterval:interval];
 }
@@ -131,9 +135,31 @@ int Screen::height()
 	return uiScreen().bounds.size.height;
 }
 
-uint Screen::refreshRate()
+double Screen::frameRate()
 {
-	return 60;
+	return 1. / frameTime();;
+}
+
+double Screen::frameTime()
+{
+	if(hasAtLeastIOS5())
+	{
+		// note: the _refreshRate value is actually time per frame in seconds
+		auto frameTime = [uiScreen() _refreshRate];
+		if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
+		{
+			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
+			return 1. / 60.;
+		}
+		return frameTime;
+	}
+	else
+		return 1. / 60.;
+}
+
+bool Screen::frameRateIsReliable()
+{
+	return true;
 }
 
 void Screen::postFrame()
@@ -159,7 +185,7 @@ void Screen::unpostFrame()
 	}
 }
 
-void Screen::setRefreshRate(uint rate)
+void Screen::setFrameRate(double rate)
 {
 	// unsupported
 }

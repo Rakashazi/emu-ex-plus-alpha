@@ -89,15 +89,15 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 
 			auto &screen = mainScreen();
 			assert(screen.isPosted());
-			assert(screen.currFrameTime);
-			// force window draw so buffers swap and currFrameTime is updated after vsync
+			assert(screen.currFrameTimestamp);
+			// force window draw so buffers swap and currFrameTimestamp is updated after vsync
 			deviceWindow()->setNeedsDraw(true);
-			screen.frameUpdate(screen.currFrameTime);
-			screen.prevFrameTime = screen.currFrameTime;
+			screen.frameUpdate(screen.currFrameTimestamp);
+			screen.prevFrameTimestamp = screen.currFrameTimestamp;
 			GLContext::swapPresentedBuffers(*deviceWindow());
 			if(screen.isPosted())
 			{
-				screen.currFrameTime = IG::Time::now().nSecs();
+				screen.currFrameTimestamp = IG::Time::now().nSecs();
 			}
 			else
 			{
@@ -162,7 +162,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 						{
 							screenWasReallyPosted = true;
 							s->frameUpdate(frameTimeNanos);
-							s->prevFrameTime = frameTimeNanos;
+							s->prevFrameTimestamp = frameTimeNanos;
 						}
 					}
 					assert(screenWasReallyPosted);
@@ -193,14 +193,14 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 				{
 					auto &screen = mainScreen();
 					assert(screen.isPosted());
-					// force window draw so buffers swap and currFrameTime is updated after vsync
+					// force window draw so buffers swap and currFrameTimestamp is updated after vsync
 					deviceWindow()->setNeedsDraw(true);
-					screen.frameUpdate(screen.currFrameTime);
-					screen.prevFrameTime = screen.currFrameTime;
+					screen.frameUpdate(screen.currFrameTimestamp);
+					screen.prevFrameTimestamp = screen.currFrameTimestamp;
 					GLContext::swapPresentedBuffers(*deviceWindow());
 					if(screen.isPosted())
 					{
-						screen.currFrameTime = IG::Time::now().nSecs();
+						screen.currFrameTimestamp = IG::Time::now().nSecs();
 						return (jboolean)true;
 					}
 					else

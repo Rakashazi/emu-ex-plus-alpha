@@ -74,7 +74,7 @@ public:
 	void init(IG::Point2D<int> pixmapSize);
 	void deinit();
 	void place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Base::Screen &screen, Base::FrameTimeBase frameTime);
+	void frameUpdate(Base::Screen &screen, Base::FrameTimeBase timestamp);
 	void draw();
 	void finish(Base::FrameTimeBase frameTime);
 	void setCPUFreqText(const char *str);

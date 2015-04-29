@@ -136,6 +136,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const bool EmuSystem::hasPALVideoSystem = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -597,18 +598,6 @@ static void setupMDInput()
 	#endif
 }
 
-static void doAudioInit()
-{
-	uint fps = vdp_pal ? 50 : 60;
-	#if defined(CONFIG_ENV_WEBOS)
-	if(optionFrameSkip != EmuSystem::optionFrameSkipAuto)
-	{
-		if(!vdp_pal) fps = 62;
-	}
-	#endif
-	audio_init(optionSoundRate, fps);
-}
-
 static uint detectISORegion(uint8 bootSector[0x800])
 {
 	auto bootByte = bootSector[0x20b];
@@ -731,7 +720,7 @@ int EmuSystem::loadGame(const char *path)
 	if(vidSysIsPAL())
 		logMsg("using PAL timing");
 
-	doAudioInit();
+	configAudioPlayback();
 	system_init();
 	iterateTimes(2, i)
 	{
@@ -823,10 +812,10 @@ void EmuSystem::clearInputBuffers()
 	mem_zero(input.analog);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	doAudioInit();
+	audio_init(optionSoundRate, 1. / frameTime);
 	if(gameIsRunning())
 		sound_restore();
 	logMsg("md sound buffer size %d", snd.buffer_size);

@@ -156,9 +156,9 @@ bool FBDevFrameTimer::init()
 		[this](int fd, int event)
 		{
 			GLContext::swapPresentedBuffers(mainWindow());
-			uint64_t frameTimeNanos;
-			auto ret = read(fd, &frameTimeNanos, sizeof(frameTimeNanos));
-			assert(ret == sizeof(frameTimeNanos));
+			uint64_t timestamp;
+			auto ret = read(fd, &timestamp, sizeof(timestamp));
+			assert(ret == sizeof(timestamp));
 			requested = false;
 			if(cancelled)
 			{
@@ -167,8 +167,8 @@ bool FBDevFrameTimer::init()
 			}
 			auto &screen = mainScreen();
 			assert(screen.isPosted());
-			screen.frameUpdate(frameTimeNanos);
-			screen.prevFrameTime = frameTimeNanos;
+			screen.frameUpdate(timestamp);
+			screen.prevFrameTimestamp = timestamp;
 			if(!requested && mainWindow().presented)
 			{
 				// if not drawing next frame but the window was presented
@@ -188,10 +188,10 @@ bool FBDevFrameTimer::init()
 				//logMsg("waiting for vsync");
 				int arg = 0;
 				ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
-				uint64_t frameTimeNanos = IG::Time::now().nSecs();
+				uint64_t timestamp = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)frameTimeNanos);
-				auto ret = write(fd, &frameTimeNanos, sizeof(frameTimeNanos));
-				assert(ret == sizeof(frameTimeNanos));
+				auto ret = write(fd, &timestamp, sizeof(timestamp));
+				assert(ret == sizeof(timestamp));
 			}
 			return 0;
 		}
@@ -233,9 +233,9 @@ bool SGIFrameTimer::init()
 	fdSrc.init(fd,
 		[this](int fd, int event)
 		{
-			uint64_t frameTimeNanos;
-			auto ret = read(fd, &frameTimeNanos, sizeof(frameTimeNanos));
-			assert(ret == sizeof(frameTimeNanos));
+			uint64_t timestamp;
+			auto ret = read(fd, &timestamp, sizeof(timestamp));
+			assert(ret == sizeof(timestamp));
 			requested = false;
 			if(cancelled)
 			{
@@ -249,8 +249,8 @@ bool SGIFrameTimer::init()
 				auto s = Screen::screen(i);
 				if(s->isPosted())
 				{
-					s->frameUpdate(frameTimeNanos);
-					s->prevFrameTime = frameTimeNanos;
+					s->frameUpdate(timestamp);
+					s->prevFrameTimestamp = timestamp;
 					if(requested)
 					{
 						sem_post(&sem);
@@ -304,10 +304,10 @@ bool SGIFrameTimer::init()
 				{
 					bug_exit("error in glXWaitVideoSyncSGI");
 				}
-				uint64_t frameTimeNanos = IG::Time::now().nSecs();
-				//logMsg("got vsync at time %lu", (long unsigned int)frameTimeNanos);
-				auto ret = write(fd, &frameTimeNanos, sizeof(frameTimeNanos));
-				assert(ret == sizeof(frameTimeNanos));
+				uint64_t timestamp = IG::Time::now().nSecs();
+				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);
+				auto ret = write(fd, &timestamp, sizeof(timestamp));
+				assert(ret == sizeof(timestamp));
 			}
 			return 0;
 		}
@@ -374,7 +374,7 @@ bool OMLFrameTimer::init()
 				#else
 				getSyncValues(GLContext::eglDisplay(), mainWindow().surface, &ust, &msc, &sbc);
 				#endif
-				frameTimeNanos = ust * 1000;
+				timestamp = ust * 1000;
 			}
 			requested = false;
 			iterateTimes(Screen::screens(), i)
@@ -382,8 +382,8 @@ bool OMLFrameTimer::init()
 				auto s = Screen::screen(i);
 				if(s->isPosted())
 				{
-					s->frameUpdate(frameTimeNanos);
-					s->prevFrameTime = frameTimeNanos;
+					s->frameUpdate(timestamp);
+					s->prevFrameTimestamp = timestamp;
 				}
 			}
 			return 1;

@@ -532,7 +532,7 @@ void applySoundFormat(EmulateSpecStruct *espec)
 	for(int y = 0; y < 2; y++)
 	{
 		sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
-		sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
+		sbuf[y].clock_rate((long)std::round(PCE_MASTER_CLOCK / 3.));
 		sbuf[y].bass_freq(10);
 	}
 }

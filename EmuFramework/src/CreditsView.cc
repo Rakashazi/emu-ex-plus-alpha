@@ -56,7 +56,7 @@ void CreditsView::init()
 			window().postDraw();
 			if(fade.update(1))
 			{
-				params.addOnFrameToScreen();
+				params.readdOnFrame();
 			}
 		};
 	screen()->addOnFrame(animate);

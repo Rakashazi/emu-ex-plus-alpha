@@ -36,8 +36,15 @@ protected:
 	void androidTextureStorageInit();
 	MultiChoiceSelectMenuItem androidTextureStorage;
 	#endif
-	MultiChoiceSelectMenuItem frameSkip;
-	void frameSkipInit();
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	MultiChoiceSelectMenuItem frameInterval;
+	void frameIntervalInit();
+	#endif
+	BoolMenuItem dropLateFrames;
+	char frameRateStr[64]{};
+	TextMenuItem frameRate;
+	char frameRatePALStr[64]{};
+	TextMenuItem frameRatePAL;
 	const char *aspectRatioStr[4];
 	MultiChoiceSelectMenuItem aspectRatio;
 	void aspectRatioInit();
@@ -125,7 +132,7 @@ protected:
 	virtual void loadSystemItems(MenuItem *item[], uint &items);
 	virtual void loadGUIItems(MenuItem *item[], uint &items);
 
-	MenuItem *item[25]{};
+	MenuItem *item[26]{};
 
 public:
 	OptionView(Base::Window &win);

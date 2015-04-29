@@ -373,7 +373,7 @@ void flush_samples(Multi_Buffer * buffer, bool renderAudio)
 {
 	// Write one video frame worth of audio
 	uint samples = buffer->samples_avail();
-	u16 soundFinalWave[1616];
+	u16 soundFinalWave[1800];
 	samples = std::min(samples, uint(sizeof soundFinalWave / 2));
 	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
 	if(likely(renderAudio))

@@ -25,6 +25,18 @@
 #define CONFIG_VCONTROLS_GAMEPAD
 #endif
 
+template<int MAX, class T>
+bool optionIsValidWithMax(T val)
+{
+	return val <= MAX;
+}
+
+template<int MIN, int MAX, class T>
+bool optionIsValidWithMinMax(T val)
+{
+	return val >= MIN && val <= MAX;
+}
+
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
@@ -111,7 +123,13 @@ extern Byte1Option optionTouchCtrlShowOnTouch;
 extern Byte1Option optionTouchCtrlAlpha;
 extern OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
-extern Byte1Option optionFrameSkip;
+#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+extern Byte1Option optionFrameInterval;
+#endif
+extern Byte1Option optionSkipLateFrames;
+extern DoubleOption optionFrameRate;
+extern DoubleOption optionFrameRatePAL;
+extern DoubleOption optionRefreshRateOverride;
 
 static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 extern Byte1Option optionImageZoom;

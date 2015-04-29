@@ -231,24 +231,13 @@ struct PathOption : public OptionBase
 	}
 };
 
-template<int MAX, class T>
-bool optionIsValidWithMax(T val)
-{
-	return val <= MAX;
-}
-
-template<int MIN, int MAX, class T>
-bool optionIsValidWithMinMax(T val)
-{
-	return val >= MIN && val <= MAX;
-}
-
 using SByte1Option = Option<OptionMethodVar<sint8>, sint8>;
 using Byte1Option = Option<OptionMethodVar<uint8>, uint8>;
 using Byte2Option = Option<OptionMethodVar<uint16>, uint16>;
 using Byte4s2Option = Option<OptionMethodVar<uint32>, uint16>;
 using Byte4Option = Option<OptionMethodVar<uint32>, uint32>;
 using Byte4s1Option = Option<OptionMethodVar<uint32>, uint8>;
+using DoubleOption = Option<OptionMethodVar<double>, double>;
 
 using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, Input::swappedGamepadConfirm>, uint8>;
@@ -267,7 +256,7 @@ using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter:
 // TODO: recycle obsolete enums
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_AUTO_SAVE_STATE = 2, CFGKEY_LAST_DIR = 3, CFGKEY_TOUCH_CONTROL_VIRBRATE = 4,
-	CFGKEY_FRAME_SKIP = 5, CFGKEY_FONT_Y_SIZE = 6, CFGKEY_GAME_ORIENTATION = 7,
+	CFGKEY_FRAME_INTERVAL = 5, CFGKEY_FONT_Y_SIZE = 6, CFGKEY_GAME_ORIENTATION = 7,
 	CFGKEY_GAME_ASPECT_RATIO = 8,
 	CFGKEY_TOUCH_CONTROL_ALPHA = 9, CFGKEY_TOUCH_CONTROL_SIZE = 10,
 	CFGKEY_TOUCH_CONTROL_DPAD_POS = 11, CFGKEY_TOUCH_CONTROL_FACE_BTN_POS = 12,
@@ -301,7 +290,9 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_VCONTROLLER_LAYOUT_POS = 68, CFGKEY_MOGA_INPUT_SYSTEM = 69,
 	CFGKEY_FAST_FORWARD_SPEED = 70, CFGKEY_SHOW_BUNDLED_GAMES = 71,
 	CFGKEY_IMAGE_EFFECT = 72, CFGKEY_SHOW_ON_2ND_SCREEN = 73,
-	CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS = 74, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT = 75
+	CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS = 74, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT = 75,
+	CFGKEY_SKIP_LATE_FRAMES = 76, CFGKEY_FRAME_RATE = 77,
+	CFGKEY_FRAME_RATE_PAL = 78, CFGKEY_TIME_FRAMES_WITH_SCREEN_REFRESH = 79
 	// 256+ is reserved
 };
 

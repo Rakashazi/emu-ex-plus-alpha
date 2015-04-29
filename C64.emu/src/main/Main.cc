@@ -148,7 +148,7 @@ static void setC64Model(int model)
 		logMsg("C64 model has PAL timings");
 	}
 	c64model_set(model);
-	EmuSystem::configAudioRate();
+	EmuSystem::configAudioPlayback();
 }
 
 static void setBorderMode(int mode)
@@ -252,6 +252,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const bool EmuSystem::hasPALVideoSystem = true;
 #include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
@@ -1066,11 +1067,12 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	runningFrame = 0;
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	int mixRate = optionSoundRate * (/*isPal ? 1. :*/ .9971225);
+	double systemFrameRate = isPal ? 50.125 : 59.826;
+	int mixRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	int currRate;
 	resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)

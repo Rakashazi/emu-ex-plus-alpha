@@ -368,15 +368,10 @@ void EmuSystem::clearInputBuffers()
 	ram[0x6F82] = 0;
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	//logMsg("set audio rate %d", Audio::pPCM.rate);
-	float rate = optionSoundRate;
-	#ifdef CONFIG_ENV_WEBOS
-	if(optionFrameSkip != optionFrameSkipAuto)
-		rate *= 42660./44100.; // better sync with Pre's refresh rate
-	#endif
+	double rate = std::round(optionSoundRate * (60. * frameTime));
 	sound_init(rate);
 }
 

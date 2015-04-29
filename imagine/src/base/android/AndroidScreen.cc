@@ -27,8 +27,13 @@ namespace Base
 {
 
 static JavaInstMethod<jint> jGetRotation;
+static JavaInstMethod<jfloat> jGetRefreshRate;
+static JavaInstMethod<jobject> jGetMetrics;
 JavaInstMethod<jobject> jPresentation;
 JavaInstMethod<jobject> jGetDisplay;
+#ifdef CONFIG_BASE_MULTI_SCREEN
+static JavaInstMethod<jint> jGetDisplayId;
+#endif
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
@@ -127,11 +132,15 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 {
 	assert(aDisplay);
 	this->aDisplay = env->NewGlobalRef(aDisplay);
-
 	if(!jGetRotation)
 	{
 		jclass jDisplayCls = env->GetObjectClass(aDisplay);
 		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
+		jGetRefreshRate.setup(env, env->GetObjectClass(aDisplay), "getRefreshRate", "()F");
+		#ifdef CONFIG_BASE_MULTI_SCREEN
+		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
+		#endif
+		jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
 	}
 
 	bool isStraightRotation = true;
@@ -149,20 +158,34 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	}
 	else
 	{
-		jclass jDisplayCls = env->GetObjectClass(aDisplay);
-		JavaInstMethod<jint> jGetDisplayId;
-		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
 		id = jGetDisplayId(env, aDisplay);;
 		logMsg("init display with id: %d", id);
 	}
 	#endif
 
+	// refresh rate
+	refreshRate_ = jGetRefreshRate(env, aDisplay);
+	if(Base::androidSDK() <= 10)
+	{
+		// corrections for devices known to report wrong refresh rates
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "R800at"))
+			refreshRate_ = 61.5;
+		else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "sholes"))
+			refreshRate_ = 60;
+		else
+			reliableRefreshRate = false;
+	}
+	if(refreshRate_ < 20.f || refreshRate_ > 200.f) // sanity check in case device has a junk value
+	{
+		logWarn("ignoring unusual refresh rate: %f", (double)refreshRate_);
+		refreshRate_ = 60;
+		reliableRefreshRate = false;
+	}
+
 	// DisplayMetrics
 	if(!metrics)
 	{
 		logMsg("getting metrics from display");
-		JavaInstMethod<jobject> jGetMetrics;
-		jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
 		metrics = jGetMetrics(env, Base::jBaseActivity, aDisplay);
 		assert(metrics);
 	}
@@ -184,9 +207,10 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	{
 		auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
 		auto jDensityDPI = env->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
-		logMsg("display density %f, densityDPI %d, %dx%d pixels",
+		logMsg("display density %f, densityDPI %d, %dx%d pixels, %.2fHz",
 			(double)env->GetFloatField(metrics, jDensity), env->GetIntField(metrics, jDensityDPI),
-			env->GetIntField(metrics, jWidthPixels), env->GetIntField(metrics, jHeightPixels));
+			env->GetIntField(metrics, jWidthPixels), env->GetIntField(metrics, jHeightPixels),
+			(double)refreshRate_);
 	}
 	#endif
 	// DPI values are un-rotated from DisplayMetrics
@@ -218,26 +242,19 @@ SurfaceRotation AndroidScreen::rotation(JNIEnv *env)
 	return (SurfaceRotation)jGetRotation(env, aDisplay);
 }
 
-uint Screen::refreshRate()
+double Screen::frameRate()
 {
-	if(!refreshRate_)
-	{
-		assert(aDisplay);
-		JavaInstMethod<jfloat> jGetRefreshRate;
-		auto env = jEnv();
-		jGetRefreshRate.setup(env, env->GetObjectClass(aDisplay), "getRefreshRate", "()F");
-		refreshRate_ = jGetRefreshRate(env, aDisplay);
-		if(refreshRate_ < 20.f || refreshRate_ > 200.f) // sanity check in case device has a junk value
-		{
-			logWarn("ignoring unusual refresh rate: %f", (double)refreshRate_);
-			refreshRate_ = 60;
-		}
-		else
-		{
-			logMsg("refresh rate: %f", (double)refreshRate_);
-		}
-	}
-	return std::round(refreshRate_);
+	return refreshRate_;
+}
+
+double Screen::frameTime()
+{
+	return 1. / frameRate();
+}
+
+bool Screen::frameRateIsReliable()
+{
+	return reliableRefreshRate;
 }
 
 void Screen::postFrame()
@@ -255,8 +272,8 @@ void Screen::postFrame()
 	if(!inFrameHandler)
 	{
 		if(Base::androidSDK() < 16)
-			currFrameTime = IG::Time::now().nSecs();
-		prevFrameTime = 0;
+			currFrameTimestamp = IG::Time::now().nSecs();
+		prevFrameTimestamp = 0;
 	}
 }
 
@@ -281,7 +298,7 @@ bool Screen::supportsFrameInterval()
 	return false;
 }
 
-void Screen::setRefreshRate(uint rate)
+void Screen::setFrameRate(double rate)
 {
 	// unsupported
 }

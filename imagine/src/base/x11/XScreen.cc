@@ -27,15 +27,38 @@ void XScreen::init(::Screen *xScreen)
 	var_selfs(xScreen);
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
-	xrrConf = XRRGetScreenInfo(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-	logMsg("X screen: 0x%p %dx%d (%dx%dmm)", xScreen,
-		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM);
+	auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
+	auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
+	auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
+	auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
+	iterateTimes(screenRes->nmode, i)
+	{
+		auto &modeInfo = screenRes->modes[i];
+		if(modeInfo.id == crtcInfo->mode)
+		{
+			if(modeInfo.hTotal && modeInfo.vTotal)
+			{
+				frameTime_ = ((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock;
+			}
+			else
+			{
+				logWarn("unknown display time");
+				frameTime_ = 1. / 60.;
+				reliableFrameTime = false;
+			}
+			break;
+		}
+	}
+	XRRFreeCrtcInfo(crtcInfo);
+	XRRFreeOutputInfo(outputInfo);
+	XRRFreeScreenResources(screenRes);
+	assert(frameTime_);
+	logMsg("X screen: 0x%p %dx%d (%dx%dmm) %.2fHz", xScreen,
+		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
+		frameTime_);
 }
 
-void Screen::deinit()
-{
-	 XRRFreeScreenConfigInfo(xrrConf);
-}
+void Screen::deinit() {}
 
 int Screen::width()
 {
@@ -47,28 +70,37 @@ int Screen::height()
 	return HeightOfScreen(xScreen);
 }
 
-uint Screen::refreshRate()
+double Screen::frameRate()
 {
-	auto rate = XRRConfigCurrentRate(xrrConf);
-	//logMsg("refresh rate %d", (int)rate);
-	return rate;
+	return 1. / frameTime_;
 }
 
-void Screen::setRefreshRate(uint rate)
+double Screen::frameTime()
+{
+	return frameTime_;
+}
+
+bool Screen::frameRateIsReliable()
+{
+	return reliableFrameTime;
+}
+
+void Screen::setFrameRate(double rate)
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
-		if(rate == REFRESH_RATE_DEFAULT)
+		if(rate == DISPLAY_RATE_DEFAULT)
 			rate = 60;
+		rate = std::round(rate);
 		if(rate != 50 && rate != 60)
 		{
-			logWarn("tried to set unsupported refresh rate: %u", rate);
+			logWarn("tried to set unsupported frame rate: %f", rate);
 		}
-		auto cmd = string_makePrintf<64>("sudo /usr/pandora/scripts/op_lcdrate.sh %u", rate);
+		auto cmd = string_makePrintf<64>("sudo /usr/pandora/scripts/op_lcdrate.sh %u", (unsigned int)rate);
 		int err = system(cmd.data());
 		if(err)
 		{
-			logErr("error setting refresh rate, %d", err);
+			logErr("error setting frame rate, %d", err);
 		}
 	}
 }
@@ -82,7 +114,7 @@ void Screen::postFrame()
 	frameTimerScheduleVSync();
 	if(!inFrameHandler)
 	{
-		prevFrameTime = 0;
+		prevFrameTimestamp = 0;
 	}
 }
 

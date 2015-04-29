@@ -681,14 +681,11 @@ void EmuSystem::clearInputBuffers()
 	mouseScroll.dragStartX = std::max(1, mainWin.win.widthMMInPixels(1.));
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	Settings.SoundPlaybackRate = optionSoundRate;
-	#if defined(CONFIG_ENV_WEBOS)
-	if(optionFrameSkip != optionFrameSkipAuto)
-		Settings.SoundPlaybackRate = (float)optionSoundRate * (42660./44100.); // better sync with Pre's refresh rate
-	#endif
+	double systemFrameRate = 59.97;
+	Settings.SoundPlaybackRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	#ifndef SNES9X_VERSION_1_4
 	S9xUpdatePlaybackRate();
 	#else
@@ -758,20 +755,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	//int samples = S9xGetSampleCount();
 	//#else
 	#ifdef SNES9X_VERSION_1_4
-	const int samples = Settings.SoundPlaybackRate*2 / 60;
-	mixSamples(samples, renderAudio);
-	//#endif
-	/*if(likely(samples > 0))
-	{
-		uint frames = samples/2;
-		//int16 audioBuff[samples];
-		//S9xMixSamples((uint8_t*)audioBuff, samples);
-		if(renderAudio)
-		{
-			//logMsg("%d frames", frames);
-			mixSamples(audioBuff, frames);
-		}
-	}*/
+	mixSamples(audioFramesPerVideoFrame, renderAudio);
 	#endif
 }
 

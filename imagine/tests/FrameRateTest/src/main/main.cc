@@ -89,19 +89,19 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 		[&win](Base::Screen::FrameParams params)
 		{
 			auto atOnFrame = IG::Time::now();
-			auto frameTime = params.frameTime();
+			auto timestamp = params.timestamp();
 			Gfx::bind();
-			activeTest->frameUpdate(params.screen(), frameTime);
+			activeTest->frameUpdate(params.screen(), timestamp);
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
-			activeTest->lastFramePresentTime.frameTime = IG::Time::makeWithNSecs(Base::frameTimeBaseToNSecs(frameTime));
+			activeTest->lastFramePresentTime.frameTime = IG::Time::makeWithNSecs(Base::frameTimeBaseToNSecs(timestamp));
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
-				finishTest(win, frameTime);
+				finishTest(win, timestamp);
 			}
 			else
 			{
 				win.postDraw();
-				params.addOnFrameToScreen();
+				params.readdOnFrame();
 			}
 		});
 	return activeTest;

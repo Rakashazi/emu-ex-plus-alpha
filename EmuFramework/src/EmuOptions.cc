@@ -23,6 +23,18 @@
 extern SysVController vController;
 #endif
 
+template<class T>
+bool optionFrameTimeIsValid(T val)
+{
+	return 0 || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_NATIVE_NTSC, val);
+}
+
+template<class T>
+bool optionFrameTimePALIsValid(T val)
+{
+	return 0 || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, val);
+}
+
 bool optionOrientationIsValid(uint32 val)
 {
 	return val == Base::VIEW_ROTATE_AUTO ||
@@ -187,15 +199,13 @@ OptionTouchCtrlScaledCoordinates optionTouchCtrlScaledCoordinates(CFGKEY_TOUCH_C
 
 OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
-bool optionFrameSkipIsValid(uint8 val)
-{
-	uint limit = (Config::envIsIOS || Config::envIsLinux) ? 4 : 0;
-	return val == EmuSystem::optionFrameSkipAuto || val <= limit;
-}
-
-Byte1Option optionFrameSkip
-	(CFGKEY_FRAME_SKIP,	EmuSystem::optionFrameSkipAuto,
-	Config::envIsPS3, optionFrameSkipIsValid);
+#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+Byte1Option optionFrameInterval
+	{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4>};
+#endif
+Byte1Option optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0};
+DoubleOption optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid};
+DoubleOption optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid};
 
 bool optionImageZoomIsValid(uint8 val)
 {
@@ -212,7 +222,7 @@ OptionRecentGames optionRecentGames;
 #ifdef __ANDROID__
 Byte1Option optionAndroidTextureStorage(CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
 	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>);
-SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, 0, 0, optionIsValidWithMinMax<-17, 0>);
+SByte1Option optionProcessPriority(CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValidWithMinMax<-17, 0>);
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
@@ -267,56 +277,26 @@ void initOptions()
 		if(Base::androidSDK() >= 19)
 			optionHideOSNav.initDefault(1);
 	}
-
 	if(Base::androidSDK() >= 11)
 	{
 		optionNotificationIcon.initDefault(0);
 		// don't change dither setting on Android 3.0+
 		optionDitherImage.isConst = 1;
-		if(Base::mainScreen().refreshRate() == 60)
-		{
-			// TODO: more testing needed with audio sync
-			/*logMsg("using default frame-skip 0");
-			optionFrameSkip.initDefault(0);*/
-		}
-
-		// hack for overly-aggressive power management on some Android 4.x Qualcomm devices
-		// whenever no touch input is registered.
-		// enable if cpu governor is "ondemand" ("interactive" doesn't have this problem)
-		if(Config::MACHINE_IS_GENERIC_ARMV7 && Base::androidSDK() >= 11)
-		{
-			FileIO file;
-			if(file.open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor") == OK)
-			{
-				char ondemandText[strlen("ondemand")] {0};
-				if(file.read(ondemandText, sizeof(ondemandText)) == OK)
-				{
-					if(memcmp(ondemandText, "ondemand", sizeof(ondemandText)) == 0)
-					{
-						logMsg("cpu using ondemand governor, defaulting to very high process priority");
-						optionProcessPriority.initDefault(-14);
-					}
-				}
-			}
-		}
 	}
 	else
 	{
 		optionDitherImage.initDefault(0);
 	}
-
+	if(Base::androidSDK() < 12)
+	{
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-		if(Base::androidSDK() < 12)
-		{
-			optionNotifyInputDeviceChange.isConst = 1;
-		}
+		optionNotifyInputDeviceChange.isConst = 1;
 		#endif
-
+	}
 	if(!Base::hasVibrator())
 	{
 		optionVibrateOnPush.isConst = 1;
 	}
-
 	if(Audio::hasLowLatency()) // setup for low-latency
 	{
 		optionSoundRate.initDefault(Audio::pPCM.rate);
@@ -332,12 +312,16 @@ void initOptions()
 		#endif
 		optionSoundBuffers.initDefault(4);
 	}
-
 	if(Base::androidSDK() < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
 	#endif
+
+	if(!Base::Screen::screen(0)->frameRateIsReliable())
+	{
+		optionFrameRate.initDefault(60);
+	}
 
 	EmuSystem::initOptions();
 

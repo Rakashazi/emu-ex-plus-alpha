@@ -248,12 +248,7 @@ int systemGreenShift = 11;
 int systemBlueShift = 3;
 #endif
 
-void EmuSystem::initOptions()
-{
-	#ifndef CONFIG_BASE_ANDROID
-	optionFrameSkip.initDefault(optionFrameSkipAuto); // auto-frameskip default due to highly variable CPU usage
-	#endif
-}
+void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
@@ -432,11 +427,12 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	CPULoop(gGba, renderGfx, processGfx, renderAudio);
 }
 
-void EmuSystem::configAudioRate()
+void EmuSystem::configAudioRate(double frameTime)
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	soundSetSampleRate(gGba, optionSoundRate *.99534);
+	double rate = std::round(optionSoundRate * (59.73 * frameTime));
+	soundSetSampleRate(gGba, rate);
 }
 
 void EmuSystem::savePathChanged() { }
