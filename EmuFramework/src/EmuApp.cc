@@ -592,6 +592,8 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 	Audio::init();
+	if(Config::envIsAndroid)
+		optionSoundRate.initDefault(Audio::pPCM.rate);
 
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	Gfx::init((IG::PixelFormatID)optionWindowPixelFormat.val);

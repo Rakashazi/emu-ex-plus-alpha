@@ -299,7 +299,6 @@ void initOptions()
 	}
 	if(Audio::hasLowLatency()) // setup for low-latency
 	{
-		optionSoundRate.initDefault(Audio::pPCM.rate);
 		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 		optionSoundUnderrunCheck.initDefault(0);
 		#endif

@@ -70,9 +70,6 @@ void draw_scanline_tile_i386_50(unsigned int tileno, int yoffs, int sx, int line
 //Uint8 strip_usage[0x300];
 #define PEN_USAGE(tileno) ((((Uint32*) memory.rom.spr_usage.p)[tileno>>4]>>((tileno&0xF)*2))&0x3)
 
-#ifdef PROCESSOR_ARM
-EVISIBLE
-#endif
 char *ldda_y_skip;
 char *dda_x_skip;
 char ddaxskip[16][16] = {
@@ -97,9 +94,6 @@ Uint32 ddaxskip_i[16] = {
 	0x0080, 0x0880, 0x0888, 0x2888, 0x288a, 0x2a8a, 0x2aaa, 0xaaaa,
 	0xaaea, 0xbaea, 0xbaeb, 0xbbeb, 0xbbef, 0xfbef, 0xfbff, 0xffff
 };
-#ifdef PROCESSOR_ARM
-EVISIBLE
-#endif
 Uint32 dda_x_skip_i;
 
 static __inline__ Uint16 alpha_blend(Uint16 dest, Uint16 src, Uint8 a) {

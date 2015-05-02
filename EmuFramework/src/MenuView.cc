@@ -586,7 +586,7 @@ void RecentGameView::init(bool highlightFirst)
 	for(auto &e : recentGameList)
 	{
 		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path.data())); item[i++] = &recentGame[rIdx];
-		recentGame[rIdx].onSelect() = [&](TextMenuItem &t, View &, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
+		recentGame[rIdx].onSelect() = [&e](TextMenuItem &t, View &, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}
 	clear.init(recentGameList.size()); item[i++] = &clear;

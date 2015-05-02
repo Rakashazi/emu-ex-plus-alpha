@@ -379,7 +379,7 @@ IG::Time EmuSystem::benchmark()
 void EmuSystem::configFrameTime()
 {
 	configAudioRate(frameTime());
-	audioFramesPerVideoFrame = pcmFormat.rate * frameTime();
+	audioFramesPerVideoFrame = std::ceil(pcmFormat.rate * frameTime());
 	timePerVideoFrame = Base::frameTimeBaseFromSecs(frameTime());
 	resetFrameTime();
 }

@@ -46,7 +46,7 @@ public:
 class RecentGameView : public TableView
 {
 private:
-	TextMenuItem recentGame[10];
+	TextMenuItem recentGame[10]{};
 	TextMenuItem clear;
 	MenuItem *item[1 + 10 + 1]{};
 

@@ -694,11 +694,11 @@ void EmuSystem::configAudioRate(double frameTime)
 	logMsg("emu sound rate %d", Settings.SoundPlaybackRate);
 }
 
-static void mixSamples(int samples, bool renderAudio)
+static void mixSamples(int frames, bool renderAudio)
 {
-	if(likely(samples > 0))
+	if(likely(frames))
 	{
-		uint frames = samples/2;
+		uint samples = frames * 2;
 		int16 audioBuff[samples];
 		S9xMixSamples((uint8_t*)audioBuff, samples);
 		if(renderAudio)
@@ -746,14 +746,11 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		{
 			S9xFinalizeSamples();
 			int samples = S9xGetSampleCount();
-			mixSamples(samples, renderAudio);
+			mixSamples(samples / 2, renderAudio);
 		}, (void*)renderAudio);
 	#endif
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
-	//#ifndef SNES9X_VERSION_1_4
-	//int samples = S9xGetSampleCount();
-	//#else
 	#ifdef SNES9X_VERSION_1_4
 	mixSamples(audioFramesPerVideoFrame, renderAudio);
 	#endif

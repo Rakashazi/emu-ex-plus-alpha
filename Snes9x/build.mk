@@ -32,6 +32,13 @@ jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
 
 SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc main/Cheats.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
+ifdef RELEASE
+# TODO: On Android, strong symbols will not override weak
+# ones in EmuFramework when Snes9x is not compiled with
+# LTO and Emuframework is. Possible linker bug?
+$(objDir)/main/Main.o $(objDir)/main/S9XApi.o $(objDir)/main/Cheats.o $(objDir)/main/EmuControls.o : CXXFLAGS += -flto
+endif
+
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

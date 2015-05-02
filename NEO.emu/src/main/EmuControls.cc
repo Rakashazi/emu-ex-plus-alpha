@@ -191,7 +191,7 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_Y,
 		}
 	},
-		#ifdef CONFIG_MACHINE_GENERIC_ARMV7
+		#if __ARM_ARCH == 7
 		{
 			Event::MAP_SYSTEM,
 			Device::SUBTYPE_XPERIA_PLAY,

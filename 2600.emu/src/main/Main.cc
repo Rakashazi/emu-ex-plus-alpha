@@ -323,7 +323,7 @@ static int loadGameCommon(const uint8 *buff, uint size)
 		props.set(Display_Format, optionVideoSystemToStr());
 	}
 	console = new Console(&osystem, cartridge, props);
-	settings.setValue("framerate", console->getFramerate());
+	settings.setValue("framerate", (int)console->getFramerate());
 	osystem.myConsole = console;
 	emuVideo.initImage(0, vidBufferX, console->tia().height());
 	console->initializeVideo();
@@ -372,7 +372,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	tiaSoundRate = std::round(optionSoundRate * (osystem.settings().value("framerate").toFloat() * frameTime));
+	tiaSoundRate = std::round(optionSoundRate * (osystem.settings().getFloat("framerate") * frameTime));
 	if(gameIsRunning())
 	{
 		vcsSound->tiaSound().outputFrequency(tiaSoundRate);

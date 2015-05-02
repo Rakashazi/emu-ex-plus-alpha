@@ -12,6 +12,16 @@ public:
 	constexpr ReverseRange(T &o): o(o) {}
 	auto begin() const -> decltype(this->o.rbegin()) { return o.rbegin(); }
 	auto end() const -> decltype(this->o.rend()) { return o.rend(); }
+};
+
+template <class T>
+struct ConstReverseRange
+{
+private:
+	const T &o;
+
+public:
+	constexpr ConstReverseRange(const T &o): o(o) {}
 	auto cbegin() const -> decltype(this->o.crbegin()) { return o.crbegin(); }
 	auto cend() const -> decltype(this->o.crend()) { return o.crend(); }
 };
@@ -20,6 +30,12 @@ template <class T>
 static ReverseRange<T> makeReverseRange(T &o)
 {
 	return ReverseRange<T>(o);
+}
+
+template <class T>
+static ConstReverseRange<T> makeReverseRange(const T &o)
+{
+	return ConstReverseRange<T>(o);
 }
 
 template <class Container>
