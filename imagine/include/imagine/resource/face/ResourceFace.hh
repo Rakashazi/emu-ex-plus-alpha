@@ -26,7 +26,7 @@
 class ResourceFace
 {
 public:
-	FontSettings settings;
+	FontSettings settings{};
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
 	constexpr ResourceFace() {}
@@ -59,7 +59,7 @@ public:
 private:
 	ResourceFont *font{};
 	GlyphEntry *glyphTable{};
-	FontSizeRef faceSize;
+	FontSizeRef faceSize{};
 	uint nominalHeight_ = 0;
 	uint32 usedGlyphTableBits = 0;
 

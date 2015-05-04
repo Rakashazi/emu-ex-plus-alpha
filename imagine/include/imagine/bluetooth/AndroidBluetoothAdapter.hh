@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <jni.h>
 #include <imagine/engine-globals.h>
 #include "BluetoothAdapter.hh"
 #include <imagine/util/thread/pthread.hh>
-#include <imagine/util/jni.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 
@@ -38,16 +38,16 @@ public:
 	State state() override;
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
 	bool handleScanClass(uint classInt);
-	void handleScanName(JNIEnv* env, jstring name, jstring addr);
+	void handleScanName(JNIEnv *env, jstring name, jstring addr);
 	void handleScanStatus(int status);
 	void handleTurnOnResult(bool success);
 	void sendSocketStatusMessage(const SocketStatusMessage &msg);
 	jobject openSocket(JNIEnv *env, const char *addrStr, int channel, bool isL2cap);
 
 private:
-	jobject adapter = nullptr;
+	jobject adapter{};
 	OnStateChangeDelegate turnOnD;
-	int statusPipe[2] {-1, -1};
+	int statusPipe[2]{-1, -1};
 	bool scanCancelled = false;
 
 	bool openDefault();
@@ -67,7 +67,7 @@ public:
 	void onStatusDelegateMessage(int arg);
 
 private:
-	jobject socket = nullptr, outStream = nullptr;
+	jobject socket{}, outStream{};
 	ThreadPThread readThread;
 	ThreadPThread connectThread;
 	Base::EventLoopFileSource fdSrc;
@@ -75,7 +75,7 @@ private:
 	uint channel = 0;
 	bool isClosing = false;
 	bool isL2cap = false;
-	char addrStr[18] {0};
+	char addrStr[18]{};
 
 	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);
 	int readPendingData(int events);

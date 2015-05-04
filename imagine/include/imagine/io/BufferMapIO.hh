@@ -39,7 +39,7 @@ public:
 	void close() override;
 
 protected:
-	OnCloseDelegate onClose;
+	OnCloseDelegate onClose{};
 
 	// no copying outside of class
 	BufferMapIO(const BufferMapIO &) = default;

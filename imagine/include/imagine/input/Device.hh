@@ -127,7 +127,7 @@ public:
 	uint subtype_ = 0;
 	uint idx = 0;
 protected:
-	const char *name_ = nullptr;
+	const char *name_{};
 };
 
 }

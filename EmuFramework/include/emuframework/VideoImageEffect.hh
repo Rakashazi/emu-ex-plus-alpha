@@ -32,16 +32,16 @@ public:
 
 private:
 	using ErrorMessage = std::array<char, 128>;
-	Gfx::Program prog;
+	Gfx::Program prog{};
 	Gfx::Shader vShader{};
 	Gfx::Shader fShader{};
 	int srcTexelDeltaU{};
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
 	uint effect_ = NO_EFFECT;
-	Gfx::RenderTarget renderTarget_;
-	IG::WP renderTargetScale;
-	IG::WP renderTargetImgSize;
+	Gfx::RenderTarget renderTarget_{};
+	IG::WP renderTargetScale{};
+	IG::WP renderTargetImgSize{};
 	IG::WP inputImgSize{1, 1};
 	bool useRGB565RenderTarget = true;
 

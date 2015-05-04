@@ -38,9 +38,9 @@ protected:
 	int startTime = 0;
 	int destTime = 0;
 	INTERPOLATOR_TYPE type = INTERPOLATOR_TYPE_LINEAR;
-	T startVal {0};
-	T destVal {0};
-	T startDestValSize {0};
+	T startVal{};
+	T destVal{};
+	T startDestValSize{};
 
 public:
 	constexpr Interpolator() {}

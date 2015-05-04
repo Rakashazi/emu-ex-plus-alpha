@@ -40,12 +40,12 @@ protected:
 	MultiChoiceSelectMenuItem frameInterval;
 	void frameIntervalInit();
 	#endif
-	BoolMenuItem dropLateFrames;
+	BoolMenuItem dropLateFrames{};
 	char frameRateStr[64]{};
 	TextMenuItem frameRate;
 	char frameRatePALStr[64]{};
 	TextMenuItem frameRatePAL;
-	const char *aspectRatioStr[4];
+	const char *aspectRatioStr[4]{};
 	MultiChoiceSelectMenuItem aspectRatio;
 	void aspectRatioInit();
 	MultiChoiceSelectMenuItem zoom;
@@ -96,7 +96,7 @@ protected:
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
 	void savePathUpdated(const char *newPath);
-	char savePathStr[256] {0};
+	char savePathStr[256]{};
 	TextMenuItem savePath;
 	BoolMenuItem checkSavePathWriteAccess;
 	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;

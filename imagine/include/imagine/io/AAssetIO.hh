@@ -26,7 +26,7 @@ public:
 	using IOUtils::write;
 	using IOUtils::tell;
 
-	constexpr AAssetIO() {}
+	AAssetIO() {}
 	~AAssetIO() override;
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
@@ -45,5 +45,5 @@ public:
 
 public:
 	AAsset *asset{};
-	BufferMapIO mapIO;
+	BufferMapIO mapIO{};
 };

@@ -71,9 +71,9 @@ public:
 	bool isDoingScrollGesture() { return scroll.active; }
 
 protected:
-	KScroll scroll;
-	IG::WindowRect contentSize;
-	IG::WindowRect scrollBarRect;
+	KScroll scroll{};
+	IG::WindowRect contentSize{};
+	IG::WindowRect scrollBarRect{};
 	bool contentIsBiggerThanView = false;
 
 	void setContentSize(IG::WP size);

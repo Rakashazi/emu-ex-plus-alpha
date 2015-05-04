@@ -21,11 +21,11 @@
 class TextEntry
 {
 public:
-	IG::WindowRect b;
-	Gfx::Text t;
-	char str[128] {0};
-	bool acceptingInput = 0;
-	bool multiLine = 0;
+	IG::WindowRect b{};
+	Gfx::Text t{};
+	char str[128]{};
+	bool acceptingInput = false;
+	bool multiLine = false;
 	Gfx::ProjectionPlane projP;
 
 	constexpr TextEntry() {}
@@ -41,19 +41,19 @@ public:
 class CollectTextInputView : public View
 {
 public:
-	IG::WindowRect rect;
-	IG::WindowRect cancelBtn;
+	IG::WindowRect rect{};
+	IG::WindowRect cancelBtn{};
 	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	Gfx::Sprite cancelSpr;
+	Gfx::Sprite cancelSpr{};
 	#endif
-	Gfx::Text message;
+	Gfx::Text message{};
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	TextEntry textEntry;
+	TextEntry textEntry{};
 	#endif
 
 	// returning non-zero keeps text entry active on Android
-	typedef DelegateFunc<uint (CollectTextInputView &view, const char *str)> OnTextDelegate;
-	OnTextDelegate onTextD;
+	using OnTextDelegate = DelegateFunc<uint (CollectTextInputView &view, const char *str)>;
+	OnTextDelegate onTextD{};
 	OnTextDelegate &onText() { return onTextD; }
 
 	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}

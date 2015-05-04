@@ -137,6 +137,6 @@ public:
 	}
 
 protected:
-	IO io;
+	IO io{};
 	FILE *f{};
 };

@@ -40,7 +40,7 @@ class View
 public:
 	Base::Window *win{};
 	ViewController *controller{};
-	Gfx::ProjectionPlane projP;
+	Gfx::ProjectionPlane projP{};
 	const char *name_ = "";
 	static ResourceFace *defaultFace;
 	static ResourceFace *defaultSmallFace;

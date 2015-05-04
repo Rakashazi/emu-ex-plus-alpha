@@ -35,5 +35,5 @@ public:
 	void freeSize(FontSizeRef &sizeRef) override;
 
 private:
-	jobject renderer = nullptr, lockedBitmap = nullptr;
+	jobject renderer{}, lockedBitmap{};
 };

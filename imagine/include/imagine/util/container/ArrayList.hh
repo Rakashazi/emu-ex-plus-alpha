@@ -9,8 +9,8 @@
 template <class T, uint SIZE>
 struct StaticStorageBase
 {
-	constexpr StaticStorageBase() { }
-	T arr[SIZE];
+	constexpr StaticStorageBase() {}
+	T arr[SIZE]{};
 	T *storage() { return arr; }
 	const T *storage() const { return arr; }
 	uint maxSize() const { return SIZE; }
@@ -19,8 +19,8 @@ struct StaticStorageBase
 template <class T>
 struct PointerStorageBase
 {
-	constexpr PointerStorageBase() { }
-	T *arr = nullptr;
+	constexpr PointerStorageBase() {}
+	T *arr{};
 	T *storage() { return arr; }
 	const T *storage() const { return arr; }
 

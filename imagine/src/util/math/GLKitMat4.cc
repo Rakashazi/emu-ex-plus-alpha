@@ -5,12 +5,12 @@
 #include <imagine/util/operators.hh>
 #include <GLKit/GLKMathUtils.h>
 
-GLKitMat4 GLKitMat4::translate(const GLKitVec3 &translation) const
+GLKitMat4 GLKitMat4::translate(GLKitVec3 translation) const
 {
 	return GLKMatrix4TranslateWithVector3(m, translation.v);
 }
 
-GLKitMat4 GLKitMat4::makeTranslate(const GLKitVec3 &translation)
+GLKitMat4 GLKitMat4::makeTranslate(GLKitVec3 translation)
 {
 	GLKitMat4 ident;
 	return GLKMatrix4TranslateWithVector3(ident.m, translation.v);
@@ -21,12 +21,12 @@ GLKitMat4 GLKitMat4::makePerspectiveFovRH(float fovy, float aspect, float znear,
 	return GLKMatrix4MakePerspective(fovy, aspect, znear, zfar);
 }
 
-GLKitMat4 GLKitMat4::scale(const GLKitVec3 &factors) const
+GLKitMat4 GLKitMat4::scale(GLKitVec3 factors) const
 {
 	return GLKMatrix4ScaleWithVector3(m, factors.v);
 }
 
-GLKitMat4 GLKitMat4::rotate(float angle, const GLKitVec3 &axis) const
+GLKitMat4 GLKitMat4::rotate(float angle, GLKitVec3 axis) const
 {
 	return GLKMatrix4RotateWithVector3(m, angle, axis.v);
 }
@@ -39,7 +39,7 @@ GLKitMat4 GLKitMat4::invert() const
 	return mat;
 }
 
-GLKitVec4 GLKitMat4::mult(const GLKitVec4 vec) const
+GLKitVec4 GLKitMat4::mult(GLKitVec4 vec) const
 {
 	return GLKMatrix4MultiplyVector4(m, vec.v);
 }
@@ -51,7 +51,7 @@ GLKitVec3 GLKitMat4::project(IG::Rect2<int> viewport, GLKitVec3 obj) const
 	return GLKMathProject(obj.v, ident.m, m, viewportVec);
 }
 
-GLKitVec3 GLKitMat4::unproject(IG::Rect2<int> viewport, GLKitVec3 win, const GLKitMat4 &inverse) const
+GLKitVec3 GLKitMat4::unproject(IG::Rect2<int> viewport, GLKitVec3 win, GLKitMat4 inverse) const
 {
 	GLKitMat4 ident;
 	int viewportVec[4] {viewport.x, viewport.y, viewport.x2, viewport.y2};

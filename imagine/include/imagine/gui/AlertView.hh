@@ -25,14 +25,13 @@
 class AlertView : public View
 {
 public:
-	AlertView(Base::Window &win): View{win}, menu{win} {}
-	Gfx::GCRect labelFrame;
-	Gfx::Text text;
+	Gfx::GCRect labelFrame{};
+	Gfx::Text text{};
 	TableView menu;
-	IG::WindowRect rect;
+	IG::WindowRect rect{};
 
+	AlertView(Base::Window &win): View{win}, menu{win} {}
 	IG::WindowRect &viewRect() { return rect; }
-
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
@@ -44,9 +43,9 @@ class YesNoAlertView : public AlertView
 {
 public:
 	using InputDelegate = DelegateFunc<void (const Input::Event &e)>;
-	InputDelegate onYesD;
-	InputDelegate onNoD;
-	MenuItem *menuItem[2] {nullptr};
+	InputDelegate onYesD{};
+	InputDelegate onNoD{};
+	MenuItem *menuItem[2]{};
 
 	YesNoAlertView(Base::Window &win);
 	void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr);

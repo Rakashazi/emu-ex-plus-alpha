@@ -30,11 +30,11 @@
 class CreditsView : public View
 {
 private:
-	Gfx::Text text;
-	TimedInterpolator<float> fade;
-	Base::Screen::OnFrameDelegate animate;
-	const char *str;
-	IG::WindowRect rect;
+	Gfx::Text text{};
+	TimedInterpolator<float> fade{};
+	Base::Screen::OnFrameDelegate animate{};
+	const char *str{};
+	IG::WindowRect rect{};
 
 public:
 	CreditsView(const char *str, Base::Window &win);

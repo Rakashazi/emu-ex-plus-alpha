@@ -21,9 +21,9 @@ public:
 	virtual void cancel() = 0;
 };
 
-extern JavaInstMethod<void> jSetWinFormat;
-extern JavaInstMethod<int> jWinFormat;
-extern JavaInstMethod<void> jSetRequestedOrientation;
+extern JavaInstMethod<void(jint)> jSetWinFormat;
+extern JavaInstMethod<jint()> jWinFormat;
+extern JavaInstMethod<void(jint)> jSetRequestedOrientation;
 extern SurfaceRotation osRotation;
 extern bool aHasFocus;
 extern uint appState;

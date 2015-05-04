@@ -47,12 +47,12 @@ private:
 	{
 		constexpr FontSizeData(FontSettings settings): settings(settings) {}
 		FontSettings settings;
-		FT_Size size[MAX_FREETYPE_SLOTS] {nullptr};
+		FT_Size size[MAX_FREETYPE_SLOTS]{};
 	};
-	FreetypeFontData f[MAX_FREETYPE_SLOTS];
+	FreetypeFontData f[MAX_FREETYPE_SLOTS]{};
 	uint16 currCharSlot = 0;
 	uint16 usedCharSlots = 0;
-	FontSizeData *activeFontSizeData = nullptr;
+	FontSizeData *activeFontSizeData{};
 
 	static ResourceFontFreetype *loadWithIoWithName (GenericIO io, const char *name);
 	void setMetrics(const FreetypeFontData &fontData, GlyphMetrics &metrics);

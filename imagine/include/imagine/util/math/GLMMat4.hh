@@ -24,23 +24,23 @@
 class GLMMat4 : NotEquals<GLMMat4>
 {
 public:
-	glm::mat4 m;
+	glm::mat4 m{};
 
 	constexpr GLMMat4() {}
-	GLMMat4(const glm::mat4 &m): m{m} {}
+	constexpr GLMMat4(glm::mat4 m): m{m} {}
 
-	GLMMat4 translate(const GLMVec3 &translation) const;
+	GLMMat4 translate(GLMVec3 translation) const;
 
-	static GLMMat4 makeTranslate(const GLMVec3 &translation);
+	static GLMMat4 makeTranslate(GLMVec3 translation);
 
 	static GLMMat4 makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar);
 
-	GLMMat4 scale(const GLMVec3 &factors) const;
+	GLMMat4 scale(GLMVec3 factors) const;
 
 	GLMMat4 scale(float s) const { return scale({s, s, 1.}); }
 	GLMMat4 scale(IG::Point2D<float> p) const { return scale({p.x, p.y, 1.}); }
 
-	GLMMat4 rotate(float angle, const GLMVec3 &axis) const;
+	GLMMat4 rotate(float angle, GLMVec3 axis) const;
 
 	GLMMat4 pitchRotate(float t) const
 	{
@@ -59,14 +59,14 @@ public:
 
 	GLMMat4 invert() const;
 
-	GLMVec4 mult(const GLMVec4 vec) const
+	GLMVec4 mult(GLMVec4 vec) const
 	{
 		return m * vec.v;
 	}
 
 	GLMVec3 project(IG::Rect2<int> viewport, GLMVec3 obj) const;
 
-	GLMVec3 unproject(IG::Rect2<int> viewport, GLMVec3 win, const GLMMat4 &inverse) const;
+	GLMVec3 unproject(IG::Rect2<int> viewport, GLMVec3 win, GLMMat4 inverse) const;
 
 	bool operator ==(GLMMat4 const &rhs) const
 	{

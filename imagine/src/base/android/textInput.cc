@@ -25,14 +25,16 @@ namespace Input
 
 static InputTextDelegate vKeyboardTextDelegate;
 static IG::WindowRect textRect(8, 200, 8+304, 200+48);
-static JavaInstMethod<void> jStartSysTextInput, jFinishSysTextInput, jPlaceSysTextInput;
+static JavaInstMethod<void(jstring, jstring, jint, jint, jint, jint, jint)> jStartSysTextInput;
+static JavaInstMethod<void(jboolean)> jFinishSysTextInput;
+static JavaInstMethod<void(jint, jint, jint, jint)> jPlaceSysTextInput;
 static
 void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss);
 
 static void setupTextInputJni(JNIEnv* env)
 {
 	using namespace Base;
-	if(!jStartSysTextInput.m)
+	if(!jStartSysTextInput)
 	{
 		logMsg("setting up text input JNI");
 		jStartSysTextInput.setup(env, jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIII)V");

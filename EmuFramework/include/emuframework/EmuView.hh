@@ -27,7 +27,7 @@ public:
 	EmuInputView *inputView{};
 
 private:
-	IG::WindowRect rect;
+	IG::WindowRect rect{};
 
 public:
 	EmuView(Base::Window &win): View(win) {}

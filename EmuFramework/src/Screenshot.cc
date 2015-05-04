@@ -46,6 +46,8 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 
 #elif defined CONFIG_DATA_TYPE_IMAGE_ANDROID
 
+#include <imagine/util/jni.hh>
+
 // TODO: make png writer module in imagine
 namespace Base
 {
@@ -58,8 +60,8 @@ extern jobject jBaseActivity;
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 {
-	static JavaInstMethod<jobject> jMakeBitmap;
-	static JavaInstMethod<jobject> jWritePNG;
+	static JavaInstMethod<jobject(jint, jint, jint)> jMakeBitmap;
+	static JavaInstMethod<jboolean(jobject, jobject)> jWritePNG;
 	using namespace Base;
 	auto env = jEnv();
 	if(!jMakeBitmap)

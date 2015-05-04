@@ -17,6 +17,7 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/number.h>
+#include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
@@ -33,23 +34,24 @@ namespace Audio
 {
 using namespace Base;
 
-PcmFormat preferredPcmFormat { 44100, SampleFormats::s16, 2 };
-PcmFormat pcmFormat;
-static SLEngineItf slI = nullptr;
-static SLObjectItf outMix = nullptr, player = nullptr;
-static SLPlayItf playerI = nullptr;
-static SLAndroidSimpleBufferQueueItf slBuffQI = nullptr;
+PcmFormat preferredPcmFormat{44100, SampleFormats::s16, 2};
+PcmFormat pcmFormat{};
+static SLEngineItf slI{};
+static SLObjectItf outMix{}, player{};
+static SLPlayItf playerI{};
+static SLAndroidSimpleBufferQueueItf slBuffQI{};
 static uint wantedLatency = 100000;
 static uint preferredOutputBufferFrames = 0;
 static uint outputBufferBytes = 0; // size in bytes per buffer to enqueue
 static bool isPlaying_ = false, strictUnderrunCheck = true;
-static jobject audioManager = nullptr;
-static JavaInstMethod<jint> jRequestAudioFocus, jAbandonAudioFocus;
+static jobject audioManager{};
+static JavaInstMethod<jint(jobject, jint, jint)> jRequestAudioFocus{};
+static JavaInstMethod<jint(jobject)> jAbandonAudioFocus{};
 static bool soloMix_ = true;
 static bool reachedEndOfPlayback = false;
-static RingBufferType rBuff;
+static RingBufferType rBuff{};
 static uint unqueuedBytes = 0; // number of bytes in ring buffer that haven't been enqueued to SL yet
-static char *ringBuffNextQueuePos = nullptr;
+static char *ringBuffNextQueuePos{};
 
 int maxRate()
 {
@@ -102,8 +104,7 @@ static void setupAudioManagerJNI(JNIEnv* env)
 {
 	if(!audioManager)
 	{
-		JavaInstMethod<jobject> jAudioManager;
-		jAudioManager.setup(env, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;");
+		JavaInstMethod<jobject()> jAudioManager{env, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
 		audioManager = jAudioManager(env, jBaseActivity);
 		assert(audioManager);
 		audioManager = env->NewGlobalRef(audioManager);
@@ -410,7 +411,7 @@ bool hasLowLatency()
 	return preferredOutputBufferFrames;
 }
 
-static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject> &jGetProperty, const char *propStr)
+static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)> &jGetProperty, const char *propStr)
 {
 	auto propJStr = env->NewStringUTF(propStr);
 	auto valJStr = (jstring)jGetProperty(env, audioManager, propJStr);
@@ -432,17 +433,15 @@ CallResult init()
 	logMsg("running init");
 	{
 		auto env = jEnv();
-		JavaInstMethod<void> jSetVolumeControlStream;
-		jSetVolumeControlStream.setup(env, jBaseActivityCls, "setVolumeControlStream", "(I)V");
+		JavaInstMethod<void(jint)> jSetVolumeControlStream{env, jBaseActivityCls, "setVolumeControlStream", "(I)V"};
 		jSetVolumeControlStream(env, jBaseActivity, 3);
 
 		// check preferred settings for low latency
 		if(Base::androidSDK() >= 17)
 		{
 			setupAudioManagerJNI(env);
-			JavaInstMethod<jobject> jGetProperty;
 			jclass jAudioManagerCls = env->GetObjectClass(audioManager);
-			jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+			JavaInstMethod<jobject(jstring)> jGetProperty{env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;"};
 			preferredPcmFormat.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
 			if(preferredPcmFormat.rate != 44100 && preferredPcmFormat.rate != 48000)
 			{
@@ -454,8 +453,7 @@ CallResult init()
 			{
 				logMsg("set preferred sample rate: %d", preferredPcmFormat.rate);
 				// find the preferred buffer size for this rate if device has low-latency support
-				JavaInstMethod<jboolean> jHasLowLatencyAudio;
-				jHasLowLatencyAudio.setup(env, jBaseActivityCls, "hasLowLatencyAudio", "()Z");
+				JavaInstMethod<jboolean()> jHasLowLatencyAudio{env, jBaseActivityCls, "hasLowLatencyAudio", "()Z"};
 				if(jHasLowLatencyAudio(env, jBaseActivity))
 				{
 					preferredOutputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");

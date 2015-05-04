@@ -19,14 +19,15 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/util/strings.h>
+#include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
 
 using namespace IG;
 
-static jclass jBitmapFactory = nullptr;
-static JavaClassMethod<jobject> jDecodeFile;
-static JavaInstMethod<jobject> jDecodeAsset;
-static JavaInstMethod<void> jRecycle;
+static jclass jBitmapFactory{};
+static JavaClassMethod<jobject(jstring)> jDecodeFile{};
+static JavaInstMethod<jobject(jstring)> jDecodeAsset{};
+static JavaInstMethod<void()> jRecycle{};
 
 uint BitmapFactoryImage::width()
 {

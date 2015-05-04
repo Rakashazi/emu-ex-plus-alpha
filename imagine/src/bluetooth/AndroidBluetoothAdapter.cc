@@ -16,6 +16,7 @@
 #define LOGTAG "AndroidBT"
 #include <imagine/bluetooth/AndroidBluetoothAdapter.hh>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/jni.hh>
 #include <errno.h>
 #include <cctype>
 #include "../base/android/android.hh"
@@ -40,9 +41,17 @@ struct asocket
 
 static AndroidBluetoothAdapter defaultAndroidAdapter;
 
-static JavaInstMethod<jint> jStartScan, jInRead, jGetFd, jState;
-static JavaInstMethod<jobject> jDefaultAdapter, jOpenSocket, jBtSocketInputStream, jBtSocketOutputStream;
-static JavaInstMethod<void> jBtSocketClose, jOutWrite, jCancelScan, jTurnOn;
+static JavaInstMethod<jint(jobject)> jStartScan;
+static JavaInstMethod<jint(jbyteArray, jint, jint)> jInRead;
+static JavaInstMethod<jint()> jGetFd;
+static JavaInstMethod<jint(jobject)> jState;
+static JavaInstMethod<jobject()> jDefaultAdapter;
+static JavaInstMethod<jobject(jobject, jstring, jint, jboolean)> jOpenSocket;
+static JavaInstMethod<jobject()> jBtSocketInputStream, jBtSocketOutputStream;
+static JavaInstMethod<void()> jBtSocketClose;
+static JavaInstMethod<void(jbyteArray, jint, jint)> jOutWrite;
+static JavaInstMethod<void(jobject)> jCancelScan;
+static JavaInstMethod<void()> jTurnOn;
 static jfieldID fdDataId{};
 
 void AndroidBluetoothAdapter::sendSocketStatusMessage(const SocketStatusMessage &msg)
@@ -140,7 +149,7 @@ bool AndroidBluetoothAdapter::openDefault()
 
 	// setup JNI
 	auto env = jEnv();
-	if(jDefaultAdapter.m == 0)
+	if(!jDefaultAdapter)
 	{
 		logMsg("JNI setup");
 		jDefaultAdapter.setup(env, jBaseActivityCls, "btDefaultAdapter", "()Landroid/bluetooth/BluetoothAdapter;");

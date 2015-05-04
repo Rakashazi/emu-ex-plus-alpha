@@ -45,11 +45,11 @@ public:
 
 struct AppWindowData
 {
-	Base::Window win;
+	Base::Window win{};
 	Gfx::Viewport viewport() { return projectionPlane.viewport; }
-	Gfx::Mat4 projectionMat;
-	Gfx::ProjectionPlane projectionPlane;
-	Gfx::AnimatedViewport animatedViewport;
+	Gfx::Mat4 projectionMat{};
+	Gfx::ProjectionPlane projectionPlane{};
+	Gfx::AnimatedViewport animatedViewport{};
 	bool focused = true;
 
 	constexpr AppWindowData() {};

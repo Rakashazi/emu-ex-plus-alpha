@@ -25,16 +25,16 @@ class ButtonConfigSetView : public View
 private:
 	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
 
-	IG::WindowRect viewFrame;
+	IG::WindowRect viewFrame{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	IG::WindowRect unbindB, cancelB;
+	IG::WindowRect unbindB{}, cancelB{};
 	#endif
 	char str[128]{};
-	Gfx::Text text;
+	Gfx::Text text{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	Gfx::Text unbind, cancel;
+	Gfx::Text unbind{}, cancel{};
 	#endif
-	SetDelegate onSetD;
+	SetDelegate onSetD{};
 	const Input::Device *dev{};
 	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
@@ -64,12 +64,12 @@ private:
 	};
 
 	InputManagerView &rootIMView;
-	TextMenuItem reset;
+	TextMenuItem reset{};
 	MenuItem **text{};
 	BtnConfigMenuItem *btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
-	Input::Time leftKeyPushTime;
+	Input::Time leftKeyPushTime{};
 
 	void onSet(const Input::Event &e, int keyToSet);
 

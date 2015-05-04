@@ -26,9 +26,9 @@
 class NavView
 {
 public:
-	IG::WindowRect leftBtn, rightBtn, textRect;
-	Gfx::Text text;
-	IG::WindowRect viewRect;
+	IG::WindowRect leftBtn{}, rightBtn{}, textRect{};
+	Gfx::Text text{};
+	IG::WindowRect viewRect{};
 	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
 
 	constexpr NavView() {}
@@ -48,8 +48,8 @@ public:
 class BasicNavView : public NavView
 {
 public:
-	Gfx::Sprite leftSpr, rightSpr;
-	Gfx::LGradient bg;
+	Gfx::Sprite leftSpr{}, rightSpr{};
+	Gfx::LGradient bg{};
 
 	constexpr BasicNavView() {}
 	void init(ResourceFace *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes,

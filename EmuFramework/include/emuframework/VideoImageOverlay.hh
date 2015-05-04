@@ -19,8 +19,8 @@
 
 class VideoImageOverlay
 {
-	Gfx::Texture img;
-	Gfx::Sprite spr;
+	Gfx::Texture img{};
+	Gfx::Sprite spr{};
 	uint effect = NO_EFFECT;
 
 public:

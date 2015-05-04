@@ -48,10 +48,12 @@ AndroidInputDevice genericKeyDev
 	Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
 	"Key Input (All Devices)"
 };
-jclass AInputDeviceJ::cls = nullptr;
-JavaClassMethod<jobject> AInputDeviceJ::getDeviceIds_, AInputDeviceJ::getDevice_;
-JavaInstMethod<jobject> AInputDeviceJ::getName_, AInputDeviceJ::getKeyCharacterMap_, AInputDeviceJ::getMotionRange_, AInputDeviceJ::getDescriptor_;
-JavaInstMethod<jint> AInputDeviceJ::getSources_, AInputDeviceJ::getKeyboardType_;
+jclass AInputDeviceJ::cls{};
+JavaClassMethod<jobject()> AInputDeviceJ::getDeviceIds_{};
+JavaClassMethod<jobject(jint)> AInputDeviceJ::getDevice_{};
+JavaInstMethod<jobject()> AInputDeviceJ::getName_{}, AInputDeviceJ::getKeyCharacterMap_{}, AInputDeviceJ::getDescriptor_{};
+JavaInstMethod<jobject(jint)> AInputDeviceJ::getMotionRange_{};
+JavaInstMethod<jint()> AInputDeviceJ::getSources_{}, AInputDeviceJ::getKeyboardType_{};
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*
 
@@ -611,8 +613,7 @@ CallResult init()
 		if(Base::androidSDK() >= 16)
 		{
 			logMsg("setting up input notifications");
-			JavaInstMethod<jobject> jInputDeviceListenerHelper;
-			jInputDeviceListenerHelper.setup(env, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;");
+			JavaInstMethod<jobject()> jInputDeviceListenerHelper{env, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;"};
 			auto inputDeviceListenerHelper = jInputDeviceListenerHelper(env, Base::jBaseActivity);
 			assert(inputDeviceListenerHelper);
 			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);

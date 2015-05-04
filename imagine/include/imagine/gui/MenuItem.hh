@@ -40,7 +40,7 @@ public:
 class BaseTextMenuItem : public MenuItem
 {
 public:
-	Gfx::Text t;
+	Gfx::Text t{};
 	bool active = true;
 
 	constexpr BaseTextMenuItem() {}
@@ -64,7 +64,7 @@ class TextMenuItem : public BaseTextMenuItem
 {
 public:
 	using SelectDelegate = DelegateFunc<void (TextMenuItem &item, View &parent, const Input::Event &e)>;
-	SelectDelegate selectD;
+	SelectDelegate selectD{};
 
 	constexpr TextMenuItem() {}
 	constexpr TextMenuItem(const char *str): BaseTextMenuItem(str) {}
@@ -85,7 +85,7 @@ public:
 class BaseDualTextMenuItem : public BaseTextMenuItem
 {
 public:
-	Gfx::Text t2;
+	Gfx::Text t2{};
 
 	constexpr BaseDualTextMenuItem() {}
 	constexpr BaseDualTextMenuItem(const char *str): BaseTextMenuItem(str) {}
@@ -101,7 +101,7 @@ class DualTextMenuItem : public BaseDualTextMenuItem
 {
 public:
 	using SelectDelegate = DelegateFunc<void (DualTextMenuItem &item, View &parent, const Input::Event &e)>;
-	SelectDelegate selectD;
+	SelectDelegate selectD{};
 
 	constexpr DualTextMenuItem() {}
 	constexpr DualTextMenuItem(const char *str): BaseDualTextMenuItem(str) {}
@@ -116,10 +116,10 @@ class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
 	typedef DelegateFunc<void (BoolMenuItem &item, View &parent, const Input::Event &e)> SelectDelegate;
-	SelectDelegate selectD;
+	SelectDelegate selectD{};
 	SelectDelegate &onSelect() { return selectD; }
 	const char *offStr = "Off", *onStr = "On";
-	bool on = 0;
+	bool on = false;
 	bool onOffStyle = true;
 
 	constexpr BoolMenuItem() {}
@@ -144,9 +144,9 @@ class MultiChoiceMenuItem : public DualTextMenuItem
 {
 public:
 	typedef DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, int val)> ValueDelegate;
-	ValueDelegate valueD;
+	ValueDelegate valueD{};
 	ValueDelegate &onValue() { return valueD; }
-	const char **choiceStr = nullptr;
+	const char **choiceStr{};
 	int choice = 0, choices = 0, baseVal = 0;
 
 	constexpr MultiChoiceMenuItem() {}

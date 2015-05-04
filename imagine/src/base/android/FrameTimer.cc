@@ -42,8 +42,8 @@ public:
 class FrameworkFrameTimer : public FrameTimer
 {
 public:
-	JavaInstMethod<void> jPostFrame, jUnpostFrame;
-	jobject frameHelper = nullptr;
+	JavaInstMethod<void()> jPostFrame{}, jUnpostFrame{};
+	jobject frameHelper{};
 	bool requested = false;
 
 	bool init(JNIEnv *env, jobject activity);
@@ -137,8 +137,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 	if(Base::androidSDK() >= 16) // Choreographer
 	{
 		//logMsg("using Choreographer for display updates");
-		JavaInstMethod<jobject> jNewChoreographerHelper;
-		jNewChoreographerHelper.setup(env, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;");
+		JavaInstMethod<jobject()> jNewChoreographerHelper{env, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;"};
 		frameHelper = jNewChoreographerHelper(env, activity);
 		assert(frameHelper);
 		frameHelper = env->NewGlobalRef(frameHelper);
@@ -176,8 +175,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 	else // MessageQueue.IdleHandler
 	{
 		logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
-		JavaInstMethod<jobject> jNewIdleHelper;
-		jNewIdleHelper.setup(env, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;");
+		JavaInstMethod<jobject()> jNewIdleHelper{env, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;"};
 		frameHelper = jNewIdleHelper(env, activity);
 		assert(frameHelper);
 		frameHelper = env->NewGlobalRef(frameHelper);

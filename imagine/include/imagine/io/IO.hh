@@ -169,7 +169,7 @@ public:
 	using IOUtils::write;
 	using IOUtils::tell;
 
-	constexpr GenericIO() {}
+	GenericIO() {}
 	template<class T>
 	GenericIO(T &io): io{std::unique_ptr<IO>{new T(std::move(io))}} {}
 	GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}
@@ -194,5 +194,5 @@ public:
 	explicit operator bool();
 
 protected:
-	std::unique_ptr<IO> io;
+	std::unique_ptr<IO> io{};
 };

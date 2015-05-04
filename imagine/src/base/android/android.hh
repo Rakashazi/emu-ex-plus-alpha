@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <jni.h>
 #include <imagine/base/android/android.hh>
-#include <imagine/util/jni.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <android/looper.h>
 #include <android/asset_manager.h>
@@ -28,8 +28,8 @@ struct ANativeWindow;
 namespace Base
 {
 
-extern JavaVM* jVM;
-JNIEnv* jEnv(); // JNIEnv of activity thread
+extern JavaVM *jVM;
+JNIEnv *jEnv(); // JNIEnv of activity thread
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;

@@ -24,10 +24,10 @@
 class BasicViewController : public ViewController
 {
 	View *view{};
-	IG::WindowRect viewRect;
-	Gfx::ProjectionPlane projP;
-	typedef DelegateFunc<void ()> RemoveViewDelegate;
-	RemoveViewDelegate removeViewDel;
+	IG::WindowRect viewRect{};
+	Gfx::ProjectionPlane projP{};
+	using RemoveViewDelegate = DelegateFunc<void ()>;
+	RemoveViewDelegate removeViewDel{};
 
 public:
 	constexpr BasicViewController() {}
@@ -51,8 +51,8 @@ private:
 	View *view[5]{};
 	NavView *nav{};
 	//ViewController *nextController{};
-	IG::WindowRect viewRect, customViewRect;
-	Gfx::ProjectionPlane projP;
+	IG::WindowRect viewRect{}, customViewRect{};
+	Gfx::ProjectionPlane projP{};
 
 public:
 	uint size = 0;

@@ -35,7 +35,7 @@ public:
 	FsDirFilterFunc filter{};
 	TableView tbl;
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
-	OnSelectFileDelegate onSelectFileD;
+	OnSelectFileDelegate onSelectFileD{};
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, const Input::Event &e)>;
 	OnCloseDelegate onCloseD
 	{
@@ -84,8 +84,8 @@ private:
 
 	MenuItem **textPtr{};
 	TextMenuItem *text{};
-	FsSys dir;
-	IG::WindowRect viewFrame;
+	FsSys dir{};
+	IG::WindowRect viewFrame{};
 	ResourceFace *faceRes{};
 	FSNavView navV{*this};
 	bool singleDir = false;

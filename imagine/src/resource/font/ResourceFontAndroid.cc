@@ -23,15 +23,16 @@
 
 using namespace Base;
 
-static JavaInstMethod<jobject> jCharBitmap, jNewSize;
-static JavaInstMethod<void> jApplySize, jFreeSize, jUnlockCharBitmap;
-static JavaInstMethod<jboolean> jActiveChar;
-static JavaInstMethod<jint> jCurrentCharXSize, jCurrentCharYSize, jCurrentCharXOffset, jCurrentCharYOffset,
+static JavaInstMethod<jobject()> jCharBitmap;
+static JavaInstMethod<jobject(jint)> jNewSize;
+static JavaInstMethod<void(jobject)> jApplySize, jFreeSize, jUnlockCharBitmap;
+static JavaInstMethod<jboolean(jint)> jActiveChar;
+static JavaInstMethod<jint()> jCurrentCharXSize, jCurrentCharYSize, jCurrentCharXOffset, jCurrentCharYOffset,
 	jCurrentFaceDescender, jCurrentFaceAscender, jCurrentCharXAdvance;
 
 static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)//jClsLoader, const JavaInstMethod<jobject> &jLoadClass)
 {
-	if(jCharBitmap.m)
+	if(jCharBitmap)
 		return; // already setup
 	//logMsg("setting up JNI methods");
 	/*jstring classStr = env->NewStringUTF("com/imagine/FontRenderer");
@@ -171,7 +172,7 @@ CallResult ResourceFontAndroid::newSize(const FontSettings &settings, FontSizeRe
 
 CallResult ResourceFontAndroid::applySize(FontSizeRef &sizeRef)
 {
-	jApplySize(jEnv(), renderer, sizeRef.ptr);
+	jApplySize(jEnv(), renderer, (jobject)sizeRef.ptr);
 	return OK;
 }
 
@@ -180,7 +181,7 @@ void ResourceFontAndroid::freeSize(FontSizeRef &sizeRef)
 	if(!sizeRef.ptr)
 		return;
 	auto env = jEnv();
-	jFreeSize(env, renderer, sizeRef.ptr);
+	jFreeSize(env, renderer, (jobject)sizeRef.ptr);
 	env->DeleteGlobalRef((jobject)sizeRef.ptr);
 	sizeRef.ptr = nullptr;
 }

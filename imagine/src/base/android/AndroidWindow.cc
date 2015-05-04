@@ -27,9 +27,9 @@
 namespace Base
 {
 
-extern JavaInstMethod<jobject> jPresentation;
-static JavaInstMethod<void> jPresentationShow;
-static JavaInstMethod<void> jPresentationDeinit;
+extern JavaInstMethod<jobject(jobject, jlong)> jPresentation;
+static JavaInstMethod<void()> jPresentationShow{};
+static JavaInstMethod<void()> jPresentationDeinit{};
 
 Window *deviceWindow()
 {
@@ -167,7 +167,7 @@ CallResult Window::init(const WindowConfig &config)
 		logMsg("making presentation window");
 		assert(screen() != Screen::screen(0));
 		auto env = jEnv();
-		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->aDisplay, this));
+		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->aDisplay, (jlong)this));
 		initPresentationJNI(env, jDialog);
 		jPresentationShow(env, jDialog);
 	}

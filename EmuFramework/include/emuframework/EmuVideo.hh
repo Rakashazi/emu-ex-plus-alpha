@@ -20,8 +20,8 @@
 class EmuVideo
 {
 public:
-	Gfx::PixmapTexture vidImg;
-	IG::Pixmap vidPix;
+	Gfx::PixmapTexture vidImg{};
+	IG::Pixmap vidPix{};
 	char *pixBuff{};
 	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
 

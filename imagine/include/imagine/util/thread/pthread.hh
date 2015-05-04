@@ -29,7 +29,7 @@ private:
 
 public:
 	using EntryDelegate = DelegateFunc<ptrsize (ThreadPThread &thread)>;
-	EntryDelegate entry;
+	EntryDelegate entry{};
 	bool running = 0;
 
 	constexpr ThreadPThread() {}

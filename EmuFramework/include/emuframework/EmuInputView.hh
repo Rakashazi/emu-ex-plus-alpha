@@ -25,7 +25,7 @@ public:
 	bool ffKeyPushed = false, ffToggleActive = false;
 
 private:
-	IG::WindowRect rect;
+	IG::WindowRect rect{};
 
 public:
 	EmuInputView(Base::Window &win): View(win) {}

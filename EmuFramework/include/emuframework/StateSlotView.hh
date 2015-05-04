@@ -22,9 +22,9 @@ class StateSlotView : public TableView
 {
 private:
 	static constexpr uint stateSlots = 11;
-	char stateStr[stateSlots][40] {{0}};
-	TextMenuItem stateSlot[stateSlots];
-	MenuItem *item[stateSlots] = {nullptr};
+	char stateStr[stateSlots][40]{};
+	TextMenuItem stateSlot[stateSlots]{};
+	MenuItem *item[stateSlots]{};
 
 public:
 	StateSlotView(Base::Window &win): TableView{"State Slot", win} {}

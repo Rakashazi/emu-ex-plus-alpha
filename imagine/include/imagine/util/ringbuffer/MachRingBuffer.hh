@@ -152,11 +152,11 @@ public:
 	}
 
 private:
-	char *buff = nullptr;
-	char *start = nullptr, *end = nullptr;
-	COUNT written {0};
-	SIZE buffSize {0};
-	SIZE allocBuffSize {0};
+	char *buff{};
+	char *start{}, *end{};
+	COUNT written{};
+	SIZE buffSize{};
+	SIZE allocBuffSize{};
 
 	char *wrapPtr(char *ptr) const
 	{

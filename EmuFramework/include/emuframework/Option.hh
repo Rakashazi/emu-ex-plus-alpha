@@ -29,7 +29,7 @@
 
 struct OptionBase
 {
-	bool isConst = 0;
+	bool isConst = false;
 
 	constexpr OptionBase() {}
 	constexpr OptionBase(bool isConst): isConst(isConst) {}
@@ -78,7 +78,7 @@ struct OptionMethodVar : public OptionMethodBase<T>
 {
 	constexpr OptionMethodVar(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
 	constexpr OptionMethodVar(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator), val(init) {}
-	T val;
+	T val{};
 	T get() const { return val; }
 	void set(T v) { val = v; }
 };

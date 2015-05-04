@@ -25,8 +25,8 @@ class IdentInputDeviceView : public View
 	Gfx::Text text;
 
 public:
-	typedef DelegateFunc<void (const Input::Event &e)> OnIdentInputDelegate;
-	OnIdentInputDelegate onIdentInput;
+	using OnIdentInputDelegate = DelegateFunc<void (const Input::Event &e)>;
+	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(Base::Window &win): View(win) {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
@@ -42,7 +42,7 @@ class InputManagerView : public TableView
 private:
 	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE]{};
 	TextMenuItem deleteDeviceConfig;
-	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS] {nullptr};
+	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS]{};
 	TextMenuItem deleteProfile;
 	#ifdef CONFIG_BASE_ANDROID
 	TextMenuItem rescanOSDevices;
@@ -51,7 +51,7 @@ private:
 	TextMenuItem generalOptions;
 	TextMenuItem systemOptions;
 	TextHeadingMenuItem deviceListHeading;
-	TextMenuItem inputDevName[Input::MAX_DEVS];
+	TextMenuItem inputDevName[Input::MAX_DEVS]{};
 	MenuItem *item[sizeofArrayConst(inputDevName) + 7]{};
 
 public:
@@ -112,7 +112,7 @@ private:
 	BoolMenuItem joystickAxis2DPad;
 	BoolMenuItem joystickAxisHatDPad;
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES];
+	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES]{};
 	MenuItem *item[EmuControls::MAX_CATEGORIES + 11]{};
 	InputDeviceConfig *devConf{};
 

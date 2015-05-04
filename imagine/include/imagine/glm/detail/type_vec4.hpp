@@ -177,7 +177,7 @@ namespace detail
 		GLM_FUNC_DECL GLM_CONSTEXPR explicit tvec4(ctor);
 		GLM_FUNC_DECL GLM_CONSTEXPR explicit tvec4(T s);
 		GLM_FUNC_DECL GLM_CONSTEXPR tvec4(T a, T b, T c, T d);
-		GLM_FUNC_DECL ~tvec4(){}
+		//GLM_FUNC_DECL ~tvec4(){}
 
 		//////////////////////////////////////
 		// Conversion scalar constructors

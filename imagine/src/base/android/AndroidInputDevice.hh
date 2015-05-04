@@ -58,12 +58,12 @@ public:
 
 	static AInputDeviceJ getDevice(JNIEnv *j, jint id)
 	{
-		return AInputDeviceJ {getDevice_(j, id)};
+		return AInputDeviceJ {getDevice_(j, cls, id)};
 	}
 
 	static jintArray getDeviceIds(JNIEnv *j)
 	{
-		return (jintArray)getDeviceIds_(j);
+		return (jintArray)getDeviceIds_(j, cls);
 	}
 
 	jstring getName(JNIEnv *j)
@@ -92,9 +92,11 @@ public:
 	}
 
 	static jclass cls;
-	static JavaClassMethod<jobject> getDeviceIds_, getDevice_;
-	static JavaInstMethod<jobject> getName_, getKeyCharacterMap_, getMotionRange_, getDescriptor_;
-	static JavaInstMethod<jint> getSources_, getKeyboardType_;
+	static JavaClassMethod<jobject()> getDeviceIds_;
+	static JavaClassMethod<jobject(jint)> getDevice_;
+	static JavaInstMethod<jobject()> getName_, getKeyCharacterMap_, getDescriptor_;
+	static JavaInstMethod<jobject(jint)> getMotionRange_;
+	static JavaInstMethod<jint()> getSources_, getKeyboardType_;
 	static constexpr jint SOURCE_CLASS_BUTTON = 0x00000001, SOURCE_CLASS_POINTER = 0x00000002, SOURCE_CLASS_TRACKBALL = 0x00000004,
 			SOURCE_CLASS_POSITION = 0x00000008, SOURCE_CLASS_JOYSTICK = 0x00000010;
 	static constexpr jint SOURCE_KEYBOARD = 0x00000101, SOURCE_DPAD = 0x00000201, SOURCE_GAMEPAD = 0x00000401,

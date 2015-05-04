@@ -28,14 +28,14 @@ extern TurboInput turboActions;
 class VControllerDPad
 {
 public:
-	Gfx::GCRect padBase;
-	IG::WindowRect padBaseArea, padArea;
+	Gfx::GCRect padBase{};
+	IG::WindowRect padBaseArea{}, padArea{};
 	int deadzone = 0;
 	float diagonalSensitivity = 1.;
-	Gfx::Sprite spr;
+	Gfx::Sprite spr{};
 	uint state = 1;
-	Gfx::PixmapTexture mapImg;
-	Gfx::Sprite mapSpr;
+	Gfx::PixmapTexture mapImg{};
+	Gfx::Sprite mapSpr{};
 	bool visualizeBounds = 0;
 
 	constexpr VControllerDPad() {}
@@ -59,8 +59,8 @@ private:
 class VControllerKeyboard
 {
 public:
-	Gfx::Sprite spr;
-	IG::WindowRect bound;
+	Gfx::Sprite spr{};
+	IG::WindowRect bound{};
 	uint keyXSize = 0, keyYSize = 0;
 	static const uint cols = 10;
 	uint mode = 0;
@@ -80,19 +80,19 @@ class VControllerGamepad
 public:
 	// center buttons
 	static constexpr uint MAX_CENTER_BTNS = 2;
-	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS];
-	IG::WindowRect centerBtnsBound;
-	Gfx::Sprite centerBtnSpr[MAX_CENTER_BTNS];
+	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
+	IG::WindowRect centerBtnsBound{};
+	Gfx::Sprite centerBtnSpr[MAX_CENTER_BTNS]{};
 	uint centerBtnsState = 1;
 
 	uint lTriggerState = 1;
 	uint rTriggerState = 1;
 
 	static constexpr uint MAX_FACE_BTNS = 8;
-	IG::WindowRect faceBtnBound[MAX_FACE_BTNS];
-	IG::WindowRect faceBtnsBound, lTriggerBound, rTriggerBound;
+	IG::WindowRect faceBtnBound[MAX_FACE_BTNS]{};
+	IG::WindowRect faceBtnsBound{}, lTriggerBound{}, rTriggerBound{};
 	uint faceBtnsState = 1;
-	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS];
+	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS]{};
 	VControllerDPad dp;
 
 	bool triggersInline = false;
@@ -135,17 +135,17 @@ public:
 	int ptrElem[Config::Input::MAX_POINTERS][2]{};
 	int prevPtrElem[Config::Input::MAX_POINTERS][2]{};
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	VControllerGamepad gp;
+	VControllerGamepad gp{};
 	#endif
 
 	// menu button
-	Gfx::Sprite menuBtnSpr;
-	IG::WindowRect menuBound;
+	Gfx::Sprite menuBtnSpr{};
+	IG::WindowRect menuBound{};
 	uint menuBtnState = 1;
 
 	// fast-forward button
-	Gfx::Sprite ffBtnSpr;
-	IG::WindowRect ffBound;
+	Gfx::Sprite ffBtnSpr{};
+	IG::WindowRect ffBound{};
 	uint ffBtnState = 1;
 
 	float alpha = 0;

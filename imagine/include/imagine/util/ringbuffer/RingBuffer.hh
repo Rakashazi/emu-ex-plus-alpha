@@ -144,10 +144,10 @@ public:
 	}
 
 private:
-	char *buff = nullptr;
-	char *start = nullptr, *end = nullptr;
-	COUNT written {0};
-	SIZE buffSize {0};
+	char *buff{};
+	char *start{}, *end{};
+	COUNT written{};
+	SIZE buffSize{};
 };
 
 template <class COUNT = std::atomic_uint, class SIZE = unsigned int>

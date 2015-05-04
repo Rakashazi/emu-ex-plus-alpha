@@ -3,6 +3,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#ifdef __cplusplus
+#include <array>
+#include <algorithm>
+#endif
 #include <imagine/mem/mem.h>
 #include <imagine/util/algorithm.h>
 
@@ -67,13 +71,9 @@ static char *string_dup(const char *s)
 
 #ifdef __cplusplus
 
-#include <array>
-#include <algorithm>
-
 // copies at most destSize-1 chars from src until null byte or dest size is reached
 // dest is always null terminated
-static char *string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
-static char *string_copy(char *dest, const char *src, size_t destSize)
+[[gnu::nonnull]] static char *string_copy(char *dest, const char *src, size_t destSize)
 {
 	/*iterateTimes(destSize, i)
 	{
@@ -108,11 +108,10 @@ static char *string_copy(std::array<char, S> &dest, const char *src)
 }
 
 #ifdef __clang__
-// need to directly v=call builtin version to get constexpr
+// need to directly call builtin version to get constexpr
 #define string_len(s) __builtin_strlen(s)
 #else
-static constexpr size_t string_len(const char *s) ATTRS(nonnull);
-static constexpr size_t string_len(const char *s)
+[[gnu::nonnull, gnu::pure]] static constexpr size_t string_len(const char *s)
 {
 	return strlen(s);
 	// If compiler doesn't have constexpr the following recursive version also works:

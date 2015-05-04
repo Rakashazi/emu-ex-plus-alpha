@@ -110,7 +110,7 @@ public:
 	}
 
 private:
-	NODE *free = nullptr;
+	NODE *free{};
 public:
 	int size = 0;
 };
@@ -122,9 +122,9 @@ public:
 	class Node
 	{
 	public:
-		constexpr Node() { }
+		constexpr Node() {}
 		constexpr Node(Node *prev, Node *next): prev(prev), next(next) { }
-		T d;
+		T d{};
 		Node *prev;
 		Node *next;
 
@@ -134,10 +134,10 @@ public:
 		}
 	};
 
-	Node *list = nullptr, *listEnd = nullptr;
+	Node *list{}, *listEnd{};
 private:
 	int size_ = 0;
-	DLFreeList<Node> free;
+	DLFreeList<Node> free{};
 
 public:
 	constexpr DLList() {}

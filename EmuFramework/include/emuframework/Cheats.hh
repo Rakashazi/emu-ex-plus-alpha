@@ -33,7 +33,7 @@ class BaseCheatsView : public TableView
 protected:
 	TextMenuItem edit;
 	MenuItem *item[EmuCheats::MAX_ITEMS + 1]{};
-	RefreshCheatsDelegate onRefreshCheats;
+	RefreshCheatsDelegate onRefreshCheats{};
 
 public:
 	BaseCheatsView(Base::Window &win);
@@ -59,7 +59,7 @@ class BaseEditCheatListView : public TableView
 {
 protected:
 	MenuItem *item[EmuCheats::MAX_ITEMS + EmuCheats::MAX_CODE_TYPES]{};
-	RefreshCheatsDelegate onRefreshCheats;
+	RefreshCheatsDelegate onRefreshCheats{};
 
 public:
 	BaseEditCheatListView(Base::Window &win);

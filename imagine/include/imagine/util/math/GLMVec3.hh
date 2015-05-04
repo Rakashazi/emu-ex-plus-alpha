@@ -20,10 +20,9 @@
 class GLMVec3
 {
 public:
-	glm::vec3 v;
+	glm::vec3 v{};
 
 	GLMVec3(): v{} {}
 	GLMVec3(float x, float y, float z): v{x, y, z} {}
-	GLMVec3(const glm::vec3 &v): v{v} {}
+	GLMVec3(glm::vec3 v): v{v} {}
 };
-

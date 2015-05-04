@@ -52,8 +52,8 @@ protected:
 	int selected = -1;
 	int visibleCells = 0;
 	MenuItem **item{};
-	IG::WindowRect viewFrame;
-	_2DOrigin align;
+	IG::WindowRect viewFrame{};
+	_2DOrigin align{};
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();

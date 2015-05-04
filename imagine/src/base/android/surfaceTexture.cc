@@ -14,16 +14,20 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "SurfaceTex"
+#include <imagine/util/jni.hh>
 #include "android.hh"
 
 namespace Base
 {
 
 static jclass jSurfaceCls{}, jSurfaceTextureCls{};
-static JavaInstMethod<void> jSurface, jSurfaceRelease,
-	jSurfaceTexture, jSurfaceTexture2,
-	jUpdateTexImage, jReleaseTexImage,
-	jSurfaceTextureRelease;
+static JavaInstMethod<void(jobject)> jSurface{};
+static JavaInstMethod<void()> jSurfaceRelease{};
+static JavaInstMethod<void(jint)> jSurfaceTexture{};
+static JavaInstMethod<void(jint, jboolean)> jSurfaceTexture2{};
+static JavaInstMethod<void()> jUpdateTexImage{};
+static JavaInstMethod<void()> jReleaseTexImage{};
+static JavaInstMethod<void()> jSurfaceTextureRelease{};
 
 static void initSurfaceTextureJNI(JNIEnv *env)
 {
@@ -55,7 +59,7 @@ jobject makeSurfaceTexture(JNIEnv *env, jint texName)
 	if(androidSDK() < 14)
 		return nullptr;
 	initSurfaceTextureJNI(env);
-	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture.m, texName);
+	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture.method, texName);
 }
 
 jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
@@ -63,7 +67,7 @@ jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
 	if(androidSDK() < 19)
 		return nullptr;
 	initSurfaceTextureJNI(env);
-	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.m, texName, singleBufferMode);
+	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.method, texName, singleBufferMode);
 }
 
 void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
@@ -85,7 +89,7 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture)
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture)
 {
 	initSurfaceJNI(env);
-	return env->NewObject(jSurfaceCls, jSurface.m, surfaceTexture);
+	return env->NewObject(jSurfaceCls, jSurface.method, surfaceTexture);
 }
 
 void releaseSurface(JNIEnv *env, jobject surface)

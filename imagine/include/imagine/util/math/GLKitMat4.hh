@@ -19,7 +19,7 @@ public:
 	}};
 
 	constexpr GLKitMat4() {}
-	GLKitMat4(const GLKMatrix4 &m):
+	constexpr GLKitMat4(GLKMatrix4 m):
 	m
 	{{
 		m.m[0],  m.m[1],  m.m[2],  m.m[3],
@@ -61,18 +61,18 @@ public:
 		const float *v[4];
 	};
 
-	GLKitMat4 translate(const GLKitVec3 &translation) const;
+	GLKitMat4 translate(GLKitVec3 translation) const;
 
-	static GLKitMat4 makeTranslate(const GLKitVec3 &translation);
+	static GLKitMat4 makeTranslate(GLKitVec3 translation);
 
 	static GLKitMat4 makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar);
 
-	GLKitMat4 scale(const GLKitVec3 &factors) const;
+	GLKitMat4 scale(GLKitVec3 factors) const;
 
 	GLKitMat4 scale(float s) const { return scale({s, s, 1.}); }
 	GLKitMat4 scale(IG::Point2D<float> p) const { return scale({p.x, p.y, 1.}); }
 
-	GLKitMat4 rotate(float angle, const GLKitVec3 &axis) const;
+	GLKitMat4 rotate(float angle, GLKitVec3 axis) const;
 
 	GLKitMat4 pitchRotate(float t) const
 	{
@@ -91,11 +91,11 @@ public:
 
 	GLKitMat4 invert() const;
 
-	GLKitVec4 mult(const GLKitVec4 vec) const;
+	GLKitVec4 mult(GLKitVec4 vec) const;
 
 	GLKitVec3 project(IG::Rect2<int> viewport, GLKitVec3 obj) const;
 
-	GLKitVec3 unproject(IG::Rect2<int> viewport, GLKitVec3 win, const GLKitMat4 &inverse) const;
+	GLKitVec3 unproject(IG::Rect2<int> viewport, GLKitVec3 win, GLKitMat4 inverse) const;
 
 	bool operator ==(GLKitMat4 const &rhs) const
 	{

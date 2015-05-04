@@ -26,23 +26,21 @@
 namespace Base
 {
 
-static JavaInstMethod<jint> jGetRotation;
-static JavaInstMethod<jfloat> jGetRefreshRate;
-static JavaInstMethod<jobject> jGetMetrics;
-JavaInstMethod<jobject> jPresentation;
-JavaInstMethod<jobject> jGetDisplay;
+static JavaInstMethod<jint()> jGetRotation{};
+static JavaInstMethod<jfloat()> jGetRefreshRate{};
+static JavaInstMethod<jobject(jobject)> jGetMetrics{};
+JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
+JavaInstMethod<jobject(jint)> jGetDisplay{};
 #ifdef CONFIG_BASE_MULTI_SCREEN
-static JavaInstMethod<jint> jGetDisplayId;
+static JavaInstMethod<jint()> jGetDisplayId{};
 #endif
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
 	{
-		JavaInstMethod<jobject> jDefaultDpy;
-		jDefaultDpy.setup(env, activityCls, "defaultDpy", "()Landroid/view/Display;");
+		JavaInstMethod<jobject()> jDefaultDpy{env, activityCls, "defaultDpy", "()Landroid/view/Display;"};
 		// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
-		JavaInstMethod<jobject> jDisplayMetrics;
-		jDisplayMetrics.setup(env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;");
+		JavaInstMethod<jobject()> jDisplayMetrics{env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;"};
 		static Screen main;
 		main.init(env, jDefaultDpy(env, activity), jDisplayMetrics(env, activity), true);
 		Screen::addScreen(&main);
@@ -52,8 +50,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 	{
 		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
 		logMsg("setting up screen notifications");
-		JavaInstMethod<jobject> jDisplayListenerHelper;
-		jDisplayListenerHelper.setup(env, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;");
+		JavaInstMethod<jobject()> jDisplayListenerHelper{env, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;"};
 		auto displayListenerHelper = jDisplayListenerHelper(env, activity);
 		assert(displayListenerHelper);
 		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
@@ -105,8 +102,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		env->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
 
 		// get the current presentation screens
-		JavaInstMethod<jobject> jGetPresentationDisplays;
-		jGetPresentationDisplays.setup(env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;");
+		JavaInstMethod<jobject()> jGetPresentationDisplays{env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
 		jGetDisplay.setup(env, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
 		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
 		uint pDisplays = env->GetArrayLength(jPDisplay);

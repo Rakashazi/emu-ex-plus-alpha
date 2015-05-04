@@ -23,9 +23,10 @@
 namespace Base
 {
 
-static JavaInstMethod<void> jAddNotification, jRemoveNotification;
-static JavaInstMethod<void> jAddViewShortcut;
-static JavaInstMethod<jobject> jIntentDataPath;
+static JavaInstMethod<void(jstring, jstring, jstring)> jAddNotification{};
+static JavaInstMethod<void()> jRemoveNotification{};
+static JavaInstMethod<void(jstring, jstring)> jAddViewShortcut{};
+static JavaInstMethod<jobject()> jIntentDataPath{};
 
 void addNotification(const char *onShow, const char *title, const char *message)
 {

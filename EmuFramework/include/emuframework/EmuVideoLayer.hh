@@ -26,16 +26,16 @@ struct AppWindowData;
 class EmuVideoLayer
 {
 public:
-	VideoImageOverlay vidImgOverlay;
+	VideoImageOverlay vidImgOverlay{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	VideoImageEffect vidImgEffect;
+	VideoImageEffect vidImgEffect{};
 	#endif
 	EmuVideo &video;
 
 private:
-	Gfx::Sprite disp;
-	IG::WindowRect gameRect_;
-	Gfx::GCRect gameRectG;
+	Gfx::Sprite disp{};
+	IG::WindowRect gameRect_{};
+	Gfx::GCRect gameRectG{};
 	bool useLinearFilter = true;
 
 	void compileDefaultPrograms();

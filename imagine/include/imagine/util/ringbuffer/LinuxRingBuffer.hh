@@ -144,11 +144,11 @@ public:
 	}
 
 private:
-	char *buff = nullptr;
-	char *start = nullptr, *end = nullptr;
-	COUNT written {0};
-	SIZE buffSize {0};
-	SIZE allocBuffSize {0};
+	char *buff{};
+	char *start{}, *end{};
+	COUNT written{};
+	SIZE buffSize{};
+	SIZE allocBuffSize{};
 
 	#ifdef __ANDROID__
 	// Bionic is missing extended mremap with new_address parameter

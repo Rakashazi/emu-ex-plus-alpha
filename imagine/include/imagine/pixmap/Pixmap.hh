@@ -41,7 +41,7 @@ public:
 
 protected:
 	uint w_ = 0, h_ = 0;
-	PixelFormat format_;
+	PixelFormat format_{};
 };
 
 class Pixmap : public PixmapDesc

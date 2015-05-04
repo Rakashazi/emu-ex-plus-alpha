@@ -23,10 +23,10 @@
 class MsgPopup
 {
 private:
-	Gfx::Text text;
-	Gfx::ProjectionPlane projP;
-	Base::Timer unpostTimer;
-	bool error = 0;
+	Gfx::Text text{};
+	Gfx::ProjectionPlane projP{};
+	Base::Timer unpostTimer{};
+	bool error = false;
 	std::array<char, 1024> str{};
 
 public:

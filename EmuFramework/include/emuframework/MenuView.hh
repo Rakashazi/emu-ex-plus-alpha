@@ -36,7 +36,7 @@ class OptionCategoryView : public TableView
 		"System",
 		"GUI"
 	};
-	MenuItem *item[5] {nullptr};
+	MenuItem *item[5]{};
 
 public:
 	OptionCategoryView(Base::Window &win): TableView{"Options", win} {}
@@ -47,7 +47,7 @@ class RecentGameView : public TableView
 {
 private:
 	TextMenuItem recentGame[10]{};
-	TextMenuItem clear;
+	TextMenuItem clear{};
 	MenuItem *item[1 + 10 + 1]{};
 
 public:
@@ -75,7 +75,7 @@ protected:
 	TextMenuItem bundledGames;
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;
-	char stateSlotText[sizeof("State Slot (0)")];
+	char stateSlotText[sizeof("State Slot (0)")]{};
 	TextMenuItem options;
 	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;

@@ -36,34 +36,35 @@
 namespace Base
 {
 
-JavaVM* jVM = nullptr;
-static JNIEnv* jEnv_ = nullptr;
+JavaVM* jVM{};
+static JNIEnv* jEnv_{};
 
 // activity
-jclass jBaseActivityCls = nullptr;
-jobject jBaseActivity = nullptr;
+jclass jBaseActivityCls{};
+jobject jBaseActivity{};
 uint appState = APP_PAUSED;
 bool aHasFocus = true;
-static AConfiguration *aConfig = nullptr;
-static AAssetManager *assetManager = nullptr;
-static JavaInstMethod<void> jSetUIVisibility;
-//static JavaInstMethod<void> jFinish;
-static JavaInstMethod<jobject> jNewFontRenderer;
-JavaInstMethod<void> jSetRequestedOrientation;
-static const char *filesDir = nullptr, *eStoreDir = nullptr;
+static AConfiguration *aConfig{};
+static AAssetManager *assetManager{};
+static JavaInstMethod<void(jint)> jSetUIVisibility{};
+//static JavaInstMethod<void()> jFinish{};
+static JavaInstMethod<jobject()> jNewFontRenderer{};
+JavaInstMethod<void(jint)> jSetRequestedOrientation{};
+static const char *filesDir{}, *eStoreDir{};
 static uint aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
 SurfaceRotation osRotation{};
-static SystemOrientationChangedDelegate onSystemOrientationChanged;
+static SystemOrientationChangedDelegate onSystemOrientationChanged{};
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
-static Timer userActivityCallback;
+static Timer userActivityCallback{};
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
 
 // window
-JavaInstMethod<void> jSetWinFormat, jSetWinFlags;
-JavaInstMethod<int> jWinFormat, jWinFlags;
+JavaInstMethod<void(jint, jint)> jSetWinFlags{};
+JavaInstMethod<void(jint)> jSetWinFormat{};
+JavaInstMethod<jint()> jWinFormat{}, jWinFlags{};
 
 uint appActivityState() { return appState; }
 
@@ -169,14 +170,12 @@ static void activityInit(JNIEnv* env, jobject activity)
 		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 		{
 			logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-			JavaInstMethod<jobject> jFilesDir;
-			jFilesDir.setup(env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;");
+			JavaInstMethod<jobject()> jFilesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
 			filesDir = env->GetStringUTFChars((jstring)jFilesDir(env, activity), nullptr);
 		}
 		{
-			JavaClassMethod<jobject> extStorageDir;
-			extStorageDir.setup(env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;");
-			eStoreDir = env->GetStringUTFChars((jstring)extStorageDir(env), nullptr);
+			JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
+			eStoreDir = env->GetStringUTFChars((jstring)extStorageDir(env, jBaseActivityCls), nullptr);
 		}
 		assert(filesDir);
 		assert(eStoreDir);
@@ -191,9 +190,8 @@ static void activityInit(JNIEnv* env, jobject activity)
 			osAnimatesRotation = true;
 		else
 		{
-			JavaClassMethod<jboolean> jAnimatesRotation;
-			jAnimatesRotation.setup(env, jBaseActivityCls, "gbAnimatesRotation", "()Z");
-			osAnimatesRotation = jAnimatesRotation(env);
+			JavaClassMethod<jboolean()> jAnimatesRotation{env, jBaseActivityCls, "gbAnimatesRotation", "()Z"};
+			osAnimatesRotation = jAnimatesRotation(env, jBaseActivityCls);
 		}
 		if(!osAnimatesRotation)
 		{
@@ -204,8 +202,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 		{
 			if(Base::androidSDK() >= 14)
 			{
-				JavaInstMethod<jboolean> jHasPermanentMenuKey;
-				jHasPermanentMenuKey.setup(env, jBaseActivityCls, "hasPermanentMenuKey", "()Z");
+				JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
 				Base::hasPermanentMenuKey = jHasPermanentMenuKey(env, activity);
 				if(Base::hasPermanentMenuKey)
 				{

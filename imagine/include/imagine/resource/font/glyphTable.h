@@ -15,8 +15,8 @@ struct GlyphMetrics
 
 struct GlyphEntry
 {
-	Gfx::PixmapTexture glyph;
-	GlyphMetrics metrics;
+	Gfx::PixmapTexture glyph{};
+	GlyphMetrics metrics{};
 
 	constexpr GlyphEntry() {}
 };

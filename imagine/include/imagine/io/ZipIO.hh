@@ -26,7 +26,7 @@ public:
 	using IOUtils::write;
 	using IOUtils::tell;
 
-	constexpr ZipIO() {}
+	ZipIO() {}
 	~ZipIO() override;
 	ZipIO(ZipIO &&o);
 	ZipIO &operator=(ZipIO &&o);
@@ -44,7 +44,7 @@ public:
 
 private:
 	unzFile zip{};
-	GenericIO zipIo;
+	GenericIO zipIo{};
 	size_t uncompSize = 0;
 
 	bool openZipFile(const char *path);

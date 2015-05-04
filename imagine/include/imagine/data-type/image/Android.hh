@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <jni.h>
 #include <imagine/engine-globals.h>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/fs/sys.hh>
-#include <imagine/util/jni.hh>
 #include <android/bitmap.h>
 
 class PixelFormatDesc;
@@ -40,8 +40,8 @@ public:
 	IG::PixelFormat pixelFormat() const;
 
 private:
-	jobject bitmap = nullptr;
-	AndroidBitmapInfo info {0};
+	jobject bitmap{};
+	AndroidBitmapInfo info{};
 };
 
 class PngFile : public GfxImageSource

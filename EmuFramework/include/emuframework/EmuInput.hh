@@ -69,8 +69,8 @@ struct KeyConfig
 	uint map;
 	uint devSubtype;
 	char name[MAX_KEY_CONFIG_NAME_SIZE];
-	typedef Input::Key Key;
-	typedef Key KeyArray[MAX_KEY_CONFIG_KEYS];
+	using Key = Input::Key;
+	using KeyArray = Key[MAX_KEY_CONFIG_KEYS];
 	KeyArray key_;
 
 	bool operator ==(KeyConfig const& rhs) const
@@ -128,7 +128,7 @@ static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
 
 struct InputDeviceSavedConfig
 {
-	const KeyConfig *keyConf = nullptr;
+	const KeyConfig *keyConf{};
 	uint enumId = 0;
 	uint8 player = 0;
 	bool enabled = true;
@@ -136,7 +136,7 @@ struct InputDeviceSavedConfig
 	#ifdef CONFIG_INPUT_ICADE
 	bool iCadeMode = 0;
 	#endif
-	char name[MAX_INPUT_DEVICE_NAME_SIZE] {0};
+	char name[MAX_INPUT_DEVICE_NAME_SIZE]{};
 
 	constexpr InputDeviceSavedConfig() {}
 
@@ -160,8 +160,8 @@ struct InputDeviceConfig
 	static constexpr uint PLAYER_MULTI = 0xFF;
 	uint8 player = 0;
 	bool enabled = 1;
-	Input::Device *dev = nullptr;
-	InputDeviceSavedConfig *savedConf = nullptr;
+	Input::Device *dev{};
+	InputDeviceSavedConfig *savedConf{};
 
 	constexpr InputDeviceConfig() {}
 	void reset();
@@ -203,9 +203,9 @@ extern bool physicalControlsPresent;
 struct VControllerLayoutPosition
 {
 	enum { OFF = 0, SHOWN = 1, HIDDEN = 2 };
-	_2DOrigin origin {LT2DO};
+	_2DOrigin origin{LT2DO};
 	uint state = OFF;
-	IG::Point2D<int> pos {0, 0};
+	IG::Point2D<int> pos{};
 
 	constexpr VControllerLayoutPosition() {}
 	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos): origin(origin), pos(pos) {}

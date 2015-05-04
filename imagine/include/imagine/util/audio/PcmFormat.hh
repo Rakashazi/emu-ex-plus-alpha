@@ -26,7 +26,7 @@ class PcmFormat : public NotEquals<PcmFormat>
 {
 public:
 	int rate = 0;
-	SampleFormat sample;
+	SampleFormat sample{};
 	int channels = 0;
 
 	constexpr PcmFormat() {}

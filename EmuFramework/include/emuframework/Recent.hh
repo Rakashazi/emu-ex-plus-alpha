@@ -25,7 +25,7 @@
 struct RecentGameInfo
 {
 	FsSys::PathString path{};
-	char name[256] {0};
+	char name[256]{};
 	static constexpr uint MAX_RECENT = 10;
 
 	constexpr RecentGameInfo() {}
