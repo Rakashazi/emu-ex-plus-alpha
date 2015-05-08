@@ -1071,7 +1071,7 @@ void EmuSystem::configAudioRate(double frameTime)
 {
 	logMsg("set audio rate %d", (int)optionSoundRate);
 	pcmFormat.rate = optionSoundRate;
-	double systemFrameRate = isPal ? 50.125 : 59.826;
+	double systemFrameRate = isPal ? 50.12 : 59.826;
 	int mixRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	int currRate;
 	resources_get_int("SoundSampleRate", &currRate);
