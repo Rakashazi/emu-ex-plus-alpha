@@ -276,14 +276,15 @@ const char *EmuSystem::systemName()
 void EmuSystem::initOptions()
 {
 	optionNotificationIcon.initDefault(0);
-	optionNotificationIcon.isConst = 1;
+	optionNotificationIcon.isConst = true;
 	optionAutoSaveState.initDefault(0);
 	if(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS)
 		optionSound.initDefault(0);
 	optionSoundRate.initDefault(44100);
-	optionSoundRate.isConst = 1;
+	optionSoundRate.isConst = true;
 	optionTouchCtrlBtnSpace.initDefault(100);
 	optionTouchCtrlBtnStagger.initDefault(3);
+	optionFrameRate.isConst = true;
 }
 
 void EmuSystem::onOptionsLoaded()

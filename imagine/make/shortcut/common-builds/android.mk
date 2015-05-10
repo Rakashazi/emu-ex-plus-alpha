@@ -17,7 +17,7 @@ ifdef android_ouyaBuild
 endif
 
 ifneq ($(filter arm, $(android_arch)),)
- armTarget := $(android_buildPrefix)-$(android_minSDK)-armv6$(targetExt)
+ armTarget := $(android_buildPrefix)-$(android_minSDK)-arm$(targetExt)
  targets += $(armTarget)
 endif
 ifneq ($(filter armv7, $(android_arch)),)

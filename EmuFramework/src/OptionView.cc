@@ -349,6 +349,7 @@ void OptionView::overlayEffectLevelInit()
 	overlayEffectLevel.init(str, init, sizeofArray(str));
 }
 
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 void OptionView::imgEffectPixelFormatInit()
 {
 	static const char *str[]
@@ -363,6 +364,7 @@ void OptionView::imgEffectPixelFormatInit()
 	}
 	imgEffectPixelFormat.init(str, init, sizeofArray(str));
 }
+#endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 void OptionView::windowPixelFormatInit()
@@ -783,8 +785,11 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 	frameIntervalInit(); item[items++] = &frameInterval;
 	#endif
 	dropLateFrames.init(optionSkipLateFrames); item[items++] = &dropLateFrames;
-	printFrameRateStr(frameRateStr);
-	frameRate.init(frameRateStr, true); item[items++] = &frameRate;
+	if(!optionFrameRate.isConst)
+	{
+		printFrameRateStr(frameRateStr);
+		frameRate.init(frameRateStr, true); item[items++] = &frameRate;
+	}
 	if(!optionFrameRatePAL.isConst)
 	{
 		printFrameRatePALStr(frameRatePALStr);
@@ -805,7 +810,9 @@ void OptionView::loadVideoItems(MenuItem *item[], uint &items)
 		androidTextureStorageInit(); item[items++] = &androidTextureStorage;
 	}
 	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormatInit(); item[items++] = &imgEffectPixelFormat;
+	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	windowPixelFormatInit(); item[items++] = &windowPixelFormat;
 	#endif
@@ -975,7 +982,9 @@ OptionView::OptionView(Base::Window &win):
 				emuVideoLayer.setEffect(0);
 				emuVideo.reinitImage();
 				emuVideo.clearImage();
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 				emuVideoLayer.setEffect(optionImgEffect);
+				#endif
 			}
 		}
 	},
@@ -1174,6 +1183,7 @@ OptionView::OptionView(Base::Window &win):
 			emuWin->win.postDraw();
 		}
 	},
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormat
 	{
 		"Effect Color Format",
@@ -1192,6 +1202,7 @@ OptionView::OptionView(Base::Window &win):
 			emuWin->win.postDraw();
 		}
 	},
+	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	windowPixelFormat
 	{

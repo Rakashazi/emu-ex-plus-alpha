@@ -128,7 +128,9 @@ bool imageEffectPixelFormatIsValid(uint8 val)
 	return false;
 }
 
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
+#endif
 
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,

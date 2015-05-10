@@ -113,7 +113,7 @@ void Pixmap::clear()
 MemPixmap::MemPixmap(PixmapDesc desc):
 	Pixmap{desc, malloc(desc.format().pixelBytes(desc.w() * desc.h()))}
 	{
-		logDMsg("allocated memory pixmap data:%p", data);
+		//logDMsg("allocated memory pixmap data:%p", data);
 	}
 
 MemPixmap::MemPixmap(MemPixmap &&o)
@@ -126,7 +126,7 @@ MemPixmap &MemPixmap::operator=(MemPixmap &&o)
 {
 	if(data)
 	{
-		logDMsg("freed memory pixmap data:%p via move ctor", data);
+		//logDMsg("freed memory pixmap data:%p via move ctor", data);
 		free(data);
 	}
 	*this = o;
@@ -138,7 +138,7 @@ MemPixmap::~MemPixmap()
 {
 	if(data)
 	{
-		logDMsg("freed memory pixmap data:%p", data);
+		//logDMsg("freed memory pixmap data:%p", data);
 		free(data);
 	}
 }

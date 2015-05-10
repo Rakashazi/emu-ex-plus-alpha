@@ -21,6 +21,7 @@
 #include <emuframework/ConfigFile.hh>
 #include <emuframework/EmuView.hh>
 #include <imagine/gui/AlertView.hh>
+#include <imagine/util/assume.h>
 #include <cmath>
 
 AppWindowData mainWin, extraWin;
@@ -195,9 +196,15 @@ static Base::Screen::OnFrameDelegate onFrameUpdate
 			{
 				EmuSystem::runFrameOnDraw = true;
 				postDrawToEmuWindows();
-				if(frames > 1 && optionSkipLateFrames)
+				const uint maxLateFrameSkip = 6;
+				uint maxFrameSkip = optionSkipLateFrames ? maxLateFrameSkip : 0;
+				#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+				if(!optionSkipLateFrames)
+					maxFrameSkip = optionFrameInterval - 1;
+				#endif
+				assumeExpr(maxFrameSkip <= maxLateFrameSkip);
+				if(frames > 1 && maxFrameSkip)
 				{
-					const uint maxFrameSkip = 6;
 					uint framesToSkip = frames - 1;
 					framesToSkip = std::min(framesToSkip, maxFrameSkip);
 					bool renderAudio = optionSound;
@@ -639,7 +646,9 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	emuVideoLayer.setLinearFilter(optionImgFilter);
 	emuVideoLayer.vidImgOverlay.setEffect(optionOverlayEffect);
 	emuVideoLayer.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	emuVideoLayer.vidImgEffect.setBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
+	#endif
 
 	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
 			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);

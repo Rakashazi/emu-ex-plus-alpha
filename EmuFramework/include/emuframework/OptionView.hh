@@ -61,8 +61,10 @@ protected:
 	void overlayEffectInit();
 	MultiChoiceSelectMenuItem overlayEffectLevel;
 	void overlayEffectLevelInit();
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	MultiChoiceSelectMenuItem imgEffectPixelFormat;
 	void imgEffectPixelFormatInit();
+	#endif
 	#if defined EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	MultiChoiceSelectMenuItem windowPixelFormat;
 	void windowPixelFormatInit();

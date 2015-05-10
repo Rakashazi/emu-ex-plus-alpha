@@ -202,11 +202,11 @@ endif
 
 ifndef android_noArm
 
-android_armMakefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv6.mk
+android_armMakefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm.mk
 android_armSODir := $(android_targetPath)/libs/armeabi
 android_armSO := $(android_armSODir)/lib$(android_soName).so
 android_armMakeArgs = -f $(android_armMakefile) $(android_makefileOpts) \
- targetDir=$(android_armSODir) buildName=$(android_buildName)-armv6 \
+ targetDir=$(android_armSODir) buildName=$(android_buildName)-arm \
  projectPath=$(projectPath)
 .PHONY: android-arm
 android-arm :

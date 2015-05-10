@@ -218,10 +218,10 @@ static bool readConfig2(IO &io)
 			#endif
 			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 			bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
+			bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
-			bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
 			bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
 			bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
@@ -426,10 +426,10 @@ static OptionBase *cfgFileOption[] =
 	&optionImgFilter,
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	&optionImgEffect,
+	&optionImageEffectPixelFormat,
 	#endif
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
-	&optionImageEffectPixelFormat,
 	#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 	&optionRelPointerDecel,
 	#endif

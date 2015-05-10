@@ -5,10 +5,10 @@ android_abi := armeabi
 include $(buildSysPath)/android-arm.mk
 
 # No Android 2.3+ armv5te devices exist to my knowledge
-armv6CPUFlags := -march=armv6  -mno-unaligned-access -msoft-float
+armCPUFlags := -march=armv6 -mfpu=vfp -mno-unaligned-access -msoft-float
 
 ifeq ($(config_compiler),clang)
- android_cpuFlags ?= -target armv5te-none-linux-androideabi $(armv6CPUFlags)
+ android_cpuFlags ?= -target armv5te-none-linux-androideabi $(armCPUFlags)
 else
- android_cpuFlags ?= $(armv6CPUFlags) 
+ android_cpuFlags ?= $(armCPUFlags) 
 endif

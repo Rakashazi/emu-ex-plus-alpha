@@ -90,10 +90,10 @@ extern Byte1Option optionImgFilter;
 extern OptionAspectRatio optionAspectRatio;
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 extern Byte1Option optionImgEffect;
+extern Byte1Option optionImageEffectPixelFormat;
 #endif
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
-extern Byte1Option optionImageEffectPixelFormat;
 
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;

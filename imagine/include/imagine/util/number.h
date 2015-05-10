@@ -96,14 +96,9 @@ static uint32 nextHighestPowerOf2(uint32 n)
 	return n;
 }
 
-// sqrt
-template <class T>
-static constexpr T sqrt(T x) { return std::sqrt(x); }
-
-#ifdef CONFIG_TYPES_SOFT_FLOAT
 // Method using Log Base 2 Approximation With One Extra Babylonian Steps
 // http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
-static float sqrt(float x)
+static float sqrtFast(float x)
 {
 	union
 	{
@@ -120,7 +115,7 @@ static float sqrt(float x)
 }
 
 template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
-static T sqrt(T remainder)
+static T sqrtFast(T remainder)
 {
 	if(remainder < 0) // if type is unsigned this will be ignored = no runtime
 		return 0; // negative number ERROR
@@ -142,7 +137,6 @@ static T sqrt(T remainder)
 	}
 	return root;
 }
-#endif
 
 template<class T, ENABLE_IF_COND(std::is_integral<T>)>
 constexpr static bool isEven(T num)
@@ -361,19 +355,7 @@ static bool valIsWithinStretch(T val, T val2, T stretch)
 }
 
 template <class T>
-constexpr static T sin(T x)
-{
-	return std::sin(x);
-}
-
-template <class T>
 constexpr static T sinD(T x) { return std::sin(toRadians(x)); }
-
-template <class T>
-constexpr static T cos(T x)
-{
-	return std::cos(x);
-}
 
 template <class T>
 constexpr static T cosD(T x) { return std::cos(toRadians(x)); }

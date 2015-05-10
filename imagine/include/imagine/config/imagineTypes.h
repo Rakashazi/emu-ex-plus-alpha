@@ -23,11 +23,3 @@ enum { OK, NO_FREE_ENTRIES, OUT_OF_MEMORY, IO_ERROR, ALREADY_EXISTS,
 	READ_ERROR, WRITE_ERROR, BAD_STATE };
 
 typedef uint CallResult;
-
-#if defined __arm__ && __ARM_ARCH < 7 && defined __SOFTFP__
-#define CONFIG_TYPES_SOFT_FLOAT
-#endif
-
-#if !defined __x86_64__ && !defined __i386__ && !defined __aarch64__
-#define CONFIG_TYPES_NO_DOUBLE
-#endif

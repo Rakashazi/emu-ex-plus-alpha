@@ -1,4 +1,4 @@
-# general Android ARM setup, included by ARMv6/ARMv7 makefiles
+# general Android ARM setup, included by ARM/ARMv7 makefiles
 ifndef android_minSDK 
  android_minSDK := 9
 endif
