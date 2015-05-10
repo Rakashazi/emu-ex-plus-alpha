@@ -117,7 +117,7 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 			return true;
 		if(string_equal(rendererStr, "PowerVR SGX 540"))
 			return true;
-		if(string_equal(rendererStr, "Mali-400 MP"))
+		if(strstr(rendererStr, "Mali"))
 			return true;
 		if(Base::androidSDK() >= 20 &&
 			string_equal(rendererStr, "Adreno (TM) 320"))
