@@ -120,8 +120,12 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 		if(strstr(rendererStr, "Mali"))
 			return true;
 		if(Base::androidSDK() >= 20 &&
-			string_equal(rendererStr, "Adreno (TM) 320"))
+			string_equal(Base::androidBuildDevice(), "mako"))
+		{
+			// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
+			// other devices like the HTC One M7 will crash using GraphicBuffers
 			return true;
+		}
 	}
 	else if(Config::MACHINE_IS_GENERIC_X86)
 	{

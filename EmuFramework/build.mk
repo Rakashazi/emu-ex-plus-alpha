@@ -32,7 +32,7 @@ prefix ?= $(IMAGINE_SDK_PLATFORM_PATH)
 imaginePkgconfigTemplate := $(projectPath)/pkgconfig/emuframework.pc
 pkgName := EmuFramework
 pkgDescription := Emulator App Framework
-pkgVersion := 1.5.27
+pkgVersion := 1.5.28
 LDLIBS := -l$(libName) $(LDLIBS)
 
 include $(IMAGINE_PATH)/make/package/imagine.mk
