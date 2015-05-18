@@ -57,8 +57,8 @@ public:
 	OnCloseDelegate &onClose() { return onCloseD; }
 	void onLeftNavBtn(const Input::Event &e);
 	void onRightNavBtn(const Input::Event &e);
-	IG::WindowRect &viewRect() { return viewFrame; }
-	void clearSelection()
+	IG::WindowRect &viewRect() override { return viewFrame; }
+	void clearSelection() override
 	{
 		tbl.clearSelection();
 	}

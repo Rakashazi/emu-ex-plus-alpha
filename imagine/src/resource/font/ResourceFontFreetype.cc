@@ -42,7 +42,7 @@ static CallResult getFontFilenameWithPattern(FcPattern *pat, char *&filename, Fc
 			FcPatternDestroy(matchPat);
 		return INVALID_PARAMETER;
 	}
-	if(!FcPatternGetString(matchPat, FC_FILE, 0, (FcChar8**)&filename) == FcResultMatch)
+	if(FcPatternGetString(matchPat, FC_FILE, 0, (FcChar8**)&filename) != FcResultMatch)
 	{
 		logErr("fontconfig font missing file path");
 		FcPatternDestroy(matchPat);

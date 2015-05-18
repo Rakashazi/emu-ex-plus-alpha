@@ -31,7 +31,7 @@ public:
 	IG::WindowRect rect{};
 
 	AlertView(Base::Window &win): View{win}, menu{win} {}
-	IG::WindowRect &viewRect() { return rect; }
+	IG::WindowRect &viewRect() override { return rect; }
 	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
