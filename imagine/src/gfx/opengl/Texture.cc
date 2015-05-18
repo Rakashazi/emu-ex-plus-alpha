@@ -661,6 +661,7 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		{
 			if(levels_) // texture format was previously set
 			{
+				sampler = 0;
 				deleteTex(texName_);
 				texName_ = newTex();
 			}
@@ -679,6 +680,7 @@ CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		{
 			if(unlikely(levels_ && levels != levels_)) // texture format was previously set
 			{
+				sampler = 0;
 				deleteTex(texName_);
 				texName_ = newTex();
 			}
