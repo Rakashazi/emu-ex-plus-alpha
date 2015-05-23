@@ -28,12 +28,10 @@ char *Pixmap::pixel(IG::WP pos) const
 	return (char*)data + format().offsetBytes(pos.x, pos.y, pitch);
 }
 
-void Pixmap::write(const IG::Pixmap &pixmap, IG::WP destPos)
+void Pixmap::write(const IG::Pixmap &pixmap)
 {
-	assumeExpr(destPos.x + pixmap.w() <= w());
-	assumeExpr(destPos.y + pixmap.h() <= h());
 	assumeExpr(format() == pixmap.format());
-	if(!isPadded() && !pixmap.isPadded())
+	if(w() == pixmap.w() && !isPadded() && !pixmap.isPadded())
 	{
 		// whole block
 		//logDMsg("copying whole block");
@@ -52,6 +50,11 @@ void Pixmap::write(const IG::Pixmap &pixmap, IG::WP destPos)
 			destData += pitch;
 		}
 	}
+}
+
+void Pixmap::write(const IG::Pixmap &pixmap, IG::WP destPos)
+{
+	subPixmap(destPos, size() - destPos).write(pixmap);
 }
 
 Pixmap Pixmap::subPixmap(IG::WP pos, IG::WP size) const

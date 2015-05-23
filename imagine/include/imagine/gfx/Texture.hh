@@ -217,6 +217,7 @@ public:
 	static uint bestAlignment(const IG::Pixmap &pixmap);
 	bool canUseMipmaps();
 	bool generateMipmaps();
+	uint levels() const;
 	CallResult setFormat(IG::PixmapDesc desc, uint levels);
 	void bind();
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
@@ -226,7 +227,7 @@ public:
 	LockedTextureBuffer lock(uint level, IG::WindowRect rect);
 	void unlock(LockedTextureBuffer lockBuff);
 	IG::WP size(uint level) const;
-	IG::PixmapDesc pixmapDesc();
+	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint mode);
 	void useDefaultProgram(uint mode, const Mat4 *modelMat);
 	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }
@@ -246,9 +247,11 @@ public:
 	}
 	CallResult setFormat(IG::PixmapDesc desc, uint levels);
 	IG::Rect2<GTexC> uvBounds() const;
+	IG::PixmapDesc usedPixmapDesc() const;
 
 private:
-	IG::Rect2<GTexC> uv;
+	IG::Rect2<GTexC> uv{};
+	IG::WP usedSize{};
 
 	void updateUV(IG::WP pixPos, IG::WP pixSize);
 };

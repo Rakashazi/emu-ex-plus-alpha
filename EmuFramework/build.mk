@@ -29,10 +29,12 @@ targetDir := lib/$(buildName)
 
 prefix ?= $(IMAGINE_SDK_PLATFORM_PATH)
 
+include $(projectPath)/metadata/conf.mk
+
 imaginePkgconfigTemplate := $(projectPath)/pkgconfig/emuframework.pc
 pkgName := EmuFramework
 pkgDescription := Emulator App Framework
-pkgVersion := 1.5.28
+pkgVersion := $(metadata_version)
 LDLIBS := -l$(libName) $(LDLIBS)
 
 include $(IMAGINE_PATH)/make/package/imagine.mk

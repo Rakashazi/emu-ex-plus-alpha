@@ -210,7 +210,10 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 
 void VControllerKeyboard::draw()
 {
-	Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
+	if(spr.image()->levels() > 1)
+		Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
+	else
+		Gfx::TextureSampler::bindDefaultNoMipClampSampler();
 	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	spr.draw();
 }

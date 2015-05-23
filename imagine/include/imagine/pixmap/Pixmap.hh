@@ -71,6 +71,7 @@ public:
 		{}
 
 	char *pixel(IG::WP pos) const;
+	void write(const IG::Pixmap &pixmap);
 	void write(const IG::Pixmap &pixmap, IG::WP destPos);
 	void clear(IG::WP pos, IG::WP size);
 	void clear();

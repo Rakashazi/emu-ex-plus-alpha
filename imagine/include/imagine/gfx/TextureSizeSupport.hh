@@ -14,6 +14,7 @@ public:
 	bool nonPow2CanMipmap = false;
 	bool nonPow2CanRepeat = false;
 	uint maxXSize = 0, maxYSize = 0;
+	static constexpr bool forcePow2 = false;
 
 	constexpr TextureSizeSupport() {}
 
@@ -26,7 +27,7 @@ public:
 	{
 		using namespace IG;
 		IG::WP supportedSize;
-		if(nonPow2)
+		if(nonPow2 && !forcePow2)
 		{
 			supportedSize = size;
 		}

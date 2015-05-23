@@ -1,4 +1,4 @@
-libcxxVersion := 3.5.0
+libcxxVersion := 3.6.0
 libcxxabiSrcDir := $(tempDir)/libcxxabi-$(libcxxVersion).src
 libcxxabiSrcArchive := libcxxabi-$(libcxxVersion).src.tar.xz
 

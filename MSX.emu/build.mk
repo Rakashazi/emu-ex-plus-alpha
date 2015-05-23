@@ -127,6 +127,12 @@ endif
 # Others 
 SRC +=  $(BMSX)/Bios/Patch.c $(BMSX)/Language/LanguageMinimal.c
 
+ifdef RELEASE
+# TODO: Use LTO for proper weak symbol overriding 
+# since iOS build currently has it disabled due to app exit crash
+$(objDir)/main/Main.o $(objDir)/main/BlueMSXApi.o $(objDir)/main/MediaDb.o $(objDir)/main/EmuControls.o : CXXFLAGS += -flto
+endif
+
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

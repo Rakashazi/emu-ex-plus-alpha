@@ -41,8 +41,6 @@ static bool useMultisample = false;
 static bool forceNoMultisample = true;
 static bool forceNoMultisampleHint = false;
 
-static bool forceNoNonPow2Textures = false;
-
 #ifdef CONFIG_GFX_OPENGL_ES
 bool supportBGRPixels = false;
 static bool useBGRPixels = false;
@@ -285,9 +283,8 @@ static void checkExtensionString(const char *extStr)
 	if(string_equal(extStr, "GL_ARB_texture_non_power_of_two")
 		|| (Config::Gfx::OPENGL_ES && string_equal(extStr, "GL_OES_texture_npot")))
 	{
-		 // allows mipmaps and repeat modes
-		if(!forceNoNonPow2Textures)
-			setupNonPow2MipmapRepeatTextures();
+		// allows mipmaps and repeat modes
+		setupNonPow2MipmapRepeatTextures();
 	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
@@ -298,15 +295,13 @@ static void checkExtensionString(const char *extStr)
 		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
 	{
 		// no mipmaps or repeat modes
-		if(!forceNoNonPow2Textures)
-			setupNonPow2Textures();
+		setupNonPow2Textures();
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2
 		&& !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
 	{
 		// no repeat modes
-		if(!forceNoNonPow2Textures)
-			setupNonPow2MipmapTextures();
+		setupNonPow2MipmapTextures();
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
 	{
@@ -576,8 +571,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 	}
 	if(glVer >= 20)
 	{
-		if(!forceNoNonPow2Textures)
-			setupNonPow2MipmapRepeatTextures();
+		setupNonPow2MipmapRepeatTextures();
 	}
 	if(glVer >= 21)
 	{
@@ -630,13 +624,10 @@ CallResult init(IG::PixelFormat pixelFormat)
 	}
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
 	{
-		if(!forceNoNonPow2Textures)
-		{
-			if(glVer >= 30)
-				setupNonPow2MipmapRepeatTextures();
-			else
-				setupNonPow2Textures();
-		}
+		if(glVer >= 30)
+			setupNonPow2MipmapRepeatTextures();
+		else
+			setupNonPow2Textures();
 		setupFBOFuncs();
 		if(glVer >= 30)
 		{

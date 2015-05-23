@@ -302,6 +302,15 @@ void discardTexturePBO()
 	usedTexturePBOs = 0;
 }
 
+static bool supportsDirectStorage()
+{
+	#ifdef __ANDROID__
+	if(Texture::androidStorageImpl() != Texture::ANDROID_NONE)
+		return true;
+	#endif
+	return false;
+}
+
 template<class T>
 static CallResult initTextureCommon(T &texture, GfxImageSource &img, bool makeMipmaps)
 {
@@ -633,6 +642,11 @@ bool Texture::generateMipmaps()
 	return true;
 }
 
+uint Texture::levels() const
+{
+	return levels_;
+}
+
 CallResult Texture::setFormat(IG::PixmapDesc desc, uint levels)
 {
 	if(unlikely(!texName_))
@@ -787,7 +801,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 			lockBuff.pixmap().write(pixmap, {});
 			unlock(lockBuff);
 		}
-		else if(useUnpackRowLength || pixmap.pitchPixels() == pixmap.w())
+		else if(useUnpackRowLength || !pixmap.isPadded())
 		{
 			glcPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
 			if(useUnpackRowLength)
@@ -941,7 +955,7 @@ IG::WP Texture::size(uint level) const
 	return {(int)w, (int)h};
 }
 
-IG::PixmapDesc Texture::pixmapDesc()
+IG::PixmapDesc Texture::pixmapDesc() const
 {
 	return pixDesc;
 }
@@ -1005,11 +1019,14 @@ Texture::operator bool() const
 
 CallResult PixmapTexture::init(TextureConfig config)
 {
-	if(config.willWriteOften() && config.levels() == 1)
+	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage())
 	{
 		// try without changing size when using direct pixel storage
 		if(Texture::init(config) == OK)
+		{
+			usedSize = config.pixmapDesc().size();
 			return OK;
+		}
 	}
 	auto origPixDesc = config.pixmapDesc();
 	config.setPixmapDesc(textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
@@ -1018,6 +1035,7 @@ CallResult PixmapTexture::init(TextureConfig config)
 		return result;
 	if(origPixDesc != config.pixmapDesc())
 		clear(0);
+	usedSize = origPixDesc.size();
 	updateUV({}, origPixDesc.size());
 	return OK;
 }
@@ -1031,18 +1049,20 @@ CallResult PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 {
 	if(directTex)
 	{
+		usedSize = desc.size();
 		return Texture::setFormat(desc, levels);
 	}
 	else
 	{
-		IG::PixmapDesc newPixDesc = textureSizeSupport.makePixmapDescWithSupportedSize(desc);
-		auto result = Texture::setFormat(newPixDesc, levels);
+		IG::PixmapDesc fullPixDesc = textureSizeSupport.makePixmapDescWithSupportedSize(desc);
+		auto result = Texture::setFormat(fullPixDesc, levels);
 		if(result != OK)
 		{
 			return result;
 		}
-		if(desc != newPixDesc)
+		if(desc != fullPixDesc)
 			clear(0);
+		usedSize = desc.size();
 		updateUV({}, desc.size());
 		return OK;
 	}
@@ -1051,6 +1071,11 @@ CallResult PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 IG::Rect2<GTexC> PixmapTexture::uvBounds() const
 {
 	return uv;
+}
+
+IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
+{
+	return {usedSize, pixmapDesc().format()};
 }
 
 void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)

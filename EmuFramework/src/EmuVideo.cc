@@ -66,7 +66,7 @@ void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint t
 	{
 		reinitImage();
 	}
-	else if(vidPix != vidImg.pixmapDesc())
+	else if(vidPix != vidImg.usedPixmapDesc())
 	{
 		vidImg.setFormat(vidPix, 1);
 	}
