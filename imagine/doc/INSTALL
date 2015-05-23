@@ -30,9 +30,9 @@ bash makeAll-ios-armv7.sh install TAR=gnutar
 3. Building
 ===========
 
-Use one of the makefiles in the root Imagine directory to build that specific port. Build output goes into the "build" and "lib" subdirectories of the working directory. Pass "V=1" as an override for verbose build output. For example, to build and install the debug version of the Android ARMv7 port with verbose output and 4 compile jobs, use:
+Use one of the makefiles in the root Imagine directory to build that specific port. Build output goes into the "build" and "lib" subdirectories of the working directory. Pass "V=1" as an override for verbose build output. For example, to build and install the debug version of the Android port with verbose output and 4 compile jobs, use:
 
-make -f $IMAGINE_PATH/android-9-armv7.mk install V=1 -j4
+make -f $IMAGINE_PATH/android.mk install V=1 -j4
 
 To use the resulting Imagine SDK with pkg-config, add that port's "lib/pkgconfig" path to the "PKG_CONFIG_PATH" environment variable. Note apps directly using Imagine's build system do this automatically by checking the "IMAGINE_SDK_PATH" environment variable.
 
