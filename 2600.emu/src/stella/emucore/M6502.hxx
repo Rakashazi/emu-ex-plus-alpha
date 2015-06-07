@@ -8,31 +8,31 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.hxx 2745 2013-05-30 16:07:19Z stephena $
+// $Id: M6502.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef M6502_HXX
 #define M6502_HXX
 
-class M6502;
-class Debugger;
-class CpuDebug;
-class Expression;
-class PackedBitArray;
+#ifdef DEBUGGER_SUPPORT
+  class Debugger;
+  class CpuDebug;
+
+  #include "Expression.hxx"
+  #include "PackedBitArray.hxx"
+#endif
+
+class Settings;
 
 #include "bspf.hxx"
 #include "System.hxx"
-#include "Array.hxx"
-#include "StringList.hxx"
 #include "Serializable.hxx"
-
-typedef Common::Array<Expression*> ExpressionList;
 
 /**
   The 6502 is an 8-bit microprocessor that has a 64K addressing space.
@@ -45,7 +45,7 @@ typedef Common::Array<Expression*> ExpressionList;
   effects and for games which are very time sensitive.
 
   @author  Bradford W. Mott
-  @version $Id: M6502.hxx 2745 2013-05-30 16:07:19Z stephena $
+  @version $Id: M6502.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class M6502 : public Serializable
 {
@@ -55,13 +55,9 @@ class M6502 : public Serializable
 
   public:
     /**
-      Create a new 6502 microprocessor with the specified cycle 
-      multiplier.  The cycle multiplier is the number of system cycles 
-      per processor cycle.
-
-      @param systemCyclesPerProcessorCycle The cycle multiplier
+      Create a new 6502 microprocessor.
     */
-    M6502(uInt32 systemCyclesPerProcessorCycle);
+    M6502(const Settings& settings);
 
     /**
       Destructor
@@ -159,21 +155,14 @@ class M6502 : public Serializable
     /**                                                                    
       Return the last data address used as part of a peek operation for
       the S/A/X/Y registers.  Note that if an address wasn't used (as in
-      immediate mode), then the address is zero.
+      immediate mode), then the address is -1.
 
-      @return The address of the data used in the last peek, else 0
+      @return The address of the data used in the last peek, else -1
     */
-    uInt16 lastSrcAddressS() const { return myLastSrcAddressS; }
-    uInt16 lastSrcAddressA() const { return myLastSrcAddressA; }
-    uInt16 lastSrcAddressX() const { return myLastSrcAddressX; }
-    uInt16 lastSrcAddressY() const { return myLastSrcAddressY; }
-
-    /**
-      Get the total number of instructions executed so far.
-
-      @return The number of executed instructions
-    */
-    int totalInstructionCount() const { return myTotalInstructionCount; }
+    Int32 lastSrcAddressS() const { return myLastSrcAddressS; }
+    Int32 lastSrcAddressA() const { return myLastSrcAddressA; }
+    Int32 lastSrcAddressX() const { return myLastSrcAddressX; }
+    Int32 lastSrcAddressY() const { return myLastSrcAddressY; }
 
     /**
       Get the number of memory accesses to distinct memory locations
@@ -207,22 +196,18 @@ class M6502 : public Serializable
 
 #ifdef DEBUGGER_SUPPORT
   public:
-    /**
-      Attach the specified debugger.
-
-      @param debugger The debugger to attach to the microprocessor.
-    */
+    // Attach the specified debugger.
     void attach(Debugger& debugger);
 
-    void setBreakPoints(PackedBitArray* bp);
-    void setTraps(PackedBitArray* read, PackedBitArray* write);
+    PackedBitArray& breakPoints() { return myBreakPoints; }
+    PackedBitArray& readTraps()   { return myReadTraps;   }
+    PackedBitArray& writeTraps()  { return myWriteTraps;  }
 
     uInt32 addCondBreak(Expression* e, const string& name);
     void delCondBreak(uInt32 brk);
     void clearCondBreaks();
     const StringList& getCondBreakNames() const;
-    Int32 evalCondBreaks();
-#endif
+#endif  // DEBUGGER_SUPPORT
 
   private:
     /**
@@ -320,17 +305,11 @@ class M6502 : public Serializable
     /// Pointer to the system the processor is installed in or the null pointer
     System* mySystem;
 
-    /// Indicates the number of system cycles per processor cycle 
-    const uInt32 mySystemCyclesPerProcessorCycle;
-
-    /// Table of system cycles for each instruction
-    uInt32 myInstructionSystemCycleTable[256]; 
+    /// Reference to the settings
+    const Settings& mySettings;
 
     /// Indicates if the last memory access was a read or not
     bool myLastAccessWasRead;
-
-    /// The total number of instructions executed so far
-    int myTotalInstructionCount;
 
     /// Indicates the numer of distinct memory accesses
     uInt32 myNumberOfDistinctAccesses;
@@ -344,8 +323,8 @@ class M6502 : public Serializable
 
     /// Indicates the last address used to access data by a peek command
     /// for the CPU registers (S/A/X/Y)
-    uInt16 myLastSrcAddressS, myLastSrcAddressA,
-           myLastSrcAddressX, myLastSrcAddressY;
+    Int32 myLastSrcAddressS, myLastSrcAddressA,
+          myLastSrcAddressX, myLastSrcAddressY;
 
     /// Indicates the data address used by the last command that performed
     /// a poke (currently, the last address used by STx)
@@ -353,13 +332,23 @@ class M6502 : public Serializable
     /// is set to zero
     uInt16 myDataAddressForPoke;
 
+    /// Indicates the number of system cycles per processor cycle 
+    static const uInt32 SYSTEM_CYCLES_PER_CPU = 1;
+
 #ifdef DEBUGGER_SUPPORT
+    Int32 evalCondBreaks() {
+      for(uInt32 i = 0; i < myBreakConds.size(); i++)
+        if(myBreakConds[i]->evaluate())
+          return i;
+
+      return -1; // no break hit
+    };
+
     /// Pointer to the debugger for this processor or the null pointer
     Debugger* myDebugger;
 
-    PackedBitArray* myBreakPoints;
-    PackedBitArray* myReadTraps;
-    PackedBitArray* myWriteTraps;
+    // Addresses for which the specified action should occur
+    PackedBitArray myBreakPoints, myReadTraps, myWriteTraps;
 
     // Did we just now hit a trap?
     bool myJustHitTrapFlag;
@@ -369,16 +358,9 @@ class M6502 : public Serializable
     };
     HitTrapInfo myHitTrapInfo;
 
+    vector<unique_ptr<Expression>> myBreakConds;
     StringList myBreakCondNames;
-    ExpressionList myBreakConds;
-#endif
-
-  private:
-    /**
-      Table of instruction processor cycle times.  In some cases additional 
-      cycles will be added during the execution of an instruction.
-    */
-    static uInt32 ourInstructionCycleTable[256];
+#endif  // DEBUGGER_SUPPORT
 };
 
 #endif

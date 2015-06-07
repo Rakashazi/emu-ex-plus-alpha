@@ -8,13 +8,13 @@
 //  BB  BB  SS  SS  PP      FF
 //  BBBBB    SSSS   PP      FF
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: bspf.hxx 2610 2013-02-15 19:04:52Z stephena $
+// $Id: bspf.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef BSPF_HXX
@@ -25,79 +25,52 @@
   that need to be defined for different operating systems.
 
   @author Bradford W. Mott
-  @version $Id: bspf.hxx 2610 2013-02-15 19:04:52Z stephena $
+  @version $Id: bspf.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 
-#ifdef HAVE_INTTYPES
-  #include <inttypes.h>
-
-  // Types for 8-bit signed and unsigned integers
-  typedef int8_t Int8;
-  typedef uint8_t uInt8;
-  // Types for 16-bit signed and unsigned integers
-  typedef int16_t Int16;
-  typedef uint16_t uInt16;
-  // Types for 32-bit signed and unsigned integers
-  typedef int32_t Int32;
-  typedef uint32_t uInt32;
-  // Types for 64-bit signed and unsigned integers
-  typedef int64_t Int64;
-  typedef uint64_t uInt64;
-#elif defined BSPF_WIN32
-  // Types for 8-bit signed and unsigned integers
-  typedef signed char Int8;
-  typedef unsigned char uInt8;
-  // Types for 16-bit signed and unsigned integers
-  typedef signed short Int16;
-  typedef unsigned short uInt16;
-  // Types for 32-bit signed and unsigned integers
-  typedef signed int Int32;
-  typedef unsigned int uInt32;
-  // Types for 64-bit signed and unsigned integers
-  typedef __int64 Int64;
-  typedef unsigned __int64 uInt64;
-#else
-  #error Update BSPF.hxx for datatypes
-#endif
-
+#include <cstdint>
+// Types for 8-bit signed and unsigned integers
+using Int8  = int8_t;
+using uInt8 = uint8_t;
+// Types for 16-bit signed and unsigned integers
+using Int16  = int16_t;
+using uInt16 = uint16_t;
+// Types for 32-bit signed and unsigned integers
+using Int32  = int32_t;
+using uInt32 = uint32_t;
+// Types for 64-bit signed and unsigned integers
+using Int64  = int64_t;
+using uInt64 = uint64_t;
 
 // The following code should provide access to the standard C++ objects and
 // types: cout, cerr, string, ostream, istream, etc.
 #include <algorithm>
-#include <iostream>
+#include <ostream>
+#include <istream>
 #include <iomanip>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <cstring>
 #include <cctype>
+#include <cstdio>
+#include <utility>
+#include <vector>
 using namespace std;
 
-// Defines to help with path handling
-#if defined BSPF_UNIX
-  #define BSPF_PATH_SEPARATOR  "/"
-#elif (defined(BSPF_DOS) || defined(BSPF_WIN32) || defined(BSPF_OS2))
-  #define BSPF_PATH_SEPARATOR  "\\"
-#elif defined BSPF_MAC_OSX
-  #define BSPF_PATH_SEPARATOR  "/"
-#elif defined BSPF_GP2X
-  #define BSPF_PATH_SEPARATOR  "/"
-#endif
+// Common array types
+using IntArray = vector<Int32>;
+using BoolArray = vector<bool>;
+using ByteArray = vector<uInt8>;
+using StringList = vector<string>;
 
-// I wish Windows had a complete POSIX layer
-#if defined BSPF_WIN32 && !defined __GNUG__
-  #define BSPF_strcasecmp _stricmp
-  #define BSPF_strncasecmp _strnicmp
-  #define BSPF_isblank(c) ((c == ' ') || (c == '\t'))
-  #define BSPF_snprintf _snprintf
-  #define BSPF_vsnprintf _vsnprintf
+// Defines to help with path handling
+#if (defined(BSPF_UNIX) || defined(BSPF_MAC_OSX))
+  #define BSPF_PATH_SEPARATOR  "/"
+#elif (defined(BSPF_DOS) || defined(BSPF_WINDOWS) || defined(BSPF_OS2))
+  #define BSPF_PATH_SEPARATOR  "\\"
 #else
-  #define HAVE_UNISTD_H   // needed for building zlib
-  #include <strings.h>
-  #define BSPF_strcasecmp strcasecmp
-  #define BSPF_strncasecmp strncasecmp
-  #define BSPF_isblank(c) isblank(c)
-  #define BSPF_snprintf snprintf
-  #define BSPF_vsnprintf vsnprintf
+  #error Update src/common/bspf.hxx for path separator
 #endif
 
 // CPU architecture type
@@ -112,58 +85,89 @@ using namespace std;
   #define BSPF_ARCH "NOARCH"
 #endif
 
-// Used for stringstreams
-#define HEX8 uppercase << hex << setw(8) << setfill('0')
-#define HEX4 uppercase << hex << setw(4) << setfill('0')
-#define HEX2 uppercase << hex << setw(2) << setfill('0')
+// I wish Windows had a complete POSIX layer
+#if defined BSPF_WINDOWS && !defined __GNUG__
+  #define BSPF_snprintf _snprintf
+  #define BSPF_vsnprintf _vsnprintf
+#else
+  #define HAVE_UNISTD_H   // needed for building zlib
+  #include <strings.h>
+  #define BSPF_snprintf snprintf
+  #define BSPF_vsnprintf vsnprintf
+#endif
 
+static const string EmptyString("");
+
+//////////////////////////////////////////////////////////////////////
 // Some convenience functions
-template<typename T> inline void BSPF_swap(T& a, T& b) { T tmp = a; a = b; b = tmp; }
+
+// Initialize C++11 unique_ptr, at least until std::make_unique()
+// becomes part of the standard (C++14)
+template <typename Value, typename ... Arguments>
+std::unique_ptr<Value> make_ptr(Arguments && ... arguments_for_constructor)
+{
+  return std::unique_ptr<Value>(
+      new Value(std::forward<Arguments>(arguments_for_constructor)...)
+  );
+}
+
+template<typename T> inline void BSPF_swap(T& a, T& b) { std::swap(a, b); }
 template<typename T> inline T BSPF_abs (T x) { return (x>=0) ? x : -x; }
 template<typename T> inline T BSPF_min (T a, T b) { return (a<b) ? a : b; }
 template<typename T> inline T BSPF_max (T a, T b) { return (a>b) ? a : b; }
 template<typename T> inline T BSPF_clamp (T a, T l, T u) { return (a<l) ? l : (a>u) ? u : a; }
 
-// Convert integer to string
-inline string BSPF_toString(int num)
+// Compare two strings, ignoring case
+inline int BSPF_compareIgnoreCase(const string& s1, const string& s2)
 {
-  ostringstream buf;
-  buf << num;
-  return buf.str();
+#if defined BSPF_WINDOWS && !defined __GNUG__
+  return _stricmp(s1.c_str(), s2.c_str());
+#else
+  return strcasecmp(s1.c_str(), s2.c_str());
+#endif
 }
-
-// Test whether two characters are equal (case insensitive)
-static bool BSPF_equalsIgnoreCaseChar(char ch1, char ch2)
+inline int BSPF_compareIgnoreCase(const char* s1, const char* s2)
 {
-  return toupper((unsigned char)ch1) == toupper((unsigned char)ch2);
-}
-// Find location (if any) of the second string within the first,
-// starting from 'startpos' in the first string
-inline size_t BSPF_findIgnoreCase(const string& s1, const string& s2, int startpos = 0)
-{
-  string::const_iterator pos = std::search(s1.begin()+startpos, s1.end(),
-    s2.begin(), s2.end(), BSPF_equalsIgnoreCaseChar);
-  return pos == s1.end() ? string::npos : pos - (s1.begin()+startpos);
-}
-
-// Test whether two strings are equal (case insensitive)
-inline bool BSPF_equalsIgnoreCase(const string& s1, const string& s2)
-{
-  return BSPF_strcasecmp(s1.c_str(), s2.c_str()) == 0;
-}
-inline bool BSPF_equalsIgnoreCase(const char* s1, const char* s2)
-{
-  return BSPF_strcasecmp(s1, s2) == 0;
+#if defined BSPF_WINDOWS && !defined __GNUG__
+  return _stricmp(s1, s2);
+#else
+  return strcasecmp(s1, s2);
+#endif
 }
 
 // Test whether the first string starts with the second one (case insensitive)
 inline bool BSPF_startsWithIgnoreCase(const string& s1, const string& s2)
 {
-  return BSPF_strncasecmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
+#if defined BSPF_WINDOWS && !defined __GNUG__
+  return _strnicmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
+#else
+  return strncasecmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
+#endif
 }
 inline bool BSPF_startsWithIgnoreCase(const char* s1, const char* s2)
 {
-  return BSPF_strncasecmp(s1, s2, strlen(s2)) == 0;
+#if defined BSPF_WINDOWS && !defined __GNUG__
+  return _strnicmp(s1, s2, strlen(s2)) == 0;
+#else
+  return strncasecmp(s1, s2, strlen(s2)) == 0;
+#endif
+}
+
+// Test whether two strings are equal (case insensitive)
+inline bool BSPF_equalsIgnoreCase(const string& s1, const string& s2)
+{
+  return BSPF_compareIgnoreCase(s1, s2) == 0;
+}
+
+// Find location (if any) of the second string within the first,
+// starting from 'startpos' in the first string
+inline size_t BSPF_findIgnoreCase(const string& s1, const string& s2, int startpos = 0)
+{
+  auto pos = std::search(s1.begin()+startpos, s1.end(),
+    s2.begin(), s2.end(), [](char ch1, char ch2) {
+      return toupper((uInt8)ch1) == toupper((uInt8)ch2);
+    });
+  return pos == s1.end() ? string::npos : pos - (s1.begin()+startpos);
 }
 
 // Test whether the first string ends with the second one (case insensitive)
@@ -172,7 +176,7 @@ inline bool BSPF_endsWithIgnoreCase(const string& s1, const string& s2)
   if(s1.length() >= s2.length())
   {
     const char* end = s1.c_str() + s1.length() - s2.length();
-    return BSPF_equalsIgnoreCase(end, s2.c_str());
+    return BSPF_compareIgnoreCase(end, s2.c_str()) == 0;
   }
   return false;
 }
@@ -182,7 +186,5 @@ inline bool BSPF_containsIgnoreCase(const string& s1, const string& s2)
 {
   return BSPF_findIgnoreCase(s1, s2) != string::npos;
 }
-
-static const string EmptyString("");
 
 #endif

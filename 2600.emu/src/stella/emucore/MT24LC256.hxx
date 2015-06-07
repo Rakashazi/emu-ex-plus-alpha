@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: MT24LC256.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef MT24LC256_HXX
@@ -31,7 +31,7 @@ class System;
   (aka Supercat) for the bulk of this code.
 
   @author  Stephen Anthony & J. Payson
-  @version $Id: MT24LC256.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: MT24LC256.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class MT24LC256
 {
@@ -47,15 +47,18 @@ class MT24LC256
     /**
       Destructor
     */
-    virtual ~MT24LC256();
+    ~MT24LC256();
 
   public:
     /** Read boolean data from the SDA line */
-    bool readSDA();
+    bool readSDA() const;
 
     /** Write boolean data to the SDA and SCL lines */
     void writeSDA(bool state);
     void writeSCL(bool state);
+
+    /** Erase entire EEPROM to known state ($FF) */
+    void erase();
 
     /**
       Notification method invoked by the system right before the
@@ -104,17 +107,15 @@ class MT24LC256
     bool myDataChanged;
 
     // Required for I2C functionality
-    int jpee_mdat, jpee_sdat, jpee_mclk;
-    int jpee_sizemask, jpee_pagemask, jpee_smallmode, jpee_logmode;
-    int jpee_pptr, jpee_state, jpee_nb;
-    unsigned int jpee_address, jpee_ad_known;
+    Int32 jpee_mdat, jpee_sdat, jpee_mclk;
+    Int32 jpee_sizemask, jpee_pagemask, jpee_smallmode, jpee_logmode;
+    Int32 jpee_pptr, jpee_state, jpee_nb;
+    uInt32 jpee_address, jpee_ad_known;
     uInt8 jpee_packet[70];
 
   private:
-    // Copy constructor isn't supported by this class so make it private
+    // Copy constructor and assignment operator not supported
     MT24LC256(const MT24LC256&);
- 
-    // Assignment operator isn't supported by this class so make it private
     MT24LC256& operator = (const MT24LC256&);
 };
 

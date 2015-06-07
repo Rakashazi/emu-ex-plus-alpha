@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart0840.hxx,v 1.0 2006/11/14
+// $Id: Cart0840.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE0840_HXX
@@ -76,7 +76,7 @@ class Cartridge0840 : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -128,10 +128,10 @@ class Cartridge0840 : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new Cartridge0840Widget(boss, font, x, y, w, h, *this);
+      return new Cartridge0840Widget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

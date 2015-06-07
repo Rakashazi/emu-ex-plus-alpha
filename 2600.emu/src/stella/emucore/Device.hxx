@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Device.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Device.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef DEVICE_HXX
@@ -30,7 +30,7 @@ class System;
   based system.
 
   @author  Bradford W. Mott
-  @version $Id: Device.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Device.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class Device : public Serializable
 {
@@ -117,7 +117,7 @@ class Device : public Serializable
       @param address The address to modify
       @param flags A bitfield of DisasmType directives for the given address
     */
-    virtual uInt8 getAccessFlags(uInt16 address) { return 0; }
+    virtual uInt8 getAccessFlags(uInt16 address) const { return 0; }
     virtual void setAccessFlags(uInt16 address, uInt8 flags) { }
 
   protected:

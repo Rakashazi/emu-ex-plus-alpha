@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.hxx 2685 2013-04-06 21:04:11Z stephena $
+// $Id: CartCV.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECV_HXX
@@ -36,7 +36,7 @@ class System;
   $F800-$FFFF ROM
 
   @author  Eckhard Stolberg
-  @version $Id: CartCV.hxx 2685 2013-04-06 21:04:11Z stephena $
+  @version $Id: CartCV.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeCV : public Cartridge
 {
@@ -70,23 +70,6 @@ class CartridgeCV : public Cartridge
       @param system The system the device should install itself in
     */
     void install(System& system);
-
-    /**
-      Install pages for the specified bank in the system.
-
-      @param bank The bank that should be installed in the system
-    */
-    bool bank(uInt16 bank);
-
-    /**
-      Get the current bank.
-    */
-    uInt16 bank() const;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const;
 
     /**
       Patch the cartridge ROM.
@@ -133,10 +116,10 @@ class CartridgeCV : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeCVWidget(boss, font, x, y, w, h, *this);
+      return new CartridgeCVWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

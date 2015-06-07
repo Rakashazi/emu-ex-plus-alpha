@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIATables.cxx 2617 2013-02-21 21:57:42Z stephena $
+// $Id: TIATables.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -90,19 +90,17 @@ void TIATables::buildCollisionMaskTable()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// [4][2][8][320]
-// [alignment][suppress mode][nusiz][pixel]
+// [suppress mode:2][nusiz:8][pixel:320]
 // suppress=1: suppress on
 // suppress=0: suppress off
 void TIATables::buildPxMaskTable()
 {
-  // First, calculate masks for alignment 0
   Int32 x, suppress, nusiz;
 
   // Set the player mask table to all zeros
   for(nusiz = 0; nusiz < 8; ++nusiz)
     for(x = 0; x < 160; ++x)
-      PxMask[0][0][nusiz][x] = PxMask[0][1][nusiz][x] = 0x00;
+      PxMask[0][nusiz][x] = PxMask[1][nusiz][x] = 0x00;
 
   // Now, compute the player mask table
   for(suppress = 0; suppress < 2; ++suppress)
@@ -124,99 +122,82 @@ void TIATables::buildPxMaskTable()
         {
           case 0x00:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             break;
 
           case 0x01:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             else if(((x - 16) >= 0) && ((x - 16) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 16);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 16);
             break;
 
           case 0x02:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             else if(((x - 32) >= 0) && ((x - 32) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 32);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 32);
             break;
 
           case 0x03:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             else if(((x - 16) >= 0) && ((x - 16) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 16);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 16);
             else if(((x - 32) >= 0) && ((x - 32) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 32);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 32);
             break;
 
           case 0x04:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             else if(((x - 64) >= 0) && ((x - 64) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 64);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 64);
             break;
 
           case 0x05:
             // For some reason in double size nusiz the player's output
             // is delayed by one pixel thus we use > instead of >=
             if((suppress == 0) && (x > 0) && (x <= 16))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> ((x - 1)/2);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> ((x - 1)/2);
             break;
 
           case 0x06:
             if((suppress == 0) && (x >= 0) && (x < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> x;
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> x;
             else if(((x - 32) >= 0) && ((x - 32) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 32);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 32);
             else if(((x - 64) >= 0) && ((x - 64) < 8))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> (x - 64);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> (x - 64);
             break;
 
           case 0x07:
             // For some reason in quad size nusiz the player's output
             // is delayed by one pixel thus we use > instead of >=
             if((suppress == 0) && (x > 0) && (x <= 32))
-              PxMask[0][suppress][nusiz][x % 160] = 0x80 >> ((x - 1)/4);
+              PxMask[suppress][nusiz][x % 160] = 0x80 >> ((x - 1)/4);
             break;
         }
       }
   
       // Copy data into wrap-around area
       for(x = 0; x < 160; ++x)
-        PxMask[0][suppress][nusiz][x + 160] = PxMask[0][suppress][nusiz][x];
-    }
-  }
-
-  // Now, copy data for alignments of 1, 2 and 3
-  for(uInt32 align = 1; align < 4; ++align)
-  {
-    for(nusiz = 0; nusiz < 8; ++nusiz)
-    {
-      for(x = 0; x < 320; ++x)
-      {
-        PxMask[align][0][nusiz][x] =
-            PxMask[0][0][nusiz][(x + 320 - align) % 320];
-        PxMask[align][1][nusiz][x] =
-            PxMask[0][1][nusiz][(x + 320 - align) % 320];
-      }
+        PxMask[suppress][nusiz][x + 160] = PxMask[suppress][nusiz][x];
     }
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// [4][8][5][320]
-// [alignment][number][size][pixel]
+// [number:8][size:5][pixel:320]
 void TIATables::buildMxMaskTable()
 {
-  // First, calculate masks for alignment 0
   Int32 x, size, number;
 
   // Clear the missle table to start with
   for(number = 0; number < 8; ++number)
     for(size = 0; size < 5; ++size)
       for(x = 0; x < 160; ++x)
-        MxMask[0][number][size][x] = false;
+        MxMask[number][size][x] = false;
 
   for(number = 0; number < 8; ++number)
   {
@@ -237,12 +218,12 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
           break;
 
@@ -251,16 +232,16 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 16) >= 0) && ((x - 16) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 16) >= 0) && ((x - 16) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
             break;
 
@@ -269,16 +250,16 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 32) >= 0) && ((x - 32) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 32) >= 0) && ((x - 32) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
             break;
 
@@ -287,20 +268,20 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 16) >= 0) && ((x - 16) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 32) >= 0) && ((x - 32) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 16) >= 0) && ((x - 16) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 32) >= 0) && ((x - 32) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
             break;
 
@@ -309,16 +290,16 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 64) >= 0) && ((x - 64) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 64) >= 0) && ((x - 64) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
             break;
 
@@ -327,20 +308,20 @@ void TIATables::buildMxMaskTable()
             if(size != 4)
             {
               if((x >= 0) && (x < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 32) >= 0) && ((x - 32) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
               else if(((x - 64) >= 0) && ((x - 64) < (1 << size)))
-                MxMask[0][number][size][x % 160] = true;
+                MxMask[number][size][x % 160] = true;
             }
             else
             {
               if((x >= 0) && (x < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 32) >= 0) && ((x - 32) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
               else if(((x - 64) >= 0) && ((x - 64) < (1 << 2)))
-                MxMask[0][number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
+                MxMask[number][4][x % 160] = ((x - 2) % 4 == 0 ? false : true);
             }
             break;
         }
@@ -348,62 +329,37 @@ void TIATables::buildMxMaskTable()
 
       // Copy data into wrap-around area
       for(x = 0; x < 160; ++x)
-        MxMask[0][number][size][x + 160] = 
-          MxMask[0][number][size][x];
-    }
-  }
-
-  // Now, copy data for alignments of 1, 2 and 3
-  for(uInt32 align = 1; align < 4; ++align)
-  {
-    for(number = 0; number < 8; ++number)
-    {
-      for(size = 0; size < 5; ++size)
-      {
-        for(x = 0; x < 320; ++x)
-        {
-          MxMask[align][number][size][x] = 
-            MxMask[0][number][size][(x + 320 - align) % 320];
-        }
-      }
+        MxMask[number][size][x + 160] = 
+          MxMask[number][size][x];
     }
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// [4][4][320]
-// [alignment][size][pixel]
+// [size:4][pixel:320]
 void TIATables::buildBLMaskTable()
 {
-  // First, calculate masks for alignment 0
   for(Int32 size = 0; size < 4; ++size)
   {
     Int32 x;
 
     // Set all of the masks to false to start with
     for(x = 0; x < 160; ++x)
-      BLMask[0][size][x] = false;
+      BLMask[size][x] = false;
 
     // Set the necessary fields true
     for(x = 0; x < 160 + 8; ++x)
       if((x >= 0) && (x < (1 << size)))
-        BLMask[0][size][x % 160] = true;
+        BLMask[size][x % 160] = true;
 
     // Copy fields into the wrap-around area of the mask
     for(x = 0; x < 160; ++x)
-      BLMask[0][size][x + 160] = BLMask[0][size][x];
+      BLMask[size][x + 160] = BLMask[size][x];
   }
-
-  // Now, copy data for alignments of 1, 2 and 3
-  for(uInt32 align = 1; align < 4; ++align)
-    for(uInt32 size = 0; size < 4; ++size)
-      for(uInt32 x = 0; x < 320; ++x)
-        BLMask[align][size][x] = BLMask[0][size][(x + 320 - align) % 320];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// [2][160]
-// [reflect, pixel]
+// [reflect:2][pixel:160]
 // reflect=1: reflection on
 // reflect=0: reflection off
 void TIATables::buildPFMaskTable()
@@ -460,8 +416,7 @@ void TIATables::buildGRPReflectTable()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// [8][160][160]
-// [nusiz][old pixel][new pixel]
+// [nusiz:8][old pixel:160][new pixel:160]
 void TIATables::buildPxPosResetWhenTable()
 {
   uInt32 nusiz, oldx, newx;
@@ -602,15 +557,6 @@ void TIATables::buildPxPosResetWhenTable()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 TIATables::BLMask[4][4][320];
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 TIATables::CollisionMask[64];
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 TIATables::DisabledMask[640];
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Int16 TIATables::PokeDelay[64] = {
   0,  // VSYNC
   1,  // VBLANK (0) / 1
@@ -660,9 +606,6 @@ const Int16 TIATables::PokeDelay[64] = {
       // remaining values are undefined TIA write locations
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 };
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 TIATables::MxMask[4][8][5][320];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const bool TIATables::HMOVEBlankEnableCycles[76] = {
@@ -759,13 +702,25 @@ const Int32 TIATables::CompleteMotion[76][16] = {
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 TIATables::PxMask[4][2][8][320];
+uInt8 TIATables::PxMask[2][8][320];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Int8 TIATables::PxPosResetWhen[8][160][160];
+uInt8 TIATables::MxMask[8][5][320];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 TIATables::BLMask[4][320];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 TIATables::PFMask[2][160];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 TIATables::GRPReflect[256];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 TIATables::PFMask[2][160];
+uInt16 TIATables::CollisionMask[64];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 TIATables::DisabledMask[640];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Int8 TIATables::PxPosResetWhen[8][160][160];

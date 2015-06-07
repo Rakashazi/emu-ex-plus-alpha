@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.hxx 2690 2013-04-12 12:36:57Z stephena $
+// $Id: CartE0.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEE0_HXX
@@ -42,7 +42,7 @@ class System;
   many different ways.
 
   @author  Bradford W. Mott
-  @version $Id: CartE0.hxx 2690 2013-04-12 12:36:57Z stephena $
+  @version $Id: CartE0.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeE0 : public Cartridge
 {
@@ -76,23 +76,6 @@ class CartridgeE0 : public Cartridge
       @param system The system the device should install itself in
     */
     void install(System& system);
-
-    /**
-      Install pages for the specified bank in the system.
-
-      @param bank The bank that should be installed in the system
-    */
-    bool bank(uInt16 bank);
-
-    /**
-      Get the current bank.
-    */
-    uInt16 bank() const;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const;
 
     /**
       Patch the cartridge ROM.
@@ -139,10 +122,10 @@ class CartridgeE0 : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeE0Widget(boss, font, x, y, w, h, *this);
+      return new CartridgeE0Widget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

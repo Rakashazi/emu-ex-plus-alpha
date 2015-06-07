@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCTY.hxx 2709 2013-04-24 22:24:41Z stephena $
+// $Id: CartCTY.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECHETIRY_HXX
@@ -108,7 +108,7 @@ class System;
       non-zero value.
 
   @author  Stephen Anthony and Chris D. Walton
-  @version $Id: CartCTY.hxx 2709 2013-04-24 22:24:41Z stephena $
+  @version $Id: CartCTY.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeCTY : public Cartridge
 {
@@ -160,7 +160,7 @@ class CartridgeCTY : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -220,10 +220,10 @@ class CartridgeCTY : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeCTYWidget(boss, font, x, y, w, h, *this);
+      return new CartridgeCTYWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

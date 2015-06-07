@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.cxx 2699 2013-04-18 15:30:19Z stephena $
+// $Id: Cart4A50.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -77,17 +76,11 @@ void Cartridge4A50::reset()
 void Cartridge4A50::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1000 & mask) == 0);
 
   // Map all of the accesses to call peek and poke (We don't yet indicate RAM areas)
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-
-  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   // Mirror all access in TIA and RIOT; by doing so we're taking responsibility
   // for that address space in peek and poke below.
@@ -203,7 +196,7 @@ bool Cartridge4A50::poke(uInt16 address, uInt8 value)
 } 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 Cartridge4A50::getAccessFlags(uInt16 address)
+uInt8 Cartridge4A50::getAccessFlags(uInt16 address) const
 {
   if((address & 0x1800) == 0x1000)           // 2K region from 0x1000 - 0x17ff
   {
@@ -334,28 +327,6 @@ void Cartridge4A50::checkBankSwitch(uInt16 address, uInt8 value)
     else if((value & 0xf0) == 0xc0)   // Enable 1.5K of RAM at 0x1800 - 0x1dff
       bankRAMMiddle(value & 0xf);
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Cartridge4A50::bank(uInt16)
-{
-  // Doesn't support bankswitching in the normal sense
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge4A50::bank() const
-{
-  // Doesn't support bankswitching in the normal sense
-  return 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge4A50::bankCount() const
-{
-  // Doesn't support bankswitching in the normal sense
-  // There is one 'virtual' bank that can change in many different ways
-  return 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

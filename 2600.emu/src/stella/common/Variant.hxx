@@ -8,19 +8,18 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Variant.hxx 2732 2013-05-09 14:22:34Z stephena $
+// $Id: Variant.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef VARIANT_HXX
 #define VARIANT_HXX
 
-#include "Array.hxx"
 #include "Rect.hxx"
 #include "bspf.hxx"
 
@@ -50,8 +49,8 @@ class Variant
     Variant(const string& s) : data(s) { }
     Variant(const char* s) : data(s) { }
 
-    Variant(int i) { buf().str(""); buf() << i; data = buf().str(); }
-    Variant(unsigned int i) { buf().str(""); buf() << i; data = buf().str(); }
+    Variant(Int32 i) { buf().str(""); buf() << i; data = buf().str(); }
+    Variant(uInt32 i) { buf().str(""); buf() << i; data = buf().str(); }
     Variant(float f) { buf().str(""); buf() << f; data = buf().str(); }
     Variant(double d) { buf().str(""); buf() << d; data = buf().str(); }
     Variant(bool b) { buf().str(""); buf() << b; data = buf().str(); }
@@ -60,7 +59,7 @@ class Variant
     // Conversion methods
     const string& toString() const { return data; }
     const char* toCString() const { return data.c_str(); }
-    int toInt() const { return atoi(data.c_str()); }
+    Int32 toInt() const { return atoi(data.c_str()); }
     float toFloat() const { return atof(data.c_str()); }
     bool toBool() const { return data == "1" || data == "true"; }
     const GUI::Size toSize() const { return GUI::Size(data); }
@@ -76,17 +75,20 @@ class Variant
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Variant EmptyVariant("");
+static const Variant EmptyVariant;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-class VariantList : public Common::Array< pair<string,Variant> >
-{
-  public:
-    void push_back(const string& name, const Variant& tag = EmptyVariant)
-    {
-      ensureCapacity(_size + 1);
-      _data[_size++] = make_pair(name, tag);
-    }
+using VariantList = vector<pair<string,Variant>>;
+
+namespace VarList {
+  inline void push_back(VariantList& list, const Variant& name,
+                        const Variant& tag = EmptyVariant)
+  {
+    list.emplace_back(name.toString(), tag);
+  }
 };
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const VariantList EmptyVarList;
 
 #endif

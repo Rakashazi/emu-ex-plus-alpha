@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartFA.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -30,9 +29,6 @@ CartridgeFA::CartridgeFA(const uInt8* image, uInt32 size, const Settings& settin
   // Copy the ROM image into my buffer
   memcpy(myImage, image, BSPF_min(12288u, size));
   createCodeAccessBase(12288);
-
-  // This cart contains 256 bytes extended RAM @ 0x1000
-  registerRamArea(0x1000, 256, 0x100, 0x00);
 
   // Remember startup bank
   myStartBank = 2;
@@ -61,31 +57,26 @@ void CartridgeFA::reset()
 void CartridgeFA::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  // Make sure the system we're being installed in has a page size that'll work
-  assert(((0x1100 & mask) == 0) && ((0x1200 & mask) == 0));
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing method for the RAM writing pages
   access.type = System::PA_WRITE;
-  for(uInt32 j = 0x1000; j < 0x1100; j += (1 << shift))
+  for(uInt32 j = 0x1000; j < 0x1100; j += (1 << System::PAGE_SHIFT))
   {
     access.directPokeBase = &myRAM[j & 0x00FF];
     access.codeAccessBase = &myCodeAccessBase[j & 0x00FF];
-    mySystem->setPageAccess(j >> shift, access);
+    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
   }
  
   // Set the page accessing method for the RAM reading pages
   access.directPokeBase = 0;
   access.type = System::PA_READ;
-  for(uInt32 k = 0x1100; k < 0x1200; k += (1 << shift))
+  for(uInt32 k = 0x1100; k < 0x1200; k += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myRAM[k & 0x00FF];
     access.codeAccessBase = &myCodeAccessBase[0x100 + (k & 0x00FF)];
-    mySystem->setPageAccess(k >> shift, access);
+    mySystem->setPageAccess(k >> System::PAGE_SHIFT, access);
   }
 
   // Install pages for the startup bank
@@ -178,31 +169,30 @@ bool CartridgeFA::bank(uInt16 bank)
   // Remember what bank we're in
   myCurrentBank = bank;
   uInt16 offset = myCurrentBank << 12;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing methods for the hot spots
-  for(uInt32 i = (0x1FF8 & ~mask); i < 0x2000; i += (1 << shift))
+  for(uInt32 i = (0x1FF8 & ~System::PAGE_MASK); i < 0x2000;
+      i += (1 << System::PAGE_SHIFT))
   {
     access.codeAccessBase = &myCodeAccessBase[offset + (i & 0x0FFF)];
-    mySystem->setPageAccess(i >> shift, access);
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
   }
 
   // Setup the page access methods for the current bank
-  for(uInt32 address = 0x1200; address < (0x1FF8U & ~mask);
-      address += (1 << shift))
+  for(uInt32 address = 0x1200; address < (0x1FF8U & ~System::PAGE_MASK);
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeFA::bank() const
+uInt16 CartridgeFA::getBank() const
 {
   return myCurrentBank;
 }

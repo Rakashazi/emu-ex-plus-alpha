@@ -8,17 +8,16 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 2614 2013-02-17 22:33:53Z stephena $
+// $Id: M6532.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <cassert>
-#include <iostream>
 
 #include "Console.hxx"
 #include "Settings.hxx"
@@ -30,7 +29,9 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 M6532::M6532(const Console& console, const Settings& settings)
   : myConsole(console),
-    mySettings(settings)
+    mySettings(settings),
+    myTimerFlagValid(false),
+    myEdgeDetectPositive(false)
 {
 }
  
@@ -77,15 +78,15 @@ void M6532::systemCyclesReset()
   myCyclesWhenTimerSet -= mySystem->cycles();
 
   // We should also inform any 'smart' controllers as well
-  myConsole.controller(Controller::Left).systemCyclesReset();
-  myConsole.controller(Controller::Right).systemCyclesReset();
+  myConsole.leftController().systemCyclesReset();
+  myConsole.rightController().systemCyclesReset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::update()
 {
-  Controller& port0 = myConsole.controller(Controller::Left);
-  Controller& port1 = myConsole.controller(Controller::Right);
+  Controller& port0 = myConsole.leftController();
+  Controller& port1 = myConsole.rightController();
 
   // Get current PA7 state
   bool prevPA7 = port0.myDigitalPinState[Controller::Four];
@@ -115,20 +116,14 @@ void M6532::install(System& system, Device& device)
 {
   // Remember which system I'm installed in
   mySystem = &system;
-
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1080 & mask) == 0);
   
   // All accesses are to the given device
-  System::PageAccess access(0, 0, 0, &device, System::PA_READWRITE);
+  System::PageAccess access(&device, System::PA_READWRITE);
 
   // We're installing in a 2600 system
-  for(int address = 0; address < 8192; address += (1 << shift))
+  for(int address = 0; address < 8192; address += (1 << System::PAGE_SHIFT))
     if((address & 0x1080) == 0x0080)
-      mySystem->setPageAccess(address >> shift, access);
+      mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -147,8 +142,8 @@ uInt8 M6532::peek(uInt16 addr)
   {
     case 0x00:    // SWCHA - Port A I/O Register (Joystick)
     {
-      uInt8 value = (myConsole.controller(Controller::Left).read() << 4) |
-                     myConsole.controller(Controller::Right).read();
+      uInt8 value = (myConsole.leftController().read() << 4) |
+                     myConsole.rightController().read();
 
       // Each pin is high (1) by default and will only go low (0) if either
       //  (a) External device drives the pin low
@@ -179,7 +174,7 @@ uInt8 M6532::peek(uInt16 addr)
       myInterruptFlag &= ~TimerBit;
 
       // Get number of clocks since timer was set
-      Int32 timer = timerClocks();  
+      Int32 timer = timerClocks();
 
       // Note that this constant comes from z26, and corresponds to
       // 256 intervals of T1024T (ie, the maximum that the timer should hold)
@@ -315,8 +310,8 @@ void M6532::setPinState(bool swcha)
       if(DDR bit is input)       set output as 1
       else if(DDR bit is output) set output as bit in ORA
   */
-  Controller& port0 = myConsole.controller(Controller::Left);
-  Controller& port1 = myConsole.controller(Controller::Right);
+  Controller& port0 = myConsole.leftController();
+  Controller& port1 = myConsole.rightController();
 
   uInt8 ioport = myOutA | ~myDDRA;
 
@@ -430,16 +425,16 @@ uInt8 M6532::timint() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-M6532::M6532(const M6532& c)
-  : myConsole(c.myConsole),
-    mySettings(c.mySettings)
+Int32 M6532::intimClocks() const
 {
-  assert(false);
-}
+  // This method is similar to intim(), except instead of giving the actual
+  // INTIM value, it will give the current number of clocks between one
+  // INTIM value and the next
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-M6532& M6532::operator = (const M6532&)
-{
-  assert(false);
-  return *this;
+  // Get number of clocks since timer was set
+  Int32 timer = timerClocks();  
+  if(!(timer & 0x40000))
+    return timerClocks() & ((1 << myIntervalShift) - 1);
+  else
+    return timer & 0xff;
 }

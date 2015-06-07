@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Font.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Font.hxx 3131 2015-01-01 03:49:32Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -35,7 +35,7 @@ struct BBX
 
 /* builtin C-based proportional/fixed font structure */
 /* based on The Microwindows Project http://microwindows.org */
-typedef struct
+struct FontDesc
 {
   const char*   name;                   /* font name */
   int           maxwidth;               /* max width in pixels */
@@ -46,11 +46,11 @@ typedef struct
   int           size;                   /* font size in glyphs */
   const uInt16* bits;                   /* 16-bit right-padded bitmap data */
   const uInt32* offset;                 /* offsets into bitmap data*/
-  const uInt8*  width;                  /* character widths or NULL if fixed */
-  const BBX*    bbx;                    /* character bounding box or NULL if fixed */
+  const uInt8*  width;                  /* character widths or nullptr if fixed */
+  const BBX*    bbx;                    /* character bounding box or nullptr if fixed */
   int           defaultchar;            /* default char (not glyph index) */
   long          bits_size;              /* # words of bitmap_t bits */
-} FontDesc;
+};
 
 namespace GUI {
 

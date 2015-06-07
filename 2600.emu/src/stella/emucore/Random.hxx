@@ -8,21 +8,22 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Random.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Random.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef RANDOM_HXX
 #define RANDOM_HXX
 
-class OSystem;
+#include <time.h>
 
 #include "bspf.hxx"
+#include "OSystem.hxx"
 
 /**
   This is a quick-and-dirty random number generator.  It is based on 
@@ -30,7 +31,7 @@ class OSystem;
   linear congruential generator.
 
   @author  Bradford W. Mott
-  @version $Id: Random.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Random.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class Random
 {
@@ -38,37 +39,33 @@ class Random
     /**
       Create a new random number generator
     */
-    Random();
+    Random(const OSystem& osystem) : myOSystem(osystem) { initSeed(); }
     
-  public:
     /**
       Re-initialize the random number generator with a new seed,
       to generate a different set of random numbers.
     */
-    void initSeed();
+    void initSeed()
+    {
+      myValue = (uInt32) myOSystem.getTicks();
+    }
 
     /**
       Answer the next random number from the random number generator
 
       @return A random number
     */
-    uInt32 next();
-
-    /**
-      Class method which sets the OSystem in use; the constructor will
-      use this to reseed the random number generator every time a new
-      instance is created
-
-      @param system  The system currently in use
-    */
-    static void setSystem(const OSystem* system) { ourSystem = system; }
+    uInt32 next()
+    {
+      return (myValue = (myValue * 2416 + 374441) % 1771875);
+    }
 
   private:
+    // Set the OSystem we're using
+    const OSystem& myOSystem;
+
     // Indicates the next random number
     uInt32 myValue;
-
-    // Set the OSystem we're using
-    static const OSystem* ourSystem;
 };
 
 #endif

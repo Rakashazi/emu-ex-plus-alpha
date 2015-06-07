@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 2626 2013-02-24 01:46:14Z stephena $
+// $Id: TIA.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -30,9 +30,9 @@ class Sound;
 #include "TIATables.hxx"
 
 /**
-  This class is a device that emulates the Television Interface Adaptor
+  This class is a device that emulates the Television Interface Adaptor 
   found in the Atari 2600 and 7800 consoles.  The Television Interface 
-  Adaptor is an integrated circuit designed to interface between an
+  Adaptor is an integrated circuit designed to interface between an 
   eight bit microprocessor and a television video modulator. It converts 
   eight bit parallel data into serial outputs for the color, luminosity, 
   and composite sync required by a video modulator.  
@@ -41,13 +41,13 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 2626 2013-02-24 01:46:14Z stephena $
+  @version $Id: TIA.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class TIA : public Device
 {
   public:
-	  friend class TIADebug;
-	  friend class RiotDebug;
+    friend class TIADebug;
+    friend class RiotDebug;
 
     /**
       Create a new TIA for the specified console
@@ -188,7 +188,7 @@ class TIA : public Device
     /**
       Answers the width and height of the frame buffer
     */
-    inline uInt32 width() const  { return myFrameWidth;  }
+    inline uInt32 width() const  { return 160;           }
     inline uInt32 height() const { return myFrameHeight; }
     inline uInt32 ystart() const { return myFrameYStart; }
 
@@ -220,10 +220,8 @@ class TIA : public Device
       Answers whether this TIA runs at NTSC or PAL scanrates,
       based on how many frames of out the total count are PAL frames.
     */
-    bool isPAL()
+    bool isPAL() const
       { return float(myPALFrameCounter) / myFrameCounter >= (25.0/60.0); }
-
-    uInt32 frameCounter() { return myFrameCounter; }
 
     /**
       Answers the current color clock we've gotten to on this scanline.
@@ -232,14 +230,6 @@ class TIA : public Device
     */
     uInt32 clocksThisLine() const
       { return ((mySystem->cycles() * 3) - myClockWhenFrameStarted) % 228; }
-
-    /**
-      Answers the scanline at which the current frame began drawing.
-
-      @return The starting scanline
-    */
-    uInt32 startLine() const
-      { return myStartScanline; }
 
     /**
       Answers the total number of scanlines the TIA generated in producing
@@ -317,6 +307,15 @@ class TIA : public Device
       @return  Whether the mode was enabled or disabled
     */
     bool toggleFixedColors(uInt8 mode = 2);
+
+    /**
+      Enable/disable/query state of 'undriven/floating TIA pins'.
+
+      @param mode  1/0 indicates on/off, otherwise return the current state
+
+      @return  Whether the mode was enabled or disabled
+    */
+    bool driveUnusedPinsRandom(uInt8 mode = 2);
 
 #ifdef DEBUGGER_SUPPORT
     /**
@@ -415,9 +414,6 @@ class TIA : public Device
     // (this is used when loading state files with a 'partial' frame)
     uInt32 myFramePointerClocks;
 
-    // Indicates the width of the visible scanline
-    static const uInt32 myFrameWidth = 160;
-
     // Indicated what scanline the frame should start being drawn at
     uInt32 myFrameYStart;
 
@@ -464,9 +460,9 @@ class TIA : public Device
 
     uInt8 myPlayfieldPriorityAndScore;
     uInt8 myPriorityEncoder[2][256];
-    uInt32 myColor[8];
-    uInt32 myFixedColor[8];
-    uInt32* myColorPtr;
+    uInt8 myColor[8];
+    uInt8 myFixedColor[8];
+    uInt8* myColorPtr;
 
     uInt8 myCTRLPF;       // Playfield control register
 
@@ -621,10 +617,8 @@ class TIA : public Device
     bool myBitsEnabled, myCollisionsEnabled;
 
   private:
-    // Copy constructor isn't supported by this class so make it private
+    // Copy constructor and assignment operator not supported
     TIA(const TIA&);
-
-    // Assignment operator isn't supported by this class so make it private
     TIA& operator = (const TIA&);
 };
 

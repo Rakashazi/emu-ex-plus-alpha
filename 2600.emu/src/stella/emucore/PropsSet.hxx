@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.hxx 2725 2013-05-07 18:53:21Z stephena $
+// $Id: PropsSet.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef PROPERTIES_SET_HXX
@@ -42,15 +42,9 @@ class PropertiesSet
 {
   public:
     /**
-      Create an empty properties set object using the md5 as the
-      key to the BST.
+      Create a properties set object from the specified properties file.
     */
-    PropertiesSet(OSystem* osystem);
-
-    /**
-      Destructor
-    */
-    virtual ~PropertiesSet();
+    PropertiesSet(const string& propsfile);
 
   public:
     /** 
@@ -97,8 +91,8 @@ class PropertiesSet
       @param defaults    Use the built-in defaults, ignoring any properties
                          from an external file
     */
-    /*void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
-                          Properties& properties);*/
+    void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
+                          Properties& properties);
 
     /**
       Insert the properties into the set.  If a duplicate is inserted
@@ -123,10 +117,7 @@ class PropertiesSet
     void print() const;
 
   private:
-    typedef map<string, Properties> PropsList;
-
-    // The parent system for this object
-    OSystem* myOSystem;
+    using PropsList = map<string, Properties>;
 
     // The properties read from an external 'stella.pro' file
     PropsList myExternalProps;

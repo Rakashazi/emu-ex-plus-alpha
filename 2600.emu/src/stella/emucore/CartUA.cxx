@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartUA.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartUA.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -51,20 +50,15 @@ void CartridgeUA::reset()
 void CartridgeUA::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1000 & mask) == 0);
 
   // Get the page accessing methods for the hot spots since they overlap
   // areas within the TIA we'll need to forward requests to the TIA
-  myHotSpotPageAccess = mySystem->getPageAccess(0x0220 >> shift);
+  myHotSpotPageAccess = mySystem->getPageAccess(0x0220 >> System::PAGE_SHIFT);
 
   // Set the page accessing methods for the hot spots
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-  mySystem->setPageAccess(0x0220 >> shift, access);
-  mySystem->setPageAccess(0x0240 >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  mySystem->setPageAccess(0x0220 >> System::PAGE_SHIFT, access);
+  mySystem->setPageAccess(0x0240 >> System::PAGE_SHIFT, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -139,23 +133,23 @@ bool CartridgeUA::bank(uInt16 bank)
   // Remember what bank we're in
   myCurrentBank = bank;
   uInt16 offset = myCurrentBank << 12;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Map ROM image into the system
-  for(uInt32 address = 0x1000; address < 0x2000; address += (1 << shift))
+  for(uInt32 address = 0x1000; address < 0x2000;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeUA::bank() const
+uInt16 CartridgeUA::getBank() const
 {
   return myCurrentBank;
 }

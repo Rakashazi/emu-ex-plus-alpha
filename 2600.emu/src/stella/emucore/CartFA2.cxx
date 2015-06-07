@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.cxx 2697 2013-04-17 22:32:49Z stephena $
+// $Id: CartFA2.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "OSystem.hxx"
@@ -39,15 +38,9 @@ CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osyst
     mySize = 28 * 1024; 
   }
 
-  // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
-
   // Copy the ROM image into my buffer
   memcpy(myImage, image, mySize);
   createCodeAccessBase(mySize);
-
-  // This cart contains 256 bytes extended RAM @ 0x1000
-  registerRamArea(0x1000, 256, 0x100, 0x00);
 
   // Remember startup bank
   myStartBank = 0;
@@ -56,7 +49,6 @@ CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osyst
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeFA2::~CartridgeFA2()
 {
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,31 +69,26 @@ void CartridgeFA2::reset()
 void CartridgeFA2::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  // Make sure the system we're being installed in has a page size that'll work
-  assert(((0x1100 & mask) == 0) && ((0x1200 & mask) == 0));
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing method for the RAM writing pages
   access.type = System::PA_WRITE;
-  for(uInt32 j = 0x1000; j < 0x1100; j += (1 << shift))
+  for(uInt32 j = 0x1000; j < 0x1100; j += (1 << System::PAGE_SHIFT))
   {
     access.directPokeBase = &myRAM[j & 0x00FF];
     access.codeAccessBase = &myCodeAccessBase[j & 0x00FF];
-    mySystem->setPageAccess(j >> shift, access);
+    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
   }
  
   // Set the page accessing method for the RAM reading pages
   access.directPokeBase = 0;
   access.type = System::PA_READ;
-  for(uInt32 k = 0x1100; k < 0x1200; k += (1 << shift))
+  for(uInt32 k = 0x1100; k < 0x1200; k += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myRAM[k & 0x00FF];
     access.codeAccessBase = &myCodeAccessBase[0x100 + (k & 0x00FF)];
-    mySystem->setPageAccess(k >> shift, access);
+    mySystem->setPageAccess(k >> System::PAGE_SHIFT, access);
   }
 
   // Install pages for the startup bank
@@ -248,31 +235,30 @@ bool CartridgeFA2::bank(uInt16 bank)
   // Remember what bank we're in
   myCurrentBank = bank;
   uInt16 offset = myCurrentBank << 12;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing methods for the hot spots
-  for(uInt32 i = (0x1FF4 & ~mask); i < 0x2000; i += (1 << shift))
+  for(uInt32 i = (0x1FF4 & ~System::PAGE_MASK); i < 0x2000;
+      i += (1 << System::PAGE_SHIFT))
   {
     access.codeAccessBase = &myCodeAccessBase[offset + (i & 0x0FFF)];
-    mySystem->setPageAccess(i >> shift, access);
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
   }
 
   // Setup the page access methods for the current bank
-  for(uInt32 address = 0x1200; address < (0x1FF4U & ~mask);
-      address += (1 << shift))
+  for(uInt32 address = 0x1200; address < (0x1FF4U & ~System::PAGE_MASK);
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeFA2::bank() const
+uInt16 CartridgeFA2::getBank() const
 {
   return myCurrentBank;
 }
@@ -385,7 +371,7 @@ uInt8 CartridgeFA2::ramReadWrite()
     // We go ahead and do the access now, and only return when a sufficient
     // amount of time has passed
     Serializer serializer(myFlashFile);
-    if(serializer.isValid())
+    if(serializer.valid())
     {
       if(myRAM[255] == 1)       // read
       {
@@ -437,7 +423,7 @@ uInt8 CartridgeFA2::ramReadWrite()
 void CartridgeFA2::flash(uInt8 operation)
 {
   Serializer serializer(myFlashFile);
-  if(serializer.isValid())
+  if(serializer.valid())
   {
     if(operation == 0)       // erase
     {

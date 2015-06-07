@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.cxx 2707 2013-04-24 16:50:24Z stephena $
+// $Id: CartAR.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "M6502.hxx"
@@ -28,8 +27,8 @@
 CartridgeAR::CartridgeAR(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    my6502(0),
-    mySize(BSPF_max(size, 8448u))
+    mySize(BSPF_max(size, 8448u)),
+    myLoadImages(nullptr)
 {
   // Create a load image buffer and copy the given image
   myLoadImages = new uInt8[mySize];
@@ -85,30 +84,19 @@ void CartridgeAR::reset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeAR::systemCyclesReset()
 {
-  // Get the current system cycle
-  uInt32 cycles = mySystem->cycles();
-
   // Adjust cycle values
-  myPowerRomCycle -= cycles;
+  myPowerRomCycle -= mySystem->cycles();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeAR::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  my6502 = &(mySystem->m6502());
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1000 & mask) == 0);
 
   // Map all of the accesses to call peek and poke (we don't yet indicate RAM areas)
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-
-  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   bankConfiguration(0);
 }
@@ -136,7 +124,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
   // Cancel any pending write if more than 5 distinct accesses have occurred
   // TODO: Modify to handle when the distinct counter wraps around...
   if(myWritePending && 
-      (my6502->distinctAccesses() > myNumberOfDistinctAccesses + 5))
+      (mySystem->m6502().distinctAccesses() > myNumberOfDistinctAccesses + 5))
   {
     myWritePending = false;
   }
@@ -145,7 +133,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
   if(!(addr & 0x0F00) && (!myWriteEnabled || !myWritePending))
   {
     myDataHoldRegister = addr;
-    myNumberOfDistinctAccesses = my6502->distinctAccesses();
+    myNumberOfDistinctAccesses = mySystem->m6502().distinctAccesses();
     myWritePending = true;
   }
   // Is the bank configuration hotspot being accessed?
@@ -157,7 +145,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
   }
   // Handle poke if writing enabled
   else if(myWriteEnabled && myWritePending && 
-      (my6502->distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
+      (mySystem->m6502().distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
   {
     if((addr & 0x0800) == 0)
     {
@@ -183,7 +171,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
   // Cancel any pending write if more than 5 distinct accesses have occurred
   // TODO: Modify to handle when the distinct counter wraps around...
   if(myWritePending && 
-      (my6502->distinctAccesses() > myNumberOfDistinctAccesses + 5))
+      (mySystem->m6502().distinctAccesses() > myNumberOfDistinctAccesses + 5))
   {
     myWritePending = false;
   }
@@ -192,7 +180,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
   if(!(addr & 0x0F00) && (!myWriteEnabled || !myWritePending))
   {
     myDataHoldRegister = addr;
-    myNumberOfDistinctAccesses = my6502->distinctAccesses();
+    myNumberOfDistinctAccesses = mySystem->m6502().distinctAccesses();
     myWritePending = true;
   }
   // Is the bank configuration hotspot being accessed?
@@ -204,7 +192,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
   }
   // Handle poke if writing enabled
   else if(myWriteEnabled && myWritePending && 
-      (my6502->distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
+      (mySystem->m6502().distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
   {
     if((addr & 0x0800) == 0)
     {
@@ -223,7 +211,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeAR::getAccessFlags(uInt16 address)
+uInt8 CartridgeAR::getAccessFlags(uInt16 address) const
 {
   return myCodeAccessBase[(address & 0x07FF) +
            myImageOffset[(address & 0x0800) ? 1 : 0]];
@@ -439,7 +427,7 @@ bool CartridgeAR::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeAR::bank() const
+uInt16 CartridgeAR::getBank() const
 {
   return myCurrentBank;
 }

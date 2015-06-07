@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartE0.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -52,21 +51,16 @@ void CartridgeE0::reset()
 void CartridgeE0::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  // Make sure the system we're being installed in has a page size that'll work
-  assert(((0x1000 & mask) == 0) && ((0x1400 & mask) == 0) &&
-      ((0x1800 & mask) == 0) && ((0x1C00 & mask) == 0));
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Set the page acessing methods for the first part of the last segment
-  for(uInt32 i = 0x1C00; i < (0x1FE0U & ~mask); i += (1 << shift))
+  for(uInt32 i = 0x1C00; i < (0x1FE0U & ~System::PAGE_MASK);
+      i += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[7168 + (i & 0x03FF)];
     access.codeAccessBase = &myCodeAccessBase[7168 + (i & 0x03FF)];
-    mySystem->setPageAccess(i >> shift, access);
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
   }
   myCurrentSlice[3] = 7;
 
@@ -74,8 +68,9 @@ void CartridgeE0::install(System& system)
   access.directPeekBase = 0;
   access.codeAccessBase = &myCodeAccessBase[8128];
   access.type = System::PA_READ;
-  for(uInt32 j = (0x1FE0 & ~mask); j < 0x2000; j += (1 << shift))
-    mySystem->setPageAccess(j >> shift, access);
+  for(uInt32 j = (0x1FE0 & ~System::PAGE_MASK); j < 0x2000;
+      j += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
 
   // Install some default slices for the other segments
   segmentZero(4);
@@ -134,16 +129,16 @@ void CartridgeE0::segmentZero(uInt16 slice)
   // Remember the new slice
   myCurrentSlice[0] = slice;
   uInt16 offset = slice << 10;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1000; address < 0x1400; address += (1 << shift))
+  for(uInt32 address = 0x1000; address < 0x1400;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x03FF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   myBankChanged = true;
 }
@@ -156,16 +151,15 @@ void CartridgeE0::segmentOne(uInt16 slice)
   // Remember the new slice
   myCurrentSlice[1] = slice;
   uInt16 offset = slice << 10;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1400; address < 0x1800; address += (1 << shift))
+  for(uInt32 address = 0x1400; address < 0x1800; address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x03FF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   myBankChanged = true;
 }
@@ -178,40 +172,18 @@ void CartridgeE0::segmentTwo(uInt16 slice)
   // Remember the new slice
   myCurrentSlice[2] = slice;
   uInt16 offset = slice << 10;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1800; address < 0x1C00; address += (1 << shift))
+  for(uInt32 address = 0x1800; address < 0x1C00;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[offset + (address & 0x03FF)];
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   myBankChanged = true;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeE0::bank(uInt16)
-{
-  // Doesn't support bankswitching in the normal sense
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeE0::bank() const
-{
-  // Doesn't support bankswitching in the normal sense
-  return 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeE0::bankCount() const
-{
-  // Doesn't support bankswitching in the normal sense
-  // There is one 'virtual' bank that can change in many different ways
-  return 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

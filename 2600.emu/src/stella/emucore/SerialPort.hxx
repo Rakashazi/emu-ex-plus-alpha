@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SerialPort.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: SerialPort.hxx 3142 2015-01-24 16:28:06Z stephena $
 //============================================================================
 
 #ifndef SERIALPORT_HXX
@@ -28,7 +28,7 @@
   and as such it always uses 19200, 8n1, no flow control.
 
   @author  Stephen Anthony
-  @version $Id: SerialPort.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: SerialPort.hxx 3142 2015-01-24 16:28:06Z stephena $
 */
 class SerialPort
 {
@@ -45,11 +45,6 @@ class SerialPort
     virtual bool openPort(const string& device) { return false; }
 
     /**
-      Close a previously opened serial port.
-    */
-    virtual void closePort() { }
-
-    /**
       Read a byte from the serial port.
 
       @param data  Destination for the byte read from the port
@@ -64,6 +59,12 @@ class SerialPort
       @return  True if a byte was written, else false
     */
     virtual bool writeByte(const uInt8* data) { return false; }
+
+  private:
+    /**
+      Close a previously opened serial port.
+    */
+    virtual void closePort() { }
 };
 
 #endif

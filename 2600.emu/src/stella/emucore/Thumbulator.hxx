@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Thumbulator.hxx 2725 2013-05-07 18:53:21Z stephena $
+// $Id: Thumbulator.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 //============================================================================
@@ -73,11 +73,7 @@ class Thumbulator
       @return  The results of any debugging output (if enabled),
                otherwise an empty string
     */
-		#ifdef THUMB_DEBUG_SUPPORT
     string run();
-		#else
-    void run();
-		#endif
 
     /**
       Normally when a fatal error is encountered, the ARM emulation
@@ -91,15 +87,13 @@ class Thumbulator
 
       @param enable  Enable (the default) or disable exceptions on fatal errors
     */
-		#ifdef THUMB_DEBUG_SUPPORT
     static void trapFatalErrors(bool enable) { trapOnFatal = enable; }
-		#endif
 
   private:
     uInt32 read_register ( uInt32 reg );
     uInt32 write_register ( uInt32 reg, uInt32 data );
     uInt32 fetch16 ( uInt32 addr );
-    uInt32 fetch32 ( uInt32 addr );
+    //uInt32 fetch32 ( uInt32 addr );
     uInt32 read16 ( uInt32 addr );
     uInt32 read32 ( uInt32 );
     void write16 ( uInt32 addr, uInt32 data );
@@ -147,11 +141,7 @@ class Thumbulator
 
     ostringstream statusMsg;
 
-		#ifdef THUMB_DEBUG_SUPPORT
-    static constexpr bool trapOnFatal = 0;
-		#else
     static bool trapOnFatal;
-		#endif
 };
 
 #endif

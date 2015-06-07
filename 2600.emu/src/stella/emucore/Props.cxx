@@ -8,18 +8,19 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Props.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Props.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <cctype>
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 
 #include "bspf.hxx"
 #include "Props.hxx"
@@ -34,11 +35,6 @@ Properties::Properties()
 Properties::Properties(const Properties& properties)
 {
   copy(properties);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Properties::~Properties()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

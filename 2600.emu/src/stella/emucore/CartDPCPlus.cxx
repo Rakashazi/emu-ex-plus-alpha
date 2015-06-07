@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.cxx 2703 2013-04-21 20:02:55Z stephena $
+// $Id: CartDPCPlus.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #ifdef DEBUGGER_SUPPORT
@@ -31,6 +30,7 @@
 CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
                                    const Settings& settings)
   : Cartridge(settings),
+    myImage(nullptr),
     myFastFetch(false),
     myLDAimmediate(false),
     myParameterPointer(0),
@@ -56,13 +56,13 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
   // If the image is larger than 29K, we assume any excess at the
   // beginning is ARM code, and skip over it
   if(size > 29 * 1024)
-  	myProgramImage += (size - 29 * 1024);
+    myProgramImage += (size - 29 * 1024);
 
 #ifdef THUMB_SUPPORT
   // Create Thumbulator ARM emulator
-  myThumbEmulator = new Thumbulator((uInt16*)(myProgramImage-0xC00),
-                                    (uInt16*)myDPCRAM,
-                                     settings.getBool("thumb.trapfatal"));
+  myThumbEmulator = make_ptr<Thumbulator>
+      ((uInt16*)(myProgramImage-0xC00), (uInt16*)myDPCRAM,
+       settings.getBool("thumb.trapfatal"));
 #endif
   setInitialState();
 
@@ -74,10 +74,6 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
 CartridgeDPCPlus::~CartridgeDPCPlus()
 {
   delete[] myImage;
-
-#ifdef THUMB_SUPPORT
-  delete myThumbEmulator;
-#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -117,28 +113,19 @@ void CartridgeDPCPlus::setInitialState()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeDPCPlus::systemCyclesReset()
 {
-  // Get the current system cycle
-  uInt32 cycles = mySystem->cycles();
-
   // Adjust the cycle counter so that it reflects the new value
-  mySystemCycles -= cycles;
+  mySystemCycles -= mySystem->cycles();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeDPCPlus::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert(((0x1080 & mask) == 0) && ((0x1100 & mask) == 0));
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
 
   // Map all of the accesses to call peek and poke
-  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -209,7 +196,6 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
     case 254:
     case 255:
       // Call user written ARM code (most likely be C compiled for ARM)
-			#ifdef THUMB_DEBUG_SUPPORT
       try {
         myThumbEmulator->run();
       }
@@ -223,9 +209,6 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
       #endif
         }
       }
-			#else
-      myThumbEmulator->run();
-			#endif
       break;
   #endif
     // reserved
@@ -611,22 +594,22 @@ bool CartridgeDPCPlus::bank(uInt16 bank)
   // Remember what bank we're in
   myCurrentBank = bank;
   uInt16 offset = myCurrentBank << 12;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Map Program ROM image into the system
-  for(uInt32 address = 0x1080; address < 0x2000; address += (1 << shift))
+  for(uInt32 address = 0x1080; address < 0x2000;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeDPCPlus::bank() const
+uInt16 CartridgeDPCPlus::getBank() const
 {
   return myCurrentBank;
 }

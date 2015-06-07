@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Event.hxx 2745 2013-05-30 16:07:19Z stephena $
+// $Id: Event.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef EVENT_HXX
@@ -25,7 +25,7 @@
 
 /**
   @author  Bradford W. Mott
-  @version $Id: Event.hxx 2745 2013-05-30 16:07:19Z stephena $
+  @version $Id: Event.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class Event
 {

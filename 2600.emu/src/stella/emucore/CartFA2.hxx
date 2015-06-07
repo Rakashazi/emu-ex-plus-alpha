@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.hxx 2697 2013-04-17 22:32:49Z stephena $
+// $Id: CartFA2.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEFA2_HXX
@@ -41,7 +41,7 @@ class System;
   completely ignored by the emulator.
 
   @author  Chris D. Walton
-  @version $Id: CartFA2.hxx 2697 2013-04-17 22:32:49Z stephena $
+  @version $Id: CartFA2.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeFA2 : public Cartridge
 {
@@ -86,7 +86,7 @@ class CartridgeFA2 : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -146,10 +146,10 @@ class CartridgeFA2 : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeFA2Widget(boss, font, x, y, w, h, *this);
+      return new CartridgeFA2Widget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 
@@ -197,7 +197,7 @@ class CartridgeFA2 : public Cartridge
     uInt16 myCurrentBank;
 
     // The 24K/28K ROM image of the cartridge
-    uInt8* myImage;
+    uInt8 myImage[28 * 1024];
 
     // The 256 bytes of RAM on the cartridge
     uInt8 myRAM[256];

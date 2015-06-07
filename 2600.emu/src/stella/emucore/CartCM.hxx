@@ -8,18 +8,19 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCM.hxx 2704 2013-04-22 16:41:05Z stephena $
+// $Id: CartCM.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECM_HXX
 #define CARTRIDGECM_HXX
 
+class CompuMate;
 class System;
 
 #include "bspf.hxx"
@@ -104,7 +105,7 @@ class System;
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: CartCM.hxx 2704 2013-04-22 16:41:05Z stephena $
+  @version $Id: CartCM.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeCM : public Cartridge
 {
@@ -149,7 +150,7 @@ class CartridgeCM : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -201,10 +202,10 @@ class CartridgeCM : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeCMWidget(boss, font, x, y, w, h, *this);
+      return new CartridgeCMWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 
@@ -226,13 +227,21 @@ class CartridgeCM : public Cartridge
     bool poke(uInt16 address, uInt8 value);
 
     /**
-      Get the current keybord column
+      Inform the cartridge about the parent CompuMate controller
+    */
+    void setCompuMate(shared_ptr<CompuMate> cmate) { myCompuMate = cmate; }
+
+    /**
+      Get the current keyboard column
 
       @return The column referenced by SWCHA D6 and D5
     */
-    uInt8 column() const { return myColumn; }
+    uInt8 column() const;
 
   private:
+    // The CompuMate device which interacts with this cartridge
+    shared_ptr<CompuMate> myCompuMate;
+
     // Indicates which bank is currently active
     uInt16 myCurrentBank;
 
@@ -244,9 +253,6 @@ class CartridgeCM : public Cartridge
 
     // Current copy of SWCHA (controls ROM/RAM accesses)
     uInt8 mySWCHA;
-
-    // Column currently active
-    uInt8 myColumn;
 };
 
 #endif

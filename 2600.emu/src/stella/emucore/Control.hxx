@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Control.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -58,7 +58,7 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: Control.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class Controller : public Serializable
 {
@@ -101,8 +101,8 @@ class Controller : public Serializable
 
       @param jack   The jack the controller is plugged into
       @param event  The event object to use for events
-      @param type   The type for this controller
       @param system The system using this controller
+      @param type   The type for this controller
     */
     Controller(Jack jack, const Event& event, const System& system,
                Type type);
@@ -201,12 +201,13 @@ class Controller : public Serializable
     /**
       Returns the name of this controller.
     */
-    virtual string name() const;
+    virtual string name() const { return myName; }
 
     /**
       Returns more detailed information about this controller.
     */
-    virtual string about() const;
+    virtual string about() const
+    { return name() + " in " + (myJack == Left ? "left port" : "right port"); }
 
     /**
       The following two functions are used by the debugger to set
@@ -265,11 +266,9 @@ class Controller : public Serializable
     /// The analog value on each analog pin
     Int32 myAnalogPinValue[2];
 
-  protected:
-    // Copy constructor isn't supported by controllers so make it private
+  private:
+    // Copy constructor and assignment operator not supported
     Controller(const Controller&);
-
-    // Assignment operator isn't supported by controllers so make it private
     Controller& operator = (const Controller&);
 };
 

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Control.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -175,36 +175,7 @@ bool Controller::load(Serializer& in)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string Controller::name() const
-{
-  return myName;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string Controller::about() const
-{
-  return name() + " in " + (myJack == Left ? "left port" : "right port");
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Int32 Controller::maximumResistance = 0x7FFFFFFF;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Int32 Controller::minimumResistance = 0x00000000;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Controller::Controller(const Controller& c)
-  : myJack(c.myJack),
-    myEvent(c.myEvent),
-    mySystem(c.mySystem),
-    myType(c.myType)
-{
-  assert(false);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Controller& Controller::operator = (const Controller&)
-{
-  assert(false);
-  return *this;
-}

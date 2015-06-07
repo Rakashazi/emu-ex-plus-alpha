@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFE.cxx 2686 2013-04-06 22:13:26Z stephena $
+// $Id: CartFE.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -57,17 +56,11 @@ void CartridgeFE::reset()
 void CartridgeFE::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1000 & mask) == 0);
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
 
   // Map all of the accesses to call peek and poke
-  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -90,7 +83,7 @@ bool CartridgeFE::poke(uInt16, uInt8)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeFE::getAccessFlags(uInt16 address)
+uInt8 CartridgeFE::getAccessFlags(uInt16 address) const
 {
   return myCodeAccessBase[(address & 0x0FFF) +
             (((address & 0x2000) == 0) ? 4096 : 0)];
@@ -104,14 +97,7 @@ void CartridgeFE::setAccessFlags(uInt16 address, uInt8 flags)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeFE::bank(uInt16)
-{
-  // Doesn't support bankswitching in the normal sense
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeFE::bank() const
+uInt16 CartridgeFE::getBank() const
 {
   // The current bank depends on the last address accessed
   return ((myLastAddress1 & 0x2000) == 0) ? 1 : 0;

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 2753 2013-06-21 12:15:32Z stephena $
+// $Id: FSNode.hxx 3131 2015-01-01 03:49:32Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -47,8 +47,7 @@
  * we can build upon this.
  */
 
-#include "Array.hxx"
-#include "SharedPtr.hxx"
+#include "bspf.hxx"
 
 class FilesystemNode;
 class AbstractFSNode;
@@ -58,7 +57,7 @@ class AbstractFSNode;
  * This is subclass instead of just a typedef so that we can use forward
  * declarations of it in other places.
  */
-class FSList : public Common::Array<FilesystemNode> { };
+class FSList : public vector<FilesystemNode> { };
 
 /**
  * This class acts as a wrapper around the AbstractFSNode class defined
@@ -94,7 +93,7 @@ class FilesystemNode
      */
     explicit FilesystemNode(const string& path);
 
-    virtual ~FilesystemNode() {}
+    virtual ~FilesystemNode() { }
 
     /**
      * Compare the name of this node to the name of another. Directories
@@ -105,7 +104,7 @@ class FilesystemNode
       if (isDirectory() != node.isDirectory())
         return isDirectory();
 
-      return BSPF_strcasecmp(getName().c_str(), node.getName().c_str()) < 0;
+      return BSPF_compareIgnoreCase(getName(), node.getName()) < 0;
     }
 
     /**
@@ -114,7 +113,7 @@ class FilesystemNode
      */
     inline bool operator==(const FilesystemNode& node) const
     {
-      return BSPF_strcasecmp(getName().c_str(), node.getName().c_str()) == 0;
+      return BSPF_compareIgnoreCase(getName(), node.getName()) == 0;
     }
 
     /**
@@ -247,10 +246,10 @@ class FilesystemNode
      */
     string getNameWithExt(const string& ext) const;
     string getPathWithExt(const string& ext) const;
-    string getShortPathWithExt(const string& ext) const;
+    string getShortPathWithExt(const string& ext) const; // FIXME - dead code
 
   private:
-    Common::SharedPtr<AbstractFSNode> _realNode;
+    shared_ptr<AbstractFSNode> _realNode;
     FilesystemNode(AbstractFSNode* realNode);
 };
 
@@ -264,19 +263,19 @@ class FilesystemNode
  * the semantics.
  */
 
-typedef Common::Array<AbstractFSNode *>	AbstractFSList;
+using AbstractFSList = vector<AbstractFSNode*>;
 
 class AbstractFSNode
 {
   protected:
     friend class FilesystemNode;
-    typedef FilesystemNode::ListMode ListMode;
+    using ListMode = FilesystemNode::ListMode;
 
   public:
     /**
      * Destructor.
      */
-    virtual ~AbstractFSNode() {}
+    virtual ~AbstractFSNode() { }
 
     /*
      * Indicates whether the object referred by this path exists in the

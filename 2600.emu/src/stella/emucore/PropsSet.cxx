@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.cxx 2753 2013-06-21 12:15:32Z stephena $
+// $Id: PropsSet.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <fstream>
@@ -24,24 +24,14 @@
 #include "bspf.hxx"
 
 #include "DefProps.hxx"
-#include "OSystem.hxx"
 #include "Props.hxx"
-#include "Settings.hxx"
 
 #include "PropsSet.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PropertiesSet::PropertiesSet(OSystem* osystem)
-  : myOSystem(osystem)
+PropertiesSet::PropertiesSet(const string& propsfile)
 {
-  //load(myOSystem->propertiesFile());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PropertiesSet::~PropertiesSet()
-{
-  myExternalProps.clear();
-  myTempProps.clear();
+  load(propsfile);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,9 +66,8 @@ bool PropertiesSet::save(const string& filename) const
     return false;
 
   // Only save those entries in the external list
-  for(PropsList::const_iterator i = myExternalProps.begin();
-      i != myExternalProps.end(); ++i)
-    i->second.save(out);
+  for(const auto& i: myExternalProps)
+    i.second.save(out);
 
   return true;
 }
@@ -102,18 +91,18 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
   if(!useDefaults)
   {
     // Check external list
-    PropsList::const_iterator iter = myExternalProps.find(md5);
-    if(iter != myExternalProps.end())
+    auto ext = myExternalProps.find(md5);
+    if(ext != myExternalProps.end())
     {
-      properties = iter->second;
+      properties = ext->second;
       found = true;
     }
     else  // Search temp list
     {
-      iter = myTempProps.find(md5);
-      if(iter != myTempProps.end())
+      auto tmp = myTempProps.find(md5);
+      if(tmp != myTempProps.end())
       {
-        properties = iter->second;
+        properties = tmp->second;
         found = true;
       }
     }
@@ -126,7 +115,7 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
     while(low <= high)
     {
       int i = (low + high) / 2;
-      int cmp = BSPF_strncasecmp(md5.c_str(), DefProps[i][Cartridge_MD5], 32);
+      int cmp = BSPF_compareIgnoreCase(md5, DefProps[i][Cartridge_MD5]);
 
       if(cmp == 0)  // found it
       {
@@ -148,7 +137,7 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-/*void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
+void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
                                      const string& md5, Properties& properties)
 {
   if(!getMD5(md5, properties))
@@ -159,7 +148,7 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
 
     insert(properties, false);
   }
-}*/
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::insert(const Properties& properties, bool save)
@@ -181,8 +170,7 @@ void PropertiesSet::insert(const Properties& properties, bool save)
   // The status of 'save' determines which list to save to
   PropsList& list = save ? myExternalProps : myTempProps;
 
-  pair<PropsList::iterator,bool> ret;
-  ret = list.insert(make_pair(md5, properties));
+  auto ret = list.insert(make_pair(md5, properties));
   if(ret.second == false)
   {
     // Remove old item and insert again
@@ -230,6 +218,6 @@ void PropertiesSet::print() const
 
   // Now, print the resulting list
   Properties::printHeader();
-  for(PropsList::const_iterator i = list.begin(); i != list.end(); ++i)
-    i->second.print();
+  for(const auto& i: list)
+    i.second.print();
 }

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 2753 2013-06-21 12:15:32Z stephena $
+// $Id: FSNode.cxx 3131 2015-01-01 03:49:32Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -23,7 +23,6 @@
 #include <zlib.h>
 
 #include "bspf.hxx"
-#include "SharedPtr.hxx"
 #include "FSNodeFactory.hxx"
 #include "FSNode.hxx"
 
@@ -41,7 +40,7 @@ FilesystemNode::FilesystemNode(AbstractFSNode *realNode)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FilesystemNode::FilesystemNode(const string& p)
 {
-  AbstractFSNode* tmp = 0;
+  AbstractFSNode* tmp = nullptr;
 
   // Is this potentially a ZIP archive?
   if(BSPF_containsIgnoreCase(p, ".zip"))
@@ -49,7 +48,7 @@ FilesystemNode::FilesystemNode(const string& p)
   else
     tmp = FilesystemNodeFactory::create(p, FilesystemNodeFactory::SYSTEM);
 
-  _realNode = Common::SharedPtr<AbstractFSNode>(tmp);
+  _realNode = shared_ptr<AbstractFSNode>(tmp);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -70,8 +69,8 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode, bool hidden) con
   if (!_realNode->getChildren(tmp, mode, hidden))
     return false;
 
-  for (AbstractFSList::iterator i = tmp.begin(); i != tmp.end(); ++i)
-    fslist.push_back(FilesystemNode(*i));
+  for (const auto& i: tmp)
+    fslist.emplace_back(FilesystemNode(i));
 
   return true;
 }
@@ -198,7 +197,7 @@ uInt32 FilesystemNode::read(uInt8*& image) const
 
     if(size == 0)
     {
-      delete[] image;  image = 0;
+      delete[] image;  image = nullptr;
       throw "Zero-byte file";
     }
     return size;

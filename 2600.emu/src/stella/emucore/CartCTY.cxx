@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCTY.cxx 2613 2013-02-17 00:19:14Z stephena $
+// $Id: CartCTY.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "OSystem.hxx"
@@ -41,9 +40,6 @@ CartridgeCTY::CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osyst
   // Copy the ROM image into my buffer
   memcpy(myImage, image, BSPF_min(32768u, size));
   createCodeAccessBase(32768);
-
-  // This cart contains 64 bytes extended RAM @ 0x1000
-  registerRamArea(0x1000, 64, 0x40, 0x00);
 
   // Point to the first tune
   myFrequencyImage = CartCTYTunes;
@@ -88,16 +84,11 @@ void CartridgeCTY::systemCyclesReset()
 void CartridgeCTY::install(System& system)
 {
   mySystem = &system;
-  uInt16 mask = mySystem->pageMask();
-  uInt16 shift = mySystem->pageShift();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert(((0x1000 & mask) == 0) && ((0x1080 & mask) == 0));
 
   // Map all RAM accesses to call peek and poke
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -255,20 +246,20 @@ bool CartridgeCTY::bank(uInt16 bank)
 
   // Remember what bank we're in
   myCurrentBank = bank << 12;
-  uInt16 shift = mySystem->pageShift();
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-  for(uInt32 address = 0x1080; address < 0x2000; address += (1 << shift))
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 address = 0x1080; address < 0x2000;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.codeAccessBase = &myCodeAccessBase[myCurrentBank + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCTY::bank() const
+uInt16 CartridgeCTY::getBank() const
 {
   return myCurrentBank >> 12;
 }
@@ -310,7 +301,7 @@ bool CartridgeCTY::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putShort(bank());
+    out.putShort(getBank());
     out.putByteArray(myRAM, 64);
 
     out.putByte(myOperationType);
@@ -459,7 +450,7 @@ void CartridgeCTY::loadTune(uInt8 index)
 void CartridgeCTY::loadScore(uInt8 index)
 {
   Serializer serializer(myEEPROMFile, true);
-  if(serializer.isValid())
+  if(serializer.valid())
   {
     uInt8 scoreRAM[256];
     try
@@ -479,7 +470,7 @@ void CartridgeCTY::loadScore(uInt8 index)
 void CartridgeCTY::saveScore(uInt8 index)
 {
   Serializer serializer(myEEPROMFile);
-  if(serializer.isValid())
+  if(serializer.valid())
   {
     // Load score RAM
     uInt8 scoreRAM[256];
@@ -513,7 +504,7 @@ void CartridgeCTY::saveScore(uInt8 index)
 void CartridgeCTY::wipeAllScores()
 {
   Serializer serializer(myEEPROMFile);
-  if(serializer.isValid())
+  if(serializer.valid())
   {
     // Erase score RAM
     uInt8 scoreRAM[256];

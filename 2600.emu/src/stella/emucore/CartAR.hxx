@@ -8,19 +8,18 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.hxx 2707 2013-04-24 16:50:24Z stephena $
+// $Id: CartAR.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEAR_HXX
 #define CARTRIDGEAR_HXX
 
-class M6502;
 class System;
 
 #include "bspf.hxx"
@@ -39,7 +38,7 @@ class System;
   and one bank of ROM.  All 6K of the RAM can be read and written.
 
   @author  Bradford W. Mott
-  @version $Id: CartAR.hxx 2707 2013-04-24 16:50:24Z stephena $
+  @version $Id: CartAR.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeAR : public Cartridge
 {
@@ -91,7 +90,7 @@ class CartridgeAR : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -143,10 +142,10 @@ class CartridgeAR : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeARWidget(boss, font, x, y, w, h, *this);
+      return new CartridgeARWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 
@@ -174,7 +173,7 @@ class CartridgeAR : public Cartridge
       @param address The address to modify
       @param flags A bitfield of DisasmType directives for the given address
     */
-    uInt8 getAccessFlags(uInt16 address);
+    uInt8 getAccessFlags(uInt16 address) const;
     void setAccessFlags(uInt16 address, uInt8 flags);
 
     // Handle a change to the bank configuration
@@ -190,9 +189,6 @@ class CartridgeAR : public Cartridge
     void initializeROM();
 
   private:
-    // Pointer to the 6502 processor in the system
-    M6502* my6502;
-
     // Indicates the offset within the image for the corresponding bank
     uInt32 myImageOffset[2];
 

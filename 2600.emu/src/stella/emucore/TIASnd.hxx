@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.hxx 2585 2013-01-27 15:08:04Z stephena $
+// $Id: TIASnd.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef TIASOUND_HXX
@@ -30,7 +30,7 @@
   Resampling can be done by passing in a different output frequency.
 
   @author  Bradford W. Mott, Stephen Anthony, z26 and MESS teams
-  @version $Id: TIASnd.hxx 2585 2013-01-27 15:08:04Z stephena $
+  @version $Id: TIASnd.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class TIASound
 {
@@ -39,11 +39,6 @@ class TIASound
       Create a new TIA Sound object using the specified output frequency
     */
     TIASound(Int32 outputFrequency = 31400);
-
-    /**
-      Destructor
-    */
-    virtual ~TIASound();
 
   public:
     /**
@@ -110,7 +105,7 @@ class TIASound
       POLY4       = 0x01,  // 0001
       DIV31_POLY4 = 0x02,  // 0010
       POLY5_POLY4 = 0x03,  // 0011
-      PURE        = 0x04,  // 0100
+      PURE1       = 0x04,  // 0100
       PURE2       = 0x05,  // 0101
       DIV31_PURE  = 0x06,  // 0110
       POLY5_2     = 0x07,  // 0111

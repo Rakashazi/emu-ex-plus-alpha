@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.hxx 2689 2013-04-11 14:58:18Z stephena $
+// $Id: Cart3E.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3E_HXX
@@ -61,7 +61,7 @@ class System;
   any problems. (Famous last words...)
 
   @author  B. Watson
-  @version $Id: Cart3E.hxx 2689 2013-04-11 14:58:18Z stephena $
+  @version $Id: Cart3E.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 
 class Cartridge3E : public Cartridge
@@ -107,7 +107,7 @@ class Cartridge3E : public Cartridge
     /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -159,10 +159,10 @@ class Cartridge3E : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new Cartridge3EWidget(boss, font, x, y, w, h, *this);
+      return new Cartridge3EWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

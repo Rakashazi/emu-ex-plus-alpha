@@ -17,82 +17,79 @@
 // $Id: OSystem.hxx 2471 2012-05-13 18:06:56Z stephena $
 //============================================================================
 
-#ifndef OSYSTEM_HXX
-#define OSYSTEM_HXX
+#pragma once
 
 class Cartridge;
 class CheatManager;
 class CommandMenu;
 class Console;
 class Debugger;
+class EventHandler;
+class FrameBuffer;
 class Launcher;
 class Menu;
+class SoundGeneric;
 class Properties;
 class PropertiesSet;
+class Random;
 class SerialPort;
 class Settings;
 class Sound;
 class StateManager;
 class VideoDialog;
 
-#include <stella/common/Array.hxx>
-#include <stella/emucore/FSNode.hxx>
-#include "FrameBuffer.hxx"
 #include "bspf.hxx"
 
 class OSystem
 {
   friend class EventHandler;
-  friend class VideoDialog;
 
   public:
-    /**
-      Create a new OSystem abstract class
-    */
-    OSystem();
-
-  public:
-    /**
-      Adds the specified settings object to the system.
-
-      @param settings The settings object to add 
-    */
-    void attach(Settings* settings) { mySettings = settings; }
+    OSystem() {}
 
     /**
       Get the event handler of the system
 
       @return The event handler
     */
-    EventHandler& eventHandler() const { return *myEventHandler; }
+    EventHandler& eventHandler() const;
 
     /**
       Get the frame buffer of the system
 
       @return The frame buffer
     */
-    FrameBuffer& frameBuffer() const { return *myFrameBuffer; }
+    FrameBuffer& frameBuffer() const;
 
     /**
       Get the sound object of the system
 
       @return The sound object
     */
-    Sound& sound() const { return *mySound; }
+    Sound& sound() const;
+
+    SoundGeneric& soundGeneric() const;
 
     /**
       Get the settings object of the system
 
       @return The settings object
     */
-    Settings& settings() const { return *mySettings; }
+    Settings& settings() const;
+
+    /**
+      Get the random object of the system.
+
+      @return The random object
+    */
+    Random& random() const;
 
     /**
       Get the set of game properties for the system
 
       @return The properties set object
     */
-    PropertiesSet& propSet() const { return *myPropSet; }
+    PropertiesSet& propSet() const;
 
     /**
       Get the console of the system.
@@ -100,13 +97,17 @@ class OSystem
       @return The console object
     */
     Console& console() const { return *myConsole; }
+    bool hasConsole() const { return myConsole != nullptr; }
+
+    void makeConsole(Cartridge* cart, const Properties& props);
+    void deleteConsole();
 
     /**
       Get the serial port of the system.
 
       @return The serial port object
     */
-    SerialPort& serialPort() const { return *mySerialPort; }
+    SerialPort& serialPort() const;
 
 #ifdef DEBUGGER_SUPPORT
     /**
@@ -131,30 +132,26 @@ class OSystem
     CheatManager& cheat() const { return *myCheatManager; }
 #endif
 
-    /**
-      Set the framerate for the video system.  It's placed in this class since
-      the mainLoop() method is defined here.
-
-      @param framerate  The video framerate to use
-    */
-    void setFramerate(float framerate);
-
-    /**
-      Get the maximum dimensions of a window for the video hardware.
-    */
-    //uInt32 desktopWidth() const  { return myDesktopWidth; }
-    uInt32 desktopHeight() const { return 256; }
+    // no-op
+    void setFramerate(float framerate) {}
 
     /**
       Return the full/complete directory name for storing state files.
     */
-    const string& stateDir() const { static const string dir("."); return dir; }
+    string stateDir() const;
 
     /**
       Return the full/complete directory name for storing nvram
       (flash/EEPROM) files.
     */
-    const string& nvramDir() const;// { return myNVRamDir; }
+    string nvramDir() const;
+
+    /**
+      This method should be called to get the full path of the config file.
+
+      @return String representing the full path of the config filename.
+    */
+    string configFile() const { return ""; }
 
     /**
       This method should be called to get the full path of the
@@ -162,7 +159,7 @@ class OSystem
 
       @return String representing the full path of the properties filename.
     */
-    const string& paletteFile() const { return myPaletteFile; }
+    string paletteFile() const { return ""; }
 
     /**
       Append a message to the internal log.
@@ -171,11 +168,7 @@ class OSystem
       @param level    If 0, always output the message, only append when
                       level is less than or equal to that in 'loglevel'
     */
-	#ifdef NDEBUG
-    void logMessage(const string& message, uInt8 level) { }
-	#else
-    void logMessage(const string& message, uInt8 level);
-	#endif
+	void logMessage(const string& message, uInt8 level);
 
   public:
     //////////////////////////////////////////////////////////////////////
@@ -194,47 +187,7 @@ class OSystem
     */
     uInt64 getTicks() const;
 
-    /**
-      This method determines the default mapping of joystick actions to
-      Stella events for a specific system/platform.
-
-      @param event  The event which to (re)set (Event::NoType resets all)
-      @param mode   The mode for which the defaults are set
-    */
-    void setDefaultJoymap(Event::Type event, EventMode mode);
-
-    // Pointer to the (currently defined) Console object
-    Console* myConsole;
-
   protected:
-    // Pointer to the EventHandler object
-    EventHandler* myEventHandler;
-
-    // Pointer to the FrameBuffer object
-    FrameBuffer* myFrameBuffer;
-
-    // Pointer to the Sound object
-    Sound* mySound;
-
-    // Pointer to the Settings object
-    Settings* mySettings;
-
-    // Pointer to the PropertiesSet object
-    PropertiesSet* myPropSet;
-
-    // Pointer to the serial port object
-    SerialPort* mySerialPort;
-
-  private:
-    string myPaletteFile;
-
-  private:
-
-    // Copy constructor isn't supported by this class so make it private
-    OSystem(const OSystem&) = delete;
-
-    // Assignment operator isn't supported by this class so make it private
-    OSystem& operator= (const OSystem&) = delete;
+    // Pointer to the (currently defined) Console object
+    Console* myConsole{};
 };
-
-#endif

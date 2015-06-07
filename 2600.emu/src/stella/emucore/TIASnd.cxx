@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.cxx 2585 2013-01-27 15:08:04Z stephena $
+// $Id: TIASnd.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include "System.hxx"
@@ -22,17 +22,12 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TIASound::TIASound(Int32 outputFrequency)
-  : myChannelMode(Hardware1),
+  : myChannelMode(Hardware2Stereo),
     myOutputFrequency(outputFrequency),
     myOutputCounter(0),
     myVolumePercentage(100)
 {
   reset();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TIASound::~TIASound()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

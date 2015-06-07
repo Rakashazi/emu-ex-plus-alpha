@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIATables.hxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: TIATables.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef TIA_TABLES_HXX
@@ -133,7 +133,7 @@ enum TIARegister {
   here.
 
   @author  Stephen Anthony
-  @version $Id: TIATables.hxx 2579 2013-01-04 19:49:01Z stephena $
+  @version $Id: TIATables.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class TIATables
 {
@@ -143,11 +143,30 @@ class TIATables
     */
     static void computeAllTables();
 
-    // Used to set the collision register to the correct value
-    static uInt16 CollisionMask[64];
+    // Player mask table
+    // [suppress mode][nusiz][pixel]
+    static uInt8 PxMask[2][8][320];
+
+    // Missle mask table (entries are true or false)
+    // [number][size][pixel]
+    // There are actually only 4 possible size combinations on a real system
+    // The fifth size is used for simulating the starfield effect in
+    // Cosmic Ark and Stay Frosty
+    static uInt8 MxMask[8][5][320];
+
+    // Ball mask table (entries are true or false)
+    // [size][pixel]
+    static uInt8 BLMask[4][320];
+
+    // Playfield mask table for reflected and non-reflected playfields
+    // [reflect, pixel]
+    static uInt32 PFMask[2][160];
 
     // A mask table which can be used when an object is disabled
     static uInt8 DisabledMask[640];
+
+    // Used to set the collision register to the correct value
+    static uInt16 CollisionMask[64];
 
     // Indicates the update delay associated with poking at a TIA address
     static const Int16 PokeDelay[64];
@@ -160,25 +179,6 @@ class TIATables
 
     // Indicates if HMOVE blanks should occur for the corresponding cycle
     static const bool HMOVEBlankEnableCycles[76];
-
-    // Player mask table
-    // [alignment][suppress mode][nusiz][pixel]
-    static uInt8 PxMask[4][2][8][320];
-
-    // Missle mask table (entries are true or false)
-    // [alignment][number][size][pixel]
-    // There are actually only 4 possible size combinations on a real system
-    // The fifth size is used for simulating the starfield effect in
-    // Cosmic Ark and Stay Frosty
-    static uInt8 MxMask[4][8][5][320];
-
-    // Ball mask table (entries are true or false)
-    // [alignment][size][pixel]
-    static uInt8 BLMask[4][4][320];
-
-    // Playfield mask table for reflected and non-reflected playfields
-    // [reflect, pixel]
-    static uInt32 PFMask[2][160];
 
     // Used to reflect a players graphics
     static uInt8 GRPReflect[256];

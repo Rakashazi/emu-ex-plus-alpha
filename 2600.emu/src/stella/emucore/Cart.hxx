@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.hxx 2689 2013-04-11 14:58:18Z stephena $
+// $Id: Cart.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_HXX
@@ -26,18 +26,13 @@
 class Cartridge;
 class Properties;
 class CartDebugWidget;
+class CartRamWidget;
 class GuiObject;
 
 #include "bspf.hxx"
-#include "Array.hxx"
 #include "Device.hxx"
 #include "Settings.hxx"
 #include "Font.hxx"
-
-struct RamArea {
-  uInt16 start;  uInt16 size;  uInt16 roffset;  uInt16 woffset;
-};
-typedef Common::Array<RamArea> RamAreaList;
 
 /**
   A cartridge is a device which contains the machine code for a 
@@ -46,7 +41,7 @@ typedef Common::Array<RamArea> RamAreaList;
   0x1000-0x2000 area (or its mirrors).
  
   @author  Bradford W. Mott
-  @version $Id: Cart.hxx 2689 2013-04-11 14:58:18Z stephena $
+  @version $Id: Cart.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class Cartridge : public Device
 {
@@ -58,7 +53,6 @@ class Cartridge : public Device
       @param image    A pointer to the ROM image
       @param size     The size of the ROM image 
       @param md5      The md5sum for the given ROM image (can be updated)
-      @param name     The name of the ROM (can be updated)
       @param dtype    The detected bankswitch type of the ROM image
       @param id       Any extra info about the ROM (currently which part
                       of a multiload game is being accessed
@@ -101,7 +95,7 @@ class Cartridge : public Device
     */
     void lockBank()   { myBankLocked = true;  }
     void unlockBank() { myBankLocked = false; }
-    bool bankLocked() { return myBankLocked;  }
+    bool bankLocked() const { return myBankLocked; }
 
     /**
       Get the default startup bank for a cart.  This is the bank where
@@ -123,22 +117,26 @@ class Cartridge : public Device
     */
     virtual bool bankChanged();
 
-    const RamAreaList& ramAreas() { return myRamAreaList; }
-
   public:
     //////////////////////////////////////////////////////////////////////
-    // The following methods are cart-specific and must be implemented
-    // in derived classes.
+    // The following methods are cart-specific and will usually be
+    // implemented in derived classes.  Carts which don't support
+    // bankswitching (for any reason) do not have to provide an
+    // implementation for bankswitch-related methods.
     //////////////////////////////////////////////////////////////////////
     /**
-      Set the specified bank.
+      Set the specified bank.  This is used only when the bankswitching
+      scheme defines banks in a standard format (ie, 0 for first bank,
+      1 for second, etc).  Carts which will handle their own bankswitching
+      completely or non-bankswitched carts can ignore this method.
     */
-    virtual bool bank(uInt16 bank) = 0;
+    virtual bool bank(uInt16) { return false; }
 
     /**
-      Get the current bank.
+      Get the current bank.  Carts which have only one bank (either real
+      or virtual) always report that bank as zero.
     */
-    virtual uInt16 bank() const = 0;
+    virtual uInt16 getBank() const { return 0; }
 
     /**
       Query the number of 'banks' supported by the cartridge.  Note that
@@ -153,7 +151,7 @@ class Cartridge : public Device
       RAM slices at multiple access points) is so complicated that the
       cart will report having only one 'virtual' bank.
     */
-    virtual uInt16 bankCount() const = 0;
+    virtual uInt16 bankCount() const { return 1; }
 
     /**
       Patch the cartridge ROM.
@@ -209,20 +207,19 @@ class Cartridge : public Device
       each specific cart type, since the bankswitching/inner workings
       of each cart type can be very different from each other.
     */
-    virtual CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h) { return NULL; }
+    virtual CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h) { return nullptr; }
+
+    // Info about the various bankswitch schemes, useful for displaying
+    // in GUI dropdown boxes, etc
+    struct BankswitchType {
+      const char* type;
+      const char* desc;
+    };
+    enum { ourNumBSTypes = 45 };
+    static BankswitchType ourBSList[ourNumBSTypes];
 
   protected:
-    /**
-      Add the given area to the RamArea list for this cart.
-
-      @param start    The beginning of the RAM area (0x0000 - 0x2000)
-      @param size     Total number of bytes of area
-      @param roffset  Offset to use when reading from RAM (read port)
-      @param woffset  Offset to use when writing to RAM (write port)
-    */
-    void registerRamArea(uInt16 start, uInt16 size, uInt16 roffset, uInt16 woffset);
-
     /**
       Indicate that an illegal read from a write port has occurred.
 
@@ -285,6 +282,11 @@ class Cartridge : public Device
     static bool isProbablySC(const uInt8* image, uInt32 size);
 
     /**
+      Returns true if the image is probably a 4K SuperChip (256 bytes RAM)
+    */
+    static bool isProbably4KSC(const uInt8* image, uInt32 size);
+
+    /**
       Returns true if the image probably contains ARM code in the first 1K
     */
     static bool isProbablyARM(const uInt8* image, uInt32 size);
@@ -310,6 +312,11 @@ class Cartridge : public Device
     static bool isProbably4A50(const uInt8* image, uInt32 size);
 
     /**
+      Returns true if the image is probably a BF/BFSC bankswitching cartridge
+    */
+    static bool isProbablyBF(const uInt8* image, uInt32 size, const char*& type);
+
+    /**
       Returns true if the image is probably a CTY bankswitching cartridge
     */
     static bool isProbablyCTY(const uInt8* image, uInt32 size);
@@ -318,6 +325,16 @@ class Cartridge : public Device
       Returns true if the image is probably a CV bankswitching cartridge
     */
     static bool isProbablyCV(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably a DASH bankswitching cartridge
+    */
+    static bool isProbablyDASH(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably a DF/DFSC bankswitching cartridge
+    */
+    static bool isProbablyDF(const uInt8* image, uInt32 size, const char*& type);
 
     /**
       Returns true if the image is probably a DPC+ bankswitching cartridge
@@ -335,9 +352,9 @@ class Cartridge : public Device
     static bool isProbablyE7(const uInt8* image, uInt32 size);
 
     /**
-      Returns true if the image is probably a EF bankswitching cartridge
+      Returns true if the image is probably an EF/EFSC bankswitching cartridge
     */
-    static bool isProbablyEF(const uInt8* image, uInt32 size);
+    static bool isProbablyEF(const uInt8* image, uInt32 size, const char*& type);
 
     /**
       Returns true if the image is probably an F6 bankswitching cartridge
@@ -353,6 +370,11 @@ class Cartridge : public Device
       Returns true if the image is probably an FE bankswitching cartridge
     */
     static bool isProbablyFE(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably a MDM bankswitching cartridge
+    */
+    static bool isProbablyMDM(const uInt8* image, uInt32 size);
 
     /**
       Returns true if the image is probably a SB bankswitching cartridge
@@ -384,9 +406,6 @@ class Cartridge : public Device
     uInt8* myCodeAccessBase;
 
   private:
-    // Contains RamArea entries for those carts with accessible RAM.
-    RamAreaList myRamAreaList;
-
     // If myBankLocked is true, ignore attempts at bankswitching. This is used
     // by the debugger, when disassembling/dumping ROM.
     bool myBankLocked;
@@ -394,10 +413,8 @@ class Cartridge : public Device
     // Contains info about this cartridge in string format
     static string myAboutString;
 
-    // Copy constructor isn't supported by cartridges so make it private
+    // Copy constructor and assignment operator not supported
     Cartridge(const Cartridge&);
-
-    // Assignment operator isn't supported by cartridges so make it private
     Cartridge& operator = (const Cartridge&);
 };
 

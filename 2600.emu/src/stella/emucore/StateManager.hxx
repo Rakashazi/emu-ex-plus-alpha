@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.hxx 2725 2013-05-07 18:53:21Z stephena $
+// $Id: StateManager.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef STATE_MANAGER_HXX
@@ -30,7 +30,7 @@ class OSystem;
   played back.
 
   @author  Stephen Anthony
-  @version $Id: StateManager.hxx 2725 2013-05-07 18:53:21Z stephena $
+  @version $Id: StateManager.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class StateManager
 {
@@ -38,18 +38,13 @@ class StateManager
     /**
       Create a new statemananger class
     */
-    StateManager(OSystem* osystem);
-
-    /**
-      Destructor
-    */
-    virtual ~StateManager();
+    StateManager(OSystem& osystem);
 
   public:
     /**
       Answers whether the manager is in record or playback mode
     */
-    bool isActive();
+    bool isActive() const { return myActiveMode != kOffMode; }
 
     bool toggleRecordMode();
     bool toggleRewindMode();
@@ -104,10 +99,8 @@ class StateManager
     void reset();
 
   private:
-    // Copy constructor isn't supported by this class so make it private
+    // Copy constructor and assignment operator not supported
     StateManager(const StateManager&);
-
-    // Assignment operator isn't supported by this class so make it private
     StateManager& operator = (const StateManager&);
 
   private:
@@ -124,7 +117,7 @@ class StateManager
     };
 
     // The parent OSystem object
-    OSystem* myOSystem;
+    OSystem& myOSystem;
 
     // The current slot for load/save states
     int myCurrentSlot;

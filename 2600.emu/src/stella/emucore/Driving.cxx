@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Driving.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -26,6 +26,8 @@
 Driving::Driving(Jack jack, const Event& event, const System& system)
   : Controller(jack, event, system, Controller::Driving),
     myCounter(0),
+    myGrayIndex(0),
+    myLastYaxis(0),
     myControlID(-1),
     myControlIDX(-1),
     myControlIDY(-1)

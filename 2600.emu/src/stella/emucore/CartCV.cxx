@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartCV.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -27,7 +26,7 @@
 CartridgeCV::CartridgeCV(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    myInitialRAM(0),
+    myInitialRAM(nullptr),
     mySize(size)
 {
   if(mySize == 2048)
@@ -48,9 +47,6 @@ CartridgeCV::CartridgeCV(const uInt8* image, uInt32 size,
     memcpy(myInitialRAM, image, 1024);
   }
   createCodeAccessBase(2048+1024);
-
-  // This cart contains 1024 bytes extended RAM @ 0x1000
-  registerRamArea(0x1000, 1024, 0x00, 0x400);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -84,40 +80,36 @@ void CartridgeCV::reset()
 void CartridgeCV::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1800 & mask) == 0);
-
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
+  System::PageAccess access(this, System::PA_READ);
 
   // Map ROM image into the system
-  for(uInt32 address = 0x1800; address < 0x2000; address += (1 << shift))
+  for(uInt32 address = 0x1800; address < 0x2000;
+      address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[address & 0x07FF];
     access.codeAccessBase = &myCodeAccessBase[address & 0x07FF];
-    mySystem->setPageAccess(address >> mySystem->pageShift(), access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
 
   // Set the page accessing method for the RAM writing pages
   access.directPeekBase = 0;
   access.codeAccessBase = 0;
   access.type = System::PA_WRITE;
-  for(uInt32 j = 0x1400; j < 0x1800; j += (1 << shift))
+  for(uInt32 j = 0x1400; j < 0x1800; j += (1 << System::PAGE_SHIFT))
   {
     access.directPokeBase = &myRAM[j & 0x03FF];
-    mySystem->setPageAccess(j >> shift, access);
+    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
   }
 
   // Set the page accessing method for the RAM reading pages
   access.directPokeBase = 0;
   access.type = System::PA_READ;
-  for(uInt32 k = 0x1000; k < 0x1400; k += (1 << shift))
+  for(uInt32 k = 0x1000; k < 0x1400; k += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myRAM[k & 0x03FF];
     access.codeAccessBase = &myCodeAccessBase[2048 + (k & 0x03FF)];
-    mySystem->setPageAccess(k >> shift, access);
+    mySystem->setPageAccess(k >> System::PAGE_SHIFT, access);
   }
 }
 
@@ -150,26 +142,6 @@ bool CartridgeCV::poke(uInt16, uInt8)
   // should never be called for RAM because of the way page accessing 
   // has been setup
   return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeCV::bank(uInt16 bank)
-{
-  // Doesn't support bankswitching
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCV::bank() const
-{
-  // Doesn't support bankswitching
-  return 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCV::bankCount() const
-{
-  return 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

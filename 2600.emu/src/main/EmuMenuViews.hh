@@ -1,4 +1,20 @@
 #pragma once
+
+/*  This file is part of 2600.emu.
+
+	2600.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	2600.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
 #include <stella/emucore/Console.hxx>
@@ -6,9 +22,8 @@
 
 static constexpr uint TV_PHOSPHOR_AUTO = 2;
 extern Byte1Option optionTVPhosphor, optionVideoSystem;
-extern Console *console;
-extern Properties currGameProps;
 extern OSystem osystem;
+extern Properties defaultGameProps;
 extern bool p1DiffB, p2DiffB, vcsColor;
 
 class SystemOptionView : public OptionView
@@ -28,18 +43,18 @@ class SystemOptionView : public OptionView
 			bool usePhosphor = false;
 			if((int)optionTVPhosphor == TV_PHOSPHOR_AUTO)
 			{
-				usePhosphor = currGameProps.get(Display_Phosphor) == "YES";
+				usePhosphor = defaultGameProps.get(Display_Phosphor) == "YES";
 			}
 			else
 			{
 				usePhosphor = optionTVPhosphor;
 			}
-			bool phospherInUse = console->properties().get(Display_Phosphor) == "YES";
+			bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
 			logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
 			if(usePhosphor != phospherInUse)
 			{
 				logMsg("toggling phoshpor on console");
-				console->togglePhosphor();
+				osystem.console().togglePhosphor();
 			}
 		}
 	};
@@ -104,8 +119,8 @@ class VCSSwitchesView : public TableView
 						Event &ev = osystem.eventHandler().event();
 						ev.clear();
 						ev.set(Event::ConsoleReset, 1);
-						console->switches().update();
-						TIA& tia = console->tia();
+						osystem.console().switches().update();
+						TIA& tia = osystem.console().tia();
 						tia.update();
 						ev.set(Event::ConsoleReset, 0);
 						startGameFromMenu();

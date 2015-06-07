@@ -1,17 +1,17 @@
-/*  This file is part of PCE.emu.
+/*  This file is part of 2600.emu.
 
-	PCE.emu is free software: you can redistribute it and/or modify
+	2600.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	PCE.emu is distributed in the hope that it will be useful,
+	2600.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <stella/emucore/Console.hxx>
@@ -25,26 +25,20 @@
 #include <stella/emucore/StateManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
-#include "ImagineSound.hh"
+#include "SoundGeneric.hh"
 #include <unzip.h>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <emuframework/CommonGui.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
-static ImagineSound *vcsSound = 0;
-static uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
-static uint tiaSoundRate = 0;
-Console *console = nullptr;
-Properties currGameProps;
-#include "MiscStella.hh"
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
-
-static Cartridge *cartridge = nullptr;
-OSystem osystem;
-static StateManager stateManager(&osystem);
+extern OSystem osystem;
+static StateManager stateManager{osystem};
+Properties defaultGameProps{};
 bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
-
+static const uint vidBufferX = 160, vidBufferY = 320;
+alignas(8) static uInt16 pixBuff[vidBufferX*vidBufferY]{};
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "Select/Reset";
 const uint EmuSystem::inputFaceBtns = 2;
@@ -157,9 +151,6 @@ void EmuSystem::writeConfig(IO &io)
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
 }
 
-static const uint vidBufferX = 160, vidBufferY = 320;
-static uint16 pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
-
 static bool isVCSRomExtension(const char *name)
 {
 	return string_hasDotExtension(name, "a26") || string_hasDotExtension(name, "bin");
@@ -212,8 +203,7 @@ void EmuSystem::saveBackupMem() { }
 
 void EmuSystem::closeSystem()
 {
-	delete console;
-	console = nullptr;
+	osystem.deleteConsole();
 }
 
 static void updateSwitchValues()
@@ -228,7 +218,7 @@ static void updateSwitchValues()
 
 bool EmuSystem::vidSysIsPAL()
 {
-	return osystem.settings().value("framerate") == 50.0;
+	return osystem.settings().getFloat("framerate") == 50.0;
 }
 uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
@@ -306,28 +296,31 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 static int loadGameCommon(const uint8 *buff, uint size)
 {
 	string md5 = MD5(buff, size);
-	osystem.propSet().getMD5(md5, currGameProps);
-	string romType = currGameProps.get(Cartridge_Type);
+	Properties props;
+	osystem.propSet().getMD5(md5, props);
+	defaultGameProps = props;
+	string romType = props.get(Cartridge_Type);
 	string cartId;
 	auto &settings = osystem.settings();
 	settings.setValue("romloadcount", 0);
-	cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
-	Properties props = currGameProps;
+	auto cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
 	}
+	osystem.frameBuffer().enablePhosphor(props.get(Display_Phosphor) == "YES",
+		atoi(props.get(Display_PPBlend).c_str()));
 	if((int)optionVideoSystem) // not auto
 	{
 		logMsg("forcing video system to: %s", optionVideoSystemToStr());
 		props.set(Display_Format, optionVideoSystemToStr());
 	}
-	console = new Console(&osystem, cartridge, props);
-	settings.setValue("framerate", (int)console->getFramerate());
-	osystem.myConsole = console;
-	emuVideo.initImage(0, vidBufferX, console->tia().height());
-	console->initializeVideo();
-	console->initializeAudio();
+	osystem.makeConsole(cartridge, props);
+	auto &console = osystem.console();
+	settings.setValue("framerate", (int)console.getFramerate());
+	emuVideo.initImage(0, vidBufferX, console.tia().height());
+	console.initializeVideo();
+	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
 	EmuSystem::configAudioPlayback();
 	return 1;
@@ -372,12 +365,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	tiaSoundRate = std::round(optionSoundRate * (osystem.settings().getFloat("framerate") * frameTime));
-	if(gameIsRunning())
-	{
-		vcsSound->tiaSound().outputFrequency(tiaSoundRate);
-	}
-	logMsg("set sound rate %d", tiaSoundRate);
+	osystem.soundGeneric().setFrameTime(osystem, optionSoundRate, frameTime);
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
@@ -500,60 +488,28 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
-	console->controller(Controller::Left).update();
-	console->controller(Controller::Right).update();
-	console->switches().update();
-	auto &tia = console->tia();
+	auto &console = osystem.console();
+	console.leftController().update();
+	console.rightController().update();
+	console.switches().update();
+	auto &tia = console.tia();
 	tia.update();
 	if(renderGfx)
 	{
-		assert(tia.height() <= 320);
-		uint h = tia.height();
-		if(osystem.frameBuffer().myUsePhosphor)
-		{
-			uint8* currentFrame = tia.currentFrameBuffer();
-			uint8* prevFrame = tia.previousFrameBuffer();
-			iterateTimes(160 * h, i)
-			{
-				pixBuff[i] = tiaPhosphorColorMap[currentFrame[i]][prevFrame[i]];
-			}
-		}
-		else
-		{
-			uint8* currentFrame = tia.currentFrameBuffer() /*+ (tia.ystart() * 160)*/;
-			iterateTimes(160 * h, i)
-			{
-				pixBuff[i] = tiaColorMap[currentFrame[i]];
-			}
-		}
+		osystem.frameBuffer().render(pixBuff, tia);
 		updateAndDrawEmuVideo();
 	}
-
-	#ifdef USE_NEW_AUDIO
-	if(renderAudio)
-	{
-		auto aBuff = Audio::getPlayBuffer(audioFramesPerVideoFrame);
-		if(!aBuff) return;
-		vcsSound->processAudio((Int16*)aBuff.data, aBuff.frames);
-		commitSound(aBuff, aBuff.frames);
-	}
-	else
-	{
-		vcsSound->processAudio(nullptr, 0);
-	}
-	#else
 	auto frames = audioFramesPerVideoFrame;
-	Int16 buff[frames*soundChannels];
-	vcsSound->processAudio(buff, frames);
+	Int16 buff[frames * soundChannels];
+	uint writtenFrames = osystem.soundGeneric().processAudio(buff, frames);
 	if(renderAudio)
-		writeSound(buff, frames);
-	#endif
+		writeSound(buff, writtenFrames);
 }
 
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
-	console->system().reset();
+	osystem.console().system().reset();
 }
 
 int EmuSystem::saveState()
@@ -592,11 +548,12 @@ namespace Base
 
 CallResult onInit(int argc, char** argv)
 {
+	osystem.settings().setValue("framerate", 60); // set to avoid auto-frame calculation
+	Paddles::setDigitalSensitivity(5);
+	Paddles::setMouseSensitivity(7);
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
 	emuVideo.initPixmap((char*)pixBuff, IG::PIXEL_FMT_RGB565, vidBufferX, vidBufferY);
-	Settings *settings = new Settings(&osystem);
-	settings->setValue("framerate", 60); // set to avoid auto-frame calculation
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{

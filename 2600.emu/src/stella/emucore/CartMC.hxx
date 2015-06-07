@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.hxx 2695 2013-04-17 17:25:13Z stephena $
+// $Id: CartMC.hxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEMC_HXX
@@ -137,7 +137,7 @@ class System;
 
 
   @author  Bradford W. Mott
-  @version $Id: CartMC.hxx 2695 2013-04-17 17:25:13Z stephena $
+  @version $Id: CartMC.hxx 3131 2015-01-01 03:49:32Z stephena $
 */
 class CartridgeMC : public Cartridge
 {
@@ -175,16 +175,9 @@ class CartridgeMC : public Cartridge
     void install(System& system);
 
     /**
-      Install pages for the specified bank in the system.
-
-      @param bank The bank that should be installed in the system
-    */
-    bool bank(uInt16 bank);
-
-    /**
       Get the current bank.
     */
-    uInt16 bank() const;
+    uInt16 getBank() const;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -236,10 +229,10 @@ class CartridgeMC : public Cartridge
       Get debugger widget responsible for accessing the inner workings
       of the cart.
     */
-    CartDebugWidget* debugWidget(GuiObject* boss,
-        const GUI::Font& font, int x, int y, int w, int h)
+    CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
+        const GUI::Font& nfont, int x, int y, int w, int h)
     {
-      return new CartridgeMCWidget(boss, font, x, y, w, h, *this);
+      return new CartridgeMCWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 

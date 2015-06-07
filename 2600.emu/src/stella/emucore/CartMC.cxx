@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: CartMC.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -68,12 +68,12 @@ void CartridgeMC::reset()
 void CartridgeMC::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
 
+/*
   // Make sure the system we're being installed in has a page size that'll work
   assert(((0x1000 & mask) == 0) && ((0x1400 & mask) == 0) &&
       ((0x1800 & mask) == 0) && ((0x1C00 & mask) == 0));
+*/
 
   // Set the page accessing methods for the hot spots in the TIA.  For 
   // correct emulation I would need to chain any accesses below 0x40 to 
@@ -82,15 +82,15 @@ void CartridgeMC::install(System& system)
   // TODO: These TIA accesses may need to be chained, however, at this
   //       point Chris isn't sure if the hardware will allow it or not
   //
-  System::PageAccess access(0, 0, 0, this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PA_READWRITE);
 
-  for(uInt32 i = 0x00; i < 0x40; i += (1 << shift))
-    mySystem->setPageAccess(i >> shift, access);
+  for(uInt32 i = 0x00; i < 0x40; i += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   // Map the cartridge into the system
   access.type = System::PA_READ;  // We don't yet indicate RAM areas
-  for(uInt32 j = 0x1000; j < 0x2000; j += (1 << shift))
-    mySystem->setPageAccess(j >> shift, access);
+  for(uInt32 j = 0x1000; j < 0x2000; j += (1 << System::PAGE_SHIFT))
+    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -210,14 +210,7 @@ bool CartridgeMC::poke(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeMC::bank(uInt16 b)
-{
-  // Doesn't support bankswitching in the normal sense
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeMC::bank() const
+uInt16 CartridgeMC::getBank() const
 {
   // TODO - add support for debugger
   return 0;

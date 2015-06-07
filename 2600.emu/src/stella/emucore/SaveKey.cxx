@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SaveKey.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: SaveKey.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
 #include "MT24LC256.hxx"
@@ -24,10 +24,9 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
                  const string& eepromfile)
-  : Controller(jack, event, system, Controller::SaveKey),
-    myEEPROM(NULL)
+  : Controller(jack, event, system, Controller::SaveKey)
 {
-  myEEPROM = new MT24LC256(eepromfile, system);
+  myEEPROM = make_ptr<MT24LC256>(eepromfile, system);
 
   myDigitalPinState[One] = myDigitalPinState[Two] = true;
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
@@ -36,7 +35,6 @@ SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveKey::~SaveKey()
 {
-  delete myEEPROM;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

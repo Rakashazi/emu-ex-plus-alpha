@@ -8,16 +8,15 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2013 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart2K.cxx 2579 2013-01-04 19:49:01Z stephena $
+// $Id: Cart2K.cxx 3131 2015-01-01 03:49:32Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstring>
 
 #include "System.hxx"
@@ -25,7 +24,8 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cartridge2K::Cartridge2K(const uInt8* image, uInt32 size, const Settings& settings)
-  : Cartridge(settings)
+  : Cartridge(settings),
+    myImage(nullptr)
 {
   // Size can be a maximum of 2K
   if(size > 2048) size = 2048;
@@ -70,20 +70,14 @@ void Cartridge2K::reset()
 void Cartridge2K::install(System& system)
 {
   mySystem = &system;
-  uInt16 shift = mySystem->pageShift();
-  uInt16 mask = mySystem->pageMask();
-
-  // Make sure the system we're being installed in has a page size that'll work
-  assert((0x1000 & mask) == 0);
 
   // Map ROM image into the system
-  System::PageAccess access(0, 0, 0, this, System::PA_READ);
-
-  for(uInt32 address = 0x1000; address < 0x2000; address += (1 << shift))
+  System::PageAccess access(this, System::PA_READ);
+  for(uInt32 address = 0x1000; address < 0x2000; address += (1 << System::PAGE_SHIFT))
   {
     access.directPeekBase = &myImage[address & myMask];
     access.codeAccessBase = &myCodeAccessBase[address & myMask];
-    mySystem->setPageAccess(address >> shift, access);
+    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
 }
 
@@ -99,26 +93,6 @@ bool Cartridge2K::poke(uInt16, uInt8)
   // This is ROM so poking has no effect :-)
   return false;
 } 
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Cartridge2K::bank(uInt16 bank)
-{
-  // Doesn't support bankswitching
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge2K::bank() const
-{
-  // Doesn't support bankswitching
-  return 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge2K::bankCount() const
-{
-  return 1;
-}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge2K::patch(uInt16 address, uInt8 value)
