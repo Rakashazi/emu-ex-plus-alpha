@@ -17,7 +17,6 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/number.h>
-#include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
@@ -26,22 +25,14 @@ using RingBufferType = StaticLinuxRingBuffer<>;
 
 namespace Audio
 {
-using namespace Base;
-
-PcmFormat preferredPcmFormat{44100, SampleFormats::s16, 2};
 PcmFormat pcmFormat{};
 static SLEngineItf slI{};
 static SLObjectItf outMix{}, player{};
 static SLPlayItf playerI{};
 static SLAndroidSimpleBufferQueueItf slBuffQI{};
 static uint wantedLatency = 100000;
-static uint preferredOutputBufferFrames = 0;
 static uint outputBufferBytes = 0; // size in bytes per buffer to enqueue
 static bool isPlaying_ = false, strictUnderrunCheck = true;
-static jobject audioManager{};
-static JavaInstMethod<jint(jobject, jint, jint)> jRequestAudioFocus{};
-static JavaInstMethod<jint(jobject)> jAbandonAudioFocus{};
-static bool soloMix_ = true;
 static bool reachedEndOfPlayback = false;
 static RingBufferType rBuff{};
 static uint unqueuedBytes = 0; // number of bytes in ring buffer that haven't been enqueued to SL yet
@@ -94,37 +85,10 @@ static void playCallback(SLPlayItf caller, void *, SLuint32 event)
 		logMsg("got playback end event");
 }
 
-static void setupAudioManagerJNI(JNIEnv* env)
-{
-	if(!audioManager)
-	{
-		JavaInstMethod<jobject()> jAudioManager{env, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
-		audioManager = jAudioManager(env, jBaseActivity);
-		assert(audioManager);
-		audioManager = env->NewGlobalRef(audioManager);
-		jclass jAudioManagerCls = env->GetObjectClass(audioManager);
-		jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
-		jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
-	}
-}
-
-static void requestAudioFocus(JNIEnv* env)
-{
-	setupAudioManagerJNI(env);
-	auto res = jRequestAudioFocus(env, audioManager, jBaseActivity, 3, 1);
-	//logMsg("%d from requestAudioFocus()", (int)res);
-}
-
-static void abandonAudioFocus(JNIEnv* env)
-{
-	setupAudioManagerJNI(env);
-	jAbandonAudioFocus(env, audioManager, jBaseActivity);
-}
-
 static uint bufferFramesForSampleRate(int rate)
 {
-	if(rate == preferredPcmFormat.rate && preferredOutputBufferFrames)
-		return preferredOutputBufferFrames;
+	if(rate == AudioManager::nativeFormat().rate && AudioManager::nativeOutputFramesPerBuffer())
+		return AudioManager::nativeOutputFramesPerBuffer();
 	else if(rate <= 22050)
 		return 256;
 	else if(rate <= 44100)
@@ -133,14 +97,35 @@ static uint bufferFramesForSampleRate(int rate)
 		return 1024;
 }
 
+static void init()
+{
+	logMsg("running init");
+
+	// engine object
+	SLObjectItf slE;
+	SLresult result = slCreateEngine(&slE, 0, nullptr, 0, nullptr, nullptr);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*slE)->Realize(slE, SL_BOOLEAN_FALSE);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
+	assert(result == SL_RESULT_SUCCESS);
+
+	// output mix object
+	result = (*slI)->CreateOutputMix(slI, &outMix, 0, nullptr, nullptr);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*outMix)->Realize(outMix, SL_BOOLEAN_FALSE);
+	assert(result == SL_RESULT_SUCCESS);
+}
+
 CallResult openPcm(const PcmFormat &format)
 {
-	assert(isInit());
 	if(player)
 	{
 		logWarn("called openPcm when pcm already on");
 		return OK;
 	}
+	if(unlikely(!isInit()))
+		init();
 	pcmFormat = format;
 
 	// setup ring buffer and related
@@ -357,129 +342,6 @@ void setHintStrictUnderrunCheck(bool on)
 bool hintStrictUnderrunCheck()
 {
 	return strictUnderrunCheck;
-}
-
-void setSoloMix(bool newSoloMix)
-{
-	if(soloMix_ != newSoloMix)
-	{
-		logMsg("setting solo mix: %d", newSoloMix);
-		soloMix_ = newSoloMix;
-		if(!isInit())
-			return; // audio init() will take care of initial focus setting
-		if(newSoloMix)
-		{
-			requestAudioFocus(jEnv());
-		}
-		else
-		{
-			abandonAudioFocus(jEnv());
-		}
-	}
-}
-
-bool soloMix()
-{
-	return soloMix_;
-}
-
-void updateFocusOnResume()
-{
-	if(slI && soloMix())
-	{
-		requestAudioFocus(jEnv());
-	}
-}
-
-void updateFocusOnPause()
-{
-	if(slI && soloMix())
-	{
-		abandonAudioFocus(jEnv());
-	}
-}
-
-bool hasLowLatency()
-{
-	// preferredOutputBufferFrames is only set if device reports low-latency audio
-	return preferredOutputBufferFrames;
-}
-
-static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)> &jGetProperty, const char *propStr)
-{
-	auto propJStr = env->NewStringUTF(propStr);
-	auto valJStr = (jstring)jGetProperty(env, audioManager, propJStr);
-	env->DeleteLocalRef(propJStr);
-	if(!valJStr)
-	{
-		logWarn("%s is null", propStr);
-		return 0;
-	}
-	auto valStr = env->GetStringUTFChars(valJStr, nullptr);
-	int val = atoi(valStr);
-	env->ReleaseStringUTFChars(valJStr, valStr);
-	env->DeleteLocalRef(valJStr);
-	return val;
-}
-
-CallResult init()
-{
-	logMsg("running init");
-	{
-		auto env = jEnv();
-		JavaInstMethod<void(jint)> jSetVolumeControlStream{env, jBaseActivityCls, "setVolumeControlStream", "(I)V"};
-		jSetVolumeControlStream(env, jBaseActivity, 3);
-
-		// check preferred settings for low latency
-		if(Base::androidSDK() >= 17)
-		{
-			setupAudioManagerJNI(env);
-			jclass jAudioManagerCls = env->GetObjectClass(audioManager);
-			JavaInstMethod<jobject(jstring)> jGetProperty{env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;"};
-			preferredPcmFormat.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
-			if(preferredPcmFormat.rate != 44100 && preferredPcmFormat.rate != 48000)
-			{
-				// only support 44KHz and 48KHz for now
-				logMsg("ignoring preferred sample rate: %d", preferredPcmFormat.rate);
-				preferredPcmFormat.rate = 44100;
-			}
-			else
-			{
-				logMsg("set preferred sample rate: %d", preferredPcmFormat.rate);
-				// find the preferred buffer size for this rate if device has low-latency support
-				JavaInstMethod<jboolean()> jHasLowLatencyAudio{env, jBaseActivityCls, "hasLowLatencyAudio", "()Z"};
-				if(jHasLowLatencyAudio(env, jBaseActivity))
-				{
-					preferredOutputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
-					if(!preferredOutputBufferFrames)
-						logMsg("preferred buffer frames value not present");
-					else
-						logMsg("set preferred buffer frames: %d", preferredOutputBufferFrames);
-				}
-				else
-					logMsg("no low-latency support");
-			}
-		}
-	}
-
-	updateFocusOnResume();
-
-	// engine object
-	SLObjectItf slE;
-	SLresult result = slCreateEngine(&slE, 0, nullptr, 0, nullptr, nullptr);
-	assert(result == SL_RESULT_SUCCESS);
-	result = (*slE)->Realize(slE, SL_BOOLEAN_FALSE);
-	assert(result == SL_RESULT_SUCCESS);
-	result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
-	assert(result == SL_RESULT_SUCCESS);
-
-	// output mix object
-	result = (*slI)->CreateOutputMix(slI, &outMix, 0, nullptr, nullptr);
-	assert(result == SL_RESULT_SUCCESS);
-	result = (*outMix)->Realize(outMix, SL_BOOLEAN_FALSE);
-	assert(result == SL_RESULT_SUCCESS);
-
-	return OK;
 }
 
 }

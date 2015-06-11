@@ -42,8 +42,6 @@ AAssetManager *activityAAssetManager();
 
 jobject newFontRenderer(JNIEnv *env);
 
-bool hasLowLatencyAudio();
-
 jobject makeSurfaceTexture(JNIEnv *env, jint texName);
 jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode);
 void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
@@ -55,10 +53,4 @@ void releaseSurface(JNIEnv *env, jobject surface);
 
 int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format);
 
-}
-
-namespace Audio
-{
-	void updateFocusOnPause();
-	void updateFocusOnResume();
 }

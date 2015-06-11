@@ -5,6 +5,6 @@ configDefs += CONFIG_AUDIO CONFIG_AUDIO_COREAUDIO
 
 SRC +=  audio/coreaudio/coreaudio.cc
 
-LDLIBS += -framework AudioToolbox -framework CoreAudio
+LDLIBS += -framework AudioToolbox
 
 endif

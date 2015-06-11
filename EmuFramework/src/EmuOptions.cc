@@ -254,6 +254,8 @@ Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
 void initOptions()
 {
+	optionSoundRate.initDefault(AudioManager::nativeFormat().rate);
+
 	#ifdef CONFIG_BASE_IOS
 	if(Base::deviceIsIPad())
 		optionFontSize.initDefault(5000);
@@ -299,7 +301,7 @@ void initOptions()
 	{
 		optionVibrateOnPush.isConst = 1;
 	}
-	if(Audio::hasLowLatency()) // setup for low-latency
+	if(AudioManager::hasLowLatency()) // setup for low-latency
 	{
 		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 		optionSoundUnderrunCheck.initDefault(0);

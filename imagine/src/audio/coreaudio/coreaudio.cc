@@ -20,23 +20,17 @@
 #include <imagine/util/thread/pthread.hh>
 #include <imagine/util/ringbuffer/MachRingBuffer.hh>
 #include <AudioUnit/AudioUnit.h>
-#include <AudioToolbox/AudioToolbox.h>
 #include <TargetConditionals.h>
 
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { 44100, SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
 static uint wantedLatency = 100000;
-static AudioComponentInstance outputUnit = nullptr;
+static AudioComponentInstance outputUnit{};
 static AudioStreamBasicDescription streamFormat;
 static bool isPlaying_ = false, isOpen_ = false, hadUnderrun = false;
 static StaticMachRingBuffer<> rBuff;
-#if TARGET_OS_IPHONE
-static bool sessionInit = false;
-static bool soloMix_ = true;
-#endif
 
 int maxRate()
 {
@@ -106,14 +100,48 @@ static CallResult openUnit(AudioStreamBasicDescription &fmt, uint bufferSize)
 	return OK;
 }
 
+static void init()
+{
+	logMsg("setting up playback audio unit");
+	AudioComponentDescription defaultOutputDescription =
+	{
+		kAudioUnitType_Output,
+		#if TARGET_OS_IPHONE
+		kAudioUnitSubType_RemoteIO,
+		#else
+		kAudioUnitSubType_DefaultOutput,
+		#endif
+		kAudioUnitManufacturer_Apple
+	};
+	AudioComponent defaultOutput = AudioComponentFindNext(nullptr, &defaultOutputDescription);
+	assert(defaultOutput);
+	auto err = AudioComponentInstanceNew(defaultOutput, &outputUnit);
+	if(!outputUnit)
+	{
+		bug_exit("error creating output unit: %d", (int)err);
+	}
+	AURenderCallbackStruct renderCallbackProp =
+	{
+		outputCallback,
+		//nullptr
+	};
+	err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
+	    0, &renderCallbackProp, sizeof(renderCallbackProp));
+	if(err)
+	{
+		bug_exit("error setting callback: %d", (int)err);
+	}
+}
+
 CallResult openPcm(const PcmFormat &format)
 {
-	assert(isInit());
 	if(isOpen())
 	{
 		logWarn("audio unit already open");
 		return OK;
 	}
+	if(unlikely(!isInit()))
+		init();
 	streamFormat.mSampleRate = format.rate;
 	streamFormat.mFormatID = kAudioFormatLinearPCM;
 	streamFormat.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian;
@@ -230,90 +258,6 @@ int frameDelay() { return 0; }
 int framesFree()
 {
 	return rBuff.freeSpace() / streamFormat.mBytesPerFrame;
-}
-
-#if TARGET_OS_IPHONE
-static void setAudioCategory(UInt32 category)
-{
-	AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(category), &category);
-}
-
-void setSoloMix(bool newSoloMix)
-{
-	if(soloMix_ != newSoloMix)
-	{
-		logMsg("setting solo mix: %d", newSoloMix);
-		soloMix_ = newSoloMix;
-		if(!isInit())
-			return; // audio init() will take care of initial focus setting
-		setAudioCategory(newSoloMix ? kAudioSessionCategory_SoloAmbientSound : kAudioSessionCategory_AmbientSound);
-	}
-}
-
-bool soloMix()
-{
-	return soloMix_;
-}
-
-void initSession()
-{
-	AudioSessionInitialize(nullptr, nullptr,
-		[](void *inUserData, UInt32 interruptionState)
-		{
-			if(interruptionState == kAudioSessionEndInterruption)
-			{
-				logMsg("re-activating audio session");
-				AudioSessionSetActive(true);
-			}
-		}, nullptr);
-	sessionInit = true;
-}
-#endif
-
-CallResult init()
-{
-	#if TARGET_OS_IPHONE
-	assert(sessionInit);
-	if(!soloMix_)
-		setAudioCategory(kAudioSessionCategory_AmbientSound); // kAudioSessionCategory_SoloAmbientSound is default
-	#endif
-	logMsg("setting up playback audio unit");
-	AudioComponentDescription defaultOutputDescription =
-	{
-		kAudioUnitType_Output,
-		#if TARGET_OS_IPHONE
-		kAudioUnitSubType_RemoteIO,
-		#else
-		kAudioUnitSubType_DefaultOutput,
-		#endif
-		kAudioUnitManufacturer_Apple
-	};
-	AudioComponent defaultOutput = AudioComponentFindNext(nullptr, &defaultOutputDescription);
-	assert(defaultOutput);
-	auto err = AudioComponentInstanceNew(defaultOutput, &outputUnit);
-	if(!outputUnit)
-	{
-		bug_exit("error creating output unit: %d", (int)err);
-	}
-	AURenderCallbackStruct renderCallbackProp =
-	{
-		outputCallback,
-		//nullptr
-	};
-	err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
-	    0, &renderCallbackProp, sizeof(renderCallbackProp));
-	if(err)
-	{
-		bug_exit("error setting callback: %d", (int)err);
-	}
-
-	#if TARGET_OS_IPHONE
-	if(AudioSessionSetActive(true) != kAudioSessionNoError)
-	{
-		logWarn("error in AudioSessionSetActive()");
-	}
-	#endif
-	return OK;
 }
 
 }

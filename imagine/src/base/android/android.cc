@@ -323,9 +323,6 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			logMsg("app resumed");
 			appState = APP_RUNNING;
-			#ifdef CONFIG_AUDIO
-			Audio::updateFocusOnResume();
-			#endif
 			Screen::setActiveAll(true);
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onResumeMOGA(jEnv(), true);
@@ -342,9 +339,6 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
 			Screen::setActiveAll(false);
 			dispatchOnExit(appState == APP_PAUSED);
-			#ifdef CONFIG_AUDIO
-			Audio::updateFocusOnPause();
-			#endif
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onPauseMOGA(activity->env);
 			#endif

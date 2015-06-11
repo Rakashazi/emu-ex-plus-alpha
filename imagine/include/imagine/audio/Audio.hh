@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
+#include <imagine/audio/AudioManager.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 
 #if defined CONFIG_AUDIO_ALSA
@@ -26,19 +27,14 @@
 
 namespace Audio
 {
-
 	namespace Config
 	{
 	#define CONFIG_AUDIO_LATENCY_HINT
-
-	#if defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_COREAUDIO
-	#define CONFIG_AUDIO_SOLO_MIX
-	#endif
 	}
 
 struct BufferContext
 {
-	void *data = nullptr;
+	void *data{};
 	uframes frames = 0;
 
 	constexpr BufferContext() {}
@@ -50,10 +46,8 @@ struct BufferContext
 	}
 };
 
-extern PcmFormat preferredPcmFormat;
 extern PcmFormat pcmFormat; // the currently playing format
 
-[[gnu::cold]] CallResult init();
 CallResult openPcm(const PcmFormat &format);
 void closePcm();
 void pausePcm();
@@ -71,20 +65,4 @@ uint hintOutputLatency();
 void setHintStrictUnderrunCheck(bool on);
 bool hintStrictUnderrunCheck();
 int maxRate();
-
-#ifdef CONFIG_AUDIO_SOLO_MIX
-void setSoloMix(bool newSoloMix);
-bool soloMix();
-#else
-static void setSoloMix(bool newSoloMix) {}
-static bool soloMix() { return 0; }
-#endif
-
-// shortcuts
-static PcmFormat &pPCM = preferredPcmFormat;
-
-static CallResult openPcm(int rate) { return openPcm({ rate, pPCM.sample, pPCM.channels }); }
-static CallResult openPcm(int rate, int channels) { return openPcm({ rate, pPCM.sample, channels }); }
-static CallResult openPcm() { return openPcm(pPCM); }
-static bool supportsRateNative(int rate) { return rate <= pPCM.rate; }
 }

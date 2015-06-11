@@ -34,6 +34,11 @@ struct SampleFormat
 	{
 		return bits == rhs.bits;
 	}
+
+	explicit operator bool() const
+	{
+		return bits;
+	}
 };
 
 namespace SampleFormats

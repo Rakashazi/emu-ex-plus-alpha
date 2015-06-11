@@ -34,7 +34,7 @@ Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
 uint EmuSystem::emuFrameNow = 0;
 bool EmuSystem::runFrameOnDraw = false;
 int EmuSystem::saveStateSlot = 0;
-Audio::PcmFormat EmuSystem::pcmFormat = Audio::pPCM;
+Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::Timer EmuSystem::autoSaveStateTimer;

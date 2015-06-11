@@ -45,6 +45,11 @@ public:
 		return rate == rhs.rate && sample == rhs.sample && channels == rhs.channels;
 	}
 
+	explicit operator bool() const
+	{
+		return rate != 0 && sample && channels != 0;
+	}
+
 	uint framesToBytes(uint frames) const
 	{
 		return frames * sample.toBytes() * channels;

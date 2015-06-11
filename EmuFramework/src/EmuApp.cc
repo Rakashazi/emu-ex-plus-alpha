@@ -468,6 +468,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Base::setOnResume(
 		[](bool focused)
 		{
+			AudioManager::startSession();
 			Gfx::bind();
 			if(updateInputDevicesOnResume)
 			{
@@ -500,6 +501,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 		[](bool backgrounded)
 		{
 			Audio::closePcm();
+			AudioManager::endSession();
 			Gfx::bind();
 			if(backgrounded)
 			{
@@ -596,11 +598,10 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	auto launchGame = parseCmdLineArgs(argc, argv);
 	loadConfigFile();
 	EmuSystem::onOptionsLoaded();
+	AudioManager::setMusicVolumeControlHint();
+	AudioManager::startSession();
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
-	Audio::init();
-	if(Config::envIsAndroid)
-		optionSoundRate.initDefault(Audio::pPCM.rate);
 
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	Gfx::init((IG::PixelFormatID)optionWindowPixelFormat.val);

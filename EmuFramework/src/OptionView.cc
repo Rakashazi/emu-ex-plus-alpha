@@ -173,7 +173,7 @@ void OptionView::audioRateInit()
 		"22KHz", "32KHz", "44KHz", "48KHz"
 	};
 	int rates = 3;
-	if(Audio::supportsRateNative(48000))
+	if(AudioManager::nativeFormat().rate >= 48000)
 	{
 		logMsg("supports 48KHz");
 		rates++;

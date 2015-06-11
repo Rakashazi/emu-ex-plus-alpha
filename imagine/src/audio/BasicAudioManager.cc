@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,36 +13,24 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <android/api-level.h>
-#include <imagine/engine-globals.h>
-
-namespace Base
-{
-
-uint androidSDK();
-void setProcessPriority(int nice);
-int processPriority();
-bool apkSignatureIsConsistent();
-const char *androidBuildDevice();
-bool packageIsInstalled(const char *name);
-
-}
+#include <imagine/audio/AudioManager.hh>
 
 namespace AudioManager
 {
 
-uint nativeOutputFramesPerBuffer();
-bool hasLowLatency();
-
+Audio::PcmFormat nativeFormat()
+{
+	return {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, Audio::SampleFormats::s16, 2};
 }
 
-namespace Input
-{
+void setSoloMix(bool newSoloMix) {}
 
-void initMOGA(bool notify);
-void deinitMOGA();
-bool mogaSystemIsActive();
-void devicesChanged();
-bool hasTrackball();
+bool soloMix() { return false; }
+
+void setMusicVolumeControlHint() {}
+
+void startSession() {}
+
+void endSession() {}
 
 }

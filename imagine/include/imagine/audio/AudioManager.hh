@@ -15,36 +15,23 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <android/api-level.h>
 #include <imagine/engine-globals.h>
-
-namespace Base
-{
-
-uint androidSDK();
-void setProcessPriority(int nice);
-int processPriority();
-bool apkSignatureIsConsistent();
-const char *androidBuildDevice();
-bool packageIsInstalled(const char *name);
-
-}
+#include <imagine/util/audio/PcmFormat.hh>
 
 namespace AudioManager
 {
+	namespace Config
+	{
+	#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
+	#define CONFIG_AUDIO_MANAGER_SOLO_MIX
+	#endif
+	}
 
-uint nativeOutputFramesPerBuffer();
-bool hasLowLatency();
-
-}
-
-namespace Input
-{
-
-void initMOGA(bool notify);
-void deinitMOGA();
-bool mogaSystemIsActive();
-void devicesChanged();
-bool hasTrackball();
+Audio::PcmFormat nativeFormat();
+void setSoloMix(bool newSoloMix);
+bool soloMix();
+void setMusicVolumeControlHint();
+void startSession();
+void endSession();
 
 }

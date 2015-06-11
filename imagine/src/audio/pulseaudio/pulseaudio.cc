@@ -17,6 +17,7 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <pulse/pulseaudio.h>
 #ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
 #include <pulse/glib-mainloop.h>
@@ -27,18 +28,17 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat { 48000, SampleFormats::s16, 2 };
 PcmFormat pcmFormat;
 static uint wantedLatency = 100000;
-static pa_context* context = nullptr;
-static pa_stream* stream = nullptr;
+static pa_context* context{};
+static pa_stream* stream{};
 static bool isCorked = true;
 
 #ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
-static pa_glib_mainloop* mainloop = nullptr;
+static pa_glib_mainloop* mainloop{};
 static bool mainLoopSignaled = false;
 #else
-static pa_threaded_mainloop* mainloop = nullptr;
+static pa_threaded_mainloop* mainloop{};
 #endif
 
 int maxRate()
@@ -130,6 +130,7 @@ static void freeMainLoop()
 	#else
 	pa_threaded_mainloop_free(mainloop);
 	#endif
+	mainloop = {};
 }
 
 static pa_sample_format_t pcmFormatToPA(const SampleFormat &format)
@@ -253,12 +254,77 @@ void writePcm(const void *samples, uint framesToWrite)
 	iterateMainLoop();
 }
 
+static CallResult init()
+{
+	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	mainloop = pa_glib_mainloop_new(nullptr);
+	context = pa_context_new(pa_glib_mainloop_get_api(mainloop), "Test");
+	logMsg("init with GLIB main loop");
+	#else
+	mainloop = pa_threaded_mainloop_new();
+	context = pa_context_new(pa_threaded_mainloop_get_api(mainloop), "Test");
+	logMsg("init with threaded main loop");
+	#endif
+	auto freeMain = IG::scopeGuard([](){ freeMainLoop(); });
+	if(!context)
+	{
+		logErr("unable to create context");
+		return IO_ERROR;
+	}
+	auto unrefContext = IG::scopeGuard([](){
+		pa_context_unref(context);
+		context = {};
+	});
+	pa_context_state_t finalState = PA_CONTEXT_FAILED;
+	pa_context_set_state_callback(context,
+		[](pa_context *context, void *finalStateOut)
+		{
+			auto state = pa_context_get_state(context);
+			switch(state)
+			{
+				case PA_CONTEXT_READY:
+				case PA_CONTEXT_FAILED:
+				case PA_CONTEXT_TERMINATED:
+					*((pa_context_state_t*)finalStateOut) = state;
+					signalMainLoop();
+				bdefault:
+				break;
+			}
+		}, &finalState);
+	if(pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0)
+	{
+		logErr("unable to connect context");
+		return IO_ERROR;
+	}
+	lockMainLoop();
+	startMainLoop();
+	waitMainLoop();
+	pa_context_set_state_callback(context, nullptr, nullptr);
+	if(finalState != PA_CONTEXT_READY)
+	{
+		logErr("context connection failed");
+		unlockMainLoop();
+		stopMainLoop();
+		return IO_ERROR;
+	}
+	unlockMainLoop();
+	unrefContext.cancel();
+	freeMain.cancel();
+	return OK;
+}
+
 CallResult openPcm(const PcmFormat &format)
 {
 	if(isOpen())
 	{
 		logMsg("audio already open");
 		return OK;
+	}
+	if(unlikely(!context))
+	{
+		auto res = init();
+		if(res != OK)
+			return res;
 	}
 	pcmFormat = format;
 	pa_sample_spec spec {(pa_sample_format_t)0};
@@ -351,63 +417,6 @@ bool isPlaying()
 //	bool isCorked = pa_stream_is_corked(stream);
 //	unlockMainLoop();
 //	return !isCorked;
-}
-
-CallResult init()
-{
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
-	mainloop = pa_glib_mainloop_new(nullptr);
-	context = pa_context_new(pa_glib_mainloop_get_api(mainloop), "Test");
-	logMsg("init with GLIB main loop");
-	#else
-	mainloop = pa_threaded_mainloop_new();
-	context = pa_context_new(pa_threaded_mainloop_get_api(mainloop), "Test");
-	logMsg("init with threaded main loop");
-	#endif
-	if(!context)
-	{
-		logErr("unable to create context");
-		freeMainLoop();
-		return IO_ERROR;
-	}
-	pa_context_state_t finalState = PA_CONTEXT_FAILED;
-	pa_context_set_state_callback(context,
-		[](pa_context *context, void *finalStateOut)
-		{
-			auto state = pa_context_get_state(context);
-			switch(state)
-			{
-				case PA_CONTEXT_READY:
-				case PA_CONTEXT_FAILED:
-				case PA_CONTEXT_TERMINATED:
-					*((pa_context_state_t*)finalStateOut) = state;
-					signalMainLoop();
-				bdefault:
-				break;
-			}
-		}, &finalState);
-	if(pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0)
-	{
-		logErr("unable to connect context");
-		pa_context_unref(context);
-		freeMainLoop();
-		return IO_ERROR;
-	}
-	lockMainLoop();
-	startMainLoop();
-	waitMainLoop();
-	pa_context_set_state_callback(context, nullptr, nullptr);
-	if(finalState != PA_CONTEXT_READY)
-	{
-		logErr("context connection failed");
-		pa_context_unref(context);
-		unlockMainLoop();
-		stopMainLoop();
-		freeMainLoop();
-		return IO_ERROR;
-	}
-	unlockMainLoop();
-	return OK;
 }
 
 }

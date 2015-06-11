@@ -24,8 +24,3 @@ namespace Base
 extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
 
 }
-
-namespace Audio
-{
-	void initSession();
-}

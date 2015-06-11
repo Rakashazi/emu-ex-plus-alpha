@@ -31,10 +31,8 @@
 namespace Audio
 {
 
-PcmFormat preferredPcmFormat {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, SampleFormats::s16, 2};
 PcmFormat pcmFormat;
-static snd_output_t *debugOutput = nullptr;
-static snd_pcm_t *pcmHnd = nullptr;
+static snd_pcm_t *pcmHnd{};
 static snd_pcm_uframes_t bufferSize, periodSize;
 static bool useMmap;
 static uint wantedLatency = 100000;
@@ -393,18 +391,6 @@ bool isOpen()
 bool isPlaying()
 {
 	return isOpen() && snd_pcm_state(pcmHnd) == SND_PCM_STATE_RUNNING;
-}
-
-CallResult init()
-{
-	/*int err = snd_output_stdio_attach(&debugOutput, stdout, 0);
-	if(err < 0)
-	{
-		logWarn("Output failed: %s", snd_strerror(err));
-		return INVALID_PARAMETER;
-	}*/
-
-	return OK;
 }
 
 }

@@ -204,9 +204,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		logMsg("running on iPad");
 	}
 	doOrAbort(Input::init());	
-	#ifdef CONFIG_AUDIO
-	Audio::initSession();
-	#endif
 	if(hasAtLeastIOS7())
 	{
 		#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
