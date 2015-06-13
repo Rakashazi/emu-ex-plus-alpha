@@ -27,7 +27,7 @@ static JavaInstMethod<jint(jobject)> jAbandonAudioFocus{};
 static bool soloMix_ = true;
 static bool sessionActive = false;
 static int outputBufferFrames = -1;
-static Audio::PcmFormat nativeFmt{};
+static Audio::PcmFormat nativeFmt{44100, Audio::SampleFormats::s16, 2};
 
 static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)> &jGetProperty, const char *propStr)
 {
@@ -116,10 +116,6 @@ Audio::PcmFormat nativeFormat()
 		if(Base::androidSDK() >= 17)
 		{
 			setAudioManagerProperties();
-		}
-		else
-		{
-			nativeFmt = {44100, Audio::SampleFormats::s16, 2};
 		}
 	}
 	assumeExpr(nativeFmt);
