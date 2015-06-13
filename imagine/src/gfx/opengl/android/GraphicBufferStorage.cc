@@ -117,13 +117,20 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 			return true;
 		if(string_equal(rendererStr, "PowerVR SGX 540"))
 			return true;
-		if(strstr(rendererStr, "Mali"))
+		if(string_equal(rendererStr, "Mali-400 MP"))
 			return true;
 		if(Base::androidSDK() >= 20 &&
 			string_equal(Base::androidBuildDevice(), "mako"))
 		{
 			// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
 			// other devices like the HTC One M7 will crash using GraphicBuffers
+			return true;
+		}
+		if(Base::androidSDK() >= 19 &&
+			string_equal(Base::androidBuildDevice(), "ha3g"))
+		{
+			// works on Galaxy Note 3 (SM-N900) with Mali-T628
+			// but not on all devices with this GPU
 			return true;
 		}
 	}
